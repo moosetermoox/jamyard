@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Host - Classroom Games</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <h1>Classroom Games</h1>
+
+  <!-- LOBBY SECTION -->
+  <section id="lobby-section">
+    <div id="room-code-section">
+      <div id="room-code">XXXX</div>
+      <button id="create-room-btn">Create Room</button>
+    </div>
+
+    <div id="players-section">
+      <h2>Players:</h2>
+      <ul id="player-list"></ul>
+    </div>
+
+    <button id="start-game-btn" disabled>Start Game</button>
+  </section>
+
+  <!-- COLLECT SECTION -->
+  <section id="collect-section" hidden>
+    <h2>Players are answering...</h2>
+    <p id="prompt-display" class="prompt"></p>
+    <p id="submission-count" class="big-text">0 of 0 submitted</p>
+    <button id="close-submissions-btn">Close Submissions</button>
+  </section>
+
+  <!-- PROCESS SECTION -->
+  <section id="process-section" hidden>
+    <h2>AI is creating your poem...</h2>
+    <p class="big-text">Working...</p>
+  </section>
+
+  <!-- REVEAL SECTION -->
+  <section id="reveal-section" hidden>
+    <h2>The AI Created:</h2>
+    <div id="ai-result" class="ai-result"></div>
+    <h3>Based on these responses:</h3>
+    <ul id="responses-list"></ul>
+    <button id="end-game-btn">End Game</button>
+  </section>
+
+  <!-- END SECTION -->
+  <section id="end-section" hidden>
+    <h2 class="game-over">Game Over!</h2>
+    <button id="play-again-btn">Play Again</button>
+  </section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="host.js"></script>
+</body>
+</html>

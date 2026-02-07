@@ -1,0 +1,128 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: sans-serif;
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  text-align: center;
+  background: #f5f5f5;
+}
+
+h1 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+}
+
+p {
+  font-size: 1.25rem;
+  color: #666;
+}
+
+section {
+  margin-top: 20px;
+}
+
+/* Inputs */
+input, textarea {
+  display: block;
+  width: 100%;
+  font-size: 1.25rem;
+  padding: 18px;
+  margin-bottom: 15px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  text-align: center;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: #4a90d9;
+}
+
+#room-code-input {
+  font-size: 2rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+
+#name-input {
+  text-align: left;
+}
+
+textarea {
+  text-align: left;
+  resize: vertical;
+  min-height: 120px;
+  font-family: inherit;
+}
+
+/* Buttons */
+button {
+  display: block;
+  width: 100%;
+  font-size: 1.5rem;
+  padding: 20px;
+  margin-top: 10px;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  background: #4a90d9;
+  color: white;
+}
+
+button:hover {
+  background: #357abd;
+}
+
+button:active {
+  background: #2a5f8f;
+}
+
+button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+#submit-btn {
+  background: #5cb85c;
+}
+
+#submit-btn:hover:not(:disabled) {
+  background: #449d44;
+}
+
+/* Error message */
+#error-message {
+  color: #d9534f;
+  margin-top: 15px;
+  font-weight: bold;
+}
+
+/* Prompt display */
+.prompt {
+  font-size: 1.5rem;
+  color: #333;
+  font-style: italic;
+  margin: 20px 0;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+}
+
+/* Status sections */
+#waiting-section h1,
+#submitted-section h1 {
+  color: #5cb85c;
+}
+
+#reveal-section h1 {
+  color: #4a90d9;
+}
+
+#end-section h1 {
+  color: #5cb85c;
+}

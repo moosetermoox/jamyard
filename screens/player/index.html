@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join Game</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- JOIN SECTION -->
+  <section id="join-section">
+    <h1>Join Game</h1>
+
+    <input
+      type="text"
+      id="room-code-input"
+      placeholder="ROOM CODE"
+      maxlength="4"
+      autocapitalize="characters"
+    >
+
+    <input
+      type="text"
+      id="name-input"
+      placeholder="Your name or leave blank for Anonymous"
+      maxlength="20"
+    >
+
+    <button id="join-btn">Join</button>
+    <p id="error-message" hidden></p>
+  </section>
+
+  <!-- WAITING SECTION -->
+  <section id="waiting-section" hidden>
+    <h1>You're in!</h1>
+    <p>Playing as: <strong id="player-name"></strong></p>
+    <p>Waiting for game to start...</p>
+  </section>
+
+  <!-- COLLECT SECTION -->
+  <section id="collect-section" hidden>
+    <h1>Answer the question:</h1>
+    <p id="prompt-display" class="prompt"></p>
+    <textarea
+      id="response-input"
+      placeholder="Type your answer here..."
+      rows="4"
+    ></textarea>
+    <button id="submit-btn">Submit</button>
+  </section>
+
+  <!-- SUBMITTED SECTION -->
+  <section id="submitted-section" hidden>
+    <h1>Answer submitted!</h1>
+    <p>Waiting for others...</p>
+  </section>
+
+  <!-- PROCESS SECTION -->
+  <section id="process-section" hidden>
+    <h1>AI is working on something special...</h1>
+    <p>Please wait...</p>
+  </section>
+
+  <!-- REVEAL SECTION -->
+  <section id="reveal-section" hidden>
+    <h1>The Result:</h1>
+    <div id="ai-result" class="ai-result"></div>
+  </section>
+
+  <!-- END SECTION -->
+  <section id="end-section" hidden>
+    <h1>Thanks for playing!</h1>
+    <p>The game has ended.</p>
+  </section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="player.js"></script>
+</body>
+</html>
