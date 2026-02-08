@@ -38,6 +38,7 @@ Gather text responses from players.
 |-------|------|---------|-------------|
 | prompt | string | required | Question shown to players |
 | timer | number | null | Seconds until auto-close (null = manual) |
+| timerWarning | number | 5 | Seconds before timer expires to show warning |
 | from | "all" \| "remaining" \| "eliminated" | "remaining" | Who can submit |
 
 **Outputs:** `responses` — array of `{ playerId, name, text }`
@@ -82,9 +83,12 @@ Players vote on options.
 | mode | "head-to-head" \| "pick-one" | required | Voting style |
 | candidates | string | required | Reference to voteable items |
 | voters | "all" \| "remaining" \| "eliminated" | "all" | Who can vote |
-| timer | number | null | Seconds per vote |
+| timer | number | null | Seconds per vote (head-to-head) or total (pick-one) |
+| timerWarning | number | 5 | Seconds before timer expires to show warning |
 
-**Outputs:** `votes` — array of `{ odenterId, choice }`, `scores` — map of candidateId → vote count
+**Head-to-head mode:** Each answer is seen ~3 times. Comparisons = `ceil(candidates * 3 / 2)`. Matchups randomized per voter.
+
+**Outputs:** `votes` — array of `{ voterId, choice }`, `scores` — map of candidateId → vote count
 
 ### 5. `eliminate`
 Remove players based on criteria.
@@ -121,7 +125,7 @@ Display content to all players.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| template | string | required | Text with `{{phase.field}}` placeholders |
+| template | string | required | Text with `{{phase.field}}` placeholders (simple substitution only, no conditionals) |
 | duration | number | null | Auto-advance after N seconds (null = manual) |
 
 ### 7. `winner`
@@ -461,19 +465,23 @@ If you need something truly custom, you can:
 
 ### Why no conditional branching?
 Conditionals (if/else in config) create implicit programming. Instead:
-- Use hooks that return dynamic data
-- Use templates with conditional display (e.g., `{{#if remaining.length > 0}}`)
+- Use hooks to prepare data (e.g., a hook can return different text based on conditions)
+- Templates use simple `{{phase.field}}` substitution only — no conditionals
 - Keep game flow linear; complexity lives in hooks
 
 ---
 
-## Open Questions
+## Resolved Design Questions
 
-1. **Template syntax**: Should we use Mustache, Handlebars, or something simpler?
-2. **Hook testing**: How do we provide test fixtures for hook development?
-3. **AI format validation**: When format is "json", should we validate against a schema?
-4. **Timer UX**: What happens when timer expires mid-submission?
-5. **Minimum viable voting**: For head-to-head, how many comparisons per voter?
+1. **Template syntax**: Simple `{{phase.field}}` substitution only. No conditionals in templates — if you need conditional display, use a hook to prepare the data first. This keeps templates readable and testable.
+
+2. **Timer behavior**: Players receive a warning before auto-submit. Configurable via `timerWarning` field (defaults to 5 seconds). When timer expires, any in-progress response is auto-submitted.
+
+3. **Head-to-head voting**: Each answer should be seen approximately 3 times to ensure fair comparison. The engine calculates the number of comparisons based on candidate count: `comparisons = ceil(candidates * 3 / 2)`. Matchups are randomized per voter.
+
+4. **AI JSON validation**: Validation and fallback rules will be defined in Prompt 2 (AI integration design).
+
+5. **Hook testing**: Testing approach and fixtures will be defined in Prompt 4 (hook system implementation).
 
 ---
 
