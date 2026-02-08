@@ -1,0 +1,33 @@
+{
+  "name": "Weekend Poem",
+  "description": "Share your weekend, get a class poem!",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "minPlayers": 3,
+      "next": "collect"
+    },
+    "collect": {
+      "type": "collect",
+      "prompt": "What did you do this weekend?",
+      "timer": 60,
+      "next": "process"
+    },
+    "process": {
+      "type": "ai-process",
+      "instruction": "Write a funny 4-line poem that cleverly combines all these weekend activities. Be playful and creative!",
+      "input": "collect.responses",
+      "format": "text",
+      "next": "reveal"
+    },
+    "reveal": {
+      "type": "reveal",
+      "template": "# Your Class Weekend Poem\n\n{{process.result}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for sharing your weekends!"
+    }
+  }
+}

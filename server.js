@@ -4,7 +4,10 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { readdir } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
+import { GameEngine } from './engine/game-engine.js';
+import { loadGame } from './engine/game-loader.js';
 import { gamePhases } from './config/game-phases.js';
 import { AIService } from './services/ai-service.js';
 
@@ -23,6 +26,9 @@ const roomManager = new RoomManager(gamePhases);
 const aiService = new AIService({ mode: aiMode });
 const socketToRoom = new Map();
 const roomToHost = new Map();
+
+const DEFAULT_GAME = 'weekend-poem';
+const GAMES_DIR = join(__dirname, 'games');
 
 app.get('/', (req, res) => {
   res.send(`
@@ -50,12 +56,50 @@ app.use('/player', express.static(join(__dirname, 'screens/player')));
 io.on('connection', (socket) => {
   console.log(`[connect] Socket ${socket.id} connected`);
 
-  socket.on('create-room', () => {
-    const code = roomManager.create();
-    roomToHost.set(code, socket.id);
-    socket.join(code);
-    console.log(`[create-room] Room ${code} created by ${socket.id}`);
-    socket.emit('room-created', { code });
+  socket.on('get-games', async () => {
+    try {
+      const entries = await readdir(GAMES_DIR, { withFileTypes: true });
+      const games = [];
+
+      for (const entry of entries) {
+        if (!entry.isDirectory() || entry.name.startsWith('_')) continue;
+        try {
+          const config = await loadGame(entry.name);
+          games.push({
+            id: entry.name,
+            name: config.name,
+            description: config.description || ''
+          });
+        } catch {
+          // Skip games with invalid configs
+        }
+      }
+
+      socket.emit('games-list', { games });
+    } catch (error) {
+      console.log(`[get-games] Error: ${error.message}`);
+      socket.emit('games-list', { games: [] });
+    }
+  });
+
+  socket.on('create-room', async ({ gameId } = {}) => {
+    const selectedGame = gameId || DEFAULT_GAME;
+
+    try {
+      const config = await loadGame(selectedGame);
+      const code = roomManager.create();
+      const room = roomManager.find(code);
+
+      room.engine = new GameEngine(config);
+
+      roomToHost.set(code, socket.id);
+      socket.join(code);
+      console.log(`[create-room] Room ${code} created by ${socket.id} (game: ${selectedGame})`);
+      socket.emit('room-created', { code, game: config.name });
+    } catch (error) {
+      console.log(`[create-room] Error loading game "${selectedGame}": ${error.message}`);
+      socket.emit('create-room-error', { message: error.message });
+    }
   });
 
   socket.on('join-room', ({ code, name }) => {
@@ -68,9 +112,11 @@ io.on('connection', (socket) => {
       return;
     }
 
+    const players = room.engine ? room.engine.players : room.playerRegistry;
+
     try {
-      room.playerRegistry.add(socket.id, name);
-      const player = room.playerRegistry.find(socket.id);
+      players.add(socket.id, name);
+      const player = players.find(socket.id);
       socketToRoom.set(socket.id, code);
       socket.join(code);
 
@@ -82,7 +128,7 @@ io.on('connection', (socket) => {
         io.to(hostSocketId).emit('player-joined', {
           id: socket.id,
           name: player.name,
-          players: room.playerRegistry.list()
+          players: players.list()
         });
       }
     } catch (error) {
@@ -101,10 +147,25 @@ io.on('connection', (socket) => {
     }
 
     try {
-      room.stateMachine.transition('collect');
-      const prompt = "What did you do this weekend?";
-      console.log(`[start-game] Room ${code} now in 'collect' state`);
-      io.to(code).emit('game-started', { prompt });
+      if (room.engine) {
+        const lobby = room.engine.getCurrentPhase();
+        const nextPhaseId = lobby.next;
+        room.engine.transition(nextPhaseId);
+
+        const nextPhase = room.engine.getCurrentPhase();
+        console.log(`[start-game] Room ${code} now in '${nextPhase.id}' phase`);
+
+        if (nextPhase.type === 'collect') {
+          io.to(code).emit('game-started', { prompt: nextPhase.prompt });
+        } else {
+          io.to(code).emit('game-started', { phase: nextPhase });
+        }
+      } else {
+        room.stateMachine.transition('collect');
+        const prompt = "What did you do this weekend?";
+        console.log(`[start-game] Room ${code} now in 'collect' state`);
+        io.to(code).emit('game-started', { prompt });
+      }
     } catch (error) {
       console.log(`[start-game] Error: ${error.message}`);
     }
@@ -119,18 +180,19 @@ io.on('connection', (socket) => {
       return;
     }
 
-    const player = room.playerRegistry.find(socket.id);
+    const players = room.engine ? room.engine.players : room.playerRegistry;
+    const player = players.find(socket.id);
     if (!player) {
       console.log(`[submit-response] Player ${socket.id} not found in room`);
       return;
     }
 
-    room.playerRegistry.update(socket.id, { response });
+    players.update(socket.id, { response });
     console.log(`[submit-response] Stored response from ${player.name}`);
 
-    const players = room.playerRegistry.list();
-    const submitted = players.filter(p => p.response).length;
-    const total = players.length;
+    const allPlayers = players.list();
+    const submitted = allPlayers.filter(p => p.response).length;
+    const total = allPlayers.length;
 
     const hostSocketId = roomToHost.get(code);
     if (hostSocketId) {
@@ -152,39 +214,72 @@ io.on('connection', (socket) => {
     }
 
     try {
-      // Transition to process phase
-      room.stateMachine.transition('process');
-      console.log(`[close-submissions] Room ${code} now in 'process' state`);
+      if (room.engine) {
+        const collectPhase = room.engine.getCurrentPhase();
+        const players = room.engine.players;
 
-      // Notify everyone that processing has started
-      io.to(code).emit('processing-started');
-      console.log(`[close-submissions] Broadcast 'processing-started' to room ${code}`);
+        // Gather responses and store as phase data
+        const allPlayers = players.list();
+        const responses = allPlayers
+          .filter(p => p.response)
+          .map(p => ({ playerId: p.id, name: p.name, text: p.response }));
+        room.engine.storePhaseData(collectPhase.id, { responses });
+        console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}'`);
 
-      // Gather all responses from players
-      const players = room.playerRegistry.list();
-      const responses = players
-        .filter(p => p.response)
-        .map(p => ({ name: p.name, text: p.response }));
-      console.log(`[close-submissions] Gathered ${responses.length} responses`);
+        // Transition to ai-process phase
+        const aiPhaseId = collectPhase.next;
+        room.engine.transition(aiPhaseId);
+        const aiPhase = room.engine.getCurrentPhase();
+        console.log(`[close-submissions] Room ${code} now in '${aiPhase.id}' phase`);
 
-      // Call AI service to process responses
-      console.log(`[close-submissions] Calling AI service...`);
-      const aiResult = await aiService.process({
-        instruction: 'Write a short, funny poem combining all these weekend activities',
-        responses
-      });
-      console.log(`[close-submissions] AI returned: ${aiResult.text}`);
+        io.to(code).emit('processing-started');
 
-      // Transition to reveal phase
-      room.stateMachine.transition('reveal');
-      console.log(`[close-submissions] Room ${code} now in 'reveal' state`);
+        // Get instruction from config
+        const instruction = aiPhase.instruction;
+        console.log(`[close-submissions] AI instruction: ${instruction}`);
 
-      // Broadcast results to everyone
-      io.to(code).emit('show-results', {
-        aiResult: aiResult.text,
-        responses: responses.map(r => ({ name: r.name, response: r.text }))
-      });
-      console.log(`[close-submissions] Broadcast 'show-results' to room ${code}`);
+        // Call AI service
+        const aiResult = await aiService.process({ instruction, responses });
+        console.log(`[close-submissions] AI returned: ${aiResult.text}`);
+
+        // Store AI result as phase data
+        room.engine.storePhaseData(aiPhase.id, { result: aiResult.text });
+
+        // Transition to reveal phase
+        const revealPhaseId = aiPhase.next;
+        room.engine.transition(revealPhaseId);
+        console.log(`[close-submissions] Room ${code} now in '${revealPhaseId}' phase`);
+
+        io.to(code).emit('show-results', {
+          aiResult: aiResult.text,
+          responses: responses.map(r => ({ name: r.name, response: r.text }))
+        });
+      } else {
+        // Legacy path (no engine)
+        room.stateMachine.transition('process');
+        console.log(`[close-submissions] Room ${code} now in 'process' state`);
+        io.to(code).emit('processing-started');
+
+        const players = room.playerRegistry.list();
+        const responses = players
+          .filter(p => p.response)
+          .map(p => ({ name: p.name, text: p.response }));
+        console.log(`[close-submissions] Gathered ${responses.length} responses`);
+
+        const aiResult = await aiService.process({
+          instruction: 'Write a short, funny poem combining all these weekend activities',
+          responses
+        });
+        console.log(`[close-submissions] AI returned: ${aiResult.text}`);
+
+        room.stateMachine.transition('reveal');
+        console.log(`[close-submissions] Room ${code} now in 'reveal' state`);
+
+        io.to(code).emit('show-results', {
+          aiResult: aiResult.text,
+          responses: responses.map(r => ({ name: r.name, response: r.text }))
+        });
+      }
     } catch (error) {
       console.log(`[close-submissions] Error: ${error.message}`);
     }
@@ -200,7 +295,15 @@ io.on('connection', (socket) => {
     }
 
     try {
-      room.stateMachine.transition('end');
+      if (room.engine) {
+        const currentPhase = room.engine.getCurrentPhase();
+        const nextPhaseId = currentPhase.next;
+        if (nextPhaseId) {
+          room.engine.transition(nextPhaseId);
+        }
+      } else {
+        room.stateMachine.transition('end');
+      }
       console.log(`[end-game] Room ${code} now in 'end' state`);
       io.to(code).emit('game-ended');
     } catch (error) {
@@ -215,16 +318,17 @@ io.on('connection', (socket) => {
     if (code) {
       const room = roomManager.find(code);
       if (room) {
-        const player = room.playerRegistry.find(socket.id);
+        const players = room.engine ? room.engine.players : room.playerRegistry;
+        const player = players.find(socket.id);
         if (player) {
           console.log(`[disconnect] Removing ${player.name} from room ${code}`);
-          room.playerRegistry.remove(socket.id);
+          players.remove(socket.id);
 
           const hostSocketId = roomToHost.get(code);
           if (hostSocketId) {
             io.to(hostSocketId).emit('player-left', {
               id: socket.id,
-              players: room.playerRegistry.list()
+              players: players.list()
             });
           }
         }
