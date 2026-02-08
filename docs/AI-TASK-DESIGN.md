@@ -23,6 +23,24 @@ The AI should never directly decide eliminations or scores via unstructured text
 
 ---
 
+## Model Recommendations
+
+| Task Type | Recommended Model | Reasoning |
+|-----------|------------------|-----------|
+| `summarize` | claude-3-haiku-20240307 | Simple aggregation, speed matters |
+| `generate` | claude-3-haiku-20240307 | Creative but straightforward |
+| `generate-choices` | claude-sonnet-4-20250514 | Needs accuracy for correct answers |
+| `compare` | claude-sonnet-4-20250514 | Semantic understanding is critical |
+| `rank` | claude-sonnet-4-20250514 | Fair judgment requires nuance |
+| `judge` | claude-sonnet-4-20250514 | Final decision needs best reasoning |
+
+**Notes:**
+1. **Override in config**: Model can be specified per `ai-process` phase in game config if needed (e.g., use Sonnet for a particularly important poem)
+2. **Mock mode**: Model selection is ignored in mock mode — no API calls are made
+3. **Cost**: Haiku is ~10x cheaper than Sonnet. For a typical game session with 5 AI calls, expect ~$0.01-0.05 depending on task mix
+
+---
+
 ## 1. `summarize`
 
 Combine multiple player responses into a cohesive insight or summary.
@@ -609,6 +627,43 @@ If validation fails:
 ---
 
 ## Implementation Notes
+
+### Model Selection
+
+The AIService should select the model based on task type:
+
+```javascript
+const TASK_MODELS = {
+  summarize: 'claude-3-haiku-20240307',
+  generate: 'claude-3-haiku-20240307',
+  'generate-choices': 'claude-sonnet-4-20250514',
+  compare: 'claude-sonnet-4-20250514',
+  rank: 'claude-sonnet-4-20250514',
+  judge: 'claude-sonnet-4-20250514'
+};
+
+function getModelForTask(taskType, configOverride = null) {
+  // Config override takes precedence
+  if (configOverride) {
+    return configOverride;
+  }
+  // Fall back to recommended model for task type
+  return TASK_MODELS[taskType] || 'claude-3-haiku-20240307';
+}
+```
+
+In the `ai-process` phase config, model can be overridden:
+
+```json
+{
+  "type": "ai-process",
+  "task": "generate",
+  "model": "claude-sonnet-4-20250514",
+  "instruction": "Write an epic poem worthy of Homer",
+  "input": "collect.responses",
+  "next": "reveal"
+}
+```
 
 ### JSON Extraction
 
