@@ -38,25 +38,54 @@ Framework for quickly building classroom games where:
 4. Test with: npm test
 
 ## Current State
-- Phase 4 fully complete: Real Claude API integrated
-- Using claude-3-haiku-20240307 model (fast and cheap)
-- API key loaded from .env file (ANTHROPIC_API_KEY)
+- **Phase 5 in progress: Game Definition System**
+- Phase 4 complete: Real Claude API integrated
 - Server runs on port 3000 (`npm start`)
 - Host screen at /host, Player screen at /player
-- Game flow: lobby → collect → process → reveal → end
-- AIService (services/ai-service.js) supports mock and real modes
-  - Mock mode: returns placeholder text for testing
-  - Real mode: calls Claude API when ANTHROPIC_API_KEY is set
-- Socket.io events:
-  - Room: create-room, room-created, join-room, join-success, join-error, player-joined, player-left
-  - Game: start-game, game-started, submit-response, response-received, close-submissions, processing-started, show-results, end-game, game-ended
-- Engine modules:
-  - StateMachine (engine/state-machine.js) - phases + transitions with event emission
-  - PlayerRegistry (engine/player-registry.js) - player management with name validation
-  - RoomManager (engine/room-manager.js) - room lifecycle with auto-cleanup
-- Config: game phases defined in config/game-phases.js
-- Environment: uses dotenv, set ANTHROPIC_API_KEY in .env for real AI
 - All 45 tests passing
 
+### Design Documents (docs/)
+- **GAME-CONFIG-DESIGN.md** — Game configuration format and phase definitions
+- **AI-TASK-DESIGN.md** — AI task types, prompts, schemas, and validation
+- **SAFETY-DESIGN.md** — Threat model and safety mitigations
+
+### 9 Phase Types Defined
+1. `lobby` — Wait for players to join
+2. `collect` — Gather text responses from players
+3. `ai-process` — Send data to AI for processing
+4. `vote` — Head-to-head or pick-one voting
+5. `eliminate` — Remove players by percent or hook
+6. `reveal` — Display content to all players
+7. `preview` — Teacher-only preview before reveal
+8. `winner` — Declare winner and show standings
+9. `end` — Game over, clean up
+
+### 6 AI Task Types Defined
+- `summarize` — Combine responses into insight (Haiku)
+- `generate` — Create content like poems (Haiku)
+- `generate-choices` — Multiple choice questions (Sonnet)
+- `compare` — Group by semantic similarity (Sonnet)
+- `rank` — Order by criteria (Sonnet)
+- `judge` — Pick winner with explanation (Sonnet)
+
+### Safety Features Designed
+- Content filtering (profanity, slurs, PII detection)
+- Teacher preview before reveal
+- Moderation controls (hide responses, kick players)
+- Anonymous mode option
+- Rate limiting and input validation
+
+### Engine Modules
+- StateMachine (engine/state-machine.js) — phases + transitions
+- PlayerRegistry (engine/player-registry.js) — player management
+- RoomManager (engine/room-manager.js) — room lifecycle
+- AIService (services/ai-service.js) — mock and real modes
+
+### Environment
+- Uses dotenv, set ANTHROPIC_API_KEY in .env for real AI
+- Haiku for simple tasks, Sonnet for complex judgment
+
 ## Refinement Log
-(Claude: update this section when we make significant decisions)
+- Phase 5: Designed game config format with 9 phase types
+- Phase 5: Defined 6 AI task types with structured JSON outputs
+- Phase 5: Created safety design with three-layer mitigations
