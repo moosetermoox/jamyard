@@ -78,6 +78,75 @@ describe('PlayerRegistry', () => {
     });
   });
 
+  describe('player status and elimination', () => {
+    it('new players start as active', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      expect(registry.find('p1').status).toBe('active');
+    });
+
+    it('eliminate() changes status to eliminated', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.eliminate('p1');
+      expect(registry.find('p1').status).toBe('eliminated');
+    });
+
+    it('getRemaining() only returns active players', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.add('p2', 'Bob');
+      registry.add('p3', 'Carol');
+      registry.eliminate('p2');
+
+      const remaining = registry.getRemaining();
+      expect(remaining).toHaveLength(2);
+      expect(remaining.map(p => p.name)).toContain('Alice');
+      expect(remaining.map(p => p.name)).toContain('Carol');
+    });
+
+    it('getEliminated() only returns eliminated players', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.add('p2', 'Bob');
+      registry.add('p3', 'Carol');
+      registry.eliminate('p2');
+
+      const eliminated = registry.getEliminated();
+      expect(eliminated).toHaveLength(1);
+      expect(eliminated[0].name).toBe('Bob');
+    });
+
+    it('eliminating a player does not remove them from the registry', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.add('p2', 'Bob');
+      registry.eliminate('p1');
+
+      expect(registry.count()).toBe(2);
+      expect(registry.find('p1')).toBeDefined();
+      expect(registry.list()).toHaveLength(2);
+    });
+
+    it('isEliminated() returns true for eliminated players', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.eliminate('p1');
+      expect(registry.isEliminated('p1')).toBe(true);
+    });
+
+    it('isEliminated() returns false for active players', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      expect(registry.isEliminated('p1')).toBe(false);
+    });
+
+    it('isEliminated() returns false for unknown players', () => {
+      const registry = new PlayerRegistry();
+      expect(registry.isEliminated('unknown')).toBe(false);
+    });
+  });
+
   describe('name validation and formatting', () => {
     it('auto-renames duplicate names', () => {
       const registry = new PlayerRegistry();

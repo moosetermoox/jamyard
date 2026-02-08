@@ -5,7 +5,7 @@ export class PlayerRegistry {
 
   add(id, name) {
     const processedName = this.processName(name);
-    this.players.set(id, { id, name: processedName });
+    this.players.set(id, { id, name: processedName, status: 'active' });
   }
 
   remove(id) {
@@ -22,6 +22,26 @@ export class PlayerRegistry {
 
   count() {
     return this.players.size;
+  }
+
+  eliminate(id) {
+    const player = this.players.get(id);
+    if (player) {
+      this.players.set(id, { ...player, status: 'eliminated' });
+    }
+  }
+
+  getRemaining() {
+    return this.list().filter(p => p.status === 'active');
+  }
+
+  getEliminated() {
+    return this.list().filter(p => p.status === 'eliminated');
+  }
+
+  isEliminated(id) {
+    const player = this.players.get(id);
+    return player ? player.status === 'eliminated' : false;
   }
 
   update(id, data) {
