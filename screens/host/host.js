@@ -4,7 +4,11 @@ let currentRoomCode = null;
 
 // Elements - Lobby
 const lobbySection = document.getElementById('lobby-section');
+const gameSelectSection = document.getElementById('game-select-section');
+const gameSelect = document.getElementById('game-select');
+const roomCodeSection = document.getElementById('room-code-section');
 const roomCodeDisplay = document.getElementById('room-code');
+const gameNameDisplay = document.getElementById('game-name-display');
 const createRoomBtn = document.getElementById('create-room-btn');
 const playerList = document.getElementById('player-list');
 const startGameBtn = document.getElementById('start-game-btn');
@@ -28,9 +32,29 @@ const endGameBtn = document.getElementById('end-game-btn');
 const endSection = document.getElementById('end-section');
 const playAgainBtn = document.getElementById('play-again-btn');
 
+// Fetch available games on connect
+socket.emit('get-games');
+
+socket.on('games-list', ({ games }) => {
+  gameSelect.innerHTML = '';
+  if (games.length === 0) {
+    gameSelect.innerHTML = '<option value="">No games available</option>';
+    createRoomBtn.disabled = true;
+    return;
+  }
+  for (const game of games) {
+    const option = document.createElement('option');
+    option.value = game.id;
+    option.textContent = game.name;
+    gameSelect.appendChild(option);
+  }
+});
+
 // Button handlers
 createRoomBtn.addEventListener('click', () => {
-  socket.emit('create-room');
+  const gameId = gameSelect.value;
+  if (!gameId) return;
+  socket.emit('create-room', { gameId });
   createRoomBtn.disabled = true;
 });
 
@@ -51,10 +75,12 @@ playAgainBtn.addEventListener('click', () => {
 });
 
 // Socket events - Room setup
-socket.on('room-created', ({ code }) => {
+socket.on('room-created', ({ code, game }) => {
   currentRoomCode = code;
   roomCodeDisplay.textContent = code;
-  createRoomBtn.style.display = 'none';
+  gameNameDisplay.textContent = game || '';
+  gameSelectSection.hidden = true;
+  roomCodeSection.hidden = false;
 });
 
 socket.on('player-joined', ({ players }) => {

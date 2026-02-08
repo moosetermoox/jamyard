@@ -11,9 +11,17 @@
 
   <!-- LOBBY SECTION -->
   <section id="lobby-section">
-    <div id="room-code-section">
-      <div id="room-code">XXXX</div>
+    <div id="game-select-section">
+      <label for="game-select">Choose a game:</label>
+      <select id="game-select">
+        <option value="">Loading games...</option>
+      </select>
       <button id="create-room-btn">Create Room</button>
+    </div>
+
+    <div id="room-code-section" hidden>
+      <p id="game-name-display"></p>
+      <div id="room-code">XXXX</div>
     </div>
 
     <div id="players-section">
