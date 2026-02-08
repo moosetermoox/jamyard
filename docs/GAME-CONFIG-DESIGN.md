@@ -3,12 +3,12 @@
 ## Design Goals
 
 1. **Declarative over imperative** — config describes *what*, not *how*
-2. **Small phase vocabulary** — 8 phase types cover most games
+2. **Small phase vocabulary** — 9 phase types cover most games
 3. **Escape hatch without complexity** — hooks are named functions, not inline code
 4. **Testable** — every hook is a pure function with clear inputs/outputs
 5. **Readable** — a teacher should understand the game flow from config alone
 
-## Phase Types (8 total)
+## Phase Types (9 total)
 
 ### 1. `lobby`
 Wait for players to join. Host manually starts the game.
@@ -128,7 +128,32 @@ Display content to all players.
 | template | string | required | Text with `{{phase.field}}` placeholders (simple substitution only, no conditionals) |
 | duration | number | null | Auto-advance after N seconds (null = manual) |
 
-### 7. `winner`
+### 7. `preview`
+Teacher-only preview before revealing to students. Players see "Waiting for teacher..." while the host reviews content. Teacher can approve, edit, or reject.
+
+```json
+{
+  "type": "preview",
+  "content": "process.result",
+  "showResponses": true,
+  "approveNext": "reveal",
+  "rejectNext": "fallback"
+}
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| content | string | required | Reference to content to preview |
+| showResponses | boolean | true | Also show original player responses |
+| approveNext | string | required | Phase to go to if approved |
+| rejectNext | string | required | Phase to go to if rejected |
+
+**Host actions:**
+- **Approve** — Continue to `approveNext` phase with content as-is
+- **Edit** — Modify the content, then continue to `approveNext`
+- **Reject** — Discard content and go to `rejectNext` phase
+
+### 8. `winner`
 Declare a winner and show final standings.
 
 ```json
@@ -143,7 +168,7 @@ Declare a winner and show final standings.
 |-------|------|---------|-------------|
 | from | string | required | Reference to scores/rankings |
 
-### 8. `end`
+### 9. `end`
 Game over. Clean up and allow restart.
 
 ```json
@@ -453,8 +478,8 @@ Named phases allow data references like `round1.responses` which are more readab
 3. Forces hook logic to be named and documented
 4. Prevents config from becoming Turing-complete
 
-### Why only 8 phase types?
-Every phase type requires engine support (socket events, UI states, etc.). More types = more complexity. 8 types cover the three example games plus reasonable variations.
+### Why only 9 phase types?
+Every phase type requires engine support (socket events, UI states, etc.). More types = more complexity. 9 types cover the three example games plus reasonable variations, including teacher moderation.
 
 ### What about phases not covered?
 If you need something truly custom, you can:
