@@ -1,0 +1,6 @@
+{
+  "phases": {
+    "lobby": { "type": "lobby", "next": "end" },
+    "end": { "type": "end" }
+  }
+}

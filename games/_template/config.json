@@ -1,0 +1,21 @@
+{
+  "name": "Template Game",
+  "description": "A minimal template game for testing.",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "minPlayers": 2,
+      "next": "collect"
+    },
+    "collect": {
+      "type": "collect",
+      "prompt": "What is your answer?",
+      "timer": 30,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing!"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "No Lobby Game",
+  "phases": {
+    "collect": { "type": "collect", "prompt": "Hi", "next": "end" },
+    "end": { "type": "end" }
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "No End Game",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "collect" },
+    "collect": { "type": "collect", "prompt": "Hi" }
+  }
+}

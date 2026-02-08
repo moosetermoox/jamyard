@@ -1,0 +1,7 @@
+{
+  "name": "Bad Next Game",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "nonexistent" },
+    "end": { "type": "end" }
+  }
+}
