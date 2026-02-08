@@ -38,16 +38,35 @@ Framework for quickly building classroom games where:
 4. Test with: npm test
 
 ## Current State
-- **Phase 5 in progress: Game Definition System**
-- Phase 4 complete: Real Claude API integrated
+- **Phase 5 complete: Game Definition System designed**
+- Ready to begin implementation
 - Server runs on port 3000 (`npm start`)
 - Host screen at /host, Player screen at /player
 - All 45 tests passing
 
 ### Design Documents (docs/)
-- **GAME-CONFIG-DESIGN.md** — Game configuration format and phase definitions
-- **AI-TASK-DESIGN.md** — AI task types, prompts, schemas, and validation
-- **SAFETY-DESIGN.md** — Threat model and safety mitigations
+- **GAME-CONFIG-DESIGN.md** — 9 phase types, data references, hooks system
+- **AI-TASK-DESIGN.md** — 6 AI task types with prompts, schemas, validation
+- **SAFETY-DESIGN.md** — Threat model with three-layer mitigations
+- **AUTHORING-DESIGN.md** — Config style guide, validation, debug mode
+- **CORN-STORY-FEASIBILITY.md** — Implementation analysis and build order
+
+### Recommended Build Order
+1. **Weekend Poem** — Validates core pipeline (collect → ai-process → reveal)
+2. **Mood Check** — Same phases, different content (no new engine features)
+3. **Corn Story** — Requires 10 engine primitives (see feasibility doc)
+
+### Engine Primitives Needed for Corn Story
+1. Player state tracking (remaining vs eliminated)
+2. Data reference system (phase.field resolution)
+3. Template engine ({{phase.field}} substitution)
+4. Hooks system (dynamic import, context passing)
+5. Eliminate phase handler (bottom-percent, hook methods)
+6. AI JSON output with validation
+7. Vote phase - head-to-head mode
+8. Vote phase - pick-one mode
+9. Winner phase handler
+10. Player subset filtering (from/voters restrictions)
 
 ### 9 Phase Types Defined
 1. `lobby` — Wait for players to join
@@ -89,3 +108,6 @@ Framework for quickly building classroom games where:
 - Phase 5: Designed game config format with 9 phase types
 - Phase 5: Defined 6 AI task types with structured JSON outputs
 - Phase 5: Created safety design with three-layer mitigations
+- Phase 5: Added authoring guide with validation and testing tools
+- Phase 5: Completed feasibility analysis — Corn Story requires 10 primitives
+- Phase 5 COMPLETE: All 5 design documents finished, ready for implementation
