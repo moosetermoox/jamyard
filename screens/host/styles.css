@@ -149,6 +149,90 @@ button:disabled {
   border-bottom: none;
 }
 
+/* Reveal content */
+.reveal-content {
+  font-size: 2.5rem;
+  color: #333;
+  margin: 30px 0;
+  padding: 30px;
+  background: white;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  text-align: left;
+}
+
+/* Continue button */
+#continue-btn {
+  background: #5cb85c;
+}
+
+#continue-btn:hover {
+  background: #449d44;
+}
+
+/* Vote section */
+#close-voting-btn {
+  background: #f0ad4e;
+}
+
+#close-voting-btn:hover {
+  background: #ec971f;
+}
+
+#vote-mode-display {
+  font-size: 1.8rem;
+  color: #666;
+}
+
+/* Elimination section */
+.eliminated-text {
+  font-size: 2.5rem;
+  color: #d9534f;
+  margin: 20px 0;
+}
+
+#elimination-continue-btn {
+  background: #5cb85c;
+}
+
+#elimination-continue-btn:hover {
+  background: #449d44;
+}
+
+/* Winner section */
+.winner-text {
+  font-size: 4rem;
+  color: #f0ad4e;
+  margin: 40px 0;
+}
+
+.standings {
+  text-align: left;
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  margin: 30px 0;
+}
+
+.standings p {
+  font-size: 1.8rem;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+  color: #333;
+}
+
+.standings p:last-child {
+  border-bottom: none;
+}
+
+#winner-end-btn {
+  background: #d9534f;
+}
+
+#winner-end-btn:hover {
+  background: #c9302c;
+}
+
 /* End section */
 .game-over {
   font-size: 4rem;

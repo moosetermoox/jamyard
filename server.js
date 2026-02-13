@@ -8,8 +8,15 @@ import { readdir } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
 import { loadGame } from './engine/game-loader.js';
+import { loadHooks } from './engine/hooks-loader.js';
 import { gamePhases } from './config/game-phases.js';
 import { AIService } from './services/ai-service.js';
+import {
+  generateMatchups,
+  getEligibleVoters,
+  tallyPickOne,
+  tallyHeadToHead
+} from './engine/phases/vote-handler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,6 +36,254 @@ const roomToHost = new Map();
 
 const DEFAULT_GAME = 'weekend-poem';
 const GAMES_DIR = join(__dirname, 'games');
+
+// --- Helper Functions ---
+
+function resolveTemplate(template, engine) {
+  return template.replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
+    const value = engine.resolve(ref.trim());
+    return value !== undefined ? String(value) : match;
+  });
+}
+
+async function tallyAndAdvance(code, room) {
+  const engine = room.engine;
+  const vs = room.voteState;
+
+  let result;
+  if (vs.mode === 'pick-one') {
+    result = tallyPickOne(vs.votes, vs.candidateIds);
+  } else {
+    result = tallyHeadToHead(vs.votes, vs.candidateIds, vs.matchups);
+  }
+
+  engine.storePhaseData(vs.phaseId, {
+    votes: vs.votes,
+    scores: result.scores,
+    winner: result.winner,
+    tied: result.tied,
+    totalVotes: result.totalVotes
+  });
+
+  console.log(`[tally] Phase '${vs.phaseId}' tallied: winner=${result.winner}, totalVotes=${result.totalVotes}`);
+
+  const phaseConfig = engine.config.phases[vs.phaseId];
+  delete room.voteState;
+
+  if (phaseConfig.next) {
+    engine.transition(phaseConfig.next);
+    await handlePhase(code, room);
+  }
+}
+
+async function handlePhase(code, room) {
+  const engine = room.engine;
+  const phase = engine.getCurrentPhase();
+  const hostSocketId = roomToHost.get(code);
+
+  console.log(`[handlePhase] Room ${code} handling '${phase.id}' (type: ${phase.type})`);
+
+  switch (phase.type) {
+    case 'collect': {
+      const from = phase.from || 'all';
+      const eligible = getEligibleVoters(engine.players, from);
+      const eligibleIds = new Set(eligible.map(p => p.id));
+
+      // Clear previous responses for multi-round games
+      for (const p of engine.players.list()) {
+        if (p.response) engine.players.update(p.id, { response: undefined });
+      }
+
+      // Send prompt to host
+      if (hostSocketId) {
+        io.to(hostSocketId).emit('game-started', { prompt: phase.prompt });
+      }
+
+      // Send prompt to eligible players
+      for (const player of eligible) {
+        io.to(player.id).emit('game-started', { prompt: phase.prompt });
+      }
+
+      // Send waiting to non-eligible players
+      for (const player of engine.players.list()) {
+        if (!eligibleIds.has(player.id)) {
+          io.to(player.id).emit('waiting', { message: 'Waiting for other players...' });
+        }
+      }
+      break;
+    }
+
+    case 'ai-process': {
+      io.to(code).emit('processing-started');
+
+      const input = engine.resolve(phase.input);
+      const instruction = phase.instruction;
+      const responses = Array.isArray(input) ? input : [];
+
+      console.log(`[handlePhase] AI instruction: ${instruction}`);
+      const aiResult = await aiService.process({ instruction, responses });
+      console.log(`[handlePhase] AI returned: ${aiResult.text}`);
+
+      let result;
+      if (phase.format === 'json') {
+        try {
+          result = JSON.parse(aiResult.text);
+        } catch {
+          result = aiResult.text;
+        }
+      } else {
+        result = aiResult.text;
+      }
+
+      engine.storePhaseData(phase.id, { result });
+
+      // Auto-advance to next phase
+      if (phase.next) {
+        engine.transition(phase.next);
+        await handlePhase(code, room);
+      }
+      break;
+    }
+
+    case 'eliminate': {
+      const result = engine.runPhase(phase.id);
+
+      const eliminatedNames = result.eliminated.map(id => {
+        const player = engine.players.find(id);
+        return player ? player.name : id;
+      });
+
+      console.log(`[handlePhase] Eliminated: ${eliminatedNames.join(', ')} (${result.remaining} remaining)`);
+
+      io.to(code).emit('elimination-results', {
+        eliminated: result.eliminated,
+        eliminatedNames,
+        remaining: result.remaining
+      });
+      break;
+    }
+
+    case 'vote': {
+      const candidates = phase.candidates ? engine.resolve(phase.candidates) : [];
+      const votersField = phase.voters || 'all';
+      const eligible = getEligibleVoters(engine.players, votersField);
+      const candidateIds = candidates.map(c => c.playerId || c);
+
+      room.voteState = {
+        phaseId: phase.id,
+        mode: phase.mode,
+        candidates,
+        candidateIds,
+        eligibleVoterIds: eligible.map(p => p.id),
+        votes: [],
+        votersCompleted: new Set()
+      };
+
+      if (phase.mode === 'head-to-head') {
+        const { matchups, comparisons } = generateMatchups(candidateIds);
+        room.voteState.matchups = matchups;
+        room.voteState.comparisons = comparisons;
+
+        for (const voter of eligible) {
+          io.to(voter.id).emit('vote-start', {
+            mode: 'head-to-head',
+            matchups: matchups.map(([a, b]) => ({
+              optionA: candidates.find(c => (c.playerId || c) === a) || { playerId: a },
+              optionB: candidates.find(c => (c.playerId || c) === b) || { playerId: b }
+            })),
+            timer: phase.timer || null
+          });
+        }
+      } else if (phase.mode === 'pick-one') {
+        for (const voter of eligible) {
+          io.to(voter.id).emit('vote-start', {
+            mode: 'pick-one',
+            candidates,
+            timer: phase.timer || null
+          });
+        }
+      }
+
+      // Notify non-voters they're waiting
+      const eligibleIds = new Set(eligible.map(p => p.id));
+      for (const player of engine.players.list()) {
+        if (!eligibleIds.has(player.id)) {
+          io.to(player.id).emit('waiting', { message: 'Waiting for votes...' });
+        }
+      }
+
+      // Notify host
+      if (hostSocketId) {
+        io.to(hostSocketId).emit('vote-start', {
+          mode: phase.mode,
+          totalVoters: eligible.length
+        });
+      }
+
+      console.log(`[handlePhase] Vote started: ${phase.mode}, ${candidateIds.length} candidates, ${eligible.length} voters`);
+      break;
+    }
+
+    case 'winner': {
+      const result = engine.runPhase(phase.id);
+
+      console.log(`[handlePhase] Winner: ${result.winnerName} (${result.winnerScore} votes)`);
+
+      io.to(code).emit('winner-announced', {
+        winnerId: result.winnerId,
+        winnerName: result.winnerName,
+        winnerScore: result.winnerScore,
+        standings: result.standings
+      });
+      break;
+    }
+
+    case 'reveal': {
+      let content = '';
+      if (phase.template) {
+        content = resolveTemplate(phase.template, engine);
+      }
+
+      // Find most recent AI result for backward compat
+      let aiResult = content;
+      for (const [id, cfg] of Object.entries(engine.config.phases)) {
+        if (cfg.type === 'ai-process') {
+          const data = engine.getPhaseData(id);
+          if (data && data.result) {
+            aiResult = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
+          }
+        }
+      }
+
+      // Find most recent responses for backward compat
+      let responses = [];
+      for (const [id, cfg] of Object.entries(engine.config.phases)) {
+        if (cfg.type === 'collect') {
+          const data = engine.getPhaseData(id);
+          if (data && data.responses) {
+            responses = data.responses.map(r => ({ name: r.name, response: r.text }));
+          }
+        }
+      }
+
+      io.to(code).emit('show-results', {
+        content,
+        aiResult,
+        responses
+      });
+      break;
+    }
+
+    case 'end': {
+      io.to(code).emit('game-ended', {
+        message: phase.message || 'Game over!'
+      });
+      break;
+    }
+  }
+}
+
+// --- Express Routes ---
 
 app.get('/', (req, res) => {
   res.send(`
@@ -87,10 +342,12 @@ io.on('connection', (socket) => {
 
     try {
       const config = await loadGame(selectedGame);
+      const hooks = await loadHooks(selectedGame);
       const code = roomManager.create();
       const room = roomManager.find(code);
 
       room.engine = new GameEngine(config);
+      room.engine.hooks = hooks;
 
       roomToHost.set(code, socket.id);
       socket.join(code);
@@ -137,7 +394,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('start-game', ({ code }) => {
+  socket.on('start-game', async ({ code }) => {
     console.log(`[start-game] Starting game in room ${code}`);
 
     const room = roomManager.find(code);
@@ -149,17 +406,9 @@ io.on('connection', (socket) => {
     try {
       if (room.engine) {
         const lobby = room.engine.getCurrentPhase();
-        const nextPhaseId = lobby.next;
-        room.engine.transition(nextPhaseId);
-
-        const nextPhase = room.engine.getCurrentPhase();
-        console.log(`[start-game] Room ${code} now in '${nextPhase.id}' phase`);
-
-        if (nextPhase.type === 'collect') {
-          io.to(code).emit('game-started', { prompt: nextPhase.prompt });
-        } else {
-          io.to(code).emit('game-started', { phase: nextPhase });
-        }
+        room.engine.transition(lobby.next);
+        console.log(`[start-game] Room ${code} now in '${room.engine.getCurrentPhase().id}' phase`);
+        await handlePhase(code, room);
       } else {
         room.stateMachine.transition('collect');
         const prompt = "What did you do this weekend?";
@@ -190,9 +439,17 @@ io.on('connection', (socket) => {
     players.update(socket.id, { response });
     console.log(`[submit-response] Stored response from ${player.name}`);
 
-    const allPlayers = players.list();
-    const submitted = allPlayers.filter(p => p.response).length;
-    const total = allPlayers.length;
+    // Count based on eligible players for current collect phase
+    let eligible;
+    if (room.engine) {
+      const phase = room.engine.getCurrentPhase();
+      const from = phase.from || 'all';
+      eligible = getEligibleVoters(room.engine.players, from);
+    } else {
+      eligible = players.list();
+    }
+    const submitted = eligible.filter(p => p.response).length;
+    const total = eligible.length;
 
     const hostSocketId = roomToHost.get(code);
     if (hostSocketId) {
@@ -217,43 +474,26 @@ io.on('connection', (socket) => {
       if (room.engine) {
         const collectPhase = room.engine.getCurrentPhase();
         const players = room.engine.players;
+        const from = collectPhase.from || 'all';
 
-        // Gather responses and store as phase data
-        const allPlayers = players.list();
-        const responses = allPlayers
+        // Gather responses from eligible players and store as phase data
+        const eligible = getEligibleVoters(players, from);
+        const responses = eligible
           .filter(p => p.response)
           .map(p => ({ playerId: p.id, name: p.name, text: p.response }));
         room.engine.storePhaseData(collectPhase.id, { responses });
         console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}'`);
 
-        // Transition to ai-process phase
-        const aiPhaseId = collectPhase.next;
-        room.engine.transition(aiPhaseId);
-        const aiPhase = room.engine.getCurrentPhase();
-        console.log(`[close-submissions] Room ${code} now in '${aiPhase.id}' phase`);
+        // Clear responses for next collect phase
+        for (const p of players.list()) {
+          if (p.response) players.update(p.id, { response: undefined });
+        }
 
-        io.to(code).emit('processing-started');
-
-        // Get instruction from config
-        const instruction = aiPhase.instruction;
-        console.log(`[close-submissions] AI instruction: ${instruction}`);
-
-        // Call AI service
-        const aiResult = await aiService.process({ instruction, responses });
-        console.log(`[close-submissions] AI returned: ${aiResult.text}`);
-
-        // Store AI result as phase data
-        room.engine.storePhaseData(aiPhase.id, { result: aiResult.text });
-
-        // Transition to reveal phase
-        const revealPhaseId = aiPhase.next;
-        room.engine.transition(revealPhaseId);
-        console.log(`[close-submissions] Room ${code} now in '${revealPhaseId}' phase`);
-
-        io.to(code).emit('show-results', {
-          aiResult: aiResult.text,
-          responses: responses.map(r => ({ name: r.name, response: r.text }))
-        });
+        // Advance to next phase and let handlePhase take over
+        if (collectPhase.next) {
+          room.engine.transition(collectPhase.next);
+          await handlePhase(code, room);
+        }
       } else {
         // Legacy path (no engine)
         room.stateMachine.transition('process');
@@ -282,6 +522,66 @@ io.on('connection', (socket) => {
       }
     } catch (error) {
       console.log(`[close-submissions] Error: ${error.message}`);
+    }
+  });
+
+  socket.on('submit-vote', async ({ code, choice, votes: votesList }) => {
+    const room = roomManager.find(code);
+    if (!room || !room.voteState) return;
+
+    const vs = room.voteState;
+    if (!vs.eligibleVoterIds.includes(socket.id)) return;
+    if (vs.votersCompleted.has(socket.id)) return;
+
+    if (vs.mode === 'pick-one') {
+      vs.votes.push({ voterId: socket.id, choice });
+    } else if (vs.mode === 'head-to-head' && Array.isArray(votesList)) {
+      for (const vote of votesList) {
+        vs.votes.push({ voterId: socket.id, choice: vote.choice });
+      }
+    }
+
+    vs.votersCompleted.add(socket.id);
+    console.log(`[submit-vote] ${socket.id} voted (${vs.votersCompleted.size}/${vs.eligibleVoterIds.length})`);
+
+    const hostSocketId = roomToHost.get(code);
+    if (hostSocketId) {
+      io.to(hostSocketId).emit('vote-received', {
+        count: vs.votersCompleted.size,
+        total: vs.eligibleVoterIds.length
+      });
+    }
+
+    // Auto-tally when all eligible voters have voted
+    if (vs.votersCompleted.size >= vs.eligibleVoterIds.length) {
+      await tallyAndAdvance(code, room);
+    }
+  });
+
+  socket.on('close-voting', async ({ code }) => {
+    console.log(`[close-voting] Host closing voting for room ${code}`);
+
+    const room = roomManager.find(code);
+    if (!room || !room.voteState) return;
+
+    await tallyAndAdvance(code, room);
+  });
+
+  socket.on('advance-phase', async ({ code }) => {
+    console.log(`[advance-phase] Advancing phase in room ${code}`);
+
+    const room = roomManager.find(code);
+    if (!room || !room.engine) return;
+
+    try {
+      const currentPhase = room.engine.getCurrentPhase();
+      const nextPhaseId = currentPhase.next;
+      if (nextPhaseId) {
+        room.engine.transition(nextPhaseId);
+        await handlePhase(code, room);
+      }
+    } catch (error) {
+      console.log(`[advance-phase] Error: ${error.message}`);
     }
   });
 

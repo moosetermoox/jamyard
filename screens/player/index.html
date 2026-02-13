@@ -7,6 +7,11 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <!-- ELIMINATED BANNER (persistent, stays visible across sections) -->
+  <div id="eliminated-banner" hidden>
+    You've been eliminated! You can still vote.
+  </div>
+
   <!-- JOIN SECTION -->
   <section id="join-section">
     <h1>Join Game</h1>
@@ -65,6 +70,37 @@
   <section id="reveal-section" hidden>
     <h1>The Result:</h1>
     <div id="ai-result" class="ai-result"></div>
+  </section>
+
+  <!-- GAME WAITING SECTION (for non-eligible players) -->
+  <section id="game-waiting-section" hidden>
+    <p id="game-waiting-message">Waiting...</p>
+  </section>
+
+  <!-- VOTE SECTION -->
+  <section id="vote-section" hidden>
+    <h1 id="vote-title">Vote!</h1>
+    <p id="vote-progress" hidden></p>
+    <div id="vote-options"></div>
+  </section>
+
+  <!-- VOTE SUBMITTED SECTION -->
+  <section id="vote-submitted-section" hidden>
+    <h1>Vote submitted!</h1>
+    <p>Waiting for results...</p>
+  </section>
+
+  <!-- ELIMINATION RESULTS SECTION -->
+  <section id="elimination-results-section" hidden>
+    <h1>Elimination Results</h1>
+    <p id="elimination-details"></p>
+  </section>
+
+  <!-- WINNER SECTION -->
+  <section id="winner-section" hidden>
+    <h1 id="winner-title"></h1>
+    <p id="winner-details"></p>
+    <div id="standings-list"></div>
   </section>
 
   <!-- END SECTION -->

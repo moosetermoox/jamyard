@@ -118,6 +118,194 @@ describe('GameEngine', () => {
     });
   });
 
+  describe('built-in variables', () => {
+    it('getBuiltInVariables returns remaining, eliminated, and players', () => {
+      const engine = new GameEngine(testConfig);
+      engine.players.add('p1', 'Alice');
+      engine.players.add('p2', 'Bob');
+      engine.players.add('p3', 'Carol');
+      engine.players.eliminate('p2');
+
+      const vars = engine.getBuiltInVariables();
+      expect(vars.players).toHaveLength(3);
+      expect(vars.remaining).toHaveLength(2);
+      expect(vars.eliminated).toHaveLength(1);
+      expect(vars.eliminated[0].id).toBe('p2');
+    });
+
+    it('resolve returns remaining players via built-in variable', () => {
+      const engine = new GameEngine(testConfig);
+      engine.players.add('p1', 'Alice');
+      engine.players.add('p2', 'Bob');
+
+      const remaining = engine.resolve('remaining');
+      expect(remaining).toHaveLength(2);
+    });
+
+    it('resolve returns eliminated players via built-in variable', () => {
+      const engine = new GameEngine(testConfig);
+      engine.players.add('p1', 'Alice');
+      engine.players.add('p2', 'Bob');
+      engine.players.eliminate('p2');
+
+      const eliminated = engine.resolve('eliminated');
+      expect(eliminated).toHaveLength(1);
+      expect(eliminated[0].id).toBe('p2');
+    });
+
+    it('resolve handles nested built-in paths like remaining.length', () => {
+      const engine = new GameEngine(testConfig);
+      engine.players.add('p1', 'Alice');
+      engine.players.add('p2', 'Bob');
+      engine.players.add('p3', 'Carol');
+      engine.players.eliminate('p3');
+
+      expect(engine.resolve('remaining.length')).toBe(2);
+      expect(engine.resolve('eliminated.length')).toBe(1);
+      expect(engine.resolve('players.length')).toBe(3);
+    });
+
+    it('built-in variables take precedence over phase data with same name', () => {
+      const engine = new GameEngine(testConfig);
+      engine.players.add('p1', 'Alice');
+      engine.storePhaseData('remaining', { fake: true });
+
+      const remaining = engine.resolve('remaining');
+      expect(Array.isArray(remaining)).toBe(true);
+    });
+  });
+
+  describe('runPhase', () => {
+    const eliminateConfig = {
+      name: 'Eliminate Game',
+      phases: {
+        lobby: { type: 'lobby', next: 'vote' },
+        vote: { type: 'vote', mode: 'pick-one', candidates: 'lobby.responses', voters: 'all', next: 'eliminate' },
+        eliminate: { type: 'eliminate', method: 'bottom-percent', percent: 50, from: 'vote.scores', next: 'winner' },
+        winner: { type: 'winner', from: 'vote.scores', next: 'end' },
+        end: { type: 'end', message: 'Done!' }
+      }
+    };
+
+    it('runPhase with eliminate type removes bottom players by score', () => {
+      const engine = new GameEngine(eliminateConfig);
+      engine.players.add('p1', 'Alice');
+      engine.players.add('p2', 'Bob');
+      engine.players.add('p3', 'Carol');
+      engine.players.add('p4', 'Dave');
+
+      engine.storePhaseData('vote', { scores: { p1: 5, p2: 1, p3: 3, p4: 2 } });
+
+      const result = engine.runPhase('eliminate');
+      expect(result.eliminated).toContain('p2');
+      expect(result.eliminated).toContain('p4');
+      expect(engine.players.getRemaining().map(p => p.id)).toContain('p1');
+    });
+
+    it('runPhase with eliminate type using hook method', () => {
+      const hookConfig = {
+        name: 'Hook Game',
+        phases: {
+          lobby: { type: 'lobby', next: 'eliminate' },
+          eliminate: { type: 'eliminate', method: 'hook', hook: 'myHook', input: 'lobby.data', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      const engine = new GameEngine(hookConfig);
+      engine.players.add('p1', 'Alice');
+      engine.players.add('p2', 'Bob');
+
+      engine.hooks = {
+        myHook: (context) => ['p2']
+      };
+      engine.storePhaseData('lobby', { data: 'test' });
+
+      const result = engine.runPhase('eliminate');
+      expect(result.eliminated).toEqual(['p2']);
+      expect(engine.players.getRemaining().map(p => p.id)).toEqual(['p1']);
+    });
+
+    it('runPhase with winner type determines winner from scores', () => {
+      const engine = new GameEngine(eliminateConfig);
+      engine.players.add('p1', 'Alice');
+      engine.players.add('p2', 'Bob');
+
+      engine.storePhaseData('vote', { scores: { p1: 5, p2: 3 } });
+
+      const result = engine.runPhase('winner');
+      expect(result.winnerId).toBe('p1');
+      expect(result.winnerName).toBe('Alice');
+      expect(result.winnerScore).toBe(5);
+      expect(result.standings).toHaveLength(2);
+    });
+
+    it('runPhase with vote pick-one type returns candidate and voter info', () => {
+      const engine = new GameEngine(eliminateConfig);
+      engine.players.add('p1', 'Alice');
+      engine.players.add('p2', 'Bob');
+
+      const responses = [
+        { playerId: 'p1', text: 'Answer A' },
+        { playerId: 'p2', text: 'Answer B' }
+      ];
+      engine.storePhaseData('lobby', { responses });
+
+      const result = engine.runPhase('vote');
+      expect(result.candidateIds).toEqual(['p1', 'p2']);
+      expect(result.voters).toHaveLength(2);
+    });
+
+    it('runPhase with vote head-to-head type returns matchups', () => {
+      const h2hConfig = {
+        name: 'H2H Game',
+        phases: {
+          lobby: { type: 'lobby', next: 'vote' },
+          vote: { type: 'vote', mode: 'head-to-head', candidates: 'lobby.responses', voters: 'all', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      const engine = new GameEngine(h2hConfig);
+      engine.players.add('p1', 'Alice');
+      engine.players.add('p2', 'Bob');
+      engine.players.add('p3', 'Carol');
+
+      const responses = [
+        { playerId: 'p1', text: 'A' },
+        { playerId: 'p2', text: 'B' },
+        { playerId: 'p3', text: 'C' }
+      ];
+      engine.storePhaseData('lobby', { responses });
+
+      const result = engine.runPhase('vote');
+      expect(result.matchups.length).toBeGreaterThan(0);
+      expect(result.comparisons).toBeGreaterThan(0);
+      expect(result.candidateIds).toEqual(['p1', 'p2', 'p3']);
+    });
+
+    it('runPhase stores results in phase data', () => {
+      const engine = new GameEngine(eliminateConfig);
+      engine.players.add('p1', 'Alice');
+      engine.players.add('p2', 'Bob');
+      engine.storePhaseData('vote', { scores: { p1: 5, p2: 3 } });
+
+      engine.runPhase('winner');
+
+      const stored = engine.getPhaseData('winner');
+      expect(stored).toBeDefined();
+      expect(stored.winnerId).toBe('p1');
+    });
+
+    it('runPhase throws for unknown phase type', () => {
+      const engine = new GameEngine(testConfig);
+      expect(() => engine.runPhase('lobby')).toThrow('No handler for phase type "lobby"');
+    });
+
+    it('runPhase throws for nonexistent phase', () => {
+      const engine = new GameEngine(testConfig);
+      expect(() => engine.runPhase('nonexistent')).toThrow('Phase "nonexistent" not found');
+    });
+  });
+
   describe('preview phase transitions', () => {
     it('supports approveNext and rejectNext transitions', () => {
       const config = {

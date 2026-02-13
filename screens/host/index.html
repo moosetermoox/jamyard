@@ -48,11 +48,35 @@
 
   <!-- REVEAL SECTION -->
   <section id="reveal-section" hidden>
-    <h2>The AI Created:</h2>
-    <div id="ai-result" class="ai-result"></div>
-    <h3>Based on these responses:</h3>
-    <ul id="responses-list"></ul>
-    <button id="end-game-btn">End Game</button>
+    <div id="ai-result" class="reveal-content"></div>
+    <div id="reveal-responses" hidden>
+      <h3>Player Responses:</h3>
+      <ul id="responses-list"></ul>
+    </div>
+    <button id="continue-btn">Continue</button>
+  </section>
+
+  <!-- VOTE STATUS SECTION -->
+  <section id="vote-section" hidden>
+    <h2>Voting in progress...</h2>
+    <p id="vote-mode-display"></p>
+    <p id="vote-count" class="big-text">0 of 0 votes received</p>
+    <button id="close-voting-btn">Close Voting</button>
+  </section>
+
+  <!-- ELIMINATION RESULTS SECTION -->
+  <section id="elimination-section" hidden>
+    <h2>Round Results</h2>
+    <p id="eliminated-names" class="eliminated-text"></p>
+    <p id="remaining-count" class="big-text"></p>
+    <button id="elimination-continue-btn">Continue</button>
+  </section>
+
+  <!-- WINNER SECTION -->
+  <section id="winner-section" hidden>
+    <h2 id="winner-name" class="winner-text"></h2>
+    <div id="standings-list" class="standings"></div>
+    <button id="winner-end-btn">End Game</button>
   </section>
 
   <!-- END SECTION -->

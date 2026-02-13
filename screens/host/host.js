@@ -25,8 +25,27 @@ const processSection = document.getElementById('process-section');
 // Elements - Reveal
 const revealSection = document.getElementById('reveal-section');
 const aiResultDisplay = document.getElementById('ai-result');
+const revealResponses = document.getElementById('reveal-responses');
 const responsesList = document.getElementById('responses-list');
-const endGameBtn = document.getElementById('end-game-btn');
+const continueBtn = document.getElementById('continue-btn');
+
+// Elements - Vote
+const voteSection = document.getElementById('vote-section');
+const voteModeDisplay = document.getElementById('vote-mode-display');
+const voteCount = document.getElementById('vote-count');
+const closeVotingBtn = document.getElementById('close-voting-btn');
+
+// Elements - Elimination
+const eliminationSection = document.getElementById('elimination-section');
+const eliminatedNamesDisplay = document.getElementById('eliminated-names');
+const remainingCount = document.getElementById('remaining-count');
+const eliminationContinueBtn = document.getElementById('elimination-continue-btn');
+
+// Elements - Winner
+const winnerSection = document.getElementById('winner-section');
+const winnerNameDisplay = document.getElementById('winner-name');
+const standingsList = document.getElementById('standings-list');
+const winnerEndBtn = document.getElementById('winner-end-btn');
 
 // Elements - End
 const endSection = document.getElementById('end-section');
@@ -50,7 +69,8 @@ socket.on('games-list', ({ games }) => {
   }
 });
 
-// Button handlers
+// --- Button handlers ---
+
 createRoomBtn.addEventListener('click', () => {
   const gameId = gameSelect.value;
   if (!gameId) return;
@@ -66,15 +86,28 @@ closeSubmissionsBtn.addEventListener('click', () => {
   socket.emit('close-submissions', { code: currentRoomCode });
 });
 
-endGameBtn.addEventListener('click', () => {
-  socket.emit('end-game', { code: currentRoomCode });
+continueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
+});
+
+closeVotingBtn.addEventListener('click', () => {
+  socket.emit('close-voting', { code: currentRoomCode });
+});
+
+eliminationContinueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
+});
+
+winnerEndBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
 });
 
 playAgainBtn.addEventListener('click', () => {
   location.reload();
 });
 
-// Socket events - Room setup
+// --- Socket events - Room setup ---
+
 socket.on('room-created', ({ code, game }) => {
   currentRoomCode = code;
   roomCodeDisplay.textContent = code;
@@ -93,36 +126,83 @@ socket.on('player-left', ({ players }) => {
   updateStartButton(players.length);
 });
 
-// Socket events - Game phases
+// --- Socket events - Game phases ---
+
 socket.on('game-started', ({ prompt }) => {
-  lobbySection.hidden = true;
+  hideAllSections();
   collectSection.hidden = false;
   promptDisplay.textContent = prompt;
   submissionCount.textContent = '0 of 0 submitted';
 });
 
 socket.on('response-received', ({ playerName, count, total }) => {
-  submissionCount.textContent = `${count} of ${total} submitted`;
+  submissionCount.textContent = count + ' of ' + total + ' submitted';
 });
 
 socket.on('processing-started', () => {
-  collectSection.hidden = true;
+  hideAllSections();
   processSection.hidden = false;
 });
 
-socket.on('show-results', ({ aiResult, responses }) => {
-  processSection.hidden = true;
+socket.on('show-results', ({ content, aiResult, responses }) => {
+  hideAllSections();
   revealSection.hidden = false;
-  aiResultDisplay.textContent = aiResult;
-  renderResponses(responses);
+  aiResultDisplay.textContent = content || aiResult;
+
+  if (responses && responses.length > 0) {
+    revealResponses.hidden = false;
+    renderResponses(responses);
+  } else {
+    revealResponses.hidden = true;
+  }
 });
 
 socket.on('game-ended', () => {
-  revealSection.hidden = true;
+  hideAllSections();
   endSection.hidden = false;
 });
 
-// Render functions
+// --- Socket events - Voting ---
+
+socket.on('vote-start', ({ mode, totalVoters }) => {
+  hideAllSections();
+  voteSection.hidden = false;
+  voteModeDisplay.textContent = mode === 'head-to-head' ? 'Head-to-Head' : 'Pick One';
+  voteCount.textContent = '0 of ' + totalVoters + ' votes received';
+});
+
+socket.on('vote-received', ({ count, total }) => {
+  voteCount.textContent = count + ' of ' + total + ' votes received';
+});
+
+// --- Socket events - Elimination ---
+
+socket.on('elimination-results', ({ eliminatedNames, remaining }) => {
+  hideAllSections();
+  eliminationSection.hidden = false;
+  eliminatedNamesDisplay.textContent = eliminatedNames.join(', ') + ' eliminated!';
+  remainingCount.textContent = remaining + ' players remaining';
+});
+
+// --- Socket events - Winner ---
+
+socket.on('winner-announced', ({ winnerName, winnerScore, standings }) => {
+  hideAllSections();
+  winnerSection.hidden = false;
+  winnerNameDisplay.textContent = winnerName + ' wins!';
+
+  standingsList.innerHTML = '';
+  if (standings && standings.length > 0) {
+    for (var i = 0; i < standings.length; i++) {
+      var p = document.createElement('p');
+      p.textContent = (i + 1) + '. ' + standings[i].name + ' \u2014 ' + standings[i].score + ' votes';
+      standingsList.appendChild(p);
+    }
+  }
+});
+
+// --- Render functions ---
+
 function renderPlayerList(players) {
   playerList.innerHTML = '';
   for (const player of players) {
@@ -141,7 +221,18 @@ function renderResponses(responses) {
   responsesList.innerHTML = '';
   for (const { name, response } of responses) {
     const li = document.createElement('li');
-    li.innerHTML = `<strong>${name}:</strong> ${response}`;
+    li.innerHTML = '<strong>' + name + ':</strong> ' + response;
     responsesList.appendChild(li);
   }
+}
+
+function hideAllSections() {
+  lobbySection.hidden = true;
+  collectSection.hidden = true;
+  processSection.hidden = true;
+  revealSection.hidden = true;
+  voteSection.hidden = true;
+  eliminationSection.hidden = true;
+  winnerSection.hidden = true;
+  endSection.hidden = true;
 }

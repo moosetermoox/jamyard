@@ -126,3 +126,78 @@ button:disabled {
 #end-section h1 {
   color: #5cb85c;
 }
+
+/* Eliminated banner */
+#eliminated-banner {
+  background: #f2dede;
+  color: #a94442;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+/* Vote section */
+.vote-btn {
+  background: #5bc0de;
+  text-align: left;
+  padding: 18px 20px;
+  font-size: 1.25rem;
+  margin-bottom: 8px;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+.vote-btn:hover {
+  background: #46b8da;
+}
+
+.vote-btn:active {
+  background: #31b0d5;
+}
+
+.vs-label {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #999;
+  margin: 5px 0;
+}
+
+#vote-progress {
+  font-size: 1rem;
+  color: #999;
+  margin-bottom: 15px;
+}
+
+#vote-submitted-section h1 {
+  color: #5cb85c;
+}
+
+/* Elimination results */
+#elimination-results-section h1 {
+  color: #d9534f;
+}
+
+/* Winner section */
+#winner-section h1 {
+  color: #f0ad4e;
+}
+
+#winner-details {
+  font-size: 1.5rem;
+  color: #333;
+}
+
+#standings-list {
+  text-align: left;
+  margin-top: 15px;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+}
+
+#standings-list p {
+  margin: 8px 0;
+  font-size: 1.1rem;
+  color: #333;
+}
