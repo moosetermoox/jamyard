@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Designer - Classroom Games</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>Game Designer</h1>
+    <a href="/" class="back-link">Back to Home</a>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <button id="create-new-btn">+ Create New Game</button>
+    </div>
+
+    <section id="games-section">
+      <p id="loading-message">Loading games...</p>
+      <p id="error-message" hidden></p>
+      <div id="games-grid"></div>
+    </section>
+  </main>
+
+  <script src="designer.js"></script>
+</body>
+</html>

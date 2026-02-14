@@ -310,6 +310,7 @@ app.get('/', (req, res) => {
       <h1>Classroom Games</h1>
       <a href="/host">Host Screen</a>
       <a href="/player">Player Screen</a>
+      <a href="/designer">Game Designer</a>
     </body>
     </html>
   `);
@@ -317,6 +318,36 @@ app.get('/', (req, res) => {
 
 app.use('/host', express.static(join(__dirname, 'screens/host')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
+app.use('/designer', express.static(join(__dirname, 'screens/designer')));
+
+app.get('/api/games', async (req, res) => {
+  try {
+    const entries = await readdir(GAMES_DIR, { withFileTypes: true });
+    const games = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('_')) continue;
+      try {
+        const config = await loadGame(entry.name);
+        games.push({
+          id: entry.name,
+          name: config.name,
+          description: config.description || '',
+          phaseCount: Object.keys(config.phases).length,
+          minPlayers: config.minPlayers || null,
+          maxPlayers: config.maxPlayers || null
+        });
+      } catch {
+        // Skip games with invalid configs
+      }
+    }
+
+    res.json({ games });
+  } catch (error) {
+    console.log(`[api/games] Error: ${error.message}`);
+    res.status(500).json({ games: [], error: 'Failed to load games' });
+  }
+});
 
 io.on('connection', (socket) => {
   console.log(`[connect] Socket ${socket.id} connected`);
