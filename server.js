@@ -318,7 +318,22 @@ app.get('/', (req, res) => {
 
 app.use('/host', express.static(join(__dirname, 'screens/host')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
+
+app.get('/designer/edit', (req, res) => {
+  res.sendFile('editor.html', { root: join(__dirname, 'screens', 'designer') });
+});
+
 app.use('/designer', express.static(join(__dirname, 'screens/designer')));
+
+app.get('/api/games/:gameId', async (req, res) => {
+  try {
+    const config = await loadGame(req.params.gameId);
+    res.json(config);
+  } catch (error) {
+    console.log(`[api/games/:gameId] Error: ${error.message}`);
+    res.status(404).json({ error: error.message });
+  }
+});
 
 app.get('/api/games', async (req, res) => {
   try {
