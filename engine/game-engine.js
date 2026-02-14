@@ -97,7 +97,8 @@ export class GameEngine {
     let input;
 
     if (phase.method === 'bottom-percent') {
-      const scores = phase.from ? this.resolve(phase.from) : {};
+      const ref = phase.input || phase.from;
+      const scores = ref ? this.resolve(ref) : {};
       input = { scores, percent: phase.percent };
     } else if (phase.method === 'hook') {
       const data = phase.input ? this.resolve(phase.input) : null;

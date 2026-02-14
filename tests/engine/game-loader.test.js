@@ -28,6 +28,47 @@ describe('GameLoader', () => {
       expect(config.phases.process.task).toBe('summarize');
       expect(config.phases.end.type).toBe('end');
     });
+
+    it('can load the corn-story config', async () => {
+      const config = await loadGame('corn-story');
+      expect(config.name).toBe('Corn Story');
+      expect(config.description).toBe('A 3-round elimination game of creativity!');
+      expect(config.hooks).toBe('./hooks.js');
+      expect(config.minPlayers).toBe(4);
+
+      // Verify all 16 phases exist
+      const phaseNames = Object.keys(config.phases);
+      expect(phaseNames).toHaveLength(16);
+
+      // Round 1 phases
+      expect(config.phases.lobby.next).toBe('round1-intro');
+      expect(config.phases['round1-intro'].type).toBe('reveal');
+      expect(config.phases['round1-collect'].type).toBe('collect');
+      expect(config.phases['round1-collect'].from).toBe('remaining');
+      expect(config.phases['round1-process'].type).toBe('ai-process');
+      expect(config.phases['round1-process'].task).toBe('compare');
+      expect(config.phases['round1-process'].format).toBe('json');
+      expect(config.phases['round1-eliminate'].type).toBe('eliminate');
+      expect(config.phases['round1-eliminate'].method).toBe('hook');
+      expect(config.phases['round1-eliminate'].hook).toBe('eliminateDuplicates');
+
+      // Round 2 phases
+      expect(config.phases['round2-collect'].from).toBe('remaining');
+      expect(config.phases['round2-vote'].type).toBe('vote');
+      expect(config.phases['round2-vote'].mode).toBe('head-to-head');
+      expect(config.phases['round2-vote'].voters).toBe('all');
+      expect(config.phases['round2-eliminate'].method).toBe('bottom-percent');
+      expect(config.phases['round2-eliminate'].percent).toBe(60);
+
+      // Final round phases
+      expect(config.phases['final-collect'].from).toBe('remaining');
+      expect(config.phases['final-vote'].type).toBe('vote');
+      expect(config.phases['final-vote'].mode).toBe('pick-one');
+      expect(config.phases['final-vote'].voters).toBe('eliminated');
+      expect(config.phases.crown.type).toBe('winner');
+      expect(config.phases.crown.from).toBe('final-vote.scores');
+      expect(config.phases.end.type).toBe('end');
+    });
   });
 
   describe('missing config file', () => {

@@ -1,0 +1,116 @@
+{
+  "id": "corn-story",
+  "name": "Corn Story",
+  "description": "A 3-round elimination game of creativity!",
+  "minPlayers": 4,
+  "maxPlayers": 36,
+  "hooks": "./hooks.js",
+  "safety": {
+    "contentFilter": "strict",
+    "teacherPreview": false
+  },
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "round1-intro"
+    },
+
+    "round1-intro": {
+      "type": "reveal",
+      "template": "# Round 1: Don't Match!\n\nAnswer the question, but don't match anyone else!\nIf two players give the same answer, BOTH are eliminated.",
+      "next": "round1-collect"
+    },
+    "round1-collect": {
+      "type": "collect",
+      "prompt": "What can you do with corn?",
+      "timer": 50,
+      "from": "remaining",
+      "next": "round1-process"
+    },
+    "round1-process": {
+      "type": "ai-process",
+      "task": "compare",
+      "instruction": "Group these answers by semantic similarity. Two answers match if they describe essentially the same thing (e.g., 'eat it' and 'eating corn' match). Return a JSON array of arrays, where each inner array contains the playerIds whose answers match.",
+      "input": "round1-collect.responses",
+      "format": "json",
+      "next": "round1-eliminate"
+    },
+    "round1-eliminate": {
+      "type": "eliminate",
+      "method": "hook",
+      "hook": "eliminateDuplicates",
+      "input": "round1-process.result",
+      "next": "round1-results"
+    },
+    "round1-results": {
+      "type": "reveal",
+      "template": "# Round 1 Results\n\n{{round1-eliminate.eliminated.length}} players eliminated for matching!\n\n{{remaining.length}} players advance to Round 2.",
+      "next": "round2-intro"
+    },
+
+    "round2-intro": {
+      "type": "reveal",
+      "template": "# Round 2: Be Creative!\n\nRemaining players: submit your most creative answer.\nThen EVERYONE votes head-to-head.\nBottom 60% will be eliminated!",
+      "next": "round2-collect"
+    },
+    "round2-collect": {
+      "type": "collect",
+      "prompt": "What is an alternative use for corn?",
+      "timer": 50,
+      "from": "remaining",
+      "next": "round2-vote"
+    },
+    "round2-vote": {
+      "type": "vote",
+      "mode": "head-to-head",
+      "candidates": "round2-collect.responses",
+      "voters": "all",
+      "question": "Which is more creative?",
+      "timer": 15,
+      "next": "round2-eliminate"
+    },
+    "round2-eliminate": {
+      "type": "eliminate",
+      "method": "bottom-percent",
+      "percent": 60,
+      "input": "round2-vote.scores",
+      "next": "round2-results"
+    },
+    "round2-results": {
+      "type": "reveal",
+      "template": "# Round 2 Results\n\n{{round2-eliminate.eliminated.length}} players eliminated!\n\n{{remaining.length}} players advance to the Final Round!",
+      "next": "final-intro"
+    },
+
+    "final-intro": {
+      "type": "reveal",
+      "template": "# Final Round!\n\nFinalists: give us your BEST answer.\nEliminated players: YOU decide the winner!",
+      "next": "final-collect"
+    },
+    "final-collect": {
+      "type": "collect",
+      "prompt": "What is your ultimate creative use for corn?",
+      "timer": 60,
+      "from": "remaining",
+      "next": "final-vote"
+    },
+    "final-vote": {
+      "type": "vote",
+      "mode": "pick-one",
+      "candidates": "final-collect.responses",
+      "voters": "eliminated",
+      "question": "Pick your favorite!",
+      "timer": 30,
+      "next": "crown"
+    },
+    "crown": {
+      "type": "winner",
+      "from": "final-vote.scores",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing Corn Story!"
+    }
+  }
+}

@@ -129,7 +129,17 @@ async function handlePhase(code, room) {
         try {
           result = JSON.parse(aiResult.text);
         } catch {
-          result = aiResult.text;
+          // AI may wrap JSON in preamble text — try to extract it
+          const match = aiResult.text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+          if (match) {
+            try {
+              result = JSON.parse(match[0]);
+            } catch {
+              result = aiResult.text;
+            }
+          } else {
+            result = aiResult.text;
+          }
         }
       } else {
         result = aiResult.text;

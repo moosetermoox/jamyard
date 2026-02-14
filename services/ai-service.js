@@ -65,7 +65,10 @@ export class AIService {
 
   _buildUserMessage(instruction, responses) {
     const responseList = responses
-      .map(r => `- ${r.name}: "${r.text}"`)
+      .map(r => {
+        const id = r.playerId ? ` [playerId: ${r.playerId}]` : '';
+        return `- ${r.name}${id}: "${r.text}"`;
+      })
       .join('\n');
 
     return `${instruction}
