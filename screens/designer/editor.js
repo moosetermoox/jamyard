@@ -754,8 +754,59 @@ function deletePhase(phaseId) {
 }
 
 // --- Save / Test ---
-function saveGame() {
-  alert('Save not yet implemented.\n\nConfig JSON:\n' + JSON.stringify(gameConfig, null, 2));
+async function saveGame() {
+  saveBtn.disabled = true;
+  var originalText = saveBtn.textContent;
+
+  try {
+    var response;
+
+    if (gameId) {
+      // Update existing game
+      response = await fetch('/api/games/' + encodeURIComponent(gameId), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(gameConfig)
+      });
+    } else {
+      // Create new game — prompt for ID
+      var newId = prompt('Enter a game ID (lowercase letters, numbers, hyphens):');
+      if (!newId) {
+        saveBtn.disabled = false;
+        return;
+      }
+      newId = newId.trim().toLowerCase();
+
+      response = await fetch('/api/games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: newId, config: gameConfig })
+      });
+
+      if (response.ok) {
+        gameId = newId;
+        var newUrl = window.location.pathname + '?game=' + encodeURIComponent(newId);
+        window.history.replaceState(null, '', newUrl);
+      }
+    }
+
+    var result = await response.json();
+
+    if (response.ok) {
+      saveBtn.textContent = 'Saved!';
+    } else {
+      alert('Save failed: ' + (result.error || 'Unknown error'));
+      saveBtn.textContent = originalText;
+    }
+  } catch (error) {
+    alert('Save failed: ' + error.message);
+    saveBtn.textContent = originalText;
+  }
+
+  saveBtn.disabled = false;
+  setTimeout(function () {
+    saveBtn.textContent = originalText;
+  }, 2000);
 }
 
 function testGame() {

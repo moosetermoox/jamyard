@@ -127,6 +127,22 @@ h1 {
   border-radius: 4px;
 }
 
+.game-card-delete {
+  margin-top: 12px;
+  padding: 6px 14px;
+  background: #fff;
+  color: #d9534f;
+  border: 1px solid #d9534f;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.game-card-delete:hover {
+  background: #d9534f;
+  color: #fff;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   body {

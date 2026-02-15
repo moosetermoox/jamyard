@@ -27,7 +27,7 @@ export async function loadGame(gameId) {
   return config;
 }
 
-function validate(config, gameId) {
+export function validate(config, gameId) {
   if (!config.name) {
     throw new Error(`Game "${gameId}" is missing required field: name`);
   }

@@ -4,10 +4,10 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { readdir } from 'fs/promises';
+import { readdir, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
-import { loadGame } from './engine/game-loader.js';
+import { loadGame, validate } from './engine/game-loader.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { gamePhases } from './config/game-phases.js';
 import { AIService } from './services/ai-service.js';
@@ -33,6 +33,8 @@ const roomManager = new RoomManager(gamePhases);
 const aiService = new AIService({ mode: aiMode });
 const socketToRoom = new Map();
 const roomToHost = new Map();
+
+app.use(express.json());
 
 const DEFAULT_GAME = 'weekend-poem';
 const GAMES_DIR = join(__dirname, 'games');
@@ -361,6 +363,60 @@ app.get('/api/games', async (req, res) => {
   } catch (error) {
     console.log(`[api/games] Error: ${error.message}`);
     res.status(500).json({ games: [], error: 'Failed to load games' });
+  }
+});
+
+app.put('/api/games/:gameId', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    const config = req.body;
+    validate(config, gameId);
+    const configPath = join(GAMES_DIR, gameId, 'config.json');
+    await access(configPath);
+    await writeFile(configPath, JSON.stringify(config, null, 2));
+    res.json({ success: true });
+  } catch (error) {
+    console.log(`[api/games PUT] Error: ${error.message}`);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.post('/api/games', async (req, res) => {
+  try {
+    const { id, config } = req.body;
+    if (!id || !/^[a-z0-9][a-z0-9-]*$/.test(id)) {
+      return res.status(400).json({ error: 'Invalid game ID. Use lowercase letters, numbers, and hyphens. Must not start with a hyphen.' });
+    }
+    const gameDir = join(GAMES_DIR, id);
+    try {
+      await access(gameDir);
+      return res.status(409).json({ error: `Game "${id}" already exists.` });
+    } catch {
+      // Directory doesn't exist — good
+    }
+    validate(config, id);
+    await mkdir(gameDir, { recursive: true });
+    await writeFile(join(gameDir, 'config.json'), JSON.stringify(config, null, 2));
+    res.json({ success: true, id });
+  } catch (error) {
+    console.log(`[api/games POST] Error: ${error.message}`);
+    res.status(400).json({ error: error.message });
+  }
+});
+
+app.delete('/api/games/:gameId', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    if (gameId.startsWith('_')) {
+      return res.status(400).json({ error: 'Cannot delete template directories.' });
+    }
+    const gameDir = join(GAMES_DIR, gameId);
+    await access(gameDir);
+    await rm(gameDir, { recursive: true });
+    res.json({ success: true });
+  } catch (error) {
+    console.log(`[api/games DELETE] Error: ${error.message}`);
+    res.status(400).json({ error: error.message });
   }
 });
 
