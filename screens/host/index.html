@@ -10,7 +10,7 @@
   <h1>Classroom Games</h1>
 
   <!-- LOBBY SECTION -->
-  <section id="lobby-section">
+  <section id="lobby-section" class="active">
     <div id="game-select-section">
       <label for="game-select">Choose a game:</label>
       <select id="game-select">
@@ -36,7 +36,13 @@
   <section id="collect-section" hidden>
     <h2>Players are answering...</h2>
     <p id="prompt-display" class="prompt"></p>
-    <span id="collect-timer" class="timer" hidden></span>
+    <div id="collect-timer" class="timer-ring-container" hidden>
+      <svg class="timer-ring" viewBox="0 0 120 120">
+        <circle class="timer-ring-bg" cx="60" cy="60" r="52" />
+        <circle class="timer-ring-fill" cx="60" cy="60" r="52" />
+      </svg>
+      <span class="timer-ring-text"></span>
+    </div>
     <p id="submission-count" class="big-text">0 of 0 submitted</p>
     <button id="close-submissions-btn">Close Submissions</button>
   </section>
@@ -75,7 +81,13 @@
   <section id="vote-section" hidden>
     <h2>Voting in progress...</h2>
     <p id="vote-mode-display"></p>
-    <span id="vote-timer" class="timer" hidden></span>
+    <div id="vote-timer" class="timer-ring-container" hidden>
+      <svg class="timer-ring" viewBox="0 0 120 120">
+        <circle class="timer-ring-bg" cx="60" cy="60" r="52" />
+        <circle class="timer-ring-fill" cx="60" cy="60" r="52" />
+      </svg>
+      <span class="timer-ring-text"></span>
+    </div>
     <p id="vote-count" class="big-text">0 of 0 votes received</p>
     <button id="close-voting-btn">Close Voting</button>
   </section>

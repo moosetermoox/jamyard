@@ -5,7 +5,7 @@ export class PlayerRegistry {
 
   add(id, name) {
     const processedName = this.processName(name);
-    this.players.set(id, { id, name: processedName, status: 'active' });
+    this.players.set(id, { id, name: processedName, status: 'active', connected: true });
   }
 
   remove(id) {
@@ -14,6 +14,13 @@ export class PlayerRegistry {
 
   find(id) {
     return this.players.get(id);
+  }
+
+  findByName(name) {
+    for (const player of this.players.values()) {
+      if (player.name === name) return player;
+    }
+    return undefined;
   }
 
   list() {
@@ -28,6 +35,30 @@ export class PlayerRegistry {
     const player = this.players.get(id);
     if (player) {
       this.players.set(id, { ...player, status: 'eliminated' });
+    }
+  }
+
+  disconnect(id) {
+    const player = this.players.get(id);
+    if (player) {
+      this.players.set(id, { ...player, connected: false, disconnectedAt: Date.now() });
+    }
+  }
+
+  reconnect(oldId, newId) {
+    const player = this.players.get(oldId);
+    if (!player) return false;
+    this.players.delete(oldId);
+    this.players.set(newId, { ...player, id: newId, connected: true, disconnectedAt: undefined });
+    return true;
+  }
+
+  cleanupDisconnected(graceMs) {
+    const now = Date.now();
+    for (const [id, player] of this.players) {
+      if (!player.connected && player.disconnectedAt && (now - player.disconnectedAt) >= graceMs) {
+        this.players.delete(id);
+      }
     }
   }
 

@@ -1,6 +1,7 @@
 const socket = io();
 
 let currentRoomCode = null;
+let currentPlayerName = null;
 let isEliminated = false;
 
 // Timer state
@@ -68,6 +69,7 @@ joinBtn.addEventListener('click', () => {
   errorMessage.hidden = true;
   joinBtn.disabled = true;
   currentRoomCode = code;
+  currentPlayerName = name;
   socket.emit('join-room', { code, name });
 });
 
@@ -80,16 +82,26 @@ submitBtn.addEventListener('click', () => {
 
   submitBtn.disabled = true;
   socket.emit('submit-response', { code: currentRoomCode, response });
-  collectSection.hidden = true;
-  submittedSection.hidden = false;
+  showSection(submittedSection);
 });
 
 // --- Socket events - Join ---
 
-socket.on('join-success', ({ name }) => {
-  joinSection.hidden = true;
-  waitingSection.hidden = false;
+socket.on('join-success', ({ name, reconnected }) => {
+  if (!reconnected) {
+    showSection(waitingSection);
+  }
+  // If reconnected, sendCurrentState on the server will push the right section
   playerNameDisplay.textContent = name;
+  currentPlayerName = name;
+});
+
+// Auto-rejoin on socket reconnect
+socket.on('connect', () => {
+  if (currentRoomCode && currentPlayerName) {
+    console.log('[reconnect] Attempting to rejoin room ' + currentRoomCode);
+    socket.emit('join-room', { code: currentRoomCode, name: currentPlayerName });
+  }
 });
 
 socket.on('join-error', ({ message }) => {
@@ -99,32 +111,38 @@ socket.on('join-error', ({ message }) => {
 });
 
 socket.on('room-closed', () => {
-  hideAllSections();
   eliminatedBanner.hidden = true;
   isEliminated = false;
-  joinSection.hidden = false;
+  showSection(joinSection);
   joinBtn.disabled = false;
   currentRoomCode = null;
+  currentPlayerName = null;
   showError('Room was closed by the host');
 });
 
 // --- Timer ---
-function startTimer(seconds, displayEl, onExpire) {
+function startTimer(seconds, wrapperEl, onExpire) {
   clearTimer();
   let remaining = seconds;
-  displayEl.textContent = remaining + 's';
-  displayEl.hidden = false;
-  displayEl.classList.remove('timer-warning');
+  const total = seconds;
+  const textEl = wrapperEl.querySelector('.timer-bar-text');
+  const fillEl = wrapperEl.querySelector('.timer-bar-fill');
+
+  wrapperEl.hidden = false;
+  wrapperEl.classList.remove('timer-warning');
+  textEl.textContent = remaining + 's';
+  fillEl.style.width = '100%';
 
   timerInterval = setInterval(() => {
     remaining--;
-    displayEl.textContent = remaining + 's';
+    textEl.textContent = remaining + 's';
+    fillEl.style.width = ((remaining / total) * 100) + '%';
     if (remaining <= 5) {
-      displayEl.classList.add('timer-warning');
+      wrapperEl.classList.add('timer-warning');
     }
     if (remaining <= 0) {
       clearTimer();
-      displayEl.hidden = true;
+      wrapperEl.hidden = true;
       if (onExpire) onExpire();
     }
   }, 1000);
@@ -144,8 +162,7 @@ function clearTimer() {
 // --- Socket events - Game phases ---
 
 socket.on('game-started', ({ prompt, timer }) => {
-  hideAllSections();
-  collectSection.hidden = false;
+  showSection(collectSection);
   promptDisplay.textContent = prompt;
   responseInput.value = '';
   submitBtn.disabled = false;
@@ -154,43 +171,37 @@ socket.on('game-started', ({ prompt, timer }) => {
       // Auto-submit current text (even if empty)
       submitBtn.disabled = true;
       socket.emit('submit-response', { code: currentRoomCode, response: responseInput.value.trim() || '' });
-      collectSection.hidden = true;
-      submittedSection.hidden = false;
+      showSection(submittedSection);
     });
   }
 });
 
 socket.on('processing-started', () => {
-  hideAllSections();
-  processSection.hidden = false;
+  showSection(processSection);
 });
 
 socket.on('show-results', ({ content, aiResult }) => {
-  hideAllSections();
-  revealSection.hidden = false;
+  showSection(revealSection);
   aiResultDisplay.textContent = content || aiResult;
 });
 
 socket.on('game-ended', () => {
-  hideAllSections();
   eliminatedBanner.hidden = true;
   isEliminated = false;
-  endSection.hidden = false;
+  showSection(endSection);
 });
 
 // --- Socket events - Waiting ---
 
 socket.on('waiting', ({ message }) => {
-  hideAllSections();
-  gameWaitingSection.hidden = false;
+  showSection(gameWaitingSection);
   gameWaitingMessage.textContent = message;
 });
 
 // --- Socket events - Voting ---
 
 socket.on('vote-start', ({ mode, candidates, matchups, timer }) => {
-  hideAllSections();
-  voteSection.hidden = false;
+  showSection(voteSection);
   voteOptions.innerHTML = '';
 
   if (mode === 'pick-one') {
@@ -205,8 +216,7 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer }) => {
           const randomIdx = Math.floor(Math.random() * currentCandidates.length);
           socket.emit('submit-vote', { code: currentRoomCode, choice: currentCandidates[randomIdx].playerId });
         }
-        hideAllSections();
-        voteSubmittedSection.hidden = false;
+        showSection(voteSubmittedSection);
       });
     }
   } else if (mode === 'head-to-head') {
@@ -226,8 +236,7 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer }) => {
           code: currentRoomCode,
           votes: matchupVotes.map(function(choice) { return { choice: choice }; })
         });
-        hideAllSections();
-        voteSubmittedSection.hidden = false;
+        showSection(voteSubmittedSection);
       });
     }
   }
@@ -236,8 +245,7 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer }) => {
 // --- Socket events - Elimination ---
 
 socket.on('elimination-results', ({ eliminated, eliminatedNames, remaining }) => {
-  hideAllSections();
-  eliminationResultsSection.hidden = false;
+  showSection(eliminationResultsSection);
 
   if (eliminated.includes(socket.id)) {
     isEliminated = true;
@@ -253,8 +261,7 @@ socket.on('elimination-results', ({ eliminated, eliminatedNames, remaining }) =>
 // --- Socket events - Winner ---
 
 socket.on('winner-announced', ({ winnerName, winnerScore, standings }) => {
-  hideAllSections();
-  winnerSection.hidden = false;
+  showSection(winnerSection);
   winnerTitle.textContent = winnerName + ' wins!';
   winnerDetails.textContent = winnerScore + ' votes';
 
@@ -277,8 +284,7 @@ function showPickOneVote(candidates) {
     btn.textContent = candidate.text || candidate.name || candidate.playerId;
     btn.addEventListener('click', () => {
       socket.emit('submit-vote', { code: currentRoomCode, choice: candidate.playerId });
-      hideAllSections();
-      voteSubmittedSection.hidden = false;
+      showSection(voteSubmittedSection);
     });
     voteOptions.appendChild(btn);
   }
@@ -291,8 +297,7 @@ function showNextMatchup() {
       code: currentRoomCode,
       votes: matchupVotes.map(function(choice) { return { choice: choice }; })
     });
-    hideAllSections();
-    voteSubmittedSection.hidden = false;
+    showSection(voteSubmittedSection);
     return;
   }
 
@@ -339,19 +344,28 @@ function showError(message) {
   errorMessage.hidden = false;
 }
 
+const allPlayerSections = [
+  joinSection, waitingSection, collectSection, submittedSection,
+  processSection, revealSection, endSection, gameWaitingSection,
+  voteSection, voteSubmittedSection, eliminationResultsSection, winnerSection
+];
+
+function showSection(el) {
+  clearTimer();
+  for (const s of allPlayerSections) {
+    s.classList.remove('active');
+    s.hidden = true;
+  }
+  el.hidden = false;
+  void el.offsetWidth;
+  el.classList.add('active');
+}
+
 function hideAllSections() {
   clearTimer();
-  joinSection.hidden = true;
-  waitingSection.hidden = true;
-  collectSection.hidden = true;
-  submittedSection.hidden = true;
-  processSection.hidden = true;
-  revealSection.hidden = true;
-  endSection.hidden = true;
-  gameWaitingSection.hidden = true;
-  voteSection.hidden = true;
-  voteSubmittedSection.hidden = true;
-  eliminationResultsSection.hidden = true;
-  winnerSection.hidden = true;
+  for (const s of allPlayerSections) {
+    s.classList.remove('active');
+    s.hidden = true;
+  }
   // Note: eliminatedBanner is NOT hidden here — it persists once set
 }

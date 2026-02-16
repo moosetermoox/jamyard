@@ -13,7 +13,7 @@
   </div>
 
   <!-- JOIN SECTION -->
-  <section id="join-section">
+  <section id="join-section" class="active">
     <h1>Join Game</h1>
 
     <input
@@ -46,7 +46,10 @@
   <section id="collect-section" hidden>
     <h1>Answer the question:</h1>
     <p id="prompt-display" class="prompt"></p>
-    <div id="collect-timer" class="timer" hidden></div>
+    <div id="collect-timer" class="timer-bar-wrapper" hidden>
+      <span class="timer-bar-text"></span>
+      <div class="timer-bar"><div class="timer-bar-fill"></div></div>
+    </div>
     <textarea
       id="response-input"
       placeholder="Type your answer here..."
@@ -81,7 +84,10 @@
   <!-- VOTE SECTION -->
   <section id="vote-section" hidden>
     <h1 id="vote-title">Vote!</h1>
-    <div id="vote-timer" class="timer" hidden></div>
+    <div id="vote-timer" class="timer-bar-wrapper" hidden>
+      <span class="timer-bar-text"></span>
+      <div class="timer-bar"><div class="timer-bar-fill"></div></div>
+    </div>
     <p id="vote-progress" hidden></p>
     <div id="vote-options"></div>
   </section>

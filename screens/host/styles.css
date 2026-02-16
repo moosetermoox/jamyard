@@ -23,6 +23,16 @@ h2 {
 
 section {
   margin-bottom: 40px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+section:not(.active) {
+  display: none;
+}
+
+section.active {
+  opacity: 1;
 }
 
 /* Room code */
@@ -110,6 +120,27 @@ button:disabled {
 #player-list li {
   padding: 10px 0;
   border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#player-list li.player-disconnected {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+.player-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
 /* Collect section */
@@ -233,16 +264,51 @@ button:disabled {
   background: #c9302c;
 }
 
-/* Timer */
-.timer {
-  display: inline-block;
+/* Timer ring */
+.timer-ring-container {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 20px auto;
+}
+
+.timer-ring {
+  width: 120px;
+  height: 120px;
+  transform: rotate(-90deg);
+}
+
+.timer-ring-bg {
+  fill: none;
+  stroke: #e0e0e0;
+  stroke-width: 8;
+}
+
+.timer-ring-fill {
+  fill: none;
+  stroke: #4a90d9;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 326.73;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.timer-ring-container.timer-warning .timer-ring-fill {
+  stroke: #d9534f;
+}
+
+.timer-ring-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   font-size: 2.5rem;
   font-weight: bold;
   color: #4a90d9;
-  margin: 10px 0;
 }
 
-.timer-warning {
+.timer-ring-container.timer-warning .timer-ring-text {
   color: #d9534f;
 }
 

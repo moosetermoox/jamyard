@@ -336,6 +336,103 @@ async function handlePhase(code, room) {
   }
 }
 
+// --- Reconnection: send current state to a reconnecting player ---
+
+function sendCurrentState(socket, code, room) {
+  if (!room.engine) return;
+
+  const phase = room.engine.getCurrentPhase();
+  if (!phase) return;
+
+  console.log(`[sendCurrentState] Sending phase '${phase.id}' (${phase.type}) to ${socket.id}`);
+
+  switch (phase.type) {
+    case 'lobby':
+      // Nothing extra — they'll see the waiting screen
+      break;
+
+    case 'collect': {
+      const player = room.engine.players.find(socket.id);
+      if (player && player.response) {
+        // Already submitted
+        socket.emit('waiting', { message: 'Answer submitted. Waiting for others...' });
+      } else {
+        // Re-send prompt (no timer on reconnect)
+        socket.emit('game-started', { prompt: phase.prompt, timer: null });
+      }
+      break;
+    }
+
+    case 'ai-process':
+      socket.emit('processing-started');
+      break;
+
+    case 'preview':
+      socket.emit('waiting', { message: 'Waiting for teacher...' });
+      break;
+
+    case 'reveal': {
+      let content = '';
+      if (phase.template) {
+        content = resolveTemplate(phase.template, room.engine);
+      }
+      let aiResult = content;
+      for (const [id, cfg] of Object.entries(room.engine.config.phases)) {
+        if (cfg.type === 'ai-process') {
+          const data = room.engine.getPhaseData(id);
+          if (data && data.result) {
+            aiResult = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
+          }
+        }
+      }
+      socket.emit('show-results', { content, aiResult });
+      break;
+    }
+
+    case 'vote': {
+      if (!room.voteState) break;
+      const vs = room.voteState;
+      if (vs.votersCompleted.has(socket.id)) {
+        socket.emit('waiting', { message: 'Vote submitted. Waiting for results...' });
+      } else if (vs.eligibleVoterIds.includes(socket.id)) {
+        // Re-send vote options (no timer on reconnect)
+        if (vs.mode === 'head-to-head') {
+          socket.emit('vote-start', {
+            mode: 'head-to-head',
+            matchups: vs.matchups.map(([a, b]) => ({
+              optionA: vs.candidates.find(c => (c.playerId || c) === a) || { playerId: a },
+              optionB: vs.candidates.find(c => (c.playerId || c) === b) || { playerId: b }
+            })),
+            timer: null
+          });
+        } else {
+          socket.emit('vote-start', {
+            mode: 'pick-one',
+            candidates: vs.candidates,
+            timer: null
+          });
+        }
+      } else {
+        socket.emit('waiting', { message: 'Waiting for votes...' });
+      }
+      break;
+    }
+
+    case 'eliminate':
+    case 'winner':
+      // These auto-advance, player likely sees results already
+      socket.emit('waiting', { message: 'Game in progress...' });
+      break;
+
+    case 'end':
+      socket.emit('game-ended', { message: phase.message || 'Game over!' });
+      break;
+  }
+}
+
+// --- Disconnect grace period tracking ---
+const disconnectTimers = new Map();
+
 // --- Express Routes ---
 
 app.get('/', (req, res) => {
@@ -525,6 +622,32 @@ io.on('connection', (socket) => {
     const players = room.engine ? room.engine.players : room.playerRegistry;
 
     try {
+      // Check for reconnection: find disconnected player with same name
+      const processedName = name || 'Anonymous';
+      const existing = players.findByName(processedName);
+      if (existing && !existing.connected) {
+        console.log(`[join-room] Reconnecting ${processedName} (old: ${existing.id} -> new: ${socket.id})`);
+        players.reconnect(existing.id, socket.id);
+        socketToRoom.set(socket.id, code);
+        socket.join(code);
+
+        const player = players.find(socket.id);
+        socket.emit('join-success', { name: player.name, reconnected: true });
+
+        const hostSocketId = roomToHost.get(code);
+        if (hostSocketId) {
+          io.to(hostSocketId).emit('player-reconnected', {
+            id: socket.id,
+            name: player.name,
+            players: players.list()
+          });
+        }
+
+        // Send current game state to reconnecting player
+        sendCurrentState(socket, code, room);
+        return;
+      }
+
       players.add(socket.id, name);
       const player = players.find(socket.id);
       socketToRoom.set(socket.id, code);
@@ -826,16 +949,35 @@ io.on('connection', (socket) => {
         const players = room.engine ? room.engine.players : room.playerRegistry;
         const player = players.find(socket.id);
         if (player) {
-          console.log(`[disconnect] Removing ${player.name} from room ${code}`);
-          players.remove(socket.id);
+          console.log(`[disconnect] Marking ${player.name} as disconnected in room ${code}`);
+          players.disconnect(socket.id);
 
           const hostSocketId = roomToHost.get(code);
           if (hostSocketId) {
-            io.to(hostSocketId).emit('player-left', {
+            io.to(hostSocketId).emit('player-disconnected', {
               id: socket.id,
+              name: player.name,
               players: players.list()
             });
           }
+
+          // Set grace period — remove after 30s if still disconnected
+          const timerId = setTimeout(() => {
+            disconnectTimers.delete(socket.id);
+            const p = players.find(socket.id);
+            if (p && !p.connected) {
+              console.log(`[disconnect] Grace period expired, removing ${p.name} from room ${code}`);
+              players.remove(socket.id);
+              const hid = roomToHost.get(code);
+              if (hid) {
+                io.to(hid).emit('player-left', {
+                  id: socket.id,
+                  players: players.list()
+                });
+              }
+            }
+          }, 30000);
+          disconnectTimers.set(socket.id, timerId);
         }
       }
       socketToRoom.delete(socket.id);

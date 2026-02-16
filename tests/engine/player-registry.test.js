@@ -16,6 +16,12 @@ describe('PlayerRegistry', () => {
       registry.remove('player1');
       expect(registry.find('player1')).toBeUndefined();
     });
+
+    it('new players start with connected: true', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      expect(registry.find('p1').connected).toBe(true);
+    });
   });
 
   describe('querying players', () => {
@@ -189,6 +195,124 @@ describe('PlayerRegistry', () => {
       expect(registry.find('player1').name).toBe('Anonymous');
       expect(registry.find('player2').name).toBe('Anonymous2');
       expect(registry.find('player3').name).toBe('Anonymous3');
+    });
+  });
+
+  describe('disconnect and reconnect', () => {
+    it('disconnect() marks player as not connected', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.disconnect('p1');
+      const player = registry.find('p1');
+      expect(player.connected).toBe(false);
+      expect(player.disconnectedAt).toBeDefined();
+      expect(typeof player.disconnectedAt).toBe('number');
+    });
+
+    it('disconnected player stays in list and getRemaining', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.add('p2', 'Bob');
+      registry.disconnect('p1');
+
+      expect(registry.list()).toHaveLength(2);
+      expect(registry.getRemaining()).toHaveLength(2);
+      expect(registry.count()).toBe(2);
+    });
+
+    it('disconnected eliminated player stays in getEliminated', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.eliminate('p1');
+      registry.disconnect('p1');
+
+      expect(registry.getEliminated()).toHaveLength(1);
+      expect(registry.getEliminated()[0].name).toBe('Alice');
+    });
+
+    it('findByName() returns player by name', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.add('p2', 'Bob');
+      expect(registry.findByName('Alice').id).toBe('p1');
+      expect(registry.findByName('Bob').id).toBe('p2');
+      expect(registry.findByName('Charlie')).toBeUndefined();
+    });
+
+    it('reconnect() moves player to new ID preserving status', () => {
+      const registry = new PlayerRegistry();
+      registry.add('old-id', 'Alice');
+      registry.update('old-id', { score: 42 });
+      registry.disconnect('old-id');
+
+      const result = registry.reconnect('old-id', 'new-id');
+      expect(result).toBe(true);
+
+      // Old ID gone
+      expect(registry.find('old-id')).toBeUndefined();
+
+      // New ID has same data
+      const player = registry.find('new-id');
+      expect(player).toBeDefined();
+      expect(player.name).toBe('Alice');
+      expect(player.id).toBe('new-id');
+      expect(player.connected).toBe(true);
+      expect(player.disconnectedAt).toBeUndefined();
+      expect(player.score).toBe(42);
+    });
+
+    it('reconnect() preserves eliminated status', () => {
+      const registry = new PlayerRegistry();
+      registry.add('old-id', 'Alice');
+      registry.eliminate('old-id');
+      registry.disconnect('old-id');
+      registry.reconnect('old-id', 'new-id');
+
+      expect(registry.find('new-id').status).toBe('eliminated');
+      expect(registry.isEliminated('new-id')).toBe(true);
+    });
+
+    it('reconnect() returns false for unknown player', () => {
+      const registry = new PlayerRegistry();
+      expect(registry.reconnect('unknown', 'new')).toBe(false);
+    });
+
+    it('cleanupDisconnected() removes expired players', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.add('p2', 'Bob');
+
+      // Manually set disconnectedAt in the past
+      registry.disconnect('p1');
+      const player = registry.find('p1');
+      player.disconnectedAt = Date.now() - 60000; // 60 seconds ago
+      registry.update('p1', { disconnectedAt: player.disconnectedAt });
+
+      registry.cleanupDisconnected(30000); // 30s grace
+
+      expect(registry.find('p1')).toBeUndefined();
+      expect(registry.find('p2')).toBeDefined();
+      expect(registry.count()).toBe(1);
+    });
+
+    it('cleanupDisconnected() keeps recently disconnected players', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+      registry.disconnect('p1');
+
+      registry.cleanupDisconnected(30000); // 30s grace, just disconnected
+
+      expect(registry.find('p1')).toBeDefined();
+      expect(registry.count()).toBe(1);
+    });
+
+    it('cleanupDisconnected() does not remove connected players', () => {
+      const registry = new PlayerRegistry();
+      registry.add('p1', 'Alice');
+
+      registry.cleanupDisconnected(0); // Even with 0ms grace
+
+      expect(registry.find('p1')).toBeDefined();
     });
   });
 });

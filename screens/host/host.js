@@ -77,6 +77,17 @@ socket.on('games-list', ({ games }) => {
     option.textContent = game.name;
     gameSelect.appendChild(option);
   }
+
+  // Auto-select game from URL param and create room
+  const params = new URLSearchParams(window.location.search);
+  const autoGame = params.get('game');
+  if (autoGame) {
+    const match = Array.from(gameSelect.options).find(o => o.value === autoGame);
+    if (match) {
+      gameSelect.value = autoGame;
+      createRoomBtn.click();
+    }
+  }
 });
 
 // --- Button handlers ---
@@ -144,25 +155,41 @@ socket.on('player-left', ({ players }) => {
   updateStartButton(players.length);
 });
 
+socket.on('player-disconnected', ({ players }) => {
+  renderPlayerList(players);
+});
+
+socket.on('player-reconnected', ({ players }) => {
+  renderPlayerList(players);
+});
+
 // --- Timer ---
 let timerInterval = null;
+const RING_CIRCUMFERENCE = 2 * Math.PI * 52; // ~326.73
 
-function startTimer(seconds, displayEl, onExpire) {
+function startTimer(seconds, containerEl, onExpire) {
   clearTimer();
   let remaining = seconds;
-  displayEl.textContent = remaining + 's';
-  displayEl.hidden = false;
-  displayEl.classList.remove('timer-warning');
+  const total = seconds;
+  const textEl = containerEl.querySelector('.timer-ring-text');
+  const fillEl = containerEl.querySelector('.timer-ring-fill');
+
+  containerEl.hidden = false;
+  containerEl.classList.remove('timer-warning');
+  textEl.textContent = remaining;
+  fillEl.style.strokeDashoffset = '0';
 
   timerInterval = setInterval(() => {
     remaining--;
-    displayEl.textContent = remaining + 's';
+    textEl.textContent = remaining;
+    const offset = RING_CIRCUMFERENCE * (1 - remaining / total);
+    fillEl.style.strokeDashoffset = offset;
     if (remaining <= 5) {
-      displayEl.classList.add('timer-warning');
+      containerEl.classList.add('timer-warning');
     }
     if (remaining <= 0) {
       clearTimer();
-      displayEl.hidden = true;
+      containerEl.hidden = true;
       if (onExpire) onExpire();
     }
   }, 1000);
@@ -182,8 +209,7 @@ function clearTimer() {
 // --- Socket events - Game phases ---
 
 socket.on('game-started', ({ prompt, timer }) => {
-  hideAllSections();
-  collectSection.hidden = false;
+  showSection(collectSection);
   promptDisplay.textContent = prompt;
   submissionCount.textContent = '0 of 0 submitted';
   if (timer) {
@@ -198,13 +224,11 @@ socket.on('response-received', ({ playerName, count, total }) => {
 });
 
 socket.on('processing-started', () => {
-  hideAllSections();
-  processSection.hidden = false;
+  showSection(processSection);
 });
 
 socket.on('preview-content', ({ content, responses }) => {
-  hideAllSections();
-  previewSection.hidden = false;
+  showSection(previewSection);
   previewContent.textContent = content;
 
   if (responses && responses.length > 0) {
@@ -221,8 +245,7 @@ socket.on('preview-content', ({ content, responses }) => {
 });
 
 socket.on('show-results', ({ content, aiResult, responses }) => {
-  hideAllSections();
-  revealSection.hidden = false;
+  showSection(revealSection);
   aiResultDisplay.textContent = content || aiResult;
 
   if (responses && responses.length > 0) {
@@ -234,15 +257,13 @@ socket.on('show-results', ({ content, aiResult, responses }) => {
 });
 
 socket.on('game-ended', () => {
-  hideAllSections();
-  endSection.hidden = false;
+  showSection(endSection);
 });
 
 // --- Socket events - Voting ---
 
 socket.on('vote-start', ({ mode, totalVoters, timer }) => {
-  hideAllSections();
-  voteSection.hidden = false;
+  showSection(voteSection);
   voteModeDisplay.textContent = mode === 'head-to-head' ? 'Head-to-Head' : 'Pick One';
   voteCount.textContent = '0 of ' + totalVoters + ' votes received';
   if (timer) {
@@ -259,8 +280,7 @@ socket.on('vote-received', ({ count, total }) => {
 // --- Socket events - Elimination ---
 
 socket.on('elimination-results', ({ eliminatedNames, remaining }) => {
-  hideAllSections();
-  eliminationSection.hidden = false;
+  showSection(eliminationSection);
   eliminatedNamesDisplay.textContent = eliminatedNames.join(', ') + ' eliminated!';
   remainingCount.textContent = remaining + ' players remaining';
 });
@@ -268,8 +288,7 @@ socket.on('elimination-results', ({ eliminatedNames, remaining }) => {
 // --- Socket events - Winner ---
 
 socket.on('winner-announced', ({ winnerName, winnerScore, standings }) => {
-  hideAllSections();
-  winnerSection.hidden = false;
+  showSection(winnerSection);
   winnerNameDisplay.textContent = winnerName + ' wins!';
 
   standingsList.innerHTML = '';
@@ -284,12 +303,35 @@ socket.on('winner-announced', ({ winnerName, winnerScore, standings }) => {
 
 // --- Render functions ---
 
+function nameToColor(name) {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return 'hsl(' + hue + ', 55%, 50%)';
+}
+
 function renderPlayerList(players) {
   playerList.innerHTML = '';
   for (const player of players) {
     const li = document.createElement('li');
-    li.textContent = player.name;
     li.dataset.id = player.id;
+
+    if (player.connected === false) {
+      li.classList.add('player-disconnected');
+    }
+
+    const avatar = document.createElement('span');
+    avatar.className = 'player-avatar';
+    avatar.textContent = player.name.charAt(0).toUpperCase();
+    avatar.style.background = nameToColor(player.name);
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = player.name;
+
+    li.appendChild(avatar);
+    li.appendChild(nameSpan);
     playerList.appendChild(li);
   }
 }
@@ -307,15 +349,27 @@ function renderResponses(responses) {
   }
 }
 
+const allSections = [
+  lobbySection, collectSection, processSection, previewSection,
+  revealSection, voteSection, eliminationSection, winnerSection, endSection
+];
+
+function showSection(el) {
+  clearTimer();
+  for (const s of allSections) {
+    s.classList.remove('active');
+    s.hidden = true;
+  }
+  el.hidden = false;
+  // Force reflow so transition triggers
+  void el.offsetWidth;
+  el.classList.add('active');
+}
+
 function hideAllSections() {
   clearTimer();
-  lobbySection.hidden = true;
-  collectSection.hidden = true;
-  processSection.hidden = true;
-  previewSection.hidden = true;
-  revealSection.hidden = true;
-  voteSection.hidden = true;
-  eliminationSection.hidden = true;
-  winnerSection.hidden = true;
-  endSection.hidden = true;
+  for (const s of allSections) {
+    s.classList.remove('active');
+    s.hidden = true;
+  }
 }

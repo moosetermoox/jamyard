@@ -541,3 +541,63 @@ body {
   color: #888;
   line-height: 1.3;
 }
+
+/* ---- Validation panel ---- */
+#validation-panel {
+  position: relative;
+  padding: 14px 20px;
+  border-bottom: 2px solid;
+  flex-shrink: 0;
+}
+
+#validation-panel.has-errors {
+  background: #fef2f2;
+  border-color: #dc2626;
+}
+
+#validation-panel.warnings-only {
+  background: #fffbeb;
+  border-color: #d97706;
+}
+
+#validation-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+}
+
+#validation-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 8px;
+}
+
+.has-errors #validation-title {
+  color: #dc2626;
+}
+
+.warnings-only #validation-title {
+  color: #d97706;
+}
+
+#validation-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+#validation-list li {
+  padding: 2px 0;
+}
+
+#validation-list .validation-error::before {
+  content: '\2716 ';
+  color: #dc2626;
+}
+
+#validation-list .validation-warning::before {
+  content: '\26A0 ';
+  color: #d97706;
+}

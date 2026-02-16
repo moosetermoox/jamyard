@@ -41,11 +41,15 @@ Framework for quickly building classroom games where:
 - **4 games implemented and playable** (Weekend Poem, Mood Check, Corn Story, Story Builder)
 - **All 10 engine primitives implemented** for Corn Story
 - **Preview phase implemented** — teacher-only review before revealing to students
-- **Timers implemented** — countdown on collect/vote phases with auto-submit on expiry
+- **Timers implemented** — SVG ring countdown (host) + progress bar (player) with auto-submit on expiry
+- **Player reconnection** — 30s grace period, auto-rejoin on socket reconnect, state restoration
+- **Phase transitions** — smooth CSS fade transitions between game phases
+- **Editor validation** — client-side + server-side config validation with friendly error messages
+- **Test Game button** — saves dirty config then opens `/host?game={id}` with auto-create room
 - Server runs on port 3000 (`npm start`)
 - Host screen at /host, Player screen at /player
 - Game editor at /designer, editor at /designer/edit
-- **141 tests passing** (`npm test`)
+- **179 tests passing** (`npm test`)
 - Simulator script for automated playtesting: `node scripts/simulate-corn-story.js`
 
 ### Working Games
@@ -107,6 +111,12 @@ Framework for quickly building classroom games where:
 - Anonymous mode option
 - Rate limiting and input validation
 
+### Editor Validation (Implemented)
+- Server-side: phase type validation, required fields per type, enum values, timer range, data ref existence, `returnResults` mode
+- Client-side: mirrors server logic with friendly names, errors block save, warnings prompt confirm
+- Unreachable phase detection (BFS from lobby) as warnings
+- Validation panel UI (red for errors, amber for warnings)
+
 ### Engine Modules
 - GameEngine (engine/game-engine.js) — orchestrates phases, data resolution, hooks
 - StateMachine (engine/state-machine.js) — phases + transitions
@@ -132,7 +142,7 @@ Framework for quickly building classroom games where:
 - Haiku for simple tasks, Sonnet for complex judgment
 
 ### Testing
-- `npm test` — runs all 141 Vitest tests
+- `npm test` — runs all 179 Vitest tests
 - `node scripts/simulate-corn-story.js` — automated full-game playthrough (requires server running)
 
 ## Refinement Log
@@ -156,3 +166,13 @@ Framework for quickly building classroom games where:
 - Phase 7: Completed preview phase fields in game editor (content, showResponses, approveNext, rejectNext)
 - Phase 7: Created Story Builder game using preview + timers
 - Phase 8: Redesigned editor UI for non-coders — friendly names, icons, grouped sections, helper text, data ref dropdowns, phase picker modal, AI lane in screen info
+- Phase 9: Enhanced server validation — type checks, required fields per type, enum values, timer range, data ref existence, returnResults mode
+- Phase 9: Client-side editor validation — mirrors server logic, friendly error messages, unreachable phase warnings, validation panel UI
+- Phase 9: Fixed Test Game button — saves dirty config first, opens /host?game={id} with auto-create room
+- Phase 9: Host auto-selects game from ?game= URL param
+- Phase 9: Visual countdown timers — SVG ring on host, progress bar on player
+- Phase 9: Smooth phase transitions — CSS opacity fade on host and player screens
+- Phase 9: Player reconnection — disconnect grace period (30s), auto-rejoin, state restoration (sendCurrentState)
+- Phase 9: Player avatars — colored initial circles in host player list, disconnected player styling
+- Phase 9: isDirty tracking in editor — prevents losing unsaved changes
+- Phase 9 COMPLETE: 179 tests passing, editor validation + play polish + reconnection

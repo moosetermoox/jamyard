@@ -4,6 +4,7 @@ var gameConfig = null;
 var selectedPhaseId = null;
 var draggedPhaseId = null;
 var didDrag = false;
+var isDirty = false;
 
 // --- Constants ---
 
@@ -192,6 +193,7 @@ function createBlankConfig() {
 }
 
 function onConfigLoaded() {
+  isDirty = false;
   canvasLoading.hidden = true;
   phaseCanvas.hidden = false;
   renderSettings();
@@ -208,6 +210,7 @@ function renderSettings() {
 }
 
 function readSettings() {
+  isDirty = true;
   gameConfig.name = settingsName.value.trim() || 'Untitled Game';
   gameConfig.description = settingsDescription.value.trim();
   gameConfig.minPlayers = settingsMinPlayers.value ? parseInt(settingsMinPlayers.value) : null;
@@ -425,6 +428,7 @@ function handleDrop(e) {
 }
 
 function reorderPhase(movedId, targetId, dropAfter) {
+  isDirty = true;
   var order = buildPhaseOrder();
 
   // Remove the moved phase from the order
@@ -844,6 +848,7 @@ function addFieldWithHelp(label, helpText, type, id, value, readOnly, onChange) 
   }
   if (onChange && !readOnly) {
     input.addEventListener('input', function () {
+      isDirty = true;
       if (type === 'number') {
         onChange(input.value ? parseInt(input.value) : null);
       } else {
@@ -881,6 +886,7 @@ function addTextAreaWithHelp(label, helpText, id, value, placeholder, onChange) 
   textarea.value = value || '';
   if (placeholder) textarea.placeholder = placeholder;
   textarea.addEventListener('input', function () {
+    isDirty = true;
     onChange(textarea.value);
   });
 
@@ -927,6 +933,7 @@ function addSelectWithHelp(label, helpText, id, options, selected, onChange) {
   }
 
   select.addEventListener('change', function () {
+    isDirty = true;
     onChange(select.value);
   });
 
@@ -1152,6 +1159,7 @@ function addPhaseOfType(type) {
   }
 
   gameConfig.phases[newId] = newPhase;
+  isDirty = true;
 
   // Re-link: previous phase before end now points to new phase
   if (beforeEnd) {
@@ -1186,11 +1194,216 @@ function deletePhase(phaseId) {
   }
 
   delete gameConfig.phases[phaseId];
+  isDirty = true;
   deselectPhase();
+}
+
+// --- Validation ---
+
+var VALID_TYPES = Object.keys(PHASE_CATALOG);
+
+var REQUIRED_FIELDS = {
+  collect: ['prompt'],
+  'ai-process': ['instruction', 'input'],
+  vote: ['mode', 'candidates'],
+  eliminate: ['method'],
+  preview: ['approveNext'],
+  winner: ['from']
+};
+
+var VALID_ENUMS = {
+  from: { types: ['collect'], values: ['all', 'remaining', 'eliminated'] },
+  voters: { types: ['vote'], values: ['all', 'remaining', 'eliminated'] },
+  mode: { types: ['vote'], values: ['pick-one', 'head-to-head'] },
+  method: { types: ['eliminate'], values: ['bottom-percent', 'hook'] },
+  format: { types: ['ai-process'], values: ['text', 'json'] },
+  task: { types: ['ai-process'], values: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'] }
+};
+
+var DATA_REF_FIELDS = ['input', 'candidates', 'content'];
+
+function validateConfig() {
+  var errors = [];
+  var warnings = [];
+  var phases = gameConfig.phases || {};
+  var phaseIds = Object.keys(phases);
+
+  // Top-level checks
+  if (!gameConfig.name || !gameConfig.name.trim()) {
+    errors.push('Game is missing a name.');
+  }
+
+  var hasLobby = phaseIds.some(function (id) { return phases[id].type === 'lobby'; });
+  var hasEnd = phaseIds.some(function (id) { return phases[id].type === 'end'; });
+  if (!hasLobby) errors.push('Game needs a Waiting Room (lobby) step.');
+  if (!hasEnd) errors.push('Game needs a Game Over (end) step.');
+
+  for (var i = 0; i < phaseIds.length; i++) {
+    var id = phaseIds[i];
+    var phase = phases[id];
+    var cat = PHASE_CATALOG[phase.type];
+    var label = cat ? cat.friendlyName + ' (' + id + ')' : id;
+
+    // Type check
+    if (!phase.type || VALID_TYPES.indexOf(phase.type) === -1) {
+      errors.push(label + ': Invalid step type "' + phase.type + '".');
+      continue;
+    }
+
+    // Required fields
+    var required = REQUIRED_FIELDS[phase.type];
+    if (required) {
+      for (var r = 0; r < required.length; r++) {
+        var field = required[r];
+        if (phase[field] === undefined || phase[field] === null || phase[field] === '') {
+          errors.push(label + ': Missing required field "' + field + '".');
+        }
+      }
+    }
+
+    // Enum checks
+    for (var enumField in VALID_ENUMS) {
+      var spec = VALID_ENUMS[enumField];
+      if (spec.types.indexOf(phase.type) === -1) continue;
+      if (phase[enumField] !== undefined && phase[enumField] !== null) {
+        if (spec.values.indexOf(phase[enumField]) === -1) {
+          errors.push(label + ': Invalid ' + enumField + ' value "' + phase[enumField] + '".');
+        }
+      }
+    }
+
+    // Timer check
+    if (phase.timer !== undefined && phase.timer !== null) {
+      if (typeof phase.timer !== 'number' || phase.timer < 1 || phase.timer > 3600) {
+        errors.push(label + ': Timer must be a number between 1 and 3600.');
+      }
+    }
+
+    // Eliminate specifics
+    if (phase.type === 'eliminate') {
+      if (phase.method === 'bottom-percent') {
+        if (!phase.percent || typeof phase.percent !== 'number' || phase.percent < 1 || phase.percent > 100) {
+          errors.push(label + ': Bottom-percent requires a percent value between 1 and 100.');
+        }
+      }
+      if (phase.method === 'hook' && !phase.hook) {
+        errors.push(label + ': Hook method requires a hook function name.');
+      }
+    }
+
+    // Data ref checks
+    for (var d = 0; d < DATA_REF_FIELDS.length; d++) {
+      var df = DATA_REF_FIELDS[d];
+      if (phase[df] && typeof phase[df] === 'string' && phase[df].indexOf('.') !== -1) {
+        var refPhaseId = phase[df].split('.')[0];
+        if (!phases[refPhaseId]) {
+          errors.push(label + ': References "' + phase[df] + '" but step "' + refPhaseId + '" does not exist.');
+        }
+      }
+    }
+
+    // Winner from data ref check
+    if (phase.type === 'winner' && phase.from && typeof phase.from === 'string' && phase.from.indexOf('.') !== -1) {
+      var winnerRef = phase.from.split('.')[0];
+      if (!phases[winnerRef]) {
+        errors.push(label + ': References "' + phase.from + '" but step "' + winnerRef + '" does not exist.');
+      }
+    }
+
+    // Next/approveNext/rejectNext refs
+    if (phase.next && !phases[phase.next]) {
+      errors.push(label + ': "Next step" points to "' + phase.next + '" which does not exist.');
+    }
+    if (phase.approveNext && !phases[phase.approveNext]) {
+      errors.push(label + ': "Approve next" points to "' + phase.approveNext + '" which does not exist.');
+    }
+    if (phase.rejectNext && !phases[phase.rejectNext]) {
+      errors.push(label + ': "Reject next" points to "' + phase.rejectNext + '" which does not exist.');
+    }
+  }
+
+  // Warnings: unreachable phases (BFS from lobby)
+  if (hasLobby) {
+    var reachable = {};
+    var queue = [];
+    for (var j = 0; j < phaseIds.length; j++) {
+      if (phases[phaseIds[j]].type === 'lobby') {
+        queue.push(phaseIds[j]);
+        break;
+      }
+    }
+    while (queue.length > 0) {
+      var cur = queue.shift();
+      if (reachable[cur]) continue;
+      reachable[cur] = true;
+      var p = phases[cur];
+      if (p) {
+        if (p.next && !reachable[p.next]) queue.push(p.next);
+        if (p.approveNext && !reachable[p.approveNext]) queue.push(p.approveNext);
+        if (p.rejectNext && !reachable[p.rejectNext]) queue.push(p.rejectNext);
+      }
+    }
+    for (var k = 0; k < phaseIds.length; k++) {
+      if (!reachable[phaseIds[k]]) {
+        var uCat = PHASE_CATALOG[phases[phaseIds[k]].type];
+        var uLabel = uCat ? uCat.friendlyName + ' (' + phaseIds[k] + ')' : phaseIds[k];
+        warnings.push(uLabel + ': This step is unreachable from the game flow.');
+      }
+    }
+  }
+
+  return { errors: errors, warnings: warnings };
+}
+
+// --- Validation panel display ---
+
+var validationPanel = document.getElementById('validation-panel');
+var validationTitle = document.getElementById('validation-title');
+var validationList = document.getElementById('validation-list');
+var validationClose = document.getElementById('validation-close');
+
+validationClose.addEventListener('click', function () {
+  validationPanel.hidden = true;
+});
+
+function showValidationPanel(errors, warnings) {
+  validationPanel.hidden = false;
+  validationPanel.className = errors.length > 0 ? 'has-errors' : 'warnings-only';
+  validationTitle.textContent = errors.length > 0
+    ? errors.length + ' error' + (errors.length > 1 ? 's' : '') + ' found'
+    : warnings.length + ' warning' + (warnings.length > 1 ? 's' : '');
+  validationList.innerHTML = '';
+
+  for (var i = 0; i < errors.length; i++) {
+    var li = document.createElement('li');
+    li.className = 'validation-error';
+    li.textContent = errors[i];
+    validationList.appendChild(li);
+  }
+  for (var j = 0; j < warnings.length; j++) {
+    var li2 = document.createElement('li');
+    li2.className = 'validation-warning';
+    li2.textContent = warnings[j];
+    validationList.appendChild(li2);
+  }
 }
 
 // --- Save / Test ---
 async function saveGame() {
+  // Run validation
+  var validation = validateConfig();
+  if (validation.errors.length > 0) {
+    showValidationPanel(validation.errors, validation.warnings);
+    return;
+  }
+  if (validation.warnings.length > 0) {
+    showValidationPanel(validation.errors, validation.warnings);
+    if (!confirm('There are ' + validation.warnings.length + ' warning(s). Save anyway?')) {
+      return;
+    }
+  }
+  validationPanel.hidden = true;
+
   saveBtn.disabled = true;
   var originalText = saveBtn.textContent;
 
@@ -1229,6 +1442,7 @@ async function saveGame() {
     var result = await response.json();
 
     if (response.ok) {
+      isDirty = false;
       saveBtn.textContent = 'Saved!';
     } else {
       alert('Save failed: ' + (result.error || 'Unknown error'));
@@ -1245,9 +1459,15 @@ async function saveGame() {
   }, 2000);
 }
 
-function testGame() {
-  // Open host screen — in the future this could create a test room
-  window.open('/host', '_blank');
+async function testGame() {
+  // Save first if needed
+  if (!gameId || isDirty) {
+    await saveGame();
+  }
+  // Only open if we have a valid gameId (save succeeded)
+  if (gameId) {
+    window.open('/host?game=' + encodeURIComponent(gameId), '_blank');
+  }
 }
 
 // --- Start ---
