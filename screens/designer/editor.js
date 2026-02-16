@@ -6,59 +6,120 @@ var draggedPhaseId = null;
 var didDrag = false;
 
 // --- Constants ---
-var PHASE_TYPES = [
-  'lobby', 'collect', 'ai-process', 'vote', 'eliminate',
-  'reveal', 'preview', 'winner', 'end'
-];
 
-// Detail text shown under phase name on canvas
-var PHASE_DETAIL_FIELD = {
-  'collect': 'prompt',
-  'ai-process': 'task',
-  'vote': 'mode',
-  'eliminate': 'method',
-  'reveal': 'template',
-  'end': 'message'
-};
-
-// What each screen sees per phase type
-var SCREEN_INFO = {
+// Unified catalog: friendly names, icons, descriptions, colors, screen info
+var PHASE_CATALOG = {
   'lobby': {
+    icon: '\u231B',
+    friendlyName: 'Waiting Room',
+    description: 'Players join and wait for the teacher to start',
+    color: '#1976d2',
+    bg: '#e3f2fd',
+    detailField: null,
     host: 'Player list, player count, Start Game button',
-    player: '"Waiting for game to start" message'
+    player: '"Waiting for game to start" message',
+    ai: null
   },
   'collect': {
-    host: 'Prompt text, submission counter (3/12), Close Submissions button',
-    player: 'Prompt text, text input field, Submit button'
+    icon: '\u270D\uFE0F',
+    friendlyName: 'Ask Players',
+    description: 'Players type and submit a text response',
+    color: '#388e3c',
+    bg: '#e8f5e9',
+    detailField: 'prompt',
+    host: 'Prompt text, submission counter, Close Submissions button',
+    player: 'Prompt text, text input field, Submit button',
+    ai: null
   },
   'ai-process': {
-    host: '"Processing..." spinner (auto-advances)',
-    player: '"Processing..." spinner'
+    icon: '\u2728',
+    friendlyName: 'AI Does Something',
+    description: 'AI reads player answers and creates a result',
+    color: '#7b1fa2',
+    bg: '#f3e5f5',
+    detailField: 'task',
+    host: '"Processing\u2026" spinner (auto-advances)',
+    player: '"Processing\u2026" spinner',
+    ai: 'Reads input data, runs the chosen task, returns a result'
   },
   'vote': {
-    host: 'Vote mode, vote counter (5/12), Close Voting button',
-    player: 'Voting UI (matchup pairs or pick-one list), Submit Vote button'
+    icon: '\u2611\uFE0F',
+    friendlyName: 'Players Vote',
+    description: 'Players vote on choices (pick-one or head-to-head)',
+    color: '#f57c00',
+    bg: '#fff3e0',
+    detailField: 'mode',
+    host: 'Vote counter, Close Voting button',
+    player: 'Voting UI with choices, Submit Vote button',
+    ai: null
   },
   'eliminate': {
-    host: 'Eliminated player names, remaining count, Advance button',
-    player: '"You were eliminated" or "You survived!" message'
+    icon: '\u274C',
+    friendlyName: 'Eliminate Players',
+    description: 'Remove a percentage of players based on scores',
+    color: '#d32f2f',
+    bg: '#ffebee',
+    detailField: 'method',
+    host: 'Eliminated player names, remaining count',
+    player: '"You were eliminated" or "You survived!"',
+    ai: null
   },
   'reveal': {
+    icon: '\uD83D\uDCE2',
+    friendlyName: 'Show Everyone',
+    description: 'Display content to both host and players',
+    color: '#0097a7',
+    bg: '#e0f7fa',
+    detailField: 'template',
     host: 'Rendered template content, Advance button',
-    player: 'Rendered template content'
+    player: 'Rendered template content',
+    ai: null
   },
   'preview': {
+    icon: '\uD83D\uDC41\uFE0F',
+    friendlyName: 'Teacher Reviews',
+    description: 'Teacher sees content and can approve or reject',
+    color: '#f9a825',
+    bg: '#fffde7',
+    detailField: 'template',
     host: 'Content preview, Approve / Reject buttons',
-    player: '"Waiting for teacher..." message'
+    player: '"Waiting for teacher\u2026" message',
+    ai: null
   },
   'winner': {
+    icon: '\uD83C\uDFC6',
+    friendlyName: 'Crown a Winner',
+    description: 'Declare the winner based on scores',
+    color: '#ff8f00',
+    bg: '#fff8e1',
+    detailField: null,
     host: 'Winner name, final standings, Advance button',
-    player: 'Winner announcement, standings'
+    player: 'Winner announcement, standings',
+    ai: null
   },
   'end': {
+    icon: '\uD83C\uDFC1',
+    friendlyName: 'Game Over',
+    description: 'End the game and show a final message',
+    color: '#757575',
+    bg: '#f5f5f5',
+    detailField: 'message',
     host: 'Game over message',
-    player: 'Game over message'
+    player: 'Game over message',
+    ai: null
   }
+};
+
+var PHASE_TYPES = Object.keys(PHASE_CATALOG);
+
+// Friendly names for AI task types
+var AI_TASK_CATALOG = {
+  'summarize':        { friendlyName: 'Summarize answers',   description: 'Combine responses into a short insight' },
+  'generate':         { friendlyName: 'Create something new', description: 'Generate original content from player input' },
+  'generate-choices': { friendlyName: 'Generate choices',     description: 'Create multiple-choice options from input' },
+  'compare':          { friendlyName: 'Find similar answers', description: 'Group responses by semantic similarity' },
+  'rank':             { friendlyName: 'Rank answers',         description: 'Order responses by a given criteria' },
+  'judge':            { friendlyName: 'Pick a winner',        description: 'Choose the best response with explanation' }
 };
 
 // --- DOM refs ---
@@ -169,13 +230,14 @@ function buildPhaseOrder() {
     }
   }
 
-  // Follow the next chain
+  // Follow the next chain (preview uses approveNext instead of next)
   if (startId) {
     var current = startId;
     while (current && !visited[current] && phases[current]) {
       order.push(current);
       visited[current] = true;
-      current = phases[current].next || null;
+      var p = phases[current];
+      current = p.next || p.approveNext || null;
     }
   }
 
@@ -196,6 +258,7 @@ function renderCanvas() {
   for (var i = 0; i < order.length; i++) {
     var phaseId = order[i];
     var phase = gameConfig.phases[phaseId];
+    var cat = PHASE_CATALOG[phase.type] || PHASE_CATALOG['end'];
 
     // Phase box
     var box = document.createElement('div');
@@ -215,45 +278,77 @@ function renderCanvas() {
     box.addEventListener('dragleave', handleDragLeave);
     box.addEventListener('drop', handleDrop);
 
+    // Icon + friendly name row
     var header = document.createElement('div');
     header.className = 'phase-box-header';
 
-    var name = document.createElement('span');
-    name.className = 'phase-box-name';
-    name.textContent = phaseId;
+    var iconSpan = document.createElement('span');
+    iconSpan.className = 'phase-box-icon';
+    iconSpan.textContent = cat.icon;
 
-    var typeBadge = document.createElement('span');
-    typeBadge.className = 'phase-box-type';
-    typeBadge.textContent = phase.type;
+    var friendlyName = document.createElement('span');
+    friendlyName.className = 'phase-box-name';
+    friendlyName.textContent = cat.friendlyName;
 
-    header.appendChild(name);
-    header.appendChild(typeBadge);
+    header.appendChild(iconSpan);
+    header.appendChild(friendlyName);
     box.appendChild(header);
 
-    // Detail line
-    var detailField = PHASE_DETAIL_FIELD[phase.type];
+    // Phase ID in muted text
+    var idLine = document.createElement('div');
+    idLine.className = 'phase-box-id';
+    idLine.textContent = phaseId;
+    box.appendChild(idLine);
+
+    // Content summary
+    var detailField = cat.detailField;
     if (detailField && phase[detailField]) {
       var detail = document.createElement('div');
       detail.className = 'phase-box-detail';
       var text = String(phase[detailField]);
-      detail.textContent = text.length > 40 ? text.substring(0, 40) + '...' : text;
+      detail.textContent = text.length > 50 ? text.substring(0, 50) + '\u2026' : text;
       box.appendChild(detail);
     }
 
+    // Role indicator dots (H = host, P = player, AI)
+    var dots = document.createElement('div');
+    dots.className = 'phase-box-dots';
+
+    var hostDot = document.createElement('span');
+    hostDot.className = 'role-dot role-host';
+    hostDot.textContent = 'H';
+    hostDot.title = 'Host';
+    dots.appendChild(hostDot);
+
+    var playerDot = document.createElement('span');
+    playerDot.className = 'role-dot role-player';
+    playerDot.textContent = 'P';
+    playerDot.title = 'Players';
+    dots.appendChild(playerDot);
+
+    if (cat.ai) {
+      var aiDot = document.createElement('span');
+      aiDot.className = 'role-dot role-ai';
+      aiDot.textContent = 'AI';
+      aiDot.title = 'AI is active';
+      dots.appendChild(aiDot);
+    }
+
+    box.appendChild(dots);
     phaseList.appendChild(box);
 
-    // Arrow between phases (if this phase has a next that matches the next in order)
-    if (i < order.length - 1 && phase.next === order[i + 1]) {
+    // Arrow between phases
+    var phaseNext = phase.next || phase.approveNext;
+    if (i < order.length - 1 && phaseNext === order[i + 1]) {
       var arrow = document.createElement('div');
       arrow.className = 'phase-arrow';
       arrow.textContent = '\u2193';
       phaseList.appendChild(arrow);
     } else if (i < order.length - 1) {
-      // Show a dotted arrow for non-connected adjacent phases
       var arrow = document.createElement('div');
       arrow.className = 'phase-arrow';
-      arrow.textContent = phase.next ? '\u2193' : '\u00b7\u00b7\u00b7';
-      arrow.style.color = phase.next ? '#bbb' : '#ddd';
+      arrow.textContent = phaseNext ? '\u2193' : '\u00b7\u00b7\u00b7';
+      arrow.style.color = phaseNext ? '#bbb' : '#ddd';
       phaseList.appendChild(arrow);
     }
   }
@@ -361,10 +456,16 @@ function reorderPhase(movedId, targetId, dropAfter) {
   for (var i = 0; i < order.length; i++) {
     var phase = gameConfig.phases[order[i]];
     if (i < order.length - 1) {
-      phase.next = order[i + 1];
+      if (phase.type === 'preview') {
+        phase.approveNext = order[i + 1];
+        delete phase.next;
+      } else {
+        phase.next = order[i + 1];
+      }
     } else {
       // Last phase (should be end) — no next
       delete phase.next;
+      delete phase.approveNext;
     }
   }
 
@@ -403,153 +504,253 @@ function deselectPhase() {
 function renderPhaseConfig(phaseId) {
   var phase = gameConfig.phases[phaseId];
   if (!phase) return;
+  var cat = PHASE_CATALOG[phase.type] || PHASE_CATALOG['end'];
 
   phaseConfigForm.innerHTML = '';
 
-  // Phase ID (read-only display)
-  addField('Phase ID', 'text', 'phase-id', phaseId, true);
+  // --- Header: icon + friendly name + description ---
+  var headerDiv = document.createElement('div');
+  headerDiv.className = 'config-phase-header';
+
+  var headerIcon = document.createElement('span');
+  headerIcon.className = 'config-phase-icon';
+  headerIcon.textContent = cat.icon;
+  headerIcon.style.background = cat.bg;
+  headerIcon.style.borderColor = cat.color;
+
+  var headerInfo = document.createElement('div');
+  headerInfo.className = 'config-phase-info';
+
+  var headerName = document.createElement('div');
+  headerName.className = 'config-phase-name';
+  headerName.textContent = cat.friendlyName;
+
+  var headerDesc = document.createElement('div');
+  headerDesc.className = 'config-phase-desc';
+  headerDesc.textContent = cat.description;
+
+  headerInfo.appendChild(headerName);
+  headerInfo.appendChild(headerDesc);
+  headerDiv.appendChild(headerIcon);
+  headerDiv.appendChild(headerInfo);
+  phaseConfigForm.appendChild(headerDiv);
+
+  // Phase ID (read-only)
+  addFieldWithHelp('Step ID', 'Internal name used in config', 'text', 'phase-id', phaseId, true);
 
   // Phase type dropdown
-  addSelect('Type', 'phase-type', PHASE_TYPES, phase.type, function (value) {
+  addPhaseTypeSelect('Step type', 'What this step does in the game', 'phase-type', phase.type, function (value) {
     phase.type = value;
     renderCanvas();
     renderPhaseConfig(phaseId);
   });
 
-  // Screen info
-  var info = SCREEN_INFO[phase.type];
-  if (info) {
-    addScreenInfo(info.host, info.player);
-  }
+  // Screen info with AI lane
+  addScreenInfo(cat.host, cat.player, cat.ai);
 
-  // Type-specific fields
+  // --- Type-specific fields grouped into sections ---
   var type = phase.type;
 
   if (type === 'lobby') {
-    addNumberField('Min Players', 'phase-minPlayers', phase.minPlayers, function (value) {
+    addSectionHeader('Settings');
+    addFieldWithHelp('Min players to start', 'Game won\'t start until this many join', 'number', 'phase-minPlayers', phase.minPlayers, false, function (value) {
       phase.minPlayers = value;
     });
   }
 
   if (type === 'collect') {
-    addTextField('Prompt', 'phase-prompt', phase.prompt, function (value) {
+    addSectionHeader('What players see');
+    addTextAreaWithHelp('Question to ask', 'This appears on every player\'s screen', 'phase-prompt', phase.prompt, 'e.g. What did you do this weekend?', function (value) {
       phase.prompt = value;
       renderCanvas();
     });
-    addNumberField('Timer (seconds)', 'phase-timer', phase.timer, function (value) {
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits when time runs out.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
-    addSelect('Eligible Players', 'phase-from', ['all', 'remaining', 'eliminated'], phase.from || 'all', function (value) {
-      if (value === 'all') {
-        delete phase.from;
-      } else {
-        phase.from = value;
+
+    addSectionHeader('Who answers');
+    addSelectWithHelp('Eligible players', 'Which players can submit answers', 'phase-from',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' },
+        { value: 'eliminated', label: 'Eliminated players only' }
+      ],
+      phase.from || 'all', function (value) {
+        if (value === 'all') { delete phase.from; } else { phase.from = value; }
       }
-    });
+    );
   }
 
   if (type === 'ai-process') {
-    addSelect('AI Task', 'phase-task', ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'], phase.task || 'summarize', function (value) {
+    addSectionHeader('What AI does');
+    var taskOptions = [];
+    var taskTypes = Object.keys(AI_TASK_CATALOG);
+    for (var t = 0; t < taskTypes.length; t++) {
+      var key = taskTypes[t];
+      taskOptions.push({ value: key, label: AI_TASK_CATALOG[key].friendlyName + ' (' + key + ')' });
+    }
+    addSelectWithHelp('AI task', AI_TASK_CATALOG[phase.task || 'summarize'] ? AI_TASK_CATALOG[phase.task || 'summarize'].description : '', 'phase-task', taskOptions, phase.task || 'summarize', function (value) {
       phase.task = value;
       renderCanvas();
+      renderPhaseConfig(phaseId);
     });
-    addTextArea('Instruction', 'phase-instruction', phase.instruction, function (value) {
+
+    var instrPlaceholder = 'e.g. Write a funny poem combining all these weekend activities';
+    if (phase.task === 'compare') instrPlaceholder = 'e.g. Group similar answers together';
+    if (phase.task === 'rank') instrPlaceholder = 'e.g. Rank from most to least creative';
+    if (phase.task === 'judge') instrPlaceholder = 'e.g. Pick the funniest answer and explain why';
+
+    addTextAreaWithHelp('Instructions for AI', 'Tell the AI exactly what to do with the player answers', 'phase-instruction', phase.instruction, instrPlaceholder, function (value) {
       phase.instruction = value;
     });
-    addTextField('Input Reference', 'phase-input', phase.input, function (value) {
+
+    addSectionHeader('Data');
+    addDataRefDropdown('Input data', 'Where the AI reads player answers from', 'phase-input', phaseId, phase.input, function (value) {
       phase.input = value;
     });
-    addSelect('Output Format', 'phase-format', ['text', 'json'], phase.format || 'text', function (value) {
-      phase.format = value;
-    });
+    addSelectWithHelp('Output format', 'Use JSON when the result needs structure (lists, groups)', 'phase-format',
+      [
+        { value: 'text', label: 'Plain text' },
+        { value: 'json', label: 'Structured (JSON)' }
+      ],
+      phase.format || 'text', function (value) {
+        phase.format = value;
+      }
+    );
   }
 
   if (type === 'vote') {
-    addSelect('Vote Mode', 'phase-mode', ['pick-one', 'head-to-head'], phase.mode || 'pick-one', function (value) {
-      phase.mode = value;
-      renderCanvas();
-    });
-    addTextField('Candidates Reference', 'phase-candidates', phase.candidates, function (value) {
+    addSectionHeader('Voting setup');
+    addSelectWithHelp('Vote style', 'How choices are shown to players', 'phase-mode',
+      [
+        { value: 'pick-one', label: 'Pick one from a list' },
+        { value: 'head-to-head', label: 'Head-to-head matchups' }
+      ],
+      phase.mode || 'pick-one', function (value) {
+        phase.mode = value;
+        renderCanvas();
+      }
+    );
+    addDataRefDropdown('Candidates from', 'Where to get the list of choices', 'phase-candidates', phaseId, phase.candidates, function (value) {
       phase.candidates = value;
     });
-    addSelect('Voters', 'phase-voters', ['all', 'remaining', 'eliminated'], phase.voters || 'all', function (value) {
-      if (value === 'all') {
-        delete phase.voters;
-      } else {
-        phase.voters = value;
-      }
-    });
-    addTextField('Question', 'phase-question', phase.question, function (value) {
+    addFieldWithHelp('Question', 'Shown above the voting choices', 'text', 'phase-question', phase.question, false, function (value) {
       phase.question = value;
     });
-    addNumberField('Timer (seconds)', 'phase-timer', phase.timer, function (value) {
+
+    addSectionHeader('Who votes');
+    addSelectWithHelp('Voters', 'Which players can vote', 'phase-voters',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' },
+        { value: 'eliminated', label: 'Eliminated players only' }
+      ],
+      phase.voters || 'all', function (value) {
+        if (value === 'all') { delete phase.voters; } else { phase.voters = value; }
+      }
+    );
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Random vote on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
   }
 
   if (type === 'eliminate') {
-    addSelect('Method', 'phase-method', ['bottom-percent', 'hook'], phase.method || 'bottom-percent', function (value) {
-      phase.method = value;
-      renderCanvas();
-      renderPhaseConfig(phaseId);
-    });
+    addSectionHeader('Elimination rules');
+    addSelectWithHelp('Method', 'How players are eliminated', 'phase-method',
+      [
+        { value: 'bottom-percent', label: 'Bottom percentage of scores' },
+        { value: 'hook', label: 'Custom hook function' }
+      ],
+      phase.method || 'bottom-percent', function (value) {
+        phase.method = value;
+        renderCanvas();
+        renderPhaseConfig(phaseId);
+      }
+    );
     if (phase.method === 'bottom-percent' || !phase.method) {
-      addNumberField('Percent to Eliminate', 'phase-percent', phase.percent, function (value) {
+      addFieldWithHelp('Percent to eliminate', 'e.g. 60 means bottom 60% are eliminated', 'number', 'phase-percent', phase.percent, false, function (value) {
         phase.percent = value;
       });
     }
     if (phase.method === 'hook') {
-      addTextField('Hook Function', 'phase-hook', phase.hook, function (value) {
+      addFieldWithHelp('Hook function name', 'Name of the function in your game\'s hooks file', 'text', 'phase-hook', phase.hook, false, function (value) {
         phase.hook = value;
       });
     }
-    addTextField('Input Reference', 'phase-input', phase.input, function (value) {
+
+    addSectionHeader('Data');
+    addDataRefDropdown('Scores from', 'Where to read player scores for elimination', 'phase-input', phaseId, phase.input, function (value) {
       phase.input = value;
     });
   }
 
   if (type === 'reveal') {
-    addTextArea('Template', 'phase-template', phase.template, function (value) {
+    addSectionHeader('What everyone sees');
+    addTextAreaWithHelp('Display template', 'Use {{phaseId.field}} to insert data. e.g. {{process.result}}', 'phase-template', phase.template, 'e.g. Here\'s what AI created:\n\n{{process.result}}', function (value) {
       phase.template = value;
       renderCanvas();
     });
   }
 
   if (type === 'preview') {
-    addTextArea('Template', 'phase-template', phase.template, function (value) {
-      phase.template = value;
+    addSectionHeader('What teacher reviews');
+    addDataRefDropdown('Content from', 'Which step\'s output to show the teacher', 'phase-content', phaseId, phase.content, function (value) {
+      phase.content = value || undefined;
+    });
+    addTextAreaWithHelp('Display template', 'Use {{phaseId.field}} to insert data', 'phase-template', phase.template, 'e.g. {{process.result}}', function (value) {
+      phase.template = value || undefined;
+    });
+    addSelectWithHelp('Show player answers', 'Display original responses alongside AI content', 'phase-showResponses',
+      [
+        { value: 'true', label: 'Yes, show them' },
+        { value: 'false', label: 'No, hide them' }
+      ],
+      phase.showResponses === false ? 'false' : 'true', function (value) {
+        phase.showResponses = value === 'true';
+      }
+    );
+
+    addSectionHeader('Flow');
+    addPhaseRefSelect('If approved, go to', 'Which step to go to when teacher approves', 'phase-approveNext', phaseId, phase.approveNext, function (value) {
+      phase.approveNext = value === '(none)' ? undefined : value;
+      renderCanvas();
+    });
+    addPhaseRefSelect('If rejected, go to', 'Which step to go to when teacher rejects (usually back to AI)', 'phase-rejectNext', phaseId, phase.rejectNext, function (value) {
+      phase.rejectNext = value === '(none)' ? undefined : value;
+      renderCanvas();
     });
   }
 
   if (type === 'winner') {
-    addTextField('Scores Reference', 'phase-from', phase.from, function (value) {
+    addSectionHeader('Data');
+    addDataRefDropdown('Scores from', 'Which step\'s scores determine the winner', 'phase-from', phaseId, phase.from, function (value) {
       phase.from = value;
     });
   }
 
   if (type === 'end') {
-    addTextField('Message', 'phase-message', phase.message, function (value) {
+    addSectionHeader('What everyone sees');
+    addFieldWithHelp('Final message', 'Shown to all players when the game ends', 'text', 'phase-message', phase.message, false, function (value) {
       phase.message = value;
       renderCanvas();
     });
   }
 
-  // Next phase (for all types except end)
-  if (type !== 'end') {
-    var phaseIds = Object.keys(gameConfig.phases);
-    var nextOptions = ['(none)'].concat(phaseIds.filter(function (id) { return id !== phaseId; }));
-    addSelect('Next Phase', 'phase-next', nextOptions, phase.next || '(none)', function (value) {
+  // --- Flow: Next phase (for all types except end and preview) ---
+  if (type !== 'end' && type !== 'preview') {
+    addSectionHeader('Flow');
+    addPhaseRefSelect('Next step', 'Which step comes after this one', 'phase-next', phaseId, phase.next, function (value) {
       phase.next = value === '(none)' ? undefined : value;
       renderCanvas();
     });
   }
 
-  // Delete button (don't allow deleting lobby or end if they're the only ones)
+  // --- Delete button ---
   var deleteSection = document.createElement('div');
   deleteSection.className = 'delete-phase-section';
   var deleteBtn = document.createElement('button');
   deleteBtn.className = 'btn-danger';
-  deleteBtn.textContent = 'Delete Phase';
+  deleteBtn.textContent = 'Delete Step';
   deleteBtn.addEventListener('click', function () {
     deletePhase(phaseId);
   });
@@ -558,7 +759,26 @@ function renderPhaseConfig(phaseId) {
 }
 
 // --- Form field helpers ---
-function addScreenInfo(hostText, playerText) {
+
+// Get friendly display name for a phase (e.g. "Ask Players (collect)")
+function getFriendlyPhaseName(phaseId) {
+  var phase = gameConfig.phases[phaseId];
+  if (!phase) return phaseId;
+  var cat = PHASE_CATALOG[phase.type];
+  if (!cat) return phaseId;
+  return cat.icon + ' ' + cat.friendlyName + ' (' + phaseId + ')';
+}
+
+// Section header divider
+function addSectionHeader(title) {
+  var header = document.createElement('div');
+  header.className = 'config-section-header';
+  header.textContent = title;
+  phaseConfigForm.appendChild(header);
+}
+
+// Screen info boxes with optional AI lane
+function addScreenInfo(hostText, playerText, aiText) {
   var wrapper = document.createElement('div');
   wrapper.className = 'screen-info';
 
@@ -566,7 +786,7 @@ function addScreenInfo(hostText, playerText) {
   hostBox.className = 'screen-info-box screen-info-host';
   var hostLabel = document.createElement('span');
   hostLabel.className = 'screen-info-label';
-  hostLabel.textContent = 'Host screen';
+  hostLabel.textContent = 'Host sees';
   var hostDesc = document.createElement('span');
   hostDesc.className = 'screen-info-desc';
   hostDesc.textContent = hostText;
@@ -577,7 +797,7 @@ function addScreenInfo(hostText, playerText) {
   playerBox.className = 'screen-info-box screen-info-player';
   var playerLabel = document.createElement('span');
   playerLabel.className = 'screen-info-label';
-  playerLabel.textContent = 'Player screen';
+  playerLabel.textContent = 'Players see';
   var playerDesc = document.createElement('span');
   playerDesc.className = 'screen-info-desc';
   playerDesc.textContent = playerText;
@@ -586,10 +806,26 @@ function addScreenInfo(hostText, playerText) {
 
   wrapper.appendChild(hostBox);
   wrapper.appendChild(playerBox);
+
+  if (aiText) {
+    var aiBox = document.createElement('div');
+    aiBox.className = 'screen-info-box screen-info-ai';
+    var aiLabel = document.createElement('span');
+    aiLabel.className = 'screen-info-label';
+    aiLabel.textContent = 'AI does';
+    var aiDesc = document.createElement('span');
+    aiDesc.className = 'screen-info-desc';
+    aiDesc.textContent = aiText;
+    aiBox.appendChild(aiLabel);
+    aiBox.appendChild(aiDesc);
+    wrapper.appendChild(aiBox);
+  }
+
   phaseConfigForm.appendChild(wrapper);
 }
 
-function addField(label, type, id, value, readOnly) {
+// Text field with helper text
+function addFieldWithHelp(label, helpText, type, id, value, readOnly, onChange) {
   var group = document.createElement('div');
   group.className = 'form-group';
 
@@ -606,31 +842,32 @@ function addField(label, type, id, value, readOnly) {
     input.style.background = '#f5f5f5';
     input.style.color = '#999';
   }
+  if (onChange && !readOnly) {
+    input.addEventListener('input', function () {
+      if (type === 'number') {
+        onChange(input.value ? parseInt(input.value) : null);
+      } else {
+        onChange(input.value);
+      }
+    });
+  }
 
   group.appendChild(lbl);
   group.appendChild(input);
+
+  if (helpText) {
+    var help = document.createElement('span');
+    help.className = 'field-help';
+    help.textContent = helpText;
+    group.appendChild(help);
+  }
+
   phaseConfigForm.appendChild(group);
   return input;
 }
 
-function addTextField(label, id, value, onChange) {
-  var input = addField(label, 'text', id, value, false);
-  input.addEventListener('input', function () {
-    onChange(input.value);
-  });
-  return input;
-}
-
-function addNumberField(label, id, value, onChange) {
-  var input = addField(label, 'number', id, value, false);
-  input.addEventListener('input', function () {
-    var num = input.value ? parseInt(input.value) : null;
-    onChange(num);
-  });
-  return input;
-}
-
-function addTextArea(label, id, value, onChange) {
+// Textarea with helper text
+function addTextAreaWithHelp(label, helpText, id, value, placeholder, onChange) {
   var group = document.createElement('div');
   group.className = 'form-group';
 
@@ -642,17 +879,27 @@ function addTextArea(label, id, value, onChange) {
   textarea.id = id;
   textarea.rows = 4;
   textarea.value = value || '';
+  if (placeholder) textarea.placeholder = placeholder;
   textarea.addEventListener('input', function () {
     onChange(textarea.value);
   });
 
   group.appendChild(lbl);
   group.appendChild(textarea);
+
+  if (helpText) {
+    var help = document.createElement('span');
+    help.className = 'field-help';
+    help.textContent = helpText;
+    group.appendChild(help);
+  }
+
   phaseConfigForm.appendChild(group);
   return textarea;
 }
 
-function addSelect(label, id, options, selected, onChange) {
+// Select with friendly option labels and helper text
+function addSelectWithHelp(label, helpText, id, options, selected, onChange) {
   var group = document.createElement('div');
   group.className = 'form-group';
 
@@ -663,11 +910,17 @@ function addSelect(label, id, options, selected, onChange) {
   var select = document.createElement('select');
   select.id = id;
 
+  // options: array of { value, label } or plain strings
   for (var i = 0; i < options.length; i++) {
     var opt = document.createElement('option');
-    opt.value = options[i];
-    opt.textContent = options[i];
-    if (options[i] === selected) {
+    if (typeof options[i] === 'object') {
+      opt.value = options[i].value;
+      opt.textContent = options[i].label;
+    } else {
+      opt.value = options[i];
+      opt.textContent = options[i];
+    }
+    if (opt.value === selected) {
       opt.selected = true;
     }
     select.appendChild(opt);
@@ -679,12 +932,166 @@ function addSelect(label, id, options, selected, onChange) {
 
   group.appendChild(lbl);
   group.appendChild(select);
+
+  if (helpText) {
+    var help = document.createElement('span');
+    help.className = 'field-help';
+    help.textContent = helpText;
+    group.appendChild(help);
+  }
+
   phaseConfigForm.appendChild(group);
   return select;
 }
 
+// Build data reference dropdown options from phases before currentPhaseId
+function buildDataRefOptions(currentPhaseId) {
+  var order = buildPhaseOrder();
+  var currentIndex = order.indexOf(currentPhaseId);
+  var options = [{ value: '', label: '(none)' }];
+
+  for (var i = 0; i < order.length; i++) {
+    if (i >= currentIndex) break;
+    var pid = order[i];
+    var p = gameConfig.phases[pid];
+    var cat = PHASE_CATALOG[p.type];
+    if (!cat) continue;
+
+    if (p.type === 'collect') {
+      options.push({ value: pid + '.responses', label: 'Answers from ' + cat.friendlyName + ' (' + pid + ')' });
+    } else if (p.type === 'ai-process') {
+      options.push({ value: pid + '.result', label: 'AI result from ' + cat.friendlyName + ' (' + pid + ')' });
+    } else if (p.type === 'vote') {
+      options.push({ value: pid + '.scores', label: 'Scores from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.results', label: 'Results from ' + cat.friendlyName + ' (' + pid + ')' });
+    } else if (p.type === 'eliminate') {
+      options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + cat.friendlyName + ' (' + pid + ')' });
+    }
+  }
+
+  return options;
+}
+
+// Data reference dropdown
+function addDataRefDropdown(label, helpText, id, currentPhaseId, value, onChange) {
+  var options = buildDataRefOptions(currentPhaseId);
+
+  // If current value isn't in the list, add it as a custom option
+  var found = false;
+  for (var i = 0; i < options.length; i++) {
+    if (options[i].value === value) { found = true; break; }
+  }
+  if (value && !found) {
+    options.push({ value: value, label: value + ' (custom)' });
+  }
+
+  return addSelectWithHelp(label, helpText, id, options, value || '', function (val) {
+    onChange(val || undefined);
+  });
+}
+
+// Phase type select with friendly names
+function addPhaseTypeSelect(label, helpText, id, selected, onChange) {
+  var options = [];
+  for (var i = 0; i < PHASE_TYPES.length; i++) {
+    var type = PHASE_TYPES[i];
+    var cat = PHASE_CATALOG[type];
+    options.push({ value: type, label: cat.icon + ' ' + cat.friendlyName + ' (' + type + ')' });
+  }
+  return addSelectWithHelp(label, helpText, id, options, selected, onChange);
+}
+
+// Next-phase select with friendly names
+function addPhaseRefSelect(label, helpText, id, currentPhaseId, selected, onChange) {
+  var phaseIds = Object.keys(gameConfig.phases);
+  var options = [{ value: '(none)', label: '(none)' }];
+  for (var i = 0; i < phaseIds.length; i++) {
+    var pid = phaseIds[i];
+    if (pid === currentPhaseId) continue;
+    var p = gameConfig.phases[pid];
+    var cat = PHASE_CATALOG[p.type];
+    if (cat) {
+      options.push({ value: pid, label: cat.icon + ' ' + cat.friendlyName + ' (' + pid + ')' });
+    } else {
+      options.push({ value: pid, label: pid });
+    }
+  }
+  return addSelectWithHelp(label, helpText, id, options, selected || '(none)', onChange);
+}
+
 // --- Phase management ---
+
+// Picker modal: which phase types can be added
+var ADDABLE_PHASE_TYPES = ['collect', 'ai-process', 'vote', 'eliminate', 'reveal', 'preview', 'winner'];
+
 function addPhase() {
+  showPhasePickerModal();
+}
+
+function showPhasePickerModal() {
+  // Remove any existing modal
+  var existing = document.getElementById('phase-picker-modal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'phase-picker-modal';
+  overlay.className = 'picker-overlay';
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  var modal = document.createElement('div');
+  modal.className = 'picker-modal';
+
+  var title = document.createElement('h2');
+  title.className = 'picker-title';
+  title.textContent = 'What should this step do?';
+  modal.appendChild(title);
+
+  var grid = document.createElement('div');
+  grid.className = 'picker-grid';
+
+  for (var i = 0; i < ADDABLE_PHASE_TYPES.length; i++) {
+    var type = ADDABLE_PHASE_TYPES[i];
+    var cat = PHASE_CATALOG[type];
+
+    var card = document.createElement('div');
+    card.className = 'picker-card';
+    card.setAttribute('data-type', type);
+    card.style.borderColor = cat.color;
+
+    var cardIcon = document.createElement('span');
+    cardIcon.className = 'picker-card-icon';
+    cardIcon.textContent = cat.icon;
+
+    var cardName = document.createElement('div');
+    cardName.className = 'picker-card-name';
+    cardName.textContent = cat.friendlyName;
+
+    var cardDesc = document.createElement('div');
+    cardDesc.className = 'picker-card-desc';
+    cardDesc.textContent = cat.description;
+
+    card.appendChild(cardIcon);
+    card.appendChild(cardName);
+    card.appendChild(cardDesc);
+
+    card.addEventListener('click', (function (chosenType) {
+      return function () {
+        overlay.remove();
+        addPhaseOfType(chosenType);
+      };
+    })(type));
+
+    grid.appendChild(card);
+  }
+
+  modal.appendChild(grid);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+function addPhaseOfType(type) {
   var phaseIds = Object.keys(gameConfig.phases);
   var count = phaseIds.length;
   var newId = 'phase-' + count;
@@ -708,23 +1115,52 @@ function addPhase() {
   var beforeEnd = null;
   if (endId) {
     for (var id in gameConfig.phases) {
-      if (gameConfig.phases[id].next === endId) {
+      var p = gameConfig.phases[id];
+      if (p.next === endId || p.approveNext === endId) {
         beforeEnd = id;
         break;
       }
     }
   }
 
-  // Create the new phase
-  gameConfig.phases[newId] = {
-    type: 'collect',
-    prompt: 'Enter your response',
-    next: endId || undefined
-  };
+  // Create the new phase with sensible defaults
+  var newPhase = { type: type };
+
+  if (type === 'collect') {
+    newPhase.prompt = 'Enter your response';
+  } else if (type === 'ai-process') {
+    newPhase.task = 'summarize';
+    newPhase.instruction = '';
+  } else if (type === 'vote') {
+    newPhase.mode = 'pick-one';
+  } else if (type === 'eliminate') {
+    newPhase.method = 'bottom-percent';
+    newPhase.percent = 50;
+  } else if (type === 'reveal') {
+    newPhase.template = '';
+  } else if (type === 'preview') {
+    newPhase.approveNext = endId || undefined;
+  } else if (type === 'winner') {
+    // no extra defaults
+  }
+
+  // Set next (preview uses approveNext instead)
+  if (type === 'preview') {
+    newPhase.approveNext = endId || undefined;
+  } else {
+    newPhase.next = endId || undefined;
+  }
+
+  gameConfig.phases[newId] = newPhase;
 
   // Re-link: previous phase before end now points to new phase
   if (beforeEnd) {
-    gameConfig.phases[beforeEnd].next = newId;
+    var beforePhase = gameConfig.phases[beforeEnd];
+    if (beforePhase.type === 'preview') {
+      beforePhase.approveNext = newId;
+    } else {
+      beforePhase.next = newId;
+    }
   }
 
   renderCanvas();

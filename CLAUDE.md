@@ -38,10 +38,13 @@ Framework for quickly building classroom games where:
 4. Test with: npm test
 
 ## Current State
-- **All 3 games implemented and playable** (Weekend Poem, Mood Check, Corn Story)
+- **4 games implemented and playable** (Weekend Poem, Mood Check, Corn Story, Story Builder)
 - **All 10 engine primitives implemented** for Corn Story
+- **Preview phase implemented** — teacher-only review before revealing to students
+- **Timers implemented** — countdown on collect/vote phases with auto-submit on expiry
 - Server runs on port 3000 (`npm start`)
 - Host screen at /host, Player screen at /player
+- Game editor at /designer, editor at /designer/edit
 - **141 tests passing** (`npm test`)
 - Simulator script for automated playtesting: `node scripts/simulate-corn-story.js`
 
@@ -52,6 +55,9 @@ Framework for quickly building classroom games where:
    - Round 1: "Don't Match" — AI groups similar answers, matching players eliminated via hook
    - Round 2: "Be Creative" — head-to-head voting, bottom 60% eliminated
    - Final: Pick-one voting by eliminated players, winner crowned
+4. **Story Builder** (games/story-builder/) — collect (60s timer) → ai-process → preview → reveal
+   - Uses preview phase for teacher review before showing AI-generated story
+   - Teacher can approve (advance to reveal) or reject (re-run AI)
 
 ### Engine Primitives (All Implemented)
 1. Player state tracking (remaining vs eliminated) — PlayerRegistry
@@ -90,9 +96,13 @@ Framework for quickly building classroom games where:
 - `rank` — Order by criteria (Sonnet)
 - `judge` — Pick winner with explanation (Sonnet)
 
+### Gameplay Features
+- **Preview phase** — Host sees AI content + player responses, can Approve (advance) or Reject (loop back). Players see "Waiting for teacher..." Server handler, socket events (`preview-approve`, `preview-reject`, `preview-edit`), and full host UI implemented.
+- **Timers** — Config `timer` field (seconds) on collect and vote phases. Countdown displayed on both host and player screens. On expiry: player auto-submits current text (collect) or random vote (vote); host auto-clicks Close Submissions/Voting. Warning styling at ≤5 seconds.
+- **Game editor** — Teacher-friendly UI redesign. Phase blocks show icons + friendly names ("Ask Players", "AI Does Something") instead of technical IDs. Right sidebar groups fields into sections with helper text. Data reference dropdowns replace raw text fields. Phase type picker modal for adding new steps. AI lane (purple) shows on ai-process phases. H/P/AI role dots on canvas blocks. All config.json internals unchanged — purely a presentation layer. Editor files: `screens/designer/editor.js`, `editor.css`, `editor.html`.
+
 ### Safety Features Designed (Not Yet Implemented)
 - Content filtering (profanity, slurs, PII detection)
-- Teacher preview before reveal
 - Moderation controls (hide responses, kick players)
 - Anonymous mode option
 - Rate limiting and input validation
@@ -141,3 +151,8 @@ Framework for quickly building classroom games where:
 - Phase 6: Fixed AI elimination bugs (JSON preamble, playerIds vs text, deduplication)
 - Phase 6: Added simulator script for automated playtesting
 - Phase 6 COMPLETE: All 3 games playable, 141 tests passing
+- Phase 7: Implemented preview phase (server handler, socket events, host UI)
+- Phase 7: Implemented timers (countdown display, auto-submit on expiry, warning styling)
+- Phase 7: Completed preview phase fields in game editor (content, showResponses, approveNext, rejectNext)
+- Phase 7: Created Story Builder game using preview + timers
+- Phase 8: Redesigned editor UI for non-coders — friendly names, icons, grouped sections, helper text, data ref dropdowns, phase picker modal, AI lane in screen info

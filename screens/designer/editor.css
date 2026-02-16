@@ -212,7 +212,7 @@ body {
 /* ---- Phase boxes ---- */
 .phase-box {
   width: 280px;
-  padding: 14px 18px;
+  padding: 14px 18px 10px;
   border-radius: 10px;
   border: 2px solid #ddd;
   cursor: pointer;
@@ -232,22 +232,25 @@ body {
 
 .phase-box-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
+}
+
+.phase-box-icon {
+  font-size: 1.3rem;
+  line-height: 1;
 }
 
 .phase-box-name {
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
-.phase-box-type {
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+.phase-box-id {
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-top: 2px;
+  margin-left: 30px;
 }
 
 .phase-box-detail {
@@ -257,6 +260,37 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Role indicator dots */
+.phase-box-dots {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.role-dot {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.role-host {
+  background: #e3eefb;
+  color: #4a90d9;
+}
+
+.role-player {
+  background: #e5f5e5;
+  color: #388e3c;
+}
+
+.role-ai {
+  background: #f0e0f5;
+  color: #7b1fa2;
 }
 
 /* Drag and drop */
@@ -285,35 +319,18 @@ body {
 
 /* Phase type colors */
 .phase-type-lobby       { background: #e3f2fd; border-color: #1976d2; }
-.phase-type-lobby .phase-box-type { background: #1976d2; color: white; }
-
 .phase-type-collect     { background: #e8f5e9; border-color: #388e3c; }
-.phase-type-collect .phase-box-type { background: #388e3c; color: white; }
-
 .phase-type-ai-process  { background: #f3e5f5; border-color: #7b1fa2; }
-.phase-type-ai-process .phase-box-type { background: #7b1fa2; color: white; }
-
 .phase-type-vote        { background: #fff3e0; border-color: #f57c00; }
-.phase-type-vote .phase-box-type { background: #f57c00; color: white; }
-
 .phase-type-eliminate   { background: #ffebee; border-color: #d32f2f; }
-.phase-type-eliminate .phase-box-type { background: #d32f2f; color: white; }
-
 .phase-type-reveal      { background: #e0f7fa; border-color: #0097a7; }
-.phase-type-reveal .phase-box-type { background: #0097a7; color: white; }
-
 .phase-type-preview     { background: #fffde7; border-color: #f9a825; }
-.phase-type-preview .phase-box-type { background: #f9a825; color: #333; }
-
 .phase-type-winner      { background: #fff8e1; border-color: #ff8f00; }
-.phase-type-winner .phase-box-type { background: #ff8f00; color: white; }
-
 .phase-type-end         { background: #f5f5f5; border-color: #757575; }
-.phase-type-end .phase-box-type { background: #757575; color: white; }
 
 /* ---- Right sidebar ---- */
 #phase-panel {
-  width: 300px;
+  width: 320px;
   background: white;
   border-left: 1px solid #ddd;
   padding: 20px;
@@ -339,6 +356,69 @@ body {
 
 #phase-config-form .form-group {
   margin-bottom: 14px;
+}
+
+/* ---- Config panel phase header ---- */
+.config-phase-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.config-phase-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 2px solid #ddd;
+  flex-shrink: 0;
+}
+
+.config-phase-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.config-phase-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.config-phase-desc {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+/* ---- Section headers ---- */
+.config-section-header {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: #aaa;
+  margin-top: 18px;
+  margin-bottom: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
+}
+
+/* ---- Field help text ---- */
+.field-help {
+  display: block;
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-top: 3px;
+  line-height: 1.3;
 }
 
 /* Screen info boxes */
@@ -368,6 +448,11 @@ body {
   border-left-color: #5cb85c;
 }
 
+.screen-info-ai {
+  background: #f5eef8;
+  border-left-color: #7b1fa2;
+}
+
 .screen-info-label {
   font-size: 0.7rem;
   font-weight: 700;
@@ -386,4 +471,73 @@ body {
   margin-top: 24px;
   padding-top: 20px;
   border-top: 1px solid #eee;
+}
+
+/* ---- Phase picker modal ---- */
+.picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.picker-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 28px 32px;
+  max-width: 560px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.picker-title {
+  font-size: 1.2rem;
+  color: #333;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.picker-card {
+  padding: 14px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  text-align: left;
+}
+
+.picker-card:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background: #fafafa;
+}
+
+.picker-card-icon {
+  font-size: 1.5rem;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.picker-card-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.picker-card-desc {
+  font-size: 0.8rem;
+  color: #888;
+  line-height: 1.3;
 }
