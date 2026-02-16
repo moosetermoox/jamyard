@@ -98,12 +98,12 @@ async function handlePhase(code, room) {
 
       // Send prompt to host
       if (hostSocketId) {
-        io.to(hostSocketId).emit('game-started', { prompt: phase.prompt });
+        io.to(hostSocketId).emit('game-started', { prompt: phase.prompt, timer: phase.timer || null });
       }
 
       // Send prompt to eligible players
       for (const player of eligible) {
-        io.to(player.id).emit('game-started', { prompt: phase.prompt });
+        io.to(player.id).emit('game-started', { prompt: phase.prompt, timer: phase.timer || null });
       }
 
       // Send waiting to non-eligible players
@@ -228,7 +228,8 @@ async function handlePhase(code, room) {
       if (hostSocketId) {
         io.to(hostSocketId).emit('vote-start', {
           mode: phase.mode,
-          totalVoters: eligible.length
+          totalVoters: eligible.length,
+          timer: phase.timer || null
         });
       }
 
@@ -247,6 +248,46 @@ async function handlePhase(code, room) {
         winnerScore: result.winnerScore,
         standings: result.standings
       });
+      break;
+    }
+
+    case 'preview': {
+      let content = '';
+      if (phase.template) {
+        content = resolveTemplate(phase.template, engine);
+      } else if (phase.content) {
+        const resolved = engine.resolve(phase.content);
+        content = typeof resolved === 'string' ? resolved : JSON.stringify(resolved);
+      }
+
+      // Gather responses if showResponses !== false
+      let responses = [];
+      if (phase.showResponses !== false) {
+        for (const [id, cfg] of Object.entries(engine.config.phases)) {
+          if (cfg.type === 'collect') {
+            const data = engine.getPhaseData(id);
+            if (data && data.responses) {
+              responses = data.responses.map(r => ({ name: r.name, response: r.text }));
+            }
+          }
+        }
+      }
+
+      engine.storePhaseData(phase.id, { content, responses });
+
+      // Send preview to host only
+      if (hostSocketId) {
+        io.to(hostSocketId).emit('preview-content', {
+          content,
+          responses,
+          phaseId: phase.id
+        });
+      }
+
+      // Tell players to wait
+      for (const player of engine.players.list()) {
+        io.to(player.id).emit('waiting', { message: 'Waiting for teacher...' });
+      }
       break;
     }
 
@@ -694,6 +735,58 @@ io.on('connection', (socket) => {
       }
     } catch (error) {
       console.log(`[advance-phase] Error: ${error.message}`);
+    }
+  });
+
+  socket.on('preview-approve', async ({ code }) => {
+    console.log(`[preview-approve] Host approved preview in room ${code}`);
+    const room = roomManager.find(code);
+    if (!room || !room.engine) return;
+
+    try {
+      const currentPhase = room.engine.getCurrentPhase();
+      if (currentPhase.approveNext) {
+        room.engine.transition(currentPhase.approveNext);
+        await handlePhase(code, room);
+      }
+    } catch (error) {
+      console.log(`[preview-approve] Error: ${error.message}`);
+    }
+  });
+
+  socket.on('preview-reject', async ({ code }) => {
+    console.log(`[preview-reject] Host rejected preview in room ${code}`);
+    const room = roomManager.find(code);
+    if (!room || !room.engine) return;
+
+    try {
+      const currentPhase = room.engine.getCurrentPhase();
+      if (currentPhase.rejectNext) {
+        room.engine.transition(currentPhase.rejectNext);
+        await handlePhase(code, room);
+      }
+    } catch (error) {
+      console.log(`[preview-reject] Error: ${error.message}`);
+    }
+  });
+
+  socket.on('preview-edit', async ({ code, content }) => {
+    console.log(`[preview-edit] Host edited preview content in room ${code}`);
+    const room = roomManager.find(code);
+    if (!room || !room.engine) return;
+
+    try {
+      const currentPhase = room.engine.getCurrentPhase();
+      // Update the stored content with the edited version
+      const existingData = room.engine.getPhaseData(currentPhase.id) || {};
+      room.engine.storePhaseData(currentPhase.id, { ...existingData, content });
+
+      if (currentPhase.approveNext) {
+        room.engine.transition(currentPhase.approveNext);
+        await handlePhase(code, room);
+      }
+    } catch (error) {
+      console.log(`[preview-edit] Error: ${error.message}`);
     }
   });
 

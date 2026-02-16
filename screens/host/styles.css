@@ -233,6 +233,61 @@ button:disabled {
   background: #c9302c;
 }
 
+/* Timer */
+.timer {
+  display: inline-block;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #4a90d9;
+  margin: 10px 0;
+}
+
+.timer-warning {
+  color: #d9534f;
+}
+
+/* Preview section */
+.preview-actions {
+  margin-top: 20px;
+}
+
+#preview-approve-btn {
+  background: #5cb85c;
+}
+
+#preview-approve-btn:hover {
+  background: #449d44;
+}
+
+.btn-danger {
+  background: #d9534f;
+}
+
+.btn-danger:hover {
+  background: #c9302c;
+}
+
+#preview-responses-list {
+  font-size: 1.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 30px 0;
+  text-align: left;
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+}
+
+#preview-responses-list li {
+  padding: 15px 0;
+  border-bottom: 1px solid #eee;
+  font-size: 1.8rem;
+}
+
+#preview-responses-list li:last-child {
+  border-bottom: none;
+}
+
 /* End section */
 .game-over {
   font-size: 4rem;

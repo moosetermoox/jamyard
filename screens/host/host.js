@@ -16,11 +16,20 @@ const startGameBtn = document.getElementById('start-game-btn');
 // Elements - Collect
 const collectSection = document.getElementById('collect-section');
 const promptDisplay = document.getElementById('prompt-display');
+const collectTimer = document.getElementById('collect-timer');
 const submissionCount = document.getElementById('submission-count');
 const closeSubmissionsBtn = document.getElementById('close-submissions-btn');
 
 // Elements - Process
 const processSection = document.getElementById('process-section');
+
+// Elements - Preview
+const previewSection = document.getElementById('preview-section');
+const previewContent = document.getElementById('preview-content');
+const previewResponses = document.getElementById('preview-responses');
+const previewResponsesList = document.getElementById('preview-responses-list');
+const previewApproveBtn = document.getElementById('preview-approve-btn');
+const previewRejectBtn = document.getElementById('preview-reject-btn');
 
 // Elements - Reveal
 const revealSection = document.getElementById('reveal-section');
@@ -32,6 +41,7 @@ const continueBtn = document.getElementById('continue-btn');
 // Elements - Vote
 const voteSection = document.getElementById('vote-section');
 const voteModeDisplay = document.getElementById('vote-mode-display');
+const voteTimer = document.getElementById('vote-timer');
 const voteCount = document.getElementById('vote-count');
 const closeVotingBtn = document.getElementById('close-voting-btn');
 
@@ -94,6 +104,14 @@ closeVotingBtn.addEventListener('click', () => {
   socket.emit('close-voting', { code: currentRoomCode });
 });
 
+previewApproveBtn.addEventListener('click', () => {
+  socket.emit('preview-approve', { code: currentRoomCode });
+});
+
+previewRejectBtn.addEventListener('click', () => {
+  socket.emit('preview-reject', { code: currentRoomCode });
+});
+
 eliminationContinueBtn.addEventListener('click', () => {
   socket.emit('advance-phase', { code: currentRoomCode });
 });
@@ -126,13 +144,53 @@ socket.on('player-left', ({ players }) => {
   updateStartButton(players.length);
 });
 
+// --- Timer ---
+let timerInterval = null;
+
+function startTimer(seconds, displayEl, onExpire) {
+  clearTimer();
+  let remaining = seconds;
+  displayEl.textContent = remaining + 's';
+  displayEl.hidden = false;
+  displayEl.classList.remove('timer-warning');
+
+  timerInterval = setInterval(() => {
+    remaining--;
+    displayEl.textContent = remaining + 's';
+    if (remaining <= 5) {
+      displayEl.classList.add('timer-warning');
+    }
+    if (remaining <= 0) {
+      clearTimer();
+      displayEl.hidden = true;
+      if (onExpire) onExpire();
+    }
+  }, 1000);
+}
+
+function clearTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  collectTimer.hidden = true;
+  collectTimer.classList.remove('timer-warning');
+  voteTimer.hidden = true;
+  voteTimer.classList.remove('timer-warning');
+}
+
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt }) => {
+socket.on('game-started', ({ prompt, timer }) => {
   hideAllSections();
   collectSection.hidden = false;
   promptDisplay.textContent = prompt;
   submissionCount.textContent = '0 of 0 submitted';
+  if (timer) {
+    startTimer(timer, collectTimer, () => {
+      closeSubmissionsBtn.click();
+    });
+  }
 });
 
 socket.on('response-received', ({ playerName, count, total }) => {
@@ -142,6 +200,24 @@ socket.on('response-received', ({ playerName, count, total }) => {
 socket.on('processing-started', () => {
   hideAllSections();
   processSection.hidden = false;
+});
+
+socket.on('preview-content', ({ content, responses }) => {
+  hideAllSections();
+  previewSection.hidden = false;
+  previewContent.textContent = content;
+
+  if (responses && responses.length > 0) {
+    previewResponses.hidden = false;
+    previewResponsesList.innerHTML = '';
+    for (const { name, response } of responses) {
+      const li = document.createElement('li');
+      li.innerHTML = '<strong>' + name + ':</strong> ' + response;
+      previewResponsesList.appendChild(li);
+    }
+  } else {
+    previewResponses.hidden = true;
+  }
 });
 
 socket.on('show-results', ({ content, aiResult, responses }) => {
@@ -164,11 +240,16 @@ socket.on('game-ended', () => {
 
 // --- Socket events - Voting ---
 
-socket.on('vote-start', ({ mode, totalVoters }) => {
+socket.on('vote-start', ({ mode, totalVoters, timer }) => {
   hideAllSections();
   voteSection.hidden = false;
   voteModeDisplay.textContent = mode === 'head-to-head' ? 'Head-to-Head' : 'Pick One';
   voteCount.textContent = '0 of ' + totalVoters + ' votes received';
+  if (timer) {
+    startTimer(timer, voteTimer, () => {
+      closeVotingBtn.click();
+    });
+  }
 });
 
 socket.on('vote-received', ({ count, total }) => {
@@ -227,9 +308,11 @@ function renderResponses(responses) {
 }
 
 function hideAllSections() {
+  clearTimer();
   lobbySection.hidden = true;
   collectSection.hidden = true;
   processSection.hidden = true;
+  previewSection.hidden = true;
   revealSection.hidden = true;
   voteSection.hidden = true;
   eliminationSection.hidden = true;

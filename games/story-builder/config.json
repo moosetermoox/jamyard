@@ -1,0 +1,42 @@
+{
+  "name": "Story Builder",
+  "description": "Everyone contributes a sentence, AI weaves them into a story, teacher previews before sharing.",
+  "minPlayers": 2,
+  "maxPlayers": 36,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "collect"
+    },
+    "collect": {
+      "type": "collect",
+      "prompt": "Write one interesting sentence that could be part of a story.",
+      "timer": 60,
+      "next": "process"
+    },
+    "process": {
+      "type": "ai-process",
+      "task": "generate",
+      "instruction": "Using the sentences below as inspiration, weave them into a short, creative story (3-5 paragraphs). Try to incorporate ideas from every response. Make it fun and engaging for a classroom.",
+      "input": "collect.responses",
+      "format": "text",
+      "next": "preview"
+    },
+    "preview": {
+      "type": "preview",
+      "content": "process.result",
+      "showResponses": true,
+      "approveNext": "reveal",
+      "rejectNext": "process"
+    },
+    "reveal": {
+      "type": "reveal",
+      "template": "{{process.result}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for building a story together!"
+    }
+  }
+}

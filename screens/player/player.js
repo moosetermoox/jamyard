@@ -3,10 +3,16 @@ const socket = io();
 let currentRoomCode = null;
 let isEliminated = false;
 
+// Timer state
+let timerInterval = null;
+const collectTimerDisplay = document.getElementById('collect-timer');
+const voteTimerDisplay = document.getElementById('vote-timer');
+
 // Head-to-head vote state
 let currentMatchups = [];
 let currentMatchupIndex = 0;
 let matchupVotes = [];
+let currentCandidates = [];
 
 // Elements - Join
 const joinSection = document.getElementById('join-section');
@@ -102,14 +108,56 @@ socket.on('room-closed', () => {
   showError('Room was closed by the host');
 });
 
+// --- Timer ---
+function startTimer(seconds, displayEl, onExpire) {
+  clearTimer();
+  let remaining = seconds;
+  displayEl.textContent = remaining + 's';
+  displayEl.hidden = false;
+  displayEl.classList.remove('timer-warning');
+
+  timerInterval = setInterval(() => {
+    remaining--;
+    displayEl.textContent = remaining + 's';
+    if (remaining <= 5) {
+      displayEl.classList.add('timer-warning');
+    }
+    if (remaining <= 0) {
+      clearTimer();
+      displayEl.hidden = true;
+      if (onExpire) onExpire();
+    }
+  }, 1000);
+}
+
+function clearTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  collectTimerDisplay.hidden = true;
+  collectTimerDisplay.classList.remove('timer-warning');
+  voteTimerDisplay.hidden = true;
+  voteTimerDisplay.classList.remove('timer-warning');
+}
+
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt }) => {
+socket.on('game-started', ({ prompt, timer }) => {
   hideAllSections();
   collectSection.hidden = false;
   promptDisplay.textContent = prompt;
   responseInput.value = '';
   submitBtn.disabled = false;
+  if (timer) {
+    startTimer(timer, collectTimerDisplay, () => {
+      // Auto-submit current text (even if empty)
+      submitBtn.disabled = true;
+      socket.emit('submit-response', { code: currentRoomCode, response: responseInput.value.trim() || '' });
+      collectSection.hidden = true;
+      submittedSection.hidden = false;
+    });
+  }
 });
 
 socket.on('processing-started', () => {
@@ -140,7 +188,7 @@ socket.on('waiting', ({ message }) => {
 
 // --- Socket events - Voting ---
 
-socket.on('vote-start', ({ mode, candidates, matchups }) => {
+socket.on('vote-start', ({ mode, candidates, matchups, timer }) => {
   hideAllSections();
   voteSection.hidden = false;
   voteOptions.innerHTML = '';
@@ -148,12 +196,40 @@ socket.on('vote-start', ({ mode, candidates, matchups }) => {
   if (mode === 'pick-one') {
     voteTitle.textContent = 'Pick your favorite!';
     voteProgress.hidden = true;
+    currentCandidates = candidates || [];
     showPickOneVote(candidates);
+    if (timer) {
+      startTimer(timer, voteTimerDisplay, () => {
+        // Auto-vote: pick a random candidate
+        if (currentCandidates.length > 0) {
+          const randomIdx = Math.floor(Math.random() * currentCandidates.length);
+          socket.emit('submit-vote', { code: currentRoomCode, choice: currentCandidates[randomIdx].playerId });
+        }
+        hideAllSections();
+        voteSubmittedSection.hidden = false;
+      });
+    }
   } else if (mode === 'head-to-head') {
     currentMatchups = matchups;
     currentMatchupIndex = 0;
     matchupVotes = [];
     showNextMatchup();
+    if (timer) {
+      startTimer(timer, voteTimerDisplay, () => {
+        // Auto-vote: randomly pick remaining matchups
+        for (let i = currentMatchupIndex; i < currentMatchups.length; i++) {
+          const matchup = currentMatchups[i];
+          const pick = Math.random() < 0.5 ? matchup.optionA.playerId : matchup.optionB.playerId;
+          matchupVotes.push(pick);
+        }
+        socket.emit('submit-vote', {
+          code: currentRoomCode,
+          votes: matchupVotes.map(function(choice) { return { choice: choice }; })
+        });
+        hideAllSections();
+        voteSubmittedSection.hidden = false;
+      });
+    }
   }
 });
 
@@ -264,6 +340,7 @@ function showError(message) {
 }
 
 function hideAllSections() {
+  clearTimer();
   joinSection.hidden = true;
   waitingSection.hidden = true;
   collectSection.hidden = true;

@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm test)"
+      "Bash(npm test)",
+      "Bash(git push:*)",
+      "Bash(node -e:*)",
+      "Bash(npm install:*)",
+      "Bash(npm start)",
+      "Bash(curl:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }

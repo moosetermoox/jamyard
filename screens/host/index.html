@@ -36,6 +36,7 @@
   <section id="collect-section" hidden>
     <h2>Players are answering...</h2>
     <p id="prompt-display" class="prompt"></p>
+    <span id="collect-timer" class="timer" hidden></span>
     <p id="submission-count" class="big-text">0 of 0 submitted</p>
     <button id="close-submissions-btn">Close Submissions</button>
   </section>
@@ -44,6 +45,20 @@
   <section id="process-section" hidden>
     <h2>AI is creating your poem...</h2>
     <p class="big-text">Working...</p>
+  </section>
+
+  <!-- PREVIEW SECTION -->
+  <section id="preview-section" hidden>
+    <h2>Preview (students can't see this yet)</h2>
+    <div id="preview-content" class="reveal-content"></div>
+    <div id="preview-responses" hidden>
+      <h3>Player Responses:</h3>
+      <ul id="preview-responses-list"></ul>
+    </div>
+    <div class="preview-actions">
+      <button id="preview-approve-btn">Approve & Show</button>
+      <button id="preview-reject-btn" class="btn-danger">Reject</button>
+    </div>
   </section>
 
   <!-- REVEAL SECTION -->
@@ -60,6 +75,7 @@
   <section id="vote-section" hidden>
     <h2>Voting in progress...</h2>
     <p id="vote-mode-display"></p>
+    <span id="vote-timer" class="timer" hidden></span>
     <p id="vote-count" class="big-text">0 of 0 votes received</p>
     <button id="close-voting-btn">Close Voting</button>
   </section>

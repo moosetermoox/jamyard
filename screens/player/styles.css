@@ -201,3 +201,16 @@ button:disabled {
   font-size: 1.1rem;
   color: #333;
 }
+
+/* Timer */
+.timer {
+  display: block;
+  font-size: 1.8rem;
+  font-weight: bold;
+  color: #4a90d9;
+  margin: 10px 0;
+}
+
+.timer-warning {
+  color: #d9534f;
+}
