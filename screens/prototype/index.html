@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prototype Mode — Classroom Games</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="control-bar">
+    <a href="/designer" id="back-link">&larr; Designer</a>
+    <h1>Prototype Mode</h1>
+    <div class="controls">
+      <label for="game-select">Game:</label>
+      <select id="game-select">
+        <option value="">Loading...</option>
+      </select>
+
+      <label for="player-count">Players:</label>
+      <input type="range" id="player-count" min="1" max="4" value="2">
+      <span id="player-count-display">2</span>
+
+      <button id="launch-btn" disabled>Launch</button>
+      <button id="reset-btn" hidden>Reset</button>
+    </div>
+  </div>
+
+  <div id="iframe-container"></div>
+
+  <script src="prototype.js"></script>
+</body>
+</html>
