@@ -57,6 +57,21 @@ const standingsList = document.getElementById('standings-list');
 
 // --- Button handlers ---
 
+// Prototype mode: auto-fill and auto-join
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('prototype') === 'true') {
+    const code = params.get('code');
+    const name = params.get('name');
+    if (code && name) {
+      roomCodeInput.value = code;
+      nameInput.value = name;
+      // Delay to ensure socket is connected
+      setTimeout(() => joinBtn.click(), 500);
+    }
+  }
+})();
+
 joinBtn.addEventListener('click', () => {
   const code = roomCodeInput.value.toUpperCase().trim();
   const name = nameInput.value.trim();
@@ -176,7 +191,19 @@ socket.on('game-started', ({ prompt, timer }) => {
   }
 });
 
-socket.on('processing-started', () => {
+const processTitle = document.getElementById('process-title');
+
+const AI_TASK_MESSAGES = {
+  'summarize': 'AI is summarizing answers...',
+  'generate': 'AI is creating something...',
+  'generate-choices': 'AI is generating choices...',
+  'compare': 'AI is comparing answers...',
+  'rank': 'AI is ranking answers...',
+  'judge': 'AI is judging answers...'
+};
+
+socket.on('processing-started', ({ task } = {}) => {
+  processTitle.textContent = AI_TASK_MESSAGES[task] || 'AI is working on something special...';
   showSection(processSection);
 });
 

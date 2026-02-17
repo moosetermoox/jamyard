@@ -206,12 +206,24 @@ describe('GameLoader', () => {
       expect(() => validate(config, 'test')).toThrow('missing required field "method"');
     });
 
-    it('rejects preview phase missing approveNext', () => {
+    it('rejects preview phase missing required fields', () => {
       const config = {
         name: 'Test',
         phases: {
           lobby: { type: 'lobby', next: 'prev' },
           prev: { type: 'preview' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing required field "content"');
+    });
+
+    it('rejects preview phase missing approveNext', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'prev' },
+          prev: { type: 'preview', content: 'ai.result' },
           end: { type: 'end' }
         }
       };

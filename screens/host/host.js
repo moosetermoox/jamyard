@@ -143,6 +143,12 @@ socket.on('room-created', ({ code, game }) => {
   gameNameDisplay.textContent = game || '';
   gameSelectSection.hidden = true;
   roomCodeSection.hidden = false;
+
+  // Prototype mode: notify parent window of room code
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('prototype') === 'true' && window.parent !== window) {
+    window.parent.postMessage({ type: 'room-created', code: code }, '*');
+  }
 });
 
 socket.on('player-joined', ({ players }) => {
@@ -223,7 +229,19 @@ socket.on('response-received', ({ playerName, count, total }) => {
   submissionCount.textContent = count + ' of ' + total + ' submitted';
 });
 
-socket.on('processing-started', () => {
+const processMessage = document.getElementById('process-message');
+
+const AI_TASK_MESSAGES = {
+  'summarize': 'AI is summarizing answers...',
+  'generate': 'AI is creating something...',
+  'generate-choices': 'AI is generating choices...',
+  'compare': 'AI is comparing answers...',
+  'rank': 'AI is ranking answers...',
+  'judge': 'AI is judging answers...'
+};
+
+socket.on('processing-started', ({ task } = {}) => {
+  processMessage.textContent = AI_TASK_MESSAGES[task] || 'AI is processing...';
   showSection(processSection);
 });
 

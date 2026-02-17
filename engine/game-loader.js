@@ -15,7 +15,7 @@ const PHASE_REQUIRED_FIELDS = {
   'ai-process': ['instruction', 'input'],
   vote: ['mode', 'candidates'],
   eliminate: ['method'],
-  preview: ['approveNext'],
+  preview: ['content', 'approveNext', 'rejectNext'],
   winner: ['from']
 };
 

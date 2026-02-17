@@ -970,7 +970,6 @@ function buildDataRefOptions(currentPhaseId) {
       options.push({ value: pid + '.result', label: 'AI result from ' + cat.friendlyName + ' (' + pid + ')' });
     } else if (p.type === 'vote') {
       options.push({ value: pid + '.scores', label: 'Scores from ' + cat.friendlyName + ' (' + pid + ')' });
-      options.push({ value: pid + '.results', label: 'Results from ' + cat.friendlyName + ' (' + pid + ')' });
     } else if (p.type === 'eliminate') {
       options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + cat.friendlyName + ' (' + pid + ')' });
     }
@@ -1138,6 +1137,7 @@ function addPhaseOfType(type) {
   } else if (type === 'ai-process') {
     newPhase.task = 'summarize';
     newPhase.instruction = '';
+    newPhase.format = 'text';
   } else if (type === 'vote') {
     newPhase.mode = 'pick-one';
   } else if (type === 'eliminate') {
@@ -1147,6 +1147,7 @@ function addPhaseOfType(type) {
     newPhase.template = '';
   } else if (type === 'preview') {
     newPhase.approveNext = endId || undefined;
+    newPhase.rejectNext = undefined;
   } else if (type === 'winner') {
     // no extra defaults
   }
@@ -1186,10 +1187,16 @@ function deletePhase(phaseId) {
   }
 
   // Re-link: any phase pointing to this one should point to this phase's next
-  var nextId = phase.next || undefined;
+  var nextId = phase.next || phase.approveNext || undefined;
   for (var id in gameConfig.phases) {
     if (gameConfig.phases[id].next === phaseId) {
       gameConfig.phases[id].next = nextId;
+    }
+    if (gameConfig.phases[id].approveNext === phaseId) {
+      gameConfig.phases[id].approveNext = nextId;
+    }
+    if (gameConfig.phases[id].rejectNext === phaseId) {
+      gameConfig.phases[id].rejectNext = nextId;
     }
   }
 
@@ -1207,7 +1214,7 @@ var REQUIRED_FIELDS = {
   'ai-process': ['instruction', 'input'],
   vote: ['mode', 'candidates'],
   eliminate: ['method'],
-  preview: ['approveNext'],
+  preview: ['content', 'approveNext', 'rejectNext'],
   winner: ['from']
 };
 
@@ -1466,7 +1473,7 @@ async function testGame() {
   }
   // Only open if we have a valid gameId (save succeeded)
   if (gameId) {
-    window.open('/host?game=' + encodeURIComponent(gameId), '_blank');
+    window.open('/prototype?game=' + encodeURIComponent(gameId), '_blank');
   }
 }
 

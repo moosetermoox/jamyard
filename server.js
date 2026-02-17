@@ -116,7 +116,7 @@ async function handlePhase(code, room) {
     }
 
     case 'ai-process': {
-      io.to(code).emit('processing-started');
+      io.to(code).emit('processing-started', { task: phase.task });
 
       const input = engine.resolve(phase.input);
       const instruction = phase.instruction;
@@ -364,7 +364,7 @@ function sendCurrentState(socket, code, room) {
     }
 
     case 'ai-process':
-      socket.emit('processing-started');
+      socket.emit('processing-started', { task: phase.task });
       break;
 
     case 'preview':
@@ -451,6 +451,7 @@ app.get('/', (req, res) => {
       <a href="/host">Host Screen</a>
       <a href="/player">Player Screen</a>
       <a href="/designer">Game Designer</a>
+      <a href="/prototype">Prototype Mode</a>
     </body>
     </html>
   `);
@@ -458,6 +459,7 @@ app.get('/', (req, res) => {
 
 app.use('/host', express.static(join(__dirname, 'screens/host')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
+app.use('/prototype', express.static(join(__dirname, 'screens/prototype')));
 
 app.get('/designer/edit', (req, res) => {
   res.sendFile('editor.html', { root: join(__dirname, 'screens', 'designer') });
