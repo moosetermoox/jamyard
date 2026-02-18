@@ -601,3 +601,170 @@ body {
   content: '\26A0 ';
   color: #d97706;
 }
+
+/* ---- Check My Game button ---- */
+.btn-review {
+  background: #7b1fa2;
+  color: white;
+  padding: 8px 18px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.btn-review:hover {
+  background: #6a1b9a;
+}
+
+.btn-review:disabled {
+  background: #ce93d8;
+  cursor: wait;
+}
+
+/* ---- AI issue badge on phase boxes ---- */
+.ai-issue-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #f59e0b;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.ai-issue-badge.has-errors {
+  background: #dc2626;
+}
+
+.phase-box {
+  position: relative;
+}
+
+/* ---- Review panel ---- */
+.review-panel {
+  position: relative;
+  padding: 16px 20px;
+  border-bottom: 2px solid #7b1fa2;
+  background: #faf5ff;
+  flex-shrink: 0;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.review-header h3 {
+  font-size: 1rem;
+  color: #7b1fa2;
+  margin: 0;
+}
+
+.review-summary {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 14px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e8e0ef;
+}
+
+.review-issues {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.review-issue {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+  border-left: 3px solid;
+  background: white;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.review-issue-error {
+  border-left-color: #dc2626;
+}
+
+.review-issue-warning {
+  border-left-color: #f59e0b;
+}
+
+.review-issue-suggestion {
+  border-left-color: #3b82f6;
+}
+
+.review-issue-phase {
+  font-weight: 600;
+  color: #7b1fa2;
+  cursor: pointer;
+  font-size: 0.8rem;
+  margin-bottom: 4px;
+}
+
+.review-issue-phase:hover {
+  text-decoration: underline;
+}
+
+.review-issue-message {
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.review-issue-suggestion-text {
+  color: #666;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+/* AI suggestions section in phase config sidebar */
+.ai-suggestion-item {
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.ai-suggestion-item.severity-error {
+  background: #fef2f2;
+  border-left: 3px solid #dc2626;
+}
+
+.ai-suggestion-item.severity-warning {
+  background: #fffbeb;
+  border-left: 3px solid #f59e0b;
+}
+
+.ai-suggestion-item.severity-suggestion {
+  background: #eff6ff;
+  border-left: 3px solid #3b82f6;
+}
+
+.ai-suggestion-message {
+  color: #333;
+  margin-bottom: 3px;
+}
+
+.ai-suggestion-fix {
+  color: #666;
+  font-style: italic;
+}

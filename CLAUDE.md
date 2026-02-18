@@ -45,11 +45,15 @@ Framework for quickly building classroom games where:
 - **Player reconnection** — 30s grace period, auto-rejoin on socket reconnect, state restoration
 - **Phase transitions** — smooth CSS fade transitions between game phases
 - **Editor validation** — client-side + server-side config validation with friendly error messages
-- **Test Game button** — saves dirty config then opens `/host?game={id}` with auto-create room
+- **Test Game button** — saves dirty config then opens `/prototype?game={id}` (pre-selects game, user picks player count)
+- **Prototype mode** — `/prototype` embeds host + player iframes side-by-side for quick playtesting
+- **Dynamic AI messages** — processing screen shows task-specific text ("summarizing...", "comparing...") instead of hardcoded "creating your poem"
 - Server runs on port 3000 (`npm start`)
 - Host screen at /host, Player screen at /player
 - Game editor at /designer, editor at /designer/edit
-- **179 tests passing** (`npm test`)
+- Prototype mode at /prototype
+- **AI game review** — two-tier review system: light check (Haiku, on save) + deep review (Sonnet, on demand) with inline phase badges and review panel
+- **188 tests passing** (`npm test`)
 - Simulator script for automated playtesting: `node scripts/simulate-corn-story.js`
 
 ### Working Games
@@ -105,6 +109,15 @@ Framework for quickly building classroom games where:
 - **Timers** — Config `timer` field (seconds) on collect and vote phases. Countdown displayed on both host and player screens. On expiry: player auto-submits current text (collect) or random vote (vote); host auto-clicks Close Submissions/Voting. Warning styling at ≤5 seconds.
 - **Game editor** — Teacher-friendly UI redesign. Phase blocks show icons + friendly names ("Ask Players", "AI Does Something") instead of technical IDs. Right sidebar groups fields into sections with helper text. Data reference dropdowns replace raw text fields. Phase type picker modal for adding new steps. AI lane (purple) shows on ai-process phases. H/P/AI role dots on canvas blocks. All config.json internals unchanged — purely a presentation layer. Editor files: `screens/designer/editor.js`, `editor.css`, `editor.html`.
 
+### AI Game Review (Implemented)
+- **Light review (Haiku)** — runs automatically after save, flags vague AI instructions, data flow breaks, player eligibility issues
+- **Deep review (Sonnet)** — triggered by "Check My Game" button, comprehensive review of playability, prompt quality, timing, engagement
+- **Review panel** — conversational summary + per-phase issues, clickable phase links to navigate canvas
+- **Inline phase badges** — warning dots on phase boxes with issue count, AI suggestions section in sidebar
+- **API endpoint** — `POST /api/games/review` with `{ config, depth }`, merges structural validation + AI review
+- **Model selection** — `MODELS.haiku` for light checks, `MODELS.sonnet` for deep reviews
+- **Mock mode** — returns plausible issues (empty instructions, missing timers) for testing without API key
+
 ### Safety Features Designed (Not Yet Implemented)
 - Content filtering (profanity, slurs, PII detection)
 - Moderation controls (hide responses, kick players)
@@ -114,8 +127,11 @@ Framework for quickly building classroom games where:
 ### Editor Validation (Implemented)
 - Server-side: phase type validation, required fields per type, enum values, timer range, data ref existence, `returnResults` mode
 - Client-side: mirrors server logic with friendly names, errors block save, warnings prompt confirm
+- Preview phase requires `content`, `approveNext`, and `rejectNext`
 - Unreachable phase detection (BFS from lobby) as warnings
 - Validation panel UI (red for errors, amber for warnings)
+- Delete phase re-links `next`, `approveNext`, and `rejectNext` references
+- Vote phases only offer `.scores` data ref (not `.results`)
 
 ### Engine Modules
 - GameEngine (engine/game-engine.js) — orchestrates phases, data resolution, hooks
@@ -127,7 +143,7 @@ Framework for quickly building classroom games where:
 - EliminateHandler (engine/phases/eliminate-handler.js) — bottom-percent and hook methods
 - VoteHandler (engine/phases/vote-handler.js) — matchup generation, tallying
 - WinnerHandler (engine/phases/winner-handler.js) — determines winner from scores
-- AIService (services/ai-service.js) — mock and real modes
+- AIService (services/ai-service.js) — mock and real modes, game review (light/deep)
 
 ### Design Documents (docs/)
 - **GAME-CONFIG-DESIGN.md** — 9 phase types, data references, hooks system
@@ -139,10 +155,11 @@ Framework for quickly building classroom games where:
 ### Environment
 - Uses dotenv, set ANTHROPIC_API_KEY in .env for real AI
 - Without API key, runs in mock mode (no real AI calls)
+- Express 5.x (path matching is stricter than Express 4)
 - Haiku for simple tasks, Sonnet for complex judgment
 
 ### Testing
-- `npm test` — runs all 179 Vitest tests
+- `npm test` — runs all 188 Vitest tests
 - `node scripts/simulate-corn-story.js` — automated full-game playthrough (requires server running)
 
 ## Refinement Log
@@ -176,3 +193,12 @@ Framework for quickly building classroom games where:
 - Phase 9: Player avatars — colored initial circles in host player list, disconnected player styling
 - Phase 9: isDirty tracking in editor — prevents losing unsaved changes
 - Phase 9 COMPLETE: 179 tests passing, editor validation + play polish + reconnection
+- Phase 10: Fixed 6 editor bugs — preview defaults, delete re-linking, vote data ref, ai-process format
+- Phase 10: Added prototype mode — iframe-based playtesting at /prototype
+- Phase 10: Dynamic AI processing messages — task-specific text on host and player screens
+- Phase 10: Test Game button now opens prototype mode (pre-selects game, user adjusts player count)
+- Phase 10: 180 tests passing
+- Phase 11: AI game review — light check (Haiku on save) + deep review (Sonnet on demand)
+- Phase 11: Review panel UI with summary, clickable phase issues, inline badges on canvas
+- Phase 11: `POST /api/games/review` endpoint, AIService.review() with model selection
+- Phase 11: 188 tests passing

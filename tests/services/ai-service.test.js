@@ -74,4 +74,96 @@ describe('AIService', () => {
       expect(result.text.toLowerCase()).toContain('mock');
     });
   });
+
+  describe('review()', () => {
+    const basicConfig = {
+      name: 'Test Game',
+      phases: {
+        lobby: { type: 'lobby', next: 'collect-1' },
+        'collect-1': { type: 'collect', prompt: 'What do you think?', next: 'process-1' },
+        'process-1': { type: 'ai-process', task: 'summarize', instruction: 'Summarize all responses', input: 'collect-1.responses', next: 'reveal-1' },
+        'reveal-1': { type: 'reveal', template: '{{process-1.result}}', next: 'end' },
+        end: { type: 'end', message: 'Thanks!' }
+      }
+    };
+
+    it('returns a Promise', () => {
+      const service = new AIService();
+      const result = service.review({ config: basicConfig });
+      expect(result).toBeInstanceOf(Promise);
+    });
+
+    it('returns issues array and summary string', async () => {
+      const service = new AIService();
+      const result = await service.review({ config: basicConfig });
+      expect(result).toHaveProperty('issues');
+      expect(result).toHaveProperty('summary');
+      expect(Array.isArray(result.issues)).toBe(true);
+      expect(typeof result.summary).toBe('string');
+    });
+
+    it('flags ai-process phases with empty instructions', async () => {
+      const service = new AIService();
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'p1' },
+          p1: { type: 'ai-process', task: 'summarize', instruction: '', input: 'x.responses', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      const result = await service.review({ config });
+      expect(result.issues.length).toBeGreaterThan(0);
+      expect(result.issues[0].phaseId).toBe('p1');
+      expect(result.issues[0].severity).toBe('warning');
+    });
+
+    it('returns no issues for well-configured games', async () => {
+      const service = new AIService();
+      const result = await service.review({ config: basicConfig, depth: 'light' });
+      expect(result.issues.length).toBe(0);
+    });
+
+    it('deep review suggests timers on collect phases without them', async () => {
+      const service = new AIService();
+      const result = await service.review({ config: basicConfig, depth: 'deep' });
+      // basicConfig has no timer on collect-1, so deep review should suggest one
+      expect(result.issues.length).toBeGreaterThan(0);
+      const timerIssue = result.issues.find(i => i.phaseId === 'collect-1');
+      expect(timerIssue).toBeDefined();
+      expect(timerIssue.severity).toBe('suggestion');
+    });
+
+    it('mock summary mentions MOCK', async () => {
+      const service = new AIService();
+      const result = await service.review({ config: basicConfig });
+      expect(result.summary).toContain('MOCK');
+    });
+
+    it('issues have required fields', async () => {
+      const service = new AIService();
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'p1' },
+          p1: { type: 'ai-process', task: 'compare', instruction: 'Do it', input: 'x.responses', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      const result = await service.review({ config });
+      for (const issue of result.issues) {
+        expect(issue).toHaveProperty('phaseId');
+        expect(issue).toHaveProperty('severity');
+        expect(issue).toHaveProperty('message');
+      }
+    });
+
+    it('defaults to light depth', async () => {
+      const service = new AIService();
+      // Config with no issues for light review
+      const result = await service.review({ config: basicConfig });
+      // Light review on a good config should return 0 issues
+      expect(result.issues.length).toBe(0);
+    });
+  });
 });

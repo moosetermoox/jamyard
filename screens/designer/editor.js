@@ -5,6 +5,7 @@ var selectedPhaseId = null;
 var draggedPhaseId = null;
 var didDrag = false;
 var isDirty = false;
+var aiIssues = {};
 
 // --- Constants ---
 
@@ -138,6 +139,10 @@ var phaseConfigForm = document.getElementById('phase-config-form');
 var addPhaseBtn = document.getElementById('add-phase-btn');
 var saveBtn = document.getElementById('save-btn');
 var testGameBtn = document.getElementById('test-game-btn');
+var reviewBtn = document.getElementById('review-btn');
+var reviewPanel = document.getElementById('review-panel');
+var reviewContent = document.getElementById('review-content');
+var reviewCloseBtn = document.getElementById('review-close');
 var closePanelBtn = document.getElementById('close-phase-panel');
 
 // --- Init ---
@@ -155,6 +160,8 @@ function init() {
   addPhaseBtn.addEventListener('click', addPhase);
   saveBtn.addEventListener('click', saveGame);
   testGameBtn.addEventListener('click', testGame);
+  reviewBtn.addEventListener('click', runDeepReview);
+  reviewCloseBtn.addEventListener('click', function () { reviewPanel.hidden = true; });
   closePanelBtn.addEventListener('click', deselectPhase);
 
   // Update config when settings change
@@ -338,6 +345,19 @@ function renderCanvas() {
     }
 
     box.appendChild(dots);
+
+    // AI issue badge
+    var phaseAiIssues = aiIssues[phaseId];
+    if (phaseAiIssues && phaseAiIssues.length > 0) {
+      var badge = document.createElement('span');
+      badge.className = 'ai-issue-badge';
+      var hasError = phaseAiIssues.some(function (iss) { return iss.severity === 'error'; });
+      if (hasError) badge.classList.add('has-errors');
+      badge.textContent = phaseAiIssues.length;
+      badge.title = phaseAiIssues.map(function (iss) { return iss.message; }).join('\n');
+      box.appendChild(badge);
+    }
+
     phaseList.appendChild(box);
 
     // Arrow between phases
@@ -747,6 +767,30 @@ function renderPhaseConfig(phaseId) {
       phase.next = value === '(none)' ? undefined : value;
       renderCanvas();
     });
+  }
+
+  // --- AI Suggestions (if any) ---
+  if (aiIssues[phaseId] && aiIssues[phaseId].length > 0) {
+    addSectionHeader('AI Suggestions');
+    for (var ai = 0; ai < aiIssues[phaseId].length; ai++) {
+      var issue = aiIssues[phaseId][ai];
+      var item = document.createElement('div');
+      item.className = 'ai-suggestion-item severity-' + (issue.severity || 'warning');
+
+      var msg = document.createElement('div');
+      msg.className = 'ai-suggestion-message';
+      msg.textContent = issue.message;
+      item.appendChild(msg);
+
+      if (issue.suggestion) {
+        var fix = document.createElement('div');
+        fix.className = 'ai-suggestion-fix';
+        fix.textContent = issue.suggestion;
+        item.appendChild(fix);
+      }
+
+      phaseConfigForm.appendChild(item);
+    }
   }
 
   // --- Delete button ---
@@ -1451,6 +1495,7 @@ async function saveGame() {
     if (response.ok) {
       isDirty = false;
       saveBtn.textContent = 'Saved!';
+      runLightReview();  // async, non-blocking
     } else {
       alert('Save failed: ' + (result.error || 'Unknown error'));
       saveBtn.textContent = originalText;
@@ -1475,6 +1520,151 @@ async function testGame() {
   if (gameId) {
     window.open('/prototype?game=' + encodeURIComponent(gameId), '_blank');
   }
+}
+
+// --- AI Review ---
+
+async function runLightReview() {
+  try {
+    var response = await fetch('/api/games/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: gameConfig, depth: 'light' })
+    });
+    if (!response.ok) return;
+    var result = await response.json();
+    applyReviewResults(result.ai);
+  } catch (error) {
+    console.log('Light review failed:', error.message);
+  }
+}
+
+async function runDeepReview() {
+  reviewBtn.disabled = true;
+  reviewBtn.textContent = 'Checking...';
+
+  try {
+    var response = await fetch('/api/games/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: gameConfig, depth: 'deep' })
+    });
+    if (!response.ok) {
+      var err = await response.json();
+      alert('Review failed: ' + (err.error || 'Unknown error'));
+      return;
+    }
+    var result = await response.json();
+    applyReviewResults(result.ai);
+    showReviewPanel(result);
+  } catch (error) {
+    alert('Review failed: ' + error.message);
+  } finally {
+    reviewBtn.disabled = false;
+    reviewBtn.textContent = 'Check My Game';
+  }
+}
+
+function applyReviewResults(aiResult) {
+  aiIssues = {};
+  if (aiResult && aiResult.issues) {
+    for (var i = 0; i < aiResult.issues.length; i++) {
+      var issue = aiResult.issues[i];
+      if (!issue.phaseId) continue;
+      if (!aiIssues[issue.phaseId]) aiIssues[issue.phaseId] = [];
+      aiIssues[issue.phaseId].push(issue);
+    }
+  }
+  renderCanvas();
+  if (selectedPhaseId) {
+    renderPhaseConfig(selectedPhaseId);
+  }
+}
+
+function showReviewPanel(result) {
+  reviewPanel.hidden = false;
+  reviewContent.innerHTML = '';
+
+  var ai = result.ai || {};
+  var structural = result.structural || {};
+
+  // Summary
+  if (ai.summary) {
+    var summaryDiv = document.createElement('div');
+    summaryDiv.className = 'review-summary';
+    summaryDiv.textContent = ai.summary;
+    reviewContent.appendChild(summaryDiv);
+  }
+
+  // Collect all issues: structural errors + AI issues
+  var allIssues = [];
+
+  if (structural.errors) {
+    for (var e = 0; e < structural.errors.length; e++) {
+      allIssues.push({ severity: 'error', message: structural.errors[e], phaseId: null, suggestion: null });
+    }
+  }
+  if (structural.warnings) {
+    for (var w = 0; w < structural.warnings.length; w++) {
+      allIssues.push({ severity: 'warning', message: structural.warnings[w], phaseId: null, suggestion: null });
+    }
+  }
+  if (ai.issues) {
+    for (var a = 0; a < ai.issues.length; a++) {
+      allIssues.push(ai.issues[a]);
+    }
+  }
+
+  if (allIssues.length === 0) {
+    var noIssues = document.createElement('div');
+    noIssues.className = 'review-summary';
+    noIssues.textContent = 'No issues found. Your game looks good!';
+    reviewContent.appendChild(noIssues);
+    return;
+  }
+
+  // Sort: errors first, then warnings, then suggestions
+  var severityOrder = { error: 0, warning: 1, suggestion: 2 };
+  allIssues.sort(function (a, b) {
+    return (severityOrder[a.severity] || 2) - (severityOrder[b.severity] || 2);
+  });
+
+  var list = document.createElement('div');
+  list.className = 'review-issues';
+
+  for (var i = 0; i < allIssues.length; i++) {
+    var issue = allIssues[i];
+    var item = document.createElement('div');
+    item.className = 'review-issue review-issue-' + (issue.severity || 'warning');
+
+    if (issue.phaseId && gameConfig.phases[issue.phaseId]) {
+      var phaseLink = document.createElement('div');
+      phaseLink.className = 'review-issue-phase';
+      phaseLink.textContent = getFriendlyPhaseName(issue.phaseId);
+      phaseLink.setAttribute('data-phase-id', issue.phaseId);
+      phaseLink.addEventListener('click', function () {
+        var pid = this.getAttribute('data-phase-id');
+        selectPhase(pid);
+      });
+      item.appendChild(phaseLink);
+    }
+
+    var msgDiv = document.createElement('div');
+    msgDiv.className = 'review-issue-message';
+    msgDiv.textContent = issue.message;
+    item.appendChild(msgDiv);
+
+    if (issue.suggestion) {
+      var sugDiv = document.createElement('div');
+      sugDiv.className = 'review-issue-suggestion-text';
+      sugDiv.textContent = issue.suggestion;
+      item.appendChild(sugDiv);
+    }
+
+    list.appendChild(item);
+  }
+
+  reviewContent.appendChild(list);
 }
 
 // --- Start ---

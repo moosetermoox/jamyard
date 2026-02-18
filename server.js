@@ -544,6 +544,21 @@ app.post('/api/games', async (req, res) => {
   }
 });
 
+app.post('/api/games/review', async (req, res) => {
+  try {
+    const { config, depth } = req.body;
+    if (!config || !config.phases) {
+      return res.status(400).json({ error: 'Missing config or phases' });
+    }
+    const structural = validate(config, 'review', { returnResults: true });
+    const ai = await aiService.review({ config, depth: depth || 'light' });
+    res.json({ structural, ai });
+  } catch (error) {
+    console.log(`[api/games/review] Error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete('/api/games/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
