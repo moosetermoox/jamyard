@@ -16,21 +16,31 @@ const LIGHT_REVIEW_PROMPT = `You are a game config validator for a classroom gam
 
 Phase types and their requirements:
 - lobby: Starting phase, players join here
-- collect: Asks players for text input. Needs 'prompt'. Optional 'from' to filter by remaining/eliminated.
+- collect: Asks players for text input. Needs 'prompt'. Optional 'from' (all/remaining/eliminated).
+- collect-choice: Players pick from predefined choices. Needs 'prompt' and 'choices' (array of strings or data ref). Optional 'from'.
 - ai-process: Sends player responses to AI. Needs 'instruction' (clear enough for AI), 'input' (data ref to collect phase). 'format' can be 'text' or 'json'.
+- ai-eliminate: AI judges answers and eliminates rule-breakers. Needs 'instruction' (rules for AI) and 'input' (data ref to responses). Optional 'pause' (seconds before auto-advance).
 - vote: Players vote. Needs 'mode' (pick-one/head-to-head), 'candidates' (data ref).
-- eliminate: Removes players. Needs 'method' (bottom-percent/hook). bottom-percent needs 'percent' and 'input' (scores from vote).
+- eliminate: Removes players by score. Needs 'method' (bottom-percent/hook). bottom-percent needs 'percent' and 'input' (scores from vote). Auto-advances after 'pause' seconds.
+- announce: Shows a message to everyone. Needs 'message' (supports {{phase.field}} templates). Optional 'timer' for auto-advance.
 - reveal: Shows content to everyone. Needs 'template' with {{phase.field}} refs.
-- preview: Teacher reviews before revealing. Needs 'content' (data ref), 'approveNext', 'rejectNext'.
-- winner: Declares winner. Needs 'from' (scores data ref).
+- preview: Teacher reviews before revealing. Needs 'content' (data ref) OR 'template' (or both), plus 'approveNext' and 'rejectNext'.
+- winner: Declares winner. Needs 'from' (scores data ref). Auto-advances after 'pause' seconds.
 - end: Game over. Optional 'message'.
 
+Loop system:
+- Any phase can have 'loopBack' (phase ID to jump back to) and 'loopCount' (2-100, total iterations).
+- After loopCount iterations, falls through to 'next' (the loop exit).
+- Templates can use {{_loop.<phaseId>.iteration}} and {{_loop.<phaseId>.total}} for round display.
+- Phase data is versioned: 'collect' has latest, 'collect~1', 'collect~2' have per-iteration copies.
+
 Check for:
-1. AI instructions too vague for the task type (compare needs grouping instructions, judge needs criteria)
+1. AI instructions too vague for the task type (compare needs grouping instructions, judge needs criteria, ai-eliminate needs clear rules)
 2. Data flow breaks (collect -> ai-process -> reveal must be connected via data refs)
 3. Player eligibility issues (collect after eliminate without from:'remaining' will ask eliminated players)
 4. Vote candidates not pointing to usable data
 5. Flow logic (loops without exit conditions, phases that skip important steps)
+6. Loop issues (loopBack without loopCount, loopCount < 2, missing next for loop exit)
 
 Return ONLY valid JSON:
 {"issues":[{"phaseId":"...","severity":"error|warning","message":"...","suggestion":"..."}],"summary":"one sentence"}`;
@@ -40,7 +50,7 @@ Also check for:
 6. Prompt quality — would the AI instruction produce good results? Suggest improvements.
 7. Playability — is this fun? Are there enough rounds? Is the pacing good?
 8. Timer recommendations — which phases would benefit from time limits?
-9. Missing features — would a preview phase help? Would elimination make it more exciting?
+9. Missing features — would announce phases help pace transitions? Would ai-eliminate add drama? Would collect-choice be simpler than free text?
 10. Template quality — are reveal templates engaging or just dumping raw data?
 
 Provide detailed, actionable suggestions. Be encouraging but specific.`;
@@ -58,12 +68,12 @@ export class AIService {
     }
   }
 
-  async process({ instruction, responses }) {
+  async process({ instruction, responses, systemPrompt }) {
     if (this.mode === 'mock') {
       return this._processMock(instruction, responses);
     }
 
-    return this._processReal(instruction, responses);
+    return this._processReal(instruction, responses, systemPrompt);
   }
 
   _processMock(instruction, responses) {
@@ -77,14 +87,14 @@ export class AIService {
     };
   }
 
-  async _processReal(instruction, responses) {
+  async _processReal(instruction, responses, systemPrompt) {
     try {
       const userMessage = this._buildUserMessage(instruction, responses);
 
       const message = await this.client.messages.create({
         model: MODEL,
         max_tokens: 1024,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt || SYSTEM_PROMPT,
         messages: [
           { role: 'user', content: userMessage }
         ]
@@ -112,15 +122,19 @@ export class AIService {
     const phaseIds = Object.keys(config.phases || {});
     const issues = [];
 
-    // Generate a plausible mock issue for ai-process phases with empty instructions
+    // Generate plausible mock issues for AI phases with empty instructions
     for (const id of phaseIds) {
       const phase = config.phases[id];
-      if (phase.type === 'ai-process' && (!phase.instruction || phase.instruction.trim().length < 10)) {
+      if ((phase.type === 'ai-process' || phase.type === 'ai-eliminate') && (!phase.instruction || phase.instruction.trim().length < 10)) {
         issues.push({
           phaseId: id,
           severity: 'warning',
-          message: 'AI instruction is very short or empty',
-          suggestion: 'Provide detailed instructions so the AI knows exactly what to produce.'
+          message: phase.type === 'ai-eliminate'
+            ? 'AI elimination rules are very short or empty'
+            : 'AI instruction is very short or empty',
+          suggestion: phase.type === 'ai-eliminate'
+            ? 'Provide specific rules so the AI knows exactly what to enforce.'
+            : 'Provide detailed instructions so the AI knows exactly what to produce.'
         });
       }
     }

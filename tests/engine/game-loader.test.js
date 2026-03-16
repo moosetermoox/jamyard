@@ -206,18 +206,6 @@ describe('GameLoader', () => {
       expect(() => validate(config, 'test')).toThrow('missing required field "method"');
     });
 
-    it('rejects preview phase missing required fields', () => {
-      const config = {
-        name: 'Test',
-        phases: {
-          lobby: { type: 'lobby', next: 'prev' },
-          prev: { type: 'preview' },
-          end: { type: 'end' }
-        }
-      };
-      expect(() => validate(config, 'test')).toThrow('missing required field "content"');
-    });
-
     it('rejects preview phase missing approveNext', () => {
       const config = {
         name: 'Test',
@@ -228,6 +216,18 @@ describe('GameLoader', () => {
         }
       };
       expect(() => validate(config, 'test')).toThrow('missing required field "approveNext"');
+    });
+
+    it('rejects preview phase missing rejectNext', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'prev' },
+          prev: { type: 'preview', content: 'ai.result', approveNext: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing required field "rejectNext"');
     });
 
     it('rejects winner phase missing from', () => {
@@ -422,6 +422,251 @@ describe('GameLoader', () => {
     });
   });
 
+  describe('announce phase validation', () => {
+    it('rejects announce phase missing message', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ann' },
+          ann: { type: 'announce', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing required field "message"');
+    });
+
+    it('accepts valid announce phase', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ann' },
+          ann: { type: 'announce', message: 'Round 1!', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('accepts announce phase with timer', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ann' },
+          ann: { type: 'announce', message: 'Get ready!', timer: 5, next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+  });
+
+  describe('collect-choice phase validation', () => {
+    it('rejects collect-choice phase missing prompt', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'pick' },
+          pick: { type: 'collect-choice', choices: ['A', 'B'], next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing required field "prompt"');
+    });
+
+    it('rejects collect-choice phase missing choices', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'pick' },
+          pick: { type: 'collect-choice', prompt: 'Pick one', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing required field "choices"');
+    });
+
+    it('accepts valid collect-choice phase', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'pick' },
+          pick: { type: 'collect-choice', prompt: 'Pick one', choices: ['A', 'B', 'C'], next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects invalid from value on collect-choice', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'pick' },
+          pick: { type: 'collect-choice', prompt: 'Pick', choices: ['A'], from: 'winners', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('invalid from value "winners"');
+    });
+
+    it('accepts data ref string as choices', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ai' },
+          ai: { type: 'ai-process', instruction: 'Generate', input: 'lobby.responses', format: 'json', next: 'pick' },
+          pick: { type: 'collect-choice', prompt: 'Pick one', choices: 'ai.result', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+  });
+
+  describe('ai-eliminate phase validation', () => {
+    it('rejects ai-eliminate phase missing instruction', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', next: 'aielim' },
+          aielim: { type: 'ai-eliminate', input: 'ask.responses', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing required field "instruction"');
+    });
+
+    it('rejects ai-eliminate phase missing input', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'aielim' },
+          aielim: { type: 'ai-eliminate', instruction: 'Eliminate rule breakers', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing required field "input"');
+    });
+
+    it('accepts valid ai-eliminate phase', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', next: 'aielim' },
+          aielim: { type: 'ai-eliminate', instruction: 'Eliminate rule breakers', input: 'ask.responses', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+  });
+
+  describe('loop validation', () => {
+    it('rejects loopBack to nonexistent phase', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', next: 'results', loopBack: 'nonexistent', loopCount: 3 },
+          results: { type: 'reveal', template: 'Done', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('loopBack "nonexistent" which does not exist');
+    });
+
+    it('rejects loopBack without loopCount', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', next: 'results', loopBack: 'lobby' },
+          results: { type: 'reveal', template: 'Done', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing loopCount');
+    });
+
+    it('rejects loopCount less than 2', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', next: 'results', loopBack: 'lobby', loopCount: 1 },
+          results: { type: 'reveal', template: 'Done', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('invalid loopCount');
+    });
+
+    it('rejects loopBack without next', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', loopBack: 'lobby', loopCount: 3 },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing "next" (needed as loop exit)');
+    });
+
+    it('accepts valid loop config', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', next: 'end', loopBack: 'lobby', loopCount: 3 },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+  });
+
+  describe('preview validation fix', () => {
+    it('accepts preview with template instead of content', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'prev' },
+          prev: { type: 'preview', template: '{{ai.result}}', approveNext: 'end', rejectNext: 'lobby' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('accepts preview with content', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ai' },
+          ai: { type: 'ai-process', instruction: 'Do it', input: 'lobby.responses', next: 'prev' },
+          prev: { type: 'preview', content: 'ai.result', approveNext: 'end', rejectNext: 'ai' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects preview with neither content nor template', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'prev' },
+          prev: { type: 'preview', approveNext: 'end', rejectNext: 'lobby' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('must have either "content" or "template"');
+    });
+  });
+
   describe('enhanced validation - returnResults mode', () => {
     it('returns errors array instead of throwing', () => {
       const config = {
@@ -462,6 +707,129 @@ describe('GameLoader', () => {
       };
       const result = validate(config, 'test', { returnResults: true });
       expect(result.errors.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  describe('screen control validation', () => {
+    it('accepts valid hostShow toggles for collect', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', hostShow: ['prompt', 'counter'], next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects invalid hostShow toggle', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', hostShow: ['invalidToggle'], next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('invalid hostShow toggle "invalidToggle"');
+    });
+
+    it('rejects invalid playerShow toggle', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', playerShow: ['badToggle'], next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('invalid playerShow toggle "badToggle"');
+    });
+
+    it('rejects non-array hostShow', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', hostShow: 'prompt', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('invalid hostShow');
+    });
+
+    it('rejects non-string hostTemplate', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', hostTemplate: 123, next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('invalid hostTemplate');
+    });
+
+    it('accepts valid hostTemplate string', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', hostTemplate: 'Custom text', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('accepts empty hostShow array (hide all)', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', hostShow: [], next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('accepts valid playerShow toggles for reveal', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'show' },
+          show: { type: 'reveal', template: 'Done', playerShow: ['content'], next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('backward compat: no screen control fields works fine', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'ask' },
+          ask: { type: 'collect', prompt: 'Hi', next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('validates hostShow toggles per phase type', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'show' },
+          show: { type: 'reveal', template: 'Done', hostShow: ['prompt'], next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+      // 'prompt' is valid for collect but not for reveal
+      expect(() => validate(config, 'test')).toThrow('invalid hostShow toggle "prompt"');
     });
   });
 });

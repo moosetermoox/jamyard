@@ -41,11 +41,39 @@ const GAMES_DIR = join(__dirname, 'games');
 
 // --- Helper Functions ---
 
+function getNextPhaseId(engine, phase) {
+  if (phase.loopBack && phase.loopCount) {
+    const loopKey = phase.id || Object.keys(engine.config.phases).find(
+      k => engine.config.phases[k] === phase
+    );
+    if (!engine.loopState[loopKey]) {
+      engine.loopState[loopKey] = { iteration: 1, total: phase.loopCount };
+    }
+    const state = engine.loopState[loopKey];
+    if (state.iteration < state.total) {
+      state.iteration++;
+      return phase.loopBack;
+    }
+    // Loop complete — fall through to next
+    return phase.next;
+  }
+  return phase.next;
+}
+
 function resolveTemplate(template, engine) {
   return template.replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
     const value = engine.resolve(ref.trim());
     return value !== undefined ? String(value) : match;
   });
+}
+
+function resolveScreenControl(phase, engine) {
+  const sc = {};
+  sc.hostTemplate = phase.hostTemplate ? resolveTemplate(phase.hostTemplate, engine) : null;
+  sc.playerTemplate = phase.playerTemplate ? resolveTemplate(phase.playerTemplate, engine) : null;
+  sc.hostShow = phase.hostShow || null;
+  sc.playerShow = phase.playerShow || null;
+  return sc;
 }
 
 async function tallyAndAdvance(code, room) {
@@ -70,10 +98,12 @@ async function tallyAndAdvance(code, room) {
   console.log(`[tally] Phase '${vs.phaseId}' tallied: winner=${result.winner}, totalVotes=${result.totalVotes}`);
 
   const phaseConfig = engine.config.phases[vs.phaseId];
+  phaseConfig.id = vs.phaseId;
   delete room.voteState;
 
-  if (phaseConfig.next) {
-    engine.transition(phaseConfig.next);
+  const nextId = getNextPhaseId(engine, phaseConfig);
+  if (nextId) {
+    engine.transition(nextId);
     await handlePhase(code, room);
   }
 }
@@ -90,6 +120,7 @@ async function handlePhase(code, room) {
       const from = phase.from || 'all';
       const eligible = getEligibleVoters(engine.players, from);
       const eligibleIds = new Set(eligible.map(p => p.id));
+      const sc = resolveScreenControl(phase, engine);
 
       // Clear previous responses for multi-round games
       for (const p of engine.players.list()) {
@@ -98,12 +129,18 @@ async function handlePhase(code, room) {
 
       // Send prompt to host
       if (hostSocketId) {
-        io.to(hostSocketId).emit('game-started', { prompt: phase.prompt, timer: phase.timer || null });
+        io.to(hostSocketId).emit('game-started', {
+          prompt: phase.prompt, timer: phase.timer || null,
+          hostTemplate: sc.hostTemplate, show: sc.hostShow
+        });
       }
 
       // Send prompt to eligible players
       for (const player of eligible) {
-        io.to(player.id).emit('game-started', { prompt: phase.prompt, timer: phase.timer || null });
+        io.to(player.id).emit('game-started', {
+          prompt: phase.prompt, timer: phase.timer || null,
+          playerTemplate: sc.playerTemplate, show: sc.playerShow
+        });
       }
 
       // Send waiting to non-eligible players
@@ -116,7 +153,8 @@ async function handlePhase(code, room) {
     }
 
     case 'ai-process': {
-      io.to(code).emit('processing-started', { task: phase.task });
+      const scAi = resolveScreenControl(phase, engine);
+      io.to(code).emit('processing-started', { task: phase.task, ...scAi });
 
       const input = engine.resolve(phase.input);
       const instruction = phase.instruction;
@@ -150,8 +188,9 @@ async function handlePhase(code, room) {
       engine.storePhaseData(phase.id, { result });
 
       // Auto-advance to next phase
-      if (phase.next) {
-        engine.transition(phase.next);
+      const aiNextId = getNextPhaseId(engine, phase);
+      if (aiNextId) {
+        engine.transition(aiNextId);
         await handlePhase(code, room);
       }
       break;
@@ -159,6 +198,7 @@ async function handlePhase(code, room) {
 
     case 'eliminate': {
       const result = engine.runPhase(phase.id);
+      const scElim = resolveScreenControl(phase, engine);
 
       const eliminatedNames = result.eliminated.map(id => {
         const player = engine.players.find(id);
@@ -167,11 +207,23 @@ async function handlePhase(code, room) {
 
       console.log(`[handlePhase] Eliminated: ${eliminatedNames.join(', ')} (${result.remaining} remaining)`);
 
+      const pauseSeconds = phase.pause || 3;
       io.to(code).emit('elimination-results', {
         eliminated: result.eliminated,
         eliminatedNames,
-        remaining: result.remaining
+        remaining: result.remaining,
+        pause: pauseSeconds,
+        ...scElim
       });
+
+      // Auto-advance after pause
+      const elimNextId = getNextPhaseId(engine, phase);
+      if (elimNextId) {
+        setTimeout(async () => {
+          engine.transition(elimNextId);
+          await handlePhase(code, room);
+        }, pauseSeconds * 1000);
+      }
       break;
     }
 
@@ -180,6 +232,7 @@ async function handlePhase(code, room) {
       const votersField = phase.voters || 'all';
       const eligible = getEligibleVoters(engine.players, votersField);
       const candidateIds = candidates.map(c => c.playerId || c);
+      const scVote = resolveScreenControl(phase, engine);
 
       room.voteState = {
         phaseId: phase.id,
@@ -203,7 +256,8 @@ async function handlePhase(code, room) {
               optionA: candidates.find(c => (c.playerId || c) === a) || { playerId: a },
               optionB: candidates.find(c => (c.playerId || c) === b) || { playerId: b }
             })),
-            timer: phase.timer || null
+            timer: phase.timer || null,
+            playerTemplate: scVote.playerTemplate, show: scVote.playerShow
           });
         }
       } else if (phase.mode === 'pick-one') {
@@ -211,7 +265,8 @@ async function handlePhase(code, room) {
           io.to(voter.id).emit('vote-start', {
             mode: 'pick-one',
             candidates,
-            timer: phase.timer || null
+            timer: phase.timer || null,
+            playerTemplate: scVote.playerTemplate, show: scVote.playerShow
           });
         }
       }
@@ -229,7 +284,8 @@ async function handlePhase(code, room) {
         io.to(hostSocketId).emit('vote-start', {
           mode: phase.mode,
           totalVoters: eligible.length,
-          timer: phase.timer || null
+          timer: phase.timer || null,
+          hostTemplate: scVote.hostTemplate, show: scVote.hostShow
         });
       }
 
@@ -239,15 +295,28 @@ async function handlePhase(code, room) {
 
     case 'winner': {
       const result = engine.runPhase(phase.id);
+      const scWin = resolveScreenControl(phase, engine);
 
       console.log(`[handlePhase] Winner: ${result.winnerName} (${result.winnerScore} votes)`);
 
+      const winnerPause = phase.pause || 5;
       io.to(code).emit('winner-announced', {
         winnerId: result.winnerId,
         winnerName: result.winnerName,
         winnerScore: result.winnerScore,
-        standings: result.standings
+        standings: result.standings,
+        pause: winnerPause,
+        ...scWin
       });
+
+      // Auto-advance after pause
+      const winNextId = getNextPhaseId(engine, phase);
+      if (winNextId) {
+        setTimeout(async () => {
+          engine.transition(winNextId);
+          await handlePhase(code, room);
+        }, winnerPause * 1000);
+      }
       break;
     }
 
@@ -274,13 +343,15 @@ async function handlePhase(code, room) {
       }
 
       engine.storePhaseData(phase.id, { content, responses });
+      const scPreview = resolveScreenControl(phase, engine);
 
       // Send preview to host only
       if (hostSocketId) {
         io.to(hostSocketId).emit('preview-content', {
           content,
           responses,
-          phaseId: phase.id
+          phaseId: phase.id,
+          hostTemplate: scPreview.hostTemplate, show: scPreview.hostShow
         });
       }
 
@@ -297,39 +368,234 @@ async function handlePhase(code, room) {
         content = resolveTemplate(phase.template, engine);
       }
 
-      // Find most recent AI result for backward compat
       let aiResult = content;
-      for (const [id, cfg] of Object.entries(engine.config.phases)) {
-        if (cfg.type === 'ai-process') {
-          const data = engine.getPhaseData(id);
-          if (data && data.result) {
-            aiResult = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
-          }
-        }
-      }
-
-      // Find most recent responses for backward compat
       let responses = [];
-      for (const [id, cfg] of Object.entries(engine.config.phases)) {
-        if (cfg.type === 'collect') {
-          const data = engine.getPhaseData(id);
-          if (data && data.responses) {
-            responses = data.responses.map(r => ({ name: r.name, response: r.text }));
+
+      // Only scan for backward compat when no template is provided
+      if (!phase.template) {
+        // Find most recent AI result for backward compat
+        for (const [id, cfg] of Object.entries(engine.config.phases)) {
+          if (cfg.type === 'ai-process') {
+            const data = engine.getPhaseData(id);
+            if (data && data.result) {
+              aiResult = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
+            }
+          }
+        }
+
+        // Find most recent responses for backward compat
+        for (const [id, cfg] of Object.entries(engine.config.phases)) {
+          if (cfg.type === 'collect') {
+            const data = engine.getPhaseData(id);
+            if (data && data.responses) {
+              responses = data.responses.map(r => ({ name: r.name, response: r.text }));
+            }
           }
         }
       }
 
+      const scReveal = resolveScreenControl(phase, engine);
       io.to(code).emit('show-results', {
         content,
         aiResult,
-        responses
+        responses,
+        ...scReveal
       });
       break;
     }
 
+    case 'announce': {
+      let message = phase.message;
+      if (message.includes('{{')) {
+        message = resolveTemplate(message, engine);
+      }
+      engine.storePhaseData(phase.id, { message });
+      const scAnn = resolveScreenControl(phase, engine);
+
+      io.to(code).emit('announce', { message, timer: phase.timer || null, ...scAnn });
+
+      // Auto-advance after timer, or wait for host advance-phase
+      if (phase.timer) {
+        setTimeout(async () => {
+          const annNextId = getNextPhaseId(engine, phase);
+          if (annNextId) {
+            engine.transition(annNextId);
+            await handlePhase(code, room);
+          }
+        }, phase.timer * 1000);
+      }
+      break;
+    }
+
+    case 'collect-choice': {
+      const from = phase.from || 'all';
+      const eligible = getEligibleVoters(engine.players, from);
+      const eligibleIds = new Set(eligible.map(p => p.id));
+      const scChoice = resolveScreenControl(phase, engine);
+
+      // Resolve choices — literal array or data ref string
+      let choices = phase.choices;
+      if (typeof choices === 'string') {
+        choices = engine.resolve(choices);
+        if (!Array.isArray(choices)) choices = [];
+      }
+
+      // Clear previous responses
+      for (const p of engine.players.list()) {
+        if (p.response) engine.players.update(p.id, { response: undefined });
+      }
+
+      // Send to host
+      if (hostSocketId) {
+        io.to(hostSocketId).emit('game-started', {
+          prompt: phase.prompt,
+          choices,
+          timer: phase.timer || null,
+          isChoice: true,
+          hostTemplate: scChoice.hostTemplate, show: scChoice.hostShow
+        });
+      }
+
+      // Send to eligible players
+      for (const player of eligible) {
+        io.to(player.id).emit('game-started', {
+          prompt: phase.prompt,
+          choices,
+          timer: phase.timer || null,
+          isChoice: true,
+          playerTemplate: scChoice.playerTemplate, show: scChoice.playerShow
+        });
+      }
+
+      // Send waiting to non-eligible players
+      for (const player of engine.players.list()) {
+        if (!eligibleIds.has(player.id)) {
+          io.to(player.id).emit('waiting', { message: 'Waiting for other players...' });
+        }
+      }
+      break;
+    }
+
+    case 'ai-eliminate': {
+      const scAiElim = resolveScreenControl(phase, engine);
+      io.to(code).emit('processing-started', { task: 'judge', ...scAiElim });
+
+      try {
+        const input = engine.resolve(phase.input);
+        const responses = Array.isArray(input) ? input : [];
+
+        // Build AI prompt
+        const playerList = responses.map(r =>
+          `- ${r.playerId}: "${r.text || r.response || r.name}"`
+        ).join('\n');
+
+        const systemPrompt = `You are a game judge. Apply the rules strictly and return JSON only.
+Return format: { "eliminate": [{"playerId":"...","reason":"..."}], "keep": [{"playerId":"...","reason":"..."}] }`;
+
+        const userPrompt = `Rules: ${phase.instruction}
+
+Player responses:
+${playerList}
+
+Apply the rules and return JSON indicating who to eliminate and who to keep.`;
+
+        console.log(`[handlePhase] AI eliminate instruction: ${phase.instruction}`);
+        console.log(`[handlePhase] AI eliminate input (${responses.length} responses): ${playerList}`);
+        const aiResult = await aiService.process({
+          instruction: userPrompt,
+          responses: [],
+          systemPrompt
+        });
+        console.log(`[handlePhase] AI eliminate returned: ${aiResult.text}`);
+
+        // Parse AI response
+        let parsed;
+        try {
+          parsed = JSON.parse(aiResult.text);
+        } catch {
+          const match = aiResult.text.match(/\{[\s\S]*\}/);
+          if (match) {
+            try {
+              parsed = JSON.parse(match[0]);
+            } catch {
+              parsed = { eliminate: [], keep: [] };
+            }
+          } else {
+            parsed = { eliminate: [], keep: [] };
+          }
+        }
+
+        const eliminatedIds = [];
+        const eliminatedNames = [];
+        const reasons = {};
+
+        if (parsed.eliminate && Array.isArray(parsed.eliminate)) {
+          for (const entry of parsed.eliminate) {
+            const pid = entry.playerId || entry.id;
+            if (pid && engine.players.find(pid)) {
+              engine.players.eliminate(pid);
+              eliminatedIds.push(pid);
+              const player = engine.players.find(pid);
+              eliminatedNames.push(player ? player.name : pid);
+              reasons[pid] = entry.reason || 'Rule violation';
+            }
+          }
+        }
+
+        const remaining = engine.players.remaining().length;
+
+        // Build survivors list — input responses minus eliminated
+        const eliminatedSet = new Set(eliminatedIds);
+        const survivors = responses
+          .filter(r => !eliminatedSet.has(r.playerId))
+          .map(r => ({ playerId: r.playerId, name: r.name, text: r.text || r.response || '' }));
+
+        engine.storePhaseData(phase.id, {
+          eliminated: eliminatedIds,
+          eliminatedNames,
+          remaining,
+          reasons,
+          survivors
+        });
+
+        console.log(`[handlePhase] AI eliminated: ${eliminatedNames.join(', ')} (${remaining} remaining)`);
+
+        const aiElimPause = phase.pause || 3;
+        io.to(code).emit('elimination-results', {
+          eliminated: eliminatedIds,
+          eliminatedNames,
+          remaining,
+          reasons,
+          pause: aiElimPause,
+          ...scAiElim
+        });
+
+        // Auto-advance after pause
+        const aiElimNextId = getNextPhaseId(engine, phase);
+        if (aiElimNextId) {
+          setTimeout(async () => {
+            engine.transition(aiElimNextId);
+            await handlePhase(code, room);
+        }, aiElimPause * 1000);
+      }
+      } catch (error) {
+        console.error(`[handlePhase] AI eliminate error: ${error.message}`);
+        io.to(code).emit('elimination-results', {
+          eliminated: [],
+          eliminatedNames: [],
+          remaining: engine.players.remaining().length,
+          reasons: {},
+          error: error.message
+        });
+      }
+      break;
+    }
+
     case 'end': {
+      const scEnd = resolveScreenControl(phase, engine);
       io.to(code).emit('game-ended', {
-        message: phase.message || 'Game over!'
+        message: phase.message || 'Game over!',
+        ...scEnd
       });
       break;
     }
@@ -345,6 +611,7 @@ function sendCurrentState(socket, code, room) {
   if (!phase) return;
 
   console.log(`[sendCurrentState] Sending phase '${phase.id}' (${phase.type}) to ${socket.id}`);
+  const rsc = resolveScreenControl(phase, room.engine);
 
   switch (phase.type) {
     case 'lobby':
@@ -354,17 +621,18 @@ function sendCurrentState(socket, code, room) {
     case 'collect': {
       const player = room.engine.players.find(socket.id);
       if (player && player.response) {
-        // Already submitted
         socket.emit('waiting', { message: 'Answer submitted. Waiting for others...' });
       } else {
-        // Re-send prompt (no timer on reconnect)
-        socket.emit('game-started', { prompt: phase.prompt, timer: null });
+        socket.emit('game-started', {
+          prompt: phase.prompt, timer: null,
+          playerTemplate: rsc.playerTemplate, show: rsc.playerShow
+        });
       }
       break;
     }
 
     case 'ai-process':
-      socket.emit('processing-started', { task: phase.task });
+      socket.emit('processing-started', { task: phase.task, ...rsc });
       break;
 
     case 'preview':
@@ -377,15 +645,17 @@ function sendCurrentState(socket, code, room) {
         content = resolveTemplate(phase.template, room.engine);
       }
       let aiResult = content;
-      for (const [id, cfg] of Object.entries(room.engine.config.phases)) {
-        if (cfg.type === 'ai-process') {
-          const data = room.engine.getPhaseData(id);
-          if (data && data.result) {
-            aiResult = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
+      if (!phase.template) {
+        for (const [id, cfg] of Object.entries(room.engine.config.phases)) {
+          if (cfg.type === 'ai-process') {
+            const data = room.engine.getPhaseData(id);
+            if (data && data.result) {
+              aiResult = typeof data.result === 'string' ? data.result : JSON.stringify(data.result);
+            }
           }
         }
       }
-      socket.emit('show-results', { content, aiResult });
+      socket.emit('show-results', { content, aiResult, ...rsc });
       break;
     }
 
@@ -395,7 +665,6 @@ function sendCurrentState(socket, code, room) {
       if (vs.votersCompleted.has(socket.id)) {
         socket.emit('waiting', { message: 'Vote submitted. Waiting for results...' });
       } else if (vs.eligibleVoterIds.includes(socket.id)) {
-        // Re-send vote options (no timer on reconnect)
         if (vs.mode === 'head-to-head') {
           socket.emit('vote-start', {
             mode: 'head-to-head',
@@ -403,13 +672,15 @@ function sendCurrentState(socket, code, room) {
               optionA: vs.candidates.find(c => (c.playerId || c) === a) || { playerId: a },
               optionB: vs.candidates.find(c => (c.playerId || c) === b) || { playerId: b }
             })),
-            timer: null
+            timer: null,
+            playerTemplate: rsc.playerTemplate, show: rsc.playerShow
           });
         } else {
           socket.emit('vote-start', {
             mode: 'pick-one',
             candidates: vs.candidates,
-            timer: null
+            timer: null,
+            playerTemplate: rsc.playerTemplate, show: rsc.playerShow
           });
         }
       } else {
@@ -418,14 +689,46 @@ function sendCurrentState(socket, code, room) {
       break;
     }
 
+    case 'announce': {
+      const announceData = room.engine.getPhaseData(phase.id);
+      if (announceData) {
+        socket.emit('announce', { message: announceData.message, timer: null, ...rsc });
+      }
+      break;
+    }
+
+    case 'collect-choice': {
+      const choicePlayer = room.engine.players.find(socket.id);
+      if (choicePlayer && choicePlayer.response) {
+        socket.emit('waiting', { message: 'Answer submitted. Waiting for others...' });
+      } else {
+        let choices = phase.choices;
+        if (typeof choices === 'string') {
+          choices = room.engine.resolve(choices);
+          if (!Array.isArray(choices)) choices = [];
+        }
+        socket.emit('game-started', {
+          prompt: phase.prompt,
+          choices,
+          timer: null,
+          isChoice: true,
+          playerTemplate: rsc.playerTemplate, show: rsc.playerShow
+        });
+      }
+      break;
+    }
+
+    case 'ai-eliminate':
+      socket.emit('processing-started', { task: 'judge', ...rsc });
+      break;
+
     case 'eliminate':
     case 'winner':
-      // These auto-advance, player likely sees results already
       socket.emit('waiting', { message: 'Game in progress...' });
       break;
 
     case 'end':
-      socket.emit('game-ended', { message: phase.message || 'Game over!' });
+      socket.emit('game-ended', { message: phase.message || 'Game over!', ...rsc });
       break;
   }
 }
@@ -774,8 +1077,21 @@ io.on('connection', (socket) => {
         const responses = eligible
           .filter(p => p.response)
           .map(p => ({ playerId: p.id, name: p.name, text: p.response }));
-        room.engine.storePhaseData(collectPhase.id, { responses });
-        console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}'`);
+
+        // For collect-choice, also compute tally
+        if (collectPhase.type === 'collect-choice') {
+          const tally = {};
+          for (const r of responses) {
+            tally[r.text] = (tally[r.text] || 0) + 1;
+          }
+          // Store with choice field for clarity
+          const choiceResponses = responses.map(r => ({ playerId: r.playerId, name: r.name, choice: r.text }));
+          room.engine.storePhaseData(collectPhase.id, { responses: choiceResponses, tally });
+          console.log(`[close-submissions] Stored ${choiceResponses.length} choices for phase '${collectPhase.id}'`);
+        } else {
+          room.engine.storePhaseData(collectPhase.id, { responses });
+          console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}'`);
+        }
 
         // Clear responses for next collect phase
         for (const p of players.list()) {
@@ -783,8 +1099,9 @@ io.on('connection', (socket) => {
         }
 
         // Advance to next phase and let handlePhase take over
-        if (collectPhase.next) {
-          room.engine.transition(collectPhase.next);
+        const collectNextId = getNextPhaseId(room.engine, collectPhase);
+        if (collectNextId) {
+          room.engine.transition(collectNextId);
           await handlePhase(code, room);
         }
       } else {
@@ -868,9 +1185,9 @@ io.on('connection', (socket) => {
 
     try {
       const currentPhase = room.engine.getCurrentPhase();
-      const nextPhaseId = currentPhase.next;
-      if (nextPhaseId) {
-        room.engine.transition(nextPhaseId);
+      const advNextId = getNextPhaseId(room.engine, currentPhase);
+      if (advNextId) {
+        room.engine.transition(advNextId);
         await handlePhase(code, room);
       }
     } catch (error) {

@@ -306,6 +306,68 @@ describe('GameEngine', () => {
     });
   });
 
+  describe('loop system', () => {
+    const loopConfig = {
+      name: 'Loop Game',
+      phases: {
+        lobby: { type: 'lobby', next: 'round-collect' },
+        'round-collect': { type: 'collect', prompt: 'Answer!', next: 'round-results' },
+        'round-results': { type: 'reveal', template: 'Round {{_loop.round-results.iteration}} of {{_loop.round-results.total}}', next: 'end', loopBack: 'round-collect', loopCount: 3 },
+        end: { type: 'end' }
+      }
+    };
+
+    it('resolve handles _loop iteration and total variables', () => {
+      const engine = new GameEngine(loopConfig);
+      engine.loopState['round-results'] = { iteration: 2, total: 3 };
+
+      expect(engine.resolve('_loop.round-results.iteration')).toBe(2);
+      expect(engine.resolve('_loop.round-results.total')).toBe(3);
+    });
+
+    it('resolve returns defaults for _loop before loop state is initialized', () => {
+      const engine = new GameEngine(loopConfig);
+      // Before any loop state exists, should return 1 for iteration and loopCount for total
+      expect(engine.resolve('_loop.round-results.iteration')).toBe(1);
+      expect(engine.resolve('_loop.round-results.total')).toBe(3);
+    });
+
+    it('resolve returns undefined for _loop referencing nonexistent phase', () => {
+      const engine = new GameEngine(loopConfig);
+      expect(engine.resolve('_loop.nonexistent.iteration')).toBeUndefined();
+    });
+
+    it('storePhaseData stores versioned copy when inside a loop', () => {
+      const engine = new GameEngine(loopConfig);
+      engine.loopState['round-results'] = { iteration: 2, total: 3 };
+
+      engine.storePhaseData('round-collect', { responses: ['a'] });
+
+      // Bare key has latest data
+      expect(engine.getPhaseData('round-collect')).toEqual({ responses: ['a'] });
+      // Versioned key also exists
+      expect(engine.getPhaseData('round-collect~2')).toEqual({ responses: ['a'] });
+    });
+
+    it('storePhaseData does not create versioned copy when not in a loop', () => {
+      const engine = new GameEngine(loopConfig);
+
+      engine.storePhaseData('round-collect', { responses: ['a'] });
+
+      expect(engine.getPhaseData('round-collect')).toEqual({ responses: ['a'] });
+      expect(engine.getPhaseData('round-collect~1')).toBeUndefined();
+    });
+
+    it('buildStateMachineConfig includes loopBack as valid transition', () => {
+      const engine = new GameEngine(loopConfig);
+      // Should be able to transition from round-results to round-collect (loopBack)
+      engine.transition('round-collect');
+      engine.transition('round-results');
+      engine.transition('round-collect'); // loopBack transition
+      expect(engine.getCurrentPhase().id).toBe('round-collect');
+    });
+  });
+
   describe('preview phase transitions', () => {
     it('supports approveNext and rejectNext transitions', () => {
       const config = {

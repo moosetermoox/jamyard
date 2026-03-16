@@ -10,6 +10,7 @@ export class GameEngine {
     this.players = new PlayerRegistry();
     this.phaseData = {};
     this.hooks = {};
+    this.loopState = {};
 
     const smConfig = buildStateMachineConfig(config.phases);
     this.stateMachine = new StateMachine(smConfig);
@@ -26,6 +27,39 @@ export class GameEngine {
 
   storePhaseData(phaseId, data) {
     this.phaseData[phaseId] = data;
+
+    // If inside an active loop, also store versioned copy (phaseId~N)
+    const loopInfo = this._getActiveLoopFor(phaseId);
+    if (loopInfo) {
+      this.phaseData[phaseId + '~' + loopInfo.iteration] = data;
+    }
+  }
+
+  _getActiveLoopFor(phaseId) {
+    for (const [loopPhaseId, state] of Object.entries(this.loopState)) {
+      const phase = this.config.phases[loopPhaseId];
+      if (!phase || !phase.loopBack) continue;
+      // Phase is in this loop's body if it's between loopBack target and the loop phase
+      if (this._isInLoopBody(phaseId, phase.loopBack, loopPhaseId)) {
+        return state;
+      }
+    }
+    return null;
+  }
+
+  _isInLoopBody(phaseId, loopStart, loopEnd) {
+    // Walk from loopStart following next/approveNext until we hit loopEnd
+    let current = loopStart;
+    const visited = new Set();
+    while (current && !visited.has(current)) {
+      if (current === phaseId) return true;
+      if (current === loopEnd) return true;
+      visited.add(current);
+      const p = this.config.phases[current];
+      if (!p) break;
+      current = p.next || p.approveNext || null;
+    }
+    return false;
   }
 
   transition(nextPhaseId) {
@@ -43,6 +77,25 @@ export class GameEngine {
   resolve(reference) {
     const parts = reference.split('.');
     const firstPart = parts[0];
+
+    // Handle _loop variables: _loop.<phaseId>.iteration / .total
+    if (firstPart === '_loop' && parts.length >= 3) {
+      const loopPhaseId = parts[1];
+      const field = parts[2];
+      const state = this.loopState[loopPhaseId];
+      if (state) {
+        if (field === 'iteration') return state.iteration;
+        if (field === 'total') return state.total;
+        return undefined;
+      }
+      // Loop hasn't started yet — return defaults from config
+      const loopPhase = this.config.phases[loopPhaseId];
+      if (loopPhase && loopPhase.loopCount) {
+        if (field === 'iteration') return 1;
+        if (field === 'total') return loopPhase.loopCount;
+      }
+      return undefined;
+    }
 
     // Check built-in variables first
     const builtIns = this.getBuiltInVariables();
@@ -152,6 +205,7 @@ function buildStateMachineConfig(phases) {
     if (phase.next) targets.push(phase.next);
     if (phase.approveNext) targets.push(phase.approveNext);
     if (phase.rejectNext) targets.push(phase.rejectNext);
+    if (phase.loopBack) targets.push(phase.loopBack);
     transitions[name] = targets;
   }
 

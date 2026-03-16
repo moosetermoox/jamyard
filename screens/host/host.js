@@ -57,9 +57,36 @@ const winnerNameDisplay = document.getElementById('winner-name');
 const standingsList = document.getElementById('standings-list');
 const winnerEndBtn = document.getElementById('winner-end-btn');
 
+// Elements - Announce
+const announceSection = document.getElementById('announce-section');
+const announceMessage = document.getElementById('announce-message');
+const announceTimer = document.getElementById('announce-timer');
+const announceContinueBtn = document.getElementById('announce-continue-btn');
+
 // Elements - End
 const endSection = document.getElementById('end-section');
 const playAgainBtn = document.getElementById('play-again-btn');
+
+// --- Screen control helpers ---
+
+function applyShow(show, elementMap) {
+  if (!show) return; // null/undefined = show all defaults
+  for (const [key, el] of Object.entries(elementMap)) {
+    if (el) el.hidden = !show.includes(key);
+  }
+}
+
+function applyTemplate(section, templateText) {
+  const tmplDiv = section.querySelector('.screen-template');
+  if (!tmplDiv) return;
+  if (templateText) {
+    tmplDiv.textContent = templateText;
+    tmplDiv.hidden = false;
+  } else {
+    tmplDiv.textContent = '';
+    tmplDiv.hidden = true;
+  }
+}
 
 // Fetch available games on connect
 socket.emit('get-games');
@@ -128,6 +155,10 @@ eliminationContinueBtn.addEventListener('click', () => {
 });
 
 winnerEndBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
+});
+
+announceContinueBtn.addEventListener('click', () => {
   socket.emit('advance-phase', { code: currentRoomCode });
 });
 
@@ -210,14 +241,23 @@ function clearTimer() {
   collectTimer.classList.remove('timer-warning');
   voteTimer.hidden = true;
   voteTimer.classList.remove('timer-warning');
+  announceTimer.hidden = true;
+  announceTimer.classList.remove('timer-warning');
 }
 
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt, timer }) => {
+socket.on('game-started', ({ prompt, timer, hostTemplate, show }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   submissionCount.textContent = '0 of 0 submitted';
+  applyTemplate(collectSection, hostTemplate);
+  applyShow(show, {
+    prompt: promptDisplay,
+    counter: submissionCount,
+    timer: collectTimer,
+    closeButton: closeSubmissionsBtn
+  });
   if (timer) {
     startTimer(timer, collectTimer, () => {
       closeSubmissionsBtn.click();
@@ -240,17 +280,28 @@ const AI_TASK_MESSAGES = {
   'judge': 'AI is judging answers...'
 };
 
-socket.on('processing-started', ({ task } = {}) => {
+socket.on('processing-started', ({ task, hostTemplate, hostShow } = {}) => {
   processMessage.textContent = AI_TASK_MESSAGES[task] || 'AI is processing...';
   showSection(processSection);
+  applyTemplate(processSection, hostTemplate);
+  applyShow(hostShow, { message: processMessage });
 });
 
-socket.on('preview-content', ({ content, responses }) => {
+socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
   showSection(previewSection);
   previewContent.textContent = content;
+  applyTemplate(previewSection, hostTemplate);
+  applyShow(show, {
+    content: previewContent,
+    responses: previewResponses,
+    approveButton: previewApproveBtn,
+    rejectButton: previewRejectBtn
+  });
 
   if (responses && responses.length > 0) {
-    previewResponses.hidden = false;
+    if (!show || show.includes('responses')) {
+      previewResponses.hidden = false;
+    }
     previewResponsesList.innerHTML = '';
     for (const { name, response } of responses) {
       const li = document.createElement('li');
@@ -262,28 +313,73 @@ socket.on('preview-content', ({ content, responses }) => {
   }
 });
 
-socket.on('show-results', ({ content, aiResult, responses }) => {
+socket.on('show-results', ({ content, aiResult, responses, hostTemplate, hostShow }) => {
   showSection(revealSection);
   aiResultDisplay.textContent = content || aiResult;
+  applyTemplate(revealSection, hostTemplate);
+  applyShow(hostShow, {
+    content: aiResultDisplay,
+    responses: revealResponses,
+    continueButton: continueBtn
+  });
 
   if (responses && responses.length > 0) {
-    revealResponses.hidden = false;
+    if (!hostShow || hostShow.includes('responses')) {
+      revealResponses.hidden = false;
+    }
     renderResponses(responses);
   } else {
     revealResponses.hidden = true;
   }
 });
 
-socket.on('game-ended', () => {
+socket.on('announce', ({ message, timer, hostTemplate, hostShow }) => {
+  showSection(announceSection);
+  announceMessage.textContent = message;
+  applyTemplate(announceSection, hostTemplate);
+  applyShow(hostShow, {
+    message: announceMessage,
+    continueButton: announceContinueBtn,
+    timer: announceTimer
+  });
+  if (timer) {
+    if (!hostShow || !hostShow.includes('continueButton')) {
+      announceContinueBtn.hidden = true;
+    }
+    startTimer(timer, announceTimer, () => {
+      // Timer auto-advances on server side
+    });
+  } else {
+    if (!hostShow) {
+      announceContinueBtn.hidden = false;
+    }
+  }
+});
+
+socket.on('game-ended', ({ message, hostTemplate, hostShow } = {}) => {
   showSection(endSection);
+  const endMsg = endSection.querySelector('.game-over');
+  if (message && endMsg) endMsg.textContent = message;
+  applyTemplate(endSection, hostTemplate);
+  applyShow(hostShow, {
+    message: endMsg,
+    playAgainButton: playAgainBtn
+  });
 });
 
 // --- Socket events - Voting ---
 
-socket.on('vote-start', ({ mode, totalVoters, timer }) => {
+socket.on('vote-start', ({ mode, totalVoters, timer, hostTemplate, show }) => {
   showSection(voteSection);
   voteModeDisplay.textContent = mode === 'head-to-head' ? 'Head-to-Head' : 'Pick One';
   voteCount.textContent = '0 of ' + totalVoters + ' votes received';
+  applyTemplate(voteSection, hostTemplate);
+  applyShow(show, {
+    mode: voteModeDisplay,
+    counter: voteCount,
+    timer: voteTimer,
+    closeButton: closeVotingBtn
+  });
   if (timer) {
     startTimer(timer, voteTimer, () => {
       closeVotingBtn.click();
@@ -297,17 +393,29 @@ socket.on('vote-received', ({ count, total }) => {
 
 // --- Socket events - Elimination ---
 
-socket.on('elimination-results', ({ eliminatedNames, remaining }) => {
+socket.on('elimination-results', ({ eliminatedNames, remaining, hostTemplate, hostShow }) => {
   showSection(eliminationSection);
   eliminatedNamesDisplay.textContent = eliminatedNames.join(', ') + ' eliminated!';
   remainingCount.textContent = remaining + ' players remaining';
+  applyTemplate(eliminationSection, hostTemplate);
+  applyShow(hostShow, {
+    eliminated: eliminatedNamesDisplay,
+    remaining: remainingCount,
+    continueButton: eliminationContinueBtn
+  });
 });
 
 // --- Socket events - Winner ---
 
-socket.on('winner-announced', ({ winnerName, winnerScore, standings }) => {
+socket.on('winner-announced', ({ winnerName, winnerScore, standings, hostTemplate, hostShow }) => {
   showSection(winnerSection);
   winnerNameDisplay.textContent = winnerName + ' wins!';
+  applyTemplate(winnerSection, hostTemplate);
+  applyShow(hostShow, {
+    name: winnerNameDisplay,
+    standings: standingsList,
+    endButton: winnerEndBtn
+  });
 
   standingsList.innerHTML = '';
   if (standings && standings.length > 0) {
@@ -369,7 +477,8 @@ function renderResponses(responses) {
 
 const allSections = [
   lobbySection, collectSection, processSection, previewSection,
-  revealSection, voteSection, eliminationSection, winnerSection, endSection
+  revealSection, voteSection, eliminationSection, winnerSection,
+  announceSection, endSection
 ];
 
 function showSection(el) {

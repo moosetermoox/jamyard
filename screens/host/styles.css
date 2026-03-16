@@ -354,6 +354,24 @@ button:disabled {
   border-bottom: none;
 }
 
+/* Screen template (custom content from game config) */
+.screen-template {
+  white-space: pre-wrap;
+  padding: 12px 0;
+  font-size: 2rem;
+  color: #333;
+  text-align: left;
+}
+
+/* Announce section */
+#announce-continue-btn {
+  background: #5cb85c;
+}
+
+#announce-continue-btn:hover {
+  background: #449d44;
+}
+
 /* End section */
 .game-over {
   font-size: 4rem;

@@ -212,6 +212,15 @@ button:disabled {
   color: #333;
 }
 
+/* Screen template (custom content from game config) */
+.screen-template {
+  white-space: pre-wrap;
+  padding: 12px 0;
+  font-size: 1.25rem;
+  color: #333;
+  text-align: left;
+}
+
 /* Timer bar */
 .timer-bar-wrapper {
   margin: 12px 0;

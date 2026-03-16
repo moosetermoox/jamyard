@@ -53,7 +53,10 @@ Framework for quickly building classroom games where:
 - Game editor at /designer, editor at /designer/edit
 - Prototype mode at /prototype
 - **AI game review** — two-tier review system: light check (Haiku, on save) + deep review (Sonnet, on demand) with inline phase badges and review panel
-- **188 tests passing** (`npm test`)
+- **Loop/round system** — any phase can loop back to an earlier phase N times via `loopBack`/`loopCount` config fields
+- **Screen control** — `hostTemplate`/`playerTemplate` for custom content, `hostShow`/`playerShow` for toggling built-in UI elements per phase
+- **Announce phase fixed** — host and player screens now have announce sections with message, timer, continue button
+- **223 tests passing** (`npm test`)
 - Simulator script for automated playtesting: `node scripts/simulate-corn-story.js`
 
 ### Working Games
@@ -85,7 +88,7 @@ Framework for quickly building classroom games where:
 - **AI mixed format:** AI sometimes returns `[playerId, responseText]` in same array. Hook deduplicates within groups — only eliminates if 2+ unique players resolve.
 - **bottom-percent input field:** Eliminate phase reads scores from `phase.input` or `phase.from` (config uses `input`).
 
-### 9 Phase Types Defined
+### 12 Phase Types Defined
 1. `lobby` — Wait for players to join
 2. `collect` — Gather text responses from players
 3. `ai-process` — Send data to AI for processing
@@ -94,7 +97,10 @@ Framework for quickly building classroom games where:
 6. `reveal` — Display content to all players
 7. `preview` — Teacher-only preview before reveal
 8. `winner` — Declare winner and show standings
-9. `end` — Game over, clean up
+9. `announce` — Display a message to everyone (round intros, instructions)
+10. `collect-choice` — Players pick from predefined choices
+11. `ai-eliminate` — AI judges answers and eliminates rule-breakers
+12. `end` — Game over, clean up
 
 ### 6 AI Task Types Defined
 - `summarize` — Combine responses into insight (Haiku)
@@ -107,6 +113,8 @@ Framework for quickly building classroom games where:
 ### Gameplay Features
 - **Preview phase** — Host sees AI content + player responses, can Approve (advance) or Reject (loop back). Players see "Waiting for teacher..." Server handler, socket events (`preview-approve`, `preview-reject`, `preview-edit`), and full host UI implemented.
 - **Timers** — Config `timer` field (seconds) on collect and vote phases. Countdown displayed on both host and player screens. On expiry: player auto-submits current text (collect) or random vote (vote); host auto-clicks Close Submissions/Voting. Warning styling at ≤5 seconds.
+- **Loop/round system** — Any phase can have `loopBack` (phase ID) and `loopCount` (2-100) to repeat a section of the game. After N iterations, falls through to `next`. Template variables: `{{_loop.<phaseId>.iteration}}` and `{{_loop.<phaseId>.total}}`. Phase data is versioned: bare key has latest, `phaseId~N` has per-iteration copies. Editor shows purple left border + "xN" badge on looped phases.
+- **Screen control** — `hostTemplate` / `playerTemplate` for custom content per screen (resolved via `resolveTemplate()`). `hostShow` / `playerShow` arrays toggle built-in UI elements (e.g. `["content", "continueButton"]`). If omitted, all defaults shown (backward compat). Empty array `[]` hides all built-in elements. Valid toggles per phase type defined in `VALID_HOST_TOGGLES` / `VALID_PLAYER_TOGGLES`. Editor shows "Screen Control (Optional)" section with template textareas + toggle checkboxes.
 - **Game editor** — Teacher-friendly UI redesign. Phase blocks show icons + friendly names ("Ask Players", "AI Does Something") instead of technical IDs. Right sidebar groups fields into sections with helper text. Data reference dropdowns replace raw text fields. Phase type picker modal for adding new steps. AI lane (purple) shows on ai-process phases. H/P/AI role dots on canvas blocks. All config.json internals unchanged — purely a presentation layer. Editor files: `screens/designer/editor.js`, `editor.css`, `editor.html`.
 
 ### AI Game Review (Implemented)
@@ -159,7 +167,7 @@ Framework for quickly building classroom games where:
 - Haiku for simple tasks, Sonnet for complex judgment
 
 ### Testing
-- `npm test` — runs all 188 Vitest tests
+- `npm test` — runs all 223 Vitest tests
 - `node scripts/simulate-corn-story.js` — automated full-game playthrough (requires server running)
 
 ## Refinement Log
@@ -202,3 +210,18 @@ Framework for quickly building classroom games where:
 - Phase 11: Review panel UI with summary, clickable phase issues, inline badges on canvas
 - Phase 11: `POST /api/games/review` endpoint, AIService.review() with model selection
 - Phase 11: 188 tests passing
+- Phase 12: Added 3 new phase types — `announce` (show a message), `collect-choice` (multiple choice), `ai-eliminate` (AI judges and eliminates)
+- Phase 12: Fixed reveal backward-compat (only scans when no template), preview validation (content OR template), eliminate/winner auto-advance with pause
+- Phase 12: Fixed AIService.process() to pass systemPrompt through to API — ai-eliminate was using wrong prompt
+- Phase 12: Updated review prompts to describe all 12 phase types (was only 9)
+- Phase 12: ai-eliminate stores `survivors` array for use as vote candidates
+- Phase 12: 202 tests passing
+- Phase 13: Implemented loop/round system — loopBack/loopCount config fields, getNextPhaseId server helper, versioned phase data, _loop template variables, editor UI with loop fields + visual indicators, validation
+- Phase 13: 212 tests passing
+- Phase 14: Fixed announce phase — added HTML sections, JS listeners, and timer support to both host and player screens
+- Phase 14: Implemented screen control — `hostTemplate`/`playerTemplate` for custom text, `hostShow`/`playerShow` for toggling built-in UI elements
+- Phase 14: Added `.screen-template` divs + `applyShow`/`applyTemplate` helpers to host and player JS
+- Phase 14: Server resolves and passes screen control fields in all phase emits + reconnection
+- Phase 14: Validation for hostShow/playerShow (per-type toggle sets), hostTemplate/playerTemplate (string check)
+- Phase 14: Editor UI — "Screen Control (Optional)" section with template textareas + toggle checkboxes
+- Phase 14: 223 tests passing

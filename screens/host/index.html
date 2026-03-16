@@ -34,6 +34,7 @@
 
   <!-- COLLECT SECTION -->
   <section id="collect-section" hidden>
+    <div class="screen-template" hidden></div>
     <h2>Players are answering...</h2>
     <p id="prompt-display" class="prompt"></p>
     <div id="collect-timer" class="timer-ring-container" hidden>
@@ -49,12 +50,14 @@
 
   <!-- PROCESS SECTION -->
   <section id="process-section" hidden>
+    <div class="screen-template" hidden></div>
     <h2 id="process-message">AI is processing...</h2>
     <p class="big-text">Working...</p>
   </section>
 
   <!-- PREVIEW SECTION -->
   <section id="preview-section" hidden>
+    <div class="screen-template" hidden></div>
     <h2>Preview (students can't see this yet)</h2>
     <div id="preview-content" class="reveal-content"></div>
     <div id="preview-responses" hidden>
@@ -69,6 +72,7 @@
 
   <!-- REVEAL SECTION -->
   <section id="reveal-section" hidden>
+    <div class="screen-template" hidden></div>
     <div id="ai-result" class="reveal-content"></div>
     <div id="reveal-responses" hidden>
       <h3>Player Responses:</h3>
@@ -79,6 +83,7 @@
 
   <!-- VOTE STATUS SECTION -->
   <section id="vote-section" hidden>
+    <div class="screen-template" hidden></div>
     <h2>Voting in progress...</h2>
     <p id="vote-mode-display"></p>
     <div id="vote-timer" class="timer-ring-container" hidden>
@@ -94,6 +99,7 @@
 
   <!-- ELIMINATION RESULTS SECTION -->
   <section id="elimination-section" hidden>
+    <div class="screen-template" hidden></div>
     <h2>Round Results</h2>
     <p id="eliminated-names" class="eliminated-text"></p>
     <p id="remaining-count" class="big-text"></p>
@@ -102,13 +108,29 @@
 
   <!-- WINNER SECTION -->
   <section id="winner-section" hidden>
+    <div class="screen-template" hidden></div>
     <h2 id="winner-name" class="winner-text"></h2>
     <div id="standings-list" class="standings"></div>
     <button id="winner-end-btn">End Game</button>
   </section>
 
+  <!-- ANNOUNCE SECTION -->
+  <section id="announce-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h2 id="announce-message"></h2>
+    <div id="announce-timer" class="timer-ring-container" hidden>
+      <svg class="timer-ring" viewBox="0 0 120 120">
+        <circle class="timer-ring-bg" cx="60" cy="60" r="52" />
+        <circle class="timer-ring-fill" cx="60" cy="60" r="52" />
+      </svg>
+      <span class="timer-ring-text"></span>
+    </div>
+    <button id="announce-continue-btn">Continue</button>
+  </section>
+
   <!-- END SECTION -->
   <section id="end-section" hidden>
+    <div class="screen-template" hidden></div>
     <h2 class="game-over">Game Over!</h2>
     <button id="play-again-btn">Play Again</button>
   </section>

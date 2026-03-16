@@ -6,16 +6,19 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const GAMES_DIR = join(__dirname, '..', 'games');
 
 const VALID_PHASE_TYPES = [
-  'lobby', 'collect', 'ai-process', 'vote', 'eliminate',
-  'reveal', 'preview', 'winner', 'end'
+  'lobby', 'collect', 'collect-choice', 'ai-process', 'vote', 'eliminate',
+  'ai-eliminate', 'announce', 'reveal', 'preview', 'winner', 'end'
 ];
 
 const PHASE_REQUIRED_FIELDS = {
   collect: ['prompt'],
+  'collect-choice': ['prompt', 'choices'],
   'ai-process': ['instruction', 'input'],
+  'ai-eliminate': ['instruction', 'input'],
   vote: ['mode', 'candidates'],
   eliminate: ['method'],
-  preview: ['content', 'approveNext', 'rejectNext'],
+  announce: ['message'],
+  preview: ['approveNext', 'rejectNext'],
   winner: ['from']
 };
 
@@ -30,6 +33,34 @@ const ENUM_VALUES = {
 
 // Fields that hold data references (phaseId.field format)
 const DATA_REF_FIELDS = ['input', 'candidates', 'content'];
+
+// Valid toggles per phase type for hostShow/playerShow
+const VALID_HOST_TOGGLES = {
+  collect: ['prompt', 'counter', 'timer', 'closeButton'],
+  'collect-choice': ['prompt', 'counter', 'timer', 'closeButton'],
+  'ai-process': ['message'],
+  vote: ['mode', 'counter', 'timer', 'closeButton'],
+  eliminate: ['eliminated', 'remaining', 'continueButton'],
+  'ai-eliminate': ['eliminated', 'remaining'],
+  reveal: ['content', 'responses', 'continueButton'],
+  preview: ['content', 'responses', 'approveButton', 'rejectButton'],
+  announce: ['message', 'continueButton', 'timer'],
+  winner: ['name', 'standings', 'endButton'],
+  end: ['message', 'playAgainButton']
+};
+
+const VALID_PLAYER_TOGGLES = {
+  collect: ['prompt', 'input', 'timer', 'submitButton'],
+  'collect-choice': ['prompt', 'choices', 'timer'],
+  'ai-process': ['message'],
+  vote: ['title', 'options', 'timer', 'progress'],
+  eliminate: ['details'],
+  'ai-eliminate': ['details'],
+  reveal: ['content'],
+  announce: ['message', 'timer'],
+  winner: ['name', 'details', 'standings'],
+  end: ['message']
+};
 
 export async function loadGame(gameId) {
   const configPath = join(GAMES_DIR, gameId, 'config.json');
@@ -107,7 +138,7 @@ export function validate(config, gameId, options) {
 
     // Enum field validation (type-aware: some fields are enums only on certain types)
     const enumChecks = [];
-    if (phase.type === 'collect' && phase.from !== undefined && phase.from !== null) {
+    if ((phase.type === 'collect' || phase.type === 'collect-choice') && phase.from !== undefined && phase.from !== null) {
       enumChecks.push(['from', phase.from, ENUM_VALUES.from]);
     }
     if (phase.type === 'vote') {
@@ -165,6 +196,17 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Preview must have content OR template
+    if (phase.type === 'preview') {
+      const hasContent = phase.content !== undefined && phase.content !== null && phase.content !== '';
+      const hasTemplate = phase.template !== undefined && phase.template !== null && phase.template !== '';
+      if (!hasContent && !hasTemplate) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (preview) must have either "content" or "template" (or both)`
+        );
+      }
+    }
+
     // Data reference validation — check that referenced phase exists
     for (const field of DATA_REF_FIELDS) {
       if (phase[field] && typeof phase[field] === 'string' && phase[field].includes('.')) {
@@ -184,6 +226,77 @@ export function validate(config, gameId, options) {
         errors.push(
           `Game "${gameId}": phase "${name}" references "${phase.from}" but phase "${refPhaseId}" does not exist`
         );
+      }
+    }
+
+    // Loop validation
+    if (phase.loopBack !== undefined && phase.loopBack !== null && phase.loopBack !== '') {
+      if (!config.phases[phase.loopBack]) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" has loopBack "${phase.loopBack}" which does not exist`
+        );
+      }
+      if (phase.loopCount === undefined || phase.loopCount === null) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" has loopBack but is missing loopCount`
+        );
+      } else if (typeof phase.loopCount !== 'number' || phase.loopCount < 2 || phase.loopCount > 100) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" has invalid loopCount "${phase.loopCount}". Must be a number between 2 and 100.`
+        );
+      }
+      if (!phase.next) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" has loopBack but is missing "next" (needed as loop exit)`
+        );
+      }
+    }
+
+    // Screen control validation
+    if (phase.hostTemplate !== undefined && phase.hostTemplate !== null && typeof phase.hostTemplate !== 'string') {
+      errors.push(
+        `Game "${gameId}": phase "${name}" has invalid hostTemplate — must be a string`
+      );
+    }
+    if (phase.playerTemplate !== undefined && phase.playerTemplate !== null && typeof phase.playerTemplate !== 'string') {
+      errors.push(
+        `Game "${gameId}": phase "${name}" has invalid playerTemplate — must be a string`
+      );
+    }
+    if (phase.hostShow !== undefined && phase.hostShow !== null) {
+      if (!Array.isArray(phase.hostShow)) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" has invalid hostShow — must be an array`
+        );
+      } else {
+        const validToggles = VALID_HOST_TOGGLES[phase.type];
+        if (validToggles) {
+          for (const toggle of phase.hostShow) {
+            if (!validToggles.includes(toggle)) {
+              errors.push(
+                `Game "${gameId}": phase "${name}" has invalid hostShow toggle "${toggle}". Valid: ${validToggles.join(', ')}`
+              );
+            }
+          }
+        }
+      }
+    }
+    if (phase.playerShow !== undefined && phase.playerShow !== null) {
+      if (!Array.isArray(phase.playerShow)) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" has invalid playerShow — must be an array`
+        );
+      } else {
+        const validToggles = VALID_PLAYER_TOGGLES[phase.type];
+        if (validToggles) {
+          for (const toggle of phase.playerShow) {
+            if (!validToggles.includes(toggle)) {
+              errors.push(
+                `Game "${gameId}": phase "${name}" has invalid playerShow toggle "${toggle}". Valid: ${validToggles.join(', ')}`
+              );
+            }
+          }
+        }
       }
     }
 

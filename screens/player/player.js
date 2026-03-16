@@ -15,6 +15,27 @@ let currentMatchupIndex = 0;
 let matchupVotes = [];
 let currentCandidates = [];
 
+// --- Screen control helpers ---
+
+function applyShow(show, elementMap) {
+  if (!show) return; // null/undefined = show all defaults
+  for (const [key, el] of Object.entries(elementMap)) {
+    if (el) el.hidden = !show.includes(key);
+  }
+}
+
+function applyTemplate(section, templateText) {
+  var tmplDiv = section.querySelector('.screen-template');
+  if (!tmplDiv) return;
+  if (templateText) {
+    tmplDiv.textContent = templateText;
+    tmplDiv.hidden = false;
+  } else {
+    tmplDiv.textContent = '';
+    tmplDiv.hidden = true;
+  }
+}
+
 // Elements - Join
 const joinSection = document.getElementById('join-section');
 const roomCodeInput = document.getElementById('room-code-input');
@@ -50,6 +71,9 @@ const voteProgress = document.getElementById('vote-progress');
 const voteSubmittedSection = document.getElementById('vote-submitted-section');
 const eliminationResultsSection = document.getElementById('elimination-results-section');
 const eliminationDetails = document.getElementById('elimination-details');
+const announceSection = document.getElementById('announce-section');
+const announceMessage = document.getElementById('announce-message');
+const announceTimerDisplay = document.getElementById('announce-timer');
 const winnerSection = document.getElementById('winner-section');
 const winnerTitle = document.getElementById('winner-title');
 const winnerDetails = document.getElementById('winner-details');
@@ -172,18 +196,26 @@ function clearTimer() {
   collectTimerDisplay.classList.remove('timer-warning');
   voteTimerDisplay.hidden = true;
   voteTimerDisplay.classList.remove('timer-warning');
+  announceTimerDisplay.hidden = true;
+  announceTimerDisplay.classList.remove('timer-warning');
 }
 
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt, timer }) => {
+socket.on('game-started', ({ prompt, timer, playerTemplate, show }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   responseInput.value = '';
   submitBtn.disabled = false;
+  applyTemplate(collectSection, playerTemplate);
+  applyShow(show, {
+    prompt: promptDisplay,
+    input: responseInput,
+    timer: collectTimerDisplay,
+    submitButton: submitBtn
+  });
   if (timer) {
     startTimer(timer, collectTimerDisplay, () => {
-      // Auto-submit current text (even if empty)
       submitBtn.disabled = true;
       socket.emit('submit-response', { code: currentRoomCode, response: responseInput.value.trim() || '' });
       showSection(submittedSection);
@@ -202,20 +234,42 @@ const AI_TASK_MESSAGES = {
   'judge': 'AI is judging answers...'
 };
 
-socket.on('processing-started', ({ task } = {}) => {
+socket.on('processing-started', ({ task, playerTemplate, playerShow } = {}) => {
   processTitle.textContent = AI_TASK_MESSAGES[task] || 'AI is working on something special...';
   showSection(processSection);
+  applyTemplate(processSection, playerTemplate);
+  applyShow(playerShow, { message: processTitle });
 });
 
-socket.on('show-results', ({ content, aiResult }) => {
+socket.on('show-results', ({ content, aiResult, playerTemplate, playerShow }) => {
   showSection(revealSection);
   aiResultDisplay.textContent = content || aiResult;
+  applyTemplate(revealSection, playerTemplate);
+  applyShow(playerShow, { content: aiResultDisplay });
 });
 
-socket.on('game-ended', () => {
+socket.on('announce', ({ message, timer, playerTemplate, playerShow }) => {
+  showSection(announceSection);
+  announceMessage.textContent = message;
+  applyTemplate(announceSection, playerTemplate);
+  applyShow(playerShow, {
+    message: announceMessage,
+    timer: announceTimerDisplay
+  });
+  if (timer) {
+    startTimer(timer, announceTimerDisplay, () => {
+      // Timer auto-advances on server side
+    });
+  }
+});
+
+socket.on('game-ended', ({ message, playerTemplate, playerShow } = {}) => {
   eliminatedBanner.hidden = true;
   isEliminated = false;
   showSection(endSection);
+  applyTemplate(endSection, playerTemplate);
+  const endMsg = endSection.querySelector('h1');
+  applyShow(playerShow, { message: endMsg });
 });
 
 // --- Socket events - Waiting ---
@@ -227,9 +281,16 @@ socket.on('waiting', ({ message }) => {
 
 // --- Socket events - Voting ---
 
-socket.on('vote-start', ({ mode, candidates, matchups, timer }) => {
+socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, show }) => {
   showSection(voteSection);
   voteOptions.innerHTML = '';
+  applyTemplate(voteSection, playerTemplate);
+  applyShow(show, {
+    title: voteTitle,
+    options: voteOptions,
+    timer: voteTimerDisplay,
+    progress: voteProgress
+  });
 
   if (mode === 'pick-one') {
     voteTitle.textContent = 'Pick your favorite!';
@@ -271,8 +332,10 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer }) => {
 
 // --- Socket events - Elimination ---
 
-socket.on('elimination-results', ({ eliminated, eliminatedNames, remaining }) => {
+socket.on('elimination-results', ({ eliminated, eliminatedNames, remaining, playerTemplate, playerShow }) => {
   showSection(eliminationResultsSection);
+  applyTemplate(eliminationResultsSection, playerTemplate);
+  applyShow(playerShow, { details: eliminationDetails });
 
   if (eliminated.includes(socket.id)) {
     isEliminated = true;
@@ -287,10 +350,16 @@ socket.on('elimination-results', ({ eliminated, eliminatedNames, remaining }) =>
 
 // --- Socket events - Winner ---
 
-socket.on('winner-announced', ({ winnerName, winnerScore, standings }) => {
+socket.on('winner-announced', ({ winnerName, winnerScore, standings, playerTemplate, playerShow }) => {
   showSection(winnerSection);
   winnerTitle.textContent = winnerName + ' wins!';
   winnerDetails.textContent = winnerScore + ' votes';
+  applyTemplate(winnerSection, playerTemplate);
+  applyShow(playerShow, {
+    name: winnerTitle,
+    details: winnerDetails,
+    standings: standingsList
+  });
 
   standingsList.innerHTML = '';
   if (standings && standings.length > 0) {
@@ -374,7 +443,8 @@ function showError(message) {
 const allPlayerSections = [
   joinSection, waitingSection, collectSection, submittedSection,
   processSection, revealSection, endSection, gameWaitingSection,
-  voteSection, voteSubmittedSection, eliminationResultsSection, winnerSection
+  voteSection, voteSubmittedSection, eliminationResultsSection,
+  announceSection, winnerSection
 ];
 
 function showSection(el) {

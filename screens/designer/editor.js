@@ -99,6 +99,39 @@ var PHASE_CATALOG = {
     player: 'Winner announcement, standings',
     ai: null
   },
+  'announce': {
+    icon: '\uD83D\uDCE3',
+    friendlyName: 'Show a Message',
+    description: 'Display a message to everyone (round intros, instructions)',
+    color: '#0097a7',
+    bg: '#e0f7fa',
+    detailField: 'message',
+    host: 'Message text, Continue button (or auto-advance with timer)',
+    player: 'Message text',
+    ai: null
+  },
+  'collect-choice': {
+    icon: '\uD83D\uDCCB',
+    friendlyName: 'Multiple Choice',
+    description: 'Players pick from predefined choices',
+    color: '#2e7d32',
+    bg: '#e8f5e9',
+    detailField: 'prompt',
+    host: 'Question text, submission counter, Close Submissions button',
+    player: 'Question text, choice buttons',
+    ai: null
+  },
+  'ai-eliminate': {
+    icon: '\uD83E\uDD16\u274C',
+    friendlyName: 'AI Eliminates',
+    description: 'AI judges answers and eliminates rule-breakers',
+    color: '#c62828',
+    bg: '#ffebee',
+    detailField: 'instruction',
+    host: 'Elimination results with reasons',
+    player: '"You were eliminated" or "You survived!"',
+    ai: 'Reads answers, applies rules, decides who to eliminate'
+  },
   'end': {
     icon: '\uD83C\uDFC1',
     friendlyName: 'Game Over',
@@ -265,6 +298,21 @@ function renderCanvas() {
   phaseList.innerHTML = '';
   var order = buildPhaseOrder();
 
+  // Pre-compute which phases are inside a loop body
+  var loopBodies = {};  // phaseId -> { loopPhaseId, loopCount }
+  for (var li = 0; li < order.length; li++) {
+    var lpid = order[li];
+    var lphase = gameConfig.phases[lpid];
+    if (lphase.loopBack && lphase.loopCount) {
+      var loopStartIdx = order.indexOf(lphase.loopBack);
+      if (loopStartIdx !== -1 && loopStartIdx <= li) {
+        for (var lj = loopStartIdx; lj <= li; lj++) {
+          loopBodies[order[lj]] = { loopPhaseId: lpid, loopCount: lphase.loopCount };
+        }
+      }
+    }
+  }
+
   for (var i = 0; i < order.length; i++) {
     var phaseId = order[i];
     var phase = gameConfig.phases[phaseId];
@@ -345,6 +393,19 @@ function renderCanvas() {
     }
 
     box.appendChild(dots);
+
+    // Loop body indicator
+    if (loopBodies[phaseId]) {
+      box.classList.add('loop-body');
+      // Show loop badge on the phase that defines the loop
+      if (loopBodies[phaseId].loopPhaseId === phaseId) {
+        var loopBadge = document.createElement('span');
+        loopBadge.className = 'loop-badge';
+        loopBadge.textContent = 'x' + loopBodies[phaseId].loopCount;
+        loopBadge.title = 'Loops ' + loopBodies[phaseId].loopCount + ' times';
+        box.appendChild(loopBadge);
+      }
+    }
 
     // AI issue badge
     var phaseAiIssues = aiIssues[phaseId];
@@ -708,6 +769,112 @@ function renderPhaseConfig(phaseId) {
     });
   }
 
+  if (type === 'announce') {
+    addSectionHeader('What everyone sees');
+    addTextAreaWithHelp('Message', 'Displayed to host and all players. Use {{phaseId.field}} for data.', 'phase-message', phase.message, 'e.g. Round 1: Don\'t Match!', function (value) {
+      phase.message = value;
+      renderCanvas();
+    });
+    addFieldWithHelp('Auto-advance timer (seconds)', 'Leave empty to require host to click Continue', 'number', 'phase-timer', phase.timer, false, function (value) {
+      phase.timer = value;
+    });
+  }
+
+  if (type === 'collect-choice') {
+    addSectionHeader('What players see');
+    addTextAreaWithHelp('Question to ask', 'This appears above the choices on every player\'s screen', 'phase-prompt', phase.prompt, 'e.g. Which animal is the fastest?', function (value) {
+      phase.prompt = value;
+      renderCanvas();
+    });
+
+    // Choices editor
+    addSectionHeader('Choices');
+    var choicesIsRef = typeof phase.choices === 'string';
+    if (choicesIsRef) {
+      addDataRefDropdown('Choices from', 'Use AI-generated choices from a previous step', 'phase-choices', phaseId, phase.choices, function (value) {
+        phase.choices = value || [];
+      });
+    } else {
+      var choicesArr = Array.isArray(phase.choices) ? phase.choices : [];
+      for (var ci = 0; ci < choicesArr.length; ci++) {
+        (function (index) {
+          var choiceGroup = document.createElement('div');
+          choiceGroup.className = 'form-group';
+          choiceGroup.style.display = 'flex';
+          choiceGroup.style.gap = '6px';
+
+          var choiceInput = document.createElement('input');
+          choiceInput.type = 'text';
+          choiceInput.value = choicesArr[index];
+          choiceInput.placeholder = 'Choice ' + (index + 1);
+          choiceInput.style.flex = '1';
+          choiceInput.addEventListener('input', function () {
+            isDirty = true;
+            phase.choices[index] = choiceInput.value;
+          });
+
+          var removeBtn = document.createElement('button');
+          removeBtn.className = 'btn-icon';
+          removeBtn.textContent = '\u2716';
+          removeBtn.title = 'Remove choice';
+          removeBtn.addEventListener('click', function () {
+            isDirty = true;
+            phase.choices.splice(index, 1);
+            renderPhaseConfig(phaseId);
+          });
+
+          choiceGroup.appendChild(choiceInput);
+          choiceGroup.appendChild(removeBtn);
+          phaseConfigForm.appendChild(choiceGroup);
+        })(ci);
+      }
+
+      var addChoiceBtn = document.createElement('button');
+      addChoiceBtn.className = 'btn-secondary';
+      addChoiceBtn.textContent = '+ Add Choice';
+      addChoiceBtn.style.marginBottom = '12px';
+      addChoiceBtn.addEventListener('click', function () {
+        isDirty = true;
+        if (!Array.isArray(phase.choices)) phase.choices = [];
+        phase.choices.push('');
+        renderPhaseConfig(phaseId);
+      });
+      phaseConfigForm.appendChild(addChoiceBtn);
+    }
+
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits random choice on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
+      phase.timer = value;
+    });
+
+    addSectionHeader('Who answers');
+    addSelectWithHelp('Eligible players', 'Which players can submit answers', 'phase-from',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' },
+        { value: 'eliminated', label: 'Eliminated players only' }
+      ],
+      phase.from || 'all', function (value) {
+        if (value === 'all') { delete phase.from; } else { phase.from = value; }
+      }
+    );
+  }
+
+  if (type === 'ai-eliminate') {
+    addSectionHeader('Rules for AI');
+    addTextAreaWithHelp('Elimination rules', 'Tell the AI exactly what rules to enforce', 'phase-instruction', phase.instruction, 'e.g. Eliminate anyone who used more than one sentence.', function (value) {
+      phase.instruction = value;
+      renderCanvas();
+    });
+
+    addSectionHeader('Data');
+    addDataRefDropdown('Input data', 'Where the AI reads player answers from', 'phase-input', phaseId, phase.input, function (value) {
+      phase.input = value;
+    });
+    addFieldWithHelp('Pause before advancing (seconds)', 'How long to show results before moving on', 'number', 'phase-pause', phase.pause, false, function (value) {
+      phase.pause = value;
+    });
+  }
+
   if (type === 'reveal') {
     addSectionHeader('What everyone sees');
     addTextAreaWithHelp('Display template', 'Use {{phaseId.field}} to insert data. e.g. {{process.result}}', 'phase-template', phase.template, 'e.g. Here\'s what AI created:\n\n{{process.result}}', function (value) {
@@ -767,6 +934,69 @@ function renderPhaseConfig(phaseId) {
       phase.next = value === '(none)' ? undefined : value;
       renderCanvas();
     });
+
+    // Loop (Optional) — available on any phase with a next
+    addSectionHeader('Loop (Optional)');
+
+    // loopBack dropdown — filter to phases before current
+    var loopBackOptions = [{ value: '', label: '(none — no loop)' }];
+    var order = buildPhaseOrder();
+    var currentIdx = order.indexOf(phaseId);
+    for (var li = 0; li < order.length; li++) {
+      if (li >= currentIdx) break;
+      var lpid = order[li];
+      var lp = gameConfig.phases[lpid];
+      var lcat = PHASE_CATALOG[lp.type];
+      if (lcat) {
+        loopBackOptions.push({ value: lpid, label: lcat.icon + ' ' + lcat.friendlyName + ' (' + lpid + ')' });
+      }
+    }
+    addSelectWithHelp('Loop back to', 'After this step, jump back to an earlier step N times before continuing', 'phase-loopBack',
+      loopBackOptions, phase.loopBack || '', function (value) {
+        isDirty = true;
+        if (value) {
+          phase.loopBack = value;
+          if (!phase.loopCount) phase.loopCount = 3;
+        } else {
+          delete phase.loopBack;
+          delete phase.loopCount;
+        }
+        renderCanvas();
+        renderPhaseConfig(phaseId);
+      }
+    );
+
+    if (phase.loopBack) {
+      addFieldWithHelp('Number of rounds', 'Total times to repeat before continuing to Next step (2-100)', 'number', 'phase-loopCount', phase.loopCount, false, function (value) {
+        phase.loopCount = value;
+        renderCanvas();
+      });
+    }
+  }
+
+  // --- Screen Control (Optional) — all types except lobby ---
+  if (type !== 'lobby') {
+    addSectionHeader('Screen Control (Optional)');
+
+    addTextAreaWithHelp('Host template', 'Custom text shown on the host screen. Use {{phaseId.field}} for data. Leave empty for default.', 'phase-hostTemplate', phase.hostTemplate, 'e.g. Full analysis:\n{{process.result}}', function (value) {
+      if (value) { phase.hostTemplate = value; } else { delete phase.hostTemplate; }
+    });
+
+    addTextAreaWithHelp('Player template', 'Custom text shown on player screens. Use {{phaseId.field}} for data. Leave empty for default.', 'phase-playerTemplate', phase.playerTemplate, 'e.g. Great job everyone!', function (value) {
+      if (value) { phase.playerTemplate = value; } else { delete phase.playerTemplate; }
+    });
+
+    // Host show toggles
+    var hostToggles = VALID_HOST_TOGGLES[type];
+    if (hostToggles) {
+      addToggleCheckboxes('Host screen elements', 'Choose which built-in elements to show on the host screen', phase, 'hostShow', hostToggles);
+    }
+
+    // Player show toggles
+    var playerToggles = VALID_PLAYER_TOGGLES[type];
+    if (playerToggles) {
+      addToggleCheckboxes('Player screen elements', 'Choose which built-in elements to show on player screens', phase, 'playerShow', playerToggles);
+    }
   }
 
   // --- AI Suggestions (if any) ---
@@ -1010,11 +1240,17 @@ function buildDataRefOptions(currentPhaseId) {
 
     if (p.type === 'collect') {
       options.push({ value: pid + '.responses', label: 'Answers from ' + cat.friendlyName + ' (' + pid + ')' });
+    } else if (p.type === 'collect-choice') {
+      options.push({ value: pid + '.responses', label: 'Choices from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.tally', label: 'Tally from ' + cat.friendlyName + ' (' + pid + ')' });
     } else if (p.type === 'ai-process') {
       options.push({ value: pid + '.result', label: 'AI result from ' + cat.friendlyName + ' (' + pid + ')' });
     } else if (p.type === 'vote') {
       options.push({ value: pid + '.scores', label: 'Scores from ' + cat.friendlyName + ' (' + pid + ')' });
     } else if (p.type === 'eliminate') {
+      options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + cat.friendlyName + ' (' + pid + ')' });
+    } else if (p.type === 'ai-eliminate') {
+      options.push({ value: pid + '.survivors', label: 'Survivors from ' + cat.friendlyName + ' (' + pid + ')' });
       options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + cat.friendlyName + ' (' + pid + ')' });
     }
   }
@@ -1069,10 +1305,88 @@ function addPhaseRefSelect(label, helpText, id, currentPhaseId, selected, onChan
   return addSelectWithHelp(label, helpText, id, options, selected || '(none)', onChange);
 }
 
+// Toggle checkboxes for hostShow / playerShow
+function addToggleCheckboxes(label, helpText, phase, field, toggleNames) {
+  var group = document.createElement('div');
+  group.className = 'form-group';
+
+  var lbl = document.createElement('label');
+  lbl.textContent = label;
+  group.appendChild(lbl);
+
+  if (helpText) {
+    var help = document.createElement('span');
+    help.className = 'field-help';
+    help.textContent = helpText;
+    group.appendChild(help);
+  }
+
+  var currentList = phase[field];
+  var showAll = !currentList;
+
+  // Master checkbox: "Show all (default)"
+  var masterLabel = document.createElement('label');
+  masterLabel.className = 'toggle-checkbox';
+  var masterCb = document.createElement('input');
+  masterCb.type = 'checkbox';
+  masterCb.checked = showAll;
+  masterLabel.appendChild(masterCb);
+  masterLabel.appendChild(document.createTextNode(' Show all (default)'));
+  group.appendChild(masterLabel);
+
+  var toggleContainer = document.createElement('div');
+  toggleContainer.className = 'toggle-checkboxes';
+  if (showAll) toggleContainer.hidden = true;
+
+  for (var i = 0; i < toggleNames.length; i++) {
+    (function (toggleName) {
+      var tLabel = document.createElement('label');
+      tLabel.className = 'toggle-checkbox';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = showAll || (currentList && currentList.indexOf(toggleName) !== -1);
+      tLabel.appendChild(cb);
+      var friendly = TOGGLE_FRIENDLY_NAMES[toggleName] || toggleName;
+      tLabel.appendChild(document.createTextNode(' ' + friendly));
+      toggleContainer.appendChild(tLabel);
+
+      cb.addEventListener('change', function () {
+        isDirty = true;
+        // Rebuild the array from checked boxes
+        var checked = [];
+        var cbs = toggleContainer.querySelectorAll('input[type=checkbox]');
+        for (var c = 0; c < cbs.length; c++) {
+          if (cbs[c].checked) checked.push(toggleNames[c]);
+        }
+        phase[field] = checked;
+      });
+    })(toggleNames[i]);
+  }
+
+  masterCb.addEventListener('change', function () {
+    isDirty = true;
+    if (masterCb.checked) {
+      delete phase[field];
+      toggleContainer.hidden = true;
+    } else {
+      // Default to all checked
+      phase[field] = toggleNames.slice();
+      toggleContainer.hidden = false;
+      var cbs = toggleContainer.querySelectorAll('input[type=checkbox]');
+      for (var c = 0; c < cbs.length; c++) {
+        cbs[c].checked = true;
+      }
+    }
+  });
+
+  group.appendChild(toggleContainer);
+  phaseConfigForm.appendChild(group);
+}
+
 // --- Phase management ---
 
 // Picker modal: which phase types can be added
-var ADDABLE_PHASE_TYPES = ['collect', 'ai-process', 'vote', 'eliminate', 'reveal', 'preview', 'winner'];
+var ADDABLE_PHASE_TYPES = ['collect', 'collect-choice', 'ai-process', 'ai-eliminate', 'vote', 'eliminate', 'announce', 'reveal', 'preview', 'winner'];
 
 function addPhase() {
   showPhasePickerModal();
@@ -1178,15 +1492,22 @@ function addPhaseOfType(type) {
 
   if (type === 'collect') {
     newPhase.prompt = 'Enter your response';
+  } else if (type === 'collect-choice') {
+    newPhase.prompt = 'Pick one:';
+    newPhase.choices = ['Option A', 'Option B'];
   } else if (type === 'ai-process') {
     newPhase.task = 'summarize';
     newPhase.instruction = '';
     newPhase.format = 'text';
+  } else if (type === 'ai-eliminate') {
+    newPhase.instruction = '';
   } else if (type === 'vote') {
     newPhase.mode = 'pick-one';
   } else if (type === 'eliminate') {
     newPhase.method = 'bottom-percent';
     newPhase.percent = 50;
+  } else if (type === 'announce') {
+    newPhase.message = 'Get ready!';
   } else if (type === 'reveal') {
     newPhase.template = '';
   } else if (type === 'preview') {
@@ -1242,6 +1563,10 @@ function deletePhase(phaseId) {
     if (gameConfig.phases[id].rejectNext === phaseId) {
       gameConfig.phases[id].rejectNext = nextId;
     }
+    if (gameConfig.phases[id].loopBack === phaseId) {
+      delete gameConfig.phases[id].loopBack;
+      delete gameConfig.phases[id].loopCount;
+    }
   }
 
   delete gameConfig.phases[phaseId];
@@ -1255,15 +1580,18 @@ var VALID_TYPES = Object.keys(PHASE_CATALOG);
 
 var REQUIRED_FIELDS = {
   collect: ['prompt'],
+  'collect-choice': ['prompt', 'choices'],
   'ai-process': ['instruction', 'input'],
+  'ai-eliminate': ['instruction', 'input'],
   vote: ['mode', 'candidates'],
   eliminate: ['method'],
-  preview: ['content', 'approveNext', 'rejectNext'],
+  announce: ['message'],
+  preview: ['approveNext', 'rejectNext'],
   winner: ['from']
 };
 
 var VALID_ENUMS = {
-  from: { types: ['collect'], values: ['all', 'remaining', 'eliminated'] },
+  from: { types: ['collect', 'collect-choice'], values: ['all', 'remaining', 'eliminated'] },
   voters: { types: ['vote'], values: ['all', 'remaining', 'eliminated'] },
   mode: { types: ['vote'], values: ['pick-one', 'head-to-head'] },
   method: { types: ['eliminate'], values: ['bottom-percent', 'hook'] },
@@ -1272,6 +1600,60 @@ var VALID_ENUMS = {
 };
 
 var DATA_REF_FIELDS = ['input', 'candidates', 'content'];
+
+var VALID_HOST_TOGGLES = {
+  collect: ['prompt', 'counter', 'timer', 'closeButton'],
+  'collect-choice': ['prompt', 'counter', 'timer', 'closeButton'],
+  'ai-process': ['message'],
+  vote: ['mode', 'counter', 'timer', 'closeButton'],
+  eliminate: ['eliminated', 'remaining', 'continueButton'],
+  'ai-eliminate': ['eliminated', 'remaining'],
+  reveal: ['content', 'responses', 'continueButton'],
+  preview: ['content', 'responses', 'approveButton', 'rejectButton'],
+  announce: ['message', 'continueButton', 'timer'],
+  winner: ['name', 'standings', 'endButton'],
+  end: ['message', 'playAgainButton']
+};
+
+var VALID_PLAYER_TOGGLES = {
+  collect: ['prompt', 'input', 'timer', 'submitButton'],
+  'collect-choice': ['prompt', 'choices', 'timer'],
+  'ai-process': ['message'],
+  vote: ['title', 'options', 'timer', 'progress'],
+  eliminate: ['details'],
+  'ai-eliminate': ['details'],
+  reveal: ['content'],
+  announce: ['message', 'timer'],
+  winner: ['name', 'details', 'standings'],
+  end: ['message']
+};
+
+var TOGGLE_FRIENDLY_NAMES = {
+  prompt: 'Question text',
+  counter: 'Submission counter',
+  timer: 'Timer',
+  closeButton: 'Close Submissions button',
+  input: 'Text input field',
+  submitButton: 'Submit button',
+  choices: 'Choice buttons',
+  message: 'Message text',
+  mode: 'Vote mode display',
+  title: 'Title',
+  options: 'Vote options',
+  progress: 'Match progress',
+  eliminated: 'Eliminated names',
+  remaining: 'Remaining count',
+  continueButton: 'Continue button',
+  details: 'Details text',
+  content: 'Content',
+  responses: 'Player responses',
+  approveButton: 'Approve button',
+  rejectButton: 'Reject button',
+  name: 'Winner name',
+  standings: 'Standings',
+  endButton: 'End Game button',
+  playAgainButton: 'Play Again button'
+};
 
 function validateConfig() {
   var errors = [];
@@ -1342,6 +1724,15 @@ function validateConfig() {
       }
     }
 
+    // Preview must have content OR template
+    if (phase.type === 'preview') {
+      var hasContent = phase.content !== undefined && phase.content !== null && phase.content !== '';
+      var hasTemplate = phase.template !== undefined && phase.template !== null && phase.template !== '';
+      if (!hasContent && !hasTemplate) {
+        errors.push(label + ': Must have either "content" or "template" (or both).');
+      }
+    }
+
     // Data ref checks
     for (var d = 0; d < DATA_REF_FIELDS.length; d++) {
       var df = DATA_REF_FIELDS[d];
@@ -1358,6 +1749,43 @@ function validateConfig() {
       var winnerRef = phase.from.split('.')[0];
       if (!phases[winnerRef]) {
         errors.push(label + ': References "' + phase.from + '" but step "' + winnerRef + '" does not exist.');
+      }
+    }
+
+    // Loop validation
+    if (phase.loopBack !== undefined && phase.loopBack !== null && phase.loopBack !== '') {
+      if (!phases[phase.loopBack]) {
+        errors.push(label + ': "Loop back to" points to "' + phase.loopBack + '" which does not exist.');
+      }
+      if (phase.loopCount === undefined || phase.loopCount === null) {
+        errors.push(label + ': Has "Loop back to" but is missing "Number of rounds".');
+      } else if (typeof phase.loopCount !== 'number' || phase.loopCount < 2 || phase.loopCount > 100) {
+        errors.push(label + ': "Number of rounds" must be between 2 and 100.');
+      }
+      if (!phase.next) {
+        errors.push(label + ': Has "Loop back to" but is missing "Next step" (needed as loop exit).');
+      }
+    }
+
+    // Screen control validation
+    if (phase.hostShow && Array.isArray(phase.hostShow)) {
+      var hostToggles = VALID_HOST_TOGGLES[phase.type];
+      if (hostToggles) {
+        for (var ht = 0; ht < phase.hostShow.length; ht++) {
+          if (hostToggles.indexOf(phase.hostShow[ht]) === -1) {
+            errors.push(label + ': Invalid hostShow toggle "' + phase.hostShow[ht] + '".');
+          }
+        }
+      }
+    }
+    if (phase.playerShow && Array.isArray(phase.playerShow)) {
+      var playerToggles = VALID_PLAYER_TOGGLES[phase.type];
+      if (playerToggles) {
+        for (var pt = 0; pt < phase.playerShow.length; pt++) {
+          if (playerToggles.indexOf(phase.playerShow[pt]) === -1) {
+            errors.push(label + ': Invalid playerShow toggle "' + phase.playerShow[pt] + '".');
+          }
+        }
       }
     }
 
@@ -1392,6 +1820,7 @@ function validateConfig() {
         if (p.next && !reachable[p.next]) queue.push(p.next);
         if (p.approveNext && !reachable[p.approveNext]) queue.push(p.approveNext);
         if (p.rejectNext && !reachable[p.rejectNext]) queue.push(p.rejectNext);
+        if (p.loopBack && !reachable[p.loopBack]) queue.push(p.loopBack);
       }
     }
     for (var k = 0; k < phaseIds.length; k++) {
