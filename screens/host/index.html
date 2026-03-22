@@ -128,6 +128,31 @@
     <button id="announce-continue-btn">Continue</button>
   </section>
 
+  <!-- LEADERBOARD SECTION -->
+  <section id="leaderboard-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h2>Leaderboard</h2>
+    <div id="leaderboard-timer" class="timer-ring-container" hidden>
+      <svg class="timer-ring" viewBox="0 0 120 120">
+        <circle class="timer-ring-bg" cx="60" cy="60" r="52" />
+        <circle class="timer-ring-fill" cx="60" cy="60" r="52" />
+      </svg>
+      <span class="timer-ring-text"></span>
+    </div>
+    <div id="leaderboard-standings" class="standings"></div>
+    <button id="leaderboard-continue-btn">Continue</button>
+  </section>
+
+  <!-- REVEAL-ONE SECTION -->
+  <section id="reveal-one-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h2 id="reveal-one-message"></h2>
+    <p id="reveal-one-counter" class="big-text"></p>
+    <div id="reveal-one-items"></div>
+    <button id="reveal-one-next-btn">Reveal Next</button>
+    <button id="reveal-one-continue-btn" hidden>Continue</button>
+  </section>
+
   <!-- END SECTION -->
   <section id="end-section" hidden>
     <div class="screen-template" hidden></div>
@@ -135,6 +160,7 @@
     <button id="play-again-btn">Play Again</button>
   </section>
 
+  <script src="/shared/themes.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="host.js"></script>
 </body>

@@ -8,17 +8,19 @@ body {
   margin: 0 auto;
   padding: 30px 20px;
   text-align: center;
-  background: #f5f5f5;
+  background: var(--theme-bg, #f5f5f5);
+  color: var(--theme-text, #333);
 }
 
 h1 {
   font-size: 1.8rem;
   margin-bottom: 20px;
+  color: var(--theme-heading, inherit);
 }
 
 p {
   font-size: 1.25rem;
-  color: #666;
+  color: var(--theme-text, #666);
 }
 
 section {
@@ -42,14 +44,16 @@ input, textarea {
   font-size: 1.25rem;
   padding: 18px;
   margin-bottom: 15px;
-  border: 2px solid #ddd;
+  border: 2px solid var(--theme-border, #ddd);
   border-radius: 8px;
   text-align: center;
+  background: var(--theme-surface, white);
+  color: var(--theme-text, #333);
 }
 
 input:focus, textarea:focus {
   outline: none;
-  border-color: #4a90d9;
+  border-color: var(--theme-accent, #4a90d9);
 }
 
 #room-code-input {
@@ -78,36 +82,33 @@ button {
   padding: 20px;
   margin-top: 10px;
   cursor: pointer;
-  border: none;
+  border: 2px solid var(--theme-border, transparent);
   border-radius: 8px;
-  background: #4a90d9;
-  color: white;
+  background: var(--theme-button, #4a90d9);
+  color: var(--theme-button-text, white);
 }
 
 button:hover {
-  background: #357abd;
+  opacity: 0.85;
 }
 
 button:active {
-  background: #2a5f8f;
+  opacity: 0.75;
 }
 
 button:disabled {
   background: #ccc;
   cursor: not-allowed;
+  opacity: 1;
 }
 
 #submit-btn {
-  background: #5cb85c;
-}
-
-#submit-btn:hover:not(:disabled) {
-  background: #449d44;
+  background: var(--theme-success, #5cb85c);
 }
 
 /* Error message */
 #error-message {
-  color: #d9534f;
+  color: var(--theme-danger, #d9534f);
   margin-top: 15px;
   font-weight: bold;
 }
@@ -115,41 +116,55 @@ button:disabled {
 /* Prompt display */
 .prompt {
   font-size: 1.5rem;
-  color: #333;
+  color: var(--theme-text, #333);
   font-style: italic;
   margin: 20px 0;
   padding: 15px;
-  background: white;
+  background: var(--theme-surface, white);
   border-radius: 8px;
+  border: 2px solid var(--theme-border, transparent);
 }
 
 /* Status sections */
 #waiting-section h1,
 #submitted-section h1 {
-  color: #5cb85c;
+  color: var(--theme-success, #5cb85c);
 }
 
 #reveal-section h1 {
-  color: #4a90d9;
+  color: var(--theme-accent, #4a90d9);
 }
 
 #end-section h1 {
-  color: #5cb85c;
+  color: var(--theme-success, #5cb85c);
+}
+
+/* AI result */
+.ai-result {
+  font-size: 1.25rem;
+  color: var(--theme-text, #333);
+  padding: 15px;
+  background: var(--theme-surface, white);
+  border-radius: 8px;
+  border: 2px solid var(--theme-border, transparent);
+  white-space: pre-wrap;
+  text-align: left;
 }
 
 /* Eliminated banner */
 #eliminated-banner {
-  background: #f2dede;
-  color: #a94442;
+  background: var(--theme-danger, #f2dede);
+  color: var(--theme-button-text, #a94442);
   padding: 12px;
   border-radius: 8px;
   font-size: 1.1rem;
   font-weight: bold;
+  opacity: 0.9;
 }
 
 /* Vote section */
 .vote-btn {
-  background: #5bc0de;
+  background: var(--theme-accent, #5bc0de);
   text-align: left;
   padding: 18px 20px;
   font-size: 1.25rem;
@@ -159,57 +174,60 @@ button:disabled {
 }
 
 .vote-btn:hover {
-  background: #46b8da;
+  opacity: 0.85;
 }
 
 .vote-btn:active {
-  background: #31b0d5;
+  opacity: 0.75;
 }
 
 .vs-label {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #999;
+  color: var(--theme-text, #999);
   margin: 5px 0;
+  opacity: 0.6;
 }
 
 #vote-progress {
   font-size: 1rem;
-  color: #999;
+  color: var(--theme-text, #999);
   margin-bottom: 15px;
+  opacity: 0.6;
 }
 
 #vote-submitted-section h1 {
-  color: #5cb85c;
+  color: var(--theme-success, #5cb85c);
 }
 
 /* Elimination results */
 #elimination-results-section h1 {
-  color: #d9534f;
+  color: var(--theme-danger, #d9534f);
 }
 
 /* Winner section */
 #winner-section h1 {
-  color: #f0ad4e;
+  color: var(--theme-accent, #f0ad4e);
 }
 
 #winner-details {
   font-size: 1.5rem;
-  color: #333;
+  color: var(--theme-text, #333);
 }
 
 #standings-list {
   text-align: left;
   margin-top: 15px;
   padding: 15px;
-  background: white;
+  background: var(--theme-surface, white);
   border-radius: 8px;
+  border: 2px solid var(--theme-border, transparent);
 }
 
 #standings-list p {
   margin: 8px 0;
   font-size: 1.1rem;
-  color: #333;
+  color: var(--theme-text, #333);
 }
 
 /* Screen template (custom content from game config) */
@@ -217,7 +235,7 @@ button:disabled {
   white-space: pre-wrap;
   padding: 12px 0;
   font-size: 1.25rem;
-  color: #333;
+  color: var(--theme-text, #333);
   text-align: left;
 }
 
@@ -231,30 +249,81 @@ button:disabled {
   display: block;
   font-size: 1.4rem;
   font-weight: bold;
-  color: #4a90d9;
+  color: var(--theme-timer, #4a90d9);
   margin-bottom: 6px;
 }
 
 .timer-bar-wrapper.timer-warning .timer-bar-text {
-  color: #d9534f;
+  color: var(--theme-danger, #d9534f);
 }
 
 .timer-bar {
   width: 100%;
   height: 6px;
-  background: #e0e0e0;
+  background: var(--theme-border, #e0e0e0);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .timer-bar-fill {
   height: 100%;
-  background: #4a90d9;
+  background: var(--theme-timer, #4a90d9);
   border-radius: 3px;
   width: 100%;
   transition: width 1s linear;
 }
 
 .timer-bar-wrapper.timer-warning .timer-bar-fill {
-  background: #d9534f;
+  background: var(--theme-danger, #d9534f);
+}
+
+/* Leaderboard section */
+#leaderboard-rank {
+  color: var(--theme-accent, #f0ad4e);
+}
+
+#leaderboard-score {
+  font-size: 1.3rem;
+  color: var(--theme-text, #333);
+  margin-bottom: 15px;
+}
+
+#leaderboard-standings {
+  text-align: left;
+  margin-top: 15px;
+  padding: 15px;
+  background: var(--theme-surface, white);
+  border-radius: 8px;
+  border: 2px solid var(--theme-border, transparent);
+}
+
+#leaderboard-standings p {
+  margin: 8px 0;
+  font-size: 1.1rem;
+  color: var(--theme-text, #333);
+}
+
+.leaderboard-highlight {
+  background: var(--theme-accent, #FFD600);
+  color: var(--theme-button-text, #000);
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* Reveal-one section */
+.reveal-one-item {
+  font-size: 1.2rem;
+  padding: 12px 16px;
+  margin: 8px 0;
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-border, #eee);
+  border-radius: 8px;
+  text-align: left;
+  animation: revealSlideIn 0.3s ease;
+}
+
+@keyframes revealSlideIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

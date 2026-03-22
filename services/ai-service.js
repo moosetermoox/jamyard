@@ -26,6 +26,8 @@ Phase types and their requirements:
 - reveal: Shows content to everyone. Needs 'template' with {{phase.field}} refs.
 - preview: Teacher reviews before revealing. Needs 'content' (data ref) OR 'template' (or both), plus 'approveNext' and 'rejectNext'.
 - winner: Declares winner. Needs 'from' (scores data ref). Auto-advances after 'pause' seconds.
+- leaderboard: Shows scores and rankings. Needs 'from' (scores data ref). Optional 'style' (full/top3), 'timer' for auto-advance.
+- reveal-one: Host reveals items one-by-one (countdown style). Needs 'from' (data ref to items). Optional 'message' (title text).
 - end: Game over. Optional 'message'.
 
 Loop system:
@@ -200,6 +202,56 @@ export class AIService {
         issues: [],
         summary: `Review failed: ${error.message}`
       };
+    }
+  }
+
+  async generateTheme(description) {
+    if (this.mode === 'mock') {
+      return this._generateThemeMock();
+    }
+    return this._generateThemeReal(description);
+  }
+
+  _generateThemeMock() {
+    return {
+      bg: '#FFF9C4', surface: '#FFFFFF', accent: '#0057FF', text: '#222222',
+      heading: '#000000', button: '#FF4081', buttonText: '#FFFFFF', border: '#000000',
+      timer: '#0057FF', success: '#00C853', danger: '#FF2D2D'
+    };
+  }
+
+  async _generateThemeReal(description) {
+    try {
+      const systemPrompt = 'You are a CSS color palette designer. Given a theme description, return ONLY a JSON object with these color keys: bg, surface, accent, text, heading, button, buttonText, border, timer, success, danger. All values must be valid hex colors. Make the palette visually cohesive and appropriate for a classroom game projected on a screen. Ensure good contrast between text and backgrounds.';
+
+      const message = await this.client.messages.create({
+        model: MODELS.haiku,
+        max_tokens: 512,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: `Generate a color palette for this theme: ${description}` }
+        ]
+      });
+
+      const text = message.content[0].text;
+
+      try {
+        return JSON.parse(text);
+      } catch {
+        // AI may wrap JSON in preamble — extract it
+        const match = text.match(/\{[\s\S]*\}/);
+        if (match) {
+          try {
+            return JSON.parse(match[0]);
+          } catch {
+            return this._generateThemeMock();
+          }
+        }
+        return this._generateThemeMock();
+      }
+    } catch (error) {
+      console.error('[AIService] generateTheme error:', error.message);
+      return this._generateThemeMock();
     }
   }
 

@@ -56,6 +56,12 @@ Framework for quickly building classroom games where:
 - **Loop/round system** — any phase can loop back to an earlier phase N times via `loopBack`/`loopCount` config fields
 - **Screen control** — `hostTemplate`/`playerTemplate` for custom content, `hostShow`/`playerShow` for toggling built-in UI elements per phase
 - **Announce phase fixed** — host and player screens now have announce sections with message, timer, continue button
+- **Keith Haring editor restyle** — bold black borders, flat colors, warm canvas, energy marks on hover
+- **Game templates** — 5 pre-built templates (blank, simple poll, creative writing, elimination game, quiz show) accessible via template picker modal
+- **Live preview** — side-by-side host/player screen mockups in editor, respects hostShow/playerShow toggles
+- **Game themes** — pre-built themes (pop-art, arcade, ocean, sunset) + AI-generated custom palettes, applied via CSS custom properties
+- **Leaderboard phase** — shows scores/rankings with medal emojis, personal rank highlight on player screen, optional timer auto-advance
+- **Reveal-one phase** — host reveals items incrementally (countdown style), items animate in on player screens, reconnection support
 - **223 tests passing** (`npm test`)
 - Simulator script for automated playtesting: `node scripts/simulate-corn-story.js`
 
@@ -88,7 +94,7 @@ Framework for quickly building classroom games where:
 - **AI mixed format:** AI sometimes returns `[playerId, responseText]` in same array. Hook deduplicates within groups — only eliminates if 2+ unique players resolve.
 - **bottom-percent input field:** Eliminate phase reads scores from `phase.input` or `phase.from` (config uses `input`).
 
-### 12 Phase Types Defined
+### 14 Phase Types Defined
 1. `lobby` — Wait for players to join
 2. `collect` — Gather text responses from players
 3. `ai-process` — Send data to AI for processing
@@ -100,7 +106,9 @@ Framework for quickly building classroom games where:
 9. `announce` — Display a message to everyone (round intros, instructions)
 10. `collect-choice` — Players pick from predefined choices
 11. `ai-eliminate` — AI judges answers and eliminates rule-breakers
-12. `end` — Game over, clean up
+12. `leaderboard` — Show scores and rankings with personal highlight
+13. `reveal-one` — Host reveals items one-by-one (countdown style)
+14. `end` — Game over, clean up
 
 ### 6 AI Task Types Defined
 - `summarize` — Combine responses into insight (Haiku)

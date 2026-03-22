@@ -6,6 +6,7 @@ var draggedPhaseId = null;
 var didDrag = false;
 var isDirty = false;
 var aiIssues = {};
+var previewVisible = false;
 
 // --- Constants ---
 
@@ -15,8 +16,8 @@ var PHASE_CATALOG = {
     icon: '\u231B',
     friendlyName: 'Waiting Room',
     description: 'Players join and wait for the teacher to start',
-    color: '#1976d2',
-    bg: '#e3f2fd',
+    color: '#0057FF',
+    bg: '#BBDEFB',
     detailField: null,
     host: 'Player list, player count, Start Game button',
     player: '"Waiting for game to start" message',
@@ -26,8 +27,8 @@ var PHASE_CATALOG = {
     icon: '\u270D\uFE0F',
     friendlyName: 'Ask Players',
     description: 'Players type and submit a text response',
-    color: '#388e3c',
-    bg: '#e8f5e9',
+    color: '#00C853',
+    bg: '#C8E6C9',
     detailField: 'prompt',
     host: 'Prompt text, submission counter, Close Submissions button',
     player: 'Prompt text, text input field, Submit button',
@@ -37,8 +38,8 @@ var PHASE_CATALOG = {
     icon: '\u2728',
     friendlyName: 'AI Does Something',
     description: 'AI reads player answers and creates a result',
-    color: '#7b1fa2',
-    bg: '#f3e5f5',
+    color: '#AA00FF',
+    bg: '#E1BEE7',
     detailField: 'task',
     host: '"Processing\u2026" spinner (auto-advances)',
     player: '"Processing\u2026" spinner',
@@ -48,8 +49,8 @@ var PHASE_CATALOG = {
     icon: '\u2611\uFE0F',
     friendlyName: 'Players Vote',
     description: 'Players vote on choices (pick-one or head-to-head)',
-    color: '#f57c00',
-    bg: '#fff3e0',
+    color: '#FF6D00',
+    bg: '#FFE0B2',
     detailField: 'mode',
     host: 'Vote counter, Close Voting button',
     player: 'Voting UI with choices, Submit Vote button',
@@ -59,8 +60,8 @@ var PHASE_CATALOG = {
     icon: '\u274C',
     friendlyName: 'Eliminate Players',
     description: 'Remove a percentage of players based on scores',
-    color: '#d32f2f',
-    bg: '#ffebee',
+    color: '#FF2D2D',
+    bg: '#FFCDD2',
     detailField: 'method',
     host: 'Eliminated player names, remaining count',
     player: '"You were eliminated" or "You survived!"',
@@ -70,8 +71,8 @@ var PHASE_CATALOG = {
     icon: '\uD83D\uDCE2',
     friendlyName: 'Show Everyone',
     description: 'Display content to both host and players',
-    color: '#0097a7',
-    bg: '#e0f7fa',
+    color: '#0057FF',
+    bg: '#B2EBF2',
     detailField: 'template',
     host: 'Rendered template content, Advance button',
     player: 'Rendered template content',
@@ -81,8 +82,8 @@ var PHASE_CATALOG = {
     icon: '\uD83D\uDC41\uFE0F',
     friendlyName: 'Teacher Reviews',
     description: 'Teacher sees content and can approve or reject',
-    color: '#f9a825',
-    bg: '#fffde7',
+    color: '#FFD600',
+    bg: '#FFF9C4',
     detailField: 'template',
     host: 'Content preview, Approve / Reject buttons',
     player: '"Waiting for teacher\u2026" message',
@@ -92,8 +93,8 @@ var PHASE_CATALOG = {
     icon: '\uD83C\uDFC6',
     friendlyName: 'Crown a Winner',
     description: 'Declare the winner based on scores',
-    color: '#ff8f00',
-    bg: '#fff8e1',
+    color: '#FF6D00',
+    bg: '#FFE0B2',
     detailField: null,
     host: 'Winner name, final standings, Advance button',
     player: 'Winner announcement, standings',
@@ -103,8 +104,8 @@ var PHASE_CATALOG = {
     icon: '\uD83D\uDCE3',
     friendlyName: 'Show a Message',
     description: 'Display a message to everyone (round intros, instructions)',
-    color: '#0097a7',
-    bg: '#e0f7fa',
+    color: '#0057FF',
+    bg: '#B2EBF2',
     detailField: 'message',
     host: 'Message text, Continue button (or auto-advance with timer)',
     player: 'Message text',
@@ -114,8 +115,8 @@ var PHASE_CATALOG = {
     icon: '\uD83D\uDCCB',
     friendlyName: 'Multiple Choice',
     description: 'Players pick from predefined choices',
-    color: '#2e7d32',
-    bg: '#e8f5e9',
+    color: '#00C853',
+    bg: '#C8E6C9',
     detailField: 'prompt',
     host: 'Question text, submission counter, Close Submissions button',
     player: 'Question text, choice buttons',
@@ -125,19 +126,41 @@ var PHASE_CATALOG = {
     icon: '\uD83E\uDD16\u274C',
     friendlyName: 'AI Eliminates',
     description: 'AI judges answers and eliminates rule-breakers',
-    color: '#c62828',
-    bg: '#ffebee',
+    color: '#FF2D2D',
+    bg: '#FFCDD2',
     detailField: 'instruction',
     host: 'Elimination results with reasons',
     player: '"You were eliminated" or "You survived!"',
     ai: 'Reads answers, applies rules, decides who to eliminate'
   },
+  'leaderboard': {
+    icon: '\uD83D\uDCCA',
+    friendlyName: 'Leaderboard',
+    description: 'Show scores and rankings to everyone',
+    color: '#FFD600',
+    bg: '#FFF9C4',
+    detailField: 'from',
+    host: 'Full standings with scores, Continue button',
+    player: 'Personal rank highlight, full standings',
+    ai: null
+  },
+  'reveal-one': {
+    icon: '\uD83C\uDFAD',
+    friendlyName: 'Reveal One-by-One',
+    description: 'Host reveals items incrementally (countdown style)',
+    color: '#FF4081',
+    bg: '#FCE4EC',
+    detailField: 'from',
+    host: 'Reveal Next button, items list, counter',
+    player: 'Items appear one at a time as host reveals',
+    ai: null
+  },
   'end': {
     icon: '\uD83C\uDFC1',
     friendlyName: 'Game Over',
     description: 'End the game and show a final message',
-    color: '#757575',
-    bg: '#f5f5f5',
+    color: '#555',
+    bg: '#E0E0E0',
     detailField: 'message',
     host: 'Game over message',
     player: 'Game over message',
@@ -163,6 +186,12 @@ var settingsName = document.getElementById('game-name');
 var settingsDescription = document.getElementById('game-description');
 var settingsMinPlayers = document.getElementById('game-min-players');
 var settingsMaxPlayers = document.getElementById('game-max-players');
+var settingsTheme = document.getElementById('game-theme');
+var customThemeSection = document.getElementById('custom-theme-section');
+var customThemeDesc = document.getElementById('custom-theme-desc');
+var generateThemeBtn = document.getElementById('generate-theme-btn');
+var themePreview = document.getElementById('theme-preview');
+var themePreviewSwatches = document.getElementById('theme-preview-swatches');
 var canvasLoading = document.getElementById('canvas-loading');
 var canvasError = document.getElementById('canvas-error');
 var phaseCanvas = document.getElementById('phase-canvas');
@@ -197,11 +226,53 @@ function init() {
   reviewCloseBtn.addEventListener('click', function () { reviewPanel.hidden = true; });
   closePanelBtn.addEventListener('click', deselectPhase);
 
+  // Live preview toggle
+  var togglePreviewBtn = document.getElementById('toggle-preview-btn');
+  if (togglePreviewBtn) {
+    togglePreviewBtn.addEventListener('click', function () {
+      previewVisible = !previewVisible;
+      var container = document.getElementById('live-preview-container');
+      if (previewVisible) {
+        container.classList.remove('hidden');
+        togglePreviewBtn.textContent = 'Hide Preview';
+        if (selectedPhaseId) renderLivePreview(selectedPhaseId);
+      } else {
+        container.classList.add('hidden');
+        togglePreviewBtn.textContent = 'Show Preview';
+      }
+    });
+  }
+
   // Update config when settings change
   settingsName.addEventListener('input', readSettings);
   settingsDescription.addEventListener('input', readSettings);
   settingsMinPlayers.addEventListener('input', readSettings);
   settingsMaxPlayers.addEventListener('input', readSettings);
+
+  // Populate theme select
+  if (settingsTheme && window.GAME_THEMES) {
+    var themes = window.GAME_THEMES;
+    for (var key in themes) {
+      var opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = themes[key].icon + ' ' + themes[key].name;
+      settingsTheme.appendChild(opt);
+    }
+    // Add custom option
+    var customOpt = document.createElement('option');
+    customOpt.value = 'custom';
+    customOpt.textContent = '\uD83C\uDFA8 Custom (AI-generated)';
+    settingsTheme.appendChild(customOpt);
+
+    settingsTheme.addEventListener('change', handleThemeChange);
+  }
+
+  if (generateThemeBtn) {
+    generateThemeBtn.addEventListener('click', generateCustomTheme);
+  }
+  if (customThemeDesc) {
+    customThemeDesc.addEventListener('input', function () { isDirty = true; });
+  }
 }
 
 async function loadGame(id) {
@@ -220,6 +291,9 @@ async function loadGame(id) {
 }
 
 function createBlankConfig() {
+  if (window.GAME_TEMPLATES && window.GAME_TEMPLATES.blank) {
+    return window.GAME_TEMPLATES.blank.config();
+  }
   return {
     name: 'New Game',
     description: '',
@@ -247,6 +321,29 @@ function renderSettings() {
   settingsMinPlayers.value = gameConfig.minPlayers || '';
   settingsMaxPlayers.value = gameConfig.maxPlayers || '';
   headerGameName.textContent = gameConfig.name || 'Untitled Game';
+
+  // Theme
+  if (settingsTheme) {
+    var theme = gameConfig.theme;
+    if (!theme) {
+      settingsTheme.value = '';
+      customThemeSection.hidden = true;
+      themePreview.hidden = true;
+    } else if (typeof theme === 'string') {
+      settingsTheme.value = theme;
+      customThemeSection.hidden = true;
+      renderThemeSwatches(theme);
+    } else if (typeof theme === 'object' && theme.name === 'custom') {
+      settingsTheme.value = 'custom';
+      customThemeSection.hidden = false;
+      customThemeDesc.value = theme.description || '';
+      if (theme.colors) {
+        renderThemeSwatches(theme);
+      } else {
+        themePreview.hidden = true;
+      }
+    }
+  }
 }
 
 function readSettings() {
@@ -256,6 +353,96 @@ function readSettings() {
   gameConfig.minPlayers = settingsMinPlayers.value ? parseInt(settingsMinPlayers.value) : null;
   gameConfig.maxPlayers = settingsMaxPlayers.value ? parseInt(settingsMaxPlayers.value) : null;
   headerGameName.textContent = gameConfig.name;
+}
+
+// --- Theme ---
+function handleThemeChange() {
+  isDirty = true;
+  var value = settingsTheme.value;
+
+  if (!value) {
+    delete gameConfig.theme;
+    customThemeSection.hidden = true;
+    themePreview.hidden = true;
+  } else if (value === 'custom') {
+    var existingDesc = '';
+    if (gameConfig.theme && typeof gameConfig.theme === 'object') {
+      existingDesc = gameConfig.theme.description || '';
+    }
+    gameConfig.theme = { name: 'custom', description: existingDesc, colors: null };
+    customThemeSection.hidden = false;
+    customThemeDesc.value = existingDesc;
+    themePreview.hidden = true;
+  } else {
+    gameConfig.theme = value;
+    customThemeSection.hidden = true;
+    renderThemeSwatches(value);
+  }
+}
+
+async function generateCustomTheme() {
+  var desc = customThemeDesc.value.trim();
+  if (!desc) {
+    alert('Please describe your theme first.');
+    return;
+  }
+
+  generateThemeBtn.disabled = true;
+  generateThemeBtn.textContent = 'Generating...';
+
+  try {
+    var response = await fetch('/api/games/generate-theme', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc })
+    });
+
+    if (!response.ok) {
+      var err = await response.json();
+      alert('Failed: ' + (err.error || 'Unknown error'));
+      return;
+    }
+
+    var result = await response.json();
+    isDirty = true;
+    gameConfig.theme = { name: 'custom', description: desc, colors: result.colors };
+    renderThemeSwatches(gameConfig.theme);
+  } catch (error) {
+    alert('Failed: ' + error.message);
+  } finally {
+    generateThemeBtn.disabled = false;
+    generateThemeBtn.textContent = 'Generate Colors';
+  }
+}
+
+function renderThemeSwatches(theme) {
+  if (!themePreviewSwatches) return;
+
+  var colors = null;
+  if (typeof theme === 'string' && window.GAME_THEMES && window.GAME_THEMES[theme]) {
+    colors = window.GAME_THEMES[theme].colors;
+  } else if (typeof theme === 'object' && theme.colors) {
+    colors = theme.colors;
+  }
+
+  if (!colors) {
+    themePreview.hidden = true;
+    return;
+  }
+
+  themePreview.hidden = false;
+  themePreviewSwatches.innerHTML = '';
+
+  var keys = ['bg', 'surface', 'accent', 'text', 'heading', 'button', 'buttonText', 'border', 'timer', 'success', 'danger'];
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    if (!colors[key]) continue;
+    var swatch = document.createElement('span');
+    swatch.className = 'theme-swatch';
+    swatch.style.background = colors[key];
+    swatch.title = key + ': ' + colors[key];
+    themePreviewSwatches.appendChild(swatch);
+  }
 }
 
 // --- Canvas ---
@@ -582,6 +769,8 @@ function selectPhase(phaseId) {
 function deselectPhase() {
   selectedPhaseId = null;
   phasePanel.classList.add('hidden');
+  var previewSection = document.getElementById('live-preview-section');
+  if (previewSection) previewSection.classList.add('hidden');
   renderCanvas();
 }
 
@@ -919,6 +1108,38 @@ function renderPhaseConfig(phaseId) {
     });
   }
 
+  if (type === 'leaderboard') {
+    addSectionHeader('Data');
+    addDataRefDropdown('Scores from', 'Which step\'s scores to display as a leaderboard', 'phase-from', phaseId, phase.from, function (value) {
+      phase.from = value;
+    });
+    addSectionHeader('Display');
+    addSelectWithHelp('Style', 'How many players to show', 'phase-style',
+      [
+        { value: 'full', label: 'Full standings (all players)' },
+        { value: 'top3', label: 'Top 3 only' }
+      ],
+      phase.style || 'full', function (value) {
+        phase.style = value;
+      }
+    );
+    addFieldWithHelp('Auto-advance timer (seconds)', 'Leave empty to require host to click Continue', 'number', 'phase-timer', phase.timer, false, function (value) {
+      phase.timer = value;
+    });
+  }
+
+  if (type === 'reveal-one') {
+    addSectionHeader('Data');
+    addDataRefDropdown('Items from', 'Where to get the list of items to reveal one-by-one', 'phase-from', phaseId, phase.from, function (value) {
+      phase.from = value;
+    });
+    addSectionHeader('Display');
+    addTextAreaWithHelp('Title message', 'Shown above the reveal area. Use {{phaseId.field}} for data.', 'phase-message', phase.message, 'e.g. And the answers are...', function (value) {
+      phase.message = value;
+      renderCanvas();
+    });
+  }
+
   if (type === 'end') {
     addSectionHeader('What everyone sees');
     addFieldWithHelp('Final message', 'Shown to all players when the game ends', 'text', 'phase-message', phase.message, false, function (value) {
@@ -1034,6 +1255,9 @@ function renderPhaseConfig(phaseId) {
   });
   deleteSection.appendChild(deleteBtn);
   phaseConfigForm.appendChild(deleteSection);
+
+  // Update live preview
+  renderLivePreview(phaseId);
 }
 
 // --- Form field helpers ---
@@ -1252,6 +1476,8 @@ function buildDataRefOptions(currentPhaseId) {
     } else if (p.type === 'ai-eliminate') {
       options.push({ value: pid + '.survivors', label: 'Survivors from ' + cat.friendlyName + ' (' + pid + ')' });
       options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + cat.friendlyName + ' (' + pid + ')' });
+    } else if (p.type === 'leaderboard') {
+      options.push({ value: pid + '.standings', label: 'Rankings from ' + cat.friendlyName + ' (' + pid + ')' });
     }
   }
 
@@ -1386,7 +1612,7 @@ function addToggleCheckboxes(label, helpText, phase, field, toggleNames) {
 // --- Phase management ---
 
 // Picker modal: which phase types can be added
-var ADDABLE_PHASE_TYPES = ['collect', 'collect-choice', 'ai-process', 'ai-eliminate', 'vote', 'eliminate', 'announce', 'reveal', 'preview', 'winner'];
+var ADDABLE_PHASE_TYPES = ['collect', 'collect-choice', 'ai-process', 'ai-eliminate', 'vote', 'eliminate', 'announce', 'reveal', 'preview', 'winner', 'leaderboard', 'reveal-one'];
 
 function addPhase() {
   showPhasePickerModal();
@@ -1587,7 +1813,9 @@ var REQUIRED_FIELDS = {
   eliminate: ['method'],
   announce: ['message'],
   preview: ['approveNext', 'rejectNext'],
-  winner: ['from']
+  winner: ['from'],
+  leaderboard: ['from'],
+  'reveal-one': ['from']
 };
 
 var VALID_ENUMS = {
@@ -1596,7 +1824,8 @@ var VALID_ENUMS = {
   mode: { types: ['vote'], values: ['pick-one', 'head-to-head'] },
   method: { types: ['eliminate'], values: ['bottom-percent', 'hook'] },
   format: { types: ['ai-process'], values: ['text', 'json'] },
-  task: { types: ['ai-process'], values: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'] }
+  task: { types: ['ai-process'], values: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'] },
+  style: { types: ['leaderboard'], values: ['full', 'top3'] }
 };
 
 var DATA_REF_FIELDS = ['input', 'candidates', 'content'];
@@ -1612,6 +1841,8 @@ var VALID_HOST_TOGGLES = {
   preview: ['content', 'responses', 'approveButton', 'rejectButton'],
   announce: ['message', 'continueButton', 'timer'],
   winner: ['name', 'standings', 'endButton'],
+  leaderboard: ['standings', 'continueButton', 'timer'],
+  'reveal-one': ['message', 'revealButton', 'counter', 'timer'],
   end: ['message', 'playAgainButton']
 };
 
@@ -1625,6 +1856,8 @@ var VALID_PLAYER_TOGGLES = {
   reveal: ['content'],
   announce: ['message', 'timer'],
   winner: ['name', 'details', 'standings'],
+  leaderboard: ['rank', 'standings'],
+  'reveal-one': ['message', 'items'],
   end: ['message']
 };
 
@@ -1652,7 +1885,11 @@ var TOGGLE_FRIENDLY_NAMES = {
   name: 'Winner name',
   standings: 'Standings',
   endButton: 'End Game button',
-  playAgainButton: 'Play Again button'
+  playAgainButton: 'Play Again button',
+  rank: 'Personal rank',
+  items: 'Revealed items',
+  revealButton: 'Reveal Next button',
+  counter: 'Item counter'
 };
 
 function validateConfig() {
@@ -2094,6 +2331,235 @@ function showReviewPanel(result) {
   }
 
   reviewContent.appendChild(list);
+}
+
+// --- Live Preview ---
+
+function escapeHtml(text) {
+  var div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+function previewEl(toggleName, label, text, showList) {
+  var hidden = showList && showList.indexOf(toggleName) === -1;
+  var html = '<div class="preview-element' + (hidden ? ' preview-hidden' : '') + '">';
+  html += '<div class="preview-element-label">' + escapeHtml(label) + '</div>';
+  if (text) {
+    html += '<div class="preview-element-text">' + escapeHtml(text) + '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function previewBtn(toggleName, text, showList) {
+  var hidden = showList && showList.indexOf(toggleName) === -1;
+  return '<div class="' + (hidden ? 'preview-hidden' : '') + '"><span class="preview-btn-mockup">' + escapeHtml(text) + '</span></div>';
+}
+
+function previewInput(toggleName, placeholder, showList) {
+  var hidden = showList && showList.indexOf(toggleName) === -1;
+  return '<div class="preview-input-mockup' + (hidden ? ' preview-hidden' : '') + '">' + escapeHtml(placeholder) + '</div>';
+}
+
+function buildPreviewHTML(phase, screen) {
+  var type = phase.type;
+  var html = '';
+  var showList = screen === 'host' ? phase.hostShow : phase.playerShow;
+  var templateText = screen === 'host' ? phase.hostTemplate : phase.playerTemplate;
+
+  // Custom template at top
+  if (templateText) {
+    html += '<div class="preview-template-text">' + escapeHtml(templateText) + '</div>';
+  }
+
+  if (type === 'lobby') {
+    if (screen === 'host') {
+      html += previewEl('counter', 'Players', '3 players joined', null);
+      html += previewBtn('startButton', 'Start Game', null);
+    } else {
+      html += previewEl('message', 'Status', 'Waiting for the game to start...', null);
+    }
+  }
+
+  if (type === 'collect') {
+    if (screen === 'host') {
+      html += previewEl('prompt', 'Question', phase.prompt || 'Your question here', showList);
+      html += previewEl('counter', 'Submissions', '0 / 3 submitted', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+      html += previewBtn('closeButton', 'Close Submissions', showList);
+    } else {
+      html += previewEl('prompt', 'Question', phase.prompt || 'Your question here', showList);
+      html += previewInput('input', 'Type your answer...', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+      html += previewBtn('submitButton', 'Submit', showList);
+    }
+  }
+
+  if (type === 'collect-choice') {
+    if (screen === 'host') {
+      html += previewEl('prompt', 'Question', phase.prompt || 'Your question here', showList);
+      html += previewEl('counter', 'Submissions', '0 / 3 submitted', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+      html += previewBtn('closeButton', 'Close Submissions', showList);
+    } else {
+      html += previewEl('prompt', 'Question', phase.prompt || 'Your question here', showList);
+      var choices = Array.isArray(phase.choices) ? phase.choices : [];
+      var choicesHtml = '';
+      for (var i = 0; i < choices.length && i < 4; i++) {
+        choicesHtml += '<span class="preview-btn-mockup">' + escapeHtml(choices[i] || 'Choice') + '</span> ';
+      }
+      if (choicesHtml) {
+        var hidden = showList && showList.indexOf('choices') === -1;
+        html += '<div class="' + (hidden ? 'preview-hidden' : '') + '">' + choicesHtml + '</div>';
+      }
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+    }
+  }
+
+  if (type === 'ai-process') {
+    if (screen === 'host') {
+      html += previewEl('message', 'Status', 'Processing... (auto-advances)', showList);
+    } else {
+      html += previewEl('message', 'Status', 'AI is thinking...', showList);
+    }
+  }
+
+  if (type === 'vote') {
+    if (screen === 'host') {
+      html += previewEl('mode', 'Mode', (phase.mode || 'pick-one') + ' voting', showList);
+      html += previewEl('counter', 'Votes', '0 / 3 voted', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+      html += previewBtn('closeButton', 'Close Voting', showList);
+    } else {
+      html += previewEl('title', 'Question', phase.question || 'Vote for your favorite', showList);
+      html += previewEl('options', 'Choices', 'Option A   Option B', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+      html += previewEl('progress', 'Progress', 'Match 1 of 3', showList);
+    }
+  }
+
+  if (type === 'eliminate') {
+    if (screen === 'host') {
+      html += previewEl('eliminated', 'Eliminated', 'Player1, Player2', showList);
+      html += previewEl('remaining', 'Remaining', '3 players left', showList);
+      html += previewBtn('continueButton', 'Continue', showList);
+    } else {
+      html += previewEl('details', 'Result', 'You survived! / You were eliminated', showList);
+    }
+  }
+
+  if (type === 'ai-eliminate') {
+    if (screen === 'host') {
+      html += previewEl('eliminated', 'Eliminated', 'Player1 (broke the rule)', showList);
+      html += previewEl('remaining', 'Remaining', '3 players left', showList);
+    } else {
+      html += previewEl('details', 'Result', 'You survived! / You were eliminated', showList);
+    }
+  }
+
+  if (type === 'announce') {
+    if (screen === 'host') {
+      html += previewEl('message', 'Message', phase.message || 'Your announcement here', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's auto-advance', showList);
+      html += previewBtn('continueButton', 'Continue', showList);
+    } else {
+      html += previewEl('message', 'Message', phase.message || 'Your announcement here', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's', showList);
+    }
+  }
+
+  if (type === 'reveal') {
+    if (screen === 'host') {
+      html += previewEl('content', 'Content', phase.template || '(template content)', showList);
+      html += previewEl('responses', 'Responses', 'Player answers shown here', showList);
+      html += previewBtn('continueButton', 'Next', showList);
+    } else {
+      html += previewEl('content', 'Content', phase.template || '(template content)', showList);
+    }
+  }
+
+  if (type === 'preview') {
+    if (screen === 'host') {
+      html += previewEl('content', 'Content', phase.template || '(AI content for review)', showList);
+      html += previewEl('responses', 'Responses', 'Player answers shown here', showList);
+      html += previewBtn('approveButton', 'Approve', showList);
+      html += previewBtn('rejectButton', 'Reject', showList);
+    } else {
+      html += previewEl('message', 'Status', 'Waiting for teacher to review...', null);
+    }
+  }
+
+  if (type === 'winner') {
+    if (screen === 'host') {
+      html += previewEl('name', 'Winner', 'Player1!', showList);
+      html += previewEl('standings', 'Standings', '1st: Player1, 2nd: Player2...', showList);
+      html += previewBtn('endButton', 'End Game', showList);
+    } else {
+      html += previewEl('name', 'Winner', 'Player1!', showList);
+      html += previewEl('details', 'Details', 'Congratulations!', showList);
+      html += previewEl('standings', 'Standings', '1st: Player1, 2nd: Player2...', showList);
+    }
+  }
+
+  if (type === 'leaderboard') {
+    if (screen === 'host') {
+      html += previewEl('standings', 'Rankings', '1st Player1 — 10pts, 2nd Player2 — 7pts...', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's auto-advance', showList);
+      html += previewBtn('continueButton', 'Continue', showList);
+    } else {
+      html += previewEl('rank', 'Your Rank', '#2 — YourName', showList);
+      html += previewEl('standings', 'Rankings', '1st Player1 — 10pts, 2nd Player2 — 7pts...', showList);
+    }
+  }
+
+  if (type === 'reveal-one') {
+    if (screen === 'host') {
+      html += previewEl('message', 'Title', phase.message || 'Revealing...', showList);
+      html += previewEl('counter', 'Counter', '0 / 5 revealed', showList);
+      html += previewBtn('revealButton', 'Reveal Next', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's', showList);
+    } else {
+      html += previewEl('message', 'Title', phase.message || 'Revealing...', showList);
+      html += previewEl('items', 'Items', 'Items appear here one at a time', showList);
+    }
+  }
+
+  if (type === 'end') {
+    if (screen === 'host') {
+      html += previewEl('message', 'Message', phase.message || 'Game Over', showList);
+      html += previewBtn('playAgainButton', 'Play Again', showList);
+    } else {
+      html += previewEl('message', 'Message', phase.message || 'Game Over', showList);
+    }
+  }
+
+  if (!html) {
+    html = '<div class="preview-element"><div class="preview-element-text">No preview available</div></div>';
+  }
+
+  return html;
+}
+
+function renderLivePreview(phaseId) {
+  var previewSection = document.getElementById('live-preview-section');
+  if (!previewSection) return;
+
+  var phase = gameConfig.phases[phaseId];
+  if (!phase) {
+    previewSection.classList.add('hidden');
+    return;
+  }
+
+  previewSection.classList.remove('hidden');
+
+  if (!previewVisible) return;
+
+  var hostContent = document.getElementById('preview-host-content');
+  var playerContent = document.getElementById('preview-player-content');
+
+  if (hostContent) hostContent.innerHTML = buildPreviewHTML(phase, 'host');
+  if (playerContent) playerContent.innerHTML = buildPreviewHTML(phase, 'player');
 }
 
 // --- Start ---

@@ -320,6 +320,119 @@ async function handlePhase(code, room) {
       break;
     }
 
+    case 'leaderboard': {
+      const rawScores = engine.resolve(phase.from) || {};
+      const style = phase.style || 'full';
+
+      // Build standings array — scores can be object { playerId: score } or array
+      let standings = [];
+      if (Array.isArray(rawScores)) {
+        standings = rawScores.map((entry, i) => ({
+          rank: i + 1,
+          playerId: entry.playerId || entry.id,
+          name: (engine.players.find(entry.playerId || entry.id) || {}).name || 'Unknown',
+          score: entry.score || 0
+        }));
+      } else if (typeof rawScores === 'object') {
+        standings = Object.entries(rawScores).map(([pid, score]) => ({
+          playerId: pid,
+          name: (engine.players.find(pid) || {}).name || pid,
+          score: typeof score === 'number' ? score : 0
+        }));
+      }
+
+      // Sort by score descending
+      standings.sort((a, b) => b.score - a.score);
+      standings.forEach((s, i) => { s.rank = i + 1; });
+
+      const display = style === 'top3' ? standings.slice(0, 3) : standings;
+      engine.storePhaseData(phase.id, { standings, style });
+      const scLb = resolveScreenControl(phase, engine);
+
+      console.log(`[handlePhase] Leaderboard: ${standings.length} players, style=${style}`);
+
+      // Send to host
+      if (hostSocketId) {
+        io.to(hostSocketId).emit('leaderboard', {
+          standings: display, allStandings: standings, style,
+          timer: phase.timer || null,
+          hostTemplate: scLb.hostTemplate, show: scLb.hostShow
+        });
+      }
+
+      // Send to players — each gets their own rank highlighted
+      for (const player of engine.players.list()) {
+        io.to(player.id).emit('leaderboard', {
+          standings: display, allStandings: standings, style,
+          timer: phase.timer || null,
+          playerTemplate: scLb.playerTemplate, show: scLb.playerShow
+        });
+      }
+
+      // Auto-advance with timer
+      if (phase.timer) {
+        const lbNextId = getNextPhaseId(engine, phase);
+        if (lbNextId) {
+          setTimeout(async () => {
+            engine.transition(lbNextId);
+            await handlePhase(code, room);
+          }, phase.timer * 1000);
+        }
+      }
+      break;
+    }
+
+    case 'reveal-one': {
+      let items = engine.resolve(phase.from) || [];
+
+      // Normalize to array
+      if (!Array.isArray(items)) {
+        if (typeof items === 'object') {
+          items = Object.entries(items).map(([key, val]) => {
+            if (typeof val === 'object' && val.text) return val.text;
+            if (typeof val === 'object' && val.name) return val.name + ': ' + (val.text || val.response || JSON.stringify(val));
+            return String(val);
+          });
+        } else {
+          items = [String(items)];
+        }
+      }
+      // Normalize array items to strings
+      items = items.map(item => {
+        if (typeof item === 'string') return item;
+        if (item && item.text) return item.text;
+        if (item && item.name && item.response) return item.name + ': ' + item.response;
+        return JSON.stringify(item);
+      });
+
+      const roMessage = phase.message ? resolveTemplate(phase.message, engine) : 'Reveal Time!';
+
+      room.revealOneState = { phaseId: phase.id, items, revealed: 0, message: roMessage };
+      engine.storePhaseData(phase.id, { items, revealed: 0 });
+      const scRo = resolveScreenControl(phase, engine);
+
+      console.log(`[handlePhase] Reveal-one: ${items.length} items to reveal`);
+
+      // Send start to host
+      if (hostSocketId) {
+        io.to(hostSocketId).emit('reveal-one-start', {
+          message: roMessage, total: items.length, revealed: 0,
+          timer: phase.timer || null,
+          hostTemplate: scRo.hostTemplate, show: scRo.hostShow
+        });
+      }
+
+      // Send start to players
+      for (const player of engine.players.list()) {
+        io.to(player.id).emit('reveal-one-start', {
+          message: roMessage, total: items.length, revealed: 0,
+          timer: phase.timer || null,
+          playerTemplate: scRo.playerTemplate, show: scRo.playerShow
+        });
+      }
+      break;
+    }
+
     case 'preview': {
       let content = '';
       if (phase.template) {
@@ -727,6 +840,41 @@ function sendCurrentState(socket, code, room) {
       socket.emit('waiting', { message: 'Game in progress...' });
       break;
 
+    case 'leaderboard': {
+      const lbData = room.engine.getPhaseData(phase.id);
+      if (lbData) {
+        const lbStyle = lbData.style || 'full';
+        const lbDisplay = lbStyle === 'top3' ? lbData.standings.slice(0, 3) : lbData.standings;
+        socket.emit('leaderboard', {
+          standings: lbDisplay, allStandings: lbData.standings, style: lbStyle,
+          timer: null,
+          playerTemplate: rsc.playerTemplate, show: rsc.playerShow
+        });
+      }
+      break;
+    }
+
+    case 'reveal-one': {
+      const roState = room.revealOneState;
+      if (roState) {
+        socket.emit('reveal-one-start', {
+          message: roState.message, total: roState.items.length, revealed: roState.revealed,
+          timer: null,
+          playerTemplate: rsc.playerTemplate, show: rsc.playerShow
+        });
+        // Send already-revealed items
+        for (let ri = 0; ri < roState.revealed; ri++) {
+          socket.emit('reveal-one-item', {
+            item: roState.items[ri], index: ri + 1, total: roState.items.length
+          });
+        }
+        if (roState.revealed >= roState.items.length) {
+          socket.emit('reveal-one-complete', {});
+        }
+      }
+      break;
+    }
+
     case 'end':
       socket.emit('game-ended', { message: phase.message || 'Game over!', ...rsc });
       break;
@@ -762,6 +910,7 @@ app.get('/', (req, res) => {
 
 app.use('/host', express.static(join(__dirname, 'screens/host')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
+app.use('/shared', express.static(join(__dirname, 'screens/shared')));
 app.use('/prototype', express.static(join(__dirname, 'screens/prototype')));
 
 app.get('/designer/edit', (req, res) => {
@@ -862,6 +1011,20 @@ app.post('/api/games/review', async (req, res) => {
   }
 });
 
+app.post('/api/games/generate-theme', async (req, res) => {
+  try {
+    const { description } = req.body;
+    if (!description) {
+      return res.status(400).json({ error: 'Missing description' });
+    }
+    const colors = await aiService.generateTheme(description);
+    res.json({ colors });
+  } catch (error) {
+    console.log(`[api/games/generate-theme] Error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete('/api/games/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
@@ -922,7 +1085,7 @@ io.on('connection', (socket) => {
       roomToHost.set(code, socket.id);
       socket.join(code);
       console.log(`[create-room] Room ${code} created by ${socket.id} (game: ${selectedGame})`);
-      socket.emit('room-created', { code, game: config.name });
+      socket.emit('room-created', { code, game: config.name, theme: config.theme || null });
     } catch (error) {
       console.log(`[create-room] Error loading game "${selectedGame}": ${error.message}`);
       socket.emit('create-room-error', { message: error.message });
@@ -952,7 +1115,8 @@ io.on('connection', (socket) => {
         socket.join(code);
 
         const player = players.find(socket.id);
-        socket.emit('join-success', { name: player.name, reconnected: true });
+        const theme = room.engine ? (room.engine.config.theme || null) : null;
+        socket.emit('join-success', { name: player.name, reconnected: true, theme });
 
         const hostSocketId = roomToHost.get(code);
         if (hostSocketId) {
@@ -974,7 +1138,8 @@ io.on('connection', (socket) => {
       socket.join(code);
 
       console.log(`[join-room] ${player.name} (${socket.id}) joined room ${code}`);
-      socket.emit('join-success', { name: player.name });
+      const theme = room.engine ? (room.engine.config.theme || null) : null;
+      socket.emit('join-success', { name: player.name, theme });
 
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {
@@ -1192,6 +1357,30 @@ io.on('connection', (socket) => {
       }
     } catch (error) {
       console.log(`[advance-phase] Error: ${error.message}`);
+    }
+  });
+
+  socket.on('reveal-next', async ({ code }) => {
+    const room = roomManager.find(code);
+    if (!room || !room.revealOneState) return;
+
+    const state = room.revealOneState;
+    if (state.revealed >= state.items.length) return;
+
+    const item = state.items[state.revealed];
+    state.revealed++;
+    room.engine.storePhaseData(state.phaseId, { items: state.items, revealed: state.revealed });
+
+    console.log(`[reveal-next] Revealed item ${state.revealed}/${state.items.length} in room ${code}`);
+
+    // Send to everyone
+    io.to(code).emit('reveal-one-item', {
+      item, index: state.revealed, total: state.items.length
+    });
+
+    // If all revealed, send complete and allow advance
+    if (state.revealed >= state.items.length) {
+      io.to(code).emit('reveal-one-complete', {});
     }
   });
 

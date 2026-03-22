@@ -63,6 +63,20 @@ const announceMessage = document.getElementById('announce-message');
 const announceTimer = document.getElementById('announce-timer');
 const announceContinueBtn = document.getElementById('announce-continue-btn');
 
+// Elements - Leaderboard
+const leaderboardSection = document.getElementById('leaderboard-section');
+const leaderboardStandings = document.getElementById('leaderboard-standings');
+const leaderboardContinueBtn = document.getElementById('leaderboard-continue-btn');
+const leaderboardTimer = document.getElementById('leaderboard-timer');
+
+// Elements - Reveal-one
+const revealOneSection = document.getElementById('reveal-one-section');
+const revealOneMessage = document.getElementById('reveal-one-message');
+const revealOneCounter = document.getElementById('reveal-one-counter');
+const revealOneItems = document.getElementById('reveal-one-items');
+const revealOneNextBtn = document.getElementById('reveal-one-next-btn');
+const revealOneContinueBtn = document.getElementById('reveal-one-continue-btn');
+
 // Elements - End
 const endSection = document.getElementById('end-section');
 const playAgainBtn = document.getElementById('play-again-btn');
@@ -162,16 +176,33 @@ announceContinueBtn.addEventListener('click', () => {
   socket.emit('advance-phase', { code: currentRoomCode });
 });
 
+leaderboardContinueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
+});
+
+revealOneNextBtn.addEventListener('click', () => {
+  socket.emit('reveal-next', { code: currentRoomCode });
+});
+
+revealOneContinueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
+});
+
 playAgainBtn.addEventListener('click', () => {
   location.reload();
 });
 
 // --- Socket events - Room setup ---
 
-socket.on('room-created', ({ code, game }) => {
+socket.on('room-created', ({ code, game, theme }) => {
   currentRoomCode = code;
   roomCodeDisplay.textContent = code;
   gameNameDisplay.textContent = game || '';
+
+  // Apply game theme
+  if (theme && window.applyGameTheme) {
+    window.applyGameTheme(theme);
+  }
   gameSelectSection.hidden = true;
   roomCodeSection.hidden = false;
 
@@ -356,6 +387,69 @@ socket.on('announce', ({ message, timer, hostTemplate, hostShow }) => {
   }
 });
 
+socket.on('leaderboard', ({ standings, style, timer, hostTemplate, show }) => {
+  showSection(leaderboardSection);
+  applyTemplate(leaderboardSection, hostTemplate);
+  applyShow(show, {
+    standings: leaderboardStandings,
+    continueButton: leaderboardContinueBtn,
+    timer: leaderboardTimer
+  });
+
+  leaderboardStandings.innerHTML = '';
+  for (let i = 0; i < standings.length; i++) {
+    const s = standings[i];
+    const p = document.createElement('p');
+    const medal = i === 0 ? '\uD83E\uDD47 ' : i === 1 ? '\uD83E\uDD48 ' : i === 2 ? '\uD83E\uDD49 ' : '';
+    p.textContent = medal + '#' + s.rank + ' ' + s.name + ' \u2014 ' + s.score + ' pts';
+    leaderboardStandings.appendChild(p);
+  }
+
+  if (timer) {
+    if (!show || !show.includes('continueButton')) {
+      leaderboardContinueBtn.hidden = true;
+    }
+    startTimer(timer, leaderboardTimer, () => {});
+  } else {
+    if (!show) {
+      leaderboardContinueBtn.hidden = false;
+    }
+  }
+});
+
+socket.on('reveal-one-start', ({ message, total, revealed, timer, hostTemplate, show }) => {
+  showSection(revealOneSection);
+  revealOneMessage.textContent = message || 'Reveal Time!';
+  revealOneCounter.textContent = revealed + ' of ' + total + ' revealed';
+  revealOneItems.innerHTML = '';
+  revealOneNextBtn.hidden = revealed >= total;
+  revealOneContinueBtn.hidden = true;
+  applyTemplate(revealOneSection, hostTemplate);
+  applyShow(show, {
+    message: revealOneMessage,
+    revealButton: revealOneNextBtn,
+    counter: revealOneCounter
+  });
+});
+
+socket.on('reveal-one-item', ({ item, index, total }) => {
+  revealOneCounter.textContent = index + ' of ' + total + ' revealed';
+  const div = document.createElement('div');
+  div.className = 'reveal-one-item';
+  div.textContent = item;
+  revealOneItems.appendChild(div);
+
+  if (index >= total) {
+    revealOneNextBtn.hidden = true;
+    revealOneContinueBtn.hidden = false;
+  }
+});
+
+socket.on('reveal-one-complete', () => {
+  revealOneNextBtn.hidden = true;
+  revealOneContinueBtn.hidden = false;
+});
+
 socket.on('game-ended', ({ message, hostTemplate, hostShow } = {}) => {
   showSection(endSection);
   const endMsg = endSection.querySelector('.game-over');
@@ -478,7 +572,7 @@ function renderResponses(responses) {
 const allSections = [
   lobbySection, collectSection, processSection, previewSection,
   revealSection, voteSection, eliminationSection, winnerSection,
-  announceSection, endSection
+  announceSection, leaderboardSection, revealOneSection, endSection
 ];
 
 function showSection(el) {

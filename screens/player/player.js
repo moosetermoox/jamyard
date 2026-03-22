@@ -79,6 +79,17 @@ const winnerTitle = document.getElementById('winner-title');
 const winnerDetails = document.getElementById('winner-details');
 const standingsList = document.getElementById('standings-list');
 
+// Elements - Leaderboard
+const leaderboardSection = document.getElementById('leaderboard-section');
+const leaderboardRank = document.getElementById('leaderboard-rank');
+const leaderboardScore = document.getElementById('leaderboard-score');
+const leaderboardStandings = document.getElementById('leaderboard-standings');
+
+// Elements - Reveal-one
+const revealOneSection = document.getElementById('reveal-one-section');
+const revealOneMessage = document.getElementById('reveal-one-message');
+const revealOneItems = document.getElementById('reveal-one-items');
+
 // --- Button handlers ---
 
 // Prototype mode: auto-fill and auto-join
@@ -126,13 +137,18 @@ submitBtn.addEventListener('click', () => {
 
 // --- Socket events - Join ---
 
-socket.on('join-success', ({ name, reconnected }) => {
+socket.on('join-success', ({ name, reconnected, theme }) => {
   if (!reconnected) {
     showSection(waitingSection);
   }
   // If reconnected, sendCurrentState on the server will push the right section
   playerNameDisplay.textContent = name;
   currentPlayerName = name;
+
+  // Apply game theme
+  if (theme && window.applyGameTheme) {
+    window.applyGameTheme(theme);
+  }
 });
 
 // Auto-rejoin on socket reconnect
@@ -262,6 +278,75 @@ socket.on('announce', ({ message, timer, playerTemplate, playerShow }) => {
     });
   }
 });
+
+// --- Socket events - Leaderboard ---
+
+socket.on('leaderboard', ({ standings, allStandings, style, timer, playerTemplate, show }) => {
+  showSection(leaderboardSection);
+  applyTemplate(leaderboardSection, playerTemplate);
+  applyShow(show, {
+    rank: leaderboardRank,
+    standings: leaderboardStandings
+  });
+
+  // Find current player in standings
+  var myStanding = (allStandings || standings || []).find(function(s) { return s.playerId === socket.id; });
+  if (myStanding) {
+    leaderboardRank.textContent = '#' + myStanding.rank + ' — ' + myStanding.name;
+    leaderboardScore.textContent = myStanding.score + ' points';
+  } else {
+    leaderboardRank.textContent = '';
+    leaderboardScore.textContent = '';
+  }
+
+  // Render standings list
+  leaderboardStandings.innerHTML = '';
+  var list = allStandings || standings || [];
+  for (var i = 0; i < list.length; i++) {
+    var p = document.createElement('p');
+    var prefix = (i === 0 ? '\u{1F947} ' : i === 1 ? '\u{1F948} ' : i === 2 ? '\u{1F949} ' : (i + 1) + '. ');
+    p.textContent = prefix + list[i].name + ' \u2014 ' + list[i].score + ' points';
+    if (list[i].playerId === socket.id) {
+      p.className = 'leaderboard-highlight';
+    }
+    leaderboardStandings.appendChild(p);
+  }
+});
+
+// --- Socket events - Reveal-one ---
+
+socket.on('reveal-one-start', ({ message, total, revealed, timer, playerTemplate, show }) => {
+  showSection(revealOneSection);
+  applyTemplate(revealOneSection, playerTemplate);
+  applyShow(show, {
+    message: revealOneMessage,
+    items: revealOneItems
+  });
+  revealOneMessage.textContent = message || 'Revealing...';
+  revealOneItems.innerHTML = '';
+
+  // If reconnecting, revealed items come as array
+  if (revealed && Array.isArray(revealed)) {
+    for (var i = 0; i < revealed.length; i++) {
+      appendRevealOneItem(revealed[i]);
+    }
+  }
+});
+
+socket.on('reveal-one-item', ({ item }) => {
+  appendRevealOneItem(item);
+});
+
+socket.on('reveal-one-complete', () => {
+  // No action needed on player
+});
+
+function appendRevealOneItem(item) {
+  var div = document.createElement('div');
+  div.className = 'reveal-one-item';
+  div.textContent = typeof item === 'string' ? item : (item.text || item.name || JSON.stringify(item));
+  revealOneItems.appendChild(div);
+}
 
 socket.on('game-ended', ({ message, playerTemplate, playerShow } = {}) => {
   eliminatedBanner.hidden = true;
@@ -444,7 +529,7 @@ const allPlayerSections = [
   joinSection, waitingSection, collectSection, submittedSection,
   processSection, revealSection, endSection, gameWaitingSection,
   voteSection, voteSubmittedSection, eliminationResultsSection,
-  announceSection, winnerSection
+  announceSection, winnerSection, leaderboardSection, revealOneSection
 ];
 
 function showSection(el) {

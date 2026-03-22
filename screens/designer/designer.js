@@ -1,12 +1,14 @@
-const gamesGrid = document.getElementById('games-grid');
-const loadingMessage = document.getElementById('loading-message');
-const errorMessage = document.getElementById('error-message');
-const createNewBtn = document.getElementById('create-new-btn');
+var gamesGrid = document.getElementById('games-grid');
+var loadingMessage = document.getElementById('loading-message');
+var errorMessage = document.getElementById('error-message');
+var createNewBtn = document.getElementById('create-new-btn');
+
+var allGames = [];
 
 fetchGames();
 
 createNewBtn.addEventListener('click', function () {
-  window.location.href = '/designer/edit';
+  showTemplatePicker();
 });
 
 async function fetchGames() {
@@ -16,8 +18,9 @@ async function fetchGames() {
       throw new Error('Failed to load games (status ' + response.status + ')');
     }
     var data = await response.json();
+    allGames = data.games || [];
     loadingMessage.hidden = true;
-    renderGames(data.games);
+    renderGames(allGames);
   } catch (error) {
     loadingMessage.hidden = true;
     errorMessage.textContent = 'Error loading games: ' + error.message;
@@ -109,6 +112,9 @@ async function handleDeleteClick(e) {
       var card = btn.closest('.game-card');
       if (card) card.remove();
 
+      // Remove from allGames
+      allGames = allGames.filter(function (g) { return g.id !== id; });
+
       // Show empty message if no games left
       if (gamesGrid.querySelectorAll('.game-card').length === 0) {
         var empty = document.createElement('p');
@@ -121,5 +127,113 @@ async function handleDeleteClick(e) {
     }
   } catch (error) {
     alert('Delete failed: ' + error.message);
+  }
+}
+
+// --- Template Picker ---
+
+function generateGameId(templateKey) {
+  var base = templateKey;
+  var existingIds = allGames.map(function (g) { return g.id; });
+
+  if (existingIds.indexOf(base) === -1) return base;
+
+  var counter = 2;
+  while (existingIds.indexOf(base + '-' + counter) !== -1) {
+    counter++;
+  }
+  return base + '-' + counter;
+}
+
+function showTemplatePicker() {
+  // Remove any existing modal
+  var existing = document.getElementById('template-picker-modal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'template-picker-modal';
+  overlay.className = 'template-picker-overlay';
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal';
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = 'Start a New Game';
+  modal.appendChild(title);
+
+  var subtitle = document.createElement('p');
+  subtitle.className = 'template-picker-subtitle';
+  subtitle.textContent = 'Pick a template to get started quickly, or start from scratch.';
+  modal.appendChild(subtitle);
+
+  var grid = document.createElement('div');
+  grid.className = 'template-picker-grid';
+
+  var templateKeys = Object.keys(window.GAME_TEMPLATES);
+  for (var i = 0; i < templateKeys.length; i++) {
+    var key = templateKeys[i];
+    var tmpl = window.GAME_TEMPLATES[key];
+
+    var card = document.createElement('div');
+    card.className = 'template-card';
+    card.setAttribute('data-template-key', key);
+
+    var cardIcon = document.createElement('span');
+    cardIcon.className = 'template-card-icon';
+    cardIcon.textContent = tmpl.icon;
+
+    var cardName = document.createElement('div');
+    cardName.className = 'template-card-name';
+    cardName.textContent = tmpl.name;
+
+    var cardDesc = document.createElement('div');
+    cardDesc.className = 'template-card-desc';
+    cardDesc.textContent = tmpl.description;
+
+    card.appendChild(cardIcon);
+    card.appendChild(cardName);
+    card.appendChild(cardDesc);
+
+    card.addEventListener('click', (function (chosenKey) {
+      return function () {
+        overlay.remove();
+        createFromTemplate(chosenKey);
+      };
+    })(key));
+
+    grid.appendChild(card);
+  }
+
+  modal.appendChild(grid);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+async function createFromTemplate(templateKey) {
+  var tmpl = window.GAME_TEMPLATES[templateKey];
+  if (!tmpl) return;
+
+  var newId = generateGameId(templateKey);
+  var config = tmpl.config();
+
+  try {
+    var response = await fetch('/api/games', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: newId, config: config })
+    });
+
+    if (response.ok) {
+      window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
+    } else {
+      var result = await response.json();
+      alert('Create failed: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Create failed: ' + error.message);
   }
 }

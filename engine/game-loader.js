@@ -7,7 +7,8 @@ const GAMES_DIR = join(__dirname, '..', 'games');
 
 const VALID_PHASE_TYPES = [
   'lobby', 'collect', 'collect-choice', 'ai-process', 'vote', 'eliminate',
-  'ai-eliminate', 'announce', 'reveal', 'preview', 'winner', 'end'
+  'ai-eliminate', 'announce', 'reveal', 'preview', 'winner', 'leaderboard',
+  'reveal-one', 'end'
 ];
 
 const PHASE_REQUIRED_FIELDS = {
@@ -19,7 +20,9 @@ const PHASE_REQUIRED_FIELDS = {
   eliminate: ['method'],
   announce: ['message'],
   preview: ['approveNext', 'rejectNext'],
-  winner: ['from']
+  winner: ['from'],
+  leaderboard: ['from'],
+  'reveal-one': ['from']
 };
 
 const ENUM_VALUES = {
@@ -28,7 +31,8 @@ const ENUM_VALUES = {
   mode: ['pick-one', 'head-to-head'],
   method: ['bottom-percent', 'hook'],
   format: ['text', 'json'],
-  task: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge']
+  task: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'],
+  style: ['full', 'top3']
 };
 
 // Fields that hold data references (phaseId.field format)
@@ -46,6 +50,8 @@ const VALID_HOST_TOGGLES = {
   preview: ['content', 'responses', 'approveButton', 'rejectButton'],
   announce: ['message', 'continueButton', 'timer'],
   winner: ['name', 'standings', 'endButton'],
+  leaderboard: ['standings', 'continueButton', 'timer'],
+  'reveal-one': ['message', 'revealButton', 'counter', 'timer'],
   end: ['message', 'playAgainButton']
 };
 
@@ -59,6 +65,8 @@ const VALID_PLAYER_TOGGLES = {
   reveal: ['content'],
   announce: ['message', 'timer'],
   winner: ['name', 'details', 'standings'],
+  leaderboard: ['rank', 'standings'],
+  'reveal-one': ['message', 'items'],
   end: ['message']
 };
 
@@ -152,6 +160,9 @@ export function validate(config, gameId, options) {
     if (phase.type === 'eliminate' && phase.method !== undefined) {
       enumChecks.push(['method', phase.method, ENUM_VALUES.method]);
     }
+    if (phase.type === 'leaderboard' && phase.style !== undefined && phase.style !== null) {
+      enumChecks.push(['style', phase.style, ENUM_VALUES.style]);
+    }
     if (phase.type === 'ai-process') {
       if (phase.format !== undefined && phase.format !== null) {
         enumChecks.push(['format', phase.format, ENUM_VALUES.format]);
@@ -219,8 +230,8 @@ export function validate(config, gameId, options) {
       }
     }
 
-    // Winner "from" is also a data reference
-    if (phase.type === 'winner' && phase.from && typeof phase.from === 'string' && phase.from.includes('.')) {
+    // "from" data reference validation for winner, leaderboard, reveal-one
+    if (['winner', 'leaderboard', 'reveal-one'].includes(phase.type) && phase.from && typeof phase.from === 'string' && phase.from.includes('.')) {
       const refPhaseId = phase.from.split('.')[0];
       if (!config.phases[refPhaseId]) {
         errors.push(
