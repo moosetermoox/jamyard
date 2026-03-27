@@ -327,3 +327,113 @@ button:disabled {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Team-split */
+.team-card {
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  text-align: center;
+}
+
+.team-card h3 {
+  color: var(--theme-accent, #4a90d9);
+  margin: 0 0 6px 0;
+}
+
+.team-card p {
+  margin: 3px 0;
+  font-size: 1rem;
+}
+
+.team-highlight {
+  font-weight: bold;
+  color: var(--theme-accent, #FFD600);
+}
+
+/* Rank items */
+.rank-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  margin: 6px 0;
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 8px;
+}
+
+.rank-item-label {
+  flex: 1;
+  text-align: left;
+  font-size: 1.1rem;
+}
+
+.rank-arrow {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  margin: 0;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--theme-button, #4a90d9);
+  color: var(--theme-button-text, white);
+  border-radius: 6px;
+}
+
+.rank-arrow:disabled {
+  opacity: 0.3;
+  background: var(--theme-border, #ccc);
+}
+
+/* Wager */
+.wager-option-btn {
+  background: var(--theme-accent, #5bc0de);
+  text-align: left;
+  padding: 14px 18px;
+  font-size: 1.15rem;
+  margin-bottom: 8px;
+}
+
+.wager-option-btn.selected {
+  background: var(--theme-success, #5cb85c);
+  border-color: var(--theme-success, #5cb85c);
+}
+
+#wager-amount-section {
+  margin: 12px 0;
+}
+
+#wager-amount-input {
+  text-align: center;
+  font-size: 1.5rem;
+  padding: 12px;
+}
+
+/* Relay */
+#relay-shared-display {
+  text-align: left;
+  padding: 12px;
+  margin: 12px 0;
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 8px;
+  min-height: 40px;
+}
+
+#relay-shared-display p {
+  margin: 4px 0;
+  font-size: 1rem;
+}
+
+#relay-input {
+  min-height: 60px;
+}
+
+#relay-submit-btn {
+  background: var(--theme-success, #5cb85c);
+}

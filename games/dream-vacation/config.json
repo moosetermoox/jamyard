@@ -1,0 +1,73 @@
+{
+  "name": "Dream Vacation Debate",
+  "description": "Teams pitch their ultimate group vacation. Rank destinations, split into teams, relay-write a pitch, then wager on the winner!",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "submit-destinations"
+    },
+    "submit-destinations": {
+      "type": "collect",
+      "prompt": "Where's your dream vacation destination? (City, country, or place)",
+      "timer": 45,
+      "next": "rank-destinations"
+    },
+    "rank-destinations": {
+      "type": "rank",
+      "prompt": "Rank these destinations from BEST to WORST",
+      "candidates": "submit-destinations.responses",
+      "timer": 30,
+      "next": "top-destination"
+    },
+    "top-destination": {
+      "type": "announce",
+      "message": "The class has spoken! Here are the rankings:\n\n{{rank-destinations.rankedList}}",
+      "timer": 10,
+      "next": "split-teams"
+    },
+    "split-teams": {
+      "type": "team-split",
+      "method": "random",
+      "teamCount": 2,
+      "teamNames": ["Explorers", "Adventurers"],
+      "next": "team-intro"
+    },
+    "team-intro": {
+      "type": "announce",
+      "message": "Teams are set! Now everyone will take turns building a vacation pitch — one sentence at a time.\n\nMake it the trip of a lifetime!",
+      "timer": 8,
+      "next": "write-pitch"
+    },
+    "write-pitch": {
+      "type": "relay",
+      "prompt": "Add the next sentence to the group vacation pitch. Make it exciting and build on what came before!",
+      "order": "random",
+      "timer": 30,
+      "next": "pitch-reveal"
+    },
+    "pitch-reveal": {
+      "type": "announce",
+      "message": "The vacation pitch is complete! Here's what the class came up with:\n\n{{write-pitch.text}}",
+      "timer": 12,
+      "next": "place-bets"
+    },
+    "place-bets": {
+      "type": "wager",
+      "prompt": "Which team contributed more to the pitch? Who deserves the booking?",
+      "options": ["Explorers", "Adventurers"],
+      "timer": 15,
+      "next": "scoreboard"
+    },
+    "scoreboard": {
+      "type": "leaderboard",
+      "from": "place-bets.scores",
+      "style": "full",
+      "timer": 15,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing Dream Vacation Debate! Start packing!"
+    }
+  }
+}

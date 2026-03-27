@@ -62,7 +62,7 @@ Framework for quickly building classroom games where:
 - **Game themes** — pre-built themes (pop-art, arcade, ocean, sunset) + AI-generated custom palettes, applied via CSS custom properties
 - **Leaderboard phase** — shows scores/rankings with medal emojis, personal rank highlight on player screen, optional timer auto-advance
 - **Reveal-one phase** — host reveals items incrementally (countdown style), items animate in on player screens, reconnection support
-- **223 tests passing** (`npm test`)
+- **241 tests passing** (`npm test`)
 - Simulator script for automated playtesting: `node scripts/simulate-corn-story.js`
 
 ### Working Games
@@ -94,7 +94,7 @@ Framework for quickly building classroom games where:
 - **AI mixed format:** AI sometimes returns `[playerId, responseText]` in same array. Hook deduplicates within groups — only eliminates if 2+ unique players resolve.
 - **bottom-percent input field:** Eliminate phase reads scores from `phase.input` or `phase.from` (config uses `input`).
 
-### 14 Phase Types Defined
+### 18 Phase Types Defined
 1. `lobby` — Wait for players to join
 2. `collect` — Gather text responses from players
 3. `ai-process` — Send data to AI for processing
@@ -108,7 +108,11 @@ Framework for quickly building classroom games where:
 11. `ai-eliminate` — AI judges answers and eliminates rule-breakers
 12. `leaderboard` — Show scores and rankings with personal highlight
 13. `reveal-one` — Host reveals items one-by-one (countdown style)
-14. `end` — Game over, clean up
+14. `team-split` — Divide players into teams (random or balanced)
+15. `rank` — Players reorder a list by preference, aggregated by average position
+16. `wager` — Players bet points on outcomes, auto or host-resolved
+17. `relay` — Turn-by-turn collaborative input (storytelling, word chains)
+18. `end` — Game over, clean up
 
 ### 6 AI Task Types Defined
 - `summarize` — Combine responses into insight (Haiku)

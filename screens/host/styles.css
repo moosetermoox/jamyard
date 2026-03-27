@@ -371,6 +371,77 @@ button:disabled {
   padding: 2px 8px;
 }
 
+/* Team-split */
+#team-split-teams {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.team-card {
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 12px;
+  padding: 16px 24px;
+  min-width: 150px;
+  text-align: center;
+}
+
+.team-card h3 {
+  color: var(--theme-accent, #4a90d9);
+  margin: 0 0 8px 0;
+  font-size: 1.3rem;
+}
+
+.team-card p {
+  margin: 4px 0;
+  font-size: 1rem;
+}
+
+/* Relay */
+#relay-shared-result {
+  text-align: left;
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 12px;
+  min-height: 60px;
+}
+
+#relay-shared-result p {
+  margin: 6px 0;
+  font-size: 1.1rem;
+}
+
+#relay-active-player {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--theme-accent, #4a90d9);
+}
+
+/* Wager */
+#wager-options p {
+  font-size: 1.1rem;
+  margin: 4px 0;
+}
+
+#wager-resolve-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 12px;
+}
+
+#wager-resolve-options button {
+  background: var(--theme-accent, #5bc0de);
+  padding: 12px 24px;
+  font-size: 1.1rem;
+}
+
 /* Game select */
 select {
   font-size: 1.25rem;

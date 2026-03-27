@@ -76,6 +76,174 @@ function resolveScreenControl(phase, engine) {
   return sc;
 }
 
+// --- Rank helpers ---
+
+async function closeRanking(code, room) {
+  const rs = room.rankState;
+  if (!rs) return;
+  if (room.rankTimer) { clearTimeout(room.rankTimer); room.rankTimer = null; }
+
+  const engine = room.engine;
+  const phase = engine.config.phases[rs.phaseId];
+
+  // Aggregate rankings by average position
+  const positionSums = {};
+  const positionCounts = {};
+  for (const item of rs.candidates) {
+    positionSums[item] = 0;
+    positionCounts[item] = 0;
+  }
+
+  for (const [, ranking] of Object.entries(rs.submissions)) {
+    for (let i = 0; i < ranking.length; i++) {
+      const item = typeof ranking[i] === 'string' ? ranking[i] : JSON.stringify(ranking[i]);
+      if (positionSums[item] !== undefined) {
+        positionSums[item] += i + 1; // 1-based position
+        positionCounts[item]++;
+      }
+    }
+  }
+
+  const rankings = rs.candidates.map(item => ({
+    item,
+    avgRank: positionCounts[item] > 0 ? positionSums[item] / positionCounts[item] : rs.candidates.length,
+    score: positionCounts[item] > 0 ? Math.round((rs.candidates.length - positionSums[item] / positionCounts[item] + 1) * 100) / 100 : 0
+  }));
+  rankings.sort((a, b) => a.avgRank - b.avgRank);
+
+  // Also store a human-readable ranked list for templates
+  const rankedList = rankings.map((r, i) => `${i + 1}. ${r.item}`).join('\n');
+
+  engine.storePhaseData(rs.phaseId, { rankings, rankedList, responses: rs.submissions });
+  room.rankState = null;
+
+  console.log(`[closeRanking] Aggregated ${Object.keys(rs.submissions).length} rankings for ${rs.candidates.length} items`);
+
+  const nextId = getNextPhaseId(engine, phase);
+  if (nextId) {
+    engine.transition(nextId);
+    await handlePhase(code, room);
+  }
+}
+
+// --- Wager helpers ---
+
+async function closeWager(code, room) {
+  const ws = room.wagerState;
+  if (!ws) return;
+  if (room.wagerTimer) { clearTimeout(room.wagerTimer); room.wagerTimer = null; }
+
+  // If correctOption is set, auto-resolve
+  let correct = ws.correctOption;
+  if (correct && correct.includes && correct.includes('.')) {
+    correct = room.engine.resolve(correct);
+  }
+
+  if (correct) {
+    await resolveWager(code, room, correct);
+  } else {
+    // Host needs to pick winner
+    const hostId = roomToHost.get(code);
+    if (hostId) {
+      io.to(hostId).emit('wager-need-resolve', { options: ws.options });
+    }
+  }
+}
+
+async function resolveWager(code, room, winningOption) {
+  const ws = room.wagerState;
+  if (!ws) return;
+
+  const engine = room.engine;
+  const phase = engine.config.phases[ws.phaseId];
+  const newScores = { ...ws.scores };
+
+  for (const [playerId, wager] of Object.entries(ws.wagers)) {
+    if (wager.option === winningOption) {
+      newScores[playerId] = (newScores[playerId] || 0) + wager.amount;
+    } else {
+      newScores[playerId] = (newScores[playerId] || 0) - wager.amount;
+    }
+  }
+
+  engine.storePhaseData(ws.phaseId, { wagers: ws.wagers, scores: newScores, resolved: winningOption });
+  room.wagerState = null;
+
+  console.log(`[resolveWager] Winner: "${winningOption}", updated ${Object.keys(ws.wagers).length} scores`);
+
+  const nextId = getNextPhaseId(engine, phase);
+  if (nextId) {
+    engine.transition(nextId);
+    await handlePhase(code, room);
+  }
+}
+
+// --- Relay helpers ---
+
+function emitRelayTurn(code, room) {
+  const rs = room.relayState;
+  const activePlayerId = rs.turnOrder[rs.currentTurnIndex];
+  const activePlayer = room.engine.players.find(activePlayerId);
+  const progress = (rs.currentTurnIndex + 1) + ' / ' + rs.turnOrder.length;
+  const hostId = roomToHost.get(code);
+
+  // Tell active player
+  io.to(activePlayerId).emit('relay-turn', {
+    prompt: rs.prompt, sharedResult: rs.sharedResult,
+    timer: rs.timer, progress,
+    playerTemplate: rs.sc.playerTemplate, show: rs.sc.playerShow
+  });
+
+  // Tell other players to wait
+  for (const pid of rs.turnOrder) {
+    if (pid !== activePlayerId) {
+      io.to(pid).emit('relay-waiting', {
+        activePlayerName: activePlayer ? activePlayer.name : 'Someone',
+        sharedResult: rs.sharedResult, progress,
+        playerTemplate: rs.sc.playerTemplate, show: rs.sc.playerShow
+      });
+    }
+  }
+
+  // Tell host
+  if (hostId) {
+    io.to(hostId).emit('relay-update', {
+      activePlayerName: activePlayer ? activePlayer.name : 'Someone',
+      sharedResult: rs.sharedResult, progress,
+      timer: rs.timer,
+      hostTemplate: rs.sc.hostTemplate, show: rs.sc.hostShow
+    });
+  }
+
+  // Per-turn timer
+  if (rs.turnTimer) { clearTimeout(rs.turnTimer); rs.turnTimer = null; }
+  if (rs.timer) {
+    rs.turnTimer = setTimeout(async () => {
+      if (room.relayState && room.relayState.phaseId === rs.phaseId &&
+          room.relayState.currentTurnIndex === rs.currentTurnIndex) {
+        // Auto-skip: submit empty
+        const player = room.engine.players.find(activePlayerId);
+        rs.sharedResult.push({ playerId: activePlayerId, name: player ? player.name : 'Unknown', text: '(skipped)' });
+        rs.currentTurnIndex++;
+
+        if (rs.currentTurnIndex >= rs.turnOrder.length) {
+          const engine = room.engine;
+          const phase = engine.config.phases[rs.phaseId];
+          const fullText = rs.sharedResult.map(r => r.text).join(' ');
+          engine.storePhaseData(rs.phaseId, { result: rs.sharedResult, text: fullText });
+          const nextId = getNextPhaseId(engine, phase);
+          if (nextId) {
+            engine.transition(nextId);
+            await handlePhase(code, room);
+          }
+        } else {
+          emitRelayTurn(code, room);
+        }
+      }
+    }, rs.timer * 1000);
+  }
+}
+
 async function tallyAndAdvance(code, room) {
   const engine = room.engine;
   const vs = room.voteState;
@@ -430,6 +598,200 @@ async function handlePhase(code, room) {
           playerTemplate: scRo.playerTemplate, show: scRo.playerShow
         });
       }
+      break;
+    }
+
+    case 'team-split': {
+      const tsFrom = phase.from || 'all';
+      const eligible = getEligibleVoters(engine.players, tsFrom);
+      const teamCount = phase.teamCount || 2;
+      const teamNames = Array.isArray(phase.teamNames) && phase.teamNames.length === teamCount
+        ? phase.teamNames
+        : Array.from({length: teamCount}, (_, i) => 'Team ' + (i + 1));
+      const sc = resolveScreenControl(phase, engine);
+
+      let ordered;
+      if (phase.method === 'balanced' && phase.balanceFrom) {
+        const scores = engine.resolve(phase.balanceFrom) || {};
+        ordered = [...eligible].sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0));
+      } else {
+        ordered = [...eligible].sort(() => Math.random() - 0.5);
+      }
+
+      // Distribute into teams via snake draft
+      const teams = {};
+      const playerTeam = {};
+      for (const name of teamNames) teams[name] = [];
+
+      for (let i = 0; i < ordered.length; i++) {
+        const round = Math.floor(i / teamCount);
+        const idx = round % 2 === 0 ? i % teamCount : teamCount - 1 - (i % teamCount);
+        const tName = teamNames[idx];
+        teams[tName].push({ playerId: ordered[i].id, name: ordered[i].name });
+        playerTeam[ordered[i].id] = tName;
+      }
+
+      engine.storePhaseData(phase.id, { teams, playerTeam });
+
+      console.log(`[handlePhase] Team-split: ${ordered.length} players into ${teamCount} teams`);
+
+      if (hostSocketId) {
+        io.to(hostSocketId).emit('team-split', {
+          teams, hostTemplate: sc.hostTemplate, show: sc.hostShow
+        });
+      }
+
+      for (const player of engine.players.list()) {
+        io.to(player.id).emit('team-split', {
+          myTeam: playerTeam[player.id] || null,
+          teams,
+          playerTemplate: sc.playerTemplate, show: sc.playerShow
+        });
+      }
+      break;
+    }
+
+    case 'rank': {
+      const rkFrom = phase.from || 'all';
+      const rkEligible = getEligibleVoters(engine.players, rkFrom);
+      let rkCandidates = phase.candidates ? engine.resolve(phase.candidates) : [];
+      if (!Array.isArray(rkCandidates)) {
+        if (typeof rkCandidates === 'object') {
+          rkCandidates = Object.values(rkCandidates);
+        } else {
+          rkCandidates = [rkCandidates];
+        }
+      }
+      // Normalize items to strings for display
+      const rkItems = rkCandidates.map(c => {
+        if (typeof c === 'string') return c;
+        if (c && c.text) return c.text;
+        if (c && c.name) return c.name;
+        if (c && c.response) return c.response;
+        return JSON.stringify(c);
+      });
+
+      const rkEligibleIds = new Set(rkEligible.map(p => p.id));
+      room.rankState = {
+        phaseId: phase.id, candidates: rkItems,
+        submissions: {}, eligibleIds: rkEligibleIds, completed: new Set()
+      };
+
+      const scRk = resolveScreenControl(phase, engine);
+
+      console.log(`[handlePhase] Rank: ${rkItems.length} items, ${rkEligible.length} rankers`);
+
+      if (hostSocketId) {
+        io.to(hostSocketId).emit('rank-start', {
+          prompt: phase.prompt, totalRankers: rkEligible.length,
+          timer: phase.timer || null,
+          hostTemplate: scRk.hostTemplate, show: scRk.hostShow
+        });
+      }
+
+      for (const player of engine.players.list()) {
+        if (rkEligibleIds.has(player.id)) {
+          io.to(player.id).emit('rank-start', {
+            prompt: phase.prompt, candidates: rkItems,
+            timer: phase.timer || null,
+            playerTemplate: scRk.playerTemplate, show: scRk.playerShow
+          });
+        } else {
+          io.to(player.id).emit('waiting', { message: 'Waiting for others to rank...' });
+        }
+      }
+
+      if (phase.timer) {
+        room.rankTimer = setTimeout(async () => {
+          if (room.rankState && room.rankState.phaseId === phase.id) {
+            await closeRanking(room.code || code, room);
+          }
+        }, phase.timer * 1000);
+      }
+      break;
+    }
+
+    case 'wager': {
+      const wgFrom = phase.from || 'all';
+      const wgEligible = getEligibleVoters(engine.players, wgFrom);
+      let wgOptions = phase.options;
+      if (typeof wgOptions === 'string' && wgOptions.includes('.')) {
+        wgOptions = engine.resolve(wgOptions);
+      }
+      if (!Array.isArray(wgOptions)) wgOptions = [];
+      wgOptions = wgOptions.map(o => typeof o === 'string' ? o : (o.text || o.name || JSON.stringify(o)));
+
+      const wgScores = phase.scoresFrom ? (engine.resolve(phase.scoresFrom) || {}) : {};
+      const wgEligibleIds = new Set(wgEligible.map(p => p.id));
+
+      room.wagerState = {
+        phaseId: phase.id, options: wgOptions, scores: { ...wgScores },
+        wagers: {}, eligibleIds: wgEligibleIds, completed: new Set(),
+        minBet: phase.minBet || 1,
+        maxBetPercent: phase.maxBetPercent || 100,
+        correctOption: phase.correctOption || null
+      };
+
+      const scWg = resolveScreenControl(phase, engine);
+
+      console.log(`[handlePhase] Wager: ${wgOptions.length} options, ${wgEligible.length} wagerers`);
+
+      if (hostSocketId) {
+        io.to(hostSocketId).emit('wager-start', {
+          prompt: phase.prompt, options: wgOptions,
+          totalWagerers: wgEligible.length,
+          timer: phase.timer || null,
+          hostTemplate: scWg.hostTemplate, show: scWg.hostShow
+        });
+      }
+
+      for (const player of engine.players.list()) {
+        if (wgEligibleIds.has(player.id)) {
+          const availPts = wgScores[player.id] || 0;
+          io.to(player.id).emit('wager-start', {
+            prompt: phase.prompt, options: wgOptions,
+            availablePoints: availPts,
+            minBet: room.wagerState.minBet,
+            maxBetPercent: room.wagerState.maxBetPercent,
+            timer: phase.timer || null,
+            playerTemplate: scWg.playerTemplate, show: scWg.playerShow
+          });
+        } else {
+          io.to(player.id).emit('waiting', { message: 'Waiting for others to place wagers...' });
+        }
+      }
+
+      if (phase.timer) {
+        room.wagerTimer = setTimeout(async () => {
+          if (room.wagerState && room.wagerState.phaseId === phase.id) {
+            await closeWager(room.code || code, room);
+          }
+        }, phase.timer * 1000);
+      }
+      break;
+    }
+
+    case 'relay': {
+      const rlFrom = phase.from || 'all';
+      const rlEligible = getEligibleVoters(engine.players, rlFrom);
+      const scRl = resolveScreenControl(phase, engine);
+
+      let turnOrder;
+      if (phase.order === 'join-order') {
+        turnOrder = rlEligible.map(p => p.id);
+      } else {
+        turnOrder = rlEligible.map(p => p.id).sort(() => Math.random() - 0.5);
+      }
+
+      room.relayState = {
+        phaseId: phase.id, turnOrder, currentTurnIndex: 0,
+        sharedResult: [], sc: scRl, prompt: phase.prompt,
+        timer: phase.timer || null
+      };
+
+      console.log(`[handlePhase] Relay: ${turnOrder.length} players, order=${phase.order || 'random'}`);
+
+      emitRelayTurn(code, room);
       break;
     }
 
@@ -870,6 +1232,81 @@ function sendCurrentState(socket, code, room) {
         }
         if (roState.revealed >= roState.items.length) {
           socket.emit('reveal-one-complete', {});
+        }
+      }
+      break;
+    }
+
+    case 'team-split': {
+      const tsData = room.engine.getPhaseData(phase.id);
+      if (tsData) {
+        socket.emit('team-split', {
+          myTeam: tsData.playerTeam[socket.id] || null,
+          teams: tsData.teams,
+          playerTemplate: rsc.playerTemplate, show: rsc.playerShow
+        });
+      }
+      break;
+    }
+
+    case 'rank': {
+      const rkState = room.rankState;
+      if (rkState) {
+        if (rkState.completed.has(socket.id)) {
+          socket.emit('waiting', { message: 'Ranking submitted. Waiting for others...' });
+        } else if (rkState.eligibleIds.has(socket.id)) {
+          socket.emit('rank-start', {
+            prompt: phase.prompt, candidates: rkState.candidates,
+            timer: null,
+            playerTemplate: rsc.playerTemplate, show: rsc.playerShow
+          });
+        } else {
+          socket.emit('waiting', { message: 'Waiting for others to rank...' });
+        }
+      }
+      break;
+    }
+
+    case 'wager': {
+      const wgState = room.wagerState;
+      if (wgState) {
+        if (wgState.completed.has(socket.id)) {
+          socket.emit('waiting', { message: 'Wager placed. Waiting for others...' });
+        } else if (wgState.eligibleIds.has(socket.id)) {
+          const availPts = wgState.scores[socket.id] || 0;
+          socket.emit('wager-start', {
+            prompt: phase.prompt, options: wgState.options,
+            availablePoints: availPts,
+            minBet: wgState.minBet, maxBetPercent: wgState.maxBetPercent,
+            timer: null,
+            playerTemplate: rsc.playerTemplate, show: rsc.playerShow
+          });
+        } else {
+          socket.emit('waiting', { message: 'Waiting for others to place wagers...' });
+        }
+      }
+      break;
+    }
+
+    case 'relay': {
+      const rlState = room.relayState;
+      if (rlState) {
+        const activeId = rlState.turnOrder[rlState.currentTurnIndex];
+        const activePlayer = room.engine.players.find(activeId);
+        const progress = (rlState.currentTurnIndex + 1) + ' / ' + rlState.turnOrder.length;
+
+        if (socket.id === activeId) {
+          socket.emit('relay-turn', {
+            prompt: rlState.prompt, sharedResult: rlState.sharedResult,
+            timer: null, progress,
+            playerTemplate: rsc.playerTemplate, show: rsc.playerShow
+          });
+        } else {
+          socket.emit('relay-waiting', {
+            activePlayerName: activePlayer ? activePlayer.name : 'Someone',
+            sharedResult: rlState.sharedResult, progress,
+            playerTemplate: rsc.playerTemplate, show: rsc.playerShow
+          });
         }
       }
       break;
@@ -1381,6 +1818,98 @@ io.on('connection', (socket) => {
     // If all revealed, send complete and allow advance
     if (state.revealed >= state.items.length) {
       io.to(code).emit('reveal-one-complete', {});
+    }
+  });
+
+  // --- Rank events ---
+
+  socket.on('rank-submit', async ({ code, ranking }) => {
+    const room = roomManager.find(code);
+    if (!room || !room.rankState) return;
+    const rs = room.rankState;
+    if (!rs.eligibleIds.has(socket.id) || rs.completed.has(socket.id)) return;
+
+    rs.submissions[socket.id] = ranking;
+    rs.completed.add(socket.id);
+    socket.emit('waiting', { message: 'Ranking submitted. Waiting for others...' });
+
+    const hostId = roomToHost.get(code);
+    if (hostId) io.to(hostId).emit('rank-received', { count: rs.completed.size, total: rs.eligibleIds.size });
+
+    if (rs.completed.size >= rs.eligibleIds.size) {
+      await closeRanking(code, room);
+    }
+  });
+
+  socket.on('close-ranking', async ({ code }) => {
+    const room = roomManager.find(code);
+    if (!room || !room.rankState) return;
+    await closeRanking(code, room);
+  });
+
+  // --- Wager events ---
+
+  socket.on('wager-submit', async ({ code, option, amount }) => {
+    const room = roomManager.find(code);
+    if (!room || !room.wagerState) return;
+    const ws = room.wagerState;
+    if (!ws.eligibleIds.has(socket.id) || ws.completed.has(socket.id)) return;
+
+    const availPts = ws.scores[socket.id] || 0;
+    const maxBet = Math.floor(availPts * (ws.maxBetPercent / 100));
+    const clampedAmt = Math.max(ws.minBet, Math.min(amount || ws.minBet, maxBet));
+
+    ws.wagers[socket.id] = { option, amount: clampedAmt };
+    ws.completed.add(socket.id);
+    socket.emit('waiting', { message: 'Wager placed. Waiting for others...' });
+
+    const hostId = roomToHost.get(code);
+    if (hostId) io.to(hostId).emit('wager-received', { count: ws.completed.size, total: ws.eligibleIds.size });
+
+    if (ws.completed.size >= ws.eligibleIds.size) {
+      await closeWager(code, room);
+    }
+  });
+
+  socket.on('close-wager', async ({ code }) => {
+    const room = roomManager.find(code);
+    if (!room || !room.wagerState) return;
+    await closeWager(code, room);
+  });
+
+  socket.on('wager-resolve', async ({ code, winningOption }) => {
+    const room = roomManager.find(code);
+    if (!room || !room.wagerState) return;
+    await resolveWager(code, room, winningOption);
+  });
+
+  // --- Relay events ---
+
+  socket.on('relay-submit', async ({ code, text }) => {
+    const room = roomManager.find(code);
+    if (!room || !room.relayState) return;
+    const rs = room.relayState;
+    if (rs.turnOrder[rs.currentTurnIndex] !== socket.id) return;
+
+    if (rs.turnTimer) { clearTimeout(rs.turnTimer); rs.turnTimer = null; }
+
+    const player = room.engine.players.find(socket.id);
+    rs.sharedResult.push({ playerId: socket.id, name: player ? player.name : 'Unknown', text: text || '' });
+    rs.currentTurnIndex++;
+
+    if (rs.currentTurnIndex >= rs.turnOrder.length) {
+      const engine = room.engine;
+      const phase = engine.config.phases[rs.phaseId];
+      const fullText = rs.sharedResult.map(r => r.text).join(' ');
+      engine.storePhaseData(rs.phaseId, { result: rs.sharedResult, text: fullText });
+
+      const nextId = getNextPhaseId(engine, phase);
+      if (nextId) {
+        engine.transition(nextId);
+        await handlePhase(code, room);
+      }
+    } else {
+      emitRelayTurn(code, room);
     }
   });
 

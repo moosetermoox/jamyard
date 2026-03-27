@@ -90,6 +90,37 @@ const revealOneSection = document.getElementById('reveal-one-section');
 const revealOneMessage = document.getElementById('reveal-one-message');
 const revealOneItems = document.getElementById('reveal-one-items');
 
+// Elements - Team-split
+const teamSplitSection = document.getElementById('team-split-section');
+const teamSplitMyTeam = document.getElementById('team-split-my-team');
+const teamSplitAllTeams = document.getElementById('team-split-all-teams');
+
+// Elements - Rank
+const rankSection = document.getElementById('rank-section');
+const rankPromptDisplay = document.getElementById('rank-prompt-display');
+const rankTimerDisplay = document.getElementById('rank-timer-display');
+const rankItems = document.getElementById('rank-items');
+const rankSubmitBtn = document.getElementById('rank-submit-btn');
+
+// Elements - Wager
+const wagerSection = document.getElementById('wager-section');
+const wagerPromptDisplay = document.getElementById('wager-prompt-display');
+const wagerPointsDisplay = document.getElementById('wager-points-display');
+const wagerTimerDisplay = document.getElementById('wager-timer-display');
+const wagerOptionsDisplay = document.getElementById('wager-options-display');
+const wagerAmountSection = document.getElementById('wager-amount-section');
+const wagerAmountInput = document.getElementById('wager-amount-input');
+const wagerSubmitBtn = document.getElementById('wager-submit-btn');
+
+// Elements - Relay
+const relaySection = document.getElementById('relay-section');
+const relayStatus = document.getElementById('relay-status');
+const relayTimerDisplay = document.getElementById('relay-timer-display');
+const relaySharedDisplay = document.getElementById('relay-shared-display');
+const relayInputSection = document.getElementById('relay-input-section');
+const relayInput = document.getElementById('relay-input');
+const relaySubmitBtn = document.getElementById('relay-submit-btn');
+
 // --- Button handlers ---
 
 // Prototype mode: auto-fill and auto-join
@@ -348,6 +379,244 @@ function appendRevealOneItem(item) {
   revealOneItems.appendChild(div);
 }
 
+// --- Socket events - Team-split ---
+
+socket.on('team-split', ({ myTeam, teams, playerTemplate, show }) => {
+  showSection(teamSplitSection);
+  applyTemplate(teamSplitSection, playerTemplate);
+  applyShow(show, {
+    team: teamSplitMyTeam,
+    allTeams: teamSplitAllTeams
+  });
+
+  teamSplitMyTeam.textContent = myTeam ? 'You are on ' + myTeam + '!' : 'No team assigned';
+
+  teamSplitAllTeams.innerHTML = '';
+  for (var teamName in teams) {
+    var card = document.createElement('div');
+    card.className = 'team-card';
+    var h3 = document.createElement('h3');
+    h3.textContent = teamName;
+    card.appendChild(h3);
+    for (var i = 0; i < teams[teamName].length; i++) {
+      var p = document.createElement('p');
+      p.textContent = teams[teamName][i].name;
+      if (teams[teamName][i].playerId === socket.id) {
+        p.className = 'team-highlight';
+      }
+      card.appendChild(p);
+    }
+    teamSplitAllTeams.appendChild(card);
+  }
+});
+
+// --- Socket events - Rank ---
+
+var rankCurrentOrder = [];
+
+socket.on('rank-start', ({ prompt, candidates, timer, playerTemplate, show }) => {
+  showSection(rankSection);
+  rankPromptDisplay.textContent = prompt || 'Rank the items';
+  rankSubmitBtn.disabled = false;
+  applyTemplate(rankSection, playerTemplate);
+  applyShow(show, {
+    prompt: rankPromptDisplay,
+    items: rankItems,
+    timer: rankTimerDisplay,
+    submitButton: rankSubmitBtn
+  });
+
+  rankCurrentOrder = Array.isArray(candidates) ? candidates.slice() : [];
+  renderRankItems();
+
+  if (timer) {
+    startTimer(timer, rankTimerDisplay, function() {
+      socket.emit('rank-submit', { code: currentRoomCode, ranking: rankCurrentOrder });
+      rankSubmitBtn.disabled = true;
+      showSection(submittedSection);
+    });
+  }
+});
+
+rankSubmitBtn.addEventListener('click', function() {
+  socket.emit('rank-submit', { code: currentRoomCode, ranking: rankCurrentOrder });
+  rankSubmitBtn.disabled = true;
+  showSection(submittedSection);
+});
+
+function renderRankItems() {
+  rankItems.innerHTML = '';
+  for (var i = 0; i < rankCurrentOrder.length; i++) {
+    (function(index) {
+      var item = rankCurrentOrder[index];
+      var row = document.createElement('div');
+      row.className = 'rank-item';
+
+      var label = document.createElement('span');
+      label.className = 'rank-item-label';
+      label.textContent = (index + 1) + '. ' + (typeof item === 'string' ? item : (item.text || item.name || JSON.stringify(item)));
+
+      var upBtn = document.createElement('button');
+      upBtn.className = 'rank-arrow';
+      upBtn.textContent = '\u25B2';
+      upBtn.disabled = index === 0;
+      upBtn.addEventListener('click', function() {
+        var temp = rankCurrentOrder[index - 1];
+        rankCurrentOrder[index - 1] = rankCurrentOrder[index];
+        rankCurrentOrder[index] = temp;
+        renderRankItems();
+      });
+
+      var downBtn = document.createElement('button');
+      downBtn.className = 'rank-arrow';
+      downBtn.textContent = '\u25BC';
+      downBtn.disabled = index === rankCurrentOrder.length - 1;
+      downBtn.addEventListener('click', function() {
+        var temp = rankCurrentOrder[index + 1];
+        rankCurrentOrder[index + 1] = rankCurrentOrder[index];
+        rankCurrentOrder[index] = temp;
+        renderRankItems();
+      });
+
+      row.appendChild(upBtn);
+      row.appendChild(label);
+      row.appendChild(downBtn);
+      rankItems.appendChild(row);
+    })(i);
+  }
+}
+
+// --- Socket events - Wager ---
+
+var wagerSelectedOption = null;
+var wagerAvailablePoints = 0;
+
+socket.on('wager-start', ({ prompt, options, availablePoints, timer, minBet, maxBetPercent, playerTemplate, show }) => {
+  showSection(wagerSection);
+  wagerPromptDisplay.textContent = prompt || 'Place your bet!';
+  wagerAvailablePoints = availablePoints || 0;
+  wagerPointsDisplay.textContent = 'You have ' + wagerAvailablePoints + ' points';
+  wagerSelectedOption = null;
+  wagerSubmitBtn.disabled = false;
+  applyTemplate(wagerSection, playerTemplate);
+  applyShow(show, {
+    prompt: wagerPromptDisplay,
+    options: wagerOptionsDisplay,
+    points: wagerPointsDisplay,
+    timer: wagerTimerDisplay,
+    submitButton: wagerSubmitBtn
+  });
+
+  var maxBet = Math.floor(wagerAvailablePoints * ((maxBetPercent || 100) / 100));
+  wagerAmountInput.min = minBet || 1;
+  wagerAmountInput.max = maxBet;
+  wagerAmountInput.value = minBet || 1;
+
+  wagerOptionsDisplay.innerHTML = '';
+  var optionsList = Array.isArray(options) ? options : [];
+  for (var i = 0; i < optionsList.length; i++) {
+    (function(opt) {
+      var btn = document.createElement('button');
+      btn.className = 'wager-option-btn';
+      btn.textContent = opt;
+      btn.addEventListener('click', function() {
+        wagerSelectedOption = opt;
+        var allBtns = wagerOptionsDisplay.querySelectorAll('.wager-option-btn');
+        for (var j = 0; j < allBtns.length; j++) allBtns[j].classList.remove('selected');
+        btn.classList.add('selected');
+      });
+      wagerOptionsDisplay.appendChild(btn);
+    })(optionsList[i]);
+  }
+
+  if (timer) {
+    startTimer(timer, wagerTimerDisplay, function() {
+      if (!wagerSelectedOption && optionsList.length > 0) {
+        wagerSelectedOption = optionsList[Math.floor(Math.random() * optionsList.length)];
+      }
+      socket.emit('wager-submit', {
+        code: currentRoomCode,
+        option: wagerSelectedOption,
+        amount: parseInt(wagerAmountInput.value) || 1
+      });
+      wagerSubmitBtn.disabled = true;
+      showSection(submittedSection);
+    });
+  }
+});
+
+wagerSubmitBtn.addEventListener('click', function() {
+  if (!wagerSelectedOption) return;
+  socket.emit('wager-submit', {
+    code: currentRoomCode,
+    option: wagerSelectedOption,
+    amount: parseInt(wagerAmountInput.value) || 1
+  });
+  wagerSubmitBtn.disabled = true;
+  showSection(submittedSection);
+});
+
+// --- Socket events - Relay ---
+
+socket.on('relay-turn', ({ prompt, sharedResult, timer, progress, playerTemplate, show }) => {
+  showSection(relaySection);
+  relayStatus.textContent = "It's your turn!";
+  relayInputSection.hidden = false;
+  relayInput.value = '';
+  relayInput.focus();
+  relaySubmitBtn.disabled = false;
+  applyTemplate(relaySection, playerTemplate);
+  applyShow(show, {
+    prompt: relayStatus,
+    sharedResult: relaySharedDisplay,
+    input: relayInputSection,
+    timer: relayTimerDisplay
+  });
+
+  renderRelayShared(sharedResult);
+
+  if (timer) {
+    startTimer(timer, relayTimerDisplay, function() {
+      socket.emit('relay-submit', { code: currentRoomCode, text: relayInput.value || '' });
+      relaySubmitBtn.disabled = true;
+      relayInputSection.hidden = true;
+      relayStatus.textContent = 'Submitted! Waiting...';
+    });
+  }
+});
+
+socket.on('relay-waiting', ({ activePlayerName, sharedResult, progress, playerTemplate, show }) => {
+  showSection(relaySection);
+  relayStatus.textContent = "Waiting for " + activePlayerName + "...";
+  relayInputSection.hidden = true;
+  applyTemplate(relaySection, playerTemplate);
+  applyShow(show, {
+    prompt: relayStatus,
+    sharedResult: relaySharedDisplay,
+    input: relayInputSection,
+    timer: relayTimerDisplay
+  });
+
+  renderRelayShared(sharedResult);
+});
+
+relaySubmitBtn.addEventListener('click', function() {
+  socket.emit('relay-submit', { code: currentRoomCode, text: relayInput.value || '' });
+  relaySubmitBtn.disabled = true;
+  relayInputSection.hidden = true;
+  relayStatus.textContent = 'Submitted! Waiting...';
+});
+
+function renderRelayShared(sharedResult) {
+  relaySharedDisplay.innerHTML = '';
+  if (!sharedResult || !sharedResult.length) return;
+  for (var i = 0; i < sharedResult.length; i++) {
+    var p = document.createElement('p');
+    p.innerHTML = '<strong>' + sharedResult[i].name + ':</strong> ' + sharedResult[i].text;
+    relaySharedDisplay.appendChild(p);
+  }
+}
+
 socket.on('game-ended', ({ message, playerTemplate, playerShow } = {}) => {
   eliminatedBanner.hidden = true;
   isEliminated = false;
@@ -529,7 +798,8 @@ const allPlayerSections = [
   joinSection, waitingSection, collectSection, submittedSection,
   processSection, revealSection, endSection, gameWaitingSection,
   voteSection, voteSubmittedSection, eliminationResultsSection,
-  announceSection, winnerSection, leaderboardSection, revealOneSection
+  announceSection, winnerSection, leaderboardSection, revealOneSection,
+  teamSplitSection, rankSection, wagerSection, relaySection
 ];
 
 function showSection(el) {

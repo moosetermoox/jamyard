@@ -832,4 +832,149 @@ describe('GameLoader', () => {
       expect(() => validate(config, 'test')).toThrow('invalid hostShow toggle "prompt"');
     });
   });
+
+  describe('new phase types validation', () => {
+    function makeConfig(overrides) {
+      return {
+        name: 'Test', phases: {
+          lobby: { type: 'lobby', next: 'test' },
+          ...overrides,
+          end: { type: 'end' }
+        }
+      };
+    }
+
+    // team-split
+    it('accepts valid team-split phase', () => {
+      const config = makeConfig({
+        test: { type: 'team-split', method: 'random', teamCount: 3, next: 'end' }
+      });
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects team-split missing method', () => {
+      const config = makeConfig({
+        test: { type: 'team-split', teamCount: 2, next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('missing required field "method"');
+    });
+
+    it('rejects team-split missing teamCount', () => {
+      const config = makeConfig({
+        test: { type: 'team-split', method: 'random', next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('missing required field "teamCount"');
+    });
+
+    it('rejects invalid teamCount', () => {
+      const config = makeConfig({
+        test: { type: 'team-split', method: 'random', teamCount: 50, next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('invalid teamCount');
+    });
+
+    // rank
+    it('accepts valid rank phase', () => {
+      const config = makeConfig({
+        collect: { type: 'collect', prompt: 'Ideas?', next: 'test' },
+        test: { type: 'rank', prompt: 'Rank them', candidates: 'collect.responses', next: 'end' }
+      });
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects rank missing prompt', () => {
+      const config = makeConfig({
+        test: { type: 'rank', candidates: 'collect.responses', next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('missing required field "prompt"');
+    });
+
+    it('rejects rank missing candidates', () => {
+      const config = makeConfig({
+        test: { type: 'rank', prompt: 'Rank them', next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('missing required field "candidates"');
+    });
+
+    // wager
+    it('accepts valid wager phase', () => {
+      const config = makeConfig({
+        test: { type: 'wager', prompt: 'Bet!', options: ['A', 'B', 'C'], next: 'end' }
+      });
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects wager missing prompt', () => {
+      const config = makeConfig({
+        test: { type: 'wager', options: ['A', 'B'], next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('missing required field "prompt"');
+    });
+
+    it('rejects wager missing options', () => {
+      const config = makeConfig({
+        test: { type: 'wager', prompt: 'Bet!', next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('missing required field "options"');
+    });
+
+    it('rejects invalid wager minBet', () => {
+      const config = makeConfig({
+        test: { type: 'wager', prompt: 'Bet!', options: ['A', 'B'], minBet: -5, next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('invalid minBet');
+    });
+
+    it('rejects invalid wager maxBetPercent', () => {
+      const config = makeConfig({
+        test: { type: 'wager', prompt: 'Bet!', options: ['A', 'B'], maxBetPercent: 200, next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('invalid maxBetPercent');
+    });
+
+    // relay
+    it('accepts valid relay phase', () => {
+      const config = makeConfig({
+        test: { type: 'relay', prompt: 'Add a sentence', next: 'end' }
+      });
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects relay missing prompt', () => {
+      const config = makeConfig({
+        test: { type: 'relay', next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('missing required field "prompt"');
+    });
+
+    it('accepts relay with valid order enum', () => {
+      const config = makeConfig({
+        test: { type: 'relay', prompt: 'Go!', order: 'join-order', next: 'end' }
+      });
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects relay with invalid order enum', () => {
+      const config = makeConfig({
+        test: { type: 'relay', prompt: 'Go!', order: 'alphabetical', next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('invalid order');
+    });
+
+    // host/player toggles
+    it('validates team-split hostShow toggles', () => {
+      const config = makeConfig({
+        test: { type: 'team-split', method: 'random', teamCount: 2, hostShow: ['invalid'], next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('invalid hostShow toggle');
+    });
+
+    it('validates rank playerShow toggles', () => {
+      const config = makeConfig({
+        collect: { type: 'collect', prompt: 'Ideas?', next: 'test' },
+        test: { type: 'rank', prompt: 'Rank', candidates: 'collect.responses', playerShow: ['invalid'], next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('invalid playerShow toggle');
+    });
+  });
 });

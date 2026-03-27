@@ -1,0 +1,54 @@
+{
+  "name": "New Phases Test",
+  "description": "Tests all 4 new phase types: team-split, rank, wager, relay",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "collect"
+    },
+    "collect": {
+      "type": "collect",
+      "prompt": "Name a fun activity",
+      "next": "rank-phase"
+    },
+    "rank-phase": {
+      "type": "rank",
+      "prompt": "Rank these activities from best to worst",
+      "candidates": "collect.responses",
+      "timer": 15,
+      "next": "team-phase"
+    },
+    "team-phase": {
+      "type": "team-split",
+      "method": "random",
+      "teamCount": 2,
+      "teamNames": ["Rockets", "Comets"],
+      "next": "relay-phase"
+    },
+    "relay-phase": {
+      "type": "relay",
+      "prompt": "Add the next sentence to our story",
+      "order": "random",
+      "timer": 10,
+      "next": "wager-phase"
+    },
+    "wager-phase": {
+      "type": "wager",
+      "prompt": "Which team wrote the better story?",
+      "options": ["Rockets", "Comets"],
+      "timer": 10,
+      "correctOption": "Rockets",
+      "next": "wager-manual"
+    },
+    "wager-manual": {
+      "type": "wager",
+      "prompt": "Who will win the final vote?",
+      "options": ["Option A", "Option B", "Option C"],
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for testing!"
+    }
+  }
+}

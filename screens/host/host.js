@@ -77,6 +77,36 @@ const revealOneItems = document.getElementById('reveal-one-items');
 const revealOneNextBtn = document.getElementById('reveal-one-next-btn');
 const revealOneContinueBtn = document.getElementById('reveal-one-continue-btn');
 
+// Elements - Team-split
+const teamSplitSection = document.getElementById('team-split-section');
+const teamSplitTeams = document.getElementById('team-split-teams');
+const teamSplitContinueBtn = document.getElementById('team-split-continue-btn');
+
+// Elements - Rank
+const rankSection = document.getElementById('rank-section');
+const rankPrompt = document.getElementById('rank-prompt');
+const rankCounter = document.getElementById('rank-counter');
+const rankTimer = document.getElementById('rank-timer');
+const rankCloseBtn = document.getElementById('rank-close-btn');
+
+// Elements - Wager
+const wagerSection = document.getElementById('wager-section');
+const wagerPrompt = document.getElementById('wager-prompt');
+const wagerOptions = document.getElementById('wager-options');
+const wagerCounter = document.getElementById('wager-counter');
+const wagerTimer = document.getElementById('wager-timer');
+const wagerCloseBtn = document.getElementById('wager-close-btn');
+const wagerResolveSection = document.getElementById('wager-resolve-section');
+const wagerResolveOptions = document.getElementById('wager-resolve-options');
+
+// Elements - Relay
+const relaySection = document.getElementById('relay-section');
+const relayPrompt = document.getElementById('relay-prompt');
+const relayActivePlayer = document.getElementById('relay-active-player');
+const relayProgress = document.getElementById('relay-progress');
+const relaySharedResult = document.getElementById('relay-shared-result');
+const relayTimer = document.getElementById('relay-timer');
+
 // Elements - End
 const endSection = document.getElementById('end-section');
 const playAgainBtn = document.getElementById('play-again-btn');
@@ -186,6 +216,18 @@ revealOneNextBtn.addEventListener('click', () => {
 
 revealOneContinueBtn.addEventListener('click', () => {
   socket.emit('advance-phase', { code: currentRoomCode });
+});
+
+teamSplitContinueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
+});
+
+rankCloseBtn.addEventListener('click', () => {
+  socket.emit('close-ranking', { code: currentRoomCode });
+});
+
+wagerCloseBtn.addEventListener('click', () => {
+  socket.emit('close-wager', { code: currentRoomCode });
 });
 
 playAgainBtn.addEventListener('click', () => {
@@ -450,6 +492,133 @@ socket.on('reveal-one-complete', () => {
   revealOneContinueBtn.hidden = false;
 });
 
+// --- Socket events - Team-split ---
+
+socket.on('team-split', ({ teams, hostTemplate, show }) => {
+  showSection(teamSplitSection);
+  applyTemplate(teamSplitSection, hostTemplate);
+  applyShow(show, {
+    teams: teamSplitTeams,
+    continueButton: teamSplitContinueBtn
+  });
+
+  teamSplitTeams.innerHTML = '';
+  for (const [teamName, members] of Object.entries(teams)) {
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    const h3 = document.createElement('h3');
+    h3.textContent = teamName;
+    card.appendChild(h3);
+    for (const m of members) {
+      const p = document.createElement('p');
+      p.textContent = m.name;
+      card.appendChild(p);
+    }
+    teamSplitTeams.appendChild(card);
+  }
+});
+
+// --- Socket events - Rank ---
+
+socket.on('rank-start', ({ prompt, totalRankers, timer, hostTemplate, show }) => {
+  showSection(rankSection);
+  rankPrompt.textContent = prompt || 'Rank the items';
+  rankCounter.textContent = '0 of ' + totalRankers + ' ranked';
+  applyTemplate(rankSection, hostTemplate);
+  applyShow(show, {
+    prompt: rankPrompt,
+    counter: rankCounter,
+    timer: rankTimer,
+    closeButton: rankCloseBtn
+  });
+  if (timer) {
+    startTimer(timer, rankTimer, () => {
+      socket.emit('close-ranking', { code: currentRoomCode });
+    });
+  }
+});
+
+socket.on('rank-received', ({ count, total }) => {
+  rankCounter.textContent = count + ' of ' + total + ' ranked';
+});
+
+// --- Socket events - Wager ---
+
+socket.on('wager-start', ({ prompt, options, totalWagerers, timer, hostTemplate, show }) => {
+  showSection(wagerSection);
+  wagerPrompt.textContent = prompt || 'Place your bets!';
+  wagerCounter.textContent = '0 of ' + totalWagerers + ' wagered';
+  wagerResolveSection.hidden = true;
+  applyTemplate(wagerSection, hostTemplate);
+  applyShow(show, {
+    prompt: wagerPrompt,
+    options: wagerOptions,
+    counter: wagerCounter,
+    timer: wagerTimer,
+    closeButton: wagerCloseBtn
+  });
+
+  wagerOptions.innerHTML = '';
+  for (const opt of (options || [])) {
+    const p = document.createElement('p');
+    p.textContent = opt;
+    wagerOptions.appendChild(p);
+  }
+
+  if (timer) {
+    startTimer(timer, wagerTimer, () => {
+      socket.emit('close-wager', { code: currentRoomCode });
+    });
+  }
+});
+
+socket.on('wager-received', ({ count, total }) => {
+  wagerCounter.textContent = count + ' of ' + total + ' wagered';
+});
+
+socket.on('wager-need-resolve', ({ options }) => {
+  wagerCloseBtn.hidden = true;
+  wagerResolveSection.hidden = false;
+  wagerResolveOptions.innerHTML = '';
+  for (const opt of options) {
+    const btn = document.createElement('button');
+    btn.textContent = opt;
+    btn.addEventListener('click', () => {
+      socket.emit('wager-resolve', { code: currentRoomCode, winningOption: opt });
+      wagerResolveSection.hidden = true;
+    });
+    wagerResolveOptions.appendChild(btn);
+  }
+});
+
+// --- Socket events - Relay ---
+
+socket.on('relay-update', ({ activePlayerName, sharedResult, progress, timer, hostTemplate, show }) => {
+  showSection(relaySection);
+  relayPrompt.textContent = relayPrompt.textContent || 'Relay';
+  relayActivePlayer.textContent = activePlayerName + "'s turn";
+  relayProgress.textContent = progress;
+  applyTemplate(relaySection, hostTemplate);
+  applyShow(show, {
+    prompt: relayPrompt,
+    progress: relayProgress,
+    sharedResult: relaySharedResult,
+    timer: relayTimer,
+    activePlayer: relayActivePlayer
+  });
+
+  relaySharedResult.innerHTML = '';
+  for (const entry of (sharedResult || [])) {
+    const p = document.createElement('p');
+    p.innerHTML = '<strong>' + entry.name + ':</strong> ' + entry.text;
+    relaySharedResult.appendChild(p);
+  }
+
+  if (timer) {
+    startTimer(timer, relayTimer, () => {});
+  }
+});
+
 socket.on('game-ended', ({ message, hostTemplate, hostShow } = {}) => {
   showSection(endSection);
   const endMsg = endSection.querySelector('.game-over');
@@ -572,7 +741,8 @@ function renderResponses(responses) {
 const allSections = [
   lobbySection, collectSection, processSection, previewSection,
   revealSection, voteSection, eliminationSection, winnerSection,
-  announceSection, leaderboardSection, revealOneSection, endSection
+  announceSection, leaderboardSection, revealOneSection,
+  teamSplitSection, rankSection, wagerSection, relaySection, endSection
 ];
 
 function showSection(el) {

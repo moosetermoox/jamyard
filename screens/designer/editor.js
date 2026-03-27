@@ -155,6 +155,50 @@ var PHASE_CATALOG = {
     player: 'Items appear one at a time as host reveals',
     ai: null
   },
+  'team-split': {
+    icon: '\uD83D\uDC65',
+    friendlyName: 'Split Into Teams',
+    description: 'Divide players into teams (random or balanced by score)',
+    color: '#00BCD4',
+    bg: '#B2EBF2',
+    detailField: 'method',
+    host: 'Team lists with player names, Continue button',
+    player: 'Your team name, all team rosters',
+    ai: null
+  },
+  'rank': {
+    icon: '\uD83D\uDCCA',
+    friendlyName: 'Rank Items',
+    description: 'Players reorder a list by preference or criteria',
+    color: '#7C4DFF',
+    bg: '#E8D5FF',
+    detailField: 'prompt',
+    host: 'Prompt, submission counter, Close Ranking button',
+    player: 'Prompt, sortable list with up/down arrows, Submit button',
+    ai: null
+  },
+  'wager': {
+    icon: '\uD83D\uDCB0',
+    friendlyName: 'Place Wagers',
+    description: 'Players bet points on an outcome',
+    color: '#FF6D00',
+    bg: '#FFE0B2',
+    detailField: 'prompt',
+    host: 'Prompt, options, wager counts, Close Wagers button',
+    player: 'Prompt, option selection, amount input, Submit button',
+    ai: null
+  },
+  'relay': {
+    icon: '\uD83D\uDD17',
+    friendlyName: 'Relay (Take Turns)',
+    description: 'Players take turns adding to a growing shared result',
+    color: '#009688',
+    bg: '#B2DFDB',
+    detailField: 'prompt',
+    host: 'Shared result, active player, progress',
+    player: 'Active: input + shared result. Waiting: watch others',
+    ai: null
+  },
   'end': {
     icon: '\uD83C\uDFC1',
     friendlyName: 'Game Over',
@@ -1140,6 +1184,197 @@ function renderPhaseConfig(phaseId) {
     });
   }
 
+  if (type === 'team-split') {
+    addSectionHeader('How to split');
+    addSelectWithHelp('Method', 'How players are divided into teams', 'phase-method',
+      [
+        { value: 'random', label: 'Random shuffle' },
+        { value: 'balanced', label: 'Balanced by score' }
+      ],
+      phase.method || 'random', function (value) {
+        phase.method = value;
+        renderCanvas();
+        renderPhaseConfig(phaseId);
+      }
+    );
+    addFieldWithHelp('Number of teams', 'How many teams to create (2-20)', 'number', 'phase-teamCount', phase.teamCount, false, function (value) {
+      phase.teamCount = value;
+    });
+    addTextAreaWithHelp('Custom team names', 'Comma-separated names (e.g. Red Team, Blue Team). Leave empty for default.', 'phase-teamNames',
+      Array.isArray(phase.teamNames) ? phase.teamNames.join(', ') : '',
+      'e.g. Cats, Dogs, Birds',
+      function (value) {
+        if (value && value.trim()) {
+          phase.teamNames = value.split(',').map(function(s) { return s.trim(); }).filter(Boolean);
+        } else {
+          delete phase.teamNames;
+        }
+      }
+    );
+    if (phase.method === 'balanced') {
+      addSectionHeader('Balance by');
+      addDataRefDropdown('Scores from', 'Score data to balance teams with', 'phase-balanceFrom', phaseId, phase.balanceFrom, function (value) {
+        phase.balanceFrom = value || undefined;
+      });
+    }
+    addSectionHeader('Who gets assigned');
+    addSelectWithHelp('Eligible players', 'Which players are put into teams', 'phase-from',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' }
+      ],
+      phase.from || 'all', function (value) {
+        if (value === 'all') { delete phase.from; } else { phase.from = value; }
+      }
+    );
+  }
+
+  if (type === 'rank') {
+    addSectionHeader('What players rank');
+    addTextAreaWithHelp('Question / prompt', 'Tells players what to rank', 'phase-prompt', phase.prompt, 'e.g. Rank these ideas from best to worst', function (value) {
+      phase.prompt = value;
+      renderCanvas();
+    });
+    addDataRefDropdown('Items from', 'Where to get the list of items to rank', 'phase-candidates', phaseId, phase.candidates, function (value) {
+      phase.candidates = value;
+    });
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
+      phase.timer = value;
+    });
+    addSectionHeader('Who ranks');
+    addSelectWithHelp('Eligible players', 'Which players can rank', 'phase-from',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' },
+        { value: 'eliminated', label: 'Eliminated players only' }
+      ],
+      phase.from || 'all', function (value) {
+        if (value === 'all') { delete phase.from; } else { phase.from = value; }
+      }
+    );
+  }
+
+  if (type === 'wager') {
+    addSectionHeader('What players bet on');
+    addTextAreaWithHelp('Question / prompt', 'What are players betting on?', 'phase-prompt', phase.prompt, 'e.g. Which answer will the AI pick?', function (value) {
+      phase.prompt = value;
+      renderCanvas();
+    });
+
+    // Options editor (similar to collect-choice)
+    addSectionHeader('Options');
+    var wagerIsRef = typeof phase.options === 'string';
+    if (wagerIsRef) {
+      addDataRefDropdown('Options from', 'Use options from a previous step', 'phase-options', phaseId, phase.options, function (value) {
+        phase.options = value || [];
+      });
+    } else {
+      var wagerArr = Array.isArray(phase.options) ? phase.options : [];
+      for (var wi = 0; wi < wagerArr.length; wi++) {
+        (function (index) {
+          var wGroup = document.createElement('div');
+          wGroup.className = 'form-group';
+          wGroup.style.display = 'flex';
+          wGroup.style.gap = '6px';
+          var wInput = document.createElement('input');
+          wInput.type = 'text';
+          wInput.value = wagerArr[index];
+          wInput.placeholder = 'Option ' + (index + 1);
+          wInput.style.flex = '1';
+          wInput.addEventListener('input', function () {
+            isDirty = true;
+            phase.options[index] = wInput.value;
+          });
+          var wRemove = document.createElement('button');
+          wRemove.className = 'btn-icon';
+          wRemove.textContent = '\u2716';
+          wRemove.title = 'Remove option';
+          wRemove.addEventListener('click', function () {
+            isDirty = true;
+            phase.options.splice(index, 1);
+            renderPhaseConfig(phaseId);
+          });
+          wGroup.appendChild(wInput);
+          wGroup.appendChild(wRemove);
+          phaseConfigForm.appendChild(wGroup);
+        })(wi);
+      }
+      var addOptBtn = document.createElement('button');
+      addOptBtn.className = 'btn-secondary';
+      addOptBtn.textContent = '+ Add Option';
+      addOptBtn.style.marginBottom = '12px';
+      addOptBtn.addEventListener('click', function () {
+        isDirty = true;
+        if (!Array.isArray(phase.options)) phase.options = [];
+        phase.options.push('');
+        renderPhaseConfig(phaseId);
+      });
+      phaseConfigForm.appendChild(addOptBtn);
+    }
+
+    addSectionHeader('Points');
+    addDataRefDropdown('Scores from', 'Where to get player point totals for betting', 'phase-scoresFrom', phaseId, phase.scoresFrom, function (value) {
+      phase.scoresFrom = value || undefined;
+    });
+    addFieldWithHelp('Minimum bet', 'Smallest amount a player can wager (default 1)', 'number', 'phase-minBet', phase.minBet, false, function (value) {
+      phase.minBet = value;
+    });
+    addFieldWithHelp('Max bet percent', 'Maximum % of points allowed to bet (default 100)', 'number', 'phase-maxBetPercent', phase.maxBetPercent, false, function (value) {
+      phase.maxBetPercent = value;
+    });
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit.', 'number', 'phase-timer', phase.timer, false, function (value) {
+      phase.timer = value;
+    });
+
+    addSectionHeader('Resolution');
+    addFieldWithHelp('Correct option (optional)', 'If set, auto-resolves. Leave empty for host to pick winner.', 'text', 'phase-correctOption', phase.correctOption, false, function (value) {
+      phase.correctOption = value || undefined;
+    });
+
+    addSectionHeader('Who wagers');
+    addSelectWithHelp('Eligible players', 'Which players can place wagers', 'phase-from',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' },
+        { value: 'eliminated', label: 'Eliminated players only' }
+      ],
+      phase.from || 'all', function (value) {
+        if (value === 'all') { delete phase.from; } else { phase.from = value; }
+      }
+    );
+  }
+
+  if (type === 'relay') {
+    addSectionHeader('What players do');
+    addTextAreaWithHelp('Prompt / instruction', 'Shown to the active player on their turn', 'phase-prompt', phase.prompt, 'e.g. Add the next sentence to the story', function (value) {
+      phase.prompt = value;
+      renderCanvas();
+    });
+    addSelectWithHelp('Turn order', 'How to determine the order players take turns', 'phase-order',
+      [
+        { value: 'random', label: 'Random shuffle' },
+        { value: 'join-order', label: 'Order they joined' }
+      ],
+      phase.order || 'random', function (value) {
+        phase.order = value;
+      }
+    );
+    addFieldWithHelp('Time per turn (seconds)', 'Leave empty for no limit. Auto-skips on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
+      phase.timer = value;
+    });
+    addSectionHeader('Who participates');
+    addSelectWithHelp('Eligible players', 'Which players take turns', 'phase-from',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' },
+        { value: 'eliminated', label: 'Eliminated players only' }
+      ],
+      phase.from || 'all', function (value) {
+        if (value === 'all') { delete phase.from; } else { phase.from = value; }
+      }
+    );
+  }
+
   if (type === 'end') {
     addSectionHeader('What everyone sees');
     addFieldWithHelp('Final message', 'Shown to all players when the game ends', 'text', 'phase-message', phase.message, false, function (value) {
@@ -1478,6 +1713,17 @@ function buildDataRefOptions(currentPhaseId) {
       options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + cat.friendlyName + ' (' + pid + ')' });
     } else if (p.type === 'leaderboard') {
       options.push({ value: pid + '.standings', label: 'Rankings from ' + cat.friendlyName + ' (' + pid + ')' });
+    } else if (p.type === 'team-split') {
+      options.push({ value: pid + '.teams', label: 'Teams from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.playerTeam', label: 'Player team map from ' + cat.friendlyName + ' (' + pid + ')' });
+    } else if (p.type === 'rank') {
+      options.push({ value: pid + '.rankings', label: 'Rankings from ' + cat.friendlyName + ' (' + pid + ')' });
+    } else if (p.type === 'wager') {
+      options.push({ value: pid + '.scores', label: 'Updated scores from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.wagers', label: 'Wagers from ' + cat.friendlyName + ' (' + pid + ')' });
+    } else if (p.type === 'relay') {
+      options.push({ value: pid + '.result', label: 'Entries from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.text', label: 'Combined text from ' + cat.friendlyName + ' (' + pid + ')' });
     }
   }
 
@@ -1612,7 +1858,7 @@ function addToggleCheckboxes(label, helpText, phase, field, toggleNames) {
 // --- Phase management ---
 
 // Picker modal: which phase types can be added
-var ADDABLE_PHASE_TYPES = ['collect', 'collect-choice', 'ai-process', 'ai-eliminate', 'vote', 'eliminate', 'announce', 'reveal', 'preview', 'winner', 'leaderboard', 'reveal-one'];
+var ADDABLE_PHASE_TYPES = ['collect', 'collect-choice', 'ai-process', 'ai-eliminate', 'vote', 'eliminate', 'announce', 'reveal', 'preview', 'winner', 'leaderboard', 'reveal-one', 'team-split', 'rank', 'wager', 'relay'];
 
 function addPhase() {
   showPhasePickerModal();
@@ -1815,7 +2061,11 @@ var REQUIRED_FIELDS = {
   preview: ['approveNext', 'rejectNext'],
   winner: ['from'],
   leaderboard: ['from'],
-  'reveal-one': ['from']
+  'reveal-one': ['from'],
+  'team-split': ['method', 'teamCount'],
+  rank: ['prompt', 'candidates'],
+  wager: ['prompt', 'options'],
+  relay: ['prompt']
 };
 
 var VALID_ENUMS = {
@@ -1825,7 +2075,8 @@ var VALID_ENUMS = {
   method: { types: ['eliminate'], values: ['bottom-percent', 'hook'] },
   format: { types: ['ai-process'], values: ['text', 'json'] },
   task: { types: ['ai-process'], values: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'] },
-  style: { types: ['leaderboard'], values: ['full', 'top3'] }
+  style: { types: ['leaderboard'], values: ['full', 'top3'] },
+  order: { types: ['relay'], values: ['random', 'join-order'] }
 };
 
 var DATA_REF_FIELDS = ['input', 'candidates', 'content'];
@@ -1843,6 +2094,10 @@ var VALID_HOST_TOGGLES = {
   winner: ['name', 'standings', 'endButton'],
   leaderboard: ['standings', 'continueButton', 'timer'],
   'reveal-one': ['message', 'revealButton', 'counter', 'timer'],
+  'team-split': ['teams', 'continueButton'],
+  rank: ['prompt', 'counter', 'timer', 'closeButton'],
+  wager: ['prompt', 'options', 'counter', 'timer', 'closeButton'],
+  relay: ['prompt', 'progress', 'sharedResult', 'timer', 'activePlayer'],
   end: ['message', 'playAgainButton']
 };
 
@@ -1858,6 +2113,10 @@ var VALID_PLAYER_TOGGLES = {
   winner: ['name', 'details', 'standings'],
   leaderboard: ['rank', 'standings'],
   'reveal-one': ['message', 'items'],
+  'team-split': ['team', 'allTeams'],
+  rank: ['prompt', 'items', 'timer', 'submitButton'],
+  wager: ['prompt', 'options', 'points', 'timer', 'submitButton'],
+  relay: ['prompt', 'sharedResult', 'input', 'timer'],
   end: ['message']
 };
 
@@ -1889,7 +2148,14 @@ var TOGGLE_FRIENDLY_NAMES = {
   rank: 'Personal rank',
   items: 'Revealed items',
   revealButton: 'Reveal Next button',
-  counter: 'Item counter'
+  counter: 'Item counter',
+  teams: 'Team lists',
+  team: 'Your team',
+  allTeams: 'All team rosters',
+  points: 'Available points',
+  sharedResult: 'Shared result',
+  activePlayer: 'Active player name',
+  progress: 'Match progress'
 };
 
 function validateConfig() {
@@ -2522,6 +2788,61 @@ function buildPreviewHTML(phase, screen) {
     } else {
       html += previewEl('message', 'Title', phase.message || 'Revealing...', showList);
       html += previewEl('items', 'Items', 'Items appear here one at a time', showList);
+    }
+  }
+
+  if (type === 'team-split') {
+    if (screen === 'host') {
+      html += previewEl('teams', 'Teams', 'Team 1: Player1, Player2  |  Team 2: Player3, Player4', showList);
+      html += previewBtn('continueButton', 'Continue', showList);
+    } else {
+      html += previewEl('team', 'Your Team', 'You are on Team 1!', showList);
+      html += previewEl('allTeams', 'All Teams', 'Team 1: You, Player2  |  Team 2: ...', showList);
+    }
+  }
+
+  if (type === 'rank') {
+    if (screen === 'host') {
+      html += previewEl('prompt', 'Prompt', phase.prompt || 'Rank these items', showList);
+      html += previewEl('counter', 'Counter', '0 / 5 ranked', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+      html += previewBtn('closeButton', 'Close Ranking', showList);
+    } else {
+      html += previewEl('prompt', 'Prompt', phase.prompt || 'Rank these items', showList);
+      html += previewEl('items', 'Sortable List', '1. Item A  ▲▼  2. Item B  ▲▼  3. Item C  ▲▼', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+      html += previewBtn('submitButton', 'Submit Ranking', showList);
+    }
+  }
+
+  if (type === 'wager') {
+    if (screen === 'host') {
+      html += previewEl('prompt', 'Prompt', phase.prompt || 'Place your bets!', showList);
+      html += previewEl('options', 'Options', 'Option A  |  Option B  |  Option C', showList);
+      html += previewEl('counter', 'Counter', '0 / 5 wagered', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+      html += previewBtn('closeButton', 'Close Wagers', showList);
+    } else {
+      html += previewEl('prompt', 'Prompt', phase.prompt || 'Place your bets!', showList);
+      html += previewEl('options', 'Options', '[Option A] [Option B] [Option C]', showList);
+      html += previewEl('points', 'Points', 'You have 50 points', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+      html += previewBtn('submitButton', 'Place Wager', showList);
+    }
+  }
+
+  if (type === 'relay') {
+    if (screen === 'host') {
+      html += previewEl('prompt', 'Prompt', phase.prompt || 'Add your part', showList);
+      html += previewEl('activePlayer', 'Active', "Player1's turn", showList);
+      html += previewEl('progress', 'Progress', 'Turn 1 / 5', showList);
+      html += previewEl('sharedResult', 'Shared Result', 'Player1: First sentence...', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's per turn', showList);
+    } else {
+      html += previewEl('prompt', 'Status', "It's your turn! / Waiting for Player2...", showList);
+      html += previewEl('sharedResult', 'Shared Result', 'Previous entries appear here', showList);
+      html += previewEl('input', 'Input', 'Text input (active player only)', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's per turn', showList);
     }
   }
 

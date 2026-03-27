@@ -8,7 +8,7 @@ const GAMES_DIR = join(__dirname, '..', 'games');
 const VALID_PHASE_TYPES = [
   'lobby', 'collect', 'collect-choice', 'ai-process', 'vote', 'eliminate',
   'ai-eliminate', 'announce', 'reveal', 'preview', 'winner', 'leaderboard',
-  'reveal-one', 'end'
+  'reveal-one', 'team-split', 'rank', 'wager', 'relay', 'end'
 ];
 
 const PHASE_REQUIRED_FIELDS = {
@@ -22,7 +22,11 @@ const PHASE_REQUIRED_FIELDS = {
   preview: ['approveNext', 'rejectNext'],
   winner: ['from'],
   leaderboard: ['from'],
-  'reveal-one': ['from']
+  'reveal-one': ['from'],
+  'team-split': ['method', 'teamCount'],
+  rank: ['prompt', 'candidates'],
+  wager: ['prompt', 'options'],
+  relay: ['prompt']
 };
 
 const ENUM_VALUES = {
@@ -32,11 +36,12 @@ const ENUM_VALUES = {
   method: ['bottom-percent', 'hook'],
   format: ['text', 'json'],
   task: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'],
-  style: ['full', 'top3']
+  style: ['full', 'top3'],
+  order: ['random', 'join-order']
 };
 
 // Fields that hold data references (phaseId.field format)
-const DATA_REF_FIELDS = ['input', 'candidates', 'content'];
+const DATA_REF_FIELDS = ['input', 'candidates', 'content', 'scoresFrom', 'balanceFrom'];
 
 // Valid toggles per phase type for hostShow/playerShow
 const VALID_HOST_TOGGLES = {
@@ -52,6 +57,10 @@ const VALID_HOST_TOGGLES = {
   winner: ['name', 'standings', 'endButton'],
   leaderboard: ['standings', 'continueButton', 'timer'],
   'reveal-one': ['message', 'revealButton', 'counter', 'timer'],
+  'team-split': ['teams', 'continueButton'],
+  rank: ['prompt', 'counter', 'timer', 'closeButton'],
+  wager: ['prompt', 'options', 'counter', 'timer', 'closeButton'],
+  relay: ['prompt', 'progress', 'sharedResult', 'timer', 'activePlayer'],
   end: ['message', 'playAgainButton']
 };
 
@@ -67,6 +76,10 @@ const VALID_PLAYER_TOGGLES = {
   winner: ['name', 'details', 'standings'],
   leaderboard: ['rank', 'standings'],
   'reveal-one': ['message', 'items'],
+  'team-split': ['team', 'allTeams'],
+  rank: ['prompt', 'items', 'timer', 'submitButton'],
+  wager: ['prompt', 'options', 'points', 'timer', 'submitButton'],
+  relay: ['prompt', 'sharedResult', 'input', 'timer'],
   end: ['message']
 };
 
@@ -160,6 +173,23 @@ export function validate(config, gameId, options) {
     if (phase.type === 'eliminate' && phase.method !== undefined) {
       enumChecks.push(['method', phase.method, ENUM_VALUES.method]);
     }
+    if (phase.type === 'team-split' && phase.method !== undefined) {
+      const validMethods = ['random', 'balanced'];
+      if (!validMethods.includes(phase.method)) {
+        enumChecks.push(['method', phase.method, validMethods]);
+      }
+    }
+    if ((phase.type === 'team-split' || phase.type === 'rank' || phase.type === 'wager' || phase.type === 'relay') && phase.from !== undefined && phase.from !== null) {
+      // These types use 'from' as player eligibility enum (not data ref)
+      if (['all', 'remaining', 'eliminated'].includes(phase.from)) {
+        // valid
+      } else if (!phase.from.includes('.')) {
+        enumChecks.push(['from', phase.from, ENUM_VALUES.from]);
+      }
+    }
+    if (phase.type === 'relay' && phase.order !== undefined && phase.order !== null) {
+      enumChecks.push(['order', phase.order, ENUM_VALUES.order]);
+    }
     if (phase.type === 'leaderboard' && phase.style !== undefined && phase.style !== null) {
       enumChecks.push(['style', phase.style, ENUM_VALUES.style]);
     }
@@ -225,6 +255,33 @@ export function validate(config, gameId, options) {
         if (!config.phases[refPhaseId]) {
           errors.push(
             `Game "${gameId}": phase "${name}" references "${phase[field]}" but phase "${refPhaseId}" does not exist`
+          );
+        }
+      }
+    }
+
+    // team-split teamCount validation
+    if (phase.type === 'team-split' && phase.teamCount !== undefined) {
+      if (typeof phase.teamCount !== 'number' || phase.teamCount < 2 || phase.teamCount > 20) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" has invalid teamCount "${phase.teamCount}". Must be a number between 2 and 20.`
+        );
+      }
+    }
+
+    // wager minBet/maxBetPercent validation
+    if (phase.type === 'wager') {
+      if (phase.minBet !== undefined && phase.minBet !== null) {
+        if (typeof phase.minBet !== 'number' || phase.minBet < 0) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" has invalid minBet "${phase.minBet}". Must be a non-negative number.`
+          );
+        }
+      }
+      if (phase.maxBetPercent !== undefined && phase.maxBetPercent !== null) {
+        if (typeof phase.maxBetPercent !== 'number' || phase.maxBetPercent < 1 || phase.maxBetPercent > 100) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" has invalid maxBetPercent "${phase.maxBetPercent}". Must be 1-100.`
           );
         }
       }

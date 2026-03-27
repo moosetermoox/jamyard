@@ -28,6 +28,10 @@ Phase types and their requirements:
 - winner: Declares winner. Needs 'from' (scores data ref). Auto-advances after 'pause' seconds.
 - leaderboard: Shows scores and rankings. Needs 'from' (scores data ref). Optional 'style' (full/top3), 'timer' for auto-advance.
 - reveal-one: Host reveals items one-by-one (countdown style). Needs 'from' (data ref to items). Optional 'message' (title text).
+- team-split: Divides players into teams. Needs 'method' (random/balanced) and 'teamCount'. Optional 'teamNames' (array), 'balanceFrom' (scores data ref for balanced), 'from' (all/remaining).
+- rank: Players reorder a list by preference. Needs 'prompt' and 'candidates' (data ref). Optional 'from', 'timer'.
+- wager: Players bet points on outcomes. Needs 'prompt' and 'options' (array or data ref). Optional 'scoresFrom' (data ref to scores), 'minBet', 'maxBetPercent', 'timer', 'correctOption'.
+- relay: Turn-by-turn collaborative input. Needs 'prompt'. Optional 'from', 'order' (random/join-order), 'timer' (per turn).
 - end: Game over. Optional 'message'.
 
 Loop system:
