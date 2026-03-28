@@ -1,0 +1,66 @@
+{
+  "name": "The Excuse Machine",
+  "description": "Everyone writes a creative excuse, then the class rates each one. Authors earn points based on ratings!",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "Welcome to The Excuse Machine!\n\nYou'll write a creative excuse, then everyone rates each other's excuses.\n\nThe more stars your excuse earns, the more points you get!",
+      "timer": 8,
+      "next": "write-excuse"
+    },
+    "write-excuse": {
+      "type": "collect",
+      "prompt": "Write the most creative excuse for why you didn't do your homework:",
+      "timer": 60,
+      "next": "rate-loop"
+    },
+    "rate-loop": {
+      "type": "foreach",
+      "data": "write-excuse.responses",
+      "shuffle": true,
+      "subPhases": {
+        "show-excuse": {
+          "type": "announce",
+          "message": "Excuse {{_foreach.rate-loop.index}} of {{_foreach.rate-loop.total}}:\n\n\"{{_current.text}}\"",
+          "timer": 5
+        },
+        "rate": {
+          "type": "collect-choice",
+          "prompt": "Rate this excuse:\n\n\"{{_current.text}}\"",
+          "choices": ["Meh", "Not Bad", "Pretty Good", "Amazing"],
+          "timer": 10
+        },
+        "result": {
+          "type": "announce",
+          "message": "That excuse was by {{_current.playerName}}!",
+          "timer": 4
+        }
+      },
+      "scoring": {
+        "subPhase": "rate",
+        "mode": "tally",
+        "pointMap": {
+          "Meh": 10,
+          "Not Bad": 25,
+          "Pretty Good": 50,
+          "Amazing": 100
+        }
+      },
+      "next": "scoreboard"
+    },
+    "scoreboard": {
+      "type": "leaderboard",
+      "from": "rate-loop.scores",
+      "timer": 15,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing The Excuse Machine!"
+    }
+  }
+}

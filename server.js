@@ -300,6 +300,11 @@ function setupForeachIteration(engine, foreachPhaseId, feConfig, index) {
       subConfig.candidates = engine._foreachCandidates || [];
     }
 
+    // Mark collect-choice sub-phases with self-exclusion info
+    if ((subConfig.type === 'collect-choice' || subConfig.type === 'collect') && feConfig.selfExclude !== false) {
+      subConfig._foreachAuthorId = item.playerId || null;
+    }
+
     // Resolve templates with _current
     if (subConfig.message) {
       subConfig.message = resolveTemplate(subConfig.message, engine);
@@ -354,41 +359,49 @@ async function advanceForeach(code, room, foreachPhaseId) {
     const subData = engine.getPhaseData(scoringSubId);
     if (subData) {
       const item = state.items[state.currentIndex];
-      const correctRef = feConfig.scoring.correctAnswer;
-      let correctAnswer;
-      if (correctRef === '_current.playerId') {
-        correctAnswer = item.playerId;
-      } else if (correctRef === '_current.playerName') {
-        correctAnswer = item.playerName;
-      } else if (correctRef.startsWith('_current.')) {
-        correctAnswer = engine.resolve(correctRef);
-      } else {
-        correctAnswer = correctRef;
-      }
-
-      // Score based on collect-choice responses
+      const scoringMode = feConfig.scoring.mode || 'correct';
       const responses = subData.responses || [];
-      const pointsCorrect = feConfig.scoring.pointsCorrect || 100;
-      const pointsDecoy = feConfig.scoring.pointsDecoy || 0;
 
-      for (const r of responses) {
-        if (!state.scores[r.playerId]) state.scores[r.playerId] = 0;
-
-        // Check if the player's choice matches the correct answer
-        const playerChoice = r.choice || r.text;
-        // For player-name matching: find the player whose name matches the choice
-        const chosenPlayer = engine.players.list().find(p => p.name === playerChoice);
-        const isCorrect = (playerChoice === correctAnswer) ||
-                          (chosenPlayer && chosenPlayer.id === correctAnswer);
-
-        if (isCorrect) {
-          state.scores[r.playerId] += pointsCorrect;
+      if (scoringMode === 'tally') {
+        // Tally mode: award points to the ITEM'S AUTHOR based on what others picked
+        const authorId = item.playerId;
+        const pointMap = feConfig.scoring.pointMap || {};
+        if (authorId) {
+          if (!state.scores[authorId]) state.scores[authorId] = 0;
+          for (const r of responses) {
+            const choice = r.choice || r.text;
+            const points = pointMap[choice] !== undefined ? pointMap[choice] : 0;
+            state.scores[authorId] += points;
+          }
+        }
+      } else {
+        // Correct mode (default): award points to the GUESSER for correct guesses
+        const correctRef = feConfig.scoring.correctAnswer;
+        let correctAnswer;
+        if (correctRef === '_current.playerId') {
+          correctAnswer = item.playerId;
+        } else if (correctRef === '_current.playerName') {
+          correctAnswer = item.playerName;
+        } else if (correctRef && correctRef.startsWith('_current.')) {
+          correctAnswer = engine.resolve(correctRef);
         } else {
-          state.scores[r.playerId] += pointsDecoy;
+          correctAnswer = correctRef;
+        }
+
+        const pointsCorrect = feConfig.scoring.pointsCorrect || 100;
+        const pointsDecoy = feConfig.scoring.pointsDecoy || 0;
+
+        for (const r of responses) {
+          if (!state.scores[r.playerId]) state.scores[r.playerId] = 0;
+          const playerChoice = r.choice || r.text;
+          const chosenPlayer = engine.players.list().find(p => p.name === playerChoice);
+          const isCorrect = (playerChoice === correctAnswer) ||
+                            (chosenPlayer && chosenPlayer.id === correctAnswer);
+          state.scores[r.playerId] += isCorrect ? pointsCorrect : pointsDecoy;
         }
       }
 
-      console.log(`[foreach] Iteration ${state.currentIndex + 1}/${state.items.length} scored. Scores:`,
+      console.log(`[foreach] Iteration ${state.currentIndex + 1}/${state.items.length} scored (${scoringMode}). Scores:`,
         Object.fromEntries(Object.entries(state.scores).map(([pid, s]) => [engine.players.find(pid)?.name || pid, s]))
       );
     }
@@ -1125,6 +1138,9 @@ async function handlePhase(code, room) {
       const eligibleIds = new Set(eligible.map(p => p.id));
       const scChoice = resolveScreenControl(phase, engine);
 
+      // Self-exclusion: if inside foreach and author is set, exclude them
+      const authorId = phase._foreachAuthorId || null;
+
       // Resolve choices — literal array or data ref string
       let choices = phase.choices;
       if (typeof choices === 'string') {
@@ -1148,8 +1164,12 @@ async function handlePhase(code, room) {
         });
       }
 
-      // Send to eligible players
+      // Send to eligible players (excluding author if self-exclude)
       for (const player of eligible) {
+        if (authorId && player.id === authorId) {
+          io.to(player.id).emit('waiting', { message: 'This one is yours! Waiting for others to guess...' });
+          continue;
+        }
         io.to(player.id).emit('game-started', {
           prompt: phase.prompt,
           choices,
@@ -1878,6 +1898,10 @@ io.on('connection', (socket) => {
       const phase = room.engine.getCurrentPhase();
       const from = phase.from || 'all';
       eligible = getEligibleVoters(room.engine.players, from);
+      // Exclude self-excluded author in foreach
+      if (phase._foreachAuthorId) {
+        eligible = eligible.filter(p => p.id !== phase._foreachAuthorId);
+      }
     } else {
       eligible = players.list();
     }

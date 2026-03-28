@@ -1625,7 +1625,7 @@ function renderPhaseConfig(phaseId) {
     scoringCheckbox.onchange = function () {
       if (scoringCheckbox.checked) {
         var subKeys = Object.keys(phase.subPhases || {});
-        phase.scoring = { subPhase: subKeys[subKeys.length - 1] || '', correctAnswer: '_current.playerName', pointsCorrect: 100 };
+        phase.scoring = { subPhase: subKeys[subKeys.length - 1] || '', mode: 'correct', correctAnswer: '_current.playerName', pointsCorrect: 100 };
       } else {
         delete phase.scoring;
       }
@@ -1652,21 +1652,105 @@ function renderPhaseConfig(phaseId) {
           isDirty = true;
         }
       );
-      addSelectWithHelp('Correct answer is', 'What counts as the right answer', 'phase-scoring-correctAnswer',
+      addSelectWithHelp('Scoring mode', 'How points are awarded', 'phase-scoring-mode',
         [
-          { value: '_current.playerName', label: 'Player name (who wrote it)' },
-          { value: '_current.playerId', label: 'Player ID' },
-          { value: '_current.text', label: 'The item text itself' }
+          { value: 'correct', label: 'Correct guess (guesser earns points)' },
+          { value: 'tally', label: 'Tally (author earns points from ratings)' }
         ],
-        phase.scoring.correctAnswer || '_current.playerName', function (value) {
-          phase.scoring.correctAnswer = value;
+        phase.scoring.mode || 'correct', function (value) {
+          phase.scoring.mode = value;
+          if (value === 'tally') {
+            delete phase.scoring.correctAnswer;
+            delete phase.scoring.pointsCorrect;
+            if (!phase.scoring.pointMap) phase.scoring.pointMap = {};
+          } else {
+            delete phase.scoring.pointMap;
+            if (!phase.scoring.correctAnswer) phase.scoring.correctAnswer = '_current.playerName';
+            if (!phase.scoring.pointsCorrect) phase.scoring.pointsCorrect = 100;
+          }
           isDirty = true;
+          renderPhaseConfig(phaseId);
         }
       );
-      addFieldWithHelp('Points for correct', 'Points awarded for a correct guess', 'number', 'phase-scoring-pointsCorrect', phase.scoring.pointsCorrect || 100, false, function (value) {
-        phase.scoring.pointsCorrect = value;
-        isDirty = true;
-      });
+
+      if ((phase.scoring.mode || 'correct') === 'correct') {
+        addSelectWithHelp('Correct answer is', 'What counts as the right answer', 'phase-scoring-correctAnswer',
+          [
+            { value: '_current.playerName', label: 'Player name (who wrote it)' },
+            { value: '_current.playerId', label: 'Player ID' },
+            { value: '_current.text', label: 'The item text itself' }
+          ],
+          phase.scoring.correctAnswer || '_current.playerName', function (value) {
+            phase.scoring.correctAnswer = value;
+            isDirty = true;
+          }
+        );
+        addFieldWithHelp('Points for correct', 'Points awarded for a correct guess', 'number', 'phase-scoring-pointsCorrect', phase.scoring.pointsCorrect || 100, false, function (value) {
+          phase.scoring.pointsCorrect = value;
+          isDirty = true;
+        });
+      } else {
+        // Tally mode — show pointMap editor
+        var pointMapDiv = document.createElement('div');
+        pointMapDiv.style.cssText = 'margin:8px 0; padding:8px; background:#FFF3E0; border:2px solid #000;';
+        var pmTitle = document.createElement('div');
+        pmTitle.style.cssText = 'font-weight:bold; margin-bottom:6px;';
+        pmTitle.textContent = 'Point Map (choice → points)';
+        pointMapDiv.appendChild(pmTitle);
+
+        var pmHelp = document.createElement('div');
+        pmHelp.style.cssText = 'font-size:11px; color:#666; margin-bottom:8px;';
+        pmHelp.textContent = 'Map each choice option to the points the author earns when someone picks it.';
+        pointMapDiv.appendChild(pmHelp);
+
+        var pointMap = phase.scoring.pointMap || {};
+        var pmKeys = Object.keys(pointMap);
+        for (var pmi = 0; pmi < pmKeys.length; pmi++) {
+          (function (key) {
+            var row = document.createElement('div');
+            row.style.cssText = 'display:flex; gap:6px; align-items:center; margin:4px 0;';
+            var keyInput = document.createElement('input');
+            keyInput.type = 'text';
+            keyInput.value = key;
+            keyInput.style.cssText = 'flex:1; padding:4px; border:2px solid #000;';
+            keyInput.disabled = true;
+            var valInput = document.createElement('input');
+            valInput.type = 'number';
+            valInput.value = pointMap[key];
+            valInput.style.cssText = 'width:60px; padding:4px; border:2px solid #000;';
+            valInput.onchange = function () {
+              phase.scoring.pointMap[key] = parseInt(valInput.value) || 0;
+              isDirty = true;
+            };
+            var delBtn = document.createElement('button');
+            delBtn.textContent = '×';
+            delBtn.style.cssText = 'padding:2px 8px; border:2px solid #000; background:#FFCDD2; cursor:pointer; font-weight:bold;';
+            delBtn.onclick = function () {
+              delete phase.scoring.pointMap[key];
+              isDirty = true;
+              renderPhaseConfig(phaseId);
+            };
+            row.appendChild(keyInput);
+            row.appendChild(valInput);
+            row.appendChild(delBtn);
+            pointMapDiv.appendChild(row);
+          })(pmKeys[pmi]);
+        }
+
+        var addPmBtn = document.createElement('button');
+        addPmBtn.textContent = '+ Add Entry';
+        addPmBtn.style.cssText = 'margin-top:4px; padding:4px 12px; border:2px solid #000; background:#C8E6C9; cursor:pointer; font-weight:bold;';
+        addPmBtn.onclick = function () {
+          var newKey = prompt('Choice text (e.g. "Amazing"):');
+          if (newKey && newKey.trim()) {
+            phase.scoring.pointMap[newKey.trim()] = 0;
+            isDirty = true;
+            renderPhaseConfig(phaseId);
+          }
+        };
+        pointMapDiv.appendChild(addPmBtn);
+        sidebar.appendChild(pointMapDiv);
+      }
     }
 
     // Helper text

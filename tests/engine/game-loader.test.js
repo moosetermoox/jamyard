@@ -1098,7 +1098,7 @@ describe('GameLoader', () => {
       expect(() => validate(config, 'test')).toThrow('scoring is missing "subPhase"');
     });
 
-    it('rejects foreach scoring with missing correctAnswer', () => {
+    it('rejects foreach scoring with missing correctAnswer (correct mode)', () => {
       const config = {
         name: 'Test',
         phases: {
@@ -1114,6 +1114,42 @@ describe('GameLoader', () => {
         }
       };
       expect(() => validate(config, 'test')).toThrow('scoring is missing "correctAnswer"');
+    });
+
+    it('accepts foreach scoring with tally mode and pointMap', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'collect' },
+          collect: { type: 'collect', prompt: 'Go', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            subPhases: { rate: { type: 'collect-choice', prompt: 'Rate', choices: ['Good', 'Bad'] } },
+            scoring: { subPhase: 'rate', mode: 'tally', pointMap: { 'Good': 10, 'Bad': 0 } },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects foreach tally scoring without pointMap', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'collect' },
+          collect: { type: 'collect', prompt: 'Go', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            subPhases: { rate: { type: 'collect-choice', prompt: 'Rate', choices: ['Good'] } },
+            scoring: { subPhase: 'rate', mode: 'tally' },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('requires a "pointMap" object');
     });
   });
 });

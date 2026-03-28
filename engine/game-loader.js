@@ -358,7 +358,13 @@ export function validate(config, gameId, options) {
             `Game "${gameId}": phase "${name}" scoring is missing "subPhase" field`
           );
         }
-        if (!phase.scoring.correctAnswer) {
+        if (phase.scoring.mode === 'tally') {
+          if (!phase.scoring.pointMap || typeof phase.scoring.pointMap !== 'object') {
+            errors.push(
+              `Game "${gameId}": phase "${name}" scoring mode "tally" requires a "pointMap" object`
+            );
+          }
+        } else if (!phase.scoring.correctAnswer) {
           errors.push(
             `Game "${gameId}": phase "${name}" scoring is missing "correctAnswer" field`
           );

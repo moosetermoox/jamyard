@@ -150,9 +150,12 @@ Available phase types:
     Candidate generation: set "candidateSource": "players" and "decoyCount": 3 on the foreach phase.
     Then use "choices": "_candidates" in a collect-choice sub-phase to get "real author + N decoys".
 
-    Scoring: ONLY this exact format works: { "subPhase": "<sub-phase-name>", "correctAnswer": "_current.playerName", "pointsCorrect": 100 }
-    Scoring compares the player's choice in the subPhase against correctAnswer. It only works with collect-choice + _candidates.
-    Do NOT invent custom scoring modes like "average" or "pointsPerStar" — they don't exist.
+    Scoring has TWO modes:
+    A) "correct" mode (default, for guessing games): { "subPhase": "<name>", "correctAnswer": "_current.playerName", "pointsCorrect": 100 }
+       Guesser earns points for correct guesses. Only works with collect-choice + _candidates.
+    B) "tally" mode (for rating games): { "subPhase": "<name>", "mode": "tally", "pointMap": { "Choice1": 10, "Choice2": 50 } }
+       Author earns points based on what others choose. Works with collect-choice + literal choices. Author is auto-excluded (can't rate own item).
+    Do NOT invent custom scoring modes beyond "correct" and "tally".
 
     IMPORTANT foreach rules:
     - Sub-phases can ONLY be: announce, collect, collect-choice. Do NOT use reveal as a sub-phase (use announce instead).

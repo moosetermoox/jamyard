@@ -38,7 +38,7 @@ Framework for quickly building classroom games where:
 4. Test with: npm test
 
 ## Current State
-- **4 games implemented and playable** (Weekend Poem, Mood Check, Corn Story, Story Builder)
+- **9 games implemented and playable** (Weekend Poem, Mood Check, Corn Story, Story Builder, Dream Vacation, Who Said It, Two Truths, Caption Contest, Excuse Machine)
 - **All 10 engine primitives implemented** for Corn Story
 - **Preview phase implemented** — teacher-only review before revealing to students
 - **Timers implemented** — SVG ring countdown (host) + progress bar (player) with auto-submit on expiry
@@ -62,9 +62,10 @@ Framework for quickly building classroom games where:
 - **Game themes** — pre-built themes (pop-art, arcade, ocean, sunset) + AI-generated custom palettes, applied via CSS custom properties
 - **Leaderboard phase** — shows scores/rankings with medal emojis, personal rank highlight on player screen, optional timer auto-advance
 - **Reveal-one phase** — host reveals items incrementally (countdown style), items animate in on player screens, reconnection support
-- **Foreach phase** — iterates over dynamic data (e.g., collected responses) running sub-phases per item, with auto-candidate generation, cumulative scoring, and template variables (_current, _foreach, _candidates)
-- **258 tests passing** (`npm test`)
-- Simulator scripts for automated playtesting: `node scripts/simulate-corn-story.js`, `simulate-new-phases.js`, `simulate-dream-vacation.js`, `simulate-who-said-it.js`
+- **Foreach phase** — iterates over dynamic data (e.g., collected responses) running sub-phases per item, with auto-candidate generation, cumulative scoring, template variables (_current, _foreach, _candidates), self-exclusion (author can't rate own item), and tally scoring mode (author earns points from ratings)
+- **AI game generation** — describe a game in plain English, Sonnet generates a complete config (designer UI button + `/api/games/generate` endpoint)
+- **260 tests passing** (`npm test`)
+- Simulator scripts for automated playtesting: `node scripts/simulate-corn-story.js`, `simulate-new-phases.js`, `simulate-dream-vacation.js`, `simulate-who-said-it.js`, `simulate-excuse-machine.js`
 
 ### Working Games
 1. **Weekend Poem** (games/weekend-poem/) — collect → ai-process → reveal
@@ -84,6 +85,9 @@ Framework for quickly building classroom games where:
    - Social icebreaker: players write 3 statements, class discusses which is the lie
 8. **Caption Contest** (games/caption-contest/) — ai-process → collect → foreach(announce → collect-choice → announce) → leaderboard
    - AI generates a scenario, players write captions, then guess who wrote each one
+9. **The Excuse Machine** (games/excuse-machine/) — collect → foreach(announce → collect-choice → announce) → leaderboard
+   - First tally scoring game: players write excuses, class rates each one, authors earn points from ratings
+   - Tests both tally scoring mode and self-exclusion (authors can't rate their own excuse)
 
 ### Engine Primitives (All Implemented)
 1. Player state tracking (remaining vs eliminated) — PlayerRegistry
@@ -138,6 +142,8 @@ Framework for quickly building classroom games where:
 - **Loop/round system** — Any phase can have `loopBack` (phase ID) and `loopCount` (2-100) to repeat a section of the game. After N iterations, falls through to `next`. Template variables: `{{_loop.<phaseId>.iteration}}` and `{{_loop.<phaseId>.total}}`. Phase data is versioned: bare key has latest, `phaseId~N` has per-iteration copies. Editor shows purple left border + "xN" badge on looped phases.
 - **Screen control** — `hostTemplate` / `playerTemplate` for custom content per screen (resolved via `resolveTemplate()`). `hostShow` / `playerShow` arrays toggle built-in UI elements (e.g. `["content", "continueButton"]`). If omitted, all defaults shown (backward compat). Empty array `[]` hides all built-in elements. Valid toggles per phase type defined in `VALID_HOST_TOGGLES` / `VALID_PLAYER_TOGGLES`. Editor shows "Screen Control (Optional)" section with template textareas + toggle checkboxes.
 - **Game editor** — Teacher-friendly UI redesign. Phase blocks show icons + friendly names ("Ask Players", "AI Does Something") instead of technical IDs. Right sidebar groups fields into sections with helper text. Data reference dropdowns replace raw text fields. Phase type picker modal for adding new steps. AI lane (purple) shows on ai-process phases. H/P/AI role dots on canvas blocks. All config.json internals unchanged — purely a presentation layer. Editor files: `screens/designer/editor.js`, `editor.css`, `editor.html`.
+- **Foreach phase** — Orchestrator phase that iterates over dynamic data running sub-phases per item. Virtual sub-phases with `_fe:` prefix injected at runtime. Supports: auto-candidate generation (`candidateSource: "players"`, `decoyCount`), two scoring modes (`correct` for guessing games, `tally` for rating games), self-exclusion (author auto-skipped on collect-choice sub-phases), template variables (`_current`, `_foreach`, `_candidates`). Data refs: `.scores`, `.itemCount`.
+- **AI game generation** — Describe a game in plain English and Sonnet generates a complete config. Accessible via "AI Generate Game" button in designer or `POST /api/games/generate`. Prompt documents all 19 phase types including foreach scoring modes.
 
 ### AI Game Review (Implemented)
 - **Light review (Haiku)** — runs automatically after save, flags vague AI instructions, data flow breaks, player eligibility issues
@@ -189,7 +195,7 @@ Framework for quickly building classroom games where:
 - Haiku for simple tasks, Sonnet for complex judgment
 
 ### Testing
-- `npm test` — runs all 223 Vitest tests
+- `npm test` — runs all 260 Vitest tests
 - `node scripts/simulate-corn-story.js` — automated full-game playthrough (requires server running)
 
 ## Refinement Log
