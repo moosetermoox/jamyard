@@ -61,6 +61,126 @@ Also check for:
 
 Provide detailed, actionable suggestions. Be encouraging but specific.`;
 
+const GAME_GENERATOR_PROMPT = `You are a classroom game designer. Given a description, generate a complete game config JSON.
+
+IMPORTANT: Return ONLY valid JSON. No explanation, no markdown, just the JSON object.
+
+The config format is:
+{
+  "name": "Game Name",
+  "description": "One-line description",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "..." },
+    ...phase definitions...,
+    "end": { "type": "end", "message": "..." }
+  }
+}
+
+Every game MUST start with a "lobby" phase and end with an "end" phase. Every phase (except end) needs a "next" field.
+
+Available phase types:
+
+1. "collect" — Players type a text response
+   Required: "prompt" (string)
+   Optional: "timer" (seconds), "from" ("all"/"remaining"/"eliminated")
+
+2. "collect-choice" — Players pick from predefined choices
+   Required: "prompt" (string), "choices" (array of strings OR "_candidates" inside foreach)
+   Optional: "timer", "from"
+
+3. "ai-process" — AI processes player responses
+   Required: "instruction" (detailed prompt for AI), "input" (data ref like "collect.responses")
+   Optional: "task" ("summarize"/"generate"/"compare"/"rank"/"judge"), "format" ("text"/"json")
+
+4. "announce" — Show a message to everyone
+   Required: "message" (string, supports {{phase.field}} templates)
+   Optional: "timer" (auto-advances after N seconds)
+
+5. "reveal" — Display content to everyone
+   Required: "template" (string with {{phase.field}} refs)
+   Optional: none
+
+6. "vote" — Players vote on options
+   Required: "mode" ("pick-one"/"head-to-head"), "candidates" (data ref)
+   Optional: "timer", "voters" ("all"/"remaining"/"eliminated")
+
+7. "eliminate" — Remove players by score
+   Required: "method" ("bottom-percent"), "percent" (1-100), "input" (scores data ref)
+   Optional: "pause" (seconds)
+
+8. "preview" — Teacher reviews before revealing
+   Required: "content" (data ref) OR "template", plus "approveNext" and "rejectNext" (phase IDs)
+   Optional: "showResponses" (boolean)
+
+9. "winner" — Declare winner from scores
+   Required: "from" (scores data ref)
+
+10. "leaderboard" — Show scores and rankings
+    Required: "from" (scores data ref)
+    Optional: "style" ("full"/"top3"), "timer"
+
+11. "team-split" — Divide players into teams
+    Required: "method" ("random"/"balanced"), "teamCount" (2-20)
+    Optional: "teamNames" (array), "from"
+
+12. "rank" — Players reorder a list by preference
+    Required: "prompt", "candidates" (data ref to items)
+    Optional: "timer", "from"
+
+13. "wager" — Players bet points on outcomes
+    Required: "prompt", "options" (array of strings)
+    Optional: "timer", "correctOption" (auto-resolve), "scoresFrom" (data ref)
+
+14. "relay" — Turn-by-turn collaborative input
+    Required: "prompt"
+    Optional: "timer" (per turn), "order" ("random"/"join-order"), "from"
+
+15. "foreach" — Iterate over data running sub-phases per item (THE MOST POWERFUL PHASE)
+    Required: "data" (data ref, e.g. "collect.responses"), "subPhases" (object of sub-phase configs)
+    Optional: "shuffle" (boolean), "candidateSource" ("players"), "decoyCount" (number), "scoring" object
+
+    Sub-phases are normal phase configs (announce, collect-choice, collect, reveal) without "next" — they chain automatically.
+
+    Template variables inside foreach:
+    - {{_current.text}} — the current item's text
+    - {{_current.playerName}} — who submitted the current item
+    - {{_foreach.<phaseId>.index}} — current iteration (1-based)
+    - {{_foreach.<phaseId>.total}} — total iterations
+
+    Candidate generation: set "candidateSource": "players" and "decoyCount": 3 on the foreach phase.
+    Then use "choices": "_candidates" in a collect-choice sub-phase to get "real author + N decoys".
+
+    Scoring: { "subPhase": "<sub-phase-name>", "correctAnswer": "_current.playerName", "pointsCorrect": 100 }
+
+16. "reveal-one" — Host reveals items one by one
+    Required: "from" (data ref to items)
+    Optional: "message", "timer"
+
+17. "ai-eliminate" — AI judges answers and eliminates
+    Required: "instruction" (rules), "input" (data ref)
+
+Data references format: "phaseId.field" — e.g. "collect.responses", "vote.scores", "foreach-phase.scores"
+
+Common data fields per phase:
+- collect: .responses (array of {playerId, name, text})
+- vote: .scores (object {playerId: score}), .winner
+- rank: .rankings, .rankedList
+- wager: .scores
+- foreach: .scores (cumulative), .itemCount
+- relay: .text (combined), .result (array)
+- team-split: .teams, .playerTeam
+- ai-process: .result
+
+DESIGN TIPS:
+- Use "foreach" for any "show each response and do something" pattern (guessing games, voting on each, reviewing)
+- Use "announce" with timers to pace transitions and build suspense
+- Use "collect-choice" inside foreach with "_candidates" for guessing games
+- Use "leaderboard" to show scores — reference the scoring phase's .scores
+- Keep timers reasonable: 30-60s for writing, 10-15s for choices, 5-8s for announcements
+- Give the game a fun, catchy name
+- Make the game work with 3-30 players
+- The game should be completable in 10-20 minutes`;
+
 /**
  * AIService - Processes collected responses using AI
  * Supports mock mode for testing and real mode for production
@@ -256,6 +376,69 @@ export class AIService {
     } catch (error) {
       console.error('[AIService] generateTheme error:', error.message);
       return this._generateThemeMock();
+    }
+  }
+
+  async generateGame(description) {
+    if (this.mode === 'mock') {
+      return this._generateGameMock(description);
+    }
+    return this._generateGameReal(description);
+  }
+
+  _generateGameMock(description) {
+    return {
+      name: 'Generated Game',
+      description: description,
+      phases: {
+        lobby: { type: 'lobby', next: 'collect' },
+        collect: { type: 'collect', prompt: 'Share your answer!', timer: 45, next: 'show-loop' },
+        'show-loop': {
+          type: 'foreach', data: 'collect.responses', shuffle: true,
+          candidateSource: 'players', decoyCount: 3,
+          subPhases: {
+            show: { type: 'announce', message: 'Someone said:\n\n"{{_current.text}}"', timer: 5 },
+            guess: { type: 'collect-choice', prompt: 'Who said it?', choices: '_candidates', timer: 15 },
+            reveal: { type: 'announce', message: 'It was {{_current.playerName}}!', timer: 5 }
+          },
+          scoring: { subPhase: 'guess', correctAnswer: '_current.playerName', pointsCorrect: 100 },
+          next: 'scores'
+        },
+        scores: { type: 'leaderboard', from: 'show-loop.scores', timer: 15, next: 'end' },
+        end: { type: 'end', message: 'Thanks for playing!' }
+      }
+    };
+  }
+
+  async _generateGameReal(description) {
+    try {
+      const message = await this.client.messages.create({
+        model: MODELS.sonnet,
+        max_tokens: 4096,
+        system: GAME_GENERATOR_PROMPT,
+        messages: [
+          { role: 'user', content: `Create a classroom game based on this description:\n\n${description}` }
+        ]
+      });
+
+      const text = message.content[0].text;
+
+      try {
+        return JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (match) {
+          try {
+            return JSON.parse(match[0]);
+          } catch {
+            return { error: 'Failed to parse AI response', raw: text };
+          }
+        }
+        return { error: 'No JSON found in AI response', raw: text };
+      }
+    } catch (error) {
+      console.error('[AIService] generateGame error:', error.message);
+      return { error: `AI generation failed: ${error.message}` };
     }
   }
 

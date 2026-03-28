@@ -2,6 +2,7 @@ var gamesGrid = document.getElementById('games-grid');
 var loadingMessage = document.getElementById('loading-message');
 var errorMessage = document.getElementById('error-message');
 var createNewBtn = document.getElementById('create-new-btn');
+var aiGenerateBtn = document.getElementById('ai-generate-btn');
 
 var allGames = [];
 
@@ -9,6 +10,10 @@ fetchGames();
 
 createNewBtn.addEventListener('click', function () {
   showTemplatePicker();
+});
+
+aiGenerateBtn.addEventListener('click', function () {
+  showAIGenerateModal();
 });
 
 async function fetchGames() {
@@ -211,6 +216,137 @@ function showTemplatePicker() {
   modal.appendChild(grid);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+}
+
+function showAIGenerateModal() {
+  var existing = document.getElementById('ai-generate-modal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'ai-generate-modal';
+  overlay.className = 'template-picker-overlay';
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal';
+  modal.style.maxWidth = '600px';
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = 'AI Game Generator';
+  modal.appendChild(title);
+
+  var subtitle = document.createElement('p');
+  subtitle.className = 'template-picker-subtitle';
+  subtitle.textContent = 'Describe the game you want and AI will create it for you.';
+  modal.appendChild(subtitle);
+
+  var textarea = document.createElement('textarea');
+  textarea.id = 'ai-game-description';
+  textarea.placeholder = 'Example: A game where everyone shares their hot take on a topic, then the class tries to guess who said what. Points for correct guesses.\n\nOr: Students write funny excuses for not doing homework. Everyone votes on the most creative one. Elimination rounds until a winner.';
+  textarea.rows = 6;
+  textarea.style.cssText = 'width:100%; padding:12px; border:3px solid #000; font-family:inherit; font-size:14px; resize:vertical; box-sizing:border-box; margin:12px 0;';
+  modal.appendChild(textarea);
+
+  var statusDiv = document.createElement('div');
+  statusDiv.id = 'ai-generate-status';
+  statusDiv.style.cssText = 'display:none; padding:12px; margin:8px 0; font-weight:bold; text-align:center;';
+  modal.appendChild(statusDiv);
+
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText = 'display:flex; gap:12px; justify-content:flex-end;';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.style.cssText = 'padding:10px 24px; border:3px solid #000; background:#eee; cursor:pointer; font-weight:bold; font-size:14px;';
+  cancelBtn.onclick = function () { overlay.remove(); };
+
+  var generateBtn = document.createElement('button');
+  generateBtn.textContent = 'Generate Game';
+  generateBtn.id = 'ai-generate-go-btn';
+  generateBtn.style.cssText = 'padding:10px 24px; border:3px solid #000; background:#6A1B9A; color:white; cursor:pointer; font-weight:bold; font-size:14px;';
+  generateBtn.onclick = function () {
+    var desc = textarea.value.trim();
+    if (desc.length < 10) {
+      alert('Please write a longer description (at least 10 characters).');
+      return;
+    }
+    generateBtn.disabled = true;
+    generateBtn.textContent = 'Generating...';
+    statusDiv.style.display = 'block';
+    statusDiv.style.background = '#E1BEE7';
+    statusDiv.textContent = 'AI is designing your game... This may take 15-30 seconds.';
+    createFromAI(desc, overlay);
+  };
+
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(generateBtn);
+  modal.appendChild(btnRow);
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  textarea.focus();
+}
+
+async function createFromAI(description, overlay) {
+  var statusDiv = document.getElementById('ai-generate-status');
+  var generateBtn = document.getElementById('ai-generate-go-btn');
+
+  try {
+    var response = await fetch('/api/games/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: description })
+    });
+
+    var data = await response.json();
+
+    if (!response.ok || data.error) {
+      statusDiv.style.background = '#FFCDD2';
+      statusDiv.textContent = 'Generation failed: ' + (data.error || 'Unknown error');
+      generateBtn.disabled = false;
+      generateBtn.textContent = 'Try Again';
+      return;
+    }
+
+    var config = data.config;
+
+    // Generate a safe game ID from the name
+    var gameId = (config.name || 'ai-game').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    var existingIds = allGames.map(function (g) { return g.id; });
+    if (existingIds.indexOf(gameId) !== -1) {
+      var counter = 2;
+      while (existingIds.indexOf(gameId + '-' + counter) !== -1) counter++;
+      gameId = gameId + '-' + counter;
+    }
+
+    statusDiv.textContent = 'Saving "' + config.name + '"...';
+
+    // Save the game
+    var saveResponse = await fetch('/api/games', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: gameId, config: config })
+    });
+
+    if (saveResponse.ok) {
+      overlay.remove();
+      window.location.href = '/designer/edit?game=' + encodeURIComponent(gameId);
+    } else {
+      var saveResult = await saveResponse.json();
+      statusDiv.style.background = '#FFCDD2';
+      statusDiv.textContent = 'Save failed: ' + (saveResult.error || 'Unknown error');
+      generateBtn.disabled = false;
+      generateBtn.textContent = 'Try Again';
+    }
+  } catch (error) {
+    statusDiv.style.background = '#FFCDD2';
+    statusDiv.textContent = 'Error: ' + error.message;
+    generateBtn.disabled = false;
+    generateBtn.textContent = 'Try Again';
+  }
 }
 
 async function createFromTemplate(templateKey) {

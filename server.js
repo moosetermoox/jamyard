@@ -1679,6 +1679,24 @@ app.post('/api/games/generate-theme', async (req, res) => {
   }
 });
 
+app.post('/api/games/generate', async (req, res) => {
+  try {
+    const { description } = req.body;
+    if (!description || description.trim().length < 10) {
+      return res.status(400).json({ error: 'Please provide a game description (at least 10 characters)' });
+    }
+    console.log(`[api/games/generate] Generating game from: "${description.substring(0, 80)}..."`);
+    const config = await aiService.generateGame(description);
+    if (config.error) {
+      return res.status(500).json({ error: config.error, raw: config.raw });
+    }
+    res.json({ config });
+  } catch (error) {
+    console.log(`[api/games/generate] Error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.delete('/api/games/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;

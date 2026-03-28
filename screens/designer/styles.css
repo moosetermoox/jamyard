@@ -63,6 +63,24 @@ h1 {
   background: #FF80AB;
 }
 
+#ai-generate-btn {
+  font-size: 1.25rem;
+  padding: 12px 28px;
+  cursor: pointer;
+  border: 3px solid #000;
+  border-radius: 14px;
+  background: #6A1B9A;
+  color: white;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-left: 12px;
+}
+
+#ai-generate-btn:hover {
+  background: #9C27B0;
+}
+
 /* Messages */
 #loading-message {
   font-size: 1.25rem;
