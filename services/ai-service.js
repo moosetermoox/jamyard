@@ -150,7 +150,14 @@ Available phase types:
     Candidate generation: set "candidateSource": "players" and "decoyCount": 3 on the foreach phase.
     Then use "choices": "_candidates" in a collect-choice sub-phase to get "real author + N decoys".
 
-    Scoring: { "subPhase": "<sub-phase-name>", "correctAnswer": "_current.playerName", "pointsCorrect": 100 }
+    Scoring: ONLY this exact format works: { "subPhase": "<sub-phase-name>", "correctAnswer": "_current.playerName", "pointsCorrect": 100 }
+    Scoring compares the player's choice in the subPhase against correctAnswer. It only works with collect-choice + _candidates.
+    Do NOT invent custom scoring modes like "average" or "pointsPerStar" — they don't exist.
+
+    IMPORTANT foreach rules:
+    - Sub-phases can ONLY be: announce, collect, collect-choice. Do NOT use reveal as a sub-phase (use announce instead).
+    - Template variables like {{_current.text}} are pre-resolved in sub-phase messages/prompts. Do NOT reference sub-phase data across iterations.
+    - If you don't need guessing/scoring, just use announce sub-phases to show items and collect for free-text responses.
 
 16. "reveal-one" — Host reveals items one by one
     Required: "from" (data ref to items)
@@ -179,7 +186,17 @@ DESIGN TIPS:
 - Keep timers reasonable: 30-60s for writing, 10-15s for choices, 5-8s for announcements
 - Give the game a fun, catchy name
 - Make the game work with 3-30 players
-- The game should be completable in 10-20 minutes`;
+- The game should be completable in 10-20 minutes
+
+CRITICAL RULES:
+- ONLY use fields documented above. Do NOT invent custom fields.
+- "announce" is the only sub-phase type that should display content in foreach (NOT "reveal")
+- "scoring" in foreach ONLY works with collect-choice + _candidates (guessing who did something)
+- If a game doesn't involve guessing authorship, don't use scoring — just use foreach for display
+- Every announce that should auto-advance MUST have a "timer" field
+- Do NOT reference data that doesn't exist yet (e.g., sub-phase averages)`;
+
+
 
 /**
  * AIService - Processes collected responses using AI
