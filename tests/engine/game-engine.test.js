@@ -386,4 +386,94 @@ describe('GameEngine', () => {
       expect(engine.getCurrentPhase().id).toBe('reveal');
     });
   });
+
+  describe('foreach state', () => {
+    const foreachConfig = {
+      name: 'Foreach Game',
+      phases: {
+        lobby: { type: 'lobby', next: 'foreach1' },
+        foreach1: { type: 'foreach', data: 'collect.responses', subPhases: { show: { type: 'announce' } }, next: 'end' },
+        end: { type: 'end' }
+      }
+    };
+
+    it('has foreachState initialized', () => {
+      const engine = new GameEngine(foreachConfig);
+      expect(engine.foreachState).toEqual({});
+      expect(engine._currentForeachItem).toBeNull();
+      expect(engine._foreachCandidates).toBeNull();
+    });
+
+    it('resolve handles _current when item is set', () => {
+      const engine = new GameEngine(foreachConfig);
+      engine._currentForeachItem = { text: 'hello', playerId: 'p1', playerName: 'Alice' };
+
+      expect(engine.resolve('_current.text')).toBe('hello');
+      expect(engine.resolve('_current.playerId')).toBe('p1');
+      expect(engine.resolve('_current.playerName')).toBe('Alice');
+    });
+
+    it('resolve returns undefined for _current when no item set', () => {
+      const engine = new GameEngine(foreachConfig);
+      expect(engine.resolve('_current.text')).toBeUndefined();
+    });
+
+    it('resolve handles _foreach index and total', () => {
+      const engine = new GameEngine(foreachConfig);
+      engine.foreachState['foreach1'] = {
+        items: [{}, {}, {}],
+        currentIndex: 1,
+        scores: {}
+      };
+
+      expect(engine.resolve('_foreach.foreach1.index')).toBe(2); // 1-based
+      expect(engine.resolve('_foreach.foreach1.total')).toBe(3);
+    });
+
+    it('resolve handles _foreach.scores', () => {
+      const engine = new GameEngine(foreachConfig);
+      engine.foreachState['foreach1'] = {
+        items: [],
+        currentIndex: 0,
+        scores: { p1: 100, p2: 200 }
+      };
+
+      const scores = engine.resolve('_foreach.foreach1.scores');
+      expect(scores).toEqual({ p1: 100, p2: 200 });
+    });
+
+    it('resolve returns empty array for _candidates when none set', () => {
+      const engine = new GameEngine(foreachConfig);
+      expect(engine.resolve('_candidates')).toEqual([]);
+    });
+
+    it('resolve returns candidates when set', () => {
+      const engine = new GameEngine(foreachConfig);
+      engine._foreachCandidates = ['Alice', 'Bob', 'Charlie'];
+      expect(engine.resolve('_candidates')).toEqual(['Alice', 'Bob', 'Charlie']);
+    });
+  });
+
+  describe('dynamic transitions', () => {
+    it('addDynamicTransition allows new transitions', () => {
+      const engine = new GameEngine(testConfig);
+      // Initially can't transition from lobby to end
+      expect(() => engine.transition('end')).toThrow();
+
+      // Add dynamic transition
+      engine.stateMachine.addDynamicTransition('lobby', 'end');
+      engine.transition('end');
+      expect(engine.getCurrentPhase().id).toBe('end');
+    });
+
+    it('addDynamicTransition does not duplicate', () => {
+      const engine = new GameEngine(testConfig);
+      engine.stateMachine.addDynamicTransition('lobby', 'end');
+      engine.stateMachine.addDynamicTransition('lobby', 'end');
+      // Should still work, just one entry
+      const transitions = engine.stateMachine.transitions['lobby'];
+      const endCount = transitions.filter(t => t === 'end').length;
+      expect(endCount).toBe(1);
+    });
+  });
 });

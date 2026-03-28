@@ -28,6 +28,15 @@ export class StateMachine {
     this.listeners[event].push(handler);
   }
 
+  addDynamicTransition(fromState, toState) {
+    if (!this.transitions[fromState]) {
+      this.transitions[fromState] = [];
+    }
+    if (!this.transitions[fromState].includes(toState)) {
+      this.transitions[fromState].push(toState);
+    }
+  }
+
   emit(event, data) {
     const handlers = this.listeners[event] || [];
     for (const handler of handlers) {

@@ -244,6 +244,182 @@ function emitRelayTurn(code, room) {
   }
 }
 
+// --- Foreach helpers ---
+
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function generateForeachCandidates(currentItem, allPlayers, decoyCount) {
+  // Build candidate list: real author + N random decoys
+  const authorId = currentItem.playerId;
+  const others = allPlayers.filter(p => p.id !== authorId);
+  const numDecoys = Math.min(decoyCount || 3, others.length);
+  const decoys = shuffleArray(others).slice(0, numDecoys);
+  const candidates = shuffleArray([
+    ...decoys.map(p => p.name),
+    allPlayers.find(p => p.id === authorId)?.name || 'Unknown'
+  ]);
+  return candidates;
+}
+
+function setupForeachIteration(engine, foreachPhaseId, feConfig, index) {
+  const state = engine.foreachState[foreachPhaseId];
+  const item = state.items[index];
+  state.currentIndex = index;
+
+  // Set current item for template resolution
+  engine._currentForeachItem = item;
+
+  // Generate candidates if configured
+  if (feConfig.candidateSource === 'players') {
+    const allPlayers = engine.players.list();
+    engine._foreachCandidates = generateForeachCandidates(item, allPlayers, feConfig.decoyCount);
+  } else {
+    engine._foreachCandidates = null;
+  }
+
+  // Inject virtual sub-phases into the engine config and register transitions
+  const subNames = Object.keys(feConfig.subPhases);
+  const virtualIds = subNames.map(name => `_fe:${foreachPhaseId}:${name}`);
+
+  for (let i = 0; i < subNames.length; i++) {
+    const subName = subNames[i];
+    const subConfig = { ...feConfig.subPhases[subName], id: virtualIds[i] };
+
+    // Resolve _candidates in choices/candidates field
+    if (subConfig.choices === '_candidates') {
+      subConfig.choices = engine._foreachCandidates || [];
+    }
+    if (subConfig.candidates === '_candidates') {
+      subConfig.candidates = engine._foreachCandidates || [];
+    }
+
+    // Resolve templates with _current
+    if (subConfig.message) {
+      subConfig.message = resolveTemplate(subConfig.message, engine);
+    }
+    if (subConfig.prompt) {
+      subConfig.prompt = resolveTemplate(subConfig.prompt, engine);
+    }
+
+    // Set next: chain sub-phases, last one loops back to foreach orchestrator
+    if (i < subNames.length - 1) {
+      subConfig.next = virtualIds[i + 1];
+    } else {
+      subConfig.next = `_fe:${foreachPhaseId}:_advance`;
+    }
+
+    engine.config.phases[virtualIds[i]] = subConfig;
+  }
+
+  // Create the _advance virtual phase (triggers next iteration or exit)
+  const advanceId = `_fe:${foreachPhaseId}:_advance`;
+  engine.config.phases[advanceId] = { type: '_foreach_advance', id: advanceId, foreachPhaseId };
+
+  // Register all transitions
+  const currentState = engine.stateMachine.getState();
+  engine.stateMachine.addDynamicTransition(currentState, virtualIds[0]);
+  for (let i = 0; i < virtualIds.length; i++) {
+    if (i < virtualIds.length - 1) {
+      engine.stateMachine.addDynamicTransition(virtualIds[i], virtualIds[i + 1]);
+    } else {
+      engine.stateMachine.addDynamicTransition(virtualIds[i], advanceId);
+    }
+  }
+  // _advance can go to next iteration's first sub-phase, or the foreach's next phase
+  const fePhase = engine.config.phases[foreachPhaseId];
+  if (fePhase.next) {
+    engine.stateMachine.addDynamicTransition(advanceId, fePhase.next);
+  }
+  // Allow transition to next iteration's first sub-phase
+  engine.stateMachine.addDynamicTransition(advanceId, virtualIds[0]);
+
+  return virtualIds[0];
+}
+
+async function advanceForeach(code, room, foreachPhaseId) {
+  const engine = room.engine;
+  const state = engine.foreachState[foreachPhaseId];
+  const feConfig = engine.config.phases[foreachPhaseId];
+
+  // Apply scoring for this iteration if configured
+  if (feConfig.scoring) {
+    const scoringSubId = `_fe:${foreachPhaseId}:${feConfig.scoring.subPhase}`;
+    const subData = engine.getPhaseData(scoringSubId);
+    if (subData) {
+      const item = state.items[state.currentIndex];
+      const correctRef = feConfig.scoring.correctAnswer;
+      let correctAnswer;
+      if (correctRef === '_current.playerId') {
+        correctAnswer = item.playerId;
+      } else if (correctRef === '_current.playerName') {
+        correctAnswer = item.playerName;
+      } else if (correctRef.startsWith('_current.')) {
+        correctAnswer = engine.resolve(correctRef);
+      } else {
+        correctAnswer = correctRef;
+      }
+
+      // Score based on collect-choice responses
+      const responses = subData.responses || [];
+      const pointsCorrect = feConfig.scoring.pointsCorrect || 100;
+      const pointsDecoy = feConfig.scoring.pointsDecoy || 0;
+
+      for (const r of responses) {
+        if (!state.scores[r.playerId]) state.scores[r.playerId] = 0;
+
+        // Check if the player's choice matches the correct answer
+        const playerChoice = r.choice || r.text;
+        // For player-name matching: find the player whose name matches the choice
+        const chosenPlayer = engine.players.list().find(p => p.name === playerChoice);
+        const isCorrect = (playerChoice === correctAnswer) ||
+                          (chosenPlayer && chosenPlayer.id === correctAnswer);
+
+        if (isCorrect) {
+          state.scores[r.playerId] += pointsCorrect;
+        } else {
+          state.scores[r.playerId] += pointsDecoy;
+        }
+      }
+
+      console.log(`[foreach] Iteration ${state.currentIndex + 1}/${state.items.length} scored. Scores:`,
+        Object.fromEntries(Object.entries(state.scores).map(([pid, s]) => [engine.players.find(pid)?.name || pid, s]))
+      );
+    }
+  }
+
+  // Move to next iteration or finish
+  const nextIndex = state.currentIndex + 1;
+  if (nextIndex < state.items.length) {
+    const firstSubId = setupForeachIteration(engine, foreachPhaseId, feConfig, nextIndex);
+    engine.transition(firstSubId);
+    await handlePhase(code, room);
+  } else {
+    // Foreach complete — store final data
+    engine.storePhaseData(foreachPhaseId, {
+      scores: state.scores,
+      itemCount: state.items.length
+    });
+    engine._currentForeachItem = null;
+    engine._foreachCandidates = null;
+
+    console.log(`[foreach] '${foreachPhaseId}' complete. ${state.items.length} iterations.`);
+
+    const nextId = feConfig.next;
+    if (nextId) {
+      engine.stateMachine.addDynamicTransition(engine.stateMachine.getState(), nextId);
+      engine.transition(nextId);
+      await handlePhase(code, room);
+    }
+  }
+}
+
 async function tallyAndAdvance(code, room) {
   const engine = room.engine;
   const vs = room.voteState;
@@ -792,6 +968,47 @@ async function handlePhase(code, room) {
       console.log(`[handlePhase] Relay: ${turnOrder.length} players, order=${phase.order || 'random'}`);
 
       emitRelayTurn(code, room);
+      break;
+    }
+
+    case 'foreach': {
+      const feData = engine.resolve(phase.data) || [];
+      const items = (phase.shuffle !== false ? shuffleArray(feData) : feData).map(item => {
+        // Normalize items: if it's a response object {playerId, name, text}, keep it
+        // If it's a string, wrap it
+        if (typeof item === 'object' && item !== null) {
+          return { ...item, playerName: item.name || (engine.players.find(item.playerId) || {}).name || 'Unknown' };
+        }
+        return { text: item, playerName: 'Unknown' };
+      });
+
+      if (items.length === 0) {
+        console.log(`[foreach] '${phase.id}' has 0 items — skipping to next`);
+        const feNextId = phase.next;
+        if (feNextId) {
+          engine.transition(feNextId);
+          await handlePhase(code, room);
+        }
+        break;
+      }
+
+      engine.foreachState[phase.id] = {
+        items,
+        currentIndex: 0,
+        scores: {}
+      };
+
+      console.log(`[foreach] '${phase.id}' starting with ${items.length} items`);
+
+      const firstSubId = setupForeachIteration(engine, phase.id, phase, 0);
+      engine.transition(firstSubId);
+      await handlePhase(code, room);
+      break;
+    }
+
+    case '_foreach_advance': {
+      const fePhaseId = phase.foreachPhaseId;
+      await advanceForeach(code, room, fePhaseId);
       break;
     }
 

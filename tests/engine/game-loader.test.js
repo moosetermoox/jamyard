@@ -977,4 +977,143 @@ describe('GameLoader', () => {
       expect(() => validate(config, 'test')).toThrow('invalid playerShow toggle');
     });
   });
+
+  describe('foreach phase validation', () => {
+    it('accepts valid foreach config', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'collect' },
+          collect: { type: 'collect', prompt: 'Answer', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            subPhases: {
+              show: { type: 'announce', message: 'Item', timer: 5 },
+              guess: { type: 'collect-choice', prompt: 'Pick', choices: ['A', 'B'], timer: 10 }
+            },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects foreach missing data', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'loop' },
+          loop: {
+            type: 'foreach',
+            subPhases: { show: { type: 'announce', message: 'Hi' } },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing required field "data"');
+    });
+
+    it('rejects foreach missing subPhases', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('missing required field "subPhases"');
+    });
+
+    it('rejects foreach with empty subPhases', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'collect' },
+          collect: { type: 'collect', prompt: 'Go', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            subPhases: {},
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('empty subPhases');
+    });
+
+    it('rejects foreach with invalid sub-phase type', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'collect' },
+          collect: { type: 'collect', prompt: 'Go', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            subPhases: { show: { type: 'nonexistent' } },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('invalid type "nonexistent"');
+    });
+
+    it('rejects foreach with invalid data ref', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'nonexistent.responses',
+            subPhases: { show: { type: 'announce', message: 'Hi' } },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('phase "nonexistent" does not exist');
+    });
+
+    it('rejects foreach scoring with missing subPhase', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'collect' },
+          collect: { type: 'collect', prompt: 'Go', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            subPhases: { show: { type: 'announce', message: 'Hi' } },
+            scoring: { correctAnswer: '_current.playerName' },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('scoring is missing "subPhase"');
+    });
+
+    it('rejects foreach scoring with missing correctAnswer', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'collect' },
+          collect: { type: 'collect', prompt: 'Go', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            subPhases: { guess: { type: 'collect-choice', prompt: 'Pick', choices: ['A'] } },
+            scoring: { subPhase: 'guess' },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('scoring is missing "correctAnswer"');
+    });
+  });
 });

@@ -8,7 +8,7 @@ const GAMES_DIR = join(__dirname, '..', 'games');
 const VALID_PHASE_TYPES = [
   'lobby', 'collect', 'collect-choice', 'ai-process', 'vote', 'eliminate',
   'ai-eliminate', 'announce', 'reveal', 'preview', 'winner', 'leaderboard',
-  'reveal-one', 'team-split', 'rank', 'wager', 'relay', 'end'
+  'reveal-one', 'team-split', 'rank', 'wager', 'relay', 'foreach', 'end'
 ];
 
 const PHASE_REQUIRED_FIELDS = {
@@ -26,7 +26,8 @@ const PHASE_REQUIRED_FIELDS = {
   'team-split': ['method', 'teamCount'],
   rank: ['prompt', 'candidates'],
   wager: ['prompt', 'options'],
-  relay: ['prompt']
+  relay: ['prompt'],
+  foreach: ['data', 'subPhases']
 };
 
 const ENUM_VALUES = {
@@ -61,6 +62,7 @@ const VALID_HOST_TOGGLES = {
   rank: ['prompt', 'counter', 'timer', 'closeButton'],
   wager: ['prompt', 'options', 'counter', 'timer', 'closeButton'],
   relay: ['prompt', 'progress', 'sharedResult', 'timer', 'activePlayer'],
+  foreach: [],
   end: ['message', 'playAgainButton']
 };
 
@@ -80,6 +82,7 @@ const VALID_PLAYER_TOGGLES = {
   rank: ['prompt', 'items', 'timer', 'submitButton'],
   wager: ['prompt', 'options', 'points', 'timer', 'submitButton'],
   relay: ['prompt', 'sharedResult', 'input', 'timer'],
+  foreach: [],
   end: ['message']
 };
 
@@ -317,6 +320,49 @@ export function validate(config, gameId, options) {
         errors.push(
           `Game "${gameId}": phase "${name}" has loopBack but is missing "next" (needed as loop exit)`
         );
+      }
+    }
+
+    // Foreach validation
+    if (phase.type === 'foreach') {
+      if (phase.data && typeof phase.data === 'string' && phase.data.includes('.')) {
+        const refPhaseId = phase.data.split('.')[0];
+        if (!config.phases[refPhaseId]) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" references data "${phase.data}" but phase "${refPhaseId}" does not exist`
+          );
+        }
+      }
+      if (phase.subPhases && typeof phase.subPhases === 'object') {
+        const subNames = Object.keys(phase.subPhases);
+        if (subNames.length === 0) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (foreach) has empty subPhases`
+          );
+        }
+        for (const [subName, sub] of Object.entries(phase.subPhases)) {
+          if (!sub.type) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" subPhase "${subName}" is missing type`
+            );
+          } else if (!VALID_PHASE_TYPES.includes(sub.type) && sub.type !== 'foreach') {
+            errors.push(
+              `Game "${gameId}": phase "${name}" subPhase "${subName}" has invalid type "${sub.type}"`
+            );
+          }
+        }
+      }
+      if (phase.scoring) {
+        if (!phase.scoring.subPhase) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" scoring is missing "subPhase" field`
+          );
+        }
+        if (!phase.scoring.correctAnswer) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" scoring is missing "correctAnswer" field`
+          );
+        }
       }
     }
 

@@ -1,0 +1,64 @@
+{
+  "name": "Who Said It?",
+  "description": "Can you guess who wrote each response? The class guesses anonymously!",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "prompt"
+    },
+    "prompt": {
+      "type": "announce",
+      "message": "Get ready! You'll each answer a question, then try to guess who said what.",
+      "timer": 5,
+      "next": "collect-answers"
+    },
+    "collect-answers": {
+      "type": "collect",
+      "prompt": "What is the most unusual thing you've ever eaten?",
+      "timer": 45,
+      "next": "guess-loop"
+    },
+    "guess-loop": {
+      "type": "foreach",
+      "data": "collect-answers.responses",
+      "shuffle": true,
+      "candidateSource": "players",
+      "decoyCount": 3,
+      "subPhases": {
+        "show": {
+          "type": "announce",
+          "message": "Round {{_foreach.guess-loop.index}} of {{_foreach.guess-loop.total}}\n\nSomeone said:\n\n\"{{_current.text}}\"",
+          "timer": 5
+        },
+        "guess": {
+          "type": "collect-choice",
+          "prompt": "Who do you think said: \"{{_current.text}}\"?",
+          "choices": "_candidates",
+          "timer": 15
+        },
+        "reveal": {
+          "type": "announce",
+          "message": "It was {{_current.playerName}}!",
+          "timer": 5
+        }
+      },
+      "scoring": {
+        "subPhase": "guess",
+        "correctAnswer": "_current.playerName",
+        "pointsCorrect": 100,
+        "pointsDecoy": 0
+      },
+      "next": "scoreboard"
+    },
+    "scoreboard": {
+      "type": "leaderboard",
+      "from": "guess-loop.scores",
+      "timer": 15,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing Who Said It?"
+    }
+  }
+}

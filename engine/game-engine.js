@@ -11,6 +11,9 @@ export class GameEngine {
     this.phaseData = {};
     this.hooks = {};
     this.loopState = {};
+    this.foreachState = {};      // { foreachPhaseId: { items, currentIndex, scores, subPhaseIds } }
+    this._currentForeachItem = null;  // current iteration item for template resolution
+    this._foreachCandidates = null;   // generated candidates for current iteration
 
     const smConfig = buildStateMachineConfig(config.phases);
     this.stateMachine = new StateMachine(smConfig);
@@ -77,6 +80,34 @@ export class GameEngine {
   resolve(reference) {
     const parts = reference.split('.');
     const firstPart = parts[0];
+
+    // Handle _current — refers to the current foreach iteration item
+    if (firstPart === '_current') {
+      if (!this._currentForeachItem) return undefined;
+      let value = this._currentForeachItem;
+      for (let i = 1; i < parts.length; i++) {
+        if (value == null) return undefined;
+        value = value[parts[i]];
+      }
+      return value;
+    }
+
+    // Handle _foreach.<foreachPhaseId>.index / .total / .scores
+    if (firstPart === '_foreach' && parts.length >= 3) {
+      const fePhaseId = parts[1];
+      const field = parts[2];
+      const state = this.foreachState[fePhaseId];
+      if (!state) return undefined;
+      if (field === 'index') return state.currentIndex + 1; // 1-based
+      if (field === 'total') return state.items.length;
+      if (field === 'scores') return state.scores;
+      return undefined;
+    }
+
+    // Handle _candidates — dynamically generated candidate list for foreach
+    if (firstPart === '_candidates') {
+      return this._foreachCandidates || [];
+    }
 
     // Handle _loop variables: _loop.<phaseId>.iteration / .total
     if (firstPart === '_loop' && parts.length >= 3) {
