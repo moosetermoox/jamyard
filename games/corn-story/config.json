@@ -14,7 +14,6 @@
       "type": "lobby",
       "next": "round1-intro"
     },
-
     "round1-intro": {
       "type": "reveal",
       "template": "# Round 1: Don't Match!\n\nAnswer the question, but don't match anyone else!\nIf two players give the same answer, BOTH are eliminated.",
@@ -47,7 +46,6 @@
       "template": "# Round 1 Results\n\n{{round1-eliminate.eliminated.length}} players eliminated for matching!\n\n{{remaining.length}} players advance to Round 2.",
       "next": "round2-intro"
     },
-
     "round2-intro": {
       "type": "reveal",
       "template": "# Round 2: Be Creative!\n\nRemaining players: submit your most creative answer.\nThen EVERYONE votes head-to-head.\nBottom 60% will be eliminated!",
@@ -81,7 +79,6 @@
       "template": "# Round 2 Results\n\n{{round2-eliminate.eliminated.length}} players eliminated!\n\n{{remaining.length}} players advance to the Final Round!",
       "next": "final-intro"
     },
-
     "final-intro": {
       "type": "reveal",
       "template": "# Final Round!\n\nFinalists: give us your BEST answer.\nEliminated players: YOU decide the winner!",
@@ -112,5 +109,6 @@
       "type": "end",
       "message": "Thanks for playing Corn Story!"
     }
-  }
+  },
+  "theme": "arcade"
 }

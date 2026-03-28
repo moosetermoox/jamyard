@@ -35,5 +35,6 @@
       "next": "phase-5",
       "input": "phase-2.responses"
     }
-  }
+  },
+  "theme": "ocean"
 }
