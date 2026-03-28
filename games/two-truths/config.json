@@ -1,0 +1,55 @@
+{
+  "name": "Two Truths and a Lie",
+  "description": "Each player shares three statements. The class guesses which one is the lie!",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "Two Truths and a Lie!\n\nYou'll write three statements about yourself. Two are true, one is a lie. Then everyone guesses which is the lie!",
+      "timer": 8,
+      "next": "collect-statements"
+    },
+    "collect-statements": {
+      "type": "collect",
+      "prompt": "Write your THREE statements separated by slashes (/). Two truths and one lie!\n\nExample: I can juggle / I've been to Japan / I have a pet snake",
+      "timer": 90,
+      "next": "guess-loop"
+    },
+    "guess-loop": {
+      "type": "foreach",
+      "data": "collect-statements.responses",
+      "shuffle": true,
+      "subPhases": {
+        "show-statements": {
+          "type": "announce",
+          "message": "Round {{_foreach.guess-loop.index}} of {{_foreach.guess-loop.total}}\n\nSomeone wrote these three statements:\n\n{{_current.text}}\n\nWhich one is the LIE?",
+          "timer": 8
+        },
+        "pick-the-lie": {
+          "type": "collect",
+          "prompt": "Which statement do you think is the LIE?\n\n{{_current.text}}\n\n(Type the lie statement exactly or describe it)",
+          "timer": 20
+        },
+        "who-was-it": {
+          "type": "announce",
+          "message": "Those statements were from {{_current.playerName}}!\n\nAsk them: which was the lie?",
+          "timer": 10
+        }
+      },
+      "next": "finale"
+    },
+    "finale": {
+      "type": "announce",
+      "message": "That's everyone! Great job getting to know each other.",
+      "timer": 8,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing Two Truths and a Lie!"
+    }
+  }
+}
