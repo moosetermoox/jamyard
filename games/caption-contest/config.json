@@ -9,7 +9,6 @@
     "generate-scenario": {
       "type": "ai-process",
       "instruction": "Generate a brief, funny, absurd scenario that students could write a caption for. Something like 'A cat wearing a business suit gives a TED talk' or 'A penguin tries to order at a drive-through'. Return just the scenario text, nothing else. Make it school-appropriate and silly.",
-      "input": "lobby.data",
       "task": "generate",
       "next": "write-captions"
     },

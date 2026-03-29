@@ -158,7 +158,7 @@ describe('GameLoader', () => {
       expect(() => validate(config, 'test')).toThrow('missing required field "instruction"');
     });
 
-    it('rejects ai-process phase missing input', () => {
+    it('allows ai-process phase without input (generates from scratch)', () => {
       const config = {
         name: 'Test',
         phases: {
@@ -167,7 +167,7 @@ describe('GameLoader', () => {
           end: { type: 'end' }
         }
       };
-      expect(() => validate(config, 'test')).toThrow('missing required field "input"');
+      expect(() => validate(config, 'test')).not.toThrow();
     });
 
     it('rejects vote phase missing mode', () => {

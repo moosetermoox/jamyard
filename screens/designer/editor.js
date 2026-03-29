@@ -1429,6 +1429,44 @@ function renderPhaseConfig(phaseId) {
       });
     }
 
+    addSectionHeader('AI Injection (Optional)');
+    var aiInjectEnabled = !!phase.aiInject;
+    var aiInjectCheckbox = document.createElement('div');
+    aiInjectCheckbox.style.cssText = 'margin-bottom:8px;';
+    var aiInjectLabel = document.createElement('label');
+    aiInjectLabel.style.cssText = 'display:flex; align-items:center; gap:8px; cursor:pointer;';
+    var aiInjectCb = document.createElement('input');
+    aiInjectCb.type = 'checkbox';
+    aiInjectCb.checked = aiInjectEnabled;
+    aiInjectCb.addEventListener('change', function () {
+      if (aiInjectCb.checked) {
+        phase.aiInject = { count: 3, instruction: 'Generate fake responses matching the style of the real student answers.' };
+      } else {
+        delete phase.aiInject;
+      }
+      isDirty = true;
+      renderPhaseConfig(phaseId);
+    });
+    aiInjectLabel.appendChild(aiInjectCb);
+    aiInjectLabel.appendChild(document.createTextNode('Mix in AI-generated fake responses (for "human vs AI" games)'));
+    aiInjectCheckbox.appendChild(aiInjectLabel);
+    sidebar.appendChild(aiInjectCheckbox);
+
+    if (phase.aiInject) {
+      addFieldWithHelp('Number of AI fakes', 'How many AI-generated responses to mix in with real ones', 'number', 'phase-aiInject-count', phase.aiInject.count || 3, false, function (value) {
+        phase.aiInject.count = value;
+        isDirty = true;
+      });
+      addFieldWithHelp('AI instruction', 'Tell the AI what kind of fake responses to generate', 'text', 'phase-aiInject-instruction', phase.aiInject.instruction || '', false, function (value) {
+        phase.aiInject.instruction = value;
+        isDirty = true;
+      });
+      var aiInjectHint = document.createElement('div');
+      aiInjectHint.className = 'field-help';
+      aiInjectHint.innerHTML = 'Use scoring with <code>correctAnswer: "_current.isHuman"</code> and choices <code>["Human", "AI"]</code> to score detection.';
+      sidebar.appendChild(aiInjectHint);
+    }
+
     addSectionHeader('Sub-phases (run per item)');
 
     // Render existing sub-phases
@@ -2444,7 +2482,7 @@ var VALID_TYPES = Object.keys(PHASE_CATALOG);
 var REQUIRED_FIELDS = {
   collect: ['prompt'],
   'collect-choice': ['prompt', 'choices'],
-  'ai-process': ['instruction', 'input'],
+  'ai-process': ['instruction'],
   'ai-eliminate': ['instruction', 'input'],
   vote: ['mode', 'candidates'],
   eliminate: ['method'],
@@ -3247,6 +3285,7 @@ function buildPreviewHTML(phase, screen) {
       var fSubCat = PHASE_CATALOG[fSub.type];
       html += (fi + 1) + '. ' + (fSubCat ? fSubCat.icon + ' ' : '') + feSubNames[fi] + ' (' + (fSubCat ? fSubCat.friendlyName : fSub.type) + ')<br>';
     }
+    if (phase.aiInject) html += '<em>+ ' + (phase.aiInject.count || 1) + ' AI fakes mixed in</em><br>';
     if (phase.scoring) html += '<em>Scoring enabled</em>';
     html += '</div>';
   }

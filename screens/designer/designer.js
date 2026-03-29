@@ -311,6 +311,19 @@ async function createFromAI(description, overlay) {
       return;
     }
 
+    if (data.unsupported) {
+      statusDiv.style.background = '#FFF3E0';
+      statusDiv.style.border = '2px solid #FF9800';
+      statusDiv.style.padding = '12px';
+      statusDiv.innerHTML = '<strong>This idea is beyond what the framework can do:</strong><br>' +
+        data.reason + '<br><br>' +
+        '<strong>But here\'s an idea that would work:</strong><br>' +
+        data.suggestion;
+      generateBtn.disabled = false;
+      generateBtn.textContent = 'Try Again';
+      return;
+    }
+
     var config = data.config;
 
     // Generate a safe game ID from the name

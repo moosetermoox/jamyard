@@ -382,6 +382,8 @@ async function advanceForeach(code, room, foreachPhaseId) {
           correctAnswer = item.playerId;
         } else if (correctRef === '_current.playerName') {
           correctAnswer = item.playerName;
+        } else if (correctRef === '_current.isHuman') {
+          correctAnswer = item.isAI ? 'AI' : 'Human';
         } else if (correctRef && correctRef.startsWith('_current.')) {
           correctAnswer = engine.resolve(correctRef);
         } else {
@@ -513,7 +515,7 @@ async function handlePhase(code, room) {
       const scAi = resolveScreenControl(phase, engine);
       io.to(code).emit('processing-started', { task: phase.task, ...scAi });
 
-      const input = engine.resolve(phase.input);
+      const input = phase.input ? engine.resolve(phase.input) : undefined;
       const instruction = phase.instruction;
       const responses = Array.isArray(input) ? input : [];
 
@@ -985,7 +987,36 @@ async function handlePhase(code, room) {
     }
 
     case 'foreach': {
-      const feData = engine.resolve(phase.data) || [];
+      let feData = engine.resolve(phase.data) || [];
+
+      // AI injection: generate fake responses and mix them in
+      if (phase.aiInject) {
+        const realResponses = Array.isArray(feData) ? feData : [];
+        const injectCount = phase.aiInject.count || 1;
+        const injectInstruction = phase.aiInject.instruction || 'Generate fake responses that match the style of the real ones.';
+        console.log(`[foreach] '${phase.id}' injecting ${injectCount} AI responses`);
+
+        const fakes = await aiService.generateFakeResponses({
+          instruction: injectInstruction,
+          responses: realResponses,
+          count: injectCount
+        });
+
+        // Mark real items
+        feData = realResponses.map(item => ({ ...item, isAI: false, isHuman: true }));
+
+        // Add AI items
+        for (let i = 0; i < fakes.length; i++) {
+          feData.push({
+            playerId: `_ai_${i}`,
+            name: 'AI',
+            text: fakes[i].text || fakes[i],
+            isAI: true,
+            isHuman: false
+          });
+        }
+      }
+
       const items = (phase.shuffle !== false ? shuffleArray(feData) : feData).map(item => {
         // Normalize items: if it's a response object {playerId, name, text}, keep it
         // If it's a string, wrap it
@@ -1709,6 +1740,9 @@ app.post('/api/games/generate', async (req, res) => {
     const config = await aiService.generateGame(description);
     if (config.error) {
       return res.status(500).json({ error: config.error, raw: config.raw });
+    }
+    if (config.unsupported) {
+      return res.json({ unsupported: true, reason: config.reason, suggestion: config.suggestion });
     }
     res.json({ config });
   } catch (error) {

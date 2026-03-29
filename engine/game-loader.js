@@ -14,7 +14,7 @@ const VALID_PHASE_TYPES = [
 const PHASE_REQUIRED_FIELDS = {
   collect: ['prompt'],
   'collect-choice': ['prompt', 'choices'],
-  'ai-process': ['instruction', 'input'],
+  'ai-process': ['instruction'],
   'ai-eliminate': ['instruction', 'input'],
   vote: ['mode', 'candidates'],
   eliminate: ['method'],
@@ -348,6 +348,24 @@ export function validate(config, gameId, options) {
           } else if (!VALID_PHASE_TYPES.includes(sub.type) && sub.type !== 'foreach') {
             errors.push(
               `Game "${gameId}": phase "${name}" subPhase "${subName}" has invalid type "${sub.type}"`
+            );
+          }
+        }
+      }
+      if (phase.aiInject) {
+        if (typeof phase.aiInject !== 'object') {
+          errors.push(
+            `Game "${gameId}": phase "${name}" aiInject must be an object`
+          );
+        } else {
+          if (!phase.aiInject.count || typeof phase.aiInject.count !== 'number' || phase.aiInject.count < 1 || phase.aiInject.count > 20) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" aiInject.count must be a number between 1 and 20`
+            );
+          }
+          if (!phase.aiInject.instruction || typeof phase.aiInject.instruction !== 'string') {
+            errors.push(
+              `Game "${gameId}": phase "${name}" aiInject.instruction is required (tells AI what to generate)`
             );
           }
         }
