@@ -300,8 +300,9 @@ async function run() {
       while (!aiDone && (Date.now() - aiStart) < 120000) {
         await wait(1000);
         // Check if any game event arrived in any player buffer
-        var nextEvents = ['game-started', 'announce', 'reveal', 'leaderboard', 'game-ended',
-                          'vote-started', 'processing-started', 'preview', 'eliminated', 'winner'];
+        var nextEvents = ['game-started', 'announce', 'show-results', 'leaderboard', 'game-ended',
+                          'vote-started', 'processing-started', 'preview', 'eliminated', 'winner',
+                          'waiting', 'team-split', 'rank-start', 'wager-start', 'relay-turn'];
         for (var p of players) {
           for (var ev of nextEvents) {
             if (p._buffer[ev] && p._buffer[ev].length > 0) { aiDone = true; break; }
@@ -391,13 +392,13 @@ async function run() {
 
     // Check for reveal
     try {
-      var revealData = await waitForAnyPlayerEvent(players, 'reveal', 2000);
+      var revealData = await waitForAnyPlayerEvent(players, 'show-results', 2000);
       console.log(`\n--- Phase: REVEAL ---`);
       var content = revealData.content || revealData.template || '(no content)';
       log('SIM', `Content: "${String(content).substring(0, 100)}"`);
       phaseLog.push({ type: 'reveal', content: String(content).substring(0, 100) });
-      drainEvent(players, 'reveal');
-      drainEvent([host], 'reveal');
+      drainEvent(players, 'show-results');
+      drainEvent([host], 'show-results');
       await wait(2000);
       host.emit('next-phase', { code });
       lastEventTime = Date.now();
@@ -554,7 +555,7 @@ async function run() {
         }
         await wait(1500);
         // Check if relay ended (next event appeared)
-        var nextEvents = ['game-started', 'announce', 'reveal', 'leaderboard', 'game-ended',
+        var nextEvents = ['game-started', 'announce', 'show-results', 'leaderboard', 'game-ended',
                           'vote-started', 'processing-started', 'team-split', 'rank-start',
                           'wager-start', 'eliminated', 'winner'];
         for (var p of players) {

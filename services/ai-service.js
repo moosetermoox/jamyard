@@ -6,7 +6,7 @@ Keep your responses appropriate for a classroom setting - fun but not inappropri
 Be creative, playful, and engaging. Keep responses concise.`;
 
 const MODELS = {
-  haiku: 'claude-3-haiku-20240307',
+  haiku: 'claude-haiku-4-5-20251001',
   sonnet: 'claude-sonnet-4-5-20250929'
 };
 
@@ -292,7 +292,10 @@ export class AIService {
     this.mode = config.mode || 'mock';
 
     if (this.mode === 'real') {
-      this.client = new Anthropic();
+      this.client = new Anthropic({
+        timeout: 60 * 1000,  // 60s timeout per request
+        maxRetries: 1
+      });
     }
   }
 
@@ -318,6 +321,7 @@ export class AIService {
   async _processReal(instruction, responses, systemPrompt) {
     try {
       const userMessage = this._buildUserMessage(instruction, responses);
+      const start = Date.now();
 
       const message = await this.client.messages.create({
         model: MODEL,
@@ -327,6 +331,9 @@ export class AIService {
           { role: 'user', content: userMessage }
         ]
       });
+
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      console.log(`[AIService] process() completed in ${elapsed}s (model: ${MODEL}, input: ${message.usage?.input_tokens || '?'} tokens, output: ${message.usage?.output_tokens || '?'} tokens)`);
 
       return {
         text: message.content[0].text
@@ -357,16 +364,20 @@ export class AIService {
   async _generateFakeResponsesReal({ instruction, responses, count }) {
     try {
       var examples = responses.map(r => `- "${r.text}"`).join('\n');
+      var start = Date.now();
 
       var message = await this.client.messages.create({
-        model: MODELS.sonnet,
-        max_tokens: 2048,
+        model: MODELS.haiku,
+        max_tokens: 1024,
         system: `You generate fake responses that blend in with real student answers. Your goal is to make responses that are indistinguishable from human ones — match the tone, length, creativity level, and writing style. Some should be slightly better, some slightly worse, to feel natural.`,
         messages: [{
           role: 'user',
           content: `${instruction}\n\nHere are the real student responses for reference (match their style):\n${examples}\n\nGenerate exactly ${count} fake responses. Return ONLY a JSON array of objects with "text" field:\n[{"text": "fake response 1"}, {"text": "fake response 2"}]`
         }]
       });
+
+      var elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      console.log(`[AIService] generateFakeResponses() completed in ${elapsed}s (model: ${MODELS.haiku}, ${count} fakes)`);
 
       var text = message.content[0].text;
       try {
@@ -444,6 +455,7 @@ export class AIService {
         : LIGHT_REVIEW_PROMPT;
 
       const configJson = JSON.stringify(config, null, 0);
+      const start = Date.now();
 
       const message = await this.client.messages.create({
         model,
@@ -453,6 +465,9 @@ export class AIService {
           { role: 'user', content: `Review this game config:\n${configJson}` }
         ]
       });
+
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      console.log(`[AIService] review(${depth}) completed in ${elapsed}s (model: ${model})`);
 
       const text = message.content[0].text;
 
