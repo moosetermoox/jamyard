@@ -183,7 +183,7 @@ Available phase types:
     - Use correctAnswer: "_current.isHuman" in scoring to award points for correctly guessing "Human" or "AI"
     - The choices for the detect sub-phase MUST be exactly ["Human", "AI"] to match the scoring
 
-    EXAMPLE: Human vs AI detection game with aiInject:
+    EXAMPLE: Human vs AI detection game with aiInject (one-at-a-time):
     "each-idea": {
       "type": "foreach", "data": "collect.responses", "shuffle": true,
       "aiInject": { "count": 3, "instruction": "Generate fake answers matching the student responses." },
@@ -195,8 +195,29 @@ Available phase types:
       "next": "scores"
     }
 
+    PAIR MODE (for side-by-side human vs AI comparison):
+    Add "pairMode": "human-vs-ai" to show pairs of items (one human, one AI) side by side each iteration.
+    - Requires aiInject to be configured
+    - Each iteration item has: _current.a (one item), _current.b (the other), randomly assigned
+    - _current.aiPosition is "Idea A" or "Idea B" (which position the AI item is in)
+    - _current.humanPosition is "Idea A" or "Idea B" (which position the human item is in)
+    - _current.a.text and _current.b.text contain the response text
+    - Use correctAnswer: "_current.aiPosition" with choices ["Idea A", "Idea B"] for scoring
+
+    EXAMPLE: Human vs AI side-by-side with pairMode:
+    "each-pair": {
+      "type": "foreach", "data": "collect.responses", "shuffle": true,
+      "aiInject": { "count": 3, "instruction": "Generate fake ideas matching the student style." },
+      "pairMode": "human-vs-ai",
+      "subPhases": {
+        "show": { "type": "announce", "message": "IDEA A:\\n{{_current.a.text}}\\n\\nIDEA B:\\n{{_current.b.text}}", "timer": 12 },
+        "guess": { "type": "collect-choice", "prompt": "Which was written by AI?\\n\\nIDEA A: {{_current.a.text}}\\n\\nIDEA B: {{_current.b.text}}", "choices": ["Idea A", "Idea B"], "timer": 20 }
+      },
+      "scoring": { "subPhase": "guess", "correctAnswer": "_current.aiPosition", "pointsCorrect": 100 },
+      "next": "scores"
+    }
+
     FOREACH LIMITATIONS — things it CANNOT do:
-    - Cannot pair or compare two items side-by-side (it shows ONE item per iteration)
     - Cannot display candidate details in prompts (_candidates are just name strings, not objects)
     - Sub-phases cannot be: reveal, vote, ai-process, or any other type besides announce/collect/collect-choice
     - Do NOT reference sub-phase data across iterations
@@ -251,8 +272,7 @@ If the user describes something OUTSIDE what the framework can do, respond with 
 UNSUPPORTED concepts (return unsupported JSON for these):
 - Real-time graphics, 3D worlds, physics, video, drawing, audio, multiplayer action games, board game simulations
 - Anything requiring custom UI beyond text and multiple-choice
-- Side-by-side comparison of two items in one view (foreach shows ONE item per iteration)
-- Pairing or matchmaking between specific items (foreach iterates sequentially, not in pairs)
+- Pairing or matchmaking between player items (foreach with pairMode only pairs human vs AI, not human vs human)
 - Real-time competitive play (the framework is turn-based: collect, then process, then show)
 
 NOTE: "AI plays too" / "human vs AI" games ARE supported using foreach with aiInject. Do NOT mark these as unsupported.

@@ -293,11 +293,11 @@ async function run() {
       phaseLog.push({ type: 'ai-process', task: procData.task });
       drainEvent(players, 'processing-started');
 
-      // AI auto-advances when done. Wait for any next event to appear (up to 60s).
+      // AI auto-advances when done. Wait for any next event to appear (up to 120s).
       log('SIM', 'Waiting for AI to finish...');
       var aiDone = false;
       var aiStart = Date.now();
-      while (!aiDone && (Date.now() - aiStart) < 60000) {
+      while (!aiDone && (Date.now() - aiStart) < 120000) {
         await wait(1000);
         // Check if any game event arrived in any player buffer
         var nextEvents = ['game-started', 'announce', 'reveal', 'leaderboard', 'game-ended',
@@ -314,7 +314,7 @@ async function run() {
       if (aiDone) {
         log('SIM', `AI finished in ${Math.round((Date.now() - aiStart) / 1000)}s`);
       } else {
-        warn('AI did not complete within 60s');
+        warn('AI did not complete within 120s');
       }
       lastEventTime = Date.now();
       handled = true;
@@ -445,6 +445,140 @@ async function run() {
       await wait(3000);
       continue;
     } catch (e) { /* no winner */ }
+
+    // Check for team-split
+    try {
+      var tsData = await waitForAnyPlayerEvent(players, 'team-split', 2000);
+      console.log(`\n--- Phase: TEAM-SPLIT ---`);
+      check(tsData.myTeam, `Player assigned to team: ${tsData.myTeam}`);
+      if (tsData.teams) {
+        var teamNames = Object.keys(tsData.teams);
+        for (var tn of teamNames) {
+          log('SIM', `  ${tn}: ${tsData.teams[tn].map(p => p.name).join(', ')}`);
+        }
+      }
+      phaseLog.push({ type: 'team-split' });
+      drainEvent(players, 'team-split');
+      drainEvent([host], 'team-split');
+      await wait(1000);
+      host.emit('advance-phase', { code });
+      log('HOST', 'Advanced past team-split');
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no team-split */ }
+
+    // Check for rank-start
+    try {
+      var rkData = await waitForAnyPlayerEvent(players, 'rank-start', 2000);
+      console.log(`\n--- Phase: RANK ---`);
+      check(Array.isArray(rkData.candidates), `Has ${(rkData.candidates || []).length} candidates to rank`);
+      log('SIM', `Prompt: "${(rkData.prompt || '').substring(0, 60)}"`);
+      phaseLog.push({ type: 'rank', prompt: rkData.prompt });
+      drainEvent(players, 'rank-start');
+
+      // Each player submits a ranking (original order = their ranking)
+      for (var i = 0; i < players.length; i++) {
+        var ranking = rkData.candidates ? [...rkData.candidates] : [];
+        // Shuffle slightly per player for variety
+        if (ranking.length > 1 && i % 2 === 1) ranking.reverse();
+        players[i].emit('rank-submit', { code, ranking });
+        log(names[i], `ranked ${ranking.length} items`);
+      }
+      await wait(500);
+      host.emit('close-ranking', { code });
+      log('HOST', 'Closed ranking');
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no rank */ }
+
+    // Check for wager-start
+    try {
+      var wgData = await waitForAnyPlayerEvent(players, 'wager-start', 2000);
+      console.log(`\n--- Phase: WAGER ---`);
+      check(Array.isArray(wgData.options), `Has ${(wgData.options || []).length} options to wager on`);
+      log('SIM', `Prompt: "${(wgData.prompt || '').substring(0, 60)}"`);
+      log('SIM', `Available points: ${wgData.availablePoints || 0}`);
+      phaseLog.push({ type: 'wager', prompt: wgData.prompt });
+      drainEvent(players, 'wager-start');
+
+      // Each player wagers on a random option
+      for (var i = 0; i < players.length; i++) {
+        var wgOptions = wgData.options || ['A'];
+        var pick = wgOptions[i % wgOptions.length];
+        var amount = Math.max(1, Math.floor((wgData.availablePoints || 10) * 0.3));
+        players[i].emit('wager-submit', { code, option: pick, amount: amount });
+        log(names[i], `wagered ${amount} on "${pick}"`);
+      }
+      await wait(500);
+      host.emit('close-wager', { code });
+      log('HOST', 'Closed wager');
+      // Check if host needs to resolve
+      try {
+        var resolveData = await waitForEvent(host, 'wager-need-resolve', 3000);
+        log('HOST', 'Resolving wager — picking first option');
+        host.emit('wager-resolve', { code, winningOption: (resolveData.options || ['A'])[0] });
+      } catch (e) { /* auto-resolved */ }
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no wager */ }
+
+    // Check for relay-turn
+    try {
+      var rlData = await waitForAnyPlayerEvent(players, 'relay-turn', 2000);
+      console.log(`\n--- Phase: RELAY ---`);
+      log('SIM', `Prompt: "${(rlData.prompt || '').substring(0, 60)}"`);
+      phaseLog.push({ type: 'relay' });
+      drainEvent(players, 'relay-turn');
+      drainEvent(players, 'relay-waiting');
+
+      // Submit relay turns until the phase advances
+      var relayDone = false;
+      var relayTurns = 0;
+      var maxRelayTurns = NUM_PLAYERS + 2;
+      while (!relayDone && relayTurns < maxRelayTurns) {
+        relayTurns++;
+        // Find which player has the relay-turn (check buffers)
+        var submitted = false;
+        for (var pi = 0; pi < players.length; pi++) {
+          if (!submitted) {
+            players[pi].emit('relay-submit', { code, text: `Relay contribution from ${names[pi]}` });
+            log(names[pi], 'submitted relay turn');
+            submitted = true;
+          }
+        }
+        await wait(1500);
+        // Check if relay ended (next event appeared)
+        var nextEvents = ['game-started', 'announce', 'reveal', 'leaderboard', 'game-ended',
+                          'vote-started', 'processing-started', 'team-split', 'rank-start',
+                          'wager-start', 'eliminated', 'winner'];
+        for (var p of players) {
+          for (var ev of nextEvents) {
+            if (p._buffer[ev] && p._buffer[ev].length > 0) { relayDone = true; break; }
+          }
+          if (relayDone) break;
+        }
+        if (!relayDone) {
+          // Check for next relay-turn
+          try {
+            var nextTurn = await waitForAnyPlayerEvent(players, 'relay-turn', 3000);
+            drainEvent(players, 'relay-turn');
+            drainEvent(players, 'relay-waiting');
+          } catch (e) {
+            relayDone = true; // No more turns
+          }
+        }
+      }
+      log('SIM', `Relay completed after ${relayTurns} turns`);
+      lastEventTime = Date.now();
+      handled = true;
+      continue;
+    } catch (e) { /* no relay */ }
 
     // Nothing happened — check if stuck
     if (!handled) {

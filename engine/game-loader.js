@@ -370,6 +370,18 @@ export function validate(config, gameId, options) {
           }
         }
       }
+      if (phase.pairMode) {
+        if (phase.pairMode !== 'human-vs-ai') {
+          errors.push(
+            `Game "${gameId}": phase "${name}" pairMode must be "human-vs-ai" (got "${phase.pairMode}")`
+          );
+        }
+        if (!phase.aiInject) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" pairMode requires aiInject to generate AI items for pairing`
+          );
+        }
+      }
       if (phase.scoring) {
         if (!phase.scoring.subPhase) {
           errors.push(

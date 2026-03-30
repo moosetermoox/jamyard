@@ -418,6 +418,23 @@ describe('GameEngine', () => {
       expect(engine.resolve('_current.text')).toBeUndefined();
     });
 
+    it('resolve handles _current with nested pair objects (pairMode)', () => {
+      const engine = new GameEngine(foreachConfig);
+      engine._currentForeachItem = {
+        a: { text: 'Human idea', isHuman: true, isAI: false },
+        b: { text: 'AI idea', isHuman: false, isAI: true },
+        aiPosition: 'Idea B',
+        humanPosition: 'Idea A'
+      };
+
+      expect(engine.resolve('_current.a.text')).toBe('Human idea');
+      expect(engine.resolve('_current.b.text')).toBe('AI idea');
+      expect(engine.resolve('_current.a.isHuman')).toBe(true);
+      expect(engine.resolve('_current.b.isAI')).toBe(true);
+      expect(engine.resolve('_current.aiPosition')).toBe('Idea B');
+      expect(engine.resolve('_current.humanPosition')).toBe('Idea A');
+    });
+
     it('resolve handles _foreach index and total', () => {
       const engine = new GameEngine(foreachConfig);
       engine.foreachState['foreach1'] = {

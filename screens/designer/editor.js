@@ -1465,6 +1465,35 @@ function renderPhaseConfig(phaseId) {
       aiInjectHint.className = 'field-help';
       aiInjectHint.innerHTML = 'Use scoring with <code>correctAnswer: "_current.isHuman"</code> and choices <code>["Human", "AI"]</code> to score detection.';
       sidebar.appendChild(aiInjectHint);
+
+      // Pair mode option (only available when aiInject is enabled)
+      var pairModeDiv = document.createElement('div');
+      pairModeDiv.style.cssText = 'margin-top:8px;';
+      var pairModeLabel = document.createElement('label');
+      pairModeLabel.style.cssText = 'display:flex; align-items:center; gap:8px; cursor:pointer;';
+      var pairModeCb = document.createElement('input');
+      pairModeCb.type = 'checkbox';
+      pairModeCb.checked = phase.pairMode === 'human-vs-ai';
+      pairModeCb.addEventListener('change', function () {
+        if (pairModeCb.checked) {
+          phase.pairMode = 'human-vs-ai';
+        } else {
+          delete phase.pairMode;
+        }
+        isDirty = true;
+        renderSidebar(selectedPhaseId);
+      });
+      pairModeLabel.appendChild(pairModeCb);
+      pairModeLabel.appendChild(document.createTextNode('Side-by-side pair mode (show human vs AI ideas together)'));
+      pairModeDiv.appendChild(pairModeLabel);
+      sidebar.appendChild(pairModeDiv);
+
+      if (phase.pairMode === 'human-vs-ai') {
+        var pairHint = document.createElement('div');
+        pairHint.className = 'field-help';
+        pairHint.innerHTML = 'Each iteration shows a pair: <code>{{_current.a.text}}</code> and <code>{{_current.b.text}}</code>. One is human, one is AI (random order). Use <code>correctAnswer: "_current.aiPosition"</code> with choices like <code>["Idea A", "Idea B"]</code>.';
+        sidebar.appendChild(pairHint);
+      }
     }
 
     addSectionHeader('Sub-phases (run per item)');
@@ -2697,6 +2726,16 @@ function validateConfig() {
       }
       if (!phase.next) {
         errors.push(label + ': Has "Loop back to" but is missing "Next step" (needed as loop exit).');
+      }
+    }
+
+    // pairMode validation
+    if (phase.pairMode) {
+      if (phase.pairMode !== 'human-vs-ai') {
+        errors.push(label + ': Pair mode must be "human-vs-ai" (got "' + phase.pairMode + '").');
+      }
+      if (!phase.aiInject) {
+        errors.push(label + ': Pair mode requires AI Injection to be enabled.');
       }
     }
 

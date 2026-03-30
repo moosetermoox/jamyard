@@ -1,0 +1,77 @@
+{
+  "name": "Human vs AI: Birthday Party Battle",
+  "description": "Come up with creative birthday party ideas, then see them paired against AI ideas — can you spot the impostor?",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "rules"
+    },
+    "rules": {
+      "type": "announce",
+      "message": "Welcome to Human vs AI: Birthday Party Battle!\n\nYou'll each create a unique birthday party idea. Then the AI will also write some ideas. In each round, you'll see TWO ideas side by side — one human, one AI — and guess which is which. Points for spotting the AI!\n\nMake your idea detailed and creative (at least 240 characters).",
+      "timer": 15,
+      "next": "collect-ideas"
+    },
+    "collect-ideas": {
+      "type": "collect",
+      "prompt": "Describe a unique and creative birthday party idea! Make it detailed and interesting (at least 240 characters).",
+      "timer": 90,
+      "next": "processing"
+    },
+    "processing": {
+      "type": "announce",
+      "message": "Great ideas! Now the AI is writing its own party ideas to mix in. Let's see if you can tell them apart...",
+      "timer": 5,
+      "next": "foreach-pairs"
+    },
+    "foreach-pairs": {
+      "type": "foreach",
+      "data": "collect-ideas.responses",
+      "shuffle": true,
+      "aiInject": {
+        "count": 3,
+        "instruction": "Generate creative, detailed birthday party ideas (at least 240 characters each). Match the tone, detail level, and creativity of the real student submissions. Make each idea unique — mix whimsical, sophisticated, and adventurous themes. Do NOT make them obviously AI-generated."
+      },
+      "pairMode": "human-vs-ai",
+      "selfExclude": true,
+      "subPhases": {
+        "show-pair": {
+          "type": "announce",
+          "message": "PARTY MATCHUP {{_foreach.foreach-pairs.index}} of {{_foreach.foreach-pairs.total}}\n\nTwo birthday party ideas are below. One is from a classmate, one is from AI. Read both carefully...\n\nIDEA A:\n{{_current.a.text}}\n\nIDEA B:\n{{_current.b.text}}",
+          "timer": 15
+        },
+        "guess-ai": {
+          "type": "collect-choice",
+          "prompt": "Which party idea was created by AI?\n\nIDEA A:\n{{_current.a.text}}\n\nIDEA B:\n{{_current.b.text}}",
+          "choices": ["Idea A", "Idea B"],
+          "timer": 20
+        }
+      },
+      "scoring": {
+        "subPhase": "guess-ai",
+        "mode": "correct",
+        "correctAnswer": "_current.aiPosition",
+        "pointsCorrect": 100,
+        "pointsDecoy": 0
+      },
+      "next": "results-announce"
+    },
+    "results-announce": {
+      "type": "announce",
+      "message": "All matchups complete! Let's see who has the sharpest AI detector...",
+      "timer": 5,
+      "next": "leaderboard"
+    },
+    "leaderboard": {
+      "type": "leaderboard",
+      "from": "foreach-pairs.scores",
+      "message": "AI Detection Leaderboard",
+      "timer": 20,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing Human vs AI: Birthday Party Battle!"
+    }
+  }
+}

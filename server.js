@@ -384,6 +384,10 @@ async function advanceForeach(code, room, foreachPhaseId) {
           correctAnswer = item.playerName;
         } else if (correctRef === '_current.isHuman') {
           correctAnswer = item.isAI ? 'AI' : 'Human';
+        } else if (correctRef === '_current.aiPosition') {
+          correctAnswer = item.aiPosition;
+        } else if (correctRef === '_current.humanPosition') {
+          correctAnswer = item.humanPosition;
         } else if (correctRef && correctRef.startsWith('_current.')) {
           correctAnswer = engine.resolve(correctRef);
         } else {
@@ -1036,13 +1040,41 @@ async function handlePhase(code, room) {
         break;
       }
 
+      // pairMode: "human-vs-ai" — pair each human item with an AI item for side-by-side comparison
+      let finalItems;
+      if (phase.pairMode === 'human-vs-ai') {
+        const humans = items.filter(it => it.isHuman);
+        const ais = items.filter(it => it.isAI);
+        if (ais.length === 0) {
+          console.log(`[foreach] '${phase.id}' pairMode=human-vs-ai but no AI items — skipping`);
+          const feNextId = phase.next;
+          if (feNextId) { engine.transition(feNextId); await handlePhase(code, room); }
+          break;
+        }
+        finalItems = humans.map((human, idx) => {
+          const ai = ais[idx % ais.length]; // cycle AI items if fewer than humans
+          const aiIsA = Math.random() < 0.5;
+          return {
+            a: aiIsA ? ai : human,
+            b: aiIsA ? human : ai,
+            aiPosition: aiIsA ? 'Idea A' : 'Idea B',
+            humanPosition: aiIsA ? 'Idea B' : 'Idea A',
+            human,
+            ai
+          };
+        });
+        finalItems = phase.shuffle !== false ? shuffleArray(finalItems) : finalItems;
+      } else {
+        finalItems = items;
+      }
+
       engine.foreachState[phase.id] = {
-        items,
+        items: finalItems,
         currentIndex: 0,
         scores: {}
       };
 
-      console.log(`[foreach] '${phase.id}' starting with ${items.length} items`);
+      console.log(`[foreach] '${phase.id}' starting with ${finalItems.length} items${phase.pairMode ? ` (pairMode: ${phase.pairMode})` : ''}`);
 
       const firstSubId = setupForeachIteration(engine, phase.id, phase, 0);
       engine.transition(firstSubId);

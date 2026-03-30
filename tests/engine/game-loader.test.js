@@ -1151,5 +1151,62 @@ describe('GameLoader', () => {
       };
       expect(() => validate(config, 'test')).toThrow('requires a "pointMap" object');
     });
+
+    it('accepts foreach with pairMode human-vs-ai and aiInject', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'collect' },
+          collect: { type: 'collect', prompt: 'Go', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            aiInject: { count: 3, instruction: 'Generate fakes' },
+            pairMode: 'human-vs-ai',
+            subPhases: { guess: { type: 'collect-choice', prompt: 'Pick', choices: ['Idea A', 'Idea B'] } },
+            scoring: { subPhase: 'guess', correctAnswer: '_current.aiPosition', pointsCorrect: 100 },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).not.toThrow();
+    });
+
+    it('rejects pairMode without aiInject', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'collect' },
+          collect: { type: 'collect', prompt: 'Go', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            pairMode: 'human-vs-ai',
+            subPhases: { guess: { type: 'collect-choice', prompt: 'Pick', choices: ['A', 'B'] } },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('pairMode requires aiInject');
+    });
+
+    it('rejects invalid pairMode value', () => {
+      const config = {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'collect' },
+          collect: { type: 'collect', prompt: 'Go', next: 'loop' },
+          loop: {
+            type: 'foreach', data: 'collect.responses',
+            aiInject: { count: 2, instruction: 'Generate fakes' },
+            pairMode: 'round-robin',
+            subPhases: { guess: { type: 'collect-choice', prompt: 'Pick', choices: ['A', 'B'] } },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      };
+      expect(() => validate(config, 'test')).toThrow('pairMode must be "human-vs-ai"');
+    });
   });
 });
