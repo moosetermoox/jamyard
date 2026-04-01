@@ -2,6 +2,7 @@ const socket = io();
 
 let currentRoomCode = null;
 let currentPlayerName = null;
+let currentToken = null;
 let isEliminated = false;
 
 // Timer state
@@ -168,13 +169,17 @@ submitBtn.addEventListener('click', () => {
 
 // --- Socket events - Join ---
 
-socket.on('join-success', ({ name, reconnected, theme }) => {
+socket.on('join-success', ({ name, reconnected, token, theme }) => {
   if (!reconnected) {
     showSection(waitingSection);
   }
   // If reconnected, sendCurrentState on the server will push the right section
   playerNameDisplay.textContent = name;
   currentPlayerName = name;
+  if (token) {
+    currentToken = token;
+    try { sessionStorage.setItem('playerToken', token); } catch (e) { /* storage unavailable */ }
+  }
 
   // Apply game theme
   if (theme && window.applyGameTheme) {
@@ -185,8 +190,12 @@ socket.on('join-success', ({ name, reconnected, theme }) => {
 // Auto-rejoin on socket reconnect
 socket.on('connect', () => {
   if (currentRoomCode && currentPlayerName) {
-    console.log('[reconnect] Attempting to rejoin room ' + currentRoomCode);
-    socket.emit('join-room', { code: currentRoomCode, name: currentPlayerName });
+    var savedToken = currentToken;
+    if (!savedToken) {
+      try { savedToken = sessionStorage.getItem('playerToken'); } catch (e) { /* storage unavailable */ }
+    }
+    console.log('[reconnect] Attempting to rejoin room ' + currentRoomCode + (savedToken ? ' (with token)' : ''));
+    socket.emit('join-room', { code: currentRoomCode, name: currentPlayerName, token: savedToken });
   }
 });
 

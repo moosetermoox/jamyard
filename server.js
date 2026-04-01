@@ -4,6 +4,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { randomUUID } from 'crypto';
 import { readdir, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
@@ -777,7 +778,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.JOIN_ROOM, ({ code, name } = {}) => {
+  socket.on(EVENTS.JOIN_ROOM, ({ code, name, token } = {}) => {
     console.log(`[join-room] ${socket.id} trying to join ${code} as "${name}"`);
 
     const room = roomManager.find(code);
@@ -790,25 +791,25 @@ io.on('connection', (socket) => {
     const players = room.engine ? room.engine.players : room.playerRegistry;
 
     try {
-      // Check for reconnection: find disconnected player with same name
-      const processedName = name || 'Anonymous';
-      const existing = players.findByName(processedName);
+      // Check for reconnection: token match first, then name fallback
+      const existing = (token && players.findByToken(token))
+        || (() => { const processedName = name || 'Anonymous'; const p = players.findByName(processedName); return p && !p.connected ? p : null; })();
       if (existing && !existing.connected) {
-        console.log(`[join-room] Reconnecting ${processedName} (old: ${existing.id} -> new: ${socket.id})`);
+        console.log(`[join-room] Reconnecting ${existing.name} via ${token ? 'token' : 'name'} (old: ${existing.id} -> new: ${socket.id})`);
         players.reconnect(existing.id, socket.id);
         socketToRoom.set(socket.id, code);
         socket.join(code);
 
         const player = players.find(socket.id);
         const theme = room.engine ? (room.engine.config.theme || null) : null;
-        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, theme });
+        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme });
 
         const hostSocketId = roomToHost.get(code);
         if (hostSocketId) {
           io.to(hostSocketId).emit(EVENTS.PLAYER_RECONNECTED, {
             id: socket.id,
             name: player.name,
-            players: players.list()
+            players: players.listPublic()
           });
         }
 
@@ -817,21 +818,22 @@ io.on('connection', (socket) => {
         return;
       }
 
-      players.add(socket.id, name);
+      const playerToken = randomUUID();
+      players.add(socket.id, name, playerToken);
       const player = players.find(socket.id);
       socketToRoom.set(socket.id, code);
       socket.join(code);
 
       console.log(`[join-room] ${player.name} (${socket.id}) joined room ${code}`);
       const theme = room.engine ? (room.engine.config.theme || null) : null;
-      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, theme });
+      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme });
 
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {
         io.to(hostSocketId).emit(EVENTS.PLAYER_JOINED, {
           id: socket.id,
           name: player.name,
-          players: players.list()
+          players: players.listPublic()
         });
       }
     } catch (error) {
@@ -1255,7 +1257,7 @@ io.on('connection', (socket) => {
             io.to(hostSocketId).emit(EVENTS.PLAYER_DISCONNECTED, {
               id: socket.id,
               name: player.name,
-              players: players.list()
+              players: players.listPublic()
             });
           }
 
@@ -1270,7 +1272,7 @@ io.on('connection', (socket) => {
               if (hid) {
                 io.to(hid).emit(EVENTS.PLAYER_LEFT, {
                   id: socket.id,
-                  players: players.list()
+                  players: players.listPublic()
                 });
               }
             }

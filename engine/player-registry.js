@@ -3,9 +3,9 @@ export class PlayerRegistry {
     this.players = new Map();
   }
 
-  add(id, name) {
+  add(id, name, token) {
     const processedName = this.processName(name);
-    this.players.set(id, { id, name: processedName, status: 'active', connected: true });
+    this.players.set(id, { id, name: processedName, status: 'active', connected: true, token: token || null });
   }
 
   remove(id) {
@@ -23,8 +23,21 @@ export class PlayerRegistry {
     return undefined;
   }
 
+  findByToken(token) {
+    if (!token) return undefined;
+    for (const player of this.players.values()) {
+      if (player.token === token) return player;
+    }
+    return undefined;
+  }
+
   list() {
     return Array.from(this.players.values());
+  }
+
+  /** Returns player list without tokens — safe to send to clients. */
+  listPublic() {
+    return this.list().map(({ token, ...rest }) => rest);
   }
 
   count() {
