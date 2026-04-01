@@ -777,7 +777,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.JOIN_ROOM, ({ code, name }) => {
+  socket.on(EVENTS.JOIN_ROOM, ({ code, name } = {}) => {
     console.log(`[join-room] ${socket.id} trying to join ${code} as "${name}"`);
 
     const room = roomManager.find(code);
@@ -840,7 +840,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.START_GAME, async ({ code }) => {
+  socket.on(EVENTS.START_GAME, async ({ code } = {}) => {
     console.log(`[start-game] Starting game in room ${code}`);
 
     const room = roomManager.find(code);
@@ -866,7 +866,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.SUBMIT_RESPONSE, ({ code, response }) => {
+  socket.on(EVENTS.SUBMIT_RESPONSE, ({ code, response } = {}) => {
     console.log(`[submit-response] Response from ${socket.id} in room ${code}`);
 
     const room = roomManager.find(code);
@@ -911,7 +911,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.CLOSE_SUBMISSIONS, async ({ code }) => {
+  socket.on(EVENTS.CLOSE_SUBMISSIONS, async ({ code } = {}) => {
     console.log(`[close-submissions] Closing submissions for room ${code}`);
 
     const room = roomManager.find(code);
@@ -989,7 +989,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.SUBMIT_VOTE, async ({ code, choice, votes: votesList }) => {
+  socket.on(EVENTS.SUBMIT_VOTE, async ({ code, choice, votes: votesList } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
 
@@ -1022,7 +1022,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.CLOSE_VOTING, async ({ code }) => {
+  socket.on(EVENTS.CLOSE_VOTING, async ({ code } = {}) => {
     console.log(`[close-voting] Host closing voting for room ${code}`);
 
     const room = roomManager.find(code);
@@ -1031,7 +1031,7 @@ io.on('connection', (socket) => {
     await tallyAndAdvance(code, room);
   });
 
-  socket.on(EVENTS.ADVANCE_PHASE, async ({ code }) => {
+  socket.on(EVENTS.ADVANCE_PHASE, async ({ code } = {}) => {
     console.log(`[advance-phase] Advancing phase in room ${code}`);
 
     const room = roomManager.find(code);
@@ -1049,7 +1049,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.RETRY_PHASE, async ({ code }) => {
+  socket.on(EVENTS.RETRY_PHASE, async ({ code } = {}) => {
     console.log(`[retry-phase] Retrying current phase in room ${code}`);
     const room = roomManager.find(code);
     if (!room || !room.engine) return;
@@ -1060,7 +1060,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.SKIP_PHASE, async ({ code }) => {
+  socket.on(EVENTS.SKIP_PHASE, async ({ code } = {}) => {
     console.log(`[skip-phase] Skipping current phase in room ${code}`);
     const room = roomManager.find(code);
     if (!room || !room.engine) return;
@@ -1076,7 +1076,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.REVEAL_NEXT, async ({ code }) => {
+  socket.on(EVENTS.REVEAL_NEXT, async ({ code } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
 
@@ -1102,7 +1102,7 @@ io.on('connection', (socket) => {
 
   // --- Rank events ---
 
-  socket.on(EVENTS.RANK_SUBMIT, async ({ code, ranking }) => {
+  socket.on(EVENTS.RANK_SUBMIT, async ({ code, ranking } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     const rs = room.phaseState;
@@ -1120,7 +1120,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.CLOSE_RANKING, async ({ code }) => {
+  socket.on(EVENTS.CLOSE_RANKING, async ({ code } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     await closeRanking(code, room);
@@ -1128,7 +1128,7 @@ io.on('connection', (socket) => {
 
   // --- Wager events ---
 
-  socket.on(EVENTS.WAGER_SUBMIT, async ({ code, option, amount }) => {
+  socket.on(EVENTS.WAGER_SUBMIT, async ({ code, option, amount } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     const ws = room.phaseState;
@@ -1150,13 +1150,13 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.CLOSE_WAGER, async ({ code }) => {
+  socket.on(EVENTS.CLOSE_WAGER, async ({ code } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     await closeWager(code, room);
   });
 
-  socket.on(EVENTS.WAGER_RESOLVE, async ({ code, winningOption }) => {
+  socket.on(EVENTS.WAGER_RESOLVE, async ({ code, winningOption } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     await resolveWager(code, room, winningOption);
@@ -1164,7 +1164,7 @@ io.on('connection', (socket) => {
 
   // --- Relay events ---
 
-  socket.on(EVENTS.RELAY_SUBMIT, async ({ code, text }) => {
+  socket.on(EVENTS.RELAY_SUBMIT, async ({ code, text } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     const rs = room.phaseState;
@@ -1194,7 +1194,7 @@ io.on('connection', (socket) => {
 
   // Preview events — delegated to handler
   for (const previewEvent of ['preview-approve', 'preview-reject', 'preview-edit']) {
-    socket.on(previewEvent, async (payload) => {
+    socket.on(previewEvent, async (payload = {}) => {
       const { code } = payload;
       const room = roomManager.find(code);
       if (!room || !room.engine) return;
@@ -1211,7 +1211,7 @@ io.on('connection', (socket) => {
     });
   }
 
-  socket.on(EVENTS.END_GAME, ({ code }) => {
+  socket.on(EVENTS.END_GAME, ({ code } = {}) => {
     console.log(`[end-game] Ending game in room ${code}`);
 
     const room = roomManager.find(code);
