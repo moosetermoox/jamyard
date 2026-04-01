@@ -503,7 +503,23 @@ async function handlePhase(code, room) {
   const handler = getHandler(phase.type);
   if (handler) {
     const ctx = createPhaseContext(code, room, phaseServices);
-    return handler.onEnter(ctx);
+    try {
+      return await handler.onEnter(ctx);
+    } catch (err) {
+      console.error(`[handlePhase] Error in '${phase.id}' (type: ${phase.type}):`, err.message);
+      const hostSocketId = roomToHost.get(code);
+      if (hostSocketId) {
+        const nextId = getNextPhaseId(engine, phase);
+        io.to(hostSocketId).emit(EVENTS.PHASE_ERROR, {
+          phaseId: phase.id,
+          phaseType: phase.type,
+          message: err.message,
+          canRetry: true,
+          canSkip: !!nextId
+        });
+      }
+      return;
+    }
   }
 
   console.warn(`[handlePhase] No handler registered for phase type: ${phase.type}`);
@@ -1030,6 +1046,33 @@ io.on('connection', (socket) => {
       }
     } catch (error) {
       console.log(`[advance-phase] Error: ${error.message}`);
+    }
+  });
+
+  socket.on(EVENTS.RETRY_PHASE, async ({ code }) => {
+    console.log(`[retry-phase] Retrying current phase in room ${code}`);
+    const room = roomManager.find(code);
+    if (!room || !room.engine) return;
+    try {
+      await handlePhase(code, room);
+    } catch (error) {
+      console.error(`[retry-phase] Error: ${error.message}`);
+    }
+  });
+
+  socket.on(EVENTS.SKIP_PHASE, async ({ code }) => {
+    console.log(`[skip-phase] Skipping current phase in room ${code}`);
+    const room = roomManager.find(code);
+    if (!room || !room.engine) return;
+    try {
+      const currentPhase = room.engine.getCurrentPhase();
+      const nextId = getNextPhaseId(room.engine, currentPhase);
+      if (nextId) {
+        room.engine.transition(nextId);
+        await handlePhase(code, room);
+      }
+    } catch (error) {
+      console.error(`[skip-phase] Error: ${error.message}`);
     }
   });
 

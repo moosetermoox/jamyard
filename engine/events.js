@@ -92,6 +92,11 @@ export const EVENTS = {
   RELAY_UPDATE:         'relay-update',
   RELAY_WAITING:        'relay-waiting',
 
+  // --- Error Recovery ---
+  PHASE_ERROR:          'phase-error',
+  RETRY_PHASE:          'retry-phase',
+  SKIP_PHASE:           'skip-phase',
+
   // --- General ---
   WAITING:              'waiting',
 };

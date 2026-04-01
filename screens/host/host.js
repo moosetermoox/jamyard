@@ -107,6 +107,13 @@ const relayProgress = document.getElementById('relay-progress');
 const relaySharedResult = document.getElementById('relay-shared-result');
 const relayTimer = document.getElementById('relay-timer');
 
+// Elements - Phase Error
+const phaseErrorSection = document.getElementById('phase-error-section');
+const phaseErrorTitle = document.getElementById('phase-error-title');
+const phaseErrorMessage = document.getElementById('phase-error-message');
+const phaseErrorRetryBtn = document.getElementById('phase-error-retry-btn');
+const phaseErrorSkipBtn = document.getElementById('phase-error-skip-btn');
+
 // Elements - End
 const endSection = document.getElementById('end-section');
 const playAgainBtn = document.getElementById('play-again-btn');
@@ -630,6 +637,24 @@ socket.on('game-ended', ({ message, hostTemplate, hostShow } = {}) => {
   });
 });
 
+// --- Socket events - Phase Error ---
+
+socket.on('phase-error', ({ phaseId, phaseType, message, canRetry, canSkip }) => {
+  showSection(phaseErrorSection);
+  phaseErrorTitle.textContent = 'Error in "' + phaseId + '" (' + phaseType + ')';
+  phaseErrorMessage.textContent = message || 'Something went wrong.';
+  phaseErrorRetryBtn.hidden = !canRetry;
+  phaseErrorSkipBtn.hidden = !canSkip;
+});
+
+phaseErrorRetryBtn.addEventListener('click', () => {
+  socket.emit('retry-phase', { code: currentRoomCode });
+});
+
+phaseErrorSkipBtn.addEventListener('click', () => {
+  socket.emit('skip-phase', { code: currentRoomCode });
+});
+
 // --- Socket events - Voting ---
 
 socket.on('vote-start', ({ mode, totalVoters, timer, hostTemplate, show }) => {
@@ -742,7 +767,8 @@ const allSections = [
   lobbySection, collectSection, processSection, previewSection,
   revealSection, voteSection, eliminationSection, winnerSection,
   announceSection, leaderboardSection, revealOneSection,
-  teamSplitSection, rankSection, wagerSection, relaySection, endSection
+  teamSplitSection, rankSection, wagerSection, relaySection,
+  phaseErrorSection, endSection
 ];
 
 function showSection(el) {

@@ -345,6 +345,50 @@ button:disabled {
   margin: 50px 0;
 }
 
+/* Phase error section */
+#phase-error-section {
+  border: 3px solid #d9534f;
+  border-radius: 12px;
+  padding: 30px;
+  background: #fdf2f2;
+}
+
+#phase-error-title {
+  color: #d9534f;
+}
+
+#phase-error-message {
+  font-size: 1.2rem;
+  margin: 20px 0;
+  color: #666;
+}
+
+#phase-error-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+#phase-error-retry-btn {
+  background: var(--theme-primary, #337ab7);
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  font-size: 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+#phase-error-skip-btn {
+  background: #f0ad4e;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  font-size: 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
 /* Reveal-one items */
 .reveal-one-item {
   font-size: 2rem;
