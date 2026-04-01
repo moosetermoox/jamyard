@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('collect', {
   async onEnter(ctx) {
@@ -14,14 +15,14 @@ registerHandler('collect', {
     }
 
     // Send prompt to host
-    ctx.emitToHost('game-started', {
+    ctx.emitToHost(EVENTS.GAME_STARTED, {
       prompt: phase.prompt, timer: phase.timer || null,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
     // Send prompt to eligible players
     for (const player of eligible) {
-      ctx.emitToPlayer(player.id, 'game-started', {
+      ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
         prompt: phase.prompt, timer: phase.timer || null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
@@ -30,7 +31,7 @@ registerHandler('collect', {
     // Send waiting to non-eligible players
     for (const player of engine.players.list()) {
       if (!eligibleIds.has(player.id)) {
-        ctx.emitToPlayer(player.id, 'waiting', { message: 'Waiting for other players...' });
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Waiting for other players...' });
       }
     }
   },
@@ -39,9 +40,9 @@ registerHandler('collect', {
     const sc = ctx.resolveScreenControl();
     const player = ctx.engine.players.find(socket.id);
     if (player && player.response) {
-      socket.emit('waiting', { message: 'Answer submitted. Waiting for others...' });
+      socket.emit(EVENTS.WAITING, { message: 'Answer submitted. Waiting for others...' });
     } else {
-      socket.emit('game-started', {
+      socket.emit(EVENTS.GAME_STARTED, {
         prompt: ctx.phase.prompt, timer: null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });

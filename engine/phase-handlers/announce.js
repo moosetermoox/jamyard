@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('announce', {
   async onEnter(ctx) {
@@ -9,7 +10,7 @@ registerHandler('announce', {
     ctx.engine.storePhaseData(ctx.phase.id, { message });
     const sc = ctx.resolveScreenControl();
 
-    ctx.emitToRoom('announce', { message, timer: ctx.phase.timer || null, ...sc });
+    ctx.emitToRoom(EVENTS.ANNOUNCE, { message, timer: ctx.phase.timer || null, ...sc });
 
     // Auto-advance after timer, or wait for host advance-phase
     if (ctx.phase.timer) {
@@ -23,7 +24,7 @@ registerHandler('announce', {
     const announceData = ctx.engine.getPhaseData(ctx.phase.id);
     if (announceData) {
       const sc = ctx.resolveScreenControl();
-      socket.emit('announce', { message: announceData.message, timer: null, ...sc });
+      socket.emit(EVENTS.ANNOUNCE, { message: announceData.message, timer: null, ...sc });
     }
   }
 });

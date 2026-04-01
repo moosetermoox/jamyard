@@ -1,10 +1,11 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('ai-eliminate', {
   async onEnter(ctx) {
     const { phase, engine } = ctx;
     const sc = ctx.resolveScreenControl();
-    ctx.emitToRoom('processing-started', { task: 'judge', ...sc });
+    ctx.emitToRoom(EVENTS.PROCESSING_STARTED, { task: 'judge', ...sc });
 
     try {
       const input = engine.resolve(phase.input);
@@ -87,7 +88,7 @@ Apply the rules and return JSON indicating who to eliminate and who to keep.`;
       console.log(`[handlePhase] AI eliminated: ${eliminatedNames.join(', ')} (${remaining} remaining)`);
 
       const aiElimPause = phase.pause || 3;
-      ctx.emitToRoom('elimination-results', {
+      ctx.emitToRoom(EVENTS.ELIMINATION_RESULTS, {
         eliminated: eliminatedIds,
         eliminatedNames,
         remaining,
@@ -105,7 +106,7 @@ Apply the rules and return JSON indicating who to eliminate and who to keep.`;
       }
     } catch (error) {
       console.error(`[handlePhase] AI eliminate error: ${error.message}`);
-      ctx.emitToRoom('elimination-results', {
+      ctx.emitToRoom(EVENTS.ELIMINATION_RESULTS, {
         eliminated: [],
         eliminatedNames: [],
         remaining: engine.players.remaining().length,
@@ -117,6 +118,6 @@ Apply the rules and return JSON indicating who to eliminate and who to keep.`;
 
   onReconnect(ctx, socket) {
     const sc = ctx.resolveScreenControl();
-    socket.emit('processing-started', { task: 'judge', ...sc });
+    socket.emit(EVENTS.PROCESSING_STARTED, { task: 'judge', ...sc });
   }
 });

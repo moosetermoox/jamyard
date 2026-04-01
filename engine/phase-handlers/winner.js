@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('winner', {
   async onEnter(ctx) {
@@ -9,7 +10,7 @@ registerHandler('winner', {
     console.log(`[handlePhase] Winner: ${result.winnerName} (${result.winnerScore} votes)`);
 
     const winnerPause = phase.pause || 5;
-    ctx.emitToRoom('winner-announced', {
+    ctx.emitToRoom(EVENTS.WINNER_ANNOUNCED, {
       winnerId: result.winnerId,
       winnerName: result.winnerName,
       winnerScore: result.winnerScore,
@@ -28,6 +29,6 @@ registerHandler('winner', {
   },
 
   onReconnect(ctx, socket) {
-    socket.emit('waiting', { message: 'Game in progress...' });
+    socket.emit(EVENTS.WAITING, { message: 'Game in progress...' });
   }
 });

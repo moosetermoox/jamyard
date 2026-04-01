@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('foreach', {
   async onEnter(ctx) {

@@ -15,6 +15,7 @@ export function createPhaseContext(code, room, services) {
     phase,
     engine,
     hostSocketId,
+    phaseInstanceId: room.phaseInstanceId || 0,
 
     // I/O
     io: services.io,
@@ -38,6 +39,11 @@ export function createPhaseContext(code, room, services) {
     },
     emitToPlayer(playerId, event, data) {
       services.io.to(playerId).emit(event, data);
+    },
+
+    // Staleness check — timers/callbacks capture phaseInstanceId, then check if still current
+    isStale() {
+      return room.phaseInstanceId !== (this.phaseInstanceId);
     },
 
     // Phase lifecycle — allows handlers to trigger next phase

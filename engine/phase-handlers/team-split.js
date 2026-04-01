@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('team-split', {
   async onEnter(ctx) {
@@ -36,12 +37,12 @@ registerHandler('team-split', {
 
     console.log(`[handlePhase] Team-split: ${ordered.length} players into ${teamCount} teams`);
 
-    ctx.emitToHost('team-split', {
+    ctx.emitToHost(EVENTS.TEAM_SPLIT, {
       teams, hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
     for (const player of engine.players.list()) {
-      ctx.emitToPlayer(player.id, 'team-split', {
+      ctx.emitToPlayer(player.id, EVENTS.TEAM_SPLIT, {
         myTeam: playerTeam[player.id] || null,
         teams,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -53,7 +54,7 @@ registerHandler('team-split', {
     const tsData = ctx.engine.getPhaseData(ctx.phase.id);
     if (tsData) {
       const sc = ctx.resolveScreenControl();
-      socket.emit('team-split', {
+      socket.emit(EVENTS.TEAM_SPLIT, {
         myTeam: tsData.playerTeam[socket.id] || null,
         teams: tsData.teams,
         playerTemplate: sc.playerTemplate, show: sc.playerShow

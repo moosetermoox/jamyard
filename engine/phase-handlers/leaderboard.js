@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('leaderboard', {
   async onEnter(ctx) {
@@ -34,7 +35,7 @@ registerHandler('leaderboard', {
     console.log(`[handlePhase] Leaderboard: ${standings.length} players, style=${style}`);
 
     // Send to host
-    ctx.emitToHost('leaderboard', {
+    ctx.emitToHost(EVENTS.LEADERBOARD, {
       standings: display, allStandings: standings, style,
       timer: phase.timer || null,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
@@ -42,7 +43,7 @@ registerHandler('leaderboard', {
 
     // Send to players — each gets their own rank highlighted
     for (const player of engine.players.list()) {
-      ctx.emitToPlayer(player.id, 'leaderboard', {
+      ctx.emitToPlayer(player.id, EVENTS.LEADERBOARD, {
         standings: display, allStandings: standings, style,
         timer: phase.timer || null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -66,7 +67,7 @@ registerHandler('leaderboard', {
       const sc = ctx.resolveScreenControl();
       const lbStyle = lbData.style || 'full';
       const lbDisplay = lbStyle === 'top3' ? lbData.standings.slice(0, 3) : lbData.standings;
-      socket.emit('leaderboard', {
+      socket.emit(EVENTS.LEADERBOARD, {
         standings: lbDisplay, allStandings: lbData.standings, style: lbStyle,
         timer: null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow

@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('vote', {
   async onEnter(ctx) {
@@ -9,7 +10,7 @@ registerHandler('vote', {
     const candidateIds = candidates.map(c => c.playerId || c);
     const sc = ctx.resolveScreenControl();
 
-    room.voteState = {
+    room.phaseState = {
       phaseId: phase.id,
       mode: phase.mode,
       candidates,
@@ -21,11 +22,11 @@ registerHandler('vote', {
 
     if (phase.mode === 'head-to-head') {
       const { matchups, comparisons } = ctx.services.generateMatchups(candidateIds);
-      room.voteState.matchups = matchups;
-      room.voteState.comparisons = comparisons;
+      room.phaseState.matchups = matchups;
+      room.phaseState.comparisons = comparisons;
 
       for (const voter of eligible) {
-        ctx.emitToPlayer(voter.id, 'vote-start', {
+        ctx.emitToPlayer(voter.id, EVENTS.VOTE_START, {
           mode: 'head-to-head',
           matchups: matchups.map(([a, b]) => ({
             optionA: candidates.find(c => (c.playerId || c) === a) || { playerId: a },
@@ -37,7 +38,7 @@ registerHandler('vote', {
       }
     } else if (phase.mode === 'pick-one') {
       for (const voter of eligible) {
-        ctx.emitToPlayer(voter.id, 'vote-start', {
+        ctx.emitToPlayer(voter.id, EVENTS.VOTE_START, {
           mode: 'pick-one',
           candidates,
           timer: phase.timer || null,
@@ -50,12 +51,12 @@ registerHandler('vote', {
     const eligibleIds = new Set(eligible.map(p => p.id));
     for (const player of engine.players.list()) {
       if (!eligibleIds.has(player.id)) {
-        ctx.emitToPlayer(player.id, 'waiting', { message: 'Waiting for votes...' });
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Waiting for votes...' });
       }
     }
 
     // Notify host
-    ctx.emitToHost('vote-start', {
+    ctx.emitToHost(EVENTS.VOTE_START, {
       mode: phase.mode,
       totalVoters: eligible.length,
       timer: phase.timer || null,
@@ -67,15 +68,15 @@ registerHandler('vote', {
 
   onReconnect(ctx, socket) {
     const { room } = ctx;
-    if (!room.voteState) return;
-    const vs = room.voteState;
+    if (!room.phaseState) return;
+    const vs = room.phaseState;
     const sc = ctx.resolveScreenControl();
 
     if (vs.votersCompleted.has(socket.id)) {
-      socket.emit('waiting', { message: 'Vote submitted. Waiting for results...' });
+      socket.emit(EVENTS.WAITING, { message: 'Vote submitted. Waiting for results...' });
     } else if (vs.eligibleVoterIds.includes(socket.id)) {
       if (vs.mode === 'head-to-head') {
-        socket.emit('vote-start', {
+        socket.emit(EVENTS.VOTE_START, {
           mode: 'head-to-head',
           matchups: vs.matchups.map(([a, b]) => ({
             optionA: vs.candidates.find(c => (c.playerId || c) === a) || { playerId: a },
@@ -85,7 +86,7 @@ registerHandler('vote', {
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       } else {
-        socket.emit('vote-start', {
+        socket.emit(EVENTS.VOTE_START, {
           mode: 'pick-one',
           candidates: vs.candidates,
           timer: null,
@@ -93,7 +94,7 @@ registerHandler('vote', {
         });
       }
     } else {
-      socket.emit('waiting', { message: 'Waiting for votes...' });
+      socket.emit(EVENTS.WAITING, { message: 'Waiting for votes...' });
     }
   }
 });

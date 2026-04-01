@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('eliminate', {
   async onEnter(ctx) {
@@ -14,7 +15,7 @@ registerHandler('eliminate', {
     console.log(`[handlePhase] Eliminated: ${eliminatedNames.join(', ')} (${result.remaining} remaining)`);
 
     const pauseSeconds = phase.pause || 3;
-    ctx.emitToRoom('elimination-results', {
+    ctx.emitToRoom(EVENTS.ELIMINATION_RESULTS, {
       eliminated: result.eliminated,
       eliminatedNames,
       remaining: result.remaining,
@@ -32,6 +33,6 @@ registerHandler('eliminate', {
   },
 
   onReconnect(ctx, socket) {
-    socket.emit('waiting', { message: 'Game in progress...' });
+    socket.emit(EVENTS.WAITING, { message: 'Game in progress...' });
   }
 });

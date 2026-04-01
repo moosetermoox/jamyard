@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('collect-choice', {
   async onEnter(ctx) {
@@ -24,7 +25,7 @@ registerHandler('collect-choice', {
     }
 
     // Send to host
-    ctx.emitToHost('game-started', {
+    ctx.emitToHost(EVENTS.GAME_STARTED, {
       prompt: phase.prompt,
       choices,
       timer: phase.timer || null,
@@ -35,10 +36,10 @@ registerHandler('collect-choice', {
     // Send to eligible players (excluding author if self-exclude)
     for (const player of eligible) {
       if (authorId && player.id === authorId) {
-        ctx.emitToPlayer(player.id, 'waiting', { message: 'This one is yours! Waiting for others to guess...' });
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'This one is yours! Waiting for others to guess...' });
         continue;
       }
-      ctx.emitToPlayer(player.id, 'game-started', {
+      ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
         prompt: phase.prompt,
         choices,
         timer: phase.timer || null,
@@ -50,7 +51,7 @@ registerHandler('collect-choice', {
     // Send waiting to non-eligible players
     for (const player of engine.players.list()) {
       if (!eligibleIds.has(player.id)) {
-        ctx.emitToPlayer(player.id, 'waiting', { message: 'Waiting for other players...' });
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Waiting for other players...' });
       }
     }
   },
@@ -59,14 +60,14 @@ registerHandler('collect-choice', {
     const sc = ctx.resolveScreenControl();
     const choicePlayer = ctx.engine.players.find(socket.id);
     if (choicePlayer && choicePlayer.response) {
-      socket.emit('waiting', { message: 'Answer submitted. Waiting for others...' });
+      socket.emit(EVENTS.WAITING, { message: 'Answer submitted. Waiting for others...' });
     } else {
       let choices = ctx.phase.choices;
       if (typeof choices === 'string') {
         choices = ctx.engine.resolve(choices);
         if (!Array.isArray(choices)) choices = [];
       }
-      socket.emit('game-started', {
+      socket.emit(EVENTS.GAME_STARTED, {
         prompt: ctx.phase.prompt,
         choices,
         timer: null,

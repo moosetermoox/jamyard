@@ -18,6 +18,7 @@ import {
   tallyHeadToHead
 } from './engine/phases/vote-handler.js';
 import { getHandler, hasHandler, createPhaseContext } from './engine/phase-handlers/index.js';
+import { EVENTS } from './engine/events.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -80,9 +81,9 @@ function resolveScreenControl(phase, engine) {
 // --- Rank helpers ---
 
 async function closeRanking(code, room) {
-  const rs = room.rankState;
-  if (!rs) return;
-  if (room.rankTimer) { clearTimeout(room.rankTimer); room.rankTimer = null; }
+  const rs = room.phaseState;
+  if (!rs || !rs.phaseId) return;
+  if (rs.timer) { clearTimeout(rs.timer); rs.timer = null; }
 
   const engine = room.engine;
   const phase = engine.config.phases[rs.phaseId];
@@ -116,7 +117,6 @@ async function closeRanking(code, room) {
   const rankedList = rankings.map((r, i) => `${i + 1}. ${r.item}`).join('\n');
 
   engine.storePhaseData(rs.phaseId, { rankings, rankedList, responses: rs.submissions });
-  room.rankState = null;
 
   console.log(`[closeRanking] Aggregated ${Object.keys(rs.submissions).length} rankings for ${rs.candidates.length} items`);
 
@@ -130,9 +130,9 @@ async function closeRanking(code, room) {
 // --- Wager helpers ---
 
 async function closeWager(code, room) {
-  const ws = room.wagerState;
-  if (!ws) return;
-  if (room.wagerTimer) { clearTimeout(room.wagerTimer); room.wagerTimer = null; }
+  const ws = room.phaseState;
+  if (!ws || !ws.phaseId) return;
+  if (ws.timer) { clearTimeout(ws.timer); ws.timer = null; }
 
   // If correctOption is set, auto-resolve
   let correct = ws.correctOption;
@@ -146,14 +146,14 @@ async function closeWager(code, room) {
     // Host needs to pick winner
     const hostId = roomToHost.get(code);
     if (hostId) {
-      io.to(hostId).emit('wager-need-resolve', { options: ws.options });
+      io.to(hostId).emit(EVENTS.WAGER_NEED_RESOLVE, { options: ws.options });
     }
   }
 }
 
 async function resolveWager(code, room, winningOption) {
-  const ws = room.wagerState;
-  if (!ws) return;
+  const ws = room.phaseState;
+  if (!ws || !ws.phaseId) return;
 
   const engine = room.engine;
   const phase = engine.config.phases[ws.phaseId];
@@ -168,7 +168,6 @@ async function resolveWager(code, room, winningOption) {
   }
 
   engine.storePhaseData(ws.phaseId, { wagers: ws.wagers, scores: newScores, resolved: winningOption });
-  room.wagerState = null;
 
   console.log(`[resolveWager] Winner: "${winningOption}", updated ${Object.keys(ws.wagers).length} scores`);
 
@@ -182,14 +181,14 @@ async function resolveWager(code, room, winningOption) {
 // --- Relay helpers ---
 
 function emitRelayTurn(code, room) {
-  const rs = room.relayState;
+  const rs = room.phaseState;
   const activePlayerId = rs.turnOrder[rs.currentTurnIndex];
   const activePlayer = room.engine.players.find(activePlayerId);
   const progress = (rs.currentTurnIndex + 1) + ' / ' + rs.turnOrder.length;
   const hostId = roomToHost.get(code);
 
   // Tell active player
-  io.to(activePlayerId).emit('relay-turn', {
+  io.to(activePlayerId).emit(EVENTS.RELAY_TURN, {
     prompt: rs.prompt, sharedResult: rs.sharedResult,
     timer: rs.timer, progress,
     playerTemplate: rs.sc.playerTemplate, show: rs.sc.playerShow
@@ -198,7 +197,7 @@ function emitRelayTurn(code, room) {
   // Tell other players to wait
   for (const pid of rs.turnOrder) {
     if (pid !== activePlayerId) {
-      io.to(pid).emit('relay-waiting', {
+      io.to(pid).emit(EVENTS.RELAY_WAITING, {
         activePlayerName: activePlayer ? activePlayer.name : 'Someone',
         sharedResult: rs.sharedResult, progress,
         playerTemplate: rs.sc.playerTemplate, show: rs.sc.playerShow
@@ -208,7 +207,7 @@ function emitRelayTurn(code, room) {
 
   // Tell host
   if (hostId) {
-    io.to(hostId).emit('relay-update', {
+    io.to(hostId).emit(EVENTS.RELAY_UPDATE, {
       activePlayerName: activePlayer ? activePlayer.name : 'Someone',
       sharedResult: rs.sharedResult, progress,
       timer: rs.timer,
@@ -220,8 +219,8 @@ function emitRelayTurn(code, room) {
   if (rs.turnTimer) { clearTimeout(rs.turnTimer); rs.turnTimer = null; }
   if (rs.timer) {
     rs.turnTimer = setTimeout(async () => {
-      if (room.relayState && room.relayState.phaseId === rs.phaseId &&
-          room.relayState.currentTurnIndex === rs.currentTurnIndex) {
+      if (room.phaseState && room.phaseState.phaseId === rs.phaseId &&
+          room.phaseState.currentTurnIndex === rs.currentTurnIndex) {
         // Auto-skip: submit empty
         const player = room.engine.players.find(activePlayerId);
         rs.sharedResult.push({ playerId: activePlayerId, name: player ? player.name : 'Unknown', text: '(skipped)' });
@@ -442,7 +441,7 @@ async function advanceForeach(code, room, foreachPhaseId) {
 
 async function tallyAndAdvance(code, room) {
   const engine = room.engine;
-  const vs = room.voteState;
+  const vs = room.phaseState;
 
   let result;
   if (vs.mode === 'pick-one') {
@@ -463,7 +462,6 @@ async function tallyAndAdvance(code, room) {
 
   const phaseConfig = engine.config.phases[vs.phaseId];
   phaseConfig.id = vs.phaseId;
-  delete room.voteState;
 
   const nextId = getNextPhaseId(engine, phaseConfig);
   if (nextId) {
@@ -493,6 +491,13 @@ async function handlePhase(code, room) {
   const hostSocketId = roomToHost.get(code);
 
   console.log(`[handlePhase] Room ${code} handling '${phase.id}' (type: ${phase.type})`);
+
+  // Auto-wipe previous phase state (cleanup timers first)
+  if (room.phaseState && room.phaseState.cleanup) {
+    room.phaseState.cleanup();
+  }
+  room.phaseState = {};
+  room.phaseInstanceId = (room.phaseInstanceId || 0) + 1;
 
   // Dispatch to registered handler
   const handler = getHandler(phase.type);
@@ -708,7 +713,7 @@ app.delete('/api/games/:gameId', async (req, res) => {
 io.on('connection', (socket) => {
   console.log(`[connect] Socket ${socket.id} connected`);
 
-  socket.on('get-games', async () => {
+  socket.on(EVENTS.GET_GAMES, async () => {
     try {
       const entries = await readdir(GAMES_DIR, { withFileTypes: true });
       const games = [];
@@ -727,14 +732,14 @@ io.on('connection', (socket) => {
         }
       }
 
-      socket.emit('games-list', { games });
+      socket.emit(EVENTS.GAMES_LIST, { games });
     } catch (error) {
       console.log(`[get-games] Error: ${error.message}`);
-      socket.emit('games-list', { games: [] });
+      socket.emit(EVENTS.GAMES_LIST, { games: [] });
     }
   });
 
-  socket.on('create-room', async ({ gameId } = {}) => {
+  socket.on(EVENTS.CREATE_ROOM, async ({ gameId } = {}) => {
     const selectedGame = gameId || DEFAULT_GAME;
 
     try {
@@ -749,20 +754,20 @@ io.on('connection', (socket) => {
       roomToHost.set(code, socket.id);
       socket.join(code);
       console.log(`[create-room] Room ${code} created by ${socket.id} (game: ${selectedGame})`);
-      socket.emit('room-created', { code, game: config.name, theme: config.theme || null });
+      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null });
     } catch (error) {
       console.log(`[create-room] Error loading game "${selectedGame}": ${error.message}`);
-      socket.emit('create-room-error', { message: error.message });
+      socket.emit(EVENTS.CREATE_ROOM_ERROR, { message: error.message });
     }
   });
 
-  socket.on('join-room', ({ code, name }) => {
+  socket.on(EVENTS.JOIN_ROOM, ({ code, name }) => {
     console.log(`[join-room] ${socket.id} trying to join ${code} as "${name}"`);
 
     const room = roomManager.find(code);
     if (!room) {
       console.log(`[join-room] Room ${code} not found`);
-      socket.emit('join-error', { message: 'Room not found' });
+      socket.emit(EVENTS.JOIN_ERROR, { message: 'Room not found' });
       return;
     }
 
@@ -780,11 +785,11 @@ io.on('connection', (socket) => {
 
         const player = players.find(socket.id);
         const theme = room.engine ? (room.engine.config.theme || null) : null;
-        socket.emit('join-success', { name: player.name, reconnected: true, theme });
+        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, theme });
 
         const hostSocketId = roomToHost.get(code);
         if (hostSocketId) {
-          io.to(hostSocketId).emit('player-reconnected', {
+          io.to(hostSocketId).emit(EVENTS.PLAYER_RECONNECTED, {
             id: socket.id,
             name: player.name,
             players: players.list()
@@ -803,11 +808,11 @@ io.on('connection', (socket) => {
 
       console.log(`[join-room] ${player.name} (${socket.id}) joined room ${code}`);
       const theme = room.engine ? (room.engine.config.theme || null) : null;
-      socket.emit('join-success', { name: player.name, theme });
+      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, theme });
 
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {
-        io.to(hostSocketId).emit('player-joined', {
+        io.to(hostSocketId).emit(EVENTS.PLAYER_JOINED, {
           id: socket.id,
           name: player.name,
           players: players.list()
@@ -815,11 +820,11 @@ io.on('connection', (socket) => {
       }
     } catch (error) {
       console.log(`[join-room] Error: ${error.message}`);
-      socket.emit('join-error', { message: error.message });
+      socket.emit(EVENTS.JOIN_ERROR, { message: error.message });
     }
   });
 
-  socket.on('start-game', async ({ code }) => {
+  socket.on(EVENTS.START_GAME, async ({ code }) => {
     console.log(`[start-game] Starting game in room ${code}`);
 
     const room = roomManager.find(code);
@@ -838,14 +843,14 @@ io.on('connection', (socket) => {
         room.stateMachine.transition('collect');
         const prompt = "What did you do this weekend?";
         console.log(`[start-game] Room ${code} now in 'collect' state`);
-        io.to(code).emit('game-started', { prompt });
+        io.to(code).emit(EVENTS.GAME_STARTED, { prompt });
       }
     } catch (error) {
       console.log(`[start-game] Error: ${error.message}`);
     }
   });
 
-  socket.on('submit-response', ({ code, response }) => {
+  socket.on(EVENTS.SUBMIT_RESPONSE, ({ code, response }) => {
     console.log(`[submit-response] Response from ${socket.id} in room ${code}`);
 
     const room = roomManager.find(code);
@@ -882,7 +887,7 @@ io.on('connection', (socket) => {
 
     const hostSocketId = roomToHost.get(code);
     if (hostSocketId) {
-      io.to(hostSocketId).emit('response-received', {
+      io.to(hostSocketId).emit(EVENTS.RESPONSE_RECEIVED, {
         playerName: player.name,
         count: submitted,
         total
@@ -890,7 +895,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('close-submissions', async ({ code }) => {
+  socket.on(EVENTS.CLOSE_SUBMISSIONS, async ({ code }) => {
     console.log(`[close-submissions] Closing submissions for room ${code}`);
 
     const room = roomManager.find(code);
@@ -941,7 +946,7 @@ io.on('connection', (socket) => {
         // Legacy path (no engine)
         room.stateMachine.transition('process');
         console.log(`[close-submissions] Room ${code} now in 'process' state`);
-        io.to(code).emit('processing-started');
+        io.to(code).emit(EVENTS.PROCESSING_STARTED);
 
         const players = room.playerRegistry.list();
         const responses = players
@@ -958,7 +963,7 @@ io.on('connection', (socket) => {
         room.stateMachine.transition('reveal');
         console.log(`[close-submissions] Room ${code} now in 'reveal' state`);
 
-        io.to(code).emit('show-results', {
+        io.to(code).emit(EVENTS.SHOW_RESULTS, {
           aiResult: aiResult.text,
           responses: responses.map(r => ({ name: r.name, response: r.text }))
         });
@@ -968,11 +973,11 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('submit-vote', async ({ code, choice, votes: votesList }) => {
+  socket.on(EVENTS.SUBMIT_VOTE, async ({ code, choice, votes: votesList }) => {
     const room = roomManager.find(code);
-    if (!room || !room.voteState) return;
+    if (!room || !room.phaseState) return;
 
-    const vs = room.voteState;
+    const vs = room.phaseState;
     if (!vs.eligibleVoterIds.includes(socket.id)) return;
     if (vs.votersCompleted.has(socket.id)) return;
 
@@ -989,7 +994,7 @@ io.on('connection', (socket) => {
 
     const hostSocketId = roomToHost.get(code);
     if (hostSocketId) {
-      io.to(hostSocketId).emit('vote-received', {
+      io.to(hostSocketId).emit(EVENTS.VOTE_RECEIVED, {
         count: vs.votersCompleted.size,
         total: vs.eligibleVoterIds.length
       });
@@ -1001,16 +1006,16 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('close-voting', async ({ code }) => {
+  socket.on(EVENTS.CLOSE_VOTING, async ({ code }) => {
     console.log(`[close-voting] Host closing voting for room ${code}`);
 
     const room = roomManager.find(code);
-    if (!room || !room.voteState) return;
+    if (!room || !room.phaseState) return;
 
     await tallyAndAdvance(code, room);
   });
 
-  socket.on('advance-phase', async ({ code }) => {
+  socket.on(EVENTS.ADVANCE_PHASE, async ({ code }) => {
     console.log(`[advance-phase] Advancing phase in room ${code}`);
 
     const room = roomManager.find(code);
@@ -1028,11 +1033,11 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('reveal-next', async ({ code }) => {
+  socket.on(EVENTS.REVEAL_NEXT, async ({ code }) => {
     const room = roomManager.find(code);
-    if (!room || !room.revealOneState) return;
+    if (!room || !room.phaseState) return;
 
-    const state = room.revealOneState;
+    const state = room.phaseState;
     if (state.revealed >= state.items.length) return;
 
     const item = state.items[state.revealed];
@@ -1042,48 +1047,48 @@ io.on('connection', (socket) => {
     console.log(`[reveal-next] Revealed item ${state.revealed}/${state.items.length} in room ${code}`);
 
     // Send to everyone
-    io.to(code).emit('reveal-one-item', {
+    io.to(code).emit(EVENTS.REVEAL_ONE_ITEM, {
       item, index: state.revealed, total: state.items.length
     });
 
     // If all revealed, send complete and allow advance
     if (state.revealed >= state.items.length) {
-      io.to(code).emit('reveal-one-complete', {});
+      io.to(code).emit(EVENTS.REVEAL_ONE_COMPLETE, {});
     }
   });
 
   // --- Rank events ---
 
-  socket.on('rank-submit', async ({ code, ranking }) => {
+  socket.on(EVENTS.RANK_SUBMIT, async ({ code, ranking }) => {
     const room = roomManager.find(code);
-    if (!room || !room.rankState) return;
-    const rs = room.rankState;
+    if (!room || !room.phaseState) return;
+    const rs = room.phaseState;
     if (!rs.eligibleIds.has(socket.id) || rs.completed.has(socket.id)) return;
 
     rs.submissions[socket.id] = ranking;
     rs.completed.add(socket.id);
-    socket.emit('waiting', { message: 'Ranking submitted. Waiting for others...' });
+    socket.emit(EVENTS.WAITING, { message: 'Ranking submitted. Waiting for others...' });
 
     const hostId = roomToHost.get(code);
-    if (hostId) io.to(hostId).emit('rank-received', { count: rs.completed.size, total: rs.eligibleIds.size });
+    if (hostId) io.to(hostId).emit(EVENTS.RANK_RECEIVED, { count: rs.completed.size, total: rs.eligibleIds.size });
 
     if (rs.completed.size >= rs.eligibleIds.size) {
       await closeRanking(code, room);
     }
   });
 
-  socket.on('close-ranking', async ({ code }) => {
+  socket.on(EVENTS.CLOSE_RANKING, async ({ code }) => {
     const room = roomManager.find(code);
-    if (!room || !room.rankState) return;
+    if (!room || !room.phaseState) return;
     await closeRanking(code, room);
   });
 
   // --- Wager events ---
 
-  socket.on('wager-submit', async ({ code, option, amount }) => {
+  socket.on(EVENTS.WAGER_SUBMIT, async ({ code, option, amount }) => {
     const room = roomManager.find(code);
-    if (!room || !room.wagerState) return;
-    const ws = room.wagerState;
+    if (!room || !room.phaseState) return;
+    const ws = room.phaseState;
     if (!ws.eligibleIds.has(socket.id) || ws.completed.has(socket.id)) return;
 
     const availPts = ws.scores[socket.id] || 0;
@@ -1092,34 +1097,34 @@ io.on('connection', (socket) => {
 
     ws.wagers[socket.id] = { option, amount: clampedAmt };
     ws.completed.add(socket.id);
-    socket.emit('waiting', { message: 'Wager placed. Waiting for others...' });
+    socket.emit(EVENTS.WAITING, { message: 'Wager placed. Waiting for others...' });
 
     const hostId = roomToHost.get(code);
-    if (hostId) io.to(hostId).emit('wager-received', { count: ws.completed.size, total: ws.eligibleIds.size });
+    if (hostId) io.to(hostId).emit(EVENTS.WAGER_RECEIVED, { count: ws.completed.size, total: ws.eligibleIds.size });
 
     if (ws.completed.size >= ws.eligibleIds.size) {
       await closeWager(code, room);
     }
   });
 
-  socket.on('close-wager', async ({ code }) => {
+  socket.on(EVENTS.CLOSE_WAGER, async ({ code }) => {
     const room = roomManager.find(code);
-    if (!room || !room.wagerState) return;
+    if (!room || !room.phaseState) return;
     await closeWager(code, room);
   });
 
-  socket.on('wager-resolve', async ({ code, winningOption }) => {
+  socket.on(EVENTS.WAGER_RESOLVE, async ({ code, winningOption }) => {
     const room = roomManager.find(code);
-    if (!room || !room.wagerState) return;
+    if (!room || !room.phaseState) return;
     await resolveWager(code, room, winningOption);
   });
 
   // --- Relay events ---
 
-  socket.on('relay-submit', async ({ code, text }) => {
+  socket.on(EVENTS.RELAY_SUBMIT, async ({ code, text }) => {
     const room = roomManager.find(code);
-    if (!room || !room.relayState) return;
-    const rs = room.relayState;
+    if (!room || !room.phaseState) return;
+    const rs = room.phaseState;
     if (rs.turnOrder[rs.currentTurnIndex] !== socket.id) return;
 
     if (rs.turnTimer) { clearTimeout(rs.turnTimer); rs.turnTimer = null; }
@@ -1163,7 +1168,7 @@ io.on('connection', (socket) => {
     });
   }
 
-  socket.on('end-game', ({ code }) => {
+  socket.on(EVENTS.END_GAME, ({ code }) => {
     console.log(`[end-game] Ending game in room ${code}`);
 
     const room = roomManager.find(code);
@@ -1183,7 +1188,7 @@ io.on('connection', (socket) => {
         room.stateMachine.transition('end');
       }
       console.log(`[end-game] Room ${code} now in 'end' state`);
-      io.to(code).emit('game-ended');
+      io.to(code).emit(EVENTS.GAME_ENDED);
     } catch (error) {
       console.log(`[end-game] Error: ${error.message}`);
     }
@@ -1204,7 +1209,7 @@ io.on('connection', (socket) => {
 
           const hostSocketId = roomToHost.get(code);
           if (hostSocketId) {
-            io.to(hostSocketId).emit('player-disconnected', {
+            io.to(hostSocketId).emit(EVENTS.PLAYER_DISCONNECTED, {
               id: socket.id,
               name: player.name,
               players: players.list()
@@ -1220,7 +1225,7 @@ io.on('connection', (socket) => {
               players.remove(socket.id);
               const hid = roomToHost.get(code);
               if (hid) {
-                io.to(hid).emit('player-left', {
+                io.to(hid).emit(EVENTS.PLAYER_LEFT, {
                   id: socket.id,
                   players: players.list()
                 });
@@ -1238,7 +1243,7 @@ io.on('connection', (socket) => {
         console.log(`[disconnect] Host left, deleting room ${roomCode}`);
         roomManager.delete(roomCode);
         roomToHost.delete(roomCode);
-        io.to(roomCode).emit('room-closed');
+        io.to(roomCode).emit(EVENTS.ROOM_CLOSED);
       }
     }
   });

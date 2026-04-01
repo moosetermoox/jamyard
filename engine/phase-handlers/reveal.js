@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('reveal', {
   async onEnter(ctx) {
@@ -36,7 +37,7 @@ registerHandler('reveal', {
     }
 
     const sc = ctx.resolveScreenControl();
-    ctx.emitToRoom('show-results', { content, aiResult, responses, ...sc });
+    ctx.emitToRoom(EVENTS.SHOW_RESULTS, { content, aiResult, responses, ...sc });
   },
 
   onReconnect(ctx, socket) {
@@ -58,6 +59,6 @@ registerHandler('reveal', {
       }
     }
     const sc = ctx.resolveScreenControl();
-    socket.emit('show-results', { content, aiResult, ...sc });
+    socket.emit(EVENTS.SHOW_RESULTS, { content, aiResult, ...sc });
   }
 });

@@ -1,10 +1,11 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('ai-process', {
   async onEnter(ctx) {
     const { phase, engine } = ctx;
     const sc = ctx.resolveScreenControl();
-    ctx.emitToRoom('processing-started', { task: phase.task, ...sc });
+    ctx.emitToRoom(EVENTS.PROCESSING_STARTED, { task: phase.task, ...sc });
 
     const input = phase.input ? engine.resolve(phase.input) : undefined;
     const instruction = phase.instruction;
@@ -43,6 +44,6 @@ registerHandler('ai-process', {
 
   onReconnect(ctx, socket) {
     const sc = ctx.resolveScreenControl();
-    socket.emit('processing-started', { task: ctx.phase.task, ...sc });
+    socket.emit(EVENTS.PROCESSING_STARTED, { task: ctx.phase.task, ...sc });
   }
 });

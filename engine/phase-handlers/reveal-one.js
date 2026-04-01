@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('reveal-one', {
   async onEnter(ctx) {
@@ -27,14 +28,14 @@ registerHandler('reveal-one', {
 
     const roMessage = phase.message ? ctx.resolveTemplate(phase.message) : 'Reveal Time!';
 
-    room.revealOneState = { phaseId: phase.id, items, revealed: 0, message: roMessage };
+    room.phaseState = { phaseId: phase.id, items, revealed: 0, message: roMessage };
     engine.storePhaseData(phase.id, { items, revealed: 0 });
     const sc = ctx.resolveScreenControl();
 
     console.log(`[handlePhase] Reveal-one: ${items.length} items to reveal`);
 
     // Send start to host
-    ctx.emitToHost('reveal-one-start', {
+    ctx.emitToHost(EVENTS.REVEAL_ONE_START, {
       message: roMessage, total: items.length, revealed: 0,
       timer: phase.timer || null,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
@@ -42,7 +43,7 @@ registerHandler('reveal-one', {
 
     // Send start to players
     for (const player of engine.players.list()) {
-      ctx.emitToPlayer(player.id, 'reveal-one-start', {
+      ctx.emitToPlayer(player.id, EVENTS.REVEAL_ONE_START, {
         message: roMessage, total: items.length, revealed: 0,
         timer: phase.timer || null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -51,22 +52,22 @@ registerHandler('reveal-one', {
   },
 
   onReconnect(ctx, socket) {
-    const roState = ctx.room.revealOneState;
+    const roState = ctx.room.phaseState;
     if (roState) {
       const sc = ctx.resolveScreenControl();
-      socket.emit('reveal-one-start', {
+      socket.emit(EVENTS.REVEAL_ONE_START, {
         message: roState.message, total: roState.items.length, revealed: roState.revealed,
         timer: null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
       // Send already-revealed items
       for (let ri = 0; ri < roState.revealed; ri++) {
-        socket.emit('reveal-one-item', {
+        socket.emit(EVENTS.REVEAL_ONE_ITEM, {
           item: roState.items[ri], index: ri + 1, total: roState.items.length
         });
       }
       if (roState.revealed >= roState.items.length) {
-        socket.emit('reveal-one-complete', {});
+        socket.emit(EVENTS.REVEAL_ONE_COMPLETE, {});
       }
     }
   }

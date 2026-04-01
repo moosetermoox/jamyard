@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('rank', {
   async onEnter(ctx) {
@@ -23,16 +24,17 @@ registerHandler('rank', {
     });
 
     const rkEligibleIds = new Set(rkEligible.map(p => p.id));
-    room.rankState = {
+    room.phaseState = {
       phaseId: phase.id, candidates: rkItems,
-      submissions: {}, eligibleIds: rkEligibleIds, completed: new Set()
+      submissions: {}, eligibleIds: rkEligibleIds, completed: new Set(),
+      cleanup() { if (this.timer) { clearTimeout(this.timer); this.timer = null; } }
     };
 
     const sc = ctx.resolveScreenControl();
 
     console.log(`[handlePhase] Rank: ${rkItems.length} items, ${rkEligible.length} rankers`);
 
-    ctx.emitToHost('rank-start', {
+    ctx.emitToHost(EVENTS.RANK_START, {
       prompt: phase.prompt, totalRankers: rkEligible.length,
       timer: phase.timer || null,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
@@ -40,19 +42,19 @@ registerHandler('rank', {
 
     for (const player of engine.players.list()) {
       if (rkEligibleIds.has(player.id)) {
-        ctx.emitToPlayer(player.id, 'rank-start', {
+        ctx.emitToPlayer(player.id, EVENTS.RANK_START, {
           prompt: phase.prompt, candidates: rkItems,
           timer: phase.timer || null,
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       } else {
-        ctx.emitToPlayer(player.id, 'waiting', { message: 'Waiting for others to rank...' });
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Waiting for others to rank...' });
       }
     }
 
     if (phase.timer) {
-      room.rankTimer = setTimeout(async () => {
-        if (room.rankState && room.rankState.phaseId === phase.id) {
+      room.phaseState.timer = setTimeout(async () => {
+        if (room.phaseState && room.phaseState.phaseId === phase.id) {
           await ctx.services.closeRanking(room.code || code, room);
         }
       }, phase.timer * 1000);
@@ -60,19 +62,19 @@ registerHandler('rank', {
   },
 
   onReconnect(ctx, socket) {
-    const rkState = ctx.room.rankState;
+    const rkState = ctx.room.phaseState;
     if (rkState) {
       const sc = ctx.resolveScreenControl();
       if (rkState.completed.has(socket.id)) {
-        socket.emit('waiting', { message: 'Ranking submitted. Waiting for others...' });
+        socket.emit(EVENTS.WAITING, { message: 'Ranking submitted. Waiting for others...' });
       } else if (rkState.eligibleIds.has(socket.id)) {
-        socket.emit('rank-start', {
+        socket.emit(EVENTS.RANK_START, {
           prompt: ctx.phase.prompt, candidates: rkState.candidates,
           timer: null,
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       } else {
-        socket.emit('waiting', { message: 'Waiting for others to rank...' });
+        socket.emit(EVENTS.WAITING, { message: 'Waiting for others to rank...' });
       }
     }
   }

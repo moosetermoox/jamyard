@@ -1,9 +1,10 @@
 import { registerHandler } from './phase-registry.js';
+import { EVENTS } from '../events.js';
 
 registerHandler('end', {
   async onEnter(ctx) {
     const sc = ctx.resolveScreenControl();
-    ctx.emitToRoom('game-ended', {
+    ctx.emitToRoom(EVENTS.GAME_ENDED, {
       message: ctx.phase.message || 'Game over!',
       ...sc
     });
@@ -11,7 +12,7 @@ registerHandler('end', {
 
   onReconnect(ctx, socket) {
     const sc = ctx.resolveScreenControl();
-    socket.emit('game-ended', {
+    socket.emit(EVENTS.GAME_ENDED, {
       message: ctx.phase.message || 'Game over!',
       ...sc
     });
