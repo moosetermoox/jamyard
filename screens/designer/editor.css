@@ -297,6 +297,15 @@ body {
   letter-spacing: 0.3px;
 }
 
+.phase-box-desc {
+  font-size: 0.7rem;
+  color: #777;
+  margin-top: 2px;
+  line-height: 1.3;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+}
+
 .phase-box-id {
   font-size: 0.75rem;
   color: #888;
@@ -876,6 +885,75 @@ body {
   padding: 1px 6px;
   border-radius: 8px;
   border: 2px solid #000;
+}
+
+/* ---- Advanced toggle (foreach) ---- */
+/* ---- Variable chips ---- */
+.variable-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  align-items: center;
+}
+
+.variable-chips-label {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.variable-chip {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 900;
+  padding: 2px 8px;
+  border: 2px solid #000;
+  border-radius: 8px;
+  background: #E1BEE7;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+  letter-spacing: 0.3px;
+}
+
+.variable-chip:hover {
+  background: #CE93D8;
+}
+
+/* ---- Inline data ref warnings ---- */
+.data-ref-warning {
+  color: #FF2D2D;
+  font-size: 0.8rem;
+  font-weight: 900;
+  margin-top: 3px;
+}
+
+/* ---- Advanced toggle (foreach) ---- */
+.advanced-toggle {
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 12px;
+  background: #F5F5F5;
+  border: 3px solid #000;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 0.85rem;
+  font-family: 'Arial Black', Gadget, sans-serif;
+  text-align: left;
+  letter-spacing: 0.5px;
+}
+
+.advanced-toggle:hover {
+  background: #EEEEEE;
+}
+
+.advanced-fields {
+  border: 2px solid #DDD;
+  border-top: none;
+  padding: 8px 4px;
+  background: #FAFAFA;
 }
 
 /* Toggle checkboxes for screen control */

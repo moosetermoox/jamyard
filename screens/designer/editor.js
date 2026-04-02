@@ -5,6 +5,7 @@ var selectedPhaseId = null;
 var draggedPhaseId = null;
 var didDrag = false;
 var isDirty = false;
+var foreachAdvancedOpen = false;
 var aiIssues = {};
 var previewVisible = false;
 
@@ -594,6 +595,12 @@ function renderCanvas() {
     header.appendChild(friendlyName);
     box.appendChild(header);
 
+    // One-line description
+    var descLine = document.createElement('div');
+    descLine.className = 'phase-box-desc';
+    descLine.textContent = cat.description;
+    box.appendChild(descLine);
+
     // Phase ID in muted text
     var idLine = document.createElement('div');
     idLine.className = 'phase-box-id';
@@ -1015,10 +1022,11 @@ function renderPhaseConfig(phaseId) {
 
   if (type === 'announce') {
     addSectionHeader('What everyone sees');
-    addTextAreaWithHelp('Message', 'Displayed to host and all players. Use {{phaseId.field}} for data.', 'phase-message', phase.message, 'e.g. Round 1: Don\'t Match!', function (value) {
+    var announceTA = addTextAreaWithHelp('Message', 'Displayed to host and all players.', 'phase-message', phase.message, 'e.g. Round 1: Don\'t Match!', function (value) {
       phase.message = value;
       renderCanvas();
     });
+    addVariableChips(announceTA, phaseId);
     addFieldWithHelp('Auto-advance timer (seconds)', 'Leave empty to require host to click Continue', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
@@ -1121,10 +1129,11 @@ function renderPhaseConfig(phaseId) {
 
   if (type === 'reveal') {
     addSectionHeader('What everyone sees');
-    addTextAreaWithHelp('Display template', 'Use {{phaseId.field}} to insert data. e.g. {{process.result}}', 'phase-template', phase.template, 'e.g. Here\'s what AI created:\n\n{{process.result}}', function (value) {
+    var revealTA = addTextAreaWithHelp('Display template', 'Insert data from earlier steps.', 'phase-template', phase.template, 'e.g. Here\'s what AI created:\n\n{{process.result}}', function (value) {
       phase.template = value;
       renderCanvas();
     });
+    addVariableChips(revealTA, phaseId);
   }
 
   if (type === 'preview') {
@@ -1132,9 +1141,10 @@ function renderPhaseConfig(phaseId) {
     addDataRefDropdown('Content from', 'Which step\'s output to show the teacher', 'phase-content', phaseId, phase.content, function (value) {
       phase.content = value || undefined;
     });
-    addTextAreaWithHelp('Display template', 'Use {{phaseId.field}} to insert data', 'phase-template', phase.template, 'e.g. {{process.result}}', function (value) {
+    var previewTA = addTextAreaWithHelp('Display template', 'Insert data from earlier steps.', 'phase-template', phase.template, 'e.g. {{process.result}}', function (value) {
       phase.template = value || undefined;
     });
+    addVariableChips(previewTA, phaseId);
     addSelectWithHelp('Show player answers', 'Display original responses alongside AI content', 'phase-showResponses',
       [
         { value: 'true', label: 'Yes, show them' },
@@ -1189,10 +1199,11 @@ function renderPhaseConfig(phaseId) {
       phase.from = value;
     });
     addSectionHeader('Display');
-    addTextAreaWithHelp('Title message', 'Shown above the reveal area. Use {{phaseId.field}} for data.', 'phase-message', phase.message, 'e.g. And the answers are...', function (value) {
+    var revOneTA = addTextAreaWithHelp('Title message', 'Shown above the reveal area.', 'phase-message', phase.message, 'e.g. And the answers are...', function (value) {
       phase.message = value;
       renderCanvas();
     });
+    addVariableChips(revOneTA, phaseId);
   }
 
   if (type === 'team-split') {
@@ -1405,97 +1416,6 @@ function renderPhaseConfig(phaseId) {
       }
     );
 
-    addSelectWithHelp('Shuffle order?', 'Randomize the order items are shown', 'phase-shuffle',
-      [{ value: 'true', label: 'Yes (random order)' }, { value: 'false', label: 'No (original order)' }],
-      phase.shuffle === false ? 'false' : 'true', function (value) {
-        phase.shuffle = value === 'true' ? undefined : false;
-        isDirty = true;
-      }
-    );
-
-    addSectionHeader('Candidate generation (Optional)');
-    addSelectWithHelp('Auto-generate choices from', 'For guessing games — creates "real author + decoys" choice lists', 'phase-candidateSource',
-      [{ value: '', label: '(none)' }, { value: 'players', label: 'Player names (author + random decoys)' }],
-      phase.candidateSource || '', function (value) {
-        if (value) { phase.candidateSource = value; } else { delete phase.candidateSource; delete phase.decoyCount; }
-        isDirty = true;
-        renderPhaseConfig(phaseId);
-      }
-    );
-    if (phase.candidateSource === 'players') {
-      addFieldWithHelp('Number of decoys', 'How many wrong choices alongside the real author', 'number', 'phase-decoyCount', phase.decoyCount || 3, false, function (value) {
-        phase.decoyCount = value;
-        isDirty = true;
-      });
-    }
-
-    addSectionHeader('AI Injection (Optional)');
-    var aiInjectEnabled = !!phase.aiInject;
-    var aiInjectCheckbox = document.createElement('div');
-    aiInjectCheckbox.style.cssText = 'margin-bottom:8px;';
-    var aiInjectLabel = document.createElement('label');
-    aiInjectLabel.style.cssText = 'display:flex; align-items:center; gap:8px; cursor:pointer;';
-    var aiInjectCb = document.createElement('input');
-    aiInjectCb.type = 'checkbox';
-    aiInjectCb.checked = aiInjectEnabled;
-    aiInjectCb.addEventListener('change', function () {
-      if (aiInjectCb.checked) {
-        phase.aiInject = { count: 3, instruction: 'Generate fake responses matching the style of the real student answers.' };
-      } else {
-        delete phase.aiInject;
-      }
-      isDirty = true;
-      renderPhaseConfig(phaseId);
-    });
-    aiInjectLabel.appendChild(aiInjectCb);
-    aiInjectLabel.appendChild(document.createTextNode('Mix in AI-generated fake responses (for "human vs AI" games)'));
-    aiInjectCheckbox.appendChild(aiInjectLabel);
-    sidebar.appendChild(aiInjectCheckbox);
-
-    if (phase.aiInject) {
-      addFieldWithHelp('Number of AI fakes', 'How many AI-generated responses to mix in with real ones', 'number', 'phase-aiInject-count', phase.aiInject.count || 3, false, function (value) {
-        phase.aiInject.count = value;
-        isDirty = true;
-      });
-      addFieldWithHelp('AI instruction', 'Tell the AI what kind of fake responses to generate', 'text', 'phase-aiInject-instruction', phase.aiInject.instruction || '', false, function (value) {
-        phase.aiInject.instruction = value;
-        isDirty = true;
-      });
-      var aiInjectHint = document.createElement('div');
-      aiInjectHint.className = 'field-help';
-      aiInjectHint.innerHTML = 'Use scoring with <code>correctAnswer: "_current.isHuman"</code> and choices <code>["Human", "AI"]</code> to score detection.';
-      sidebar.appendChild(aiInjectHint);
-
-      // Pair mode option (only available when aiInject is enabled)
-      var pairModeDiv = document.createElement('div');
-      pairModeDiv.style.cssText = 'margin-top:8px;';
-      var pairModeLabel = document.createElement('label');
-      pairModeLabel.style.cssText = 'display:flex; align-items:center; gap:8px; cursor:pointer;';
-      var pairModeCb = document.createElement('input');
-      pairModeCb.type = 'checkbox';
-      pairModeCb.checked = phase.pairMode === 'human-vs-ai';
-      pairModeCb.addEventListener('change', function () {
-        if (pairModeCb.checked) {
-          phase.pairMode = 'human-vs-ai';
-        } else {
-          delete phase.pairMode;
-        }
-        isDirty = true;
-        renderSidebar(selectedPhaseId);
-      });
-      pairModeLabel.appendChild(pairModeCb);
-      pairModeLabel.appendChild(document.createTextNode('Side-by-side pair mode (show human vs AI ideas together)'));
-      pairModeDiv.appendChild(pairModeLabel);
-      sidebar.appendChild(pairModeDiv);
-
-      if (phase.pairMode === 'human-vs-ai') {
-        var pairHint = document.createElement('div');
-        pairHint.className = 'field-help';
-        pairHint.innerHTML = 'Each iteration shows a pair: <code>{{_current.a.text}}</code> and <code>{{_current.b.text}}</code>. One is human, one is AI (random order). Use <code>correctAnswer: "_current.aiPosition"</code> with choices like <code>["Idea A", "Idea B"]</code>.';
-        sidebar.appendChild(pairHint);
-      }
-    }
-
     addSectionHeader('Sub-phases (run per item)');
 
     // Render existing sub-phases
@@ -1664,7 +1584,7 @@ function renderPhaseConfig(phaseId) {
           subDiv.appendChild(rvInput);
         }
 
-        sidebar.appendChild(subDiv);
+        phaseConfigForm.appendChild(subDiv);
       })(subNames[si]);
     }
 
@@ -1680,7 +1600,120 @@ function renderPhaseConfig(phaseId) {
       isDirty = true;
       renderPhaseConfig(phaseId);
     };
-    sidebar.appendChild(addSubBtn);
+    phaseConfigForm.appendChild(addSubBtn);
+
+    // --- Advanced Settings toggle ---
+    var advToggle = document.createElement('button');
+    advToggle.className = 'advanced-toggle';
+    advToggle.textContent = (foreachAdvancedOpen ? '\u25BC' : '\u25B6') + ' Advanced Settings';
+    var advContainer = document.createElement('div');
+    advContainer.className = 'advanced-fields';
+    advContainer.hidden = !foreachAdvancedOpen;
+    advToggle.onclick = function () {
+      foreachAdvancedOpen = !foreachAdvancedOpen;
+      advContainer.hidden = !foreachAdvancedOpen;
+      advToggle.textContent = (foreachAdvancedOpen ? '\u25BC' : '\u25B6') + ' Advanced Settings';
+    };
+    phaseConfigForm.appendChild(advToggle);
+    phaseConfigForm.appendChild(advContainer);
+
+    // Temporarily redirect addSectionHeader/addFieldWithHelp/addSelectWithHelp to advContainer
+    var origTarget = phaseConfigForm;
+    var savedAppendChild = phaseConfigForm.appendChild.bind(phaseConfigForm);
+
+    // Helper to append to advContainer instead
+    phaseConfigForm.appendChild = function (el) { advContainer.appendChild(el); };
+
+    addSelectWithHelp('Shuffle order?', 'Randomize the order items are shown', 'phase-shuffle',
+      [{ value: 'true', label: 'Yes (random order)' }, { value: 'false', label: 'No (original order)' }],
+      phase.shuffle === false ? 'false' : 'true', function (value) {
+        phase.shuffle = value === 'true' ? undefined : false;
+        isDirty = true;
+      }
+    );
+
+    addSectionHeader('Candidate generation (Optional)');
+    addSelectWithHelp('Auto-generate choices from', 'For guessing games — creates "real author + decoys" choice lists', 'phase-candidateSource',
+      [{ value: '', label: '(none)' }, { value: 'players', label: 'Player names (author + random decoys)' }],
+      phase.candidateSource || '', function (value) {
+        if (value) { phase.candidateSource = value; } else { delete phase.candidateSource; delete phase.decoyCount; }
+        isDirty = true;
+        renderPhaseConfig(phaseId);
+      }
+    );
+    if (phase.candidateSource === 'players') {
+      addFieldWithHelp('Number of decoys', 'How many wrong choices alongside the real author', 'number', 'phase-decoyCount', phase.decoyCount || 3, false, function (value) {
+        phase.decoyCount = value;
+        isDirty = true;
+      });
+    }
+
+    addSectionHeader('AI Injection (Optional)');
+    var aiInjectEnabled = !!phase.aiInject;
+    var aiInjectCheckbox = document.createElement('div');
+    aiInjectCheckbox.style.cssText = 'margin-bottom:8px;';
+    var aiInjectLabel = document.createElement('label');
+    aiInjectLabel.style.cssText = 'display:flex; align-items:center; gap:8px; cursor:pointer;';
+    var aiInjectCb = document.createElement('input');
+    aiInjectCb.type = 'checkbox';
+    aiInjectCb.checked = aiInjectEnabled;
+    aiInjectCb.addEventListener('change', function () {
+      if (aiInjectCb.checked) {
+        phase.aiInject = { count: 3, instruction: 'Generate fake responses matching the style of the real student answers.' };
+      } else {
+        delete phase.aiInject;
+      }
+      isDirty = true;
+      renderPhaseConfig(phaseId);
+    });
+    aiInjectLabel.appendChild(aiInjectCb);
+    aiInjectLabel.appendChild(document.createTextNode('Mix in AI-generated fake responses (for "human vs AI" games)'));
+    aiInjectCheckbox.appendChild(aiInjectLabel);
+    advContainer.appendChild(aiInjectCheckbox);
+
+    if (phase.aiInject) {
+      addFieldWithHelp('Number of AI fakes', 'How many AI-generated responses to mix in with real ones', 'number', 'phase-aiInject-count', phase.aiInject.count || 3, false, function (value) {
+        phase.aiInject.count = value;
+        isDirty = true;
+      });
+      addFieldWithHelp('AI instruction', 'Tell the AI what kind of fake responses to generate', 'text', 'phase-aiInject-instruction', phase.aiInject.instruction || '', false, function (value) {
+        phase.aiInject.instruction = value;
+        isDirty = true;
+      });
+      var aiInjectHint = document.createElement('div');
+      aiInjectHint.className = 'field-help';
+      aiInjectHint.innerHTML = 'Use scoring with <code>correctAnswer: "_current.isHuman"</code> and choices <code>["Human", "AI"]</code> to score detection.';
+      advContainer.appendChild(aiInjectHint);
+
+      // Pair mode option (only available when aiInject is enabled)
+      var pairModeDiv = document.createElement('div');
+      pairModeDiv.style.cssText = 'margin-top:8px;';
+      var pairModeLabel = document.createElement('label');
+      pairModeLabel.style.cssText = 'display:flex; align-items:center; gap:8px; cursor:pointer;';
+      var pairModeCb = document.createElement('input');
+      pairModeCb.type = 'checkbox';
+      pairModeCb.checked = phase.pairMode === 'human-vs-ai';
+      pairModeCb.addEventListener('change', function () {
+        if (pairModeCb.checked) {
+          phase.pairMode = 'human-vs-ai';
+        } else {
+          delete phase.pairMode;
+        }
+        isDirty = true;
+        renderPhaseConfig(phaseId);
+      });
+      pairModeLabel.appendChild(pairModeCb);
+      pairModeLabel.appendChild(document.createTextNode('Side-by-side pair mode (show human vs AI ideas together)'));
+      pairModeDiv.appendChild(pairModeLabel);
+      advContainer.appendChild(pairModeDiv);
+
+      if (phase.pairMode === 'human-vs-ai') {
+        var pairHint = document.createElement('div');
+        pairHint.className = 'field-help';
+        pairHint.innerHTML = 'Each iteration shows a pair: <code>{{_current.a.text}}</code> and <code>{{_current.b.text}}</code>. One is human, one is AI (random order). Use <code>correctAnswer: "_current.aiPosition"</code> with choices like <code>["Idea A", "Idea B"]</code>.';
+        advContainer.appendChild(pairHint);
+      }
+    }
 
     addSectionHeader('Scoring (Optional)');
     var hasScoringCheck = document.createElement('div');
@@ -1705,7 +1738,7 @@ function renderPhaseConfig(phaseId) {
     scoringLabel.style.fontWeight = 'bold';
     hasScoringCheck.appendChild(scoringCheckbox);
     hasScoringCheck.appendChild(scoringLabel);
-    sidebar.appendChild(hasScoringCheck);
+    advContainer.appendChild(hasScoringCheck);
 
     if (phase.scoring) {
       var scoringSubOptions = [{ value: '', label: '(choose sub-phase)' }];
@@ -1816,7 +1849,7 @@ function renderPhaseConfig(phaseId) {
           }
         };
         pointMapDiv.appendChild(addPmBtn);
-        sidebar.appendChild(pointMapDiv);
+        advContainer.appendChild(pointMapDiv);
       }
     }
 
@@ -1828,7 +1861,10 @@ function renderPhaseConfig(phaseId) {
       '<code>{{_current.playerName}}</code> — who submitted it<br>' +
       '<code>{{_foreach.' + phaseId + '.index}}</code> — iteration number (1-based)<br>' +
       '<code>{{_foreach.' + phaseId + '.total}}</code> — total iterations';
-    sidebar.appendChild(helpDiv);
+    advContainer.appendChild(helpDiv);
+
+    // Restore phaseConfigForm.appendChild
+    phaseConfigForm.appendChild = savedAppendChild;
   }
 
   if (type === 'end') {
@@ -1890,13 +1926,15 @@ function renderPhaseConfig(phaseId) {
   if (type !== 'lobby') {
     addSectionHeader('Screen Control (Optional)');
 
-    addTextAreaWithHelp('Host template', 'Custom text shown on the host screen. Use {{phaseId.field}} for data. Leave empty for default.', 'phase-hostTemplate', phase.hostTemplate, 'e.g. Full analysis:\n{{process.result}}', function (value) {
+    var hostTemplateTA = addTextAreaWithHelp('Host template', 'Custom text shown on the host screen. Leave empty for default.', 'phase-hostTemplate', phase.hostTemplate, 'e.g. Full analysis:\n{{process.result}}', function (value) {
       if (value) { phase.hostTemplate = value; } else { delete phase.hostTemplate; }
     });
+    addVariableChips(hostTemplateTA, phaseId);
 
-    addTextAreaWithHelp('Player template', 'Custom text shown on player screens. Use {{phaseId.field}} for data. Leave empty for default.', 'phase-playerTemplate', phase.playerTemplate, 'e.g. Great job everyone!', function (value) {
+    var playerTemplateTA = addTextAreaWithHelp('Player template', 'Custom text shown on player screens. Leave empty for default.', 'phase-playerTemplate', phase.playerTemplate, 'e.g. Great job everyone!', function (value) {
       if (value) { phase.playerTemplate = value; } else { delete phase.playerTemplate; }
     });
+    addVariableChips(playerTemplateTA, phaseId);
 
     // Host show toggles
     var hostToggles = VALID_HOST_TOGGLES[type];
@@ -2093,6 +2131,88 @@ function addTextAreaWithHelp(label, helpText, id, value, placeholder, onChange) 
   return textarea;
 }
 
+// Build template variables available for a given phase (phases that come before it)
+function buildTemplateVariables(currentPhaseId, extraVars) {
+  var order = buildPhaseOrder();
+  var currentIndex = order.indexOf(currentPhaseId);
+  var vars = [];
+
+  for (var i = 0; i < order.length; i++) {
+    if (i >= currentIndex) break;
+    var pid = order[i];
+    var p = gameConfig.phases[pid];
+    var cat = PHASE_CATALOG[p.type];
+    if (!cat) continue;
+
+    if (p.type === 'collect' || p.type === 'collect-choice') {
+      vars.push({ label: cat.friendlyName + ' answers', variable: '{{' + pid + '.responses}}' });
+    }
+    if (p.type === 'ai-process') {
+      vars.push({ label: 'AI result', variable: '{{' + pid + '.result}}' });
+    }
+    if (p.type === 'vote' || p.type === 'wager') {
+      vars.push({ label: cat.friendlyName + ' scores', variable: '{{' + pid + '.scores}}' });
+    }
+    if (p.type === 'foreach') {
+      vars.push({ label: 'Foreach scores', variable: '{{' + pid + '.scores}}' });
+    }
+  }
+
+  // Add loop variables if any phase has loopBack pointing at an ancestor
+  for (var li = 0; li < order.length; li++) {
+    var lp = gameConfig.phases[order[li]];
+    if (lp && lp.loopBack) {
+      vars.push({ label: 'Loop ' + order[li] + ' iteration', variable: '{{_loop.' + order[li] + '.iteration}}' });
+      vars.push({ label: 'Loop ' + order[li] + ' total', variable: '{{_loop.' + order[li] + '.total}}' });
+    }
+  }
+
+  if (extraVars) {
+    for (var ei = 0; ei < extraVars.length; ei++) {
+      vars.push(extraVars[ei]);
+    }
+  }
+  return vars;
+}
+
+// Add clickable variable chips below a textarea
+function addVariableChips(textarea, currentPhaseId, extraVars) {
+  var vars = buildTemplateVariables(currentPhaseId, extraVars);
+  if (vars.length === 0) return;
+
+  var container = document.createElement('div');
+  container.className = 'variable-chips';
+
+  var chipLabel = document.createElement('span');
+  chipLabel.className = 'variable-chips-label';
+  chipLabel.textContent = 'Insert: ';
+  container.appendChild(chipLabel);
+
+  for (var i = 0; i < vars.length; i++) {
+    (function (v) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'variable-chip';
+      chip.textContent = v.label;
+      chip.title = v.variable;
+      chip.onclick = function (e) {
+        e.preventDefault();
+        var start = textarea.selectionStart || textarea.value.length;
+        var end = textarea.selectionEnd || start;
+        textarea.value = textarea.value.substring(0, start) + v.variable + textarea.value.substring(end);
+        textarea.focus();
+        var newPos = start + v.variable.length;
+        textarea.setSelectionRange(newPos, newPos);
+        textarea.dispatchEvent(new Event('input'));
+      };
+      container.appendChild(chip);
+    })(vars[i]);
+  }
+
+  // Insert after the textarea in its parent group
+  textarea.parentNode.appendChild(container);
+}
+
 // Select with friendly option labels and helper text
 function addSelectWithHelp(label, helpText, id, options, selected, onChange) {
   var group = document.createElement('div');
@@ -2201,9 +2321,23 @@ function addDataRefDropdown(label, helpText, id, currentPhaseId, value, onChange
     options.push({ value: value, label: value + ' (custom)' });
   }
 
-  return addSelectWithHelp(label, helpText, id, options, value || '', function (val) {
+  var select = addSelectWithHelp(label, helpText, id, options, value || '', function (val) {
     onChange(val || undefined);
   });
+
+  // Inline warning for broken data references
+  if (value && value.indexOf('.') !== -1) {
+    var refPhaseId = value.split('.')[0];
+    if (!gameConfig.phases[refPhaseId]) {
+      var warning = document.createElement('div');
+      warning.className = 'data-ref-warning';
+      warning.textContent = '\u26A0 Step "' + refPhaseId + '" no longer exists';
+      select.style.borderColor = '#FF2D2D';
+      select.parentNode.appendChild(warning);
+    }
+  }
+
+  return select;
 }
 
 // Phase type select with friendly names
