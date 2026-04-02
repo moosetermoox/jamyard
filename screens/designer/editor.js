@@ -601,22 +601,6 @@ function renderCanvas() {
     descLine.textContent = cat.description;
     box.appendChild(descLine);
 
-    // Phase ID in muted text
-    var idLine = document.createElement('div');
-    idLine.className = 'phase-box-id';
-    idLine.textContent = phaseId;
-    box.appendChild(idLine);
-
-    // Content summary
-    var detailField = cat.detailField;
-    if (detailField && phase[detailField]) {
-      var detail = document.createElement('div');
-      detail.className = 'phase-box-detail';
-      var text = String(phase[detailField]);
-      detail.textContent = text.length > 50 ? text.substring(0, 50) + '\u2026' : text;
-      box.appendChild(detail);
-    }
-
     // Role indicator dots (H = host, P = player, AI)
     var dots = document.createElement('div');
     dots.className = 'phase-box-dots';
@@ -870,9 +854,6 @@ function renderPhaseConfig(phaseId) {
   headerDiv.appendChild(headerIcon);
   headerDiv.appendChild(headerInfo);
   phaseConfigForm.appendChild(headerDiv);
-
-  // Phase ID (read-only)
-  addFieldWithHelp('Step ID', 'Internal name used in config', 'text', 'phase-id', phaseId, true);
 
   // Phase type dropdown
   addPhaseTypeSelect('Step type', 'What this step does in the game', 'phase-type', phase.type, function (value) {
@@ -1129,7 +1110,7 @@ function renderPhaseConfig(phaseId) {
 
   if (type === 'reveal') {
     addSectionHeader('What everyone sees');
-    var revealTA = addTextAreaWithHelp('Display template', 'Insert data from earlier steps.', 'phase-template', phase.template, 'e.g. Here\'s what AI created:\n\n{{process.result}}', function (value) {
+    var revealTA = addTextAreaWithHelp('Display template', 'Insert data from earlier steps.', 'phase-template', phase.template, 'e.g. Here\'s what AI created! Use the insert buttons below.', function (value) {
       phase.template = value;
       renderCanvas();
     });
@@ -1141,7 +1122,7 @@ function renderPhaseConfig(phaseId) {
     addDataRefDropdown('Content from', 'Which step\'s output to show the teacher', 'phase-content', phaseId, phase.content, function (value) {
       phase.content = value || undefined;
     });
-    var previewTA = addTextAreaWithHelp('Display template', 'Insert data from earlier steps.', 'phase-template', phase.template, 'e.g. {{process.result}}', function (value) {
+    var previewTA = addTextAreaWithHelp('Display template', 'Insert data from earlier steps.', 'phase-template', phase.template, 'Use the insert buttons below to add data.', function (value) {
       phase.template = value || undefined;
     });
     addVariableChips(previewTA, phaseId);
@@ -1406,7 +1387,7 @@ function renderPhaseConfig(phaseId) {
       var fP = gameConfig.phases[fPid];
       var fCat = PHASE_CATALOG[fP.type];
       if (fP.type === 'collect') {
-        foreachDataOptions.push({ value: fPid + '.responses', label: 'Responses from ' + (fCat ? fCat.friendlyName : fP.type) + ' (' + fPid + ')' });
+        foreachDataOptions.push({ value: fPid + '.responses', label: 'Responses from ' + (fCat ? fCat.friendlyName : fP.type) });
       }
     }
     addSelectWithHelp('Iterate over', 'Which data to loop through — one iteration per item', 'phase-data',
@@ -1477,7 +1458,7 @@ function renderPhaseConfig(phaseId) {
           var msgInput = document.createElement('textarea');
           msgInput.value = sub.message || '';
           msgInput.rows = 2;
-          msgInput.placeholder = 'Use {{_current.text}}, {{_current.playerName}}, {{_foreach.' + phaseId + '.index}}';
+          msgInput.placeholder = 'e.g. Here is what the player said...';
           msgInput.style.cssText = 'width:100%; border:2px solid #000; padding:4px; font-family:inherit;';
           msgInput.onchange = function () { sub.message = msgInput.value; isDirty = true; };
           subDiv.appendChild(msgLabel);
@@ -1502,7 +1483,7 @@ function renderPhaseConfig(phaseId) {
           var pInput = document.createElement('textarea');
           pInput.value = sub.prompt || '';
           pInput.rows = 2;
-          pInput.placeholder = 'Use {{_current.text}} to reference the current item';
+          pInput.placeholder = 'e.g. What do you think about this answer?';
           pInput.style.cssText = 'width:100%; border:2px solid #000; padding:4px; font-family:inherit;';
           pInput.onchange = function () { sub.prompt = pInput.value; isDirty = true; };
           subDiv.appendChild(pLabel);
@@ -1527,7 +1508,7 @@ function renderPhaseConfig(phaseId) {
           var cpInput = document.createElement('textarea');
           cpInput.value = sub.prompt || '';
           cpInput.rows = 2;
-          cpInput.placeholder = 'Use {{_current.text}} to reference the current item';
+          cpInput.placeholder = 'e.g. Who do you think wrote this?';
           cpInput.style.cssText = 'width:100%; border:2px solid #000; padding:4px; font-family:inherit;';
           cpInput.onchange = function () { sub.prompt = cpInput.value; isDirty = true; };
           subDiv.appendChild(cpLabel);
@@ -1577,7 +1558,7 @@ function renderPhaseConfig(phaseId) {
           var rvInput = document.createElement('textarea');
           rvInput.value = sub.template || sub.message || '';
           rvInput.rows = 2;
-          rvInput.placeholder = 'Use {{_current.text}}, {{_current.playerName}}';
+          rvInput.placeholder = 'e.g. The answer was...';
           rvInput.style.cssText = 'width:100%; border:2px solid #000; padding:4px; font-family:inherit;';
           rvInput.onchange = function () { sub.template = rvInput.value; isDirty = true; };
           subDiv.appendChild(rvLabel);
@@ -1682,7 +1663,7 @@ function renderPhaseConfig(phaseId) {
       });
       var aiInjectHint = document.createElement('div');
       aiInjectHint.className = 'field-help';
-      aiInjectHint.innerHTML = 'Use scoring with <code>correctAnswer: "_current.isHuman"</code> and choices <code>["Human", "AI"]</code> to score detection.';
+      aiInjectHint.innerHTML = 'Enable scoring below so players earn points for correctly guessing which responses are human vs AI.';
       advContainer.appendChild(aiInjectHint);
 
       // Pair mode option (only available when aiInject is enabled)
@@ -1710,7 +1691,7 @@ function renderPhaseConfig(phaseId) {
       if (phase.pairMode === 'human-vs-ai') {
         var pairHint = document.createElement('div');
         pairHint.className = 'field-help';
-        pairHint.innerHTML = 'Each iteration shows a pair: <code>{{_current.a.text}}</code> and <code>{{_current.b.text}}</code>. One is human, one is AI (random order). Use <code>correctAnswer: "_current.aiPosition"</code> with choices like <code>["Idea A", "Idea B"]</code>.';
+        pairHint.innerHTML = 'Each round shows two ideas side by side — one human, one AI (in random order). Players guess which is which.';
         advContainer.appendChild(pairHint);
       }
     }
@@ -1856,11 +1837,11 @@ function renderPhaseConfig(phaseId) {
     // Helper text
     var helpDiv = document.createElement('div');
     helpDiv.style.cssText = 'margin-top:12px; padding:8px; background:#F3E5F5; border:2px solid #000; font-size:12px;';
-    helpDiv.innerHTML = '<strong>Template variables:</strong><br>' +
-      '<code>{{_current.text}}</code> — the current item\'s text<br>' +
-      '<code>{{_current.playerName}}</code> — who submitted it<br>' +
-      '<code>{{_foreach.' + phaseId + '.index}}</code> — iteration number (1-based)<br>' +
-      '<code>{{_foreach.' + phaseId + '.total}}</code> — total iterations';
+    helpDiv.innerHTML = '<strong>Available data per round:</strong><br>' +
+      'Current item\'s text<br>' +
+      'Who submitted it<br>' +
+      'Round number and total rounds<br>' +
+      '<em>Use the insert buttons in sub-phase fields to add these automatically.</em>';
     advContainer.appendChild(helpDiv);
 
     // Restore phaseConfigForm.appendChild
@@ -1926,7 +1907,7 @@ function renderPhaseConfig(phaseId) {
   if (type !== 'lobby') {
     addSectionHeader('Screen Control (Optional)');
 
-    var hostTemplateTA = addTextAreaWithHelp('Host template', 'Custom text shown on the host screen. Leave empty for default.', 'phase-hostTemplate', phase.hostTemplate, 'e.g. Full analysis:\n{{process.result}}', function (value) {
+    var hostTemplateTA = addTextAreaWithHelp('Host template', 'Custom text shown on the host screen. Leave empty for default.', 'phase-hostTemplate', phase.hostTemplate, 'Leave empty for default, or type custom text. Use insert buttons below to add data.', function (value) {
       if (value) { phase.hostTemplate = value; } else { delete phase.hostTemplate; }
     });
     addVariableChips(hostTemplateTA, phaseId);
@@ -2273,35 +2254,36 @@ function buildDataRefOptions(currentPhaseId) {
     var cat = PHASE_CATALOG[p.type];
     if (!cat) continue;
 
+    var stepLabel = cat.friendlyName + ' (step ' + (i + 1) + ')';
     if (p.type === 'collect') {
-      options.push({ value: pid + '.responses', label: 'Answers from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.responses', label: 'Answers from ' + stepLabel });
     } else if (p.type === 'collect-choice') {
-      options.push({ value: pid + '.responses', label: 'Choices from ' + cat.friendlyName + ' (' + pid + ')' });
-      options.push({ value: pid + '.tally', label: 'Tally from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.responses', label: 'Choices from ' + stepLabel });
+      options.push({ value: pid + '.tally', label: 'Tally from ' + stepLabel });
     } else if (p.type === 'ai-process') {
-      options.push({ value: pid + '.result', label: 'AI result from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.result', label: 'AI result from ' + stepLabel });
     } else if (p.type === 'vote') {
-      options.push({ value: pid + '.scores', label: 'Scores from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.scores', label: 'Scores from ' + stepLabel });
     } else if (p.type === 'eliminate') {
-      options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + stepLabel });
     } else if (p.type === 'ai-eliminate') {
-      options.push({ value: pid + '.survivors', label: 'Survivors from ' + cat.friendlyName + ' (' + pid + ')' });
-      options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.survivors', label: 'Survivors from ' + stepLabel });
+      options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + stepLabel });
     } else if (p.type === 'leaderboard') {
-      options.push({ value: pid + '.standings', label: 'Rankings from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.standings', label: 'Rankings from ' + stepLabel });
     } else if (p.type === 'team-split') {
-      options.push({ value: pid + '.teams', label: 'Teams from ' + cat.friendlyName + ' (' + pid + ')' });
-      options.push({ value: pid + '.playerTeam', label: 'Player team map from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.teams', label: 'Teams from ' + stepLabel });
+      options.push({ value: pid + '.playerTeam', label: 'Player team map from ' + stepLabel });
     } else if (p.type === 'rank') {
-      options.push({ value: pid + '.rankings', label: 'Rankings from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.rankings', label: 'Rankings from ' + stepLabel });
     } else if (p.type === 'wager') {
-      options.push({ value: pid + '.scores', label: 'Updated scores from ' + cat.friendlyName + ' (' + pid + ')' });
-      options.push({ value: pid + '.wagers', label: 'Wagers from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.scores', label: 'Updated scores from ' + stepLabel });
+      options.push({ value: pid + '.wagers', label: 'Wagers from ' + stepLabel });
     } else if (p.type === 'relay') {
-      options.push({ value: pid + '.result', label: 'Entries from ' + cat.friendlyName + ' (' + pid + ')' });
-      options.push({ value: pid + '.text', label: 'Combined text from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.result', label: 'Entries from ' + stepLabel });
+      options.push({ value: pid + '.text', label: 'Combined text from ' + stepLabel });
     } else if (p.type === 'foreach') {
-      options.push({ value: pid + '.scores', label: 'Scores from ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid + '.scores', label: 'Scores from ' + stepLabel });
     }
   }
 
@@ -2361,9 +2343,9 @@ function addPhaseRefSelect(label, helpText, id, currentPhaseId, selected, onChan
     var p = gameConfig.phases[pid];
     var cat = PHASE_CATALOG[p.type];
     if (cat) {
-      options.push({ value: pid, label: cat.icon + ' ' + cat.friendlyName + ' (' + pid + ')' });
+      options.push({ value: pid, label: cat.icon + ' ' + cat.friendlyName + ' (step ' + (i + 1) + ')' });
     } else {
-      options.push({ value: pid, label: pid });
+      options.push({ value: pid, label: 'Step ' + (i + 1) });
     }
   }
   return addSelectWithHelp(label, helpText, id, options, selected || '(none)', onChange);

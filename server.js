@@ -306,12 +306,43 @@ function setupForeachIteration(engine, foreachPhaseId, feConfig, index) {
       subConfig._foreachAuthorId = item.playerId || null;
     }
 
-    // Resolve templates with _current
+    // Resolve _current references in templates (but preserve other {{refs}} for runtime)
     if (subConfig.message) {
-      subConfig.message = resolveTemplate(subConfig.message, engine);
+      subConfig.message = subConfig.message.replace(/\{\{(_current[^}]*)\}\}/g, (match, ref) => {
+        const value = engine.resolve(ref.trim());
+        return value !== undefined ? String(value) : match;
+      });
     }
     if (subConfig.prompt) {
-      subConfig.prompt = resolveTemplate(subConfig.prompt, engine);
+      subConfig.prompt = subConfig.prompt.replace(/\{\{(_current[^}]*)\}\}/g, (match, ref) => {
+        const value = engine.resolve(ref.trim());
+        return value !== undefined ? String(value) : match;
+      });
+    }
+
+    // Remap data refs: sub-phase names -> virtual IDs (e.g. "generate-roast.result" -> "_fe:roast-loop:generate-roast.result")
+    function remapSubPhaseRefs(str) {
+      return str.replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
+        const refId = ref.trim().split('.')[0];
+        if (subNames.includes(refId)) {
+          return '{{' + ref.trim().replace(refId, `_fe:${foreachPhaseId}:${refId}`) + '}}';
+        }
+        return match;
+      });
+    }
+    if (subConfig.message) {
+      subConfig.message = remapSubPhaseRefs(subConfig.message);
+    }
+    if (subConfig.prompt) {
+      subConfig.prompt = remapSubPhaseRefs(subConfig.prompt);
+    }
+    if (subConfig.input && subNames.includes(subConfig.input.split('.')[0])) {
+      const refParts = subConfig.input.split('.');
+      subConfig.input = `_fe:${foreachPhaseId}:${refParts[0]}` + (refParts.length > 1 ? '.' + refParts.slice(1).join('.') : '');
+    }
+    if (subConfig.content && subNames.includes(subConfig.content.split('.')[0])) {
+      const refParts = subConfig.content.split('.');
+      subConfig.content = `_fe:${foreachPhaseId}:${refParts[0]}` + (refParts.length > 1 ? '.' + refParts.slice(1).join('.') : '');
     }
 
     // Set next: chain sub-phases, last one loops back to foreach orchestrator

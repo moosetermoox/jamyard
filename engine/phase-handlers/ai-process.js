@@ -9,7 +9,14 @@ registerHandler('ai-process', {
 
     const input = phase.input ? engine.resolve(phase.input) : undefined;
     const instruction = phase.instruction;
-    const responses = Array.isArray(input) ? input : [];
+    let responses;
+    if (Array.isArray(input)) {
+      responses = input;
+    } else if (input != null) {
+      responses = [{ text: String(input) }];
+    } else {
+      responses = [];
+    }
 
     console.log(`[handlePhase] AI instruction: ${instruction}`);
     const aiResult = await ctx.aiService.process({ instruction, responses });
