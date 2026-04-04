@@ -1,0 +1,60 @@
+{
+  "name": "Roast Me If You Can",
+  "description": "Share a fun fact about yourself and let AI deliver its best roast",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "collect"
+    },
+    "collect": {
+      "type": "collect",
+      "prompt": "Write a sentence about yourself (a hobby, habit, or fun fact). ",
+      "timer": null,
+      "from": "all",
+      "next": "preview"
+    },
+    "preview": {
+      "type": "preview",
+      "content": "collect.responses",
+      "showResponses": true,
+      "approveNext": "roast-loop",
+      "rejectNext": "collect"
+    },
+    "roast-loop": {
+      "type": "foreach",
+      "data": "collect.responses",
+      "shuffle": true,
+      "subPhases": {
+        "announce-player": {
+          "type": "announce",
+          "message": "{{_current.playerName}}'s turn...\n\n\"{{_current.text}}\"",
+          "timer": 5
+        },
+        "generate-roast": {
+          "type": "ai-process",
+          "instruction": "Write a hilarious, clever, light-hearted roast about this statement. Keep it playful and fun—roast the content, not the person. 2-3 sentences max. Be witty and creative!",
+          "input": "_current.text",
+          "task": "generate",
+          "format": "text",
+          "next": "show-roast"
+        },
+        "show-roast": {
+          "type": "announce",
+          "message": "🔥 AI ROAST:\n\n{{generate-roast.result}}\n\n({{_current.playerName}})",
+          "timer": 10
+        }
+      },
+      "next": "finale"
+    },
+    "finale": {
+      "type": "announce",
+      "message": "🎤 That's all the roasts! Everyone survived... barely. 😎",
+      "timer": 5,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing! You've all been officially roasted."
+    }
+  }
+}

@@ -17,7 +17,18 @@
       "Bash(taskkill:*)",
       "Bash(git status:*)",
       "Bash(npx kill-port:*)",
-      "Bash(python -m json.tool)"
+      "Bash(python -m json.tool)",
+      "Bash(ls:*)",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(g[''''id'''']\\) for g in d[''''games'''']]\")",
+      "Bash(lsof -ti:3000)",
+      "Bash(xargs kill:*)",
+      "Bash(netstat -ano)",
+      "Bash(sed -i \"s/''game-ended''/EVENTS.GAME_ENDED/g\" *.js)",
+      "Bash(sed -i \"s/''game-started''/EVENTS.GAME_STARTED/g\" *.js)",
+      "Bash(sed -i \"s/''waiting''/EVENTS.WAITING/g\" *.js)",
+      "Bash(sed -i \"s/''announce''/EVENTS.ANNOUNCE/g\" *.js)",
+      "Bash(sed -i \"s/''show-results''/EVENTS.SHOW_RESULTS/g\" *.js)",
+      "Bash(pkill -f \"node server.js\")"
     ]
   }
 }
