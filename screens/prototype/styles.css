@@ -110,7 +110,7 @@ body {
   min-height: 0;
 }
 
-/* Layout: host on left ~50%, players stacked on right */
+/* Layout: host on left, players stacked on right (1-4 players) */
 #iframe-container[data-players="1"] {
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr;
@@ -131,6 +131,19 @@ body {
   grid-template-rows: 1fr 1fr 1fr 1fr;
 }
 
+/* 5+ players: host on top, players in grid below */
+#iframe-container[data-players="5"],
+#iframe-container[data-players="6"] {
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: 2fr repeat(2, 1fr);
+}
+
+#iframe-container[data-players="7"],
+#iframe-container[data-players="8"] {
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: 2fr repeat(2, 1fr);
+}
+
 .iframe-panel {
   position: relative;
   border-radius: 6px;
@@ -144,11 +157,25 @@ body {
   border-color: #e94560;
 }
 
-/* Host always spans all rows */
+/* 1-4 players: host spans all rows on left */
 #iframe-container[data-players="1"] .host-panel { grid-row: 1 / -1; }
 #iframe-container[data-players="2"] .host-panel { grid-row: 1 / -1; }
 #iframe-container[data-players="3"] .host-panel { grid-row: 1 / -1; }
 #iframe-container[data-players="4"] .host-panel { grid-row: 1 / -1; }
+
+/* 5-6 players: host spans full width on top row */
+#iframe-container[data-players="5"] .host-panel,
+#iframe-container[data-players="6"] .host-panel {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+/* 7-8 players: host spans full width on top row */
+#iframe-container[data-players="7"] .host-panel,
+#iframe-container[data-players="8"] .host-panel {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
 
 .panel-label {
   background: #16213e;

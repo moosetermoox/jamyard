@@ -25,8 +25,8 @@
       "question": "Pick the best sentence about candy that describes the best candy in the world."
     },
     "phase-7": {
-      "type": "reveal",
-      "template": "",
+      "type": "leaderboard",
+      "from": "phase-5.scores",
       "next": "end"
     },
     "phase-6": {

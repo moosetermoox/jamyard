@@ -69,7 +69,7 @@ Apply the rules and return JSON indicating who to eliminate and who to keep.`;
         }
       }
 
-      const remaining = engine.players.remaining().length;
+      const remaining = engine.players.getRemaining().length;
 
       // Build survivors list — input responses minus eliminated
       const eliminatedSet = new Set(eliminatedIds);
@@ -109,7 +109,7 @@ Apply the rules and return JSON indicating who to eliminate and who to keep.`;
       ctx.emitToRoom(EVENTS.ELIMINATION_RESULTS, {
         eliminated: [],
         eliminatedNames: [],
-        remaining: engine.players.remaining().length,
+        remaining: engine.players.getRemaining().length,
         reasons: {},
         error: error.message
       });
