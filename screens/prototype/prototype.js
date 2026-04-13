@@ -2,6 +2,7 @@ const gameSelect = document.getElementById('game-select');
 const playerCount = document.getElementById('player-count');
 const playerCountDisplay = document.getElementById('player-count-display');
 const launchBtn = document.getElementById('launch-btn');
+const botFillBtn = document.getElementById('bot-fill-btn');
 const resetBtn = document.getElementById('reset-btn');
 const iframeContainer = document.getElementById('iframe-container');
 
@@ -71,6 +72,7 @@ launchBtn.addEventListener('click', () => {
     if (e.data && e.data.type === 'room-created') {
       window.removeEventListener('message', onMessage);
       createPlayerIframes(e.data.code, count);
+      botFillBtn.hidden = false;
       resetBtn.hidden = false;
     }
   });
@@ -89,11 +91,20 @@ function createPlayerIframes(code, count) {
   }
 }
 
+// Bot Fill — send auto-fill message to all player iframes
+botFillBtn.addEventListener('click', () => {
+  const playerIframes = iframeContainer.querySelectorAll('.player-panel iframe');
+  for (const iframe of playerIframes) {
+    iframe.contentWindow.postMessage({ type: 'bot-fill' }, '*');
+  }
+});
+
 // Reset
 resetBtn.addEventListener('click', () => {
   iframeContainer.innerHTML = '';
   launchBtn.disabled = false;
   gameSelect.disabled = false;
   playerCount.disabled = false;
+  botFillBtn.hidden = true;
   resetBtn.hidden = true;
 });

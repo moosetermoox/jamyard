@@ -14,17 +14,20 @@ registerHandler('collect', {
       if (p.response) engine.players.update(p.id, { response: undefined });
     }
 
+    const payload = {
+      prompt: phase.prompt, timer: phase.timer || null,
+      fields: phase.fields || null
+    };
+
     // Send prompt to host
     ctx.emitToHost(EVENTS.GAME_STARTED, {
-      prompt: phase.prompt, timer: phase.timer || null,
-      hostTemplate: sc.hostTemplate, show: sc.hostShow
+      ...payload, hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
     // Send prompt to eligible players
     for (const player of eligible) {
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
-        prompt: phase.prompt, timer: phase.timer || null,
-        playerTemplate: sc.playerTemplate, show: sc.playerShow
+        ...payload, playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }
 
@@ -44,6 +47,7 @@ registerHandler('collect', {
     } else {
       socket.emit(EVENTS.GAME_STARTED, {
         prompt: ctx.phase.prompt, timer: null,
+        fields: ctx.phase.fields || null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }

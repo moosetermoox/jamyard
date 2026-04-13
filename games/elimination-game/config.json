@@ -1,0 +1,51 @@
+{
+  "name": "Last One Standing",
+  "description": "Answer questions, vote on favorites, and try to survive!",
+  "minPlayers": 4,
+  "maxPlayers": 36,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "round-intro"
+    },
+    "round-intro": {
+      "type": "announce",
+      "message": "Round {{_loop.eliminate.iteration}} of {{_loop.eliminate.total}} — Submit your best answer!",
+      "timer": 5,
+      "next": "answer"
+    },
+    "answer": {
+      "type": "collect",
+      "prompt": "Give your most creative answer!",
+      "from": "remaining",
+      "timer": 45,
+      "next": "voting"
+    },
+    "voting": {
+      "type": "vote",
+      "mode": "pick-one",
+      "candidates": "answer.responses",
+      "question": "Which answer is the best?",
+      "timer": 30,
+      "next": "eliminate"
+    },
+    "eliminate": {
+      "type": "eliminate",
+      "method": "bottom-percent",
+      "percent": 50,
+      "input": "voting.scores",
+      "next": "winner",
+      "loopBack": "round-intro",
+      "loopCount": 3
+    },
+    "winner": {
+      "type": "winner",
+      "from": "voting.scores",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Great game, everyone!"
+    }
+  }
+}

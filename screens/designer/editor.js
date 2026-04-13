@@ -202,8 +202,8 @@ var PHASE_CATALOG = {
   },
   'foreach': {
     icon: '\uD83D\uDD01',
-    friendlyName: 'For Each Response',
-    description: 'Run sub-phases once per item (e.g., guess who said each answer)',
+    friendlyName: 'Go Through Answers',
+    description: 'Show each player\'s answer one at a time — guess, rate, or discuss',
     color: '#6A1B9A',
     bg: '#E1BEE7',
     detailField: 'data',
@@ -885,6 +885,61 @@ function renderPhaseConfig(phaseId) {
       phase.timer = value;
     });
 
+    // Multi-field inputs
+    addSectionHeader('Input Fields (Optional)');
+    var fieldsHelp = document.createElement('p');
+    fieldsHelp.className = 'field-help';
+    fieldsHelp.textContent = 'Add named fields when you need separate inputs (e.g. "Truth 1", "Truth 2", "The Lie"). Leave empty for a single text box.';
+    phaseConfigForm.appendChild(fieldsHelp);
+
+    if (!phase.fields) phase.fields = null;
+    var fieldsList = phase.fields || [];
+
+    for (var fIdx = 0; fIdx < fieldsList.length; fIdx++) {
+      (function(idx) {
+        var f = fieldsList[idx];
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex; gap:6px; align-items:center; margin:4px 0;';
+
+        var labelIn = document.createElement('input');
+        labelIn.type = 'text';
+        labelIn.value = f.label || '';
+        labelIn.placeholder = 'Label (shown to players)';
+        labelIn.style.cssText = 'flex:1; padding:4px 8px; border:2px solid #000; font-family:inherit;';
+        labelIn.onchange = function() {
+          f.label = labelIn.value;
+          f.key = labelIn.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'field' + idx;
+          isDirty = true;
+        };
+
+        var rmBtn = document.createElement('button');
+        rmBtn.textContent = 'X';
+        rmBtn.style.cssText = 'background:#FF2D2D; color:white; border:2px solid #000; padding:2px 8px; cursor:pointer; font-weight:bold;';
+        rmBtn.onclick = function() {
+          fieldsList.splice(idx, 1);
+          phase.fields = fieldsList.length > 0 ? fieldsList : null;
+          isDirty = true;
+          renderPhaseConfig(phaseId);
+        };
+
+        row.appendChild(labelIn);
+        row.appendChild(rmBtn);
+        phaseConfigForm.appendChild(row);
+      })(fIdx);
+    }
+
+    var addFieldBtn = document.createElement('button');
+    addFieldBtn.textContent = '+ Add Field';
+    addFieldBtn.style.cssText = 'padding:4px 12px; margin-top:4px; background:#00C853; color:white; border:2px solid #000; cursor:pointer; font-weight:bold;';
+    addFieldBtn.onclick = function() {
+      if (!phase.fields) phase.fields = [];
+      var num = phase.fields.length + 1;
+      phase.fields.push({ label: 'Field ' + num, key: 'field-' + num });
+      isDirty = true;
+      renderPhaseConfig(phaseId);
+    };
+    phaseConfigForm.appendChild(addFieldBtn);
+
     addSectionHeader('Who answers');
     addSelectWithHelp('Eligible players', 'Which players can submit answers', 'phase-from',
       [
@@ -1379,473 +1434,278 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'foreach') {
-    addSectionHeader('Data to iterate over');
-
-    // Data ref dropdown
-    var foreachDataOptions = [{ value: '', label: '(choose data source)' }];
-    for (var fPid in gameConfig.phases) {
-      var fP = gameConfig.phases[fPid];
-      var fCat = PHASE_CATALOG[fP.type];
-      if (fP.type === 'collect') {
-        foreachDataOptions.push({ value: fPid + '.responses', label: 'Responses from ' + (fCat ? fCat.friendlyName : fP.type) });
+    // --- Data source ---
+    addSectionHeader('Which answers to go through');
+    var foreachDataOptions = [{ value: '', label: '(choose which answers)' }];
+    var phaseOrder = buildPhaseOrder();
+    var currentIdx = phaseOrder.indexOf(phaseId);
+    for (var fdi = 0; fdi < phaseOrder.length; fdi++) {
+      if (fdi >= currentIdx) break;
+      var fdPid = phaseOrder[fdi];
+      var fdP = gameConfig.phases[fdPid];
+      if (fdP && fdP.type === 'collect') {
+        var fdN = fdi + 1;
+        foreachDataOptions.push({ value: fdPid + '.responses', label: 'Answers from step ' + fdN });
       }
     }
-    addSelectWithHelp('Iterate over', 'Which data to loop through — one iteration per item', 'phase-data',
+    addSelectWithHelp('Go through', 'Pick which set of player answers to show one at a time', 'phase-data',
       foreachDataOptions, phase.data || '', function (value) {
         phase.data = value || undefined;
         isDirty = true;
       }
     );
 
-    addSectionHeader('Sub-phases (run per item)');
+    // --- Detect current pattern ---
+    var detectedPattern = detectForeachPattern(phase);
 
-    // Render existing sub-phases
-    if (!phase.subPhases) phase.subPhases = {};
-    var subNames = Object.keys(phase.subPhases);
-    for (var si = 0; si < subNames.length; si++) {
-      (function (subName) {
-        var sub = phase.subPhases[subName];
-        var subCat = PHASE_CATALOG[sub.type];
-        var subLabel = (subCat ? subCat.icon + ' ' : '') + subName + ' (' + (subCat ? subCat.friendlyName : sub.type) + ')';
+    // --- Pattern picker ---
+    addSectionHeader('What happens each round');
+    var patternHelp = document.createElement('p');
+    patternHelp.className = 'field-help';
+    patternHelp.textContent = 'Pick a pattern and the steps will be set up automatically.';
+    phaseConfigForm.appendChild(patternHelp);
 
-        var subDiv = document.createElement('div');
-        subDiv.className = 'foreach-sub-phase';
-        subDiv.style.cssText = 'border:2px solid #000; padding:8px; margin:6px 0; background:' + (subCat ? subCat.bg : '#eee');
+    var patternOptions = [
+      { value: 'guess-author', label: 'Guess who wrote it — players see the answer and pick from a list of names' },
+      { value: 'rate-answers', label: 'Rate each answer — players rate responses and authors earn points' },
+      { value: 'spot-the-lie', label: 'Spot the lie — players pick which of someone\'s statements is false' },
+      { value: 'discuss', label: 'Just show and discuss — show each answer with time to talk' },
+      { value: 'custom', label: 'Custom — build your own steps' }
+    ];
 
-        var header = document.createElement('div');
-        header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;';
-        header.innerHTML = '<strong>' + subLabel + '</strong>';
-
-        var removeBtn = document.createElement('button');
-        removeBtn.textContent = 'Remove';
-        removeBtn.style.cssText = 'background:#FF2D2D; color:white; border:2px solid #000; padding:2px 8px; cursor:pointer; font-weight:bold;';
-        removeBtn.onclick = function () {
-          delete phase.subPhases[subName];
-          isDirty = true;
-          renderPhaseConfig(phaseId);
+    for (var pi = 0; pi < patternOptions.length; pi++) {
+      (function(pat) {
+        var radio = document.createElement('div');
+        radio.style.cssText = 'margin:6px 0; padding:8px 12px; border:2px solid ' + (detectedPattern === pat.value ? '#6A1B9A' : '#ccc') + '; background:' + (detectedPattern === pat.value ? '#F3E5F5' : 'white') + '; cursor:pointer; border-radius:6px;';
+        var inp = document.createElement('input');
+        inp.type = 'radio';
+        inp.name = 'foreach-pattern-' + phaseId;
+        inp.value = pat.value;
+        inp.checked = detectedPattern === pat.value;
+        inp.style.cssText = 'margin-right:8px;';
+        var lbl = document.createElement('span');
+        lbl.style.fontWeight = 'bold';
+        lbl.textContent = pat.label;
+        radio.appendChild(inp);
+        radio.appendChild(lbl);
+        radio.onclick = function() {
+          if (detectedPattern !== pat.value) {
+            applyForeachPattern(phase, phaseId, pat.value);
+            isDirty = true;
+            renderPhaseConfig(phaseId);
+          }
         };
-        header.appendChild(removeBtn);
-        subDiv.appendChild(header);
+        phaseConfigForm.appendChild(radio);
+      })(patternOptions[pi]);
+    }
 
-        // Type selector
-        var typeLabel = document.createElement('label');
-        typeLabel.textContent = 'Type: ';
-        typeLabel.style.fontWeight = 'bold';
-        var typeSelect = document.createElement('select');
-        typeSelect.style.cssText = 'margin:4px 0; padding:4px; border:2px solid #000;';
-        var subTypes = ['announce', 'collect', 'collect-choice', 'reveal'];
-        for (var sti = 0; sti < subTypes.length; sti++) {
-          var opt = document.createElement('option');
-          opt.value = subTypes[sti];
-          var stCat = PHASE_CATALOG[subTypes[sti]];
-          opt.textContent = stCat ? stCat.icon + ' ' + stCat.friendlyName : subTypes[sti];
-          if (sub.type === subTypes[sti]) opt.selected = true;
-          typeSelect.appendChild(opt);
-        }
-        typeSelect.onchange = function () {
-          sub.type = typeSelect.value;
+    // --- Pattern-specific settings ---
+    if (detectedPattern === 'guess-author') {
+      addSectionHeader('Settings');
+      addFieldWithHelp('Time to guess (seconds)', 'How long players have to pick a name', 'number', 'phase-guess-timer',
+        getSubPhaseField(phase, 'guess', 'timer') || 12, false, function(value) {
+          setSubPhaseField(phase, 'guess', 'timer', value ? parseInt(value) : undefined);
           isDirty = true;
-          renderPhaseConfig(phaseId);
-        };
-        subDiv.appendChild(typeLabel);
-        subDiv.appendChild(typeSelect);
+        });
+      addFieldWithHelp('Time to show answer (seconds)', 'How long to show who really wrote it', 'number', 'phase-reveal-timer',
+        getSubPhaseField(phase, 'reveal', 'timer') || 5, false, function(value) {
+          setSubPhaseField(phase, 'reveal', 'timer', value ? parseInt(value) : undefined);
+          isDirty = true;
+        });
+      addFieldWithHelp('Points for correct guess', 'Points earned for guessing the right person', 'number', 'phase-points',
+        (phase.scoring && phase.scoring.pointsCorrect) || 100, false, function(value) {
+          if (phase.scoring) phase.scoring.pointsCorrect = value ? parseInt(value) : 100;
+          isDirty = true;
+        });
+    }
 
-        // Fields based on sub-phase type
-        if (sub.type === 'announce') {
-          var msgLabel = document.createElement('label');
-          msgLabel.textContent = 'Message:';
-          msgLabel.style.cssText = 'display:block; margin-top:6px; font-weight:bold;';
-          var msgInput = document.createElement('textarea');
-          msgInput.value = sub.message || '';
-          msgInput.rows = 2;
-          msgInput.placeholder = 'e.g. Here is what the player said...';
-          msgInput.style.cssText = 'width:100%; border:2px solid #000; padding:4px; font-family:inherit;';
-          msgInput.onchange = function () { sub.message = msgInput.value; isDirty = true; };
-          subDiv.appendChild(msgLabel);
-          subDiv.appendChild(msgInput);
-
-          var timerLabel = document.createElement('label');
-          timerLabel.textContent = 'Timer (seconds):';
-          timerLabel.style.cssText = 'display:block; margin-top:4px; font-weight:bold;';
-          var timerInput = document.createElement('input');
-          timerInput.type = 'number';
-          timerInput.value = sub.timer || '';
-          timerInput.style.cssText = 'width:60px; border:2px solid #000; padding:4px;';
-          timerInput.onchange = function () { sub.timer = timerInput.value ? parseInt(timerInput.value) : undefined; isDirty = true; };
-          subDiv.appendChild(timerLabel);
-          subDiv.appendChild(timerInput);
-        }
-
-        if (sub.type === 'collect') {
-          var pLabel = document.createElement('label');
-          pLabel.textContent = 'Prompt:';
-          pLabel.style.cssText = 'display:block; margin-top:6px; font-weight:bold;';
-          var pInput = document.createElement('textarea');
-          pInput.value = sub.prompt || '';
-          pInput.rows = 2;
-          pInput.placeholder = 'e.g. What do you think about this answer?';
-          pInput.style.cssText = 'width:100%; border:2px solid #000; padding:4px; font-family:inherit;';
-          pInput.onchange = function () { sub.prompt = pInput.value; isDirty = true; };
-          subDiv.appendChild(pLabel);
-          subDiv.appendChild(pInput);
-
-          var tLabel2 = document.createElement('label');
-          tLabel2.textContent = 'Timer (seconds):';
-          tLabel2.style.cssText = 'display:block; margin-top:4px; font-weight:bold;';
-          var tInput2 = document.createElement('input');
-          tInput2.type = 'number';
-          tInput2.value = sub.timer || '';
-          tInput2.style.cssText = 'width:60px; border:2px solid #000; padding:4px;';
-          tInput2.onchange = function () { sub.timer = tInput2.value ? parseInt(tInput2.value) : undefined; isDirty = true; };
-          subDiv.appendChild(tLabel2);
-          subDiv.appendChild(tInput2);
-        }
-
-        if (sub.type === 'collect-choice') {
-          var cpLabel = document.createElement('label');
-          cpLabel.textContent = 'Prompt:';
-          cpLabel.style.cssText = 'display:block; margin-top:6px; font-weight:bold;';
-          var cpInput = document.createElement('textarea');
-          cpInput.value = sub.prompt || '';
-          cpInput.rows = 2;
-          cpInput.placeholder = 'e.g. Who do you think wrote this?';
-          cpInput.style.cssText = 'width:100%; border:2px solid #000; padding:4px; font-family:inherit;';
-          cpInput.onchange = function () { sub.prompt = cpInput.value; isDirty = true; };
-          subDiv.appendChild(cpLabel);
-          subDiv.appendChild(cpInput);
-
-          var choicesLabel = document.createElement('label');
-          choicesLabel.textContent = 'Choices:';
-          choicesLabel.style.cssText = 'display:block; margin-top:4px; font-weight:bold;';
-          var choicesSelect = document.createElement('select');
-          choicesSelect.style.cssText = 'border:2px solid #000; padding:4px;';
-          var cOpt1 = document.createElement('option');
-          cOpt1.value = '_candidates'; cOpt1.textContent = 'Auto-generated candidates (from foreach)';
-          if (sub.choices === '_candidates') cOpt1.selected = true;
-          choicesSelect.appendChild(cOpt1);
-          var cOpt2 = document.createElement('option');
-          cOpt2.value = 'custom'; cOpt2.textContent = 'Custom list';
-          if (sub.choices !== '_candidates') cOpt2.selected = true;
-          choicesSelect.appendChild(cOpt2);
-          choicesSelect.onchange = function () {
-            if (choicesSelect.value === '_candidates') {
-              sub.choices = '_candidates';
-            } else {
-              sub.choices = sub.choices === '_candidates' ? ['Option A', 'Option B'] : sub.choices;
-            }
+    if (detectedPattern === 'rate-answers') {
+      addSectionHeader('Rating Options');
+      var pointMap = (phase.scoring && phase.scoring.pointMap) || {};
+      var pmKeys = Object.keys(pointMap);
+      for (var rki = 0; rki < pmKeys.length; rki++) {
+        (function(key) {
+          var row = document.createElement('div');
+          row.style.cssText = 'display:flex; gap:6px; align-items:center; margin:4px 0;';
+          var keyInput = document.createElement('input');
+          keyInput.type = 'text';
+          keyInput.value = key;
+          keyInput.style.cssText = 'flex:1; padding:6px; border:2px solid #000; font-weight:bold;';
+          keyInput.onchange = function() {
+            var pts = phase.scoring.pointMap[key];
+            delete phase.scoring.pointMap[key];
+            phase.scoring.pointMap[keyInput.value] = pts;
             isDirty = true;
             renderPhaseConfig(phaseId);
           };
-          subDiv.appendChild(choicesLabel);
-          subDiv.appendChild(choicesSelect);
+          var valInput = document.createElement('input');
+          valInput.type = 'number';
+          valInput.value = pointMap[key];
+          valInput.placeholder = 'pts';
+          valInput.style.cssText = 'width:60px; padding:6px; border:2px solid #000;';
+          valInput.onchange = function() {
+            phase.scoring.pointMap[key] = parseInt(valInput.value) || 0;
+            // Update the matching choice in the sub-phase
+            updateTallyChoices(phase);
+            isDirty = true;
+          };
+          var delBtn = document.createElement('button');
+          delBtn.textContent = 'X';
+          delBtn.style.cssText = 'padding:2px 8px; border:2px solid #000; background:#FFCDD2; cursor:pointer; font-weight:bold;';
+          delBtn.onclick = function() {
+            delete phase.scoring.pointMap[key];
+            updateTallyChoices(phase);
+            isDirty = true;
+            renderPhaseConfig(phaseId);
+          };
+          row.appendChild(keyInput);
+          row.appendChild(document.createTextNode(' pts: '));
+          row.appendChild(valInput);
+          row.appendChild(delBtn);
+          phaseConfigForm.appendChild(row);
+        })(pmKeys[rki]);
+      }
+      var addRatingBtn = document.createElement('button');
+      addRatingBtn.textContent = '+ Add Rating';
+      addRatingBtn.style.cssText = 'padding:6px 12px; margin-top:4px; background:#C8E6C9; border:2px solid #000; cursor:pointer; font-weight:bold;';
+      addRatingBtn.onclick = function() {
+        if (!phase.scoring) phase.scoring = { mode: 'tally', pointMap: {} };
+        var num = Object.keys(phase.scoring.pointMap).length + 1;
+        phase.scoring.pointMap['Rating ' + num] = 10;
+        updateTallyChoices(phase);
+        isDirty = true;
+        renderPhaseConfig(phaseId);
+      };
+      phaseConfigForm.appendChild(addRatingBtn);
 
-          var ctLabel = document.createElement('label');
-          ctLabel.textContent = 'Timer (seconds):';
-          ctLabel.style.cssText = 'display:block; margin-top:4px; font-weight:bold;';
-          var ctInput = document.createElement('input');
-          ctInput.type = 'number';
-          ctInput.value = sub.timer || '';
-          ctInput.style.cssText = 'width:60px; border:2px solid #000; padding:4px;';
-          ctInput.onchange = function () { sub.timer = ctInput.value ? parseInt(ctInput.value) : undefined; isDirty = true; };
-          subDiv.appendChild(ctLabel);
-          subDiv.appendChild(ctInput);
-        }
-
-        if (sub.type === 'reveal') {
-          var rvLabel = document.createElement('label');
-          rvLabel.textContent = 'Template:';
-          rvLabel.style.cssText = 'display:block; margin-top:6px; font-weight:bold;';
-          var rvInput = document.createElement('textarea');
-          rvInput.value = sub.template || sub.message || '';
-          rvInput.rows = 2;
-          rvInput.placeholder = 'e.g. The answer was...';
-          rvInput.style.cssText = 'width:100%; border:2px solid #000; padding:4px; font-family:inherit;';
-          rvInput.onchange = function () { sub.template = rvInput.value; isDirty = true; };
-          subDiv.appendChild(rvLabel);
-          subDiv.appendChild(rvInput);
-        }
-
-        phaseConfigForm.appendChild(subDiv);
-      })(subNames[si]);
+      addSectionHeader('Timing');
+      addFieldWithHelp('Time to rate (seconds)', 'How long players have to pick a rating', 'number', 'phase-rate-timer',
+        getSubPhaseField(phase, 'rate', 'timer') || 12, false, function(value) {
+          setSubPhaseField(phase, 'rate', 'timer', value ? parseInt(value) : undefined);
+          isDirty = true;
+        });
     }
 
-    // Add sub-phase button
-    var addSubBtn = document.createElement('button');
-    addSubBtn.textContent = '+ Add Sub-Phase';
-    addSubBtn.style.cssText = 'width:100%; padding:8px; margin-top:8px; background:#6A1B9A; color:white; border:2px solid #000; cursor:pointer; font-weight:bold; font-size:14px;';
-    addSubBtn.onclick = function () {
+    if (detectedPattern === 'spot-the-lie') {
+      addSectionHeader('Settings');
+      var sourcePhaseId = (phase.data || '').split('.')[0];
+      var sourcePhase = gameConfig.phases[sourcePhaseId];
+      if (sourcePhase && sourcePhase.fields) {
+        var correctOptions = [];
+        for (var cfi = 0; cfi < sourcePhase.fields.length; cfi++) {
+          correctOptions.push({ value: '_current.fields.' + sourcePhase.fields[cfi].key, label: sourcePhase.fields[cfi].label });
+        }
+        addSelectWithHelp('Which field is the "wrong" answer?', 'The one players are trying to find', 'phase-correct-field',
+          correctOptions, (phase.scoring && phase.scoring.correctAnswer) || '', function(value) {
+            if (phase.scoring) phase.scoring.correctAnswer = value;
+            isDirty = true;
+          });
+      }
+      addFieldWithHelp('Time to pick (seconds)', 'How long players have to choose', 'number', 'phase-guess-timer',
+        getSubPhaseField(phase, 'guess', 'timer') || 15, false, function(value) {
+          setSubPhaseField(phase, 'guess', 'timer', value ? parseInt(value) : undefined);
+          isDirty = true;
+        });
+      addFieldWithHelp('Points for finding it', 'Points for picking the correct answer', 'number', 'phase-points',
+        (phase.scoring && phase.scoring.pointsCorrect) || 100, false, function(value) {
+          if (phase.scoring) phase.scoring.pointsCorrect = value ? parseInt(value) : 100;
+          isDirty = true;
+        });
+    }
+
+    if (detectedPattern === 'discuss') {
+      addSectionHeader('Timing');
+      addFieldWithHelp('Time to show answer (seconds)', 'How long each answer is displayed', 'number', 'phase-show-timer',
+        getSubPhaseField(phase, 'show', 'timer') || 8, false, function(value) {
+          setSubPhaseField(phase, 'show', 'timer', value ? parseInt(value) : undefined);
+          isDirty = true;
+        });
+      addFieldWithHelp('Discussion time (seconds)', 'Time to talk about each answer', 'number', 'phase-discuss-timer',
+        getSubPhaseField(phase, 'discuss', 'timer') || 15, false, function(value) {
+          setSubPhaseField(phase, 'discuss', 'timer', value ? parseInt(value) : undefined);
+          isDirty = true;
+        });
+    }
+
+    if (detectedPattern === 'custom') {
+      // Show raw sub-phase editor for power users
+      addSectionHeader('Steps (run for each answer)');
       if (!phase.subPhases) phase.subPhases = {};
-      var subIdx = Object.keys(phase.subPhases).length + 1;
-      var subId = 'step-' + subIdx;
-      phase.subPhases[subId] = { type: 'announce', message: '', timer: 5 };
-      isDirty = true;
-      renderPhaseConfig(phaseId);
-    };
-    phaseConfigForm.appendChild(addSubBtn);
+      var subNames = Object.keys(phase.subPhases);
+      for (var si = 0; si < subNames.length; si++) {
+        (function(subName, stepNum) {
+          var sub = phase.subPhases[subName];
+          var subCat = PHASE_CATALOG[sub.type];
+          var subDiv = document.createElement('div');
+          subDiv.className = 'foreach-sub-phase';
+          subDiv.style.cssText = 'border:2px solid #000; padding:8px; margin:6px 0; background:' + (subCat ? subCat.bg : '#eee');
+          var header = document.createElement('div');
+          header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;';
+          header.innerHTML = '<strong>Step ' + stepNum + ': ' + (subCat ? subCat.friendlyName : sub.type) + '</strong>';
+          var removeBtn = document.createElement('button');
+          removeBtn.textContent = 'Remove';
+          removeBtn.style.cssText = 'background:#FF2D2D; color:white; border:2px solid #000; padding:2px 8px; cursor:pointer; font-weight:bold;';
+          removeBtn.onclick = function() { delete phase.subPhases[subName]; isDirty = true; renderPhaseConfig(phaseId); };
+          header.appendChild(removeBtn);
+          subDiv.appendChild(header);
 
-    // --- Advanced Settings toggle ---
-    var advToggle = document.createElement('button');
-    advToggle.className = 'advanced-toggle';
-    advToggle.textContent = (foreachAdvancedOpen ? '\u25BC' : '\u25B6') + ' Advanced Settings';
-    var advContainer = document.createElement('div');
-    advContainer.className = 'advanced-fields';
-    advContainer.hidden = !foreachAdvancedOpen;
-    advToggle.onclick = function () {
-      foreachAdvancedOpen = !foreachAdvancedOpen;
-      advContainer.hidden = !foreachAdvancedOpen;
-      advToggle.textContent = (foreachAdvancedOpen ? '\u25BC' : '\u25B6') + ' Advanced Settings';
-    };
-    phaseConfigForm.appendChild(advToggle);
-    phaseConfigForm.appendChild(advContainer);
+          // Type selector
+          var typeSelect = document.createElement('select');
+          typeSelect.style.cssText = 'margin:4px 0; padding:4px; border:2px solid #000;';
+          var subTypes = ['announce', 'collect', 'collect-choice'];
+          for (var sti = 0; sti < subTypes.length; sti++) {
+            var opt = document.createElement('option');
+            opt.value = subTypes[sti]; opt.textContent = (PHASE_CATALOG[subTypes[sti]] || {}).friendlyName || subTypes[sti];
+            if (sub.type === subTypes[sti]) opt.selected = true;
+            typeSelect.appendChild(opt);
+          }
+          typeSelect.onchange = function() { sub.type = typeSelect.value; isDirty = true; renderPhaseConfig(phaseId); };
+          subDiv.appendChild(typeSelect);
 
-    // Temporarily redirect addSectionHeader/addFieldWithHelp/addSelectWithHelp to advContainer
-    var origTarget = phaseConfigForm;
-    var savedAppendChild = phaseConfigForm.appendChild.bind(phaseConfigForm);
+          // Message/prompt field
+          var fieldKey = sub.type === 'announce' ? 'message' : 'prompt';
+          var tw = document.createElement('div');
+          var ta = document.createElement('textarea');
+          ta.value = sub[fieldKey] || '';
+          ta.rows = 2;
+          ta.style.cssText = 'width:100%; border:2px solid #000; padding:4px; font-family:inherit; margin-top:4px;';
+          ta.onchange = function() { sub[fieldKey] = ta.value; isDirty = true; };
+          tw.appendChild(ta);
+          addForeachVariableChips(ta, phaseId);
+          subDiv.appendChild(tw);
 
-    // Helper to append to advContainer instead
-    phaseConfigForm.appendChild = function (el) { advContainer.appendChild(el); };
+          // Timer
+          var tIn = document.createElement('input');
+          tIn.type = 'number'; tIn.value = sub.timer || ''; tIn.placeholder = 'Timer (sec)';
+          tIn.style.cssText = 'width:80px; border:2px solid #000; padding:4px; margin-top:4px;';
+          tIn.onchange = function() { sub.timer = tIn.value ? parseInt(tIn.value) : undefined; isDirty = true; };
+          subDiv.appendChild(tIn);
 
-    addSelectWithHelp('Shuffle order?', 'Randomize the order items are shown', 'phase-shuffle',
+          phaseConfigForm.appendChild(subDiv);
+        })(subNames[si], si + 1);
+      }
+      var addSubBtn = document.createElement('button');
+      addSubBtn.textContent = '+ Add Step';
+      addSubBtn.style.cssText = 'width:100%; padding:8px; margin-top:8px; background:#6A1B9A; color:white; border:2px solid #000; cursor:pointer; font-weight:bold;';
+      addSubBtn.onclick = function() {
+        if (!phase.subPhases) phase.subPhases = {};
+        var n = Object.keys(phase.subPhases).length + 1;
+        phase.subPhases['step-' + n] = { type: 'announce', message: '', timer: 5 };
+        isDirty = true;
+        renderPhaseConfig(phaseId);
+      };
+      phaseConfigForm.appendChild(addSubBtn);
+    }
+
+    // Shuffle toggle (always visible)
+    addSectionHeader('Options');
+    addSelectWithHelp('Shuffle order?', 'Randomize the order answers are shown', 'phase-shuffle',
       [{ value: 'true', label: 'Yes (random order)' }, { value: 'false', label: 'No (original order)' }],
-      phase.shuffle === false ? 'false' : 'true', function (value) {
+      phase.shuffle === false ? 'false' : 'true', function(value) {
         phase.shuffle = value === 'true' ? undefined : false;
         isDirty = true;
       }
     );
-
-    addSectionHeader('Candidate generation (Optional)');
-    addSelectWithHelp('Auto-generate choices from', 'For guessing games — creates "real author + decoys" choice lists', 'phase-candidateSource',
-      [{ value: '', label: '(none)' }, { value: 'players', label: 'Player names (author + random decoys)' }],
-      phase.candidateSource || '', function (value) {
-        if (value) { phase.candidateSource = value; } else { delete phase.candidateSource; delete phase.decoyCount; }
-        isDirty = true;
-        renderPhaseConfig(phaseId);
-      }
-    );
-    if (phase.candidateSource === 'players') {
-      addFieldWithHelp('Number of decoys', 'How many wrong choices alongside the real author', 'number', 'phase-decoyCount', phase.decoyCount || 3, false, function (value) {
-        phase.decoyCount = value;
-        isDirty = true;
-      });
-    }
-
-    addSectionHeader('AI Injection (Optional)');
-    var aiInjectEnabled = !!phase.aiInject;
-    var aiInjectCheckbox = document.createElement('div');
-    aiInjectCheckbox.style.cssText = 'margin-bottom:8px;';
-    var aiInjectLabel = document.createElement('label');
-    aiInjectLabel.style.cssText = 'display:flex; align-items:center; gap:8px; cursor:pointer;';
-    var aiInjectCb = document.createElement('input');
-    aiInjectCb.type = 'checkbox';
-    aiInjectCb.checked = aiInjectEnabled;
-    aiInjectCb.addEventListener('change', function () {
-      if (aiInjectCb.checked) {
-        phase.aiInject = { count: 3, instruction: 'Generate fake responses matching the style of the real student answers.' };
-      } else {
-        delete phase.aiInject;
-      }
-      isDirty = true;
-      renderPhaseConfig(phaseId);
-    });
-    aiInjectLabel.appendChild(aiInjectCb);
-    aiInjectLabel.appendChild(document.createTextNode('Mix in AI-generated fake responses (for "human vs AI" games)'));
-    aiInjectCheckbox.appendChild(aiInjectLabel);
-    advContainer.appendChild(aiInjectCheckbox);
-
-    if (phase.aiInject) {
-      addFieldWithHelp('Number of AI fakes', 'How many AI-generated responses to mix in with real ones', 'number', 'phase-aiInject-count', phase.aiInject.count || 3, false, function (value) {
-        phase.aiInject.count = value;
-        isDirty = true;
-      });
-      addFieldWithHelp('AI instruction', 'Tell the AI what kind of fake responses to generate', 'text', 'phase-aiInject-instruction', phase.aiInject.instruction || '', false, function (value) {
-        phase.aiInject.instruction = value;
-        isDirty = true;
-      });
-      var aiInjectHint = document.createElement('div');
-      aiInjectHint.className = 'field-help';
-      aiInjectHint.innerHTML = 'Enable scoring below so players earn points for correctly guessing which responses are human vs AI.';
-      advContainer.appendChild(aiInjectHint);
-
-      // Pair mode option (only available when aiInject is enabled)
-      var pairModeDiv = document.createElement('div');
-      pairModeDiv.style.cssText = 'margin-top:8px;';
-      var pairModeLabel = document.createElement('label');
-      pairModeLabel.style.cssText = 'display:flex; align-items:center; gap:8px; cursor:pointer;';
-      var pairModeCb = document.createElement('input');
-      pairModeCb.type = 'checkbox';
-      pairModeCb.checked = phase.pairMode === 'human-vs-ai';
-      pairModeCb.addEventListener('change', function () {
-        if (pairModeCb.checked) {
-          phase.pairMode = 'human-vs-ai';
-        } else {
-          delete phase.pairMode;
-        }
-        isDirty = true;
-        renderPhaseConfig(phaseId);
-      });
-      pairModeLabel.appendChild(pairModeCb);
-      pairModeLabel.appendChild(document.createTextNode('Side-by-side pair mode (show human vs AI ideas together)'));
-      pairModeDiv.appendChild(pairModeLabel);
-      advContainer.appendChild(pairModeDiv);
-
-      if (phase.pairMode === 'human-vs-ai') {
-        var pairHint = document.createElement('div');
-        pairHint.className = 'field-help';
-        pairHint.innerHTML = 'Each round shows two ideas side by side — one human, one AI (in random order). Players guess which is which.';
-        advContainer.appendChild(pairHint);
-      }
-    }
-
-    addSectionHeader('Scoring (Optional)');
-    var hasScoringCheck = document.createElement('div');
-    hasScoringCheck.style.cssText = 'margin:6px 0;';
-    var scoringCheckbox = document.createElement('input');
-    scoringCheckbox.type = 'checkbox';
-    scoringCheckbox.id = 'phase-scoring-enabled';
-    scoringCheckbox.checked = !!phase.scoring;
-    scoringCheckbox.onchange = function () {
-      if (scoringCheckbox.checked) {
-        var subKeys = Object.keys(phase.subPhases || {});
-        phase.scoring = { subPhase: subKeys[subKeys.length - 1] || '', mode: 'correct', correctAnswer: '_current.playerName', pointsCorrect: 100 };
-      } else {
-        delete phase.scoring;
-      }
-      isDirty = true;
-      renderPhaseConfig(phaseId);
-    };
-    var scoringLabel = document.createElement('label');
-    scoringLabel.htmlFor = 'phase-scoring-enabled';
-    scoringLabel.textContent = ' Enable scoring (award points for correct guesses)';
-    scoringLabel.style.fontWeight = 'bold';
-    hasScoringCheck.appendChild(scoringCheckbox);
-    hasScoringCheck.appendChild(scoringLabel);
-    advContainer.appendChild(hasScoringCheck);
-
-    if (phase.scoring) {
-      var scoringSubOptions = [{ value: '', label: '(choose sub-phase)' }];
-      var sSubNames = Object.keys(phase.subPhases || {});
-      for (var ssi = 0; ssi < sSubNames.length; ssi++) {
-        scoringSubOptions.push({ value: sSubNames[ssi], label: sSubNames[ssi] });
-      }
-      addSelectWithHelp('Score based on', 'Which sub-phase contains the player choice to score', 'phase-scoring-subPhase',
-        scoringSubOptions, phase.scoring.subPhase || '', function (value) {
-          phase.scoring.subPhase = value;
-          isDirty = true;
-        }
-      );
-      addSelectWithHelp('Scoring mode', 'How points are awarded', 'phase-scoring-mode',
-        [
-          { value: 'correct', label: 'Correct guess (guesser earns points)' },
-          { value: 'tally', label: 'Tally (author earns points from ratings)' }
-        ],
-        phase.scoring.mode || 'correct', function (value) {
-          phase.scoring.mode = value;
-          if (value === 'tally') {
-            delete phase.scoring.correctAnswer;
-            delete phase.scoring.pointsCorrect;
-            if (!phase.scoring.pointMap) phase.scoring.pointMap = {};
-          } else {
-            delete phase.scoring.pointMap;
-            if (!phase.scoring.correctAnswer) phase.scoring.correctAnswer = '_current.playerName';
-            if (!phase.scoring.pointsCorrect) phase.scoring.pointsCorrect = 100;
-          }
-          isDirty = true;
-          renderPhaseConfig(phaseId);
-        }
-      );
-
-      if ((phase.scoring.mode || 'correct') === 'correct') {
-        addSelectWithHelp('Correct answer is', 'What counts as the right answer', 'phase-scoring-correctAnswer',
-          [
-            { value: '_current.playerName', label: 'Player name (who wrote it)' },
-            { value: '_current.playerId', label: 'Player ID' },
-            { value: '_current.text', label: 'The item text itself' }
-          ],
-          phase.scoring.correctAnswer || '_current.playerName', function (value) {
-            phase.scoring.correctAnswer = value;
-            isDirty = true;
-          }
-        );
-        addFieldWithHelp('Points for correct', 'Points awarded for a correct guess', 'number', 'phase-scoring-pointsCorrect', phase.scoring.pointsCorrect || 100, false, function (value) {
-          phase.scoring.pointsCorrect = value;
-          isDirty = true;
-        });
-      } else {
-        // Tally mode — show pointMap editor
-        var pointMapDiv = document.createElement('div');
-        pointMapDiv.style.cssText = 'margin:8px 0; padding:8px; background:#FFF3E0; border:2px solid #000;';
-        var pmTitle = document.createElement('div');
-        pmTitle.style.cssText = 'font-weight:bold; margin-bottom:6px;';
-        pmTitle.textContent = 'Point Map (choice → points)';
-        pointMapDiv.appendChild(pmTitle);
-
-        var pmHelp = document.createElement('div');
-        pmHelp.style.cssText = 'font-size:11px; color:#666; margin-bottom:8px;';
-        pmHelp.textContent = 'Map each choice option to the points the author earns when someone picks it.';
-        pointMapDiv.appendChild(pmHelp);
-
-        var pointMap = phase.scoring.pointMap || {};
-        var pmKeys = Object.keys(pointMap);
-        for (var pmi = 0; pmi < pmKeys.length; pmi++) {
-          (function (key) {
-            var row = document.createElement('div');
-            row.style.cssText = 'display:flex; gap:6px; align-items:center; margin:4px 0;';
-            var keyInput = document.createElement('input');
-            keyInput.type = 'text';
-            keyInput.value = key;
-            keyInput.style.cssText = 'flex:1; padding:4px; border:2px solid #000;';
-            keyInput.disabled = true;
-            var valInput = document.createElement('input');
-            valInput.type = 'number';
-            valInput.value = pointMap[key];
-            valInput.style.cssText = 'width:60px; padding:4px; border:2px solid #000;';
-            valInput.onchange = function () {
-              phase.scoring.pointMap[key] = parseInt(valInput.value) || 0;
-              isDirty = true;
-            };
-            var delBtn = document.createElement('button');
-            delBtn.textContent = '×';
-            delBtn.style.cssText = 'padding:2px 8px; border:2px solid #000; background:#FFCDD2; cursor:pointer; font-weight:bold;';
-            delBtn.onclick = function () {
-              delete phase.scoring.pointMap[key];
-              isDirty = true;
-              renderPhaseConfig(phaseId);
-            };
-            row.appendChild(keyInput);
-            row.appendChild(valInput);
-            row.appendChild(delBtn);
-            pointMapDiv.appendChild(row);
-          })(pmKeys[pmi]);
-        }
-
-        var addPmBtn = document.createElement('button');
-        addPmBtn.textContent = '+ Add Entry';
-        addPmBtn.style.cssText = 'margin-top:4px; padding:4px 12px; border:2px solid #000; background:#C8E6C9; cursor:pointer; font-weight:bold;';
-        addPmBtn.onclick = function () {
-          var newKey = prompt('Choice text (e.g. "Amazing"):');
-          if (newKey && newKey.trim()) {
-            phase.scoring.pointMap[newKey.trim()] = 0;
-            isDirty = true;
-            renderPhaseConfig(phaseId);
-          }
-        };
-        pointMapDiv.appendChild(addPmBtn);
-        advContainer.appendChild(pointMapDiv);
-      }
-    }
-
-    // Helper text
-    var helpDiv = document.createElement('div');
-    helpDiv.style.cssText = 'margin-top:12px; padding:8px; background:#F3E5F5; border:2px solid #000; font-size:12px;';
-    helpDiv.innerHTML = '<strong>Available data per round:</strong><br>' +
-      'Current item\'s text<br>' +
-      'Who submitted it<br>' +
-      'Round number and total rounds<br>' +
-      '<em>Use the insert buttons in sub-phase fields to add these automatically.</em>';
-    advContainer.appendChild(helpDiv);
-
-    // Restore phaseConfigForm.appendChild
-    phaseConfigForm.appendChild = savedAppendChild;
   }
 
   if (type === 'end') {
@@ -1979,6 +1839,150 @@ function getFriendlyPhaseName(phaseId) {
   var cat = PHASE_CATALOG[phase.type];
   if (!cat) return phaseId;
   return cat.icon + ' ' + cat.friendlyName + ' (' + phaseId + ')';
+}
+
+// --- Foreach pattern helpers ---
+
+function detectForeachPattern(phase) {
+  if (!phase.subPhases) return 'custom';
+  var subNames = Object.keys(phase.subPhases);
+  var scoring = phase.scoring || {};
+  var hasChoiceSub = false;
+  var choicesSrc = null;
+  for (var i = 0; i < subNames.length; i++) {
+    var sub = phase.subPhases[subNames[i]];
+    if (sub.type === 'collect-choice') {
+      hasChoiceSub = true;
+      choicesSrc = sub.choices;
+    }
+  }
+  // spot-the-lie: choices are shuffled fields
+  if (hasChoiceSub && choicesSrc === '_current.shuffledFields') return 'spot-the-lie';
+  // guess-author: correct scoring + candidates
+  if (hasChoiceSub && scoring.correctAnswer && scoring.mode !== 'tally' && (phase.candidateSource || choicesSrc === '_candidates')) return 'guess-author';
+  // rate-answers: tally scoring
+  if (hasChoiceSub && scoring.mode === 'tally') return 'rate-answers';
+  // discuss: only announce sub-phases (no collect-choice)
+  if (!hasChoiceSub && subNames.length > 0) return 'discuss';
+  // fallback
+  if (subNames.length === 0) return 'guess-author';
+  return 'custom';
+}
+
+function applyForeachPattern(phase, phaseId, pattern) {
+  if (pattern === 'guess-author') {
+    phase.candidateSource = 'players';
+    phase.decoyCount = 99;
+    phase.subPhases = {
+      'show': { type: 'announce', message: '{{_current.playerName}} wrote:\n\n"{{_current.text}}"', timer: 5 },
+      'guess': { type: 'collect-choice', prompt: 'Who wrote this?', choices: '_candidates', timer: 12 },
+      'reveal': { type: 'announce', message: 'It was {{_current.playerName}}!', timer: 5 }
+    };
+    phase.scoring = { subPhase: 'guess', correctAnswer: '_current.playerName', pointsCorrect: 100 };
+  } else if (pattern === 'rate-answers') {
+    delete phase.candidateSource;
+    delete phase.decoyCount;
+    phase.subPhases = {
+      'show': { type: 'announce', message: '"{{_current.text}}"', timer: 5 },
+      'rate': { type: 'collect-choice', prompt: 'Rate this answer:', choices: ['Meh', 'Not Bad', 'Pretty Good', 'Amazing'], timer: 12 },
+      'reveal': { type: 'announce', message: 'That was by {{_current.playerName}}!', timer: 4 }
+    };
+    phase.scoring = { subPhase: 'rate', mode: 'tally', pointMap: { 'Meh': 10, 'Not Bad': 25, 'Pretty Good': 50, 'Amazing': 100 } };
+  } else if (pattern === 'spot-the-lie') {
+    delete phase.candidateSource;
+    delete phase.decoyCount;
+    phase.subPhases = {
+      'show': { type: 'announce', message: '{{_current.playerName}} wrote these statements.\n\nWhich one is false?', timer: 5 },
+      'guess': { type: 'collect-choice', prompt: 'Which is the lie?', choices: '_current.shuffledFields', timer: 15 },
+      'reveal': { type: 'announce', message: 'The answer was: "{{_current.fields.lie}}"', timer: 6 }
+    };
+    // Try to detect the correct field from the source collect phase
+    var correctField = '_current.fields.lie';
+    var srcId = (phase.data || '').split('.')[0];
+    var srcPhase = gameConfig.phases[srcId];
+    if (srcPhase && srcPhase.fields && srcPhase.fields.length > 0) {
+      correctField = '_current.fields.' + srcPhase.fields[srcPhase.fields.length - 1].key;
+    }
+    phase.scoring = { subPhase: 'guess', correctAnswer: correctField, pointsCorrect: 100 };
+  } else if (pattern === 'discuss') {
+    delete phase.candidateSource;
+    delete phase.decoyCount;
+    delete phase.scoring;
+    phase.subPhases = {
+      'show': { type: 'announce', message: '{{_current.playerName}} wrote:\n\n"{{_current.text}}"', timer: 8 },
+      'discuss': { type: 'announce', message: 'Take a moment to discuss!', timer: 15 }
+    };
+  } else if (pattern === 'custom') {
+    // Keep existing sub-phases or start with empty
+    if (!phase.subPhases || Object.keys(phase.subPhases).length === 0) {
+      phase.subPhases = { 'step-1': { type: 'announce', message: '', timer: 5 } };
+    }
+  }
+}
+
+function getSubPhaseField(phase, subName, field) {
+  if (!phase.subPhases) return undefined;
+  // Direct name match
+  if (phase.subPhases[subName]) return phase.subPhases[subName][field];
+  // Search by type or partial name match
+  var names = Object.keys(phase.subPhases);
+  for (var i = 0; i < names.length; i++) {
+    var n = names[i];
+    if (n.indexOf(subName) !== -1) return phase.subPhases[n][field];
+  }
+  // Search by sub-phase type (e.g. 'guess' matches collect-choice, 'rate' matches collect-choice)
+  var typeMap = { 'guess': 'collect-choice', 'rate': 'collect-choice', 'show': 'announce', 'reveal': 'announce', 'discuss': 'announce' };
+  var targetType = typeMap[subName];
+  if (targetType) {
+    // For 'reveal'/'discuss', try to match the later announce (not first)
+    var isLater = subName === 'reveal' || subName === 'discuss';
+    var found = null;
+    for (var j = 0; j < names.length; j++) {
+      if (phase.subPhases[names[j]].type === targetType) {
+        if (!isLater || found !== null) return phase.subPhases[names[j]][field];
+        found = names[j];
+      }
+    }
+    if (found !== null) return phase.subPhases[found][field];
+  }
+  return undefined;
+}
+
+function setSubPhaseField(phase, subName, field, value) {
+  if (!phase.subPhases) return;
+  // Direct name match
+  if (phase.subPhases[subName]) { phase.subPhases[subName][field] = value; return; }
+  // Search by partial name match
+  var names = Object.keys(phase.subPhases);
+  for (var i = 0; i < names.length; i++) {
+    if (names[i].indexOf(subName) !== -1) { phase.subPhases[names[i]][field] = value; return; }
+  }
+  // Search by type
+  var typeMap = { 'guess': 'collect-choice', 'rate': 'collect-choice', 'show': 'announce', 'reveal': 'announce', 'discuss': 'announce' };
+  var targetType = typeMap[subName];
+  if (targetType) {
+    var isLater = subName === 'reveal' || subName === 'discuss';
+    var found = null;
+    for (var j = 0; j < names.length; j++) {
+      if (phase.subPhases[names[j]].type === targetType) {
+        if (!isLater || found !== null) { phase.subPhases[names[j]][field] = value; return; }
+        found = names[j];
+      }
+    }
+    if (found !== null) { phase.subPhases[found][field] = value; }
+  }
+}
+
+function updateTallyChoices(phase) {
+  if (!phase.subPhases || !phase.scoring || !phase.scoring.pointMap) return;
+  var choices = Object.keys(phase.scoring.pointMap);
+  var names = Object.keys(phase.subPhases);
+  for (var i = 0; i < names.length; i++) {
+    if (phase.subPhases[names[i]].type === 'collect-choice') {
+      phase.subPhases[names[i]].choices = choices;
+      break;
+    }
+  }
 }
 
 // Section header divider
@@ -2154,6 +2158,68 @@ function buildTemplateVariables(currentPhaseId, extraVars) {
     }
   }
   return vars;
+}
+
+// Build foreach-specific template variables based on the data source collect phase
+function buildForeachVariables(foreachPhaseId) {
+  var phase = gameConfig.phases[foreachPhaseId];
+  if (!phase) return [];
+  var vars = [
+    { label: "Player's name", variable: '{{_current.playerName}}' },
+    { label: "Player's response", variable: '{{_current.text}}' },
+    { label: 'Round number', variable: '{{_foreach.' + foreachPhaseId + '.index}}' },
+    { label: 'Total rounds', variable: '{{_foreach.' + foreachPhaseId + '.total}}' }
+  ];
+
+  // If the data source collect phase has fields, add field-specific variables
+  var dataRef = phase.data || '';
+  var sourcePhaseId = dataRef.split('.')[0];
+  var sourcePhase = gameConfig.phases[sourcePhaseId];
+  if (sourcePhase && sourcePhase.fields && Array.isArray(sourcePhase.fields)) {
+    for (var fi = 0; fi < sourcePhase.fields.length; fi++) {
+      var f = sourcePhase.fields[fi];
+      vars.push({ label: f.label, variable: '{{_current.fields.' + f.key + '}}' });
+    }
+  }
+
+  return vars;
+}
+
+// Add foreach variable chips below a textarea
+function addForeachVariableChips(textarea, foreachPhaseId) {
+  var vars = buildForeachVariables(foreachPhaseId);
+  if (vars.length === 0) return;
+
+  var container = document.createElement('div');
+  container.className = 'variable-chips';
+
+  var chipLabel = document.createElement('span');
+  chipLabel.className = 'variable-chips-label';
+  chipLabel.textContent = 'Insert: ';
+  container.appendChild(chipLabel);
+
+  for (var i = 0; i < vars.length; i++) {
+    (function (v) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'variable-chip';
+      chip.textContent = v.label;
+      chip.title = v.variable;
+      chip.onclick = function (e) {
+        e.preventDefault();
+        var start = textarea.selectionStart || textarea.value.length;
+        var end = textarea.selectionEnd || start;
+        textarea.value = textarea.value.substring(0, start) + v.variable + textarea.value.substring(end);
+        textarea.focus();
+        var newPos = start + v.variable.length;
+        textarea.setSelectionRange(newPos, newPos);
+        textarea.dispatchEvent(new Event('change'));
+      };
+      container.appendChild(chip);
+    })(vars[i]);
+  }
+
+  textarea.parentNode.appendChild(container);
 }
 
 // Add clickable variable chips below a textarea
@@ -2432,7 +2498,35 @@ function addToggleCheckboxes(label, helpText, phase, field, toggleNames) {
 // --- Phase management ---
 
 // Picker modal: which phase types can be added
-var ADDABLE_PHASE_TYPES = ['collect', 'collect-choice', 'ai-process', 'ai-eliminate', 'vote', 'eliminate', 'announce', 'reveal', 'preview', 'winner', 'leaderboard', 'reveal-one', 'team-split', 'rank', 'wager', 'relay', 'foreach'];
+var PHASE_CATEGORIES = [
+  {
+    name: 'Player Input',
+    description: 'Get responses from players',
+    types: ['collect', 'collect-choice', 'rank', 'wager', 'relay']
+  },
+  {
+    name: 'AI',
+    description: 'Let AI process or judge',
+    types: ['ai-process', 'ai-eliminate']
+  },
+  {
+    name: 'Display',
+    description: 'Show info to the class',
+    types: ['announce', 'reveal', 'reveal-one', 'leaderboard', 'preview']
+  },
+  {
+    name: 'Game Flow',
+    description: 'Control how the game plays out',
+    types: ['vote', 'eliminate', 'winner', 'team-split', 'foreach']
+  }
+];
+
+var ADDABLE_PHASE_TYPES = [];
+for (var ci = 0; ci < PHASE_CATEGORIES.length; ci++) {
+  for (var ti = 0; ti < PHASE_CATEGORIES[ci].types.length; ti++) {
+    ADDABLE_PHASE_TYPES.push(PHASE_CATEGORIES[ci].types[ti]);
+  }
+}
 
 function addPhase() {
   showPhasePickerModal();
@@ -2461,39 +2555,48 @@ function showPhasePickerModal() {
   var grid = document.createElement('div');
   grid.className = 'picker-grid';
 
-  for (var i = 0; i < ADDABLE_PHASE_TYPES.length; i++) {
-    var type = ADDABLE_PHASE_TYPES[i];
-    var cat = PHASE_CATALOG[type];
+  for (var gi = 0; gi < PHASE_CATEGORIES.length; gi++) {
+    var group = PHASE_CATEGORIES[gi];
 
-    var card = document.createElement('div');
-    card.className = 'picker-card';
-    card.setAttribute('data-type', type);
-    card.style.borderColor = cat.color;
+    var header = document.createElement('div');
+    header.className = 'picker-category-header';
+    header.textContent = group.name;
+    grid.appendChild(header);
 
-    var cardIcon = document.createElement('span');
-    cardIcon.className = 'picker-card-icon';
-    cardIcon.textContent = cat.icon;
+    for (var pi = 0; pi < group.types.length; pi++) {
+      var type = group.types[pi];
+      var cat = PHASE_CATALOG[type];
 
-    var cardName = document.createElement('div');
-    cardName.className = 'picker-card-name';
-    cardName.textContent = cat.friendlyName;
+      var card = document.createElement('div');
+      card.className = 'picker-card';
+      card.setAttribute('data-type', type);
+      card.style.borderColor = cat.color;
 
-    var cardDesc = document.createElement('div');
-    cardDesc.className = 'picker-card-desc';
-    cardDesc.textContent = cat.description;
+      var cardIcon = document.createElement('span');
+      cardIcon.className = 'picker-card-icon';
+      cardIcon.textContent = cat.icon;
 
-    card.appendChild(cardIcon);
-    card.appendChild(cardName);
-    card.appendChild(cardDesc);
+      var cardName = document.createElement('div');
+      cardName.className = 'picker-card-name';
+      cardName.textContent = cat.friendlyName;
 
-    card.addEventListener('click', (function (chosenType) {
-      return function () {
-        overlay.remove();
-        addPhaseOfType(chosenType);
-      };
-    })(type));
+      var cardDesc = document.createElement('div');
+      cardDesc.className = 'picker-card-desc';
+      cardDesc.textContent = cat.description;
 
-    grid.appendChild(card);
+      card.appendChild(cardIcon);
+      card.appendChild(cardName);
+      card.appendChild(cardDesc);
+
+      card.addEventListener('click', (function (chosenType) {
+        return function () {
+          overlay.remove();
+          addPhaseOfType(chosenType);
+        };
+      })(type));
+
+      grid.appendChild(card);
+    }
   }
 
   modal.appendChild(grid);

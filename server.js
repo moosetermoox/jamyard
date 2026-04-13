@@ -301,6 +301,15 @@ function setupForeachIteration(engine, foreachPhaseId, feConfig, index) {
       subConfig.candidates = engine._foreachCandidates || [];
     }
 
+    // Resolve _current.shuffledFields — shuffled array of the current item's field values
+    if (subConfig.choices === '_current.shuffledFields') {
+      if (item.fields && typeof item.fields === 'object') {
+        subConfig.choices = shuffleArray(Object.values(item.fields));
+      } else {
+        subConfig.choices = [];
+      }
+    }
+
     // Mark collect-choice sub-phases with self-exclusion info
     if ((subConfig.type === 'collect-choice' || subConfig.type === 'collect') && feConfig.selfExclude !== false) {
       subConfig._foreachAuthorId = item.playerId || null;
@@ -721,14 +730,32 @@ app.post('/api/games/generate-theme', async (req, res) => {
   }
 });
 
-app.post('/api/games/generate', async (req, res) => {
+app.post('/api/games/generate-questions', async (req, res) => {
   try {
     const { description } = req.body;
     if (!description || description.trim().length < 10) {
       return res.status(400).json({ error: 'Please provide a game description (at least 10 characters)' });
     }
+    console.log(`[api/games/generate-questions] Analyzing: "${description.substring(0, 80)}..."`);
+    const result = await aiService.generateQuestions(description);
+    if (result.error) {
+      return res.status(500).json({ error: result.error });
+    }
+    res.json(result);
+  } catch (error) {
+    console.log(`[api/games/generate-questions] Error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/games/generate', async (req, res) => {
+  try {
+    const { description, answers } = req.body;
+    if (!description || description.trim().length < 10) {
+      return res.status(400).json({ error: 'Please provide a game description (at least 10 characters)' });
+    }
     console.log(`[api/games/generate] Generating game from: "${description.substring(0, 80)}..."`);
-    const config = await aiService.generateGame(description);
+    const config = await aiService.generateGame(description, answers);
     if (config.error) {
       return res.status(500).json({ error: config.error, raw: config.raw });
     }
@@ -963,7 +990,15 @@ io.on('connection', (socket) => {
         const eligible = getEligibleVoters(players, from);
         const responses = eligible
           .filter(p => p.response)
-          .map(p => ({ playerId: p.id, name: p.name, text: p.response }));
+          .map(p => {
+            const r = p.response;
+            // Multi-field responses come as objects with field keys
+            if (r && typeof r === 'object' && !Array.isArray(r)) {
+              const textParts = Object.values(r);
+              return { playerId: p.id, name: p.name, text: textParts.join(' | '), fields: r };
+            }
+            return { playerId: p.id, name: p.name, text: r };
+          });
 
         // For collect-choice, also compute tally
         if (collectPhase.type === 'collect-choice') {
@@ -1027,6 +1062,7 @@ io.on('connection', (socket) => {
     if (!room || !room.phaseState) return;
 
     const vs = room.phaseState;
+    if (!vs.eligibleVoterIds) return;
     if (!vs.eligibleVoterIds.includes(socket.id)) return;
     if (vs.votersCompleted.has(socket.id)) return;
 

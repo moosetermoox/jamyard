@@ -250,6 +250,12 @@ function showAIGenerateModal() {
   textarea.style.cssText = 'width:100%; padding:12px; border:3px solid #000; font-family:inherit; font-size:14px; resize:vertical; box-sizing:border-box; margin:12px 0;';
   modal.appendChild(textarea);
 
+  // Questions section (hidden initially, shown after step 1)
+  var questionsDiv = document.createElement('div');
+  questionsDiv.id = 'ai-generate-questions';
+  questionsDiv.style.display = 'none';
+  modal.appendChild(questionsDiv);
+
   var statusDiv = document.createElement('div');
   statusDiv.id = 'ai-generate-status';
   statusDiv.style.cssText = 'display:none; padding:12px; margin:8px 0; font-weight:bold; text-align:center;';
@@ -263,26 +269,26 @@ function showAIGenerateModal() {
   cancelBtn.style.cssText = 'padding:10px 24px; border:3px solid #000; background:#eee; cursor:pointer; font-weight:bold; font-size:14px;';
   cancelBtn.onclick = function () { overlay.remove(); };
 
-  var generateBtn = document.createElement('button');
-  generateBtn.textContent = 'Generate Game';
-  generateBtn.id = 'ai-generate-go-btn';
-  generateBtn.style.cssText = 'padding:10px 24px; border:3px solid #000; background:#6A1B9A; color:white; cursor:pointer; font-weight:bold; font-size:14px;';
-  generateBtn.onclick = function () {
+  var nextBtn = document.createElement('button');
+  nextBtn.textContent = 'Next';
+  nextBtn.id = 'ai-generate-go-btn';
+  nextBtn.style.cssText = 'padding:10px 24px; border:3px solid #000; background:#6A1B9A; color:white; cursor:pointer; font-weight:bold; font-size:14px;';
+  nextBtn.onclick = function () {
     var desc = textarea.value.trim();
     if (desc.length < 10) {
       alert('Please write a longer description (at least 10 characters).');
       return;
     }
-    generateBtn.disabled = true;
-    generateBtn.textContent = 'Generating...';
+    nextBtn.disabled = true;
+    nextBtn.textContent = 'Thinking...';
     statusDiv.style.display = 'block';
     statusDiv.style.background = '#E1BEE7';
-    statusDiv.textContent = 'AI is designing your game... This may take 15-30 seconds.';
-    createFromAI(desc, overlay);
+    statusDiv.textContent = 'AI is thinking about your game idea...';
+    fetchClarifyQuestions(desc, overlay);
   };
 
   btnRow.appendChild(cancelBtn);
-  btnRow.appendChild(generateBtn);
+  btnRow.appendChild(nextBtn);
   modal.appendChild(btnRow);
 
   overlay.appendChild(modal);
@@ -290,12 +296,13 @@ function showAIGenerateModal() {
   textarea.focus();
 }
 
-async function createFromAI(description, overlay) {
+async function fetchClarifyQuestions(description, overlay) {
   var statusDiv = document.getElementById('ai-generate-status');
-  var generateBtn = document.getElementById('ai-generate-go-btn');
+  var nextBtn = document.getElementById('ai-generate-go-btn');
+  var questionsDiv = document.getElementById('ai-generate-questions');
 
   try {
-    var response = await fetch('/api/games/generate', {
+    var response = await fetch('/api/games/generate-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ description: description })
@@ -305,9 +312,110 @@ async function createFromAI(description, overlay) {
 
     if (!response.ok || data.error) {
       statusDiv.style.background = '#FFCDD2';
+      statusDiv.textContent = 'Error: ' + (data.error || 'Unknown error');
+      nextBtn.disabled = false;
+      nextBtn.textContent = 'Try Again';
+      return;
+    }
+
+    var questions = data.questions || [];
+
+    // If no questions needed, skip straight to generation
+    if (questions.length === 0) {
+      statusDiv.textContent = 'AI is designing your game... This may take 15-30 seconds.';
+      createFromAI(description, [], overlay);
+      return;
+    }
+
+    // Show questions
+    statusDiv.style.display = 'none';
+    questionsDiv.style.display = 'block';
+    questionsDiv.innerHTML = '';
+
+    var qHeader = document.createElement('p');
+    qHeader.style.cssText = 'font-weight:bold; margin-bottom:12px; font-size:14px;';
+    qHeader.textContent = 'A few quick questions to make sure the game works right:';
+    questionsDiv.appendChild(qHeader);
+
+    for (var i = 0; i < questions.length; i++) {
+      var q = questions[i];
+      var qBlock = document.createElement('div');
+      qBlock.style.cssText = 'margin-bottom:14px;';
+
+      var qLabel = document.createElement('label');
+      qLabel.style.cssText = 'display:block; font-weight:bold; margin-bottom:6px; font-size:13px;';
+      qLabel.textContent = q.question;
+      qBlock.appendChild(qLabel);
+
+      var qSelect = document.createElement('select');
+      qSelect.className = 'ai-clarify-select';
+      qSelect.setAttribute('data-question', q.question);
+      qSelect.style.cssText = 'width:100%; padding:8px 10px; border:2px solid #000; font-size:13px; font-family:inherit; background:white;';
+
+      for (var j = 0; j < q.options.length; j++) {
+        var opt = document.createElement('option');
+        opt.value = q.options[j];
+        opt.textContent = q.options[j];
+        if (q.options[j] === q.default) opt.selected = true;
+        qSelect.appendChild(opt);
+      }
+
+      qBlock.appendChild(qSelect);
+      questionsDiv.appendChild(qBlock);
+    }
+
+    // Disable description editing (already locked in)
+    var textarea = document.getElementById('ai-game-description');
+    textarea.disabled = true;
+    textarea.style.opacity = '0.6';
+
+    // Change button to "Generate Game"
+    nextBtn.disabled = false;
+    nextBtn.textContent = 'Generate Game';
+    nextBtn.onclick = function () {
+      // Gather answers
+      var selects = questionsDiv.querySelectorAll('.ai-clarify-select');
+      var answers = [];
+      for (var k = 0; k < selects.length; k++) {
+        answers.push({
+          question: selects[k].getAttribute('data-question'),
+          answer: selects[k].value
+        });
+      }
+      nextBtn.disabled = true;
+      nextBtn.textContent = 'Generating...';
+      statusDiv.style.display = 'block';
+      statusDiv.style.background = '#E1BEE7';
+      statusDiv.textContent = 'AI is designing your game... This may take 15-30 seconds.';
+      createFromAI(description, answers, overlay);
+    };
+
+  } catch (error) {
+    statusDiv.style.background = '#FFCDD2';
+    statusDiv.textContent = 'Error: ' + error.message;
+    nextBtn.disabled = false;
+    nextBtn.textContent = 'Try Again';
+  }
+}
+
+async function createFromAI(description, answers, overlay) {
+  var statusDiv = document.getElementById('ai-generate-status');
+  var nextBtn = document.getElementById('ai-generate-go-btn');
+
+  try {
+    var response = await fetch('/api/games/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: description, answers: answers })
+    });
+
+    var data = await response.json();
+
+    if (!response.ok || data.error) {
+      statusDiv.style.background = '#FFCDD2';
       statusDiv.textContent = 'Generation failed: ' + (data.error || 'Unknown error');
-      generateBtn.disabled = false;
-      generateBtn.textContent = 'Try Again';
+      nextBtn.disabled = false;
+      nextBtn.textContent = 'Try Again';
       return;
     }
 
@@ -319,8 +427,8 @@ async function createFromAI(description, overlay) {
         data.reason + '<br><br>' +
         '<strong>But here\'s an idea that would work:</strong><br>' +
         data.suggestion;
-      generateBtn.disabled = false;
-      generateBtn.textContent = 'Try Again';
+      nextBtn.disabled = false;
+      nextBtn.textContent = 'Try Again';
       return;
     }
 
@@ -351,14 +459,14 @@ async function createFromAI(description, overlay) {
       var saveResult = await saveResponse.json();
       statusDiv.style.background = '#FFCDD2';
       statusDiv.textContent = 'Save failed: ' + (saveResult.error || 'Unknown error');
-      generateBtn.disabled = false;
-      generateBtn.textContent = 'Try Again';
+      nextBtn.disabled = false;
+      nextBtn.textContent = 'Try Again';
     }
   } catch (error) {
     statusDiv.style.background = '#FFCDD2';
     statusDiv.textContent = 'Error: ' + error.message;
-    generateBtn.disabled = false;
-    generateBtn.textContent = 'Try Again';
+    nextBtn.disabled = false;
+    nextBtn.textContent = 'Try Again';
   }
 }
 

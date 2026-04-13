@@ -162,6 +162,67 @@ button:disabled {
   opacity: 0.9;
 }
 
+/* Multi-field inputs */
+.multi-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0;
+}
+
+.field-label {
+  font-weight: bold;
+  font-size: 0.95rem;
+  color: var(--theme-text, #333);
+  margin-top: 4px;
+}
+
+.field-input {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--theme-accent, #5bc0de);
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.field-input:focus {
+  outline: none;
+  border-color: var(--theme-accent, #0057FF);
+  box-shadow: 0 0 0 2px rgba(0, 87, 255, 0.2);
+}
+
+/* Choice buttons (collect-choice) */
+.choice-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.choice-btn {
+  background: var(--theme-accent, #5bc0de);
+  color: var(--theme-bg, white);
+  border: none;
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-size: 1.15rem;
+  font-weight: bold;
+  text-align: left;
+  cursor: pointer;
+  word-wrap: break-word;
+  white-space: normal;
+}
+
+.choice-btn:hover {
+  opacity: 0.85;
+}
+
+.choice-btn:active {
+  opacity: 0.75;
+}
+
 /* Vote section */
 .vote-btn {
   background: var(--theme-accent, #5bc0de);

@@ -73,7 +73,7 @@ body {
   text-align: center;
 }
 
-#launch-btn, #reset-btn {
+#launch-btn, #reset-btn, #bot-fill-btn {
   padding: 6px 16px;
   border: none;
   border-radius: 4px;
@@ -90,6 +90,15 @@ body {
 #launch-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+#bot-fill-btn {
+  background: #4ea8de;
+  color: white;
+}
+
+#bot-fill-btn:hover {
+  background: #6bc0f0;
 }
 
 #reset-btn {

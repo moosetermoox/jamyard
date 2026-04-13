@@ -139,6 +139,87 @@ const relaySubmitBtn = document.getElementById('relay-submit-btn');
   }
 })();
 
+// --- Bot Fill (prototype mode) ---
+var BOT_PHRASES = [
+  'Pizza is the best food', 'I love recess', 'Homework should be banned',
+  'Cats are better than dogs', 'Summer vacation rocks', 'Math is actually fun',
+  'I want to be an astronaut', 'Tacos every Tuesday', 'Rain is the best weather',
+  'Video games teach strategy', 'Reading is an adventure', 'Chocolate milk forever',
+  'Naps should be mandatory', 'The ocean is amazing', 'Robots will do our chores',
+  'Snow days are the best', 'Dinosaurs were awesome', 'Ice cream for breakfast'
+];
+
+window.addEventListener('message', function(e) {
+  if (!e.data || e.data.type !== 'bot-fill') return;
+
+  // Find the currently visible section
+  var active = document.querySelector('section.active');
+  if (!active) return;
+  var id = active.id;
+
+  if (id === 'collect-section') {
+    // Check for choice buttons first (collect-choice mode)
+    var choiceBtns = active.querySelectorAll('.choice-btn');
+    if (choiceBtns.length > 0) {
+      choiceBtns[Math.floor(Math.random() * choiceBtns.length)].click();
+    } else {
+      // Check for multi-field inputs
+      var fieldInputs = active.querySelectorAll('.field-input');
+      if (fieldInputs.length > 0) {
+        for (var fi = 0; fi < fieldInputs.length; fi++) {
+          fieldInputs[fi].value = BOT_PHRASES[Math.floor(Math.random() * BOT_PHRASES.length)];
+        }
+        var btn = active.querySelector('button#submit-btn');
+        if (btn && !btn.disabled) btn.click();
+      } else {
+        // Free text mode — fill textarea and submit
+        var textarea = active.querySelector('textarea');
+        var btn = active.querySelector('button#submit-btn');
+        if (textarea && btn && !btn.disabled) {
+          textarea.value = BOT_PHRASES[Math.floor(Math.random() * BOT_PHRASES.length)];
+          btn.click();
+        }
+      }
+    }
+  } else if (id === 'vote-section') {
+    // Click a random vote button
+    var voteBtns = active.querySelectorAll('.vote-btn');
+    if (voteBtns.length > 0) {
+      voteBtns[Math.floor(Math.random() * voteBtns.length)].click();
+    }
+  } else if (id === 'rank-section') {
+    // Shuffle current order and submit
+    if (rankCurrentOrder.length > 0) {
+      for (var i = rankCurrentOrder.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var tmp = rankCurrentOrder[i];
+        rankCurrentOrder[i] = rankCurrentOrder[j];
+        rankCurrentOrder[j] = tmp;
+      }
+    }
+    var rankBtn = active.querySelector('#rank-submit-btn');
+    if (rankBtn && !rankBtn.disabled) rankBtn.click();
+  } else if (id === 'wager-section') {
+    // Pick random option and submit
+    var wagerBtns = active.querySelectorAll('.wager-option-btn');
+    if (wagerBtns.length > 0) {
+      wagerBtns[Math.floor(Math.random() * wagerBtns.length)].click();
+    }
+    var wagerBtn = active.querySelector('#wager-submit-btn');
+    if (wagerBtn && !wagerBtn.disabled) {
+      setTimeout(function() { wagerBtn.click(); }, 100);
+    }
+  } else if (id === 'relay-section') {
+    // Fill relay input and submit (only if it's our turn)
+    var relayIn = active.querySelector('#relay-input');
+    var relayBtn = active.querySelector('#relay-submit-btn');
+    if (relayIn && relayBtn && !relayBtn.disabled && !document.getElementById('relay-input-section').hidden) {
+      relayIn.value = BOT_PHRASES[Math.floor(Math.random() * BOT_PHRASES.length)];
+      relayBtn.click();
+    }
+  }
+});
+
 joinBtn.addEventListener('click', () => {
   const code = roomCodeInput.value.toUpperCase().trim();
   const name = nameInput.value.trim();
@@ -258,22 +339,132 @@ function clearTimer() {
 
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt, timer, playerTemplate, show }) => {
+socket.on('game-started', ({ prompt, timer, playerTemplate, show, isChoice, choices, fields }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   responseInput.value = '';
   submitBtn.disabled = false;
   applyTemplate(collectSection, playerTemplate);
-  applyShow(show, {
-    prompt: promptDisplay,
-    input: responseInput,
-    timer: collectTimerDisplay,
-    submitButton: submitBtn
-  });
+
+  // Clean up previous dynamic elements
+  var oldChoices = collectSection.querySelector('.choice-buttons');
+  if (oldChoices) oldChoices.remove();
+  var oldFields = collectSection.querySelector('.multi-fields');
+  if (oldFields) oldFields.remove();
+
+  // Track current collect mode for timer auto-submit
+  var collectMode = 'text';
+
+  if (isChoice && Array.isArray(choices) && choices.length > 0) {
+    // --- Multiple choice mode ---
+    collectMode = 'choice';
+    responseInput.hidden = true;
+    responseInput.style.display = 'none';
+    submitBtn.hidden = true;
+    submitBtn.style.display = 'none';
+    var choiceContainer = document.createElement('div');
+    choiceContainer.className = 'choice-buttons';
+    for (var ci = 0; ci < choices.length; ci++) {
+      (function(choiceText) {
+        var btn = document.createElement('button');
+        btn.className = 'choice-btn';
+        btn.textContent = choiceText;
+        btn.addEventListener('click', function() {
+          socket.emit('submit-response', { code: currentRoomCode, response: choiceText });
+          showSection(submittedSection);
+        });
+        choiceContainer.appendChild(btn);
+      })(typeof choices[ci] === 'string' ? choices[ci] : (choices[ci].text || choices[ci].name || String(choices[ci])));
+    }
+    collectSection.appendChild(choiceContainer);
+    applyShow(show, {
+      prompt: promptDisplay,
+      input: choiceContainer,
+      timer: collectTimerDisplay,
+      submitButton: submitBtn
+    });
+
+  } else if (Array.isArray(fields) && fields.length > 0) {
+    // --- Multi-field mode ---
+    collectMode = 'fields';
+    responseInput.hidden = true;
+    responseInput.style.display = 'none';
+    var fieldsContainer = document.createElement('div');
+    fieldsContainer.className = 'multi-fields';
+    for (var fi = 0; fi < fields.length; fi++) {
+      var fieldDef = fields[fi];
+      var fieldLabel = document.createElement('label');
+      fieldLabel.className = 'field-label';
+      fieldLabel.textContent = fieldDef.label;
+      fieldsContainer.appendChild(fieldLabel);
+
+      var fieldInput = document.createElement('input');
+      fieldInput.type = 'text';
+      fieldInput.className = 'field-input';
+      fieldInput.setAttribute('data-key', fieldDef.key);
+      fieldInput.placeholder = fieldDef.placeholder || fieldDef.label;
+      fieldsContainer.appendChild(fieldInput);
+    }
+    collectSection.insertBefore(fieldsContainer, submitBtn);
+    submitBtn.hidden = false;
+    submitBtn.style.display = '';
+
+    // Override submit to send field object
+    var fieldsSubmitHandler = function() {
+      var inputs = fieldsContainer.querySelectorAll('.field-input');
+      var result = {};
+      var allFilled = true;
+      for (var k = 0; k < inputs.length; k++) {
+        var val = inputs[k].value.trim();
+        if (!val) allFilled = false;
+        result[inputs[k].getAttribute('data-key')] = val;
+      }
+      if (!allFilled) return;
+      submitBtn.disabled = true;
+      socket.emit('submit-response', { code: currentRoomCode, response: result });
+      showSection(submittedSection);
+    };
+    submitBtn.onclick = fieldsSubmitHandler;
+
+    applyShow(show, {
+      prompt: promptDisplay,
+      input: fieldsContainer,
+      timer: collectTimerDisplay,
+      submitButton: submitBtn
+    });
+
+  } else {
+    // --- Single text mode ---
+    responseInput.hidden = false;
+    responseInput.style.display = '';
+    submitBtn.hidden = false;
+    submitBtn.style.display = '';
+    submitBtn.onclick = null; // clear any multi-field handler
+    applyShow(show, {
+      prompt: promptDisplay,
+      input: responseInput,
+      timer: collectTimerDisplay,
+      submitButton: submitBtn
+    });
+  }
+
   if (timer) {
     startTimer(timer, collectTimerDisplay, () => {
-      submitBtn.disabled = true;
-      socket.emit('submit-response', { code: currentRoomCode, response: responseInput.value.trim() || '' });
+      if (collectMode === 'choice') {
+        var randomChoice = choices[Math.floor(Math.random() * choices.length)];
+        var text = typeof randomChoice === 'string' ? randomChoice : (randomChoice.text || randomChoice.name || String(randomChoice));
+        socket.emit('submit-response', { code: currentRoomCode, response: text });
+      } else if (collectMode === 'fields') {
+        var inputs = collectSection.querySelectorAll('.field-input');
+        var result = {};
+        for (var k = 0; k < inputs.length; k++) {
+          result[inputs[k].getAttribute('data-key')] = inputs[k].value.trim() || '';
+        }
+        socket.emit('submit-response', { code: currentRoomCode, response: result });
+      } else {
+        submitBtn.disabled = true;
+        socket.emit('submit-response', { code: currentRoomCode, response: responseInput.value.trim() || '' });
+      }
       showSection(submittedSection);
     });
   }

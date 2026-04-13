@@ -23,7 +23,7 @@
       "data": "write-captions.responses",
       "shuffle": true,
       "candidateSource": "players",
-      "decoyCount": 3,
+      "decoyCount": 99,
       "subPhases": {
         "show-caption": {
           "type": "announce",

@@ -1,0 +1,35 @@
+{
+  "name": "Quick Poll",
+  "description": "Ask the class a question and see what AI thinks",
+  "minPlayers": 2,
+  "maxPlayers": 36,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "ask"
+    },
+    "ask": {
+      "type": "collect",
+      "prompt": "What do you think?",
+      "timer": 60,
+      "next": "process"
+    },
+    "process": {
+      "type": "ai-process",
+      "task": "summarize",
+      "instruction": "Summarize what the class said in 2-3 sentences. Highlight common themes and any surprising answers.",
+      "input": "ask.responses",
+      "format": "text",
+      "next": "results"
+    },
+    "results": {
+      "type": "reveal",
+      "template": "{{process.result}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for sharing!"
+    }
+  }
+}

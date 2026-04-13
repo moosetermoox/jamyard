@@ -598,6 +598,22 @@ body {
   gap: 12px;
 }
 
+.picker-category-header {
+  grid-column: 1 / -1;
+  font-weight: 900;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #666;
+  border-bottom: 2px solid #ddd;
+  padding: 8px 0 4px;
+  margin-top: 8px;
+}
+
+.picker-category-header:first-child {
+  margin-top: 0;
+}
+
 .picker-card {
   padding: 14px 16px;
   border: 3px solid #000;

@@ -67,6 +67,33 @@ Also check (still in plain, friendly language):
 
 Be encouraging! Start the summary with something positive about the game concept.`;
 
+const CLARIFY_QUESTIONS_PROMPT = `You are helping a teacher design a classroom game. The teacher will describe a game idea, and you need to ask 2-4 SHORT clarifying questions to make sure you build exactly what they want.
+
+Think about what could go wrong or be ambiguous:
+- How many things does each player need to submit? (e.g., "two truths and a lie" needs 3 inputs, not 1)
+- Should there be scoring? What kind?
+- Should the class see each response one-at-a-time, or all at once?
+- Is there elimination, or does everyone play to the end?
+- Should AI be involved (generating content, judging, etc.)?
+- How long should players have to respond?
+
+IMPORTANT: Only ask questions where the answer is NOT obvious from the description. If the user says "two truths and a lie," you don't need to ask "how many things does each player submit?" — that's clearly 3. But you should ask clarifying things like "Should the class vote on which one is the lie, or just discuss?"
+
+Return ONLY valid JSON in this format:
+{
+  "questions": [
+    {
+      "question": "Short, clear question in plain English",
+      "options": ["Option A", "Option B", "Option C"],
+      "default": "Option A"
+    }
+  ]
+}
+
+Each question MUST have 2-4 predefined options (not free text) plus a sensible default. Keep questions short and jargon-free — the user is a teacher, not a programmer.
+
+If the description is so clear that no questions are needed, return: {"questions": []}`;
+
 const GAME_GENERATOR_PROMPT = `You are a classroom game designer. Given a description, generate a complete game config JSON.
 
 IMPORTANT: Return ONLY valid JSON. No explanation, no markdown, just the JSON object.
@@ -88,7 +115,14 @@ Available phase types:
 
 1. "collect" — Players type a text response
    Required: "prompt" (string)
-   Optional: "timer" (seconds), "from" ("all"/"remaining"/"eliminated")
+   Optional: "timer" (seconds), "from" ("all"/"remaining"/"eliminated"), "fields" (array of field objects)
+
+   MULTI-FIELD COLLECT: When a game needs multiple separate inputs (e.g. "two truths and a lie" needs 3 inputs), use the "fields" array:
+   "fields": [{"label": "Truth 1", "key": "truth1"}, {"label": "Truth 2", "key": "truth2"}, {"label": "The Lie", "key": "lie"}]
+   Each field renders as a separate labeled text input. The response is stored with a "fields" object (keyed by "key") plus a "text" field joining all values.
+   Inside foreach, reference specific fields with _current.fields.<key> (e.g. _current.fields.lie).
+   Use "choices": "_current.shuffledFields" in a collect-choice sub-phase to show field values as shuffled multiple-choice options.
+   Use "correctAnswer": "_current.fields.<key>" in scoring to match against a specific field value.
 
 2. "collect-choice" — Players pick from predefined choices
    Required: "prompt" (string), "choices" (array of strings OR "_candidates" inside foreach)
@@ -164,6 +198,12 @@ Available phase types:
     _candidates becomes an array of PLAYER NAMES (strings): the real author + N random other player names.
     _candidates is ONLY usable as the "choices" value in collect-choice. You CANNOT do _candidates[0].text or _candidates.0.text.
     It is ONLY useful for "guess who wrote this" style games.
+
+    FIELD-BASED CHOICES (for "pick from the player's own answers" games like Two Truths and a Lie):
+    When the collect phase uses "fields", use "choices": "_current.shuffledFields" in a collect-choice sub-phase.
+    This creates a shuffled array of ALL the current item's field values as choices.
+    Use "correctAnswer": "_current.fields.<key>" to score against a specific field (e.g. "_current.fields.lie").
+    EXAMPLE: Two Truths and a Lie scoring: { "subPhase": "guess", "correctAnswer": "_current.fields.lie", "pointsCorrect": 100 }
 
     Scoring has TWO modes:
     A) "correct" mode (for guessing games — who wrote it?):
@@ -544,11 +584,53 @@ export class AIService {
     }
   }
 
-  async generateGame(description) {
+  async generateQuestions(description) {
+    if (this.mode === 'mock') {
+      return {
+        questions: [
+          { question: 'How many things should each player submit?', options: ['1', '2', '3'], default: '1' },
+          { question: 'Should there be scoring?', options: ['Yes, points for correct guesses', 'Yes, class rates each answer', 'No scoring'], default: 'Yes, points for correct guesses' },
+          { question: 'How long should players have to answer?', options: ['30 seconds', '60 seconds', '90 seconds'], default: '60 seconds' }
+        ]
+      };
+    }
+    return this._generateQuestionsReal(description);
+  }
+
+  async _generateQuestionsReal(description) {
+    try {
+      const message = await this.client.messages.create({
+        model: MODELS.sonnet,
+        max_tokens: 1024,
+        system: CLARIFY_QUESTIONS_PROMPT,
+        messages: [
+          { role: 'user', content: description }
+        ]
+      });
+
+      const text = message.content[0].text;
+      let result;
+      try {
+        result = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (match) {
+          try { result = JSON.parse(match[0]); } catch { return { error: 'Failed to parse AI response' }; }
+        }
+        if (!result) return { error: 'No JSON found in AI response' };
+      }
+      return result;
+    } catch (error) {
+      console.error('[AIService] generateQuestions error:', error.message);
+      return { error: `AI question generation failed: ${error.message}` };
+    }
+  }
+
+  async generateGame(description, answers) {
     if (this.mode === 'mock') {
       return this._generateGameMock(description);
     }
-    return this._generateGameReal(description);
+    return this._generateGameReal(description, answers);
   }
 
   _generateGameMock(description) {
@@ -575,14 +657,21 @@ export class AIService {
     };
   }
 
-  async _generateGameReal(description) {
+  async _generateGameReal(description, answers) {
     try {
+      let userContent = `Create a classroom game based on this description:\n\n${description}`;
+      if (answers && answers.length > 0) {
+        userContent += '\n\nThe user clarified the following details:\n';
+        for (const a of answers) {
+          userContent += `- ${a.question}: ${a.answer}\n`;
+        }
+      }
       const message = await this.client.messages.create({
         model: MODELS.sonnet,
         max_tokens: 4096,
         system: GAME_GENERATOR_PROMPT,
         messages: [
-          { role: 'user', content: `Create a classroom game based on this description:\n\n${description}` }
+          { role: 'user', content: userContent }
         ]
       });
 
