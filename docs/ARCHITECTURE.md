@@ -134,6 +134,17 @@ The goal is that teachers build games in a visual editor. Configs are validated 
 ### How does foreach work?
 Foreach is an orchestrator phase that creates virtual sub-phases at runtime (`_fe:phaseId:subName`). It supports two scoring modes (correct/tally), self-exclusion, and AI injection for human-vs-AI games.
 
+### How does AI game generation work?
+`POST /api/games/generate-questions` runs a two-step flow: Sonnet first asks 2-4 clarifying questions (e.g. "Do players write one response or multiple?"), then `POST /api/games/generate` produces a config with those answers. After generation, the server auto-polishes: runs the light review, then auto-applies up to 4 non-error fixes via the fix-issue endpoint. Users get a cleaner config on first try.
+
+### How does review + fix work?
+- **Light review** (Haiku) runs automatically after save, flags vague instructions, missing timers, broken data flow
+- **Deep review** (Sonnet) runs on "Check My Game", adds engagement and playability feedback
+- **Apply Fix** (Haiku) — each non-error issue gets an "Apply Fix" button. Server sends only the target phase + list of other phase IDs (can't rename IDs, can't invent new refs, can't change phase type). Returns `{updatedPhase, explanation}`. Client shows a diff modal before committing.
+
+### Why friendly tokens in the editor?
+Teachers saw `{{_current.playerName}}` and got confused. Editor textareas now display `[Player's name]`, but the stored config keeps the `{{}}` syntax the engine expects. Translation is bidirectional via `tokenize`/`detokenize` in `editor.js`, triggered when `addVariableChips` / `addForeachVariableChips` attach to a textarea.
+
 ## What I'd Want Feedback On
 
 1. **server.js monolith** - The central `handlePhase()` dispatcher is getting large. Is this the right seam to split on, or would extracting per-phase-type handlers into separate files add complexity without benefit?
@@ -161,6 +172,6 @@ node scripts/test-all-games.js            # smoke test all 15 games (needs serve
 ## Stats
 
 - **~20K lines** across JS, HTML, CSS, JSON
-- **19 phase types**, **10 working games**, **264 unit tests**
+- **19 phase types**, **~17 working games**, **266 unit tests**
 - **Dependencies:** Express 5, Socket.io, Anthropic SDK, Vitest (dev)
-- **AI:** Claude Haiku 4.5 for gameplay, Sonnet for game generation/deep review
+- **AI:** Claude Haiku 4.5 for gameplay/light review/fix-issue, Sonnet for game generation/deep review
