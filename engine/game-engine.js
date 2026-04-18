@@ -143,8 +143,8 @@ export class GameEngine {
     const data = this.phaseData[firstPart];
     if (data === undefined) return undefined;
 
-    // Synthetic: phaseId.barChart renders a tally as an ASCII bar chart
-    if (parts.length === 2 && parts[1] === 'barChart') {
+    // Synthetic: phaseId.barChart (alias: pieChart, chart) renders a tally as an ASCII bar chart
+    if (parts.length === 2 && (parts[1] === 'barChart' || parts[1] === 'pieChart' || parts[1] === 'chart')) {
       return formatBarChart(data.tally);
     }
 

@@ -289,6 +289,7 @@ Data references format: "phaseId.field" — e.g. "collect.responses", "vote.scor
 
 Common data fields per phase:
 - collect: .responses (array of {playerId, name, text})
+- collect-choice: .responses (array of {playerId, name, choice}), .tally (object {choice: count}), .barChart (pre-rendered ASCII bar chart string)
 - vote: .scores (object {playerId: score}), .winner
 - rank: .rankings, .rankedList
 - wager: .scores
@@ -296,6 +297,8 @@ Common data fields per phase:
 - relay: .text (combined), .result (array)
 - team-split: .teams, .playerTeam
 - ai-process: .result
+
+BAR CHART: To show poll/survey results visually, use {{phaseId.barChart}} in a reveal template where phaseId is a collect-choice phase. It renders as an ASCII bar chart with counts and percentages. Aliases: .pieChart, .chart (all produce the same ASCII bars). Do NOT try to use .tallies (wrong plural) or reference individual tally keys like {{phase.tally.SomeChoice}} — the chart already shows each choice with its count. For a simple poll with visual results, do: collect-choice → reveal with template "{{poll.barChart}}".
 
 DESIGN TIPS:
 - Use "foreach" for any "show each response and do something" pattern (guessing games, voting on each, reviewing)
