@@ -94,6 +94,8 @@ export const EVENTS = {
 
   // --- Error Recovery ---
   PHASE_ERROR:          'phase-error',
+  PHASE_PAUSED:         'phase-paused',
+  PHASE_RESUMED:        'phase-resumed',
   RETRY_PHASE:          'retry-phase',
   SKIP_PHASE:           'skip-phase',
 

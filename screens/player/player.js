@@ -848,6 +848,11 @@ socket.on('waiting', ({ message }) => {
   gameWaitingMessage.textContent = message;
 });
 
+socket.on('phase-paused', ({ message }) => {
+  showSection(gameWaitingSection);
+  gameWaitingMessage.textContent = message || 'The teacher is resolving an issue. Please wait...';
+});
+
 // --- Socket events - Voting ---
 
 socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, show }) => {

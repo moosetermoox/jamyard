@@ -585,6 +585,7 @@ async function handlePhase(code, room) {
     } catch (err) {
       console.error(`[handlePhase] Error in '${phase.id}' (type: ${phase.type}):`, err.message);
       recordEvent(room, 'phase-error', { phaseType: phase.type, error: err.message });
+      room.paused = true;
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {
         const nextId = getNextPhaseId(engine, phase);
@@ -596,6 +597,10 @@ async function handlePhase(code, room) {
           canSkip: !!nextId
         });
       }
+      // Tell players the game is paused so they don't stare at a stale screen
+      io.to(code).emit(EVENTS.PHASE_PAUSED, {
+        message: 'The teacher is resolving an issue. Please wait...'
+      });
       return;
     }
   }
@@ -1201,6 +1206,8 @@ io.on('connection', (socket) => {
     console.log(`[retry-phase] Retrying current phase in room ${code}`);
     const room = roomManager.find(code);
     if (!room || !room.engine) return;
+    recordEvent(room, 'retry-phase');
+    room.paused = false;
     try {
       await handlePhase(code, room);
     } catch (error) {
@@ -1212,6 +1219,8 @@ io.on('connection', (socket) => {
     console.log(`[skip-phase] Skipping current phase in room ${code}`);
     const room = roomManager.find(code);
     if (!room || !room.engine) return;
+    recordEvent(room, 'skip-phase');
+    room.paused = false;
     try {
       const currentPhase = room.engine.getCurrentPhase();
       const nextId = getNextPhaseId(room.engine, currentPhase);

@@ -128,6 +128,7 @@ const phaseErrorTitle = document.getElementById('phase-error-title');
 const phaseErrorMessage = document.getElementById('phase-error-message');
 const phaseErrorRetryBtn = document.getElementById('phase-error-retry-btn');
 const phaseErrorSkipBtn = document.getElementById('phase-error-skip-btn');
+const phaseErrorEndBtn = document.getElementById('phase-error-end-btn');
 
 // Elements - End
 const endSection = document.getElementById('end-section');
@@ -668,6 +669,12 @@ phaseErrorRetryBtn.addEventListener('click', () => {
 
 phaseErrorSkipBtn.addEventListener('click', () => {
   socket.emit('skip-phase', { code: currentRoomCode });
+});
+
+phaseErrorEndBtn.addEventListener('click', () => {
+  if (confirm('End the game for everyone?')) {
+    socket.emit('end-game', { code: currentRoomCode });
+  }
 });
 
 // --- Socket events - Voting ---
