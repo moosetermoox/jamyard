@@ -20,6 +20,7 @@ import {
 } from './engine/phases/vote-handler.js';
 import { getHandler, hasHandler, createPhaseContext } from './engine/phase-handlers/index.js';
 import { EVENTS } from './engine/events.js';
+import { validatePayload } from './engine/event-schemas.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -61,6 +62,18 @@ function getNextPhaseId(engine, phase) {
     return phase.next;
   }
   return phase.next;
+}
+
+// Check incoming payload against its schema; on failure, log + tell the client.
+// Returns true if payload is valid (handler should proceed).
+function checkEventPayload(socket, eventName, payload) {
+  const result = validatePayload(eventName, payload);
+  if (!result.ok) {
+    console.log(`[invalid-payload] "${eventName}" from ${socket.id}: ${result.reason}`);
+    socket.emit('event-rejected', { event: eventName, reason: result.reason });
+    return false;
+  }
+  return true;
 }
 
 const JOURNAL_MAX_ENTRIES = 100;
@@ -889,7 +902,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.CREATE_ROOM, async ({ gameId } = {}) => {
+  socket.on(EVENTS.CREATE_ROOM, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'create-room', payload)) return;
+    const { gameId } = payload;
     const selectedGame = gameId || DEFAULT_GAME;
 
     try {
@@ -911,7 +926,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.JOIN_ROOM, ({ code, name, token } = {}) => {
+  socket.on(EVENTS.JOIN_ROOM, (payload = {}) => {
+    if (!checkEventPayload(socket, 'join-room', payload)) return;
+    const { code, name, token } = payload;
     console.log(`[join-room] ${socket.id} trying to join ${code} as "${name}"`);
 
     const room = roomManager.find(code);
@@ -975,7 +992,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.START_GAME, async ({ code } = {}) => {
+  socket.on(EVENTS.START_GAME, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'start-game', payload)) return;
+    const { code } = payload;
     console.log(`[start-game] Starting game in room ${code}`);
 
     const room = roomManager.find(code);
@@ -1001,7 +1020,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.SUBMIT_RESPONSE, ({ code, response, phaseInstanceId } = {}) => {
+  socket.on(EVENTS.SUBMIT_RESPONSE, (payload = {}) => {
+    if (!checkEventPayload(socket, 'submit-response', payload)) return;
+    const { code, response, phaseInstanceId } = payload;
     console.log(`[submit-response] Response from ${socket.id} in room ${code}`);
 
     const room = roomManager.find(code);
@@ -1048,7 +1069,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.CLOSE_SUBMISSIONS, async ({ code, phaseInstanceId } = {}) => {
+  socket.on(EVENTS.CLOSE_SUBMISSIONS, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'close-submissions', payload)) return;
+    const { code, phaseInstanceId } = payload;
     console.log(`[close-submissions] Closing submissions for room ${code}`);
 
     const room = roomManager.find(code);
@@ -1136,7 +1159,9 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.SUBMIT_VOTE, async ({ code, choice, votes: votesList, phaseInstanceId } = {}) => {
+  socket.on(EVENTS.SUBMIT_VOTE, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'submit-vote', payload)) return;
+    const { code, choice, votes: votesList, phaseInstanceId } = payload;
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'submit-vote')) return;
@@ -1260,7 +1285,9 @@ io.on('connection', (socket) => {
 
   // --- Rank events ---
 
-  socket.on(EVENTS.RANK_SUBMIT, async ({ code, ranking, phaseInstanceId } = {}) => {
+  socket.on(EVENTS.RANK_SUBMIT, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'rank-submit', payload)) return;
+    const { code, ranking, phaseInstanceId } = payload;
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'rank-submit')) return;
@@ -1288,7 +1315,9 @@ io.on('connection', (socket) => {
 
   // --- Wager events ---
 
-  socket.on(EVENTS.WAGER_SUBMIT, async ({ code, option, amount, phaseInstanceId } = {}) => {
+  socket.on(EVENTS.WAGER_SUBMIT, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'wager-submit', payload)) return;
+    const { code, option, amount, phaseInstanceId } = payload;
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'wager-submit')) return;
@@ -1327,7 +1356,9 @@ io.on('connection', (socket) => {
 
   // --- Relay events ---
 
-  socket.on(EVENTS.RELAY_SUBMIT, async ({ code, text, phaseInstanceId } = {}) => {
+  socket.on(EVENTS.RELAY_SUBMIT, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'relay-submit', payload)) return;
+    const { code, text, phaseInstanceId } = payload;
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'relay-submit')) return;
