@@ -1,30 +1,26 @@
 {
   "name": "Quick Poll",
-  "description": "Ask the class a question and see what AI thinks",
+  "description": "Ask the class a multiple-choice question and see results as a bar chart",
   "minPlayers": 2,
   "maxPlayers": 36,
   "phases": {
     "lobby": {
       "type": "lobby",
-      "next": "ask"
+      "next": "poll"
     },
-    "ask": {
-      "type": "collect",
-      "prompt": "What do you think?",
-      "timer": 60,
-      "next": "process"
-    },
-    "process": {
-      "type": "ai-process",
-      "task": "summarize",
-      "instruction": "Summarize what the class said in 2-3 sentences. Highlight common themes and any surprising answers.",
-      "input": "ask.responses",
-      "format": "text",
+    "poll": {
+      "type": "collect-choice",
+      "prompt": "Are you more like a duck, or more like an LLM?",
+      "choices": [
+        "More like a duck",
+        "More like an LLM"
+      ],
+      "timer": 30,
       "next": "results"
     },
     "results": {
       "type": "reveal",
-      "template": "{{process.result}}",
+      "template": "Results:\n\n{{poll.barChart}}",
       "next": "end"
     },
     "end": {

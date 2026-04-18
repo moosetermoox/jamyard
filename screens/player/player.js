@@ -506,6 +506,7 @@ socket.on('processing-started', ({ task, playerTemplate, playerShow } = {}) => {
 socket.on('show-results', ({ content, aiResult, playerTemplate, playerShow }) => {
   showSection(revealSection);
   aiResultDisplay.textContent = content || aiResult;
+  aiResultDisplay.classList.toggle('chart', /[█░]/.test(aiResultDisplay.textContent || ''));
   applyTemplate(revealSection, playerTemplate);
   applyShow(playerShow, { content: aiResultDisplay });
 });

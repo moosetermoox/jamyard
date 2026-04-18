@@ -151,6 +151,12 @@ button:disabled {
   text-align: left;
 }
 
+.ai-result.chart {
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
 /* Eliminated banner */
 #eliminated-banner {
   background: var(--theme-danger, #f2dede);

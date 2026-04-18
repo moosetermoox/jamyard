@@ -493,4 +493,44 @@ describe('GameEngine', () => {
       expect(endCount).toBe(1);
     });
   });
+
+  describe('barChart resolver', () => {
+    it('renders a tally as ASCII bars with counts and percentages', () => {
+      const engine = new GameEngine({
+        phases: {
+          lobby: { type: 'lobby', next: 'poll' },
+          poll: { type: 'collect-choice', choices: ['Yes', 'No'], next: 'end' },
+          end: { type: 'end' }
+        }
+      });
+      engine.storePhaseData('poll', { tally: { Yes: 4, No: 2 } });
+      const chart = engine.resolve('poll.barChart');
+      expect(chart).toContain('Yes');
+      expect(chart).toContain('No');
+      expect(chart).toContain('4 (67%)');
+      expect(chart).toContain('2 (33%)');
+      expect(chart).toContain('█');
+      expect(chart).toContain('░');
+    });
+
+    it('sorts bars from most to least', () => {
+      const engine = new GameEngine({
+        phases: { lobby: { type: 'lobby', next: 'end' }, end: { type: 'end' } }
+      });
+      engine.storePhaseData('lobby', { tally: { Low: 1, High: 5, Mid: 3 } });
+      const chart = engine.resolve('lobby.barChart');
+      const lines = chart.split('\n');
+      expect(lines[0]).toContain('High');
+      expect(lines[1]).toContain('Mid');
+      expect(lines[2]).toContain('Low');
+    });
+
+    it('returns placeholder when tally is empty', () => {
+      const engine = new GameEngine({
+        phases: { lobby: { type: 'lobby', next: 'end' }, end: { type: 'end' } }
+      });
+      engine.storePhaseData('lobby', { tally: {} });
+      expect(engine.resolve('lobby.barChart')).toBe('(no responses)');
+    });
+  });
 });

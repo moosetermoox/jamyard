@@ -412,6 +412,7 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
 socket.on('show-results', ({ content, aiResult, responses, hostTemplate, hostShow }) => {
   showSection(revealSection);
   aiResultDisplay.textContent = content || aiResult;
+  aiResultDisplay.classList.toggle('chart', /[█░]/.test(aiResultDisplay.textContent || ''));
   applyTemplate(revealSection, hostTemplate);
   applyShow(hostShow, {
     content: aiResultDisplay,

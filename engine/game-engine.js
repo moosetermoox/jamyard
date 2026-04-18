@@ -143,6 +143,11 @@ export class GameEngine {
     const data = this.phaseData[firstPart];
     if (data === undefined) return undefined;
 
+    // Synthetic: phaseId.barChart renders a tally as an ASCII bar chart
+    if (parts.length === 2 && parts[1] === 'barChart') {
+      return formatBarChart(data.tally);
+    }
+
     let value = data;
     for (let i = 1; i < parts.length; i++) {
       if (value == null) return undefined;
@@ -241,4 +246,36 @@ function buildStateMachineConfig(phases) {
   }
 
   return { initialState: lobbyPhase, transitions };
+}
+
+/**
+ * Format a tally object as a plain-text bar chart.
+ * Input: { "Yes": 4, "No": 2 }
+ * Output: "Yes  ████████ 4\nNo   ████ 2"
+ * @param {Object} tally
+ * @returns {string}
+ */
+function formatBarChart(tally) {
+  if (!tally || typeof tally !== 'object') return '';
+  const entries = Object.entries(tally);
+  if (entries.length === 0) return '(no responses)';
+
+  const max = Math.max(...entries.map(([, n]) => Number(n) || 0));
+  if (max === 0) return '(no responses)';
+
+  const maxBar = 20;
+  const maxLabelLen = Math.max(...entries.map(([label]) => String(label).length));
+  const total = entries.reduce((sum, [, n]) => sum + (Number(n) || 0), 0);
+
+  return entries
+    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
+    .map(([label, count]) => {
+      const n = Number(count) || 0;
+      const barLen = Math.round((n / max) * maxBar);
+      const bar = '█'.repeat(barLen) + '░'.repeat(maxBar - barLen);
+      const pct = total > 0 ? Math.round((n / total) * 100) : 0;
+      const paddedLabel = String(label).padEnd(maxLabelLen);
+      return `${paddedLabel}  ${bar}  ${n} (${pct}%)`;
+    })
+    .join('\n');
 }
