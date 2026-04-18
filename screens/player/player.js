@@ -1,5 +1,20 @@
 const socket = io();
 
+// --- Stale-event guard: echo the last seen phaseInstanceId on every outgoing event ---
+let latestPhaseInstanceId = null;
+socket.onAny(function (_eventName, payload) {
+  if (payload && typeof payload === 'object' && payload.phaseInstanceId !== undefined) {
+    latestPhaseInstanceId = payload.phaseInstanceId;
+  }
+});
+const _origEmit = socket.emit.bind(socket);
+socket.emit = function (event, payload) {
+  if (latestPhaseInstanceId !== null && payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    if (payload.phaseInstanceId === undefined) payload.phaseInstanceId = latestPhaseInstanceId;
+  }
+  return _origEmit(event, payload);
+};
+
 let currentRoomCode = null;
 let currentPlayerName = null;
 let currentToken = null;

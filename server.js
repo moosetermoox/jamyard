@@ -63,6 +63,21 @@ function getNextPhaseId(engine, phase) {
   return phase.next;
 }
 
+// Reject events arriving from a client that already moved past the current phase.
+// Clients echo back the phaseInstanceId they received in the last phase-start event.
+// Mismatch = the phase advanced server-side before this event arrived. Drop it silently.
+// Undefined/missing client value = accept (backward compat for events not yet wired).
+function isStalePhaseEvent(room, clientPhaseInstanceId, eventName) {
+  if (!room) return false;
+  if (clientPhaseInstanceId === undefined || clientPhaseInstanceId === null) return false;
+  const current = room.phaseInstanceId;
+  if (clientPhaseInstanceId !== current) {
+    console.log(`[stale-event] Dropping "${eventName}" — client saw phase ${clientPhaseInstanceId}, current ${current}`);
+    return true;
+  }
+  return false;
+}
+
 function resolveTemplate(template, engine) {
   return template.replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
     const value = engine.resolve(ref.trim());
@@ -948,7 +963,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.SUBMIT_RESPONSE, ({ code, response } = {}) => {
+  socket.on(EVENTS.SUBMIT_RESPONSE, ({ code, response, phaseInstanceId } = {}) => {
     console.log(`[submit-response] Response from ${socket.id} in room ${code}`);
 
     const room = roomManager.find(code);
@@ -956,6 +971,7 @@ io.on('connection', (socket) => {
       console.log(`[submit-response] Room ${code} not found`);
       return;
     }
+    if (isStalePhaseEvent(room, phaseInstanceId, 'submit-response')) return;
 
     const players = room.engine ? room.engine.players : room.playerRegistry;
     const player = players.find(socket.id);
@@ -993,7 +1009,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.CLOSE_SUBMISSIONS, async ({ code } = {}) => {
+  socket.on(EVENTS.CLOSE_SUBMISSIONS, async ({ code, phaseInstanceId } = {}) => {
     console.log(`[close-submissions] Closing submissions for room ${code}`);
 
     const room = roomManager.find(code);
@@ -1001,6 +1017,7 @@ io.on('connection', (socket) => {
       console.log(`[close-submissions] Room ${code} not found`);
       return;
     }
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-submissions')) return;
 
     try {
       if (room.engine) {
@@ -1079,9 +1096,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.SUBMIT_VOTE, async ({ code, choice, votes: votesList } = {}) => {
+  socket.on(EVENTS.SUBMIT_VOTE, async ({ code, choice, votes: votesList, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'submit-vote')) return;
 
     const vs = room.phaseState;
     if (!vs.eligibleVoterIds) return;
@@ -1113,20 +1131,22 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.CLOSE_VOTING, async ({ code } = {}) => {
+  socket.on(EVENTS.CLOSE_VOTING, async ({ code, phaseInstanceId } = {}) => {
     console.log(`[close-voting] Host closing voting for room ${code}`);
 
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-voting')) return;
 
     await tallyAndAdvance(code, room);
   });
 
-  socket.on(EVENTS.ADVANCE_PHASE, async ({ code } = {}) => {
+  socket.on(EVENTS.ADVANCE_PHASE, async ({ code, phaseInstanceId } = {}) => {
     console.log(`[advance-phase] Advancing phase in room ${code}`);
 
     const room = roomManager.find(code);
     if (!room || !room.engine) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'advance-phase')) return;
 
     try {
       const currentPhase = room.engine.getCurrentPhase();
@@ -1167,9 +1187,10 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.REVEAL_NEXT, async ({ code } = {}) => {
+  socket.on(EVENTS.REVEAL_NEXT, async ({ code, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'reveal-next')) return;
 
     const state = room.phaseState;
     if (state.revealed >= state.items.length) return;
@@ -1193,9 +1214,10 @@ io.on('connection', (socket) => {
 
   // --- Rank events ---
 
-  socket.on(EVENTS.RANK_SUBMIT, async ({ code, ranking } = {}) => {
+  socket.on(EVENTS.RANK_SUBMIT, async ({ code, ranking, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'rank-submit')) return;
     const rs = room.phaseState;
     if (!rs.eligibleIds.has(socket.id) || rs.completed.has(socket.id)) return;
 
@@ -1211,17 +1233,19 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.CLOSE_RANKING, async ({ code } = {}) => {
+  socket.on(EVENTS.CLOSE_RANKING, async ({ code, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-ranking')) return;
     await closeRanking(code, room);
   });
 
   // --- Wager events ---
 
-  socket.on(EVENTS.WAGER_SUBMIT, async ({ code, option, amount } = {}) => {
+  socket.on(EVENTS.WAGER_SUBMIT, async ({ code, option, amount, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'wager-submit')) return;
     const ws = room.phaseState;
     if (!ws.eligibleIds.has(socket.id) || ws.completed.has(socket.id)) return;
 
@@ -1241,23 +1265,26 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.CLOSE_WAGER, async ({ code } = {}) => {
+  socket.on(EVENTS.CLOSE_WAGER, async ({ code, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-wager')) return;
     await closeWager(code, room);
   });
 
-  socket.on(EVENTS.WAGER_RESOLVE, async ({ code, winningOption } = {}) => {
+  socket.on(EVENTS.WAGER_RESOLVE, async ({ code, winningOption, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'wager-resolve')) return;
     await resolveWager(code, room, winningOption);
   });
 
   // --- Relay events ---
 
-  socket.on(EVENTS.RELAY_SUBMIT, async ({ code, text } = {}) => {
+  socket.on(EVENTS.RELAY_SUBMIT, async ({ code, text, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'relay-submit')) return;
     const rs = room.phaseState;
     if (rs.turnOrder[rs.currentTurnIndex] !== socket.id) return;
 
@@ -1286,9 +1313,10 @@ io.on('connection', (socket) => {
   // Preview events — delegated to handler
   for (const previewEvent of ['preview-approve', 'preview-reject', 'preview-edit']) {
     socket.on(previewEvent, async (payload = {}) => {
-      const { code } = payload;
+      const { code, phaseInstanceId } = payload;
       const room = roomManager.find(code);
       if (!room || !room.engine) return;
+      if (isStalePhaseEvent(room, phaseInstanceId, previewEvent)) return;
 
       try {
         const handler = getHandler(room.engine.getCurrentPhase().type);

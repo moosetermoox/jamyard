@@ -3,6 +3,15 @@
  * Bundles room state, I/O, and utilities so handlers don't need
  * to reach into server.js globals.
  */
+function withPhaseSeq(data, room) {
+  const seq = room.phaseInstanceId || 0;
+  if (data == null) return { phaseInstanceId: seq };
+  if (typeof data === 'object' && !Array.isArray(data)) {
+    return { ...data, phaseInstanceId: seq };
+  }
+  return data;
+}
+
 export function createPhaseContext(code, room, services) {
   const engine = room.engine;
   const phase = engine.getCurrentPhase();
@@ -30,15 +39,15 @@ export function createPhaseContext(code, room, services) {
     getNextPhaseId: () => services.getNextPhaseId(engine, phase),
     getEligibleVoters: (from) => services.getEligibleVoters(engine.players, from || phase.from || 'all'),
 
-    // Emit helpers
+    // Emit helpers — auto-injects phaseInstanceId so clients can echo it back for staleness checks
     emitToHost(event, data) {
-      if (hostSocketId) services.io.to(hostSocketId).emit(event, data);
+      if (hostSocketId) services.io.to(hostSocketId).emit(event, withPhaseSeq(data, room));
     },
     emitToRoom(event, data) {
-      services.io.to(code).emit(event, data);
+      services.io.to(code).emit(event, withPhaseSeq(data, room));
     },
     emitToPlayer(playerId, event, data) {
-      services.io.to(playerId).emit(event, data);
+      services.io.to(playerId).emit(event, withPhaseSeq(data, room));
     },
 
     // Staleness check — timers/callbacks capture phaseInstanceId, then check if still current
