@@ -63,6 +63,25 @@ function getNextPhaseId(engine, phase) {
   return phase.next;
 }
 
+const JOURNAL_MAX_ENTRIES = 100;
+
+// Append an entry to the room's event journal (ring buffer).
+// Used for debugging stalls: see what events arrived, when phases changed, what was rejected.
+function recordEvent(room, type, data) {
+  if (!room) return;
+  if (!room.journal) room.journal = [];
+  room.journal.push({
+    t: Date.now(),
+    phaseId: room.engine ? room.engine.getCurrentPhase().id : null,
+    phaseInstanceId: room.phaseInstanceId || 0,
+    type,
+    ...(data || {})
+  });
+  if (room.journal.length > JOURNAL_MAX_ENTRIES) {
+    room.journal.splice(0, room.journal.length - JOURNAL_MAX_ENTRIES);
+  }
+}
+
 // Reject events arriving from a client that already moved past the current phase.
 // Clients echo back the phaseInstanceId they received in the last phase-start event.
 // Mismatch = the phase advanced server-side before this event arrived. Drop it silently.
@@ -73,6 +92,7 @@ function isStalePhaseEvent(room, clientPhaseInstanceId, eventName) {
   const current = room.phaseInstanceId;
   if (clientPhaseInstanceId !== current) {
     console.log(`[stale-event] Dropping "${eventName}" — client saw phase ${clientPhaseInstanceId}, current ${current}`);
+    recordEvent(room, 'stale-dropped', { event: eventName, clientSeq: clientPhaseInstanceId });
     return true;
   }
   return false;
@@ -554,6 +574,7 @@ async function handlePhase(code, room) {
   }
   room.phaseState = {};
   room.phaseInstanceId = (room.phaseInstanceId || 0) + 1;
+  recordEvent(room, 'phase-enter', { phaseType: phase.type });
 
   // Dispatch to registered handler
   const handler = getHandler(phase.type);
@@ -563,6 +584,7 @@ async function handlePhase(code, room) {
       return await handler.onEnter(ctx);
     } catch (err) {
       console.error(`[handlePhase] Error in '${phase.id}' (type: ${phase.type}):`, err.message);
+      recordEvent(room, 'phase-error', { phaseType: phase.type, error: err.message });
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {
         const nextId = getNextPhaseId(engine, phase);
@@ -647,6 +669,17 @@ app.get('/api/games/:gameId', async (req, res) => {
     console.log(`[api/games/:gameId] Error: ${error.message}`);
     res.status(404).json({ error: error.message });
   }
+});
+
+app.get('/api/rooms/:code/journal', (req, res) => {
+  const room = roomManager.find(req.params.code.toUpperCase());
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+  res.json({
+    code: room.code,
+    currentPhaseId: room.engine ? room.engine.getCurrentPhase().id : null,
+    phaseInstanceId: room.phaseInstanceId || 0,
+    journal: room.journal || []
+  });
 });
 
 app.get('/api/games', async (req, res) => {
@@ -982,6 +1015,7 @@ io.on('connection', (socket) => {
 
     players.update(socket.id, { response });
     console.log(`[submit-response] Stored response from ${player.name}`);
+    recordEvent(room, 'submit-response', { player: player.name });
 
     // Count based on eligible players for current collect phase
     let eligible;
@@ -1018,6 +1052,7 @@ io.on('connection', (socket) => {
       return;
     }
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-submissions')) return;
+    recordEvent(room, 'close-submissions');
 
     try {
       if (room.engine) {
@@ -1137,6 +1172,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState) return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-voting')) return;
+    recordEvent(room, 'close-voting');
 
     await tallyAndAdvance(code, room);
   });
@@ -1147,6 +1183,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.engine) return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'advance-phase')) return;
+    recordEvent(room, 'advance-phase');
 
     try {
       const currentPhase = room.engine.getCurrentPhase();

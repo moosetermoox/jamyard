@@ -13,7 +13,8 @@ export class RoomManager {
       code,
       playerRegistry: new PlayerRegistry(),
       stateMachine: new StateMachine(this.gameConfig),
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      journal: []  // ring buffer of recent events — useful for debugging stalls
     };
     this.rooms.set(code, room);
     return code;
