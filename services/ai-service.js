@@ -1,5 +1,21 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+/**
+ * Extract text from the first text-type content block. Claude's content
+ * array can include thinking/tool blocks; this returns the first text.
+ * @param {any} message
+ * @returns {string}
+ */
+function extractText(message) {
+  if (!message || !Array.isArray(message.content)) return '';
+  for (const block of message.content) {
+    if (block && block.type === 'text' && typeof block.text === 'string') {
+      return block.text;
+    }
+  }
+  return '';
+}
+
 const SYSTEM_PROMPT = `You are a fun, energetic game host for a classroom game.
 Your job is to take player responses and create entertaining content based on them.
 Keep your responses appropriate for a classroom setting - fun but not inappropriate.
@@ -351,7 +367,10 @@ export class AIService {
     }
   }
 
-  async process({ instruction, responses, systemPrompt }) {
+  /**
+   * @param {{ instruction?: string, responses?: any, systemPrompt?: string }} [args]
+   */
+  async process({ instruction, responses, systemPrompt } = {}) {
     if (this.mode === 'mock') {
       return this._processMock(instruction, responses);
     }
@@ -388,7 +407,7 @@ export class AIService {
       console.log(`[AIService] process() completed in ${elapsed}s (model: ${MODEL}, input: ${message.usage?.input_tokens || '?'} tokens, output: ${message.usage?.output_tokens || '?'} tokens)`);
 
       return {
-        text: message.content[0].text
+        text: extractText(message)
       };
     } catch (error) {
       console.error('[AIService] Error calling Anthropic API:', error.message);
@@ -431,7 +450,7 @@ export class AIService {
       var elapsed = ((Date.now() - start) / 1000).toFixed(1);
       console.log(`[AIService] generateFakeResponses() completed in ${elapsed}s (model: ${MODELS.haiku}, ${count} fakes)`);
 
-      var text = message.content[0].text;
+      var text = extractText(message);
       try {
         var parsed = JSON.parse(text);
         if (Array.isArray(parsed)) return parsed.slice(0, count);
@@ -521,7 +540,7 @@ export class AIService {
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
       console.log(`[AIService] review(${depth}) completed in ${elapsed}s (model: ${model})`);
 
-      const text = message.content[0].text;
+      const text = extractText(message);
 
       try {
         return JSON.parse(text);
@@ -599,7 +618,7 @@ Return the updated phase JSON.`;
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
       console.log(`[AIService] fixIssue completed in ${elapsed}s (model: ${MODELS.haiku})`);
 
-      const text = message.content[0].text;
+      const text = extractText(message);
       let parsed;
       try {
         parsed = JSON.parse(text);
@@ -649,7 +668,7 @@ Return the updated phase JSON.`;
         ]
       });
 
-      const text = message.content[0].text;
+      const text = extractText(message);
 
       try {
         return JSON.parse(text);
@@ -695,7 +714,7 @@ Return the updated phase JSON.`;
         ]
       });
 
-      const text = message.content[0].text;
+      const text = extractText(message);
       let result;
       try {
         result = JSON.parse(text);
@@ -762,7 +781,7 @@ Return the updated phase JSON.`;
         ]
       });
 
-      const text = message.content[0].text;
+      const text = extractText(message);
       var config;
 
       try {

@@ -8,9 +8,9 @@
 
 /**
  * Get eligible voters from a PlayerRegistry based on the voters field.
- * @param {PlayerRegistry} players
+ * @param {any} players
  * @param {"all"|"remaining"|"eliminated"} votersField
- * @returns {Player[]}
+ * @returns {any[]}
  */
 export function getEligibleVoters(players, votersField) {
   if (votersField === 'remaining') return players.getRemaining();
@@ -28,6 +28,7 @@ export function generateMatchups(candidateIds, appearancesPerCandidate = 3) {
   if (candidateIds.length < 2) return { matchups: [], comparisons: 0 };
 
   const comparisons = Math.ceil(candidateIds.length * appearancesPerCandidate / 2);
+  /** @type {[string, string][]} */
   const matchups = [];
 
   // Track appearances to keep them roughly balanced
@@ -83,9 +84,7 @@ export function tallyHeadToHead(votes, candidateIds, matchups) {
   for (const { choice } of votes) {
     if (choice in scores) scores[choice]++;
   }
-  const result = buildResult(scores, votes.length);
-  result.matchups = matchups || [];
-  return result;
+  return { ...buildResult(scores, votes.length), matchups: matchups || [] };
 }
 
 function buildResult(scores, totalVotes) {

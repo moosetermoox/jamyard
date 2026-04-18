@@ -25,6 +25,7 @@ import { validatePayload } from './engine/event-schemas.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+/** @type {any} */
 const app = express();
 const server = createServer(app);
 const io = new Server(server);

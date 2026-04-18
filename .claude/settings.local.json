@@ -29,7 +29,9 @@
       "Bash(sed -i \"s/''announce''/EVENTS.ANNOUNCE/g\" *.js)",
       "Bash(sed -i \"s/''show-results''/EVENTS.SHOW_RESULTS/g\" *.js)",
       "Bash(pkill -f \"node server.js\")",
-      "Bash(awk '{print $NF}')"
+      "Bash(awk '{print $NF}')",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)"
     ]
   }
 }

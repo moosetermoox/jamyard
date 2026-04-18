@@ -8,8 +8,8 @@
 /**
  * Determine winner and build standings from scores.
  * @param {Object} scores - { playerId: voteCount }
- * @param {PlayerRegistry} players - player registry for name lookup
- * @returns {{ winnerId: string, winnerName: string, winnerScore: number, standings: Array }}
+ * @param {any} players - PlayerRegistry for name lookup
+ * @returns {{ winnerId: string|null, winnerName: string|null, winnerScore: number, winnerIds: string[], winnerNames: string[], isTie: boolean, standings: Array }}
  */
 export function determineWinner(scores, players) {
   const entries = Object.entries(scores);
@@ -22,7 +22,7 @@ export function determineWinner(scores, players) {
     .sort((a, b) => b.score - a.score || a.playerId.localeCompare(b.playerId));
 
   if (standings.length === 0) {
-    return { winnerId: null, winnerName: null, winnerScore: 0, standings: [] };
+    return { winnerId: null, winnerName: null, winnerScore: 0, winnerIds: [], winnerNames: [], isTie: false, standings: [] };
   }
 
   const winner = standings[0];

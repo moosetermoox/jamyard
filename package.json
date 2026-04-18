@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "vitest",
+    "typecheck": "tsc --noEmit -p jsconfig.json",
     "validate": "node scripts/validate.js",
     "test:players": "node scripts/mock-players.js",
     "preview:ai": "node scripts/preview-ai.js",
@@ -23,6 +24,7 @@
   },
   "devDependencies": {
     "socket.io-client": "^4.8.3",
+    "typescript": "^6.0.3",
     "vitest": "^4.0.18"
   }
 }
