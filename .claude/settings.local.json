@@ -28,7 +28,8 @@
       "Bash(sed -i \"s/''waiting''/EVENTS.WAITING/g\" *.js)",
       "Bash(sed -i \"s/''announce''/EVENTS.ANNOUNCE/g\" *.js)",
       "Bash(sed -i \"s/''show-results''/EVENTS.SHOW_RESULTS/g\" *.js)",
-      "Bash(pkill -f \"node server.js\")"
+      "Bash(pkill -f \"node server.js\")",
+      "Bash(awk '{print $NF}')"
     ]
   }
 }

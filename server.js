@@ -716,6 +716,28 @@ app.post('/api/games/review', async (req, res) => {
   }
 });
 
+app.post('/api/games/fix-issue', async (req, res) => {
+  try {
+    const { config, phaseId, issue } = req.body;
+    if (!config || !config.phases) {
+      return res.status(400).json({ error: 'Missing config or phases' });
+    }
+    if (!phaseId || !config.phases[phaseId]) {
+      return res.status(400).json({ error: 'Invalid phaseId' });
+    }
+    if (!issue || !issue.message) {
+      return res.status(400).json({ error: 'Missing issue' });
+    }
+    const phase = config.phases[phaseId];
+    const otherPhaseIds = Object.keys(config.phases).filter(id => id !== phaseId);
+    const result = await aiService.fixIssue({ phase, phaseId, issue, otherPhaseIds });
+    res.json(result);
+  } catch (error) {
+    console.log(`[api/games/fix-issue] Error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/games/generate-theme', async (req, res) => {
   try {
     const { description } = req.body;

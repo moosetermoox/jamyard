@@ -7,6 +7,7 @@ var didDrag = false;
 var isDirty = false;
 var foreachAdvancedOpen = false;
 var aiIssues = {};
+var lastReviewResult = null;
 var previewVisible = false;
 
 // --- Constants ---
@@ -1794,23 +1795,34 @@ function renderPhaseConfig(phaseId) {
   if (aiIssues[phaseId] && aiIssues[phaseId].length > 0) {
     addSectionHeader('AI Suggestions');
     for (var ai = 0; ai < aiIssues[phaseId].length; ai++) {
-      var issue = aiIssues[phaseId][ai];
-      var item = document.createElement('div');
-      item.className = 'ai-suggestion-item severity-' + (issue.severity || 'warning');
+      (function (issue) {
+        var item = document.createElement('div');
+        item.className = 'ai-suggestion-item severity-' + (issue.severity || 'warning');
 
-      var msg = document.createElement('div');
-      msg.className = 'ai-suggestion-message';
-      msg.textContent = issue.message;
-      item.appendChild(msg);
+        var msg = document.createElement('div');
+        msg.className = 'ai-suggestion-message';
+        msg.textContent = issue.message;
+        item.appendChild(msg);
 
-      if (issue.suggestion) {
-        var fix = document.createElement('div');
-        fix.className = 'ai-suggestion-fix';
-        fix.textContent = issue.suggestion;
-        item.appendChild(fix);
-      }
+        if (issue.suggestion) {
+          var fix = document.createElement('div');
+          fix.className = 'ai-suggestion-fix';
+          fix.textContent = issue.suggestion;
+          item.appendChild(fix);
+        }
 
-      phaseConfigForm.appendChild(item);
+        if (issue.severity !== 'error') {
+          var fixBtn = document.createElement('button');
+          fixBtn.className = 'review-fix-btn';
+          fixBtn.textContent = '✨ Apply Fix';
+          fixBtn.addEventListener('click', function () {
+            requestFix(phaseId, issue, fixBtn);
+          });
+          item.appendChild(fixBtn);
+        }
+
+        phaseConfigForm.appendChild(item);
+      })(aiIssues[phaseId][ai]);
     }
   }
 
@@ -2099,7 +2111,11 @@ function addTextAreaWithHelp(label, helpText, id, value, placeholder, onChange) 
   if (placeholder) textarea.placeholder = placeholder;
   textarea.addEventListener('input', function () {
     isDirty = true;
-    onChange(textarea.value);
+    var val = textarea.value;
+    if (textarea._getVars) {
+      val = detokenize(val, textarea._getVars());
+    }
+    onChange(val);
   });
 
   group.appendChild(lbl);
@@ -2114,6 +2130,35 @@ function addTextAreaWithHelp(label, helpText, id, value, placeholder, onChange) 
 
   phaseConfigForm.appendChild(group);
   return textarea;
+}
+
+// --- Friendly-token translation for template fields ---
+// Users see [Player's name] in textareas, but the stored config still uses {{_current.playerName}}.
+
+function tokenize(text, vars) {
+  if (!text || !vars) return text || '';
+  var result = text;
+  for (var i = 0; i < vars.length; i++) {
+    var v = vars[i];
+    var raw = v.variable;
+    var token = '[' + v.label + ']';
+    // Replace all occurrences — escape regex special chars in raw
+    var escaped = raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(escaped, 'g'), token);
+  }
+  return result;
+}
+
+function detokenize(text, vars) {
+  if (!text || !vars) return text || '';
+  var result = text;
+  for (var i = 0; i < vars.length; i++) {
+    var v = vars[i];
+    var token = '[' + v.label + ']';
+    var escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(escaped, 'g'), v.variable);
+  }
+  return result;
 }
 
 // Build template variables available for a given phase (phases that come before it)
@@ -2187,8 +2232,13 @@ function buildForeachVariables(foreachPhaseId) {
 
 // Add foreach variable chips below a textarea
 function addForeachVariableChips(textarea, foreachPhaseId) {
-  var vars = buildForeachVariables(foreachPhaseId);
+  var getVars = function () { return buildForeachVariables(foreachPhaseId); };
+  var vars = getVars();
   if (vars.length === 0) return;
+
+  // Tokenize the existing value (convert stored {{}} to friendly [labels])
+  textarea.value = tokenize(textarea.value, vars);
+  textarea._getVars = getVars;
 
   var container = document.createElement('div');
   container.className = 'variable-chips';
@@ -2200,20 +2250,21 @@ function addForeachVariableChips(textarea, foreachPhaseId) {
 
   for (var i = 0; i < vars.length; i++) {
     (function (v) {
+      var token = '[' + v.label + ']';
       var chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'variable-chip';
       chip.textContent = v.label;
-      chip.title = v.variable;
+      chip.title = token;
       chip.onclick = function (e) {
         e.preventDefault();
         var start = textarea.selectionStart || textarea.value.length;
         var end = textarea.selectionEnd || start;
-        textarea.value = textarea.value.substring(0, start) + v.variable + textarea.value.substring(end);
+        textarea.value = textarea.value.substring(0, start) + token + textarea.value.substring(end);
         textarea.focus();
-        var newPos = start + v.variable.length;
+        var newPos = start + token.length;
         textarea.setSelectionRange(newPos, newPos);
-        textarea.dispatchEvent(new Event('change'));
+        textarea.dispatchEvent(new Event('input'));
       };
       container.appendChild(chip);
     })(vars[i]);
@@ -2224,8 +2275,13 @@ function addForeachVariableChips(textarea, foreachPhaseId) {
 
 // Add clickable variable chips below a textarea
 function addVariableChips(textarea, currentPhaseId, extraVars) {
-  var vars = buildTemplateVariables(currentPhaseId, extraVars);
+  var getVars = function () { return buildTemplateVariables(currentPhaseId, extraVars); };
+  var vars = getVars();
   if (vars.length === 0) return;
+
+  // Tokenize the existing value (convert stored {{}} to friendly [labels])
+  textarea.value = tokenize(textarea.value, vars);
+  textarea._getVars = getVars;
 
   var container = document.createElement('div');
   container.className = 'variable-chips';
@@ -2237,18 +2293,19 @@ function addVariableChips(textarea, currentPhaseId, extraVars) {
 
   for (var i = 0; i < vars.length; i++) {
     (function (v) {
+      var token = '[' + v.label + ']';
       var chip = document.createElement('button');
       chip.type = 'button';
       chip.className = 'variable-chip';
       chip.textContent = v.label;
-      chip.title = v.variable;
+      chip.title = token;
       chip.onclick = function (e) {
         e.preventDefault();
         var start = textarea.selectionStart || textarea.value.length;
         var end = textarea.selectionEnd || start;
-        textarea.value = textarea.value.substring(0, start) + v.variable + textarea.value.substring(end);
+        textarea.value = textarea.value.substring(0, start) + token + textarea.value.substring(end);
         textarea.focus();
-        var newPos = start + v.variable.length;
+        var newPos = start + token.length;
         textarea.setSelectionRange(newPos, newPos);
         textarea.dispatchEvent(new Event('input'));
       };
@@ -3175,6 +3232,7 @@ async function runDeepReview() {
       return;
     }
     var result = await response.json();
+    lastReviewResult = result;
     applyReviewResults(result.ai);
     showReviewPanel(result);
   } catch (error) {
@@ -3281,10 +3339,164 @@ function showReviewPanel(result) {
       item.appendChild(sugDiv);
     }
 
+    // Apply Fix button — only for issues scoped to a specific phase
+    if (issue.phaseId && gameConfig.phases[issue.phaseId] && issue.severity !== 'error') {
+      var fixBtn = document.createElement('button');
+      fixBtn.className = 'review-fix-btn';
+      fixBtn.textContent = '✨ Apply Fix';
+      fixBtn.setAttribute('data-phase-id', issue.phaseId);
+      fixBtn.setAttribute('data-issue-idx', String(i));
+      fixBtn.addEventListener('click', function () {
+        var pid = this.getAttribute('data-phase-id');
+        var idx = parseInt(this.getAttribute('data-issue-idx'));
+        requestFix(pid, allIssues[idx], this);
+      });
+      item.appendChild(fixBtn);
+    }
+
     list.appendChild(item);
   }
 
   reviewContent.appendChild(list);
+}
+
+async function requestFix(phaseId, issue, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Thinking...';
+  try {
+    var response = await fetch('/api/games/fix-issue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: gameConfig, phaseId: phaseId, issue: issue })
+    });
+    if (!response.ok) {
+      var err = await response.json();
+      alert('Could not generate fix: ' + (err.error || 'Unknown error'));
+      return;
+    }
+    var result = await response.json();
+    showFixPreview(phaseId, gameConfig.phases[phaseId], result.updatedPhase, result.explanation, issue);
+  } catch (error) {
+    alert('Fix request failed: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Apply Fix';
+  }
+}
+
+function showFixPreview(phaseId, oldPhase, newPhase, explanation, appliedIssue) {
+  var existing = document.getElementById('fix-preview-overlay');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'fix-preview-overlay';
+  overlay.className = 'picker-overlay';
+
+  var modal = document.createElement('div');
+  modal.className = 'picker-modal fix-preview-modal';
+
+  var title = document.createElement('h2');
+  title.textContent = 'Review Fix for ' + getFriendlyPhaseName(phaseId);
+  modal.appendChild(title);
+
+  if (explanation) {
+    var explDiv = document.createElement('div');
+    explDiv.className = 'fix-explanation';
+    explDiv.textContent = explanation;
+    modal.appendChild(explDiv);
+  }
+
+  var diffContainer = document.createElement('div');
+  diffContainer.className = 'fix-diff';
+  renderFieldDiff(diffContainer, oldPhase, newPhase);
+  modal.appendChild(diffContainer);
+
+  var btnRow = document.createElement('div');
+  btnRow.className = 'fix-btn-row';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.className = 'btn-secondary';
+  cancelBtn.addEventListener('click', function () { overlay.remove(); });
+
+  var applyBtn = document.createElement('button');
+  applyBtn.textContent = 'Apply Fix';
+  applyBtn.className = 'btn-primary';
+  applyBtn.addEventListener('click', function () {
+    gameConfig.phases[phaseId] = newPhase;
+    isDirty = true;
+    dismissIssue(phaseId, appliedIssue);
+    overlay.remove();
+  });
+
+  btnRow.appendChild(cancelBtn);
+  btnRow.appendChild(applyBtn);
+  modal.appendChild(btnRow);
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+function dismissIssue(phaseId, issue) {
+  if (!issue) return;
+  // Remove from aiIssues sidebar store
+  if (aiIssues[phaseId]) {
+    aiIssues[phaseId] = aiIssues[phaseId].filter(function (x) {
+      return x.message !== issue.message;
+    });
+    if (aiIssues[phaseId].length === 0) delete aiIssues[phaseId];
+  }
+  // Remove from cached review result so panel re-render drops it
+  if (lastReviewResult && lastReviewResult.ai && lastReviewResult.ai.issues) {
+    lastReviewResult.ai.issues = lastReviewResult.ai.issues.filter(function (x) {
+      return !(x.phaseId === phaseId && x.message === issue.message);
+    });
+  }
+  // Re-render review panel if open
+  if (lastReviewResult && !reviewPanel.hidden) {
+    showReviewPanel(lastReviewResult);
+  }
+  // Re-render canvas + current phase sidebar
+  renderCanvas();
+  if (selectedPhaseId) renderPhaseConfig(selectedPhaseId);
+}
+
+function renderFieldDiff(container, oldObj, newObj) {
+  var allKeys = {};
+  for (var k in oldObj) allKeys[k] = true;
+  for (var k2 in newObj) allKeys[k2] = true;
+  var keys = Object.keys(allKeys);
+  var hasChanges = false;
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    var oldVal = oldObj[key];
+    var newVal = newObj[key];
+    var oldStr = oldVal === undefined ? '(not set)' : (typeof oldVal === 'string' ? oldVal : JSON.stringify(oldVal));
+    var newStr = newVal === undefined ? '(not set)' : (typeof newVal === 'string' ? newVal : JSON.stringify(newVal));
+    if (oldStr === newStr) continue;
+    hasChanges = true;
+    var row = document.createElement('div');
+    row.className = 'fix-diff-row';
+    var label = document.createElement('div');
+    label.className = 'fix-diff-key';
+    label.textContent = key;
+    row.appendChild(label);
+    var oldDiv = document.createElement('div');
+    oldDiv.className = 'fix-diff-old';
+    oldDiv.textContent = '- ' + oldStr;
+    row.appendChild(oldDiv);
+    var newDiv = document.createElement('div');
+    newDiv.className = 'fix-diff-new';
+    newDiv.textContent = '+ ' + newStr;
+    row.appendChild(newDiv);
+    container.appendChild(row);
+  }
+  if (!hasChanges) {
+    var noChange = document.createElement('div');
+    noChange.className = 'fix-diff-no-change';
+    noChange.textContent = 'No changes detected.';
+    container.appendChild(noChange);
+  }
 }
 
 // --- Live Preview ---

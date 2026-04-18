@@ -14,6 +14,9 @@ registerHandler('winner', {
       winnerId: result.winnerId,
       winnerName: result.winnerName,
       winnerScore: result.winnerScore,
+      winnerIds: result.winnerIds,
+      winnerNames: result.winnerNames,
+      isTie: result.isTie,
       standings: result.standings,
       pause: winnerPause,
       ...sc

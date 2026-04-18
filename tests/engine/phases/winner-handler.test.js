@@ -63,6 +63,23 @@ describe('WinnerHandler', () => {
     expect(result.standings).toEqual([]);
   });
 
+  it('exposes tied winners via winnerIds and isTie', () => {
+    const players = makeRegistry(['p1', 'p2', 'p3']);
+    const result = determineWinner({ p1: 5, p2: 5, p3: 3 }, players);
+
+    expect(result.isTie).toBe(true);
+    expect(result.winnerIds).toEqual(['p1', 'p2']);
+    expect(result.winnerNames).toEqual(['Player-p1', 'Player-p2']);
+  });
+
+  it('isTie is false when there is a clear winner', () => {
+    const players = makeRegistry(['p1', 'p2']);
+    const result = determineWinner({ p1: 10, p2: 5 }, players);
+
+    expect(result.isTie).toBe(false);
+    expect(result.winnerIds).toEqual(['p1']);
+  });
+
   it('handles single player', () => {
     const players = makeRegistry(['p1']);
     const result = determineWinner({ p1: 10 }, players);

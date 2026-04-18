@@ -904,10 +904,15 @@ socket.on('elimination-results', ({ eliminated, eliminatedNames, remaining, play
 
 // --- Socket events - Winner ---
 
-socket.on('winner-announced', ({ winnerName, winnerScore, standings, playerTemplate, playerShow }) => {
+socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, standings, playerTemplate, playerShow }) => {
   showSection(winnerSection);
-  winnerTitle.textContent = winnerName + ' wins!';
-  winnerDetails.textContent = winnerScore + ' votes';
+  if (isTie && winnerNames && winnerNames.length > 1) {
+    winnerTitle.textContent = formatTieNamesPlayer(winnerNames) + ' tie!';
+    winnerDetails.textContent = winnerScore + ' each';
+  } else {
+    winnerTitle.textContent = winnerName + ' wins!';
+    winnerDetails.textContent = String(winnerScore);
+  }
   applyTemplate(winnerSection, playerTemplate);
   applyShow(playerShow, {
     name: winnerTitle,
@@ -919,11 +924,17 @@ socket.on('winner-announced', ({ winnerName, winnerScore, standings, playerTempl
   if (standings && standings.length > 0) {
     for (let i = 0; i < standings.length; i++) {
       const p = document.createElement('p');
-      p.textContent = (i + 1) + '. ' + standings[i].name + ' \u2014 ' + standings[i].score + ' votes';
+      p.textContent = (i + 1) + '. ' + standings[i].name + ' \u2014 ' + standings[i].score;
       standingsList.appendChild(p);
     }
   }
 });
+
+function formatTieNamesPlayer(names) {
+  if (names.length === 2) return names[0] + ' and ' + names[1];
+  if (names.length === 3) return names[0] + ', ' + names[1] + ', and ' + names[2];
+  return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+}
 
 // --- Voting functions ---
 

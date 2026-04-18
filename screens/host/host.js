@@ -695,9 +695,13 @@ socket.on('elimination-results', ({ eliminatedNames, remaining, hostTemplate, ho
 
 // --- Socket events - Winner ---
 
-socket.on('winner-announced', ({ winnerName, winnerScore, standings, hostTemplate, hostShow }) => {
+socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, standings, hostTemplate, hostShow }) => {
   showSection(winnerSection);
-  winnerNameDisplay.textContent = winnerName + ' wins!';
+  if (isTie && winnerNames && winnerNames.length > 1) {
+    winnerNameDisplay.textContent = formatTieNames(winnerNames) + ' tie!';
+  } else {
+    winnerNameDisplay.textContent = winnerName + ' wins!';
+  }
   applyTemplate(winnerSection, hostTemplate);
   applyShow(hostShow, {
     name: winnerNameDisplay,
@@ -709,11 +713,17 @@ socket.on('winner-announced', ({ winnerName, winnerScore, standings, hostTemplat
   if (standings && standings.length > 0) {
     for (var i = 0; i < standings.length; i++) {
       var p = document.createElement('p');
-      p.textContent = (i + 1) + '. ' + standings[i].name + ' \u2014 ' + standings[i].score + ' votes';
+      p.textContent = (i + 1) + '. ' + standings[i].name + ' \u2014 ' + standings[i].score;
       standingsList.appendChild(p);
     }
   }
 });
+
+function formatTieNames(names) {
+  if (names.length === 2) return names[0] + ' and ' + names[1];
+  if (names.length === 3) return names[0] + ', ' + names[1] + ', and ' + names[2];
+  return names.slice(0, -1).join(', ') + ', and ' + names[names.length - 1];
+}
 
 // --- Render functions ---
 

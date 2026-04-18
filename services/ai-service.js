@@ -302,6 +302,18 @@ CRITICAL RULES:
 - ai-process CANNOT access game state beyond what you pass in "input". Don't ask AI to tally votes or compute scores — use leaderboard/foreach scoring for that.
 - Do NOT try to use ai-process output as foreach data. foreach can ONLY iterate over collect.responses.
 
+COMMON PITFALLS — check each one before returning:
+1. foreach self-exclusion: If foreach scoring is "correct" mode and collect-choice uses "_candidates", the author is auto-excluded from guessing their own. This is automatic — do NOT add manual exclusion logic.
+2. ai-process instructions: "instruction" field must be detailed and specific (at least 20 chars). Vague instructions like "summarize" or "generate something" produce poor results. Describe tone, format, length, and what to do with the input.
+3. ai-eliminate rules: "instruction" must state SPECIFIC rules the AI can enforce (e.g. "Eliminate answers that don't mention a color"). Generic instructions fail.
+4. Timers on collect phases: Always add a "timer" (30-90s typical) so the game doesn't stall waiting for slow players.
+5. Timers on announce phases: If an announce has "next" and should auto-advance, it NEEDS a "timer". Otherwise the teacher has to click to continue.
+6. leaderboard "from" must reference a phase that produces scores (vote, wager, or foreach with scoring). Do NOT reference a collect phase.
+7. Multi-field collect for multi-input games: If the game needs 2+ distinct inputs per player (like Two Truths and a Lie), use "fields" array. Do NOT cram multiple inputs into one textarea.
+8. Pair mode requires aiInject: pairMode only works when aiInject is configured. Don't set pairMode without aiInject.
+9. candidateSource for guessing games: For "who wrote this?" games, set candidateSource: "players" AND decoyCount on the foreach, AND use choices: "_candidates" in collect-choice. All three must be present together.
+10. correctAnswer field references: correctAnswer must match a real value in the game. For author-guessing use "_current.playerName". For field-guessing use "_current.fields.<key>". For AI detection use "_current.isHuman" or "_current.aiPosition".
+
 IMPORTANT — SCOPE CHECK:
 This framework builds TEXT-BASED classroom games where a teacher projects a host screen and students interact via text on their devices. Games consist of phases like collecting text, voting, AI processing, and displaying results.
 
@@ -534,6 +546,81 @@ export class AIService {
     }
   }
 
+  async fixIssue({ phase, phaseId, issue, otherPhaseIds }) {
+    if (this.mode === 'mock') {
+      return this._fixIssueMock(phase, issue);
+    }
+    return this._fixIssueReal({ phase, phaseId, issue, otherPhaseIds });
+  }
+
+  _fixIssueMock(phase, issue) {
+    const updated = JSON.parse(JSON.stringify(phase));
+    const msg = (issue.message || '').toLowerCase();
+    if (msg.includes('instruction') && (phase.type === 'ai-process' || phase.type === 'ai-eliminate')) {
+      updated.instruction = (phase.instruction || '') + ' [MOCK: more detailed instructions]';
+    } else if (msg.includes('timer') && !phase.timer) {
+      updated.timer = 60;
+    } else {
+      updated._mockFix = true;
+    }
+    return { updatedPhase: updated, explanation: '[MOCK] Applied a placeholder fix.' };
+  }
+
+  async _fixIssueReal({ phase, phaseId, issue, otherPhaseIds }) {
+    try {
+      const systemPrompt = `You are fixing one phase of a classroom game config. You will be given the current phase JSON, an issue to address, and the IDs of other phases in the game (for reference only — do NOT modify them).
+
+Rules:
+- Return ONLY valid JSON matching this schema: {"updatedPhase": {...}, "explanation": "one-sentence summary"}
+- Keep the phase's "type" and "next" fields unchanged unless the issue is specifically about them
+- Do NOT rename the phase ID (it's referenced elsewhere)
+- Do NOT invent new phase references in "next"/"loopBack" etc. — only use IDs from the provided list
+- Make the smallest change that addresses the issue
+- Preserve all other fields unless they conflict with the fix`;
+
+      const userContent = `Phase ID: ${phaseId}
+Other phase IDs in this game: ${JSON.stringify(otherPhaseIds)}
+
+Current phase JSON:
+${JSON.stringify(phase, null, 0)}
+
+Issue: ${issue.message}
+${issue.suggestion ? 'Suggestion: ' + issue.suggestion : ''}
+
+Return the updated phase JSON.`;
+
+      const start = Date.now();
+      const message = await this.client.messages.create({
+        model: MODELS.haiku,
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      });
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      console.log(`[AIService] fixIssue completed in ${elapsed}s (model: ${MODELS.haiku})`);
+
+      const text = message.content[0].text;
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI response was not valid JSON');
+        parsed = JSON.parse(match[0]);
+      }
+      if (!parsed.updatedPhase || typeof parsed.updatedPhase !== 'object') {
+        throw new Error('AI response missing updatedPhase');
+      }
+      if (parsed.updatedPhase.type !== phase.type) {
+        throw new Error('AI changed phase type — refusing to apply');
+      }
+      return { updatedPhase: parsed.updatedPhase, explanation: parsed.explanation || 'Fix applied.' };
+    } catch (error) {
+      console.error('[AIService] fixIssue error:', error.message);
+      throw error;
+    }
+  }
+
   async generateTheme(description) {
     if (this.mode === 'mock') {
       return this._generateThemeMock();
@@ -693,10 +780,48 @@ export class AIService {
       }
 
       if (config.error) return config;
-      return this._fixGeneratedConfig(config);
+      config = this._fixGeneratedConfig(config);
+      // Run silent review + auto-apply fixes for non-error issues
+      config = await this._autoPolishConfig(config);
+      return config;
     } catch (error) {
       console.error('[AIService] generateGame error:', error.message);
       return { error: `AI generation failed: ${error.message}` };
+    }
+  }
+
+  async _autoPolishConfig(config) {
+    try {
+      const review = await this._reviewReal(config, 'light');
+      if (!review || !review.issues || review.issues.length === 0) return config;
+
+      const fixable = review.issues.filter(iss =>
+        iss.phaseId && config.phases[iss.phaseId] && iss.severity !== 'error'
+      );
+      if (fixable.length === 0) return config;
+
+      console.log(`[AIService] auto-polish: applying ${fixable.length} fix(es)`);
+      const maxFixes = Math.min(fixable.length, 4);
+      for (let i = 0; i < maxFixes; i++) {
+        const iss = fixable[i];
+        try {
+          const phase = config.phases[iss.phaseId];
+          const otherIds = Object.keys(config.phases).filter(p => p !== iss.phaseId);
+          const result = await this._fixIssueReal({
+            phase, phaseId: iss.phaseId, issue: iss, otherPhaseIds: otherIds
+          });
+          if (result && result.updatedPhase && result.updatedPhase.type === phase.type) {
+            config.phases[iss.phaseId] = result.updatedPhase;
+            console.log(`[auto-polish] Fixed "${iss.phaseId}": ${result.explanation}`);
+          }
+        } catch (err) {
+          console.log(`[auto-polish] Skipped fix for "${iss.phaseId}": ${err.message}`);
+        }
+      }
+      return config;
+    } catch (err) {
+      console.log(`[auto-polish] Review failed, returning as-is: ${err.message}`);
+      return config;
     }
   }
 

@@ -26,10 +26,14 @@ export function determineWinner(scores, players) {
   }
 
   const winner = standings[0];
+  const tiedWinners = standings.filter(s => s.score === winner.score);
   return {
     winnerId: winner.playerId,
     winnerName: winner.name,
     winnerScore: winner.score,
+    winnerIds: tiedWinners.map(w => w.playerId),
+    winnerNames: tiedWinners.map(w => w.name),
+    isTie: tiedWinners.length > 1,
     standings
   };
 }

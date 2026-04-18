@@ -1,0 +1,93 @@
+{
+  "name": "Class Quiz Showdown",
+  "description": "Create a quiz together by writing questions about yourselves, then compete to answer them!",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "instructions"
+    },
+    "instructions": {
+      "type": "announce",
+      "message": "Welcome to Class Quiz Showdown!\n\nYou'll each write ONE trivia question about yourself with 3 answer choices (one true, two false).\n\nThen we'll quiz the whole class on every question!\n\nYou'll earn 100 points for each question you answer correctly. The more you know about your classmates, the better you'll do!\n\nReady? Let's create some questions!",
+      "timer": 10,
+      "next": "collect"
+    },
+    "collect": {
+      "type": "collect",
+      "prompt": "Write a trivia question about yourself, the correct answer, and two false answers.",
+      "timer": 90,
+      "from": "all",
+      "fields": [
+        {
+          "label": "Your Question (e.g., 'What is my favorite TV show?')",
+          "key": "question"
+        },
+        {
+          "label": "The CORRECT Answer",
+          "key": "correct"
+        },
+        {
+          "label": "False Answer #1",
+          "key": "false1"
+        },
+        {
+          "label": "False Answer #2",
+          "key": "false2"
+        }
+      ],
+      "next": "transition"
+    },
+    "transition": {
+      "type": "announce",
+      "message": "Amazing! We have all the questions ready!\n\nLet's start the quiz! Get ready to guess...",
+      "timer": 5,
+      "next": "quiz"
+    },
+    "quiz": {
+      "type": "foreach",
+      "data": "collect.responses",
+      "shuffle": true,
+      "subPhases": {
+        "show-question": {
+          "type": "announce",
+          "message": "Get ready for the next question...",
+          "timer": 2
+        },
+        "answer": {
+          "type": "collect-choice",
+          "prompt": "{{_current.playerName}} asks:\n\n{{_current.fields.question}}",
+          "choices": "_current.shuffledFields",
+          "timer": 30
+        },
+        "reveal": {
+          "type": "announce",
+          "message": "The correct answer is:\n\n{{_current.fields.correct}}\n\n(Question by {{_current.playerName}})",
+          "timer": 8
+        }
+      },
+      "scoring": {
+        "subPhase": "answer",
+        "correctAnswer": "_current.fields.correct",
+        "pointsCorrect": 100,
+        "pointsForAuthorOnIncorrect": 50
+      },
+      "next": "final-scores"
+    },
+    "final-scores": {
+      "type": "leaderboard",
+      "from": "quiz.scores",
+      "style": "full",
+      "timer": 15,
+      "next": "winner"
+    },
+    "winner": {
+      "type": "winner",
+      "from": "quiz.scores",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing Class Quiz Showdown! You learned something new about your classmates today!"
+    }
+  }
+}
