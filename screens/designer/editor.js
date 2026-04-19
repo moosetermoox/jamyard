@@ -921,6 +921,9 @@ function renderPhaseConfig(phaseId) {
   // AI Suggestions — pinned near the top so the teacher sees advice before editing
   renderAISuggestions(phaseId);
 
+  // Preview this step — quick look at what host + players will see
+  addPreviewStepButton(phaseId);
+
   // --- Type-specific fields grouped into sections ---
   var type = phase.type;
 
@@ -1771,10 +1774,16 @@ function renderPhaseConfig(phaseId) {
   // --- Flow: Next phase (for all types except end and preview) ---
   if (type !== 'end' && type !== 'preview') {
     addRoleHeader('flow', "What's next");
-    addPhaseRefSelect('Next step', 'Which step comes after this one', 'phase-next', phaseId, phase.next, function (value) {
-      phase.next = value === '(none)' ? undefined : value;
-      renderCanvas();
-    });
+    // When next is already set, show a compact read-only display with a "Change" chip.
+    // This hides a dropdown teachers rarely need to touch (canvas order = next = correct 90% of the time).
+    if (phase.next && gameConfig.phases[phase.next]) {
+      addCompactNextRef(phaseId);
+    } else {
+      addPhaseRefSelect('Next step', 'Which step comes after this one', 'phase-next', phaseId, phase.next, function (value) {
+        phase.next = value === '(none)' ? undefined : value;
+        renderCanvas();
+      });
+    }
 
     // Loop (Optional) — collapsible; expanded when already configured
     var loopHandle = beginCollapsible('flow', 'Loop this section', phaseId + ':loop', !!phase.loopBack);
@@ -2544,6 +2553,123 @@ function addPhaseTypeSelect(label, helpText, id, selected, onChange) {
 }
 
 // Next-phase select with friendly names
+// Preview-this-step button: opens a modal with host + player mock renders side-by-side.
+// Answers the "what does this step actually look like?" question without launching prototype mode.
+function addPreviewStepButton(phaseId) {
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'preview-step-btn';
+  btn.textContent = '👀 Preview this step';
+  btn.addEventListener('click', function () {
+    showPreviewStepModal(phaseId);
+  });
+  phaseConfigForm.appendChild(btn);
+}
+
+function showPreviewStepModal(phaseId) {
+  var phase = gameConfig.phases[phaseId];
+  if (!phase) return;
+
+  var existing = document.getElementById('preview-step-overlay');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'preview-step-overlay';
+  overlay.className = 'picker-overlay';
+
+  var modal = document.createElement('div');
+  modal.className = 'picker-modal preview-step-modal';
+
+  var title = document.createElement('h2');
+  var cat = PHASE_CATALOG[phase.type] || {};
+  title.textContent = 'Preview: ' + (cat.friendlyName || phase.type);
+  modal.appendChild(title);
+
+  var subtitle = document.createElement('div');
+  subtitle.className = 'preview-step-subtitle';
+  subtitle.textContent = 'This is roughly what the host and players see on this step.';
+  modal.appendChild(subtitle);
+
+  var split = document.createElement('div');
+  split.className = 'preview-step-split';
+
+  var hostCol = document.createElement('div');
+  hostCol.className = 'preview-step-col preview-step-host';
+  var hostLabel = document.createElement('div');
+  hostLabel.className = 'preview-step-label';
+  hostLabel.textContent = 'Host screen';
+  var hostBody = document.createElement('div');
+  hostBody.className = 'preview-step-body';
+  hostBody.innerHTML = buildPreviewHTML(phase, 'host');
+  hostCol.appendChild(hostLabel);
+  hostCol.appendChild(hostBody);
+
+  var playerCol = document.createElement('div');
+  playerCol.className = 'preview-step-col preview-step-player';
+  var playerLabel = document.createElement('div');
+  playerLabel.className = 'preview-step-label';
+  playerLabel.textContent = 'Player screen';
+  var playerBody = document.createElement('div');
+  playerBody.className = 'preview-step-body';
+  playerBody.innerHTML = buildPreviewHTML(phase, 'player');
+  playerCol.appendChild(playerLabel);
+  playerCol.appendChild(playerBody);
+
+  split.appendChild(hostCol);
+  split.appendChild(playerCol);
+  modal.appendChild(split);
+
+  var closeBtn = document.createElement('button');
+  closeBtn.className = 'btn-secondary';
+  closeBtn.textContent = 'Close';
+  closeBtn.addEventListener('click', function () { overlay.remove(); });
+  var btnRow = document.createElement('div');
+  btnRow.className = 'fix-btn-row';
+  btnRow.appendChild(closeBtn);
+  modal.appendChild(btnRow);
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+}
+
+// Compact "→ Next: <Name> [Change]" display. Click Change to swap in the full dropdown.
+function addCompactNextRef(currentPhaseId) {
+  var phase = gameConfig.phases[currentPhaseId];
+  var targetId = phase.next;
+  var target = gameConfig.phases[targetId];
+  var cat = target ? PHASE_CATALOG[target.type] : null;
+  var name = cat ? (cat.icon + ' ' + cat.friendlyName) : (targetId || '(none)');
+
+  var wrapper = document.createElement('div');
+  wrapper.className = 'compact-next-ref';
+
+  var arrow = document.createElement('span');
+  arrow.textContent = '→ ';
+  arrow.style.opacity = '0.6';
+
+  var text = document.createElement('span');
+  text.textContent = 'Goes to: ' + name;
+  text.style.fontWeight = 'bold';
+
+  var changeBtn = document.createElement('button');
+  changeBtn.className = 'compact-next-change';
+  changeBtn.textContent = 'Change';
+  changeBtn.type = 'button';
+  changeBtn.addEventListener('click', function () {
+    // Replace compact display with the full dropdown
+    wrapper.remove();
+    addPhaseRefSelect('Next step', 'Which step comes after this one', 'phase-next', currentPhaseId, phase.next, function (value) {
+      phase.next = value === '(none)' ? undefined : value;
+      renderCanvas();
+    });
+  });
+
+  wrapper.appendChild(arrow);
+  wrapper.appendChild(text);
+  wrapper.appendChild(changeBtn);
+  phaseConfigForm.appendChild(wrapper);
+}
+
 function addPhaseRefSelect(label, helpText, id, currentPhaseId, selected, onChange) {
   var phaseIds = Object.keys(gameConfig.phases);
   var options = [{ value: '(none)', label: '(none)' }];
@@ -2780,34 +2906,53 @@ function addPhaseOfType(type) {
     }
   }
 
-  // Create the new phase with sensible defaults
+  // Create the new phase with sensible defaults that produce a working step out of the box
   var newPhase = { type: type };
 
   if (type === 'collect') {
-    newPhase.prompt = 'Enter your response';
+    newPhase.prompt = 'What do you think?';
+    newPhase.timer = 60;
   } else if (type === 'collect-choice') {
     newPhase.prompt = 'Pick one:';
     newPhase.choices = ['Option A', 'Option B'];
+    newPhase.timer = 30;
   } else if (type === 'ai-process') {
     newPhase.task = 'summarize';
-    newPhase.instruction = '';
+    newPhase.instruction = 'Summarize what the class said in 2-3 sentences. Highlight any common themes.';
     newPhase.format = 'text';
   } else if (type === 'ai-eliminate') {
-    newPhase.instruction = '';
+    newPhase.instruction = 'Eliminate any player whose answer does not follow the rules.';
   } else if (type === 'vote') {
     newPhase.mode = 'pick-one';
+    newPhase.timer = 30;
   } else if (type === 'eliminate') {
     newPhase.method = 'bottom-percent';
     newPhase.percent = 50;
   } else if (type === 'announce') {
     newPhase.message = 'Get ready!';
+    newPhase.timer = 5;
   } else if (type === 'reveal') {
-    newPhase.template = '';
+    newPhase.template = 'Results:';
+  } else if (type === 'leaderboard') {
+    newPhase.style = 'full';
+    newPhase.timer = 15;
   } else if (type === 'preview') {
     newPhase.approveNext = endId || undefined;
     newPhase.rejectNext = undefined;
-  } else if (type === 'winner') {
-    // no extra defaults
+  } else if (type === 'rank') {
+    newPhase.prompt = 'Rank these from best to worst:';
+    newPhase.timer = 45;
+  } else if (type === 'wager') {
+    newPhase.prompt = 'Bet your points!';
+    newPhase.options = ['Yes', 'No'];
+    newPhase.timer = 20;
+  } else if (type === 'relay') {
+    newPhase.prompt = 'Add to the story...';
+    newPhase.timer = 20;
+    newPhase.order = 'random';
+  } else if (type === 'team-split') {
+    newPhase.method = 'random';
+    newPhase.teamCount = 2;
   }
 
   // Set next (preview uses approveNext instead)
@@ -2832,6 +2977,25 @@ function addPhaseOfType(type) {
 
   renderCanvas();
   selectPhase(newId);
+  showToast('We added a typical setup — change anything you want');
+}
+
+// Transient bottom-of-screen toast (4s). Re-used for any "here's what happened" messages.
+var _toastTimer = null;
+function showToast(message) {
+  var el = document.getElementById('editor-toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'editor-toast';
+    el.className = 'editor-toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = message;
+  el.classList.add('editor-toast-visible');
+  if (_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function () {
+    el.classList.remove('editor-toast-visible');
+  }, 4000);
 }
 
 function deletePhase(phaseId) {

@@ -534,6 +534,104 @@ body {
   /* padding sits inside so the header border doesn't contain empty space when collapsed */
 }
 
+/* Transient bottom-of-screen confirmation toast */
+.editor-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #263238;
+  color: #FFF;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-family: Arial, sans-serif;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  pointer-events: none;
+  z-index: 2000;
+}
+.editor-toast-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Compact "Goes to: <name> [Change]" display instead of a dropdown */
+.compact-next-ref {
+  padding: 10px 12px;
+  background: #FAFAFA;
+  border: 2px solid #000;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.compact-next-change {
+  margin-left: auto;
+  padding: 2px 10px;
+  background: #FFF;
+  border: 2px solid #000;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.compact-next-change:hover { background: #E3F2FD; }
+
+/* Preview this step button */
+.preview-step-btn {
+  width: 100%;
+  padding: 10px 14px;
+  margin: 10px 0;
+  background: #FFF;
+  border: 2px solid #000;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+.preview-step-btn:hover { background: #FFF9C4; }
+
+/* Preview step modal */
+.preview-step-modal {
+  max-width: 900px;
+  background: #FFF;
+}
+.preview-step-subtitle {
+  text-align: center;
+  color: #555;
+  margin-bottom: 14px;
+  font-size: 0.9rem;
+}
+.preview-step-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.preview-step-col {
+  border: 2px solid #000;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.preview-step-label {
+  padding: 6px 12px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  border-bottom: 2px solid #000;
+}
+.preview-step-host .preview-step-label { background: #BBDEFB; }
+.preview-step-player .preview-step-label { background: #C8E6C9; }
+.preview-step-body {
+  padding: 12px;
+  min-height: 220px;
+  background: #FAFAFA;
+}
+
 /* ---- Field help text ---- */
 .field-help {
   display: block;
