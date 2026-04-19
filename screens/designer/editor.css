@@ -492,6 +492,26 @@ body {
   border-top: 2px solid #000;
 }
 
+/* Role-coded section bands — match the H/P/AI badges at the top of the card */
+.config-section-header.role-section-host,
+.config-section-header.role-section-player,
+.config-section-header.role-section-ai,
+.config-section-header.role-section-both,
+.config-section-header.role-section-flow {
+  border-top: none;
+  padding: 8px 12px;
+  margin-top: 18px;
+  margin-bottom: 10px;
+  color: #000;
+  border-radius: 4px;
+  border: 2px solid #000;
+}
+.config-section-header.role-section-host { background: #BBDEFB; }
+.config-section-header.role-section-player { background: #C8E6C9; }
+.config-section-header.role-section-ai { background: #E1BEE7; }
+.config-section-header.role-section-both { background: #FFF59D; }
+.config-section-header.role-section-flow { background: #ECEFF1; }
+
 /* ---- Field help text ---- */
 .field-help {
   display: block;

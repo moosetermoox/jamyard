@@ -877,7 +877,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'collect') {
-    addSectionHeader('What players see');
+    addRoleHeader('player', 'Players see & do');
     addTextAreaWithHelp('Question to ask', 'This appears on every player\'s screen', 'phase-prompt', phase.prompt, 'e.g. What did you do this weekend?', function (value) {
       phase.prompt = value;
       renderCanvas();
@@ -955,7 +955,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'ai-process') {
-    addSectionHeader('What AI does');
+    addRoleHeader('ai', 'AI does');
     var taskOptions = [];
     var taskTypes = Object.keys(AI_TASK_CATALOG);
     for (var t = 0; t < taskTypes.length; t++) {
@@ -977,7 +977,7 @@ function renderPhaseConfig(phaseId) {
       phase.instruction = value;
     });
 
-    addSectionHeader('Data');
+    addRoleHeader('ai', 'AI input & output');
     addDataRefDropdown('Input data', 'Where the AI reads player answers from', 'phase-input', phaseId, phase.input, function (value) {
       phase.input = value;
     });
@@ -993,7 +993,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'vote') {
-    addSectionHeader('Voting setup');
+    addRoleHeader('player', 'Players see & do');
     addSelectWithHelp('Vote style', 'How choices are shown to players', 'phase-mode',
       [
         { value: 'pick-one', label: 'Pick one from a list' },
@@ -1058,7 +1058,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'announce') {
-    addSectionHeader('What everyone sees');
+    addRoleHeader('both', 'Both see');
     var announceTA = addTextAreaWithHelp('Message', 'Displayed to host and all players.', 'phase-message', phase.message, 'e.g. Round 1: Don\'t Match!', function (value) {
       phase.message = value;
       renderCanvas();
@@ -1070,7 +1070,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'collect-choice') {
-    addSectionHeader('What players see');
+    addRoleHeader('player', 'Players see & do');
     addTextAreaWithHelp('Question to ask', 'This appears above the choices on every player\'s screen', 'phase-prompt', phase.prompt, 'e.g. Which animal is the fastest?', function (value) {
       phase.prompt = value;
       renderCanvas();
@@ -1149,13 +1149,11 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'ai-eliminate') {
-    addSectionHeader('Rules for AI');
+    addRoleHeader('ai', 'AI does');
     addTextAreaWithHelp('Elimination rules', 'Tell the AI exactly what rules to enforce', 'phase-instruction', phase.instruction, 'e.g. Eliminate anyone who used more than one sentence.', function (value) {
       phase.instruction = value;
       renderCanvas();
     });
-
-    addSectionHeader('Data');
     addDataRefDropdown('Input data', 'Where the AI reads player answers from', 'phase-input', phaseId, phase.input, function (value) {
       phase.input = value;
     });
@@ -1165,7 +1163,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'reveal') {
-    addSectionHeader('What everyone sees');
+    addRoleHeader('both', 'Both see');
     var revealTA = addTextAreaWithHelp('Display template', 'Insert data from earlier steps.', 'phase-template', phase.template, 'e.g. Here\'s what AI created! Use the insert buttons below.', function (value) {
       phase.template = value;
       renderCanvas();
@@ -1174,7 +1172,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'preview') {
-    addSectionHeader('What teacher reviews');
+    addRoleHeader('host', 'Host reviews');
     addDataRefDropdown('Content from', 'Which step\'s output to show the teacher', 'phase-content', phaseId, phase.content, function (value) {
       phase.content = value || undefined;
     });
@@ -1211,11 +1209,10 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'leaderboard') {
-    addSectionHeader('Data');
+    addRoleHeader('both', 'Both see');
     addDataRefDropdown('Scores from', 'Which step\'s scores to display as a leaderboard', 'phase-from', phaseId, phase.from, function (value) {
       phase.from = value;
     });
-    addSectionHeader('Display');
     addSelectWithHelp('Style', 'How many players to show', 'phase-style',
       [
         { value: 'full', label: 'Full standings (all players)' },
@@ -1231,11 +1228,10 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'reveal-one') {
-    addSectionHeader('Data');
+    addRoleHeader('both', 'Both see');
     addDataRefDropdown('Items from', 'Where to get the list of items to reveal one-by-one', 'phase-from', phaseId, phase.from, function (value) {
       phase.from = value;
     });
-    addSectionHeader('Display');
     var revOneTA = addTextAreaWithHelp('Title message', 'Shown above the reveal area.', 'phase-message', phase.message, 'e.g. And the answers are...', function (value) {
       phase.message = value;
       renderCanvas();
@@ -1289,7 +1285,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'rank') {
-    addSectionHeader('What players rank');
+    addRoleHeader('player', 'Players see & do');
     addTextAreaWithHelp('Question / prompt', 'Tells players what to rank', 'phase-prompt', phase.prompt, 'e.g. Rank these ideas from best to worst', function (value) {
       phase.prompt = value;
       renderCanvas();
@@ -1314,7 +1310,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'wager') {
-    addSectionHeader('What players bet on');
+    addRoleHeader('player', 'Players see & do');
     addTextAreaWithHelp('Question / prompt', 'What are players betting on?', 'phase-prompt', phase.prompt, 'e.g. Which answer will the AI pick?', function (value) {
       phase.prompt = value;
       renderCanvas();
@@ -1404,7 +1400,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'relay') {
-    addSectionHeader('What players do');
+    addRoleHeader('player', 'Players see & do');
     addTextAreaWithHelp('Prompt / instruction', 'Shown to the active player on their turn', 'phase-prompt', phase.prompt, 'e.g. Add the next sentence to the story', function (value) {
       phase.prompt = value;
       renderCanvas();
@@ -1719,14 +1715,14 @@ function renderPhaseConfig(phaseId) {
 
   // --- Flow: Next phase (for all types except end and preview) ---
   if (type !== 'end' && type !== 'preview') {
-    addSectionHeader('Flow');
+    addRoleHeader('flow', 'Flow');
     addPhaseRefSelect('Next step', 'Which step comes after this one', 'phase-next', phaseId, phase.next, function (value) {
       phase.next = value === '(none)' ? undefined : value;
       renderCanvas();
     });
 
     // Loop (Optional) — available on any phase with a next
-    addSectionHeader('Loop (Optional)');
+    addRoleHeader('flow', 'Loop (Optional)');
 
     // loopBack dropdown — filter to phases before current
     var loopBackOptions = [{ value: '', label: '(none — no loop)' }];
@@ -1764,27 +1760,25 @@ function renderPhaseConfig(phaseId) {
     }
   }
 
-  // --- Screen Control (Optional) — all types except lobby ---
+  // --- Screen Control (Optional) — split into Host band and Player band ---
   if (type !== 'lobby') {
-    addSectionHeader('Screen Control (Optional)');
-
+    addRoleHeader('host', 'Host screen (optional)');
     var hostTemplateTA = addTextAreaWithHelp('Host template', 'Custom text shown on the host screen. Leave empty for default.', 'phase-hostTemplate', phase.hostTemplate, 'Leave empty for default, or type custom text. Use insert buttons below to add data.', function (value) {
       if (value) { phase.hostTemplate = value; } else { delete phase.hostTemplate; }
     });
     addVariableChips(hostTemplateTA, phaseId);
 
-    var playerTemplateTA = addTextAreaWithHelp('Player template', 'Custom text shown on player screens. Leave empty for default.', 'phase-playerTemplate', phase.playerTemplate, 'e.g. Great job everyone!', function (value) {
-      if (value) { phase.playerTemplate = value; } else { delete phase.playerTemplate; }
-    });
-    addVariableChips(playerTemplateTA, phaseId);
-
-    // Host show toggles
     var hostToggles = VALID_HOST_TOGGLES[type];
     if (hostToggles) {
       addToggleCheckboxes('Host screen elements', 'Choose which built-in elements to show on the host screen', phase, 'hostShow', hostToggles);
     }
 
-    // Player show toggles
+    addRoleHeader('player', 'Player screens (optional)');
+    var playerTemplateTA = addTextAreaWithHelp('Player template', 'Custom text shown on player screens. Leave empty for default.', 'phase-playerTemplate', phase.playerTemplate, 'e.g. Great job everyone!', function (value) {
+      if (value) { phase.playerTemplate = value; } else { delete phase.playerTemplate; }
+    });
+    addVariableChips(playerTemplateTA, phaseId);
+
     var playerToggles = VALID_PLAYER_TOGGLES[type];
     if (playerToggles) {
       addToggleCheckboxes('Player screen elements', 'Choose which built-in elements to show on player screens', phase, 'playerShow', playerToggles);
@@ -2001,6 +1995,15 @@ function updateTallyChoices(phase) {
 function addSectionHeader(title) {
   var header = document.createElement('div');
   header.className = 'config-section-header';
+  header.textContent = title;
+  phaseConfigForm.appendChild(header);
+}
+
+// Role-coded section header. role: 'host' (blue), 'player' (green), 'ai' (purple),
+// 'both' (yellow neutral, both audiences see this), or 'flow' (gray, engine config).
+function addRoleHeader(role, title) {
+  var header = document.createElement('div');
+  header.className = 'config-section-header role-section-' + role;
   header.textContent = title;
   phaseConfigForm.appendChild(header);
 }
