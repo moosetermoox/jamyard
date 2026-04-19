@@ -278,6 +278,23 @@ function init() {
 
   addPhaseBtn.addEventListener('click', addPhase);
   saveBtn.addEventListener('click', saveGame);
+
+  // Save-status indicator: poll isDirty every 250ms. Cheap, avoids refactoring
+  // the ~40 `isDirty = true` call sites scattered through the editor.
+  var lastShownDirty = null;
+  setInterval(function () {
+    var el = document.getElementById('save-status');
+    if (!el) return;
+    if (isDirty === lastShownDirty) return;
+    lastShownDirty = isDirty;
+    if (isDirty) {
+      el.textContent = 'Unsaved changes';
+      el.className = 'save-status save-status-dirty';
+    } else {
+      el.textContent = 'Saved';
+      el.className = 'save-status save-status-clean';
+    }
+  }, 250);
   testGameBtn.addEventListener('click', testGame);
   reviewBtn.addEventListener('click', runDeepReview);
   reviewCloseBtn.addEventListener('click', function () { reviewPanel.hidden = true; });
@@ -936,10 +953,15 @@ function renderPhaseConfig(phaseId) {
 
   if (type === 'collect') {
     addRoleHeader('player', 'Players see & do');
-    addTextAreaWithHelp('Question to ask', 'This appears on every player\'s screen', 'phase-prompt', phase.prompt, 'e.g. What did you do this weekend?', function (value) {
+    var collectPromptTA = addTextAreaWithHelp('Question to ask', 'This appears on every player\'s screen', 'phase-prompt', phase.prompt, 'e.g. What did you do this weekend?', function (value) {
       phase.prompt = value;
       renderCanvas();
     });
+    addExampleChips(collectPromptTA, [
+      'What did you do this weekend?',
+      'What\'s one word that describes how you feel today?',
+      'What\'s one thing you learned this week?'
+    ]);
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits when time runs out.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
@@ -1031,9 +1053,14 @@ function renderPhaseConfig(phaseId) {
     if (phase.task === 'rank') instrPlaceholder = 'e.g. Rank from most to least creative';
     if (phase.task === 'judge') instrPlaceholder = 'e.g. Pick the funniest answer and explain why';
 
-    addTextAreaWithHelp('Instructions for AI', 'Tell the AI exactly what to do with the player answers', 'phase-instruction', phase.instruction, instrPlaceholder, function (value) {
+    var aiInstrTA = addTextAreaWithHelp('Instructions for AI', 'Tell the AI exactly what to do with the player answers', 'phase-instruction', phase.instruction, instrPlaceholder, function (value) {
       phase.instruction = value;
     });
+    addExampleChips(aiInstrTA, [
+      'Summarize what the class said in 2-3 sentences.',
+      'Write a short funny poem combining everyone\'s answers.',
+      'Group similar answers into categories.'
+    ]);
 
     addRoleHeader('ai', 'AI input & output');
     addDataRefDropdown('Input data', 'Where the AI reads player answers from', 'phase-input', phaseId, phase.input, function (value) {
@@ -1121,6 +1148,11 @@ function renderPhaseConfig(phaseId) {
       phase.message = value;
       renderCanvas();
     });
+    addExampleChips(announceTA, [
+      'Get ready! Here we go.',
+      'Great work everyone!',
+      'Time to vote on your favorite.'
+    ]);
     addVariableChips(announceTA, phaseId);
     addFieldWithHelp('Auto-advance timer (seconds)', 'Leave empty to require host to click Continue', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
@@ -1129,10 +1161,15 @@ function renderPhaseConfig(phaseId) {
 
   if (type === 'collect-choice') {
     addRoleHeader('player', 'Players see & do');
-    addTextAreaWithHelp('Question to ask', 'This appears above the choices on every player\'s screen', 'phase-prompt', phase.prompt, 'e.g. Which animal is the fastest?', function (value) {
+    var choicePromptTA = addTextAreaWithHelp('Question to ask', 'This appears above the choices on every player\'s screen', 'phase-prompt', phase.prompt, 'e.g. Which animal is the fastest?', function (value) {
       phase.prompt = value;
       renderCanvas();
     });
+    addExampleChips(choicePromptTA, [
+      'Which answer do you agree with most?',
+      'Pick your favorite',
+      'Vote for the best idea'
+    ]);
 
     // Choices editor
     addSectionHeader('Choices');
@@ -1208,10 +1245,15 @@ function renderPhaseConfig(phaseId) {
 
   if (type === 'ai-eliminate') {
     addRoleHeader('ai', 'AI does');
-    addTextAreaWithHelp('Elimination rules', 'Tell the AI exactly what rules to enforce', 'phase-instruction', phase.instruction, 'e.g. Eliminate anyone who used more than one sentence.', function (value) {
+    var aiElimTA = addTextAreaWithHelp('Elimination rules', 'Tell the AI exactly what rules to enforce', 'phase-instruction', phase.instruction, 'e.g. Eliminate anyone who used more than one sentence.', function (value) {
       phase.instruction = value;
       renderCanvas();
     });
+    addExampleChips(aiElimTA, [
+      'Eliminate any answer longer than 10 words.',
+      'Eliminate answers that don\'t mention a color.',
+      'Eliminate any response that isn\'t a complete sentence.'
+    ]);
     addDataRefDropdown('Input data', 'Where the AI reads player answers from', 'phase-input', phaseId, phase.input, function (value) {
       phase.input = value;
     });
@@ -2553,6 +2595,44 @@ function addPhaseTypeSelect(label, helpText, id, selected, onChange) {
 }
 
 // Next-phase select with friendly names
+/**
+ * Add 2-3 clickable example chips below a textarea. Clicking a chip fills the
+ * textarea with that example (overwriting existing content — hint "Replace with").
+ * Teachers learn the format by example without wading through hint text.
+ * @param {HTMLTextAreaElement} textarea
+ * @param {string[]} examples - short example strings
+ */
+function addExampleChips(textarea, examples) {
+  if (!examples || examples.length === 0) return;
+  var container = document.createElement('div');
+  container.className = 'example-chips';
+
+  var hint = document.createElement('span');
+  hint.className = 'example-chips-label';
+  hint.textContent = 'Try: ';
+  container.appendChild(hint);
+
+  for (var i = 0; i < examples.length; i++) {
+    (function (text) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'example-chip';
+      // Show a shortened preview on the chip, full text on hover
+      chip.textContent = text.length > 32 ? text.slice(0, 30) + '…' : text;
+      chip.title = text;
+      chip.addEventListener('click', function (e) {
+        e.preventDefault();
+        textarea.value = text;
+        textarea.dispatchEvent(new Event('input'));
+        textarea.focus();
+      });
+      container.appendChild(chip);
+    })(examples[i]);
+  }
+
+  textarea.parentNode.appendChild(container);
+}
+
 // Preview-this-step button: opens a modal with host + player mock renders side-by-side.
 // Answers the "what does this step actually look like?" question without launching prototype mode.
 function addPreviewStepButton(phaseId) {

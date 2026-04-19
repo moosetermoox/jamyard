@@ -813,33 +813,59 @@ Return the updated phase JSON.`;
   }
 
   async _autoPolishConfig(config) {
+    // Runs the SAME deep review (Sonnet) the user will run via "Check My Game",
+    // then auto-fixes all non-error issues. Iterates up to MAX_PASSES so a fix
+    // that introduces a new suggestion can be cleaned up too.
+    //
+    // Cost per generation: ~1-2 Sonnet reviews + N Haiku fixes (N typically 0-6).
+    // Trades generation-time cost for the user seeing a clean game on first open.
+    const MAX_PASSES = 2;
+    const MAX_FIXES_PER_PASS = 10;
+
     try {
-      const review = await this._reviewReal(config, 'light');
-      if (!review || !review.issues || review.issues.length === 0) return config;
+      for (let pass = 1; pass <= MAX_PASSES; pass++) {
+        const review = await this._reviewReal(config, 'deep');
+        if (!review || !review.issues || review.issues.length === 0) {
+          console.log(`[auto-polish] Pass ${pass}: no issues, done.`);
+          return config;
+        }
 
-      const fixable = review.issues.filter(iss =>
-        iss.phaseId && config.phases[iss.phaseId] && iss.severity !== 'error'
-      );
-      if (fixable.length === 0) return config;
+        const fixable = review.issues.filter(iss =>
+          iss.phaseId && config.phases[iss.phaseId] && iss.severity !== 'error'
+        );
+        if (fixable.length === 0) {
+          console.log(`[auto-polish] Pass ${pass}: ${review.issues.length} issue(s) remain but none are auto-fixable (errors or unscoped). Stopping.`);
+          return config;
+        }
 
-      console.log(`[AIService] auto-polish: applying ${fixable.length} fix(es)`);
-      const maxFixes = Math.min(fixable.length, 4);
-      for (let i = 0; i < maxFixes; i++) {
-        const iss = fixable[i];
-        try {
-          const phase = config.phases[iss.phaseId];
-          const otherIds = Object.keys(config.phases).filter(p => p !== iss.phaseId);
-          const result = await this._fixIssueReal({
-            phase, phaseId: iss.phaseId, issue: iss, otherPhaseIds: otherIds
-          });
-          if (result && result.updatedPhase && result.updatedPhase.type === phase.type) {
-            config.phases[iss.phaseId] = result.updatedPhase;
-            console.log(`[auto-polish] Fixed "${iss.phaseId}": ${result.explanation}`);
+        const toFix = fixable.slice(0, MAX_FIXES_PER_PASS);
+        console.log(`[auto-polish] Pass ${pass}: applying ${toFix.length} of ${fixable.length} fix(es)`);
+
+        let fixesApplied = 0;
+        for (const iss of toFix) {
+          try {
+            const phase = config.phases[iss.phaseId];
+            const otherIds = Object.keys(config.phases).filter(p => p !== iss.phaseId);
+            const result = await this._fixIssueReal({
+              phase, phaseId: iss.phaseId, issue: iss, otherPhaseIds: otherIds
+            });
+            if (result && result.updatedPhase && result.updatedPhase.type === phase.type) {
+              config.phases[iss.phaseId] = result.updatedPhase;
+              fixesApplied++;
+              console.log(`[auto-polish] Fixed "${iss.phaseId}": ${result.explanation}`);
+            }
+          } catch (err) {
+            console.log(`[auto-polish] Skipped fix for "${iss.phaseId}": ${err.message}`);
           }
-        } catch (err) {
-          console.log(`[auto-polish] Skipped fix for "${iss.phaseId}": ${err.message}`);
+        }
+
+        // If this pass applied nothing, further passes won't change anything either
+        if (fixesApplied === 0) {
+          console.log(`[auto-polish] Pass ${pass}: zero fixes landed, stopping.`);
+          return config;
         }
       }
+      console.log(`[auto-polish] Hit MAX_PASSES (${MAX_PASSES}), returning current state.`);
       return config;
     } catch (err) {
       console.log(`[auto-polish] Review failed, returning as-is: ${err.message}`);

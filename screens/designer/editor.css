@@ -534,6 +534,25 @@ body {
   /* padding sits inside so the header border doesn't contain empty space when collapsed */
 }
 
+/* Save-state indicator in the header */
+.save-status {
+  display: inline-block;
+  padding: 4px 10px;
+  margin-right: 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: bold;
+  border: 2px solid #000;
+}
+.save-status-clean {
+  background: #E8F5E9;
+  color: #1B5E20;
+}
+.save-status-dirty {
+  background: #FFF3E0;
+  color: #E65100;
+}
+
 /* Transient bottom-of-screen confirmation toast */
 .editor-toast {
   position: fixed;
@@ -1105,6 +1124,35 @@ body {
 
 .variable-chip:hover {
   background: #CE93D8;
+}
+
+/* Example chips — click fills the field (distinct color from insert-variable chips) */
+.example-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+  align-items: center;
+}
+.example-chips-label {
+  font-size: 0.7rem;
+  font-weight: 900;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.example-chip {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 10px;
+  border: 2px solid #000;
+  border-radius: 8px;
+  background: #FFF9C4;
+  cursor: pointer;
+  font-family: Arial, sans-serif;
+}
+.example-chip:hover {
+  background: #FFF176;
 }
 
 /* ---- Inline data ref warnings ---- */
