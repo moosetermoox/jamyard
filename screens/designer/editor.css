@@ -512,6 +512,28 @@ body {
 .config-section-header.role-section-both { background: #FFF59D; }
 .config-section-header.role-section-flow { background: #ECEFF1; }
 
+/* Collapsible optional sections — click header to toggle */
+.collapsible-section {
+  /* Wrapper around a collapsible section; no padding so header stays flush with the form */
+}
+.collapsible-header {
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.collapsible-header:hover {
+  filter: brightness(0.95);
+}
+.collapsible-arrow {
+  font-size: 0.8em;
+  opacity: 0.7;
+}
+.collapsible-content {
+  /* padding sits inside so the header border doesn't contain empty space when collapsed */
+}
+
 /* ---- Field help text ---- */
 .field-help {
   display: block;
@@ -873,6 +895,30 @@ body {
   color: #666;
   font-size: 0.8rem;
   font-style: italic;
+}
+
+/* "Looks good" chip shown when a step has no AI suggestions */
+.ai-suggestion-ok {
+  padding: 8px 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+  background: #E8F5E9;
+  border: 2px solid #2E7D32;
+  color: #1B5E20;
+  font-size: 0.85rem;
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Pinned AI suggestions header — stands out at the top of the panel */
+.ai-suggestions-header {
+  margin-top: 10px;
+  border-top: none;
+  padding: 8px 12px;
+  background: #FFF9C4;
+  border: 2px solid #F57F17;
+  color: #000;
+  border-radius: 4px;
 }
 
 /* AI suggestions section in phase config sidebar */

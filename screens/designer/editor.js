@@ -822,6 +822,58 @@ function deselectPhase() {
 }
 
 // --- Phase config panel ---
+
+// Render AI suggestions for this phase (or a "looks good" note if none).
+// Pinned near the top so the teacher sees advice before editing other fields.
+function renderAISuggestions(phaseId) {
+  var issues = aiIssues[phaseId] || [];
+
+  if (issues.length === 0) {
+    // No suggestions — show a subtle "looks good" confirmation
+    var ok = document.createElement('div');
+    ok.className = 'ai-suggestion-ok';
+    ok.textContent = '\u2713 This step looks good';
+    phaseConfigForm.appendChild(ok);
+    return;
+  }
+
+  var header = document.createElement('div');
+  header.className = 'config-section-header ai-suggestions-header';
+  header.textContent = 'AI Suggestions';
+  phaseConfigForm.appendChild(header);
+
+  for (var i = 0; i < issues.length; i++) {
+    (function (issue) {
+      var item = document.createElement('div');
+      item.className = 'ai-suggestion-item severity-' + (issue.severity || 'warning');
+
+      var msg = document.createElement('div');
+      msg.className = 'ai-suggestion-message';
+      msg.textContent = issue.message;
+      item.appendChild(msg);
+
+      if (issue.suggestion) {
+        var fix = document.createElement('div');
+        fix.className = 'ai-suggestion-fix';
+        fix.textContent = issue.suggestion;
+        item.appendChild(fix);
+      }
+
+      if (issue.severity !== 'error') {
+        var fixBtn = document.createElement('button');
+        fixBtn.className = 'review-fix-btn';
+        fixBtn.textContent = '\u2728 Apply Fix';
+        fixBtn.addEventListener('click', function () {
+          requestFix(phaseId, issue, fixBtn);
+        });
+        item.appendChild(fixBtn);
+      }
+
+      phaseConfigForm.appendChild(item);
+    })(issues[i]);
+  }
+}
+
 function renderPhaseConfig(phaseId) {
   var phase = gameConfig.phases[phaseId];
   if (!phase) return;
@@ -866,6 +918,9 @@ function renderPhaseConfig(phaseId) {
   // Screen info with AI lane
   addScreenInfo(cat.host, cat.player, cat.ai);
 
+  // AI Suggestions — pinned near the top so the teacher sees advice before editing
+  renderAISuggestions(phaseId);
+
   // --- Type-specific fields grouped into sections ---
   var type = phase.type;
 
@@ -886,15 +941,14 @@ function renderPhaseConfig(phaseId) {
       phase.timer = value;
     });
 
-    // Multi-field inputs
-    addSectionHeader('Input Fields (Optional)');
+    // Multi-field inputs — collapsible; expanded when fields already exist
+    if (!phase.fields) phase.fields = null;
+    var fieldsList = phase.fields || [];
+    var fieldsHandle = beginCollapsible('player', 'Multiple answer boxes', phaseId + ':fields', fieldsList.length > 0);
     var fieldsHelp = document.createElement('p');
     fieldsHelp.className = 'field-help';
     fieldsHelp.textContent = 'Add named fields when you need separate inputs (e.g. "Truth 1", "Truth 2", "The Lie"). Leave empty for a single text box.';
     phaseConfigForm.appendChild(fieldsHelp);
-
-    if (!phase.fields) phase.fields = null;
-    var fieldsList = phase.fields || [];
 
     for (var fIdx = 0; fIdx < fieldsList.length; fIdx++) {
       (function(idx) {
@@ -940,6 +994,7 @@ function renderPhaseConfig(phaseId) {
       renderPhaseConfig(phaseId);
     };
     phaseConfigForm.appendChild(addFieldBtn);
+    endCollapsible(fieldsHandle);
 
     addSectionHeader('Who answers');
     addSelectWithHelp('Eligible players', 'Which players can submit answers', 'phase-from',
@@ -1190,7 +1245,7 @@ function renderPhaseConfig(phaseId) {
       }
     );
 
-    addSectionHeader('Flow');
+    addRoleHeader('flow', "What's next");
     addPhaseRefSelect('If approved, go to', 'Which step to go to when teacher approves', 'phase-approveNext', phaseId, phase.approveNext, function (value) {
       phase.approveNext = value === '(none)' ? undefined : value;
       renderCanvas();
@@ -1715,14 +1770,14 @@ function renderPhaseConfig(phaseId) {
 
   // --- Flow: Next phase (for all types except end and preview) ---
   if (type !== 'end' && type !== 'preview') {
-    addRoleHeader('flow', 'Flow');
+    addRoleHeader('flow', "What's next");
     addPhaseRefSelect('Next step', 'Which step comes after this one', 'phase-next', phaseId, phase.next, function (value) {
       phase.next = value === '(none)' ? undefined : value;
       renderCanvas();
     });
 
-    // Loop (Optional) — available on any phase with a next
-    addRoleHeader('flow', 'Loop (Optional)');
+    // Loop (Optional) — collapsible; expanded when already configured
+    var loopHandle = beginCollapsible('flow', 'Loop this section', phaseId + ':loop', !!phase.loopBack);
 
     // loopBack dropdown — filter to phases before current
     var loopBackOptions = [{ value: '', label: '(none — no loop)' }];
@@ -1758,11 +1813,13 @@ function renderPhaseConfig(phaseId) {
         renderCanvas();
       });
     }
+    endCollapsible(loopHandle);
   }
 
-  // --- Screen Control (Optional) — split into Host band and Player band ---
+  // --- Screen Control (Optional) — collapsible per role; expanded when configured ---
   if (type !== 'lobby') {
-    addRoleHeader('host', 'Host screen (optional)');
+    var hostCustomized = !!phase.hostTemplate || (Array.isArray(phase.hostShow) && phase.hostShow.length > 0);
+    var hostHandle = beginCollapsible('host', 'Customize host screen', phaseId + ':hostScreen', hostCustomized);
     var hostTemplateTA = addTextAreaWithHelp('Host template', 'Custom text shown on the host screen. Leave empty for default.', 'phase-hostTemplate', phase.hostTemplate, 'Leave empty for default, or type custom text. Use insert buttons below to add data.', function (value) {
       if (value) { phase.hostTemplate = value; } else { delete phase.hostTemplate; }
     });
@@ -1772,8 +1829,10 @@ function renderPhaseConfig(phaseId) {
     if (hostToggles) {
       addToggleCheckboxes('Host screen elements', 'Choose which built-in elements to show on the host screen', phase, 'hostShow', hostToggles);
     }
+    endCollapsible(hostHandle);
 
-    addRoleHeader('player', 'Player screens (optional)');
+    var playerCustomized = !!phase.playerTemplate || (Array.isArray(phase.playerShow) && phase.playerShow.length > 0);
+    var playerHandle = beginCollapsible('player', 'Customize player screens', phaseId + ':playerScreen', playerCustomized);
     var playerTemplateTA = addTextAreaWithHelp('Player template', 'Custom text shown on player screens. Leave empty for default.', 'phase-playerTemplate', phase.playerTemplate, 'e.g. Great job everyone!', function (value) {
       if (value) { phase.playerTemplate = value; } else { delete phase.playerTemplate; }
     });
@@ -1783,41 +1842,7 @@ function renderPhaseConfig(phaseId) {
     if (playerToggles) {
       addToggleCheckboxes('Player screen elements', 'Choose which built-in elements to show on player screens', phase, 'playerShow', playerToggles);
     }
-  }
-
-  // --- AI Suggestions (if any) ---
-  if (aiIssues[phaseId] && aiIssues[phaseId].length > 0) {
-    addSectionHeader('AI Suggestions');
-    for (var ai = 0; ai < aiIssues[phaseId].length; ai++) {
-      (function (issue) {
-        var item = document.createElement('div');
-        item.className = 'ai-suggestion-item severity-' + (issue.severity || 'warning');
-
-        var msg = document.createElement('div');
-        msg.className = 'ai-suggestion-message';
-        msg.textContent = issue.message;
-        item.appendChild(msg);
-
-        if (issue.suggestion) {
-          var fix = document.createElement('div');
-          fix.className = 'ai-suggestion-fix';
-          fix.textContent = issue.suggestion;
-          item.appendChild(fix);
-        }
-
-        if (issue.severity !== 'error') {
-          var fixBtn = document.createElement('button');
-          fixBtn.className = 'review-fix-btn';
-          fixBtn.textContent = '✨ Apply Fix';
-          fixBtn.addEventListener('click', function () {
-            requestFix(phaseId, issue, fixBtn);
-          });
-          item.appendChild(fixBtn);
-        }
-
-        phaseConfigForm.appendChild(item);
-      })(aiIssues[phaseId][ai]);
-    }
+    endCollapsible(playerHandle);
   }
 
   // --- Delete button ---
@@ -1997,6 +2022,65 @@ function addSectionHeader(title) {
   header.className = 'config-section-header';
   header.textContent = title;
   phaseConfigForm.appendChild(header);
+}
+
+// Collapse state per phase per section. Keyed "<phaseId>:<sectionKey>".
+// Undefined = use the heuristic caller passes (e.g. expand if any field is set).
+var collapseState = {};
+
+/**
+ * Begin a collapsible section. All addXXX calls between this and endCollapsible()
+ * render inside the section's content div. Header click toggles visibility.
+ * @param {string} role — host | player | ai | both | flow
+ * @param {string} title — section title (will prefix with "+" when collapsed)
+ * @param {string} stateKey — unique key for remembering user's open/close choice
+ * @param {boolean} defaultExpanded — fallback when no user state stored
+ */
+function beginCollapsible(role, title, stateKey, defaultExpanded) {
+  var expanded = collapseState[stateKey];
+  if (expanded === undefined) expanded = defaultExpanded;
+
+  var originalForm = phaseConfigForm;
+
+  var wrapper = document.createElement('div');
+  wrapper.className = 'collapsible-section';
+
+  var header = document.createElement('div');
+  header.className = 'config-section-header role-section-' + role + ' collapsible-header';
+
+  var arrow = document.createElement('span');
+  arrow.className = 'collapsible-arrow';
+  arrow.textContent = expanded ? '▼ ' : '▶ ';
+
+  var labelEl = document.createElement('span');
+  labelEl.textContent = (expanded ? '' : '+ ') + title;
+
+  header.appendChild(arrow);
+  header.appendChild(labelEl);
+
+  var content = document.createElement('div');
+  content.className = 'collapsible-content';
+  if (!expanded) content.style.display = 'none';
+
+  header.addEventListener('click', function () {
+    expanded = !expanded;
+    collapseState[stateKey] = expanded;
+    content.style.display = expanded ? '' : 'none';
+    arrow.textContent = expanded ? '▼ ' : '▶ ';
+    labelEl.textContent = (expanded ? '' : '+ ') + title;
+  });
+
+  wrapper.appendChild(header);
+  wrapper.appendChild(content);
+  originalForm.appendChild(wrapper);
+
+  // Redirect subsequent addXXX calls into the collapsible content div
+  phaseConfigForm = content;
+  return { originalForm: originalForm };
+}
+
+function endCollapsible(handle) {
+  phaseConfigForm = handle.originalForm;
 }
 
 // Role-coded section header. role: 'host' (blue), 'player' (green), 'ai' (purple),
