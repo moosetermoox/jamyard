@@ -12,20 +12,20 @@ Idea: drop the sidebar; click a card to expand it inline, showing settings withi
 
 **When to revisit:** after the core feature set feels stable and we want to focus on first-time-user delight.
 
-### Step-settings polish (UX expert review, 2026-04-19)
+### Step-settings polish (UX expert review, 2026-04-19) — DONE
 
-Ranked by impact for a brand-new teacher building their first game. Pick #1 first if shipping incrementally.
+All 8 items shipped over commits 868b6d5, 7738144, 1c080b6:
 
-1. **Progressive disclosure on optional sections.** Collapse "Loop (Optional)", "Host screen (optional)", "Player screens (optional)" by default. Show "+ Loop" / "+ Customize host screen" chips to expand on demand. Cuts visual noise ~60% on common phase types.
-2. **Move AI Suggestions to the top of the panel.** Currently buried at the bottom — teachers edit before seeing the warning. Pin just below the role-badge header. When zero issues, show "✓ This step looks good" so the absence of warnings is itself a signal.
-3. **Inline preview button per phase.** "Preview this step" opens a modal with just host + one player view of *this* step in isolation. Reuses prototype machinery. Eliminates "launch full game to see one screen" friction.
-4. **Smart defaults on phase creation.** When teacher adds a `collect`, pre-fill prompt = "What do you think?", timer = 60s, with banner "We added a typical setup — change anything you want." Three clicks to a working game instead of figuring out required fields.
-5. **Hide "Next step" when there's only one option.** Surface only when there's branching (preview phases, foreach exits, manual reordering). Reduces cognitive load on the common path.
-6. **Replace gray placeholder text with clickable example chips.** Below the field show 2-3 small chips like `[Weekend question]` `[Mood check]` — clicking fills the field. Teachers learn by example, not by reading hint text.
-7. **Save-state indicator.** "Saved" / "Unsaved changes" pip near the phase title in the sidebar.
-8. **Smaller win: rename "Flow" to "What's next".** "Flow" is an engineering word.
+1. ✅ Progressive disclosure on optional sections (Loop, Host/Player customize, Multi-field).
+2. ✅ AI Suggestions pinned to top, "✓ This step looks good" when no issues.
+3. ✅ "Preview this step" button → modal with host + player mock side-by-side.
+4. ✅ Smart defaults on phase creation + "We added a typical setup" toast.
+5. ✅ Compact "Goes to: X [Change]" replaces Next-step dropdown when next is set.
+6. ✅ Yellow clickable example chips under high-traffic textareas (collect/choice prompt, AI instructions, announce message).
+7. ✅ Save-state pip in header (green Saved / orange Unsaved changes).
+8. ✅ "Flow" → "What's next" in section headers.
 
-**Note on what's already good (don't redo):** color-coded role bands, friendly `[token]` insert chips, foreach pattern presets, Apply Fix flow, Bot Fill in prototype mode.
+Bonus: auto-polish during generation now uses the SAME deep Sonnet review the user later runs via Check My Game, iterating up to 2 passes (was 1 Haiku pass). Closes the "AI generated it but is suggesting fixes to itself on first open" loop. (commit 1c080b6)
 
 ## Architecture (from external review, deferred)
 
