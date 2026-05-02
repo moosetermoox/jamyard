@@ -359,8 +359,30 @@ async function fetchClarifyQuestions(description, overlay) {
         if (q.options[j] === q.default) opt.selected = true;
         qSelect.appendChild(opt);
       }
+      var otherOpt = document.createElement('option');
+      otherOpt.value = '__other__';
+      otherOpt.textContent = 'Other (write your own)…';
+      qSelect.appendChild(otherOpt);
+
+      var qCustom = document.createElement('input');
+      qCustom.type = 'text';
+      qCustom.className = 'ai-clarify-custom';
+      qCustom.placeholder = 'Type your answer';
+      qCustom.style.cssText = 'width:100%; padding:8px 10px; border:2px solid #000; font-size:13px; font-family:inherit; background:white; margin-top:6px; display:none;';
+
+      qSelect.addEventListener('change', (function (sel, inp) {
+        return function () {
+          if (sel.value === '__other__') {
+            inp.style.display = 'block';
+            inp.focus();
+          } else {
+            inp.style.display = 'none';
+          }
+        };
+      })(qSelect, qCustom));
 
       qBlock.appendChild(qSelect);
+      qBlock.appendChild(qCustom);
       questionsDiv.appendChild(qBlock);
     }
 
@@ -377,9 +399,14 @@ async function fetchClarifyQuestions(description, overlay) {
       var selects = questionsDiv.querySelectorAll('.ai-clarify-select');
       var answers = [];
       for (var k = 0; k < selects.length; k++) {
+        var ansVal = selects[k].value;
+        if (ansVal === '__other__') {
+          var customInp = selects[k].parentNode.querySelector('.ai-clarify-custom');
+          ansVal = (customInp && customInp.value.trim()) || '';
+        }
         answers.push({
           question: selects[k].getAttribute('data-question'),
-          answer: selects[k].value
+          answer: ansVal
         });
       }
       nextBtn.disabled = true;

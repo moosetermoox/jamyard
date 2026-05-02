@@ -14,6 +14,7 @@
     </div>
     <div class="header-right">
       <span id="save-status" class="save-status save-status-clean">Saved</span>
+      <button id="ask-ai-btn" class="btn btn-ask-ai">Ask AI</button>
       <button id="review-btn" class="btn btn-review">Check My Game</button>
       <button id="test-game-btn" class="btn btn-secondary">Test Game</button>
       <button id="save-btn" class="btn btn-primary">Save</button>
@@ -113,6 +114,29 @@
         </div>
       </div>
     </aside>
+  </div>
+
+  <div id="ask-ai-modal" class="ask-ai-modal" hidden>
+    <div class="ask-ai-modal-inner">
+      <div class="ask-ai-header">
+        <h3 id="ask-ai-title">Ask AI to revise this game</h3>
+        <button id="ask-ai-close" class="btn-icon">&times;</button>
+      </div>
+      <p id="ask-ai-subtitle" class="ask-ai-subtitle">Describe what you'd like to change in plain English.</p>
+      <textarea id="ask-ai-input" rows="3" placeholder="e.g. Make round 1 longer, add a leaderboard at the end, change the AI roast to be more sarcastic"></textarea>
+      <div class="ask-ai-actions">
+        <button id="ask-ai-submit" class="btn btn-primary">Ask AI</button>
+      </div>
+      <div id="ask-ai-status" class="ask-ai-status" hidden></div>
+      <div id="ask-ai-result" hidden>
+        <div class="ask-ai-summary" id="ask-ai-summary"></div>
+        <div id="ask-ai-errors" class="ask-ai-errors" hidden></div>
+        <div class="ask-ai-result-actions">
+          <button id="ask-ai-apply" class="btn btn-primary">Apply</button>
+          <button id="ask-ai-discard" class="btn btn-secondary">Discard</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="/shared/themes.js"></script>

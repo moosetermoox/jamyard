@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { getAllowedFields } from '../engine/game-loader.js';
 
 /**
  * Extract text from the first text-type content block. Claude's content
@@ -38,6 +39,8 @@ WRITING RULES:
 - Use the step's display name from the config (e.g., "Write Your Ideas" or the phase ID in friendly form)
 - Keep suggestions short and actionable — what should they click/change, not architecture redesigns
 - If something won't work, explain what the player would actually experience ("players would see a blank screen")
+- ABSOLUTELY NO TECHNICAL SYNTAX in your output. NEVER write {{anything}}, NEVER write backticks like \`field\`, NEVER reference field names like "instruction" or "candidateSource". Refer to things by what they DO ("the AI's instructions", "the choices players see"), not by their config field names.
+- NEVER quote the JSON or show config snippets. The teacher doesn't see JSON. Describe the change in English: "Change the message in the first step to..." not "Set message: '...'".
 
 PHASE TYPES (internal reference — do NOT use these technical names in your output):
 - lobby: Players join here
@@ -643,6 +646,144 @@ Return the updated phase JSON.`;
     }
   }
 
+  async reviseGame({ config, request }) {
+    if (this.mode === 'mock') {
+      return { updatedConfig: config, summary: '[MOCK] No changes applied.' };
+    }
+    return this._reviseGameReal({ config, request });
+  }
+
+  async _reviseGameReal({ config, request }) {
+    try {
+      const systemPrompt = `You are revising an existing classroom game config based on the teacher's request. Return ONLY valid JSON matching this schema:
+{"updatedConfig": { ...full game config... }, "summary": "one-paragraph description of what you changed, in plain English for a teacher"}
+
+Rules:
+- Make the SMALLEST set of changes that fulfills the teacher's request. Do not refactor or "improve" unrelated parts.
+- Preserve phase IDs that don't need to change. Add new phases only when the request requires them.
+- Every phase must follow the same field rules as a freshly generated game (see the field allow-list).
+- The "summary" is for the teacher: plain English, no JSON, no curly braces, no field names. Describe the change like "I shortened round 1 from 90s to 60s and added a leaderboard at the end."
+- If the request is impossible or destructive (e.g., "delete everything"), return {"updatedConfig": <unchanged>, "summary": "I couldn't do that because..."}.
+
+` + GAME_GENERATOR_PROMPT;
+
+      const userContent = `Current game config:
+${JSON.stringify(config, null, 0)}
+
+Teacher's request:
+${request}
+
+Return the revised config.`;
+
+      const start = Date.now();
+      const message = await this.client.messages.create({
+        model: MODELS.sonnet,
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      });
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      console.log(`[AIService] reviseGame completed in ${elapsed}s (model: ${MODELS.sonnet})`);
+
+      const text = extractText(message);
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI response was not valid JSON');
+        parsed = JSON.parse(match[0]);
+      }
+      if (!parsed.updatedConfig || !parsed.updatedConfig.phases) {
+        throw new Error('AI response missing updatedConfig');
+      }
+      // Strip invented fields and run defensive fixes — same pipeline as generation
+      const cleaned = this._fixGeneratedConfig(parsed.updatedConfig);
+      return { updatedConfig: cleaned, summary: parsed.summary || 'Changes applied.' };
+    } catch (error) {
+      console.error('[AIService] reviseGame error:', error.message);
+      throw error;
+    }
+  }
+
+  async revisePhase({ config, phaseId, request }) {
+    if (this.mode === 'mock') {
+      const phase = config.phases[phaseId];
+      return { updatedPhase: phase, summary: '[MOCK] No changes applied.' };
+    }
+    return this._revisePhaseReal({ config, phaseId, request });
+  }
+
+  async _revisePhaseReal({ config, phaseId, request }) {
+    const phase = config.phases[phaseId];
+    if (!phase) throw new Error(`Phase "${phaseId}" not found`);
+    const otherPhaseIds = Object.keys(config.phases).filter(id => id !== phaseId);
+    try {
+      const systemPrompt = `You are revising ONE step of a classroom game based on the teacher's request. You will be given the step's current JSON, the IDs of the other steps in the game, and the teacher's plain-English request.
+
+Return ONLY valid JSON matching this schema:
+{"updatedPhase": { ...the revised step config... }, "summary": "one short sentence in plain English describing what you changed"}
+
+Rules:
+- Keep the step's "type" unchanged unless the request explicitly asks to change it.
+- Keep "next" pointing to a real phase ID from the provided list.
+- Make the SMALLEST change that fulfills the request.
+- The "summary" is for the teacher: plain English, no JSON, no curly braces, no field names.
+- Follow the same field rules as a freshly generated game (only fields documented in the schema).
+
+` + GAME_GENERATOR_PROMPT;
+
+      const userContent = `Step ID: ${phaseId}
+Other step IDs in this game: ${JSON.stringify(otherPhaseIds)}
+
+Current step JSON:
+${JSON.stringify(phase, null, 0)}
+
+Teacher's request:
+${request}
+
+Return the revised step.`;
+
+      const start = Date.now();
+      const message = await this.client.messages.create({
+        model: MODELS.sonnet,
+        max_tokens: 1536,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userContent }]
+      });
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      console.log(`[AIService] revisePhase completed in ${elapsed}s (model: ${MODELS.sonnet})`);
+
+      const text = extractText(message);
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI response was not valid JSON');
+        parsed = JSON.parse(match[0]);
+      }
+      if (!parsed.updatedPhase || typeof parsed.updatedPhase !== 'object') {
+        throw new Error('AI response missing updatedPhase');
+      }
+      // Strip invented fields on the single phase
+      const updated = parsed.updatedPhase;
+      const allowed = getAllowedFields(updated.type || phase.type);
+      if (allowed.size > 0) {
+        for (const f of Object.keys(updated)) {
+          if (!allowed.has(f)) {
+            console.log(`[revisePhase] Stripped unknown field "${f}" from "${phaseId}"`);
+            delete updated[f];
+          }
+        }
+      }
+      return { updatedPhase: updated, summary: parsed.summary || 'Changes applied.' };
+    } catch (error) {
+      console.error('[AIService] revisePhase error:', error.message);
+      throw error;
+    }
+  }
+
   async generateTheme(description) {
     if (this.mode === 'mock') {
       return this._generateThemeMock();
@@ -982,6 +1123,35 @@ Return the updated phase JSON.`;
           if (sub.type === 'announce' && !sub.message) {
             if (sub.template) { sub.message = sub.template; delete sub.template; }
             else if (sub.text) { sub.message = sub.text; delete sub.text; }
+          }
+        }
+      }
+    }
+
+    // Strip unknown fields the AI invented. The engine ignores them, and they
+    // mislead the teacher into thinking the game is doing something it isn't.
+    for (var stripId of Object.keys(config.phases)) {
+      var stripPhase = config.phases[stripId];
+      if (!stripPhase || !stripPhase.type) continue;
+      var allowed = getAllowedFields(stripPhase.type);
+      if (allowed.size === 0) continue;
+      for (var field of Object.keys(stripPhase)) {
+        if (!allowed.has(field)) {
+          console.log(`[fix-config] Stripped unknown field "${field}" from phase "${stripId}" (${stripPhase.type})`);
+          delete stripPhase[field];
+        }
+      }
+      if (stripPhase.type === 'foreach' && stripPhase.subPhases) {
+        for (var sId of Object.keys(stripPhase.subPhases)) {
+          var sp = stripPhase.subPhases[sId];
+          if (!sp || !sp.type) continue;
+          var subAllowed = getAllowedFields(sp.type, { subPhase: true });
+          if (subAllowed.size === 0) continue;
+          for (var sField of Object.keys(sp)) {
+            if (!subAllowed.has(sField)) {
+              console.log(`[fix-config] Stripped unknown field "${sField}" from subPhase "${stripId}.${sId}" (${sp.type})`);
+              delete sp[sField];
+            }
           }
         }
       }

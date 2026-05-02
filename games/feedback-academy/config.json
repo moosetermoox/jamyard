@@ -1,0 +1,160 @@
+{
+  "name": "Feedback Academy",
+  "description": "Practice giving high-quality formative feedback on AI scenarios, then apply skills to real classmate work",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "Welcome to Feedback Academy! You'll practice giving effective formative feedback.\n\nFirst: Practice on AI scenarios\nThen: Give feedback to real classmates\n\nRemember: Great feedback is specific, actionable, timely, and focused on improvement!",
+      "timer": 12,
+      "next": "choose-topic"
+    },
+    "choose-topic": {
+      "type": "announce",
+      "message": "Teacher: Choose what students will give feedback on this round.\n\nExamples:\n- A paragraph of writing\n- A math problem solution\n- A project idea\n- A presentation outline\n- A design sketch description",
+      "next": "practice-intro",
+      "teacherInput": {
+        "required": true,
+        "label": "Enter the topic or item for feedback",
+        "type": "text",
+        "id": "topic"
+      }
+    },
+    "practice-intro": {
+      "type": "announce",
+      "message": "PRACTICE ROUND\n\nYou'll see an AI-generated scenario. Your job: Give high-quality formative feedback.\n\nFocus on being:\n✓ Specific (point to exact details)\n✓ Actionable (suggest concrete next steps)\n✓ Growth-oriented (help them improve)\n✓ Balanced (strengths + areas to develop)",
+      "timer": 10,
+      "next": "generate-scenarios"
+    },
+    "generate-scenarios": {
+      "type": "ai-process",
+      "task": "generate",
+      "format": "json",
+      "instruction": "Generate 1 realistic student work scenario that needs feedback. It should be a plausible example of student work with both strengths and clear areas for improvement. Format as JSON object: {\"id\": 1, \"work\": \"the student's work/response\", \"context\": \"what the assignment was\"}. Make the work authentic to middle/high school level - not too polished, showing genuine student effort but with room to grow. The work sample should be 2-4 sentences long. Make it feel real - include minor errors, incomplete thoughts, or unclear explanations that feedback could address.",
+      "next": "assign-scenarios"
+    },
+    "assign-scenarios": {
+      "type": "announce",
+      "message": "Everyone will give feedback on this scenario.\n\nRead carefully, then write feedback that would actually help this student improve!",
+      "timer": 10,
+      "next": "practice-feedback",
+      "showScenario": true
+    },
+    "practice-feedback": {
+      "type": "collect",
+      "prompt": "Here's a student's work:\n\n{{generate-scenarios.result}}\n\nGive formative feedback that will help them improve. Be specific, actionable, and constructive.",
+      "timer": 120,
+      "from": "all",
+      "next": "coach-feedback"
+    },
+    "coach-feedback": {
+      "type": "ai-process",
+      "task": "judge",
+      "format": "json",
+      "instruction": "You are a friendly feedback coach helping students improve. Evaluate each student's feedback and rate it 1-100 based on how specific, actionable, and encouraging it is. For each student, return: {\"playerId\": \"id\", \"score\": 0-100, \"strengths\": \"one thing they did really well in their feedback\", \"coaching\": \"one specific tip to make their feedback even better\"}. Use friendly, encouraging language like you're coaching a friend, not writing a research paper. Be honest but kind.",
+      "input": "practice-feedback.responses",
+      "next": "reveal-coaching"
+    },
+    "reveal-coaching": {
+      "type": "foreach",
+      "data": "practice-feedback.responses",
+      "subPhases": {
+        "show-original": {
+          "type": "announce",
+          "message": "{{_current.playerName}}'s feedback:\n\n\"{{_current.text}}\"",
+          "timer": 8
+        },
+        "show-coaching": {
+          "type": "announce",
+          "message": "AI Coach says:\n\n✓ Strengths: {{coach-feedback.result}}\n\n→ Coaching: {{coach-feedback.result}}\n\nScore: {{coach-feedback.result}}/100",
+          "timer": 12
+        }
+      },
+      "next": "practice-scores"
+    },
+    "practice-scores": {
+      "type": "leaderboard",
+      "from": "coach-feedback.result",
+      "style": "full",
+      "timer": 10,
+      "next": "real-intro"
+    },
+    "real-intro": {
+      "type": "announce",
+      "message": "REAL ROUND\n\nNow apply what you learned!\n\nEveryone will submit work, then you'll give feedback to a real classmate.\n\nRemember:\n✓ Be specific\n✓ Be actionable\n✓ Focus on growth\n✓ Balance strengths + areas to develop",
+      "timer": 10,
+      "next": "collect-work"
+    },
+    "collect-work": {
+      "type": "collect",
+      "prompt": "Submit your work for peer feedback.\n\n(Teacher will specify what to submit based on the topic chosen earlier)\n\nThis will be shared anonymously with a classmate who will give you feedback.",
+      "timer": 120,
+      "from": "all",
+      "next": "real-feedback-round"
+    },
+    "real-feedback-round": {
+      "type": "foreach",
+      "data": "collect-work.responses",
+      "shuffle": true,
+      "excludeSelf": true,
+      "subPhases": {
+        "show-work": {
+          "type": "announce",
+          "message": "A classmate submitted:\n\n\"{{_current.text}}\"\n\nYour turn to give them helpful feedback!",
+          "timer": 8
+        },
+        "give-feedback": {
+          "type": "collect",
+          "prompt": "Give formative feedback on:\n\n\"{{_current.text}}\"\n\nBe specific, actionable, and constructive. Help them improve!",
+          "timer": 90
+        }
+      },
+      "next": "coach-real-feedback"
+    },
+    "coach-real-feedback": {
+      "type": "ai-process",
+      "task": "judge",
+      "format": "json",
+      "instruction": "You are an expert feedback coach. Evaluate the quality of each student's peer feedback using the same criteria as before: specificity, actionability, growth orientation, and balance. For each, return: {\"playerId\": \"id\", \"score\": 0-100, \"strengths\": \"what improved from practice round\", \"coaching\": \"one key insight for next time\"}. Compare to their practice round if possible - did they apply the coaching? Score generously for genuine effort and improvement. Return array of all evaluations.",
+      "input": "real-feedback-round.responses",
+      "next": "final-coaching"
+    },
+    "final-coaching": {
+      "type": "foreach",
+      "data": "collect-work.responses",
+      "subPhases": {
+        "show-feedback-received": {
+          "type": "announce",
+          "message": "{{_current.playerName}}'s work:\n\"{{_current.text}}\"\n\nReceived this feedback:\n\"[feedback text here]\"",
+          "timer": 10
+        },
+        "show-quality": {
+          "type": "announce",
+          "message": "AI Coach evaluation of the feedback:\n\n✓ Strengths: {{coach-real-feedback.result}}\n\n→ For next time: {{coach-real-feedback.result}}\n\nScore: {{coach-real-feedback.result}}/100",
+          "timer": 12
+        }
+      },
+      "next": "final-scores"
+    },
+    "final-scores": {
+      "type": "leaderboard",
+      "from": "coach-real-feedback.result",
+      "style": "full",
+      "timer": 12,
+      "next": "reflection"
+    },
+    "reflection": {
+      "type": "announce",
+      "message": "Great work, Feedback Academy graduates!\n\nKey takeaways:\n• Specific > vague\n• Actionable > judgmental\n• Growth-focused > fixed\n• Balanced > one-sided\n\nKeep practicing these skills in all your peer feedback!",
+      "timer": 10,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "You've completed Feedback Academy! Use these skills to help your classmates grow."
+    }
+  }
+}

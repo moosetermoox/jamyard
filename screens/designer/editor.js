@@ -300,6 +300,18 @@ function init() {
   reviewCloseBtn.addEventListener('click', function () { reviewPanel.hidden = true; });
   closePanelBtn.addEventListener('click', deselectPhase);
 
+  // Ask AI (whole-game revise)
+  var askAiBtn = document.getElementById('ask-ai-btn');
+  if (askAiBtn) askAiBtn.addEventListener('click', function () { openAskAiModal(null); });
+  var askAiCloseBtn = document.getElementById('ask-ai-close');
+  if (askAiCloseBtn) askAiCloseBtn.addEventListener('click', closeAskAiModal);
+  var askAiSubmitBtn = document.getElementById('ask-ai-submit');
+  if (askAiSubmitBtn) askAiSubmitBtn.addEventListener('click', submitAskAi);
+  var askAiApplyBtn = document.getElementById('ask-ai-apply');
+  if (askAiApplyBtn) askAiApplyBtn.addEventListener('click', applyAskAiResult);
+  var askAiDiscardBtn = document.getElementById('ask-ai-discard');
+  if (askAiDiscardBtn) askAiDiscardBtn.addEventListener('click', closeAskAiModal);
+
   // Live preview toggle
   var togglePreviewBtn = document.getElementById('toggle-preview-btn');
   if (togglePreviewBtn) {
@@ -866,13 +878,13 @@ function renderAISuggestions(phaseId) {
 
       var msg = document.createElement('div');
       msg.className = 'ai-suggestion-message';
-      msg.textContent = issue.message;
+      msg.textContent = humanizeReviewText(issue.message);
       item.appendChild(msg);
 
       if (issue.suggestion) {
         var fix = document.createElement('div');
         fix.className = 'ai-suggestion-fix';
-        fix.textContent = issue.suggestion;
+        fix.textContent = humanizeReviewText(issue.suggestion);
         item.appendChild(fix);
       }
 
@@ -937,6 +949,9 @@ function renderPhaseConfig(phaseId) {
 
   // AI Suggestions — pinned near the top so the teacher sees advice before editing
   renderAISuggestions(phaseId);
+
+  // Ask AI about this step — quick AI revise scoped to a single phase
+  addAskAiStepButton(phaseId);
 
   // Preview this step — quick look at what host + players will see
   addPreviewStepButton(phaseId);
@@ -2646,6 +2661,17 @@ function addPreviewStepButton(phaseId) {
   phaseConfigForm.appendChild(btn);
 }
 
+function addAskAiStepButton(phaseId) {
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ask-step-btn';
+  btn.textContent = '✨ Ask AI about this step';
+  btn.addEventListener('click', function () {
+    openAskAiModal(phaseId);
+  });
+  phaseConfigForm.appendChild(btn);
+}
+
 function showPreviewStepModal(phaseId) {
   var phase = gameConfig.phases[phaseId];
   if (!phase) return;
@@ -3590,6 +3616,22 @@ function applyReviewResults(aiResult) {
   }
 }
 
+// Strip technical syntax from AI review output so teachers see plain language.
+// Replaces {{phaseId.field}} with "the <Friendly Name> step", removes backticks,
+// trims stray quote artifacts.
+function humanizeReviewText(text) {
+  if (!text || typeof text !== 'string') return text || '';
+  var out = text;
+  out = out.replace(/\{\{\s*([a-zA-Z0-9_\-]+)(?:\.[a-zA-Z0-9_\-\.]+)?\s*\}\}/g, function (_match, phaseId) {
+    if (gameConfig && gameConfig.phases && gameConfig.phases[phaseId]) {
+      return 'the "' + getFriendlyPhaseName(phaseId) + '" step';
+    }
+    return 'the "' + phaseId + '" step';
+  });
+  out = out.replace(/`([^`]+)`/g, '$1');
+  return out;
+}
+
 function showReviewPanel(result) {
   reviewPanel.hidden = false;
   reviewContent.innerHTML = '';
@@ -3601,7 +3643,7 @@ function showReviewPanel(result) {
   if (ai.summary) {
     var summaryDiv = document.createElement('div');
     summaryDiv.className = 'review-summary';
-    summaryDiv.textContent = ai.summary;
+    summaryDiv.textContent = humanizeReviewText(ai.summary);
     reviewContent.appendChild(summaryDiv);
   }
 
@@ -3660,13 +3702,13 @@ function showReviewPanel(result) {
 
     var msgDiv = document.createElement('div');
     msgDiv.className = 'review-issue-message';
-    msgDiv.textContent = issue.message;
+    msgDiv.textContent = humanizeReviewText(issue.message);
     item.appendChild(msgDiv);
 
     if (issue.suggestion) {
       var sugDiv = document.createElement('div');
       sugDiv.className = 'review-issue-suggestion-text';
-      sugDiv.textContent = issue.suggestion;
+      sugDiv.textContent = humanizeReviewText(issue.suggestion);
       item.appendChild(sugDiv);
     }
 
@@ -4126,6 +4168,130 @@ function renderLivePreview(phaseId) {
 
   if (hostContent) hostContent.innerHTML = buildPreviewHTML(phase, 'host');
   if (playerContent) playerContent.innerHTML = buildPreviewHTML(phase, 'player');
+}
+
+// --- Ask AI (whole-game and per-step revise) ---
+
+var askAiContext = null; // null = whole game, or { phaseId } for per-step
+var askAiPendingResult = null; // { updatedConfig } or { phaseId, updatedPhase }
+
+function openAskAiModal(phaseId) {
+  askAiContext = phaseId ? { phaseId: phaseId } : null;
+  askAiPendingResult = null;
+  var modal = document.getElementById('ask-ai-modal');
+  var title = document.getElementById('ask-ai-title');
+  var subtitle = document.getElementById('ask-ai-subtitle');
+  var input = document.getElementById('ask-ai-input');
+  var status = document.getElementById('ask-ai-status');
+  var result = document.getElementById('ask-ai-result');
+
+  if (phaseId) {
+    title.textContent = 'Ask AI to revise: ' + getFriendlyPhaseName(phaseId);
+    subtitle.textContent = 'Describe what you\'d like to change about this step.';
+    input.placeholder = 'e.g. Give players more time, make the prompt friendlier, add a hint';
+  } else {
+    title.textContent = 'Ask AI to revise this game';
+    subtitle.textContent = 'Describe what you\'d like to change in plain English.';
+    input.placeholder = 'e.g. Make round 1 longer, add a leaderboard at the end, change the AI roast to be more sarcastic';
+  }
+
+  input.value = '';
+  status.hidden = true;
+  status.textContent = '';
+  result.hidden = true;
+  modal.hidden = false;
+  setTimeout(function () { input.focus(); }, 50);
+}
+
+function closeAskAiModal() {
+  askAiContext = null;
+  askAiPendingResult = null;
+  document.getElementById('ask-ai-modal').hidden = true;
+}
+
+async function submitAskAi() {
+  var input = document.getElementById('ask-ai-input');
+  var status = document.getElementById('ask-ai-status');
+  var result = document.getElementById('ask-ai-result');
+  var submitBtn = document.getElementById('ask-ai-submit');
+  var request = (input.value || '').trim();
+  if (!request) {
+    status.hidden = false;
+    status.textContent = 'Please describe what you\'d like to change.';
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Thinking...';
+  status.hidden = false;
+  status.textContent = 'AI is revising' + (askAiContext ? ' this step' : ' the game') + '... (10-30 seconds)';
+  result.hidden = true;
+
+  try {
+    var response;
+    if (askAiContext && askAiContext.phaseId) {
+      response = await fetch('/api/games/revise-phase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: gameConfig, phaseId: askAiContext.phaseId, request: request })
+      });
+    } else {
+      response = await fetch('/api/games/revise', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ config: gameConfig, request: request })
+      });
+    }
+    if (!response.ok) {
+      var err = await response.json().catch(function () { return { error: 'Server error' }; });
+      status.textContent = 'Couldn\'t revise: ' + (err.error || 'Unknown error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Ask AI';
+      return;
+    }
+    var data = await response.json();
+    askAiPendingResult = data;
+    status.hidden = true;
+
+    // Show summary
+    var summary = document.getElementById('ask-ai-summary');
+    summary.textContent = humanizeReviewText(data.summary || 'AI made changes.');
+
+    // Show structural errors if any (whole-game revise only)
+    var errBox = document.getElementById('ask-ai-errors');
+    var errors = (data.structural && data.structural.errors) || [];
+    if (errors.length > 0) {
+      errBox.hidden = false;
+      errBox.innerHTML = '<strong>The AI\'s revision has problems:</strong><ul>' +
+        errors.map(function (e) { return '<li>' + humanizeReviewText(e) + '</li>'; }).join('') +
+        '</ul>';
+    } else {
+      errBox.hidden = true;
+    }
+
+    result.hidden = false;
+  } catch (e) {
+    status.textContent = 'Error: ' + e.message;
+  }
+  submitBtn.disabled = false;
+  submitBtn.textContent = 'Ask AI';
+}
+
+function applyAskAiResult() {
+  if (!askAiPendingResult) return closeAskAiModal();
+  if (askAiContext && askAiContext.phaseId) {
+    gameConfig.phases[askAiContext.phaseId] = askAiPendingResult.updatedPhase;
+  } else if (askAiPendingResult.updatedConfig) {
+    gameConfig = askAiPendingResult.updatedConfig;
+  }
+  isDirty = true;
+  closeAskAiModal();
+  renderCanvas();
+  if (selectedPhaseId && gameConfig.phases[selectedPhaseId]) {
+    renderPhaseConfig(selectedPhaseId);
+  } else {
+    deselectPhase();
+  }
 }
 
 // --- Start ---

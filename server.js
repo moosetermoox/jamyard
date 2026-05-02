@@ -805,6 +805,45 @@ app.post('/api/games/fix-issue', async (req, res) => {
   }
 });
 
+app.post('/api/games/revise', async (req, res) => {
+  try {
+    const { config, request } = req.body;
+    if (!config || !config.phases) {
+      return res.status(400).json({ error: 'Missing config or phases' });
+    }
+    if (!request || typeof request !== 'string' || !request.trim()) {
+      return res.status(400).json({ error: 'Missing request' });
+    }
+    const result = await aiService.reviseGame({ config, request });
+    // Validate the AI's revised config; surface errors so the client can show them
+    const structural = validate(result.updatedConfig, 'revise', { returnResults: true });
+    res.json({ ...result, structural });
+  } catch (error) {
+    console.log(`[api/games/revise] Error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/games/revise-phase', async (req, res) => {
+  try {
+    const { config, phaseId, request } = req.body;
+    if (!config || !config.phases) {
+      return res.status(400).json({ error: 'Missing config or phases' });
+    }
+    if (!phaseId || !config.phases[phaseId]) {
+      return res.status(400).json({ error: 'Invalid phaseId' });
+    }
+    if (!request || typeof request !== 'string' || !request.trim()) {
+      return res.status(400).json({ error: 'Missing request' });
+    }
+    const result = await aiService.revisePhase({ config, phaseId, request });
+    res.json(result);
+  } catch (error) {
+    console.log(`[api/games/revise-phase] Error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.post('/api/games/generate-theme', async (req, res) => {
   try {
     const { description } = req.body;

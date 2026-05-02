@@ -30,6 +30,47 @@ const PHASE_REQUIRED_FIELDS = {
   foreach: ['data', 'subPhases']
 };
 
+// Fields legal on ANY phase type (the engine reads these regardless of type).
+const UNIVERSAL_FIELDS = [
+  'type', 'next',
+  'loopBack', 'loopCount',
+  'hostShow', 'playerShow', 'hostTemplate', 'playerTemplate'
+];
+
+// Optional fields per phase type. Combined with PHASE_REQUIRED_FIELDS and
+// UNIVERSAL_FIELDS, this is the complete allow-list. Anything else is a hard
+// error — prevents the AI generator from inventing fields the engine ignores.
+const PHASE_OPTIONAL_FIELDS = {
+  lobby: ['minPlayers'],
+  end: ['message'],
+  collect: ['timer', 'from', 'fields'],
+  'collect-choice': ['timer', 'from'],
+  'ai-process': ['input', 'task', 'format'],
+  'ai-eliminate': ['format'],
+  vote: ['voters', 'timer', 'question'],
+  eliminate: ['percent', 'hook', 'input', 'pause'],
+  announce: ['timer'],
+  reveal: ['template', 'content', 'timer'],
+  preview: ['content', 'template', 'showResponses'],
+  winner: [],
+  leaderboard: ['style', 'timer', 'message'],
+  'reveal-one': ['message', 'timer'],
+  'team-split': ['teamNames', 'from', 'balanceFrom'],
+  rank: ['timer', 'from'],
+  wager: ['timer', 'correctOption', 'scoresFrom', 'minBet', 'maxBetPercent'],
+  relay: ['timer', 'order', 'from', 'turns'],
+  foreach: ['candidateSource', 'decoyCount', 'scoring', 'aiInject', 'pairMode', 'shuffle', 'selfExclude']
+};
+
+// Sub-phases inside foreach auto-chain — no "next" field. Otherwise same allow-list.
+const SUBPHASE_OPTIONAL_FIELDS = {
+  announce: ['timer'],
+  collect: ['timer', 'from', 'fields'],
+  'collect-choice': ['timer', 'from'],
+  'ai-process': ['input', 'task', 'format']
+};
+const VALID_SUBPHASE_TYPES = ['announce', 'collect', 'collect-choice', 'ai-process'];
+
 const ENUM_VALUES = {
   from: ['all', 'remaining', 'eliminated'],
   voters: ['all', 'remaining', 'eliminated'],
@@ -85,6 +126,33 @@ const VALID_PLAYER_TOGGLES = {
   foreach: [],
   end: ['message']
 };
+
+/**
+ * Returns the set of fields legal on a phase of the given type.
+ * Used by the AI generator to strip invented fields before validation.
+ * @param {string} phaseType
+ * @param {{ subPhase?: boolean }} [opts]
+ * @returns {Set<string>} set of allowed field names (or empty set if type unknown)
+ */
+export function getAllowedFields(phaseType, opts) {
+  const isSub = opts && opts.subPhase;
+  if (isSub) {
+    if (!VALID_SUBPHASE_TYPES.includes(phaseType)) return new Set();
+    return new Set([
+      'type',
+      ...(PHASE_REQUIRED_FIELDS[phaseType] || []),
+      ...(SUBPHASE_OPTIONAL_FIELDS[phaseType] || [])
+    ]);
+  }
+  if (!VALID_PHASE_TYPES.includes(phaseType)) return new Set();
+  const fields = new Set([
+    ...UNIVERSAL_FIELDS,
+    ...(PHASE_REQUIRED_FIELDS[phaseType] || []),
+    ...(PHASE_OPTIONAL_FIELDS[phaseType] || [])
+  ]);
+  if (phaseType === 'foreach') fields.add('subPhases');
+  return fields;
+}
 
 export async function loadGame(gameId) {
   const configPath = join(GAMES_DIR, gameId, 'config.json');
@@ -155,6 +223,38 @@ export function validate(config, gameId, options) {
         if (phase[field] === undefined || phase[field] === null || phase[field] === '') {
           errors.push(
             `Game "${gameId}": phase "${name}" (${phase.type}) is missing required field "${field}"`
+          );
+        }
+      }
+    }
+
+    // Unknown-field check: reject any field not in the allow-list. Catches AI
+    // inventions like `teacherInput`, `showScenario`, `excludeSelf` that the
+    // engine silently ignores.
+    const allowedFields = new Set([
+      ...UNIVERSAL_FIELDS,
+      ...(PHASE_REQUIRED_FIELDS[phase.type] || []),
+      ...(PHASE_OPTIONAL_FIELDS[phase.type] || [])
+    ]);
+    if (phase.type === 'preview') {
+      // Preview also gets approveNext/rejectNext (not "next"), already in required.
+    }
+    if (phase.type !== 'foreach') {
+      // foreach has subPhases which is checked separately.
+      for (const field of Object.keys(phase)) {
+        if (!allowedFields.has(field)) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (${phase.type}) has unknown field "${field}". This isn't a real setting — the engine will ignore it. Remove it or use a valid field.`
+          );
+        }
+      }
+    } else {
+      // foreach: allow subPhases plus the foreach-specific fields.
+      const foreachAllowed = new Set([...allowedFields, 'subPhases']);
+      for (const field of Object.keys(phase)) {
+        if (!foreachAllowed.has(field)) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (foreach) has unknown field "${field}". Remove it or use a valid field.`
           );
         }
       }
@@ -345,10 +445,32 @@ export function validate(config, gameId, options) {
             errors.push(
               `Game "${gameId}": phase "${name}" subPhase "${subName}" is missing type`
             );
-          } else if (!VALID_PHASE_TYPES.includes(sub.type) && sub.type !== 'foreach') {
+          } else if (!VALID_SUBPHASE_TYPES.includes(sub.type)) {
             errors.push(
-              `Game "${gameId}": phase "${name}" subPhase "${subName}" has invalid type "${sub.type}"`
+              `Game "${gameId}": phase "${name}" subPhase "${subName}" has invalid type "${sub.type}". Sub-phases can only be: ${VALID_SUBPHASE_TYPES.join(', ')}.`
             );
+          } else {
+            // Required + allow-list check for sub-phase
+            const subRequired = PHASE_REQUIRED_FIELDS[sub.type] || [];
+            for (const field of subRequired) {
+              if (sub[field] === undefined || sub[field] === null || sub[field] === '') {
+                errors.push(
+                  `Game "${gameId}": phase "${name}" subPhase "${subName}" (${sub.type}) is missing required field "${field}"`
+                );
+              }
+            }
+            const subAllowed = new Set([
+              'type',
+              ...subRequired,
+              ...(SUBPHASE_OPTIONAL_FIELDS[sub.type] || [])
+            ]);
+            for (const field of Object.keys(sub)) {
+              if (!subAllowed.has(field)) {
+                errors.push(
+                  `Game "${gameId}": phase "${name}" subPhase "${subName}" (${sub.type}) has unknown field "${field}". Remove it or use a valid field.`
+                );
+              }
+            }
           }
         }
       }

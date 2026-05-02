@@ -21,10 +21,6 @@
       ],
       "timer": 60,
       "from": "all",
-      "scoring": {
-        "I'm more like an LLM (Large Language Model)": 1,
-        "I'm more like a Duck": 1
-      },
       "next": "results"
     },
     "results": {

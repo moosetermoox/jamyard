@@ -31,7 +31,9 @@
       "Bash(pkill -f \"node server.js\")",
       "Bash(awk '{print $NF}')",
       "Bash(npx tsc *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(awk '{print $5}')",
+      "Bash(xargs -I{} taskkill //F //PID {})"
     ]
   }
 }

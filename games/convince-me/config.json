@@ -1,0 +1,99 @@
+{
+  "name": "Convince Me!",
+  "description": "Practice persuasive speaking by convincing classmates on random debate topics",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "Welcome to Convince Me!\n\nYou'll each get a random debate topic and 90 seconds to prepare a persuasive argument. Then you'll present to the class, and your classmates will rate how convincing you were.\n\nBe creative, confident, and persuasive!",
+      "timer": 20,
+      "next": "get-topics"
+    },
+    "get-topics": {
+      "type": "ai-process",
+      "task": "generate",
+      "instruction": "Generate 20 unique debate topics for students in the class. Topics should be fun, age-appropriate for 15-year-olds, thought-provoking but not too serious. Mix silly and serious topics. Format as a JSON array of strings. Examples: 'Pizza should be classified as a sandwich', 'Schools should start at noon', 'Cats are better than dogs', 'Everyone should learn to juggle', 'Summer is overrated'. Make each topic different and engaging for teens.",
+      "format": "json",
+      "next": "assign-topics"
+    },
+    "assign-topics": {
+      "type": "announce",
+      "message": "Topics assigned! Check your device to see what you'll be arguing.\n\nYou'll have 90 seconds to prepare your most persuasive argument.\n\nReady? Let's go!",
+      "timer": 8,
+      "next": "prep"
+    },
+    "prep": {
+      "type": "collect",
+      "prompt": "Your debate topic:\n\n{{get-topics.result}}\n\nWrite your most persuasive argument (3-5 sentences). Focus on being convincing!",
+      "timer": 120,
+      "from": "all",
+      "next": "prep-done"
+    },
+    "prep-done": {
+      "type": "announce",
+      "message": "Time's up! Arguments are in.\n\nNow we'll hear from each person. After each speech, you'll rate how convincing they were.\n\nLet's start!",
+      "timer": 8,
+      "next": "speeches"
+    },
+    "speeches": {
+      "type": "foreach",
+      "data": "prep.responses",
+      "shuffle": true,
+      "subPhases": {
+        "intro-speaker": {
+          "type": "announce",
+          "message": "Up next: {{_current.playerName}}!\n\nGet ready to be convinced...",
+          "timer": 4
+        },
+        "show-speech": {
+          "type": "announce",
+          "message": "{{_current.playerName}} argues:\n\n\"{{_current.text}}\"\n\nNow rate how convincing this was!",
+          "timer": 10
+        },
+        "rate": {
+          "type": "collect-choice",
+          "prompt": "How convincing was {{_current.playerName}}'s argument?\n\n\"{{_current.text}}\"",
+          "choices": [
+            "Extremely Convincing",
+            "Pretty Convincing",
+            "Somewhat Convincing",
+            "Not Very Convincing"
+          ],
+          "timer": 12,
+          "from": "remaining"
+        }
+      },
+      "scoring": {
+        "subPhase": "rate",
+        "mode": "tally",
+        "pointMap": {
+          "Extremely Convincing": 100,
+          "Pretty Convincing": 70,
+          "Somewhat Convincing": 40,
+          "Not Very Convincing": 10
+        }
+      },
+      "next": "final-scores"
+    },
+    "final-scores": {
+      "type": "leaderboard",
+      "from": "speeches.scores",
+      "style": "full",
+      "timer": 20,
+      "next": "conclusion"
+    },
+    "conclusion": {
+      "type": "announce",
+      "message": "Great persuasive speaking, everyone!\n\nRemember: The most convincing speakers use specific examples, confident language, and connect with their audience.\n\nKeep practicing!",
+      "timer": 10,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing Convince Me!"
+    }
+  }
+}

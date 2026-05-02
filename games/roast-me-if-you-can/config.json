@@ -35,8 +35,7 @@
           "instruction": "Write a hilarious, clever, light-hearted roast about this statement. Keep it playful and fun—roast the content, not the person. 2-3 sentences max. Be witty and creative!",
           "input": "_current.text",
           "task": "generate",
-          "format": "text",
-          "next": "show-roast"
+          "format": "text"
         },
         "show-roast": {
           "type": "announce",
