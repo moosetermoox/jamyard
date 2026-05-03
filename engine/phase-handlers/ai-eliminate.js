@@ -101,6 +101,7 @@ Apply the rules and return JSON indicating who to eliminate and who to keep.`;
       const nextId = ctx.getNextPhaseId();
       if (nextId) {
         setTimeout(async () => {
+          if (ctx.isStale()) return;
           await ctx.advanceTo(nextId);
         }, aiElimPause * 1000);
       }

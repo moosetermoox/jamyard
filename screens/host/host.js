@@ -259,6 +259,35 @@ playAgainBtn.addEventListener('click', () => {
 
 // --- Socket events - Room setup ---
 
+// Prototype skip — clicks whichever advance/close button is currently visible
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'prototype-skip') return;
+  const candidates = [
+    'close-submissions-btn',
+    'close-voting-btn',
+    'rank-close-btn',
+    'wager-close-btn',
+    'reveal-one-next-btn', 'reveal-one-continue-btn',
+    'preview-approve-btn',
+    'continue-btn',
+    'announce-continue-btn',
+    'leaderboard-continue-btn',
+    'team-split-continue-btn',
+    'elimination-continue-btn',
+    'winner-end-btn',
+    'start-game-btn'
+  ];
+  for (const id of candidates) {
+    const btn = document.getElementById(id);
+    if (btn && !btn.hidden && !btn.disabled && btn.offsetParent !== null) {
+      btn.click();
+      return;
+    }
+  }
+  // No visible button — fall back to a generic advance
+  if (currentRoomCode) socket.emit('advance-phase', { code: currentRoomCode });
+});
+
 socket.on('room-created', ({ code, game, theme }) => {
   currentRoomCode = code;
   roomCodeDisplay.textContent = code;

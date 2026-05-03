@@ -302,7 +302,7 @@ Common data fields per phase:
 - foreach: .scores (cumulative), .itemCount
 - relay: .text (combined), .result (array)
 - team-split: .teams, .playerTeam
-- ai-process: .result, .mine (only if perPlayer:true — usable inside collect/collect-choice prompts, announce messages, and reveal templates; renders the recipient's own item)
+- ai-process: .result, .mine (only if perPlayer:true — usable inside collect/collect-choice prompts, announce messages, and reveal templates; renders the recipient's own item), .list (when result is a JSON array — renders as a numbered text list "1. item\n2. item\n..." — use this in templates instead of .result for arrays)
 
 BAR CHART: To show poll/survey results visually, use {{phaseId.barChart}} in a reveal template where phaseId is a collect-choice phase. It renders as an ASCII bar chart with counts and percentages. Aliases: .pieChart, .chart (all produce the same ASCII bars). Do NOT try to use .tallies (wrong plural) or reference individual tally keys like {{phase.tally.SomeChoice}} — the chart already shows each choice with its count. For a simple poll with visual results, do: collect-choice → reveal with template "{{poll.barChart}}".
 

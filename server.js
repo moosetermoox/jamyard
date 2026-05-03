@@ -114,7 +114,10 @@ function isStalePhaseEvent(room, clientPhaseInstanceId, eventName) {
 
 function resolveTemplate(template, engine) {
   return template.replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
-    const value = engine.resolve(ref.trim());
+    const trimmed = ref.trim();
+    // .mine has no recipient at this layer — replace with a host-friendly note
+    if (/\.mine$/.test(trimmed)) return '(each student gets their own)';
+    const value = engine.resolve(trimmed);
     return value !== undefined ? String(value) : match;
   });
 }

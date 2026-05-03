@@ -73,13 +73,22 @@ body {
   text-align: center;
 }
 
-#launch-btn, #reset-btn, #bot-fill-btn {
+#launch-btn, #reset-btn, #bot-fill-btn, #skip-btn {
   padding: 6px 16px;
   border: none;
   border-radius: 4px;
   font-size: 0.9em;
   cursor: pointer;
   font-weight: bold;
+}
+
+#skip-btn {
+  background: #f0a000;
+  color: white;
+}
+
+#skip-btn:hover {
+  background: #ffb830;
 }
 
 #launch-btn {

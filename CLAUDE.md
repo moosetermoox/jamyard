@@ -256,3 +256,13 @@ Framework for quickly building classroom games where:
 - Phase 14: Validation for hostShow/playerShow (per-type toggle sets), hostTemplate/playerTemplate (string check)
 - Phase 14: Editor UI — "Screen Control (Optional)" section with template textareas + toggle checkboxes
 - Phase 14: 223 tests passing
+- 2026-05-03: Per-player AI primitive — `ai-process` accepts `perPlayer: true` (engine generates N items, stores `byPlayer:{pid:item}`); new `{{X.mine}}` template token resolves per-recipient in collect/collect-choice prompts, announce, and reveal. Host sees `(each student gets their own)` placeholder.
+- 2026-05-03: Synthetic `.list` resolver — `{{X.list}}` renders an array as a numbered text list (1. item / 2. item / ...). Added to AI generator prompt as the right way to display arrays.
+- 2026-05-03: Save endpoint auto-strips unknown fields before validation (mirror of AI generator strip pass). Stale invented fields no longer block save.
+- 2026-05-03: Foreach pattern — added "Guess the right answer" alongside spot-the-lie. `_current.shuffledFields` now excludes prompt-style keys (question/prompt/scenario/topic).
+- 2026-05-03: Simple Poll template now uses collect-choice + barChart to match its bar-graph icon.
+- 2026-05-03: collect/collect-choice prompts now resolve `{{...}}` refs (latent bug — they were being passed through unresolved).
+- 2026-05-03: collect-choice responses store both `choice` and `text` so AI summarize sees the answer.
+- 2026-05-03: Ask AI modal — fixed `display:flex` overriding the `[hidden]` attribute (modal popped open every page load and ignored close button).
+- 2026-05-03: Prototype Skip Timer button — clicks whichever advance/close button is currently visible on host via postMessage, bypassing iframe focus issues.
+- 2026-05-03: **Server crash fix** — stale `setTimeout` auto-advances in announce/eliminate/ai-eliminate/leaderboard/winner now check `ctx.isStale()` before transitioning. Skipping past a timed phase used to leave a leftover timer that fired later and threw an invalid-transition exception, killing the process.

@@ -35,7 +35,7 @@
     },
     "show-mashups": {
       "type": "reveal",
-      "template": "🎪 THE AI CREATED THESE MASHUPS FROM YOUR SENTENCES:\n\n{{ai-mashup.result}}",
+      "template": "🎪 THE AI CREATED THESE MASHUPS FROM YOUR SENTENCES:\n\n{{ai-mashup.list}}",
       "next": "vote-time"
     },
     "vote-time": {

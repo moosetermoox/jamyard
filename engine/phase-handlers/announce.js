@@ -27,6 +27,7 @@ registerHandler('announce', {
     // Auto-advance after timer, or wait for host advance-phase
     if (ctx.phase.timer) {
       setTimeout(async () => {
+        if (ctx.isStale()) return; // host already advanced (Skip / manual continue)
         await ctx.advanceToNext();
       }, ctx.phase.timer * 1000);
     }

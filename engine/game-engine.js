@@ -148,6 +148,16 @@ export class GameEngine {
       return formatBarChart(data.tally);
     }
 
+    // Synthetic: phaseId.list — renders data.result (or data itself) as a numbered list
+    if (parts.length === 2 && parts[1] === 'list') {
+      const arr = Array.isArray(data) ? data : (Array.isArray(data.result) ? data.result : null);
+      if (!arr) return '';
+      return arr.map((item, i) => {
+        const text = typeof item === 'string' ? item : (item && item.text) || JSON.stringify(item);
+        return `${i + 1}. ${text}`;
+      }).join('\n');
+    }
+
     let value = data;
     for (let i = 1; i < parts.length; i++) {
       if (value == null) return undefined;

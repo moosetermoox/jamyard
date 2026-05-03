@@ -27,6 +27,7 @@ registerHandler('eliminate', {
     const nextId = ctx.getNextPhaseId();
     if (nextId) {
       setTimeout(async () => {
+        if (ctx.isStale()) return;
         await ctx.advanceTo(nextId);
       }, pauseSeconds * 1000);
     }

@@ -55,6 +55,7 @@ registerHandler('leaderboard', {
       const nextId = ctx.getNextPhaseId();
       if (nextId) {
         setTimeout(async () => {
+          if (ctx.isStale()) return;
           await ctx.advanceTo(nextId);
         }, phase.timer * 1000);
       }

@@ -3,6 +3,7 @@ const playerCount = document.getElementById('player-count');
 const playerCountDisplay = document.getElementById('player-count-display');
 const launchBtn = document.getElementById('launch-btn');
 const botFillBtn = document.getElementById('bot-fill-btn');
+const skipBtn = document.getElementById('skip-btn');
 const resetBtn = document.getElementById('reset-btn');
 const iframeContainer = document.getElementById('iframe-container');
 
@@ -73,6 +74,7 @@ launchBtn.addEventListener('click', () => {
       window.removeEventListener('message', onMessage);
       createPlayerIframes(e.data.code, count);
       botFillBtn.hidden = false;
+      skipBtn.hidden = false;
       resetBtn.hidden = false;
     }
   });
@@ -99,6 +101,12 @@ botFillBtn.addEventListener('click', () => {
   }
 });
 
+// Skip — tell host iframe to advance the current phase / close submissions / continue
+skipBtn.addEventListener('click', () => {
+  const hostIframe = iframeContainer.querySelector('.host-panel iframe');
+  if (hostIframe) hostIframe.contentWindow.postMessage({ type: 'prototype-skip' }, '*');
+});
+
 // Reset
 resetBtn.addEventListener('click', () => {
   iframeContainer.innerHTML = '';
@@ -106,5 +114,6 @@ resetBtn.addEventListener('click', () => {
   gameSelect.disabled = false;
   playerCount.disabled = false;
   botFillBtn.hidden = true;
+  skipBtn.hidden = true;
   resetBtn.hidden = true;
 });

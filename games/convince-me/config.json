@@ -15,8 +15,8 @@
     "get-topics": {
       "type": "ai-process",
       "task": "generate",
-      "instruction": "Generate 20 unique debate topics for students in the class. Topics should be fun, age-appropriate for 15-year-olds, thought-provoking but not too serious. Mix silly and serious topics. Format as a JSON array of strings. Examples: 'Pizza should be classified as a sandwich', 'Schools should start at noon', 'Cats are better than dogs', 'Everyone should learn to juggle', 'Summer is overrated'. Make each topic different and engaging for teens.",
-      "format": "json",
+      "instruction": "Generate fun, age-appropriate debate topics for 15-year-olds. Mix silly and serious. Examples: 'Pizza should be classified as a sandwich', 'Schools should start at noon', 'Cats are better than dogs', 'Everyone should learn to juggle', 'Summer is overrated'. Make each topic different and engaging for teens.",
+      "perPlayer": true,
       "next": "assign-topics"
     },
     "assign-topics": {
@@ -27,7 +27,7 @@
     },
     "prep": {
       "type": "collect",
-      "prompt": "Your debate topic:\n\n{{get-topics.result}}\n\nWrite your most persuasive argument (3-5 sentences). Focus on being convincing!",
+      "prompt": "Your debate topic:\n\n{{get-topics.mine}}\n\nWrite your most persuasive argument (3-5 sentences). Focus on being convincing!",
       "timer": 120,
       "from": "all",
       "next": "prep-done"
