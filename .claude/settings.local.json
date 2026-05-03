@@ -33,7 +33,9 @@
       "Bash(npx tsc *)",
       "Bash(npm run *)",
       "Bash(awk '{print $5}')",
-      "Bash(xargs -I{} taskkill //F //PID {})"
+      "Bash(xargs -I{} taskkill //F //PID {})",
+      "Bash(findstr :3000)",
+      "Bash(findstr LISTENING)"
     ]
   }
 }

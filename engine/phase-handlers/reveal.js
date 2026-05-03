@@ -1,21 +1,22 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 
+const PER_PLAYER_REF = /\{\{\s*[a-zA-Z0-9_-]+\.mine\s*\}\}/;
+
 registerHandler('reveal', {
   async onEnter(ctx) {
     const { phase, engine } = ctx;
+    const sc = ctx.resolveScreenControl();
+    const tpl = phase.template || '';
+    const isPerPlayer = !!phase.template && PER_PLAYER_REF.test(tpl);
 
-    let content = '';
-    if (phase.template) {
-      content = ctx.resolveTemplate(phase.template);
-    }
-
+    // Generic content for host (and fallback when no template)
+    let content = phase.template ? ctx.resolveTemplate(tpl) : '';
     let aiResult = content;
     let responses = [];
 
-    // Only scan for backward compat when no template is provided
     if (!phase.template) {
-      // Find most recent AI result
+      // Backward compat: scan most recent ai-process / collect when no template
       for (const [id, cfg] of Object.entries(engine.config.phases)) {
         if (cfg.type === 'ai-process') {
           const data = engine.getPhaseData(id);
@@ -24,8 +25,6 @@ registerHandler('reveal', {
           }
         }
       }
-
-      // Find most recent responses
       for (const [id, cfg] of Object.entries(engine.config.phases)) {
         if (cfg.type === 'collect') {
           const data = engine.getPhaseData(id);
@@ -36,16 +35,35 @@ registerHandler('reveal', {
       }
     }
 
-    const sc = ctx.resolveScreenControl();
-    ctx.emitToRoom(EVENTS.SHOW_RESULTS, { content, aiResult, responses, ...sc });
+    if (isPerPlayer) {
+      ctx.emitToHost(EVENTS.SHOW_RESULTS, { content, aiResult: content, responses, ...sc });
+      for (const player of engine.players.list()) {
+        const playerContent = ctx.services.resolvePerPlayerTemplate(tpl, engine, player.id);
+        ctx.emitToPlayer(player.id, EVENTS.SHOW_RESULTS, {
+          content: playerContent, aiResult: playerContent, responses, ...sc
+        });
+      }
+    } else {
+      ctx.emitToRoom(EVENTS.SHOW_RESULTS, { content, aiResult, responses, ...sc });
+    }
   },
 
   onReconnect(ctx, socket) {
     const { phase, engine } = ctx;
+    const sc = ctx.resolveScreenControl();
+    const tpl = phase.template || '';
+    const isPerPlayer = !!phase.template && PER_PLAYER_REF.test(tpl);
 
     let content = '';
     if (phase.template) {
-      content = ctx.resolveTemplate(phase.template);
+      if (isPerPlayer) {
+        const player = engine.players.find(socket.id);
+        content = player
+          ? ctx.services.resolvePerPlayerTemplate(tpl, engine, player.id)
+          : ctx.resolveTemplate(tpl);
+      } else {
+        content = ctx.resolveTemplate(tpl);
+      }
     }
     let aiResult = content;
     if (!phase.template) {
@@ -58,7 +76,6 @@ registerHandler('reveal', {
         }
       }
     }
-    const sc = ctx.resolveScreenControl();
     socket.emit(EVENTS.SHOW_RESULTS, { content, aiResult, ...sc });
   }
 });

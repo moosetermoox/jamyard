@@ -8,7 +8,7 @@ registerHandler('ai-process', {
     ctx.emitToRoom(EVENTS.PROCESSING_STARTED, { task: phase.task, ...sc });
 
     const input = phase.input ? engine.resolve(phase.input) : undefined;
-    const instruction = phase.instruction;
+    let instruction = phase.instruction;
     let responses;
     if (Array.isArray(input)) {
       responses = input;
@@ -18,12 +18,21 @@ registerHandler('ai-process', {
       responses = [];
     }
 
+    // perPlayer mode: ask AI to generate one item per eligible player and map them
+    let perPlayerEligible = null;
+    if (phase.perPlayer) {
+      perPlayerEligible = ctx.getEligibleVoters(phase.from || 'all');
+      const n = perPlayerEligible.length;
+      instruction = `${instruction}\n\nIMPORTANT: Generate exactly ${n} distinct items, one per player. Return a JSON array of ${n} strings — no preamble, no keys, just the array.`;
+    }
+
     console.log(`[handlePhase] AI instruction: ${instruction}`);
     const aiResult = await ctx.aiService.process({ instruction, responses });
     console.log(`[handlePhase] AI returned: ${aiResult.text}`);
 
     let result;
-    if (phase.format === 'json') {
+    const expectJson = phase.format === 'json' || phase.perPlayer;
+    if (expectJson) {
       try {
         result = JSON.parse(aiResult.text);
       } catch {
@@ -43,7 +52,21 @@ registerHandler('ai-process', {
       result = aiResult.text;
     }
 
-    engine.storePhaseData(phase.id, { result });
+    const dataToStore = { result };
+
+    if (phase.perPlayer) {
+      const arr = Array.isArray(result) ? result : [];
+      const byPlayer = {};
+      if (arr.length === 0) {
+        throw new Error(`ai-process "${phase.id}" with perPlayer: true expected a JSON array but got ${typeof result}.`);
+      }
+      for (let i = 0; i < perPlayerEligible.length; i++) {
+        byPlayer[perPlayerEligible[i].id] = arr[i % arr.length];
+      }
+      dataToStore.byPlayer = byPlayer;
+    }
+
+    engine.storePhaseData(phase.id, dataToStore);
 
     // Auto-advance to next phase
     await ctx.advanceToNext();

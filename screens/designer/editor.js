@@ -1579,6 +1579,7 @@ function renderPhaseConfig(phaseId) {
 
     var patternOptions = [
       { value: 'guess-author', label: 'Guess who wrote it — players see the answer and pick from a list of names' },
+      { value: 'guess-the-truth', label: 'Guess the right answer — players answer each other\'s questions (1 correct + decoys)' },
       { value: 'rate-answers', label: 'Rate each answer — players rate responses and authors earn points' },
       { value: 'spot-the-lie', label: 'Spot the lie — players pick which of someone\'s statements is false' },
       { value: 'discuss', label: 'Just show and discuss — show each answer with time to talk' },
@@ -1719,6 +1720,33 @@ function renderPhaseConfig(phaseId) {
           isDirty = true;
         });
       addFieldWithHelp('Points for finding it', 'Points for picking the correct answer', 'number', 'phase-points',
+        (phase.scoring && phase.scoring.pointsCorrect) || 100, false, function(value) {
+          if (phase.scoring) phase.scoring.pointsCorrect = value ? parseInt(value) : 100;
+          isDirty = true;
+        });
+    }
+
+    if (detectedPattern === 'guess-the-truth') {
+      addSectionHeader('Settings');
+      var gtSourcePhaseId = (phase.data || '').split('.')[0];
+      var gtSourcePhase = gameConfig.phases[gtSourcePhaseId];
+      if (gtSourcePhase && gtSourcePhase.fields) {
+        var gtCorrectOptions = [];
+        for (var gfi = 0; gfi < gtSourcePhase.fields.length; gfi++) {
+          gtCorrectOptions.push({ value: '_current.fields.' + gtSourcePhase.fields[gfi].key, label: gtSourcePhase.fields[gfi].label });
+        }
+        addSelectWithHelp('Which field is the correct answer?', 'The right answer players are trying to find', 'phase-correct-field',
+          gtCorrectOptions, (phase.scoring && phase.scoring.correctAnswer) || '', function(value) {
+            if (phase.scoring) phase.scoring.correctAnswer = value;
+            isDirty = true;
+          });
+      }
+      addFieldWithHelp('Time to pick (seconds)', 'How long players have to choose', 'number', 'phase-guess-timer',
+        getSubPhaseField(phase, 'guess', 'timer') || 20, false, function(value) {
+          setSubPhaseField(phase, 'guess', 'timer', value ? parseInt(value) : undefined);
+          isDirty = true;
+        });
+      addFieldWithHelp('Points for correct answer', 'Points for picking the right answer', 'number', 'phase-points',
         (phase.scoring && phase.scoring.pointsCorrect) || 100, false, function(value) {
           if (phase.scoring) phase.scoring.pointsCorrect = value ? parseInt(value) : 100;
           isDirty = true;
@@ -1953,8 +1981,18 @@ function detectForeachPattern(phase) {
       choicesSrc = sub.choices;
     }
   }
-  // spot-the-lie: choices are shuffled fields
-  if (hasChoiceSub && choicesSrc === '_current.shuffledFields') return 'spot-the-lie';
+  // spot-the-lie / guess-the-truth: choices are shuffled fields. Distinguish by source field keys
+  // or by the prompt wording (lie vs correct/right/true).
+  if (hasChoiceSub && choicesSrc === '_current.shuffledFields') {
+    var srcId = (phase.data || '').split('.')[0];
+    var srcPhase = gameConfig && gameConfig.phases && gameConfig.phases[srcId];
+    var keys = (srcPhase && srcPhase.fields) ? srcPhase.fields.map(function(f){ return f.key; }) : [];
+    if (keys.indexOf('correct') !== -1) return 'guess-the-truth';
+    if (keys.indexOf('lie') !== -1) return 'spot-the-lie';
+    var corr = (scoring.correctAnswer || '').toLowerCase();
+    if (corr.indexOf('correct') !== -1 || corr.indexOf('right') !== -1 || corr.indexOf('true') !== -1) return 'guess-the-truth';
+    return 'spot-the-lie';
+  }
   // guess-author: correct scoring + candidates
   if (hasChoiceSub && scoring.correctAnswer && scoring.mode !== 'tally' && (phase.candidateSource || choicesSrc === '_candidates')) return 'guess-author';
   // rate-answers: tally scoring
@@ -2001,6 +2039,28 @@ function applyForeachPattern(phase, phaseId, pattern) {
       correctField = '_current.fields.' + srcPhase.fields[srcPhase.fields.length - 1].key;
     }
     phase.scoring = { subPhase: 'guess', correctAnswer: correctField, pointsCorrect: 100 };
+  } else if (pattern === 'guess-the-truth') {
+    delete phase.candidateSource;
+    delete phase.decoyCount;
+    // Try to find a "question" field for the prompt and a "correct" field for scoring
+    var gtSrcId = (phase.data || '').split('.')[0];
+    var gtSrcPhase = gameConfig.phases[gtSrcId];
+    var questionKey = 'question';
+    var correctKey = 'correct';
+    if (gtSrcPhase && gtSrcPhase.fields && gtSrcPhase.fields.length > 0) {
+      var keys = gtSrcPhase.fields.map(function(f){ return f.key; });
+      if (keys.indexOf('question') === -1) questionKey = keys[0];
+      if (keys.indexOf('correct') === -1) {
+        var nonQ = keys.filter(function(k){ return k !== questionKey; });
+        correctKey = nonQ[0] || keys[0];
+      }
+    }
+    phase.subPhases = {
+      'show': { type: 'announce', message: '{{_current.playerName}} asks:\n\n{{_current.fields.' + questionKey + '}}', timer: 4 },
+      'guess': { type: 'collect-choice', prompt: 'Pick the right answer:', choices: '_current.shuffledFields', timer: 20 },
+      'reveal': { type: 'announce', message: 'The correct answer was:\n\n{{_current.fields.' + correctKey + '}}', timer: 6 }
+    };
+    phase.scoring = { subPhase: 'guess', correctAnswer: '_current.fields.' + correctKey, pointsCorrect: 100 };
   } else if (pattern === 'discuss') {
     delete phase.candidateSource;
     delete phase.decoyCount;

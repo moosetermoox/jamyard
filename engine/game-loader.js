@@ -45,7 +45,7 @@ const PHASE_OPTIONAL_FIELDS = {
   end: ['message'],
   collect: ['timer', 'from', 'fields'],
   'collect-choice': ['timer', 'from'],
-  'ai-process': ['input', 'task', 'format'],
+  'ai-process': ['input', 'task', 'format', 'perPlayer'],
   'ai-eliminate': ['format'],
   vote: ['voters', 'timer', 'question'],
   eliminate: ['percent', 'hook', 'input', 'pause'],
@@ -67,7 +67,7 @@ const SUBPHASE_OPTIONAL_FIELDS = {
   announce: ['timer'],
   collect: ['timer', 'from', 'fields'],
   'collect-choice': ['timer', 'from'],
-  'ai-process': ['input', 'task', 'format']
+  'ai-process': ['input', 'task', 'format', 'perPlayer']
 };
 const VALID_SUBPHASE_TYPES = ['announce', 'collect', 'collect-choice', 'ai-process'];
 

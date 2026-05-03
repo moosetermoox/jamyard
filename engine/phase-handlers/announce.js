@@ -1,16 +1,28 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 
+const PER_PLAYER_REF = /\{\{\s*[a-zA-Z0-9_-]+\.mine\s*\}\}/;
+
 registerHandler('announce', {
   async onEnter(ctx) {
-    let message = ctx.phase.message;
-    if (message.includes('{{')) {
-      message = ctx.resolveTemplate(message);
-    }
-    ctx.engine.storePhaseData(ctx.phase.id, { message });
+    const rawMessage = ctx.phase.message || '';
     const sc = ctx.resolveScreenControl();
+    const timer = ctx.phase.timer || null;
 
-    ctx.emitToRoom(EVENTS.ANNOUNCE, { message, timer: ctx.phase.timer || null, ...sc });
+    if (PER_PLAYER_REF.test(rawMessage)) {
+      // Per-recipient: host gets the generic resolved version, each player gets their own
+      const hostMessage = ctx.resolveTemplate(rawMessage);
+      ctx.engine.storePhaseData(ctx.phase.id, { message: hostMessage });
+      ctx.emitToHost(EVENTS.ANNOUNCE, { message: hostMessage, timer, ...sc });
+      for (const player of ctx.engine.players.list()) {
+        const msg = ctx.services.resolvePerPlayerTemplate(rawMessage, ctx.engine, player.id);
+        ctx.emitToPlayer(player.id, EVENTS.ANNOUNCE, { message: msg, timer, ...sc });
+      }
+    } else {
+      const message = rawMessage.includes('{{') ? ctx.resolveTemplate(rawMessage) : rawMessage;
+      ctx.engine.storePhaseData(ctx.phase.id, { message });
+      ctx.emitToRoom(EVENTS.ANNOUNCE, { message, timer, ...sc });
+    }
 
     // Auto-advance after timer, or wait for host advance-phase
     if (ctx.phase.timer) {
@@ -22,8 +34,15 @@ registerHandler('announce', {
 
   onReconnect(ctx, socket) {
     const announceData = ctx.engine.getPhaseData(ctx.phase.id);
-    if (announceData) {
-      const sc = ctx.resolveScreenControl();
+    const rawMessage = ctx.phase.message || '';
+    const sc = ctx.resolveScreenControl();
+    if (PER_PLAYER_REF.test(rawMessage)) {
+      const player = ctx.engine.players.find(socket.id);
+      const msg = player
+        ? ctx.services.resolvePerPlayerTemplate(rawMessage, ctx.engine, player.id)
+        : ctx.resolveTemplate(rawMessage);
+      socket.emit(EVENTS.ANNOUNCE, { message: msg, timer: null, ...sc });
+    } else if (announceData) {
       socket.emit(EVENTS.ANNOUNCE, { message: announceData.message, timer: null, ...sc });
     }
   }

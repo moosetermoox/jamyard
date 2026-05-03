@@ -24,32 +24,25 @@ window.GAME_TEMPLATES = {
   'simple-poll': {
     name: 'Simple Poll',
     icon: '\uD83D\uDCCA',
-    description: 'Ask a question, AI summarizes answers, show results',
+    description: 'Ask a multiple-choice question, show results as a bar chart',
     config: function () {
       return {
         name: 'Quick Poll',
-        description: 'Ask the class a question and see what AI thinks',
+        description: 'Ask the class a question and see the results as a bar chart',
         minPlayers: 2,
         maxPlayers: 36,
         phases: {
           lobby: { type: 'lobby', next: 'ask' },
           ask: {
-            type: 'collect',
+            type: 'collect-choice',
             prompt: 'What do you think?',
+            choices: ['Option A', 'Option B', 'Option C', 'Option D'],
             timer: 60,
-            next: 'process'
-          },
-          process: {
-            type: 'ai-process',
-            task: 'summarize',
-            instruction: 'Summarize what the class said in 2-3 sentences. Highlight common themes and any surprising answers.',
-            input: 'ask.responses',
-            format: 'text',
             next: 'results'
           },
           results: {
             type: 'reveal',
-            template: '{{process.result}}',
+            template: 'Here\u2019s how the class voted:\n\n{{ask.barChart}}',
             next: 'end'
           },
           end: { type: 'end', message: 'Thanks for sharing!' }

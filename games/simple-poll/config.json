@@ -1,6 +1,6 @@
 {
   "name": "Quick Poll",
-  "description": "Ask the class a question and see what AI thinks",
+  "description": "Ask the class a question and see the results as a bar chart",
   "minPlayers": 2,
   "maxPlayers": 36,
   "phases": {
@@ -9,22 +9,19 @@
       "next": "ask"
     },
     "ask": {
-      "type": "collect",
+      "type": "collect-choice",
       "prompt": "What do you think?",
+      "choices": [
+        "Duck",
+        "Cat",
+        "Mouse "
+      ],
       "timer": 60,
-      "next": "process"
-    },
-    "process": {
-      "type": "ai-process",
-      "task": "summarize",
-      "instruction": "Summarize what the class said in 2-3 sentences. Highlight common themes and any surprising answers.",
-      "input": "ask.responses",
-      "format": "text",
       "next": "results"
     },
     "results": {
       "type": "reveal",
-      "template": "{{process.result}}",
+      "template": "Here’s how the class voted:\n\n{{ask.barChart}}",
       "next": "end"
     },
     "end": {

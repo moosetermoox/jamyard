@@ -48,30 +48,29 @@
       "data": "collect.responses",
       "shuffle": true,
       "subPhases": {
-        "show-question": {
+        "show": {
           "type": "announce",
-          "message": "Get ready for the next question...",
-          "timer": 2
+          "message": "{{_current.playerName}} asks:\n\n{{_current.fields.question}}",
+          "timer": 4
         },
-        "answer": {
+        "guess": {
           "type": "collect-choice",
-          "prompt": "{{_current.playerName}} asks:\n\n{{_current.fields.question}}",
+          "prompt": "Pick the right answer:",
           "choices": "_current.shuffledFields",
-          "timer": 30
+          "timer": 20
         },
         "reveal": {
           "type": "announce",
-          "message": "The correct answer is:\n\n{{_current.fields.correct}}\n\n(Question by {{_current.playerName}})",
-          "timer": 8
+          "message": "The correct answer was:\n\n{{_current.fields.correct}}",
+          "timer": 6
         }
       },
+      "next": "final-scores",
       "scoring": {
-        "subPhase": "answer",
+        "subPhase": "guess",
         "correctAnswer": "_current.fields.correct",
-        "pointsCorrect": 100,
-        "pointsForAuthorOnIncorrect": 50
-      },
-      "next": "final-scores"
+        "pointsCorrect": 100
+      }
     },
     "final-scores": {
       "type": "leaderboard",

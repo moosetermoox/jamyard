@@ -14,20 +14,21 @@ registerHandler('collect', {
       if (p.response) engine.players.update(p.id, { response: undefined });
     }
 
-    const payload = {
-      prompt: phase.prompt, timer: phase.timer || null,
-      fields: phase.fields || null
-    };
+    // Resolve {{...}} refs in the prompt once for the host (no `.mine` recipient yet)
+    const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
 
     // Send prompt to host
     ctx.emitToHost(EVENTS.GAME_STARTED, {
-      ...payload, hostTemplate: sc.hostTemplate, show: sc.hostShow
+      prompt: hostPrompt, timer: phase.timer || null, fields: phase.fields || null,
+      hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
-    // Send prompt to eligible players
+    // Send prompt to eligible players — resolve `{{X.mine}}` per-recipient
     for (const player of eligible) {
+      const playerPrompt = ctx.services.resolvePerPlayerTemplate(phase.prompt || '', engine, player.id);
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
-        ...payload, playerTemplate: sc.playerTemplate, show: sc.playerShow
+        prompt: playerPrompt, timer: phase.timer || null, fields: phase.fields || null,
+        playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }
 
@@ -45,8 +46,11 @@ registerHandler('collect', {
     if (player && player.response) {
       socket.emit(EVENTS.WAITING, { message: 'Answer submitted. Waiting for others...' });
     } else {
+      const playerPrompt = player
+        ? ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, player.id)
+        : ctx.resolveTemplate(ctx.phase.prompt || '');
       socket.emit(EVENTS.GAME_STARTED, {
-        prompt: ctx.phase.prompt, timer: null,
+        prompt: playerPrompt, timer: null,
         fields: ctx.phase.fields || null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });

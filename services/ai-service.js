@@ -46,7 +46,7 @@ PHASE TYPES (internal reference — do NOT use these technical names in your out
 - lobby: Players join here
 - collect: Players type a text response. Needs 'prompt'. Optional 'from' (all/remaining/eliminated).
 - collect-choice: Players pick from choices. Needs 'prompt' and 'choices'. Optional 'from'.
-- ai-process: AI processes responses or generates content from scratch. Needs 'instruction'. Optional 'input' (reference to a previous step's data — omit if generating from scratch), 'task', 'format'.
+- ai-process: AI processes responses or generates content from scratch. Needs 'instruction'. Optional 'input' (reference to a previous step's data — omit if generating from scratch), 'task', 'format', 'perPlayer' (boolean — generate one item per player, then reference {{phaseId.mine}} in a later collect/collect-choice prompt for per-player customization).
 - ai-eliminate: AI judges and eliminates. Needs 'instruction', 'input'.
 - vote: Players vote. Needs 'mode' (pick-one/head-to-head), 'candidates'.
 - eliminate: Remove players by score. Needs 'method'. bottom-percent needs 'percent' and 'input'.
@@ -149,7 +149,10 @@ Available phase types:
 
 3. "ai-process" — AI processes player responses or generates content
    Required: "instruction" (detailed prompt for AI)
-   Optional: "input" (data ref like "collect.responses" — omit if AI is generating from scratch), "task" ("summarize"/"generate"/"compare"/"rank"/"judge"), "format" ("text"/"json")
+   Optional: "input" (data ref like "collect.responses" — omit if AI is generating from scratch), "task" ("summarize"/"generate"/"compare"/"rank"/"judge"), "format" ("text"/"json"), "perPlayer" (boolean)
+   PER-PLAYER MODE: set "perPlayer": true to generate one item per player (e.g. unique debate topics, scenarios, math problems). The engine asks for exactly N items, parses as a JSON array, and assigns one to each player. In any later "collect" or "collect-choice" prompt, write {{phaseId.mine}} and the engine substitutes that player's item per-recipient. Do NOT use {{phaseId.result}} for per-player content — result is the full array and renders as joined text. Example:
+   "topics": { "type": "ai-process", "instruction": "Generate fun debate topics for teens...", "perPlayer": true, "next": "argue" },
+   "argue": { "type": "collect", "prompt": "Your topic: {{topics.mine}}\\n\\nWrite your argument.", "timer": 90, "next": "..." }
 
 4. "announce" — Show a message to everyone
    Required: "message" (string, supports {{phase.field}} templates)
@@ -299,7 +302,7 @@ Common data fields per phase:
 - foreach: .scores (cumulative), .itemCount
 - relay: .text (combined), .result (array)
 - team-split: .teams, .playerTeam
-- ai-process: .result
+- ai-process: .result, .mine (only if perPlayer:true — usable inside collect/collect-choice prompts, announce messages, and reveal templates; renders the recipient's own item)
 
 BAR CHART: To show poll/survey results visually, use {{phaseId.barChart}} in a reveal template where phaseId is a collect-choice phase. It renders as an ASCII bar chart with counts and percentages. Aliases: .pieChart, .chart (all produce the same ASCII bars). Do NOT try to use .tallies (wrong plural) or reference individual tally keys like {{phase.tally.SomeChoice}} — the chart already shows each choice with its count. For a simple poll with visual results, do: collect-choice → reveal with template "{{poll.barChart}}".
 

@@ -8,7 +8,7 @@ import { randomUUID } from 'crypto';
 import { readdir, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
-import { loadGame, validate } from './engine/game-loader.js';
+import { loadGame, validate, getAllowedFields } from './engine/game-loader.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { gamePhases } from './config/game-phases.js';
 import { AIService } from './services/ai-service.js';
@@ -114,6 +114,23 @@ function isStalePhaseEvent(room, clientPhaseInstanceId, eventName) {
 
 function resolveTemplate(template, engine) {
   return template.replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
+    const value = engine.resolve(ref.trim());
+    return value !== undefined ? String(value) : match;
+  });
+}
+
+// Resolve {{X.mine}} per recipient, using the byPlayer map an ai-process step
+// produced when phase.perPlayer === true. Other refs resolve normally.
+function resolvePerPlayerTemplate(template, engine, playerId) {
+  if (!template) return '';
+  return template.replace(/\{\{\s*([a-zA-Z0-9_-]+)\.mine\s*\}\}/g, (match, phaseId) => {
+    const data = engine.phaseData[phaseId];
+    if (data && data.byPlayer && data.byPlayer[playerId] !== undefined) {
+      return String(data.byPlayer[playerId]);
+    }
+    return match;
+  }).replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
+    if (/\.mine\s*$/.test(ref)) return match;
     const value = engine.resolve(ref.trim());
     return value !== undefined ? String(value) : match;
   });
@@ -351,9 +368,15 @@ function setupForeachIteration(engine, foreachPhaseId, feConfig, index) {
     }
 
     // Resolve _current.shuffledFields — shuffled array of the current item's field values
+    // (excludes prompt-style fields like "question"/"prompt"/"scenario" so the question
+    //  itself doesn't appear as one of the answer choices)
     if (subConfig.choices === '_current.shuffledFields') {
       if (item.fields && typeof item.fields === 'object') {
-        subConfig.choices = shuffleArray(Object.values(item.fields));
+        const PROMPT_KEYS = new Set(['question', 'prompt', 'scenario', 'topic']);
+        const answerValues = Object.keys(item.fields)
+          .filter(k => !PROMPT_KEYS.has(k))
+          .map(k => item.fields[k]);
+        subConfig.choices = shuffleArray(answerValues);
       } else {
         subConfig.choices = [];
       }
@@ -563,7 +586,7 @@ async function tallyAndAdvance(code, room) {
 // Services bundle passed to phase handler context
 const phaseServices = {
   io, roomToHost, aiService,
-  resolveTemplate, resolveScreenControl, getNextPhaseId, getEligibleVoters,
+  resolveTemplate, resolvePerPlayerTemplate, resolveScreenControl, getNextPhaseId, getEligibleVoters,
   handlePhase: (code, room) => handlePhase(code, room),
   // Helpers needed by complex phase handlers
   generateMatchups,
@@ -734,16 +757,52 @@ app.put('/api/games/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
     const config = req.body;
+    const stripped = stripUnknownFields(config);
+    if (stripped.length) {
+      console.log(`[api/games PUT] Stripped ${stripped.length} unknown field(s): ${stripped.join(', ')}`);
+    }
     validate(config, gameId);
     const configPath = join(GAMES_DIR, gameId, 'config.json');
     await access(configPath);
     await writeFile(configPath, JSON.stringify(config, null, 2));
-    res.json({ success: true });
+    res.json({ success: true, stripped });
   } catch (error) {
     console.log(`[api/games PUT] Error: ${error.message}`);
     res.status(400).json({ error: error.message });
   }
 });
+
+function stripUnknownFields(config) {
+  const stripped = [];
+  if (!config || !config.phases) return stripped;
+  for (const phaseId of Object.keys(config.phases)) {
+    const phase = config.phases[phaseId];
+    if (!phase || !phase.type) continue;
+    const allowed = getAllowedFields(phase.type);
+    if (allowed.size === 0) continue;
+    for (const field of Object.keys(phase)) {
+      if (!allowed.has(field)) {
+        stripped.push(`${phaseId}.${field}`);
+        delete phase[field];
+      }
+    }
+    if (phase.type === 'foreach' && phase.subPhases) {
+      for (const subId of Object.keys(phase.subPhases)) {
+        const sub = phase.subPhases[subId];
+        if (!sub || !sub.type) continue;
+        const subAllowed = getAllowedFields(sub.type, { subPhase: true });
+        if (subAllowed.size === 0) continue;
+        for (const f of Object.keys(sub)) {
+          if (!subAllowed.has(f)) {
+            stripped.push(`${phaseId}.${subId}.${f}`);
+            delete sub[f];
+          }
+        }
+      }
+    }
+  }
+  return stripped;
+}
 
 app.post('/api/games', async (req, res) => {
   try {
@@ -1149,7 +1208,7 @@ io.on('connection', (socket) => {
             tally[r.text] = (tally[r.text] || 0) + 1;
           }
           // Store with choice field for clarity
-          const choiceResponses = responses.map(r => ({ playerId: r.playerId, name: r.name, choice: r.text }));
+          const choiceResponses = responses.map(r => ({ playerId: r.playerId, name: r.name, choice: r.text, text: r.text }));
           room.engine.storePhaseData(collectPhase.id, { responses: choiceResponses, tally });
           console.log(`[close-submissions] Stored ${choiceResponses.length} choices for phase '${collectPhase.id}'`);
         } else {

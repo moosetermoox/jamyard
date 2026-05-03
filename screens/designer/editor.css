@@ -930,6 +930,10 @@ body {
   justify-content: center;
 }
 
+.ask-ai-modal[hidden] {
+  display: none;
+}
+
 .ask-ai-modal-inner {
   background: #FFF9C4;
   border: 4px solid #000;

@@ -24,9 +24,10 @@ registerHandler('collect-choice', {
       if (p.response) engine.players.update(p.id, { response: undefined });
     }
 
-    // Send to host
+    // Send to host (resolve refs once for host view)
+    const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
     ctx.emitToHost(EVENTS.GAME_STARTED, {
-      prompt: phase.prompt,
+      prompt: hostPrompt,
       choices,
       timer: phase.timer || null,
       isChoice: true,
@@ -39,8 +40,9 @@ registerHandler('collect-choice', {
         ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'This one is yours! Waiting for others to guess...' });
         continue;
       }
+      const playerPrompt = ctx.services.resolvePerPlayerTemplate(phase.prompt || '', engine, player.id);
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
-        prompt: phase.prompt,
+        prompt: playerPrompt,
         choices,
         timer: phase.timer || null,
         isChoice: true,
@@ -67,8 +69,9 @@ registerHandler('collect-choice', {
         choices = ctx.engine.resolve(choices);
         if (!Array.isArray(choices)) choices = [];
       }
+      const playerPrompt = ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, socket.id);
       socket.emit(EVENTS.GAME_STARTED, {
-        prompt: ctx.phase.prompt,
+        prompt: playerPrompt,
         choices,
         timer: null,
         isChoice: true,
