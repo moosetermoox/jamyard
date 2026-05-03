@@ -36,9 +36,9 @@ describe('GameLoader', () => {
       expect(config.hooks).toBe('./hooks.js');
       expect(config.minPlayers).toBe(4);
 
-      // Verify all 16 phases exist
+      // 16 original phases + 3 "show what everyone said" reveals
       const phaseNames = Object.keys(config.phases);
-      expect(phaseNames).toHaveLength(16);
+      expect(phaseNames).toHaveLength(19);
 
       // Round 1 phases
       expect(config.phases.lobby.next).toBe('round1-intro');

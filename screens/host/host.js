@@ -259,9 +259,18 @@ playAgainBtn.addEventListener('click', () => {
 
 // --- Socket events - Room setup ---
 
-// Prototype skip — clicks whichever advance/close button is currently visible
+// Prototype skip — clicks whichever advance/close button is currently visible.
+// Special-cases relay (no host button — auto-skips remaining turns server-side).
 window.addEventListener('message', (e) => {
   if (!e.data || e.data.type !== 'prototype-skip') return;
+
+  // Relay has no host-side button to click — turns advance from player devices.
+  // Ask the server to fast-forward all remaining turns.
+  if (relaySection && !relaySection.hidden && currentRoomCode) {
+    socket.emit('relay-finish-all', { code: currentRoomCode });
+    return;
+  }
+
   const candidates = [
     'close-submissions-btn',
     'close-voting-btn',

@@ -13,7 +13,12 @@ registerHandler('wager', {
     if (!Array.isArray(wgOptions)) wgOptions = [];
     wgOptions = wgOptions.map(o => typeof o === 'string' ? o : (o.text || o.name || JSON.stringify(o)));
 
-    const wgScores = phase.scoresFrom ? (engine.resolve(phase.scoresFrom) || {}) : {};
+    // If scoresFrom isn't set, every player starts with a default pool so the
+    // simplest case (a one-off bet with no prior score chain) just works.
+    const DEFAULT_STARTING_POINTS = 100;
+    const wgScores = phase.scoresFrom
+      ? (engine.resolve(phase.scoresFrom) || {})
+      : Object.fromEntries(wgEligible.map(p => [p.id, DEFAULT_STARTING_POINTS]));
     const wgEligibleIds = new Set(wgEligible.map(p => p.id));
 
     room.phaseState = {

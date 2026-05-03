@@ -269,7 +269,7 @@ function emitRelayTurn(code, room) {
     if (pid !== activePlayerId) {
       io.to(pid).emit(EVENTS.RELAY_WAITING, {
         activePlayerName: activePlayer ? activePlayer.name : 'Someone',
-        sharedResult: rs.sharedResult, progress,
+        prompt: rs.prompt, sharedResult: rs.sharedResult, progress,
         playerTemplate: rs.sc.playerTemplate, show: rs.sc.playerShow
       });
     }
@@ -1486,6 +1486,35 @@ io.on('connection', (socket) => {
       }
     } else {
       emitRelayTurn(code, room);
+    }
+  });
+
+  // Host-only: fast-forward all remaining relay turns. Each remaining player
+  // gets a "(skipped)" entry; then the phase advances. Used by prototype Skip
+  // Timer and could be wired to a host UI button later.
+  socket.on(EVENTS.RELAY_FINISH_ALL, async ({ code } = {}) => {
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState) return;
+    const rs = room.phaseState;
+    const phase = room.engine && room.engine.config.phases[rs.phaseId];
+    if (!phase || phase.type !== 'relay') return;
+    if (rs.turnTimer) { clearTimeout(rs.turnTimer); rs.turnTimer = null; }
+
+    while (rs.currentTurnIndex < rs.turnOrder.length) {
+      const pid = rs.turnOrder[rs.currentTurnIndex];
+      const player = room.engine.players.find(pid);
+      rs.sharedResult.push({ playerId: pid, name: player ? player.name : 'Unknown', text: '(skipped)' });
+      rs.currentTurnIndex++;
+    }
+
+    const fullText = rs.sharedResult.map(r => r.text).join(' ');
+    room.engine.storePhaseData(rs.phaseId, { result: rs.sharedResult, text: fullText });
+    console.log(`[relay-finish-all] Skipped remaining turns in room ${code}`);
+
+    const nextId = getNextPhaseId(room.engine, phase);
+    if (nextId) {
+      room.engine.transition(nextId);
+      await handlePhase(code, room);
     }
   });
 

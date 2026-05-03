@@ -131,6 +131,7 @@ const wagerSubmitBtn = document.getElementById('wager-submit-btn');
 // Elements - Relay
 const relaySection = document.getElementById('relay-section');
 const relayStatus = document.getElementById('relay-status');
+const relayPromptDisplay = document.getElementById('relay-prompt-display');
 const relayTimerDisplay = document.getElementById('relay-timer-display');
 const relaySharedDisplay = document.getElementById('relay-shared-display');
 const relayInputSection = document.getElementById('relay-input-section');
@@ -777,13 +778,15 @@ wagerSubmitBtn.addEventListener('click', function() {
 socket.on('relay-turn', ({ prompt, sharedResult, timer, progress, playerTemplate, show }) => {
   showSection(relaySection);
   relayStatus.textContent = "It's your turn!";
+  relayPromptDisplay.textContent = prompt || '';
+  relayPromptDisplay.hidden = !prompt;
   relayInputSection.hidden = false;
   relayInput.value = '';
   relayInput.focus();
   relaySubmitBtn.disabled = false;
   applyTemplate(relaySection, playerTemplate);
   applyShow(show, {
-    prompt: relayStatus,
+    prompt: relayPromptDisplay,
     sharedResult: relaySharedDisplay,
     input: relayInputSection,
     timer: relayTimerDisplay
@@ -801,13 +804,15 @@ socket.on('relay-turn', ({ prompt, sharedResult, timer, progress, playerTemplate
   }
 });
 
-socket.on('relay-waiting', ({ activePlayerName, sharedResult, progress, playerTemplate, show }) => {
+socket.on('relay-waiting', ({ activePlayerName, prompt, sharedResult, progress, playerTemplate, show }) => {
   showSection(relaySection);
   relayStatus.textContent = "Waiting for " + activePlayerName + "...";
+  relayPromptDisplay.textContent = prompt || '';
+  relayPromptDisplay.hidden = !prompt;
   relayInputSection.hidden = true;
   applyTemplate(relaySection, playerTemplate);
   applyShow(show, {
-    prompt: relayStatus,
+    prompt: relayPromptDisplay,
     sharedResult: relaySharedDisplay,
     input: relayInputSection,
     timer: relayTimerDisplay

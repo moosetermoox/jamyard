@@ -24,6 +24,11 @@
       "prompt": "What can you do with corn?",
       "timer": 50,
       "from": "remaining",
+      "next": "round1-show"
+    },
+    "round1-show": {
+      "type": "reveal",
+      "template": "# Here's what everyone said:\n\n{{round1-collect.responses.list}}",
       "next": "round1-process"
     },
     "round1-process": {
@@ -56,6 +61,11 @@
       "prompt": "What is an alternative use for corn?",
       "timer": 50,
       "from": "remaining",
+      "next": "round2-show"
+    },
+    "round2-show": {
+      "type": "reveal",
+      "template": "# Here's what everyone said:\n\n{{round2-collect.responses.list}}",
       "next": "round2-vote"
     },
     "round2-vote": {
@@ -89,6 +99,11 @@
       "prompt": "What is your ultimate creative use for corn?",
       "timer": 60,
       "from": "remaining",
+      "next": "final-show"
+    },
+    "final-show": {
+      "type": "reveal",
+      "template": "# The finalists' answers:\n\n{{final-collect.responses.list}}",
       "next": "final-vote"
     },
     "final-vote": {

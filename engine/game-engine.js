@@ -143,19 +143,24 @@ export class GameEngine {
     const data = this.phaseData[firstPart];
     if (data === undefined) return undefined;
 
-    // Synthetic: phaseId.barChart (alias: pieChart, chart) renders a tally as an ASCII bar chart
-    if (parts.length === 2 && (parts[1] === 'barChart' || parts[1] === 'pieChart' || parts[1] === 'chart')) {
-      return formatBarChart(data.tally);
-    }
-
-    // Synthetic: phaseId.list — renders data.result (or data itself) as a numbered list
-    if (parts.length === 2 && parts[1] === 'list') {
-      const arr = Array.isArray(data) ? data : (Array.isArray(data.result) ? data.result : null);
-      if (!arr) return '';
-      return arr.map((item, i) => {
-        const text = typeof item === 'string' ? item : (item && item.text) || JSON.stringify(item);
-        return `${i + 1}. ${text}`;
-      }).join('\n');
+    // Synthetic suffix: .list / .barChart / .pieChart / .chart resolves the prefix
+    // and formats the result. Works at any nesting depth, e.g.
+    //   {{collect-id.list}}                   — collect responses as numbered list
+    //   {{collect-id.responses.list}}         — same, explicit
+    //   {{ai-process-id.result.list}}         — JSON array result as list
+    const lastPart = parts[parts.length - 1];
+    if (parts.length >= 2 && (lastPart === 'list' || lastPart === 'barChart' || lastPart === 'pieChart' || lastPart === 'chart')) {
+      // Resolve everything except the suffix
+      let value = data;
+      for (let i = 1; i < parts.length - 1; i++) {
+        if (value == null) return '';
+        value = value[parts[i]];
+      }
+      if (lastPart === 'list') return formatList(value);
+      // barChart / pieChart / chart — bare {{X.barChart}} reads X.tally (backward compat).
+      // Deeper paths (e.g. {{X.tally.barChart}}) use the resolved value directly.
+      const tally = (parts.length === 2) ? (data && data.tally) : value;
+      return formatBarChart(tally);
     }
 
     let value = data;
@@ -265,6 +270,34 @@ function buildStateMachineConfig(phases) {
  * @param {Object} tally
  * @returns {string}
  */
+/**
+ * Format a value as a numbered, newline-separated list.
+ * Accepts: an array, or an object with a .result/.responses/.standings array.
+ * Each item: if string, used directly; if object, prefers .text, then .name,
+ * then .response, falling back to JSON.
+ */
+function formatList(value) {
+  let arr = null;
+  if (Array.isArray(value)) {
+    arr = value;
+  } else if (value && typeof value === 'object') {
+    if (Array.isArray(value.result)) arr = value.result;
+    else if (Array.isArray(value.responses)) arr = value.responses;
+    else if (Array.isArray(value.standings)) arr = value.standings;
+  }
+  if (!arr || arr.length === 0) return '';
+  return arr.map((item, i) => {
+    let text;
+    if (typeof item === 'string') text = item;
+    else if (item && typeof item === 'object') {
+      text = item.text || item.name || item.response || JSON.stringify(item);
+    } else {
+      text = String(item);
+    }
+    return `${i + 1}. ${text}`;
+  }).join('\n');
+}
+
 function formatBarChart(tally) {
   if (!tally || typeof tally !== 'object') return '';
   const entries = Object.entries(tally);

@@ -15,9 +15,11 @@ registerHandler('relay', {
       turnOrder = rlEligible.map(p => p.id).sort(() => Math.random() - 0.5);
     }
 
+    const resolvedPrompt = phase.prompt ? ctx.resolveTemplate(phase.prompt) : '';
+
     room.phaseState = {
       phaseId: phase.id, turnOrder, currentTurnIndex: 0,
-      sharedResult: [], sc, prompt: phase.prompt,
+      sharedResult: [], sc, prompt: resolvedPrompt,
       timer: phase.timer || null,
       cleanup() { if (this.turnTimer) { clearTimeout(this.turnTimer); this.turnTimer = null; } }
     };
@@ -44,7 +46,7 @@ registerHandler('relay', {
       } else {
         socket.emit(EVENTS.RELAY_WAITING, {
           activePlayerName: activePlayer ? activePlayer.name : 'Someone',
-          sharedResult: rlState.sharedResult, progress,
+          prompt: rlState.prompt, sharedResult: rlState.sharedResult, progress,
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       }

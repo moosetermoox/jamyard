@@ -1,6 +1,6 @@
 {
   "name": "Dream Vacation Debate",
-  "description": "Teams pitch their ultimate group vacation. Rank destinations, split into teams, relay-write a pitch, then wager on the winner!",
+  "description": "Suggest dream destinations, rank them as a class, then collaboratively write a vacation pitch for the winner.",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -9,60 +9,37 @@
     "submit-destinations": {
       "type": "collect",
       "prompt": "Where's your dream vacation destination? (City, country, or place)",
-      "timer": 45,
+      "timer": 60,
+      "next": "show-suggestions"
+    },
+    "show-suggestions": {
+      "type": "reveal",
+      "template": "# Suggestions are in!\n\n{{submit-destinations.responses.list}}",
       "next": "rank-destinations"
     },
     "rank-destinations": {
       "type": "rank",
       "prompt": "Rank these destinations from BEST to WORST",
       "candidates": "submit-destinations.responses",
-      "timer": 30,
-      "next": "top-destination"
+      "timer": 45,
+      "next": "announce-winner"
     },
-    "top-destination": {
+    "announce-winner": {
       "type": "announce",
-      "message": "The class has spoken! Here are the rankings:\n\n{{rank-destinations.rankedList}}",
-      "timer": 10,
-      "next": "split-teams"
-    },
-    "split-teams": {
-      "type": "team-split",
-      "method": "random",
-      "teamCount": 2,
-      "teamNames": ["Explorers", "Adventurers"],
-      "next": "team-intro"
-    },
-    "team-intro": {
-      "type": "announce",
-      "message": "Teams are set! Now everyone will take turns building a vacation pitch — one sentence at a time.\n\nMake it the trip of a lifetime!",
-      "timer": 8,
+      "message": "# The class has spoken!\n\n{{rank-destinations.rankedList}}\n\nNext up: build a vacation pitch for the top pick — one sentence at a time.",
+      "timer": 20,
       "next": "write-pitch"
     },
     "write-pitch": {
       "type": "relay",
-      "prompt": "Add the next sentence to the group vacation pitch. Make it exciting and build on what came before!",
+      "prompt": "Top pick: {{rank-destinations.rankings.0.item}}\n\nAdd the next sentence to the class's vacation pitch about it. Build on what came before — make it exciting!",
       "order": "random",
-      "timer": 30,
+      "timer": 45,
       "next": "pitch-reveal"
     },
     "pitch-reveal": {
-      "type": "announce",
-      "message": "The vacation pitch is complete! Here's what the class came up with:\n\n{{write-pitch.text}}",
-      "timer": 12,
-      "next": "place-bets"
-    },
-    "place-bets": {
-      "type": "wager",
-      "prompt": "Which team contributed more to the pitch? Who deserves the booking?",
-      "options": ["Explorers", "Adventurers"],
-      "timer": 15,
-      "next": "scoreboard"
-    },
-    "scoreboard": {
-      "type": "leaderboard",
-      "from": "place-bets.scores",
-      "style": "full",
-      "timer": 15,
+      "type": "reveal",
+      "template": "# Your vacation pitch:\n\n{{write-pitch.text}}",
       "next": "end"
     },
     "end": {

@@ -592,6 +592,19 @@ export function validate(config, gameId, options) {
     }
   }
 
+  // Cycle detection — any cycle through next/approveNext/rejectNext (excluding
+  // loopBack edges) is unintended. To repeat a section, use loopBack/loopCount.
+  // Catches the common "phase Z.next points back to an earlier phase" mistake.
+  detectCycles(config, gameId, errors);
+
+  // Template scan — warn when a {{phaseId.field}} renders an array as a string
+  // (which JS stringifies as "[object Object],[object Object]"). The fix is
+  // to use the .list synthetic suffix.
+  scanTemplatesForRawArrays(config, gameId, warnings);
+
+  // Per-phase semantic warnings (not blockers, but signal probable design holes).
+  scanForDesignHoles(config, gameId, warnings);
+
   if (returnResults) {
     return { errors, warnings };
   }
@@ -599,5 +612,131 @@ export function validate(config, gameId, options) {
   // Throw first error for backward compatibility
   if (errors.length > 0) {
     throw new Error(errors[0]);
+  }
+}
+
+// DFS cycle detection on the next/approveNext/rejectNext graph (loopBack edges
+// excluded — those are explicit, intentional loops). Reports the first cycle.
+function detectCycles(config, gameId, errors) {
+  const phaseNames = Object.keys(config.phases);
+  const lobbyName = phaseNames.find(n => config.phases[n].type === 'lobby');
+  if (!lobbyName) return;
+
+  const WHITE = 0, GRAY = 1, BLACK = 2;
+  const color = {};
+  for (const n of phaseNames) color[n] = WHITE;
+
+  const stack = [];
+  let found = null;
+
+  function visit(node) {
+    if (found) return;
+    color[node] = GRAY;
+    stack.push(node);
+    const phase = config.phases[node];
+    if (phase) {
+      const edges = [];
+      if (phase.next) edges.push(['next', phase.next]);
+      if (phase.approveNext) edges.push(['approveNext', phase.approveNext]);
+      // rejectNext is intentionally a back-edge on preview phases (the "redo"
+      // primitive), so we don't count it as a cycle. Same for loopBack.
+      for (const [edgeName, target] of edges) {
+        if (!config.phases[target]) continue; // already reported as bad ref
+        if (color[target] === GRAY) {
+          const start = stack.indexOf(target);
+          const cycle = stack.slice(start).concat(target);
+          found = { node, edgeName, target, cycle };
+          return;
+        }
+        if (color[target] === WHITE) {
+          visit(target);
+          if (found) return;
+        }
+      }
+    }
+    stack.pop();
+    color[node] = BLACK;
+  }
+
+  visit(lobbyName);
+  if (found) {
+    errors.push(
+      `Game "${gameId}": phase "${found.node}" has ${found.edgeName} "${found.target}" which creates a loop (${found.cycle.join(' → ')}). To repeat a section, use loopBack/loopCount on a phase instead of pointing "next" backward.`
+    );
+  }
+}
+
+// Field names that are (almost) always arrays. Rendering one as a raw {{X.field}}
+// inside a template stringifies as "[object Object],..." — usually a bug.
+const KNOWN_ARRAY_FIELDS = new Set([
+  'responses', 'standings', 'eliminated', 'eliminatedNames',
+  'survivors', 'winnerIds', 'winnerNames', 'rankings', 'matchups',
+  'candidateIds', 'voters'
+]);
+
+// Phase fields that hold templates the engine resolves at runtime.
+const TEMPLATE_FIELDS = ['template', 'content', 'message', 'prompt', 'instruction', 'hostTemplate', 'playerTemplate'];
+
+// Catch design holes that aren't structural errors but make a game feel broken:
+//   - wager with no scoresFrom AND no correctOption (no points to bet, no
+//     auto-resolve — host has to guess, players bet on nothing)
+//   - team-split whose team data isn't referenced anywhere downstream
+function scanForDesignHoles(config, gameId, warnings) {
+  // Collect every string template in the game so we can search for refs.
+  const allTemplates = [];
+  for (const phase of Object.values(config.phases)) {
+    for (const f of TEMPLATE_FIELDS) {
+      if (typeof phase[f] === 'string') allTemplates.push(phase[f]);
+    }
+  }
+  const allTemplatesJoined = allTemplates.join('\n');
+
+  for (const [name, phase] of Object.entries(config.phases)) {
+    if (phase.type === 'wager') {
+      const hasScores = !!phase.scoresFrom;
+      const hasCorrect = !!phase.correctOption;
+      if (!hasScores && !hasCorrect) {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (wager) has no "scoresFrom" and no "correctOption" — players will start with default points and the host will have to pick the winner manually. Set "correctOption" if there's a verifiable answer, or use "scoresFrom" to chain scores from a previous round.`
+        );
+      }
+    }
+
+    if (phase.type === 'team-split') {
+      // Look for any reference to team data downstream — currently there's no
+      // single "uses teams" signal, so we look for {{team*}} or {{...teams*}}
+      // tokens in any template.
+      const referenced = /\{\{[^}]*team[^}]*\}\}/i.test(allTemplatesJoined);
+      if (!referenced) {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (team-split) creates teams, but no later template references team data. The split is wasted setup. Either reference team info in a later message (e.g. "Team {{${name}.teams}}") or remove this phase.`
+        );
+      }
+    }
+  }
+}
+
+function scanTemplatesForRawArrays(config, gameId, warnings) {
+  const tokenRe = /\{\{\s*([a-zA-Z0-9_-]+)\.([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?\s*\}\}/g;
+  for (const [name, phase] of Object.entries(config.phases)) {
+    for (const field of TEMPLATE_FIELDS) {
+      const tpl = phase[field];
+      if (!tpl || typeof tpl !== 'string') continue;
+      let m;
+      tokenRe.lastIndex = 0;
+      while ((m = tokenRe.exec(tpl)) !== null) {
+        const [, refPhase, leaf, suffix] = m;
+        if (!KNOWN_ARRAY_FIELDS.has(leaf)) continue;
+        // If a list/chart suffix follows, it's intentional.
+        if (suffix === 'list' || suffix === 'barChart' || suffix === 'pieChart' || suffix === 'chart') continue;
+        // Allow .length and similar scalar accessors.
+        if (suffix === 'length') continue;
+        // Allow indexed access like .responses.0 (rare but legit).
+        if (suffix && /^\d+$/.test(suffix)) continue;
+        warnings.push(
+          `Game "${gameId}": phase "${name}" template ${field} contains "{{${refPhase}.${leaf}${suffix ? '.' + suffix : ''}}}" — "${leaf}" is a list and will display as "[object Object],...". Add ".list" to format it (e.g. {{${refPhase}.${leaf}.list}}).`
+        );
+      }
+    }
   }
 }

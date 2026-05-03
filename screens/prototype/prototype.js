@@ -93,12 +93,24 @@ function createPlayerIframes(code, count) {
   }
 }
 
-// Bot Fill — send auto-fill message to all player iframes
+// Bot Fill — send auto-fill to all player iframes. Repeats so that relay-style
+// phases (only one player active at a time) auto-advance through every turn.
+// Each iframe's handler is a no-op when nothing is fillable, so extra shots are
+// harmless.
 botFillBtn.addEventListener('click', () => {
-  const playerIframes = iframeContainer.querySelectorAll('.player-panel iframe');
-  for (const iframe of playerIframes) {
-    iframe.contentWindow.postMessage({ type: 'bot-fill' }, '*');
-  }
+  const fire = () => {
+    const playerIframes = iframeContainer.querySelectorAll('.player-panel iframe');
+    for (const iframe of playerIframes) {
+      iframe.contentWindow.postMessage({ type: 'bot-fill' }, '*');
+    }
+  };
+  fire();
+  // ~7s of follow-up shots covers a 12-player relay at 1 turn ≈ 0.5s
+  let shots = 12;
+  const id = setInterval(() => {
+    if (--shots <= 0) clearInterval(id);
+    fire();
+  }, 600);
 });
 
 // Skip — tell host iframe to advance the current phase / close submissions / continue
