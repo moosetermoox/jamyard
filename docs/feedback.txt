@@ -1,0 +1,715 @@
+## Overall assessment
+
+This is a strong architecture for a classroom-first tool. The best choices are the config-driven state machine, save-time validation, phase handler registry, stale phase protection, and prototype runner. Those directly support the product goal: teachers should not discover broken logic in front of 30 students. 
+
+The biggest architectural risk is not the engine. It is **configuration complexity leaking into the teacher experience**. You already have 19 phase types, field references, template suffixes, loops, foreach, per-player AI output, hooks, warnings, and multiple display surfaces. That is powerful, but it can quietly become “programming without code.” The platform should continue moving toward a **small set of known-good interaction recipes**, with the underlying phase graph treated more like compiled output than something teachers mentally model.
+
+My strongest recommendation: make the system more like a **game compiler** than a blank visual programming tool. Teachers choose a classroom interaction pattern, fill in text, customize rules, preview, and save. The engine can still use phases internally, but the teacher should rarely need to think in terms like `collect.responses`, `{{rank.rankings.0.item}}`, or whether an AI phase returns JSON versus text.
+
+---
+
+## Highest-priority recommendations
+
+### 1. Create a single source of truth for phase schemas, validation, editor UI, and docs
+
+This is the most important engineering improvement. The file says the editor duplicates server validation logic and has drifted before. That will keep happening.
+
+I would define each phase type in one shared module:
+
+```js
+export const phaseSchemas = {
+  collect: {
+    fields: {
+      prompt: { type: 'templateString', required: true, surface: 'both' },
+      from: { type: 'enum', values: ['all', 'remaining', 'eliminated'], default: 'all' },
+      timer: { type: 'integer', min: 1, max: 3600, optional: true },
+      next: { type: 'phaseRef', required: true }
+    },
+    output: {
+      responses: {
+        type: 'array',
+        item: {
+          playerId: 'string',
+          name: 'string',
+          text: 'string'
+        },
+        renderers: ['list', 'count', 'json']
+      }
+    }
+  }
+};
+```
+
+Then use that same definition to drive:
+
+* server validation
+* client-side inline validation
+* editor form fields
+* template/data-ref autocomplete
+* docs/tooltips
+* AI generation constraints
+* tests that assert every phase type has a schema, handler, output contract, and editor config
+
+This would reduce bugs more than almost any individual validator rule.
+
+Since the project is vanilla JS with no build step, I would still use shared ES modules plus `// @ts-check` and JSDoc. You can add `tsc --allowJs --checkJs --noEmit` in CI without changing runtime deployment.
+
+---
+
+### 2. Treat templates and data refs as a typed dataflow system
+
+Right now, the validator catches missing phases and warns on raw arrays. That is good, but you can go further without making the system much heavier.
+
+The engine already has an implicit dataflow graph:
+
+```txt
+collect.responses -> ai.input -> reveal.template
+vote.scores       -> leaderboard.from
+rank.rankings     -> reveal.template
+```
+
+Make that graph explicit.
+
+Each phase should declare what it outputs. Each consuming field should declare what input type it accepts. For example:
+
+```txt
+ai-process.input accepts: string | array | object
+reveal.template accepts: renderable string
+leaderboard.scoresFrom accepts: scoreMap
+vote.candidates accepts: array
+```
+
+Then this becomes a validator error:
+
+```txt
+{{collect.responses}}
+```
+
+because `collect.responses` is an array and not directly renderable.
+
+But this is valid:
+
+```txt
+{{collect.responses.list}}
+{{collect.responses.count}}
+{{collect.responses.json}}
+```
+
+This would also catch the AI issue you mentioned: “AI produces JSON used in a plain-text reveal.” The real fix is not just a better warning. It is output typing:
+
+```json
+{
+  "type": "ai-process",
+  "outputMode": "json",
+  "outputSchema": {
+    "summary": "string",
+    "themes": "array<string>"
+  }
+}
+```
+
+Then later phases can safely reference:
+
+```txt
+{{ai.summary}}
+{{ai.themes.list}}
+```
+
+This turns many subtle runtime bugs into compile-time/editor-time feedback.
+
+---
+
+### 3. Add automated headless playthrough tests for every phase type
+
+The current tests sound solid for pure logic and validation, but the architecture admits the main gap: browser E2E and phase handlers are not directly tested.
+
+I would add a headless test harness that creates a fake room, fake host socket, fake player sockets, and drives each phase through:
+
+* enter phase
+* emit expected host/player events
+* submit valid player actions
+* reject stale events
+* reconnect one player
+* advance to next phase
+* verify room state and phase data
+
+This does not require full Playwright coverage for everything. It gives you fast, deterministic coverage of the phase-handler layer, which is currently one of the highest-risk areas.
+
+Then add a very small number of browser E2E tests:
+
+1. teacher creates room, students join, game starts
+2. teacher edits/saves a game, sees validation errors, fixes them
+3. prototype runner starts with bots and completes a game
+4. reconnect during collect/vote/rank
+5. AI failure path shows retry/skip instead of freezing
+
+Those five flows would catch many bugs that unit tests will miss.
+
+---
+
+### 4. Be careful with `stripUnknownFields()`
+
+Dropping unknown fields before validation is useful for AI-generated configs, but it can also hide intent.
+
+Example: AI invents this:
+
+```json
+{
+  "type": "vote",
+  "excludeSelf": true
+}
+```
+
+Silently stripping `excludeSelf` makes the config valid but changes the game design. That may be worse than blocking save.
+
+I would use two modes:
+
+```txt
+AI output cleanup: strip unknown fields, but show removed-field warnings/diff
+Human/authored config: unknown fields are errors
+Tests/dev mode: unknown fields are errors
+```
+
+For teacher-facing AI flows, the diff modal should explicitly say:
+
+```txt
+Removed unsupported field: vote.excludeSelf
+Reason: this phase does not support excludeSelf.
+```
+
+That keeps the convenience without hiding semantic changes.
+
+---
+
+### 5. Freeze the game config when a room starts
+
+The architecture says game configs are loaded from `games/{id}/config.json`, and the teacher can edit/save games. I would make sure an active room uses a frozen config snapshot.
+
+Otherwise, this class of bug is possible:
+
+1. teacher starts a room
+2. students join
+3. teacher or another tab saves the game
+4. current phase graph changes while the live room is mid-game
+
+For a classroom tool, active sessions should be deterministic. A room should have:
+
+```js
+room.gameId
+room.configVersion
+room.configSnapshot
+room.startedAt
+```
+
+Edits should affect the next room, not the current one.
+
+Also add optimistic concurrency to saves:
+
+```txt
+GET config -> returns version 17
+PUT config with If-Match: 17
+server saves version 18
+```
+
+That prevents two browser tabs from overwriting each other.
+
+---
+
+## Server.js and orchestration
+
+I would not blindly turn every socket handler into a registry. The phase registry is valuable because phase behavior is polymorphic: every phase has the same conceptual lifecycle but different implementation.
+
+Socket events are different. Many are part of room lifecycle, host controls, player join, debug tools, AI endpoints, editor REST, or prototype helpers. A registry may add indirection without much payoff.
+
+What I would do instead:
+
+```txt
+server.js
+  creates Express app
+  creates Socket.IO server
+  wires modules together
+  starts HTTP server
+
+server/
+  routes/games.js
+  routes/ai.js
+  routes/rooms.js
+  sockets/host-events.js
+  sockets/player-events.js
+  sockets/prototype-events.js
+  sockets/debug-events.js
+  room-service.js
+  phase-runner.js
+  config-service.js
+```
+
+The key extraction is probably **phase-runner**, not “socket registry.”
+
+`handlePhase()` and transition orchestration are important enough to live outside `server.js`. Server.js should become composition glue. The event handlers can stay explicit and boring.
+
+I would also watch `ctx.services`. Escape hatches tend to become back doors into the old monolith. If `foreach` and `relay` need special services, promote those services into named capabilities instead of passing a broad server helper bag.
+
+---
+
+## `room.phaseState` should become typed, even without TypeScript
+
+Yes, this is worth doing.
+
+You do not need a full TypeScript migration to get most of the benefit. Add JSDoc typedefs and enable checkJS:
+
+```js
+// @ts-check
+
+/**
+ * @typedef {Object} VotePhaseState
+ * @property {Array<{id: string, text: string}>} candidates
+ * @property {Map<string, string>} votesByPlayer
+ * @property {() => void=} cleanup
+ */
+
+/** @type {VotePhaseState} */
+room.phaseState = {
+  candidates,
+  votesByPlayer: new Map(),
+  cleanup
+};
+```
+
+Better yet, create per-phase state factories:
+
+```js
+function createVoteState(candidates) {
+  return {
+    type: 'vote',
+    candidates,
+    votesByPlayer: new Map(),
+    cleanup: null
+  };
+}
+```
+
+Then handlers can assert:
+
+```js
+assertPhaseState(room.phaseState, 'vote');
+```
+
+This helps reconnect logic especially. Reconnect bugs often come from assuming state shape that is no longer true.
+
+---
+
+## Validator coverage: push further, but separate errors from design advice
+
+I would extend the validator in three directions.
+
+First, add **typed dataflow validation**, as described above. This should produce real errors when a field receives a value type it cannot handle.
+
+Second, add **liveness checks**:
+
+```txt
+Every non-terminal phase must have a path to an end phase.
+Every branch must eventually terminate unless it is an explicit bounded loop.
+Every host-controlled retry/reject loop should be intentional and visible.
+```
+
+The current reachability check catches orphan phases. It should also catch “reachable but impossible to finish cleanly” flows.
+
+Third, add **design linting** as warnings, not errors:
+
+```txt
+This AI phase returns JSON, but the next phase displays it as plain text.
+This collect phase asks for long text but has a 10-second timer.
+This vote has fewer than 2 candidates in some paths.
+This game eliminates players before they have submitted anything.
+This team split is never used downstream.
+```
+
+Do not make every design smell blocking. Teachers need to save imperfect drafts. But the system should be opinionated enough to prevent classroom failures.
+
+---
+
+## Editor-engine drift is currently one of the largest risks
+
+The editor is 4,358 lines. That is not inherently bad, but combined with duplicated validation, it is a long-term bug source.
+
+The editor should not independently know the rules for each phase. It should consume the same phase schema as the engine.
+
+For example, the schema can drive:
+
+```txt
+field label
+field type
+required/optional
+enum options
+default value
+tooltip
+validation rule
+whether field accepts template tokens
+whether field accepts phase refs
+allowed upstream data types
+```
+
+This also improves usability. Instead of asking teachers to type:
+
+```txt
+collect.responses
+```
+
+the editor can show:
+
+```txt
+Responses from “Mood Check”
+```
+
+and store the real ref internally.
+
+That is the direction I would push hard: teachers choose meaningful classroom concepts; the engine stores precise machine references.
+
+---
+
+## Per-game hooks are useful now but dangerous later
+
+For a local or trusted prototype, `hooks.js` is a pragmatic escape hatch.
+
+For a multi-tenant service, dynamic per-game JS hooks are a major boundary problem. They can become:
+
+* remote code execution
+* nondeterministic game behavior
+* impossible-to-validate logic
+* hard-to-replay classroom bugs
+* a source of editor/engine mismatch
+
+I would keep hooks only for trusted, developer-authored games. For teacher-authored games, absorb common hook patterns into first-class configuration.
+
+Examples:
+
+```json
+{
+  "type": "eliminate",
+  "method": "duplicate-text",
+  "normalization": "case-insensitive"
+}
+```
+
+```json
+{
+  "type": "eliminate",
+  "method": "semantic-duplicate",
+  "threshold": 0.82
+}
+```
+
+```json
+{
+  "type": "score",
+  "method": "contains-keywords",
+  "keywords": ["empathy", "prototype", "test"]
+}
+```
+
+For the specific example of “eliminate duplicate semantic answers,” I would only make that AI-backed if there is no deterministic alternative. Many classroom games can get far with normalized exact matching, keyword matching, teacher approval, or student voting.
+
+---
+
+## AI build loop: reduce the search space before tuning prompts
+
+I would not start by investing heavily in better prompts. Better prompts help, but they are fragile.
+
+The better architecture is:
+
+```txt
+teacher intent
+  -> AI identifies classroom pattern and asks clarifying questions
+  -> deterministic generator selects a known recipe
+  -> deterministic generator fills phase graph from templates
+  -> validator/linter checks result
+  -> AI optionally revises teacher-facing text, not core structure
+```
+
+In other words, use AI for language and intent mapping, not arbitrary graph generation.
+
+Good AI role:
+
+```txt
+“Turn this teacher’s idea into parameters for an existing game recipe.”
+```
+
+Risky AI role:
+
+```txt
+“Invent a whole phase graph with exact refs, transitions, template tokens, and output shapes.”
+```
+
+This aligns with your stated goal: minimal AI because the pieces mostly need to be stitched together.
+
+I would create a recipe layer above phases:
+
+```js
+recipes = {
+  moodCheck: {
+    requiredInputs: ['prompt'],
+    optionalInputs: ['summaryStyle', 'revealMode'],
+    compile(inputs) {
+      return {
+        phases: {
+          lobby: ...,
+          collect: ...,
+          summarize: ...,
+          reveal: ...,
+          end: ...
+        }
+      };
+    }
+  }
+};
+```
+
+Then AI chooses `moodCheck` and fills parameters. The compiler creates valid configs.
+
+---
+
+## Runtime AI should be opt-in and resilient
+
+For game-time AI phases, add hard guardrails:
+
+```txt
+timeout
+retry count
+fallback behavior
+max prompt size
+max student input size
+model choice
+cost estimate or quota
+teacher-visible “AI is being used here”
+structured output parser
+schema repair path
+```
+
+Also consider preferring editor-time AI over game-time AI whenever possible. Anything that can be generated before class should be generated before class. During a live classroom session, AI latency and output unpredictability are much more painful.
+
+For live AI phases, the paused-error recovery is a good foundation. I would add phase-specific fallbacks, for example:
+
+```txt
+AI summarize failed -> reveal raw list instead
+AI eliminate failed -> switch to teacher choice or class vote
+AI per-player prompt failed -> use prewritten fallback prompts
+```
+
+---
+
+## Security and safety review
+
+This architecture needs an explicit security pass before becoming a real hosted platform.
+
+The main concerns:
+
+### Student input rendering
+
+Any student-controlled value can appear on the projected host screen. Names, text responses, vote labels, and AI-processed summaries must be escaped or sanitized.
+
+The safest default is:
+
+```js
+element.textContent = userText;
+```
+
+Avoid `innerHTML` unless the content goes through a sanitizer.
+
+### Host versus player authority
+
+Socket events should never trust a client-sent role or player ID. The socket session should determine:
+
+```txt
+this socket is host for room ABCD
+this socket is player p123 in room ABCD
+this player is eligible to submit in this phase
+this player has not already submitted
+```
+
+Host-only events like start, advance, skip, retry, close voting, and view journal should require host authority.
+
+### Path safety for game IDs
+
+Any route like:
+
+```txt
+/api/games/:id
+games/{game-id}/config.json
+```
+
+needs strict game ID validation. Only allow something like:
+
+```txt
+[a-zA-Z0-9_-]{1,64}
+```
+
+No slashes, dots, URL-encoded traversal, or weird Unicode lookalikes.
+
+### Room-code abuse
+
+Four-letter room codes are friendly, but easy to guess. For classroom use that may be fine. For hosted multi-tenant use, add join rate limits and consider 5–6 character codes.
+
+### Hooks
+
+As noted above, `hooks.js` should be considered trusted code only. It should not be available to arbitrary teacher-generated games in a hosted environment unless sandboxed.
+
+### AI endpoints
+
+AI endpoints need rate limits, input size limits, and probably teacher authentication. Otherwise they become a cost-amplification target.
+
+---
+
+## Persistence and scaling
+
+For the current single-classroom version, in-memory rooms are fine.
+
+For a multi-tenant hosted service, I would split persistence into two categories:
+
+```txt
+Durable data:
+  Postgres
+  - users
+  - schools/classes
+  - saved game configs
+  - config versions
+  - published templates
+  - room summaries/results after completion
+
+Ephemeral live data:
+  Redis
+  - active rooms
+  - player presence
+  - current phase state
+  - Socket.IO adapter state
+  - TTL-based room cleanup
+```
+
+The first step depends on your near-term goal.
+
+If you need accounts, saved games, sharing, version history, and teacher libraries, start with **Postgres for game configs**.
+
+If you need multiple Node processes handling live rooms, start with **Redis plus the Socket.IO Redis adapter**.
+
+Before moving room state to Redis, define a serialization boundary. Right now, `room.phaseState` may contain timers, cleanup functions, Maps, and handler-specific shapes. Those do not move cleanly into Redis. I would gradually move toward:
+
+```js
+room.phaseState = {
+  type: 'vote',
+  data: {
+    candidates: [...],
+    votesByPlayer: { ... },
+    closesAt: '2026-05-04T...'
+  }
+}
+```
+
+Use absolute timestamps like `closesAt` instead of relying only on process-local `setTimeout`. That makes reconnects, restarts, and horizontal scaling much easier.
+
+---
+
+## Testing improvements I would add next
+
+The current test base is a good start. I would add these in order:
+
+1. **Shared schema contract tests**
+   Every phase type has a schema, handler, output definition, editor metadata, and tests.
+
+2. **Headless phase-handler tests**
+   Fast tests for `onEnter`, player submit, host close, reconnect, stale event, and cleanup.
+
+3. **Config fuzzing**
+   Generate random phase graphs and ensure validator either rejects them cleanly or engine can simulate them without throwing.
+
+4. **Golden game playthroughs**
+   A small set of representative games run from lobby to end with fake players.
+
+5. **Minimal Playwright E2E**
+   Cover editor save, host/player join, prototype bot fill, reconnect, and phase-error recovery.
+
+6. **Journal replay tests**
+   Since you already have a per-room journal, consider making it replayable enough to reproduce bugs.
+
+---
+
+## Product-level feedback
+
+The architecture is powerful. The teacher experience should probably be less powerful by default.
+
+A teacher should start from choices like:
+
+```txt
+Collect ideas -> AI summarize -> reveal themes
+Collect answers -> vote -> leaderboard
+Teams submit -> class ranks -> winner
+Elimination rounds -> final reveal
+Relay story -> AI cleanup -> read aloud
+```
+
+Then customize:
+
+```txt
+prompt
+timer
+who participates
+how many winners
+whether names are hidden
+whether AI is used
+what appears on host screen
+what appears on student screen
+```
+
+The editor can still expose an advanced phase graph mode, but most teachers should be able to build a game without ever seeing raw refs or template tokens.
+
+Your validation work is excellent, but the best bug is the one the UI makes impossible to create.
+
+---
+
+## Direct answers to your seven questions
+
+### 1. Should remaining socket handlers get registry treatment?
+
+Not as a blanket rule. Extract server modules by domain first. Keep event handlers explicit unless they become polymorphic like phases. The better target is a `phase-runner` module and cleaner host/player/prototype socket modules.
+
+### 2. Is typed `room.phaseState` worth it?
+
+Yes. Use JSDoc typedefs, `// @ts-check`, per-phase state factories, and runtime assertions. This is high ROI and low disruption.
+
+### 3. Should the validator go further?
+
+Yes, but focus on typed dataflow and liveness, not endless bespoke warnings. Keep design advice as warnings. Make type mismatches in user-facing templates errors when they will clearly render badly.
+
+### 4. Should editor and engine share validation?
+
+Yes. This is probably the highest-priority refactor. One phase schema should drive server validation, client validation, editor forms, autocomplete, AI constraints, and docs.
+
+### 5. Should hooks become first-class patterns?
+
+Common hooks should become first-class config. Keep arbitrary JS hooks only for trusted developer-authored games. Do not allow arbitrary hooks in a hosted teacher-facing product without sandboxing.
+
+### 6. Better prompts, validators, or fewer AI-generated primitives?
+
+Fewer AI-generated primitives. Use AI to map teacher intent to known recipes and polish text. Use deterministic compilers to produce valid phase graphs. Validators remain the safety net; prompts should not be the primary correctness mechanism.
+
+### 7. Redis, Postgres, or both?
+
+Eventually both. Start with Postgres if the next product need is accounts, saved games, versioning, sharing, and durability. Start with Redis if the next infrastructure need is multiple live server instances. For live classroom reliability, Redis room state plus absolute phase timestamps will matter once you leave a single-process deployment.
+
+---
+
+## Final verdict
+
+The architecture is directionally right. The core engine choices are sound and aligned with the goal of preventing classroom-time failures.
+
+The next stage should be less about adding more phase power and more about tightening the system boundary:
+
+```txt
+shared phase schemas
+typed data refs
+schema-driven editor
+headless phase tests
+security hardening
+recipe/compiler layer above raw phases
+config versioning and room snapshots
+```
+
+That path keeps the flexibility you already built while making the product safer, easier, and less dependent on AI.

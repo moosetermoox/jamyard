@@ -1,6 +1,6 @@
 {
   "name": "Last One Standing",
-  "description": "Answer questions, vote on favorites, and try to survive!",
+  "description": "Answer questions, vote on favorites, and try to survive three rounds!",
   "minPlayers": 4,
   "maxPlayers": 36,
   "phases": {
@@ -10,33 +10,40 @@
     },
     "round-intro": {
       "type": "announce",
-      "message": "Round {{_loop.eliminate.iteration}} of {{_loop.eliminate.total}} — Submit your best answer!",
-      "timer": 5,
+      "message": "Round {{_loop.eliminate.iteration}} of {{_loop.eliminate.total}} — answer the question and survive the vote!",
+      "timer": 6,
       "next": "answer"
     },
     "answer": {
       "type": "collect",
-      "prompt": "Give your most creative answer!",
+      "prompt": "What is the purpose of chicken?",
       "from": "remaining",
       "timer": 45,
+      "next": "show-answers"
+    },
+    "show-answers": {
+      "type": "reveal",
+      "template": "# Here's what everyone said:\n\n{{answer.responses.list}}",
       "next": "voting"
     },
     "voting": {
       "type": "vote",
       "mode": "pick-one",
       "candidates": "answer.responses",
-      "question": "Which answer is the best?",
-      "timer": 30,
+      "voters": "remaining",
+      "question": "Pick your favorite!",
+      "timer": 45,
       "next": "eliminate"
     },
     "eliminate": {
       "type": "eliminate",
       "method": "bottom-percent",
-      "percent": 50,
+      "percent": 35,
       "input": "voting.scores",
-      "next": "winner",
+      "pause": 4,
       "loopBack": "round-intro",
-      "loopCount": 3
+      "loopCount": 3,
+      "next": "winner"
     },
     "winner": {
       "type": "winner",

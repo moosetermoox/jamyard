@@ -93,10 +93,11 @@ function createPlayerIframes(code, count) {
   }
 }
 
-// Bot Fill — send auto-fill to all player iframes. Repeats so that relay-style
-// phases (only one player active at a time) auto-advance through every turn.
-// Each iframe's handler is a no-op when nothing is fillable, so extra shots are
-// harmless.
+// Bot Fill — send auto-fill to all player iframes. Single shot is enough for
+// most phases; relay needs follow-up shots because turns rotate and only the
+// active player can submit. We loop only while the host is in the relay
+// section, so bot-fill never bleeds into the next phase (which would auto-skip
+// e.g. the vote phase before the user can see it).
 botFillBtn.addEventListener('click', () => {
   const fire = () => {
     const playerIframes = iframeContainer.querySelectorAll('.player-panel iframe');
@@ -104,11 +105,28 @@ botFillBtn.addEventListener('click', () => {
       iframe.contentWindow.postMessage({ type: 'bot-fill' }, '*');
     }
   };
+  const isHostInRelay = () => {
+    const hostIframe = iframeContainer.querySelector('.host-panel iframe');
+    if (!hostIframe) return false;
+    try {
+      const sec = hostIframe.contentDocument && hostIframe.contentDocument.getElementById('relay-section');
+      return !!(sec && !sec.hidden);
+    } catch (_) {
+      return false; // cross-origin fallback — single shot is the safe default
+    }
+  };
+
   fire();
-  // ~7s of follow-up shots covers a 12-player relay at 1 turn ≈ 0.5s
-  let shots = 12;
+  if (!isHostInRelay()) return;
+
+  // Relay loop: keep firing while the host stays in relay-section. Hard cap of
+  // ~15s keeps it from running forever if something goes wrong.
+  let shots = 25;
   const id = setInterval(() => {
-    if (--shots <= 0) clearInterval(id);
+    if (--shots <= 0 || !isHostInRelay()) {
+      clearInterval(id);
+      return;
+    }
     fire();
   }, 600);
 });

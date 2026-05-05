@@ -1,157 +1,48 @@
 import { readFile } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { mkDiagnostic, DIAGNOSTIC_CODES } from './diagnostics.js';
+import {
+  PHASE_SCHEMAS,
+  getFields as schemaGetFields,
+  getTransitions as schemaGetTransitions,
+  getAllowedFieldNames as schemaGetAllowedFieldNames,
+  getHostToggles as schemaGetHostToggles,
+  getPlayerToggles as schemaGetPlayerToggles
+} from './phase-schemas.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GAMES_DIR = join(__dirname, '..', 'games');
 
-const VALID_PHASE_TYPES = [
-  'lobby', 'collect', 'collect-choice', 'ai-process', 'vote', 'eliminate',
-  'ai-eliminate', 'announce', 'reveal', 'preview', 'winner', 'leaderboard',
-  'reveal-one', 'team-split', 'rank', 'wager', 'relay', 'foreach', 'end'
-];
-
-const PHASE_REQUIRED_FIELDS = {
-  collect: ['prompt'],
-  'collect-choice': ['prompt', 'choices'],
-  'ai-process': ['instruction'],
-  'ai-eliminate': ['instruction', 'input'],
-  vote: ['mode', 'candidates'],
-  eliminate: ['method'],
-  announce: ['message'],
-  preview: ['approveNext', 'rejectNext'],
-  winner: ['from'],
-  leaderboard: ['from'],
-  'reveal-one': ['from'],
-  'team-split': ['method', 'teamCount'],
-  rank: ['prompt', 'candidates'],
-  wager: ['prompt', 'options'],
-  relay: ['prompt'],
-  foreach: ['data', 'subPhases']
-};
-
-// Fields legal on ANY phase type (the engine reads these regardless of type).
-const UNIVERSAL_FIELDS = [
-  'type', 'next',
-  'loopBack', 'loopCount',
-  'hostShow', 'playerShow', 'hostTemplate', 'playerTemplate'
-];
-
-// Optional fields per phase type. Combined with PHASE_REQUIRED_FIELDS and
-// UNIVERSAL_FIELDS, this is the complete allow-list. Anything else is a hard
-// error — prevents the AI generator from inventing fields the engine ignores.
-const PHASE_OPTIONAL_FIELDS = {
-  lobby: ['minPlayers'],
-  end: ['message'],
-  collect: ['timer', 'from', 'fields'],
-  'collect-choice': ['timer', 'from'],
-  'ai-process': ['input', 'task', 'format', 'perPlayer'],
-  'ai-eliminate': ['format'],
-  vote: ['voters', 'timer', 'question'],
-  eliminate: ['percent', 'hook', 'input', 'pause'],
-  announce: ['timer'],
-  reveal: ['template', 'content', 'timer'],
-  preview: ['content', 'template', 'showResponses'],
-  winner: [],
-  leaderboard: ['style', 'timer', 'message'],
-  'reveal-one': ['message', 'timer'],
-  'team-split': ['teamNames', 'from', 'balanceFrom'],
-  rank: ['timer', 'from'],
-  wager: ['timer', 'correctOption', 'scoresFrom', 'minBet', 'maxBetPercent'],
-  relay: ['timer', 'order', 'from', 'turns'],
-  foreach: ['candidateSource', 'decoyCount', 'scoring', 'aiInject', 'pairMode', 'shuffle', 'selfExclude']
-};
-
-// Sub-phases inside foreach auto-chain — no "next" field. Otherwise same allow-list.
-const SUBPHASE_OPTIONAL_FIELDS = {
-  announce: ['timer'],
-  collect: ['timer', 'from', 'fields'],
-  'collect-choice': ['timer', 'from'],
-  'ai-process': ['input', 'task', 'format', 'perPlayer']
-};
-const VALID_SUBPHASE_TYPES = ['announce', 'collect', 'collect-choice', 'ai-process'];
-
-const ENUM_VALUES = {
-  from: ['all', 'remaining', 'eliminated'],
-  voters: ['all', 'remaining', 'eliminated'],
-  mode: ['pick-one', 'head-to-head'],
-  method: ['bottom-percent', 'hook'],
-  format: ['text', 'json'],
-  task: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'],
-  style: ['full', 'top3'],
-  order: ['random', 'join-order']
-};
-
-// Fields that hold data references (phaseId.field format)
+// Field names that hold data references (phaseId.field format). Kept here
+// (rather than derived from the schema) because the inline ref-existence
+// check in validate() walks this small list directly. Could derive from
+// schema by scanning every field with type: 'dataRef' — left for a future
+// follow-up if drift becomes a problem.
 const DATA_REF_FIELDS = ['input', 'candidates', 'content', 'scoresFrom', 'balanceFrom'];
 
-// Valid toggles per phase type for hostShow/playerShow
-const VALID_HOST_TOGGLES = {
-  collect: ['prompt', 'counter', 'timer', 'closeButton'],
-  'collect-choice': ['prompt', 'counter', 'timer', 'closeButton'],
-  'ai-process': ['message'],
-  vote: ['mode', 'counter', 'timer', 'closeButton'],
-  eliminate: ['eliminated', 'remaining', 'continueButton'],
-  'ai-eliminate': ['eliminated', 'remaining'],
-  reveal: ['content', 'responses', 'continueButton'],
-  preview: ['content', 'responses', 'approveButton', 'rejectButton'],
-  announce: ['message', 'continueButton', 'timer'],
-  winner: ['name', 'standings', 'endButton'],
-  leaderboard: ['standings', 'continueButton', 'timer'],
-  'reveal-one': ['message', 'revealButton', 'counter', 'timer'],
-  'team-split': ['teams', 'continueButton'],
-  rank: ['prompt', 'counter', 'timer', 'closeButton'],
-  wager: ['prompt', 'options', 'counter', 'timer', 'closeButton'],
-  relay: ['prompt', 'progress', 'sharedResult', 'timer', 'activePlayer'],
-  foreach: [],
-  end: ['message', 'playAgainButton']
-};
-
-const VALID_PLAYER_TOGGLES = {
-  collect: ['prompt', 'input', 'timer', 'submitButton'],
-  'collect-choice': ['prompt', 'choices', 'timer'],
-  'ai-process': ['message'],
-  vote: ['title', 'options', 'timer', 'progress'],
-  eliminate: ['details'],
-  'ai-eliminate': ['details'],
-  reveal: ['content'],
-  announce: ['message', 'timer'],
-  winner: ['name', 'details', 'standings'],
-  leaderboard: ['rank', 'standings'],
-  'reveal-one': ['message', 'items'],
-  'team-split': ['team', 'allTeams'],
-  rank: ['prompt', 'items', 'timer', 'submitButton'],
-  wager: ['prompt', 'options', 'points', 'timer', 'submitButton'],
-  relay: ['prompt', 'sharedResult', 'input', 'timer'],
-  foreach: [],
-  end: ['message']
-};
+// (Removed Phase #50: VALID_PHASE_TYPES, PHASE_REQUIRED_FIELDS,
+// PHASE_OPTIONAL_FIELDS, SUBPHASE_OPTIONAL_FIELDS, VALID_SUBPHASE_TYPES,
+// UNIVERSAL_FIELDS, ENUM_VALUES, VALID_HOST_TOGGLES, VALID_PLAYER_TOGGLES.
+// All replaced by reads from engine/phase-schemas.js.)
 
 /**
  * Returns the set of fields legal on a phase of the given type.
  * Used by the AI generator to strip invented fields before validation.
+ *
  * @param {string} phaseType
  * @param {{ subPhase?: boolean }} [opts]
  * @returns {Set<string>} set of allowed field names (or empty set if type unknown)
+ *
+ * Delegates to the shared phase schema (engine/phase-schemas.js). The
+ * old constant lookups (PHASE_REQUIRED_FIELDS / PHASE_OPTIONAL_FIELDS /
+ * SUBPHASE_OPTIONAL_FIELDS) are kept in this file only as fallback for
+ * the per-phase code paths inside validate() that haven't been
+ * migrated to schema-driven yet. Once those migrate, the constants
+ * can be deleted.
  */
 export function getAllowedFields(phaseType, opts) {
-  const isSub = opts && opts.subPhase;
-  if (isSub) {
-    if (!VALID_SUBPHASE_TYPES.includes(phaseType)) return new Set();
-    return new Set([
-      'type',
-      ...(PHASE_REQUIRED_FIELDS[phaseType] || []),
-      ...(SUBPHASE_OPTIONAL_FIELDS[phaseType] || [])
-    ]);
-  }
-  if (!VALID_PHASE_TYPES.includes(phaseType)) return new Set();
-  const fields = new Set([
-    ...UNIVERSAL_FIELDS,
-    ...(PHASE_REQUIRED_FIELDS[phaseType] || []),
-    ...(PHASE_OPTIONAL_FIELDS[phaseType] || [])
-  ]);
-  if (phaseType === 'foreach') fields.add('subPhases');
-  return fields;
+  return schemaGetAllowedFieldNames(phaseType, opts);
 }
 
 export async function loadGame(gameId) {
@@ -187,7 +78,15 @@ export function validate(config, gameId, options) {
 
   if (!config.phases || typeof config.phases !== 'object') {
     errors.push(`Game "${gameId}" is missing required field: phases`);
-    if (returnResults) return { errors, warnings };
+    if (returnResults) {
+      const diagnostics = errors.map(msg => mkDiagnostic({
+        severity: 'error',
+        code: inferDiagnosticCode(msg, 'error'),
+        message: msg,
+        source: 'validator'
+      }));
+      return { errors, warnings, diagnostics };
+    }
     throw new Error(errors[0]);
   }
 
@@ -208,48 +107,42 @@ export function validate(config, gameId, options) {
   }
 
   for (const [name, phase] of Object.entries(config.phases)) {
-    // Phase type validation
-    if (!phase.type || !VALID_PHASE_TYPES.includes(phase.type)) {
+    // Phase type validation — schema-driven
+    if (!phase.type || !PHASE_SCHEMAS[phase.type]) {
       errors.push(
         `Game "${gameId}": phase "${name}" has invalid type "${phase.type}"`
       );
       continue; // Skip further checks for this phase
     }
 
-    // Required fields per type
-    const required = PHASE_REQUIRED_FIELDS[phase.type];
-    if (required) {
-      for (const field of required) {
-        if (phase[field] === undefined || phase[field] === null || phase[field] === '') {
-          errors.push(
-            `Game "${gameId}": phase "${name}" (${phase.type}) is missing required field "${field}"`
-          );
-        }
+    // Schema-driven required-fields + allow-list. The schema's getFields
+    // returns the merged map of base fields + applicable mixins;
+    // getAllowedFields adds transition keys ('next', 'loopBack', etc.)
+    // and 'type' itself.
+    const schemaFields = schemaGetFields(phase.type);
+    const allowedFields = schemaGetAllowedFieldNames(phase.type);
+
+    // Required fields per type — derived from schema. Includes both
+    // regular fields and required transitions (e.g. preview's
+    // approveNext / rejectNext are declared as transitions).
+    const schemaTransitions = schemaGetTransitions(phase.type);
+    for (const [fname, fdef] of [
+      ...Object.entries(schemaFields),
+      ...Object.entries(schemaTransitions)
+    ]) {
+      if (!fdef.required) continue;
+      if (phase[fname] === undefined || phase[fname] === null || phase[fname] === '') {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (${phase.type}) is missing required field "${fname}"`
+        );
       }
     }
 
     // Unknown-field check: reject any field not in the allow-list. Catches AI
     // inventions like `teacherInput`, `showScenario`, `excludeSelf` that the
     // engine silently ignores.
-    const allowedFields = new Set([
-      ...UNIVERSAL_FIELDS,
-      ...(PHASE_REQUIRED_FIELDS[phase.type] || []),
-      ...(PHASE_OPTIONAL_FIELDS[phase.type] || [])
-    ]);
-    if (phase.type === 'preview') {
-      // Preview also gets approveNext/rejectNext (not "next"), already in required.
-    }
-    if (phase.type !== 'foreach') {
-      // foreach has subPhases which is checked separately.
-      for (const field of Object.keys(phase)) {
-        if (!allowedFields.has(field)) {
-          errors.push(
-            `Game "${gameId}": phase "${name}" (${phase.type}) has unknown field "${field}". This isn't a real setting — the engine will ignore it. Remove it or use a valid field.`
-          );
-        }
-      }
-    } else {
-      // foreach: allow subPhases plus the foreach-specific fields.
+    if (phase.type === 'foreach') {
+      // foreach has subPhases as a structural slot (checked recursively below)
       const foreachAllowed = new Set([...allowedFields, 'subPhases']);
       for (const field of Object.keys(phase)) {
         if (!foreachAllowed.has(field)) {
@@ -258,56 +151,28 @@ export function validate(config, gameId, options) {
           );
         }
       }
+    } else {
+      for (const field of Object.keys(phase)) {
+        if (!allowedFields.has(field)) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (${phase.type}) has unknown field "${field}". This isn't a real setting — the engine will ignore it. Remove it or use a valid field.`
+          );
+        }
+      }
     }
 
-    // Enum field validation (type-aware: some fields are enums only on certain types)
-    const enumChecks = [];
-    if ((phase.type === 'collect' || phase.type === 'collect-choice') && phase.from !== undefined && phase.from !== null) {
-      enumChecks.push(['from', phase.from, ENUM_VALUES.from]);
-    }
-    if (phase.type === 'vote') {
-      if (phase.voters !== undefined && phase.voters !== null) {
-        enumChecks.push(['voters', phase.voters, ENUM_VALUES.voters]);
-      }
-      if (phase.mode !== undefined) {
-        enumChecks.push(['mode', phase.mode, ENUM_VALUES.mode]);
-      }
-    }
-    if (phase.type === 'eliminate' && phase.method !== undefined) {
-      enumChecks.push(['method', phase.method, ENUM_VALUES.method]);
-    }
-    if (phase.type === 'team-split' && phase.method !== undefined) {
-      const validMethods = ['random', 'balanced'];
-      if (!validMethods.includes(phase.method)) {
-        enumChecks.push(['method', phase.method, validMethods]);
-      }
-    }
-    if ((phase.type === 'team-split' || phase.type === 'rank' || phase.type === 'wager' || phase.type === 'relay') && phase.from !== undefined && phase.from !== null) {
-      // These types use 'from' as player eligibility enum (not data ref)
-      if (['all', 'remaining', 'eliminated'].includes(phase.from)) {
-        // valid
-      } else if (!phase.from.includes('.')) {
-        enumChecks.push(['from', phase.from, ENUM_VALUES.from]);
-      }
-    }
-    if (phase.type === 'relay' && phase.order !== undefined && phase.order !== null) {
-      enumChecks.push(['order', phase.order, ENUM_VALUES.order]);
-    }
-    if (phase.type === 'leaderboard' && phase.style !== undefined && phase.style !== null) {
-      enumChecks.push(['style', phase.style, ENUM_VALUES.style]);
-    }
-    if (phase.type === 'ai-process') {
-      if (phase.format !== undefined && phase.format !== null) {
-        enumChecks.push(['format', phase.format, ENUM_VALUES.format]);
-      }
-      if (phase.task !== undefined && phase.task !== null) {
-        enumChecks.push(['task', phase.task, ENUM_VALUES.task]);
-      }
-    }
-    for (const [field, value, validValues] of enumChecks) {
-      if (!validValues.includes(value)) {
+    // Enum field validation — schema-driven. Walks every field declared
+    // type: 'enum' on this phase type and checks membership. Skips values
+    // that contain a "." since some `from` fields tolerate dataRef-style
+    // strings (e.g. `team-split.from: "phase.field"`) for backward compat.
+    for (const [fname, fdef] of Object.entries(schemaFields)) {
+      if (fdef.type !== 'enum') continue;
+      const value = phase[fname];
+      if (value === undefined || value === null) continue;
+      if (typeof value === 'string' && value.includes('.')) continue;
+      if (!fdef.values.includes(value)) {
         errors.push(
-          `Game "${gameId}": phase "${name}" has invalid ${field} value "${value}". Valid values: ${validValues.join(', ')}`
+          `Game "${gameId}": phase "${name}" has invalid ${fname} value "${value}". Valid values: ${fdef.values.join(', ')}`
         );
       }
     }
@@ -440,30 +305,33 @@ export function validate(config, gameId, options) {
             `Game "${gameId}": phase "${name}" (foreach) has empty subPhases`
           );
         }
+        // Sub-phase validation — schema-driven. A type is allowed inside
+        // foreach iff its schema declares allowedIn: [..., 'foreach'].
+        const allowedSubTypes = Object.keys(PHASE_SCHEMAS).filter(
+          t => PHASE_SCHEMAS[t].allowedIn.includes('foreach')
+        );
         for (const [subName, sub] of Object.entries(phase.subPhases)) {
           if (!sub.type) {
             errors.push(
               `Game "${gameId}": phase "${name}" subPhase "${subName}" is missing type`
             );
-          } else if (!VALID_SUBPHASE_TYPES.includes(sub.type)) {
+          } else if (!allowedSubTypes.includes(sub.type)) {
             errors.push(
-              `Game "${gameId}": phase "${name}" subPhase "${subName}" has invalid type "${sub.type}". Sub-phases can only be: ${VALID_SUBPHASE_TYPES.join(', ')}.`
+              `Game "${gameId}": phase "${name}" subPhase "${subName}" has invalid type "${sub.type}". Sub-phases can only be: ${allowedSubTypes.join(', ')}.`
             );
           } else {
-            // Required + allow-list check for sub-phase
-            const subRequired = PHASE_REQUIRED_FIELDS[sub.type] || [];
-            for (const field of subRequired) {
-              if (sub[field] === undefined || sub[field] === null || sub[field] === '') {
+            const subFields  = schemaGetFields(sub.type, { context: 'foreach' });
+            const subAllowed = schemaGetAllowedFieldNames(sub.type, { subPhase: true });
+            // Required check
+            for (const [fname, fdef] of Object.entries(subFields)) {
+              if (!fdef.required) continue;
+              if (sub[fname] === undefined || sub[fname] === null || sub[fname] === '') {
                 errors.push(
-                  `Game "${gameId}": phase "${name}" subPhase "${subName}" (${sub.type}) is missing required field "${field}"`
+                  `Game "${gameId}": phase "${name}" subPhase "${subName}" (${sub.type}) is missing required field "${fname}"`
                 );
               }
             }
-            const subAllowed = new Set([
-              'type',
-              ...subRequired,
-              ...(SUBPHASE_OPTIONAL_FIELDS[sub.type] || [])
-            ]);
+            // Allow-list check
             for (const field of Object.keys(sub)) {
               if (!subAllowed.has(field)) {
                 errors.push(
@@ -492,17 +360,13 @@ export function validate(config, gameId, options) {
           }
         }
       }
-      if (phase.pairMode) {
-        if (phase.pairMode !== 'human-vs-ai') {
-          errors.push(
-            `Game "${gameId}": phase "${name}" pairMode must be "human-vs-ai" (got "${phase.pairMode}")`
-          );
-        }
-        if (!phase.aiInject) {
-          errors.push(
-            `Game "${gameId}": phase "${name}" pairMode requires aiInject to generate AI items for pairing`
-          );
-        }
+      // pairMode value validation is now handled by the schema-driven
+      // enum check above. We only need to enforce the cross-field rule
+      // (pairMode requires aiInject).
+      if (phase.pairMode && !phase.aiInject) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" pairMode requires aiInject to generate AI items for pairing`
+        );
       }
       if (phase.scoring) {
         if (!phase.scoring.subPhase) {
@@ -541,8 +405,8 @@ export function validate(config, gameId, options) {
           `Game "${gameId}": phase "${name}" has invalid hostShow — must be an array`
         );
       } else {
-        const validToggles = VALID_HOST_TOGGLES[phase.type];
-        if (validToggles) {
+        const validToggles = schemaGetHostToggles(phase.type);
+        if (validToggles && validToggles.length) {
           for (const toggle of phase.hostShow) {
             if (!validToggles.includes(toggle)) {
               errors.push(
@@ -559,8 +423,8 @@ export function validate(config, gameId, options) {
           `Game "${gameId}": phase "${name}" has invalid playerShow — must be an array`
         );
       } else {
-        const validToggles = VALID_PLAYER_TOGGLES[phase.type];
-        if (validToggles) {
+        const validToggles = schemaGetPlayerToggles(phase.type);
+        if (validToggles && validToggles.length) {
           for (const toggle of phase.playerShow) {
             if (!validToggles.includes(toggle)) {
               errors.push(
@@ -605,14 +469,102 @@ export function validate(config, gameId, options) {
   // Per-phase semantic warnings (not blockers, but signal probable design holes).
   scanForDesignHoles(config, gameId, warnings);
 
+  // Reachability — BFS from lobby. Any phase not visited is an orphan, almost
+  // always a bug (e.g. winner with no `next` leaves `end` stranded so the game
+  // freezes on the winner screen).
+  detectUnreachablePhases(config, gameId, warnings);
+
+  // Build structured diagnostics from the legacy string arrays. Codes are
+  // inferred from message templates by inferDiagnosticCode() below — this
+  // is a transitional bridge until each call site directly calls mkDiagnostic
+  // (Phase #50 migration). Lets the side-by-side test compare diagnostic
+  // codes across the old and new validators.
+  const diagnostics = [
+    ...errors.map(msg => mkDiagnostic({
+      severity: 'error',
+      code: inferDiagnosticCode(msg, 'error'),
+      message: msg,
+      source: 'validator'
+    })),
+    ...warnings.map(msg => mkDiagnostic({
+      severity: 'warning',
+      code: inferDiagnosticCode(msg, 'warning'),
+      message: msg,
+      source: 'validator'
+    }))
+  ];
+
   if (returnResults) {
-    return { errors, warnings };
+    return { errors, warnings, diagnostics };
   }
 
   // Throw first error for backward compatibility
   if (errors.length > 0) {
     throw new Error(errors[0]);
   }
+}
+
+// Maps an existing error/warning message string to its DIAGNOSTIC_CODES
+// constant. Pattern-based; runs at the end of validate() so existing
+// `errors.push(string)` call sites don't have to change.
+//
+// As migration to direct mkDiagnostic() calls progresses (Phase #50),
+// this function shrinks: each direct call site removes one row here.
+// Patterns are ordered from most-specific to least-specific.
+function inferDiagnosticCode(msg, severity) {
+  // Game-level structural
+  if (/missing a lobby phase/.test(msg)) return DIAGNOSTIC_CODES.MISSING_LOBBY;
+  if (/missing an end phase/.test(msg)) return DIAGNOSTIC_CODES.MISSING_END;
+
+  // Reachability + cycles
+  if (/unreachable from the lobby/.test(msg)) return DIAGNOSTIC_CODES.UNREACHABLE_PHASE;
+  if (/creates a loop/.test(msg)) return DIAGNOSTIC_CODES.CYCLE_DETECTED;
+
+  // Template / typed dataflow
+  if (/will display as "\[object Object\]/.test(msg)) return DIAGNOSTIC_CODES.RAW_ARRAY_IN_TEMPLATE;
+
+  // Design-hole warnings
+  if (/no "scoresFrom" and no "correctOption"/.test(msg)) return DIAGNOSTIC_CODES.WAGER_NO_RESOLUTION_BASIS;
+  if (/no later template references team data/.test(msg)) return DIAGNOSTIC_CODES.TEAM_SPLIT_UNUSED;
+
+  // Phase type
+  if (/has invalid type "/.test(msg)) return DIAGNOSTIC_CODES.UNKNOWN_PHASE_TYPE;
+  if (/subPhase ".+" has invalid type/.test(msg)) return DIAGNOSTIC_CODES.UNKNOWN_PHASE_TYPE;
+
+  // References — phase refs vs data refs
+  if (/has next ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
+  if (/has approveNext ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
+  if (/has rejectNext ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
+  if (/has loopBack ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
+  if (/references data ".+" but phase ".+" does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_DATA_REF;
+  if (/references ".+" but phase ".+" does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_DATA_REF;
+
+  // Field-shape problems
+  if (/has unknown field/.test(msg)) return DIAGNOSTIC_CODES.UNKNOWN_FIELD;
+  if (/(must be a string|must be an array|must be an object|aiInject must be an object)/.test(msg)) {
+    return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
+  }
+  if (/has invalid (timer|teamCount|minBet|maxBetPercent|loopCount|aiInject\.count)/.test(msg)) {
+    return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
+  }
+  if (/uses bottom-percent but has invalid percent/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
+  if (/has invalid (hostShow|playerShow) toggle/.test(msg)) return DIAGNOSTIC_CODES.INVALID_ENUM_VALUE;
+  if (/has invalid \w+ value/.test(msg)) return DIAGNOSTIC_CODES.INVALID_ENUM_VALUE;
+  if (/pairMode must be/.test(msg)) return DIAGNOSTIC_CODES.INVALID_ENUM_VALUE;
+
+  // Required-field family (broadest — keep last among the missing-X group)
+  if (/missing required field/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  if (/is missing (hook name|loopCount|"next"|"correctAnswer"|"subPhase"|type|"pointMap")/.test(msg)) {
+    return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  }
+  if (/aiInject\.instruction is required/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  if (/pairMode requires aiInject/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  if (/must have either "content" or "template"/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  if (/has empty subPhases/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  if (/has no phases defined/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+
+  // Fallback — shouldn't fire if patterns above are exhaustive.
+  return severity === 'error' ? 'LEGACY_STRING_ERROR' : 'LEGACY_STRING_WARNING';
 }
 
 // DFS cycle detection on the next/approveNext/rejectNext graph (loopBack edges
@@ -676,6 +628,35 @@ const KNOWN_ARRAY_FIELDS = new Set([
 
 // Phase fields that hold templates the engine resolves at runtime.
 const TEMPLATE_FIELDS = ['template', 'content', 'message', 'prompt', 'instruction', 'hostTemplate', 'playerTemplate'];
+
+// BFS from lobby across next/approveNext/rejectNext/loopBack edges. Any phase
+// not reached is an orphan — usually means an earlier phase is missing a `next`.
+function detectUnreachablePhases(config, gameId, warnings) {
+  const phaseNames = Object.keys(config.phases);
+  const lobby = phaseNames.find(n => config.phases[n].type === 'lobby');
+  if (!lobby) return;
+
+  const reached = new Set();
+  const queue = [lobby];
+  while (queue.length) {
+    const cur = queue.shift();
+    if (reached.has(cur)) continue;
+    reached.add(cur);
+    const p = config.phases[cur];
+    if (!p) continue;
+    for (const f of ['next', 'approveNext', 'rejectNext', 'loopBack']) {
+      if (p[f] && config.phases[p[f]] && !reached.has(p[f])) queue.push(p[f]);
+    }
+  }
+
+  for (const name of phaseNames) {
+    if (!reached.has(name)) {
+      warnings.push(
+        `Game "${gameId}": phase "${name}" is unreachable from the lobby. Add a "next" pointing to it from another phase, or remove it.`
+      );
+    }
+  }
+}
 
 // Catch design holes that aren't structural errors but make a game feel broken:
 //   - wager with no scoresFrom AND no correctOption (no points to bet, no

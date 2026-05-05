@@ -38,7 +38,7 @@ Framework for quickly building classroom games where:
 4. Test with: npm test
 
 ## Current State
-- **10 games implemented and playable** (Weekend Poem, Mood Check, Corn Story, Story Builder, Dream Vacation, Who Said It, Two Truths, Caption Contest, Excuse Machine, Human vs AI Birthday Party Battle)
+- **18 games in `games/`** (varies — teacher generates and deletes during testing; use `ls games/` for the current list)
 - **All 10 engine primitives implemented** for Corn Story
 - **Preview phase implemented** — teacher-only review before revealing to students
 - **Timers implemented** — SVG ring countdown (host) + progress bar (player) with auto-submit on expiry
@@ -64,7 +64,7 @@ Framework for quickly building classroom games where:
 - **Reveal-one phase** — host reveals items incrementally (countdown style), items animate in on player screens, reconnection support
 - **Foreach phase** — iterates over dynamic data (e.g., collected responses) running sub-phases per item, with auto-candidate generation, cumulative scoring, template variables (_current, _foreach, _candidates), self-exclusion (author can't rate own item), and tally scoring mode (author earns points from ratings)
 - **AI game generation** — describe a game in plain English, Sonnet generates a complete config (designer UI button + `/api/games/generate` endpoint)
-- **264 tests passing** (`npm test`)
+- **281 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-corn-story.js`, `simulate-new-phases.js`, `simulate-dream-vacation.js`, `simulate-who-said-it.js`, `simulate-excuse-machine.js`
 
 ### Working Games
@@ -280,3 +280,7 @@ Framework for quickly building classroom games where:
   - New `relay-finish-all` socket event — host can fast-forward all remaining turns. Each remaining player gets `(skipped)`, then phase advances.
   - Host's `prototype-skip` handler detects when `relay-section` is visible and emits `relay-finish-all` (relay has no host-side button).
   - Prototype Bot Fill now repeats 12× over ~7s so each rotating active player gets filled in sequence.
+- 2026-05-03: **Bot-fill regression fix** — earlier same-day change made bot-fill loop unconditionally for ~7s. That auto-skipped the next phase (e.g. vote screen never visible — players auto-voted before the screen rendered). Loop now only continues while the host iframe's `relay-section` is visible; non-relay phases get a single shot. Cap raised to 25 shots (~15s) for the relay path. Same-origin DOM read used to check host state; cross-origin fallback is single-shot.
+- 2026-05-03: **Validator: unreachable-phase detection** — BFS from lobby across `next`/`approveNext`/`rejectNext`/`loopBack`. Any orphan phase warns (e.g. `winner` with no `next` strands `end`). Editor had this client-side but server didn't — now it does, so saved-via-API configs can't slip through. `detectUnreachablePhases()` in `engine/game-loader.js`.
+- 2026-05-03: **Last One Standing rewrite** (`games/elimination-game/config.json`) — was 1 round, called itself "Last One Standing" but crowned a winner immediately. Now: 3-round loop on `eliminate.loopBack: round-intro, loopCount: 3`. Added `show-answers` reveal between collect and vote. `voting.voters: "remaining"` so eliminated players don't vote in later rounds. Added `winner.next: "end"` (caught by the new unreachable check). Round intro shows `Round X of Y` via `{{_loop.eliminate.iteration}}`.
+- 2026-05-03: **ARCHITECTURE.md rewrite** (`docs/ARCHITECTURE.md`) — replaced the stale doc (claimed 2,376-line server.js, 900-line handlePhase, 264 tests, separate voteState/rankState properties — none current). Now reflects: registry-based phase handlers (`engine/phase-handlers/`), `phase-context.js` API, `room.phaseState` single bag with auto-cleanup, `phaseInstanceId` staleness checks, journal ring buffer, paused-error recovery, validator pipeline (errors + warnings), 281 tests, full editor→save→run lifecycle, current REST endpoints (7 AI-related + CRUD).

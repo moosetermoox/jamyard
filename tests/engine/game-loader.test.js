@@ -1206,7 +1206,8 @@ describe('GameLoader', () => {
           end: { type: 'end' }
         }
       };
-      expect(() => validate(config, 'test')).toThrow('pairMode must be "human-vs-ai"');
+      // Schema-driven enum check: "invalid pairMode value ... Valid values: human-vs-ai"
+      expect(() => validate(config, 'test')).toThrow('invalid pairMode value');
     });
   });
 });

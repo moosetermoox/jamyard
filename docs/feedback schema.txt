@@ -1,0 +1,894 @@
+## Overall verdict
+
+This is a good correction plan. It directly addresses the biggest risk I called out earlier: **editor, validator, AI prompt, and docs all having separate ideas of what a valid phase looks like**. The spec correctly identifies drift across `game-loader.js`, `editor.js`, and `ai-service.js`, including concrete past failures like invented AI fields, editor-only warnings, and stale AI phase descriptions. 
+
+I would approve this direction, but I would tighten the design before implementation. The main change I would make is this:
+
+> Keep the schema as a mostly declarative, browser-safe, serializable contract, and put executable behavior — validators, renderers, dynamic output inference — behind named registries.
+
+That keeps the “single source of truth” benefit while avoiding a shared module that becomes half data, half runtime code, and hard to load consistently in both Node and the browser.
+
+---
+
+## What is strongest in the plan
+
+The scope is well chosen. You explicitly say this covers **phase configuration shape only**, not handler implementation, runtime state, or the engine resolver. That is the right boundary for the first refactor. Runtime state typing and handler tests are still important, but they should not block this schema work. 
+
+The incremental migration plan is also good. Phase A defines the schema without behavior change, Phase B moves the validator, Phase C moves AI prompt generation, Phase D migrates the editor phase by phase, and Phase E adds typed dataflow. That is the correct way to avoid a risky rewrite of a validator that already has many unit tests. 
+
+The spec also correctly separates per-field validation from graph-level passes like reachability and cycle detection. Those checks are not properties of a single phase field; they are properties of the whole phase graph. Keeping them as separate passes in `game-loader.js` is cleaner than forcing everything into the schema walker. 
+
+The docs-generation idea is excellent. Once phase fields, labels, helpers, outputs, and renderers live in one place, generated docs become a cheap way to prevent another drift surface. 
+
+---
+
+## Biggest thing I would change: split “schema data” from executable behavior
+
+Right now the proposed `phase-schemas.js` contains declarative data, but also examples of executable functions:
+
+```js
+export const RENDERERS = {
+  list: (arr) => ...,
+  count: (arr) => ...,
+  json: (val) => ...,
+  barChart: (scoreMap) => ...
+};
+```
+
+and schema-level validators like:
+
+```js
+validate(phase) {
+  ...
+}
+```
+
+That is convenient, but it makes the shared module less portable. The editor, docs generator, AI service, and validator all need the schema, but they do not all need the same executable behavior.
+
+I would separate it like this:
+
+```txt
+shared/phase-schema/
+  phase-schemas.js          declarative phase metadata only
+  field-types.js            declarative field/type vocabulary
+  diagnostics.js            diagnostic codes and severity names
+  resolver-grammar.js       token/ref grammar shared by validator + engine
+
+engine/
+  phase-schema-runtime.js   server-side validator hooks, dynamic outputs
+  renderers.js              actual renderer functions
+  normalizer.js             applies defaults/coercions
+```
+
+Then the schema references behavior by key:
+
+```js
+output: {
+  responses: {
+    type: 'array',
+    itemKind: 'response',
+    renderers: {
+      list: 'responseList',
+      count: 'arrayCount',
+      json: 'jsonPretty'
+    }
+  }
+}
+```
+
+Instead of embedding functions in the schema.
+
+This preserves one source of truth while avoiding circular dependencies, browser import problems, and accidental exposure of server-only code.
+
+---
+
+## Important correction: the AI will still invent fields sometimes
+
+This line is too optimistic:
+
+> The “AI-invented field” bug class goes from “caught by allow-list” to “never produced because the prompt accurately constrains the model.”
+
+I would rewrite that. A schema-generated prompt will reduce invented fields, but it will not eliminate them. The strict allow-list, cleanup, validation, and teacher-visible diff are still mandatory.
+
+Better wording:
+
+> The schema-generated prompt reduces invented fields by keeping the model’s phase documentation current. The strict validator remains the authority, and AI-generated configs still go through cleanup, validation, and diff review.
+
+That matters because your product goal is classroom reliability, not “the model usually behaves.”
+
+---
+
+## Unknown-field handling still needs a clearer policy
+
+The spec says the schema walker should make unknown fields a hard error. That is correct for the validator.
+
+But the current architecture also says `stripUnknownFields()` runs before validation on save and drops invented fields so stale AI output does not block saving. 
+
+Those two behaviors need to be reconciled explicitly.
+
+I would define three modes:
+
+```txt
+strict mode
+  Used by tests, direct API saves, developer tools.
+  Unknown fields are errors.
+
+ai-cleanup mode
+  Used only for AI-generated or AI-revised configs.
+  Unknown fields are removed, but each removal becomes a warning/diff item.
+
+legacy-import mode
+  Used for old saved games during migration.
+  Unknown fields may be removed or warned, but never silently.
+```
+
+The key word is **silently**. Dropping a field like `excludeSelf` can change the teacher’s intended game behavior. That is acceptable only if the teacher sees the change before applying it.
+
+The spec should add a diagnostic like:
+
+```js
+{
+  severity: 'warning',
+  code: 'UNKNOWN_FIELD_REMOVED',
+  path: 'phases.vote.excludeSelf',
+  message: 'Removed unsupported field "excludeSelf" from vote phase.',
+  source: 'ai-cleanup'
+}
+```
+
+---
+
+## Add a formal diagnostic object now
+
+The validator examples currently return strings like:
+
+```js
+return [`Invalid value`];
+```
+
+That will not be enough once the same validator powers the editor, AI fixer, docs, and inline UI.
+
+Use a structured diagnostic from the beginning:
+
+```js
+{
+  severity: 'error' | 'warning' | 'info',
+  code: 'INVALID_ENUM_VALUE',
+  path: 'phases.vote.mode',
+  phaseId: 'vote',
+  field: 'mode',
+  message: 'Voting style must be one of: pick-one, head-to-head.',
+  suggestion: 'Use "pick-one" for a simple classroom vote.',
+  autofix: null
+}
+```
+
+This is higher leverage than it looks. It lets the editor highlight the right field, lets the AI fixer target a single issue, lets tests assert stable error codes instead of brittle strings, and lets docs explain common errors.
+
+I would not ship Phase B without this.
+
+---
+
+## The output type system needs to be more semantic than `array`
+
+The proposed `dataRef` check says fields can accept broad types like `array`, `string`, or `scoreMap`. That is a good start, but `array` is too loose.
+
+For example, these are all arrays, but they are not interchangeable:
+
+```txt
+collect.responses
+rank.rankings
+ai.result as JSON array
+team-split.teams
+relay.turns
+```
+
+A `vote.candidates` field probably should not accept every array. It should accept arrays that can be rendered as candidate choices.
+
+I would add either semantic kinds or capabilities:
+
+```js
+output: {
+  responses: {
+    type: 'array',
+    itemKind: 'response',
+    capabilities: ['candidateSource', 'listRenderable']
+  }
+}
+```
+
+Then a consuming field can say:
+
+```js
+candidates: {
+  type: 'dataRef',
+  accepts: [{ type: 'array', capability: 'candidateSource' }]
+}
+```
+
+This avoids accepting a structurally valid but nonsensical ref.
+
+For teachers, this matters because the editor can show useful choices:
+
+```txt
+Choices to vote on:
+  ✓ Responses from “Collect Ideas”
+  ✓ Items from “Brainstorm”
+  ✗ Vote scores from “Round 1”
+```
+
+Instead of exposing raw `phaseId.field` tokens.
+
+---
+
+## Renderers should be output-specific, not only global
+
+The proposed global `list` renderer is risky:
+
+```js
+list: (arr) => arr.map((it, i) => `${i + 1}. ${it.text || it}`).join('\n')
+```
+
+That works for simple response arrays, but it is exactly the kind of generic fallback that eventually produces `[object Object]` again.
+
+A list of responses, a list of rankings, a list of teams, and a list of AI JSON objects probably need different rendering rules.
+
+Better:
+
+```js
+output: {
+  responses: {
+    type: 'array',
+    itemKind: 'response',
+    renderers: {
+      list: 'responseList',
+      count: 'arrayCount',
+      json: 'jsonPretty'
+    }
+  }
+}
+```
+
+and:
+
+```js
+output: {
+  rankings: {
+    type: 'array',
+    itemKind: 'ranking',
+    renderers: {
+      list: 'rankingList',
+      top: 'rankingTop',
+      json: 'jsonPretty'
+    }
+  }
+}
+```
+
+The renderer registry is still global, but the allowed renderer suffixes are declared per output.
+
+This also helps with autocomplete. For `collect.responses`, the editor can offer:
+
+```txt
+{{collect.responses.list}}
+{{collect.responses.count}}
+{{collect.responses.json}}
+```
+
+For `vote.scores`, it can offer:
+
+```txt
+{{vote.scores.barChart}}
+{{vote.scores.json}}
+```
+
+---
+
+## Watch for a current-token compatibility mismatch
+
+The architecture file says templates currently support examples like:
+
+```txt
+{{collect.responses.list}}
+{{rank.rankings.0.item}}
+{{vote.barChart}}
+```
+
+
+
+The new spec models `barChart` as a renderer on `vote.scores`, which would imply:
+
+```txt
+{{vote.scores.barChart}}
+```
+
+That is cleaner, but it may break existing games using:
+
+```txt
+{{vote.barChart}}
+```
+
+You need either a compatibility alias or an explicit migration.
+
+I would add aliases to the schema:
+
+```js
+aliases: {
+  'barChart': 'scores.barChart'
+}
+```
+
+Then the validator can allow old tokens but suggest the canonical one.
+
+---
+
+## Dynamic outputs need first-class support
+
+Some phase outputs are not static.
+
+Examples:
+
+```txt
+ai-process
+  output is string by default
+  output may be JSON object/array if outputMode/schema says so
+  output may include byPlayer if perPlayer is true
+
+collect
+  output shape changes if multi-field responses are enabled
+
+vote
+  winner may be absent until voting completes
+  tied depends on runtime results
+```
+
+A fixed `output: { ... }` object will work for simple phases, but the schema needs a way to compute output shape from the phase config.
+
+I would support both static and dynamic outputs:
+
+```js
+output: {
+  kind: 'static',
+  fields: {
+    responses: ...
+  }
+}
+```
+
+or:
+
+```js
+output: {
+  kind: 'dynamic',
+  resolver: 'aiProcessOutput'
+}
+```
+
+The dynamic resolver should be a named server-side/editor-side function, not an inline function inside the schema. For docs and AI prompt generation, you can still generate a conservative description:
+
+```txt
+ai-process outputs result. If perPlayer is true, also outputs byPlayer and supports {{phase.mine}} in player-facing templates.
+```
+
+---
+
+## Template validation should share the resolver grammar
+
+The spec says `templateString` validation should parse `{{...}}` tokens and verify renderability. That is exactly right.
+
+But this can create a new drift problem if the validator’s parser and `engine.resolve()` understand slightly different grammars.
+
+The current resolver handles built-ins, foreach and loop scope, nested field access, synthetic suffixes, and per-player `.mine`. 
+
+So I would add a shared resolver grammar module:
+
+```js
+parseTemplateTokens(template)
+parseRef(ref)
+classifyRef(ref, schema, context)
+```
+
+The validator and engine should use the same parser. The validator does not need to execute the ref, but it should understand the same syntax.
+
+This is especially important for:
+
+```txt
+{{_loop.eliminate.iteration}}
+{{_foreach.item}}
+{{_current}}
+{{rank.rankings.0.item}}
+{{ai.mine}}
+```
+
+Without this shared grammar, typed dataflow will either miss real bugs or create false positives for valid advanced tokens.
+
+---
+
+## Treat transitions as their own schema section
+
+The spec currently shows `next` as just another field, and then later asks whether universal fields like `next`, `loopBack`, `loopCount`, `hostShow`, and `playerTemplate` should live in a shared block. 
+
+I would separate ordinary config fields from graph edges.
+
+For example:
+
+```js
+collect: {
+  fields: {
+    prompt: ...,
+    from: ...,
+    timer: ...
+  },
+
+  transitions: {
+    next: { required: true }
+  }
+}
+```
+
+For a branch phase:
+
+```js
+approve: {
+  fields: {
+    prompt: ...
+  },
+
+  transitions: {
+    approveNext: { required: true },
+    rejectNext: { required: true }
+  }
+}
+```
+
+For terminal:
+
+```js
+end: {
+  transitions: {}
+}
+```
+
+For loops:
+
+```js
+loop: {
+  transitions: {
+    next: { optional: true },
+    loopBack: { optional: true, requires: 'loopCount' }
+  }
+}
+```
+
+This makes graph validation cleaner. Reachability, cycle detection, missing phase refs, and liveness can ask the schema for edges instead of scanning all fields and guessing which ones are transitions.
+
+It also prevents the mistake of treating `next` as universal when terminal phases should not require it.
+
+---
+
+## Universal fields should be shared, but not truly universal
+
+I would not embed fields like `hostShow`, `playerShow`, `hostTemplate`, and `playerTemplate` in every phase entry. That will create a lot of noise.
+
+But I also would not call them universal unless every handler actually supports them.
+
+A better structure:
+
+```js
+const SCREEN_CONTROL_FIELDS = {
+  hostShow: ...,
+  playerShow: ...,
+  hostTemplate: ...,
+  playerTemplate: ...
+};
+
+collect: {
+  mixins: ['screenControl'],
+  fields: {
+    prompt: ...,
+    timer: ...
+  }
+}
+```
+
+Or:
+
+```js
+collect: {
+  screenControl: true,
+  fields: { ... }
+}
+```
+
+Then the schema compiler can merge them.
+
+Same for timers, participant selectors, and common `from`/`voters` fields.
+
+This gives you reuse without pretending all phases have the same capabilities.
+
+---
+
+## Foreach sub-phases: use contexts, not a separate schema map
+
+For the open question about foreach sub-phases, I would not create a separate `PHASE_SCHEMAS_SUBPHASE` map. That will recreate drift.
+
+I would add context metadata:
+
+```js
+collect: {
+  allowedIn: ['topLevel', 'foreach'],
+  fields: {
+    prompt: { ... },
+    next: {
+      type: 'phaseRef',
+      allowedIn: ['topLevel']
+    }
+  }
+}
+```
+
+or:
+
+```js
+contexts: {
+  topLevel: {
+    transitions: { next: { required: true } }
+  },
+  foreach: {
+    transitions: {}
+  }
+}
+```
+
+Sub-phases are not different phase types. They are the same phase types under different graph rules.
+
+---
+
+## The editor migration plan is good, but add an escape hatch
+
+A fully generic form builder is the right destination, but some phase types will likely need richer UI than a generic field loop can provide. `foreach`, `relay`, `rank`, and screen controls may become awkward if rendered as plain recursive object fields.
+
+I would design the editor layer like this:
+
+```js
+renderFormForPhase(phase) {
+  const schema = PHASE_SCHEMAS[phase.type];
+
+  if (schema.editor?.customComponent) {
+    return renderCustomPhaseEditor(phase, schema);
+  }
+
+  return renderGenericSchemaForm(phase, schema);
+}
+```
+
+The important rule is that custom editor components may customize **presentation**, but not redefine validation rules. Validation still comes from the schema.
+
+This prevents the schema-driven editor from becoming either too rigid or a second source of truth.
+
+---
+
+## Add normalization as a separate step
+
+The schema includes defaults:
+
+```js
+from: {
+  type: 'enum',
+  values: ['all', 'remaining', 'eliminated'],
+  default: 'all'
+}
+```
+
+But the spec does not explicitly say where defaults are applied.
+
+I would define a pipeline:
+
+```txt
+raw config
+  -> normalizeConfig(config, schema)
+       - apply defaults
+       - coerce editor strings to numbers/booleans where safe
+       - canonicalize refs
+       - preserve unknown fields for diagnostics
+  -> validateConfig(normalizedConfig, schema)
+  -> save normalized config
+```
+
+This is especially important because browser form inputs usually produce strings:
+
+```js
+input.value // "30"
+```
+
+but the schema wants:
+
+```js
+timer: 30
+```
+
+Without a shared normalizer, the editor and server will drift again on basic type coercion.
+
+---
+
+## Reconsider the migration order: typed dataflow can start before full editor migration
+
+The current plan puts typed dataflow checks after the editor migration. 
+
+I would not wait that long.
+
+Once Phases A and B are done and output declarations exist, you can add typed dataflow as warnings even before the editor is fully schema-rendered.
+
+A stronger order may be:
+
+```txt
+A. Define schema, no behavior change.
+B. Validator reads fields/enums/requiredness from schema.
+C. AI prompt reads from schema.
+E1. Add typed dataflow as warnings only.
+D. Migrate editor forms phase by phase.
+E2. Promote selected typed-dataflow warnings to errors after old games are cleaned up.
+```
+
+Typed dataflow is one of the biggest classroom-safety wins. The editor refactor is important, but it is longer and more UI-risky.
+
+---
+
+## Add side-by-side validator tests during migration
+
+Phase A’s proposed tests are good:
+
+```txt
+schema agrees with existing required/optional/enum constants
+each handler has a schema
+```
+
+I would add one more class of tests before deleting the old constants:
+
+```txt
+old validator and schema validator produce identical diagnostics
+for all existing games and validator fixtures
+```
+
+Run both validators in tests and diff:
+
+```js
+expect(newValidate(config)).toEqual(oldValidate(config));
+```
+
+or, if messages change, compare normalized diagnostic codes:
+
+```js
+expect(newDiagnostics.map(d => d.code)).toEqual(oldDiagnostics.map(d => d.code));
+```
+
+This gives you much more confidence than only checking constants.
+
+Also add the reverse coverage test:
+
+```txt
+Every schema phase type has a registered handler, unless role === 'abstract' or role === 'terminal'.
+Every registered handler has a schema.
+Every schema output has at least one fixture proving the handler actually writes that shape.
+```
+
+That last one is important. A schema is only useful if it matches runtime behavior.
+
+---
+
+## The effort estimate is directionally fine, but Phase D may be optimistic
+
+The estimate says the schema-driven editor migration is `0.5–1 day per phase × 19`. 
+
+For simple phases, yes.
+
+For complex phases, I would expect hidden work:
+
+```txt
+foreach nested phase editing
+screen control fields
+template token autocomplete
+data-ref compatibility picker
+warnings/errors inline
+custom previews
+migration of existing editor state management
+```
+
+I would still proceed incrementally, but I would not plan around all 19 being uniform. Budget simple phases separately from complex phases.
+
+A practical grouping:
+
+```txt
+Easy:
+  announce, reveal, preview, end, leaderboard, winner
+
+Medium:
+  collect, collect-choice, vote, rank, wager, eliminate
+
+Hard:
+  ai-process, ai-eliminate, relay, foreach, team-split
+```
+
+Start with easy/medium phases to prove the field renderer, then tackle complex ones after the generic infrastructure is stable.
+
+---
+
+## Direct answers to the open questions
+
+### 1. Should `phase-schemas.js` live in `engine/` or somewhere neutral?
+
+Neutral.
+
+I would not put the browser-loadable schema in `engine/`. The architecture currently treats `engine/` as server-side core logic, while the editor is a static browser surface. 
+
+Use something like:
+
+```txt
+shared/phase-schema/phase-schemas.js
+shared/phase-schema/field-types.js
+shared/phase-schema/resolver-grammar.js
+```
+
+Then:
+
+```txt
+engine/phase-schema-runtime.js
+screens/designer/schema-form-renderer.js
+services/ai-schema-docs.js
+```
+
+can all consume the shared schema.
+
+This keeps the shared contract visibly separate from runtime engine code.
+
+---
+
+### 2. Is `RENDERERS` the right boundary?
+
+A renderer registry is the right boundary, but I would not put renderer functions directly inside the shared schema module.
+
+Use named renderers:
+
+```js
+renderers: {
+  list: 'responseList',
+  count: 'arrayCount',
+  json: 'jsonPretty'
+}
+```
+
+Then the engine owns:
+
+```js
+RENDERER_REGISTRY.responseList = ...
+```
+
+This gives you extensibility and discoverability while keeping the schema declarative.
+
+---
+
+### 3. Foreach sub-phases: flag or separate map?
+
+Use context metadata, not a separate map.
+
+A `subPhase: true` flag is probably too binary. Some fields may be allowed in top-level phases but not in foreach sub-phases. Some transitions may be illegal inside foreach. Some display controls may still be valid.
+
+Use:
+
+```js
+allowedIn: ['topLevel', 'foreach']
+```
+
+at the phase and field level, or define context-specific overlays.
+
+---
+
+### 4. Universal fields: shared block or embedded everywhere?
+
+Shared block, but with mixins/capabilities.
+
+Do not embed them in every schema. Do not make them truly universal unless all phases support them.
+
+I would use:
+
+```js
+mixins: ['screenControl', 'timer', 'participantSelector']
+```
+
+or explicit booleans:
+
+```js
+screenControl: true
+timer: true
+```
+
+Transitions deserve their own section rather than being treated as universal fields.
+
+---
+
+## Suggested edits to the spec before implementation
+
+I would make these concrete changes:
+
+1. Rename `engine/phase-schemas.js` to a neutral shared module path.
+
+2. Add a `Diagnostic` shape and require all validators to return it.
+
+3. Add a `normalizeConfig()` step before validation.
+
+4. Split declarative schema from executable registries.
+
+5. Add `transitions` as a first-class schema section.
+
+6. Add `resolver-grammar.js` so validator and engine parse refs the same way.
+
+7. Replace broad `accepts: ['array']` with semantic capabilities like `candidateSource`, `responseArray`, `scoreMap`, or `listRenderable`.
+
+8. Add compatibility aliases for current synthetic tokens like `{{vote.barChart}}`.
+
+9. Add dynamic output support for phases like `ai-process`.
+
+10. Change AI wording from “never produced” to “less likely; still validated.”
+
+11. Clarify unknown-field handling modes.
+
+12. Move typed-dataflow warnings earlier in the rollout.
+
+---
+
+## Recommended next PR sequence
+
+I would implement this in this order:
+
+```txt
+PR 1:
+  Add shared declarative schema with no behavior change.
+  Add coverage tests: schema <-> handlers, schema <-> old constants.
+
+PR 2:
+  Add diagnostic object format and normalizer.
+  Keep old validator behavior but output structured diagnostics internally.
+
+PR 3:
+  Move validator required/optional/enum/allow-list checks to schema.
+  Run old and new validation side by side in tests.
+
+PR 4:
+  Generate AI phase docs from schema.
+  Keep strict validation and unknown-field diff.
+
+PR 5:
+  Add output declarations and typed-template/data-ref validation as warnings.
+  Do not block saves yet.
+
+PR 6+:
+  Migrate editor forms phase by phase.
+  Start with simple phases.
+
+Later:
+  Promote selected typed-dataflow warnings to errors.
+  Add recipe/compiler layer above raw phases.
+```
+
+That sequence gives you early safety wins without making the editor refactor the bottleneck.
+
+---
+
+## Final assessment
+
+This plan is a strong response to the earlier feedback. It attacks the right bug class: duplicated phase knowledge across validator, editor, AI, and docs. It also keeps the migration incremental, which is essential for a system whose main promise is “do not break in front of a classroom.”
+
+The biggest refinements are architectural hygiene:
+
+```txt
+declarative schema, not executable mega-module
+structured diagnostics
+normalization before validation
+first-class transition metadata
+shared resolver grammar
+semantic output types
+explicit unknown-field policy
+warnings-first typed dataflow
+```
+
+With those changes, this becomes a very solid foundation for the next layer: teacher-friendly recipes that compile down to valid phase graphs.

@@ -9,6 +9,8 @@ import { readdir, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
 import { loadGame, validate, getAllowedFields } from './engine/game-loader.js';
+import { normalizeConfig } from './engine/normalizer.js';
+import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { gamePhases } from './config/game-phases.js';
 import { AIService } from './services/ai-service.js';
@@ -775,36 +777,21 @@ app.put('/api/games/:gameId', async (req, res) => {
   }
 });
 
+// Thin wrapper: delegates to engine/normalizer.js's normalizeConfig in
+// ai-cleanup mode, then mutates the input config in place to preserve
+// the existing API contract (callers expect `config` to be mutated and
+// receive a `string[]` of stripped paths). Other normalizer behaviors
+// (alias rewrite, type coercion) are also applied — verified to be
+// no-ops on all currently-shipping games.
 function stripUnknownFields(config) {
-  const stripped = [];
-  if (!config || !config.phases) return stripped;
-  for (const phaseId of Object.keys(config.phases)) {
-    const phase = config.phases[phaseId];
-    if (!phase || !phase.type) continue;
-    const allowed = getAllowedFields(phase.type);
-    if (allowed.size === 0) continue;
-    for (const field of Object.keys(phase)) {
-      if (!allowed.has(field)) {
-        stripped.push(`${phaseId}.${field}`);
-        delete phase[field];
-      }
-    }
-    if (phase.type === 'foreach' && phase.subPhases) {
-      for (const subId of Object.keys(phase.subPhases)) {
-        const sub = phase.subPhases[subId];
-        if (!sub || !sub.type) continue;
-        const subAllowed = getAllowedFields(sub.type, { subPhase: true });
-        if (subAllowed.size === 0) continue;
-        for (const f of Object.keys(sub)) {
-          if (!subAllowed.has(f)) {
-            stripped.push(`${phaseId}.${subId}.${f}`);
-            delete sub[f];
-          }
-        }
-      }
-    }
+  const { config: cleaned, diagnostics } = normalizeConfig(config, VALIDATION_MODES.AI_CLEANUP);
+  // Copy cleaned phases back into the caller's object
+  if (cleaned && cleaned.phases) {
+    config.phases = cleaned.phases;
   }
-  return stripped;
+  return diagnostics
+    .filter(d => d.code === DIAGNOSTIC_CODES.UNKNOWN_FIELD_REMOVED)
+    .map(d => (d.path || '').replace(/^phases\./, ''));
 }
 
 app.post('/api/games', async (req, res) => {
