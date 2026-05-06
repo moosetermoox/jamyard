@@ -204,6 +204,19 @@ describe('validator diagnostics — code snapshots per fixture', () => {
       }
     },
     {
+      name: 'dataRef type mismatch',
+      expected: ['DATA_REF_TYPE_MISMATCH'],
+      config: {
+        name: 'X', phases: {
+          lobby: { type: 'lobby', next: 'c' },
+          c: { type: 'collect', prompt: 'q', next: 'lb' },
+          // leaderboard.from accepts scoreMap; collect.responses is array
+          lb: { type: 'leaderboard', from: 'c.responses', next: 'end' },
+          end: { type: 'end' }
+        }
+      }
+    },
+    {
       name: 'raw array in template (warning)',
       expected: ['RAW_ARRAY_IN_TEMPLATE'],
       config: {
@@ -238,11 +251,11 @@ describe('validator diagnostics — game snapshot', () => {
       'dream-vacation': [],
       'elimination-game': [],
       'excuse-machine': [],
-      'feedback-academy': ['UNKNOWN_FIELD'],
-      'feedback-coach-academy': ['RAW_ARRAY_IN_TEMPLATE'],
+      'feedback-academy': ['DATA_REF_TYPE_MISMATCH', 'RAW_ARRAY_IN_TEMPLATE', 'UNKNOWN_FIELD'],
+      'feedback-coach-academy': ['DATA_REF_TYPE_MISMATCH', 'RAW_ARRAY_IN_TEMPLATE'],
       'human-vs-ai-birthday-party-battle': [],
       'llm-or-duck': [],
-      'mad-lib-mashup': [],
+      'mad-lib-mashup': ['DATA_REF_TYPE_MISMATCH'],
       'mood-check': [],
       'roast-me-if-you-can': [],
       'simple-poll': [],

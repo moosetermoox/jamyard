@@ -3,6 +3,7 @@ import { PlayerRegistry } from './player-registry.js';
 import { runEliminate } from './phases/eliminate-handler.js';
 import { generateMatchups, getEligibleVoters } from './phases/vote-handler.js';
 import { determineWinner } from './phases/winner-handler.js';
+import { parseRef } from './resolver-grammar.js';
 
 export class GameEngine {
   constructor(config) {
@@ -78,24 +79,28 @@ export class GameEngine {
   }
 
   resolve(reference) {
-    const parts = reference.split('.');
-    const firstPart = parts[0];
+    // Single source of truth for ref parsing — see engine/resolver-grammar.js.
+    // Validator (game-loader) and engine both run refs through parseRef so the
+    // two can't drift on what's a valid token shape.
+    const parsed = parseRef(reference);
+    const segments = parsed.segments;
 
-    // Handle _current — refers to the current foreach iteration item
-    if (firstPart === '_current') {
+    // _current.x.y.z — current foreach iteration item
+    if (parsed.kind === 'foreachItem') {
       if (!this._currentForeachItem) return undefined;
       let value = this._currentForeachItem;
-      for (let i = 1; i < parts.length; i++) {
+      for (let i = 1; i < segments.length; i++) {
         if (value == null) return undefined;
-        value = value[parts[i]];
+        value = value[segments[i]];
       }
       return value;
     }
 
-    // Handle _foreach.<foreachPhaseId>.index / .total / .scores
-    if (firstPart === '_foreach' && parts.length >= 3) {
-      const fePhaseId = parts[1];
-      const field = parts[2];
+    // _foreach.<foreachPhaseId>.index / .total / .scores
+    if (parsed.kind === 'foreachScope') {
+      if (segments.length < 3) return undefined;
+      const fePhaseId = segments[1];
+      const field = segments[2];
       const state = this.foreachState[fePhaseId];
       if (!state) return undefined;
       if (field === 'index') return state.currentIndex + 1; // 1-based
@@ -104,15 +109,16 @@ export class GameEngine {
       return undefined;
     }
 
-    // Handle _candidates — dynamically generated candidate list for foreach
-    if (firstPart === '_candidates') {
+    // _candidates — dynamically generated candidate list for foreach
+    if (parsed.kind === 'foreachCandidates') {
       return this._foreachCandidates || [];
     }
 
-    // Handle _loop variables: _loop.<phaseId>.iteration / .total
-    if (firstPart === '_loop' && parts.length >= 3) {
-      const loopPhaseId = parts[1];
-      const field = parts[2];
+    // _loop.<phaseId>.iteration / .total
+    if (parsed.kind === 'loopScope') {
+      if (segments.length < 3) return undefined;
+      const loopPhaseId = segments[1];
+      const field = segments[2];
       const state = this.loopState[loopPhaseId];
       if (state) {
         if (field === 'iteration') return state.iteration;
@@ -128,45 +134,57 @@ export class GameEngine {
       return undefined;
     }
 
-    // Check built-in variables first
-    const builtIns = this.getBuiltInVariables();
-    if (firstPart in builtIns) {
-      let value = builtIns[firstPart];
-      for (let i = 1; i < parts.length; i++) {
+    // Built-ins (remaining/eliminated/players)
+    if (parsed.kind === 'builtin') {
+      const builtIns = this.getBuiltInVariables();
+      const head = segments[0];
+      if (!(head in builtIns)) return undefined;
+      let value = builtIns[head];
+      for (let i = 1; i < segments.length; i++) {
         if (value == null) return undefined;
-        value = value[parts[i]];
+        value = value[segments[i]];
       }
       return value;
     }
 
-    // Then check phase data
-    const data = this.phaseData[firstPart];
+    // phaseField — refs into phase data
+    if (parsed.kind !== 'phaseField' || segments.length === 0) return undefined;
+    const phaseId = segments[0];
+    const data = this.phaseData[phaseId];
     if (data === undefined) return undefined;
 
-    // Synthetic suffix: .list / .barChart / .pieChart / .chart resolves the prefix
-    // and formats the result. Works at any nesting depth, e.g.
-    //   {{collect-id.list}}                   — collect responses as numbered list
-    //   {{collect-id.responses.list}}         — same, explicit
-    //   {{ai-process-id.result.list}}         — JSON array result as list
-    const lastPart = parts[parts.length - 1];
-    if (parts.length >= 2 && (lastPart === 'list' || lastPart === 'barChart' || lastPart === 'pieChart' || lastPart === 'chart')) {
-      // Resolve everything except the suffix
+    // Renderer suffix: .list / .barChart / .pieChart / .chart format the
+    // resolved prefix as a string. Other grammar suffixes (.count, .json,
+    // .mine) are handled outside this resolver — .mine is rewritten by the
+    // server's per-player template helper before resolve() runs; .count and
+    // .json are validator-only annotations.
+    const renderableSuffix = parsed.suffix === 'list'
+      || parsed.suffix === 'barChart'
+      || parsed.suffix === 'pieChart'
+      || parsed.suffix === 'chart';
+
+    if (renderableSuffix) {
       let value = data;
-      for (let i = 1; i < parts.length - 1; i++) {
+      for (let i = 1; i < segments.length; i++) {
         if (value == null) return '';
-        value = value[parts[i]];
+        value = value[segments[i]];
       }
-      if (lastPart === 'list') return formatList(value);
-      // barChart / pieChart / chart — bare {{X.barChart}} reads X.tally (backward compat).
+      if (parsed.suffix === 'list') return formatList(value);
+      // bare {{X.barChart}} reads X.tally (backward compat).
       // Deeper paths (e.g. {{X.tally.barChart}}) use the resolved value directly.
-      const tally = (parts.length === 2) ? (data && data.tally) : value;
+      const tally = (segments.length === 1) ? (data && data.tally) : value;
       return formatBarChart(tally);
     }
 
+    // Suffix not handled by engine (.count/.json/.mine) or no suffix —
+    // walk full segment path. For .mine the server-side helper rewrites
+    // before this point; if it doesn't, the literal "mine" lookup mirrors
+    // the prior behavior (returns undefined unless data has a .mine key).
     let value = data;
-    for (let i = 1; i < parts.length; i++) {
+    const fullPath = parsed.suffix ? [...segments, parsed.suffix] : segments;
+    for (let i = 1; i < fullPath.length; i++) {
       if (value == null) return undefined;
-      value = value[parts[i]];
+      value = value[fullPath[i]];
     }
     return value;
   }

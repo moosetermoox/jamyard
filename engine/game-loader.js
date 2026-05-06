@@ -10,6 +10,7 @@ import {
   getHostToggles as schemaGetHostToggles,
   getPlayerToggles as schemaGetPlayerToggles
 } from './phase-schemas.js';
+import { parseTemplateTokens, parseRef, classifyRef, checkDataRefCompat } from './resolver-grammar.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GAMES_DIR = join(__dirname, '..', 'games');
@@ -466,6 +467,10 @@ export function validate(config, gameId, options) {
   // to use the .list synthetic suffix.
   scanTemplatesForRawArrays(config, gameId, warnings);
 
+  // Typed-dataflow scan — for every dataRef field, check that the producer
+  // phase's output type matches the consumer's `accepts` clause.
+  scanDataRefTypeMismatches(config, gameId, warnings);
+
   // Per-phase semantic warnings (not blockers, but signal probable design holes).
   scanForDesignHoles(config, gameId, warnings);
 
@@ -522,6 +527,7 @@ function inferDiagnosticCode(msg, severity) {
 
   // Template / typed dataflow
   if (/will display as "\[object Object\]/.test(msg)) return DIAGNOSTIC_CODES.RAW_ARRAY_IN_TEMPLATE;
+  if (/produces .+ but the field needs/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
 
   // Design-hole warnings
   if (/no "scoresFrom" and no "correctOption"/.test(msg)) return DIAGNOSTIC_CODES.WAGER_NO_RESOLUTION_BASIS;
@@ -618,14 +624,6 @@ function detectCycles(config, gameId, errors) {
   }
 }
 
-// Field names that are (almost) always arrays. Rendering one as a raw {{X.field}}
-// inside a template stringifies as "[object Object],..." — usually a bug.
-const KNOWN_ARRAY_FIELDS = new Set([
-  'responses', 'standings', 'eliminated', 'eliminatedNames',
-  'survivors', 'winnerIds', 'winnerNames', 'rankings', 'matchups',
-  'candidateIds', 'voters'
-]);
-
 // Phase fields that hold templates the engine resolves at runtime.
 const TEMPLATE_FIELDS = ['template', 'content', 'message', 'prompt', 'instruction', 'hostTemplate', 'playerTemplate'];
 
@@ -697,26 +695,61 @@ function scanForDesignHoles(config, gameId, warnings) {
   }
 }
 
+// Schema-driven typed-dataflow scan. For every dataRef field declared on a
+// phase (via PHASE_SCHEMAS), look up what the producer phase's output type
+// is and check that it satisfies the consumer's `accepts` clause. Surfaces
+// silent type drift (e.g. wiring a `scoreMap` consumer to a phase whose
+// output is an `array`) as a warning.
+function scanDataRefTypeMismatches(config, gameId, warnings) {
+  for (const [name, phase] of Object.entries(config.phases)) {
+    const fields = schemaGetFields(phase.type);
+    for (const [fieldName, fieldDef] of Object.entries(fields)) {
+      if (fieldDef.type !== 'dataRef') continue;
+      if (!fieldDef.accepts) continue;
+      const value = phase[fieldName];
+      if (typeof value !== 'string' || !value.includes('.')) continue;
+      const parsed = parseRef(value);
+      const compat = checkDataRefCompat(parsed, fieldDef.accepts, config.phases);
+      if (compat) {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" field "${fieldName}" — ${compat.message}`
+        );
+      }
+    }
+  }
+}
+
+// Schema-driven raw-array scan. For every {{...}} token in template fields,
+// parse it through resolver-grammar and ask classifyRef whether the producing
+// phase declares a typed output that needs a renderer. If yes and the token
+// has no suffix, flag it.
+//
+// Replaces the old hardcoded KNOWN_ARRAY_FIELDS list — typing now flows from
+// phase-schemas.js so adding a new array output to a schema automatically
+// participates without editing this function.
 function scanTemplatesForRawArrays(config, gameId, warnings) {
-  const tokenRe = /\{\{\s*([a-zA-Z0-9_-]+)\.([a-zA-Z0-9_]+)(?:\.([a-zA-Z0-9_]+))?\s*\}\}/g;
   for (const [name, phase] of Object.entries(config.phases)) {
     for (const field of TEMPLATE_FIELDS) {
       const tpl = phase[field];
       if (!tpl || typeof tpl !== 'string') continue;
-      let m;
-      tokenRe.lastIndex = 0;
-      while ((m = tokenRe.exec(tpl)) !== null) {
-        const [, refPhase, leaf, suffix] = m;
-        if (!KNOWN_ARRAY_FIELDS.has(leaf)) continue;
-        // If a list/chart suffix follows, it's intentional.
-        if (suffix === 'list' || suffix === 'barChart' || suffix === 'pieChart' || suffix === 'chart') continue;
-        // Allow .length and similar scalar accessors.
-        if (suffix === 'length') continue;
-        // Allow indexed access like .responses.0 (rare but legit).
-        if (suffix && /^\d+$/.test(suffix)) continue;
-        warnings.push(
-          `Game "${gameId}": phase "${name}" template ${field} contains "{{${refPhase}.${leaf}${suffix ? '.' + suffix : ''}}}" — "${leaf}" is a list and will display as "[object Object],...". Add ".list" to format it (e.g. {{${refPhase}.${leaf}.list}}).`
-        );
+      const tokens = parseTemplateTokens(tpl);
+      for (const tok of tokens) {
+        const parsed = parseRef(tok.ref);
+        // Only direct phase.field refs. Skip:
+        //   - builtin / orchestration scopes (handled elsewhere)
+        //   - bare suffix forms ({{vote.barChart}} — already renderable)
+        //   - deeper paths ({{X.responses.0}}, {{X.result.0.scenario}}) —
+        //     engine resolves nested access; not a string-render hazard.
+        if (parsed.kind !== 'phaseField') continue;
+        if (parsed.segments.length !== 2) continue;
+        const classified = classifyRef(parsed, config.phases);
+        if (classified.problem && classified.problem.code === 'RAW_ARRAY_IN_TEMPLATE') {
+          const phaseId = parsed.segments[0];
+          const leaf = parsed.segments[1];
+          warnings.push(
+            `Game "${gameId}": phase "${name}" template ${field} contains "{{${phaseId}.${leaf}}}" — "${leaf}" is a list and will display as "[object Object],...". Add ".list" to format it (e.g. {{${phaseId}.${leaf}.list}}).`
+          );
+        }
       }
     }
   }

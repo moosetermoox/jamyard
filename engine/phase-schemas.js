@@ -349,7 +349,12 @@ export const PHASE_SCHEMAS = {
       },
       candidates: {
         type: 'dataRef',
-        accepts: [{ type: 'array', capability: 'candidateSource' }],
+        // Voting can target either explicit candidate sources (e.g. eliminate
+        // survivors) or raw collected responses — both produce vote-able items.
+        accepts: [
+          { type: 'array', capability: 'candidateSource' },
+          { type: 'array', capability: 'responseArray' }
+        ],
         required: true, label: 'Choices to vote on'
       },
       question: {
@@ -669,7 +674,12 @@ export const PHASE_SCHEMAS = {
       },
       candidates: {
         type: 'dataRef',
-        accepts: [{ type: 'array', capability: 'candidateSource' }],
+        // Same as vote: rank either explicit candidates or raw collected
+        // responses (e.g. rank everyone's submitted destinations).
+        accepts: [
+          { type: 'array', capability: 'candidateSource' },
+          { type: 'array', capability: 'responseArray' }
+        ],
         required: true, label: 'Items to rank'
       }
     },

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getAllowedFields } from '../engine/game-loader.js';
+import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schemas.js';
 
 /**
  * Extract text from the first text-type content block. Claude's content
@@ -17,191 +18,71 @@ function extractText(message) {
   return '';
 }
 
-const SYSTEM_PROMPT = `You are a fun, energetic game host for a classroom game.
-Your job is to take player responses and create entertaining content based on them.
-Keep your responses appropriate for a classroom setting - fun but not inappropriate.
-Be creative, playful, and engaging. Keep responses concise.`;
+// =======================================================================
+// Phase docs — generated from PHASE_SCHEMAS so the AI prompts can't
+// drift from the validator's allow-list. Two formats:
+//
+//   buildPhaseDocsForPrompt({ format: 'terse'   })  → light review prompt
+//   buildPhaseDocsForPrompt({ format: 'verbose' })  → game generator prompt
+//
+// Hand-curated prose that the schema can't represent (foreach behavior,
+// multi-field collect, per-player mode) lives in PHASE_EXTRA_GUIDANCE
+// below and gets appended to the verbose form.
+// =======================================================================
 
-const MODELS = {
-  haiku: 'claude-haiku-4-5-20251001',
-  sonnet: 'claude-sonnet-4-5-20250929'
-};
+// Mixin-introduced fields. Excluded from prompt docs by default — they're
+// either advanced (loops/screen-control) or handled separately (timer/from
+// included individually because they're common). Kept here as a single
+// list so it stays in sync with engine/phase-schemas.js MIXINS.
+const COMMON_FIELDS_TO_INCLUDE = new Set(['timer', 'from', 'voters']);
+const MIXIN_FIELDS_TO_SKIP = new Set([
+  'hostShow', 'playerShow', 'hostTemplate', 'playerTemplate',
+  'loopBack', 'loopCount'
+]);
 
-const MODEL = MODELS.haiku;
-
-const LIGHT_REVIEW_PROMPT = `You are a friendly game advisor helping a teacher build a classroom game. The teacher is NOT a programmer — they're using a drag-and-drop game builder. Write feedback in plain, everyday language. NO technical jargon.
-
-WRITING RULES:
-- Talk about game steps, not "phases" or "data refs"
-- Say "the step where players write answers" not "the collect phase"
-- Say "this step needs to know where to get its data" not "missing input data reference"
-- Say "the scoring won't work because..." not "scoring mode mismatch with candidateSource configuration"
-- Use the step's display name from the config (e.g., "Write Your Ideas" or the phase ID in friendly form)
-- Keep suggestions short and actionable — what should they click/change, not architecture redesigns
-- If something won't work, explain what the player would actually experience ("players would see a blank screen")
-- ABSOLUTELY NO TECHNICAL SYNTAX in your output. NEVER write {{anything}}, NEVER write backticks like \`field\`, NEVER reference field names like "instruction" or "candidateSource". Refer to things by what they DO ("the AI's instructions", "the choices players see"), not by their config field names.
-- NEVER quote the JSON or show config snippets. The teacher doesn't see JSON. Describe the change in English: "Change the message in the first step to..." not "Set message: '...'".
-
-PHASE TYPES (internal reference — do NOT use these technical names in your output):
-- lobby: Players join here
-- collect: Players type a text response. Needs 'prompt'. Optional 'from' (all/remaining/eliminated).
-- collect-choice: Players pick from choices. Needs 'prompt' and 'choices'. Optional 'from'.
-- ai-process: AI processes responses or generates content from scratch. Needs 'instruction'. Optional 'input' (reference to a previous step's data — omit if generating from scratch), 'task', 'format', 'perPlayer' (boolean — generate one item per player, then reference {{phaseId.mine}} in a later collect/collect-choice prompt for per-player customization).
-- ai-eliminate: AI judges and eliminates. Needs 'instruction', 'input'.
-- vote: Players vote. Needs 'mode' (pick-one/head-to-head), 'candidates'.
-- eliminate: Remove players by score. Needs 'method'. bottom-percent needs 'percent' and 'input'.
-- announce: Show a message to everyone. Needs 'message'. Optional 'timer'.
-- reveal: Display content. Needs 'template'.
-- preview: Teacher reviews before showing. Needs 'approveNext' and 'rejectNext'.
-- winner: Declare winner. Needs 'from' (scores).
-- leaderboard: Show scores/rankings. Needs 'from' (scores). Optional 'style', 'timer'.
-- reveal-one: Reveal items one by one. Needs 'from'.
-- team-split: Divide into teams. Needs 'method' and 'teamCount'.
-- rank: Reorder a list. Needs 'prompt' and 'candidates'.
-- wager: Bet points. Needs 'prompt' and 'options'.
-- relay: Turn-by-turn input. Needs 'prompt'.
-- foreach: Loop through each response doing sub-steps. Needs 'data' and 'subPhases'. Sub-phases can ONLY be: announce, collect, collect-choice (NOT reveal). Optional: 'candidateSource' ("players"), 'decoyCount', 'scoring', 'aiInject'. Scoring modes: "correct" (guess who wrote it) or "tally" (rate items, author earns points). Template variables: {{_current.text}}, {{_current.playerName}}, "_candidates" for auto-generated choices. Has 'aiInject' option ({ count, instruction }) — AI generates fake responses mixed in with real ones for "human vs AI" detection games. With aiInject, use correctAnswer: "_current.isHuman" and choices: ["Human", "AI"].
-- end: Game over.
-
-LOOP SYSTEM: Any step can repeat using 'loopBack' + 'loopCount'.
-
-CHECK FOR:
-1. Steps that are missing required settings (would cause the game to crash)
-2. Steps that try to use data from a step that hasn't happened yet
-3. Steps where eliminated players are still asked to participate
-4. AI instructions that are too vague to produce good results
-5. Foreach issues (wrong sub-phase types, missing scoring setup)
-6. Flow problems (dead ends, unreachable steps)
-
-Return ONLY valid JSON:
-{"issues":[{"phaseId":"...","severity":"error|warning","message":"plain English problem description","suggestion":"what to do, in simple terms"}],"summary":"one friendly sentence overview"}`;
-
-const DEEP_REVIEW_EXTRA = `
-Also check (still in plain, friendly language):
-- Would the AI instructions actually produce good results? Suggest better wording.
-- Is this game fun? Good pacing? Enough variety?
-- Would timers help keep things moving? Suggest specific times.
-- Are there steps that would be confusing for students?
-- Could any messages shown to students be more engaging or clearer?
-
-Be encouraging! Start the summary with something positive about the game concept.`;
-
-const CLARIFY_QUESTIONS_PROMPT = `You are helping a teacher design a classroom game. The teacher will describe a game idea, and you need to ask 2-4 SHORT clarifying questions to make sure you build exactly what they want.
-
-Think about what could go wrong or be ambiguous:
-- How many things does each player need to submit? (e.g., "two truths and a lie" needs 3 inputs, not 1)
-- Should there be scoring? What kind?
-- Should the class see each response one-at-a-time, or all at once?
-- Is there elimination, or does everyone play to the end?
-- Should AI be involved (generating content, judging, etc.)?
-- How long should players have to respond?
-
-IMPORTANT: Only ask questions where the answer is NOT obvious from the description. If the user says "two truths and a lie," you don't need to ask "how many things does each player submit?" — that's clearly 3. But you should ask clarifying things like "Should the class vote on which one is the lie, or just discuss?"
-
-Return ONLY valid JSON in this format:
-{
-  "questions": [
-    {
-      "question": "Short, clear question in plain English",
-      "options": ["Option A", "Option B", "Option C"],
-      "default": "Option A"
+function describeFieldType(fdef) {
+  switch (fdef.type) {
+    case 'string':         return 'string';
+    case 'templateString': return 'string with {{tokens}}';
+    case 'boolean':        return 'boolean';
+    case 'integer': {
+      if (fdef.min != null && fdef.max != null) return `number ${fdef.min}-${fdef.max}`;
+      if (fdef.min != null) return `number ≥ ${fdef.min}`;
+      if (fdef.max != null) return `number ≤ ${fdef.max}`;
+      return 'number';
     }
-  ]
-}
-
-Each question MUST have 2-4 predefined options (not free text) plus a sensible default. Keep questions short and jargon-free — the user is a teacher, not a programmer.
-
-If the description is so clear that no questions are needed, return: {"questions": []}`;
-
-const GAME_GENERATOR_PROMPT = `You are a classroom game designer. Given a description, generate a complete game config JSON.
-
-IMPORTANT: Return ONLY valid JSON. No explanation, no markdown, just the JSON object.
-
-The config format is:
-{
-  "name": "Game Name",
-  "description": "One-line description",
-  "phases": {
-    "lobby": { "type": "lobby", "next": "..." },
-    ...phase definitions...,
-    "end": { "type": "end", "message": "..." }
+    case 'enum':           return fdef.values.map(v => `"${v}"`).join('/');
+    case 'phaseRef':       return 'phase ID';
+    case 'dataRef':        return 'data ref like "phaseId.field"';
+    case 'array':          return 'array';
+    case 'object':         return 'object';
+    case 'oneOf':          return fdef.options.map(o => describeFieldType(o)).join(' OR ');
+    default:               return fdef.type;
   }
 }
 
-Every game MUST start with a "lobby" phase and end with an "end" phase. Every phase (except end) needs a "next" field.
+function fieldEntry(fname, fdef) {
+  return `"${fname}" (${describeFieldType(fdef)})`;
+}
 
-Available phase types:
+// Per-phase prose that the schema can't model. Keep concise; the field
+// listings come from the schema.
+const PHASE_EXTRA_GUIDANCE = {
+  collect:
+    `MULTI-FIELD COLLECT: When a game needs multiple separate inputs (e.g. "two truths and a lie" needs 3 inputs), use the "fields" array:
+    "fields": [{"label": "Truth 1", "key": "truth1"}, {"label": "Truth 2", "key": "truth2"}, {"label": "The Lie", "key": "lie"}]
+    Each field renders as a separate labeled text input. The response is stored with a "fields" object (keyed by "key") plus a "text" field joining all values.
+    Inside foreach, reference specific fields with _current.fields.<key> (e.g. _current.fields.lie).
+    Use "choices": "_current.shuffledFields" in a collect-choice sub-phase to show field values as shuffled multiple-choice options.
+    Use "correctAnswer": "_current.fields.<key>" in scoring to match against a specific field value.`,
 
-1. "collect" — Players type a text response
-   Required: "prompt" (string)
-   Optional: "timer" (seconds), "from" ("all"/"remaining"/"eliminated"), "fields" (array of field objects)
+  'ai-process':
+    `PER-PLAYER MODE: set "perPlayer": true to generate one item per player (e.g. unique debate topics, scenarios, math problems). The engine asks for exactly N items, parses as a JSON array, and assigns one to each player. In any later "collect" or "collect-choice" prompt, write {{phaseId.mine}} and the engine substitutes that player's item per-recipient. Do NOT use {{phaseId.result}} for per-player content — result is the full array and renders as joined text. Example:
+    "topics": { "type": "ai-process", "instruction": "Generate fun debate topics for teens...", "perPlayer": true, "next": "argue" },
+    "argue": { "type": "collect", "prompt": "Your topic: {{topics.mine}}\\n\\nWrite your argument.", "timer": 90, "next": "..." }`,
 
-   MULTI-FIELD COLLECT: When a game needs multiple separate inputs (e.g. "two truths and a lie" needs 3 inputs), use the "fields" array:
-   "fields": [{"label": "Truth 1", "key": "truth1"}, {"label": "Truth 2", "key": "truth2"}, {"label": "The Lie", "key": "lie"}]
-   Each field renders as a separate labeled text input. The response is stored with a "fields" object (keyed by "key") plus a "text" field joining all values.
-   Inside foreach, reference specific fields with _current.fields.<key> (e.g. _current.fields.lie).
-   Use "choices": "_current.shuffledFields" in a collect-choice sub-phase to show field values as shuffled multiple-choice options.
-   Use "correctAnswer": "_current.fields.<key>" in scoring to match against a specific field value.
-
-2. "collect-choice" — Players pick from predefined choices
-   Required: "prompt" (string), "choices" (array of strings OR "_candidates" inside foreach)
-   Optional: "timer", "from"
-
-3. "ai-process" — AI processes player responses or generates content
-   Required: "instruction" (detailed prompt for AI)
-   Optional: "input" (data ref like "collect.responses" — omit if AI is generating from scratch), "task" ("summarize"/"generate"/"compare"/"rank"/"judge"), "format" ("text"/"json"), "perPlayer" (boolean)
-   PER-PLAYER MODE: set "perPlayer": true to generate one item per player (e.g. unique debate topics, scenarios, math problems). The engine asks for exactly N items, parses as a JSON array, and assigns one to each player. In any later "collect" or "collect-choice" prompt, write {{phaseId.mine}} and the engine substitutes that player's item per-recipient. Do NOT use {{phaseId.result}} for per-player content — result is the full array and renders as joined text. Example:
-   "topics": { "type": "ai-process", "instruction": "Generate fun debate topics for teens...", "perPlayer": true, "next": "argue" },
-   "argue": { "type": "collect", "prompt": "Your topic: {{topics.mine}}\\n\\nWrite your argument.", "timer": 90, "next": "..." }
-
-4. "announce" — Show a message to everyone
-   Required: "message" (string, supports {{phase.field}} templates)
-   Optional: "timer" (auto-advances after N seconds)
-
-5. "reveal" — Display content to everyone
-   Required: "template" (string with {{phase.field}} refs)
-   Optional: none
-
-6. "vote" — Players vote on options
-   Required: "mode" ("pick-one"/"head-to-head"), "candidates" (data ref)
-   Optional: "timer", "voters" ("all"/"remaining"/"eliminated")
-
-7. "eliminate" — Remove players by score
-   Required: "method" ("bottom-percent"), "percent" (1-100), "input" (scores data ref)
-   Optional: "pause" (seconds)
-
-8. "preview" — Teacher reviews before revealing
-   Required: "content" (data ref) OR "template", plus "approveNext" and "rejectNext" (phase IDs)
-   Optional: "showResponses" (boolean)
-
-9. "winner" — Declare winner from scores
-   Required: "from" (scores data ref)
-
-10. "leaderboard" — Show scores and rankings
-    Required: "from" (scores data ref)
-    Optional: "style" ("full"/"top3"), "timer"
-
-11. "team-split" — Divide players into teams
-    Required: "method" ("random"/"balanced"), "teamCount" (2-20)
-    Optional: "teamNames" (array), "from"
-
-12. "rank" — Players reorder a list by preference
-    Required: "prompt", "candidates" (data ref to items)
-    Optional: "timer", "from"
-
-13. "wager" — Players bet points on outcomes
-    Required: "prompt", "options" (array of strings)
-    Optional: "timer", "correctOption" (auto-resolve), "scoresFrom" (data ref)
-
-14. "relay" — Turn-by-turn collaborative input
-    Required: "prompt"
-    Optional: "timer" (per turn), "order" ("random"/"join-order"), "from"
-
-15. "foreach" — Iterate over data running sub-phases per item
-    Required: "data" (data ref, e.g. "collect.responses"), "subPhases" (object of sub-phase configs)
-    Optional: "shuffle" (boolean), "candidateSource" ("players"), "decoyCount" (number), "scoring" object
-
-    Sub-phases can ONLY be: announce, collect, collect-choice. No "next" needed — they chain automatically.
+  foreach:
+    `Sub-phases can ONLY be: announce, collect, collect-choice. No "next" needed — they chain automatically.
 
     Template variables inside foreach sub-phases:
     - {{_current.text}} — the current item's text content
@@ -282,14 +163,164 @@ Available phase types:
     FOREACH LIMITATIONS — things it CANNOT do:
     - Cannot display candidate details in prompts (_candidates are just name strings, not objects)
     - Sub-phases cannot be: reveal, vote, ai-process, or any other type besides announce/collect/collect-choice
-    - Do NOT reference sub-phase data across iterations
+    - Do NOT reference sub-phase data across iterations`
+};
 
-16. "reveal-one" — Host reveals items one by one
-    Required: "from" (data ref to items)
-    Optional: "message", "timer"
+/**
+ * Build a phase-types reference block for inclusion in an AI prompt.
+ *
+ * @param {{ format?: 'terse'|'verbose' }} opts
+ * @returns {string}
+ */
+function buildPhaseDocsForPrompt(opts = {}) {
+  const verbose = opts.format === 'verbose';
+  const lines = [];
+  let n = 0;
 
-17. "ai-eliminate" — AI judges answers and eliminates
-    Required: "instruction" (rules), "input" (data ref)
+  for (const [type, schema] of Object.entries(PHASE_SCHEMAS)) {
+    n++;
+    const allFields = getFields(type);
+    const transitions = getTransitions(type);
+
+    // Filter: keep base fields + common mixin fields (timer/from/voters).
+    // Skip noisy mixin fields (screenControl, loops) — covered separately.
+    // Include required transitions (e.g. preview.approveNext) so the AI
+    // knows about them; skip optional `next` (universally implied).
+    const fields = Object.entries(allFields).filter(([fname]) =>
+      !MIXIN_FIELDS_TO_SKIP.has(fname)
+    );
+    const requiredTransitions = Object.entries(transitions).filter(
+      ([_, t]) => t.required
+    );
+    const required = [
+      ...fields.filter(([, f]) => f.required),
+      ...requiredTransitions
+    ];
+    const optional = fields.filter(([, f]) => !f.required);
+
+    if (verbose) {
+      lines.push(`${n}. "${type}" — ${schema.description}`);
+      if (required.length) {
+        lines.push(`   Required: ${required.map(([k, f]) => fieldEntry(k, f)).join(', ')}`);
+      }
+      if (optional.length) {
+        lines.push(`   Optional: ${optional.map(([k, f]) => fieldEntry(k, f)).join(', ')}`);
+      }
+      const extra = PHASE_EXTRA_GUIDANCE[type];
+      if (extra) {
+        lines.push('');
+        lines.push('   ' + extra.split('\n').map(l => l.trimStart()).join('\n   '));
+      }
+      lines.push('');
+    } else {
+      const reqStr = required.length ? ` Needs ${required.map(([k]) => `'${k}'`).join(', ')}.` : '';
+      const optStr = optional.length ? ` Optional: ${optional.map(([k]) => `'${k}'`).join(', ')}.` : '';
+      lines.push(`- ${type}: ${schema.description}${reqStr}${optStr}`);
+    }
+  }
+
+  return lines.join('\n').trimEnd();
+}
+
+const SYSTEM_PROMPT = `You are a fun, energetic game host for a classroom game.
+Your job is to take player responses and create entertaining content based on them.
+Keep your responses appropriate for a classroom setting - fun but not inappropriate.
+Be creative, playful, and engaging. Keep responses concise.`;
+
+const MODELS = {
+  haiku: 'claude-haiku-4-5-20251001',
+  sonnet: 'claude-sonnet-4-5-20250929'
+};
+
+const MODEL = MODELS.haiku;
+
+const LIGHT_REVIEW_PROMPT = `You are a friendly game advisor helping a teacher build a classroom game. The teacher is NOT a programmer — they're using a drag-and-drop game builder. Write feedback in plain, everyday language. NO technical jargon.
+
+WRITING RULES:
+- Talk about game steps, not "phases" or "data refs"
+- Say "the step where players write answers" not "the collect phase"
+- Say "this step needs to know where to get its data" not "missing input data reference"
+- Say "the scoring won't work because..." not "scoring mode mismatch with candidateSource configuration"
+- Use the step's display name from the config (e.g., "Write Your Ideas" or the phase ID in friendly form)
+- Keep suggestions short and actionable — what should they click/change, not architecture redesigns
+- If something won't work, explain what the player would actually experience ("players would see a blank screen")
+- ABSOLUTELY NO TECHNICAL SYNTAX in your output. NEVER write {{anything}}, NEVER write backticks like \`field\`, NEVER reference field names like "instruction" or "candidateSource". Refer to things by what they DO ("the AI's instructions", "the choices players see"), not by their config field names.
+- NEVER quote the JSON or show config snippets. The teacher doesn't see JSON. Describe the change in English: "Change the message in the first step to..." not "Set message: '...'".
+
+PHASE TYPES (internal reference — do NOT use these technical names in your output):
+${buildPhaseDocsForPrompt({ format: 'terse' })}
+
+LOOP SYSTEM: Any step can repeat using 'loopBack' + 'loopCount'.
+
+CHECK FOR:
+1. Steps that are missing required settings (would cause the game to crash)
+2. Steps that try to use data from a step that hasn't happened yet
+3. Steps where eliminated players are still asked to participate
+4. AI instructions that are too vague to produce good results
+5. Foreach issues (wrong sub-phase types, missing scoring setup)
+6. Flow problems (dead ends, unreachable steps)
+
+Return ONLY valid JSON:
+{"issues":[{"phaseId":"...","severity":"error|warning","message":"plain English problem description","suggestion":"what to do, in simple terms"}],"summary":"one friendly sentence overview"}`;
+
+const DEEP_REVIEW_EXTRA = `
+Also check (still in plain, friendly language):
+- Would the AI instructions actually produce good results? Suggest better wording.
+- Is this game fun? Good pacing? Enough variety?
+- Would timers help keep things moving? Suggest specific times.
+- Are there steps that would be confusing for students?
+- Could any messages shown to students be more engaging or clearer?
+
+Be encouraging! Start the summary with something positive about the game concept.`;
+
+const CLARIFY_QUESTIONS_PROMPT = `You are helping a teacher design a classroom game. The teacher will describe a game idea, and you need to ask 2-4 SHORT clarifying questions to make sure you build exactly what they want.
+
+Think about what could go wrong or be ambiguous:
+- How many things does each player need to submit? (e.g., "two truths and a lie" needs 3 inputs, not 1)
+- Should there be scoring? What kind?
+- Should the class see each response one-at-a-time, or all at once?
+- Is there elimination, or does everyone play to the end?
+- Should AI be involved (generating content, judging, etc.)?
+- How long should players have to respond?
+
+IMPORTANT: Only ask questions where the answer is NOT obvious from the description. If the user says "two truths and a lie," you don't need to ask "how many things does each player submit?" — that's clearly 3. But you should ask clarifying things like "Should the class vote on which one is the lie, or just discuss?"
+
+Return ONLY valid JSON in this format:
+{
+  "questions": [
+    {
+      "question": "Short, clear question in plain English",
+      "options": ["Option A", "Option B", "Option C"],
+      "default": "Option A"
+    }
+  ]
+}
+
+Each question MUST have 2-4 predefined options (not free text) plus a sensible default. Keep questions short and jargon-free — the user is a teacher, not a programmer.
+
+If the description is so clear that no questions are needed, return: {"questions": []}`;
+
+const GAME_GENERATOR_PROMPT = `You are a classroom game designer. Given a description, generate a complete game config JSON.
+
+IMPORTANT: Return ONLY valid JSON. No explanation, no markdown, just the JSON object.
+
+The config format is:
+{
+  "name": "Game Name",
+  "description": "One-line description",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "..." },
+    ...phase definitions...,
+    "end": { "type": "end", "message": "..." }
+  }
+}
+
+Every game MUST start with a "lobby" phase and end with an "end" phase. Every phase (except end) needs a "next" field.
+
+Available phase types (field listings generated from the schema — these
+are exhaustive; do NOT invent fields that are not listed):
+
+${buildPhaseDocsForPrompt({ format: 'verbose' })}
 
 Data references format: "phaseId.field" — e.g. "collect.responses", "vote.scores", "foreach-phase.scores"
 
