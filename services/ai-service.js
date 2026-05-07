@@ -1231,4 +1231,189 @@ Return the revised step.`;
 Here are the player responses:
 ${responseList}`;
   }
+
+  // =====================================================================
+  // matchRecipe — AI as recipe matcher (R4)
+  //
+  // Replaces the fragile generateGame() flow for the recipe-friendly
+  // case. Instead of asking AI to emit a 200-line phase graph, we ask it
+  // to pick one of N hand-built recipes and fill ~5 parameter values.
+  // The structured output is tiny (~5 fields), so JSON malformation
+  // becomes statistically near-impossible. Compiler turns the params
+  // into a guaranteed-valid game config.
+  //
+  // Output shape (one of):
+  //   { recipe: "id", params: { ... }, explanation: "..." }
+  //   { noMatch: true, reason: "...", suggestion: "..." }
+  //
+  // Cost: one Haiku call, ~600 tokens output max. Way cheaper than the
+  // ~4096-token Sonnet generateGame() call.
+  // =====================================================================
+
+  async matchRecipe(description, recipes) {
+    if (this.mode === 'mock') {
+      return this._matchRecipeMock(description, recipes);
+    }
+    return this._matchRecipeReal(description, recipes);
+  }
+
+  _matchRecipeMock(description, recipes) {
+    // Mock mode: pick the first recipe + fill required params with placeholders.
+    // Lets tests run without an API key.
+    if (!recipes || recipes.length === 0) {
+      return { noMatch: true, reason: 'No recipes available.', suggestion: '' };
+    }
+    const recipe = recipes[0];
+    const params = {};
+    for (const [name, spec] of Object.entries(recipe.parameters || {})) {
+      if (!spec.required) continue;
+      if (spec.type === 'integer') params[name] = spec.min ?? 1;
+      else if (spec.type === 'array') params[name] = ['Mock A', 'Mock B'];
+      else if (spec.type === 'boolean') params[name] = false;
+      else if (spec.type === 'enum') params[name] = spec.values[0];
+      else params[name] = `[MOCK] ${description.slice(0, 40)}`;
+    }
+    return {
+      recipe: recipe.id,
+      params,
+      explanation: `[MOCK] Matched to ${recipe.name}.`
+    };
+  }
+
+  async _matchRecipeReal(description, recipes) {
+    if (!recipes || recipes.length === 0) {
+      return { noMatch: true, reason: 'No recipes are available yet.', suggestion: '' };
+    }
+
+    const systemPrompt = this._buildMatchRecipePrompt(recipes);
+
+    try {
+      const start = Date.now();
+      const message = await this.client.messages.create({
+        model: MODELS.haiku,
+        max_tokens: 800,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: `A teacher described their classroom game idea:\n\n"${description}"\n\nReturn the matching recipe + filled parameters as JSON.`
+          }
+        ]
+      });
+      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
+      console.log(`[AIService] matchRecipe() completed in ${elapsed}s (model: ${MODELS.haiku}, output: ${message.usage?.output_tokens || '?'} tokens)`);
+
+      const text = extractText(message);
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (match) {
+          try { parsed = JSON.parse(match[0]); } catch {}
+        }
+      }
+
+      if (!parsed || typeof parsed !== 'object') {
+        return {
+          noMatch: true,
+          reason: 'AI returned an unexpected response.',
+          suggestion: 'Try rewording your description or use the recipe picker directly.'
+        };
+      }
+
+      // Two valid shapes — pass through with light sanitation.
+      if (parsed.noMatch === true) {
+        return {
+          noMatch: true,
+          reason: typeof parsed.reason === 'string' ? parsed.reason : 'No recipe fits this idea.',
+          suggestion: typeof parsed.suggestion === 'string' ? parsed.suggestion : ''
+        };
+      }
+
+      if (typeof parsed.recipe === 'string' && parsed.params && typeof parsed.params === 'object') {
+        return {
+          recipe: parsed.recipe,
+          params: parsed.params,
+          explanation: typeof parsed.explanation === 'string' ? parsed.explanation : ''
+        };
+      }
+
+      return {
+        noMatch: true,
+        reason: 'AI response did not include a recipe id.',
+        suggestion: 'Try the recipe picker directly.'
+      };
+    } catch (error) {
+      console.error('[AIService] matchRecipe error:', error.message);
+      return {
+        noMatch: true,
+        reason: `AI matcher failed: ${error.message}`,
+        suggestion: 'Try the recipe picker directly.'
+      };
+    }
+  }
+
+  _buildMatchRecipePrompt(recipes) {
+    const recipeBlocks = recipes.map(r => {
+      const params = Object.entries(r.parameters || {}).map(([name, spec]) => {
+        const bits = [`type: ${spec.type}`];
+        if (spec.required) bits.push('required');
+        if (spec.default !== undefined) {
+          bits.push(`default: ${JSON.stringify(spec.default)}`);
+        }
+        if (spec.values) bits.push(`one of: ${spec.values.join(', ')}`);
+        if (spec.min != null) bits.push(`min: ${spec.min}`);
+        if (spec.max != null) bits.push(`max: ${spec.max}`);
+        if (spec.minItems != null) bits.push(`minItems: ${spec.minItems}`);
+        if (spec.maxItems != null) bits.push(`maxItems: ${spec.maxItems}`);
+        return `    - ${name} (${bits.join(', ')}): ${spec.helper || spec.label || ''}`.trim();
+      }).join('\n');
+      return `## ${r.name} (id: "${r.id}")
+${r.description}
+${r.tagline ? '*' + r.tagline + '*\n' : ''}
+Parameters:
+${params || '    (none)'}`;
+    }).join('\n\n---\n\n');
+
+    return `You match a teacher's natural-language game idea to one of these pre-built classroom game recipes. Each recipe is a working game; you only need to fill in a few parameters.
+
+# Available recipes
+
+${recipeBlocks}
+
+# Your job
+
+Read the teacher's description and decide:
+
+1. If ONE of the recipes above is a good fit:
+   Return JSON with the recipe's id and filled parameters:
+   {
+     "recipe": "id-of-best-fit-recipe",
+     "params": { /* filled in based on the description */ },
+     "explanation": "One short sentence about why this recipe fits."
+   }
+
+2. If NONE of the recipes fit (the teacher wants something the seed library can't do, like a quiz with multiple different questions, or a mechanic not represented):
+   Return JSON:
+   {
+     "noMatch": true,
+     "reason": "One sentence explaining why no recipe fits.",
+     "suggestion": "One sentence suggesting a recipe that's CLOSE — name the recipe and what they'd give up."
+   }
+
+# Parameter-filling rules
+
+- Use the teacher's exact wording for prompts/questions when possible — don't paraphrase their pedagogical intent.
+- For "choices" arrays, generate 3-5 sensible options based on the teacher's description.
+- For timer values, default to the recipe's default unless the teacher specifies a duration.
+- For enum parameters, pick the value that best matches the teacher's tone.
+- DO NOT invent parameter names that aren't in the recipe spec.
+- DO NOT skip required parameters — every required field must be present.
+- Numbers are numbers (60), not strings ("60").
+
+# Output format
+
+Return ONLY valid JSON. No prose before or after. No markdown fences. Just the object.`;
+  }
 }

@@ -265,7 +265,24 @@ var reviewCloseBtn = document.getElementById('review-close');
 var closePanelBtn = document.getElementById('close-phase-panel');
 
 // --- Init ---
-function init() {
+async function fetchSchemas() {
+  try {
+    var resp = await fetch('/api/phase-schemas');
+    if (!resp.ok) return;
+    var data = await resp.json();
+    for (var type in data) {
+      REQUIRED_FIELDS[type] = data[type].requiredFields;
+      VALID_HOST_TOGGLES[type] = data[type].hostToggles;
+      VALID_PLAYER_TOGGLES[type] = data[type].playerToggles;
+      _schemaEnums[type] = data[type].enumFields;
+    }
+  } catch (e) {
+    console.warn('[editor] Failed to load phase schemas from server:', e);
+  }
+}
+
+async function init() {
+  await fetchSchemas();
   var params = new URLSearchParams(window.location.search);
   gameId = params.get('game');
 
@@ -3201,6 +3218,8 @@ function deletePhase(phaseId) {
 
 var VALID_TYPES = Object.keys(PHASE_CATALOG);
 
+// These tables are populated from /api/phase-schemas at init time.
+// The values here are fallbacks used only if the schema fetch fails.
 var REQUIRED_FIELDS = {
   collect: ['prompt'],
   'collect-choice': ['prompt', 'choices'],
@@ -3220,15 +3239,18 @@ var REQUIRED_FIELDS = {
   foreach: ['data', 'subPhases']
 };
 
-var VALID_ENUMS = {
-  from: { types: ['collect', 'collect-choice'], values: ['all', 'remaining', 'eliminated'] },
-  voters: { types: ['vote'], values: ['all', 'remaining', 'eliminated'] },
-  mode: { types: ['vote'], values: ['pick-one', 'head-to-head'] },
-  method: { types: ['eliminate'], values: ['bottom-percent', 'hook'] },
-  format: { types: ['ai-process'], values: ['text', 'json'] },
-  task: { types: ['ai-process'], values: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'] },
-  style: { types: ['leaderboard'], values: ['full', 'top3'] },
-  order: { types: ['relay'], values: ['random', 'join-order'] }
+// Per-phase enum validation: { phaseType: { fieldName: allowedValues[] } }
+// Populated from /api/phase-schemas at init time; hardcoded values are fallback.
+var _schemaEnums = {
+  collect: { from: ['all', 'remaining', 'eliminated'] },
+  'collect-choice': { from: ['all', 'remaining', 'eliminated'] },
+  vote: { voters: ['all', 'remaining', 'eliminated'], mode: ['pick-one', 'head-to-head'] },
+  eliminate: { method: ['bottom-percent', 'hook'] },
+  'ai-process': { task: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'], format: ['text', 'json'] },
+  'ai-eliminate': { format: ['text', 'json'] },
+  leaderboard: { style: ['full', 'top3'] },
+  relay: { order: ['random', 'join-order'] },
+  foreach: { candidateSource: ['players'], pairMode: ['human-vs-ai'] }
 };
 
 var DATA_REF_FIELDS = ['input', 'candidates', 'content'];
@@ -3349,12 +3371,11 @@ function validateConfig() {
       }
     }
 
-    // Enum checks
-    for (var enumField in VALID_ENUMS) {
-      var spec = VALID_ENUMS[enumField];
-      if (spec.types.indexOf(phase.type) === -1) continue;
+    // Enum checks (schema-driven via _schemaEnums)
+    var phaseEnums = _schemaEnums[phase.type] || {};
+    for (var enumField in phaseEnums) {
       if (phase[enumField] !== undefined && phase[enumField] !== null) {
-        if (spec.values.indexOf(phase[enumField]) === -1) {
+        if (phaseEnums[enumField].indexOf(phase[enumField]) === -1) {
           errors.push(label + ': Invalid ' + enumField + ' value "' + phase[enumField] + '".');
         }
       }

@@ -1,0 +1,4 @@
+# User-saved recipes (R5+) live here; not committed to the repo.
+# When teacher accounts ship, this storage moves to a database.
+user/*
+!user/.gitkeep

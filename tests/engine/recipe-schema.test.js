@@ -1,0 +1,263 @@
+/**
+ * Tests for engine/recipe-schema.js — validates recipe files and
+ * teacher-submitted parameter values.
+ */
+
+import { describe, it, expect } from 'vitest';
+import {
+  validateRecipe,
+  validateParams,
+  RECIPE_DIAGNOSTIC_CODES
+} from '../../engine/recipe-schema.js';
+
+const codes = RECIPE_DIAGNOSTIC_CODES;
+
+function codeSet(diags) {
+  return [...new Set(diags.map(d => d.code))].sort();
+}
+
+// =======================================================================
+// validateRecipe — recipe file shape
+// =======================================================================
+
+describe('validateRecipe — well-formed recipes', () => {
+  it('accepts a minimal valid recipe', () => {
+    const recipe = {
+      id: 'minimal',
+      name: 'Minimal',
+      description: 'tiny',
+      parameters: {},
+      template: { phases: {} }
+    };
+    expect(validateRecipe(recipe)).toEqual([]);
+  });
+
+  it('accepts a recipe with all optional fields', () => {
+    const recipe = {
+      id: 'full',
+      name: 'Full',
+      icon: '📊',
+      description: 'all the fields',
+      tagline: 'perfect for…',
+      version: '1',
+      parameters: {
+        q: { type: 'templateString', required: true, label: 'Question' },
+        n: { type: 'integer', min: 1, max: 100, default: 10 },
+        c: { type: 'array', item: { type: 'string' }, minItems: 2, maxItems: 8 },
+        m: { type: 'enum', values: ['a', 'b', 'c'] },
+        b: { type: 'boolean', default: false }
+      },
+      template: { phases: {} }
+    };
+    expect(validateRecipe(recipe)).toEqual([]);
+  });
+});
+
+describe('validateRecipe — malformed recipes', () => {
+  it('rejects null', () => {
+    expect(codeSet(validateRecipe(null))).toContain(codes.RECIPE_INVALID_FIELD_TYPE);
+  });
+
+  it('rejects an array', () => {
+    expect(codeSet(validateRecipe([]))).toContain(codes.RECIPE_INVALID_FIELD_TYPE);
+  });
+
+  it('flags every missing top-level field', () => {
+    const diags = validateRecipe({});
+    const messages = diags.map(d => d.message);
+    expect(messages).toContain('Recipe is missing required field "id".');
+    expect(messages).toContain('Recipe is missing required field "name".');
+    expect(messages).toContain('Recipe is missing required field "description".');
+    expect(messages).toContain('Recipe is missing required field "parameters".');
+    expect(messages).toContain('Recipe is missing required field "template".');
+  });
+
+  it('rejects non-object template', () => {
+    const diags = validateRecipe({
+      id: 'x', name: 'x', description: 'x', parameters: {}, template: 'not an object'
+    });
+    expect(codeSet(diags)).toContain(codes.RECIPE_TEMPLATE_MISSING);
+  });
+
+  it('rejects non-string id/name/description', () => {
+    const diags = validateRecipe({
+      id: 1, name: true, description: [], parameters: {}, template: {}
+    });
+    const fields = diags.filter(d => d.code === codes.RECIPE_INVALID_FIELD_TYPE).map(d => d.field);
+    expect(fields).toContain('id');
+    expect(fields).toContain('name');
+    expect(fields).toContain('description');
+  });
+});
+
+describe('validateRecipe — parameter spec checks', () => {
+  function buildRecipe(parameters) {
+    return { id: 'x', name: 'x', description: 'x', parameters, template: {} };
+  }
+
+  it('rejects parameter without a type', () => {
+    const diags = validateRecipe(buildRecipe({ q: { label: 'No type' } }));
+    expect(codeSet(diags)).toContain(codes.RECIPE_INVALID_PARAM_SPEC);
+  });
+
+  it('rejects unknown parameter type', () => {
+    const diags = validateRecipe(buildRecipe({ q: { type: 'date' } }));
+    expect(diags.some(d => d.message.includes('unknown type "date"'))).toBe(true);
+  });
+
+  it('rejects enum without values array', () => {
+    const diags = validateRecipe(buildRecipe({ q: { type: 'enum' } }));
+    expect(diags.some(d => d.message.includes('non-empty "values" array'))).toBe(true);
+  });
+
+  it('rejects enum with empty values array', () => {
+    const diags = validateRecipe(buildRecipe({ q: { type: 'enum', values: [] } }));
+    expect(diags.some(d => d.message.includes('non-empty "values" array'))).toBe(true);
+  });
+
+  it('rejects integer with non-numeric min/max', () => {
+    const diags = validateRecipe(buildRecipe({ q: { type: 'integer', min: 'low' } }));
+    expect(diags.some(d => d.message.includes('must be a number'))).toBe(true);
+  });
+
+  it('recursively validates array.item spec', () => {
+    const diags = validateRecipe(buildRecipe({
+      list: { type: 'array', item: { type: 'date' } }
+    }));
+    expect(diags.some(d => d.message.includes('unknown type "date"'))).toBe(true);
+  });
+});
+
+// =======================================================================
+// validateParams — teacher-submitted parameter values
+// =======================================================================
+
+const sampleRecipe = {
+  id: 'sample',
+  name: 'Sample',
+  description: 'Sample',
+  parameters: {
+    question: { type: 'templateString', required: true, label: 'Question', minLength: 3, maxLength: 100 },
+    choices:  { type: 'array', item: { type: 'string' }, minItems: 2, maxItems: 5 },
+    timer:    { type: 'integer', min: 10, max: 600 },
+    style:    { type: 'enum', values: ['simple', 'rich'] },
+    show:     { type: 'boolean' }
+  },
+  template: { phases: {} }
+};
+
+describe('validateParams — required + types', () => {
+  it('accepts well-formed params', () => {
+    const diags = validateParams(sampleRecipe, {
+      question: 'What is your name?',
+      choices: ['Alice', 'Bob'],
+      timer: 60,
+      style: 'simple',
+      show: true
+    });
+    expect(diags).toEqual([]);
+  });
+
+  it('flags missing required parameter', () => {
+    const diags = validateParams(sampleRecipe, { choices: ['a', 'b'] });
+    expect(codeSet(diags)).toContain(codes.PARAM_MISSING_REQUIRED);
+  });
+
+  it('flags string used where integer expected', () => {
+    const diags = validateParams(sampleRecipe, {
+      question: 'q?',
+      timer: 'sixty'
+    });
+    expect(codeSet(diags)).toContain(codes.PARAM_INVALID_TYPE);
+  });
+
+  it('flags non-array used where array expected', () => {
+    const diags = validateParams(sampleRecipe, {
+      question: 'q?',
+      choices: 'not-an-array'
+    });
+    expect(codeSet(diags)).toContain(codes.PARAM_INVALID_TYPE);
+  });
+
+  it('flags float used where integer expected', () => {
+    const diags = validateParams(sampleRecipe, { question: 'q?', timer: 60.5 });
+    expect(codeSet(diags)).toContain(codes.PARAM_INVALID_TYPE);
+  });
+
+  it('flags enum value not in values list', () => {
+    const diags = validateParams(sampleRecipe, { question: 'q?', style: 'fancy' });
+    expect(codeSet(diags)).toContain(codes.PARAM_INVALID_ENUM_VALUE);
+  });
+
+  it('flags non-boolean used where boolean expected', () => {
+    const diags = validateParams(sampleRecipe, { question: 'q?', show: 'yes' });
+    expect(codeSet(diags)).toContain(codes.PARAM_INVALID_TYPE);
+  });
+});
+
+describe('validateParams — range checks', () => {
+  it('flags integer below min', () => {
+    const diags = validateParams(sampleRecipe, { question: 'q?', timer: 5 });
+    expect(codeSet(diags)).toContain(codes.PARAM_INVALID_INTEGER_RANGE);
+  });
+
+  it('flags integer above max', () => {
+    const diags = validateParams(sampleRecipe, { question: 'q?', timer: 1000 });
+    expect(codeSet(diags)).toContain(codes.PARAM_INVALID_INTEGER_RANGE);
+  });
+
+  it('flags array shorter than minItems', () => {
+    const diags = validateParams(sampleRecipe, { question: 'q?', choices: ['only-one'] });
+    expect(codeSet(diags)).toContain(codes.PARAM_ARRAY_TOO_SHORT);
+  });
+
+  it('flags array longer than maxItems', () => {
+    const diags = validateParams(sampleRecipe, {
+      question: 'q?',
+      choices: ['a', 'b', 'c', 'd', 'e', 'f']
+    });
+    expect(codeSet(diags)).toContain(codes.PARAM_ARRAY_TOO_LONG);
+  });
+
+  it('flags string shorter than minLength', () => {
+    const diags = validateParams(sampleRecipe, { question: 'hi' });
+    expect(codeSet(diags)).toContain(codes.PARAM_STRING_TOO_SHORT);
+  });
+
+  it('flags string longer than maxLength', () => {
+    const diags = validateParams(sampleRecipe, { question: 'q'.repeat(101) });
+    expect(codeSet(diags)).toContain(codes.PARAM_STRING_TOO_LONG);
+  });
+});
+
+describe('validateParams — array item validation', () => {
+  it('flags array containing wrong-type items', () => {
+    const diags = validateParams(sampleRecipe, {
+      question: 'q?',
+      choices: ['ok', 123]
+    });
+    expect(codeSet(diags)).toContain(codes.PARAM_INVALID_TYPE);
+  });
+});
+
+describe('validateParams — unknown params', () => {
+  it('warns about unknown params (typo guard)', () => {
+    const diags = validateParams(sampleRecipe, {
+      question: 'q?',
+      questoin: 'typo!'
+    });
+    expect(codeSet(diags)).toContain(codes.PARAM_UNKNOWN);
+    // Warning, not error — unknowns shouldn't block compilation
+    expect(diags.find(d => d.code === codes.PARAM_UNKNOWN).severity).toBe('warning');
+  });
+});
+
+describe('validateParams — non-object input', () => {
+  it('rejects null', () => {
+    expect(codeSet(validateParams(sampleRecipe, null))).toContain(codes.PARAM_INVALID_TYPE);
+  });
+
+  it('rejects array', () => {
+    expect(codeSet(validateParams(sampleRecipe, []))).toContain(codes.PARAM_INVALID_TYPE);
+  });
+});

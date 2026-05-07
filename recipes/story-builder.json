@@ -1,0 +1,70 @@
+{
+  "id": "story-builder",
+  "name": "Story Builder",
+  "icon": "📖",
+  "description": "Players take turns adding one sentence to a shared story. AI optionally polishes it at the end.",
+  "tagline": "Perfect for collaborative storytelling, word chains, and sentence-by-sentence narratives.",
+  "version": "1",
+
+  "parameters": {
+    "opening": {
+      "type": "templateString",
+      "label": "Story opening or prompt",
+      "helper": "What students are continuing. The first player picks up where this leaves off.",
+      "placeholder": "Once upon a time, a goose walked into a coffee shop and ordered…",
+      "required": true,
+      "minLength": 5,
+      "maxLength": 500
+    },
+    "turnTimer": {
+      "type": "integer",
+      "label": "Time per turn (seconds)",
+      "helper": "How long each player has to add their sentence.",
+      "default": 45,
+      "min": 10,
+      "max": 300
+    },
+    "order": {
+      "type": "enum",
+      "label": "Turn order",
+      "values": ["random", "join-order"],
+      "default": "random",
+      "helper": "Random keeps things unpredictable. Join-order goes around the room in the order students joined."
+    }
+  },
+
+  "template": {
+    "name": "Story: ${opening}",
+    "description": "A collaborative story-building game built with the Story Builder recipe.",
+    "minPlayers": 3,
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "## Let's build a story together!\n\nEveryone takes a turn adding one sentence. Try to keep the story going — don't end it on your turn!",
+        "timer": 6,
+        "next": "story"
+      },
+      "story": {
+        "type": "relay",
+        "prompt": "${opening}",
+        "order": "${order}",
+        "timer": "${turnTimer}",
+        "from": "all",
+        "next": "reveal"
+      },
+      "reveal": {
+        "type": "reveal",
+        "template": "## Our Story\n\n${opening}\n\n{{story.text}}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "What a story!"
+      }
+    }
+  }
+}

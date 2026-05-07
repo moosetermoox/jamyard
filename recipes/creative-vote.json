@@ -1,0 +1,75 @@
+{
+  "id": "creative-vote",
+  "name": "Creative Vote",
+  "icon": "🏆",
+  "description": "Students submit creative responses, the class sees them all, then votes for the best one.",
+  "tagline": "Perfect for caption contests, idea brainstorms, and creative challenges.",
+  "version": "1",
+
+  "parameters": {
+    "prompt": {
+      "type": "templateString",
+      "label": "Prompt for students",
+      "helper": "What students will respond to creatively. Could be a question, a topic, or a setup.",
+      "placeholder": "Write a one-sentence story that ends with the word 'pickle'.",
+      "required": true,
+      "minLength": 5,
+      "maxLength": 500
+    },
+    "submitTimer": {
+      "type": "integer",
+      "label": "Time to write a response (seconds)",
+      "default": 120,
+      "min": 30,
+      "max": 600
+    },
+    "voteTimer": {
+      "type": "integer",
+      "label": "Time to vote (seconds)",
+      "default": 60,
+      "min": 15,
+      "max": 600
+    }
+  },
+
+  "template": {
+    "name": "Creative Vote: ${prompt}",
+    "description": "A creative vote game built with the Creative Vote recipe.",
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "submit"
+      },
+      "submit": {
+        "type": "collect",
+        "prompt": "${prompt}",
+        "timer": "${submitTimer}",
+        "from": "all",
+        "next": "show-entries"
+      },
+      "show-entries": {
+        "type": "reveal",
+        "template": "## Here's what everyone wrote:\n\n{{submit.responses.list}}",
+        "next": "vote"
+      },
+      "vote": {
+        "type": "vote",
+        "mode": "pick-one",
+        "candidates": "submit.responses",
+        "question": "Which one is your favorite?",
+        "timer": "${voteTimer}",
+        "voters": "all",
+        "next": "winner"
+      },
+      "winner": {
+        "type": "winner",
+        "from": "vote.scores",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "Great responses, everyone!"
+      }
+    }
+  }
+}

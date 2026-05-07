@@ -10,6 +10,9 @@ import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
 import { loadGame, validate, getAllowedFields } from './engine/game-loader.js';
 import { normalizeConfig } from './engine/normalizer.js';
+import { PHASE_SCHEMAS, getFields } from './engine/phase-schemas.js';
+import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
+import { compileRecipe } from './engine/recipe-compiler.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { gamePhases } from './config/game-phases.js';
@@ -729,6 +732,69 @@ app.get('/api/rooms/:code/journal', (req, res) => {
   });
 });
 
+app.get('/api/phase-schemas', (req, res) => {
+  const summary = {};
+  for (const [type, schema] of Object.entries(PHASE_SCHEMAS)) {
+    const allFields = getFields(type);
+    const requiredFields = [];
+    const enumFields = {};
+    for (const [fname, fdef] of Object.entries(allFields)) {
+      if (fdef.required) requiredFields.push(fname);
+      if (fdef.type === 'enum') enumFields[fname] = fdef.values;
+    }
+    for (const [tname, tdef] of Object.entries(schema.transitions || {})) {
+      if (tdef.required && tname !== 'next') requiredFields.push(tname);
+    }
+    summary[type] = {
+      requiredFields,
+      enumFields,
+      hostToggles: (schema.ui && schema.ui.hostToggles) || [],
+      playerToggles: (schema.ui && schema.ui.playerToggles) || []
+    };
+  }
+  res.json(summary);
+});
+
+app.get('/api/recipes', (req, res) => {
+  const recipes = listRecipes().map(summarizeRecipe);
+  res.json(recipes);
+});
+
+app.get('/api/recipes/:id', (req, res) => {
+  const recipe = getRecipe(req.params.id);
+  if (!recipe) return res.status(404).json({ error: `Recipe "${req.params.id}" not found` });
+  res.json(summarizeRecipe(recipe));
+});
+
+app.post('/api/recipes/:id/compile', (req, res) => {
+  const recipe = getRecipe(req.params.id);
+  if (!recipe) return res.status(404).json({ error: `Recipe "${req.params.id}" not found` });
+
+  const params = (req.body && req.body.params) || {};
+  const { config, diagnostics } = compileRecipe(recipe, params);
+
+  if (!config) {
+    return res.status(400).json({
+      error: 'Recipe parameters did not validate.',
+      diagnostics
+    });
+  }
+
+  // Run the compiled config through the game-loader validator so a
+  // recipe can never produce a broken game. Recipes themselves should
+  // already be authored to compile cleanly; this is a safety net.
+  const validation = validate(config, req.params.id, { returnResults: true });
+  if (validation.errors && validation.errors.length > 0) {
+    return res.status(500).json({
+      error: 'Recipe compiled but produced an invalid game config (recipe-author bug).',
+      diagnostics,
+      configErrors: validation.errors
+    });
+  }
+
+  res.json({ config, diagnostics });
+});
+
 app.get('/api/games', async (req, res) => {
   try {
     const entries = await readdir(GAMES_DIR, { withFileTypes: true });
@@ -942,6 +1008,67 @@ app.post('/api/games/generate', async (req, res) => {
     res.json({ config });
   } catch (error) {
     console.log(`[api/games/generate] Error: ${error.message}`);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Recipe-based AI generation (R4). Replaces the fragile generateGame
+// flow as the default — AI matches the teacher's description to one
+// of the seed recipes and fills parameters. Compiler turns the small
+// structured output into a guaranteed-valid game config.
+app.post('/api/games/from-description', async (req, res) => {
+  try {
+    const { description } = req.body || {};
+    if (!description || typeof description !== 'string' || description.trim().length < 10) {
+      return res.status(400).json({ error: 'Please provide a game description (at least 10 characters).' });
+    }
+
+    const recipes = listRecipes().map(summarizeRecipe);
+    if (recipes.length === 0) {
+      return res.status(503).json({ error: 'No recipes are loaded. Restart the server or check recipes/.' });
+    }
+
+    console.log(`[api/games/from-description] Matching: "${description.substring(0, 80)}..."`);
+    const match = await aiService.matchRecipe(description, recipes);
+
+    if (match.noMatch) {
+      return res.json({
+        noMatch: true,
+        reason: match.reason || 'No recipe fits this description.',
+        suggestion: match.suggestion || ''
+      });
+    }
+
+    const recipe = getRecipe(match.recipe);
+    if (!recipe) {
+      // AI invented a recipe id — fall through to no-match.
+      return res.json({
+        noMatch: true,
+        reason: `AI suggested an unknown recipe "${match.recipe}".`,
+        suggestion: 'Try the recipe picker directly.'
+      });
+    }
+
+    const { config, diagnostics } = compileRecipe(recipe, match.params || {});
+    if (!config) {
+      const errors = diagnostics.filter(d => d.severity === 'error').map(d => d.message);
+      console.log(`[api/games/from-description] AI params failed validation: ${errors.join('; ')}`);
+      return res.json({
+        noMatch: true,
+        reason: 'AI matched a recipe but its parameters did not validate.',
+        suggestion: 'Try the recipe picker — fill in the parameters manually.',
+        diagnostics
+      });
+    }
+
+    res.json({
+      config,
+      recipe: { id: recipe.id, name: recipe.name, icon: recipe.icon },
+      params: match.params,
+      explanation: match.explanation || ''
+    });
+  } catch (error) {
+    console.log(`[api/games/from-description] Error: ${error.message}`);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1606,6 +1733,17 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+// Load recipes before opening the listener so the picker UI never sees
+// an empty list during the brief window between listen and load.
+loadAllRecipes().then(recipes => {
+  console.log(`[init] Loaded ${recipes.size} recipe(s).`);
+  server.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
+  });
+}).catch(err => {
+  console.error('[init] Recipe load failed:', err);
+  // Still start the server — recipes are optional infrastructure.
+  server.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT} (without recipes)`);
+  });
 });

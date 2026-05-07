@@ -1,0 +1,62 @@
+{
+  "id": "discussion-starter",
+  "name": "Discussion Starter",
+  "icon": "💭",
+  "description": "Ask an open-ended question. AI groups everyone's responses into themes for class discussion.",
+  "tagline": "Perfect for opening a topic or surfacing what students already know.",
+  "version": "1",
+
+  "parameters": {
+    "question": {
+      "type": "templateString",
+      "label": "Question to ask the class",
+      "helper": "An open-ended question — students will type free-text responses.",
+      "placeholder": "What do you already know about photosynthesis?",
+      "required": true,
+      "minLength": 5,
+      "maxLength": 400
+    },
+    "timer": {
+      "type": "integer",
+      "label": "Time to respond (seconds)",
+      "helper": "How long students have to type their answer.",
+      "default": 90,
+      "min": 15,
+      "max": 600
+    }
+  },
+
+  "template": {
+    "name": "Discussion: ${question}",
+    "description": "A discussion starter built with the Discussion Starter recipe.",
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "ask"
+      },
+      "ask": {
+        "type": "collect",
+        "prompt": "${question}",
+        "timer": "${timer}",
+        "from": "all",
+        "next": "process"
+      },
+      "process": {
+        "type": "ai-process",
+        "task": "summarize",
+        "instruction": "You are summarizing student responses to spark a class discussion. Group similar responses into 3-5 themes. For each theme, give it a short bold heading and list which ideas belong to it. Keep the total response under 200 words — this will be projected on a host screen for the class to read together. Use plain markdown (no JSON).",
+        "input": "ask.responses",
+        "next": "results"
+      },
+      "results": {
+        "type": "reveal",
+        "template": "## ${question}\n\n{{process.result}}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "Great discussion!"
+      }
+    }
+  }
+}

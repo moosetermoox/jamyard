@@ -1,12 +1,19 @@
 var gamesGrid = document.getElementById('games-grid');
 var loadingMessage = document.getElementById('loading-message');
 var errorMessage = document.getElementById('error-message');
+var useRecipeBtn = document.getElementById('use-recipe-btn');
 var createNewBtn = document.getElementById('create-new-btn');
 var aiGenerateBtn = document.getElementById('ai-generate-btn');
 
 var allGames = [];
 
 fetchGames();
+
+if (useRecipeBtn) {
+  useRecipeBtn.addEventListener('click', function () {
+    showRecipePicker();
+  });
+}
 
 createNewBtn.addEventListener('click', function () {
   showTemplatePicker();
@@ -218,7 +225,7 @@ function showTemplatePicker() {
   document.body.appendChild(overlay);
 }
 
-function showAIGenerateModal() {
+function showLegacyAIGenerateModal() {
   var existing = document.getElementById('ai-generate-modal');
   if (existing) existing.remove();
 
@@ -235,12 +242,12 @@ function showAIGenerateModal() {
 
   var title = document.createElement('h2');
   title.className = 'template-picker-title';
-  title.textContent = 'AI Game Generator';
+  title.textContent = 'AI Game Generator (Advanced)';
   modal.appendChild(title);
 
   var subtitle = document.createElement('p');
   subtitle.className = 'template-picker-subtitle';
-  subtitle.textContent = 'Describe the game you want and AI will create it for you.';
+  subtitle.textContent = 'Custom build — AI will design the whole game from scratch. Slower and more error-prone than recipe-based generation.';
   modal.appendChild(subtitle);
 
   var textarea = document.createElement('textarea');
@@ -520,4 +527,881 @@ async function createFromTemplate(templateKey) {
   } catch (error) {
     alert('Create failed: ' + error.message);
   }
+}
+
+// =======================================================================
+// Recipe picker (R2)
+//
+// Flow: button → picker modal (cards) → param form (per-recipe) →
+// compile + save + redirect to editor.
+//
+// State is shared inside one modal element so the user can flip
+// between picker and form without losing the recipe list.
+// =======================================================================
+
+async function showRecipePicker() {
+  // Remove any existing modal
+  var existing = document.getElementById('recipe-picker-modal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'recipe-picker-modal';
+  overlay.className = 'template-picker-overlay';
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal recipe-picker-modal';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  // Initial loading state
+  modal.innerHTML = '<p class="recipe-loading">Loading recipes…</p>';
+
+  // Fetch recipes
+  var recipes;
+  try {
+    var resp = await fetch('/api/recipes');
+    if (!resp.ok) throw new Error('status ' + resp.status);
+    recipes = await resp.json();
+  } catch (err) {
+    modal.innerHTML = '';
+    var errEl = document.createElement('p');
+    errEl.style.cssText = 'color:#FF2D2D; padding:20px; text-align:center;';
+    errEl.textContent = 'Could not load recipes: ' + err.message;
+    modal.appendChild(errEl);
+    return;
+  }
+
+  if (!recipes || recipes.length === 0) {
+    modal.innerHTML = '';
+    var emptyEl = document.createElement('p');
+    emptyEl.style.cssText = 'padding:20px; text-align:center;';
+    emptyEl.textContent = 'No recipes are available yet.';
+    modal.appendChild(emptyEl);
+    return;
+  }
+
+  renderRecipePickerView(modal, recipes, overlay);
+}
+
+function renderRecipePickerView(modal, recipes, overlay) {
+  modal.innerHTML = '';
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = 'Pick a Recipe';
+  modal.appendChild(title);
+
+  var subtitle = document.createElement('p');
+  subtitle.className = 'template-picker-subtitle';
+  subtitle.textContent = 'Each recipe is a ready-to-go classroom game. Pick one and fill in a few details.';
+  modal.appendChild(subtitle);
+
+  var grid = document.createElement('div');
+  grid.className = 'template-picker-grid recipe-picker-grid';
+
+  for (var i = 0; i < recipes.length; i++) {
+    var recipe = recipes[i];
+
+    var card = document.createElement('div');
+    card.className = 'template-card recipe-card';
+    card.setAttribute('data-recipe-id', recipe.id);
+
+    var cardIcon = document.createElement('span');
+    cardIcon.className = 'template-card-icon';
+    cardIcon.textContent = recipe.icon || '🎯';
+    card.appendChild(cardIcon);
+
+    var cardName = document.createElement('div');
+    cardName.className = 'template-card-name';
+    cardName.textContent = recipe.name;
+    card.appendChild(cardName);
+
+    var cardDesc = document.createElement('div');
+    cardDesc.className = 'template-card-desc';
+    cardDesc.textContent = recipe.description;
+    card.appendChild(cardDesc);
+
+    if (recipe.tagline) {
+      var cardTagline = document.createElement('div');
+      cardTagline.className = 'recipe-card-tagline';
+      cardTagline.textContent = recipe.tagline;
+      card.appendChild(cardTagline);
+    }
+
+    card.addEventListener('click', (function (chosenRecipe) {
+      return function () {
+        renderRecipeFormView(modal, chosenRecipe, recipes, overlay);
+      };
+    })(recipe));
+
+    grid.appendChild(card);
+  }
+
+  modal.appendChild(grid);
+}
+
+// =======================================================================
+// Recipe parameter form
+// =======================================================================
+
+function renderRecipeFormView(modal, recipe, allRecipes, overlay) {
+  modal.innerHTML = '';
+
+  // Header with back button
+  var headerRow = document.createElement('div');
+  headerRow.className = 'recipe-form-header';
+
+  var backBtn = document.createElement('button');
+  backBtn.className = 'recipe-back-btn';
+  backBtn.textContent = '← Back';
+  backBtn.addEventListener('click', function () {
+    renderRecipePickerView(modal, allRecipes, overlay);
+  });
+  headerRow.appendChild(backBtn);
+
+  var titleWrap = document.createElement('div');
+  titleWrap.className = 'recipe-form-title-wrap';
+
+  var icon = document.createElement('span');
+  icon.className = 'recipe-form-icon';
+  icon.textContent = recipe.icon || '🎯';
+  titleWrap.appendChild(icon);
+
+  var title = document.createElement('h2');
+  title.className = 'recipe-form-title';
+  title.textContent = recipe.name;
+  titleWrap.appendChild(title);
+
+  headerRow.appendChild(titleWrap);
+  modal.appendChild(headerRow);
+
+  var desc = document.createElement('p');
+  desc.className = 'recipe-form-description';
+  desc.textContent = recipe.description;
+  modal.appendChild(desc);
+
+  // Form
+  var form = document.createElement('form');
+  form.className = 'recipe-form';
+  form.addEventListener('submit', function (e) { e.preventDefault(); });
+
+  var paramNames = Object.keys(recipe.parameters || {});
+  for (var i = 0; i < paramNames.length; i++) {
+    var name = paramNames[i];
+    var spec = recipe.parameters[name];
+    form.appendChild(buildField(name, spec));
+  }
+
+  modal.appendChild(form);
+
+  // Status / error display
+  var status = document.createElement('div');
+  status.className = 'recipe-form-status';
+  status.id = 'recipe-form-status';
+  modal.appendChild(status);
+
+  // Buttons row
+  var btnRow = document.createElement('div');
+  btnRow.className = 'recipe-form-buttons';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'recipe-cancel-btn';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', function () { overlay.remove(); });
+  btnRow.appendChild(cancelBtn);
+
+  var createBtn = document.createElement('button');
+  createBtn.type = 'button';
+  createBtn.className = 'recipe-create-btn';
+  createBtn.textContent = 'Create Game';
+  createBtn.addEventListener('click', function () {
+    submitRecipeForm(modal, recipe, form, status, createBtn, overlay);
+  });
+  btnRow.appendChild(createBtn);
+
+  modal.appendChild(btnRow);
+
+  // Focus the first input for fast typing
+  var firstInput = form.querySelector('input, textarea, select');
+  if (firstInput) firstInput.focus();
+}
+
+// =======================================================================
+// Field rendering — one widget per parameter type
+// =======================================================================
+
+function buildField(name, spec) {
+  var wrap = document.createElement('div');
+  wrap.className = 'recipe-field';
+  wrap.setAttribute('data-param-name', name);
+  wrap.setAttribute('data-param-type', spec.type);
+
+  var label = document.createElement('label');
+  label.className = 'recipe-field-label';
+  label.textContent = spec.label || name;
+  if (spec.required) {
+    var requiredMark = document.createElement('span');
+    requiredMark.className = 'recipe-field-required';
+    requiredMark.textContent = ' *';
+    label.appendChild(requiredMark);
+  }
+  wrap.appendChild(label);
+
+  if (spec.helper) {
+    var helper = document.createElement('div');
+    helper.className = 'recipe-field-helper';
+    helper.textContent = spec.helper;
+    wrap.appendChild(helper);
+  }
+
+  var input = buildInputForType(name, spec);
+  wrap.appendChild(input);
+
+  return wrap;
+}
+
+function buildInputForType(name, spec) {
+  switch (spec.type) {
+    case 'string':
+      return buildStringInput(name, spec, false);
+    case 'templateString':
+      // Use textarea for templates so multi-line prompts feel natural
+      return buildStringInput(name, spec, true);
+    case 'integer':
+      return buildIntegerInput(name, spec);
+    case 'boolean':
+      return buildBooleanInput(name, spec);
+    case 'enum':
+      return buildEnumInput(name, spec);
+    case 'array':
+      return buildArrayInput(name, spec);
+    default:
+      var fallback = document.createElement('div');
+      fallback.style.color = '#FF2D2D';
+      fallback.textContent = 'Unknown parameter type "' + spec.type + '"';
+      return fallback;
+  }
+}
+
+function buildStringInput(name, spec, multiline) {
+  var input = document.createElement(multiline ? 'textarea' : 'input');
+  input.className = 'recipe-field-input';
+  input.setAttribute('data-param-name', name);
+  if (!multiline) input.type = 'text';
+  if (multiline) input.rows = 2;
+  if (spec.placeholder) input.placeholder = spec.placeholder;
+  if (spec.default != null) input.value = spec.default;
+  return input;
+}
+
+function buildIntegerInput(name, spec) {
+  var input = document.createElement('input');
+  input.className = 'recipe-field-input';
+  input.type = 'number';
+  input.setAttribute('data-param-name', name);
+  if (spec.min != null) input.min = spec.min;
+  if (spec.max != null) input.max = spec.max;
+  if (spec.placeholder) input.placeholder = spec.placeholder;
+  if (spec.default != null) input.value = spec.default;
+  return input;
+}
+
+function buildBooleanInput(name, spec) {
+  var wrap = document.createElement('label');
+  wrap.className = 'recipe-field-checkbox-wrap';
+
+  var input = document.createElement('input');
+  input.type = 'checkbox';
+  input.className = 'recipe-field-checkbox';
+  input.setAttribute('data-param-name', name);
+  if (spec.default === true) input.checked = true;
+  wrap.appendChild(input);
+
+  var span = document.createElement('span');
+  span.className = 'recipe-field-checkbox-text';
+  span.textContent = spec.helper || 'Yes';
+  wrap.appendChild(span);
+
+  return wrap;
+}
+
+function buildEnumInput(name, spec) {
+  var sel = document.createElement('select');
+  sel.className = 'recipe-field-input';
+  sel.setAttribute('data-param-name', name);
+  for (var i = 0; i < spec.values.length; i++) {
+    var opt = document.createElement('option');
+    opt.value = spec.values[i];
+    opt.textContent = spec.values[i];
+    if (spec.values[i] === spec.default) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  return sel;
+}
+
+function buildArrayInput(name, spec) {
+  var wrap = document.createElement('div');
+  wrap.className = 'recipe-field-array';
+  wrap.setAttribute('data-param-name', name);
+
+  var list = document.createElement('div');
+  list.className = 'recipe-field-array-items';
+  wrap.appendChild(list);
+
+  // Initial values: from default, or one empty row
+  var initialValues = Array.isArray(spec.default) ? spec.default.slice() : [''];
+  for (var i = 0; i < initialValues.length; i++) {
+    list.appendChild(buildArrayItemRow(spec, initialValues[i]));
+  }
+
+  // Add-item button
+  var addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'recipe-field-array-add';
+  addBtn.textContent = '+ Add';
+  addBtn.addEventListener('click', function () {
+    var max = spec.maxItems;
+    if (max != null && list.children.length >= max) {
+      addBtn.disabled = true;
+      return;
+    }
+    list.appendChild(buildArrayItemRow(spec, ''));
+    updateArrayAddDisabled(list, addBtn, spec);
+  });
+  wrap.appendChild(addBtn);
+
+  // Wire up row-remove + initial add-button state
+  bindArrayRowControls(list, addBtn, spec);
+  updateArrayAddDisabled(list, addBtn, spec);
+
+  return wrap;
+}
+
+function buildArrayItemRow(spec, value) {
+  var row = document.createElement('div');
+  row.className = 'recipe-field-array-row';
+
+  // Item is just a string for our v1 (item.type === 'string')
+  // Future: recurse into buildInputForType(name, spec.item) for richer arrays
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'recipe-field-input';
+  input.value = value || '';
+  if (spec.item && spec.item.placeholder) {
+    input.placeholder = spec.item.placeholder;
+  }
+  row.appendChild(input);
+
+  var removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'recipe-field-array-remove';
+  removeBtn.textContent = '✕';
+  removeBtn.title = 'Remove this item';
+  row.appendChild(removeBtn);
+
+  return row;
+}
+
+function bindArrayRowControls(list, addBtn, spec) {
+  list.addEventListener('click', function (e) {
+    if (e.target.classList && e.target.classList.contains('recipe-field-array-remove')) {
+      var min = spec.minItems != null ? spec.minItems : 1;
+      if (list.children.length <= min) {
+        // Don't go below the minimum — just clear the value instead
+        var input = e.target.parentNode.querySelector('input');
+        if (input) input.value = '';
+        return;
+      }
+      e.target.parentNode.remove();
+      updateArrayAddDisabled(list, addBtn, spec);
+    }
+  });
+}
+
+function updateArrayAddDisabled(list, addBtn, spec) {
+  var max = spec.maxItems;
+  addBtn.disabled = (max != null && list.children.length >= max);
+}
+
+// =======================================================================
+// Form submission — gather → compile → save → redirect
+// =======================================================================
+
+function gatherFormParams(form) {
+  var params = {};
+  var fields = form.querySelectorAll('.recipe-field');
+
+  for (var i = 0; i < fields.length; i++) {
+    var field = fields[i];
+    var name = field.getAttribute('data-param-name');
+    var type = field.getAttribute('data-param-type');
+
+    if (type === 'array') {
+      var inputs = field.querySelectorAll('.recipe-field-array-row input');
+      var arr = [];
+      for (var j = 0; j < inputs.length; j++) {
+        var v = inputs[j].value.trim();
+        if (v !== '') arr.push(v);
+      }
+      params[name] = arr;
+    } else if (type === 'boolean') {
+      var checkbox = field.querySelector('.recipe-field-checkbox');
+      params[name] = !!checkbox.checked;
+    } else if (type === 'integer') {
+      var intInput = field.querySelector('input[type="number"]');
+      // Pass as string; the server-side compiler coerces "30" → 30.
+      // Sending an empty string for a defaulted param is fine — the
+      // compiler's applyDefaults() handles it.
+      params[name] = intInput.value === '' ? null : intInput.value;
+    } else {
+      // string, templateString, enum
+      var input = field.querySelector('.recipe-field-input');
+      params[name] = input ? input.value : '';
+    }
+  }
+
+  // Strip null/empty so applyDefaults() can fill in
+  var stripped = {};
+  for (var key in params) {
+    var val = params[key];
+    if (val === null || val === '') continue;
+    if (Array.isArray(val) && val.length === 0) continue;
+    stripped[key] = val;
+  }
+  return stripped;
+}
+
+async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay) {
+  status.textContent = '';
+  status.className = 'recipe-form-status';
+  createBtn.disabled = true;
+  createBtn.textContent = 'Creating…';
+
+  var params = gatherFormParams(form);
+
+  // Compile via the API
+  var compileResp;
+  try {
+    compileResp = await fetch('/api/recipes/' + encodeURIComponent(recipe.id) + '/compile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ params: params })
+    });
+  } catch (err) {
+    showFormError(status, 'Network error: ' + err.message);
+    createBtn.disabled = false;
+    createBtn.textContent = 'Create Game';
+    return;
+  }
+
+  var compileData;
+  try {
+    compileData = await compileResp.json();
+  } catch (err) {
+    showFormError(status, 'Recipe service returned an unexpected response.');
+    createBtn.disabled = false;
+    createBtn.textContent = 'Create Game';
+    return;
+  }
+
+  if (!compileResp.ok) {
+    showFormDiagnostics(status, compileData);
+    createBtn.disabled = false;
+    createBtn.textContent = 'Create Game';
+    return;
+  }
+
+  // Generate a unique game id from the recipe id (e.g. "class-poll", "class-poll-2")
+  var newId = generateGameId(recipe.id);
+
+  var saveResp;
+  try {
+    saveResp = await fetch('/api/games', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: newId, config: compileData.config })
+    });
+  } catch (err) {
+    showFormError(status, 'Save failed: ' + err.message);
+    createBtn.disabled = false;
+    createBtn.textContent = 'Create Game';
+    return;
+  }
+
+  if (saveResp.ok) {
+    overlay.remove();
+    window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
+  } else {
+    var saveData;
+    try { saveData = await saveResp.json(); } catch (e) { saveData = {}; }
+    showFormError(status, 'Save failed: ' + (saveData.error || 'Unknown error'));
+    createBtn.disabled = false;
+    createBtn.textContent = 'Create Game';
+  }
+}
+
+function showFormError(status, message) {
+  status.className = 'recipe-form-status recipe-form-status-error';
+  status.textContent = message;
+}
+
+function showFormDiagnostics(status, data) {
+  status.className = 'recipe-form-status recipe-form-status-error';
+  status.innerHTML = '';
+
+  var heading = document.createElement('strong');
+  heading.textContent = data.error || 'Please fix these issues:';
+  status.appendChild(heading);
+
+  if (data.diagnostics && data.diagnostics.length > 0) {
+    var ul = document.createElement('ul');
+    ul.className = 'recipe-form-diagnostic-list';
+    for (var i = 0; i < data.diagnostics.length; i++) {
+      var d = data.diagnostics[i];
+      if (d.severity !== 'error') continue;
+      var li = document.createElement('li');
+      li.textContent = d.message;
+      ul.appendChild(li);
+    }
+    status.appendChild(ul);
+  }
+}
+
+// =======================================================================
+// AI Generate flow (R4) — recipe-matcher first, custom-build as fallback
+//
+// Flow:
+//   1. Teacher types description.
+//   2. POST /api/games/from-description → AI matches a recipe + fills params.
+//   3. On match: show preview ("Sounds like Class Poll. Here's what I'd set up:")
+//      → confirm → save → redirect to editor.
+//   4. On no-match: show reason + suggestion. Buttons: pick a recipe, or fall
+//      back to the legacy whole-config generator (showLegacyAIGenerateModal).
+//
+// Why this replaced the old flow: the legacy generator asked AI to emit a
+// 200-line JSON config, which malformed roughly 1-in-N times (real bug
+// observed at position 14640 on feedback-coach-academy). The matcher emits
+// a tiny structured object — the failure mode is "no match," not parse error.
+// =======================================================================
+
+function showAIGenerateModal() {
+  var existing = document.getElementById('ai-match-modal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'ai-match-modal';
+  overlay.className = 'template-picker-overlay';
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal recipe-picker-modal';
+  modal.style.maxWidth = '640px';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  renderAIDescriptionStep(modal, overlay);
+}
+
+function renderAIDescriptionStep(modal, overlay) {
+  modal.innerHTML = '';
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = 'Describe Your Game';
+  modal.appendChild(title);
+
+  var subtitle = document.createElement('p');
+  subtitle.className = 'template-picker-subtitle';
+  subtitle.textContent = 'Tell us what you want and AI will pick a recipe and fill in the details.';
+  modal.appendChild(subtitle);
+
+  var textarea = document.createElement('textarea');
+  textarea.id = 'ai-match-description';
+  textarea.placeholder = 'Example: A quick poll about what we should have for lunch — choices are pizza, sushi, tacos, salad.\n\nOr: A 4-round elimination game where students write puns and the bottom 30% gets eliminated each round.';
+  textarea.rows = 5;
+  textarea.className = 'recipe-field-input';
+  textarea.style.cssText = 'width:100%; resize:vertical; box-sizing:border-box; margin:0 0 16px 0;';
+  modal.appendChild(textarea);
+
+  var status = document.createElement('div');
+  status.className = 'recipe-form-status';
+  status.id = 'ai-match-status';
+  modal.appendChild(status);
+
+  var btnRow = document.createElement('div');
+  btnRow.className = 'recipe-form-buttons';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'recipe-cancel-btn';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', function () { overlay.remove(); });
+  btnRow.appendChild(cancelBtn);
+
+  var generateBtn = document.createElement('button');
+  generateBtn.type = 'button';
+  generateBtn.className = 'recipe-create-btn';
+  generateBtn.textContent = 'Generate';
+  generateBtn.addEventListener('click', function () {
+    var desc = textarea.value.trim();
+    if (desc.length < 10) {
+      showFormError(status, 'Please write a longer description (at least 10 characters).');
+      return;
+    }
+    submitAIDescription(modal, desc, status, generateBtn, overlay);
+  });
+  btnRow.appendChild(generateBtn);
+
+  modal.appendChild(btnRow);
+
+  textarea.focus();
+}
+
+async function submitAIDescription(modal, description, status, generateBtn, overlay) {
+  status.textContent = '';
+  status.className = 'recipe-form-status';
+  status.style.cssText = 'background:#E1BEE7; border:3px solid #000; border-radius:8px; padding:12px; text-align:center; font-weight:bold;';
+  status.textContent = 'AI is matching your idea to a recipe…';
+  generateBtn.disabled = true;
+  generateBtn.textContent = 'Thinking…';
+
+  try {
+    var resp = await fetch('/api/games/from-description', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: description })
+    });
+    var data = await resp.json();
+
+    if (!resp.ok) {
+      showFormError(status, data.error || 'AI matcher failed. Try again.');
+      generateBtn.disabled = false;
+      generateBtn.textContent = 'Generate';
+      return;
+    }
+
+    if (data.noMatch) {
+      renderNoMatchView(modal, description, data, overlay);
+      return;
+    }
+
+    if (data.config) {
+      renderMatchPreview(modal, data, overlay);
+      return;
+    }
+
+    showFormError(status, 'Unexpected response from AI matcher.');
+    generateBtn.disabled = false;
+    generateBtn.textContent = 'Generate';
+  } catch (err) {
+    showFormError(status, 'Network error: ' + err.message);
+    generateBtn.disabled = false;
+    generateBtn.textContent = 'Generate';
+  }
+}
+
+function renderMatchPreview(modal, data, overlay) {
+  modal.innerHTML = '';
+
+  // Header — "Sounds like {recipe.name}"
+  var headerRow = document.createElement('div');
+  headerRow.className = 'recipe-form-header';
+
+  var titleWrap = document.createElement('div');
+  titleWrap.className = 'recipe-form-title-wrap';
+
+  var icon = document.createElement('span');
+  icon.className = 'recipe-form-icon';
+  icon.textContent = data.recipe.icon || '🎯';
+  titleWrap.appendChild(icon);
+
+  var title = document.createElement('h2');
+  title.className = 'recipe-form-title';
+  title.textContent = 'Sounds like ' + data.recipe.name;
+  titleWrap.appendChild(title);
+
+  headerRow.appendChild(titleWrap);
+  modal.appendChild(headerRow);
+
+  if (data.explanation) {
+    var explain = document.createElement('p');
+    explain.className = 'recipe-form-description';
+    explain.textContent = data.explanation;
+    modal.appendChild(explain);
+  }
+
+  // Show the params that AI filled in (read-only display)
+  var paramsHeader = document.createElement('p');
+  paramsHeader.style.cssText = 'margin:0 0 8px 0; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; font-size:0.85rem;';
+  paramsHeader.textContent = "Here's what I'd set up:";
+  modal.appendChild(paramsHeader);
+
+  var paramsList = document.createElement('div');
+  paramsList.className = 'ai-match-params';
+  for (var key in data.params) {
+    var row = document.createElement('div');
+    row.className = 'ai-match-param-row';
+
+    var label = document.createElement('div');
+    label.className = 'ai-match-param-label';
+    label.textContent = key;
+    row.appendChild(label);
+
+    var value = document.createElement('div');
+    value.className = 'ai-match-param-value';
+    var v = data.params[key];
+    if (Array.isArray(v)) {
+      value.textContent = v.join(', ');
+    } else {
+      value.textContent = String(v);
+    }
+    row.appendChild(value);
+
+    paramsList.appendChild(row);
+  }
+  modal.appendChild(paramsList);
+
+  var status = document.createElement('div');
+  status.className = 'recipe-form-status';
+  status.id = 'ai-match-preview-status';
+  modal.appendChild(status);
+
+  var btnRow = document.createElement('div');
+  btnRow.className = 'recipe-form-buttons';
+
+  var backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.className = 'recipe-cancel-btn';
+  backBtn.textContent = '← Try a different idea';
+  backBtn.addEventListener('click', function () {
+    renderAIDescriptionStep(modal, overlay);
+  });
+  btnRow.appendChild(backBtn);
+
+  var createBtn = document.createElement('button');
+  createBtn.type = 'button';
+  createBtn.className = 'recipe-create-btn';
+  createBtn.textContent = 'Create Game';
+  createBtn.addEventListener('click', function () {
+    saveMatchedConfig(data, status, createBtn, overlay);
+  });
+  btnRow.appendChild(createBtn);
+
+  modal.appendChild(btnRow);
+}
+
+async function saveMatchedConfig(data, status, createBtn, overlay) {
+  status.textContent = '';
+  status.className = 'recipe-form-status';
+  createBtn.disabled = true;
+  createBtn.textContent = 'Creating…';
+
+  var newId = generateGameId(data.recipe.id);
+
+  try {
+    var resp = await fetch('/api/games', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: newId, config: data.config })
+    });
+
+    if (resp.ok) {
+      overlay.remove();
+      window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
+    } else {
+      var saveData;
+      try { saveData = await resp.json(); } catch (e) { saveData = {}; }
+      showFormError(status, 'Save failed: ' + (saveData.error || 'Unknown error'));
+      createBtn.disabled = false;
+      createBtn.textContent = 'Create Game';
+    }
+  } catch (err) {
+    showFormError(status, 'Network error: ' + err.message);
+    createBtn.disabled = false;
+    createBtn.textContent = 'Create Game';
+  }
+}
+
+function renderNoMatchView(modal, description, data, overlay) {
+  modal.innerHTML = '';
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = "Hmm, that's beyond our recipes";
+  modal.appendChild(title);
+
+  // Reason
+  var reasonBlock = document.createElement('div');
+  reasonBlock.className = 'ai-no-match-reason';
+  var reasonLabel = document.createElement('div');
+  reasonLabel.className = 'ai-no-match-label';
+  reasonLabel.textContent = 'Why this is tricky:';
+  reasonBlock.appendChild(reasonLabel);
+  var reasonText = document.createElement('div');
+  reasonText.className = 'ai-no-match-text';
+  reasonText.textContent = data.reason;
+  reasonBlock.appendChild(reasonText);
+  modal.appendChild(reasonBlock);
+
+  // Suggestion
+  if (data.suggestion) {
+    var suggestBlock = document.createElement('div');
+    suggestBlock.className = 'ai-no-match-suggestion';
+    var suggestLabel = document.createElement('div');
+    suggestLabel.className = 'ai-no-match-label';
+    suggestLabel.textContent = 'A close match might work:';
+    suggestBlock.appendChild(suggestLabel);
+    var suggestText = document.createElement('div');
+    suggestText.className = 'ai-no-match-text';
+    suggestText.textContent = data.suggestion;
+    suggestBlock.appendChild(suggestText);
+    modal.appendChild(suggestBlock);
+  }
+
+  var btnRow = document.createElement('div');
+  btnRow.className = 'recipe-form-buttons';
+  btnRow.style.flexWrap = 'wrap';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'recipe-cancel-btn';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', function () { overlay.remove(); });
+  btnRow.appendChild(cancelBtn);
+
+  var pickBtn = document.createElement('button');
+  pickBtn.type = 'button';
+  pickBtn.className = 'recipe-cancel-btn';
+  pickBtn.style.background = '#FFEB3B';
+  pickBtn.textContent = 'Pick from Recipes';
+  pickBtn.addEventListener('click', function () {
+    overlay.remove();
+    showRecipePicker();
+  });
+  btnRow.appendChild(pickBtn);
+
+  var advancedBtn = document.createElement('button');
+  advancedBtn.type = 'button';
+  advancedBtn.className = 'recipe-create-btn';
+  advancedBtn.style.background = '#6A1B9A';
+  advancedBtn.textContent = 'Generate Custom (Advanced)';
+  advancedBtn.title = 'AI builds a fully custom game from scratch. Slower and more error-prone.';
+  advancedBtn.addEventListener('click', function () {
+    overlay.remove();
+    showLegacyAIGenerateModal();
+    // Pre-fill the description in the legacy modal
+    setTimeout(function () {
+      var legacyTextarea = document.getElementById('ai-game-description');
+      if (legacyTextarea) legacyTextarea.value = description;
+    }, 50);
+  });
+  btnRow.appendChild(advancedBtn);
+
+  modal.appendChild(btnRow);
 }

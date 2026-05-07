@@ -1,0 +1,64 @@
+{
+  "id": "class-poll",
+  "name": "Class Poll",
+  "icon": "📊",
+  "description": "Ask the class a multiple-choice question. See results as a bar chart.",
+  "tagline": "Perfect for warm-ups, exit tickets, and quick checks for understanding.",
+  "version": "1",
+
+  "parameters": {
+    "question": {
+      "type": "templateString",
+      "label": "Question to ask the class",
+      "helper": "What students will see on their screens.",
+      "placeholder": "How are you feeling about today's lesson?",
+      "required": true,
+      "minLength": 3,
+      "maxLength": 300
+    },
+    "choices": {
+      "type": "array",
+      "item": { "type": "string" },
+      "label": "Answer choices",
+      "helper": "Give students 2-8 options to choose from.",
+      "minItems": 2,
+      "maxItems": 8,
+      "default": ["Got it!", "Mostly got it", "A little confused", "Lost"]
+    },
+    "timer": {
+      "type": "integer",
+      "label": "Time to vote (seconds)",
+      "helper": "How long students have to make their choice.",
+      "default": 60,
+      "min": 10,
+      "max": 600
+    }
+  },
+
+  "template": {
+    "name": "Poll: ${question}",
+    "description": "A class poll built with the Class Poll recipe.",
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "ask"
+      },
+      "ask": {
+        "type": "collect-choice",
+        "prompt": "${question}",
+        "choices": "${choices}",
+        "timer": "${timer}",
+        "next": "results"
+      },
+      "results": {
+        "type": "reveal",
+        "template": "## Results\n\n${question}\n\n{{ask.barChart}}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "Thanks for voting!"
+      }
+    }
+  }
+}

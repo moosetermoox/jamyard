@@ -1,0 +1,108 @@
+{
+  "id": "elimination-tournament",
+  "name": "Elimination Tournament",
+  "icon": "⚔️",
+  "description": "Multi-round survival game: respond, vote, eliminate the lowest-scoring players, repeat. Last one standing wins.",
+  "tagline": "Perfect for high-energy competitions and 'last one standing' classroom games.",
+  "version": "1",
+
+  "parameters": {
+    "prompt": {
+      "type": "templateString",
+      "label": "Prompt students will answer each round",
+      "helper": "Same prompt every round — students give a fresh answer each time.",
+      "placeholder": "What's a creative use for a paper clip?",
+      "required": true,
+      "minLength": 5,
+      "maxLength": 400
+    },
+    "rounds": {
+      "type": "integer",
+      "label": "Number of rounds",
+      "helper": "Each round eliminates the bottom-scoring players. Final round crowns the winner.",
+      "default": 3,
+      "min": 2,
+      "max": 8
+    },
+    "elimPercent": {
+      "type": "integer",
+      "label": "Percent eliminated each round",
+      "helper": "Bottom percent (by votes received) gets eliminated.",
+      "default": 30,
+      "min": 10,
+      "max": 60
+    },
+    "submitTimer": {
+      "type": "integer",
+      "label": "Time to write a response (seconds)",
+      "default": 60,
+      "min": 15,
+      "max": 600
+    },
+    "voteTimer": {
+      "type": "integer",
+      "label": "Time to vote (seconds)",
+      "default": 30,
+      "min": 10,
+      "max": 600
+    }
+  },
+
+  "template": {
+    "name": "Tournament: ${prompt}",
+    "description": "An elimination tournament built with the Elimination Tournament recipe.",
+    "minPlayers": 4,
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "round-intro"
+      },
+      "round-intro": {
+        "type": "announce",
+        "message": "Round {{_loop.eliminate.iteration}} of {{_loop.eliminate.total}} — answer the prompt and survive the vote!",
+        "timer": 5,
+        "next": "answer"
+      },
+      "answer": {
+        "type": "collect",
+        "prompt": "${prompt}",
+        "from": "remaining",
+        "timer": "${submitTimer}",
+        "next": "show-answers"
+      },
+      "show-answers": {
+        "type": "reveal",
+        "template": "## Here's what everyone said:\n\n{{answer.responses.list}}",
+        "next": "vote"
+      },
+      "vote": {
+        "type": "vote",
+        "mode": "pick-one",
+        "candidates": "answer.responses",
+        "voters": "remaining",
+        "question": "Pick your favorite!",
+        "timer": "${voteTimer}",
+        "next": "eliminate"
+      },
+      "eliminate": {
+        "type": "eliminate",
+        "method": "bottom-percent",
+        "percent": "${elimPercent}",
+        "input": "vote.scores",
+        "pause": 4,
+        "loopBack": "round-intro",
+        "loopCount": "${rounds}",
+        "next": "winner"
+      },
+      "winner": {
+        "type": "winner",
+        "from": "vote.scores",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "Great game, everyone!"
+      }
+    }
+  }
+}

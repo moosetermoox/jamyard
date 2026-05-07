@@ -1,0 +1,68 @@
+{
+  "id": "anonymous-feedback",
+  "name": "Anonymous Feedback",
+  "icon": "🤐",
+  "description": "Students submit feedback anonymously. AI groups responses into themes — no individual answers shown to the class.",
+  "tagline": "Perfect for end-of-unit reflection, course evaluations, and 'tell me how I'm doing' moments.",
+  "version": "1",
+
+  "parameters": {
+    "question": {
+      "type": "templateString",
+      "label": "What do you want feedback on?",
+      "helper": "Frame it as an open question. Students will know responses are anonymous to the class.",
+      "placeholder": "What's one thing I could do differently to help you learn better?",
+      "required": true,
+      "minLength": 5,
+      "maxLength": 400
+    },
+    "timer": {
+      "type": "integer",
+      "label": "Time to respond (seconds)",
+      "helper": "Give students enough time to think — anonymous feedback rewards reflection.",
+      "default": 120,
+      "min": 30,
+      "max": 900
+    }
+  },
+
+  "template": {
+    "name": "Feedback: ${question}",
+    "description": "An anonymous feedback collection built with the Anonymous Feedback recipe.",
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "## Your responses are anonymous to the class.\n\nYour teacher will see a summary, not who said what. Be honest!",
+        "timer": 6,
+        "next": "ask"
+      },
+      "ask": {
+        "type": "collect",
+        "prompt": "${question}",
+        "timer": "${timer}",
+        "from": "all",
+        "next": "process"
+      },
+      "process": {
+        "type": "ai-process",
+        "task": "summarize",
+        "instruction": "You are summarizing anonymous student feedback. Group similar responses into 3-5 themes. For each theme, give it a short heading and a 1-2 sentence summary describing what students said. Do NOT quote individual responses verbatim — paraphrase to preserve anonymity. Highlight any actionable patterns the teacher could use. Keep the total response under 250 words. Use plain markdown.",
+        "input": "ask.responses",
+        "next": "results"
+      },
+      "results": {
+        "type": "reveal",
+        "template": "## Feedback Summary\n\n*${question}*\n\n{{process.result}}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "Thanks for sharing — your feedback matters."
+      }
+    }
+  }
+}
