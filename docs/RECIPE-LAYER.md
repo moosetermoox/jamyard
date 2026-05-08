@@ -255,8 +255,12 @@ author bug, not a teacher input issue.
 | **R2** | ✅ Shipped | Picker UI in the designer (parameter form, compile + save flow) |
 | **R3** | ✅ Shipped | Seed library: 6 hand-built recipes (quiz-show deferred — see below) |
 | **R4** | ✅ Shipped | AI as recipe matcher; legacy whole-config generator kept as advanced fallback |
-| **R5** | Next | Save-as-recipe (user-extensible recipe library) |
-| **R6** | Pending | Polish: recipe analytics, compatibility checks, sharing |
+| **R5** | ✅ Shipped | Save-as-recipe (user-extensible recipe library) |
+| **R6** | ✅ Shipped | Compatibility check + delete user recipes + grouped picker UI |
+
+**Recipe layer plan complete.** Future iteration (analytics, sharing,
+versioning, the deferred quiz-show recipe) happens incrementally as
+real classroom feedback comes in.
 
 ### What's in R1 (this milestone)
 
@@ -294,6 +298,80 @@ author bug, not a teacher input issue.
   in a way that breaks old recipes.
 - **Recipe sharing / multi-user** — out of scope until accounts ship.
   See "Future direction" below.
+
+### Polish (R6 — shipped)
+
+Three small additions that close out the recipe-layer plan:
+
+**Compatibility check at load time.** When a recipe loads, the loader
+now compiles it with synthetic defaults and runs the result through
+`game-loader.validate()`. If anything fails — phase type missing,
+field type changed, dataRef points at a removed output — the recipe is
+flagged with `_broken: true` + `_brokenReason`. Broken recipes still
+appear in the picker (so teachers can see + delete them), but show
+with a "⚠ Needs update" badge and an orange-tinted card. Built-in
+recipes that fail this check are a developer bug (the seed library
+should always validate); user recipes that fail are likely schema
+drift. Catches silent breakage instead of hiding it.
+
+**Manage user recipes.** `DELETE /api/recipes/user/:id` removes a
+saved recipe, busts the cache, refuses to touch built-in recipes.
+The picker shows a small ✕ on each user-recipe card; click it,
+confirm, the recipe disappears.
+
+**Grouped picker.** "My Recipes" appears as a section above
+"Built-in Recipes" when the user has saved any. Within each section,
+broken recipes sort to the bottom. Empty `recipes/user/` → no
+section heading at all (the picker just shows built-in recipes the
+way it always did).
+
+### Save-as-recipe (R5 — shipped)
+
+Teachers can convert any game they've built into a reusable recipe.
+The "⭐ Save as Recipe" button in the editor opens a two-step modal:
+
+**Step 1: Pick parameters.** The server scans the game config via
+`extractCandidates(gameConfig)` and returns every parameterizable
+field — anything whose schema type is `string`, `templateString`,
+`integer`, `boolean`, `enum`, or `array`. Structural fields
+(`dataRef`, `phaseRef`, transitions, screen-control mixins) are never
+candidates. The modal renders each candidate with a checkbox + name +
+label inputs. Defaults: all checked, names auto-generated, labels
+humanized via a built-in friendly-name map.
+
+**Name collision handling.** If two phases have the same field (e.g.
+two `prompt` fields), names are prefixed with the phase id:
+`ask1Prompt`, `ask2Prompt`. Single occurrences keep the bare name
+(`prompt`).
+
+**Step 2: Recipe metadata.** Teacher fills in: id (auto-derived from
+name), display name, icon emoji, description, tagline. Auto-derive
+runs once, then stops if the teacher edits the id manually.
+
+**Save flow.** `POST /api/recipes/user` body:
+`{config, params: [...], metadata: {...}}`.
+
+The endpoint:
+1. Calls `buildUserRecipe(config, params, metadata)` — substitutes
+   `${name}` placeholders into a deep clone of the config; builds
+   the parameter spec block (preserving enum.values, array.item,
+   integer.min/max, string.minLength/maxLength from the source phase
+   schema); validates the recipe shape.
+2. Smoke-tests the recipe by compiling with the parameter defaults
+   and running the result through `validate()`. Refuses to save if
+   the round-trip produces a broken game config.
+3. Writes to `recipes/user/{id}.json` and busts the recipe cache so
+   the new recipe appears in the next `/api/recipes` call.
+
+**Built-in id collision.** If the teacher's chosen id matches a
+shipped recipe (`class-poll`, `discussion-starter`, etc.), the save
+is rejected with a clear error. User recipes can't accidentally
+shadow built-ins.
+
+**Round-trip property.** Tests assert: extract candidates → build
+recipe → compile recipe with the original defaults → produces the
+same game config back. This guarantees teachers' recipes don't lose
+information.
 
 ### AI as recipe matcher (R4 — shipped)
 

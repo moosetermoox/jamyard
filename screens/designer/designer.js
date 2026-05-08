@@ -599,48 +599,139 @@ function renderRecipePickerView(modal, recipes, overlay) {
   subtitle.textContent = 'Each recipe is a ready-to-go classroom game. Pick one and fill in a few details.';
   modal.appendChild(subtitle);
 
+  // Split into user-saved + built-in. Within each group, broken recipes
+  // sort to the bottom so working ones are reached first.
+  var userRecipes = [];
+  var builtInRecipes = [];
+  for (var i = 0; i < recipes.length; i++) {
+    if (recipes[i].source === 'user') userRecipes.push(recipes[i]);
+    else builtInRecipes.push(recipes[i]);
+  }
+  userRecipes.sort(brokenLast);
+  builtInRecipes.sort(brokenLast);
+
+  if (userRecipes.length > 0) {
+    appendRecipeSection(modal, 'My Recipes', userRecipes, recipes, overlay, /*deletable*/ true);
+  }
+  if (builtInRecipes.length > 0) {
+    appendRecipeSection(
+      modal,
+      userRecipes.length > 0 ? 'Built-in Recipes' : null,
+      builtInRecipes,
+      recipes,
+      overlay,
+      false
+    );
+  }
+  if (userRecipes.length === 0 && builtInRecipes.length === 0) {
+    var empty = document.createElement('p');
+    empty.style.cssText = 'text-align:center; padding:40px; color:#555;';
+    empty.textContent = 'No recipes available.';
+    modal.appendChild(empty);
+  }
+}
+
+function brokenLast(a, b) {
+  return (a.broken ? 1 : 0) - (b.broken ? 1 : 0);
+}
+
+function appendRecipeSection(modal, headingText, recipes, allRecipes, overlay, deletable) {
+  if (headingText) {
+    var heading = document.createElement('h3');
+    heading.className = 'recipe-section-heading';
+    heading.textContent = headingText;
+    modal.appendChild(heading);
+  }
+
   var grid = document.createElement('div');
   grid.className = 'template-picker-grid recipe-picker-grid';
 
   for (var i = 0; i < recipes.length; i++) {
-    var recipe = recipes[i];
-
-    var card = document.createElement('div');
-    card.className = 'template-card recipe-card';
-    card.setAttribute('data-recipe-id', recipe.id);
-
-    var cardIcon = document.createElement('span');
-    cardIcon.className = 'template-card-icon';
-    cardIcon.textContent = recipe.icon || '🎯';
-    card.appendChild(cardIcon);
-
-    var cardName = document.createElement('div');
-    cardName.className = 'template-card-name';
-    cardName.textContent = recipe.name;
-    card.appendChild(cardName);
-
-    var cardDesc = document.createElement('div');
-    cardDesc.className = 'template-card-desc';
-    cardDesc.textContent = recipe.description;
-    card.appendChild(cardDesc);
-
-    if (recipe.tagline) {
-      var cardTagline = document.createElement('div');
-      cardTagline.className = 'recipe-card-tagline';
-      cardTagline.textContent = recipe.tagline;
-      card.appendChild(cardTagline);
-    }
-
-    card.addEventListener('click', (function (chosenRecipe) {
-      return function () {
-        renderRecipeFormView(modal, chosenRecipe, recipes, overlay);
-      };
-    })(recipe));
-
-    grid.appendChild(card);
+    grid.appendChild(buildRecipeCard(modal, recipes[i], allRecipes, overlay, deletable));
   }
 
   modal.appendChild(grid);
+}
+
+function buildRecipeCard(modal, recipe, allRecipes, overlay, deletable) {
+  var card = document.createElement('div');
+  card.className = 'template-card recipe-card';
+  card.setAttribute('data-recipe-id', recipe.id);
+  if (recipe.broken) card.classList.add('recipe-card-broken');
+
+  var cardIcon = document.createElement('span');
+  cardIcon.className = 'template-card-icon';
+  cardIcon.textContent = recipe.icon || '🎯';
+  card.appendChild(cardIcon);
+
+  var cardName = document.createElement('div');
+  cardName.className = 'template-card-name';
+  cardName.textContent = recipe.name;
+  card.appendChild(cardName);
+
+  var cardDesc = document.createElement('div');
+  cardDesc.className = 'template-card-desc';
+  cardDesc.textContent = recipe.description;
+  card.appendChild(cardDesc);
+
+  if (recipe.tagline) {
+    var cardTagline = document.createElement('div');
+    cardTagline.className = 'recipe-card-tagline';
+    cardTagline.textContent = recipe.tagline;
+    card.appendChild(cardTagline);
+  }
+
+  if (recipe.broken) {
+    var brokenBadge = document.createElement('div');
+    brokenBadge.className = 'recipe-card-broken-badge';
+    brokenBadge.textContent = '⚠ Needs update';
+    brokenBadge.title = recipe.brokenReason || 'This recipe is incompatible with the current schema.';
+    card.appendChild(brokenBadge);
+  }
+
+  // Click → open form. Broken recipes can still be opened so the
+  // teacher can see what's wrong (compile will fail with diagnostics).
+  card.addEventListener('click', function (e) {
+    if (e.target && e.target.classList && e.target.classList.contains('recipe-card-delete')) {
+      return; // delete button handled separately
+    }
+    renderRecipeFormView(modal, recipe, allRecipes, overlay);
+  });
+
+  if (deletable) {
+    var del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'recipe-card-delete';
+    del.textContent = '✕';
+    del.title = 'Delete this recipe';
+    del.addEventListener('click', function (e) {
+      e.stopPropagation();
+      handleRecipeDelete(recipe, overlay);
+    });
+    card.appendChild(del);
+  }
+
+  return card;
+}
+
+async function handleRecipeDelete(recipe, overlay) {
+  if (!confirm('Delete recipe "' + recipe.name + '"? This cannot be undone.')) return;
+  try {
+    var resp = await fetch('/api/recipes/user/' + encodeURIComponent(recipe.id), {
+      method: 'DELETE'
+    });
+    if (!resp.ok) {
+      var data;
+      try { data = await resp.json(); } catch (e) { data = {}; }
+      alert('Delete failed: ' + (data.error || 'Unknown error'));
+      return;
+    }
+    // Re-fetch + re-render the picker so the list reflects the deletion
+    overlay.remove();
+    showRecipePicker();
+  } catch (err) {
+    alert('Delete failed: ' + err.message);
+  }
 }
 
 // =======================================================================

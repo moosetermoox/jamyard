@@ -320,6 +320,10 @@ async function init() {
   // Ask AI (whole-game revise)
   var askAiBtn = document.getElementById('ask-ai-btn');
   if (askAiBtn) askAiBtn.addEventListener('click', function () { openAskAiModal(null); });
+
+  // Save as Recipe (R5) — turn the current game into a reusable recipe
+  var saveAsRecipeBtn = document.getElementById('save-as-recipe-btn');
+  if (saveAsRecipeBtn) saveAsRecipeBtn.addEventListener('click', openSaveAsRecipeModal);
   var askAiCloseBtn = document.getElementById('ask-ai-close');
   if (askAiCloseBtn) askAiCloseBtn.addEventListener('click', closeAskAiModal);
   var askAiSubmitBtn = document.getElementById('ask-ai-submit');
@@ -585,6 +589,19 @@ function buildPhaseOrder() {
 }
 
 function renderCanvas() {
+  // Inline-settings prototype: the phase-config form may currently be
+  // living inside a phase box (from the previous render). Move it back
+  // to the (hidden) right panel before we tear down the canvas, so it
+  // doesn't get destroyed along with its host box. We re-attach it to
+  // the new selected box at the end.
+  if (phaseConfigForm.parentNode && phaseConfigForm.parentNode !== phasePanel) {
+    phasePanel.appendChild(phaseConfigForm);
+  }
+  var previewSection = document.getElementById('live-preview-section');
+  if (previewSection && previewSection.parentNode && previewSection.parentNode !== phasePanel) {
+    phasePanel.appendChild(previewSection);
+  }
+
   phaseList.innerHTML = '';
   var order = buildPhaseOrder();
 
@@ -716,6 +733,39 @@ function renderCanvas() {
       phaseList.appendChild(arrow);
     }
   }
+
+  // Inline-settings prototype: after rebuilding the canvas, move the
+  // phase-config form INTO the selected phase box so settings render
+  // inline rather than in the right sidebar. The form's existing
+  // contents (set by renderPhaseConfig) survive the move.
+  attachFormToSelectedBox();
+}
+
+function attachFormToSelectedBox() {
+  if (!selectedPhaseId) return;
+  var box = phaseList.querySelector('.phase-box.selected');
+  if (!box) return;
+  // Wrap the form in an "inline settings" container for clearer
+  // visual separation from the box's header.
+  var inlineWrap = document.createElement('div');
+  inlineWrap.className = 'phase-box-inline-form';
+  inlineWrap.appendChild(phaseConfigForm);
+  var preview = document.getElementById('live-preview-section');
+  if (preview) inlineWrap.appendChild(preview);
+
+  // Add a Done/collapse button at the bottom \u2014 replaces the right
+  // panel's close X which is no longer visible.
+  var doneBtn = document.createElement('button');
+  doneBtn.type = 'button';
+  doneBtn.className = 'phase-box-done-btn';
+  doneBtn.textContent = '\u2713 Done editing';
+  doneBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    deselectPhase();
+  });
+  inlineWrap.appendChild(doneBtn);
+
+  box.appendChild(inlineWrap);
 }
 
 // --- Drag and drop ---
@@ -4372,6 +4422,520 @@ function applyAskAiResult() {
     renderPhaseConfig(selectedPhaseId);
   } else {
     deselectPhase();
+  }
+}
+
+// =======================================================================
+// Save as Recipe modal (R5)
+//
+// Two-step modal:
+//
+//   Step 1: Pick parameters
+//     POST /api/recipes/draft with current gameConfig → list of candidates
+//     Render each as a row with checkbox + name + label inputs
+//     Defaults: all checked, names auto-generated, labels humanized
+//
+//   Step 2: Recipe metadata
+//     ID (auto from name), display name, description, icon emoji, tagline
+//
+//   Submit → POST /api/recipes/user → success toast → close modal
+//
+// The user can then go to /designer and see their recipe in the picker.
+// =======================================================================
+
+async function openSaveAsRecipeModal() {
+  if (!gameConfig) {
+    alert('Game config is still loading. Try again in a moment.');
+    return;
+  }
+
+  var existing = document.getElementById('save-as-recipe-modal');
+  if (existing) existing.remove();
+
+  var overlay = document.createElement('div');
+  overlay.id = 'save-as-recipe-modal';
+  overlay.className = 'sar-overlay';
+  overlay.addEventListener('click', function (e) {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  var modal = document.createElement('div');
+  modal.className = 'sar-modal';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  modal.innerHTML = '<p class="sar-loading">Analyzing your game...</p>';
+
+  // Fetch candidates
+  var candidates;
+  try {
+    var resp = await fetch('/api/recipes/draft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: gameConfig })
+    });
+    if (!resp.ok) throw new Error('status ' + resp.status);
+    var data = await resp.json();
+    candidates = data.candidates || [];
+  } catch (err) {
+    modal.innerHTML = '';
+    var errEl = document.createElement('p');
+    errEl.style.cssText = 'color:#FF2D2D; padding:20px; text-align:center;';
+    errEl.textContent = 'Could not analyze game: ' + err.message;
+    modal.appendChild(errEl);
+    return;
+  }
+
+  if (candidates.length === 0) {
+    modal.innerHTML = '<p class="sar-loading">No parameterizable fields found. Try adding some prompts or messages first.</p>';
+    return;
+  }
+
+  renderSarCandidatesView(modal, candidates, overlay);
+}
+
+function renderSarCandidatesView(modal, candidates, overlay) {
+  modal.innerHTML = '';
+
+  var title = document.createElement('h2');
+  title.className = 'sar-title';
+  title.textContent = '⭐ Save as Recipe';
+  modal.appendChild(title);
+
+  var subtitle = document.createElement('p');
+  subtitle.className = 'sar-subtitle';
+  subtitle.textContent = 'Pick which fields other teachers can fill in. Unchecked fields stay fixed at their current values.';
+  modal.appendChild(subtitle);
+
+  var listWrap = document.createElement('div');
+  listWrap.className = 'sar-candidate-list';
+  listWrap.id = 'sar-candidate-list';
+
+  for (var i = 0; i < candidates.length; i++) {
+    listWrap.appendChild(buildSarCandidateRow(candidates[i], i));
+  }
+
+  modal.appendChild(listWrap);
+
+  var footer = document.createElement('div');
+  footer.className = 'sar-modal-footer';
+
+  var cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'sar-btn sar-btn-cancel';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', function () { overlay.remove(); });
+  footer.appendChild(cancelBtn);
+
+  var nextBtn = document.createElement('button');
+  nextBtn.type = 'button';
+  nextBtn.className = 'sar-btn sar-btn-primary';
+  nextBtn.textContent = 'Next: Recipe Details →';
+  nextBtn.addEventListener('click', function () {
+    var paramSpecs = collectSarParamSpecs(listWrap);
+    if (paramSpecs.error) {
+      alert(paramSpecs.error);
+      return;
+    }
+    if (paramSpecs.specs.length === 0) {
+      if (!confirm('No parameters selected. The recipe will produce the exact same game every time. Continue anyway?')) {
+        return;
+      }
+    }
+    renderSarMetadataView(modal, candidates, paramSpecs.specs, overlay);
+  });
+  footer.appendChild(nextBtn);
+
+  modal.appendChild(footer);
+}
+
+function buildSarCandidateRow(candidate, idx) {
+  var row = document.createElement('div');
+  row.className = 'sar-candidate-row';
+  row.setAttribute('data-path', candidate.path);
+  row.setAttribute('data-idx', idx);
+
+  // Checkbox
+  var checkLabel = document.createElement('label');
+  checkLabel.className = 'sar-candidate-check-wrap';
+  var check = document.createElement('input');
+  check.type = 'checkbox';
+  check.className = 'sar-candidate-check';
+  check.checked = true;
+  checkLabel.appendChild(check);
+
+  // Field info (path + current value preview)
+  var info = document.createElement('div');
+  info.className = 'sar-candidate-info';
+
+  var pathLabel = document.createElement('div');
+  pathLabel.className = 'sar-candidate-path';
+  pathLabel.textContent = candidate.suggestedLabel;
+  info.appendChild(pathLabel);
+
+  var pathTech = document.createElement('div');
+  pathTech.className = 'sar-candidate-path-tech';
+  pathTech.textContent = candidate.path + ' (' + candidate.fieldType + ')';
+  info.appendChild(pathTech);
+
+  var preview = document.createElement('div');
+  preview.className = 'sar-candidate-preview';
+  preview.textContent = sarFormatPreview(candidate.currentValue);
+  info.appendChild(preview);
+
+  checkLabel.appendChild(info);
+  row.appendChild(checkLabel);
+
+  // Editable name + label fields (only visible when checked)
+  var details = document.createElement('div');
+  details.className = 'sar-candidate-details';
+
+  var nameField = document.createElement('div');
+  nameField.className = 'sar-candidate-field';
+  var nameLabel = document.createElement('label');
+  nameLabel.textContent = 'Parameter name';
+  var nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'sar-input sar-name-input';
+  nameInput.value = candidate.suggestedName;
+  nameInput.placeholder = 'paramName';
+  nameField.appendChild(nameLabel);
+  nameField.appendChild(nameInput);
+  details.appendChild(nameField);
+
+  var labelField = document.createElement('div');
+  labelField.className = 'sar-candidate-field';
+  var labelLabel = document.createElement('label');
+  labelLabel.textContent = 'Display label';
+  var labelInput = document.createElement('input');
+  labelInput.type = 'text';
+  labelInput.className = 'sar-input sar-label-input';
+  labelInput.value = candidate.suggestedLabel;
+  labelInput.placeholder = 'What teachers see';
+  labelField.appendChild(labelLabel);
+  labelField.appendChild(labelInput);
+  details.appendChild(labelField);
+
+  row.appendChild(details);
+
+  // Toggle details visibility when checkbox changes
+  check.addEventListener('change', function () {
+    if (check.checked) {
+      details.style.display = '';
+      row.classList.remove('sar-candidate-row-disabled');
+    } else {
+      details.style.display = 'none';
+      row.classList.add('sar-candidate-row-disabled');
+    }
+  });
+
+  return row;
+}
+
+function sarFormatPreview(value) {
+  if (value == null) return '(empty)';
+  if (Array.isArray(value)) return value.join(', ').slice(0, 80);
+  var str = String(value);
+  return str.length > 80 ? str.slice(0, 80) + '…' : str;
+}
+
+function collectSarParamSpecs(listWrap) {
+  var specs = [];
+  var seenNames = {};
+  var rows = listWrap.querySelectorAll('.sar-candidate-row');
+
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var check = row.querySelector('.sar-candidate-check');
+    if (!check.checked) continue;
+
+    var path = row.getAttribute('data-path');
+    var nameInput = row.querySelector('.sar-name-input');
+    var labelInput = row.querySelector('.sar-label-input');
+
+    var name = (nameInput.value || '').trim();
+    if (!name) {
+      return { error: 'A parameter is missing a name. Edit or uncheck it before continuing.' };
+    }
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name)) {
+      return { error: 'Parameter name "' + name + '" must start with a letter or underscore and contain only letters, numbers, and underscores.' };
+    }
+    if (seenNames[name]) {
+      return { error: 'Duplicate parameter name "' + name + '". Each parameter needs a unique name.' };
+    }
+    seenNames[name] = true;
+
+    specs.push({
+      path: path,
+      name: name,
+      label: (labelInput.value || '').trim()
+    });
+  }
+
+  return { specs: specs };
+}
+
+function renderSarMetadataView(modal, candidates, paramSpecs, overlay) {
+  modal.innerHTML = '';
+
+  var title = document.createElement('h2');
+  title.className = 'sar-title';
+  title.textContent = 'Recipe Details';
+  modal.appendChild(title);
+
+  var subtitle = document.createElement('p');
+  subtitle.className = 'sar-subtitle';
+  subtitle.textContent = 'How will this recipe appear in the picker?';
+  modal.appendChild(subtitle);
+
+  // Form
+  var form = document.createElement('div');
+  form.className = 'sar-metadata-form';
+
+  // Recipe id (auto from name, editable)
+  var idField = sarBuildField('id', 'Recipe ID', 'short, lowercase, no spaces. Used as the filename.');
+  var idInput = idField.input;
+  idInput.placeholder = 'my-discussion-game';
+  form.appendChild(idField.wrap);
+
+  // Recipe name
+  var nameField = sarBuildField('name', 'Recipe name', 'What teachers see in the picker.');
+  var nameInput = nameField.input;
+  nameInput.placeholder = 'My Discussion Game';
+  // Auto-derive id from name
+  nameInput.addEventListener('input', function () {
+    if (!idInput.dataset.userEdited) {
+      idInput.value = nameInput.value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+    }
+  });
+  idInput.addEventListener('input', function () {
+    idInput.dataset.userEdited = 'true';
+  });
+  // Pre-fill name from gameConfig
+  if (gameConfig && gameConfig.name) {
+    nameInput.value = gameConfig.name;
+    idInput.value = gameConfig.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+  }
+  form.appendChild(nameField.wrap);
+
+  // Icon
+  var iconField = sarBuildField('icon', 'Icon (one emoji)', 'A visual marker for the picker card.');
+  iconField.input.placeholder = '🎯';
+  iconField.input.value = '🎯';
+  iconField.input.maxLength = 4;
+  form.appendChild(iconField.wrap);
+
+  // Description
+  var descField = sarBuildField('description', 'Description', 'What this recipe is for. One or two sentences.', /* multiline */ true);
+  descField.input.placeholder = 'A discussion game where students share ideas and AI groups them into themes.';
+  if (gameConfig && gameConfig.description) {
+    descField.input.value = gameConfig.description;
+  }
+  form.appendChild(descField.wrap);
+
+  // Tagline
+  var taglineField = sarBuildField('tagline', 'Tagline (optional)', "Perfect for...");
+  taglineField.input.placeholder = 'Perfect for opening a unit.';
+  form.appendChild(taglineField.wrap);
+
+  modal.appendChild(form);
+
+  // Status display
+  var status = document.createElement('div');
+  status.className = 'sar-status';
+  status.id = 'sar-save-status';
+  modal.appendChild(status);
+
+  // Footer buttons
+  var footer = document.createElement('div');
+  footer.className = 'sar-modal-footer';
+
+  var backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.className = 'sar-btn sar-btn-cancel';
+  backBtn.textContent = '← Back';
+  backBtn.addEventListener('click', function () {
+    renderSarCandidatesView(modal, candidates, overlay);
+  });
+  footer.appendChild(backBtn);
+
+  var saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className = 'sar-btn sar-btn-primary';
+  saveBtn.textContent = 'Save Recipe';
+  saveBtn.addEventListener('click', function () {
+    var metadata = {
+      id: idField.input.value.trim(),
+      name: nameField.input.value.trim(),
+      icon: iconField.input.value.trim() || '🎯',
+      description: descField.input.value.trim(),
+      tagline: taglineField.input.value.trim() || undefined
+    };
+    submitSaveAsRecipe(modal, paramSpecs, metadata, status, saveBtn, overlay);
+  });
+  footer.appendChild(saveBtn);
+
+  modal.appendChild(footer);
+
+  nameField.input.focus();
+}
+
+function sarBuildField(id, label, helper, multiline) {
+  var wrap = document.createElement('div');
+  wrap.className = 'sar-field';
+
+  var lbl = document.createElement('label');
+  lbl.className = 'sar-field-label';
+  lbl.textContent = label;
+  wrap.appendChild(lbl);
+
+  if (helper) {
+    var help = document.createElement('div');
+    help.className = 'sar-field-helper';
+    help.textContent = helper;
+    wrap.appendChild(help);
+  }
+
+  var input = document.createElement(multiline ? 'textarea' : 'input');
+  if (!multiline) input.type = 'text';
+  if (multiline) input.rows = 2;
+  input.id = 'sar-field-' + id;
+  input.className = 'sar-input';
+  wrap.appendChild(input);
+
+  return { wrap: wrap, input: input };
+}
+
+async function submitSaveAsRecipe(modal, paramSpecs, metadata, status, saveBtn, overlay) {
+  status.className = 'sar-status';
+  status.textContent = '';
+
+  // Front-end sanity check
+  if (!metadata.id) {
+    showSarError(status, 'Recipe ID is required.');
+    return;
+  }
+  if (!/^[a-z0-9-]+$/.test(metadata.id)) {
+    showSarError(status, 'Recipe ID must be lowercase letters, numbers, and dashes only.');
+    return;
+  }
+  if (!metadata.name) {
+    showSarError(status, 'Recipe name is required.');
+    return;
+  }
+  if (!metadata.description) {
+    showSarError(status, 'Recipe description is required.');
+    return;
+  }
+
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving...';
+
+  try {
+    var resp = await fetch('/api/recipes/user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        config: gameConfig,
+        params: paramSpecs,
+        metadata: metadata
+      })
+    });
+    var data = await resp.json();
+
+    if (!resp.ok) {
+      showSarError(status, data.error || 'Save failed.', data.diagnostics);
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Recipe';
+      return;
+    }
+
+    // Success view
+    renderSarSuccessView(modal, data.recipe, overlay);
+  } catch (err) {
+    showSarError(status, 'Network error: ' + err.message);
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save Recipe';
+  }
+}
+
+function renderSarSuccessView(modal, recipe, overlay) {
+  modal.innerHTML = '';
+
+  var title = document.createElement('h2');
+  title.className = 'sar-title';
+  title.textContent = '✓ Recipe Saved';
+  modal.appendChild(title);
+
+  var card = document.createElement('div');
+  card.className = 'sar-success-card';
+
+  var iconEl = document.createElement('div');
+  iconEl.className = 'sar-success-icon';
+  iconEl.textContent = recipe.icon || '🎯';
+  card.appendChild(iconEl);
+
+  var nameEl = document.createElement('div');
+  nameEl.className = 'sar-success-name';
+  nameEl.textContent = recipe.name;
+  card.appendChild(nameEl);
+
+  var descEl = document.createElement('div');
+  descEl.className = 'sar-success-desc';
+  descEl.textContent = recipe.description;
+  card.appendChild(descEl);
+
+  modal.appendChild(card);
+
+  var note = document.createElement('p');
+  note.className = 'sar-subtitle';
+  note.textContent = 'Your recipe is now available in the picker. Open the designer to use it.';
+  modal.appendChild(note);
+
+  var footer = document.createElement('div');
+  footer.className = 'sar-modal-footer';
+
+  var doneBtn = document.createElement('button');
+  doneBtn.type = 'button';
+  doneBtn.className = 'sar-btn sar-btn-primary';
+  doneBtn.textContent = 'Done';
+  doneBtn.addEventListener('click', function () { overlay.remove(); });
+  footer.appendChild(doneBtn);
+
+  var openDesignerBtn = document.createElement('button');
+  openDesignerBtn.type = 'button';
+  openDesignerBtn.className = 'sar-btn sar-btn-cancel';
+  openDesignerBtn.textContent = 'Open Designer';
+  openDesignerBtn.addEventListener('click', function () { window.location.href = '/designer'; });
+  footer.appendChild(openDesignerBtn);
+
+  modal.appendChild(footer);
+}
+
+function showSarError(status, message, diagnostics) {
+  status.className = 'sar-status sar-status-error';
+  status.innerHTML = '';
+
+  var heading = document.createElement('strong');
+  heading.textContent = message;
+  status.appendChild(heading);
+
+  if (diagnostics && diagnostics.length > 0) {
+    var ul = document.createElement('ul');
+    for (var i = 0; i < diagnostics.length; i++) {
+      var d = diagnostics[i];
+      if (d.severity !== 'error') continue;
+      var li = document.createElement('li');
+      li.textContent = d.message;
+      ul.appendChild(li);
+    }
+    status.appendChild(ul);
   }
 }
 

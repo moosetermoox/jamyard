@@ -282,6 +282,86 @@ body {
   outline-offset: 2px;
 }
 
+/* Inline-settings prototype: when a phase is selected, the box widens
+   and the config form is injected into it via attachFormToSelectedBox.
+   Box stays in the same vertical flow so arrows still connect, just
+   gets wider. The transition gives a subtle expand animation. */
+.phase-box.selected {
+  width: 640px;
+  background: #FFF9C4;
+  cursor: default;
+  padding: 14px 22px 18px;
+}
+
+/* The form lives in this wrapper inside the selected box. The header
+   border separates the box's summary (icon/name/dots) from the config
+   form below. */
+.phase-box-inline-form {
+  margin-top: 14px;
+  padding-top: 16px;
+  border-top: 3px solid #000;
+  text-align: left;
+  cursor: default;
+}
+
+/* Form groups need to stretch wider in the expanded box */
+.phase-box-inline-form .form-group {
+  margin-bottom: 14px;
+}
+
+.phase-box-inline-form .form-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: #333;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.phase-box-inline-form .form-group input,
+.phase-box-inline-form .form-group textarea,
+.phase-box-inline-form .form-group select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 3px solid #000;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-family: Arial, sans-serif;
+  background: white;
+  box-sizing: border-box;
+}
+
+/* The "Done editing" button at the bottom of the inline form */
+.phase-box-done-btn {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  padding: 10px 16px;
+  background: #00C853;
+  color: white;
+  border: 3px solid #000;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.phase-box-done-btn:hover {
+  background: #00E676;
+}
+
+/* Stop the box's hover-corner accents (FF4081 corners) from showing
+   on the expanded box — they're a "you can click this" affordance
+   that's no longer relevant when settings are already open. */
+.phase-box.selected:hover::before,
+.phase-box.selected:hover::after {
+  display: none;
+}
+
 .phase-box-header {
   display: flex;
   align-items: center;
@@ -403,17 +483,12 @@ body {
 .phase-type-end         { background: #E0E0E0; border-color: #555; }
 
 /* ---- Right sidebar ---- */
+/* Inline-settings prototype: hide the right panel always. The phase
+   config form lives inside the selected phase box now. The panel
+   stays in the DOM as a holding place for the form when nothing is
+   selected (so we don't have to special-case its parentNode). */
 #phase-panel {
-  width: 320px;
-  background: #FFF9C4;
-  border-left: 4px solid #000;
-  padding: 20px;
-  overflow-y: auto;
-  flex-shrink: 0;
-}
-
-#phase-panel.hidden {
-  display: none;
+  display: none !important;
 }
 
 .panel-header {
@@ -917,6 +992,327 @@ body {
 .btn-ask-ai:disabled {
   background: #CE93D8;
   cursor: wait;
+}
+
+.btn-save-recipe {
+  background: #FFD600;
+  color: #000;
+  padding: 8px 18px;
+  border: 3px solid #000;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-save-recipe:hover {
+  background: #FFEB3B;
+}
+
+.btn-save-recipe:disabled {
+  background: #FFF59D;
+  cursor: wait;
+}
+
+/* ---- Save as Recipe modal (R5) ---- */
+.sar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sar-modal {
+  background: #FFEB3B;
+  border: 4px solid #000;
+  border-radius: 16px;
+  padding: 28px 32px;
+  max-width: 720px;
+  width: 92%;
+  max-height: 92vh;
+  overflow-y: auto;
+  font-family: 'Arial Black', Arial, sans-serif;
+}
+
+.sar-loading {
+  text-align: center;
+  font-size: 1.1rem;
+  padding: 40px;
+}
+
+.sar-title {
+  font-size: 1.4rem;
+  margin: 0 0 8px 0;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.sar-subtitle {
+  text-align: center;
+  font-size: 0.9rem;
+  color: #444;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+  margin: 0 0 20px 0;
+  line-height: 1.4;
+}
+
+/* Candidate list */
+
+.sar-candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.sar-candidate-row {
+  background: white;
+  border: 3px solid #000;
+  border-radius: 12px;
+  padding: 12px 14px;
+  transition: opacity 0.15s;
+}
+
+.sar-candidate-row-disabled {
+  opacity: 0.45;
+}
+
+.sar-candidate-check-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.sar-candidate-check {
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sar-candidate-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sar-candidate-path {
+  font-weight: 900;
+  font-size: 0.95rem;
+  color: #000;
+}
+
+.sar-candidate-path-tech {
+  font-family: monospace;
+  font-size: 0.7rem;
+  color: #888;
+  margin-top: 2px;
+  font-weight: normal;
+}
+
+.sar-candidate-preview {
+  margin-top: 6px;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+  font-size: 0.85rem;
+  color: #555;
+  font-style: italic;
+  background: #FFF9C4;
+  padding: 6px 8px;
+  border-radius: 6px;
+  word-break: break-word;
+}
+
+.sar-candidate-details {
+  margin-top: 10px;
+  margin-left: 34px;
+  display: flex;
+  gap: 12px;
+}
+
+.sar-candidate-field {
+  flex: 1;
+}
+
+.sar-candidate-field label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #555;
+  margin-bottom: 3px;
+}
+
+/* Metadata form */
+
+.sar-metadata-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.sar-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sar-field-label {
+  font-weight: 900;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sar-field-helper {
+  font-size: 0.78rem;
+  color: #555;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+  margin-bottom: 2px;
+}
+
+.sar-input {
+  padding: 9px 11px;
+  border: 3px solid #000;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-family: Arial, sans-serif;
+  background: white;
+  font-weight: normal;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+textarea.sar-input {
+  resize: vertical;
+  min-height: 56px;
+}
+
+.sar-input:focus {
+  outline: none;
+  background: #FFF9C4;
+}
+
+/* Status */
+
+.sar-status {
+  margin-bottom: 12px;
+}
+
+.sar-status-error {
+  background: #FFCDD2;
+  border: 3px solid #000;
+  border-radius: 8px;
+  padding: 12px;
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+  font-size: 0.88rem;
+}
+
+.sar-status-error strong {
+  display: block;
+  margin-bottom: 6px;
+  font-family: inherit;
+  font-weight: 900;
+}
+
+.sar-status-error ul {
+  margin: 4px 0 0 0;
+  padding-left: 20px;
+  color: #B71C1C;
+}
+
+/* Footer buttons */
+
+.sar-modal-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.sar-btn {
+  padding: 10px 22px;
+  border: 3px solid #000;
+  border-radius: 8px;
+  font-weight: 900;
+  font-size: 0.92rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.sar-btn-cancel {
+  background: white;
+  color: #000;
+}
+
+.sar-btn-cancel:hover {
+  background: #eee;
+}
+
+.sar-btn-primary {
+  background: #00C853;
+  color: white;
+}
+
+.sar-btn-primary:hover:not(:disabled) {
+  background: #00E676;
+}
+
+.sar-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Success view */
+
+.sar-success-card {
+  background: white;
+  border: 3px solid #000;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.sar-success-icon {
+  font-size: 3rem;
+  margin-bottom: 8px;
+}
+
+.sar-success-name {
+  font-weight: 900;
+  font-size: 1.3rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 6px;
+}
+
+.sar-success-desc {
+  font-family: Arial, sans-serif;
+  font-weight: normal;
+  font-size: 0.95rem;
+  color: #444;
+  line-height: 1.4;
+}
+
+@media (max-width: 600px) {
+  .sar-candidate-details {
+    flex-direction: column;
+    margin-left: 0;
+  }
 }
 
 /* ---- Ask AI modal ---- */

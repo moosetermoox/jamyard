@@ -13,6 +13,7 @@ import { normalizeConfig } from './engine/normalizer.js';
 import { PHASE_SCHEMAS, getFields } from './engine/phase-schemas.js';
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
 import { compileRecipe } from './engine/recipe-compiler.js';
+import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { gamePhases } from './config/game-phases.js';
@@ -793,6 +794,130 @@ app.post('/api/recipes/:id/compile', (req, res) => {
   }
 
   res.json({ config, diagnostics });
+});
+
+// Save-as-recipe (R5) — turn a built game into a reusable recipe.
+//
+// Two endpoints, called in sequence by the editor:
+//
+//   POST /api/recipes/draft  { config }
+//     Returns { candidates: [...] } — auto-detected parameter candidates
+//     (every parameterizable field on every phase, with suggested name +
+//     label). The modal renders this list with checkboxes.
+//
+//   POST /api/recipes/user   { config, params, metadata }
+//     Builds the finalized recipe from the user's choices, validates it,
+//     writes it to recipes/user/{id}.json, busts the recipe cache so the
+//     new recipe shows up in subsequent /api/recipes calls.
+
+app.post('/api/recipes/draft', (req, res) => {
+  const config = req.body && req.body.config;
+  if (!config || typeof config !== 'object') {
+    return res.status(400).json({ error: 'A game config is required.' });
+  }
+  try {
+    const candidates = extractCandidates(config);
+    res.json({ candidates });
+  } catch (err) {
+    console.log(`[api/recipes/draft] Error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/recipes/user', async (req, res) => {
+  const { config, params, metadata } = req.body || {};
+  if (!config || !metadata) {
+    return res.status(400).json({ error: 'Missing config or metadata.' });
+  }
+
+  // Refuse to overwrite a built-in recipe id (collision risk + confusion)
+  // unless the caller explicitly opted in by setting `overwrite: true`.
+  // For now: built-ins are read-only via this endpoint.
+  const existing = getRecipe(metadata.id);
+  if (existing && existing._source === 'built-in') {
+    return res.status(400).json({
+      error: `Recipe id "${metadata.id}" matches a built-in recipe. Choose a different id.`
+    });
+  }
+
+  const { recipe, diagnostics } = buildUserRecipe(config, params || [], metadata);
+  if (!recipe) {
+    return res.status(400).json({
+      error: 'Recipe could not be built.',
+      diagnostics
+    });
+  }
+
+  // Smoke-test: compile with each parameter's default and run through
+  // the game validator. If it fails, the user's recipe has a real
+  // structural issue; refuse to save.
+  const sampleParams = {};
+  for (const [name, spec] of Object.entries(recipe.parameters || {})) {
+    if (spec.default !== undefined) sampleParams[name] = spec.default;
+  }
+  const compileResult = compileRecipe(recipe, sampleParams);
+  if (!compileResult.config) {
+    return res.status(400).json({
+      error: 'Recipe compiled but produced an invalid game config.',
+      diagnostics: compileResult.diagnostics
+    });
+  }
+  const safetyValidation = validate(compileResult.config, recipe.id, { returnResults: true });
+  if (safetyValidation.errors && safetyValidation.errors.length > 0) {
+    return res.status(400).json({
+      error: 'Recipe produced an invalid game config when compiled with default values.',
+      configErrors: safetyValidation.errors
+    });
+  }
+
+  // Write to recipes/user/{id}.json
+  try {
+    const userDir = join(__dirname, 'recipes', 'user');
+    await mkdir(userDir, { recursive: true });
+    const filePath = join(userDir, `${recipe.id}.json`);
+    await writeFile(filePath, JSON.stringify(recipe, null, 2), 'utf-8');
+
+    // Bust the cache so the next /api/recipes call sees this one
+    await loadAllRecipes({ force: true });
+
+    res.json({
+      success: true,
+      recipe: summarizeRecipe(recipe),
+      diagnostics
+    });
+  } catch (err) {
+    console.log(`[api/recipes/user] Save error: ${err.message}`);
+    res.status(500).json({ error: `Could not save recipe: ${err.message}` });
+  }
+});
+
+app.delete('/api/recipes/user/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!/^[a-z0-9-]+$/i.test(id)) {
+    return res.status(400).json({ error: 'Invalid recipe id.' });
+  }
+
+  // Refuse to delete built-in recipes — only files in recipes/user/
+  // are removable through this endpoint.
+  const recipe = getRecipe(id);
+  if (!recipe) {
+    return res.status(404).json({ error: `Recipe "${id}" not found.` });
+  }
+  if (recipe._source !== 'user') {
+    return res.status(400).json({
+      error: `Recipe "${id}" is built-in and cannot be deleted.`
+    });
+  }
+
+  const filePath = join(__dirname, 'recipes', 'user', `${id}.json`);
+  try {
+    await rm(filePath);
+    await loadAllRecipes({ force: true });
+    res.json({ success: true, id });
+  } catch (err) {
+    console.log(`[api/recipes/user/:id DELETE] Error: ${err.message}`);
+    res.status(500).json({ error: `Could not delete recipe: ${err.message}` });
+  }
 });
 
 app.get('/api/games', async (req, res) => {

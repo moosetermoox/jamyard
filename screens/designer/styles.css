@@ -326,6 +326,68 @@ h1 {
   font-style: italic;
 }
 
+/* R6 — recipe sections + delete + broken badge */
+
+.recipe-section-heading {
+  font-size: 1rem;
+  margin: 16px 0 10px 0;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #000;
+  border-bottom: 3px solid #000;
+  padding-bottom: 4px;
+}
+
+.recipe-section-heading:first-of-type {
+  margin-top: 4px;
+}
+
+.recipe-card {
+  position: relative;
+}
+
+.recipe-card-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 900;
+  font-family: inherit;
+  padding: 0;
+  line-height: 1;
+}
+
+.recipe-card-delete:hover {
+  background: #FF2D2D;
+  color: white;
+}
+
+.recipe-card-broken {
+  background: #FFF3E0 !important;
+  border-color: #FF6D00 !important;
+}
+
+.recipe-card-broken-badge {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 8px;
+  background: #FF6D00;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 900;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-family: Arial, sans-serif;
+  cursor: help;
+}
+
 .recipe-loading {
   text-align: center;
   font-size: 1.1rem;

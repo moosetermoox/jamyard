@@ -20,6 +20,8 @@ import { readdir, readFile, stat } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { validateRecipe } from './recipe-schema.js';
+import { compileRecipe } from './recipe-compiler.js';
+import { validate } from './game-loader.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const RECIPES_DIR = join(__dirname, '..', 'recipes');
@@ -91,7 +93,10 @@ export function summarizeRecipe(recipe) {
     icon: recipe.icon || null,
     description: recipe.description,
     tagline: recipe.tagline || null,
-    parameters: recipe.parameters
+    parameters: recipe.parameters,
+    source: recipe._source || null,        // 'built-in' | 'user'
+    broken: !!recipe._broken,              // schema drift, needs attention
+    brokenReason: recipe._brokenReason || null
   };
 }
 
@@ -145,6 +150,8 @@ async function loadRecipeFile(filePath, ctx) {
     return null;
   }
 
+  // Stage 1: shape validation. A recipe with a malformed shape isn't
+  // recoverable — skip it entirely.
   const diags = validateRecipe(parsed);
   const errors = diags.filter(d => d.severity === 'error');
   if (errors.length > 0) {
@@ -155,6 +162,77 @@ async function loadRecipeFile(filePath, ctx) {
     return null;
   }
 
-  parsed._source = ctx.source; // 'built-in' | 'user' — useful for the editor later
+  parsed._source = ctx.source; // 'built-in' | 'user' — useful for the editor
+
+  // Stage 2: compatibility check. Compile the template with sample
+  // params and validate the resulting game config. Catches schema
+  // drift — e.g. a saved recipe references a phase type that no
+  // longer exists, or a renamed field. Don't reject; mark and let the
+  // UI surface the issue so the teacher knows to update.
+  const compatIssue = checkRecipeCompatibility(parsed);
+  if (compatIssue) {
+    parsed._broken = true;
+    parsed._brokenReason = compatIssue;
+    console.warn(`[recipe-loader] ${filePath} compatibility issue: ${compatIssue}`);
+  }
+
   return parsed;
+}
+
+/**
+ * Run a recipe's template through compile + validate using synthetic
+ * defaults for any required-without-default params. Returns null if
+ * the recipe is healthy, or a short reason string if it's broken.
+ */
+function checkRecipeCompatibility(recipe) {
+  const sampleParams = buildSyntheticParams(recipe);
+  const { config, diagnostics } = compileRecipe(recipe, sampleParams);
+  if (!config) {
+    const errs = diagnostics.filter(d => d.severity === 'error');
+    return errs.length > 0
+      ? `compile failed: ${errs[0].message}`
+      : 'compile failed (no diagnostics)';
+  }
+  const v = validate(config, recipe.id, { returnResults: true });
+  if (v.errors && v.errors.length > 0) {
+    const first = v.errors[0];
+    return `validate failed: ${typeof first === 'string' ? first : first.message}`;
+  }
+  return null;
+}
+
+/**
+ * Build a parameter object using each param's default, with synthetic
+ * placeholders for any required-without-default. Used only by the
+ * compatibility check — values don't need to be realistic.
+ */
+function buildSyntheticParams(recipe) {
+  const out = {};
+  for (const [name, spec] of Object.entries(recipe.parameters || {})) {
+    if (spec.default !== undefined) continue;
+    if (!spec.required) continue;
+    out[name] = syntheticForType(spec);
+  }
+  return out;
+}
+
+function syntheticForType(spec) {
+  switch (spec.type) {
+    case 'string':
+    case 'templateString':
+      return spec.minLength ? 'x'.repeat(spec.minLength) : 'sample';
+    case 'integer':
+      return spec.min ?? 1;
+    case 'boolean':
+      return false;
+    case 'enum':
+      return Array.isArray(spec.values) ? spec.values[0] : '';
+    case 'array': {
+      const minItems = spec.minItems ?? 1;
+      const item = spec.item ? syntheticForType(spec.item) : 'item';
+      return Array(minItems).fill(item);
+    }
+    default:
+      return null;
+  }
 }
