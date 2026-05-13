@@ -179,6 +179,17 @@ var PHASE_CATALOG = {
     player: 'Prompt, sortable list with up/down arrows, Submit button',
     ai: null
   },
+  'rate': {
+    icon: '\uD83D\uDCCF',
+    friendlyName: 'Rate on Scales',
+    description: 'Class rates something (a presentation, idea, pitch) on one or more custom scales',
+    color: '#1DE9B6',
+    bg: '#B2DFDB',
+    detailField: 'prompt',
+    host: 'Prompt, submission counter, Close Ratings button \u2192 results',
+    player: 'Prompt, scale buttons (1\u2026N) per scale, Submit button',
+    ai: null
+  },
   'wager': {
     icon: '\uD83D\uDCB0',
     friendlyName: 'Place Wagers',
@@ -316,6 +327,24 @@ async function init() {
   reviewBtn.addEventListener('click', runDeepReview);
   reviewCloseBtn.addEventListener('click', function () { reviewPanel.hidden = true; });
   closePanelBtn.addEventListener('click', deselectPhase);
+
+  // Click anywhere outside the selected phase block (and not inside a modal
+  // or validation panel) to collapse it — triggers an auto-save on the way out.
+  document.addEventListener('click', function (e) {
+    if (!selectedPhaseId) return;
+    if (!e.target.closest) return;
+    // Clicks inside any phase-box are handled by handlePhaseClick (or by the
+    // inline-form descendant check) — leave them alone.
+    if (e.target.closest('.phase-box')) return;
+    // Active modal / overlay UIs that the user is interacting with.
+    if (e.target.closest('.picker-overlay')) return;
+    if (e.target.closest('.ask-ai-modal')) return;
+    if (e.target.closest('#validation-panel')) return;
+    if (e.target.closest('#review-panel')) return;
+    // Header buttons (Save/Test/etc.) run their own handlers — fine to also
+    // collapse, since "Save" matches user intent and the others don't care.
+    deselectPhase();
+  });
 
   // Ask AI (whole-game revise)
   var askAiBtn = document.getElementById('ask-ai-btn');
@@ -896,6 +925,10 @@ function handlePhaseClick(e) {
     didDrag = false;
     return;
   }
+  // Clicks inside the inline-attached form (inputs, buttons, etc.) shouldn't
+  // re-trigger selectPhase — the phase is already selected, and rebuilding the
+  // form would destroy the user's focus/cursor mid-edit.
+  if (e.target.closest && e.target.closest('.phase-box-inline-form')) return;
   var box = e.currentTarget;
   var phaseId = box.getAttribute('data-phase-id');
   selectPhase(phaseId);
@@ -903,18 +936,57 @@ function handlePhaseClick(e) {
 
 // --- Phase selection ---
 function selectPhase(phaseId) {
+  // Switching to a different phase — flush pending edits on the old one first.
+  if (selectedPhaseId && selectedPhaseId !== phaseId) {
+    autoSaveIfDirty(); // fire-and-forget; safe because we're about to re-render anyway
+  }
   selectedPhaseId = phaseId;
   phasePanel.classList.remove('hidden');
   renderCanvas();
   renderPhaseConfig(phaseId);
 }
 
-function deselectPhase() {
+async function deselectPhase() {
+  await autoSaveIfDirty();
   selectedPhaseId = null;
   phasePanel.classList.add('hidden');
   var previewSection = document.getElementById('live-preview-section');
   if (previewSection) previewSection.classList.add('hidden');
   renderCanvas();
+}
+
+// Quietly PUT the current config to the server when the user has unsaved
+// changes. Called when collapsing a phase or switching between phases, so
+// teachers don't have to scroll to the Save button.
+//
+// - Skips entirely if !isDirty (nothing to save) or !gameId (brand-new game
+//   that still needs an ID prompt — leave that to the explicit Save button).
+// - Surfaces validation errors via the validation panel but does NOT block
+//   the deselect — the panel stays visible so the user can fix.
+async function autoSaveIfDirty() {
+  if (!isDirty || !gameId) return;
+  var validation = validateConfig();
+  if (validation.errors.length > 0) {
+    showValidationPanel(validation.errors, validation.warnings);
+    return; // leave isDirty=true; manual Save or next deselect will retry
+  }
+  try {
+    var resp = await fetch('/api/games/' + encodeURIComponent(gameId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(gameConfig)
+    });
+    if (!resp.ok) {
+      var err = await resp.json().catch(function () { return {}; });
+      console.warn('[autosave] save failed:', err.error || resp.statusText);
+      return;
+    }
+    isDirty = false;
+    validationPanel.hidden = true;
+    runLightReview(); // async, non-blocking
+  } catch (err) {
+    console.warn('[autosave] error:', err.message);
+  }
 }
 
 // --- Phase config panel ---
@@ -1114,6 +1186,7 @@ function renderPhaseConfig(phaseId) {
         if (value === 'all') { delete phase.from; } else { phase.from = value; }
       }
     );
+    addImageUploadWidget(phase, phaseId);
   }
 
   if (type === 'ai-process') {
@@ -1239,6 +1312,7 @@ function renderPhaseConfig(phaseId) {
     addFieldWithHelp('Auto-advance timer (seconds)', 'Leave empty to require host to click Continue', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
+    addImageUploadWidget(phase, phaseId);
   }
 
   if (type === 'collect-choice') {
@@ -1323,6 +1397,7 @@ function renderPhaseConfig(phaseId) {
         if (value === 'all') { delete phase.from; } else { phase.from = value; }
       }
     );
+    addImageUploadWidget(phase, phaseId);
   }
 
   if (type === 'ai-eliminate') {
@@ -1351,6 +1426,7 @@ function renderPhaseConfig(phaseId) {
       renderCanvas();
     });
     addVariableChips(revealTA, phaseId);
+    addImageUploadWidget(phase, phaseId);
   }
 
   if (type === 'preview') {
@@ -1487,6 +1563,172 @@ function renderPhaseConfig(phaseId) {
       ],
       phase.from || 'all', function (value) {
         if (value === 'all') { delete phase.from; } else { phase.from = value; }
+      }
+    );
+  }
+
+  if (type === 'rate') {
+    addRoleHeader('player', 'Players see & do');
+    addTextAreaWithHelp(
+      'Instructions (optional)',
+      'What students see above the scales. You can also explain verbally.',
+      'phase-prompt', phase.prompt,
+      'e.g. Rate the presentation on each scale below.',
+      function (value) {
+        if (value && value.trim()) { phase.prompt = value; } else { delete phase.prompt; }
+        renderCanvas();
+      }
+    );
+
+    addSectionHeader('Scales');
+    if (!Array.isArray(phase.scales)) phase.scales = [];
+
+    for (var sIdx = 0; sIdx < phase.scales.length; sIdx++) {
+      (function (index) {
+        var scale = phase.scales[index];
+        var card = document.createElement('div');
+        card.style.cssText = 'border:2px solid #000; padding:10px; margin:8px 0; background:#FFF;';
+
+        var topRow = document.createElement('div');
+        topRow.style.cssText = 'display:flex; gap:6px; align-items:center; margin-bottom:6px;';
+
+        var labelIn = document.createElement('input');
+        labelIn.type = 'text';
+        labelIn.placeholder = 'Label (e.g. Originality)';
+        labelIn.value = scale.label || '';
+        labelIn.style.cssText = 'flex:1; padding:4px 8px; border:2px solid #000; font-family:inherit;';
+        labelIn.addEventListener('input', function () {
+          scale.label = labelIn.value;
+          if (!scale.id || scale.id === '') {
+            scale.id = labelIn.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || ('scale-' + (index + 1));
+          }
+          isDirty = true;
+        });
+
+        var rmBtn = document.createElement('button');
+        rmBtn.textContent = 'X';
+        rmBtn.title = 'Remove scale';
+        rmBtn.style.cssText = 'background:#FF2D2D; color:white; border:2px solid #000; padding:2px 8px; cursor:pointer; font-weight:bold;';
+        rmBtn.addEventListener('click', function () {
+          phase.scales.splice(index, 1);
+          isDirty = true;
+          renderPhaseConfig(phaseId);
+        });
+
+        topRow.appendChild(labelIn);
+        topRow.appendChild(rmBtn);
+        card.appendChild(topRow);
+
+        var idRow = document.createElement('div');
+        idRow.style.cssText = 'font-size:0.85rem; color:#555; margin-bottom:6px;';
+        idRow.textContent = 'id: ' + (scale.id || '(auto from label)');
+        card.appendChild(idRow);
+
+        var rangeRow = document.createElement('div');
+        rangeRow.style.cssText = 'display:flex; gap:6px; align-items:center; margin-bottom:6px;';
+        rangeRow.innerHTML = '<span style="font-size:0.9rem;">Range</span>';
+        var minIn = document.createElement('input');
+        minIn.type = 'number';
+        minIn.style.cssText = 'width:70px; padding:4px 8px; border:2px solid #000;';
+        minIn.value = (scale.min == null ? 1 : scale.min);
+        minIn.addEventListener('input', function () { scale.min = parseInt(minIn.value, 10); isDirty = true; });
+        var dash = document.createElement('span'); dash.textContent = '–';
+        var maxIn = document.createElement('input');
+        maxIn.type = 'number';
+        maxIn.style.cssText = 'width:70px; padding:4px 8px; border:2px solid #000;';
+        maxIn.value = (scale.max == null ? 5 : scale.max);
+        maxIn.addEventListener('input', function () { scale.max = parseInt(maxIn.value, 10); isDirty = true; });
+        rangeRow.appendChild(minIn); rangeRow.appendChild(dash); rangeRow.appendChild(maxIn);
+        card.appendChild(rangeRow);
+
+        var endLabelHeader = document.createElement('div');
+        endLabelHeader.style.cssText = 'font-size:0.85rem; color:#555; margin-top:6px; margin-bottom:2px;';
+        endLabelHeader.textContent = 'End labels (optional — shown next to the buttons on the player screen)';
+        card.appendChild(endLabelHeader);
+
+        var endRow = document.createElement('div');
+        endRow.style.cssText = 'display:flex; gap:6px; align-items:center;';
+
+        var minLabelWrap = document.createElement('label');
+        minLabelWrap.style.cssText = 'flex:1; display:flex; flex-direction:column; gap:2px;';
+        var minLabelCaption = document.createElement('span');
+        minLabelCaption.style.cssText = 'font-size:0.75rem; color:#777;';
+        minLabelCaption.textContent = 'Low end (' + (scale.min == null ? 1 : scale.min) + ')';
+        var minLabel = document.createElement('input');
+        minLabel.type = 'text';
+        minLabel.placeholder = 'e.g. Familiar';
+        minLabel.value = (scale.labels && scale.labels.min) || '';
+        minLabel.style.cssText = 'padding:4px 8px; border:2px solid #000; font-family:inherit; font-size:0.9rem;';
+        minLabel.addEventListener('input', function () {
+          if (!scale.labels) scale.labels = {};
+          scale.labels.min = minLabel.value;
+          isDirty = true;
+        });
+        minLabelWrap.appendChild(minLabelCaption);
+        minLabelWrap.appendChild(minLabel);
+
+        var maxLabelWrap = document.createElement('label');
+        maxLabelWrap.style.cssText = 'flex:1; display:flex; flex-direction:column; gap:2px;';
+        var maxLabelCaption = document.createElement('span');
+        maxLabelCaption.style.cssText = 'font-size:0.75rem; color:#777;';
+        maxLabelCaption.textContent = 'High end (' + (scale.max == null ? 5 : scale.max) + ')';
+        var maxLabel = document.createElement('input');
+        maxLabel.type = 'text';
+        maxLabel.placeholder = 'e.g. Fresh';
+        maxLabel.value = (scale.labels && scale.labels.max) || '';
+        maxLabel.style.cssText = 'padding:4px 8px; border:2px solid #000; font-family:inherit; font-size:0.9rem;';
+        maxLabel.addEventListener('input', function () {
+          if (!scale.labels) scale.labels = {};
+          scale.labels.max = maxLabel.value;
+          isDirty = true;
+        });
+        maxLabelWrap.appendChild(maxLabelCaption);
+        maxLabelWrap.appendChild(maxLabel);
+
+        endRow.appendChild(minLabelWrap);
+        endRow.appendChild(maxLabelWrap);
+        card.appendChild(endRow);
+
+        phaseConfigForm.appendChild(card);
+      })(sIdx);
+    }
+
+    var addScaleBtn = document.createElement('button');
+    addScaleBtn.className = 'btn-secondary';
+    addScaleBtn.textContent = '+ Add Scale';
+    addScaleBtn.style.marginBottom = '12px';
+    addScaleBtn.addEventListener('click', function () {
+      var n = phase.scales.length + 1;
+      phase.scales.push({ id: 'scale-' + n, label: 'Scale ' + n, min: 1, max: 5 });
+      isDirty = true;
+      renderPhaseConfig(phaseId);
+    });
+    phaseConfigForm.appendChild(addScaleBtn);
+
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits whatever is selected on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
+      phase.timer = value;
+    });
+
+    addSectionHeader('Who rates');
+    addSelectWithHelp('Eligible raters', 'Which players can submit ratings', 'phase-from',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' },
+        { value: 'eliminated', label: 'Eliminated players only' }
+      ],
+      phase.from || 'all', function (value) {
+        if (value === 'all') { delete phase.from; } else { phase.from = value; }
+      }
+    );
+
+    addSectionHeader('Results');
+    addSelectWithHelp('Who sees results', 'Show averages to the class or keep them on the teacher screen only', 'phase-visibility',
+      [
+        { value: 'all', label: 'Everyone sees results' },
+        { value: 'host-only', label: 'Only the teacher sees results' }
+      ],
+      phase.visibility || 'all', function (value) {
+        if (value === 'all') { delete phase.visibility; } else { phase.visibility = value; }
       }
     );
   }
@@ -2215,6 +2457,165 @@ function addSectionHeader(title) {
   header.className = 'config-section-header';
   header.textContent = title;
   phaseConfigForm.appendChild(header);
+}
+
+/**
+ * Image upload widget. Renders a file input + thumbnail preview + remove button.
+ * Calls onChange(newPath | null) when the image changes.
+ *
+ * @param {object} phase  — the phase config object (so we can read/write phase.image)
+ * @param {string} phaseId — id (used only for refresh)
+ */
+function addImageUploadWidget(phase, phaseId) {
+  var section = document.createElement('div');
+  section.className = 'form-group';
+  section.style.cssText = 'margin-top:8px;';
+
+  var label = document.createElement('label');
+  label.textContent = 'Image (optional)';
+  label.style.fontWeight = '600';
+  section.appendChild(label);
+
+  var help = document.createElement('p');
+  help.className = 'field-help';
+  help.textContent = 'Drop an image here or click below to choose one. Uploaded to this game\'s assets folder. Use the host/player "image" toggle to control which screens show it.';
+  section.appendChild(help);
+
+  var previewWrap = document.createElement('div');
+  previewWrap.style.cssText = 'margin:6px 0;';
+
+  function renderPreview() {
+    previewWrap.innerHTML = '';
+    if (phase.image && gameId) {
+      var img = document.createElement('img');
+      img.src = '/games/' + encodeURIComponent(gameId) + '/' + phase.image.replace(/^\.?\//, '');
+      img.alt = '';
+      img.style.cssText = 'max-width:200px; max-height:150px; border:2px solid #000; display:block; object-fit:contain; background:#FFF;';
+      previewWrap.appendChild(img);
+
+      var pathLine = document.createElement('div');
+      pathLine.style.cssText = 'font-size:0.8rem; color:#555; margin-top:4px;';
+      pathLine.textContent = phase.image;
+      previewWrap.appendChild(pathLine);
+
+      var removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = 'Remove image';
+      removeBtn.style.cssText = 'margin-top:6px; background:#FF2D2D; color:white; border:2px solid #000; padding:4px 10px; cursor:pointer; font-weight:bold;';
+      removeBtn.addEventListener('click', function () {
+        delete phase.image;
+        isDirty = true;
+        renderPhaseConfig(phaseId);
+      });
+      previewWrap.appendChild(removeBtn);
+    }
+  }
+  renderPreview();
+  section.appendChild(previewWrap);
+
+  // Drop zone — clicking opens the file picker; dropping an image uploads it.
+  var dropZone = document.createElement('div');
+  dropZone.className = 'image-drop-zone';
+  dropZone.style.cssText = 'margin-top:6px; padding:18px 12px; border:2px dashed #999; border-radius:6px; text-align:center; cursor:pointer; background:#FAFAFA; font-size:0.9rem; color:#555; transition:background 0.15s, border-color 0.15s;';
+  dropZone.textContent = phase.image ? 'Drop a new image here to replace, or click to choose…' : 'Drop an image here, or click to choose…';
+
+  var fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = 'image/jpeg,image/png,image/gif,image/webp';
+  fileInput.style.cssText = 'display:none;';
+
+  var status = document.createElement('div');
+  status.style.cssText = 'font-size:0.85rem; margin-top:4px; min-height:1em;';
+
+  async function uploadFile(file) {
+    if (!file) return;
+    if (!gameId) {
+      status.textContent = 'Save the game first, then upload an image.';
+      status.style.color = '#C00';
+      return;
+    }
+    if (!/^image\/(jpeg|png|gif|webp)$/i.test(file.type || '')) {
+      status.textContent = 'Only JPEG, PNG, GIF, or WebP images allowed.';
+      status.style.color = '#C00';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      status.textContent = 'File too large (max 5MB).';
+      status.style.color = '#C00';
+      return;
+    }
+    status.textContent = 'Uploading…';
+    status.style.color = '#555';
+    try {
+      var fd = new FormData();
+      fd.append('file', file);
+      var resp = await fetch('/api/games/' + encodeURIComponent(gameId) + '/assets', {
+        method: 'POST', body: fd
+      });
+      var data = await resp.json();
+      if (!resp.ok) throw new Error(data.error || 'Upload failed');
+      phase.image = data.path;
+      isDirty = true;
+      status.textContent = 'Uploaded.';
+      status.style.color = '#080';
+      renderPhaseConfig(phaseId);
+    } catch (err) {
+      status.textContent = 'Upload failed: ' + err.message;
+      status.style.color = '#C00';
+    }
+  }
+
+  fileInput.addEventListener('change', function () {
+    var file = fileInput.files && fileInput.files[0];
+    uploadFile(file);
+  });
+
+  dropZone.addEventListener('click', function () { fileInput.click(); });
+
+  // Drag-and-drop. stopPropagation so the phase-block's own drag handlers
+  // (which reorder steps on the canvas) don't interfere.
+  function highlight(on) {
+    dropZone.style.borderColor = on ? '#0057FF' : '#999';
+    dropZone.style.background = on ? '#E6F0FF' : '#FAFAFA';
+  }
+  ['dragenter', 'dragover'].forEach(function (evt) {
+    dropZone.addEventListener(evt, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+      highlight(true);
+    });
+  });
+  ['dragleave', 'dragend'].forEach(function (evt) {
+    dropZone.addEventListener(evt, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      highlight(false);
+    });
+  });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    highlight(false);
+    var dt = e.dataTransfer;
+    if (!dt) return;
+    // Prefer files (a real file dropped from the OS)
+    var file = dt.files && dt.files[0];
+    if (file) {
+      uploadFile(file);
+      return;
+    }
+    // Fallback: an image dragged from another browser tab arrives as a URL,
+    // not as a file. We can't upload that directly without a fetch+CORS dance,
+    // so just tell the user.
+    status.textContent = 'Drop the image file from your computer (not a link from a webpage).';
+    status.style.color = '#C00';
+  });
+
+  section.appendChild(dropZone);
+  section.appendChild(fileInput);
+  section.appendChild(status);
+  phaseConfigForm.appendChild(section);
 }
 
 // Collapse state per phase per section. Keyed "<phaseId>:<sectionKey>".
@@ -3005,7 +3406,7 @@ var PHASE_CATEGORIES = [
   {
     name: 'Player Input',
     description: 'Get responses from players',
-    types: ['collect', 'collect-choice', 'rank', 'wager', 'relay']
+    types: ['collect', 'collect-choice', 'rank', 'rate', 'wager', 'relay']
   },
   {
     name: 'AI',
@@ -3175,6 +3576,13 @@ function addPhaseOfType(type) {
   } else if (type === 'rank') {
     newPhase.prompt = 'Rank these from best to worst:';
     newPhase.timer = 45;
+  } else if (type === 'rate') {
+    newPhase.prompt = 'Rate on each scale below.';
+    newPhase.scales = [
+      { id: 'originality',   label: 'Originality',   min: 1, max: 5, labels: { min: 'Familiar', max: 'Fresh' } },
+      { id: 'effectiveness', label: 'Effectiveness', min: 1, max: 5, labels: { min: 'Weak',     max: 'Strong' } }
+    ];
+    newPhase.timer = 60;
   } else if (type === 'wager') {
     newPhase.prompt = 'Bet your points!';
     newPhase.options = ['Yes', 'No'];

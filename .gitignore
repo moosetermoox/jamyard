@@ -1,2 +1,13 @@
 node_modules/
 .env
+.env.local
+.env.*.local
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# User-saved recipes — per-user content, lives outside the repo
+recipes/user/

@@ -43,7 +43,8 @@ export const KNOWN_SUFFIXES = new Set([
   'count',
   'json',
   'barChart', 'pieChart', 'chart',  // chart family — all read .tally / scoreMap
-  'mine'                              // per-player AI lookup
+  'mine',                             // per-player AI lookup
+  'assigned'                          // per-player rotation lookup (rotateFrom)
 ]);
 
 /**
@@ -304,8 +305,9 @@ export function classifyRef(parsed, allPhases) {
     const declaredRenderers = outputDef.renderers || {};
     if (declaredRenderers[parsed.suffix]) {
       out.renderable = true;
-    } else if (parsed.suffix === 'mine') {
-      // mine works on byPlayer outputs (typed object); allow it.
+    } else if (parsed.suffix === 'mine' || parsed.suffix === 'assigned') {
+      // mine/assigned work on per-player outputs (resolved by server-side
+      // helpers before the engine resolver runs).
       out.renderable = true;
     } else {
       out.problem = {

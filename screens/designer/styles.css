@@ -204,6 +204,8 @@ h1 {
   max-width: 620px;
   width: 90%;
   border: 4px solid #000;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .template-picker-title {

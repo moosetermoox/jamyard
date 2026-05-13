@@ -245,6 +245,7 @@ describe('validator diagnostics — game snapshot', () => {
   it('matches expected diagnostic-code set per shipped game', async () => {
     // Empty array means the game is clean. Update if new validators land.
     const expected = {
+      'class-critique': [],
       'class-quiz-showdown': [],
       'convince-me': [],
       'corn-story': [],
@@ -258,6 +259,7 @@ describe('validator diagnostics — game snapshot', () => {
       'mad-lib-mashup': ['DATA_REF_TYPE_MISMATCH'],
       'mood-check': [],
       'roast-me-if-you-can': [],
+      'scamper': [],
       'simple-poll': [],
       'story-builder': [],
       'two-truths-a-lie': [],

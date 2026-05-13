@@ -1,3 +1,9 @@
+// Default theme — bold black borders + flat colors, matches the game designer's
+// Keith Haring vibe. Overridden by a game-specific theme when one is set.
+if (window.applyGameTheme) {
+  window.applyGameTheme('pop-art');
+}
+
 const socket = io();
 
 // --- Stale-event guard: echo the last seen phaseInstanceId on every outgoing event ---
@@ -32,6 +38,23 @@ let matchupVotes = [];
 let currentCandidates = [];
 
 // --- Screen control helpers ---
+
+// --- Phase image helper ---
+function applyImage(imgEl, url, show) {
+  if (!imgEl) return;
+  if (show && !show.includes('image')) {
+    imgEl.hidden = true;
+    imgEl.removeAttribute('src');
+    return;
+  }
+  if (url) {
+    imgEl.src = url;
+    imgEl.hidden = false;
+  } else {
+    imgEl.hidden = true;
+    imgEl.removeAttribute('src');
+  }
+}
 
 function applyShow(show, elementMap) {
   if (!show) return; // null/undefined = show all defaults
@@ -68,6 +91,11 @@ const collectSection = document.getElementById('collect-section');
 const promptDisplay = document.getElementById('prompt-display');
 const responseInput = document.getElementById('response-input');
 const submitBtn = document.getElementById('submit-btn');
+
+// Elements - Phase images
+const collectImage = document.getElementById('collect-image');
+const revealImage = document.getElementById('reveal-image');
+const announceImage = document.getElementById('announce-image');
 
 // Elements - Other sections
 const submittedSection = document.getElementById('submitted-section');
@@ -127,6 +155,14 @@ const wagerOptionsDisplay = document.getElementById('wager-options-display');
 const wagerAmountSection = document.getElementById('wager-amount-section');
 const wagerAmountInput = document.getElementById('wager-amount-input');
 const wagerSubmitBtn = document.getElementById('wager-submit-btn');
+
+// Elements - Rate
+const rateSection = document.getElementById('rate-section');
+const ratePromptDisplay = document.getElementById('rate-prompt-display');
+const rateTimerDisplay = document.getElementById('rate-timer-display');
+const rateScales = document.getElementById('rate-scales');
+const rateSubmitBtn = document.getElementById('rate-submit-btn');
+const rateResults = document.getElementById('rate-results');
 
 // Elements - Relay
 const relaySection = document.getElementById('relay-section');
@@ -224,6 +260,19 @@ window.addEventListener('message', function(e) {
     var wagerBtn = active.querySelector('#wager-submit-btn');
     if (wagerBtn && !wagerBtn.disabled) {
       setTimeout(function() { wagerBtn.click(); }, 100);
+    }
+  } else if (id === 'rate-section') {
+    // Pick a random value on each scale, then submit
+    var scaleCards = active.querySelectorAll('.rate-scale');
+    for (var sci = 0; sci < scaleCards.length; sci++) {
+      var btns = scaleCards[sci].querySelectorAll('.rate-btn');
+      if (btns.length > 0) {
+        btns[Math.floor(Math.random() * btns.length)].click();
+      }
+    }
+    var rateBtn = active.querySelector('#rate-submit-btn');
+    if (rateBtn && !rateBtn.disabled) {
+      setTimeout(function() { rateBtn.click(); }, 100);
     }
   } else if (id === 'relay-section') {
     // Fill relay input and submit (only if it's our turn)
@@ -355,12 +404,13 @@ function clearTimer() {
 
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt, timer, playerTemplate, show, isChoice, choices, fields }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   responseInput.value = '';
   submitBtn.disabled = false;
   applyTemplate(collectSection, playerTemplate);
+  applyImage(collectImage, image, show);
 
   // Clean up previous dynamic elements
   var oldChoices = collectSection.querySelector('.choice-buttons');
@@ -504,18 +554,20 @@ socket.on('processing-started', ({ task, playerTemplate, playerShow } = {}) => {
   applyShow(playerShow, { message: processTitle });
 });
 
-socket.on('show-results', ({ content, aiResult, playerTemplate, playerShow }) => {
+socket.on('show-results', ({ content, aiResult, image, playerTemplate, playerShow }) => {
   showSection(revealSection);
   aiResultDisplay.textContent = content || aiResult;
   aiResultDisplay.classList.toggle('chart', /[█░]/.test(aiResultDisplay.textContent || ''));
   applyTemplate(revealSection, playerTemplate);
+  applyImage(revealImage, image, playerShow);
   applyShow(playerShow, { content: aiResultDisplay });
 });
 
-socket.on('announce', ({ message, timer, playerTemplate, playerShow }) => {
+socket.on('announce', ({ message, image, timer, playerTemplate, playerShow }) => {
   showSection(announceSection);
   announceMessage.textContent = message;
   applyTemplate(announceSection, playerTemplate);
+  applyImage(announceImage, image, playerShow);
   applyShow(playerShow, {
     message: announceMessage,
     timer: announceTimerDisplay
@@ -701,6 +753,195 @@ function renderRankItems() {
       rankItems.appendChild(row);
     })(i);
   }
+}
+
+// --- Socket events - Rate ---
+
+var rateCurrentRatings = {}; // { scaleId: value }
+var rateCurrentScales = [];
+
+socket.on('rate-start', function(payload) {
+  var prompt = payload.prompt, scales = payload.scales, timer = payload.timer;
+  var playerTemplate = payload.playerTemplate, show = payload.show;
+  showSection(rateSection);
+  ratePromptDisplay.textContent = prompt || 'Rate on each scale';
+  rateCurrentScales = scales || [];
+  rateCurrentRatings = {};
+  rateResults.hidden = true;
+  rateResults.innerHTML = '';
+  rateSubmitBtn.disabled = true;
+  rateSubmitBtn.hidden = false;
+  applyTemplate(rateSection, playerTemplate);
+  applyShow(show, {
+    prompt: ratePromptDisplay,
+    scales: rateScales,
+    timer: rateTimerDisplay,
+    submitButton: rateSubmitBtn,
+    results: rateResults
+  });
+  renderRateScales();
+  if (timer) {
+    startTimer(timer, rateTimerDisplay, function() {
+      // Auto-submit whatever is selected (or empty)
+      socket.emit('rate-submit', { code: currentRoomCode, ratings: rateCurrentRatings });
+      rateSubmitBtn.disabled = true;
+    });
+  }
+});
+
+socket.on('rate-results', function(payload) {
+  var scales = payload.scales || rateCurrentScales;
+  var averages = payload.averages || {};
+  var distributions = payload.distributions || {};
+  var raterCount = payload.raterCount || 0;
+  // After submitting, the player may have been switched to the generic
+  // waiting section. Bring them back to rate-section so they can see the
+  // chart. Hide the scale buttons and submit button (already disabled, but
+  // hide them entirely so it reads as "here's the result", not "still rating").
+  showSection(rateSection);
+  rateScales.hidden = true;
+  rateSubmitBtn.hidden = true;
+  rateResults.hidden = false;
+  rateResults.innerHTML = renderRateResults(scales, averages, distributions, raterCount);
+});
+
+rateSubmitBtn.addEventListener('click', function() {
+  socket.emit('rate-submit', { code: currentRoomCode, ratings: rateCurrentRatings });
+  rateSubmitBtn.disabled = true;
+});
+
+function renderRateScales() {
+  rateScales.innerHTML = '';
+  for (var i = 0; i < rateCurrentScales.length; i++) {
+    (function(scale) {
+      var card = document.createElement('div');
+      card.className = 'rate-scale';
+
+      var label = document.createElement('div');
+      label.className = 'rate-scale-label';
+      label.textContent = scale.label;
+      card.appendChild(label);
+
+      if (scale.labels && (scale.labels.min || scale.labels.max)) {
+        var endLabels = document.createElement('div');
+        endLabels.className = 'rate-scale-endlabels';
+        endLabels.innerHTML = '<span>' + (scale.labels.min || scale.min) + '</span>' +
+                              '<span>' + (scale.labels.max || scale.max) + '</span>';
+        card.appendChild(endLabels);
+      }
+
+      var btnRow = document.createElement('div');
+      btnRow.className = 'rate-scale-buttons';
+      var btns = [];
+      for (var v = scale.min; v <= scale.max; v++) {
+        (function(val) {
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'rate-btn';
+          b.textContent = String(val);
+          b.addEventListener('click', function() {
+            rateCurrentRatings[scale.id] = val;
+            for (var k = 0; k < btns.length; k++) btns[k].classList.remove('rate-btn-selected');
+            b.classList.add('rate-btn-selected');
+            // Enable submit when all scales rated
+            var ready = true;
+            for (var s = 0; s < rateCurrentScales.length; s++) {
+              if (rateCurrentRatings[rateCurrentScales[s].id] == null) { ready = false; break; }
+            }
+            rateSubmitBtn.disabled = !ready;
+          });
+          btnRow.appendChild(b);
+          btns.push(b);
+        })(v);
+      }
+      card.appendChild(btnRow);
+      rateScales.appendChild(card);
+    })(rateCurrentScales[i]);
+  }
+}
+
+function renderRateResults(scales, averages, distributions, raterCount) {
+  return '<h3>Class results (' + raterCount + ' rater' + (raterCount === 1 ? '' : 's') + ')</h3>' +
+         renderAveragesChart(scales, averages) +
+         renderDistributionPies(scales, distributions);
+}
+
+// HSL hue from 0 (red) at min to 120 (green) at max — works for the typical
+// 1=bad / 5=good rating scale. Same palette on host and player so they match.
+function rateValueColor(v, min, max) {
+  var range = (max - min) || 1;
+  var t = (v - min) / range;
+  var hue = Math.round(t * 120);
+  return 'hsl(' + hue + ', 70%, 50%)';
+}
+
+// Horizontal bar chart of average scores across all scales — one bar per scale,
+// makes it easy to compare originality/feasibility/effectiveness at a glance.
+function renderAveragesChart(scales, averages) {
+  var html = '<div class="rate-avg-section"><h4>Average</h4><div class="rate-avg-bars">';
+  for (var i = 0; i < scales.length; i++) {
+    var s = scales[i];
+    var avg = averages[s.id] || 0;
+    var range = (s.max - s.min) || 1;
+    var pct = Math.max(0, Math.min(100, ((avg - s.min) / range) * 100));
+    var color = rateValueColor(avg, s.min, s.max);
+    html += '<div class="rate-avg-row">' +
+              '<div class="rate-avg-label">' + s.label + '</div>' +
+              '<div class="rate-avg-bar-track"><div class="rate-avg-bar-fill" style="width:' + pct + '%; background:' + color + ';"></div></div>' +
+              '<div class="rate-avg-value">' + avg.toFixed(2) + ' / ' + s.max + '</div>' +
+            '</div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+// One pie chart per scale showing how votes were distributed across values.
+// Uses CSS conic-gradient — no SVG, no library. Tiny legend below each pie.
+function renderDistributionPies(scales, distributions) {
+  var html = '<div class="rate-dist-section"><h4>Distribution</h4><div class="rate-pies">';
+  for (var i = 0; i < scales.length; i++) {
+    var s = scales[i];
+    var dist = distributions[s.id] || {};
+    var total = 0;
+    for (var v = s.min; v <= s.max; v++) total += (dist[v] || 0);
+    html += '<div class="rate-pie-card">' +
+              '<div class="rate-pie-title">' + s.label + '</div>' +
+              renderPie(s, dist, total) +
+              renderPieLegend(s, dist) +
+            '</div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function renderPie(scale, dist, total) {
+  if (total === 0) return '<div class="rate-pie rate-pie-empty">no ratings</div>';
+  var stops = [];
+  var cumDeg = 0;
+  for (var v = scale.min; v <= scale.max; v++) {
+    var n = dist[v] || 0;
+    if (n === 0) continue;
+    var deg = (n / total) * 360;
+    var color = rateValueColor(v, scale.min, scale.max);
+    stops.push(color + ' ' + cumDeg + 'deg ' + (cumDeg + deg) + 'deg');
+    cumDeg += deg;
+  }
+  return '<div class="rate-pie" style="background: conic-gradient(' + stops.join(', ') + ');"></div>';
+}
+
+function renderPieLegend(scale, dist) {
+  var html = '<div class="rate-pie-legend">';
+  for (var v = scale.min; v <= scale.max; v++) {
+    var n = dist[v] || 0;
+    var color = rateValueColor(v, scale.min, scale.max);
+    html += '<div class="rate-pie-legend-row">' +
+              '<span class="rate-pie-swatch" style="background:' + color + ';"></span>' +
+              '<span class="rate-pie-legend-val">' + v + '</span>' +
+              '<span class="rate-pie-legend-count">' + n + '</span>' +
+            '</div>';
+  }
+  html += '</div>';
+  return html;
 }
 
 // --- Socket events - Wager ---
@@ -1036,7 +1277,7 @@ const allPlayerSections = [
   processSection, revealSection, endSection, gameWaitingSection,
   voteSection, voteSubmittedSection, eliminationResultsSection,
   announceSection, winnerSection, leaderboardSection, revealOneSection,
-  teamSplitSection, rankSection, wagerSection, relaySection
+  teamSplitSection, rankSection, wagerSection, relaySection, rateSection
 ];
 
 function showSection(el) {

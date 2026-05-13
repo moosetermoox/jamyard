@@ -22,6 +22,7 @@ import './collect-choice.js';
 import './vote.js';
 import './reveal-one.js';
 import './rank.js';
+import './rate.js';
 import './wager.js';
 import './relay.js';
 

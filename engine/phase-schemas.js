@@ -154,6 +154,11 @@ export const PHASE_SCHEMAS = {
         type: 'templateString', required: true,
         label: 'Message',
         placeholder: 'Round 1 — get ready!'
+      },
+      image: {
+        type: 'string', optional: true,
+        label: 'Image (optional)',
+        helper: 'Path to an uploaded image (e.g. assets/photo.jpg). Use the upload widget below.'
       }
     },
     transitions: {
@@ -166,8 +171,8 @@ export const PHASE_SCHEMAS = {
       }
     },
     ui: {
-      hostToggles: ['message', 'continueButton', 'timer'],
-      playerToggles: ['message', 'timer']
+      hostToggles: ['message', 'image', 'continueButton', 'timer'],
+      playerToggles: ['message', 'image', 'timer']
     }
   },
 
@@ -190,6 +195,21 @@ export const PHASE_SCHEMAS = {
         type: 'array', item: { type: 'string' }, optional: true,
         label: 'Multi-field response',
         helper: 'Optional. List of field names if students should fill in more than one box.'
+      },
+      rotateFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Rotate items from',
+        helper: 'Optional. Each player receives a different player\'s item from the named step. Use {{stepId.assigned}} in the prompt to show it.'
+      },
+      rotateOffset: {
+        type: 'integer', min: 1, max: 100, optional: true, default: 1,
+        label: 'Rotation offset',
+        helper: 'How many positions to shift. Default 1 = each player gets the previous player\'s item.'
+      },
+      image: {
+        type: 'string', optional: true,
+        label: 'Image (optional)',
+        helper: 'Path to an uploaded image (e.g. assets/photo.jpg). Use the upload widget below.'
       }
     },
     transitions: {
@@ -198,8 +218,8 @@ export const PHASE_SCHEMAS = {
     // Output shape varies (multi-field adds .fields per response)
     output: { kind: 'dynamic', resolver: 'collectOutput' },
     ui: {
-      hostToggles: ['prompt', 'counter', 'timer', 'closeButton'],
-      playerToggles: ['prompt', 'input', 'timer', 'submitButton']
+      hostToggles: ['prompt', 'image', 'counter', 'timer', 'closeButton'],
+      playerToggles: ['prompt', 'image', 'input', 'timer', 'submitButton']
     }
   },
 
@@ -216,6 +236,11 @@ export const PHASE_SCHEMAS = {
       choices: {
         type: 'array', item: { type: 'string' }, required: true,
         label: 'Answer choices'
+      },
+      image: {
+        type: 'string', optional: true,
+        label: 'Image (optional)',
+        helper: 'Path to an uploaded image (e.g. assets/photo.jpg). Use the upload widget below.'
       }
     },
     transitions: {
@@ -240,8 +265,8 @@ export const PHASE_SCHEMAS = {
     // shorthand for {{X.tally.barChart}} (the engine's resolver pulls
     // X.tally automatically). Not a legacy form — no alias needed.
     ui: {
-      hostToggles: ['prompt', 'counter', 'timer', 'closeButton'],
-      playerToggles: ['prompt', 'choices', 'timer']
+      hostToggles: ['prompt', 'image', 'counter', 'timer', 'closeButton'],
+      playerToggles: ['prompt', 'image', 'choices', 'timer']
     }
   },
 
@@ -489,7 +514,12 @@ export const PHASE_SCHEMAS = {
         label: 'What to show',
         placeholder: '# The class said:\n\n{{ask.responses.list}}'
       },
-      content: { type: 'string', optional: true, label: 'Static content' }
+      content: { type: 'string', optional: true, label: 'Static content' },
+      image: {
+        type: 'string', optional: true,
+        label: 'Image (optional)',
+        helper: 'Path to an uploaded image (e.g. assets/photo.jpg). Use the upload widget below.'
+      }
     },
     transitions: {
       next: { type: 'phaseRef', optional: true }
@@ -497,8 +527,8 @@ export const PHASE_SCHEMAS = {
     output: { kind: 'static', fields: {} },
     validate: 'revealContentOrTemplate',
     ui: {
-      hostToggles: ['content', 'responses', 'continueButton'],
-      playerToggles: ['content']
+      hostToggles: ['content', 'image', 'responses', 'continueButton'],
+      playerToggles: ['content', 'image']
     }
   },
 
@@ -789,6 +819,54 @@ export const PHASE_SCHEMAS = {
     ui: {
       hostToggles: ['prompt', 'progress', 'sharedResult', 'timer', 'activePlayer'],
       playerToggles: ['prompt', 'sharedResult', 'input', 'timer']
+    }
+  },
+
+  // -------------------------------------------------------------------
+  rate: {
+    label: 'Rate on Scales',
+    icon: '📏',
+    description: 'Class rates something (a presentation, an idea, a pitch) on one or more custom scales. Teacher chooses whether everyone or only the teacher sees the results.',
+    role: 'input',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'timer', 'participantSelector', 'loops'],
+    fields: {
+      prompt: {
+        type: 'templateString', optional: true,
+        label: 'Instructions to raters',
+        helper: 'Optional. The teacher can also explain verbally what is being rated.',
+        placeholder: 'Rate Maria\'s pitch on each scale below.'
+      },
+      scales: {
+        type: 'array',
+        item: { type: 'object' },
+        required: true,
+        label: 'Scales',
+        helper: 'Each scale needs an id, label, min, max, and optional end labels.'
+      },
+      visibility: {
+        type: 'enum', values: ['all', 'host-only'], default: 'all',
+        label: 'Who sees the results',
+        helper: '"all" reveals averages to the whole class. "host-only" keeps them on the teacher screen.'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        averages:    { type: 'scoreMap', capability: 'scoreMap', renderers: { barChart: 'tallyBarChart' } },
+        distributions: { type: 'object' },
+        byPlayer:    { type: 'object' },
+        byScale:     { type: 'object' },
+        scales:      { type: 'array' }
+      }
+    },
+    validate: 'rateScalesValid',
+    ui: {
+      hostToggles: ['prompt', 'counter', 'timer', 'closeButton', 'results'],
+      playerToggles: ['prompt', 'scales', 'timer', 'submitButton', 'results']
     }
   },
 

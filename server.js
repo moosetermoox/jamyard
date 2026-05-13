@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import express from 'express';
+import multer from 'multer';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, extname } from 'path';
 import { randomUUID } from 'crypto';
 import { readdir, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
@@ -35,7 +36,8 @@ const __dirname = dirname(__filename);
 const app = express();
 const server = createServer(app);
 const io = new Server(server);
-const PORT = 3000;
+// Render (and most PaaS) assign a port via $PORT; default to 3000 locally.
+const PORT = Number(process.env.PORT) || 3000;
 
 const aiMode = process.env.ANTHROPIC_API_KEY ? 'real' : 'mock';
 console.log(`[init] AI Service mode: ${aiMode}`);
@@ -121,28 +123,40 @@ function isStalePhaseEvent(room, clientPhaseInstanceId, eventName) {
 function resolveTemplate(template, engine) {
   return template.replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
     const trimmed = ref.trim();
-    // .mine has no recipient at this layer — replace with a host-friendly note
+    // .mine / .assigned have no recipient at this layer — host-friendly note
     if (/\.mine$/.test(trimmed)) return '(each student gets their own)';
+    if (/\.assigned$/.test(trimmed)) return '(each student gets a different player\'s item)';
     const value = engine.resolve(trimmed);
     return value !== undefined ? String(value) : match;
   });
 }
 
-// Resolve {{X.mine}} per recipient, using the byPlayer map an ai-process step
-// produced when phase.perPlayer === true. Other refs resolve normally.
+// Resolve {{X.mine}} and {{X.assigned}} per recipient.
+//   .mine     — looks up phaseData[X].byPlayer[playerId] (ai-process perPlayer / collect)
+//   .assigned — looks up phaseData[X].assigned[playerId] (collect with rotateFrom)
+// Other refs resolve normally.
 function resolvePerPlayerTemplate(template, engine, playerId) {
   if (!template) return '';
-  return template.replace(/\{\{\s*([a-zA-Z0-9_-]+)\.mine\s*\}\}/g, (match, phaseId) => {
-    const data = engine.phaseData[phaseId];
-    if (data && data.byPlayer && data.byPlayer[playerId] !== undefined) {
-      return String(data.byPlayer[playerId]);
-    }
-    return match;
-  }).replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
-    if (/\.mine\s*$/.test(ref)) return match;
-    const value = engine.resolve(ref.trim());
-    return value !== undefined ? String(value) : match;
-  });
+  return template
+    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.assigned\s*\}\}/g, (match, phaseId) => {
+      const data = engine.phaseData[phaseId];
+      if (data && data.assigned && data.assigned[playerId] !== undefined) {
+        return String(data.assigned[playerId]);
+      }
+      return match;
+    })
+    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.mine\s*\}\}/g, (match, phaseId) => {
+      const data = engine.phaseData[phaseId];
+      if (data && data.byPlayer && data.byPlayer[playerId] !== undefined) {
+        return String(data.byPlayer[playerId]);
+      }
+      return match;
+    })
+    .replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
+      if (/\.(mine|assigned)\s*$/.test(ref)) return match;
+      const value = engine.resolve(ref.trim());
+      return value !== undefined ? String(value) : match;
+    });
 }
 
 function resolveScreenControl(phase, engine) {
@@ -200,6 +214,51 @@ async function closeRanking(code, room) {
   if (nextId) {
     engine.transition(nextId);
     await handlePhase(code, room);
+  }
+}
+
+// --- Rate helpers ---
+
+async function closeRating(code, room) {
+  const rs = room.phaseState;
+  if (!rs || !rs.phaseId || !rs.scales) return;
+  if (rs.timer) { clearTimeout(rs.timer); rs.timer = null; }
+
+  const engine = room.engine;
+  const phase = engine.config.phases[rs.phaseId];
+
+  const { aggregateRatings } = await import('./engine/phase-handlers/rate.js');
+  const { averages, distributions, byScale } = aggregateRatings(rs.scales, rs.submissions);
+
+  engine.storePhaseData(rs.phaseId, {
+    averages,
+    distributions,
+    byPlayer: rs.submissions,
+    byScale,
+    scales: rs.scales
+  });
+
+  console.log(`[closeRating] Phase '${rs.phaseId}' tallied ${Object.keys(rs.submissions).length} rater(s) across ${rs.scales.length} scale(s)`);
+
+  // Broadcast results — host always gets them; players only if visibility=all.
+  // Do NOT auto-advance to the next phase here: the host needs time to read
+  // the chart and decide when to move on (and players need time to see it
+  // too, when visibility=all). The host's "Continue" button on the rate
+  // results view fires advance-phase, which the global handler picks up.
+  const hostId = roomToHost.get(code);
+  if (hostId) {
+    io.to(hostId).emit(EVENTS.RATE_RESULTS, {
+      scales: rs.scales, averages, distributions, raterCount: Object.keys(rs.submissions).length,
+      visibility: rs.visibility, phaseInstanceId: room.phaseInstanceId
+    });
+  }
+  if (rs.visibility === 'all') {
+    for (const player of engine.players.list()) {
+      io.to(player.id).emit(EVENTS.RATE_RESULTS, {
+        scales: rs.scales, averages, distributions, raterCount: Object.keys(rs.submissions).length,
+        visibility: rs.visibility, phaseInstanceId: room.phaseInstanceId
+      });
+    }
   }
 }
 
@@ -592,14 +651,28 @@ async function tallyAndAdvance(code, room) {
   }
 }
 
+// Resolve a phase.image config value to a web URL the browser can fetch.
+// Config stores a relative path like "assets/photo.jpg"; runtime path is
+// "/games/<gameId>/assets/photo.jpg". Absolute URLs (http://...) and
+// already-rooted paths (/...) pass through unchanged.
+function resolveImageUrl(rel, gameId) {
+  if (!rel || typeof rel !== 'string') return null;
+  if (/^https?:\/\//i.test(rel)) return rel;
+  if (rel.startsWith('/')) return rel;
+  if (!gameId) return null;
+  return `/games/${gameId}/${rel.replace(/^\.?\//, '')}`;
+}
+
 // Services bundle passed to phase handler context
 const phaseServices = {
   io, roomToHost, aiService,
   resolveTemplate, resolvePerPlayerTemplate, resolveScreenControl, getNextPhaseId, getEligibleVoters,
+  resolveImageUrl,
   handlePhase: (code, room) => handlePhase(code, room),
   // Helpers needed by complex phase handlers
   generateMatchups,
   closeRanking: (code, room) => closeRanking(code, room),
+  closeRating: (code, room) => closeRating(code, room),
   closeWager: (code, room) => closeWager(code, room),
   emitRelayTurn: (code, room) => emitRelayTurn(code, room),
   shuffleArray,
@@ -711,6 +784,66 @@ app.get('/designer/edit', (req, res) => {
 });
 
 app.use('/designer', express.static(join(__dirname, 'screens/designer')));
+
+// Per-game uploaded assets — served as /games/<id>/assets/<filename>.
+// Matches the path stored in config (`"assets/photo.jpg"` becomes
+// `/games/<id>/assets/photo.jpg` at runtime).
+app.use('/games', express.static(GAMES_DIR));
+
+// --- Asset upload (multer) ---
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp']);
+const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+
+const assetUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter(req, file, cb) {
+    if (!ALLOWED_IMAGE_MIME.has(file.mimetype)) {
+      return cb(new Error('Only JPEG, PNG, GIF, or WebP images allowed'));
+    }
+    cb(null, true);
+  }
+});
+
+function sanitizeAssetFilename(original) {
+  const ext = (extname(original) || '').toLowerCase();
+  const stem = original.replace(/\.[^.]+$/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 40) || 'image';
+  const safeExt = ALLOWED_IMAGE_EXT.has(ext) ? ext : '.jpg';
+  const stamp = Date.now().toString(36);
+  return `${stem}-${stamp}${safeExt}`;
+}
+
+app.post('/api/games/:gameId/assets', assetUpload.single('file'), async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(gameId)) {
+      return res.status(400).json({ error: 'Invalid game id.' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file in request (field name must be "file").' });
+    }
+    const gameDir = join(GAMES_DIR, gameId);
+    try { await access(gameDir); } catch {
+      return res.status(404).json({ error: `Game "${gameId}" not found.` });
+    }
+    const assetsDir = join(gameDir, 'assets');
+    await mkdir(assetsDir, { recursive: true });
+    const filename = sanitizeAssetFilename(req.file.originalname);
+    await writeFile(join(assetsDir, filename), req.file.buffer);
+    res.json({
+      path: `assets/${filename}`,
+      url: `/games/${gameId}/assets/${filename}`,
+      size: req.file.size
+    });
+  } catch (error) {
+    console.log(`[api/games/:gameId/assets] Error: ${error.message}`);
+    res.status(400).json({ error: error.message });
+  }
+});
 
 app.get('/api/games/:gameId', async (req, res) => {
   try {
@@ -1256,6 +1389,7 @@ io.on('connection', (socket) => {
 
       room.engine = new GameEngine(config);
       room.engine.hooks = hooks;
+      room.gameId = selectedGame;
 
       roomToHost.set(code, socket.id);
       socket.join(code);
@@ -1443,6 +1577,18 @@ io.on('connection', (socket) => {
             return { playerId: p.id, name: p.name, text: r };
           });
 
+        // Build byPlayer map alongside responses array — used by .mine and
+        // by downstream rotateFrom phases. Multi-field responses store the
+        // joined text; rotation users wanting the structured fields can
+        // dataRef into responses directly.
+        const byPlayer = {};
+        for (const r of responses) {
+          if (r && r.playerId) byPlayer[r.playerId] = r.text;
+        }
+
+        // Preserve any data the phase handler wrote on enter (e.g. assigned)
+        const existing = room.engine.phaseData[collectPhase.id] || {};
+
         // For collect-choice, also compute tally
         if (collectPhase.type === 'collect-choice') {
           const tally = {};
@@ -1451,10 +1597,10 @@ io.on('connection', (socket) => {
           }
           // Store with choice field for clarity
           const choiceResponses = responses.map(r => ({ playerId: r.playerId, name: r.name, choice: r.text, text: r.text }));
-          room.engine.storePhaseData(collectPhase.id, { responses: choiceResponses, tally });
+          room.engine.storePhaseData(collectPhase.id, { ...existing, responses: choiceResponses, tally, byPlayer });
           console.log(`[close-submissions] Stored ${choiceResponses.length} choices for phase '${collectPhase.id}'`);
         } else {
-          room.engine.storePhaseData(collectPhase.id, { responses });
+          room.engine.storePhaseData(collectPhase.id, { ...existing, responses, byPlayer });
           console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}'`);
         }
 
@@ -1652,6 +1798,47 @@ io.on('connection', (socket) => {
     if (!room || !room.phaseState) return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-ranking')) return;
     await closeRanking(code, room);
+  });
+
+  // --- Rate events ---
+
+  socket.on(EVENTS.RATE_SUBMIT, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'rate-submit', payload)) return;
+    const { code, ratings, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'rate-submit')) return;
+    const rs = room.phaseState;
+    if (!rs.scales) return;
+    if (!rs.eligibleIds.has(socket.id) || rs.completed.has(socket.id)) return;
+
+    // Clamp values into each scale's [min, max] and round to int.
+    const cleaned = {};
+    for (const scale of rs.scales) {
+      const raw = ratings && ratings[scale.id];
+      if (raw == null) continue;
+      const v = Number(raw);
+      if (!Number.isFinite(v)) continue;
+      cleaned[scale.id] = Math.max(scale.min, Math.min(scale.max, Math.round(v)));
+    }
+    rs.submissions[socket.id] = cleaned;
+    rs.completed.add(socket.id);
+    socket.emit(EVENTS.WAITING, { message: 'Ratings submitted. Waiting for others...' });
+
+    const hostId = roomToHost.get(code);
+    if (hostId) io.to(hostId).emit(EVENTS.RATE_RECEIVED, { count: rs.completed.size, total: rs.eligibleIds.size });
+
+    if (rs.completed.size >= rs.eligibleIds.size) {
+      await closeRating(code, room);
+    }
+  });
+
+  socket.on(EVENTS.CLOSE_RATING, async ({ code, phaseInstanceId } = {}) => {
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-rating')) return;
+    recordEvent(room, 'close-rating');
+    await closeRating(code, room);
   });
 
   // --- Wager events ---

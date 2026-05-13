@@ -1,0 +1,100 @@
+{
+  "id": "class-critique",
+  "name": "Class Critique",
+  "icon": "🎤",
+  "description": "Whole-class feedback on a presentation, idea, or pitch. Students rate on three custom 1–5 scales; results show as bar charts + pie charts.",
+  "tagline": "Use after a student presentation, an idea pitch, or any artifact you want structured class feedback on.",
+  "version": "1",
+
+  "parameters": {
+    "topic": {
+      "type": "templateString",
+      "label": "What is being rated?",
+      "helper": "Describe what students should rate — a presentation, an idea, a piece of writing, etc. The teacher can also explain verbally.",
+      "placeholder": "Rate the presentation you just heard.",
+      "required": true,
+      "minLength": 3,
+      "maxLength": 300
+    },
+    "scale1Label": {
+      "type": "string",
+      "label": "First scale (1–5)",
+      "default": "Originality",
+      "minLength": 1,
+      "maxLength": 40
+    },
+    "scale2Label": {
+      "type": "string",
+      "label": "Second scale (1–5)",
+      "default": "Effectiveness",
+      "minLength": 1,
+      "maxLength": 40
+    },
+    "scale3Label": {
+      "type": "string",
+      "label": "Third scale (1–5)",
+      "default": "Feasibility",
+      "minLength": 1,
+      "maxLength": 40
+    },
+    "visibility": {
+      "type": "enum",
+      "values": ["all", "host-only"],
+      "label": "Who sees the results",
+      "helper": "Everyone — the whole class sees averages + distribution. Teacher only — results stay on the teacher screen.",
+      "default": "all"
+    },
+    "timer": {
+      "type": "integer",
+      "label": "Time to rate (seconds)",
+      "helper": "How long students have to fill in all three scales.",
+      "default": 60,
+      "min": 15,
+      "max": 600
+    }
+  },
+
+  "template": {
+    "name": "Critique: ${topic}",
+    "description": "A whole-class critique built with the Class Critique recipe.",
+    "minPlayers": 2,
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+
+      "intro": {
+        "type": "announce",
+        "message": "🎤 ${topic}\n\nWhen the presenter is done, rate it on each scale. Be honest and constructive.",
+        "timer": 12,
+        "next": "rate-it"
+      },
+
+      "rate-it": {
+        "type": "rate",
+        "prompt": "${topic}",
+        "scales": [
+          { "id": "scale1", "label": "${scale1Label}", "min": 1, "max": 5 },
+          { "id": "scale2", "label": "${scale2Label}", "min": 1, "max": 5 },
+          { "id": "scale3", "label": "${scale3Label}", "min": 1, "max": 5 }
+        ],
+        "visibility": "${visibility}",
+        "timer": "${timer}",
+        "next": "thanks"
+      },
+
+      "thanks": {
+        "type": "announce",
+        "message": "Thanks for the feedback! 👏",
+        "timer": 6,
+        "next": "end"
+      },
+
+      "end": {
+        "type": "end",
+        "message": "Critique complete."
+      }
+    }
+  }
+}

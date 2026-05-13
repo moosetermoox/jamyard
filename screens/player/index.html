@@ -46,6 +46,7 @@
   <section id="collect-section" hidden>
     <div class="screen-template" hidden></div>
     <h1>Answer the question:</h1>
+    <img id="collect-image" class="phase-image" hidden alt="">
     <p id="prompt-display" class="prompt"></p>
     <div id="collect-timer" class="timer-bar-wrapper" hidden>
       <span class="timer-bar-text"></span>
@@ -76,6 +77,7 @@
   <section id="reveal-section" hidden>
     <div class="screen-template" hidden></div>
     <h1>The Result:</h1>
+    <img id="reveal-image" class="phase-image" hidden alt="">
     <div id="ai-result" class="ai-result"></div>
   </section>
 
@@ -120,6 +122,7 @@
   <!-- ANNOUNCE SECTION -->
   <section id="announce-section" hidden>
     <div class="screen-template" hidden></div>
+    <img id="announce-image" class="phase-image" hidden alt="">
     <h1 id="announce-message"></h1>
     <div id="announce-timer" class="timer-bar-wrapper" hidden>
       <span class="timer-bar-text"></span>
@@ -192,6 +195,19 @@
       <textarea id="relay-input" placeholder="Add your part..." rows="2"></textarea>
       <button id="relay-submit-btn">Submit</button>
     </div>
+  </section>
+
+  <!-- RATE SECTION -->
+  <section id="rate-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h1 id="rate-prompt-display"></h1>
+    <div id="rate-timer-display" class="timer-bar-wrapper" hidden>
+      <span class="timer-bar-text"></span>
+      <div class="timer-bar"><div class="timer-bar-fill"></div></div>
+    </div>
+    <div id="rate-scales"></div>
+    <button id="rate-submit-btn">Submit Ratings</button>
+    <div id="rate-results" hidden></div>
   </section>
 
   <!-- END SECTION -->

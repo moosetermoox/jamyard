@@ -86,6 +86,13 @@ export const EVENTS = {
   WAGER_RESOLVE:        'wager-resolve',
   WAGER_NEED_RESOLVE:   'wager-need-resolve',
 
+  // --- Rate Phase ---
+  RATE_START:           'rate-start',
+  RATE_SUBMIT:          'rate-submit',
+  RATE_RECEIVED:        'rate-received',
+  RATE_RESULTS:         'rate-results',
+  CLOSE_RATING:         'close-rating',
+
   // --- Relay Phase ---
   RELAY_TURN:           'relay-turn',
   RELAY_SUBMIT:         'relay-submit',

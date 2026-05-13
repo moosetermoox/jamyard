@@ -24,11 +24,14 @@ registerHandler('collect-choice', {
       if (p.response) engine.players.update(p.id, { response: undefined });
     }
 
+    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId);
+
     // Send to host (resolve refs once for host view)
     const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
     ctx.emitToHost(EVENTS.GAME_STARTED, {
       prompt: hostPrompt,
       choices,
+      image,
       timer: phase.timer || null,
       isChoice: true,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
@@ -44,6 +47,7 @@ registerHandler('collect-choice', {
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
         prompt: playerPrompt,
         choices,
+        image,
         timer: phase.timer || null,
         isChoice: true,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -70,9 +74,11 @@ registerHandler('collect-choice', {
         if (!Array.isArray(choices)) choices = [];
       }
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, socket.id);
+      const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId);
       socket.emit(EVENTS.GAME_STARTED, {
         prompt: playerPrompt,
         choices,
+        image,
         timer: null,
         isChoice: true,
         playerTemplate: sc.playerTemplate, show: sc.playerShow

@@ -217,6 +217,58 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Rate phase: scales array shape (id/label/min/max).
+    if (phase.type === 'rate') {
+      if (!Array.isArray(phase.scales) || phase.scales.length === 0) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (rate) needs at least one scale.`
+        );
+      } else {
+        const seenIds = new Set();
+        for (let i = 0; i < phase.scales.length; i++) {
+          const s = phase.scales[i];
+          const path = `scales[${i}]`;
+          if (!s || typeof s !== 'object' || Array.isArray(s)) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" ${path} must be an object with id/label/min/max.`
+            );
+            continue;
+          }
+          if (!s.id || typeof s.id !== 'string') {
+            errors.push(
+              `Game "${gameId}": phase "${name}" ${path}.id is required (a short identifier like "originality").`
+            );
+          } else if (seenIds.has(s.id)) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" ${path}.id "${s.id}" appears more than once. Scale ids must be unique.`
+            );
+          } else {
+            seenIds.add(s.id);
+          }
+          if (!s.label || typeof s.label !== 'string') {
+            errors.push(
+              `Game "${gameId}": phase "${name}" ${path}.label is required (e.g. "Originality").`
+            );
+          }
+          const min = s.min == null ? 1 : s.min;
+          const max = s.max == null ? 5 : s.max;
+          if (!Number.isInteger(min) || !Number.isInteger(max)) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" ${path}.min and ${path}.max must be integers.`
+            );
+          } else if (min >= max) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" ${path}: min (${min}) must be less than max (${max}).`
+            );
+          } else if (max - min > 10) {
+            warnings.push(
+              `Game "${gameId}": phase "${name}" ${path}: a range of ${max - min + 1} points is hard to use on a phone. Consider 5 or 7 points.`
+            );
+          }
+        }
+      }
+    }
+
     // Data reference validation — check that referenced phase exists
     for (const field of DATA_REF_FIELDS) {
       if (phase[field] && typeof phase[field] === 'string' && phase[field].includes('.')) {
@@ -455,6 +507,27 @@ export function validate(config, gameId, options) {
         `Game "${gameId}": phase "${name}" has rejectNext "${phase.rejectNext}" which does not exist`
       );
     }
+
+    // rotateFrom reference + source-type validation. Source must produce a
+    // per-player map (collect always does; ai-process only when perPlayer).
+    if (phase.rotateFrom) {
+      const src = config.phases[phase.rotateFrom];
+      if (!src) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" has rotateFrom "${phase.rotateFrom}" which does not exist`
+        );
+      } else {
+        const supportsRotation =
+          src.type === 'collect' ||
+          src.type === 'collect-choice' ||
+          (src.type === 'ai-process' && src.perPlayer === true);
+        if (!supportsRotation) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" rotateFrom "${phase.rotateFrom}" must point to a collect, collect-choice, or per-player ai-process step (got ${src.type})`
+          );
+        }
+      }
+    }
   }
 
   // Cycle detection — any cycle through next/approveNext/rejectNext (excluding
@@ -542,6 +615,8 @@ function inferDiagnosticCode(msg, severity) {
   if (/has approveNext ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
   if (/has rejectNext ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
   if (/has loopBack ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
+  if (/has rotateFrom ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
+  if (/rotateFrom ".+" must point to/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
   if (/references data ".+" but phase ".+" does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_DATA_REF;
   if (/references ".+" but phase ".+" does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_DATA_REF;
 

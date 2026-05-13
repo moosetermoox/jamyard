@@ -74,7 +74,32 @@ const PHASE_EXTRA_GUIDANCE = {
     Each field renders as a separate labeled text input. The response is stored with a "fields" object (keyed by "key") plus a "text" field joining all values.
     Inside foreach, reference specific fields with _current.fields.<key> (e.g. _current.fields.lie).
     Use "choices": "_current.shuffledFields" in a collect-choice sub-phase to show field values as shuffled multiple-choice options.
-    Use "correctAnswer": "_current.fields.<key>" in scoring to match against a specific field value.`,
+    Use "correctAnswer": "_current.fields.<key>" in scoring to match against a specific field value.
+
+    ROTATION (telephone-style chains): set "rotateFrom": "<phaseId>" to have each player receive a different player's answer from that earlier phase. Reference the assigned item in the prompt with {{<phaseId>.assigned}}. Chain multiple collect steps where each rotateFrom points to the previous one to build a telephone / SCAMPER-style flow:
+    "starter":     { "type": "collect", "prompt": "Write a one-sentence story opening.", "next": "round1" }
+    "round1":      { "type": "collect", "prompt": "Previous: {{starter.assigned}}\\n\\nKeep the sentence going.", "rotateFrom": "starter", "next": "round2" }
+    "round2":      { "type": "collect", "prompt": "Previous: {{round1.assigned}}\\n\\nKeep the sentence going.", "rotateFrom": "round1", "next": "reveal" }
+    Each rotateFrom MUST point to a real earlier collect/collect-choice/per-player ai-process step. You CANNOT rotate from inside a loop — chain explicit phases instead.`,
+
+  rate:
+    `RATE PHASE: students score one thing (a presentation, an idea, the teacher describes verbally) on one or more 1-N scales. Use this when the user describes "rate", "critique", or "judge on multiple criteria".
+    Each scale is an object: { "id": "<short-id>", "label": "<display name>", "min": 1, "max": 5, "labels": { "min": "Low end", "max": "High end" } }
+    "labels" is optional. "min"/"max" default to 1/5 but be explicit. "id" must be unique per scale.
+    Set "visibility": "all" for the class to see averages + distribution, or "host-only" to keep results on the teacher screen.
+    EXAMPLE:
+    "rate-it": {
+      "type": "rate",
+      "prompt": "Rate the presentation on each scale below.",
+      "scales": [
+        { "id": "originality",   "label": "Originality",   "min": 1, "max": 5, "labels": { "min": "Familiar", "max": "Fresh" } },
+        { "id": "effectiveness", "label": "Effectiveness", "min": 1, "max": 5 },
+        { "id": "feasibility",   "label": "Feasibility",   "min": 1, "max": 5 }
+      ],
+      "visibility": "all",
+      "timer": 60,
+      "next": "thanks"
+    }`,
 
   'ai-process':
     `PER-PLAYER MODE: set "perPlayer": true to generate one item per player (e.g. unique debate topics, scenarios, math problems). The engine asks for exactly N items, parses as a JSON array, and assigns one to each player. In any later "collect" or "collect-choice" prompt, write {{phaseId.mine}} and the engine substitutes that player's item per-recipient. Do NOT use {{phaseId.result}} for per-player content — result is the full array and renders as joined text. Example:

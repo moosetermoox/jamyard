@@ -53,6 +53,15 @@ export const EVENT_SCHEMAS = {
     amount: 'number:required',
     phaseInstanceId: 'number:optional'
   },
+  'rate-submit': {
+    code: 'string:required',
+    ratings: 'object:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'close-rating': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
   'relay-submit': {
     code: 'string:required',
     text: 'string:required',

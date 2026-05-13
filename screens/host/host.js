@@ -1,3 +1,11 @@
+// Default theme — bold black borders + flat colors, matches the game designer's
+// Keith Haring vibe. Applied immediately so even pre-game lobby screens look
+// like the rest of the app. A game with its own theme will override this on
+// room-created.
+if (window.applyGameTheme) {
+  window.applyGameTheme('pop-art');
+}
+
 const socket = io();
 
 // --- Stale-event guard: echo the last seen phaseInstanceId on every outgoing event ---
@@ -104,6 +112,15 @@ const rankCounter = document.getElementById('rank-counter');
 const rankTimer = document.getElementById('rank-timer');
 const rankCloseBtn = document.getElementById('rank-close-btn');
 
+// Elements - Rate
+const rateSection = document.getElementById('rate-section');
+const ratePrompt = document.getElementById('rate-prompt');
+const rateCounter = document.getElementById('rate-counter');
+const rateTimer = document.getElementById('rate-timer');
+const rateCloseBtn = document.getElementById('rate-close-btn');
+const rateResults = document.getElementById('rate-results');
+const rateContinueBtn = document.getElementById('rate-continue-btn');
+
 // Elements - Wager
 const wagerSection = document.getElementById('wager-section');
 const wagerPrompt = document.getElementById('wager-prompt');
@@ -133,6 +150,30 @@ const phaseErrorEndBtn = document.getElementById('phase-error-end-btn');
 // Elements - End
 const endSection = document.getElementById('end-section');
 const playAgainBtn = document.getElementById('play-again-btn');
+
+// Elements - Phase images
+const collectImage = document.getElementById('collect-image');
+const revealImage = document.getElementById('reveal-image');
+const announceImage = document.getElementById('announce-image');
+
+// --- Phase image helper ---
+// Sets src on the section's <img.phase-image> and respects the 'image' show toggle.
+function applyImage(imgEl, url, show) {
+  if (!imgEl) return;
+  // If show toggles are set and don't include 'image', hide regardless of url.
+  if (show && !show.includes('image')) {
+    imgEl.hidden = true;
+    imgEl.removeAttribute('src');
+    return;
+  }
+  if (url) {
+    imgEl.src = url;
+    imgEl.hidden = false;
+  } else {
+    imgEl.hidden = true;
+    imgEl.removeAttribute('src');
+  }
+}
 
 // --- Screen control helpers ---
 
@@ -275,6 +316,7 @@ window.addEventListener('message', (e) => {
     'close-submissions-btn',
     'close-voting-btn',
     'rank-close-btn',
+    'rate-close-btn', 'rate-continue-btn',
     'wager-close-btn',
     'reveal-one-next-btn', 'reveal-one-continue-btn',
     'preview-approve-btn',
@@ -381,11 +423,12 @@ function clearTimer() {
 
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt, timer, hostTemplate, show }) => {
+socket.on('game-started', ({ prompt, image, timer, hostTemplate, show }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   submissionCount.textContent = '0 of 0 submitted';
   applyTemplate(collectSection, hostTemplate);
+  applyImage(collectImage, image, show);
   applyShow(show, {
     prompt: promptDisplay,
     counter: submissionCount,
@@ -447,11 +490,12 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
   }
 });
 
-socket.on('show-results', ({ content, aiResult, responses, hostTemplate, hostShow }) => {
+socket.on('show-results', ({ content, aiResult, responses, image, hostTemplate, hostShow }) => {
   showSection(revealSection);
   aiResultDisplay.textContent = content || aiResult;
   aiResultDisplay.classList.toggle('chart', /[█░]/.test(aiResultDisplay.textContent || ''));
   applyTemplate(revealSection, hostTemplate);
+  applyImage(revealImage, image, hostShow);
   applyShow(hostShow, {
     content: aiResultDisplay,
     responses: revealResponses,
@@ -468,10 +512,11 @@ socket.on('show-results', ({ content, aiResult, responses, hostTemplate, hostSho
   }
 });
 
-socket.on('announce', ({ message, timer, hostTemplate, hostShow }) => {
+socket.on('announce', ({ message, image, timer, hostTemplate, hostShow }) => {
   showSection(announceSection);
   announceMessage.textContent = message;
   applyTemplate(announceSection, hostTemplate);
+  applyImage(announceImage, image, hostShow);
   applyShow(hostShow, {
     message: announceMessage,
     continueButton: announceContinueBtn,
@@ -603,6 +648,132 @@ socket.on('rank-start', ({ prompt, totalRankers, timer, hostTemplate, show }) =>
 socket.on('rank-received', ({ count, total }) => {
   rankCounter.textContent = count + ' of ' + total + ' ranked';
 });
+
+// --- Socket events - Rate ---
+
+socket.on('rate-start', ({ prompt, scales, visibility, totalRaters, timer, hostTemplate, show }) => {
+  showSection(rateSection);
+  ratePrompt.textContent = prompt || (visibility === 'host-only' ? 'Rate (results private to you)' : 'Rate');
+  rateCounter.textContent = '0 of ' + totalRaters + ' rated';
+  rateResults.hidden = true;
+  rateResults.innerHTML = '';
+  rateContinueBtn.hidden = true;
+  rateCloseBtn.hidden = false;
+  rateCloseBtn.disabled = false;
+  applyTemplate(rateSection, hostTemplate);
+  applyShow(show, {
+    prompt: ratePrompt,
+    counter: rateCounter,
+    timer: rateTimer,
+    closeButton: rateCloseBtn,
+    results: rateResults
+  });
+  if (timer) {
+    startTimer(timer, rateTimer, () => {
+      socket.emit('close-rating', { code: currentRoomCode });
+    });
+  }
+});
+
+socket.on('rate-received', ({ count, total }) => {
+  rateCounter.textContent = count + ' of ' + total + ' rated';
+});
+
+socket.on('rate-results', ({ scales, averages, distributions, raterCount, visibility }) => {
+  rateResults.hidden = false;
+  rateCloseBtn.hidden = true;
+  rateContinueBtn.hidden = false;
+  rateResults.innerHTML = renderHostRateResults(scales, averages, distributions, raterCount, visibility);
+});
+
+rateCloseBtn.addEventListener('click', () => {
+  socket.emit('close-rating', { code: currentRoomCode });
+  rateCloseBtn.disabled = true;
+});
+
+rateContinueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
+});
+
+function renderHostRateResults(scales, averages, distributions, raterCount, visibility) {
+  scales = scales || [];
+  averages = averages || {};
+  distributions = distributions || {};
+  return '<p class="rate-results-header">' + raterCount + ' rater' + (raterCount === 1 ? '' : 's') +
+         (visibility === 'host-only' ? ' &middot; <em>only you see this</em>' : '') + '</p>' +
+         hostAveragesChart(scales, averages) +
+         hostDistributionPies(scales, distributions);
+}
+
+function hostValueColor(v, min, max) {
+  const range = (max - min) || 1;
+  const t = (v - min) / range;
+  const hue = Math.round(t * 120);
+  return `hsl(${hue}, 70%, 50%)`;
+}
+
+function hostAveragesChart(scales, averages) {
+  let html = '<div class="rate-avg-section"><h3>Average</h3><div class="rate-avg-bars">';
+  for (const s of scales) {
+    const avg = averages[s.id] || 0;
+    const range = (s.max - s.min) || 1;
+    const pct = Math.max(0, Math.min(100, ((avg - s.min) / range) * 100));
+    const color = hostValueColor(avg, s.min, s.max);
+    html += `<div class="rate-avg-row">
+               <div class="rate-avg-label">${s.label}</div>
+               <div class="rate-avg-bar-track"><div class="rate-avg-bar-fill" style="width:${pct}%; background:${color};"></div></div>
+               <div class="rate-avg-value">${avg.toFixed(2)} / ${s.max}</div>
+             </div>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function hostDistributionPies(scales, distributions) {
+  let html = '<div class="rate-dist-section"><h3>Distribution</h3><div class="rate-pies">';
+  for (const s of scales) {
+    const dist = distributions[s.id] || {};
+    let total = 0;
+    for (let v = s.min; v <= s.max; v++) total += (dist[v] || 0);
+    html += `<div class="rate-pie-card">
+               <div class="rate-pie-title">${s.label}</div>
+               ${hostRenderPie(s, dist, total)}
+               ${hostRenderPieLegend(s, dist)}
+             </div>`;
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function hostRenderPie(scale, dist, total) {
+  if (total === 0) return '<div class="rate-pie rate-pie-empty">no ratings</div>';
+  const stops = [];
+  let cumDeg = 0;
+  for (let v = scale.min; v <= scale.max; v++) {
+    const n = dist[v] || 0;
+    if (n === 0) continue;
+    const deg = (n / total) * 360;
+    const color = hostValueColor(v, scale.min, scale.max);
+    stops.push(`${color} ${cumDeg}deg ${cumDeg + deg}deg`);
+    cumDeg += deg;
+  }
+  return `<div class="rate-pie" style="background: conic-gradient(${stops.join(', ')});"></div>`;
+}
+
+function hostRenderPieLegend(scale, dist) {
+  let html = '<div class="rate-pie-legend">';
+  for (let v = scale.min; v <= scale.max; v++) {
+    const n = dist[v] || 0;
+    const color = hostValueColor(v, scale.min, scale.max);
+    html += `<div class="rate-pie-legend-row">
+               <span class="rate-pie-swatch" style="background:${color};"></span>
+               <span class="rate-pie-legend-val">${v}</span>
+               <span class="rate-pie-legend-count">${n}</span>
+             </div>`;
+  }
+  html += '</div>';
+  return html;
+}
 
 // --- Socket events - Wager ---
 
@@ -838,7 +1009,7 @@ const allSections = [
   lobbySection, collectSection, processSection, previewSection,
   revealSection, voteSection, eliminationSection, winnerSection,
   announceSection, leaderboardSection, revealOneSection,
-  teamSplitSection, rankSection, wagerSection, relaySection,
+  teamSplitSection, rankSection, wagerSection, relaySection, rateSection,
   phaseErrorSection, endSection
 ];
 

@@ -36,6 +36,7 @@
   <section id="collect-section" hidden>
     <div class="screen-template" hidden></div>
     <h2>Players are answering...</h2>
+    <img id="collect-image" class="phase-image" hidden alt="">
     <p id="prompt-display" class="prompt"></p>
     <div id="collect-timer" class="timer-ring-container" hidden>
       <svg class="timer-ring" viewBox="0 0 120 120">
@@ -73,6 +74,7 @@
   <!-- REVEAL SECTION -->
   <section id="reveal-section" hidden>
     <div class="screen-template" hidden></div>
+    <img id="reveal-image" class="phase-image" hidden alt="">
     <div id="ai-result" class="reveal-content"></div>
     <div id="reveal-responses" hidden>
       <h3>Player Responses:</h3>
@@ -117,6 +119,7 @@
   <!-- ANNOUNCE SECTION -->
   <section id="announce-section" hidden>
     <div class="screen-template" hidden></div>
+    <img id="announce-image" class="phase-image" hidden alt="">
     <h2 id="announce-message"></h2>
     <div id="announce-timer" class="timer-ring-container" hidden>
       <svg class="timer-ring" viewBox="0 0 120 120">
@@ -210,6 +213,23 @@
       </svg>
       <span class="timer-ring-text"></span>
     </div>
+  </section>
+
+  <!-- RATE SECTION -->
+  <section id="rate-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h2 id="rate-prompt"></h2>
+    <p id="rate-counter"></p>
+    <div id="rate-timer" class="timer-ring-container" hidden>
+      <svg class="timer-ring" viewBox="0 0 120 120">
+        <circle class="timer-ring-bg" cx="60" cy="60" r="52" />
+        <circle class="timer-ring-fill" cx="60" cy="60" r="52" />
+      </svg>
+      <span class="timer-ring-text"></span>
+    </div>
+    <button id="rate-close-btn">Close Ratings</button>
+    <div id="rate-results" hidden></div>
+    <button id="rate-continue-btn" hidden>Continue</button>
   </section>
 
   <!-- PHASE ERROR SECTION -->

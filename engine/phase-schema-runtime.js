@@ -99,6 +99,55 @@ export const VALIDATOR_HOOKS = {
     return [];
   },
 
+  // rate: scales array must be non-empty; each scale needs id, label, min < max
+  rateScalesValid(phase) {
+    const errs = [];
+    if (!Array.isArray(phase.scales) || phase.scales.length === 0) {
+      errs.push({
+        severity: 'error',
+        code: 'MISSING_REQUIRED_FIELD',
+        message: 'rate step needs at least one scale.'
+      });
+      return errs;
+    }
+    const seenIds = new Set();
+    for (let i = 0; i < phase.scales.length; i++) {
+      const s = phase.scales[i];
+      const path = `scales[${i}]`;
+      if (!s || typeof s !== 'object') {
+        errs.push({ severity: 'error', code: 'INVALID_FIELD_TYPE',
+          message: `${path} must be an object with id/label/min/max.` });
+        continue;
+      }
+      if (!s.id || typeof s.id !== 'string') {
+        errs.push({ severity: 'error', code: 'MISSING_REQUIRED_FIELD',
+          message: `${path}.id is required (a short identifier like "originality").` });
+      } else if (seenIds.has(s.id)) {
+        errs.push({ severity: 'error', code: 'INVALID_FIELD_TYPE',
+          message: `${path}.id "${s.id}" appears more than once. Scale ids must be unique.` });
+      } else {
+        seenIds.add(s.id);
+      }
+      if (!s.label || typeof s.label !== 'string') {
+        errs.push({ severity: 'error', code: 'MISSING_REQUIRED_FIELD',
+          message: `${path}.label is required (e.g. "Originality").` });
+      }
+      const min = s.min == null ? 1 : s.min;
+      const max = s.max == null ? 5 : s.max;
+      if (!Number.isInteger(min) || !Number.isInteger(max)) {
+        errs.push({ severity: 'error', code: 'INVALID_FIELD_TYPE',
+          message: `${path}.min and ${path}.max must be integers.` });
+      } else if (min >= max) {
+        errs.push({ severity: 'error', code: 'INVALID_INTEGER_RANGE',
+          message: `${path}: min (${min}) must be less than max (${max}).` });
+      } else if (max - min > 10) {
+        errs.push({ severity: 'warning', code: 'INVALID_INTEGER_RANGE',
+          message: `${path}: a range of ${max - min + 1} points is hard to use on a phone. Consider 5 or 7 points.` });
+      }
+    }
+    return errs;
+  },
+
   // foreach: scoring config validation
   foreachScoringValid(phase) {
     const errs = [];
@@ -179,7 +228,7 @@ export const DYNAMIC_OUTPUT_RESOLVERS = {
     if (Array.isArray(phase.fields) && phase.fields.length > 0) {
       itemShape.fields = { type: 'object' };
     }
-    return {
+    const out = {
       responses: {
         type: 'array',
         capability: 'responseArray',
@@ -189,8 +238,20 @@ export const DYNAMIC_OUTPUT_RESOLVERS = {
           count: 'arrayCount',
           json: 'jsonPretty'
         }
+      },
+      byPlayer: {
+        type: 'object',
+        renderers: { mine: 'perPlayerLookup' }
       }
     };
+    // assigned only exists when this phase rotates from another
+    if (phase.rotateFrom) {
+      out.assigned = {
+        type: 'object',
+        renderers: { assigned: 'perPlayerLookup' }
+      };
+    }
+    return out;
   }
 };
 

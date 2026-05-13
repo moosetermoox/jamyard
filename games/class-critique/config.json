@@ -1,0 +1,69 @@
+{
+  "name": "Class Critique",
+  "description": "Whole-class critique on a presentation, idea, or pitch. The presenter shares verbally; the class rates on three custom scales.",
+  "minPlayers": 2,
+  "maxPlayers": 35,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "minPlayers": 2,
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "🎤 Class Critique\n\nThe presenter will share their idea with the class. When they're done, you'll rate it on three scales. Be honest and constructive.",
+      "timer": 15,
+      "next": "rate-it",
+      "image": "assets/02hest-kids-superjumbo-mp3efnnp.webp",
+      "hostTemplate": "happy birthday bitch"
+    },
+    "rate-it": {
+      "type": "rate",
+      "prompt": "Rate the presentation on each scale below.",
+      "scales": [
+        {
+          "id": "originality",
+          "label": "Originality",
+          "min": 1,
+          "max": 5,
+          "labels": {
+            "min": "Familiar",
+            "max": "Fresh"
+          }
+        },
+        {
+          "id": "feasibility",
+          "label": "Feasibility",
+          "min": 1,
+          "max": 5,
+          "labels": {
+            "min": "Tough",
+            "max": "Doable"
+          }
+        },
+        {
+          "id": "effectiveness",
+          "label": "Effectiveness",
+          "min": 1,
+          "max": 5,
+          "labels": {
+            "min": "Won't solve it",
+            "max": "Nails it"
+          }
+        }
+      ],
+      "visibility": "all",
+      "timer": 60,
+      "next": "phase-4"
+    },
+    "end": {
+      "type": "end",
+      "message": "Critique complete."
+    },
+    "phase-4": {
+      "type": "reveal",
+      "timer": 15,
+      "next": "end"
+    }
+  }
+}

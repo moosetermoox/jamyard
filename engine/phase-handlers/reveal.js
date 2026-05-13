@@ -35,16 +35,18 @@ registerHandler('reveal', {
       }
     }
 
+    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId);
+
     if (isPerPlayer) {
-      ctx.emitToHost(EVENTS.SHOW_RESULTS, { content, aiResult: content, responses, ...sc });
+      ctx.emitToHost(EVENTS.SHOW_RESULTS, { content, aiResult: content, responses, image, ...sc });
       for (const player of engine.players.list()) {
         const playerContent = ctx.services.resolvePerPlayerTemplate(tpl, engine, player.id);
         ctx.emitToPlayer(player.id, EVENTS.SHOW_RESULTS, {
-          content: playerContent, aiResult: playerContent, responses, ...sc
+          content: playerContent, aiResult: playerContent, responses, image, ...sc
         });
       }
     } else {
-      ctx.emitToRoom(EVENTS.SHOW_RESULTS, { content, aiResult, responses, ...sc });
+      ctx.emitToRoom(EVENTS.SHOW_RESULTS, { content, aiResult, responses, image, ...sc });
     }
   },
 
@@ -76,6 +78,7 @@ registerHandler('reveal', {
         }
       }
     }
-    socket.emit(EVENTS.SHOW_RESULTS, { content, aiResult, ...sc });
+    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId);
+    socket.emit(EVENTS.SHOW_RESULTS, { content, aiResult, image, ...sc });
   }
 });
