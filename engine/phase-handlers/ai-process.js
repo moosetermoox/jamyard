@@ -26,30 +26,47 @@ registerHandler('ai-process', {
       instruction = `${instruction}\n\nIMPORTANT: Generate exactly ${n} distinct items, one per player. Return a JSON array of ${n} strings — no preamble, no keys, just the array.`;
     }
 
-    console.log(`[handlePhase] AI instruction: ${instruction}`);
-    const aiResult = await ctx.aiService.process({ instruction, responses });
-    console.log(`[handlePhase] AI returned: ${aiResult.text}`);
-
-    let result;
     const expectJson = phase.format === 'json' || phase.perPlayer;
-    if (expectJson) {
-      try {
-        result = JSON.parse(aiResult.text);
-      } catch {
-        // AI may wrap JSON in preamble text — try to extract it
-        const match = aiResult.text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-        if (match) {
-          try {
-            result = JSON.parse(match[0]);
-          } catch {
+
+    // Call AI with one auto-retry when perPlayer/JSON output fails to parse
+    // into an array. Smaller models (Haiku on `generate`) occasionally ignore
+    // the JSON instruction and return plain text or a numbered list, which
+    // used to surface as a cryptic "expected array but got string" error.
+    // Second attempt prepends `[` to the assistant message and uses an even
+    // stricter system nudge.
+    let result;
+    let attempts = 0;
+    const maxAttempts = phase.perPlayer ? 2 : 1;
+    while (attempts < maxAttempts) {
+      attempts++;
+      const stricter = attempts > 1
+        ? `${instruction}\n\nYour previous response wasn't valid JSON. Reply with ONLY a JSON array like ["item1","item2","item3"] — nothing else, no numbering, no preamble.`
+        : instruction;
+      console.log(`[handlePhase] AI instruction (attempt ${attempts}/${maxAttempts}): ${stricter}`);
+      const aiResult = await ctx.aiService.process({ instruction: stricter, responses });
+      console.log(`[handlePhase] AI returned: ${aiResult.text}`);
+
+      if (expectJson) {
+        try {
+          result = JSON.parse(aiResult.text);
+        } catch {
+          // AI may wrap JSON in preamble text — try to extract it
+          const match = aiResult.text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+          if (match) {
+            try { result = JSON.parse(match[0]); } catch { result = aiResult.text; }
+          } else {
             result = aiResult.text;
           }
-        } else {
-          result = aiResult.text;
         }
+      } else {
+        result = aiResult.text;
       }
-    } else {
-      result = aiResult.text;
+
+      // For perPlayer we need a non-empty array; otherwise accept whatever
+      // we got (the existing fallback path).
+      if (!phase.perPlayer) break;
+      if (Array.isArray(result) && result.length > 0) break;
+      // Otherwise loop and retry once
     }
 
     const dataToStore = { result };
@@ -58,7 +75,12 @@ registerHandler('ai-process', {
       const arr = Array.isArray(result) ? result : [];
       const byPlayer = {};
       if (arr.length === 0) {
-        throw new Error(`ai-process "${phase.id}" with perPlayer: true expected a JSON array but got ${typeof result}.`);
+        // Teacher-facing message — gets surfaced in the PHASE_ERROR pause
+        // dialog with Retry / Skip buttons. The cryptic shape ("expected
+        // a JSON array but got string") was the previous message.
+        throw new Error(
+          `The AI didn't return a list of items for "${phase.id}". This can happen on the first try with simple "generate" tasks. Click Retry — it usually works the second time. If it keeps failing, simplify the instruction or split it into smaller phases.`
+        );
       }
       for (let i = 0; i < perPlayerEligible.length; i++) {
         byPlayer[perPlayerEligible[i].id] = arr[i % arr.length];
