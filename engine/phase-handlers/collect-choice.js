@@ -24,7 +24,7 @@ registerHandler('collect-choice', {
       if (p.response) engine.players.update(p.id, { response: undefined });
     }
 
-    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId);
+    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
 
     // Send to host (resolve refs once for host view)
     const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
@@ -74,7 +74,7 @@ registerHandler('collect-choice', {
         if (!Array.isArray(choices)) choices = [];
       }
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, socket.id);
-      const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId);
+      const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
       socket.emit(EVENTS.GAME_STARTED, {
         prompt: playerPrompt,
         choices,

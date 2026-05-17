@@ -1,4 +1,4 @@
-import { readFile } from 'fs/promises';
+import { readFile, readdir, access } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { mkDiagnostic, DIAGNOSTIC_CODES } from './diagnostics.js';
@@ -14,6 +14,12 @@ import { parseTemplateTokens, parseRef, classifyRef, checkDataRefCompat } from '
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GAMES_DIR = join(__dirname, '..', 'games');
+const USER_GAMES_DIR = join(GAMES_DIR, 'user');
+
+// Reserved top-level names inside games/ that aren't themselves games:
+//   - "user" is the user-content namespace (games/user/<id>/)
+//   - "_*"   are templates / test fixtures (skipped by name prefix)
+const RESERVED_GAME_DIR_NAMES = new Set(['user']);
 
 // Field names that hold data references (phaseId.field format). Kept here
 // (rather than derived from the schema) because the inline ref-existence
@@ -47,7 +53,7 @@ export function getAllowedFields(phaseType, opts) {
 }
 
 export async function loadGame(gameId) {
-  const configPath = join(GAMES_DIR, gameId, 'config.json');
+  const { configPath, source } = await resolveGamePath(gameId);
 
   let raw;
   try {
@@ -65,7 +71,75 @@ export async function loadGame(gameId) {
 
   validate(config, gameId);
 
+  // Stamp the source so callers can render built-in vs user differently
+  // without re-scanning the filesystem. Non-enumerable so it doesn't leak
+  // back into saved configs.
+  Object.defineProperty(config, '_source', { value: source, enumerable: false });
+
   return config;
+}
+
+/**
+ * Finds the on-disk location for a given game id. Built-in (top-level
+ * games/<id>/) takes precedence over user (games/user/<id>/). Returns
+ * { configPath, gameDir, source } or throws if the game does not exist
+ * in either location.
+ */
+export async function resolveGamePath(gameId) {
+  const builtInDir = join(GAMES_DIR, gameId);
+  const userDir = join(USER_GAMES_DIR, gameId);
+
+  try {
+    await access(join(builtInDir, 'config.json'));
+    return { configPath: join(builtInDir, 'config.json'), gameDir: builtInDir, source: 'built-in' };
+  } catch {}
+
+  try {
+    await access(join(userDir, 'config.json'));
+    return { configPath: join(userDir, 'config.json'), gameDir: userDir, source: 'user' };
+  } catch {}
+
+  throw new Error(`Game not found: no config.json at games/${gameId}/config.json`);
+}
+
+/**
+ * Scans both built-in and user game directories and returns a summary
+ * for each loadable game. Skips templates (`_*`) and the reserved
+ * `user/` namespace at the top level. Games with invalid configs are
+ * skipped silently — same behavior as the legacy ad-hoc scan in
+ * server.js, kept for backward compat.
+ *
+ * Returns: Array<{ id, source, config }>
+ *   - source: 'built-in' | 'user'
+ *   - config: the parsed + validated config (with non-enumerable _source)
+ */
+export async function listGames() {
+  const games = [];
+
+  for (const { dir, source } of [
+    { dir: GAMES_DIR, source: 'built-in' },
+    { dir: USER_GAMES_DIR, source: 'user' }
+  ]) {
+    let entries;
+    try {
+      entries = await readdir(dir, { withFileTypes: true });
+    } catch {
+      continue; // user dir may not exist yet — fine
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name.startsWith('_')) continue;
+      if (source === 'built-in' && RESERVED_GAME_DIR_NAMES.has(entry.name)) continue;
+      try {
+        const config = await loadGame(entry.name);
+        games.push({ id: entry.name, source, config });
+      } catch {
+        // Skip games with invalid configs (matches legacy behavior)
+      }
+    }
+  }
+
+  return games;
 }
 
 export function validate(config, gameId, options) {

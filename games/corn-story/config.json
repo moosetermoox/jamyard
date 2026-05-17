@@ -125,5 +125,13 @@
       "message": "Thanks for playing Corn Story!"
     }
   },
-  "theme": "arcade"
+  "theme": "arcade",
+  "playTime": "~15–20 min",
+  "classSize": "4–36 players",
+  "tags": [
+    "creativity",
+    "voting",
+    "elimination"
+  ],
+  "recommendedFor": "High-energy creativity competition. Best with 8+ students so eliminations matter."
 }

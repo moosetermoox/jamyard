@@ -11,3 +11,7 @@ Thumbs.db
 
 # User-saved recipes — per-user content, lives outside the repo
 recipes/user/
+
+# User-saved games — per-user content, lives outside the repo
+# (Built-in games stay under games/ at the top level.)
+games/user/

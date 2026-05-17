@@ -9,7 +9,7 @@ import { randomUUID } from 'crypto';
 import { readdir, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
-import { loadGame, validate, getAllowedFields } from './engine/game-loader.js';
+import { loadGame, validate, getAllowedFields, listGames, resolveGamePath } from './engine/game-loader.js';
 import { normalizeConfig } from './engine/normalizer.js';
 import { PHASE_SCHEMAS, getFields } from './engine/phase-schemas.js';
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
@@ -51,6 +51,21 @@ app.use(express.json());
 
 const DEFAULT_GAME = 'weekend-poem';
 const GAMES_DIR = join(__dirname, 'games');
+const USER_GAMES_DIR = join(GAMES_DIR, 'user');
+
+// Card-friendly metadata fields surfaced from each game's config.json to the
+// designer landing page. Optional — missing fields just don't render.
+const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor'];
+
+function pickCardMeta(config) {
+  const out = {};
+  for (const f of GAME_CARD_META_FIELDS) {
+    if (config[f] !== undefined && config[f] !== null && config[f] !== '') {
+      out[f] = config[f];
+    }
+  }
+  return out;
+}
 
 // --- Helper Functions ---
 
@@ -653,14 +668,18 @@ async function tallyAndAdvance(code, room) {
 
 // Resolve a phase.image config value to a web URL the browser can fetch.
 // Config stores a relative path like "assets/photo.jpg"; runtime path is
-// "/games/<gameId>/assets/photo.jpg". Absolute URLs (http://...) and
-// already-rooted paths (/...) pass through unchanged.
-function resolveImageUrl(rel, gameId) {
+// "/games/<gameId>/assets/photo.jpg" for built-in games and
+// "/games/user/<gameId>/assets/photo.jpg" for user-created ones (which live
+// under games/user/). Absolute URLs (http://...) and already-rooted
+// paths (/...) pass through unchanged.
+function resolveImageUrl(rel, gameId, source) {
   if (!rel || typeof rel !== 'string') return null;
   if (/^https?:\/\//i.test(rel)) return rel;
   if (rel.startsWith('/')) return rel;
   if (!gameId) return null;
-  return `/games/${gameId}/${rel.replace(/^\.?\//, '')}`;
+  const cleaned = rel.replace(/^\.?\//, '');
+  if (source === 'user') return `/games/user/${gameId}/${cleaned}`;
+  return `/games/${gameId}/${cleaned}`;
 }
 
 // Services bundle passed to phase handler context
@@ -826,17 +845,21 @@ app.post('/api/games/:gameId/assets', assetUpload.single('file'), async (req, re
     if (!req.file) {
       return res.status(400).json({ error: 'No file in request (field name must be "file").' });
     }
-    const gameDir = join(GAMES_DIR, gameId);
-    try { await access(gameDir); } catch {
+    let gameDir, source;
+    try {
+      ({ gameDir, source } = await resolveGamePath(gameId));
+    } catch {
       return res.status(404).json({ error: `Game "${gameId}" not found.` });
     }
     const assetsDir = join(gameDir, 'assets');
     await mkdir(assetsDir, { recursive: true });
     const filename = sanitizeAssetFilename(req.file.originalname);
     await writeFile(join(assetsDir, filename), req.file.buffer);
+    // URL prefix differs depending on which root the game lives in.
+    const urlPrefix = source === 'user' ? `/games/user/${gameId}` : `/games/${gameId}`;
     res.json({
       path: `assets/${filename}`,
-      url: `/games/${gameId}/assets/${filename}`,
+      url: `${urlPrefix}/assets/${filename}`,
       size: req.file.size
     });
   } catch (error) {
@@ -1055,26 +1078,17 @@ app.delete('/api/recipes/user/:id', async (req, res) => {
 
 app.get('/api/games', async (req, res) => {
   try {
-    const entries = await readdir(GAMES_DIR, { withFileTypes: true });
-    const games = [];
-
-    for (const entry of entries) {
-      if (!entry.isDirectory() || entry.name.startsWith('_')) continue;
-      try {
-        const config = await loadGame(entry.name);
-        games.push({
-          id: entry.name,
-          name: config.name,
-          description: config.description || '',
-          phaseCount: Object.keys(config.phases).length,
-          minPlayers: config.minPlayers || null,
-          maxPlayers: config.maxPlayers || null
-        });
-      } catch {
-        // Skip games with invalid configs
-      }
-    }
-
+    const loaded = await listGames();
+    const games = loaded.map(({ id, source, config }) => ({
+      id,
+      source, // 'built-in' | 'user'
+      name: config.name,
+      description: config.description || '',
+      phaseCount: Object.keys(config.phases).length,
+      minPlayers: config.minPlayers || null,
+      maxPlayers: config.maxPlayers || null,
+      ...pickCardMeta(config)
+    }));
     res.json({ games });
   } catch (error) {
     console.log(`[api/games] Error: ${error.message}`);
@@ -1091,8 +1105,7 @@ app.put('/api/games/:gameId', async (req, res) => {
       console.log(`[api/games PUT] Stripped ${stripped.length} unknown field(s): ${stripped.join(', ')}`);
     }
     validate(config, gameId);
-    const configPath = join(GAMES_DIR, gameId, 'config.json');
-    await access(configPath);
+    const { configPath } = await resolveGamePath(gameId);
     await writeFile(configPath, JSON.stringify(config, null, 2));
     res.json({ success: true, stripped });
   } catch (error) {
@@ -1124,17 +1137,23 @@ app.post('/api/games', async (req, res) => {
     if (!id || !/^[a-z0-9][a-z0-9-]*$/.test(id)) {
       return res.status(400).json({ error: 'Invalid game ID. Use lowercase letters, numbers, and hyphens. Must not start with a hyphen.' });
     }
-    const gameDir = join(GAMES_DIR, id);
+    // New games go under games/user/<id>/. Reject if a built-in or another
+    // user game already has this id, to keep the namespace flat from the
+    // teacher's perspective (one id = one game).
+    const userGameDir = join(USER_GAMES_DIR, id);
+    const builtInGameDir = join(GAMES_DIR, id);
     try {
-      await access(gameDir);
+      await access(builtInGameDir);
+      return res.status(409).json({ error: `Game "${id}" already exists as a built-in. Pick a different id.` });
+    } catch {}
+    try {
+      await access(userGameDir);
       return res.status(409).json({ error: `Game "${id}" already exists.` });
-    } catch {
-      // Directory doesn't exist — good
-    }
+    } catch {}
     validate(config, id);
-    await mkdir(gameDir, { recursive: true });
-    await writeFile(join(gameDir, 'config.json'), JSON.stringify(config, null, 2));
-    res.json({ success: true, id });
+    await mkdir(userGameDir, { recursive: true });
+    await writeFile(join(userGameDir, 'config.json'), JSON.stringify(config, null, 2));
+    res.json({ success: true, id, source: 'user' });
   } catch (error) {
     console.log(`[api/games POST] Error: ${error.message}`);
     res.status(400).json({ error: error.message });
@@ -1337,8 +1356,7 @@ app.delete('/api/games/:gameId', async (req, res) => {
     if (gameId.startsWith('_')) {
       return res.status(400).json({ error: 'Cannot delete template directories.' });
     }
-    const gameDir = join(GAMES_DIR, gameId);
-    await access(gameDir);
+    const { gameDir } = await resolveGamePath(gameId);
     await rm(gameDir, { recursive: true });
     res.json({ success: true });
   } catch (error) {
@@ -1352,23 +1370,13 @@ io.on('connection', (socket) => {
 
   socket.on(EVENTS.GET_GAMES, async () => {
     try {
-      const entries = await readdir(GAMES_DIR, { withFileTypes: true });
-      const games = [];
-
-      for (const entry of entries) {
-        if (!entry.isDirectory() || entry.name.startsWith('_')) continue;
-        try {
-          const config = await loadGame(entry.name);
-          games.push({
-            id: entry.name,
-            name: config.name,
-            description: config.description || ''
-          });
-        } catch {
-          // Skip games with invalid configs
-        }
-      }
-
+      const loaded = await listGames();
+      const games = loaded.map(({ id, source, config }) => ({
+        id,
+        source,
+        name: config.name,
+        description: config.description || ''
+      }));
       socket.emit(EVENTS.GAMES_LIST, { games });
     } catch (error) {
       console.log(`[get-games] Error: ${error.message}`);
@@ -1390,6 +1398,7 @@ io.on('connection', (socket) => {
       room.engine = new GameEngine(config);
       room.engine.hooks = hooks;
       room.gameId = selectedGame;
+      room.gameSource = config._source || 'built-in';
 
       roomToHost.set(code, socket.id);
       socket.join(code);

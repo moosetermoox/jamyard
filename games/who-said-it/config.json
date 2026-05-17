@@ -60,5 +60,13 @@
       "type": "end",
       "message": "Thanks for playing Who Said It?"
     }
-  }
+  },
+  "playTime": "~10 min",
+  "classSize": "5–30 players",
+  "tags": [
+    "icebreaker",
+    "guessing",
+    "social"
+  ],
+  "recommendedFor": "Best a few weeks into the year — students need to know each other a bit."
 }

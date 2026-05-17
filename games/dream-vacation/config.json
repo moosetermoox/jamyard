@@ -46,5 +46,13 @@
       "type": "end",
       "message": "Thanks for playing Dream Vacation Debate! Start packing!"
     }
-  }
+  },
+  "playTime": "~15 min",
+  "classSize": "6–30 players",
+  "tags": [
+    "debate",
+    "ranking",
+    "collaborative"
+  ],
+  "recommendedFor": "Class makes a collective choice. Strong for persuasive-writing practice."
 }

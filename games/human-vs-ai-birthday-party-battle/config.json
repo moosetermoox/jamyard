@@ -43,7 +43,10 @@
         "guess-ai": {
           "type": "collect-choice",
           "prompt": "Which party idea was created by AI?\n\nIDEA A:\n{{_current.a.text}}\n\nIDEA B:\n{{_current.b.text}}",
-          "choices": ["Idea A", "Idea B"],
+          "choices": [
+            "Idea A",
+            "Idea B"
+          ],
           "timer": 20
         }
       },
@@ -73,5 +76,13 @@
       "type": "end",
       "message": "Thanks for playing Human vs AI: Birthday Party Battle!"
     }
-  }
+  },
+  "playTime": "~12 min",
+  "classSize": "5–30 players",
+  "tags": [
+    "creativity",
+    "AI literacy",
+    "guessing"
+  ],
+  "recommendedFor": "Great hook for an AI-literacy unit — students see firsthand what AI is and is not good at."
 }

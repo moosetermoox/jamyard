@@ -86,7 +86,7 @@ registerHandler('collect', {
     // Resolve {{...}} refs in the prompt once for the host (no `.mine`/`.assigned` recipient yet)
     const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
 
-    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId);
+    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
 
     // Send prompt to host
     ctx.emitToHost(EVENTS.GAME_STARTED, {
@@ -120,7 +120,7 @@ registerHandler('collect', {
       const playerPrompt = player
         ? ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, player.id)
         : ctx.resolveTemplate(ctx.phase.prompt || '');
-      const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId);
+      const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
       socket.emit(EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, timer: null,
         fields: ctx.phase.fields || null,

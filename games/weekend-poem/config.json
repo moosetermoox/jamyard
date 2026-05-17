@@ -29,5 +29,12 @@
       "type": "end",
       "message": "Thanks for sharing your weekends!"
     }
-  }
+  },
+  "playTime": "~5 min",
+  "classSize": "3–30 players",
+  "tags": [
+    "warm-up",
+    "creative writing"
+  ],
+  "recommendedFor": "Monday morning check-in. Low stakes, everyone contributes a sentence, AI does the heavy lift."
 }

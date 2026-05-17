@@ -61,7 +61,9 @@ describe('validator diagnostics — shape', () => {
 
 describe('validator diagnostics — code inference covers every emitted message', () => {
   it('no shipped game produces a LEGACY_STRING_* fallback', async () => {
-    const games = (await readdir(GAMES_DIR)).filter(g => !g.startsWith('_'));
+    // Skip _* (templates) and the `user/` subdirectory (user-saved games
+    // namespace introduced with the games picker categories).
+    const games = (await readdir(GAMES_DIR)).filter(g => !g.startsWith('_') && g !== 'user');
     for (const id of games) {
       const config = JSON.parse(await readFile(join(GAMES_DIR, id, 'config.json'), 'utf-8'));
       const result = validate(config, id, { returnResults: true });
@@ -267,7 +269,9 @@ describe('validator diagnostics — game snapshot', () => {
       'who-said-it': []
     };
 
-    const games = (await readdir(GAMES_DIR)).filter(g => !g.startsWith('_'));
+    // Skip _* (templates) and the `user/` subdirectory (user-saved games
+    // namespace — its contents are per-user, not part of the shipped snapshot).
+    const games = (await readdir(GAMES_DIR)).filter(g => !g.startsWith('_') && g !== 'user');
     for (const id of games) {
       if (!(id in expected)) {
         // New game added since this snapshot was written. Fail loudly so

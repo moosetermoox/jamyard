@@ -65,5 +65,13 @@
       "timer": 15,
       "next": "end"
     }
-  }
+  },
+  "playTime": "~5–10 min",
+  "classSize": "2–35 players",
+  "tags": [
+    "feedback",
+    "critique",
+    "visualization"
+  ],
+  "recommendedFor": "Use after presentations, pitches, or shared work. Customize the three scales to fit the lesson."
 }

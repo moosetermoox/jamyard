@@ -8,7 +8,7 @@ registerHandler('announce', {
     const rawMessage = ctx.phase.message || '';
     const sc = ctx.resolveScreenControl();
     const timer = ctx.phase.timer || null;
-    const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId);
+    const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
 
     if (PER_PLAYER_REF.test(rawMessage)) {
       // Per-recipient: host gets the generic resolved version, each player gets their own
@@ -38,7 +38,7 @@ registerHandler('announce', {
     const announceData = ctx.engine.getPhaseData(ctx.phase.id);
     const rawMessage = ctx.phase.message || '';
     const sc = ctx.resolveScreenControl();
-    const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId);
+    const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
     if (PER_PLAYER_REF.test(rawMessage)) {
       const player = ctx.engine.players.find(socket.id);
       const msg = player

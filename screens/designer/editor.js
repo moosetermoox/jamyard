@@ -1049,7 +1049,10 @@ function renderPhaseConfig(phaseId) {
 
   phaseConfigForm.innerHTML = '';
 
-  // --- Header: icon + friendly name + description ---
+  // --- Compact header: icon + friendly name only.
+  // The old layout printed the friendly name 3x in a row (canvas chip,
+  // sidebar header, "Step type" dropdown). Description / step-type select /
+  // host+player boxes all migrated to less prominent positions below.
   var headerDiv = document.createElement('div');
   headerDiv.className = 'config-phase-header';
 
@@ -1059,54 +1062,36 @@ function renderPhaseConfig(phaseId) {
   headerIcon.style.background = cat.bg;
   headerIcon.style.borderColor = cat.color;
 
-  var headerInfo = document.createElement('div');
-  headerInfo.className = 'config-phase-info';
-
   var headerName = document.createElement('div');
   headerName.className = 'config-phase-name';
   headerName.textContent = cat.friendlyName;
 
-  var headerDesc = document.createElement('div');
-  headerDesc.className = 'config-phase-desc';
-  headerDesc.textContent = cat.description;
-
-  headerInfo.appendChild(headerName);
-  headerInfo.appendChild(headerDesc);
   headerDiv.appendChild(headerIcon);
-  headerDiv.appendChild(headerInfo);
+  headerDiv.appendChild(headerName);
   phaseConfigForm.appendChild(headerDiv);
 
-  // Phase type dropdown
-  addPhaseTypeSelect('Step type', 'What this step does in the game', 'phase-type', phase.type, function (value) {
-    phase.type = value;
-    renderCanvas();
-    renderPhaseConfig(phaseId);
-  });
-
-  // Screen info with AI lane
-  addScreenInfo(cat.host, cat.player, cat.ai);
+  // One-line at-a-glance caption: "Host: ... · Players: ... (· AI: ...)"
+  // Replaces the 3-box "Host sees / Players see / AI does" panel.
+  addScreenSummaryLine(cat.host, cat.player, cat.ai);
 
   // AI Suggestions — pinned near the top so the teacher sees advice before editing
   renderAISuggestions(phaseId);
 
-  // Ask AI about this step — quick AI revise scoped to a single phase
-  addAskAiStepButton(phaseId);
-
-  // Preview this step — quick look at what host + players will see
+  // Preview this step — quick look at what host + players will see.
+  // (Ask AI button moved to the bottom near "Advanced" — it's a meta action,
+  // not part of the form a teacher fills in left-to-right.)
   addPreviewStepButton(phaseId);
 
   // --- Type-specific fields grouped into sections ---
   var type = phase.type;
 
   if (type === 'lobby') {
-    addSectionHeader('Settings');
     addFieldWithHelp('Min players to start', 'Game won\'t start until this many join', 'number', 'phase-minPlayers', phase.minPlayers, false, function (value) {
       phase.minPlayers = value;
     });
   }
 
   if (type === 'collect') {
-    addRoleHeader('player', 'Players see & do');
     var collectPromptTA = addTextAreaWithHelp('Question to ask', 'This appears on every player\'s screen', 'phase-prompt', phase.prompt, 'e.g. What did you do this weekend?', function (value) {
       phase.prompt = value;
       renderCanvas();
@@ -1175,8 +1160,7 @@ function renderPhaseConfig(phaseId) {
     phaseConfigForm.appendChild(addFieldBtn);
     endCollapsible(fieldsHandle);
 
-    addSectionHeader('Who answers');
-    addSelectWithHelp('Eligible players', 'Which players can submit answers', 'phase-from',
+    addSelectWithHelp('Who answers', 'Which players can submit answers', 'phase-from',
       [
         { value: 'all', label: 'Everyone' },
         { value: 'remaining', label: 'Remaining players only' },
@@ -1190,19 +1174,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'ai-process') {
-    addRoleHeader('ai', 'AI does');
-    var taskOptions = [];
-    var taskTypes = Object.keys(AI_TASK_CATALOG);
-    for (var t = 0; t < taskTypes.length; t++) {
-      var key = taskTypes[t];
-      taskOptions.push({ value: key, label: AI_TASK_CATALOG[key].friendlyName + ' (' + key + ')' });
-    }
-    addSelectWithHelp('AI task', AI_TASK_CATALOG[phase.task || 'summarize'] ? AI_TASK_CATALOG[phase.task || 'summarize'].description : '', 'phase-task', taskOptions, phase.task || 'summarize', function (value) {
-      phase.task = value;
-      renderCanvas();
-      renderPhaseConfig(phaseId);
-    });
-
+    // Primary field first: what to ask the AI to do.
     var instrPlaceholder = 'e.g. Write a funny poem combining all these weekend activities';
     if (phase.task === 'compare') instrPlaceholder = 'e.g. Group similar answers together';
     if (phase.task === 'rank') instrPlaceholder = 'e.g. Rank from most to least creative';
@@ -1217,7 +1189,18 @@ function renderPhaseConfig(phaseId) {
       'Group similar answers into categories.'
     ]);
 
-    addRoleHeader('ai', 'AI input & output');
+    var taskOptions = [];
+    var taskTypes = Object.keys(AI_TASK_CATALOG);
+    for (var t = 0; t < taskTypes.length; t++) {
+      var key = taskTypes[t];
+      taskOptions.push({ value: key, label: AI_TASK_CATALOG[key].friendlyName + ' (' + key + ')' });
+    }
+    addSelectWithHelp('AI task', AI_TASK_CATALOG[phase.task || 'summarize'] ? AI_TASK_CATALOG[phase.task || 'summarize'].description : '', 'phase-task', taskOptions, phase.task || 'summarize', function (value) {
+      phase.task = value;
+      renderCanvas();
+      renderPhaseConfig(phaseId);
+    });
+
     addDataRefDropdown('Input data', 'Where the AI reads player answers from', 'phase-input', phaseId, phase.input, function (value) {
       phase.input = value;
     });
@@ -1233,7 +1216,13 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'vote') {
-    addRoleHeader('player', 'Players see & do');
+    // Question first — that's the actual prompt players see.
+    addFieldWithHelp('Question', 'Shown above the voting choices', 'text', 'phase-question', phase.question, false, function (value) {
+      phase.question = value;
+    });
+    addDataRefDropdown('Candidates from', 'Where to get the list of choices', 'phase-candidates', phaseId, phase.candidates, function (value) {
+      phase.candidates = value;
+    });
     addSelectWithHelp('Vote style', 'How choices are shown to players', 'phase-mode',
       [
         { value: 'pick-one', label: 'Pick one from a list' },
@@ -1244,15 +1233,10 @@ function renderPhaseConfig(phaseId) {
         renderCanvas();
       }
     );
-    addDataRefDropdown('Candidates from', 'Where to get the list of choices', 'phase-candidates', phaseId, phase.candidates, function (value) {
-      phase.candidates = value;
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Random vote on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
+      phase.timer = value;
     });
-    addFieldWithHelp('Question', 'Shown above the voting choices', 'text', 'phase-question', phase.question, false, function (value) {
-      phase.question = value;
-    });
-
-    addSectionHeader('Who votes');
-    addSelectWithHelp('Voters', 'Which players can vote', 'phase-voters',
+    addSelectWithHelp('Who votes', 'Which players can vote', 'phase-voters',
       [
         { value: 'all', label: 'Everyone' },
         { value: 'remaining', label: 'Remaining players only' },
@@ -1262,13 +1246,9 @@ function renderPhaseConfig(phaseId) {
         if (value === 'all') { delete phase.voters; } else { phase.voters = value; }
       }
     );
-    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Random vote on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
-      phase.timer = value;
-    });
   }
 
   if (type === 'eliminate') {
-    addSectionHeader('Elimination rules');
     addSelectWithHelp('Method', 'How players are eliminated', 'phase-method',
       [
         { value: 'bottom-percent', label: 'Bottom percentage of scores' },
@@ -1290,15 +1270,12 @@ function renderPhaseConfig(phaseId) {
         phase.hook = value;
       });
     }
-
-    addSectionHeader('Data');
     addDataRefDropdown('Scores from', 'Where to read player scores for elimination', 'phase-input', phaseId, phase.input, function (value) {
       phase.input = value;
     });
   }
 
   if (type === 'announce') {
-    addRoleHeader('both', 'Both see');
     var announceTA = addTextAreaWithHelp('Message', 'Displayed to host and all players.', 'phase-message', phase.message, 'e.g. Round 1: Don\'t Match!', function (value) {
       phase.message = value;
       renderCanvas();
@@ -1316,7 +1293,6 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'collect-choice') {
-    addRoleHeader('player', 'Players see & do');
     var choicePromptTA = addTextAreaWithHelp('Question to ask', 'This appears above the choices on every player\'s screen', 'phase-prompt', phase.prompt, 'e.g. Which animal is the fastest?', function (value) {
       phase.prompt = value;
       renderCanvas();
@@ -1385,9 +1361,7 @@ function renderPhaseConfig(phaseId) {
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits random choice on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
-
-    addSectionHeader('Who answers');
-    addSelectWithHelp('Eligible players', 'Which players can submit answers', 'phase-from',
+    addSelectWithHelp('Who answers', 'Which players can submit answers', 'phase-from',
       [
         { value: 'all', label: 'Everyone' },
         { value: 'remaining', label: 'Remaining players only' },
@@ -1401,7 +1375,6 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'ai-eliminate') {
-    addRoleHeader('ai', 'AI does');
     var aiElimTA = addTextAreaWithHelp('Elimination rules', 'Tell the AI exactly what rules to enforce', 'phase-instruction', phase.instruction, 'e.g. Eliminate anyone who used more than one sentence.', function (value) {
       phase.instruction = value;
       renderCanvas();
@@ -1420,7 +1393,6 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'reveal') {
-    addRoleHeader('both', 'Both see');
     var revealTA = addTextAreaWithHelp('Display template', 'Insert data from earlier steps.', 'phase-template', phase.template, 'e.g. Here\'s what AI created! Use the insert buttons below.', function (value) {
       phase.template = value;
       renderCanvas();
@@ -1430,7 +1402,6 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'preview') {
-    addRoleHeader('host', 'Host reviews');
     addDataRefDropdown('Content from', 'Which step\'s output to show the teacher', 'phase-content', phaseId, phase.content, function (value) {
       phase.content = value || undefined;
     });
@@ -1448,7 +1419,6 @@ function renderPhaseConfig(phaseId) {
       }
     );
 
-    addRoleHeader('flow', "What's next");
     addPhaseRefSelect('If approved, go to', 'Which step to go to when teacher approves', 'phase-approveNext', phaseId, phase.approveNext, function (value) {
       phase.approveNext = value === '(none)' ? undefined : value;
       renderCanvas();
@@ -1460,14 +1430,12 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'winner') {
-    addSectionHeader('Data');
     addDataRefDropdown('Scores from', 'Which step\'s scores determine the winner', 'phase-from', phaseId, phase.from, function (value) {
       phase.from = value;
     });
   }
 
   if (type === 'leaderboard') {
-    addRoleHeader('both', 'Both see');
     addDataRefDropdown('Scores from', 'Which step\'s scores to display as a leaderboard', 'phase-from', phaseId, phase.from, function (value) {
       phase.from = value;
     });
@@ -1486,7 +1454,6 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'reveal-one') {
-    addRoleHeader('both', 'Both see');
     addDataRefDropdown('Items from', 'Where to get the list of items to reveal one-by-one', 'phase-from', phaseId, phase.from, function (value) {
       phase.from = value;
     });
@@ -1498,7 +1465,6 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'team-split') {
-    addSectionHeader('How to split');
     addSelectWithHelp('Method', 'How players are divided into teams', 'phase-method',
       [
         { value: 'random', label: 'Random shuffle' },
@@ -1525,13 +1491,11 @@ function renderPhaseConfig(phaseId) {
       }
     );
     if (phase.method === 'balanced') {
-      addSectionHeader('Balance by');
-      addDataRefDropdown('Scores from', 'Score data to balance teams with', 'phase-balanceFrom', phaseId, phase.balanceFrom, function (value) {
+      addDataRefDropdown('Balance scores from', 'Score data to balance teams with', 'phase-balanceFrom', phaseId, phase.balanceFrom, function (value) {
         phase.balanceFrom = value || undefined;
       });
     }
-    addSectionHeader('Who gets assigned');
-    addSelectWithHelp('Eligible players', 'Which players are put into teams', 'phase-from',
+    addSelectWithHelp('Who gets assigned', 'Which players are put into teams', 'phase-from',
       [
         { value: 'all', label: 'Everyone' },
         { value: 'remaining', label: 'Remaining players only' }
@@ -1543,7 +1507,6 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'rank') {
-    addRoleHeader('player', 'Players see & do');
     addTextAreaWithHelp('Question / prompt', 'Tells players what to rank', 'phase-prompt', phase.prompt, 'e.g. Rank these ideas from best to worst', function (value) {
       phase.prompt = value;
       renderCanvas();
@@ -1554,8 +1517,7 @@ function renderPhaseConfig(phaseId) {
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
-    addSectionHeader('Who ranks');
-    addSelectWithHelp('Eligible players', 'Which players can rank', 'phase-from',
+    addSelectWithHelp('Who ranks', 'Which players can rank', 'phase-from',
       [
         { value: 'all', label: 'Everyone' },
         { value: 'remaining', label: 'Remaining players only' },
@@ -1568,19 +1530,8 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'rate') {
-    addRoleHeader('player', 'Players see & do');
-    addTextAreaWithHelp(
-      'Instructions (optional)',
-      'What students see above the scales. You can also explain verbally.',
-      'phase-prompt', phase.prompt,
-      'e.g. Rate the presentation on each scale below.',
-      function (value) {
-        if (value && value.trim()) { phase.prompt = value; } else { delete phase.prompt; }
-        renderCanvas();
-      }
-    );
-
-    addSectionHeader('Scales');
+    // Scales first — they're the actual rating instrument. Instructions
+    // are optional ("explain verbally" works fine for most teachers).
     if (!Array.isArray(phase.scales)) phase.scales = [];
 
     for (var sIdx = 0; sIdx < phase.scales.length; sIdx++) {
@@ -1705,23 +1656,19 @@ function renderPhaseConfig(phaseId) {
     });
     phaseConfigForm.appendChild(addScaleBtn);
 
+    addTextAreaWithHelp(
+      'Instructions (optional)',
+      'What students see above the scales. You can also explain verbally.',
+      'phase-prompt', phase.prompt,
+      'e.g. Rate the presentation on each scale below.',
+      function (value) {
+        if (value && value.trim()) { phase.prompt = value; } else { delete phase.prompt; }
+        renderCanvas();
+      }
+    );
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits whatever is selected on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
-
-    addSectionHeader('Who rates');
-    addSelectWithHelp('Eligible raters', 'Which players can submit ratings', 'phase-from',
-      [
-        { value: 'all', label: 'Everyone' },
-        { value: 'remaining', label: 'Remaining players only' },
-        { value: 'eliminated', label: 'Eliminated players only' }
-      ],
-      phase.from || 'all', function (value) {
-        if (value === 'all') { delete phase.from; } else { phase.from = value; }
-      }
-    );
-
-    addSectionHeader('Results');
     addSelectWithHelp('Who sees results', 'Show averages to the class or keep them on the teacher screen only', 'phase-visibility',
       [
         { value: 'all', label: 'Everyone sees results' },
@@ -1731,10 +1678,19 @@ function renderPhaseConfig(phaseId) {
         if (value === 'all') { delete phase.visibility; } else { phase.visibility = value; }
       }
     );
+    addSelectWithHelp('Who rates', 'Which players can submit ratings', 'phase-from',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' },
+        { value: 'eliminated', label: 'Eliminated players only' }
+      ],
+      phase.from || 'all', function (value) {
+        if (value === 'all') { delete phase.from; } else { phase.from = value; }
+      }
+    );
   }
 
   if (type === 'wager') {
-    addRoleHeader('player', 'Players see & do');
     addTextAreaWithHelp('Question / prompt', 'What are players betting on?', 'phase-prompt', phase.prompt, 'e.g. Which answer will the AI pick?', function (value) {
       phase.prompt = value;
       renderCanvas();
@@ -1791,9 +1747,11 @@ function renderPhaseConfig(phaseId) {
       phaseConfigForm.appendChild(addOptBtn);
     }
 
-    addSectionHeader('Points');
     addDataRefDropdown('Scores from', 'Where to get player point totals for betting', 'phase-scoresFrom', phaseId, phase.scoresFrom, function (value) {
       phase.scoresFrom = value || undefined;
+    });
+    addFieldWithHelp('Correct option (optional)', 'If set, auto-resolves. Leave empty for host to pick winner.', 'text', 'phase-correctOption', phase.correctOption, false, function (value) {
+      phase.correctOption = value || undefined;
     });
     addFieldWithHelp('Minimum bet', 'Smallest amount a player can wager (default 1)', 'number', 'phase-minBet', phase.minBet, false, function (value) {
       phase.minBet = value;
@@ -1804,14 +1762,7 @@ function renderPhaseConfig(phaseId) {
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
-
-    addSectionHeader('Resolution');
-    addFieldWithHelp('Correct option (optional)', 'If set, auto-resolves. Leave empty for host to pick winner.', 'text', 'phase-correctOption', phase.correctOption, false, function (value) {
-      phase.correctOption = value || undefined;
-    });
-
-    addSectionHeader('Who wagers');
-    addSelectWithHelp('Eligible players', 'Which players can place wagers', 'phase-from',
+    addSelectWithHelp('Who wagers', 'Which players can place wagers', 'phase-from',
       [
         { value: 'all', label: 'Everyone' },
         { value: 'remaining', label: 'Remaining players only' },
@@ -1824,7 +1775,6 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'relay') {
-    addRoleHeader('player', 'Players see & do');
     addTextAreaWithHelp('Prompt / instruction', 'Shown to the active player on their turn', 'phase-prompt', phase.prompt, 'e.g. Add the next sentence to the story', function (value) {
       phase.prompt = value;
       renderCanvas();
@@ -1841,8 +1791,7 @@ function renderPhaseConfig(phaseId) {
     addFieldWithHelp('Time per turn (seconds)', 'Leave empty for no limit. Auto-skips on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
-    addSectionHeader('Who participates');
-    addSelectWithHelp('Eligible players', 'Which players take turns', 'phase-from',
+    addSelectWithHelp('Who participates', 'Which players take turns', 'phase-from',
       [
         { value: 'all', label: 'Everyone' },
         { value: 'remaining', label: 'Remaining players only' },
@@ -2158,7 +2107,6 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'end') {
-    addSectionHeader('What everyone sees');
     addFieldWithHelp('Final message', 'Shown to all players when the game ends', 'text', 'phase-message', phase.message, false, function (value) {
       phase.message = value;
       renderCanvas();
@@ -2167,7 +2115,6 @@ function renderPhaseConfig(phaseId) {
 
   // --- Flow: Next phase (for all types except end and preview) ---
   if (type !== 'end' && type !== 'preview') {
-    addRoleHeader('flow', "What's next");
     // When next is already set, show a compact read-only display with a "Change" chip.
     // This hides a dropdown teachers rarely need to touch (canvas order = next = correct 90% of the time).
     if (phase.next && gameConfig.phases[phase.next]) {
@@ -2247,6 +2194,21 @@ function renderPhaseConfig(phaseId) {
     }
     endCollapsible(playerHandle);
   }
+
+  // --- Ask AI about this step (meta action, sits near the Advanced row) ---
+  addAskAiStepButton(phaseId);
+
+  // --- Advanced: change step type (rare — collapsed by default) ---
+  // Lives at the bottom because most teachers pick a type once and never
+  // change it. Used to sit near the top, which contributed to "Ask Players"
+  // appearing 3x before the first real setting.
+  var advHandle = beginCollapsible('flow', 'Advanced: change step type', phaseId + ':changeType', false);
+  addPhaseTypeSelect('Step type', 'Changes what this step does. Most settings reset when you switch types.', 'phase-type', phase.type, function (value) {
+    phase.type = value;
+    renderCanvas();
+    renderPhaseConfig(phaseId);
+  });
+  endCollapsible(advHandle);
 
   // --- Delete button ---
   var deleteSection = document.createElement('div');
@@ -2684,6 +2646,37 @@ function addRoleHeader(role, title) {
   header.className = 'config-section-header role-section-' + role;
   header.textContent = title;
   phaseConfigForm.appendChild(header);
+}
+
+// One-line at-a-glance caption that replaces the 3-box screen-info panel.
+// Renders: "Host: ... · Players: ... (· AI: ...)" as a small muted line
+// directly under the sidebar header. Gives orientation without taking
+// over the top of the form.
+function addScreenSummaryLine(hostText, playerText, aiText) {
+  var line = document.createElement('div');
+  line.className = 'config-screen-summary';
+
+  function part(roleLabel, roleClass, text) {
+    var span = document.createElement('span');
+    span.className = 'config-screen-summary-part ' + roleClass;
+    var b = document.createElement('strong');
+    b.textContent = roleLabel + ': ';
+    span.appendChild(b);
+    span.appendChild(document.createTextNode(text));
+    return span;
+  }
+
+  if (hostText) line.appendChild(part('Host', 'css-host', hostText));
+  if (playerText) {
+    if (hostText) line.appendChild(document.createTextNode(' · '));
+    line.appendChild(part('Players', 'css-player', playerText));
+  }
+  if (aiText) {
+    line.appendChild(document.createTextNode(' · '));
+    line.appendChild(part('AI', 'css-ai', aiText));
+  }
+
+  phaseConfigForm.appendChild(line);
 }
 
 // Screen info boxes with optional AI lane

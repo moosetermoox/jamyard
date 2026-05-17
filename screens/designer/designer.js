@@ -51,51 +51,138 @@ function renderGames(games) {
     return;
   }
 
+  // Split into "My Games" (user-saved) and "Built-in Games" (ship with the
+  // framework). Source is set server-side based on filesystem location
+  // (games/user/ vs games/). Games loaded before this change have no
+  // source field — default them to 'built-in' so the picker still works.
+  var userGames = [];
+  var builtIn = [];
   for (var i = 0; i < games.length; i++) {
-    var game = games[i];
+    var src = games[i].source || 'built-in';
+    if (src === 'user') userGames.push(games[i]);
+    else builtIn.push(games[i]);
+  }
 
-    var card = document.createElement('div');
-    card.className = 'game-card';
-    card.setAttribute('data-game-id', game.id);
-    card.addEventListener('click', handleCardClick);
+  if (userGames.length > 0) {
+    appendGameSection('My Games', userGames, /*deletable*/ true);
+  }
+  if (builtIn.length > 0) {
+    // Only show the heading if "My Games" is also present — keeps the page
+    // looking like a flat grid when the teacher hasn't created anything yet.
+    appendGameSection(userGames.length > 0 ? 'Built-in Games' : null, builtIn, true);
+  }
+}
 
-    var name = document.createElement('h2');
-    name.className = 'game-card-name';
-    name.textContent = game.name;
+function appendGameSection(headingText, games, deletable) {
+  if (headingText) {
+    var heading = document.createElement('h2');
+    heading.className = 'games-section-heading';
+    heading.textContent = headingText;
+    gamesGrid.appendChild(heading);
+  }
 
-    var description = document.createElement('p');
-    description.className = 'game-card-description';
-    description.textContent = game.description || 'No description';
+  var grid = document.createElement('div');
+  grid.className = 'games-section-grid';
 
-    var meta = document.createElement('div');
-    meta.className = 'game-card-meta';
+  for (var i = 0; i < games.length; i++) {
+    grid.appendChild(buildGameCard(games[i], deletable));
+  }
 
-    var phases = document.createElement('span');
-    phases.className = 'game-card-phases';
-    phases.textContent = game.phaseCount + ' phases';
-    meta.appendChild(phases);
+  gamesGrid.appendChild(grid);
+}
 
-    if (game.minPlayers) {
-      var players = document.createElement('span');
-      players.className = 'game-card-players';
-      var maxLabel = game.maxPlayers ? '-' + game.maxPlayers : '+';
-      players.textContent = game.minPlayers + maxLabel + ' players';
-      meta.appendChild(players);
+function buildGameCard(game, deletable) {
+  var card = document.createElement('div');
+  card.className = 'game-card';
+  if ((game.source || 'built-in') === 'built-in') {
+    card.classList.add('game-card-built-in');
+  } else {
+    card.classList.add('game-card-user');
+  }
+  card.setAttribute('data-game-id', game.id);
+  card.addEventListener('click', handleCardClick);
+
+  var name = document.createElement('h2');
+  name.className = 'game-card-name';
+  name.textContent = game.name;
+  card.appendChild(name);
+
+  var description = document.createElement('p');
+  description.className = 'game-card-description';
+  description.textContent = game.description || 'No description';
+  card.appendChild(description);
+
+  // Advisory metadata row — only renders fields that exist on the config.
+  // Built-in games get curated values; user games show whatever they've set
+  // (often nothing, which is fine — the row just stays small).
+  var meta = document.createElement('div');
+  meta.className = 'game-card-meta';
+
+  if (game.playTime) {
+    meta.appendChild(buildMetaBadge('⏱', String(game.playTime)));
+  }
+  var classSizeText = formatClassSize(game);
+  if (classSizeText) {
+    meta.appendChild(buildMetaBadge('👥', classSizeText));
+  }
+  var phases = document.createElement('span');
+  phases.className = 'game-card-phases';
+  phases.textContent = game.phaseCount + ' steps';
+  meta.appendChild(phases);
+
+  card.appendChild(meta);
+
+  // Tags row (skills / categories). Renders as small chip pills.
+  if (Array.isArray(game.tags) && game.tags.length > 0) {
+    var tagsRow = document.createElement('div');
+    tagsRow.className = 'game-card-tags';
+    var tagPrefix = document.createElement('span');
+    tagPrefix.className = 'game-card-tags-icon';
+    tagPrefix.textContent = '🎯';
+    tagsRow.appendChild(tagPrefix);
+    for (var t = 0; t < game.tags.length; t++) {
+      var chip = document.createElement('span');
+      chip.className = 'game-card-tag';
+      chip.textContent = game.tags[t];
+      tagsRow.appendChild(chip);
     }
+    card.appendChild(tagsRow);
+  }
 
+  if (game.recommendedFor) {
+    var rec = document.createElement('p');
+    rec.className = 'game-card-recommended';
+    rec.textContent = game.recommendedFor;
+    card.appendChild(rec);
+  }
+
+  if (deletable) {
     var deleteBtn = document.createElement('button');
     deleteBtn.className = 'game-card-delete';
     deleteBtn.textContent = 'Delete';
     deleteBtn.setAttribute('data-game-id', game.id);
     deleteBtn.setAttribute('data-game-name', game.name);
     deleteBtn.addEventListener('click', handleDeleteClick);
-
-    card.appendChild(name);
-    card.appendChild(description);
-    card.appendChild(meta);
     card.appendChild(deleteBtn);
-    gamesGrid.appendChild(card);
   }
+
+  return card;
+}
+
+function buildMetaBadge(icon, text) {
+  var badge = document.createElement('span');
+  badge.className = 'game-card-meta-badge';
+  badge.textContent = icon + ' ' + text;
+  return badge;
+}
+
+function formatClassSize(game) {
+  if (game.classSize) return String(game.classSize);
+  if (game.minPlayers) {
+    var maxLabel = game.maxPlayers ? '–' + game.maxPlayers : '+';
+    return game.minPlayers + maxLabel + ' players';
+  }
+  return null;
 }
 
 function handleCardClick(e) {

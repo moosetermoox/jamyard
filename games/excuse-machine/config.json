@@ -31,7 +31,12 @@
         "rate": {
           "type": "collect-choice",
           "prompt": "Rate this excuse:\n\n\"{{_current.text}}\"",
-          "choices": ["Meh", "Not Bad", "Pretty Good", "Amazing"],
+          "choices": [
+            "Meh",
+            "Not Bad",
+            "Pretty Good",
+            "Amazing"
+          ],
           "timer": 10
         },
         "result": {
@@ -62,5 +67,13 @@
       "type": "end",
       "message": "Thanks for playing The Excuse Machine!"
     }
-  }
+  },
+  "playTime": "~10 min",
+  "classSize": "5–30 players",
+  "tags": [
+    "humor",
+    "creative writing",
+    "voting"
+  ],
+  "recommendedFor": "Loud and silly. Save for Friday or as a brain break."
 }

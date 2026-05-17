@@ -35,7 +35,7 @@ registerHandler('reveal', {
       }
     }
 
-    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId);
+    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
 
     if (isPerPlayer) {
       ctx.emitToHost(EVENTS.SHOW_RESULTS, { content, aiResult: content, responses, image, ...sc });
@@ -78,7 +78,7 @@ registerHandler('reveal', {
         }
       }
     }
-    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId);
+    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
     socket.emit(EVENTS.SHOW_RESULTS, { content, aiResult, image, ...sc });
   }
 });
