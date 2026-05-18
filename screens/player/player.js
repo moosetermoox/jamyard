@@ -599,12 +599,14 @@ socket.on('leaderboard', ({ standings, allStandings, style, timer, playerTemplat
     leaderboardScore.textContent = '';
   }
 
-  // Render standings list
+  // Render standings list \u2014 medal/number based on rank so tied players
+  // share the same medal (two tied for 1st \u2192 both gold; no silver).
   leaderboardStandings.innerHTML = '';
   var list = allStandings || standings || [];
   for (var i = 0; i < list.length; i++) {
     var p = document.createElement('p');
-    var prefix = (i === 0 ? '\u{1F947} ' : i === 1 ? '\u{1F948} ' : i === 2 ? '\u{1F949} ' : (i + 1) + '. ');
+    var r = list[i].rank;
+    var prefix = (r === 1 ? '\u{1F947} ' : r === 2 ? '\u{1F948} ' : r === 3 ? '\u{1F949} ' : r + '. ');
     p.textContent = prefix + list[i].name + ' \u2014 ' + list[i].score + ' points';
     if (list[i].playerId === socket.id) {
       p.className = 'leaderboard-highlight';

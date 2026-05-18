@@ -24,9 +24,20 @@ registerHandler('leaderboard', {
       }));
     }
 
-    // Sort by score descending
+    // Sort by score descending, then assign ranks using competition ranking
+    // (Olympic-style 1, 1, 3, 4) so tied scores share a rank. Without this,
+    // two players tied for 1st used to be shown as gold/silver instead of
+    // both gold.
     standings.sort((a, b) => b.score - a.score);
-    standings.forEach((s, i) => { s.rank = i + 1; });
+    let prevScore = null;
+    let rank = 0;
+    standings.forEach((s, i) => {
+      if (s.score !== prevScore) {
+        rank = i + 1;
+        prevScore = s.score;
+      }
+      s.rank = rank;
+    });
 
     const display = style === 'top3' ? standings.slice(0, 3) : standings;
     engine.storePhaseData(phase.id, { standings, style });
