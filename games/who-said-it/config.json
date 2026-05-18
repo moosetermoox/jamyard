@@ -27,7 +27,7 @@
       "subPhases": {
         "show": {
           "type": "announce",
-          "message": "Round {{_foreach.guess-loop.index}} of {{_foreach.guess-loop.total}}\n\nSomeone said:\n\n\"{{_current.text}}\"",
+          "message": "Round {{_foreach.guess-loop.index}} of {{_foreach.guess-loop.total}}\n\nGet ready to guess!",
           "timer": 5
         },
         "guess": {

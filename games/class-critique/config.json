@@ -15,7 +15,7 @@
       "timer": 15,
       "next": "rate-it",
       "image": "assets/02hest-kids-superjumbo-mp3efnnp.webp",
-      "hostTemplate": "happy birthday bitch"
+      "hostTemplate": "happy birthday "
     },
     "rate-it": {
       "type": "rate",
