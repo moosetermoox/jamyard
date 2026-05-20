@@ -25,6 +25,7 @@ registerHandler('collect-choice', {
     }
 
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
+    const video = ctx.services.resolveVideoEmbed(phase.video);
 
     // Send to host (resolve refs once for host view)
     const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
@@ -32,6 +33,7 @@ registerHandler('collect-choice', {
       prompt: hostPrompt,
       choices,
       image,
+      video,
       timer: phase.timer || null,
       isChoice: true,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
@@ -48,6 +50,7 @@ registerHandler('collect-choice', {
         prompt: playerPrompt,
         choices,
         image,
+        video,
         timer: phase.timer || null,
         isChoice: true,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -75,10 +78,12 @@ registerHandler('collect-choice', {
       }
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, socket.id);
       const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
+      const video = ctx.services.resolveVideoEmbed(ctx.phase.video);
       socket.emit(EVENTS.GAME_STARTED, {
         prompt: playerPrompt,
         choices,
         image,
+        video,
         timer: null,
         isChoice: true,
         playerTemplate: sc.playerTemplate, show: sc.playerShow

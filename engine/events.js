@@ -33,7 +33,14 @@ export const EVENTS = {
   // --- Collect Phase ---
   SUBMIT_RESPONSE:      'submit-response',
   RESPONSE_RECEIVED:    'response-received',
+  RESPONSE_REJECTED:    'response-rejected',
   CLOSE_SUBMISSIONS:    'close-submissions',
+
+  // --- Host Moderation ---
+  SUBMISSIONS_UPDATE:   'submissions-update',
+  MODERATE_HIDE:        'moderate-hide',
+  MODERATE_KICK:        'moderate-kick',
+  KICKED:               'kicked',
 
   // --- AI Processing ---
   PROCESSING_STARTED:   'processing-started',

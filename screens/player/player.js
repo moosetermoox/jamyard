@@ -91,6 +91,25 @@ const collectSection = document.getElementById('collect-section');
 const promptDisplay = document.getElementById('prompt-display');
 const responseInput = document.getElementById('response-input');
 const submitBtn = document.getElementById('submit-btn');
+const responseCounter = document.getElementById('response-counter');
+const responseNotice = document.getElementById('response-notice');
+
+const RESPONSE_MAX = 280;
+const RESPONSE_MIN = 2;
+
+// Live character counter + notice clearing as the student types.
+if (responseInput) {
+  responseInput.addEventListener('input', () => {
+    if (responseCounter) responseCounter.textContent = responseInput.value.length + ' / ' + RESPONSE_MAX;
+    if (responseNotice && !responseNotice.hidden) responseNotice.hidden = true;
+  });
+}
+
+function showResponseNotice(message) {
+  if (!responseNotice) return;
+  responseNotice.textContent = message;
+  responseNotice.hidden = false;
+}
 
 // Elements - Phase images
 const collectImage = document.getElementById('collect-image');
@@ -298,19 +317,40 @@ joinBtn.addEventListener('click', () => {
   joinBtn.disabled = true;
   currentRoomCode = code;
   currentPlayerName = name;
-  socket.emit('join-room', { code, name });
+  // Send any saved token so the server can reconnect us (or block us, if the
+  // host kicked this token from the room). Tokens are per-room, so passing a
+  // stale token from another room is harmless.
+  var savedToken = currentToken;
+  if (!savedToken) {
+    try { savedToken = sessionStorage.getItem('playerToken'); } catch (e) { /* storage unavailable */ }
+  }
+  socket.emit('join-room', { code, name, token: savedToken || undefined });
 });
 
 submitBtn.addEventListener('click', () => {
+  // Multi-field and choice modes hide the textarea and drive submission via
+  // their own handlers; this listener only governs single-text mode.
+  if (responseInput.hidden || responseInput.style.display === 'none') return;
+
   const response = responseInput.value.trim();
 
-  if (!response) {
+  if (response.length < RESPONSE_MIN) {
+    showResponseNotice('Please write a bit more.');
     return;
   }
 
+  if (responseNotice) responseNotice.hidden = true;
   submitBtn.disabled = true;
   socket.emit('submit-response', { code: currentRoomCode, response });
   showSection(submittedSection);
+});
+
+// Server rejected the submission (filtered or invalid). Bring the student back
+// to the question with their text intact so they can revise.
+socket.on('response-rejected', ({ message }) => {
+  showSection(collectSection);
+  submitBtn.disabled = false;
+  showResponseNotice(message || 'That response wasn’t accepted. Please try again.');
 });
 
 // --- Socket events - Join ---
@@ -361,6 +401,20 @@ socket.on('room-closed', () => {
   showError('Room was closed by the host');
 });
 
+// Host removed this player. Null currentRoomCode/currentPlayerName so the
+// auto-rejoin on reconnect won't fire — but KEEP the token: the server blocks
+// that token from rejoining this room, and we resend it on manual join so a
+// refresh/re-join in the same session stays blocked.
+socket.on('kicked', ({ message } = {}) => {
+  eliminatedBanner.hidden = true;
+  isEliminated = false;
+  currentRoomCode = null;
+  currentPlayerName = null;
+  showSection(joinSection);
+  joinBtn.disabled = false;
+  showError(message || 'You have been removed from the game.');
+});
+
 // --- Timer ---
 function startTimer(seconds, wrapperEl, onExpire) {
   clearTimer();
@@ -408,6 +462,8 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   responseInput.value = '';
+  if (responseCounter) responseCounter.textContent = '0 / ' + RESPONSE_MAX;
+  if (responseNotice) responseNotice.hidden = true;
   submitBtn.disabled = false;
   applyTemplate(collectSection, playerTemplate);
   applyImage(collectImage, image, show);

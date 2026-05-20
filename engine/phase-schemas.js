@@ -159,6 +159,11 @@ export const PHASE_SCHEMAS = {
         type: 'string', optional: true,
         label: 'Image (optional)',
         helper: 'Path to an uploaded image (e.g. assets/photo.jpg). Use the upload widget below.'
+      },
+      video: {
+        type: 'string', optional: true,
+        label: 'YouTube video (optional)',
+        helper: 'Paste a YouTube link. Plays on the host/projector screen.'
       }
     },
     transitions: {
@@ -171,7 +176,7 @@ export const PHASE_SCHEMAS = {
       }
     },
     ui: {
-      hostToggles: ['message', 'image', 'continueButton', 'timer'],
+      hostToggles: ['message', 'image', 'video', 'continueButton', 'timer'],
       playerToggles: ['message', 'image', 'timer']
     }
   },
@@ -210,6 +215,11 @@ export const PHASE_SCHEMAS = {
         type: 'string', optional: true,
         label: 'Image (optional)',
         helper: 'Path to an uploaded image (e.g. assets/photo.jpg). Use the upload widget below.'
+      },
+      video: {
+        type: 'string', optional: true,
+        label: 'YouTube video (optional)',
+        helper: 'Paste a YouTube link. Plays on the host/projector screen.'
       }
     },
     transitions: {
@@ -218,7 +228,7 @@ export const PHASE_SCHEMAS = {
     // Output shape varies (multi-field adds .fields per response)
     output: { kind: 'dynamic', resolver: 'collectOutput' },
     ui: {
-      hostToggles: ['prompt', 'image', 'counter', 'timer', 'closeButton'],
+      hostToggles: ['prompt', 'image', 'video', 'counter', 'timer', 'closeButton'],
       playerToggles: ['prompt', 'image', 'input', 'timer', 'submitButton']
     }
   },
@@ -241,6 +251,11 @@ export const PHASE_SCHEMAS = {
         type: 'string', optional: true,
         label: 'Image (optional)',
         helper: 'Path to an uploaded image (e.g. assets/photo.jpg). Use the upload widget below.'
+      },
+      video: {
+        type: 'string', optional: true,
+        label: 'YouTube video (optional)',
+        helper: 'Paste a YouTube link. Plays on the host/projector screen.'
       }
     },
     transitions: {
@@ -265,7 +280,7 @@ export const PHASE_SCHEMAS = {
     // shorthand for {{X.tally.barChart}} (the engine's resolver pulls
     // X.tally automatically). Not a legacy form — no alias needed.
     ui: {
-      hostToggles: ['prompt', 'image', 'counter', 'timer', 'closeButton'],
+      hostToggles: ['prompt', 'image', 'video', 'counter', 'timer', 'closeButton'],
       playerToggles: ['prompt', 'image', 'choices', 'timer']
     }
   },
@@ -519,6 +534,11 @@ export const PHASE_SCHEMAS = {
         type: 'string', optional: true,
         label: 'Image (optional)',
         helper: 'Path to an uploaded image (e.g. assets/photo.jpg). Use the upload widget below.'
+      },
+      video: {
+        type: 'string', optional: true,
+        label: 'YouTube video (optional)',
+        helper: 'Paste a YouTube link. Plays on the host/projector screen.'
       }
     },
     transitions: {
@@ -527,7 +547,7 @@ export const PHASE_SCHEMAS = {
     output: { kind: 'static', fields: {} },
     validate: 'revealContentOrTemplate',
     ui: {
-      hostToggles: ['content', 'image', 'responses', 'continueButton'],
+      hostToggles: ['content', 'image', 'video', 'responses', 'continueButton'],
       playerToggles: ['content', 'image']
     }
   },

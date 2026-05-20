@@ -36,17 +36,18 @@ registerHandler('reveal', {
     }
 
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
+    const video = ctx.services.resolveVideoEmbed(phase.video);
 
     if (isPerPlayer) {
-      ctx.emitToHost(EVENTS.SHOW_RESULTS, { content, aiResult: content, responses, image, ...sc });
+      ctx.emitToHost(EVENTS.SHOW_RESULTS, { content, aiResult: content, responses, image, video, ...sc });
       for (const player of engine.players.list()) {
         const playerContent = ctx.services.resolvePerPlayerTemplate(tpl, engine, player.id);
         ctx.emitToPlayer(player.id, EVENTS.SHOW_RESULTS, {
-          content: playerContent, aiResult: playerContent, responses, image, ...sc
+          content: playerContent, aiResult: playerContent, responses, image, video, ...sc
         });
       }
     } else {
-      ctx.emitToRoom(EVENTS.SHOW_RESULTS, { content, aiResult, responses, image, ...sc });
+      ctx.emitToRoom(EVENTS.SHOW_RESULTS, { content, aiResult, responses, image, video, ...sc });
     }
   },
 
@@ -79,6 +80,7 @@ registerHandler('reveal', {
       }
     }
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
-    socket.emit(EVENTS.SHOW_RESULTS, { content, aiResult, image, ...sc });
+    const video = ctx.services.resolveVideoEmbed(phase.video);
+    socket.emit(EVENTS.SHOW_RESULTS, { content, aiResult, image, video, ...sc });
   }
 });

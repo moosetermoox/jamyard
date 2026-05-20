@@ -27,6 +27,9 @@ import {
 } from './engine/phases/vote-handler.js';
 import { getHandler, hasHandler, createPhaseContext } from './engine/phase-handlers/index.js';
 import { EVENTS } from './engine/events.js';
+import { resolveVideoEmbed } from './engine/video.js';
+import { checkSubmission } from './engine/content-filter.js';
+import { buildSubmissionList, isVisibleSubmission } from './engine/moderation.js';
 import { validatePayload } from './engine/event-schemas.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -682,11 +685,26 @@ function resolveImageUrl(rel, gameId, source) {
   return `/games/${gameId}/${cleaned}`;
 }
 
+// Push the live moderation list (submitter name + text + hidden flag) to the
+// host so the teacher can hide/kick during a collect phase. No-op if there's no
+// engine or current phase isn't a collect-type.
+function emitSubmissionsUpdate(code, room) {
+  if (!room || !room.engine) return;
+  const phase = room.engine.getCurrentPhase();
+  if (!phase || (phase.type !== 'collect' && phase.type !== 'collect-choice')) return;
+  const hostSocketId = roomToHost.get(code);
+  if (!hostSocketId) return;
+  const eligible = getEligibleVoters(room.engine.players, phase.from || 'all');
+  io.to(hostSocketId).emit(EVENTS.SUBMISSIONS_UPDATE, {
+    submissions: buildSubmissionList(eligible)
+  });
+}
+
 // Services bundle passed to phase handler context
 const phaseServices = {
   io, roomToHost, aiService,
   resolveTemplate, resolvePerPlayerTemplate, resolveScreenControl, getNextPhaseId, getEligibleVoters,
-  resolveImageUrl,
+  resolveImageUrl, resolveVideoEmbed,
   handlePhase: (code, room) => handlePhase(code, room),
   // Helpers needed by complex phase handlers
   generateMatchups,
@@ -1422,6 +1440,13 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Block players the host kicked from this room (same-session token).
+    if (token && room.kickedTokens && room.kickedTokens.has(token)) {
+      console.log(`[join-room] Blocked kicked player from rejoining ${code}`);
+      socket.emit(EVENTS.JOIN_ERROR, { message: 'You have been removed from this game.' });
+      return;
+    }
+
     const players = room.engine ? room.engine.players : room.playerRegistry;
 
     try {
@@ -1523,6 +1548,19 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Safety gate — only free-text collect submissions. collect-choice answers
+    // are teacher-authored choices, so they skip validation/filtering.
+    const currentPhase = room.engine ? room.engine.getCurrentPhase() : null;
+    if (currentPhase && currentPhase.type === 'collect') {
+      const check = checkSubmission(response, { prompt: currentPhase.prompt });
+      if (!check.ok) {
+        console.log(`[submit-response] Rejected (${check.reason}) from ${player.name}`);
+        recordEvent(room, 'submit-rejected', { player: player.name, reason: check.reason });
+        socket.emit(EVENTS.RESPONSE_REJECTED, { reason: check.reason, message: check.message });
+        return;
+      }
+    }
+
     players.update(socket.id, { response });
     console.log(`[submit-response] Stored response from ${player.name}`);
     recordEvent(room, 'submit-response', { player: player.name });
@@ -1551,6 +1589,61 @@ io.on('connection', (socket) => {
         total
       });
     }
+
+    // Push the live moderation list so the host can hide/kick before closing.
+    emitSubmissionsUpdate(code, room);
+  });
+
+  // Host hides/unhides a submitted response. Hidden responses are excluded from
+  // AI input and the reveal when submissions close (reversible until then).
+  socket.on(EVENTS.MODERATE_HIDE, (payload = {}) => {
+    if (!checkEventPayload(socket, 'moderate-hide', payload)) return;
+    const { code, playerId, hidden } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.engine) return;
+    // Only the host may moderate.
+    if (roomToHost.get(code) !== socket.id) return;
+    const players = room.engine.players;
+    const target = players.find(playerId);
+    if (!target) return;
+    const newHidden = hidden === undefined ? !target.responseHidden : !!hidden;
+    players.update(playerId, { responseHidden: newHidden });
+    recordEvent(room, 'moderate-hide', { player: target.name, hidden: newHidden });
+    emitSubmissionsUpdate(code, room);
+  });
+
+  // Host kicks a player: remove from the game and block rejoin this session.
+  socket.on(EVENTS.MODERATE_KICK, (payload = {}) => {
+    if (!checkEventPayload(socket, 'moderate-kick', payload)) return;
+    const { code, playerId } = payload;
+    const room = roomManager.find(code);
+    if (!room) return;
+    if (roomToHost.get(code) !== socket.id) return;
+    const players = room.engine ? room.engine.players : room.playerRegistry;
+    const target = players.find(playerId);
+    if (!target) return;
+
+    // Block the kicked player's token (and id) from rejoining this room.
+    room.kickedTokens = room.kickedTokens || new Set();
+    if (target.token) room.kickedTokens.add(target.token);
+
+    players.remove(playerId);
+    socketToRoom.delete(playerId);
+    recordEvent(room, 'moderate-kick', { player: target.name });
+
+    // Notify and detach the kicked socket.
+    const kickedSocket = io.sockets.sockets.get(playerId);
+    if (kickedSocket) {
+      kickedSocket.emit(EVENTS.KICKED, { message: 'You have been removed from the game by the teacher.' });
+      kickedSocket.leave(code);
+    }
+
+    // Update the host's player list + moderation list.
+    const hostSocketId = roomToHost.get(code);
+    if (hostSocketId) {
+      io.to(hostSocketId).emit(EVENTS.PLAYER_LEFT, { id: playerId, players: players.listPublic() });
+    }
+    emitSubmissionsUpdate(code, room);
   });
 
   socket.on(EVENTS.CLOSE_SUBMISSIONS, async (payload = {}) => {
@@ -1572,10 +1665,11 @@ io.on('connection', (socket) => {
         const players = room.engine.players;
         const from = collectPhase.from || 'all';
 
-        // Gather responses from eligible players and store as phase data
+        // Gather responses from eligible players and store as phase data.
+        // Host-hidden responses are excluded (kept off AI input + reveal).
         const eligible = getEligibleVoters(players, from);
         const responses = eligible
-          .filter(p => p.response)
+          .filter(isVisibleSubmission)
           .map(p => {
             const r = p.response;
             // Multi-field responses come as objects with field keys
@@ -1613,9 +1707,9 @@ io.on('connection', (socket) => {
           console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}'`);
         }
 
-        // Clear responses for next collect phase
+        // Clear responses (and hidden flags) for next collect phase
         for (const p of players.list()) {
-          if (p.response) players.update(p.id, { response: undefined });
+          if (p.response || p.responseHidden) players.update(p.id, { response: undefined, responseHidden: false });
         }
 
         // Advance to next phase and let handlePhase take over

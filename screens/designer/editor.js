@@ -1171,6 +1171,7 @@ function renderPhaseConfig(phaseId) {
       }
     );
     addImageUploadWidget(phase, phaseId);
+    addVideoUrlField(phase);
   }
 
   if (type === 'ai-process') {
@@ -1290,6 +1291,7 @@ function renderPhaseConfig(phaseId) {
       phase.timer = value;
     });
     addImageUploadWidget(phase, phaseId);
+    addVideoUrlField(phase);
   }
 
   if (type === 'collect-choice') {
@@ -1372,6 +1374,7 @@ function renderPhaseConfig(phaseId) {
       }
     );
     addImageUploadWidget(phase, phaseId);
+    addVideoUrlField(phase);
   }
 
   if (type === 'ai-eliminate') {
@@ -1399,6 +1402,7 @@ function renderPhaseConfig(phaseId) {
     });
     addVariableChips(revealTA, phaseId);
     addImageUploadWidget(phase, phaseId);
+    addVideoUrlField(phase);
   }
 
   if (type === 'preview') {
@@ -2428,6 +2432,22 @@ function addSectionHeader(title) {
  * @param {object} phase  — the phase config object (so we can read/write phase.image)
  * @param {string} phaseId — id (used only for refresh)
  */
+/**
+ * YouTube video URL field. A plain text input (no upload) that reads/writes
+ * phase.video. Trimmed; empty clears the field. Plays on the host screen only.
+ */
+function addVideoUrlField(phase) {
+  return addFieldWithHelp(
+    'YouTube video URL (optional)',
+    'Paste a YouTube link (e.g. youtu.be/abc123 or youtube.com/watch?v=…). Plays on the host/projector screen only. Toggle off with the host "video" control.',
+    'text', 'phase-video', phase.video, false,
+    function (value) {
+      var v = (value || '').trim();
+      if (v) { phase.video = v; } else { delete phase.video; }
+    }
+  );
+}
+
 function addImageUploadWidget(phase, phaseId) {
   var section = document.createElement('div');
   section.className = 'form-group';

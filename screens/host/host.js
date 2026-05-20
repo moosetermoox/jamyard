@@ -43,6 +43,12 @@ const collectTimer = document.getElementById('collect-timer');
 const submissionCount = document.getElementById('submission-count');
 const closeSubmissionsBtn = document.getElementById('close-submissions-btn');
 
+// Elements - Moderation panel
+const moderationPanel = document.getElementById('moderation-panel');
+const moderationToggle = document.getElementById('moderation-toggle');
+const moderationCount = document.getElementById('moderation-count');
+const moderationList = document.getElementById('moderation-list');
+
 // Elements - Process
 const processSection = document.getElementById('process-section');
 
@@ -156,6 +162,11 @@ const collectImage = document.getElementById('collect-image');
 const revealImage = document.getElementById('reveal-image');
 const announceImage = document.getElementById('announce-image');
 
+// Elements - Phase videos (host/projector only)
+const collectVideo = document.getElementById('collect-video');
+const revealVideo = document.getElementById('reveal-video');
+const announceVideo = document.getElementById('announce-video');
+
 // --- Phase image helper ---
 // Sets src on the section's <img.phase-image> and respects the 'image' show toggle.
 function applyImage(imgEl, url, show) {
@@ -172,6 +183,34 @@ function applyImage(imgEl, url, show) {
   } else {
     imgEl.hidden = true;
     imgEl.removeAttribute('src');
+  }
+}
+
+// --- Phase video helper ---
+// Sets the YouTube embed src on the section's <iframe.phase-video> and respects
+// the 'video' show toggle. Blanking src (not just hiding) stops playback/audio.
+function applyVideo(frameEl, url, show) {
+  if (!frameEl) return;
+  if (show && !show.includes('video')) {
+    frameEl.hidden = true;
+    frameEl.src = '';
+    return;
+  }
+  if (url) {
+    frameEl.src = url;
+    frameEl.hidden = false;
+  } else {
+    frameEl.hidden = true;
+    frameEl.src = '';
+  }
+}
+
+// Stop every embedded video (blank its src) — called on each phase transition
+// so a video never keeps playing audio behind the next phase.
+function stopAllVideos() {
+  for (const f of document.querySelectorAll('.phase-video')) {
+    f.hidden = true;
+    f.src = '';
   }
 }
 
@@ -423,12 +462,15 @@ function clearTimer() {
 
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt, image, timer, hostTemplate, show }) => {
+socket.on('game-started', ({ prompt, image, video, timer, hostTemplate, show }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   submissionCount.textContent = '0 of 0 submitted';
+  renderModeration([]);
+  if (moderationList) moderationList.hidden = true;
   applyTemplate(collectSection, hostTemplate);
   applyImage(collectImage, image, show);
+  applyVideo(collectVideo, video, show);
   applyShow(show, {
     prompt: promptDisplay,
     counter: submissionCount,
@@ -444,6 +486,65 @@ socket.on('game-started', ({ prompt, image, timer, hostTemplate, show }) => {
 
 socket.on('response-received', ({ playerName, count, total }) => {
   submissionCount.textContent = count + ' of ' + total + ' submitted';
+});
+
+// --- Moderation panel (live submissions: hide / kick) ---
+
+if (moderationToggle) {
+  moderationToggle.addEventListener('click', () => {
+    if (moderationList) moderationList.hidden = !moderationList.hidden;
+  });
+}
+
+function renderModeration(submissions) {
+  if (!moderationPanel) return;
+  const list = submissions || [];
+  moderationPanel.hidden = list.length === 0;
+  if (moderationCount) moderationCount.textContent = '(' + list.length + ')';
+  if (!moderationList) return;
+  moderationList.innerHTML = '';
+  for (const s of list) {
+    const li = document.createElement('li');
+    li.className = 'moderation-item' + (s.hidden ? ' moderation-hidden' : '');
+
+    const text = document.createElement('span');
+    text.className = 'moderation-text';
+    text.innerHTML = '<strong>' + escapeHtml(s.name) + ':</strong> ' + escapeHtml(s.text);
+
+    const hideBtn = document.createElement('button');
+    hideBtn.type = 'button';
+    hideBtn.className = 'moderation-btn';
+    hideBtn.textContent = s.hidden ? 'Unhide' : 'Hide';
+    hideBtn.addEventListener('click', () => {
+      socket.emit('moderate-hide', { code: currentRoomCode, playerId: s.playerId, hidden: !s.hidden });
+    });
+
+    const kickBtn = document.createElement('button');
+    kickBtn.type = 'button';
+    kickBtn.className = 'moderation-btn moderation-kick';
+    kickBtn.textContent = 'Kick';
+    kickBtn.addEventListener('click', () => {
+      if (window.confirm('Remove ' + s.name + ' from the game? They cannot rejoin this session.')) {
+        socket.emit('moderate-kick', { code: currentRoomCode, playerId: s.playerId });
+      }
+    });
+
+    li.appendChild(text);
+    li.appendChild(hideBtn);
+    li.appendChild(kickBtn);
+    moderationList.appendChild(li);
+  }
+}
+
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+socket.on('submissions-update', ({ submissions }) => {
+  renderModeration(submissions);
 });
 
 const processMessage = document.getElementById('process-message');
@@ -490,12 +591,13 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
   }
 });
 
-socket.on('show-results', ({ content, aiResult, responses, image, hostTemplate, hostShow }) => {
+socket.on('show-results', ({ content, aiResult, responses, image, video, hostTemplate, hostShow }) => {
   showSection(revealSection);
   aiResultDisplay.textContent = content || aiResult;
   aiResultDisplay.classList.toggle('chart', /[█░]/.test(aiResultDisplay.textContent || ''));
   applyTemplate(revealSection, hostTemplate);
   applyImage(revealImage, image, hostShow);
+  applyVideo(revealVideo, video, hostShow);
   applyShow(hostShow, {
     content: aiResultDisplay,
     responses: revealResponses,
@@ -512,11 +614,12 @@ socket.on('show-results', ({ content, aiResult, responses, image, hostTemplate, 
   }
 });
 
-socket.on('announce', ({ message, image, timer, hostTemplate, hostShow }) => {
+socket.on('announce', ({ message, image, video, timer, hostTemplate, hostShow }) => {
   showSection(announceSection);
   announceMessage.textContent = message;
   applyTemplate(announceSection, hostTemplate);
   applyImage(announceImage, image, hostShow);
+  applyVideo(announceVideo, video, hostShow);
   applyShow(hostShow, {
     message: announceMessage,
     continueButton: announceContinueBtn,
@@ -988,8 +1091,20 @@ function renderPlayerList(players) {
     const nameSpan = document.createElement('span');
     nameSpan.textContent = player.name;
 
+    const kickBtn = document.createElement('button');
+    kickBtn.type = 'button';
+    kickBtn.className = 'player-kick-btn';
+    kickBtn.title = 'Remove ' + player.name;
+    kickBtn.textContent = '✕';
+    kickBtn.addEventListener('click', () => {
+      if (window.confirm('Remove ' + player.name + ' from the game? They cannot rejoin this session.')) {
+        socket.emit('moderate-kick', { code: currentRoomCode, playerId: player.id });
+      }
+    });
+
     li.appendChild(avatar);
     li.appendChild(nameSpan);
+    li.appendChild(kickBtn);
     playerList.appendChild(li);
   }
 }
@@ -1017,6 +1132,7 @@ const allSections = [
 
 function showSection(el) {
   clearTimer();
+  stopAllVideos();
   for (const s of allSections) {
     s.classList.remove('active');
     s.hidden = true;

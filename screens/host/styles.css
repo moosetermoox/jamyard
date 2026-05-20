@@ -491,6 +491,87 @@ button:disabled {
   background: var(--theme-surface, white);
 }
 
+.phase-video {
+  display: block;
+  width: 80%;
+  max-width: 960px;
+  aspect-ratio: 16 / 9;
+  margin: 12px auto;
+  border: 3px solid var(--theme-border, #000);
+  border-radius: 8px;
+  background: #000;
+}
+
+.phase-video[hidden] {
+  display: none;
+}
+
+/* Moderation panel */
+.moderation-panel {
+  margin: 18px auto 0;
+  max-width: 720px;
+  text-align: left;
+}
+.moderation-panel[hidden] {
+  display: none;
+}
+.moderation-toggle {
+  font-size: 0.95rem;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+.moderation-list {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  border: 3px solid var(--theme-border, #000);
+  border-radius: 8px;
+  background: var(--theme-surface, #fff);
+  max-height: 40vh;
+  overflow-y: auto;
+}
+.moderation-list[hidden] {
+  display: none;
+}
+.moderation-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #ddd;
+}
+.moderation-item:last-child {
+  border-bottom: none;
+}
+.moderation-text {
+  flex: 1;
+  word-break: break-word;
+}
+.moderation-hidden .moderation-text {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+.moderation-btn {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.moderation-kick,
+.player-kick-btn {
+  background: #FF2D2D;
+  color: #fff;
+  border: 2px solid #000;
+}
+.player-kick-btn {
+  margin-left: auto;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 2px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 /* Rate */
 .rate-results-header {
   color: var(--theme-muted, #666);

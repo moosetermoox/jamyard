@@ -87,10 +87,11 @@ registerHandler('collect', {
     const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
 
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
+    const video = ctx.services.resolveVideoEmbed(phase.video);
 
     // Send prompt to host
     ctx.emitToHost(EVENTS.GAME_STARTED, {
-      prompt: hostPrompt, image, timer: phase.timer || null, fields: phase.fields || null,
+      prompt: hostPrompt, image, video, timer: phase.timer || null, fields: phase.fields || null,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
@@ -98,7 +99,7 @@ registerHandler('collect', {
     for (const player of eligible) {
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(phase.prompt || '', engine, player.id);
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
-        prompt: playerPrompt, image, timer: phase.timer || null, fields: phase.fields || null,
+        prompt: playerPrompt, image, video, timer: phase.timer || null, fields: phase.fields || null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }
@@ -121,8 +122,9 @@ registerHandler('collect', {
         ? ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, player.id)
         : ctx.resolveTemplate(ctx.phase.prompt || '');
       const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
+      const video = ctx.services.resolveVideoEmbed(ctx.phase.video);
       socket.emit(EVENTS.GAME_STARTED, {
-        prompt: playerPrompt, image, timer: null,
+        prompt: playerPrompt, image, video, timer: null,
         fields: ctx.phase.fields || null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });

@@ -37,6 +37,7 @@
     <div class="screen-template" hidden></div>
     <h2>Players are answering...</h2>
     <img id="collect-image" class="phase-image" hidden alt="">
+    <iframe id="collect-video" class="phase-video" hidden allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     <p id="prompt-display" class="prompt"></p>
     <div id="collect-timer" class="timer-ring-container" hidden>
       <svg class="timer-ring" viewBox="0 0 120 120">
@@ -47,6 +48,13 @@
     </div>
     <p id="submission-count" class="big-text">0 of 0 submitted</p>
     <button id="close-submissions-btn">Close Submissions</button>
+
+    <div id="moderation-panel" class="moderation-panel" hidden>
+      <button id="moderation-toggle" class="moderation-toggle" type="button">
+        🛡 Moderation <span id="moderation-count">(0)</span>
+      </button>
+      <ul id="moderation-list" class="moderation-list" hidden></ul>
+    </div>
   </section>
 
   <!-- PROCESS SECTION -->
@@ -75,6 +83,7 @@
   <section id="reveal-section" hidden>
     <div class="screen-template" hidden></div>
     <img id="reveal-image" class="phase-image" hidden alt="">
+    <iframe id="reveal-video" class="phase-video" hidden allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     <div id="ai-result" class="reveal-content"></div>
     <div id="reveal-responses" hidden>
       <h3>Player Responses:</h3>
@@ -120,6 +129,7 @@
   <section id="announce-section" hidden>
     <div class="screen-template" hidden></div>
     <img id="announce-image" class="phase-image" hidden alt="">
+    <iframe id="announce-video" class="phase-video" hidden allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     <h2 id="announce-message"></h2>
     <div id="announce-timer" class="timer-ring-container" hidden>
       <svg class="timer-ring" viewBox="0 0 120 120">

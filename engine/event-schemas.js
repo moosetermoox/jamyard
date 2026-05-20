@@ -32,6 +32,15 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'moderate-hide': {
+    code: 'string:required',
+    playerId: 'string:required',
+    hidden: 'boolean:optional'
+  },
+  'moderate-kick': {
+    code: 'string:required',
+    playerId: 'string:required'
+  },
   'submit-vote': {
     code: 'string:required',
     choice: 'any:optional',
