@@ -44,6 +44,22 @@ const PORT = Number(process.env.PORT) || 3000;
 
 const aiMode = process.env.ANTHROPIC_API_KEY ? 'real' : 'mock';
 console.log(`[init] AI Service mode: ${aiMode}`);
+if (aiMode === 'mock') {
+  console.log('[init] No ANTHROPIC_API_KEY found — AI generation endpoints are disabled (set the key to enable them).');
+}
+
+// AI-powered generation needs a real Anthropic key. In mock mode these
+// endpoints would return placeholder junk, which looks like a broken feature
+// (especially on a deployed host). Fail loudly with a fixable message instead.
+function requireRealAI(res) {
+  if (aiMode === 'real') return true;
+  res.status(503).json({
+    error: 'AI features are turned off on this server because no API key is configured. ' +
+      'The site owner needs to set the ANTHROPIC_API_KEY environment variable ' +
+      '(on Render: Dashboard → your service → Environment → Add Environment Variable), then redeploy.'
+  });
+  return false;
+}
 
 const roomManager = new RoomManager(gamePhases);
 const aiService = new AIService({ mode: aiMode });
@@ -1217,6 +1233,7 @@ app.post('/api/games/fix-issue', async (req, res) => {
 
 app.post('/api/games/revise', async (req, res) => {
   try {
+    if (!requireRealAI(res)) return;
     const { config, request } = req.body;
     if (!config || !config.phases) {
       return res.status(400).json({ error: 'Missing config or phases' });
@@ -1236,6 +1253,7 @@ app.post('/api/games/revise', async (req, res) => {
 
 app.post('/api/games/revise-phase', async (req, res) => {
   try {
+    if (!requireRealAI(res)) return;
     const { config, phaseId, request } = req.body;
     if (!config || !config.phases) {
       return res.status(400).json({ error: 'Missing config or phases' });
@@ -1256,6 +1274,7 @@ app.post('/api/games/revise-phase', async (req, res) => {
 
 app.post('/api/games/generate-theme', async (req, res) => {
   try {
+    if (!requireRealAI(res)) return;
     const { description } = req.body;
     if (!description) {
       return res.status(400).json({ error: 'Missing description' });
@@ -1270,6 +1289,7 @@ app.post('/api/games/generate-theme', async (req, res) => {
 
 app.post('/api/games/generate-questions', async (req, res) => {
   try {
+    if (!requireRealAI(res)) return;
     const { description } = req.body;
     if (!description || description.trim().length < 10) {
       return res.status(400).json({ error: 'Please provide a game description (at least 10 characters)' });
@@ -1288,6 +1308,7 @@ app.post('/api/games/generate-questions', async (req, res) => {
 
 app.post('/api/games/generate', async (req, res) => {
   try {
+    if (!requireRealAI(res)) return;
     const { description, answers } = req.body;
     if (!description || description.trim().length < 10) {
       return res.status(400).json({ error: 'Please provide a game description (at least 10 characters)' });
@@ -1313,6 +1334,7 @@ app.post('/api/games/generate', async (req, res) => {
 // structured output into a guaranteed-valid game config.
 app.post('/api/games/from-description', async (req, res) => {
   try {
+    if (!requireRealAI(res)) return;
     const { description } = req.body || {};
     if (!description || typeof description !== 'string' || description.trim().length < 10) {
       return res.status(400).json({ error: 'Please provide a game description (at least 10 characters).' });
