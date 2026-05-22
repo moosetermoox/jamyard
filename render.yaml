@@ -1,0 +1,26 @@
+# Render Blueprint for the Classroom Games server.
+# https://render.com/docs/blueprint-spec
+#
+# This captures the deploy config in the repo. The existing dashboard-created
+# service keeps working as-is; this file documents how it's wired and lets the
+# service be recreated from scratch ("New > Blueprint") if ever needed.
+#
+# IMPORTANT: ANTHROPIC_API_KEY is intentionally NOT stored here (sync: false).
+# Without it the server boots in mock mode and the AI Generate / Ask AI features
+# are disabled. Set the value in the Render dashboard:
+#   Dashboard > classroom-games > Environment > Add Environment Variable
+# then redeploy. Startup log should then read "[init] AI Service mode: real".
+services:
+  - type: web
+    name: classroom-games
+    runtime: node
+    plan: free
+    branch: master
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      # Required for AI features. Enter the value in the dashboard — never commit it.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: NODE_VERSION
+        value: "22"
