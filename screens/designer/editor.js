@@ -997,11 +997,15 @@ function renderAISuggestions(phaseId) {
   var issues = aiIssues[phaseId] || [];
 
   if (issues.length === 0) {
-    // No suggestions — show a subtle "looks good" confirmation
-    var ok = document.createElement('div');
-    ok.className = 'ai-suggestion-ok';
-    ok.textContent = '\u2713 This step looks good';
-    phaseConfigForm.appendChild(ok);
+    // Only confirm "looks good" once a review has actually run. Before that,
+    // lastReviewResult is null and a green check would imply a check happened
+    // when it didn't \u2014 so render nothing.
+    if (lastReviewResult) {
+      var ok = document.createElement('div');
+      ok.className = 'ai-suggestion-ok';
+      ok.textContent = '\u2713 This step looks good';
+      phaseConfigForm.appendChild(ok);
+    }
     return;
   }
 
@@ -1053,9 +1057,9 @@ function renderPhaseConfig(phaseId) {
   // phase box, whose own header already shows the icon + friendly name —
   // repeating it printed the title twice in a row on every step.
 
-  // One-line at-a-glance caption: "Host: ... · Players: ... (· AI: ...)"
-  // Replaces the 3-box "Host sees / Players see / AI does" panel.
-  addScreenSummaryLine(cat.host, cat.player, cat.ai);
+  // (No screen-summary line here. The canvas box description + the inline
+  // "Show Preview" toggle already convey what host/players see, so the
+  // "Host: … · Players: …" caption was redundant.)
 
   // AI Suggestions — pinned near the top so the teacher sees advice before editing
   renderAISuggestions(phaseId);
@@ -1176,7 +1180,7 @@ function renderPhaseConfig(phaseId) {
     var taskTypes = Object.keys(AI_TASK_CATALOG);
     for (var t = 0; t < taskTypes.length; t++) {
       var key = taskTypes[t];
-      taskOptions.push({ value: key, label: AI_TASK_CATALOG[key].friendlyName + ' (' + key + ')' });
+      taskOptions.push({ value: key, label: AI_TASK_CATALOG[key].friendlyName });
     }
     addSelectWithHelp('AI task', AI_TASK_CATALOG[phase.task || 'summarize'] ? AI_TASK_CATALOG[phase.task || 'summarize'].description : '', 'phase-task', taskOptions, phase.task || 'summarize', function (value) {
       phase.task = value;
@@ -2125,7 +2129,7 @@ function renderPhaseConfig(phaseId) {
       var lp = gameConfig.phases[lpid];
       var lcat = PHASE_CATALOG[lp.type];
       if (lcat) {
-        loopBackOptions.push({ value: lpid, label: lcat.icon + ' ' + lcat.friendlyName + ' (' + lpid + ')' });
+        loopBackOptions.push({ value: lpid, label: phaseRefLabel(lpid, true) });
       }
     }
     addSelectWithHelp('Loop back to', 'After this step, jump back to an earlier step N times before continuing', 'phase-loopBack',
@@ -2152,10 +2156,16 @@ function renderPhaseConfig(phaseId) {
     endCollapsible(loopHandle);
   }
 
-  // --- Screen Control (Optional) — collapsible per role; expanded when configured ---
+  // --- Customize screens (Optional) — one collapsible holding both the host
+  // and player sub-groups; expanded when either screen is already customized. ---
   if (type !== 'lobby') {
-    var hostCustomized = !!phase.hostTemplate || (Array.isArray(phase.hostShow) && phase.hostShow.length > 0);
-    var hostHandle = beginCollapsible('host', 'Customize host screen', phaseId + ':hostScreen', hostCustomized);
+    var screensCustomized = !!phase.hostTemplate || !!phase.playerTemplate ||
+      (Array.isArray(phase.hostShow) && phase.hostShow.length > 0) ||
+      (Array.isArray(phase.playerShow) && phase.playerShow.length > 0);
+    var screensHandle = beginCollapsible('both', 'Customize screens', phaseId + ':screens', screensCustomized);
+
+    // Host sub-group
+    addRoleHeader('host', 'Host screen');
     var hostTemplateTA = addTextAreaWithHelp('Host template', 'Custom text shown on the host screen. Leave empty for default.', 'phase-hostTemplate', phase.hostTemplate, 'Leave empty for default, or type custom text. Use insert buttons below to add data.', function (value) {
       if (value) { phase.hostTemplate = value; } else { delete phase.hostTemplate; }
     });
@@ -2165,10 +2175,9 @@ function renderPhaseConfig(phaseId) {
     if (hostToggles) {
       addToggleCheckboxes('Host screen elements', 'Choose which built-in elements to show on the host screen', phase, 'hostShow', hostToggles);
     }
-    endCollapsible(hostHandle);
 
-    var playerCustomized = !!phase.playerTemplate || (Array.isArray(phase.playerShow) && phase.playerShow.length > 0);
-    var playerHandle = beginCollapsible('player', 'Customize player screens', phaseId + ':playerScreen', playerCustomized);
+    // Player sub-group
+    addRoleHeader('player', "Players' screens");
     var playerTemplateTA = addTextAreaWithHelp('Player template', 'Custom text shown on player screens. Leave empty for default.', 'phase-playerTemplate', phase.playerTemplate, 'e.g. Great job everyone!', function (value) {
       if (value) { phase.playerTemplate = value; } else { delete phase.playerTemplate; }
     });
@@ -2178,7 +2187,7 @@ function renderPhaseConfig(phaseId) {
     if (playerToggles) {
       addToggleCheckboxes('Player screen elements', 'Choose which built-in elements to show on player screens', phase, 'playerShow', playerToggles);
     }
-    endCollapsible(playerHandle);
+    endCollapsible(screensHandle);
   }
 
   // --- Ask AI about this step (meta action, sits near the Advanced row) ---
@@ -2205,13 +2214,40 @@ function renderPhaseConfig(phaseId) {
 
 // --- Form field helpers ---
 
-// Get friendly display name for a phase (e.g. "Ask Players (collect)")
-function getFriendlyPhaseName(phaseId) {
+// True when 2+ steps share the same friendly name (e.g. two "Ask Players").
+// Used to decide whether a disambiguating "(step N)" suffix is needed.
+function phaseNameIsAmbiguous(phaseId) {
+  var phase = gameConfig.phases[phaseId];
+  if (!phase) return false;
+  var cat = PHASE_CATALOG[phase.type];
+  if (!cat) return false;
+  var count = 0;
+  for (var id in gameConfig.phases) {
+    var c = PHASE_CATALOG[gameConfig.phases[id].type];
+    if (c && c.friendlyName === cat.friendlyName) count++;
+  }
+  return count > 1;
+}
+
+// Teacher-facing label for a phase in dropdowns/refs. Never shows the raw
+// internal id; appends "(step N)" only when another step shares the same
+// name, so duplicates stay distinguishable without leaking jargon.
+function phaseRefLabel(phaseId, withIcon) {
   var phase = gameConfig.phases[phaseId];
   if (!phase) return phaseId;
   var cat = PHASE_CATALOG[phase.type];
   if (!cat) return phaseId;
-  return cat.icon + ' ' + cat.friendlyName + ' (' + phaseId + ')';
+  var label = (withIcon ? cat.icon + ' ' : '') + cat.friendlyName;
+  if (phaseNameIsAmbiguous(phaseId)) {
+    var n = buildPhaseOrder().indexOf(phaseId) + 1;
+    if (n > 0) label += ' (step ' + n + ')';
+  }
+  return label;
+}
+
+// Get friendly display name for a phase (used in modal/review titles).
+function getFriendlyPhaseName(phaseId) {
+  return phaseRefLabel(phaseId, true);
 }
 
 // --- Foreach pattern helpers ---
@@ -2639,84 +2675,6 @@ function addRoleHeader(role, title) {
   header.className = 'config-section-header role-section-' + role;
   header.textContent = title;
   phaseConfigForm.appendChild(header);
-}
-
-// One-line at-a-glance caption that replaces the 3-box screen-info panel.
-// Renders: "Host: ... · Players: ... (· AI: ...)" as a small muted line
-// directly under the sidebar header. Gives orientation without taking
-// over the top of the form.
-function addScreenSummaryLine(hostText, playerText, aiText) {
-  var line = document.createElement('div');
-  line.className = 'config-screen-summary';
-
-  function part(roleLabel, roleClass, text) {
-    var span = document.createElement('span');
-    span.className = 'config-screen-summary-part ' + roleClass;
-    var b = document.createElement('strong');
-    b.textContent = roleLabel + ': ';
-    span.appendChild(b);
-    span.appendChild(document.createTextNode(text));
-    return span;
-  }
-
-  if (hostText) line.appendChild(part('Host', 'css-host', hostText));
-  if (playerText) {
-    if (hostText) line.appendChild(document.createTextNode(' · '));
-    line.appendChild(part('Players', 'css-player', playerText));
-  }
-  if (aiText) {
-    line.appendChild(document.createTextNode(' · '));
-    line.appendChild(part('AI', 'css-ai', aiText));
-  }
-
-  phaseConfigForm.appendChild(line);
-}
-
-// Screen info boxes with optional AI lane
-function addScreenInfo(hostText, playerText, aiText) {
-  var wrapper = document.createElement('div');
-  wrapper.className = 'screen-info';
-
-  var hostBox = document.createElement('div');
-  hostBox.className = 'screen-info-box screen-info-host';
-  var hostLabel = document.createElement('span');
-  hostLabel.className = 'screen-info-label';
-  hostLabel.textContent = 'Host sees';
-  var hostDesc = document.createElement('span');
-  hostDesc.className = 'screen-info-desc';
-  hostDesc.textContent = hostText;
-  hostBox.appendChild(hostLabel);
-  hostBox.appendChild(hostDesc);
-
-  var playerBox = document.createElement('div');
-  playerBox.className = 'screen-info-box screen-info-player';
-  var playerLabel = document.createElement('span');
-  playerLabel.className = 'screen-info-label';
-  playerLabel.textContent = 'Players see';
-  var playerDesc = document.createElement('span');
-  playerDesc.className = 'screen-info-desc';
-  playerDesc.textContent = playerText;
-  playerBox.appendChild(playerLabel);
-  playerBox.appendChild(playerDesc);
-
-  wrapper.appendChild(hostBox);
-  wrapper.appendChild(playerBox);
-
-  if (aiText) {
-    var aiBox = document.createElement('div');
-    aiBox.className = 'screen-info-box screen-info-ai';
-    var aiLabel = document.createElement('span');
-    aiLabel.className = 'screen-info-label';
-    aiLabel.textContent = 'AI does';
-    var aiDesc = document.createElement('span');
-    aiDesc.className = 'screen-info-desc';
-    aiDesc.textContent = aiText;
-    aiBox.appendChild(aiLabel);
-    aiBox.appendChild(aiDesc);
-    wrapper.appendChild(aiBox);
-  }
-
-  phaseConfigForm.appendChild(wrapper);
 }
 
 // Text field with helper text
@@ -3168,7 +3126,7 @@ function addCompactNextRef(currentPhaseId) {
   var targetId = phase.next;
   var target = gameConfig.phases[targetId];
   var cat = target ? PHASE_CATALOG[target.type] : null;
-  var name = cat ? (cat.icon + ' ' + cat.friendlyName) : (targetId || '(none)');
+  var name = cat ? phaseRefLabel(targetId, true) : (targetId || '(none)');
 
   var wrapper = document.createElement('div');
   wrapper.className = 'compact-next-ref';
@@ -3209,7 +3167,7 @@ function addPhaseRefSelect(label, helpText, id, currentPhaseId, selected, onChan
     var p = gameConfig.phases[pid];
     var cat = PHASE_CATALOG[p.type];
     if (cat) {
-      options.push({ value: pid, label: cat.icon + ' ' + cat.friendlyName + ' (step ' + (i + 1) + ')' });
+      options.push({ value: pid, label: phaseRefLabel(pid, true) });
     } else {
       options.push({ value: pid, label: 'Step ' + (i + 1) });
     }

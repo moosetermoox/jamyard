@@ -509,30 +509,6 @@ body {
   margin-bottom: 14px;
 }
 
-/* At-a-glance summary line under the header — replaces the old 3-box panel.
-   Stays small so it doesn't drown out the first real setting. */
-.config-screen-summary {
-  font-size: 0.78rem;
-  color: #555;
-  line-height: 1.4;
-  margin: 0 0 16px 0;
-  padding: 6px 10px;
-  background: #F5F5F5;
-  border-left: 3px solid #BBB;
-  border-radius: 4px;
-  font-family: Arial, sans-serif;
-  font-weight: normal;
-}
-.config-screen-summary strong {
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  font-size: 0.72rem;
-}
-.config-screen-summary .css-host strong { color: #0057FF; }
-.config-screen-summary .css-player strong { color: #00875A; }
-.config-screen-summary .css-ai strong { color: #6A1B9A; }
-
 /* ---- Section headers ---- */
 .config-section-header {
   font-size: 0.75rem;
@@ -660,55 +636,6 @@ body {
   font-size: 0.75rem;
   color: #888;
   margin-top: 3px;
-  line-height: 1.3;
-  font-family: Arial, sans-serif;
-  font-weight: normal;
-}
-
-/* Screen info boxes */
-.screen-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.screen-info-box {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border-left: 4px solid;
-  border: 3px solid #000;
-}
-
-.screen-info-host {
-  background: #BBDEFB;
-  border-left: 6px solid #0057FF;
-}
-
-.screen-info-player {
-  background: #C8E6C9;
-  border-left: 6px solid #00C853;
-}
-
-.screen-info-ai {
-  background: #E1BEE7;
-  border-left: 6px solid #AA00FF;
-}
-
-.screen-info-label {
-  font-size: 0.7rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.8px;
-  color: #000;
-}
-
-.screen-info-desc {
-  font-size: 0.8rem;
-  color: #333;
   line-height: 1.3;
   font-family: Arial, sans-serif;
   font-weight: normal;
