@@ -1049,26 +1049,9 @@ function renderPhaseConfig(phaseId) {
 
   phaseConfigForm.innerHTML = '';
 
-  // --- Compact header: icon + friendly name only.
-  // The old layout printed the friendly name 3x in a row (canvas chip,
-  // sidebar header, "Step type" dropdown). Description / step-type select /
-  // host+player boxes all migrated to less prominent positions below.
-  var headerDiv = document.createElement('div');
-  headerDiv.className = 'config-phase-header';
-
-  var headerIcon = document.createElement('span');
-  headerIcon.className = 'config-phase-icon';
-  headerIcon.textContent = cat.icon;
-  headerIcon.style.background = cat.bg;
-  headerIcon.style.borderColor = cat.color;
-
-  var headerName = document.createElement('div');
-  headerName.className = 'config-phase-name';
-  headerName.textContent = cat.friendlyName;
-
-  headerDiv.appendChild(headerIcon);
-  headerDiv.appendChild(headerName);
-  phaseConfigForm.appendChild(headerDiv);
+  // No phase-name header here. The form renders inline inside the selected
+  // phase box, whose own header already shows the icon + friendly name —
+  // repeating it printed the title twice in a row on every step.
 
   // One-line at-a-glance caption: "Host: ... · Players: ... (· AI: ...)"
   // Replaces the 3-box "Host sees / Players see / AI does" panel.
@@ -1077,10 +1060,9 @@ function renderPhaseConfig(phaseId) {
   // AI Suggestions — pinned near the top so the teacher sees advice before editing
   renderAISuggestions(phaseId);
 
-  // Preview this step — quick look at what host + players will see.
-  // (Ask AI button moved to the bottom near "Advanced" — it's a meta action,
-  // not part of the form a teacher fills in left-to-right.)
-  addPreviewStepButton(phaseId);
+  // (Live "Show Preview" toggle lives at the bottom of the inline form;
+  // the old per-step preview modal was redundant with it and was removed.
+  // Ask AI is a meta action and sits at the bottom near Delete.)
 
   // --- Type-specific fields grouped into sections ---
   var type = phase.type;
@@ -2202,17 +2184,8 @@ function renderPhaseConfig(phaseId) {
   // --- Ask AI about this step (meta action, sits near the Advanced row) ---
   addAskAiStepButton(phaseId);
 
-  // --- Advanced: change step type (rare — collapsed by default) ---
-  // Lives at the bottom because most teachers pick a type once and never
-  // change it. Used to sit near the top, which contributed to "Ask Players"
-  // appearing 3x before the first real setting.
-  var advHandle = beginCollapsible('flow', 'Advanced: change step type', phaseId + ':changeType', false);
-  addPhaseTypeSelect('Step type', 'Changes what this step does. Most settings reset when you switch types.', 'phase-type', phase.type, function (value) {
-    phase.type = value;
-    renderCanvas();
-    renderPhaseConfig(phaseId);
-  });
-  endCollapsible(advHandle);
+  // (No "change step type" control — to switch a step's type, delete it and
+  // add a new one. Changing type in place orphaned most settings anyway.)
 
   // --- Delete button ---
   var deleteSection = document.createElement('div');
@@ -3139,17 +3112,6 @@ function addDataRefDropdown(label, helpText, id, currentPhaseId, value, onChange
   return select;
 }
 
-// Phase type select with friendly names
-function addPhaseTypeSelect(label, helpText, id, selected, onChange) {
-  var options = [];
-  for (var i = 0; i < PHASE_TYPES.length; i++) {
-    var type = PHASE_TYPES[i];
-    var cat = PHASE_CATALOG[type];
-    options.push({ value: type, label: cat.icon + ' ' + cat.friendlyName + ' (' + type + ')' });
-  }
-  return addSelectWithHelp(label, helpText, id, options, selected, onChange);
-}
-
 // Next-phase select with friendly names
 /**
  * Add 2-3 clickable example chips below a textarea. Clicking a chip fills the
@@ -3189,19 +3151,6 @@ function addExampleChips(textarea, examples) {
   textarea.parentNode.appendChild(container);
 }
 
-// Preview-this-step button: opens a modal with host + player mock renders side-by-side.
-// Answers the "what does this step actually look like?" question without launching prototype mode.
-function addPreviewStepButton(phaseId) {
-  var btn = document.createElement('button');
-  btn.type = 'button';
-  btn.className = 'preview-step-btn';
-  btn.textContent = '👀 Preview this step';
-  btn.addEventListener('click', function () {
-    showPreviewStepModal(phaseId);
-  });
-  phaseConfigForm.appendChild(btn);
-}
-
 function addAskAiStepButton(phaseId) {
   var btn = document.createElement('button');
   btn.type = 'button';
@@ -3211,72 +3160,6 @@ function addAskAiStepButton(phaseId) {
     openAskAiModal(phaseId);
   });
   phaseConfigForm.appendChild(btn);
-}
-
-function showPreviewStepModal(phaseId) {
-  var phase = gameConfig.phases[phaseId];
-  if (!phase) return;
-
-  var existing = document.getElementById('preview-step-overlay');
-  if (existing) existing.remove();
-
-  var overlay = document.createElement('div');
-  overlay.id = 'preview-step-overlay';
-  overlay.className = 'picker-overlay';
-
-  var modal = document.createElement('div');
-  modal.className = 'picker-modal preview-step-modal';
-
-  var title = document.createElement('h2');
-  var cat = PHASE_CATALOG[phase.type] || {};
-  title.textContent = 'Preview: ' + (cat.friendlyName || phase.type);
-  modal.appendChild(title);
-
-  var subtitle = document.createElement('div');
-  subtitle.className = 'preview-step-subtitle';
-  subtitle.textContent = 'This is roughly what the host and players see on this step.';
-  modal.appendChild(subtitle);
-
-  var split = document.createElement('div');
-  split.className = 'preview-step-split';
-
-  var hostCol = document.createElement('div');
-  hostCol.className = 'preview-step-col preview-step-host';
-  var hostLabel = document.createElement('div');
-  hostLabel.className = 'preview-step-label';
-  hostLabel.textContent = 'Host screen';
-  var hostBody = document.createElement('div');
-  hostBody.className = 'preview-step-body';
-  hostBody.innerHTML = buildPreviewHTML(phase, 'host');
-  hostCol.appendChild(hostLabel);
-  hostCol.appendChild(hostBody);
-
-  var playerCol = document.createElement('div');
-  playerCol.className = 'preview-step-col preview-step-player';
-  var playerLabel = document.createElement('div');
-  playerLabel.className = 'preview-step-label';
-  playerLabel.textContent = 'Player screen';
-  var playerBody = document.createElement('div');
-  playerBody.className = 'preview-step-body';
-  playerBody.innerHTML = buildPreviewHTML(phase, 'player');
-  playerCol.appendChild(playerLabel);
-  playerCol.appendChild(playerBody);
-
-  split.appendChild(hostCol);
-  split.appendChild(playerCol);
-  modal.appendChild(split);
-
-  var closeBtn = document.createElement('button');
-  closeBtn.className = 'btn-secondary';
-  closeBtn.textContent = 'Close';
-  closeBtn.addEventListener('click', function () { overlay.remove(); });
-  var btnRow = document.createElement('div');
-  btnRow.className = 'fix-btn-row';
-  btnRow.appendChild(closeBtn);
-  modal.appendChild(btnRow);
-
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
 }
 
 // Compact "→ Next: <Name> [Change]" display. Click Change to swap in the full dropdown.

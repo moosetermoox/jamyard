@@ -509,37 +509,6 @@ body {
   margin-bottom: 14px;
 }
 
-/* ---- Config panel phase header ---- */
-.config-phase-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 3px solid #000;
-}
-
-.config-phase-icon {
-  font-size: 1.3rem;
-  line-height: 1;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  border: 3px solid #000;
-  flex-shrink: 0;
-}
-
-.config-phase-name {
-  font-weight: 900;
-  font-size: 1.1rem;
-  color: #000;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 /* At-a-glance summary line under the header — replaces the old 3-box panel.
    Stays small so it doesn't drown out the first real setting. */
 .config-screen-summary {
@@ -684,57 +653,6 @@ body {
   font-weight: bold;
 }
 .compact-next-change:hover { background: #E3F2FD; }
-
-/* Preview this step button */
-.preview-step-btn {
-  width: 100%;
-  padding: 10px 14px;
-  margin: 10px 0;
-  background: #FFF;
-  border: 2px solid #000;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 0.95rem;
-  font-weight: bold;
-  cursor: pointer;
-}
-.preview-step-btn:hover { background: #FFF9C4; }
-
-/* Preview step modal */
-.preview-step-modal {
-  max-width: 900px;
-  background: #FFF;
-}
-.preview-step-subtitle {
-  text-align: center;
-  color: #555;
-  margin-bottom: 14px;
-  font-size: 0.9rem;
-}
-.preview-step-split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-.preview-step-col {
-  border: 2px solid #000;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.preview-step-label {
-  padding: 6px 12px;
-  font-weight: bold;
-  font-size: 0.85rem;
-  border-bottom: 2px solid #000;
-}
-.preview-step-host .preview-step-label { background: #BBDEFB; }
-.preview-step-player .preview-step-label { background: #C8E6C9; }
-.preview-step-body {
-  padding: 12px;
-  min-height: 220px;
-  background: #FAFAFA;
-}
 
 /* ---- Field help text ---- */
 .field-help {
