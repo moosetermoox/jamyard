@@ -22,5 +22,10 @@ services:
       # Required for AI features. Enter the value in the dashboard — never commit it.
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Optional. When set, teacher surfaces (/host, /designer, /prototype) and
+      # all write APIs require Basic Auth with this password (any username).
+      # Students using /player do NOT need it. Leave unset to disable the gate.
+      - key: SITE_PASSWORD
+        sync: false
       - key: NODE_VERSION
         value: "22"

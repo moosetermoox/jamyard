@@ -68,6 +68,47 @@ const roomToHost = new Map();
 
 app.use(express.json());
 
+// --- Teacher-area password gate ---
+// Set SITE_PASSWORD on the deployment to require Basic Auth on teacher
+// surfaces (/host, /designer, /prototype) and any write API. Student paths
+// (/player, /shared, /games/<assets>, /socket.io, read-only GETs) stay open.
+// Username can be anything — only the password is checked.
+function teacherAreaGate(req, res, next) {
+  if (!process.env.SITE_PASSWORD) return next(); // unset = disabled (dev)
+  const path = req.path;
+
+  // Open: student-facing + utility paths
+  if (
+    path === '/' ||
+    path === '/favicon.ico' ||
+    path.startsWith('/player') ||
+    path.startsWith('/shared') ||
+    path.startsWith('/games/') ||      // uploaded assets (in-game images)
+    path.startsWith('/socket.io')
+  ) return next();
+
+  // Open: read-only API (loading game lists, recipes, schemas, room journals)
+  if (req.method === 'GET' && (
+    path === '/api/games' ||
+    path.startsWith('/api/games/') ||
+    path === '/api/recipes' ||
+    path.startsWith('/api/recipes/') ||
+    path === '/api/phase-schemas' ||
+    path.startsWith('/api/rooms/')
+  )) return next();
+
+  // Everything else (teacher UI + writes) requires the password
+  const header = req.headers.authorization || '';
+  if (header.startsWith('Basic ')) {
+    const decoded = Buffer.from(header.slice(6), 'base64').toString('utf-8');
+    const password = decoded.slice(decoded.indexOf(':') + 1);
+    if (password === process.env.SITE_PASSWORD) return next();
+  }
+  res.set('WWW-Authenticate', 'Basic realm="Classroom Games Teacher Area"');
+  res.status(401).type('text/plain').send('Teacher area - password required.');
+}
+app.use(teacherAreaGate);
+
 const DEFAULT_GAME = 'weekend-poem';
 const GAMES_DIR = join(__dirname, 'games');
 const USER_GAMES_DIR = join(GAMES_DIR, 'user');
