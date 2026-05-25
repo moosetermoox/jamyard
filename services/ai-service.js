@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { getAllowedFields } from '../engine/game-loader.js';
+import { getAllowedFields, validate as validateGame } from '../engine/game-loader.js';
 import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schemas.js';
 
 /**
@@ -1058,6 +1058,8 @@ Return the revised step.`;
         const toFix = fixable.slice(0, MAX_FIXES_PER_PASS);
         console.log(`[auto-polish] Pass ${pass}: applying ${toFix.length} of ${fixable.length} fix(es)`);
 
+        const errorCountBefore = (validateGame(config, config.id || 'autopolish') || { errors: [] }).errors.length;
+
         let fixesApplied = 0;
         for (const iss of toFix) {
           try {
@@ -1067,9 +1069,17 @@ Return the revised step.`;
               phase, phaseId: iss.phaseId, issue: iss, otherPhaseIds: otherIds
             });
             if (result && result.updatedPhase && result.updatedPhase.type === phase.type) {
+              const originalPhase = config.phases[iss.phaseId];
               config.phases[iss.phaseId] = result.updatedPhase;
-              fixesApplied++;
-              console.log(`[auto-polish] Fixed "${iss.phaseId}": ${result.explanation}`);
+              const afterCheck = validateGame(config, config.id || 'autopolish') || { errors: [] };
+              if (afterCheck.errors.length > errorCountBefore) {
+                // Fix introduced a validation error — revert.
+                config.phases[iss.phaseId] = originalPhase;
+                console.log(`[auto-polish] Reverted fix for "${iss.phaseId}" — it broke validation: ${afterCheck.errors[afterCheck.errors.length - 1]}`);
+              } else {
+                fixesApplied++;
+                console.log(`[auto-polish] Fixed "${iss.phaseId}": ${result.explanation}`);
+              }
             }
           } catch (err) {
             console.log(`[auto-polish] Skipped fix for "${iss.phaseId}": ${err.message}`);

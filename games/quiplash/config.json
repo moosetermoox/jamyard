@@ -1,0 +1,54 @@
+{
+  "name": "Quiplash",
+  "description": "Funny prompts, head-to-head answers, class picks the funniest. Each pair shares a prompt; everyone else votes.",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "QUIPLASH!\n\nYou'll be paired with one other player and given a silly prompt. Write the funniest answer you can. Then the rest of the class will vote on which one wins.",
+      "timer": 10,
+      "next": "prompts"
+    },
+    "prompts": {
+      "type": "ai-process",
+      "task": "generate",
+      "format": "json",
+      "instruction": "Generate 8 short, classroom-appropriate, open-ended comedy prompts in the style of Quiplash. Each prompt should invite a funny one-line answer. Examples: 'A better name for France:', 'The worst thing to find in your sandwich:', 'A class rule that would make everyone happier:'. Return ONLY a JSON array of 8 strings (no preamble, no code fences).",
+      "perPlayer": false,
+      "next": "punchlines"
+    },
+    "punchlines": {
+      "type": "collect",
+      "prompt": "Your prompt:\n\n{{prompts.assigned}}\n\nWrite something funny!",
+      "assign": "pairwise",
+      "pairsFrom": "prompts",
+      "timer": 45,
+      "next": "vote"
+    },
+    "vote": {
+      "type": "vote",
+      "mode": "head-to-head",
+      "matchupsFromPairs": "punchlines",
+      "excludeAuthors": true,
+      "timer": 20,
+      "next": "scoreboard"
+    },
+    "scoreboard": {
+      "type": "leaderboard",
+      "from": "vote.scores",
+      "timer": 20,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "GG! Thanks for playing Quiplash."
+    }
+  },
+  "playTime": "~10 min",
+  "classSize": "4–20 players (even works best)",
+  "tags": ["comedy", "writing", "voting"],
+  "recommendedFor": "Older students who can riff. Works best with even player counts."
+}

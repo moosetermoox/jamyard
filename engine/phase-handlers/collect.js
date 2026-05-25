@@ -67,6 +67,82 @@ function buildRotationAssignment(ctx) {
   return assignment;
 }
 
+/**
+ * Build a pairwise assignment for a collect phase with `assign: "pairwise"`.
+ *
+ * Eligible players are shuffled and paired into groups of 2. Each pair is
+ * assigned one item (prompt) from `pairsFrom.responses`. Each player in the
+ * pair sees the same prompt and writes their own answer. If there are an odd
+ * number of eligible players, the last player is unpaired and is silently
+ * skipped (no prompt shown — they get the standard waiting screen).
+ *
+ * Writes `assigned[playerId] = promptText` to the SOURCE phase so the standard
+ * `{{<source>.assigned}}` template token works. Writes `pairs` to THIS phase's
+ * own data so a downstream vote with `matchupsFromPairs` can consume it.
+ */
+function buildPairwiseAssignment(ctx) {
+  const { phase, engine } = ctx;
+  if (phase.assign !== 'pairwise') return null;
+  const sourceId = phase.pairsFrom;
+  if (!sourceId) {
+    console.warn(`[collect:${phase.id}] assign:"pairwise" requires "pairsFrom" — skipping`);
+    return null;
+  }
+  const sourceData = engine.phaseData[sourceId];
+  if (!sourceData) {
+    console.warn(`[collect:${phase.id}] pairsFrom "${sourceId}" has no data yet — skipping pairing`);
+    return null;
+  }
+
+  // Items can come from collect (.responses) or ai-process (.result is a JSON array)
+  let rawItems = null;
+  if (Array.isArray(sourceData.responses)) rawItems = sourceData.responses;
+  else if (Array.isArray(sourceData.result)) rawItems = sourceData.result;
+  if (!rawItems) {
+    console.warn(`[collect:${phase.id}] pairsFrom "${sourceId}" has no array of items (.responses or .result) — skipping pairing`);
+    return null;
+  }
+
+  const items = rawItems
+    .map(r => (typeof r === 'string' ? r : r && (r.text || r.prompt || r.question)))
+    .filter(t => typeof t === 'string' && t.length > 0);
+  if (items.length === 0) return null;
+
+  const from = phase.from || 'all';
+  const eligible = ctx.getEligibleVoters(from);
+  // Stable shuffle of player ids
+  const playerIds = eligible.map(p => p.id);
+  for (let i = playerIds.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [playerIds[i], playerIds[j]] = [playerIds[j], playerIds[i]];
+  }
+
+  const pairs = [];
+  const assignment = {};
+  for (let i = 0; i + 1 < playerIds.length; i += 2) {
+    const a = playerIds[i];
+    const b = playerIds[i + 1];
+    const promptText = items[(i / 2) % items.length];
+    pairs.push({ promptText, playerIds: [a, b] });
+    assignment[a] = promptText;
+    assignment[b] = promptText;
+  }
+  // Odd player gets nothing — explicit, not silent
+  if (playerIds.length % 2 === 1) {
+    console.log(`[collect:${phase.id}] odd player count (${playerIds.length}) — last player unpaired and skipped this round`);
+  }
+
+  // Write assigned[] to source so {{source.assigned}} resolves per-player
+  const existingSource = engine.phaseData[sourceId] || {};
+  engine.storePhaseData(sourceId, { ...existingSource, assigned: { ...(existingSource.assigned || {}), ...assignment } });
+
+  // Write pairs to this phase so a downstream vote with matchupsFromPairs reads them
+  const existingSelf = engine.phaseData[phase.id] || {};
+  engine.storePhaseData(phase.id, { ...existingSelf, pairs });
+
+  return { pairs, assignment };
+}
+
 registerHandler('collect', {
   async onEnter(ctx) {
     const { phase, engine } = ctx;
@@ -83,6 +159,12 @@ registerHandler('collect', {
     // Build rotation assignment (no-op if rotateFrom isn't set)
     buildRotationAssignment(ctx);
 
+    // Build pairwise assignment (no-op if assign:"pairwise" isn't set)
+    const pairwise = buildPairwiseAssignment(ctx);
+    const pairedIds = pairwise
+      ? new Set(pairwise.pairs.flatMap(p => p.playerIds))
+      : null;
+
     // Resolve {{...}} refs in the prompt once for the host (no `.mine`/`.assigned` recipient yet)
     const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
 
@@ -95,8 +177,13 @@ registerHandler('collect', {
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
-    // Send prompt to eligible players — resolve `{{X.mine}}` and `{{X.assigned}}` per-recipient
+    // Send prompt to eligible players — resolve `{{X.mine}}` and `{{X.assigned}}` per-recipient.
+    // For pairwise, players who weren't paired (odd count) skip the prompt and wait.
     for (const player of eligible) {
+      if (pairedIds && !pairedIds.has(player.id)) {
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Sitting out this round — waiting for others...' });
+        continue;
+      }
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(phase.prompt || '', engine, player.id);
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, timer: phase.timer || null, fields: phase.fields || null,

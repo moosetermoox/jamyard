@@ -265,8 +265,12 @@ describe('validator diagnostics — game snapshot', () => {
       'simple-poll': [],
       'story-builder': [],
       'two-truths-a-lie': [],
+      'balderdash': [],
+      'fibbage': [],
+      'quiplash': [],
       'weekend-poem': [],
-      'who-said-it': []
+      'who-said-it': [],
+      'yes-or-no-bets': []
     };
 
     // Skip _* (templates) and the `user/` subdirectory (user-saved games

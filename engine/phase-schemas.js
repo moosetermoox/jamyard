@@ -211,6 +211,16 @@ export const PHASE_SCHEMAS = {
         label: 'Rotation offset',
         helper: 'How many positions to shift. Default 1 = each player gets the previous player\'s item.'
       },
+      assign: {
+        type: 'enum', values: ['pairwise'], optional: true,
+        label: 'Pair players up',
+        helper: 'Set to "pairwise" to split players into pairs of 2, each pair sharing one prompt from the source step. Use {{sourceId.assigned}} in the prompt to show each pair their shared item.'
+      },
+      pairsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Pair items from',
+        helper: 'Required when assign:"pairwise". The step whose responses provide the per-pair prompts (one prompt per pair, drawn from sourceId.responses).'
+      },
       image: {
         type: 'string', optional: true,
         label: 'Image (optional)',
@@ -244,8 +254,26 @@ export const PHASE_SCHEMAS = {
     fields: {
       prompt: { type: 'templateString', required: true, label: 'Question' },
       choices: {
-        type: 'array', item: { type: 'string' }, required: true,
-        label: 'Answer choices'
+        type: 'array', item: { type: 'string' }, optional: true,
+        label: 'Answer choices',
+        helper: 'List of fixed answer choices. Either this OR choicePool must be set.'
+      },
+      choicePool: {
+        type: 'array',
+        item: { type: 'object', allowAnyKeys: true },
+        optional: true,
+        label: 'Build choices from multiple sources',
+        helper: 'Optional. Combine collected responses with literal entries. Each item is {from: "stepId.responses", field?: "text"} or {literal: "{{stepId.field}} or text", optional?: true}.'
+      },
+      excludeAuthored: {
+        type: 'phaseRef', optional: true,
+        label: 'Hide my own contribution',
+        helper: 'Optional. Names a prior collect step. For each player, the choice they wrote in that step is removed from their list (used for Fibbage-style bluffing).'
+      },
+      shuffle: {
+        type: 'boolean', optional: true,
+        label: 'Shuffle choices per player',
+        helper: 'When true, each player sees a different randomization of the choices.'
       },
       image: {
         type: 'string', optional: true,
@@ -395,7 +423,18 @@ export const PHASE_SCHEMAS = {
           { type: 'array', capability: 'candidateSource' },
           { type: 'array', capability: 'responseArray' }
         ],
-        required: true, label: 'Choices to vote on'
+        optional: true, label: 'Choices to vote on',
+        helper: 'Required unless matchupsFromPairs is set.'
+      },
+      matchupsFromPairs: {
+        type: 'phaseRef', optional: true,
+        label: 'Matchups from pairs',
+        helper: 'Optional (head-to-head only). Use the pairs produced by a collect step with assign:"pairwise" — one matchup per pair, comparing the two paired responses.'
+      },
+      excludeAuthors: {
+        type: 'boolean', optional: true,
+        label: 'Authors do not vote on their own matchup',
+        helper: 'Per matchup, the two players who wrote the candidates are excluded from voting on it (used for Quiplash).'
       },
       question: {
         type: 'templateString', optional: true,

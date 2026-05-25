@@ -280,6 +280,47 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // collect-choice must have EITHER choices OR choicePool (not neither, not both)
+    if (phase.type === 'collect-choice') {
+      const hasChoices = phase.choices !== undefined && phase.choices !== null;
+      const hasPool = Array.isArray(phase.choicePool) && phase.choicePool.length > 0;
+      if (!hasChoices && !hasPool) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (collect-choice) is missing required field "choices" (or "choicePool")`
+        );
+      }
+      if (hasChoices && hasPool) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (collect-choice) cannot set both "choices" and "choicePool" — pick one`
+        );
+      }
+    }
+
+    // vote must have EITHER candidates OR matchupsFromPairs (and the latter is head-to-head only)
+    if (phase.type === 'vote') {
+      const hasCands = phase.candidates !== undefined && phase.candidates !== null && phase.candidates !== '';
+      const hasPairs = !!phase.matchupsFromPairs;
+      if (!hasCands && !hasPairs) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (vote) is missing required field "candidates" (or "matchupsFromPairs")`
+        );
+      }
+      if (hasPairs && phase.mode !== 'head-to-head') {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (vote) uses "matchupsFromPairs" but mode is not "head-to-head"`
+        );
+      }
+    }
+
+    // collect with assign:"pairwise" requires pairsFrom
+    if (phase.type === 'collect' && phase.assign === 'pairwise') {
+      if (!phase.pairsFrom) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (collect) uses assign:"pairwise" but is missing required field "pairsFrom"`
+        );
+      }
+    }
+
     // Preview must have content OR template
     if (phase.type === 'preview') {
       const hasContent = phase.content !== undefined && phase.content !== null && phase.content !== '';

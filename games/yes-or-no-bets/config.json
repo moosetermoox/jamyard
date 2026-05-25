@@ -1,0 +1,74 @@
+{
+  "name": "Yes or No Bets",
+  "description": "Teacher asks a yes-or-no question. Everyone answers, then one by one the class bets on what each classmate said. Most correct guesses wins.",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "The teacher will ask a yes-or-no question. Everyone answers honestly, then we go around guessing what each classmate said!",
+      "timer": 8,
+      "next": "ask"
+    },
+    "ask": {
+      "type": "collect-choice",
+      "prompt": "Do you love math?",
+      "choices": ["Yes", "No"],
+      "from": "all",
+      "timer": 20,
+      "next": "transition"
+    },
+    "transition": {
+      "type": "announce",
+      "message": "Time to bet! For each classmate, guess what they answered.",
+      "timer": 5,
+      "next": "guess-loop"
+    },
+    "guess-loop": {
+      "type": "foreach",
+      "data": "ask.responses",
+      "shuffle": true,
+      "subPhases": {
+        "show": {
+          "type": "announce",
+          "message": "Round {{_foreach.guess-loop.index}} of {{_foreach.guess-loop.total}}\n\nWhat did {{_current.playerName}} say?",
+          "timer": 4
+        },
+        "guess": {
+          "type": "collect-choice",
+          "prompt": "What did {{_current.playerName}} answer?",
+          "choices": ["Yes", "No"],
+          "timer": 12
+        },
+        "reveal": {
+          "type": "announce",
+          "message": "{{_current.playerName}} answered: {{_current.choice}}",
+          "timer": 5
+        }
+      },
+      "scoring": {
+        "subPhase": "guess",
+        "correctAnswer": "_current.choice",
+        "pointsCorrect": 100,
+        "pointsDecoy": 0
+      },
+      "next": "scoreboard"
+    },
+    "scoreboard": {
+      "type": "leaderboard",
+      "from": "guess-loop.scores",
+      "timer": 20,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing!"
+    }
+  },
+  "playTime": "~8 min",
+  "classSize": "3–30 players",
+  "tags": ["icebreaker", "guessing", "social"],
+  "recommendedFor": "Any time — works as an icebreaker or a quick read-the-room game."
+}

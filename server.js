@@ -1597,6 +1597,14 @@ io.on('connection', (socket) => {
       if (phase._foreachAuthorId) {
         eligible = eligible.filter(p => p.id !== phase._foreachAuthorId);
       }
+      // Exclude unpaired players when this collect uses pairwise distribution
+      if (phase.assign === 'pairwise') {
+        const phaseData = room.engine.phaseData[phase.id];
+        const pairedIds = phaseData && Array.isArray(phaseData.pairs)
+          ? new Set(phaseData.pairs.flatMap(p => p.playerIds))
+          : null;
+        if (pairedIds) eligible = eligible.filter(p => pairedIds.has(p.id));
+      }
     } else {
       eligible = players.list();
     }
@@ -1689,7 +1697,15 @@ io.on('connection', (socket) => {
 
         // Gather responses from eligible players and store as phase data.
         // Host-hidden responses are excluded (kept off AI input + reveal).
-        const eligible = getEligibleVoters(players, from);
+        let eligible = getEligibleVoters(players, from);
+        // Pairwise: only paired players are real submitters
+        if (collectPhase.assign === 'pairwise') {
+          const cpData = room.engine.phaseData[collectPhase.id];
+          const pairedIds = cpData && Array.isArray(cpData.pairs)
+            ? new Set(cpData.pairs.flatMap(p => p.playerIds))
+            : null;
+          if (pairedIds) eligible = eligible.filter(p => pairedIds.has(p.id));
+        }
         const responses = eligible
           .filter(isVisibleSubmission)
           .map(p => {

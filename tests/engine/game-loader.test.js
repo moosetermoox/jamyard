@@ -482,7 +482,7 @@ describe('GameLoader', () => {
           end: { type: 'end' }
         }
       };
-      expect(() => validate(config, 'test')).toThrow('missing required field "choices"');
+      expect(() => validate(config, 'test')).toThrow(/missing required field "choices"/);
     });
 
     it('accepts valid collect-choice phase', () => {

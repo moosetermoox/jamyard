@@ -1,0 +1,62 @@
+{
+  "name": "Balderdash",
+  "description": "An obscure real word. Players invent plausible-sounding fake definitions. The class votes on which one is real — picking the truth scores, fooling others scores too.",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "BALDERDASH!\n\nYou'll see a strange, obscure real word. Write a fake definition that sounds believable enough to fool the class. Then everyone votes on which definition is the real one.",
+      "timer": 10,
+      "next": "wordpick"
+    },
+    "wordpick": {
+      "type": "ai-process",
+      "task": "generate",
+      "format": "json",
+      "instruction": "Generate ONE obscure-but-real English dictionary word for a Balderdash-style game. Return ONLY a JSON object (no preamble) with these fields:\n  - word: a real but rarely-known English word (e.g. \"snickersnee\", \"borborygmus\", \"defenestrate\")\n  - truth: a one-sentence accurate dictionary-style definition\n  - houseLie: a one-sentence plausible-sounding fake definition the system can mix into the options\n\nThe word must actually exist (no made-up words). Keep definitions short (under 15 words each), school-appropriate, and similar in tone so the real one isn't obviously different.",
+      "next": "show-word"
+    },
+    "show-word": {
+      "type": "announce",
+      "message": "The word is: {{wordpick.result.word}}\n\nWrite a believable-sounding definition!",
+      "timer": 8,
+      "next": "fake-defs"
+    },
+    "fake-defs": {
+      "type": "collect",
+      "prompt": "{{wordpick.result.word}}\n\nWrite a definition that could fool the class.",
+      "timer": 60,
+      "next": "vote-def"
+    },
+    "vote-def": {
+      "type": "collect-choice",
+      "prompt": "Which definition of \"{{wordpick.result.word}}\" is REAL?",
+      "choicePool": [
+        { "from": "fake-defs.responses", "field": "text" },
+        { "literal": "{{wordpick.result.truth}}" },
+        { "literal": "{{wordpick.result.houseLie}}", "optional": true }
+      ],
+      "excludeAuthored": "fake-defs",
+      "shuffle": true,
+      "timer": 30,
+      "next": "reveal"
+    },
+    "reveal": {
+      "type": "announce",
+      "message": "{{wordpick.result.word}} actually means:\n\n{{wordpick.result.truth}}\n\nClass votes:\n{{vote-def.barChart}}",
+      "timer": 20,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing Balderdash!"
+    }
+  },
+  "playTime": "~10 min",
+  "classSize": "4–25 players",
+  "tags": ["bluffing", "vocabulary", "writing"],
+  "recommendedFor": "Great for vocabulary practice or English class warm-ups."
+}
