@@ -694,6 +694,11 @@ function renderCanvas() {
     descLine.textContent = cat.description;
     box.appendChild(descLine);
 
+    // Primary editable field — the dominant input for this phase type,
+    // shown inline on the canvas so you can read+edit the flow without
+    // opening the expanded settings panel.
+    appendPrimaryField(box, phase, phaseId);
+
     // Role indicator dots (H = host, P = player, AI)
     var dots = document.createElement('div');
     dots.className = 'phase-box-dots';
@@ -768,6 +773,101 @@ function renderCanvas() {
   // inline rather than in the right sidebar. The form's existing
   // contents (set by renderPhaseConfig) survive the move.
   attachFormToSelectedBox();
+}
+
+/**
+ * Definition of the "primary" field for each phase type — what gets shown
+ * inline on the canvas so the flow reads at a glance.
+ *
+ * Returns one of:
+ *   - { key, type: 'textarea'|'text', placeholder } — editable primary input
+ *   - { type: 'summary', summarize: (phase) => string } — read-only one-liner
+ *   - null — no primary preview (lobby, etc.)
+ */
+function getPrimaryFieldDef(type) {
+  switch (type) {
+    case 'announce':      return { key: 'message',     type: 'textarea', placeholder: 'What everyone sees…' };
+    case 'collect':       return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
+    case 'collect-choice':return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
+    case 'ai-process':    return { key: 'instruction', type: 'textarea', placeholder: 'Tell the AI what to do…' };
+    case 'ai-eliminate':  return { key: 'instruction', type: 'textarea', placeholder: 'Rule the AI enforces…' };
+    case 'reveal':        return { key: 'content',     type: 'textarea', placeholder: 'Content to show…' };
+    case 'preview':       return { key: 'content',     type: 'textarea', placeholder: 'Content for the teacher to review…' };
+    case 'end':           return { key: 'message',     type: 'textarea', placeholder: 'Closing message…' };
+    case 'rank':          return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
+    case 'wager':         return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
+    case 'relay':         return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
+    case 'vote': return { type: 'summary', summarize: function (p) {
+      var mode = p.mode || 'pick-one';
+      if (p.matchupsFromPairs) return mode + ' • from pairs in "' + p.matchupsFromPairs + '"';
+      if (p.candidates) return mode + ' • on ' + p.candidates;
+      return mode + ' • (no source set)';
+    }};
+    case 'eliminate': return { type: 'summary', summarize: function (p) {
+      if (p.method === 'hook') return 'Custom rule (hook)';
+      if (p.percent) return 'Bottom ' + p.percent + '%';
+      return 'Bottom %';
+    }};
+    case 'leaderboard': return { type: 'summary', summarize: function (p) {
+      return p.from ? 'Scores from ' + p.from : '(no score source set)';
+    }};
+    case 'winner': return { type: 'summary', summarize: function (p) {
+      return p.from ? 'Pick winner from ' + p.from : '(no source set)';
+    }};
+    case 'foreach': return { type: 'summary', summarize: function (p) {
+      var subs = p.subPhases ? Object.keys(p.subPhases).length : 0;
+      return 'For each item in ' + (p.data || '?') + ' • ' + subs + ' sub-step' + (subs === 1 ? '' : 's');
+    }};
+    case 'team-split': return { type: 'summary', summarize: function (p) {
+      return (p.teamCount || 2) + ' teams' + (p.method ? ' (' + p.method + ')' : '');
+    }};
+    case 'rate': return { type: 'summary', summarize: function (p) {
+      var scaleCount = (p.scales || []).length;
+      return 'Rate ' + (p.target || '?') + ' on ' + scaleCount + ' scale' + (scaleCount === 1 ? '' : 's');
+    }};
+    case 'reveal-one': return { type: 'summary', summarize: function (p) {
+      return 'Reveal items from ' + (p.from || '?');
+    }};
+    case 'lobby': return null; // self-explanatory
+    default: return null;
+  }
+}
+
+/**
+ * Append the primary field UI to a phase box. For textarea/text inputs,
+ * editing updates phase[key] and marks the config dirty. Clicks on the
+ * input itself don't trigger box selection — only clicks on chrome do.
+ */
+function appendPrimaryField(box, phase, phaseId) {
+  var prim = getPrimaryFieldDef(phase.type);
+  if (!prim) return;
+
+  var wrap = document.createElement('div');
+  wrap.className = 'phase-box-primary';
+
+  if (prim.type === 'textarea' || prim.type === 'text') {
+    var input = document.createElement(prim.type === 'textarea' ? 'textarea' : 'input');
+    if (prim.type === 'text') input.type = 'text';
+    input.className = 'phase-box-primary-input';
+    input.placeholder = prim.placeholder || '';
+    input.value = phase[prim.key] || '';
+    if (prim.type === 'textarea') input.rows = 2;
+    // Don't select the box when interacting with the input
+    input.addEventListener('click', function (e) { e.stopPropagation(); });
+    input.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+    input.addEventListener('input', function () {
+      isDirty = true;
+      phase[prim.key] = input.value;
+    });
+    wrap.appendChild(input);
+  } else if (prim.type === 'summary') {
+    var summary = document.createElement('div');
+    summary.className = 'phase-box-primary-summary';
+    summary.textContent = prim.summarize(phase);
+    wrap.appendChild(summary);
+  }
+
+  box.appendChild(wrap);
 }
 
 function attachFormToSelectedBox() {
@@ -2253,8 +2353,41 @@ function renderPhaseConfig(phaseId) {
   deleteSection.appendChild(deleteBtn);
   phaseConfigForm.appendChild(deleteSection);
 
+  // Dedup: when a phase's primary field is already shown inline on the
+  // canvas box, strip the matching field from the expanded form so the
+  // teacher doesn't see two textareas editing the same value (which would
+  // also create a stale-write bug if edited in both places).
+  stripPrimaryFieldFromForm(phase.type);
+
   // Update live preview
   renderLivePreview(phaseId);
+}
+
+// Map of phase type -> form input IDs that are also shown as the canvas
+// primary. Skipped at form-render time to avoid duplication.
+var PRIMARY_FORM_IDS_BY_TYPE = {
+  'announce':       ['phase-message'],
+  'collect':        ['phase-prompt'],
+  'collect-choice': ['phase-prompt'],
+  'ai-process':     ['phase-instruction'],
+  'ai-eliminate':   ['phase-instruction'],
+  'reveal':         ['phase-content'],
+  'preview':        ['phase-content'],
+  'end':            ['phase-message'],
+  'rank':           ['phase-prompt'],
+  'wager':          ['phase-prompt'],
+  'relay':          ['phase-prompt']
+  // reveal-one keeps its phase-message (title) — its primary is a summary
+};
+function stripPrimaryFieldFromForm(type) {
+  var ids = PRIMARY_FORM_IDS_BY_TYPE[type];
+  if (!ids) return;
+  for (var i = 0; i < ids.length; i++) {
+    var el = phaseConfigForm.querySelector('#' + ids[i]);
+    if (!el) continue;
+    var group = el.closest ? el.closest('.form-group') : null;
+    if (group && group.parentNode) group.parentNode.removeChild(group);
+  }
 }
 
 // --- Form field helpers ---
