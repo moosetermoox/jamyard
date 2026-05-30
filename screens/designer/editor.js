@@ -896,11 +896,150 @@ function humanizePreview(text) {
 }
 
 /**
+ * For each phase type, returns the list of friendly "things you can insert"
+ * that downstream steps can reference. Each entry is { icon, label, token }
+ * where token is the raw {{...}} string that gets inserted at the cursor.
+ *
+ * Conditional refs (e.g. .assigned only when rotateFrom/pairwise is set, or
+ * .scores only when correctAnswer is set) are gated so the picker stays
+ * truthful — only refs that will actually resolve at runtime are offered.
+ */
+function getInsertableRefs(sourceId, source) {
+  var refs = [];
+  var t = source.type;
+  if (t === 'collect') {
+    refs.push({ icon: '📋', label: 'List of submitted answers', token: '{{' + sourceId + '.list}}' });
+    refs.push({ icon: '💬', label: 'Raw answers (for AI input)', token: '{{' + sourceId + '.responses}}' });
+    if (source.rotateFrom || source.assign === 'pairwise') {
+      refs.push({ icon: '👤', label: "Each player's assigned item", token: '{{' + sourceId + '.assigned}}' });
+    }
+  } else if (t === 'collect-choice') {
+    refs.push({ icon: '📊', label: 'Bar chart of class picks', token: '{{' + sourceId + '.barChart}}' });
+    refs.push({ icon: '🔢', label: 'Vote counts (raw)', token: '{{' + sourceId + '.tally}}' });
+    if (source.correctAnswer) {
+      refs.push({ icon: '🏆', label: 'Scores (graded)', token: '{{' + sourceId + '.scores}}' });
+      refs.push({ icon: '✅', label: 'The correct answer', token: '{{' + sourceId + '.correctAnswer}}' });
+    }
+  } else if (t === 'ai-process') {
+    refs.push({ icon: '🤖', label: 'AI output', token: '{{' + sourceId + '.result}}' });
+    if (source.perPlayer) {
+      refs.push({ icon: '👤', label: "Each player's own AI item", token: '{{' + sourceId + '.mine}}' });
+    }
+    if (source.format === 'json') {
+      refs.push({ icon: '🧩', label: 'A specific JSON field (type the field name)', token: '{{' + sourceId + '.result.}}' });
+    }
+  } else if (t === 'vote') {
+    refs.push({ icon: '📊', label: 'Bar chart of votes', token: '{{' + sourceId + '.barChart}}' });
+    refs.push({ icon: '🏆', label: 'Vote scores', token: '{{' + sourceId + '.scores}}' });
+  } else if (t === 'rate') {
+    refs.push({ icon: '📊', label: 'Bar chart of averages', token: '{{' + sourceId + '.barChart}}' });
+  } else if (t === 'foreach') {
+    refs.push({ icon: '🏆', label: 'Round-by-round scores', token: '{{' + sourceId + '.scores}}' });
+  } else if (t === 'rank') {
+    refs.push({ icon: '📋', label: 'Ranked list', token: '{{' + sourceId + '.rankedList}}' });
+  }
+  return refs;
+}
+
+function insertTokenAtCursor(input, token) {
+  var start = typeof input.selectionStart === 'number' ? input.selectionStart : input.value.length;
+  var end = typeof input.selectionEnd === 'number' ? input.selectionEnd : start;
+  var before = input.value.slice(0, start);
+  var after = input.value.slice(end);
+  input.value = before + token + after;
+  input.focus();
+  var newPos = before.length + token.length;
+  try { input.setSelectionRange(newPos, newPos); } catch (_) {}
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function openInsertMenu(input, phaseId, anchor) {
+  // Close any existing menu
+  var existing = document.querySelector('.primary-insert-menu');
+  if (existing) existing.remove();
+
+  var menu = document.createElement('div');
+  menu.className = 'primary-insert-menu';
+  menu.addEventListener('click', function (e) { e.stopPropagation(); });
+
+  // Find upstream phases — anything before this one in the linear flow.
+  var order = buildPhaseOrder();
+  var idx = order.indexOf(phaseId);
+  var upstream = idx > 0 ? order.slice(0, idx) : [];
+
+  var groupCount = 0;
+  for (var i = 0; i < upstream.length; i++) {
+    var sourceId = upstream[i];
+    var source = gameConfig.phases[sourceId];
+    if (!source) continue;
+    var refs = getInsertableRefs(sourceId, source);
+    if (refs.length === 0) continue;
+
+    var group = document.createElement('div');
+    group.className = 'primary-insert-group';
+    var head = document.createElement('div');
+    head.className = 'primary-insert-group-head';
+    head.textContent = phaseRefLabel(sourceId, true);
+    group.appendChild(head);
+
+    for (var j = 0; j < refs.length; j++) {
+      (function (ref) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'primary-insert-item';
+        var iconEl = document.createElement('span');
+        iconEl.className = 'primary-insert-icon';
+        iconEl.textContent = ref.icon;
+        var labelEl = document.createElement('span');
+        labelEl.className = 'primary-insert-label';
+        labelEl.textContent = ref.label;
+        item.appendChild(iconEl);
+        item.appendChild(labelEl);
+        item.addEventListener('click', function () {
+          insertTokenAtCursor(input, ref.token);
+          menu.remove();
+        });
+        group.appendChild(item);
+      })(refs[j]);
+    }
+    menu.appendChild(group);
+    groupCount++;
+  }
+
+  if (groupCount === 0) {
+    var empty = document.createElement('div');
+    empty.className = 'primary-insert-empty';
+    empty.textContent = 'No earlier steps produce content you can reference yet. Add a step like Multiple Choice, Ask Players, or AI Does Something first.';
+    menu.appendChild(empty);
+  }
+
+  // Position below the anchor button
+  var rect = anchor.getBoundingClientRect();
+  menu.style.position = 'fixed';
+  menu.style.left = Math.min(rect.left, window.innerWidth - 360) + 'px';
+  menu.style.top = (rect.bottom + 6) + 'px';
+  menu.style.zIndex = '10000';
+  document.body.appendChild(menu);
+
+  // Click outside closes the menu
+  setTimeout(function () {
+    document.addEventListener('click', function closer(e) {
+      if (!menu.contains(e.target) && e.target !== anchor) {
+        menu.remove();
+        document.removeEventListener('click', closer);
+      }
+    });
+  }, 0);
+}
+
+/**
  * Append the primary field UI to a phase box. For textarea/text inputs,
  * editing updates phase[key] and marks the config dirty. Clicks on the
  * input itself don't trigger box selection — only clicks on chrome do.
  * When the value contains {{tokens}}, a live "Will show:" preview line
  * appears above the textarea translating the tokens into friendly chips.
+ * An "+ Insert" button below the textarea lets non-coders add references
+ * to earlier steps without typing the {{}} syntax.
  */
 function appendPrimaryField(box, phase, phaseId) {
   var prim = getPrimaryFieldDef(phase.type);
@@ -941,6 +1080,21 @@ function appendPrimaryField(box, phase, phaseId) {
 
     wrap.appendChild(preview);
     wrap.appendChild(input);
+
+    // "+ Insert" picker — appears for textareas only, lets the teacher add
+    // references to earlier steps without typing template syntax.
+    var insertRow = document.createElement('div');
+    insertRow.className = 'primary-insert-row';
+    var insertBtn = document.createElement('button');
+    insertBtn.type = 'button';
+    insertBtn.className = 'primary-insert-btn';
+    insertBtn.textContent = '+ Insert from earlier step';
+    insertBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openInsertMenu(input, phaseId, insertBtn);
+    });
+    insertRow.appendChild(insertBtn);
+    wrap.appendChild(insertRow);
   } else if (prim.type === 'summary') {
     var summary = document.createElement('div');
     summary.className = 'phase-box-primary-summary';
