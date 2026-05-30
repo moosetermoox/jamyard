@@ -1359,6 +1359,51 @@ function renderPhaseConfig(phaseId) {
         if (value === 'all') { delete phase.from; } else { phase.from = value; }
       }
     );
+
+    // --- Speed-bonus quiz scoring (Kahoot-style) ---
+    var hasCorrect = phase.correctAnswer !== undefined && phase.correctAnswer !== '';
+    var scoreHandle = beginCollapsible('ai', 'Score this question (quiz mode)', phaseId + ':scoring', hasCorrect);
+    addFieldWithHelp(
+      'Correct answer',
+      'The choice that earns points. Leave empty for a non-graded poll. Plain text or a {{ref}} (e.g. {{trivia.result.truth}}).',
+      'text', 'phase-correctAnswer', phase.correctAnswer || '', false,
+      function (value) {
+        if (value) phase.correctAnswer = value;
+        else delete phase.correctAnswer;
+      }
+    );
+    addFieldWithHelp(
+      'Max points',
+      'Points awarded for an instant correct answer. Default 1000.',
+      'number', 'phase-pointsCorrect', phase.pointsCorrect != null ? phase.pointsCorrect : '', false,
+      function (value) {
+        if (value === '' || value == null) delete phase.pointsCorrect;
+        else phase.pointsCorrect = parseInt(value, 10);
+      }
+    );
+    // Speed-bonus checkbox
+    var spLabel = document.createElement('label');
+    spLabel.className = 'form-group';
+    spLabel.style.display = 'flex';
+    spLabel.style.alignItems = 'flex-start';
+    spLabel.style.gap = '8px';
+    spLabel.style.cursor = 'pointer';
+    var spCb = document.createElement('input');
+    spCb.type = 'checkbox';
+    spCb.style.marginTop = '4px';
+    spCb.checked = phase.speedBonus !== false; // default true
+    spCb.addEventListener('change', function () {
+      isDirty = true;
+      if (spCb.checked) delete phase.speedBonus; // true is default — keep config clean
+      else phase.speedBonus = false;
+    });
+    var spText = document.createElement('div');
+    spText.innerHTML = '<strong>Faster answers earn more</strong><div style="font-size:12px;color:#666;margin-top:2px;">Kahoot-style: 100% at instant, dropping to 50% at the timer expiry. Requires a time limit above. Off = flat points for any correct answer.</div>';
+    spLabel.appendChild(spCb);
+    spLabel.appendChild(spText);
+    phaseConfigForm.appendChild(spLabel);
+    endCollapsible(scoreHandle);
+
     addImageUploadWidget(phase, phaseId);
     addVideoUrlField(phase);
   }
