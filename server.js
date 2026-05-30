@@ -31,6 +31,7 @@ import { resolveVideoEmbed } from './engine/video.js';
 import { checkSubmission } from './engine/content-filter.js';
 import { buildSubmissionList, isVisibleSubmission } from './engine/moderation.js';
 import { validatePayload } from './engine/event-schemas.js';
+import { scoreResponses } from './engine/speed-scoring.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -1624,7 +1625,7 @@ io.on('connection', (socket) => {
       }
     }
 
-    players.update(socket.id, { response });
+    players.update(socket.id, { response, responseAt: Date.now() });
     console.log(`[submit-response] Stored response from ${player.name}`);
     recordEvent(room, 'submit-response', { player: player.name });
 
@@ -1754,9 +1755,9 @@ io.on('connection', (socket) => {
             // Multi-field responses come as objects with field keys
             if (r && typeof r === 'object' && !Array.isArray(r)) {
               const textParts = Object.values(r);
-              return { playerId: p.id, name: p.name, text: textParts.join(' | '), fields: r };
+              return { playerId: p.id, name: p.name, text: textParts.join(' | '), fields: r, responseAt: p.responseAt };
             }
-            return { playerId: p.id, name: p.name, text: r };
+            return { playerId: p.id, name: p.name, text: r, responseAt: p.responseAt };
           });
 
         // Build byPlayer map alongside responses array — used by .mine and
@@ -1777,9 +1778,29 @@ io.on('connection', (socket) => {
           for (const r of responses) {
             tally[r.text] = (tally[r.text] || 0) + 1;
           }
-          // Store with choice field for clarity
-          const choiceResponses = responses.map(r => ({ playerId: r.playerId, name: r.name, choice: r.text, text: r.text }));
-          room.engine.storePhaseData(collectPhase.id, { ...existing, responses: choiceResponses, tally, byPlayer });
+          // Store with choice field for clarity (preserve responseAt for grading)
+          const choiceResponses = responses.map(r => ({ playerId: r.playerId, name: r.name, choice: r.text, text: r.text, responseAt: r.responseAt }));
+          const stored = { ...existing, responses: choiceResponses, tally, byPlayer };
+
+          // Speed-bonus scoring: when correctAnswer is set, grade each response.
+          // The correct answer can be a literal or a {{ref}} resolved at phase close.
+          if (collectPhase.correctAnswer) {
+            const correctAnswer = resolveTemplate(collectPhase.correctAnswer, room.engine);
+            const phaseStartAt = (room.phaseState && room.phaseState.phaseStartAt) || null;
+            const scores = scoreResponses({
+              responses: choiceResponses,
+              correctAnswer,
+              phaseStartAt,
+              timerSeconds: collectPhase.timer,
+              pointsCorrect: collectPhase.pointsCorrect != null ? collectPhase.pointsCorrect : 1000,
+              speedBonus: collectPhase.speedBonus !== false
+            });
+            stored.scores = scores;
+            stored.correctAnswer = correctAnswer;
+            console.log(`[close-submissions] Graded ${choiceResponses.length} responses against "${correctAnswer}" — scores: ${JSON.stringify(scores)}`);
+          }
+
+          room.engine.storePhaseData(collectPhase.id, stored);
           console.log(`[close-submissions] Stored ${choiceResponses.length} choices for phase '${collectPhase.id}'`);
         } else {
           room.engine.storePhaseData(collectPhase.id, { ...existing, responses, byPlayer });

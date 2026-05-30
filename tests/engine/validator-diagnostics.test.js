@@ -268,6 +268,7 @@ describe('validator diagnostics — game snapshot', () => {
       'balderdash': [],
       'fibbage': [],
       'quiplash': [],
+      'speed-quiz': [],
       'weekend-poem': [],
       'who-said-it': [],
       'yes-or-no-bets': []

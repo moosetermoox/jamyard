@@ -275,6 +275,21 @@ export const PHASE_SCHEMAS = {
         label: 'Shuffle choices per player',
         helper: 'When true, each player sees a different randomization of the choices.'
       },
+      correctAnswer: {
+        type: 'templateString', optional: true,
+        label: 'Correct answer',
+        helper: 'When set, this becomes a graded question. Correct players earn points (per pointsCorrect); wrong = 0. Accepts plain text or a {{ref}} like {{trivia.result.truth}}.'
+      },
+      pointsCorrect: {
+        type: 'integer', min: 1, max: 100000, optional: true, default: 1000,
+        label: 'Points for a correct answer',
+        helper: 'Maximum points an instant-correct answer earns. Default 1000.'
+      },
+      speedBonus: {
+        type: 'boolean', optional: true, default: true,
+        label: 'Faster answers earn more',
+        helper: 'Kahoot-style: 100% at instant, dropping linearly to 50% at the timer expiry. Requires a timer; ignored if no timer is set.'
+      },
       image: {
         type: 'string', optional: true,
         label: 'Image (optional)',
@@ -301,7 +316,14 @@ export const PHASE_SCHEMAS = {
           type: 'scoreMap',
           capability: 'scoreMap',
           renderers: { barChart: 'tallyBarChart', json: 'jsonPretty' }
-        }
+        },
+        // Populated only when `correctAnswer` is set on this phase.
+        scores: {
+          type: 'scoreMap',
+          capability: 'scoreMap',
+          renderers: { json: 'jsonPretty' }
+        },
+        correctAnswer: { type: 'string' }
       }
     },
     // Note: bare {{X.barChart}} on collect-choice is the documented

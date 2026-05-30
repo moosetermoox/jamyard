@@ -111,10 +111,16 @@ registerHandler('collect-choice', {
     // Choices sent to host: full pool (host sees everything, deterministic order)
     const hostChoices = baseChoices;
 
-    // Clear previous responses
+    // Clear previous responses (and any prior timing)
     for (const p of engine.players.list()) {
-      if (p.response) engine.players.update(p.id, { response: undefined });
+      if (p.response) engine.players.update(p.id, { response: undefined, responseAt: undefined });
     }
+
+    // Record phase-start timestamp on the room's phaseState so the
+    // submit-response handler can compute per-player elapsed time when
+    // this is a graded (speed-bonus) question.
+    ctx.room.phaseState = ctx.room.phaseState || {};
+    ctx.room.phaseState.phaseStartAt = Date.now();
 
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
     const video = ctx.services.resolveVideoEmbed(phase.video);
