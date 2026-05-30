@@ -800,10 +800,10 @@ function getPrimaryFieldDef(type) {
     case 'vote': return { type: 'summary', summarize: function (p) {
       var mode = p.mode === 'head-to-head' ? 'Head-to-head vote' : 'Pick-one vote';
       if (p.matchupsFromPairs) {
-        var src = gameConfig.phases[p.matchupsFromPairs] ? phaseRefLabel(p.matchupsFromPairs, true) : p.matchupsFromPairs;
+        var src = gameConfig.phases[p.matchupsFromPairs] ? phaseContentLabel(p.matchupsFromPairs) : p.matchupsFromPairs;
         return mode + ' • paired from ' + src;
       }
-      if (p.candidates) return mode + ' • on ' + humanizeRef(p.candidates);
+      if (p.candidates) return mode + ' on ' + humanizeRef(p.candidates);
       return mode + ' • (no source set)';
     }};
     case 'eliminate': return { type: 'summary', summarize: function (p) {
@@ -815,7 +815,7 @@ function getPrimaryFieldDef(type) {
       return p.from ? 'Show ' + humanizeRef(p.from) : '(no score source set)';
     }};
     case 'winner': return { type: 'summary', summarize: function (p) {
-      return p.from ? 'Pick winner from ' + humanizeRef(p.from) : '(no source set)';
+      return p.from ? 'Winner picked from ' + humanizeRef(p.from) : '(no source set)';
     }};
     case 'foreach': return { type: 'summary', summarize: function (p) {
       var subs = p.subPhases ? Object.keys(p.subPhases).length : 0;
@@ -859,10 +859,40 @@ var PRIMARY_TOKEN_SUFFIXES = {
 };
 
 /**
+ * Returns a teacher-readable label for a step based on its actual content
+ * (the prompt / message / instruction it carries). Used when humanizing a
+ * data-ref so the reader can tell WHICH step is meant in a game with
+ * several of the same type. Falls back to the friendly type name when the
+ * step has no primary content yet (e.g. just-added blank step).
+ *
+ * Examples for a collect-choice with prompt "What is the capital of Australia?":
+ *   phaseContentLabel(id)  ->  "'What is the capital of Australia?'"
+ *   phaseRefLabel(id, true) ->  "🔘 Multiple Choice"  (used as fallback)
+ */
+function phaseContentLabel(phaseId) {
+  var phase = gameConfig.phases && gameConfig.phases[phaseId];
+  if (!phase) return phaseId;
+  var content = phase.prompt || phase.message || phase.instruction || phase.content;
+  if (typeof content === 'string' && content.trim()) {
+    var trimmed = content.trim().replace(/\s+/g, ' ');
+    if (trimmed.length > 36) trimmed = trimmed.slice(0, 33) + '…';
+    return "'" + trimmed + "'";
+  }
+  return phaseRefLabel(phaseId, true);
+}
+
+/**
  * Plain-text humanizer for a single bare data-ref like "ask.scores" or
- * "trivia.result.truth". Used by the canvas primary summaries on phases
- * that point at upstream data (leaderboard, winner, foreach, reveal-one).
+ * "trivia.result.truth". Used by canvas primary summaries on phases that
+ * point at upstream data (leaderboard, winner, foreach, reveal-one).
  * Returns text suitable for textContent — no HTML.
+ *
+ * Format: "<suffix-text> from <content-label>" so the reader sees both
+ * what kind of data and which specific upstream step it comes from.
+ *
+ *   "ask.scores"            -> "scores from 'What is the capital of...'"
+ *   "vote.barChart"         -> "bar chart from 'Pick your favorite'"
+ *   "trivia.result.truth"   -> "result / truth from 'Generate a trivia...'"
  *
  * Falls back to the raw ref when the phase doesn't exist (e.g. typo).
  */
@@ -870,15 +900,14 @@ function humanizeRef(ref) {
   if (!ref || typeof ref !== 'string') return ref || '';
   var parts = ref.split('.');
   var phaseId = parts[0];
-  var label = (gameConfig.phases && gameConfig.phases[phaseId])
-    ? phaseRefLabel(phaseId, true)
-    : phaseId;
+  if (!gameConfig.phases || !gameConfig.phases[phaseId]) return ref;
+  var label = phaseContentLabel(phaseId);
   if (parts.length === 1) return label;
   var suffix = parts[parts.length - 1];
   var meta = PRIMARY_TOKEN_SUFFIXES[suffix];
-  if (meta) return label + ' — ' + meta.text;
-  // Nested or unknown path — show as "Phase / field" instead of raw dots
-  return label + ' / ' + parts.slice(1).join(' / ');
+  if (meta) return meta.text + ' from ' + label;
+  // Nested / unknown path — show the inner segments before "from"
+  return parts.slice(1).join(' / ') + ' from ' + label;
 }
 
 function escapeHtmlForPreview(s) {
@@ -904,18 +933,17 @@ function humanizePreview(text) {
     var parts = ref.split('.');
     var phaseId = parts[0];
     var label = (gameConfig.phases && gameConfig.phases[phaseId])
-      ? phaseRefLabel(phaseId, true)
+      ? phaseContentLabel(phaseId)
       : phaseId;
     var suffix = parts.length > 1 ? parts[parts.length - 1] : null;
     var meta = suffix ? PRIMARY_TOKEN_SUFFIXES[suffix] : null;
 
     var inner;
     if (meta) {
-      inner = meta.icon + ' ' + escapeHtmlForPreview(label) + ' — ' + escapeHtmlForPreview(meta.text);
+      inner = meta.icon + ' ' + escapeHtmlForPreview(meta.text) + ' from ' + escapeHtmlForPreview(label);
     } else if (parts.length > 1) {
-      // Nested path we don't have a friendly name for — show the field path
       var rest = parts.slice(1).join(' / ');
-      inner = escapeHtmlForPreview(label) + ' / ' + escapeHtmlForPreview(rest);
+      inner = escapeHtmlForPreview(rest) + ' from ' + escapeHtmlForPreview(label);
     } else {
       inner = escapeHtmlForPreview(label);
     }
