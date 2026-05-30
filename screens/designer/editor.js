@@ -798,35 +798,40 @@ function getPrimaryFieldDef(type) {
     case 'wager':         return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
     case 'relay':         return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
     case 'vote': return { type: 'summary', summarize: function (p) {
-      var mode = p.mode || 'pick-one';
-      if (p.matchupsFromPairs) return mode + ' • from pairs in "' + p.matchupsFromPairs + '"';
-      if (p.candidates) return mode + ' • on ' + p.candidates;
+      var mode = p.mode === 'head-to-head' ? 'Head-to-head vote' : 'Pick-one vote';
+      if (p.matchupsFromPairs) {
+        var src = gameConfig.phases[p.matchupsFromPairs] ? phaseRefLabel(p.matchupsFromPairs, true) : p.matchupsFromPairs;
+        return mode + ' • paired from ' + src;
+      }
+      if (p.candidates) return mode + ' • on ' + humanizeRef(p.candidates);
       return mode + ' • (no source set)';
     }};
     case 'eliminate': return { type: 'summary', summarize: function (p) {
       if (p.method === 'hook') return 'Custom rule (hook)';
-      if (p.percent) return 'Bottom ' + p.percent + '%';
-      return 'Bottom %';
+      if (p.percent) return 'Knock out the bottom ' + p.percent + '%';
+      return 'Knock out the bottom %';
     }};
     case 'leaderboard': return { type: 'summary', summarize: function (p) {
-      return p.from ? 'Scores from ' + p.from : '(no score source set)';
+      return p.from ? 'Show ' + humanizeRef(p.from) : '(no score source set)';
     }};
     case 'winner': return { type: 'summary', summarize: function (p) {
-      return p.from ? 'Pick winner from ' + p.from : '(no source set)';
+      return p.from ? 'Pick winner from ' + humanizeRef(p.from) : '(no source set)';
     }};
     case 'foreach': return { type: 'summary', summarize: function (p) {
       var subs = p.subPhases ? Object.keys(p.subPhases).length : 0;
-      return 'For each item in ' + (p.data || '?') + ' • ' + subs + ' sub-step' + (subs === 1 ? '' : 's');
+      var source = p.data ? humanizeRef(p.data) : '?';
+      return 'For each item in ' + source + ' • ' + subs + ' sub-step' + (subs === 1 ? '' : 's');
     }};
     case 'team-split': return { type: 'summary', summarize: function (p) {
       return (p.teamCount || 2) + ' teams' + (p.method ? ' (' + p.method + ')' : '');
     }};
     case 'rate': return { type: 'summary', summarize: function (p) {
       var scaleCount = (p.scales || []).length;
-      return 'Rate ' + (p.target || '?') + ' on ' + scaleCount + ' scale' + (scaleCount === 1 ? '' : 's');
+      var target = p.target ? humanizeRef(p.target) : '?';
+      return 'Rate ' + target + ' on ' + scaleCount + ' scale' + (scaleCount === 1 ? '' : 's');
     }};
     case 'reveal-one': return { type: 'summary', summarize: function (p) {
-      return 'Reveal items from ' + (p.from || '?');
+      return 'Reveal items from ' + (p.from ? humanizeRef(p.from) : '?');
     }};
     case 'lobby': return null; // self-explanatory
     default: return null;
@@ -852,6 +857,29 @@ var PRIMARY_TOKEN_SUFFIXES = {
   'choice':    { icon: '✅', text: 'chosen answer' },
   'message':   { icon: '💬', text: 'message' }
 };
+
+/**
+ * Plain-text humanizer for a single bare data-ref like "ask.scores" or
+ * "trivia.result.truth". Used by the canvas primary summaries on phases
+ * that point at upstream data (leaderboard, winner, foreach, reveal-one).
+ * Returns text suitable for textContent — no HTML.
+ *
+ * Falls back to the raw ref when the phase doesn't exist (e.g. typo).
+ */
+function humanizeRef(ref) {
+  if (!ref || typeof ref !== 'string') return ref || '';
+  var parts = ref.split('.');
+  var phaseId = parts[0];
+  var label = (gameConfig.phases && gameConfig.phases[phaseId])
+    ? phaseRefLabel(phaseId, true)
+    : phaseId;
+  if (parts.length === 1) return label;
+  var suffix = parts[parts.length - 1];
+  var meta = PRIMARY_TOKEN_SUFFIXES[suffix];
+  if (meta) return label + ' — ' + meta.text;
+  // Nested or unknown path — show as "Phase / field" instead of raw dots
+  return label + ' / ' + parts.slice(1).join(' / ');
+}
 
 function escapeHtmlForPreview(s) {
   return String(s)
