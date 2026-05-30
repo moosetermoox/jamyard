@@ -834,9 +834,73 @@ function getPrimaryFieldDef(type) {
 }
 
 /**
+ * Friendly labels for the common {{phaseId.suffix}} tokens. Used by
+ * humanizePreview() to translate raw template syntax into chips a non-coder
+ * can scan ("Multiple Choice — bar chart" instead of "{{ask.barChart}}").
+ */
+var PRIMARY_TOKEN_SUFFIXES = {
+  'barChart':  { icon: '📊', text: 'bar chart' },
+  'chart':     { icon: '📊', text: 'bar chart' },
+  'pieChart':  { icon: '🥧', text: 'pie chart' },
+  'list':      { icon: '📋', text: 'list of answers' },
+  'result':    { icon: '🤖', text: 'AI result' },
+  'scores':    { icon: '🏆', text: 'scores' },
+  'tally':     { icon: '🔢', text: 'vote counts' },
+  'assigned':  { icon: '👤', text: 'each player\'s assigned item' },
+  'mine':      { icon: '👤', text: 'each player\'s own answer' },
+  'text':      { icon: '💬', text: 'submitted text' },
+  'choice':    { icon: '✅', text: 'chosen answer' },
+  'message':   { icon: '💬', text: 'message' }
+};
+
+function escapeHtmlForPreview(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/**
+ * Replace `{{phaseId.suffix}}` tokens in a string with a friendly chip span
+ * that says what the player/host will actually see. Non-token text is
+ * HTML-escaped first so user typing can't inject markup.
+ *
+ * Examples:
+ *   "{{ask.barChart}}"            -> [📊 Multiple Choice — bar chart]
+ *   "{{trivia.result.truth}}"     -> [🤖 AI Does Something / truth]
+ *   "Hi {{prompts.assigned}}"     -> "Hi [👤 AI Does Something — assigned item]"
+ */
+function humanizePreview(text) {
+  if (!text) return '';
+  var escaped = escapeHtmlForPreview(text);
+  return escaped.replace(/\{\{\s*([a-zA-Z0-9_\-]+(?:\.[a-zA-Z0-9_\-]+)*)\s*\}\}/g, function (_match, ref) {
+    var parts = ref.split('.');
+    var phaseId = parts[0];
+    var label = (gameConfig.phases && gameConfig.phases[phaseId])
+      ? phaseRefLabel(phaseId, true)
+      : phaseId;
+    var suffix = parts.length > 1 ? parts[parts.length - 1] : null;
+    var meta = suffix ? PRIMARY_TOKEN_SUFFIXES[suffix] : null;
+
+    var inner;
+    if (meta) {
+      inner = meta.icon + ' ' + escapeHtmlForPreview(label) + ' — ' + escapeHtmlForPreview(meta.text);
+    } else if (parts.length > 1) {
+      // Nested path we don't have a friendly name for — show the field path
+      var rest = parts.slice(1).join(' / ');
+      inner = escapeHtmlForPreview(label) + ' / ' + escapeHtmlForPreview(rest);
+    } else {
+      inner = escapeHtmlForPreview(label);
+    }
+    return '<span class="primary-token-chip">' + inner + '</span>';
+  }).replace(/\n/g, '<br>');
+}
+
+/**
  * Append the primary field UI to a phase box. For textarea/text inputs,
  * editing updates phase[key] and marks the config dirty. Clicks on the
  * input itself don't trigger box selection — only clicks on chrome do.
+ * When the value contains {{tokens}}, a live "Will show:" preview line
+ * appears above the textarea translating the tokens into friendly chips.
  */
 function appendPrimaryField(box, phase, phaseId) {
   var prim = getPrimaryFieldDef(phase.type);
@@ -855,10 +919,27 @@ function appendPrimaryField(box, phase, phaseId) {
     // Don't select the box when interacting with the input
     input.addEventListener('click', function (e) { e.stopPropagation(); });
     input.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+
+    // Live preview row — only visible when {{tokens}} are present
+    var preview = document.createElement('div');
+    preview.className = 'phase-box-primary-preview';
+    preview.style.display = 'none';
+    function refreshPreview() {
+      if (/\{\{[^}]+\}\}/.test(input.value)) {
+        preview.innerHTML = '<span class="primary-preview-label">Will show: </span>' + humanizePreview(input.value);
+        preview.style.display = '';
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+    refreshPreview();
     input.addEventListener('input', function () {
       isDirty = true;
       phase[prim.key] = input.value;
+      refreshPreview();
     });
+
+    wrap.appendChild(preview);
     wrap.appendChild(input);
   } else if (prim.type === 'summary') {
     var summary = document.createElement('div');
