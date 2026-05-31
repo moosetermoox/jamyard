@@ -736,3 +736,15 @@ select {
   background: var(--theme-surface, white);
   color: var(--theme-text, #333);
 }
+
+/* --- Turn (charades / describe-it) --- */
+#turn-section { text-align: center; }
+.turn-team-name { font-size: 2.4em; margin: 12px 0 4px; color: #D84315; }
+.turn-describer-line { font-size: 1.3em; color: #666; margin: 4px 0 16px; }
+.turn-item-card { font-size: 3em; padding: 32px 24px; margin: 20px auto; background: #FFF59D; border: 4px solid #000; border-radius: 16px; max-width: 700px; font-weight: bold; word-wrap: break-word; }
+.turn-instruction-line { color: #555; font-style: italic; margin: 8px 0; }
+.turn-scoreboard { display: inline-block; margin: 20px auto; padding: 12px 20px; background: white; border: 3px solid #000; border-radius: 12px; }
+.turn-score-row { display: flex; justify-content: space-between; gap: 24px; font-size: 1.4em; margin: 4px 0; }
+.turn-score-team { font-weight: bold; }
+.turn-score-value { font-weight: bold; color: #D84315; }
+.turn-remaining-line { color: #888; margin-top: 12px; }

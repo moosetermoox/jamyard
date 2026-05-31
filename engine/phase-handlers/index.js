@@ -25,6 +25,7 @@ import './rank.js';
 import './rate.js';
 import './wager.js';
 import './relay.js';
+import './turn.js';
 
 // Wave 4: Orchestration and special handlers
 import './foreach.js';

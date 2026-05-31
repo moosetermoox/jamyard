@@ -660,8 +660,12 @@ export const PHASE_SCHEMAS = {
     fields: {
       from: {
         type: 'dataRef',
-        accepts: [{ type: 'scoreMap', capability: 'scoreMap' }],
-        required: true, label: 'Scores to display'
+        accepts: [
+          { type: 'scoreMap', capability: 'scoreMap' },
+          { type: 'array', capability: 'dataRefList' }
+        ],
+        required: true, label: 'Scores to display',
+        helper: 'A single score source, or a list of sources to sum across (e.g. for multi-round games: ["r1.teamScores", "r2.teamScores", "r3.teamScores"]).'
       },
       style: {
         type: 'enum', values: ['full', 'top3'], default: 'full',
@@ -862,6 +866,63 @@ export const PHASE_SCHEMAS = {
     ui: {
       hostToggles: ['prompt', 'options', 'counter', 'timer', 'closeButton'],
       playerToggles: ['prompt', 'options', 'points', 'timer', 'submitButton']
+    }
+  },
+
+  // -------------------------------------------------------------------
+  turn: {
+    label: 'Describe & Guess',
+    icon: '🎭',
+    description: 'Charades-style turn. One describer at a time draws items from a shared pool while their team guesses. Per-turn timer rotates teams.',
+    role: 'input',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'loops'],
+    fields: {
+      pool: {
+        type: 'dataRef',
+        accepts: [
+          { type: 'array', capability: 'responseArray' },
+          { type: 'array', capability: 'dataRefList' },
+          { type: 'array' }
+        ],
+        required: true,
+        label: 'Items to describe',
+        helper: 'The pool of phrases to draw from. Single ref ("phrases.responses") or a list of refs to concatenate (["phrases1.responses", "phrases2.responses", "phrases3.responses"]).'
+      },
+      teamsFrom: {
+        type: 'phaseRef', required: true,
+        label: 'Teams from',
+        helper: 'The step that split players into teams. Each team rotates through describers.'
+      },
+      timer: {
+        type: 'integer', min: 5, max: 600, optional: true, default: 60,
+        label: 'Seconds per describer turn'
+      },
+      allowSkip: {
+        type: 'boolean', optional: true, default: true,
+        label: 'Describer can skip an item',
+        helper: 'When true, the describer can pass on an item without scoring; it returns to the bottom of the pool.'
+      },
+      instruction: {
+        type: 'templateString', optional: true,
+        label: 'Rule for this round',
+        helper: 'Shown to the describer. Examples: "Describe without saying the word", "Act it out, no words", "Say ONE word".'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        teamScores: { type: 'scoreMap', capability: 'scoreMap', renderers: { json: 'jsonPretty' } },
+        capturedBy: { type: 'object' },
+        itemCount:  { type: 'integer' }
+      }
+    },
+    ui: {
+      hostToggles: ['item', 'currentTeam', 'describer', 'scores', 'timer'],
+      playerToggles: ['item', 'instruction', 'gotItButton', 'skipButton', 'timer']
     }
   },
 

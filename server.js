@@ -2147,6 +2147,40 @@ io.on('connection', (socket) => {
     }
   });
 
+  // --- Turn (charades/describe-it) events ---
+
+  socket.on(EVENTS.TURN_GOT_IT, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'turn-got-it', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'turn-got-it')) return;
+    const phase = room.engine && room.engine.getCurrentPhase();
+    if (!phase || phase.type !== 'turn') return;
+
+    const { handleGotIt, advanceItemInPhase } = await import('./engine/phase-handlers/turn.js');
+    if (!handleGotIt(room, socket.id)) return;
+    recordEvent(room, 'turn-got-it');
+    const ctx = createPhaseContext(code, room, phaseServices);
+    advanceItemInPhase(ctx);
+  });
+
+  socket.on(EVENTS.TURN_SKIP, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'turn-skip', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'turn-skip')) return;
+    const phase = room.engine && room.engine.getCurrentPhase();
+    if (!phase || phase.type !== 'turn') return;
+
+    const { handleSkip, advanceItemInPhase } = await import('./engine/phase-handlers/turn.js');
+    if (!handleSkip(room, socket.id)) return;
+    recordEvent(room, 'turn-skip');
+    const ctx = createPhaseContext(code, room, phaseServices);
+    advanceItemInPhase(ctx);
+  });
+
   // Preview events — delegated to handler
   for (const previewEvent of ['preview-approve', 'preview-reject', 'preview-edit']) {
     socket.on(previewEvent, async (payload = {}) => {

@@ -212,6 +212,17 @@ var PHASE_CATALOG = {
     player: 'Active: input + shared result. Waiting: watch others',
     ai: null
   },
+  'turn': {
+    icon: '\uD83C\uDFAD',
+    friendlyName: 'Describe & Guess',
+    description: 'Charades-style turn: one describer per team, shared timer, item pool drains',
+    color: '#D84315',
+    bg: '#FFCCBC',
+    detailField: 'instruction',
+    host: 'Current item + team + describer + scores + timer',
+    player: 'Describer sees item + Got It/Skip. Team sees "guess!". Others see item',
+    ai: null
+  },
   'foreach': {
     icon: '\uD83D\uDD01',
     friendlyName: 'Go Through Answers',

@@ -1,0 +1,100 @@
+{
+  "name": "Charades Bowl",
+  "description": "Everyone secretly writes 3 phrases. Two teams. Round 1: describe. Round 2: act it out. Round 3: one word only. Same pool, three rounds — most points wins.",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "CHARADES BOWL!\n\nYou'll each write 3 phrases for the bowl. Then we split into teams and play three rounds with the same phrases:\n\nRound 1: Describe (use any words except the phrase itself)\nRound 2: Act it out (no talking)\nRound 3: One word only (just one!)",
+      "timer": 18,
+      "next": "phrases-1"
+    },
+    "phrases-1": {
+      "type": "collect",
+      "prompt": "Type a short, fun phrase for the bowl. Anything goes — movies, foods, animals, idioms. Keep it school-appropriate.",
+      "timer": 75,
+      "next": "phrases-2"
+    },
+    "phrases-2": {
+      "type": "collect",
+      "prompt": "Phrase #2 — try something different from your first one.",
+      "timer": 60,
+      "next": "phrases-3"
+    },
+    "phrases-3": {
+      "type": "collect",
+      "prompt": "Phrase #3 — last one, make it a good one!",
+      "timer": 60,
+      "next": "teams"
+    },
+    "teams": {
+      "type": "team-split",
+      "method": "random",
+      "teamCount": 2,
+      "teamNames": ["Red", "Blue"],
+      "next": "round1-intro"
+    },
+    "round1-intro": {
+      "type": "announce",
+      "message": "🗣️ ROUND 1: DESCRIBE!\n\nThe describer can use any words EXCEPT the phrase itself. 60 seconds per turn. Get as many right as you can — then it's the other team's turn.",
+      "timer": 10,
+      "next": "round1"
+    },
+    "round1": {
+      "type": "turn",
+      "pool": ["phrases-1.responses", "phrases-2.responses", "phrases-3.responses"],
+      "teamsFrom": "teams",
+      "timer": 60,
+      "allowSkip": true,
+      "instruction": "Describe the phrase — say anything EXCEPT the words on the card.",
+      "next": "round2-intro"
+    },
+    "round2-intro": {
+      "type": "announce",
+      "message": "🎭 ROUND 2: ACT IT OUT!\n\nSame phrases, same teams — but now no words at all. Just gestures. 60 seconds.",
+      "timer": 10,
+      "next": "round2"
+    },
+    "round2": {
+      "type": "turn",
+      "pool": ["phrases-1.responses", "phrases-2.responses", "phrases-3.responses"],
+      "teamsFrom": "teams",
+      "timer": 60,
+      "allowSkip": true,
+      "instruction": "Act it out — no words, no sounds!",
+      "next": "round3-intro"
+    },
+    "round3-intro": {
+      "type": "announce",
+      "message": "🗯️ ROUND 3: ONE WORD!\n\nLast round! You can only say ONE word per phrase. Choose wisely. 60 seconds.",
+      "timer": 10,
+      "next": "round3"
+    },
+    "round3": {
+      "type": "turn",
+      "pool": ["phrases-1.responses", "phrases-2.responses", "phrases-3.responses"],
+      "teamsFrom": "teams",
+      "timer": 60,
+      "allowSkip": true,
+      "instruction": "Say ONE word — that's it!",
+      "next": "final-board"
+    },
+    "final-board": {
+      "type": "leaderboard",
+      "from": ["round1.teamScores", "round2.teamScores", "round3.teamScores"],
+      "timer": 30,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Great game! Thanks for playing Charades Bowl."
+    }
+  },
+  "playTime": "~25 min",
+  "classSize": "6–24 players (works best with even teams)",
+  "tags": ["party", "speaking", "teams", "rounds"],
+  "recommendedFor": "Best for groups that know each other a bit and aren't shy about performing. Great end-of-week energy."
+}

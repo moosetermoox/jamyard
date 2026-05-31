@@ -872,11 +872,11 @@ function scanForDesignHoles(config, gameId, warnings) {
     }
 
     if (phase.type === 'team-split') {
-      // Look for any reference to team data downstream — currently there's no
-      // single "uses teams" signal, so we look for {{team*}} or {{...teams*}}
-      // tokens in any template.
-      const referenced = /\{\{[^}]*team[^}]*\}\}/i.test(allTemplatesJoined);
-      if (!referenced) {
+      // Look for any reference to team data downstream — either in a template
+      // ({{team*}}), or as a `teamsFrom` field on a later phase (e.g. turn).
+      const referencedInTemplate = /\{\{[^}]*team[^}]*\}\}/i.test(allTemplatesJoined);
+      const referencedByField = Object.values(config.phases).some(p => p.teamsFrom === name);
+      if (!referencedInTemplate && !referencedByField) {
         warnings.push(
           `Game "${gameId}": phase "${name}" (team-split) creates teams, but no later template references team data. The split is wasted setup. Either reference team info in a later message (e.g. "Team {{${name}.teams}}") or remove this phase.`
         );

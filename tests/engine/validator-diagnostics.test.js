@@ -265,6 +265,7 @@ describe('validator diagnostics — game snapshot', () => {
       'simple-poll': [],
       'story-builder': [],
       'two-truths-a-lie': [],
+      'charades-bowl': [],
       'definition-bluff': [],
       'punchline-showdown': [],
       'trivia-bluff': [],

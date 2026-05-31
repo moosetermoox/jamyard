@@ -145,6 +145,17 @@ const relayProgress = document.getElementById('relay-progress');
 const relaySharedResult = document.getElementById('relay-shared-result');
 const relayTimer = document.getElementById('relay-timer');
 
+// Elements - Turn (charades / describe-it)
+const turnSection = document.getElementById('turn-section');
+const turnTeamName = document.getElementById('turn-team-name');
+const turnDescriberLine = document.getElementById('turn-describer-line');
+const turnItemCard = document.getElementById('turn-item-card');
+const turnInstructionLine = document.getElementById('turn-instruction-line');
+const turnScoreboard = document.getElementById('turn-scoreboard');
+const turnRemainingLine = document.getElementById('turn-remaining-line');
+const turnTimerEl = document.getElementById('turn-timer');
+let turnTimerHostInterval = null;
+
 // Elements - Phase Error
 const phaseErrorSection = document.getElementById('phase-error-section');
 const phaseErrorTitle = document.getElementById('phase-error-title');
@@ -955,6 +966,87 @@ socket.on('relay-update', ({ activePlayerName, sharedResult, progress, timer, ho
   if (timer) {
     startTimer(timer, relayTimer, () => {});
   }
+});
+
+// --- Socket events - Turn (charades / describe-it) ---
+
+function renderTurnScoreboard(teamScores) {
+  turnScoreboard.innerHTML = '';
+  if (!teamScores) return;
+  for (const [t, s] of Object.entries(teamScores)) {
+    const div = document.createElement('div');
+    div.className = 'turn-score-row';
+    div.innerHTML = '<span class="turn-score-team">' + t + '</span>' +
+                    '<span class="turn-score-value">' + s + '</span>';
+    turnScoreboard.appendChild(div);
+  }
+}
+
+function startHostTurnTimer(endAt) {
+  if (turnTimerHostInterval) { clearInterval(turnTimerHostInterval); turnTimerHostInterval = null; }
+  if (!endAt) { turnTimerEl.hidden = true; return; }
+  turnTimerEl.hidden = false;
+  const totalSec = Math.max(1, Math.round((endAt - Date.now()) / 1000));
+  const txt = turnTimerEl.querySelector('.timer-ring-text');
+  const fill = turnTimerEl.querySelector('.timer-ring-fill');
+  const circumference = 2 * Math.PI * 52;
+  if (fill) {
+    fill.style.strokeDasharray = circumference;
+    fill.style.strokeDashoffset = 0;
+  }
+  function tick() {
+    const remainingMs = Math.max(0, endAt - Date.now());
+    const sec = Math.ceil(remainingMs / 1000);
+    if (txt) txt.textContent = sec;
+    if (fill) {
+      const frac = Math.max(0, remainingMs / (totalSec * 1000));
+      fill.style.strokeDashoffset = (1 - frac) * circumference;
+    }
+    if (remainingMs <= 0) { clearInterval(turnTimerHostInterval); turnTimerHostInterval = null; }
+  }
+  tick();
+  turnTimerHostInterval = setInterval(tick, 200);
+}
+
+socket.on('turn-start', ({ teamName, describerName, timerEndAt, teamScores }) => {
+  showSection(turnSection);
+  turnTeamName.textContent = teamName ? teamName + "'s turn" : '';
+  turnDescriberLine.textContent = describerName ? describerName + ' is describing' : '';
+  renderTurnScoreboard(teamScores);
+  startHostTurnTimer(timerEndAt);
+});
+
+socket.on('turn-item', ({ role, item, teamName, describerName, instruction, teamScores, remaining, timerEndAt }) => {
+  if (role !== 'host') return; // host listens for its host-role packet
+  showSection(turnSection);
+  turnTeamName.textContent = teamName ? teamName + "'s turn" : '';
+  turnDescriberLine.textContent = describerName ? describerName + ' is describing' : '';
+  turnItemCard.textContent = item || '';
+  turnItemCard.hidden = !item;
+  turnInstructionLine.textContent = instruction || '';
+  turnInstructionLine.hidden = !instruction;
+  turnRemainingLine.textContent = (typeof remaining === 'number') ? (remaining + ' items left') : '';
+  renderTurnScoreboard(teamScores);
+  startHostTurnTimer(timerEndAt);
+});
+
+socket.on('turn-end', ({ reason, teamScores }) => {
+  turnItemCard.textContent = reason === 'pool-empty' ? 'Pool empty!' : "Time's up!";
+  renderTurnScoreboard(teamScores);
+  if (turnTimerHostInterval) { clearInterval(turnTimerHostInterval); turnTimerHostInterval = null; }
+  turnTimerEl.hidden = true;
+});
+
+socket.on('turn-complete', ({ teamScores }) => {
+  turnTeamName.textContent = 'Round complete!';
+  turnItemCard.textContent = '';
+  turnItemCard.hidden = true;
+  turnDescriberLine.textContent = '';
+  turnInstructionLine.hidden = true;
+  turnRemainingLine.textContent = '';
+  renderTurnScoreboard(teamScores);
+  if (turnTimerHostInterval) { clearInterval(turnTimerHostInterval); turnTimerHostInterval = null; }
+  turnTimerEl.hidden = true;
 });
 
 socket.on('game-ended', ({ message, hostTemplate, hostShow } = {}) => {

@@ -107,6 +107,14 @@ export const EVENTS = {
   RELAY_WAITING:        'relay-waiting',
   RELAY_FINISH_ALL:     'relay-finish-all',
 
+  // --- Turn Phase (charades/describe-it style) ---
+  TURN_START:           'turn-start',         // server -> all: a new describer's turn begins
+  TURN_ITEM:            'turn-item',          // server -> all (role-filtered): the current item / waiting view
+  TURN_GOT_IT:          'turn-got-it',        // describer -> server: captured this item
+  TURN_SKIP:            'turn-skip',          // describer -> server: skip to next item
+  TURN_END:             'turn-end',           // server -> all: current describer's turn finished (timer or pool empty)
+  TURN_COMPLETE:        'turn-complete',      // server -> all: full pool exhausted, phase done
+
   // --- Error Recovery ---
   PHASE_ERROR:          'phase-error',
   PHASE_PAUSED:         'phase-paused',

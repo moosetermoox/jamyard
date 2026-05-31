@@ -1,10 +1,40 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 
+/**
+ * Resolve and sum one or more score sources into a single { key: total } map.
+ * `from` can be a single dataRef string OR an array of dataRef strings; in
+ * the array case scores are summed by key across all sources. Used for
+ * multi-round games (e.g. Fishbowl-style) where each round writes its own
+ * scores phase and a final leaderboard totals them.
+ */
+function resolveCombinedScores(engine, from) {
+  const refs = Array.isArray(from) ? from : [from];
+  const combined = {};
+  for (const ref of refs) {
+    const part = ref ? engine.resolve(ref) : null;
+    if (!part) continue;
+    if (Array.isArray(part)) {
+      for (const entry of part) {
+        const key = entry.playerId || entry.id;
+        if (!key) continue;
+        combined[key] = (combined[key] || 0) + (entry.score || 0);
+      }
+    } else if (typeof part === 'object') {
+      for (const [k, v] of Object.entries(part)) {
+        if (typeof v === 'number') combined[k] = (combined[k] || 0) + v;
+      }
+    }
+  }
+  return combined;
+}
+
 registerHandler('leaderboard', {
   async onEnter(ctx) {
     const { phase, engine } = ctx;
-    const rawScores = engine.resolve(phase.from) || {};
+    const rawScores = Array.isArray(phase.from)
+      ? resolveCombinedScores(engine, phase.from)
+      : (engine.resolve(phase.from) || {});
     const style = phase.style || 'full';
 
     // Build standings array — scores can be object { playerId: score } or array

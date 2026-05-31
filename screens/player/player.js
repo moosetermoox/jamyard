@@ -193,6 +193,20 @@ const relayInputSection = document.getElementById('relay-input-section');
 const relayInput = document.getElementById('relay-input');
 const relaySubmitBtn = document.getElementById('relay-submit-btn');
 
+// Elements - Turn (charades/describe-it)
+const turnSection = document.getElementById('turn-section');
+const turnRoleLabel = document.getElementById('turn-role-label');
+const turnInstruction = document.getElementById('turn-instruction');
+const turnItemDisplay = document.getElementById('turn-item-display');
+const turnTeamLine = document.getElementById('turn-team-line');
+const turnTimerDisplay = document.getElementById('turn-timer-display');
+const turnControls = document.getElementById('turn-controls');
+const turnGotItBtn = document.getElementById('turn-got-it-btn');
+const turnSkipBtn = document.getElementById('turn-skip-btn');
+const turnRemaining = document.getElementById('turn-remaining');
+let turnTimerInterval = null;
+let turnCurrentInstanceId = null;
+
 // --- Button handlers ---
 
 // Prototype mode: auto-fill and auto-join
@@ -1136,6 +1150,106 @@ function renderRelayShared(sharedResult) {
     relaySharedDisplay.appendChild(p);
   }
 }
+
+// --- Socket events - Turn (charades / describe-it) ---
+
+function startTurnTimerCountdown(endAt) {
+  if (turnTimerInterval) { clearInterval(turnTimerInterval); turnTimerInterval = null; }
+  if (!endAt) { turnTimerDisplay.hidden = true; return; }
+  turnTimerDisplay.hidden = false;
+  const totalMs = endAt - Date.now();
+  const totalSec = Math.max(1, Math.round(totalMs / 1000));
+  const textEl = turnTimerDisplay.querySelector('.timer-bar-text');
+  const fillEl = turnTimerDisplay.querySelector('.timer-bar-fill');
+  function tick() {
+    const remainingMs = Math.max(0, endAt - Date.now());
+    const sec = Math.ceil(remainingMs / 1000);
+    if (textEl) textEl.textContent = sec + 's';
+    if (fillEl) fillEl.style.width = Math.max(0, Math.min(100, (remainingMs / (totalSec * 1000)) * 100)) + '%';
+    if (remainingMs <= 0) { clearInterval(turnTimerInterval); turnTimerInterval = null; }
+  }
+  tick();
+  turnTimerInterval = setInterval(tick, 250);
+}
+
+socket.on('turn-start', ({ phaseInstanceId } = {}) => {
+  turnCurrentInstanceId = phaseInstanceId;
+  showSection(turnSection);
+});
+
+socket.on('turn-item', (data = {}) => {
+  const { role, item, teamName, describerName, instruction, allowSkip, timerEndAt, remaining, phaseInstanceId } = data;
+  turnCurrentInstanceId = phaseInstanceId;
+  showSection(turnSection);
+
+  turnInstruction.textContent = instruction || '';
+  turnInstruction.hidden = !instruction;
+
+  if (role === 'describer') {
+    turnRoleLabel.textContent = "Your turn — describe this!";
+    turnRoleLabel.className = 'turn-role-label role-describer';
+    turnItemDisplay.textContent = item || '';
+    turnItemDisplay.hidden = false;
+    turnTeamLine.textContent = teamName ? '(Playing for ' + teamName + ')' : '';
+    turnControls.hidden = false;
+    turnGotItBtn.disabled = false;
+    turnSkipBtn.disabled = false;
+    turnSkipBtn.hidden = !allowSkip;
+  } else if (role === 'teammate') {
+    turnRoleLabel.textContent = "Your turn to GUESS!";
+    turnRoleLabel.className = 'turn-role-label role-teammate';
+    turnItemDisplay.textContent = '🤐';
+    turnItemDisplay.hidden = false;
+    turnTeamLine.textContent = describerName ? describerName + ' is describing' : '';
+    turnControls.hidden = true;
+  } else {
+    // audience (other team)
+    turnRoleLabel.textContent = "Watching — " + (teamName || 'other team') + " plays";
+    turnRoleLabel.className = 'turn-role-label role-audience';
+    turnItemDisplay.textContent = item || '';
+    turnItemDisplay.hidden = false;
+    turnTeamLine.textContent = describerName ? describerName + ' is describing' : '';
+    turnControls.hidden = true;
+  }
+
+  turnRemaining.textContent = (typeof remaining === 'number') ? (remaining + ' left in pool') : '';
+  startTurnTimerCountdown(timerEndAt);
+});
+
+socket.on('turn-end', (data = {}) => {
+  const { teamScores, reason } = data;
+  turnRoleLabel.textContent = reason === 'pool-empty' ? 'Pool empty — round over!' : "Time's up!";
+  turnRoleLabel.className = 'turn-role-label';
+  turnItemDisplay.textContent = '';
+  turnItemDisplay.hidden = true;
+  turnTeamLine.textContent = teamScores ? Object.entries(teamScores).map(([t, s]) => t + ': ' + s).join(' • ') : '';
+  turnControls.hidden = true;
+  if (turnTimerInterval) { clearInterval(turnTimerInterval); turnTimerInterval = null; }
+  turnTimerDisplay.hidden = true;
+});
+
+socket.on('turn-complete', (data = {}) => {
+  const { teamScores } = data;
+  turnRoleLabel.textContent = 'Round complete!';
+  turnRoleLabel.className = 'turn-role-label';
+  turnItemDisplay.textContent = '';
+  turnItemDisplay.hidden = true;
+  turnTeamLine.textContent = teamScores ? Object.entries(teamScores).map(([t, s]) => t + ': ' + s).join(' • ') : '';
+  turnControls.hidden = true;
+  if (turnTimerInterval) { clearInterval(turnTimerInterval); turnTimerInterval = null; }
+  turnTimerDisplay.hidden = true;
+});
+
+turnGotItBtn.addEventListener('click', () => {
+  turnGotItBtn.disabled = true;
+  turnSkipBtn.disabled = true;
+  socket.emit('turn-got-it', { code: currentRoomCode, phaseInstanceId: turnCurrentInstanceId });
+});
+turnSkipBtn.addEventListener('click', () => {
+  turnGotItBtn.disabled = true;
+  turnSkipBtn.disabled = true;
+  socket.emit('turn-skip', { code: currentRoomCode, phaseInstanceId: turnCurrentInstanceId });
+});
 
 socket.on('game-ended', ({ message, playerTemplate, playerShow } = {}) => {
   eliminatedBanner.hidden = true;

@@ -76,6 +76,14 @@ export const EVENT_SCHEMAS = {
     text: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'turn-got-it': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'turn-skip': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
   'advance-phase': {
     code: 'string:required',
     phaseInstanceId: 'number:optional'

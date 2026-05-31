@@ -717,3 +717,18 @@ button:disabled {
 #relay-submit-btn {
   background: var(--theme-success, #5cb85c);
 }
+
+/* --- Turn (charades / describe-it) --- */
+.turn-role-label { font-size: 1.4em; margin: 12px 0 8px; text-align: center; font-weight: bold; }
+.turn-role-label.role-describer { color: #D84315; }
+.turn-role-label.role-teammate  { color: #2E7D32; }
+.turn-role-label.role-audience  { color: #555; font-weight: normal; font-size: 1.1em; }
+.turn-instruction { text-align: center; color: #555; margin: 4px 0 12px; font-style: italic; }
+.turn-item { font-size: 1.8em; padding: 24px 16px; text-align: center; margin: 12px 0; background: #FFF59D; border: 3px solid #000; border-radius: 12px; font-weight: bold; min-height: 60px; word-wrap: break-word; }
+.turn-team-line { text-align: center; color: #666; margin: 8px 0 16px; }
+.turn-remaining { text-align: center; color: #999; font-size: 0.9em; margin-top: 12px; }
+#turn-controls { display: flex; gap: 12px; margin-top: 16px; }
+.turn-got-btn { flex: 2; background: var(--theme-success, #2E7D32); color: white; font-size: 1.3em; padding: 18px; border-radius: 12px; border: 3px solid #000; cursor: pointer; font-weight: bold; }
+.turn-got-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.turn-skip-btn { flex: 1; background: var(--theme-warn, #FB8C00); color: white; font-size: 1.1em; padding: 18px; border-radius: 12px; border: 3px solid #000; cursor: pointer; }
+.turn-skip-btn:disabled { opacity: 0.4; cursor: not-allowed; }
