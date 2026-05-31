@@ -1,5 +1,5 @@
 {
-  "name": "Quiplash",
+  "name": "Punchline Showdown",
   "description": "Funny prompts, head-to-head answers, class picks the funniest. Each pair shares a prompt; everyone else votes.",
   "phases": {
     "lobby": {
@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "QUIPLASH!\n\nYou'll be paired with one other player and given a silly prompt. Write the funniest answer you can. Then the rest of the class will vote on which one wins.",
+      "message": "PUNCHLINE SHOWDOWN!\n\nYou'll be paired with one other player and given a silly prompt. Write the funniest answer you can. Then the rest of the class will vote on which one wins.",
       "timer": 10,
       "next": "prompts"
     },
@@ -16,7 +16,7 @@
       "type": "ai-process",
       "task": "generate",
       "format": "json",
-      "instruction": "Generate 8 short, classroom-appropriate, open-ended comedy prompts in the style of Quiplash. Each prompt should invite a funny one-line answer. Examples: 'A better name for France:', 'The worst thing to find in your sandwich:', 'A class rule that would make everyone happier:'. Return ONLY a JSON array of 8 strings (no preamble, no code fences).",
+      "instruction": "Generate 8 short, classroom-appropriate, open-ended comedy prompts for a head-to-head punchline game. Each prompt should invite a funny one-line answer. Examples: 'A better name for France:', 'The worst thing to find in your sandwich:', 'A class rule that would make everyone happier:'. Return ONLY a JSON array of 8 strings (no preamble, no code fences).",
       "perPlayer": false,
       "next": "punchlines"
     },
@@ -44,7 +44,7 @@
     },
     "end": {
       "type": "end",
-      "message": "GG! Thanks for playing Quiplash."
+      "message": "GG! Thanks for playing Punchline Showdown."
     }
   },
   "playTime": "~10 min",

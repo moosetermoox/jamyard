@@ -1,11 +1,11 @@
 /**
  * Tests for the three Jackbox-style primitives:
- *   - collect.assign: "pairwise" + pairsFrom        (Quiplash distribution)
- *   - vote.matchupsFromPairs + excludeAuthors        (Quiplash voting)
- *   - collect-choice.choicePool + excludeAuthored    (Fibbage/Balderdash voting)
+ *   - collect.assign: "pairwise" + pairsFrom        (punchline-showdown distribution)
+ *   - vote.matchupsFromPairs + excludeAuthors        (punchline-showdown voting)
+ *   - collect-choice.choicePool + excludeAuthored    (trivia-bluff/definition-bluff voting)
  *
- * Validator-level checks live here. The full handler runtime is covered by the
- * game-flow simulators (scripts/simulate-quiplash.js etc.) — the heavy logic in
+ * Validator-level checks live here. The full handler runtime is covered by
+ * game-flow simulators in scripts/ — the heavy logic in
  * the handlers is also unit-testable but those tests would need a running
  * engine, so we cover the wiring + diagnostics here and rely on simulator runs
  * for end-to-end.

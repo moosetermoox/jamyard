@@ -268,7 +268,7 @@ export const PHASE_SCHEMAS = {
       excludeAuthored: {
         type: 'phaseRef', optional: true,
         label: 'Hide my own contribution',
-        helper: 'Optional. Names a prior collect step. For each player, the choice they wrote in that step is removed from their list (used for Fibbage-style bluffing).'
+        helper: 'Optional. Names a prior collect step. For each player, the choice they wrote in that step is removed from their list (used in bluffing games where you can\'t vote for your own lie).'
       },
       shuffle: {
         type: 'boolean', optional: true,
@@ -456,7 +456,7 @@ export const PHASE_SCHEMAS = {
       excludeAuthors: {
         type: 'boolean', optional: true,
         label: 'Authors do not vote on their own matchup',
-        helper: 'Per matchup, the two players who wrote the candidates are excluded from voting on it (used for Quiplash).'
+        helper: 'Per matchup, the two players who wrote the candidates are excluded from voting on it (used in head-to-head punchline games).'
       },
       question: {
         type: 'templateString', optional: true,

@@ -1,5 +1,5 @@
 {
-  "name": "Balderdash",
+  "name": "Definition Bluff",
   "description": "An obscure real word. Players invent plausible-sounding fake definitions. The class votes on which one is real — picking the truth scores, fooling others scores too.",
   "phases": {
     "lobby": {
@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "BALDERDASH!\n\nYou'll see a strange, obscure real word. Write a fake definition that sounds believable enough to fool the class. Then everyone votes on which definition is the real one.",
+      "message": "DEFINITION BLUFF!\n\nYou'll see a strange, obscure real word. Write a fake definition that sounds believable enough to fool the class. Then everyone votes on which definition is the real one.",
       "timer": 10,
       "next": "wordpick"
     },
@@ -16,7 +16,7 @@
       "type": "ai-process",
       "task": "generate",
       "format": "json",
-      "instruction": "Generate ONE obscure-but-real English dictionary word for a Balderdash-style game. Return ONLY a JSON object (no preamble) with these fields:\n  - word: a real but rarely-known English word (e.g. \"snickersnee\", \"borborygmus\", \"defenestrate\")\n  - truth: a one-sentence accurate dictionary-style definition\n  - houseLie: a one-sentence plausible-sounding fake definition the system can mix into the options\n\nThe word must actually exist (no made-up words). Keep definitions short (under 15 words each), school-appropriate, and similar in tone so the real one isn't obviously different.",
+      "instruction": "Generate ONE obscure-but-real English dictionary word for a bluffing-definitions game. Return ONLY a JSON object (no preamble) with these fields:\n  - word: a real but rarely-known English word (e.g. \"snickersnee\", \"borborygmus\", \"defenestrate\")\n  - truth: a one-sentence accurate dictionary-style definition\n  - houseLie: a one-sentence plausible-sounding fake definition the system can mix into the options\n\nThe word must actually exist (no made-up words). Keep definitions short (under 15 words each), school-appropriate, and similar in tone so the real one isn't obviously different.",
       "next": "show-word"
     },
     "show-word": {
@@ -52,7 +52,7 @@
     },
     "end": {
       "type": "end",
-      "message": "Thanks for playing Balderdash!"
+      "message": "Thanks for playing Definition Bluff!"
     }
   },
   "playTime": "~10 min",

@@ -1,5 +1,5 @@
 {
-  "name": "Fibbage",
+  "name": "Trivia Bluff",
   "description": "An obscure fact has a blank. Players write believable lies to fool the class. Everyone votes — picking the truth scores, fooling others scores too.",
   "phases": {
     "lobby": {
@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "FIBBAGE!\n\nYou'll see an obscure fact with a blank. Write a believable lie to fill it in. The class will then try to spot the truth — but your lie might fool them!",
+      "message": "TRIVIA BLUFF!\n\nYou'll see an obscure fact with a blank. Write a believable lie to fill it in. The class will then try to spot the truth — but your lie might fool them!",
       "timer": 10,
       "next": "trivia"
     },
@@ -16,7 +16,7 @@
       "type": "ai-process",
       "task": "generate",
       "format": "json",
-      "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a Fibbage-style bluffing game. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative the system can mix into the choices (e.g. \"chicken\")\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics.",
+      "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a fill-in-the-blank bluffing game. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative the system can mix into the choices (e.g. \"chicken\")\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics.",
       "next": "show-fact"
     },
     "show-fact": {
@@ -52,7 +52,7 @@
     },
     "end": {
       "type": "end",
-      "message": "Thanks for playing Fibbage!"
+      "message": "Thanks for playing Trivia Bluff!"
     }
   },
   "playTime": "~8 min",
