@@ -114,7 +114,7 @@ function teacherAreaGate(req, res, next) {
     const password = decoded.slice(decoded.indexOf(':') + 1);
     if (password === process.env.SITE_PASSWORD) return next();
   }
-  res.set('WWW-Authenticate', 'Basic realm="Classroom Games Teacher Area"');
+  res.set('WWW-Authenticate', 'Basic realm="Lanyard Teacher Area"');
   res.status(401).type('text/plain').send('Teacher area - password required.');
 }
 app.use(teacherAreaGate);

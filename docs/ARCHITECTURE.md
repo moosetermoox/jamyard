@@ -1,4 +1,4 @@
-# Classroom Games — Architecture Overview
+# Lanyard — Architecture Overview
 
 > A framework for teachers to assemble custom whole-class games by
 > wiring together pre-built phase blocks. The design goal is **as few

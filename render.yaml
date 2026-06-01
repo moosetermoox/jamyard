@@ -1,4 +1,4 @@
-# Render Blueprint for the Classroom Games server.
+# Render Blueprint for the Lanyard server.
 # https://render.com/docs/blueprint-spec
 #
 # This captures the deploy config in the repo. The existing dashboard-created
@@ -8,11 +8,11 @@
 # IMPORTANT: ANTHROPIC_API_KEY is intentionally NOT stored here (sync: false).
 # Without it the server boots in mock mode and the AI Generate / Ask AI features
 # are disabled. Set the value in the Render dashboard:
-#   Dashboard > classroom-games > Environment > Add Environment Variable
+#   Dashboard > lanyard > Environment > Add Environment Variable
 # then redeploy. Startup log should then read "[init] AI Service mode: real".
 services:
   - type: web
-    name: classroom-games
+    name: lanyard
     runtime: node
     plan: free
     branch: master

@@ -1,4 +1,4 @@
-# Classroom Games Framework
+# Lanyard Framework
 
 ## Project Intent
 Framework for quickly building classroom games where:
