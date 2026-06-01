@@ -899,25 +899,7 @@ const disconnectTimers = new Map();
 // --- Express Routes ---
 
 app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>Classroom Games</title>
-      <style>
-        body { font-family: sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
-        a { display: block; margin: 20px 0; font-size: 1.5em; }
-      </style>
-    </head>
-    <body>
-      <h1>Classroom Games</h1>
-      <a href="/host">Host Screen</a>
-      <a href="/player">Player Screen</a>
-      <a href="/designer">Game Designer</a>
-      <a href="/prototype">Prototype Mode</a>
-    </body>
-    </html>
-  `);
+  res.sendFile('index.html', { root: join(__dirname, 'screens', 'home') });
 });
 
 app.use('/host', express.static(join(__dirname, 'screens/host')));
