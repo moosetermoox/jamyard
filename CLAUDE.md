@@ -46,10 +46,11 @@ Framework for quickly building classroom games where:
 - **Player reconnection** — 30s grace period, auto-rejoin on socket reconnect, state restoration
 - **Phase transitions** — smooth CSS fade transitions between game phases
 - **Editor validation** — client-side + server-side config validation with friendly error messages
-- **Test Game button** — saves dirty config then opens `/prototype?game={id}` (pre-selects game, user picks player count)
+- **Prototype Mode button** — saves dirty config then opens `/prototype?game={id}` (pre-selects game, user picks player count)
 - **Prototype mode** — `/prototype` embeds host + player iframes side-by-side for quick playtesting
 - **Dynamic AI messages** — processing screen shows task-specific text ("summarizing...", "comparing...") instead of hardcoded "creating your poem"
 - Server runs on port 3000 (`npm start`)
+- Home screen at / (redesigned — two primary cards + student room-code join)
 - Host screen at /host, Player screen at /player
 - Game editor at /designer, editor at /designer/edit
 - Prototype mode at /prototype
@@ -70,7 +71,16 @@ Framework for quickly building classroom games where:
 - **Phase images** — `image` field on announce/reveal/collect/collect-choice. Uploads land in `games/<id>/assets/`. Editor has a drag-and-drop widget. Host/player visibility controlled by `hostShow`/`playerShow` toggles.
 - **Auto-save + click-outside-collapse** — editor flushes changes to disk when the user clicks off a phase or switches to another; no more scrolling to the Save button.
 - **Designer-vibe default theme** — host + player auto-apply the pop-art preset on load. Arial Black font, 3px black borders, warm cream canvas — matches the editor.
-- **427 tests passing** (`npm test`)
+- **Turn phase** — charades/describe-it gameplay with server-authoritative timer, team rotation (Got It / Skip), pool drawn from prior collect step. Powers Charades Bowl.
+- **Bluffing primitives** — `collect.assign:"pairwise"`, `vote.matchupsFromPairs`/`excludeAuthors`, `collect-choice.choicePool`/`excludeAuthored`/`shuffle` unlock Jackbox-style bluffing games as plain config.
+- **Speed-bonus scoring** — `collect-choice` with `correctAnswer` + `speedBonus` grades responses at close time with Kahoot-style time-decay points (`engine/speed-scoring.js`).
+- **Neon Postgres persistence** — user-created games stored in `user_games` DB table (`db.js`); survives Render redeploys. Built-in games stay on filesystem. `DATABASE_URL` env var enables; falls back to filesystem when unset (local dev unchanged).
+- **Password gate** — set `SITE_PASSWORD` env var to require HTTP Basic Auth on teacher surfaces (/host, /designer, /prototype). Student paths stay open.
+- **YouTube video embed** — `video:` field on announce/reveal/collect/collect-choice. Host-only; `engine/video.js` parses watch/youtu.be/embed/shorts URLs.
+- **Content safety pipeline** — `engine/content-filter.js` (blocklist + mash detection) gates `submit-response`; AI system prompts include safety rules block; host moderation panel (hide/kick) on collect phases.
+- **Editor UX** — H/P/AI role dots removed; form labels sentence-case; inputs softer 2px border with focus transition; more whitespace; section bands cleaned up; primary textarea auto-expands; "+ Insert from earlier step" hidden when no upstream refs exist; inserted {{tokens}} show as deletable chips in preview row.
+- **Button renames** — "Check My Game" → "Check for Errors"; "Test Game" → "Prototype Mode".
+- **509 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-corn-story.js`, `simulate-new-phases.js`, `simulate-dream-vacation.js`, `simulate-who-said-it.js`, `simulate-excuse-machine.js`
 
 ### Working Games
@@ -103,6 +113,13 @@ Framework for quickly building classroom games where:
 12. **Class Critique** (games/class-critique/) — announce → rate → announce → end
    - First rate-phase game: class scores a presentation on Originality / Feasibility / Effectiveness (1-5 each)
    - Results visualized as averages bar chart + per-scale pie charts
+13. **Charades Bowl** (games/charades-bowl/) — 3× collect (one phrase each) → team-split → 3× turn rounds → leaderboard
+   - First turn-phase game: Fishbowl-style with Describe / Act it out / One word rounds
+   - Cumulative leaderboard sums teamScores across all three rounds
+14. **Quiplash-style** (games/quiplash/) — pairwise collect + H2H vote; first bluffing-primitive game
+15. **Fibbage/Balderdash** (games/fibbage, games/definition-bluff) — trivia bluffing with choicePool truth injection
+16. **Yes-or-No Bets** (games/yes-or-no-bets/) — class answers yes/no then bets on each classmate
+17. **Speed Quiz** (games/speed-quiz/) — collect-choice with correctAnswer + speedBonus scoring
 
 ### Engine Primitives (All Implemented)
 1. Player state tracking (remaining vs eliminated) — PlayerRegistry
@@ -122,19 +139,19 @@ Framework for quickly building classroom games where:
 - **AI mixed format:** AI sometimes returns `[playerId, responseText]` in same array. Hook deduplicates within groups — only eliminates if 2+ unique players resolve.
 - **bottom-percent input field:** Eliminate phase reads scores from `phase.input` or `phase.from` (config uses `input`).
 
-### 20 Phase Types Defined
+### 21 Phase Types Defined
 1. `lobby` — Wait for players to join
-2. `collect` — Gather text responses from players
-3. `ai-process` — Send data to AI for processing
-4. `vote` — Head-to-head or pick-one voting
+2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains) and `assign:"pairwise"` (bluffing)
+3. `ai-process` — Send data to AI for processing; `perPlayer:true` generates one item per student
+4. `vote` — Head-to-head or pick-one voting; `matchupsFromPairs`/`excludeAuthors` for bluffing
 5. `eliminate` — Remove players by percent or hook
 6. `reveal` — Display content to all players
 7. `preview` — Teacher-only preview before reveal
 8. `winner` — Declare winner and show standings
-9. `announce` — Display a message to everyone (round intros, instructions)
-10. `collect-choice` — Players pick from predefined choices
+9. `announce` — Display a message to everyone (round intros, instructions); `video:` field for YouTube embed (host-only)
+10. `collect-choice` — Players pick from predefined choices; `correctAnswer`+`speedBonus` for Kahoot-style scoring; `choicePool`/`excludeAuthored`/`shuffle` for bluffing
 11. `ai-eliminate` — AI judges answers and eliminates rule-breakers
-12. `leaderboard` — Show scores and rankings with personal highlight
+12. `leaderboard` — Show scores and rankings with personal highlight; `from` accepts array of refs to sum across rounds
 13. `reveal-one` — Host reveals items one-by-one (countdown style)
 14. `team-split` — Divide players into teams (random or balanced)
 15. `rank` — Players reorder a list by preference, aggregated by average position
@@ -142,7 +159,8 @@ Framework for quickly building classroom games where:
 17. `relay` — Turn-by-turn collaborative input (storytelling, word chains)
 18. `foreach` — Iterate over dynamic data running sub-phases per item (guessing games, review rounds)
 19. `rate` — Class scores a target on N custom 1-N scales; results render as averages bar + distribution pies; visibility=all|host-only
-20. `end` — Game over, clean up
+20. `turn` — Charades/describe-it; server-authoritative per-turn timer, team rotation, Got It/Skip pool management; outputs `teamScores`+`capturedBy`
+21. `end` — Game over, clean up
 
 ### 6 AI Task Types Defined
 - `summarize` — Combine responses into insight (Haiku)
@@ -157,24 +175,28 @@ Framework for quickly building classroom games where:
 - **Timers** — Config `timer` field (seconds) on collect and vote phases. Countdown displayed on both host and player screens. On expiry: player auto-submits current text (collect) or random vote (vote); host auto-clicks Close Submissions/Voting. Warning styling at ≤5 seconds.
 - **Loop/round system** — Any phase can have `loopBack` (phase ID) and `loopCount` (2-100) to repeat a section of the game. After N iterations, falls through to `next`. Template variables: `{{_loop.<phaseId>.iteration}}` and `{{_loop.<phaseId>.total}}`. Phase data is versioned: bare key has latest, `phaseId~N` has per-iteration copies. Editor shows purple left border + "xN" badge on looped phases.
 - **Screen control** — `hostTemplate` / `playerTemplate` for custom content per screen (resolved via `resolveTemplate()`). `hostShow` / `playerShow` arrays toggle built-in UI elements (e.g. `["content", "continueButton"]`). If omitted, all defaults shown (backward compat). Empty array `[]` hides all built-in elements. Valid toggles per phase type defined in `VALID_HOST_TOGGLES` / `VALID_PLAYER_TOGGLES`. Editor shows "Screen Control (Optional)" section with template textareas + toggle checkboxes.
-- **Game editor** — Teacher-friendly UI redesign. Phase blocks show icons + friendly names ("Ask Players", "AI Does Something") instead of technical IDs. Right sidebar groups fields into sections with helper text. Data reference dropdowns replace raw text fields. Phase type picker modal for adding new steps. AI lane (purple) shows on ai-process phases. H/P/AI role dots on canvas blocks. All config.json internals unchanged — purely a presentation layer. Editor files: `screens/designer/editor.js`, `editor.css`, `editor.html`.
+- **Game editor** — Teacher-friendly UI. Phase blocks show icons + friendly names ("Ask Players", "AI Does Something") instead of technical IDs. Color-coded section bands (blue=host, green=player, purple=AI) in settings. Data reference dropdowns replace raw text fields. Phase type picker modal for adding new steps. All config.json internals unchanged — purely a presentation layer. Editor files: `screens/designer/editor.js`, `editor.css`, `editor.html`.
 - **Foreach phase** — Orchestrator phase that iterates over dynamic data running sub-phases per item. Virtual sub-phases with `_fe:` prefix injected at runtime. Supports: auto-candidate generation (`candidateSource: "players"`, `decoyCount`), two scoring modes (`correct` for guessing games, `tally` for rating games), self-exclusion (author auto-skipped on collect-choice sub-phases), template variables (`_current`, `_foreach`, `_candidates`). Data refs: `.scores`, `.itemCount`. **Pair mode** (`pairMode: "human-vs-ai"`) — pairs each human response with an AI-injected response for side-by-side comparison. Each iteration exposes `_current.a`, `_current.b` (randomly assigned), and `_current.aiPosition`/`_current.humanPosition` for scoring.
 - **AI game generation** — Describe a game in plain English and Sonnet generates a complete config. Accessible via "AI Generate Game" button in designer or `POST /api/games/generate`. Prompt documents all 19 phase types including foreach scoring modes.
 
 ### AI Game Review (Implemented)
 - **Light review (Haiku)** — runs automatically after save, flags vague AI instructions, data flow breaks, player eligibility issues
-- **Deep review (Sonnet)** — triggered by "Check My Game" button, comprehensive review of playability, prompt quality, timing, engagement
+- **Deep review (Sonnet)** — triggered by "Check for Errors" button, comprehensive review of playability, prompt quality, timing, engagement
 - **Review panel** — conversational summary + per-phase issues, clickable phase links to navigate canvas
 - **Inline phase badges** — warning dots on phase boxes with issue count, AI suggestions section in sidebar
 - **API endpoint** — `POST /api/games/review` with `{ config, depth }`, merges structural validation + AI review
 - **Model selection** — `MODELS.haiku` for light checks, `MODELS.sonnet` for deep reviews
 - **Mock mode** — returns plausible issues (empty instructions, missing timers) for testing without API key
 
-### Safety Features Designed (Not Yet Implemented)
-- Content filtering (profanity, slurs, PII detection)
-- Moderation controls (hide responses, kick players)
+### Safety Features (Implemented)
+- **Content filtering** — `engine/content-filter.js` + `engine/blocklist.js`; word-boundary match with leet-speak normalization; rejects on `submit-response` with player-facing notice
+- **Host moderation** — `engine/moderation.js`; live submission list on collect phases; Hide (reversible, excluded from AI) and Kick (blocked rejoin via `kickedTokens`)
+- **AI safety rules** — `SAFETY_RULES` block appended to every game-run system prompt
+
+### Safety Features (Not Yet Implemented)
 - Anonymous mode option
-- Rate limiting and input validation
+- Rate limiting / DoS limits
+- PII redaction
 
 ### Editor Validation (Implemented)
 - Server-side: phase type validation, required fields per type, enum values, timer range, data ref existence, `returnResults` mode
@@ -204,14 +226,27 @@ Framework for quickly building classroom games where:
 - **AUTHORING-DESIGN.md** — Config style guide, validation, debug mode
 - **CORN-STORY-FEASIBILITY.md** — Implementation analysis and build order
 
+### Engine Modules (additions)
+- `db.js` — Neon Postgres connection + CRUD for `user_games` table; `DB_ENABLED = !!process.env.DATABASE_URL`
+- `engine/speed-scoring.js` — Kahoot-style time-decay point formula (pure function)
+- `engine/content-filter.js` + `engine/blocklist.js` — input safety pipeline
+- `engine/moderation.js` — hide/kick helpers
+- `engine/video.js` — YouTube URL → embed URL parser
+- `engine/phase-schemas.js` — declarative schema for all 21 phase types (single source of truth for validator + AI prompts + editor field lists)
+- `engine/resolver-grammar.js` — single source of truth for `{{...}}` syntax
+- `engine/recipe-*.js` — recipe layer (R1-R6 complete); `recipes/` has 8 built-ins + `recipes/user/` for saved ones
+
 ### Environment
 - Uses dotenv, set ANTHROPIC_API_KEY in .env for real AI
 - Without API key, runs in mock mode (no real AI calls)
+- Set DATABASE_URL (Neon connection string) for persistent user-game storage; without it, falls back to filesystem
+- Set SITE_PASSWORD to require HTTP Basic Auth on teacher surfaces
 - Express 5.x (path matching is stricter than Express 4)
 - Haiku for simple tasks, Sonnet for complex judgment
+- Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 260 Vitest tests
+- `npm test` — runs all 509 Vitest tests (~1s)
 - `node scripts/simulate-corn-story.js` — automated full-game playthrough (requires server running)
 
 ## Refinement Log
