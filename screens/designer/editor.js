@@ -15,7 +15,7 @@ var previewVisible = false;
 // Unified catalog: friendly names, icons, descriptions, colors, screen info
 var PHASE_CATALOG = {
   'lobby': {
-    icon: '\u231B',
+    icon: '',
     friendlyName: 'Waiting Room',
     description: 'Players join and wait for the teacher to start',
     color: '#0057FF',
@@ -26,7 +26,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'collect': {
-    icon: '\u270D\uFE0F',
+    icon: '',
     friendlyName: 'Ask Players',
     description: 'Players type and submit a text response',
     color: '#00C853',
@@ -37,7 +37,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'ai-process': {
-    icon: '\u2728',
+    icon: '',
     friendlyName: 'AI Does Something',
     description: 'AI reads player answers and creates a result',
     color: '#AA00FF',
@@ -48,7 +48,7 @@ var PHASE_CATALOG = {
     ai: 'Reads input data, runs the chosen task, returns a result'
   },
   'vote': {
-    icon: '\u2611\uFE0F',
+    icon: '',
     friendlyName: 'Players Vote',
     description: 'Players vote on choices (pick-one or head-to-head)',
     color: '#FF6D00',
@@ -59,7 +59,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'eliminate': {
-    icon: '\u274C',
+    icon: '',
     friendlyName: 'Eliminate Players',
     description: 'Remove a percentage of players based on scores',
     color: '#FF2D2D',
@@ -70,7 +70,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'reveal': {
-    icon: '\uD83D\uDCE2',
+    icon: '',
     friendlyName: 'Show Everyone',
     description: 'Display content to both host and players',
     color: '#0057FF',
@@ -81,7 +81,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'preview': {
-    icon: '\uD83D\uDC41\uFE0F',
+    icon: '',
     friendlyName: 'Teacher Reviews',
     description: 'Teacher sees content and can approve or reject',
     color: '#FFD600',
@@ -92,7 +92,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'winner': {
-    icon: '\uD83C\uDFC6',
+    icon: '',
     friendlyName: 'Crown a Winner',
     description: 'Declare the winner based on scores',
     color: '#FF6D00',
@@ -103,7 +103,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'announce': {
-    icon: '\uD83D\uDCE3',
+    icon: '',
     friendlyName: 'Show a Message',
     description: 'Display a message to everyone (round intros, instructions)',
     color: '#0057FF',
@@ -114,7 +114,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'collect-choice': {
-    icon: '\uD83D\uDCCB',
+    icon: '',
     friendlyName: 'Multiple Choice',
     description: 'Players pick from predefined choices',
     color: '#00C853',
@@ -125,7 +125,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'ai-eliminate': {
-    icon: '\uD83E\uDD16\u274C',
+    icon: '',
     friendlyName: 'AI Eliminates',
     description: 'AI judges answers and eliminates rule-breakers',
     color: '#FF2D2D',
@@ -136,7 +136,7 @@ var PHASE_CATALOG = {
     ai: 'Reads answers, applies rules, decides who to eliminate'
   },
   'leaderboard': {
-    icon: '\uD83D\uDCCA',
+    icon: '',
     friendlyName: 'Leaderboard',
     description: 'Show scores and rankings to everyone',
     color: '#FFD600',
@@ -147,7 +147,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'reveal-one': {
-    icon: '\uD83C\uDFAD',
+    icon: '',
     friendlyName: 'Reveal One-by-One',
     description: 'Host reveals items incrementally (countdown style)',
     color: '#FF4081',
@@ -158,7 +158,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'team-split': {
-    icon: '\uD83D\uDC65',
+    icon: '',
     friendlyName: 'Split Into Teams',
     description: 'Divide players into teams (random or balanced by score)',
     color: '#00BCD4',
@@ -169,7 +169,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'rank': {
-    icon: '\uD83D\uDCCA',
+    icon: '',
     friendlyName: 'Rank Items',
     description: 'Players reorder a list by preference or criteria',
     color: '#7C4DFF',
@@ -180,7 +180,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'rate': {
-    icon: '\uD83D\uDCCF',
+    icon: '',
     friendlyName: 'Rate on Scales',
     description: 'Class rates something (a presentation, idea, pitch) on one or more custom scales',
     color: '#1DE9B6',
@@ -191,7 +191,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'wager': {
-    icon: '\uD83D\uDCB0',
+    icon: '',
     friendlyName: 'Place Wagers',
     description: 'Players bet points on an outcome',
     color: '#FF6D00',
@@ -202,7 +202,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'relay': {
-    icon: '\uD83D\uDD17',
+    icon: '',
     friendlyName: 'Relay (Take Turns)',
     description: 'Players take turns adding to a growing shared result',
     color: '#009688',
@@ -213,7 +213,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'turn': {
-    icon: '\uD83C\uDFAD',
+    icon: '',
     friendlyName: 'Describe & Guess',
     description: 'Charades-style turn: one describer per team, shared timer, item pool drains',
     color: '#D84315',
@@ -224,7 +224,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'foreach': {
-    icon: '\uD83D\uDD01',
+    icon: '',
     friendlyName: 'Go Through Answers',
     description: 'Show each player\'s answer one at a time — guess, rate, or discuss',
     color: '#6A1B9A',
@@ -235,7 +235,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'end': {
-    icon: '\uD83C\uDFC1',
+    icon: '',
     friendlyName: 'Game Over',
     description: 'End the game and show a final message',
     color: '#555',
@@ -5291,7 +5291,7 @@ function renderSarCandidatesView(modal, candidates, overlay) {
 
   var title = document.createElement('h2');
   title.className = 'sar-title';
-  title.textContent = '⭐ Save as Recipe';
+  title.textContent = 'Save as Recipe';
   modal.appendChild(title);
 
   var subtitle = document.createElement('p');

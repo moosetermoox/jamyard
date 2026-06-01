@@ -541,6 +541,9 @@ body {
   font-size: 1.3rem;
   line-height: 1;
 }
+.phase-box-icon:empty {
+  display: none;
+}
 
 .phase-box-name {
   font-weight: 900;

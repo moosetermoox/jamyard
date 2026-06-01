@@ -676,7 +676,7 @@ socket.on('leaderboard', ({ standings, allStandings, style, timer, playerTemplat
   for (var i = 0; i < list.length; i++) {
     var p = document.createElement('p');
     var r = list[i].rank;
-    var prefix = (r === 1 ? '\u{1F947} ' : r === 2 ? '\u{1F948} ' : r === 3 ? '\u{1F949} ' : r + '. ');
+    var prefix = r + '. ';
     p.textContent = prefix + list[i].name + ' \u2014 ' + list[i].score + ' points';
     if (list[i].playerId === socket.id) {
       p.className = 'leaderboard-highlight';

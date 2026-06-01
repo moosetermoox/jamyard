@@ -665,8 +665,7 @@ socket.on('leaderboard', ({ standings, style, timer, hostTemplate, show }) => {
     const p = document.createElement('p');
     // Medal based on rank, not array index, so tied players share medals
     // (e.g. two players tied for 1st both get gold; no silver awarded).
-    const medal = s.rank === 1 ? '\uD83E\uDD47 ' : s.rank === 2 ? '\uD83E\uDD48 ' : s.rank === 3 ? '\uD83E\uDD49 ' : '';
-    p.textContent = medal + '#' + s.rank + ' ' + s.name + ' \u2014 ' + s.score + ' pts';
+    p.textContent = '#' + s.rank + ' ' + s.name + ' \u2014 ' + s.score + ' pts';
     leaderboardStandings.appendChild(p);
   }
 
