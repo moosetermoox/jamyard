@@ -265,8 +265,7 @@ body {
   border: 2px solid #000;
   border-radius: 8px;
   background: #FFFDE7;
-  resize: vertical;
-  min-height: 36px;
+  resize: none;
   box-sizing: border-box;
 }
 .phase-box-primary-input:focus {
@@ -304,16 +303,34 @@ body {
   margin-right: 4px;
 }
 .primary-token-chip {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   background: #FFF59D;
   border: 1.5px solid #F57F17;
   color: #5D4037;
-  padding: 1px 7px;
+  padding: 1px 4px 1px 7px;
   border-radius: 6px;
   font-size: 12px;
   font-weight: 600;
   margin: 0 1px;
   white-space: nowrap;
+}
+.primary-token-chip-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #8D4A00;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  padding: 0 2px;
+  font-family: inherit;
+  opacity: 0.6;
+}
+.primary-token-chip-delete:hover {
+  opacity: 1;
+  color: #B71C1C;
 }
 
 /* "+ Insert from earlier step" button — appears beneath the primary textarea
@@ -441,26 +458,26 @@ body {
    border separates the box's summary (icon/name/dots) from the config
    form below. */
 .phase-box-inline-form {
-  margin-top: 14px;
-  padding-top: 16px;
-  border-top: 3px solid #000;
+  margin-top: 16px;
+  padding-top: 18px;
+  border-top: 1px solid #ddd;
   text-align: left;
   cursor: default;
 }
 
-/* Form groups need to stretch wider in the expanded box */
+/* Form groups inside the expanded phase box */
 .phase-box-inline-form .form-group {
-  margin-bottom: 14px;
+  margin-bottom: 20px;
 }
 
 .phase-box-inline-form .form-group label {
   display: block;
   font-size: 0.85rem;
-  font-weight: 900;
-  color: #333;
-  margin-bottom: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+  font-weight: 700;
+  color: #222;
+  margin-bottom: 6px;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .phase-box-inline-form .form-group input,
@@ -468,12 +485,20 @@ body {
 .phase-box-inline-form .form-group select {
   width: 100%;
   padding: 8px 10px;
-  border: 3px solid #000;
+  border: 2px solid #bbb;
   border-radius: 10px;
   font-size: 0.9rem;
   font-family: Arial, sans-serif;
   background: white;
   box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.phase-box-inline-form .form-group input:focus,
+.phase-box-inline-form .form-group textarea:focus,
+.phase-box-inline-form .form-group select:focus {
+  outline: none;
+  border-color: #0057FF;
 }
 
 /* The "Done editing" button at the bottom of the inline form */
@@ -525,10 +550,10 @@ body {
 }
 
 .phase-box-desc {
-  font-size: 0.7rem;
-  color: #777;
-  margin-top: 2px;
-  line-height: 1.3;
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 3px;
+  line-height: 1.35;
   font-family: Arial, sans-serif;
   font-weight: normal;
 }
@@ -553,36 +578,10 @@ body {
   font-weight: normal;
 }
 
-/* Role indicator dots */
+/* Role indicator dots — hidden; the color-coded section bands in the
+   settings form communicate roles more clearly than tiny H/P/AI badges. */
 .phase-box-dots {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.role-dot {
-  font-size: 0.65rem;
-  font-weight: 900;
-  padding: 1px 6px;
-  border-radius: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  border: 2px solid #000;
-}
-
-.role-host {
-  background: #BBDEFB;
-  color: #000;
-}
-
-.role-player {
-  background: #C8E6C9;
-  color: #000;
-}
-
-.role-ai {
-  background: #E1BEE7;
-  color: #000;
+  display: none;
 }
 
 /* Drag and drop */
@@ -655,36 +654,38 @@ body {
 
 /* ---- Section headers ---- */
 .config-section-header {
-  font-size: 0.75rem;
-  font-weight: 900;
+  font-size: 0.78rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 1.2px;
+  letter-spacing: 0.6px;
   color: #555;
-  margin-top: 18px;
-  margin-bottom: 10px;
-  padding-top: 14px;
-  border-top: 2px solid #000;
+  margin-top: 24px;
+  margin-bottom: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #ddd;
 }
 
-/* Role-coded section bands — match the H/P/AI badges at the top of the card */
+/* Role-coded section bands — color communicates which surface is affected */
 .config-section-header.role-section-host,
 .config-section-header.role-section-player,
 .config-section-header.role-section-ai,
 .config-section-header.role-section-both,
 .config-section-header.role-section-flow {
   border-top: none;
-  padding: 8px 12px;
-  margin-top: 18px;
-  margin-bottom: 10px;
+  padding: 9px 14px;
+  margin-top: 24px;
+  margin-bottom: 12px;
   color: #000;
-  border-radius: 4px;
-  border: 2px solid #000;
+  border-radius: 6px;
+  border: 2px solid rgba(0,0,0,0.15);
+  font-size: 0.78rem;
+  letter-spacing: 0.6px;
 }
-.config-section-header.role-section-host { background: #BBDEFB; }
-.config-section-header.role-section-player { background: #C8E6C9; }
-.config-section-header.role-section-ai { background: #E1BEE7; }
-.config-section-header.role-section-both { background: #FFF59D; }
-.config-section-header.role-section-flow { background: #ECEFF1; }
+.config-section-header.role-section-host   { background: #DBEAFE; }
+.config-section-header.role-section-player { background: #DCFCE7; }
+.config-section-header.role-section-ai     { background: #F3E8FF; }
+.config-section-header.role-section-both   { background: #FEF9C3; }
+.config-section-header.role-section-flow   { background: #F1F5F9; }
 
 /* Collapsible optional sections — click header to toggle */
 .collapsible-section {
@@ -701,8 +702,8 @@ body {
   filter: brightness(0.95);
 }
 .collapsible-arrow {
-  font-size: 0.8em;
-  opacity: 0.7;
+  font-size: 0.9em;
+  opacity: 1;
 }
 .collapsible-content {
   /* padding sits inside so the header border doesn't contain empty space when collapsed */
@@ -777,10 +778,10 @@ body {
 /* ---- Field help text ---- */
 .field-help {
   display: block;
-  font-size: 0.75rem;
-  color: #888;
-  margin-top: 3px;
-  line-height: 1.3;
+  font-size: 0.78rem;
+  color: #666;
+  margin-top: 5px;
+  line-height: 1.4;
   font-family: Arial, sans-serif;
   font-weight: normal;
 }

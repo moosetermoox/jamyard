@@ -937,29 +937,63 @@ function escapeHtmlForPreview(s) {
  *   "{{trivia.result.truth}}"     -> [🤖 AI Does Something / truth]
  *   "Hi {{prompts.assigned}}"     -> "Hi [👤 AI Does Something — assigned item]"
  */
-function humanizePreview(text) {
-  if (!text) return '';
-  var escaped = escapeHtmlForPreview(text);
-  return escaped.replace(/\{\{\s*([a-zA-Z0-9_\-]+(?:\.[a-zA-Z0-9_\-]+)*)\s*\}\}/g, function (_match, ref) {
-    var parts = ref.split('.');
-    var phaseId = parts[0];
-    var label = (gameConfig.phases && gameConfig.phases[phaseId])
-      ? phaseContentLabel(phaseId)
-      : phaseId;
-    var suffix = parts.length > 1 ? parts[parts.length - 1] : null;
-    var meta = suffix ? PRIMARY_TOKEN_SUFFIXES[suffix] : null;
+// Build a deletable chip DOM node for one {{token}} in the preview row.
+function buildTokenChip(fullToken, ref, input) {
+  var parts = ref.split('.');
+  var phaseId = parts[0];
+  var label = (gameConfig.phases && gameConfig.phases[phaseId])
+    ? phaseContentLabel(phaseId) : phaseId;
+  var suffix = parts.length > 1 ? parts[parts.length - 1] : null;
+  var meta = suffix ? PRIMARY_TOKEN_SUFFIXES[suffix] : null;
+  var chipText;
+  if (meta) {
+    chipText = meta.icon + ' ' + meta.text + ' from ' + label;
+  } else if (parts.length > 1) {
+    chipText = parts.slice(1).join(' / ') + ' from ' + label;
+  } else {
+    chipText = label;
+  }
+  var chip = document.createElement('span');
+  chip.className = 'primary-token-chip';
+  chip.appendChild(document.createTextNode(chipText));
+  var del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'primary-token-chip-delete';
+  del.setAttribute('aria-label', 'Remove');
+  del.textContent = '×';
+  del.addEventListener('click', function (e) {
+    e.stopPropagation();
+    input.value = input.value.replace(fullToken, '');
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  chip.appendChild(del);
+  return chip;
+}
 
-    var inner;
-    if (meta) {
-      inner = meta.icon + ' ' + escapeHtmlForPreview(meta.text) + ' from ' + escapeHtmlForPreview(label);
-    } else if (parts.length > 1) {
-      var rest = parts.slice(1).join(' / ');
-      inner = escapeHtmlForPreview(rest) + ' from ' + escapeHtmlForPreview(label);
-    } else {
-      inner = escapeHtmlForPreview(label);
+// Rebuild the preview row as DOM nodes so chips are deletable.
+function refreshTokenPreview(preview, input) {
+  preview.innerHTML = '';
+  var text = input.value;
+  var tokenRe = /\{\{\s*([a-zA-Z0-9_\-]+(?:\.[a-zA-Z0-9_\-]+)*)\s*\}\}/g;
+  if (!tokenRe.test(text)) { preview.style.display = 'none'; return; }
+  preview.style.display = '';
+  var lbl = document.createElement('span');
+  lbl.className = 'primary-preview-label';
+  lbl.textContent = 'Will show: ';
+  preview.appendChild(lbl);
+  tokenRe.lastIndex = 0;
+  var lastIdx = 0;
+  var match;
+  while ((match = tokenRe.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      preview.appendChild(document.createTextNode(text.slice(lastIdx, match.index)));
     }
-    return '<span class="primary-token-chip">' + inner + '</span>';
-  }).replace(/\n/g, '<br>');
+    preview.appendChild(buildTokenChip(match[0], match[1], input));
+    lastIdx = match.index + match[0].length;
+  }
+  if (lastIdx < text.length) {
+    preview.appendChild(document.createTextNode(text.slice(lastIdx)));
+  }
 }
 
 /**
@@ -1121,47 +1155,63 @@ function appendPrimaryField(box, phase, phaseId) {
     input.className = 'phase-box-primary-input';
     input.placeholder = prim.placeholder || '';
     input.value = phase[prim.key] || '';
-    if (prim.type === 'textarea') input.rows = 2;
+
+    // Auto-resize: grows to fit content, capped at 1/3 viewport height.
+    var autoResize = null;
+    if (prim.type === 'textarea') {
+      input.style.overflowY = 'auto';
+      autoResize = function () {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, Math.floor(window.innerHeight / 3)) + 'px';
+      };
+      setTimeout(autoResize, 0);
+    }
+
     // Don't select the box when interacting with the input
     input.addEventListener('click', function (e) { e.stopPropagation(); });
     input.addEventListener('mousedown', function (e) { e.stopPropagation(); });
 
-    // Live preview row — only visible when {{tokens}} are present
+    // Live preview row with deletable {{token}} chips
     var preview = document.createElement('div');
     preview.className = 'phase-box-primary-preview';
     preview.style.display = 'none';
-    function refreshPreview() {
-      if (/\{\{[^}]+\}\}/.test(input.value)) {
-        preview.innerHTML = '<span class="primary-preview-label">Will show: </span>' + humanizePreview(input.value);
-        preview.style.display = '';
-      } else {
-        preview.style.display = 'none';
-      }
-    }
-    refreshPreview();
+    refreshTokenPreview(preview, input);
+
     input.addEventListener('input', function () {
       isDirty = true;
       phase[prim.key] = input.value;
-      refreshPreview();
+      refreshTokenPreview(preview, input);
+      if (autoResize) autoResize();
     });
 
     wrap.appendChild(preview);
     wrap.appendChild(input);
 
-    // "+ Insert" picker — appears for textareas only, lets the teacher add
-    // references to earlier steps without typing template syntax.
-    var insertRow = document.createElement('div');
-    insertRow.className = 'primary-insert-row';
-    var insertBtn = document.createElement('button');
-    insertBtn.type = 'button';
-    insertBtn.className = 'primary-insert-btn';
-    insertBtn.textContent = '+ Insert from earlier step';
-    insertBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      openInsertMenu(input, phaseId, insertBtn);
-    });
-    insertRow.appendChild(insertBtn);
-    wrap.appendChild(insertRow);
+    // "+ Insert from earlier step" — only shown when at least one upstream
+    // phase actually has something insertable.
+    if (prim.type === 'textarea') {
+      var order = buildPhaseOrder();
+      var phaseIdx = order.indexOf(phaseId);
+      var upstream = phaseIdx > 0 ? order.slice(0, phaseIdx) : [];
+      var hasInsertable = upstream.some(function (sid) {
+        var s = gameConfig.phases[sid];
+        return s && getInsertableRefs(sid, s).length > 0;
+      });
+      if (hasInsertable) {
+        var insertRow = document.createElement('div');
+        insertRow.className = 'primary-insert-row';
+        var insertBtn = document.createElement('button');
+        insertBtn.type = 'button';
+        insertBtn.className = 'primary-insert-btn';
+        insertBtn.textContent = '+ Insert from earlier step';
+        insertBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          openInsertMenu(input, phaseId, insertBtn);
+        });
+        insertRow.appendChild(insertBtn);
+        wrap.appendChild(insertRow);
+      }
+    }
   } else if (prim.type === 'summary') {
     var summary = document.createElement('div');
     summary.className = 'phase-box-primary-summary';
@@ -4469,7 +4519,7 @@ async function runDeepReview() {
     alert('Review failed: ' + error.message);
   } finally {
     reviewBtn.disabled = false;
-    reviewBtn.textContent = 'Check My Game';
+    reviewBtn.textContent = 'Check for Errors';
   }
 }
 
