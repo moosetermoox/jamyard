@@ -530,7 +530,7 @@ function handleThemeChange() {
 async function generateCustomTheme() {
   var desc = customThemeDesc.value.trim();
   if (!desc) {
-    alert('Please describe your theme first.');
+    showToast('Please describe your theme first.');
     return;
   }
 
@@ -546,7 +546,7 @@ async function generateCustomTheme() {
 
     if (!response.ok) {
       var err = await response.json();
-      alert('Failed: ' + (err.error || 'Unknown error'));
+      showToast('Failed: ' + (err.error || 'Unknown error'));
       return;
     }
 
@@ -555,7 +555,7 @@ async function generateCustomTheme() {
     gameConfig.theme = { name: 'custom', description: desc, colors: result.colors };
     renderThemeSwatches(gameConfig.theme);
   } catch (error) {
-    alert('Failed: ' + error.message);
+    showToast('Failed: ' + error.message);
   } finally {
     generateThemeBtn.disabled = false;
     generateThemeBtn.textContent = 'Generate Colors';
@@ -855,18 +855,18 @@ function getPrimaryFieldDef(type) {
  * can scan ("Multiple Choice — bar chart" instead of "{{ask.barChart}}").
  */
 var PRIMARY_TOKEN_SUFFIXES = {
-  'barChart':  { icon: '📊', text: 'bar chart' },
-  'chart':     { icon: '📊', text: 'bar chart' },
-  'pieChart':  { icon: '🥧', text: 'pie chart' },
-  'list':      { icon: '📋', text: 'list of answers' },
-  'result':    { icon: '🤖', text: 'AI result' },
-  'scores':    { icon: '🏆', text: 'scores' },
-  'tally':     { icon: '🔢', text: 'vote counts' },
-  'assigned':  { icon: '👤', text: 'each player\'s assigned item' },
-  'mine':      { icon: '👤', text: 'each player\'s own answer' },
-  'text':      { icon: '💬', text: 'submitted text' },
-  'choice':    { icon: '✅', text: 'chosen answer' },
-  'message':   { icon: '💬', text: 'message' }
+  'barChart':  { icon: '', text: 'bar chart' },
+  'chart':     { icon: '', text: 'bar chart' },
+  'pieChart':  { icon: '', text: 'pie chart' },
+  'list':      { icon: '', text: 'list of answers' },
+  'result':    { icon: '', text: 'AI result' },
+  'scores':    { icon: '', text: 'scores' },
+  'tally':     { icon: '', text: 'vote counts' },
+  'assigned':  { icon: '', text: 'each player\'s assigned item' },
+  'mine':      { icon: '', text: 'each player\'s own answer' },
+  'text':      { icon: '', text: 'submitted text' },
+  'choice':    { icon: '', text: 'chosen answer' },
+  'message':   { icon: '', text: 'message' }
 };
 
 /**
@@ -947,7 +947,7 @@ function buildTokenChip(fullToken, ref, input) {
   var meta = suffix ? PRIMARY_TOKEN_SUFFIXES[suffix] : null;
   var chipText;
   if (meta) {
-    chipText = meta.icon + ' ' + meta.text + ' from ' + label;
+    chipText = (meta.icon ? meta.icon + ' ' : '') + meta.text + ' from ' + label;
   } else if (parts.length > 1) {
     chipText = parts.slice(1).join(' / ') + ' from ' + label;
   } else {
@@ -1009,35 +1009,35 @@ function getInsertableRefs(sourceId, source) {
   var refs = [];
   var t = source.type;
   if (t === 'collect') {
-    refs.push({ icon: '📋', label: 'List of submitted answers', token: '{{' + sourceId + '.list}}' });
-    refs.push({ icon: '💬', label: 'Raw answers (for AI input)', token: '{{' + sourceId + '.responses}}' });
+    refs.push({ icon: '', label: 'List of submitted answers', token: '{{' + sourceId + '.list}}' });
+    refs.push({ icon: '', label: 'Raw answers (for AI input)', token: '{{' + sourceId + '.responses}}' });
     if (source.rotateFrom || source.assign === 'pairwise') {
-      refs.push({ icon: '👤', label: "Each player's assigned item", token: '{{' + sourceId + '.assigned}}' });
+      refs.push({ icon: '', label: "Each player's assigned item", token: '{{' + sourceId + '.assigned}}' });
     }
   } else if (t === 'collect-choice') {
-    refs.push({ icon: '📊', label: 'Bar chart of class picks', token: '{{' + sourceId + '.barChart}}' });
-    refs.push({ icon: '🔢', label: 'Vote counts (raw)', token: '{{' + sourceId + '.tally}}' });
+    refs.push({ icon: '', label: 'Bar chart of class picks', token: '{{' + sourceId + '.barChart}}' });
+    refs.push({ icon: '', label: 'Vote counts (raw)', token: '{{' + sourceId + '.tally}}' });
     if (source.correctAnswer) {
-      refs.push({ icon: '🏆', label: 'Scores (graded)', token: '{{' + sourceId + '.scores}}' });
-      refs.push({ icon: '✅', label: 'The correct answer', token: '{{' + sourceId + '.correctAnswer}}' });
+      refs.push({ icon: '', label: 'Scores (graded)', token: '{{' + sourceId + '.scores}}' });
+      refs.push({ icon: '', label: 'The correct answer', token: '{{' + sourceId + '.correctAnswer}}' });
     }
   } else if (t === 'ai-process') {
-    refs.push({ icon: '🤖', label: 'AI output', token: '{{' + sourceId + '.result}}' });
+    refs.push({ icon: '', label: 'AI output', token: '{{' + sourceId + '.result}}' });
     if (source.perPlayer) {
-      refs.push({ icon: '👤', label: "Each player's own AI item", token: '{{' + sourceId + '.mine}}' });
+      refs.push({ icon: '', label: "Each player's own AI item", token: '{{' + sourceId + '.mine}}' });
     }
     if (source.format === 'json') {
-      refs.push({ icon: '🧩', label: 'A specific JSON field (type the field name)', token: '{{' + sourceId + '.result.}}' });
+      refs.push({ icon: '', label: 'A specific JSON field (type the field name)', token: '{{' + sourceId + '.result.}}' });
     }
   } else if (t === 'vote') {
-    refs.push({ icon: '📊', label: 'Bar chart of votes', token: '{{' + sourceId + '.barChart}}' });
-    refs.push({ icon: '🏆', label: 'Vote scores', token: '{{' + sourceId + '.scores}}' });
+    refs.push({ icon: '', label: 'Bar chart of votes', token: '{{' + sourceId + '.barChart}}' });
+    refs.push({ icon: '', label: 'Vote scores', token: '{{' + sourceId + '.scores}}' });
   } else if (t === 'rate') {
-    refs.push({ icon: '📊', label: 'Bar chart of averages', token: '{{' + sourceId + '.barChart}}' });
+    refs.push({ icon: '', label: 'Bar chart of averages', token: '{{' + sourceId + '.barChart}}' });
   } else if (t === 'foreach') {
-    refs.push({ icon: '🏆', label: 'Round-by-round scores', token: '{{' + sourceId + '.scores}}' });
+    refs.push({ icon: '', label: 'Round-by-round scores', token: '{{' + sourceId + '.scores}}' });
   } else if (t === 'rank') {
-    refs.push({ icon: '📋', label: 'Ranked list', token: '{{' + sourceId + '.rankedList}}' });
+    refs.push({ icon: '', label: 'Ranked list', token: '{{' + sourceId + '.rankedList}}' });
   }
   return refs;
 }
@@ -4029,7 +4029,7 @@ function deletePhase(phaseId) {
 
   // Don't delete the only lobby or end
   if (phase.type === 'lobby' || phase.type === 'end') {
-    alert('Cannot delete the ' + phase.type + ' phase.');
+    showToast('Cannot delete the ' + phase.type + ' phase.');
     return;
   }
 
@@ -4426,13 +4426,12 @@ async function saveGame() {
         body: JSON.stringify(gameConfig)
       });
     } else {
-      // Create new game — prompt for ID
-      var newId = prompt('Enter a game ID (lowercase letters, numbers, hyphens):');
-      if (!newId) {
-        saveBtn.disabled = false;
-        return;
-      }
-      newId = newId.trim().toLowerCase();
+      // Create new game — derive ID from the game name
+      var newId = (gameConfig.name || 'my-game')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 40) || 'my-game';
 
       response = await fetch('/api/games', {
         method: 'POST',
@@ -4454,11 +4453,11 @@ async function saveGame() {
       saveBtn.textContent = 'Saved!';
       runLightReview();  // async, non-blocking
     } else {
-      alert('Save failed: ' + (result.error || 'Unknown error'));
+      showToast('Save failed: ' + (result.error || 'Unknown error'));
       saveBtn.textContent = originalText;
     }
   } catch (error) {
-    alert('Save failed: ' + error.message);
+    showToast('Save failed: ' + error.message);
     saveBtn.textContent = originalText;
   }
 
@@ -4508,7 +4507,7 @@ async function runDeepReview() {
     });
     if (!response.ok) {
       var err = await response.json();
-      alert('Review failed: ' + (err.error || 'Unknown error'));
+      showToast('Review failed: ' + (err.error || 'Unknown error'));
       return;
     }
     var result = await response.json();
@@ -4516,7 +4515,7 @@ async function runDeepReview() {
     applyReviewResults(result.ai);
     showReviewPanel(result);
   } catch (error) {
-    alert('Review failed: ' + error.message);
+    showToast('Review failed: ' + error.message);
   } finally {
     reviewBtn.disabled = false;
     reviewBtn.textContent = 'Check for Errors';
@@ -4667,13 +4666,13 @@ async function requestFix(phaseId, issue, btn) {
     });
     if (!response.ok) {
       var err = await response.json();
-      alert('Could not generate fix: ' + (err.error || 'Unknown error'));
+      showToast('Could not generate fix: ' + (err.error || 'Unknown error'));
       return;
     }
     var result = await response.json();
     showFixPreview(phaseId, gameConfig.phases[phaseId], result.updatedPhase, result.explanation, issue);
   } catch (error) {
-    alert('Fix request failed: ' + error.message);
+    showToast('Fix request failed: ' + error.message);
   } finally {
     btn.disabled = false;
     btn.textContent = '✨ Apply Fix';
@@ -5237,7 +5236,7 @@ function applyAskAiResult() {
 
 async function openSaveAsRecipeModal() {
   if (!gameConfig) {
-    alert('Game config is still loading. Try again in a moment.');
+    showToast('Game config is still loading. Try again in a moment.');
     return;
   }
 
@@ -5326,7 +5325,7 @@ function renderSarCandidatesView(modal, candidates, overlay) {
   nextBtn.addEventListener('click', function () {
     var paramSpecs = collectSarParamSpecs(listWrap);
     if (paramSpecs.error) {
-      alert(paramSpecs.error);
+      showToast(paramSpecs.error);
       return;
     }
     if (paramSpecs.specs.length === 0) {
