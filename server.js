@@ -6,7 +6,7 @@ import { Server } from 'socket.io';
 import { fileURLToPath } from 'url';
 import { dirname, join, extname } from 'path';
 import { randomUUID } from 'crypto';
-import { readdir, writeFile, mkdir, rm, access } from 'fs/promises';
+import { readdir, readFile, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
 import { loadGame, validate, getAllowedFields, listGames, resolveGamePath } from './engine/game-loader.js';
@@ -28,6 +28,15 @@ import {
 import { getHandler, hasHandler, createPhaseContext } from './engine/phase-handlers/index.js';
 import { EVENTS } from './engine/events.js';
 import { resolveVideoEmbed } from './engine/video.js';
+import {
+  DB_ENABLED,
+  initDb,
+  getUserGame,
+  listUserGames,
+  saveUserGame,
+  deleteUserGame,
+  userGameExists
+} from './db.js';
 import { checkSubmission } from './engine/content-filter.js';
 import { buildSubmissionList, isVisibleSubmission } from './engine/moderation.js';
 import { validatePayload } from './engine/event-schemas.js';
@@ -126,6 +135,48 @@ function pickCardMeta(config) {
     }
   }
   return out;
+}
+
+// --- DB helpers ---
+
+// Loads a game by ID: built-in games from filesystem, user games from DB
+// (falling back to filesystem when DB_ENABLED is false for local dev).
+async function loadGameById(gameId) {
+  try {
+    return await loadGame(gameId); // checks built-in dir, then games/user/ dir
+  } catch (err) {
+    if (!err.message.startsWith('Game not found')) throw err;
+  }
+  if (DB_ENABLED) {
+    const row = await getUserGame(gameId);
+    if (row) {
+      const config = row.config;
+      validate(config, gameId);
+      Object.defineProperty(config, '_source', { value: 'user', enumerable: false });
+      return config;
+    }
+  }
+  throw new Error(`Game not found: ${gameId}`);
+}
+
+// On first DB-enabled startup, migrate any games/user/* still on disk into
+// the database. Safe to run repeatedly (upsert). Handles the transition from
+// the old filesystem-only setup to the DB-backed one.
+async function migrateFilesystemGames() {
+  let count = 0;
+  try {
+    const entries = await readdir(USER_GAMES_DIR, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('_')) continue;
+      try {
+        const raw = await readFile(join(USER_GAMES_DIR, entry.name, 'config.json'), 'utf-8');
+        const config = JSON.parse(raw);
+        await saveUserGame(entry.name, config);
+        count++;
+      } catch {}
+    }
+  } catch {} // user dir may not exist
+  if (count > 0) console.log(`[init] Migrated ${count} filesystem game(s) to database.`);
 }
 
 // --- Helper Functions ---
@@ -925,7 +976,15 @@ app.post('/api/games/:gameId/assets', assetUpload.single('file'), async (req, re
     try {
       ({ gameDir, source } = await resolveGamePath(gameId));
     } catch {
-      return res.status(404).json({ error: `Game "${gameId}" not found.` });
+      // Game may live in DB (not on filesystem). Use the user-game path for assets.
+      // Note: assets written here are on ephemeral disk and won't survive a Render
+      // redeploy. Blob storage (e.g. Cloudflare R2) is the permanent fix.
+      if (DB_ENABLED && await userGameExists(gameId)) {
+        gameDir = join(USER_GAMES_DIR, gameId);
+        source = 'user';
+      } else {
+        return res.status(404).json({ error: `Game "${gameId}" not found.` });
+      }
     }
     const assetsDir = join(gameDir, 'assets');
     await mkdir(assetsDir, { recursive: true });
@@ -946,7 +1005,7 @@ app.post('/api/games/:gameId/assets', assetUpload.single('file'), async (req, re
 
 app.get('/api/games/:gameId', async (req, res) => {
   try {
-    const config = await loadGame(req.params.gameId);
+    const config = await loadGameById(req.params.gameId);
     res.json(config);
   } catch (error) {
     console.log(`[api/games/:gameId] Error: ${error.message}`);
@@ -1157,7 +1216,7 @@ app.get('/api/games', async (req, res) => {
     const loaded = await listGames();
     const games = loaded.map(({ id, source, config }) => ({
       id,
-      source, // 'built-in' | 'user'
+      source,
       name: config.name,
       description: config.description || '',
       phaseCount: Object.keys(config.phases).length,
@@ -1165,6 +1224,24 @@ app.get('/api/games', async (req, res) => {
       maxPlayers: config.maxPlayers || null,
       ...pickCardMeta(config)
     }));
+
+    if (DB_ENABLED) {
+      const userRows = await listUserGames();
+      for (const row of userRows) {
+        const config = row.config;
+        games.push({
+          id: row.id,
+          source: 'user',
+          name: config.name,
+          description: config.description || '',
+          phaseCount: Object.keys(config.phases || {}).length,
+          minPlayers: config.minPlayers || null,
+          maxPlayers: config.maxPlayers || null,
+          ...pickCardMeta(config)
+        });
+      }
+    }
+
     res.json({ games });
   } catch (error) {
     console.log(`[api/games] Error: ${error.message}`);
@@ -1181,8 +1258,12 @@ app.put('/api/games/:gameId', async (req, res) => {
       console.log(`[api/games PUT] Stripped ${stripped.length} unknown field(s): ${stripped.join(', ')}`);
     }
     validate(config, gameId);
-    const { configPath } = await resolveGamePath(gameId);
-    await writeFile(configPath, JSON.stringify(config, null, 2));
+    if (DB_ENABLED && await userGameExists(gameId)) {
+      await saveUserGame(gameId, config);
+    } else {
+      const { configPath } = await resolveGamePath(gameId);
+      await writeFile(configPath, JSON.stringify(config, null, 2));
+    }
     res.json({ success: true, stripped });
   } catch (error) {
     console.log(`[api/games PUT] Error: ${error.message}`);
@@ -1213,22 +1294,30 @@ app.post('/api/games', async (req, res) => {
     if (!id || !/^[a-z0-9][a-z0-9-]*$/.test(id)) {
       return res.status(400).json({ error: 'Invalid game ID. Use lowercase letters, numbers, and hyphens. Must not start with a hyphen.' });
     }
-    // New games go under games/user/<id>/. Reject if a built-in or another
-    // user game already has this id, to keep the namespace flat from the
-    // teacher's perspective (one id = one game).
-    const userGameDir = join(USER_GAMES_DIR, id);
-    const builtInGameDir = join(GAMES_DIR, id);
+    // Reject collision with built-in games (always on filesystem)
     try {
-      await access(builtInGameDir);
+      await access(join(GAMES_DIR, id));
       return res.status(409).json({ error: `Game "${id}" already exists as a built-in. Pick a different id.` });
     } catch {}
-    try {
-      await access(userGameDir);
-      return res.status(409).json({ error: `Game "${id}" already exists.` });
-    } catch {}
+    // Check for existing user game in DB or filesystem
+    if (DB_ENABLED) {
+      if (await userGameExists(id)) {
+        return res.status(409).json({ error: `Game "${id}" already exists.` });
+      }
+    } else {
+      try {
+        await access(join(USER_GAMES_DIR, id));
+        return res.status(409).json({ error: `Game "${id}" already exists.` });
+      } catch {}
+    }
     validate(config, id);
-    await mkdir(userGameDir, { recursive: true });
-    await writeFile(join(userGameDir, 'config.json'), JSON.stringify(config, null, 2));
+    if (DB_ENABLED) {
+      await saveUserGame(id, config);
+    } else {
+      const userGameDir = join(USER_GAMES_DIR, id);
+      await mkdir(userGameDir, { recursive: true });
+      await writeFile(join(userGameDir, 'config.json'), JSON.stringify(config, null, 2));
+    }
     res.json({ success: true, id, source: 'user' });
   } catch (error) {
     console.log(`[api/games POST] Error: ${error.message}`);
@@ -1438,8 +1527,12 @@ app.delete('/api/games/:gameId', async (req, res) => {
     if (gameId.startsWith('_')) {
       return res.status(400).json({ error: 'Cannot delete template directories.' });
     }
-    const { gameDir } = await resolveGamePath(gameId);
-    await rm(gameDir, { recursive: true });
+    if (DB_ENABLED && await userGameExists(gameId)) {
+      await deleteUserGame(gameId);
+    } else {
+      const { gameDir } = await resolveGamePath(gameId);
+      await rm(gameDir, { recursive: true });
+    }
     res.json({ success: true });
   } catch (error) {
     console.log(`[api/games DELETE] Error: ${error.message}`);
@@ -1459,6 +1552,12 @@ io.on('connection', (socket) => {
         name: config.name,
         description: config.description || ''
       }));
+      if (DB_ENABLED) {
+        const userRows = await listUserGames();
+        for (const row of userRows) {
+          games.push({ id: row.id, source: 'user', name: row.name, description: row.config.description || '' });
+        }
+      }
       socket.emit(EVENTS.GAMES_LIST, { games });
     } catch (error) {
       console.log(`[get-games] Error: ${error.message}`);
@@ -1472,7 +1571,7 @@ io.on('connection', (socket) => {
     const selectedGame = gameId || DEFAULT_GAME;
 
     try {
-      const config = await loadGame(selectedGame);
+      const config = await loadGameById(selectedGame);
       const hooks = await loadHooks(selectedGame);
       const code = roomManager.create();
       const room = roomManager.find(code);
@@ -2282,17 +2381,25 @@ io.on('connection', (socket) => {
   });
 });
 
-// Load recipes before opening the listener so the picker UI never sees
-// an empty list during the brief window between listen and load.
-loadAllRecipes().then(recipes => {
+// Load recipes + init DB before opening the listener.
+async function startup() {
+  const recipes = await loadAllRecipes();
   console.log(`[init] Loaded ${recipes.size} recipe(s).`);
+  if (DB_ENABLED) {
+    await initDb();
+    console.log('[init] Database ready.');
+    await migrateFilesystemGames();
+  }
+}
+
+startup().then(() => {
   server.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
   });
 }).catch(err => {
-  console.error('[init] Recipe load failed:', err);
-  // Still start the server — recipes are optional infrastructure.
+  console.error('[init] Startup error:', err);
+  // Still start the server — recipes + DB failures shouldn't block play.
   server.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT} (without recipes)`);
+    console.log(`Server running at http://localhost:${PORT} (degraded)`);
   });
 });
