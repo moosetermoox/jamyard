@@ -47,7 +47,7 @@ Framework for quickly building classroom games where:
 - **Phase transitions** — smooth CSS fade transitions between game phases
 - **Editor validation** — client-side + server-side config validation with friendly error messages
 - **Prototype Mode button** — saves dirty config then opens `/prototype?game={id}` (pre-selects game, user picks player count)
-- **Prototype mode** — `/prototype` embeds host + player iframes side-by-side for quick playtesting
+- **Prototype mode** — `/prototype` embeds host + player iframes side-by-side for quick playtesting. Two view modes: Grid (all players at once) and "One at a time" (carousel — fixed-position arrows + dot indicators above iframes, looping keyboard ← → navigation)
 - **Dynamic AI messages** — processing screen shows task-specific text ("summarizing...", "comparing...") instead of hardcoded "creating your poem"
 - Server runs on port 3000 (`npm start`)
 - Home screen at / (redesigned — two primary cards + student room-code join)
@@ -80,6 +80,7 @@ Framework for quickly building classroom games where:
 - **Content safety pipeline** — `engine/content-filter.js` (blocklist + mash detection) gates `submit-response`; AI system prompts include safety rules block; host moderation panel (hide/kick) on collect phases.
 - **Editor UX** — H/P/AI role dots removed; form labels sentence-case; inputs softer 2px border with focus transition; more whitespace; section bands cleaned up; primary textarea auto-expands; "+ Insert from earlier step" hidden when no upstream refs exist; inserted {{tokens}} show as deletable chips in preview row.
 - **Button renames** — "Check My Game" → "Check for Errors"; "Test Game" → "Prototype Mode".
+- **Rank phase drag-and-drop** — players can drag items to reorder (HTML5 drag + touch for phones/Chromebooks); drag handle (☰) + drop highlight; arrow buttons kept as fallback. Rank handler also now accepts comma-separated string candidates (AI generators emit this format) — splits automatically so literal `candidates` values work without being arrays.
 - **509 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-corn-story.js`, `simulate-new-phases.js`, `simulate-dream-vacation.js`, `simulate-who-said-it.js`, `simulate-excuse-machine.js`
 
