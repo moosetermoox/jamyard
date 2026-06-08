@@ -456,26 +456,51 @@ button:disabled {
   background: var(--theme-surface, white);
   border: 2px solid var(--theme-border, #ddd);
   border-radius: 8px;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.1s, opacity 0.1s;
+}
+
+.rank-item.rank-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.rank-item.rank-drag-over {
+  border-color: var(--theme-button, #4a90d9);
+  box-shadow: 0 0 0 2px var(--theme-button, #4a90d9);
+}
+
+.rank-handle {
+  font-size: 1.2rem;
+  color: #aaa;
+  cursor: grab;
+  padding: 0 4px;
+  flex-shrink: 0;
 }
 
 .rank-item-label {
   flex: 1;
   text-align: left;
   font-size: 1.1rem;
+  cursor: grab;
 }
 
 .rank-arrow {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.9rem;
   display: flex;
   align-items: center;
   justify-content: center;
   background: var(--theme-button, #4a90d9);
   color: var(--theme-button-text, white);
   border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
 .rank-arrow:disabled {

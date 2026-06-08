@@ -6,6 +6,15 @@ const botFillBtn = document.getElementById('bot-fill-btn');
 const skipBtn = document.getElementById('skip-btn');
 const resetBtn = document.getElementById('reset-btn');
 const iframeContainer = document.getElementById('iframe-container');
+const viewToggle = document.getElementById('view-toggle');
+const viewGridBtn = document.getElementById('view-grid-btn');
+const viewCarouselBtn = document.getElementById('view-carousel-btn');
+const carouselPrev = document.getElementById('carousel-prev');
+const carouselNext = document.getElementById('carousel-next');
+const carouselDots = document.getElementById('carousel-dots');
+
+let viewMode = 'grid';
+let carouselIndex = 0; // 0-based index into player panels
 
 playerCount.addEventListener('input', () => {
   playerCountDisplay.textContent = playerCount.value;
@@ -76,6 +85,7 @@ launchBtn.addEventListener('click', () => {
       botFillBtn.hidden = false;
       skipBtn.hidden = false;
       resetBtn.hidden = false;
+      viewToggle.hidden = false;
     }
   });
 });
@@ -146,4 +156,67 @@ resetBtn.addEventListener('click', () => {
   botFillBtn.hidden = true;
   skipBtn.hidden = true;
   resetBtn.hidden = true;
+  viewToggle.hidden = true;
+  setViewMode('grid');
+});
+
+// --- View toggle ---
+
+viewGridBtn.addEventListener('click', () => setViewMode('grid'));
+viewCarouselBtn.addEventListener('click', () => setViewMode('carousel'));
+
+function setViewMode(mode) {
+  viewMode = mode;
+  viewGridBtn.classList.toggle('active', mode === 'grid');
+  viewCarouselBtn.classList.toggle('active', mode === 'carousel');
+
+  const count = parseInt(iframeContainer.dataset.players || '0', 10);
+
+  if (mode === 'grid') {
+    iframeContainer.removeAttribute('data-view');
+    carouselPrev.hidden = true;
+    carouselNext.hidden = true;
+    carouselDots.hidden = true;
+    getPlayerPanels().forEach(p => p.style.display = '');
+  } else {
+    iframeContainer.dataset.view = 'carousel';
+    carouselIndex = Math.min(carouselIndex, Math.max(0, count - 1));
+    carouselPrev.hidden = false;
+    carouselNext.hidden = false;
+    carouselDots.hidden = false;
+    showCarouselPlayer(carouselIndex);
+  }
+}
+
+function getPlayerPanels() {
+  return Array.from(iframeContainer.querySelectorAll('.player-panel'));
+}
+
+function showCarouselPlayer(index) {
+  const panels = getPlayerPanels();
+  if (!panels.length) return;
+  carouselIndex = ((index % panels.length) + panels.length) % panels.length;
+  panels.forEach((p, i) => { p.style.display = i === carouselIndex ? '' : 'none'; });
+  carouselPrev.disabled = false;
+  carouselNext.disabled = false;
+  // Update dots
+  carouselDots.innerHTML = '';
+  panels.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'carousel-dot' + (i === carouselIndex ? ' active' : '');
+    dot.title = 'Player ' + (i + 1);
+    dot.addEventListener('click', () => showCarouselPlayer(i));
+    carouselDots.appendChild(dot);
+  });
+}
+
+carouselPrev.addEventListener('click', () => showCarouselPlayer(carouselIndex - 1));
+carouselNext.addEventListener('click', () => showCarouselPlayer(carouselIndex + 1));
+
+// Keyboard ← → to navigate carousel
+document.addEventListener('keydown', (e) => {
+  if (viewMode !== 'carousel') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'ArrowLeft') showCarouselPlayer(carouselIndex - 1);
+  if (e.key === 'ArrowRight') showCarouselPlayer(carouselIndex + 1);
 });

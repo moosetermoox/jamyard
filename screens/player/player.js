@@ -785,6 +785,8 @@ rankSubmitBtn.addEventListener('click', function() {
   showSection(submittedSection);
 });
 
+var rankDragSrcIndex = null;
+
 function renderRankItems() {
   rankItems.innerHTML = '';
   for (var i = 0; i < rankCurrentOrder.length; i++) {
@@ -792,6 +794,14 @@ function renderRankItems() {
       var item = rankCurrentOrder[index];
       var row = document.createElement('div');
       row.className = 'rank-item';
+      row.draggable = true;
+      row.dataset.index = index;
+
+      // Drag handle
+      var handle = document.createElement('span');
+      handle.className = 'rank-handle';
+      handle.textContent = '\u2630';
+      handle.title = 'Drag to reorder';
 
       var label = document.createElement('span');
       label.className = 'rank-item-label';
@@ -819,12 +829,83 @@ function renderRankItems() {
         renderRankItems();
       });
 
-      row.appendChild(upBtn);
+      // HTML5 drag events
+      row.addEventListener('dragstart', function(e) {
+        rankDragSrcIndex = index;
+        e.dataTransfer.effectAllowed = 'move';
+        row.classList.add('rank-dragging');
+      });
+      row.addEventListener('dragend', function() {
+        row.classList.remove('rank-dragging');
+        document.querySelectorAll('.rank-item').forEach(function(r) {
+          r.classList.remove('rank-drag-over');
+        });
+      });
+      row.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        document.querySelectorAll('.rank-item').forEach(function(r) {
+          r.classList.remove('rank-drag-over');
+        });
+        row.classList.add('rank-drag-over');
+      });
+      row.addEventListener('drop', function(e) {
+        e.preventDefault();
+        if (rankDragSrcIndex === null || rankDragSrcIndex === index) return;
+        var moved = rankCurrentOrder.splice(rankDragSrcIndex, 1)[0];
+        rankCurrentOrder.splice(index, 0, moved);
+        rankDragSrcIndex = null;
+        renderRankItems();
+      });
+
+      // Touch drag (phones/Chromebooks without mouse)
+      addTouchDrag(row, index);
+
+      row.appendChild(handle);
       row.appendChild(label);
+      row.appendChild(upBtn);
       row.appendChild(downBtn);
       rankItems.appendChild(row);
     })(i);
   }
+}
+
+function addTouchDrag(row, index) {
+  var startY = 0;
+  var startIndex = index;
+  row.addEventListener('touchstart', function(e) {
+    startY = e.touches[0].clientY;
+    startIndex = index;
+    row.classList.add('rank-dragging');
+  }, { passive: true });
+  row.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    var y = e.touches[0].clientY;
+    var rows = Array.from(rankItems.querySelectorAll('.rank-item'));
+    var target = null;
+    for (var i = 0; i < rows.length; i++) {
+      var rect = rows[i].getBoundingClientRect();
+      if (y >= rect.top && y <= rect.bottom) { target = i; break; }
+    }
+    rows.forEach(function(r) { r.classList.remove('rank-drag-over'); });
+    if (target !== null && target !== startIndex) rows[target].classList.add('rank-drag-over');
+  }, { passive: false });
+  row.addEventListener('touchend', function(e) {
+    row.classList.remove('rank-dragging');
+    var y = e.changedTouches[0].clientY;
+    var rows = Array.from(rankItems.querySelectorAll('.rank-item'));
+    var targetIndex = null;
+    for (var i = 0; i < rows.length; i++) {
+      var rect = rows[i].getBoundingClientRect();
+      if (y >= rect.top && y <= rect.bottom) { targetIndex = i; break; }
+    }
+    rows.forEach(function(r) { r.classList.remove('rank-drag-over'); });
+    if (targetIndex !== null && targetIndex !== startIndex) {
+      var moved = rankCurrentOrder.splice(startIndex, 1)[0];
+      rankCurrentOrder.splice(targetIndex, 0, moved);
+      renderRankItems();
+    }
+  }, { passive: true });
 }
 
 // --- Socket events - Rate ---

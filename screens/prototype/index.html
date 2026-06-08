@@ -24,10 +24,21 @@
       <button id="bot-fill-btn" hidden>Bot Fill</button>
       <button id="skip-btn" hidden title="Skip the current step's timer / close submissions / continue">Skip timer</button>
       <button id="reset-btn" hidden>Reset</button>
+
+      <div id="view-toggle" hidden>
+        <button id="view-grid-btn" class="view-btn active" title="Show all players at once">Grid</button>
+        <button id="view-carousel-btn" class="view-btn" title="Step through one player at a time">One at a time</button>
+      </div>
+
     </div>
   </div>
 
   <div id="iframe-container"></div>
+
+  <!-- Carousel overlays — fixed position so they sit above iframes -->
+  <button id="carousel-prev" class="carousel-arrow carousel-arrow-left" hidden>&larr;</button>
+  <button id="carousel-next" class="carousel-arrow carousel-arrow-right" hidden>&rarr;</button>
+  <div id="carousel-dots" hidden></div>
 
   <script src="prototype.js"></script>
 </body>

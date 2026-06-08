@@ -7,11 +7,16 @@ registerHandler('rank', {
     const rkFrom = phase.from || 'all';
     const rkEligible = ctx.getEligibleVoters(rkFrom);
     let rkCandidates = phase.candidates ? engine.resolve(phase.candidates) : [];
+    // engine.resolve returns undefined when candidates is a literal string (not a data ref)
+    if (rkCandidates == null) rkCandidates = phase.candidates || [];
     if (!Array.isArray(rkCandidates)) {
-      if (typeof rkCandidates === 'object') {
+      if (typeof rkCandidates === 'string') {
+        // AI generators often emit comma-separated strings instead of arrays
+        rkCandidates = rkCandidates.split(',').map(s => s.trim()).filter(Boolean);
+      } else if (typeof rkCandidates === 'object') {
         rkCandidates = Object.values(rkCandidates);
       } else {
-        rkCandidates = [rkCandidates];
+        rkCandidates = [];
       }
     }
     // Normalize items to strings for display
