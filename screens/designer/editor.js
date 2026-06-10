@@ -814,6 +814,7 @@ function getPrimaryFieldDef(type) {
         var src = gameConfig.phases[p.matchupsFromPairs] ? phaseContentLabel(p.matchupsFromPairs) : p.matchupsFromPairs;
         return mode + ' • paired from ' + src;
       }
+      if (Array.isArray(p.candidates)) return mode + ' on ' + p.candidates.length + ' fixed options';
       if (p.candidates) return mode + ' on ' + humanizeRef(p.candidates);
       return mode + ' • (no source set)';
     }};
@@ -1998,9 +1999,79 @@ function renderPhaseConfig(phaseId) {
       phase.prompt = value;
       renderCanvas();
     });
-    addDataRefDropdown('Items from', 'Where to get the list of items to rank', 'phase-candidates', phaseId, phase.candidates, function (value) {
-      phase.candidates = value;
-    });
+
+    // Items can come from an earlier step (student answers, AI output) OR be
+    // a fixed list the teacher types right here (stored as an array — the
+    // engine accepts both).
+    addSectionHeader('Items to rank');
+    var rankIsOwnList = Array.isArray(phase.candidates);
+    addSelectWithHelp('Items come from', 'Pull the list from an earlier step, or write your own fixed list', 'phase-rank-source',
+      [
+        { value: 'step', label: 'An earlier step (answers, AI output)' },
+        { value: 'own', label: 'My own list — I\'ll type the items' }
+      ],
+      rankIsOwnList ? 'own' : 'step', function (value) {
+        isDirty = true;
+        if (value === 'own') {
+          phase.candidates = ['Option A', 'Option B', 'Option C'];
+        } else {
+          phase.candidates = '';
+        }
+        renderPhaseConfig(phaseId);
+        renderCanvas();
+      });
+
+    if (rankIsOwnList) {
+      var rankItemsArr = phase.candidates;
+      for (var rki = 0; rki < rankItemsArr.length; rki++) {
+        (function (index) {
+          var itemGroup = document.createElement('div');
+          itemGroup.className = 'form-group';
+          itemGroup.style.display = 'flex';
+          itemGroup.style.gap = '6px';
+
+          var itemInput = document.createElement('input');
+          itemInput.type = 'text';
+          itemInput.value = rankItemsArr[index];
+          itemInput.placeholder = 'Item ' + (index + 1);
+          itemInput.style.flex = '1';
+          itemInput.addEventListener('input', function () {
+            isDirty = true;
+            phase.candidates[index] = itemInput.value;
+          });
+
+          var removeBtn = document.createElement('button');
+          removeBtn.className = 'btn-icon';
+          removeBtn.textContent = '✖';
+          removeBtn.title = 'Remove item';
+          removeBtn.addEventListener('click', function () {
+            isDirty = true;
+            phase.candidates.splice(index, 1);
+            renderPhaseConfig(phaseId);
+          });
+
+          itemGroup.appendChild(itemInput);
+          itemGroup.appendChild(removeBtn);
+          phaseConfigForm.appendChild(itemGroup);
+        })(rki);
+      }
+
+      var addRankItemBtn = document.createElement('button');
+      addRankItemBtn.className = 'btn-secondary';
+      addRankItemBtn.textContent = '+ Add Item';
+      addRankItemBtn.style.marginBottom = '12px';
+      addRankItemBtn.addEventListener('click', function () {
+        isDirty = true;
+        if (!Array.isArray(phase.candidates)) phase.candidates = [];
+        phase.candidates.push('');
+        renderPhaseConfig(phaseId);
+      });
+      phaseConfigForm.appendChild(addRankItemBtn);
+    } else {
+      addDataRefDropdown('Items from', 'Where to get the list of items to rank', 'phase-candidates', phaseId, phase.candidates, function (value) {
+        phase.candidates = value;
+      });
+    }
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });

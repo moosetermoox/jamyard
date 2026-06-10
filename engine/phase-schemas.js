@@ -932,7 +932,8 @@ export const PHASE_SCHEMAS = {
           { type: 'array', capability: 'candidateSource' },
           { type: 'array', capability: 'responseArray' }
         ],
-        required: true, label: 'Items to rank'
+        required: true, label: 'Items to rank',
+        helper: 'Either a reference to an earlier step (e.g. "ask.responses") OR a fixed list you write yourself — a JSON array of strings like ["Pizza", "Tacos", "Sushi"] (at least 2 items).'
       }
     },
     transitions: {

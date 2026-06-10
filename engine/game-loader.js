@@ -416,15 +416,29 @@ export function validate(config, gameId, options) {
       }
     }
 
-    // Data reference validation — check that referenced phase exists
+    // Data reference validation — check that referenced phase exists.
+    // Literal lists are allowed in these fields too ("Mr. Fox, Dr. Who" or a
+    // JSON array) — a real ref is a single dotted token, so anything with
+    // spaces or commas is literal content, not a reference.
     for (const field of DATA_REF_FIELDS) {
       if (phase[field] && typeof phase[field] === 'string' && phase[field].includes('.')) {
+        if (/[\s,]/.test(phase[field])) continue;
         const refPhaseId = phase[field].split('.')[0];
         if (!config.phases[refPhaseId]) {
           errors.push(
             `Game "${gameId}": phase "${name}" references "${phase[field]}" but phase "${refPhaseId}" does not exist`
           );
         }
+      }
+    }
+
+    // rank with a literal (teacher-typed) item list: need at least 2 real items
+    if (phase.type === 'rank' && Array.isArray(phase.candidates)) {
+      const rankItems = phase.candidates.filter(c => typeof c === 'string' && c.trim().length > 0);
+      if (rankItems.length < 2) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (rank) needs at least 2 items to rank — add more items to the list, or point it at an earlier step.`
+        );
       }
     }
 
@@ -853,6 +867,7 @@ function inferDiagnosticCode(msg, severity) {
   if (/agreeMode "timer" but has no timer/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
   if (/collisionWindowMs/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
   if (/has invalid target/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
+  if (/needs at least 2 items to rank/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
   if (/but assign is not "pairwise"/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
   if (/pair-prompt rounds/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
   if (/oddHandling:"triple"/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;

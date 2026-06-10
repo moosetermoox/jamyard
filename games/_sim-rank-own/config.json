@@ -1,0 +1,19 @@
+{
+  "name": "SIM Rank Own List",
+  "description": "Test fixture: rank phase with a teacher-typed item list (no upstream data). Underscore-prefixed so it never appears in game lists.",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "order" },
+    "order": {
+      "type": "rank",
+      "prompt": "Rank these field trip ideas from favorite to least favorite.",
+      "candidates": ["Science museum", "Aquarium", "Historic village", "Botanical garden"],
+      "next": "share"
+    },
+    "share": {
+      "type": "reveal",
+      "template": "The class ranking:\n\n{{order.rankedList}}",
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "Trip decided." }
+  }
+}

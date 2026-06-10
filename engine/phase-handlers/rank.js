@@ -19,14 +19,15 @@ registerHandler('rank', {
         rkCandidates = [];
       }
     }
-    // Normalize items to strings for display
+    // Normalize items to strings for display; drop blanks (a teacher-typed
+    // list can have leftover empty rows).
     const rkItems = rkCandidates.map(c => {
       if (typeof c === 'string') return c;
       if (c && c.text) return c.text;
       if (c && c.name) return c.name;
       if (c && c.response) return c.response;
       return JSON.stringify(c);
-    });
+    }).filter(t => typeof t === 'string' && t.trim().length > 0);
 
     const rkEligibleIds = new Set(rkEligible.map(p => p.id));
     room.phaseState = {
