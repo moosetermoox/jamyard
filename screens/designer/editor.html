@@ -11,6 +11,10 @@
     <div class="header-left">
       <a href="/designer" class="back-link">&larr; Back to List</a>
       <h1 id="header-game-name">Loading...</h1>
+      <div id="view-toggle" class="view-toggle">
+        <button id="view-simple-btn" class="view-toggle-btn" type="button">Simple</button>
+        <button id="view-advanced-btn" class="view-toggle-btn" type="button">Advanced</button>
+      </div>
     </div>
     <div class="header-right">
       <span id="save-status" class="save-status save-status-clean">Saved</span>
@@ -75,6 +79,13 @@
         <div id="theme-preview-swatches" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;"></div>
       </div>
     </aside>
+
+    <!-- Simple view: each step as a sentence with its editable text inline.
+         The default for most teachers; the canvas below is "Advanced". -->
+    <main id="simple-view" hidden>
+      <div id="simple-list"></div>
+      <button id="simple-add-step" class="btn btn-add" type="button">+ Add a step</button>
+    </main>
 
     <!-- Main Canvas: Phase Flow -->
     <main id="canvas-area">
@@ -143,5 +154,6 @@
   <script src="/shared/themes.js"></script>
   <script src="templates.js"></script>
   <script src="editor.js"></script>
+  <script src="simple-view.js"></script>
 </body>
 </html>
