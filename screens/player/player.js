@@ -6,6 +6,12 @@ if (window.applyGameTheme) {
 
 const socket = io();
 
+// --- Juice (sounds + confetti + avatars) ---
+// Garnish from /shared/juice.js; guarded so a load failure can't break the game.
+// Player devices stay quiet except for the student's own actions — 30
+// Chromebooks chiming in sync is chaos, not juice.
+const J = window.Juice || null;
+
 // --- Stale-event guard: echo the last seen phaseInstanceId on every outgoing event ---
 let latestPhaseInstanceId = null;
 socket.onAny(function (_eventName, payload) {
@@ -413,7 +419,7 @@ socket.on('join-success', ({ name, reconnected, token, theme }) => {
     showSection(waitingSection);
   }
   // If reconnected, sendCurrentState on the server will push the right section
-  playerNameDisplay.textContent = name;
+  playerNameDisplay.textContent = (J ? J.avatarFor(name) + ' ' : '') + name;
   currentPlayerName = name;
   if (token) {
     currentToken = token;
@@ -719,6 +725,8 @@ socket.on('leaderboard', ({ standings, allStandings, style, timer, playerTemplat
   if (myStanding) {
     leaderboardRank.textContent = '#' + myStanding.rank + ' — ' + myStanding.name;
     leaderboardScore.textContent = myStanding.score + ' points';
+    // First place gets a personal celebration on their own device.
+    if (myStanding.rank === 1 && J) J.confetti({ count: 60 });
   } else {
     leaderboardRank.textContent = '';
     leaderboardScore.textContent = '';
@@ -903,6 +911,9 @@ socket.on('one-voice-reject', ({ reason }) => {
 socket.on('one-voice-success', ({ target, attempt }) => {
   oneVoiceTapBtn.disabled = true;
   oneVoiceStatus.textContent = 'WE DID IT! ' + target + ', as one voice. (Attempt ' + attempt + ')';
+  // Everyone won this together — confetti on every device, but no sound
+  // (the room's shared voice on the host speakers is the soundtrack).
+  if (J) J.confetti({ count: 60 });
 });
 
 // --- Socket events - Merge (Connection Pack: think-pair-share) ---
@@ -1642,6 +1653,7 @@ socket.on('elimination-results', ({ eliminated, eliminatedNames, remaining, play
   if (eliminated.includes(socket.id)) {
     isEliminated = true;
     eliminatedBanner.hidden = false;
+    if (J) J.sound('womp');
     eliminationDetails.textContent =
       'You were eliminated! ' + remaining + ' players remain.';
   } else {
@@ -1652,8 +1664,13 @@ socket.on('elimination-results', ({ eliminated, eliminatedNames, remaining, play
 
 // --- Socket events - Winner ---
 
-socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, standings, playerTemplate, playerShow }) => {
+socket.on('winner-announced', ({ winnerName, winnerScore, winnerIds, winnerNames, isTie, standings, playerTemplate, playerShow }) => {
   showSection(winnerSection);
+  // Personal celebration only on the winner's own device.
+  if (J && winnerIds && winnerIds.indexOf(socket.id) !== -1) {
+    J.sound('fanfare');
+    J.confetti();
+  }
   if (isTie && winnerNames && winnerNames.length > 1) {
     winnerTitle.textContent = formatTieNamesPlayer(winnerNames) + ' tie!';
     winnerDetails.textContent = winnerScore + ' each';
@@ -1770,6 +1787,10 @@ function showSection(el) {
   el.hidden = false;
   void el.offsetWidth;
   el.classList.add('active');
+  // Personal confirmation blip — only on the student's own submit.
+  if (J && (el === submittedSection || el === voteSubmittedSection)) {
+    J.sound('blip');
+  }
 }
 
 function hideAllSections() {

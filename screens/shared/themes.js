@@ -6,6 +6,7 @@ window.GAME_THEMES = {
     name: 'Pop Art',
     icon: '\uD83C\uDFA8',
     description: 'Bold colors, thick borders, Keith Haring energy',
+    juice: { wave: 'triangle' },
     colors: {
       bg: '#FFF9C4',
       surface: '#FFFFFF',
@@ -24,6 +25,7 @@ window.GAME_THEMES = {
     name: 'Arcade',
     icon: '\uD83D\uDC7E',
     description: 'Dark background, neon glow, retro game vibes',
+    juice: { wave: 'square' },
     colors: {
       bg: '#1A1A2E',
       surface: '#16213E',
@@ -42,6 +44,7 @@ window.GAME_THEMES = {
     name: 'Ocean',
     icon: '\uD83C\uDF0A',
     description: 'Calm blues and teals, relaxing and easy on the eyes',
+    juice: { wave: 'sine' },
     colors: {
       bg: '#E0F7FA',
       surface: '#FFFFFF',
@@ -60,6 +63,7 @@ window.GAME_THEMES = {
     name: 'Sunset',
     icon: '\uD83C\uDF05',
     description: 'Warm oranges and purples, golden hour feeling',
+    juice: { wave: 'sine' },
     colors: {
       bg: '#FFF3E0',
       surface: '#FFFFFF',
@@ -81,17 +85,26 @@ window.applyGameTheme = function (theme) {
   if (!theme) return;
 
   var colors = null;
+  var juice = null;
 
   if (typeof theme === 'string') {
     // Pre-built theme name
     var preset = window.GAME_THEMES[theme];
-    if (preset) colors = preset.colors;
+    if (preset) {
+      colors = preset.colors;
+      juice = preset.juice || null;
+    }
   } else if (typeof theme === 'object') {
     // Custom theme with colors object
     colors = theme.colors || null;
+    juice = theme.juice || null;
   }
 
   if (!colors) return;
+
+  // Sound profile for juice.js (oscillator wave per theme); confetti colors
+  // come from the CSS vars set below, so they always match the theme.
+  window.__themeJuice = juice;
 
   var root = document.documentElement;
   root.style.setProperty('--theme-bg', colors.bg);

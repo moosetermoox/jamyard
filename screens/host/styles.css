@@ -27,7 +27,8 @@ h2 {
 section {
   margin-bottom: 40px;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transform: translateY(14px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 section:not(.active) {
@@ -36,6 +37,7 @@ section:not(.active) {
 
 section.active {
   opacity: 1;
+  transform: none;
 }
 
 /* Room code */
@@ -134,6 +136,60 @@ button:disabled {
   font-weight: bold;
   font-size: 1.1rem;
   flex-shrink: 0;
+}
+
+.player-avatar.juice-emoji {
+  font-size: 1.4rem;
+}
+
+/* --- Juice: sound toggle + celebration flair --- */
+
+.sfx-toggle {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 100;
+  font-size: 1.2rem;
+  padding: 8px 12px;
+  margin: 0;
+  border-radius: 50%;
+  background: var(--theme-surface, white);
+  color: var(--theme-text, #222);
+}
+
+/* Standings rows pop in one after another (delay set inline per row) */
+.juice-stagger {
+  opacity: 0;
+  animation: juicePopIn 0.4s ease forwards;
+}
+
+@keyframes juicePopIn {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+.winner-text {
+  animation: juiceWinnerPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes juiceWinnerPop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  70%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  section {
+    transition: none;
+    transform: none;
+  }
+  .juice-stagger {
+    animation: none;
+    opacity: 1;
+  }
+  .winner-text {
+    animation: none;
+  }
 }
 
 /* Collect section */

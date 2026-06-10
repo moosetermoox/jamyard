@@ -8,6 +8,19 @@ if (window.applyGameTheme) {
 
 const socket = io();
 
+// --- Juice (sounds + confetti + avatars) ---
+// Garnish from /shared/juice.js; guarded so a load failure can't break the game.
+const J = window.Juice || null;
+const sfxToggle = document.getElementById('sfx-toggle');
+if (sfxToggle && J) {
+  sfxToggle.textContent = J.muted() ? '🔇' : '🔊';
+  sfxToggle.addEventListener('click', () => {
+    sfxToggle.textContent = J.toggleMuted() ? '🔇' : '🔊';
+  });
+} else if (sfxToggle) {
+  sfxToggle.hidden = true;
+}
+
 // --- Stale-event guard: echo the last seen phaseInstanceId on every outgoing event ---
 let latestPhaseInstanceId = null;
 socket.onAny(function (_eventName, payload) {
@@ -460,6 +473,7 @@ socket.on('room-created', ({ code, game, theme, teacherPin }) => {
 socket.on('player-joined', ({ players }) => {
   renderPlayerList(players);
   updateStartButton(players.length);
+  if (J) J.sound('pop');
 });
 
 socket.on('player-left', ({ players }) => {
@@ -498,6 +512,7 @@ function startTimer(seconds, containerEl, onExpire) {
     fillEl.style.strokeDashoffset = offset;
     if (remaining <= 5) {
       containerEl.classList.add('timer-warning');
+      if (remaining > 0 && J) J.sound('tick');
     }
     if (remaining <= 0) {
       clearTimer();
@@ -546,6 +561,7 @@ socket.on('game-started', ({ prompt, image, video, timer, hostTemplate, show }) 
 
 socket.on('response-received', ({ playerName, count, total }) => {
   submissionCount.textContent = count + ' of ' + total + ' submitted';
+  if (J) J.sound('blip');
 });
 
 // --- Moderation panel (live submissions: hide / kick) ---
@@ -657,6 +673,7 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
 
 socket.on('show-results', ({ content, aiResult, responses, image, video, hostTemplate, hostShow }) => {
   showSection(revealSection);
+  if (J) J.sound('reveal');
   aiResultDisplay.textContent = content || aiResult;
   aiResultDisplay.classList.toggle('chart', /[█░]/.test(aiResultDisplay.textContent || ''));
   applyTemplate(revealSection, hostTemplate);
@@ -712,13 +729,18 @@ socket.on('leaderboard', ({ standings, style, timer, hostTemplate, show }) => {
     timer: leaderboardTimer
   });
 
+  if (J) J.sound('tada');
   leaderboardStandings.innerHTML = '';
   for (let i = 0; i < standings.length; i++) {
     const s = standings[i];
     const p = document.createElement('p');
     // Medal based on rank, not array index, so tied players share medals
     // (e.g. two players tied for 1st both get gold; no silver awarded).
-    p.textContent = '#' + s.rank + ' ' + s.name + ' \u2014 ' + s.score + ' pts';
+    const avatar = J ? J.avatarFor(s.name) + ' ' : '';
+    p.textContent = '#' + s.rank + ' ' + avatar + s.name + ' \u2014 ' + s.score + ' pts';
+    // Rows pop in one after another, top rank first.
+    p.classList.add('juice-stagger');
+    p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
     leaderboardStandings.appendChild(p);
   }
 
@@ -750,6 +772,7 @@ socket.on('reveal-one-start', ({ message, total, revealed, timer, hostTemplate, 
 });
 
 socket.on('reveal-one-item', ({ item, index, total }) => {
+  if (J) J.sound('reveal');
   revealOneCounter.textContent = index + ' of ' + total + ' revealed';
   const div = document.createElement('div');
   div.className = 'reveal-one-item';
@@ -786,7 +809,7 @@ socket.on('team-split', ({ teams, hostTemplate, show }) => {
     card.appendChild(h3);
     for (const m of members) {
       const p = document.createElement('p');
-      p.textContent = m.name;
+      p.textContent = (J ? J.avatarFor(m.name) + ' ' : '') + m.name;
       card.appendChild(p);
     }
     teamSplitTeams.appendChild(card);
@@ -815,6 +838,7 @@ socket.on('rank-start', ({ prompt, totalRankers, timer, hostTemplate, show }) =>
 
 socket.on('rank-received', ({ count, total }) => {
   rankCounter.textContent = count + ' of ' + total + ' ranked';
+  if (J) J.sound('blip');
 });
 
 // --- Socket events - One Voice (Connection Pack: cooperative counting) ---
@@ -872,6 +896,7 @@ socket.on('one-voice-reset', (data) => {
 
 socket.on('one-voice-success', (data) => {
   renderOneVoice(data);
+  if (J) J.confetti(); // shared win — no fanfare; roomSpeak below is the voice of this moment
   oneVoiceSection.classList.add('one-voice-celebrating');
   oneVoiceBanner.hidden = false;
   oneVoiceBanner.textContent = 'WE DID IT — ' + oneVoiceTarget + ', as one voice! (Attempt ' + data.attempt + ')';
@@ -943,6 +968,7 @@ socket.on('rate-start', ({ prompt, scales, visibility, totalRaters, timer, hostT
 
 socket.on('rate-received', ({ count, total }) => {
   rateCounter.textContent = count + ' of ' + total + ' rated';
+  if (J) J.sound('blip');
 });
 
 socket.on('rate-results', ({ scales, averages, distributions, raterCount, visibility }) => {
@@ -1073,6 +1099,7 @@ socket.on('wager-start', ({ prompt, options, totalWagerers, timer, hostTemplate,
 
 socket.on('wager-received', ({ count, total }) => {
   wagerCounter.textContent = count + ' of ' + total + ' wagered';
+  if (J) J.sound('blip');
 });
 
 socket.on('wager-need-resolve', ({ options }) => {
@@ -1201,6 +1228,7 @@ socket.on('turn-complete', ({ teamScores }) => {
 
 socket.on('game-ended', ({ message, hostTemplate, hostShow } = {}) => {
   showSection(endSection);
+  if (J) J.sound('tada');
   const endMsg = endSection.querySelector('.game-over');
   if (message && endMsg) endMsg.textContent = message;
   applyTemplate(endSection, hostTemplate);
@@ -1256,12 +1284,14 @@ socket.on('vote-start', ({ mode, totalVoters, timer, hostTemplate, show }) => {
 
 socket.on('vote-received', ({ count, total }) => {
   voteCount.textContent = count + ' of ' + total + ' votes received';
+  if (J) J.sound('blip');
 });
 
 // --- Socket events - Elimination ---
 
 socket.on('elimination-results', ({ eliminatedNames, remaining, hostTemplate, hostShow }) => {
   showSection(eliminationSection);
+  if (J) J.sound('womp');
   eliminatedNamesDisplay.textContent = eliminatedNames.join(', ') + ' eliminated!';
   remainingCount.textContent = remaining + ' players remaining';
   applyTemplate(eliminationSection, hostTemplate);
@@ -1276,10 +1306,15 @@ socket.on('elimination-results', ({ eliminatedNames, remaining, hostTemplate, ho
 
 socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, standings, hostTemplate, hostShow }) => {
   showSection(winnerSection);
+  if (J) {
+    J.sound('fanfare');
+    J.confetti();
+  }
   if (isTie && winnerNames && winnerNames.length > 1) {
     winnerNameDisplay.textContent = formatTieNames(winnerNames) + ' tie!';
   } else {
-    winnerNameDisplay.textContent = winnerName + ' wins!';
+    const avatar = J ? J.avatarFor(winnerName) + ' ' : '';
+    winnerNameDisplay.textContent = avatar + winnerName + ' wins!';
   }
   applyTemplate(winnerSection, hostTemplate);
   applyShow(hostShow, {
@@ -1292,7 +1327,10 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, st
   if (standings && standings.length > 0) {
     for (var i = 0; i < standings.length; i++) {
       var p = document.createElement('p');
-      p.textContent = (i + 1) + '. ' + standings[i].name + ' \u2014 ' + standings[i].score;
+      var rowAvatar = J ? J.avatarFor(standings[i].name) + ' ' : '';
+      p.textContent = (i + 1) + '. ' + rowAvatar + standings[i].name + ' \u2014 ' + standings[i].score;
+      p.classList.add('juice-stagger');
+      p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
       standingsList.appendChild(p);
     }
   }
@@ -1327,7 +1365,12 @@ function renderPlayerList(players) {
 
     const avatar = document.createElement('span');
     avatar.className = 'player-avatar';
-    avatar.textContent = player.name.charAt(0).toUpperCase();
+    if (J) {
+      avatar.classList.add('juice-emoji');
+      avatar.textContent = J.avatarFor(player.name);
+    } else {
+      avatar.textContent = player.name.charAt(0).toUpperCase();
+    }
     avatar.style.background = nameToColor(player.name);
 
     const nameSpan = document.createElement('span');
