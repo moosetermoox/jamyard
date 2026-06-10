@@ -126,6 +126,9 @@
       if (v > 0) { phase.timer = v; } else { delete phase.timer; }
     });
     input.addEventListener('blur', function () { autoSaveIfDirty(); });
+    // Scroll-wheel over a focused number input silently changes it (and
+    // then auto-saves) — a classic accidental-edit trap. Opt out.
+    input.addEventListener('wheel', function () { input.blur(); }, { passive: true });
     wrap.appendChild(input);
     wrap.appendChild(document.createTextNode('s'));
     return wrap;
@@ -135,11 +138,23 @@
     return el('span', 'sv-fact', text);
   }
 
+  // Reference another step by its number — many steps share a friendly
+  // name (Closer has nine "Ask Players"), so "step 4" is the only
+  // unambiguous way to point at one.
   function stepName(phaseId) {
+    var order = buildPhaseOrder();
+    var idx = order.indexOf(phaseId);
+    if (idx !== -1) return 'step ' + (idx + 1);
     var p = gameConfig.phases[phaseId];
-    if (p && p.type === 'reveal' && p.scope === 'pair') return 'Show Each Pair';
     var cat = PHASE_CATALOG[p && p.type];
     return cat ? cat.friendlyName : (p ? p.type : phaseId);
+  }
+
+  // Is `sourceId` the step immediately before `phaseId`? (If so, "from
+  // step N" is just noise — the reader already assumes it.)
+  function isPreviousStep(sourceId, phaseId) {
+    var order = buildPhaseOrder();
+    return order.indexOf(sourceId) === order.indexOf(phaseId) - 1;
   }
 
   // Editable list of strings (multiple-choice answers, rank items)
@@ -206,8 +221,8 @@
       case 'collect': {
         d.sentence = phase.assign === 'pairwise' ? 'Students answer (in pairs):' : 'Students answer:';
         d.field = textBox(phase.prompt, 'The question students see…', function (v) { phase.prompt = v; });
-        if (phase.reusePairsFrom) d.facts.push(fact('same partners as "' + stepName(phase.reusePairsFrom) + '"'));
-        else if (phase.rotatePairsFrom) d.facts.push(fact('new partners (different from "' + stepName(phase.rotatePairsFrom) + '")'));
+        if (phase.reusePairsFrom) d.facts.push(fact('same partners as ' + stepName(phase.reusePairsFrom)));
+        else if (phase.rotatePairsFrom) d.facts.push(fact('new partners since ' + stepName(phase.rotatePairsFrom)));
         else if (phase.assign === 'pairwise') d.facts.push(fact('random pairs'));
         if (phase.assign === 'pairwise' && phase.oddHandling === 'triple') d.facts.push(fact('odd class → group of 3'));
         if (phase.passAllowed) d.facts.push(fact('passing allowed'));
@@ -246,11 +261,13 @@
 
       case 'reveal':
         if (phase.scope === 'pair') {
-          d.sentence = 'Each pair privately sees its own answers' +
-            (phase.pairsFrom ? ' (from "' + stepName(phase.pairsFrom) + '")' : '') + '.';
-          if (phase.template) {
-            d.field = textBox(phase.template, 'Optional layout…', function (v) { phase.template = v; });
-          }
+          // The pair-reveal template is layout boilerplate ({{_pair.*}}
+          // tokens) — structural, so it lives in Advanced, not here.
+          var fromNote = phase.pairsFrom && !isPreviousStep(phase.pairsFrom, phaseId)
+            ? ' (from ' + stepName(phase.pairsFrom) + ')'
+            : '';
+          d.sentence = 'Each pair privately sees its own answers' + fromNote + '.';
+          d.muted = true;
         } else {
           d.sentence = 'The class sees:';
           d.field = textBox(phase.template, 'What to show — insert data in Advanced…', function (v) { phase.template = v; });
@@ -403,7 +420,7 @@
 
     // Loops apply to any step
     if (phase.loopBack && phase.loopCount) {
-      d.facts.push(fact('then repeats from "' + stepName(phase.loopBack) + '" ×' + phase.loopCount));
+      d.facts.push(fact('then repeats from ' + stepName(phase.loopBack) + ' ×' + phase.loopCount));
     }
 
     return d;
