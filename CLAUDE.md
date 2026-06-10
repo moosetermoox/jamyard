@@ -39,7 +39,7 @@ Framework for quickly building classroom games where:
 4. Test with: npm test
 
 ## Current State
-- **18 games in `games/`** (varies — teacher generates and deletes during testing; use `ls games/` for the current list)
+- **20+ games in `games/`** (varies — teacher generates and deletes during testing; use `ls games/` for the current list; `_`-prefixed dirs are hidden test fixtures)
 - **All 10 engine primitives implemented** for Corn Story
 - **Preview phase implemented** — teacher-only review before revealing to students
 - **Timers implemented** — SVG ring countdown (host) + progress bar (player) with auto-submit on expiry
@@ -81,8 +81,19 @@ Framework for quickly building classroom games where:
 - **Editor UX** — H/P/AI role dots removed; form labels sentence-case; inputs softer 2px border with focus transition; more whitespace; section bands cleaned up; primary textarea auto-expands; "+ Insert from earlier step" hidden when no upstream refs exist; inserted {{tokens}} show as deletable chips in preview row.
 - **Button renames** — "Check My Game" → "Check for Errors"; "Test Game" → "Prototype Mode".
 - **Rank phase drag-and-drop** — players can drag items to reorder (HTML5 drag + touch for phones/Chromebooks); drag handle (☰) + drop highlight; arrow buttons kept as fallback. Rank handler also now accepts comma-separated string candidates (AI generators emit this format) — splits automatically so literal `candidates` values work without being arrays.
-- **509 tests passing** (`npm test`)
-- Simulator scripts for automated playtesting: `node scripts/simulate-corn-story.js`, `simulate-new-phases.js`, `simulate-dream-vacation.js`, `simulate-who-said-it.js`, `simulate-excuse-machine.js`
+- **Connection Pack** — first no-winner game family (spec: `docs/connection-pack-spec.md`): three experiences shipped as recipes + compiled games — **Closer** (escalating pair conversations), **Snowball** (think-pair-share via the merge phase), **One Voice** (cooperative counting). Zero AI calls in default paths. Shared primitives:
+  - `collect.passAllowed` — Pass button; counts as a submission (step can close), excluded from results/AI/moderation list, never attributable anywhere (even the journal)
+  - `collect.simultaneousReveal` — projected ticker shows counts only, no names, until close
+  - `reveal.scope:"pair"` + `pairsFrom` — each pair sees only its own answers via `{{_pair.prompt}}`/`{{_pair.answers}}`; a pass renders byte-identical to a missing answer ("chose to listen this round")
+  - config-level `family:"connection"` (set on the recipe, stamped into the compiled config) — validator permanently rejects leaderboard/winner/eliminate/ai-eliminate/wager/graded scoring
+  - recipe-level `feel` tags (e.g. laughter/belonging/consensus) — fed into the AI recipe matcher
+- **Pairing primitives** — `engine/phases/pairing.js` (pure greedy non-repeat matching). Collect pairwise extensions: `pairsFrom` now optional (pairs share the step's own prompt), `oddHandling:"triple"` (odd class forms one group of 3 instead of benching someone — keep `"sit-out"` for bluffing games feeding `matchupsFromPairs`), `rotatePairsFrom` (fresh pairing avoiding repeat partners), `reusePairsFrom` (same partners, next prompt)
+- **Merge phase** (22nd type) — think-pair-share cooperation primitive: group shares one live draft (last-write-wins, 300ms debounce), submits via `agreeMode` both/any/timer (edits reset agreements), `groupSize:4` joins adjacent prior-merge groups, host force-close submits current drafts, reconnect restores draft state. Output `merged` is consumed downstream exactly like `collect.responses`
+- **One-voice phase** (23rd type) — class counts to a target together; server-authoritative tap adjudication via pure `adjudicateTap` with injected clock (gap ≤ window = collision reset, same-player-twice rejected, 800ms post-reset lockout), success → celebration → auto-advance; teacher-speaker audio speaks each number via Web Speech on the host (`roomSpeak()` util, mute toggle; no recording/WebRTC — staged for later)
+- **Recipe compiler indexing** — `${param[0]}` indexed array placeholders (whole-value and interpolated). **Known limitation, hit 3×:** the compiler can't conditionally include fields/phases, so enum-driven structure params (Closer's `pairing`, Snowball's `rounds`/`finalVote`, One Voice's `attempts`) were dropped from recipes — the engine supports all of them via the editor. Compiler conditionals are a roadmap item.
+- **Sim harness** — `scripts/sim-harness.js`: reusable multi-client primitives (buffered event waiting, `setupRoom`/`teardown`, reporter) for headless playthroughs against a running server. Each Connection Pack experience has a sim asserting its privacy/timing invariants.
+- **609 tests passing** (`npm test`)
+- Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 
 ### Working Games
 1. **Weekend Poem** (games/weekend-poem/) — collect → ai-process → reveal
@@ -121,6 +132,13 @@ Framework for quickly building classroom games where:
 15. **Fibbage/Balderdash** (games/fibbage, games/definition-bluff) — trivia bluffing with choicePool truth injection
 16. **Yes-or-No Bets** (games/yes-or-no-bets/) — class answers yes/no then bets on each classmate
 17. **Speed Quiz** (games/speed-quiz/) — collect-choice with correctAnswer + speedBonus scoring
+18. **Closer** (games/closer/) — 3 tiers × 3 pair-prompts (playful → values → reflective) → one-word checkout
+   - First connection-family game: pairwise collects with passAllowed + simultaneousReveal, pair-scoped reveals, partner rotation between tiers (`rotatePairsFrom`), same partner within a tier (`reusePairsFrom`), odd class forms a triple
+   - Prompt bank: `recipes/prompt-banks/closer.json` (~30 original prompts per tier)
+19. **Snowball** (games/snowball/) — announce → solo collect → merge (pairs) → reveal → end
+   - First merge-phase game: think-pair-share with shared live draft + agree-to-submit; merged answers revealed anonymously
+20. **One Voice** (games/one-voice/) — announce → one-voice → stats reveal → end
+   - First one-voice game: class counts to 20 together; collisions reset; each number spoken through the teacher's speakers; ends on a shared story ("Attempts: 3, best run: 17"), no winners
 
 ### Engine Primitives (All Implemented)
 1. Player state tracking (remaining vs eliminated) — PlayerRegistry
@@ -140,13 +158,13 @@ Framework for quickly building classroom games where:
 - **AI mixed format:** AI sometimes returns `[playerId, responseText]` in same array. Hook deduplicates within groups — only eliminates if 2+ unique players resolve.
 - **bottom-percent input field:** Eliminate phase reads scores from `phase.input` or `phase.from` (config uses `input`).
 
-### 21 Phase Types Defined
+### 23 Phase Types Defined
 1. `lobby` — Wait for players to join
-2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains) and `assign:"pairwise"` (bluffing)
+2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pair games — `pairsFrom` optional, `oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`), `passAllowed`, `simultaneousReveal`
 3. `ai-process` — Send data to AI for processing; `perPlayer:true` generates one item per student
 4. `vote` — Head-to-head or pick-one voting; `matchupsFromPairs`/`excludeAuthors` for bluffing
 5. `eliminate` — Remove players by percent or hook
-6. `reveal` — Display content to all players
+6. `reveal` — Display content to all players; `scope:"pair"` + `pairsFrom` shows each pair only its own answers (`{{_pair.prompt}}`/`{{_pair.answers}}`)
 7. `preview` — Teacher-only preview before reveal
 8. `winner` — Declare winner and show standings
 9. `announce` — Display a message to everyone (round intros, instructions); `video:` field for YouTube embed (host-only)
@@ -161,7 +179,9 @@ Framework for quickly building classroom games where:
 18. `foreach` — Iterate over dynamic data running sub-phases per item (guessing games, review rounds)
 19. `rate` — Class scores a target on N custom 1-N scales; results render as averages bar + distribution pies; visibility=all|host-only
 20. `turn` — Charades/describe-it; server-authoritative per-turn timer, team rotation, Got It/Skip pool management; outputs `teamScores`+`capturedBy`
-21. `end` — Game over, clean up
+21. `merge` — Group members combine their answers into one shared answer (think-pair-share); live draft, `agreeMode` both/any/timer, `groupSize` 2/4; outputs `merged`
+22. `one-voice` — Cooperative counting to a target; server-authoritative collision window, same-player rejection, teacher-speaker audio; outputs `success`/`attempts`/`resets`/`bestRun`
+23. `end` — Game over, clean up
 
 ### 6 AI Task Types Defined
 - `summarize` — Combine responses into insight (Haiku)
@@ -178,7 +198,7 @@ Framework for quickly building classroom games where:
 - **Screen control** — `hostTemplate` / `playerTemplate` for custom content per screen (resolved via `resolveTemplate()`). `hostShow` / `playerShow` arrays toggle built-in UI elements (e.g. `["content", "continueButton"]`). If omitted, all defaults shown (backward compat). Empty array `[]` hides all built-in elements. Valid toggles per phase type defined in `VALID_HOST_TOGGLES` / `VALID_PLAYER_TOGGLES`. Editor shows "Screen Control (Optional)" section with template textareas + toggle checkboxes.
 - **Game editor** — Teacher-friendly UI. Phase blocks show icons + friendly names ("Ask Players", "AI Does Something") instead of technical IDs. Color-coded section bands (blue=host, green=player, purple=AI) in settings. Data reference dropdowns replace raw text fields. Phase type picker modal for adding new steps. All config.json internals unchanged — purely a presentation layer. Editor files: `screens/designer/editor.js`, `editor.css`, `editor.html`.
 - **Foreach phase** — Orchestrator phase that iterates over dynamic data running sub-phases per item. Virtual sub-phases with `_fe:` prefix injected at runtime. Supports: auto-candidate generation (`candidateSource: "players"`, `decoyCount`), two scoring modes (`correct` for guessing games, `tally` for rating games), self-exclusion (author auto-skipped on collect-choice sub-phases), template variables (`_current`, `_foreach`, `_candidates`). Data refs: `.scores`, `.itemCount`. **Pair mode** (`pairMode: "human-vs-ai"`) — pairs each human response with an AI-injected response for side-by-side comparison. Each iteration exposes `_current.a`, `_current.b` (randomly assigned), and `_current.aiPosition`/`_current.humanPosition` for scoring.
-- **AI game generation** — Describe a game in plain English and Sonnet generates a complete config. Accessible via "AI Generate Game" button in designer or `POST /api/games/generate`. Prompt documents all 19 phase types including foreach scoring modes.
+- **AI game generation** — Describe a game in plain English and Sonnet generates a complete config. Accessible via "AI Generate Game" button in designer or `POST /api/games/generate`. Phase docs in the prompt derive from `phase-schemas.js`, so all 23 phase types are covered automatically.
 
 ### AI Game Review (Implemented)
 - **Light review (Haiku)** — runs automatically after save, flags vague AI instructions, data flow breaks, player eligibility issues
@@ -225,6 +245,7 @@ Framework for quickly building classroom games where:
 - **AI-TASK-DESIGN.md** — 6 AI task types with prompts, schemas, validation
 - **SAFETY-DESIGN.md** — Threat model with three-layer mitigations
 - **AUTHORING-DESIGN.md** — Config style guide, validation, debug mode
+- **connection-pack-spec.md** — the no-winner game family (Closer / Snowball / One Voice): design principles, phase strings, merge + one-voice specs, licensing stance, staged voice modes (v1.5 recorded clips / v2 WebRTC — NOT built)
 - **CORN-STORY-FEASIBILITY.md** — Implementation analysis and build order
 
 ### Engine Modules (additions)
@@ -233,9 +254,14 @@ Framework for quickly building classroom games where:
 - `engine/content-filter.js` + `engine/blocklist.js` — input safety pipeline
 - `engine/moderation.js` — hide/kick helpers
 - `engine/video.js` — YouTube URL → embed URL parser
-- `engine/phase-schemas.js` — declarative schema for all 21 phase types (single source of truth for validator + AI prompts + editor field lists)
-- `engine/resolver-grammar.js` — single source of truth for `{{...}}` syntax
-- `engine/recipe-*.js` — recipe layer (R1-R6 complete); `recipes/` has 8 built-ins + `recipes/user/` for saved ones
+- `engine/phase-schemas.js` — declarative schema for all 23 phase types (single source of truth for validator + AI prompts + editor field lists; schema `output` declarations are also the `{{...}}` grammar entries — e.g. `merge.merged` warns on raw template use automatically)
+- `engine/resolver-grammar.js` — single source of truth for `{{...}}` syntax (`_pair` is a recognized scope, resolved per-recipient by the reveal handler)
+- `engine/phases/pairing.js` — pure pairing logic (greedy non-repeat matching, triples, avoid-sets)
+- `engine/phases/pair-reveal.js` — pure pair-scoped reveal helpers (views, listen-card, `{{_pair.*}}` substitution)
+- `engine/phase-handlers/merge.js` — merge phase (exports pure `buildMergeGroups`, `agreesNeeded`)
+- `engine/phase-handlers/one-voice.js` — one-voice phase (exports pure `adjudicateTap` with injected clock — unit-test timing rules there, not over sockets)
+- `scripts/sim-harness.js` — shared multi-client simulation primitives (all simulate-*.js scripts build on it)
+- `engine/recipe-*.js` — recipe layer (R1-R6 complete); `recipes/` has 11 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}` and `${param[i]}`; it can NOT conditionally include fields/phases (roadmap)
 
 ### Environment
 - Uses dotenv, set ANTHROPIC_API_KEY in .env for real AI
@@ -247,8 +273,10 @@ Framework for quickly building classroom games where:
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 509 Vitest tests (~1s)
-- `node scripts/simulate-corn-story.js` — automated full-game playthrough (requires server running)
+- `npm test` — runs all 609 Vitest tests (~1s)
+- `node scripts/simulate-any-game.js <game-id>` — universal automated playthrough (requires server running)
+- `node scripts/simulate-closer.js` / `simulate-snowball.js` / `simulate-one-voice.js` — Connection Pack invariant sims (pass anonymity, pair privacy, draft sync, tap timing)
+- New shipped games must be added to the snapshot map in `tests/engine/validator-diagnostics.test.js` (it fails loudly on unknown games)
 
 ## Refinement Log
 Moved to [docs/CHANGELOG.md](docs/CHANGELOG.md) to keep these instructions lightweight. Append new entries there.
