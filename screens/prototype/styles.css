@@ -141,6 +141,13 @@ body {
 .carousel-arrow-left  { left: calc(50% + 6px); }
 .carousel-arrow-right { right: 6px; }
 
+/* display:flex above would override the hidden attribute — restore it so
+   the carousel chrome only exists in "one at a time" mode. */
+.carousel-arrow[hidden],
+#carousel-dots[hidden] {
+  display: none;
+}
+
 .carousel-arrow:hover:not(:disabled) { background: rgba(233, 69, 96, 1); }
 .carousel-arrow:disabled { opacity: 0.2; cursor: default; }
 
