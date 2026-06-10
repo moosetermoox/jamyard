@@ -29,7 +29,7 @@
     },
     "reveal": {
       "type": "reveal",
-      "template": "# Class Mood Check\n\n{{process.result.content}}\n\n*{{collect.responses.length}} students checked in*",
+      "template": "# Class Mood Check\n\n{{process.result}}\n\n*{{collect.responses.length}} students checked in*",
       "next": "end"
     },
     "end": {

@@ -93,7 +93,8 @@ Framework for quickly building classroom games where:
 - **Recipe compiler indexing** — `${param[0]}` indexed array placeholders (whole-value and interpolated). **Known limitation, hit 3×:** the compiler can't conditionally include fields/phases, so enum-driven structure params (Closer's `pairing`, Snowball's `rounds`/`finalVote`, One Voice's `attempts`) were dropped from recipes — the engine supports all of them via the editor. Compiler conditionals are a roadmap item.
 - **Sim harness** — `scripts/sim-harness.js`: reusable multi-client primitives (buffered event waiting, `setupRoom`/`teardown`, reporter) for headless playthroughs against a running server. Each Connection Pack experience has a sim asserting its privacy/timing invariants.
 - **Idea-first front door** — `/designer` opens with one big box ("What do you want to play with your class?") that routes through `from-description` recipe matching; Enter submits, example chips fill the box (all four verified to route: One Voice / Class Poll / Snowball / Elimination Tournament), `?idea=` deep-link auto-launches the flow. The old three buttons are demoted to "Browse recipes / Start from scratch" links; the no-match view still offers the picker + legacy whole-config generator.
-- **609 tests passing** (`npm test`)
+- **Robot playtest in "Check for Errors"** — deep review now ALSO plays the game: `services/simulator.js` self-connects 1 host + 4 bot clients to the running server in a hidden temp room (`_sim-tmp-` prefix → `room.simulated` → mock AI, zero API spend) and drives every phase type end-to-end, in parallel with the Sonnet review (no added latency). Catches the runtime bug class static review can't see: stalls (with a force-skip warning), crashed phases (`phase-error` capture + skip), blank screens, empty rank/vote/choice payloads, unresolved `{{tokens}}` and `[object Object]` reaching students, nobody-eligible-to-vote. Findings deep-link to phases by prompt-text matching; review panel shows a 🤖 banner (completed/stuck + duration + steps). Every bot emit echoes `phaseInstanceId`, so the stale-event guard makes double-advances impossible. First run caught a real shipped bug (mood-check's `{{process.result.content}}`). Typical runs: simple game ~2s, 16-step foreach game ~11s, cap 45s.
+- **621 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 
 ### Working Games
@@ -274,7 +275,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 609 Vitest tests (~1s)
+- `npm test` — runs all 621 Vitest tests (~1s)
 - `node scripts/simulate-any-game.js <game-id>` — universal automated playthrough (requires server running)
 - `node scripts/simulate-closer.js` / `simulate-snowball.js` / `simulate-one-voice.js` — Connection Pack invariant sims (pass anonymity, pair privacy, draft sync, tap timing)
 - New shipped games must be added to the snapshot map in `tests/engine/validator-diagnostics.test.js` (it fails loudly on unknown games)

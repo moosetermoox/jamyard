@@ -1494,6 +1494,12 @@ textarea.sar-input {
   font-weight: normal;
 }
 
+/* Robot playtest banner (deep review) */
+.review-playtest { font-weight: bold; }
+.review-playtest-ok   { background: #C8E6C9; }
+.review-playtest-warn { background: #FFF9C4; }
+.review-playtest-bad  { background: #FFCDD2; }
+
 .review-issues {
   list-style: none;
   padding: 0;

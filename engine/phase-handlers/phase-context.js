@@ -29,8 +29,9 @@ export function createPhaseContext(code, room, services) {
     // I/O
     io: services.io,
 
-    // Services
-    aiService: services.aiService,
+    // Services. Simulated rooms (robot playtest) always get the mock AI —
+    // a review must never spend API money or wait on a real model.
+    aiService: (room.simulated && services.mockAiService) ? services.mockAiService : services.aiService,
     services,
 
     // Utilities

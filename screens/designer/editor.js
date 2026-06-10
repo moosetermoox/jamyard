@@ -4560,6 +4560,28 @@ function showReviewPanel(result) {
 
   var ai = result.ai || {};
   var structural = result.structural || {};
+  var sim = result.simulation || null;
+
+  // Robot playtest banner — what actually happened when bots played it
+  if (sim && !sim.failed) {
+    var simDiv = document.createElement('div');
+    var simErrors = (sim.findings || []).filter(function (f) { return f.severity === 'error'; });
+    var seconds = Math.round((sim.durationMs || 0) / 1000);
+    var steps = (sim.phaseLog || []).length;
+    if (sim.completed && simErrors.length === 0) {
+      simDiv.className = 'review-summary review-playtest review-playtest-ok';
+      simDiv.textContent = '🤖 Robot playtest: 4 bots played your game start to finish in ' +
+        seconds + 's (' + steps + ' steps). No runtime problems.';
+    } else if (sim.completed) {
+      simDiv.className = 'review-summary review-playtest review-playtest-warn';
+      simDiv.textContent = '🤖 Robot playtest: 4 bots reached the end in ' + seconds +
+        's, but hit ' + simErrors.length + ' problem' + (simErrors.length === 1 ? '' : 's') + ' along the way — see below.';
+    } else {
+      simDiv.className = 'review-summary review-playtest review-playtest-bad';
+      simDiv.textContent = '🤖 Robot playtest: 4 bots could NOT finish your game — see below for where it got stuck.';
+    }
+    reviewContent.appendChild(simDiv);
+  }
 
   // Summary
   if (ai.summary) {
@@ -4569,7 +4591,7 @@ function showReviewPanel(result) {
     reviewContent.appendChild(summaryDiv);
   }
 
-  // Collect all issues: structural errors + AI issues
+  // Collect all issues: structural errors + AI issues + playtest findings
   var allIssues = [];
 
   if (structural.errors) {
@@ -4580,6 +4602,17 @@ function showReviewPanel(result) {
   if (structural.warnings) {
     for (var w = 0; w < structural.warnings.length; w++) {
       allIssues.push({ severity: 'warning', message: structural.warnings[w], phaseId: null, suggestion: null });
+    }
+  }
+  if (sim && sim.findings) {
+    for (var s = 0; s < sim.findings.length; s++) {
+      var f = sim.findings[s];
+      allIssues.push({
+        severity: f.severity,
+        message: '🤖 ' + f.message,
+        phaseId: f.phaseId || null,
+        suggestion: null
+      });
     }
   }
   if (ai.issues) {

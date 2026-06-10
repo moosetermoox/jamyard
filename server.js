@@ -40,6 +40,7 @@ import {
 import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
+import { simulateGame } from './services/simulator.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
 import { validatePayload } from './engine/event-schemas.js';
 import { scoreResponses } from './engine/speed-scoring.js';
@@ -58,6 +59,25 @@ const aiMode = process.env.ANTHROPIC_API_KEY ? 'real' : 'mock';
 console.log(`[init] AI Service mode: ${aiMode}`);
 if (aiMode === 'mock') {
   console.log('[init] No ANTHROPIC_API_KEY found — AI generation endpoints are disabled (set the key to enable them).');
+}
+
+// --- Robot playtest support (deep review) -----------------------------
+// Simulated rooms (games with the _sim-tmp- prefix) always run with this
+// mock AI instance so a review never spends API money. phase-context.js
+// picks it over the real service when room.simulated is set.
+const mockAiService = new AIService({ mode: 'mock' });
+
+// Temp games: a deep review simulates the config AS POSTED (which may
+// differ from what's saved). registerTempGame parks it in memory under a
+// hidden id that loadGameById serves and create-room flags as simulated.
+const tempGames = new Map();
+function registerTempGame(config) {
+  const id = '_sim-tmp-' + Math.random().toString(36).slice(2, 10);
+  tempGames.set(id, config);
+  return id;
+}
+function unregisterTempGame(id) {
+  tempGames.delete(id);
 }
 
 // AI-powered generation needs a real Anthropic key. In mock mode these
@@ -144,6 +164,11 @@ function pickCardMeta(config) {
 // Loads a game by ID: built-in games from filesystem, user games from DB
 // (falling back to filesystem when DB_ENABLED is false for local dev).
 async function loadGameById(gameId) {
+  // In-memory temp games (robot playtest) take precedence — they hold the
+  // exact config under review, already validated by the review endpoint.
+  if (tempGames.has(gameId)) {
+    return tempGames.get(gameId);
+  }
   try {
     return await loadGame(gameId); // checks built-in dir, then games/user/ dir
   } catch (err) {
@@ -904,7 +929,7 @@ function emitSubmissionsUpdate(code, room) {
 
 // Services bundle passed to phase handler context
 const phaseServices = {
-  io, roomToHost, aiService,
+  io, roomToHost, aiService, mockAiService,
   resolveTemplate, resolvePerPlayerTemplate, resolveScreenControl, getNextPhaseId, getEligibleVoters,
   resolveImageUrl, resolveVideoEmbed,
   handlePhase: (code, room) => handlePhase(code, room),
@@ -1408,6 +1433,33 @@ app.post('/api/games/review', async (req, res) => {
       return res.status(400).json({ error: 'Missing config or phases' });
     }
     const structural = validate(config, 'review', { returnResults: true });
+
+    // Deep review: run the AI review AND a robot playtest in parallel.
+    // The playtest drives this server with bot clients (mock AI, temp room)
+    // and reports what actually happens at runtime — stalls, crashed
+    // phases, blank screens — the bug class static review can't see.
+    // Skipped when structural errors exist (the game can't even load).
+    if ((depth || 'light') === 'deep' && structural.errors.length === 0) {
+      const tempId = registerTempGame(config);
+      try {
+        const [ai, simulation] = await Promise.all([
+          aiService.review({ config, depth: 'deep' }),
+          simulateGame({
+            serverUrl: `http://localhost:${PORT}`,
+            gameId: tempId,
+            config,
+            numPlayers: 4
+          }).catch(err => {
+            console.log(`[api/games/review] Simulation failed: ${err.message}`);
+            return { failed: true, error: err.message, completed: false, findings: [], phaseLog: [] };
+          })
+        ]);
+        return res.json({ structural, ai, simulation });
+      } finally {
+        unregisterTempGame(tempId);
+      }
+    }
+
     const ai = await aiService.review({ config, depth: depth || 'light' });
     res.json({ structural, ai });
   } catch (error) {
@@ -1656,6 +1708,8 @@ io.on('connection', (socket) => {
       room.engine.hooks = hooks;
       room.gameId = selectedGame;
       room.gameSource = config._source || 'built-in';
+      // Robot-playtest rooms run with the mock AI service (see phase-context)
+      room.simulated = selectedGame.startsWith('_sim-tmp-');
 
       roomToHost.set(code, socket.id);
       socket.join(code);
