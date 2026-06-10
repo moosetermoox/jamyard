@@ -83,8 +83,12 @@
     <!-- Simple view: each step as a sentence with its editable text inline.
          The default for most teachers; the canvas below is "Advanced". -->
     <main id="simple-view" hidden>
-      <div id="simple-list"></div>
-      <button id="simple-add-step" class="btn btn-add" type="button">+ Add a step</button>
+      <!-- Inner column: capped for readable line lengths, centered so wide
+           screens get balanced gutters instead of a dead right half. -->
+      <div class="sv-column">
+        <div id="simple-list"></div>
+        <button id="simple-add-step" class="btn btn-add" type="button">+ Add a step</button>
+      </div>
     </main>
 
     <!-- Main Canvas: Phase Flow -->
