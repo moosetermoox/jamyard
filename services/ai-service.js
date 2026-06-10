@@ -294,6 +294,8 @@ ${buildPhaseDocsForPrompt({ format: 'terse' })}
 
 LOOP SYSTEM: Any step can repeat using 'loopBack' + 'loopCount'.
 
+FIXED LISTS ARE VALID AND COMPLETE: On ranking ('rank') and multiple-choice steps, the item list can be EITHER a reference to an earlier step OR a fixed list the teacher typed themselves (a plain array of strings, or comma-separated text). A fixed list needs nothing else — do NOT suggest adding a collection step, a data source, or questions to gather items when a fixed list is already there. Also: a ranking step's prompt is an INSTRUCTION ("Rank these field trips from favorite to least favorite"), not a question — when suggesting prompt wording for a rank step, suggest instructions, never example questions.
+
 CHECK FOR:
 1. Steps that are missing required settings (would cause the game to crash)
 2. Steps that try to use data from a step that hasn't happened yet
