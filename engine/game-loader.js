@@ -790,6 +790,10 @@ export function validate(config, gameId, options) {
   // to use the .list synthetic suffix.
   scanTemplatesForRawArrays(config, gameId, warnings);
 
+  // Special-scope tokens used where they can't resolve (e.g. {{_current.x}}
+  // outside foreach) — would render as raw code on student screens.
+  scanSpecialScopesOutOfContext(config, gameId, warnings);
+
   // Typed-dataflow scan — for every dataRef field, check that the producer
   // phase's output type matches the consumer's `accepts` clause.
   scanDataRefTypeMismatches(config, gameId, warnings);
@@ -851,6 +855,7 @@ function inferDiagnosticCode(msg, severity) {
   // Template / typed dataflow
   if (/will display as "\[object Object\]/.test(msg)) return DIAGNOSTIC_CODES.RAW_ARRAY_IN_TEMPLATE;
   if (/produces .+ but the field needs/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
+  if (/students will see the raw code on screen/.test(msg)) return DIAGNOSTIC_CODES.SPECIAL_SCOPE_OUT_OF_CONTEXT;
 
   // Design-hole warnings
   if (/no "scoresFrom" and no "correctOption"/.test(msg)) return DIAGNOSTIC_CODES.WAGER_NO_RESOLUTION_BASIS;
@@ -1048,7 +1053,7 @@ function detectCycles(config, gameId, errors) {
 }
 
 // Phase fields that hold templates the engine resolves at runtime.
-const TEMPLATE_FIELDS = ['template', 'content', 'message', 'prompt', 'instruction', 'hostTemplate', 'playerTemplate'];
+const TEMPLATE_FIELDS = ['template', 'content', 'message', 'prompt', 'instruction', 'itemTemplate', 'hostTemplate', 'playerTemplate'];
 
 // BFS from lobby across next/approveNext/rejectNext/loopBack edges. Any phase
 // not reached is an orphan — usually means an earlier phase is missing a `next`.
@@ -1150,6 +1155,45 @@ function scanDataRefTypeMismatches(config, gameId, warnings) {
 // Replaces the old hardcoded KNOWN_ARRAY_FIELDS list — typing now flows from
 // phase-schemas.js so adding a new array output to a schema automatically
 // participates without editing this function.
+// Special-scope tokens (_current/_foreach/_candidates/_pair) only resolve in
+// specific contexts. Outside them, the engine leaves the {{token}} unresolved
+// and students see raw code on their screens — the worst kind of leak. The
+// feedback-coach-academy game shipped this exact bug: {{_current.critique}} in
+// a reveal-one message (resolved once at phase start, no per-item scope).
+//
+// Valid contexts:
+//   _current / _foreach / _candidates — inside foreach subPhases
+//   _current                          — also reveal-one's itemTemplate (per-item)
+//   _pair                             — reveal phases with scope: "pair"
+function scanSpecialScopesOutOfContext(config, gameId, warnings) {
+  const FOREACH_KINDS = { foreachItem: '_current', foreachScope: '_foreach', foreachCandidates: '_candidates' };
+  for (const [name, phase] of Object.entries(config.phases)) {
+    if (phase.type === 'foreach') continue; // subPhases are the valid context
+    for (const field of TEMPLATE_FIELDS) {
+      const tpl = phase[field];
+      if (!tpl || typeof tpl !== 'string') continue;
+      for (const tok of parseTemplateTokens(tpl)) {
+        const parsed = parseRef(tok.ref);
+        const scope = FOREACH_KINDS[parsed.kind];
+        if (scope) {
+          if (scope === '_current' && phase.type === 'reveal-one' && field === 'itemTemplate') continue;
+          const hint = phase.type === 'reveal-one'
+            ? ` Per-item values belong in "itemTemplate", not "${field}".`
+            : ` ${scope} only works inside a foreach step's sub-steps.`;
+          warnings.push(
+            `Game "${gameId}": phase "${name}" ${field} contains "{{${tok.ref}}}" — ${scope} doesn't exist here, so students will see the raw code on screen.${hint}`
+          );
+        }
+        if (parsed.kind === 'pairScope' && !(phase.type === 'reveal' && phase.scope === 'pair')) {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" ${field} contains "{{${tok.ref}}}" — _pair only works on a reveal step with scope "pair", so students will see the raw code on screen.`
+          );
+        }
+      }
+    }
+  }
+}
+
 function scanTemplatesForRawArrays(config, gameId, warnings) {
   for (const [name, phase] of Object.entries(config.phases)) {
     for (const field of TEMPLATE_FIELDS) {

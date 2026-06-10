@@ -849,6 +849,11 @@ export const PHASE_SCHEMAS = {
       message: {
         type: 'templateString', optional: true,
         label: 'Header message'
+      },
+      itemTemplate: {
+        type: 'templateString', optional: true,
+        label: 'Per-item template',
+        description: 'How each revealed item displays. Use {{_current.field}} to pull values from the item (e.g. "{{_current.playerName}}: {{_current.critique}}"). Without it, object items render as raw JSON.'
       }
     },
     transitions: {

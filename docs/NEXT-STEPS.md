@@ -25,7 +25,6 @@ History lives in [CHANGELOG.md](CHANGELOG.md); parked ideas in [DEFERRED-IDEAS.m
 4. **Remaining safety items** (from SAFETY-DESIGN.md): anonymous mode option,
    rate limiting / DoS limits, PII redaction.
 5. **Editor odds and ends:**
-   - `{{}}` chips in screen-control templates still insert raw syntax — needs friendly labels
    - vote phase "own options" (same teacher-typed-list treatment rank got)
    - class-critique ships with an empty reveal template (flagged during game sweep)
 

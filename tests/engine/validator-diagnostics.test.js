@@ -254,8 +254,11 @@ describe('validator diagnostics — game snapshot', () => {
       'dream-vacation': [],
       'elimination-game': [],
       'excuse-machine': [],
-      'feedback-academy': ['DATA_REF_TYPE_MISMATCH', 'RAW_ARRAY_IN_TEMPLATE', 'UNKNOWN_FIELD'],
-      'feedback-coach-academy': ['DATA_REF_TYPE_MISMATCH', 'RAW_ARRAY_IN_TEMPLATE'],
+      // 2026-06-10 sweep: stale fields removed, [object Object]/raw-{{_current}}
+      // leaks fixed (reveal-one itemTemplate). The remaining mismatches are
+      // structural: their leaderboards consume judge-task result objects.
+      'feedback-academy': ['DATA_REF_TYPE_MISMATCH'],
+      'feedback-coach-academy': ['DATA_REF_TYPE_MISMATCH'],
       'human-vs-ai-birthday-party-battle': [],
       'llm-or-duck': [],
       'mad-lib-mashup': ['DATA_REF_TYPE_MISMATCH'],

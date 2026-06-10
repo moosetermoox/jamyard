@@ -99,7 +99,8 @@ Framework for quickly building classroom games where:
 - **Prompt-aware Bot Fill** — `screens/shared/bot-brain.js` (`botAnswerFor(prompt)`): pure rules, no AI — keyword banks (food/feelings/places/excuses/ideas/story/etc.), embedded-choice picking ("pizza, sushi, or tacos?" → one of them), yes/no detection, "one word" handling, playful generic fallback. Multi-field inputs match each field's placeholder; merge bots combine the seed answers they can see. Browser global + side-effect-importable for tests.
 - **Juice pack** — `screens/shared/juice.js` (browser global + side-effect-importable for tests): Web Audio synthesized SFX (cue table, per-cue throttle, gesture-unlocked AudioContext), theme-colored canvas confetti (reads `--theme-*` CSS vars, honors prefers-reduced-motion), deterministic emoji avatars (`Juice.avatarFor(name)` — consistent across host lobby/leaderboard/winner/teams and the student's own device), persisted mute chip on host. Themes declare `juice.wave` (arcade=square, ocean=sine...) surfaced as `window.__themeJuice`. Host: join pop, progress blips, reveal chimes, leaderboard tada + staggered rows, winner fanfare+confetti, timer ticks. Players stay quiet except own moments (submit blip, personal win confetti). All guarded — juice can never break gameplay.
 - **Simple view (plain-English editor)** — `screens/designer/simple-view.js`: the editor's DEFAULT view renders each step as a sentence with its editable text inline ("Students answer: [box] · passing allowed · ⏱ 120s"), per-step "✨ Ask AI" for structural changes, "Advanced settings →" to the canvas. Choices/rank items/wager options are inline add-remove rows; foreach sub-steps render indented; structural facts (pairing, loops, scoring) read as sentence fragments. Simple/Advanced pill in the header, preference in localStorage. Implementation: wraps `renderCanvas()` (stays in sync with every mutation path incl. Ask-AI apply) and `selectPhase()` (review-panel deep links flip to Advanced first). Most teachers should never need the phase graph.
-- **650 tests passing** (`npm test`)
+- **Friendly tokens everywhere** — teachers never see raw `{{ref}}` syntax: Simple view renders tokens as chips inside token-aware text boxes; Advanced primary textareas + screen-control/sidebar template fields tokenize to `[label — step N]` via `buildTemplateVariables` (labels are step-unique — duplicate labels used to let detokenize rewire refs to the wrong step); `phaseContentLabel` strips tokens from step-reference sentences. Validator rule `SPECIAL_SCOPE_OUT_OF_CONTEXT` warns when `_current`/`_foreach`/`_candidates`/`_pair` appear where they can't resolve (would render raw to students).
+- **658 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for phone testing and screenshot harnesses)
 
@@ -179,7 +180,7 @@ Framework for quickly building classroom games where:
 10. `collect-choice` — Players pick from predefined choices; `correctAnswer`+`speedBonus` for Kahoot-style scoring; `choicePool`/`excludeAuthored`/`shuffle` for bluffing
 11. `ai-eliminate` — AI judges answers and eliminates rule-breakers
 12. `leaderboard` — Show scores and rankings with personal highlight; `from` accepts array of refs to sum across rounds
-13. `reveal-one` — Host reveals items one-by-one (countdown style)
+13. `reveal-one` — Host reveals items one-by-one (countdown style); `itemTemplate` renders object items via `{{_current.field}}` (without it, objects fall back to text/name or JSON)
 14. `team-split` — Divide players into teams (random or balanced)
 15. `rank` — Players reorder a list by preference, aggregated by average position
 16. `wager` — Players bet points on outcomes, auto or host-resolved
@@ -283,7 +284,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 650 Vitest tests (~1.5s)
+- `npm test` — runs all 658 Vitest tests (~1.5s)
 - `node scripts/simulate-any-game.js <game-id>` — universal automated playthrough (requires server running)
 - `node scripts/simulate-closer.js` / `simulate-snowball.js` / `simulate-one-voice.js` — Connection Pack invariant sims (pass anonymity, pair privacy, draft sync, tap timing)
 - New shipped games must be added to the snapshot map in `tests/engine/validator-diagnostics.test.js` (it fails loudly on unknown games)

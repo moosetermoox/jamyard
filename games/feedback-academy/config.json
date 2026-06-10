@@ -15,13 +15,7 @@
     "choose-topic": {
       "type": "announce",
       "message": "Teacher: Choose what students will give feedback on this round.\n\nExamples:\n- A paragraph of writing\n- A math problem solution\n- A project idea\n- A presentation outline\n- A design sketch description",
-      "next": "practice-intro",
-      "teacherInput": {
-        "required": true,
-        "label": "Enter the topic or item for feedback",
-        "type": "text",
-        "id": "topic"
-      }
+      "next": "practice-intro"
     },
     "practice-intro": {
       "type": "announce",
@@ -38,14 +32,13 @@
     },
     "assign-scenarios": {
       "type": "announce",
-      "message": "Everyone will give feedback on this scenario.\n\nRead carefully, then write feedback that would actually help this student improve!",
+      "message": "Everyone will give feedback on this scenario.\n\nThe assignment: {{generate-scenarios.result.context}}\n\nThe student's work:\n\n{{generate-scenarios.result.work}}\n\nRead carefully, then write feedback that would actually help this student improve!",
       "timer": 10,
-      "next": "practice-feedback",
-      "showScenario": true
+      "next": "practice-feedback"
     },
     "practice-feedback": {
       "type": "collect",
-      "prompt": "Here's a student's work:\n\n{{generate-scenarios.result}}\n\nGive formative feedback that will help them improve. Be specific, actionable, and constructive.",
+      "prompt": "The assignment: {{generate-scenarios.result.context}}\n\nHere's a student's work:\n\n{{generate-scenarios.result.work}}\n\nGive formative feedback that will help them improve. Be specific, actionable, and constructive.",
       "timer": 120,
       "from": "all",
       "next": "coach-feedback"
@@ -99,7 +92,6 @@
       "type": "foreach",
       "data": "collect-work.responses",
       "shuffle": true,
-      "excludeSelf": true,
       "subPhases": {
         "show-work": {
           "type": "announce",

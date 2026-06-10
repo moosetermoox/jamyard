@@ -897,8 +897,10 @@ function phaseContentLabel(phaseId) {
   if (!phase) return phaseId;
   var content = phase.prompt || phase.message || phase.instruction || phase.content;
   if (typeof content === 'string' && content.trim()) {
-    var trimmed = content.trim().replace(/\s+/g, ' ');
+    // {{tokens}} are code — never let them leak into a friendly label
+    var trimmed = content.replace(/\{\{[^}]*\}\}/g, '…').trim().replace(/\s+/g, ' ');
     if (trimmed.length > 36) trimmed = trimmed.slice(0, 33) + '…';
+    if (!trimmed.replace(/[….\s]/g, '')) return phaseRefLabel(phaseId, true);
     return "'" + trimmed + "'";
   }
   return phaseRefLabel(phaseId, true);
@@ -1109,7 +1111,9 @@ function openInsertMenu(input, phaseId, anchor) {
         item.appendChild(iconEl);
         item.appendChild(labelEl);
         item.addEventListener('click', function () {
-          insertTokenAtCursor(input, ref.token);
+          // Tokenized inputs get the friendly [label]; raw inputs the {{ref}}
+          var toInsert = input._getVars ? tokenize(ref.token, input._getVars()) : ref.token;
+          insertTokenAtCursor(input, toInsert);
           menu.remove();
         });
         group.appendChild(item);
@@ -1166,7 +1170,12 @@ function appendPrimaryField(box, phase, phaseId) {
     if (prim.type === 'text') input.type = 'text';
     input.className = 'phase-box-primary-input';
     input.placeholder = prim.placeholder || '';
-    input.value = phase[prim.key] || '';
+    // Friendly-token display: stored {{refs}} render as [labels] in the box;
+    // detokenized back to raw refs on every input (same round-trip the
+    // sidebar template fields use). Tokens outside the known vocabulary
+    // stay raw and are translated by the "Will show:" preview row instead.
+    input._getVars = function () { return buildTemplateVariables(phaseId); };
+    input.value = tokenize(phase[prim.key] || '', input._getVars());
 
     // Auto-resize: grows to fit content, capped at 1/3 viewport height.
     var autoResize = null;
@@ -1191,7 +1200,7 @@ function appendPrimaryField(box, phase, phaseId) {
 
     input.addEventListener('input', function () {
       isDirty = true;
-      phase[prim.key] = input.value;
+      phase[prim.key] = detokenize(input.value, input._getVars());
       refreshTokenPreview(preview, input);
       if (autoResize) autoResize();
     });
@@ -3533,11 +3542,19 @@ function detokenize(text, vars) {
   return result;
 }
 
-// Build template variables available for a given phase (phases that come before it)
+// Build template variables available for a given phase (phases that come before it).
+// Labels MUST be unique per ref — they include the step number ("AI result —
+// step 5") because tokenize/detokenize round-trips on the label text. With
+// duplicate labels (a game with two AI steps), detokenize would silently
+// rewire a {{ref}} to the wrong step.
 function buildTemplateVariables(currentPhaseId, extraVars) {
   var order = buildPhaseOrder();
   var currentIndex = order.indexOf(currentPhaseId);
   var vars = [];
+
+  function stepN(pid) {
+    return 'step ' + (order.indexOf(pid) + 1);
+  }
 
   for (var i = 0; i < order.length; i++) {
     if (i >= currentIndex) break;
@@ -3545,27 +3562,87 @@ function buildTemplateVariables(currentPhaseId, extraVars) {
     var p = gameConfig.phases[pid];
     var cat = PHASE_CATALOG[p.type];
     if (!cat) continue;
+    var at = ' — ' + stepN(pid);
 
-    if (p.type === 'collect' || p.type === 'collect-choice') {
-      vars.push({ label: cat.friendlyName + ' answers', variable: '{{' + pid + '.responses}}' });
+    if (p.type === 'collect') {
+      vars.push({ label: 'List of answers' + at, variable: '{{' + pid + '.responses.list}}' });
+      vars.push({ label: 'Raw answers (for AI)' + at, variable: '{{' + pid + '.responses}}' });
+      if (p.rotateFrom || p.assign === 'pairwise') {
+        vars.push({ label: "Each player's assigned item" + at, variable: '{{' + pid + '.assigned}}' });
+      }
+    }
+    if (p.type === 'collect-choice') {
+      vars.push({ label: 'Bar chart of picks' + at, variable: '{{' + pid + '.barChart}}' });
+      vars.push({ label: 'Vote counts' + at, variable: '{{' + pid + '.tally}}' });
+      if (p.correctAnswer) {
+        vars.push({ label: 'Scores (graded)' + at, variable: '{{' + pid + '.scores}}' });
+        vars.push({ label: 'The correct answer' + at, variable: '{{' + pid + '.correctAnswer}}' });
+      }
     }
     if (p.type === 'ai-process') {
-      vars.push({ label: 'AI result', variable: '{{' + pid + '.result}}' });
+      vars.push({ label: 'AI result' + at, variable: '{{' + pid + '.result}}' });
+      if (p.perPlayer) {
+        vars.push({ label: "Each player's own AI item" + at, variable: '{{' + pid + '.mine}}' });
+      }
     }
-    if (p.type === 'vote' || p.type === 'wager') {
-      vars.push({ label: cat.friendlyName + ' scores', variable: '{{' + pid + '.scores}}' });
+    if (p.type === 'vote') {
+      vars.push({ label: 'Winning answer' + at, variable: '{{' + pid + '.winner}}' });
+      vars.push({ label: 'Vote scores' + at, variable: '{{' + pid + '.scores}}' });
+      vars.push({ label: 'Bar chart of votes' + at, variable: '{{' + pid + '.barChart}}' });
+    }
+    if (p.type === 'wager') {
+      vars.push({ label: 'Wager scores' + at, variable: '{{' + pid + '.scores}}' });
+    }
+    if (p.type === 'rank') {
+      vars.push({ label: 'Ranked list' + at, variable: '{{' + pid + '.rankedList}}' });
+    }
+    if (p.type === 'rate') {
+      vars.push({ label: 'Bar chart of averages' + at, variable: '{{' + pid + '.barChart}}' });
     }
     if (p.type === 'foreach') {
-      vars.push({ label: 'Foreach scores', variable: '{{' + pid + '.scores}}' });
+      vars.push({ label: 'Round-by-round scores' + at, variable: '{{' + pid + '.scores}}' });
+    }
+    if (p.type === 'merge') {
+      vars.push({ label: 'List of combined answers' + at, variable: '{{' + pid + '.merged.list}}' });
+    }
+    if (p.type === 'one-voice') {
+      vars.push({ label: 'Attempts' + at, variable: '{{' + pid + '.attempts}}' });
+      vars.push({ label: 'Best run' + at, variable: '{{' + pid + '.bestRun}}' });
+      vars.push({ label: 'Times reset' + at, variable: '{{' + pid + '.resets}}' });
+      vars.push({ label: 'The target number' + at, variable: '{{' + pid + '.target}}' });
+    }
+    if (p.type === 'eliminate' || p.type === 'ai-eliminate') {
+      vars.push({ label: 'How many knocked out' + at, variable: '{{' + pid + '.eliminated.length}}' });
     }
   }
+
+  // Global: how many players are still in (used by elimination games)
+  vars.push({ label: 'Players remaining', variable: '{{remaining.length}}' });
+
+  // Hidden vars: tokenized for friendly display but not offered as insert
+  // chips — aliases of refs above, or scopes only valid in special contexts.
+  // Aliases come AFTER their canonical twin so detokenize (first label match
+  // wins) normalizes to the canonical form.
+  for (var ai = 0; ai < order.length && ai < currentIndex; ai++) {
+    var ap = gameConfig.phases[order[ai]];
+    if (!ap) continue;
+    var aat = ' — ' + stepN(order[ai]);
+    if (ap.type === 'collect') {
+      vars.push({ label: 'List of answers' + aat, variable: '{{' + order[ai] + '.list}}', hidden: true });
+    }
+    if (ap.type === 'ai-process') {
+      vars.push({ label: 'AI result as a list' + aat, variable: '{{' + order[ai] + '.list}}', hidden: true });
+    }
+  }
+  vars.push({ label: "This pair's question", variable: '{{_pair.prompt}}', hidden: true });
+  vars.push({ label: "This pair's answers", variable: '{{_pair.answers}}', hidden: true });
 
   // Add loop variables if any phase has loopBack pointing at an ancestor
   for (var li = 0; li < order.length; li++) {
     var lp = gameConfig.phases[order[li]];
     if (lp && lp.loopBack) {
-      vars.push({ label: 'Loop ' + order[li] + ' iteration', variable: '{{_loop.' + order[li] + '.iteration}}' });
-      vars.push({ label: 'Loop ' + order[li] + ' total', variable: '{{_loop.' + order[li] + '.total}}' });
+      vars.push({ label: 'Round number (' + stepN(order[li]) + ' loop)', variable: '{{_loop.' + order[li] + '.iteration}}' });
+      vars.push({ label: 'Total rounds (' + stepN(order[li]) + ' loop)', variable: '{{_loop.' + order[li] + '.total}}' });
     }
   }
 
@@ -3664,6 +3741,7 @@ function addVariableChips(textarea, currentPhaseId, extraVars) {
   container.appendChild(chipLabel);
 
   for (var i = 0; i < vars.length; i++) {
+    if (vars[i].hidden) continue; // tokenize-only vars (aliases, special scopes)
     (function (v) {
       var token = '[' + v.label + ']';
       var chip = document.createElement('button');

@@ -1,30 +1,50 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 
+/**
+ * Pure: render one reveal item as a display string.
+ *
+ * With an itemTemplate, {{_current.path}} tokens pull values from the item
+ * (missing paths render as empty string — never raw code). Without one,
+ * fall back to readable defaults; objects with no recognizable text field
+ * stringify as JSON (the validator nudges authors toward itemTemplate).
+ */
+export function formatRevealItem(item, itemTemplate) {
+  if (itemTemplate) {
+    return itemTemplate.replace(/\{\{\s*_current(?:\.([\w.]+))?\s*\}\}/g, (_m, path) => {
+      if (!path) {
+        if (typeof item === 'string') return item;
+        return (item && (item.text || item.name)) || '';
+      }
+      let v = item;
+      for (const seg of path.split('.')) {
+        v = v == null ? undefined : v[seg];
+      }
+      return v == null ? '' : String(v);
+    });
+  }
+  if (typeof item === 'string') return item;
+  if (item && item.text) return item.text;
+  if (item && item.name && item.response) return item.name + ': ' + item.response;
+  return JSON.stringify(item);
+}
+
 registerHandler('reveal-one', {
   async onEnter(ctx) {
     const { phase, engine, room } = ctx;
     let items = engine.resolve(phase.from) || [];
 
-    // Normalize to array
+    // Normalize to array (objects keep their shape so itemTemplate can
+    // reference their fields; only non-array containers are unwrapped)
     if (!Array.isArray(items)) {
       if (typeof items === 'object') {
-        items = Object.entries(items).map(([key, val]) => {
-          if (typeof val === 'object' && val.text) return val.text;
-          if (typeof val === 'object' && val.name) return val.name + ': ' + (val.text || val.response || JSON.stringify(val));
-          return String(val);
-        });
+        items = Object.values(items);
       } else {
-        items = [String(items)];
+        items = [items];
       }
     }
-    // Normalize array items to strings
-    items = items.map(item => {
-      if (typeof item === 'string') return item;
-      if (item && item.text) return item.text;
-      if (item && item.name && item.response) return item.name + ': ' + item.response;
-      return JSON.stringify(item);
-    });
+    // Render each item to its display string
+    items = items.map(item => formatRevealItem(item, phase.itemTemplate));
 
     const roMessage = phase.message ? ctx.resolveTemplate(phase.message) : 'Reveal Time!';
 

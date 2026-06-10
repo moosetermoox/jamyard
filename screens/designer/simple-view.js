@@ -126,12 +126,17 @@
 
   // Suffix words beyond editor.js' PRIMARY_TOKEN_SUFFIXES
   var SV_EXTRA_SUFFIXES = {
-    winner:    'the winning answer',
-    responses: 'the answers',
-    merged:    'the combined answers',
-    itemCount: 'how many items',
-    attempts:  'attempt count',
-    bestRun:   'best run'
+    winner:        'the winning answer',
+    responses:     'the answers',
+    merged:        'the combined answers',
+    rankedList:    'the ranked list',
+    correctAnswer: 'the correct answer',
+    itemCount:     'how many items',
+    attempts:      'attempt count',
+    bestRun:       'best run',
+    resets:        'times reset',
+    target:        'the target number',
+    playerName:    "the player's name"
   };
 
   function svSuffixWords(suffix) {
@@ -140,11 +145,20 @@
     return SV_EXTRA_SUFFIXES[suffix] || null;
   }
 
+  function svOrdinal(n) {
+    var i = parseInt(n, 10) + 1; // refs are 0-based
+    var tail = i % 10 === 1 && i % 100 !== 11 ? 'st'
+      : i % 10 === 2 && i % 100 !== 12 ? 'nd'
+      : i % 10 === 3 && i % 100 !== 13 ? 'rd' : 'th';
+    return i + tail;
+  }
+
   // "{{ai-mashup.list}}" -> "list of answers from step 5"
   function svTokenLabel(token) {
     var ref = token.replace(/^\{\{\s*/, '').replace(/\s*\}\}$/, '');
     var parts = ref.split('.');
     var head = parts[0];
+    var tail = parts[parts.length - 1];
 
     // Special scopes resolved at play time, not step refs
     if (head === '_pair') {
@@ -153,17 +167,42 @@
     }
     if (head === '_current') {
       if (parts.length === 1) return "this round's item";
-      return "this round's " + (parts[1] === 'text' ? 'answer' : parts.slice(1).join(' '));
+      var cur = parts.slice(1);
+      if (cur[0] === 'fields') cur = cur.slice(1); // fields.question -> question
+      if (cur[0] === 'a' || cur[0] === 'b') {
+        return 'answer ' + cur[0].toUpperCase() + ' this round';
+      }
+      var curTails = { text: 'answer', playerName: 'player', choice: 'choice' };
+      return "this round's " + (curTails[cur[0]] || cur.join(' '));
     }
-    if (head === '_foreach') return parts[1] === 'total' ? 'total rounds' : 'round number';
-    if (head === '_loop') return parts[2] === 'total' ? 'total rounds' : 'round number';
+    if (head === '_foreach') return tail === 'total' ? 'total rounds' : 'round number';
+    if (head === '_loop') return tail === 'total' ? 'total rounds' : 'round number';
     if (head === '_candidates') return 'the choices';
+    if (head === 'remaining') return 'how many players remain';
 
-    var suffix = parts.length > 1 ? parts[parts.length - 1] : null;
-    var words = suffix ? svSuffixWords(suffix) : null;
     var from = (gameConfig.phases && gameConfig.phases[head]) ? ' from ' + stepName(head) : '';
+
+    // Multi-part paths with friendly composites
+    var rest = parts.slice(1);
+    if (rest.length >= 2) {
+      if (rest[0] === 'responses' && rest[1] === 'list') return 'list of answers' + from;
+      if (rest[0] === 'responses' && rest[1] === 'length') return 'how many answered' + from;
+      if (rest[0] === 'merged' && rest[1] === 'list') return 'list of combined answers' + from;
+      if (rest[0] === 'eliminated' && rest[1] === 'length') return 'how many were knocked out' + from;
+      if (rest[0] === 'rankings' && rest[2] === 'item') return 'the ' + svOrdinal(rest[1]) + '-ranked item' + from;
+      if (rest[0] === 'result') {
+        // result.category -> "the AI's category"; result.0.scenario -> "the AI's 1st scenario"
+        var path = rest.slice(1);
+        if (/^\d+$/.test(path[0])) {
+          return "the AI's " + svOrdinal(path[0]) + ' ' + (path.slice(1).join(' ') || 'item') + from;
+        }
+        return "the AI's " + path.join(' ') + from;
+      }
+    }
+
+    var words = tail !== head ? svSuffixWords(tail) : null;
     if (words) return words + from;
-    if (parts.length > 1) return parts.slice(1).join(' ') + from;
+    if (parts.length > 1) return rest.join(' ') + from;
     return 'data' + from;
   }
 

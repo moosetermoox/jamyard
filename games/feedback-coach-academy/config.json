@@ -103,9 +103,10 @@
     "reveal-1-feedback": {
       "type": "reveal-one",
       "from": "scenario-1-evaluate.result",
-      "message": "{{_current.playerName}}'s Feedback:\n\n{{scenario-1-collect.responses}}\n\nScore: {{_current.score}}/100\n\n💬 AI Evaluation:\n{{_current.critique}}",
+      "message": "💬 Scenario 1 feedback — one at a time:",
       "timer": 12,
-      "next": "reveal-scenario-2"
+      "next": "reveal-scenario-2",
+      "itemTemplate": "{{_current.playerName}} — Score: {{_current.score}}/100\n\n💬 {{_current.critique}}"
     },
     "reveal-scenario-2": {
       "type": "announce",
@@ -116,9 +117,10 @@
     "reveal-2-feedback": {
       "type": "reveal-one",
       "from": "scenario-2-evaluate.result",
-      "message": "{{_current.playerName}}'s Feedback:\n\n{{scenario-2-collect.responses}}\n\nScore: {{_current.score}}/100\n\n💬 AI Evaluation:\n{{_current.critique}}",
+      "message": "💬 Scenario 2 feedback — one at a time:",
       "timer": 15,
-      "next": "reveal-scenario-3"
+      "next": "reveal-scenario-3",
+      "itemTemplate": "{{_current.playerName}} — Score: {{_current.score}}/100\n\n💬 {{_current.critique}}"
     },
     "reveal-scenario-3": {
       "type": "announce",
@@ -129,9 +131,10 @@
     "reveal-3-feedback": {
       "type": "reveal-one",
       "from": "scenario-3-evaluate.result",
-      "message": "{{_current.playerName}}'s Feedback:\n\n{{scenario-3-collect.responses}}\n\nScore: {{_current.score}}/100\n\n💬 AI Evaluation:\n{{_current.critique}}",
+      "message": "💬 Scenario 3 feedback — one at a time:",
       "timer": 15,
-      "next": "final-scores"
+      "next": "final-scores",
+      "itemTemplate": "{{_current.playerName}} — Score: {{_current.score}}/100\n\n💬 {{_current.critique}}"
     },
     "final-scores": {
       "type": "leaderboard",
