@@ -13,11 +13,30 @@
   </header>
 
   <main>
-    <div class="toolbar">
-      <button id="use-recipe-btn">Use a Recipe</button>
-      <button id="create-new-btn">+ Create New Game</button>
-      <button id="ai-generate-btn">AI Generate Game</button>
-    </div>
+    <!-- Idea-first front door: the teacher's idea is the entry point.
+         Routes through /api/games/from-description (recipe match) with
+         the no-match view offering the picker + legacy generator. -->
+    <section id="idea-hero">
+      <h2 class="idea-hero-title">What do you want to play with your class?</h2>
+      <div class="idea-input-row">
+        <textarea id="idea-input" rows="2"
+          placeholder="Describe it in plain words — 'a quick poll about our field trip', 'something to help my class feel more connected', 'students write funny excuses and vote on the best'..."></textarea>
+        <button id="idea-go-btn">Make it</button>
+      </div>
+      <div class="idea-examples">
+        <span class="idea-examples-label">Try:</span>
+        <button class="idea-example-chip" type="button">I want my class to laugh together</button>
+        <button class="idea-example-chip" type="button">A quick poll before lunch</button>
+        <button class="idea-example-chip" type="button">Turn everyone's ideas into one class answer</button>
+        <button class="idea-example-chip" type="button">A three-round elimination game with funny answers</button>
+      </div>
+      <p class="idea-advanced-links">
+        Prefer to build it yourself?
+        <a href="#" id="use-recipe-link">Browse recipes</a>
+        <span class="idea-link-sep">·</span>
+        <a href="#" id="create-new-link">Start from scratch</a>
+      </p>
+    </section>
 
     <section id="games-section">
       <p id="loading-message">Loading games...</p>

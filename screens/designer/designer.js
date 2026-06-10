@@ -1,27 +1,77 @@
 var gamesGrid = document.getElementById('games-grid');
 var loadingMessage = document.getElementById('loading-message');
 var errorMessage = document.getElementById('error-message');
-var useRecipeBtn = document.getElementById('use-recipe-btn');
-var createNewBtn = document.getElementById('create-new-btn');
-var aiGenerateBtn = document.getElementById('ai-generate-btn');
+var ideaInput = document.getElementById('idea-input');
+var ideaGoBtn = document.getElementById('idea-go-btn');
+var useRecipeLink = document.getElementById('use-recipe-link');
+var createNewLink = document.getElementById('create-new-link');
 
 var allGames = [];
 
 fetchGames();
 
-if (useRecipeBtn) {
-  useRecipeBtn.addEventListener('click', function () {
-    showRecipePicker();
+// --- Idea-first front door ---
+// The teacher's idea is the entry point: type it, hit Make It, and the
+// existing from-description flow takes over (recipe match → preview, or
+// no-match → picker / advanced generator). The old three-button toolbar
+// is demoted to the "prefer to build it yourself?" links below the box.
+
+function launchIdea() {
+  var idea = (ideaInput.value || '').trim();
+  if (idea.length < 10) {
+    ideaInput.focus();
+    ideaInput.classList.add('idea-input-nudge');
+    setTimeout(function () { ideaInput.classList.remove('idea-input-nudge'); }, 600);
+    return;
+  }
+  showAIGenerateModal(idea);
+}
+
+if (ideaGoBtn) {
+  ideaGoBtn.addEventListener('click', launchIdea);
+}
+if (ideaInput) {
+  // Enter submits (ideas are usually one line); Shift+Enter makes a newline.
+  ideaInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      launchIdea();
+    }
   });
 }
 
-createNewBtn.addEventListener('click', function () {
-  showTemplatePicker();
-});
+// Example chips fill the box — blank-page paralysis is real.
+var ideaChips = document.querySelectorAll('.idea-example-chip');
+for (var ci = 0; ci < ideaChips.length; ci++) {
+  ideaChips[ci].addEventListener('click', function (e) {
+    ideaInput.value = e.currentTarget.textContent;
+    ideaInput.focus();
+  });
+}
 
-aiGenerateBtn.addEventListener('click', function () {
-  showAIGenerateModal();
-});
+if (useRecipeLink) {
+  useRecipeLink.addEventListener('click', function (e) {
+    e.preventDefault();
+    showRecipePicker();
+  });
+}
+if (createNewLink) {
+  createNewLink.addEventListener('click', function (e) {
+    e.preventDefault();
+    showTemplatePicker();
+  });
+}
+
+// Deep link: /designer?idea=... launches the flow immediately (lets the
+// home screen or anything else hand an idea straight to the front door).
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var idea = (params.get('idea') || '').trim();
+  if (idea.length >= 10) {
+    if (ideaInput) ideaInput.value = idea;
+    showAIGenerateModal(idea);
+  }
+})();
 
 async function fetchGames() {
   try {
@@ -1266,7 +1316,7 @@ function showFormDiagnostics(status, data) {
 // a tiny structured object — the failure mode is "no match," not parse error.
 // =======================================================================
 
-function showAIGenerateModal() {
+function showAIGenerateModal(initialDescription) {
   var existing = document.getElementById('ai-match-modal');
   if (existing) existing.remove();
 
@@ -1283,10 +1333,10 @@ function showAIGenerateModal() {
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 
-  renderAIDescriptionStep(modal, overlay);
+  renderAIDescriptionStep(modal, overlay, initialDescription);
 }
 
-function renderAIDescriptionStep(modal, overlay) {
+function renderAIDescriptionStep(modal, overlay, initialDescription) {
   modal.innerHTML = '';
 
   var title = document.createElement('h2');
@@ -1305,6 +1355,7 @@ function renderAIDescriptionStep(modal, overlay) {
   textarea.rows = 5;
   textarea.className = 'recipe-field-input';
   textarea.style.cssText = 'width:100%; resize:vertical; box-sizing:border-box; margin:0 0 16px 0;';
+  if (initialDescription) textarea.value = initialDescription;
   modal.appendChild(textarea);
 
   var status = document.createElement('div');
@@ -1339,6 +1390,12 @@ function renderAIDescriptionStep(modal, overlay) {
   modal.appendChild(btnRow);
 
   textarea.focus();
+
+  // Front-door path: the idea was already typed in the hero box — skip
+  // straight to matching instead of asking the teacher to re-confirm.
+  if (initialDescription && initialDescription.trim().length >= 10) {
+    submitAIDescription(modal, initialDescription.trim(), status, generateBtn, overlay);
+  }
 }
 
 async function submitAIDescription(modal, description, status, generateBtn, overlay) {
