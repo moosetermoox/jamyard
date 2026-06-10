@@ -490,10 +490,17 @@
       var advBtn = el('button', 'sv-action sv-action-quiet', 'Advanced settings →');
       advBtn.type = 'button';
       advBtn.setAttribute('data-phase-id', phaseId);
-      advBtn.addEventListener('click', function () {
+      advBtn.addEventListener('click', function (e) {
+        // Don't let this click reach the canvas' outside-click-collapse
+        // handler — it would instantly deselect the step we just opened.
+        e.stopPropagation();
         var pid = this.getAttribute('data-phase-id');
         setEditorView('advanced');
         _origSelectPhase(pid);
+        // Bring the expanded step into view — the canvas otherwise opens
+        // scrolled to the top and the teacher has to hunt for it.
+        var box = document.querySelector('.phase-box[data-phase-id="' + pid + '"]');
+        if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
       actions.appendChild(advBtn);
 

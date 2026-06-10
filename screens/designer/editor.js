@@ -347,6 +347,11 @@ async function init() {
     // Clicks inside any phase-box are handled by handlePhaseClick (or by the
     // inline-form descendant check) — leave them alone.
     if (e.target.closest('.phase-box')) return;
+    // The Simple view is its own surface — its clicks (editing boxes,
+    // "Advanced settings" buttons) must not trigger the canvas collapse,
+    // which would both undo a just-made selection and re-render the
+    // simple list out from under a focused textarea.
+    if (e.target.closest('#simple-view')) return;
     // Active modal / overlay UIs that the user is interacting with.
     if (e.target.closest('.picker-overlay')) return;
     if (e.target.closest('.ask-ai-modal')) return;
