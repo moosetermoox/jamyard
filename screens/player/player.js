@@ -241,14 +241,13 @@ let turnCurrentInstanceId = null;
 })();
 
 // --- Bot Fill (prototype mode) ---
-var BOT_PHRASES = [
-  'Pizza is the best food', 'I love recess', 'Homework should be banned',
-  'Cats are better than dogs', 'Summer vacation rocks', 'Math is actually fun',
-  'I want to be an astronaut', 'Tacos every Tuesday', 'Rain is the best weather',
-  'Video games teach strategy', 'Reading is an adventure', 'Chocolate milk forever',
-  'Naps should be mandatory', 'The ocean is amazing', 'Robots will do our chores',
-  'Snow days are the best', 'Dinosaurs were awesome', 'Ice cream for breakfast'
-];
+// Answers come from /shared/bot-brain.js: prompt-aware rules so a snack
+// question gets a snack answer. Falls back to a playful generic if the
+// script didn't load for some reason.
+function botFillAnswer(promptText) {
+  if (typeof botAnswerFor === 'function') return botAnswerFor(promptText);
+  return 'Pizza is the best food';
+}
 
 window.addEventListener('message', function(e) {
   if (!e.data || e.data.type !== 'bot-fill') return;
@@ -268,16 +267,17 @@ window.addEventListener('message', function(e) {
       var fieldInputs = active.querySelectorAll('.field-input');
       if (fieldInputs.length > 0) {
         for (var fi = 0; fi < fieldInputs.length; fi++) {
-          fieldInputs[fi].value = BOT_PHRASES[Math.floor(Math.random() * BOT_PHRASES.length)];
+          // Each field gets an answer matched to its own label/placeholder
+          fieldInputs[fi].value = botFillAnswer(fieldInputs[fi].placeholder || promptDisplay.textContent);
         }
         var btn = active.querySelector('button#submit-btn');
         if (btn && !btn.disabled) btn.click();
       } else {
-        // Free text mode — fill textarea and submit
+        // Free text mode — answer the actual question on screen
         var textarea = active.querySelector('textarea');
         var btn = active.querySelector('button#submit-btn');
         if (textarea && btn && !btn.disabled) {
-          textarea.value = BOT_PHRASES[Math.floor(Math.random() * BOT_PHRASES.length)];
+          textarea.value = botFillAnswer(promptDisplay.textContent);
           btn.click();
         }
       }
@@ -307,7 +307,16 @@ window.addEventListener('message', function(e) {
     // wrote yet); everyone agrees shortly after, so each bot-fill click
     // moves the group forward without endlessly resetting agreements.
     if (!mergeDraftInput.value.trim()) {
-      var botDraft = BOT_PHRASES[Math.floor(Math.random() * BOT_PHRASES.length)];
+      // Actually merge: combine the seed answers shown on screen
+      var seedEls = mergeSeeds.querySelectorAll('.merge-seed');
+      var seedTexts = [];
+      for (var si2 = 0; si2 < seedEls.length && si2 < 2; si2++) {
+        // Strip the "Name: " author prefix
+        seedTexts.push(seedEls[si2].textContent.replace(/^[^:]{1,20}:\s*/, ''));
+      }
+      var botDraft = seedTexts.length >= 2
+        ? seedTexts[0] + ' — and also ' + seedTexts[1].charAt(0).toLowerCase() + seedTexts[1].slice(1)
+        : (seedTexts[0] || botFillAnswer(mergeInstruction.textContent));
       mergeDraftInput.value = botDraft;
       socket.emit('merge-draft', { code: currentRoomCode, text: botDraft });
     }
