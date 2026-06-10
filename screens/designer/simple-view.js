@@ -286,6 +286,8 @@
       case 'vote':
         d.sentence = (phase.mode === 'head-to-head' ? 'Students vote head-to-head on ' : 'Students vote for their favorite from ') +
           (phase.matchupsFromPairs ? 'the paired answers' : (phase.candidates ? humanizeRef(String(phase.candidates)).toLowerCase() : '…')) + '.';
+        if (phase.voters === 'eliminated') d.facts.push(fact('only knocked-out players vote'));
+        else if (phase.voters === 'remaining') d.facts.push(fact('only remaining players vote'));
         d.facts.push(timerFact(phase));
         break;
 
@@ -365,7 +367,9 @@
       }
 
       case 'eliminate':
-        d.sentence = 'The bottom ' + (phase.percent || '…') + '% are knocked out.';
+        d.sentence = phase.method === 'hook'
+          ? 'A custom rule decides who gets knocked out.'
+          : 'The bottom ' + (phase.percent || '…') + '% are knocked out.';
         d.muted = true;
         break;
 
@@ -379,11 +383,19 @@
         d.muted = true;
         break;
 
-      case 'turn':
-        d.sentence = 'Teams play turns (describe / act it out) using ' +
-          (phase.pool ? humanizeRef(String(phase.pool)).toLowerCase() : 'the collected items') + '.';
-        d.muted = true;
+      case 'turn': {
+        var poolNote = 'the collected items';
+        if (typeof phase.pool === 'string') poolNote = humanizeRef(phase.pool).toLowerCase();
+        else if (Array.isArray(phase.pool)) poolNote = 'items from ' + phase.pool.length + ' earlier steps';
+        d.sentence = 'Teams take turns (describe / act it out) using ' + poolNote + ':';
+        if (phase.instruction !== undefined) {
+          d.field = textBox(phase.instruction, 'The rule for this round, e.g. "Describe it without saying it!"', function (v) { phase.instruction = v; });
+        } else {
+          d.sentence = d.sentence.replace(/:$/, '.');
+          d.muted = true;
+        }
         break;
+      }
 
       case 'reveal-one':
         d.sentence = 'Items are revealed one at a time' +
