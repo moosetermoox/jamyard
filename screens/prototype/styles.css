@@ -135,7 +135,10 @@ body {
   backdrop-filter: blur(2px);
 }
 
-.carousel-arrow-left  { left: 6px; }
+/* Carousel layout is host on the left half, player on the right half —
+   the arrows flank the PLAYER panel (the thing being rotated), so the
+   left arrow sits at the 50% seam, not over the host screen. */
+.carousel-arrow-left  { left: calc(50% + 6px); }
 .carousel-arrow-right { right: 6px; }
 
 .carousel-arrow:hover:not(:disabled) { background: rgba(233, 69, 96, 1); }
