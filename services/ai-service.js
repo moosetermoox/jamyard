@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getAllowedFields, validate as validateGame } from '../engine/game-loader.js';
 import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schemas.js';
+import { createAiBudget, AiBudgetError } from './ai-budget.js';
 
 /**
  * Extract text from the first text-type content block. Claude's content
@@ -449,6 +450,22 @@ export class AIService {
         maxRetries: 1
       });
     }
+
+    // Cost guard: every real Anthropic call goes through _callClaude, which
+    // gates on this budget (per-minute throttle + daily cap, env-configured).
+    // Mock mode never reaches it. Injectable for tests.
+    this.budget = config.budget || createAiBudget({ store: config.budgetStore || null });
+  }
+
+  /**
+   * Single choke point for real Anthropic calls. Throws AiBudgetError
+   * (statusCode 429) when over the per-minute or daily limit — the request
+   * never reaches the API, so a blocked call costs nothing.
+   * @param {any} params  Anthropic messages.create params
+   */
+  async _callClaude(params) {
+    await this.budget.take();
+    return this.client.messages.create(params);
   }
 
   /**
@@ -478,7 +495,7 @@ export class AIService {
       const userMessage = this._buildUserMessage(instruction, responses);
       const start = Date.now();
 
-      const message = await this.client.messages.create({
+      const message = await this._callClaude({
         model: MODEL,
         max_tokens: 1024,
         system: (systemPrompt || SYSTEM_PROMPT) + SAFETY_RULES,
@@ -494,6 +511,9 @@ export class AIService {
         text: extractText(message)
       };
     } catch (error) {
+      // Budget blocks must surface loudly (phase-error pause / HTTP 429),
+      // not dissolve into reveal text students would read.
+      if (error instanceof AiBudgetError) throw error;
       console.error('[AIService] Error calling Anthropic API:', error.message);
       return {
         text: `[AI Error] Something went wrong: ${error.message}`
@@ -521,7 +541,7 @@ export class AIService {
       var examples = responses.map(r => `- "${r.text}"`).join('\n');
       var start = Date.now();
 
-      var message = await this.client.messages.create({
+      var message = await this._callClaude({
         model: MODELS.haiku,
         max_tokens: 1024,
         system: `You generate fake responses that blend in with real student answers. Your goal is to make responses that are indistinguishable from human ones — match the tone, length, creativity level, and writing style. Some should be slightly better, some slightly worse, to feel natural.`,
@@ -612,7 +632,7 @@ export class AIService {
       const configJson = JSON.stringify(config, null, 0);
       const start = Date.now();
 
-      const message = await this.client.messages.create({
+      const message = await this._callClaude({
         model,
         max_tokens: 2048,
         system: systemPrompt,
@@ -693,7 +713,7 @@ ${issue.suggestion ? 'Suggestion: ' + issue.suggestion : ''}
 Return the updated phase JSON.`;
 
       const start = Date.now();
-      const message = await this.client.messages.create({
+      const message = await this._callClaude({
         model: MODELS.haiku,
         max_tokens: 1024,
         system: systemPrompt,
@@ -754,7 +774,7 @@ ${request}
 Return the revised config.`;
 
       const start = Date.now();
-      const message = await this.client.messages.create({
+      const message = await this._callClaude({
         model: MODELS.sonnet,
         max_tokens: 4096,
         system: systemPrompt,
@@ -823,7 +843,7 @@ ${request}
 Return the revised step.`;
 
       const start = Date.now();
-      const message = await this.client.messages.create({
+      const message = await this._callClaude({
         model: MODELS.sonnet,
         max_tokens: 1536,
         system: systemPrompt,
@@ -881,7 +901,7 @@ Return the revised step.`;
     try {
       const systemPrompt = 'You are a CSS color palette designer. Given a theme description, return ONLY a JSON object with these color keys: bg, surface, accent, text, heading, button, buttonText, border, timer, success, danger. All values must be valid hex colors. Make the palette visually cohesive and appropriate for a classroom game projected on a screen. Ensure good contrast between text and backgrounds.';
 
-      const message = await this.client.messages.create({
+      const message = await this._callClaude({
         model: MODELS.haiku,
         max_tokens: 512,
         system: systemPrompt,
@@ -927,7 +947,7 @@ Return the revised step.`;
 
   async _generateQuestionsReal(description) {
     try {
-      const message = await this.client.messages.create({
+      const message = await this._callClaude({
         model: MODELS.sonnet,
         max_tokens: 1024,
         system: CLARIFY_QUESTIONS_PROMPT,
@@ -994,7 +1014,7 @@ Return the revised step.`;
           userContent += `- ${a.question}: ${a.answer}\n`;
         }
       }
-      const message = await this.client.messages.create({
+      const message = await this._callClaude({
         model: MODELS.sonnet,
         max_tokens: 4096,
         system: GAME_GENERATOR_PROMPT,
@@ -1343,7 +1363,7 @@ ${responseList}`;
 
     try {
       const start = Date.now();
-      const message = await this.client.messages.create({
+      const message = await this._callClaude({
         model: MODELS.haiku,
         max_tokens: 800,
         system: systemPrompt,

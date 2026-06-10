@@ -35,7 +35,9 @@ import {
   listUserGames,
   saveUserGame,
   deleteUserGame,
-  userGameExists
+  userGameExists,
+  getAiUsage,
+  saveAiUsage
 } from './db.js';
 import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
@@ -95,7 +97,13 @@ function requireRealAI(res) {
 }
 
 const roomManager = new RoomManager(gamePhases);
-const aiService = new AIService({ mode: aiMode });
+// Cost guard: per-minute throttle + daily cap on real AI calls (see
+// services/ai-budget.js). The day counter persists in Neon when available
+// so a redeploy can't reset the cap.
+const aiService = new AIService({
+  mode: aiMode,
+  budgetStore: DB_ENABLED ? { load: getAiUsage, save: saveAiUsage } : null
+});
 const socketToRoom = new Map();
 const roomToHost = new Map();
 
@@ -1403,6 +1411,12 @@ app.get('/api/games', async (req, res) => {
   }
 });
 
+// AI budget status — today's usage vs the configured guards. Handy when a
+// teacher hits the cap and wants to know how close they are after a reset.
+app.get('/api/ai-budget', async (req, res) => {
+  res.json({ mode: aiMode, ...(await aiService.budget.peek()) });
+});
+
 app.put('/api/games/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
@@ -1517,7 +1531,7 @@ app.post('/api/games/review', async (req, res) => {
     res.json({ structural, ai });
   } catch (error) {
     console.log(`[api/games/review] Error: ${error.message}`);
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -1539,7 +1553,7 @@ app.post('/api/games/fix-issue', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.log(`[api/games/fix-issue] Error: ${error.message}`);
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -1559,7 +1573,7 @@ app.post('/api/games/revise', async (req, res) => {
     res.json({ ...result, structural });
   } catch (error) {
     console.log(`[api/games/revise] Error: ${error.message}`);
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -1580,7 +1594,7 @@ app.post('/api/games/revise-phase', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.log(`[api/games/revise-phase] Error: ${error.message}`);
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -1595,7 +1609,7 @@ app.post('/api/games/generate-theme', async (req, res) => {
     res.json({ colors });
   } catch (error) {
     console.log(`[api/games/generate-theme] Error: ${error.message}`);
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -1614,7 +1628,7 @@ app.post('/api/games/generate-questions', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.log(`[api/games/generate-questions] Error: ${error.message}`);
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -1636,7 +1650,7 @@ app.post('/api/games/generate', async (req, res) => {
     res.json({ config });
   } catch (error) {
     console.log(`[api/games/generate] Error: ${error.message}`);
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -1698,7 +1712,7 @@ app.post('/api/games/from-description', async (req, res) => {
     });
   } catch (error) {
     console.log(`[api/games/from-description] Error: ${error.message}`);
-    res.status(500).json({ error: error.message });
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 

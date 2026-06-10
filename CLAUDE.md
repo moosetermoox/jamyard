@@ -100,7 +100,8 @@ Framework for quickly building classroom games where:
 - **Juice pack** — `screens/shared/juice.js` (browser global + side-effect-importable for tests): Web Audio synthesized SFX (cue table, per-cue throttle, gesture-unlocked AudioContext), theme-colored canvas confetti (reads `--theme-*` CSS vars, honors prefers-reduced-motion), deterministic emoji avatars (`Juice.avatarFor(name)` — consistent across host lobby/leaderboard/winner/teams and the student's own device), persisted mute chip on host. Themes declare `juice.wave` (arcade=square, ocean=sine...) surfaced as `window.__themeJuice`. Host: join pop, progress blips, reveal chimes, leaderboard tada + staggered rows, winner fanfare+confetti, timer ticks. Players stay quiet except own moments (submit blip, personal win confetti). All guarded — juice can never break gameplay.
 - **Simple view (plain-English editor)** — `screens/designer/simple-view.js`: the editor's DEFAULT view renders each step as a sentence with its editable text inline ("Students answer: [box] · passing allowed · ⏱ 120s"), per-step "✨ Ask AI" for structural changes, "Advanced settings →" to the canvas. Choices/rank items/wager options are inline add-remove rows; foreach sub-steps render indented; structural facts (pairing, loops, scoring) read as sentence fragments. Simple/Advanced pill in the header, preference in localStorage. Implementation: wraps `renderCanvas()` (stays in sync with every mutation path incl. Ask-AI apply) and `selectPhase()` (review-panel deep links flip to Advanced first). Most teachers should never need the phase graph.
 - **Friendly tokens everywhere** — teachers never see raw `{{ref}}` syntax: Simple view renders tokens as chips inside token-aware text boxes; Advanced primary textareas + screen-control/sidebar template fields tokenize to `[label — step N]` via `buildTemplateVariables` (labels are step-unique — duplicate labels used to let detokenize rewire refs to the wrong step); `phaseContentLabel` strips tokens from step-reference sentences. Validator rule `SPECIAL_SCOPE_OUT_OF_CONTEXT` warns when `_current`/`_foreach`/`_candidates`/`_pair` appear where they can't resolve (would render raw to students).
-- **658 tests passing** (`npm test`)
+- **AI cost guards** — every real Anthropic call passes through `AIService._callClaude`, gated by `services/ai-budget.js`: per-minute throttle (`AI_CALLS_PER_MINUTE`, default 20) + daily cap (`AI_DAILY_CAP`, default 500; 0 disables). Day counter persists in Neon `ai_usage` table — restarts/redeploys can't reset it. Blocked calls throw `AiBudgetError` (429, friendly message) before reaching the API. Editor endpoints return 429; in-game AI failures hit the phase-error pause. `GET /api/ai-budget` shows today's usage.
+- **669 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for phone testing and screenshot harnesses)
 
@@ -225,7 +226,7 @@ Framework for quickly building classroom games where:
 
 ### Safety Features (Not Yet Implemented)
 - Anonymous mode option
-- Rate limiting / DoS limits
+- Rate limiting / DoS limits on non-AI socket events (AI endpoints are guarded by ai-budget)
 - PII redaction
 
 ### Editor Validation (Implemented)
@@ -279,12 +280,13 @@ Framework for quickly building classroom games where:
 - Without API key, runs in mock mode (no real AI calls)
 - Set DATABASE_URL (Neon connection string) for persistent user-game storage; without it, falls back to filesystem
 - Set SITE_PASSWORD to require HTTP Basic Auth on teacher surfaces
+- AI cost guards: AI_CALLS_PER_MINUTE (default 20) and AI_DAILY_CAP (default 500) limit real AI calls; 0 disables either
 - Express 5.x (path matching is stricter than Express 4)
 - Haiku for simple tasks, Sonnet for complex judgment
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 658 Vitest tests (~1.5s)
+- `npm test` — runs all 669 Vitest tests (~1.5s)
 - `node scripts/simulate-any-game.js <game-id>` — universal automated playthrough (requires server running)
 - `node scripts/simulate-closer.js` / `simulate-snowball.js` / `simulate-one-voice.js` — Connection Pack invariant sims (pass anonymity, pair privacy, draft sync, tap timing)
 - New shipped games must be added to the snapshot map in `tests/engine/validator-diagnostics.test.js` (it fails loudly on unknown games)

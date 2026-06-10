@@ -22,6 +22,26 @@ export async function initDb() {
       updated_at  TIMESTAMPTZ DEFAULT now()
     )
   `;
+  await getSql()`
+    CREATE TABLE IF NOT EXISTS ai_usage (
+      day    TEXT    PRIMARY KEY,
+      count  INTEGER NOT NULL DEFAULT 0
+    )
+  `;
+}
+
+// --- AI budget day counter (cost guard; see services/ai-budget.js) ---
+
+export async function getAiUsage(day) {
+  const rows = await getSql()`SELECT count FROM ai_usage WHERE day = ${day}`;
+  return rows[0] ? rows[0].count : 0;
+}
+
+export async function saveAiUsage(day, count) {
+  await getSql()`
+    INSERT INTO ai_usage (day, count) VALUES (${day}, ${count})
+    ON CONFLICT (day) DO UPDATE SET count = EXCLUDED.count
+  `;
 }
 
 export async function getUserGame(id) {
