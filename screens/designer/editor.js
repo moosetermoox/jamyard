@@ -691,9 +691,13 @@ function renderCanvas() {
     iconSpan.className = 'phase-box-icon';
     iconSpan.textContent = cat.icon;
 
+    // Pair-scoped reveals show each pair only its own answers — calling
+    // that "Show Everyone" on the canvas was actively misleading.
+    var isPairReveal = phase.type === 'reveal' && phase.scope === 'pair';
+
     var friendlyName = document.createElement('span');
     friendlyName.className = 'phase-box-name';
-    friendlyName.textContent = cat.friendlyName;
+    friendlyName.textContent = isPairReveal ? 'Show Each Pair' : cat.friendlyName;
 
     header.appendChild(iconSpan);
     header.appendChild(friendlyName);
@@ -702,7 +706,9 @@ function renderCanvas() {
     // One-line description
     var descLine = document.createElement('div');
     descLine.className = 'phase-box-desc';
-    descLine.textContent = cat.description;
+    descLine.textContent = isPairReveal
+      ? 'Each pair privately sees only its own answers'
+      : cat.description;
     box.appendChild(descLine);
 
     // Primary editable field — the dominant input for this phase type,
@@ -1599,6 +1605,86 @@ function renderPhaseConfig(phaseId) {
     phaseConfigForm.appendChild(addFieldBtn);
     endCollapsible(fieldsHandle);
 
+    // Pairing & privacy — the connection-game toolkit (Closer-style):
+    // pair students up, let them pass, hide answers until everyone's done.
+    var pairingActive = phase.assign === 'pairwise' || phase.passAllowed || phase.simultaneousReveal;
+    var pairingHandle = beginCollapsible('player', 'Pairing & privacy', phaseId + ':pairing', !!pairingActive);
+
+    // Build the pairing-mode options: random, or tied to an earlier paired step
+    var pairingValue = 'none';
+    if (phase.assign === 'pairwise') {
+      if (phase.reusePairsFrom) pairingValue = 'reuse:' + phase.reusePairsFrom;
+      else if (phase.rotatePairsFrom) pairingValue = 'rotate:' + phase.rotatePairsFrom;
+      else pairingValue = 'random';
+    }
+    var pairingOptions = [
+      { value: 'none', label: 'No pairing — everyone answers solo' },
+      { value: 'random', label: 'Pair players up (random pairs)' }
+    ];
+    var collectOrder = buildPhaseOrder();
+    var collectIdx = collectOrder.indexOf(phaseId);
+    for (var poi = 0; poi < collectOrder.length; poi++) {
+      if (collectIdx !== -1 && poi >= collectIdx) break;
+      var poPhase = gameConfig.phases[collectOrder[poi]];
+      if (poPhase && poPhase.type === 'collect' && poPhase.assign === 'pairwise') {
+        var poLabel = phaseRefLabel(collectOrder[poi], false);
+        pairingOptions.push({ value: 'reuse:' + collectOrder[poi], label: 'Same partners as "' + poLabel + '"' });
+        pairingOptions.push({ value: 'rotate:' + collectOrder[poi], label: 'New partners (different from "' + poLabel + '")' });
+      }
+    }
+
+    addSelectWithHelp('Pair players up', 'Pairs answer privately and can see each other\'s answers in a later "Show Each Pair" step. Chain steps with "Same partners" (one conversation, several questions) or "New partners" (mix the class up).', 'phase-pairing', pairingOptions, pairingValue, function (value) {
+      isDirty = true;
+      delete phase.reusePairsFrom;
+      delete phase.rotatePairsFrom;
+      if (value === 'none') {
+        delete phase.assign;
+        delete phase.oddHandling;
+      } else {
+        phase.assign = 'pairwise';
+        // Connection-style default: nobody sits out with an odd class
+        if (!phase.oddHandling) phase.oddHandling = 'triple';
+        if (value.indexOf('reuse:') === 0) phase.reusePairsFrom = value.slice(6);
+        if (value.indexOf('rotate:') === 0) phase.rotatePairsFrom = value.slice(7);
+      }
+      renderCanvas();
+      renderPhaseConfig(phaseId);
+    });
+
+    if (phase.assign === 'pairwise') {
+      addSelectWithHelp('Odd number of players', 'What happens when someone can\'t be paired', 'phase-oddHandling',
+        [
+          { value: 'triple', label: 'Make one group of 3 — nobody sits out' },
+          { value: 'sit-out', label: 'Last player sits out this round' }
+        ],
+        phase.oddHandling === 'sit-out' ? 'sit-out' : 'triple', function (value) {
+          isDirty = true;
+          if (value === 'sit-out') { delete phase.oddHandling; } else { phase.oddHandling = 'triple'; }
+        });
+    }
+
+    addSelectWithHelp('Allow passing', 'Adds a Pass button. A pass counts like an answer (the step can finish) and is never shown to anyone.', 'phase-passAllowed',
+      [
+        { value: 'no', label: 'No' },
+        { value: 'yes', label: 'Yes — students can pass quietly' }
+      ],
+      phase.passAllowed ? 'yes' : 'no', function (value) {
+        isDirty = true;
+        if (value === 'yes') { phase.passAllowed = true; } else { delete phase.passAllowed; }
+      });
+
+    addSelectWithHelp('Hide answers until everyone is done', 'The projected counter shows numbers only — no names — until the step closes. You still see everything on your Teacher view.', 'phase-simultaneousReveal',
+      [
+        { value: 'no', label: 'No' },
+        { value: 'yes', label: 'Yes — reveal all at once' }
+      ],
+      phase.simultaneousReveal ? 'yes' : 'no', function (value) {
+        isDirty = true;
+        if (value === 'yes') { phase.simultaneousReveal = true; } else { delete phase.simultaneousReveal; }
+      });
+
+    endCollapsible(pairingHandle);
+
     addSelectWithHelp('Who answers', 'Which players can submit answers', 'phase-from',
       [
         { value: 'all', label: 'Everyone' },
@@ -1880,6 +1966,60 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'reveal') {
+    // Audience: the whole class, or each pair privately (Closer-style).
+    addSelectWithHelp('Who sees it', 'Everyone = the class and the projector see the same thing. Each pair privately = every pair sees only its own two answers (needs an earlier "Ask Players" step with pairing turned on).', 'phase-scope',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'pair', label: 'Each pair privately' }
+      ],
+      phase.scope === 'pair' ? 'pair' : 'all', function (value) {
+        isDirty = true;
+        if (value === 'pair') {
+          phase.scope = 'pair';
+        } else {
+          delete phase.scope;
+          delete phase.pairsFrom;
+        }
+        renderCanvas();
+        renderPhaseConfig(phaseId);
+      });
+
+    if (phase.scope === 'pair') {
+      // Source: only paired Ask steps that run before this reveal qualify
+      var pairSourceOptions = [];
+      var revealOrder = buildPhaseOrder();
+      var revealIdx = revealOrder.indexOf(phaseId);
+      for (var psi = 0; psi < revealOrder.length; psi++) {
+        if (revealIdx !== -1 && psi >= revealIdx) break;
+        var psPhase = gameConfig.phases[revealOrder[psi]];
+        if (psPhase && psPhase.type === 'collect' && psPhase.assign === 'pairwise') {
+          pairSourceOptions.push({ value: revealOrder[psi], label: phaseRefLabel(revealOrder[psi], false) });
+        }
+      }
+      if (pairSourceOptions.length === 0) {
+        var noPairsMsg = document.createElement('p');
+        noPairsMsg.className = 'field-help';
+        noPairsMsg.style.color = '#C62828';
+        noPairsMsg.textContent = 'No paired step found before this one. Add an "Ask Players" step earlier and turn on "Pair players up" in its Pairing & privacy section — that\'s where the pairs and their answers come from.';
+        phaseConfigForm.appendChild(noPairsMsg);
+      } else {
+        // Default to the nearest paired step before this reveal
+        if (!phase.pairsFrom || !gameConfig.phases[phase.pairsFrom]) {
+          phase.pairsFrom = pairSourceOptions[pairSourceOptions.length - 1].value;
+          isDirty = true;
+        }
+        addSelectWithHelp('Pairs & answers from', 'The paired Ask step whose answers each pair will see', 'phase-pairsFrom', pairSourceOptions, phase.pairsFrom, function (value) {
+          phase.pairsFrom = value;
+          isDirty = true;
+        });
+      }
+
+      var pairTipMsg = document.createElement('p');
+      pairTipMsg.className = 'field-help';
+      pairTipMsg.textContent = 'Tip: leave the template empty to show each pair their answers plainly — or use {{_pair.prompt}} (the pair\'s question) and {{_pair.answers}} (both answers) to arrange it yourself.';
+      phaseConfigForm.appendChild(pairTipMsg);
+    }
+
     var revealTA = addTextAreaWithHelp('Display template', 'Insert data from earlier steps.', 'phase-template', phase.template, 'e.g. Here\'s what AI created! Use the insert buttons below.', function (value) {
       phase.template = value;
       renderCanvas();
@@ -2838,7 +2978,8 @@ function phaseRefLabel(phaseId, withIcon) {
   if (!phase) return phaseId;
   var cat = PHASE_CATALOG[phase.type];
   if (!cat) return phaseId;
-  var label = (withIcon ? cat.icon + ' ' : '') + cat.friendlyName;
+  var name = (phase.type === 'reveal' && phase.scope === 'pair') ? 'Show Each Pair' : cat.friendlyName;
+  var label = (withIcon ? cat.icon + ' ' : '') + name;
   if (phaseNameIsAmbiguous(phaseId)) {
     var n = buildPhaseOrder().indexOf(phaseId) + 1;
     if (n > 0) label += ' (step ' + n + ')';
