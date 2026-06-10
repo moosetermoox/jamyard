@@ -29,6 +29,7 @@ var approveBtn = document.getElementById('approve-btn');
 var rejectBtn = document.getElementById('reject-btn');
 var closeStepBtn = document.getElementById('close-step-btn');
 var nextStepBtn = document.getElementById('next-step-btn');
+var controlsBlock = document.getElementById('controls-block');
 var consoleNote = document.getElementById('console-note');
 
 var currentCode = null;
@@ -109,6 +110,11 @@ socket.on('teacher-joined', function (snap) {
 
   setPhase(snap.phaseType, snap.phaseId, snap.phaseInstanceId);
   renderEntries(snap.submissions || []);
+  // Seed the "X of Y in" count when joining mid-collect (live updates take
+  // over from the next response-received event).
+  if ((snap.phaseType === 'collect' || snap.phaseType === 'collect-choice') && snap.playerCount) {
+    countLabel.textContent = (snap.submissions || []).length + ' of ' + snap.playerCount + ' in';
+  }
   if (snap.preview) renderPreview(snap.preview.content, snap.preview.responses);
 });
 
@@ -146,7 +152,12 @@ function setPhase(phaseType, phaseId, phaseInstanceId) {
 
   closeStepBtn.hidden = !isCollect;
   closeStepBtn.disabled = false;
+  // During preview, Approve / Try again are the only ways forward — a bare
+  // "Next step" would skip the review entirely.
+  nextStepBtn.hidden = phaseType === 'preview';
   nextStepBtn.disabled = false;
+  // No visible buttons → no floating dashed divider.
+  controlsBlock.hidden = closeStepBtn.hidden && nextStepBtn.hidden;
 
   consoleNote.textContent = phaseType === 'end'
     ? 'The game is over — nice work.'
