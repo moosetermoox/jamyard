@@ -59,6 +59,34 @@ const previewResponses = document.getElementById('preview-responses');
 const previewResponsesList = document.getElementById('preview-responses-list');
 const previewApproveBtn = document.getElementById('preview-approve-btn');
 const previewRejectBtn = document.getElementById('preview-reject-btn');
+const previewPrivate = document.getElementById('preview-private');
+const previewRevealBtn = document.getElementById('preview-reveal-btn');
+
+// Elements - Teacher view chip (click-to-reveal PIN)
+const teacherViewToggle = document.getElementById('teacher-view-toggle');
+const teacherViewInfo = document.getElementById('teacher-view-info');
+let currentTeacherPin = null;
+
+// The host screen is projected — the PIN only appears on a deliberate
+// click (peek before projecting, or cup a hand over it), and a second
+// click hides it again.
+teacherViewToggle.addEventListener('click', () => {
+  if (!teacherViewInfo.hidden) {
+    teacherViewInfo.hidden = true;
+    return;
+  }
+  teacherViewInfo.textContent = 'On your phone: ' + window.location.origin +
+    '/teacher · PIN ' + (currentTeacherPin || '????');
+  teacherViewInfo.hidden = false;
+});
+
+// Preview content stays off the projector until deliberately revealed.
+previewRevealBtn.addEventListener('click', () => {
+  previewPrivate.hidden = !previewPrivate.hidden;
+  previewRevealBtn.textContent = previewPrivate.hidden
+    ? '👁 Show on this screen'
+    : 'Hide from this screen';
+});
 
 // Elements - Reveal
 const revealSection = document.getElementById('reveal-section');
@@ -408,10 +436,12 @@ window.addEventListener('message', (e) => {
   if (currentRoomCode) socket.emit('advance-phase', { code: currentRoomCode });
 });
 
-socket.on('room-created', ({ code, game, theme }) => {
+socket.on('room-created', ({ code, game, theme, teacherPin }) => {
   currentRoomCode = code;
+  currentTeacherPin = teacherPin || null;
   roomCodeDisplay.textContent = code;
   gameNameDisplay.textContent = game || '';
+  teacherViewInfo.hidden = true; // PIN stays hidden until deliberately revealed
 
   // Apply game theme
   if (theme && window.applyGameTheme) {
@@ -597,6 +627,10 @@ socket.on('processing-started', ({ task, hostTemplate, hostShow } = {}) => {
 
 socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
   showSection(previewSection);
+  // Private by default: this screen is projected. The teacher reviews on
+  // their Teacher view, or deliberately reveals here.
+  previewPrivate.hidden = true;
+  previewRevealBtn.textContent = '👁 Show on this screen';
   previewContent.textContent = content;
   applyTemplate(previewSection, hostTemplate);
   applyShow(show, {

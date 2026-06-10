@@ -41,6 +41,7 @@ import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
 import { simulateGame } from './services/simulator.js';
+import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
 import { validatePayload } from './engine/event-schemas.js';
 import { scoreResponses } from './engine/speed-scoring.js';
@@ -912,19 +913,62 @@ function resolveImageUrl(rel, gameId, source) {
   return `/games/${gameId}/${cleaned}`;
 }
 
+// --- Teacher console helpers ---
+// The host screen is projected to the class, so "teacher-only" controls
+// (moderation, preview approval) also live on /teacher — a private page on
+// the teacher's phone/second device, joined with the room's PIN (or the
+// site password via the socket handshake's basic-auth header).
+
+const teacherSocketToRoom = new Map(); // console socketId → room code (disconnect cleanup)
+
+function teachersChannel(code) {
+  return code + ':teachers';
+}
+
+// Is this socket allowed to take teacher actions in this room?
+// True for the host screen's socket and any joined teacher console.
+function isTeacherSocket(code, room, socketId) {
+  if (roomToHost.get(code) === socketId) return true;
+  return !!(room && room.teacherSocketIds && room.teacherSocketIds.has(socketId));
+}
+
+// Everything a console needs to render when it joins mid-game.
+function buildTeacherSnapshot(code, room) {
+  const engine = room.engine;
+  const phase = engine ? engine.getCurrentPhase() : null;
+  const snap = {
+    code,
+    gameName: (engine && engine.config && engine.config.name) || '',
+    phaseId: phase ? phase.id : null,
+    phaseType: phase ? phase.type : null,
+    phaseInstanceId: room.phaseInstanceId || 0,
+    playerCount: engine ? engine.players.list().length : 0,
+    submissions: [],
+    preview: null
+  };
+  if (phase && (phase.type === 'collect' || phase.type === 'collect-choice')) {
+    const eligible = getEligibleVoters(engine.players, phase.from || 'all');
+    snap.submissions = buildSubmissionList(eligible);
+  }
+  if (phase && phase.type === 'preview') {
+    const data = engine.getPhaseData(phase.id);
+    if (data) snap.preview = { content: data.content, responses: data.responses || [] };
+  }
+  return snap;
+}
+
 // Push the live moderation list (submitter name + text + hidden flag) to the
-// host so the teacher can hide/kick during a collect phase. No-op if there's no
-// engine or current phase isn't a collect-type.
+// host and any teacher consoles so the teacher can hide/kick during a collect
+// phase. No-op if there's no engine or current phase isn't a collect-type.
 function emitSubmissionsUpdate(code, room) {
   if (!room || !room.engine) return;
   const phase = room.engine.getCurrentPhase();
   if (!phase || (phase.type !== 'collect' && phase.type !== 'collect-choice')) return;
-  const hostSocketId = roomToHost.get(code);
-  if (!hostSocketId) return;
   const eligible = getEligibleVoters(room.engine.players, phase.from || 'all');
-  io.to(hostSocketId).emit(EVENTS.SUBMISSIONS_UPDATE, {
-    submissions: buildSubmissionList(eligible)
-  });
+  const payload = { submissions: buildSubmissionList(eligible) };
+  const hostSocketId = roomToHost.get(code);
+  if (hostSocketId) io.to(hostSocketId).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
+  io.to(teachersChannel(code)).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
 }
 
 // Services bundle passed to phase handler context
@@ -959,6 +1003,14 @@ async function handlePhase(code, room) {
   room.phaseState = {};
   room.phaseInstanceId = (room.phaseInstanceId || 0) + 1;
   recordEvent(room, 'phase-enter', { phaseType: phase.type });
+
+  // Keep teacher consoles oriented: which step is running decides which
+  // controls the console shows (close submissions vs next step vs approve).
+  io.to(teachersChannel(code)).emit(EVENTS.TEACHER_PHASE, {
+    phaseId: phase.id,
+    phaseType: phase.type,
+    phaseInstanceId: room.phaseInstanceId
+  });
 
   // Dispatch to registered handler
   const handler = getHandler(phase.type);
@@ -1022,6 +1074,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/host', express.static(join(__dirname, 'screens/host')));
+app.use('/teacher', express.static(join(__dirname, 'screens/teacher')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
 app.use('/shared', express.static(join(__dirname, 'screens/shared')));
 app.use('/prototype', express.static(join(__dirname, 'screens/prototype')));
@@ -1710,15 +1763,48 @@ io.on('connection', (socket) => {
       room.gameSource = config._source || 'built-in';
       // Robot-playtest rooms run with the mock AI service (see phase-context)
       room.simulated = selectedGame.startsWith('_sim-tmp-');
+      // Teacher console PIN — shown click-to-reveal on the host screen,
+      // typed once into /teacher on the teacher's phone/second device.
+      room.teacherPin = generateTeacherPin();
+      room.teacherSocketIds = new Set();
 
       roomToHost.set(code, socket.id);
       socket.join(code);
       console.log(`[create-room] Room ${code} created by ${socket.id} (game: ${selectedGame})`);
-      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null });
+      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin });
     } catch (error) {
       console.log(`[create-room] Error loading game "${selectedGame}": ${error.message}`);
       socket.emit(EVENTS.CREATE_ROOM_ERROR, { message: error.message });
     }
+  });
+
+  // Teacher console joins: private second-device view. Proof of teacher-ness
+  // is the room PIN (click-to-reveal on the host screen) or, when the site
+  // password is set, the basic-auth header the page was loaded with.
+  socket.on(EVENTS.JOIN_TEACHER, (payload = {}) => {
+    if (!checkEventPayload(socket, 'join-teacher', payload)) return;
+    const { code, pin } = payload;
+    const room = roomManager.find(code);
+    if (!room) {
+      socket.emit(EVENTS.TEACHER_JOIN_ERROR, { message: 'Room not found. Check the code on the projector.' });
+      return;
+    }
+    const allowed = checkTeacherAccess(
+      { pin, authHeader: socket.handshake && socket.handshake.headers && socket.handshake.headers.authorization },
+      { teacherPin: room.teacherPin, sitePassword: process.env.SITE_PASSWORD }
+    );
+    if (!allowed) {
+      console.log(`[join-teacher] Rejected console for room ${code} (bad PIN)`);
+      socket.emit(EVENTS.TEACHER_JOIN_ERROR, { message: 'Wrong PIN. Tap "👁 Teacher view" on the host screen to see it.' });
+      return;
+    }
+    room.teacherSocketIds = room.teacherSocketIds || new Set();
+    room.teacherSocketIds.add(socket.id);
+    teacherSocketToRoom.set(socket.id, code);
+    socket.join(teachersChannel(code));
+    recordEvent(room, 'teacher-console-joined');
+    console.log(`[join-teacher] Console ${socket.id} joined room ${code}`);
+    socket.emit(EVENTS.TEACHER_JOINED, buildTeacherSnapshot(code, room));
   });
 
   socket.on(EVENTS.JOIN_ROOM, (payload = {}) => {
@@ -1907,6 +1993,12 @@ io.on('connection', (socket) => {
         total
       });
     }
+    // Teacher consoles are private — they always get the full picture.
+    io.to(teachersChannel(code)).emit(EVENTS.RESPONSE_RECEIVED, {
+      playerName: player.name,
+      count: submitted,
+      total
+    });
 
     // Push the live moderation list so the host can hide/kick before closing.
     emitSubmissionsUpdate(code, room);
@@ -1919,8 +2011,8 @@ io.on('connection', (socket) => {
     const { code, playerId, hidden } = payload;
     const room = roomManager.find(code);
     if (!room || !room.engine) return;
-    // Only the host may moderate.
-    if (roomToHost.get(code) !== socket.id) return;
+    // Only the host screen or a joined teacher console may moderate.
+    if (!isTeacherSocket(code, room, socket.id)) return;
     const players = room.engine.players;
     const target = players.find(playerId);
     if (!target) return;
@@ -1936,7 +2028,7 @@ io.on('connection', (socket) => {
     const { code, playerId } = payload;
     const room = roomManager.find(code);
     if (!room) return;
-    if (roomToHost.get(code) !== socket.id) return;
+    if (!isTeacherSocket(code, room, socket.id)) return;
     const players = room.engine ? room.engine.players : room.playerRegistry;
     const target = players.find(playerId);
     if (!target) return;
@@ -2578,12 +2670,14 @@ io.on('connection', (socket) => {
     advanceItemInPhase(ctx);
   });
 
-  // Preview events — delegated to handler
+  // Preview events — delegated to handler. Teacher-only: the host screen
+  // or a joined teacher console (students must never approve content).
   for (const previewEvent of ['preview-approve', 'preview-reject', 'preview-edit']) {
     socket.on(previewEvent, async (payload = {}) => {
       const { code, phaseInstanceId } = payload;
       const room = roomManager.find(code);
       if (!room || !room.engine) return;
+      if (!isTeacherSocket(code, room, socket.id)) return;
       if (isStalePhaseEvent(room, phaseInstanceId, previewEvent)) return;
 
       try {
@@ -2626,6 +2720,16 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log(`[disconnect] Socket ${socket.id} disconnected`);
+
+    // Teacher console cleanup (consoles aren't players — separate map)
+    const teacherCode = teacherSocketToRoom.get(socket.id);
+    if (teacherCode) {
+      teacherSocketToRoom.delete(socket.id);
+      const teacherRoom = roomManager.find(teacherCode);
+      if (teacherRoom && teacherRoom.teacherSocketIds) {
+        teacherRoom.teacherSocketIds.delete(socket.id);
+      }
+    }
 
     const code = socketToRoom.get(socket.id);
     if (code) {

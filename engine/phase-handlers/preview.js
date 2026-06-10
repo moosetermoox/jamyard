@@ -29,13 +29,17 @@ registerHandler('preview', {
     engine.storePhaseData(phase.id, { content, responses });
     const sc = ctx.resolveScreenControl();
 
-    // Send preview to host only
-    ctx.emitToHost(EVENTS.PREVIEW_CONTENT, {
+    // Send preview to the host screen AND any teacher consoles — the host
+    // screen is projected, so the console is where private review happens
+    // (the host screen hides the content behind a click-to-reveal).
+    const previewPayload = {
       content,
       responses,
       phaseId: phase.id,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
-    });
+    };
+    ctx.emitToHost(EVENTS.PREVIEW_CONTENT, previewPayload);
+    ctx.emitToTeachers(EVENTS.PREVIEW_CONTENT, previewPayload);
 
     // Tell players to wait
     for (const player of engine.players.list()) {

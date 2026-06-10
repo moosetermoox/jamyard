@@ -50,6 +50,11 @@ export function createPhaseContext(code, room, services) {
     emitToPlayer(playerId, event, data) {
       services.io.to(playerId).emit(event, withPhaseSeq(data, room));
     },
+    // Teacher consoles (private /teacher devices) — distinct from the host
+    // screen, which is projected to the class.
+    emitToTeachers(event, data) {
+      services.io.to(code + ':teachers').emit(event, withPhaseSeq(data, room));
+    },
 
     // Staleness check — timers/callbacks capture phaseInstanceId, then check if still current
     isStale() {

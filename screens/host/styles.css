@@ -787,3 +787,50 @@ select {
 .one-voice-celebrating .one-voice-count { color: #4CAF50; transform: scale(1.15); }
 .one-voice-celebrating .one-voice-banner { background: #C8E6C9; }
 .one-voice-controls { margin-top: 18px; display: flex; gap: 12px; justify-content: center; }
+
+/* --- Teacher view chip (click-to-reveal PIN) --- */
+.teacher-view-chip {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#teacher-view-toggle {
+  font-size: 0.85em;
+  padding: 6px 14px;
+  background: white;
+  color: #333;
+  border: 2px solid #000;
+  border-radius: 999px;
+  cursor: pointer;
+}
+#teacher-view-toggle:hover { background: #FFF59D; }
+.teacher-view-info {
+  font-size: 0.95em;
+  font-weight: bold;
+  background: #FFF59D;
+  border: 2px solid #000;
+  border-radius: 10px;
+  padding: 6px 12px;
+}
+
+/* --- Preview privacy (content off the projector by default) --- */
+.preview-privacy-hint {
+  color: #666;
+  font-style: italic;
+  margin: 8px auto 14px;
+  max-width: 640px;
+}
+#preview-reveal-btn {
+  font-size: 0.9em;
+  padding: 8px 18px;
+  background: white;
+  color: #333;
+  border: 2px solid #000;
+  border-radius: 999px;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+#preview-reveal-btn:hover { background: #FFF59D; }

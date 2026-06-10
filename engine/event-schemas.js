@@ -33,6 +33,10 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'join-teacher': {
+    code: 'string:required',
+    pin: 'string:optional'
+  },
   'moderate-hide': {
     code: 'string:required',
     playerId: 'string:required',

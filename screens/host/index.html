@@ -22,6 +22,10 @@
     <div id="room-code-section" hidden>
       <p id="game-name-display"></p>
       <div id="room-code">XXXX</div>
+      <div class="teacher-view-chip">
+        <button id="teacher-view-toggle" type="button" title="Moderate entries and approve previews privately from your phone">👁 Teacher view</button>
+        <span id="teacher-view-info" class="teacher-view-info" hidden></span>
+      </div>
     </div>
 
     <div id="players-section">
@@ -67,11 +71,15 @@
   <!-- PREVIEW SECTION -->
   <section id="preview-section" hidden>
     <div class="screen-template" hidden></div>
-    <h2>Preview (students can't see this yet)</h2>
-    <div id="preview-content" class="reveal-content"></div>
-    <div id="preview-responses" hidden>
-      <h3>Player Responses:</h3>
-      <ul id="preview-responses-list"></ul>
+    <h2>Teacher is reviewing&hellip;</h2>
+    <p id="preview-privacy-hint" class="preview-privacy-hint">The content is hidden from this (projected) screen. Review it on your 👁 Teacher view — or reveal it here.</p>
+    <button id="preview-reveal-btn" type="button">👁 Show on this screen</button>
+    <div id="preview-private" hidden>
+      <div id="preview-content" class="reveal-content"></div>
+      <div id="preview-responses" hidden>
+        <h3>Player Responses:</h3>
+        <ul id="preview-responses-list"></ul>
+      </div>
     </div>
     <div class="preview-actions">
       <button id="preview-approve-btn">Approve & Show</button>

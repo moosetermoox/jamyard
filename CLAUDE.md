@@ -51,7 +51,7 @@ Framework for quickly building classroom games where:
 - **Dynamic AI messages** — processing screen shows task-specific text ("summarizing...", "comparing...") instead of hardcoded "creating your poem"
 - Server runs on port 3000 (`npm start`)
 - Home screen at / (redesigned — two primary cards + student room-code join)
-- Host screen at /host, Player screen at /player
+- Host screen at /host, Player screen at /player, private teacher console at /teacher (room code + click-to-reveal PIN)
 - Game editor at /designer, editor at /designer/edit
 - Prototype mode at /prototype
 - **AI game review** — two-tier review system: light check (Haiku, on save) + deep review (Sonnet, on demand) with inline phase badges and review panel
@@ -94,7 +94,8 @@ Framework for quickly building classroom games where:
 - **Sim harness** — `scripts/sim-harness.js`: reusable multi-client primitives (buffered event waiting, `setupRoom`/`teardown`, reporter) for headless playthroughs against a running server. Each Connection Pack experience has a sim asserting its privacy/timing invariants.
 - **Idea-first front door** — `/designer` opens with one big box ("What do you want to play with your class?") that routes through `from-description` recipe matching; Enter submits, example chips fill the box (all four verified to route: One Voice / Class Poll / Snowball / Elimination Tournament), `?idea=` deep-link auto-launches the flow. The old three buttons are demoted to "Browse recipes / Start from scratch" links; the no-match view still offers the picker + legacy whole-config generator.
 - **Robot playtest in "Check for Errors"** — deep review now ALSO plays the game: `services/simulator.js` self-connects 1 host + 4 bot clients to the running server in a hidden temp room (`_sim-tmp-` prefix → `room.simulated` → mock AI, zero API spend) and drives every phase type end-to-end, in parallel with the Sonnet review (no added latency). Catches the runtime bug class static review can't see: stalls (with a force-skip warning), crashed phases (`phase-error` capture + skip), blank screens, empty rank/vote/choice payloads, unresolved `{{tokens}}` and `[object Object]` reaching students, nobody-eligible-to-vote. Findings deep-link to phases by prompt-text matching; review panel shows a 🤖 banner (completed/stuck + duration + steps). Every bot emit echoes `phaseInstanceId`, so the stale-event guard makes double-advances impossible. First run caught a real shipped bug (mood-check's `{{process.result.content}}`). Typical runs: simple game ~2s, 16-step foreach game ~11s, cap 45s.
-- **621 tests passing** (`npm test`)
+- **Teacher console** — `/teacher` is a private second-device view (the host screen is projected, so "teacher-only" UI there is actually public). Teacher's phone joins with the room code + a 4-digit PIN shown click-to-reveal ("👁 Teacher view" chip on the host screen); with `SITE_PASSWORD` set, the basic-auth header on the socket handshake works instead (`engine/teacher-auth.js`, pure + tested). Console gets: live entries with names (hide/kick), preview approve/reject, close-submissions, next-step, live counts, phase tracking (`teacher-phase` event). Privileged socket actions (moderate-*, preview-*) now check `isTeacherSocket` (host OR joined console). Preview content on the projected host screen is hidden by default behind "👁 Show on this screen". Verified by `scripts/simulate-teacher-console.js` (incl. intruder-can't-moderate and hidden-entry-never-reaches-class).
+- **629 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 
 ### Working Games
@@ -275,7 +276,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 621 Vitest tests (~1s)
+- `npm test` — runs all 629 Vitest tests (~1s)
 - `node scripts/simulate-any-game.js <game-id>` — universal automated playthrough (requires server running)
 - `node scripts/simulate-closer.js` / `simulate-snowball.js` / `simulate-one-voice.js` — Connection Pack invariant sims (pass anonymity, pair privacy, draft sync, tap timing)
 - New shipped games must be added to the snapshot map in `tests/engine/validator-diagnostics.test.js` (it fails loudly on unknown games)

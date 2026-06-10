@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher View — Lanyard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header>
+    <span class="logo">👁 Teacher View</span>
+    <span id="header-room" class="header-room" hidden></span>
+  </header>
+
+  <!-- JOIN -->
+  <section id="join-section">
+    <h1>Your private view</h1>
+    <p class="join-hint">This screen is just for you — moderate entries and approve previews without showing the class. Tap <strong>👁 Teacher view</strong> on the host screen to see the PIN.</p>
+    <label for="code-input">Room code</label>
+    <input type="text" id="code-input" maxlength="4" autocomplete="off" spellcheck="false" placeholder="ABCD">
+    <label for="pin-input">Teacher PIN</label>
+    <input type="text" id="pin-input" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="1234">
+    <button id="join-btn">Connect</button>
+    <p id="join-error" class="join-error" hidden></p>
+  </section>
+
+  <!-- CONSOLE -->
+  <section id="console-section" hidden>
+    <div class="status-row">
+      <span id="phase-label" class="phase-label">Waiting…</span>
+      <span id="count-label" class="count-label"></span>
+    </div>
+
+    <!-- Live entries (collect phases) -->
+    <div id="entries-block" hidden>
+      <h2>Live entries</h2>
+      <p class="block-hint">Only you can see these. Hide anything that shouldn't reach the class — hidden entries are skipped by the AI and the reveal.</p>
+      <ul id="entries-list" class="entries-list"></ul>
+    </div>
+
+    <!-- Preview approval -->
+    <div id="preview-block" hidden>
+      <h2>Review before the class sees it</h2>
+      <div id="preview-text" class="preview-text"></div>
+      <div id="preview-resp-block" hidden>
+        <h3>Student responses</h3>
+        <ul id="preview-resp-list" class="entries-list"></ul>
+      </div>
+      <div class="btn-row">
+        <button id="approve-btn" class="btn-go">Approve &amp; show class</button>
+        <button id="reject-btn" class="btn-danger">Try again</button>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-block">
+      <button id="close-step-btn" hidden>Close submissions</button>
+      <button id="next-step-btn">Next step ▸</button>
+    </div>
+
+    <p id="console-note" class="console-note"></p>
+  </section>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="teacher.js"></script>
+</body>
+</html>

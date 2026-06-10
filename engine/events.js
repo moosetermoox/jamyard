@@ -42,6 +42,12 @@ export const EVENTS = {
   MODERATE_KICK:        'moderate-kick',
   KICKED:               'kicked',
 
+  // --- Teacher Console (private second-device view; host screen is projected) ---
+  JOIN_TEACHER:         'join-teacher',        // console -> server: code + pin
+  TEACHER_JOINED:       'teacher-joined',      // server -> console: snapshot of current state
+  TEACHER_JOIN_ERROR:   'teacher-join-error',  // server -> console: bad code/pin
+  TEACHER_PHASE:        'teacher-phase',       // server -> consoles: phase changed (id/type/seq)
+
   // --- AI Processing ---
   PROCESSING_STARTED:   'processing-started',
 

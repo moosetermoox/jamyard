@@ -1,0 +1,24 @@
+{
+  "name": "SIM Teacher Console",
+  "description": "Test fixture for the teacher console simulation: collect with moderation, then a preview the teacher approves. No AI. Underscore-prefixed so it never appears in game lists. Driven by scripts/simulate-teacher-console.js.",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "ask" },
+    "ask": {
+      "type": "collect",
+      "prompt": "Write one line for our class story.",
+      "next": "check"
+    },
+    "check": {
+      "type": "preview",
+      "template": "Story so far:\n\n{{ask.responses.list}}",
+      "approveNext": "share",
+      "rejectNext": "ask"
+    },
+    "share": {
+      "type": "reveal",
+      "template": "Our story:\n\n{{ask.responses.list}}",
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "The end." }
+  }
+}
