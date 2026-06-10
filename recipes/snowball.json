@@ -32,6 +32,12 @@
       "label": "Thinking time (seconds)",
       "helper": "How long everyone gets for the solo round.",
       "default": 90
+    },
+    "snowballAgain": {
+      "type": "boolean",
+      "default": false,
+      "label": "Snowball again (groups of 4)",
+      "helper": "After pairs merge, two pairs join into a group of four and merge once more — one extra distillation round."
     }
   },
   "template": {
@@ -58,9 +64,26 @@
         "groupSize": 2,
         "agreeMode": "both",
         "timer": 240,
+        "next": "quads"
+      },
+      "quads": {
+        "$if": "snowballAgain",
+        "type": "merge",
+        "seedFrom": "pairs.merged",
+        "instruction": "${mergeInstruction}",
+        "groupSize": 4,
+        "agreeMode": "both",
+        "timer": 240,
+        "next": "share-quads"
+      },
+      "share-quads": {
+        "$if": "snowballAgain",
+        "type": "reveal",
+        "template": "${prompt}\n\nAlone, then pairs, then groups of four. Here's what the groups distilled:\n\n{{quads.merged.list}}",
         "next": "share"
       },
       "share": {
+        "$if": "!snowballAgain",
         "type": "reveal",
         "template": "${prompt}\n\nWe each answered alone. Here's what the pairs built together:\n\n{{pairs.merged.list}}",
         "next": "end"

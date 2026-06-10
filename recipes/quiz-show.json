@@ -1,0 +1,100 @@
+{
+  "id": "quiz-show",
+  "name": "Quiz Show",
+  "icon": "🎤",
+  "description": "A multi-round quiz you write yourself: students race to answer each question on their devices, faster correct answers earn more points, and a leaderboard crowns the round. Write as many questions as you like — the game builds one round per question.",
+  "tagline": "Perfect for test review, vocabulary checks, or a Friday brain-teaser block.",
+  "version": "1",
+  "parameters": {
+    "questions": {
+      "type": "array",
+      "required": true,
+      "minItems": 1,
+      "maxItems": 20,
+      "label": "Questions",
+      "helper": "One round per question. Mark the right answer — it must match one of the choices exactly.",
+      "item": {
+        "type": "object",
+        "fields": {
+          "question": {
+            "type": "string",
+            "required": true,
+            "label": "Question",
+            "placeholder": "What is the capital of Australia?"
+          },
+          "choices": {
+            "type": "array",
+            "item": { "type": "string" },
+            "minItems": 2,
+            "maxItems": 6,
+            "label": "Choices",
+            "placeholder": "Canberra, Sydney, Melbourne, Perth"
+          },
+          "correct": {
+            "type": "string",
+            "required": true,
+            "label": "Correct answer",
+            "placeholder": "Canberra"
+          }
+        }
+      },
+      "default": [
+        {
+          "question": "What is the capital of Australia?",
+          "choices": ["Canberra", "Sydney", "Melbourne", "Perth"],
+          "correct": "Canberra"
+        }
+      ]
+    },
+    "questionTimer": {
+      "type": "integer",
+      "min": 5,
+      "max": 120,
+      "label": "Seconds per question",
+      "default": 20
+    },
+    "speedBonus": {
+      "type": "boolean",
+      "default": true,
+      "label": "Speed bonus",
+      "helper": "Faster correct answers earn more points (Kahoot-style). Off = every correct answer is worth the same."
+    }
+  },
+  "template": {
+    "name": "Quiz Show",
+    "description": "Race to answer — fastest correct answers earn the most points.",
+    "phases": {
+      "lobby": { "type": "lobby", "next": "intro" },
+      "intro": {
+        "type": "announce",
+        "message": "🎤 QUIZ SHOW!\n\nAnswer on your device as fast as you can — correct answers earn points, and speed counts.\n\nGet ready...",
+        "timer": 6,
+        "next": "q1"
+      },
+      "$repeat": {
+        "forEach": "questions",
+        "keyPattern": "q${i}",
+        "phase": {
+          "type": "collect-choice",
+          "prompt": "Question ${i} of ${n}:\n\n${item.question}",
+          "choices": "${item.choices}",
+          "correctAnswer": "${item.correct}",
+          "speedBonus": "${speedBonus}",
+          "timer": "${questionTimer}",
+          "next": "${nextKey}"
+        },
+        "after": "scoreboard"
+      },
+      "scoreboard": {
+        "type": "leaderboard",
+        "from": { "$map": "questions", "value": "q${i}.scores" },
+        "style": "full",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "That's the quiz! Great playing, everyone. 🎤"
+      }
+    }
+  }
+}

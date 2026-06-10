@@ -705,6 +705,40 @@ select.recipe-field-input {
   background: #FFCDD2;
 }
 
+/* Object array items (e.g. quiz-show questions): card per item with one
+   labeled input per field. */
+.recipe-field-array-row-object {
+  align-items: flex-start;
+}
+
+.recipe-object-card {
+  flex: 1;
+  border: 3px solid #000;
+  border-radius: 12px;
+  background: white;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recipe-object-field-label {
+  font-size: 0.75rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #555;
+  margin-top: 6px;
+}
+
+.recipe-object-field-label:first-child {
+  margin-top: 0;
+}
+
+.recipe-object-card .recipe-field-input {
+  border-width: 2px;
+}
+
 .recipe-field-array-add {
   margin-top: 6px;
   padding: 8px 16px;

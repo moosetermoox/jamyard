@@ -23,6 +23,13 @@
       "label": "Strictness (milliseconds)",
       "helper": "Two taps closer together than this count as 'two voices at once'. 400 is a good start; lower is more forgiving.",
       "default": 400
+    },
+    "maxAttempts": {
+      "type": "integer",
+      "min": 1,
+      "max": 20,
+      "label": "Attempt cap (optional)",
+      "helper": "End after this many attempts with the story so far. Leave empty for unlimited — you can always move on manually."
     }
   },
   "template": {
@@ -40,6 +47,7 @@
         "type": "one-voice",
         "target": "${target}",
         "collisionWindowMs": "${collisionWindow}",
+        "maxAttempts": { "$if": "maxAttempts", "$value": "${maxAttempts}" },
         "next": "story"
       },
       "story": {

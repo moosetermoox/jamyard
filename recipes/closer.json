@@ -46,6 +46,13 @@
         "If you could thank one person right now, who would it be and for what?",
         "What's a moment from this year you want to remember in ten years?"
       ]
+    },
+    "partners": {
+      "type": "enum",
+      "values": ["new-each-tier", "same-all-game"],
+      "default": "new-each-tier",
+      "label": "Partners",
+      "helper": "Switch to a new partner at each tier (meet more classmates), or keep the same partner the whole game (go deeper with one person)."
     }
   },
   "template": {
@@ -127,7 +134,8 @@
         "prompt": "${tier2Prompts[0]}",
         "assign": "pairwise",
         "oddHandling": "triple",
-        "rotatePairsFrom": "t1q1",
+        "rotatePairsFrom": { "$if": "partners=new-each-tier", "$value": "t1q1" },
+        "reusePairsFrom": { "$if": "partners=same-all-game", "$value": "t1q1" },
         "passAllowed": true,
         "simultaneousReveal": true,
         "timer": 150,
@@ -185,7 +193,8 @@
         "prompt": "${tier3Prompts[0]}",
         "assign": "pairwise",
         "oddHandling": "triple",
-        "rotatePairsFrom": "t2q1",
+        "rotatePairsFrom": { "$if": "partners=new-each-tier", "$value": "t2q1" },
+        "reusePairsFrom": { "$if": "partners=same-all-game", "$value": "t2q1" },
         "passAllowed": true,
         "simultaneousReveal": true,
         "timer": 180,

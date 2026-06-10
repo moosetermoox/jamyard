@@ -1113,16 +1113,50 @@ function buildArrayItemRow(spec, value) {
   var row = document.createElement('div');
   row.className = 'recipe-field-array-row';
 
-  // Item is just a string for our v1 (item.type === 'string')
-  // Future: recurse into buildInputForType(name, spec.item) for richer arrays
-  var input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'recipe-field-input';
-  input.value = value || '';
-  if (spec.item && spec.item.placeholder) {
-    input.placeholder = spec.item.placeholder;
+  if (spec.item && spec.item.type === 'object' && spec.item.fields) {
+    // Object items (e.g. quiz-show questions) render as a card with one
+    // labeled input per declared field. Array sub-fields (the choices)
+    // are a single comma-separated input — simple beats nested repeaters.
+    row.className += ' recipe-field-array-row-object';
+    var card = document.createElement('div');
+    card.className = 'recipe-object-card';
+
+    var fieldKeys = Object.keys(spec.item.fields);
+    for (var fi = 0; fi < fieldKeys.length; fi++) {
+      var key = fieldKeys[fi];
+      var fspec = spec.item.fields[key];
+
+      var lab = document.createElement('label');
+      lab.className = 'recipe-object-field-label';
+      lab.textContent = fspec.label || key;
+      card.appendChild(lab);
+
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'recipe-field-input recipe-object-field-input';
+      input.setAttribute('data-field-key', key);
+      if (fspec.type === 'array') {
+        input.setAttribute('data-field-type', 'array');
+        input.placeholder = fspec.placeholder || 'Comma-separated, e.g. Red, Green, Blue';
+      } else if (fspec.placeholder) {
+        input.placeholder = fspec.placeholder;
+      }
+      var v = (value && typeof value === 'object') ? value[key] : undefined;
+      if (v != null) input.value = Array.isArray(v) ? v.join(', ') : v;
+      card.appendChild(input);
+    }
+    row.appendChild(card);
+  } else {
+    // String items (the v1 widget)
+    var strInput = document.createElement('input');
+    strInput.type = 'text';
+    strInput.className = 'recipe-field-input';
+    strInput.value = (typeof value === 'string' ? value : '') || '';
+    if (spec.item && spec.item.placeholder) {
+      strInput.placeholder = spec.item.placeholder;
+    }
+    row.appendChild(strInput);
   }
-  row.appendChild(input);
 
   var removeBtn = document.createElement('button');
   removeBtn.type = 'button';
@@ -1139,9 +1173,9 @@ function bindArrayRowControls(list, addBtn, spec) {
     if (e.target.classList && e.target.classList.contains('recipe-field-array-remove')) {
       var min = spec.minItems != null ? spec.minItems : 1;
       if (list.children.length <= min) {
-        // Don't go below the minimum — just clear the value instead
-        var input = e.target.parentNode.querySelector('input');
-        if (input) input.value = '';
+        // Don't go below the minimum — just clear the values instead
+        var inputs = e.target.parentNode.querySelectorAll('input');
+        for (var ci = 0; ci < inputs.length; ci++) inputs[ci].value = '';
         return;
       }
       e.target.parentNode.remove();
@@ -1169,13 +1203,38 @@ function gatherFormParams(form) {
     var type = field.getAttribute('data-param-type');
 
     if (type === 'array') {
-      var inputs = field.querySelectorAll('.recipe-field-array-row input');
-      var arr = [];
-      for (var j = 0; j < inputs.length; j++) {
-        var v = inputs[j].value.trim();
-        if (v !== '') arr.push(v);
+      var objRows = field.querySelectorAll('.recipe-field-array-row-object');
+      if (objRows.length > 0) {
+        // Object items: one object per card, comma-split for array fields,
+        // fully-empty cards skipped.
+        var objArr = [];
+        for (var r = 0; r < objRows.length; r++) {
+          var obj = {};
+          var any = false;
+          var fieldInputs = objRows[r].querySelectorAll('[data-field-key]');
+          for (var k = 0; k < fieldInputs.length; k++) {
+            var fkey = fieldInputs[k].getAttribute('data-field-key');
+            var raw = fieldInputs[k].value.trim();
+            if (raw === '') continue;
+            any = true;
+            if (fieldInputs[k].getAttribute('data-field-type') === 'array') {
+              obj[fkey] = raw.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+            } else {
+              obj[fkey] = raw;
+            }
+          }
+          if (any) objArr.push(obj);
+        }
+        params[name] = objArr;
+      } else {
+        var inputs = field.querySelectorAll('.recipe-field-array-row input');
+        var arr = [];
+        for (var j = 0; j < inputs.length; j++) {
+          var v = inputs[j].value.trim();
+          if (v !== '') arr.push(v);
+        }
+        params[name] = arr;
       }
-      params[name] = arr;
     } else if (type === 'boolean') {
       var checkbox = field.querySelector('.recipe-field-checkbox');
       params[name] = !!checkbox.checked;

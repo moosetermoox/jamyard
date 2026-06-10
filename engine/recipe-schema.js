@@ -66,7 +66,8 @@ export const RECIPE_PARAM_TYPES = new Set([
   'integer',
   'boolean',
   'enum',
-  'array'
+  'array',
+  'object'
 ]);
 
 // =======================================================================
@@ -91,6 +92,8 @@ export const RECIPE_PARAM_TYPES = new Set([
  * @property {RecipeParam} [item]         array — describes each element
  * @property {number} [minItems]          array
  * @property {number} [maxItems]          array
+ * @property {Object<string, RecipeParam>} [fields]  object — named sub-fields
+ *   (e.g. quiz-show's questions: array of {question, choices, correct})
  */
 
 /**
@@ -274,6 +277,23 @@ function validateParamSpec(paramName, spec) {
     }
   }
 
+  if (spec.type === 'object') {
+    if (spec.fields == null || typeof spec.fields !== 'object' || Array.isArray(spec.fields)) {
+      diags.push(mkDiagnostic({
+        severity: 'error',
+        code: RECIPE_DIAGNOSTIC_CODES.RECIPE_INVALID_PARAM_SPEC,
+        path: path(where, 'fields'),
+        field: paramName,
+        message: `Object parameter "${paramName}" must declare a "fields" map describing its sub-fields.`,
+        source: 'validator'
+      }));
+    } else {
+      for (const [fieldName, fieldSpec] of Object.entries(spec.fields)) {
+        diags.push(...validateParamSpec(paramName + '.' + fieldName, fieldSpec));
+      }
+    }
+  }
+
   if (spec.type === 'integer') {
     if (spec.min != null && typeof spec.min !== 'number') {
       diags.push(typeError(path(where, 'min'), 'number'));
@@ -437,6 +457,31 @@ function validateValue(paramName, spec, value) {
           message: `Parameter "${spec.label || paramName}" must be one of: ${(spec.values || []).join(', ')}.`,
           source: 'validator'
         }));
+      }
+      break;
+    }
+
+    case 'object': {
+      if (value == null || typeof value !== 'object' || Array.isArray(value)) {
+        diags.push(typeMismatch(paramName, where, spec.type, value));
+        return diags;
+      }
+      for (const [fieldName, fieldSpec] of Object.entries(spec.fields || {})) {
+        const fieldValue = value[fieldName];
+        if (fieldValue == null) {
+          if (fieldSpec.required) {
+            diags.push(mkDiagnostic({
+              severity: 'error',
+              code: RECIPE_DIAGNOSTIC_CODES.PARAM_MISSING_REQUIRED,
+              path: path(where, fieldName),
+              field: paramName,
+              message: `"${spec.label || paramName}" is missing its "${fieldSpec.label || fieldName}".`,
+              source: 'validator'
+            }));
+          }
+          continue;
+        }
+        diags.push(...validateValue(`${paramName}.${fieldName}`, fieldSpec, fieldValue));
       }
       break;
     }

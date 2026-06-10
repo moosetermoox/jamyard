@@ -232,6 +232,13 @@ function syntheticForType(spec) {
       const item = spec.item ? syntheticForType(spec.item) : 'item';
       return Array(minItems).fill(item);
     }
+    case 'object': {
+      const out = {};
+      for (const [name, fieldSpec] of Object.entries(spec.fields || {})) {
+        out[name] = syntheticForType(fieldSpec);
+      }
+      return out;
+    }
     default:
       return null;
   }

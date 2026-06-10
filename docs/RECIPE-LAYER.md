@@ -257,10 +257,29 @@ author bug, not a teacher input issue.
 | **R4** | ✅ Shipped | AI as recipe matcher; legacy whole-config generator kept as advanced fallback |
 | **R5** | ✅ Shipped | Save-as-recipe (user-extensible recipe library) |
 | **R6** | ✅ Shipped | Compatibility check + delete user recipes + grouped picker UI |
+| **R7** | ✅ Shipped | Compiler conditionals: `$if`/`$value`/`$repeat`/`$map`, transition rewiring, dotted-path placeholders, `object` params — quiz-show shipped (2026-06-10) |
 
 **Recipe layer plan complete.** Future iteration (analytics, sharing,
-versioning, the deferred quiz-show recipe) happens incrementally as
-real classroom feedback comes in.
+versioning) happens incrementally as real classroom feedback comes in.
+
+### R7 directives (see engine/recipe-compiler.js header for full docs)
+
+- `{"$if": "cond", ...}` — drop this object (phase / field via `$value` /
+  array element) unless the condition holds. Conditions: `name`, `!name`,
+  `name=value`, `name!=value`. Declared-but-blank optional params are falsy.
+- Transitions auto-rewire through `$if`-dropped phases (chains followed;
+  a ref with nowhere to go is a compile error).
+- `"$repeat"` key inside `phases` expands one phase per array item with
+  `${item.*}` / `${i}` / `${n}` / `${nextKey}` in scope (quiz-show's rounds).
+- `{"$map": "param", "value": tpl}` compiles to a derived array (quiz-show's
+  leaderboard summing `q1.scores … qN.scores`).
+- Placeholders take dotted paths: `${item.question}`, `${prompts[0]}`.
+- New `object` parameter type (`fields` map) renders as a card per item in
+  the picker; array sub-fields are comma-separated inputs.
+
+Used by: `one-voice` (`maxAttempts`), `snowball` (`snowballAgain` — second
+merge with groupSize 4), `closer` (`partners` — rotate vs reuse), and
+`quiz-show` (the R3-deferred recipe this milestone unlocked).
 
 ### What's in R1 (this milestone)
 
