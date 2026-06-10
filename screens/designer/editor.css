@@ -2087,6 +2087,62 @@ textarea.sar-input {
 
 .sv-text:focus { outline: none; border-color: #0057FF; }
 
+/* Token-aware box: editable text segments with friendly data chips between
+   them — teachers never see raw {{token}} syntax. */
+.sv-token-box {
+  resize: none;
+  overflow: visible;
+  height: auto;
+}
+
+.sv-token-box:focus-within { border-color: #0057FF; }
+
+.sv-seg {
+  display: block;
+  width: 100%;
+  border: none;
+  padding: 2px 0;
+  font-family: Arial, sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  resize: none;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.sv-seg:focus { outline: none; }
+
+.sv-chip-row { margin: 4px 0; }
+
+.sv-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #EDE7F6;
+  border: 2px solid #6A1B9A;
+  color: #4A148C;
+  border-radius: 999px;
+  padding: 3px 6px 3px 12px;
+  font-family: Arial, sans-serif;
+  font-size: 0.8rem;
+  font-weight: bold;
+  cursor: default;
+}
+
+.sv-chip-delete {
+  border: none;
+  background: transparent;
+  color: #9575CD;
+  font-size: 1rem;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.sv-chip-delete:hover { color: #C62828; }
+
 .sv-facts {
   margin-top: 8px;
   display: flex;

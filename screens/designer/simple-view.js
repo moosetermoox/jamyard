@@ -88,8 +88,15 @@
     isDirty = true;
   }
 
-  // Auto-growing textarea bound to a config field
+  // Auto-growing textarea bound to a config field. When the value contains
+  // {{tokens}}, delegates to the token-aware box so teachers see friendly
+  // chips ("list of answers from step 5") instead of code.
   function textBox(value, placeholder, onInput) {
+    if (TOKEN_RE.test(value || '')) {
+      TOKEN_RE.lastIndex = 0;
+      return tokenTextBox(value, onInput);
+    }
+    TOKEN_RE.lastIndex = 0;
     var ta = document.createElement('textarea');
     ta.className = 'sv-text';
     ta.value = value || '';
@@ -107,6 +114,130 @@
     ta.addEventListener('blur', function () { autoSaveIfDirty(); });
     setTimeout(grow, 0);
     return ta;
+  }
+
+  // --- Token-aware text box ---
+  // Teachers shouldn't see {{ai-mashup.list}} — that's code. The box renders
+  // as editable text segments with each token shown as a friendly chip.
+  // The config value stays byte-exact: segments + tokens rejoin losslessly,
+  // so nothing can be corrupted by the friendlier display.
+
+  var TOKEN_RE = /\{\{\s*[^}]+?\s*\}\}/g;
+
+  // Suffix words beyond editor.js' PRIMARY_TOKEN_SUFFIXES
+  var SV_EXTRA_SUFFIXES = {
+    winner:    'the winning answer',
+    responses: 'the answers',
+    merged:    'the combined answers',
+    itemCount: 'how many items',
+    attempts:  'attempt count',
+    bestRun:   'best run'
+  };
+
+  function svSuffixWords(suffix) {
+    var meta = typeof PRIMARY_TOKEN_SUFFIXES !== 'undefined' && PRIMARY_TOKEN_SUFFIXES[suffix];
+    if (meta) return meta.text;
+    return SV_EXTRA_SUFFIXES[suffix] || null;
+  }
+
+  // "{{ai-mashup.list}}" -> "list of answers from step 5"
+  function svTokenLabel(token) {
+    var ref = token.replace(/^\{\{\s*/, '').replace(/\s*\}\}$/, '');
+    var parts = ref.split('.');
+    var head = parts[0];
+
+    // Special scopes resolved at play time, not step refs
+    if (head === '_pair') {
+      var pairTails = { prompt: 'question', answers: 'answers' };
+      return "this pair's " + (pairTails[parts[1]] || parts.slice(1).join(' '));
+    }
+    if (head === '_current') {
+      if (parts.length === 1) return "this round's item";
+      return "this round's " + (parts[1] === 'text' ? 'answer' : parts.slice(1).join(' '));
+    }
+    if (head === '_foreach') return parts[1] === 'total' ? 'total rounds' : 'round number';
+    if (head === '_loop') return parts[2] === 'total' ? 'total rounds' : 'round number';
+    if (head === '_candidates') return 'the choices';
+
+    var suffix = parts.length > 1 ? parts[parts.length - 1] : null;
+    var words = suffix ? svSuffixWords(suffix) : null;
+    var from = (gameConfig.phases && gameConfig.phases[head]) ? ' from ' + stepName(head) : '';
+    if (words) return words + from;
+    if (parts.length > 1) return parts.slice(1).join(' ') + from;
+    return 'data' + from;
+  }
+
+  function tokenTextBox(value, onInput) {
+    // Parse into alternating segments and tokens: seg0 tok0 seg1 tok1 ... segN
+    var segments = [];
+    var tokens = [];
+    var last = 0;
+    var m;
+    TOKEN_RE.lastIndex = 0;
+    while ((m = TOKEN_RE.exec(value)) !== null) {
+      segments.push(value.slice(last, m.index));
+      tokens.push(m[0]);
+      last = m.index + m[0].length;
+    }
+    segments.push(value.slice(last));
+
+    var box = el('div', 'sv-text sv-token-box');
+
+    function rebuild() {
+      var out = segments[0];
+      for (var i = 0; i < tokens.length; i++) out += tokens[i] + segments[i + 1];
+      markEdited();
+      onInput(out);
+    }
+
+    function render() {
+      box.innerHTML = '';
+      for (var i = 0; i < segments.length; i++) {
+        (function (index) {
+          var ta = document.createElement('textarea');
+          ta.className = 'sv-seg';
+          ta.value = segments[index];
+          ta.rows = 1;
+          function grow() {
+            ta.style.height = 'auto';
+            ta.style.height = Math.min(ta.scrollHeight + 2, 220) + 'px';
+          }
+          ta.addEventListener('input', function () {
+            segments[index] = ta.value;
+            rebuild();
+            grow();
+          });
+          ta.addEventListener('blur', function () { autoSaveIfDirty(); });
+          setTimeout(grow, 0);
+          box.appendChild(ta);
+        })(i);
+
+        if (i < tokens.length) {
+          (function (index) {
+            var row = el('div', 'sv-chip-row');
+            var chip = el('span', 'sv-chip');
+            chip.appendChild(el('span', null, '📦 ' + svTokenLabel(tokens[index])));
+            chip.title = tokens[index]; // hover shows the underlying token
+            var del = el('button', 'sv-chip-delete', '×');
+            del.type = 'button';
+            del.setAttribute('aria-label', 'Remove');
+            del.addEventListener('click', function () {
+              // Merge the segments around the removed token
+              segments.splice(index, 2, segments[index] + segments[index + 1]);
+              tokens.splice(index, 1);
+              rebuild();
+              autoSaveIfDirty();
+              render();
+            });
+            chip.appendChild(del);
+            row.appendChild(chip);
+            box.appendChild(row);
+          })(i);
+        }
+      }
+    }
+    render();
+    return box;
   }
 
   // "⏱ [60]s" inline timer — empty means no limit
