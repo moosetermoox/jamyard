@@ -171,8 +171,11 @@ function setViewMode(mode) {
   viewCarouselBtn.classList.toggle('active', mode === 'carousel');
 
   const count = parseInt(iframeContainer.dataset.players || '0', 10);
+  // Carousel chrome only exists when there are player panels to rotate —
+  // never before Launch, never in grid mode.
+  const hasPanels = getPlayerPanels().length > 0;
 
-  if (mode === 'grid') {
+  if (mode === 'grid' || !hasPanels) {
     iframeContainer.removeAttribute('data-view');
     carouselPrev.hidden = true;
     carouselNext.hidden = true;
