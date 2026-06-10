@@ -515,6 +515,25 @@
         d.muted = true;
         break;
 
+      case 'buzz':
+        d.sentence = 'Buzzer round — you ask questions out loud, first to buzz answers:';
+        d.field = textBox(phase.prompt, 'On-screen prompt, e.g. "Listen for the question, then BUZZ!"', function (v) { phase.prompt = v; });
+        d.facts.push(fact((phase.points || 10) + ' pts per correct answer'));
+        if (phase.lockoutOnWrong !== false) d.facts.push(fact('wrong answers locked out for the question'));
+        break;
+
+      case 'estimate':
+        d.sentence = 'Students guess a number:';
+        d.field = textBox(phase.prompt, 'A question with a numeric answer…', function (v) { phase.prompt = v; });
+        if (phase.answer != null) {
+          d.facts.push(fact('answer: ' + phase.answer + (phase.unit ? ' ' + phase.unit : '')));
+          d.facts.push(fact(phase.scoring === 'graduated' ? 'points by closeness rank' : 'closest guess earns ' + (phase.points || 10) + ' pts'));
+        } else {
+          d.facts.push(fact('no answer set — shows the class distribution only'));
+        }
+        d.facts.push(timerFact(phase));
+        break;
+
       case 'foreach': {
         d.sentence = 'For each item from ' + (phase.data ? humanizeRef(phase.data).toLowerCase() : '…') + ', the class:';
         var subWrap = el('div', 'sv-subs');

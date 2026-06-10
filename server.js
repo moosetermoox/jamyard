@@ -42,6 +42,8 @@ import {
 import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
+import { applyBuzz, applyJudge, applyNextQuestion } from './engine/phase-handlers/buzz.js';
+import { scoreEstimates, estimateStats } from './engine/phases/estimate-scoring.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
@@ -469,6 +471,75 @@ async function closeOneVoice(code, room) {
     engine.transition(nextId);
     await handlePhase(code, room);
   }
+}
+
+// Finish a buzzer round: store the score map (feeds leaderboard/winner) and
+// advance. Idempotent — double-clicks on "Finish round" are harmless.
+async function closeBuzz(code, room) {
+  const state = room.phaseState;
+  if (!state || state.kind !== 'buzz' || state.closed) return;
+  state.closed = true;
+
+  const engine = room.engine;
+  const phase = engine.config.phases[state.phaseId];
+  engine.storePhaseData(state.phaseId, {
+    scores: state.scores,
+    questions: state.question
+  });
+  console.log(`[closeBuzz] ${state.question} question(s), ${Object.keys(state.scores).length} scorer(s)`);
+
+  const nextId = getNextPhaseId(engine, phase);
+  if (nextId) {
+    engine.transition(nextId);
+    await handlePhase(code, room);
+  }
+}
+
+function emitEstimateProgress(code, room, state) {
+  const hostId = roomToHost.get(code);
+  if (!hostId) return;
+  io.to(hostId).emit(EVENTS.ESTIMATE_PROGRESS, {
+    count: Object.keys(state.guesses).length,
+    total: room.engine.players.list().length
+  });
+}
+
+// Close estimating: score by closeness, reveal answer + distribution.
+// Does NOT auto-advance (the reveal is a discussion moment, like rate) —
+// the host clicks Continue.
+async function closeEstimates(code, room) {
+  const state = room.phaseState;
+  if (!state || state.kind !== 'estimate' || state.closed) return;
+  state.closed = true;
+
+  const engine = room.engine;
+  const phase = engine.config.phases[state.phaseId] || {};
+  const points = Number.isInteger(phase.points) && phase.points > 0 ? phase.points : 10;
+  const mode = phase.scoring === 'graduated' ? 'graduated' : 'closest';
+
+  const scores = scoreEstimates(state.guesses, state.answer, points, mode);
+  const stats = estimateStats(state.guesses, state.answer);
+  engine.storePhaseData(state.phaseId, { scores, ...stats });
+  console.log(`[closeEstimates] ${stats.count} guess(es), answer=${state.answer ?? '(poll mode)'}`);
+
+  const players = engine.players;
+  const guesses = Object.entries(state.guesses)
+    .map(([pid, value]) => ({
+      playerId: pid,
+      name: (players.find(pid) || {}).name || '?',
+      value,
+      score: scores[pid] || 0,
+      distance: state.answer != null ? Math.abs(value - state.answer) : null
+    }))
+    .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0) || a.value - b.value);
+
+  io.to(code).emit(EVENTS.ESTIMATE_RESULTS, {
+    answer: state.answer,
+    unit: phase.unit || '',
+    stats,
+    scores,
+    guesses
+  });
 }
 
 // --- Rate helpers ---
@@ -2504,6 +2575,115 @@ io.on('connection', (socket) => {
     if (roomToHost.get(code) !== socket.id) return; // host only
     recordEvent(room, 'close-one-voice');
     await closeOneVoice(code, room);
+  });
+
+  // --- Buzz events (first-tap-wins buzzer rounds) ---
+
+  socket.on(EVENTS.BUZZ_TAP, (payload = {}) => {
+    if (!checkEventPayload(socket, 'buzz-tap', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.engine || !room.phaseState || room.phaseState.kind !== 'buzz') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'buzz-tap')) return;
+    const state = room.phaseState;
+    const player = room.engine.players.find(socket.id);
+    if (!player) return;
+
+    // Socket arrival order IS the buzz order — server-authoritative.
+    const result = applyBuzz(state, socket.id);
+    if (result.type === 'reject') {
+      socket.emit(EVENTS.BUZZ_REJECT, { reason: result.reason });
+      return;
+    }
+    recordEvent(room, 'buzz-locked', { playerId: socket.id, question: state.question });
+    io.to(code).emit(EVENTS.BUZZ_LOCKED, {
+      playerId: socket.id, playerName: player.name, question: state.question
+    });
+  });
+
+  socket.on(EVENTS.BUZZ_JUDGE, (payload = {}) => {
+    if (!checkEventPayload(socket, 'buzz-judge', payload)) return;
+    const { code, correct, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.engine || !room.phaseState || room.phaseState.kind !== 'buzz') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'buzz-judge')) return;
+    if (roomToHost.get(code) !== socket.id) return; // host only
+    const state = room.phaseState;
+
+    const result = applyJudge(state, correct === true);
+    if (result.type === 'reject') return; // nobody buzzed — stray click
+    const p = room.engine.players.find(result.playerId);
+    recordEvent(room, 'buzz-judge', { playerId: result.playerId, correct: result.type === 'correct' });
+    io.to(code).emit(EVENTS.BUZZ_RESULT, {
+      correct: result.type === 'correct',
+      playerId: result.playerId,
+      playerName: p ? p.name : '?',
+      scores: state.scores,
+      points: state.points,
+      question: state.question
+    });
+  });
+
+  socket.on(EVENTS.BUZZ_NEXT, (payload = {}) => {
+    if (!checkEventPayload(socket, 'buzz-next', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'buzz') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'buzz-next')) return;
+    if (roomToHost.get(code) !== socket.id) return; // host only
+    const state = room.phaseState;
+
+    applyNextQuestion(state);
+    recordEvent(room, 'buzz-next', { question: state.question });
+    io.to(code).emit(EVENTS.BUZZ_OPEN, { question: state.question, scores: state.scores });
+  });
+
+  socket.on(EVENTS.BUZZ_FINISH, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'buzz-finish', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'buzz') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'buzz-finish')) return;
+    if (roomToHost.get(code) !== socket.id) return; // host only
+    recordEvent(room, 'buzz-finish');
+    await closeBuzz(code, room);
+  });
+
+  // --- Estimate events (numeric guessing) ---
+
+  socket.on(EVENTS.ESTIMATE_SUBMIT, (payload = {}) => {
+    if (!checkEventPayload(socket, 'estimate-submit', payload)) return;
+    const { code, value, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.engine || !room.phaseState || room.phaseState.kind !== 'estimate') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'estimate-submit')) return;
+    const state = room.phaseState;
+    if (state.closed) return;
+    const player = room.engine.players.find(socket.id);
+    if (!player) return;
+    if (typeof value !== 'number' || !Number.isFinite(value)) return;
+
+    // Server-side bounds clamp (the client input also enforces min/max)
+    const phase = room.engine.config.phases[state.phaseId] || {};
+    let v = value;
+    if (typeof phase.min === 'number') v = Math.max(phase.min, v);
+    if (typeof phase.max === 'number') v = Math.min(phase.max, v);
+
+    // Resubmission allowed until close — estimating invites second thoughts
+    state.guesses[socket.id] = v;
+    recordEvent(room, 'estimate-submit', { playerId: socket.id });
+    emitEstimateProgress(code, room, state);
+  });
+
+  socket.on(EVENTS.CLOSE_ESTIMATES, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'close-estimates', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'estimate') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-estimates')) return;
+    if (roomToHost.get(code) !== socket.id) return; // host only
+    recordEvent(room, 'close-estimates');
+    await closeEstimates(code, room);
   });
 
   // --- Rate events ---

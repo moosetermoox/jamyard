@@ -230,6 +230,40 @@
     </div>
   </section>
 
+  <!-- BUZZ SECTION (first-tap-wins buzzer rounds) -->
+  <section id="buzz-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h2 id="buzz-prompt">Listen for the question!</h2>
+    <p id="buzz-question-num" class="big-text"></p>
+    <div id="buzz-status" class="buzz-status">Buzzer is OPEN — ask away!</div>
+    <div id="buzz-judge-row" class="buzz-judge-row" hidden>
+      <button id="buzz-correct-btn">✓ Correct</button>
+      <button id="buzz-wrong-btn" class="btn-danger">✗ Wrong</button>
+    </div>
+    <div id="buzz-controls" class="buzz-controls">
+      <button id="buzz-next-btn">Next question</button>
+      <button id="buzz-finish-btn" title="Store the scores and move on">Finish round</button>
+    </div>
+    <div id="buzz-scores" class="standings"></div>
+  </section>
+
+  <!-- ESTIMATE SECTION (numeric guessing) -->
+  <section id="estimate-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h2 id="estimate-prompt"></h2>
+    <div id="estimate-timer" class="timer-ring-container" hidden>
+      <svg class="timer-ring" viewBox="0 0 120 120">
+        <circle class="timer-ring-bg" cx="60" cy="60" r="52" />
+        <circle class="timer-ring-fill" cx="60" cy="60" r="52" />
+      </svg>
+      <span class="timer-ring-text"></span>
+    </div>
+    <p id="estimate-counter" class="big-text">0 of 0 guessed</p>
+    <button id="estimate-close-btn">Reveal the Answer</button>
+    <div id="estimate-results" class="estimate-results" hidden></div>
+    <button id="estimate-continue-btn" hidden>Continue</button>
+  </section>
+
   <!-- WAGER SECTION -->
   <section id="wager-section" hidden>
     <div class="screen-template" hidden></div>

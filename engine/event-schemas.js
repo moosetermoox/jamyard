@@ -102,6 +102,32 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'buzz-tap': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'buzz-judge': {
+    code: 'string:required',
+    correct: 'boolean:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'buzz-next': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'buzz-finish': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'estimate-submit': {
+    code: 'string:required',
+    value: 'number:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'close-estimates': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
   'turn-got-it': {
     code: 'string:required',
     phaseInstanceId: 'number:optional'

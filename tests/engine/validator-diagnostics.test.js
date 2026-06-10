@@ -260,6 +260,7 @@ describe('validator diagnostics — game snapshot', () => {
       'feedback-academy': ['DATA_REF_TYPE_MISMATCH'],
       'feedback-coach-academy': ['DATA_REF_TYPE_MISMATCH'],
       'human-vs-ai-birthday-party-battle': [],
+      'lightning-round': [],
       'llm-or-duck': [],
       'mad-lib-mashup': ['DATA_REF_TYPE_MISMATCH'],
       'mood-check': [],

@@ -433,6 +433,45 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
           break;
         }
 
+        // --- Buzz — bots buzz, host judges one correct, finishes round ---
+        case 'buzz-start': {
+          if (role !== 'host') break;
+          lastScreen = 'a buzzer round';
+          phaseLog.push({ type: 'buzz' });
+          once(`buzz:${seq(data)}`, async () => {
+            players[0].emit('buzz-tap', { code, phaseInstanceId: seq(data) });
+            await wait(200);
+            host.emit('buzz-judge', { code, correct: false, phaseInstanceId: seq(data) });
+            await wait(200);
+            players[1 % players.length].emit('buzz-tap', { code, phaseInstanceId: seq(data) });
+            await wait(200);
+            host.emit('buzz-judge', { code, correct: true, phaseInstanceId: seq(data) });
+            await wait(200);
+            host.emit('buzz-finish', { code, phaseInstanceId: seq(data) });
+          }, 150);
+          break;
+        }
+
+        // --- Estimate — bots guess numbers, host reveals, then advances ---
+        case 'estimate-start': {
+          if (role !== 'host') break;
+          lastScreen = 'a guess-the-number step';
+          phaseLog.push({ type: 'estimate' });
+          once(`est:${seq(data)}`, async () => {
+            for (let i = 0; i < players.length; i++) {
+              players[i].emit('estimate-submit', { code, value: 10 + i * 17, phaseInstanceId: seq(data) });
+            }
+            await wait(300);
+            host.emit('close-estimates', { code, phaseInstanceId: seq(data) });
+          }, 150);
+          break;
+        }
+        case 'estimate-results': {
+          if (role !== 'host') break;
+          once(`estr:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 400);
+          break;
+        }
+
         // --- Preview (teacher approval) ---
         case 'preview-content': {
           if (role !== 'host') break;

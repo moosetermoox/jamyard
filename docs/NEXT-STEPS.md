@@ -20,6 +20,20 @@ History lives in [CHANGELOG.md](CHANGELOG.md); parked ideas in [DEFERRED-IDEAS.m
 3. **Editor odds and ends:**
    - vote phase "own options" (same teacher-typed-list treatment rank got)
    - class-critique ships with an empty reveal template (flagged during game sweep)
+4. **New phase ideas** (from the 2026-06-10 ideation; buzz + estimate shipped):
+   - **Branching transitions** (`vote.nextByWinner`) — `next` can't depend on an
+     outcome today. Unlocks choose-your-own-adventure storytelling; also makes
+     recipes + the AI generator more expressive. The biggest structural gap.
+   - **`match`** — pair two lists (vocab↔definitions, quotes↔authors), auto-scored,
+     drag-to-connect (rank's drag infra reuses).
+   - **`sort`** — drag items into named buckets (categorization: metaphor vs simile),
+     class-consensus reveal. Different cognition from rank's ordering.
+   - **`secret-role`** — hidden per-player info (Spyfall/Chameleon pattern); per-player
+     delivery exists ({{X.mine}}), new part is role assignment + projector discipline.
+     The most-requested-by-students unbuilt thing once they see bluffing games.
+   - **`appreciation`** — everyone writes something kind about an assigned classmate
+     (rotation guarantees coverage), teacher previews every note before private
+     delivery. Connection-family round 2; needs the new privacy pattern.
 
 ## Later (needs accounts or more users first)
 

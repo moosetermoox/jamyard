@@ -101,7 +101,7 @@ Framework for quickly building classroom games where:
 - **Simple view (plain-English editor)** — `screens/designer/simple-view.js`: the editor's DEFAULT view renders each step as a sentence with its editable text inline ("Students answer: [box] · passing allowed · ⏱ 120s"), per-step "✨ Ask AI" for structural changes, "Advanced settings →" to the canvas. Choices/rank items/wager options are inline add-remove rows; foreach sub-steps render indented; structural facts (pairing, loops, scoring) read as sentence fragments. Simple/Advanced pill in the header, preference in localStorage. Implementation: wraps `renderCanvas()` (stays in sync with every mutation path incl. Ask-AI apply) and `selectPhase()` (review-panel deep links flip to Advanced first). Most teachers should never need the phase graph.
 - **Friendly tokens everywhere** — teachers never see raw `{{ref}}` syntax: Simple view renders tokens as chips inside token-aware text boxes; Advanced primary textareas + screen-control/sidebar template fields tokenize to `[label — step N]` via `buildTemplateVariables` (labels are step-unique — duplicate labels used to let detokenize rewire refs to the wrong step); `phaseContentLabel` strips tokens from step-reference sentences. Validator rule `SPECIAL_SCOPE_OUT_OF_CONTEXT` warns when `_current`/`_foreach`/`_candidates`/`_pair` appear where they can't resolve (would render raw to students).
 - **AI cost guards** — every real Anthropic call passes through `AIService._callClaude`, gated by `services/ai-budget.js`: per-minute throttle (`AI_CALLS_PER_MINUTE`, default 20) + daily cap (`AI_DAILY_CAP`, default 500; 0 disables). Day counter persists in Neon `ai_usage` table — restarts/redeploys can't reset it. Blocked calls throw `AiBudgetError` (429, friendly message) before reaching the API. Editor endpoints return 429; in-game AI failures hit the phase-error pause. `GET /api/ai-budget` shows today's usage.
-- **685 tests passing** (`npm test`)
+- **703 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for phone testing and screenshot harnesses)
 
@@ -149,6 +149,8 @@ Framework for quickly building classroom games where:
    - First merge-phase game: think-pair-share with shared live draft + agree-to-submit; merged answers revealed anonymously
 20. **One Voice** (games/one-voice/) — announce → one-voice → stats reveal → end
    - First one-voice game: class counts to 20 together; collisions reset; each number spoken through the teacher's speakers; ends on a shared story ("Attempts: 3, best run: 17"), no winners
+21. **Lightning Round** (games/lightning-round/) — announce → buzz → estimate ×2 → leaderboard → end
+   - First buzz + estimate game: buzzer round (teacher asks aloud) then two guess-the-number questions; leaderboard sums scores across all three phases
 
 ### Engine Primitives (All Implemented)
 1. Player state tracking (remaining vs eliminated) — PlayerRegistry
@@ -168,7 +170,7 @@ Framework for quickly building classroom games where:
 - **AI mixed format:** AI sometimes returns `[playerId, responseText]` in same array. Hook deduplicates within groups — only eliminates if 2+ unique players resolve.
 - **bottom-percent input field:** Eliminate phase reads scores from `phase.input` or `phase.from` (config uses `input`).
 
-### 23 Phase Types Defined
+### 25 Phase Types Defined
 1. `lobby` — Wait for players to join
 2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pair games — `pairsFrom` optional, `oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`), `passAllowed`, `simultaneousReveal`
 3. `ai-process` — Send data to AI for processing; `perPlayer:true` generates one item per student
@@ -192,6 +194,8 @@ Framework for quickly building classroom games where:
 21. `merge` — Group members combine their answers into one shared answer (think-pair-share); live draft, `agreeMode` both/any/timer, `groupSize` 2/4; outputs `merged`
 22. `one-voice` — Cooperative counting to a target; server-authoritative collision window, same-player rejection, teacher-speaker audio; outputs `success`/`attempts`/`resets`/`bestRun`
 23. `end` — Game over, clean up
+24. `buzz` — First-tap-wins buzzer rounds (trivia bee); teacher asks aloud, judges Right/Wrong on host; wrong = lockout for the question; one phase runs many questions; outputs `scores` (scoreMap)
+25. `estimate` — Numeric guessing; optional `answer`+`unit`, `scoring: closest|graduated` (rank-based, scale-free), resubmission allowed until close; reveal shows answer + distribution; outputs `scores`/`average`/`median`; no answer = poll-the-room mode
 
 ### 6 AI Task Types Defined
 - `summarize` — Combine responses into insight (Haiku)
@@ -272,6 +276,8 @@ Framework for quickly building classroom games where:
 - `engine/phases/pair-reveal.js` — pure pair-scoped reveal helpers (views, listen-card, `{{_pair.*}}` substitution)
 - `engine/phase-handlers/merge.js` — merge phase (exports pure `buildMergeGroups`, `agreesNeeded`)
 - `engine/phase-handlers/one-voice.js` — one-voice phase (exports pure `adjudicateTap` with injected clock — unit-test timing rules there, not over sockets)
+- `engine/phase-handlers/buzz.js` — buzz phase (exports pure `createBuzzState`/`applyBuzz`/`applyJudge`/`applyNextQuestion` — the buzzer referee)
+- `engine/phases/estimate-scoring.js` — pure closeness scoring (`scoreEstimates` closest/graduated modes — rank-based so scale-free — + `estimateStats`)
 - `scripts/sim-harness.js` — shared multi-client simulation primitives (all simulate-*.js scripts build on it)
 - `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 12 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
 
@@ -286,7 +292,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 685 Vitest tests (~1.5s)
+- `npm test` — runs all 703 Vitest tests (~1.5s)
 - `node scripts/simulate-any-game.js <game-id>` — universal automated playthrough (requires server running)
 - `node scripts/simulate-closer.js` / `simulate-snowball.js` / `simulate-one-voice.js` — Connection Pack invariant sims (pass anonymity, pair privacy, draft sync, tap timing)
 - New shipped games must be added to the snapshot map in `tests/engine/validator-diagnostics.test.js` (it fails loudly on unknown games)

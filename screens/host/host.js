@@ -426,6 +426,8 @@ window.addEventListener('message', (e) => {
     'rank-close-btn',
     'merge-close-btn',
     'one-voice-continue-btn',
+    'buzz-finish-btn',
+    'estimate-close-btn', 'estimate-continue-btn',
     'rate-close-btn', 'rate-continue-btn',
     'wager-close-btn',
     'reveal-one-next-btn', 'reveal-one-continue-btn',
@@ -910,6 +912,177 @@ oneVoiceMuteBtn.addEventListener('click', () => {
 
 oneVoiceContinueBtn.addEventListener('click', () => {
   socket.emit('close-one-voice', { code: currentRoomCode });
+});
+
+// --- Socket events - Buzz (first-tap-wins buzzer rounds) ---
+
+const buzzSection = document.getElementById('buzz-section');
+const buzzPrompt = document.getElementById('buzz-prompt');
+const buzzQuestionNum = document.getElementById('buzz-question-num');
+const buzzStatus = document.getElementById('buzz-status');
+const buzzJudgeRow = document.getElementById('buzz-judge-row');
+const buzzCorrectBtn = document.getElementById('buzz-correct-btn');
+const buzzWrongBtn = document.getElementById('buzz-wrong-btn');
+const buzzControls = document.getElementById('buzz-controls');
+const buzzNextBtn = document.getElementById('buzz-next-btn');
+const buzzFinishBtn = document.getElementById('buzz-finish-btn');
+const buzzScores = document.getElementById('buzz-scores');
+
+function renderBuzzScores(scores) {
+  buzzScores.innerHTML = '';
+  const entries = Object.entries(scores || {});
+  buzzScores.hidden = entries.length === 0; // .standings draws a surface box even when empty
+  if (!entries.length) return;
+  // Names come with the scores via the players list we can't see here, so
+  // the server sends scores keyed by playerId — resolve via the lobby list?
+  // Simpler: the server includes names in buzz events; this renders the
+  // last-known name map.
+  entries.sort((a, b) => b[1] - a[1]);
+  for (const [pid, pts] of entries) {
+    const p = document.createElement('p');
+    const name = buzzNames[pid] || '…';
+    p.textContent = (J ? J.avatarFor(name) + ' ' : '') + name + ' — ' + pts + ' pts';
+    buzzScores.appendChild(p);
+  }
+}
+const buzzNames = {}; // playerId → name, learned from buzz events
+
+socket.on('buzz-start', ({ prompt, question, scores, hostTemplate, show }) => {
+  showSection(buzzSection);
+  buzzPrompt.textContent = prompt || 'Listen for the question!';
+  buzzQuestionNum.textContent = 'Question ' + (question || 1);
+  buzzStatus.textContent = 'Buzzer is OPEN — ask away!';
+  buzzStatus.classList.remove('buzz-status-locked');
+  buzzJudgeRow.hidden = true;
+  renderBuzzScores(scores);
+  applyTemplate(buzzSection, hostTemplate);
+  applyShow(show, {
+    prompt: buzzPrompt,
+    buzzed: buzzStatus,
+    scores: buzzScores,
+    controls: buzzControls
+  });
+});
+
+socket.on('buzz-locked', ({ playerId, playerName }) => {
+  buzzNames[playerId] = playerName;
+  buzzStatus.textContent = '🔔 ' + (J ? J.avatarFor(playerName) + ' ' : '') + playerName + ' buzzed in!';
+  buzzStatus.classList.add('buzz-status-locked');
+  buzzJudgeRow.hidden = false;
+  if (J) J.sound('reveal');
+});
+
+socket.on('buzz-result', ({ correct, playerId, playerName, scores, points }) => {
+  buzzNames[playerId] = playerName;
+  buzzJudgeRow.hidden = true;
+  if (correct) {
+    buzzStatus.textContent = '✓ ' + playerName + ' +' + points + ' — click "Next question" when ready';
+    if (J) J.sound('tada');
+  } else {
+    buzzStatus.textContent = '✗ ' + playerName + ' — buzzer reopened!';
+    buzzStatus.classList.remove('buzz-status-locked');
+    if (J) J.sound('womp');
+  }
+  renderBuzzScores(scores);
+});
+
+socket.on('buzz-open', ({ question, scores }) => {
+  buzzQuestionNum.textContent = 'Question ' + question;
+  buzzStatus.textContent = 'Buzzer is OPEN — ask away!';
+  buzzStatus.classList.remove('buzz-status-locked');
+  buzzJudgeRow.hidden = true;
+  renderBuzzScores(scores);
+});
+
+buzzCorrectBtn.addEventListener('click', () => {
+  socket.emit('buzz-judge', { code: currentRoomCode, correct: true });
+});
+buzzWrongBtn.addEventListener('click', () => {
+  socket.emit('buzz-judge', { code: currentRoomCode, correct: false });
+});
+buzzNextBtn.addEventListener('click', () => {
+  socket.emit('buzz-next', { code: currentRoomCode });
+});
+buzzFinishBtn.addEventListener('click', () => {
+  socket.emit('buzz-finish', { code: currentRoomCode });
+});
+
+// --- Socket events - Estimate (numeric guessing) ---
+
+const estimateSection = document.getElementById('estimate-section');
+const estimatePrompt = document.getElementById('estimate-prompt');
+const estimateTimer = document.getElementById('estimate-timer');
+const estimateCounter = document.getElementById('estimate-counter');
+const estimateCloseBtn = document.getElementById('estimate-close-btn');
+const estimateResults = document.getElementById('estimate-results');
+const estimateContinueBtn = document.getElementById('estimate-continue-btn');
+
+socket.on('estimate-start', ({ prompt, unit, count, total, timer, hostTemplate, show }) => {
+  showSection(estimateSection);
+  estimatePrompt.textContent = prompt + (unit ? ' (' + unit + ')' : '');
+  estimateCounter.textContent = (count || 0) + ' of ' + total + ' guessed';
+  estimateCloseBtn.hidden = false;
+  estimateCloseBtn.disabled = false;
+  estimateResults.hidden = true;
+  estimateResults.innerHTML = '';
+  estimateContinueBtn.hidden = true;
+  applyTemplate(estimateSection, hostTemplate);
+  applyShow(show, {
+    prompt: estimatePrompt,
+    counter: estimateCounter,
+    timer: estimateTimer,
+    closeButton: estimateCloseBtn,
+    results: estimateResults
+  });
+  if (timer) {
+    startTimer(timer, estimateTimer, () => {
+      estimateCloseBtn.click();
+    });
+  }
+});
+
+socket.on('estimate-progress', ({ count, total }) => {
+  estimateCounter.textContent = count + ' of ' + total + ' guessed';
+  if (J) J.sound('blip');
+});
+
+socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
+  clearTimer();
+  estimateTimer.hidden = true;
+  estimateCloseBtn.hidden = true;
+  estimateContinueBtn.hidden = false;
+  if (J) J.sound('reveal');
+
+  let html = '';
+  if (answer != null) {
+    html += '<div class="estimate-answer">The answer: <strong>' + answer +
+            (unit ? ' ' + unit : '') + '</strong></div>';
+  }
+  if (stats && stats.count > 0) {
+    html += '<p class="estimate-stats">' + stats.count + ' guesses · average ' +
+            Math.round(stats.average * 100) / 100 +
+            ' · median ' + stats.median + '</p>';
+  }
+  html += '<div class="estimate-guess-list">';
+  for (let i = 0; i < (guesses || []).length; i++) {
+    const g = guesses[i];
+    const avatar = J ? J.avatarFor(g.name) + ' ' : '';
+    html += '<p class="' + (g.score > 0 ? 'estimate-winner' : '') + '">' +
+            avatar + escapeHtml(g.name) + ' — ' + g.value +
+            (g.score > 0 ? ' (+' + g.score + ')' : '') + '</p>';
+  }
+  html += '</div>';
+  estimateResults.innerHTML = html;
+  estimateResults.hidden = false;
+});
+
+estimateCloseBtn.addEventListener('click', () => {
+  socket.emit('close-estimates', { code: currentRoomCode });
+  estimateCloseBtn.disabled = true;
+});
+
+estimateContinueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
 });
 
 // --- Socket events - Merge (Connection Pack: think-pair-share) ---
@@ -1412,6 +1585,7 @@ const allSections = [
   revealSection, voteSection, eliminationSection, winnerSection,
   announceSection, leaderboardSection, revealOneSection,
   teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
+  buzzSection, estimateSection,
   phaseErrorSection, endSection
 ];
 

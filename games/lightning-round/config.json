@@ -1,0 +1,48 @@
+{
+  "name": "Lightning Round",
+  "description": "A buzzer round plus two guess-the-number questions — quick-fire class energy with a leaderboard at the end.",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "intro" },
+    "intro": {
+      "type": "announce",
+      "message": "⚡ LIGHTNING ROUND!\n\nFirst: a buzzer round — questions are asked out loud. Buzz fast, answer faster. Wrong answers are locked out until the next question.\n\nThen: guess-the-number. Closest guess wins the points.",
+      "timer": 10,
+      "next": "buzzer"
+    },
+    "buzzer": {
+      "type": "buzz",
+      "prompt": "Listen for the question, then BUZZ!",
+      "points": 10,
+      "next": "guess1"
+    },
+    "guess1": {
+      "type": "estimate",
+      "prompt": "How many liters of water does a cow drink in a single day?",
+      "answer": 115,
+      "unit": "liters",
+      "points": 10,
+      "scoring": "graduated",
+      "timer": 30,
+      "next": "guess2"
+    },
+    "guess2": {
+      "type": "estimate",
+      "prompt": "In what year was the very first text message sent?",
+      "answer": 1992,
+      "points": 10,
+      "scoring": "closest",
+      "timer": 30,
+      "next": "scoreboard"
+    },
+    "scoreboard": {
+      "type": "leaderboard",
+      "from": ["buzzer.scores", "guess1.scores", "guess2.scores"],
+      "style": "full",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "⚡ That's the Lightning Round! Same time next week."
+    }
+  }
+}

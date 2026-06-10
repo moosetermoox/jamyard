@@ -28,6 +28,8 @@ import './relay.js';
 import './turn.js';
 import './merge.js';
 import './one-voice.js';
+import './buzz.js';
+import './estimate.js';
 
 // Wave 4: Orchestration and special handlers
 import './foreach.js';

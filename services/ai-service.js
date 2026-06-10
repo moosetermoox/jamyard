@@ -46,6 +46,7 @@ function describeFieldType(fdef) {
     case 'string':         return 'string';
     case 'templateString': return 'string with {{tokens}}';
     case 'boolean':        return 'boolean';
+    case 'number':         return 'number (decimals ok)';
     case 'integer': {
       if (fdef.min != null && fdef.max != null) return `number ${fdef.min}-${fdef.max}`;
       if (fdef.min != null) return `number ≥ ${fdef.min}`;

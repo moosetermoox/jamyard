@@ -234,6 +234,28 @@ var PHASE_CATALOG = {
     player: 'Sees sub-phase UI per iteration',
     ai: null
   },
+  'buzz': {
+    icon: '🔔',
+    friendlyName: 'Buzzer Round',
+    description: 'Ask questions out loud — first to buzz answers, you judge Right/Wrong',
+    color: '#C62828',
+    bg: '#FFCDD2',
+    detailField: 'prompt',
+    host: 'Who buzzed + Correct/Wrong buttons + scores',
+    player: 'One giant BUZZ button',
+    ai: null
+  },
+  'estimate': {
+    icon: '🎯',
+    friendlyName: 'Guess the Number',
+    description: 'Everyone guesses a number — closest to the answer earns points',
+    color: '#00838F',
+    bg: '#B2EBF2',
+    detailField: 'prompt',
+    host: 'Guess counter, then the answer + class distribution',
+    player: 'Number input (changeable until the reveal)',
+    ai: null
+  },
   'end': {
     icon: '',
     friendlyName: 'Game Over',
@@ -819,6 +841,8 @@ function getPrimaryFieldDef(type) {
     case 'rank':          return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
     case 'wager':         return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
     case 'relay':         return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
+    case 'buzz':          return { key: 'prompt',      type: 'textarea', placeholder: 'On-screen prompt (questions are usually asked out loud)…' };
+    case 'estimate':      return { key: 'prompt',      type: 'textarea', placeholder: 'The number to guess, e.g. How many liters…' };
     case 'vote': return { type: 'summary', summarize: function (p) {
       var mode = p.mode === 'head-to-head' ? 'Head-to-head vote' : 'Pick-one vote';
       if (p.matchupsFromPairs) {
@@ -1961,6 +1985,67 @@ function renderPhaseConfig(phaseId) {
     addVideoUrlField(phase);
   }
 
+  if (type === 'buzz') {
+    addTextAreaWithHelp('On-screen prompt', 'Shown above the buzzer. The actual questions are usually asked out loud.', 'phase-prompt', phase.prompt, 'e.g. Listen for the question, then BUZZ!', function (value) {
+      if (value) { phase.prompt = value; } else { delete phase.prompt; }
+      renderCanvas();
+    });
+    addFieldWithHelp('Points per correct answer', 'Default 10. Scores feed a later Leaderboard or Crown a Winner step.', 'number', 'phase-points', phase.points, false, function (value) {
+      if (value == null || value === '') delete phase.points;
+      else phase.points = value;
+    });
+    var loLabel = document.createElement('label');
+    loLabel.className = 'form-group';
+    loLabel.style.display = 'flex';
+    loLabel.style.alignItems = 'flex-start';
+    loLabel.style.gap = '8px';
+    loLabel.style.cursor = 'pointer';
+    var loCb = document.createElement('input');
+    loCb.type = 'checkbox';
+    loCb.style.marginTop = '4px';
+    loCb.checked = phase.lockoutOnWrong !== false; // default true
+    loCb.addEventListener('change', function () {
+      isDirty = true;
+      if (loCb.checked) delete phase.lockoutOnWrong; // true is default — keep config clean
+      else phase.lockoutOnWrong = false;
+    });
+    var loText = document.createElement('div');
+    loText.innerHTML = '<strong>Lock out wrong answers</strong><div style="font-size:12px;color:#666;margin-top:2px;">A wrong answer locks that player out until the next question — stops buzz-spamming.</div>';
+    loLabel.appendChild(loCb);
+    loLabel.appendChild(loText);
+    phaseConfigForm.appendChild(loLabel);
+  }
+
+  if (type === 'estimate') {
+    addTextAreaWithHelp('The question', 'A question with a numeric answer.', 'phase-prompt', phase.prompt, 'e.g. How many liters of water does a cow drink in a day?', function (value) {
+      phase.prompt = value;
+      renderCanvas();
+    });
+    addFieldWithHelp('The answer (optional)', 'The true value (decimals ok). Leave empty for poll-the-room mode — no scoring, just the class distribution.', 'text', 'phase-answer', phase.answer, false, function (value) {
+      var n = parseFloat(value);
+      if (value == null || value === '' || !isFinite(n)) delete phase.answer;
+      else phase.answer = n;
+    });
+    addFieldWithHelp('Unit (optional)', 'Shown next to the input and the answer, e.g. "liters".', 'text', 'phase-unit', phase.unit, false, function (value) {
+      if (value) { phase.unit = value; } else { delete phase.unit; }
+    });
+    addFieldWithHelp('Points for the closest guess', 'Default 10.', 'number', 'phase-est-points', phase.points, false, function (value) {
+      if (value == null || value === '') delete phase.points;
+      else phase.points = value;
+    });
+    addSelectWithHelp('Scoring', 'closest: the closest guess takes all the points. graduated: points fall off by closeness rank — everyone earns something.', 'phase-scoring', [
+      { value: 'closest', label: 'Closest guess takes all' },
+      { value: 'graduated', label: 'Graduated — points by closeness rank' }
+    ], phase.scoring || 'closest', function (value) {
+      if (value === 'closest') delete phase.scoring; // default — keep config clean
+      else phase.scoring = value;
+    });
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit — you close guessing manually.', 'number', 'phase-timer', phase.timer, false, function (value) {
+      if (value == null || value === '') delete phase.timer;
+      else phase.timer = value;
+    });
+  }
+
   if (type === 'ai-eliminate') {
     var aiElimTA = addTextAreaWithHelp('Elimination rules', 'Tell the AI exactly what rules to enforce', 'phase-instruction', phase.instruction, 'e.g. Eliminate anyone who used more than one sentence.', function (value) {
       phase.instruction = value;
@@ -2953,7 +3038,9 @@ var PRIMARY_FORM_IDS_BY_TYPE = {
   'end':            ['phase-message'],
   'rank':           ['phase-prompt'],
   'wager':          ['phase-prompt'],
-  'relay':          ['phase-prompt']
+  'relay':          ['phase-prompt'],
+  'buzz':           ['phase-prompt'],
+  'estimate':       ['phase-prompt']
   // reveal-one keeps its phase-message (title) — its primary is a summary
 };
 function stripPrimaryFieldFromForm(type) {

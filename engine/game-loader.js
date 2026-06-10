@@ -925,7 +925,9 @@ function inferDiagnosticCode(msg, severity) {
 // eliminates players, and correctAnswer / foreach scoring because they
 // produce scores — same promise, same rule.
 const CONNECTION_FORBIDDEN_TYPES = new Set([
-  'leaderboard', 'winner', 'eliminate', 'ai-eliminate', 'wager'
+  'leaderboard', 'winner', 'eliminate', 'ai-eliminate', 'wager',
+  // Point-awarding phases — connection games promise no winners or points
+  'buzz', 'estimate'
 ]);
 
 // Validate the config-level "family" flag. Currently the only family is

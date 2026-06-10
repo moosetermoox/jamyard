@@ -308,6 +308,13 @@ window.addEventListener('message', function(e) {
     if (rankBtn && !rankBtn.disabled) rankBtn.click();
   } else if (id === 'one-voice-section') {
     if (!oneVoiceTapBtn.disabled) oneVoiceTapBtn.click();
+  } else if (id === 'buzz-section') {
+    if (!buzzTapBtn.disabled) buzzTapBtn.click();
+  } else if (id === 'estimate-section') {
+    if (!estimateInput.disabled && !estimateInput.value) {
+      estimateInput.value = String(Math.floor(Math.random() * 200) + 1);
+    }
+    if (!estimateSubmitBtn.disabled) estimateSubmitBtn.click();
   } else if (id === 'merge-section') {
     // Only the first bot in the group drafts (an empty box means nobody
     // wrote yet); everyone agrees shortly after, so each bot-fill click
@@ -914,6 +921,163 @@ socket.on('one-voice-success', ({ target, attempt }) => {
   // Everyone won this together — confetti on every device, but no sound
   // (the room's shared voice on the host speakers is the soundtrack).
   if (J) J.confetti({ count: 60 });
+});
+
+// --- Socket events - Buzz (first-tap-wins buzzer rounds) ---
+
+const buzzSection = document.getElementById('buzz-section');
+const buzzPlayerPrompt = document.getElementById('buzz-player-prompt');
+const buzzTapBtn = document.getElementById('buzz-tap-btn');
+const buzzPlayerStatus = document.getElementById('buzz-player-status');
+
+socket.on('buzz-start', ({ prompt, playerTemplate, show }) => {
+  showSection(buzzSection);
+  buzzPlayerPrompt.textContent = prompt || 'Listen for the question!';
+  buzzTapBtn.disabled = false;
+  buzzPlayerStatus.textContent = '';
+  applyTemplate(buzzSection, playerTemplate);
+  applyShow(show, {
+    prompt: buzzPlayerPrompt,
+    button: buzzTapBtn,
+    status: buzzPlayerStatus
+  });
+});
+
+buzzTapBtn.addEventListener('click', function () {
+  socket.emit('buzz-tap', { code: currentRoomCode });
+  // Tiny debounce against double-taps; the server is the real referee.
+  buzzTapBtn.disabled = true;
+  setTimeout(function () {
+    // Re-enabled by buzz-open / buzz-result events when appropriate;
+    // this only covers the no-reply case (e.g. packet loss).
+    if (buzzPlayerStatus.textContent === '') buzzTapBtn.disabled = false;
+  }, 400);
+});
+
+socket.on('buzz-locked', ({ playerId, playerName }) => {
+  buzzTapBtn.disabled = true;
+  if (playerId === socket.id) {
+    buzzPlayerStatus.textContent = '🔔 You buzzed first — answer out loud!';
+    if (J) J.sound('tada');
+  } else {
+    buzzPlayerStatus.textContent = playerName + ' buzzed first.';
+  }
+});
+
+socket.on('buzz-reject', ({ reason }) => {
+  buzzTapBtn.disabled = true;
+  buzzPlayerStatus.textContent = reason === 'locked-out'
+    ? 'Locked out until the next question.'
+    : 'Too late — someone beat you to it!';
+});
+
+socket.on('buzz-result', ({ correct, playerId, playerName, points }) => {
+  if (correct) {
+    buzzTapBtn.disabled = true;
+    if (playerId === socket.id) {
+      buzzPlayerStatus.textContent = '✓ Correct! +' + points + ' points!';
+      if (J) J.confetti({ count: 50 });
+    } else {
+      buzzPlayerStatus.textContent = '✓ ' + playerName + ' got it!';
+    }
+  } else {
+    // Wrong answer — buzzer reopens for everyone but the locked-out player
+    if (playerId === socket.id) {
+      buzzPlayerStatus.textContent = '✗ Not this time — locked out until the next question.';
+      if (J) J.sound('womp');
+      buzzTapBtn.disabled = true;
+    } else {
+      buzzPlayerStatus.textContent = 'Buzzer reopened — go!';
+      buzzTapBtn.disabled = false;
+    }
+  }
+});
+
+socket.on('buzz-open', () => {
+  buzzTapBtn.disabled = false;
+  buzzPlayerStatus.textContent = '';
+});
+
+// --- Socket events - Estimate (numeric guessing) ---
+
+const estimateSection = document.getElementById('estimate-section');
+const estimatePlayerPrompt = document.getElementById('estimate-player-prompt');
+const estimateTimerDisplay = document.getElementById('estimate-timer-display');
+const estimateInput = document.getElementById('estimate-input');
+const estimateUnit = document.getElementById('estimate-unit');
+const estimateSubmitBtn = document.getElementById('estimate-submit-btn');
+const estimatePlayerStatus = document.getElementById('estimate-player-status');
+const estimatePlayerResults = document.getElementById('estimate-player-results');
+
+function submitEstimate() {
+  var v = parseFloat(estimateInput.value);
+  if (!isFinite(v)) {
+    estimatePlayerStatus.textContent = 'Type a number first.';
+    return false;
+  }
+  socket.emit('estimate-submit', { code: currentRoomCode, value: v });
+  estimatePlayerStatus.textContent =
+    'Got it — you guessed ' + v + '. You can change it until the teacher reveals.';
+  if (J) J.sound('blip');
+  return true;
+}
+
+socket.on('estimate-start', ({ prompt, unit, min, max, timer, playerTemplate, show }) => {
+  showSection(estimateSection);
+  estimatePlayerPrompt.textContent = prompt || 'Guess the number!';
+  estimateUnit.textContent = unit || '';
+  estimateInput.value = '';
+  estimateInput.disabled = false;
+  if (min != null) estimateInput.min = min; else estimateInput.removeAttribute('min');
+  if (max != null) estimateInput.max = max; else estimateInput.removeAttribute('max');
+  estimateSubmitBtn.disabled = false;
+  estimatePlayerStatus.textContent = '';
+  estimatePlayerResults.hidden = true;
+  estimatePlayerResults.innerHTML = '';
+  applyTemplate(estimateSection, playerTemplate);
+  applyShow(show, {
+    prompt: estimatePlayerPrompt,
+    input: estimateInput,
+    timer: estimateTimerDisplay,
+    submitButton: estimateSubmitBtn
+  });
+  if (timer) {
+    startTimer(timer, estimateTimerDisplay, function () {
+      // Auto-submit whatever is typed; the host closes server-side.
+      submitEstimate();
+      estimateInput.disabled = true;
+      estimateSubmitBtn.disabled = true;
+    });
+  }
+});
+
+estimateSubmitBtn.addEventListener('click', submitEstimate);
+
+socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
+  showSection(estimateSection);
+  clearTimer();
+  estimateTimerDisplay.hidden = true;
+  estimateInput.disabled = true;
+  estimateSubmitBtn.disabled = true;
+  estimatePlayerStatus.textContent = '';
+
+  var mine = (guesses || []).find(function (g) { return g.playerId === socket.id; });
+  var html = '';
+  if (answer != null) {
+    html += '<div class="estimate-answer">The answer: <strong>' + answer +
+            (unit ? ' ' + unit : '') + '</strong></div>';
+  }
+  if (mine) {
+    html += '<p>You guessed <strong>' + mine.value + '</strong>' +
+            (mine.score > 0 ? ' — +' + mine.score + ' points! 🎯' : '') + '</p>';
+    if (mine.score > 0 && J) J.confetti({ count: 40 });
+  }
+  if (stats && stats.count > 0) {
+    html += '<p class="estimate-stats">Class average: ' + Math.round(stats.average * 100) / 100 +
+            (stats.median != null ? ' · median: ' + stats.median : '') + '</p>';
+  }
+  estimatePlayerResults.innerHTML = html;
+  estimatePlayerResults.hidden = false;
 });
 
 // --- Socket events - Merge (Connection Pack: think-pair-share) ---
@@ -1775,7 +1939,8 @@ const allPlayerSections = [
   processSection, revealSection, endSection, gameWaitingSection,
   voteSection, voteSubmittedSection, eliminationResultsSection,
   announceSection, winnerSection, leaderboardSection, revealOneSection,
-  teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection
+  teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
+  buzzSection, estimateSection
 ];
 
 function showSection(el) {

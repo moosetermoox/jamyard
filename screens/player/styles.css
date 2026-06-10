@@ -63,6 +63,76 @@ section.active {
   }
 }
 
+/* --- Buzz: one giant button --- */
+
+.buzz-tap {
+  display: block;
+  width: min(70vw, 280px);
+  height: min(70vw, 280px);
+  margin: 30px auto;
+  border-radius: 50%;
+  border: 6px solid var(--theme-border, #000);
+  background: var(--theme-danger, #FF2D2D);
+  color: white;
+  font-family: inherit;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, 0.35);
+}
+
+.buzz-tap:active {
+  transform: translateY(6px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.buzz-tap:disabled {
+  background: #999;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+.buzz-player-status {
+  min-height: 1.5em;
+  font-weight: bold;
+}
+
+/* --- Estimate: number input --- */
+
+.estimate-input-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 10px;
+}
+
+.estimate-input-row input {
+  flex: 1;
+  font-size: 1.6rem;
+  text-align: center;
+  margin: 0;
+}
+
+.estimate-unit {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--theme-text, #444);
+}
+
+.estimate-player-status {
+  min-height: 1.5em;
+}
+
+.estimate-answer {
+  font-size: 1.6rem;
+  margin: 16px 0;
+}
+
+.estimate-stats {
+  color: var(--theme-text, #666);
+}
+
 /* Inputs */
 input, textarea {
   display: block;

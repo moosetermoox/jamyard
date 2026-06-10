@@ -190,6 +190,31 @@
     <p id="one-voice-status" class="one-voice-status"></p>
   </section>
 
+  <!-- BUZZ SECTION (first-tap-wins buzzer rounds) -->
+  <section id="buzz-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h1 id="buzz-player-prompt">Listen for the question!</h1>
+    <button id="buzz-tap-btn" class="buzz-tap">🔔<br>BUZZ</button>
+    <p id="buzz-player-status" class="buzz-player-status"></p>
+  </section>
+
+  <!-- ESTIMATE SECTION (numeric guessing) -->
+  <section id="estimate-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h1 id="estimate-player-prompt"></h1>
+    <div id="estimate-timer-display" class="timer-bar-wrapper" hidden>
+      <span class="timer-bar-text"></span>
+      <div class="timer-bar"><div class="timer-bar-fill"></div></div>
+    </div>
+    <div class="estimate-input-row">
+      <input id="estimate-input" type="number" step="any" inputmode="decimal" placeholder="Your guess">
+      <span id="estimate-unit" class="estimate-unit"></span>
+    </div>
+    <button id="estimate-submit-btn">Submit Guess</button>
+    <p id="estimate-player-status" class="estimate-player-status"></p>
+    <div id="estimate-player-results" hidden></div>
+  </section>
+
   <!-- WAGER SECTION -->
   <section id="wager-section" hidden>
     <div class="screen-template" hidden></div>

@@ -704,6 +704,108 @@ export const PHASE_SCHEMAS = {
   },
 
   // -------------------------------------------------------------------
+  buzz: {
+    label: 'Buzzer Round',
+    icon: '🔔',
+    description: 'Teacher asks questions out loud; first player to buzz answers; teacher judges Right/Wrong on the host screen. Wrong locks that player out for the question. One step runs as many questions as the teacher wants.',
+    role: 'input',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'loops'],
+    fields: {
+      prompt: {
+        type: 'templateString', optional: true,
+        label: 'On-screen prompt',
+        helper: 'Shown above the buzzer, e.g. "Listen for the question!" — the actual questions are usually asked aloud.',
+        placeholder: 'Listen for the question, then BUZZ!'
+      },
+      points: {
+        type: 'integer', min: 1, max: 1000, optional: true, default: 10,
+        label: 'Points per correct answer'
+      },
+      lockoutOnWrong: {
+        type: 'boolean', optional: true, default: true,
+        label: 'Lock out wrong answers',
+        helper: 'A wrong answer locks that player out until the next question (stops buzz-spamming).'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        scores:    { type: 'scoreMap', capability: 'scoreMap', renderers: { barChart: 'tallyBarChart' } },
+        questions: { type: 'integer' }
+      }
+    },
+    ui: {
+      hostToggles: ['prompt', 'buzzed', 'scores', 'controls'],
+      playerToggles: ['prompt', 'button', 'status']
+    }
+  },
+
+  // -------------------------------------------------------------------
+  estimate: {
+    label: 'Guess the Number',
+    icon: '🎯',
+    description: 'Students each guess a number; close submissions to reveal the answer, the class distribution, and closeness-ranked scores. Without an answer it becomes poll-the-room (stats only, no scores).',
+    role: 'input',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'timer', 'loops'],
+    fields: {
+      prompt: {
+        type: 'templateString', required: true,
+        label: 'The question',
+        placeholder: 'How many liters of water does a cow drink in a day?'
+      },
+      answer: {
+        type: 'number', optional: true,
+        label: 'The answer (optional)',
+        helper: 'The true value. Leave empty for poll-the-room mode — no scoring, just the class distribution.'
+      },
+      unit: {
+        type: 'string', optional: true,
+        label: 'Unit (optional)',
+        placeholder: 'liters'
+      },
+      points: {
+        type: 'integer', min: 1, max: 1000, optional: true, default: 10,
+        label: 'Points for the closest guess'
+      },
+      scoring: {
+        type: 'enum', values: ['closest', 'graduated'], optional: true, default: 'closest',
+        label: 'Scoring',
+        helper: 'closest: the closest guess takes all the points (ties share). graduated: points fall off by closeness rank, everyone earns something.'
+      },
+      min: {
+        type: 'number', optional: true,
+        label: 'Lowest allowed guess (optional)'
+      },
+      max: {
+        type: 'number', optional: true,
+        label: 'Highest allowed guess (optional)'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        scores:  { type: 'scoreMap', capability: 'scoreMap', renderers: { barChart: 'tallyBarChart' } },
+        average: { type: 'number' },
+        median:  { type: 'number' },
+        closest: { type: 'number' },
+        answer:  { type: 'number' }
+      }
+    },
+    ui: {
+      hostToggles: ['prompt', 'counter', 'timer', 'closeButton', 'results'],
+      playerToggles: ['prompt', 'input', 'timer', 'submitButton']
+    }
+  },
+
+  // -------------------------------------------------------------------
   reveal: {
     label: 'Show Result',
     icon: '🎭',

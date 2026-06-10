@@ -125,6 +125,24 @@ export const EVENTS = {
   ONE_VOICE_SUCCESS:    'one-voice-success',   // server -> all: we made it
   CLOSE_ONE_VOICE:      'close-one-voice',     // host -> server: store stats + move on
 
+  // --- Buzz Phase (first-tap-wins buzzer rounds) ---
+  BUZZ_START:           'buzz-start',          // server -> all: prompt, points, question #
+  BUZZ_TAP:             'buzz-tap',            // player -> server: I buzz in!
+  BUZZ_LOCKED:          'buzz-locked',         // server -> all: who buzzed first
+  BUZZ_REJECT:          'buzz-reject',         // server -> tapper only: too late / locked out
+  BUZZ_JUDGE:           'buzz-judge',          // host -> server: correct true/false
+  BUZZ_RESULT:          'buzz-result',         // server -> all: judged + scores
+  BUZZ_NEXT:            'buzz-next',           // host -> server: next question (clear lockouts)
+  BUZZ_OPEN:            'buzz-open',           // server -> all: buzzer (re)opened
+  BUZZ_FINISH:          'buzz-finish',         // host -> server: store scores + move on
+
+  // --- Estimate Phase (numeric guessing) ---
+  ESTIMATE_START:       'estimate-start',      // server -> all: prompt, unit, bounds, timer
+  ESTIMATE_SUBMIT:      'estimate-submit',     // player -> server: my number
+  ESTIMATE_PROGRESS:    'estimate-progress',   // server -> host: x of y guessed
+  CLOSE_ESTIMATES:      'close-estimates',     // host -> server: reveal + score
+  ESTIMATE_RESULTS:     'estimate-results',    // server -> all: answer, stats, ranked guesses
+
   // --- Relay Phase ---
   RELAY_TURN:           'relay-turn',
   RELAY_SUBMIT:         'relay-submit',

@@ -205,6 +205,64 @@ async function run() {
       continue;
     } catch (e) { /* no collect */ }
 
+    // Check for buzz (buzzer round)
+    try {
+      var buzzData = await waitForAnyPlayerEvent(players, 'buzz-start', 2000);
+      console.log(`\n--- Phase: BUZZ ---`);
+      log('SIM', `Prompt: "${(buzzData.prompt || '').substring(0, 60)}"`);
+      phaseLog.push({ type: 'buzz' });
+      drainEvent(players, 'buzz-start');
+      drainEvent([host], 'buzz-start');
+
+      // P1 buzzes and is judged wrong; P2 buzzes and is judged right; finish.
+      players[0].emit('buzz-tap', { code });
+      await wait(250);
+      host.emit('buzz-judge', { code, correct: false });
+      await wait(250);
+      players[1 % players.length].emit('buzz-tap', { code });
+      await wait(250);
+      host.emit('buzz-judge', { code, correct: true });
+      var buzzResult = await waitForAnyPlayerEvent(players, 'buzz-result', 2000).catch(function () { return null; });
+      check(!!buzzResult, 'Buzz judged and broadcast');
+      drainEvent(players, 'buzz-result');
+      await wait(250);
+      host.emit('buzz-finish', { code });
+      log('HOST', 'Finished buzzer round');
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(500);
+      continue;
+    } catch (e) { /* no buzz */ }
+
+    // Check for estimate (guess the number)
+    try {
+      var estData = await waitForAnyPlayerEvent(players, 'estimate-start', 2000);
+      console.log(`\n--- Phase: ESTIMATE ---`);
+      log('SIM', `Prompt: "${(estData.prompt || '').substring(0, 60)}"`);
+      phaseLog.push({ type: 'estimate' });
+      drainEvent(players, 'estimate-start');
+      drainEvent([host], 'estimate-start');
+
+      for (var ei = 0; ei < players.length; ei++) {
+        players[ei].emit('estimate-submit', { code, value: 20 + ei * 13 });
+        log(names[ei], `guessed ${20 + ei * 13}`);
+      }
+      await wait(400);
+      host.emit('close-estimates', { code });
+      var estResults = await waitForAnyPlayerEvent(players, 'estimate-results', 3000).catch(function () { return null; });
+      check(!!estResults, 'Estimate results broadcast');
+      if (estResults && estResults.answer != null) {
+        check(Array.isArray(estResults.guesses) && estResults.guesses.length === players.length, 'All guesses in results');
+      }
+      drainEvent(players, 'estimate-results');
+      await wait(400);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(500);
+      continue;
+    } catch (e) { /* no estimate */ }
+
     // Check for processing (ai-process)
     try {
       var procData = await waitForAnyPlayerEvent(players, 'processing-started', 2000);
