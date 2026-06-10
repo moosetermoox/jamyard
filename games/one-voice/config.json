@@ -1,0 +1,31 @@
+{
+  "name": "One Voice",
+  "description": "Count to the target together — two voices at once and it's back to one.",
+  "family": "connection",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "rules"
+    },
+    "rules": {
+      "type": "announce",
+      "message": "We're going to count to 20 — together, as one voice.\n\nAnyone can tap the next number, anytime. But if two people tap at almost the same moment, we start over from zero.\n\nThe rules: no pointing at who should go next, no turn order, no talking strategy. Just feel the room.",
+      "next": "count"
+    },
+    "count": {
+      "type": "one-voice",
+      "target": 20,
+      "collisionWindowMs": 400,
+      "next": "story"
+    },
+    "story": {
+      "type": "reveal",
+      "template": "Our story:\n\nWe counted to {{count.target}} as one voice.\nIt took us {{count.attempts}} attempt(s) and {{count.resets}} restart(s).\nOur longest run along the way: {{count.bestRun}}.\n\nNobody won. Everybody did.",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "One voice. Nice."
+    }
+  }
+}

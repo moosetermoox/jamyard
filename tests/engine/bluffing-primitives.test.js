@@ -29,14 +29,13 @@ describe('collect.assign: pairwise — validator', () => {
     expect(() => validate(cfg, 'pairwise-ok')).not.toThrow();
   });
 
-  it('rejects assign:"pairwise" without pairsFrom', () => {
+  it('accepts assign:"pairwise" without pairsFrom (pairs share the step\'s own prompt — Connection Pack)', () => {
     const cfg = baseGame({
       lobby:   { type: 'lobby', next: 'answers' },
       answers: { type: 'collect', prompt: 'q?', assign: 'pairwise', next: 'end' },
       end:     { type: 'end' }
     });
-    expect(() => validate(cfg, 'pairwise-missing-source'))
-      .toThrow(/assign:"pairwise" but is missing required field "pairsFrom"/);
+    expect(() => validate(cfg, 'pairwise-no-source')).not.toThrow();
   });
 
   it('rejects an unknown value for assign', () => {

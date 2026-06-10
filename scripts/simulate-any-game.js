@@ -12,104 +12,24 @@
  * Requires server running on localhost:3000
  */
 
-import { io } from 'socket.io-client';
+// Connection/event primitives live in the shared harness so every
+// simulate-*.js script (and scripted-timing tests) reuses one implementation.
+import {
+  DEFAULT_SERVER, PLAYER_NAMES,
+  wait, log, connect, waitForEvent, waitForAnyPlayerEvent, drainEvent,
+  makeReporter
+} from './sim-harness.js';
 
-const SERVER = 'http://localhost:3000';
+const SERVER = DEFAULT_SERVER;
 const GAME_ID = process.argv[2];
 const NUM_PLAYERS = parseInt(process.argv[3]) || 4;
-const NAMES = ['Alice', 'Bob', 'Charlie', 'Dana', 'Eve', 'Frank', 'Grace', 'Hank', 'Ivy', 'Jack',
-               'Kate', 'Leo', 'Mia', 'Nick', 'Olivia', 'Pete', 'Quinn', 'Rose', 'Sam', 'Tina'];
+const NAMES = PLAYER_NAMES;
 
-var errors = 0;
-var warnings = 0;
+const reporter = makeReporter();
 var phaseLog = [];
 
-function wait(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-function log(who, msg) {
-  var ts = new Date().toLocaleTimeString('en-US', { hour12: false });
-  console.log(`[${ts}] [${who}] ${msg}`);
-}
-
-function check(condition, description) {
-  if (condition) {
-    console.log(`  \x1b[32m✓\x1b[0m ${description}`);
-  } else {
-    console.log(`  \x1b[31m✗ FAIL: ${description}\x1b[0m`);
-    errors++;
-  }
-}
-
-function warn(description) {
-  console.log(`  \x1b[33m⚠ ${description}\x1b[0m`);
-  warnings++;
-}
-
-function connect(label) {
-  return new Promise((resolve, reject) => {
-    var socket = io(SERVER, { forceNew: true });
-    socket._buffer = {};
-    socket._label = label;
-    socket.onAny((event, data) => {
-      if (!socket._buffer[event]) socket._buffer[event] = [];
-      socket._buffer[event].push(data);
-    });
-    socket.on('connect', () => resolve(socket));
-    socket.on('connect_error', (err) => reject(new Error(`${label} connect failed: ${err.message}`)));
-  });
-}
-
-function waitForEvent(socket, event, timeout = 15000) {
-  return new Promise((resolve, reject) => {
-    if (socket._buffer[event] && socket._buffer[event].length > 0) {
-      resolve(socket._buffer[event].shift());
-      return;
-    }
-    var timer = setTimeout(() => { socket.off(event, handler); reject(new Error(`Timeout waiting for '${event}'`)); }, timeout);
-    var handler = (data) => {
-      clearTimeout(timer);
-      if (socket._buffer[event]) {
-        var idx = socket._buffer[event].indexOf(data);
-        if (idx >= 0) socket._buffer[event].splice(idx, 1);
-      }
-      resolve(data);
-    };
-    socket.once(event, handler);
-  });
-}
-
-function waitForAnyPlayerEvent(players, event, timeout = 15000) {
-  return new Promise((resolve, reject) => {
-    for (var i = 0; i < players.length; i++) {
-      if (players[i]._buffer[event] && players[i]._buffer[event].length > 0) {
-        resolve(players[i]._buffer[event].shift());
-        return;
-      }
-    }
-    var timer = setTimeout(() => {
-      for (var s of players) s.off(event, handler);
-      reject(new Error(`Timeout waiting for '${event}' on any player`));
-    }, timeout);
-    var handler = function (data) {
-      clearTimeout(timer);
-      for (var s of players) s.off(event, handler);
-      resolve(data);
-    };
-    for (var s of players) s.on(event, handler);
-  });
-}
-
-function drainEvent(sockets, event) {
-  for (var s of sockets) {
-    if (s._buffer[event]) s._buffer[event] = [];
-  }
-}
-
-function drainAll(sockets) {
-  for (var s of sockets) {
-    s._buffer = {};
-  }
-}
+function check(condition, description) { reporter.check(condition, description); }
+function warn(description) { reporter.warn(description); }
 
 // Generate a plausible response for a collect prompt
 function generateResponse(prompt, playerName, index) {
@@ -181,7 +101,7 @@ async function run() {
       log(names[i], 'joined');
     } catch (e) {
       console.error(`\x1b[31m${names[i]} failed to join!\x1b[0m`);
-      errors++;
+      reporter.errors++;
     }
   }
   await wait(500);
@@ -231,7 +151,7 @@ async function run() {
       } else {
         // Check if there's a continue button — host clicks it
         await wait(1000);
-        host.emit('next-phase', { code });
+        host.emit('advance-phase', { code });
         await wait(500);
       }
       lastEventTime = Date.now();
@@ -383,7 +303,7 @@ async function run() {
         await wait((lbData.timer + 1) * 1000);
       } else {
         await wait(2000);
-        host.emit('next-phase', { code });
+        host.emit('advance-phase', { code });
       }
       lastEventTime = Date.now();
       handled = true;
@@ -400,7 +320,7 @@ async function run() {
       drainEvent(players, 'show-results');
       drainEvent([host], 'show-results');
       await wait(2000);
-      host.emit('next-phase', { code });
+      host.emit('advance-phase', { code });
       lastEventTime = Date.now();
       handled = true;
       continue;
@@ -606,11 +526,11 @@ async function run() {
     var p = phaseLog[i];
     console.log(`  ${i + 1}. ${p.type}${p.task ? ' (' + p.task + ')' : ''}${p.prompt ? ': ' + p.prompt.substring(0, 50) : ''}`);
   }
-  console.log(`\nResult: ${errors} errors, ${warnings} warnings`);
+  console.log(`\nResult: ${reporter.errors} errors, ${reporter.warnings} warnings`);
 
-  if (errors === 0 && warnings === 0) {
+  if (reporter.errors === 0 && reporter.warnings === 0) {
     console.log('\x1b[32m✓ Game completed successfully!\x1b[0m');
-  } else if (errors === 0) {
+  } else if (reporter.errors === 0) {
     console.log('\x1b[33m⚠ Game completed with warnings\x1b[0m');
   } else {
     console.log('\x1b[31m✗ Game had errors\x1b[0m');
@@ -622,7 +542,7 @@ async function run() {
 function cleanup(host, players) {
   if (host) host.disconnect();
   for (var p of (players || [])) p.disconnect();
-  setTimeout(() => process.exit(errors > 0 ? 1 : 0), 500);
+  setTimeout(() => process.exit(reporter.errors > 0 ? 1 : 0), 500);
 }
 
 run().catch(err => {

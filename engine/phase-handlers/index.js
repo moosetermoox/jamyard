@@ -26,6 +26,8 @@ import './rate.js';
 import './wager.js';
 import './relay.js';
 import './turn.js';
+import './merge.js';
+import './one-voice.js';
 
 // Wave 4: Orchestration and special handlers
 import './foreach.js';

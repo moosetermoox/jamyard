@@ -62,8 +62,10 @@ export const VALIDATOR_HOOKS = {
     return [];
   },
 
-  // reveal: must have either template or content
+  // reveal: must have either template or content. Pair-scoped reveals are
+  // exempt — without a template they render the pair's answers directly.
   revealContentOrTemplate(phase) {
+    if (phase.scope === 'pair') return [];
     if (!phase.template && !phase.content) {
       return [{
         severity: 'error',

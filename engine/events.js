@@ -100,6 +100,25 @@ export const EVENTS = {
   RATE_RESULTS:         'rate-results',
   CLOSE_RATING:         'close-rating',
 
+  // --- Merge Phase (Connection Pack: think-pair-share) ---
+  MERGE_START:          'merge-start',         // server -> player: your group's seeds + shared draft
+  MERGE_DRAFT:          'merge-draft',         // player -> server: shared draft text (debounced client-side)
+  MERGE_DRAFT_UPDATE:   'merge-draft-update',  // server -> other group members: draft changed (last-write-wins)
+  MERGE_AGREE:          'merge-agree',         // player -> server: I agree with the current draft
+  MERGE_STATUS:         'merge-status',        // server -> group: agreed count / reset notice
+  MERGE_PROGRESS:       'merge-progress',      // server -> host: groups submitted / total
+  CLOSE_MERGE:          'close-merge',         // host -> server: force-close (current drafts submit)
+
+  // --- One Voice Phase (Connection Pack: cooperative counting) ---
+  ONE_VOICE_START:      'one-voice-start',     // server -> all: target, window, current state
+  ONE_VOICE_TAP:        'one-voice-tap',       // player -> server: I say the next number
+  ONE_VOICE_COUNT:      'one-voice-count',     // server -> all: count advanced (no attribution)
+  ONE_VOICE_YOU:        'one-voice-you',       // server -> tapper only: subtle "you said N"
+  ONE_VOICE_RESET:      'one-voice-reset',     // server -> all: collision! back to one (no attribution)
+  ONE_VOICE_REJECT:     'one-voice-reject',    // server -> tapper only: same-player-twice / lockout
+  ONE_VOICE_SUCCESS:    'one-voice-success',   // server -> all: we made it
+  CLOSE_ONE_VOICE:      'close-one-voice',     // host -> server: store stats + move on
+
   // --- Relay Phase ---
   RELAY_TURN:           'relay-turn',
   RELAY_SUBMIT:         'relay-submit',

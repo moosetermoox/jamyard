@@ -1,0 +1,56 @@
+{
+  "id": "one-voice",
+  "name": "One Voice",
+  "icon": "📣",
+  "description": "The class counts to a target number together. Anyone may say the next number at any moment — but if two people jump in at almost the same time, the count resets and everyone groans and laughs. No turn order, no strategy talk, no winner: the class makes it together or tries again. Each number is spoken aloud through the teacher's speakers. Good for laughter, togetherness, and a little wonder.",
+  "tagline": "Perfect for the five minutes after a test, a rainy-day reset, or any moment the room needs to breathe together.",
+  "family": "connection",
+  "feel": ["laughter", "togetherness", "wonder"],
+  "version": "1",
+  "parameters": {
+    "target": {
+      "type": "integer",
+      "min": 10,
+      "max": 100,
+      "label": "Count to",
+      "helper": "20 is the classic. Higher is much harder.",
+      "default": 20
+    },
+    "collisionWindow": {
+      "type": "integer",
+      "min": 100,
+      "max": 1500,
+      "label": "Strictness (milliseconds)",
+      "helper": "Two taps closer together than this count as 'two voices at once'. 400 is a good start; lower is more forgiving.",
+      "default": 400
+    }
+  },
+  "template": {
+    "name": "One Voice",
+    "description": "Count to the target together — two voices at once and it's back to one.",
+    "family": "connection",
+    "phases": {
+      "lobby": { "type": "lobby", "next": "rules" },
+      "rules": {
+        "type": "announce",
+        "message": "We're going to count to ${target} — together, as one voice.\n\nAnyone can tap the next number, anytime. But if two people tap at almost the same moment, we start over from zero.\n\nThe rules: no pointing at who should go next, no turn order, no talking strategy. Just feel the room.",
+        "next": "count"
+      },
+      "count": {
+        "type": "one-voice",
+        "target": "${target}",
+        "collisionWindowMs": "${collisionWindow}",
+        "next": "story"
+      },
+      "story": {
+        "type": "reveal",
+        "template": "Our story:\n\nWe counted to {{count.target}} as one voice.\nIt took us {{count.attempts}} attempt(s) and {{count.resets}} restart(s).\nOur longest run along the way: {{count.bestRun}}.\n\nNobody won. Everybody did.",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "One voice. Nice."
+      }
+    }
+  }
+}

@@ -53,7 +53,7 @@ export const KNOWN_SUFFIXES = new Set([
  */
 export const BUILTIN_SCOPES = new Set([
   'remaining', 'eliminated', 'players',
-  '_current', '_foreach', '_candidates', '_loop'
+  '_current', '_foreach', '_candidates', '_loop', '_pair'
 ]);
 
 // =======================================================================
@@ -92,7 +92,7 @@ export function parseTemplateTokens(template) {
 
 /**
  * @typedef {Object} ParsedRef
- * @property {'phaseField'|'builtin'|'foreachItem'|'foreachScope'|'foreachCandidates'|'loopScope'|'unknown'} kind
+ * @property {'phaseField'|'builtin'|'foreachItem'|'foreachScope'|'foreachCandidates'|'loopScope'|'pairScope'|'unknown'} kind
  * @property {string[]} segments   The dotted parts (excluding any suffix)
  * @property {string|null} suffix  A KNOWN_SUFFIXES entry if the last segment is one, else null
  * @property {string} raw          Original ref string
@@ -130,6 +130,11 @@ export function parseRef(ref) {
   }
   if (head === '_loop') {
     return { kind: 'loopScope', segments: parts, suffix: null, raw: ref };
+  }
+  if (head === '_pair') {
+    // Pair-scoped reveal tokens ({{_pair.answers}}, {{_pair.prompt}}) —
+    // resolved per-recipient by the reveal handler, not engine.resolve().
+    return { kind: 'pairScope', segments: parts, suffix: null, raw: ref };
   }
 
   // Built-ins

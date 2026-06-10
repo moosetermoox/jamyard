@@ -165,6 +165,22 @@ const rankTimerDisplay = document.getElementById('rank-timer-display');
 const rankItems = document.getElementById('rank-items');
 const rankSubmitBtn = document.getElementById('rank-submit-btn');
 
+// Elements - One Voice
+const oneVoiceSection = document.getElementById('one-voice-section');
+const oneVoiceInstruction = document.getElementById('one-voice-instruction');
+const oneVoiceTapBtn = document.getElementById('one-voice-tap-btn');
+const oneVoiceStatus = document.getElementById('one-voice-status');
+
+// Elements - Merge
+const mergeSection = document.getElementById('merge-section');
+const mergeInstruction = document.getElementById('merge-instruction');
+const mergeTimerDisplay = document.getElementById('merge-timer-display');
+const mergeMembers = document.getElementById('merge-members');
+const mergeSeeds = document.getElementById('merge-seeds');
+const mergeDraftInput = document.getElementById('merge-draft-input');
+const mergeStatus = document.getElementById('merge-status');
+const mergeAgreeBtn = document.getElementById('merge-agree-btn');
+
 // Elements - Wager
 const wagerSection = document.getElementById('wager-section');
 const wagerPromptDisplay = document.getElementById('wager-prompt-display');
@@ -284,6 +300,20 @@ window.addEventListener('message', function(e) {
     }
     var rankBtn = active.querySelector('#rank-submit-btn');
     if (rankBtn && !rankBtn.disabled) rankBtn.click();
+  } else if (id === 'one-voice-section') {
+    if (!oneVoiceTapBtn.disabled) oneVoiceTapBtn.click();
+  } else if (id === 'merge-section') {
+    // Only the first bot in the group drafts (an empty box means nobody
+    // wrote yet); everyone agrees shortly after, so each bot-fill click
+    // moves the group forward without endlessly resetting agreements.
+    if (!mergeDraftInput.value.trim()) {
+      var botDraft = BOT_PHRASES[Math.floor(Math.random() * BOT_PHRASES.length)];
+      mergeDraftInput.value = botDraft;
+      socket.emit('merge-draft', { code: currentRoomCode, text: botDraft });
+    }
+    setTimeout(function() {
+      if (!mergeAgreeBtn.hidden && !mergeAgreeBtn.disabled) mergeAgreeBtn.click();
+    }, 400);
   } else if (id === 'wager-section') {
     // Pick random option and submit
     var wagerBtns = active.querySelectorAll('.wager-option-btn');
@@ -472,7 +502,7 @@ function clearTimer() {
 
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   responseInput.value = '';
@@ -487,6 +517,22 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
   if (oldChoices) oldChoices.remove();
   var oldFields = collectSection.querySelector('.multi-fields');
   if (oldFields) oldFields.remove();
+  var oldPass = collectSection.querySelector('.pass-btn');
+  if (oldPass) oldPass.remove();
+
+  // Pass button (passAllowed steps). A pass lands on the exact same
+  // "submitted" screen as a real answer, so nobody nearby can tell the
+  // difference.
+  if (passAllowed) {
+    var passBtn = document.createElement('button');
+    passBtn.className = 'pass-btn';
+    passBtn.textContent = 'Pass this one';
+    passBtn.addEventListener('click', function() {
+      socket.emit('submit-response', { code: currentRoomCode, response: '', pass: true });
+      showSection(submittedSection);
+    });
+    collectSection.appendChild(passBtn);
+  }
 
   // Track current collect mode for timer auto-submit
   var collectMode = 'text';
@@ -783,6 +829,179 @@ rankSubmitBtn.addEventListener('click', function() {
   socket.emit('rank-submit', { code: currentRoomCode, ranking: rankCurrentOrder });
   rankSubmitBtn.disabled = true;
   showSection(submittedSection);
+});
+
+// --- Socket events - One Voice (Connection Pack: cooperative counting) ---
+
+var oneVoiceLockout = null;
+
+function setOneVoiceNext(count) {
+  oneVoiceTapBtn.textContent = count + 1;
+}
+
+socket.on('one-voice-start', ({ count, playerTemplate }) => {
+  showSection(oneVoiceSection);
+  oneVoiceTapBtn.disabled = false;
+  oneVoiceStatus.textContent = '';
+  setOneVoiceNext(count || 0);
+  applyTemplate(oneVoiceSection, playerTemplate);
+});
+
+oneVoiceTapBtn.addEventListener('click', function() {
+  socket.emit('one-voice-tap', { code: currentRoomCode });
+  // Tiny client-side debounce against double-taps; the server is the
+  // real referee (same-player-twice is rejected there).
+  oneVoiceTapBtn.disabled = true;
+  setTimeout(function() {
+    if (!oneVoiceLockout) oneVoiceTapBtn.disabled = false;
+  }, 250);
+});
+
+socket.on('one-voice-count', ({ count }) => {
+  setOneVoiceNext(count);
+});
+
+// Subtle personal confirmation — only the tapper sees it (attribution
+// invites blame, so it's never broadcast).
+socket.on('one-voice-you', ({ number }) => {
+  oneVoiceStatus.textContent = 'You said ' + number + '.';
+});
+
+socket.on('one-voice-reset', ({ lockoutMs, final, bestRun, target }) => {
+  setOneVoiceNext(0);
+  oneVoiceStatus.textContent = final
+    ? 'That was our last try — best run: ' + bestRun + ' of ' + target + '. Look up!'
+    : 'Two voices! Back to one…';
+  oneVoiceTapBtn.disabled = true;
+  if (oneVoiceLockout) clearTimeout(oneVoiceLockout);
+  oneVoiceLockout = setTimeout(function() {
+    oneVoiceLockout = null;
+    if (!final) {
+      oneVoiceTapBtn.disabled = false;
+      oneVoiceStatus.textContent = '';
+    }
+  }, lockoutMs || 800);
+});
+
+socket.on('one-voice-reject', ({ reason }) => {
+  if (reason === 'same-player') {
+    oneVoiceStatus.textContent = 'You just went — let someone else take this one.';
+    oneVoiceTapBtn.disabled = false;
+  }
+  // 'lockout' and 'finished' need no message — the screen already shows why.
+});
+
+socket.on('one-voice-success', ({ target, attempt }) => {
+  oneVoiceTapBtn.disabled = true;
+  oneVoiceStatus.textContent = 'WE DID IT! ' + target + ', as one voice. (Attempt ' + attempt + ')';
+});
+
+// --- Socket events - Merge (Connection Pack: think-pair-share) ---
+
+var mergeDraftDebounce = null;
+
+function setMergeStatus(text) {
+  if (!text) {
+    mergeStatus.hidden = true;
+    mergeStatus.textContent = '';
+  } else {
+    mergeStatus.hidden = false;
+    mergeStatus.textContent = text;
+  }
+}
+
+socket.on('merge-start', ({ instruction, seeds, draft, memberNames, agreeMode, agreedCount, agreesNeeded, timer, playerTemplate, show }) => {
+  showSection(mergeSection);
+  mergeInstruction.textContent = instruction || 'Combine your answers into one stronger answer.';
+  mergeDraftInput.value = draft || '';
+  mergeAgreeBtn.disabled = false;
+  setMergeStatus(agreedCount > 0 ? agreedCount + ' of ' + agreesNeeded + ' agreed' : '');
+  applyTemplate(mergeSection, playerTemplate);
+
+  // Agree button label/visibility per mode
+  if (agreeMode === 'timer') {
+    mergeAgreeBtn.hidden = true;
+  } else {
+    mergeAgreeBtn.hidden = false;
+    mergeAgreeBtn.textContent = agreeMode === 'any' ? 'Submit for the group' : 'We agree — submit';
+  }
+
+  // Who you're working with
+  mergeMembers.textContent = memberNames && memberNames.length > 1
+    ? 'Working together: ' + memberNames.join(' + ')
+    : '';
+
+  // Each member's starting answer
+  mergeSeeds.innerHTML = '';
+  if (Array.isArray(seeds) && seeds.length > 0) {
+    var seedsTitle = document.createElement('p');
+    seedsTitle.className = 'merge-seeds-title';
+    seedsTitle.textContent = 'What you each said:';
+    mergeSeeds.appendChild(seedsTitle);
+    for (var si = 0; si < seeds.length; si++) {
+      var card = document.createElement('div');
+      card.className = 'merge-seed';
+      var s = seeds[si];
+      card.textContent = s.author ? s.author + ': ' + s.text : s.text;
+      mergeSeeds.appendChild(card);
+    }
+  }
+
+  applyShow(show, {
+    instruction: mergeInstruction,
+    seeds: mergeSeeds,
+    draft: mergeDraftInput,
+    agreeButton: mergeAgreeBtn,
+    timer: mergeTimerDisplay
+  });
+
+  if (timer) {
+    // Server closes the phase authoritatively at expiry; the bar is just a countdown.
+    startTimer(timer, mergeTimerDisplay, function() {});
+  }
+});
+
+// Shared draft: debounce sends while typing (last write wins server-side).
+mergeDraftInput.addEventListener('input', function() {
+  // Local edit invalidates earlier agreements — reflect that immediately.
+  mergeAgreeBtn.disabled = false;
+  setMergeStatus('');
+  if (mergeDraftDebounce) clearTimeout(mergeDraftDebounce);
+  mergeDraftDebounce = setTimeout(function() {
+    socket.emit('merge-draft', { code: currentRoomCode, text: mergeDraftInput.value });
+  }, 300);
+});
+
+// A group-mate changed the shared draft (last write wins — v1 has no
+// merge cursors; the latest text simply replaces the box).
+socket.on('merge-draft-update', ({ draft }) => {
+  if (mergeDraftInput.value !== draft) {
+    mergeDraftInput.value = draft;
+  }
+  mergeAgreeBtn.disabled = false;
+  setMergeStatus('The shared answer changed — agree again when it looks right.');
+});
+
+mergeAgreeBtn.addEventListener('click', function() {
+  if (!mergeDraftInput.value.trim()) {
+    setMergeStatus('Write your shared answer first.');
+    return;
+  }
+  // Flush any pending draft edit before agreeing so the server agrees to
+  // the text on screen.
+  if (mergeDraftDebounce) {
+    clearTimeout(mergeDraftDebounce);
+    mergeDraftDebounce = null;
+    socket.emit('merge-draft', { code: currentRoomCode, text: mergeDraftInput.value });
+  }
+  socket.emit('merge-agree', { code: currentRoomCode });
+  mergeAgreeBtn.disabled = true;
+  setMergeStatus('You agreed — waiting for the rest of your group...');
+});
+
+socket.on('merge-status', ({ agreedCount, agreesNeeded, youAgreed }) => {
+  mergeAgreeBtn.disabled = !!youAgreed;
+  setMergeStatus(agreedCount + ' of ' + agreesNeeded + ' agreed' + (youAgreed ? ' — waiting for the rest of your group...' : ''));
 });
 
 var rankDragSrcIndex = null;
@@ -1530,7 +1749,7 @@ const allPlayerSections = [
   processSection, revealSection, endSection, gameWaitingSection,
   voteSection, voteSubmittedSection, eliminationResultsSection,
   announceSection, winnerSection, leaderboardSection, revealOneSection,
-  teamSplitSection, rankSection, wagerSection, relaySection, rateSection
+  teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection
 ];
 
 function showSection(el) {

@@ -72,6 +72,13 @@ export function compileRecipe(recipe, rawParams = {}) {
     return { config: null, diagnostics: [...paramDiags, ...subDiags] };
   }
 
+  // 5. Carry the recipe-level family flag into the compiled config so the
+  //    game validator enforces the family's contract (e.g. "connection" =
+  //    no winners/points/eliminations) on every save, forever.
+  if (recipe.family != null && config && typeof config === 'object') {
+    config.family = recipe.family;
+  }
+
   return { config, diagnostics: [...paramDiags, ...subDiags] };
 }
 
@@ -168,10 +175,33 @@ export function applyDefaults(recipe, params) {
 // Template substitution
 // =======================================================================
 
-// ${name} — case-sensitive, simple identifiers only. No nested braces,
-// no expressions. Restraint here is the point — recipes are templates,
-// not scripts.
-const PLACEHOLDER_RE = /\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g;
+// ${name} or ${name[0]} — case-sensitive, simple identifiers with an
+// optional literal array index. No nested braces, no expressions.
+// Restraint here is the point — recipes are templates, not scripts.
+// The index form lets a recipe place one element of an array parameter
+// into a specific phase (e.g. "${tier1Prompts[0]}" — Closer's tiers).
+const PLACEHOLDER_RE = /\$\{([a-zA-Z_][a-zA-Z0-9_]*)(?:\[(\d+)\])?\}/g;
+
+/**
+ * Resolve a placeholder name + optional index against the params.
+ * Throws on unknown names, non-array indexing, and out-of-range
+ * indexes — all recipe-author bugs, caught by the compile smoke tests.
+ */
+function lookupParam(params, recipe, name, indexStr) {
+  if (!(name in params)) {
+    throw new Error(`Recipe "${recipe.id}" references unknown parameter "${name}".`);
+  }
+  const value = params[name];
+  if (indexStr === undefined || indexStr === null) return value;
+  if (!Array.isArray(value)) {
+    throw new Error(`Recipe "${recipe.id}" indexes parameter "${name}[${indexStr}]" but "${name}" is not an array.`);
+  }
+  const idx = parseInt(indexStr, 10);
+  if (idx >= value.length) {
+    throw new Error(`Recipe "${recipe.id}" references "${name}[${idx}]" but "${name}" only has ${value.length} item(s).`);
+  }
+  return value[idx];
+}
 
 /**
  * Recursively walk a template, substituting ${param} placeholders with
@@ -217,14 +247,11 @@ function substituteAll(template, params, recipe) {
 function substituteString(str, params, recipe) {
   // Whole-string placeholder — return the value with its native type.
   // This is what lets `"choices": "${choices}"` produce an array, not
-  // the string "[A,B,C]".
-  const wholeMatch = /^\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}$/.exec(str);
+  // the string "[A,B,C]". The indexed form ("${prompts[0]}") returns
+  // that element with its native type.
+  const wholeMatch = /^\$\{([a-zA-Z_][a-zA-Z0-9_]*)(?:\[(\d+)\])?\}$/.exec(str);
   if (wholeMatch) {
-    const name = wholeMatch[1];
-    if (!(name in params)) {
-      throw new Error(`Recipe "${recipe.id}" references unknown parameter "${name}".`);
-    }
-    return params[name];
+    return lookupParam(params, recipe, wholeMatch[1], wholeMatch[2]);
   }
 
   // Embedded — interpolate. Reset lastIndex because PLACEHOLDER_RE is
@@ -234,11 +261,8 @@ function substituteString(str, params, recipe) {
 }
 
 function interpolate(str, params, recipe) {
-  return str.replace(PLACEHOLDER_RE, (match, name) => {
-    if (!(name in params)) {
-      throw new Error(`Recipe "${recipe.id}" references unknown parameter "${name}".`);
-    }
-    const value = params[name];
+  return str.replace(PLACEHOLDER_RE, (match, name, indexStr) => {
+    const value = lookupParam(params, recipe, name, indexStr);
     if (value == null) return '';
     if (typeof value === 'string') return value;
     if (typeof value === 'number' || typeof value === 'boolean') return String(value);

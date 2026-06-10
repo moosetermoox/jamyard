@@ -1,5 +1,6 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { buildGroups, buildAvoidSet } from '../phases/pairing.js';
 
 /**
  * Build the rotation assignment map for a collect phase that has
@@ -70,73 +71,123 @@ function buildRotationAssignment(ctx) {
 /**
  * Build a pairwise assignment for a collect phase with `assign: "pairwise"`.
  *
- * Eligible players are shuffled and paired into groups of 2. Each pair is
- * assigned one item (prompt) from `pairsFrom.responses`. Each player in the
- * pair sees the same prompt and writes their own answer. If there are an odd
- * number of eligible players, the last player is unpaired and is silently
- * skipped (no prompt shown — they get the standard waiting screen).
+ * Two independent axes (docs/connection-pack-spec.md §2.4):
  *
- * Writes `assigned[playerId] = promptText` to the SOURCE phase so the standard
- * `{{<source>.assigned}}` template token works. Writes `pairs` to THIS phase's
- * own data so a downstream vote with `matchupsFromPairs` can consume it.
+ *   GROUPING — where the pairs come from:
+ *     - default: shuffle eligible players, greedy-pair them
+ *     - `rotatePairsFrom: "<phaseId>"` — fresh pairing that avoids repeat
+ *       partners from the named pairwise step (greedy non-repeat)
+ *     - `reusePairsFrom: "<phaseId>"` — exactly the same groups as the
+ *       named pairwise step (same partner, next prompt)
+ *     - `oddHandling: "triple"` — odd class forms one group of three
+ *       instead of benching the leftover player (default "sit-out")
+ *
+ *   PROMPT — what each pair is asked:
+ *     - `pairsFrom: "<phaseId>"` — one item per pair drawn from that
+ *       step's responses/result; written to the source's `assigned` map
+ *       so `{{<source>.assigned}}` resolves per player
+ *     - no pairsFrom — every pair gets this step's own resolved prompt
+ *
+ * Writes `pairs` to THIS phase's data so downstream consumers
+ * (vote.matchupsFromPairs, reveal scope:"pair") can read the grouping.
  */
 function buildPairwiseAssignment(ctx) {
   const { phase, engine } = ctx;
   if (phase.assign !== 'pairwise') return null;
-  const sourceId = phase.pairsFrom;
-  if (!sourceId) {
-    console.warn(`[collect:${phase.id}] assign:"pairwise" requires "pairsFrom" — skipping`);
-    return null;
-  }
-  const sourceData = engine.phaseData[sourceId];
-  if (!sourceData) {
-    console.warn(`[collect:${phase.id}] pairsFrom "${sourceId}" has no data yet — skipping pairing`);
-    return null;
-  }
-
-  // Items can come from collect (.responses) or ai-process (.result is a JSON array)
-  let rawItems = null;
-  if (Array.isArray(sourceData.responses)) rawItems = sourceData.responses;
-  else if (Array.isArray(sourceData.result)) rawItems = sourceData.result;
-  if (!rawItems) {
-    console.warn(`[collect:${phase.id}] pairsFrom "${sourceId}" has no array of items (.responses or .result) — skipping pairing`);
-    return null;
-  }
-
-  const items = rawItems
-    .map(r => (typeof r === 'string' ? r : r && (r.text || r.prompt || r.question)))
-    .filter(t => typeof t === 'string' && t.length > 0);
-  if (items.length === 0) return null;
 
   const from = phase.from || 'all';
   const eligible = ctx.getEligibleVoters(from);
-  // Stable shuffle of player ids
-  const playerIds = eligible.map(p => p.id);
-  for (let i = playerIds.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [playerIds[i], playerIds[j]] = [playerIds[j], playerIds[i]];
+  if (eligible.length === 0) return null;
+
+  // --- Prompt items (optional) -------------------------------------
+  let items = null;
+  if (phase.pairsFrom) {
+    const sourceData = engine.phaseData[phase.pairsFrom];
+    if (!sourceData) {
+      console.warn(`[collect:${phase.id}] pairsFrom "${phase.pairsFrom}" has no data yet — skipping pairing`);
+      return null;
+    }
+    // Items can come from collect (.responses) or ai-process (.result is a JSON array)
+    let rawItems = null;
+    if (Array.isArray(sourceData.responses)) rawItems = sourceData.responses;
+    else if (Array.isArray(sourceData.result)) rawItems = sourceData.result;
+    if (!rawItems) {
+      console.warn(`[collect:${phase.id}] pairsFrom "${phase.pairsFrom}" has no array of items (.responses or .result) — skipping pairing`);
+      return null;
+    }
+    items = rawItems
+      .map(r => (typeof r === 'string' ? r : r && (r.text || r.prompt || r.question)))
+      .filter(t => typeof t === 'string' && t.length > 0);
+    if (items.length === 0) return null;
   }
 
+  // --- Grouping ------------------------------------------------------
+  let groups = null;
+  let leftover = null;
+
+  if (phase.reusePairsFrom) {
+    const reuseData = engine.phaseData[phase.reusePairsFrom];
+    if (reuseData && Array.isArray(reuseData.pairs) && reuseData.pairs.length > 0) {
+      // Keep the same groups, dropping anyone no longer eligible (left/kicked)
+      const eligibleIds = new Set(eligible.map(p => p.id));
+      groups = reuseData.pairs
+        .map(p => (p.playerIds || []).filter(id => eligibleIds.has(id)))
+        .filter(g => g.length > 0);
+    } else {
+      console.warn(`[collect:${phase.id}] reusePairsFrom "${phase.reusePairsFrom}" has no pairs — building a fresh pairing instead`);
+    }
+  }
+
+  if (!groups) {
+    // Stable shuffle of player ids
+    const playerIds = eligible.map(p => p.id);
+    for (let i = playerIds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [playerIds[i], playerIds[j]] = [playerIds[j], playerIds[i]];
+    }
+
+    let avoid = new Set();
+    if (phase.rotatePairsFrom) {
+      const rotData = engine.phaseData[phase.rotatePairsFrom];
+      if (rotData && Array.isArray(rotData.pairs)) {
+        avoid = buildAvoidSet(rotData.pairs);
+      } else {
+        console.warn(`[collect:${phase.id}] rotatePairsFrom "${phase.rotatePairsFrom}" has no pairs — pairing without an avoid-set`);
+      }
+    }
+
+    const built = buildGroups(playerIds, { oddHandling: phase.oddHandling, avoid });
+    groups = built.groups;
+    leftover = built.leftover;
+  }
+
+  if (groups.length === 0) return null;
+  if (leftover) {
+    console.log(`[collect:${phase.id}] odd player count (${eligible.length}) — last player unpaired and skipped this round`);
+  }
+
+  // --- Assemble pairs + per-player prompt assignment ------------------
+  // No pairsFrom → every pair shares this step's own resolved prompt
+  // (becomes {{_pair.prompt}} in a downstream pair reveal).
+  const ownPrompt = items ? null : ctx.resolveTemplate(phase.prompt || '');
   const pairs = [];
   const assignment = {};
-  for (let i = 0; i + 1 < playerIds.length; i += 2) {
-    const a = playerIds[i];
-    const b = playerIds[i + 1];
-    const promptText = items[(i / 2) % items.length];
-    pairs.push({ promptText, playerIds: [a, b] });
-    assignment[a] = promptText;
-    assignment[b] = promptText;
-  }
-  // Odd player gets nothing — explicit, not silent
-  if (playerIds.length % 2 === 1) {
-    console.log(`[collect:${phase.id}] odd player count (${playerIds.length}) — last player unpaired and skipped this round`);
-  }
+  groups.forEach((memberIds, gi) => {
+    const promptText = items ? items[gi % items.length] : ownPrompt;
+    pairs.push({ promptText, playerIds: memberIds });
+    if (items) {
+      for (const id of memberIds) assignment[id] = promptText;
+    }
+  });
 
   // Write assigned[] to source so {{source.assigned}} resolves per-player
-  const existingSource = engine.phaseData[sourceId] || {};
-  engine.storePhaseData(sourceId, { ...existingSource, assigned: { ...(existingSource.assigned || {}), ...assignment } });
+  // (only meaningful when items came from a source step).
+  if (phase.pairsFrom && items) {
+    const existingSource = engine.phaseData[phase.pairsFrom] || {};
+    engine.storePhaseData(phase.pairsFrom, { ...existingSource, assigned: { ...(existingSource.assigned || {}), ...assignment } });
+  }
 
-  // Write pairs to this phase so a downstream vote with matchupsFromPairs reads them
+  // Write pairs to this phase so downstream consumers read the grouping
   const existingSelf = engine.phaseData[phase.id] || {};
   engine.storePhaseData(phase.id, { ...existingSelf, pairs });
 
@@ -187,6 +238,7 @@ registerHandler('collect', {
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(phase.prompt || '', engine, player.id);
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, timer: phase.timer || null, fields: phase.fields || null,
+        passAllowed: !!phase.passAllowed,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }
@@ -213,6 +265,7 @@ registerHandler('collect', {
       socket.emit(EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, timer: null,
         fields: ctx.phase.fields || null,
+        passAllowed: !!ctx.phase.passAllowed,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }

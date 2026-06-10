@@ -100,6 +100,8 @@ export const RECIPE_PARAM_TYPES = new Set([
  * @property {string} [icon]       Emoji or short icon string.
  * @property {string} description  One-line summary.
  * @property {string} [tagline]    "Perfect for..." subtitle.
+ * @property {string} [family]     Game-family contract carried into the compiled
+ *                                 config ("connection" = no winners/points/eliminations).
  * @property {Object<string, RecipeParam>} parameters
  * @property {Object} template     Game config template with ${param} placeholders.
  * @property {string} [version]    Recipe schema version (currently always '1').
@@ -158,6 +160,19 @@ export function validateRecipe(recipe) {
   }
   if (recipe.tagline != null && typeof recipe.tagline !== 'string') {
     diags.push(typeError('tagline', 'string'));
+  }
+  // family: opt-in game-family contract carried into the compiled config.
+  // "connection" = no winners / points / eliminations, enforced by the game
+  // validator (engine/game-loader.js checkConnectionFamily).
+  if (recipe.family != null && recipe.family !== 'connection') {
+    diags.push(mkDiagnostic({
+      severity: 'error',
+      code: RECIPE_DIAGNOSTIC_CODES.RECIPE_INVALID_FIELD_TYPE,
+      path: 'family',
+      field: 'family',
+      message: 'Recipe field "family" must be "connection" (the only family currently defined).',
+      source: 'validator'
+    }));
   }
 
   if (recipe.template != null && (typeof recipe.template !== 'object' || Array.isArray(recipe.template))) {

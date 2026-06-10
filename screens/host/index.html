@@ -189,6 +189,38 @@
     <button id="rank-close-btn">Close Ranking</button>
   </section>
 
+  <!-- MERGE SECTION (Connection Pack: think-pair-share) -->
+  <section id="merge-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h2 id="merge-host-instruction"></h2>
+    <p id="merge-counter"></p>
+    <div id="merge-host-timer" class="timer-ring-container" hidden>
+      <svg class="timer-ring" viewBox="0 0 120 120">
+        <circle class="timer-ring-bg" cx="60" cy="60" r="52" />
+        <circle class="timer-ring-fill" cx="60" cy="60" r="52" />
+      </svg>
+      <span class="timer-ring-text"></span>
+    </div>
+    <button id="merge-close-btn" title="Submit every group's current draft and move on">Close Merging</button>
+  </section>
+
+  <!-- ONE VOICE SECTION (Connection Pack: cooperative counting) -->
+  <section id="one-voice-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h2 id="one-voice-title">Count together — one voice at a time</h2>
+    <div id="one-voice-count" class="one-voice-count">0</div>
+    <p id="one-voice-attempt"></p>
+    <div class="one-voice-bar-wrapper">
+      <div id="one-voice-bar" class="one-voice-bar-fill"></div>
+    </div>
+    <p id="one-voice-best"></p>
+    <div id="one-voice-banner" class="one-voice-banner" hidden></div>
+    <div class="one-voice-controls">
+      <button id="one-voice-mute-btn" type="button">🔊 Voice on</button>
+      <button id="one-voice-continue-btn" title="Store the story so far and move on">Move On</button>
+    </div>
+  </section>
+
   <!-- WAGER SECTION -->
   <section id="wager-section" hidden>
     <div class="screen-template" hidden></div>

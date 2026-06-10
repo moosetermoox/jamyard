@@ -26,6 +26,7 @@ export const EVENT_SCHEMAS = {
   'submit-response': {
     code: 'string:required',
     response: 'any:required',
+    pass: 'boolean:optional',
     phaseInstanceId: 'number:optional'
   },
   'close-submissions': {
@@ -74,6 +75,27 @@ export const EVENT_SCHEMAS = {
   'relay-submit': {
     code: 'string:required',
     text: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'merge-draft': {
+    code: 'string:required',
+    text: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'merge-agree': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'close-merge': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'one-voice-tap': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'close-one-voice': {
+    code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
   'turn-got-it': {

@@ -1,0 +1,25 @@
+{
+  "name": "SIM One Voice",
+  "description": "Test fixture for One Voice scripted tap-timing simulation (small target so the sim runs fast). Underscore-prefixed so it never appears in game lists. Driven by scripts/simulate-one-voice.js.",
+  "family": "connection",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "rules" },
+    "rules": {
+      "type": "announce",
+      "message": "Count to 6 together. Two voices at once and it's back to one.",
+      "next": "count"
+    },
+    "count": {
+      "type": "one-voice",
+      "target": 6,
+      "collisionWindowMs": 400,
+      "next": "story"
+    },
+    "story": {
+      "type": "reveal",
+      "template": "Attempts: {{count.attempts}}\nRestarts: {{count.resets}}\nBest run: {{count.bestRun}}\nTarget: {{count.target}}",
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "One voice." }
+  }
+}

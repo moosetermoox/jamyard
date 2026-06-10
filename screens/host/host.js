@@ -118,6 +118,23 @@ const rankCounter = document.getElementById('rank-counter');
 const rankTimer = document.getElementById('rank-timer');
 const rankCloseBtn = document.getElementById('rank-close-btn');
 
+// Elements - Merge
+const mergeSection = document.getElementById('merge-section');
+const mergeHostInstruction = document.getElementById('merge-host-instruction');
+const mergeCounter = document.getElementById('merge-counter');
+const mergeHostTimer = document.getElementById('merge-host-timer');
+const mergeCloseBtn = document.getElementById('merge-close-btn');
+
+// Elements - One Voice
+const oneVoiceSection = document.getElementById('one-voice-section');
+const oneVoiceCount = document.getElementById('one-voice-count');
+const oneVoiceAttempt = document.getElementById('one-voice-attempt');
+const oneVoiceBar = document.getElementById('one-voice-bar');
+const oneVoiceBest = document.getElementById('one-voice-best');
+const oneVoiceBanner = document.getElementById('one-voice-banner');
+const oneVoiceMuteBtn = document.getElementById('one-voice-mute-btn');
+const oneVoiceContinueBtn = document.getElementById('one-voice-continue-btn');
+
 // Elements - Rate
 const rateSection = document.getElementById('rate-section');
 const ratePrompt = document.getElementById('rate-prompt');
@@ -366,6 +383,8 @@ window.addEventListener('message', (e) => {
     'close-submissions-btn',
     'close-voting-btn',
     'rank-close-btn',
+    'merge-close-btn',
+    'one-voice-continue-btn',
     'rate-close-btn', 'rate-continue-btn',
     'wager-close-btn',
     'reveal-one-next-btn', 'reveal-one-continue-btn',
@@ -762,6 +781,104 @@ socket.on('rank-start', ({ prompt, totalRankers, timer, hostTemplate, show }) =>
 
 socket.on('rank-received', ({ count, total }) => {
   rankCounter.textContent = count + ' of ' + total + ' ranked';
+});
+
+// --- Socket events - One Voice (Connection Pack: cooperative counting) ---
+
+// Teacher-speaker audio (spec §4.5 v1): every successful tap is spoken
+// through the TEACHER's machine via the Web Speech API — the room hears
+// one shared voice counting upward. No mics, no streaming, no permissions.
+// This tiny util is the host bundle's room-audio seed; future phases that
+// want room audio should reuse it.
+let roomVoiceMuted = false;
+function roomSpeak(text) {
+  if (roomVoiceMuted) return;
+  if (typeof speechSynthesis === 'undefined') return; // not supported — silent fallback
+  try {
+    speechSynthesis.cancel(); // fast taps shouldn't queue up a backlog
+    const u = new SpeechSynthesisUtterance(String(text));
+    u.rate = 1.1;
+    speechSynthesis.speak(u);
+  } catch (e) { /* audio is garnish — never break the game over it */ }
+}
+
+let oneVoiceTarget = 20;
+
+function renderOneVoice({ count, attempt, bestRun, target }) {
+  if (target) oneVoiceTarget = target;
+  oneVoiceCount.textContent = count;
+  oneVoiceAttempt.textContent = 'Attempt ' + attempt;
+  oneVoiceBest.textContent = bestRun > 0 ? 'Best run so far: ' + bestRun + ' of ' + oneVoiceTarget : '';
+  oneVoiceBar.style.width = Math.min(100, Math.round((count / oneVoiceTarget) * 100)) + '%';
+}
+
+socket.on('one-voice-start', (data) => {
+  showSection(oneVoiceSection);
+  oneVoiceBanner.hidden = true;
+  oneVoiceSection.classList.remove('one-voice-celebrating');
+  renderOneVoice(data);
+  applyTemplate(oneVoiceSection, data.hostTemplate);
+});
+
+socket.on('one-voice-count', (data) => {
+  renderOneVoice(data);
+  roomSpeak(data.count);
+});
+
+socket.on('one-voice-reset', (data) => {
+  renderOneVoice(data);
+  oneVoiceBanner.hidden = false;
+  oneVoiceBanner.textContent = data.final
+    ? 'That was our last try — what a run. Best: ' + data.bestRun + ' of ' + oneVoiceTarget + '.'
+    : 'Two voices! Back to one…';
+  if (!data.final) {
+    setTimeout(() => { oneVoiceBanner.hidden = true; }, (data.lockoutMs || 800) + 1200);
+  }
+});
+
+socket.on('one-voice-success', (data) => {
+  renderOneVoice(data);
+  oneVoiceSection.classList.add('one-voice-celebrating');
+  oneVoiceBanner.hidden = false;
+  oneVoiceBanner.textContent = 'WE DID IT — ' + oneVoiceTarget + ', as one voice! (Attempt ' + data.attempt + ')';
+  roomSpeak(data.count + '! We did it!');
+});
+
+oneVoiceMuteBtn.addEventListener('click', () => {
+  roomVoiceMuted = !roomVoiceMuted;
+  oneVoiceMuteBtn.textContent = roomVoiceMuted ? '🔇 Voice off' : '🔊 Voice on';
+});
+
+oneVoiceContinueBtn.addEventListener('click', () => {
+  socket.emit('close-one-voice', { code: currentRoomCode });
+});
+
+// --- Socket events - Merge (Connection Pack: think-pair-share) ---
+
+socket.on('merge-progress', ({ instruction, totalGroups, submittedGroups, timer, hostTemplate, show }) => {
+  // First emit (phase enter) carries the instruction — set up the section.
+  // Later emits only update the progress counter.
+  if (instruction !== undefined) {
+    showSection(mergeSection);
+    mergeHostInstruction.textContent = instruction || 'Groups are merging their answers';
+    applyTemplate(mergeSection, hostTemplate);
+    applyShow(show, {
+      instruction: mergeHostInstruction,
+      counter: mergeCounter,
+      timer: mergeHostTimer,
+      closeButton: mergeCloseBtn
+    });
+    if (timer) {
+      startTimer(timer, mergeHostTimer, () => {
+        socket.emit('close-merge', { code: currentRoomCode });
+      });
+    }
+  }
+  mergeCounter.textContent = (submittedGroups || 0) + ' of ' + totalGroups + ' groups merged';
+});
+
+mergeCloseBtn.addEventListener('click', () => {
+  socket.emit('close-merge', { code: currentRoomCode });
 });
 
 // --- Socket events - Rate ---
@@ -1217,7 +1334,7 @@ const allSections = [
   lobbySection, collectSection, processSection, previewSection,
   revealSection, voteSection, eliminationSection, winnerSection,
   announceSection, leaderboardSection, revealOneSection,
-  teamSplitSection, rankSection, wagerSection, relaySection, rateSection,
+  teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
   phaseErrorSection, endSection
 ];
 

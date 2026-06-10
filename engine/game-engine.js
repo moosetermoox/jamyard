@@ -114,6 +114,13 @@ export class GameEngine {
       return this._foreachCandidates || [];
     }
 
+    // _pair.* — pair-scoped reveal tokens have no value at this layer; the
+    // reveal handler substitutes them per-recipient AFTER normal template
+    // resolution. Returning undefined keeps the literal token in place.
+    if (parsed.kind === 'pairScope') {
+      return undefined;
+    }
+
     // _loop.<phaseId>.iteration / .total
     if (parsed.kind === 'loopScope') {
       if (segments.length < 3) return undefined;

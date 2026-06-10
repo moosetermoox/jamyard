@@ -26,7 +26,7 @@ const RESERVED_GAME_DIR_NAMES = new Set(['user']);
 // check in validate() walks this small list directly. Could derive from
 // schema by scanning every field with type: 'dataRef' — left for a future
 // follow-up if drift becomes a problem.
-const DATA_REF_FIELDS = ['input', 'candidates', 'content', 'scoresFrom', 'balanceFrom'];
+const DATA_REF_FIELDS = ['input', 'candidates', 'content', 'scoresFrom', 'balanceFrom', 'seedFrom'];
 
 // (Removed Phase #50: VALID_PHASE_TYPES, PHASE_REQUIRED_FIELDS,
 // PHASE_OPTIONAL_FIELDS, SUBPHASE_OPTIONAL_FIELDS, VALID_SUBPHASE_TYPES,
@@ -312,11 +312,43 @@ export function validate(config, gameId, options) {
       }
     }
 
-    // collect with assign:"pairwise" requires pairsFrom
-    if (phase.type === 'collect' && phase.assign === 'pairwise') {
-      if (!phase.pairsFrom) {
+    // collect pairwise cross-field rules. pairsFrom is optional since the
+    // Connection Pack (no pairsFrom → every pair gets the step's own prompt).
+    if (phase.type === 'collect') {
+      if (phase.rotatePairsFrom && phase.reusePairsFrom) {
         errors.push(
-          `Game "${gameId}": phase "${name}" (collect) uses assign:"pairwise" but is missing required field "pairsFrom"`
+          `Game "${gameId}": phase "${name}" (collect) sets both "rotatePairsFrom" and "reusePairsFrom" — pick one (new partners vs. same partners).`
+        );
+      }
+      for (const pairingField of ['rotatePairsFrom', 'reusePairsFrom']) {
+        if (!phase[pairingField]) continue;
+        if (phase.assign !== 'pairwise') {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (collect) sets "${pairingField}" but assign is not "pairwise" — the field only applies to paired steps.`
+          );
+          continue;
+        }
+        const pairingSrc = config.phases[phase[pairingField]];
+        if (!pairingSrc) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" has ${pairingField} "${phase[pairingField]}" which does not exist`
+          );
+        } else if (!(pairingSrc.type === 'collect' && pairingSrc.assign === 'pairwise')) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" ${pairingField} "${phase[pairingField]}" must point to a collect step with assign:"pairwise" (got ${pairingSrc.type})`
+          );
+        }
+      }
+    }
+
+    // vote.matchupsFromPairs over a triple-capable source: head-to-head
+    // matchups assume exactly 2 entries per pair, so a group of three would
+    // misbehave. Warn, don't block (even classes never form a triple).
+    if (phase.type === 'vote' && phase.matchupsFromPairs) {
+      const matchSrc = config.phases[phase.matchupsFromPairs];
+      if (matchSrc && matchSrc.oddHandling === 'triple') {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (vote) builds matchups from "${phase.matchupsFromPairs}", which uses oddHandling:"triple". With an odd class a group of three will form and head-to-head matchups need exactly 2 — use oddHandling:"sit-out" on that step instead.`
         );
       }
     }
@@ -643,6 +675,95 @@ export function validate(config, gameId, options) {
         }
       }
     }
+
+    // One Voice rules (Connection Pack §4.6).
+    if (phase.type === 'one-voice') {
+      if (phase.collisionWindowMs !== undefined && phase.collisionWindowMs !== null) {
+        if (typeof phase.collisionWindowMs !== 'number' || phase.collisionWindowMs < 100) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (one-voice) has collisionWindowMs "${phase.collisionWindowMs}" — below 100ms the game is physically unwinnable. Use 100-1500.`
+          );
+        } else if (phase.collisionWindowMs > 1500) {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" (one-voice) has collisionWindowMs ${phase.collisionWindowMs} — above 1500ms almost every tap collides. Consider 300-600.`
+          );
+        }
+      }
+      if (phase.target !== undefined && phase.target !== null) {
+        if (typeof phase.target !== 'number' || phase.target < 2 || phase.target > 200) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (one-voice) has invalid target "${phase.target}". Must be a number between 2 and 200.`
+          );
+        }
+      }
+    }
+
+    // Merge cross-field rules (Connection Pack §3.4/§3.5).
+    if (phase.type === 'merge') {
+      const seedPhaseId = typeof phase.seedFrom === 'string' ? phase.seedFrom.split('.')[0] : null;
+      const seedSrc = seedPhaseId ? config.phases[seedPhaseId] : null;
+      if (phase.groupSize === 4) {
+        // Quads join an earlier merge's groups — the seeds must carry members.
+        if (!seedSrc || seedSrc.type !== 'merge') {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (merge) uses groupSize 4 but seedFrom "${phase.seedFrom}" must point to an earlier merge step's .merged output (quads join the previous pairs).`
+          );
+        } else if (!phaseAlwaysPrecedes(config, seedPhaseId, name)) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (merge) can be reached without going through "${seedPhaseId}" first — every path from the lobby to "${name}" must pass through it so the pair answers exist.`
+          );
+        }
+      } else if (seedPhaseId && !phaseAlwaysPrecedes(config, seedPhaseId, name)) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (merge) can be reached without going through "${seedPhaseId}" first — every path from the lobby to "${name}" must pass through it so the answers to merge exist.`
+        );
+      }
+      if (phase.agreeMode === 'timer' && !phase.timer) {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (merge) uses agreeMode "timer" but has no timer — only the teacher's Close Merging button will end the step. Add a timer or switch agreeMode.`
+        );
+      }
+    }
+
+    // Pair-scoped reveal: needs a pairwise collect, and that collect must run
+    // before this reveal on EVERY path from the lobby (dominator check) —
+    // otherwise the reveal can fire with no pairing data and blank screens.
+    if (phase.type === 'reveal' && phase.scope === 'pair') {
+      if (!phase.pairsFrom) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (reveal) uses scope:"pair" but is missing required field "pairsFrom"`
+        );
+      } else {
+        const pairSrc = config.phases[phase.pairsFrom];
+        if (!pairSrc) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" has pairsFrom "${phase.pairsFrom}" which does not exist`
+          );
+        } else if (!(pairSrc.type === 'collect' && pairSrc.assign === 'pairwise')) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" pairsFrom "${phase.pairsFrom}" must point to a collect step with assign:"pairwise" (got ${pairSrc.type}${pairSrc.type === 'collect' ? ' without pairwise' : ''})`
+          );
+        } else if (!phaseAlwaysPrecedes(config, phase.pairsFrom, name)) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (pair reveal) can be reached without going through "${phase.pairsFrom}" first — every path from the lobby to "${name}" must pass through "${phase.pairsFrom}" so the pairing data exists.`
+          );
+        }
+      }
+    }
+  }
+
+  // Connection-family enforcement — a connection game promises no winners,
+  // scores, or eliminations. One rule, permanent guarantee.
+  checkConnectionFamily(config, gameId, errors);
+
+  // Class-period guard (spec §2.6): more than 12 pair-prompt rounds won't
+  // fit a ~35-minute period. Warn, don't block.
+  const pairRoundCount = Object.values(config.phases)
+    .filter(p => p && p.type === 'collect' && p.assign === 'pairwise').length;
+  if (pairRoundCount > 12) {
+    warnings.push(
+      `Game "${gameId}" has ${pairRoundCount} pair-prompt rounds. More than 12 rarely fits a class period — consider trimming prompts.`
+    );
   }
 
   // Cycle detection — any cycle through next/approveNext/rejectNext (excluding
@@ -721,6 +842,21 @@ function inferDiagnosticCode(msg, severity) {
   if (/no "scoresFrom" and no "correctOption"/.test(msg)) return DIAGNOSTIC_CODES.WAGER_NO_RESOLUTION_BASIS;
   if (/no later template references team data/.test(msg)) return DIAGNOSTIC_CODES.TEAM_SPLIT_UNUSED;
 
+  // Connection pack
+  if (/not allowed in a connection-family game/.test(msg)) return DIAGNOSTIC_CODES.CONNECTION_FAMILY_VIOLATION;
+  if (/has invalid family value/.test(msg)) return DIAGNOSTIC_CODES.INVALID_ENUM_VALUE;
+  if (/can be reached without going through/.test(msg)) return DIAGNOSTIC_CODES.PAIR_SOURCE_NOT_ON_ALL_PATHS;
+  if (/has (pairsFrom|rotatePairsFrom|reusePairsFrom) ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
+  if (/(pairsFrom|rotatePairsFrom|reusePairsFrom) ".+" must point to/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
+  if (/sets both "rotatePairsFrom" and "reusePairsFrom"/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
+  if (/must point to an earlier merge step/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
+  if (/agreeMode "timer" but has no timer/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  if (/collisionWindowMs/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
+  if (/has invalid target/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
+  if (/but assign is not "pairwise"/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
+  if (/pair-prompt rounds/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
+  if (/oddHandling:"triple"/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
+
   // Phase type
   if (/has invalid type "/.test(msg)) return DIAGNOSTIC_CODES.UNKNOWN_PHASE_TYPE;
   if (/subPhase ".+" has invalid type/.test(msg)) return DIAGNOSTIC_CODES.UNKNOWN_PHASE_TYPE;
@@ -761,6 +897,88 @@ function inferDiagnosticCode(msg, severity) {
 
   // Fallback — shouldn't fire if patterns above are exhaustive.
   return severity === 'error' ? 'LEGACY_STRING_ERROR' : 'LEGACY_STRING_WARNING';
+}
+
+// Phase types and options forbidden inside a connection-family game
+// (docs/connection-pack-spec.md §6.4). The spec names leaderboard / winner /
+// eliminate / wager / speedBonus; ai-eliminate is included because it
+// eliminates players, and correctAnswer / foreach scoring because they
+// produce scores — same promise, same rule.
+const CONNECTION_FORBIDDEN_TYPES = new Set([
+  'leaderboard', 'winner', 'eliminate', 'ai-eliminate', 'wager'
+]);
+
+// Validate the config-level "family" flag. Currently the only family is
+// "connection": no phase in the game may declare a winner, score players,
+// or eliminate anyone.
+function checkConnectionFamily(config, gameId, errors) {
+  if (config.family === undefined || config.family === null) return;
+  if (config.family !== 'connection') {
+    errors.push(
+      `Game "${gameId}" has invalid family value "${config.family}". Valid values: connection`
+    );
+    return;
+  }
+
+  const checkPhase = (label, phase) => {
+    if (CONNECTION_FORBIDDEN_TYPES.has(phase.type)) {
+      errors.push(
+        `Game "${gameId}": ${label} (${phase.type}) is not allowed in a connection-family game — these games promise no winners, points, or eliminations. Remove this step or remove the "family" flag.`
+      );
+    }
+    if (phase.type === 'collect-choice' && (phase.correctAnswer || phase.speedBonus === true)) {
+      errors.push(
+        `Game "${gameId}": ${label} uses graded scoring (correctAnswer/speedBonus), which is not allowed in a connection-family game.`
+      );
+    }
+  };
+
+  for (const [name, phase] of Object.entries(config.phases || {})) {
+    if (!phase || typeof phase !== 'object') continue;
+    checkPhase(`phase "${name}"`, phase);
+    if (phase.type === 'foreach') {
+      if (phase.scoring) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (foreach) uses scoring, which is not allowed in a connection-family game.`
+        );
+      }
+      for (const [subName, sub] of Object.entries(phase.subPhases || {})) {
+        if (!sub || typeof sub !== 'object') continue;
+        checkPhase(`phase "${name}" subPhase "${subName}"`, sub);
+      }
+    }
+  }
+}
+
+// True if every path from the lobby to targetId passes through requiredId.
+// Standard dominator check via reachability: remove requiredId from the
+// graph; if targetId is still reachable from the lobby, some path skips it.
+// If targetId isn't reachable at all, returns true — the unreachable-phase
+// warning covers that case separately.
+function phaseAlwaysPrecedes(config, requiredId, targetId) {
+  const phases = config.phases;
+  const lobby = Object.keys(phases).find(n => phases[n].type === 'lobby');
+  if (!lobby) return true; // missing-lobby error covers it
+  if (lobby === targetId || requiredId === targetId) return false;
+
+  const reachableSkipping = (skip) => {
+    const seen = new Set();
+    const queue = [lobby];
+    while (queue.length) {
+      const cur = queue.shift();
+      if (seen.has(cur) || cur === skip) continue;
+      seen.add(cur);
+      const p = phases[cur];
+      if (!p) continue;
+      for (const f of ['next', 'approveNext', 'rejectNext', 'loopBack']) {
+        if (p[f] && phases[p[f]] && !seen.has(p[f])) queue.push(p[f]);
+      }
+    }
+    return seen;
+  };
+
+  if (!reachableSkipping(null).has(targetId)) return true;
+  return !reachableSkipping(requiredId).has(targetId);
 }
 
 // DFS cycle detection on the next/approveNext/rejectNext graph (loopBack edges

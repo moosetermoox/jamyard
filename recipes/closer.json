@@ -1,0 +1,255 @@
+{
+  "id": "closer",
+  "name": "Closer",
+  "icon": "🤝",
+  "description": "Pairs answer the same question privately, then see each other's answers at the same moment. Three tiers of prompts move from playful to reflective, with a new partner each tier. No points, no winners — just real conversations. Good for belonging, trust, and calm.",
+  "tagline": "Perfect for advisory, the first week of school, or rebuilding class culture after a rough patch.",
+  "family": "connection",
+  "feel": ["belonging", "trust", "calm"],
+  "version": "1",
+  "parameters": {
+    "tier1Prompts": {
+      "type": "array",
+      "item": { "type": "templateString", "minLength": 5, "maxLength": 200 },
+      "minItems": 3,
+      "maxItems": 3,
+      "label": "Tier 1 — light & playful (3 prompts)",
+      "helper": "Warm-up questions. Easy, fun, zero risk.",
+      "default": [
+        "Window seat or aisle seat — and why?",
+        "If our class had a mascot, what should it be?",
+        "If you could teleport to any place for just one hour, where would you go?"
+      ]
+    },
+    "tier2Prompts": {
+      "type": "array",
+      "item": { "type": "templateString", "minLength": 5, "maxLength": 200 },
+      "minItems": 3,
+      "maxItems": 3,
+      "label": "Tier 2 — values & preferences (3 prompts)",
+      "helper": "A little deeper. What matters to them, what they're like.",
+      "default": [
+        "What's something you've changed your mind about in the last year?",
+        "What do you think makes someone a good friend?",
+        "What's a compliment you received that you still remember?"
+      ]
+    },
+    "tier3Prompts": {
+      "type": "array",
+      "item": { "type": "templateString", "minLength": 5, "maxLength": 200 },
+      "minItems": 3,
+      "maxItems": 3,
+      "label": "Tier 3 — reflective (3 prompts)",
+      "helper": "Proud-of, gratitude, growth. Best after the class has done Tiers 1-2 at least once before.",
+      "default": [
+        "What's something you're proud of that you rarely get to talk about?",
+        "If you could thank one person right now, who would it be and for what?",
+        "What's a moment from this year you want to remember in ten years?"
+      ]
+    }
+  },
+  "template": {
+    "name": "Closer",
+    "description": "Escalating pair conversations — playful to reflective. No winners.",
+    "family": "connection",
+    "phases": {
+      "lobby": { "type": "lobby", "next": "welcome" },
+      "welcome": {
+        "type": "announce",
+        "message": "This isn't a quiz. There are no points and no winners.\n\nYou'll be paired up and answer the same question as your partner — privately. When everyone's done, you'll see each other's answers at the same moment.\n\nYou can pass on any question, anytime. Nobody will know.",
+        "next": "tier1-intro"
+      },
+
+      "tier1-intro": {
+        "type": "announce",
+        "message": "Tier 1 — Warm-up.\n\nYou have a partner. Three quick questions, just for fun.",
+        "next": "t1q1"
+      },
+      "t1q1": {
+        "type": "collect",
+        "prompt": "${tier1Prompts[0]}",
+        "assign": "pairwise",
+        "oddHandling": "triple",
+        "passAllowed": true,
+        "simultaneousReveal": true,
+        "timer": 120,
+        "next": "t1q1-share"
+      },
+      "t1q1-share": {
+        "type": "reveal",
+        "scope": "pair",
+        "pairsFrom": "t1q1",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "next": "t1q2"
+      },
+      "t1q2": {
+        "type": "collect",
+        "prompt": "${tier1Prompts[1]}",
+        "assign": "pairwise",
+        "reusePairsFrom": "t1q1",
+        "passAllowed": true,
+        "simultaneousReveal": true,
+        "timer": 120,
+        "next": "t1q2-share"
+      },
+      "t1q2-share": {
+        "type": "reveal",
+        "scope": "pair",
+        "pairsFrom": "t1q2",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "next": "t1q3"
+      },
+      "t1q3": {
+        "type": "collect",
+        "prompt": "${tier1Prompts[2]}",
+        "assign": "pairwise",
+        "reusePairsFrom": "t1q1",
+        "passAllowed": true,
+        "simultaneousReveal": true,
+        "timer": 120,
+        "next": "t1q3-share"
+      },
+      "t1q3-share": {
+        "type": "reveal",
+        "scope": "pair",
+        "pairsFrom": "t1q3",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "next": "tier2-intro"
+      },
+
+      "tier2-intro": {
+        "type": "announce",
+        "message": "Tier 2 — A little deeper.\n\nNew partner! Three questions about what matters to you.",
+        "next": "t2q1"
+      },
+      "t2q1": {
+        "type": "collect",
+        "prompt": "${tier2Prompts[0]}",
+        "assign": "pairwise",
+        "oddHandling": "triple",
+        "rotatePairsFrom": "t1q1",
+        "passAllowed": true,
+        "simultaneousReveal": true,
+        "timer": 150,
+        "next": "t2q1-share"
+      },
+      "t2q1-share": {
+        "type": "reveal",
+        "scope": "pair",
+        "pairsFrom": "t2q1",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "next": "t2q2"
+      },
+      "t2q2": {
+        "type": "collect",
+        "prompt": "${tier2Prompts[1]}",
+        "assign": "pairwise",
+        "reusePairsFrom": "t2q1",
+        "passAllowed": true,
+        "simultaneousReveal": true,
+        "timer": 150,
+        "next": "t2q2-share"
+      },
+      "t2q2-share": {
+        "type": "reveal",
+        "scope": "pair",
+        "pairsFrom": "t2q2",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "next": "t2q3"
+      },
+      "t2q3": {
+        "type": "collect",
+        "prompt": "${tier2Prompts[2]}",
+        "assign": "pairwise",
+        "reusePairsFrom": "t2q1",
+        "passAllowed": true,
+        "simultaneousReveal": true,
+        "timer": 150,
+        "next": "t2q3-share"
+      },
+      "t2q3-share": {
+        "type": "reveal",
+        "scope": "pair",
+        "pairsFrom": "t2q3",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "next": "tier3-intro"
+      },
+
+      "tier3-intro": {
+        "type": "announce",
+        "message": "Tier 3 — Reflective.\n\nOne more new partner. These questions are slower — take your time, and remember you can always pass.",
+        "next": "t3q1"
+      },
+      "t3q1": {
+        "type": "collect",
+        "prompt": "${tier3Prompts[0]}",
+        "assign": "pairwise",
+        "oddHandling": "triple",
+        "rotatePairsFrom": "t2q1",
+        "passAllowed": true,
+        "simultaneousReveal": true,
+        "timer": 180,
+        "next": "t3q1-share"
+      },
+      "t3q1-share": {
+        "type": "reveal",
+        "scope": "pair",
+        "pairsFrom": "t3q1",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "next": "t3q2"
+      },
+      "t3q2": {
+        "type": "collect",
+        "prompt": "${tier3Prompts[1]}",
+        "assign": "pairwise",
+        "reusePairsFrom": "t3q1",
+        "passAllowed": true,
+        "simultaneousReveal": true,
+        "timer": 180,
+        "next": "t3q2-share"
+      },
+      "t3q2-share": {
+        "type": "reveal",
+        "scope": "pair",
+        "pairsFrom": "t3q2",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "next": "t3q3"
+      },
+      "t3q3": {
+        "type": "collect",
+        "prompt": "${tier3Prompts[2]}",
+        "assign": "pairwise",
+        "reusePairsFrom": "t3q1",
+        "passAllowed": true,
+        "simultaneousReveal": true,
+        "timer": 180,
+        "next": "t3q3-share"
+      },
+      "t3q3-share": {
+        "type": "reveal",
+        "scope": "pair",
+        "pairsFrom": "t3q3",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "next": "checkout"
+      },
+
+      "checkout": {
+        "type": "collect",
+        "prompt": "Last one, for the whole class: one word for how that felt.",
+        "passAllowed": true,
+        "simultaneousReveal": true,
+        "timer": 60,
+        "next": "checkout-share"
+      },
+      "checkout-share": {
+        "type": "reveal",
+        "template": "How that felt, in our words:\n\n{{checkout.responses.list}}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "You just had nine real conversations."
+      }
+    }
+  }
+}

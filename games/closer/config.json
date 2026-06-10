@@ -1,0 +1,203 @@
+{
+  "name": "Closer",
+  "description": "Escalating pair conversations — playful to reflective. No winners.",
+  "family": "connection",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "welcome"
+    },
+    "welcome": {
+      "type": "announce",
+      "message": "This isn't a quiz. There are no points and no winners.\n\nYou'll be paired up and answer the same question as your partner — privately. When everyone's done, you'll see each other's answers at the same moment.\n\nYou can pass on any question, anytime. Nobody will know.",
+      "next": "tier1-intro"
+    },
+    "tier1-intro": {
+      "type": "announce",
+      "message": "Tier 1 — Warm-up.\n\nYou have a partner. Three quick questions, just for fun.",
+      "next": "t1q1"
+    },
+    "t1q1": {
+      "type": "collect",
+      "prompt": "Window seat or aisle seat — and why?",
+      "assign": "pairwise",
+      "oddHandling": "triple",
+      "passAllowed": true,
+      "simultaneousReveal": true,
+      "timer": 120,
+      "next": "t1q1-share"
+    },
+    "t1q1-share": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "t1q1",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+      "next": "t1q2"
+    },
+    "t1q2": {
+      "type": "collect",
+      "prompt": "If our class had a mascot, what should it be?",
+      "assign": "pairwise",
+      "reusePairsFrom": "t1q1",
+      "passAllowed": true,
+      "simultaneousReveal": true,
+      "timer": 120,
+      "next": "t1q2-share"
+    },
+    "t1q2-share": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "t1q2",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+      "next": "t1q3"
+    },
+    "t1q3": {
+      "type": "collect",
+      "prompt": "If you could teleport to any place for just one hour, where would you go?",
+      "assign": "pairwise",
+      "reusePairsFrom": "t1q1",
+      "passAllowed": true,
+      "simultaneousReveal": true,
+      "timer": 120,
+      "next": "t1q3-share"
+    },
+    "t1q3-share": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "t1q3",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+      "next": "tier2-intro"
+    },
+    "tier2-intro": {
+      "type": "announce",
+      "message": "Tier 2 — A little deeper.\n\nNew partner! Three questions about what matters to you.",
+      "next": "t2q1"
+    },
+    "t2q1": {
+      "type": "collect",
+      "prompt": "What's something you've changed your mind about in the last year?",
+      "assign": "pairwise",
+      "oddHandling": "triple",
+      "rotatePairsFrom": "t1q1",
+      "passAllowed": true,
+      "simultaneousReveal": true,
+      "timer": 150,
+      "next": "t2q1-share"
+    },
+    "t2q1-share": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "t2q1",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+      "next": "t2q2"
+    },
+    "t2q2": {
+      "type": "collect",
+      "prompt": "What do you think makes someone a good friend?",
+      "assign": "pairwise",
+      "reusePairsFrom": "t2q1",
+      "passAllowed": true,
+      "simultaneousReveal": true,
+      "timer": 150,
+      "next": "t2q2-share"
+    },
+    "t2q2-share": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "t2q2",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+      "next": "t2q3"
+    },
+    "t2q3": {
+      "type": "collect",
+      "prompt": "What's a compliment you received that you still remember?",
+      "assign": "pairwise",
+      "reusePairsFrom": "t2q1",
+      "passAllowed": true,
+      "simultaneousReveal": true,
+      "timer": 150,
+      "next": "t2q3-share"
+    },
+    "t2q3-share": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "t2q3",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+      "next": "tier3-intro"
+    },
+    "tier3-intro": {
+      "type": "announce",
+      "message": "Tier 3 — Reflective.\n\nOne more new partner. These questions are slower — take your time, and remember you can always pass.",
+      "next": "t3q1"
+    },
+    "t3q1": {
+      "type": "collect",
+      "prompt": "What's something you're proud of that you rarely get to talk about?",
+      "assign": "pairwise",
+      "oddHandling": "triple",
+      "rotatePairsFrom": "t2q1",
+      "passAllowed": true,
+      "simultaneousReveal": true,
+      "timer": 180,
+      "next": "t3q1-share"
+    },
+    "t3q1-share": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "t3q1",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+      "next": "t3q2"
+    },
+    "t3q2": {
+      "type": "collect",
+      "prompt": "If you could thank one person right now, who would it be and for what?",
+      "assign": "pairwise",
+      "reusePairsFrom": "t3q1",
+      "passAllowed": true,
+      "simultaneousReveal": true,
+      "timer": 180,
+      "next": "t3q2-share"
+    },
+    "t3q2-share": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "t3q2",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+      "next": "t3q3"
+    },
+    "t3q3": {
+      "type": "collect",
+      "prompt": "What's a moment from this year you want to remember in ten years?",
+      "assign": "pairwise",
+      "reusePairsFrom": "t3q1",
+      "passAllowed": true,
+      "simultaneousReveal": true,
+      "timer": 180,
+      "next": "t3q3-share"
+    },
+    "t3q3-share": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "t3q3",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+      "next": "checkout"
+    },
+    "checkout": {
+      "type": "collect",
+      "prompt": "Last one, for the whole class: one word for how that felt.",
+      "passAllowed": true,
+      "simultaneousReveal": true,
+      "timer": 60,
+      "next": "checkout-share"
+    },
+    "checkout-share": {
+      "type": "reveal",
+      "template": "How that felt, in our words:\n\n{{checkout.responses.list}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "You just had nine real conversations."
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "Snowball",
+  "description": "Alone, together, all of us — one question, distilled by everyone.",
+  "family": "connection",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "Three rounds: alone, together, all of us.\n\nFirst you'll answer on your own — nobody can skip the thinking step. Then you and a partner will merge your answers into one. Then the whole class sees what the pairs built.",
+      "next": "solo"
+    },
+    "solo": {
+      "type": "collect",
+      "prompt": "What should our class norms be?",
+      "timer": 90,
+      "next": "pairs"
+    },
+    "pairs": {
+      "type": "merge",
+      "seedFrom": "solo.responses",
+      "instruction": "Combine your answers into one stronger answer.",
+      "groupSize": 2,
+      "agreeMode": "both",
+      "timer": 240,
+      "next": "share"
+    },
+    "share": {
+      "type": "reveal",
+      "template": "What should our class norms be?\n\nWe each answered alone. Here's what the pairs built together:\n\n{{pairs.merged.list}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Started as everyone's own idea. Ended as a few strong ones — built by all of us."
+    }
+  }
+}

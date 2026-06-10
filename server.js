@@ -37,8 +37,10 @@ import {
   deleteUserGame,
   userGameExists
 } from './db.js';
-import { checkSubmission } from './engine/content-filter.js';
-import { buildSubmissionList, isVisibleSubmission } from './engine/moderation.js';
+import { checkSubmission, filterContent } from './engine/content-filter.js';
+import { agreesNeeded } from './engine/phase-handlers/merge.js';
+import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
+import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
 import { validatePayload } from './engine/event-schemas.js';
 import { scoreResponses } from './engine/speed-scoring.js';
 
@@ -336,6 +338,97 @@ async function closeRanking(code, room) {
   engine.storePhaseData(rs.phaseId, { rankings, rankedList, responses: rs.submissions });
 
   console.log(`[closeRanking] Aggregated ${Object.keys(rs.submissions).length} rankings for ${rs.candidates.length} items`);
+
+  const nextId = getNextPhaseId(engine, phase);
+  if (nextId) {
+    engine.transition(nextId);
+    await handlePhase(code, room);
+  }
+}
+
+// --- Merge helpers (Connection Pack, think-pair-share) ---
+
+// Close the merge phase: every group's current draft becomes its merged
+// answer (the host force-close / timer path submits in-progress drafts —
+// spec §3.4). Empty drafts and content-filtered drafts are dropped.
+async function closeMerge(code, room) {
+  const ms = room.phaseState;
+  if (!ms || ms.kind !== 'merge' || ms.closed) return;
+  ms.closed = true;
+  if (ms.timer) { clearTimeout(ms.timer); ms.timer = null; }
+
+  const engine = room.engine;
+  const phase = engine.config.phases[ms.phaseId];
+
+  const merged = [];
+  for (const g of ms.groups) {
+    const text = String(g.draft || '').trim();
+    if (!text) continue;
+    const check = checkSubmission(text, { prompt: phase.instruction });
+    if (!check.ok) {
+      console.log(`[closeMerge] Dropping group ${g.groupId}'s draft (${check.reason})`);
+      continue;
+    }
+    merged.push({ groupId: g.groupId, text, members: g.members });
+  }
+
+  engine.storePhaseData(ms.phaseId, { merged });
+  console.log(`[closeMerge] Stored ${merged.length}/${ms.groups.length} merged answers for phase '${ms.phaseId}'`);
+
+  const nextId = getNextPhaseId(engine, phase);
+  if (nextId) {
+    engine.transition(nextId);
+    await handlePhase(code, room);
+  }
+}
+
+// A group satisfied its agree requirement (or the host closed): mark it
+// submitted, park its members on the waiting screen, update the host's
+// progress counter, and close the phase when every group is done.
+async function submitMergeGroup(code, room, group) {
+  const ms = room.phaseState;
+  if (!ms || ms.kind !== 'merge' || group.submitted) return;
+  group.submitted = true;
+
+  for (const id of group.members) {
+    io.to(id).emit(EVENTS.WAITING, { message: 'Merged! Waiting for the other groups...' });
+  }
+  const hostId = roomToHost.get(code);
+  const submittedGroups = ms.groups.filter(g => g.submitted).length;
+  if (hostId) {
+    io.to(hostId).emit(EVENTS.MERGE_PROGRESS, { totalGroups: ms.groups.length, submittedGroups });
+  }
+  recordEvent(room, 'merge-group-submitted', { groupId: group.groupId });
+
+  if (ms.groups.every(g => g.submitted)) {
+    await closeMerge(code, room);
+  }
+}
+
+// --- One Voice helpers (Connection Pack, cooperative counting) ---
+
+// Store the run's stats as phase data and advance. Reached on success
+// (after the celebration pause), on the attempt cap, or when the host
+// clicks Move On.
+async function closeOneVoice(code, room) {
+  const ovs = room.phaseState;
+  if (!ovs || ovs.kind !== 'one-voice' || ovs.closed) return;
+  ovs.closed = true;
+  ovs.cleanup();
+
+  const engine = room.engine;
+  const phase = engine.config.phases[ovs.phaseId];
+
+  engine.storePhaseData(ovs.phaseId, {
+    success: ovs.finished && ovs.count >= ovs.target,
+    attempts: ovs.attempt,
+    resets: ovs.resets,
+    bestRun: ovs.bestRun,
+    target: ovs.target,
+    finalCount: ovs.count,
+    history: ovs.history
+  });
+  console.log(`[closeOneVoice] target ${ovs.target}: ${ovs.count >= ovs.target ? 'SUCCESS' : 'ended'} after ${ovs.attempt} attempt(s), best run ${ovs.bestRun}`);
 
   const nextId = getNextPhaseId(engine, phase);
   if (nextId) {
@@ -820,6 +913,7 @@ const phaseServices = {
   closeRanking: (code, room) => closeRanking(code, room),
   closeRating: (code, room) => closeRating(code, room),
   closeWager: (code, room) => closeWager(code, room),
+  closeMerge: (code, room) => closeMerge(code, room),
   emitRelayTurn: (code, room) => emitRelayTurn(code, room),
   shuffleArray,
   setupForeachIteration,
@@ -1676,7 +1770,7 @@ io.on('connection', (socket) => {
 
   socket.on(EVENTS.SUBMIT_RESPONSE, (payload = {}) => {
     if (!checkEventPayload(socket, 'submit-response', payload)) return;
-    const { code, response, phaseInstanceId } = payload;
+    const { code, response, pass, phaseInstanceId } = payload;
     console.log(`[submit-response] Response from ${socket.id} in room ${code}`);
 
     const room = roomManager.find(code);
@@ -1693,22 +1787,36 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Safety gate — only free-text collect submissions. collect-choice answers
-    // are teacher-authored choices, so they skip validation/filtering.
     const currentPhase = room.engine ? room.engine.getCurrentPhase() : null;
-    if (currentPhase && currentPhase.type === 'collect') {
-      const check = checkSubmission(response, { prompt: currentPhase.prompt });
-      if (!check.ok) {
-        console.log(`[submit-response] Rejected (${check.reason}) from ${player.name}`);
-        recordEvent(room, 'submit-rejected', { player: player.name, reason: check.reason });
-        socket.emit(EVENTS.RESPONSE_REJECTED, { reason: check.reason, message: check.message });
+
+    // Pass path — only honored on a collect phase with passAllowed. Stored as
+    // the PASS_RESPONSE sentinel so it counts toward "all submitted" but never
+    // flows into responses/byPlayer/AI input. Deliberately journaled as a
+    // plain submit-response: a pass must never be attributable, anywhere.
+    if (pass === true) {
+      if (!currentPhase || currentPhase.type !== 'collect' || !currentPhase.passAllowed) {
+        console.log(`[submit-response] Pass ignored — current phase doesn't allow passing`);
         return;
       }
-    }
+      players.update(socket.id, { response: PASS_RESPONSE, responseAt: Date.now() });
+      recordEvent(room, 'submit-response', { player: player.name });
+    } else {
+      // Safety gate — only free-text collect submissions. collect-choice answers
+      // are teacher-authored choices, so they skip validation/filtering.
+      if (currentPhase && currentPhase.type === 'collect') {
+        const check = checkSubmission(response, { prompt: currentPhase.prompt });
+        if (!check.ok) {
+          console.log(`[submit-response] Rejected (${check.reason}) from ${player.name}`);
+          recordEvent(room, 'submit-rejected', { player: player.name, reason: check.reason });
+          socket.emit(EVENTS.RESPONSE_REJECTED, { reason: check.reason, message: check.message });
+          return;
+        }
+      }
 
-    players.update(socket.id, { response, responseAt: Date.now() });
-    console.log(`[submit-response] Stored response from ${player.name}`);
-    recordEvent(room, 'submit-response', { player: player.name });
+      players.update(socket.id, { response, responseAt: Date.now() });
+      console.log(`[submit-response] Stored response from ${player.name}`);
+      recordEvent(room, 'submit-response', { player: player.name });
+    }
 
     // Count based on eligible players for current collect phase
     let eligible;
@@ -1736,8 +1844,11 @@ io.on('connection', (socket) => {
 
     const hostSocketId = roomToHost.get(code);
     if (hostSocketId) {
+      // simultaneousReveal: the host screen is projected to the class, so the
+      // live ticker carries numbers only — no names — until the step closes.
+      const suppressNames = !!(currentPhase && currentPhase.simultaneousReveal);
       io.to(hostSocketId).emit(EVENTS.RESPONSE_RECEIVED, {
-        playerName: player.name,
+        playerName: suppressNames ? null : player.name,
         count: submitted,
         total
       });
@@ -1884,8 +1995,12 @@ io.on('connection', (socket) => {
           room.engine.storePhaseData(collectPhase.id, stored);
           console.log(`[close-submissions] Stored ${choiceResponses.length} choices for phase '${collectPhase.id}'`);
         } else {
-          room.engine.storePhaseData(collectPhase.id, { ...existing, responses, byPlayer });
-          console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}'`);
+          // passedIds: who used the Pass button (collect + passAllowed only).
+          // Internal phase data for the pair-scoped reveal's neutral card —
+          // excluded from responses/byPlayer so it never reaches AI or lists.
+          const passedIds = collectPhase.passAllowed ? collectPassedIds(eligible) : [];
+          room.engine.storePhaseData(collectPhase.id, { ...existing, responses, byPlayer, passedIds });
+          console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}' (${passedIds.length} passed)`);
         }
 
         // Clear responses (and hidden flags) for next collect phase
@@ -2082,6 +2197,153 @@ io.on('connection', (socket) => {
     if (!room || !room.phaseState) return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-ranking')) return;
     await closeRanking(code, room);
+  });
+
+  // --- Merge events (Connection Pack, think-pair-share) ---
+
+  socket.on(EVENTS.MERGE_DRAFT, (payload = {}) => {
+    if (!checkEventPayload(socket, 'merge-draft', payload)) return;
+    const { code, text, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'merge') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'merge-draft')) return;
+    const ms = room.phaseState;
+    const group = ms.byPlayer[socket.id];
+    if (!group || group.submitted) return;
+
+    // Live drafts broadcast to the rest of the group, so they pass the
+    // blocklist (word-boundary only — no mash/min-length checks, which
+    // would false-positive on half-typed text).
+    const filtered = filterContent(text);
+    if (filtered.blocked) {
+      recordEvent(room, 'merge-draft-rejected', { groupId: group.groupId });
+      socket.emit(EVENTS.RESPONSE_REJECTED, {
+        reason: 'blocked',
+        message: 'That language isn\'t allowed here — try rephrasing.'
+      });
+      return;
+    }
+
+    // Last write wins; any edit invalidates earlier Agrees (the agreement
+    // was for a different text).
+    group.draft = String(text).slice(0, 2000);
+    group.agreed.clear();
+
+    for (const id of group.members) {
+      if (id === socket.id) continue; // sender's textarea is authoritative for them
+      io.to(id).emit(EVENTS.MERGE_DRAFT_UPDATE, { draft: group.draft, agreedCount: 0 });
+    }
+  });
+
+  socket.on(EVENTS.MERGE_AGREE, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'merge-agree', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'merge') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'merge-agree')) return;
+    const ms = room.phaseState;
+    const group = ms.byPlayer[socket.id];
+    if (!group || group.submitted) return;
+    if (!String(group.draft || '').trim()) return; // nothing to agree to yet
+
+    group.agreed.add(socket.id);
+    recordEvent(room, 'merge-agree', { groupId: group.groupId });
+
+    const needed = agreesNeeded(ms.agreeMode, group.members.length);
+    if (group.agreed.size >= needed) {
+      await submitMergeGroup(code, room, group);
+      return;
+    }
+    for (const id of group.members) {
+      io.to(id).emit(EVENTS.MERGE_STATUS, {
+        agreedCount: group.agreed.size,
+        agreesNeeded: needed,
+        youAgreed: group.agreed.has(id)
+      });
+    }
+  });
+
+  socket.on(EVENTS.CLOSE_MERGE, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'close-merge', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'merge') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-merge')) return;
+    if (roomToHost.get(code) !== socket.id) return; // host only
+    recordEvent(room, 'close-merge');
+    await closeMerge(code, room);
+  });
+
+  // --- One Voice events (Connection Pack, cooperative counting) ---
+
+  socket.on(EVENTS.ONE_VOICE_TAP, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'one-voice-tap', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.engine || !room.phaseState || room.phaseState.kind !== 'one-voice') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'one-voice-tap')) return;
+    const ovs = room.phaseState;
+
+    const players = room.engine.players;
+    if (!players.find(socket.id)) return;
+    const ovPhase = room.engine.getCurrentPhase();
+    const eligible = getEligibleVoters(players, ovPhase.from || 'all');
+    if (!eligible.some(p => p.id === socket.id)) return;
+
+    // Server-authoritative: the receive timestamp decides — never the client.
+    const result = adjudicateTap(ovs, socket.id, Date.now());
+
+    if (result.type === 'reject') {
+      // Personal only — rejections are never broadcast (no blame).
+      socket.emit(EVENTS.ONE_VOICE_REJECT, { reason: result.reason });
+      return;
+    }
+
+    if (result.type === 'count') {
+      io.to(code).emit(EVENTS.ONE_VOICE_COUNT, oneVoiceStats(ovs));
+      socket.emit(EVENTS.ONE_VOICE_YOU, { number: result.count });
+      return;
+    }
+
+    if (result.type === 'reset') {
+      // Journaled without the tapper — a collision is never attributable.
+      recordEvent(room, 'one-voice-reset', { attempt: result.attempt });
+      io.to(code).emit(EVENTS.ONE_VOICE_RESET, { ...oneVoiceStats(ovs), lockoutMs: RESET_LOCKOUT_MS });
+      return;
+    }
+
+    if (result.type === 'success') {
+      recordEvent(room, 'one-voice-success', { attempts: ovs.attempt });
+      io.to(code).emit(EVENTS.ONE_VOICE_SUCCESS, oneVoiceStats(ovs));
+      socket.emit(EVENTS.ONE_VOICE_YOU, { number: result.count });
+      const instanceAtSuccess = room.phaseInstanceId;
+      ovs.timer = setTimeout(async () => {
+        if (room.phaseInstanceId !== instanceAtSuccess) return; // stale guard
+        await closeOneVoice(code, room);
+      }, SUCCESS_ADVANCE_MS);
+      return;
+    }
+
+    if (result.type === 'finished-attempts') {
+      recordEvent(room, 'one-voice-attempt-cap', { attempts: ovs.attempt });
+      io.to(code).emit(EVENTS.ONE_VOICE_RESET, { ...oneVoiceStats(ovs), final: true, lockoutMs: RESET_LOCKOUT_MS });
+      const instanceAtCap = room.phaseInstanceId;
+      ovs.timer = setTimeout(async () => {
+        if (room.phaseInstanceId !== instanceAtCap) return; // stale guard
+        await closeOneVoice(code, room);
+      }, SUCCESS_ADVANCE_MS);
+    }
+  });
+
+  socket.on(EVENTS.CLOSE_ONE_VOICE, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'close-one-voice', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'one-voice') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-one-voice')) return;
+    if (roomToHost.get(code) !== socket.id) return; // host only
+    recordEvent(room, 'close-one-voice');
+    await closeOneVoice(code, room);
   });
 
   // --- Rate events ---

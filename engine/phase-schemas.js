@@ -214,12 +214,37 @@ export const PHASE_SCHEMAS = {
       assign: {
         type: 'enum', values: ['pairwise'], optional: true,
         label: 'Pair players up',
-        helper: 'Set to "pairwise" to split players into pairs of 2, each pair sharing one prompt from the source step. Use {{sourceId.assigned}} in the prompt to show each pair their shared item.'
+        helper: 'Set to "pairwise" to split players into pairs of 2. With "Pair items from" set, each pair shares one prompt drawn from that step ({{sourceId.assigned}} shows it); without it, every pair gets this step\'s own prompt.'
       },
       pairsFrom: {
         type: 'phaseRef', optional: true,
         label: 'Pair items from',
-        helper: 'Required when assign:"pairwise". The step whose responses provide the per-pair prompts (one prompt per pair, drawn from sourceId.responses).'
+        helper: 'Optional with assign:"pairwise". The step whose responses provide the per-pair prompts (one prompt per pair, drawn from sourceId.responses). Leave empty to give every pair this step\'s own prompt.'
+      },
+      oddHandling: {
+        type: 'enum', values: ['sit-out', 'triple'], optional: true, default: 'sit-out',
+        label: 'Odd player count',
+        helper: '"sit-out" (default): the leftover player waits this round. "triple": the last three players form one group of three — use for connection games where nobody should sit out. Avoid "triple" when a later vote uses matchupsFromPairs (head-to-head needs exactly 2).'
+      },
+      rotatePairsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'New partners (avoid repeats from)',
+        helper: 'Optional with assign:"pairwise". Names an earlier pairwise step; this step builds a NEW pairing that avoids re-matching partners from that step (greedy, best-effort).'
+      },
+      reusePairsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Same partners as',
+        helper: 'Optional with assign:"pairwise". Names an earlier pairwise step; this step keeps exactly the same pairs/groups (same partner, next prompt).'
+      },
+      passAllowed: {
+        type: 'boolean', optional: true,
+        label: 'Allow passing',
+        helper: 'Adds a Pass button. A pass counts the same as a submission (the step can close), is excluded from results and AI input, and is never shown to the class.'
+      },
+      simultaneousReveal: {
+        type: 'boolean', optional: true,
+        label: 'Reveal all at once',
+        helper: 'Hide who has answered until the step closes — the projected counter shows numbers only, no names. The host moderation panel still sees submissions live.'
       },
       image: {
         type: 'string', optional: true,
@@ -577,6 +602,108 @@ export const PHASE_SCHEMAS = {
   },
 
   // -------------------------------------------------------------------
+  merge: {
+    label: 'Merge Answers',
+    icon: '🧩',
+    description: 'Group members see each other\'s answers and write one shared answer together.',
+    role: 'input',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'timer', 'participantSelector', 'loops'],
+    fields: {
+      seedFrom: {
+        type: 'dataRef',
+        accepts: [{ type: 'array', capability: 'responseArray' }],
+        required: true,
+        label: 'Answers to merge',
+        helper: 'Where each group\'s starting answers come from — a collect step ("solo.responses") or an earlier merge ("pairs.merged").'
+      },
+      instruction: {
+        type: 'templateString', optional: true,
+        default: 'Combine your answers into one stronger answer.',
+        label: 'Merge instruction',
+        helper: 'Shown above the shared text box.'
+      },
+      groupSize: {
+        type: 'enum', values: [2, 4], optional: true, default: 2,
+        label: 'Group size',
+        helper: '2 = pairs merge their own answers (odd class forms one group of three). 4 = pairs of pairs — requires "Answers to merge" pointing at an earlier merge step.'
+      },
+      agreeMode: {
+        type: 'enum', values: ['both', 'any', 'timer'], optional: true, default: 'both',
+        label: 'How a group submits',
+        helper: '"both": every member taps Agree (editing resets agreement). "any": one member can submit for the group. "timer": only the timer or the teacher closes the step.'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        merged: {
+          type: 'array',
+          capability: 'responseArray',
+          renderers: { list: 'responseList', count: 'arrayCount', json: 'jsonPretty' }
+        }
+      }
+    },
+    ui: {
+      hostToggles: ['instruction', 'counter', 'timer', 'closeButton'],
+      playerToggles: ['instruction', 'seeds', 'draft', 'agreeButton', 'timer']
+    }
+  },
+
+  // -------------------------------------------------------------------
+  'one-voice': {
+    label: 'One Voice',
+    icon: '📣',
+    description: 'The class counts to a target together. Anyone may say the next number — but two voices at once resets the count to zero. No winners; the class makes it or laughs and tries again.',
+    role: 'input',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'participantSelector', 'loops'],
+    fields: {
+      target: {
+        type: 'integer', min: 2, max: 200, optional: true, default: 20,
+        label: 'Count to',
+        helper: 'The number the class is trying to reach together.'
+      },
+      collisionWindowMs: {
+        type: 'integer', min: 100, max: 1500, optional: true, default: 400,
+        label: 'Collision window (ms)',
+        helper: 'Two taps inside this window count as "two voices at once" and reset the count. Lower = stricter. Below 100ms is physically unwinnable.'
+      },
+      mode: {
+        type: 'enum', values: ['tap'], optional: true, default: 'tap',
+        label: 'Mode',
+        helper: 'v1 is tap mode (each successful tap is spoken aloud through the teacher\'s speakers). Voice mode is staged for a future version.'
+      },
+      maxAttempts: {
+        type: 'integer', min: 1, max: 100, optional: true,
+        label: 'Attempt cap (optional)',
+        helper: 'Optional soft cap. After this many attempts the step ends with the story so far. Leave empty for unlimited — the teacher can always move on manually.'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        success:  { type: 'boolean' },
+        attempts: { type: 'integer' },
+        resets:   { type: 'integer' },
+        bestRun:  { type: 'integer' },
+        target:   { type: 'integer' },
+        finalCount: { type: 'integer' }
+      }
+    },
+    ui: {
+      hostToggles: ['count', 'attempt', 'bestRun', 'continueButton'],
+      playerToggles: ['button', 'status']
+    }
+  },
+
+  // -------------------------------------------------------------------
   reveal: {
     label: 'Show Result',
     icon: '🎭',
@@ -591,6 +718,16 @@ export const PHASE_SCHEMAS = {
         placeholder: '# The class said:\n\n{{ask.responses.list}}'
       },
       content: { type: 'string', optional: true, label: 'Static content' },
+      scope: {
+        type: 'enum', values: ['all', 'pair'], optional: true, default: 'all',
+        label: 'Who sees what',
+        helper: '"all" shows the same content to everyone. "pair" shows each pair only their own two answers (requires pairsFrom pointing at a collect step with assign:"pairwise"). Use {{_pair.answers}} in the template.'
+      },
+      pairsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Pairs from',
+        helper: 'Required when scope:"pair". The collect step with assign:"pairwise" whose pairing and answers this reveal shows per-pair.'
+      },
       image: {
         type: 'string', optional: true,
         label: 'Image (optional)',

@@ -1421,9 +1421,12 @@ ${responseList}`;
         if (spec.maxItems != null) bits.push(`maxItems: ${spec.maxItems}`);
         return `    - ${name} (${bits.join(', ')}): ${spec.helper || spec.label || ''}`.trim();
       }).join('\n');
+      const feelLine = Array.isArray(r.feel) && r.feel.length
+        ? `Feels like: ${r.feel.join(', ')}\n`
+        : '';
       return `## ${r.name} (id: "${r.id}")
 ${r.description}
-${r.tagline ? '*' + r.tagline + '*\n' : ''}
+${r.tagline ? '*' + r.tagline + '*\n' : ''}${feelLine}
 Parameters:
 ${params || '    (none)'}`;
     }).join('\n\n---\n\n');
