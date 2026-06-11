@@ -28,6 +28,44 @@ export async function initDb() {
       count  INTEGER NOT NULL DEFAULT 0
     )
   `;
+  await getSql()`
+    CREATE TABLE IF NOT EXISTS room_snapshots (
+      code        TEXT        PRIMARY KEY,
+      game_id     TEXT        NOT NULL,
+      snapshot    JSONB       NOT NULL,
+      updated_at  TIMESTAMPTZ DEFAULT now()
+    )
+  `;
+}
+
+// --- Room snapshots (survive restarts mid-game; see engine/room-snapshot.js) ---
+
+export async function saveRoomSnapshot(code, gameId, snapshot) {
+  const json = JSON.stringify(snapshot);
+  await getSql()`
+    INSERT INTO room_snapshots (code, game_id, snapshot, updated_at)
+    VALUES (${code}, ${gameId}, ${json}::jsonb, now())
+    ON CONFLICT (code) DO UPDATE SET
+      game_id    = EXCLUDED.game_id,
+      snapshot   = EXCLUDED.snapshot,
+      updated_at = now()
+  `;
+}
+
+export async function getRoomSnapshot(code) {
+  const rows = await getSql()`SELECT snapshot FROM room_snapshots WHERE code = ${code}`;
+  return rows[0] ? rows[0].snapshot : null;
+}
+
+export async function deleteRoomSnapshot(code) {
+  await getSql()`DELETE FROM room_snapshots WHERE code = ${code}`;
+}
+
+export async function sweepRoomSnapshots(maxAgeHours) {
+  await getSql()`
+    DELETE FROM room_snapshots
+    WHERE updated_at < now() - make_interval(hours => ${maxAgeHours})
+  `;
 }
 
 // --- AI budget day counter (cost guard; see services/ai-budget.js) ---

@@ -307,6 +307,28 @@ function applyTemplate(section, templateText) {
 // Fetch available games on connect
 socket.emit('get-games');
 
+// --- Host recovery: F5 / browser crash / server restart ---
+// If this tab (session) was hosting a room, rebind to it instead of showing
+// the create-room screen. The server holds rooms through a host-disconnect
+// grace window and can resurrect them from snapshots after a restart.
+socket.on('connect', () => {
+  try {
+    // ?game= / prototype launches always want a FRESH room (the editor's
+    // Prototype button, sim harnesses) — never rebind those to an old one.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('game') || params.get('prototype')) return;
+    const saved = JSON.parse(sessionStorage.getItem('lanyardHostSession') || 'null');
+    if (saved && saved.code && saved.hostToken) {
+      socket.emit('host-rejoin', { code: saved.code, hostToken: saved.hostToken });
+    }
+  } catch (e) { /* storage unavailable */ }
+});
+
+socket.on('host-rejoin-error', () => {
+  // Room is genuinely gone — forget it and stay on the normal create screen.
+  try { sessionStorage.removeItem('lanyardHostSession'); } catch (e) { /* ignore */ }
+});
+
 socket.on('games-list', ({ games }) => {
   gameSelect.innerHTML = '';
   if (games.length === 0) {
@@ -403,6 +425,8 @@ wagerCloseBtn.addEventListener('click', () => {
 });
 
 playAgainBtn.addEventListener('click', () => {
+  // Don't rebind to the finished room after the reload — start fresh.
+  try { sessionStorage.removeItem('lanyardHostSession'); } catch (e) { /* ignore */ }
   location.reload();
 });
 
@@ -451,12 +475,23 @@ window.addEventListener('message', (e) => {
   if (currentRoomCode) socket.emit('advance-phase', { code: currentRoomCode });
 });
 
-socket.on('room-created', ({ code, game, theme, teacherPin }) => {
+socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored }) => {
   currentRoomCode = code;
   currentTeacherPin = teacherPin || null;
   roomCodeDisplay.textContent = code;
   gameNameDisplay.textContent = game || '';
   teacherViewInfo.hidden = true; // PIN stays hidden until deliberately revealed
+
+  // Remember this room so an F5 (or a server restart) can rebind instead of
+  // killing the game for the whole class.
+  if (hostToken) {
+    try {
+      sessionStorage.setItem('lanyardHostSession', JSON.stringify({ code, hostToken }));
+    } catch (e) { /* storage unavailable */ }
+  }
+  if (restored) {
+    console.log('[host] Rebound to room ' + code);
+  }
 
   // Apply game theme
   if (theme && window.applyGameTheme) {

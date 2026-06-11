@@ -24,6 +24,11 @@ export class RoomManager {
     return this.rooms.get(code);
   }
 
+  /** Adopt an externally-built room (snapshot restore) under its old code. */
+  adopt(room) {
+    this.rooms.set(room.code, room);
+  }
+
   delete(code) {
     this.rooms.delete(code);
   }

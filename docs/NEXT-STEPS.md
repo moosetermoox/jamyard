@@ -3,14 +3,32 @@
 Living roadmap. When a session starts with "what should we work on?", start here.
 History lives in [CHANGELOG.md](CHANGELOG.md); parked ideas in [DEFERRED-IDEAS.md](DEFERRED-IDEAS.md).
 
-## Now (highest value, ready to start)
+## Now — the pre-August plan (classroom tests start August 2026)
 
-1. **Field-test in a real classroom.** Everything below is guesswork until students
-   touch it. Most games are sim-tested but not human-tested. The teacher console,
-   Connection Pack, Simple view, and juice pack all shipped recently and have never
-   met a real class. Capture what confuses kids, what stalls, what the teacher
-   reaches for and can't find. `scripts/demo-room.js` makes phone-in-hand testing
-   easy meanwhile.
+Filter every priority through: *what will matter in the first week of real use?*
+Explicitly NOT doing: more phase types/features until August feedback.
+
+- **A. Survive a real class period** ← IN PROGRESS
+  - Room-state persistence: snapshot engine state to Neon on phase transitions;
+    a restarted/slept server resurrects the room when host+players reconnect
+    (semantic: resume at the START of the interrupted phase — mid-phase
+    progress in that one phase is lost, the game is not)
+  - Deploy-on-green (CI triggers the Render deploy; red suite can't ship)
+  - Uptime: paid tier or external ping so the server doesn't sleep mid-day
+- **B. Chaos simulator** — 30+ bot clients that drop, reconnect mid-phase,
+  double-tap, replay stale events, rejoin with dead tokens — against every
+  phase type. The reconnect paths are the thinnest code in the project.
+- **C. Day-one kit** — pick the 3-5 games August actually starts with
+  (likely One Voice/Closer, Quiz Show, Lightning Round), polish those deeply
+  (phone screens, timings, prompts), + anonymous mode, + a one-page
+  "if X goes wrong, do Y" teacher cheat sheet.
+- **D. Proxy playtests (July)** — family/colleagues on real phones; two
+  adults find what no sim can.
+- **E. If time remains** — accessibility basics (contrast, touch targets,
+  keyboard nav); AI-generation eval loop (20 realistic prompts → robot
+  playtest all → fix generator weaknesses in batch).
+
+1. **Field-test in a real classroom** — August 2026. Everything above serves this.
 
 ## Next
 

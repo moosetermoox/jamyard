@@ -102,6 +102,10 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'host-rejoin': {
+    code: 'string:required',
+    hostToken: 'string:required'
+  },
   'buzz-tap': {
     code: 'string:required',
     phaseInstanceId: 'number:optional'

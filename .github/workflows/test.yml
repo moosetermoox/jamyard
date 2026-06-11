@@ -1,6 +1,12 @@
-# Run the test suite on every push and PR. Render auto-deploys master on
-# push, so this is the only automated gate between a red suite and a live
-# classroom — check the badge/Actions tab before relying on a fresh deploy.
+# Test on every push/PR; deploy to Render ONLY when the suite is green.
+#
+# Deploy-on-green setup (one-time, manual):
+#   1. Render dashboard → your service → Settings → Auto-Deploy: OFF
+#   2. Same page → copy the "Deploy Hook" URL
+#   3. GitHub repo → Settings → Secrets and variables → Actions →
+#      new secret RENDER_DEPLOY_HOOK = that URL
+# Until the secret exists, the deploy step skips harmlessly (and Render's
+# auto-deploy keeps working if you leave it on).
 name: tests
 
 on:
@@ -20,3 +26,19 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render deploy (skips unless RENDER_DEPLOY_HOOK secret is set)
+        env:
+          HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "RENDER_DEPLOY_HOOK not configured — skipping (Render auto-deploy handles it)"
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Deploy triggered after green tests ✓"

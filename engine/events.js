@@ -125,6 +125,10 @@ export const EVENTS = {
   ONE_VOICE_SUCCESS:    'one-voice-success',   // server -> all: we made it
   CLOSE_ONE_VOICE:      'close-one-voice',     // host -> server: store stats + move on
 
+  // --- Host rejoin (host F5 / server restart recovery) ---
+  HOST_REJOIN:          'host-rejoin',         // host -> server: rebind via code + hostToken
+  HOST_REJOIN_ERROR:    'host-rejoin-error',   // server -> host: room gone / bad token
+
   // --- Buzz Phase (first-tap-wins buzzer rounds) ---
   BUZZ_START:           'buzz-start',          // server -> all: prompt, points, question #
   BUZZ_TAP:             'buzz-tap',            // player -> server: I buzz in!

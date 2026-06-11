@@ -102,7 +102,8 @@ Framework for quickly building classroom games where:
 - **Friendly tokens everywhere** — teachers never see raw `{{ref}}` syntax: Simple view renders tokens as chips inside token-aware text boxes; Advanced primary textareas + screen-control/sidebar template fields tokenize to `[label — step N]` via `buildTemplateVariables` (labels are step-unique — duplicate labels used to let detokenize rewire refs to the wrong step); `phaseContentLabel` strips tokens from step-reference sentences. Validator rule `SPECIAL_SCOPE_OUT_OF_CONTEXT` warns when `_current`/`_foreach`/`_candidates`/`_pair` appear where they can't resolve (would render raw to students).
 - **AI cost guards** — every real Anthropic call passes through `AIService._callClaude`, gated by `services/ai-budget.js`: per-minute throttle (`AI_CALLS_PER_MINUTE`, default 20) + daily cap (`AI_DAILY_CAP`, default 500; 0 disables). Day counter persists in Neon `ai_usage` table — restarts/redeploys can't reset it. Blocked calls throw `AiBudgetError` (429, friendly message) before reaching the API. Editor endpoints return 429; in-game AI failures hit the phase-error pause. `GET /api/ai-budget` shows today's usage.
 - **Branching votes** — `vote.nextByWinner` maps a literal option's text to the phase the game goes to when it wins (CYOA storytelling); winner not in the map falls back to `next`; tie-breaks are deterministic (alphabetical). Vote phases also accept teacher-typed literal `candidates` arrays now (the editor has per-option "If this wins →" dropdowns). Found+fixed two latent crashes: late "Close Voting" after all-votes-in auto-advance crashed the server (now `kind`-guarded + idempotent), and the universal sim's vote support never worked (wrong event names).
-- **712 tests passing** (`npm test`)
+- **Room snapshots — games survive server restarts** (`engine/room-snapshot.js` + `room_snapshots` Neon table): every phase transition snapshots the room (engine position, phaseData, players+tokens, scores, kicked tokens); a restarted/slept server lazily resurrects the room when the host (`hostToken` in sessionStorage → `host-rejoin`) or a player (existing token rebind) returns. Semantic: resume at the START of the interrupted phase. Mid-foreach restores re-enter the foreach parent fresh. Host disconnect now holds the room 5 min for rejoin (was: instant deletion — a host F5 used to kill the game for the whole class). Snapshots TTL-swept at 6h; `_sim-tmp-` rooms never persisted. Verified by `scripts/simulate-restart.js` (plays → SIGKILLs the server → restarts → host+player rejoin → asserts roster/phase/PIN survived + wrong hostToken rejected).
+- **716 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for phone testing and screenshot harnesses)
 
@@ -282,6 +283,7 @@ Framework for quickly building classroom games where:
 - `engine/phase-handlers/one-voice.js` — one-voice phase (exports pure `adjudicateTap` with injected clock — unit-test timing rules there, not over sockets)
 - `engine/phase-handlers/buzz.js` — buzz phase (exports pure `createBuzzState`/`applyBuzz`/`applyJudge`/`applyNextQuestion` — the buzzer referee)
 - `engine/phases/estimate-scoring.js` — pure closeness scoring (`scoreEstimates` closest/graduated modes — rank-based so scale-free — + `estimateStats`)
+- `engine/room-snapshot.js` — `serializeRoom`/`restoreRoom` (restart survival; JSON-safe, resume-at-phase-start)
 - `scripts/sim-harness.js` — shared multi-client simulation primitives (all simulate-*.js scripts build on it)
 - `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 12 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
 
@@ -296,8 +298,9 @@ Framework for quickly building classroom games where:
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 712 Vitest tests (~1.5s)
-- **CI**: `.github/workflows/test.yml` runs the suite on every push/PR to master. Render still deploys on push regardless — check the Actions tab before trusting a fresh deploy.
+- `npm test` — runs all 716 Vitest tests (~1.5s)
+- **CI**: `.github/workflows/test.yml` runs the suite on every push/PR; with the `RENDER_DEPLOY_HOOK` secret set (and Render auto-deploy OFF), deploys only happen on green
+- `node scripts/simulate-restart.js` — restart-survival proof (spawns its own server, kills it mid-game, restores; needs DATABASE_URL)
 - `node scripts/simulate-any-game.js <game-id>` — universal automated playthrough (requires server running)
 - `node scripts/simulate-closer.js` / `simulate-snowball.js` / `simulate-one-voice.js` — Connection Pack invariant sims (pass anonymity, pair privacy, draft sync, tap timing)
 - New shipped games must be added to the snapshot map in `tests/engine/validator-diagnostics.test.js` (it fails loudly on unknown games)

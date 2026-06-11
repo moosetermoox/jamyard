@@ -38,8 +38,13 @@ import {
   deleteUserGame,
   userGameExists,
   getAiUsage,
-  saveAiUsage
+  saveAiUsage,
+  saveRoomSnapshot,
+  getRoomSnapshot,
+  deleteRoomSnapshot,
+  sweepRoomSnapshots
 } from './db.js';
+import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
@@ -1094,6 +1099,74 @@ const phaseServices = {
   advanceForeach: (code, room, id) => advanceForeach(code, room, id)
 };
 
+// --- Room snapshots: survive a server restart/sleep mid-game -------------
+// Snapshot on every phase transition + roster change; restore lazily when a
+// host or player tries to rejoin a room the (restarted) server doesn't know.
+// See engine/room-snapshot.js for the resume-at-phase-start semantic.
+
+const SNAPSHOT_DEBOUNCE_MS = 300;
+const ROOM_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000; // stale rooms aren't worth resurrecting
+const HOST_GRACE_MS = 5 * 60 * 1000;             // host F5/crash: hold the room, don't kill it
+
+const pendingSnapshots = new Map(); // code → debounce timer
+
+function persistRoom(code, room) {
+  if (!DB_ENABLED || !room || room.simulated) return;
+  if (pendingSnapshots.has(code)) return; // a write is already queued
+  pendingSnapshots.set(code, setTimeout(async () => {
+    pendingSnapshots.delete(code);
+    try {
+      const live = roomManager.find(code);
+      if (!live) return;
+      const snap = serializeRoom(live);
+      if (snap) await saveRoomSnapshot(code, live.gameId, snap);
+    } catch (e) {
+      console.warn(`[snapshot] save failed for ${code} (continuing): ${e.message}`);
+    }
+  }, SNAPSHOT_DEBOUNCE_MS));
+}
+
+function discardRoomSnapshot(code) {
+  if (!DB_ENABLED) return;
+  const t = pendingSnapshots.get(code);
+  if (t) { clearTimeout(t); pendingSnapshots.delete(code); }
+  deleteRoomSnapshot(code).catch(e =>
+    console.warn(`[snapshot] delete failed for ${code} (continuing): ${e.message}`));
+}
+
+const restoreInFlight = new Map(); // code → Promise (dedupe concurrent rejoiners)
+
+async function tryRestoreRoom(code) {
+  if (!DB_ENABLED) return null;
+  const live = roomManager.find(code);
+  if (live) return live;
+  if (restoreInFlight.has(code)) return restoreInFlight.get(code);
+
+  const p = (async () => {
+    try {
+      const snap = await getRoomSnapshot(code);
+      if (!snap) return null;
+      if (Date.now() - (snap.savedAt || 0) > ROOM_SNAPSHOT_TTL_MS) {
+        discardRoomSnapshot(code);
+        return null;
+      }
+      const config = await loadGameById(snap.gameId);
+      const hooks = await loadHooks(snap.gameId);
+      const room = restoreRoom(snap, config, hooks);
+      roomManager.adopt(room);
+      console.log(`[restore] Room ${code} restored at phase '${room.engine.getCurrentPhase().id}' (${(snap.players || []).length} player(s))`);
+      return room;
+    } catch (e) {
+      console.warn(`[restore] Failed for ${code}: ${e.message}`);
+      return null;
+    } finally {
+      restoreInFlight.delete(code);
+    }
+  })();
+  restoreInFlight.set(code, p);
+  return p;
+}
+
 async function handlePhase(code, room) {
   const engine = room.engine;
   const phase = engine.getCurrentPhase();
@@ -1108,6 +1181,14 @@ async function handlePhase(code, room) {
   room.phaseState = {};
   room.phaseInstanceId = (room.phaseInstanceId || 0) + 1;
   recordEvent(room, 'phase-enter', { phaseType: phase.type });
+
+  // Survive restarts: snapshot at every transition (a restored room resumes
+  // at the START of the current phase). A finished game has nothing to restore.
+  if (phase.type === 'end') {
+    discardRoomSnapshot(code);
+  } else {
+    persistRoom(code, room);
+  }
 
   // Keep teacher consoles oriented: which step is running decides which
   // controls the console shows (close submissions vs next step vs approve).
@@ -1892,11 +1973,14 @@ io.on('connection', (socket) => {
       // typed once into /teacher on the teacher's phone/second device.
       room.teacherPin = generateTeacherPin();
       room.teacherSocketIds = new Set();
+      // Host rebind credential: lets the host screen recover from an F5 or
+      // a server restart (stored in the host page's sessionStorage).
+      room.hostToken = randomUUID();
 
       roomToHost.set(code, socket.id);
       socket.join(code);
       console.log(`[create-room] Room ${code} created by ${socket.id} (game: ${selectedGame})`);
-      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin });
+      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin, hostToken: room.hostToken });
     } catch (error) {
       console.log(`[create-room] Error loading game "${selectedGame}": ${error.message}`);
       socket.emit(EVENTS.CREATE_ROOM_ERROR, { message: error.message });
@@ -1932,12 +2016,13 @@ io.on('connection', (socket) => {
     socket.emit(EVENTS.TEACHER_JOINED, buildTeacherSnapshot(code, room));
   });
 
-  socket.on(EVENTS.JOIN_ROOM, (payload = {}) => {
+  socket.on(EVENTS.JOIN_ROOM, async (payload = {}) => {
     if (!checkEventPayload(socket, 'join-room', payload)) return;
     const { code, name, token } = payload;
     console.log(`[join-room] ${socket.id} trying to join ${code} as "${name}"`);
 
-    const room = roomManager.find(code);
+    // Unknown room? It may have died with a server restart — try the snapshot.
+    const room = roomManager.find(code) || await tryRestoreRoom(code);
     if (!room) {
       console.log(`[join-room] Room ${code} not found`);
       socket.emit(EVENTS.JOIN_ERROR, { message: 'Room not found' });
@@ -1976,8 +2061,13 @@ io.on('connection', (socket) => {
           });
         }
 
-        // Send current game state to reconnecting player
+        // Send current game state to reconnecting player. A restored room
+        // has no live phase screen yet — that returns when the host does.
         sendCurrentState(socket, code, room);
+        if (room.restored && !roomToHost.get(code)) {
+          socket.emit(EVENTS.WAITING, { message: 'Reconnecting the game — waiting for your teacher\'s screen…' });
+        }
+        persistRoom(code, room);
         return;
       }
 
@@ -1999,9 +2089,48 @@ io.on('connection', (socket) => {
           players: players.listPublic()
         });
       }
+      persistRoom(code, room);
     } catch (error) {
       console.log(`[join-room] Error: ${error.message}`);
       socket.emit(EVENTS.JOIN_ERROR, { message: error.message });
+    }
+  });
+
+  // Host rebind: the host screen recovering from an F5, a browser crash, or
+  // a full server restart (where the room is resurrected from its snapshot).
+  // Re-entering the current phase restarts it fresh — same resume-at-phase-
+  // start semantic as a restore; infinitely better than the old behavior
+  // (host refresh = room deleted, class kicked out).
+  socket.on(EVENTS.HOST_REJOIN, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'host-rejoin', payload)) return;
+    const { code, hostToken } = payload;
+    const room = roomManager.find(code) || await tryRestoreRoom(code);
+    if (!room || !room.hostToken || room.hostToken !== hostToken) {
+      socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'That game is no longer running.' });
+      return;
+    }
+
+    if (room.hostGraceTimer) { clearTimeout(room.hostGraceTimer); room.hostGraceTimer = null; }
+    room.hostDisconnectedAt = null;
+    roomToHost.set(code, socket.id);
+    socket.join(code);
+    recordEvent(room, 'host-rejoined');
+
+    const config = room.engine.config;
+    socket.emit(EVENTS.ROOM_CREATED, {
+      code,
+      game: config.name,
+      theme: config.theme || null,
+      teacherPin: room.teacherPin,
+      hostToken: room.hostToken,
+      restored: true
+    });
+    socket.emit(EVENTS.PLAYER_JOINED, { players: room.engine.players.listPublic() });
+
+    const phase = room.engine.getCurrentPhase();
+    console.log(`[host-rejoin] Host rebound to ${code} at '${phase.id}'${room.restored ? ' (restored from snapshot)' : ''}`);
+    if (phase && phase.type !== 'lobby') {
+      await handlePhase(code, room);
     }
   });
 
@@ -3022,10 +3151,31 @@ io.on('connection', (socket) => {
 
     for (const [roomCode, hostId] of roomToHost) {
       if (hostId === socket.id) {
-        console.log(`[disconnect] Host left, deleting room ${roomCode}`);
-        roomManager.delete(roomCode);
         roomToHost.delete(roomCode);
-        io.to(roomCode).emit(EVENTS.ROOM_CLOSED);
+        const room = roomManager.find(roomCode);
+        if (!room) continue;
+
+        // Robot-playtest rooms die with their host immediately (old behavior).
+        if (room.simulated) {
+          roomManager.delete(roomCode);
+          io.to(roomCode).emit(EVENTS.ROOM_CLOSED);
+          continue;
+        }
+
+        // A real host disconnect is usually an F5, a flaky projector laptop,
+        // or a server hiccup — hold the room so host-rejoin can rebind.
+        // Only if nobody comes back within the grace window does the room close.
+        console.log(`[disconnect] Host left ${roomCode} — holding the room ${HOST_GRACE_MS / 60000} min for rejoin`);
+        room.hostDisconnectedAt = Date.now();
+        room.hostGraceTimer = setTimeout(() => {
+          const still = roomManager.find(roomCode);
+          if (!still || roomToHost.has(roomCode)) return; // host came back
+          console.log(`[disconnect] Host never returned to ${roomCode} — closing room`);
+          roomManager.delete(roomCode);
+          io.to(roomCode).emit(EVENTS.ROOM_CLOSED);
+          // The snapshot stays (until its TTL): a teacher whose laptop died
+          // can still resurrect the game by reopening the host screen.
+        }, HOST_GRACE_MS);
       }
     }
   });
@@ -3040,6 +3190,14 @@ async function startup() {
     console.log('[init] Database ready.');
     await migrateFilesystemGames();
   }
+}
+
+// Hourly: drop room snapshots too old to be worth resurrecting.
+if (DB_ENABLED) {
+  setInterval(() => {
+    sweepRoomSnapshots(ROOM_SNAPSHOT_TTL_MS / 3600000).catch(e =>
+      console.warn(`[snapshot] sweep failed (continuing): ${e.message}`));
+  }, 60 * 60 * 1000);
 }
 
 // A stray unawaited promise must not kill every classroom on this server.
