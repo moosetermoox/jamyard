@@ -411,12 +411,31 @@ submitBtn.addEventListener('click', () => {
   showSection(submittedSection);
 });
 
-// Server rejected the submission (filtered or invalid). Bring the student back
-// to the question with their text intact so they can revise.
+// Server rejected a submission (filtered or invalid). The notice lands on
+// whichever input the student is actually using — merge drafts and relay
+// turns get rejected too, not just collect answers.
 socket.on('response-rejected', ({ message }) => {
+  var notice = message || 'That response wasn’t accepted. Please try again.';
+  var active = document.querySelector('section.active');
+
+  if (active && active.id === 'merge-section') {
+    // Stay in the shared-draft editor; the offending text is still local
+    // (the server never stored or broadcast it).
+    setMergeStatus(notice);
+    return;
+  }
+  if (active && active.id === 'relay-section') {
+    // Their turn is still open — revise and resubmit.
+    relayInputSection.hidden = false;
+    relaySubmitBtn.disabled = false;
+    relayStatus.textContent = notice;
+    return;
+  }
+
+  // Default: collect — back to the question with their text intact.
   showSection(collectSection);
   submitBtn.disabled = false;
-  showResponseNotice(message || 'That response wasn’t accepted. Please try again.');
+  showResponseNotice(notice);
 });
 
 // --- Socket events - Join ---

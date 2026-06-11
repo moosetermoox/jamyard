@@ -48,7 +48,7 @@ registerHandler('reveal-one', {
 
     const roMessage = phase.message ? ctx.resolveTemplate(phase.message) : 'Reveal Time!';
 
-    room.phaseState = { phaseId: phase.id, items, revealed: 0, message: roMessage };
+    room.phaseState = { kind: 'reveal-one', phaseId: phase.id, items, revealed: 0, message: roMessage };
     engine.storePhaseData(phase.id, { items, revealed: 0 });
     const sc = ctx.resolveScreenControl();
 

@@ -227,6 +227,7 @@ registerHandler('turn', {
     }
 
     room.phaseState = {
+      kind: 'turn',
       phaseId: phase.id,
       pool: shuffle(items),
       itemCount: items.length,

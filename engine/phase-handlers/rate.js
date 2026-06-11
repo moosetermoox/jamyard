@@ -41,6 +41,7 @@ registerHandler('rate', {
     const visibility = phase.visibility || 'all';
 
     room.phaseState = {
+      kind: 'rate',
       phaseId: phase.id,
       scales,
       visibility,

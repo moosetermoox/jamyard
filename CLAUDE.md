@@ -227,7 +227,8 @@ Framework for quickly building classroom games where:
 - **Mock mode** — returns plausible issues (empty instructions, missing timers) for testing without API key
 
 ### Safety Features (Implemented)
-- **Content filtering** — `engine/content-filter.js` + `engine/blocklist.js`; word-boundary match with leet-speak normalization; rejects on `submit-response` with player-facing notice
+- **Content filtering** — `engine/content-filter.js` + `engine/blocklist.js`; word-boundary match with leet-speak normalization; rejects on `submit-response`, `merge-draft`, AND `relay-submit` with a player-facing notice (the notice lands on whichever input the student is using — merge/relay rejections keep them in place to revise)
+- **Crash isolation** — every socket handler runs inside a try/catch wrapper (one bad room can't kill the process / every other classroom); `process.on('unhandledRejection')` logs instead of crashing; all close/* handlers and submit handlers kind-guard `room.phaseState` (`kind` field on every stateful phase) and the closers are idempotent — the all-inputs-in auto-advance racing a late host click used to crash the server
 - **Host moderation** — `engine/moderation.js`; live submission list on collect phases; Hide (reversible, excluded from AI) and Kick (blocked rejoin via `kickedTokens`)
 - **AI safety rules** — `SAFETY_RULES` block appended to every game-run system prompt
 
@@ -296,6 +297,7 @@ Framework for quickly building classroom games where:
 
 ### Testing
 - `npm test` — runs all 712 Vitest tests (~1.5s)
+- **CI**: `.github/workflows/test.yml` runs the suite on every push/PR to master. Render still deploys on push regardless — check the Actions tab before trusting a fresh deploy.
 - `node scripts/simulate-any-game.js <game-id>` — universal automated playthrough (requires server running)
 - `node scripts/simulate-closer.js` / `simulate-snowball.js` / `simulate-one-voice.js` — Connection Pack invariant sims (pass anonymity, pair privacy, draft sync, tap timing)
 - New shipped games must be added to the snapshot map in `tests/engine/validator-diagnostics.test.js` (it fails loudly on unknown games)

@@ -22,6 +22,7 @@ registerHandler('wager', {
     const wgEligibleIds = new Set(wgEligible.map(p => p.id));
 
     room.phaseState = {
+      kind: 'wager',
       phaseId: phase.id, options: wgOptions, scores: { ...wgScores },
       wagers: {}, eligibleIds: wgEligibleIds, completed: new Set(),
       minBet: phase.minBet || 1,

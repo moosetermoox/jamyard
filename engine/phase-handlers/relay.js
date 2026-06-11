@@ -18,6 +18,7 @@ registerHandler('relay', {
     const resolvedPrompt = phase.prompt ? ctx.resolveTemplate(phase.prompt) : '';
 
     room.phaseState = {
+      kind: 'relay',
       phaseId: phase.id, turnOrder, currentTurnIndex: 0,
       sharedResult: [], sc, prompt: resolvedPrompt,
       timer: phase.timer || null,

@@ -338,7 +338,10 @@ function resolveScreenControl(phase, engine) {
 
 async function closeRanking(code, room) {
   const rs = room.phaseState;
-  if (!rs || !rs.phaseId) return;
+  // kind guard + idempotence: the all-ranked auto-close can race a late
+  // host click, which would run this against the NEXT phase's state.
+  if (!rs || rs.kind !== 'rank' || rs.closed) return;
+  rs.closed = true;
   if (rs.timer) { clearTimeout(rs.timer); rs.timer = null; }
 
   const engine = room.engine;
@@ -547,7 +550,9 @@ async function closeEstimates(code, room) {
 
 async function closeRating(code, room) {
   const rs = room.phaseState;
-  if (!rs || !rs.phaseId || !rs.scales) return;
+  // kind guard + idempotence (see closeRanking)
+  if (!rs || rs.kind !== 'rate' || rs.closed || !rs.scales) return;
+  rs.closed = true;
   if (rs.timer) { clearTimeout(rs.timer); rs.timer = null; }
 
   const engine = room.engine;
@@ -592,7 +597,10 @@ async function closeRating(code, room) {
 
 async function closeWager(code, room) {
   const ws = room.phaseState;
-  if (!ws || !ws.phaseId) return;
+  // kind guard + idempotence (see closeRanking). Note: `closed` only gates
+  // the close itself — host resolution (resolveWager) still runs after.
+  if (!ws || ws.kind !== 'wager' || ws.closed) return;
+  ws.closed = true;
   if (ws.timer) { clearTimeout(ws.timer); ws.timer = null; }
 
   // If correctOption is set, auto-resolve
@@ -614,7 +622,10 @@ async function closeWager(code, room) {
 
 async function resolveWager(code, room, winningOption) {
   const ws = room.phaseState;
-  if (!ws || !ws.phaseId) return;
+  // kind guard + idempotence: a double "resolve" click (or one racing the
+  // phase advance) must not pay out twice or run against the next phase.
+  if (!ws || ws.kind !== 'wager' || ws.resolved) return;
+  ws.resolved = true;
 
   const engine = room.engine;
   const phase = engine.config.phases[ws.phaseId];
@@ -1824,6 +1835,20 @@ app.delete('/api/games/:gameId', async (req, res) => {
 io.on('connection', (socket) => {
   console.log(`[connect] Socket ${socket.id} connected`);
 
+  // Safety net: a throwing event handler must never kill the process — that
+  // would end EVERY classroom on this server, not just the broken room.
+  // (This class of crash happened: a late "Close Voting" click used to take
+  // the whole server down.) Handlers stay responsible for their own
+  // user-facing error replies; this only prevents the crash and logs loudly.
+  const rawOn = socket.on.bind(socket);
+  socket.on = (event, handler) => rawOn(event, async (...args) => {
+    try {
+      await handler(...args);
+    } catch (err) {
+      console.error(`[socket:${String(event)}] Unhandled handler error (room kept alive):`, err);
+    }
+  });
+
   socket.on(EVENTS.GET_GAMES, async () => {
     try {
       const loaded = await listGames();
@@ -2392,7 +2417,7 @@ io.on('connection', (socket) => {
 
   socket.on(EVENTS.REVEAL_NEXT, async ({ code, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'reveal-one') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'reveal-next')) return;
 
     const state = room.phaseState;
@@ -2421,7 +2446,7 @@ io.on('connection', (socket) => {
     if (!checkEventPayload(socket, 'rank-submit', payload)) return;
     const { code, ranking, phaseInstanceId } = payload;
     const room = roomManager.find(code);
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'rank') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'rank-submit')) return;
     const rs = room.phaseState;
     if (!rs.eligibleIds.has(socket.id) || rs.completed.has(socket.id)) return;
@@ -2440,7 +2465,7 @@ io.on('connection', (socket) => {
 
   socket.on(EVENTS.CLOSE_RANKING, async ({ code, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'rank') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-ranking')) return;
     await closeRanking(code, room);
   });
@@ -2707,7 +2732,7 @@ io.on('connection', (socket) => {
     if (!checkEventPayload(socket, 'rate-submit', payload)) return;
     const { code, ratings, phaseInstanceId } = payload;
     const room = roomManager.find(code);
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'rate') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'rate-submit')) return;
     const rs = room.phaseState;
     if (!rs.scales) return;
@@ -2736,7 +2761,7 @@ io.on('connection', (socket) => {
 
   socket.on(EVENTS.CLOSE_RATING, async ({ code, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'rate') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-rating')) return;
     recordEvent(room, 'close-rating');
     await closeRating(code, room);
@@ -2748,7 +2773,7 @@ io.on('connection', (socket) => {
     if (!checkEventPayload(socket, 'wager-submit', payload)) return;
     const { code, option, amount, phaseInstanceId } = payload;
     const room = roomManager.find(code);
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'wager') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'wager-submit')) return;
     const ws = room.phaseState;
     if (!ws.eligibleIds.has(socket.id) || ws.completed.has(socket.id)) return;
@@ -2771,14 +2796,14 @@ io.on('connection', (socket) => {
 
   socket.on(EVENTS.CLOSE_WAGER, async ({ code, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'wager') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-wager')) return;
     await closeWager(code, room);
   });
 
   socket.on(EVENTS.WAGER_RESOLVE, async ({ code, winningOption, phaseInstanceId } = {}) => {
     const room = roomManager.find(code);
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'wager') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'wager-resolve')) return;
     await resolveWager(code, room, winningOption);
   });
@@ -2789,15 +2814,28 @@ io.on('connection', (socket) => {
     if (!checkEventPayload(socket, 'relay-submit', payload)) return;
     const { code, text, phaseInstanceId } = payload;
     const room = roomManager.find(code);
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'relay') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'relay-submit')) return;
     const rs = room.phaseState;
     if (rs.turnOrder[rs.currentTurnIndex] !== socket.id) return;
 
+    // Relay entries broadcast to the whole class (and the projector), so
+    // they pass the blocklist like collect responses do. Rejection keeps
+    // the player's turn open — they revise and resubmit.
+    const relayCheck = filterContent(text || '');
+    if (relayCheck.blocked) {
+      recordEvent(room, 'relay-rejected', { playerId: socket.id });
+      socket.emit(EVENTS.RESPONSE_REJECTED, {
+        reason: 'blocked',
+        message: 'That language isn\'t allowed here — try rephrasing.'
+      });
+      return;
+    }
+
     if (rs.turnTimer) { clearTimeout(rs.turnTimer); rs.turnTimer = null; }
 
     const player = room.engine.players.find(socket.id);
-    rs.sharedResult.push({ playerId: socket.id, name: player ? player.name : 'Unknown', text: text || '' });
+    rs.sharedResult.push({ playerId: socket.id, name: player ? player.name : 'Unknown', text: String(text || '').slice(0, 280) });
     rs.currentTurnIndex++;
 
     if (rs.currentTurnIndex >= rs.turnOrder.length) {
@@ -2821,6 +2859,7 @@ io.on('connection', (socket) => {
   // Timer and could be wired to a host UI button later.
   socket.on(EVENTS.RELAY_FINISH_ALL, async ({ code } = {}) => {
     const room = roomManager.find(code);
+    if (room && room.phaseState && room.phaseState.kind !== 'relay') return;
     if (!room || !room.phaseState) return;
     const rs = room.phaseState;
     const phase = room.engine && room.engine.config.phases[rs.phaseId];
@@ -3002,6 +3041,12 @@ async function startup() {
     await migrateFilesystemGames();
   }
 }
+
+// A stray unawaited promise must not kill every classroom on this server.
+// (Node's default since v15 is to crash the process on unhandled rejection.)
+process.on('unhandledRejection', (reason) => {
+  console.error('[unhandled-rejection] (process kept alive):', reason);
+});
 
 startup().then(() => {
   server.listen(PORT, () => {

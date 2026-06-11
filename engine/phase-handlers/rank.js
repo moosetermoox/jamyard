@@ -31,6 +31,7 @@ registerHandler('rank', {
 
     const rkEligibleIds = new Set(rkEligible.map(p => p.id));
     room.phaseState = {
+      kind: 'rank',
       phaseId: phase.id, candidates: rkItems,
       submissions: {}, eligibleIds: rkEligibleIds, completed: new Set(),
       cleanup() { if (this.timer) { clearTimeout(this.timer); this.timer = null; } }
