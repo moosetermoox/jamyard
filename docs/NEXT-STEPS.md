@@ -18,12 +18,9 @@ History lives in [CHANGELOG.md](CHANGELOG.md); parked ideas in [DEFERRED-IDEAS.m
    rate limiting / DoS limits (non-AI socket events; AI endpoints now guarded),
    PII redaction.
 3. **Editor odds and ends:**
-   - vote phase "own options" (same teacher-typed-list treatment rank got)
    - class-critique ships with an empty reveal template (flagged during game sweep)
-4. **New phase ideas** (from the 2026-06-10 ideation; buzz + estimate shipped):
-   - **Branching transitions** (`vote.nextByWinner`) — `next` can't depend on an
-     outcome today. Unlocks choose-your-own-adventure storytelling; also makes
-     recipes + the AI generator more expressive. The biggest structural gap.
+4. **New phase ideas** (from the 2026-06-10 ideation; buzz + estimate + branching
+   votes shipped):
    - **`match`** — pair two lists (vocab↔definitions, quotes↔authors), auto-scored,
      drag-to-connect (rank's drag infra reuses).
    - **`sort`** — drag items into named buckets (categorization: metaphor vs simile),
@@ -47,6 +44,10 @@ History lives in [CHANGELOG.md](CHANGELOG.md); parked ideas in [DEFERRED-IDEAS.m
    Biggest long-term win for AI-generated config reliability; ~a week of work.
 
 ## Recently done (context for "why isn't X on the list")
+
+- Branching votes (`vote.nextByWinner` + literal vote options + editor branch UI)
+  — Story Quest CYOA shipped; fixed latent close-voting crash + broken sim votes ✅
+- Buzz + estimate phases (25 types) + Lightning Round ✅
 
 - Recipe compiler conditionals R7 ($if/$value/$repeat/$map, transition rewiring,
   object params) + One Voice/Snowball/Closer recipe upgrades + Quiz Show shipped ✅

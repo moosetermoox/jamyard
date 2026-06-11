@@ -282,6 +282,12 @@ function buildStateMachineConfig(phases) {
     if (phase.approveNext) targets.push(phase.approveNext);
     if (phase.rejectNext) targets.push(phase.rejectNext);
     if (phase.loopBack) targets.push(phase.loopBack);
+    // Branching votes: every nextByWinner target is a legal transition
+    if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
+      for (const target of Object.values(phase.nextByWinner)) {
+        if (typeof target === 'string' && target) targets.push(target);
+      }
+    }
     transitions[name] = targets;
   }
 

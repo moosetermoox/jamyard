@@ -1784,9 +1784,137 @@ function renderPhaseConfig(phaseId) {
     addFieldWithHelp('Question', 'Shown above the voting choices', 'text', 'phase-question', phase.question, false, function (value) {
       phase.question = value;
     });
-    addDataRefDropdown('Candidates from', 'Where to get the list of choices', 'phase-candidates', phaseId, phase.candidates, function (value) {
-      phase.candidates = value;
-    });
+
+    var voteIsOwnList = Array.isArray(phase.candidates);
+    addSelectWithHelp('Choices come from', 'Pull the choices from an earlier step, or write your own fixed list (fixed lists can branch the game by winner)', 'phase-vote-source',
+      [
+        { value: 'step', label: 'An earlier step (answers, AI output)' },
+        { value: 'own', label: 'My own list — I\'ll type the options' }
+      ],
+      voteIsOwnList ? 'own' : 'step', function (value) {
+        isDirty = true;
+        if (value === 'own') {
+          phase.candidates = ['Option A', 'Option B'];
+        } else {
+          phase.candidates = '';
+          delete phase.nextByWinner; // branching needs a fixed list
+        }
+        renderPhaseConfig(phaseId);
+        renderCanvas();
+      });
+
+    if (voteIsOwnList) {
+      // Per-option row: text + optional "if this wins, go to" branch + remove.
+      var phaseOrderForBranch = buildPhaseOrder();
+      var voteOptsArr = phase.candidates;
+      for (var voi = 0; voi < voteOptsArr.length; voi++) {
+        (function (index) {
+          var optGroup = document.createElement('div');
+          optGroup.className = 'form-group vote-option-row';
+
+          var rowTop = document.createElement('div');
+          rowTop.style.display = 'flex';
+          rowTop.style.gap = '6px';
+
+          var optInput = document.createElement('input');
+          optInput.type = 'text';
+          optInput.value = voteOptsArr[index];
+          optInput.placeholder = 'Option ' + (index + 1);
+          optInput.style.flex = '1';
+          optInput.addEventListener('input', function () {
+            isDirty = true;
+            // Keep the branch map keyed by the option's current text
+            var oldText = phase.candidates[index];
+            phase.candidates[index] = optInput.value;
+            if (phase.nextByWinner && Object.prototype.hasOwnProperty.call(phase.nextByWinner, oldText)) {
+              phase.nextByWinner[optInput.value] = phase.nextByWinner[oldText];
+              delete phase.nextByWinner[oldText];
+            }
+          });
+
+          var removeBtn = document.createElement('button');
+          removeBtn.className = 'btn-icon';
+          removeBtn.textContent = '✖';
+          removeBtn.title = 'Remove option';
+          removeBtn.addEventListener('click', function () {
+            isDirty = true;
+            var removed = phase.candidates.splice(index, 1)[0];
+            if (phase.nextByWinner) {
+              delete phase.nextByWinner[removed];
+              if (Object.keys(phase.nextByWinner).length === 0) delete phase.nextByWinner;
+            }
+            renderPhaseConfig(phaseId);
+          });
+
+          rowTop.appendChild(optInput);
+          rowTop.appendChild(removeBtn);
+          optGroup.appendChild(rowTop);
+
+          // Branch select: where the game goes if this option wins
+          var branchRow = document.createElement('div');
+          branchRow.style.display = 'flex';
+          branchRow.style.alignItems = 'center';
+          branchRow.style.gap = '6px';
+          branchRow.style.marginTop = '4px';
+
+          var branchLabel = document.createElement('span');
+          branchLabel.className = 'field-help';
+          branchLabel.style.whiteSpace = 'nowrap';
+          branchLabel.textContent = 'If this wins →';
+          branchRow.appendChild(branchLabel);
+
+          var branchSel = document.createElement('select');
+          branchSel.style.flex = '1';
+          var defOpt = document.createElement('option');
+          defOpt.value = '';
+          defOpt.textContent = '(the normal next step)';
+          branchSel.appendChild(defOpt);
+          for (var bo = 0; bo < phaseOrderForBranch.length; bo++) {
+            var pid = phaseOrderForBranch[bo];
+            if (pid === phaseId) continue;
+            var o = document.createElement('option');
+            o.value = pid;
+            o.textContent = 'step ' + (bo + 1) + ' — ' + phaseRefLabel(pid, false);
+            branchSel.appendChild(o);
+          }
+          var curText = voteOptsArr[index];
+          branchSel.value = (phase.nextByWinner && phase.nextByWinner[curText]) || '';
+          branchSel.addEventListener('change', function () {
+            isDirty = true;
+            var optText = phase.candidates[index];
+            if (branchSel.value) {
+              if (!phase.nextByWinner) phase.nextByWinner = {};
+              phase.nextByWinner[optText] = branchSel.value;
+            } else if (phase.nextByWinner) {
+              delete phase.nextByWinner[optText];
+              if (Object.keys(phase.nextByWinner).length === 0) delete phase.nextByWinner;
+            }
+            renderCanvas();
+          });
+          branchRow.appendChild(branchSel);
+          optGroup.appendChild(branchRow);
+
+          phaseConfigForm.appendChild(optGroup);
+        })(voi);
+      }
+
+      var addVoteOptBtn = document.createElement('button');
+      addVoteOptBtn.className = 'btn-secondary';
+      addVoteOptBtn.textContent = '+ Add Option';
+      addVoteOptBtn.style.marginBottom = '12px';
+      addVoteOptBtn.addEventListener('click', function () {
+        isDirty = true;
+        if (!Array.isArray(phase.candidates)) phase.candidates = [];
+        phase.candidates.push('');
+        renderPhaseConfig(phaseId);
+      });
+      phaseConfigForm.appendChild(addVoteOptBtn);
+    } else {
+      addDataRefDropdown('Candidates from', 'Where to get the list of choices', 'phase-candidates', phaseId, phase.candidates, function (value) {
+        phase.candidates = value;
+      });
+    }
+
     addSelectWithHelp('Vote style', 'How choices are shown to players', 'phase-mode',
       [
         { value: 'pick-one', label: 'Pick one from a list' },
@@ -4427,6 +4555,16 @@ function deletePhase(phaseId) {
     if (gameConfig.phases[id].rejectNext === phaseId) {
       gameConfig.phases[id].rejectNext = nextId;
     }
+    // Branching votes: branch targets pointing at the deleted phase follow its next
+    var nbw = gameConfig.phases[id].nextByWinner;
+    if (nbw && typeof nbw === 'object') {
+      for (var nbwKey in nbw) {
+        if (nbw[nbwKey] === phaseId) {
+          if (nextId) { nbw[nbwKey] = nextId; } else { delete nbw[nbwKey]; }
+        }
+      }
+      if (Object.keys(nbw).length === 0) delete gameConfig.phases[id].nextByWinner;
+    }
     if (gameConfig.phases[id].loopBack === phaseId) {
       delete gameConfig.phases[id].loopBack;
       delete gameConfig.phases[id].loopCount;
@@ -4652,6 +4790,24 @@ function validateConfig() {
       }
     }
 
+    // Branching votes: literal options + branch targets
+    if (phase.type === 'vote') {
+      if (Array.isArray(phase.candidates)) {
+        var realOpts = phase.candidates.filter(function (c) { return typeof c === 'string' && c.trim().length > 0; });
+        if (realOpts.length < 2) {
+          errors.push(label + ': Needs at least 2 options to vote on.');
+        }
+      }
+      if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
+        for (var nbwOpt in phase.nextByWinner) {
+          var nbwTarget = phase.nextByWinner[nbwOpt];
+          if (!phases[nbwTarget]) {
+            errors.push(label + ': "If this wins" for option "' + nbwOpt + '" points to a step that does not exist.');
+          }
+        }
+      }
+    }
+
     // Loop validation
     if (phase.loopBack !== undefined && phase.loopBack !== null && phase.loopBack !== '') {
       if (!phases[phase.loopBack]) {
@@ -4731,6 +4887,12 @@ function validateConfig() {
         if (p.approveNext && !reachable[p.approveNext]) queue.push(p.approveNext);
         if (p.rejectNext && !reachable[p.rejectNext]) queue.push(p.rejectNext);
         if (p.loopBack && !reachable[p.loopBack]) queue.push(p.loopBack);
+        // Branching votes: nextByWinner targets are reachable too
+        if (p.nextByWinner && typeof p.nextByWinner === 'object') {
+          for (var nbw in p.nextByWinner) {
+            if (p.nextByWinner[nbw] && !reachable[p.nextByWinner[nbw]]) queue.push(p.nextByWinner[nbw]);
+          }
+        }
       }
     }
     for (var k = 0; k < phaseIds.length; k++) {

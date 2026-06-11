@@ -1776,10 +1776,11 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, sh
     showPickOneVote(candidates);
     if (timer) {
       startTimer(timer, voteTimerDisplay, () => {
-        // Auto-vote: pick a random candidate
+        // Auto-vote: pick a random candidate (string candidates ARE the choice)
         if (currentCandidates.length > 0) {
           const randomIdx = Math.floor(Math.random() * currentCandidates.length);
-          socket.emit('submit-vote', { code: currentRoomCode, choice: currentCandidates[randomIdx].playerId });
+          const c = currentCandidates[randomIdx];
+          socket.emit('submit-vote', { code: currentRoomCode, choice: typeof c === 'string' ? c : c.playerId });
         }
         showSection(voteSubmittedSection);
       });
@@ -1871,9 +1872,12 @@ function showPickOneVote(candidates) {
   for (const candidate of candidates) {
     const btn = document.createElement('button');
     btn.className = 'vote-btn';
-    btn.textContent = candidate.text || candidate.name || candidate.playerId;
+    // Literal option lists (branching votes) are plain strings — the string
+    // is both the label and the choice id.
+    const isString = typeof candidate === 'string';
+    btn.textContent = isString ? candidate : (candidate.text || candidate.name || candidate.playerId);
     btn.addEventListener('click', () => {
-      socket.emit('submit-vote', { code: currentRoomCode, choice: candidate.playerId });
+      socket.emit('submit-vote', { code: currentRoomCode, choice: isString ? candidate : candidate.playerId });
       showSection(voteSubmittedSection);
     });
     voteOptions.appendChild(btn);

@@ -23,7 +23,8 @@ import {
   generateMatchups,
   getEligibleVoters,
   tallyPickOne,
-  tallyHeadToHead
+  tallyHeadToHead,
+  resolveBranchTarget
 } from './engine/phases/vote-handler.js';
 import { getHandler, hasHandler, createPhaseContext } from './engine/phase-handlers/index.js';
 import { EVENTS } from './engine/events.js';
@@ -949,6 +950,12 @@ async function tallyAndAdvance(code, room) {
   const engine = room.engine;
   const vs = room.phaseState;
 
+  // Guard against the all-votes-in auto-advance racing a late "Close
+  // Voting" click: by then phaseState belongs to the NEXT phase (this used
+  // to crash the server). Also idempotent against double clicks.
+  if (!vs || vs.kind !== 'vote' || vs.tallied) return;
+  vs.tallied = true;
+
   let result;
   if (vs.mode === 'pick-one') {
     result = tallyPickOne(vs.votes, vs.candidateIds);
@@ -969,7 +976,15 @@ async function tallyAndAdvance(code, room) {
   const phaseConfig = engine.config.phases[vs.phaseId];
   phaseConfig.id = vs.phaseId;
 
-  const nextId = getNextPhaseId(engine, phaseConfig);
+  // Branching votes: the winner can route the game (choose-your-own-
+  // adventure). Falls back to the normal `next` when there's no map or
+  // the winner isn't in it.
+  const branchTarget = resolveBranchTarget(phaseConfig, result.winner, vs.candidates);
+  if (branchTarget) {
+    console.log(`[tally] Branching: winner "${result.winner}" → phase "${branchTarget}"`);
+  }
+
+  const nextId = branchTarget || getNextPhaseId(engine, phaseConfig);
   if (nextId) {
     engine.transition(nextId);
     await handlePhase(code, room);
@@ -2317,7 +2332,7 @@ io.on('connection', (socket) => {
     console.log(`[close-voting] Host closing voting for room ${code}`);
 
     const room = roomManager.find(code);
-    if (!room || !room.phaseState) return;
+    if (!room || !room.phaseState || room.phaseState.kind !== 'vote') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-voting')) return;
     recordEvent(room, 'close-voting');
 

@@ -34,13 +34,23 @@ registerHandler('vote', {
           matchupsOverride.push([a, b, pair.promptText]);
         }
       }
+    } else if (Array.isArray(phase.candidates)) {
+      // Literal (teacher-typed) option list — choose-your-own-adventure votes
+      candidates = phase.candidates.filter(c => typeof c === 'string' && c.trim()).map(s => s.trim());
     } else {
       candidates = phase.candidates ? engine.resolve(phase.candidates) : [];
+      // engine.resolve returns undefined for non-ref strings — treat a
+      // comma-separated string as a literal option list (matches rank)
+      if (candidates == null && typeof phase.candidates === 'string') {
+        candidates = phase.candidates.split(',').map(s => s.trim()).filter(Boolean);
+      }
+      if (!Array.isArray(candidates)) candidates = [];
     }
 
-    const candidateIds = candidates.map(c => c.playerId || c);
+    const candidateIds = candidates.map(c => (c && c.playerId ? c.playerId : c));
 
     room.phaseState = {
+      kind: 'vote',
       phaseId: phase.id,
       mode: phase.mode,
       candidates,

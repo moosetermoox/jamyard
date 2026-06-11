@@ -1,0 +1,76 @@
+{
+  "name": "Story Quest: The Locked Library",
+  "description": "A choose-your-own-adventure the whole class steers — each chapter ends in a vote that decides where the story goes.",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "intro" },
+    "intro": {
+      "type": "announce",
+      "message": "📚 STORY QUEST\n\nThis story belongs to the whole class. At the end of each chapter, you vote — and the winning choice decides what happens next.\n\nChoose carefully…",
+      "timer": 10,
+      "next": "ch1"
+    },
+    "ch1": {
+      "type": "announce",
+      "message": "The class trip ends at the old library just as the storm rolls in — and the great doors lock behind you.\n\nA spiral staircase climbs into darkness. Behind the front desk, a trapdoor stands ajar.",
+      "timer": 14,
+      "next": "vote1"
+    },
+    "vote1": {
+      "type": "vote",
+      "mode": "pick-one",
+      "question": "Where do we go?",
+      "candidates": ["Climb the spiral staircase", "Open the trapdoor"],
+      "nextByWinner": {
+        "Climb the spiral staircase": "tower",
+        "Open the trapdoor": "cellar"
+      },
+      "next": "tower",
+      "timer": 25
+    },
+    "tower": {
+      "type": "announce",
+      "message": "The stairs end in an attic of star maps and dust. A telescope points across a broken gap in the floor — straight at a faintly glowing book on a pedestal.",
+      "timer": 14,
+      "next": "vote2"
+    },
+    "cellar": {
+      "type": "announce",
+      "message": "The trapdoor drops you into a cellar of card catalogs. One drawer rattles on its own. Inside: a brass key, and a note — \"The reading room. Midnight only.\"\n\nAhead, a faintly glowing book rests on a pedestal.",
+      "timer": 14,
+      "next": "vote2"
+    },
+    "vote2": {
+      "type": "vote",
+      "mode": "pick-one",
+      "question": "The glowing book is right there. What do we do?",
+      "candidates": ["Take the glowing book", "Leave it and find the way out"],
+      "nextByWinner": {
+        "Take the glowing book": "take-book",
+        "Leave it and find the way out": "leave-it"
+      },
+      "next": "take-book",
+      "timer": 25
+    },
+    "take-book": {
+      "type": "announce",
+      "message": "The moment your fingers touch the cover, every lamp in the library flares to life — and the book opens to a page titled with today's date and all of your names.\n\nIt has been waiting for this class.",
+      "timer": 14,
+      "next": "finale"
+    },
+    "leave-it": {
+      "type": "announce",
+      "message": "You back away. Somewhere deep in the stacks, something sighs — disappointed, or maybe relieved.\n\nThe front doors click open. The book will wait for a braver class.",
+      "timer": 14,
+      "next": "finale"
+    },
+    "finale": {
+      "type": "announce",
+      "message": "The storm has passed. As you file out, the library doors swing shut behind you — and through the window, just for a second, the glow flickers like a wink.\n\nTHE END (this time…)",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "📚 Same class, different choices, different story. Play it again sometime."
+    }
+  }
+}

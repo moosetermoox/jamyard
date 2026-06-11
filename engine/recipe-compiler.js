@@ -457,6 +457,14 @@ function rewireDroppedPhases(config, dropped, recipe) {
         phase[field] = resolve(phase[field], name);
       }
     }
+    // Branching votes: nextByWinner values are phase refs too
+    if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
+      for (const key of Object.keys(phase.nextByWinner)) {
+        if (typeof phase.nextByWinner[key] === 'string' && droppedNext.has(phase.nextByWinner[key])) {
+          phase.nextByWinner[key] = resolve(phase.nextByWinner[key], name);
+        }
+      }
+    }
   }
 }
 

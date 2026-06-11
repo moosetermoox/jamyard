@@ -101,7 +101,8 @@ Framework for quickly building classroom games where:
 - **Simple view (plain-English editor)** — `screens/designer/simple-view.js`: the editor's DEFAULT view renders each step as a sentence with its editable text inline ("Students answer: [box] · passing allowed · ⏱ 120s"), per-step "✨ Ask AI" for structural changes, "Advanced settings →" to the canvas. Choices/rank items/wager options are inline add-remove rows; foreach sub-steps render indented; structural facts (pairing, loops, scoring) read as sentence fragments. Simple/Advanced pill in the header, preference in localStorage. Implementation: wraps `renderCanvas()` (stays in sync with every mutation path incl. Ask-AI apply) and `selectPhase()` (review-panel deep links flip to Advanced first). Most teachers should never need the phase graph.
 - **Friendly tokens everywhere** — teachers never see raw `{{ref}}` syntax: Simple view renders tokens as chips inside token-aware text boxes; Advanced primary textareas + screen-control/sidebar template fields tokenize to `[label — step N]` via `buildTemplateVariables` (labels are step-unique — duplicate labels used to let detokenize rewire refs to the wrong step); `phaseContentLabel` strips tokens from step-reference sentences. Validator rule `SPECIAL_SCOPE_OUT_OF_CONTEXT` warns when `_current`/`_foreach`/`_candidates`/`_pair` appear where they can't resolve (would render raw to students).
 - **AI cost guards** — every real Anthropic call passes through `AIService._callClaude`, gated by `services/ai-budget.js`: per-minute throttle (`AI_CALLS_PER_MINUTE`, default 20) + daily cap (`AI_DAILY_CAP`, default 500; 0 disables). Day counter persists in Neon `ai_usage` table — restarts/redeploys can't reset it. Blocked calls throw `AiBudgetError` (429, friendly message) before reaching the API. Editor endpoints return 429; in-game AI failures hit the phase-error pause. `GET /api/ai-budget` shows today's usage.
-- **703 tests passing** (`npm test`)
+- **Branching votes** — `vote.nextByWinner` maps a literal option's text to the phase the game goes to when it wins (CYOA storytelling); winner not in the map falls back to `next`; tie-breaks are deterministic (alphabetical). Vote phases also accept teacher-typed literal `candidates` arrays now (the editor has per-option "If this wins →" dropdowns). Found+fixed two latent crashes: late "Close Voting" after all-votes-in auto-advance crashed the server (now `kind`-guarded + idempotent), and the universal sim's vote support never worked (wrong event names).
+- **712 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for phone testing and screenshot harnesses)
 
@@ -151,6 +152,8 @@ Framework for quickly building classroom games where:
    - First one-voice game: class counts to 20 together; collisions reset; each number spoken through the teacher's speakers; ends on a shared story ("Attempts: 3, best run: 17"), no winners
 21. **Lightning Round** (games/lightning-round/) — announce → buzz → estimate ×2 → leaderboard → end
    - First buzz + estimate game: buzzer round (teacher asks aloud) then two guess-the-number questions; leaderboard sums scores across all three phases
+22. **Story Quest: The Locked Library** (games/story-quest/) — chapters + 2 branching votes → converging finale → end
+   - First branching-vote game: class-steered choose-your-own-adventure; each vote's winner routes the story (`nextByWinner`), paths converge on a shared finale
 
 ### Engine Primitives (All Implemented)
 1. Player state tracking (remaining vs eliminated) — PlayerRegistry
@@ -174,7 +177,7 @@ Framework for quickly building classroom games where:
 1. `lobby` — Wait for players to join
 2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pair games — `pairsFrom` optional, `oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`), `passAllowed`, `simultaneousReveal`
 3. `ai-process` — Send data to AI for processing; `perPlayer:true` generates one item per student
-4. `vote` — Head-to-head or pick-one voting; `matchupsFromPairs`/`excludeAuthors` for bluffing
+4. `vote` — Head-to-head or pick-one voting; `matchupsFromPairs`/`excludeAuthors` for bluffing; literal `candidates` arrays (teacher-typed options); `nextByWinner` map routes the game by outcome (choose-your-own-adventure — branch targets are legal transitions, BFS/cycle/validator aware)
 5. `eliminate` — Remove players by percent or hook
 6. `reveal` — Display content to all players; `scope:"pair"` + `pairsFrom` shows each pair only its own answers (`{{_pair.prompt}}`/`{{_pair.answers}}`)
 7. `preview` — Teacher-only preview before reveal
@@ -292,7 +295,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 703 Vitest tests (~1.5s)
+- `npm test` — runs all 712 Vitest tests (~1.5s)
 - `node scripts/simulate-any-game.js <game-id>` — universal automated playthrough (requires server running)
 - `node scripts/simulate-closer.js` / `simulate-snowball.js` / `simulate-one-voice.js` — Connection Pack invariant sims (pass anonymity, pair privacy, draft sync, tap timing)
 - New shipped games must be added to the snapshot map in `tests/engine/validator-diagnostics.test.js` (it fails loudly on unknown games)

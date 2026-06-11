@@ -70,6 +70,14 @@ function fieldEntry(fname, fdef) {
 // Per-phase prose that the schema can't model. Keep concise; the field
 // listings come from the schema.
 const PHASE_EXTRA_GUIDANCE = {
+  vote:
+    `BRANCHING VOTES (choose-your-own-adventure): a pick-one vote on a FIXED option list can route the game by outcome. Set "candidates" to a literal array of option strings and "nextByWinner" to a map from each option's exact text to a phase id. A winner not in the map falls back to "next". Branches must go FORWARD (use loopBack to repeat sections). Paths may converge on a later shared phase. Example:
+    "chapter1": { "type": "announce", "message": "The cave mouth yawns ahead; the mountain path climbs to the right.", "timer": 8, "next": "choose1" },
+    "choose1":  { "type": "vote", "mode": "pick-one", "candidates": ["Enter the cave", "Climb the mountain"], "nextByWinner": { "Enter the cave": "cave", "Climb the mountain": "mountain" }, "next": "cave", "timer": 20 },
+    "cave":     { "type": "announce", "message": "Darkness swallows the class...", "timer": 8, "next": "finale" },
+    "mountain": { "type": "announce", "message": "The wind howls...", "timer": 8, "next": "finale" },
+    "finale":   { "type": "announce", "message": "Every path leads here.", "next": "end" }`,
+
   collect:
     `MULTI-FIELD COLLECT: When a game needs multiple separate inputs (e.g. "two truths and a lie" needs 3 inputs), use the "fields" array:
     "fields": [{"label": "Truth 1", "key": "truth1"}, {"label": "Truth 2", "key": "truth2"}, {"label": "The Lie", "key": "lie"}]

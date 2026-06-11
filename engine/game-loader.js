@@ -432,6 +432,46 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // vote with literal (teacher-typed) options + branching map checks
+    if (phase.type === 'vote') {
+      if (Array.isArray(phase.candidates)) {
+        const voteOpts = phase.candidates.filter(c => typeof c === 'string' && c.trim().length > 0);
+        if (voteOpts.length < 2) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (vote) needs at least 2 options to vote on — add more options to the list, or point it at an earlier step.`
+          );
+        }
+      }
+      if (phase.nextByWinner !== undefined) {
+        if (phase.nextByWinner === null || typeof phase.nextByWinner !== 'object' || Array.isArray(phase.nextByWinner)) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" nextByWinner must be an object mapping an option's text to a phase id, e.g. {"Enter the cave": "cave-intro"}.`
+          );
+        } else {
+          for (const [optText, target] of Object.entries(phase.nextByWinner)) {
+            if (typeof target !== 'string' || !config.phases[target]) {
+              errors.push(
+                `Game "${gameId}": phase "${name}" has nextByWinner target "${target}" (for option "${optText}") which does not exist`
+              );
+            }
+            if (Array.isArray(phase.candidates)) {
+              const opts = phase.candidates.map(c => String(c).trim());
+              if (!opts.includes(optText)) {
+                warnings.push(
+                  `Game "${gameId}": phase "${name}" nextByWinner key "${optText}" doesn't match any option in the candidates list, so that branch can never fire. Keys must match option text exactly.`
+                );
+              }
+            }
+          }
+          if (!Array.isArray(phase.candidates)) {
+            warnings.push(
+              `Game "${gameId}": phase "${name}" uses nextByWinner with candidates from an earlier step — branch keys must match the winning answer's exact text, which you can't know in advance. A fixed option list is recommended for branching votes.`
+            );
+          }
+        }
+      }
+    }
+
     // rank with a literal (teacher-typed) item list: need at least 2 real items
     if (phase.type === 'rank' && Array.isArray(phase.candidates)) {
       const rankItems = phase.candidates.filter(c => typeof c === 'string' && c.trim().length > 0);
@@ -873,6 +913,9 @@ function inferDiagnosticCode(msg, severity) {
   if (/collisionWindowMs/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
   if (/has invalid target/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
   if (/needs at least 2 items to rank/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  if (/needs at least 2 options to vote/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  if (/has nextByWinner target/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
+  if (/nextByWinner/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
   if (/but assign is not "pairwise"/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
   if (/pair-prompt rounds/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;
   if (/oddHandling:"triple"/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
@@ -995,6 +1038,12 @@ function phaseAlwaysPrecedes(config, requiredId, targetId) {
       for (const f of ['next', 'approveNext', 'rejectNext', 'loopBack']) {
         if (p[f] && phases[p[f]] && !seen.has(p[f])) queue.push(p[f]);
       }
+      // Branching votes: nextByWinner values are edges too
+      if (p.nextByWinner && typeof p.nextByWinner === 'object') {
+        for (const target of Object.values(p.nextByWinner)) {
+          if (typeof target === 'string' && phases[target] && !seen.has(target)) queue.push(target);
+        }
+      }
     }
     return seen;
   };
@@ -1026,6 +1075,13 @@ function detectCycles(config, gameId, errors) {
       const edges = [];
       if (phase.next) edges.push(['next', phase.next]);
       if (phase.approveNext) edges.push(['approveNext', phase.approveNext]);
+      // Branching votes go FORWARD — a backward branch is a cycle bug
+      // (use loopBack to repeat a section).
+      if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
+        for (const target of Object.values(phase.nextByWinner)) {
+          if (typeof target === 'string') edges.push(['nextByWinner', target]);
+        }
+      }
       // rejectNext is intentionally a back-edge on preview phases (the "redo"
       // primitive), so we don't count it as a cycle. Same for loopBack.
       for (const [edgeName, target] of edges) {
@@ -1074,6 +1130,12 @@ function detectUnreachablePhases(config, gameId, warnings) {
     if (!p) continue;
     for (const f of ['next', 'approveNext', 'rejectNext', 'loopBack']) {
       if (p[f] && config.phases[p[f]] && !reached.has(p[f])) queue.push(p[f]);
+    }
+    // Branching votes: nextByWinner values are edges too
+    if (p.nextByWinner && typeof p.nextByWinner === 'object') {
+      for (const target of Object.values(p.nextByWinner)) {
+        if (typeof target === 'string' && config.phases[target] && !reached.has(target)) queue.push(target);
+      }
     }
   }
 

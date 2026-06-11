@@ -270,6 +270,7 @@ describe('validator diagnostics — game snapshot', () => {
       'simple-poll': [],
       'snowball': [],
       'story-builder': [],
+      'story-quest': [],
       'two-truths-a-lie': [],
       'charades-bowl': [],
       'closer': [],

@@ -87,6 +87,47 @@ export function tallyHeadToHead(votes, candidateIds, matchups) {
   return { ...buildResult(scores, votes.length), matchups: matchups || [] };
 }
 
+/**
+ * Display text of a candidate — literal strings ARE their text; response
+ * objects use text, then name.
+ * @param {any} candidate
+ * @returns {string}
+ */
+export function candidateText(candidate) {
+  if (candidate == null) return '';
+  if (typeof candidate === 'string') return candidate;
+  return candidate.text || candidate.name || String(candidate.playerId || '');
+}
+
+/**
+ * Branching votes: resolve where the game goes based on the winner.
+ *
+ * `phase.nextByWinner` maps a candidate's TEXT to a phase id:
+ *   "nextByWinner": { "Enter the cave": "cave-intro", ... }
+ *
+ * Returns the branch phase id, or null when there's no map / the winner
+ * isn't in it (caller falls back to phase.next). Designed for literal
+ * option lists (choose-your-own-adventure) but works on response
+ * candidates too — matched by exact text.
+ *
+ * @param {any} phase
+ * @param {string|null} winnerId  The tally winner (candidate id: literal text or playerId)
+ * @param {any[]} candidates      The candidates the vote ran on
+ * @returns {string|null}
+ */
+export function resolveBranchTarget(phase, winnerId, candidates) {
+  if (!phase || !phase.nextByWinner || typeof phase.nextByWinner !== 'object' || winnerId == null) {
+    return null;
+  }
+  const winner = (candidates || []).find(c => (c && c.playerId ? c.playerId : c) === winnerId);
+  const text = candidateText(winner !== undefined ? winner : winnerId);
+  if (Object.prototype.hasOwnProperty.call(phase.nextByWinner, text)) {
+    const target = phase.nextByWinner[text];
+    return typeof target === 'string' && target ? target : null;
+  }
+  return null;
+}
+
 function buildResult(scores, totalVotes) {
   const entries = Object.entries(scores);
   if (entries.length === 0) {

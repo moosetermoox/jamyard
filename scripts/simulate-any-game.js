@@ -279,7 +279,7 @@ async function run() {
         await wait(1000);
         // Check if any game event arrived in any player buffer
         var nextEvents = ['game-started', 'announce', 'show-results', 'leaderboard', 'game-ended',
-                          'vote-started', 'processing-started', 'preview', 'eliminated', 'winner',
+                          'vote-start', 'processing-started', 'preview', 'eliminated', 'winner',
                           'waiting', 'team-split', 'rank-start', 'wager-start', 'relay-turn'];
         for (var p of players) {
           for (var ev of nextEvents) {
@@ -302,38 +302,37 @@ async function run() {
 
     // Check for vote
     try {
-      var voteData = await waitForAnyPlayerEvent(players, 'vote-started', 2000);
+      var voteData = await waitForAnyPlayerEvent(players, 'vote-start', 2000);
       console.log(`\n--- Phase: VOTE ---`);
       log('SIM', `Mode: ${voteData.mode || 'unknown'}`);
       phaseLog.push({ type: 'vote', mode: voteData.mode });
-      drainEvent(players, 'vote-started');
 
-      if (voteData.mode === 'head-to-head') {
-        // Vote on matchups
-        for (var i = 0; i < players.length; i++) {
-          try {
-            var matchup = await waitForEvent(players[i], 'matchup', 3000);
-            if (matchup && matchup.options) {
-              var pick = matchup.options[0];
-              players[i].emit('cast-vote', { code, vote: pick });
-              log(names[i], `voted for: "${pick}"`);
-            }
-          } catch (e) { /* no matchup for this player */ }
-        }
-      } else {
-        // pick-one
-        for (var i = 0; i < players.length; i++) {
-          try {
-            var candidates = voteData.candidates || [];
-            if (candidates.length > 0) {
-              var pick = candidates[i % candidates.length];
-              var voteValue = pick.playerId || pick.name || pick;
-              players[i].emit('cast-vote', { code, vote: voteValue });
-              log(names[i], `voted for: "${voteValue}"`);
-            }
-          } catch (e) { /* skip */ }
+      // Each player got their own vote-start payload (matchups differ per
+      // voter) — read each buffer entry before draining.
+      for (var i = 0; i < players.length; i++) {
+        var myVote = (players[i]._buffer['vote-start'] && players[i]._buffer['vote-start'][0]) || voteData;
+        if (myVote.mode === 'head-to-head') {
+          var ms = myVote.matchups || [];
+          var h2hVotes = ms.map(function (m) {
+            var c = Math.random() < 0.5 ? m.optionA : m.optionB;
+            return { choice: (c && c.playerId) ? c.playerId : c };
+          });
+          if (h2hVotes.length > 0) {
+            players[i].emit('submit-vote', { code, votes: h2hVotes });
+            log(names[i], `voted on ${h2hVotes.length} matchup(s)`);
+          }
+        } else {
+          var candidates = myVote.candidates || [];
+          if (candidates.length > 0) {
+            var pick = candidates[i % candidates.length];
+            // Literal option lists (branching votes) are strings — the string IS the choice
+            var choice = (pick && pick.playerId) ? pick.playerId : pick;
+            players[i].emit('submit-vote', { code, choice: choice });
+            log(names[i], `voted for: "${typeof pick === 'string' ? pick : (pick.text || pick.name || choice)}"`);
+          }
         }
       }
+      drainEvent(players, 'vote-start');
       await wait(500);
       host.emit('close-voting', { code });
       log('HOST', 'Closed voting');
@@ -534,7 +533,7 @@ async function run() {
         await wait(1500);
         // Check if relay ended (next event appeared)
         var nextEvents = ['game-started', 'announce', 'show-results', 'leaderboard', 'game-ended',
-                          'vote-started', 'processing-started', 'team-split', 'rank-start',
+                          'vote-start', 'processing-started', 'team-split', 'rank-start',
                           'wager-start', 'eliminated', 'winner'];
         for (var p of players) {
           for (var ev of nextEvents) {

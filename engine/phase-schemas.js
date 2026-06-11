@@ -486,6 +486,11 @@ export const PHASE_SCHEMAS = {
       question: {
         type: 'templateString', optional: true,
         label: 'Voting prompt'
+      },
+      nextByWinner: {
+        type: 'object', optional: true,
+        label: 'Branch by winner',
+        helper: 'Choose-your-own-adventure: map an option\'s exact text to the phase the game goes to when it wins, e.g. {"Enter the cave": "cave-intro"}. Use with a fixed candidates list. A winner not in the map falls back to "next".'
       }
     },
     transitions: {

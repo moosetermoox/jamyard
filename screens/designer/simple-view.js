@@ -454,8 +454,23 @@
       }
 
       case 'vote':
-        d.sentence = (phase.mode === 'head-to-head' ? 'Students vote head-to-head on ' : 'Students vote for their favorite from ') +
-          (phase.matchupsFromPairs ? 'the paired answers' : (phase.candidates ? humanizeRef(String(phase.candidates)).toLowerCase() : '…')) + '.';
+        if (Array.isArray(phase.candidates)) {
+          // Literal (teacher-typed) option list — possibly a branching vote
+          d.sentence = 'Students vote for one of:';
+          d.extra = stringListEditor(
+            function () { return phase.candidates; },
+            function (a) { phase.candidates = a; },
+            'Option'
+          );
+          if (phase.nextByWinner && typeof phase.nextByWinner === 'object') {
+            for (var bk in phase.nextByWinner) {
+              d.facts.push(fact("'" + bk + "' wins → " + stepName(phase.nextByWinner[bk])));
+            }
+          }
+        } else {
+          d.sentence = (phase.mode === 'head-to-head' ? 'Students vote head-to-head on ' : 'Students vote for their favorite from ') +
+            (phase.matchupsFromPairs ? 'the paired answers' : (phase.candidates ? humanizeRef(String(phase.candidates)).toLowerCase() : '…')) + '.';
+        }
         if (phase.voters === 'eliminated') d.facts.push(fact('only knocked-out players vote'));
         else if (phase.voters === 'remaining') d.facts.push(fact('only remaining players vote'));
         d.facts.push(timerFact(phase));
