@@ -99,7 +99,9 @@ export function checkPayload(eventName, data, config) {
       break;
     }
     case 'rank-start': {
-      if (!Array.isArray(data.candidates) || data.candidates.length === 0) {
+      // Player payloads carry the candidates list; the HOST's rank-start
+      // only has a counter — its missing array is not a finding.
+      if (Array.isArray(data.candidates) && data.candidates.length === 0) {
         add('error', 'A ranking step started with NOTHING to rank — students saw an empty list with a Submit button.', data.prompt);
       }
       break;
@@ -162,13 +164,24 @@ export function checkPayload(eventName, data, config) {
  * @param {number} [opts.numPlayers=4]
  * @param {number} [opts.timeLimitMs=45000]
  * @param {number} [opts.stallMs=8000]
+ * @param {boolean} [opts.chaos=false]  School-wifi mode: players randomly drop
+ *   and reconnect mid-phase (token rebind), ghosts join with dead tokens,
+ *   stale/malformed/duplicate events are sprayed at the server — while the
+ *   game must STILL complete. Used by scripts/simulate-chaos.js; the deep
+ *   review keeps this off.
+ * @param {number} [opts.chaosIntervalMs=600]  Time between chaos actions.
+ *   600ms ≈ a disconnect every ~1.3s — brutal torture for short games.
+ *   Long real-time games (charades) use a gentler-but-still-hostile rate.
  */
-export async function simulateGame({ serverUrl, gameId, config = null, numPlayers = 4, timeLimitMs = 45000, stallMs = 8000 }) {
+export async function simulateGame({ serverUrl, gameId, config = null, numPlayers = 4, timeLimitMs = 45000, stallMs = 8000, chaos = false, chaosIntervalMs = 600 }) {
   const start = Date.now();
   const findings = [];
   const phaseLog = [];
   let completed = false;
   let lastScreen = 'lobby';
+  const chaosStats = { reconnects: 0, reconnectFailures: 0, ghosts: 0, staleSpam: 0, malformed: 0 };
+  const extraSockets = []; // chaos ghosts/late joiners, cleaned up at the end
+  let chaosTimer = null;
 
   const host = await connect(serverUrl);
   const players = [];
@@ -185,10 +198,16 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
     const code = roomData.code;
 
     for (let i = 0; i < players.length; i++) {
-      players[i].emit('join-room', { code, name: BOT_NAMES[i % BOT_NAMES.length] });
+      const botName = BOT_NAMES[i % BOT_NAMES.length];
+      players[i]._name = botName;
+      players[i].emit('join-room', { code, name: botName });
       await new Promise((resolve) => {
         const t = setTimeout(resolve, 2000);
-        players[i].once('join-success', () => { clearTimeout(t); resolve(); });
+        players[i].once('join-success', (d) => {
+          players[i]._token = d && d.token; // chaos reconnects rebind via this
+          clearTimeout(t);
+          resolve();
+        });
       });
     }
 
@@ -210,6 +229,95 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
     let stallUnstickTried = false;
 
     host.emit('start-game', { code });
+
+    // --- Chaos agent: school-wifi hostility while the reactor plays ---
+    if (chaos) {
+      const chaosTick = () => {
+        const roll = Math.random();
+
+        if (roll < 0.45 && players.length > 1) {
+          // Drop a random player mid-whatever; reconnect with their token
+          // after a wifi-blip delay. The replacement socket takes over the
+          // same reactor slot, so the game keeps being driven.
+          const i = Math.floor(Math.random() * players.length);
+          const victim = players[i];
+          if (victim._reconnecting || !victim._token) return;
+          victim._reconnecting = true;
+          const { _name: name, _token: token } = victim;
+          victim.disconnect();
+          setTimeout(async () => {
+            try {
+              const fresh = await connect(serverUrl);
+              fresh._name = name;
+              fresh._token = token;
+              fresh.onAny(pushEvent(fresh, 'player'));
+              fresh.emit('join-room', { code, name, token });
+              const ok = await new Promise((res) => {
+                const t = setTimeout(() => res(false), 4000);
+                fresh.once('join-success', (d) => {
+                  clearTimeout(t);
+                  res(!!(d && d.reconnected));
+                });
+              });
+              if (ok) {
+                chaosStats.reconnects++;
+              } else {
+                chaosStats.reconnectFailures++;
+                findings.push({
+                  severity: 'error',
+                  phaseId: null,
+                  source: 'simulation',
+                  message: `A player who dropped mid-game was NOT recognized on reconnect (during ${lastScreen}) — in class they'd lose their identity/score.`
+                });
+              }
+              players[i] = fresh;
+            } catch (e) {
+              chaosStats.reconnectFailures++;
+            }
+          }, 300 + Math.random() * 2500);
+
+        } else if (roll < 0.60) {
+          // Spray stale-phase events — the stale guard must drop them all
+          const p = players[Math.floor(Math.random() * players.length)];
+          if (!p.connected) return;
+          chaosStats.staleSpam++;
+          p.emit('submit-response', { code, response: 'stale ghost answer', phaseInstanceId: 1 });
+          p.emit('submit-vote', { code, choice: 'stale', phaseInstanceId: 1 });
+          p.emit('buzz-tap', { code, phaseInstanceId: 1 });
+
+        } else if (roll < 0.75) {
+          // Malformed payloads — schema validation must reject, not crash
+          const p = players[Math.floor(Math.random() * players.length)];
+          if (!p.connected) return;
+          chaosStats.malformed++;
+          p.emit('submit-response', { code: 12345 });
+          p.emit('estimate-submit', { code, value: 'not-a-number' });
+          p.emit('rank-submit', { code });
+          p.emit('merge-draft', {});
+
+        } else if (roll < 0.85) {
+          // Ghost with a dead token / late joiner mid-game — must not crash
+          // anything; they either join fresh or get a clean error.
+          chaosStats.ghosts++;
+          (async () => {
+            try {
+              const ghost = await connect(serverUrl);
+              extraSockets.push(ghost);
+              ghost.emit('join-room', { code, name: 'Ghost' + Math.floor(Math.random() * 100), token: 'dead-token-' + Math.random().toString(36).slice(2) });
+            } catch (e) { /* server down would surface elsewhere */ }
+          })();
+
+        } else {
+          // Duplicate rapid-fire from a connected player
+          const p = players[Math.floor(Math.random() * players.length)];
+          if (!p.connected) return;
+          p.emit('one-voice-tap', { code });
+          p.emit('one-voice-tap', { code });
+          p.emit('submit-response', { code, response: 'double-send' });
+        }
+      };
+      chaosTimer = setInterval(chaosTick, chaosIntervalMs);
+    }
 
     // --- Main loop ---
     while (!completed && Date.now() - start < timeLimitMs) {
@@ -382,15 +490,14 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
           break;
         }
 
-        // --- Turn (charades) — only the describer may capture items ---
+        // --- Turn (charades) — only the describer may capture items.
+        //     No once-guard: duplicate phrases exist in real pools (and bot
+        //     pools), and reconnects re-emit the current item. The server
+        //     referees — a stray got-it after capture is simply ignored. ---
         case 'turn-item': {
           if (role !== 'player' || data.role !== 'describer' || !data.item) break;
           lastScreen = 'a charades turn';
-          const captured = `turn:${data.item}:${seq(data)}`;
-          if (!onceKeys.has(captured)) {
-            onceKeys.add(captured);
-            setTimeout(() => who.emit('turn-got-it', { code, phaseInstanceId: seq(data) }), 250);
-          }
+          setTimeout(() => who.emit('turn-got-it', { code, phaseInstanceId: seq(data) }), 300);
           break;
         }
 
@@ -552,15 +659,18 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
       });
     }
   } finally {
+    if (chaosTimer) clearInterval(chaosTimer);
     try { host.disconnect(); } catch {}
     for (const p of players) { try { p.disconnect(); } catch {} }
+    for (const s of extraSockets) { try { s.disconnect(); } catch {} }
   }
 
   return {
     completed,
     durationMs: Date.now() - start,
     phaseLog,
-    findings: dedupeFindings(findings)
+    findings: dedupeFindings(findings),
+    chaosStats: chaos ? chaosStats : null
   };
 }
 

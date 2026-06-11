@@ -29,6 +29,19 @@ registerHandler('rank', {
       return JSON.stringify(c);
     }).filter(t => typeof t === 'string' && t.trim().length > 0);
 
+    // Nothing to rank (e.g. the source collect closed with zero answers) —
+    // skip rather than strand students on an empty list with a Submit
+    // button. Found by the chaos simulator.
+    if (rkItems.length === 0) {
+      console.warn(`[rank:${phase.id}] nothing to rank — skipping the step`);
+      const nextId = ctx.getNextPhaseId();
+      if (nextId) {
+        engine.storePhaseData(phase.id, { rankings: [], rankedList: '' });
+        await ctx.advanceTo(nextId);
+        return;
+      }
+    }
+
     const rkEligibleIds = new Set(rkEligible.map(p => p.id));
     room.phaseState = {
       kind: 'rank',

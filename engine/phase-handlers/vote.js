@@ -47,6 +47,19 @@ registerHandler('vote', {
       if (!Array.isArray(candidates)) candidates = [];
     }
 
+    // Nothing to vote on (e.g. the source collect closed empty) — skip
+    // rather than strand voters on an empty ballot. Same class of bug the
+    // chaos simulator caught on rank.
+    if (candidates.length === 0) {
+      console.warn(`[vote:${phase.id}] no candidates — skipping the step`);
+      const nextId = ctx.getNextPhaseId();
+      if (nextId) {
+        engine.storePhaseData(phase.id, { votes: [], scores: {}, winner: null, tied: false, totalVotes: 0 });
+        await ctx.advanceTo(nextId);
+        return;
+      }
+    }
+
     const candidateIds = candidates.map(c => (c && c.playerId ? c.playerId : c));
 
     room.phaseState = {

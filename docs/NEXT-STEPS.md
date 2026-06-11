@@ -15,9 +15,12 @@ Explicitly NOT doing: more phase types/features until August feedback.
     progress in that one phase is lost, the game is not)
   - Deploy-on-green (CI triggers the Render deploy; red suite can't ship)
   - Uptime: paid tier or external ping so the server doesn't sleep mid-day
-- **B. Chaos simulator** — 30+ bot clients that drop, reconnect mid-phase,
-  double-tap, replay stale events, rejoin with dead tokens — against every
-  phase type. The reconnect paths are the thinnest code in the project.
+- **B. Chaos simulator** ✅ DONE — `node scripts/simulate-chaos.js` (chaos mode
+  in services/simulator.js): players drop/reconnect mid-phase, ghosts join
+  with dead tokens, stale/malformed/duplicate sprays — all 6 suite games
+  complete clean. Found + fixed: player-id migration on reconnect (systemic),
+  advance-phase now closes the current phase first, close-submissions
+  phase guard, empty rank/vote skip, estimate reconnect-after-close.
 - **C. Day-one kit** — pick the 3-5 games August actually starts with
   (likely One Voice/Closer, Quiz Show, Lightning Round), polish those deeply
   (phone screens, timings, prompts), + anonymous mode, + a one-page

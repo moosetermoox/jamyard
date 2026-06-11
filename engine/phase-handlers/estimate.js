@@ -64,6 +64,11 @@ registerHandler('estimate', {
   onReconnect(ctx, socket) {
     const state = ctx.room.phaseState;
     if (!state || state.kind !== 'estimate') return;
+    // Already closed: show the results, not a dead input box.
+    if (state.closed && state.resultsPayload) {
+      socket.emit(EVENTS.ESTIMATE_RESULTS, state.resultsPayload);
+      return;
+    }
     const phase = ctx.engine.config.phases[state.phaseId] || {};
     socket.emit(EVENTS.ESTIMATE_START, {
       prompt: state.prompt || '',

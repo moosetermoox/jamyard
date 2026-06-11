@@ -45,6 +45,7 @@ import {
   sweepRoomSnapshots
 } from './db.js';
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
+import { migrateIdsInPlace } from './engine/id-migration.js';
 import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
@@ -542,13 +543,18 @@ async function closeEstimates(code, room) {
     }))
     .sort((a, b) => (a.distance ?? 0) - (b.distance ?? 0) || a.value - b.value);
 
-  io.to(code).emit(EVENTS.ESTIMATE_RESULTS, {
+  // Kept on the phase state so a player reconnecting after the close sees
+  // the results, not a dead input box. phaseInstanceId rides along so
+  // client stale-echo (and the sims' dedupe keys) stay correct.
+  state.resultsPayload = {
     answer: state.answer,
     unit: phase.unit || '',
     stats,
     scores,
-    guesses
-  });
+    guesses,
+    phaseInstanceId: room.phaseInstanceId
+  };
+  io.to(code).emit(EVENTS.ESTIMATE_RESULTS, state.resultsPayload);
 }
 
 // --- Rate helpers ---
@@ -2044,7 +2050,16 @@ io.on('connection', (socket) => {
         || (() => { const processedName = name || 'Anonymous'; const p = players.findByName(processedName); return p && !p.connected ? p : null; })();
       if (existing && !existing.connected) {
         console.log(`[join-room] Reconnecting ${existing.name} via ${token ? 'token' : 'name'} (old: ${existing.id} -> new: ${socket.id})`);
-        players.reconnect(existing.id, socket.id);
+        const oldId = existing.id;
+        players.reconnect(oldId, socket.id);
+        // Follow the player across the rebind: phase state (turn describer,
+        // relay turn order, vote eligibility, merge groups…) and completed-
+        // phase data (score maps feeding leaderboards) all hold the old id.
+        if (room.engine) {
+          migrateIdsInPlace(room.phaseState, oldId, socket.id);
+          migrateIdsInPlace(room.engine.phaseData, oldId, socket.id);
+          migrateIdsInPlace(room.engine.foreachState, oldId, socket.id);
+        }
         socketToRoom.set(socket.id, code);
         socket.join(code);
 
@@ -2321,6 +2336,15 @@ io.on('connection', (socket) => {
       return;
     }
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-submissions')) return;
+
+    // Only meaningful while a collect-style phase is actually running — a
+    // late/stray close used to store empty "responses" under whatever phase
+    // happened to be current (found by the chaos simulator).
+    const currentPhase = room.engine && room.engine.getCurrentPhase();
+    if (!currentPhase || (currentPhase.type !== 'collect' && currentPhase.type !== 'collect-choice')) {
+      console.log(`[close-submissions] Ignored — current phase is ${currentPhase ? currentPhase.type : 'unknown'}`);
+      return;
+    }
     recordEvent(room, 'close-submissions');
 
     try {
@@ -2502,6 +2526,31 @@ io.on('connection', (socket) => {
     recordEvent(room, 'advance-phase');
 
     try {
+      // A generic "next step" (teacher console, host Continue) during a
+      // phase that stores outputs at close must CLOSE it, not blow past it —
+      // otherwise downstream templates show raw {{tokens}} and scores are
+      // lost. Found by the chaos simulator (one-voice advanced before
+      // closeOneVoice stored its stats).
+      const vs = room.phaseState;
+      if (vs && !vs.closed) {
+        switch (vs.kind) {
+          case 'vote':      await tallyAndAdvance(code, room); return;
+          case 'rank':      await closeRanking(code, room); return;
+          case 'one-voice': await closeOneVoice(code, room); return;
+          case 'buzz':      await closeBuzz(code, room); return;
+          case 'merge':     await closeMerge(code, room); return;
+          case 'rate':
+            // closeRating shows results without advancing — store, then move on
+            await closeRating(code, room);
+            break;
+          case 'estimate':
+            await closeEstimates(code, room);
+            break;
+          default:
+            break;
+        }
+      }
+
       const currentPhase = room.engine.getCurrentPhase();
       const advNextId = getNextPhaseId(room.engine, currentPhase);
       if (advNextId) {
@@ -2766,7 +2815,8 @@ io.on('connection', (socket) => {
     }
     recordEvent(room, 'buzz-locked', { playerId: socket.id, question: state.question });
     io.to(code).emit(EVENTS.BUZZ_LOCKED, {
-      playerId: socket.id, playerName: player.name, question: state.question
+      playerId: socket.id, playerName: player.name, question: state.question,
+      phaseInstanceId: room.phaseInstanceId
     });
   });
 
@@ -2789,7 +2839,8 @@ io.on('connection', (socket) => {
       playerName: p ? p.name : '?',
       scores: state.scores,
       points: state.points,
-      question: state.question
+      question: state.question,
+      phaseInstanceId: room.phaseInstanceId
     });
   });
 
@@ -2804,7 +2855,10 @@ io.on('connection', (socket) => {
 
     applyNextQuestion(state);
     recordEvent(room, 'buzz-next', { question: state.question });
-    io.to(code).emit(EVENTS.BUZZ_OPEN, { question: state.question, scores: state.scores });
+    io.to(code).emit(EVENTS.BUZZ_OPEN, {
+      question: state.question, scores: state.scores,
+      phaseInstanceId: room.phaseInstanceId
+    });
   });
 
   socket.on(EVENTS.BUZZ_FINISH, async (payload = {}) => {
