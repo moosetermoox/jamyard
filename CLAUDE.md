@@ -261,6 +261,8 @@ Framework for quickly building classroom games where:
 - AIService (services/ai-service.js) — mock and real modes, game review (light/deep)
 
 ### Design Documents (docs/)
+- **DESIGN-PHILOSOPHY.md** — the *why*: the one-shot north star, agency-vs-structure bet, catch-or-survive, phases as the unit, single source of truth, AI as leverage not dependency. Read this when a design call has no obvious answer.
+- **ARCHITECTURE.md** — the *what/how*: system diagram, code map, phase registry, validation pipeline, persistence/restart survival, testing
 - **GAME-CONFIG-DESIGN.md** — 9 phase types, data references, hooks system
 - **AI-TASK-DESIGN.md** — 6 AI task types with prompts, schemas, validation
 - **SAFETY-DESIGN.md** — Threat model with three-layer mitigations
