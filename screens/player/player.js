@@ -1,3 +1,15 @@
+/**
+ * player.js — the student device client (phone / Chromebook).
+ *
+ * The socket.io client for one player: join, then the input UI for each phase
+ * (text answers, choices, votes, ranks, rates, wagers, relay turns, merge
+ * drafts, estimate guesses, buzz/one-voice taps). It mirrors the host's current
+ * phase via socket events, guards against stale events left over from a
+ * previous phase, restores state on reconnect (token rebind), and — in
+ * prototype mode — exposes a bot-fill hook. Stays quiet (no juice) except the
+ * student's own moments (their submit, their personal win).
+ */
+
 // Default theme — bold black borders + flat colors, matches the game designer's
 // Keith Haring vibe. Overridden by a game-specific theme when one is set.
 if (window.applyGameTheme) {

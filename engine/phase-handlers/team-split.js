@@ -1,3 +1,8 @@
+/**
+ * Phase handler: team-split — divide players into teams, either randomly or
+ * balanced against a score source. The assignments feed later team-scored
+ * phases (e.g. Charades Bowl, relay rounds).
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

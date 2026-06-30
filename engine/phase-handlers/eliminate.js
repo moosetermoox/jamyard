@@ -1,3 +1,9 @@
+/**
+ * Phase handler: eliminate — remove players by the configured method:
+ * bottom-percent of a score source, or a game-supplied hook. The decision
+ * itself is the pure `runEliminate` helper (engine/phases/eliminate-handler.js);
+ * this handler wires it to the room and broadcasts who's out.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

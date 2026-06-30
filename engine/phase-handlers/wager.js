@@ -1,3 +1,8 @@
+/**
+ * Phase handler: wager — players bet points on an outcome. Resolves
+ * automatically when a correct option or score source is configured, otherwise
+ * the host picks the winner manually.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

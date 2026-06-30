@@ -1,3 +1,11 @@
+/**
+ * prototype.js — the prototype / playtest harness (/prototype).
+ *
+ * Launches a game with the host screen plus N player iframes side by side
+ * (grid or one-at-a-time carousel) so a teacher can play through a game solo
+ * before class. Adds bot-fill, skip, reset, and a relay auto-advance loop that
+ * reads the host iframe. Dev/preview tooling — not part of a real class run.
+ */
 const gameSelect = document.getElementById('game-select');
 const playerCount = document.getElementById('player-count');
 const playerCountDisplay = document.getElementById('player-count-display');

@@ -1,3 +1,8 @@
+/**
+ * Phase handler: rank — players drag a list into their preferred order
+ * (touch + mouse), and results aggregate by average position. Items come from
+ * an earlier phase's data or a teacher-typed fixed list.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

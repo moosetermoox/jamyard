@@ -1,3 +1,11 @@
+/**
+ * designer.js — the game-list landing page (/designer).
+ *
+ * Lists the teacher's saved games and is the front door to making new ones:
+ * the idea-first box (type what you want to play -> recipe matching), plus the
+ * template picker, AI-generate, and recipe-picker modal flows. Hands off to the
+ * editor (editor.js) once a game exists.
+ */
 var gamesGrid = document.getElementById('games-grid');
 var loadingMessage = document.getElementById('loading-message');
 var errorMessage = document.getElementById('error-message');

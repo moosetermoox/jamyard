@@ -1,3 +1,15 @@
+/**
+ * StateMachine — a tiny, game-agnostic finite state machine.
+ *
+ * States are phase ids; `transitions` is the legal next-phase graph
+ * (built from the game config by GameEngine.buildStateMachineConfig).
+ * `transition()` refuses any move not in that graph — that guard is what
+ * makes illegal phase jumps (and typos in `next`/branch fields) fail loudly
+ * instead of silently corrupting a game. Emits 'stateChange' on every move.
+ *
+ * Deliberately knows nothing about phases, players, or games — just states
+ * and edges. All game meaning lives one layer up, in GameEngine.
+ */
 export class StateMachine {
   constructor(config) {
     this.state = config.initialState;

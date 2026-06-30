@@ -1,3 +1,7 @@
+/**
+ * Phase handler: end — the terminal phase. Shows the closing message and stops
+ * the game; there are no transitions out.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

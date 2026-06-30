@@ -1,3 +1,12 @@
+/**
+ * Phase handler: collect-choice — players pick from a fixed set of options.
+ *
+ * Powers polls and quizzes. Supports Kahoot-style speed scoring
+ * (`correctAnswer` + `speedBonus`, graded at close) and bluffing pools
+ * (`choicePool` injects the real answer among decoys, `excludeAuthored` keeps
+ * authors from picking their own). Stores both the chosen option and its text
+ * so AI/templates can read either.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

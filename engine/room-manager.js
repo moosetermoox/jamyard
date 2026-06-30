@@ -1,3 +1,13 @@
+/**
+ * RoomManager — owns the live rooms map and their lifecycle.
+ *
+ * `create()` mints a unique 4-letter join code and bundles a fresh
+ * StateMachine + PlayerRegistry under it; `find()`/`remove()` look up and tear
+ * down by code; `adopt()` re-inserts a room rebuilt from a snapshot (restart
+ * survival) under its original code. Rooms live in memory only — durable game
+ * configs are in the DB/filesystem, room *state* is intentionally ephemeral
+ * (with snapshots in engine/room-snapshot.js bridging restarts).
+ */
 import { StateMachine } from './state-machine.js';
 import { PlayerRegistry } from './player-registry.js';
 

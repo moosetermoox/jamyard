@@ -1,3 +1,15 @@
+/**
+ * host.js — the projector / host screen client.
+ *
+ * One big socket.io client that renders every phase's PUBLIC, big-screen view:
+ * the lobby + QR/code join, prompts and timers, and each phase type's results
+ * (buzz, estimate, rank, rate, wager, relay, one-voice, leaderboards, winner).
+ * Because this screen is PROJECTED to the whole class, nothing teacher-private
+ * (moderation, student names mid-collect) belongs here — that lives on the
+ * /teacher console. Phase dispatch is by socket event; showSection() swaps the
+ * single active <section>.
+ */
+
 // Default theme — bold black borders + flat colors, matches the game designer's
 // Keith Haring vibe. Applied immediately so even pre-game lobby screens look
 // like the rest of the app. A game with its own theme will override this on

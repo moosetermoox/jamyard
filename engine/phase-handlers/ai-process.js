@@ -1,3 +1,10 @@
+/**
+ * Phase handler: ai-process — hand collected data to the AI for a task
+ * (summarize / generate / compare / rank / judge) and store the result for
+ * later phases to display or branch on. `perPlayer:true` generates one item
+ * per student, addressable downstream via `{{thisPhase.mine}}`. This is the
+ * "Script → LLM handoff" — scripts gather data, the AI gets a summary.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

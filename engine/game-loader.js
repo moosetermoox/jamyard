@@ -1,3 +1,19 @@
+/**
+ * game-loader — reads game configs from disk and, more importantly, VALIDATES
+ * them. This is the server-side gatekeeper: nothing reaches a live room or the
+ * editor's save path without passing `validate()`.
+ *
+ * `validate(config, gameId)` runs structural checks driven by the declarative
+ * phase schema (engine/phase-schemas.js) — required fields per phase type, enum
+ * values, legal transitions — plus cross-cutting checks the schema can't express:
+ * data-reference existence (`{{phase.field}}` points at a real producer),
+ * typed-dataflow compatibility, and reachability (every phase reachable from
+ * lobby). It returns structured Diagnostics (errors block; warnings advise),
+ * mirrored client-side in screens/designer/editor.js.
+ *
+ * The biggest engine file because it encodes every "what makes a game valid"
+ * rule in one place.
+ */
 import { readFile, readdir, access } from 'fs/promises';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';

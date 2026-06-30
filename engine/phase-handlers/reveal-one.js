@@ -1,3 +1,9 @@
+/**
+ * Phase handler: reveal-one — host reveals items one at a time (countdown
+ * style), each animating onto player screens as it lands. `itemTemplate`
+ * renders object items via `{{_current.field}}`. Reconnect-safe (restores how
+ * many have been revealed so far).
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

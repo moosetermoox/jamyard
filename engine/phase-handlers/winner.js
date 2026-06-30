@@ -1,3 +1,8 @@
+/**
+ * Phase handler: winner — declare the winner and show final standings from a
+ * score source. The pick (including tie handling) is the pure winner-handler;
+ * this wires it to the room and broadcasts the result.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

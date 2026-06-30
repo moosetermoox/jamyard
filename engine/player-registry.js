@@ -1,3 +1,15 @@
+/**
+ * PlayerRegistry — per-room roster bookkeeping.
+ *
+ * Tracks each player's identity (id, processed display name, reconnect token)
+ * and two independent axes of state:
+ *   - status:    'active' vs 'eliminated' (gameplay — elimination games)
+ *   - connected: true/false (network — survives a wifi blip via the token)
+ *
+ * Helpers here answer "who is still in?", "who can vote?", etc. Use
+ * `listPublic()` when sending to clients — it strips reconnect tokens so they
+ * never reach the browser.
+ */
 export class PlayerRegistry {
   constructor() {
     this.players = new Map();

@@ -1,3 +1,13 @@
+/**
+ * Phase handler: foreach — the orchestrator phase, and the most complex one.
+ *
+ * Iterates over a dynamic list (usually responses collected earlier), running
+ * its sub-phases once per item via virtual `_fe:`-prefixed phase ids injected
+ * at runtime. Each iteration exposes `_current`/`_foreach`/`_candidates` to
+ * templates. Supports auto candidate-generation (guessing games), two scoring
+ * modes (correct vs tally), author self-exclusion, and `pairMode` AI-injection
+ * (human-vs-AI side-by-side). Powers Who Said It, Two Truths, Caption Contest.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

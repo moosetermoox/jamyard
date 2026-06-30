@@ -1,3 +1,9 @@
+/**
+ * Phase handler: reveal — display content to the class. With `scope:'pair'` it
+ * instead shows each pair only its own two answers (`{{_pair.*}}`, Closer-style),
+ * resolved per recipient; a Pass renders identically to a missing answer so it's
+ * never attributable.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { buildPairViews, buildPairContent } from '../phases/pair-reveal.js';

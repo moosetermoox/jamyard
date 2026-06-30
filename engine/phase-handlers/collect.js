@@ -1,3 +1,12 @@
+/**
+ * Phase handler: collect — gather free-text answers from players.
+ *
+ * The workhorse input phase. Beyond a plain text box it supports: multi-field
+ * inputs, rotation chains (`rotateFrom` — each player gets another's prior item,
+ * powers SCAMPER), pairwise assignment for bluffing/pair games, a Pass button,
+ * and simultaneous (counts-only, no-names) reveal. Output `responses` is what
+ * AI processing and most downstream phases read.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { buildGroups, buildAvoidSet } from '../phases/pairing.js';

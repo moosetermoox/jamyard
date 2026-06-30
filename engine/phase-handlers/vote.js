@@ -1,3 +1,9 @@
+/**
+ * Phase handler: vote — head-to-head or pick-one voting, tallied into a score
+ * map. `matchupsFromPairs`/`excludeAuthors` support bluffing games, and
+ * `nextByWinner` can branch the whole game by which option wins
+ * (choose-your-own-adventure). The tally itself is the pure vote-handler.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

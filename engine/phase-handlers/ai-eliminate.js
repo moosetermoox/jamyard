@@ -1,3 +1,9 @@
+/**
+ * Phase handler: ai-eliminate — the AI judges player answers against
+ * teacher-written rules and removes the rule-breakers (e.g. "eliminate anyone
+ * who wrote more than one sentence"). Feeds AIService a judge prompt, then
+ * applies the eliminations to the PlayerRegistry.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

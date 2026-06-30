@@ -1,3 +1,10 @@
+/**
+ * Phase handler: leaderboard — show scores and rankings.
+ *
+ * Renders medals and highlights each student's own rank on their device. The
+ * `from` field can name one score source or an array of them (summed by key),
+ * so multi-round games total their per-round scores into one final board.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

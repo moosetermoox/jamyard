@@ -1,3 +1,10 @@
+/**
+ * Phase handler: announce — show a message to everyone (round intros,
+ * instructions, transitions). Optional image/video/timer. Auto-advances when
+ * the timer expires, otherwise waits for the host to continue. If the message
+ * contains a per-recipient `{{x.mine}}` token, each player gets their own
+ * resolved copy while the host sees the generic version.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

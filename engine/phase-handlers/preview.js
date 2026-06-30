@@ -1,3 +1,9 @@
+/**
+ * Phase handler: preview — a teacher-only checkpoint before a reveal. The host
+ * sees the content (often AI-generated) and either Approves (advance to the
+ * reveal) or rejects (loop back to regenerate); players just see "waiting for
+ * teacher". Lets a teacher vet output before the whole class sees it.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 

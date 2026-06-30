@@ -1,3 +1,16 @@
+/**
+ * editor.js — the phase-graph game editor (/designer/edit). The largest client
+ * file.
+ *
+ * Loads a game config and lets the teacher build it: schema-driven settings and
+ * per-phase config forms, a drag-to-reorder phase canvas, theme picker, token /
+ * template tooling (shows friendly [labels] instead of raw {{refs}}), live
+ * client + server validation, AI light/deep review and one-click fixes, a live
+ * host/player preview, save, and save-as-recipe. Note the DEFAULT view most
+ * teachers see is the plain-English "simple" view (simple-view.js, which wraps
+ * functions defined here); this DAG canvas is the "Advanced" mode.
+ */
+
 // --- State ---
 var gameId = null;
 var gameConfig = null;

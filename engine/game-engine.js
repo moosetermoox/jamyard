@@ -1,3 +1,18 @@
+/**
+ * GameEngine — the per-room orchestrator that actually "runs" a game.
+ *
+ * One instance per live room. It wraps a validated game config and owns
+ * everything that changes as the class plays:
+ *   - stateMachine: the phase graph (which phase is current, what's legal next)
+ *   - players:      the PlayerRegistry (who's in, who's eliminated)
+ *   - phaseData:    each phase's collected/computed output, keyed by phase id
+ *                   (and a versioned `phaseId~N` copy while inside a loop)
+ *   - loopState / foreachState: bookkeeping for loop and foreach iteration
+ *
+ * It also resolves `{{phase.field}}` data references (via resolver-grammar)
+ * and runs the pure phase-logic helpers (eliminate/vote/winner). The socket
+ * layer (server.js) drives it; the engine itself has no I/O.
+ */
 import { StateMachine } from './state-machine.js';
 import { PlayerRegistry } from './player-registry.js';
 import { runEliminate } from './phases/eliminate-handler.js';

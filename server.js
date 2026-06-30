@@ -1393,6 +1393,7 @@ app.get('/api/phase-schemas', (req, res) => {
   res.json(summary);
 });
 
+// --- Recipe endpoints (the recipe layer: list / compile / save user recipes) ---
 app.get('/api/recipes', (req, res) => {
   const recipes = listRecipes().map(summarizeRecipe);
   res.json(recipes);
@@ -1677,6 +1678,8 @@ app.post('/api/games', async (req, res) => {
   }
 });
 
+// --- AI authoring endpoints (review, fix, revise, generate, theme, recipe match) ---
+// All gated by requireRealAI + the ai-budget throttle; they return 429 when capped.
 app.post('/api/games/review', async (req, res) => {
   try {
     const { config, depth } = req.body;
@@ -1919,6 +1922,12 @@ app.delete('/api/games/:gameId', async (req, res) => {
   }
 });
 
+// =======================================================================
+// Socket.io connection — all real-time gameplay events live here. Handlers
+// below are grouped: room/lobby, collect & submit, phase control, then the
+// per-phase-type events (rank / vote / merge / buzz / estimate / ...). Every
+// handler is wrapped so one throwing room can't crash the whole process.
+// =======================================================================
 io.on('connection', (socket) => {
   console.log(`[connect] Socket ${socket.id} connected`);
 
@@ -1958,6 +1967,7 @@ io.on('connection', (socket) => {
     }
   });
 
+  // --- Room & lobby events: create/join a room, teacher console, start game ---
   socket.on(EVENTS.CREATE_ROOM, async (payload = {}) => {
     if (!checkEventPayload(socket, 'create-room', payload)) return;
     const { gameId } = payload;

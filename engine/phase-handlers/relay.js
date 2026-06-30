@@ -1,3 +1,8 @@
+/**
+ * Phase handler: relay — turn-by-turn collaborative input (story chains, word
+ * chains). One player contributes at a time and the turn passes around the
+ * room, building a shared sequence.
+ */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 
