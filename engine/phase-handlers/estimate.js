@@ -43,10 +43,13 @@ registerHandler('estimate', {
 
     console.log(`[handlePhase] Estimate: answer=${state.answer ?? '(none — poll mode)'}`);
 
+    const image = ctx.services.resolveImageUrl(phase.image, room.gameId, room.gameSource);
+
     const total = ctx.engine.players.list().length;
     const payload = {
       prompt,
       unit: phase.unit || '',
+      image,
       min: typeof phase.min === 'number' ? phase.min : null,
       max: typeof phase.max === 'number' ? phase.max : null,
       timer: phase.timer || null,
@@ -70,9 +73,11 @@ registerHandler('estimate', {
       return;
     }
     const phase = ctx.engine.config.phases[state.phaseId] || {};
+    const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
     socket.emit(EVENTS.ESTIMATE_START, {
       prompt: state.prompt || '',
       unit: phase.unit || '',
+      image,
       min: typeof phase.min === 'number' ? phase.min : null,
       max: typeof phase.max === 'number' ? phase.max : null,
       timer: null, // reconnectors don't restart the countdown

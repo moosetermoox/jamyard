@@ -1072,15 +1072,17 @@ buzzFinishBtn.addEventListener('click', () => {
 
 const estimateSection = document.getElementById('estimate-section');
 const estimatePrompt = document.getElementById('estimate-prompt');
+const estimateImage = document.getElementById('estimate-image');
 const estimateTimer = document.getElementById('estimate-timer');
 const estimateCounter = document.getElementById('estimate-counter');
 const estimateCloseBtn = document.getElementById('estimate-close-btn');
 const estimateResults = document.getElementById('estimate-results');
 const estimateContinueBtn = document.getElementById('estimate-continue-btn');
 
-socket.on('estimate-start', ({ prompt, unit, count, total, timer, hostTemplate, show }) => {
+socket.on('estimate-start', ({ prompt, unit, image, count, total, timer, hostTemplate, show }) => {
   showSection(estimateSection);
   estimatePrompt.textContent = prompt + (unit ? ' (' + unit + ')' : '');
+  applyImage(estimateImage, image, show);
   estimateCounter.textContent = (count || 0) + ' of ' + total + ' guessed';
   estimateCloseBtn.hidden = false;
   estimateCloseBtn.disabled = false;

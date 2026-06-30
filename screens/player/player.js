@@ -1034,6 +1034,7 @@ socket.on('buzz-open', () => {
 
 const estimateSection = document.getElementById('estimate-section');
 const estimatePlayerPrompt = document.getElementById('estimate-player-prompt');
+const estimateImage = document.getElementById('estimate-image');
 const estimateTimerDisplay = document.getElementById('estimate-timer-display');
 const estimateInput = document.getElementById('estimate-input');
 const estimateUnit = document.getElementById('estimate-unit');
@@ -1054,9 +1055,10 @@ function submitEstimate() {
   return true;
 }
 
-socket.on('estimate-start', ({ prompt, unit, min, max, timer, playerTemplate, show }) => {
+socket.on('estimate-start', ({ prompt, unit, image, min, max, timer, playerTemplate, show }) => {
   showSection(estimateSection);
   estimatePlayerPrompt.textContent = prompt || 'Guess the number!';
+  applyImage(estimateImage, image, show);
   estimateUnit.textContent = unit || '';
   estimateInput.value = '';
   estimateInput.disabled = false;

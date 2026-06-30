@@ -1,0 +1,113 @@
+{
+  "id": "estimation-station",
+  "name": "Estimation Station",
+  "icon": "🎯",
+  "description": "Practice estimating large quantities. You write a few 'how many...?' challenges (jelly beans in a jar, breaths in a day, grains of rice in a cup), students each guess a number on their device, and the class sees how close everyone got — plus the class's average guess, which is often closer than almost anyone's. Great for number sense, Fermi problems, and 'guess the quantity' warm-ups.",
+  "tagline": "How many jelly beans are in the jar? Let the whole class find out.",
+  "version": "1",
+  "feel": ["curiosity", "friendly-competition", "wonder"],
+  "parameters": {
+    "questions": {
+      "type": "array",
+      "required": true,
+      "minItems": 1,
+      "maxItems": 15,
+      "label": "Estimation challenges",
+      "helper": "One round per challenge. Give the real number and what it's counting — students guess, then the class sees who came closest.",
+      "item": {
+        "type": "object",
+        "fields": {
+          "prompt": {
+            "type": "string",
+            "required": true,
+            "label": "The challenge",
+            "placeholder": "How many jelly beans are in this jar?"
+          },
+          "answer": {
+            "type": "integer",
+            "required": true,
+            "label": "The real number",
+            "placeholder": "1247"
+          },
+          "unit": {
+            "type": "string",
+            "required": true,
+            "label": "What it's counting",
+            "placeholder": "jelly beans"
+          }
+        }
+      },
+      "default": [
+        {
+          "prompt": "How many jelly beans would fill a 1-gallon jar?",
+          "answer": 930,
+          "unit": "jelly beans"
+        },
+        {
+          "prompt": "How many times does an average person's heart beat in a single day?",
+          "answer": 100000,
+          "unit": "beats"
+        },
+        {
+          "prompt": "How many grains of rice are in a single cup?",
+          "answer": 7000,
+          "unit": "grains"
+        }
+      ]
+    },
+    "scoring": {
+      "type": "enum",
+      "values": ["graduated", "closest"],
+      "default": "graduated",
+      "label": "How points work",
+      "helper": "graduated: everyone earns points, more for being closer (kinder, keeps the whole class in it). closest: the single closest guess takes all the points."
+    },
+    "questionTimer": {
+      "type": "integer",
+      "min": 10,
+      "max": 300,
+      "default": 45,
+      "label": "Seconds per challenge",
+      "helper": "Estimating well takes a little thinking — 45 seconds is a good default."
+    }
+  },
+  "template": {
+    "name": "Estimation Station",
+    "description": "Guess the quantity — closest guesses earn the most, and the class average is the one to beat.",
+    "family": null,
+    "phases": {
+      "lobby": { "type": "lobby", "next": "intro" },
+      "intro": {
+        "type": "announce",
+        "message": "🎯 ESTIMATION STATION!\n\nEach round you'll see a 'how many...?' challenge. Type your best estimate — no need to be exact, just reason it out.\n\nClosest guesses earn the most points. And watch the class's average guess: a whole room together is usually closer than almost anyone alone.",
+        "timer": 10,
+        "next": "q1"
+      },
+      "$repeat": {
+        "forEach": "questions",
+        "keyPattern": "q${i}",
+        "phase": {
+          "type": "estimate",
+          "prompt": "Estimate ${i} of ${n}:\n\n${item.prompt}",
+          "answer": "${item.answer}",
+          "unit": "${item.unit}",
+          "points": 10,
+          "scoring": "${scoring}",
+          "timer": "${questionTimer}",
+          "next": "${nextKey}"
+        },
+        "after": "scoreboard"
+      },
+      "scoreboard": {
+        "type": "leaderboard",
+        "from": { "$map": "questions", "value": "q${i}.scores" },
+        "style": "full",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "🎯 Nice estimating, everyone! The more you practice, the sharper your number sense gets."
+      }
+    }
+  }
+}

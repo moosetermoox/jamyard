@@ -2172,6 +2172,7 @@ function renderPhaseConfig(phaseId) {
       if (value == null || value === '') delete phase.timer;
       else phase.timer = value;
     });
+    addImageUploadWidget(phase, phaseId);
   }
 
   if (type === 'ai-eliminate') {

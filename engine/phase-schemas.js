@@ -789,6 +789,11 @@ export const PHASE_SCHEMAS = {
       max: {
         type: 'number', optional: true,
         label: 'Highest allowed guess (optional)'
+      },
+      image: {
+        type: 'string', optional: true,
+        label: 'Image (optional)',
+        helper: 'Path to an uploaded image (e.g. assets/jar.jpg) — perfect for "guess the jar". Stays up while students guess. Use the upload widget below.'
       }
     },
     transitions: {
@@ -805,8 +810,8 @@ export const PHASE_SCHEMAS = {
       }
     },
     ui: {
-      hostToggles: ['prompt', 'counter', 'timer', 'closeButton', 'results'],
-      playerToggles: ['prompt', 'input', 'timer', 'submitButton']
+      hostToggles: ['prompt', 'image', 'counter', 'timer', 'closeButton', 'results'],
+      playerToggles: ['prompt', 'image', 'input', 'timer', 'submitButton']
     }
   },
 
