@@ -4,11 +4,9 @@
  * Implements the rev. 2 architectural principles from
  * docs/PHASE-SCHEMA-SPEC.md §2:
  *
- *   1. Schema is declarative data only. Behavior (renderers, validate
- *      hooks, dynamic-output resolvers) is referenced by name and
- *      resolved through registries in:
- *        - engine/renderers.js          RENDERER_REGISTRY
- *        - engine/phase-schema-runtime.js  VALIDATOR_HOOKS, DYNAMIC_OUTPUT_RESOLVERS
+ *   1. Schema is declarative data only. Behavior (dynamic-output
+ *      resolvers) is referenced by name and resolved through a registry in:
+ *        - engine/phase-schema-runtime.js  DYNAMIC_OUTPUT_RESOLVERS
  *
  *   2. Mixins (not "universal" fields). Phases opt into capability
  *      blocks: screenControl, timer, participantSelector, loops.
@@ -565,9 +563,7 @@ export const PHASE_SCHEMAS = {
         eliminatedNames: { type: 'array', renderers: { list: 'responseList' } },
         remaining:       { type: 'integer' }
       }
-    },
-    validate: 'eliminateMethodFields',
-    ui: {
+    },    ui: {
       hostToggles: ['eliminated', 'remaining', 'continueButton'],
       playerToggles: ['details']
     }
@@ -598,9 +594,7 @@ export const PHASE_SCHEMAS = {
         content:   { type: 'string', capability: 'renderable' },
         responses: { type: 'array', capability: 'responseArray', optional: true }
       }
-    },
-    validate: 'previewContentOrTemplate',
-    ui: {
+    },    ui: {
       hostToggles: ['content', 'responses', 'approveButton', 'rejectButton'],
       playerToggles: []
     }
@@ -854,9 +848,7 @@ export const PHASE_SCHEMAS = {
     transitions: {
       next: { type: 'phaseRef', optional: true }
     },
-    output: { kind: 'static', fields: {} },
-    validate: 'revealContentOrTemplate',
-    ui: {
+    output: { kind: 'static', fields: {} },    ui: {
       hostToggles: ['content', 'image', 'video', 'responses', 'continueButton'],
       playerToggles: ['content', 'image']
     }
@@ -1020,9 +1012,7 @@ export const PHASE_SCHEMAS = {
         teams:      { type: 'array', capability: 'teamArray' },
         playerTeam: { type: 'object' }
       }
-    },
-    validate: 'teamSplitBalancedNeedsScores',
-    ui: {
+    },    ui: {
       hostToggles: ['teams', 'continueButton'],
       playerToggles: ['team', 'allTeams']
     }
@@ -1116,9 +1106,7 @@ export const PHASE_SCHEMAS = {
         scores:   { type: 'scoreMap', capability: 'scoreMap', renderers: { barChart: 'tallyBarChart' } },
         resolved: { type: 'string' }
       }
-    },
-    validate: 'wagerNoResolutionBasis',
-    ui: {
+    },    ui: {
       hostToggles: ['prompt', 'options', 'counter', 'timer', 'closeButton'],
       playerToggles: ['prompt', 'options', 'points', 'timer', 'submitButton']
     }
@@ -1259,9 +1247,7 @@ export const PHASE_SCHEMAS = {
         byScale:     { type: 'object' },
         scales:      { type: 'array' }
       }
-    },
-    validate: 'rateScalesValid',
-    ui: {
+    },    ui: {
       hostToggles: ['prompt', 'counter', 'timer', 'closeButton', 'results'],
       playerToggles: ['prompt', 'scales', 'timer', 'submitButton', 'results']
     }
@@ -1323,9 +1309,7 @@ export const PHASE_SCHEMAS = {
         scores:    { type: 'scoreMap', capability: 'scoreMap', optional: true },
         itemCount: { type: 'integer', optional: true }
       }
-    },
-    validate: 'foreachScoringValid',
-    ui: {
+    },    ui: {
       hostToggles: [],
       playerToggles: []
     }
@@ -1421,15 +1405,6 @@ export function getAllowedFieldNames(phaseType, opts = {}) {
 }
 
 /**
- * Returns the list of phase types that can appear inside a foreach.
- */
-export function getSubPhaseTypes() {
-  return Object.entries(PHASE_SCHEMAS)
-    .filter(([, s]) => s.allowedIn.includes('foreach'))
-    .map(([t]) => t);
-}
-
-/**
  * Returns the toggle vocabulary for hostShow on a given phase type.
  */
 export function getHostToggles(phaseType) {
@@ -1452,21 +1427,3 @@ export function getAliases(phaseType) {
   return PHASE_SCHEMAS[phaseType]?.aliases || {};
 }
 
-/**
- * Type-compat check: does an output's `capability` satisfy a field's
- * `accepts: [{type, capability?}, ...]`?
- *
- * Used by typed-dataflow validation (Phase E in the migration plan).
- *
- * @param {{ type: string, capability?: string }} produced
- * @param {Array<{ type: string, capability?: string }>} accepts
- * @returns {boolean}
- */
-export function isCompatible(produced, accepts) {
-  if (!accepts || accepts.length === 0) return true;
-  return accepts.some(spec => {
-    if (spec.type !== produced.type) return false;
-    if (!spec.capability) return true; // no capability requirement
-    return spec.capability === produced.capability;
-  });
-}

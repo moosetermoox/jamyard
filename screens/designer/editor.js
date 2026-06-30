@@ -959,12 +959,6 @@ function humanizeRef(ref) {
   return parts.slice(1).join(' / ') + ' from ' + label;
 }
 
-function escapeHtmlForPreview(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-}
-
 /**
  * Replace `{{phaseId.suffix}}` tokens in a string with a friendly chip span
  * that says what the player/host will actually see. Non-token text is

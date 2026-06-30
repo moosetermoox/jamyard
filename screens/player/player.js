@@ -1995,12 +1995,3 @@ function showSection(el) {
     J.sound('blip');
   }
 }
-
-function hideAllSections() {
-  clearTimer();
-  for (const s of allPlayerSections) {
-    s.classList.remove('active');
-    s.hidden = true;
-  }
-  // Note: eliminatedBanner is NOT hidden here — it persists once set
-}

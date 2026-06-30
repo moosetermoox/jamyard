@@ -1664,11 +1664,3 @@ function showSection(el) {
   void el.offsetWidth;
   el.classList.add('active');
 }
-
-function hideAllSections() {
-  clearTimer();
-  for (const s of allSections) {
-    s.classList.remove('active');
-    s.hidden = true;
-  }
-}

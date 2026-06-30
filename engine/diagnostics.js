@@ -132,26 +132,6 @@ export function mkDiagnostic(fields) {
 }
 
 /**
- * Convert an old-style string error into a Diagnostic. Lets us migrate
- * incrementally — a validator function can yield strings or Diagnostic
- * objects during the transition.
- *
- * @param {string|Diagnostic} input
- * @param {Severity} [defaultSeverity='error']
- * @returns {Diagnostic}
- */
-export function asDiagnostic(input, defaultSeverity = 'error') {
-  if (typeof input === 'string') {
-    return mkDiagnostic({
-      severity: defaultSeverity,
-      code: 'LEGACY_STRING_ERROR',  // marker so we can hunt these down
-      message: input
-    });
-  }
-  return input;
-}
-
-/**
  * Build a path string from segments (e.g. ['phases', 'vote', 'mode']
  * → "phases.vote.mode"). Centralized so we can change the format
  * (slashes vs dots vs JSON Pointer) without grepping every hook.
@@ -166,18 +146,6 @@ export function path(...segments) {
  */
 export function bySeverity(diagnostics, severity) {
   return diagnostics.filter(d => d.severity === severity);
-}
-
-/**
- * Backward-compat shim: convert a Diagnostic[] into the old string[]
- * shape that the existing validate() callers expect.
- *
- * Use case: `throw new Error(asMessages(errors)[0])` — preserves the
- * "throw first error" behavior of the current validator while we
- * migrate consumers to read structured diagnostics.
- */
-export function asMessages(diagnostics) {
-  return diagnostics.map(d => d.message);
 }
 
 /**

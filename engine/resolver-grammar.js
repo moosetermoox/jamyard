@@ -35,8 +35,6 @@ import { resolveOutputSpec } from './phase-schema-runtime.js';
  * Known synthetic suffixes — these are renderers that turn an output
  * value into a string. Order: longest first to disambiguate (none of
  * these prefix-collide today, but be safe).
- *
- * Stays in sync with engine/renderers.js RENDERER_REGISTRY suffixes.
  */
 export const KNOWN_SUFFIXES = new Set([
   'list',
