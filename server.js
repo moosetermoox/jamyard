@@ -1074,16 +1074,16 @@ function buildTeacherSnapshot(code, room) {
 }
 
 // Push the live moderation list (submitter name + text + hidden flag) to the
-// host and any teacher consoles so the teacher can hide/kick during a collect
-// phase. No-op if there's no engine or current phase isn't a collect-type.
+// teacher consoles only so the teacher can hide/kick during a collect phase.
+// Deliberately NOT sent to the host: that screen is projected to the class, so
+// names + answers must never reach it. No-op if there's no engine or current
+// phase isn't a collect-type.
 function emitSubmissionsUpdate(code, room) {
   if (!room || !room.engine) return;
   const phase = room.engine.getCurrentPhase();
   if (!phase || (phase.type !== 'collect' && phase.type !== 'collect-choice')) return;
   const eligible = getEligibleVoters(room.engine.players, phase.from || 'all');
   const payload = { submissions: buildSubmissionList(eligible) };
-  const hostSocketId = roomToHost.get(code);
-  if (hostSocketId) io.to(hostSocketId).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
   io.to(teachersChannel(code)).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
 }
 

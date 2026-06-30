@@ -45,6 +45,13 @@ const gameSelect = document.getElementById('game-select');
 const roomCodeSection = document.getElementById('room-code-section');
 const roomCodeDisplay = document.getElementById('room-code');
 const gameNameDisplay = document.getElementById('game-name-display');
+const copyLinkBtn = document.getElementById('copy-link-btn');
+const showQrBtn = document.getElementById('show-qr-btn');
+const qrPanel = document.getElementById('qr-panel');
+const qrImage = document.getElementById('qr-image');
+const joinUrlDisplay = document.getElementById('join-url');
+let currentJoinUrl = null;
+let qrRendered = false;
 const createRoomBtn = document.getElementById('create-room-btn');
 const playerList = document.getElementById('player-list');
 const startGameBtn = document.getElementById('start-game-btn');
@@ -55,12 +62,6 @@ const promptDisplay = document.getElementById('prompt-display');
 const collectTimer = document.getElementById('collect-timer');
 const submissionCount = document.getElementById('submission-count');
 const closeSubmissionsBtn = document.getElementById('close-submissions-btn');
-
-// Elements - Moderation panel
-const moderationPanel = document.getElementById('moderation-panel');
-const moderationToggle = document.getElementById('moderation-toggle');
-const moderationCount = document.getElementById('moderation-count');
-const moderationList = document.getElementById('moderation-list');
 
 // Elements - Process
 const processSection = document.getElementById('process-section');
@@ -313,9 +314,17 @@ socket.emit('get-games');
 // grace window and can resurrect them from snapshots after a restart.
 socket.on('connect', () => {
   try {
+    const params = new URLSearchParams(window.location.search);
+    // "Host a Game" from home appends ?new=1 to mean "start fresh": forget any
+    // stale host session left in this tab from a prior game and show the picker.
+    // We strip the param so a later F5 on this new game still recovers normally.
+    if (params.get('new')) {
+      try { sessionStorage.removeItem('lanyardHostSession'); } catch (e) { /* ignore */ }
+      history.replaceState(null, '', '/host');
+      return;
+    }
     // ?game= / prototype launches always want a FRESH room (the editor's
     // Prototype button, sim harnesses) — never rebind those to an old one.
-    const params = new URLSearchParams(window.location.search);
     if (params.get('game') || params.get('prototype')) return;
     const saved = JSON.parse(sessionStorage.getItem('lanyardHostSession') || 'null');
     if (saved && saved.code && saved.hostToken) {
@@ -363,6 +372,68 @@ createRoomBtn.addEventListener('click', () => {
   socket.emit('create-room', { gameId });
   createRoomBtn.disabled = true;
 });
+
+// --- Share the room: copy join link + QR code ---
+// Both are student-facing (they help kids join), so they belong on the
+// projected host screen — unlike the moderation panel, which does not.
+
+if (copyLinkBtn) {
+  copyLinkBtn.addEventListener('click', () => {
+    if (!currentJoinUrl) return;
+    const flash = () => {
+      const prev = copyLinkBtn.textContent;
+      copyLinkBtn.textContent = '✓ Copied!';
+      setTimeout(() => { copyLinkBtn.textContent = prev; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(currentJoinUrl).then(flash).catch(() => fallbackCopy(currentJoinUrl, flash));
+    } else {
+      fallbackCopy(currentJoinUrl, flash);
+    }
+  });
+}
+
+function fallbackCopy(text, onDone) {
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    if (onDone) onDone();
+  } catch (e) { /* clipboard blocked — the link is shown on-screen to copy by hand */ }
+}
+
+if (showQrBtn) {
+  showQrBtn.addEventListener('click', () => {
+    if (!qrPanel) return;
+    if (!qrPanel.hidden) {
+      qrPanel.hidden = true;
+      showQrBtn.textContent = '📱 Show QR code';
+      return;
+    }
+    if (!qrRendered) renderJoinQr();
+    qrPanel.hidden = false;
+    showQrBtn.textContent = '📱 Hide QR code';
+  });
+}
+
+function renderJoinQr() {
+  if (!currentJoinUrl || !qrImage || typeof qrcode !== 'function') return;
+  try {
+    const qr = qrcode(0, 'M');        // type 0 = auto-size, 'M' = ~15% error correction
+    qr.addData(currentJoinUrl);
+    qr.make();
+    qrImage.src = qr.createDataURL(8, 16); // cellSize px, margin px
+    qrRendered = true;
+  } catch (e) {
+    // QR is a convenience; the code + link still work if generation fails.
+    if (qrPanel) qrPanel.hidden = true;
+  }
+}
 
 startGameBtn.addEventListener('click', () => {
   socket.emit('start-game', { code: currentRoomCode });
@@ -480,6 +551,15 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored 
   currentTeacherPin = teacherPin || null;
   roomCodeDisplay.textContent = code;
   gameNameDisplay.textContent = game || '';
+
+  // Build the student join link from whatever origin the host loaded from, so
+  // it's correct on Render (public URL) and on a LAN IP alike. Student-facing,
+  // so it's fine on the projected screen. QR renders lazily on first show.
+  currentJoinUrl = window.location.origin + '/player?code=' + encodeURIComponent(code);
+  if (joinUrlDisplay) joinUrlDisplay.textContent = currentJoinUrl;
+  qrRendered = false;
+  if (qrPanel) qrPanel.hidden = true;
+  if (showQrBtn) showQrBtn.textContent = '📱 Show QR code';
   teacherViewInfo.hidden = true; // PIN stays hidden until deliberately revealed
 
   // Remember this room so an F5 (or a server restart) can rebind instead of
@@ -578,8 +658,6 @@ socket.on('game-started', ({ prompt, image, video, timer, hostTemplate, show }) 
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   submissionCount.textContent = '0 of 0 submitted';
-  renderModeration([]);
-  if (moderationList) moderationList.hidden = true;
   applyTemplate(collectSection, hostTemplate);
   applyImage(collectImage, image, show);
   applyVideo(collectVideo, video, show);
@@ -601,64 +679,12 @@ socket.on('response-received', ({ playerName, count, total }) => {
   if (J) J.sound('blip');
 });
 
-// --- Moderation panel (live submissions: hide / kick) ---
-
-if (moderationToggle) {
-  moderationToggle.addEventListener('click', () => {
-    if (moderationList) moderationList.hidden = !moderationList.hidden;
-  });
-}
-
-function renderModeration(submissions) {
-  if (!moderationPanel) return;
-  const list = submissions || [];
-  moderationPanel.hidden = list.length === 0;
-  if (moderationCount) moderationCount.textContent = '(' + list.length + ')';
-  if (!moderationList) return;
-  moderationList.innerHTML = '';
-  for (const s of list) {
-    const li = document.createElement('li');
-    li.className = 'moderation-item' + (s.hidden ? ' moderation-hidden' : '');
-
-    const text = document.createElement('span');
-    text.className = 'moderation-text';
-    text.innerHTML = '<strong>' + escapeHtml(s.name) + ':</strong> ' + escapeHtml(s.text);
-
-    const hideBtn = document.createElement('button');
-    hideBtn.type = 'button';
-    hideBtn.className = 'moderation-btn';
-    hideBtn.textContent = s.hidden ? 'Unhide' : 'Hide';
-    hideBtn.addEventListener('click', () => {
-      socket.emit('moderate-hide', { code: currentRoomCode, playerId: s.playerId, hidden: !s.hidden });
-    });
-
-    const kickBtn = document.createElement('button');
-    kickBtn.type = 'button';
-    kickBtn.className = 'moderation-btn moderation-kick';
-    kickBtn.textContent = 'Kick';
-    kickBtn.addEventListener('click', () => {
-      if (window.confirm('Remove ' + s.name + ' from the game? They cannot rejoin this session.')) {
-        socket.emit('moderate-kick', { code: currentRoomCode, playerId: s.playerId });
-      }
-    });
-
-    li.appendChild(text);
-    li.appendChild(hideBtn);
-    li.appendChild(kickBtn);
-    moderationList.appendChild(li);
-  }
-}
-
 function escapeHtml(str) {
   return String(str == null ? '' : str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 }
-
-socket.on('submissions-update', ({ submissions }) => {
-  renderModeration(submissions);
-});
 
 const processMessage = document.getElementById('process-message');
 

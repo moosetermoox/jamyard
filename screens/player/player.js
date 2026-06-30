@@ -246,6 +246,19 @@ let turnCurrentInstanceId = null;
   }
 })();
 
+// Shared join link / QR (?code=XXXX from the host's "Copy join link" or QR
+// code): prefill the room code so the student only types a name. Prototype
+// mode is handled above, so skip it here.
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('prototype') === 'true') return;
+  const code = params.get('code');
+  if (code) {
+    roomCodeInput.value = code.toUpperCase().trim().slice(0, 4);
+    if (nameInput) setTimeout(() => nameInput.focus(), 100);
+  }
+})();
+
 // --- Bot Fill (prototype mode) ---
 // Answers come from /shared/bot-brain.js: prompt-aware rules so a snack
 // question gets a snack answer. Falls back to a playful generic if the
