@@ -6,27 +6,46 @@ History lives in [CHANGELOG.md](CHANGELOG.md); parked ideas in [DEFERRED-IDEAS.m
 ## Now — the pre-August plan (classroom tests start August 2026)
 
 Filter every priority through: *what will matter in the first week of real use?*
-Explicitly NOT doing: more phase types/features until August feedback.
+The June feature freeze was consciously lifted in July: match, sort, teams
+upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
+everything below is polish, testing, and ops.
 
-- **A. Survive a real class period** ← IN PROGRESS
-  - Room-state persistence: snapshot engine state to Neon on phase transitions;
-    a restarted/slept server resurrects the room when host+players reconnect
-    (semantic: resume at the START of the interrupted phase — mid-phase
-    progress in that one phase is lost, the game is not)
-  - Deploy-on-green (CI triggers the Render deploy; red suite can't ship)
-  - Uptime: paid tier or external ping so the server doesn't sleep mid-day
-- **B. Chaos simulator** ✅ DONE — `node scripts/simulate-chaos.js` (chaos mode
-  in services/simulator.js): players drop/reconnect mid-phase, ghosts join
-  with dead tokens, stale/malformed/duplicate sprays — all 6 suite games
-  complete clean. Found + fixed: player-id migration on reconnect (systemic),
-  advance-phase now closes the current phase first, close-submissions
-  phase guard, empty rank/vote skip, estimate reconnect-after-close.
-- **C. Day-one kit** — pick the 3-5 games August actually starts with
-  (likely One Voice/Closer, Quiz Show, Lightning Round), polish those deeply
-  (phone screens, timings, prompts), + anonymous mode, + a one-page
-  "if X goes wrong, do Y" teacher cheat sheet.
-- **D. Proxy playtests (July)** — family/colleagues on real phones; two
-  adults find what no sim can.
+### START HERE next session (notes from 2026-07-06)
+
+1. **Proxy playtests (D) — this is the week.** July is the window; August is
+   too late to act on what they find. Push the four unpushed commits (match /
+   teams / sort / drawing — Render deploys on push), then run 2-3 adults on
+   real phones through the day-one-kit candidates. `scripts/demo-room.js`
+   holds a room for phone testing.
+2. **Two 5-minute ops steps only the teacher can do** (pending since June):
+   set the `RENDER_DEPLOY_HOOK` secret + turn Render auto-deploy OFF
+   (deploy-on-green instructions in `.github/workflows/test.yml`), and add an
+   UptimeRobot ping (or paid tier) so the free dyno doesn't sleep mid-class.
+3. **Day-one kit (C)** — pick the 3-5 launch games and polish deeply.
+   Candidates now: One Voice / Closer (connection), Quiz Show, Lightning
+   Round, **Vocab Match**, **Metaphor or Simile?**, **Art Gallery** (the new
+   ones are bread-and-butter classroom material). Plus anonymous mode and the
+   one-page "if X goes wrong, do Y" teacher cheat sheet.
+4. **Recipes for the new stuff** — match/sort/drawing have NO recipes yet, so
+   the idea-first front door ("make a vocab quiz for my French class") can't
+   route to them. A vocab-match recipe + a sort recipe + an art-gallery recipe
+   makes the new features reachable by non-coders. Small, high-leverage.
+5. **Loose ends from the July push:** caption mode (drawing shown above a
+   text box via rotateFrom) works but no shipped game uses it — Telephone
+   Pictionary needs the chain reveal (see Next below); the editor UI for the
+   new widgets (match pairs rows, sort buckets/items, drawing toggle, team
+   sizing toggle) passed validation but was never screenshot-reviewed in the
+   browser; class-critique still ships an empty reveal template.
+
+### The plan itself
+
+- **A. Survive a real class period** ✅ CODE DONE — room snapshots (resume at
+  phase start, host-F5 rejoin), CI deploy-on-green wiring. Remaining: the two
+  manual ops steps in START HERE #2.
+- **B. Chaos simulator** ✅ DONE — `node scripts/simulate-chaos.js`; every new
+  interactive phase gets a chaos run before shipping (now standard practice).
+- **C. Day-one kit** — see START HERE #3.
+- **D. Proxy playtests (July)** — see START HERE #1.
 - **E. If time remains** — accessibility basics (contrast, touch targets,
   keyboard nav); AI-generation eval loop (20 realistic prompts → robot
   playtest all → fix generator weaknesses in batch).

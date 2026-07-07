@@ -244,6 +244,7 @@ Framework for quickly building classroom games where:
 
 ### Safety Features (Implemented)
 - **Content filtering** — `engine/content-filter.js` + `engine/blocklist.js`; word-boundary match with leet-speak normalization; rejects on `submit-response`, `merge-draft`, AND `relay-submit` with a player-facing notice (the notice lands on whichever input the student is using — merge/relay rejections keep them in place to revise)
+- **Drawing safety** — the blocklist can't read a picture, so drawing submissions lean on: attribution (every drawing is named, never anonymous), live moderation thumbnails on the teacher console (hide/kick), and the `preview` phase before any class-wide reveal (both shipped drawing games route through it). Structural validation only in `engine/drawing.js`. **Rule for new drawing surfaces: nothing student-drawn reaches the projector without a teacher gate.**
 - **Crash isolation** — every socket handler runs inside a try/catch wrapper (one bad room can't kill the process / every other classroom); `process.on('unhandledRejection')` logs instead of crashing; all close/* handlers and submit handlers kind-guard `room.phaseState` (`kind` field on every stateful phase) and the closers are idempotent — the all-inputs-in auto-advance racing a late host click used to crash the server
 - **Host moderation** — `engine/moderation.js`; live submission list on collect phases; Hide (reversible, excluded from AI) and Kick (blocked rejoin via `kickedTokens`)
 - **AI safety rules** — `SAFETY_RULES` block appended to every game-run system prompt
@@ -284,7 +285,7 @@ Framework for quickly building classroom games where:
 - **AUTHORING-DESIGN.md** — Config style guide, validation, debug mode
 - **connection-pack-spec.md** — the no-winner game family (Closer / Snowball / One Voice): design principles, phase strings, merge + one-voice specs, licensing stance, staged voice modes (v1.5 recorded clips / v2 WebRTC — NOT built)
 - **CORN-STORY-FEASIBILITY.md** — Implementation analysis and build order
-- **NEXT-STEPS.md** — living roadmap (Now / Next / Later); check here first when asking "what should we work on?"
+- **NEXT-STEPS.md** — living roadmap (Now / Next / Later); check here FIRST when asking "what should we work on?" — its "START HERE next session" block is kept current with concrete next actions
 - **CHANGELOG.md** — dated log of everything shipped; **DEFERRED-IDEAS.md** — considered but parked
 
 ### Engine Modules (additions)
