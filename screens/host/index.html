@@ -179,7 +179,23 @@
   <!-- TEAM-SPLIT SECTION -->
   <section id="team-split-section" hidden>
     <div class="screen-template" hidden></div>
-    <h2>Teams</h2>
+    <h2 id="team-split-heading">Teams</h2>
+
+    <!-- Teacher-assign view (method: teacher) -->
+    <div id="team-arrange" hidden>
+      <p class="team-arrange-hint">Tap a name, then tap a team. Tap an assigned name to send it back. Confirm auto-fills anyone left.</p>
+      <div id="team-arrange-unassigned" class="team-arrange-pool"></div>
+      <div id="team-arrange-teams" class="team-choice-grid"></div>
+      <button id="team-arrange-confirm-btn">Confirm Teams</button>
+    </div>
+
+    <!-- Student-choice progress view (method: choice) -->
+    <div id="team-choice" hidden>
+      <p id="team-choice-counter" class="big-text">0 of 0 picked a spot</p>
+      <div id="team-choice-teams" class="team-choice-grid"></div>
+      <button id="team-choice-confirm-btn">Confirm Teams</button>
+    </div>
+
     <div id="team-split-teams"></div>
     <button id="team-split-continue-btn">Continue</button>
   </section>

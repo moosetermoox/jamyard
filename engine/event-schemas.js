@@ -70,6 +70,21 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'team-assign': {
+    code: 'string:required',
+    playerId: 'string:required',
+    team: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'team-split-confirm': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'team-pick': {
+    code: 'string:required',
+    team: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
   'wager-submit': {
     code: 'string:required',
     option: 'string:required',

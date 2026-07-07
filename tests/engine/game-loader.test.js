@@ -859,11 +859,25 @@ describe('GameLoader', () => {
       expect(() => validate(config, 'test')).toThrow('missing required field "method"');
     });
 
-    it('rejects team-split missing teamCount', () => {
+    it('rejects team-split with no sizing (neither teamCount nor groupSize)', () => {
       const config = makeConfig({
         test: { type: 'team-split', method: 'random', next: 'end' }
       });
-      expect(() => validate(config, 'test')).toThrow('missing required field "teamCount"');
+      expect(() => validate(config, 'test')).toThrow('needs either "Number of teams" or "Group size"');
+    });
+
+    it('rejects team-split with BOTH teamCount and groupSize', () => {
+      const config = makeConfig({
+        test: { type: 'team-split', method: 'random', teamCount: 2, groupSize: 4, next: 'end' }
+      });
+      expect(() => validate(config, 'test')).toThrow('pick one');
+    });
+
+    it('accepts team-split sized by groupSize with choice method', () => {
+      const config = makeConfig({
+        test: { type: 'team-split', method: 'choice', groupSize: 4, next: 'end' }
+      });
+      expect(() => validate(config, 'test')).not.toThrow();
     });
 
     it('rejects invalid teamCount', () => {

@@ -692,6 +692,42 @@ button[hidden] {
   background: var(--theme-border, #ccc);
 }
 
+/* Team-split choice mode: tap the team you want */
+.team-pick-hint {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin: 4px 0 8px;
+}
+
+.team-pick-option {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  text-align: left;
+  font-size: 1rem;
+  padding: 12px 16px;
+}
+
+.team-pick-option:disabled {
+  opacity: 0.55;
+}
+
+.team-pick-mine {
+  outline: 4px solid var(--theme-success, #00C853);
+}
+
+.team-pick-title {
+  font-weight: 900;
+  font-size: 1.15rem;
+}
+
+.team-pick-names {
+  font-weight: 400;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
 /* Match phase: left column fixed, right column drag-to-swap */
 .match-hint {
   font-size: 0.9rem;

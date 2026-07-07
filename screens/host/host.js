@@ -162,8 +162,17 @@ const revealOneContinueBtn = document.getElementById('reveal-one-continue-btn');
 
 // Elements - Team-split
 const teamSplitSection = document.getElementById('team-split-section');
+const teamSplitHeading = document.getElementById('team-split-heading');
 const teamSplitTeams = document.getElementById('team-split-teams');
 const teamSplitContinueBtn = document.getElementById('team-split-continue-btn');
+const teamArrange = document.getElementById('team-arrange');
+const teamArrangeUnassigned = document.getElementById('team-arrange-unassigned');
+const teamArrangeTeams = document.getElementById('team-arrange-teams');
+const teamArrangeConfirmBtn = document.getElementById('team-arrange-confirm-btn');
+const teamChoice = document.getElementById('team-choice');
+const teamChoiceCounter = document.getElementById('team-choice-counter');
+const teamChoiceTeams = document.getElementById('team-choice-teams');
+const teamChoiceConfirmBtn = document.getElementById('team-choice-confirm-btn');
 
 // Elements - Rank
 const rankSection = document.getElementById('rank-section');
@@ -867,8 +876,118 @@ socket.on('reveal-one-complete', () => {
 
 // --- Socket events - Team-split ---
 
+// Teacher-assign mode: tap a name, tap a team. Server re-emits the full
+// setup after every assignment, so this just renders the payload.
+let teamArrangeSelected = null; // playerId currently highlighted
+
+socket.on('team-split-setup', ({ rosters, unassigned }) => {
+  showSection(teamSplitSection);
+  teamSplitHeading.textContent = 'Make the teams';
+  teamArrange.hidden = false;
+  teamChoice.hidden = true;
+  teamSplitTeams.innerHTML = '';
+  teamSplitContinueBtn.hidden = true;
+
+  // Selected player may have just been assigned — drop stale selection
+  if (teamArrangeSelected && !(unassigned || []).some(u => u.playerId === teamArrangeSelected)) {
+    teamArrangeSelected = null;
+  }
+
+  teamArrangeUnassigned.innerHTML = '';
+  for (const u of (unassigned || [])) {
+    const chip = document.createElement('button');
+    chip.className = 'team-chip' + (u.playerId === teamArrangeSelected ? ' team-chip-selected' : '');
+    chip.textContent = (J ? J.avatarFor(u.name) + ' ' : '') + u.name;
+    chip.addEventListener('click', () => {
+      teamArrangeSelected = teamArrangeSelected === u.playerId ? null : u.playerId;
+      document.querySelectorAll('#team-arrange-unassigned .team-chip').forEach(c => c.classList.remove('team-chip-selected'));
+      if (teamArrangeSelected === u.playerId) chip.classList.add('team-chip-selected');
+    });
+    teamArrangeUnassigned.appendChild(chip);
+  }
+  if ((unassigned || []).length === 0) {
+    const done = document.createElement('p');
+    done.className = 'team-arrange-hint';
+    done.textContent = 'Everyone is placed — Confirm when it looks right.';
+    teamArrangeUnassigned.appendChild(done);
+  }
+
+  teamArrangeTeams.innerHTML = '';
+  for (const r of (rosters || [])) {
+    const card = document.createElement('div');
+    card.className = 'team-card team-card-tappable';
+    const h3 = document.createElement('h3');
+    h3.textContent = r.name + ' (' + r.members.length + '/' + r.capacity + ')';
+    card.appendChild(h3);
+    for (const m of r.members) {
+      const p = document.createElement('p');
+      p.className = 'team-chip-assigned';
+      p.textContent = (J ? J.avatarFor(m.name) + ' ' : '') + m.name;
+      p.title = 'Tap to send back';
+      p.addEventListener('click', (e) => {
+        e.stopPropagation();
+        socket.emit('team-assign', { code: currentRoomCode, playerId: m.playerId, team: '' });
+      });
+      card.appendChild(p);
+    }
+    card.addEventListener('click', () => {
+      if (!teamArrangeSelected) return;
+      socket.emit('team-assign', { code: currentRoomCode, playerId: teamArrangeSelected, team: r.name });
+      teamArrangeSelected = null;
+    });
+    teamArrangeTeams.appendChild(card);
+  }
+});
+
+teamArrangeConfirmBtn.addEventListener('click', () => {
+  socket.emit('team-split-confirm', { code: currentRoomCode });
+});
+
+// Student-choice mode: the projector shows live rosters filling up.
+function renderTeamChoiceHost(rosters, placed, total) {
+  showSection(teamSplitSection);
+  teamSplitHeading.textContent = 'Pick your team!';
+  teamChoice.hidden = false;
+  teamArrange.hidden = true;
+  teamSplitTeams.innerHTML = '';
+  teamSplitContinueBtn.hidden = true;
+  teamChoiceCounter.textContent = placed + ' of ' + total + ' picked a spot';
+
+  teamChoiceTeams.innerHTML = '';
+  for (const r of (rosters || [])) {
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    const h3 = document.createElement('h3');
+    h3.textContent = r.name + ' — ' + r.open + (r.open === 1 ? ' spot' : ' spots') + ' left';
+    card.appendChild(h3);
+    for (const m of r.members) {
+      const p = document.createElement('p');
+      p.textContent = (J ? J.avatarFor(m.name) + ' ' : '') + m.name;
+      card.appendChild(p);
+    }
+    teamChoiceTeams.appendChild(card);
+  }
+}
+
+socket.on('team-choice-start', ({ rosters, placed, total }) => {
+  renderTeamChoiceHost(rosters, placed || 0, total || 0);
+});
+
+socket.on('team-choice-update', ({ rosters, placed, total }) => {
+  renderTeamChoiceHost(rosters, placed, total);
+  if (J) J.sound('blip');
+});
+
+teamChoiceConfirmBtn.addEventListener('click', () => {
+  socket.emit('team-split-confirm', { code: currentRoomCode });
+});
+
 socket.on('team-split', ({ teams, hostTemplate, show }) => {
   showSection(teamSplitSection);
+  teamSplitHeading.textContent = 'Teams';
+  teamArrange.hidden = true;
+  teamChoice.hidden = true;
+  teamSplitContinueBtn.hidden = false;
   applyTemplate(teamSplitSection, hostTemplate);
   applyShow(show, {
     teams: teamSplitTeams,

@@ -895,7 +895,9 @@ function getPrimaryFieldDef(type) {
       return 'For each item in ' + source + ' • ' + subs + ' sub-step' + (subs === 1 ? '' : 's');
     }};
     case 'team-split': return { type: 'summary', summarize: function (p) {
-      return (p.teamCount || 2) + ' teams' + (p.method ? ' (' + p.method + ')' : '');
+      var sizing = p.groupSize != null ? 'groups of ' + p.groupSize : (p.teamCount || 2) + ' teams';
+      var how = { random: 'random', balanced: 'balanced', teacher: 'you arrange', choice: 'students pick' }[p.method];
+      return sizing + (how ? ' (' + how + ')' : '');
     }};
     case 'rate': return { type: 'summary', summarize: function (p) {
       var scaleCount = (p.scales || []).length;
@@ -2343,10 +2345,12 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'team-split') {
-    addSelectWithHelp('Method', 'How players are divided into teams', 'phase-method',
+    addSelectWithHelp('How teams are made', 'random/balanced assign instantly. "You arrange them" shows the roster on your screen. "Students pick" lets them tap the group they want (open spots only).', 'phase-method',
       [
         { value: 'random', label: 'Random shuffle' },
-        { value: 'balanced', label: 'Balanced by score' }
+        { value: 'balanced', label: 'Balanced by score' },
+        { value: 'teacher', label: 'You arrange them on screen' },
+        { value: 'choice', label: 'Students pick their own' }
       ],
       phase.method || 'random', function (value) {
         phase.method = value;
@@ -2354,9 +2358,36 @@ function renderPhaseConfig(phaseId) {
         renderPhaseConfig(phaseId);
       }
     );
-    addFieldWithHelp('Number of teams', 'How many teams to create (2-20)', 'number', 'phase-teamCount', phase.teamCount, false, function (value) {
-      phase.teamCount = value;
-    });
+
+    // Sizing: a number of teams OR a group size (exactly one)
+    var sizedByGroup = phase.groupSize != null && phase.teamCount == null;
+    addSelectWithHelp('Size teams by', '"Number of teams" makes exactly N teams. "Group size" makes as many groups of that size as the class needs (22 kids in groups of 4 → 4,4,4,4,3,3).', 'phase-team-sizing',
+      [
+        { value: 'count', label: 'Number of teams' },
+        { value: 'size', label: 'Group size' }
+      ],
+      sizedByGroup ? 'size' : 'count', function (value) {
+        isDirty = true;
+        if (value === 'size') {
+          phase.groupSize = phase.groupSize || 4;
+          delete phase.teamCount;
+        } else {
+          phase.teamCount = phase.teamCount || 2;
+          delete phase.groupSize;
+        }
+        renderCanvas();
+        renderPhaseConfig(phaseId);
+      });
+
+    if (sizedByGroup) {
+      addFieldWithHelp('Group size', 'Students per group (2-12)', 'number', 'phase-groupSize', phase.groupSize, false, function (value) {
+        phase.groupSize = value;
+      });
+    } else {
+      addFieldWithHelp('Number of teams', 'How many teams to create (2-20)', 'number', 'phase-teamCount', phase.teamCount, false, function (value) {
+        phase.teamCount = value;
+      });
+    }
     addTextAreaWithHelp('Custom team names', 'Comma-separated names (e.g. Red Team, Blue Team). Leave empty for default.', 'phase-teamNames',
       Array.isArray(phase.teamNames) ? phase.teamNames.join(', ') : '',
       'e.g. Cats, Dogs, Birds',
@@ -4727,7 +4758,7 @@ var REQUIRED_FIELDS = {
   winner: ['from'],
   leaderboard: ['from'],
   'reveal-one': ['from'],
-  'team-split': ['method', 'teamCount'],
+  'team-split': ['method'],
   rank: ['prompt', 'candidates'],
   wager: ['prompt', 'options'],
   relay: ['prompt'],

@@ -1022,18 +1022,25 @@ export const PHASE_SCHEMAS = {
   'team-split': {
     label: 'Split into Teams',
     icon: '🤝',
-    description: 'Divide players into teams (random or balanced by score).',
+    description: 'Divide players into teams or groups. Sizing: a number of teams OR a group size. Assignment: random, balanced by score, teacher arranges on the host screen, or students pick their own spots.',
     role: 'compute',
     allowedIn: ['topLevel'],
     mixins: ['screenControl', 'participantSelector', 'loops'],
     fields: {
       method: {
-        type: 'enum', values: ['random', 'balanced'], required: true,
-        label: 'Method'
+        type: 'enum', values: ['random', 'balanced', 'teacher', 'choice'], required: true,
+        label: 'How teams are made',
+        helper: 'random/balanced assign instantly. "teacher" shows a roster on the host screen for you to arrange. "choice" lets students tap the group they want (open spots only; stragglers auto-filled when you confirm).'
       },
       teamCount: {
-        type: 'integer', min: 2, max: 20, required: true,
-        label: 'Number of teams'
+        type: 'integer', min: 2, max: 20, optional: true,
+        label: 'Number of teams',
+        helper: 'Set this OR "Group size", not both.'
+      },
+      groupSize: {
+        type: 'integer', min: 2, max: 12, optional: true,
+        label: 'Group size',
+        helper: 'e.g. 4 = groups of four (a 22-kid class makes 4,4,4,4,3,3). Set this OR "Number of teams", not both.'
       },
       teamNames: {
         type: 'array', item: { type: 'string' }, optional: true,

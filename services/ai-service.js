@@ -92,6 +92,9 @@ const PHASE_EXTRA_GUIDANCE = {
     "round2":      { "type": "collect", "prompt": "Previous: {{round1.assigned}}\\n\\nKeep the sentence going.", "rotateFrom": "round1", "next": "reveal" }
     Each rotateFrom MUST point to a real earlier collect/collect-choice/per-player ai-process step. You CANNOT rotate from inside a loop — chain explicit phases instead.`,
 
+  'team-split':
+    `TEAM SIZING: set "teamCount" (exactly N teams) OR "groupSize" (groups of that size — the count is computed from class size, no singletons), NEVER both. Method "teacher" shows the roster on the host screen for the teacher to arrange; "choice" lets students tap the group they want (open spots only, stragglers auto-filled) — use "choice" when the user says students pick their own teams/partners. Both interactive methods pause until the teacher confirms.`,
+
   match:
     `MATCH PHASE: students pair items from two lists (vocab ↔ definitions, quotes ↔ authors, dates ↔ events). "pairs" is a literal array of { "left": "...", "right": "..." } objects — write the CORRECT pairings; the game shuffles the right column for play. 3-6 pairs is the sweet spot (8 max — it's a phone screen). Every correct pair earns pointsPerMatch (default 10). Left and right texts must each be unique. Consume the scores with a leaderboard: "from": ["<phaseId>.scores"]. Example:
     "vocab": { "type": "match", "prompt": "Match each French word to its English meaning", "pairs": [{"left": "chat", "right": "cat"}, {"left": "chien", "right": "dog"}, {"left": "oiseau", "right": "bird"}], "timer": 60, "next": "scoreboard" }`,

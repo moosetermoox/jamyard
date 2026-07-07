@@ -83,7 +83,13 @@ export const EVENTS = {
   REVEAL_NEXT:          'reveal-next',
 
   // --- Team Split ---
-  TEAM_SPLIT:           'team-split',
+  TEAM_SPLIT:           'team-split',         // server -> all: final teams (every method ends here)
+  TEAM_SPLIT_SETUP:     'team-split-setup',   // server -> host/consoles: roster + drafts (teacher mode)
+  TEAM_ASSIGN:          'team-assign',        // host/console -> server: put player in team (teacher mode; team '' = unassign)
+  TEAM_SPLIT_CONFIRM:   'team-split-confirm', // host/console -> server: finalize (auto-fills stragglers)
+  TEAM_CHOICE_START:    'team-choice-start',  // server -> player: pick your spot (choice mode)
+  TEAM_PICK:            'team-pick',          // player -> server: I want this team (re-pick allowed until close)
+  TEAM_CHOICE_UPDATE:   'team-choice-update', // server -> all: live rosters/open-spot counts
 
   // --- Rank Phase ---
   RANK_START:           'rank-start',

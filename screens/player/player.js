@@ -175,6 +175,8 @@ const revealOneItems = document.getElementById('reveal-one-items');
 const teamSplitSection = document.getElementById('team-split-section');
 const teamSplitMyTeam = document.getElementById('team-split-my-team');
 const teamSplitAllTeams = document.getElementById('team-split-all-teams');
+const teamPick = document.getElementById('team-pick');
+const teamPickOptions = document.getElementById('team-pick-options');
 
 // Elements - Rank
 const rankSection = document.getElementById('rank-section');
@@ -352,6 +354,12 @@ window.addEventListener('message', function(e) {
     }
     var matchBtn = active.querySelector('#match-submit-btn');
     if (matchBtn && !matchBtn.disabled) matchBtn.click();
+  } else if (id === 'team-split-section') {
+    // Choice mode: grab a random open spot
+    var pickBtns = active.querySelectorAll('.team-pick-option:not(:disabled):not(.team-pick-mine)');
+    if (pickBtns.length > 0) {
+      pickBtns[Math.floor(Math.random() * pickBtns.length)].click();
+    }
   } else if (id === 'one-voice-section') {
     if (!oneVoiceTapBtn.disabled) oneVoiceTapBtn.click();
   } else if (id === 'buzz-section') {
@@ -857,8 +865,54 @@ function appendRevealOneItem(item) {
 
 // --- Socket events - Team-split ---
 
+// Choice mode: tap the team you want; switching allowed until close.
+function renderTeamPick(payload) {
+  var rosters = payload.rosters || [];
+  var yourTeam = payload.yourTeam || null;
+  showSection(teamSplitSection);
+  teamPick.hidden = false;
+  teamSplitAllTeams.innerHTML = '';
+  teamSplitMyTeam.textContent = yourTeam ? 'You’re in ' + yourTeam + '!' : 'Pick your team!';
+
+  teamPickOptions.innerHTML = '';
+  for (var i = 0; i < rosters.length; i++) {
+    (function (r) {
+      var card = document.createElement('button');
+      card.className = 'team-pick-option' + (r.name === yourTeam ? ' team-pick-mine' : '');
+      var full = r.open === 0 && r.name !== yourTeam;
+      card.disabled = full;
+
+      var title = document.createElement('span');
+      title.className = 'team-pick-title';
+      title.textContent = r.name + ' — ' + (full ? 'full' : r.open + (r.open === 1 ? ' spot left' : ' spots left'));
+      card.appendChild(title);
+
+      if (r.members.length > 0) {
+        var names = document.createElement('span');
+        names.className = 'team-pick-names';
+        names.textContent = r.members.map(function (m) { return m.name; }).join(', ');
+        card.appendChild(names);
+      }
+
+      card.addEventListener('click', function () {
+        if (r.name === yourTeam) return;
+        socket.emit('team-pick', { code: currentRoomCode, team: r.name });
+        if (J) J.sound('blip');
+      });
+      teamPickOptions.appendChild(card);
+    })(rosters[i]);
+  }
+}
+
+socket.on('team-choice-start', renderTeamPick);
+socket.on('team-choice-update', function (payload) {
+  // Only players get yourTeam in their payload; ignore host-shaped extras
+  if (teamSplitSection) renderTeamPick(payload);
+});
+
 socket.on('team-split', ({ myTeam, teams, playerTemplate, show }) => {
   showSection(teamSplitSection);
+  teamPick.hidden = true;
   applyTemplate(teamSplitSection, playerTemplate);
   applyShow(show, {
     team: teamSplitMyTeam,

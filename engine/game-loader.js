@@ -470,6 +470,21 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Team-split: sizing comes from teamCount OR groupSize — exactly one.
+    if (phase.type === 'team-split') {
+      const hasCount = phase.teamCount != null;
+      const hasSize = phase.groupSize != null;
+      if (!hasCount && !hasSize) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (team-split) needs either "Number of teams" or "Group size".`
+        );
+      } else if (hasCount && hasSize) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (team-split) has BOTH "Number of teams" and "Group size" — pick one.`
+        );
+      }
+    }
+
     // Data reference validation — check that referenced phase exists.
     // Literal lists are allowed in these fields too ("Mr. Fox, Dr. Who" or a
     // JSON array) — a real ref is a single dotted token, so anything with

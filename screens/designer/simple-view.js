@@ -659,10 +659,16 @@
         d.field = textBox(phase.instruction, 'The rule the AI enforces…', function (v) { phase.instruction = v; });
         break;
 
-      case 'team-split':
-        d.sentence = 'The class splits into ' + (phase.teamCount || 2) + ' teams.';
+      case 'team-split': {
+        var sizing = phase.groupSize != null ? 'groups of ' + phase.groupSize : (phase.teamCount || 2) + ' teams';
+        var how = phase.method === 'teacher' ? 'you arrange them on the screen'
+          : phase.method === 'choice' ? 'students pick their own spots'
+          : phase.method === 'balanced' ? 'balanced by score'
+          : 'at random';
+        d.sentence = 'The class splits into ' + sizing + ' — ' + how + '.';
         d.muted = true;
         break;
+      }
 
       case 'turn': {
         var poolNote = 'the collected items';

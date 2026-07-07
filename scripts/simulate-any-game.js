@@ -458,6 +458,68 @@ async function run() {
       continue;
     } catch (e) { /* no winner */ }
 
+    // Check for team-split choice mode (students pick their spots)
+    try {
+      var tcData = await waitForAnyPlayerEvent(players, 'team-choice-start', 2000);
+      console.log(`\n--- Phase: TEAM-SPLIT (choice) ---`);
+      check(Array.isArray(tcData.rosters) && tcData.rosters.length >= 1, `Has ${(tcData.rosters || []).length} teams to pick from`);
+      drainEvent(players, 'team-choice-start');
+      drainEvent([host], 'team-choice-start');
+
+      for (var tci = 0; tci < players.length; tci++) {
+        var pickTeam = tcData.rosters[tci % tcData.rosters.length];
+        players[tci].emit('team-pick', { code, team: pickTeam.name });
+        log(names[tci], `picked ${pickTeam.name}`);
+      }
+      await wait(600);
+      host.emit('team-split-confirm', { code }); // sweeps stragglers; idempotent if auto-closed
+      var tcFinal = await waitForAnyPlayerEvent(players, 'team-split', 4000).catch(function () { return null; });
+      check(!!tcFinal && !!tcFinal.myTeam, 'Choice mode finalized into teams');
+      phaseLog.push({ type: 'team-split' });
+      drainEvent(players, 'team-split');
+      drainEvent([host], 'team-split');
+      drainEvent(players, 'team-choice-update');
+      drainEvent([host], 'team-choice-update');
+      await wait(600);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no choice team-split */ }
+
+    // Check for team-split teacher mode (host arranges the roster)
+    try {
+      var setupData = await waitForAnyPlayerEvent([host], 'team-split-setup', 2000);
+      console.log(`\n--- Phase: TEAM-SPLIT (teacher) ---`);
+      check(Array.isArray(setupData.unassigned) && setupData.unassigned.length > 0, `Roster has ${(setupData.unassigned || []).length} players to place`);
+      drainEvent([host], 'team-split-setup');
+
+      // Assign the first player explicitly, confirm auto-fills the rest
+      if (setupData.rosters.length > 0 && setupData.unassigned.length > 0) {
+        host.emit('team-assign', {
+          code,
+          playerId: setupData.unassigned[0].playerId,
+          team: setupData.rosters[0].name
+        });
+        log('HOST', `assigned ${setupData.unassigned[0].name} to ${setupData.rosters[0].name}`);
+      }
+      await wait(400);
+      host.emit('team-split-confirm', { code });
+      var setupFinal = await waitForAnyPlayerEvent(players, 'team-split', 4000).catch(function () { return null; });
+      check(!!setupFinal && !!setupFinal.myTeam, 'Teacher mode finalized into teams');
+      phaseLog.push({ type: 'team-split' });
+      drainEvent(players, 'team-split');
+      drainEvent([host], 'team-split');
+      drainEvent([host], 'team-split-setup');
+      await wait(600);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no teacher team-split */ }
+
     // Check for team-split
     try {
       var tsData = await waitForAnyPlayerEvent(players, 'team-split', 2000);

@@ -52,6 +52,8 @@ import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } fr
 import { applyBuzz, applyJudge, applyNextQuestion } from './engine/phase-handlers/buzz.js';
 import { scoreEstimates, estimateStats } from './engine/phases/estimate-scoring.js';
 import { scoreMatching, matchStats, buildResultsList } from './engine/phases/match-scoring.js';
+import { autoFill } from './engine/phases/team-grouping.js';
+import { buildTeamRosters } from './engine/phase-handlers/team-split.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
@@ -602,6 +604,85 @@ async function closeMatching(code, room) {
     phaseInstanceId: room.phaseInstanceId
   };
   io.to(code).emit(EVENTS.MATCH_RESULTS, state.resultsPayload);
+}
+
+// --- Team-split helpers (interactive teacher/choice modes) ---
+
+// Roster snapshot for the teacher-assign screen (host + consoles).
+function emitTeamSetupUpdate(code, room, state) {
+  const players = room.engine.players;
+  const rosters = buildTeamRosters(state, players);
+  const unassigned = [...state.eligibleIds]
+    .filter(id => !state.assignments[id])
+    .map(id => ({ playerId: id, name: (players.find(id) || {}).name || '?' }));
+  const payload = { rosters, unassigned, mode: state.mode, phaseInstanceId: room.phaseInstanceId };
+  const hostId = roomToHost.get(code);
+  if (hostId) io.to(hostId).emit(EVENTS.TEAM_SPLIT_SETUP, payload);
+  io.to(teachersChannel(code)).emit(EVENTS.TEAM_SPLIT_SETUP, payload);
+}
+
+// Live rosters/open-spot counts for choice mode (players see their pick).
+function emitTeamChoiceUpdate(code, room, state) {
+  const engine = room.engine;
+  const rosters = buildTeamRosters(state, engine.players);
+  const placed = Object.keys(state.assignments).length;
+  const total = state.eligibleIds.size;
+  const base = { rosters, placed, total, phaseInstanceId: room.phaseInstanceId };
+  const hostId = roomToHost.get(code);
+  if (hostId) io.to(hostId).emit(EVENTS.TEAM_CHOICE_UPDATE, base);
+  io.to(teachersChannel(code)).emit(EVENTS.TEAM_CHOICE_UPDATE, base);
+  for (const player of engine.players.list()) {
+    if (state.eligibleIds.has(player.id)) {
+      io.to(player.id).emit(EVENTS.TEAM_CHOICE_UPDATE, {
+        ...base, yourTeam: state.assignments[player.id] || null
+      });
+    }
+  }
+}
+
+// Finalize an interactive team-split: auto-fill stragglers into the
+// emptiest teams, store the SAME output shape as the instant methods
+// ({teams, playerTeam}), and run the standard TEAM_SPLIT reveal. Does not
+// advance — the host's Continue button does, exactly like random mode.
+async function closeTeamSplit(code, room) {
+  const state = room.phaseState;
+  // kind guard + idempotence (see closeRanking)
+  if (!state || state.kind !== 'team-split' || state.closed) return;
+  state.closed = true;
+
+  const engine = room.engine;
+  const phase = engine.config.phases[state.phaseId] || {};
+
+  const unassigned = [...state.eligibleIds].filter(id => !state.assignments[id]);
+  Object.assign(state.assignments, autoFill(state.assignments, unassigned, state.teamNames, state.capacities));
+
+  const teams = {};
+  const playerTeam = {};
+  for (const name of state.teamNames) teams[name] = [];
+  for (const [pid, teamName] of Object.entries(state.assignments)) {
+    if (!teams[teamName]) teams[teamName] = [];
+    teams[teamName].push({ playerId: pid, name: (engine.players.find(pid) || {}).name || '?' });
+    playerTeam[pid] = teamName;
+  }
+
+  engine.storePhaseData(state.phaseId, { teams, playerTeam });
+  console.log(`[closeTeamSplit] ${Object.keys(playerTeam).length} players into ${state.teamNames.length} teams (${state.mode} mode, ${unassigned.length} auto-filled)`);
+
+  const sc = resolveScreenControl(phase, engine);
+  const hostId = roomToHost.get(code);
+  if (hostId) {
+    io.to(hostId).emit(EVENTS.TEAM_SPLIT, {
+      teams, hostTemplate: sc.hostTemplate, show: sc.hostShow,
+      phaseInstanceId: room.phaseInstanceId
+    });
+  }
+  for (const player of engine.players.list()) {
+    io.to(player.id).emit(EVENTS.TEAM_SPLIT, {
+      myTeam: playerTeam[player.id] || null, teams,
+      playerTemplate: sc.playerTemplate, show: sc.playerShow,
+      phaseInstanceId: room.phaseInstanceId
+    });
+  }
 }
 
 // --- Rate helpers ---
@@ -2608,6 +2689,11 @@ io.on('connection', (socket) => {
             // closeMatching shows results without advancing — store, then move on
             await closeMatching(code, room);
             break;
+          case 'team-split':
+            // finalize teams (auto-fill stragglers) so downstream team
+            // consumers have data, then move on
+            await closeTeamSplit(code, room);
+            break;
           default:
             break;
         }
@@ -2969,6 +3055,78 @@ io.on('connection', (socket) => {
     if (roomToHost.get(code) !== socket.id) return; // host only
     recordEvent(room, 'close-estimates');
     await closeEstimates(code, room);
+  });
+
+  // --- Team-split events (interactive teacher/choice modes) ---
+
+  socket.on(EVENTS.TEAM_ASSIGN, (payload = {}) => {
+    if (!checkEventPayload(socket, 'team-assign', payload)) return;
+    const { code, playerId, team, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'team-split') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'team-assign')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return;
+    const state = room.phaseState;
+    if (state.mode !== 'teacher' || state.closed) return;
+    if (!state.eligibleIds.has(playerId)) return;
+
+    if (team === '') {
+      delete state.assignments[playerId]; // back to the unassigned pool
+    } else if (state.teamNames.includes(team)) {
+      state.assignments[playerId] = team;
+    } else {
+      return;
+    }
+    recordEvent(room, 'team-assign', { playerId, team });
+    emitTeamSetupUpdate(code, room, state);
+  });
+
+  socket.on(EVENTS.TEAM_PICK, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'team-pick', payload)) return;
+    const { code, team, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'team-split') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'team-pick')) return;
+    const state = room.phaseState;
+    if (state.mode !== 'choice' || state.closed) return;
+    if (!state.eligibleIds.has(socket.id)) return;
+    if (!state.teamNames.includes(team)) return;
+    if (state.assignments[socket.id] === team) return;
+
+    // Full team: ignore the pick but re-send truth to the tapper (their
+    // screen may have raced another student for the last spot).
+    const idx = state.teamNames.indexOf(team);
+    const current = Object.values(state.assignments).filter(t => t === team).length;
+    if (current >= state.capacities[idx]) {
+      socket.emit(EVENTS.TEAM_CHOICE_UPDATE, {
+        rosters: buildTeamRosters(state, room.engine.players),
+        placed: Object.keys(state.assignments).length,
+        total: state.eligibleIds.size,
+        yourTeam: state.assignments[socket.id] || null,
+        full: team,
+        phaseInstanceId: room.phaseInstanceId
+      });
+      return;
+    }
+
+    state.assignments[socket.id] = team; // re-picks just move the player
+    recordEvent(room, 'team-pick', { playerId: socket.id, team });
+    emitTeamChoiceUpdate(code, room, state);
+
+    if (Object.keys(state.assignments).length >= state.eligibleIds.size) {
+      await closeTeamSplit(code, room);
+    }
+  });
+
+  socket.on(EVENTS.TEAM_SPLIT_CONFIRM, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'team-split-confirm', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'team-split') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'team-split-confirm')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return;
+    recordEvent(room, 'team-split-confirm');
+    await closeTeamSplit(code, room);
   });
 
   // --- Match events (pair two lists: vocab ↔ definitions) ---

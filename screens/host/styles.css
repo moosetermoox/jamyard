@@ -666,6 +666,65 @@ button:disabled {
   font-size: 1rem;
 }
 
+/* Team-split interactive modes (teacher-assign + student-choice) */
+.team-arrange-hint {
+  color: var(--theme-text, #555);
+  font-size: 1rem;
+}
+
+.team-arrange-pool {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 14px auto;
+  max-width: 760px;
+  min-height: 44px;
+}
+
+.team-chip {
+  display: inline-block;
+  width: auto;
+  font-size: 1rem;
+  padding: 8px 14px;
+  margin: 0;
+  border: 2px solid var(--theme-border, #000);
+  border-radius: 20px;
+  background: var(--theme-surface, white);
+  color: var(--theme-text, #222);
+  cursor: pointer;
+}
+
+.team-chip-selected {
+  background: var(--theme-button, #FF4081);
+  color: var(--theme-button-text, white);
+}
+
+.team-choice-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  margin: 14px auto;
+  max-width: 900px;
+}
+
+.team-card-tappable {
+  cursor: pointer;
+}
+
+.team-card-tappable:hover {
+  border-color: var(--theme-button, #4a90d9);
+}
+
+.team-chip-assigned {
+  cursor: pointer;
+}
+
+.team-chip-assigned:hover {
+  text-decoration: line-through;
+}
+
 /* Relay */
 #relay-shared-result {
   text-align: left;

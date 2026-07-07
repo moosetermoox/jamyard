@@ -655,6 +655,40 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
             once(`adv:reveal:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 500);
           }
           break;
+        // --- Team-split interactive modes ---
+        case 'team-choice-start': {
+          // Bots spread across teams by index; a full team just means the
+          // server ignores the pick and the confirm auto-fills them.
+          if (role === 'player') {
+            const rosters = data.rosters || [];
+            if (rosters.length > 0) {
+              const pick = rosters[players.indexOf(who) % rosters.length];
+              who.emit('team-pick', { code, team: pick.name, phaseInstanceId: seq(data) });
+            }
+          } else {
+            lastScreen = 'a pick-your-team screen';
+            if (!onceKeys.has(`logged:team-split:${seq(data)}`)) {
+              onceKeys.add(`logged:team-split:${seq(data)}`);
+              phaseLog.push({ type: 'team-split' });
+            }
+            // Confirm sweeps up stragglers if the all-placed auto-close didn't fire
+            once(`confirm:choice:${seq(data)}`, () => host.emit('team-split-confirm', { code, phaseInstanceId: seq(data) }), 1200);
+          }
+          break;
+        }
+        case 'team-split-setup': {
+          // Teacher-assign mode: the robot teacher just confirms — the
+          // auto-fill places everyone, which is the path we need to prove.
+          if (role !== 'host') break;
+          lastScreen = 'a make-the-teams screen';
+          if (!onceKeys.has(`logged:team-split:${seq(data)}`)) {
+            onceKeys.add(`logged:team-split:${seq(data)}`);
+            phaseLog.push({ type: 'team-split' });
+          }
+          once(`confirm:setup:${seq(data)}`, () => host.emit('team-split-confirm', { code, phaseInstanceId: seq(data) }), 700);
+          break;
+        }
+
         case 'leaderboard':
         case 'team-split':
         case 'elimination-results':
