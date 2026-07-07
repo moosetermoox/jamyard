@@ -114,6 +114,17 @@ export function checkPayload(eventName, data, config) {
       }
       break;
     }
+    case 'sort-start': {
+      // Player payloads carry items + buckets; the HOST's sort-start only
+      // has a counter — its missing arrays are not a finding.
+      if (Array.isArray(data.items) && data.items.length < 2) {
+        add('error', 'A sorting step started with fewer than 2 items — students saw an unplayable board.', data.prompt);
+      }
+      if (Array.isArray(data.buckets) && data.buckets.length < 2) {
+        add('error', 'A sorting step started with fewer than 2 buckets to sort into.', data.prompt);
+      }
+      break;
+    }
     case 'vote-start': {
       if (data.mode === 'head-to-head') {
         if (Array.isArray(data.matchups) && data.matchups.length === 0) {
@@ -302,6 +313,7 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
           p.emit('estimate-submit', { code, value: 'not-a-number' });
           p.emit('rank-submit', { code });
           p.emit('match-submit', { code });
+          p.emit('sort-submit', { code });
           p.emit('merge-draft', {});
 
         } else if (roll < 0.85) {
@@ -466,6 +478,29 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
         case 'match-results': {
           if (role !== 'host') break;
           once(`matchr:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 400);
+          break;
+        }
+
+        // --- Sort (place items into named buckets) ---
+        case 'sort-start': {
+          if (role !== 'player') break;
+          lastScreen = 'a sorting step';
+          if (!onceKeys.has(`logged:sort:${seq(data)}`)) {
+            onceKeys.add(`logged:sort:${seq(data)}`);
+            phaseLog.push({ type: 'sort' });
+          }
+          // Bots cycle buckets by item+player index — guarantees a spread
+          // of right and wrong placements in the results.
+          const buckets = data.buckets || [];
+          const sorting = (data.items || []).map((_, i) =>
+            buckets[(i + players.indexOf(who)) % Math.max(1, buckets.length)] || '');
+          who.emit('sort-submit', { code, sorting, phaseInstanceId: seq(data) });
+          once(`close:sort:${seq(data)}`, () => host.emit('close-sorting', { code, phaseInstanceId: seq(data) }), 900);
+          break;
+        }
+        case 'sort-results': {
+          if (role !== 'host') break;
+          once(`sortr:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 400);
           break;
         }
 

@@ -95,6 +95,10 @@ const PHASE_EXTRA_GUIDANCE = {
   'team-split':
     `TEAM SIZING: set "teamCount" (exactly N teams) OR "groupSize" (groups of that size — the count is computed from class size, no singletons), NEVER both. Method "teacher" shows the roster on the host screen for the teacher to arrange; "choice" lets students tap the group they want (open spots only, stragglers auto-filled) — use "choice" when the user says students pick their own teams/partners. Both interactive methods pause until the teacher confirms.`,
 
+  sort:
+    `SORT PHASE: students place each item into a named bucket — categorization (metaphor vs simile, fact vs opinion, past vs present tense). "buckets" is a literal array of 2-5 category names; "items" is a literal array of { "text": "...", "bucket": "<correct bucket>" } objects. Fill "bucket" on EVERY item for a scored round (pointsPerItem each, default 10) or on NONE for a consensus poll (class distribution only, no scores — good for opinions). 4-8 items is the sweet spot (10 max). Consume graded scores with a leaderboard: "from": ["<phaseId>.scores"]. Example:
+    "figures": { "type": "sort", "prompt": "Is each line a metaphor or a simile?", "buckets": ["Metaphor", "Simile"], "items": [{"text": "Her smile was the sun", "bucket": "Metaphor"}, {"text": "Brave as a lion", "bucket": "Simile"}], "timer": 60, "next": "scoreboard" }`,
+
   match:
     `MATCH PHASE: students pair items from two lists (vocab ↔ definitions, quotes ↔ authors, dates ↔ events). "pairs" is a literal array of { "left": "...", "right": "..." } objects — write the CORRECT pairings; the game shuffles the right column for play. 3-6 pairs is the sweet spot (8 max — it's a phone screen). Every correct pair earns pointsPerMatch (default 10). Left and right texts must each be unique. Consume the scores with a leaderboard: "from": ["<phaseId>.scores"]. Example:
     "vocab": { "type": "match", "prompt": "Match each French word to its English meaning", "pairs": [{"left": "chat", "right": "cat"}, {"left": "chien", "right": "dog"}, {"left": "oiseau", "right": "bird"}], "timer": 60, "next": "scoreboard" }`,

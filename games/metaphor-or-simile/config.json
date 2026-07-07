@@ -1,0 +1,52 @@
+{
+  "name": "Metaphor or Simile?",
+  "description": "A scored sorting round (figure-of-speech ID) followed by a just-for-fun consensus sort — the template for any categorization review.",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "intro" },
+    "intro": {
+      "type": "announce",
+      "message": "🗂️ METAPHOR OR SIMILE?\n\nRound 1: sort each line into the right bucket — every correct placement earns points.\n\nRound 2: no right answers, just the class verdict.",
+      "timer": 10,
+      "next": "round1"
+    },
+    "round1": {
+      "type": "sort",
+      "prompt": "Is each line a metaphor or a simile?",
+      "buckets": ["Metaphor", "Simile"],
+      "items": [
+        { "text": "Her smile was the sun", "bucket": "Metaphor" },
+        { "text": "Brave as a lion", "bucket": "Simile" },
+        { "text": "Time is a thief", "bucket": "Metaphor" },
+        { "text": "The classroom was a zoo", "bucket": "Metaphor" },
+        { "text": "Quiet like falling snow", "bucket": "Simile" },
+        { "text": "He ran like the wind", "bucket": "Simile" }
+      ],
+      "pointsPerItem": 10,
+      "timer": 90,
+      "next": "round2"
+    },
+    "round2": {
+      "type": "sort",
+      "prompt": "Class verdict — no wrong answers. Where does each one belong?",
+      "buckets": ["Genius", "Chaos"],
+      "items": [
+        { "text": "Pineapple on pizza" },
+        { "text": "Homework on weekends" },
+        { "text": "Cereal before milk" },
+        { "text": "Socks with sandals" }
+      ],
+      "timer": 45,
+      "next": "scoreboard"
+    },
+    "scoreboard": {
+      "type": "leaderboard",
+      "from": "round1.scores",
+      "style": "full",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "🗂️ That's Metaphor or Simile! Swap in your own buckets and items for any categorization review."
+    }
+  }
+}

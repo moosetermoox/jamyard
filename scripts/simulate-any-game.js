@@ -297,6 +297,42 @@ async function run() {
       continue;
     } catch (e) { /* no match */ }
 
+    // Check for sort (place items into named buckets)
+    try {
+      var sortData = await waitForAnyPlayerEvent(players, 'sort-start', 2000);
+      console.log(`\n--- Phase: SORT ---`);
+      check(Array.isArray(sortData.items) && sortData.items.length >= 2, `Has ${(sortData.items || []).length} items to sort`);
+      check(Array.isArray(sortData.buckets) && sortData.buckets.length >= 2, `Has ${(sortData.buckets || []).length} buckets`);
+      log('SIM', `Prompt: "${(sortData.prompt || '').substring(0, 60)}"`);
+      phaseLog.push({ type: 'sort', prompt: sortData.prompt });
+      drainEvent(players, 'sort-start');
+      drainEvent([host], 'sort-start');
+
+      for (var sci = 0; sci < players.length; sci++) {
+        // Cycle buckets by item+player index — a spread of placements
+        var sorting = (sortData.items || []).map(function (_, ii) {
+          return sortData.buckets[(ii + sci) % sortData.buckets.length];
+        });
+        players[sci].emit('sort-submit', { code, sorting });
+        log(names[sci], `sorted ${sorting.length} items`);
+      }
+      await wait(400);
+      host.emit('close-sorting', { code });
+      var sortResults = await waitForAnyPlayerEvent(players, 'sort-results', 3000).catch(function () { return null; });
+      check(!!sortResults, 'Sort results broadcast');
+      if (sortResults) {
+        check(Array.isArray(sortResults.results) && sortResults.results.length >= 2, 'Per-item distributions in results');
+      }
+      drainEvent(players, 'sort-results');
+      drainEvent([host], 'sort-results');
+      await wait(400);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(500);
+      continue;
+    } catch (e) { /* no sort */ }
+
     // Check for processing (ai-process)
     try {
       var procData = await waitForAnyPlayerEvent(players, 'processing-started', 2000);
@@ -314,7 +350,7 @@ async function run() {
         // Check if any game event arrived in any player buffer
         var nextEvents = ['game-started', 'announce', 'show-results', 'leaderboard', 'game-ended',
                           'vote-start', 'processing-started', 'preview', 'eliminated', 'winner',
-                          'waiting', 'team-split', 'rank-start', 'match-start', 'wager-start', 'relay-turn'];
+                          'waiting', 'team-split', 'rank-start', 'match-start', 'sort-start', 'wager-start', 'relay-turn'];
         for (var p of players) {
           for (var ev of nextEvents) {
             if (p._buffer[ev] && p._buffer[ev].length > 0) { aiDone = true; break; }
@@ -630,7 +666,7 @@ async function run() {
         // Check if relay ended (next event appeared)
         var nextEvents = ['game-started', 'announce', 'show-results', 'leaderboard', 'game-ended',
                           'vote-start', 'processing-started', 'team-split', 'rank-start',
-                          'match-start', 'wager-start', 'eliminated', 'winner'];
+                          'match-start', 'sort-start', 'wager-start', 'eliminated', 'winner'];
         for (var p of players) {
           for (var ev of nextEvents) {
             if (p._buffer[ev] && p._buffer[ev].length > 0) { relayDone = true; break; }

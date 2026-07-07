@@ -53,6 +53,7 @@ import { applyBuzz, applyJudge, applyNextQuestion } from './engine/phase-handler
 import { scoreEstimates, estimateStats } from './engine/phases/estimate-scoring.js';
 import { scoreMatching, matchStats, buildResultsList } from './engine/phases/match-scoring.js';
 import { autoFill } from './engine/phases/team-grouping.js';
+import { scoreSorting, sortStats, buildSortResultsList } from './engine/phases/sort-scoring.js';
 import { buildTeamRosters } from './engine/phase-handlers/team-split.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
@@ -604,6 +605,55 @@ async function closeMatching(code, room) {
     phaseInstanceId: room.phaseInstanceId
   };
   io.to(code).emit(EVENTS.MATCH_RESULTS, state.resultsPayload);
+}
+
+// --- Sort helpers ---
+
+// Score (graded mode) + reveal per-item distributions. Like estimate and
+// match, this does NOT auto-advance — "half the room called that line a
+// simile" is a discussion moment; the host clicks Continue.
+async function closeSorting(code, room) {
+  const state = room.phaseState;
+  // kind guard + idempotence (see closeRanking)
+  if (!state || state.kind !== 'sort' || state.closed) return;
+  state.closed = true;
+  if (state.timer) { clearTimeout(state.timer); state.timer = null; }
+
+  const engine = room.engine;
+  const phase = engine.config.phases[state.phaseId] || {};
+  const points = Number.isInteger(phase.pointsPerItem) && phase.pointsPerItem > 0
+    ? phase.pointsPerItem : 10;
+
+  const { scores, correctCounts } = scoreSorting(state.items, state.submissions, points);
+  const results = sortStats(state.items, state.buckets, state.submissions);
+  engine.storePhaseData(state.phaseId, {
+    scores, results, resultsList: buildSortResultsList(results), itemCount: state.items.length
+  });
+  console.log(`[closeSorting] ${Object.keys(state.submissions).length} submission(s) across ${state.items.length} items (${state.graded ? 'graded' : 'consensus'})`);
+
+  const players = engine.players;
+  const playerResults = state.graded
+    ? Object.keys(state.submissions)
+        .map(pid => ({
+          playerId: pid,
+          name: (players.find(pid) || {}).name || '?',
+          correct: correctCounts[pid] || 0,
+          score: scores[pid] || 0
+        }))
+        .sort((a, b) => b.correct - a.correct || a.name.localeCompare(b.name))
+    : [];
+
+  // Kept on the phase state so a player reconnecting after the close sees
+  // the results, not a dead board (see closeEstimates).
+  state.resultsPayload = {
+    graded: state.graded,
+    buckets: state.buckets,
+    results,
+    players: playerResults,
+    itemCount: state.items.length,
+    phaseInstanceId: room.phaseInstanceId
+  };
+  io.to(code).emit(EVENTS.SORT_RESULTS, state.resultsPayload);
 }
 
 // --- Team-split helpers (interactive teacher/choice modes) ---
@@ -1225,6 +1275,7 @@ const phaseServices = {
   generateMatchups,
   closeRanking: (code, room) => closeRanking(code, room),
   closeMatching: (code, room) => closeMatching(code, room),
+  closeSorting: (code, room) => closeSorting(code, room),
   closeRating: (code, room) => closeRating(code, room),
   closeWager: (code, room) => closeWager(code, room),
   closeMerge: (code, room) => closeMerge(code, room),
@@ -2694,6 +2745,10 @@ io.on('connection', (socket) => {
             // consumers have data, then move on
             await closeTeamSplit(code, room);
             break;
+          case 'sort':
+            // closeSorting shows results without advancing — store, then move on
+            await closeSorting(code, room);
+            break;
           default:
             break;
         }
@@ -3055,6 +3110,41 @@ io.on('connection', (socket) => {
     if (roomToHost.get(code) !== socket.id) return; // host only
     recordEvent(room, 'close-estimates');
     await closeEstimates(code, room);
+  });
+
+  // --- Sort events (place items into named buckets) ---
+
+  socket.on(EVENTS.SORT_SUBMIT, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'sort-submit', payload)) return;
+    const { code, sorting, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'sort') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'sort-submit')) return;
+    const state = room.phaseState;
+    if (state.closed) return;
+    if (!state.eligibleIds.has(socket.id) || state.completed.has(socket.id)) return;
+
+    state.submissions[socket.id] = sorting.map(b => String(b ?? ''));
+    state.completed.add(socket.id);
+    recordEvent(room, 'sort-submit', { playerId: socket.id });
+    socket.emit(EVENTS.WAITING, { message: 'Sorting submitted. Waiting for others...' });
+
+    const hostId = roomToHost.get(code);
+    if (hostId) io.to(hostId).emit(EVENTS.SORT_RECEIVED, { count: state.completed.size, total: state.eligibleIds.size });
+
+    if (state.completed.size >= state.eligibleIds.size) {
+      await closeSorting(code, room);
+    }
+  });
+
+  socket.on(EVENTS.CLOSE_SORTING, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'close-sorting', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'sort') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-sorting')) return;
+    recordEvent(room, 'close-sorting');
+    await closeSorting(code, room);
   });
 
   // --- Team-split events (interactive teacher/choice modes) ---

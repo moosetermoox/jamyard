@@ -263,6 +263,7 @@ describe('validator diagnostics — game snapshot', () => {
       'lightning-round': [],
       'llm-or-duck': [],
       'mad-lib-mashup': ['DATA_REF_TYPE_MISMATCH'],
+      'metaphor-or-simile': [],
       'mood-check': [],
       'one-voice': [],
       'roast-me-if-you-can': [],

@@ -470,6 +470,59 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Sort phase: buckets (2-5 unique names) + items (all-or-none correct buckets).
+    if (phase.type === 'sort') {
+      const buckets = (Array.isArray(phase.buckets) ? phase.buckets : [])
+        .map(b => String(b ?? '').trim()).filter(Boolean);
+      if (buckets.length < 2) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (sort) needs at least 2 buckets to sort into.`
+        );
+      } else {
+        if (new Set(buckets).size !== buckets.length) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (sort) has duplicate bucket names. Each bucket must be unique.`
+          );
+        }
+        if (buckets.length > 5) {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" (sort) has ${buckets.length} buckets — more than 5 is cramped on a phone.`
+          );
+        }
+      }
+
+      const rawItems = Array.isArray(phase.items) ? phase.items : [];
+      const usable = rawItems.filter(it =>
+        it && typeof it === 'object' && !Array.isArray(it) && String(it.text ?? '').trim()
+      );
+      if (usable.length < 2) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (sort) needs at least 2 items to sort.`
+        );
+      } else {
+        // Graded is all-or-nothing: a half-scored round confuses everyone.
+        const withBucket = usable.filter(it => String(it.bucket ?? '').trim());
+        if (withBucket.length > 0 && withBucket.length < usable.length) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (sort) has correct buckets on some items but not all. Fill every item's correct bucket (scored round) or none (consensus poll).`
+          );
+        }
+        for (const it of withBucket) {
+          const b = String(it.bucket).trim();
+          if (buckets.length >= 2 && !buckets.includes(b)) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" (sort) item "${String(it.text).trim().slice(0, 40)}" has correct bucket "${b}", which isn't one of the buckets.`
+            );
+          }
+        }
+        if (usable.length > 10) {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" (sort) has ${usable.length} items — that's a lot of tapping. Consider 10 or fewer.`
+          );
+        }
+      }
+    }
+
     // Team-split: sizing comes from teamCount OR groupSize — exactly one.
     if (phase.type === 'team-split') {
       const hasCount = phase.teamCount != null;

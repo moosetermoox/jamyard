@@ -269,6 +269,17 @@ var PHASE_CATALOG = {
     player: 'Number input (changeable until the reveal)',
     ai: null
   },
+  'sort': {
+    icon: '🗂️',
+    friendlyName: 'Sort into Buckets',
+    description: 'Students place each item into a category (metaphor vs simile) — scored, or a consensus poll',
+    color: '#00695C',
+    bg: '#B2DFDB',
+    detailField: 'prompt',
+    host: 'Submission counter, then per-item class distributions (+accuracy when scored)',
+    player: 'Each item with bucket buttons — tap one per item, then submit',
+    ai: null
+  },
   'match': {
     icon: '🔗',
     friendlyName: 'Match Pairs',
@@ -868,6 +879,7 @@ function getPrimaryFieldDef(type) {
     case 'buzz':          return { key: 'prompt',      type: 'textarea', placeholder: 'On-screen prompt (questions are usually asked out loud)…' };
     case 'estimate':      return { key: 'prompt',      type: 'textarea', placeholder: 'The number to guess, e.g. How many liters…' };
     case 'match':         return { key: 'prompt',      type: 'textarea', placeholder: 'e.g. Match each word to its definition…' };
+    case 'sort':          return { key: 'prompt',      type: 'textarea', placeholder: 'e.g. Is each line a metaphor or a simile?…' };
     case 'vote': return { type: 'summary', summarize: function (p) {
       var mode = p.mode === 'head-to-head' ? 'Head-to-head vote' : 'Pick-one vote';
       if (p.matchupsFromPairs) {
@@ -1100,6 +1112,9 @@ function getInsertableRefs(sourceId, source) {
   } else if (t === 'match') {
     refs.push({ icon: '', label: 'Pair-by-pair results', token: '{{' + sourceId + '.resultsList}}' });
     refs.push({ icon: '', label: 'Match scores', token: '{{' + sourceId + '.scores}}' });
+  } else if (t === 'sort') {
+    refs.push({ icon: '', label: 'Item-by-item results', token: '{{' + sourceId + '.resultsList}}' });
+    refs.push({ icon: '', label: 'Sort scores', token: '{{' + sourceId + '.scores}}' });
   }
   return refs;
 }
@@ -2508,6 +2523,154 @@ function renderPhaseConfig(phaseId) {
     );
   }
 
+  if (type === 'sort') {
+    addTextAreaWithHelp('Instructions', 'Tells players what the categories mean', 'phase-prompt', phase.prompt, 'e.g. Is each line a metaphor or a simile?', function (value) {
+      phase.prompt = value;
+      renderCanvas();
+    });
+
+    addSectionHeader('The buckets');
+    if (!Array.isArray(phase.buckets)) phase.buckets = [];
+    for (var sbIdx = 0; sbIdx < phase.buckets.length; sbIdx++) {
+      (function (index) {
+        var bGroup = document.createElement('div');
+        bGroup.className = 'form-group';
+        bGroup.style.display = 'flex';
+        bGroup.style.gap = '6px';
+
+        var bInput = document.createElement('input');
+        bInput.type = 'text';
+        bInput.value = phase.buckets[index] || '';
+        bInput.placeholder = 'Bucket ' + (index + 1);
+        bInput.style.flex = '1';
+        bInput.addEventListener('input', function () {
+          isDirty = true;
+          phase.buckets[index] = bInput.value;
+        });
+        // Bucket names feed the per-item dropdowns — refresh them on blur
+        bInput.addEventListener('blur', function () { renderPhaseConfig(phaseId); });
+
+        var bRemove = document.createElement('button');
+        bRemove.className = 'btn-icon';
+        bRemove.textContent = '✖';
+        bRemove.title = 'Remove bucket';
+        bRemove.addEventListener('click', function () {
+          isDirty = true;
+          phase.buckets.splice(index, 1);
+          renderPhaseConfig(phaseId);
+        });
+
+        bGroup.appendChild(bInput);
+        bGroup.appendChild(bRemove);
+        phaseConfigForm.appendChild(bGroup);
+      })(sbIdx);
+    }
+    var addBucketBtn = document.createElement('button');
+    addBucketBtn.className = 'btn-secondary';
+    addBucketBtn.textContent = '+ Add Bucket';
+    addBucketBtn.style.marginBottom = '12px';
+    addBucketBtn.addEventListener('click', function () {
+      isDirty = true;
+      if (!Array.isArray(phase.buckets)) phase.buckets = [];
+      phase.buckets.push('');
+      renderPhaseConfig(phaseId);
+    });
+    phaseConfigForm.appendChild(addBucketBtn);
+
+    addSectionHeader('The items to sort');
+    var sortHelp = document.createElement('p');
+    sortHelp.className = 'field-help';
+    sortHelp.textContent = 'Set the correct bucket on every item for a scored round — or leave them all on "no right answer" for a consensus poll.';
+    phaseConfigForm.appendChild(sortHelp);
+
+    if (!Array.isArray(phase.items)) phase.items = [];
+    var sortBucketOpts = phase.buckets.map(function (b) { return String(b || '').trim(); }).filter(Boolean);
+    for (var siIdx = 0; siIdx < phase.items.length; siIdx++) {
+      (function (index) {
+        var item = phase.items[index];
+        if (!item || typeof item !== 'object') { item = {}; phase.items[index] = item; }
+
+        var iGroup = document.createElement('div');
+        iGroup.className = 'form-group';
+        iGroup.style.display = 'flex';
+        iGroup.style.gap = '6px';
+
+        var iInput = document.createElement('input');
+        iInput.type = 'text';
+        iInput.value = item.text || '';
+        iInput.placeholder = 'Item ' + (index + 1);
+        iInput.style.flex = '1';
+        iInput.addEventListener('input', function () {
+          isDirty = true;
+          phase.items[index].text = iInput.value;
+        });
+
+        var iSelect = document.createElement('select');
+        var noneOpt = document.createElement('option');
+        noneOpt.value = '';
+        noneOpt.textContent = 'no right answer';
+        iSelect.appendChild(noneOpt);
+        for (var bo = 0; bo < sortBucketOpts.length; bo++) {
+          var opt = document.createElement('option');
+          opt.value = sortBucketOpts[bo];
+          opt.textContent = sortBucketOpts[bo];
+          iSelect.appendChild(opt);
+        }
+        iSelect.value = sortBucketOpts.indexOf(String(item.bucket || '').trim()) !== -1 ? String(item.bucket).trim() : '';
+        iSelect.addEventListener('change', function () {
+          isDirty = true;
+          if (iSelect.value) phase.items[index].bucket = iSelect.value;
+          else delete phase.items[index].bucket;
+        });
+
+        var iRemove = document.createElement('button');
+        iRemove.className = 'btn-icon';
+        iRemove.textContent = '✖';
+        iRemove.title = 'Remove item';
+        iRemove.addEventListener('click', function () {
+          isDirty = true;
+          phase.items.splice(index, 1);
+          renderPhaseConfig(phaseId);
+        });
+
+        iGroup.appendChild(iInput);
+        iGroup.appendChild(iSelect);
+        iGroup.appendChild(iRemove);
+        phaseConfigForm.appendChild(iGroup);
+      })(siIdx);
+    }
+    var addSortItemBtn = document.createElement('button');
+    addSortItemBtn.className = 'btn-secondary';
+    addSortItemBtn.textContent = '+ Add Item';
+    addSortItemBtn.style.marginBottom = '12px';
+    addSortItemBtn.addEventListener('click', function () {
+      isDirty = true;
+      if (!Array.isArray(phase.items)) phase.items = [];
+      phase.items.push({ text: '' });
+      renderPhaseConfig(phaseId);
+    });
+    phaseConfigForm.appendChild(addSortItemBtn);
+
+    addFieldWithHelp('Points per correct placement', 'Default 10. Only used when items have correct buckets.', 'number', 'phase-sort-points', phase.pointsPerItem, false, function (value) {
+      if (value == null || value === '') delete phase.pointsPerItem;
+      else phase.pointsPerItem = value;
+    });
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits what\'s placed on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
+      if (value == null || value === '') delete phase.timer;
+      else phase.timer = value;
+    });
+    addSelectWithHelp('Who sorts', 'Which players play this round', 'phase-from',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' },
+        { value: 'eliminated', label: 'Eliminated players only' }
+      ],
+      phase.from || 'all', function (value) {
+        if (value === 'all') { delete phase.from; } else { phase.from = value; }
+      }
+    );
+  }
+
   if (type === 'match') {
     addTextAreaWithHelp('Instructions', 'Tells players what the two lists are', 'phase-prompt', phase.prompt, 'e.g. Match each French word to its English meaning', function (value) {
       phase.prompt = value;
@@ -3318,7 +3481,8 @@ var PRIMARY_FORM_IDS_BY_TYPE = {
   'relay':          ['phase-prompt'],
   'buzz':           ['phase-prompt'],
   'estimate':       ['phase-prompt'],
-  'match':          ['phase-prompt']
+  'match':          ['phase-prompt'],
+  'sort':           ['phase-prompt']
   // reveal-one keeps its phase-message (title) — its primary is a summary
 };
 function stripPrimaryFieldFromForm(type) {
@@ -3965,6 +4129,10 @@ function buildTemplateVariables(currentPhaseId, extraVars) {
       vars.push({ label: 'Pair-by-pair results' + at, variable: '{{' + pid + '.resultsList}}' });
       vars.push({ label: 'Match scores' + at, variable: '{{' + pid + '.scores}}' });
     }
+    if (p.type === 'sort') {
+      vars.push({ label: 'Item-by-item results' + at, variable: '{{' + pid + '.resultsList}}' });
+      vars.push({ label: 'Sort scores' + at, variable: '{{' + pid + '.scores}}' });
+    }
     if (p.type === 'rate') {
       vars.push({ label: 'Bar chart of averages' + at, variable: '{{' + pid + '.barChart}}' });
     }
@@ -4220,6 +4388,8 @@ function buildDataRefOptions(currentPhaseId) {
       options.push({ value: pid + '.rankings', label: 'Rankings from ' + stepLabel });
     } else if (p.type === 'match') {
       options.push({ value: pid + '.scores', label: 'Match scores from ' + stepLabel });
+    } else if (p.type === 'sort') {
+      options.push({ value: pid + '.scores', label: 'Sort scores from ' + stepLabel });
     } else if (p.type === 'wager') {
       options.push({ value: pid + '.scores', label: 'Updated scores from ' + stepLabel });
       options.push({ value: pid + '.wagers', label: 'Wagers from ' + stepLabel });
@@ -4650,6 +4820,15 @@ function addPhaseOfType(type) {
       { left: 'chat', right: 'cat' },
       { left: 'chien', right: 'dog' },
       { left: 'oiseau', right: 'bird' }
+    ];
+    newPhase.timer = 60;
+  } else if (type === 'sort') {
+    newPhase.prompt = 'Which bucket does each item belong in?';
+    newPhase.buckets = ['Metaphor', 'Simile'];
+    newPhase.items = [
+      { text: 'Her smile was the sun', bucket: 'Metaphor' },
+      { text: 'Brave as a lion', bucket: 'Simile' },
+      { text: 'Time is a thief', bucket: 'Metaphor' }
     ];
     newPhase.timer = 60;
   }

@@ -66,7 +66,12 @@ export const EVENT_SCHEMAS = {
     matching: 'array:required',
     phaseInstanceId: 'number:optional'
   },
-  'close-matching': {
+  'sort-submit': {
+    code: 'string:required',
+    sorting: 'array:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'close-sorting': {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
@@ -83,6 +88,10 @@ export const EVENT_SCHEMAS = {
   'team-pick': {
     code: 'string:required',
     team: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'close-matching': {
+    code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
   'wager-submit': {

@@ -852,6 +852,53 @@ export const PHASE_SCHEMAS = {
   },
 
   // -------------------------------------------------------------------
+  sort: {
+    label: 'Sort into Buckets',
+    icon: '🗂️',
+    description: 'Students place each item into a named bucket (metaphor vs simile, fact vs opinion). With correct buckets set it auto-scores; without them it becomes a consensus poll showing how the class voted.',
+    role: 'input',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'timer', 'participantSelector', 'loops'],
+    fields: {
+      prompt: {
+        type: 'templateString', required: true,
+        label: 'Instructions',
+        placeholder: 'Is each line a metaphor or a simile?'
+      },
+      buckets: {
+        type: 'array', item: { type: 'string' }, required: true,
+        label: 'The buckets',
+        helper: '2-5 category names, e.g. Metaphor, Simile. Students tap one per item.'
+      },
+      items: {
+        type: 'array', item: { type: 'object' }, required: true,
+        label: 'The items to sort',
+        helper: 'Each item is a text plus (optionally) its correct bucket. Fill the correct bucket on every item for a scored round, or on none for a consensus poll.'
+      },
+      pointsPerItem: {
+        type: 'integer', min: 1, max: 100, optional: true, default: 10,
+        label: 'Points per correct placement'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        scores:      { type: 'scoreMap', capability: 'scoreMap', renderers: { barChart: 'tallyBarChart' } },
+        results:     { type: 'array' },
+        resultsList: { type: 'string', capability: 'renderable' },
+        itemCount:   { type: 'number' }
+      }
+    },
+    ui: {
+      hostToggles: ['prompt', 'counter', 'timer', 'closeButton', 'results'],
+      playerToggles: ['prompt', 'items', 'timer', 'submitButton']
+    }
+  },
+
+  // -------------------------------------------------------------------
   reveal: {
     label: 'Show Result',
     icon: '🎭',

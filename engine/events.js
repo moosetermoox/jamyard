@@ -160,6 +160,13 @@ export const EVENTS = {
   CLOSE_MATCHING:       'close-matching',      // host -> server: score + reveal per-pair accuracy
   MATCH_RESULTS:        'match-results',       // server -> all: correct pairs, class accuracy, your score
 
+  // --- Sort Phase (place items into named buckets) ---
+  SORT_START:           'sort-start',          // server -> all: prompt, buckets, items
+  SORT_SUBMIT:          'sort-submit',         // player -> server: bucket names in item order
+  SORT_RECEIVED:        'sort-received',       // server -> host: x of y sorted
+  CLOSE_SORTING:        'close-sorting',       // host -> server: score + reveal distributions
+  SORT_RESULTS:         'sort-results',        // server -> all: per-item distribution (+accuracy when graded)
+
   // --- Relay Phase ---
   RELAY_TURN:           'relay-turn',
   RELAY_SUBMIT:         'relay-submit',

@@ -194,6 +194,15 @@ const matchHint = document.getElementById('match-hint');
 const matchSubmitBtn = document.getElementById('match-submit-btn');
 const matchPlayerResults = document.getElementById('match-player-results');
 
+// Elements - Sort
+const sortSection = document.getElementById('sort-section');
+const sortPromptDisplay = document.getElementById('sort-prompt-display');
+const sortTimerDisplay = document.getElementById('sort-timer-display');
+const sortHint = document.getElementById('sort-hint');
+const sortItemsEl = document.getElementById('sort-items');
+const sortSubmitBtn = document.getElementById('sort-submit-btn');
+const sortPlayerResults = document.getElementById('sort-player-results');
+
 // Elements - One Voice
 const oneVoiceSection = document.getElementById('one-voice-section');
 const oneVoiceInstruction = document.getElementById('one-voice-instruction');
@@ -354,6 +363,14 @@ window.addEventListener('message', function(e) {
     }
     var matchBtn = active.querySelector('#match-submit-btn');
     if (matchBtn && !matchBtn.disabled) matchBtn.click();
+  } else if (id === 'sort-section') {
+    // Tap a random bucket for every item, then submit
+    for (var si = 0; si < sortChoices.length; si++) {
+      sortChoices[si] = sortBucketNames[Math.floor(Math.random() * sortBucketNames.length)];
+    }
+    renderSortItems();
+    var sortBtn = active.querySelector('#sort-submit-btn');
+    if (sortBtn && !sortBtn.disabled) sortBtn.click();
   } else if (id === 'team-split-section') {
     // Choice mode: grab a random open spot
     var pickBtns = active.querySelectorAll('.team-pick-option:not(:disabled):not(.team-pick-mine)');
@@ -1271,6 +1288,124 @@ socket.on('match-results', function(payload) {
   }
   matchPlayerResults.appendChild(list);
   matchPlayerResults.hidden = false;
+});
+
+// --- Socket events - Sort (place items into named buckets) ---
+
+var sortItemTexts = [];
+var sortBucketNames = [];
+var sortChoices = []; // chosen bucket per item (null until tapped)
+
+function renderSortItems() {
+  sortItemsEl.innerHTML = '';
+  for (var i = 0; i < sortItemTexts.length; i++) {
+    (function (index) {
+      var card = document.createElement('div');
+      card.className = 'sort-item';
+
+      var label = document.createElement('p');
+      label.className = 'sort-item-text';
+      label.textContent = sortItemTexts[index];
+      card.appendChild(label);
+
+      var row = document.createElement('div');
+      row.className = 'sort-bucket-row';
+      for (var b = 0; b < sortBucketNames.length; b++) {
+        (function (bucket) {
+          var btn = document.createElement('button');
+          btn.className = 'sort-bucket-btn' + (sortChoices[index] === bucket ? ' sort-bucket-chosen' : '');
+          btn.textContent = bucket;
+          btn.addEventListener('click', function () {
+            sortChoices[index] = bucket;
+            renderSortItems();
+            if (J) J.sound('blip');
+          });
+          row.appendChild(btn);
+        })(sortBucketNames[b]);
+      }
+      card.appendChild(row);
+      sortItemsEl.appendChild(card);
+    })(i);
+  }
+  var allChosen = sortChoices.length > 0 && sortChoices.every(function (c) { return !!c; });
+  sortSubmitBtn.disabled = !allChosen;
+}
+
+function submitSorting() {
+  socket.emit('sort-submit', { code: currentRoomCode, sorting: sortChoices });
+  sortSubmitBtn.disabled = true;
+}
+
+socket.on('sort-start', ({ prompt, buckets, items, timer, playerTemplate, show }) => {
+  showSection(sortSection);
+  sortPromptDisplay.textContent = prompt || 'Sort the items!';
+  sortSubmitBtn.hidden = false;
+  sortHint.hidden = false;
+  sortItemsEl.hidden = false;
+  sortPlayerResults.hidden = true;
+  sortPlayerResults.innerHTML = '';
+  applyTemplate(sortSection, playerTemplate);
+  applyShow(show, {
+    prompt: sortPromptDisplay,
+    items: sortItemsEl,
+    timer: sortTimerDisplay,
+    submitButton: sortSubmitBtn
+  });
+  sortItemTexts = Array.isArray(items) ? items.slice() : [];
+  sortBucketNames = Array.isArray(buckets) ? buckets.slice() : [];
+  sortChoices = sortItemTexts.map(function () { return null; });
+  renderSortItems();
+  if (timer) {
+    startTimer(timer, sortTimerDisplay, function () {
+      // Auto-submit whatever is placed; partial credit beats nothing.
+      submitSorting();
+    });
+  }
+});
+
+sortSubmitBtn.addEventListener('click', function () {
+  submitSorting();
+  if (J) J.sound('blip');
+});
+
+socket.on('sort-results', function (payload) {
+  showSection(sortSection);
+  clearTimer();
+  sortTimerDisplay.hidden = true;
+  sortSubmitBtn.disabled = true;
+  sortSubmitBtn.hidden = true;
+  sortHint.hidden = true;
+  sortItemsEl.hidden = true;
+
+  var results = payload.results || [];
+  var mine = (payload.players || []).find(function (p) { return p.playerId === socket.id; });
+
+  sortPlayerResults.innerHTML = '';
+  if (payload.graded && mine) {
+    var myLine = document.createElement('p');
+    myLine.className = 'match-my-score';
+    myLine.textContent = 'You got ' + mine.correct + ' of ' + (payload.itemCount || results.length) +
+      (mine.score > 0 ? ' — +' + mine.score + ' points!' : '');
+    sortPlayerResults.appendChild(myLine);
+    // Own-moment juice only: a perfect sort earns confetti.
+    if (mine.correct === (payload.itemCount || results.length) && results.length > 0 && J) J.confetti({ count: 40 });
+  }
+  var list = document.createElement('div');
+  list.className = 'match-answer-list';
+  for (var i = 0; i < results.length; i++) {
+    var r = results[i];
+    var row = document.createElement('p');
+    if (r.correct) {
+      row.textContent = r.text + ' → ' + r.correct;
+    } else {
+      // Consensus poll: show how the class voted
+      var top = Object.keys(r.counts || {}).sort(function (a, b) { return r.counts[b] - r.counts[a]; })[0];
+      row.textContent = r.text + ' → ' + (top || '?') + ' (' + ((r.counts || {})[top] || 0) + ' of ' + r.total + ')';
+    }
+    list.appendChild(row);
+  }
+  sortPlayerResults.appendChild(list);
+  sortPlayerResults.hidden = false;
 });
 
 // --- Socket events - Merge (Connection Pack: think-pair-share) ---

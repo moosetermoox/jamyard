@@ -603,6 +603,18 @@
         if (phase.lockoutOnWrong !== false) d.facts.push(fact('wrong answers locked out for the question'));
         break;
 
+      case 'sort': {
+        var bucketNames = Array.isArray(phase.buckets) ? phase.buckets.filter(Boolean).join(' / ') : '…';
+        d.sentence = 'Students sort each item into ' + bucketNames + ':';
+        d.field = textBox(phase.prompt, 'e.g. Is each line a metaphor or a simile?…', function (v) { phase.prompt = v; });
+        var sortGraded = Array.isArray(phase.items) && phase.items.length > 0 &&
+          phase.items.every(function (it) { return it && it.bucket; });
+        d.facts.push(fact((Array.isArray(phase.items) ? phase.items.length : 0) + ' items'));
+        d.facts.push(fact(sortGraded ? (phase.pointsPerItem || 10) + ' pts per correct placement' : 'consensus poll — no right answers'));
+        d.facts.push(timerFact(phase));
+        break;
+      }
+
       case 'match':
         d.sentence = 'Students match the pairs:';
         d.field = textBox(phase.prompt, 'e.g. Match each word to its definition…', function (v) { phase.prompt = v; });

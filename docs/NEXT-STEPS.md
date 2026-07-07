@@ -41,9 +41,9 @@ Explicitly NOT doing: more phase types/features until August feedback.
 3. **Editor odds and ends:**
    - class-critique ships with an empty reveal template (flagged during game sweep)
 4. **New phase ideas** (from the 2026-06-10 ideation; buzz + estimate + branching
-   votes shipped; **match shipped 2026-07-06** — see games/vocab-match):
-   - **`sort`** — drag items into named buckets (categorization: metaphor vs simile),
-     class-consensus reveal. Different cognition from rank's ordering.
+   votes shipped; **match + sort + teams upgrade shipped 2026-07-06** — see
+   games/vocab-match, games/metaphor-or-simile, and team-split's
+   teacher/choice methods):
    - **`secret-role`** — hidden per-player info (Spyfall/Chameleon pattern); per-player
      delivery exists ({{X.mine}}), new part is role assignment + projector discipline.
      The most-requested-by-students unbuilt thing once they see bluffing games.

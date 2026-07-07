@@ -1114,6 +1114,94 @@ matchContinueBtn.addEventListener('click', () => {
   socket.emit('advance-phase', { code: currentRoomCode });
 });
 
+// --- Socket events - Sort (place items into named buckets) ---
+
+const sortSection = document.getElementById('sort-section');
+const sortPrompt = document.getElementById('sort-prompt');
+const sortTimer = document.getElementById('sort-timer');
+const sortCounter = document.getElementById('sort-counter');
+const sortCloseBtn = document.getElementById('sort-close-btn');
+const sortResults = document.getElementById('sort-results');
+const sortContinueBtn = document.getElementById('sort-continue-btn');
+
+socket.on('sort-start', ({ prompt, totalSorters, timer, hostTemplate, show }) => {
+  showSection(sortSection);
+  sortPrompt.textContent = prompt || 'Sort the items!';
+  sortCounter.textContent = '0 of ' + totalSorters + ' sorted';
+  sortCloseBtn.hidden = false;
+  sortCloseBtn.disabled = false;
+  sortResults.hidden = true;
+  sortResults.innerHTML = '';
+  sortContinueBtn.hidden = true;
+  applyTemplate(sortSection, hostTemplate);
+  applyShow(show, {
+    prompt: sortPrompt,
+    counter: sortCounter,
+    timer: sortTimer,
+    closeButton: sortCloseBtn,
+    results: sortResults
+  });
+  if (timer) {
+    startTimer(timer, sortTimer, () => {
+      sortCloseBtn.click();
+    });
+  }
+});
+
+socket.on('sort-received', ({ count, total }) => {
+  sortCounter.textContent = count + ' of ' + total + ' sorted';
+  if (J) J.sound('blip');
+});
+
+// The reveal is a discussion moment: graded rounds show per-item accuracy,
+// consensus polls show how the class split. Host clicks Continue when done.
+socket.on('sort-results', ({ graded, results, players }) => {
+  clearTimer();
+  sortTimer.hidden = true;
+  sortCloseBtn.hidden = true;
+  sortContinueBtn.hidden = false;
+  if (J) J.sound('reveal');
+
+  let html = '<div class="sort-results-list">';
+  for (const r of (results || [])) {
+    html += '<div class="sort-result-row">';
+    html += '<span class="sort-result-text">' + escapeHtml(r.text) +
+            (r.correct ? ' → <strong>' + escapeHtml(r.correct) + '</strong>' : '') + '</span>';
+    html += '<span class="sort-result-counts">';
+    for (const [bucket, n] of Object.entries(r.counts || {})) {
+      const isCorrect = r.correct === bucket;
+      html += '<span class="sort-count' + (isCorrect ? ' sort-count-correct' : '') + '">' +
+              escapeHtml(bucket) + ': ' + n + '</span>';
+    }
+    html += '</span>';
+    if (r.pct != null) {
+      html += '<span class="match-accuracy-pct">' + r.pct + '%</span>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  if (graded && (players || []).length > 0) {
+    html += '<div class="match-player-list">';
+    for (const p of players) {
+      const avatar = J ? J.avatarFor(p.name) + ' ' : '';
+      html += '<p>' + avatar + escapeHtml(p.name) + ' — ' + p.correct + ' correct' +
+        (p.score > 0 ? ' (+' + p.score + ')' : '') + '</p>';
+    }
+    html += '</div>';
+  }
+  sortResults.innerHTML = html;
+  sortResults.hidden = false;
+});
+
+sortCloseBtn.addEventListener('click', () => {
+  socket.emit('close-sorting', { code: currentRoomCode });
+  sortCloseBtn.disabled = true;
+});
+
+sortContinueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
+});
+
 // --- Socket events - One Voice (Connection Pack: cooperative counting) ---
 
 // Teacher-speaker audio (spec §4.5 v1): every successful tap is spoken

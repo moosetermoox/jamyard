@@ -106,7 +106,8 @@ Framework for quickly building classroom games where:
 - **Chaos-tested** — `node scripts/simulate-chaos.js` runs every interactive phase type under school-wifi hostility (chaos mode in `services/simulator.js`: players drop/reconnect mid-phase via token rebind, ghosts join with dead tokens, stale/malformed/duplicate event sprays) — all 6 suite games must complete. Key invariant it enforces: **player-id migration on reconnect** (`engine/id-migration.js`, called in join-room) deep-rewrites the old socket id through `room.phaseState` + `engine.phaseData` + `foreachState`, so turn describers keep working buttons, relay turns survive, votes count, and leaderboard scores follow players across wifi blips. Also enforced: generic `advance-phase` closes the current phase first (routes to tallyAndAdvance/closeRanking/closeOneVoice/closeBuzz/closeMerge, flushes rate/estimate) — a teacher-console "Next step" can no longer skip a phase's data close.
 - **Match phase** (26th type) — pair two lists (vocab ↔ definitions); left column fixed, right column drag-to-SWAP (touch + arrows fallback); `pairs` literal array + `pointsPerMatch`; close = discussion moment (per-pair class accuracy bars on host, personal score + answer key on players); output `scores` is a scoreMap. Pure scoring in `engine/phases/match-scoring.js`. First game: Vocab Match.
 - **Teams upgrade** — team-split sizing by `teamCount` OR `groupSize` (count computed via `engine/phases/team-grouping.js` — 22 kids in groups of 4 → 4,4,4,4,3,3, never a singleton); two new interactive methods: `teacher` (tap-a-name-tap-a-team roster on the host screen + Confirm) and `choice` (students claim open spots FCFS, re-pick allowed, full teams bounce only the tapper, stragglers auto-filled into emptiest teams on confirm/all-placed). Output shape unchanged (`teams`/`playerTeam`) so turn/relay/leaderboard consume all methods identically. Privileged actions (`team-assign`/`team-split-confirm`) check `isTeacherSocket`. Verified by `scripts/simulate-team-modes.js` (14 socket-level invariants incl. intruder rejection) against the `games/_team-modes` fixture.
-- **748 tests passing** (`npm test`)
+- **Sort phase** (27th type) — categorization: students tap a bucket for every item (drag rejected — miserable on phones); `buckets` + `items` where correct buckets are all-or-none (all = graded via `pointsPerItem`, none = consensus poll à la estimate's poll mode); close shows per-item class distributions with the correct bucket highlighted. Pure scoring in `engine/phases/sort-scoring.js`. First game: Metaphor or Simile? (graded round + consensus round).
+- **764 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-team-modes.js` (teacher/choice team-split invariants), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for phone testing and screenshot harnesses)
 
@@ -160,6 +161,8 @@ Framework for quickly building classroom games where:
    - First branching-vote game: class-steered choose-your-own-adventure; each vote's winner routes the story (`nextByWinner`), paths converge on a shared finale
 23. **Vocab Match** (games/vocab-match/) — announce → match ×2 → leaderboard → end
    - First match-phase game: French vocab round + inventors round, leaderboard sums both; the template for any vocab/definitions review
+24. **Metaphor or Simile?** (games/metaphor-or-simile/) — announce → sort (graded) → sort (consensus) → leaderboard → end
+   - First sort-phase game: scored figure-of-speech ID round, then a no-right-answers class-verdict round (Genius vs Chaos); the template for any categorization review
 
 ### Engine Primitives (All Implemented)
 1. Player state tracking (remaining vs eliminated) — PlayerRegistry
@@ -179,7 +182,7 @@ Framework for quickly building classroom games where:
 - **AI mixed format:** AI sometimes returns `[playerId, responseText]` in same array. Hook deduplicates within groups — only eliminates if 2+ unique players resolve.
 - **bottom-percent input field:** Eliminate phase reads scores from `phase.input` or `phase.from` (config uses `input`).
 
-### 26 Phase Types Defined
+### 27 Phase Types Defined
 1. `lobby` — Wait for players to join
 2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pair games — `pairsFrom` optional, `oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`), `passAllowed`, `simultaneousReveal`
 3. `ai-process` — Send data to AI for processing; `perPlayer:true` generates one item per student
@@ -206,6 +209,7 @@ Framework for quickly building classroom games where:
 24. `buzz` — First-tap-wins buzzer rounds (trivia bee); teacher asks aloud, judges Right/Wrong on host; wrong = lockout for the question; one phase runs many questions; outputs `scores` (scoreMap)
 25. `estimate` — Numeric guessing; optional `answer`+`unit`, `scoring: closest|graduated` (rank-based, scale-free), resubmission allowed until close; reveal shows answer + distribution; outputs `scores`/`average`/`median`; no answer = poll-the-room mode
 26. `match` — Pair two lists (vocab ↔ definitions); `pairs` literal array, `pointsPerMatch`; left column fixed, right drag-to-swap; close reveals correct pairs + per-pair class accuracy (host Continue advances); outputs `scores` (scoreMap)/`results`/`resultsList`/`pairCount`
+27. `sort` — Place items into named buckets (metaphor vs simile); `buckets` (2-5 names) + `items` with all-or-none correct buckets — all = graded (`pointsPerItem`), none = consensus poll; tap-to-assign on phones; close reveals per-item distributions (+accuracy when graded); outputs `scores`/`results`/`resultsList`/`itemCount`
 
 ### 6 AI Task Types Defined
 - `summarize` — Combine responses into insight (Haiku)
@@ -294,6 +298,7 @@ Framework for quickly building classroom games where:
 - `engine/phases/estimate-scoring.js` — pure closeness scoring (`scoreEstimates` closest/graduated modes — rank-based so scale-free — + `estimateStats`)
 - `engine/phases/match-scoring.js` — pure match scoring (`normalizePairs`/`scoreMatching`/`matchStats`/`buildResultsList` — position-aligned exact match, per-pair class accuracy)
 - `engine/phases/team-grouping.js` — pure team sizing/capacity/auto-fill (`groupCountFor` no-singleton group counts, `teamCapacities` even-split, `autoFill` emptiest-first straggler placement)
+- `engine/phases/sort-scoring.js` — pure sort scoring (`normalizeSortItems`/`isGradedSort`/`scoreSorting`/`sortStats`/`buildSortResultsList` — graded vs consensus modes, per-item distributions)
 - `engine/room-snapshot.js` — `serializeRoom`/`restoreRoom` (restart survival; JSON-safe, resume-at-phase-start)
 - `scripts/sim-harness.js` — shared multi-client simulation primitives (all simulate-*.js scripts build on it)
 - `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 12 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
