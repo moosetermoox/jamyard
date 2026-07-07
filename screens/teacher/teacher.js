@@ -198,10 +198,21 @@ function renderEntries(submissions) {
       top.appendChild(name);
       li.appendChild(top);
 
-      var text = document.createElement('div');
-      text.className = 'entry-text';
-      text.textContent = sub.text;
-      li.appendChild(text);
+      if (sub.drawing && window.Draw) {
+        // Drawing submission: a thumbnail IS the moderation surface —
+        // "[drawing]" text would be unmoderatable.
+        var thumb = document.createElement('canvas');
+        thumb.className = 'entry-drawing';
+        thumb.width = 160;
+        thumb.height = 120;
+        Draw.renderStrokes(thumb, sub.drawing);
+        li.appendChild(thumb);
+      } else {
+        var text = document.createElement('div');
+        text.className = 'entry-text';
+        text.textContent = sub.text;
+        li.appendChild(text);
+      }
 
       var actions = document.createElement('div');
       actions.className = 'entry-actions';
@@ -247,7 +258,17 @@ function renderPreview(content, responses) {
     for (var i = 0; i < responses.length; i++) {
       var li = document.createElement('li');
       li.className = 'entry';
-      li.textContent = responses[i].name + ': ' + responses[i].response;
+      if (responses[i].drawing && window.Draw) {
+        li.textContent = responses[i].name + ':';
+        var thumb = document.createElement('canvas');
+        thumb.className = 'entry-drawing';
+        thumb.width = 200;
+        thumb.height = 150;
+        Draw.renderStrokes(thumb, responses[i].drawing);
+        li.appendChild(thumb);
+      } else {
+        li.textContent = responses[i].name + ': ' + responses[i].response;
+      }
       previewRespList.appendChild(li);
     }
   } else {

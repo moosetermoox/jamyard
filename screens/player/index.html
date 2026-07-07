@@ -52,6 +52,15 @@
       <span class="timer-bar-text"></span>
       <div class="timer-bar"><div class="timer-bar-fill"></div></div>
     </div>
+    <canvas id="assigned-drawing" class="assigned-drawing" width="360" height="270" hidden></canvas>
+    <div id="draw-area" hidden>
+      <canvas id="draw-pad" class="draw-pad" width="360" height="360"></canvas>
+      <div class="draw-toolbar">
+        <div id="draw-colors" class="draw-colors"></div>
+        <button id="draw-undo" type="button" class="draw-tool-btn">↩ Undo</button>
+        <button id="draw-clear" type="button" class="draw-tool-btn">✕ Clear</button>
+      </div>
+    </div>
     <textarea
       id="response-input"
       placeholder="Type your answer here..."
@@ -323,6 +332,7 @@
   <script src="/shared/themes.js"></script>
   <script src="/shared/juice.js"></script>
   <script src="/shared/bot-brain.js"></script>
+  <script src="/shared/drawing.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="player.js"></script>
 </body>

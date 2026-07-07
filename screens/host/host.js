@@ -745,9 +745,19 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
       previewResponses.hidden = false;
     }
     previewResponsesList.innerHTML = '';
-    for (const { name, response } of responses) {
+    for (const { name, response, drawing } of responses) {
       const li = document.createElement('li');
-      li.innerHTML = '<strong>' + name + ':</strong> ' + response;
+      if (drawing && window.Draw) {
+        li.innerHTML = '<strong>' + escapeHtml(name) + ':</strong> ';
+        const thumb = document.createElement('canvas');
+        thumb.className = 'reveal-drawing preview-drawing-thumb';
+        thumb.width = 240;
+        thumb.height = 180;
+        Draw.renderStrokes(thumb, drawing);
+        li.appendChild(thumb);
+      } else {
+        li.innerHTML = '<strong>' + name + ':</strong> ' + response;
+      }
       previewResponsesList.appendChild(li);
     }
   } else {
@@ -860,7 +870,22 @@ socket.on('reveal-one-item', ({ item, index, total }) => {
   revealOneCounter.textContent = index + ' of ' + total + ' revealed';
   const div = document.createElement('div');
   div.className = 'reveal-one-item';
-  div.textContent = item;
+  // Drawing items paint onto a canvas with an animated stroke replay —
+  // the gallery moment. Everything else stays text.
+  if (item && typeof item === 'object' && item.drawing && window.Draw) {
+    const caption = document.createElement('p');
+    caption.className = 'reveal-drawing-caption';
+    caption.textContent = item.text || '';
+    const canvas = document.createElement('canvas');
+    canvas.className = 'reveal-drawing';
+    canvas.width = 480;
+    canvas.height = 360;
+    div.appendChild(caption);
+    div.appendChild(canvas);
+    Draw.renderStrokes(canvas, item.drawing, { animate: true });
+  } else {
+    div.textContent = typeof item === 'string' ? item : ((item && (item.text || item.name)) || '');
+  }
   revealOneItems.appendChild(div);
 
   if (index >= total) {

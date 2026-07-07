@@ -58,6 +58,7 @@ import { buildTeamRosters } from './engine/phase-handlers/team-split.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
+import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
 import { scoreResponses } from './engine/speed-scoring.js';
 
@@ -2399,6 +2400,20 @@ io.on('connection', (socket) => {
       }
       players.update(socket.id, { response: PASS_RESPONSE, responseAt: Date.now() });
       recordEvent(room, 'submit-response', { player: player.name });
+    } else if (currentPhase && currentPhase.type === 'collect' && currentPhase.inputType === 'drawing') {
+      // Drawing submissions: structural validation only (the blocklist
+      // can't read a picture — the safety story is attribution, the live
+      // moderation thumbnails, and teacher preview).
+      const check = validateDrawing(response);
+      if (!check.ok) {
+        console.log(`[submit-response] Rejected drawing (${check.reason}) from ${player.name}`);
+        recordEvent(room, 'submit-rejected', { player: player.name, reason: check.reason });
+        socket.emit(EVENTS.RESPONSE_REJECTED, { reason: check.reason, message: check.message });
+        return;
+      }
+      players.update(socket.id, { response: { strokes: check.strokes }, responseAt: Date.now() });
+      console.log(`[submit-response] Stored drawing (${check.strokes.length} strokes) from ${player.name}`);
+      recordEvent(room, 'submit-response', { player: player.name });
     } else {
       // Safety gate — only free-text collect submissions. collect-choice answers
       // are teacher-authored choices, so they skip validation/filtering.
@@ -2558,6 +2573,11 @@ io.on('connection', (socket) => {
           .filter(isVisibleSubmission)
           .map(p => {
             const r = p.response;
+            // Drawings: strokes ride alongside a placeholder text (text
+            // consumers show "[drawing]"; galleries/rotation use strokes)
+            if (isDrawingResponse(r)) {
+              return { playerId: p.id, name: p.name, text: '[drawing]', drawing: r.strokes, responseAt: p.responseAt };
+            }
             // Multi-field responses come as objects with field keys
             if (r && typeof r === 'object' && !Array.isArray(r)) {
               const textParts = Object.values(r);
@@ -2569,10 +2589,15 @@ io.on('connection', (socket) => {
         // Build byPlayer map alongside responses array — used by .mine and
         // by downstream rotateFrom phases. Multi-field responses store the
         // joined text; rotation users wanting the structured fields can
-        // dataRef into responses directly.
+        // dataRef into responses directly. Drawings keep a parallel
+        // byPlayerDrawing map so rotation can pass the actual strokes.
         const byPlayer = {};
+        const byPlayerDrawing = {};
         for (const r of responses) {
-          if (r && r.playerId) byPlayer[r.playerId] = r.text;
+          if (r && r.playerId) {
+            byPlayer[r.playerId] = r.text;
+            if (r.drawing) byPlayerDrawing[r.playerId] = r.drawing;
+          }
         }
 
         // Preserve any data the phase handler wrote on enter (e.g. assigned)
@@ -2613,7 +2638,10 @@ io.on('connection', (socket) => {
           // Internal phase data for the pair-scoped reveal's neutral card —
           // excluded from responses/byPlayer so it never reaches AI or lists.
           const passedIds = collectPhase.passAllowed ? collectPassedIds(eligible) : [];
-          room.engine.storePhaseData(collectPhase.id, { ...existing, responses, byPlayer, passedIds });
+          room.engine.storePhaseData(collectPhase.id, {
+            ...existing, responses, byPlayer, passedIds,
+            ...(Object.keys(byPlayerDrawing).length > 0 ? { byPlayerDrawing } : {})
+          });
           console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}' (${passedIds.length} passed)`);
         }
 

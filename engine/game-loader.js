@@ -470,6 +470,26 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Drawing input: incompatible with multi-field; AI can't read drawings.
+    if (phase.type === 'collect' && phase.inputType === 'drawing') {
+      if (Array.isArray(phase.fields) && phase.fields.length > 0) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (collect) can't combine a drawing pad with multi-field inputs — pick one.`
+        );
+      }
+      // Any AI step reading this phase's responses will see "[drawing]"
+      // placeholders, not the pictures.
+      for (const [otherName, other] of Object.entries(config.phases)) {
+        if (!other || (other.type !== 'ai-process' && other.type !== 'ai-eliminate')) continue;
+        const ref = other.input || other.data;
+        if (typeof ref === 'string' && ref.split('.')[0] === name) {
+          warnings.push(
+            `Game "${gameId}": phase "${otherName}" sends "${name}"'s responses to the AI, but they're drawings — the AI can't see pictures, only "[drawing]" placeholders.`
+          );
+        }
+      }
+    }
+
     // Sort phase: buckets (2-5 unique names) + items (all-or-none correct buckets).
     if (phase.type === 'sort') {
       const buckets = (Array.isArray(phase.buckets) ? phase.buckets : [])

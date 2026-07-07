@@ -455,8 +455,11 @@
         break;
 
       case 'collect': {
-        d.sentence = phase.assign === 'pairwise' ? 'Students answer (in pairs):' : 'Students answer:';
-        d.field = textBox(phase.prompt, 'The question students see…', function (v) { phase.prompt = v; });
+        var isDrawing = phase.inputType === 'drawing';
+        d.sentence = isDrawing
+          ? (phase.rotateFrom ? 'Students draw (continuing ' + stepName(phase.rotateFrom) + '\'s drawing):' : 'Students draw:')
+          : (phase.assign === 'pairwise' ? 'Students answer (in pairs):' : 'Students answer:');
+        d.field = textBox(phase.prompt, isDrawing ? 'What students should draw…' : 'The question students see…', function (v) { phase.prompt = v; });
         if (phase.reusePairsFrom) d.facts.push(fact('same partners as ' + stepName(phase.reusePairsFrom)));
         else if (phase.rotatePairsFrom) d.facts.push(fact('new partners since ' + stepName(phase.rotatePairsFrom)));
         else if (phase.assign === 'pairwise') d.facts.push(fact('random pairs'));

@@ -49,8 +49,16 @@ registerHandler('reveal-one', {
         items = [items];
       }
     }
-    // Render each item to its display string
-    items = items.map(item => formatRevealItem(item, phase.itemTemplate));
+    // Render each item to its display string. Items carrying a drawing
+    // (collect responses with inputType:"drawing") keep their strokes so
+    // the clients can paint them — everything else flattens to text.
+    items = items.map(item => {
+      const text = formatRevealItem(item, phase.itemTemplate);
+      if (item && typeof item === 'object' && Array.isArray(item.drawing)) {
+        return { text: item.name ? `✏️ ${item.name}` : text, drawing: item.drawing };
+      }
+      return text;
+    });
 
     const roMessage = phase.message ? ctx.resolveTemplate(phase.message) : 'Reveal Time!';
 

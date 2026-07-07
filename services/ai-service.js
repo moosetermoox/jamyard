@@ -90,7 +90,9 @@ const PHASE_EXTRA_GUIDANCE = {
     "starter":     { "type": "collect", "prompt": "Write a one-sentence story opening.", "next": "round1" }
     "round1":      { "type": "collect", "prompt": "Previous: {{starter.assigned}}\\n\\nKeep the sentence going.", "rotateFrom": "starter", "next": "round2" }
     "round2":      { "type": "collect", "prompt": "Previous: {{round1.assigned}}\\n\\nKeep the sentence going.", "rotateFrom": "round1", "next": "reveal" }
-    Each rotateFrom MUST point to a real earlier collect/collect-choice/per-player ai-process step. You CANNOT rotate from inside a loop — chain explicit phases instead.`,
+    Each rotateFrom MUST point to a real earlier collect/collect-choice/per-player ai-process step. You CANNOT rotate from inside a loop — chain explicit phases instead.
+
+    DRAWING INPUT: set "inputType": "drawing" to replace the text box with a drawing pad. Use for pictionary/gallery games. Drawings work with reveal-one (animated gallery) and rotation (a drawing source preloads onto the recipient's pad to continue it, or displays above a text box to caption it). AI steps CANNOT read drawings — never send a drawing collect's responses to ai-process/ai-eliminate. Put a teacher "preview" phase between a drawing collect and its class-wide reveal.`,
 
   'team-split':
     `TEAM SIZING: set "teamCount" (exactly N teams) OR "groupSize" (groups of that size — the count is computed from class size, no singletons), NEVER both. Method "teacher" shows the roster on the host screen for the teacher to arrange; "choice" lets students tap the group they want (open spots only, stragglers auto-filled) — use "choice" when the user says students pick their own teams/partners. Both interactive methods pause until the teacher confirms.`,

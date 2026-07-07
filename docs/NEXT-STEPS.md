@@ -50,6 +50,16 @@ Explicitly NOT doing: more phase types/features until August feedback.
    - **`appreciation`** — everyone writes something kind about an assigned classmate
      (rotation guarantees coverage), teacher previews every note before private
      delivery. Connection-family round 2; needs the new privacy pattern.
+   - **Drawing v2: `mural` phase** — live collaborative drawing on the projector.
+     Do the TILE WALL first (each student owns one attributable tile of the
+     projected grid — moderation is "hide that tile") before any shared free-for-all
+     canvas; both need a teacher freeze/clear control. v1 (drawing as a collect
+     input — galleries, pass-and-continue, captions) shipped 2026-07-06.
+   - **Telephone Pictionary** — draw → caption → redraw chains are already
+     possible with inputType:"drawing" + rotateFrom (caption mode works today);
+     the missing piece is a CHAIN REVEAL (show each drawing's lineage:
+     original → caption → redraw). Needs chain assembly from rotation
+     assignment maps.
 
 ## Later (needs accounts or more users first)
 

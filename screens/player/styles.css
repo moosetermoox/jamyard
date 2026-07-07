@@ -692,6 +692,89 @@ button[hidden] {
   background: var(--theme-border, #ccc);
 }
 
+/* Drawing pad (collect inputType:"drawing") + drawing renders */
+.draw-pad {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  background: #fff;
+  border: 3px solid var(--theme-border, #000);
+  border-radius: 12px;
+  cursor: crosshair;
+}
+
+.draw-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+
+.draw-colors {
+  display: flex;
+  gap: 6px;
+}
+
+.draw-swatch {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  border: 2px solid var(--theme-border, #000);
+  border-radius: 50%;
+}
+
+.draw-swatch-active {
+  outline: 3px solid var(--theme-accent, #FFD600);
+}
+
+.draw-tool-btn {
+  display: inline-block;
+  width: auto;
+  font-size: 0.9rem;
+  padding: 8px 14px;
+  margin: 0;
+  background: var(--theme-surface, white);
+  color: var(--theme-text, #222);
+}
+
+.assigned-drawing {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  margin: 0 auto 10px;
+  background: #fff;
+  border: 3px solid var(--theme-border, #000);
+  border-radius: 12px;
+}
+
+/* display:block above overrides the hidden attribute (the recurring bug) */
+.assigned-drawing[hidden],
+.draw-pad[hidden],
+.reveal-drawing[hidden] {
+  display: none;
+}
+
+.reveal-drawing {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  margin: 6px auto 0;
+  background: #fff;
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 8px;
+}
+
+.reveal-drawing-caption {
+  margin: 0 0 4px;
+  font-weight: 900;
+}
+
 /* Team-split choice mode: tap the team you want */
 .team-pick-hint {
   font-size: 0.9rem;

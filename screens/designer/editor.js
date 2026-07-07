@@ -1623,6 +1623,16 @@ function renderPhaseConfig(phaseId) {
       'What\'s one word that describes how you feel today?',
       'What\'s one thing you learned this week?'
     ]);
+    addSelectWithHelp('Students answer with', 'A drawing pad replaces the text box. Drawings show in reveal galleries and pass through rotation chains — AI steps can\'t read them.', 'phase-inputType',
+      [
+        { value: 'text', label: 'Text' },
+        { value: 'drawing', label: 'A drawing' }
+      ],
+      phase.inputType === 'drawing' ? 'drawing' : 'text', function (value) {
+        isDirty = true;
+        if (value === 'drawing') { phase.inputType = 'drawing'; } else { delete phase.inputType; }
+        renderCanvas();
+      });
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits when time runs out.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });

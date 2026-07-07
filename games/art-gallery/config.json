@@ -1,0 +1,36 @@
+{
+  "name": "Art Gallery",
+  "description": "Everyone draws the same prompt, the teacher previews the gallery, then the drawings reveal one at a time on the projector — the template for any draw-and-share moment.",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "intro" },
+    "intro": {
+      "type": "announce",
+      "message": "🎨 ART GALLERY!\n\nYou'll get one prompt and 90 seconds to draw it on your device. No erasing your neighbor's masterpiece — everyone's goes up on the wall.",
+      "timer": 10,
+      "next": "draw"
+    },
+    "draw": {
+      "type": "collect",
+      "inputType": "drawing",
+      "prompt": "Draw your dream invention — something the world needs but nobody has built yet.",
+      "timer": 90,
+      "next": "check"
+    },
+    "check": {
+      "type": "preview",
+      "template": "Review the drawings below, then open the gallery.",
+      "approveNext": "gallery",
+      "rejectNext": "draw"
+    },
+    "gallery": {
+      "type": "reveal-one",
+      "message": "🖼️ The gallery is open!",
+      "from": "draw.responses",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "🎨 That's the Art Gallery! Swap in your own drawing prompt for any topic."
+    }
+  }
+}

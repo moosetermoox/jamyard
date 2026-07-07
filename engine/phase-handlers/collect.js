@@ -55,13 +55,21 @@ function buildRotationAssignment(ctx) {
   const N = orderedIds.length;
   if (N === 0) return {};
 
+  // Drawing sources also rotate their strokes (byPlayerDrawing) so the
+  // recipient can see — or continue — the actual picture, not "[drawing]".
+  const sourceDrawings = sourceData.byPlayerDrawing || null;
+
   const assignment = {};
+  const drawingAssignment = {};
   for (let i = 0; i < N; i++) {
     const senderIdx = ((i - offset) % N + N) % N;
     const senderId = orderedIds[senderIdx];
     const item = sourceByPlayer[senderId];
     if (item !== undefined) {
       assignment[orderedIds[i]] = item;
+      if (sourceDrawings && sourceDrawings[senderId]) {
+        drawingAssignment[orderedIds[i]] = sourceDrawings[senderId];
+      }
     }
   }
 
@@ -73,7 +81,11 @@ function buildRotationAssignment(ctx) {
   // (One source can only be actively rotated by one downstream phase at a
   // time in a linear chain, so this doesn't conflict.)
   const existing = engine.phaseData[phase.rotateFrom] || {};
-  engine.storePhaseData(phase.rotateFrom, { ...existing, assigned: assignment });
+  engine.storePhaseData(phase.rotateFrom, {
+    ...existing,
+    assigned: assignment,
+    ...(sourceDrawings ? { assignedDrawing: drawingAssignment } : {})
+  });
   return assignment;
 }
 
@@ -231,9 +243,18 @@ registerHandler('collect', {
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
     const video = ctx.services.resolveVideoEmbed(phase.video);
 
+    // Rotated drawings (strokes) travel outside the text prompt — the
+    // player screen preloads them onto the pad (drawing input: continue
+    // it) or shows them read-only above a text box (caption it).
+    const rotatedDrawings = phase.rotateFrom
+      ? (engine.phaseData[phase.rotateFrom] || {}).assignedDrawing || null
+      : null;
+    const inputType = phase.inputType === 'drawing' ? 'drawing' : 'text';
+
     // Send prompt to host
     ctx.emitToHost(EVENTS.GAME_STARTED, {
       prompt: hostPrompt, image, video, timer: phase.timer || null, fields: phase.fields || null,
+      inputType,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
@@ -247,6 +268,8 @@ registerHandler('collect', {
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(phase.prompt || '', engine, player.id);
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, timer: phase.timer || null, fields: phase.fields || null,
+        inputType,
+        assignedDrawing: (rotatedDrawings && rotatedDrawings[player.id]) || null,
         passAllowed: !!phase.passAllowed,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
@@ -271,9 +294,14 @@ registerHandler('collect', {
         : ctx.resolveTemplate(ctx.phase.prompt || '');
       const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
       const video = ctx.services.resolveVideoEmbed(ctx.phase.video);
+      const reconRotated = ctx.phase.rotateFrom
+        ? (ctx.engine.phaseData[ctx.phase.rotateFrom] || {}).assignedDrawing || null
+        : null;
       socket.emit(EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, timer: null,
         fields: ctx.phase.fields || null,
+        inputType: ctx.phase.inputType === 'drawing' ? 'drawing' : 'text',
+        assignedDrawing: (player && reconRotated && reconRotated[player.id]) || null,
         passAllowed: !!ctx.phase.passAllowed,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });

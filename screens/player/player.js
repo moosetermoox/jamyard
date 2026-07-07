@@ -309,6 +309,13 @@ window.addEventListener('message', function(e) {
   var id = active.id;
 
   if (id === 'collect-section') {
+    // Drawing mode: scribble something plausible and submit
+    if (!drawArea.hidden && drawPadApi && window.Draw) {
+      drawPadApi.setStrokes(drawPadApi.getStrokes().concat(Draw.scribble()));
+      var drawBtn = active.querySelector('#submit-btn');
+      if (drawBtn && !drawBtn.disabled) drawBtn.click();
+      return;
+    }
     // Check for choice buttons first (collect-choice mode)
     var choiceBtns = active.querySelectorAll('.choice-btn');
     if (choiceBtns.length > 0) {
@@ -614,15 +621,56 @@ function clearTimer() {
 
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed }) => {
+// --- Drawing pad (collect inputType:"drawing") ---
+// Lazily attached once; strokes come from /shared/drawing.js (Draw global).
+var drawArea = document.getElementById('draw-area');
+var drawPadCanvas = document.getElementById('draw-pad');
+var drawColors = document.getElementById('draw-colors');
+var drawUndoBtn = document.getElementById('draw-undo');
+var drawClearBtn = document.getElementById('draw-clear');
+var assignedDrawingCanvas = document.getElementById('assigned-drawing');
+var drawPadApi = null;
+
+function initDrawPad() {
+  if (drawPadApi || !window.Draw) return;
+  drawPadApi = Draw.attachPad(drawPadCanvas);
+  // Color swatches (skip white — the canvas is white)
+  for (var ci = 0; ci < Draw.PALETTE.length - 1; ci++) {
+    (function (color) {
+      var swatch = document.createElement('button');
+      swatch.type = 'button';
+      swatch.className = 'draw-swatch' + (color === drawPadApi.getColor() ? ' draw-swatch-active' : '');
+      swatch.style.background = color;
+      swatch.addEventListener('click', function () {
+        drawPadApi.setColor(color);
+        drawColors.querySelectorAll('.draw-swatch').forEach(function (s) { s.classList.remove('draw-swatch-active'); });
+        swatch.classList.add('draw-swatch-active');
+      });
+      drawColors.appendChild(swatch);
+    })(Draw.PALETTE[ci]);
+  }
+  drawUndoBtn.addEventListener('click', function () { drawPadApi.undo(); });
+  drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
+}
+
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   responseInput.value = '';
   if (responseCounter) responseCounter.textContent = '0 / ' + RESPONSE_MAX;
   if (responseNotice) responseNotice.hidden = true;
   submitBtn.disabled = false;
+  drawArea.hidden = true;
+  assignedDrawingCanvas.hidden = true;
   applyTemplate(collectSection, playerTemplate);
   applyImage(collectImage, image, show);
+
+  // A rotated-in drawing shown with a TEXT input = caption mode ("what is
+  // this?"). With a drawing input it preloads onto the pad instead.
+  if (assignedDrawing && inputType !== 'drawing' && window.Draw) {
+    assignedDrawingCanvas.hidden = false;
+    Draw.renderStrokes(assignedDrawingCanvas, assignedDrawing);
+  }
 
   // Clean up previous dynamic elements
   var oldChoices = collectSection.querySelector('.choice-buttons');
@@ -727,6 +775,37 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
       submitButton: submitBtn
     });
 
+  } else if (inputType === 'drawing') {
+    // --- Drawing mode ---
+    collectMode = 'drawing';
+    responseInput.hidden = true;
+    responseInput.style.display = 'none';
+    if (responseCounter) responseCounter.textContent = '';
+    submitBtn.hidden = false;
+    submitBtn.style.display = '';
+    drawArea.hidden = false;
+    initDrawPad();
+    if (drawPadApi) {
+      // A rotated-in drawing preloads onto the pad: continue-the-drawing.
+      // (Undo/Clear never remove the inherited strokes.)
+      drawPadApi.setStrokes(assignedDrawing || []);
+    }
+    submitBtn.onclick = function () {
+      if (!drawPadApi || drawPadApi.isEmpty()) {
+        showResponseNotice('Draw something first!');
+        return;
+      }
+      submitBtn.disabled = true;
+      socket.emit('submit-response', { code: currentRoomCode, response: { strokes: drawPadApi.getStrokes() } });
+      showSection(submittedSection);
+      if (J) J.sound('blip');
+    };
+    applyShow(show, {
+      prompt: promptDisplay,
+      input: drawArea,
+      timer: collectTimerDisplay,
+      submitButton: submitBtn
+    });
   } else {
     // --- Single text mode ---
     responseInput.hidden = false;
@@ -755,6 +834,13 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
           result[inputs[k].getAttribute('data-key')] = inputs[k].value.trim() || '';
         }
         socket.emit('submit-response', { code: currentRoomCode, response: result });
+      } else if (collectMode === 'drawing') {
+        // Auto-submit whatever's on the pad; a blank pad submits nothing
+        // (the server rejects empties, and the host closes the phase anyway)
+        if (drawPadApi && !drawPadApi.isEmpty()) {
+          socket.emit('submit-response', { code: currentRoomCode, response: { strokes: drawPadApi.getStrokes() } });
+        }
+        submitBtn.disabled = true;
       } else {
         submitBtn.disabled = true;
         socket.emit('submit-response', { code: currentRoomCode, response: responseInput.value.trim() || '' });
@@ -876,7 +962,22 @@ socket.on('reveal-one-complete', () => {
 function appendRevealOneItem(item) {
   var div = document.createElement('div');
   div.className = 'reveal-one-item';
-  div.textContent = typeof item === 'string' ? item : (item.text || item.name || JSON.stringify(item));
+  // Drawing items paint onto a canvas (animated stroke replay); everything
+  // else stays text.
+  if (item && typeof item === 'object' && item.drawing && window.Draw) {
+    var caption = document.createElement('p');
+    caption.className = 'reveal-drawing-caption';
+    caption.textContent = item.text || '';
+    var canvas = document.createElement('canvas');
+    canvas.className = 'reveal-drawing';
+    canvas.width = 300;
+    canvas.height = 225;
+    div.appendChild(caption);
+    div.appendChild(canvas);
+    Draw.renderStrokes(canvas, item.drawing, { animate: true });
+  } else {
+    div.textContent = typeof item === 'string' ? item : (item.text || item.name || JSON.stringify(item));
+  }
   revealOneItems.appendChild(div);
 }
 

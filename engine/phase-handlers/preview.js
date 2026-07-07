@@ -26,7 +26,14 @@ registerHandler('preview', {
         if (cfg.type === 'collect') {
           const data = engine.getPhaseData(id);
           if (data && data.responses) {
-            responses = data.responses.map(r => ({ name: r.name, response: r.text }));
+            // Drawings carry their strokes so the teacher can actually SEE
+            // what they're approving — a "[drawing]" placeholder would
+            // defeat the whole point of the preview gate.
+            responses = data.responses.map(r => ({
+              name: r.name,
+              response: r.text,
+              ...(r.drawing ? { drawing: r.drawing } : {})
+            }));
           }
         }
       }

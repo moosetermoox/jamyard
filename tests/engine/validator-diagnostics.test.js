@@ -252,7 +252,9 @@ describe('validator diagnostics — game snapshot', () => {
       'convince-me': [],
       'corn-story': [],
       'dream-vacation': [],
+      'art-gallery': [],
       'elimination-game': [],
+      'finish-my-drawing': [],
       'excuse-machine': [],
       // 2026-06-10 sweep: stale fields removed, [object Object]/raw-{{_current}}
       // leaks fixed (reveal-one itemTemplate). The remaining mismatches are

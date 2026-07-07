@@ -194,6 +194,11 @@ export const PHASE_SCHEMAS = {
         helper: 'What students see. Can include {{tokens}} from earlier steps.',
         placeholder: 'How are you feeling today?'
       },
+      inputType: {
+        type: 'enum', values: ['text', 'drawing'], optional: true, default: 'text',
+        label: 'Students answer with',
+        helper: '"drawing" replaces the text box with a drawing pad. Drawings flow to reveal galleries and rotation chains; AI steps can\'t read them. With rotateFrom: a drawing source preloads onto the pad (continue it), or displays above a text box (caption it).'
+      },
       fields: {
         type: 'array', item: { type: 'string' }, optional: true,
         label: 'Multi-field response',

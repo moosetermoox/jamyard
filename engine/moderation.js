@@ -20,10 +20,18 @@ export function isPassResponse(r) {
   return !!(r && typeof r === 'object' && r._pass === true);
 }
 
+// Is this response value a drawing ({ strokes: [...] })? Kept here (in
+// addition to engine/drawing.js) so this module stays dependency-free.
+export function isDrawingResponseValue(r) {
+  return !!(r && typeof r === 'object' && Array.isArray(r.strokes));
+}
+
 // Render any response value as display text. Single-text / choice responses are
-// strings; multi-field responses are objects keyed by field name.
+// strings; multi-field responses are objects keyed by field name; drawings get
+// a placeholder (thumbnails render from the strokes carried alongside).
 export function responseToText(r) {
   if (isPassResponse(r)) return '';
+  if (isDrawingResponseValue(r)) return '✏️ [drawing]';
   if (r && typeof r === 'object' && !Array.isArray(r)) {
     return Object.values(r).join(' | ');
   }
@@ -63,6 +71,9 @@ export function buildSubmissionList(players) {
       playerId: p.id,
       name: p.name,
       text: responseToText(p.response),
+      // Strokes ride along so the moderation panel / teacher console can
+      // render a thumbnail — a text placeholder is unmoderatable.
+      ...(isDrawingResponseValue(p.response) ? { drawing: p.response.strokes } : {}),
       hidden: !!p.responseHidden
     }));
 }

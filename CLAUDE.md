@@ -5,7 +5,7 @@ Framework for quickly building classroom games where:
 - Teacher projects a "host screen" to the class
 - Students interact via their devices (Chromebooks/phones)
 - AI facilitates/processes collective input
-- Games are text-based for simplicity
+- Games are text-based for simplicity (plus a stroke-based drawing input — the one deliberate exception)
 
 ## Target Users
 - Novice coder (me) creating games via "vibe coding" with Claude
@@ -107,7 +107,8 @@ Framework for quickly building classroom games where:
 - **Match phase** (26th type) — pair two lists (vocab ↔ definitions); left column fixed, right column drag-to-SWAP (touch + arrows fallback); `pairs` literal array + `pointsPerMatch`; close = discussion moment (per-pair class accuracy bars on host, personal score + answer key on players); output `scores` is a scoreMap. Pure scoring in `engine/phases/match-scoring.js`. First game: Vocab Match.
 - **Teams upgrade** — team-split sizing by `teamCount` OR `groupSize` (count computed via `engine/phases/team-grouping.js` — 22 kids in groups of 4 → 4,4,4,4,3,3, never a singleton); two new interactive methods: `teacher` (tap-a-name-tap-a-team roster on the host screen + Confirm) and `choice` (students claim open spots FCFS, re-pick allowed, full teams bounce only the tapper, stragglers auto-filled into emptiest teams on confirm/all-placed). Output shape unchanged (`teams`/`playerTeam`) so turn/relay/leaderboard consume all methods identically. Privileged actions (`team-assign`/`team-split-confirm`) check `isTeacherSocket`. Verified by `scripts/simulate-team-modes.js` (14 socket-level invariants incl. intruder rejection) against the `games/_team-modes` fixture.
 - **Sort phase** (27th type) — categorization: students tap a bucket for every item (drag rejected — miserable on phones); `buckets` + `items` where correct buckets are all-or-none (all = graded via `pointsPerItem`, none = consensus poll à la estimate's poll mode); close shows per-item class distributions with the correct bucket highlighted. Pure scoring in `engine/phases/sort-scoring.js`. First game: Metaphor or Simile? (graded round + consensus round).
-- **764 tests passing** (`npm test`)
+- **Drawing input (v1)** — `collect.inputType:"drawing"` swaps the text box for a stroke-based drawing pad (`screens/shared/drawing.js`: pointer-events pad, palette, undo/clear, animated stroke replay; strokes normalized 0-1 so any surface renders them). Server validation in `engine/drawing.js` (caps, clamping — the content filter can't read pictures, so safety = attribution + moderation thumbnails on the teacher console + teacher preview before reveal). Works with `reveal-one` (animated gallery with ✏️-name captions), `rotateFrom` (drawing source preloads onto the recipient's pad = continue-the-drawing; shows read-only above a text box = caption mode), preview, and Bot Fill (`Draw.scribble()`). AI steps can't read drawings (validator warns). v2 (live mural / tile wall phase) deliberately deferred. Games: Art Gallery, Finish My Drawing.
+- **777 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-team-modes.js` (teacher/choice team-split invariants), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for phone testing and screenshot harnesses)
 
@@ -163,6 +164,10 @@ Framework for quickly building classroom games where:
    - First match-phase game: French vocab round + inventors round, leaderboard sums both; the template for any vocab/definitions review
 24. **Metaphor or Simile?** (games/metaphor-or-simile/) — announce → sort (graded) → sort (consensus) → leaderboard → end
    - First sort-phase game: scored figure-of-speech ID round, then a no-right-answers class-verdict round (Genius vs Chaos); the template for any categorization review
+25. **Art Gallery** (games/art-gallery/) — announce → collect (drawing) → preview → reveal-one gallery → end
+   - First drawing game: everyone draws one prompt, teacher previews the thumbnails, then the gallery reveals one animated drawing at a time
+26. **Finish My Drawing** (games/finish-my-drawing/) — draw → pass & continue ×2 → preview → gallery → end
+   - First drawing-rotation game: each drawing passes through three artists (inherited strokes preload onto the pad); nobody knows what theirs became until the reveal
 
 ### Engine Primitives (All Implemented)
 1. Player state tracking (remaining vs eliminated) — PlayerRegistry
@@ -184,7 +189,7 @@ Framework for quickly building classroom games where:
 
 ### 27 Phase Types Defined
 1. `lobby` — Wait for players to join
-2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pair games — `pairsFrom` optional, `oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`), `passAllowed`, `simultaneousReveal`
+2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pair games — `pairsFrom` optional, `oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"` (stroke-based drawing pad; combines with rotateFrom for continue-the-drawing / caption modes)
 3. `ai-process` — Send data to AI for processing; `perPlayer:true` generates one item per student
 4. `vote` — Head-to-head or pick-one voting; `matchupsFromPairs`/`excludeAuthors` for bluffing; literal `candidates` arrays (teacher-typed options); `nextByWinner` map routes the game by outcome (choose-your-own-adventure — branch targets are legal transitions, BFS/cycle/validator aware)
 5. `eliminate` — Remove players by percent or hook
@@ -299,6 +304,7 @@ Framework for quickly building classroom games where:
 - `engine/phases/match-scoring.js` — pure match scoring (`normalizePairs`/`scoreMatching`/`matchStats`/`buildResultsList` — position-aligned exact match, per-pair class accuracy)
 - `engine/phases/team-grouping.js` — pure team sizing/capacity/auto-fill (`groupCountFor` no-singleton group counts, `teamCapacities` even-split, `autoFill` emptiest-first straggler placement)
 - `engine/phases/sort-scoring.js` — pure sort scoring (`normalizeSortItems`/`isGradedSort`/`scoreSorting`/`sortStats`/`buildSortResultsList` — graded vs consensus modes, per-item distributions)
+- `engine/drawing.js` — pure stroke validation for drawing submissions (`validateDrawing` clamps 0-1 coords/width/color + trims to caps, `isDrawingResponse`); browser side is `screens/shared/drawing.js` (`Draw.attachPad`/`renderStrokes`/`scribble`)
 - `engine/room-snapshot.js` — `serializeRoom`/`restoreRoom` (restart survival; JSON-safe, resume-at-phase-start)
 - `scripts/sim-harness.js` — shared multi-client simulation primitives (all simulate-*.js scripts build on it)
 - `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 12 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)

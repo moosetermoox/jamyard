@@ -292,6 +292,28 @@ button:disabled {
   color: var(--theme-success, #00C853);
 }
 
+/* Drawing renders (reveal galleries, preview thumbnails) */
+.reveal-drawing {
+  display: block;
+  width: 100%;
+  max-width: 520px;
+  margin: 8px auto 0;
+  background: #fff;
+  border: 3px solid var(--theme-border, #000);
+  border-radius: 10px;
+}
+
+.preview-drawing-thumb {
+  max-width: 260px;
+  margin: 6px 0 0;
+}
+
+.reveal-drawing-caption {
+  margin: 0;
+  font-weight: 900;
+  font-size: 1.4rem;
+}
+
 /* Match section (pair two lists) — per-pair accuracy is the projected reveal */
 .match-results {
   margin: 20px auto;

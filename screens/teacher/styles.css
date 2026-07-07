@@ -148,6 +148,7 @@ section { padding: 18px 16px; max-width: 560px; margin: 0 auto; }
 
 .entry-name { font-weight: 900; font-size: 0.85rem; }
 .entry-text { font-size: 0.95rem; margin: 4px 0 8px; line-height: 1.35; word-wrap: break-word; }
+.entry-drawing { display: block; width: 100%; max-width: 220px; margin: 4px 0 8px; background: #fff; border: 2px solid #000; border-radius: 6px; }
 
 .entry-actions { display: flex; gap: 8px; }
 

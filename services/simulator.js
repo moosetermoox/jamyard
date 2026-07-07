@@ -314,6 +314,7 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
           p.emit('rank-submit', { code });
           p.emit('match-submit', { code });
           p.emit('sort-submit', { code });
+          p.emit('submit-response', { code, response: { strokes: 'not-an-array' } });
           p.emit('merge-draft', {});
 
         } else if (roll < 0.85) {
@@ -406,7 +407,18 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
             phaseLog.push({ type: data.isChoice ? 'collect-choice' : 'collect', prompt: String(data.prompt || '').slice(0, 60) });
           }
           const idx = players.indexOf(who);
-          if (data.isChoice && Array.isArray(data.choices) && data.choices.length) {
+          if (data.inputType === 'drawing') {
+            // Synthetic scribble: a couple of wandering polylines
+            const strokes = Array.from({ length: 2 + (idx % 3) }, (_, s) => ({
+              points: Array.from({ length: 10 }, (_, i) => [
+                Math.round((0.1 + ((idx + s + i * 3) % 8) / 10) * 1000) / 1000,
+                Math.round((0.1 + ((s + i * 5) % 8) / 10) * 1000) / 1000
+              ]),
+              color: '#1e88e5',
+              width: 4
+            }));
+            who.emit('submit-response', { code, response: { strokes }, phaseInstanceId: seq(data) });
+          } else if (data.isChoice && Array.isArray(data.choices) && data.choices.length) {
             const pick = data.choices[idx % data.choices.length];
             const text = typeof pick === 'string' ? pick : (pick.text || pick.name || String(pick));
             who.emit('submit-response', { code, response: text, phaseInstanceId: seq(data) });

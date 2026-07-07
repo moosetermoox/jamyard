@@ -183,6 +183,30 @@ async function run() {
         await wait(300);
         host.emit('close-submissions', { code });
         log('HOST', 'Closed submissions');
+      } else if (collectData.inputType === 'drawing') {
+        // drawing collect — bots submit synthetic scribbles
+        console.log(`\n--- Phase: COLLECT (drawing) ---`);
+        log('SIM', `Prompt: "${(collectData.prompt || '').substring(0, 80)}"`);
+        phaseLog.push({ type: 'collect', prompt: collectData.prompt });
+
+        for (var di = 0; di < players.length; di++) {
+          var strokes = [];
+          for (var si = 0; si < 3; si++) {
+            var pts = [];
+            for (var pi = 0; pi < 8; pi++) {
+              pts.push([
+                Math.round((0.1 + ((di + si + pi * 2) % 8) / 10) * 1000) / 1000,
+                Math.round((0.1 + ((si + pi * 3) % 8) / 10) * 1000) / 1000
+              ]);
+            }
+            strokes.push({ points: pts, color: '#e53935', width: 4 });
+          }
+          players[di].emit('submit-response', { code, response: { strokes: strokes } });
+          log(names[di], `drew ${strokes.length} strokes`);
+        }
+        await wait(300);
+        host.emit('close-submissions', { code });
+        log('HOST', 'Closed submissions');
       } else {
         // regular collect
         console.log(`\n--- Phase: COLLECT ---`);
@@ -453,18 +477,61 @@ async function run() {
       continue;
     } catch (e) { /* no reveal */ }
 
-    // Check for preview (teacher only)
+    // Check for preview (teacher only). NOTE: the event is
+    // 'preview-content' — this sim listened for 'preview' for months and
+    // stalled on every preview game (found by the drawing gallery).
     try {
-      var previewData = await waitForEvent(host, 'preview', 2000);
+      var previewData = await waitForEvent(host, 'preview-content', 2000);
       console.log(`\n--- Phase: PREVIEW ---`);
-      log('HOST', 'Preview received — auto-approving');
+      check(previewData.content !== undefined, 'Preview has content');
+      log('HOST', `Preview received (${(previewData.responses || []).length} responses) — auto-approving`);
       phaseLog.push({ type: 'preview' });
+      drainEvent([host], 'preview-content');
+      await wait(400);
       host.emit('preview-approve', { code });
       lastEventTime = Date.now();
       handled = true;
       await wait(1000);
       continue;
     } catch (e) { /* no preview */ }
+
+    // Check for reveal-one (host steps through items)
+    try {
+      var roData = await waitForEvent(host, 'reveal-one-start', 2000);
+      console.log(`\n--- Phase: REVEAL-ONE ---`);
+      log('SIM', `"${(roData.message || '').substring(0, 50)}" — ${roData.total} item(s)`);
+      check(roData.total > 0, `Has ${roData.total} items to reveal`);
+      phaseLog.push({ type: 'reveal-one' });
+      drainEvent([host], 'reveal-one-start');
+      drainEvent(players, 'reveal-one-start');
+
+      var revealedCount = roData.revealed || 0;
+      var roGuard = 0;
+      while (revealedCount < roData.total && roGuard < 50) {
+        roGuard++;
+        host.emit('reveal-next', { code });
+        var roItem = await waitForEvent(host, 'reveal-one-item', 3000).catch(function () { return null; });
+        if (!roItem) break;
+        revealedCount = roItem.index;
+        if (roItem.item && typeof roItem.item === 'object' && roItem.item.drawing) {
+          log('SIM', `  revealed a drawing (${roItem.item.drawing.length} strokes) — "${roItem.item.text || ''}"`);
+        } else {
+          log('SIM', `  revealed: "${String(typeof roItem.item === 'string' ? roItem.item : (roItem.item && roItem.item.text) || '').substring(0, 50)}"`);
+        }
+        await wait(200);
+      }
+      check(revealedCount >= roData.total, `All ${roData.total} items revealed`);
+      drainEvent([host], 'reveal-one-item');
+      drainEvent(players, 'reveal-one-item');
+      drainEvent([host], 'reveal-one-complete');
+      drainEvent(players, 'reveal-one-complete');
+      await wait(400);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(1000);
+      continue;
+    } catch (e) { /* no reveal-one */ }
 
     // Check for eliminate
     try {
