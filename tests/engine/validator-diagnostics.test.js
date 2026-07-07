@@ -272,6 +272,7 @@ describe('validator diagnostics — game snapshot', () => {
       'story-builder': [],
       'story-quest': [],
       'two-truths-a-lie': [],
+      'vocab-match': [],
       'charades-bowl': [],
       'closer': [],
       'definition-bluff': [],

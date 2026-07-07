@@ -199,6 +199,23 @@
     <button id="rank-close-btn">Close Ranking</button>
   </section>
 
+  <!-- MATCH SECTION (pair two lists: vocab ↔ definitions) -->
+  <section id="match-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h2 id="match-prompt"></h2>
+    <div id="match-timer" class="timer-ring-container" hidden>
+      <svg class="timer-ring" viewBox="0 0 120 120">
+        <circle class="timer-ring-bg" cx="60" cy="60" r="52" />
+        <circle class="timer-ring-fill" cx="60" cy="60" r="52" />
+      </svg>
+      <span class="timer-ring-text"></span>
+    </div>
+    <p id="match-counter" class="big-text">0 of 0 matched</p>
+    <button id="match-close-btn">Reveal the Answers</button>
+    <div id="match-results" class="match-results" hidden></div>
+    <button id="match-continue-btn" hidden>Continue</button>
+  </section>
+
   <!-- MERGE SECTION (Connection Pack: think-pair-share) -->
   <section id="merge-section" hidden>
     <div class="screen-template" hidden></div>

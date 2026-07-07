@@ -225,6 +225,12 @@ button:disabled {
   opacity: 1;
 }
 
+/* display:block above would override the hidden attribute (recurring bug —
+   see ask-ai-modal, carousel arrows). Hidden buttons must actually hide. */
+button[hidden] {
+  display: none;
+}
+
 #submit-btn {
   background: var(--theme-success, #5cb85c);
 }
@@ -684,6 +690,84 @@ button:disabled {
 .rank-arrow:disabled {
   opacity: 0.3;
   background: var(--theme-border, #ccc);
+}
+
+/* Match phase: left column fixed, right column drag-to-swap */
+.match-hint {
+  font-size: 0.9rem;
+  opacity: 0.7;
+  margin: 4px 0 8px;
+}
+
+.match-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0;
+}
+
+.match-left {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--theme-canvas, #f4f0e5);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 8px;
+  text-align: left;
+  font-size: 1rem;
+}
+
+.match-arrow-glyph {
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+
+.match-right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 8px;
+  cursor: grab;
+  user-select: none;
+  transition: box-shadow 0.1s, opacity 0.1s;
+}
+
+.match-right.rank-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.match-row.rank-drag-over .match-right {
+  border-color: var(--theme-button, #4a90d9);
+  box-shadow: 0 0 0 2px var(--theme-button, #4a90d9);
+}
+
+.match-right-label {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 1rem;
+  overflow-wrap: break-word;
+}
+
+.match-my-score {
+  font-size: 1.2rem;
+  margin: 12px 0;
+}
+
+.match-answer-list p {
+  padding: 8px 12px;
+  margin: 6px 0;
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 8px;
+  text-align: left;
 }
 
 /* Phase image (shared across announce/collect/reveal/collect-choice) */

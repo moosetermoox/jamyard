@@ -269,6 +269,17 @@ var PHASE_CATALOG = {
     player: 'Number input (changeable until the reveal)',
     ai: null
   },
+  'match': {
+    icon: '🔗',
+    friendlyName: 'Match Pairs',
+    description: 'Students match items from two lists (vocab ↔ definitions) — auto-scored',
+    color: '#5E35B1',
+    bg: '#D1C4E9',
+    detailField: 'prompt',
+    host: 'Submission counter, then correct pairs + per-pair class accuracy',
+    player: 'Two columns — drag the right column until each row is a correct pair',
+    ai: null
+  },
   'end': {
     icon: '',
     friendlyName: 'Game Over',
@@ -856,6 +867,7 @@ function getPrimaryFieldDef(type) {
     case 'relay':         return { key: 'prompt',      type: 'textarea', placeholder: 'Question to ask…' };
     case 'buzz':          return { key: 'prompt',      type: 'textarea', placeholder: 'On-screen prompt (questions are usually asked out loud)…' };
     case 'estimate':      return { key: 'prompt',      type: 'textarea', placeholder: 'The number to guess, e.g. How many liters…' };
+    case 'match':         return { key: 'prompt',      type: 'textarea', placeholder: 'e.g. Match each word to its definition…' };
     case 'vote': return { type: 'summary', summarize: function (p) {
       var mode = p.mode === 'head-to-head' ? 'Head-to-head vote' : 'Pick-one vote';
       if (p.matchupsFromPairs) {
@@ -1083,6 +1095,9 @@ function getInsertableRefs(sourceId, source) {
     refs.push({ icon: '', label: 'Round-by-round scores', token: '{{' + sourceId + '.scores}}' });
   } else if (t === 'rank') {
     refs.push({ icon: '', label: 'Ranked list', token: '{{' + sourceId + '.rankedList}}' });
+  } else if (t === 'match') {
+    refs.push({ icon: '', label: 'Pair-by-pair results', token: '{{' + sourceId + '.resultsList}}' });
+    refs.push({ icon: '', label: 'Match scores', token: '{{' + sourceId + '.scores}}' });
   }
   return refs;
 }
@@ -2462,6 +2477,101 @@ function renderPhaseConfig(phaseId) {
     );
   }
 
+  if (type === 'match') {
+    addTextAreaWithHelp('Instructions', 'Tells players what the two lists are', 'phase-prompt', phase.prompt, 'e.g. Match each French word to its English meaning', function (value) {
+      phase.prompt = value;
+      renderCanvas();
+    });
+
+    // The pairs ARE the content — one left/right row each. Students see
+    // the left column fixed and drag the right column into place.
+    addSectionHeader('The correct pairs');
+    if (!Array.isArray(phase.pairs)) phase.pairs = [];
+
+    for (var mpIdx = 0; mpIdx < phase.pairs.length; mpIdx++) {
+      (function (index) {
+        var pair = phase.pairs[index];
+        if (!pair || typeof pair !== 'object') { pair = {}; phase.pairs[index] = pair; }
+
+        var pairGroup = document.createElement('div');
+        pairGroup.className = 'form-group';
+        pairGroup.style.display = 'flex';
+        pairGroup.style.gap = '6px';
+        pairGroup.style.alignItems = 'center';
+
+        var leftInput = document.createElement('input');
+        leftInput.type = 'text';
+        leftInput.value = pair.left || '';
+        leftInput.placeholder = 'Left (e.g. chat)';
+        leftInput.style.flex = '1';
+        leftInput.addEventListener('input', function () {
+          isDirty = true;
+          phase.pairs[index].left = leftInput.value;
+        });
+
+        var pairArrow = document.createElement('span');
+        pairArrow.textContent = '↔';
+
+        var rightInput = document.createElement('input');
+        rightInput.type = 'text';
+        rightInput.value = pair.right || '';
+        rightInput.placeholder = 'Right (e.g. cat)';
+        rightInput.style.flex = '1';
+        rightInput.addEventListener('input', function () {
+          isDirty = true;
+          phase.pairs[index].right = rightInput.value;
+        });
+
+        var removePairBtn = document.createElement('button');
+        removePairBtn.className = 'btn-icon';
+        removePairBtn.textContent = '✖';
+        removePairBtn.title = 'Remove pair';
+        removePairBtn.addEventListener('click', function () {
+          isDirty = true;
+          phase.pairs.splice(index, 1);
+          renderPhaseConfig(phaseId);
+        });
+
+        pairGroup.appendChild(leftInput);
+        pairGroup.appendChild(pairArrow);
+        pairGroup.appendChild(rightInput);
+        pairGroup.appendChild(removePairBtn);
+        phaseConfigForm.appendChild(pairGroup);
+      })(mpIdx);
+    }
+
+    var addPairBtn = document.createElement('button');
+    addPairBtn.className = 'btn-secondary';
+    addPairBtn.textContent = '+ Add Pair';
+    addPairBtn.style.marginBottom = '12px';
+    addPairBtn.addEventListener('click', function () {
+      isDirty = true;
+      if (!Array.isArray(phase.pairs)) phase.pairs = [];
+      phase.pairs.push({ left: '', right: '' });
+      renderPhaseConfig(phaseId);
+    });
+    phaseConfigForm.appendChild(addPairBtn);
+
+    addFieldWithHelp('Points per correct match', 'Default 10.', 'number', 'phase-match-points', phase.pointsPerMatch, false, function (value) {
+      if (value == null || value === '') delete phase.pointsPerMatch;
+      else phase.pointsPerMatch = value;
+    });
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits the current board on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
+      if (value == null || value === '') delete phase.timer;
+      else phase.timer = value;
+    });
+    addSelectWithHelp('Who matches', 'Which players play this round', 'phase-from',
+      [
+        { value: 'all', label: 'Everyone' },
+        { value: 'remaining', label: 'Remaining players only' },
+        { value: 'eliminated', label: 'Eliminated players only' }
+      ],
+      phase.from || 'all', function (value) {
+        if (value === 'all') { delete phase.from; } else { phase.from = value; }
+      }
+    );
+  }
+
   if (type === 'rate') {
     // Scales first — they're the actual rating instrument. Instructions
     // are optional ("explain verbally" works fine for most teachers).
@@ -3176,7 +3286,8 @@ var PRIMARY_FORM_IDS_BY_TYPE = {
   'wager':          ['phase-prompt'],
   'relay':          ['phase-prompt'],
   'buzz':           ['phase-prompt'],
-  'estimate':       ['phase-prompt']
+  'estimate':       ['phase-prompt'],
+  'match':          ['phase-prompt']
   // reveal-one keeps its phase-message (title) — its primary is a summary
 };
 function stripPrimaryFieldFromForm(type) {
@@ -3819,6 +3930,10 @@ function buildTemplateVariables(currentPhaseId, extraVars) {
     if (p.type === 'rank') {
       vars.push({ label: 'Ranked list' + at, variable: '{{' + pid + '.rankedList}}' });
     }
+    if (p.type === 'match') {
+      vars.push({ label: 'Pair-by-pair results' + at, variable: '{{' + pid + '.resultsList}}' });
+      vars.push({ label: 'Match scores' + at, variable: '{{' + pid + '.scores}}' });
+    }
     if (p.type === 'rate') {
       vars.push({ label: 'Bar chart of averages' + at, variable: '{{' + pid + '.barChart}}' });
     }
@@ -4072,6 +4187,8 @@ function buildDataRefOptions(currentPhaseId) {
       options.push({ value: pid + '.playerTeam', label: 'Player team map from ' + stepLabel });
     } else if (p.type === 'rank') {
       options.push({ value: pid + '.rankings', label: 'Rankings from ' + stepLabel });
+    } else if (p.type === 'match') {
+      options.push({ value: pid + '.scores', label: 'Match scores from ' + stepLabel });
     } else if (p.type === 'wager') {
       options.push({ value: pid + '.scores', label: 'Updated scores from ' + stepLabel });
       options.push({ value: pid + '.wagers', label: 'Wagers from ' + stepLabel });
@@ -4496,6 +4613,14 @@ function addPhaseOfType(type) {
   } else if (type === 'team-split') {
     newPhase.method = 'random';
     newPhase.teamCount = 2;
+  } else if (type === 'match') {
+    newPhase.prompt = 'Match each item to its pair:';
+    newPhase.pairs = [
+      { left: 'chat', right: 'cat' },
+      { left: 'chien', right: 'dog' },
+      { left: 'oiseau', right: 'bird' }
+    ];
+    newPhase.timer = 60;
   }
 
   // Set next (preview uses approveNext instead)

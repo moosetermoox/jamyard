@@ -104,7 +104,8 @@ Framework for quickly building classroom games where:
 - **Branching votes** — `vote.nextByWinner` maps a literal option's text to the phase the game goes to when it wins (CYOA storytelling); winner not in the map falls back to `next`; tie-breaks are deterministic (alphabetical). Vote phases also accept teacher-typed literal `candidates` arrays now (the editor has per-option "If this wins →" dropdowns). Found+fixed two latent crashes: late "Close Voting" after all-votes-in auto-advance crashed the server (now `kind`-guarded + idempotent), and the universal sim's vote support never worked (wrong event names).
 - **Room snapshots — games survive server restarts** (`engine/room-snapshot.js` + `room_snapshots` Neon table): every phase transition snapshots the room (engine position, phaseData, players+tokens, scores, kicked tokens); a restarted/slept server lazily resurrects the room when the host (`hostToken` in sessionStorage → `host-rejoin`) or a player (existing token rebind) returns. Semantic: resume at the START of the interrupted phase. Mid-foreach restores re-enter the foreach parent fresh. Host disconnect now holds the room 5 min for rejoin (was: instant deletion — a host F5 used to kill the game for the whole class). Snapshots TTL-swept at 6h; `_sim-tmp-` rooms never persisted. Verified by `scripts/simulate-restart.js` (plays → SIGKILLs the server → restarts → host+player rejoin → asserts roster/phase/PIN survived + wrong hostToken rejected).
 - **Chaos-tested** — `node scripts/simulate-chaos.js` runs every interactive phase type under school-wifi hostility (chaos mode in `services/simulator.js`: players drop/reconnect mid-phase via token rebind, ghosts join with dead tokens, stale/malformed/duplicate event sprays) — all 6 suite games must complete. Key invariant it enforces: **player-id migration on reconnect** (`engine/id-migration.js`, called in join-room) deep-rewrites the old socket id through `room.phaseState` + `engine.phaseData` + `foreachState`, so turn describers keep working buttons, relay turns survive, votes count, and leaderboard scores follow players across wifi blips. Also enforced: generic `advance-phase` closes the current phase first (routes to tallyAndAdvance/closeRanking/closeOneVoice/closeBuzz/closeMerge, flushes rate/estimate) — a teacher-console "Next step" can no longer skip a phase's data close.
-- **720 tests passing** (`npm test`)
+- **Match phase** (26th type) — pair two lists (vocab ↔ definitions); left column fixed, right column drag-to-SWAP (touch + arrows fallback); `pairs` literal array + `pointsPerMatch`; close = discussion moment (per-pair class accuracy bars on host, personal score + answer key on players); output `scores` is a scoreMap. Pure scoring in `engine/phases/match-scoring.js`. First game: Vocab Match.
+- **734 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for phone testing and screenshot harnesses)
 
@@ -156,6 +157,8 @@ Framework for quickly building classroom games where:
    - First buzz + estimate game: buzzer round (teacher asks aloud) then two guess-the-number questions; leaderboard sums scores across all three phases
 22. **Story Quest: The Locked Library** (games/story-quest/) — chapters + 2 branching votes → converging finale → end
    - First branching-vote game: class-steered choose-your-own-adventure; each vote's winner routes the story (`nextByWinner`), paths converge on a shared finale
+23. **Vocab Match** (games/vocab-match/) — announce → match ×2 → leaderboard → end
+   - First match-phase game: French vocab round + inventors round, leaderboard sums both; the template for any vocab/definitions review
 
 ### Engine Primitives (All Implemented)
 1. Player state tracking (remaining vs eliminated) — PlayerRegistry
@@ -175,7 +178,7 @@ Framework for quickly building classroom games where:
 - **AI mixed format:** AI sometimes returns `[playerId, responseText]` in same array. Hook deduplicates within groups — only eliminates if 2+ unique players resolve.
 - **bottom-percent input field:** Eliminate phase reads scores from `phase.input` or `phase.from` (config uses `input`).
 
-### 25 Phase Types Defined
+### 26 Phase Types Defined
 1. `lobby` — Wait for players to join
 2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pair games — `pairsFrom` optional, `oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`), `passAllowed`, `simultaneousReveal`
 3. `ai-process` — Send data to AI for processing; `perPlayer:true` generates one item per student
@@ -201,6 +204,7 @@ Framework for quickly building classroom games where:
 23. `end` — Game over, clean up
 24. `buzz` — First-tap-wins buzzer rounds (trivia bee); teacher asks aloud, judges Right/Wrong on host; wrong = lockout for the question; one phase runs many questions; outputs `scores` (scoreMap)
 25. `estimate` — Numeric guessing; optional `answer`+`unit`, `scoring: closest|graduated` (rank-based, scale-free), resubmission allowed until close; reveal shows answer + distribution; outputs `scores`/`average`/`median`; no answer = poll-the-room mode
+26. `match` — Pair two lists (vocab ↔ definitions); `pairs` literal array, `pointsPerMatch`; left column fixed, right drag-to-swap; close reveals correct pairs + per-pair class accuracy (host Continue advances); outputs `scores` (scoreMap)/`results`/`resultsList`/`pairCount`
 
 ### 6 AI Task Types Defined
 - `summarize` — Combine responses into insight (Haiku)
@@ -287,6 +291,7 @@ Framework for quickly building classroom games where:
 - `engine/phase-handlers/one-voice.js` — one-voice phase (exports pure `adjudicateTap` with injected clock — unit-test timing rules there, not over sockets)
 - `engine/phase-handlers/buzz.js` — buzz phase (exports pure `createBuzzState`/`applyBuzz`/`applyJudge`/`applyNextQuestion` — the buzzer referee)
 - `engine/phases/estimate-scoring.js` — pure closeness scoring (`scoreEstimates` closest/graduated modes — rank-based so scale-free — + `estimateStats`)
+- `engine/phases/match-scoring.js` — pure match scoring (`normalizePairs`/`scoreMatching`/`matchStats`/`buildResultsList` — position-aligned exact match, per-pair class accuracy)
 - `engine/room-snapshot.js` — `serializeRoom`/`restoreRoom` (restart survival; JSON-safe, resume-at-phase-start)
 - `scripts/sim-harness.js` — shared multi-client simulation primitives (all simulate-*.js scripts build on it)
 - `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 12 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)

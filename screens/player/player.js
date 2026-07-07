@@ -183,6 +183,15 @@ const rankTimerDisplay = document.getElementById('rank-timer-display');
 const rankItems = document.getElementById('rank-items');
 const rankSubmitBtn = document.getElementById('rank-submit-btn');
 
+// Elements - Match
+const matchSection = document.getElementById('match-section');
+const matchPromptDisplay = document.getElementById('match-prompt-display');
+const matchTimerDisplay = document.getElementById('match-timer-display');
+const matchRows = document.getElementById('match-rows');
+const matchHint = document.getElementById('match-hint');
+const matchSubmitBtn = document.getElementById('match-submit-btn');
+const matchPlayerResults = document.getElementById('match-player-results');
+
 // Elements - One Voice
 const oneVoiceSection = document.getElementById('one-voice-section');
 const oneVoiceInstruction = document.getElementById('one-voice-instruction');
@@ -331,6 +340,18 @@ window.addEventListener('message', function(e) {
     }
     var rankBtn = active.querySelector('#rank-submit-btn');
     if (rankBtn && !rankBtn.disabled) rankBtn.click();
+  } else if (id === 'match-section') {
+    // Shuffle the right column and submit (bots aren't vocab experts)
+    if (matchRightOrder.length > 0) {
+      for (var mi = matchRightOrder.length - 1; mi > 0; mi--) {
+        var mj = Math.floor(Math.random() * (mi + 1));
+        var mtmp = matchRightOrder[mi];
+        matchRightOrder[mi] = matchRightOrder[mj];
+        matchRightOrder[mj] = mtmp;
+      }
+    }
+    var matchBtn = active.querySelector('#match-submit-btn');
+    if (matchBtn && !matchBtn.disabled) matchBtn.click();
   } else if (id === 'one-voice-section') {
     if (!oneVoiceTapBtn.disabled) oneVoiceTapBtn.click();
   } else if (id === 'buzz-section') {
@@ -1126,6 +1147,78 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
   estimatePlayerResults.hidden = false;
 });
 
+// --- Socket events - Match (pair two lists: vocab ↔ definitions) ---
+
+var matchLeftItems = [];
+var matchRightOrder = [];
+
+socket.on('match-start', ({ prompt, leftItems, rightItems, timer, playerTemplate, show }) => {
+  showSection(matchSection);
+  matchPromptDisplay.textContent = prompt || 'Match the pairs!';
+  matchSubmitBtn.disabled = false;
+  matchSubmitBtn.hidden = false;
+  matchHint.hidden = false;
+  matchPlayerResults.hidden = true;
+  matchPlayerResults.innerHTML = '';
+  matchRows.hidden = false;
+  applyTemplate(matchSection, playerTemplate);
+  applyShow(show, {
+    prompt: matchPromptDisplay,
+    items: matchRows,
+    timer: matchTimerDisplay,
+    submitButton: matchSubmitBtn
+  });
+  matchLeftItems = Array.isArray(leftItems) ? leftItems.slice() : [];
+  matchRightOrder = Array.isArray(rightItems) ? rightItems.slice() : [];
+  renderMatchRows();
+  if (timer) {
+    startTimer(timer, matchTimerDisplay, function() {
+      // Auto-submit the current arrangement; partial credit beats nothing.
+      if (!matchSubmitBtn.disabled) matchSubmitBtn.click();
+    });
+  }
+});
+
+matchSubmitBtn.addEventListener('click', function() {
+  socket.emit('match-submit', { code: currentRoomCode, matching: matchRightOrder });
+  matchSubmitBtn.disabled = true;
+  if (J) J.sound('blip');
+});
+
+socket.on('match-results', function(payload) {
+  showSection(matchSection);
+  clearTimer();
+  matchTimerDisplay.hidden = true;
+  matchSubmitBtn.disabled = true;
+  matchSubmitBtn.hidden = true;
+  matchHint.hidden = true;
+  matchRows.hidden = true;
+
+  var pairs = payload.pairs || [];
+  var pairCount = payload.pairCount || pairs.length;
+  var mine = (payload.players || []).find(function(p) { return p.playerId === socket.id; });
+
+  matchPlayerResults.innerHTML = '';
+  if (mine) {
+    var myLine = document.createElement('p');
+    myLine.className = 'match-my-score';
+    myLine.textContent = 'You matched ' + mine.correct + ' of ' + pairCount +
+      (mine.score > 0 ? ' — +' + mine.score + ' points!' : '');
+    matchPlayerResults.appendChild(myLine);
+    // Own-moment juice only: a perfect board earns confetti.
+    if (mine.correct === pairCount && pairCount > 0 && J) J.confetti({ count: 40 });
+  }
+  var list = document.createElement('div');
+  list.className = 'match-answer-list';
+  for (var i = 0; i < pairs.length; i++) {
+    var row = document.createElement('p');
+    row.textContent = pairs[i].left + ' → ' + pairs[i].right;
+    list.appendChild(row);
+  }
+  matchPlayerResults.appendChild(list);
+  matchPlayerResults.hidden = false;
+});
+
 // --- Socket events - Merge (Connection Pack: think-pair-share) ---
 
 var mergeDraftDebounce = null;
@@ -1354,6 +1447,129 @@ function addTouchDrag(row, index) {
       rankCurrentOrder.splice(targetIndex, 0, moved);
       renderRankItems();
     }
+  }, { passive: true });
+}
+
+// --- Match rendering (left column fixed, right column drag-to-swap) ---
+// Unlike rank (splice-reorder), dropping a right item onto another row
+// SWAPS the two — every other row keeps its alignment.
+
+var matchDragSrcIndex = null;
+
+function swapMatchRows(a, b) {
+  var tmp = matchRightOrder[a];
+  matchRightOrder[a] = matchRightOrder[b];
+  matchRightOrder[b] = tmp;
+  renderMatchRows();
+}
+
+function renderMatchRows() {
+  matchRows.innerHTML = '';
+  for (var i = 0; i < matchLeftItems.length; i++) {
+    (function(index) {
+      var row = document.createElement('div');
+      row.className = 'match-row';
+
+      var left = document.createElement('span');
+      left.className = 'match-left';
+      left.textContent = matchLeftItems[index];
+
+      var arrow = document.createElement('span');
+      arrow.className = 'match-arrow-glyph';
+      arrow.textContent = '↔';
+
+      var right = document.createElement('div');
+      right.className = 'match-right';
+      right.draggable = true;
+
+      var handle = document.createElement('span');
+      handle.className = 'rank-handle';
+      handle.textContent = '☰';
+      handle.title = 'Drag to swap';
+
+      var label = document.createElement('span');
+      label.className = 'match-right-label';
+      label.textContent = matchRightOrder[index] != null ? matchRightOrder[index] : '';
+
+      var upBtn = document.createElement('button');
+      upBtn.className = 'rank-arrow';
+      upBtn.textContent = '▲';
+      upBtn.disabled = index === 0;
+      upBtn.addEventListener('click', function() { swapMatchRows(index, index - 1); });
+
+      var downBtn = document.createElement('button');
+      downBtn.className = 'rank-arrow';
+      downBtn.textContent = '▼';
+      downBtn.disabled = index === matchLeftItems.length - 1;
+      downBtn.addEventListener('click', function() { swapMatchRows(index, index + 1); });
+
+      right.addEventListener('dragstart', function(e) {
+        matchDragSrcIndex = index;
+        e.dataTransfer.effectAllowed = 'move';
+        right.classList.add('rank-dragging');
+      });
+      right.addEventListener('dragend', function() {
+        right.classList.remove('rank-dragging');
+        document.querySelectorAll('.match-row').forEach(function(r) {
+          r.classList.remove('rank-drag-over');
+        });
+      });
+      row.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        document.querySelectorAll('.match-row').forEach(function(r) {
+          r.classList.remove('rank-drag-over');
+        });
+        row.classList.add('rank-drag-over');
+      });
+      row.addEventListener('drop', function(e) {
+        e.preventDefault();
+        if (matchDragSrcIndex === null || matchDragSrcIndex === index) return;
+        swapMatchRows(matchDragSrcIndex, index);
+        matchDragSrcIndex = null;
+      });
+
+      // Touch drag (phones/Chromebooks without mouse)
+      addMatchTouchDrag(right, index);
+
+      right.appendChild(handle);
+      right.appendChild(label);
+      row.appendChild(left);
+      row.appendChild(arrow);
+      row.appendChild(right);
+      row.appendChild(upBtn);
+      row.appendChild(downBtn);
+      matchRows.appendChild(row);
+    })(i);
+  }
+}
+
+function addMatchTouchDrag(el, index) {
+  el.addEventListener('touchstart', function() {
+    el.classList.add('rank-dragging');
+  }, { passive: true });
+  el.addEventListener('touchmove', function(e) {
+    e.preventDefault();
+    var y = e.touches[0].clientY;
+    var rows = Array.from(matchRows.querySelectorAll('.match-row'));
+    rows.forEach(function(r, ri) {
+      r.classList.toggle('rank-drag-over', (function() {
+        var rect = r.getBoundingClientRect();
+        return y >= rect.top && y <= rect.bottom && ri !== index;
+      })());
+    });
+  }, { passive: false });
+  el.addEventListener('touchend', function(e) {
+    el.classList.remove('rank-dragging');
+    var y = e.changedTouches[0].clientY;
+    var rows = Array.from(matchRows.querySelectorAll('.match-row'));
+    var targetIndex = null;
+    for (var i = 0; i < rows.length; i++) {
+      var rect = rows[i].getBoundingClientRect();
+      if (y >= rect.top && y <= rect.bottom) { targetIndex = i; break; }
+    }
+    rows.forEach(function(r) { r.classList.remove('rank-drag-over'); });
+    if (targetIndex !== null && targetIndex !== index) swapMatchRows(index, targetIndex);
   }, { passive: true });
 }
 

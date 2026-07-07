@@ -51,6 +51,7 @@ import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
 import { applyBuzz, applyJudge, applyNextQuestion } from './engine/phase-handlers/buzz.js';
 import { scoreEstimates, estimateStats } from './engine/phases/estimate-scoring.js';
+import { scoreMatching, matchStats, buildResultsList } from './engine/phases/match-scoring.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
@@ -555,6 +556,52 @@ async function closeEstimates(code, room) {
     phaseInstanceId: room.phaseInstanceId
   };
   io.to(code).emit(EVENTS.ESTIMATE_RESULTS, state.resultsPayload);
+}
+
+// --- Match helpers ---
+
+// Score + reveal per-pair class accuracy. Like estimate, this does NOT
+// auto-advance — the correct pairs are a discussion moment ("half the room
+// missed this one — why?"); the host clicks Continue.
+async function closeMatching(code, room) {
+  const state = room.phaseState;
+  // kind guard + idempotence (see closeRanking)
+  if (!state || state.kind !== 'match' || state.closed) return;
+  state.closed = true;
+  if (state.timer) { clearTimeout(state.timer); state.timer = null; }
+
+  const engine = room.engine;
+  const phase = engine.config.phases[state.phaseId] || {};
+  const points = Number.isInteger(phase.pointsPerMatch) && phase.pointsPerMatch > 0
+    ? phase.pointsPerMatch : 10;
+
+  const { scores, correctCounts } = scoreMatching(state.pairs, state.submissions, points);
+  const results = matchStats(state.pairs, state.submissions);
+  engine.storePhaseData(state.phaseId, {
+    scores, results, resultsList: buildResultsList(results), pairCount: state.pairs.length
+  });
+  console.log(`[closeMatching] ${Object.keys(state.submissions).length} submission(s) across ${state.pairs.length} pairs`);
+
+  const players = engine.players;
+  const playerResults = Object.keys(state.submissions)
+    .map(pid => ({
+      playerId: pid,
+      name: (players.find(pid) || {}).name || '?',
+      correct: correctCounts[pid] || 0,
+      score: scores[pid] || 0
+    }))
+    .sort((a, b) => b.correct - a.correct || a.name.localeCompare(b.name));
+
+  // Kept on the phase state so a player reconnecting after the close sees
+  // the results, not a dead board (see closeEstimates).
+  state.resultsPayload = {
+    pairs: state.pairs,
+    results,
+    players: playerResults,
+    pairCount: state.pairs.length,
+    phaseInstanceId: room.phaseInstanceId
+  };
+  io.to(code).emit(EVENTS.MATCH_RESULTS, state.resultsPayload);
 }
 
 // --- Rate helpers ---
@@ -1096,6 +1143,7 @@ const phaseServices = {
   // Helpers needed by complex phase handlers
   generateMatchups,
   closeRanking: (code, room) => closeRanking(code, room),
+  closeMatching: (code, room) => closeMatching(code, room),
   closeRating: (code, room) => closeRating(code, room),
   closeWager: (code, room) => closeWager(code, room),
   closeMerge: (code, room) => closeMerge(code, room),
@@ -2556,6 +2604,10 @@ io.on('connection', (socket) => {
           case 'estimate':
             await closeEstimates(code, room);
             break;
+          case 'match':
+            // closeMatching shows results without advancing — store, then move on
+            await closeMatching(code, room);
+            break;
           default:
             break;
         }
@@ -2917,6 +2969,41 @@ io.on('connection', (socket) => {
     if (roomToHost.get(code) !== socket.id) return; // host only
     recordEvent(room, 'close-estimates');
     await closeEstimates(code, room);
+  });
+
+  // --- Match events (pair two lists: vocab ↔ definitions) ---
+
+  socket.on(EVENTS.MATCH_SUBMIT, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'match-submit', payload)) return;
+    const { code, matching, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'match') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'match-submit')) return;
+    const state = room.phaseState;
+    if (state.closed) return;
+    if (!state.eligibleIds.has(socket.id) || state.completed.has(socket.id)) return;
+
+    state.submissions[socket.id] = matching.map(m => String(m ?? ''));
+    state.completed.add(socket.id);
+    recordEvent(room, 'match-submit', { playerId: socket.id });
+    socket.emit(EVENTS.WAITING, { message: 'Matches submitted. Waiting for others...' });
+
+    const hostId = roomToHost.get(code);
+    if (hostId) io.to(hostId).emit(EVENTS.MATCH_RECEIVED, { count: state.completed.size, total: state.eligibleIds.size });
+
+    if (state.completed.size >= state.eligibleIds.size) {
+      await closeMatching(code, room);
+    }
+  });
+
+  socket.on(EVENTS.CLOSE_MATCHING, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'close-matching', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'match') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-matching')) return;
+    recordEvent(room, 'close-matching');
+    await closeMatching(code, room);
   });
 
   // --- Rate events ---

@@ -41,9 +41,7 @@ Explicitly NOT doing: more phase types/features until August feedback.
 3. **Editor odds and ends:**
    - class-critique ships with an empty reveal template (flagged during game sweep)
 4. **New phase ideas** (from the 2026-06-10 ideation; buzz + estimate + branching
-   votes shipped):
-   - **`match`** — pair two lists (vocab↔definitions, quotes↔authors), auto-scored,
-     drag-to-connect (rank's drag infra reuses).
+   votes shipped; **match shipped 2026-07-06** — see games/vocab-match):
    - **`sort`** — drag items into named buckets (categorization: metaphor vs simile),
      class-consensus reveal. Different cognition from rank's ordering.
    - **`secret-role`** — hidden per-player info (Spyfall/Chameleon pattern); per-player

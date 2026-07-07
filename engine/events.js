@@ -147,6 +147,13 @@ export const EVENTS = {
   CLOSE_ESTIMATES:      'close-estimates',     // host -> server: reveal + score
   ESTIMATE_RESULTS:     'estimate-results',    // server -> all: answer, stats, ranked guesses
 
+  // --- Match Phase (pair two lists: vocab ↔ definitions) ---
+  MATCH_START:          'match-start',         // server -> all: prompt, left column, shuffled right column
+  MATCH_SUBMIT:         'match-submit',        // player -> server: right texts in left order
+  MATCH_RECEIVED:       'match-received',      // server -> host: x of y matched
+  CLOSE_MATCHING:       'close-matching',      // host -> server: score + reveal per-pair accuracy
+  MATCH_RESULTS:        'match-results',       // server -> all: correct pairs, class accuracy, your score
+
   // --- Relay Phase ---
   RELAY_TURN:           'relay-turn',
   RELAY_SUBMIT:         'relay-submit',

@@ -810,6 +810,48 @@ export const PHASE_SCHEMAS = {
   },
 
   // -------------------------------------------------------------------
+  match: {
+    label: 'Match Pairs',
+    icon: '🔗',
+    description: 'Students match items from two lists (vocab ↔ definitions, quotes ↔ authors). Auto-scored — every correct pair earns points. Closing reveals which pairs the class nailed or missed.',
+    role: 'input',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'timer', 'participantSelector', 'loops'],
+    fields: {
+      prompt: {
+        type: 'templateString', required: true,
+        label: 'Instructions',
+        placeholder: 'Match each French word to its English meaning'
+      },
+      pairs: {
+        type: 'array', item: { type: 'object' }, required: true,
+        label: 'The correct pairs',
+        helper: 'Each pair is one left item and its matching right item, e.g. left "chat", right "cat". At least 2 pairs. Students see the left column fixed and drag the right column into place.'
+      },
+      pointsPerMatch: {
+        type: 'integer', min: 1, max: 100, optional: true, default: 10,
+        label: 'Points per correct match'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        scores:      { type: 'scoreMap', capability: 'scoreMap', renderers: { barChart: 'tallyBarChart' } },
+        results:     { type: 'array' },
+        resultsList: { type: 'string', capability: 'renderable' },
+        pairCount:   { type: 'number' }
+      }
+    },
+    ui: {
+      hostToggles: ['prompt', 'counter', 'timer', 'closeButton', 'results'],
+      playerToggles: ['prompt', 'items', 'timer', 'submitButton']
+    }
+  },
+
+  // -------------------------------------------------------------------
   reveal: {
     label: 'Show Result',
     icon: '🎭',

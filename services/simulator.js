@@ -106,6 +106,14 @@ export function checkPayload(eventName, data, config) {
       }
       break;
     }
+    case 'match-start': {
+      // Player payloads carry both columns; the HOST's match-start only
+      // has a counter — its missing arrays are not a finding.
+      if (Array.isArray(data.rightItems) && data.rightItems.length < 2) {
+        add('error', 'A matching step started with fewer than 2 pairs — students saw an unplayable board.', data.prompt);
+      }
+      break;
+    }
     case 'vote-start': {
       if (data.mode === 'head-to-head') {
         if (Array.isArray(data.matchups) && data.matchups.length === 0) {
@@ -293,6 +301,7 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
           p.emit('submit-response', { code: 12345 });
           p.emit('estimate-submit', { code, value: 'not-a-number' });
           p.emit('rank-submit', { code });
+          p.emit('match-submit', { code });
           p.emit('merge-draft', {});
 
         } else if (roll < 0.85) {
@@ -435,6 +444,28 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
           if (players.indexOf(who) % 2 === 1) ranking.reverse();
           who.emit('rank-submit', { code, ranking, phaseInstanceId: seq(data) });
           once(`close:rank:${seq(data)}`, () => host.emit('close-ranking', { code, phaseInstanceId: seq(data) }), 900);
+          break;
+        }
+
+        // --- Match (pair two lists) ---
+        case 'match-start': {
+          if (role !== 'player') break;
+          lastScreen = 'a matching step';
+          if (!onceKeys.has(`logged:match:${seq(data)}`)) {
+            onceKeys.add(`logged:match:${seq(data)}`);
+            phaseLog.push({ type: 'match' });
+          }
+          // Half the bots submit the board as dealt, half reverse it —
+          // guarantees a mix of right and wrong pairs in the results.
+          const matching = Array.isArray(data.rightItems) ? [...data.rightItems] : [];
+          if (players.indexOf(who) % 2 === 1) matching.reverse();
+          who.emit('match-submit', { code, matching, phaseInstanceId: seq(data) });
+          once(`close:match:${seq(data)}`, () => host.emit('close-matching', { code, phaseInstanceId: seq(data) }), 900);
+          break;
+        }
+        case 'match-results': {
+          if (role !== 'host') break;
+          once(`matchr:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 400);
           break;
         }
 

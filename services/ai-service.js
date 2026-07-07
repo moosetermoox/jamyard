@@ -92,6 +92,10 @@ const PHASE_EXTRA_GUIDANCE = {
     "round2":      { "type": "collect", "prompt": "Previous: {{round1.assigned}}\\n\\nKeep the sentence going.", "rotateFrom": "round1", "next": "reveal" }
     Each rotateFrom MUST point to a real earlier collect/collect-choice/per-player ai-process step. You CANNOT rotate from inside a loop — chain explicit phases instead.`,
 
+  match:
+    `MATCH PHASE: students pair items from two lists (vocab ↔ definitions, quotes ↔ authors, dates ↔ events). "pairs" is a literal array of { "left": "...", "right": "..." } objects — write the CORRECT pairings; the game shuffles the right column for play. 3-6 pairs is the sweet spot (8 max — it's a phone screen). Every correct pair earns pointsPerMatch (default 10). Left and right texts must each be unique. Consume the scores with a leaderboard: "from": ["<phaseId>.scores"]. Example:
+    "vocab": { "type": "match", "prompt": "Match each French word to its English meaning", "pairs": [{"left": "chat", "right": "cat"}, {"left": "chien", "right": "dog"}, {"left": "oiseau", "right": "bird"}], "timer": 60, "next": "scoreboard" }`,
+
   rate:
     `RATE PHASE: students score one thing (a presentation, an idea, the teacher describes verbally) on one or more 1-N scales. Use this when the user describes "rate", "critique", or "judge on multiple criteria".
     Each scale is an object: { "id": "<short-id>", "label": "<display name>", "min": 1, "max": 5, "labels": { "min": "Low end", "max": "High end" } }

@@ -432,6 +432,44 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Match phase: pairs array shape (left/right, unique, ≥2 usable).
+    if (phase.type === 'match') {
+      const rawPairs = Array.isArray(phase.pairs) ? phase.pairs : [];
+      const usable = rawPairs.filter(p =>
+        p && typeof p === 'object' && !Array.isArray(p) &&
+        String(p.left ?? '').trim() && String(p.right ?? '').trim()
+      );
+      if (usable.length < 2) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (match) needs at least 2 complete pairs (each with a left and a right item).`
+        );
+      } else {
+        // Duplicate texts make the board ambiguous: two identical right
+        // items can't be told apart when dragged, so one always scores wrong.
+        const seenLeft = new Set(), seenRight = new Set();
+        for (const p of usable) {
+          const left = String(p.left).trim(), right = String(p.right).trim();
+          if (seenLeft.has(left)) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" (match) has "${left}" on the left side twice. Each left item must be unique.`
+            );
+          }
+          if (seenRight.has(right)) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" (match) has "${right}" on the right side twice. Each right item must be unique.`
+            );
+          }
+          seenLeft.add(left);
+          seenRight.add(right);
+        }
+        if (usable.length > 8) {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" (match) has ${usable.length} pairs — that's a lot of dragging on a phone. Consider 8 or fewer.`
+          );
+        }
+      }
+    }
+
     // Data reference validation — check that referenced phase exists.
     // Literal lists are allowed in these fields too ("Mr. Fox, Dr. Who" or a
     // JSON array) — a real ref is a single dotted token, so anything with

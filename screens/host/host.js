@@ -916,6 +916,85 @@ socket.on('rank-received', ({ count, total }) => {
   if (J) J.sound('blip');
 });
 
+// --- Socket events - Match (pair two lists: vocab ↔ definitions) ---
+
+const matchSection = document.getElementById('match-section');
+const matchPrompt = document.getElementById('match-prompt');
+const matchTimer = document.getElementById('match-timer');
+const matchCounter = document.getElementById('match-counter');
+const matchCloseBtn = document.getElementById('match-close-btn');
+const matchResults = document.getElementById('match-results');
+const matchContinueBtn = document.getElementById('match-continue-btn');
+
+socket.on('match-start', ({ prompt, totalMatchers, timer, hostTemplate, show }) => {
+  showSection(matchSection);
+  matchPrompt.textContent = prompt || 'Match the pairs!';
+  matchCounter.textContent = '0 of ' + totalMatchers + ' matched';
+  matchCloseBtn.hidden = false;
+  matchCloseBtn.disabled = false;
+  matchResults.hidden = true;
+  matchResults.innerHTML = '';
+  matchContinueBtn.hidden = true;
+  applyTemplate(matchSection, hostTemplate);
+  applyShow(show, {
+    prompt: matchPrompt,
+    counter: matchCounter,
+    timer: matchTimer,
+    closeButton: matchCloseBtn,
+    results: matchResults
+  });
+  if (timer) {
+    startTimer(timer, matchTimer, () => {
+      matchCloseBtn.click();
+    });
+  }
+});
+
+socket.on('match-received', ({ count, total }) => {
+  matchCounter.textContent = count + ' of ' + total + ' matched';
+  if (J) J.sound('blip');
+});
+
+// The reveal is a discussion moment: per-pair class accuracy shows which
+// pairs the room nailed or missed. Host clicks Continue when done talking.
+socket.on('match-results', ({ results, players }) => {
+  clearTimer();
+  matchTimer.hidden = true;
+  matchCloseBtn.hidden = true;
+  matchContinueBtn.hidden = false;
+  if (J) J.sound('reveal');
+
+  let html = '<div class="match-accuracy-list">';
+  for (const r of (results || [])) {
+    html += '<div class="match-accuracy-row">' +
+      '<span class="match-accuracy-pair">' + escapeHtml(r.left) + ' → ' + escapeHtml(r.right) + '</span>' +
+      '<span class="match-accuracy-bar"><span class="match-accuracy-fill" style="width:' + r.pct + '%"></span></span>' +
+      '<span class="match-accuracy-pct">' + r.pct + '%</span>' +
+      '</div>';
+  }
+  html += '</div>';
+  if ((players || []).length > 0) {
+    html += '<div class="match-player-list">';
+    for (const p of players) {
+      const avatar = J ? J.avatarFor(p.name) + ' ' : '';
+      html += '<p>' + avatar + escapeHtml(p.name) + ' — ' + p.correct + ' correct' +
+        (p.score > 0 ? ' (+' + p.score + ')' : '') + '</p>';
+    }
+    html += '</div>';
+  }
+  matchResults.innerHTML = html;
+  matchResults.hidden = false;
+});
+
+matchCloseBtn.addEventListener('click', () => {
+  socket.emit('close-matching', { code: currentRoomCode });
+  matchCloseBtn.disabled = true;
+});
+
+matchContinueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
+});
+
 // --- Socket events - One Voice (Connection Pack: cooperative counting) ---
 
 // Teacher-speaker audio (spec §4.5 v1): every successful tap is spoken

@@ -61,6 +61,15 @@ export const EVENT_SCHEMAS = {
     ranking: 'array:required',
     phaseInstanceId: 'number:optional'
   },
+  'match-submit': {
+    code: 'string:required',
+    matching: 'array:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'close-matching': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
   'wager-submit': {
     code: 'string:required',
     option: 'string:required',

@@ -374,6 +374,72 @@
     return wrap;
   }
 
+  // Editable list of {left, right} pairs (match phase)
+  function pairListEditor(getArr, setArr) {
+    var wrap = el('div', 'sv-list');
+    function render() {
+      wrap.innerHTML = '';
+      var arr = getArr();
+      for (var i = 0; i < arr.length; i++) {
+        (function (index) {
+          var pair = arr[index];
+          if (!pair || typeof pair !== 'object') { pair = {}; getArr()[index] = pair; }
+          var row = el('div', 'sv-list-row');
+
+          var leftInput = document.createElement('input');
+          leftInput.type = 'text';
+          leftInput.className = 'sv-list-input';
+          leftInput.value = pair.left || '';
+          leftInput.placeholder = 'Left ' + (index + 1);
+          leftInput.addEventListener('input', function () {
+            markEdited();
+            getArr()[index].left = leftInput.value;
+          });
+          leftInput.addEventListener('blur', function () { autoSaveIfDirty(); });
+
+          var arrow = el('span', 'sv-sub-lead', '↔');
+
+          var rightInput = document.createElement('input');
+          rightInput.type = 'text';
+          rightInput.className = 'sv-list-input';
+          rightInput.value = pair.right || '';
+          rightInput.placeholder = 'Right ' + (index + 1);
+          rightInput.addEventListener('input', function () {
+            markEdited();
+            getArr()[index].right = rightInput.value;
+          });
+          rightInput.addEventListener('blur', function () { autoSaveIfDirty(); });
+
+          var rm = el('button', 'sv-list-remove', '✕');
+          rm.type = 'button';
+          rm.title = 'Remove';
+          rm.addEventListener('click', function () {
+            markEdited();
+            getArr().splice(index, 1);
+            render();
+          });
+          row.appendChild(leftInput);
+          row.appendChild(arrow);
+          row.appendChild(rightInput);
+          row.appendChild(rm);
+          wrap.appendChild(row);
+        })(i);
+      }
+      var add = el('button', 'sv-list-add', '+ Add pair');
+      add.type = 'button';
+      add.addEventListener('click', function () {
+        markEdited();
+        var arr2 = getArr();
+        if (!Array.isArray(arr2)) { setArr([]); arr2 = getArr(); }
+        arr2.push({ left: '', right: '' });
+        render();
+      });
+      wrap.appendChild(add);
+    }
+    render();
+    return wrap;
+  }
+
   // --- Per-type sentence builders ---
   // Each returns { sentence, field?, facts: [], extra? } — field is the
   // inline-editable primary text, facts are short trailing notes.
@@ -535,6 +601,17 @@
         d.field = textBox(phase.prompt, 'On-screen prompt, e.g. "Listen for the question, then BUZZ!"', function (v) { phase.prompt = v; });
         d.facts.push(fact((phase.points || 10) + ' pts per correct answer'));
         if (phase.lockoutOnWrong !== false) d.facts.push(fact('wrong answers locked out for the question'));
+        break;
+
+      case 'match':
+        d.sentence = 'Students match the pairs:';
+        d.field = textBox(phase.prompt, 'e.g. Match each word to its definition…', function (v) { phase.prompt = v; });
+        d.extra = pairListEditor(
+          function () { if (!Array.isArray(phase.pairs)) phase.pairs = []; return phase.pairs; },
+          function (a) { phase.pairs = a; }
+        );
+        d.facts.push(fact((phase.pointsPerMatch || 10) + ' pts per correct match'));
+        d.facts.push(timerFact(phase));
         break;
 
       case 'estimate':

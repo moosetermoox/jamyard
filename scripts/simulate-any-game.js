@@ -263,6 +263,40 @@ async function run() {
       continue;
     } catch (e) { /* no estimate */ }
 
+    // Check for match (pair two lists)
+    try {
+      var matchData = await waitForAnyPlayerEvent(players, 'match-start', 2000);
+      console.log(`\n--- Phase: MATCH ---`);
+      check(Array.isArray(matchData.rightItems) && matchData.rightItems.length >= 2, `Has ${(matchData.rightItems || []).length} pairs to match`);
+      log('SIM', `Prompt: "${(matchData.prompt || '').substring(0, 60)}"`);
+      phaseLog.push({ type: 'match', prompt: matchData.prompt });
+      drainEvent(players, 'match-start');
+      drainEvent([host], 'match-start');
+
+      for (var mci = 0; mci < players.length; mci++) {
+        var matching = matchData.rightItems ? [...matchData.rightItems] : [];
+        // Half as dealt, half reversed — a mix of right and wrong pairs
+        if (matching.length > 1 && mci % 2 === 1) matching.reverse();
+        players[mci].emit('match-submit', { code, matching });
+        log(names[mci], `matched ${matching.length} pairs`);
+      }
+      await wait(400);
+      host.emit('close-matching', { code });
+      var matchResults = await waitForAnyPlayerEvent(players, 'match-results', 3000).catch(function () { return null; });
+      check(!!matchResults, 'Match results broadcast');
+      if (matchResults) {
+        check(Array.isArray(matchResults.results) && matchResults.results.length >= 2, 'Per-pair accuracy in results');
+      }
+      drainEvent(players, 'match-results');
+      drainEvent([host], 'match-results');
+      await wait(400);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(500);
+      continue;
+    } catch (e) { /* no match */ }
+
     // Check for processing (ai-process)
     try {
       var procData = await waitForAnyPlayerEvent(players, 'processing-started', 2000);
@@ -280,7 +314,7 @@ async function run() {
         // Check if any game event arrived in any player buffer
         var nextEvents = ['game-started', 'announce', 'show-results', 'leaderboard', 'game-ended',
                           'vote-start', 'processing-started', 'preview', 'eliminated', 'winner',
-                          'waiting', 'team-split', 'rank-start', 'wager-start', 'relay-turn'];
+                          'waiting', 'team-split', 'rank-start', 'match-start', 'wager-start', 'relay-turn'];
         for (var p of players) {
           for (var ev of nextEvents) {
             if (p._buffer[ev] && p._buffer[ev].length > 0) { aiDone = true; break; }
@@ -534,7 +568,7 @@ async function run() {
         // Check if relay ended (next event appeared)
         var nextEvents = ['game-started', 'announce', 'show-results', 'leaderboard', 'game-ended',
                           'vote-start', 'processing-started', 'team-split', 'rank-start',
-                          'wager-start', 'eliminated', 'winner'];
+                          'match-start', 'wager-start', 'eliminated', 'winner'];
         for (var p of players) {
           for (var ev of nextEvents) {
             if (p._buffer[ev] && p._buffer[ev].length > 0) { relayDone = true; break; }

@@ -292,6 +292,59 @@ button:disabled {
   color: var(--theme-success, #00C853);
 }
 
+/* Match section (pair two lists) — per-pair accuracy is the projected reveal */
+.match-results {
+  margin: 20px auto;
+  max-width: 720px;
+}
+
+.match-accuracy-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+  font-size: 1.3rem;
+}
+
+.match-accuracy-pair {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow-wrap: break-word;
+}
+
+.match-accuracy-bar {
+  flex: 0 0 180px;
+  height: 18px;
+  background: var(--theme-canvas, #eee);
+  border: 2px solid var(--theme-border, #000);
+  border-radius: 9px;
+  overflow: hidden;
+}
+
+.match-accuracy-fill {
+  display: block;
+  height: 100%;
+  background: var(--theme-success, #00C853);
+}
+
+.match-accuracy-pct {
+  flex: 0 0 56px;
+  text-align: right;
+  font-weight: 900;
+}
+
+.match-player-list {
+  margin-top: 20px;
+  padding-top: 12px;
+  border-top: 2px solid var(--theme-border, #000);
+}
+
+.match-player-list p {
+  font-size: 1.2rem;
+  margin: 5px 0;
+}
+
 /* Collect section */
 .prompt {
   font-size: 2.2rem;
