@@ -79,6 +79,10 @@ everything below is polish, testing, and ops.
      the missing piece is a CHAIN REVEAL (show each drawing's lineage:
      original → caption → redraw). Needs chain assembly from rotation
      assignment maps.
+   - **AI Dungeon Master** — live class-voted choose-your-own-adventure (AI
+     narrates, three options per beat, class votes, AI continues). Full design
+     sketch banked in DEFERRED-IDEAS.md §Game concepts — no new phase type
+     needed, ~one session of work.
 
 ## Later (needs accounts or more users first)
 
