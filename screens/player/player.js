@@ -1002,7 +1002,9 @@ function renderTeamPick(payload) {
 
       var title = document.createElement('span');
       title.className = 'team-pick-title';
-      title.textContent = r.name + ' — ' + (full ? 'full' : r.open + (r.open === 1 ? ' spot left' : ' spots left'));
+      // open == null means no caps (capacity:"open") — just show the name
+      title.textContent = r.open == null ? r.name
+        : r.name + ' — ' + (full ? 'full' : r.open + (r.open === 1 ? ' spot left' : ' spots left'));
       card.appendChild(title);
 
       if (r.members.length > 0) {

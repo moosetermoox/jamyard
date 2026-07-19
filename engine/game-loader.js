@@ -556,6 +556,13 @@ export function validate(config, gameId, options) {
           `Game "${gameId}": phase "${name}" (team-split) has BOTH "Number of teams" and "Group size" — pick one.`
         );
       }
+      // capacity:"open" only changes behavior when students pick (choice) or
+      // the teacher arranges (display only) — automatic methods ignore it.
+      if (phase.capacity === 'open' && phase.method !== 'choice' && phase.method !== 'teacher') {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (team-split) sets Team spots to "open", but method "${phase.method || 'random'}" assigns players automatically — the setting only matters for "choice" (students pick) and will be ignored here.`
+        );
+      }
     }
 
     // Data reference validation — check that referenced phase exists.

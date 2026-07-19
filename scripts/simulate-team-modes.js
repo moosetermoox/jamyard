@@ -1,12 +1,14 @@
 /**
- * Team-split interactive-modes sim — plays games/_team-modes (choice split
- * then teacher split) with 5 clients and asserts the invariants that unit
- * tests can't see over sockets:
+ * Team-split interactive-modes sim — plays games/_team-modes (choice split,
+ * teacher split, then choice with open capacity) with 5 clients and asserts
+ * the invariants that unit tests can't see over sockets:
  *
  *   choice: capacity enforcement (a full team rejects the pick and tells
  *   only the tapper), re-pick allowed, straggler auto-fill on confirm
  *   teacher: assign / unassign / reassign round-trips, confirm auto-fills,
  *   explicit assignments survive the fill
+ *   choice + capacity "open": no caps at all — everyone can join the same
+ *   team (pre-existing classroom teams), auto-close when all placed
  *   both: a PLAYER emitting team-split-confirm / team-assign is ignored
  *   (privileged actions are teacher-socket only)
  *
@@ -103,6 +105,33 @@ const aliceFinal = arranged.find(f => f.teams[t1].some(m => m.playerId === alice
 check(!!aliceFinal, `explicit assignment survived auto-fill (${alice.name} on ${t1})`);
 const sizes = [arranged[0].teams[t1].length, arranged[0].teams[t2].length].sort();
 check(sizes[0] === 2 && sizes[1] === 3, `auto-fill balanced the teams 3/2 (got ${sizes.join('/')})`);
+drainAll([host, ...players]);
+
+// ---- Phase 3: choice mode with capacity "open" (pre-existing teams) ----
+// No spot caps: everyone can pile onto the same team — nobody gets bounced
+// from the team they actually belong to.
+
+host.emit('advance-phase', { code });
+const openStart = await waitForEventOnAll(players, 'team-choice-start');
+const openRosters = openStart[0].rosters;
+check(openRosters.map(r => r.name).join(',') === 'Red,Blue',
+  `custom team names delivered (got ${openRosters.map(r => r.name).join(',')})`);
+check(openRosters.every(r => r.capacity === null && r.open === null),
+  'open capacity: rosters carry no caps');
+drainAll([host, ...players]);
+
+// All five join Red — pick 4 and 5 would bounce under even-split caps (3,2)
+for (const p of players) {
+  p.emit('team-pick', { code, team: 'Red' });
+  await wait(150);
+}
+
+// All placed → the phase auto-closes without a confirm
+const openFinals = await waitForEventOnAll(players, 'team-split');
+check(openFinals.every(f => f.myTeam === 'Red'),
+  `all five landed on Red, nobody bounced (got ${openFinals.map(f => f.myTeam).join(',')})`);
+check(openFinals[0].teams['Red'].length === 5 && openFinals[0].teams['Blue'].length === 0,
+  `uneven 5/0 split allowed (got ${openFinals[0].teams['Red'].length}/${openFinals[0].teams['Blue'].length})`);
 drainAll([host, ...players]);
 
 host.emit('advance-phase', { code });

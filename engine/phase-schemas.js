@@ -1084,6 +1084,11 @@ export const PHASE_SCHEMAS = {
         label: 'How teams are made',
         helper: 'random/balanced assign instantly. "teacher" shows a roster on the host screen for you to arrange. "choice" lets students tap the group they want (open spots only; stragglers auto-filled when you confirm).'
       },
+      capacity: {
+        type: 'enum', values: ['even', 'open'], optional: true, default: 'even',
+        label: 'Team spots',
+        helper: '"even" caps every team at an even split so a free pick stays fair. "open" removes the caps — use with "choice" when the class already has real teams and students should join their own (uneven sizes and absences are fine).'
+      },
       teamCount: {
         type: 'integer', min: 2, max: 20, optional: true,
         label: 'Number of teams',

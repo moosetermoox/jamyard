@@ -3212,19 +3212,22 @@ io.on('connection', (socket) => {
     if (state.assignments[socket.id] === team) return;
 
     // Full team: ignore the pick but re-send truth to the tapper (their
-    // screen may have raced another student for the last spot).
-    const idx = state.teamNames.indexOf(team);
-    const current = Object.values(state.assignments).filter(t => t === team).length;
-    if (current >= state.capacities[idx]) {
-      socket.emit(EVENTS.TEAM_CHOICE_UPDATE, {
-        rosters: buildTeamRosters(state, room.engine.players),
-        placed: Object.keys(state.assignments).length,
-        total: state.eligibleIds.size,
-        yourTeam: state.assignments[socket.id] || null,
-        full: team,
-        phaseInstanceId: room.phaseInstanceId
-      });
-      return;
+    // screen may have raced another student for the last spot). No caps at
+    // all when capacity:"open" — students always reach their real team.
+    if (state.capacities) {
+      const idx = state.teamNames.indexOf(team);
+      const current = Object.values(state.assignments).filter(t => t === team).length;
+      if (current >= state.capacities[idx]) {
+        socket.emit(EVENTS.TEAM_CHOICE_UPDATE, {
+          rosters: buildTeamRosters(state, room.engine.players),
+          placed: Object.keys(state.assignments).length,
+          total: state.eligibleIds.size,
+          yourTeam: state.assignments[socket.id] || null,
+          full: team,
+          phaseInstanceId: room.phaseInstanceId
+        });
+        return;
+      }
     }
 
     state.assignments[socket.id] = team; // re-picks just move the player

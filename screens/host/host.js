@@ -942,7 +942,9 @@ socket.on('team-split-setup', ({ rosters, unassigned }) => {
     const card = document.createElement('div');
     card.className = 'team-card team-card-tappable';
     const h3 = document.createElement('h3');
-    h3.textContent = r.name + ' (' + r.members.length + '/' + r.capacity + ')';
+    h3.textContent = r.capacity == null
+      ? r.name + ' (' + r.members.length + ')'
+      : r.name + ' (' + r.members.length + '/' + r.capacity + ')';
     card.appendChild(h3);
     for (const m of r.members) {
       const p = document.createElement('p');
@@ -983,7 +985,9 @@ function renderTeamChoiceHost(rosters, placed, total) {
     const card = document.createElement('div');
     card.className = 'team-card';
     const h3 = document.createElement('h3');
-    h3.textContent = r.name + ' — ' + r.open + (r.open === 1 ? ' spot' : ' spots') + ' left';
+    // open == null means no caps (capacity:"open") — show the name only
+    h3.textContent = r.open == null ? r.name
+      : r.name + ' — ' + r.open + (r.open === 1 ? ' spot' : ' spots') + ' left';
     card.appendChild(h3);
     for (const m of r.members) {
       const p = document.createElement('p');

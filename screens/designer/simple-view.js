@@ -677,7 +677,7 @@
       case 'team-split': {
         var sizing = phase.groupSize != null ? 'groups of ' + phase.groupSize : (phase.teamCount || 2) + ' teams';
         var how = phase.method === 'teacher' ? 'you arrange them on the screen'
-          : phase.method === 'choice' ? 'students pick their own spots'
+          : phase.method === 'choice' ? (phase.capacity === 'open' ? 'students join their own team (no size caps)' : 'students pick their own spots')
           : phase.method === 'balanced' ? 'balanced by score'
           : 'at random';
         d.sentence = 'The class splits into ' + sizing + ' — ' + how + '.';

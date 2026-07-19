@@ -1,10 +1,11 @@
 {
   "name": "Team Modes Test",
-  "description": "Hidden test fixture: a choice-mode split (students pick) followed by a teacher-mode split (host arranges). Driven by scripts/simulate-team-modes.js.",
+  "description": "Hidden test fixture: a choice-mode split (students pick) followed by a teacher-mode split (host arranges), then a choice split with open capacity (pre-existing teams). Driven by scripts/simulate-team-modes.js.",
   "phases": {
     "lobby": { "type": "lobby", "next": "pick" },
     "pick": { "type": "team-split", "method": "choice", "groupSize": 2, "next": "arrange" },
-    "arrange": { "type": "team-split", "method": "teacher", "teamCount": 2, "next": "end" },
-    "end": { "type": "end", "message": "Both team modes exercised." }
+    "arrange": { "type": "team-split", "method": "teacher", "teamCount": 2, "next": "own" },
+    "own": { "type": "team-split", "method": "choice", "capacity": "open", "teamCount": 2, "teamNames": ["Red", "Blue"], "next": "end" },
+    "end": { "type": "end", "message": "All team modes exercised." }
   }
 }

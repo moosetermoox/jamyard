@@ -2424,6 +2424,16 @@ function renderPhaseConfig(phaseId) {
         }
       }
     );
+    if (phase.method === 'choice') {
+      addSelectWithHelp('Team spots', 'Even spots keep a free pick fair. Open spots let students join any team — use when the class already has teams and kids should tap their own (uneven sizes and absences are fine).', 'phase-team-capacity',
+        [
+          { value: 'even', label: 'Even — spots capped for fairness' },
+          { value: 'open', label: 'Open — any team, any size' }
+        ],
+        phase.capacity || 'even', function (value) {
+          if (value === 'open') { phase.capacity = 'open'; } else { delete phase.capacity; }
+        });
+    }
     if (phase.method === 'balanced') {
       addDataRefDropdown('Balance scores from', 'Score data to balance teams with', 'phase-balanceFrom', phaseId, phase.balanceFrom, function (value) {
         phase.balanceFrom = value || undefined;

@@ -22,8 +22,11 @@ import { EVENTS } from '../events.js';
 import { groupCountFor, teamCapacities, defaultTeamNames } from '../phases/team-grouping.js';
 
 /**
- * Resolve sizing + names for a class of n.
- * @returns {{ teamCount: number, teamNames: string[], sizedGroups: boolean }}
+ * Resolve sizing + names + spot caps for a class of n. `capacity: "open"`
+ * yields null capacities — no caps, for classes whose teams already exist
+ * in the real world (students join their own team even when absences make
+ * the sizes uneven).
+ * @returns {{ teamCount: number, teamNames: string[], sizedGroups: boolean, capacities: number[]|null }}
  */
 export function resolveTeamPlan(phase, n) {
   const sizedGroups = phase.groupSize != null && phase.teamCount == null;
@@ -33,20 +36,24 @@ export function resolveTeamPlan(phase, n) {
   const teamNames = Array.isArray(phase.teamNames) && phase.teamNames.length === teamCount
     ? phase.teamNames
     : defaultTeamNames(teamCount, sizedGroups);
-  return { teamCount, teamNames, sizedGroups };
+  const capacities = phase.capacity === 'open' ? null : teamCapacities(n, teamCount);
+  return { teamCount, teamNames, sizedGroups, capacities };
 }
 
 // Live rosters for the choice screens / teacher setup: name lists + spots.
+// Null capacities (capacity:"open") → capacity/open are null and the
+// screens hide the spot counts.
 export function buildTeamRosters(state, players) {
   return state.teamNames.map((name, i) => {
     const members = Object.entries(state.assignments)
       .filter(([, team]) => team === name)
       .map(([pid]) => ({ playerId: pid, name: (players.find(pid) || {}).name || '?' }));
+    const capacity = state.capacities ? state.capacities[i] : null;
     return {
       name,
       members,
-      capacity: state.capacities[i],
-      open: Math.max(0, state.capacities[i] - members.length)
+      capacity,
+      open: capacity == null ? null : Math.max(0, capacity - members.length)
     };
   });
 }
@@ -83,7 +90,7 @@ registerHandler('team-split', {
     const { phase, engine, room } = ctx;
     const tsFrom = phase.from || 'all';
     const eligible = ctx.getEligibleVoters(tsFrom);
-    const { teamCount, teamNames } = resolveTeamPlan(phase, eligible.length);
+    const { teamCount, teamNames, capacities } = resolveTeamPlan(phase, eligible.length);
     const method = phase.method || 'random';
     const sc = ctx.resolveScreenControl();
 
@@ -93,7 +100,7 @@ registerHandler('team-split', {
         phaseId: phase.id,
         mode: method,
         teamNames,
-        capacities: teamCapacities(eligible.length, teamCount),
+        capacities, // null = no caps (capacity:"open")
         assignments: {},               // playerId → teamName
         eligibleIds: new Set(eligible.map(p => p.id)),
         closed: false
