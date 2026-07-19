@@ -1,0 +1,79 @@
+{
+  "id": "group-work",
+  "name": "Group Work Day",
+  "icon": "✅",
+  "description": "A shared to-do list for classwork: split into groups, every group gets the same checklist on their devices, and the projector shows every group's live progress. For lab days, station rotations, project work — any 'here's what your group must finish today'. No points, no winners: completion tracking.",
+  "tagline": "Perfect for labs, stations, and project sessions where every group works the same task list.",
+  "version": "1",
+
+  "parameters": {
+    "tasks": {
+      "type": "array",
+      "item": { "type": "string" },
+      "label": "The to-do items",
+      "helper": "The tasks every group must finish. Any group member can check one off — the whole group sees it instantly.",
+      "minItems": 1,
+      "maxItems": 15,
+      "default": ["Read the instructions together", "Finish the worksheet", "Check your answers with another group", "Clean up your area"]
+    },
+    "groupSize": {
+      "type": "integer",
+      "min": 2,
+      "max": 8,
+      "label": "Students per group",
+      "helper": "Groups of this size (a 22-kid class in groups of 4 makes 4,4,4,4,3,3 — nobody works alone).",
+      "default": 3
+    },
+    "method": {
+      "type": "enum",
+      "values": ["random", "choice", "teacher"],
+      "default": "random",
+      "label": "How groups form",
+      "helper": "random: instant. choice: students tap the group they want. teacher: you arrange names on the projector."
+    },
+    "workTime": {
+      "type": "integer",
+      "min": 60,
+      "max": 3600,
+      "label": "Work time (seconds, optional)",
+      "helper": "A visible countdown for the work session. Leave empty for no limit — you end work time from the host screen."
+    }
+  },
+
+  "template": {
+    "name": "Group Work Day",
+    "description": "A shared group checklist with a live progress board, built with the Group Work Day recipe.",
+    "phases": {
+      "lobby": { "type": "lobby", "next": "intro" },
+      "intro": {
+        "type": "announce",
+        "message": "✅ GROUP WORK DAY!\n\nYou're about to be split into groups. Every group has the same checklist on their devices — check tasks off as your group finishes them, and watch the progress board up here.",
+        "timer": 10,
+        "next": "make-groups"
+      },
+      "make-groups": {
+        "type": "team-split",
+        "method": "${method}",
+        "groupSize": "${groupSize}",
+        "next": "worktime"
+      },
+      "worktime": {
+        "type": "checklist",
+        "prompt": "Work through today's tasks with your group.",
+        "items": "${tasks}",
+        "teamsFrom": "make-groups",
+        "timer": { "$if": "workTime", "$value": "${workTime}" },
+        "next": "wrap"
+      },
+      "wrap": {
+        "type": "announce",
+        "message": "Great work today!\n\n{{worktime.resultsList}}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "✅ That's a wrap on today's work session."
+      }
+    }
+  }
+}

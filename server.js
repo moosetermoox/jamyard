@@ -55,6 +55,8 @@ import { scoreMatching, matchStats, buildResultsList } from './engine/phases/mat
 import { autoFill } from './engine/phases/team-grouping.js';
 import { scoreSorting, sortStats, buildSortResultsList } from './engine/phases/sort-scoring.js';
 import { buildTeamRosters } from './engine/phase-handlers/team-split.js';
+import { applyCheck, groupProgress, checklistResults } from './engine/phases/checklist-state.js';
+import { playerChecklistView, teacherDetail } from './engine/phase-handlers/checklist.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
@@ -657,6 +659,52 @@ async function closeSorting(code, room) {
   io.to(code).emit(EVENTS.SORT_RESULTS, state.resultsPayload);
 }
 
+// End the checklist work time: store per-group results, show the final
+// summary. Like sort/match, does NOT auto-advance — "two groups didn't
+// finish" is a conversation; the host clicks Continue.
+async function closeChecklist(code, room) {
+  const state = room.phaseState;
+  // kind guard + idempotence (see closeRanking)
+  if (!state || state.kind !== 'checklist' || state.closed) return;
+  state.closed = true;
+  if (state.timer) { clearTimeout(state.timer); state.timer = null; }
+
+  const out = checklistResults(state);
+  room.engine.storePhaseData(state.phaseId, out);
+  console.log(`[closeChecklist] ${out.doneCount}/${out.groupCount} ${state.solo ? 'students' : 'groups'} finished all ${out.itemCount} item(s)`);
+
+  // Kept on the phase state so a reconnect after close sees the summary,
+  // not a dead board (see closeEstimates).
+  state.resultsPayload = {
+    results: out.results,
+    doneCount: out.doneCount,
+    groupCount: out.groupCount,
+    itemCount: out.itemCount,
+    solo: state.solo,
+    phaseInstanceId: room.phaseInstanceId
+  };
+  io.to(code).emit(EVENTS.CHECKLIST_RESULTS, state.resultsPayload);
+  io.to(teachersChannel(code)).emit(EVENTS.CHECKLIST_RESULTS, state.resultsPayload);
+}
+
+// Fan out a checklist change: the touched group sees its items, the
+// dashboard (host + consoles) sees progress. Attribution never reaches
+// the projector — the host payload is counts only.
+function emitChecklistUpdate(code, room, state, groupKey) {
+  const group = state.groups[groupKey];
+  const base = { phaseInstanceId: room.phaseInstanceId };
+  const hostId = roomToHost.get(code);
+  if (hostId) io.to(hostId).emit(EVENTS.CHECKLIST_UPDATE, { ...base, progress: groupProgress(state) });
+  io.to(teachersChannel(code)).emit(EVENTS.CHECKLIST_UPDATE, { ...base, groups: teacherDetail(state) });
+  if (group) {
+    for (const memberId of group.memberIds) {
+      io.to(memberId).emit(EVENTS.CHECKLIST_UPDATE, {
+        ...base, group: { label: state.solo ? null : group.label, checked: group.checked }
+      });
+    }
+  }
+}
+
 // --- Team-split helpers (interactive teacher/choice modes) ---
 
 // Roster snapshot for the teacher-assign screen (host + consoles).
@@ -1249,6 +1297,10 @@ function buildTeacherSnapshot(code, room) {
     const data = engine.getPhaseData(phase.id);
     if (data) snap.preview = { content: data.content, responses: data.responses || [] };
   }
+  const ps = room.phaseState;
+  if (ps && ps.kind === 'checklist' && !ps.closed) {
+    snap.checklist = { items: ps.items, groups: teacherDetail(ps), solo: ps.solo };
+  }
   return snap;
 }
 
@@ -1277,6 +1329,7 @@ const phaseServices = {
   closeRanking: (code, room) => closeRanking(code, room),
   closeMatching: (code, room) => closeMatching(code, room),
   closeSorting: (code, room) => closeSorting(code, room),
+  closeChecklist: (code, room) => closeChecklist(code, room),
   closeRating: (code, room) => closeRating(code, room),
   closeWager: (code, room) => closeWager(code, room),
   closeMerge: (code, room) => closeMerge(code, room),
@@ -2777,6 +2830,10 @@ io.on('connection', (socket) => {
             // closeSorting shows results without advancing — store, then move on
             await closeSorting(code, room);
             break;
+          case 'checklist':
+            // closeChecklist shows the summary without advancing — store, then move on
+            await closeChecklist(code, room);
+            break;
           default:
             break;
         }
@@ -3173,6 +3230,46 @@ io.on('connection', (socket) => {
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-sorting')) return;
     recordEvent(room, 'close-sorting');
     await closeSorting(code, room);
+  });
+
+  // --- Checklist events (shared group to-do list) ---
+
+  socket.on(EVENTS.CHECK_ITEM, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'check-item', payload)) return;
+    const { code, index, checked, team, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'checklist') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'check-item')) return;
+    const state = room.phaseState;
+    if (state.closed) return;
+
+    // A teacher (host or joined console) may act on any group's behalf;
+    // players only ever touch their own group's list.
+    const teacher = isTeacherSocket(code, room, socket.id);
+    const player = room.engine.players.find(socket.id);
+    const res = applyCheck(state, {
+      playerId: socket.id,
+      playerName: teacher && !player ? 'Teacher' : (player || {}).name || '?',
+      index,
+      checked: !!checked,
+      asTeacher: teacher,
+      groupKey: teacher ? team : undefined
+    });
+    if (!res.ok) return;
+
+    recordEvent(room, 'check-item', { playerId: socket.id, index, checked: !!checked });
+    emitChecklistUpdate(code, room, state, res.groupKey);
+  });
+
+  socket.on(EVENTS.CLOSE_CHECKLIST, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'close-checklist', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'checklist') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-checklist')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return;
+    recordEvent(room, 'close-checklist');
+    await closeChecklist(code, room);
   });
 
   // --- Team-split events (interactive teacher/choice modes) ---

@@ -125,6 +125,14 @@ export function checkPayload(eventName, data, config) {
       }
       break;
     }
+    case 'checklist-start': {
+      // Player payloads carry the items; the HOST's checklist-start only
+      // has progress — its missing array is not a finding.
+      if (Array.isArray(data.items) && data.items.length === 0) {
+        add('error', 'A checklist step started with no items — students saw an empty list.', data.prompt);
+      }
+      break;
+    }
     case 'vote-start': {
       if (data.mode === 'head-to-head') {
         if (Array.isArray(data.matchups) && data.matchups.length === 0) {
@@ -513,6 +521,34 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
         case 'sort-results': {
           if (role !== 'host') break;
           once(`sortr:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 400);
+          break;
+        }
+
+        // --- Checklist (shared group to-do list) ---
+        case 'checklist-start': {
+          if (role !== 'player') break;
+          lastScreen = 'a checklist step';
+          if (!onceKeys.has(`logged:checklist:${seq(data)}`)) {
+            onceKeys.add(`logged:checklist:${seq(data)}`);
+            phaseLog.push({ type: 'checklist' });
+          }
+          // Each bot checks a couple of items (staggered) — groups end up
+          // partly done, exercising both live updates and the final summary.
+          const clItemCount = Array.isArray(data.items) ? data.items.length : 0;
+          const clIdx = players.indexOf(who);
+          for (let ci = 0; ci < clItemCount; ci++) {
+            if ((ci + clIdx) % 2 === 0) {
+              setTimeout(() => who.emit('check-item', {
+                code, index: ci, checked: true, phaseInstanceId: seq(data)
+              }), 200 + ci * 120);
+            }
+          }
+          once(`close:checklist:${seq(data)}`, () => host.emit('close-checklist', { code, phaseInstanceId: seq(data) }), 1500);
+          break;
+        }
+        case 'checklist-results': {
+          if (role !== 'host') break;
+          once(`checklistr:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 400);
           break;
         }
 

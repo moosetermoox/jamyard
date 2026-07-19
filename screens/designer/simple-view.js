@@ -618,6 +618,19 @@
         break;
       }
 
+      case 'checklist': {
+        d.sentence = 'Every ' + (phase.teamsFrom ? 'group' : 'student') + ' works through the to-do list:';
+        d.field = textBox(phase.prompt, 'e.g. Finish these five things with your lab group…', function (v) { phase.prompt = v; });
+        d.extra = stringListEditor(
+          function () { if (!Array.isArray(phase.items)) phase.items = []; return phase.items; },
+          function (a) { phase.items = a; },
+          'task'
+        );
+        d.facts.push(fact(phase.teamsFrom ? 'shared per group — live dashboard on the projector' : 'one list per student'));
+        d.facts.push(timerFact(phase));
+        break;
+      }
+
       case 'match':
         d.sentence = 'Students match the pairs:';
         d.field = textBox(phase.prompt, 'e.g. Match each word to its definition…', function (v) { phase.prompt = v; });

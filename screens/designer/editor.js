@@ -291,6 +291,17 @@ var PHASE_CATALOG = {
     player: 'Two columns — drag the right column until each row is a correct pair',
     ai: null
   },
+  'checklist': {
+    icon: '✅',
+    friendlyName: 'To-Do Checklist',
+    description: 'Every group works through the same to-do list; the projector shows live progress',
+    color: '#33691E',
+    bg: '#DCEDC8',
+    detailField: 'prompt',
+    host: 'Per-group progress bars, groups-finished count, End Work Time button',
+    player: 'The to-do list — tap items to check them off for your group',
+    ai: null
+  },
   'end': {
     icon: '',
     friendlyName: 'Game Over',
@@ -910,6 +921,10 @@ function getPrimaryFieldDef(type) {
       var sizing = p.groupSize != null ? 'groups of ' + p.groupSize : (p.teamCount || 2) + ' teams';
       var how = { random: 'random', balanced: 'balanced', teacher: 'you arrange', choice: 'students pick' }[p.method];
       return sizing + (how ? ' (' + how + ')' : '');
+    }};
+    case 'checklist': return { type: 'summary', summarize: function (p) {
+      var n = (p.items || []).length;
+      return n + ' task' + (n === 1 ? '' : 's') + (p.teamsFrom ? ' per group' : ' per student');
     }};
     case 'rate': return { type: 'summary', summarize: function (p) {
       var scaleCount = (p.scales || []).length;
@@ -2691,6 +2706,76 @@ function renderPhaseConfig(phaseId) {
     );
   }
 
+  if (type === 'checklist') {
+    addTextAreaWithHelp('Instructions', 'Shown above the to-do list on every screen', 'phase-prompt', phase.prompt, 'e.g. Finish these five things with your lab group', function (value) {
+      phase.prompt = value;
+      renderCanvas();
+    });
+
+    addSectionHeader('The to-do items');
+    if (!Array.isArray(phase.items)) phase.items = [];
+    for (var clIdx = 0; clIdx < phase.items.length; clIdx++) {
+      (function (index) {
+        var cGroup = document.createElement('div');
+        cGroup.className = 'form-group';
+        cGroup.style.display = 'flex';
+        cGroup.style.gap = '6px';
+
+        var cInput = document.createElement('input');
+        cInput.type = 'text';
+        cInput.value = phase.items[index] || '';
+        cInput.placeholder = 'Task ' + (index + 1);
+        cInput.style.flex = '1';
+        cInput.addEventListener('input', function () {
+          isDirty = true;
+          phase.items[index] = cInput.value;
+        });
+
+        var cRemove = document.createElement('button');
+        cRemove.className = 'btn-icon';
+        cRemove.textContent = '✖';
+        cRemove.title = 'Remove task';
+        cRemove.addEventListener('click', function () {
+          isDirty = true;
+          phase.items.splice(index, 1);
+          renderPhaseConfig(phaseId);
+        });
+
+        cGroup.appendChild(cInput);
+        cGroup.appendChild(cRemove);
+        phaseConfigForm.appendChild(cGroup);
+      })(clIdx);
+    }
+    var addTaskBtn = document.createElement('button');
+    addTaskBtn.className = 'btn-secondary';
+    addTaskBtn.textContent = '+ Add Task';
+    addTaskBtn.style.marginBottom = '12px';
+    addTaskBtn.addEventListener('click', function () {
+      isDirty = true;
+      if (!Array.isArray(phase.items)) phase.items = [];
+      phase.items.push('');
+      renderPhaseConfig(phaseId);
+    });
+    phaseConfigForm.appendChild(addTaskBtn);
+
+    // Groups: any earlier team-split step, or solo checklists
+    var teamSplitOpts = [{ value: '', label: 'No groups — one checklist per student' }];
+    for (var pid in gameConfig.phases) {
+      if (gameConfig.phases[pid].type === 'team-split') {
+        teamSplitOpts.push({ value: pid, label: 'Teams from "' + phaseContentLabel(pid) + '"' });
+      }
+    }
+    addSelectWithHelp('Who shares a checklist', 'Point at a Split into Teams step for group checklists, or give every student their own.', 'phase-teamsFrom',
+      teamSplitOpts, phase.teamsFrom || '', function (value) {
+        if (value) { phase.teamsFrom = value; } else { delete phase.teamsFrom; }
+      });
+
+    addFieldWithHelp('Work time (seconds)', 'Leave empty for no limit — you end work time from the host screen.', 'number', 'phase-timer', phase.timer, false, function (value) {
+      if (value == null || value === '') delete phase.timer;
+      else phase.timer = value;
+    });
+  }
+
   if (type === 'match') {
     addTextAreaWithHelp('Instructions', 'Tells players what the two lists are', 'phase-prompt', phase.prompt, 'e.g. Match each French word to its English meaning', function (value) {
       phase.prompt = value;
@@ -4410,6 +4495,8 @@ function buildDataRefOptions(currentPhaseId) {
       options.push({ value: pid + '.scores', label: 'Match scores from ' + stepLabel });
     } else if (p.type === 'sort') {
       options.push({ value: pid + '.scores', label: 'Sort scores from ' + stepLabel });
+    } else if (p.type === 'checklist') {
+      options.push({ value: pid + '.resultsList', label: 'Checklist progress from ' + stepLabel });
     } else if (p.type === 'wager') {
       options.push({ value: pid + '.scores', label: 'Updated scores from ' + stepLabel });
       options.push({ value: pid + '.wagers', label: 'Wagers from ' + stepLabel });
@@ -4851,6 +4938,9 @@ function addPhaseOfType(type) {
       { text: 'Time is a thief', bucket: 'Metaphor' }
     ];
     newPhase.timer = 60;
+  } else if (type === 'checklist') {
+    newPhase.prompt = 'Work through today\'s tasks with your group.';
+    newPhase.items = ['First task', 'Second task', 'Third task'];
   }
 
   // Set next (preview uses approveNext instead)
@@ -4961,6 +5051,7 @@ var REQUIRED_FIELDS = {
   rank: ['prompt', 'candidates'],
   wager: ['prompt', 'options'],
   relay: ['prompt'],
+  checklist: ['items'],
   foreach: ['data', 'subPhases']
 };
 
@@ -4997,6 +5088,7 @@ var VALID_HOST_TOGGLES = {
   rank: ['prompt', 'counter', 'timer', 'closeButton'],
   wager: ['prompt', 'options', 'counter', 'timer', 'closeButton'],
   relay: ['prompt', 'progress', 'sharedResult', 'timer', 'activePlayer'],
+  checklist: ['prompt', 'progress', 'summary', 'timer', 'closeButton'],
   end: ['message', 'playAgainButton']
 };
 
@@ -5016,6 +5108,7 @@ var VALID_PLAYER_TOGGLES = {
   rank: ['prompt', 'items', 'timer', 'submitButton'],
   wager: ['prompt', 'options', 'points', 'timer', 'submitButton'],
   relay: ['prompt', 'sharedResult', 'input', 'timer'],
+  checklist: ['prompt', 'items', 'timer'],
   end: ['message']
 };
 
@@ -5054,7 +5147,8 @@ var TOGGLE_FRIENDLY_NAMES = {
   points: 'Available points',
   sharedResult: 'Shared result',
   activePlayer: 'Active player name',
-  progress: 'Match progress'
+  progress: 'Progress display',
+  summary: 'Groups-finished count'
 };
 
 function validateConfig() {
@@ -5933,6 +6027,20 @@ function buildPreviewHTML(phase, screen) {
     } else {
       html += previewEl('team', 'Your Team', 'You are on Team 1!', showList);
       html += previewEl('allTeams', 'All Teams', 'Team 1: You, Player2  |  Team 2: ...', showList);
+    }
+  }
+
+  if (type === 'checklist') {
+    if (screen === 'host') {
+      html += previewEl('prompt', 'Instructions', phase.prompt || 'Work through today\'s tasks!', showList);
+      html += previewEl('summary', 'Summary', '2 of 6 groups finished', showList);
+      html += previewEl('progress', 'Progress bars', 'Group 1 ▓▓▓░ 3/4  |  Group 2 ▓▓▓▓ 4/4 ✓', showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
+      html += previewBtn('closeButton', 'End Work Time', showList);
+    } else {
+      html += previewEl('prompt', 'Instructions', phase.prompt || 'Work through today\'s tasks!', showList);
+      html += previewEl('items', 'To-do list', '☑ ' + ((phase.items || [])[0] || 'First task') + '  |  ☐ ' + ((phase.items || [])[1] || 'Second task'), showList);
+      if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's countdown', showList);
     }
   }
 

@@ -851,6 +851,59 @@ button[hidden] {
   color: var(--theme-button-text, white);
 }
 
+/* Checklist phase: shared group to-do list */
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  margin: 8px 0;
+  background: var(--theme-surface, white);
+  color: var(--theme-text, #222);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 8px;
+  text-align: left;
+  font-size: 1.05rem;
+}
+
+.checklist-item[hidden] { display: none; }
+
+.checklist-item-done {
+  background: var(--theme-canvas, #f4f0e5);
+}
+
+.checklist-item-done .checklist-item-text {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.checklist-box {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  line-height: 22px;
+  text-align: center;
+  border: 2px solid var(--theme-border, #222);
+  border-radius: 6px;
+  background: var(--theme-surface, white);
+  font-weight: bold;
+}
+
+.checklist-item-done .checklist-box {
+  background: var(--theme-button, #FF4081);
+  color: var(--theme-button-text, white);
+  border-color: var(--theme-button, #FF4081);
+}
+
+.checklist-item-text { flex: 1 1 auto; }
+
+.checklist-item-by {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
 /* Match phase: left column fixed, right column drag-to-swap */
 .match-hint {
   font-size: 0.9rem;

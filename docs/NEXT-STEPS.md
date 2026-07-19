@@ -24,12 +24,16 @@ everything below is polish, testing, and ops.
 3. **Day-one kit (C)** — pick the 3-5 launch games and polish deeply.
    Candidates now: One Voice / Closer (connection), Quiz Show, Lightning
    Round, **Vocab Match**, **Metaphor or Simile?**, **Art Gallery** (the new
-   ones are bread-and-butter classroom material). Plus anonymous mode and the
+   ones are bread-and-butter classroom material), **Group Work Day**
+   (checklist phase, 2026-07-19 — not-a-game classroom utility teachers can
+   use any ordinary day, recipe included). Plus anonymous mode and the
    one-page "if X goes wrong, do Y" teacher cheat sheet.
 4. **Recipes for the new stuff** — match/sort/drawing have NO recipes yet, so
    the idea-first front door ("make a vocab quiz for my French class") can't
    route to them. A vocab-match recipe + a sort recipe + an art-gallery recipe
    makes the new features reachable by non-coders. Small, high-leverage.
+   (Checklist shipped WITH its recipe on 2026-07-19 — `recipes/group-work.json`
+   is the pattern to copy.)
 5. **Loose ends from the July push:** caption mode (drawing shown above a
    text box via rotateFrom) works but no shipped game uses it — Telephone
    Pictionary needs the chain reveal (see Next below); the editor UI for the

@@ -32,10 +32,14 @@ var nextStepBtn = document.getElementById('next-step-btn');
 var controlsBlock = document.getElementById('controls-block');
 var consoleNote = document.getElementById('console-note');
 
+var checklistBlock = document.getElementById('checklist-block');
+var checklistGroups = document.getElementById('checklist-groups');
+
 var currentCode = null;
 var currentPin = null;
 var currentPhaseType = null;
 var currentPhaseInstanceId = 0;
+var checklistItemTexts = [];
 
 var PHASE_LABELS = {
   lobby: 'Lobby — players joining',
@@ -60,6 +64,11 @@ var PHASE_LABELS = {
   'ai-eliminate': 'AI judging…',
   winner: 'Winner showing',
   turn: 'Charades turn running',
+  match: 'Students are matching',
+  sort: 'Students are sorting',
+  buzz: 'Buzzer round',
+  estimate: 'Students are guessing',
+  checklist: 'Checklist work time',
   end: 'Game over'
 };
 
@@ -116,6 +125,11 @@ socket.on('teacher-joined', function (snap) {
     countLabel.textContent = (snap.submissions || []).length + ' of ' + snap.playerCount + ' in';
   }
   if (snap.preview) renderPreview(snap.preview.content, snap.preview.responses);
+  if (snap.checklist) {
+    checklistItemTexts = snap.checklist.items || [];
+    checklistBlock.hidden = false;
+    renderChecklistGroups(snap.checklist.groups || []);
+  }
 });
 
 // Auto-rejoin on reconnect (wifi blips, phone sleep)
@@ -149,6 +163,10 @@ function setPhase(phaseType, phaseId, phaseInstanceId) {
   if (!isCollect) entriesList.innerHTML = '';
 
   if (phaseType !== 'preview') previewBlock.hidden = true;
+  if (phaseType !== 'checklist') {
+    checklistBlock.hidden = true;
+    checklistGroups.innerHTML = '';
+  }
 
   closeStepBtn.hidden = !isCollect;
   closeStepBtn.disabled = false;
@@ -243,6 +261,62 @@ function renderEntries(submissions) {
 
 socket.on('submissions-update', function (data) {
   renderEntries((data && data.submissions) || []);
+});
+
+// --- Checklist detail (full per-group lists + check-on-behalf) ---
+
+function renderChecklistGroups(groups) {
+  checklistGroups.innerHTML = '';
+  for (var g = 0; g < (groups || []).length; g++) {
+    (function (group) {
+      var card = document.createElement('div');
+      card.className = 'checklist-console-group';
+
+      var doneCount = 0;
+      for (var k = 0; k < group.checked.length; k++) { if (group.checked[k]) doneCount++; }
+      var title = document.createElement('h3');
+      title.textContent = group.label + ' — ' + doneCount + '/' + group.checked.length;
+      card.appendChild(title);
+
+      for (var i = 0; i < checklistItemTexts.length; i++) {
+        (function (index) {
+          var entry = group.checked[index];
+          var row = document.createElement('button');
+          row.className = 'checklist-console-item' + (entry ? ' checklist-console-done' : '');
+          row.textContent = (entry ? '✓ ' : '○ ') + checklistItemTexts[index] +
+            (entry && entry.name ? ' · ' + entry.name : '');
+          row.addEventListener('click', function () {
+            socket.emit('check-item', {
+              code: currentCode,
+              index: index,
+              checked: !entry,
+              team: group.key,
+              phaseInstanceId: currentPhaseInstanceId
+            });
+          });
+          card.appendChild(row);
+        })(i);
+      }
+      checklistGroups.appendChild(card);
+    })(groups[g]);
+  }
+}
+
+socket.on('checklist-start', function (data) {
+  checklistItemTexts = (data && data.items) || [];
+  checklistBlock.hidden = false;
+  renderChecklistGroups((data && data.groups) || []);
+});
+
+socket.on('checklist-update', function (data) {
+  if (!data || !data.groups) return;
+  if (checklistBlock.hidden) checklistBlock.hidden = false;
+  renderChecklistGroups(data.groups);
+});
+
+socket.on('checklist-results', function () {
+  checklistBlock.hidden = true;
+  checklistGroups.innerHTML = '';
 });
 
 // --- Preview approval ---

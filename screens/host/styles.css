@@ -314,6 +314,58 @@ button:disabled {
   font-size: 1.4rem;
 }
 
+/* Checklist section — live per-group progress dashboard */
+.checklist-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  justify-content: center;
+  margin: 20px auto;
+  max-width: 900px;
+}
+
+.checklist-progress[hidden] { display: none; }
+
+.checklist-group {
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 12px;
+  padding: 14px 20px;
+  min-width: 180px;
+  text-align: center;
+}
+
+.checklist-group-done {
+  border-color: var(--theme-accent, #4a90d9);
+  box-shadow: 0 0 0 2px var(--theme-accent, #4a90d9);
+}
+
+.checklist-group-label {
+  margin: 0 0 8px;
+  font-weight: 900;
+  font-size: 1.15rem;
+}
+
+.checklist-bar {
+  height: 14px;
+  border: 2px solid var(--theme-border, #222);
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--theme-canvas, #f4f0e5);
+}
+
+.checklist-bar-fill {
+  height: 100%;
+  background: var(--theme-button, #FF4081);
+  transition: width 0.3s ease;
+}
+
+.checklist-group-count {
+  margin: 6px 0 0;
+  font-size: 0.95rem;
+  opacity: 0.75;
+}
+
 /* Match section (pair two lists) — per-pair accuracy is the projected reveal */
 .match-results {
   margin: 20px auto;

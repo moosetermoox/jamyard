@@ -108,7 +108,8 @@ Framework for quickly building classroom games where:
 - **Teams upgrade** — team-split sizing by `teamCount` OR `groupSize` (count computed via `engine/phases/team-grouping.js` — 22 kids in groups of 4 → 4,4,4,4,3,3, never a singleton); two new interactive methods: `teacher` (tap-a-name-tap-a-team roster on the host screen + Confirm) and `choice` (students claim open spots FCFS, re-pick allowed, full teams bounce only the tapper, stragglers auto-filled into emptiest teams on confirm/all-placed). Output shape unchanged (`teams`/`playerTeam`) so turn/relay/leaderboard consume all methods identically. Privileged actions (`team-assign`/`team-split-confirm`) check `isTeacherSocket`. `capacity:"open"` (choice mode) removes the even-split spot caps for classes whose teams already exist in the real world — students tap their own team, uneven sizes/absences never lock anyone out (default `"even"` keeps the fair-pick caps). Verified by `scripts/simulate-team-modes.js` (18 socket-level invariants incl. intruder rejection + open-capacity pile-on) against the `games/_team-modes` fixture.
 - **Sort phase** (27th type) — categorization: students tap a bucket for every item (drag rejected — miserable on phones); `buckets` + `items` where correct buckets are all-or-none (all = graded via `pointsPerItem`, none = consensus poll à la estimate's poll mode); close shows per-item class distributions with the correct bucket highlighted. Pure scoring in `engine/phases/sort-scoring.js`. First game: Metaphor or Simile? (graded round + consensus round).
 - **Drawing input (v1)** — `collect.inputType:"drawing"` swaps the text box for a stroke-based drawing pad (`screens/shared/drawing.js`: pointer-events pad, palette, undo/clear, animated stroke replay; strokes normalized 0-1 so any surface renders them). Server validation in `engine/drawing.js` (caps, clamping — the content filter can't read pictures, so safety = attribution + moderation thumbnails on the teacher console + teacher preview before reveal). Works with `reveal-one` (animated gallery with ✏️-name captions), `rotateFrom` (drawing source preloads onto the recipient's pad = continue-the-drawing; shows read-only above a text box = caption mode), preview, and Bot Fill (`Draw.scribble()`). AI steps can't read drawings (validator warns). v2 (live mural / tile wall phase) deliberately deferred. Games: Art Gallery, Finish My Drawing.
-- **784 tests passing** (`npm test`)
+- **Checklist phase** (28th type) — shared group to-do list with a live progress dashboard: teacher writes the tasks, each group (from `teamsFrom`, or per-student without it) checks items off together (any member, un-check allowed, attribution shown to group + teacher console but never the projector); host shows per-group progress bars + per-group finish celebrations; teacher console gets full detail + check-on-behalf; close = summary moment. No scores — completion tracking for lab days/stations/project work. Pure logic in `engine/phases/checklist-state.js`. First game: Group Work Day; **group-work recipe shipped with it** (tasks + group size + method + optional work timer).
+- **796 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-team-modes.js` (teacher/choice team-split invariants), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for phone testing and screenshot harnesses)
 
@@ -167,6 +168,8 @@ Framework for quickly building classroom games where:
 25. **Art Gallery** (games/art-gallery/) — announce → collect (drawing) → preview → reveal-one gallery → end
    - First drawing game: everyone draws one prompt, teacher previews the thumbnails, then the gallery reveals one animated drawing at a time
 26. **Finish My Drawing** (games/finish-my-drawing/) — draw → pass & continue ×2 → preview → gallery → end
+27. **Group Work Day** (games/group-work-day/) — announce → team-split → checklist → wrap announce → end
+   - First checklist game: groups work a shared to-do list while the projector shows live progress bars; the template for lab days, stations, and project sessions
    - First drawing-rotation game: each drawing passes through three artists (inherited strokes preload onto the pad); nobody knows what theirs became until the reveal
 
 ### Engine Primitives (All Implemented)
@@ -187,7 +190,7 @@ Framework for quickly building classroom games where:
 - **AI mixed format:** AI sometimes returns `[playerId, responseText]` in same array. Hook deduplicates within groups — only eliminates if 2+ unique players resolve.
 - **bottom-percent input field:** Eliminate phase reads scores from `phase.input` or `phase.from` (config uses `input`).
 
-### 27 Phase Types Defined
+### 28 Phase Types Defined
 1. `lobby` — Wait for players to join
 2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pair games — `pairsFrom` optional, `oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"` (stroke-based drawing pad; combines with rotateFrom for continue-the-drawing / caption modes)
 3. `ai-process` — Send data to AI for processing; `perPlayer:true` generates one item per student
@@ -215,6 +218,7 @@ Framework for quickly building classroom games where:
 25. `estimate` — Numeric guessing; optional `answer`+`unit`, `scoring: closest|graduated` (rank-based, scale-free), resubmission allowed until close; reveal shows answer + distribution; outputs `scores`/`average`/`median`; no answer = poll-the-room mode
 26. `match` — Pair two lists (vocab ↔ definitions); `pairs` literal array, `pointsPerMatch`; left column fixed, right drag-to-swap; close reveals correct pairs + per-pair class accuracy (host Continue advances); outputs `scores` (scoreMap)/`results`/`resultsList`/`pairCount`
 27. `sort` — Place items into named buckets (metaphor vs simile); `buckets` (2-5 names) + `items` with all-or-none correct buckets — all = graded (`pointsPerItem`), none = consensus poll; tap-to-assign on phones; close reveals per-item distributions (+accuracy when graded); outputs `scores`/`results`/`resultsList`/`itemCount`
+28. `checklist` — Shared group to-do list (lab days, stations, project work); `items` literal array + optional `teamsFrom` (team-split ref; omitted = one checklist per student); any member checks/un-checks with attribution (group + teacher console see names, never the projector); host dashboard shows live per-group progress bars; close = summary moment (host Continue advances); no scores — outputs `results`/`resultsList`/`doneCount`/`groupCount`/`itemCount`
 
 ### 6 AI Task Types Defined
 - `summarize` — Combine responses into insight (Haiku)
@@ -305,10 +309,11 @@ Framework for quickly building classroom games where:
 - `engine/phases/match-scoring.js` — pure match scoring (`normalizePairs`/`scoreMatching`/`matchStats`/`buildResultsList` — position-aligned exact match, per-pair class accuracy)
 - `engine/phases/team-grouping.js` — pure team sizing/capacity/auto-fill (`groupCountFor` no-singleton group counts, `teamCapacities` even-split, `autoFill` emptiest-first straggler placement)
 - `engine/phases/sort-scoring.js` — pure sort scoring (`normalizeSortItems`/`isGradedSort`/`scoreSorting`/`sortStats`/`buildSortResultsList` — graded vs consensus modes, per-item distributions)
+- `engine/phases/checklist-state.js` — pure checklist rules (`normalizeChecklistItems`/`buildChecklistGroups` teams-or-solo, `applyCheck` membership + teacher override, `groupProgress`/`checklistResults`)
 - `engine/drawing.js` — pure stroke validation for drawing submissions (`validateDrawing` clamps 0-1 coords/width/color + trims to caps, `isDrawingResponse`); browser side is `screens/shared/drawing.js` (`Draw.attachPad`/`renderStrokes`/`scribble`)
 - `engine/room-snapshot.js` — `serializeRoom`/`restoreRoom` (restart survival; JSON-safe, resume-at-phase-start)
 - `scripts/sim-harness.js` — shared multi-client simulation primitives (all simulate-*.js scripts build on it)
-- `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 12 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
+- `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 13 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
 
 ### Environment
 - Uses dotenv, set ANTHROPIC_API_KEY in .env for real AI

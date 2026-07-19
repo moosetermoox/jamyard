@@ -94,6 +94,17 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'check-item': {
+    code: 'string:required',
+    index: 'number:required',
+    checked: 'boolean:required',
+    team: 'string:optional',       // teacher console only: act on a group's behalf
+    phaseInstanceId: 'number:optional'
+  },
+  'close-checklist': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
   'wager-submit': {
     code: 'string:required',
     option: 'string:required',

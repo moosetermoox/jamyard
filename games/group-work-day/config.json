@@ -1,0 +1,41 @@
+{
+  "name": "Group Work Day",
+  "description": "Split into groups and work through a shared to-do list — any group member checks items off, the projector shows every group's live progress. The template for lab days, stations, and project work.",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "intro" },
+    "intro": {
+      "type": "announce",
+      "message": "✅ GROUP WORK DAY!\n\nYou're about to be split into groups. Every group has the same checklist on their devices — check tasks off as your group finishes them, and watch the progress board up here.",
+      "timer": 10,
+      "next": "make-groups"
+    },
+    "make-groups": {
+      "type": "team-split",
+      "method": "random",
+      "groupSize": 3,
+      "next": "worktime"
+    },
+    "worktime": {
+      "type": "checklist",
+      "prompt": "Work through today's tasks with your group.",
+      "items": [
+        "Read the instructions together",
+        "Assign one recorder and one reporter",
+        "Finish the worksheet",
+        "Check your answers with another group",
+        "Clean up your area"
+      ],
+      "teamsFrom": "make-groups",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "announce",
+      "message": "Great work today!\n\n{{worktime.resultsList}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "✅ That's Group Work Day! Swap in your own tasks for any lab, stations, or project session."
+    }
+  }
+}

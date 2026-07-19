@@ -904,6 +904,50 @@ export const PHASE_SCHEMAS = {
   },
 
   // -------------------------------------------------------------------
+  checklist: {
+    label: 'To-Do Checklist',
+    icon: '✅',
+    description: 'Every group works through the same to-do list on their devices while the projector shows a live progress dashboard. Without a team step it becomes one checklist per student.',
+    role: 'input',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'timer', 'participantSelector', 'loops'],
+    fields: {
+      prompt: {
+        type: 'templateString', optional: true,
+        label: 'Instructions',
+        placeholder: 'Work through today\'s tasks with your group.'
+      },
+      items: {
+        type: 'array', item: { type: 'string' }, required: true,
+        label: 'The to-do items',
+        helper: 'The tasks every group must finish. Any group member can check an item off; the whole group sees it instantly.'
+      },
+      teamsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Groups from',
+        helper: 'An earlier Split into Teams step. Leave empty for one checklist per student.'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        results:     { type: 'array' },
+        resultsList: { type: 'string', capability: 'renderable' },
+        doneCount:   { type: 'number' },
+        groupCount:  { type: 'number' },
+        itemCount:   { type: 'number' }
+      }
+    },
+    ui: {
+      hostToggles: ['prompt', 'progress', 'summary', 'timer', 'closeButton'],
+      playerToggles: ['prompt', 'items', 'timer']
+    }
+  },
+
+  // -------------------------------------------------------------------
   reveal: {
     label: 'Show Result',
     icon: '🎭',

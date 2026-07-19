@@ -203,6 +203,14 @@ const sortItemsEl = document.getElementById('sort-items');
 const sortSubmitBtn = document.getElementById('sort-submit-btn');
 const sortPlayerResults = document.getElementById('sort-player-results');
 
+// Elements - Checklist
+const checklistSection = document.getElementById('checklist-section');
+const checklistPromptDisplay = document.getElementById('checklist-prompt-display');
+const checklistGroupLabel = document.getElementById('checklist-group-label');
+const checklistTimerDisplay = document.getElementById('checklist-timer-display');
+const checklistItemsEl = document.getElementById('checklist-items');
+const checklistPlayerResults = document.getElementById('checklist-player-results');
+
 // Elements - One Voice
 const oneVoiceSection = document.getElementById('one-voice-section');
 const oneVoiceInstruction = document.getElementById('one-voice-instruction');
@@ -1511,6 +1519,120 @@ socket.on('sort-results', function (payload) {
   sortPlayerResults.hidden = false;
 });
 
+// --- Socket events - Checklist (shared group to-do list) ---
+
+var checklistItemTexts = [];
+var checklistChecked = []; // per item: null or {playerId, name}
+
+function renderChecklistItems() {
+  checklistItemsEl.innerHTML = '';
+  for (var i = 0; i < checklistItemTexts.length; i++) {
+    (function (index) {
+      var done = !!checklistChecked[index];
+      var row = document.createElement('button');
+      row.className = 'checklist-item' + (done ? ' checklist-item-done' : '');
+
+      var box = document.createElement('span');
+      box.className = 'checklist-box';
+      box.textContent = done ? '✓' : '';
+      row.appendChild(box);
+
+      var text = document.createElement('span');
+      text.className = 'checklist-item-text';
+      text.textContent = checklistItemTexts[index];
+      row.appendChild(text);
+
+      if (done && checklistChecked[index].name) {
+        var by = document.createElement('span');
+        by.className = 'checklist-item-by';
+        by.textContent = checklistChecked[index].name;
+        row.appendChild(by);
+      }
+
+      row.addEventListener('click', function () {
+        socket.emit('check-item', { code: currentRoomCode, index: index, checked: !done });
+        if (J) J.sound('blip');
+      });
+      checklistItemsEl.appendChild(row);
+    })(i);
+  }
+}
+
+socket.on('checklist-start', ({ prompt, items, group, timer, playerTemplate, show }) => {
+  showSection(checklistSection);
+  checklistPromptDisplay.textContent = prompt || 'Work through today\'s tasks!';
+  checklistItemsEl.hidden = false;
+  checklistPlayerResults.hidden = true;
+  checklistPlayerResults.innerHTML = '';
+  applyTemplate(checklistSection, playerTemplate);
+  applyShow(show, {
+    prompt: checklistPromptDisplay,
+    items: checklistItemsEl,
+    timer: checklistTimerDisplay
+  });
+
+  checklistItemTexts = Array.isArray(items) ? items.slice() : [];
+  checklistChecked = (group && Array.isArray(group.checked))
+    ? group.checked.slice()
+    : checklistItemTexts.map(function () { return null; });
+  if (group && group.label) {
+    checklistGroupLabel.textContent = 'Your group: ' + group.label;
+    checklistGroupLabel.hidden = false;
+  } else {
+    checklistGroupLabel.hidden = true;
+  }
+  renderChecklistItems();
+
+  if (timer) {
+    startTimer(timer, checklistTimerDisplay, function () {
+      // Server closes the phase when its own timer fires; nothing to submit.
+    });
+  }
+});
+
+socket.on('checklist-update', function (payload) {
+  if (!payload || !payload.group) return; // host-shaped payloads carry progress instead
+  if (checklistSection.hidden) return;
+  var wasDone = checklistChecked.filter(Boolean).length;
+  checklistChecked = Array.isArray(payload.group.checked) ? payload.group.checked.slice() : checklistChecked;
+  renderChecklistItems();
+  // Own-group finish moment: every item just got checked
+  var nowDone = checklistChecked.filter(Boolean).length;
+  if (J && nowDone === checklistItemTexts.length && checklistItemTexts.length > 0 && wasDone < nowDone) {
+    J.confetti({ count: 40 });
+  }
+});
+
+socket.on('checklist-results', function (payload) {
+  showSection(checklistSection);
+  clearTimer();
+  checklistTimerDisplay.hidden = true;
+  checklistItemsEl.hidden = true;
+  checklistGroupLabel.hidden = true;
+
+  var mineDone = checklistChecked.filter(Boolean).length;
+  checklistPlayerResults.innerHTML = '';
+  var myLine = document.createElement('p');
+  myLine.className = 'match-my-score';
+  myLine.textContent = checklistItemTexts.length > 0
+    ? (mineDone >= checklistItemTexts.length
+        ? 'All ' + checklistItemTexts.length + ' tasks done — nice work!'
+        : 'Your list: ' + mineDone + ' of ' + checklistItemTexts.length + ' done')
+    : 'Work time is over!';
+  checklistPlayerResults.appendChild(myLine);
+
+  var list = document.createElement('div');
+  list.className = 'match-answer-list';
+  for (var i = 0; i < (payload.results || []).length; i++) {
+    var r = payload.results[i];
+    var row = document.createElement('p');
+    row.textContent = r.team + ': ' + r.checked + '/' + r.total + (r.done ? ' ✓' : '');
+    list.appendChild(row);
+  }
+  checklistPlayerResults.appendChild(list);
+  checklistPlayerResults.hidden = false;
+});
+
 // --- Socket events - Merge (Connection Pack: think-pair-share) ---
 
 var mergeDraftDebounce = null;
@@ -2498,7 +2620,7 @@ const allPlayerSections = [
   voteSection, voteSubmittedSection, eliminationResultsSection,
   announceSection, winnerSection, leaderboardSection, revealOneSection,
   teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
-  buzzSection, estimateSection
+  buzzSection, estimateSection, matchSection, sortSection, checklistSection
 ];
 
 function showSection(el) {

@@ -543,6 +543,33 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Checklist: at least one real item; teamsFrom must point at a team-split.
+    if (phase.type === 'checklist') {
+      const items = (Array.isArray(phase.items) ? phase.items : [])
+        .map(it => String(it ?? '').trim()).filter(Boolean);
+      if (items.length === 0) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (checklist) needs at least one to-do item.`
+        );
+      } else if (items.length > 15) {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (checklist) has ${items.length} items — that's a long list for one work session. Consider 15 or fewer.`
+        );
+      }
+      if (phase.teamsFrom != null) {
+        const src = config.phases[phase.teamsFrom];
+        if (!src) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (checklist) takes groups from "${phase.teamsFrom}", which doesn't exist.`
+          );
+        } else if (src.type !== 'team-split') {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (checklist) takes groups from "${phase.teamsFrom}", which is a ${src.type} step — it must be a Split into Teams step.`
+          );
+        }
+      }
+    }
+
     // Team-split: sizing comes from teamCount OR groupSize — exactly one.
     if (phase.type === 'team-split') {
       const hasCount = phase.teamCount != null;

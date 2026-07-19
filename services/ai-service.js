@@ -101,6 +101,10 @@ const PHASE_EXTRA_GUIDANCE = {
     `SORT PHASE: students place each item into a named bucket — categorization (metaphor vs simile, fact vs opinion, past vs present tense). "buckets" is a literal array of 2-5 category names; "items" is a literal array of { "text": "...", "bucket": "<correct bucket>" } objects. Fill "bucket" on EVERY item for a scored round (pointsPerItem each, default 10) or on NONE for a consensus poll (class distribution only, no scores — good for opinions). 4-8 items is the sweet spot (10 max). Consume graded scores with a leaderboard: "from": ["<phaseId>.scores"]. Example:
     "figures": { "type": "sort", "prompt": "Is each line a metaphor or a simile?", "buckets": ["Metaphor", "Simile"], "items": [{"text": "Her smile was the sun", "bucket": "Metaphor"}, {"text": "Brave as a lion", "bucket": "Simile"}], "timer": 60, "next": "scoreboard" }`,
 
+  checklist:
+    `CHECKLIST PHASE: a shared to-do list for classwork (lab steps, station tasks, project milestones) — NOT a quiz. "items" is a literal array of task strings. Set "teamsFrom" to an earlier team-split phase id for one shared checklist per group (any member checks items off, everyone in the group sees it live, the projector shows per-group progress bars); omit it for one checklist per student. No scores — completion tracking only. Use when the user says "to-do list", "task list", "lab checklist", "stations", or "track group progress". Example:
+    "worktime": { "type": "checklist", "prompt": "Finish these with your lab group", "items": ["Set up the scale", "Weigh all five samples", "Record results in your notebook", "Clean your station"], "teamsFrom": "make-groups", "timer": 600, "next": "wrap-up" }`,
+
   match:
     `MATCH PHASE: students pair items from two lists (vocab ↔ definitions, quotes ↔ authors, dates ↔ events). "pairs" is a literal array of { "left": "...", "right": "..." } objects — write the CORRECT pairings; the game shuffles the right column for play. 3-6 pairs is the sweet spot (8 max — it's a phone screen). Every correct pair earns pointsPerMatch (default 10). Left and right texts must each be unique. Consume the scores with a leaderboard: "from": ["<phaseId>.scores"]. Example:
     "vocab": { "type": "match", "prompt": "Match each French word to its English meaning", "pairs": [{"left": "chat", "right": "cat"}, {"left": "chien", "right": "dog"}, {"left": "oiseau", "right": "bird"}], "timer": 60, "next": "scoreboard" }`,
@@ -400,6 +404,7 @@ Common data fields per phase:
 - foreach: .scores (cumulative), .itemCount
 - relay: .text (combined), .result (array)
 - team-split: .teams, .playerTeam
+- checklist: .resultsList (per-group progress text), .doneCount, .groupCount
 - ai-process: .result, .mine (only if perPlayer:true — usable inside collect/collect-choice prompts, announce messages, and reveal templates; renders the recipient's own item), .list (when result is a JSON array — renders as a numbered text list "1. item\n2. item\n..." — use this in templates instead of .result for arrays)
 
 BAR CHART: To show poll/survey results visually, use {{phaseId.barChart}} in a reveal template where phaseId is a collect-choice phase. It renders as an ASCII bar chart with counts and percentages. Aliases: .pieChart, .chart (all produce the same ASCII bars). Do NOT try to use .tallies (wrong plural) or reference individual tally keys like {{phase.tally.SomeChoice}} — the chart already shows each choice with its count. For a simple poll with visual results, do: collect-choice → reveal with template "{{poll.barChart}}".

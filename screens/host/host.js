@@ -1231,6 +1231,117 @@ sortContinueBtn.addEventListener('click', () => {
   socket.emit('advance-phase', { code: currentRoomCode });
 });
 
+// --- Socket events - Checklist (shared group to-do dashboard) ---
+
+const checklistSection = document.getElementById('checklist-section');
+const checklistPrompt = document.getElementById('checklist-prompt');
+const checklistTimer = document.getElementById('checklist-timer');
+const checklistSummary = document.getElementById('checklist-summary');
+const checklistProgress = document.getElementById('checklist-progress');
+const checklistCloseBtn = document.getElementById('checklist-close-btn');
+const checklistHostResults = document.getElementById('checklist-host-results');
+const checklistContinueBtn = document.getElementById('checklist-continue-btn');
+
+let checklistDoneKeys = new Set(); // groups already celebrated
+
+function renderChecklistDashboard(progress, solo) {
+  const doneCount = (progress || []).filter(p => p.complete).length;
+  checklistSummary.textContent = doneCount + ' of ' + (progress || []).length +
+    (solo ? ' students' : ' groups') + ' finished';
+
+  checklistProgress.innerHTML = '';
+  for (const p of (progress || [])) {
+    const card = document.createElement('div');
+    card.className = 'checklist-group' + (p.complete ? ' checklist-group-done' : '');
+    const label = document.createElement('p');
+    label.className = 'checklist-group-label';
+    label.textContent = (J ? J.avatarFor(p.label) + ' ' : '') + p.label +
+      (p.complete ? ' ✓' : '');
+    card.appendChild(label);
+    const bar = document.createElement('div');
+    bar.className = 'checklist-bar';
+    const fill = document.createElement('div');
+    fill.className = 'checklist-bar-fill';
+    fill.style.width = (p.total > 0 ? Math.round((p.done / p.total) * 100) : 0) + '%';
+    bar.appendChild(fill);
+    card.appendChild(bar);
+    const count = document.createElement('p');
+    count.className = 'checklist-group-count';
+    count.textContent = p.done + ' / ' + p.total;
+    card.appendChild(count);
+    checklistProgress.appendChild(card);
+
+    // Celebrate each group exactly once, the moment it finishes
+    if (p.complete && !checklistDoneKeys.has(p.key)) {
+      checklistDoneKeys.add(p.key);
+      if (J) { J.sound('tada'); J.confetti({ count: 30 }); }
+    }
+  }
+}
+
+socket.on('checklist-start', ({ prompt, progress, solo, timer, hostTemplate, show }) => {
+  showSection(checklistSection);
+  checklistPrompt.textContent = prompt || 'Work through today\'s tasks!';
+  checklistDoneKeys = new Set((progress || []).filter(p => p.complete).map(p => p.key));
+  checklistCloseBtn.hidden = false;
+  checklistCloseBtn.disabled = false;
+  checklistHostResults.hidden = true;
+  checklistHostResults.innerHTML = '';
+  checklistContinueBtn.hidden = true;
+  checklistProgress.hidden = false;
+  applyTemplate(checklistSection, hostTemplate);
+  applyShow(show, {
+    prompt: checklistPrompt,
+    summary: checklistSummary,
+    progress: checklistProgress,
+    timer: checklistTimer,
+    closeButton: checklistCloseBtn
+  });
+  renderChecklistDashboard(progress, solo);
+  if (timer) {
+    startTimer(timer, checklistTimer, () => {
+      checklistCloseBtn.click();
+    });
+  }
+});
+
+socket.on('checklist-update', (payload) => {
+  if (!payload || !payload.progress) return; // player-shaped payloads carry group state
+  if (checklistSection.hidden) return;
+  renderChecklistDashboard(payload.progress, checklistSummary.textContent.includes('students'));
+});
+
+socket.on('checklist-results', ({ results, doneCount, groupCount, solo }) => {
+  if (checklistSection.hidden) showSection(checklistSection);
+  clearTimer();
+  checklistTimer.hidden = true;
+  checklistCloseBtn.hidden = true;
+  checklistProgress.hidden = true;
+  checklistContinueBtn.hidden = false;
+  if (J) J.sound('reveal');
+
+  let html = '<p class="big-text">' + doneCount + ' of ' + groupCount +
+    (solo ? ' students' : ' groups') + ' finished everything</p>';
+  html += '<div class="sort-results-list">';
+  for (const r of (results || [])) {
+    html += '<div class="sort-result-row"><span class="sort-result-text">' +
+      escapeHtml(r.team) + '</span><span class="sort-result-counts">' +
+      r.checked + ' / ' + r.total + (r.done ? ' ✓' : '') + '</span></div>';
+  }
+  html += '</div>';
+  checklistHostResults.innerHTML = html;
+  checklistHostResults.hidden = false;
+});
+
+checklistCloseBtn.addEventListener('click', () => {
+  socket.emit('close-checklist', { code: currentRoomCode });
+  checklistCloseBtn.disabled = true;
+});
+
+checklistContinueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode });
+});
+
 // --- Socket events - One Voice (Connection Pack: cooperative counting) ---
 
 // Teacher-speaker audio (spec §4.5 v1): every successful tap is spoken
@@ -1975,7 +2086,7 @@ const allSections = [
   revealSection, voteSection, eliminationSection, winnerSection,
   announceSection, leaderboardSection, revealOneSection,
   teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
-  buzzSection, estimateSection,
+  buzzSection, estimateSection, matchSection, sortSection, checklistSection,
   phaseErrorSection, endSection
 ];
 

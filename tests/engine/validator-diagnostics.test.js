@@ -261,6 +261,7 @@ describe('validator diagnostics — game snapshot', () => {
       // structural: their leaderboards consume judge-task result objects.
       'feedback-academy': ['DATA_REF_TYPE_MISMATCH'],
       'feedback-coach-academy': ['DATA_REF_TYPE_MISMATCH'],
+      'group-work-day': [],
       'human-vs-ai-birthday-party-battle': [],
       'lightning-round': [],
       'llm-or-duck': [],

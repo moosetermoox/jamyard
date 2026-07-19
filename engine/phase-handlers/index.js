@@ -32,6 +32,7 @@ import './buzz.js';
 import './estimate.js';
 import './match.js';
 import './sort.js';
+import './checklist.js';
 
 // Wave 4: Orchestration and special handlers
 import './foreach.js';

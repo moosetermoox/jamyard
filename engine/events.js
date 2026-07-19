@@ -167,6 +167,13 @@ export const EVENTS = {
   CLOSE_SORTING:        'close-sorting',       // host -> server: score + reveal distributions
   SORT_RESULTS:         'sort-results',        // server -> all: per-item distribution (+accuracy when graded)
 
+  // --- Checklist Phase (shared group to-do list + progress dashboard) ---
+  CHECKLIST_START:      'checklist-start',      // server -> all: items, your group's state, dashboard
+  CHECK_ITEM:           'check-item',           // player/teacher -> server: toggle one item
+  CHECKLIST_UPDATE:     'checklist-update',     // server -> group: live checked state; host/teachers: progress
+  CLOSE_CHECKLIST:      'close-checklist',      // host -> server: end work time, store results
+  CHECKLIST_RESULTS:    'checklist-results',    // server -> all: final per-group progress
+
   // --- Relay Phase ---
   RELAY_TURN:           'relay-turn',
   RELAY_SUBMIT:         'relay-submit',

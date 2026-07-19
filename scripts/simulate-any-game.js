@@ -357,6 +357,44 @@ async function run() {
       continue;
     } catch (e) { /* no sort */ }
 
+    // Check for checklist (shared group to-do list)
+    try {
+      var clData = await waitForAnyPlayerEvent(players, 'checklist-start', 2000);
+      console.log(`\n--- Phase: CHECKLIST ---`);
+      check(Array.isArray(clData.items) && clData.items.length >= 1, `Has ${(clData.items || []).length} to-do items`);
+      log('SIM', `Prompt: "${(clData.prompt || '').substring(0, 60)}"`);
+      phaseLog.push({ type: 'checklist', prompt: clData.prompt });
+      drainEvent(players, 'checklist-start');
+      drainEvent([host], 'checklist-start');
+
+      // Every player checks every item (any member may — last write wins)
+      for (var cli = 0; cli < players.length; cli++) {
+        for (var clj = 0; clj < (clData.items || []).length; clj++) {
+          players[cli].emit('check-item', { code, index: clj, checked: true });
+        }
+      }
+      await wait(600);
+      var clUpdate = await waitForAnyPlayerEvent(players, 'checklist-update', 2000).catch(function () { return null; });
+      check(!!clUpdate, 'Live checklist updates reached the group');
+      drainEvent(players, 'checklist-update');
+      drainEvent([host], 'checklist-update');
+
+      host.emit('close-checklist', { code });
+      var clResults = await waitForAnyPlayerEvent(players, 'checklist-results', 3000).catch(function () { return null; });
+      check(!!clResults, 'Checklist results broadcast');
+      if (clResults) {
+        check(Array.isArray(clResults.results) && clResults.results.length >= 1, 'Per-group progress in results');
+      }
+      drainEvent(players, 'checklist-results');
+      drainEvent([host], 'checklist-results');
+      await wait(400);
+      host.emit('advance-phase', { code });
+      lastEventTime = Date.now();
+      handled = true;
+      await wait(500);
+      continue;
+    } catch (e) { /* no checklist */ }
+
     // Check for processing (ai-process)
     try {
       var procData = await waitForAnyPlayerEvent(players, 'processing-started', 2000);
@@ -374,7 +412,7 @@ async function run() {
         // Check if any game event arrived in any player buffer
         var nextEvents = ['game-started', 'announce', 'show-results', 'leaderboard', 'game-ended',
                           'vote-start', 'processing-started', 'preview', 'eliminated', 'winner',
-                          'waiting', 'team-split', 'rank-start', 'match-start', 'sort-start', 'wager-start', 'relay-turn'];
+                          'waiting', 'team-split', 'rank-start', 'match-start', 'sort-start', 'checklist-start', 'wager-start', 'relay-turn'];
         for (var p of players) {
           for (var ev of nextEvents) {
             if (p._buffer[ev] && p._buffer[ev].length > 0) { aiDone = true; break; }
@@ -733,7 +771,7 @@ async function run() {
         // Check if relay ended (next event appeared)
         var nextEvents = ['game-started', 'announce', 'show-results', 'leaderboard', 'game-ended',
                           'vote-start', 'processing-started', 'team-split', 'rank-start',
-                          'match-start', 'sort-start', 'wager-start', 'eliminated', 'winner'];
+                          'match-start', 'sort-start', 'checklist-start', 'wager-start', 'eliminated', 'winner'];
         for (var p of players) {
           for (var ev of nextEvents) {
             if (p._buffer[ev] && p._buffer[ev].length > 0) { relayDone = true; break; }
