@@ -93,6 +93,18 @@ function applyTemplate(section, templateText) {
   }
 }
 
+// Escape anything interpolated into an innerHTML string. Student text,
+// teacher config, and AI output are all untrusted for rendering — a relay
+// answer of "<img onerror=...>" must paint as text, never execute.
+function escapeHtml(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // Elements - Join
 const joinSection = document.getElementById('join-section');
 const roomCodeInput = document.getElementById('room-code-input');
@@ -1313,11 +1325,11 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
   var mine = (guesses || []).find(function (g) { return g.playerId === socket.id; });
   var html = '';
   if (answer != null) {
-    html += '<div class="estimate-answer">The answer: <strong>' + answer +
-            (unit ? ' ' + unit : '') + '</strong></div>';
+    html += '<div class="estimate-answer">The answer: <strong>' + escapeHtml(answer) +
+            (unit ? ' ' + escapeHtml(unit) : '') + '</strong></div>';
   }
   if (mine) {
-    html += '<p>You guessed <strong>' + mine.value + '</strong>' +
+    html += '<p>You guessed <strong>' + escapeHtml(mine.value) + '</strong>' +
             (mine.score > 0 ? ' — +' + mine.score + ' points! 🎯' : '') + '</p>';
     if (mine.score > 0 && J) J.confetti({ count: 40 });
   }
@@ -2057,8 +2069,8 @@ function renderRateScales() {
       if (scale.labels && (scale.labels.min || scale.labels.max)) {
         var endLabels = document.createElement('div');
         endLabels.className = 'rate-scale-endlabels';
-        endLabels.innerHTML = '<span>' + (scale.labels.min || scale.min) + '</span>' +
-                              '<span>' + (scale.labels.max || scale.max) + '</span>';
+        endLabels.innerHTML = '<span>' + escapeHtml(scale.labels.min || scale.min) + '</span>' +
+                              '<span>' + escapeHtml(scale.labels.max || scale.max) + '</span>';
         card.appendChild(endLabels);
       }
 
@@ -2118,9 +2130,9 @@ function renderAveragesChart(scales, averages) {
     var pct = Math.max(0, Math.min(100, ((avg - s.min) / range) * 100));
     var color = rateValueColor(avg, s.min, s.max);
     html += '<div class="rate-avg-row">' +
-              '<div class="rate-avg-label">' + s.label + '</div>' +
+              '<div class="rate-avg-label">' + escapeHtml(s.label) + '</div>' +
               '<div class="rate-avg-bar-track"><div class="rate-avg-bar-fill" style="width:' + pct + '%; background:' + color + ';"></div></div>' +
-              '<div class="rate-avg-value">' + avg.toFixed(2) + ' / ' + s.max + '</div>' +
+              '<div class="rate-avg-value">' + avg.toFixed(2) + ' / ' + escapeHtml(s.max) + '</div>' +
             '</div>';
   }
   html += '</div></div>';
@@ -2137,7 +2149,7 @@ function renderDistributionPies(scales, distributions) {
     var total = 0;
     for (var v = s.min; v <= s.max; v++) total += (dist[v] || 0);
     html += '<div class="rate-pie-card">' +
-              '<div class="rate-pie-title">' + s.label + '</div>' +
+              '<div class="rate-pie-title">' + escapeHtml(s.label) + '</div>' +
               renderPie(s, dist, total) +
               renderPieLegend(s, dist) +
             '</div>';
@@ -2306,7 +2318,7 @@ function renderRelayShared(sharedResult) {
   if (!sharedResult || !sharedResult.length) return;
   for (var i = 0; i < sharedResult.length; i++) {
     var p = document.createElement('p');
-    p.innerHTML = '<strong>' + sharedResult[i].name + ':</strong> ' + sharedResult[i].text;
+    p.innerHTML = '<strong>' + escapeHtml(sharedResult[i].name) + ':</strong> ' + escapeHtml(sharedResult[i].text);
     relaySharedDisplay.appendChild(p);
   }
 }

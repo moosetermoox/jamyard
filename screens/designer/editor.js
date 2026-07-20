@@ -3381,7 +3381,7 @@ function renderPhaseConfig(phaseId) {
           subDiv.style.cssText = 'border:2px solid #000; padding:8px; margin:6px 0; background:' + (subCat ? subCat.bg : '#eee');
           var header = document.createElement('div');
           header.style.cssText = 'display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;';
-          header.innerHTML = '<strong>Step ' + stepNum + ': ' + (subCat ? subCat.friendlyName : sub.type) + '</strong>';
+          header.innerHTML = '<strong>Step ' + stepNum + ': ' + escapeHtml(subCat ? subCat.friendlyName : sub.type) + '</strong>';
           var removeBtn = document.createElement('button');
           removeBtn.textContent = 'Remove';
           removeBtn.style.cssText = 'background:#FF2D2D; color:white; border:2px solid #000; padding:2px 8px; cursor:pointer; font-weight:bold;';
@@ -6092,11 +6092,11 @@ function buildPreviewHTML(phase, screen) {
   if (type === 'foreach') {
     var feSubNames = Object.keys(phase.subPhases || {});
     html += '<div style="padding:8px; background:#F3E5F5; border:2px solid #6A1B9A; margin:4px 0;">';
-    html += '<strong>For each item:</strong> ' + (phase.data || '?') + '<br>';
+    html += '<strong>For each item:</strong> ' + escapeHtml(phase.data || '?') + '<br>';
     for (var fi = 0; fi < feSubNames.length; fi++) {
       var fSub = phase.subPhases[feSubNames[fi]];
       var fSubCat = PHASE_CATALOG[fSub.type];
-      html += (fi + 1) + '. ' + (fSubCat ? fSubCat.icon + ' ' : '') + feSubNames[fi] + ' (' + (fSubCat ? fSubCat.friendlyName : fSub.type) + ')<br>';
+      html += (fi + 1) + '. ' + (fSubCat ? fSubCat.icon + ' ' : '') + escapeHtml(feSubNames[fi]) + ' (' + escapeHtml(fSubCat ? fSubCat.friendlyName : fSub.type) + ')<br>';
     }
     if (phase.aiInject) html += '<em>+ ' + (phase.aiInject.count || 1) + ' AI fakes mixed in</em><br>';
     if (phase.scoring) html += '<em>Scoring enabled</em>';
@@ -6233,7 +6233,7 @@ async function submitAskAi() {
     if (errors.length > 0) {
       errBox.hidden = false;
       errBox.innerHTML = '<strong>The AI\'s revision has problems:</strong><ul>' +
-        errors.map(function (e) { return '<li>' + humanizeReviewText(e) + '</li>'; }).join('') +
+        errors.map(function (e) { return '<li>' + escapeHtml(humanizeReviewText(e)) + '</li>'; }).join('') +
         '</ul>';
     } else {
       errBox.hidden = true;

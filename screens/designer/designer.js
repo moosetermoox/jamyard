@@ -98,6 +98,14 @@ async function fetchGames() {
   }
 }
 
+// AI output rendered into HTML must be escaped — a model emitting stray
+// markup must paint as text in the teacher's browser, never execute.
+function escapeHtmlText(str) {
+  var div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
 function renderGames(games) {
   gamesGrid.innerHTML = '';
 
@@ -602,10 +610,11 @@ async function createFromAI(description, answers, overlay) {
       statusDiv.style.background = '#FFF3E0';
       statusDiv.style.border = '2px solid #FF9800';
       statusDiv.style.padding = '12px';
+      // data.reason / data.suggestion are AI output — render as text, never markup
       statusDiv.innerHTML = '<strong>This idea is beyond what the framework can do:</strong><br>' +
-        data.reason + '<br><br>' +
+        escapeHtmlText(data.reason) + '<br><br>' +
         '<strong>But here\'s an idea that would work:</strong><br>' +
-        data.suggestion;
+        escapeHtmlText(data.suggestion);
       nextBtn.disabled = false;
       nextBtn.textContent = 'Try Again';
       return;

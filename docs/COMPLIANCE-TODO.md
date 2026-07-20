@@ -49,6 +49,18 @@ Code items (from the 2026-07-19 independent review — small, do first):
       design. Verified: console-sim intruder invariants (can't start,
       can't close/advance) + full chaos suite + preview/reveal-one
       playthrough.
+- [x] **P0: XSS output encoding** (found by the 2026-07-19 document review,
+      code-confirmed) — DONE 2026-07-19: student text reached `innerHTML`
+      unescaped on the host preview/reveal responses lists, relay shared
+      result (host + player), and turn scoreboard; teacher/AI config
+      reached it via rate-scale labels and editor previews; AI output via
+      the designer's "beyond the framework" panel. All sinks now escape
+      (host escaper upgraded to cover quotes; player/designer gained
+      escapers); `applyTemplate`/reveal/announce were already
+      `textContent`. Enforced forever by
+      `tests/screens/xss-sinks.test.js` — a statement-level scanner that
+      fails the suite on any new unescaped HTML interpolation across all
+      seven screen files (audited-numeric allowlist only).
 - [x] **P0: Stop logging student content** — DONE 2026-07-19:
       `engine/content-log.js` (`contentLog` no-ops unless
       `DEBUG_CONTENT=1`); AI instructions/inputs/outputs and vote-winner

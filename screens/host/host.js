@@ -704,7 +704,9 @@ function escapeHtml(str) {
   return String(str == null ? '' : str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 const processMessage = document.getElementById('process-message');
@@ -756,7 +758,7 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
         Draw.renderStrokes(thumb, drawing);
         li.appendChild(thumb);
       } else {
-        li.innerHTML = '<strong>' + name + ':</strong> ' + response;
+        li.innerHTML = '<strong>' + escapeHtml(name) + ':</strong> ' + escapeHtml(response);
       }
       previewResponsesList.appendChild(li);
     }
@@ -1556,8 +1558,8 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
 
   let html = '';
   if (answer != null) {
-    html += '<div class="estimate-answer">The answer: <strong>' + answer +
-            (unit ? ' ' + unit : '') + '</strong></div>';
+    html += '<div class="estimate-answer">The answer: <strong>' + escapeHtml(answer) +
+            (unit ? ' ' + escapeHtml(unit) : '') + '</strong></div>';
   }
   if (stats && stats.count > 0) {
     html += '<p class="estimate-stats">' + stats.count + ' guesses · average ' +
@@ -1569,7 +1571,7 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
     const g = guesses[i];
     const avatar = J ? J.avatarFor(g.name) + ' ' : '';
     html += '<p class="' + (g.score > 0 ? 'estimate-winner' : '') + '">' +
-            avatar + escapeHtml(g.name) + ' — ' + g.value +
+            avatar + escapeHtml(g.name) + ' — ' + escapeHtml(g.value) +
             (g.score > 0 ? ' (+' + g.score + ')' : '') + '</p>';
   }
   html += '</div>';
@@ -1686,9 +1688,9 @@ function hostAveragesChart(scales, averages) {
     const pct = Math.max(0, Math.min(100, ((avg - s.min) / range) * 100));
     const color = hostValueColor(avg, s.min, s.max);
     html += `<div class="rate-avg-row">
-               <div class="rate-avg-label">${s.label}</div>
+               <div class="rate-avg-label">${escapeHtml(s.label)}</div>
                <div class="rate-avg-bar-track"><div class="rate-avg-bar-fill" style="width:${pct}%; background:${color};"></div></div>
-               <div class="rate-avg-value">${avg.toFixed(2)} / ${s.max}</div>
+               <div class="rate-avg-value">${avg.toFixed(2)} / ${escapeHtml(s.max)}</div>
              </div>`;
   }
   html += '</div></div>';
@@ -1702,7 +1704,7 @@ function hostDistributionPies(scales, distributions) {
     let total = 0;
     for (let v = s.min; v <= s.max; v++) total += (dist[v] || 0);
     html += `<div class="rate-pie-card">
-               <div class="rate-pie-title">${s.label}</div>
+               <div class="rate-pie-title">${escapeHtml(s.label)}</div>
                ${hostRenderPie(s, dist, total)}
                ${hostRenderPieLegend(s, dist)}
              </div>`;
@@ -1810,7 +1812,7 @@ socket.on('relay-update', ({ activePlayerName, sharedResult, progress, timer, ho
   relaySharedResult.innerHTML = '';
   for (const entry of (sharedResult || [])) {
     const p = document.createElement('p');
-    p.innerHTML = '<strong>' + entry.name + ':</strong> ' + entry.text;
+    p.innerHTML = '<strong>' + escapeHtml(entry.name) + ':</strong> ' + escapeHtml(entry.text);
     relaySharedResult.appendChild(p);
   }
 
@@ -1827,8 +1829,8 @@ function renderTurnScoreboard(teamScores) {
   for (const [t, s] of Object.entries(teamScores)) {
     const div = document.createElement('div');
     div.className = 'turn-score-row';
-    div.innerHTML = '<span class="turn-score-team">' + t + '</span>' +
-                    '<span class="turn-score-value">' + s + '</span>';
+    div.innerHTML = '<span class="turn-score-team">' + escapeHtml(t) + '</span>' +
+                    '<span class="turn-score-value">' + escapeHtml(s) + '</span>';
     turnScoreboard.appendChild(div);
   }
 }
@@ -2076,7 +2078,7 @@ function renderResponses(responses) {
   responsesList.innerHTML = '';
   for (const { name, response } of responses) {
     const li = document.createElement('li');
-    li.innerHTML = '<strong>' + name + ':</strong> ' + response;
+    li.innerHTML = '<strong>' + escapeHtml(name) + ':</strong> ' + escapeHtml(response);
     responsesList.appendChild(li);
   }
 }
