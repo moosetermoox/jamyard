@@ -12,7 +12,7 @@ registerHandler('winner', {
     const result = engine.runPhase(phase.id);
     const sc = ctx.resolveScreenControl();
 
-    console.log(`[handlePhase] Winner: ${result.winnerName} (${result.winnerScore} votes)`);
+    console.log(`[handlePhase] Winner declared: ${result.winnerId} (${result.winnerScore} votes)`);
 
     const winnerPause = phase.pause || 5;
     ctx.emitToRoom(EVENTS.WINNER_ANNOUNCED, {

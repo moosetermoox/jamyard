@@ -18,7 +18,7 @@ registerHandler('eliminate', {
       return player ? player.name : id;
     });
 
-    console.log(`[handlePhase] Eliminated: ${eliminatedNames.join(', ')} (${result.remaining} remaining)`);
+    console.log(`[handlePhase] Eliminated ${eliminatedNames.length} player(s) (${result.remaining} remaining)`);
 
     const pauseSeconds = phase.pause || 3;
     ctx.emitToRoom(EVENTS.ELIMINATION_RESULTS, {

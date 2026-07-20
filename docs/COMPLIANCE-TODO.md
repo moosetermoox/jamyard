@@ -41,18 +41,20 @@ findings folded into the sections below.
 
 Code items (from the 2026-07-19 independent review — small, do first):
 
-- [ ] **P0: Teacher-gate the flow-control socket events** — `start-game`,
-      `close-submissions`, `close-voting`, `advance-phase`,
-      `relay-finish-all` currently accept emits from ANY socket
-      (`isTeacherSocket` gates moderation/preview but these were never
-      enrolled); a student with devtools can skip phases or close
-      submissions mid-typing. Add the guard + an intruder-can't-advance
-      sim invariant. (~1-2h)
-- [ ] **P0: Stop logging student content** — server logs echo student
-      names and full submission text (worst: ai-eliminate logs every
-      answer per round) onto Render's log store, outliving the 6h
-      snapshot TTL. Delete or DEBUG-gate content-bearing lines; log
-      counts/ids instead. (~half day)
+- [x] **P0: Teacher-gate the flow-control socket events** — DONE
+      2026-07-19: audit found 14 ungated flow events (the review's 5 plus
+      retry/skip-phase, reveal-next, close-ranking/matching/rating/wager,
+      wager-resolve, end-game); all now check `isTeacherSocket`. Player
+      gameplay events (submits, taps, turn describer actions) stay open by
+      design. Verified: console-sim intruder invariants (can't start,
+      can't close/advance) + full chaos suite + preview/reveal-one
+      playthrough.
+- [x] **P0: Stop logging student content** — DONE 2026-07-19:
+      `engine/content-log.js` (`contentLog` no-ops unless
+      `DEBUG_CONTENT=1`); AI instructions/inputs/outputs and vote-winner
+      text now debug-gated; join/submit/disconnect/eliminate/winner logs
+      switched from names to socket ids and counts. Production stdout
+      carries no student names or content.
 - [ ] **PII-scrub student free text** (moved up from § 2 on the
       reviewer's recommendation — free text flows to the API, snapshots,
       AND logs from day one): scrub emails/phones/full names in the

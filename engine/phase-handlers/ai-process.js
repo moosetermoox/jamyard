@@ -8,6 +8,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { fillPlayerNames } from '../ai-name-fill.js';
+import { contentLog } from '../content-log.js';
 
 registerHandler('ai-process', {
   async onEnter(ctx) {
@@ -50,9 +51,13 @@ registerHandler('ai-process', {
       const stricter = attempts > 1
         ? `${instruction}\n\nYour previous response wasn't valid JSON. Reply with ONLY a JSON array like ["item1","item2","item3"] — nothing else, no numbering, no preamble.`
         : instruction;
-      console.log(`[handlePhase] AI instruction (attempt ${attempts}/${maxAttempts}): ${stricter}`);
+      // Instructions can embed resolved student content via {{tokens}}, and
+      // the result is derived from it — both stay out of production logs.
+      console.log(`[handlePhase] AI ${phase.task || 'process'} attempt ${attempts}/${maxAttempts} (${responses.length} response(s) in)`);
+      contentLog(`[handlePhase] AI instruction: ${stricter}`);
       const aiResult = await ctx.aiService.process({ instruction: stricter, responses });
-      console.log(`[handlePhase] AI returned: ${aiResult.text}`);
+      console.log(`[handlePhase] AI returned ${String(aiResult.text || '').length} chars`);
+      contentLog(`[handlePhase] AI returned: ${aiResult.text}`);
 
       if (expectJson) {
         try {

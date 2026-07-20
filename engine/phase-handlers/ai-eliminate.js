@@ -5,6 +5,7 @@
  * applies the eliminations to the PlayerRegistry.
  */
 import { registerHandler } from './phase-registry.js';
+import { contentLog } from '../content-log.js';
 import { EVENTS } from '../events.js';
 
 registerHandler('ai-eliminate', {
@@ -33,14 +34,16 @@ ${playerList}
 
 Apply the rules and return JSON indicating who to eliminate and who to keep.`;
 
-      console.log(`[handlePhase] AI eliminate instruction: ${phase.instruction}`);
-      console.log(`[handlePhase] AI eliminate input (${responses.length} responses): ${playerList}`);
+      // Student content stays out of production logs (see engine/content-log.js)
+      console.log(`[handlePhase] AI eliminate judging ${responses.length} response(s)`);
+      contentLog(`[handlePhase] AI eliminate instruction: ${phase.instruction}`);
+      contentLog(`[handlePhase] AI eliminate input: ${playerList}`);
       const aiResult = await ctx.aiService.process({
         instruction: userPrompt,
         responses: [],
         systemPrompt
       });
-      console.log(`[handlePhase] AI eliminate returned: ${aiResult.text}`);
+      contentLog(`[handlePhase] AI eliminate returned: ${aiResult.text}`);
 
       // Parse AI response
       let parsed;
@@ -92,7 +95,7 @@ Apply the rules and return JSON indicating who to eliminate and who to keep.`;
         survivors
       });
 
-      console.log(`[handlePhase] AI eliminated: ${eliminatedNames.join(', ')} (${remaining} remaining)`);
+      console.log(`[handlePhase] AI eliminated ${eliminatedNames.length} player(s) (${remaining} remaining)`);
 
       const aiElimPause = phase.pause || 3;
       ctx.emitToRoom(EVENTS.ELIMINATION_RESULTS, {
