@@ -17,6 +17,26 @@ history in [CHANGELOG.md](CHANGELOG.md).
 - [x] **Architectural rules recorded in CLAUDE.md** — no student name in any
       outbound API payload; saved objects never contain student-generated content
 
+## For reviewers: where the shipped controls live
+
+| Control | Implementation | Verified by |
+|---|---|---|
+| Snapshot purge on activity end | `server.js` `handlePhase()` end-phase branch → `discardRoomSnapshot` | `simulate-restart.js` + code path |
+| Snapshot TTL (6h) + on-touch expiry | `sweepRoomSnapshots` hourly; TTL check in `tryRestoreRoom` | unit tests |
+| Names never sent to AI | `AIService._buildUserMessage` (playerIds only); ai-eliminate playerList | unit test fails on any name in outbound message; real-API playthrough |
+| Name re-fill after AI (templates keep working) | `engine/ai-name-fill.js`, wired in `ai-process` post-parse | 5 unit tests |
+| PIN brute-force lockout | `engine/pin-throttle.js` (pure, injected clock) + `join-teacher` wiring | 7 unit tests + console-sim invariant |
+| Teacher-save purity | structural: "Save as Recipe" reads config only; student content lives in room state + snapshots only | code audit 2026-07-19 |
+| Projector-is-public routing | teacher console (`/teacher`, PIN-gated) holds names/moderation/previews | `simulate-teacher-console.js` |
+
+Open review questions for a second engineer (also in ARCHITECTURE.md §17):
+1. Is a socket id an acceptable pseudonym in API prompts, or should
+   prompts use per-call synthetic indexes with a server-side map?
+2. Server logs currently `console.log` AI inputs (student text) — with
+   Render log retention, is that an untracked student-data store?
+3. Is lockout-as-DoS (a student deliberately locking the console)
+   acceptable given the host screen retains control without a PIN?
+
 ## 1. Before any real classroom use (August gate)
 
 All documents — draftable by Claude, published by the teacher.

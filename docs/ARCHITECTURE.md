@@ -1,24 +1,30 @@
 # Lanyard — Architecture Overview
 
-> A framework for teachers to assemble custom whole-class games by
-> wiring together pre-built phase blocks. The design goal is **as few
-> errors as possible** between "teacher clicks save" and "30 students
-> are playing." Vanilla JS, no build step, ~25K lines.
+> A framework for teachers to assemble custom whole-class **activities** —
+> games, polls, critiques, shared checklists — by wiring together
+> pre-built phase blocks. The design goal is **as few errors as
+> possible** between "teacher clicks save" and "30 students are
+> playing." Vanilla JS, no build step, ~28K lines.
 >
-> _Last refreshed 2026-06-10 (room snapshots, chaos hardening,
-> 25 phase types, 720 tests). Earlier sections rewritten to match._
+> _Last refreshed 2026-07-19 (28 phase types, teams upgrade, drawing
+> input, COPPA/FERPA hardening, 810 tests). Earlier sections rewritten
+> to match. Compliance posture: see §9.5 and
+> [COMPLIANCE-TODO.md](COMPLIANCE-TODO.md)._
 
 ---
 
 ## 1. Goal & Scope
 
-A teacher should be able to build a working classroom game in minutes
-without writing code. The framework supplies **25 reusable phase
-types** (collect text, multiple choice, vote, AI-process, reveal,
-elimination, leaderboard, relay, turn, merge, cooperative counting,
-buzzer, estimate, etc.). Teachers wire them into a sequence using a
-visual editor or pick a **recipe** (a parameterized template that emits
-a phase graph); the engine plays the result.
+A teacher should be able to build a working classroom activity in
+minutes without writing code. The framework supplies **28 reusable
+phase types** (collect text or drawings, multiple choice, vote,
+AI-process, reveal, elimination, leaderboard, relay, turn, merge,
+cooperative counting, buzzer, estimate, match, sort, group checklist,
+etc.). Teachers wire them into a sequence using a visual editor or pick
+a **recipe** (a parameterized template that emits a phase graph); the
+engine plays the result. User-facing copy says "activity" — the scope
+outgrew games (checklists and critiques aren't games) — while all
+internals deliberately keep `game` naming.
 
 Not every game has a winner. A **connection family** of phase types and
 games (Closer / Snowball / One Voice) is built for belonging and
@@ -97,25 +103,28 @@ unchanged. AI endpoints are additionally gated by a spend budget (§14).
 Line counts are approximate (they drift; treat as orders of magnitude).
 
 ```
-server.js                  2,905 lines  HTTP + socket.io + REST + snapshots
+server.js                  ~3,300 lines HTTP + socket.io + REST + snapshots
 db.js                         97        Neon Postgres CRUD (games, ai_usage, room_snapshots)
 engine/
   game-engine.js             314       Phase state, data store, template resolver
-  game-loader.js           1,190       Config validation (errors + warnings)
+  game-loader.js           ~1,300      Config validation (errors + warnings)
   state-machine.js            39       Strict transitions (throws on invalid)
   player-registry.js         102       Player add/remove/eliminate, reconnect
   room-manager.js             59       Rooms keyed by 4-letter code (+ adopt for restore)
   room-snapshot.js           114       serializeRoom / restoreRoom (restart survival)
   id-migration.js             66       Deep-rewrite a player's old socket id on reconnect
-  events.js                  148       Socket event name constants
-  event-schemas.js           186       Payload type checks for socket events
+  ai-name-fill.js             45       Re-fill real names into AI JSON (data minimization, §9.5)
+  pin-throttle.js             75       Teacher-PIN brute-force lockout (pure, injected clock)
+  drawing.js                           Stroke validation for drawing submissions (caps, clamping)
+  events.js                  160       Socket event name constants
+  event-schemas.js           200       Payload type checks for socket events
   hooks-loader.js             32       Dynamic import of per-game JS hooks
-  phase-schemas.js         1,417       Declarative schema for all 25 phase types
+  phase-schemas.js         ~1,600      Declarative schema for all 28 phase types
   resolver-grammar.js        348       Single source of truth for {{...}} syntax
   diagnostics.js                       Diagnostic shape + codes
   normalizer.js                        Config normalization pipeline
   content-filter.js                    Blocklist word-boundary match + mash detect
-  moderation.js                        Pure helpers: responseToText, hide, kick
+  moderation.js                        Pure helpers: responseToText, hide, kick (+ drawing thumbnails)
   teacher-auth.js                      PIN / basic-auth check for the /teacher console
   video.js                             YouTube URL → embed URL parser
   speed-scoring.js                     Kahoot-style time-decay point formula
@@ -123,14 +132,14 @@ engine/
   recipe-compiler.js         474       ${param} + $if/$repeat/$map → phase graph
   recipe-loader.js           220       Scans recipes/ + recipes/user/ at startup
   recipe-extractor.js                  "Save as Recipe" field extraction
-  phase-handlers/  (27 files)          One file per phase type — self-register
+  phase-handlers/  (30 files)          One file per phase type — self-register
     phase-registry.js         ~19      Map<type, handler> populated on import
     phase-context.js          ~80      Builds the ctx passed to every handler
-    index.js                  ~40      Imports each handler so they register
+    index.js                  ~45      Imports each handler so they register
     end / announce / reveal / preview / eliminate / winner / leaderboard /
     team-split / ai-process / collect / collect-choice / vote / reveal-one /
-    rank / wager / relay / foreach / ai-eliminate / rate / turn /
-    merge / one-voice / buzz / estimate     (~70–300 lines each)
+    rank / wager / relay / foreach / ai-eliminate / rate / turn / merge /
+    one-voice / buzz / estimate / match / sort / checklist  (~70–300 lines each)
   phases/                              Pure-logic helpers (no I/O)
     eliminate-handler.js
     vote-handler.js                    Matchup gen, tally, resolveBranchTarget (CYOA)
@@ -138,27 +147,32 @@ engine/
     pairing.js                         Greedy non-repeat pair matching (Connection Pack)
     pair-reveal.js                     {{_pair.*}} per-recipient reveal helpers
     estimate-scoring.js                Closeness scoring (closest / graduated)
+    match-scoring.js                   Position-aligned pair matching + class accuracy
+    sort-scoring.js                    Graded vs consensus bucket scoring + distributions
+    team-grouping.js                   groupSize→count (no singletons), capacities, auto-fill
+    checklist-state.js                 Group to-do rules: membership, attribution, progress
 services/
-  ai-service.js             1,313      Claude API wrapper + review/fix prompts
+  ai-service.js             ~1,400     Claude API wrapper + review/fix prompts
   ai-budget.js                133      Per-minute throttle + daily cap (cost guard)
-  simulator.js                640      Headless robot playtest (+ chaos mode)
+  simulator.js                ~750     Headless robot playtest (+ chaos mode)
 screens/
-  host/host.js              1,450
-  player/player.js          1,781
-  designer/editor.js        5,699      The drag-and-drop ("Advanced") editor
+  host/host.js              ~1,700
+  player/player.js          ~2,100
+  designer/editor.js        ~6,200     The drag-and-drop ("Advanced") editor
   designer/simple-view.js              Plain-English sentence-per-step editor (default)
   shared/juice.js             224      Synthesized SFX + confetti + emoji avatars
   shared/bot-brain.js                  Prompt-aware Bot Fill answers (prototype)
+  shared/drawing.js                    Drawing pad + stroke renderer (browser global)
   shared/themes.js                     Theme presets + applyGameTheme (CSS vars)
   teacher/                             Private second-device console
   prototype/prototype.js               Iframe playtester
-recipes/   (12 built-in, + user/ for saved ones, + prompt-banks/ data)
-games/     (32 shipped; _-prefixed are hidden test fixtures)
+recipes/   (13 built-in, + user/ for saved ones, + prompt-banks/ data)
+games/     (35+ shipped; _-prefixed are hidden test fixtures — `ls games/` for truth)
   {game-id}/config.json              Phase definitions
   {game-id}/hooks.js  (optional)     Custom JS for elimination/scoring rules
   {game-id}/assets/   (optional)     Uploaded phase images
 tests/
-  720 Vitest unit tests (47 files)   Engine, validator, hooks, recipes; ~1.5s
+  810 Vitest unit tests (55 files)   Engine, validator, hooks, recipes; ~2s
 scripts/                             Sim harness + automated playthroughs (§16)
 .github/workflows/test.yml           CI: run the suite on push/PR (+ deploy-on-green)
 ```
@@ -301,8 +315,8 @@ change.
 ### Per-phase room state
 
 Phases that need to track in-progress submissions (vote, rank, wager,
-relay, foreach, turn, merge, one-voice, buzz, estimate) put their state
-on `room.phaseState`. `handlePhase()` calls `room.phaseState.cleanup?.()`
+relay, foreach, turn, merge, one-voice, buzz, estimate, match, sort,
+checklist, interactive team-split) put their state on `room.phaseState`. `handlePhase()` calls `room.phaseState.cleanup?.()`
 and resets the bag on every transition, so timers can't leak across
 phases.
 
@@ -324,24 +338,24 @@ real/simulated crashes):
 
 ---
 
-## 6. Phase Types (25 total)
+## 6. Phase Types (28 total)
 
 | # | Type | What it does |
 |---|---|---|
 | 1 | `lobby` | Wait for players to join |
-| 2 | `collect` | Gather free-text responses; `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pairs), `passAllowed` + `simultaneousReveal` (Connection Pack) |
+| 2 | `collect` | Gather free-text responses; `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pairs), `passAllowed` + `simultaneousReveal` (Connection Pack), `inputType:"drawing"` (stroke pad — combines with rotation for continue-the-drawing / caption modes) |
 | 3 | `collect-choice` | Multiple choice; `correctAnswer` + `speedBonus` enable Kahoot-style scoring; `choicePool` for bluffing |
 | 4 | `ai-process` | Send data to Claude; `perPlayer:true` generates one item per student |
 | 5 | `vote` | Head-to-head or pick-one; `matchupsFromPairs`/`excludeAuthors` (bluffing); literal option lists + `nextByWinner` (branching / CYOA) |
 | 6 | `eliminate` | Remove bottom-% of players by score |
 | 7 | `reveal` | Display content to all; `scope:"pair"` shows each pair only its own answers (`{{_pair.*}}`) |
-| 8 | `preview` | Teacher-only review; can approve or reject |
+| 8 | `preview` | Teacher-only review; can approve or reject (also the safety gate before any drawing reaches the projector) |
 | 9 | `winner` | Declare winner and show standings |
 | 10 | `announce` | Show a message to everyone; `video:` plays a YouTube clip on the host screen |
 | 11 | `ai-eliminate` | Claude judges answers, eliminates rule-breakers |
 | 12 | `leaderboard` | Scores + rankings; `from` accepts a list of refs to sum across rounds |
-| 13 | `reveal-one` | Host reveals items one-by-one; `itemTemplate` renders object items via `{{_current.field}}` |
-| 14 | `team-split` | Divide players into teams |
+| 13 | `reveal-one` | Host reveals items one-by-one; `itemTemplate` renders object items; drawings replay as animated strokes |
+| 14 | `team-split` | Divide players into teams; sizing via `teamCount` OR `groupSize` (computed count, no singletons); `method: random\|balanced\|teacher\|choice` (teacher arranges on host screen / students claim spots); `capacity:"open"` removes choice-mode caps for pre-existing classroom teams |
 | 15 | `rank` | Players reorder a list; aggregated by average position |
 | 16 | `wager` | Players bet points; auto or host-resolved |
 | 17 | `relay` | Turn-by-turn collaborative input (storytelling, word chains) |
@@ -352,7 +366,10 @@ real/simulated crashes):
 | 22 | `one-voice` | Cooperative counting to a target; server-authoritative collision window; teacher-speaker audio; no winners |
 | 23 | `buzz` | First-tap-wins buzzer rounds; teacher judges Right/Wrong on the host; one phase runs many questions; outputs `scores` |
 | 24 | `estimate` | Numeric guessing; `closest`/`graduated` (rank-based, scale-free) scoring; reveal shows answer + distribution; no-answer = poll-the-room |
-| 25 | `end` | Game over, clean up |
+| 25 | `match` | Pair two lists (vocab ↔ definitions); left column fixed, right drag-to-swap; close = discussion moment with per-pair class accuracy; outputs `scores` |
+| 26 | `sort` | Place items into named buckets; tap-to-assign (phone-friendly); all-or-none correct buckets = graded vs consensus poll; outputs `scores`/distributions |
+| 27 | `checklist` | Shared group to-do list (lab days, stations); any member checks items with attribution (group + console see names, never the projector); live per-group progress dashboard; no scores |
+| 28 | `end` | Activity over, clean up |
 
 ### The connection family (no-winner games)
 
@@ -520,6 +537,58 @@ Privileged socket actions check `isTeacherSocket` (host OR a joined
 console). Auth logic is pure + tested in `engine/teacher-auth.js`.
 **Design rule going forward: never put teacher-private info on the host
 screen — it's a projector.**
+
+**4. Drawing safety** — the blocklist can't read a picture, so drawing
+submissions lean on structure instead: server-side stroke validation
+(`engine/drawing.js` — coordinate clamping, hard caps), attribution
+(every drawing is named, never anonymous), live thumbnails on the
+teacher console (hide/kick), and the `preview` phase before any
+class-wide reveal. **Rule: nothing student-drawn reaches the projector
+without a teacher gate.** AI steps can't read drawings (validator warns).
+
+---
+
+## 9.5 Student-Data Posture (COPPA / FERPA / § 49073.1)
+
+Hardened 2026-07-19 against a California student-data review; the
+working checklist (remaining documents, verifications, watch list) is
+[COMPLIANCE-TODO.md](COMPLIANCE-TODO.md). What the code enforces today:
+
+**Data minimization by construction.** Students join with a first name
+only — no accounts, no emails, no ages. Player identity at runtime is
+an ephemeral socket id plus a per-room reconnect token.
+
+**Names never reach the AI.** Every outbound Claude prompt carries
+pseudonymous playerIds + answer text only (`AIService._buildUserMessage`,
+ai-eliminate's playerList). Because shipped games render
+`{{_current.playerName}}` from AI JSON, `engine/ai-name-fill.js`
+re-fills the *real* names server-side into any returned object with a
+recognized playerId — the model never sees a name, and a model-garbled
+echo can never beat the registry spelling. A unit test makes a name in
+an outbound message a hard failure. **Rule: no student name in any
+outbound API payload.**
+
+**Data lifetime.** Student content (responses, drawings, scores) lives
+in room memory and in `room_snapshots` — nowhere else. Snapshots exist
+solely to survive a restart mid-class: they're deleted the moment an
+activity reaches its end phase, on-touch when expired, and TTL-swept at
+6 hours. **Rule: saved objects (game configs, recipes, exports) never
+contain student-generated content** — "Save as Recipe" derives from
+teacher-authored config only. A future "save the class's story" feature
+would need full student-data treatment (disclosed retention, deletion,
+de-identification); the default answer is to never take possession.
+
+**Console access is brute-force-resistant.** The 4-digit teacher PIN
+guards the only surface showing student names off-projector;
+`engine/pin-throttle.js` locks a room's console joins after 5 wrong
+PINs (room-keyed — a fresh socket doesn't reset it; even the correct
+PIN bounces during lockout).
+
+**Known gaps** (tracked in COMPLIANCE-TODO.md): PII-scrubbing of
+student free text (the filter catches profanity, not a kid typing their
+phone number), the published privacy/retention documents, and the
+infrastructure verifications only the operator can do (Neon PITR
+window, Render log rotation, Anthropic DPA recording).
 
 ---
 
@@ -756,7 +825,8 @@ Two distinct uses, both via Claude API:
 **(a) Game-time AI** — phases of type `ai-process` and `ai-eliminate`
 call the Anthropic SDK during gameplay. Results become phase data,
 referenced in later phases. Mock mode (no API key) returns plausible
-fixtures for tests.
+fixtures for tests. Prompts are minimized (§9.5): pseudonymous
+playerIds only, never student names.
 
 **(b) Editor-time AI** — REST endpoints help the teacher build:
 
@@ -837,10 +907,12 @@ rather than absolute error, so the same modes work for "guess 7" and
 ## 16. Testing & Verification
 
 ```bash
-npm test                                   # 720 Vitest unit tests (47 files), ~1.5s
+npm test                                   # 810 Vitest unit tests (55 files), ~2s
 node scripts/simulate-any-game.js <id>     # universal automated playthrough (server up)
 node scripts/simulate-chaos.js             # school-wifi chaos suite (drop/reconnect/spray)
 node scripts/simulate-restart.js           # restart-survival proof (needs DATABASE_URL)
+node scripts/simulate-teacher-console.js   # console invariants incl. PIN brute-force lockout
+node scripts/simulate-team-modes.js        # teacher/choice/open-capacity team splits
 node scripts/demo-room.js <id>             # live room + bots, prints CODE/PIN (phone testing)
 node scripts/screenshot.js <url> out.png   # headless screenshots of socket pages (CDP)
 ```
@@ -881,11 +953,13 @@ Gaps:
 
 ## 17. What I'd Want Feedback On
 
-1. **Server.js as orchestrator.** It's now ~2,900 lines — socket-event
-   handlers (~40) plus helpers (relay/foreach orchestration, snapshot
-   persistence, template resolvers). Are the remaining socket handlers a
-   candidate for the same registry treatment as phase handlers, or is
-   the indirection cost worse than the benefit?
+Engineering:
+
+1. **Server.js as orchestrator.** It's now ~3,300 lines — socket-event
+   handlers (~45) plus helpers (relay/foreach orchestration, snapshot
+   persistence, per-phase closers, template resolvers). Are the
+   remaining socket handlers a candidate for the same registry treatment
+   as phase handlers, or is the indirection cost worse than the benefit?
 
 2. **`room.phaseState` as a typed bag.** It's `any` with a `kind`
    discriminator each handler stamps. Worth a per-phase-type JSDoc
@@ -896,10 +970,10 @@ Gaps:
    Remaining gap: design holes subtler than the current checks. Push
    further, or diminishing returns?
 
-4. **Editor↔engine drift.** `screens/designer/editor.js` (~5,700 lines)
+4. **Editor↔engine drift.** `screens/designer/editor.js` (~6,200 lines)
    still duplicates some validation for inline display. `GET
    /api/phase-schemas` closes most of the gap; sidebar field rendering
-   is still hardcoded.
+   is still hardcoded per type.
 
 5. **Per-game hooks.** A few games (`corn-story`) ship `hooks.js` for
    custom logic — an escape hatch. Absorb common patterns into
@@ -911,6 +985,24 @@ Gaps:
    first step is probably moving live room state behind a shared store
    (Redis), keeping configs in Postgres. Not needed for one school.
 
+Compliance (§9.5 + COMPLIANCE-TODO.md):
+
+7. **Is the minimization boundary drawn correctly?** Pseudonymous
+   playerIds still go to the API (compare/judge need a mappable
+   identifier). Is an ephemeral socket id an acceptable pseudonym, or
+   should prompts use per-call synthetic indexes with a server-side map?
+
+8. **Retention story completeness.** Purge-on-end + 6h TTL covers
+   snapshots; Neon PITR/backups and Render logs extend real retention
+   underneath and are operator-verified, not code-enforced. Anything
+   else retaining student data that we've missed (e.g. server logs
+   printing submissions — `console.log` currently echoes AI inputs)?
+
+9. **PIN threat model.** 5-wrong-in-10-min → 5-min room lockout, keyed
+   by room code. Is denial-of-service via deliberate lockout (a student
+   spamming wrong PINs to lock their teacher out) an acceptable
+   trade-off, given the host screen retains full control without a PIN?
+
 ---
 
 ## 18. Running It
@@ -920,12 +1012,12 @@ npm install
 echo "ANTHROPIC_API_KEY=sk-..." > .env   # optional — runs in mock mode without
 # echo "DATABASE_URL=postgres://..."     # optional — enables persistence + snapshots
 npm start                                 # http://localhost:3000
-npm test                                  # 720 tests, ~1.5s
+npm test                                  # 810 tests, ~2s
 ```
 
 | URL | Who | Purpose |
 |---|---|---|
-| `/` | Anyone | Home — host a game or join with a room code |
+| `/` | Anyone | Home — host an activity or join with a room code |
 | `/host` | Teacher | Project to class, runs the game |
 | `/player` | Student | Joins via 4-letter code |
 | `/teacher` | Teacher | Private second-device console (PIN-gated) |
