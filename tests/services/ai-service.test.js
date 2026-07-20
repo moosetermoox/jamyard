@@ -14,6 +14,31 @@ describe('AIService', () => {
     });
   });
 
+  // COPPA/FERPA data minimization: prompts sent to the API must carry
+  // pseudonymous playerIds only — a student NAME in the outbound message
+  // is a regression, full stop.
+  describe('_buildUserMessage — no student names leave the server', () => {
+    const service = new AIService();
+    const responses = [
+      { playerId: 'abc123', name: 'Maya', text: 'a robot who\'s scared of stairs' },
+      { playerId: 'def456', name: 'Dev', text: 'my dog ate the wifi' }
+    ];
+
+    it('includes playerIds and answer text, never names', () => {
+      const msg = service._buildUserMessage('Group similar answers.', responses);
+      expect(msg).toContain('abc123');
+      expect(msg).toContain('a robot who\'s scared of stairs');
+      expect(msg).not.toContain('Maya');
+      expect(msg).not.toContain('Dev');
+    });
+
+    it('handles responses without playerIds (literal inputs)', () => {
+      const msg = service._buildUserMessage('Summarize.', [{ text: 'just a string input' }]);
+      expect(msg).toContain('just a string input');
+      expect(msg).not.toContain('undefined');
+    });
+  });
+
   describe('process()', () => {
     it('returns a Promise', () => {
       const service = new AIService();

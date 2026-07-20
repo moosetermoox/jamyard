@@ -7,6 +7,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { fillPlayerNames } from '../ai-name-fill.js';
 
 registerHandler('ai-process', {
   async onEnter(ctx) {
@@ -74,6 +75,16 @@ registerHandler('ai-process', {
       if (!phase.perPlayer) break;
       if (Array.isArray(result) && result.length > 0) break;
       // Otherwise loop and retry once
+    }
+
+    // Data minimization round-trip: names never went TO the model, so fill
+    // real names into any per-player objects it returned (templates render
+    // {{_current.playerName}} from these — see engine/ai-name-fill.js).
+    if (expectJson && result && typeof result === 'object') {
+      fillPlayerNames(result, (id) => {
+        const p = engine.players.find(id);
+        return p ? p.name : null;
+      });
     }
 
     const dataToStore = { result };

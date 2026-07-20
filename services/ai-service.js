@@ -131,7 +131,9 @@ const PHASE_EXTRA_GUIDANCE = {
   'ai-process':
     `PER-PLAYER MODE: set "perPlayer": true to generate one item per player (e.g. unique debate topics, scenarios, math problems). The engine asks for exactly N items, parses as a JSON array, and assigns one to each player. In any later "collect" or "collect-choice" prompt, write {{phaseId.mine}} and the engine substitutes that player's item per-recipient. Do NOT use {{phaseId.result}} for per-player content — result is the full array and renders as joined text. Example:
     "topics": { "type": "ai-process", "instruction": "Generate fun debate topics for teens...", "perPlayer": true, "next": "argue" },
-    "argue": { "type": "collect", "prompt": "Your topic: {{topics.mine}}\\n\\nWrite your argument.", "timer": 90, "next": "..." }`,
+    "argue": { "type": "collect", "prompt": "Your topic: {{topics.mine}}\\n\\nWrite your argument.", "timer": 90, "next": "..." }
+
+    PRIVACY: student names are NEVER sent to the AI — prompts carry pseudonymous playerIds only, and instructions must not ask the AI to use or invent player names. If judge/compare output objects include a "playerId" field, the engine fills "playerName" automatically afterward, so {{_current.playerName}} templates still work.`,
 
   foreach:
     `Sub-phases can ONLY be: announce, collect, collect-choice. No "next" needed — they chain automatically.
@@ -1319,11 +1321,15 @@ Return the revised step.`;
     return null;
   }
 
+  // COPPA/FERPA data minimization: student NAMES never reach the API.
+  // Prompts carry only the pseudonymous playerId (an ephemeral session id)
+  // so compare/judge output can still be mapped back to players; the
+  // server re-fills real names into AI JSON afterward (engine/ai-name-fill.js).
   _buildUserMessage(instruction, responses) {
     const responseList = responses
       .map(r => {
         const id = r.playerId ? ` [playerId: ${r.playerId}]` : '';
-        return `- ${r.name}${id}: "${r.text}"`;
+        return `-${id}: "${r.text}"`;
       })
       .join('\n');
 

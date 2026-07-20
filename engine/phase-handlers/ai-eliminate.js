@@ -17,9 +17,10 @@ registerHandler('ai-eliminate', {
       const input = engine.resolve(phase.input);
       const responses = Array.isArray(input) ? input : [];
 
-      // Build AI prompt
+      // Build AI prompt — pseudonymous playerIds only, never names
+      // (COPPA/FERPA data minimization; see AIService._buildUserMessage)
       const playerList = responses.map(r =>
-        `- ${r.playerId}: "${r.text || r.response || r.name}"`
+        `- ${r.playerId}: "${r.text || r.response || ''}"`
       ).join('\n');
 
       const systemPrompt = `You are a game judge. Apply the rules strictly and return JSON only.
