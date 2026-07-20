@@ -59,6 +59,7 @@ import { applyCheck, groupProgress, checklistResults } from './engine/phases/che
 import { playerChecklistView, teacherDetail } from './engine/phase-handlers/checklist.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
+import { createPinThrottle } from './engine/pin-throttle.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
@@ -1264,6 +1265,10 @@ function resolveImageUrl(rel, gameId, source) {
 
 const teacherSocketToRoom = new Map(); // console socketId → room code (disconnect cleanup)
 
+// Brute-force lockout for the 4-digit console PIN (5 wrong tries in 10 min
+// locks the room's console joins for 5 min). See engine/pin-throttle.js.
+const pinThrottle = createPinThrottle();
+
 function teachersChannel(code) {
   return code + ':teachers';
 }
@@ -2248,15 +2253,33 @@ io.on('connection', (socket) => {
       socket.emit(EVENTS.TEACHER_JOIN_ERROR, { message: 'Room not found. Check the code on the projector.' });
       return;
     }
+    // Brute-force lockout: too many wrong PINs freezes console joins for
+    // this room — even with the right PIN (that's the point). Keyed by
+    // room code so reconnecting with a fresh socket doesn't reset it.
+    const gate = pinThrottle.check(code, Date.now());
+    if (!gate.allowed) {
+      const mins = Math.max(1, Math.ceil(gate.retryAfterMs / 60000));
+      console.log(`[join-teacher] Room ${code} console locked (brute-force throttle, ${mins} min left)`);
+      socket.emit(EVENTS.TEACHER_JOIN_ERROR, {
+        message: `Too many wrong PINs — the teacher view is locked for about ${mins} minute${mins === 1 ? '' : 's'}. The projected host screen still works.`
+      });
+      return;
+    }
     const allowed = checkTeacherAccess(
       { pin, authHeader: socket.handshake && socket.handshake.headers && socket.handshake.headers.authorization },
       { teacherPin: room.teacherPin, sitePassword: process.env.SITE_PASSWORD }
     );
     if (!allowed) {
-      console.log(`[join-teacher] Rejected console for room ${code} (bad PIN)`);
-      socket.emit(EVENTS.TEACHER_JOIN_ERROR, { message: 'Wrong PIN. Tap "👁 Teacher view" on the host screen to see it.' });
+      const fail = pinThrottle.recordFailure(code, Date.now());
+      console.log(`[join-teacher] Rejected console for room ${code} (bad PIN${fail.locked ? ' — room now locked' : ''})`);
+      socket.emit(EVENTS.TEACHER_JOIN_ERROR, {
+        message: fail.locked
+          ? 'Too many wrong PINs — the teacher view is locked for a few minutes.'
+          : 'Wrong PIN. Tap "👁 Teacher view" on the host screen to see it.'
+      });
       return;
     }
+    pinThrottle.recordSuccess(code);
     room.teacherSocketIds = room.teacherSocketIds || new Set();
     room.teacherSocketIds.add(socket.id);
     teacherSocketToRoom.set(socket.id, code);
@@ -3719,13 +3742,15 @@ async function startup() {
   }
 }
 
-// Hourly: drop room snapshots too old to be worth resurrecting.
+// Hourly: drop room snapshots too old to be worth resurrecting, and let
+// the PIN throttle forget rooms whose lockouts/windows have long expired.
 if (DB_ENABLED) {
   setInterval(() => {
     sweepRoomSnapshots(ROOM_SNAPSHOT_TTL_MS / 3600000).catch(e =>
       console.warn(`[snapshot] sweep failed (continuing): ${e.message}`));
   }, 60 * 60 * 1000);
 }
+setInterval(() => pinThrottle.sweep(Date.now()), 60 * 60 * 1000);
 
 // A stray unawaited promise must not kill every classroom on this server.
 // (Node's default since v15 is to crash the process on unhandled rejection.)

@@ -116,6 +116,26 @@ async function run() {
     teacher.emit('advance-phase', { code, phaseInstanceId: phase3.phaseInstanceId });
     await waitForEvent(players[0], 'game-ended', 5000);
     r.check(true, 'console drove the game to the end');
+
+    // --- Brute-force lockout: 5 wrong PINs freeze console joins for the
+    // room — even the RIGHT PIN bounces until the lockout expires. Fresh
+    // room so the main flow above stays clean.
+    host.emit('create-room', { gameId: GAME_ID });
+    const room2 = await waitForEvent(host, 'room-created', 5000);
+    const attacker = await connect('ATTACKER');
+    // Spam wrong PINs ('9999' can't match: sim guesses avoid the real pin below)
+    const wrongPin = room2.teacherPin === '9999' ? '9998' : '9999';
+    for (let i = 0; i < 5; i++) {
+      attacker.emit('join-teacher', { code: room2.code, pin: wrongPin });
+      await waitForEvent(attacker, 'teacher-join-error', 3000);
+    }
+    // Even a fresh socket with the CORRECT pin is now locked out
+    const lateTeacher = await connect('LATE-TEACHER');
+    lateTeacher.emit('join-teacher', { code: room2.code, pin: room2.teacherPin });
+    const locked = await waitForEvent(lateTeacher, 'teacher-join-error', 5000);
+    r.check(/locked/i.test(locked.message || ''), 'brute-forced room locks console joins (fresh socket, right PIN)');
+    attacker.disconnect();
+    lateTeacher.disconnect();
   } catch (err) {
     console.error(`\x1b[31mSimulation error: ${err.message}\x1b[0m`);
     r.errors++;

@@ -58,6 +58,28 @@ everything below is polish, testing, and ops.
 
 ## Next
 
+1.5. **COPPA/FERPA compliance workstream** (from the 2026-07-19 California
+   student-data review; code items DONE: snapshot purge-on-end + 6h TTL
+   pre-dated it, AI name-stripping + name re-fill shipped, PIN lockout shipped).
+   Remaining, in the review's order:
+   - **Documents to draft** (Claude can draft, teacher publishes): privacy
+     notice with embedded retention policy (verbatim: what's kept, why, when
+     destroyed); the nine § 49073.1 provisions in ToS; written security
+     program w/ named coordinator + annual review; breach-response one-pager;
+     retention/deletion SOP; Notice to Schools (names Anthropic as
+     subprocessor, states no model training).
+   - **Teacher console verifications** (only the teacher can): Neon
+     point-in-time-restore window + backup expiry (minimize); Render log
+     rotation + SOC 2 at-rest posture; Anthropic model-retention table for
+     the exact Haiku/Sonnet models + record the DPA conclusion.
+   - **Code follow-ups**: PII-scrubbing (not just profanity) in the content
+     filter for student free text; deletion-request intake (monitored email
+     + SOP) before marketing to schools.
+   - **Watch list**: AB 1159 (no-training would become statutory — highest
+     priority), CDE model AI policy (July 2026 — district questionnaires),
+     COPPA school-exception FAQs, AB 1043 (only if native app), SB 243
+     (only if conversational AI characters).
+
 2. **Remaining safety items** (from SAFETY-DESIGN.md): anonymous mode option,
    rate limiting / DoS limits (non-AI socket events; AI endpoints now guarded),
    PII redaction.
