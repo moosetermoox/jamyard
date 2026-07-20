@@ -29,19 +29,41 @@ history in [CHANGELOG.md](CHANGELOG.md).
 | Teacher-save purity | structural: "Save as Recipe" reads config only; student content lives in room state + snapshots only | code audit 2026-07-19 |
 | Projector-is-public routing | teacher console (`/teacher`, PIN-gated) holds names/moderation/previews | `simulate-teacher-console.js` |
 
-Open review questions for a second engineer (also in ARCHITECTURE.md §17):
-1. Is a socket id an acceptable pseudonym in API prompts, or should
-   prompts use per-call synthetic indexes with a server-side map?
-2. Server logs currently `console.log` AI inputs (student text) — with
-   Render log retention, is that an untracked student-data store?
-3. Is lockout-as-DoS (a student deliberately locking the console)
-   acceptable given the host screen retains control without a PIN?
+**Independent review completed 2026-07-19** (senior-engineer pass; all
+shipped controls verified against code, 810 tests confirmed). Answers to
+the open questions: socket ids are an acceptable pseudonym (synthetic
+indexes would trade paper compliance for real mis-mapping risk); the
+logging fear was CONFIRMED as the biggest retention gap (now § 1 below);
+lockout-as-DoS is acceptable, with two refinements queued (§ 2). New
+findings folded into the sections below.
 
 ## 1. Before any real classroom use (August gate)
+
+Code items (from the 2026-07-19 independent review — small, do first):
+
+- [ ] **P0: Teacher-gate the flow-control socket events** — `start-game`,
+      `close-submissions`, `close-voting`, `advance-phase`,
+      `relay-finish-all` currently accept emits from ANY socket
+      (`isTeacherSocket` gates moderation/preview but these were never
+      enrolled); a student with devtools can skip phases or close
+      submissions mid-typing. Add the guard + an intruder-can't-advance
+      sim invariant. (~1-2h)
+- [ ] **P0: Stop logging student content** — server logs echo student
+      names and full submission text (worst: ai-eliminate logs every
+      answer per round) onto Render's log store, outliving the 6h
+      snapshot TTL. Delete or DEBUG-gate content-bearing lines; log
+      counts/ids instead. (~half day)
+- [ ] **PII-scrub student free text** (moved up from § 2 on the
+      reviewer's recommendation — free text flows to the API, snapshots,
+      AND logs from day one): scrub emails/phones/full names in the
+      content filter before persistence and any API call. (~a morning)
 
 All documents — draftable by Claude, published by the teacher.
 Blocked on three facts: operating name (person or LLC?), a dedicated
 privacy-contact email, confirmation of the named security coordinator.
+The privacy policy's retention table must name everything a room
+snapshot contains: responses, drawings, player names, reconnect tokens,
+teacher PIN.
 
 - [ ] **Privacy policy with embedded retention policy** — verbatim: what is
       kept, why, exactly when destroyed. Mandatory under the amended COPPA
@@ -70,9 +92,18 @@ privacy-contact email, confirmation of the named security coordinator.
         SOC 2 report
   - [ ] Anthropic: retention table checked for the exact Haiku/Sonnet
         models in use; DPA conclusion recorded in writing
-- [ ] **PII-scrubbing in the content filter** (code, ~a morning) — scrub
-      emails/phones/full names from student free text before persistence
-      and before any API call; today the filter catches profanity only.
+- [ ] **Lock down the room journal endpoint** — `GET /api/rooms/:code/journal`
+      is public and its entries carry student names + hide/kick events;
+      the room code is projected on a wall and 4-letter-enumerable.
+      Require teacher auth or strip `player` fields. (~30-60 min)
+- [ ] **Fake-response fallback must not swallow budget errors** —
+      `generateFakeResponses` catches `AiBudgetError` and injects
+      "[Mock AI response #1]…" into live bluffing games; rethrow to the
+      phase-error pause and make the fallback text plausible. (~1h)
+- [ ] **PIN lockout refinements** — let the `SITE_PASSWORD` basic-auth
+      path through during a PIN lockout (a second credential shouldn't
+      be defeated by spamming the first); surface "someone is guessing
+      the teacher PIN" on the host screen. (~1h)
 - [ ] **Deletion-request intake** — monitored email address + the
       documented SOP from § 1 is enough to start.
 
