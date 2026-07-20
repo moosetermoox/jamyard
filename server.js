@@ -42,7 +42,11 @@ import {
   saveRoomSnapshot,
   getRoomSnapshot,
   deleteRoomSnapshot,
-  sweepRoomSnapshots
+  sweepRoomSnapshots,
+  listUserRecipes,
+  saveUserRecipe,
+  insertUserRecipeIfAbsent,
+  deleteUserRecipe
 } from './db.js';
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
@@ -231,6 +235,42 @@ async function migrateFilesystemGames() {
     }
   } catch {} // user dir may not exist
   if (count > 0) console.log(`[init] Migrated ${count} filesystem game(s) to database.`);
+}
+
+// Same transition story for user recipes: "Save as Recipe" used to write
+// only to recipes/user/, which Render's filesystem resets on every deploy
+// (2026-07-19 review — teachers silently lost saved recipes). Insert-if-
+// absent so a newer DB copy is never clobbered by a stale file.
+async function migrateFilesystemRecipes() {
+  let count = 0;
+  const userDir = join(__dirname, 'recipes', 'user');
+  try {
+    const entries = await readdir(userDir, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith('.json')) continue;
+      try {
+        const raw = await readFile(join(userDir, entry.name), 'utf-8');
+        const recipe = JSON.parse(raw);
+        if (recipe && recipe.id && await insertUserRecipeIfAbsent(recipe.id, recipe)) count++;
+      } catch {}
+    }
+  } catch {} // user dir may not exist
+  if (count > 0) console.log(`[init] Migrated ${count} filesystem recipe(s) to database.`);
+}
+
+// Reload the recipe cache from every source. With the DB enabled, user
+// recipes come from Neon (durable across deploys) and win over any
+// same-id file in recipes/user/.
+async function reloadRecipes(opts = {}) {
+  let userRecipes = [];
+  if (DB_ENABLED) {
+    try {
+      userRecipes = (await listUserRecipes()).map(r => r.recipe);
+    } catch (e) {
+      console.warn(`[recipes] Could not load user recipes from DB (continuing with files): ${e.message}`);
+    }
+  }
+  return loadAllRecipes({ ...opts, userRecipes });
 }
 
 // --- Helper Functions ---
@@ -1601,9 +1641,21 @@ app.get('/api/games/:gameId', async (req, res) => {
   }
 });
 
+// Teacher-only: journal entries carry player names and moderation events
+// (hides/kicks), and the room code is projected on a wall — anyone in the
+// class could otherwise watch which named student got kicked (2026-07-19
+// review). Auth: the room's teacher PIN (?pin=1234) or the site password
+// via basic auth.
 app.get('/api/rooms/:code/journal', (req, res) => {
   const room = roomManager.find(req.params.code.toUpperCase());
   if (!room) return res.status(404).json({ error: 'Room not found' });
+  const allowed = checkTeacherAccess(
+    { pin: typeof req.query.pin === 'string' ? req.query.pin : '', authHeader: req.headers.authorization },
+    { teacherPin: room.teacherPin, sitePassword: process.env.SITE_PASSWORD }
+  );
+  if (!allowed) {
+    return res.status(403).json({ error: 'Teacher access required. Add ?pin=<teacher PIN> (shown on the host screen).' });
+  }
   res.json({
     code: room.code,
     currentPhaseId: room.engine ? room.engine.getCurrentPhase().id : null,
@@ -1750,15 +1802,20 @@ app.post('/api/recipes/user', async (req, res) => {
     });
   }
 
-  // Write to recipes/user/{id}.json
+  // Durable store first (survives redeploys); filesystem only as the
+  // no-DB local-dev fallback.
   try {
-    const userDir = join(__dirname, 'recipes', 'user');
-    await mkdir(userDir, { recursive: true });
-    const filePath = join(userDir, `${recipe.id}.json`);
-    await writeFile(filePath, JSON.stringify(recipe, null, 2), 'utf-8');
+    if (DB_ENABLED) {
+      await saveUserRecipe(recipe.id, recipe);
+    } else {
+      const userDir = join(__dirname, 'recipes', 'user');
+      await mkdir(userDir, { recursive: true });
+      const filePath = join(userDir, `${recipe.id}.json`);
+      await writeFile(filePath, JSON.stringify(recipe, null, 2), 'utf-8');
+    }
 
     // Bust the cache so the next /api/recipes call sees this one
-    await loadAllRecipes({ force: true });
+    await reloadRecipes({ force: true });
 
     res.json({
       success: true,
@@ -1791,8 +1848,15 @@ app.delete('/api/recipes/user/:id', async (req, res) => {
 
   const filePath = join(__dirname, 'recipes', 'user', `${id}.json`);
   try {
-    await rm(filePath);
-    await loadAllRecipes({ force: true });
+    if (DB_ENABLED) {
+      await deleteUserRecipe(id);
+      // Also remove any migrated file copy so it can't resurrect the
+      // recipe on the next local restart.
+      await rm(filePath).catch(() => {});
+    } else {
+      await rm(filePath);
+    }
+    await reloadRecipes({ force: true });
     res.json({ success: true, id });
   } catch (err) {
     console.log(`[api/recipes/user/:id DELETE] Error: ${err.message}`);
@@ -3751,15 +3815,16 @@ io.on('connection', (socket) => {
   });
 });
 
-// Load recipes + init DB before opening the listener.
+// Init DB (so durable user recipes are available), then load recipes.
 async function startup() {
-  const recipes = await loadAllRecipes();
-  console.log(`[init] Loaded ${recipes.size} recipe(s).`);
   if (DB_ENABLED) {
     await initDb();
     console.log('[init] Database ready.');
     await migrateFilesystemGames();
+    await migrateFilesystemRecipes();
   }
+  const recipes = await reloadRecipes();
+  console.log(`[init] Loaded ${recipes.size} recipe(s).`);
 }
 
 // Hourly: drop room snapshots too old to be worth resurrecting, and let

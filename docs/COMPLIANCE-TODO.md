@@ -106,10 +106,10 @@ teacher PIN.
         SOC 2 report
   - [ ] Anthropic: retention table checked for the exact Haiku/Sonnet
         models in use; DPA conclusion recorded in writing
-- [ ] **Lock down the room journal endpoint** — `GET /api/rooms/:code/journal`
-      is public and its entries carry student names + hide/kick events;
-      the room code is projected on a wall and 4-letter-enumerable.
-      Require teacher auth or strip `player` fields. (~30-60 min)
+- [x] **Lock down the room journal endpoint** — DONE 2026-07-19:
+      `GET /api/rooms/:code/journal` now requires the room's teacher PIN
+      (`?pin=`) or the site password via basic auth (403 otherwise);
+      live-verified (no PIN → 403, wrong PIN → 403, teacher PIN → 200).
 - [ ] **Fake-response fallback must not swallow budget errors** —
       `generateFakeResponses` catches `AiBudgetError` and injects
       "[Mock AI response #1]…" into live bluffing games; rethrow to the
