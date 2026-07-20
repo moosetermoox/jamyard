@@ -8,14 +8,14 @@
 </head>
 <body>
   <h1>Lanyard</h1>
-  <button id="sfx-toggle" class="sfx-toggle" type="button" title="Game sounds on/off">🔊</button>
+  <button id="sfx-toggle" class="sfx-toggle" type="button" title="Sounds on/off">🔊</button>
 
   <!-- LOBBY SECTION -->
   <section id="lobby-section" class="active">
     <div id="game-select-section">
-      <label for="game-select">Choose a game:</label>
+      <label for="game-select">Choose an activity:</label>
       <select id="game-select">
-        <option value="">Loading games...</option>
+        <option value="">Loading activities...</option>
       </select>
       <button id="create-room-btn">Create Room</button>
     </div>
@@ -28,7 +28,7 @@
         <button id="show-qr-btn" type="button" class="share-btn">📱 Show QR code</button>
       </div>
       <div id="qr-panel" class="qr-panel" hidden>
-        <img id="qr-image" class="qr-image" alt="Scan this code to join the game">
+        <img id="qr-image" class="qr-image" alt="Scan this code to join">
         <p id="join-url" class="join-url"></p>
       </div>
       <div class="teacher-view-chip">
@@ -42,7 +42,7 @@
       <ul id="player-list"></ul>
     </div>
 
-    <button id="start-game-btn" disabled>Start Game</button>
+    <button id="start-game-btn" disabled>Start!</button>
   </section>
 
   <!-- COLLECT SECTION -->
@@ -132,7 +132,7 @@
     <div class="screen-template" hidden></div>
     <h2 id="winner-name" class="winner-text"></h2>
     <div id="standings-list" class="standings"></div>
-    <button id="winner-end-btn">End Game</button>
+    <button id="winner-end-btn">End Session</button>
   </section>
 
   <!-- ANNOUNCE SECTION -->
@@ -413,14 +413,14 @@
     <div id="phase-error-actions">
       <button id="phase-error-retry-btn">Retry</button>
       <button id="phase-error-skip-btn">Skip This Step</button>
-      <button id="phase-error-end-btn" class="btn-danger">End Game</button>
+      <button id="phase-error-end-btn" class="btn-danger">End Session</button>
     </div>
   </section>
 
   <!-- END SECTION -->
   <section id="end-section" hidden>
     <div class="screen-template" hidden></div>
-    <h2 class="game-over">Game Over!</h2>
+    <h2 class="game-over">That's a wrap!</h2>
     <button id="play-again-btn">Play Again</button>
   </section>
 

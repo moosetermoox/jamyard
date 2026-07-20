@@ -2039,7 +2039,7 @@ app.post('/api/games/generate-questions', async (req, res) => {
     if (!requireRealAI(res)) return;
     const { description } = req.body;
     if (!description || description.trim().length < 10) {
-      return res.status(400).json({ error: 'Please provide a game description (at least 10 characters)' });
+      return res.status(400).json({ error: 'Please provide a description (at least 10 characters)' });
     }
     console.log(`[api/games/generate-questions] Analyzing: "${description.substring(0, 80)}..."`);
     const result = await aiService.generateQuestions(description);
@@ -2058,7 +2058,7 @@ app.post('/api/games/generate', async (req, res) => {
     if (!requireRealAI(res)) return;
     const { description, answers } = req.body;
     if (!description || description.trim().length < 10) {
-      return res.status(400).json({ error: 'Please provide a game description (at least 10 characters)' });
+      return res.status(400).json({ error: 'Please provide a description (at least 10 characters)' });
     }
     console.log(`[api/games/generate] Generating game from: "${description.substring(0, 80)}..."`);
     const config = await aiService.generateGame(description, answers);
@@ -2084,7 +2084,7 @@ app.post('/api/games/from-description', async (req, res) => {
     if (!requireRealAI(res)) return;
     const { description } = req.body || {};
     if (!description || typeof description !== 'string' || description.trim().length < 10) {
-      return res.status(400).json({ error: 'Please provide a game description (at least 10 characters).' });
+      return res.status(400).json({ error: 'Please provide a description (at least 10 characters).' });
     }
 
     const recipes = listRecipes().map(summarizeRecipe);
@@ -2282,7 +2282,7 @@ io.on('connection', (socket) => {
     // Block players the host kicked from this room (same-session token).
     if (token && room.kickedTokens && room.kickedTokens.has(token)) {
       console.log(`[join-room] Blocked kicked player from rejoining ${code}`);
-      socket.emit(EVENTS.JOIN_ERROR, { message: 'You have been removed from this game.' });
+      socket.emit(EVENTS.JOIN_ERROR, { message: 'You have been removed from this session.' });
       return;
     }
 
@@ -2324,7 +2324,7 @@ io.on('connection', (socket) => {
         // has no live phase screen yet — that returns when the host does.
         sendCurrentState(socket, code, room);
         if (room.restored && !roomToHost.get(code)) {
-          socket.emit(EVENTS.WAITING, { message: 'Reconnecting the game — waiting for your teacher\'s screen…' });
+          socket.emit(EVENTS.WAITING, { message: 'Reconnecting — waiting for your teacher\'s screen…' });
         }
         persistRoom(code, room);
         return;
@@ -2365,7 +2365,7 @@ io.on('connection', (socket) => {
     const { code, hostToken } = payload;
     const room = roomManager.find(code) || await tryRestoreRoom(code);
     if (!room || !room.hostToken || room.hostToken !== hostToken) {
-      socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'That game is no longer running.' });
+      socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'That room is no longer running.' });
       return;
     }
 
@@ -2571,7 +2571,7 @@ io.on('connection', (socket) => {
     // Notify and detach the kicked socket.
     const kickedSocket = io.sockets.sockets.get(playerId);
     if (kickedSocket) {
-      kickedSocket.emit(EVENTS.KICKED, { message: 'You have been removed from the game by the teacher.' });
+      kickedSocket.emit(EVENTS.KICKED, { message: 'You have been removed by the teacher.' });
       kickedSocket.leave(code);
     }
 

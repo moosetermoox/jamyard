@@ -69,7 +69,7 @@ var PHASE_LABELS = {
   buzz: 'Buzzer round',
   estimate: 'Students are guessing',
   checklist: 'Checklist work time',
-  end: 'Game over'
+  end: 'All done'
 };
 
 // --- Join flow ---
@@ -178,7 +178,7 @@ function setPhase(phaseType, phaseId, phaseInstanceId) {
   controlsBlock.hidden = closeStepBtn.hidden && nextStepBtn.hidden;
 
   consoleNote.textContent = phaseType === 'end'
-    ? 'The game is over — nice work.'
+    ? 'All done — nice work.'
     : '';
 }
 
@@ -247,7 +247,7 @@ function renderEntries(submissions) {
       kickBtn.className = 'entry-btn entry-btn-danger';
       kickBtn.textContent = 'Kick';
       kickBtn.addEventListener('click', function () {
-        if (confirm('Remove ' + sub.name + ' from the game? They can\'t rejoin this session.')) {
+        if (confirm('Remove ' + sub.name + '? They can\'t rejoin this session.')) {
           socket.emit('moderate-kick', { code: currentCode, playerId: sub.playerId });
         }
       });

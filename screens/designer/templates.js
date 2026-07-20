@@ -9,7 +9,7 @@ window.GAME_TEMPLATES = {
     description: 'Start from scratch with just a lobby and end screen',
     config: function () {
       return {
-        name: 'New Game',
+        name: 'New Activity',
         description: '',
         minPlayers: 2,
         maxPlayers: 36,

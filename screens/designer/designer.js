@@ -104,7 +104,7 @@ function renderGames(games) {
   if (games.length === 0) {
     var empty = document.createElement('p');
     empty.className = 'empty-message';
-    empty.textContent = 'No games found. Create your first game!';
+    empty.textContent = 'Nothing here yet. Create your first activity!';
     gamesGrid.appendChild(empty);
     return;
   }
@@ -122,12 +122,12 @@ function renderGames(games) {
   }
 
   if (userGames.length > 0) {
-    appendGameSection('My Games', userGames, /*deletable*/ true);
+    appendGameSection('My Activities', userGames, /*deletable*/ true);
   }
   if (builtIn.length > 0) {
-    // Only show the heading if "My Games" is also present — keeps the page
-    // looking like a flat grid when the teacher hasn't created anything yet.
-    appendGameSection(userGames.length > 0 ? 'Built-in Games' : null, builtIn, true);
+    // Only show the heading if "My Activities" is also present — keeps the
+    // page looking like a flat grid when the teacher hasn't created anything yet.
+    appendGameSection(userGames.length > 0 ? 'Built-in Activities' : null, builtIn, true);
   }
 }
 
@@ -319,7 +319,7 @@ function showTemplatePicker() {
 
   var title = document.createElement('h2');
   title.className = 'template-picker-title';
-  title.textContent = 'Start a New Game';
+  title.textContent = 'Start a New Activity';
   modal.appendChild(title);
 
   var subtitle = document.createElement('p');
@@ -387,7 +387,7 @@ function showLegacyAIGenerateModal() {
 
   var title = document.createElement('h2');
   title.className = 'template-picker-title';
-  title.textContent = 'AI Game Generator (Advanced)';
+  title.textContent = 'AI Activity Generator (Advanced)';
   modal.appendChild(title);
 
   var subtitle = document.createElement('p');
@@ -474,7 +474,7 @@ async function fetchClarifyQuestions(description, overlay) {
 
     // If no questions needed, skip straight to generation
     if (questions.length === 0) {
-      statusDiv.textContent = 'AI is designing your game... This may take 15-30 seconds.';
+      statusDiv.textContent = 'AI is designing your activity... This may take 15-30 seconds.';
       createFromAI(description, [], overlay);
       return;
     }
@@ -486,7 +486,7 @@ async function fetchClarifyQuestions(description, overlay) {
 
     var qHeader = document.createElement('p');
     qHeader.style.cssText = 'font-weight:bold; margin-bottom:12px; font-size:14px;';
-    qHeader.textContent = 'A few quick questions to make sure the game works right:';
+    qHeader.textContent = 'A few quick questions to make sure it works right:';
     questionsDiv.appendChild(qHeader);
 
     for (var i = 0; i < questions.length; i++) {
@@ -545,7 +545,7 @@ async function fetchClarifyQuestions(description, overlay) {
 
     // Change button to "Generate Game"
     nextBtn.disabled = false;
-    nextBtn.textContent = 'Generate Game';
+    nextBtn.textContent = 'Generate Activity';
     nextBtn.onclick = function () {
       // Gather answers
       var selects = questionsDiv.querySelectorAll('.ai-clarify-select');
@@ -565,7 +565,7 @@ async function fetchClarifyQuestions(description, overlay) {
       nextBtn.textContent = 'Generating...';
       statusDiv.style.display = 'block';
       statusDiv.style.background = '#E1BEE7';
-      statusDiv.textContent = 'AI is designing your game... This may take 15-30 seconds.';
+      statusDiv.textContent = 'AI is designing your activity... This may take 15-30 seconds.';
       createFromAI(description, answers, overlay);
     };
 
@@ -741,7 +741,7 @@ function renderRecipePickerView(modal, recipes, overlay) {
 
   var subtitle = document.createElement('p');
   subtitle.className = 'template-picker-subtitle';
-  subtitle.textContent = 'Each recipe is a ready-to-go classroom game. Pick one and fill in a few details.';
+  subtitle.textContent = 'Each recipe is a ready-to-go classroom activity. Pick one and fill in a few details.';
   modal.appendChild(subtitle);
 
   // Split into user-saved + built-in. Within each group, broken recipes
@@ -953,7 +953,7 @@ function renderRecipeFormView(modal, recipe, allRecipes, overlay) {
   var createBtn = document.createElement('button');
   createBtn.type = 'button';
   createBtn.className = 'recipe-create-btn';
-  createBtn.textContent = 'Create Game';
+  createBtn.textContent = 'Create Activity';
   createBtn.addEventListener('click', function () {
     submitRecipeForm(modal, recipe, form, status, createBtn, overlay);
   });
@@ -1289,7 +1289,7 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
   } catch (err) {
     showFormError(status, 'Network error: ' + err.message);
     createBtn.disabled = false;
-    createBtn.textContent = 'Create Game';
+    createBtn.textContent = 'Create Activity';
     return;
   }
 
@@ -1299,14 +1299,14 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
   } catch (err) {
     showFormError(status, 'Recipe service returned an unexpected response.');
     createBtn.disabled = false;
-    createBtn.textContent = 'Create Game';
+    createBtn.textContent = 'Create Activity';
     return;
   }
 
   if (!compileResp.ok) {
     showFormDiagnostics(status, compileData);
     createBtn.disabled = false;
-    createBtn.textContent = 'Create Game';
+    createBtn.textContent = 'Create Activity';
     return;
   }
 
@@ -1323,7 +1323,7 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
   } catch (err) {
     showFormError(status, 'Save failed: ' + err.message);
     createBtn.disabled = false;
-    createBtn.textContent = 'Create Game';
+    createBtn.textContent = 'Create Activity';
     return;
   }
 
@@ -1335,7 +1335,7 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
     try { saveData = await saveResp.json(); } catch (e) { saveData = {}; }
     showFormError(status, 'Save failed: ' + (saveData.error || 'Unknown error'));
     createBtn.disabled = false;
-    createBtn.textContent = 'Create Game';
+    createBtn.textContent = 'Create Activity';
   }
 }
 
@@ -1408,7 +1408,7 @@ function renderAIDescriptionStep(modal, overlay, initialDescription) {
 
   var title = document.createElement('h2');
   title.className = 'template-picker-title';
-  title.textContent = 'Describe Your Game';
+  title.textContent = 'Describe Your Activity';
   modal.appendChild(title);
 
   var subtitle = document.createElement('p');
@@ -1589,7 +1589,7 @@ function renderMatchPreview(modal, data, overlay) {
   var createBtn = document.createElement('button');
   createBtn.type = 'button';
   createBtn.className = 'recipe-create-btn';
-  createBtn.textContent = 'Create Game';
+  createBtn.textContent = 'Create Activity';
   createBtn.addEventListener('click', function () {
     saveMatchedConfig(data, status, createBtn, overlay);
   });
@@ -1621,12 +1621,12 @@ async function saveMatchedConfig(data, status, createBtn, overlay) {
       try { saveData = await resp.json(); } catch (e) { saveData = {}; }
       showFormError(status, 'Save failed: ' + (saveData.error || 'Unknown error'));
       createBtn.disabled = false;
-      createBtn.textContent = 'Create Game';
+      createBtn.textContent = 'Create Activity';
     }
   } catch (err) {
     showFormError(status, 'Network error: ' + err.message);
     createBtn.disabled = false;
-    createBtn.textContent = 'Create Game';
+    createBtn.textContent = 'Create Activity';
   }
 }
 
@@ -1693,7 +1693,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   advancedBtn.className = 'recipe-create-btn';
   advancedBtn.style.background = '#6A1B9A';
   advancedBtn.textContent = 'Generate Custom (Advanced)';
-  advancedBtn.title = 'AI builds a fully custom game from scratch. Slower and more error-prone.';
+  advancedBtn.title = 'AI builds a fully custom activity from scratch. Slower and more error-prone.';
   advancedBtn.addEventListener('click', function () {
     overlay.remove();
     showLegacyAIGenerateModal();

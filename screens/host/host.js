@@ -362,7 +362,7 @@ socket.on('host-rejoin-error', () => {
 socket.on('games-list', ({ games }) => {
   gameSelect.innerHTML = '';
   if (games.length === 0) {
-    gameSelect.innerHTML = '<option value="">No games available</option>';
+    gameSelect.innerHTML = '<option value="">No activities available</option>';
     createRoomBtn.disabled = true;
     return;
   }
@@ -1931,7 +1931,7 @@ phaseErrorSkipBtn.addEventListener('click', () => {
 });
 
 phaseErrorEndBtn.addEventListener('click', () => {
-  if (confirm('End the game for everyone?')) {
+  if (confirm('End the session for everyone?')) {
     socket.emit('end-game', { code: currentRoomCode });
   }
 });
@@ -2056,7 +2056,7 @@ function renderPlayerList(players) {
     kickBtn.title = 'Remove ' + player.name;
     kickBtn.textContent = '✕';
     kickBtn.addEventListener('click', () => {
-      if (window.confirm('Remove ' + player.name + ' from the game? They cannot rejoin this session.')) {
+      if (window.confirm('Remove ' + player.name + '? They cannot rejoin this session.')) {
         socket.emit('moderate-kick', { code: currentRoomCode, playerId: player.id });
       }
     });

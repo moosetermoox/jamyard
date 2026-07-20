@@ -734,7 +734,7 @@
         break;
 
       case 'end':
-        d.sentence = 'The game ends with:';
+        d.sentence = 'It ends with:';
         d.field = textBox(phase.message, 'Closing message…', function (v) { phase.message = v; });
         break;
 

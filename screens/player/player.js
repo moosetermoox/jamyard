@@ -583,7 +583,7 @@ socket.on('kicked', ({ message } = {}) => {
   currentPlayerName = null;
   showSection(joinSection);
   joinBtn.disabled = false;
-  showError(message || 'You have been removed from the game.');
+  showError(message || 'You have been removed from this session.');
 });
 
 // --- Timer ---

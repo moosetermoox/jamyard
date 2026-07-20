@@ -34,8 +34,8 @@ var PHASE_CATALOG = {
     color: '#0057FF',
     bg: '#BBDEFB',
     detailField: null,
-    host: 'Player list, player count, Start Game button',
-    player: '"Waiting for game to start" message',
+    host: 'Player list, player count, Start button',
+    player: '"Waiting to start" message',
     ai: null
   },
   'collect': {
@@ -304,13 +304,13 @@ var PHASE_CATALOG = {
   },
   'end': {
     icon: '',
-    friendlyName: 'Game Over',
-    description: 'End the game and show a final message',
+    friendlyName: 'Wrap Up',
+    description: 'End the activity and show a final message',
     color: '#555',
     bg: '#E0E0E0',
     detailField: 'message',
-    host: 'Game over message',
-    player: 'Game over message',
+    host: 'Final message',
+    player: 'Final message',
     ai: null
   }
 };
@@ -499,7 +499,7 @@ async function loadGame(id) {
   try {
     var response = await fetch('/api/games/' + encodeURIComponent(id));
     if (!response.ok) {
-      throw new Error('Failed to load game (status ' + response.status + ')');
+      throw new Error('Failed to load activity (status ' + response.status + ')');
     }
     gameConfig = await response.json();
     onConfigLoaded();
@@ -515,7 +515,7 @@ function createBlankConfig() {
     return window.GAME_TEMPLATES.blank.config();
   }
   return {
-    name: 'New Game',
+    name: 'New Activity',
     description: '',
     minPlayers: 2,
     maxPlayers: 36,
@@ -540,7 +540,7 @@ function renderSettings() {
   settingsDescription.value = gameConfig.description || '';
   settingsMinPlayers.value = gameConfig.minPlayers || '';
   settingsMaxPlayers.value = gameConfig.maxPlayers || '';
-  headerGameName.textContent = gameConfig.name || 'Untitled Game';
+  headerGameName.textContent = gameConfig.name || 'Untitled Activity';
 
   // Theme
   if (settingsTheme) {
@@ -568,7 +568,7 @@ function renderSettings() {
 
 function readSettings() {
   isDirty = true;
-  gameConfig.name = settingsName.value.trim() || 'Untitled Game';
+  gameConfig.name = settingsName.value.trim() || 'Untitled Activity';
   gameConfig.description = settingsDescription.value.trim();
   gameConfig.minPlayers = settingsMinPlayers.value ? parseInt(settingsMinPlayers.value) : null;
   gameConfig.maxPlayers = settingsMaxPlayers.value ? parseInt(settingsMaxPlayers.value) : null;
@@ -1850,7 +1850,7 @@ function renderPhaseConfig(phaseId) {
     });
 
     var voteIsOwnList = Array.isArray(phase.candidates);
-    addSelectWithHelp('Choices come from', 'Pull the choices from an earlier step, or write your own fixed list (fixed lists can branch the game by winner)', 'phase-vote-source',
+    addSelectWithHelp('Choices come from', 'Pull the choices from an earlier step, or write your own fixed list (fixed lists can branch what happens next by winner)', 'phase-vote-source',
       [
         { value: 'step', label: 'An earlier step (answers, AI output)' },
         { value: 'own', label: 'My own list — I\'ll type the options' }
@@ -3449,7 +3449,7 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'end') {
-    addFieldWithHelp('Final message', 'Shown to all players when the game ends', 'text', 'phase-message', phase.message, false, function (value) {
+    addFieldWithHelp('Final message', 'Shown to all players when the activity ends', 'text', 'phase-message', phase.message, false, function (value) {
       phase.message = value;
       renderCanvas();
     });
@@ -3911,7 +3911,7 @@ function addImageUploadWidget(phase, phaseId) {
   async function uploadFile(file) {
     if (!file) return;
     if (!gameId) {
-      status.textContent = 'Save the game first, then upload an image.';
+      status.textContent = 'Save first, then upload an image.';
       status.style.color = '#C00';
       return;
     }
@@ -4746,8 +4746,8 @@ var PHASE_CATEGORIES = [
     types: ['announce', 'reveal', 'reveal-one', 'leaderboard', 'preview']
   },
   {
-    name: 'Game Flow',
-    description: 'Control how the game plays out',
+    name: 'Flow',
+    description: 'Control how the activity plays out',
     types: ['vote', 'eliminate', 'winner', 'team-split', 'foreach']
   }
 ];
@@ -5135,7 +5135,7 @@ var TOGGLE_FRIENDLY_NAMES = {
   rejectButton: 'Reject button',
   name: 'Winner name',
   standings: 'Standings',
-  endButton: 'End Game button',
+  endButton: 'End Session button',
   playAgainButton: 'Play Again button',
   rank: 'Personal rank',
   items: 'Revealed items',
@@ -5159,13 +5159,13 @@ function validateConfig() {
 
   // Top-level checks
   if (!gameConfig.name || !gameConfig.name.trim()) {
-    errors.push('Game is missing a name.');
+    errors.push('Your activity is missing a name.');
   }
 
   var hasLobby = phaseIds.some(function (id) { return phases[id].type === 'lobby'; });
   var hasEnd = phaseIds.some(function (id) { return phases[id].type === 'end'; });
-  if (!hasLobby) errors.push('Game needs a Waiting Room (lobby) step.');
-  if (!hasEnd) errors.push('Game needs a Game Over (end) step.');
+  if (!hasLobby) errors.push('Your activity needs a Waiting Room (lobby) step.');
+  if (!hasEnd) errors.push('Your activity needs a Wrap Up (end) step.');
 
   for (var i = 0; i < phaseIds.length; i++) {
     var id = phaseIds[i];
@@ -5356,7 +5356,7 @@ function validateConfig() {
       if (!reachable[phaseIds[k]]) {
         var uCat = PHASE_CATALOG[phases[phaseIds[k]].type];
         var uLabel = uCat ? uCat.friendlyName + ' (' + phaseIds[k] + ')' : phaseIds[k];
-        warnings.push(uLabel + ': This step is unreachable from the game flow.');
+        warnings.push(uLabel + ': This step is unreachable from the flow.');
       }
     }
   }
@@ -5571,7 +5571,7 @@ function showReviewPanel(result) {
     var steps = (sim.phaseLog || []).length;
     if (sim.completed && simErrors.length === 0) {
       simDiv.className = 'review-summary review-playtest review-playtest-ok';
-      simDiv.textContent = '🤖 Robot playtest: 4 bots played your game start to finish in ' +
+      simDiv.textContent = '🤖 Robot playtest: 4 bots played your activity start to finish in ' +
         seconds + 's (' + steps + ' steps). No runtime problems.';
     } else if (sim.completed) {
       simDiv.className = 'review-summary review-playtest review-playtest-warn';
@@ -5579,7 +5579,7 @@ function showReviewPanel(result) {
         's, but hit ' + simErrors.length + ' problem' + (simErrors.length === 1 ? '' : 's') + ' along the way — see below.';
     } else {
       simDiv.className = 'review-summary review-playtest review-playtest-bad';
-      simDiv.textContent = '🤖 Robot playtest: 4 bots could NOT finish your game — see below for where it got stuck.';
+      simDiv.textContent = '🤖 Robot playtest: 4 bots could NOT finish your activity — see below for where it got stuck.';
     }
     reviewContent.appendChild(simDiv);
   }
@@ -5625,7 +5625,7 @@ function showReviewPanel(result) {
   if (allIssues.length === 0) {
     var noIssues = document.createElement('div');
     noIssues.className = 'review-summary';
-    noIssues.textContent = 'No issues found. Your game looks good!';
+    noIssues.textContent = 'No issues found. Your activity looks good!';
     reviewContent.appendChild(noIssues);
     return;
   }
@@ -5871,9 +5871,9 @@ function buildPreviewHTML(phase, screen) {
   if (type === 'lobby') {
     if (screen === 'host') {
       html += previewEl('counter', 'Players', '3 players joined', null);
-      html += previewBtn('startButton', 'Start Game', null);
+      html += previewBtn('startButton', 'Start!', null);
     } else {
-      html += previewEl('message', 'Status', 'Waiting for the game to start...', null);
+      html += previewEl('message', 'Status', 'Waiting to start...', null);
     }
   }
 
@@ -5989,7 +5989,7 @@ function buildPreviewHTML(phase, screen) {
     if (screen === 'host') {
       html += previewEl('name', 'Winner', 'Player1!', showList);
       html += previewEl('standings', 'Standings', '1st: Player1, 2nd: Player2...', showList);
-      html += previewBtn('endButton', 'End Game', showList);
+      html += previewBtn('endButton', 'End Session', showList);
     } else {
       html += previewEl('name', 'Winner', 'Player1!', showList);
       html += previewEl('details', 'Details', 'Congratulations!', showList);
@@ -6105,10 +6105,10 @@ function buildPreviewHTML(phase, screen) {
 
   if (type === 'end') {
     if (screen === 'host') {
-      html += previewEl('message', 'Message', phase.message || 'Game Over', showList);
+      html += previewEl('message', 'Message', phase.message || 'That\'s a wrap!', showList);
       html += previewBtn('playAgainButton', 'Play Again', showList);
     } else {
-      html += previewEl('message', 'Message', phase.message || 'Game Over', showList);
+      html += previewEl('message', 'Message', phase.message || 'That\'s a wrap!', showList);
     }
   }
 
@@ -6160,7 +6160,7 @@ function openAskAiModal(phaseId) {
     subtitle.textContent = 'Describe what you\'d like to change about this step.';
     input.placeholder = 'e.g. Give players more time, make the prompt friendlier, add a hint';
   } else {
-    title.textContent = 'Ask AI to revise this game';
+    title.textContent = 'Ask AI to revise this activity';
     subtitle.textContent = 'Describe what you\'d like to change in plain English.';
     input.placeholder = 'e.g. Make round 1 longer, add a leaderboard at the end, change the AI roast to be more sarcastic';
   }
@@ -6194,7 +6194,7 @@ async function submitAskAi() {
   submitBtn.disabled = true;
   submitBtn.textContent = 'Thinking...';
   status.hidden = false;
-  status.textContent = 'AI is revising' + (askAiContext ? ' this step' : ' the game') + '... (10-30 seconds)';
+  status.textContent = 'AI is revising' + (askAiContext ? ' this step' : ' the activity') + '... (10-30 seconds)';
   result.hidden = true;
 
   try {
@@ -6284,7 +6284,7 @@ function applyAskAiResult() {
 
 async function openSaveAsRecipeModal() {
   if (!gameConfig) {
-    showToast('Game config is still loading. Try again in a moment.');
+    showToast('Still loading. Try again in a moment.');
     return;
   }
 
@@ -6303,7 +6303,7 @@ async function openSaveAsRecipeModal() {
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
 
-  modal.innerHTML = '<p class="sar-loading">Analyzing your game...</p>';
+  modal.innerHTML = '<p class="sar-loading">Analyzing your activity...</p>';
 
   // Fetch candidates
   var candidates;
@@ -6320,7 +6320,7 @@ async function openSaveAsRecipeModal() {
     modal.innerHTML = '';
     var errEl = document.createElement('p');
     errEl.style.cssText = 'color:#FF2D2D; padding:20px; text-align:center;';
-    errEl.textContent = 'Could not analyze game: ' + err.message;
+    errEl.textContent = 'Could not analyze activity: ' + err.message;
     modal.appendChild(errEl);
     return;
   }
@@ -6377,7 +6377,7 @@ function renderSarCandidatesView(modal, candidates, overlay) {
       return;
     }
     if (paramSpecs.specs.length === 0) {
-      if (!confirm('No parameters selected. The recipe will produce the exact same game every time. Continue anyway?')) {
+      if (!confirm('No parameters selected. The recipe will produce the exact same activity every time. Continue anyway?')) {
         return;
       }
     }
@@ -6572,7 +6572,7 @@ function renderSarMetadataView(modal, candidates, paramSpecs, overlay) {
 
   // Description
   var descField = sarBuildField('description', 'Description', 'What this recipe is for. One or two sentences.', /* multiline */ true);
-  descField.input.placeholder = 'A discussion game where students share ideas and AI groups them into themes.';
+  descField.input.placeholder = 'A discussion activity where students share ideas and AI groups them into themes.';
   if (gameConfig && gameConfig.description) {
     descField.input.value = gameConfig.description;
   }

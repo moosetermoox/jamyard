@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit Game - Lanyard</title>
+  <title>Edit Activity - Lanyard</title>
   <link rel="stylesheet" href="editor.css">
 </head>
 <body>
@@ -34,23 +34,23 @@
 
   <div id="review-panel" class="review-panel" hidden>
     <div class="review-header">
-      <h3>AI Game Review</h3>
+      <h3>AI Review</h3>
       <button id="review-close" class="btn-icon">&times;</button>
     </div>
     <div id="review-content"></div>
   </div>
 
   <div id="editor-body">
-    <!-- Left Sidebar: Game Settings -->
+    <!-- Left Sidebar: Activity Settings -->
     <aside id="settings-panel">
-      <h2>Game Settings</h2>
+      <h2>Activity Settings</h2>
       <div class="form-group">
         <label for="game-name">Name</label>
-        <input type="text" id="game-name" placeholder="Game name">
+        <input type="text" id="game-name" placeholder="Activity name">
       </div>
       <div class="form-group">
         <label for="game-description">Description</label>
-        <textarea id="game-description" rows="3" placeholder="What's this game about?"></textarea>
+        <textarea id="game-description" rows="3" placeholder="What's this activity about?"></textarea>
       </div>
       <div class="form-group">
         <label for="game-min-players">Min Players</label>
@@ -62,7 +62,7 @@
       </div>
       <div class="config-section-header">Style</div>
       <div class="form-group">
-        <label for="game-theme">Game Theme</label>
+        <label for="game-theme">Theme</label>
         <select id="game-theme">
           <option value="">(Default)</option>
         </select>
@@ -99,7 +99,7 @@
       <div id="phase-canvas">
         <div id="phase-list"></div>
       </div>
-      <p id="canvas-loading">Loading game...</p>
+      <p id="canvas-loading">Loading...</p>
       <p id="canvas-error" hidden></p>
     </main>
 
@@ -135,7 +135,7 @@
   <div id="ask-ai-modal" class="ask-ai-modal" hidden>
     <div class="ask-ai-modal-inner">
       <div class="ask-ai-header">
-        <h3 id="ask-ai-title">Ask AI to revise this game</h3>
+        <h3 id="ask-ai-title">Ask AI to revise this activity</h3>
         <button id="ask-ai-close" class="btn-icon">&times;</button>
       </div>
       <p id="ask-ai-subtitle" class="ask-ai-subtitle">Describe what you'd like to change in plain English.</p>
