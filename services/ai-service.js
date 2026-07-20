@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getAllowedFields, validate as validateGame } from '../engine/game-loader.js';
 import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schemas.js';
 import { createAiBudget, AiBudgetError } from './ai-budget.js';
+import { scrubForAI } from '../engine/pii-scrub.js';
 
 /**
  * Extract text from the first text-type content block. Claude's content
@@ -498,14 +499,17 @@ export class AIService {
   }
 
   /**
-   * @param {{ instruction?: string, responses?: any, systemPrompt?: string }} [args]
+   * @param {{ instruction?: string, responses?: any, systemPrompt?: string,
+   *           rosterNames?: string[] }} [args]
+   *   rosterNames: the room's player names — scrubbed (with contact
+   *   patterns) from everything outbound. Pass from every game-time call.
    */
-  async process({ instruction, responses, systemPrompt } = {}) {
+  async process({ instruction, responses, systemPrompt, rosterNames } = {}) {
     if (this.mode === 'mock') {
       return this._processMock(instruction, responses);
     }
 
-    return this._processReal(instruction, responses, systemPrompt);
+    return this._processReal(instruction, responses, systemPrompt, rosterNames);
   }
 
   _processMock(instruction, responses) {
@@ -519,9 +523,17 @@ export class AIService {
     };
   }
 
-  async _processReal(instruction, responses, systemPrompt) {
+  async _processReal(instruction, responses, systemPrompt, rosterNames) {
     try {
-      const userMessage = this._buildUserMessage(instruction, responses);
+      // PII scrub at the outbound boundary: student-typed text can carry
+      // names/emails/phones. Scrub COPIES — the classroom's own data is
+      // never mutated (engine/pii-scrub.js). Instructions are scrubbed
+      // too: resolved {{tokens}} embed student text in them.
+      const cleanInstruction = scrubForAI(instruction, rosterNames);
+      const cleanResponses = (responses || []).map(r =>
+        r && typeof r === 'object' ? { ...r, text: scrubForAI(r.text, rosterNames) } : r
+      );
+      const userMessage = this._buildUserMessage(cleanInstruction, cleanResponses);
       const start = Date.now();
 
       const message = await this._callClaude({
@@ -550,11 +562,11 @@ export class AIService {
     }
   }
 
-  async generateFakeResponses({ instruction, responses, count }) {
+  async generateFakeResponses({ instruction, responses, count, rosterNames }) {
     if (this.mode === 'mock') {
       return this._generateFakeResponsesMock(count);
     }
-    return this._generateFakeResponsesReal({ instruction, responses, count });
+    return this._generateFakeResponsesReal({ instruction, responses, count, rosterNames });
   }
 
   _generateFakeResponsesMock(count) {
@@ -565,9 +577,9 @@ export class AIService {
     return fakes;
   }
 
-  async _generateFakeResponsesReal({ instruction, responses, count }) {
+  async _generateFakeResponsesReal({ instruction, responses, count, rosterNames }) {
     try {
-      var examples = responses.map(r => `- "${r.text}"`).join('\n');
+      var examples = responses.map(r => `- "${scrubForAI(r.text, rosterNames)}"`).join('\n');
       var start = Date.now();
 
       var message = await this._callClaude({

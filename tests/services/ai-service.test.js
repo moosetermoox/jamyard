@@ -39,6 +39,53 @@ describe('AIService', () => {
     });
   });
 
+  // Boundary test: stub the API call itself and inspect exactly what
+  // would leave the server. Free-text PII (typed names, emails, phones)
+  // must be scrubbed — and the classroom's own copy must NOT be mutated.
+  describe('outbound PII scrub (real-mode boundary)', () => {
+    function capturingService() {
+      const service = new AIService({ mode: 'real' });
+      const captured = {};
+      service._callClaude = async (params) => {
+        captured.params = params;
+        return { content: [{ type: 'text', text: 'ok' }], usage: {} };
+      };
+      return { service, captured };
+    }
+
+    it('scrubs roster names and contact patterns from responses and instructions', async () => {
+      const { service, captured } = capturingService();
+      const responses = [
+        { playerId: 'p1', name: 'Maya', text: 'Maya and Dev went to maya@example.com or 555-123-4567' }
+      ];
+      await service.process({
+        instruction: 'Summarize. Earlier Maya said: hello',
+        responses,
+        rosterNames: ['Maya', 'Dev']
+      });
+      const outbound = captured.params.messages[0].content;
+      expect(outbound).not.toMatch(/Maya|Dev/);
+      expect(outbound).not.toContain('maya@example.com');
+      expect(outbound).not.toContain('555-123-4567');
+      expect(outbound).toContain('someone');
+      // The classroom's copy is untouched — scrubbing is copy-only.
+      expect(responses[0].text).toContain('Maya and Dev');
+    });
+
+    it('generateFakeResponses scrubs its style examples', async () => {
+      const { service, captured } = capturingService();
+      await service.generateFakeResponses({
+        instruction: 'Make fakes.',
+        responses: [{ text: 'ask Maya at 555-123-4567' }],
+        count: 1,
+        rosterNames: ['Maya']
+      });
+      const outbound = captured.params.messages[0].content;
+      expect(outbound).not.toContain('Maya');
+      expect(outbound).not.toContain('555-123-4567');
+    });
+  });
+
   describe('process()', () => {
     it('returns a Promise', () => {
       const service = new AIService();

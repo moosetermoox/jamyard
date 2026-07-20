@@ -41,7 +41,8 @@ Apply the rules and return JSON indicating who to eliminate and who to keep.`;
       const aiResult = await ctx.aiService.process({
         instruction: userPrompt,
         responses: [],
-        systemPrompt
+        systemPrompt,
+        rosterNames: ctx.engine.players.list().map(p => p.name)
       });
       contentLog(`[handlePhase] AI eliminate returned: ${aiResult.text}`);
 

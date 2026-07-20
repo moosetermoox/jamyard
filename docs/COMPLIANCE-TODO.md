@@ -67,10 +67,21 @@ Code items (from the 2026-07-19 independent review — small, do first):
       text now debug-gated; join/submit/disconnect/eliminate/winner logs
       switched from names to socket ids and counts. Production stdout
       carries no student names or content.
-- [ ] **PII-scrub student free text** (moved up from § 2 on the
-      reviewer's recommendation — free text flows to the API, snapshots,
-      AND logs from day one): scrub emails/phones/full names in the
-      content filter before persistence and any API call. (~a morning)
+- [x] **PII-scrub student free text at the outbound AI boundary** — DONE
+      2026-07-19, to the second reviewer's design: `engine/pii-scrub.js`
+      removes KNOWN roster names (case-insensitive, word-boundary; no
+      unreliable arbitrary-name detection) and redacts email/phone/URL
+      patterns; applied to COPIES inside `AIService` real paths (process +
+      fake-response examples; instructions too, since resolved
+      `{{tokens}}` embed student text) — the classroom's own data is
+      never mutated. Boundary-tested with a stubbed API call asserting
+      nothing name/email/phone-shaped leaves. Defensible claim for the
+      privacy notice: *structured roster names are removed and known
+      contact patterns redacted from outbound AI payloads; student-typed
+      text may still contain identifying information.* Deliberately NOT
+      in content-filter.js (display gating and subprocessor minimization
+      are different concerns). Still open from this family: a teacher
+      AI-off toggle + a "don't enter personal information" input hint.
 
 All documents — draftable by Claude, published by the teacher.
 Blocked on three facts: operating name (person or LLC?), a dedicated

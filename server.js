@@ -2818,7 +2818,8 @@ io.on('connection', (socket) => {
 
         const aiResult = await aiService.process({
           instruction: 'Write a short, funny poem combining all these weekend activities',
-          responses
+          responses,
+          rosterNames: players.map(p => p.name)
         });
         contentLog(`[close-submissions] AI returned: ${aiResult.text}`);
 

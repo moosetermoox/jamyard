@@ -55,7 +55,10 @@ registerHandler('ai-process', {
       // the result is derived from it — both stay out of production logs.
       console.log(`[handlePhase] AI ${phase.task || 'process'} attempt ${attempts}/${maxAttempts} (${responses.length} response(s) in)`);
       contentLog(`[handlePhase] AI instruction: ${stricter}`);
-      const aiResult = await ctx.aiService.process({ instruction: stricter, responses });
+      const aiResult = await ctx.aiService.process({
+        instruction: stricter, responses,
+        rosterNames: engine.players.list().map(p => p.name)
+      });
       console.log(`[handlePhase] AI returned ${String(aiResult.text || '').length} chars`);
       contentLog(`[handlePhase] AI returned: ${aiResult.text}`);
 

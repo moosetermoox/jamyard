@@ -27,7 +27,8 @@ registerHandler('foreach', {
       const fakes = await ctx.aiService.generateFakeResponses({
         instruction: injectInstruction,
         responses: realResponses,
-        count: injectCount
+        count: injectCount,
+        rosterNames: ctx.engine.players.list().map(p => p.name)
       });
 
       // Mark real items
