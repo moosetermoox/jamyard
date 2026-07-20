@@ -294,6 +294,7 @@ Framework for quickly building classroom games where:
 - **connection-pack-spec.md** — the no-winner game family (Closer / Snowball / One Voice): design principles, phase strings, merge + one-voice specs, licensing stance, staged voice modes (v1.5 recorded clips / v2 WebRTC — NOT built)
 - **CORN-STORY-FEASIBILITY.md** — Implementation analysis and build order
 - **NEXT-STEPS.md** — living roadmap (Now / Next / Later); check here FIRST when asking "what should we work on?" — its "START HERE next session" block is kept current with concrete next actions
+- **COMPLIANCE-TODO.md** — COPPA/FERPA/§49073.1 working checklist (from the 2026-07-19 California student-data review): shipped code items, pre-August documents, teacher console verifications, AB 1159 watch list
 - **CHANGELOG.md** — dated log of everything shipped; **DEFERRED-IDEAS.md** — considered but parked
 
 ### Engine Modules (additions)
