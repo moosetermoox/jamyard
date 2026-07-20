@@ -58,10 +58,23 @@ async function run() {
     r.check(snap.code === code && snap.phaseType === 'lobby', 'console joined with a lobby snapshot');
     r.check(snap.playerCount === 3, `snapshot shows ${snap.playerCount} players`);
 
+    // --- Flow control is teacher-only: a non-teacher socket can't start ---
+    intruder.emit('start-game', { code });
+    await wait(500);
+    r.check((players[0]._buffer['game-started'] || []).length === 0,
+      'non-teacher start-game is ignored');
+
     // --- Start → console tracks the phase ---
     host.emit('start-game', { code });
     const phase1 = await waitForEvent(teacher, 'teacher-phase', 5000);
     r.check(phase1.phaseType === 'collect', 'console notified: collect phase started');
+
+    // --- ...nor close submissions or skip the phase mid-typing ---
+    intruder.emit('close-submissions', { code, phaseInstanceId: phase1.phaseInstanceId });
+    intruder.emit('advance-phase', { code, phaseInstanceId: phase1.phaseInstanceId });
+    await wait(500);
+    r.check(!(teacher._buffer['teacher-phase'] || []).some(p => p.phaseType !== 'collect'),
+      'non-teacher close/advance did NOT move the phase');
 
     // --- Players submit → console sees names + text privately ---
     const lines = [

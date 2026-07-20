@@ -60,6 +60,7 @@ import { playerChecklistView, teacherDetail } from './engine/phase-handlers/chec
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
+import { contentLog } from './engine/content-log.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
@@ -1221,7 +1222,9 @@ async function tallyAndAdvance(code, room) {
     totalVotes: result.totalVotes
   });
 
-  console.log(`[tally] Phase '${vs.phaseId}' tallied: winner=${result.winner}, totalVotes=${result.totalVotes}`);
+  // Head-to-head winners are student answer text — content stays out of logs
+  console.log(`[tally] Phase '${vs.phaseId}' tallied: totalVotes=${result.totalVotes}${result.tied ? ' (tied)' : ''}`);
+  contentLog(`[tally] winner=${result.winner}`);
 
   const phaseConfig = engine.config.phases[vs.phaseId];
   phaseConfig.id = vs.phaseId;
@@ -1231,7 +1234,7 @@ async function tallyAndAdvance(code, room) {
   // the winner isn't in it.
   const branchTarget = resolveBranchTarget(phaseConfig, result.winner, vs.candidates);
   if (branchTarget) {
-    console.log(`[tally] Branching: winner "${result.winner}" → phase "${branchTarget}"`);
+    console.log(`[tally] Branching to phase "${branchTarget}"`);
   }
 
   const nextId = branchTarget || getNextPhaseId(engine, phaseConfig);
@@ -2292,7 +2295,7 @@ io.on('connection', (socket) => {
   socket.on(EVENTS.JOIN_ROOM, async (payload = {}) => {
     if (!checkEventPayload(socket, 'join-room', payload)) return;
     const { code, name, token } = payload;
-    console.log(`[join-room] ${socket.id} trying to join ${code} as "${name}"`);
+    console.log(`[join-room] ${socket.id} trying to join ${code}`);
 
     // Unknown room? It may have died with a server restart — try the snapshot.
     const room = roomManager.find(code) || await tryRestoreRoom(code);
@@ -2316,7 +2319,7 @@ io.on('connection', (socket) => {
       const existing = (token && players.findByToken(token))
         || (() => { const processedName = name || 'Anonymous'; const p = players.findByName(processedName); return p && !p.connected ? p : null; })();
       if (existing && !existing.connected) {
-        console.log(`[join-room] Reconnecting ${existing.name} via ${token ? 'token' : 'name'} (old: ${existing.id} -> new: ${socket.id})`);
+        console.log(`[join-room] Reconnecting player via ${token ? 'token' : 'name'} (old: ${existing.id} -> new: ${socket.id})`);
         const oldId = existing.id;
         players.reconnect(oldId, socket.id);
         // Follow the player across the rebind: phase state (turn describer,
@@ -2359,7 +2362,7 @@ io.on('connection', (socket) => {
       socketToRoom.set(socket.id, code);
       socket.join(code);
 
-      console.log(`[join-room] ${player.name} (${socket.id}) joined room ${code}`);
+      console.log(`[join-room] Player ${socket.id} joined room ${code}`);
       const theme = room.engine ? (room.engine.config.theme || null) : null;
       socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme });
 
@@ -2426,6 +2429,10 @@ io.on('connection', (socket) => {
       console.log(`[start-game] Room ${code} not found`);
       return;
     }
+    // Flow control is teacher-only (host screen or joined console) — any
+    // student with devtools could otherwise start/skip/close the class's
+    // activity (2026-07-19 review, P0).
+    if (!isTeacherSocket(code, room, socket.id)) return;
 
     try {
       if (room.engine) {
@@ -2482,13 +2489,13 @@ io.on('connection', (socket) => {
       // moderation thumbnails, and teacher preview).
       const check = validateDrawing(response);
       if (!check.ok) {
-        console.log(`[submit-response] Rejected drawing (${check.reason}) from ${player.name}`);
+        console.log(`[submit-response] Rejected drawing (${check.reason}) from ${socket.id}`);
         recordEvent(room, 'submit-rejected', { player: player.name, reason: check.reason });
         socket.emit(EVENTS.RESPONSE_REJECTED, { reason: check.reason, message: check.message });
         return;
       }
       players.update(socket.id, { response: { strokes: check.strokes }, responseAt: Date.now() });
-      console.log(`[submit-response] Stored drawing (${check.strokes.length} strokes) from ${player.name}`);
+      console.log(`[submit-response] Stored drawing (${check.strokes.length} strokes) from ${socket.id}`);
       recordEvent(room, 'submit-response', { player: player.name });
     } else {
       // Safety gate — only free-text collect submissions. collect-choice answers
@@ -2496,7 +2503,7 @@ io.on('connection', (socket) => {
       if (currentPhase && currentPhase.type === 'collect') {
         const check = checkSubmission(response, { prompt: currentPhase.prompt });
         if (!check.ok) {
-          console.log(`[submit-response] Rejected (${check.reason}) from ${player.name}`);
+          console.log(`[submit-response] Rejected (${check.reason}) from ${socket.id}`);
           recordEvent(room, 'submit-rejected', { player: player.name, reason: check.reason });
           socket.emit(EVENTS.RESPONSE_REJECTED, { reason: check.reason, message: check.message });
           return;
@@ -2504,7 +2511,7 @@ io.on('connection', (socket) => {
       }
 
       players.update(socket.id, { response, responseAt: Date.now() });
-      console.log(`[submit-response] Stored response from ${player.name}`);
+      console.log(`[submit-response] Stored response from ${socket.id}`);
       recordEvent(room, 'submit-response', { player: player.name });
     }
 
@@ -2617,6 +2624,7 @@ io.on('connection', (socket) => {
       return;
     }
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-submissions')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
 
     // Only meaningful while a collect-style phase is actually running — a
     // late/stray close used to store empty "responses" under whatever phase
@@ -2748,7 +2756,7 @@ io.on('connection', (socket) => {
           instruction: 'Write a short, funny poem combining all these weekend activities',
           responses
         });
-        console.log(`[close-submissions] AI returned: ${aiResult.text}`);
+        contentLog(`[close-submissions] AI returned: ${aiResult.text}`);
 
         room.stateMachine.transition('reveal');
         console.log(`[close-submissions] Room ${code} now in 'reveal' state`);
@@ -2806,6 +2814,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState || room.phaseState.kind !== 'vote') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-voting')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
     recordEvent(room, 'close-voting');
 
     await tallyAndAdvance(code, room);
@@ -2817,6 +2826,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.engine) return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'advance-phase')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
     recordEvent(room, 'advance-phase');
 
     try {
@@ -2877,6 +2887,7 @@ io.on('connection', (socket) => {
     console.log(`[retry-phase] Retrying current phase in room ${code}`);
     const room = roomManager.find(code);
     if (!room || !room.engine) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
     recordEvent(room, 'retry-phase');
     room.paused = false;
     try {
@@ -2890,6 +2901,7 @@ io.on('connection', (socket) => {
     console.log(`[skip-phase] Skipping current phase in room ${code}`);
     const room = roomManager.find(code);
     if (!room || !room.engine) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
     recordEvent(room, 'skip-phase');
     room.paused = false;
     try {
@@ -2908,6 +2920,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState || room.phaseState.kind !== 'reveal-one') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'reveal-next')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
 
     const state = room.phaseState;
     if (state.revealed >= state.items.length) return;
@@ -2956,6 +2969,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState || room.phaseState.kind !== 'rank') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-ranking')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
     await closeRanking(code, room);
   });
 
@@ -3401,6 +3415,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState || room.phaseState.kind !== 'match') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-matching')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
     recordEvent(room, 'close-matching');
     await closeMatching(code, room);
   });
@@ -3442,6 +3457,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState || room.phaseState.kind !== 'rate') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-rating')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
     recordEvent(room, 'close-rating');
     await closeRating(code, room);
   });
@@ -3477,6 +3493,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState || room.phaseState.kind !== 'wager') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-wager')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
     await closeWager(code, room);
   });
 
@@ -3484,6 +3501,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room || !room.phaseState || room.phaseState.kind !== 'wager') return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'wager-resolve')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
     await resolveWager(code, room, winningOption);
   });
 
@@ -3540,6 +3558,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (room && room.phaseState && room.phaseState.kind !== 'relay') return;
     if (!room || !room.phaseState) return;
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
     const rs = room.phaseState;
     const phase = room.engine && room.engine.config.phases[rs.phaseId];
     if (!phase || phase.type !== 'relay') return;
@@ -3627,6 +3646,7 @@ io.on('connection', (socket) => {
       console.log(`[end-game] Room ${code} not found`);
       return;
     }
+    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
 
     try {
       if (room.engine) {
@@ -3665,7 +3685,7 @@ io.on('connection', (socket) => {
         const players = room.engine ? room.engine.players : room.playerRegistry;
         const player = players.find(socket.id);
         if (player) {
-          console.log(`[disconnect] Marking ${player.name} as disconnected in room ${code}`);
+          console.log(`[disconnect] Marking ${player.id} as disconnected in room ${code}`);
           players.disconnect(socket.id);
 
           const hostSocketId = roomToHost.get(code);
@@ -3682,7 +3702,7 @@ io.on('connection', (socket) => {
             disconnectTimers.delete(socket.id);
             const p = players.find(socket.id);
             if (p && !p.connected) {
-              console.log(`[disconnect] Grace period expired, removing ${p.name} from room ${code}`);
+              console.log(`[disconnect] Grace period expired, removing ${p.id} from room ${code}`);
               players.remove(socket.id);
               const hid = roomToHost.get(code);
               if (hid) {
