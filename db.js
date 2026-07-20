@@ -36,6 +36,14 @@ export async function initDb() {
       updated_at  TIMESTAMPTZ DEFAULT now()
     )
   `;
+  await getSql()`
+    CREATE TABLE IF NOT EXISTS user_recipes (
+      id          TEXT        PRIMARY KEY,
+      recipe      JSONB       NOT NULL,
+      created_at  TIMESTAMPTZ DEFAULT now(),
+      updated_at  TIMESTAMPTZ DEFAULT now()
+    )
+  `;
 }
 
 // --- Room snapshots (survive restarts mid-game; see engine/room-snapshot.js) ---
@@ -110,5 +118,41 @@ export async function deleteUserGame(id) {
 
 export async function userGameExists(id) {
   const rows = await getSql()`SELECT 1 FROM user_games WHERE id = ${id} LIMIT 1`;
+  return rows.length > 0;
+}
+
+// --- User recipes ("Save as Recipe" must survive Render redeploys — the
+// --- filesystem resets on every deploy, so recipes/user/ alone is lossy) ---
+
+export async function listUserRecipes() {
+  const rows = await getSql()`SELECT id, recipe FROM user_recipes ORDER BY created_at`;
+  return rows;
+}
+
+export async function saveUserRecipe(id, recipe) {
+  const json = JSON.stringify(recipe);
+  await getSql()`
+    INSERT INTO user_recipes (id, recipe, updated_at)
+    VALUES (${id}, ${json}::jsonb, now())
+    ON CONFLICT (id) DO UPDATE SET
+      recipe     = EXCLUDED.recipe,
+      updated_at = now()
+  `;
+}
+
+// Migration helper: never clobbers a DB copy that already exists.
+export async function insertUserRecipeIfAbsent(id, recipe) {
+  const json = JSON.stringify(recipe);
+  const rows = await getSql()`
+    INSERT INTO user_recipes (id, recipe)
+    VALUES (${id}, ${json}::jsonb)
+    ON CONFLICT (id) DO NOTHING
+    RETURNING id
+  `;
+  return rows.length > 0;
+}
+
+export async function deleteUserRecipe(id) {
+  const rows = await getSql()`DELETE FROM user_recipes WHERE id = ${id} RETURNING id`;
   return rows.length > 0;
 }

@@ -38,7 +38,12 @@ let recipeCache = null;
  * Scan the recipes directory and load every valid recipe into memory.
  * Call once at server startup; subsequent calls are cached.
  *
- * @param {{ force?: boolean }} [opts]  Pass { force: true } to bust the cache (tests).
+ * @param {{ force?: boolean, userRecipes?: object[] }} [opts]
+ *   force: bust the cache (tests, save/delete endpoints).
+ *   userRecipes: raw recipe objects from a durable store (Neon) — they go
+ *     through the same validation + compatibility pipeline as files and
+ *     WIN over same-id filesystem copies (the DB is the source of truth
+ *     on deployments whose filesystem resets).
  * @returns {Promise<Map<string, import('./recipe-schema.js').Recipe>>}
  */
 export async function loadAllRecipes(opts = {}) {
@@ -52,6 +57,10 @@ export async function loadAllRecipes(opts = {}) {
   // User recipes can override built-ins by id (intentional — lets a
   // teacher tweak a built-in by saving over it).
   for (const recipe of userOwn) cache.set(recipe.id, recipe);
+  for (const raw of opts.userRecipes || []) {
+    const recipe = prepareRecipe(raw, { source: 'user' }, `db:${raw && raw.id}`);
+    if (recipe) cache.set(recipe.id, recipe);
+  }
 
   recipeCache = cache;
   return cache;
@@ -150,13 +159,20 @@ async function loadRecipeFile(filePath, ctx) {
     return null;
   }
 
+  return prepareRecipe(parsed, ctx, filePath);
+}
+
+// Validate + compatibility-check one parsed recipe object, whatever its
+// origin (file or database row). Returns the annotated recipe, or null
+// if its shape is unrecoverable.
+function prepareRecipe(parsed, ctx, label) {
   // Stage 1: shape validation. A recipe with a malformed shape isn't
   // recoverable — skip it entirely.
   const diags = validateRecipe(parsed);
   const errors = diags.filter(d => d.severity === 'error');
   if (errors.length > 0) {
     console.warn(
-      `[recipe-loader] ${filePath} is invalid; skipping. Errors:\n  ` +
+      `[recipe-loader] ${label} is invalid; skipping. Errors:\n  ` +
         errors.map(d => `${d.path || ''} ${d.message}`).join('\n  ')
     );
     return null;
@@ -173,7 +189,7 @@ async function loadRecipeFile(filePath, ctx) {
   if (compatIssue) {
     parsed._broken = true;
     parsed._brokenReason = compatIssue;
-    console.warn(`[recipe-loader] ${filePath} compatibility issue: ${compatIssue}`);
+    console.warn(`[recipe-loader] ${label} compatibility issue: ${compatIssue}`);
   }
 
   return parsed;

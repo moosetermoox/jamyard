@@ -74,7 +74,7 @@ Framework for quickly building classroom games where:
 - **Turn phase** — charades/describe-it gameplay with server-authoritative timer, team rotation (Got It / Skip), pool drawn from prior collect step. Powers Charades Bowl.
 - **Bluffing primitives** — `collect.assign:"pairwise"`, `vote.matchupsFromPairs`/`excludeAuthors`, `collect-choice.choicePool`/`excludeAuthored`/`shuffle` unlock Jackbox-style bluffing games as plain config.
 - **Speed-bonus scoring** — `collect-choice` with `correctAnswer` + `speedBonus` grades responses at close time with Kahoot-style time-decay points (`engine/speed-scoring.js`).
-- **Neon Postgres persistence** — user-created games stored in `user_games` DB table (`db.js`); survives Render redeploys. Built-in games stay on filesystem. `DATABASE_URL` env var enables; falls back to filesystem when unset (local dev unchanged).
+- **Neon Postgres persistence** — user-created games (`user_games`) AND user-saved recipes (`user_recipes`) stored in Neon (`db.js`); both survive Render redeploys (recipes were filesystem-only until 2026-07-19 — "Save as Recipe" silently died on deploy). Built-in games/recipes stay on filesystem; DB user recipes win over same-id files. `DATABASE_URL` env var enables; falls back to filesystem when unset (local dev unchanged). Startup migrates any filesystem strays into the DB.
 - **Password gate** — set `SITE_PASSWORD` env var to require HTTP Basic Auth on teacher surfaces (/host, /designer, /prototype). Student paths stay open.
 - **YouTube video embed** — `video:` field on announce/reveal/collect/collect-choice. Host-only; `engine/video.js` parses watch/youtu.be/embed/shorts URLs.
 - **Content safety pipeline** — `engine/content-filter.js` (blocklist + mash detection) gates `submit-response`; AI system prompts include safety rules block; host moderation panel (hide/kick) on collect phases.
@@ -319,7 +319,7 @@ Framework for quickly building classroom games where:
 - `engine/drawing.js` — pure stroke validation for drawing submissions (`validateDrawing` clamps 0-1 coords/width/color + trims to caps, `isDrawingResponse`); browser side is `screens/shared/drawing.js` (`Draw.attachPad`/`renderStrokes`/`scribble`)
 - `engine/room-snapshot.js` — `serializeRoom`/`restoreRoom` (restart survival; JSON-safe, resume-at-phase-start)
 - `scripts/sim-harness.js` — shared multi-client simulation primitives (all simulate-*.js scripts build on it)
-- `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 13 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
+- `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 14 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
 
 ### Environment
 - Uses dotenv, set ANTHROPIC_API_KEY in .env for real AI
