@@ -44,6 +44,16 @@ export async function initDb() {
       updated_at  TIMESTAMPTZ DEFAULT now()
     )
   `;
+  await getSql()`
+    CREATE TABLE IF NOT EXISTS feedback (
+      id          SERIAL      PRIMARY KEY,
+      created_at  TIMESTAMPTZ DEFAULT now(),
+      page        TEXT        NOT NULL DEFAULT '',
+      category    TEXT        NOT NULL,
+      message     TEXT        NOT NULL,
+      status      TEXT        NOT NULL DEFAULT 'new'
+    )
+  `;
 }
 
 // --- Room snapshots (survive restarts mid-game; see engine/room-snapshot.js) ---
@@ -154,5 +164,31 @@ export async function insertUserRecipeIfAbsent(id, recipe) {
 
 export async function deleteUserRecipe(id) {
   const rows = await getSql()`DELETE FROM user_recipes WHERE id = ${id} RETURNING id`;
+  return rows.length > 0;
+}
+
+// --- Site feedback (anonymous by design — no name/email columns on purpose;
+// --- see engine/feedback-validate.js) ---
+
+export async function addFeedback({ page, category, message }) {
+  const rows = await getSql()`
+    INSERT INTO feedback (page, category, message)
+    VALUES (${page || ''}, ${category}, ${message})
+    RETURNING id
+  `;
+  return rows[0].id;
+}
+
+export async function listFeedback() {
+  return await getSql()`
+    SELECT id, created_at, page, category, message, status
+    FROM feedback ORDER BY created_at DESC
+  `;
+}
+
+export async function setFeedbackStatus(id, status) {
+  const rows = await getSql()`
+    UPDATE feedback SET status = ${status} WHERE id = ${id} RETURNING id
+  `;
   return rows.length > 0;
 }

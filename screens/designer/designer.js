@@ -90,12 +90,67 @@ async function fetchGames() {
     var data = await response.json();
     allGames = data.games || [];
     loadingMessage.hidden = true;
-    renderGames(allGames);
+    renderGames(applyVisibility(allGames));
   } catch (error) {
     loadingMessage.hidden = true;
     errorMessage.textContent = 'Error loading games: ' + error.message;
     errorMessage.hidden = false;
   }
+}
+
+// The public list is curated: featured built-ins + activities made on this
+// device. Owner mode shows everything (screens/shared/game-visibility.js).
+function applyVisibility(games) {
+  if (!window.GameVisibility) return games;
+  return GameVisibility.visibleGames(games, {
+    owner: window.OwnerMode ? OwnerMode.isOn() : false,
+    myIds: window.MyGames ? MyGames.list() : []
+  });
+}
+
+function rememberMine(id) {
+  if (window.MyGames) MyGames.add(id);
+}
+
+// Owner ★ toggle: flips `featured` on the config and saves it back. For
+// built-ins the server demands the owner password (the browser has it cached
+// after the owner unlock). Note: built-in flags flipped on a deployed server
+// last until the next redeploy — the durable place for those is the repo.
+async function toggleFeatured(game) {
+  try {
+    var resp = await fetch('/api/games/' + encodeURIComponent(game.id));
+    if (!resp.ok) throw new Error('could not load the activity');
+    var config = await resp.json();
+    config.featured = !config.featured;
+    var save = await fetch('/api/games/' + encodeURIComponent(game.id), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    if (!save.ok) {
+      var saveData = {};
+      try { saveData = await save.json(); } catch (e) {}
+      throw new Error(saveData.error || 'save failed (status ' + save.status + ')');
+    }
+    game.featured = !!config.featured;
+    renderGames(applyVisibility(allGames));
+  } catch (err) {
+    alert('Could not change featured: ' + err.message);
+  }
+}
+
+async function enterOwnerMode() {
+  var ok = window.OwnerMode ? await OwnerMode.unlock() : false;
+  if (ok) {
+    renderGames(applyVisibility(allGames));
+  } else {
+    alert('That didn\'t unlock owner view — check the password and try again.');
+  }
+}
+
+function exitOwnerMode() {
+  if (window.OwnerMode) OwnerMode.lock();
+  renderGames(applyVisibility(allGames));
 }
 
 // AI output rendered into HTML must be escaped — a model emitting stray
@@ -109,11 +164,31 @@ function escapeHtmlText(str) {
 function renderGames(games) {
   gamesGrid.innerHTML = '';
 
+  var ownerOn = window.OwnerMode && OwnerMode.isOn();
+  if (ownerOn) {
+    var ownerBar = document.createElement('div');
+    ownerBar.className = 'owner-bar';
+    var ownerLabel = document.createElement('span');
+    ownerLabel.textContent = '👑 Owner view — showing every activity';
+    ownerBar.appendChild(ownerLabel);
+    var inboxLink = document.createElement('a');
+    inboxLink.href = '/feedback';
+    inboxLink.textContent = '📬 Feedback inbox';
+    ownerBar.appendChild(inboxLink);
+    var exitBtn = document.createElement('button');
+    exitBtn.className = 'owner-bar-exit';
+    exitBtn.textContent = 'Exit owner view';
+    exitBtn.addEventListener('click', exitOwnerMode);
+    ownerBar.appendChild(exitBtn);
+    gamesGrid.appendChild(ownerBar);
+  }
+
   if (games.length === 0) {
     var empty = document.createElement('p');
     empty.className = 'empty-message';
     empty.textContent = 'Nothing here yet. Create your first activity!';
     gamesGrid.appendChild(empty);
+    if (!ownerOn) appendOwnerLink();
     return;
   }
 
@@ -135,8 +210,20 @@ function renderGames(games) {
   if (builtIn.length > 0) {
     // Only show the heading if "My Activities" is also present — keeps the
     // page looking like a flat grid when the teacher hasn't created anything yet.
-    appendGameSection(userGames.length > 0 ? 'Built-in Activities' : null, builtIn, true);
+    // Built-in deletes are owner-only server-side, so only owners see the button.
+    appendGameSection(userGames.length > 0 ? 'Built-in Activities' : null, builtIn, ownerOn);
   }
+
+  // A quiet doorway to the full list for the site owner.
+  if (!ownerOn) appendOwnerLink();
+}
+
+function appendOwnerLink() {
+  var link = document.createElement('button');
+  link.className = 'owner-link';
+  link.textContent = 'Site owner? Show everything';
+  link.addEventListener('click', enterOwnerMode);
+  gamesGrid.appendChild(link);
 }
 
 function appendGameSection(headingText, games, deletable) {
@@ -232,6 +319,22 @@ function buildGameCard(game, deletable) {
     card.appendChild(deleteBtn);
   }
 
+  // Owner curation: star = shown to the public. Click stays on the card
+  // (no navigation) — mirrors the delete button's stopPropagation approach.
+  if (window.OwnerMode && OwnerMode.isOn()) {
+    var starBtn = document.createElement('button');
+    starBtn.className = 'game-card-star' + (game.featured ? ' is-featured' : '');
+    starBtn.textContent = game.featured ? '★ Featured' : '☆ Feature';
+    starBtn.title = game.featured
+      ? 'Shown to everyone — click to remove from the public list'
+      : 'Hidden from visitors — click to add to the public list';
+    starBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      toggleFeatured(game);
+    });
+    card.appendChild(starBtn);
+  }
+
   return card;
 }
 
@@ -277,8 +380,9 @@ async function handleDeleteClick(e) {
       var card = btn.closest('.game-card');
       if (card) card.remove();
 
-      // Remove from allGames
+      // Remove from allGames and this device's "mine" list
       allGames = allGames.filter(function (g) { return g.id !== id; });
+      if (window.MyGames) MyGames.remove(id);
 
       // Show empty message if no games left
       if (gamesGrid.querySelectorAll('.game-card').length === 0) {
@@ -641,6 +745,7 @@ async function createFromAI(description, answers, overlay) {
     });
 
     if (saveResponse.ok) {
+      rememberMine(gameId);
       overlay.remove();
       window.location.href = '/designer/edit?game=' + encodeURIComponent(gameId);
     } else {
@@ -673,6 +778,7 @@ async function createFromTemplate(templateKey) {
     });
 
     if (response.ok) {
+      rememberMine(newId);
       window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
     } else {
       var result = await response.json();
@@ -1337,6 +1443,7 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
   }
 
   if (saveResp.ok) {
+    rememberMine(newId);
     overlay.remove();
     window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
   } else {
@@ -1623,6 +1730,7 @@ async function saveMatchedConfig(data, status, createBtn, overlay) {
     });
 
     if (resp.ok) {
+      rememberMine(newId);
       overlay.remove();
       window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
     } else {

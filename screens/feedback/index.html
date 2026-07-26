@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Feedback Inbox — Lanyard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #FFFDE7;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #0057FF;
+      border-bottom: 4px solid #000;
+      padding: 16px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    header a.logo {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: #FFD600;
+      text-decoration: none;
+    }
+
+    header .title {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tabs button {
+      padding: 8px 18px;
+      border: 2.5px solid #000;
+      border-radius: 999px;
+      background: #fff;
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 0.85rem;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .tabs button.active {
+      background: #FFD600;
+    }
+
+    .empty, .loading, .error {
+      color: #666;
+      padding: 30px 0;
+      text-align: center;
+    }
+
+    .error { color: #CC0000; }
+
+    .entry {
+      background: #fff;
+      border: 3px solid #000;
+      border-radius: 14px;
+      box-shadow: 3px 3px 0 #000;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+
+    .entry.is-done {
+      opacity: 0.55;
+      box-shadow: none;
+    }
+
+    .entry-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+      font-size: 0.78rem;
+      color: #555;
+    }
+
+    .entry-category {
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 0.78rem;
+      font-weight: 900;
+      padding: 3px 10px;
+      border: 2px solid #000;
+      border-radius: 999px;
+      background: #E3F2FD;
+      color: #000;
+    }
+
+    .entry-category.cat-problem { background: #FFCDD2; }
+    .entry-category.cat-idea    { background: #C8E6C9; }
+    .entry-category.cat-praise  { background: #FFF3C4; }
+
+    .entry-message {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      overflow-wrap: anywhere;
+    }
+
+    .entry-actions button {
+      padding: 6px 14px;
+      border: 2px solid #000;
+      border-radius: 8px;
+      background: #fff;
+      font-family: 'Arial Black', Arial, sans-serif;
+      font-size: 0.75rem;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .entry-actions button:hover { background: #000; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="/">Lanyard</a>
+    <span class="title">📬 Feedback Inbox</span>
+  </header>
+
+  <main>
+    <div class="tabs" id="tabs">
+      <button data-tab="new" class="active">New</button>
+      <button data-tab="done">Done</button>
+      <button data-tab="all">All</button>
+    </div>
+    <div id="list"><p class="loading">Loading…</p></div>
+  </main>
+
+  <script src="feedback.js"></script>
+</body>
+</html>

@@ -22,9 +22,11 @@ services:
       # Required for AI features. Enter the value in the dashboard — never commit it.
       - key: ANTHROPIC_API_KEY
         sync: false
-      # Optional. When set, teacher surfaces (/host, /designer, /prototype) and
-      # all write APIs require Basic Auth with this password (any username).
-      # Students using /player do NOT need it. Leave unset to disable the gate.
+      # The site OWNER's password (any username). The site itself is public —
+      # visitors can host featured activities and build their own. This
+      # password unlocks: the full activity list (owner mode), the feedback
+      # inbox at /feedback, edits/deletes of built-in activities, and the
+      # teacher console via Basic Auth. Leave unset only for local dev.
       - key: SITE_PASSWORD
         sync: false
       - key: NODE_VERSION

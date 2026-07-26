@@ -1,8 +1,12 @@
 {
   "name": "Story Quest: The Locked Library",
   "description": "A choose-your-own-adventure the whole class steers — each chapter ends in a vote that decides where the story goes.",
+  "featured": true,
   "phases": {
-    "lobby": { "type": "lobby", "next": "intro" },
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
     "intro": {
       "type": "announce",
       "message": "📚 STORY QUEST\n\nThis story belongs to the whole class. At the end of each chapter, you vote — and the winning choice decides what happens next.\n\nChoose carefully…",
@@ -19,7 +23,10 @@
       "type": "vote",
       "mode": "pick-one",
       "question": "Where do we go?",
-      "candidates": ["Climb the spiral staircase", "Open the trapdoor"],
+      "candidates": [
+        "Climb the spiral staircase",
+        "Open the trapdoor"
+      ],
       "nextByWinner": {
         "Climb the spiral staircase": "tower",
         "Open the trapdoor": "cellar"
@@ -43,7 +50,10 @@
       "type": "vote",
       "mode": "pick-one",
       "question": "The glowing book is right there. What do we do?",
-      "candidates": ["Take the glowing book", "Leave it and find the way out"],
+      "candidates": [
+        "Take the glowing book",
+        "Leave it and find the way out"
+      ],
       "nextByWinner": {
         "Take the glowing book": "take-book",
         "Leave it and find the way out": "leave-it"

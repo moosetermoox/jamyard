@@ -5442,6 +5442,7 @@ async function saveGame() {
 
       if (response.ok) {
         gameId = newId;
+        if (window.MyGames) MyGames.add(newId);
         var newUrl = window.location.pathname + '?game=' + encodeURIComponent(newId);
         window.history.replaceState(null, '', newUrl);
       }

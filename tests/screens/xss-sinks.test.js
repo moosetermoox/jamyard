@@ -27,7 +27,12 @@ const FILES = [
   'screens/prototype/prototype.js',
   'screens/designer/designer.js',
   'screens/designer/editor.js',
-  'screens/designer/simple-view.js'
+  'screens/designer/simple-view.js',
+  'screens/feedback/feedback.js',
+  'screens/shared/feedback-widget.js',
+  'screens/shared/game-visibility.js',
+  'screens/shared/my-games.js',
+  'screens/shared/owner-mode.js'
 ];
 
 // Escapers, and helpers verified (2026-07-19) to escape their args internally.

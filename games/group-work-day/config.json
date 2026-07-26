@@ -1,8 +1,12 @@
 {
   "name": "Group Work Day",
   "description": "Split into groups and work through a shared to-do list — any group member checks items off, the projector shows every group's live progress. The template for lab days, stations, and project work.",
+  "featured": true,
   "phases": {
-    "lobby": { "type": "lobby", "next": "intro" },
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
     "intro": {
       "type": "announce",
       "message": "✅ GROUP WORK DAY!\n\nYou're about to be split into groups. Every group has the same checklist on their devices — check tasks off as your group finishes them, and watch the progress board up here.",

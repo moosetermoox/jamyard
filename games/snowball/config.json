@@ -1,6 +1,7 @@
 {
   "name": "Snowball",
   "description": "Alone, together, all of us — one question, distilled by everyone.",
+  "featured": true,
   "family": "connection",
   "phases": {
     "lobby": {

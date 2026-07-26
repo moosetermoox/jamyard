@@ -10,13 +10,21 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (notes from 2026-07-06)
+### START HERE next session (notes from 2026-07-06, updated 2026-07-26)
 
+0. **⚠️ Before/at the next deploy: set `SITE_PASSWORD` on Render.** The
+   2026-07-26 rework made the site public (curated 8-activity front door)
+   and turned `SITE_PASSWORD` into the OWNER password. If it's unset on the
+   deployed server, ANYONE can open the feedback inbox, toggle featured
+   flags, and edit built-ins. If it was already set: deploying this change
+   opens /host and /designer to the public — that's the intended product
+   decision. Owner flow: designer grid → "Site owner? Show everything".
 1. **Proxy playtests (D) — this is the week.** July is the window; August is
-   too late to act on what they find. Push the four unpushed commits (match /
-   teams / sort / drawing — Render deploys on push), then run 2-3 adults on
-   real phones through the day-one-kit candidates. `scripts/demo-room.js`
-   holds a room for phone testing.
+   too late to act on what they find. Push the unpushed commits (Render
+   deploys on push), then run 2-3 adults on real phones through the
+   day-one-kit candidates. `scripts/demo-room.js` holds a room for phone
+   testing. The new 💬 feedback widget means testers can file reactions
+   in the moment — check `/feedback` after each session.
 2. **Two 5-minute ops steps only the teacher can do** (pending since June):
    set the `RENDER_DEPLOY_HOOK` secret + turn Render auto-deploy OFF
    (deploy-on-green instructions in `.github/workflows/test.yml`), and add an

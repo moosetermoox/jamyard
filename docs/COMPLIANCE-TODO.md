@@ -83,6 +83,18 @@ Code items (from the 2026-07-19 independent review — small, do first):
       are different concerns). Still open from this family: a teacher
       AI-off toggle + a "don't enter personal information" input hint.
 
+**Posture change 2026-07-26 (fold into the documents):** the site is now
+PUBLIC by design — visitors can host the featured activities and build
+their own. `SITE_PASSWORD` is no longer a teacher-surface gate; it is the
+owner's password (feedback inbox, owner mode, built-in edits, teacher
+console). Student-data flows are unchanged. New data collection: the 💬
+**site feedback** channel — anonymous BY DESIGN (category + message only,
+no name/email fields exist; content-filtered; rate-limited; stored in
+Neon `feedback`). Feedback is adult/visitor input, not student data, but
+the privacy policy should still name it and its retention (kept until
+the owner deletes it; the widget instructs "don't include names or
+personal info").
+
 All documents — draftable by Claude, published by the teacher.
 Blocked on three facts: operating name (person or LLC?), a dedicated
 privacy-contact email, confirmation of the named security coordinator.

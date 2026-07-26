@@ -46,8 +46,14 @@ import {
   listUserRecipes,
   saveUserRecipe,
   insertUserRecipeIfAbsent,
-  deleteUserRecipe
+  deleteUserRecipe,
+  addFeedback,
+  listFeedback,
+  setFeedbackStatus
 } from './db.js';
+import { createFeedbackStore } from './services/feedback-store.js';
+import { validateFeedback } from './engine/feedback-validate.js';
+import { createRateLimiter } from './engine/simple-rate-limit.js';
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
 import { checkSubmission, filterContent } from './engine/content-filter.js';
@@ -131,46 +137,36 @@ const roomToHost = new Map();
 
 app.use(express.json());
 
-// --- Teacher-area password gate ---
-// Set SITE_PASSWORD on the deployment to require Basic Auth on teacher
-// surfaces (/host, /designer, /prototype) and any write API. Student paths
-// (/player, /shared, /games/<assets>, /socket.io, read-only GETs) stay open.
+// --- Owner password gate ---
+// SITE_PASSWORD is the site OWNER's password (2026-07-26 rework: the site is
+// public by design — visitors can host featured activities and build their
+// own — so the old lock-all-teacher-surfaces gate is gone). The password now
+// protects only owner surfaces: the feedback inbox and the owner-mode check
+// that unlocks the full activity list. It also still works as a teacher-
+// console credential (engine/teacher-auth.js) and guards edits/deletes of
+// BUILT-IN activities. Unset = everything open (local dev).
 // Username can be anything — only the password is checked.
-function teacherAreaGate(req, res, next) {
-  if (!process.env.SITE_PASSWORD) return next(); // unset = disabled (dev)
-  const path = req.path;
-
-  // Open: student-facing + utility paths
-  if (
-    path === '/' ||
-    path === '/favicon.ico' ||
-    path.startsWith('/player') ||
-    path.startsWith('/shared') ||
-    path.startsWith('/games/') ||      // uploaded assets (in-game images)
-    path.startsWith('/socket.io')
-  ) return next();
-
-  // Open: read-only API (loading game lists, recipes, schemas, room journals)
-  if (req.method === 'GET' && (
-    path === '/api/games' ||
-    path.startsWith('/api/games/') ||
-    path === '/api/recipes' ||
-    path.startsWith('/api/recipes/') ||
-    path === '/api/phase-schemas' ||
-    path.startsWith('/api/rooms/')
-  )) return next();
-
-  // Everything else (teacher UI + writes) requires the password
+function isOwnerRequest(req) {
+  if (!process.env.SITE_PASSWORD) return true; // unset = local dev, no owner concept
   const header = req.headers.authorization || '';
-  if (header.startsWith('Basic ')) {
-    const decoded = Buffer.from(header.slice(6), 'base64').toString('utf-8');
-    const password = decoded.slice(decoded.indexOf(':') + 1);
-    if (password === process.env.SITE_PASSWORD) return next();
-  }
-  res.set('WWW-Authenticate', 'Basic realm="Lanyard Teacher Area"');
-  res.status(401).type('text/plain').send('Teacher area - password required.');
+  if (!header.startsWith('Basic ')) return false;
+  const decoded = Buffer.from(header.slice(6), 'base64').toString('utf-8');
+  const password = decoded.slice(decoded.indexOf(':') + 1);
+  return password === process.env.SITE_PASSWORD;
 }
-app.use(teacherAreaGate);
+
+function ownerAreaGate(req, res, next) {
+  const path = req.path;
+  const needsOwner =
+    path === '/api/owner-check' ||
+    path.startsWith('/feedback') ||                                  // inbox UI
+    (path.startsWith('/api/feedback') && req.method !== 'POST');     // list/status; submitting stays open
+  if (!needsOwner) return next();
+  if (isOwnerRequest(req)) return next();
+  res.set('WWW-Authenticate', 'Basic realm="Lanyard Owner Area"');
+  res.status(401).type('text/plain').send('Owner area - password required.');
+}
+app.use(ownerAreaGate);
 
 const DEFAULT_GAME = 'weekend-poem';
 const GAMES_DIR = join(__dirname, 'games');
@@ -178,7 +174,10 @@ const USER_GAMES_DIR = join(GAMES_DIR, 'user');
 
 // Card-friendly metadata fields surfaced from each game's config.json to the
 // designer landing page. Optional — missing fields just don't render.
-const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor'];
+// `featured` marks the curated public set: visitors who haven't unlocked
+// owner mode only see featured built-ins (plus activities made on their
+// own device) in the host/designer/prototype pickers.
+const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor', 'featured'];
 
 function pickCardMeta(config) {
   const out = {};
@@ -1552,6 +1551,8 @@ app.use('/teacher', express.static(join(__dirname, 'screens/teacher')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
 app.use('/shared', express.static(join(__dirname, 'screens/shared')));
 app.use('/prototype', express.static(join(__dirname, 'screens/prototype')));
+// Owner-only feedback inbox (ownerAreaGate runs first and demands the password).
+app.use('/feedback', express.static(join(__dirname, 'screens/feedback')));
 
 app.get('/designer/edit', (req, res) => {
   res.sendFile('editor.html', { root: join(__dirname, 'screens', 'designer') });
@@ -1908,6 +1909,67 @@ app.get('/api/ai-budget', async (req, res) => {
   res.json({ mode: aiMode, ...(await aiService.budget.peek()) });
 });
 
+// --- Site feedback (the 💬 widget → owner inbox at /feedback) ---
+// Submissions are anonymous by design (no name/email fields exist). Neon
+// when available; data/feedback.ndjson for local dev.
+const feedbackStore = createFeedbackStore(
+  DB_ENABLED
+    ? { db: { addFeedback, listFeedback, setFeedbackStatus } }
+    : { filePath: join(__dirname, 'data', 'feedback.ndjson') }
+);
+const feedbackLimiter = createRateLimiter({ max: 5, windowMs: 60_000 });
+setInterval(() => feedbackLimiter.sweep(), 10 * 60_000);
+
+// Open to everyone — visitors are exactly who we want feedback from.
+app.post('/api/feedback', async (req, res) => {
+  try {
+    // Behind Render's proxy the socket address is the load balancer, which
+    // would make the per-IP limit global — prefer the forwarded address.
+    const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const ip = forwarded || req.socket?.remoteAddress || 'unknown';
+    if (!feedbackLimiter.allow(ip)) {
+      return res.status(429).json({ error: 'Thanks — that\'s a lot of feedback at once! Try again in a minute.' });
+    }
+    const checked = validateFeedback(req.body);
+    if (!checked.ok) {
+      return res.status(400).json({ error: checked.error });
+    }
+    const id = await feedbackStore.add(checked.cleaned);
+    res.json({ success: true, id });
+  } catch (err) {
+    console.log(`[api/feedback POST] Error: ${err.message}`);
+    res.status(500).json({ error: 'Could not save feedback. Please try again.' });
+  }
+});
+
+// Owner-gated by ownerAreaGate (everything /api/feedback except POST).
+app.get('/api/feedback', async (req, res) => {
+  try {
+    res.json({ feedback: await feedbackStore.list() });
+  } catch (err) {
+    console.log(`[api/feedback GET] Error: ${err.message}`);
+    res.status(500).json({ error: 'Could not load feedback.' });
+  }
+});
+
+app.patch('/api/feedback/:id', async (req, res) => {
+  try {
+    const ok = await feedbackStore.setStatus(req.params.id, req.body && req.body.status);
+    if (!ok) return res.status(404).json({ error: 'No such feedback entry.' });
+    res.json({ success: true });
+  } catch (err) {
+    console.log(`[api/feedback PATCH] Error: ${err.message}`);
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Owner-mode check: ownerAreaGate demands the owner password before this
+// handler runs, so reaching it IS the proof. The browser caches the Basic
+// Auth credentials for the realm, so subsequent owner requests just work.
+app.get('/api/owner-check', (req, res) => {
+  res.json({ owner: true });
+});
+
 app.put('/api/games/:gameId', async (req, res) => {
   try {
     const { gameId } = req.params;
@@ -1920,7 +1982,13 @@ app.put('/api/games/:gameId', async (req, res) => {
     if (DB_ENABLED && await userGameExists(gameId)) {
       await saveUserGame(gameId, config);
     } else {
-      const { configPath } = await resolveGamePath(gameId);
+      const { configPath, source } = await resolveGamePath(gameId);
+      // The site is public: anyone may create and edit their own activities,
+      // but only the owner may modify the shipped built-ins.
+      if (source === 'built-in' && !isOwnerRequest(req)) {
+        res.set('WWW-Authenticate', 'Basic realm="Lanyard Owner Area"');
+        return res.status(401).json({ error: 'Editing a built-in activity requires the owner password.' });
+      }
       await writeFile(configPath, JSON.stringify(config, null, 2));
     }
     res.json({ success: true, stripped });
@@ -2218,7 +2286,12 @@ app.delete('/api/games/:gameId', async (req, res) => {
     if (DB_ENABLED && await userGameExists(gameId)) {
       await deleteUserGame(gameId);
     } else {
-      const { gameDir } = await resolveGamePath(gameId);
+      const { gameDir, source } = await resolveGamePath(gameId);
+      // Public site: deleting a shipped built-in is owner-only.
+      if (source === 'built-in' && !isOwnerRequest(req)) {
+        res.set('WWW-Authenticate', 'Basic realm="Lanyard Owner Area"');
+        return res.status(401).json({ error: 'Deleting a built-in activity requires the owner password.' });
+      }
       await rm(gameDir, { recursive: true });
     }
     res.json({ success: true });
@@ -2258,12 +2331,13 @@ io.on('connection', (socket) => {
         id,
         source,
         name: config.name,
-        description: config.description || ''
+        description: config.description || '',
+        featured: !!config.featured
       }));
       if (DB_ENABLED) {
         const userRows = await listUserGames();
         for (const row of userRows) {
-          games.push({ id: row.id, source: 'user', name: row.name, description: row.config.description || '' });
+          games.push({ id: row.id, source: 'user', name: row.name, description: row.config.description || '', featured: !!row.config.featured });
         }
       }
       socket.emit(EVENTS.GAMES_LIST, { games });

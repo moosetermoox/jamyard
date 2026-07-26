@@ -32,6 +32,22 @@ playerCount.addEventListener('input', () => {
 fetch('/api/games')
   .then(res => res.json())
   .then(({ games }) => {
+    // Same curated-list rule as the designer/host pickers; a ?game= deep
+    // link (editor's Prototype Mode button) still works for hidden games.
+    const linkParams = new URLSearchParams(window.location.search);
+    const deepLinked = linkParams.get('game');
+    if (window.GameVisibility) {
+      const visible = GameVisibility.visibleGames(games, {
+        owner: window.OwnerMode ? OwnerMode.isOn() : false,
+        myIds: window.MyGames ? MyGames.list() : []
+      });
+      if (deepLinked && !visible.some(g => g.id === deepLinked)) {
+        const target = games.find(g => g.id === deepLinked);
+        if (target) visible.push(target);
+      }
+      games = visible;
+    }
+
     gameSelect.innerHTML = '';
     if (games.length === 0) {
       gameSelect.innerHTML = '<option value="">No games available</option>';

@@ -1,6 +1,7 @@
 {
   "name": "Speed Quiz",
   "description": "One trivia question, race to answer. Faster correct answers earn more points (Kahoot-style).",
+  "featured": true,
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -8,14 +9,19 @@
     },
     "intro": {
       "type": "announce",
-      "message": "SPEED QUIZ!\n\nOne question. Four choices. Get it right fast for max points — your score drops the longer you take.",
+      "message": "SPEED QUIZ!\n\nOne question. Four choices. Get it right fast for max points � your score drops the longer you take.",
       "timer": 6,
       "next": "ask"
     },
     "ask": {
       "type": "collect-choice",
       "prompt": "What is the capital of Australia?",
-      "choices": ["Sydney", "Canberra", "Melbourne", "Perth"],
+      "choices": [
+        "Sydney",
+        "Canberra",
+        "Melbourne",
+        "Perth"
+      ],
       "correctAnswer": "Canberra",
       "pointsCorrect": 1000,
       "speedBonus": true,
@@ -41,6 +47,10 @@
   },
   "playTime": "~2 min",
   "classSize": "1-30 players",
-  "tags": ["quiz", "trivia", "kahoot-style"],
+  "tags": [
+    "quiz",
+    "trivia",
+    "kahoot-style"
+  ],
   "recommendedFor": "Quick warm-up. Edit the question + correct answer in the editor for any topic."
 }

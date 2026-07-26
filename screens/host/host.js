@@ -360,6 +360,23 @@ socket.on('host-rejoin-error', () => {
 });
 
 socket.on('games-list', ({ games }) => {
+  // Public picker is curated: featured built-ins + this device's creations
+  // (owner mode shows everything). A ?game= deep link (Prototype Mode) still
+  // works even when the target isn't in the curated list.
+  const params0 = new URLSearchParams(window.location.search);
+  const deepLinked = params0.get('game');
+  if (window.GameVisibility) {
+    const visible = GameVisibility.visibleGames(games, {
+      owner: window.OwnerMode ? OwnerMode.isOn() : false,
+      myIds: window.MyGames ? MyGames.list() : []
+    });
+    if (deepLinked && !visible.some(g => g.id === deepLinked)) {
+      const target = games.find(g => g.id === deepLinked);
+      if (target) visible.push(target);
+    }
+    games = visible;
+  }
+
   gameSelect.innerHTML = '';
   if (games.length === 0) {
     gameSelect.innerHTML = '<option value="">No activities available</option>';

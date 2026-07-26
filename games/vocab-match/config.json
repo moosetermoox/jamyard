@@ -1,8 +1,12 @@
 {
   "name": "Vocab Match",
   "description": "Two quick match-the-pairs rounds (French words, then inventors) with a leaderboard — the template for any vocab/definitions review.",
+  "featured": true,
   "phases": {
-    "lobby": { "type": "lobby", "next": "intro" },
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
     "intro": {
       "type": "announce",
       "message": "🔗 VOCAB MATCH!\n\nTwo rounds. Drag the right column on your device so every row is a correct pair. Every correct match earns points — fastest fingers don't matter, correct ones do.",
@@ -13,11 +17,26 @@
       "type": "match",
       "prompt": "Match each French word to its English meaning",
       "pairs": [
-        { "left": "chat", "right": "cat" },
-        { "left": "chien", "right": "dog" },
-        { "left": "oiseau", "right": "bird" },
-        { "left": "poisson", "right": "fish" },
-        { "left": "cheval", "right": "horse" }
+        {
+          "left": "chat",
+          "right": "cat"
+        },
+        {
+          "left": "chien",
+          "right": "dog"
+        },
+        {
+          "left": "oiseau",
+          "right": "bird"
+        },
+        {
+          "left": "poisson",
+          "right": "fish"
+        },
+        {
+          "left": "cheval",
+          "right": "horse"
+        }
       ],
       "pointsPerMatch": 10,
       "timer": 60,
@@ -27,10 +46,22 @@
       "type": "match",
       "prompt": "Match each invention to its inventor",
       "pairs": [
-        { "left": "Telephone", "right": "Alexander Graham Bell" },
-        { "left": "Light bulb", "right": "Thomas Edison" },
-        { "left": "Printing press", "right": "Johannes Gutenberg" },
-        { "left": "World Wide Web", "right": "Tim Berners-Lee" }
+        {
+          "left": "Telephone",
+          "right": "Alexander Graham Bell"
+        },
+        {
+          "left": "Light bulb",
+          "right": "Thomas Edison"
+        },
+        {
+          "left": "Printing press",
+          "right": "Johannes Gutenberg"
+        },
+        {
+          "left": "World Wide Web",
+          "right": "Tim Berners-Lee"
+        }
       ],
       "pointsPerMatch": 10,
       "timer": 60,
@@ -38,7 +69,10 @@
     },
     "scoreboard": {
       "type": "leaderboard",
-      "from": ["round1.scores", "round2.scores"],
+      "from": [
+        "round1.scores",
+        "round2.scores"
+      ],
       "style": "full",
       "next": "end"
     },
