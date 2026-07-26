@@ -134,8 +134,11 @@ registerHandler('collect-choice', {
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
     const video = ctx.services.resolveVideoEmbed(phase.video);
 
-    // Send to host (resolve refs once for host view)
+    // Send to host (resolve refs once for host view). count/total seed the
+    // progress counter — mirrors the submit handler's eligibility math
+    // (author self-exclusion) so the projector never reads "0 of 0".
     const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
+    const countTotal = authorId ? eligible.filter(p => p.id !== authorId).length : eligible.length;
     ctx.emitToHost(EVENTS.GAME_STARTED, {
       prompt: hostPrompt,
       choices: hostChoices,
@@ -143,6 +146,7 @@ registerHandler('collect-choice', {
       video,
       timer: phase.timer || null,
       isChoice: true,
+      count: 0, total: countTotal,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 

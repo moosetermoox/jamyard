@@ -24,10 +24,16 @@ const socket = io();
 // Garnish from /shared/juice.js; guarded so a load failure can't break the game.
 const J = window.Juice || null;
 const sfxToggle = document.getElementById('sfx-toggle');
+function labelSfxToggle(isMuted) {
+  sfxToggle.textContent = isMuted ? '🔇' : '🔊';
+  // Screen readers announce the action, not just an emoji.
+  sfxToggle.setAttribute('aria-label', isMuted ? 'Turn sound effects on' : 'Turn sound effects off');
+  sfxToggle.title = isMuted ? 'Turn sound effects on' : 'Turn sound effects off';
+}
 if (sfxToggle && J) {
-  sfxToggle.textContent = J.muted() ? '🔇' : '🔊';
+  labelSfxToggle(J.muted());
   sfxToggle.addEventListener('click', () => {
-    sfxToggle.textContent = J.toggleMuted() ? '🔇' : '🔊';
+    labelSfxToggle(J.toggleMuted());
   });
 } else if (sfxToggle) {
   sfxToggle.hidden = true;
@@ -101,8 +107,9 @@ teacherViewToggle.addEventListener('click', () => {
     teacherViewInfo.hidden = true;
     return;
   }
-  teacherViewInfo.textContent = 'On your phone: ' + window.location.origin +
-    '/teacher · PIN ' + (currentTeacherPin || '????');
+  teacherViewInfo.textContent = 'Open ' + window.location.origin +
+    '/teacher on your phone · room ' + (currentRoomCode || '????') +
+    ' · PIN ' + (currentTeacherPin || '????');
   teacherViewInfo.hidden = false;
 });
 
@@ -692,10 +699,10 @@ function clearTimer() {
 
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt, image, video, timer, hostTemplate, show }) => {
+socket.on('game-started', ({ prompt, image, video, timer, count, total, hostTemplate, show }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
-  submissionCount.textContent = '0 of 0 submitted';
+  submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
   applyTemplate(collectSection, hostTemplate);
   applyImage(collectImage, image, show);
   applyVideo(collectVideo, video, show);

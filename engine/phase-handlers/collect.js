@@ -251,10 +251,25 @@ registerHandler('collect', {
       : null;
     const inputType = phase.inputType === 'drawing' ? 'drawing' : 'text';
 
-    // Send prompt to host
+    // Who counts toward "X of Y submitted" — must mirror the submit
+    // handler's math (foreach author self-exclusion, unpaired players)
+    // or the seeded total would disagree with the first live update.
+    let countEligible = eligible;
+    if (phase._foreachAuthorId) {
+      countEligible = countEligible.filter(p => p.id !== phase._foreachAuthorId);
+    }
+    if (pairedIds) {
+      countEligible = countEligible.filter(p => pairedIds.has(p.id));
+    }
+
+    // Send prompt to host. count/total seed the progress counter — without
+    // them the projector read "0 of 0 submitted" until the first answer
+    // landed (2026-07-26 UI review; the console got this fix in June, the
+    // host screen never did).
     ctx.emitToHost(EVENTS.GAME_STARTED, {
       prompt: hostPrompt, image, video, timer: phase.timer || null, fields: phase.fields || null,
       inputType,
+      count: 0, total: countEligible.length,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 

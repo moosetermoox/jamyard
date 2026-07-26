@@ -106,8 +106,20 @@
       box-shadow: 2px 2px 0 #000;
     }
 
-    .card.card-host   { background: #C8E6C9; }
-    .card.card-design { background: #FFF9C4; }
+    /* Hosting is the dominant action — teachers usually arrive to RUN
+       something now; building is the secondary path. */
+    .card.card-host {
+      background: #C8E6C9;
+      width: 340px;
+      box-shadow: 6px 6px 0 #000;
+    }
+    .card.card-host .card-title { font-size: 1.5rem; }
+    .card.card-host .card-cta { background: #0057FF; font-size: 0.95rem; }
+    .card.card-host:hover .card-cta { background: #0041CC; }
+    .card.card-design {
+      background: #FFF9C4;
+      width: 240px;
+    }
 
     .card-icon {
       font-size: 2.4rem;
@@ -283,6 +295,7 @@
   <footer>
     <a href="/prototype">Prototype Mode</a>
     <a href="/player">Player Screen</a>
+    <a href="/teacher" title="Private controls for a running activity — join with the room code + PIN from the host screen">Teacher Console</a>
   </footer>
 
   <script src="/shared/feedback-widget.js"></script>

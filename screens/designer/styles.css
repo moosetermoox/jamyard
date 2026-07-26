@@ -218,7 +218,6 @@ h1 {
   background: white;
   border-radius: 16px;
   padding: 24px;
-  cursor: pointer;
   transition: background 0.15s;
   border: 3px solid #000;
   display: flex;
@@ -227,6 +226,53 @@ h1 {
 
 .game-card:hover {
   background: #BBDEFB;
+}
+
+/* Card actions — real links/buttons so keyboard and screen-reader users get
+   the same affordances (2026-07-26 UI review). Host is the primary action. */
+.game-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  align-items: center;
+}
+
+.game-card-actions a,
+.game-card-actions button {
+  text-decoration: none;
+  border-radius: 10px;
+  border: 2px solid #000;
+  padding: 7px 14px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 900;
+  cursor: pointer;
+  color: #000;
+  background: white;
+}
+
+.game-card-host {
+  background: #0057FF !important;
+  color: #fff !important;
+  text-transform: uppercase;
+}
+
+.game-card-host:hover { background: #0041CC !important; }
+.game-card-edit:hover,
+.game-card-preview:hover { background: #FFF3C4; }
+
+.game-card-actions .game-card-delete {
+  margin-top: 0;
+  margin-left: auto;
+}
+
+.game-card-actions a:focus-visible,
+.game-card-actions button:focus-visible,
+.owner-link:focus-visible,
+.owner-bar-exit:focus-visible {
+  outline: 3px solid #0057FF;
+  outline-offset: 2px;
 }
 
 /* Subtle visual differentiation between built-in (curated) and user-made */

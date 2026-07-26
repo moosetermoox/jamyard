@@ -16,20 +16,26 @@
   <section id="join-section" class="active">
     <h1>Join In</h1>
 
+    <label class="join-label" for="room-code-input">Room code</label>
     <input
       type="text"
       id="room-code-input"
-      placeholder="ROOM CODE"
+      placeholder="ABCD"
       maxlength="4"
       autocapitalize="characters"
+      autocomplete="off"
+      spellcheck="false"
     >
 
+    <label class="join-label" for="name-input">Your name</label>
     <input
       type="text"
       id="name-input"
-      placeholder="Your name or leave blank for Anonymous"
+      placeholder="First name"
       maxlength="20"
+      autocomplete="off"
     >
+    <p class="join-hint">Leave blank to join as Anonymous.</p>
 
     <button id="join-btn">Join</button>
     <p id="error-message" hidden></p>

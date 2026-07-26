@@ -253,7 +253,6 @@ function buildGameCard(game, deletable) {
     card.classList.add('game-card-user');
   }
   card.setAttribute('data-game-id', game.id);
-  card.addEventListener('click', handleCardClick);
 
   var name = document.createElement('h2');
   name.className = 'game-card-name';
@@ -309,15 +308,45 @@ function buildGameCard(game, deletable) {
     card.appendChild(rec);
   }
 
+  // Action row — real buttons/links, not a clickable div (keyboard + screen
+  // reader accessible, and the primary teacher intent is "run this NOW", so
+  // Host leads). 2026-07-26 UI review.
+  var actions = document.createElement('div');
+  actions.className = 'game-card-actions';
+
+  var hostBtn = document.createElement('a');
+  hostBtn.className = 'game-card-host';
+  hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
+  hostBtn.textContent = '▶ Host';
+  hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');
+  actions.appendChild(hostBtn);
+
+  var editBtn = document.createElement('a');
+  editBtn.className = 'game-card-edit';
+  editBtn.href = '/designer/edit?game=' + encodeURIComponent(game.id);
+  editBtn.textContent = 'Edit';
+  editBtn.setAttribute('aria-label', 'Edit "' + game.name + '"');
+  actions.appendChild(editBtn);
+
+  var previewBtn = document.createElement('a');
+  previewBtn.className = 'game-card-preview';
+  previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
+  previewBtn.textContent = 'Try it';
+  previewBtn.setAttribute('aria-label', 'Try "' + game.name + '" in prototype mode');
+  actions.appendChild(previewBtn);
+
   if (deletable) {
     var deleteBtn = document.createElement('button');
     deleteBtn.className = 'game-card-delete';
     deleteBtn.textContent = 'Delete';
     deleteBtn.setAttribute('data-game-id', game.id);
     deleteBtn.setAttribute('data-game-name', game.name);
+    deleteBtn.setAttribute('aria-label', 'Delete "' + game.name + '"');
     deleteBtn.addEventListener('click', handleDeleteClick);
-    card.appendChild(deleteBtn);
+    actions.appendChild(deleteBtn);
   }
+
+  card.appendChild(actions);
 
   // Owner curation: star = shown to the public. Click stays on the card
   // (no navigation) — mirrors the delete button's stopPropagation approach.
@@ -354,13 +383,6 @@ function formatClassSize(game) {
   return null;
 }
 
-function handleCardClick(e) {
-  // Don't navigate if the delete button was clicked
-  if (e.target.classList.contains('game-card-delete')) return;
-  var card = e.currentTarget;
-  var gameId = card.getAttribute('data-game-id');
-  window.location.href = '/designer/edit?game=' + encodeURIComponent(gameId);
-}
 
 async function handleDeleteClick(e) {
   e.stopPropagation();

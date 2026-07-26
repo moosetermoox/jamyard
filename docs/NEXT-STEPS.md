@@ -66,6 +66,18 @@ everything below is polish, testing, and ops.
 
 ## Next
 
+1.2. **UI review waves 2-3** (external review 2026-07-26; wave 1 shipped same
+   day — counter seed, join labels, card actions, home hierarchy, console
+   doorway). **Wave 2 (pre-August if playtests leave room):** recents +
+   favorites + search in the owner view; descriptive continue buttons
+   (labels derived from the NEXT phase type: "Reveal answers", "Start
+   voting"); goal chips surfaced from existing recipe `feel`/config `tags`.
+   **Wave 3 (post-field-test):** AI storyboard-before-generate flow (extend
+   the recipe param form), pinned host control bar, collective
+   visualizations + illustration/motion system (see DEFERRED-IDEAS).
+   Review's framing worth keeping: "the teacher controls the pacing, but
+   the class creates the moment."
+
 1.5. **COPPA/FERPA compliance workstream** — full working checklist in
    [COMPLIANCE-TODO.md](COMPLIANCE-TODO.md). Code items shipped 2026-07-19
    (AI name-stripping + re-fill, PIN lockout; snapshot lifecycle already

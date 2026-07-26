@@ -186,6 +186,32 @@ input:focus, textarea:focus {
   text-align: left;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: #aaa;
+  font-weight: 400;
+}
+
+/* Join form labels — permanent labels beat long clipped placeholders
+   (2026-07-26 UI review: the old name placeholder didn't fit a phone). */
+.join-label {
+  display: block;
+  text-align: left;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #555;
+  margin: 14px 0 6px;
+}
+
+.join-hint {
+  text-align: left;
+  font-size: 0.8rem;
+  color: #777;
+  margin: 6px 0 14px;
+}
+
 textarea {
   text-align: left;
   resize: vertical;
