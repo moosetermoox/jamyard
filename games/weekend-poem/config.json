@@ -1,6 +1,7 @@
 {
   "name": "Weekend Poem",
   "description": "Share your weekend, get a class poem!",
+  "featured": true,
   "phases": {
     "lobby": {
       "type": "lobby",
