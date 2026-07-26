@@ -28,5 +28,8 @@
       "type": "end",
       "message": "One voice. Nice."
     }
-  }
+  },
+  "tags": [
+    "connect"
+  ]
 }

@@ -199,5 +199,9 @@
       "type": "end",
       "message": "You just had nine real conversations."
     }
-  }
+  },
+  "tags": [
+    "connect",
+    "reflect"
+  ]
 }

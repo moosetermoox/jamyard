@@ -374,6 +374,81 @@ h1 {
   color: white;
 }
 
+/* ---- Library controls (search + goal chips) ---- */
+#library-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+#library-search {
+  flex: 1 1 220px;
+  max-width: 320px;
+  padding: 10px 14px;
+  border: 2.5px solid #000;
+  border-radius: 12px;
+  font-family: Arial, sans-serif;
+  font-size: 0.95rem;
+  background: white;
+}
+
+#library-search:focus {
+  outline: none;
+  border-color: #0057FF;
+}
+
+#goal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.goal-chip {
+  padding: 7px 14px;
+  border: 2px solid #000;
+  border-radius: 999px;
+  background: white;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.goal-chip:hover { background: #FFF3C4; }
+
+.goal-chip.active {
+  background: #0057FF;
+  color: white;
+}
+
+.goal-chip:focus-visible,
+#library-search:focus-visible,
+.game-card-fav:focus-visible {
+  outline: 3px solid #0057FF;
+  outline-offset: 2px;
+}
+
+.game-card-fav {
+  border: 2px solid #000;
+  border-radius: 10px;
+  background: white;
+  padding: 7px 12px;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #E91E63;
+}
+
+.game-card-fav:hover { background: #FCE4EC; }
+
+.game-card-fav.is-fav {
+  background: #E91E63;
+  color: white;
+  border-color: #000;
+}
+
 /* ---- Owner mode (curated public list controls) ---- */
 .owner-bar {
   display: flex;

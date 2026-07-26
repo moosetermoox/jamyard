@@ -37,5 +37,9 @@
       "type": "end",
       "message": "Started as everyone's own idea. Ended as a few strong ones — built by all of us."
     }
-  }
+  },
+  "tags": [
+    "discuss",
+    "decide"
+  ]
 }

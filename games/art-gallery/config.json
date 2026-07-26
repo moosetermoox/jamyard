@@ -36,5 +36,8 @@
       "type": "end",
       "message": "🎨 That's the Art Gallery! Swap in your own drawing prompt for any topic."
     }
-  }
+  },
+  "tags": [
+    "create"
+  ]
 }

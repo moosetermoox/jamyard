@@ -90,7 +90,7 @@ async function fetchGames() {
     var data = await response.json();
     allGames = data.games || [];
     loadingMessage.hidden = true;
-    renderGames(applyVisibility(allGames));
+    refreshLibrary();
   } catch (error) {
     loadingMessage.hidden = true;
     errorMessage.textContent = 'Error loading games: ' + error.message;
@@ -107,6 +107,121 @@ function applyVisibility(games) {
     myIds: window.MyGames ? MyGames.list() : []
   });
 }
+
+// =======================================================================
+// Library: search, goal chips, favorites, recently used (2026-07-26 UI
+// review wave 2). Favorites/recents are this-browser only (localStorage) —
+// same no-accounts model as MyGames.
+// =======================================================================
+
+var GOAL_LABELS = {
+  connect: '🤝 Connect',
+  create: '🎨 Create',
+  discuss: '💬 Discuss',
+  decide: '🗳️ Decide',
+  reflect: '🪞 Reflect',
+  energize: '⚡ Energize',
+  review: '📚 Review'
+};
+
+var libraryQuery = '';
+var activeGoal = null;
+
+function readIdList(key) {
+  try {
+    var raw = localStorage.getItem(key);
+    var ids = raw ? JSON.parse(raw) : [];
+    return Array.isArray(ids) ? ids : [];
+  } catch (e) { return []; }
+}
+
+function writeIdList(key, ids) {
+  try { localStorage.setItem(key, JSON.stringify(ids)); } catch (e) {}
+}
+
+var Favorites = {
+  KEY: 'lanyard-favorites',
+  list: function () { return readIdList(this.KEY); },
+  has: function (id) { return this.list().indexOf(id) !== -1; },
+  toggle: function (id) {
+    var ids = this.list();
+    var at = ids.indexOf(id);
+    if (at === -1) ids.push(id); else ids.splice(at, 1);
+    writeIdList(this.KEY, ids);
+  }
+};
+
+var Recents = {
+  KEY: 'lanyard-recents',
+  MAX: 8,
+  list: function () { return readIdList(this.KEY); },
+  add: function (id) {
+    var ids = this.list().filter(function (x) { return x !== id; });
+    ids.unshift(id);
+    writeIdList(this.KEY, ids.slice(0, this.MAX));
+  }
+};
+
+function matchesLibraryFilters(game) {
+  if (activeGoal) {
+    var tags = Array.isArray(game.tags) ? game.tags : [];
+    if (tags.indexOf(activeGoal) === -1) return false;
+  }
+  if (libraryQuery) {
+    var hay = (game.name + ' ' + (game.description || '') + ' ' +
+      (Array.isArray(game.tags) ? game.tags.join(' ') : '')).toLowerCase();
+    if (hay.indexOf(libraryQuery) === -1) return false;
+  }
+  return true;
+}
+
+function buildGoalChips(games) {
+  var chipsEl = document.getElementById('goal-chips');
+  if (!chipsEl) return;
+  chipsEl.innerHTML = '';
+  var present = {};
+  for (var i = 0; i < games.length; i++) {
+    var tags = Array.isArray(games[i].tags) ? games[i].tags : [];
+    for (var t = 0; t < tags.length; t++) {
+      if (GOAL_LABELS[tags[t]]) present[tags[t]] = true;
+    }
+  }
+  var goals = Object.keys(GOAL_LABELS).filter(function (g) {
+    return present[g] || g === activeGoal;
+  });
+  if (goals.length === 0) return;
+  goals.forEach(function (goal) {
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'goal-chip' + (goal === activeGoal ? ' active' : '');
+    chip.textContent = GOAL_LABELS[goal];
+    chip.setAttribute('aria-pressed', goal === activeGoal ? 'true' : 'false');
+    chip.addEventListener('click', function () {
+      activeGoal = (activeGoal === goal) ? null : goal;
+      refreshLibrary();
+    });
+    chipsEl.appendChild(chip);
+  });
+}
+
+// One entry point for every list mutation (fetch, delete, owner toggle,
+// search, chips) — visibility filter, then library filters, then render.
+function refreshLibrary() {
+  var visible = applyVisibility(allGames);
+  var controls = document.getElementById('library-controls');
+  if (controls) controls.hidden = visible.length === 0;
+  buildGoalChips(visible);
+  renderGames(visible.filter(matchesLibraryFilters));
+}
+
+(function initLibraryControls() {
+  var searchEl = document.getElementById('library-search');
+  if (!searchEl) return;
+  searchEl.addEventListener('input', function () {
+    libraryQuery = searchEl.value.trim().toLowerCase();
+    refreshLibrary();
+  });
+})();
 
 function rememberMine(id) {
   if (window.MyGames) MyGames.add(id);
@@ -133,7 +248,7 @@ async function toggleFeatured(game) {
       throw new Error(saveData.error || 'save failed (status ' + save.status + ')');
     }
     game.featured = !!config.featured;
-    renderGames(applyVisibility(allGames));
+    refreshLibrary();
   } catch (err) {
     alert('Could not change featured: ' + err.message);
   }
@@ -142,7 +257,7 @@ async function toggleFeatured(game) {
 async function enterOwnerMode() {
   var ok = window.OwnerMode ? await OwnerMode.unlock() : false;
   if (ok) {
-    renderGames(applyVisibility(allGames));
+    refreshLibrary();
   } else {
     alert('That didn\'t unlock owner view — check the password and try again.');
   }
@@ -150,7 +265,7 @@ async function enterOwnerMode() {
 
 function exitOwnerMode() {
   if (window.OwnerMode) OwnerMode.lock();
-  renderGames(applyVisibility(allGames));
+  refreshLibrary();
 }
 
 // AI output rendered into HTML must be escaped — a model emitting stray
@@ -186,32 +301,51 @@ function renderGames(games) {
   if (games.length === 0) {
     var empty = document.createElement('p');
     empty.className = 'empty-message';
-    empty.textContent = 'Nothing here yet. Create your first activity!';
+    empty.textContent = (libraryQuery || activeGoal)
+      ? 'No matches — try a different search or clear the filter.'
+      : 'Nothing here yet. Create your first activity!';
     gamesGrid.appendChild(empty);
     if (!ownerOn) appendOwnerLink();
     return;
   }
 
-  // Split into "My Games" (user-saved) and "Built-in Games" (ship with the
-  // framework). Source is set server-side based on filesystem location
-  // (games/user/ vs games/). Games loaded before this change have no
-  // source field — default them to 'built-in' so the picker still works.
+  // Sections, each game exactly once: Favorites → Recently used → My
+  // Activities (user-saved) → Built-in. Favorites/recents are localStorage
+  // (this browser), source is set server-side; legacy payloads without a
+  // source count as built-in.
+  var favIds = Favorites.list();
+  var recentIds = Recents.list();
+  var placed = {};
+  function take(ids) {
+    var out = [];
+    for (var i = 0; i < ids.length; i++) {
+      for (var g = 0; g < games.length; g++) {
+        if (games[g].id === ids[i] && !placed[ids[i]]) {
+          out.push(games[g]);
+          placed[ids[i]] = true;
+        }
+      }
+    }
+    return out;
+  }
+
+  var favs = take(favIds);
+  var recents = take(recentIds);
   var userGames = [];
   var builtIn = [];
   for (var i = 0; i < games.length; i++) {
-    var src = games[i].source || 'built-in';
-    if (src === 'user') userGames.push(games[i]);
+    if (placed[games[i].id]) continue;
+    if ((games[i].source || 'built-in') === 'user') userGames.push(games[i]);
     else builtIn.push(games[i]);
   }
 
-  if (userGames.length > 0) {
-    appendGameSection('My Activities', userGames, /*deletable*/ true);
-  }
+  var sectioned = favs.length > 0 || recents.length > 0 || userGames.length > 0;
+  if (favs.length > 0) appendGameSection('♥ Favorites', favs);
+  if (recents.length > 0) appendGameSection('Recently used', recents);
+  if (userGames.length > 0) appendGameSection('My Activities', userGames);
   if (builtIn.length > 0) {
-    // Only show the heading if "My Activities" is also present — keeps the
-    // page looking like a flat grid when the teacher hasn't created anything yet.
-    // Built-in deletes are owner-only server-side, so only owners see the button.
-    appendGameSection(userGames.length > 0 ? 'Built-in Activities' : null, builtIn, ownerOn);
+    // Flat grid (no heading) when it's the only section.
+    appendGameSection(sectioned ? 'Built-in Activities' : null, builtIn);
   }
 
   // A quiet doorway to the full list for the site owner.
@@ -226,7 +360,7 @@ function appendOwnerLink() {
   gamesGrid.appendChild(link);
 }
 
-function appendGameSection(headingText, games, deletable) {
+function appendGameSection(headingText, games) {
   if (headingText) {
     var heading = document.createElement('h2');
     heading.className = 'games-section-heading';
@@ -238,13 +372,17 @@ function appendGameSection(headingText, games, deletable) {
   grid.className = 'games-section-grid';
 
   for (var i = 0; i < games.length; i++) {
-    grid.appendChild(buildGameCard(games[i], deletable));
+    grid.appendChild(buildGameCard(games[i]));
   }
 
   gamesGrid.appendChild(grid);
 }
 
-function buildGameCard(game, deletable) {
+function buildGameCard(game) {
+  // Deleting your own creations is always allowed; deleting a shipped
+  // built-in is owner-only (mirrors the server rule).
+  var deletable = (game.source || 'built-in') === 'user' ||
+    (window.OwnerMode && OwnerMode.isOn());
   var card = document.createElement('div');
   card.className = 'game-card';
   if ((game.source || 'built-in') === 'built-in') {
@@ -314,11 +452,15 @@ function buildGameCard(game, deletable) {
   var actions = document.createElement('div');
   actions.className = 'game-card-actions';
 
+  // Using an activity (any action) files it under "Recently used" next visit.
+  var rememberRecent = function () { Recents.add(game.id); };
+
   var hostBtn = document.createElement('a');
   hostBtn.className = 'game-card-host';
   hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
   hostBtn.textContent = '▶ Host';
   hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');
+  hostBtn.addEventListener('click', rememberRecent);
   actions.appendChild(hostBtn);
 
   var editBtn = document.createElement('a');
@@ -326,6 +468,7 @@ function buildGameCard(game, deletable) {
   editBtn.href = '/designer/edit?game=' + encodeURIComponent(game.id);
   editBtn.textContent = 'Edit';
   editBtn.setAttribute('aria-label', 'Edit "' + game.name + '"');
+  editBtn.addEventListener('click', rememberRecent);
   actions.appendChild(editBtn);
 
   var previewBtn = document.createElement('a');
@@ -333,7 +476,21 @@ function buildGameCard(game, deletable) {
   previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
   previewBtn.textContent = 'Try it';
   previewBtn.setAttribute('aria-label', 'Try "' + game.name + '" in prototype mode');
+  previewBtn.addEventListener('click', rememberRecent);
   actions.appendChild(previewBtn);
+
+  var favBtn = document.createElement('button');
+  var isFav = Favorites.has(game.id);
+  favBtn.className = 'game-card-fav' + (isFav ? ' is-fav' : '');
+  favBtn.textContent = isFav ? '♥' : '♡';
+  favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+  favBtn.setAttribute('aria-label', (isFav ? 'Remove "' : 'Favorite "') + game.name + '"');
+  favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+  favBtn.addEventListener('click', function () {
+    Favorites.toggle(game.id);
+    refreshLibrary();
+  });
+  actions.appendChild(favBtn);
 
   if (deletable) {
     var deleteBtn = document.createElement('button');
@@ -399,20 +556,11 @@ async function handleDeleteClick(e) {
     var result = await response.json();
 
     if (response.ok) {
-      var card = btn.closest('.game-card');
-      if (card) card.remove();
-
-      // Remove from allGames and this device's "mine" list
+      // Remove from allGames and this device's "mine" list, then re-render
+      // (refreshLibrary handles sections and the empty state).
       allGames = allGames.filter(function (g) { return g.id !== id; });
       if (window.MyGames) MyGames.remove(id);
-
-      // Show empty message if no games left
-      if (gamesGrid.querySelectorAll('.game-card').length === 0) {
-        var empty = document.createElement('p');
-        empty.className = 'empty-message';
-        empty.textContent = 'No games found. Create your first game!';
-        gamesGrid.appendChild(empty);
-      }
+      refreshLibrary();
     } else {
       alert('Delete failed: ' + (result.error || 'Unknown error'));
     }

@@ -80,5 +80,8 @@
       "type": "end",
       "message": "🔗 That's Vocab Match! Swap in your own pairs for any unit review."
     }
-  }
+  },
+  "tags": [
+    "review"
+  ]
 }

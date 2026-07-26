@@ -82,5 +82,9 @@
       "type": "end",
       "message": "📚 Same class, different choices, different story. Play it again sometime."
     }
-  }
+  },
+  "tags": [
+    "create",
+    "decide"
+  ]
 }

@@ -2,7 +2,10 @@
   "name": "Lightning Round",
   "description": "A buzzer round plus two guess-the-number questions — quick-fire class energy with a leaderboard at the end.",
   "phases": {
-    "lobby": { "type": "lobby", "next": "intro" },
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
     "intro": {
       "type": "announce",
       "message": "⚡ LIGHTNING ROUND!\n\nFirst: a buzzer round — questions are asked out loud. Buzz fast, answer faster. Wrong answers are locked out until the next question.\n\nThen: guess-the-number. Closest guess wins the points.",
@@ -36,7 +39,11 @@
     },
     "scoreboard": {
       "type": "leaderboard",
-      "from": ["buzzer.scores", "guess1.scores", "guess2.scores"],
+      "from": [
+        "buzzer.scores",
+        "guess1.scores",
+        "guess2.scores"
+      ],
       "style": "full",
       "next": "end"
     },
@@ -44,5 +51,9 @@
       "type": "end",
       "message": "⚡ That's the Lightning Round! Same time next week."
     }
-  }
+  },
+  "tags": [
+    "energize",
+    "review"
+  ]
 }

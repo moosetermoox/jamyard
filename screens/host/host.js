@@ -791,9 +791,11 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
   }
 });
 
-socket.on('show-results', ({ content, aiResult, responses, image, video, hostTemplate, hostShow }) => {
+socket.on('show-results', ({ content, aiResult, responses, image, video, continueLabel, hostTemplate, hostShow }) => {
   showSection(revealSection);
   if (J) J.sound('reveal');
+  // The button says what happens next ("Start the voting"), not "Continue".
+  continueBtn.textContent = continueLabel || 'Continue';
   aiResultDisplay.textContent = content || aiResult;
   aiResultDisplay.classList.toggle('chart', /[█░]/.test(aiResultDisplay.textContent || ''));
   applyTemplate(revealSection, hostTemplate);
@@ -815,8 +817,9 @@ socket.on('show-results', ({ content, aiResult, responses, image, video, hostTem
   }
 });
 
-socket.on('announce', ({ message, image, video, timer, hostTemplate, hostShow }) => {
+socket.on('announce', ({ message, image, video, timer, continueLabel, hostTemplate, hostShow }) => {
   showSection(announceSection);
+  announceContinueBtn.textContent = continueLabel || 'Continue';
   announceMessage.textContent = message;
   applyTemplate(announceSection, hostTemplate);
   applyImage(announceImage, image, hostShow);

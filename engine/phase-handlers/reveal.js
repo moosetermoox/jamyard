@@ -7,6 +7,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { buildPairViews, buildPairContent } from '../phases/pair-reveal.js';
+import { continueLabelForPhase } from '../phases/continue-labels.js';
 
 const PER_PLAYER_REF = /\{\{\s*[a-zA-Z0-9_-]+\.mine\s*\}\}/;
 
@@ -47,13 +48,15 @@ registerHandler('reveal', {
     const sc = ctx.resolveScreenControl();
     const tpl = phase.template || '';
     const isPerPlayer = !!phase.template && PER_PLAYER_REF.test(tpl);
+    // Host continue button says what happens next, not "Continue".
+    const continueLabel = continueLabelForPhase(phase, engine.config.phases);
 
     if (phase.scope === 'pair') {
       const views = getPairViews(ctx);
       const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
       const video = ctx.services.resolveVideoEmbed(phase.video);
       ctx.emitToHost(EVENTS.SHOW_RESULTS, {
-        content: PAIR_HOST_CONTENT, aiResult: PAIR_HOST_CONTENT, responses: [], image, video, ...sc
+        content: PAIR_HOST_CONTENT, aiResult: PAIR_HOST_CONTENT, responses: [], image, video, continueLabel, ...sc
       });
       for (const player of engine.players.list()) {
         const content = pairContentFor(ctx, views, player.id);
@@ -93,7 +96,7 @@ registerHandler('reveal', {
     const video = ctx.services.resolveVideoEmbed(phase.video);
 
     if (isPerPlayer) {
-      ctx.emitToHost(EVENTS.SHOW_RESULTS, { content, aiResult: content, responses, image, video, ...sc });
+      ctx.emitToHost(EVENTS.SHOW_RESULTS, { content, aiResult: content, responses, image, video, continueLabel, ...sc });
       for (const player of engine.players.list()) {
         const playerContent = ctx.services.resolvePerPlayerTemplate(tpl, engine, player.id);
         ctx.emitToPlayer(player.id, EVENTS.SHOW_RESULTS, {
@@ -101,7 +104,7 @@ registerHandler('reveal', {
         });
       }
     } else {
-      ctx.emitToRoom(EVENTS.SHOW_RESULTS, { content, aiResult, responses, image, video, ...sc });
+      ctx.emitToRoom(EVENTS.SHOW_RESULTS, { content, aiResult, responses, image, video, continueLabel, ...sc });
     }
   },
 

@@ -50,7 +50,9 @@
   "tags": [
     "quiz",
     "trivia",
-    "kahoot-style"
+    "kahoot-style",
+    "energize",
+    "review"
   ],
   "recommendedFor": "Quick warm-up. Edit the question + correct answer in the editor for any topic."
 }
