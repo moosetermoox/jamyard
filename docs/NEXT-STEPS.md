@@ -72,6 +72,16 @@ everything below is polish, testing, and ops.
    doorway). **Wave 2 SHIPPED 2026-07-26:** library search + goal chips +
    favorites + recently-used; descriptive continue buttons on announce/reveal
    (`engine/phases/continue-labels.js`).
+   **Console wave SHIPPED 2026-07-27** (top item of the second review):
+   stale-guard fix (console's first click was dropped), lobby roster +
+   Start activity button, descriptive step labels, pairing announcements,
+   two-step PIN reveal with auto-hide.
+   **Still queued from the second review:** modal dialog semantics
+   (recipe/template pickers: role=dialog, Esc, focus trap, × close);
+   pre-room host screen states (hide empty roster/Start until room
+   exists); editor header hierarchy (Save primary, Ask AI + Save as
+   Recipe into a menu); polish batch (rename owner link "Show full
+   library", filter result counts, playTime/classSize on all featured).
    **Wave 3 (post-field-test):** AI storyboard-before-generate flow (extend
    the recipe param form), pinned host control bar, collective
    visualizations + illustration/motion system (see DEFERRED-IDEAS).

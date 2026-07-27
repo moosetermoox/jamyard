@@ -99,18 +99,46 @@ const teacherViewToggle = document.getElementById('teacher-view-toggle');
 const teacherViewInfo = document.getElementById('teacher-view-info');
 let currentTeacherPin = null;
 
-// The host screen is projected — the PIN only appears on a deliberate
-// click (peek before projecting, or cup a hand over it), and a second
-// click hides it again.
+// The host screen is projected — the PIN appears only after a deliberate
+// two-step confirm (first tap warns, second tap shows), and auto-hides
+// after 15 seconds. A student photographing the projector is the threat
+// model here; console joins are also announced loudly (below) so a
+// hijacked pairing can't happen silently.
+let pinRevealArmed = false;
+let pinHideTimer = null;
+function hidePinInfo() {
+  teacherViewInfo.hidden = true;
+  pinRevealArmed = false;
+  teacherViewToggle.textContent = '📱 Teacher controls on your phone';
+  if (pinHideTimer) { clearTimeout(pinHideTimer); pinHideTimer = null; }
+}
 teacherViewToggle.addEventListener('click', () => {
-  if (!teacherViewInfo.hidden) {
-    teacherViewInfo.hidden = true;
+  if (!teacherViewInfo.hidden) { hidePinInfo(); return; }
+  if (!pinRevealArmed) {
+    pinRevealArmed = true;
+    teacherViewToggle.textContent = '⚠ Students may see this — tap again to show the PIN';
+    // Disarm quietly if the teacher thinks better of it.
+    setTimeout(() => { if (teacherViewInfo.hidden) hidePinInfo(); }, 6000);
     return;
   }
   teacherViewInfo.textContent = 'Open ' + window.location.origin +
     '/teacher on your phone · room ' + (currentRoomCode || '????') +
     ' · PIN ' + (currentTeacherPin || '????');
   teacherViewInfo.hidden = false;
+  teacherViewToggle.textContent = 'Hide';
+  pinHideTimer = setTimeout(hidePinInfo, 15000);
+});
+
+// Pairing visibility: announce every console join on the projector chip.
+const teacherDeviceNotice = document.getElementById('teacher-device-notice');
+socket.on('teacher-console-joined', ({ deviceCount }) => {
+  hidePinInfo(); // paired — no reason to keep the PIN on the wall
+  if (teacherDeviceNotice) {
+    teacherDeviceNotice.hidden = false;
+    teacherDeviceNotice.textContent = deviceCount > 1
+      ? '📱 ' + deviceCount + ' teacher devices connected'
+      : '📱 Teacher device connected';
+  }
 });
 
 // Preview content stays off the projector until deliberately revealed.

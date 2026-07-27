@@ -35,11 +35,18 @@ var consoleNote = document.getElementById('console-note');
 var checklistBlock = document.getElementById('checklist-block');
 var checklistGroups = document.getElementById('checklist-groups');
 
+var lobbyBlock = document.getElementById('lobby-block');
+var lobbyCount = document.getElementById('lobby-count');
+var lobbyRoster = document.getElementById('lobby-roster');
+var startActivityBtn = document.getElementById('start-activity-btn');
+var deviceNotice = document.getElementById('device-notice');
+
 var currentCode = null;
 var currentPin = null;
 var currentPhaseType = null;
 var currentPhaseInstanceId = 0;
 var checklistItemTexts = [];
+var latestRoster = { count: 0, players: [] };
 
 var PHASE_LABELS = {
   lobby: 'Lobby — players joining',
@@ -117,7 +124,8 @@ socket.on('teacher-joined', function (snap) {
   headerRoom.hidden = false;
   headerRoom.textContent = (snap.gameName ? snap.gameName + ' · ' : '') + 'Room ' + snap.code;
 
-  setPhase(snap.phaseType, snap.phaseId, snap.phaseInstanceId);
+  latestRoster = { count: snap.playerCount || 0, players: snap.players || [] };
+  setPhase(snap.phaseType, snap.phaseId, snap.phaseInstanceId, snap.continueLabel);
   renderEntries(snap.submissions || []);
   // Seed the "X of Y in" count when joining mid-collect (live updates take
   // over from the next response-received event).
@@ -149,7 +157,7 @@ socket.on('connect', function () {
 
 // --- Phase tracking: decides which controls show ---
 
-function setPhase(phaseType, phaseId, phaseInstanceId) {
+function setPhase(phaseType, phaseId, phaseInstanceId, continueLabel) {
   currentPhaseType = phaseType;
   if (phaseInstanceId !== undefined && phaseInstanceId !== null) {
     currentPhaseInstanceId = phaseInstanceId;
@@ -157,6 +165,10 @@ function setPhase(phaseType, phaseId, phaseInstanceId) {
   phaseLabel.textContent = PHASE_LABELS[phaseType] || (phaseType || 'Waiting…');
   phaseLabel.classList.toggle('phase-label-attention', phaseType === 'preview');
   countLabel.textContent = '';
+
+  var isLobby = phaseType === 'lobby';
+  lobbyBlock.hidden = !isLobby;
+  if (isLobby) renderLobbyRoster();
 
   var isCollect = phaseType === 'collect' || phaseType === 'collect-choice';
   entriesBlock.hidden = !isCollect;
@@ -171,9 +183,13 @@ function setPhase(phaseType, phaseId, phaseInstanceId) {
   closeStepBtn.hidden = !isCollect;
   closeStepBtn.disabled = false;
   // During preview, Approve / Try again are the only ways forward — a bare
-  // "Next step" would skip the review entirely.
-  nextStepBtn.hidden = phaseType === 'preview';
+  // next-step would skip the review entirely. In the lobby the only forward
+  // path is the explicit Start activity button (an accidental generic
+  // advance shouldn't be able to start the class).
+  nextStepBtn.hidden = phaseType === 'preview' || isLobby;
   nextStepBtn.disabled = false;
+  // The button says what advancing DOES ("Start the voting"), not "Next step".
+  nextStepBtn.textContent = continueLabel ? continueLabel + ' ▸' : 'Next step ▸';
   // No visible buttons → no floating dashed divider.
   controlsBlock.hidden = closeStepBtn.hidden && nextStepBtn.hidden;
 
@@ -183,7 +199,36 @@ function setPhase(phaseType, phaseId, phaseInstanceId) {
 }
 
 socket.on('teacher-phase', function (data) {
-  setPhase(data.phaseType, data.phaseId, data.phaseInstanceId);
+  setPhase(data.phaseType, data.phaseId, data.phaseInstanceId, data.continueLabel);
+});
+
+// --- Lobby: live roster + start control ---
+
+function renderLobbyRoster() {
+  var n = latestRoster.count || 0;
+  lobbyCount.textContent = n === 1 ? '1 student joined' : n + ' students joined';
+  var names = (latestRoster.players || []).map(function (p) { return p.name; });
+  lobbyRoster.textContent = names.length ? names.join(' · ') : 'Waiting for students to join…';
+  startActivityBtn.disabled = n === 0;
+}
+
+socket.on('teacher-roster', function (data) {
+  latestRoster = { count: (data && data.count) || 0, players: (data && data.players) || [] };
+  if (currentPhaseType === 'lobby') renderLobbyRoster();
+});
+
+startActivityBtn.addEventListener('click', function () {
+  startActivityBtn.disabled = true;
+  socket.emit('start-game', { code: currentCode });
+});
+
+// Pairing visibility: every console join is announced to every teacher
+// surface, so a device the teacher doesn't recognize can't connect silently.
+socket.on('teacher-console-joined', function (data) {
+  var n = (data && data.deviceCount) || 2;
+  deviceNotice.hidden = false;
+  deviceNotice.textContent = '📱 Another teacher device just connected (' + n +
+    ' total). If that wasn\'t you, a student may have the PIN — end the session or change rooms.';
 });
 
 socket.on('response-received', function (data) {

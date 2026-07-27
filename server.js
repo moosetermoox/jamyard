@@ -67,6 +67,7 @@ import { scoreSorting, sortStats, buildSortResultsList } from './engine/phases/s
 import { buildTeamRosters } from './engine/phase-handlers/team-split.js';
 import { applyCheck, groupProgress, checklistResults } from './engine/phases/checklist-state.js';
 import { playerChecklistView, teacherDetail } from './engine/phase-handlers/checklist.js';
+import { continueLabelForPhase } from './engine/phases/continue-labels.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
@@ -332,6 +333,10 @@ function isStalePhaseEvent(room, clientPhaseInstanceId, eventName) {
   if (!room) return false;
   if (clientPhaseInstanceId === undefined || clientPhaseInstanceId === null) return false;
   const current = room.phaseInstanceId;
+  // Before the first phase starts (lobby) no instance id exists yet — nothing
+  // can be stale. Without this, the teacher console's very first "Start"
+  // click was dropped (snapshot said 0, room said undefined; 2026-07-27).
+  if (current === undefined || current === null) return false;
   if (clientPhaseInstanceId !== current) {
     console.log(`[stale-event] Dropping "${eventName}" — client saw phase ${clientPhaseInstanceId}, current ${current}`);
     recordEvent(room, 'stale-dropped', { event: eventName, clientSeq: clientPhaseInstanceId });
@@ -1348,7 +1353,22 @@ function buildTeacherSnapshot(code, room) {
   if (ps && ps.kind === 'checklist' && !ps.closed) {
     snap.checklist = { items: ps.items, groups: teacherDetail(ps), solo: ps.solo };
   }
+  if (engine && phase) {
+    snap.continueLabel = continueLabelForPhase(phase, engine.config.phases);
+    snap.players = engine.players.listPublic();
+  }
   return snap;
+}
+
+// Live joined-player roster for the consoles (names are fine — the console
+// is the teacher's private screen, unlike the projected host).
+function emitTeacherRoster(code, room) {
+  if (!room || !room.engine) return;
+  const players = room.engine.players.listPublic();
+  io.to(teachersChannel(code)).emit(EVENTS.TEACHER_ROSTER, {
+    count: players.length,
+    players
+  });
 }
 
 // Push the live moderation list (submitter name + text + hidden flag) to the
@@ -1482,7 +1502,10 @@ async function handlePhase(code, room) {
   io.to(teachersChannel(code)).emit(EVENTS.TEACHER_PHASE, {
     phaseId: phase.id,
     phaseType: phase.type,
-    phaseInstanceId: room.phaseInstanceId
+    phaseInstanceId: room.phaseInstanceId,
+    // Lets the console's next-step button say what advancing DOES
+    // ("Start the voting"), not a generic "Next step".
+    continueLabel: continueLabelForPhase(phase, engine.config.phases)
   });
 
   // Dispatch to registered handler
@@ -2428,6 +2451,14 @@ io.on('connection', (socket) => {
     recordEvent(room, 'teacher-console-joined');
     console.log(`[join-teacher] Console ${socket.id} joined room ${code}`);
     socket.emit(EVENTS.TEACHER_JOINED, buildTeacherSnapshot(code, room));
+    // Pairing must be VISIBLE: the PIN can be glimpsed off the projector, so
+    // the host screen (and any earlier console) announces every new pairing —
+    // a hijacked console can't connect silently. deviceCount lets the teacher
+    // judge "that's my phone" vs "that's a third device I don't own".
+    const hostSocketId = roomToHost.get(code);
+    const notice = { deviceCount: room.teacherSocketIds.size };
+    if (hostSocketId) io.to(hostSocketId).emit(EVENTS.TEACHER_CONSOLE_JOINED, notice);
+    socket.to(teachersChannel(code)).emit(EVENTS.TEACHER_CONSOLE_JOINED, notice);
   });
 
   socket.on(EVENTS.JOIN_ROOM, async (payload = {}) => {
@@ -2512,6 +2543,7 @@ io.on('connection', (socket) => {
           players: players.listPublic()
         });
       }
+      emitTeacherRoster(code, room);
       persistRoom(code, room);
     } catch (error) {
       console.log(`[join-room] Error: ${error.message}`);
@@ -2748,6 +2780,7 @@ io.on('connection', (socket) => {
     if (hostSocketId) {
       io.to(hostSocketId).emit(EVENTS.PLAYER_LEFT, { id: playerId, players: players.listPublic() });
     }
+    emitTeacherRoster(code, room);
     emitSubmissionsUpdate(code, room);
   });
 
@@ -3850,6 +3883,7 @@ io.on('connection', (socket) => {
                   players: players.listPublic()
                 });
               }
+              emitTeacherRoster(code, room);
             }
           }, 30000);
           disconnectTimers.set(socket.id, timerId);

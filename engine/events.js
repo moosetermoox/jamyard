@@ -47,6 +47,8 @@ export const EVENTS = {
   TEACHER_JOINED:       'teacher-joined',      // server -> console: snapshot of current state
   TEACHER_JOIN_ERROR:   'teacher-join-error',  // server -> console: bad code/pin
   TEACHER_PHASE:        'teacher-phase',       // server -> consoles: phase changed (id/type/seq)
+  TEACHER_ROSTER:       'teacher-roster',      // server -> consoles: live joined-player roster
+  TEACHER_CONSOLE_JOINED: 'teacher-console-joined', // server -> host: a console paired (pairing visibility)
 
   // --- AI Processing ---
   PROCESSING_STARTED:   'processing-started',
