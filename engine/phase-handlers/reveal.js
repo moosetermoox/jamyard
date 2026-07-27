@@ -7,6 +7,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { buildPairViews, buildPairContent } from '../phases/pair-reveal.js';
+import { buildChainViews, formatChainContent } from '../phases/chain-reveal.js';
 import { continueLabelForPhase } from '../phases/continue-labels.js';
 
 const PER_PLAYER_REF = /\{\{\s*[a-zA-Z0-9_-]+\.mine\s*\}\}/;
@@ -15,6 +16,25 @@ const PER_PLAYER_REF = /\{\{\s*[a-zA-Z0-9_-]+\.mine\s*\}\}/;
 // class, so it NEVER shows pair-private answers — only a neutral status line.
 const PAIR_HOST_CONTENT = "Everyone is reading their pair's answers on their own screen.";
 const PAIR_UNPAIRED_CONTENT = 'Sit tight — pairs are sharing this round.';
+
+// Same discipline for return-to-author reveals: each chain is private to
+// its author; the projector only narrates.
+const OWN_HOST_CONTENT = 'Everyone is reading what became of the thing they started. Give it a minute — then ask who got the best surprise.';
+
+// Chain views for a scope:"own" reveal: walk chainFrom's phase data
+// (origin first) through the assignedFrom links the rotation stored.
+function getChainViews(ctx) {
+  const ids = Array.isArray(ctx.phase.chainFrom) ? ctx.phase.chainFrom : [];
+  if (ids.length === 0) {
+    throw new Error(`reveal "${ctx.phase.id}" has scope:"own" but no chainFrom — list the chain's collect steps in order`);
+  }
+  const chainDatas = ids.map(id => ctx.engine.phaseData[id] || {});
+  return buildChainViews(chainDatas);
+}
+
+function ownContentFor(ctx, views, playerId) {
+  return formatChainContent(views.get(playerId), { display: ctx.phase.chainDisplay });
+}
 
 // Build the per-pair views for a scope:"pair" reveal, or throw a clear error
 // if the upstream pairwise collect hasn't produced pairing data. Surfacing
@@ -62,6 +82,22 @@ registerHandler('reveal', {
         const content = pairContentFor(ctx, views, player.id);
         ctx.emitToPlayer(player.id, EVENTS.SHOW_RESULTS, {
           content, aiResult: content, responses: [], image, video, ...sc
+        });
+      }
+      return;
+    }
+
+    if (phase.scope === 'own') {
+      // Return-to-author: each player sees what became of THEIR item after
+      // the rotation chain in chainFrom. Private per player, neutral host.
+      const views = getChainViews(ctx);
+      ctx.emitToHost(EVENTS.SHOW_RESULTS, {
+        content: OWN_HOST_CONTENT, aiResult: OWN_HOST_CONTENT, responses: [], continueLabel, ...sc
+      });
+      for (const player of engine.players.list()) {
+        const content = ownContentFor(ctx, views, player.id);
+        ctx.emitToPlayer(player.id, EVENTS.SHOW_RESULTS, {
+          content, aiResult: content, responses: [], ...sc
         });
       }
       return;
@@ -122,6 +158,16 @@ registerHandler('reveal', {
       const pairVideo = ctx.services.resolveVideoEmbed(phase.video);
       socket.emit(EVENTS.SHOW_RESULTS, {
         content: pairContent, aiResult: pairContent, image: pairImage, video: pairVideo, ...sc
+      });
+      return;
+    }
+
+    if (phase.scope === 'own') {
+      const views = getChainViews(ctx);
+      const player = engine.players.find(socket.id);
+      const ownContent = player ? ownContentFor(ctx, views, player.id) : OWN_HOST_CONTENT;
+      socket.emit(EVENTS.SHOW_RESULTS, {
+        content: ownContent, aiResult: ownContent, ...sc
       });
       return;
     }

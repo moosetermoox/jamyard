@@ -2671,7 +2671,10 @@ io.on('connection', (socket) => {
       // Safety gate — only free-text collect submissions. collect-choice answers
       // are teacher-authored choices, so they skip validation/filtering.
       if (currentPhase && currentPhase.type === 'collect') {
-        const check = checkSubmission(response, { prompt: currentPhase.prompt });
+        const check = checkSubmission(response, {
+          prompt: currentPhase.prompt,
+          maxLength: currentPhase.maxLength || undefined
+        });
         if (!check.ok) {
           console.log(`[submit-response] Rejected (${check.reason}) from ${socket.id}`);
           recordEvent(room, 'submit-rejected', { player: player.name, reason: check.reason });

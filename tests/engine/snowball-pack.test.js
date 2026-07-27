@@ -72,6 +72,34 @@ describe('buildMergeGroups — groupSize 2', () => {
   });
 });
 
+describe('buildMergeGroups — groupSize 3 (trios for consulting protocols)', () => {
+  const idsFor = n => Array.from({ length: n }, (_, i) => `p${i + 1}`);
+  const eligFor = n => Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `P${i + 1}` }));
+
+  it('6 players → two trios, everyone placed once', () => {
+    const { groups } = buildMergeGroups([], eligFor(6), 3, idsFor(6));
+    expect(groups.map(g => g.members.length)).toEqual([3, 3]);
+    expect(groups.flatMap(g => g.members).sort()).toEqual(idsFor(6).sort());
+  });
+
+  it('8 players → two trios + one pair (n%3===2)', () => {
+    const { groups } = buildMergeGroups([], eligFor(8), 3, idsFor(8));
+    expect(groups.map(g => g.members.length).sort()).toEqual([2, 3, 3]);
+  });
+
+  it('7 players → a four joins the last trio, never a singleton (n%3===1)', () => {
+    const { groups } = buildMergeGroups([], eligFor(7), 3, idsFor(7));
+    expect(groups.map(g => g.members.length).sort()).toEqual([3, 4]);
+    expect(groups.every(g => g.members.length >= 2)).toBe(true);
+  });
+
+  it('seeds still carry each member\'s own answer', () => {
+    const { groups } = buildMergeGroups(SOLO_RESPONSES, ELIGIBLE.slice(0, 3), 3, ['p1', 'p2', 'p3']);
+    expect(groups.length).toBe(1);
+    expect(groups[0].seeds.map(s => s.author).sort()).toEqual(['Alice', 'Bob', 'Cleo']);
+  });
+});
+
 describe('buildMergeGroups — groupSize 4 (quads from prior merge)', () => {
   const PRIOR_MERGED = [
     { groupId: 'g1', text: 'Norm A', members: ['p1', 'p2'] },

@@ -60,6 +60,7 @@ function buildRotationAssignment(ctx) {
   const sourceDrawings = sourceData.byPlayerDrawing || null;
 
   const assignment = {};
+  const assignedFrom = {};
   const drawingAssignment = {};
   for (let i = 0; i < N; i++) {
     const senderIdx = ((i - offset) % N + N) % N;
@@ -67,6 +68,7 @@ function buildRotationAssignment(ctx) {
     const item = sourceByPlayer[senderId];
     if (item !== undefined) {
       assignment[orderedIds[i]] = item;
+      assignedFrom[orderedIds[i]] = senderId;
       if (sourceDrawings && sourceDrawings[senderId]) {
         drawingAssignment[orderedIds[i]] = sourceDrawings[senderId];
       }
@@ -80,10 +82,15 @@ function buildRotationAssignment(ctx) {
   //
   // (One source can only be actively rotated by one downstream phase at a
   // time in a linear chain, so this doesn't conflict.)
+  //
+  // `assignedFrom` ({recipient: sender}) records the LINK, not just the
+  // text — reveal scope:"own" walks these to return each chain to its
+  // author (engine/phases/chain-reveal.js).
   const existing = engine.phaseData[phase.rotateFrom] || {};
   engine.storePhaseData(phase.rotateFrom, {
     ...existing,
     assigned: assignment,
+    assignedFrom,
     ...(sourceDrawings ? { assignedDrawing: drawingAssignment } : {})
   });
   return assignment;
@@ -229,7 +236,7 @@ registerHandler('collect', {
     }
 
     // Build rotation assignment (no-op if rotateFrom isn't set)
-    buildRotationAssignment(ctx);
+    const rotation = buildRotationAssignment(ctx);
 
     // Build pairwise assignment (no-op if assign:"pairwise" isn't set)
     const pairwise = buildPairwiseAssignment(ctx);
@@ -281,10 +288,18 @@ registerHandler('collect', {
         continue;
       }
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(phase.prompt || '', engine, player.id);
+      // prefillFromAssigned: the passed item lands IN the text box so the
+      // recipient adds to it (accumulating lists — the +1-routine move).
+      // Text only; drawings already preload via assignedDrawing.
+      const prefill = phase.prefillFromAssigned && rotation && typeof rotation[player.id] === 'string'
+        ? rotation[player.id]
+        : null;
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, timer: phase.timer || null, fields: phase.fields || null,
         inputType,
         assignedDrawing: (rotatedDrawings && rotatedDrawings[player.id]) || null,
+        prefill,
+        maxLength: phase.maxLength || null,
         passAllowed: !!phase.passAllowed,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
@@ -309,14 +324,21 @@ registerHandler('collect', {
         : ctx.resolveTemplate(ctx.phase.prompt || '');
       const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
       const video = ctx.services.resolveVideoEmbed(ctx.phase.video);
-      const reconRotated = ctx.phase.rotateFrom
-        ? (ctx.engine.phaseData[ctx.phase.rotateFrom] || {}).assignedDrawing || null
+      const reconSource = ctx.phase.rotateFrom
+        ? (ctx.engine.phaseData[ctx.phase.rotateFrom] || {})
+        : {};
+      const reconRotated = reconSource.assignedDrawing || null;
+      const reconPrefill = ctx.phase.prefillFromAssigned && player && reconSource.assigned &&
+        typeof reconSource.assigned[player.id] === 'string'
+        ? reconSource.assigned[player.id]
         : null;
       socket.emit(EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, timer: null,
         fields: ctx.phase.fields || null,
         inputType: ctx.phase.inputType === 'drawing' ? 'drawing' : 'text',
         assignedDrawing: (player && reconRotated && reconRotated[player.id]) || null,
+        prefill: reconPrefill,
+        maxLength: ctx.phase.maxLength || null,
         passAllowed: !!ctx.phase.passAllowed,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });

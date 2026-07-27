@@ -83,14 +83,32 @@ export function buildMergeGroups(seedItems, eligible, groupSize, shuffledIds) {
     return { groups };
   }
 
-  // groupSize 2: pair the players; each member's own seed item (if any)
+  // groupSize 2/3: group the players; each member's own seed item (if any)
   // becomes a named seed.
   const byPlayer = {};
   for (const it of seedItems || []) {
     if (it && it.playerId) byPlayer[it.playerId] = it;
   }
   const nameOf = new Map(eligible.map(p => [p.id, p.name]));
-  const { groups: idGroups } = buildGroups(shuffledIds, { oddHandling: 'triple' });
+
+  let idGroups;
+  if (groupSize === 3) {
+    // Trios — the canonical size for consulting/listening protocols (one
+    // speaks, two listen). Remainder rule, never a singleton: n%3 === 2
+    // leaves one pair; n%3 === 1 folds the leftover into the last trio
+    // (a four beats someone alone).
+    idGroups = [];
+    const ids = shuffledIds.slice();
+    while (ids.length >= 3) idGroups.push(ids.splice(0, 3));
+    if (ids.length === 2) idGroups.push(ids.splice(0, 2));
+    else if (ids.length === 1) {
+      if (idGroups.length > 0) idGroups[idGroups.length - 1].push(ids.pop());
+      else idGroups.push(ids.splice(0, 1)); // 1-2 player room: better than nobody
+    }
+  } else {
+    ({ groups: idGroups } = buildGroups(shuffledIds, { oddHandling: 'triple' }));
+  }
+
   const groups = idGroups.map(members => ({
     members,
     seeds: members
@@ -106,7 +124,7 @@ registerHandler('merge', {
     const sc = ctx.resolveScreenControl();
     const from = phase.from || 'all';
     const eligible = ctx.getEligibleVoters(from);
-    const groupSize = phase.groupSize === 4 ? 4 : 2;
+    const groupSize = phase.groupSize === 4 ? 4 : phase.groupSize === 3 ? 3 : 2;
     const agreeMode = ['any', 'timer'].includes(phase.agreeMode) ? phase.agreeMode : 'both';
     const instruction = ctx.resolveTemplate(
       phase.instruction || 'Combine your answers into one stronger answer.'

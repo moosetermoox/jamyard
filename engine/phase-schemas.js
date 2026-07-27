@@ -244,6 +244,16 @@ export const PHASE_SCHEMAS = {
         label: 'Allow passing',
         helper: 'Adds a Pass button. A pass counts the same as a submission (the step can close), is excluded from results and AI input, and is never shown to the class.'
       },
+      prefillFromAssigned: {
+        type: 'boolean', optional: true,
+        label: 'Start the box with the passed item',
+        helper: 'With "Rotate items from" set: the classmate\'s item lands IN the text box so this student adds to it (accumulating lists — write, pass, add one). Text answers only.'
+      },
+      maxLength: {
+        type: 'integer', min: 40, max: 2000, optional: true,
+        label: 'Answer length limit',
+        helper: 'Character cap for this step (default 280). Raise it for accumulating lists that grow as they pass between students.'
+      },
       simultaneousReveal: {
         type: 'boolean', optional: true,
         label: 'Reveal all at once',
@@ -628,9 +638,9 @@ export const PHASE_SCHEMAS = {
         helper: 'Shown above the shared text box.'
       },
       groupSize: {
-        type: 'enum', values: [2, 4], optional: true, default: 2,
+        type: 'enum', values: [2, 3, 4], optional: true, default: 2,
         label: 'Group size',
-        helper: '2 = pairs merge their own answers (odd class forms one group of three). 4 = pairs of pairs — requires "Answers to merge" pointing at an earlier merge step.'
+        helper: '2 = pairs merge their own answers (odd class forms one group of three). 3 = trios (consulting/listening protocols; leftover of one joins a trio). 4 = pairs of pairs — requires "Answers to merge" pointing at an earlier merge step.'
       },
       agreeMode: {
         type: 'enum', values: ['both', 'any', 'timer'], optional: true, default: 'both',
@@ -963,14 +973,24 @@ export const PHASE_SCHEMAS = {
       },
       content: { type: 'string', optional: true, label: 'Static content' },
       scope: {
-        type: 'enum', values: ['all', 'pair'], optional: true, default: 'all',
+        type: 'enum', values: ['all', 'pair', 'own'], optional: true, default: 'all',
         label: 'Who sees what',
-        helper: '"all" shows the same content to everyone. "pair" shows each pair only their own two answers (requires pairsFrom pointing at a collect step with assign:"pairwise"). Use {{_pair.answers}} in the template.'
+        helper: '"all" shows the same content to everyone. "pair" shows each pair only their own two answers (requires pairsFrom; use {{_pair.answers}}). "own" returns each rotation chain to its author — every student sees what classmates did with THEIR item (requires chainFrom).'
       },
       pairsFrom: {
         type: 'phaseRef', optional: true,
         label: 'Pairs from',
         helper: 'Required when scope:"pair". The collect step with assign:"pairwise" whose pairing and answers this reveal shows per-pair.'
+      },
+      chainFrom: {
+        type: 'array', item: { type: 'string' }, optional: true,
+        label: 'Chain steps (in order)',
+        helper: 'Required when scope:"own". The rotation chain\'s collect steps in order, starting with the original (e.g. ["recall", "add-one", "add-again"]). Each later step must rotateFrom the one before it.'
+      },
+      chainDisplay: {
+        type: 'enum', values: ['steps', 'final'], optional: true, default: 'steps',
+        label: 'Chain display',
+        helper: '"steps" lists every hop (chain poems, stories). "final" shows only the last version (accumulating lists where each hop already contains the earlier ones).'
       },
       image: {
         type: 'string', optional: true,

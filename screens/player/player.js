@@ -126,11 +126,13 @@ const responseNotice = document.getElementById('response-notice');
 
 const RESPONSE_MAX = 280;
 const RESPONSE_MIN = 2;
+// Per-phase override (accumulating lists need more room than one answer).
+let responseMax = RESPONSE_MAX;
 
 // Live character counter + notice clearing as the student types.
 if (responseInput) {
   responseInput.addEventListener('input', () => {
-    if (responseCounter) responseCounter.textContent = responseInput.value.length + ' / ' + RESPONSE_MAX;
+    if (responseCounter) responseCounter.textContent = responseInput.value.length + ' / ' + responseMax;
     if (responseNotice && !responseNotice.hidden) responseNotice.hidden = true;
   });
 }
@@ -673,11 +675,15 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, prefill, maxLength }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
-  responseInput.value = '';
-  if (responseCounter) responseCounter.textContent = '0 / ' + RESPONSE_MAX;
+  // prefillFromAssigned: the passed item starts IN the box so this student
+  // adds to it (write → pass → add one). Server enforces the same cap.
+  responseMax = Number(maxLength) || RESPONSE_MAX;
+  responseInput.maxLength = responseMax;
+  responseInput.value = typeof prefill === 'string' ? prefill : '';
+  if (responseCounter) responseCounter.textContent = responseInput.value.length + ' / ' + responseMax;
   if (responseNotice) responseNotice.hidden = true;
   submitBtn.disabled = false;
   drawArea.hidden = true;

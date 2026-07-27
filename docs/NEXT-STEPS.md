@@ -30,9 +30,11 @@ everything below is polish, testing, and ops.
    COMPARATIVE-ADVANTAGE.md steps 1-3; featured set rebalanced, all
    configs goal-tagged, no-winner badge live).
 1.1. **COMPARATIVE-ADVANTAGE follow-ups**: (a) engine asks §7 —
-   `prefillFromAssigned` on collect (highest value/line), return-to-author
-   reveal, merge groupSize:3, append-only merge, `revealTail`, per-group
-   prompts; then One More Thing + the +1-routine family. (b) **Email
+   ~~prefillFromAssigned~~, ~~return-to-author reveal~~, ~~merge
+   groupSize:3~~, ~~One More Thing~~ **all SHIPPED 2026-07-27** (+
+   `maxLength` on collect, needed for accumulating chains). Remaining:
+   append-only merge (silent-conversation board), `revealTail`
+   (exquisite corpse), per-group prompts on team-split. (b) **Email
    pzlearn@gse.harvard.edu before any public marketing of PZ-derived
    shapes — teacher action, only you can send it.** (c) Deep Fun tier 1:
    The Mind → `ascend` phase, Just One → clue-cancel module.

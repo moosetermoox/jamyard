@@ -1,0 +1,68 @@
+{
+  "name": "One More Thing",
+  "description": "From memory, everyone lists what they remember from the lesson — then the list passes to two classmates who each add one thing it missed. Your own list comes back grown, and the AI builds the class's collective memory.",
+  "playTime": "~12 min",
+  "classSize": "3–35 players",
+  "tags": ["review", "memory", "collaborative"],
+  "minPlayers": 3,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "🧠 ONE MORE THING\n\nFrom memory — no notes! You'll list what you remember from today's lesson. Then your list travels: two classmates will each add one thing you missed.\n\nIt comes back to you, grown.",
+      "timer": 12,
+      "next": "recall"
+    },
+    "recall": {
+      "type": "collect",
+      "prompt": "From memory (no notes!): list the 2-3 most important things you remember from today's lesson. Put each on its own line.",
+      "timer": 120,
+      "maxLength": 500,
+      "next": "add-one"
+    },
+    "add-one": {
+      "type": "collect",
+      "rotateFrom": "recall",
+      "prefillFromAssigned": true,
+      "prompt": "A classmate's list is in the box below. Read it, then ADD one thing they missed — a detail, a missing point, or a connection between ideas. New line, leave their lines alone.",
+      "timer": 90,
+      "maxLength": 650,
+      "next": "add-again"
+    },
+    "add-again": {
+      "type": "collect",
+      "rotateFrom": "add-one",
+      "prefillFromAssigned": true,
+      "prompt": "A different classmate's list — already grown once. Read the whole thing, then ADD one more thing it's still missing. New line.",
+      "timer": 90,
+      "maxLength": 800,
+      "next": "returned"
+    },
+    "returned": {
+      "type": "reveal",
+      "scope": "own",
+      "chainFrom": ["recall", "add-one", "add-again"],
+      "chainDisplay": "final",
+      "next": "cluster"
+    },
+    "cluster": {
+      "type": "ai-process",
+      "task": "summarize",
+      "instruction": "These are memory lists about today's lesson, each grown by three different students. Combine them into ONE master list of what the class collectively remembered: most-mentioned ideas first, grouped by theme, duplicates merged. End by naming one or two things that only a single list caught — credit the catch, not the student.",
+      "input": "add-again.responses",
+      "next": "class-memory"
+    },
+    "class-memory": {
+      "type": "reveal",
+      "template": "🧠 WHAT WE REMEMBER — TOGETHER\n\n{{cluster.result}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "🧠 That's One More Thing — nobody's list came back the same size it left. Edit the prompts to run it on any lesson."
+    }
+  }
+}

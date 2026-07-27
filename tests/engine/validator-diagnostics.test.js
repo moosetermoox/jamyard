@@ -250,6 +250,7 @@ describe('validator diagnostics — game snapshot', () => {
       'class-critique': [],
       'class-quiz-showdown': [],
       'both-sides-rope': [],
+      'one-more-thing': [],
       'convince-me': [],
       'corn-story': [],
       'dream-vacation': [],

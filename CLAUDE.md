@@ -113,7 +113,7 @@ Framework for quickly building classroom games where:
 - **"Activity" vocabulary** — user-facing copy says **activity** (the umbrella word teachers use: games, polls, critiques, checklists all fit); "game" stays only where something genuinely is a game (e.g. the elimination-game example chip). End screens say "That's a wrap!", host button "End Session". Internals unchanged on purpose: `games/`, `gameId`, `GameEngine`, socket event names, API routes all keep "game" — this was a copy-level sweep, not a rename.
 - **Library controls** — designer grid has search, goal chips (from config `tags` using a fixed goal vocabulary: connect/create/discuss/decide/reflect/energize/review — seeded into ~14 configs), ♥ favorites and "Recently used" sections (localStorage, same no-accounts model as MyGames). One render entry point: `refreshLibrary()` in designer.js.
 - **Descriptive continue buttons** — announce and reveal host buttons say what happens NEXT ("Start the voting", "Send the question to students") via pure `engine/phases/continue-labels.js` (`continueLabelForPhase(phase, config.phases)` — covers virtual foreach sub-phases; unknown types fall back to "Continue"). Payload field `continueLabel` on ANNOUNCE/SHOW_RESULTS host emits.
-- **868 tests passing** (`npm test`)
+- **882 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-team-modes.js` (teacher/choice team-split invariants), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for phone testing and screenshot harnesses)
 
@@ -181,6 +181,8 @@ Framework for quickly building classroom games where:
    - Connection-family appreciation: assigned (never chosen) encouragement, teacher reviews every line before the wall; no scores possible
 30. **Both Sides of the Rope** (games/both-sides-rope/) — stance collect-choice → evidence collect → AI rope summary → what-ifs → re-vote → delta reveal ({{stance.barChart}} before/after)
    - The stance-delta demo: the class watches its own mind move; "changed your mind = thinking, not losing"
+31. **One More Thing** (games/one-more-thing/) — recall collect → 2× rotateFrom+prefill "add one" → reveal scope:"own" (each list returns to its author, grown) → AI class-memory summary
+   - First accumulating-chain + return-to-author game: retrieval practice that's structurally social; the +1-routine shape
 
 ### Engine Primitives (All Implemented)
 1. Player state tracking (remaining vs eliminated) — PlayerRegistry
@@ -202,11 +204,11 @@ Framework for quickly building classroom games where:
 
 ### 28 Phase Types Defined
 1. `lobby` — Wait for players to join
-2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains), `assign:"pairwise"` (bluffing/pair games — `pairsFrom` optional, `oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"` (stroke-based drawing pad; combines with rotateFrom for continue-the-drawing / caption modes)
+2. `collect` — Gather text responses from players; supports `rotateFrom` (rotation chains; stores `assignedFrom` recipient→sender links for return-to-author), `prefillFromAssigned` (the passed item starts IN the box — accumulating lists), `maxLength` (per-step char cap, default 280 — raise for accumulating chains), `assign:"pairwise"` (bluffing/pair games — `pairsFrom` optional, `oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"` (stroke-based drawing pad; combines with rotateFrom for continue-the-drawing / caption modes)
 3. `ai-process` — Send data to AI for processing; `perPlayer:true` generates one item per student
 4. `vote` — Head-to-head or pick-one voting; `matchupsFromPairs`/`excludeAuthors` for bluffing; literal `candidates` arrays (teacher-typed options); `nextByWinner` map routes the game by outcome (choose-your-own-adventure — branch targets are legal transitions, BFS/cycle/validator aware)
 5. `eliminate` — Remove players by percent or hook
-6. `reveal` — Display content to all players; `scope:"pair"` + `pairsFrom` shows each pair only its own answers (`{{_pair.prompt}}`/`{{_pair.answers}}`)
+6. `reveal` — Display content to all players; `scope:"pair"` + `pairsFrom` shows each pair only its own answers (`{{_pair.prompt}}`/`{{_pair.answers}}`); `scope:"own"` + `chainFrom:[...]` returns each rotation chain to its author (`chainDisplay: steps|final`; pure walker in `engine/phases/chain-reveal.js`)
 7. `preview` — Teacher-only preview before reveal
 8. `winner` — Declare winner and show standings
 9. `announce` — Display a message to everyone (round intros, instructions); `video:` field for YouTube embed (host-only)
@@ -221,7 +223,7 @@ Framework for quickly building classroom games where:
 18. `foreach` — Iterate over dynamic data running sub-phases per item (guessing games, review rounds)
 19. `rate` — Class scores a target on N custom 1-N scales; results render as averages bar + distribution pies; visibility=all|host-only
 20. `turn` — Charades/describe-it; server-authoritative per-turn timer, team rotation, Got It/Skip pool management; outputs `teamScores`+`capturedBy`
-21. `merge` — Group members combine their answers into one shared answer (think-pair-share); live draft, `agreeMode` both/any/timer, `groupSize` 2/4; outputs `merged`
+21. `merge` — Group members combine their answers into one shared answer (think-pair-share); live draft, `agreeMode` both/any/timer, `groupSize` 2/3/4 (3 = trios for consulting protocols, no singletons); outputs `merged`
 22. `one-voice` — Cooperative counting to a target; server-authoritative collision window, same-player rejection, teacher-speaker audio; outputs `success`/`attempts`/`resets`/`bestRun`
 23. `end` — Game over, clean up
 24. `buzz` — First-tap-wins buzzer rounds (trivia bee); teacher asks aloud, judges Right/Wrong on host; wrong = lockout for the question; one phase runs many questions; outputs `scores` (scoreMap)
@@ -329,7 +331,8 @@ Framework for quickly building classroom games where:
 - `engine/drawing.js` — pure stroke validation for drawing submissions (`validateDrawing` clamps 0-1 coords/width/color + trims to caps, `isDrawingResponse`); browser side is `screens/shared/drawing.js` (`Draw.attachPad`/`renderStrokes`/`scribble`)
 - `engine/room-snapshot.js` — `serializeRoom`/`restoreRoom` (restart survival; JSON-safe, resume-at-phase-start)
 - `scripts/sim-harness.js` — shared multi-client simulation primitives (all simulate-*.js scripts build on it)
-- `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 17 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
+- `engine/phases/chain-reveal.js` — pure return-to-author chain walker (`buildChainViews` follows `assignedFrom` links, `formatChainContent` renders steps/final views)
+- `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 18 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
 
 ### Environment
 - Uses dotenv, set ANTHROPIC_API_KEY in .env for real AI
@@ -342,7 +345,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 868 Vitest tests (~4s)
+- `npm test` — runs all 882 Vitest tests (~4s)
 - `node scripts/simulate-chaos.js [gameId] [--players N]` — school-wifi chaos suite (server must be running)
 - **CI**: `.github/workflows/test.yml` runs the suite on every push/PR; with the `RENDER_DEPLOY_HOOK` secret set (and Render auto-deploy OFF), deploys only happen on green
 - `node scripts/simulate-restart.js` — restart-survival proof (spawns its own server, kills it mid-game, restores; needs DATABASE_URL)
