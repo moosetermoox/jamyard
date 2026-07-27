@@ -25,10 +25,11 @@ everything below is polish, testing, and ops.
    day-one-kit candidates. `scripts/demo-room.js` holds a room for phone
    testing. The new 💬 feedback widget means testers can file reactions
    in the moment — check `/feedback` after each session.
-2. **Two 5-minute ops steps only the teacher can do** (pending since June):
-   set the `RENDER_DEPLOY_HOOK` secret + turn Render auto-deploy OFF
-   (deploy-on-green instructions in `.github/workflows/test.yml`), and add an
-   UptimeRobot ping (or paid tier) so the free dyno doesn't sleep mid-class.
+2. ~~Two 5-minute ops steps only the teacher can do~~ **DONE 2026-07-27**:
+   Render auto-deploy OFF + `RENDER_DEPLOY_HOOK` secret set (deploys now
+   happen only on green tests) and UptimeRobot pinging every 5 min (free
+   dyno no longer sleeps mid-class). Consider Render Starter (~$7/mo)
+   right before August field tests.
 3. **Day-one kit (C)** — pick the 3-5 launch games and polish deeply.
    Candidates now: One Voice / Closer (connection), Quiz Show, Lightning
    Round, **Vocab Match**, **Metaphor or Simile?**, **Art Gallery** (the new
