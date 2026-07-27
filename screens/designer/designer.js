@@ -448,6 +448,16 @@ function buildGameCard(game) {
     card.appendChild(rec);
   }
 
+  // Connection-family promise, made visible: the validator permanently
+  // rejects scores/winners/elimination on these — say so on the card.
+  if (game.family === 'connection') {
+    var noWinner = document.createElement('div');
+    noWinner.className = 'game-card-no-winner';
+    noWinner.textContent = '🕊 No scores, no winners';
+    noWinner.title = 'A connection activity — the framework refuses to add points, rankings, or eliminations to it.';
+    card.appendChild(noWinner);
+  }
+
   // Action row — real buttons/links, not a clickable div (keyboard + screen
   // reader accessible, and the primary teacher intent is "run this NOW", so
   // Host leads). 2026-07-26 UI review.

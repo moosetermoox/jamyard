@@ -55,5 +55,9 @@
       "type": "end",
       "message": "Thanks for playing! You've all been officially roasted."
     }
-  }
+  },
+  "tags": [
+    "connect",
+    "energize"
+  ]
 }

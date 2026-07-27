@@ -25,6 +25,17 @@ everything below is polish, testing, and ops.
    day-one-kit candidates. `scripts/demo-room.js` holds a room for phone
    testing. The new 💬 feedback widget means testers can file reactions
    in the moment — check `/feedback` after each session.
+   **Include the new thesis slate** (Whose Eyes? / Someone's Got You /
+   Both Sides of the Rope — shipped 2026-07-27 from
+   COMPARATIVE-ADVANTAGE.md steps 1-3; featured set rebalanced, all
+   configs goal-tagged, no-winner badge live).
+1.1. **COMPARATIVE-ADVANTAGE follow-ups**: (a) engine asks §7 —
+   `prefillFromAssigned` on collect (highest value/line), return-to-author
+   reveal, merge groupSize:3, append-only merge, `revealTail`, per-group
+   prompts; then One More Thing + the +1-routine family. (b) **Email
+   pzlearn@gse.harvard.edu before any public marketing of PZ-derived
+   shapes — teacher action, only you can send it.** (c) Deep Fun tier 1:
+   The Mind → `ascend` phase, Just One → clue-cancel module.
 2. ~~Two 5-minute ops steps only the teacher can do~~ **DONE 2026-07-27**:
    Render auto-deploy OFF + `RENDER_DEPLOY_HOOK` secret set (deploys now
    happen only on green tests) and UptimeRobot pinging every 5 min (free

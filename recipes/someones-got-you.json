@@ -1,0 +1,73 @@
+{
+  "id": "someones-got-you",
+  "name": "Someone's Got You",
+  "icon": "💛",
+  "description": "Everyone shares one small real thing they're working on; a classmate they don't pick writes them one line of genuine encouragement. You review every line before the wall goes up. Nobody chosen, nobody missed, nobody wins.",
+  "tagline": "Perfect for advisory, exam week, a rough stretch, or any Friday.",
+  "version": "1",
+  "feel": ["belonging", "warmth"],
+  "parameters": {
+    "notePrompt": {
+      "type": "string",
+      "label": "What students share",
+      "helper": "The sentence students complete. Keep it low-stakes — small and real beats deep.",
+      "default": "One thing you're working on, wrestling with, or quietly proud of this week. Small is fine — 'trying to get more sleep' counts. One sentence."
+    },
+    "writeTime": {
+      "type": "integer",
+      "min": 60,
+      "max": 300,
+      "label": "Writing time (seconds)",
+      "helper": "Time for each step (the note, then the encouragement).",
+      "default": 120
+    }
+  },
+  "template": {
+    "name": "Someone's Got You",
+    "description": "An encouragement wall built with the Someone's Got You recipe: every student writes one line for an assigned classmate, teacher-reviewed before reveal.",
+    "family": "connection",
+    "tags": ["connect", "belonging", "encouragement"],
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "💛 SOMEONE'S GOT YOU\n\nNo points, no winners. You'll write one small real thing — then a classmate you don't get to pick writes something FOR you.\n\nWrite like someone's day depends on it. It might.",
+        "timer": 12,
+        "next": "notes"
+      },
+      "notes": {
+        "type": "collect",
+        "prompt": "${notePrompt}",
+        "passAllowed": true,
+        "timer": "${writeTime}",
+        "next": "boost"
+      },
+      "boost": {
+        "type": "collect",
+        "rotateFrom": "notes",
+        "prompt": "A classmate wrote:\n\n“{{notes.assigned}}”\n\nWrite them ONE line of genuine encouragement. Specific beats generic — talk to the thing they actually said.",
+        "timer": "${writeTime}",
+        "next": "check"
+      },
+      "check": {
+        "type": "preview",
+        "template": "Read every line below before the wall goes up. Hide anything that isn't kind. When it's clean, open the wall.",
+        "approveNext": "wall",
+        "rejectNext": "boost"
+      },
+      "wall": {
+        "type": "reveal-one",
+        "message": "💛 The encouragement wall — one line at a time.",
+        "from": "boost.responses",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "💛 That's a wrap. Look out for each other out there."
+      }
+    }
+  }
+}

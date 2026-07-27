@@ -88,5 +88,9 @@
       "type": "end",
       "message": "Thanks for playing Class Quiz Showdown! You learned something new about your classmates today!"
     }
-  }
+  },
+  "tags": [
+    "connect",
+    "review"
+  ]
 }

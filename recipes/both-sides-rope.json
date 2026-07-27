@@ -1,0 +1,89 @@
+{
+  "id": "both-sides-rope",
+  "name": "Both Sides of the Rope",
+  "icon": "🪢",
+  "description": "The class votes where it stands on a claim, builds the strongest evidence rope for BOTH sides, asks 'what if?' — then votes again and watches whether its own mind moved. The before/after chart is the lesson.",
+  "tagline": "Perfect for debates in history, science, ELA, or a live school question — anywhere evidence pulls both ways.",
+  "version": "1",
+  "feel": ["curiosity", "consensus"],
+  "parameters": {
+    "claim": {
+      "type": "string",
+      "label": "The claim",
+      "helper": "A statement with real evidence on both sides: 'Homework should be optional.' 'The Roman Empire fell because of money.' 'Zoos do more good than harm.'",
+      "default": "Homework should be optional."
+    },
+    "evidenceTime": {
+      "type": "integer",
+      "min": 60,
+      "max": 300,
+      "label": "Evidence time (seconds)",
+      "helper": "How long students get to write their strongest piece of evidence.",
+      "default": 120
+    }
+  },
+  "template": {
+    "name": "Both Sides of the Rope",
+    "description": "A stance-evidence-restance activity built with the Both Sides of the Rope recipe. The delta between the two votes is the payload.",
+    "tags": ["decide", "discuss", "argument", "evidence"],
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "🪢 BOTH SIDES OF THE ROPE\n\n“${claim}”\n\nYou'll vote where you stand, build the strongest rope of evidence on BOTH sides — then vote again. Let's see if the rope moves.",
+        "timer": 12,
+        "next": "stance1"
+      },
+      "stance1": {
+        "type": "collect-choice",
+        "prompt": "Where do you stand RIGHT NOW?\n\n“${claim}”\n\n(It's okay not to be sure.)",
+        "choices": ["Yes", "Lean yes", "Not sure", "Lean no", "No"],
+        "timer": 30,
+        "next": "evidence"
+      },
+      "evidence": {
+        "type": "collect",
+        "prompt": "Give the strongest single piece of evidence you know — on EITHER side, not just yours. Start with YES: or NO: so we know which way it pulls.",
+        "timer": "${evidenceTime}",
+        "next": "rope"
+      },
+      "rope": {
+        "type": "ai-process",
+        "task": "summarize",
+        "instruction": "These are pieces of evidence about the claim '${claim}'. Sort them into a YES side and a NO side (use the YES:/NO: prefixes where present; judge the rest by content). Present it as a tug-of-war rope: each side's evidence strongest-first as short bullet lines, duplicates merged but every distinct idea kept. Finish with ONE line naming where the rope strains hardest — the strongest tension between the two sides. Do not declare a winner.",
+        "input": "evidence.responses",
+        "next": "rope-reveal"
+      },
+      "rope-reveal": {
+        "type": "reveal",
+        "template": "🪢 THE ROPE\n\n{{rope.result}}",
+        "next": "whatif"
+      },
+      "whatif": {
+        "type": "collect",
+        "prompt": "Ask one “What if...?” question about the rope — something that could actually move it.",
+        "timer": 90,
+        "next": "stance2"
+      },
+      "stance2": {
+        "type": "collect-choice",
+        "prompt": "The rope has been pulled from both ends. Where do you stand NOW?\n\n“${claim}”",
+        "choices": ["Yes", "Lean yes", "Not sure", "Lean no", "No"],
+        "timer": 30,
+        "next": "delta"
+      },
+      "delta": {
+        "type": "reveal",
+        "template": "📊 DID THE ROPE MOVE?\n\nWHERE WE STARTED:\n{{stance1.barChart}}\n\nWHERE WE LANDED:\n{{stance2.barChart}}\n\nAnd the questions still pulling at it:\n{{whatif.responses.list}}\n\nChanged your mind? That's not losing — that's thinking.",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "🪢 That's Both Sides of the Rope."
+      }
+    }
+  }
+}

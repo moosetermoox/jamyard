@@ -178,7 +178,7 @@ const USER_GAMES_DIR = join(GAMES_DIR, 'user');
 // `featured` marks the curated public set: visitors who haven't unlocked
 // owner mode only see featured built-ins (plus activities made on their
 // own device) in the host/designer/prototype pickers.
-const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor', 'featured'];
+const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor', 'featured', 'family'];
 
 function pickCardMeta(config) {
   const out = {};

@@ -249,10 +249,13 @@ describe('validator diagnostics — game snapshot', () => {
     const expected = {
       'class-critique': [],
       'class-quiz-showdown': [],
+      'both-sides-rope': [],
       'convince-me': [],
       'corn-story': [],
       'dream-vacation': [],
       'art-gallery': [],
+      'someones-got-you': [],
+      'whose-eyes': [],
       'elimination-game': [],
       'finish-my-drawing': [],
       'excuse-machine': [],

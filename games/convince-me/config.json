@@ -95,5 +95,8 @@
       "type": "end",
       "message": "Thanks for playing Convince Me!"
     }
-  }
+  },
+  "tags": [
+    "discuss"
+  ]
 }

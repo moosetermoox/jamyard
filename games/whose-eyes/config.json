@@ -1,0 +1,51 @@
+{
+  "name": "Whose Eyes?",
+  "description": "The class names everyone a topic touches, then each student steps inside a DIFFERENT classmate's suggestion — 30 viewpoints instead of the 5 a discussion gets. No scores; the circle of voices is the point.",
+  "featured": true,
+  "playTime": "~12 min",
+  "classSize": "4–35 players",
+  "tags": ["discuss", "perspectives", "empathy"],
+  "minPlayers": 3,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "👁 WHOSE EYES?\n\nToday's topic: our school's phone policy.\n\nFirst, name someone — or something — this topic touches. Then you'll get a classmate's suggestion and look through THEIR eyes.",
+      "timer": 12,
+      "next": "viewpoints"
+    },
+    "viewpoints": {
+      "type": "collect",
+      "prompt": "Name ONE person, creature, or thing affected by our school's phone policy. Anyone whose eyes we could look through — a substitute teacher? a parent at dinner? the phone itself?",
+      "timer": 90,
+      "next": "step-inside"
+    },
+    "step-inside": {
+      "type": "collect",
+      "rotateFrom": "viewpoints",
+      "prompt": "A classmate suggested looking through the eyes of:\n\n👁 {{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing — be an actor.",
+      "fields": [
+        { "label": "Whose eyes? (copy the viewpoint above)", "key": "eyes" },
+        { "label": "From this viewpoint, I think...", "key": "think" },
+        { "label": "From this viewpoint, I worry about or hope for...", "key": "feel" },
+        { "label": "A question I have, from here...", "key": "ask" }
+      ],
+      "timer": 180,
+      "next": "circle"
+    },
+    "circle": {
+      "type": "reveal-one",
+      "message": "👁 The circle of voices — one pair of eyes at a time.",
+      "from": "step-inside.responses",
+      "itemTemplate": "👁 Through the eyes of {{_current.eyes}}\n\n“{{_current.think}}”\n\n💭 {{_current.feel}}\n\n❓ {{_current.ask}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "That's the circle. Thirty pairs of eyes — and the question column is tomorrow's lesson. Edit the topic to use this on anything."
+    }
+  }
+}

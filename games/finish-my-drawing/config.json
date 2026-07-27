@@ -2,7 +2,10 @@
   "name": "Finish My Drawing",
   "description": "Everyone starts a drawing, then it passes to a classmate to continue — twice — before the collaborative results hit the gallery. Nobody knows what their drawing became until the reveal.",
   "phases": {
-    "lobby": { "type": "lobby", "next": "intro" },
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
     "intro": {
       "type": "announce",
       "message": "✏️ FINISH MY DRAWING!\n\nStart a drawing — anything you like. Then it passes to a classmate who has to keep it going. Twice. You won't know what yours became until the gallery.",
@@ -48,5 +51,8 @@
       "type": "end",
       "message": "✏️ That's Finish My Drawing! Every picture up there had three artists."
     }
-  }
+  },
+  "tags": [
+    "create"
+  ]
 }

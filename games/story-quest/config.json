@@ -1,7 +1,6 @@
 {
   "name": "Story Quest: The Locked Library",
   "description": "A choose-your-own-adventure the whole class steers — each chapter ends in a vote that decides where the story goes.",
-  "featured": true,
   "phases": {
     "lobby": {
       "type": "lobby",

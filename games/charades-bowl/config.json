@@ -34,7 +34,10 @@
       "type": "team-split",
       "method": "random",
       "teamCount": 2,
-      "teamNames": ["Red", "Blue"],
+      "teamNames": [
+        "Red",
+        "Blue"
+      ],
       "next": "round1-intro"
     },
     "round1-intro": {
@@ -45,7 +48,11 @@
     },
     "round1": {
       "type": "turn",
-      "pool": ["phrases-1.responses", "phrases-2.responses", "phrases-3.responses"],
+      "pool": [
+        "phrases-1.responses",
+        "phrases-2.responses",
+        "phrases-3.responses"
+      ],
       "teamsFrom": "teams",
       "timer": 60,
       "allowSkip": true,
@@ -60,7 +67,11 @@
     },
     "round2": {
       "type": "turn",
-      "pool": ["phrases-1.responses", "phrases-2.responses", "phrases-3.responses"],
+      "pool": [
+        "phrases-1.responses",
+        "phrases-2.responses",
+        "phrases-3.responses"
+      ],
       "teamsFrom": "teams",
       "timer": 60,
       "allowSkip": true,
@@ -75,7 +86,11 @@
     },
     "round3": {
       "type": "turn",
-      "pool": ["phrases-1.responses", "phrases-2.responses", "phrases-3.responses"],
+      "pool": [
+        "phrases-1.responses",
+        "phrases-2.responses",
+        "phrases-3.responses"
+      ],
       "teamsFrom": "teams",
       "timer": 60,
       "allowSkip": true,
@@ -84,7 +99,11 @@
     },
     "final-board": {
       "type": "leaderboard",
-      "from": ["round1.teamScores", "round2.teamScores", "round3.teamScores"],
+      "from": [
+        "round1.teamScores",
+        "round2.teamScores",
+        "round3.teamScores"
+      ],
       "timer": 30,
       "next": "end"
     },
@@ -95,6 +114,12 @@
   },
   "playTime": "~25 min",
   "classSize": "6–24 players (works best with even teams)",
-  "tags": ["party", "speaking", "teams", "rounds"],
+  "tags": [
+    "party",
+    "speaking",
+    "teams",
+    "rounds",
+    "energize"
+  ],
   "recommendedFor": "Best for groups that know each other a bit and aren't shy about performing. Great end-of-week energy."
 }

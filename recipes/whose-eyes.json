@@ -1,0 +1,72 @@
+{
+  "id": "whose-eyes",
+  "name": "Whose Eyes?",
+  "icon": "👁",
+  "description": "The class names everyone your topic touches, then each student steps inside a DIFFERENT classmate's suggestion and speaks from that viewpoint — 30 perspectives instead of the 5 a discussion gets. No scores.",
+  "tagline": "Perfect for a historical decision, a science dilemma, a novel's turning point, or a school policy.",
+  "version": "1",
+  "feel": ["empathy", "perspective"],
+  "parameters": {
+    "topic": {
+      "type": "string",
+      "label": "The topic",
+      "helper": "Anything with more than one side: 'the Louisiana Purchase', 'building the new dam', 'chapter 12 of Holes', 'our school's phone policy'.",
+      "default": "our school's phone policy"
+    },
+    "writeTime": {
+      "type": "integer",
+      "min": 60,
+      "max": 600,
+      "label": "Writing time (seconds)",
+      "helper": "How long students get to write from their assigned viewpoint.",
+      "default": 180
+    }
+  },
+  "template": {
+    "name": "Whose Eyes?",
+    "description": "A perspective circle built with the Whose Eyes? recipe: the class generates the viewpoints, then everyone speaks from a classmate's suggestion.",
+    "tags": ["discuss", "perspectives", "empathy"],
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "👁 WHOSE EYES?\n\nToday's topic: ${topic}\n\nFirst, name someone — or something — this topic touches. Then you'll get a classmate's suggestion and look through THEIR eyes.",
+        "timer": 12,
+        "next": "viewpoints"
+      },
+      "viewpoints": {
+        "type": "collect",
+        "prompt": "Name ONE person, creature, or thing affected by: ${topic}. Anyone whose eyes we could look through.",
+        "timer": 90,
+        "next": "step-inside"
+      },
+      "step-inside": {
+        "type": "collect",
+        "rotateFrom": "viewpoints",
+        "prompt": "A classmate suggested looking through the eyes of:\n\n👁 {{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing — be an actor.",
+        "fields": [
+          { "label": "Whose eyes? (copy the viewpoint above)", "key": "eyes" },
+          { "label": "From this viewpoint, I think...", "key": "think" },
+          { "label": "From this viewpoint, I worry about or hope for...", "key": "feel" },
+          { "label": "A question I have, from here...", "key": "ask" }
+        ],
+        "timer": "${writeTime}",
+        "next": "circle"
+      },
+      "circle": {
+        "type": "reveal-one",
+        "message": "👁 The circle of voices — one pair of eyes at a time.",
+        "from": "step-inside.responses",
+        "itemTemplate": "👁 Through the eyes of {{_current.eyes}}\n\n“{{_current.think}}”\n\n💭 {{_current.feel}}\n\n❓ {{_current.ask}}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "That's the circle — and the question column is tomorrow's lesson."
+      }
+    }
+  }
+}

@@ -15,7 +15,10 @@
     "ask": {
       "type": "collect-choice",
       "prompt": "Do you love math?",
-      "choices": ["Yes", "No"],
+      "choices": [
+        "Yes",
+        "No"
+      ],
       "from": "all",
       "timer": 20,
       "next": "transition"
@@ -39,7 +42,10 @@
         "guess": {
           "type": "collect-choice",
           "prompt": "What did {{_current.playerName}} answer?",
-          "choices": ["Yes", "No"],
+          "choices": [
+            "Yes",
+            "No"
+          ],
           "timer": 12
         },
         "reveal": {
@@ -69,6 +75,12 @@
   },
   "playTime": "~8 min",
   "classSize": "3–30 players",
-  "tags": ["icebreaker", "guessing", "social"],
+  "tags": [
+    "icebreaker",
+    "guessing",
+    "social",
+    "connect",
+    "energize"
+  ],
   "recommendedFor": "Any time — works as an icebreaker or a quick read-the-room game."
 }

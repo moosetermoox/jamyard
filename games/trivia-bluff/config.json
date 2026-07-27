@@ -35,9 +35,17 @@
       "type": "collect-choice",
       "prompt": "Which one is the TRUTH?\n\n{{trivia.result.question}}",
       "choicePool": [
-        { "from": "lies.responses", "field": "text" },
-        { "literal": "{{trivia.result.truth}}" },
-        { "literal": "{{trivia.result.houseLie}}", "optional": true }
+        {
+          "from": "lies.responses",
+          "field": "text"
+        },
+        {
+          "literal": "{{trivia.result.truth}}"
+        },
+        {
+          "literal": "{{trivia.result.houseLie}}",
+          "optional": true
+        }
       ],
       "excludeAuthored": "lies",
       "shuffle": true,
@@ -57,6 +65,12 @@
   },
   "playTime": "~8 min",
   "classSize": "4–25 players",
-  "tags": ["bluffing", "trivia", "writing"],
+  "tags": [
+    "bluffing",
+    "trivia",
+    "writing",
+    "review",
+    "energize"
+  ],
   "recommendedFor": "Older students who can write convincingly. Works as a quick warm-up."
 }

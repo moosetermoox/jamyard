@@ -28,5 +28,8 @@
       "type": "end",
       "message": "Thanks for sharing!"
     }
-  }
+  },
+  "tags": [
+    "decide"
+  ]
 }

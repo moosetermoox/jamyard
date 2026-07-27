@@ -35,9 +35,17 @@
       "type": "collect-choice",
       "prompt": "Which definition of \"{{wordpick.result.word}}\" is REAL?",
       "choicePool": [
-        { "from": "fake-defs.responses", "field": "text" },
-        { "literal": "{{wordpick.result.truth}}" },
-        { "literal": "{{wordpick.result.houseLie}}", "optional": true }
+        {
+          "from": "fake-defs.responses",
+          "field": "text"
+        },
+        {
+          "literal": "{{wordpick.result.truth}}"
+        },
+        {
+          "literal": "{{wordpick.result.houseLie}}",
+          "optional": true
+        }
       ],
       "excludeAuthored": "fake-defs",
       "shuffle": true,
@@ -57,6 +65,12 @@
   },
   "playTime": "~10 min",
   "classSize": "4–25 players",
-  "tags": ["bluffing", "vocabulary", "writing"],
+  "tags": [
+    "bluffing",
+    "vocabulary",
+    "writing",
+    "review",
+    "energize"
+  ],
   "recommendedFor": "Great for vocabulary practice or English class warm-ups."
 }

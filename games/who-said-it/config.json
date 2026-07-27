@@ -1,7 +1,6 @@
 {
   "name": "Who Said It?",
   "description": "Can you guess who wrote each response? The class guesses anonymously!",
-  "featured": true,
   "phases": {
     "lobby": {
       "type": "lobby",

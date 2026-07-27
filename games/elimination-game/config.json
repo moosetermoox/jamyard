@@ -54,5 +54,8 @@
       "type": "end",
       "message": "Great game, everyone!"
     }
-  }
+  },
+  "tags": [
+    "energize"
+  ]
 }

@@ -148,5 +148,8 @@
       "type": "end",
       "message": "You've completed Feedback Academy! Use these skills to help your classmates grow."
     }
-  }
+  },
+  "tags": [
+    "review"
+  ]
 }
