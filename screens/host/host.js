@@ -425,6 +425,15 @@ socket.on('games-list', ({ games }) => {
     gameSelect.appendChild(option);
   }
 
+  // Show what the selected activity actually is before committing to a room.
+  const descEl = document.getElementById('game-select-desc');
+  const updateDesc = () => {
+    const chosen = games.find(g => g.id === gameSelect.value);
+    if (descEl) descEl.textContent = (chosen && chosen.description) || '';
+  };
+  gameSelect.addEventListener('change', updateDesc);
+  updateDesc();
+
   // Auto-select game from URL param and create room
   const params = new URLSearchParams(window.location.search);
   const autoGame = params.get('game');
@@ -652,6 +661,9 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored 
   }
   gameSelectSection.hidden = true;
   roomCodeSection.hidden = false;
+  // The roster + Start only mean something once a room exists.
+  document.getElementById('players-section').hidden = false;
+  startGameBtn.hidden = false;
 
   // Prototype mode: notify parent window of room code
   const params = new URLSearchParams(window.location.search);

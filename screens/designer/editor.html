@@ -18,8 +18,13 @@
     </div>
     <div class="header-right">
       <span id="save-status" class="save-status save-status-clean">Saved</span>
-      <button id="ask-ai-btn" class="btn btn-ask-ai">Ask AI</button>
-      <button id="save-as-recipe-btn" class="btn btn-save-recipe">Save as Recipe</button>
+      <div class="header-menu">
+        <button id="header-more-btn" class="btn btn-secondary" aria-haspopup="true" aria-expanded="false">More ▾</button>
+        <div id="header-menu-items" class="header-menu-items" hidden>
+          <button id="ask-ai-btn" class="btn btn-ask-ai">✨ Ask AI</button>
+          <button id="save-as-recipe-btn" class="btn btn-save-recipe">Save as Recipe</button>
+        </div>
+      </div>
       <button id="review-btn" class="btn btn-review">Check for Errors</button>
       <button id="test-game-btn" class="btn btn-secondary">Prototype Mode</button>
       <button id="save-btn" class="btn btn-primary">Save</button>

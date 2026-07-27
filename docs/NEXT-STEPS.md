@@ -76,12 +76,10 @@ everything below is polish, testing, and ops.
    stale-guard fix (console's first click was dropped), lobby roster +
    Start activity button, descriptive step labels, pairing announcements,
    two-step PIN reveal with auto-hide.
-   **Still queued from the second review:** modal dialog semantics
-   (recipe/template pickers: role=dialog, Esc, focus trap, × close);
-   pre-room host screen states (hide empty roster/Start until room
-   exists); editor header hierarchy (Save primary, Ask AI + Save as
-   Recipe into a menu); polish batch (rename owner link "Show full
-   library", filter result counts, playTime/classSize on all featured).
+   **Second review fully closed 2026-07-27:** modal dialog semantics
+   (shared Dialog helper), pre-room host states + honest disabled Start,
+   editor header hierarchy (More ▾ menu, quiet Saved text), polish batch
+   (owner-link rename, chip counts, metadata on all 9 featured).
    **Wave 3 (post-field-test):** AI storyboard-before-generate flow (extend
    the recipe param form), pinned host control bar, collective
    visualizations + illustration/motion system (see DEFERRED-IDEAS).

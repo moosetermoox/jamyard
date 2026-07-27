@@ -713,22 +713,50 @@ body {
 }
 
 /* Save-state indicator in the header */
+/* Quiet status TEXT, not a chip — the old green pill read as another
+   button (2026-07-27 UI review). */
 .save-status {
   display: inline-block;
-  padding: 4px 10px;
   margin-right: 8px;
-  border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: bold;
-  border: 2px solid #000;
 }
+/* Header is cobalt — status text needs light tints to stay readable. */
 .save-status-clean {
-  background: #E8F5E9;
-  color: #1B5E20;
+  color: #C9F7CC;
 }
 .save-status-dirty {
-  background: #FFF3E0;
-  color: #E65100;
+  color: #FFD9A0;
+}
+
+/* "More ▾" menu — parks Ask AI + Save as Recipe so the header has a clear
+   hierarchy: Save primary, Check for Errors / Prototype Mode secondary. */
+.header-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.header-menu-items {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: #fff;
+  border: 3px solid #000;
+  border-radius: 12px;
+  box-shadow: 4px 4px 0 #000;
+  z-index: 50;
+  min-width: 180px;
+}
+
+.header-menu-items[hidden] { display: none; }
+
+.header-menu-items .btn {
+  width: 100%;
+  text-align: left;
 }
 
 /* Transient bottom-of-screen confirmation toast */

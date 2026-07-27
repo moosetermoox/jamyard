@@ -179,22 +179,24 @@ function buildGoalChips(games) {
   var chipsEl = document.getElementById('goal-chips');
   if (!chipsEl) return;
   chipsEl.innerHTML = '';
-  var present = {};
+  // Count activities per goal so each chip promises what it delivers
+  // ("Connect 3") — the library should feel predictable.
+  var counts = {};
   for (var i = 0; i < games.length; i++) {
     var tags = Array.isArray(games[i].tags) ? games[i].tags : [];
     for (var t = 0; t < tags.length; t++) {
-      if (GOAL_LABELS[tags[t]]) present[tags[t]] = true;
+      if (GOAL_LABELS[tags[t]]) counts[tags[t]] = (counts[tags[t]] || 0) + 1;
     }
   }
   var goals = Object.keys(GOAL_LABELS).filter(function (g) {
-    return present[g] || g === activeGoal;
+    return counts[g] || g === activeGoal;
   });
   if (goals.length === 0) return;
   goals.forEach(function (goal) {
     var chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'goal-chip' + (goal === activeGoal ? ' active' : '');
-    chip.textContent = GOAL_LABELS[goal];
+    chip.textContent = GOAL_LABELS[goal] + ' ' + (counts[goal] || 0);
     chip.setAttribute('aria-pressed', goal === activeGoal ? 'true' : 'false');
     chip.addEventListener('click', function () {
       activeGoal = (activeGoal === goal) ? null : goal;
@@ -355,7 +357,7 @@ function renderGames(games) {
 function appendOwnerLink() {
   var link = document.createElement('button');
   link.className = 'owner-link';
-  link.textContent = 'Site owner? Show everything';
+  link.textContent = 'Show full library (site owner)';
   link.addEventListener('click', enterOwnerMode);
   gamesGrid.appendChild(link);
 }

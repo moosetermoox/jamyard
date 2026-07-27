@@ -17,7 +17,8 @@
       <select id="game-select">
         <option value="">Loading activities...</option>
       </select>
-      <button id="create-room-btn">Create Room</button>
+      <p id="game-select-desc" class="game-select-desc"></p>
+      <button id="create-room-btn">Open the room</button>
     </div>
 
     <div id="room-code-section" hidden>
@@ -38,12 +39,14 @@
       </div>
     </div>
 
-    <div id="players-section">
+    <!-- Hidden until a room exists — an empty roster and a dead Start
+         button are just confusing before then (2026-07-27 UI review). -->
+    <div id="players-section" hidden>
       <h2>Players:</h2>
       <ul id="player-list"></ul>
     </div>
 
-    <button id="start-game-btn" disabled>Start!</button>
+    <button id="start-game-btn" hidden disabled>Start!</button>
   </section>
 
   <!-- COLLECT SECTION -->

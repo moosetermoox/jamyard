@@ -126,6 +126,24 @@ button:disabled {
   background: var(--theme-success, #5cb85c);
 }
 
+/* ID specificity beats button:disabled — without these, a disabled Start
+   stayed bright green and looked pressable (2026-07-27 UI review). */
+#start-game-btn:disabled,
+#close-submissions-btn:disabled,
+#end-game-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.game-select-desc {
+  max-width: 520px;
+  margin: 10px auto 16px;
+  font-size: 0.95rem;
+  color: #444;
+  line-height: 1.5;
+  min-height: 1.4em;
+}
+
 #close-submissions-btn {
   background: var(--theme-accent, #f0ad4e);
 }
