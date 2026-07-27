@@ -584,6 +584,26 @@ function generateGameId(templateKey) {
   return base + '-' + counter;
 }
 
+// --- Modal plumbing (shared/dialog.js does the a11y heavy lifting) ---
+
+// Close a Dialog-enhanced overlay properly (unbind keys, restore focus);
+// falls back to a plain remove for anything not enhanced.
+function closeOverlay(overlay) {
+  if (overlay && overlay._dlg) overlay._dlg.close();
+  else if (overlay) overlay.remove();
+}
+
+// Multi-view modals swap their content — clear everything EXCEPT the
+// dialog's × close button so it survives view changes.
+function clearModal(modal) {
+  var kids = Array.prototype.slice.call(modal.children);
+  for (var i = 0; i < kids.length; i++) {
+    if (!(kids[i].classList && kids[i].classList.contains('dialog-close-btn'))) {
+      kids[i].remove();
+    }
+  }
+}
+
 function showTemplatePicker() {
   // Remove any existing modal
   var existing = document.getElementById('template-picker-modal');
@@ -592,9 +612,6 @@ function showTemplatePicker() {
   var overlay = document.createElement('div');
   overlay.id = 'template-picker-modal';
   overlay.className = 'template-picker-overlay';
-  overlay.addEventListener('click', function (e) {
-    if (e.target === overlay) overlay.remove();
-  });
 
   var modal = document.createElement('div');
   modal.className = 'template-picker-modal';
@@ -617,7 +634,8 @@ function showTemplatePicker() {
     var key = templateKeys[i];
     var tmpl = window.GAME_TEMPLATES[key];
 
-    var card = document.createElement('div');
+    var card = document.createElement('button');
+    card.type = 'button';
     card.className = 'template-card';
     card.setAttribute('data-template-key', key);
 
@@ -639,7 +657,7 @@ function showTemplatePicker() {
 
     card.addEventListener('click', (function (chosenKey) {
       return function () {
-        overlay.remove();
+        closeOverlay(overlay);
         createFromTemplate(chosenKey);
       };
     })(key));
@@ -650,6 +668,7 @@ function showTemplatePicker() {
   modal.appendChild(grid);
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+  overlay._dlg = Dialog.enhance(overlay, modal, { title: 'Start a New Activity' });
 }
 
 function showLegacyAIGenerateModal() {
@@ -659,9 +678,6 @@ function showLegacyAIGenerateModal() {
   var overlay = document.createElement('div');
   overlay.id = 'ai-generate-modal';
   overlay.className = 'template-picker-overlay';
-  overlay.addEventListener('click', function (e) {
-    if (e.target === overlay) overlay.remove();
-  });
 
   var modal = document.createElement('div');
   modal.className = 'template-picker-modal';
@@ -701,7 +717,7 @@ function showLegacyAIGenerateModal() {
   var cancelBtn = document.createElement('button');
   cancelBtn.textContent = 'Cancel';
   cancelBtn.style.cssText = 'padding:10px 24px; border:3px solid #000; background:#eee; cursor:pointer; font-weight:bold; font-size:14px;';
-  cancelBtn.onclick = function () { overlay.remove(); };
+  cancelBtn.onclick = function () { closeOverlay(overlay); };
 
   var nextBtn = document.createElement('button');
   nextBtn.textContent = 'Next';
@@ -727,6 +743,7 @@ function showLegacyAIGenerateModal() {
 
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+  overlay._dlg = Dialog.enhance(overlay, modal, { title: 'AI Activity Generator' });
   textarea.focus();
 }
 
@@ -977,17 +994,18 @@ async function showRecipePicker() {
   var overlay = document.createElement('div');
   overlay.id = 'recipe-picker-modal';
   overlay.className = 'template-picker-overlay';
-  overlay.addEventListener('click', function (e) {
-    if (e.target === overlay) overlay.remove();
-  });
 
   var modal = document.createElement('div');
   modal.className = 'template-picker-modal recipe-picker-modal';
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+  overlay._dlg = Dialog.enhance(overlay, modal, { title: 'Pick a Recipe' });
 
   // Initial loading state
-  modal.innerHTML = '<p class="recipe-loading">Loading recipes…</p>';
+  var loadingEl = document.createElement('p');
+  loadingEl.className = 'recipe-loading';
+  loadingEl.textContent = 'Loading recipes…';
+  modal.appendChild(loadingEl);
 
   // Fetch recipes
   var recipes;
@@ -996,7 +1014,7 @@ async function showRecipePicker() {
     if (!resp.ok) throw new Error('status ' + resp.status);
     recipes = await resp.json();
   } catch (err) {
-    modal.innerHTML = '';
+    clearModal(modal);
     var errEl = document.createElement('p');
     errEl.style.cssText = 'color:#FF2D2D; padding:20px; text-align:center;';
     errEl.textContent = 'Could not load recipes: ' + err.message;
@@ -1005,7 +1023,7 @@ async function showRecipePicker() {
   }
 
   if (!recipes || recipes.length === 0) {
-    modal.innerHTML = '';
+    clearModal(modal);
     var emptyEl = document.createElement('p');
     emptyEl.style.cssText = 'padding:20px; text-align:center;';
     emptyEl.textContent = 'No recipes are available yet.';
@@ -1017,7 +1035,7 @@ async function showRecipePicker() {
 }
 
 function renderRecipePickerView(modal, recipes, overlay) {
-  modal.innerHTML = '';
+  clearModal(modal);
 
   var title = document.createElement('h2');
   title.className = 'template-picker-title';
@@ -1084,9 +1102,20 @@ function appendRecipeSection(modal, headingText, recipes, allRecipes, overlay, d
 }
 
 function buildRecipeCard(modal, recipe, allRecipes, overlay, deletable) {
+  // A real <button> can't nest the delete button, so the card gets button
+  // semantics by hand: role, tab stop, Enter/Space activation.
   var card = document.createElement('div');
   card.className = 'template-card recipe-card';
   card.setAttribute('data-recipe-id', recipe.id);
+  card.setAttribute('role', 'button');
+  card.tabIndex = 0;
+  card.setAttribute('aria-label', 'Use recipe: ' + recipe.name);
+  card.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      renderRecipeFormView(modal, recipe, allRecipes, overlay);
+    }
+  });
   if (recipe.broken) card.classList.add('recipe-card-broken');
 
   var cardIcon = document.createElement('span');
@@ -1157,7 +1186,7 @@ async function handleRecipeDelete(recipe, overlay) {
       return;
     }
     // Re-fetch + re-render the picker so the list reflects the deletion
-    overlay.remove();
+    closeOverlay(overlay);
     showRecipePicker();
   } catch (err) {
     alert('Delete failed: ' + err.message);
@@ -1169,7 +1198,7 @@ async function handleRecipeDelete(recipe, overlay) {
 // =======================================================================
 
 function renderRecipeFormView(modal, recipe, allRecipes, overlay) {
-  modal.innerHTML = '';
+  clearModal(modal);
 
   // Header with back button
   var headerRow = document.createElement('div');
@@ -1232,7 +1261,7 @@ function renderRecipeFormView(modal, recipe, allRecipes, overlay) {
   cancelBtn.type = 'button';
   cancelBtn.className = 'recipe-cancel-btn';
   cancelBtn.textContent = 'Cancel';
-  cancelBtn.addEventListener('click', function () { overlay.remove(); });
+  cancelBtn.addEventListener('click', function () { closeOverlay(overlay); });
   btnRow.appendChild(cancelBtn);
 
   var createBtn = document.createElement('button');
@@ -1676,21 +1705,19 @@ function showAIGenerateModal(initialDescription) {
   var overlay = document.createElement('div');
   overlay.id = 'ai-match-modal';
   overlay.className = 'template-picker-overlay';
-  overlay.addEventListener('click', function (e) {
-    if (e.target === overlay) overlay.remove();
-  });
 
   var modal = document.createElement('div');
   modal.className = 'template-picker-modal recipe-picker-modal';
   modal.style.maxWidth = '640px';
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
+  overlay._dlg = Dialog.enhance(overlay, modal, { title: 'Describe Your Activity' });
 
   renderAIDescriptionStep(modal, overlay, initialDescription);
 }
 
 function renderAIDescriptionStep(modal, overlay, initialDescription) {
-  modal.innerHTML = '';
+  clearModal(modal);
 
   var title = document.createElement('h2');
   title.className = 'template-picker-title';
@@ -1723,7 +1750,7 @@ function renderAIDescriptionStep(modal, overlay, initialDescription) {
   cancelBtn.type = 'button';
   cancelBtn.className = 'recipe-cancel-btn';
   cancelBtn.textContent = 'Cancel';
-  cancelBtn.addEventListener('click', function () { overlay.remove(); });
+  cancelBtn.addEventListener('click', function () { closeOverlay(overlay); });
   btnRow.appendChild(cancelBtn);
 
   var generateBtn = document.createElement('button');
@@ -1795,7 +1822,7 @@ async function submitAIDescription(modal, description, status, generateBtn, over
 }
 
 function renderMatchPreview(modal, data, overlay) {
-  modal.innerHTML = '';
+  clearModal(modal);
 
   // Header — "Sounds like {recipe.name}"
   var headerRow = document.createElement('div');
@@ -1918,7 +1945,7 @@ async function saveMatchedConfig(data, status, createBtn, overlay) {
 }
 
 function renderNoMatchView(modal, description, data, overlay) {
-  modal.innerHTML = '';
+  clearModal(modal);
 
   var title = document.createElement('h2');
   title.className = 'template-picker-title';
@@ -1961,7 +1988,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   cancelBtn.type = 'button';
   cancelBtn.className = 'recipe-cancel-btn';
   cancelBtn.textContent = 'Cancel';
-  cancelBtn.addEventListener('click', function () { overlay.remove(); });
+  cancelBtn.addEventListener('click', function () { closeOverlay(overlay); });
   btnRow.appendChild(cancelBtn);
 
   var pickBtn = document.createElement('button');
@@ -1970,7 +1997,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   pickBtn.style.background = '#FFEB3B';
   pickBtn.textContent = 'Pick from Recipes';
   pickBtn.addEventListener('click', function () {
-    overlay.remove();
+    closeOverlay(overlay);
     showRecipePicker();
   });
   btnRow.appendChild(pickBtn);
@@ -1982,7 +2009,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   advancedBtn.textContent = 'Generate Custom (Advanced)';
   advancedBtn.title = 'AI builds a fully custom activity from scratch. Slower and more error-prone.';
   advancedBtn.addEventListener('click', function () {
-    overlay.remove();
+    closeOverlay(overlay);
     showLegacyAIGenerateModal();
     // Pre-fill the description in the legacy modal
     setTimeout(function () {
