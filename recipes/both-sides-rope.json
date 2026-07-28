@@ -5,13 +5,21 @@
   "description": "The class votes where it stands on a claim, builds the strongest evidence rope for BOTH sides, asks 'what if?' — then votes again and watches whether its own mind moved. The before/after chart is the lesson.",
   "tagline": "Perfect for debates in history, science, ELA, or a live school question — anywhere evidence pulls both ways.",
   "version": "1",
-  "feel": ["curiosity", "consensus"],
+  "feel": [
+    "curiosity",
+    "consensus"
+  ],
   "parameters": {
     "claim": {
-      "type": "string",
+      "type": "promptDeck",
       "label": "The claim",
       "helper": "A statement with real evidence on both sides: 'Homework should be optional.' 'The Roman Empire fell because of money.' 'Zoos do more good than harm.'",
-      "default": "Homework should be optional."
+      "default": "Homework should be optional.",
+      "bank": "lanyard",
+      "decks": [
+        "debate-claims"
+      ],
+      "deckHelper": "Pick a claim with honest evidence on both sides, or write your own."
     },
     "evidenceTime": {
       "type": "integer",
@@ -25,7 +33,12 @@
   "template": {
     "name": "Both Sides of the Rope",
     "description": "A stance-evidence-restance activity built with the Both Sides of the Rope recipe. The delta between the two votes is the payload.",
-    "tags": ["decide", "discuss", "argument", "evidence"],
+    "tags": [
+      "decide",
+      "discuss",
+      "argument",
+      "evidence"
+    ],
     "phases": {
       "lobby": {
         "type": "lobby",
@@ -40,7 +53,13 @@
       "stance1": {
         "type": "collect-choice",
         "prompt": "Where do you stand RIGHT NOW?\n\n“${claim}”\n\n(It's okay not to be sure.)",
-        "choices": ["Yes", "Lean yes", "Not sure", "Lean no", "No"],
+        "choices": [
+          "Yes",
+          "Lean yes",
+          "Not sure",
+          "Lean no",
+          "No"
+        ],
         "timer": 30,
         "next": "evidence"
       },
@@ -71,7 +90,13 @@
       "stance2": {
         "type": "collect-choice",
         "prompt": "The rope has been pulled from both ends. Where do you stand NOW?\n\n“${claim}”",
-        "choices": ["Yes", "Lean yes", "Not sure", "Lean no", "No"],
+        "choices": [
+          "Yes",
+          "Lean yes",
+          "Not sure",
+          "Lean no",
+          "No"
+        ],
         "timer": 30,
         "next": "delta"
       },

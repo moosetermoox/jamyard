@@ -5,13 +5,21 @@
   "description": "The class names everyone your topic touches, then each student steps inside a DIFFERENT classmate's suggestion and speaks from that viewpoint — 30 perspectives instead of the 5 a discussion gets. No scores.",
   "tagline": "Perfect for a historical decision, a science dilemma, a novel's turning point, or a school policy.",
   "version": "1",
-  "feel": ["empathy", "perspective"],
+  "feel": [
+    "empathy",
+    "perspective"
+  ],
   "parameters": {
     "topic": {
-      "type": "string",
+      "type": "promptDeck",
       "label": "The topic",
       "helper": "Anything with more than one side: 'the Louisiana Purchase', 'building the new dam', 'chapter 12 of Holes', 'our school's homework policy'.",
-      "default": "our school's homework policy"
+      "default": "our school's homework policy",
+      "bank": "lanyard",
+      "decks": [
+        "perspective-topics"
+      ],
+      "deckHelper": "Pick a topic with many stakeholders, or bring your own."
     },
     "writeTime": {
       "type": "integer",
@@ -25,7 +33,11 @@
   "template": {
     "name": "Whose Eyes?",
     "description": "A perspective circle built with the Whose Eyes? recipe: the class generates the viewpoints, then everyone speaks from a classmate's suggestion.",
-    "tags": ["discuss", "perspectives", "empathy"],
+    "tags": [
+      "discuss",
+      "perspectives",
+      "empathy"
+    ],
     "phases": {
       "lobby": {
         "type": "lobby",
@@ -48,10 +60,22 @@
         "rotateFrom": "viewpoints",
         "prompt": "A classmate suggested looking through the eyes of:\n\n👁 {{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing — be an actor.",
         "fields": [
-          { "label": "Whose eyes? (copy the viewpoint above)", "key": "eyes" },
-          { "label": "From this viewpoint, I think...", "key": "think" },
-          { "label": "From this viewpoint, I worry about or hope for...", "key": "feel" },
-          { "label": "A question I have, from here...", "key": "ask" }
+          {
+            "label": "Whose eyes? (copy the viewpoint above)",
+            "key": "eyes"
+          },
+          {
+            "label": "From this viewpoint, I think...",
+            "key": "think"
+          },
+          {
+            "label": "From this viewpoint, I worry about or hope for...",
+            "key": "feel"
+          },
+          {
+            "label": "A question I have, from here...",
+            "key": "ask"
+          }
         ],
         "timer": "${writeTime}",
         "next": "circle"

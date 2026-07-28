@@ -114,7 +114,7 @@ Framework for quickly building classroom games where:
 - **"Activity" vocabulary** — user-facing copy says **activity** (the umbrella word teachers use: games, polls, critiques, checklists all fit); "game" stays only where something genuinely is a game (e.g. the elimination-game example chip). End screens say "That's a wrap!", host button "End Session". Internals unchanged on purpose: `games/`, `gameId`, `GameEngine`, socket event names, API routes all keep "game" — this was a copy-level sweep, not a rename.
 - **Library controls** — designer grid has search, goal chips (from config `tags` using a fixed goal vocabulary: connect/create/discuss/decide/reflect/energize/review — seeded into ~14 configs), ♥ favorites and "Recently used" sections (localStorage, same no-accounts model as MyGames). One render entry point: `refreshLibrary()` in designer.js.
 - **Descriptive continue buttons** — announce and reveal host buttons say what happens NEXT ("Start the voting", "Send the question to students") via pure `engine/phases/continue-labels.js` (`continueLabelForPhase(phase, config.phases)` — covers virtual foreach sub-phases; unknown types fall back to "Continue"). Payload field `continueLabel` on ANNOUNCE/SHOW_RESULTS host emits.
-- **884 tests passing** (`npm test`)
+- **890 tests passing** · **261 prompts** across 3 banks (recipes/prompt-banks/) (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-team-modes.js` (teacher/choice team-split invariants), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for second-device testing and screenshot harnesses)
 
@@ -333,7 +333,7 @@ Framework for quickly building classroom games where:
 - `engine/room-snapshot.js` — `serializeRoom`/`restoreRoom` (restart survival; JSON-safe, resume-at-phase-start)
 - `scripts/sim-harness.js` — shared multi-client simulation primitives (all simulate-*.js scripts build on it)
 - `engine/phases/chain-reveal.js` — pure return-to-author chain walker (`buildChainViews` follows `assignedFrom` links, `formatChainContent` renders steps/final views)
-- `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 18 built-ins (+ `recipes/prompt-banks/` data + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
+- `engine/recipe-*.js` — recipe layer (R1-R7 complete); `recipes/` has 18 built-ins (+ `recipes/prompt-banks/` — along.json 142 attributed prompts/11 decks, closer.json 90, lanyard.json 29 originals; `promptDeck` param type renders a deck picker that can also fill a poll's choices via `choicesParam` + `recipes/user/` for saved ones). Compiler supports `${param}`, dotted paths (`${item.field[0]}`), and structural directives (`$if`/`$value`/`$repeat`/`$map` — see recipe-compiler.js header)
 
 ### Environment
 - Uses dotenv, set ANTHROPIC_API_KEY in .env for real AI
@@ -346,7 +346,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 884 Vitest tests (~4s)
+- `npm test` — runs all 890 Vitest tests (~4s)
 - `node scripts/simulate-chaos.js [gameId] [--players N]` — school-wifi chaos suite (server must be running)
 - **CI**: `.github/workflows/test.yml` runs the suite on every push/PR; with the `RENDER_DEPLOY_HOOK` secret set (and Render auto-deploy OFF), deploys only happen on green
 - `node scripts/simulate-restart.js` — restart-survival proof (spawns its own server, kills it mid-game, restores; needs DATABASE_URL)

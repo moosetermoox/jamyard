@@ -5,17 +5,32 @@
   "description": "Think-pair-share, digitally enforced: everyone answers alone, then pairs see each other's answers and merge them into one stronger answer the whole class sees. Nobody can skip the thinking step and every voice enters the funnel. Works for content review and for community questions like class norms. Good for focus, consensus, and making sure every voice counts.",
   "tagline": "Perfect for 'most important cause of WWI', 'what should our class norms be', or any one big question.",
   "family": "connection",
-  "feel": ["every-voice", "focus", "consensus"],
+  "feel": [
+    "every-voice",
+    "focus",
+    "consensus"
+  ],
   "version": "1",
   "parameters": {
     "prompt": {
-      "type": "templateString",
+      "type": "promptDeck",
       "required": true,
       "minLength": 5,
       "maxLength": 300,
       "label": "The one question",
       "helper": "The question everyone answers alone first.",
-      "placeholder": "What should our class norms be?"
+      "placeholder": "What should our class norms be?",
+      "bank": "along",
+      "decks": [
+        "conversation-starters",
+        "belonging",
+        "prior-learning",
+        "rigorous-thinking",
+        "relevance-motivation",
+        "agency-choice"
+      ],
+      "deckHelper": "Pick a ready-made question from the deck, or write your own.",
+      "default": "What should our class agree to always do for each other this year?"
     },
     "mergeInstruction": {
       "type": "templateString",
@@ -45,7 +60,10 @@
     "description": "Alone, together, all of us — one question, distilled by everyone.",
     "family": "connection",
     "phases": {
-      "lobby": { "type": "lobby", "next": "intro" },
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
       "intro": {
         "type": "announce",
         "message": "Three rounds: alone, together, all of us.\n\nFirst you'll answer on your own — nobody can skip the thinking step. Then you and a partner will merge your answers into one. Then the whole class sees what the pairs built.",

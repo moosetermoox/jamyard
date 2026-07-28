@@ -24,10 +24,13 @@ device" (laptop / spare Chromebook). Keep it that way in new copy.
    2026-07-28**: `/library` front door (run-focused cards, goal chips,
    builder doorway → `builder-request` signal), home = one primary card,
    `activity_runs` metric live (owner-gated /api/activity-runs).
-   **Next: Phase 2** — prompt-bank format + Along ingestion (151
-   attributed questions) + `promptDeck` recipe param + first 3 banks
-   (Snowball, Someone's Got You, Class Poll/Mood Check). Then the Aron
-   A/B at playtests.
+   **Phase 2 SHIPPED 2026-07-28**: Along corpus ingested (142 attributed
+   prompts, 11 decks; 9 wellbeing questions held back for the
+   teacher-only-visibility design), lanyard.json originals, `promptDeck`
+   param + deck picker (fills poll choices too), five recipes wired.
+   Prompt count: **261**. **Next: the Aron A/B at playtests** (careful
+   deck vs bland stand-ins — zero code), then remaining banks + the
+   wellbeing visibility design.
 1. **Proxy playtests — THE remaining July item; the window is nearly
    closed.** Run 2-3 adults on real Chromebooks through the day-one-kit
    candidates AND the thesis slate (Whose Eyes? / Someone's Got You /

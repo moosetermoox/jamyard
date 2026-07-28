@@ -1304,6 +1304,10 @@ function buildInputForType(name, spec) {
     case 'templateString':
       // Use textarea for templates so multi-line prompts feel natural
       return buildStringInput(name, spec, true);
+    case 'promptDeck':
+      // A string the teacher usually PICKS from a curated deck (and may
+      // then edit) rather than writes from scratch.
+      return buildPromptDeckInput(name, spec);
     case 'integer':
       return buildIntegerInput(name, spec);
     case 'boolean':
@@ -1329,6 +1333,142 @@ function buildStringInput(name, spec, multiline) {
   if (spec.placeholder) input.placeholder = spec.placeholder;
   if (spec.default != null) input.value = spec.default;
   return input;
+}
+
+// --- promptDeck: a textarea + "pick from the deck" (library-first B3) ---
+
+var promptBankCache = {};
+
+function fetchPromptBank(bankId) {
+  if (promptBankCache[bankId]) return Promise.resolve(promptBankCache[bankId]);
+  return fetch('/api/prompt-banks/' + encodeURIComponent(bankId))
+    .then(function (resp) {
+      if (!resp.ok) throw new Error('status ' + resp.status);
+      return resp.json();
+    })
+    .then(function (bank) {
+      promptBankCache[bankId] = bank;
+      return bank;
+    });
+}
+
+function buildPromptDeckInput(name, spec) {
+  var wrap = document.createElement('div');
+
+  var input = document.createElement('textarea');
+  input.className = 'recipe-field-input';
+  input.setAttribute('data-param-name', name);
+  input.rows = 2;
+  if (spec.placeholder) input.placeholder = spec.placeholder;
+  if (spec.default != null) input.value = spec.default;
+  wrap.appendChild(input);
+
+  var pickBtn = document.createElement('button');
+  pickBtn.type = 'button';
+  pickBtn.className = 'prompt-deck-btn';
+  pickBtn.textContent = '🎴 Pick from the deck';
+  if (spec.deckHelper) pickBtn.title = spec.deckHelper;
+  pickBtn.addEventListener('click', function () {
+    openDeckPicker(spec, input);
+  });
+  wrap.appendChild(pickBtn);
+
+  return wrap;
+}
+
+// Fill an array param's rows programmatically (poll choices from a picked
+// prompt). Row removal is delegated on the list element, so replacing rows
+// is safe.
+function setArrayFieldValues(paramName, values) {
+  var fieldWrap = document.querySelector('.recipe-field[data-param-name="' + paramName + '"]');
+  if (!fieldWrap) return;
+  var list = fieldWrap.querySelector('.recipe-field-array-items');
+  if (!list) return;
+  list.innerHTML = '';
+  for (var i = 0; i < values.length; i++) {
+    list.appendChild(buildArrayItemRow({ item: { type: 'string' } }, values[i]));
+  }
+}
+
+function openDeckPicker(spec, targetInput) {
+  var overlay = document.createElement('div');
+  overlay.className = 'template-picker-overlay';
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal deck-picker-modal';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  var dlg = Dialog.enhance(overlay, modal, { title: 'Pick a prompt' });
+
+  var loading = document.createElement('p');
+  loading.className = 'recipe-loading';
+  loading.textContent = 'Shuffling the deck…';
+  modal.appendChild(loading);
+
+  fetchPromptBank(spec.bank).then(function (bank) {
+    loading.remove();
+
+    var title = document.createElement('h2');
+    title.className = 'template-picker-title';
+    title.textContent = 'Pick a prompt';
+    modal.appendChild(title);
+
+    if (spec.deckHelper) {
+      var sub = document.createElement('p');
+      sub.className = 'template-picker-subtitle';
+      sub.textContent = spec.deckHelper;
+      modal.appendChild(sub);
+    }
+
+    var deckIds = Array.isArray(spec.decks) ? spec.decks : [];
+    deckIds.forEach(function (deckId) {
+      var deck = (bank.decks || []).find(function (d) { return d.id === deckId; });
+      if (!deck || !deck.prompts || deck.prompts.length === 0) return;
+
+      var heading = document.createElement('h3');
+      heading.className = 'deck-heading';
+      heading.textContent = deck.label;
+      modal.appendChild(heading);
+
+      if (deck.description) {
+        var desc = document.createElement('p');
+        desc.className = 'deck-description';
+        desc.textContent = deck.description;
+        modal.appendChild(desc);
+      }
+
+      deck.prompts.forEach(function (prompt) {
+        var card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'deck-prompt';
+
+        var text = document.createElement('span');
+        text.className = 'deck-prompt-text';
+        text.textContent = prompt.text;
+        card.appendChild(text);
+
+        var metaBits = [];
+        if (prompt.choices) metaBits.push(prompt.choices.length + ' answer choices included');
+        if (prompt.author) metaBits.push(prompt.author);
+        if (metaBits.length) {
+          var metaEl = document.createElement('span');
+          metaEl.className = 'deck-prompt-meta';
+          metaEl.textContent = metaBits.join(' · ');
+          card.appendChild(metaEl);
+        }
+
+        card.addEventListener('click', function () {
+          targetInput.value = prompt.text;
+          if (spec.choicesParam && prompt.choices) {
+            setArrayFieldValues(spec.choicesParam, prompt.choices);
+          }
+          dlg.close();
+        });
+        modal.appendChild(card);
+      });
+    });
+  }).catch(function (err) {
+    loading.textContent = 'Could not load the deck (' + err.message + ') — you can still write your own.';
+  });
 }
 
 function buildIntegerInput(name, spec) {

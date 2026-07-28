@@ -67,7 +67,14 @@ export const RECIPE_PARAM_TYPES = new Set([
   'boolean',
   'enum',
   'array',
-  'object'
+  'object',
+  // A string whose value teachers usually PICK from a curated prompt deck
+  // rather than write (library-first workstream B3). Compiles exactly like
+  // a string; the deck (`bank` + `decks` on the spec, served from
+  // recipes/prompt-banks/) is form-UI sugar. Optional `choicesParam` names
+  // an array param the picker also fills when a picked prompt carries
+  // answer choices (polls).
+  'promptDeck'
 ]);
 
 // =======================================================================
@@ -384,7 +391,8 @@ function validateValue(paramName, spec, value) {
 
   switch (spec.type) {
     case 'string':
-    case 'templateString': {
+    case 'templateString':
+    case 'promptDeck': {
       if (typeof value !== 'string') {
         diags.push(typeMismatch(paramName, where, spec.type, value));
         return diags;

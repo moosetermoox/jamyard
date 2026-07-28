@@ -449,6 +449,65 @@ h1 {
   border-color: #000;
 }
 
+/* ---- Prompt-deck picker (library-first: teachers pick, not write) ---- */
+.prompt-deck-btn {
+  margin-top: 6px;
+  padding: 7px 14px;
+  border: 2px solid #000;
+  border-radius: 10px;
+  background: #E1F5FE;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.prompt-deck-btn:hover { background: #B3E5FC; }
+
+.deck-picker-modal { max-width: 640px; }
+
+.deck-heading {
+  margin: 18px 0 4px;
+  font-size: 1rem;
+}
+
+.deck-description {
+  margin: 0 0 10px;
+  font-family: Arial, sans-serif;
+  font-size: 0.82rem;
+  color: #555;
+}
+
+.deck-prompt {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  border: 2px solid #000;
+  border-radius: 10px;
+  background: white;
+  font-family: Arial, sans-serif;
+  font-size: 0.92rem;
+  cursor: pointer;
+}
+
+.deck-prompt:hover { background: #FFF3C4; }
+
+.deck-prompt:focus-visible {
+  outline: 3px solid #0057FF;
+  outline-offset: 2px;
+}
+
+.deck-prompt-text { display: block; }
+
+.deck-prompt-meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.72rem;
+  color: #777;
+}
+
 /* ---- Owner mode (curated public list controls) ---- */
 .owner-bar {
   display: flex;

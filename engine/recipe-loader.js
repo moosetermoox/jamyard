@@ -236,6 +236,7 @@ function syntheticForType(spec) {
   switch (spec.type) {
     case 'string':
     case 'templateString':
+    case 'promptDeck':
       return spec.minLength ? 'x'.repeat(spec.minLength) : 'sample';
     case 'integer':
       return spec.min ?? 1;

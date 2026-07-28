@@ -1998,6 +1998,22 @@ app.get('/api/owner-check', (req, res) => {
   res.json({ owner: true });
 });
 
+// Prompt banks (library-first workstream B): curated, attributed prompt
+// decks the recipe form's deck picker reads. Read-only, open — the same
+// content ships in the repo.
+app.get('/api/prompt-banks/:id', async (req, res) => {
+  const { id } = req.params;
+  if (!/^[a-z0-9-]+$/.test(id)) {
+    return res.status(400).json({ error: 'Invalid bank id.' });
+  }
+  try {
+    const raw = await readFile(join(__dirname, 'recipes', 'prompt-banks', `${id}.json`), 'utf-8');
+    res.type('application/json').send(raw);
+  } catch (err) {
+    res.status(404).json({ error: `No prompt bank named "${id}".` });
+  }
+});
+
 // Owner-gated (ownerAreaGate): the runs-not-builds gauge.
 app.get('/api/activity-runs', async (req, res) => {
   try {

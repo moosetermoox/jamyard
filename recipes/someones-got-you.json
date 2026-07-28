@@ -5,13 +5,21 @@
   "description": "Everyone shares one small real thing they're working on; a classmate they don't pick writes them one line of genuine encouragement. You review every line before the wall goes up. Nobody chosen, nobody missed, nobody wins.",
   "tagline": "Perfect for advisory, exam week, a rough stretch, or any Friday.",
   "version": "1",
-  "feel": ["belonging", "warmth"],
+  "feel": [
+    "belonging",
+    "warmth"
+  ],
   "parameters": {
     "notePrompt": {
-      "type": "string",
+      "type": "promptDeck",
       "label": "What students share",
       "helper": "The sentence students complete. Keep it low-stakes — small and real beats deep.",
-      "default": "One thing you're working on, wrestling with, or quietly proud of this week. Small is fine — 'trying to get more sleep' counts. One sentence."
+      "default": "One thing you're working on, wrestling with, or quietly proud of this week. Small is fine — 'trying to get more sleep' counts. One sentence.",
+      "bank": "lanyard",
+      "decks": [
+        "encouragement-openers"
+      ],
+      "deckHelper": "Pick the opener that fits the week, or write your own."
     },
     "writeTime": {
       "type": "integer",
@@ -26,7 +34,11 @@
     "name": "Someone's Got You",
     "description": "An encouragement wall built with the Someone's Got You recipe: every student writes one line for an assigned classmate, teacher-reviewed before reveal.",
     "family": "connection",
-    "tags": ["connect", "belonging", "encouragement"],
+    "tags": [
+      "connect",
+      "belonging",
+      "encouragement"
+    ],
     "phases": {
       "lobby": {
         "type": "lobby",

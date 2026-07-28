@@ -1,0 +1,57 @@
+{
+  "id": "lanyard",
+  "label": "Lanyard original decks",
+  "attribution": "Original to Lanyard.",
+  "decks": [
+    {
+      "id": "perspective-topics",
+      "label": "Whose Eyes? topics",
+      "description": "Topics with many stakeholders — every one supports 20+ different viewpoints.",
+      "prompts": [
+        { "id": "lny-pt-01", "text": "our school's homework policy" },
+        { "id": "lny-pt-02", "text": "the school cafeteria and what it serves" },
+        { "id": "lny-pt-03", "text": "a new skate park being built where the empty lot is" },
+        { "id": "lny-pt-04", "text": "the town deciding whether to cut down a 200-year-old oak to widen the road" },
+        { "id": "lny-pt-05", "text": "a family deciding whether to move to a new city for a job" },
+        { "id": "lny-pt-06", "text": "the invention of the automobile" },
+        { "id": "lny-pt-07", "text": "the Louisiana Purchase" },
+        { "id": "lny-pt-08", "text": "a dam being built on a river" },
+        { "id": "lny-pt-09", "text": "the first day a new student joins our class" },
+        { "id": "lny-pt-10", "text": "a viral video filmed in a public place" },
+        { "id": "lny-pt-11", "text": "the class pet nobody remembered to feed over break" },
+        { "id": "lny-pt-12", "text": "artificial intelligence writing students' essays" }
+      ]
+    },
+    {
+      "id": "debate-claims",
+      "label": "Both Sides of the Rope claims",
+      "description": "Claims with real evidence on both sides — none of them settled, all of them school-safe.",
+      "prompts": [
+        { "id": "lny-dc-01", "text": "Homework should be optional." },
+        { "id": "lny-dc-02", "text": "Every student should learn to code." },
+        { "id": "lny-dc-03", "text": "School should start two hours later." },
+        { "id": "lny-dc-04", "text": "Zoos do more good than harm." },
+        { "id": "lny-dc-05", "text": "Books are better than their movie versions." },
+        { "id": "lny-dc-06", "text": "It's better to be a specialist than a generalist." },
+        { "id": "lny-dc-07", "text": "Group projects should be graded as a group, one grade for everyone." },
+        { "id": "lny-dc-08", "text": "Humanity should send people to Mars this century." },
+        { "id": "lny-dc-09", "text": "The school year should be spread across the whole year with more breaks." },
+        { "id": "lny-dc-10", "text": "Learning an instrument should be required in school." },
+        { "id": "lny-dc-11", "text": "Athletes deserve their salaries." },
+        { "id": "lny-dc-12", "text": "A rebuilt ship with every plank replaced is still the same ship." }
+      ]
+    },
+    {
+      "id": "encouragement-openers",
+      "label": "Someone's Got You openers",
+      "description": "Low-stakes versions of \"what are you working on?\" — pick the one that fits the week.",
+      "prompts": [
+        { "id": "lny-eo-01", "text": "One thing you're working on, wrestling with, or quietly proud of this week. Small is fine — 'trying to get more sleep' counts. One sentence." },
+        { "id": "lny-eo-02", "text": "Something coming up that you're a little nervous about — a test, a tryout, a conversation. One sentence." },
+        { "id": "lny-eo-03", "text": "One thing you did recently that took effort, even if nobody noticed. One sentence." },
+        { "id": "lny-eo-04", "text": "A goal you're chipping away at — school or not. One sentence." },
+        { "id": "lny-eo-05", "text": "Something you're trying to get better at right now. One sentence." }
+      ]
+    }
+  ]
+}

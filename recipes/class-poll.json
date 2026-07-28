@@ -5,25 +5,45 @@
   "description": "Ask the class a multiple-choice question. See results as a bar chart.",
   "tagline": "Perfect for warm-ups, exit tickets, and quick checks for understanding.",
   "version": "1",
-
   "parameters": {
     "question": {
-      "type": "templateString",
+      "type": "promptDeck",
       "label": "Question to ask the class",
       "helper": "What students will see on their screens.",
       "placeholder": "How are you feeling about today's lesson?",
       "required": true,
       "minLength": 3,
-      "maxLength": 300
+      "maxLength": 300,
+      "bank": "along",
+      "decks": [
+        "fun-favorites",
+        "gratitude",
+        "day-in-life",
+        "imagine-if",
+        "belonging",
+        "relevance-motivation",
+        "agency-choice",
+        "building-blocks"
+      ],
+      "choicesParam": "choices",
+      "deckHelper": "Pick a ready-made question — ones marked with answer choices fill the choices for you.",
+      "default": "How are you feeling about today's lesson?"
     },
     "choices": {
       "type": "array",
-      "item": { "type": "string" },
+      "item": {
+        "type": "string"
+      },
       "label": "Answer choices",
       "helper": "Give students 2-8 options to choose from.",
       "minItems": 2,
       "maxItems": 8,
-      "default": ["Got it!", "Mostly got it", "A little confused", "Lost"]
+      "default": [
+        "Got it!",
+        "Mostly got it",
+        "A little confused",
+        "Lost"
+      ]
     },
     "timer": {
       "type": "integer",
@@ -34,7 +54,6 @@
       "max": 600
     }
   },
-
   "template": {
     "name": "Poll: ${question}",
     "description": "A class poll built with the Class Poll recipe.",

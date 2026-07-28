@@ -1,0 +1,1321 @@
+{
+  "id": "along",
+  "label": "Along reflection questions",
+  "attribution": "From \"Along Reflection Questions\" (Gradient Learning / Chan Zuckerberg Initiative and partners: Transcend, Black Teacher Collaborative, Search Institute, Character Lab, Re-imagining Migration). Each prompt carries its author.",
+  "usage_note": "The source document's \"How to use\" section invites teachers to reuse these questions in other tools they regularly use with students. Per-prompt author attribution is preserved here and must be kept through any refactor. Not legal advice — see docs/LIBRARY-FIRST-PLAN.md §4.",
+  "excluded_note": "The \"Wellbeing at school\" collection (9 questions) is deliberately NOT ingested yet — those prompts are tender and need the teacher-only-visibility default designed first (docs/LIBRARY-FIRST-PLAN.md workstream B2).",
+  "decks": [
+    {
+      "id": "fun-favorites",
+      "label": "Fun & favorites",
+      "description": "Open class warmly — light, zero-risk questions everyone can answer.",
+      "prompts": [
+        {
+          "id": "along-001",
+          "text": "When you want to relax, what do you like to watch?",
+          "choices": [
+            "Something funny",
+            "Something scary",
+            "Something dramatic",
+            "I like to relax in other ways."
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-002",
+          "text": "What's something, or someone, that made you laugh recently? Why?",
+          "author": "Search Institute"
+        },
+        {
+          "id": "along-003",
+          "text": "Think about your favorite food. When do you most like to eat it?",
+          "choices": [
+            "On special occasions",
+            "As a treat on my own",
+            "With family or friends",
+            "Any time"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-004",
+          "text": "Which of these desserts is best?",
+          "choices": [
+            "Cookies",
+            "Cake",
+            "Pie",
+            "None of these!"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-005",
+          "text": "Think about a song you really like. How do you feel when you listen to it?",
+          "choices": [
+            "Energized",
+            "Emotional",
+            "Relaxed",
+            "Something else"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-006",
+          "text": "Think about a favorite item of clothing. What makes it special?",
+          "choices": [
+            "It's comfortable.",
+            "There's a story about how I got it.",
+            "I like the way it looks.",
+            "I like something else about it."
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-007",
+          "text": "Who is someone you admire, or would like to meet? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-008",
+          "text": "What's your favorite animal? What do you like about them?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        }
+      ]
+    },
+    {
+      "id": "gratitude",
+      "label": "A moment for gratitude",
+      "description": "Reflect on the good stuff — people, places, and small wins.",
+      "prompts": [
+        {
+          "id": "along-009",
+          "text": "What is an activity you genuinely enjoy and look forward to?",
+          "choices": [
+            "Sports or other physical activity",
+            "Doing something creative",
+            "Unwinding with a book or show",
+            "Something else"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-010",
+          "text": "Who makes you feel like your best self?",
+          "choices": [
+            "A family member",
+            "A friend",
+            "A teacher or coach",
+            "Someone else"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-011",
+          "text": "Who are the people you feel lucky to have in your life?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-012",
+          "text": "What's something you recently felt thankful for?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-013",
+          "text": "What's something you really like (such as a food, a game, or a movie) that someone in your life introduced you to?",
+          "author": "Search Institute"
+        },
+        {
+          "id": "along-014",
+          "text": "Who in your life is the most fun for you to be with? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-015",
+          "text": "Who are the people who matter most to you in your life? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-016",
+          "text": "Who in your life do you want to make proud? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        }
+      ]
+    },
+    {
+      "id": "conversation-starters",
+      "label": "Conversation starters, from students",
+      "description": "Questions students themselves suggested asking.",
+      "prompts": [
+        {
+          "id": "along-017",
+          "text": "What is something you feel like you're “too oldˮ to do, but still enjoy?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-018",
+          "text": "Which of the following wild animals would you choose for a pet?",
+          "choices": [
+            "Kangaroo mouse",
+            "Komodo dragon",
+            "Kiwi bird",
+            "None of the above"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-019",
+          "text": "If you were a beverage, which would you want to be?",
+          "choices": [
+            "Simple and refreshing (like lemonade)",
+            "Warm and comforting (like hot tea)",
+            "Satisfying and sweet (like a milkshake)",
+            "Cool and crunchy (like a slushie)"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-020",
+          "text": "If you were an ice cream flavor, which would you want to be?",
+          "choices": [
+            "A classic (like vanilla)",
+            "A novelty (like birthday cake)",
+            "Not-too-sweet (like green tea)",
+            "Tropical and bold (like mango)"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        }
+      ]
+    },
+    {
+      "id": "day-in-life",
+      "label": "A day in the life",
+      "description": "Everyday routines, habits, and how students actually live.",
+      "prompts": [
+        {
+          "id": "along-021",
+          "text": "What do you usually do after school?",
+          "choices": [
+            "An activity (like music or sports)",
+            "Volunteer or paid work",
+            "Go home or to a family member's home",
+            "Something else"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-022",
+          "text": "What is one thing that will brighten your day?",
+          "choices": [
+            "A picture of a cute animal",
+            "A really corny joke",
+            "A moment to take a few deep breaths",
+            "Something else"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-023",
+          "text": "How are you feeling today?",
+          "choices": [
+            "It's not a good day for me.",
+            "I'm feeling okay.",
+            "I'm feeling pretty good.",
+            "Today is great!"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-024",
+          "text": "For you, what would be part of a perfect day?",
+          "choices": [
+            "A big, delicious breakfast",
+            "Warm, sunny weather",
+            "Unexpectedly seeing a friend",
+            "Something else"
+          ],
+          "author": "Search Institute"
+        },
+        {
+          "id": "along-025",
+          "text": "What's one thing that's on your mind today?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-026",
+          "text": "What's one thing you'd like me to know about you today? Share how you're feeling, something that happened, or anything else.",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-027",
+          "text": "What's something that other students might not know about you yet?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-028",
+          "text": "Where do you go when you want to be by yourself? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-029",
+          "text": "What's an emotion you fear or dislike experiencing? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-030",
+          "text": "Who is someone who makes you feel better when you're down? How do they support you?",
+          "author": "Search Institute"
+        },
+        {
+          "id": "along-031",
+          "text": "How would you support a friend if they came to you for help with a problem?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-032",
+          "text": "Think about a time when a friend was hurt or angry. How did you support them?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        }
+      ]
+    },
+    {
+      "id": "imagine-if",
+      "label": "Imagine if…",
+      "description": "Playful hypotheticals that get every hand up.",
+      "prompts": [
+        {
+          "id": "along-033",
+          "text": "If we had “show-and-tellˮ in class, what would you bring?",
+          "choices": [
+            "Something someone gave me",
+            "Something from a place I've visited",
+            "Something I made myself",
+            "Something from nature"
+          ],
+          "author": "Search Institute"
+        },
+        {
+          "id": "along-034",
+          "text": "If you could spend the day anywhere, where would it be?",
+          "choices": [
+            "Outside in nature",
+            "Exploring a big city",
+            "At home, doing something cozy",
+            "Somewhere else"
+          ],
+          "author": "Search Institute"
+        },
+        {
+          "id": "along-035",
+          "text": "If you could time-travel, when would you visit?",
+          "choices": [
+            "The distant past (to see a dinosaur)",
+            "The recent past (to see my ancestors)",
+            "The future (to see what's new)",
+            "I wouldn't want to time travel."
+          ],
+          "author": "Character Lab"
+        },
+        {
+          "id": "along-036",
+          "text": "If you could have a superpower, which of these would you want to be able to do?",
+          "choices": [
+            "Turn invisible",
+            "Fly like a bird",
+            "Read peoples' minds",
+            "Talk to animals"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-037",
+          "text": "If you could meet an imaginary animal, which would you choose?",
+          "choices": [
+            "A lion the size of a mouse",
+            "A mouse the size of a lion",
+            "Neither one",
+            "Both!"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-038",
+          "text": "If you could go any place in the world that you've never been to, where would you go? Why?",
+          "author": "Search Institute"
+        },
+        {
+          "id": "along-039",
+          "text": "If you could have a remote control for your life, which button would you want it to have?",
+          "choices": [
+            "Pause (to slow down)",
+            "Rewind (for a do-over)",
+            "Fast forward (to skip ahead)",
+            "Something else"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-040",
+          "text": "If you could be any age right now, what age would you be?",
+          "choices": [
+            "Younger than today",
+            "A little older than today",
+            "Much older than today",
+            "I'd stay the same age. Math: previous experiences Science: previous experiences English: previous experiences Social studies and history: previous experiences"
+          ],
+          "author": "Search Institute"
+        }
+      ]
+    },
+    {
+      "id": "prior-learning",
+      "label": "Connect to prior learning",
+      "description": "Subject-flavored openers that surface what students already know (math, science, English, social studies).",
+      "prompts": [
+        {
+          "id": "along-041",
+          "text": "What is one thing you enjoyed about your math class last year, or in a previous year?",
+          "choices": [
+            "A certain topic we covered",
+            "A certain assignment we did",
+            "Someone I got to work with",
+            "Something else"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Math: previous experiences"
+        },
+        {
+          "id": "along-042",
+          "text": "What is one thing you wish there had been more of in your math class last year, or in a previous year?",
+          "choices": [
+            "Time to work together",
+            "Assignments that related to my life",
+            "Help when I got stuck",
+            "Something else"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Math: previous experiences"
+        },
+        {
+          "id": "along-043",
+          "text": "Think about a time when you struggled with a math problem. What helped?",
+          "choices": [
+            "Talking to a classmate",
+            "Taking a break, then trying again",
+            "Looking at an example",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Math: previous experiences"
+        },
+        {
+          "id": "along-044",
+          "text": "Who is someone you think excels at math, either at school or somewhere else? How do you know they excel?",
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Math: previous experiences"
+        },
+        {
+          "id": "along-045",
+          "text": "What is one thing you enjoyed about your science class last year, or in the previous year?",
+          "choices": [
+            "A certain topic we covered",
+            "A certain assignment we did",
+            "Someone I got to work with",
+            "Something else"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Science: previous experiences"
+        },
+        {
+          "id": "along-046",
+          "text": "What is one thing you wish there had been more of in your science class last year, or in a previous year?",
+          "choices": [
+            "Time to work together",
+            "Assignments that related to my life",
+            "Help when I got stuck",
+            "Something else"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Science: previous experiences"
+        },
+        {
+          "id": "along-047",
+          "text": "Think about a time when you struggled with science. What helped?",
+          "choices": [
+            "Talking to a classmate",
+            "Taking a break, then trying again",
+            "Looking at an example",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Science: previous experiences"
+        },
+        {
+          "id": "along-048",
+          "text": "Think about a science project or experiment you've done or seen. What tools or equipment were involved? What else do you remember?",
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Science: previous experiences"
+        },
+        {
+          "id": "along-049",
+          "text": "Who is someone you think excels at doing science, either at school or somewhere else? How do you know they excel?",
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Science: previous experiences"
+        },
+        {
+          "id": "along-050",
+          "text": "What is one thing you enjoyed about your English class last year, or in the previous year?",
+          "choices": [
+            "A certain topic we covered",
+            "A certain assignment we did",
+            "Someone I got to work with",
+            "Something else"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "English: previous experiences"
+        },
+        {
+          "id": "along-051",
+          "text": "What is one thing you wish there had been more of in your English class last year, or in a previous year?",
+          "choices": [
+            "Time to work together",
+            "Assignments that related to my life",
+            "Help when I got stuck",
+            "Something else"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "English: previous experiences"
+        },
+        {
+          "id": "along-052",
+          "text": "Think about a time when you struggled with reading or writing. What helped?",
+          "choices": [
+            "Talking to a classmate",
+            "Taking a break, then trying again",
+            "Looking at an example",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "English: previous experiences"
+        },
+        {
+          "id": "along-053",
+          "text": "Think about any story that you read in the past year. What was most memorable about it?",
+          "author": "Black Teacher Collaborative",
+          "subcollection": "English: previous experiences"
+        },
+        {
+          "id": "along-054",
+          "text": "Who is someone you think excels at writing, either at school or somewhere else? How do you know they excel?",
+          "author": "Black Teacher Collaborative",
+          "subcollection": "English: previous experiences"
+        },
+        {
+          "id": "along-055",
+          "text": "What is one thing you enjoyed about your social studies or history class last year, or in the previous year?",
+          "choices": [
+            "A certain topic we covered",
+            "A certain assignment we did",
+            "Someone I got to work with",
+            "Something else"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Social studies and history: previous experiences"
+        },
+        {
+          "id": "along-056",
+          "text": "What is one thing you wish there had been more of in your social studies or history class last year, or in a previous year?",
+          "choices": [
+            "Time to work together",
+            "Assignments that related to my life",
+            "Help when I got stuck",
+            "Something else"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Social studies and history: previous experiences"
+        },
+        {
+          "id": "along-057",
+          "text": "Think about a time when you struggled with social studies or history. What helped?",
+          "choices": [
+            "Talking to a classmate",
+            "Taking a break, then trying again",
+            "Looking at an example",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Social studies and history: previous experiences"
+        },
+        {
+          "id": "along-058",
+          "text": "Who is a person in history you've learned about before and still think about? Where did you first hear about them?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Social studies and history: previous experiences"
+        },
+        {
+          "id": "along-059",
+          "text": "Who is someone you think has a strong understanding of history and society? How do you know?",
+          "author": "Black Teacher Collaborative",
+          "subcollection": "Social studies and history: previous experiences"
+        }
+      ]
+    },
+    {
+      "id": "belonging",
+      "label": "Community & belonging",
+      "description": "What makes people feel part of this class — and what we could try next.",
+      "prompts": [
+        {
+          "id": "along-060",
+          "text": "What's one thing that makes you feel part of a community?",
+          "choices": [
+            "When people encourage me when I need it",
+            "When people really listen to me",
+            "When I work together with others",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-061",
+          "text": "What's one thing that makes you feel understood and appreciated?",
+          "choices": [
+            "Sharing about myself and my culture",
+            "Just being myself without questions",
+            "Seeing other people I relate to",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-062",
+          "text": "What's one way you like to be recognized when you've worked hard?",
+          "choices": [
+            "A shout-out in front of the class",
+            "A note I can look at later",
+            "A prize, like a sticker or badge",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-063",
+          "text": "What's one thing you'd like us to try to make our class feel more like a community?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-064",
+          "text": "What about you has been overlooked or not appreciated? What is important about that aspect of yourself?",
+          "author": "Character Lab"
+        },
+        {
+          "id": "along-065",
+          "text": "When have you shown someone you appreciate them? What was that like?",
+          "author": "Character Lab"
+        },
+        {
+          "id": "along-066",
+          "text": "Describe a time when you worked with others and felt like part of a community. What was that like?",
+          "author": "Re-imagining migration"
+        },
+        {
+          "id": "along-067",
+          "text": "Over time, have you found more people at school you enjoy working with? Pick what's closest to how you feel.",
+          "choices": [
+            "No, there still isn't anyone.",
+            "A bit. I like one or two people now.",
+            "Yes, there are more people I enjoy now.",
+            "I've always had peers and adults I like."
+          ],
+          "author": "Transcend"
+        }
+      ]
+    },
+    {
+      "id": "rigorous-thinking",
+      "label": "Rigorous learning & critical thinking",
+      "description": "Challenge, effort, and what good thinking looks like.",
+      "prompts": [
+        {
+          "id": "along-068",
+          "text": "What do rigorous learning and critical thinking look like? What are you doing? What are you not doing?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-069",
+          "text": "Think about a time when you noticed a teacher had high expectations for students. How did you know?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-070",
+          "text": "What's a time when you've improved at something, even though it was hard at first? What was that like?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-071",
+          "text": "Have you ever had someone encourage you to do something that was hard for you? What was that like?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-072",
+          "text": "Is there something about the future that scares you? If so, what is it and why?",
+          "author": "Search Institute"
+        },
+        {
+          "id": "along-073",
+          "text": "When was the last time you made a mistake? What did you do to learn from that mistake?",
+          "author": "Search Institute"
+        },
+        {
+          "id": "along-074",
+          "text": "Think about the work you've done recently in class. How do you feel about it? What's one thing you're proud of?",
+          "author": "Transcend"
+        },
+        {
+          "id": "along-075",
+          "text": "Do you feel like you can get better at new things, even when they're hard at first? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I'm just not good at some things.",
+            "I'm not sure.",
+            "Maybe, but I need more help.",
+            "Yes, I know I can improve."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-076",
+          "text": "In our class, do you do things like explain your thinking and correct your mistakes? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I don't get to do that.",
+            "Sometimes, but I run out of time.",
+            "I should, but I don't always know how.",
+            "Yes, I do that pretty often."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-077",
+          "text": "In our class, do you learn something almost every day? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I mostly already know what we cover.",
+            "I want to, but I get stuck.",
+            "I usually learn something.",
+            "Yes, I'm learning a lot."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-078",
+          "text": "Over time, have you been able to explain your thinking and correct your mistakes more? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I still don't get to do that.",
+            "A little bit more, but it's still hard.",
+            "Yes, I can do this a lot more.",
+            "I've always done this."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-079",
+          "text": "Recently, have you learned something almost every day in class? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I'm still not learning a lot.",
+            "I'm trying to learn, but I get stuck.",
+            "Yes, I'm learning more than before.",
+            "I've always learned a lot in our class."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-080",
+          "text": "What's one thing that helps you tackle challenging work?",
+          "choices": [
+            "Explaining my ideas to someone else",
+            "Correcting my mistakes and trying again",
+            "Time to figure it out on my own",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-081",
+          "text": "What's one way you like teachers to show they have high expectations for you?",
+          "choices": [
+            "Assigning me challenging work",
+            "Telling me they know I can succeed",
+            "Pushing me to keep improving",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-082",
+          "text": "Think about the work you've done recently in class. How do you feel about it? What's one thing you're proud of?",
+          "author": "Transcend"
+        },
+        {
+          "id": "along-083",
+          "text": "What's one thing you'd like us to try to help you learn more in our class?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        }
+      ]
+    },
+    {
+      "id": "relevance-motivation",
+      "label": "Relevance & motivation",
+      "description": "Does this matter to you? Honest reads on why (or whether) learning lands.",
+      "prompts": [
+        {
+          "id": "along-084",
+          "text": "Does what we're learning in class matter to you? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I don't know why we learn this.",
+            "Not much. A few things are interesting.",
+            "A bit. I wish it felt more helpful.",
+            "Yes, I think this will help me later."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-085",
+          "text": "Is what we're learning in class connected to your life or community? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I don't see any connection.",
+            "No, we don't learn about people like me.",
+            "If I try to, I can see a connection.",
+            "Yes, it feels connected to me."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-086",
+          "text": "In our class, do we learn about important problems in the world? Pick what's closest to how you feel.",
+          "choices": [
+            "No, we don't talk about big problems.",
+            "A bit, but not what matters to me.",
+            "Some. I wish we did it differently.",
+            "Yes, we talk about things that matter."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-087",
+          "text": "What's something you really care about that's connected to what we're learning?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-088",
+          "text": "Over time, has what we're learning in class mattered more to you? Pick what's closest to how you feel.",
+          "choices": [
+            "I still don't know why we learn this.",
+            "It matters to me a little more.",
+            "Yes, I care more about it lately.",
+            "What we learn always mattered to me."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-089",
+          "text": "Lately, has what we've learned in class felt more connected to your life or community? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I still don't see any connection.",
+            "I see more connection to my life.",
+            "I see more connection to my community.",
+            "It's always felt connected to me."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-090",
+          "text": "Over time, have we learned more about important problems in the world? Pick what's closest to how you feel.",
+          "choices": [
+            "No, we don't talk about big problems.",
+            "Some, but I'd still like more.",
+            "Yes, we're doing this more.",
+            "We've always done this."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-091",
+          "text": "Over time, have you seen more connection between what we learn in class and what you really care about?",
+          "author": "Transcend"
+        }
+      ]
+    },
+    {
+      "id": "agency-choice",
+      "label": "Student agency & choice",
+      "description": "How students want to learn, choose, and steer.",
+      "prompts": [
+        {
+          "id": "along-092",
+          "text": "In our class, do you have a say in what happens? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I don't have any say.",
+            "Not really. My ideas aren't listened to.",
+            "I have some say in what I do.",
+            "Yes, my ideas are taken seriously."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-093",
+          "text": "In our class, do you have the resources you need to support your learning? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I'm not sure what I need.",
+            "I know what I need, but I can't get it.",
+            "Sometimes I do, but not always.",
+            "Yes, I have what I need."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-094",
+          "text": "In our class, can you make choices to learn in the way that works best for you? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I can't try what I'd like to do.",
+            "I'm not sure what change might help me.",
+            "Sometimes I can do what's best for me.",
+            "Yes, I make choices that help me learn."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-095",
+          "text": "In our class, are you able to learn at your own pace? Pick what's closest to how you feel.",
+          "choices": [
+            "No, we move too fast for me.",
+            "No, we move too slow for me.",
+            "Sometimes I can, but not always.",
+            "Yes, I can do what works for me."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-096",
+          "text": "In our class, do assignments (like projects or tests) work well for you? Why or why not?",
+          "author": "Transcend"
+        },
+        {
+          "id": "along-097",
+          "text": "Is there anything about our class that you're struggling with? If so, what is it?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-098",
+          "text": "Lately, do people want you to be happy and healthy (and not just get good grades)? Pick what's closest to how you feel.",
+          "choices": [
+            "No, only academics really matter here.",
+            "We say it, but we still don't mean it.",
+            "Yes, I've felt this way more recently.",
+            "Yes, I've always felt this way."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-099",
+          "text": "Over time, have you learned more ways to take care of yourself mentally and physically? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I haven't learned that recently.",
+            "A little bit, but I wish we did more.",
+            "I've learned that somewhere else.",
+            "Yes, I've gotten better at that here."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-100",
+          "text": "What's one choice you like to have on assignments?",
+          "choices": [
+            "Choosing my topic",
+            "Choosing who I work with",
+            "Choosing the format I use",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-101",
+          "text": "What do you wish you had more of a say about in class?",
+          "choices": [
+            "What topics we learn about",
+            "The types of activities we do",
+            "The pace we work at",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-102",
+          "text": "What's one thing that helps you learn in class? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-103",
+          "text": "What's one thing we could change in class to make it easier to focus? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-104",
+          "text": "What's one choice you'd like to have in class to better support your learning? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning"
+        },
+        {
+          "id": "along-105",
+          "text": "Over time, have you had more say in what happens in class? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I don't get to share my ideas.",
+            "No, my ideas aren't listened to.",
+            "Yes, my ideas are listened to more.",
+            "I've always had a say in what happens."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-106",
+          "text": "Over time, have you had more access to resources you need to support your learning? Pick what's closest to how you feel.",
+          "choices": [
+            "I still don't know what would help me.",
+            "I know what I need, but I can't get it.",
+            "Yes, I get what I need more often.",
+            "I've always gotten what I need."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-107",
+          "text": "Over time, have you had more flexibility to learn in the way that works best for you? Pick what's closest to how you feel.",
+          "choices": [
+            "I still can't try what I'd like to do.",
+            "I'm still not sure what to try.",
+            "Yes, I can do this more often.",
+            "I've always been able to do what I need."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-108",
+          "text": "Over time, have you been more able to learn at your own pace? Pick what's closest to how you feel.",
+          "choices": [
+            "No, the pace still isn't right for me.",
+            "I have a bit more often.",
+            "Yes, I can now learn at my pace.",
+            "I've always been able to do what I need."
+          ],
+          "author": "Transcend"
+        },
+        {
+          "id": "along-109",
+          "text": "Lately, have assignments in class (like projects or tests) worked well for you? Why or why not?",
+          "author": "Transcend"
+        },
+        {
+          "id": "along-110",
+          "text": "Lately, is there anything in our class that you're struggling with? What is it?",
+          "author": "Transcend"
+        }
+      ]
+    },
+    {
+      "id": "building-blocks",
+      "label": "Building blocks for learning",
+      "description": "Agency, curiosity, resilience, self-direction, and purpose.",
+      "prompts": [
+        {
+          "id": "along-111",
+          "text": "What's one choice you like to have on assignments?",
+          "choices": [
+            "Choosing my topic",
+            "Choosing who I work with",
+            "Choosing the format I use",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-112",
+          "text": "What do you wish you had more of a say about in class?",
+          "choices": [
+            "What topics we learn about",
+            "The types of activities we do",
+            "The pace we work at",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-113",
+          "text": "What's one choice you'd like to have in class to better support your learning? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-114",
+          "text": "In our class, do you have a say in what happens? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I don't have any say.",
+            "Not really. My ideas aren't listened to.",
+            "I have some say in what I do.",
+            "Yes, my ideas are taken seriously."
+          ],
+          "author": "Transcend",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-115",
+          "text": "In our class, do you have the resources you need to support your learning? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I'm not sure what I need.",
+            "I know what I need, but I can't get it.",
+            "Sometimes I do, but not always.",
+            "Yes, I have what I need."
+          ],
+          "author": "Transcend",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-116",
+          "text": "In our class, can you make choices to learn in the way that works best for you? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I can't try what I'd like to do.",
+            "I'm not sure what change might help me.",
+            "Sometimes I can do what's best for me.",
+            "Yes, I make choices that help me learn."
+          ],
+          "author": "Transcend",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-117",
+          "text": "Over time, have you had more say in what happens in class? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I don't get to share my ideas.",
+            "No, my ideas aren't listened to.",
+            "Yes, my ideas are listened to more.",
+            "I've always had a say in what happens."
+          ],
+          "author": "Transcend",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-118",
+          "text": "What does it mean to you to have agency, or choice, in your learning?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-119",
+          "text": "Think about a time when you took initiative. How did it feel to start something yourself?",
+          "author": "Character Lab",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-120",
+          "text": "What does it mean to you to have a “growth mindsetˮ? What does it feel like? How does it change your actions?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-121",
+          "text": "When has someone helped you grow academically? What did they do?",
+          "author": "Search Institute",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-122",
+          "text": "What's one thing that makes you feel understood and appreciated?",
+          "choices": [
+            "Sharing about myself and my culture",
+            "Just being myself without questions",
+            "Seeing other people I relate to",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-123",
+          "text": "What's something you're looking forward to? It can be big or small, soon or far in the future.",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-124",
+          "text": "In our class, are you included and part of a community? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I don't have any strong ties.",
+            "Not really. I wish I was more connected.",
+            "Sometimes, but it depends on the day.",
+            "Yes, people make me feel like I belong."
+          ],
+          "author": "Transcend",
+          "subcollection": "Activating Agency"
+        },
+        {
+          "id": "along-125",
+          "text": "If we had “show-and-tellˮ in class, what would you bring?",
+          "choices": [
+            "Something someone gave me",
+            "Something from a place I've visited",
+            "Something I made myself",
+            "Something from nature"
+          ],
+          "author": "Search Institute",
+          "subcollection": "Cultivating Curiosity"
+        },
+        {
+          "id": "along-126",
+          "text": "What's one thing you'd like us to try to make our class feel more like a community?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Cultivating Curiosity"
+        },
+        {
+          "id": "along-127",
+          "text": "Lately, has what we've learned in class felt more connected to your life or community? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I still don't see any connection.",
+            "I see more connection to my life.",
+            "I see more connection to my community.",
+            "It's always felt connected to me."
+          ],
+          "author": "Transcend",
+          "subcollection": "Cultivating Curiosity"
+        },
+        {
+          "id": "along-128",
+          "text": "Over time, have you seen more connection between what we learn in class and what you really care about?",
+          "author": "Transcend",
+          "subcollection": "Cultivating Curiosity"
+        },
+        {
+          "id": "along-129",
+          "text": "What's something you're looking forward to? It can be big or small, soon or far in the future.",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Cultivating Curiosity"
+        },
+        {
+          "id": "along-130",
+          "text": "How are you feeling about what's coming up soon in school? Pick what's closest to how you feel.",
+          "choices": [
+            "Nervous",
+            "Optimistic",
+            "Stressed",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Cultivating Curiosity"
+        },
+        {
+          "id": "along-131",
+          "text": "When was the last time you made a mistake? What did you do to learn from that mistake?",
+          "author": "Search Institute",
+          "subcollection": "Building Resilience"
+        },
+        {
+          "id": "along-132",
+          "text": "Think about the work you've done recently in class. How do you feel about it? What's one thing you're proud of?",
+          "author": "Transcend",
+          "subcollection": "Building Resilience"
+        },
+        {
+          "id": "along-133",
+          "text": "Have you ever had someone encourage you to do something that was hard for you? What was that like?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Building Resilience"
+        },
+        {
+          "id": "along-134",
+          "text": "What helps you focus when you're working?",
+          "choices": [
+            "Listening to calm music",
+            "Something to fidget with",
+            "Peace and quiet",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Unlocking Self-Direction"
+        },
+        {
+          "id": "along-135",
+          "text": "What's one choice you'd like to have in class to better support your learning? Why?",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Unlocking Self-Direction"
+        },
+        {
+          "id": "along-136",
+          "text": "In our class, are you able to learn at your own pace? Pick what's closest to how you feel.",
+          "choices": [
+            "No, we move too fast for me.",
+            "No, we move too slow for me.",
+            "Sometimes I can, but not always.",
+            "Yes, I can do what works for me."
+          ],
+          "author": "Transcend",
+          "subcollection": "Unlocking Self-Direction"
+        },
+        {
+          "id": "along-137",
+          "text": "In our class, do you have the resources you need to support your learning? Pick what's closest to how you feel.",
+          "choices": [
+            "No, I'm not sure what I need.",
+            "I know what I need, but I can't get it.",
+            "Sometimes I do, but not always.",
+            "Yes, I have what I need."
+          ],
+          "author": "Transcend",
+          "subcollection": "Unlocking Self-Direction"
+        },
+        {
+          "id": "along-138",
+          "text": "Over time, have you had more flexibility to learn in the way that works best for you? Pick what's closest to how you feel.",
+          "choices": [
+            "I still can't try what I'd like to do.",
+            "I'm still not sure what to try.",
+            "Yes, I can do this more often.",
+            "I've always been able to do what I need."
+          ],
+          "author": "Transcend",
+          "subcollection": "Unlocking Self-Direction"
+        },
+        {
+          "id": "along-139",
+          "text": "Over time, have you been more able to learn at your own pace? Pick what's closest to how you feel.",
+          "choices": [
+            "No, the pace still isn't right for me.",
+            "I have a bit more often.",
+            "Yes, I can now learn at my pace.",
+            "I've always been able to do what I need."
+          ],
+          "author": "Transcend",
+          "subcollection": "Unlocking Self-Direction"
+        },
+        {
+          "id": "along-140",
+          "text": "Think about a time when you took initiative. How did it feel to start something yourself?",
+          "author": "Character Lab",
+          "subcollection": "Unlocking Self-Direction"
+        },
+        {
+          "id": "along-141",
+          "text": "What's one thing that makes you feel understood and appreciated?",
+          "choices": [
+            "Sharing about myself and my culture",
+            "Just being myself without questions",
+            "Seeing other people I relate to",
+            "Something else, or I'm not sure"
+          ],
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Pathways to Purpose"
+        },
+        {
+          "id": "along-142",
+          "text": "What's something you're looking forward to? It can be big or small, soon or far in the future.",
+          "author": "Chan Zuckerberg Initiative/Gradient Learning",
+          "subcollection": "Pathways to Purpose"
+        }
+      ]
+    }
+  ]
+}
