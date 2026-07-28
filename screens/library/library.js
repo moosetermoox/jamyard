@@ -205,9 +205,13 @@ function buildCard(game) {
   previewBtn.addEventListener('click', rememberRecent);
   actions.appendChild(previewBtn);
 
-  // Editing belongs to the builder layer — only offered on activities made
-  // on this device (their author is already a builder).
-  if (window.MyGames && MyGames.has(game.id)) {
+  // Customization is the point (play community: the players change the
+  // rules). Own activities — and the owner — edit directly. Built-ins get
+  // "Customize": clone into an editable copy first, because saving over a
+  // shared built-in is owner-only server-side.
+  var canEditDirectly = (window.MyGames && MyGames.has(game.id)) ||
+    (window.OwnerMode && OwnerMode.isOn());
+  if (canEditDirectly) {
     var editBtn = document.createElement('a');
     editBtn.className = 'game-card-edit';
     editBtn.href = '/designer/edit?game=' + encodeURIComponent(game.id);
@@ -215,6 +219,17 @@ function buildCard(game) {
     editBtn.setAttribute('aria-label', 'Edit "' + game.name + '"');
     editBtn.addEventListener('click', rememberRecent);
     actions.appendChild(editBtn);
+  } else {
+    var customizeBtn = document.createElement('button');
+    customizeBtn.type = 'button';
+    customizeBtn.className = 'game-card-edit';
+    customizeBtn.textContent = 'Customize';
+    customizeBtn.title = 'Make your own editable copy of this activity';
+    customizeBtn.setAttribute('aria-label', 'Customize a copy of "' + game.name + '"');
+    customizeBtn.addEventListener('click', function () {
+      customizeCopy(game, customizeBtn);
+    });
+    actions.appendChild(customizeBtn);
   }
 
   var favBtn = document.createElement('button');
@@ -240,6 +255,47 @@ function metaBadge(text) {
   badge.className = 'game-card-meta-badge';
   badge.textContent = text;
   return badge;
+}
+
+// Clone a built-in into this teacher's own editable copy, then open the
+// editor on it. The copy is device-scoped like any user creation.
+function customizeCopy(game, btn) {
+  btn.disabled = true;
+  btn.textContent = 'Copying…';
+  fetch('/api/games/' + encodeURIComponent(game.id))
+    .then(function (resp) {
+      if (!resp.ok) throw new Error('could not load the activity');
+      return resp.json();
+    })
+    .then(function (config) {
+      config.name = game.name + ' (my version)';
+      delete config.featured; // the copy is yours, not the public front door's
+      var base = (config.name || 'my-activity').toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40) || 'my-activity';
+      var existing = allGames.map(function (g) { return g.id; });
+      var copyId = base;
+      var counter = 2;
+      while (existing.indexOf(copyId) !== -1) { copyId = base + '-' + counter; counter++; }
+      return fetch('/api/games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: copyId, config: config })
+      }).then(function (resp) {
+        if (!resp.ok) {
+          return resp.json().catch(function () { return {}; }).then(function (d) {
+            throw new Error(d.error || 'save failed');
+          });
+        }
+        if (window.MyGames) MyGames.add(copyId);
+        Recents.add(copyId);
+        window.location.href = '/designer/edit?game=' + encodeURIComponent(copyId);
+      });
+    })
+    .catch(function (err) {
+      btn.disabled = false;
+      btn.textContent = 'Customize';
+      alert('Could not make your copy: ' + err.message);
+    });
 }
 
 // --- Builder doorway: opening the second layer files a signal ------------
