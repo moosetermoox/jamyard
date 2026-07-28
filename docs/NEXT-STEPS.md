@@ -10,25 +10,21 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (notes from 2026-07-06, updated 2026-07-26)
+### START HERE next session (updated 2026-07-28)
 
-0. **⚠️ Before/at the next deploy: set `SITE_PASSWORD` on Render.** The
-   2026-07-26 rework made the site public (curated 8-activity front door)
-   and turned `SITE_PASSWORD` into the OWNER password. If it's unset on the
-   deployed server, ANYONE can open the feedback inbox, toggle featured
-   flags, and edit built-ins. If it was already set: deploying this change
-   opens /host and /designer to the public — that's the intended product
-   decision. Owner flow: designer grid → "Site owner? Show everything".
-1. **Proxy playtests (D) — this is the week.** July is the window; August is
-   too late to act on what they find. Push the unpushed commits (Render
-   deploys on push), then run 2-3 adults on real phones through the
-   day-one-kit candidates. `scripts/demo-room.js` holds a room for phone
-   testing. The new 💬 feedback widget means testers can file reactions
-   in the moment — check `/feedback` after each session.
-   **Include the new thesis slate** (Whose Eyes? / Someone's Got You /
-   Both Sides of the Rope — shipped 2026-07-27 from
-   COMPARATIVE-ADVANTAGE.md steps 1-3; featured set rebalanced, all
-   configs goal-tagged, no-winner badge live).
+Everything through the chain primitives is DEPLOYED (SITE_PASSWORD set,
+deploy-on-green live, UptimeRobot pinging). Device stance: **students are
+on Chromebooks — phones are banned in schools.** Student-facing copy and
+docs were swept 2026-07-28; the teacher console is pitched as "a second
+device" (laptop / spare Chromebook). Keep it that way in new copy.
+
+1. **Proxy playtests — THE remaining July item; the window is nearly
+   closed.** Run 2-3 adults on real Chromebooks through the day-one-kit
+   candidates AND the thesis slate (Whose Eyes? / Someone's Got You /
+   Both Sides of the Rope / One More Thing). `scripts/demo-room.js`
+   holds a live room for real-device testing; the 💬 feedback widget
+   catches reactions in the moment — check `/feedback` after each
+   session.
 1.1. **COMPARATIVE-ADVANTAGE follow-ups**: (a) engine asks §7 —
    ~~prefillFromAssigned~~, ~~return-to-author reveal~~, ~~merge
    groupSize:3~~, ~~One More Thing~~ **all SHIPPED 2026-07-27** (+
@@ -38,11 +34,12 @@ everything below is polish, testing, and ops.
    pzlearn@gse.harvard.edu before any public marketing of PZ-derived
    shapes — teacher action, only you can send it.** (c) Deep Fun tier 1:
    The Mind → `ascend` phase, Just One → clue-cancel module.
-2. ~~Two 5-minute ops steps only the teacher can do~~ **DONE 2026-07-27**:
-   Render auto-deploy OFF + `RENDER_DEPLOY_HOOK` secret set (deploys now
-   happen only on green tests) and UptimeRobot pinging every 5 min (free
-   dyno no longer sleeps mid-class). Consider Render Starter (~$7/mo)
-   right before August field tests.
+2. **Teacher-only actions still open**: (a) email pzlearn@gse.harvard.edu
+   (PZ permission — before public marketing of PZ-derived shapes);
+   (b) the three compliance facts (operating name, privacy email,
+   coordinator) that unblock the four August-gate documents;
+   (c) consider Render Starter (~$7/mo) right before August field tests.
+   ~~RENDER_DEPLOY_HOOK + UptimeRobot~~ DONE 2026-07-27.
 3. **Day-one kit (C)** — pick the 3-5 launch games and polish deeply.
    Candidates now: One Voice / Closer (connection), Quiz Show, Lightning
    Round, **Vocab Match**, **Metaphor or Simile?**, **Art Gallery** (the new
@@ -57,17 +54,18 @@ everything below is polish, testing, and ops.
    (Checklist shipped WITH its recipe on 2026-07-19 — `recipes/group-work.json`
    is the pattern to copy.)
 5. **Loose ends from the July push:** caption mode (drawing shown above a
-   text box via rotateFrom) works but no shipped game uses it — Telephone
-   Pictionary needs the chain reveal (see Next below); the editor UI for the
-   new widgets (match pairs rows, sort buckets/items, drawing toggle, team
-   sizing toggle) passed validation but was never screenshot-reviewed in the
+   text box via rotateFrom) works but no shipped game uses it — the
+   return-to-author reveal (shipped 2026-07-28) covers TEXT chains;
+   Telephone Pictionary still needs chain-reveal to walk DRAWING chains
+   (byPlayerDrawing) too; the editor UI for the new widgets (match pairs
+   rows, sort buckets/items, drawing toggle, team sizing toggle, chain
+   fields) passed validation but was never screenshot-reviewed in the
    browser; class-critique still ships an empty reveal template.
 
 ### The plan itself
 
-- **A. Survive a real class period** ✅ CODE DONE — room snapshots (resume at
-  phase start, host-F5 rejoin), CI deploy-on-green wiring. Remaining: the two
-  manual ops steps in START HERE #2.
+- **A. Survive a real class period** ✅ DONE — room snapshots (resume at
+  phase start, host-F5 rejoin), deploy-on-green + uptime ping live 2026-07-27.
 - **B. Chaos simulator** ✅ DONE — `node scripts/simulate-chaos.js`; every new
   interactive phase gets a chaos run before shipping (now standard practice).
 - **C. Day-one kit** — see START HERE #3.

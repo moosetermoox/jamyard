@@ -13,13 +13,13 @@
     },
     "intro": {
       "type": "announce",
-      "message": "👁 WHOSE EYES?\n\nToday's topic: our school's phone policy.\n\nFirst, name someone — or something — this topic touches. Then you'll get a classmate's suggestion and look through THEIR eyes.",
+      "message": "👁 WHOSE EYES?\n\nToday's topic: our school's homework policy.\n\nFirst, name someone — or something — this topic touches. Then you'll get a classmate's suggestion and look through THEIR eyes.",
       "timer": 12,
       "next": "viewpoints"
     },
     "viewpoints": {
       "type": "collect",
-      "prompt": "Name ONE person, creature, or thing affected by our school's phone policy. Anyone whose eyes we could look through — a substitute teacher? a parent at dinner? the phone itself?",
+      "prompt": "Name ONE person, creature, or thing affected by our school's homework policy. Anyone whose eyes we could look through — a substitute teacher? a parent at dinner? the kitchen table it gets done on?",
       "timer": 90,
       "next": "step-inside"
     },

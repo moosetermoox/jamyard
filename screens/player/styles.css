@@ -193,7 +193,7 @@ textarea::placeholder {
 }
 
 /* Join form labels — permanent labels beat long clipped placeholders
-   (2026-07-26 UI review: the old name placeholder didn't fit a phone). */
+   (2026-07-26 UI review: the old name placeholder didn't fit a narrow screen). */
 .join-label {
   display: block;
   text-align: left;

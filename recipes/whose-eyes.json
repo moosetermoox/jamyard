@@ -10,8 +10,8 @@
     "topic": {
       "type": "string",
       "label": "The topic",
-      "helper": "Anything with more than one side: 'the Louisiana Purchase', 'building the new dam', 'chapter 12 of Holes', 'our school's phone policy'.",
-      "default": "our school's phone policy"
+      "helper": "Anything with more than one side: 'the Louisiana Purchase', 'building the new dam', 'chapter 12 of Holes', 'our school's homework policy'.",
+      "default": "our school's homework policy"
     },
     "writeTime": {
       "type": "integer",

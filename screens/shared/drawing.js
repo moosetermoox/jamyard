@@ -4,7 +4,7 @@
 //
 // Strokes are { points: [[x,y],...], color, width } with coordinates
 // normalized 0..1, so the same drawing renders at any size — a student's
-// phone canvas, a projector gallery card, or a 60px moderation thumbnail.
+// Chromebook canvas, a projector gallery card, or a 60px moderation thumbnail.
 // The server re-validates everything (engine/drawing.js); this module just
 // has to be pleasant to draw with.
 //

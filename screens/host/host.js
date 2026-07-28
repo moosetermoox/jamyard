@@ -109,7 +109,7 @@ let pinHideTimer = null;
 function hidePinInfo() {
   teacherViewInfo.hidden = true;
   pinRevealArmed = false;
-  teacherViewToggle.textContent = '📱 Teacher controls on your phone';
+  teacherViewToggle.textContent = '💻 Teacher controls on a second device';
   if (pinHideTimer) { clearTimeout(pinHideTimer); pinHideTimer = null; }
 }
 teacherViewToggle.addEventListener('click', () => {
@@ -122,7 +122,7 @@ teacherViewToggle.addEventListener('click', () => {
     return;
   }
   teacherViewInfo.textContent = 'Open ' + window.location.origin +
-    '/teacher on your phone · room ' + (currentRoomCode || '????') +
+    '/teacher on a second device · room ' + (currentRoomCode || '????') +
     ' · PIN ' + (currentTeacherPin || '????');
   teacherViewInfo.hidden = false;
   teacherViewToggle.textContent = 'Hide';

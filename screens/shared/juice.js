@@ -20,7 +20,7 @@
 
   // --- Avatars -------------------------------------------------------------
   // Friendly, school-safe bank. Deterministic by name so a student keeps the
-  // same avatar on every screen all game (host lobby, leaderboard, their phone).
+  // same avatar on every screen all game (host lobby, leaderboard, their device).
 
   var AVATARS = [
     '🦊', '🐼', '🦁', '🐯', '🐨', '🦋',

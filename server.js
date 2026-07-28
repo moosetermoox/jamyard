@@ -2439,7 +2439,7 @@ io.on('connection', (socket) => {
       socket.emit(EVENTS.TEACHER_JOIN_ERROR, {
         message: fail.locked
           ? 'Too many wrong PINs — the teacher view is locked for a few minutes.'
-          : 'Wrong PIN. Tap "👁 Teacher view" on the host screen to see it.'
+          : 'Wrong PIN. Tap "💻 Teacher controls on a second device" on the host screen to see it.'
       });
       return;
     }

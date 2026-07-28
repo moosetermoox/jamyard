@@ -1,5 +1,5 @@
 /**
- * player.js — the student device client (phone / Chromebook).
+ * player.js — the student device client (Chromebook / tablet).
  *
  * The socket.io client for one player: join, then the input UI for each phase
  * (text answers, choices, votes, ranks, rates, wagers, relay turns, merge
@@ -1832,7 +1832,7 @@ function renderRankItems() {
         renderRankItems();
       });
 
-      // Touch drag (phones/Chromebooks without mouse)
+      // Touch drag (touchscreen Chromebooks/tablets)
       addTouchDrag(row, index);
 
       row.appendChild(handle);
@@ -1961,7 +1961,7 @@ function renderMatchRows() {
         matchDragSrcIndex = null;
       });
 
-      // Touch drag (phones/Chromebooks without mouse)
+      // Touch drag (touchscreen Chromebooks/tablets)
       addMatchTouchDrag(right, index);
 
       right.appendChild(handle);

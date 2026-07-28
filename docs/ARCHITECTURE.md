@@ -56,7 +56,7 @@ the worst moment).
 +-------------+        +-----+--------+         +--------------+
 |  /host      |<-------+              +-------->|  /player x N |
 |  (project   | socket |   server.js  |  socket |  (Chromebook |
-|   to class) |        |  + Engine    |         |   or phone)  |
+|   to class) |        |  + Engine    |         |  Chromebook) |
 +-------------+        |  + Validator |         +--------------+
                        |  + AI svc    |
                        +-----+--------+
@@ -367,7 +367,7 @@ real/simulated crashes):
 | 23 | `buzz` | First-tap-wins buzzer rounds; teacher judges Right/Wrong on the host; one phase runs many questions; outputs `scores` |
 | 24 | `estimate` | Numeric guessing; `closest`/`graduated` (rank-based, scale-free) scoring; reveal shows answer + distribution; no-answer = poll-the-room |
 | 25 | `match` | Pair two lists (vocab ↔ definitions); left column fixed, right drag-to-swap; close = discussion moment with per-pair class accuracy; outputs `scores` |
-| 26 | `sort` | Place items into named buckets; tap-to-assign (phone-friendly); all-or-none correct buckets = graded vs consensus poll; outputs `scores`/distributions |
+| 26 | `sort` | Place items into named buckets; tap-to-assign (touch-friendly); all-or-none correct buckets = graded vs consensus poll; outputs `scores`/distributions |
 | 27 | `checklist` | Shared group to-do list (lab days, stations); any member checks items with attribution (group + console see names, never the projector); live per-group progress dashboard; no scores |
 | 28 | `end` | Activity over, clean up |
 
@@ -528,7 +528,7 @@ can **Hide** a response (excluded from AI input + reveal, reversible) or
 **Where moderation actually lives: the teacher console** (`/teacher`).
 The host screen is *projected to the class*, so moderation with student
 names on it is effectively public. The console is a private second-device
-view (the teacher's phone), joined with the room code + a 4-digit PIN
+view (the teacher's laptop or a spare Chromebook), joined with the room code + a 4-digit PIN
 (shown click-to-reveal on the host screen) or the `SITE_PASSWORD`
 basic-auth header. It gets the live entries-with-names, preview
 approve/reject, and close/next controls; the host screen's preview
@@ -805,7 +805,7 @@ Teacher uses for real
   └─ Open /host  → Create Room → projects 4-letter code (+ a hostToken
        stashed in sessionStorage for F5 / restart recovery)
   └─ Students open /player → enter code + name
-  └─ (optional) Teacher's phone → /teacher → enter code + PIN
+  └─ (optional) Teacher's second device → /teacher → enter code + PIN
   └─ Teacher clicks Start
        └─ engine.transition('lobby' → first phase)
        └─ handlePhase() dispatches via registry; snapshots the room
@@ -913,7 +913,7 @@ node scripts/simulate-chaos.js             # school-wifi chaos suite (drop/recon
 node scripts/simulate-restart.js           # restart-survival proof (needs DATABASE_URL)
 node scripts/simulate-teacher-console.js   # console invariants incl. PIN brute-force lockout
 node scripts/simulate-team-modes.js        # teacher/choice/open-capacity team splits
-node scripts/demo-room.js <id>             # live room + bots, prints CODE/PIN (phone testing)
+node scripts/demo-room.js <id>             # live room + bots, prints CODE/PIN (second-device testing)
 node scripts/screenshot.js <url> out.png   # headless screenshots of socket pages (CDP)
 ```
 

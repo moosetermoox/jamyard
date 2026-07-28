@@ -1,7 +1,7 @@
 // Teacher console — the private second-device view.
 //
 // The host screen is projected to the class, so anything "teacher-only"
-// there is actually public. This page (usually on the teacher's phone)
+// there is actually public. This page (on the teacher's laptop or a spare Chromebook)
 // receives the live moderation list and preview content privately, and can
 // hide/kick entries, approve/reject previews, close submissions, and
 // advance steps. It joins with the room code + the PIN shown click-to-reveal
@@ -140,7 +140,7 @@ socket.on('teacher-joined', function (snap) {
   }
 });
 
-// Auto-rejoin on reconnect (wifi blips, phone sleep)
+// Auto-rejoin on reconnect (wifi blips, device sleep)
 socket.on('connect', function () {
   if (currentCode) {
     socket.emit('join-teacher', { code: currentCode, pin: currentPin });
