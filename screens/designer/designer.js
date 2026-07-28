@@ -457,8 +457,9 @@ function buildGameCard(game) {
   var previewBtn = document.createElement('a');
   previewBtn.className = 'game-card-preview';
   previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
-  previewBtn.textContent = 'Try it';
-  previewBtn.setAttribute('aria-label', 'Try "' + game.name + '" in prototype mode');
+  previewBtn.textContent = 'Preview';
+  previewBtn.title = 'See the teacher and student screens side by side, with practice players — no class needed';
+  previewBtn.setAttribute('aria-label', 'Preview "' + game.name + '" with practice players');
   previewBtn.addEventListener('click', rememberRecent);
   actions.appendChild(previewBtn);
 
