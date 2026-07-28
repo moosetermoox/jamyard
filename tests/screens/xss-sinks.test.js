@@ -33,7 +33,9 @@ const FILES = [
   'screens/shared/game-visibility.js',
   'screens/shared/my-games.js',
   'screens/shared/owner-mode.js',
-  'screens/shared/dialog.js'
+  'screens/shared/dialog.js',
+  'screens/shared/activity-prefs.js',
+  'screens/library/library.js'
 ];
 
 // Escapers, and helpers verified (2026-07-19) to escape their args internally.

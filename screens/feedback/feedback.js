@@ -12,6 +12,7 @@
     problem: "🐛 Something's broken",
     idea: '💡 Idea',
     praise: '💛 Praise',
+    'builder-request': '🛠 Wants to build',
     other: '💬 Other'
   };
 

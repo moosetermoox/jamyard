@@ -127,40 +127,11 @@ var GOAL_LABELS = {
 var libraryQuery = '';
 var activeGoal = null;
 
-function readIdList(key) {
-  try {
-    var raw = localStorage.getItem(key);
-    var ids = raw ? JSON.parse(raw) : [];
-    return Array.isArray(ids) ? ids : [];
-  } catch (e) { return []; }
-}
-
-function writeIdList(key, ids) {
-  try { localStorage.setItem(key, JSON.stringify(ids)); } catch (e) {}
-}
-
-var Favorites = {
-  KEY: 'lanyard-favorites',
-  list: function () { return readIdList(this.KEY); },
-  has: function (id) { return this.list().indexOf(id) !== -1; },
-  toggle: function (id) {
-    var ids = this.list();
-    var at = ids.indexOf(id);
-    if (at === -1) ids.push(id); else ids.splice(at, 1);
-    writeIdList(this.KEY, ids);
-  }
-};
-
-var Recents = {
-  KEY: 'lanyard-recents',
-  MAX: 8,
-  list: function () { return readIdList(this.KEY); },
-  add: function (id) {
-    var ids = this.list().filter(function (x) { return x !== id; });
-    ids.unshift(id);
-    writeIdList(this.KEY, ids.slice(0, this.MAX));
-  }
-};
+// Favorites + Recents live in screens/shared/activity-prefs.js now (shared
+// with the /library page so both surfaces agree). Local aliases keep every
+// call site in this file unchanged.
+var Favorites = ActivityPrefs.Favorites;
+var Recents = ActivityPrefs.Recents;
 
 function matchesLibraryFilters(game) {
   if (activeGoal) {

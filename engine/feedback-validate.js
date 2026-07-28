@@ -8,7 +8,9 @@
  */
 import { filterContent } from './content-filter.js';
 
-export const FEEDBACK_CATEGORIES = ['problem', 'idea', 'praise', 'other'];
+// 'builder-request' is filed by the library's "build your own" doorway —
+// the signal for which teachers actively seek the designer layer.
+export const FEEDBACK_CATEGORIES = ['problem', 'idea', 'praise', 'builder-request', 'other'];
 export const FEEDBACK_MIN_LENGTH = 3;
 export const FEEDBACK_MAX_LENGTH = 2000;
 const PAGE_MAX_LENGTH = 100;

@@ -45,6 +45,14 @@ export async function initDb() {
     )
   `;
   await getSql()`
+    CREATE TABLE IF NOT EXISTS activity_runs (
+      id           SERIAL      PRIMARY KEY,
+      game_id      TEXT        NOT NULL,
+      player_count INTEGER     NOT NULL DEFAULT 0,
+      started_at   TIMESTAMPTZ DEFAULT now()
+    )
+  `;
+  await getSql()`
     CREATE TABLE IF NOT EXISTS feedback (
       id          SERIAL      PRIMARY KEY,
       created_at  TIMESTAMPTZ DEFAULT now(),
@@ -165,6 +173,29 @@ export async function insertUserRecipeIfAbsent(id, recipe) {
 export async function deleteUserRecipe(id) {
   const rows = await getSql()`DELETE FROM user_recipes WHERE id = ${id} RETURNING id`;
   return rows.length > 0;
+}
+
+// --- Activity runs (the library-first success metric: activities RUN, not
+// --- built). Privacy-clean by design: a game id, a headcount, a timestamp —
+// --- no names, no content, no room codes. ---
+
+export async function recordActivityRun(gameId, playerCount) {
+  await getSql()`
+    INSERT INTO activity_runs (game_id, player_count)
+    VALUES (${gameId}, ${playerCount || 0})
+  `;
+}
+
+export async function activityRunSummary() {
+  const totals = await getSql()`
+    SELECT game_id, COUNT(*)::int AS runs, MAX(started_at) AS last_run
+    FROM activity_runs GROUP BY game_id ORDER BY runs DESC
+  `;
+  const week = await getSql()`
+    SELECT COUNT(*)::int AS runs FROM activity_runs
+    WHERE started_at > now() - interval '7 days'
+  `;
+  return { totals, lastSevenDays: week[0] ? week[0].runs : 0 };
 }
 
 // --- Site feedback (anonymous by design — no name/email columns on purpose;

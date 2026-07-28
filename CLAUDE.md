@@ -50,7 +50,8 @@ Framework for quickly building classroom games where:
 - **Prototype mode** — `/prototype` embeds host + player iframes side-by-side for quick playtesting. Two view modes: Grid (all players at once) and "One at a time" (carousel — fixed-position arrows + dot indicators above iframes, looping keyboard ← → navigation)
 - **Dynamic AI messages** — processing screen shows task-specific text ("summarizing...", "comparing...") instead of hardcoded "creating your poem"
 - Server runs on port 3000 (`npm start`)
-- Home screen at / (redesigned — two primary cards + student room-code join)
+- **Library-first (2026-07-28, Phase 1 of docs/LIBRARY-FIRST-PLAN.md)** — `/library` is the teacher front door: search + goal chips (Connect first), run-focused cards (▶ Host primary, Try it, ♥/Recents via shared `screens/shared/activity-prefs.js`), builder doorway ("Build your own" → optional note filed as feedback category `builder-request` → /designer; signal-only, /designer never gated). Home = ONE primary card → /library + student join; designer demoted to footer link. Runs-not-builds metric: `activity_runs` Neon table (game_id/player_count/started_at only — no student data), recorded once per room at start-game (never simulated rooms), owner-gated `GET /api/activity-runs`.
+- Home screen at / (one primary "Find an Activity" card → /library + student room-code join)
 - Host screen at /host, Player screen at /player, private teacher console at /teacher (room code + click-to-reveal PIN)
 - Game editor at /designer, editor at /designer/edit
 - Prototype mode at /prototype
@@ -113,7 +114,7 @@ Framework for quickly building classroom games where:
 - **"Activity" vocabulary** — user-facing copy says **activity** (the umbrella word teachers use: games, polls, critiques, checklists all fit); "game" stays only where something genuinely is a game (e.g. the elimination-game example chip). End screens say "That's a wrap!", host button "End Session". Internals unchanged on purpose: `games/`, `gameId`, `GameEngine`, socket event names, API routes all keep "game" — this was a copy-level sweep, not a rename.
 - **Library controls** — designer grid has search, goal chips (from config `tags` using a fixed goal vocabulary: connect/create/discuss/decide/reflect/energize/review — seeded into ~14 configs), ♥ favorites and "Recently used" sections (localStorage, same no-accounts model as MyGames). One render entry point: `refreshLibrary()` in designer.js.
 - **Descriptive continue buttons** — announce and reveal host buttons say what happens NEXT ("Start the voting", "Send the question to students") via pure `engine/phases/continue-labels.js` (`continueLabelForPhase(phase, config.phases)` — covers virtual foreach sub-phases; unknown types fall back to "Continue"). Payload field `continueLabel` on ANNOUNCE/SHOW_RESULTS host emits.
-- **882 tests passing** (`npm test`)
+- **884 tests passing** (`npm test`)
 - Simulator scripts for automated playtesting: `node scripts/simulate-any-game.js <game-id>` (universal), `simulate-closer.js`, `simulate-snowball.js`, `simulate-one-voice.js` (scripted tap timings), `simulate-team-modes.js` (teacher/choice team-split invariants), `simulate-connection-slice.js`, `simulate-corn-story.js`, `simulate-scamper.js`, and others in `scripts/`
 - **Visual review tooling** — `scripts/screenshot.js` (headless screenshots via Chrome DevTools Protocol; required for socket pages — host/player/teacher hold a socket open so they never reach network-idle and `--virtual-time-budget` hangs) + `scripts/demo-room.js` (spins up a live room with bot players, holds at collect or preview, prints CODE/PIN — for second-device testing and screenshot harnesses)
 
@@ -345,7 +346,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render (free tier); auto-deploys from master
 
 ### Testing
-- `npm test` — runs all 882 Vitest tests (~4s)
+- `npm test` — runs all 884 Vitest tests (~4s)
 - `node scripts/simulate-chaos.js [gameId] [--players N]` — school-wifi chaos suite (server must be running)
 - **CI**: `.github/workflows/test.yml` runs the suite on every push/PR; with the `RENDER_DEPLOY_HOOK` secret set (and Render auto-deploy OFF), deploys only happen on green
 - `node scripts/simulate-restart.js` — restart-survival proof (spawns its own server, kills it mid-game, restores; needs DATABASE_URL)

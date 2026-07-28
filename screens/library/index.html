@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity Library - Lanyard</title>
+  <!-- Reuses the designer's stylesheet for the shared card/chip look, plus
+       library-specific overrides. -->
+  <link rel="stylesheet" href="/designer/styles.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <h1>What do you want to do together?</h1>
+    <a href="/" class="back-link">Back to Home</a>
+  </header>
+
+  <main>
+    <section id="library-section">
+      <div id="library-controls" hidden>
+        <input type="search" id="library-search" placeholder="Search activities…"
+               aria-label="Search activities">
+        <div id="goal-chips" role="group" aria-label="Filter by goal"></div>
+      </div>
+      <p id="loading-message">Loading the library…</p>
+      <p id="error-message" hidden></p>
+      <div id="library-grid"></div>
+
+      <div class="builder-doorway">
+        <p>Want something that isn't here?</p>
+        <button id="build-your-own-btn" type="button">🛠 Build your own activity</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="/shared/dialog.js"></script>
+  <script src="/shared/game-visibility.js"></script>
+  <script src="/shared/activity-prefs.js"></script>
+  <script src="/shared/my-games.js"></script>
+  <script src="/shared/owner-mode.js"></script>
+  <script src="/shared/feedback-widget.js"></script>
+  <script src="library.js"></script>
+</body>
+</html>

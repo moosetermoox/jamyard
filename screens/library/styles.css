@@ -1,0 +1,53 @@
+/* Library-page overrides on top of /designer/styles.css — the library is
+   for RUNNING, so Host is visually dominant and builder chrome is absent. */
+
+#library-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+
+.library-host {
+  font-size: 1rem !important;
+  padding: 10px 22px !important;
+}
+
+.library-card .game-card-description {
+  min-height: 3.6em;
+}
+
+/* The quiet doorway to the builder layer. */
+.builder-doorway {
+  margin-top: 48px;
+  padding: 24px;
+  text-align: center;
+  border: 2px dashed #aaa;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.builder-doorway p {
+  margin: 0 0 12px;
+  font-family: Arial, sans-serif;
+  color: #555;
+}
+
+#build-your-own-btn {
+  padding: 10px 22px;
+  border: 2.5px solid #000;
+  border-radius: 12px;
+  background: #FFF9C4;
+  font-family: 'Arial Black', Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+#build-your-own-btn:hover {
+  background: #FFD600;
+}
+
+#build-your-own-btn:focus-visible {
+  outline: 3px solid #0057FF;
+  outline-offset: 2px;
+}

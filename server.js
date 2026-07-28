@@ -49,7 +49,9 @@ import {
   deleteUserRecipe,
   addFeedback,
   listFeedback,
-  setFeedbackStatus
+  setFeedbackStatus,
+  recordActivityRun,
+  activityRunSummary
 } from './db.js';
 import { createFeedbackStore } from './services/feedback-store.js';
 import { validateFeedback } from './engine/feedback-validate.js';
@@ -160,6 +162,7 @@ function ownerAreaGate(req, res, next) {
   const path = req.path;
   const needsOwner =
     path === '/api/owner-check' ||
+    path === '/api/activity-runs' ||                                 // runs-not-builds gauge
     path.startsWith('/feedback') ||                                  // inbox UI
     (path.startsWith('/api/feedback') && req.method !== 'POST');     // list/status; submitting stays open
   if (!needsOwner) return next();
@@ -1574,6 +1577,8 @@ app.use('/teacher', express.static(join(__dirname, 'screens/teacher')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
 app.use('/shared', express.static(join(__dirname, 'screens/shared')));
 app.use('/prototype', express.static(join(__dirname, 'screens/prototype')));
+// The teacher-facing front door (library-first, 2026-07-28): browse + host.
+app.use('/library', express.static(join(__dirname, 'screens/library')));
 // Owner-only feedback inbox (ownerAreaGate runs first and demands the password).
 app.use('/feedback', express.static(join(__dirname, 'screens/feedback')));
 
@@ -1991,6 +1996,17 @@ app.patch('/api/feedback/:id', async (req, res) => {
 // Auth credentials for the realm, so subsequent owner requests just work.
 app.get('/api/owner-check', (req, res) => {
   res.json({ owner: true });
+});
+
+// Owner-gated (ownerAreaGate): the runs-not-builds gauge.
+app.get('/api/activity-runs', async (req, res) => {
+  try {
+    if (!DB_ENABLED) return res.json({ enabled: false, totals: [], lastSevenDays: 0 });
+    res.json({ enabled: true, ...(await activityRunSummary()) });
+  } catch (err) {
+    console.log(`[api/activity-runs] Error: ${err.message}`);
+    res.status(500).json({ error: 'Could not load run counts.' });
+  }
 });
 
 app.put('/api/games/:gameId', async (req, res) => {
@@ -2609,6 +2625,14 @@ io.on('connection', (socket) => {
         const lobby = room.engine.getCurrentPhase();
         room.engine.transition(lobby.next);
         console.log(`[start-game] Room ${code} now in '${room.engine.getCurrentPhase().id}' phase`);
+        // Library-first metric: count activities RUN (once per room; never
+        // simulated rooms; a game id + headcount + timestamp, nothing else).
+        // Fire-and-forget — the class never waits on analytics.
+        if (DB_ENABLED && !room.simulated && !room.runRecorded) {
+          room.runRecorded = true;
+          recordActivityRun(room.gameId, room.engine.players.list().length)
+            .catch(err => console.log(`[activity-runs] record failed: ${err.message}`));
+        }
         await handlePhase(code, room);
       } else {
         room.stateMachine.transition('collect');

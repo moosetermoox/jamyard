@@ -18,14 +18,16 @@ on Chromebooks — phones are banned in schools.** Student-facing copy and
 docs were swept 2026-07-28; the teacher console is pitched as "a second
 device" (laptop / spare Chromebook). Keep it that way in new copy.
 
-0. **STRATEGY SHIFT PLANNED (2026-07-28, not yet built): library-first.**
-   The library (activities + prompt decks, doing-it-together) becomes the
-   main offering; the designer becomes an opt-in second layer. Full plan
-   with phases, the Along prompt-corpus mapping (151 attributed
-   questions), the `activity_runs` metric, and kill-tests:
-   [LIBRARY-FIRST-PLAN.md](LIBRARY-FIRST-PLAN.md). Strategy argument:
-   [WEEK-REFINEMENT.md](WEEK-REFINEMENT.md). Phase 1 (library front door)
-   is ~1 session when the user says go.
+0. **STRATEGY SHIFT: library-first** — plan in
+   [LIBRARY-FIRST-PLAN.md](LIBRARY-FIRST-PLAN.md), argument in
+   [WEEK-REFINEMENT.md](WEEK-REFINEMENT.md). **Phase 1 SHIPPED
+   2026-07-28**: `/library` front door (run-focused cards, goal chips,
+   builder doorway → `builder-request` signal), home = one primary card,
+   `activity_runs` metric live (owner-gated /api/activity-runs).
+   **Next: Phase 2** — prompt-bank format + Along ingestion (151
+   attributed questions) + `promptDeck` recipe param + first 3 banks
+   (Snowball, Someone's Got You, Class Poll/Mood Check). Then the Aron
+   A/B at playtests.
 1. **Proxy playtests — THE remaining July item; the window is nearly
    closed.** Run 2-3 adults on real Chromebooks through the day-one-kit
    candidates AND the thesis slate (Whose Eyes? / Someone's Got You /
