@@ -107,6 +107,14 @@ Ground rules for the exploration:
   suggestions using the step's actual prompt text (same UI, smarter order).
   This is the from-scratch answer: the palette shows what's POSSIBLE, the
   + shows what makes SENSE next.
+- **Empty state (mocked round 3):** a new activity never shows a blank
+  canvas — the lobby step is pre-placed ("every activity starts here,
+  nothing to configure") and the first suggestion row opens automatically
+  asking "What happens first?" (announcement wears the most-common badge —
+  that's how the built-ins actually open). With no step selected, the right
+  rail shows the ACTIVITY tab (name/description/theme) plus a "select a
+  step to edit it" nudge — the tabbed rail's resting state. The wrap-up/end
+  step is auto-added, noted by a quiet footer hint.
 
 ## 6. Phase 4 — AI as a building partner (ladder, cheapest first)
 
