@@ -115,6 +115,15 @@ Ground rules for the exploration:
   rail shows the ACTIVITY tab (name/description/theme) plus a "select a
   step to edit it" nudge — the tabbed rail's resting state. The wrap-up/end
   step is auto-added, noted by a quiet footer hint.
+- **Momentum by default (teacher's call, 2026-08-01, mocked round 4):**
+  clicking a suggestion does three things at once — the step lands in the
+  canvas already selected wearing a "✓ added" flash, its settings wait in
+  the rail with WORKING defaults (a suggested reveal already points at the
+  prior collect step), and the next + opens immediately below. Chaining
+  blocks and writing words never conflict because the rail is not a modal.
+  Guardrail: only the LAST gap auto-opens; earlier +s stay collapsed so
+  the canvas stays calm. Every suggested step must be hostable as-is —
+  a chained skeleton with zero typed words is still a valid activity.
 
 ## 6. Phase 4 — AI as a building partner (ladder, cheapest first)
 
