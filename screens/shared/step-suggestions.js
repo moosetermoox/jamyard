@@ -333,7 +333,41 @@
     return true;
   }
 
+  // ---- Reorder: move a step one slot up/down the next-chain ----
+  // Pointer surgery only (never rebuilds pointers wholesale) so branch
+  // fields (approveNext, nextByWinner, …) stay untouched. Returns false
+  // for illegal moves: lobby/end, above the lobby, below the end, or a
+  // step whose chain-predecessor doesn't point at it (branch-entered).
+
+  function moveStep(phasesObj, id, dir) {
+    var ph = phasesObj[id];
+    if (!ph || ph.type === 'lobby' || ph.type === 'end') return false;
+    var order = orderedPhaseIds(phasesObj);
+    var i = order.indexOf(id);
+    if (i <= 0) return false;
+
+    var target;
+    if (dir === 'up') {
+      var above = order[i - 1];
+      if (!phasesObj[above] || phasesObj[above].type === 'lobby') return false;
+      target = order[i - 2];
+      if (target === undefined) return false;
+    } else {
+      var below = order[i + 1];
+      if (below === undefined || !phasesObj[below] || phasesObj[below].type === 'end') return false;
+      target = below;
+    }
+
+    var prev = order[i - 1];
+    if (!phasesObj[prev] || phasesObj[prev].next !== id) return false;
+    phasesObj[prev].next = ph.next;
+    ph.next = phasesObj[target].next;
+    phasesObj[target].next = id;
+    return true;
+  }
+
   var api = {
+    moveStep: moveStep,
     ASK_TYPES: ASK_TYPES,
     SHOW_DECIDE_TYPES: SHOW_DECIDE_TYPES,
     orderedPhaseIds: orderedPhaseIds,

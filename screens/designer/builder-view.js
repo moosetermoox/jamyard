@@ -387,6 +387,41 @@
       if (phase.timer) facts.push('⏱ ' + phase.timer + 's');
       if (facts.length) body.appendChild(el('small', null, facts.join(' · ')));
       card.appendChild(body);
+
+      // Reorder/delete tools — quiet until the card is hovered. All three
+      // reuse existing machinery: moveStep is pointer surgery in the
+      // suggestions module, deletePhase is the editor's own (re-links
+      // next/approveNext/nextByWinner and refuses lobby/end).
+      if (phase.type !== 'lobby' && phase.type !== 'end') {
+        var tools = el('div', 'builder-step-tools');
+        var upBtn = el('button', 'builder-step-tool', '↑');
+        upBtn.type = 'button';
+        upBtn.title = 'Move this step up';
+        upBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (S.moveStep(p, id, 'up')) { markDirty(); rerenderAll(); }
+        });
+        tools.appendChild(upBtn);
+        var downBtn = el('button', 'builder-step-tool', '↓');
+        downBtn.type = 'button';
+        downBtn.title = 'Move this step down';
+        downBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (S.moveStep(p, id, 'down')) { markDirty(); rerenderAll(); }
+        });
+        tools.appendChild(downBtn);
+        var delBtn = el('button', 'builder-step-tool builder-step-del', '✕');
+        delBtn.type = 'button';
+        delBtn.title = 'Delete this step';
+        delBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var label = TYPE_LABELS[phase.type] || phase.type;
+          if (!confirm('Delete step ' + num + ' (' + label + ')? This cannot be undone.')) return;
+          if (typeof deletePhase === 'function') deletePhase(id);
+        });
+        tools.appendChild(delBtn);
+        card.appendChild(tools);
+      }
       if (id === selectedId) card.classList.add('selected');
       if (phase.type !== 'lobby' && phase.type !== 'end') {
         card.addEventListener('click', function () {
@@ -571,10 +606,11 @@
     document.body.classList.remove('builder-mode');
     viewBuilderBtn.classList.remove('active');
 
-    // Send the panels home.
+    // Send the panels home. The settings sidebar was the FIRST child of
+    // #editor-body — appendChild would resurrect it on the wrong side.
     if (settingsPanel) {
       settingsPanel.classList.remove('builder-hidden');
-      if (settingsHome) settingsHome.appendChild(settingsPanel);
+      if (settingsHome) settingsHome.insertBefore(settingsPanel, settingsHome.firstChild);
     }
     var form = document.getElementById('phase-config-form');
     var preview = document.getElementById('live-preview-section');

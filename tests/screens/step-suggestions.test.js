@@ -163,6 +163,48 @@ describe('arc detection gates the wrap-up', () => {
   });
 });
 
+describe('moveStep reorders the chain', () => {
+  function fiveStep() {
+    return {
+      lobby: { type: 'lobby', next: 'a' },
+      a: { type: 'announce', message: 'a', next: 'b' },
+      b: { type: 'collect', prompt: 'b?', next: 'c' },
+      c: { type: 'reveal', template: 'c', next: 'end' },
+      end: { type: 'end', message: 'bye' }
+    };
+  }
+
+  it('moves a step down', () => {
+    const p = fiveStep();
+    expect(S.moveStep(p, 'b', 'down')).toBe(true);
+    expect(S.orderedPhaseIds(p)).toEqual(['lobby', 'a', 'c', 'b', 'end']);
+    validateGame(p, 'after move down');
+  });
+
+  it('moves a step up', () => {
+    const p = fiveStep();
+    expect(S.moveStep(p, 'c', 'up')).toBe(true);
+    expect(S.orderedPhaseIds(p)).toEqual(['lobby', 'a', 'c', 'b', 'end']);
+    validateGame(p, 'after move up');
+  });
+
+  it('refuses illegal moves', () => {
+    const p = fiveStep();
+    expect(S.moveStep(p, 'lobby', 'down')).toBe(false);
+    expect(S.moveStep(p, 'end', 'up')).toBe(false);
+    expect(S.moveStep(p, 'a', 'up')).toBe(false);      // already first
+    expect(S.moveStep(p, 'c', 'down')).toBe(false);    // end is below
+    expect(S.orderedPhaseIds(p)).toEqual(['lobby', 'a', 'b', 'c', 'end']);
+  });
+
+  it('leaves branch fields untouched', () => {
+    const p = fiveStep();
+    p.a.approveNext = 'c';
+    S.moveStep(p, 'b', 'down');
+    expect(p.a.approveNext).toBe('c');
+  });
+});
+
 describe('insertAfter rewires the chain', () => {
   it('splices into the next-pointers', () => {
     const phases = baseGame();

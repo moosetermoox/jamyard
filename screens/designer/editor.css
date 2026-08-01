@@ -2594,3 +2594,33 @@ textarea.sar-input {
    don't apply here */
 #builder-rail #phase-config-form { margin-top: 4px; }
 #builder-rail #live-preview-section { margin-top: 10px; }
+
+/* Builder card tools — quiet until hover */
+.builder-step-tools {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0.25;
+  transition: opacity 0.12s;
+}
+
+.builder-step:hover .builder-step-tools,
+.builder-step.selected .builder-step-tools { opacity: 1; }
+
+.builder-step-tool {
+  width: 26px;
+  height: 26px;
+  border: 2px solid #000;
+  border-radius: 8px;
+  background: #fff;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.builder-step-tool:hover { background: #FFF9C4; }
+.builder-step-del { color: #FF2D2D; border-color: #FF2D2D; }
+.builder-step-del:hover { background: #FF2D2D; color: #fff; }
