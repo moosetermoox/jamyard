@@ -70,8 +70,16 @@
 
   var _origSelectPhase = selectPhase;
   selectPhase = function (phaseId) {
-    // Deep links (review panel, validation) need the canvas
-    if (currentView === 'simple') setEditorView('advanced');
+    // Deep links (review panel, validation) need a surface that can show
+    // one step's settings — the Builder now; the technical canvas only as
+    // fallback if the Builder failed to load.
+    if (currentView === 'simple') {
+      if (window.__enterBuilder) {
+        window.__enterBuilder(phaseId);
+        return;
+      }
+      setEditorView('advanced');
+    }
     _origSelectPhase.apply(this, arguments);
   };
 
@@ -802,7 +810,7 @@
       });
       actions.appendChild(askBtn);
 
-      var advBtn = el('button', 'sv-action sv-action-quiet', 'Advanced settings →');
+      var advBtn = el('button', 'sv-action sv-action-quiet', 'All settings →');
       advBtn.type = 'button';
       advBtn.setAttribute('data-phase-id', phaseId);
       advBtn.addEventListener('click', function (e) {
@@ -810,6 +818,14 @@
         // handler — it would instantly deselect the step we just opened.
         e.stopPropagation();
         var pid = this.getAttribute('data-phase-id');
+        // The Builder shows a step's settings in a rail beside the
+        // activity — the technical canvas would strand the teacher on a
+        // surface the pill no longer names. Fall back only if the Builder
+        // failed to load.
+        if (window.__enterBuilder) {
+          window.__enterBuilder(pid);
+          return;
+        }
         setEditorView('advanced');
         _origSelectPhase(pid);
         // Bring the expanded step into view — the canvas otherwise opens

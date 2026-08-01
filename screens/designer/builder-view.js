@@ -573,8 +573,20 @@
 
   // ---- Entering / leaving Builder ----
 
-  function enterBuilder() {
-    if (builderActive) return;
+  // targetStepId (optional, string): open with that step selected — used by
+  // Simple view's "All settings →" links and review-panel deep links. The
+  // no-target path shows the Activity tab; the targeted path must NOT, since
+  // showActivityTab's deselectPhase is async and would null the selection
+  // after it lands (a race we lost before this parameter existed).
+  function enterBuilder(targetStepId) {
+    var target = typeof targetStepId === 'string' ? targetStepId : null;
+    if (builderActive) {
+      if (target && typeof selectPhase === 'function') {
+        selectPhase(target);
+        showStepTab();
+      }
+      return;
+    }
     if (typeof autoSaveIfDirty === 'function') autoSaveIfDirty();
 
     // Put simple-view's state on 'advanced' so its selectPhase wrapper
@@ -595,7 +607,14 @@
     try { localStorage.setItem('lanyardEditorBuilder', '1'); } catch (e) { /* ignore */ }
 
     renderPalette();
-    showActivityTab();
+    if (target) {
+      if (typeof selectPhase === 'function') selectPhase(target);
+      showStepTab();
+      var card = canvasEl.querySelector('.builder-step[data-id="' + target + '"]');
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    } else {
+      showActivityTab();
+    }
     renderBuilder();
   }
 
@@ -622,6 +641,11 @@
   viewBuilderBtn.addEventListener('click', function () {
     if (!builderActive) enterBuilder();
   });
+
+  // Hook for simple-view: its "All settings →" links and deep-link
+  // selectPhase wrapper land here (with the step id) instead of the
+  // technical canvas.
+  window.__enterBuilder = enterBuilder;
   if (viewSimpleBtn) viewSimpleBtn.addEventListener('click', leaveBuilder);
   if (viewAdvancedBtn) viewAdvancedBtn.addEventListener('click', function () {
     // Entering builder clicks this button programmatically — only a real
