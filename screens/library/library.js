@@ -1,14 +1,15 @@
 // Activity Library — the teacher-facing front door (library-first, 2026-07-28).
 //
-// Built for RUNNING, not building: search + goal chips, cards whose primary
-// action is Host, favorites/recents sections, and a "build your own" doorway
-// that opens the designer (the second layer) while filing a builder-request
-// signal in the feedback inbox. Visibility rules are shared with the designer
-// grid (game-visibility.js): featured built-ins + this device's creations,
-// everything in owner mode.
+// THE one shelf (docs/SURFACES-PLAN.md, 2026-08-01): search + goal chips,
+// cards whose primary action is Host, favorites/recents sections, delete for
+// this device's activities, owner mode (unlock link, ★ featured toggles,
+// built-in edit/delete), and a "build your own" doorway that opens /designer
+// — now the grid-less Create page — while filing a builder-request signal.
+// Visibility rules: game-visibility.js (featured built-ins + this device's
+// creations; everything in owner mode).
 //
-// Deliberately NOT here (designer-only): editing built-ins, delete, the
-// featured ★ toggle, recipes, AI generation.
+// Deliberately NOT here (create-page/editor territory): recipes, AI
+// generation, the idea box.
 
 var libraryGrid = document.getElementById('library-grid');
 var loadingMessage = document.getElementById('loading-message');
@@ -89,6 +90,25 @@ function refreshLibrary() {
 function renderLibrary(games) {
   libraryGrid.innerHTML = '';
 
+  var ownerOn = window.OwnerMode && OwnerMode.isOn();
+  if (ownerOn) {
+    var ownerBar = document.createElement('div');
+    ownerBar.className = 'owner-bar';
+    var ownerLabel = document.createElement('span');
+    ownerLabel.textContent = 'Owner view — showing every activity';
+    ownerBar.appendChild(ownerLabel);
+    var inboxLink = document.createElement('a');
+    inboxLink.href = '/feedback';
+    inboxLink.textContent = '📬 Feedback inbox';
+    ownerBar.appendChild(inboxLink);
+    var exitBtn = document.createElement('button');
+    exitBtn.className = 'owner-bar-exit';
+    exitBtn.textContent = 'Exit owner view';
+    exitBtn.addEventListener('click', exitOwnerMode);
+    ownerBar.appendChild(exitBtn);
+    libraryGrid.appendChild(ownerBar);
+  }
+
   if (games.length === 0) {
     var empty = document.createElement('p');
     empty.className = 'empty-message';
@@ -96,6 +116,7 @@ function renderLibrary(games) {
       ? 'No matches — try a different search or clear the filter.'
       : 'Nothing here yet.';
     libraryGrid.appendChild(empty);
+    if (!ownerOn) appendOwnerLink();
     return;
   }
 
@@ -122,6 +143,58 @@ function renderLibrary(games) {
   if (recents.length > 0) appendSection('Recently used', recents);
   if (rest.length > 0) {
     appendSection(favs.length || recents.length ? 'The library' : null, rest);
+  }
+
+  // A quiet doorway to the full list for the site owner.
+  if (!ownerOn) appendOwnerLink();
+}
+
+function appendOwnerLink() {
+  var link = document.createElement('button');
+  link.className = 'owner-link';
+  link.textContent = 'Show full library (site owner)';
+  link.addEventListener('click', enterOwnerMode);
+  libraryGrid.appendChild(link);
+}
+
+async function enterOwnerMode() {
+  var ok = window.OwnerMode ? await OwnerMode.unlock() : false;
+  if (ok) {
+    refreshLibrary();
+  } else {
+    alert('That didn\'t unlock owner view — check the password and try again.');
+  }
+}
+
+function exitOwnerMode() {
+  if (window.OwnerMode) OwnerMode.lock();
+  refreshLibrary();
+}
+
+// Owner ★ toggle: flips `featured` on the config and saves it back. For
+// built-ins the server demands the owner password (the browser has it cached
+// after the owner unlock). Note: built-in flags flipped on a deployed server
+// last until the next redeploy — the durable place for those is the repo.
+async function toggleFeatured(game) {
+  try {
+    var resp = await fetch('/api/games/' + encodeURIComponent(game.id));
+    if (!resp.ok) throw new Error('could not load the activity');
+    var config = await resp.json();
+    config.featured = !config.featured;
+    var save = await fetch('/api/games/' + encodeURIComponent(game.id), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    if (!save.ok) {
+      var saveData = {};
+      try { saveData = await save.json(); } catch (e) {}
+      throw new Error(saveData.error || 'save failed (status ' + save.status + ')');
+    }
+    game.featured = !!config.featured;
+    refreshLibrary();
+  } catch (err) {
+    alert('Could not change featured: ' + err.message);
   }
 }
 
@@ -247,9 +320,11 @@ function buildCard(game) {
   });
   actions.appendChild(favBtn);
 
-  // Delete for activities made on this device only — built-ins never show
-  // it here (owner housekeeping stays on the designer grid).
-  if (window.MyGames && MyGames.has(game.id)) {
+  // Delete for activities made on this device; owner mode can also delete
+  // built-ins (mirrors the server rule — the password is required there).
+  var canDelete = (window.MyGames && MyGames.has(game.id)) ||
+    (window.OwnerMode && OwnerMode.isOn());
+  if (canDelete) {
     var deleteBtn = document.createElement('button');
     deleteBtn.type = 'button';
     deleteBtn.className = 'game-card-delete';
@@ -263,6 +338,22 @@ function buildCard(game) {
   }
 
   card.appendChild(actions);
+
+  // Owner curation: star = shown to the public.
+  if (window.OwnerMode && OwnerMode.isOn()) {
+    var starBtn = document.createElement('button');
+    starBtn.className = 'game-card-star' + (game.featured ? ' is-featured' : '');
+    starBtn.textContent = game.featured ? '★ Featured' : '☆ Feature';
+    starBtn.title = game.featured
+      ? 'Shown to everyone — click to remove from the public list'
+      : 'Hidden from visitors — click to add to the public list';
+    starBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      toggleFeatured(game);
+    });
+    card.appendChild(starBtn);
+  }
+
   return card;
 }
 
@@ -363,7 +454,7 @@ document.getElementById('build-your-own-btn').addEventListener('click', function
   var goBtn = document.createElement('button');
   goBtn.type = 'button';
   goBtn.className = 'recipe-create-btn';
-  goBtn.textContent = 'Open the designer';
+  goBtn.textContent = 'Start building';
   goBtn.addEventListener('click', function () {
     goBtn.disabled = true;
     try { localStorage.setItem('lanyard-builder', '1'); } catch (e) {}

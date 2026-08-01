@@ -43,7 +43,7 @@ Three surfaces, three jobs, no overlap:
 One sentence a teacher can hold: **find it in the Library, start it in
 Create, shape it in the Editor.**
 
-## 3. Phase 1 — kill the duplicate shelf (small, mostly deletion)
+## 3. Phase 1 — kill the duplicate shelf ✅ SHIPPED 2026-08-01
 
 1. `/designer` drops its activity grid, search, chips, favorites/recents
    sections. Keeps: idea hero, Browse recipes, Start from scratch. Retitle

@@ -16,7 +16,10 @@ var createNewLink = document.getElementById('create-new-link');
 
 var allGames = [];
 
-fetchGames();
+// The activity grid moved to /library (docs/SURFACES-PLAN.md); this page
+// only hosts the create flows now. The grid rendering code below is
+// unreachable without #games-grid and awaits a pruning pass.
+if (gamesGrid) fetchGames();
 
 // --- Idea-first front door ---
 // The teacher's idea is the entry point: type it, hit Make It, and the

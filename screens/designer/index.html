@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Activity Designer - Lanyard</title>
+  <title>Create an Activity - Lanyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <header>
-    <h1>Activity Designer</h1>
-    <a href="/" class="back-link">Back to Home</a>
+    <h1>Create an Activity</h1>
+    <a href="/library" class="back-link">Back to Library</a>
   </header>
 
   <main>
@@ -39,16 +39,12 @@
       </p>
     </section>
 
-    <section id="games-section">
-      <div id="library-controls" hidden>
-        <input type="search" id="library-search" placeholder="Search activities…"
-               aria-label="Search activities">
-        <div id="goal-chips" role="group" aria-label="Filter by goal"></div>
-      </div>
-      <p id="loading-message">Loading games...</p>
-      <p id="error-message" hidden></p>
-      <div id="games-grid"></div>
-    </section>
+    <!-- The activity grid that used to live here moved to /library (the
+         one shelf — see docs/SURFACES-PLAN.md). This page is now only the
+         starting point for something new. -->
+    <p class="idea-library-link">
+      Looking for an existing activity? <a href="/library">Open the Library</a>
+    </p>
   </main>
 
   <script src="/shared/dialog.js"></script>

@@ -1256,3 +1256,16 @@ select.recipe-field-input {
     width: 100%;
   }
 }
+
+/* Create-page pointer back to the one shelf (the grid moved to /library). */
+.idea-library-link {
+  text-align: center;
+  margin-top: 28px;
+  font-family: 'Nunito', Arial, sans-serif;
+  color: #555;
+}
+
+.idea-library-link a {
+  color: #0057FF;
+  font-weight: 800;
+}
