@@ -97,6 +97,16 @@ Ground rules for the exploration:
 - Prototype as static screenshots/mock first; only build after the layout
   is approved. This is a renovation, not a tweak — sequence it after the
   August field tests unless testing goes so smoothly there's slack.
+- **Suggested next steps (teacher's idea, 2026-08-01, mocked round 2):**
+  every gap between steps gets a quiet **+**; opening it shows 3–4 suggested
+  next steps with a plain-English reason ("most common"), each landing
+  pre-configured with sensible defaults; "Browse all steps" falls back to
+  the palette. v1 data source is RULES, not AI: mine the 30+ built-in
+  activities for phase-type transition frequencies (what actually follows
+  a collect step) — instant, zero API spend. AI later re-ranks the same
+  suggestions using the step's actual prompt text (same UI, smarter order).
+  This is the from-scratch answer: the palette shows what's POSSIBLE, the
+  + shows what makes SENSE next.
 
 ## 6. Phase 4 — AI as a building partner (ladder, cheapest first)
 
