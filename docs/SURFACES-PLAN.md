@@ -124,6 +124,20 @@ Ground rules for the exploration:
   Guardrail: only the LAST gap auto-opens; earlier +s stay collapsed so
   the canvas stays calm. Every suggested step must be hostable as-is —
   a chained skeleton with zero typed words is still a valid activity.
+- **Suggested AI steps (mocked round 5):** the one type that can't land
+  blank, so its click swaps the suggestion panel IN PLACE for one concrete
+  question — "What should the AI do with everyone's answers?" — with
+  flavored tiles (find themes / class poem / group similar / pick a
+  standout), each carrying real pre-written instructions so hostable-as-is
+  survives; "Write my own AI instructions" is the power-user escape hatch,
+  "← Back" abandons the branch (nothing added until a flavor is picked).
+  **AI steps travel in pairs**: the reveal step lands with the ai-process
+  step ("added together" badge) because the AI's answer needs a stage.
+  Rail extras for AI steps: source dropdown, editable pre-written
+  instructions, a SAMPLE RESULT box generated from pretend answers (mock
+  mode — instant, zero API spend), the teacher-preview gate ("show me
+  before the class sees it"), and a plain-words privacy line (names never
+  reach the AI — the ai-name-fill contract, surfaced as UI copy).
 
 ## 6. Phase 4 — AI as a building partner (ladder, cheapest first)
 
