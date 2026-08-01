@@ -18,6 +18,12 @@ on Chromebooks — phones are banned in schools.** Student-facing copy and
 docs were swept 2026-07-28; the teacher console is pitched as "a second
 device" (laptop / spare Chromebook). Keep it that way in new copy.
 
+0.5. **SURFACES PLAN drafted 2026-08-01** ([SURFACES-PLAN.md](SURFACES-PLAN.md)):
+   /designer and /library are near-duplicate grids; plan collapses to
+   Library (one shelf) / Create (idea box + recipes, no grid) / Editor,
+   plus an editor-palette layout exploration and an AI-assist ladder
+   (topic re-skin first). **Plan only — awaiting direction + timing
+   decisions.**
 0. **STRATEGY SHIFT: library-first** — plan in
    [LIBRARY-FIRST-PLAN.md](LIBRARY-FIRST-PLAN.md), argument in
    [WEEK-REFINEMENT.md](WEEK-REFINEMENT.md). **Phase 1 SHIPPED
