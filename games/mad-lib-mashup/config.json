@@ -21,7 +21,7 @@
     },
     "processing": {
       "type": "announce",
-      "message": "⚡ The AI is scrambling your sentences into bizarre mashups...\n\n(This might get weird)",
+      "message": "The AI is scrambling your sentences into bizarre mashups...\n\n(This might get weird)",
       "timer": 5,
       "next": "ai-mashup"
     },
@@ -35,7 +35,7 @@
     },
     "show-mashups": {
       "type": "reveal",
-      "template": "🎪 THE AI CREATED THESE MASHUPS FROM YOUR SENTENCES:\n\n{{ai-mashup.list}}",
+      "template": "THE AI CREATED THESE MASHUPS FROM YOUR SENTENCES:\n\n{{ai-mashup.list}}",
       "next": "vote-time"
     },
     "vote-time": {
@@ -54,7 +54,7 @@
     },
     "results": {
       "type": "announce",
-      "message": "🏆 THE WEIRDEST MASHUP:\n\n\"{{vote.winner}}\"\n\nCalculating who contributed the most chaos...",
+      "message": "THE WEIRDEST MASHUP:\n\n\"{{vote.winner}}\"\n\nCalculating who contributed the most chaos...",
       "timer": 8,
       "next": "ai-judge"
     },
@@ -75,7 +75,7 @@
     },
     "bonus-round-intro": {
       "type": "announce",
-      "message": "🎲 BONUS ROUND: RAPID FIRE ABSURDITY\n\nYou have 20 seconds to write the WEIRDEST sentence you can imagine.\n\nNo holding back. Maximum chaos only.",
+      "message": "BONUS ROUND: RAPID FIRE ABSURDITY\n\nYou have 20 seconds to write the WEIRDEST sentence you can imagine.\n\nNo holding back. Maximum chaos only.",
       "timer": 6,
       "next": "bonus-collect"
     },
@@ -88,7 +88,7 @@
     },
     "bonus-processing": {
       "type": "announce",
-      "message": "⚡⚡⚡ AI is melting your brains into one SUPER MASHUP...",
+      "message": "AI is melting your brains into one SUPER MASHUP...",
       "timer": 4,
       "next": "bonus-ai"
     },
@@ -102,7 +102,7 @@
     },
     "super-reveal": {
       "type": "reveal",
-      "template": "🌪️ THE ULTIMATE SUPER-MASHUP OF ALL YOUR CHAOS:\n\n{{bonus-ai.result}}\n\n(This is what happens when everyone goes maximum weird)",
+      "template": "THE ULTIMATE SUPER-MASHUP OF ALL YOUR CHAOS:\n\n{{bonus-ai.result}}\n\n(This is what happens when everyone goes maximum weird)",
       "next": "final-vote-intro"
     },
     "final-vote-intro": {
@@ -121,7 +121,7 @@
     },
     "champion": {
       "type": "announce",
-      "message": "🏆 CHAOS CHAMPION 🏆\n\nThe person whose weird sentence dominated:\n\n{{final-vote.winner}}\n\nYou are officially the weirdest person in this room. Congratulations!",
+      "message": "CHAOS CHAMPION\n\nThe person whose weird sentence dominated:\n\n{{final-vote.winner}}\n\nYou are officially the weirdest person in this room. Congratulations!",
       "timer": 10,
       "next": "final-scores"
     },
@@ -134,7 +134,7 @@
     },
     "end": {
       "type": "end",
-      "message": "Thanks for playing MAD LIB MASHUP! Your brain cells may never recover. 🎪"
+      "message": "Thanks for playing MAD LIB MASHUP! Your brain cells may never recover."
     }
   },
   "tags": [

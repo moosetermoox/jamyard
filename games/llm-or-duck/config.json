@@ -35,7 +35,7 @@
     },
     "end": {
       "type": "end",
-      "message": "Thanks for playing LLM or Duck! Whether you're more like an AI or a waterfowl, you're all wonderful humans. 🦆🤖"
+      "message": "Thanks for playing LLM or Duck! Whether you're more like an AI or a waterfowl, you're all wonderful humans."
     }
   },
   "tags": [

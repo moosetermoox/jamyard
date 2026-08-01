@@ -60,7 +60,7 @@
     });
 
     if (visible.length === 0) {
-      var label = activeTab === 'new' ? 'No new feedback — inbox zero! 🎉' : 'Nothing here yet.';
+      var label = activeTab === 'new' ? 'No new feedback — inbox zero!' : 'Nothing here yet.';
       showMessage('empty', label);
       return;
     }

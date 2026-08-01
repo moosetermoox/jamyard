@@ -5,7 +5,6 @@
   "description": "Whole-class feedback on a presentation, idea, or pitch. Students rate on three custom 1–5 scales; results show as bar charts + pie charts.",
   "tagline": "Use after a student presentation, an idea pitch, or any artifact you want structured class feedback on.",
   "version": "1",
-
   "parameters": {
     "topic": {
       "type": "templateString",
@@ -39,7 +38,10 @@
     },
     "visibility": {
       "type": "enum",
-      "values": ["all", "host-only"],
+      "values": [
+        "all",
+        "host-only"
+      ],
       "label": "Who sees the results",
       "helper": "Everyone — the whole class sees averages + distribution. Teacher only — results stay on the teacher screen.",
       "default": "all"
@@ -53,7 +55,6 @@
       "max": 600
     }
   },
-
   "template": {
     "name": "Critique: ${topic}",
     "description": "A whole-class critique built with the Class Critique recipe.",
@@ -63,34 +64,45 @@
         "type": "lobby",
         "next": "intro"
       },
-
       "intro": {
         "type": "announce",
-        "message": "🎤 ${topic}\n\nWhen the presenter is done, rate it on each scale. Be honest and constructive.",
+        "message": "${topic}\n\nWhen the presenter is done, rate it on each scale. Be honest and constructive.",
         "timer": 12,
         "next": "rate-it"
       },
-
       "rate-it": {
         "type": "rate",
         "prompt": "${topic}",
         "scales": [
-          { "id": "scale1", "label": "${scale1Label}", "min": 1, "max": 5 },
-          { "id": "scale2", "label": "${scale2Label}", "min": 1, "max": 5 },
-          { "id": "scale3", "label": "${scale3Label}", "min": 1, "max": 5 }
+          {
+            "id": "scale1",
+            "label": "${scale1Label}",
+            "min": 1,
+            "max": 5
+          },
+          {
+            "id": "scale2",
+            "label": "${scale2Label}",
+            "min": 1,
+            "max": 5
+          },
+          {
+            "id": "scale3",
+            "label": "${scale3Label}",
+            "min": 1,
+            "max": 5
+          }
         ],
         "visibility": "${visibility}",
         "timer": "${timer}",
         "next": "thanks"
       },
-
       "thanks": {
         "type": "announce",
-        "message": "Thanks for the feedback! 👏",
+        "message": "Thanks for the feedback!",
         "timer": 6,
         "next": "end"
       },
-
       "end": {
         "type": "end",
         "message": "Critique complete."

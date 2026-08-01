@@ -136,8 +136,8 @@ socket.on('teacher-console-joined', ({ deviceCount }) => {
   if (teacherDeviceNotice) {
     teacherDeviceNotice.hidden = false;
     teacherDeviceNotice.textContent = deviceCount > 1
-      ? '📱 ' + deviceCount + ' teacher devices connected'
-      : '📱 Teacher device connected';
+      ? '💻 ' + deviceCount + ' teacher devices connected'
+      : '💻 Teacher device connected';
   }
 });
 
@@ -494,12 +494,12 @@ if (showQrBtn) {
     if (!qrPanel) return;
     if (!qrPanel.hidden) {
       qrPanel.hidden = true;
-      showQrBtn.textContent = '📱 Show QR code';
+      showQrBtn.textContent = 'Show QR code';
       return;
     }
     if (!qrRendered) renderJoinQr();
     qrPanel.hidden = false;
-    showQrBtn.textContent = '📱 Hide QR code';
+    showQrBtn.textContent = 'Hide QR code';
   });
 }
 
@@ -641,7 +641,7 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored 
   if (joinUrlDisplay) joinUrlDisplay.textContent = currentJoinUrl;
   qrRendered = false;
   if (qrPanel) qrPanel.hidden = true;
-  if (showQrBtn) showQrBtn.textContent = '📱 Show QR code';
+  if (showQrBtn) showQrBtn.textContent = 'Show QR code';
   teacherViewInfo.hidden = true; // PIN stays hidden until deliberately revealed
 
   // Remember this room so an F5 (or a server restart) can rebind instead of

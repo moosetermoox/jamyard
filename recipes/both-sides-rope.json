@@ -46,7 +46,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "🪢 BOTH SIDES OF THE ROPE\n\n“${claim}”\n\nYou'll vote where you stand, build the strongest rope of evidence on BOTH sides — then vote again. Let's see if the rope moves.",
+        "message": "BOTH SIDES OF THE ROPE\n\n“${claim}”\n\nYou'll vote where you stand, build the strongest rope of evidence on BOTH sides — then vote again. Let's see if the rope moves.",
         "timer": 12,
         "next": "stance1"
       },
@@ -78,7 +78,7 @@
       },
       "rope-reveal": {
         "type": "reveal",
-        "template": "🪢 THE ROPE\n\n{{rope.result}}",
+        "template": "THE ROPE\n\n{{rope.result}}",
         "next": "whatif"
       },
       "whatif": {
@@ -102,12 +102,12 @@
       },
       "delta": {
         "type": "reveal",
-        "template": "📊 DID THE ROPE MOVE?\n\nWHERE WE STARTED:\n{{stance1.barChart}}\n\nWHERE WE LANDED:\n{{stance2.barChart}}\n\nAnd the questions still pulling at it:\n{{whatif.responses.list}}\n\nChanged your mind? That's not losing — that's thinking.",
+        "template": "DID THE ROPE MOVE?\n\nWHERE WE STARTED:\n{{stance1.barChart}}\n\nWHERE WE LANDED:\n{{stance2.barChart}}\n\nAnd the questions still pulling at it:\n{{whatif.responses.list}}\n\nChanged your mind? That's not losing — that's thinking.",
         "next": "end"
       },
       "end": {
         "type": "end",
-        "message": "🪢 That's Both Sides of the Rope."
+        "message": "That's Both Sides of the Rope."
       }
     }
   }

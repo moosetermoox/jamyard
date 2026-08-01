@@ -9,7 +9,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "✅ GROUP WORK DAY!\n\nYou're about to be split into groups. Every group has the same checklist on their devices — check tasks off as your group finishes them, and watch the progress board up here.",
+      "message": "GROUP WORK DAY!\n\nYou're about to be split into groups. Every group has the same checklist on their devices — check tasks off as your group finishes them, and watch the progress board up here.",
       "timer": 10,
       "next": "make-groups"
     },
@@ -39,7 +39,7 @@
     },
     "end": {
       "type": "end",
-      "message": "✅ That's Group Work Day! Swap in your own tasks for any lab, stations, or project session."
+      "message": "That's Group Work Day! Swap in your own tasks for any lab, stations, or project session."
     }
   },
   "playTime": "20–45 min",

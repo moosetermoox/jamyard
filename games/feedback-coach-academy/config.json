@@ -21,7 +21,7 @@
     },
     "scenario-1-present": {
       "type": "announce",
-      "message": "📋 SCENARIO 1 of 3\n\n{{generate-scenarios.result.0.scenario}}\n\nYour task: Write feedback for this person that is specific, actionable, balanced, and timely.",
+      "message": "SCENARIO 1 of 3\n\n{{generate-scenarios.result.0.scenario}}\n\nYour task: Write feedback for this person that is specific, actionable, balanced, and timely.",
       "timer": 10,
       "next": "scenario-1-collect"
     },
@@ -42,7 +42,7 @@
     },
     "scenario-2-present": {
       "type": "announce",
-      "message": "📋 SCENARIO 2 of 3\n\n{{generate-scenarios.result.1.scenario}}\n\nRemember: Be specific, actionable, balanced, and timely!",
+      "message": "SCENARIO 2 of 3\n\n{{generate-scenarios.result.1.scenario}}\n\nRemember: Be specific, actionable, balanced, and timely!",
       "timer": 10,
       "next": "scenario-2-collect"
     },
@@ -63,7 +63,7 @@
     },
     "scenario-3-present": {
       "type": "announce",
-      "message": "📋 SCENARIO 3 of 3 (Final Round!)\n\n{{generate-scenarios.result.2.scenario}}\n\nMake this your best feedback yet!",
+      "message": "SCENARIO 3 of 3 (Final Round!)\n\n{{generate-scenarios.result.2.scenario}}\n\nMake this your best feedback yet!",
       "timer": 10,
       "next": "scenario-3-collect"
     },
@@ -96,45 +96,45 @@
     },
     "reveal-scenario-1": {
       "type": "announce",
-      "message": "📊 Let's review your feedback!\n\nStarting with Scenario 1...",
+      "message": "Let's review your feedback!\n\nStarting with Scenario 1...",
       "timer": 3,
       "next": "reveal-1-feedback"
     },
     "reveal-1-feedback": {
       "type": "reveal-one",
       "from": "scenario-1-evaluate.result",
-      "message": "💬 Scenario 1 feedback — one at a time:",
+      "message": "Scenario 1 feedback — one at a time:",
       "timer": 12,
       "next": "reveal-scenario-2",
-      "itemTemplate": "{{_current.playerName}} — Score: {{_current.score}}/100\n\n💬 {{_current.critique}}"
+      "itemTemplate": "{{_current.playerName}} — Score: {{_current.score}}/100\n\n{{_current.critique}}"
     },
     "reveal-scenario-2": {
       "type": "announce",
-      "message": "📋 Moving to Scenario 2...",
+      "message": "Moving to Scenario 2...",
       "timer": 3,
       "next": "reveal-2-feedback"
     },
     "reveal-2-feedback": {
       "type": "reveal-one",
       "from": "scenario-2-evaluate.result",
-      "message": "💬 Scenario 2 feedback — one at a time:",
+      "message": "Scenario 2 feedback — one at a time:",
       "timer": 15,
       "next": "reveal-scenario-3",
-      "itemTemplate": "{{_current.playerName}} — Score: {{_current.score}}/100\n\n💬 {{_current.critique}}"
+      "itemTemplate": "{{_current.playerName}} — Score: {{_current.score}}/100\n\n{{_current.critique}}"
     },
     "reveal-scenario-3": {
       "type": "announce",
-      "message": "📋 Final scenario review...",
+      "message": "Final scenario review...",
       "timer": 3,
       "next": "reveal-3-feedback"
     },
     "reveal-3-feedback": {
       "type": "reveal-one",
       "from": "scenario-3-evaluate.result",
-      "message": "💬 Scenario 3 feedback — one at a time:",
+      "message": "Scenario 3 feedback — one at a time:",
       "timer": 15,
       "next": "final-scores",
-      "itemTemplate": "{{_current.playerName}} — Score: {{_current.score}}/100\n\n💬 {{_current.critique}}"
+      "itemTemplate": "{{_current.playerName}} — Score: {{_current.score}}/100\n\n{{_current.critique}}"
     },
     "final-scores": {
       "type": "leaderboard",
@@ -150,7 +150,7 @@
     },
     "end": {
       "type": "end",
-      "message": "🎓 Feedback Coach Academy Complete!\n\nYou've practiced the four pillars of effective feedback:\n• Be SPECIFIC (cite concrete behaviors)\n• Be ACTIONABLE (suggest clear next steps)\n• Be BALANCED (acknowledge strengths)\n• Be TIMELY (address the situation)\n\nKeep practicing these principles in real life!"
+      "message": "Feedback Coach Academy Complete!\n\nYou've practiced the four pillars of effective feedback:\n• Be SPECIFIC (cite concrete behaviors)\n• Be ACTIONABLE (suggest clear next steps)\n• Be BALANCED (acknowledge strengths)\n• Be TIMELY (address the situation)\n\nKeep practicing these principles in real life!"
     }
   },
   "tags": [

@@ -9,7 +9,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "🔗 VOCAB MATCH!\n\nTwo rounds. Drag the right column on your device so every row is a correct pair. Every correct match earns points — fastest fingers don't matter, correct ones do.",
+      "message": "VOCAB MATCH!\n\nTwo rounds. Drag the right column on your device so every row is a correct pair. Every correct match earns points — fastest fingers don't matter, correct ones do.",
       "timer": 10,
       "next": "round1"
     },
@@ -78,7 +78,7 @@
     },
     "end": {
       "type": "end",
-      "message": "🔗 That's Vocab Match! Swap in your own pairs for any unit review."
+      "message": "That's Vocab Match! Swap in your own pairs for any unit review."
     }
   },
   "tags": [

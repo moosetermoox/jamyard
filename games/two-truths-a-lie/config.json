@@ -84,7 +84,7 @@
     },
     "end": {
       "type": "end",
-      "message": "Thanks for playing Two Truths & a Lie! Now you know each other a little better! 🎉"
+      "message": "Thanks for playing Two Truths & a Lie! Now you know each other a little better!"
     }
   },
   "playTime": "~12 min",

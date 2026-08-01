@@ -28,24 +28,24 @@
     style.textContent = [
       '#feedback-widget-btn { position: fixed; bottom: 18px; right: 18px; z-index: 9000;',
       '  padding: 10px 16px; background: #0057FF; color: #fff; border: 2.5px solid #000;',
-      '  border-radius: 999px; font-family: "Arial Black", Arial, sans-serif; font-size: 0.85rem;',
+      '  border-radius: 999px; font-family: "Archivo Black", "Arial Black", Arial, sans-serif; font-size: 0.85rem;',
       '  font-weight: 900; cursor: pointer; box-shadow: 3px 3px 0 #000; }',
       '#feedback-widget-btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #000; }',
       '#feedback-widget-panel { position: fixed; bottom: 70px; right: 18px; z-index: 9001;',
       '  width: 300px; max-width: calc(100vw - 36px); background: #FFFDE7; border: 3px solid #000;',
       '  border-radius: 16px; padding: 16px; box-shadow: 5px 5px 0 #000;',
-      '  font-family: Arial, sans-serif; }',
+      '  font-family: "Nunito", Arial, sans-serif; }',
       '#feedback-widget-panel[hidden] { display: none; }',
-      '#feedback-widget-panel h3 { margin: 0 0 10px; font-family: "Arial Black", Arial, sans-serif;',
+      '#feedback-widget-panel h3 { margin: 0 0 10px; font-family: "Archivo Black", "Arial Black", Arial, sans-serif;',
       '  font-size: 1rem; }',
       '#feedback-widget-panel select, #feedback-widget-panel textarea { width: 100%;',
-      '  border: 2px solid #000; border-radius: 8px; padding: 8px; font-family: Arial, sans-serif;',
+      '  border: 2px solid #000; border-radius: 8px; padding: 8px; font-family: "Nunito", Arial, sans-serif;',
       '  font-size: 0.9rem; background: #fff; margin-bottom: 8px; box-sizing: border-box; }',
       '#feedback-widget-panel textarea { min-height: 90px; resize: vertical; }',
       '.feedback-widget-hint { font-size: 0.72rem; color: #777; margin: 0 0 10px; }',
       '.feedback-widget-row { display: flex; gap: 8px; justify-content: flex-end; }',
       '.feedback-widget-row button { padding: 8px 14px; border: 2px solid #000; border-radius: 8px;',
-      '  font-family: "Arial Black", Arial, sans-serif; font-size: 0.8rem; font-weight: 900; cursor: pointer; }',
+      '  font-family: "Archivo Black", "Arial Black", Arial, sans-serif; font-size: 0.8rem; font-weight: 900; cursor: pointer; }',
       '#feedback-widget-send { background: #FFD600; }',
       '#feedback-widget-cancel { background: #fff; }',
       '.feedback-widget-status { font-size: 0.82rem; font-weight: bold; margin: 0 0 8px; }'
@@ -138,7 +138,7 @@
           send.disabled = false;
           if (resp.ok) {
             status.style.color = '#1B5E20';
-            status.textContent = 'Thanks — got it! 💛';
+            status.textContent = 'Thanks — got it!';
             textarea.value = '';
             setTimeout(function () {
               panel.hidden = true;

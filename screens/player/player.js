@@ -1336,7 +1336,7 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
   }
   if (mine) {
     html += '<p>You guessed <strong>' + escapeHtml(mine.value) + '</strong>' +
-            (mine.score > 0 ? ' — +' + mine.score + ' points! 🎯' : '') + '</p>';
+            (mine.score > 0 ? ' — +' + mine.score + ' points!' : '') + '</p>';
     if (mine.score > 0 && J) J.confetti({ count: 40 });
   }
   if (stats && stats.count > 0) {

@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "⚡ LIGHTNING ROUND!\n\nFirst: a buzzer round — questions are asked out loud. Buzz fast, answer faster. Wrong answers are locked out until the next question.\n\nThen: guess-the-number. Closest guess wins the points.",
+      "message": "LIGHTNING ROUND!\n\nFirst: a buzzer round — questions are asked out loud. Buzz fast, answer faster. Wrong answers are locked out until the next question.\n\nThen: guess-the-number. Closest guess wins the points.",
       "timer": 10,
       "next": "buzzer"
     },
@@ -49,7 +49,7 @@
     },
     "end": {
       "type": "end",
-      "message": "⚡ That's the Lightning Round! Same time next week."
+      "message": "That's the Lightning Round! Same time next week."
     }
   },
   "tags": [

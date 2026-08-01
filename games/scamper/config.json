@@ -11,7 +11,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "🧠 SCAMPER Brainstorm\n\nYour teacher will tell the class the problem out loud. When you're ready, you'll write ONE idea — then we'll evolve everyone's idea through 7 creative lenses.",
+      "message": "SCAMPER Brainstorm\n\nYour teacher will tell the class the problem out loud. When you're ready, you'll write ONE idea — then we'll evolve everyone's idea through 7 creative lenses.",
       "timer": 15,
       "next": "initial-idea"
     },
@@ -23,7 +23,7 @@
     },
     "intro-substitute": {
       "type": "announce",
-      "message": "🔁 SCAMPER — Substitute\n\nYou'll see another classmate's idea. Rewrite it by SUBSTITUTING one part — swap an object, person, place, or material for something else.",
+      "message": "SCAMPER — Substitute\n\nYou'll see another classmate's idea. Rewrite it by SUBSTITUTING one part — swap an object, person, place, or material for something else.",
       "timer": 12,
       "next": "substitute"
     },
@@ -36,7 +36,7 @@
     },
     "intro-combine": {
       "type": "announce",
-      "message": "🔁 SCAMPER — Combine\n\nYou'll see a substituted idea. COMBINE it with another concept, purpose, or feature.",
+      "message": "SCAMPER — Combine\n\nYou'll see a substituted idea. COMBINE it with another concept, purpose, or feature.",
       "timer": 12,
       "next": "combine"
     },
@@ -49,7 +49,7 @@
     },
     "intro-adapt": {
       "type": "announce",
-      "message": "🔁 SCAMPER — Adapt\n\nYou'll see a combined idea. ADAPT it — borrow from something else that already works (a famous product, an animal, another field).",
+      "message": "SCAMPER — Adapt\n\nYou'll see a combined idea. ADAPT it — borrow from something else that already works (a famous product, an animal, another field).",
       "timer": 12,
       "next": "adapt"
     },
@@ -62,7 +62,7 @@
     },
     "intro-modify": {
       "type": "announce",
-      "message": "🔁 SCAMPER — Modify / Magnify\n\nYou'll see an adapted idea. MODIFY it — change its size, shape, frequency, intensity, or meaning. Make some part bigger, smaller, louder, or stranger.",
+      "message": "SCAMPER — Modify / Magnify\n\nYou'll see an adapted idea. MODIFY it — change its size, shape, frequency, intensity, or meaning. Make some part bigger, smaller, louder, or stranger.",
       "timer": 12,
       "next": "modify"
     },
@@ -75,7 +75,7 @@
     },
     "intro-put-to-other-use": {
       "type": "announce",
-      "message": "🔁 SCAMPER — Put to Other Use\n\nYou'll see a modified idea. Take it and PUT IT TO ANOTHER USE — for a different audience, problem, or context.",
+      "message": "SCAMPER — Put to Other Use\n\nYou'll see a modified idea. Take it and PUT IT TO ANOTHER USE — for a different audience, problem, or context.",
       "timer": 12,
       "next": "put-to-other-use"
     },
@@ -88,7 +88,7 @@
     },
     "intro-eliminate": {
       "type": "announce",
-      "message": "🔁 SCAMPER — Eliminate\n\nYou'll see a repurposed idea. ELIMINATE something — strip a feature, step, person, or rule. What's left when you take a piece away?",
+      "message": "SCAMPER — Eliminate\n\nYou'll see a repurposed idea. ELIMINATE something — strip a feature, step, person, or rule. What's left when you take a piece away?",
       "timer": 12,
       "next": "eliminate-step"
     },
@@ -101,7 +101,7 @@
     },
     "intro-rearrange": {
       "type": "announce",
-      "message": "🔁 SCAMPER — Rearrange / Reverse\n\nLast lens! REARRANGE the order of steps, or REVERSE roles, cause-and-effect, or expectations.",
+      "message": "SCAMPER — Rearrange / Reverse\n\nLast lens! REARRANGE the order of steps, or REVERSE roles, cause-and-effect, or expectations.",
       "timer": 12,
       "next": "rearrange"
     },
@@ -119,7 +119,7 @@
     },
     "end": {
       "type": "end",
-      "message": "Great brainstorming! 🧠✨"
+      "message": "Great brainstorming!"
     }
   },
   "playTime": "~20 min",

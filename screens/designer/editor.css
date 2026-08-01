@@ -5,8 +5,8 @@
 }
 
 body {
-  font-family: 'Arial Black', 'Arial Bold', Gadget, sans-serif;
-  background: #FFF9C4;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  background: #FFFDE7;
   color: #222;
   height: 100vh;
   display: flex;
@@ -183,7 +183,7 @@ body {
   border: 3px solid #000;
   border-radius: 10px;
   font-size: 0.9rem;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   background: white;
 }
 
@@ -488,7 +488,7 @@ body {
   border: 2px solid #bbb;
   border-radius: 10px;
   font-size: 0.9rem;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   background: white;
   box-sizing: border-box;
   transition: border-color 0.15s;
@@ -557,7 +557,7 @@ body {
   color: #666;
   margin-top: 3px;
   line-height: 1.35;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -566,7 +566,7 @@ body {
   color: #888;
   margin-top: 2px;
   margin-left: 30px;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -577,7 +577,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -769,7 +769,7 @@ body {
   color: #FFF;
   padding: 10px 18px;
   border-radius: 6px;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-size: 0.9rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   opacity: 0;
@@ -813,7 +813,7 @@ body {
   color: #666;
   margin-top: 5px;
   line-height: 1.4;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -912,7 +912,7 @@ body {
   font-size: 0.8rem;
   color: #555;
   line-height: 1.3;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -962,7 +962,7 @@ body {
   margin: 0;
   font-size: 0.85rem;
   line-height: 1.5;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1067,7 +1067,7 @@ body {
   width: 92%;
   max-height: 92vh;
   overflow-y: auto;
-  font-family: 'Arial Black', Arial, sans-serif;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
 }
 
 .sar-loading {
@@ -1088,7 +1088,7 @@ body {
   text-align: center;
   font-size: 0.9rem;
   color: #444;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
   margin: 0 0 20px 0;
   line-height: 1.4;
@@ -1151,7 +1151,7 @@ body {
 
 .sar-candidate-preview {
   margin-top: 6px;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
   font-size: 0.85rem;
   color: #555;
@@ -1208,7 +1208,7 @@ body {
 .sar-field-helper {
   font-size: 0.78rem;
   color: #555;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
   margin-bottom: 2px;
 }
@@ -1218,7 +1218,7 @@ body {
   border: 3px solid #000;
   border-radius: 8px;
   font-size: 0.92rem;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   background: white;
   font-weight: normal;
   width: 100%;
@@ -1247,7 +1247,7 @@ textarea.sar-input {
   border: 3px solid #000;
   border-radius: 8px;
   padding: 12px;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
   font-size: 0.88rem;
 }
@@ -1333,7 +1333,7 @@ textarea.sar-input {
 }
 
 .sar-success-desc {
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
   font-size: 0.95rem;
   color: #444;
@@ -1518,7 +1518,7 @@ textarea.sar-input {
   background: white;
   border-radius: 10px;
   border: 3px solid #000;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1543,7 +1543,7 @@ textarea.sar-input {
   background: white;
   font-size: 0.85rem;
   line-height: 1.4;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1616,7 +1616,7 @@ textarea.sar-input {
   font-size: 0.8rem;
   line-height: 1.4;
   border: 2px solid #000;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1688,7 +1688,7 @@ textarea.sar-input {
   border-radius: 8px;
   background: #E1BEE7;
   cursor: pointer;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   letter-spacing: 0.3px;
 }
 
@@ -1719,7 +1719,7 @@ textarea.sar-input {
   border-radius: 8px;
   background: #FFF9C4;
   cursor: pointer;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
 }
 .example-chip:hover {
   background: #FFF176;
@@ -1743,7 +1743,7 @@ textarea.sar-input {
   cursor: pointer;
   font-weight: 900;
   font-size: 0.85rem;
-  font-family: 'Arial Black', Gadget, sans-serif;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
   text-align: left;
   letter-spacing: 0.5px;
 }
@@ -1775,7 +1775,7 @@ textarea.sar-input {
   font-size: 0.85rem;
   color: #333;
   cursor: pointer;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1862,7 +1862,7 @@ textarea.sar-input {
   border: 2px solid #000;
   border-radius: 8px;
   font-size: 0.7rem;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
   background: #F5F5F5;
 }
@@ -1915,7 +1915,7 @@ textarea.sar-input {
   font-size: 0.7rem;
   background: #FAFAFA;
   color: #AAA;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
 }
 
 /* ---- Theme swatches ---- */
@@ -1936,7 +1936,7 @@ textarea.sar-input {
   font-size: 0.7rem;
   font-style: italic;
   color: #555;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -2105,7 +2105,7 @@ textarea.sar-input {
   border: 2px solid #bbb;
   border-radius: 8px;
   padding: 8px 10px;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-size: 0.95rem;
   line-height: 1.4;
   resize: none;
@@ -2130,7 +2130,7 @@ textarea.sar-input {
   width: 100%;
   border: none;
   padding: 2px 0;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-size: 0.95rem;
   line-height: 1.4;
   resize: none;
@@ -2152,7 +2152,7 @@ textarea.sar-input {
   color: #4A148C;
   border-radius: 999px;
   padding: 3px 6px 3px 12px;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-size: 0.8rem;
   font-weight: bold;
   cursor: default;
@@ -2177,7 +2177,7 @@ textarea.sar-input {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-size: 0.8rem;
   color: #666;
 }
@@ -2208,7 +2208,7 @@ textarea.sar-input {
   border: 2px solid #bbb;
   border-radius: 8px;
   padding: 6px 10px;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-size: 0.9rem;
 }
 
@@ -2231,7 +2231,7 @@ textarea.sar-input {
   border-radius: 8px;
   cursor: pointer;
   padding: 5px 12px;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-size: 0.8rem;
   color: #666;
 }
@@ -2249,7 +2249,7 @@ textarea.sar-input {
 }
 
 .sv-sub-lead {
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-size: 0.85rem;
   font-weight: bold;
   color: #555;
@@ -2266,7 +2266,7 @@ textarea.sar-input {
 .sv-action {
   border: none;
   background: transparent;
-  font-family: Arial, sans-serif;
+  font-family: 'Nunito', Arial, sans-serif;
   font-size: 0.8rem;
   font-weight: bold;
   color: #6A1B9A;

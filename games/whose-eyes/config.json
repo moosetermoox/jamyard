@@ -4,7 +4,11 @@
   "featured": true,
   "playTime": "~12 min",
   "classSize": "4–35 players",
-  "tags": ["discuss", "perspectives", "empathy"],
+  "tags": [
+    "discuss",
+    "perspectives",
+    "empathy"
+  ],
   "minPlayers": 3,
   "phases": {
     "lobby": {
@@ -13,7 +17,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "👁 WHOSE EYES?\n\nToday's topic: our school's homework policy.\n\nFirst, name someone — or something — this topic touches. Then you'll get a classmate's suggestion and look through THEIR eyes.",
+      "message": "WHOSE EYES?\n\nToday's topic: our school's homework policy.\n\nFirst, name someone — or something — this topic touches. Then you'll get a classmate's suggestion and look through THEIR eyes.",
       "timer": 12,
       "next": "viewpoints"
     },
@@ -26,21 +30,33 @@
     "step-inside": {
       "type": "collect",
       "rotateFrom": "viewpoints",
-      "prompt": "A classmate suggested looking through the eyes of:\n\n👁 {{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing — be an actor.",
+      "prompt": "A classmate suggested looking through the eyes of:\n\n{{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing — be an actor.",
       "fields": [
-        { "label": "Whose eyes? (copy the viewpoint above)", "key": "eyes" },
-        { "label": "From this viewpoint, I think...", "key": "think" },
-        { "label": "From this viewpoint, I worry about or hope for...", "key": "feel" },
-        { "label": "A question I have, from here...", "key": "ask" }
+        {
+          "label": "Whose eyes? (copy the viewpoint above)",
+          "key": "eyes"
+        },
+        {
+          "label": "From this viewpoint, I think...",
+          "key": "think"
+        },
+        {
+          "label": "From this viewpoint, I worry about or hope for...",
+          "key": "feel"
+        },
+        {
+          "label": "A question I have, from here...",
+          "key": "ask"
+        }
       ],
       "timer": 180,
       "next": "circle"
     },
     "circle": {
       "type": "reveal-one",
-      "message": "👁 The circle of voices — one pair of eyes at a time.",
+      "message": "The circle of voices — one pair of eyes at a time.",
       "from": "step-inside.responses",
-      "itemTemplate": "👁 Through the eyes of {{_current.eyes}}\n\n“{{_current.think}}”\n\n💭 {{_current.feel}}\n\n❓ {{_current.ask}}",
+      "itemTemplate": "Through the eyes of {{_current.eyes}}\n\n“{{_current.think}}”\n\nThey feel: {{_current.feel}}\n\nThey would ask: {{_current.ask}}",
       "next": "end"
     },
     "end": {

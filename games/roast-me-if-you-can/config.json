@@ -39,7 +39,7 @@
         },
         "show-roast": {
           "type": "announce",
-          "message": "🔥 AI ROAST:\n\n{{generate-roast.result}}\n\n({{_current.playerName}})",
+          "message": "AI ROAST:\n\n{{generate-roast.result}}\n\n({{_current.playerName}})",
           "timer": 10
         }
       },
@@ -47,7 +47,7 @@
     },
     "finale": {
       "type": "announce",
-      "message": "🎤 That's all the roasts! Everyone survived... barely. 😎",
+      "message": "That's all the roasts! Everyone survived... barely.",
       "timer": 5,
       "next": "end"
     },

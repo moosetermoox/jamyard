@@ -257,7 +257,7 @@ function renderGames(games) {
     var ownerBar = document.createElement('div');
     ownerBar.className = 'owner-bar';
     var ownerLabel = document.createElement('span');
-    ownerLabel.textContent = '👑 Owner view — showing every activity';
+    ownerLabel.textContent = 'Owner view — showing every activity';
     ownerBar.appendChild(ownerLabel);
     var inboxLink = document.createElement('a');
     inboxLink.href = '/feedback';
@@ -399,10 +399,6 @@ function buildGameCard(game) {
   if (Array.isArray(game.tags) && game.tags.length > 0) {
     var tagsRow = document.createElement('div');
     tagsRow.className = 'game-card-tags';
-    var tagPrefix = document.createElement('span');
-    tagPrefix.className = 'game-card-tags-icon';
-    tagPrefix.textContent = '🎯';
-    tagsRow.appendChild(tagPrefix);
     for (var t = 0; t < game.tags.length; t++) {
       var chip = document.createElement('span');
       chip.className = 'game-card-tag';
@@ -1104,7 +1100,7 @@ function buildRecipeCard(modal, recipe, allRecipes, overlay, deletable) {
 
   var cardIcon = document.createElement('span');
   cardIcon.className = 'template-card-icon';
-  cardIcon.textContent = recipe.icon || '🎯';
+  cardIcon.textContent = recipe.icon || '🧩';
   card.appendChild(cardIcon);
 
   var cardName = document.createElement('div');
@@ -1201,7 +1197,7 @@ function renderRecipeFormView(modal, recipe, allRecipes, overlay) {
 
   var icon = document.createElement('span');
   icon.className = 'recipe-form-icon';
-  icon.textContent = recipe.icon || '🎯';
+  icon.textContent = recipe.icon || '🧩';
   titleWrap.appendChild(icon);
 
   var title = document.createElement('h2');
@@ -1957,7 +1953,7 @@ function renderMatchPreview(modal, data, overlay) {
 
   var icon = document.createElement('span');
   icon.className = 'recipe-form-icon';
-  icon.textContent = data.recipe.icon || '🎯';
+  icon.textContent = data.recipe.icon || '🧩';
   titleWrap.appendChild(icon);
 
   var title = document.createElement('h2');

@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "📚 STORY QUEST\n\nThis story belongs to the whole class. At the end of each chapter, you vote — and the winning choice decides what happens next.\n\nChoose carefully…",
+      "message": "STORY QUEST\n\nThis story belongs to the whole class. At the end of each chapter, you vote — and the winning choice decides what happens next.\n\nChoose carefully…",
       "timer": 10,
       "next": "ch1"
     },
@@ -79,7 +79,7 @@
     },
     "end": {
       "type": "end",
-      "message": "📚 Same class, different choices, different story. Play it again sometime."
+      "message": "Same class, different choices, different story. Play it again sometime."
     }
   },
   "tags": [

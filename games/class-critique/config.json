@@ -11,7 +11,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "🎤 Class Critique\n\nThe presenter will share their idea with the class. When they're done, you'll rate it on three scales. Be honest and constructive.",
+      "message": "Class Critique\n\nThe presenter will share their idea with the class. When they're done, you'll rate it on three scales. Be honest and constructive.",
       "timer": 15,
       "next": "rate-it",
       "image": "assets/02hest-kids-superjumbo-mp3efnnp.webp",

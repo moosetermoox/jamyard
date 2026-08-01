@@ -24,7 +24,9 @@
           },
           "choices": {
             "type": "array",
-            "item": { "type": "string" },
+            "item": {
+              "type": "string"
+            },
             "minItems": 2,
             "maxItems": 6,
             "label": "Choices",
@@ -41,7 +43,12 @@
       "default": [
         {
           "question": "What is the capital of Australia?",
-          "choices": ["Canberra", "Sydney", "Melbourne", "Perth"],
+          "choices": [
+            "Canberra",
+            "Sydney",
+            "Melbourne",
+            "Perth"
+          ],
           "correct": "Canberra"
         }
       ]
@@ -64,10 +71,13 @@
     "name": "Quiz Show",
     "description": "Race to answer — fastest correct answers earn the most points.",
     "phases": {
-      "lobby": { "type": "lobby", "next": "intro" },
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
       "intro": {
         "type": "announce",
-        "message": "🎤 QUIZ SHOW!\n\nAnswer on your device as fast as you can — correct answers earn points, and speed counts.\n\nGet ready...",
+        "message": "QUIZ SHOW!\n\nAnswer on your device as fast as you can — correct answers earn points, and speed counts.\n\nGet ready...",
         "timer": 6,
         "next": "q1"
       },
@@ -87,13 +97,16 @@
       },
       "scoreboard": {
         "type": "leaderboard",
-        "from": { "$map": "questions", "value": "q${i}.scores" },
+        "from": {
+          "$map": "questions",
+          "value": "q${i}.scores"
+        },
         "style": "full",
         "next": "end"
       },
       "end": {
         "type": "end",
-        "message": "That's the quiz! Great playing, everyone. 🎤"
+        "message": "That's the quiz! Great playing, everyone."
       }
     }
   }

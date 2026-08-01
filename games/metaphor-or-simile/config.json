@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "🗂️ METAPHOR OR SIMILE?\n\nRound 1: sort each line into the right bucket — every correct placement earns points.\n\nRound 2: no right answers, just the class verdict.",
+      "message": "METAPHOR OR SIMILE?\n\nRound 1: sort each line into the right bucket — every correct placement earns points.\n\nRound 2: no right answers, just the class verdict.",
       "timer": 10,
       "next": "round1"
     },
@@ -81,7 +81,7 @@
     },
     "end": {
       "type": "end",
-      "message": "🗂️ That's Metaphor or Simile! Swap in your own buckets and items for any categorization review."
+      "message": "That's Metaphor or Simile! Swap in your own buckets and items for any categorization review."
     }
   },
   "tags": [

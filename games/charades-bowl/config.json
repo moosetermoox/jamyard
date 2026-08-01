@@ -42,7 +42,7 @@
     },
     "round1-intro": {
       "type": "announce",
-      "message": "🗣️ ROUND 1: DESCRIBE!\n\nThe describer can use any words EXCEPT the phrase itself. 60 seconds per turn. Get as many right as you can — then it's the other team's turn.",
+      "message": "ROUND 1: DESCRIBE!\n\nThe describer can use any words EXCEPT the phrase itself. 60 seconds per turn. Get as many right as you can — then it's the other team's turn.",
       "timer": 10,
       "next": "round1"
     },
@@ -61,7 +61,7 @@
     },
     "round2-intro": {
       "type": "announce",
-      "message": "🎭 ROUND 2: ACT IT OUT!\n\nSame phrases, same teams — but now no words at all. Just gestures. 60 seconds.",
+      "message": "ROUND 2: ACT IT OUT!\n\nSame phrases, same teams — but now no words at all. Just gestures. 60 seconds.",
       "timer": 10,
       "next": "round2"
     },
@@ -80,7 +80,7 @@
     },
     "round3-intro": {
       "type": "announce",
-      "message": "🗯️ ROUND 3: ONE WORD!\n\nLast round! You can only say ONE word per phrase. Choose wisely. 60 seconds.",
+      "message": "ROUND 3: ONE WORD!\n\nLast round! You can only say ONE word per phrase. Choose wisely. 60 seconds.",
       "timer": 10,
       "next": "round3"
     },

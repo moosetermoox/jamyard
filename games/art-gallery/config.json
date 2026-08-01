@@ -9,7 +9,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "🎨 ART GALLERY!\n\nYou'll get one prompt and 90 seconds to draw it on your device. No erasing your neighbor's masterpiece — everyone's goes up on the wall.",
+      "message": "ART GALLERY!\n\nYou'll get one prompt and 90 seconds to draw it on your device. No erasing your neighbor's masterpiece — everyone's goes up on the wall.",
       "timer": 10,
       "next": "draw"
     },
@@ -28,13 +28,13 @@
     },
     "gallery": {
       "type": "reveal-one",
-      "message": "🖼️ The gallery is open!",
+      "message": "The gallery is open!",
       "from": "draw.responses",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "🎨 That's the Art Gallery! Swap in your own drawing prompt for any topic."
+      "message": "That's the Art Gallery! Swap in your own drawing prompt for any topic."
     }
   },
   "tags": [

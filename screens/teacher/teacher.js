@@ -227,7 +227,7 @@ startActivityBtn.addEventListener('click', function () {
 socket.on('teacher-console-joined', function (data) {
   var n = (data && data.deviceCount) || 2;
   deviceNotice.hidden = false;
-  deviceNotice.textContent = '📱 Another teacher device just connected (' + n +
+  deviceNotice.textContent = '💻 Another teacher device just connected (' + n +
     ' total). If that wasn\'t you, a student may have the PIN — end the session or change rooms.';
 });
 

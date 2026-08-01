@@ -259,7 +259,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'estimate': {
-    icon: '🎯',
+    icon: '🔢',
     friendlyName: 'Guess the Number',
     description: 'Everyone guesses a number — closest to the answer earns points',
     color: '#00838F',
@@ -6588,8 +6588,8 @@ function renderSarMetadataView(modal, candidates, paramSpecs, overlay) {
 
   // Icon
   var iconField = sarBuildField('icon', 'Icon (one emoji)', 'A visual marker for the picker card.');
-  iconField.input.placeholder = '🎯';
-  iconField.input.value = '🎯';
+  iconField.input.placeholder = '🧩';
+  iconField.input.value = '🧩';
   iconField.input.maxLength = 4;
   form.appendChild(iconField.wrap);
 
@@ -6635,7 +6635,7 @@ function renderSarMetadataView(modal, candidates, paramSpecs, overlay) {
     var metadata = {
       id: idField.input.value.trim(),
       name: nameField.input.value.trim(),
-      icon: iconField.input.value.trim() || '🎯',
+      icon: iconField.input.value.trim() || '🧩',
       description: descField.input.value.trim(),
       tagline: taglineField.input.value.trim() || undefined
     };
@@ -6740,7 +6740,7 @@ function renderSarSuccessView(modal, recipe, overlay) {
 
   var iconEl = document.createElement('div');
   iconEl.className = 'sar-success-icon';
-  iconEl.textContent = recipe.icon || '🎯';
+  iconEl.textContent = recipe.icon || '🧩';
   card.appendChild(iconEl);
 
   var nameEl = document.createElement('div');

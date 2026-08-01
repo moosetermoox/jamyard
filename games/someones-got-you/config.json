@@ -5,8 +5,15 @@
   "family": "connection",
   "playTime": "~10 min",
   "classSize": "4–35 players",
-  "tags": ["connect", "belonging", "encouragement"],
-  "feel": ["belonging", "warmth"],
+  "tags": [
+    "connect",
+    "belonging",
+    "encouragement"
+  ],
+  "feel": [
+    "belonging",
+    "warmth"
+  ],
   "minPlayers": 3,
   "phases": {
     "lobby": {
@@ -15,7 +22,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "💛 SOMEONE'S GOT YOU\n\nNo points, no winners. You'll write one small real thing — then a classmate you don't get to pick writes something FOR you.\n\nWrite like someone's day depends on it. It might.",
+      "message": "SOMEONE'S GOT YOU\n\nNo points, no winners. You'll write one small real thing — then a classmate you don't get to pick writes something FOR you.\n\nWrite like someone's day depends on it. It might.",
       "timer": 12,
       "next": "notes"
     },
@@ -41,13 +48,13 @@
     },
     "wall": {
       "type": "reveal-one",
-      "message": "💛 The encouragement wall — one line at a time.",
+      "message": "The encouragement wall — one line at a time.",
       "from": "boost.responses",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "💛 That's a wrap. Look out for each other out there."
+      "message": "That's a wrap. Look out for each other out there."
     }
   }
 }

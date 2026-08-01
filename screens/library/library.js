@@ -321,7 +321,7 @@ document.getElementById('build-your-own-btn').addEventListener('click', function
   var note = document.createElement('textarea');
   note.rows = 3;
   note.placeholder = 'What do you want to make? (optional — this goes straight to the person who builds Lanyard)';
-  note.style.cssText = 'width:100%; padding:12px; border:3px solid #000; border-radius:10px; font-family:Arial, sans-serif; font-size:0.95rem; resize:vertical; box-sizing:border-box; margin-bottom:14px;';
+  note.style.cssText = 'width:100%; padding:12px; border:3px solid #000; border-radius:10px; font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; resize:vertical; box-sizing:border-box; margin-bottom:14px;';
   modal.appendChild(note);
 
   var btnRow = document.createElement('div');

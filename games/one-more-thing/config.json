@@ -3,7 +3,11 @@
   "description": "From memory, everyone lists what they remember from the lesson — then the list passes to two classmates who each add one thing it missed. Your own list comes back grown, and the AI builds the class's collective memory.",
   "playTime": "~12 min",
   "classSize": "3–35 players",
-  "tags": ["review", "memory", "collaborative"],
+  "tags": [
+    "review",
+    "memory",
+    "collaborative"
+  ],
   "minPlayers": 3,
   "phases": {
     "lobby": {
@@ -12,7 +16,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "🧠 ONE MORE THING\n\nFrom memory — no notes! You'll list what you remember from today's lesson. Then your list travels: two classmates will each add one thing you missed.\n\nIt comes back to you, grown.",
+      "message": "ONE MORE THING\n\nFrom memory — no notes! You'll list what you remember from today's lesson. Then your list travels: two classmates will each add one thing you missed.\n\nIt comes back to you, grown.",
       "timer": 12,
       "next": "recall"
     },
@@ -44,7 +48,11 @@
     "returned": {
       "type": "reveal",
       "scope": "own",
-      "chainFrom": ["recall", "add-one", "add-again"],
+      "chainFrom": [
+        "recall",
+        "add-one",
+        "add-again"
+      ],
       "chainDisplay": "final",
       "next": "cluster"
     },
@@ -57,12 +65,12 @@
     },
     "class-memory": {
       "type": "reveal",
-      "template": "🧠 WHAT WE REMEMBER — TOGETHER\n\n{{cluster.result}}",
+      "template": "WHAT WE REMEMBER — TOGETHER\n\n{{cluster.result}}",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "🧠 That's One More Thing — nobody's list came back the same size it left. Edit the prompts to run it on any lesson."
+      "message": "That's One More Thing — nobody's list came back the same size it left. Edit the prompts to run it on any lesson."
     }
   }
 }

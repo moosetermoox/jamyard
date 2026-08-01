@@ -5,7 +5,6 @@
   "description": "Telephone-style: everyone writes a starter, then each round the ideas pass to the next person who transforms them. After 4 rounds, see how every chain evolved.",
   "tagline": "Great for creative thinking, brainstorming, and seeing how ideas mutate when they pass through different minds.",
   "version": "1",
-
   "parameters": {
     "starterPrompt": {
       "type": "templateString",
@@ -34,7 +33,6 @@
       "max": 300
     }
   },
-
   "template": {
     "name": "Idea Chain: ${starterPrompt}",
     "description": "A 4-round telephone game built with the Idea Chain recipe.",
@@ -44,21 +42,18 @@
         "type": "lobby",
         "next": "intro"
       },
-
       "intro": {
         "type": "announce",
-        "message": "🔗 Idea Chain\n\nEveryone writes one idea to start. Then for 4 rounds, your idea passes to the next person — and you'll see someone else's idea to transform.",
+        "message": "Idea Chain\n\nEveryone writes one idea to start. Then for 4 rounds, your idea passes to the next person — and you'll see someone else's idea to transform.",
         "timer": 10,
         "next": "starter"
       },
-
       "starter": {
         "type": "collect",
         "prompt": "${starterPrompt}",
         "timer": "${timer}",
         "next": "intro-round-1"
       },
-
       "intro-round-1": {
         "type": "announce",
         "message": "Round 1 of 4 — pass it on!",
@@ -72,7 +67,6 @@
         "timer": "${timer}",
         "next": "intro-round-2"
       },
-
       "intro-round-2": {
         "type": "announce",
         "message": "Round 2 of 4 — keep it going!",
@@ -86,7 +80,6 @@
         "timer": "${timer}",
         "next": "intro-round-3"
       },
-
       "intro-round-3": {
         "type": "announce",
         "message": "Round 3 of 4 — getting wild yet?",
@@ -100,7 +93,6 @@
         "timer": "${timer}",
         "next": "intro-round-4"
       },
-
       "intro-round-4": {
         "type": "announce",
         "message": "Final round!",
@@ -114,22 +106,19 @@
         "timer": "${timer}",
         "next": "starters-reveal"
       },
-
       "starters-reveal": {
         "type": "reveal",
         "template": "## Where we started\n\n{{starter.responses.list}}",
         "next": "final-reveal"
       },
-
       "final-reveal": {
         "type": "reveal",
         "template": "## Where we ended up\n\nAfter four transformations:\n\n{{round-4.responses.list}}",
         "next": "end"
       },
-
       "end": {
         "type": "end",
-        "message": "Look how different those endings are from the starters! 🔗✨"
+        "message": "Look how different those endings are from the starters!"
       }
     }
   }

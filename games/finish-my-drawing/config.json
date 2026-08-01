@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "✏️ FINISH MY DRAWING!\n\nStart a drawing — anything you like. Then it passes to a classmate who has to keep it going. Twice. You won't know what yours became until the gallery.",
+      "message": "FINISH MY DRAWING!\n\nStart a drawing — anything you like. Then it passes to a classmate who has to keep it going. Twice. You won't know what yours became until the gallery.",
       "timer": 10,
       "next": "start-drawing"
     },
@@ -43,13 +43,13 @@
     },
     "gallery": {
       "type": "reveal-one",
-      "message": "🖼️ Three artists each — here's what your drawings became!",
+      "message": "Three artists each — here's what your drawings became!",
       "from": "continue-2.responses",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "✏️ That's Finish My Drawing! Every picture up there had three artists."
+      "message": "That's Finish My Drawing! Every picture up there had three artists."
     }
   },
   "tags": [
