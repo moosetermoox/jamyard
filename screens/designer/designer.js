@@ -384,15 +384,6 @@ function buildGameCard(game) {
   if (game.playTime) {
     meta.appendChild(buildMetaBadge('⏱', String(game.playTime)));
   }
-  var classSizeText = formatClassSize(game);
-  if (classSizeText) {
-    meta.appendChild(buildMetaBadge('👥', classSizeText));
-  }
-  var phases = document.createElement('span');
-  phases.className = 'game-card-phases';
-  phases.textContent = game.phaseCount + ' steps';
-  meta.appendChild(phases);
-
   card.appendChild(meta);
 
   // Tags row (skills / categories). Renders as small chip pills.
@@ -511,15 +502,6 @@ function buildMetaBadge(icon, text) {
   badge.className = 'game-card-meta-badge';
   badge.textContent = icon + ' ' + text;
   return badge;
-}
-
-function formatClassSize(game) {
-  if (game.classSize) return String(game.classSize);
-  if (game.minPlayers) {
-    var maxLabel = game.maxPlayers ? '–' + game.maxPlayers : '+';
-    return game.minPlayers + maxLabel + ' players';
-  }
-  return null;
 }
 
 

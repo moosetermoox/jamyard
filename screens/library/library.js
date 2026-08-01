@@ -158,7 +158,6 @@ function buildCard(game) {
   var meta = document.createElement('div');
   meta.className = 'game-card-meta';
   if (game.playTime) meta.appendChild(metaBadge('⏱ ' + game.playTime));
-  if (game.classSize) meta.appendChild(metaBadge('👥 ' + game.classSize));
   card.appendChild(meta);
 
   if (Array.isArray(game.tags)) {
