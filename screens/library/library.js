@@ -215,7 +215,7 @@ function buildCard(game) {
   if (canEditDirectly) {
     var editBtn = document.createElement('a');
     editBtn.className = 'game-card-edit';
-    editBtn.href = '/designer/edit?game=' + encodeURIComponent(game.id);
+    editBtn.href = '/designer/edit?game=' + encodeURIComponent(game.id) + '&from=library';
     editBtn.textContent = 'Edit';
     editBtn.setAttribute('aria-label', 'Edit "' + game.name + '"');
     editBtn.addEventListener('click', rememberRecent);
@@ -289,7 +289,7 @@ function customizeCopy(game, btn) {
         }
         if (window.MyGames) MyGames.add(copyId);
         Recents.add(copyId);
-        window.location.href = '/designer/edit?game=' + encodeURIComponent(copyId);
+        window.location.href = '/designer/edit?game=' + encodeURIComponent(copyId) + '&from=library';
       });
     })
     .catch(function (err) {

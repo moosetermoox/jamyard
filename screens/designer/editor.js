@@ -376,6 +376,16 @@ async function init() {
   var params = new URLSearchParams(window.location.search);
   gameId = params.get('game');
 
+  // Arrived from the library? Send "back" there, not to the designer grid —
+  // the two pages look alike and landing on the wrong one is disorienting.
+  if (params.get('from') === 'library') {
+    var backLink = document.querySelector('.back-link');
+    if (backLink) {
+      backLink.href = '/library';
+      backLink.textContent = '← Back to Library';
+    }
+  }
+
   if (gameId) {
     loadGame(gameId);
   } else {
