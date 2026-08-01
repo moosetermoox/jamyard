@@ -247,8 +247,42 @@ function buildCard(game) {
   });
   actions.appendChild(favBtn);
 
+  // Delete for activities made on this device only — built-ins never show
+  // it here (owner housekeeping stays on the designer grid).
+  if (window.MyGames && MyGames.has(game.id)) {
+    var deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'game-card-delete';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.title = 'Delete this activity — this cannot be undone';
+    deleteBtn.setAttribute('aria-label', 'Delete "' + game.name + '"');
+    deleteBtn.addEventListener('click', function () {
+      deleteOwnGame(game);
+    });
+    actions.appendChild(deleteBtn);
+  }
+
   card.appendChild(actions);
   return card;
+}
+
+async function deleteOwnGame(game) {
+  if (!confirm('Delete "' + game.name + '"? This cannot be undone.')) return;
+  try {
+    var response = await fetch('/api/games/' + encodeURIComponent(game.id), {
+      method: 'DELETE'
+    });
+    var result = await response.json();
+    if (response.ok) {
+      allGames = allGames.filter(function (g) { return g.id !== game.id; });
+      MyGames.remove(game.id);
+      refreshLibrary();
+    } else {
+      alert('Delete failed: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    alert('Delete failed: ' + error.message);
+  }
 }
 
 function metaBadge(text) {
