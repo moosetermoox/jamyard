@@ -17,9 +17,11 @@ var createNewLink = document.getElementById('create-new-link');
 var allGames = [];
 
 // The activity grid moved to /library (docs/SURFACES-PLAN.md); this page
-// only hosts the create flows now. The grid rendering code below is
-// unreachable without #games-grid and awaits a pruning pass.
-if (gamesGrid) fetchGames();
+// only hosts the create flows now. The games list is still fetched —
+// generateGameId dedupes new ids against it (skipping the fetch made
+// "Start from a template" 409 on the second blank) — but rendering only
+// happens where a grid exists.
+fetchGames();
 
 // --- Idea-first front door ---
 // The teacher's idea is the entry point: type it, hit Make It, and the
@@ -92,12 +94,14 @@ async function fetchGames() {
     }
     var data = await response.json();
     allGames = data.games || [];
-    loadingMessage.hidden = true;
-    refreshLibrary();
+    if (loadingMessage) loadingMessage.hidden = true;
+    if (gamesGrid) refreshLibrary();
   } catch (error) {
-    loadingMessage.hidden = true;
-    errorMessage.textContent = 'Error loading games: ' + error.message;
-    errorMessage.hidden = false;
+    if (loadingMessage) loadingMessage.hidden = true;
+    if (errorMessage) {
+      errorMessage.textContent = 'Error loading games: ' + error.message;
+      errorMessage.hidden = false;
+    }
   }
 }
 
