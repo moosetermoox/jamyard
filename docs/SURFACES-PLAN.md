@@ -138,6 +138,17 @@ Ground rules for the exploration:
   mode — instant, zero API spend), the teacher-preview gate ("show me
   before the class sees it"), and a plain-words privacy line (names never
   reach the AI — the ai-name-fill contract, surfaced as UI copy).
+- **End of build + handoff (mocked round 6):** "Wrap it up" joins the
+  suggestion row only once the activity has an ARC (≥1 ask + ≥1
+  show-or-decide) — a tile, never a nag; its wrap message quotes the
+  activity's own outcome. Clicking it lands the end step, retires the
+  frontier +, and swaps in the FINISH PANEL: "Your activity is ready" +
+  green quiet-check line (the light review that already runs on save,
+  surfaced instead of hidden) + three exits — "▶ Try it with pretend
+  players" (primary; prototype mode pre-loaded), "Host it live now",
+  "Keep polishing". The rail flips to the Activity tab with a naming
+  nudge ("'My New Activity' is a fine draft name, but the library
+  deserves better") — name-before-host, enforced socially not modally.
 
 ## 6. Phase 4 — AI as a building partner (ladder, cheapest first)
 
