@@ -2279,3 +2279,318 @@ textarea.sar-input {
 .sv-action-quiet { color: #888; }
 
 #simple-add-step { margin: 4px 0 40px; }
+
+/* ============================================================
+   Builder view — palette / canvas / rail (SURFACES-PLAN Phase 3)
+   ============================================================ */
+
+#builder-view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* display:flex would beat the hidden attribute (recurring bug) */
+#builder-view[hidden] { display: none; }
+
+#builder-palette {
+  width: 230px;
+  flex-shrink: 0;
+  background: #fff;
+  border-right: 3px solid #000;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+.builder-palette-title {
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 4px;
+}
+
+.builder-palette-hint {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-size: 0.75rem;
+  color: #777;
+  margin: 0 0 12px;
+}
+
+.builder-pgroup { margin-bottom: 14px; }
+
+.builder-pgroup h3 {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin: 0 0 6px;
+  font-weight: 800;
+}
+
+.builder-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  border: 2px solid #000;
+  border-radius: 10px;
+  padding: 7px 10px;
+  margin-bottom: 6px;
+  background: #fff;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.82rem;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #000;
+  text-align: left;
+}
+
+.builder-tile:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 #000; }
+.builder-tile:focus-visible { outline: 3px solid #0057FF; outline-offset: 2px; }
+.builder-tile.ask { background: #C8E6C9; }
+.builder-tile.show { background: #B2EBF2; }
+.builder-tile.decide { background: #FFE0B2; }
+.builder-tile.ai { background: #E1BEE7; }
+.builder-tile.endtile { background: #E0E0E0; }
+
+.builder-more { margin-top: 4px; }
+
+#builder-canvas {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 20px 24px;
+  background: #FFFDE7;
+}
+
+.builder-step {
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  cursor: pointer;
+}
+
+.builder-step.selected {
+  border: 3px solid #0057FF;
+  box-shadow: 4px 4px 0 #0057FF;
+}
+
+.builder-step.ai { background: #F3E5F5; }
+
+.builder-step-num {
+  background: #B2EBF2;
+  border: 2px solid #000;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.builder-step.ai .builder-step-num { background: #E1BEE7; }
+
+.builder-step-body { min-width: 0; }
+
+.builder-step-body p {
+  margin: 0;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 700;
+}
+
+.builder-step-body small {
+  display: block;
+  margin-top: 3px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 400;
+  color: #777;
+}
+
+.builder-plusline {
+  display: flex;
+  justify-content: center;
+  margin: -4px 0 8px;
+}
+
+.builder-plus {
+  width: 28px;
+  height: 28px;
+  border: 2px solid #000;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #000;
+  padding: 0;
+}
+
+.builder-plus.open { background: #0057FF; color: #fff; cursor: default; box-shadow: none; }
+
+.builder-suggest {
+  border: 3px solid #0057FF;
+  border-radius: 14px;
+  background: #E3F2FD;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.builder-suggest-ai {
+  border-color: #AA00FF;
+  background: #F3E5F5;
+}
+
+.builder-suggest-ai .builder-plus.open { background: #AA00FF; }
+
+.builder-suggest-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.builder-suggest-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.builder-tile.sug { position: relative; margin-bottom: 0; }
+
+.builder-tile.sug small {
+  font-weight: 400;
+  color: #555;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+.builder-why {
+  position: absolute;
+  top: -10px;
+  right: 8px;
+  background: #FFD600;
+  border: 2px solid #000;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  padding: 1px 8px;
+}
+
+.builder-suggest-foot { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+
+.builder-suggest-all {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  border: 2px solid #000;
+  border-radius: 999px;
+  background: #fff;
+  padding: 5px 14px;
+  cursor: pointer;
+}
+
+.builder-done {
+  border: 3px solid #00C853;
+  border-radius: 14px;
+  background: #E8F5E9;
+  padding: 18px 20px;
+  margin-bottom: 12px;
+}
+
+.builder-done h3 {
+  font-size: 1rem;
+  text-transform: uppercase;
+  margin: 0 0 4px;
+}
+
+.builder-done-check {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #2E7D32;
+  margin: 0 0 12px;
+}
+
+.builder-done-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+.builder-done-btn {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  border: 3px solid #000;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 900;
+}
+
+.builder-done-btn.primary { background: #0057FF; color: #fff; box-shadow: 4px 4px 0 #000; }
+.builder-done-btn.secondary { background: #fff; }
+
+.builder-done-link {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #555;
+  text-decoration: underline;
+  cursor: pointer;
+  background: none;
+  border: none;
+}
+
+#builder-rail {
+  width: 320px;
+  flex-shrink: 0;
+  background: #FFF9C4;
+  border-left: 3px solid #000;
+  overflow-y: auto;
+  padding: 14px;
+}
+
+#builder-rail-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+
+.builder-tab {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 6px 12px;
+  border: 2px solid #000;
+  border-radius: 999px;
+  background: #fff;
+  color: #555;
+  cursor: pointer;
+}
+
+.builder-tab.active { background: #000; color: #fff; }
+
+/* The relocated Activity settings sidebar loses its sidebar chrome */
+#builder-rail #settings-panel {
+  width: auto;
+  border-right: none;
+  padding: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+#builder-rail #settings-panel.builder-hidden { display: none; }
+
+/* The relocated step form fills the rail; its inline-form spacing rules
+   don't apply here */
+#builder-rail #phase-config-form { margin-top: 4px; }
+#builder-rail #live-preview-section { margin-top: 10px; }

@@ -28,6 +28,8 @@ const FILES = [
   'screens/designer/designer.js',
   'screens/designer/editor.js',
   'screens/designer/simple-view.js',
+  'screens/designer/builder-view.js',
+  'screens/shared/step-suggestions.js',
   'screens/feedback/feedback.js',
   'screens/shared/feedback-widget.js',
   'screens/shared/game-visibility.js',

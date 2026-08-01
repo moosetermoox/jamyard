@@ -14,6 +14,7 @@
       <h1 id="header-game-name">Loading...</h1>
       <div id="view-toggle" class="view-toggle">
         <button id="view-simple-btn" class="view-toggle-btn" type="button" title="Plain-English view — every step as an editable sentence">Simple</button>
+        <button id="view-builder-btn" class="view-toggle-btn" type="button" title="Build with blocks — a palette of steps, suggested next steps, and settings beside the activity">Builder</button>
         <button id="view-advanced-btn" class="view-toggle-btn" type="button" title="Full editor with the step map and every setting">Advanced</button>
       </div>
     </div>
@@ -97,6 +98,18 @@
       </div>
     </main>
 
+    <!-- Builder view: palette / canvas / rail. The rail hosts the REAL
+         settings panels (relocated by builder-view.js) — no duplicate
+         forms. See docs/SURFACES-PLAN.md Phase 3. -->
+    <main id="builder-view" hidden>
+      <aside id="builder-palette"></aside>
+      <div id="builder-canvas"></div>
+      <aside id="builder-rail">
+        <div id="builder-rail-tabs"></div>
+        <div id="builder-rail-body"></div>
+      </aside>
+    </main>
+
     <!-- Main Canvas: Phase Flow -->
     <main id="canvas-area">
       <div id="canvas-toolbar">
@@ -167,5 +180,7 @@
   <script src="templates.js"></script>
   <script src="editor.js"></script>
   <script src="simple-view.js"></script>
+  <script src="/shared/step-suggestions.js"></script>
+  <script src="builder-view.js"></script>
 </body>
 </html>

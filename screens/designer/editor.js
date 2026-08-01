@@ -430,6 +430,12 @@ async function init() {
     // which would both undo a just-made selection and re-render the
     // simple list out from under a focused textarea.
     if (e.target.closest('#simple-view')) return;
+    // The Builder view manages its own selection (cards select, rail
+    // edits, suggestion tiles insert) — the canvas collapse would undo a
+    // just-made selection on every click. Checked via the body class, not
+    // closest(): builder clicks re-render synchronously, so by the time
+    // this handler runs the clicked tile is detached and closest() fails.
+    if (document.body.classList.contains('builder-mode')) return;
     // Active modal / overlay UIs that the user is interacting with.
     if (e.target.closest('.picker-overlay')) return;
     if (e.target.closest('.ask-ai-modal')) return;

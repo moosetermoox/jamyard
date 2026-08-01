@@ -73,7 +73,7 @@ is "the editor," the create page is "Create." Internals (`/designer` routes,
 file names, `designer.js`) stay — same rule as the activity/game vocabulary
 sweep: copy-level, never a rename of internals.
 
-## 5. Phase 3 — editor layout exploration (prototype first, decide after)
+## 5. Phase 3 — editor layout exploration ✅ BUILT v1 2026-08-01 (Builder mode)
 
 The teacher's sketch: **steps palette on the left** (a visible library of
 step types you can drag into the activity), **canvas in the middle**,
