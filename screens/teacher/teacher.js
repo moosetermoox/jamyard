@@ -283,6 +283,7 @@ function renderEntries(submissions) {
       var hideBtn = document.createElement('button');
       hideBtn.className = 'entry-btn';
       hideBtn.textContent = sub.hidden ? 'Unhide' : 'Hide';
+      hideBtn.title = sub.hidden ? 'Put this entry back in the activity' : 'Hide this entry from the class and the AI — you can unhide it later';
       hideBtn.addEventListener('click', function () {
         socket.emit('moderate-hide', { code: currentCode, playerId: sub.playerId, hidden: !sub.hidden });
       });
@@ -291,6 +292,7 @@ function renderEntries(submissions) {
       var kickBtn = document.createElement('button');
       kickBtn.className = 'entry-btn entry-btn-danger';
       kickBtn.textContent = 'Kick';
+      kickBtn.title = 'Remove this student from the room — they cannot rejoin this session';
       kickBtn.addEventListener('click', function () {
         if (confirm('Remove ' + sub.name + '? They can\'t rejoin this session.')) {
           socket.emit('moderate-kick', { code: currentCode, playerId: sub.playerId });

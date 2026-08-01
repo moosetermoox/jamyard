@@ -21,10 +21,10 @@
       <input type="range" id="player-count" min="1" max="8" value="2">
       <span id="player-count-display">2</span>
 
-      <button id="launch-btn" disabled>Launch</button>
-      <button id="bot-fill-btn" hidden>Bot Fill</button>
+      <button id="launch-btn" disabled title="Open a practice room right here — the projected teacher screen next to pretend student screens">Launch</button>
+      <button id="bot-fill-btn" hidden title="Auto-fill an answer for every practice player so you can move through the steps quickly">Bot Fill</button>
       <button id="skip-btn" hidden title="Skip the current step's timer / close submissions / continue">Skip timer</button>
-      <button id="reset-btn" hidden>Reset</button>
+      <button id="reset-btn" hidden title="Close this practice room and start fresh">Reset</button>
 
       <div id="view-toggle" hidden>
         <button id="view-grid-btn" class="view-btn active" title="Show all players at once">Grid</button>
@@ -37,8 +37,8 @@
   <div id="iframe-container"></div>
 
   <!-- Carousel overlays — fixed position so they sit above iframes -->
-  <button id="carousel-prev" class="carousel-arrow carousel-arrow-left" hidden>&larr;</button>
-  <button id="carousel-next" class="carousel-arrow carousel-arrow-right" hidden>&rarr;</button>
+  <button id="carousel-prev" class="carousel-arrow carousel-arrow-left" hidden title="Previous player screen">&larr;</button>
+  <button id="carousel-next" class="carousel-arrow carousel-arrow-right" hidden title="Next player screen">&rarr;</button>
   <div id="carousel-dots" hidden></div>
 
   <script src="/shared/game-visibility.js"></script>

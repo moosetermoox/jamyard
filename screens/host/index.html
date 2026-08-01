@@ -19,15 +19,15 @@
         <option value="">Loading activities...</option>
       </select>
       <p id="game-select-desc" class="game-select-desc"></p>
-      <button id="create-room-btn">Open the room</button>
+      <button id="create-room-btn" title="Create a live room and get the join code for your class">Open the room</button>
     </div>
 
     <div id="room-code-section" hidden>
       <p id="game-name-display"></p>
       <div id="room-code">XXXX</div>
       <div class="join-share">
-        <button id="copy-link-btn" type="button" class="share-btn">🔗 Copy join link</button>
-        <button id="show-qr-btn" type="button" class="share-btn">Show QR code</button>
+        <button id="copy-link-btn" type="button" class="share-btn" title="Copy a link that joins this room — paste it wherever your class gets links">🔗 Copy join link</button>
+        <button id="show-qr-btn" type="button" class="share-btn" title="Show a QR code students can scan to join">Show QR code</button>
       </div>
       <div id="qr-panel" class="qr-panel" hidden>
         <img id="qr-image" class="qr-image" alt="Scan this code to join">
@@ -89,8 +89,8 @@
       </div>
     </div>
     <div class="preview-actions">
-      <button id="preview-approve-btn">Approve & Show</button>
-      <button id="preview-reject-btn" class="btn-danger">Reject</button>
+      <button id="preview-approve-btn" title="Looks good — show this to the whole class">Approve & Show</button>
+      <button id="preview-reject-btn" class="btn-danger" title="Don’t show it — run this step again">Reject</button>
     </div>
   </section>
 
@@ -299,7 +299,7 @@
     <p id="one-voice-best"></p>
     <div id="one-voice-banner" class="one-voice-banner" hidden></div>
     <div class="one-voice-controls">
-      <button id="one-voice-mute-btn" type="button">🔊 Voice on</button>
+      <button id="one-voice-mute-btn" type="button" title="Speak each number aloud through this device’s speakers">🔊 Voice on</button>
       <button id="one-voice-continue-btn" title="Store the story so far and move on">Move On</button>
     </div>
   </section>

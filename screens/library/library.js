@@ -193,6 +193,7 @@ function buildCard(game) {
   hostBtn.className = 'game-card-host library-host';
   hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
   hostBtn.textContent = '▶ Host this';
+  hostBtn.title = 'Start a live room your class can join right now';
   hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');
   hostBtn.addEventListener('click', rememberRecent);
   actions.appendChild(hostBtn);

@@ -438,6 +438,7 @@ function buildGameCard(game) {
   hostBtn.className = 'game-card-host';
   hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
   hostBtn.textContent = '▶ Host';
+  hostBtn.title = 'Start a live room your class can join right now';
   hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');
   hostBtn.addEventListener('click', rememberRecent);
   actions.appendChild(hostBtn);
@@ -446,6 +447,7 @@ function buildGameCard(game) {
   editBtn.className = 'game-card-edit';
   editBtn.href = '/designer/edit?game=' + encodeURIComponent(game.id);
   editBtn.textContent = 'Edit';
+  editBtn.title = 'Open this activity in the editor';
   editBtn.setAttribute('aria-label', 'Edit "' + game.name + '"');
   editBtn.addEventListener('click', rememberRecent);
   actions.appendChild(editBtn);

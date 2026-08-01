@@ -37,7 +37,7 @@
     <div id="lobby-block" hidden>
       <h2 id="lobby-count">0 students joined</h2>
       <p id="lobby-roster" class="block-hint"></p>
-      <button id="start-activity-btn" class="btn-go" disabled>Start activity</button>
+      <button id="start-activity-btn" class="btn-go" disabled title="Start the activity for everyone in the room">Start activity</button>
       <p class="block-hint">Starts for everyone — same as the button on the projector.</p>
     </div>
 
@@ -64,15 +64,15 @@
         <ul id="preview-resp-list" class="entries-list"></ul>
       </div>
       <div class="btn-row">
-        <button id="approve-btn" class="btn-go">Approve &amp; show class</button>
-        <button id="reject-btn" class="btn-danger">Try again</button>
+        <button id="approve-btn" class="btn-go" title="Looks good — show this to the whole class">Approve &amp; show class</button>
+        <button id="reject-btn" class="btn-danger" title="Don’t show it — run this step again">Try again</button>
       </div>
     </div>
 
     <!-- Controls -->
     <div id="controls-block" class="controls-block">
-      <button id="close-step-btn" hidden>Close submissions</button>
-      <button id="next-step-btn">Next step ▸</button>
+      <button id="close-step-btn" hidden title="Stop accepting answers for this step and move on">Close submissions</button>
+      <button id="next-step-btn" title="Move the whole class to the next step">Next step ▸</button>
     </div>
 
     <p id="device-notice" class="console-note" hidden></p>
