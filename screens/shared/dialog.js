@@ -29,6 +29,16 @@
 
   var FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
+  // Dialogs left open by a flow that navigates away (e.g. the library's
+  // builder doorway → /designer) survive inside the browser's back-forward
+  // cache — pressing Back restored the page WITH the dialog still covering
+  // it. Close any open dialog when a page is served from that cache.
+  var openDialogs = [];
+  window.addEventListener('pageshow', function (e) {
+    if (!e.persisted) return;
+    openDialogs.slice().forEach(function (closeFn) { closeFn(); });
+  });
+
   function enhance(overlay, modal, opts) {
     opts = opts || {};
     var previouslyFocused = document.activeElement;
@@ -83,6 +93,8 @@
     function close() {
       if (closed) return;
       closed = true;
+      var idx = openDialogs.indexOf(close);
+      if (idx !== -1) openDialogs.splice(idx, 1);
       document.removeEventListener('keydown', onKeydown, true);
       overlay.remove();
       if (typeof opts.onClose === 'function') opts.onClose();
@@ -91,6 +103,8 @@
         previouslyFocused.focus();
       }
     }
+
+    openDialogs.push(close);
 
     // Announce + land focus inside the dialog.
     modal.focus();
