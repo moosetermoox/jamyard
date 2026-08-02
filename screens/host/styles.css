@@ -1178,3 +1178,12 @@ select {
   margin-bottom: 14px;
 }
 #preview-reveal-btn:hover { background: #FFF59D; }
+
+/* Join instructions under the big room code — student-facing, projected */
+.join-instructions {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #333;
+  margin: 2px 0 10px;
+}

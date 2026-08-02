@@ -396,6 +396,28 @@ async function init() {
   addPhaseBtn.addEventListener('click', addPhase);
   saveBtn.addEventListener('click', saveGame);
 
+  // Never silently lose edits: a dirty editor warns before the tab
+  // navigates away or closes (usability test 2026-08-01 — a teacher lost
+  // work twice in one session).
+  window.addEventListener('beforeunload', function (e) {
+    if (isDirty) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  var hostBtn = document.getElementById('host-btn');
+  if (hostBtn) {
+    hostBtn.addEventListener('click', async function () {
+      // Save first (validating — a rejected save keeps you here), then
+      // straight to a live room with this activity.
+      await saveGame();
+      if (gameId && !isDirty) {
+        window.location.href = '/host?game=' + encodeURIComponent(gameId);
+      }
+    });
+  }
+
   // Save-status indicator: poll isDirty every 250ms. Cheap, avoids refactoring
   // the ~40 `isDirty = true` call sites scattered through the editor.
   var lastShownDirty = null;

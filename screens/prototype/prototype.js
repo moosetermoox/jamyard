@@ -68,6 +68,10 @@ fetch('/api/games')
       const match = Array.from(gameSelect.options).find(o => o.value === autoGame);
       if (match) {
         gameSelect.value = autoGame;
+        // Arrived via a Preview button with the activity chosen — launch
+        // right away instead of showing a blank stage (usability test
+        // 2026-08-01: the empty page read as broken).
+        launchBtn.click();
       }
     }
   })

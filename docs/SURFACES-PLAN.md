@@ -188,3 +188,38 @@ teacher-authored-by-adoption, so §49073.1 stays clean.
 2. **Timing**: Phase 1 before August field tests (it's mostly deletion, and
    fewer confusing surfaces helps proxy playtests) or frozen until after.
 3. **Phase 3 scope**: prototype-only for now, or schedule the build.
+
+## 8. Usability-test backlog (agent testers, 2026-08-01)
+
+Fixed same day: lobby join instructions, editor ▶ Host, Preview rename +
+auto-launch + hint, beforeunload guard, placeholder rewording.
+
+Remaining, ranked:
+1. **Single "Your topic" field** for single-statement activities (Dana #1:
+   Both Sides hard-codes its claim in 4 boxes incl. the AI instruction).
+   This is the recipe-parameter concept surfaced inside customized copies —
+   design properly, likely via recipes rather than string-hunting.
+2. **"Question & Share" template** (Marcus #2): open question → everyone's
+   answers on the projector. The most common teacher want; today requires
+   amputating AI from Creative Writing. Cheap: one more entry in
+   templates.js (collect → reveal), or make it the suggested default.
+3. **Draft-keeping** beyond the beforeunload warning (Marcus #1's stronger
+   form): localStorage draft restore after a rejected save/crash.
+4. **Teacher-language validation errors** (Marcus #4): 'References
+   "generate.result" but step "generate" does not exist' → name the steps
+   in friendly terms + offer a one-click cleanup when a deletion strands
+   dependents.
+5. **One name per step everywhere** (Marcus #5): Simple's sentence labels
+   vs Builder's card labels diverge ("The class sees" vs "Results on the
+   projector") — unify the label source.
+6. **Simple view completion** (Marcus #3): insert-chips + delete in Simple
+   so rewording-level teachers never dead-end.
+7. **Raw {{tokens}} visible mid-edit in Builder rail** (Marcus §3): the
+   rail's template box shows code where Simple shows chips — reuse the
+   token-aware box in the rail primary field.
+8. Bad game id in edit URL → header stuck "LOADING…" forever (tech): show
+   a friendly not-found state.
+9. "Browse recipes" vs "Start from a template" indistinguishable (Marcus
+   §1): merge or relabel (e.g. "Fill in a pattern" / "Tweak an example").
+10. Home: build path is footer-only (Marcus §1) — consider a small
+    secondary "Create your own" link on the primary card.

@@ -634,6 +634,14 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored 
   roomCodeDisplay.textContent = code;
   gameNameDisplay.textContent = game || '';
 
+  // The projected screen must tell students WHERE to go, not just the
+  // code (usability test 2026-08-01: "my kids would ask what do I type?").
+  var joinInstructions = document.getElementById('join-instructions');
+  if (joinInstructions) {
+    joinInstructions.textContent = 'Go to ' + window.location.host + '/player and enter this code';
+    joinInstructions.hidden = false;
+  }
+
   // Build the student join link from whatever origin the host loaded from, so
   // it's correct on Render (public URL) and on a LAN IP alike. Student-facing,
   // so it's fine on the projected screen. QR renders lazily on first show.

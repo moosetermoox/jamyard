@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prototype Mode — Lanyard</title>
+  <title>Preview - Lanyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="control-bar">
     <a href="/library" id="back-link">&larr; Library</a>
-    <h1>Prototype Mode</h1>
+    <h1>Preview</h1>
     <div class="controls">
       <label for="game-select">Activity:</label>
       <select id="game-select">
@@ -34,7 +34,7 @@
     </div>
   </div>
 
-  <div id="iframe-container"></div>
+  <div id="iframe-container"><p id="prelaunch-hint">Pick an activity and press Launch — you get the teacher screen and pretend students, side by side.</p></div>
 
   <!-- Carousel overlays — fixed position so they sit above iframes -->
   <button id="carousel-prev" class="carousel-arrow carousel-arrow-left" hidden title="Previous player screen">&larr;</button>

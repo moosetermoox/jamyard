@@ -517,7 +517,7 @@
           d.muted = true;
         } else {
           d.sentence = 'The class sees:';
-          d.field = textBox(phase.template, 'What to show — insert data in Advanced…', function (v) { phase.template = v; });
+          d.field = textBox(phase.template, 'What to show — open All settings to insert answers from earlier steps…', function (v) { phase.template = v; });
         }
         break;
 

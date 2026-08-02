@@ -2624,3 +2624,11 @@ textarea.sar-input {
 .builder-step-tool:hover { background: #FFF9C4; }
 .builder-step-del { color: #FF2D2D; border-color: #FF2D2D; }
 .builder-step-del:hover { background: #FF2D2D; color: #fff; }
+
+/* Header Host button — the customize-to-classroom shortcut */
+.btn-host {
+  background: #0057FF;
+  color: #fff;
+}
+
+.btn-host:hover { background: #0041CC; }

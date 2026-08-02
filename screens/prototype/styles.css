@@ -359,3 +359,13 @@ body {
   grid-column: 2;
   grid-row: 1;
 }
+
+/* Pre-launch hint — the stage is never silently blank */
+#prelaunch-hint {
+  text-align: center;
+  color: #777;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 60px 20px;
+  grid-column: 1 / -1;
+}
