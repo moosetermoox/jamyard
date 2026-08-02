@@ -1260,3 +1260,33 @@ button[hidden] {
 
 /* CSS display beats the hidden attribute — same stray-dot fix as host */
 .phase-image[hidden], .phase-video[hidden], .screen-template[hidden] { display: none; }
+
+/* Projector-style message formatting, scaled for a Chromebook screen */
+.msg-headline {
+  display: block;
+  font-size: 1.15em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+}
+
+.msg-body {
+  display: block;
+  text-align: left;
+  white-space: pre-line;
+  max-width: 40ch;
+  margin: 0 auto;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 0.72em;
+  line-height: 1.5;
+}
+
+.msg-list { display: flex; flex-direction: column; gap: 8px; max-width: 44ch; margin: 0 auto; }
+.msg-card {
+  display: flex; align-items: baseline; gap: 8px; text-align: left;
+  background: var(--theme-surface, #fff); border: 2px solid var(--theme-border, #000);
+  border-radius: 10px; padding: 8px 12px;
+  font-family: 'Nunito', Arial, sans-serif; font-weight: 700; font-size: 0.65em; line-height: 1.4;
+}
+.msg-card-num { font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif; font-size: 0.85em; opacity: 0.5; flex-shrink: 0; }

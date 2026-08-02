@@ -89,7 +89,7 @@ launchBtn.addEventListener('click', () => {
   // Disable controls
   launchBtn.disabled = true;
   gameSelect.disabled = true;
-  playerCount.disabled = true;
+  // playerCount stays enabled — moving it relaunches with the new count
 
   // Clear previous iframes
   iframeContainer.innerHTML = '';
@@ -186,6 +186,21 @@ resetBtn.addEventListener('click', () => {
   resetBtn.hidden = true;
   viewToggle.hidden = true;
   setViewMode('grid');
+});
+
+// Moving the players slider mid-preview relaunches with the new count —
+// auto-launch (arriving via a Preview button) had left the slider
+// disabled, which read as broken (teacher report 2026-08-02).
+playerCount.addEventListener('input', () => {
+  if (playerCount.disabled) return;
+  const display = document.getElementById('player-count-display');
+  if (display) display.textContent = playerCount.value;
+});
+playerCount.addEventListener('change', () => {
+  if (!launchBtn.disabled) return; // not launched yet — Launch will use it
+  playerCount.disabled = false;
+  resetBtn.click();
+  launchBtn.click();
 });
 
 // --- View toggle ---

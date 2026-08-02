@@ -896,16 +896,70 @@ socket.on('processing-started', ({ task, playerTemplate, playerShow } = {}) => {
 
 socket.on('show-results', ({ content, aiResult, image, playerTemplate, playerShow }) => {
   showSection(revealSection);
-  aiResultDisplay.textContent = content || aiResult;
-  aiResultDisplay.classList.toggle('chart', /[█░]/.test(aiResultDisplay.textContent || ''));
+  var revealText = content || aiResult;
+  if (/[█░]/.test(String(revealText || ''))) {
+    aiResultDisplay.textContent = revealText;
+    aiResultDisplay.classList.add('chart');
+  } else {
+    aiResultDisplay.classList.remove('chart');
+    renderPlayerMessage(aiResultDisplay, revealText);
+  }
   applyTemplate(revealSection, playerTemplate);
   applyImage(revealImage, image, playerShow);
   applyShow(playerShow, { content: aiResultDisplay });
 });
 
+// Same projector formatting rules as the host (docs/PROJECTOR-STYLE.md),
+// scaled for a Chromebook screen: first short line = headline, body
+// left-aligned with breaks kept, numbered lists become cards.
+// createElement/textContent only — message text is untrusted.
+function renderPlayerMessage(el, message) {
+  el.textContent = '';
+  var text = String(message == null ? '' : message);
+  var parts = text.split(/\n\s*\n/);
+  var first = (parts[0] || '').trim();
+  if (parts.length > 1 && first.length > 0 && first.length <= 60 && first.indexOf('\n') === -1) {
+    var head = document.createElement('span');
+    head.className = 'msg-headline';
+    head.textContent = first;
+    el.appendChild(head);
+    el.appendChild(buildPlayerBody(parts.slice(1).join('\n\n')));
+  } else {
+    el.appendChild(buildPlayerBody(text));
+  }
+}
+
+function buildPlayerBody(text) {
+  var lines = text.split('\n');
+  var numbered = lines.filter(function (l) { return /^\d+\.\s/.test(l.trim()); });
+  if (numbered.length >= 2 && numbered.length >= lines.filter(Boolean).length - 1) {
+    var wrap = document.createElement('span');
+    wrap.className = 'msg-list';
+    lines.forEach(function (line) {
+      var m = line.trim().match(/^(\d+)\.\s+(.*)$/);
+      if (!m) return;
+      var card = document.createElement('span');
+      card.className = 'msg-card';
+      var num = document.createElement('span');
+      num.className = 'msg-card-num';
+      num.textContent = m[1];
+      card.appendChild(num);
+      var body = document.createElement('span');
+      body.textContent = m[2];
+      card.appendChild(body);
+      wrap.appendChild(card);
+    });
+    return wrap;
+  }
+  var span = document.createElement('span');
+  span.className = text.indexOf('\n') !== -1 || text.length > 90 ? 'msg-body' : 'msg-solo';
+  span.textContent = text;
+  return span;
+}
+
 socket.on('announce', ({ message, image, timer, playerTemplate, playerShow }) => {
   showSection(announceSection);
-  announceMessage.textContent = message;
+  renderPlayerMessage(announceMessage, message);
   applyTemplate(announceSection, playerTemplate);
   applyImage(announceImage, image, playerShow);
   applyShow(playerShow, {
