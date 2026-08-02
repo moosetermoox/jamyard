@@ -67,6 +67,7 @@ describe('every after-collect suggestion is hostable as-is', () => {
   const ctx = () => ({ phases: baseGame(), afterId: 'ask' });
   for (const sug of S.suggestAfter('collect', { phases: baseGame(), afterId: 'ask' })) {
     if (sug.type === 'ai') continue; // pairs tested separately
+    if (sug.type === 'guessing-rounds') continue; // composite, tested separately
     it(`after collect: ${sug.type}`, () => {
       const c = ctx();
       const phase = S.defaultPhaseFor(sug.type, c);
@@ -160,6 +161,79 @@ describe('arc detection gates the wrap-up', () => {
     phases.wrap = S.defaultPhaseFor('end', { phases });
     delete phases.end;
     validateGame(phases, 'wrap-up');
+  });
+});
+
+describe('guessing-rounds brick', () => {
+  it('after a plain collect: shows text, reveals the author, hostable as-is', () => {
+    const phases = baseGame();
+    const rounds = S.buildGuessingRounds({ phases, afterId: 'ask' });
+    expect(rounds).toBeTruthy();
+    expect(rounds.phase.type).toBe('foreach');
+    expect(rounds.phase.subPhases.show.message).toContain('{{_current.text}}');
+    S.insertAfter(phases, 'ask', rounds.id, rounds.phase);
+    validateGame(phases, 'guessing rounds (plain collect)');
+  });
+
+  it('after a secret+clue collect: shows the clue, reveals the secret', () => {
+    const phases = baseGame();
+    phases.ask = S.defaultPhaseFor('collect-two', { phases });
+    phases.ask.next = 'end';
+    const rounds = S.buildGuessingRounds({ phases, afterId: 'ask' });
+    expect(rounds.phase.subPhases.show.message).toContain('{{_current.fields.clue}}');
+    expect(rounds.phase.subPhases.reveal.message).toContain('{{_current.fields.secret}}');
+    S.insertAfter(phases, 'ask', rounds.id, rounds.phase);
+    validateGame(phases, 'guessing rounds (secret+clue)');
+  });
+
+  it('refuses without a collect upstream', () => {
+    const phases = { lobby: { type: 'lobby', next: 'end' }, end: { type: 'end' } };
+    expect(S.buildGuessingRounds({ phases })).toBeNull();
+  });
+});
+
+describe('storyboard compiler', () => {
+  it('compiles the Emoji Movies shape to a hostable config', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Emoji Movies',
+      description: 'Guess movies from emoji clues',
+      steps: [
+        { brick: 'announce', text: 'Think of a movie — you will describe it in emojis only!' },
+        { brick: 'collect-two', text: 'Your movie, in emojis!', secretLabel: 'The movie title (secret)', clueLabel: 'Emoji clues only', timer: 120 },
+        { brick: 'guessing-rounds' },
+        { brick: 'end', text: 'That was Emoji Movies!' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    expect(config.name).toBe('Emoji Movies');
+    const types = Object.values(config.phases).map(p => p.type);
+    expect(types).toContain('foreach');
+    const share = Object.values(config.phases).find(p => p.fields);
+    expect(share.fields[0].label).toBe('The movie title (secret)');
+    const fe = Object.values(config.phases).find(p => p.type === 'foreach');
+    expect(fe.subPhases.reveal.message).toContain('{{_current.fields.secret}}');
+    validateGame(config.phases, 'emoji movies storyboard');
+  });
+
+  it('auto-appends a wrap-up when the storyboard forgets one', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Quick Ask',
+      steps: [{ brick: 'collect', text: 'What did you learn?' }]
+    });
+    expect(problems).toEqual([]);
+    const types = Object.values(config.phases).map(p => p.type);
+    expect(types).toContain('end');
+    validateGame(config.phases, 'auto-end storyboard');
+  });
+
+  it('reports problems in plain sentences', () => {
+    const bad = S.compileStoryboard({
+      name: 'X',
+      steps: [{ brick: 'guessing-rounds' }, { brick: 'zorp' }]
+    });
+    expect(bad.problems.length).toBe(2);
+    expect(bad.problems[0]).toContain('need a question step');
+    expect(bad.problems[1]).toContain('unknown brick');
   });
 });
 

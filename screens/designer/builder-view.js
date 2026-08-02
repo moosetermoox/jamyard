@@ -47,7 +47,7 @@
   var settingsHome = settingsPanel ? settingsPanel.parentNode : null;
 
   var BASE_IDS = {
-    'collect': 'ask', 'collect-choice': 'poll', 'estimate': 'guess',
+    'collect': 'ask', 'collect-choice': 'poll', 'estimate': 'guess', 'collect-two': 'share',
     'announce': 'announce', 'reveal': 'show', 'reveal-one': 'show-one',
     'vote': 'vote', 'end': 'wrap'
   };
@@ -72,7 +72,8 @@
     { title: 'Ask the class', cls: 'ask', tiles: [
       { type: 'collect', title: 'Open answer' },
       { type: 'collect-choice', title: 'Multiple choice' },
-      { type: 'estimate', title: 'Guess a number' }
+      { type: 'estimate', title: 'Guess a number' },
+      { type: 'collect-two', title: 'Secret + clue' }
     ] },
     { title: 'Show the class', cls: 'show', tiles: [
       { type: 'announce', title: 'Announcement' },
@@ -81,6 +82,9 @@
     ] },
     { title: 'Decide together', cls: 'decide', tiles: [
       { type: 'vote', title: 'Vote' }
+    ] },
+    { title: 'Rounds', cls: 'team', tiles: [
+      { type: 'guessing-rounds', title: 'Guessing rounds' }
     ] },
     { title: 'AI', cls: 'ai', tiles: [
       { type: 'ai', title: 'AI transforms answers', ai: true }
@@ -147,6 +151,17 @@
       aiFlavorGap = after;
       openGapAfter = after;
       renderBuilder();
+      return;
+    }
+
+    if (type === 'guessing-rounds') {
+      var rounds = S.buildGuessingRounds(ctx);
+      if (!rounds) {
+        alert('Guessing rounds cycle through answers — add a question step (like Open answer or Secret + clue) first.');
+        return;
+      }
+      S.insertAfter(p, after, rounds.id, rounds.phase);
+      afterInsert(rounds.id);
       return;
     }
 
@@ -304,7 +319,8 @@
   }
 
   function tileClass(type) {
-    if (type === 'collect' || type === 'collect-choice' || type === 'estimate') return 'ask';
+    if (type === 'guessing-rounds') return 'team';
+    if (type === 'collect' || type === 'collect-choice' || type === 'estimate' || type === 'collect-two') return 'ask';
     if (type === 'announce' || type === 'reveal' || type === 'reveal-one' || type === 'leaderboard') return 'show';
     if (type === 'vote' || type === 'rank' || type === 'rate') return 'decide';
     return '';

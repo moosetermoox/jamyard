@@ -165,7 +165,7 @@ step." Rungs to climb, in rough order of value/effort:
    builds the match pairs, sort buckets, or quiz questions. (Match/sort
    recipes are still owed — NEXT-STEPS #4 — and this is how they get filled
    without typing.)
-3. **Storyboard-before-generate** (already parked in NEXT-STEPS wave 3) —
+3. **Storyboard-before-generate** ✅ SHIPPED 2026-08-01 (bricks: collect-two + guessing-rounds; compileStoryboard; /api/games/storyboard; approval cards on the Create page — AI picks validated bricks and writes words, deterministic code owns structure) —
    from-description flow proposes a step outline as cards; teacher approves
    or nudges before any config is generated. Fixes "the AI built something
    I didn't want" at the cheap end.

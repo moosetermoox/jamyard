@@ -2270,6 +2270,28 @@ app.post('/api/games/generate', async (req, res) => {
   }
 });
 
+// Storyboard-before-generate: AI proposes a step outline in the
+// Builder's brick vocabulary; the CLIENT compiles it deterministically
+// (StepSuggestions.compileStoryboard) so structure is never AI-written.
+app.post('/api/games/storyboard', async (req, res) => {
+  try {
+    if (!requireRealAI(res)) return;
+    const { description } = req.body || {};
+    if (!description || typeof description !== 'string' || description.trim().length < 10) {
+      return res.status(400).json({ error: 'Please describe the activity (at least 10 characters).' });
+    }
+    console.log(`[api/games/storyboard] Planning: "${description.substring(0, 80)}..."`);
+    const storyboard = await aiService.generateStoryboard(description);
+    if (storyboard.error) {
+      return res.status(500).json({ error: storyboard.error });
+    }
+    res.json({ storyboard });
+  } catch (error) {
+    console.log(`[api/games/storyboard] Error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+});
+
 // Recipe-based AI generation (R4). Replaces the fragile generateGame
 // flow as the default — AI matches the teacher's description to one
 // of the seed recipes and fills parameters. Compiler turns the small

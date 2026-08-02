@@ -1022,6 +1022,74 @@ Return the revised step.`;
     return this._generateGameReal(description, answers);
   }
 
+  // Storyboard-before-generate (SURFACES-PLAN Phase 4): the AI never
+  // writes config JSON — it arranges BRICKS (the Builder's validated
+  // step vocabulary) and writes the words. The client compiles the
+  // storyboard deterministically via StepSuggestions.compileStoryboard,
+  // so invalid structure is impossible by construction.
+  async generateStoryboard(description) {
+    if (this.mode === 'mock') {
+      return {
+        name: 'Mock Activity',
+        description: description.slice(0, 120),
+        steps: [
+          { brick: 'announce', text: 'Welcome! Here is what we are doing today.' },
+          { brick: 'collect', text: 'What comes to mind first?', timer: 60 },
+          { brick: 'reveal', text: 'Here is what we said —' },
+          { brick: 'end', text: 'That is a wrap!' }
+        ]
+      };
+    }
+    try {
+      const message = await this._callClaude({
+        model: MODELS.sonnet,
+        max_tokens: 1500,
+        messages: [{
+          role: 'user',
+          content: `You plan classroom activities by arranging BRICKS in sequence. You never write configuration — you pick bricks and write the words teachers and students will read.
+
+BRICKS (each step is one):
+- announce: a message everyone sees on the projector. text = the message.
+- collect: students type an answer. text = the question. timer (seconds, optional).
+- collect-two: students type TWO things — a hidden "secret" and a visible "clue" (e.g. a movie title kept secret + emoji clues). text = the prompt; secretLabel + clueLabel name the two boxes; timer optional.
+- collect-choice: students pick from options. text = the question; choices = 2-8 strings.
+- estimate: students guess a number. text = the question.
+- reveal: everyone's collected answers appear on the projector. text = the line above them.
+- reveal-one: answers revealed one at a time. text = the message above.
+- vote: the class votes on the collected answers.
+- guessing-rounds: cycles through every prior submission one at a time — the clue goes on the projector, everyone types a guess, then the secret and author are revealed. REQUIRES an earlier collect or collect-two step. No text needed.
+- end: the wrap-up. text = the goodbye message.
+
+RULES:
+- 3 to 8 steps. Start with an announce that explains the activity in a warm teacher voice.
+- If players guess each other's submissions, use collect-two followed by guessing-rounds.
+- Write engaging, classroom-ready text for every step that takes text. Never include student names. Do not decorate text with emojis unless the activity itself is about emojis.
+- Output ONLY a JSON object, no other prose: {"name": "...", "description": "one library-card sentence", "steps": [{"brick": "...", "text": "...", ...}]}
+
+Teacher's description of the activity they want:
+
+${description}`
+        }]
+      });
+      const raw = message.content[0].text;
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) return { error: 'The AI reply was not a storyboard. Try describing the activity again.' };
+        parsed = JSON.parse(match[0]);
+      }
+      if (!parsed || !Array.isArray(parsed.steps) || parsed.steps.length === 0) {
+        return { error: 'The AI storyboard came back empty. Try describing the activity again.' };
+      }
+      return parsed;
+    } catch (error) {
+      if (error && error.name === 'AiBudgetError') throw error;
+      return { error: 'Storyboard generation failed: ' + error.message };
+    }
+  }
+
   _generateGameMock(description) {
     return {
       name: 'Generated Game',

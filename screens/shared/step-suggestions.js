@@ -165,6 +165,19 @@
         type: 'end',
         message: 'That is a wrap! Nice work today, everyone.'
       };
+    },
+    // "Secret + clue" — collect two things at once, the first kept hidden
+    // until a reveal (Emoji Movies shape: title + emoji clues).
+    'collect-two': function () {
+      return {
+        type: 'collect',
+        prompt: 'Two parts — the class only sees the second one!',
+        fields: [
+          { label: 'The answer (kept secret until the reveal)', key: 'secret' },
+          { label: 'The clue everyone will see', key: 'clue' }
+        ],
+        timer: 120
+      };
     }
   };
 
@@ -201,6 +214,7 @@
 
     if (stepType === 'collect') {
       out.push({ type: 'reveal', title: 'Reveal results', reason: 'show everyone’s answers on the projector', mostCommon: true });
+      out.push({ type: 'guessing-rounds', title: 'Guessing rounds', reason: 'cycle through the answers — everyone guesses each one' });
       out.push({ type: 'ai', title: 'AI transforms answers', reason: 'turn them into a summary, themes, or a poem', ai: true });
       out.push({ type: 'vote', title: 'Vote', reason: 'the class picks a favorite' });
       out.push({ type: 'collect', title: 'Ask another question', reason: 'build a second round' });
@@ -333,6 +347,150 @@
     return true;
   }
 
+  // ---- Guessing rounds: THE party-game shape ----
+  // (Who Said It, Two Truths, Caption Contest, Excuse Machine, Emoji
+  // Movies are all this.) A foreach over the last collect: show each
+  // submission -> everyone guesses -> reveal. When the source is a
+  // secret+clue pair, the clue is shown and the secret is the reveal.
+
+  function buildGuessingRounds(ctx) {
+    var phases = (ctx && ctx.phases) || {};
+    var src = lastOfType(phases, ['collect'], ctx && ctx.afterId);
+    if (!src) return null;
+    var srcPhase = phases[src];
+    var keys = Array.isArray(srcPhase.fields)
+      ? srcPhase.fields.map(function (f) { return f.key; }).filter(Boolean)
+      : [];
+    var hasPair = keys.length >= 2;
+    var clueRef = hasPair ? '{{_current.fields.' + keys[keys.length - 1] + '}}' : '{{_current.text}}';
+    var secretRef = hasPair ? '{{_current.fields.' + keys[0] + '}}' : null;
+
+    var id = freshId(phases, 'rounds');
+    var phase = {
+      type: 'foreach',
+      data: src + '.responses',
+      shuffle: true,
+      subPhases: {
+        'show': {
+          type: 'announce',
+          message: 'Round {{_foreach.' + id + '.index}} of {{_foreach.' + id + '.total}}:\n\n' + clueRef + '\n\nWhat do you think?'
+        },
+        'guess': {
+          type: 'collect',
+          prompt: clueRef + '\n\nType your guess:',
+          timer: 30
+        },
+        'reveal': {
+          type: 'announce',
+          message: hasPair
+            ? 'It was… ' + secretRef + '!\n\n(from {{_current.playerName}})\n\nHands up if you got it!'
+            : 'That one was {{_current.playerName}}’s!'
+        }
+      }
+    };
+    return { id: id, phase: phase };
+  }
+
+  // ---- Storyboard compiler ----
+  // The AI proposes a storyboard: a SEQUENCE OF BRICKS with words, never
+  // raw config. This compiles it through the same validated builders the
+  // Builder's + buttons use — invalid structure is impossible by
+  // construction, and problems come back as plain sentences.
+  //
+  // storyboard: { name, description, steps: [
+  //   { brick: 'announce'|'collect'|'collect-two'|'collect-choice'|
+  //            'estimate'|'reveal'|'reveal-one'|'vote'|'guessing-rounds'|'end',
+  //     text?: string,          // the brick's primary field (prompt/message)
+  //     choices?: string[],     // collect-choice only
+  //     secretLabel?: string,   // collect-two field labels
+  //     clueLabel?: string,
+  //     timer?: number } ] }
+
+  var STORYBOARD_PRIMARY = {
+    'announce': 'message', 'collect': 'prompt', 'collect-two': 'prompt',
+    'collect-choice': 'prompt', 'estimate': 'prompt', 'reveal': 'template',
+    'reveal-one': 'message', 'end': 'message'
+  };
+
+  function compileStoryboard(storyboard) {
+    var problems = [];
+    var steps = (storyboard && Array.isArray(storyboard.steps)) ? storyboard.steps : [];
+    if (steps.length === 0) {
+      return { config: null, problems: ['The storyboard has no steps.'] };
+    }
+
+    var phases = { lobby: { type: 'lobby' } };
+    var lastId = 'lobby';
+
+    steps.forEach(function (step, i) {
+      var brick = step && step.brick;
+      var built = null;
+      var id = null;
+
+      if (brick === 'guessing-rounds') {
+        var rounds = buildGuessingRounds({ phases: phases, afterId: lastId });
+        if (!rounds) {
+          problems.push('Step ' + (i + 1) + ': guessing rounds need a question step before them.');
+          return;
+        }
+        id = rounds.id;
+        built = rounds.phase;
+      } else if (BUILDERS[brick]) {
+        built = defaultPhaseFor(brick, { phases: phases, afterId: lastId });
+        id = freshId(phases, BASE_ID_FOR[brick] || brick);
+      } else {
+        problems.push('Step ' + (i + 1) + ': unknown brick "' + String(brick) + '".');
+        return;
+      }
+
+      // The AI's words land on the brick's primary field; structure stays ours.
+      var primary = STORYBOARD_PRIMARY[brick];
+      if (primary && step.text && typeof step.text === 'string') {
+        built[primary] = step.text;
+      }
+      if (brick === 'collect-choice' && Array.isArray(step.choices) && step.choices.length >= 2) {
+        built.choices = step.choices.slice(0, 8).map(String);
+      }
+      if (brick === 'collect-two' && built.fields) {
+        if (step.secretLabel) built.fields[0].label = String(step.secretLabel);
+        if (step.clueLabel) built.fields[1].label = String(step.clueLabel);
+      }
+      if (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600 &&
+          (brick === 'collect' || brick === 'collect-two' || brick === 'collect-choice' || brick === 'estimate')) {
+        built.timer = Math.round(step.timer);
+      }
+
+      phases[lastId].next = id;
+      phases[id] = built;
+      lastId = id;
+    });
+
+    if (Object.keys(phases).length === 1) {
+      return { config: null, problems: problems.length ? problems : ['No usable steps.'] };
+    }
+
+    if (!hasEnd(phases)) {
+      var endId = freshId(phases, 'wrap');
+      phases[lastId].next = endId;
+      phases[endId] = defaultPhaseFor('end', { phases: phases });
+      lastId = endId;
+    }
+
+    var config = {
+      name: String((storyboard && storyboard.name) || 'New Activity').slice(0, 60),
+      description: String((storyboard && storyboard.description) || '').slice(0, 300),
+      minPlayers: 2,
+      phases: phases
+    };
+    return { config: config, problems: problems };
+  }
+
+  var BASE_ID_FOR = {
+    'collect': 'ask', 'collect-two': 'share', 'collect-choice': 'poll',
+    'estimate': 'guess', 'announce': 'announce', 'reveal': 'show',
+    'reveal-one': 'show-one', 'vote': 'vote', 'end': 'wrap'
+  };
+
   // ---- Reorder: move a step one slot up/down the next-chain ----
   // Pointer surgery only (never rebuilds pointers wholesale) so branch
   // fields (approveNext, nextByWinner, …) stay untouched. Returns false
@@ -368,6 +526,8 @@
 
   var api = {
     moveStep: moveStep,
+    buildGuessingRounds: buildGuessingRounds,
+    compileStoryboard: compileStoryboard,
     ASK_TYPES: ASK_TYPES,
     SHOW_DECIDE_TYPES: SHOW_DECIDE_TYPES,
     orderedPhaseIds: orderedPhaseIds,

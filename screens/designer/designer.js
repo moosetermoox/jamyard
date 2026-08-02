@@ -2113,10 +2113,22 @@ function renderNoMatchView(modal, description, data, overlay) {
   });
   btnRow.appendChild(pickBtn);
 
+  var storyboardBtn = document.createElement('button');
+  storyboardBtn.type = 'button';
+  storyboardBtn.className = 'recipe-create-btn';
+  storyboardBtn.textContent = 'Plan it step by step';
+  storyboardBtn.title = 'AI sketches your activity as steps you approve and edit BEFORE anything is built — the safest way to a custom activity.';
+  storyboardBtn.addEventListener('click', function () {
+    closeOverlay(overlay);
+    showStoryboardFlow(description);
+  });
+  btnRow.appendChild(storyboardBtn);
+
   var advancedBtn = document.createElement('button');
   advancedBtn.type = 'button';
-  advancedBtn.className = 'recipe-create-btn';
+  advancedBtn.className = 'recipe-cancel-btn';
   advancedBtn.style.background = '#6A1B9A';
+  advancedBtn.style.color = '#fff';
   advancedBtn.textContent = 'Generate Custom (Advanced)';
   advancedBtn.title = 'AI builds a fully custom activity from scratch. Slower and more error-prone.';
   advancedBtn.addEventListener('click', function () {
@@ -2130,5 +2142,156 @@ function renderNoMatchView(modal, description, data, overlay) {
   });
   btnRow.appendChild(advancedBtn);
 
+  modal.appendChild(btnRow);
+}
+
+// =======================================================================
+// Storyboard-before-generate (SURFACES-PLAN Phase 4): the AI proposes a
+// step outline in the Builder's brick vocabulary; the teacher approves
+// and edits the WORDS here; compileStoryboard assembles guaranteed-valid
+// structure; the finished activity opens in the Builder.
+// =======================================================================
+
+var SB_BRICK_LABELS = {
+  'announce': 'Everyone sees a message',
+  'collect': 'Students answer',
+  'collect-two': 'Secret + clue (two boxes)',
+  'collect-choice': 'Multiple choice',
+  'estimate': 'Guess a number',
+  'reveal': 'Results on the projector',
+  'reveal-one': 'Reveal one at a time',
+  'vote': 'The class votes',
+  'guessing-rounds': 'Guessing rounds — show each clue, everyone guesses, then the reveal',
+  'end': 'Wrap up'
+};
+
+async function showStoryboardFlow(description) {
+  var overlay = document.createElement('div');
+  overlay.className = 'picker-overlay';
+  var modal = document.createElement('div');
+  modal.className = 'picker-modal';
+  modal.style.maxWidth = '640px';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  Dialog.enhance(overlay, modal, { title: 'Plan it step by step' });
+
+  function sbEl(tag, text, cls) {
+    var n = document.createElement(tag);
+    if (text != null) n.textContent = text;
+    if (cls) n.className = cls;
+    return n;
+  }
+
+  var title = sbEl('h2', 'Here’s the plan');
+  modal.appendChild(title);
+  var status = sbEl('p', 'Sketching the steps…');
+  status.style.cssText = 'font-family:"Nunito", Arial, sans-serif; color:#666; margin:8px 0 12px;';
+  modal.appendChild(status);
+
+  var resp;
+  try {
+    var r = await fetch('/api/games/storyboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: description })
+    });
+    resp = await r.json();
+    if (!r.ok || !resp.storyboard) throw new Error(resp.error || 'No storyboard came back.');
+  } catch (err) {
+    status.textContent = 'Could not sketch the plan: ' + err.message;
+    return;
+  }
+
+  var storyboard = resp.storyboard;
+  status.textContent = 'Change any words you like, drop steps you don’t — then build it. Nothing exists until you do.';
+
+  var nameRow = sbEl('div');
+  nameRow.style.marginBottom = '12px';
+  nameRow.appendChild(sbEl('label', 'Activity name'));
+  var nameInput = document.createElement('input');
+  nameInput.value = storyboard.name || 'New Activity';
+  nameInput.style.cssText = 'width:100%; padding:8px 10px; border:2px solid #000; border-radius:8px; font-family:"Nunito", Arial, sans-serif;';
+  nameRow.appendChild(nameInput);
+  modal.appendChild(nameRow);
+
+  var list = sbEl('div');
+  modal.appendChild(list);
+
+  var steps = storyboard.steps.slice();
+  function renderSteps() {
+    list.textContent = '';
+    steps.forEach(function (step, i) {
+      var row = sbEl('div');
+      row.style.cssText = 'border:2px solid #000; border-radius:12px; padding:10px 12px; margin-bottom:8px; background:#fff;';
+      var head = sbEl('div');
+      head.style.cssText = 'display:flex; align-items:center; gap:8px; font-weight:800; font-family:"Nunito", Arial, sans-serif;';
+      head.appendChild(sbEl('span', String(i + 1) + '.'));
+      head.appendChild(sbEl('span', SB_BRICK_LABELS[step.brick] || step.brick));
+      var rm = sbEl('button', '✕');
+      rm.type = 'button';
+      rm.title = 'Drop this step';
+      rm.style.cssText = 'margin-left:auto; border:2px solid #000; border-radius:8px; background:#fff; cursor:pointer; font-weight:800;';
+      rm.addEventListener('click', function () {
+        steps.splice(i, 1);
+        renderSteps();
+      });
+      head.appendChild(rm);
+      row.appendChild(head);
+      if (step.text != null || SB_BRICK_LABELS[step.brick]) {
+        if (typeof step.text === 'string') {
+          var box = document.createElement('textarea');
+          box.value = step.text;
+          box.rows = 2;
+          box.style.cssText = 'width:100%; margin-top:6px; padding:8px 10px; border:2px solid #000; border-radius:8px; font-family:"Nunito", Arial, sans-serif; font-size:0.9rem;';
+          box.addEventListener('input', function () { step.text = box.value; });
+          row.appendChild(box);
+        }
+      }
+      list.appendChild(row);
+    });
+  }
+  renderSteps();
+
+  var problems = sbEl('p');
+  problems.style.cssText = 'color:#B71C1C; font-family:"Nunito", Arial, sans-serif; font-weight:700;';
+  modal.appendChild(problems);
+
+  var btnRow = sbEl('div', null, 'recipe-form-buttons');
+  var buildBtn = sbEl('button', 'Build it', 'recipe-create-btn');
+  buildBtn.type = 'button';
+  buildBtn.addEventListener('click', async function () {
+    problems.textContent = '';
+    var result = StepSuggestions.compileStoryboard({
+      name: nameInput.value.trim() || 'New Activity',
+      description: storyboard.description || description,
+      steps: steps
+    });
+    if (!result.config || result.problems.length) {
+      problems.textContent = result.problems.join(' ') || 'Nothing to build yet.';
+      return;
+    }
+    buildBtn.disabled = true;
+    buildBtn.textContent = 'Building…';
+    var base = (result.config.name || 'activity').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'activity';
+    var newId = generateGameId(base);
+    try {
+      var save = await fetch('/api/games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: newId, config: result.config })
+      });
+      var saved = await save.json();
+      if (!save.ok) throw new Error(saved.error || 'save failed');
+      rememberMine(newId);
+      try { localStorage.setItem('lanyardEditorBuilder', '1'); } catch (e) { /* ignore */ }
+      window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
+    } catch (err) {
+      buildBtn.disabled = false;
+      buildBtn.textContent = 'Build it';
+      problems.textContent = 'Could not build: ' + err.message;
+    }
+  });
+  btnRow.appendChild(buildBtn);
   modal.appendChild(btnRow);
 }
