@@ -21,6 +21,40 @@ window.GAME_TEMPLATES = {
     }
   },
 
+  'question-share': {
+    name: 'Question & Share',
+    icon: '💬',
+    description: 'Ask an open question, then show everyone’s answers on the projector — the classic review activity',
+    config: function () {
+      return {
+        name: 'Question & Share',
+        description: 'Everyone answers an open question, then all the answers go up on the projector to talk through together.',
+        minPlayers: 2,
+        maxPlayers: 36,
+        phases: {
+          lobby: { type: 'lobby', next: 'intro' },
+          intro: {
+            type: 'announce',
+            message: 'Here’s the question — think for a second, then type your answer. Everyone’s answers go up on the board after.',
+            next: 'ask'
+          },
+          ask: {
+            type: 'collect',
+            prompt: 'What is one thing you learned today?',
+            timer: 90,
+            next: 'share'
+          },
+          share: {
+            type: 'reveal',
+            template: 'Here’s what we said —\n\n{{ask.responses.list}}',
+            next: 'end'
+          },
+          end: { type: 'end', message: 'Nice thinking, everyone. That’s a wrap!' }
+        }
+      };
+    }
+  },
+
   'simple-poll': {
     name: 'Simple Poll',
     icon: '\uD83D\uDCCA',
