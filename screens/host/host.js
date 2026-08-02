@@ -888,16 +888,41 @@ function renderProjectorMessage(el, message) {
     head.className = 'msg-headline';
     head.textContent = first;
     el.appendChild(head);
-    var body = document.createElement('span');
-    body.className = 'msg-body';
-    body.textContent = parts.slice(1).join('\n\n');
-    el.appendChild(body);
+    el.appendChild(buildMessageBody(parts.slice(1).join('\n\n'), 'msg-body'));
   } else {
-    var only = document.createElement('span');
-    only.className = text.indexOf('\n') !== -1 ? 'msg-body msg-body-solo' : 'msg-solo';
-    only.textContent = text;
-    el.appendChild(only);
+    el.appendChild(buildMessageBody(text,
+      text.indexOf('\n') !== -1 ? 'msg-body msg-body-solo' : 'msg-solo'));
   }
+}
+
+// Numbered lists ({{x.responses.list}} resolves to "1. …\n2. …") render as
+// cards, one per row — not a text blob (PROJECTOR-STYLE rule 4).
+function buildMessageBody(text, className) {
+  var lines = text.split('\n');
+  var numbered = lines.filter(function (l) { return /^\d+\.\s/.test(l.trim()); });
+  if (numbered.length >= 2 && numbered.length >= lines.filter(Boolean).length - 1) {
+    var wrap = document.createElement('div');
+    wrap.className = 'msg-list';
+    lines.forEach(function (line) {
+      var m = line.trim().match(/^(\d+)\.\s+(.*)$/);
+      if (!m) return;
+      var card = document.createElement('div');
+      card.className = 'msg-card';
+      var num = document.createElement('span');
+      num.className = 'msg-card-num';
+      num.textContent = m[1];
+      card.appendChild(num);
+      var body = document.createElement('span');
+      body.textContent = m[2];
+      card.appendChild(body);
+      wrap.appendChild(card);
+    });
+    return wrap;
+  }
+  var span = document.createElement('span');
+  span.className = className;
+  span.textContent = text;
+  return span;
 }
 
 socket.on('announce', ({ message, image, video, timer, continueLabel, hostTemplate, hostShow }) => {

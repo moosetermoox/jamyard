@@ -1223,3 +1223,17 @@ body.in-activity h1 {
 }
 
 .msg-body-solo { font-size: 0.7em; }
+
+/* CSS display beats the hidden attribute (recurring bug — see memory):
+   the empty phase image painted as a stray dot on every announce */
+.phase-image[hidden], .phase-video[hidden], .screen-template[hidden] { display: none; }
+
+/* Response lists render as cards, not a text blob (PROJECTOR-STYLE rule 4) */
+.msg-list { display: flex; flex-direction: column; gap: 10px; max-width: 48ch; margin: 0 auto; }
+.msg-card {
+  display: flex; align-items: baseline; gap: 10px; text-align: left;
+  background: var(--theme-surface, #fff); border: 2px solid var(--theme-border, #000);
+  border-radius: 12px; padding: 10px 14px;
+  font-family: 'Nunito', Arial, sans-serif; font-weight: 700; font-size: 0.55em; line-height: 1.4;
+}
+.msg-card-num { font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif; font-size: 0.85em; opacity: 0.5; flex-shrink: 0; }
