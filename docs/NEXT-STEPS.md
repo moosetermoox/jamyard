@@ -18,6 +18,17 @@ on Chromebooks — phones are banned in schools.** Student-facing copy and
 docs were swept 2026-07-28; the teacher console is pitched as "a second
 device" (laptop / spare Chromebook). Keep it that way in new copy.
 
+0.4. **BUILT 2026-08-01 (one arc, one day):** design pass (fonts/theme/
+   emoji cleanup), tooltips, surfaces Phase 1 (library = one shelf,
+   /designer = Create page), THE BUILDER (palette + suggestion engine +
+   rail; Advanced demoted to "Technical view"), agent usability tests +
+   fix wave (lobby join line, editor Host btn, Preview rename/auto-launch,
+   beforeunload guard), Emoji Movies (#32), and STORYBOARD-BEFORE-GENERATE
+   (collect-two + guessing-rounds bricks, compileStoryboard, /api/games/
+   storyboard, approval cards). Next on this thread: promote storyboard to
+   the DEFAULT "Make it" path after real use proves it; usability backlog
+   in SURFACES-PLAN §8 (Question & Share template, topic field, teacher-
+   language errors).
 0.5. **SURFACES PLAN drafted 2026-08-01** ([SURFACES-PLAN.md](SURFACES-PLAN.md)):
    /designer and /library are near-duplicate grids; plan collapses to
    Library (one shelf) / Create (idea box + recipes, no grid) / Editor,

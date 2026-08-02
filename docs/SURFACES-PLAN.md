@@ -175,6 +175,12 @@ step." Rungs to climb, in rough order of value/effort:
 5. **Palette suggestions** — in the Phase 3 layout, the palette can hint
    ("classes usually reflect after a debate — add a Reflect step?").
 
+**Next decision on the ladder:** the storyboard currently runs only on the
+no-recipe-match path. Once it proves itself in real use, PROMOTE IT TO THE
+DEFAULT "Make it" answer — recipes stay as the fast path when they
+genuinely fit, storyboard handles everything else, and the legacy
+whole-config generator retires.
+
 Safety spine for all of it (already in place): validator + robot playtest
 catch structural breakage; ai-budget caps spend; generated content is
 teacher-authored-by-adoption, so §49073.1 stays clean.
