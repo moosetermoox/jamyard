@@ -845,8 +845,16 @@ socket.on('show-results', ({ content, aiResult, responses, image, video, continu
   if (J) J.sound('reveal');
   // The button says what happens next ("Start the voting"), not "Continue".
   continueBtn.textContent = continueLabel || 'Continue';
-  aiResultDisplay.textContent = content || aiResult;
-  aiResultDisplay.classList.toggle('chart', /[█░]/.test(aiResultDisplay.textContent || ''));
+  // Charts keep their monospace block; everything else gets the
+  // headline+body projector treatment (docs/PROJECTOR-STYLE.md).
+  var revealText = content || aiResult;
+  if (/[█░]/.test(String(revealText || ''))) {
+    aiResultDisplay.textContent = revealText;
+    aiResultDisplay.classList.add('chart');
+  } else {
+    aiResultDisplay.classList.remove('chart');
+    renderProjectorMessage(aiResultDisplay, revealText);
+  }
   applyTemplate(revealSection, hostTemplate);
   applyImage(revealImage, image, hostShow);
   applyVideo(revealVideo, video, hostShow);
@@ -873,26 +881,20 @@ socket.on('show-results', ({ content, aiResult, responses, image, video, continu
 function renderProjectorMessage(el, message) {
   el.textContent = '';
   var text = String(message == null ? '' : message);
-  var parts = text.split(/
-s*
-/);
+  var parts = text.split(/\n\s*\n/);
   var first = (parts[0] || '').trim();
-  if (parts.length > 1 && first.length > 0 && first.length <= 60 && first.indexOf('
-') === -1) {
+  if (parts.length > 1 && first.length > 0 && first.length <= 60 && first.indexOf('\n') === -1) {
     var head = document.createElement('span');
     head.className = 'msg-headline';
     head.textContent = first;
     el.appendChild(head);
     var body = document.createElement('span');
     body.className = 'msg-body';
-    body.textContent = parts.slice(1).join('
-
-');
+    body.textContent = parts.slice(1).join('\n\n');
     el.appendChild(body);
   } else {
     var only = document.createElement('span');
-    only.className = text.indexOf('
-') !== -1 ? 'msg-body msg-body-solo' : 'msg-solo';
+    only.className = text.indexOf('\n') !== -1 ? 'msg-body msg-body-solo' : 'msg-solo';
     only.textContent = text;
     el.appendChild(only);
   }
@@ -2203,6 +2205,9 @@ const allSections = [
 function showSection(el) {
   clearTimer();
   stopAllVideos();
+  // Content owns the projector: outside the lobby the brand shrinks to a
+  // corner mark (docs/PROJECTOR-STYLE.md rule 1).
+  document.body.classList.toggle('in-activity', el !== lobbySection);
   for (const s of allSections) {
     s.classList.remove('active');
     s.hidden = true;
