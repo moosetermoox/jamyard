@@ -257,6 +257,7 @@ describe('validator diagnostics — game snapshot', () => {
       'art-gallery': [],
       'someones-got-you': [],
       'whose-eyes': [],
+      'emoji-movies': [],
       'elimination-game': [],
       'finish-my-drawing': [],
       'excuse-machine': [],
