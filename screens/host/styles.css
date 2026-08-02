@@ -1187,3 +1187,39 @@ select {
   color: #333;
   margin: 2px 0 10px;
 }
+
+/* ---- Projector formatting rules (docs/PROJECTOR-STYLE.md) ---- */
+
+/* During an activity the brand steps aside — content owns the projector */
+body.in-activity h1 {
+  position: absolute;
+  top: 10px;
+  left: 16px;
+  font-size: 0.95rem;
+  opacity: 0.45;
+  margin: 0;
+}
+
+/* Headline: the message's first line, big and centered */
+.msg-headline {
+  display: block;
+  font-size: 1.2em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 18px;
+}
+
+/* Body: left-aligned, readable measure, line breaks kept */
+.msg-body {
+  display: block;
+  text-align: left;
+  white-space: pre-line;
+  max-width: 34ch;
+  margin: 0 auto;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 0.62em;
+  line-height: 1.5;
+}
+
+.msg-body-solo { font-size: 0.7em; }

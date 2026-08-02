@@ -748,6 +748,7 @@ function clearTimer() {
 // --- Socket events - Game phases ---
 
 socket.on('game-started', ({ prompt, image, video, timer, count, total, hostTemplate, show }) => {
+  document.body.classList.add('in-activity');
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
@@ -865,10 +866,42 @@ socket.on('show-results', ({ content, aiResult, responses, image, video, continu
   }
 });
 
+// Projector formatting rule (docs/PROJECTOR-STYLE.md): a message's first
+// line, when short, is the HEADLINE; everything after renders left-aligned
+// with its line breaks kept — no more centered paragraph blobs.
+// createElement/textContent only (student/teacher text is untrusted).
+function renderProjectorMessage(el, message) {
+  el.textContent = '';
+  var text = String(message == null ? '' : message);
+  var parts = text.split(/
+s*
+/);
+  var first = (parts[0] || '').trim();
+  if (parts.length > 1 && first.length > 0 && first.length <= 60 && first.indexOf('
+') === -1) {
+    var head = document.createElement('span');
+    head.className = 'msg-headline';
+    head.textContent = first;
+    el.appendChild(head);
+    var body = document.createElement('span');
+    body.className = 'msg-body';
+    body.textContent = parts.slice(1).join('
+
+');
+    el.appendChild(body);
+  } else {
+    var only = document.createElement('span');
+    only.className = text.indexOf('
+') !== -1 ? 'msg-body msg-body-solo' : 'msg-solo';
+    only.textContent = text;
+    el.appendChild(only);
+  }
+}
+
 socket.on('announce', ({ message, image, video, timer, continueLabel, hostTemplate, hostShow }) => {
   showSection(announceSection);
   announceContinueBtn.textContent = continueLabel || 'Continue';
-  announceMessage.textContent = message;
+  renderProjectorMessage(announceMessage, message);
   applyTemplate(announceSection, hostTemplate);
   applyImage(announceImage, image, hostShow);
   applyVideo(announceVideo, video, hostShow);
