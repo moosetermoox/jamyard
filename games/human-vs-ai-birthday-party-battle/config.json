@@ -49,6 +49,10 @@
             "Idea B"
           ],
           "timer": 20
+        },
+        "reveal-ai": {
+          "type": "announce",
+          "message": "{{_current.aiPosition}} was the AI!\n\nThe human idea came from {{_current.human.playerName}}.\n\nWhat gave it away — or what fooled you?"
         }
       },
       "scoring": {
@@ -74,7 +78,7 @@
     },
     "end": {
       "type": "end",
-      "message": "Thanks for playing Human vs AI: Birthday Party Battle!"
+      "message": "That's the battle! Talk it out: what actually gives AI writing away — and which human ideas could have fooled YOU?"
     }
   },
   "playTime": "~12 min",

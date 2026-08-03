@@ -23,7 +23,8 @@ describe('GameLoader', () => {
       expect(config.name).toBe('Mood Check');
       expect(config.description).toBe('How is everyone feeling today?');
       expect(config.phases.lobby.type).toBe('lobby');
-      expect(config.phases.collect.prompt).toBe('How are you feeling today? (one word or short phrase)');
+      expect(config.phases.collect.prompt).toContain('How are you feeling today? (one word or short phrase)');
+      expect(config.phases.collect.passAllowed).toBe(true);
       expect(config.phases.process.type).toBe('ai-process');
       expect(config.phases.process.task).toBe('summarize');
       expect(config.phases.end.type).toBe('end');

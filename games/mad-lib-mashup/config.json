@@ -31,7 +31,13 @@
       "input": "collect.responses",
       "instruction": "You are a chaos engine for a classroom game. Students submitted simple sentences. Your job: create 8 ABSURD MASHUP SENTENCES by combining random words, phrases, and concepts from their submissions in the most ridiculous, unexpected, and hilarious ways possible. Rules: 1) Each mashup should be 10-25 words. 2) Mix at least 3 different student sentences per mashup. 3) Make them grammatically correct but contextually INSANE. 4) Avoid offensive content but maximize absurdity. 5) Add unexpected twists (talking objects, impossible scenarios, weird logic). Return ONLY a JSON array of 8 strings, nothing else. Example format: [\"The math homework spontaneously transformed into a disco ball and started teaching my goldfish karate.\", \"My grandmother's spaceship accidentally invented pizza-flavored clouds that argued about philosophy.\", ...]",
       "format": "json",
-      "next": "show-mashups"
+      "next": "mashup-check"
+    },
+    "mashup-check": {
+      "type": "preview",
+      "content": "ai-mashup.result",
+      "approveNext": "show-mashups",
+      "rejectNext": "ai-mashup"
     },
     "show-mashups": {
       "type": "reveal",
@@ -48,28 +54,13 @@
       "type": "vote",
       "mode": "pick-one",
       "candidates": "ai-mashup.result",
-      "timer": 30,
+      "timer": 60,
       "voters": "all",
       "next": "results"
     },
     "results": {
       "type": "announce",
-      "message": "THE WEIRDEST MASHUP:\n\n\"{{vote.winner}}\"\n\nCalculating who contributed the most chaos...",
-      "timer": 8,
-      "next": "ai-judge"
-    },
-    "ai-judge": {
-      "type": "ai-process",
-      "task": "judge",
-      "input": "collect.responses",
-      "instruction": "You are judging which student sentences contributed the most to the winning mashup's chaos. The winning mashup was: '{{vote.winner}}'. Review the original student sentences and award chaos points (0-100) to each based on: 1) How much their weird words/concepts likely influenced the mashup, 2) How unexpected or absurd their original sentence was, 3) How memorable their contribution was. Be generous—this is about celebrating creativity. Return a JSON object mapping each student's original sentence text to their chaos score. Format: {\"sentence text here\": 85, \"another sentence\": 92, ...}",
-      "format": "json",
-      "next": "chaos-scores"
-    },
-    "chaos-scores": {
-      "type": "leaderboard",
-      "from": "ai-judge.result",
-      "style": "full",
+      "message": "THE WEIRDEST MASHUP:\n\n\"{{vote.winner}}\"\n\nThe room has spoken. But we're not done...",
       "next": "bonus-round-intro"
     },
     "bonus-round-intro": {
@@ -97,31 +88,44 @@
       "input": "bonus-collect.responses",
       "instruction": "Students just wrote their WEIRDEST sentences. Combine ALL of them into ONE EPIC SUPER-MASHUP that is 40-60 words of pure, coherent chaos. Make it grammatically correct but contextually impossible. Include as many elements from different submissions as you can. Make it the most absurd thing ever written but still readable. Return ONLY the mashup text as a single string, no JSON wrapper, no quotes.",
       "format": "text",
-      "next": "super-reveal"
+      "next": "super-check"
+    },
+    "super-check": {
+      "type": "preview",
+      "content": "bonus-ai.result",
+      "approveNext": "super-reveal",
+      "rejectNext": "bonus-ai"
     },
     "super-reveal": {
       "type": "reveal",
-      "template": "THE ULTIMATE SUPER-MASHUP OF ALL YOUR CHAOS:\n\n{{bonus-ai.result}}\n\n(This is what happens when everyone goes maximum weird)",
+      "template": "THE ULTIMATE SUPER-MASHUP OF ALL YOUR CHAOS:\n\n{{bonus-ai.result}}\n\nCan you find your own sentence in there?",
+      "next": "shortlist"
+    },
+    "shortlist": {
+      "type": "ai-process",
+      "task": "rank",
+      "format": "json",
+      "input": "bonus-collect.responses",
+      "instruction": "From these student-written absurd sentences, pick the 6 WILDEST — the most inventive, unexpected, and funny. Keep each exactly as written (verbatim — students vote on these and authors must recognize their own words). Return ONLY a JSON array of the 6 chosen sentence strings, nothing else. School-appropriate picks only; skip anything mean-spirited.",
       "next": "final-vote-intro"
     },
     "final-vote-intro": {
       "type": "announce",
-      "message": "Final vote: Did someone's original weird sentence shine through in that super-mashup?\n\nLet's find the Chaos Champion!",
+      "message": "Final vote: the AI picked the 6 wildest original sentences.\n\nWhich one is the funniest? Let's crown the Chaos Champion!",
       "timer": 5,
       "next": "final-vote"
     },
     "final-vote": {
       "type": "vote",
       "mode": "pick-one",
-      "candidates": "bonus-collect.responses",
-      "timer": 25,
+      "candidates": "shortlist.result",
+      "timer": 45,
       "voters": "all",
       "next": "champion"
     },
     "champion": {
       "type": "announce",
-      "message": "CHAOS CHAMPION\n\nThe person whose weird sentence dominated:\n\n{{final-vote.winner}}\n\nYou are officially the weirdest person in this room. Congratulations!",
-      "timer": 10,
+      "message": "CHAOS CHAMPION\n\nThe sentence the room couldn't stop laughing at:\n\n{{final-vote.winner}}\n\nAuthor — take a bow!",
       "next": "final-scores"
     },
     "final-scores": {

@@ -64,6 +64,7 @@ import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
 import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
+import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
 import { applyBuzz, applyJudge, applyNextQuestion } from './engine/phase-handlers/buzz.js';
@@ -3046,6 +3047,28 @@ io.on('connection', (socket) => {
             stored.scores = scores;
             stored.correctAnswer = correctAnswer;
             console.log(`[close-submissions] Graded ${choiceResponses.length} responses against "${correctAnswer}" — scores: ${JSON.stringify(scores)}`);
+          }
+
+          // Bluffing payoff: `foolPoints` pays the AUTHOR of a fake for every
+          // classmate who picked it (needs excludeAuthored so authorship is
+          // known). Merged into .scores alongside any truth-picking points.
+          if (collectPhase.foolPoints && collectPhase.excludeAuthored) {
+            const bluffSrc = (room.engine.phaseData[collectPhase.excludeAuthored] || {}).responses || [];
+            const authorsByText = {};
+            for (const br of bluffSrc) {
+              if (br && br.playerId && br.text != null) {
+                authorsByText[String(br.text).trim().toLowerCase()] = br.playerId;
+              }
+            }
+            const fooled = foolPoints({
+              responses: choiceResponses,
+              authorsByText,
+              correctAnswer: stored.correctAnswer != null ? stored.correctAnswer : null,
+              pointsPerFool: collectPhase.foolPoints
+            });
+            stored.scores = mergeScores(stored.scores, fooled);
+            stored.foolScores = fooled;
+            console.log(`[close-submissions] Fool points: ${JSON.stringify(fooled)}`);
           }
 
           room.engine.storePhaseData(collectPhase.id, stored);

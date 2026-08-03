@@ -1,61 +1,121 @@
 {
   "name": "Last One Standing",
-  "description": "Answer questions, vote on favorites, and try to survive three rounds!",
+  "description": "Three escalating rounds of absurd questions — survive the class vote, or join the jury that crowns the champion. Eliminated players never stop voting.",
   "minPlayers": 4,
   "maxPlayers": 36,
   "phases": {
     "lobby": {
       "type": "lobby",
-      "next": "round-intro"
+      "next": "intro"
     },
-    "round-intro": {
+    "intro": {
       "type": "announce",
-      "message": "Round {{_loop.eliminate.iteration}} of {{_loop.eliminate.total}} — answer the question and survive the vote!",
-      "timer": 6,
-      "next": "answer"
+      "message": "LAST ONE STANDING\n\nThree rounds, three questions, each weirder than the last. The class votes for its favorite answer each round — the least-loved answers are OUT.\n\nEliminated? You become the JURY. Your vote still counts every round, and the jury crowns the champion.",
+      "next": "r1-answer"
     },
-    "answer": {
+    "r1-answer": {
       "type": "collect",
-      "prompt": "What is the purpose of chicken?",
+      "prompt": "ROUND 1:\n\nWhat is the purpose of chicken?",
       "from": "remaining",
       "timer": 45,
-      "next": "show-answers"
+      "next": "r1-show"
     },
-    "show-answers": {
+    "r1-show": {
       "type": "reveal",
-      "template": "# Here's what everyone said:\n\n{{answer.responses.list}}",
-      "next": "voting"
+      "template": "ROUND 1 — here's what everyone said:\n\n{{r1-answer.responses.list}}",
+      "next": "r1-vote"
     },
-    "voting": {
+    "r1-vote": {
       "type": "vote",
       "mode": "pick-one",
-      "candidates": "answer.responses",
-      "voters": "remaining",
-      "question": "Pick your favorite!",
+      "candidates": "r1-answer.responses",
+      "voters": "all",
+      "question": "Pick your favorite answer!",
       "timer": 45,
-      "next": "eliminate"
+      "next": "r1-eliminate"
     },
-    "eliminate": {
+    "r1-eliminate": {
       "type": "eliminate",
       "method": "bottom-percent",
       "percent": 35,
-      "input": "voting.scores",
+      "input": "r1-vote.scores",
       "pause": 4,
-      "loopBack": "round-intro",
-      "loopCount": 3,
+      "next": "r2-intro"
+    },
+    "r2-intro": {
+      "type": "announce",
+      "message": "The class has spoken.\n\nEliminated this round? Welcome to the JURY — you vote in every round from here, and the finale is yours to decide.\n\nSurvivors: it gets harder.",
+      "next": "r2-answer"
+    },
+    "r2-answer": {
+      "type": "collect",
+      "prompt": "ROUND 2:\n\nPitch a brand-new use for chicken that nobody in history has thought of.",
+      "from": "remaining",
+      "timer": 60,
+      "next": "r2-show"
+    },
+    "r2-show": {
+      "type": "reveal",
+      "template": "ROUND 2 — the pitches:\n\n{{r2-answer.responses.list}}",
+      "next": "r2-vote"
+    },
+    "r2-vote": {
+      "type": "vote",
+      "mode": "pick-one",
+      "candidates": "r2-answer.responses",
+      "voters": "all",
+      "question": "Which pitch deserves to live?",
+      "timer": 45,
+      "next": "r2-eliminate"
+    },
+    "r2-eliminate": {
+      "type": "eliminate",
+      "method": "bottom-percent",
+      "percent": 35,
+      "input": "r2-vote.scores",
+      "pause": 4,
+      "next": "r3-intro"
+    },
+    "r3-intro": {
+      "type": "announce",
+      "message": "THE FINALE.\n\nOnly the finalists answer now — but the whole room votes, and only THIS round counts for the crown. Jury, this is your moment.",
+      "next": "r3-answer"
+    },
+    "r3-answer": {
+      "type": "collect",
+      "prompt": "FINAL ROUND:\n\nChicken has one week to change the world. What does it do?",
+      "from": "remaining",
+      "timer": 60,
+      "next": "r3-show"
+    },
+    "r3-show": {
+      "type": "reveal",
+      "template": "THE FINAL ANSWERS:\n\n{{r3-answer.responses.list}}",
+      "next": "r3-vote"
+    },
+    "r3-vote": {
+      "type": "vote",
+      "mode": "pick-one",
+      "candidates": "r3-answer.responses",
+      "voters": "all",
+      "question": "Crown the champion — best answer wins it all!",
+      "timer": 45,
       "next": "winner"
     },
     "winner": {
       "type": "winner",
-      "from": "voting.scores",
+      "from": "r3-vote.scores",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "Great game, everyone!"
+      "message": "That's Last One Standing! The chicken thanks you for your service."
     }
   },
+  "playTime": "~15–20 min",
+  "classSize": "4–30 players",
   "tags": [
     "energize"
-  ]
+  ],
+  "recommendedFor": "High-energy party round. Swap the chicken questions for anything — the escalation is the game."
 }

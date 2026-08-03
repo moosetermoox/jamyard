@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "Welcome to Convince Me!\n\nYou'll each get a random debate topic and 90 seconds to prepare a persuasive argument. Then you'll present to the class, and your classmates will rate how convincing you were.\n\nBe creative, confident, and persuasive!",
+      "message": "Welcome to Convince Me!\n\nYou'll each get a random debate topic and two minutes to WRITE your most persuasive argument. Then each argument goes up on the screen — read it aloud to the class if you're up for it! — and everyone rates how well it lands.\n\nBe creative, confident, and persuasive!",
       "timer": 20,
       "next": "get-topics"
     },
@@ -21,7 +21,7 @@
     },
     "assign-topics": {
       "type": "announce",
-      "message": "Topics assigned! Check your device to see what you'll be arguing.\n\nYou'll have 90 seconds to prepare your most persuasive argument.\n\nReady? Let's go!",
+      "message": "Topics assigned! Check your device to see what you'll be arguing.\n\nYou have two minutes to write your most persuasive argument.\n\nReady? Let's go!",
       "timer": 8,
       "next": "prep"
     },
@@ -34,7 +34,7 @@
     },
     "prep-done": {
       "type": "announce",
-      "message": "Time's up! Arguments are in.\n\nNow we'll hear from each person. After each speech, you'll rate how convincing they were.\n\nLet's start!",
+      "message": "Time's up! Arguments are in.\n\nEach argument goes up on the screen — authors, read yours aloud if you want the full effect. Then everyone rates how well it landed.\n\nLet's start!",
       "timer": 8,
       "next": "speeches"
     },
@@ -51,19 +51,18 @@
         },
         "show-speech": {
           "type": "announce",
-          "message": "{{_current.playerName}} argues:\n\n\"{{_current.text}}\"\n\nNow rate how convincing this was!",
-          "timer": 10
+          "message": "{{_current.playerName}} argues:\n\n\"{{_current.text}}\"\n\n{{_current.playerName}} — read it aloud if you're up for it! Then we rate."
         },
         "rate": {
           "type": "collect-choice",
           "prompt": "How convincing was {{_current.playerName}}'s argument?\n\n\"{{_current.text}}\"",
           "choices": [
-            "Extremely Convincing",
-            "Pretty Convincing",
-            "Somewhat Convincing",
-            "Not Very Convincing"
+            "Sold me completely!",
+            "Pretty convincing",
+            "Getting there",
+            "Not there yet"
           ],
-          "timer": 12,
+          "timer": 20,
           "from": "remaining"
         }
       },
@@ -71,10 +70,10 @@
         "subPhase": "rate",
         "mode": "tally",
         "pointMap": {
-          "Extremely Convincing": 100,
-          "Pretty Convincing": 70,
-          "Somewhat Convincing": 40,
-          "Not Very Convincing": 10
+          "Sold me completely!": 100,
+          "Pretty convincing": 70,
+          "Getting there": 40,
+          "Not there yet": 10
         }
       },
       "next": "final-scores"

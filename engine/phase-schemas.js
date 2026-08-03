@@ -313,6 +313,16 @@ export const PHASE_SCHEMAS = {
         label: 'Hide my own contribution',
         helper: 'Optional. Names a prior collect step. For each player, the choice they wrote in that step is removed from their list (used in bluffing games where you can\'t vote for your own lie).'
       },
+      foolPoints: {
+        type: 'integer', min: 1, max: 1000, optional: true,
+        label: 'Points per classmate fooled',
+        helper: 'Bluffing payoff: the AUTHOR of a fake earns this many points for every classmate who picks it (needs "Hide my own contribution" so authorship is known). Votes for the correct answer award nobody.'
+      },
+      poolLimit: {
+        type: 'integer', min: 2, max: 30, optional: true,
+        label: 'Max options per ballot (random sample)',
+        helper: 'With a choice pool: cap each player\'s ballot at a readable size — 25 fakes + the truth is a wall of text on a timer. Injected answers (the truth, the house lie) always stay on every ballot.'
+      },
       shuffle: {
         type: 'boolean', optional: true,
         label: 'Shuffle choices per player',
@@ -1330,6 +1340,11 @@ export const PHASE_SCHEMAS = {
         type: 'templateString', optional: true,
         label: 'Rule for this round',
         helper: 'Shown to the describer. Examples: "Describe without saying the word", "Act it out, no words", "Say ONE word".'
+      },
+      poolLimit: {
+        type: 'integer', min: 2, max: 200, optional: true,
+        label: 'Max phrases in the bowl (random draw)',
+        helper: 'Phrases scale with class size — 3 per student is a 75-phrase bowl at 25 kids (~35 min of turns). Cap the draw here. The drawn set is stored as this step\'s ".pool", so point later rounds\' pool at it (e.g. "round1.pool") to keep Fishbowl\'s same-phrases-every-round mechanic.'
       }
     },
     transitions: {
@@ -1340,7 +1355,8 @@ export const PHASE_SCHEMAS = {
       fields: {
         teamScores: { type: 'scoreMap', capability: 'scoreMap', renderers: { json: 'jsonPretty' } },
         capturedBy: { type: 'object' },
-        itemCount:  { type: 'integer' }
+        itemCount:  { type: 'integer' },
+        pool:       { type: 'array', optional: true }
       }
     },
     ui: {

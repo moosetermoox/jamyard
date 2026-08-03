@@ -695,6 +695,27 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Decorative-scoring net, structural half: a leaderboard/winner reading
+    // ".scores" from a phase that has no way to PRODUCE scores will run on an
+    // all-zero board and crown someone arbitrary. Covers foreach without a
+    // scoring block and collect-choice without correctAnswer/foolPoints.
+    if (['winner', 'leaderboard'].includes(phase.type) && phase.from) {
+      const scoreRefs = (Array.isArray(phase.from) ? phase.from : [phase.from])
+        .filter(f => typeof f === 'string' && /\.scores$/.test(f));
+      for (const ref of scoreRefs) {
+        const srcPhase = config.phases[ref.split('.')[0]];
+        if (!srcPhase) continue; // missing-phase already reported above
+        const cantScore =
+          (srcPhase.type === 'foreach' && !srcPhase.scoring) ||
+          (srcPhase.type === 'collect-choice' && !srcPhase.correctAnswer && !srcPhase.foolPoints);
+        if (cantScore) {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" reads scores from "${ref}", but that phase has no scoring configured — every score will be 0 and the ${phase.type} will be meaningless. Add scoring there, or remove this ${phase.type}.`
+          );
+        }
+      }
+    }
+
     // Loop validation
     if (phase.loopBack !== undefined && phase.loopBack !== null && phase.loopBack !== '') {
       if (!config.phases[phase.loopBack]) {
@@ -809,6 +830,17 @@ export function validate(config, gameId, options) {
             errors.push(
               `Game "${gameId}": phase "${name}" scoring mode "tally" requires a "pointMap" object`
             );
+          } else {
+            // Decorative-scoring net: a pointMap whose every value is 0 can
+            // never award a point — the leaderboard/winner downstream would
+            // crown someone off an all-zero board (shipped by two-truths for
+            // months; the vote was pure theater).
+            const pointValues = Object.values(phase.scoring.pointMap).filter(v => typeof v === 'number');
+            if (pointValues.length > 0 && pointValues.every(v => v === 0)) {
+              warnings.push(
+                `Game "${gameId}": phase "${name}" scoring can never award points — every pointMap value is 0. Give the choices real point values, or remove scoring (and any leaderboard/winner reading it).`
+              );
+            }
           }
         } else if (!phase.scoring.correctAnswer) {
           errors.push(
@@ -1076,6 +1108,7 @@ function inferDiagnosticCode(msg, severity) {
   // Design-hole warnings
   if (/no "scoresFrom" and no "correctOption"/.test(msg)) return DIAGNOSTIC_CODES.WAGER_NO_RESOLUTION_BASIS;
   if (/no later template references team data/.test(msg)) return DIAGNOSTIC_CODES.TEAM_SPLIT_UNUSED;
+  if (/can never award points|every score will be 0/.test(msg)) return DIAGNOSTIC_CODES.SCORING_NEVER_AWARDS;
 
   // Connection pack
   if (/not allowed in a connection-family game/.test(msg)) return DIAGNOSTIC_CODES.CONNECTION_FAMILY_VIOLATION;

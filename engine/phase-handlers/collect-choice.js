@@ -9,6 +9,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { sampleItems } from '../phases/sampling.js';
 
 /**
  * Resolve the base choice array for a collect-choice phase.
@@ -31,13 +32,16 @@ import { EVENTS } from '../events.js';
 function buildChoicePool(phase, ctx) {
   const engine = ctx.engine;
   let raw = [];
+  // Literal entries (the injected truth, the house lie) are tracked so a
+  // `poolLimit` sample can never drop them — only `from` entries get sampled.
+  const literalKeys = new Set();
   if (Array.isArray(phase.choicePool)) {
     for (const src of phase.choicePool) {
       if (!src) continue;
       if (typeof src.literal === 'string') {
         // Resolve {{...}} in the literal via the standard template resolver
         const value = String(ctx.resolveTemplate ? ctx.resolveTemplate(src.literal) : src.literal).trim();
-        if (value && !/^\{\{.*\}\}$/.test(value)) raw.push(value);
+        if (value && !/^\{\{.*\}\}$/.test(value)) { raw.push(value); literalKeys.add(value.toLowerCase()); }
         else if (!src.optional) console.warn(`[collect-choice:${phase.id}] literal "${src.literal}" resolved to nothing`);
       } else if (typeof src.from === 'string') {
         // Walk the data ref to the array, then optionally pluck `field`
@@ -73,7 +77,25 @@ function buildChoicePool(phase, ctx) {
     seen.add(key);
     out.push(trimmed);
   }
+  out._literalKeys = literalKeys;
   return out;
+}
+
+/**
+ * poolLimit: cap a player's ballot at a readable size. 25 students' fakes +
+ * the truth is an unreadable wall on a Chromebook with a timer running —
+ * sample the `from` entries down, but ALWAYS keep literals (the truth, the
+ * house lie). Ballots are already per-player (excludeAuthored), so a
+ * per-player sample just extends that.
+ */
+function capBallot(list, poolLimit, literalKeys) {
+  if (!Number.isInteger(poolLimit) || poolLimit < 2 || list.length <= poolLimit) return list;
+  const keys = literalKeys || new Set();
+  const literals = list.filter(c => keys.has(c.toLowerCase()));
+  const rest = list.filter(c => !keys.has(c.toLowerCase()));
+  const room = poolLimit - literals.length;
+  if (room <= 0) return literals; // sampleItems treats <1 as "no cap" — guard here
+  return literals.concat(sampleItems(rest, room));
 }
 
 /**
@@ -150,13 +172,15 @@ registerHandler('collect-choice', {
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
-    // Per-player choices: filter out their authored entry, then shuffle if requested.
+    // Per-player choices: filter out their authored entry, cap the ballot
+    // if poolLimit is set, then shuffle if requested.
     function choicesFor(playerId) {
       let list = baseChoices;
       if (authorMap && authorMap[playerId]) {
         const own = authorMap[playerId];
         list = list.filter(c => c.toLowerCase() !== own);
       }
+      list = capBallot(list, phase.poolLimit, baseChoices._literalKeys);
       return wantShuffle ? shuffled(list) : list;
     }
 
@@ -199,8 +223,9 @@ registerHandler('collect-choice', {
         const own = authorMap[socket.id];
         choices = choices.filter(c => c.toLowerCase() !== own);
       }
-      // Re-shuffle on reconnect so the order is stable enough — same player same order
-      // would be nice, but for first pass a fresh shuffle is acceptable.
+      // Re-shuffle (and re-sample under poolLimit) on reconnect — same player
+      // same ballot would be nice, but a fresh draw is acceptable here.
+      choices = capBallot(choices, ctx.phase.poolLimit, baseChoices._literalKeys);
       if (ctx.phase.shuffle || Array.isArray(ctx.phase.choicePool)) choices = shuffled(choices);
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, socket.id);
       const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);

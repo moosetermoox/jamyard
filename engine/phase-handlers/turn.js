@@ -23,6 +23,7 @@
 
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { sampleItems } from '../phases/sampling.js';
 
 function shuffle(arr) {
   const a = [...arr];
@@ -170,6 +171,7 @@ function finishPhase(ctx) {
   vs.ended = true;
   if (vs.turnTimer) { clearTimeout(vs.turnTimer); vs.turnTimer = null; }
   ctx.engine.storePhaseData(ctx.phase.id, {
+    ...(ctx.engine.phaseData[ctx.phase.id] || {}), // keep `.pool` for later rounds
     teamScores: vs.teamScores,
     capturedBy: vs.capturedBy,
     itemCount: vs.itemCount
@@ -201,6 +203,24 @@ registerHandler('turn', {
     } else {
       items = extractPoolItems(phase.pool ? engine.resolve(phase.pool) : []);
     }
+
+    // poolLimit: cap the bowl. Phrases scale with class size (3 per student =
+    // a 75-phrase bowl at 25 kids = a 35-minute round), so draw a sample. The
+    // DRAWN pool is stored as `.pool` so later rounds can ref it (Fishbowl's
+    // same-pool-every-round memory mechanic requires all rounds to share the
+    // draw — point round 2/3's pool at "round1.pool", not the raw collects).
+    if (phase.poolLimit) {
+      const before = items.length;
+      items = sampleItems(items, phase.poolLimit);
+      if (items.length < before) {
+        console.log(`[turn:${phase.id}] poolLimit ${phase.poolLimit}: drew ${items.length} of ${before} phrases`);
+      }
+    }
+    {
+      const existingTurnData = engine.phaseData[phase.id] || {};
+      engine.storePhaseData(phase.id, { ...existingTurnData, pool: [...items] });
+    }
+
     if (items.length === 0) {
       console.warn(`[turn:${phase.id}] pool "${phase.pool}" resolved to no items — skipping phase`);
       ctx.engine.storePhaseData(phase.id, { teamScores: {}, capturedBy: {}, itemCount: 0 });

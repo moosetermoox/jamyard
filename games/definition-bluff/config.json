@@ -49,17 +49,28 @@
       ],
       "excludeAuthored": "fake-defs",
       "shuffle": true,
-      "timer": 30,
+      "poolLimit": 8,
+      "correctAnswer": "{{wordpick.result.truth}}",
+      "pointsCorrect": 100,
+      "speedBonus": false,
+      "foolPoints": 50,
+      "timer": 45,
       "next": "reveal"
     },
     "reveal": {
       "type": "announce",
-      "message": "{{wordpick.result.word}} actually means:\n\n{{wordpick.result.truth}}\n\nClass votes:\n{{vote-def.barChart}}",
+      "message": "{{wordpick.result.word}} actually means:\n\n{{wordpick.result.truth}}\n\nClass votes:\n{{vote-def.barChart}}\n\nAuthors — claim your lies! Which fake fooled the most people?",
+      "next": "scoreboard"
+    },
+    "scoreboard": {
+      "type": "leaderboard",
+      "from": "vote-def.scores",
+      "style": "full",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "Thanks for playing Definition Bluff!"
+      "message": "That's Definition Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again for a fresh word."
     }
   },
   "playTime": "~10 min",

@@ -86,6 +86,42 @@ describe('validator diagnostics — code snapshots per fixture', () => {
 
   const fixtures = [
     {
+      // The two-truths bug class: tally scoring whose every value is 0 —
+      // the vote is theater and the winner is crowned off an all-zero board.
+      name: 'decorative scoring (all-zero pointMap)',
+      expected: ['SCORING_NEVER_AWARDS'],
+      config: {
+        name: 'X', phases: {
+          lobby: { type: 'lobby', next: 'src' },
+          src: { type: 'collect', prompt: 'q', next: 'fe' },
+          fe: {
+            type: 'foreach', data: 'src.responses',
+            subPhases: { v: { type: 'collect-choice', prompt: 'pick', choices: ['A', 'B'] } },
+            scoring: { subPhase: 'v', mode: 'tally', pointMap: { A: 0, B: 0 } },
+            next: 'end'
+          },
+          end: { type: 'end' }
+        }
+      }
+    },
+    {
+      name: 'leaderboard reading scores no phase can produce',
+      expected: ['SCORING_NEVER_AWARDS'],
+      config: {
+        name: 'X', phases: {
+          lobby: { type: 'lobby', next: 'src' },
+          src: { type: 'collect', prompt: 'q', next: 'fe' },
+          fe: {
+            type: 'foreach', data: 'src.responses',
+            subPhases: { v: { type: 'collect-choice', prompt: 'pick', choices: ['A', 'B'] } },
+            next: 'board'
+          },
+          board: { type: 'leaderboard', from: 'fe.scores', next: 'end' },
+          end: { type: 'end' }
+        }
+      }
+    },
+    {
       name: 'invalid phase type',
       expected: ['UNKNOWN_PHASE_TYPE'],
       config: {
@@ -253,7 +289,10 @@ describe('validator diagnostics — game snapshot', () => {
       'one-more-thing': [],
       'convince-me': [],
       'corn-story': [],
-      'dream-vacation': [],
+      // 2026-08-03: rank candidates come from an AI dedupe/shortlist step
+      // (rank ← shortlist.result). Runtime handles AI-emitted arrays; the
+      // static typing is conservative about ai-process output.
+      'dream-vacation': ['DATA_REF_TYPE_MISMATCH'],
       'art-gallery': [],
       'someones-got-you': [],
       'whose-eyes': [],

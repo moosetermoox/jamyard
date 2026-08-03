@@ -1,6 +1,6 @@
 {
-  "name": "Dream Vacation Debate",
-  "description": "Suggest dream destinations, rank them as a class, then collaboratively write a vacation pitch for the winner.",
+  "name": "Dream Vacation Pitch",
+  "description": "Suggest dream destinations, rank the AI-merged shortlist as a class, then collaboratively write a vacation pitch for the winner — one sentence at a time.",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -14,32 +14,40 @@
     },
     "show-suggestions": {
       "type": "reveal",
-      "template": "# Suggestions are in!\n\n{{submit-destinations.responses.list}}",
+      "template": "Suggestions are in!\n\n{{submit-destinations.responses.list}}\n\nThe AI will merge the duplicates into a shortlist — then you rank it.",
+      "next": "shortlist"
+    },
+    "shortlist": {
+      "type": "ai-process",
+      "task": "rank",
+      "format": "json",
+      "input": "submit-destinations.responses",
+      "instruction": "These are dream vacation destinations suggested by a class. Merge duplicates and near-duplicates (\"Paris\" + \"paris france\" = one entry), then pick the 6 most popular or most interesting distinct destinations. Use clean display names (\"Paris, France\"). Return ONLY a JSON array of 6 destination strings, nothing else. If there are fewer than 6 distinct destinations, return however many there are.",
       "next": "rank-destinations"
     },
     "rank-destinations": {
       "type": "rank",
-      "prompt": "Rank these destinations from BEST to WORST",
-      "candidates": "submit-destinations.responses",
-      "timer": 45,
+      "prompt": "Rank the shortlist from BEST to WORST",
+      "candidates": "shortlist.result",
+      "timer": 75,
       "next": "announce-winner"
     },
     "announce-winner": {
       "type": "announce",
-      "message": "# The class has spoken!\n\n{{rank-destinations.rankedList}}\n\nNext up: build a vacation pitch for the top pick — one sentence at a time.",
-      "timer": 20,
+      "message": "The class has spoken!\n\nWINNER: {{rank-destinations.rankings.0.item}}\n\nRunners-up: {{rank-destinations.rankings.1.item}} and {{rank-destinations.rankings.2.item}}\n\nNext up: build a vacation pitch for the winner — one sentence at a time.",
       "next": "write-pitch"
     },
     "write-pitch": {
       "type": "relay",
       "prompt": "Top pick: {{rank-destinations.rankings.0.item}}\n\nAdd the next sentence to the class's vacation pitch about it. Build on what came before — make it exciting!",
       "order": "random",
+      "turns": 8,
       "timer": 45,
       "next": "pitch-reveal"
     },
     "pitch-reveal": {
       "type": "reveal",
-      "template": "# Your vacation pitch:\n\n{{write-pitch.text}}",
+      "template": "Your vacation pitch:\n\n{{write-pitch.text}}\n\nRead it aloud like a travel ad — dramatic voice mandatory.",
       "next": "end"
     },
     "end": {

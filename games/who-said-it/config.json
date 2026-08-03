@@ -39,7 +39,7 @@
         },
         "reveal": {
           "type": "announce",
-          "message": "It was {{_current.playerName}}!"
+          "message": "How the class guessed:\n{{guess.barChart}}\n\nIt was {{_current.playerName}}!"
         }
       },
       "scoring": {

@@ -141,6 +141,11 @@ const PHASE_EXTRA_GUIDANCE = {
 
     PACING: iterating over EVERY response means round count = class size — 25 students is ~13 minutes of identical rounds and the room checks out around round 12. When the data source is per-player responses, set "limit" (e.g. 10-12) to run a random sample instead, unless every student's item genuinely must get its own round.
 
+    SCORING A GUESSING GAME — three rules that keep the scoreboard real:
+    1. The secret must be CAPTURED, not implied: if players guess "which statement is the lie" or "whose answer is this", the source collect must store the answer in its own field (multi-field collect, e.g. fields truth1/truth2/lie) so scoring can grade against "_current.fields.<key>". A game that never records the secret CANNOT score, no matter what its intro promises.
+    2. Never emit a tally pointMap whose values are all 0 — that is decorative scoring; the leaderboard/winner would crown someone off an all-zero board. If nothing should score, omit "scoring" AND omit the leaderboard/winner.
+    3. Every guessing loop needs a payoff beat: a host-paced (no timer) announce sub-phase after the guess that reveals the answer and hands the author the mic ("The lie was X — {{_current.playerName}}, tell the story!"). Guess → reveal → react is the whole point of the format.
+
     Template variables inside foreach sub-phases:
     - {{_current.text}} — the current item's text content
     - {{_current.playerName}} — who submitted the current item

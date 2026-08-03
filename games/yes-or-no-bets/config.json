@@ -14,7 +14,7 @@
     },
     "ask": {
       "type": "collect-choice",
-      "prompt": "Do you love math?",
+      "prompt": "Have you ever laughed at the WRONG moment — a serious assembly, a silent library, somebody's big speech?",
       "choices": [
         "Yes",
         "No"
@@ -72,7 +72,7 @@
       "message": "Thanks for playing!"
     }
   },
-  "playTime": "~8 min",
+  "playTime": "~10–15 min (a betting round per classmate, capped at 10)",
   "classSize": "3–30 players",
   "tags": [
     "icebreaker",
@@ -81,5 +81,5 @@
     "connect",
     "energize"
   ],
-  "recommendedFor": "Any time — works as an icebreaker or a quick read-the-room game."
+  "recommendedFor": "Any time — works as an icebreaker or a quick read-the-room game. Question quality IS the game: pick one that's fun to guess AND safe to answer publicly (every answer gets revealed by name)."
 }

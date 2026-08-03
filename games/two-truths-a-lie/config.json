@@ -1,6 +1,6 @@
 {
   "name": "Two Truths & a Lie",
-  "description": "Submit two truths and a lie about yourself, then guess which statements are lies from your classmates!",
+  "description": "Submit two truths and a lie about yourself, then spot your classmates' lies — 100 points per catch, and every round ends with the author telling the story.",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -8,14 +8,28 @@
     },
     "instructions": {
       "type": "announce",
-      "message": "Welcome to Two Truths & a Lie!\n\nYou'll share two TRUE facts about yourself and one LIE.\n\nThen everyone will try to spot the lies in each other's statements.\n\nThe best liars (who fool the most people) win points!\n\nLet's start!",
+      "message": "Welcome to Two Truths & a Lie!\n\nYou'll share two TRUE facts about yourself and one LIE.\n\nThen everyone tries to spot each other's lies — 100 points every time you catch one. After each vote, the lie is revealed and the author gets the mic.\n\nMake your lie believable!",
       "timer": 12,
       "next": "collect"
     },
     "collect": {
       "type": "collect",
-      "prompt": "Write TWO truths about yourself and ONE lie.\n\nSeparate each statement with a line break.\n\nExample:\n- I have a pet iguana\n- I've been to 12 countries\n- I can juggle 5 balls\n\nMake your lie believable!",
-      "timer": 90,
+      "prompt": "Two truths and one lie about yourself. Make the lie believable — it gets shuffled in with your truths.",
+      "fields": [
+        {
+          "label": "Something TRUE about you",
+          "key": "truth1"
+        },
+        {
+          "label": "Another TRUE thing",
+          "key": "truth2"
+        },
+        {
+          "label": "One believable LIE",
+          "key": "lie"
+        }
+      ],
+      "timer": 120,
       "from": "all",
       "next": "processing"
     },
@@ -33,34 +47,31 @@
       "subPhases": {
         "show-statements": {
           "type": "announce",
-          "message": "{{_current.playerName}}'s statements:\n\n{{_current.text}}\n\nWhich one is the LIE?",
-          "timer": 10
+          "message": "Next up: {{_current.playerName}}!\n\nThree statements are landing on your screens — two true, one lie.",
+          "timer": 6
         },
         "vote-lie": {
           "type": "collect-choice",
-          "prompt": "Which statement from {{_current.playerName}} is the LIE?\n\n{{_current.text}}",
-          "choices": [
-            "Statement 1 (first one)",
-            "Statement 2 (middle one)",
-            "Statement 3 (last one)"
-          ],
-          "timer": 15
+          "prompt": "Two truths and a lie from {{_current.playerName}} — tap the LIE!",
+          "choices": "_current.shuffledFields",
+          "timer": 20
+        },
+        "reveal-lie": {
+          "type": "announce",
+          "message": "The lie was:\n\n“{{_current.fields.lie}}”\n\n{{_current.playerName}} — which truth surprises people most? Tell the story!"
         }
       },
       "scoring": {
         "subPhase": "vote-lie",
-        "mode": "tally",
-        "pointMap": {
-          "Statement 1 (first one)": 0,
-          "Statement 2 (middle one)": 0,
-          "Statement 3 (last one)": 0
-        }
+        "mode": "correct",
+        "correctAnswer": "_current.fields.lie",
+        "pointsCorrect": 100
       },
       "next": "ai-analyze"
     },
     "ai-analyze": {
       "type": "ai-process",
-      "instruction": "Analyze these 'Two Truths and a Lie' submissions and identify interesting patterns, commonalities, and surprising facts. Look for:\n\n1. Common themes (travel, pets, talents, etc.)\n2. The most unique/surprising truths\n3. Any shared experiences between multiple students\n4. Fun categories of facts (adventurers, animal lovers, hidden talents, etc.)\n\nReturn a brief, engaging summary (3-4 sentences) highlighting the most interesting discoveries about this group.",
+      "instruction": "These are 'Two Truths and a Lie' submissions. Each one has three parts separated by ' | ' — the FIRST TWO parts are true, the LAST part is invented. Base your analysis ONLY on the true parts; never treat the last part of any submission as a fact. Identify interesting patterns among the truths: common themes (travel, pets, talents), the most surprising true facts, and shared experiences between students. Return a brief, engaging summary (3-4 sentences) highlighting the most interesting real discoveries about this group.",
       "input": "collect.responses",
       "task": "summarize",
       "format": "text",
@@ -68,7 +79,7 @@
     },
     "reveal-insights": {
       "type": "reveal",
-      "template": "What we learned about each other:\n\n{{ai-analyze.result}}\n\nNow let's see who fooled the most people!",
+      "template": "What we learned about each other:\n\n{{ai-analyze.result}}\n\nNow — who's the sharpest lie detector in the room?",
       "next": "leaderboard"
     },
     "leaderboard": {
@@ -87,7 +98,7 @@
       "message": "Thanks for playing Two Truths & a Lie! Now you know each other a little better!"
     }
   },
-  "playTime": "~12 min",
+  "playTime": "~15–20 min (up to 10 shuffled rounds)",
   "classSize": "5–25 players",
   "tags": [
     "icebreaker",

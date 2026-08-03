@@ -784,6 +784,24 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
             if (!onceKeys.has(`logged:${ev}:${seq(data)}`)) {
               onceKeys.add(`logged:${ev}:${seq(data)}`);
               phaseLog.push({ type: ev });
+
+              // Decorative-scoring net (runtime half): bots answered every
+              // question, so a scoreboard where NOBODY earned a point means
+              // the game's scoring can't award — a leaderboard/winner would
+              // crown someone off an all-zero board (the two-truths bug
+              // class; the static validator catches zero pointMaps, this
+              // catches everything else that nets out to zero).
+              if (ev === 'leaderboard') {
+                const board = data.allStandings || data.standings || [];
+                if (board.length > 0 && board.every(s => !s || !s.score)) {
+                  findings.push({
+                    severity: 'error',
+                    phaseId: null,
+                    source: 'simulation',
+                    message: 'The leaderboard showed with EVERY score at 0 even though the practice players answered everything — the scoring never awards points, so the standings (and any winner) are meaningless. Check the scoring setup on the step the leaderboard reads from.'
+                  });
+                }
+              }
             }
             once(`adv:${ev}:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 600);
           }

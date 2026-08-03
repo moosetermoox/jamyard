@@ -78,6 +78,7 @@ export const DIAGNOSTIC_CODES = {
   // Design-hole warnings (semantic, not structural)
   WAGER_NO_RESOLUTION_BASIS: 'WAGER_NO_RESOLUTION_BASIS',
   TEAM_SPLIT_UNUSED:         'TEAM_SPLIT_UNUSED',
+  SCORING_NEVER_AWARDS:      'SCORING_NEVER_AWARDS',
 
   // Connection pack (docs/connection-pack-spec.md)
   PAIR_SOURCE_NOT_ON_ALL_PATHS: 'PAIR_SOURCE_NOT_ON_ALL_PATHS',

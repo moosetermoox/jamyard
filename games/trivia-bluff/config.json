@@ -49,17 +49,28 @@
       ],
       "excludeAuthored": "lies",
       "shuffle": true,
-      "timer": 25,
+      "poolLimit": 8,
+      "correctAnswer": "{{trivia.result.truth}}",
+      "pointsCorrect": 100,
+      "speedBonus": false,
+      "foolPoints": 50,
+      "timer": 40,
       "next": "reveal"
     },
     "reveal": {
       "type": "announce",
-      "message": "The truth was: {{trivia.result.truth}}!\n\nWhat the class picked:\n{{vote-truth.barChart}}",
+      "message": "The truth was: {{trivia.result.truth}}!\n\nWhat the class picked:\n{{vote-truth.barChart}}\n\nLiars — own up! Whose lie pulled the most votes?",
+      "next": "scoreboard"
+    },
+    "scoreboard": {
+      "type": "leaderboard",
+      "from": "vote-truth.scores",
+      "style": "full",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "Thanks for playing Trivia Bluff!"
+      "message": "That's Trivia Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again for a fresh fact."
     }
   },
   "playTime": "~8 min",

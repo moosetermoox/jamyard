@@ -1,6 +1,6 @@
 {
   "name": "SCAMPER Brainstorm",
-  "description": "The whole class evolves each other's ideas through the seven SCAMPER lenses. Each round, your idea passes to the next person, who reshapes it.",
+  "description": "The whole class evolves each other's ideas through four creative lenses — swap, merge, repurpose, strip. At the end, your own idea comes back and you see everything four classmates did to it.",
   "minPlayers": 3,
   "maxPlayers": 30,
   "phases": {
@@ -11,123 +11,69 @@
     },
     "intro": {
       "type": "announce",
-      "message": "SCAMPER Brainstorm\n\nYour teacher will tell the class the problem out loud. When you're ready, you'll write ONE idea — then we'll evolve everyone's idea through 7 creative lenses.",
-      "timer": 15,
+      "message": "SCAMPER BRAINSTORM\n\nToday's problem: lunch lines at school are painfully slow.\n\nYou'll write ONE idea to solve it. Then your idea travels — four classmates each reshape it through a different creative lens. At the end, your idea comes back and you see its whole journey.",
       "next": "initial-idea"
     },
     "initial-idea": {
       "type": "collect",
-      "prompt": "Write ONE idea that could solve this problem. Don't worry about perfecting it — just get something down. (You'll see other people's ideas in the next round.)",
+      "prompt": "The problem: lunch lines at school are painfully slow.\n\nWrite ONE idea that could help. Don't polish it — just get something down. Four classmates are about to make it stranger and better.",
       "timer": 90,
-      "next": "intro-substitute"
-    },
-    "intro-substitute": {
-      "type": "announce",
-      "message": "SCAMPER — Substitute\n\nYou'll see another classmate's idea. Rewrite it by SUBSTITUTING one part — swap an object, person, place, or material for something else.",
-      "timer": 12,
       "next": "substitute"
     },
     "substitute": {
       "type": "collect",
-      "prompt": "Original idea: {{initial-idea.assigned}}\n\nNow SUBSTITUTE something in it. What did you swap, and what does the new idea look like?",
+      "prompt": "A classmate's idea:\n\n{{initial-idea.assigned}}\n\nLens 1 — SUBSTITUTE: swap one part (an object, person, place, or material) for something else. What did you swap, and what does the new idea look like?",
       "rotateFrom": "initial-idea",
       "timer": 90,
-      "next": "intro-combine"
-    },
-    "intro-combine": {
-      "type": "announce",
-      "message": "SCAMPER — Combine\n\nYou'll see a substituted idea. COMBINE it with another concept, purpose, or feature.",
-      "timer": 12,
       "next": "combine"
     },
     "combine": {
       "type": "collect",
-      "prompt": "Substituted idea: {{substitute.assigned}}\n\nNow COMBINE it with something else (another idea, technology, audience, or feature). Describe the merged version.",
+      "prompt": "The idea so far:\n\n{{substitute.assigned}}\n\nLens 2 — COMBINE: merge it with something else (another idea, a technology, an audience, a feature). Describe the combined version.",
       "rotateFrom": "substitute",
       "timer": 90,
-      "next": "intro-adapt"
+      "next": "another-use"
     },
-    "intro-adapt": {
-      "type": "announce",
-      "message": "SCAMPER — Adapt\n\nYou'll see a combined idea. ADAPT it — borrow from something else that already works (a famous product, an animal, another field).",
-      "timer": 12,
-      "next": "adapt"
-    },
-    "adapt": {
+    "another-use": {
       "type": "collect",
-      "prompt": "Combined idea: {{combine.assigned}}\n\nNow ADAPT it. What existing thing inspires a tweak? Describe the adapted idea.",
+      "prompt": "The idea so far:\n\n{{combine.assigned}}\n\nLens 3 — PUT IT TO ANOTHER USE: who else could this help, or what other problem could it solve? Describe the repurposed idea.",
       "rotateFrom": "combine",
       "timer": 90,
-      "next": "intro-modify"
-    },
-    "intro-modify": {
-      "type": "announce",
-      "message": "SCAMPER — Modify / Magnify\n\nYou'll see an adapted idea. MODIFY it — change its size, shape, frequency, intensity, or meaning. Make some part bigger, smaller, louder, or stranger.",
-      "timer": 12,
-      "next": "modify"
-    },
-    "modify": {
-      "type": "collect",
-      "prompt": "Adapted idea: {{adapt.assigned}}\n\nNow MODIFY it — change a quantity, scale, or quality. Describe the modified idea.",
-      "rotateFrom": "adapt",
-      "timer": 90,
-      "next": "intro-put-to-other-use"
-    },
-    "intro-put-to-other-use": {
-      "type": "announce",
-      "message": "SCAMPER — Put to Other Use\n\nYou'll see a modified idea. Take it and PUT IT TO ANOTHER USE — for a different audience, problem, or context.",
-      "timer": 12,
-      "next": "put-to-other-use"
-    },
-    "put-to-other-use": {
-      "type": "collect",
-      "prompt": "Modified idea: {{modify.assigned}}\n\nNow PUT IT TO ANOTHER USE. Who else could benefit, or what other problem does it solve?",
-      "rotateFrom": "modify",
-      "timer": 90,
-      "next": "intro-eliminate"
-    },
-    "intro-eliminate": {
-      "type": "announce",
-      "message": "SCAMPER — Eliminate\n\nYou'll see a repurposed idea. ELIMINATE something — strip a feature, step, person, or rule. What's left when you take a piece away?",
-      "timer": 12,
       "next": "eliminate-step"
     },
     "eliminate-step": {
       "type": "collect",
-      "prompt": "Repurposed idea: {{put-to-other-use.assigned}}\n\nNow ELIMINATE one part. What did you remove, and what's the leaner idea?",
-      "rotateFrom": "put-to-other-use",
+      "prompt": "The idea so far:\n\n{{another-use.assigned}}\n\nLast lens — ELIMINATE: strip out one feature, step, person, or rule. What did you remove, and what's the leaner final idea?",
+      "rotateFrom": "another-use",
       "timer": 90,
-      "next": "intro-rearrange"
+      "next": "returned"
     },
-    "intro-rearrange": {
-      "type": "announce",
-      "message": "SCAMPER — Rearrange / Reverse\n\nLast lens! REARRANGE the order of steps, or REVERSE roles, cause-and-effect, or expectations.",
-      "timer": 12,
-      "next": "rearrange"
-    },
-    "rearrange": {
-      "type": "collect",
-      "prompt": "Pared-down idea: {{eliminate-step.assigned}}\n\nNow REARRANGE or REVERSE something. Describe the final idea.",
-      "rotateFrom": "eliminate-step",
-      "timer": 90,
-      "next": "show-evolution"
-    },
-    "show-evolution": {
+    "returned": {
       "type": "reveal",
-      "template": "# Class SCAMPER — Final Ideas\n\nAfter seven transformations by seven different classmates, here is what each idea became:\n\n{{rearrange.responses.list}}\n\n_(Each line is the final, fully-evolved version of someone's original idea.)_",
+      "scope": "own",
+      "chainFrom": [
+        "initial-idea",
+        "substitute",
+        "combine",
+        "another-use",
+        "eliminate-step"
+      ],
+      "chainDisplay": "steps",
+      "hostTemplate": "Everyone's original idea just came home — with its full journey through four classmates' hands.\n\nGive the room a quiet minute to read. Then ask 2-3 students to read their idea's whole evolution aloud — the jumps are the fun part.",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "Great brainstorming!"
+      "message": "That's SCAMPER! Nobody's idea survived unchanged — that was the point. Edit the problem in the intro and first prompt to brainstorm anything."
     }
   },
-  "playTime": "~20 min",
-  "classSize": "4–15 players",
+  "playTime": "~12–15 min",
+  "classSize": "4–20 players",
   "tags": [
     "brainstorming",
     "design thinking",
-    "collaborative"
+    "collaborative",
+    "create"
   ],
-  "recommendedFor": "For project-based learning or innovation units. Best in smaller groups so each lens gets attention."
+  "recommendedFor": "Project-based learning and innovation units. Swap the default problem (lunch lines) for your real one — it appears in the intro and the first prompt."
 }

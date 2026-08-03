@@ -8,14 +8,14 @@
     },
     "intro": {
       "type": "announce",
-      "message": "PUNCHLINE SHOWDOWN!\n\nYou'll be paired with one other player and given a silly prompt. Write the funniest answer you can. Then the rest of the class will vote on which one wins.",
+      "message": "PUNCHLINE SHOWDOWN!\n\nYou'll be paired with one other player and given a silly prompt. Write the funniest answer you can. Then the rest of the class votes on which one wins.\n\n(Odd number of players? One of you sits out the writing and becomes a full-time judge — your vote decides ties.)",
       "next": "prompts"
     },
     "prompts": {
       "type": "ai-process",
       "task": "generate",
       "format": "json",
-      "instruction": "Generate 8 short, classroom-appropriate, open-ended comedy prompts for a head-to-head punchline game. Each prompt should invite a funny one-line answer. Examples: 'A better name for France:', 'The worst thing to find in your sandwich:', 'A class rule that would make everyone happier:'. Return ONLY a JSON array of 8 strings (no preamble, no code fences).",
+      "instruction": "Generate 15 short, classroom-appropriate, open-ended comedy prompts for a head-to-head punchline game (a full class of up to 30 makes 15 pairs — every pair must get its own prompt, so never fewer than 15). Each prompt should invite a funny one-line answer. Examples: 'A better name for France:', 'The worst thing to find in your sandwich:', 'A class rule that would make everyone happier:'. Return ONLY a JSON array of 15 strings (no preamble, no code fences).",
       "perPlayer": false,
       "next": "punchlines"
     },

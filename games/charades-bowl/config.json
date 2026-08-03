@@ -53,6 +53,7 @@
         "phrases-2.responses",
         "phrases-3.responses"
       ],
+      "poolLimit": 30,
       "teamsFrom": "teams",
       "timer": 60,
       "allowSkip": true,
@@ -67,11 +68,7 @@
     },
     "round2": {
       "type": "turn",
-      "pool": [
-        "phrases-1.responses",
-        "phrases-2.responses",
-        "phrases-3.responses"
-      ],
+      "pool": "round1.pool",
       "teamsFrom": "teams",
       "timer": 60,
       "allowSkip": true,
@@ -86,11 +83,7 @@
     },
     "round3": {
       "type": "turn",
-      "pool": [
-        "phrases-1.responses",
-        "phrases-2.responses",
-        "phrases-3.responses"
-      ],
+      "pool": "round1.pool",
       "teamsFrom": "teams",
       "timer": 60,
       "allowSkip": true,
@@ -108,10 +101,10 @@
     },
     "end": {
       "type": "end",
-      "message": "Great game! Thanks for playing Charades Bowl."
+      "message": "That's Charades Bowl! Same bowl, three ways — rematch anytime with fresh phrases."
     }
   },
-  "playTime": "~25 min",
+  "playTime": "~25–30 min (bowl capped at 30 phrases)",
   "classSize": "6–24 players (works best with even teams)",
   "tags": [
     "party",

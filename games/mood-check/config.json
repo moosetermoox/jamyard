@@ -15,7 +15,8 @@
     },
     "collect": {
       "type": "collect",
-      "prompt": "How are you feeling today? (one word or short phrase)",
+      "prompt": "How are you feeling today? (one word or short phrase)\n\nOnly the class summary goes on the screen — never your individual answer. Not up for it today? Pass is always okay.",
+      "passAllowed": true,
       "timer": null,
       "from": "all",
       "next": "process"

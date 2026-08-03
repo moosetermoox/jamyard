@@ -47,7 +47,7 @@
         },
         "reveal-movie": {
           "type": "announce",
-          "message": "It was… {{_current.fields.movie}}!\n\n(described by {{_current.playerName}})\n\nHands up if you got it!"
+          "message": "The guesses:\n{{guess.responses.list}}\n\nIt was… {{_current.fields.movie}}!\n\n(described by {{_current.playerName}})\n\nHands up if you got it!"
         }
       },
       "next": "wrap"
