@@ -786,6 +786,21 @@ button[hidden] {
   display: none;
 }
 
+/* appendOnly: a classmate's inherited lines, shown read-only above the box */
+.inherited-block {
+  width: 100%;
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  background: var(--theme-surface, #FFFDE7);
+  border: 3px solid var(--theme-border, #000);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 1rem;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
 .reveal-drawing {
   display: block;
   width: 100%;

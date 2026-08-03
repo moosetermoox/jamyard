@@ -59,6 +59,7 @@ import { createRateLimiter } from './engine/simple-rate-limit.js';
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
 import { checkSubmission, filterContent } from './engine/content-filter.js';
+import { combineAppendOnly } from './engine/phases/append-only.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
 import { applyBuzz, applyJudge, applyNextQuestion } from './engine/phase-handlers/buzz.js';
@@ -2732,7 +2733,12 @@ io.on('connection', (socket) => {
     } else {
       // Safety gate — only free-text collect submissions. collect-choice answers
       // are teacher-authored choices, so they skip validation/filtering.
-      if (currentPhase && currentPhase.type === 'collect') {
+      // appendOnly: an empty addition is legal (the inherited list passes
+      // through unchanged — e.g. timer auto-submit with nothing typed).
+      const isAppendOnly = !!(currentPhase && currentPhase.type === 'collect' &&
+        currentPhase.appendOnly && currentPhase.rotateFrom && room.engine);
+      const typedNothing = typeof response === 'string' && response.trim() === '';
+      if (currentPhase && currentPhase.type === 'collect' && !(isAppendOnly && typedNothing)) {
         const check = checkSubmission(response, {
           prompt: currentPhase.prompt,
           maxLength: currentPhase.maxLength || undefined
@@ -2745,7 +2751,19 @@ io.on('connection', (socket) => {
         }
       }
 
-      players.update(socket.id, { response, responseAt: Date.now() });
+      // appendOnly: rebuild the stored response from the server's own copy of
+      // the inherited text + the (filtered) addition — the client only ever
+      // submits the addition, so a vandal can't gut a classmate's list.
+      let storedResponse = response;
+      if (isAppendOnly) {
+        const srcData = room.engine.phaseData[currentPhase.rotateFrom];
+        const inherited = srcData && srcData.assigned ? srcData.assigned[player.id] : undefined;
+        if (typeof inherited === 'string') {
+          storedResponse = combineAppendOnly(inherited, response);
+        }
+      }
+
+      players.update(socket.id, { response: storedResponse, responseAt: Date.now() });
       console.log(`[submit-response] Stored response from ${socket.id}`);
       recordEvent(room, 'submit-response', { player: player.name });
     }
@@ -2905,6 +2923,20 @@ io.on('connection', (socket) => {
             }
             return { playerId: p.id, name: p.name, text: r, responseAt: p.responseAt };
           });
+
+        // Rotation: stamp what each responder was assigned onto their response
+        // record, so downstream reveals can show it ({{_current.assigned}} in
+        // a reveal-one itemTemplate) instead of asking students to re-type the
+        // thing they were handed (whose-eyes shipped that busywork field).
+        if (collectPhase.rotateFrom) {
+          const srcData = room.engine.phaseData[collectPhase.rotateFrom];
+          const assignedMap = (srcData && srcData.assigned) || {};
+          for (const r of responses) {
+            if (r && r.playerId && assignedMap[r.playerId] !== undefined) {
+              r.assigned = assignedMap[r.playerId];
+            }
+          }
+        }
 
         // Build byPlayer map alongside responses array — used by .mine and
         // by downstream rotateFrom phases. Multi-field responses store the

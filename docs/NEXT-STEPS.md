@@ -77,13 +77,20 @@ device" (laptop / spare Chromebook). Keep it that way in new copy.
    coordinator) that unblock the four August-gate documents;
    (c) consider Render Starter (~$7/mo) right before August field tests.
    ~~RENDER_DEPLOY_HOOK + UptimeRobot~~ DONE 2026-07-27.
-3. **Day-one kit (C)** — pick the 3-5 launch games and polish deeply.
-   Candidates now: One Voice / Closer (connection), Quiz Show, Lightning
-   Round, **Vocab Match**, **Metaphor or Simile?**, **Art Gallery** (the new
-   ones are bread-and-butter classroom material), **Group Work Day**
-   (checklist phase, 2026-07-19 — not-a-game classroom utility teachers can
-   use any ordinary day, recipe included). Plus anonymous mode and the
-   one-page "if X goes wrong, do Y" teacher cheat sheet.
+3. **Day-one kit (C)** — POLISH SHIPPED 2026-08-02 against the coherence
+   review (docs/GAME-COHERENCE-REVIEW-2026-08-02.md — the review's 7
+   feature-worthy games ARE the kit shortlist): both-sides-rope got its
+   what-ifs reveal before the re-vote, whose-eyes lost the
+   retype-the-viewpoint field (rotation collects now stamp `assigned` onto
+   responses → `{{_current.assigned}}` in reveals; also fixed the circle's
+   silently-empty `fields.*` tokens), one-more-thing got `appendOnly`
+   (server-enforced — vandal sim in scripts/simulate-append-only.js),
+   one-voice's ending is honest when the target isn't reached, closer's
+   nine share screens now tell pairs to actually TALK + real playTime
+   metadata, weekend-poem scales its poem + gained a preview gate,
+   art-gallery's gallery got a guess-aloud beat. STILL OPEN: anonymous
+   mode and the one-page "if X goes wrong, do Y" teacher cheat sheet (top
+   pick).
 4. **Recipes for the new stuff** — match/sort/drawing have NO recipes yet, so
    the idea-first front door ("make a vocab quiz for my French class") can't
    route to them. A vocab-match recipe + a sort recipe + an art-gallery recipe
@@ -97,7 +104,11 @@ device" (laptop / spare Chromebook). Keep it that way in new copy.
    (byPlayerDrawing) too; the editor UI for the new widgets (match pairs
    rows, sort buckets/items, drawing toggle, team sizing toggle, chain
    fields) passed validation but was never screenshot-reviewed in the
-   browser; class-critique still ships an empty reveal template.
+   browser. ~~class-critique empty reveal template~~ fixed 2026-08-02
+   (coherence action wave). Remaining coherence-review backlog (missing
+   loop reveal beats, oversized bluffing ballots, two-truths fake scoring,
+   mood-check passAllowed) is itemized in
+   GAME-COHERENCE-REVIEW-2026-08-02.md.
 
 ### The plan itself
 

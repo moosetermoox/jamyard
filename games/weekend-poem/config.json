@@ -16,14 +16,21 @@
     },
     "process": {
       "type": "ai-process",
-      "instruction": "Write a funny 4-line poem that cleverly combines all these weekend activities. Be playful and creative!",
+      "instruction": "Write a playful class poem from these weekend activities. Length: about one line for every 2 students (a full class should get 8-12 lines, a small group 4-6). Weave in as many students' actual words as fit, close to verbatim, so each student can spot their own weekend in it — group similar weekends into a shared line rather than dropping anyone. Warm and funny, never mocking.",
       "input": "collect.responses",
       "format": "text",
-      "next": "reveal"
+      "next": "check"
+    },
+    "check": {
+      "type": "preview",
+      "content": "process.result",
+      "showResponses": true,
+      "approveNext": "reveal",
+      "rejectNext": "process"
     },
     "reveal": {
       "type": "reveal",
-      "template": "# Your Class Weekend Poem\n\n{{process.result}}",
+      "template": "YOUR CLASS WEEKEND POEM\n\n{{process.result}}\n\nWhose weekend can you spot?",
       "next": "end"
     },
     "end": {

@@ -299,6 +299,7 @@ registerHandler('collect', {
         inputType,
         assignedDrawing: (rotatedDrawings && rotatedDrawings[player.id]) || null,
         prefill,
+        appendOnly: !!phase.appendOnly,
         maxLength: phase.maxLength || null,
         passAllowed: !!phase.passAllowed,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -338,6 +339,7 @@ registerHandler('collect', {
         inputType: ctx.phase.inputType === 'drawing' ? 'drawing' : 'text',
         assignedDrawing: (player && reconRotated && reconRotated[player.id]) || null,
         prefill: reconPrefill,
+        appendOnly: !!ctx.phase.appendOnly,
         maxLength: ctx.phase.maxLength || null,
         passAllowed: !!ctx.phase.passAllowed,
         playerTemplate: sc.playerTemplate, show: sc.playerShow

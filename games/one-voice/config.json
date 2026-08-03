@@ -10,7 +10,7 @@
     },
     "rules": {
       "type": "announce",
-      "message": "We're going to count to 20 — together, as one voice.\n\nAnyone can tap the next number, anytime. But if two people tap at almost the same moment, we start over from zero.\n\nThe rules: no pointing at who should go next, no turn order, no talking strategy. Just feel the room.",
+      "message": "We're going to count to 20 — together, as one voice.\n\nAnyone can tap the next number, anytime. But if two people tap at almost the same moment, we start over from zero.\n\nThe rules: no pointing at who should go next, no turn order, no talking strategy. Just feel the room.\n\n(Big classes restart a LOT. That's the game.)",
       "next": "count"
     },
     "count": {
@@ -21,7 +21,7 @@
     },
     "story": {
       "type": "reveal",
-      "template": "Our story:\n\nWe counted to {{count.target}} as one voice.\nIt took us {{count.attempts}} attempt(s) and {{count.resets}} restart(s).\nOur longest run along the way: {{count.bestRun}}.\n\nNobody won. Everybody did.",
+      "template": "Our story:\n\nThe target: {{count.target}}.\nAttempts: {{count.attempts}} · Restarts: {{count.resets}}\nOur longest run as one voice: {{count.bestRun}}.\n\nEvery restart was the whole room learning the same lesson: listen more, rush less.\n\nNobody won. Everybody did.",
       "next": "end"
     },
     "end": {

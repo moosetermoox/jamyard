@@ -1,6 +1,6 @@
 {
   "name": "Someone's Got You",
-  "description": "Everyone shares one small real thing they're working on; a classmate writes them one line of genuine encouragement. Teacher reviews every line before the wall goes up. Nobody is picked, nobody is missed, nobody wins.",
+  "description": "Everyone shares one small real thing they're working on; a classmate writes them one line of genuine encouragement. Teacher reviews every line before the wall goes up. Nobody is picked, nobody wins — and passing is always okay (a pass just means no line comes back this round).",
   "featured": true,
   "family": "connection",
   "playTime": "~10 min",
@@ -36,7 +36,7 @@
     "boost": {
       "type": "collect",
       "rotateFrom": "notes",
-      "prompt": "A classmate wrote:\n\n“{{notes.assigned}}”\n\nWrite them ONE line of genuine encouragement. Specific beats generic — talk to the thing they actually said.",
+      "prompt": "A classmate wrote:\n\n“{{notes.assigned}}”\n\nWrite them ONE line of genuine encouragement. Specific beats generic — talk to the thing they actually said.\n\n(Stuck? “Someone in this room is rooting for you” always counts.)",
       "timer": 120,
       "next": "check"
     },

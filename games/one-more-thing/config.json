@@ -31,7 +31,8 @@
       "type": "collect",
       "rotateFrom": "recall",
       "prefillFromAssigned": true,
-      "prompt": "A classmate's list is in the box below. Read it, then ADD one thing they missed — a detail, a missing point, or a connection between ideas. New line, leave their lines alone.",
+      "appendOnly": true,
+      "prompt": "A classmate's list is above — their lines are locked in. ADD one thing they missed: a detail, a missing point, or a connection between ideas.\n\n(List looking empty or thin? Start it yourself — write the biggest thing YOU remember.)",
       "timer": 90,
       "maxLength": 650,
       "next": "add-again"
@@ -40,7 +41,8 @@
       "type": "collect",
       "rotateFrom": "add-one",
       "prefillFromAssigned": true,
-      "prompt": "A different classmate's list — already grown once. Read the whole thing, then ADD one more thing it's still missing. New line.",
+      "appendOnly": true,
+      "prompt": "A different classmate's list — already grown once. Read the whole thing, then ADD one more thing it's still missing.",
       "timer": 90,
       "maxLength": 800,
       "next": "returned"
@@ -54,6 +56,7 @@
         "add-again"
       ],
       "chainDisplay": "final",
+      "hostTemplate": "Everyone's list just came back to its owner — grown by two classmates.\n\nGive the room a quiet minute to read before continuing.",
       "next": "cluster"
     },
     "cluster": {

@@ -249,6 +249,11 @@ export const PHASE_SCHEMAS = {
         label: 'Start the box with the passed item',
         helper: 'With "Rotate items from" set: the classmate\'s item lands IN the text box so this student adds to it (accumulating lists — write, pass, add one). Text answers only.'
       },
+      appendOnly: {
+        type: 'boolean', optional: true,
+        label: 'Protect the passed item (add-only)',
+        helper: 'With "Rotate items from" + prefill: the classmate\'s lines render read-only and this student can only ADD below them — nobody can delete or rewrite a classmate\'s work. The server enforces it.'
+      },
       maxLength: {
         type: 'integer', min: 40, max: 2000, optional: true,
         label: 'Answer length limit',

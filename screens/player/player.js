@@ -675,14 +675,29 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, prefill, maxLength }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, prefill, appendOnly, maxLength }) => {
   showSection(collectSection);
   promptDisplay.textContent = prompt;
-  // prefillFromAssigned: the passed item starts IN the box so this student
-  // adds to it (write → pass → add one). Server enforces the same cap.
   responseMax = Number(maxLength) || RESPONSE_MAX;
   responseInput.maxLength = responseMax;
-  responseInput.value = typeof prefill === 'string' ? prefill : '';
+  // appendOnly: the inherited text renders read-only ABOVE the box — the
+  // student can only add, never edit a classmate's lines (server rebuilds
+  // the stored response from its own copy, so this isn't just cosmetic).
+  var oldInherited = collectSection.querySelector('.inherited-block');
+  if (oldInherited) oldInherited.remove();
+  if (appendOnly && typeof prefill === 'string' && prefill !== '') {
+    var inheritedBlock = document.createElement('div');
+    inheritedBlock.className = 'inherited-block';
+    inheritedBlock.textContent = prefill;
+    responseInput.parentNode.insertBefore(inheritedBlock, responseInput);
+    responseInput.value = '';
+    responseInput.placeholder = 'Add your line below theirs...';
+  } else {
+    // prefillFromAssigned (editable): the passed item starts IN the box so
+    // this student adds to it (write → pass → add one).
+    responseInput.value = typeof prefill === 'string' ? prefill : '';
+    responseInput.placeholder = 'Type your answer here...';
+  }
   if (responseCounter) responseCounter.textContent = responseInput.value.length + ' / ' + responseMax;
   if (responseNotice) responseNotice.hidden = true;
   submitBtn.disabled = false;

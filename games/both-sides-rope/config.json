@@ -50,13 +50,18 @@
     },
     "rope-reveal": {
       "type": "reveal",
-      "template": "THE ROPE\n\n{{rope.result}}",
+      "template": "THE ROPE\n\n{{rope.result}}\n\nRead each side out loud — which pull surprises you?",
       "next": "whatif"
     },
     "whatif": {
       "type": "collect",
       "prompt": "Ask one “What if...?” question about the rope — something that could actually move it. (What if homework took 10 minutes? What if grades didn't exist?)",
       "timer": 90,
+      "next": "whatif-reveal"
+    },
+    "whatif-reveal": {
+      "type": "reveal",
+      "template": "THE WHAT-IFS\n\n{{whatif.responses.list}}\n\nRead these before you vote again — could any of them move you?",
       "next": "stance2"
     },
     "stance2": {
@@ -74,7 +79,7 @@
     },
     "delta": {
       "type": "reveal",
-      "template": "DID THE ROPE MOVE?\n\nWHERE WE STARTED:\n{{stance1.barChart}}\n\nWHERE WE LANDED:\n{{stance2.barChart}}\n\nAnd the questions still pulling at it:\n{{whatif.responses.list}}\n\nChanged your mind? That's not losing — that's thinking.",
+      "template": "DID THE ROPE MOVE?\n\nWHERE WE STARTED:\n{{stance1.barChart}}\n\nWHERE WE LANDED:\n{{stance2.barChart}}\n\nChanged your mind? That's not losing — that's thinking.",
       "next": "end"
     },
     "end": {

@@ -2,7 +2,7 @@
   "name": "Whose Eyes?",
   "description": "The class names everyone a topic touches, then each student steps inside a DIFFERENT classmate's suggestion — 30 viewpoints instead of the 5 a discussion gets. No scores; the circle of voices is the point.",
   "featured": true,
-  "playTime": "~12 min",
+  "playTime": "~15–20 min (scales with class size — the circle reads every voice)",
   "classSize": "4–35 players",
   "tags": [
     "discuss",
@@ -17,8 +17,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "WHOSE EYES?\n\nToday's topic: our school's homework policy.\n\nFirst, name someone — or something — this topic touches. Then you'll get a classmate's suggestion and look through THEIR eyes.",
-      "timer": 12,
+      "message": "WHOSE EYES?\n\nToday's topic: our school's homework policy.\n\nFirst, name someone — or something — this topic touches. Then a classmate's suggestion will appear on your screen, and you'll look through THEIR eyes.",
       "next": "viewpoints"
     },
     "viewpoints": {
@@ -32,10 +31,6 @@
       "rotateFrom": "viewpoints",
       "prompt": "A classmate suggested looking through the eyes of:\n\n{{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing — be an actor.",
       "fields": [
-        {
-          "label": "Whose eyes? (copy the viewpoint above)",
-          "key": "eyes"
-        },
         {
           "label": "From this viewpoint, I think...",
           "key": "think"
@@ -56,7 +51,7 @@
       "type": "reveal-one",
       "message": "The circle of voices — one pair of eyes at a time.",
       "from": "step-inside.responses",
-      "itemTemplate": "Through the eyes of {{_current.eyes}}\n\n“{{_current.think}}”\n\nThey feel: {{_current.feel}}\n\nThey would ask: {{_current.ask}}",
+      "itemTemplate": "Through the eyes of {{_current.assigned}}\n\n“{{_current.fields.think}}”\n\nThey feel: {{_current.fields.feel}}\n\nThey would ask: {{_current.fields.ask}}",
       "next": "end"
     },
     "end": {
