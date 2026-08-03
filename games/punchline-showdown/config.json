@@ -9,7 +9,6 @@
     "intro": {
       "type": "announce",
       "message": "PUNCHLINE SHOWDOWN!\n\nYou'll be paired with one other player and given a silly prompt. Write the funniest answer you can. Then the rest of the class will vote on which one wins.",
-      "timer": 10,
       "next": "prompts"
     },
     "prompts": {
@@ -39,7 +38,6 @@
     "scoreboard": {
       "type": "leaderboard",
       "from": "vote.scores",
-      "timer": 20,
       "next": "end"
     },
     "end": {

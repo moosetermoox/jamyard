@@ -55,7 +55,6 @@
     "reveal": {
       "type": "announce",
       "message": "The truth was: {{trivia.result.truth}}!\n\nWhat the class picked:\n{{vote-truth.barChart}}",
-      "timer": 15,
       "next": "end"
     },
     "end": {

@@ -34,6 +34,7 @@
       "type": "foreach",
       "data": "share.responses",
       "shuffle": true,
+      "limit": 12,
       "subPhases": {
         "show-clues": {
           "type": "announce",

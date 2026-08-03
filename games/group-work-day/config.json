@@ -1,6 +1,6 @@
 {
   "name": "Group Work Day",
-  "description": "Split into groups and work through a shared to-do list — any group member checks items off, the projector shows every group's live progress. The template for lab days, stations, and project work.",
+  "description": "Split into groups and work through a shared to-do list — any group member checks items off, the projector shows every group's live progress. The template for lab days, stations, and project work. Hosted as-is it runs a zero-prep team challenge; swap in your own task list for a real work session.",
   "featured": true,
   "phases": {
     "lobby": {
@@ -23,18 +23,18 @@
       "type": "checklist",
       "prompt": "Work through today's tasks with your group.",
       "items": [
-        "Read the instructions together",
-        "Assign one recorder and one reporter",
-        "Finish the worksheet",
-        "Check your answers with another group",
-        "Clean up your area"
+        "Introduce yourselves and agree on a team name",
+        "Find three things everyone in your group has in common (going to this school doesn't count)",
+        "Agree on one dream field trip — a destination and the reason",
+        "Plan a 30-second pitch for your field trip and pick who delivers it",
+        "Final check: mark this when every member has spoken at least twice"
       ],
       "teamsFrom": "make-groups",
       "next": "wrap"
     },
     "wrap": {
       "type": "announce",
-      "message": "Great work today!\n\n{{worktime.resultsList}}",
+      "message": "Great work today!\n\nGroups — tell the class one thing that slowed you down, and one thing that worked.\n\n{{worktime.resultsList}}",
       "next": "end"
     },
     "end": {

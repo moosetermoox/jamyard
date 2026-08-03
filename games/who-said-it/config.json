@@ -22,6 +22,7 @@
       "type": "foreach",
       "data": "collect-answers.responses",
       "shuffle": true,
+      "limit": 10,
       "candidateSource": "players",
       "decoyCount": 3,
       "subPhases": {
@@ -38,8 +39,7 @@
         },
         "reveal": {
           "type": "announce",
-          "message": "It was {{_current.playerName}}!",
-          "timer": 5
+          "message": "It was {{_current.playerName}}!"
         }
       },
       "scoring": {
@@ -53,7 +53,6 @@
     "scoreboard": {
       "type": "leaderboard",
       "from": "guess-loop.scores",
-      "timer": 15,
       "next": "end"
     },
     "end": {

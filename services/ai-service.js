@@ -139,6 +139,8 @@ const PHASE_EXTRA_GUIDANCE = {
   foreach:
     `Sub-phases can ONLY be: announce, collect, collect-choice. No "next" needed — they chain automatically.
 
+    PACING: iterating over EVERY response means round count = class size — 25 students is ~13 minutes of identical rounds and the room checks out around round 12. When the data source is per-player responses, set "limit" (e.g. 10-12) to run a random sample instead, unless every student's item genuinely must get its own round.
+
     Template variables inside foreach sub-phases:
     - {{_current.text}} — the current item's text content
     - {{_current.playerName}} — who submitted the current item

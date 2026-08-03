@@ -6,6 +6,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { sampleItems } from '../phases/sampling.js';
 
 /**
  * Pure: render one reveal item as a display string.
@@ -49,6 +50,12 @@ registerHandler('reveal-one', {
         items = [items];
       }
     }
+    // limit: cap the reveal at a random sample (a 25-item gallery is a
+    // slideshow — sample the highlights instead). Careful where fairness IS
+    // the point (encouragement walls, return-to-author): leave limit unset
+    // there so every student's item lands.
+    items = sampleItems(items, phase.limit);
+
     // Render each item to its display string. Items carrying a drawing
     // (collect responses with inputType:"drawing") keep their strokes so
     // the clients can paint them — everything else flattens to text.

@@ -1116,6 +1116,11 @@ export const PHASE_SCHEMAS = {
         type: 'templateString', optional: true,
         label: 'Per-item template',
         description: 'How each revealed item displays. Use {{_current.field}} to pull values from the item (e.g. "{{_current.playerName}}: {{_current.critique}}"). Without it, object items render as raw JSON.'
+      },
+      limit: {
+        type: 'integer', min: 1, max: 100, optional: true,
+        label: 'Max items (random sample)',
+        description: 'Cap the reveal at a sample of the items. Leave blank when every student\'s item must appear (encouragement walls, return-to-author reveals).'
       }
     },
     transitions: {
@@ -1464,6 +1469,11 @@ export const PHASE_SCHEMAS = {
       shuffle: {
         type: 'boolean', default: true, optional: true,
         label: 'Shuffle iteration order'
+      },
+      limit: {
+        type: 'integer', min: 1, max: 100, optional: true,
+        label: 'Max rounds (random sample)',
+        description: 'Cap how many items actually run — a round per response drags past ~12 in a full class. Leave blank to run every item.'
       },
       selfExclude: {
         type: 'boolean', default: true, optional: true,

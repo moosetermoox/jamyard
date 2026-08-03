@@ -29,6 +29,7 @@
       "type": "foreach",
       "data": "collect.responses",
       "shuffle": true,
+      "limit": 10,
       "subPhases": {
         "show-statements": {
           "type": "announce",
@@ -74,7 +75,6 @@
       "type": "leaderboard",
       "from": "foreach-player.scores",
       "style": "full",
-      "timer": 15,
       "next": "winner"
     },
     "winner": {

@@ -47,11 +47,12 @@
       "type": "foreach",
       "data": "collect.responses",
       "shuffle": true,
+      "limit": 12,
       "subPhases": {
         "show": {
           "type": "announce",
           "message": "{{_current.playerName}} asks:\n\n{{_current.fields.question}}",
-          "timer": 4
+          "timer": 8
         },
         "guess": {
           "type": "collect-choice",
@@ -61,8 +62,7 @@
         },
         "reveal": {
           "type": "announce",
-          "message": "The correct answer was:\n\n{{_current.fields.correct}}",
-          "timer": 6
+          "message": "The correct answer was:\n\n{{_current.fields.correct}}"
         }
       },
       "next": "final-scores",
@@ -76,7 +76,6 @@
       "type": "leaderboard",
       "from": "quiz.scores",
       "style": "full",
-      "timer": 15,
       "next": "winner"
     },
     "winner": {

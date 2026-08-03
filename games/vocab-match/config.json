@@ -1,6 +1,6 @@
 {
   "name": "Vocab Match",
-  "description": "Two quick match-the-pairs rounds (French words, then inventors) with a leaderboard — the template for any vocab/definitions review.",
+  "description": "Two quick match-the-pairs rounds (French animals, then French food) with a leaderboard — the template for any vocab/definitions review. Swap in your own pairs for any subject.",
   "featured": true,
   "phases": {
     "lobby": {
@@ -36,6 +36,10 @@
         {
           "left": "cheval",
           "right": "horse"
+        },
+        {
+          "left": "vache",
+          "right": "cow"
         }
       ],
       "pointsPerMatch": 10,
@@ -44,23 +48,31 @@
     },
     "round2": {
       "type": "match",
-      "prompt": "Match each invention to its inventor",
+      "prompt": "Round 2 — match each French food word to its English meaning",
       "pairs": [
         {
-          "left": "Telephone",
-          "right": "Alexander Graham Bell"
+          "left": "pain",
+          "right": "bread"
         },
         {
-          "left": "Light bulb",
-          "right": "Thomas Edison"
+          "left": "pomme",
+          "right": "apple"
         },
         {
-          "left": "Printing press",
-          "right": "Johannes Gutenberg"
+          "left": "fromage",
+          "right": "cheese"
         },
         {
-          "left": "World Wide Web",
-          "right": "Tim Berners-Lee"
+          "left": "lait",
+          "right": "milk"
+        },
+        {
+          "left": "poulet",
+          "right": "chicken"
+        },
+        {
+          "left": "eau",
+          "right": "water"
         }
       ],
       "pointsPerMatch": 10,
@@ -78,7 +90,7 @@
     },
     "end": {
       "type": "end",
-      "message": "That's Vocab Match! Swap in your own pairs for any unit review."
+      "message": "That's Vocab Match! Twelve words closer to fluent."
     }
   },
   "tags": [

@@ -55,7 +55,6 @@
     "reveal": {
       "type": "announce",
       "message": "{{wordpick.result.word}} actually means:\n\n{{wordpick.result.truth}}\n\nClass votes:\n{{vote-def.barChart}}",
-      "timer": 20,
       "next": "end"
     },
     "end": {

@@ -10,11 +10,6 @@
       "type": "announce",
       "message": "Welcome to Feedback Academy! You'll practice giving effective formative feedback.\n\nFirst: Practice on AI scenarios\nThen: Give feedback to real classmates\n\nRemember: Great feedback is specific, actionable, timely, and focused on improvement!",
       "timer": 12,
-      "next": "choose-topic"
-    },
-    "choose-topic": {
-      "type": "announce",
-      "message": "Teacher: Choose what students will give feedback on this round.\n\nExamples:\n- A paragraph of writing\n- A math problem solution\n- A project idea\n- A presentation outline\n- A design sketch description",
       "next": "practice-intro"
     },
     "practice-intro": {
@@ -45,34 +40,14 @@
     },
     "coach-feedback": {
       "type": "ai-process",
-      "task": "judge",
-      "format": "json",
-      "instruction": "You are a friendly feedback coach helping students improve. Evaluate each student's feedback and rate it 1-100 based on how specific, actionable, and encouraging it is. For each student, return: {\"playerId\": \"id\", \"score\": 0-100, \"strengths\": \"one thing they did really well in their feedback\", \"coaching\": \"one specific tip to make their feedback even better\"}. Use friendly, encouraging language like you're coaching a friend, not writing a research paper. Be honest but kind.",
+      "task": "summarize",
+      "instruction": "You are a friendly feedback coach. Read all the feedback the class just wrote about the practice scenario. In 4-6 warm sentences addressed to the whole class: name two things the class did well (quote a short snippet or two, never with names), then give the ONE most common way this class could make its feedback more specific and actionable. Coach a team, don't grade individuals — no scores, no rankings.",
       "input": "practice-feedback.responses",
       "next": "reveal-coaching"
     },
     "reveal-coaching": {
-      "type": "foreach",
-      "data": "practice-feedback.responses",
-      "subPhases": {
-        "show-original": {
-          "type": "announce",
-          "message": "{{_current.playerName}}'s feedback:\n\n\"{{_current.text}}\"",
-          "timer": 8
-        },
-        "show-coaching": {
-          "type": "announce",
-          "message": "AI Coach says:\n\n✓ Strengths: {{coach-feedback.result}}\n\n→ Coaching: {{coach-feedback.result}}\n\nScore: {{coach-feedback.result}}/100",
-          "timer": 12
-        }
-      },
-      "next": "practice-scores"
-    },
-    "practice-scores": {
-      "type": "leaderboard",
-      "from": "coach-feedback.result",
-      "style": "full",
-      "timer": 10,
+      "type": "announce",
+      "message": "FEEDBACK COACH\n\n{{coach-feedback.result}}",
       "next": "real-intro"
     },
     "real-intro": {
@@ -83,65 +58,43 @@
     },
     "collect-work": {
       "type": "collect",
-      "prompt": "Submit your work for peer feedback.\n\n(Teacher will specify what to submit based on the topic chosen earlier)\n\nThis will be shared anonymously with a classmate who will give you feedback.",
+      "prompt": "Submit your work for peer feedback — your teacher will say what to submit (a paragraph, a solution, a project idea...).\n\nIt will be shared anonymously with one classmate, who will write you feedback.",
       "timer": 120,
       "from": "all",
       "next": "real-feedback-round"
     },
     "real-feedback-round": {
-      "type": "foreach",
-      "data": "collect-work.responses",
-      "shuffle": true,
-      "subPhases": {
-        "show-work": {
-          "type": "announce",
-          "message": "A classmate submitted:\n\n\"{{_current.text}}\"\n\nYour turn to give them helpful feedback!",
-          "timer": 8
-        },
-        "give-feedback": {
-          "type": "collect",
-          "prompt": "Give formative feedback on:\n\n\"{{_current.text}}\"\n\nBe specific, actionable, and constructive. Help them improve!",
-          "timer": 90
-        }
-      },
+      "type": "collect",
+      "rotateFrom": "collect-work",
+      "prompt": "A classmate submitted:\n\n\"{{collect-work.assigned}}\"\n\nGive them formative feedback that would actually help. Be specific, actionable, and constructive — strengths AND one concrete next step.",
+      "timer": 150,
       "next": "coach-real-feedback"
     },
     "coach-real-feedback": {
       "type": "ai-process",
-      "task": "judge",
-      "format": "json",
-      "instruction": "You are an expert feedback coach. Evaluate the quality of each student's peer feedback using the same criteria as before: specificity, actionability, growth orientation, and balance. For each, return: {\"playerId\": \"id\", \"score\": 0-100, \"strengths\": \"what improved from practice round\", \"coaching\": \"one key insight for next time\"}. Compare to their practice round if possible - did they apply the coaching? Score generously for genuine effort and improvement. Return array of all evaluations.",
+      "task": "summarize",
+      "instruction": "You are a friendly feedback coach watching a class practice peer feedback. Read the feedback they wrote for each other. In 3-5 warm sentences addressed to the whole class: say whether the four pillars (specific, actionable, growth-focused, balanced) showed up more than in a typical first try, and quote two great moves you saw (short snippets, never with names). No scores, no rankings — coach the team.",
       "input": "real-feedback-round.responses",
-      "next": "final-coaching"
+      "next": "returned-feedback"
     },
-    "final-coaching": {
-      "type": "foreach",
-      "data": "collect-work.responses",
-      "subPhases": {
-        "show-feedback-received": {
-          "type": "announce",
-          "message": "{{_current.playerName}}'s work:\n\"{{_current.text}}\"\n\nReceived this feedback:\n\"[feedback text here]\"",
-          "timer": 10
-        },
-        "show-quality": {
-          "type": "announce",
-          "message": "AI Coach evaluation of the feedback:\n\n✓ Strengths: {{coach-real-feedback.result}}\n\n→ For next time: {{coach-real-feedback.result}}\n\nScore: {{coach-real-feedback.result}}/100",
-          "timer": 12
-        }
-      },
-      "next": "final-scores"
+    "returned-feedback": {
+      "type": "reveal",
+      "scope": "own",
+      "chainFrom": [
+        "collect-work",
+        "real-feedback-round"
+      ],
+      "chainDisplay": "steps",
+      "next": "coach-summary"
     },
-    "final-scores": {
-      "type": "leaderboard",
-      "from": "coach-real-feedback.result",
-      "style": "full",
-      "timer": 12,
+    "coach-summary": {
+      "type": "announce",
+      "message": "FEEDBACK COACH — REAL ROUND\n\n{{coach-real-feedback.result}}",
       "next": "reflection"
     },
     "reflection": {
       "type": "announce",
       "message": "Great work, Feedback Academy graduates!\n\nKey takeaways:\n• Specific > vague\n• Actionable > judgmental\n• Growth-focused > fixed\n• Balanced > one-sided\n\nKeep practicing these skills in all your peer feedback!",
-      "timer": 10,
       "next": "end"
     },
     "end": {

@@ -261,22 +261,18 @@ describe('validator diagnostics — game snapshot', () => {
       'elimination-game': [],
       'finish-my-drawing': [],
       'excuse-machine': [],
-      // 2026-06-10 sweep: stale fields removed, [object Object]/raw-{{_current}}
-      // leaks fixed (reveal-one itemTemplate). The remaining mismatches are
-      // structural: their leaderboards consume judge-task result objects.
-      'feedback-academy': ['DATA_REF_TYPE_MISMATCH'],
-      'feedback-coach-academy': ['DATA_REF_TYPE_MISMATCH'],
+      // 2026-08-02 coherence sweep: feedback-academy's judge-result leaderboards
+      // (the DATA_REF_TYPE_MISMATCH source) replaced by class-level coaching +
+      // return-to-author reveal — clean now.
+      'feedback-academy': [],
       'group-work-day': [],
       'human-vs-ai-birthday-party-battle': [],
       'lightning-round': [],
-      'llm-or-duck': [],
       'mad-lib-mashup': ['DATA_REF_TYPE_MISMATCH'],
       'metaphor-or-simile': [],
       'mood-check': [],
       'one-voice': [],
-      'roast-me-if-you-can': [],
       'scamper': [],
-      'simple-poll': [],
       'snowball': [],
       'story-builder': [],
       'story-quest': [],

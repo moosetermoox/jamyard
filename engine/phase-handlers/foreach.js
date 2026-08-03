@@ -10,6 +10,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { sampleItems } from '../phases/sampling.js';
 
 registerHandler('foreach', {
   async onEnter(ctx) {
@@ -88,6 +89,16 @@ registerHandler('foreach', {
       finalItems = phase.shuffle !== false ? shuffleArray(finalItems) : finalItems;
     } else {
       finalItems = items;
+    }
+
+    // limit: cap how many iterations actually run (random sample — with 25
+    // students, a round per response kills the room around round 12)
+    if (finalItems.length > 0 && phase.limit) {
+      const before = finalItems.length;
+      finalItems = sampleItems(finalItems, phase.limit);
+      if (finalItems.length < before) {
+        console.log(`[foreach] '${phase.id}' limit ${phase.limit}: sampled ${finalItems.length} of ${before} items`);
+      }
     }
 
     engine.foreachState[phase.id] = {

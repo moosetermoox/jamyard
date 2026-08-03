@@ -33,6 +33,7 @@
       "type": "foreach",
       "data": "ask.responses",
       "shuffle": true,
+      "limit": 10,
       "subPhases": {
         "show": {
           "type": "announce",
@@ -50,8 +51,7 @@
         },
         "reveal": {
           "type": "announce",
-          "message": "{{_current.playerName}} answered: {{_current.choice}}",
-          "timer": 5
+          "message": "{{_current.playerName}} answered: {{_current.choice}}"
         }
       },
       "scoring": {
@@ -65,7 +65,6 @@
     "scoreboard": {
       "type": "leaderboard",
       "from": "guess-loop.scores",
-      "timer": 20,
       "next": "end"
     },
     "end": {

@@ -11,11 +11,8 @@
     },
     "intro": {
       "type": "announce",
-      "message": "Class Critique\n\nThe presenter will share their idea with the class. When they're done, you'll rate it on three scales. Be honest and constructive.",
-      "timer": 15,
-      "next": "rate-it",
-      "image": "assets/02hest-kids-superjumbo-mp3efnnp.webp",
-      "hostTemplate": "happy birthday "
+      "message": "Class Critique\n\nThe presenter shares their idea now — give them your full attention. When they finish, you'll rate it on three scales. Be honest and constructive.",
+      "next": "rate-it"
     },
     "rate-it": {
       "type": "rate",
@@ -61,8 +58,8 @@
       "message": "Critique complete."
     },
     "phase-4": {
-      "type": "reveal",
-      "timer": 15,
+      "type": "announce",
+      "message": "Talk it out\n\nWhere did we disagree the most? Presenter — which score surprised you, and what's one thing you'd change based on the charts?",
       "next": "end"
     }
   },

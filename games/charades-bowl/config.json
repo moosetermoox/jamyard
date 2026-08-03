@@ -104,7 +104,6 @@
         "round2.teamScores",
         "round3.teamScores"
       ],
-      "timer": 30,
       "next": "end"
     },
     "end": {

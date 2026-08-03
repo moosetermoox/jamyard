@@ -70,7 +70,6 @@
       "type": "leaderboard",
       "from": "ai-judge.result",
       "style": "full",
-      "timer": 12,
       "next": "bonus-round-intro"
     },
     "bonus-round-intro": {
@@ -129,7 +128,6 @@
       "type": "leaderboard",
       "from": "final-vote.scores",
       "style": "full",
-      "timer": 10,
       "next": "end"
     },
     "end": {

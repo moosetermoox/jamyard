@@ -1,6 +1,6 @@
 {
   "name": "Speed Quiz",
-  "description": "One trivia question, race to answer. Faster correct answers earn more points (Kahoot-style).",
+  "description": "Five trivia questions, race to answer. Faster correct answers earn more points (Kahoot-style). Swap in your own questions for any unit review.",
   "featured": true,
   "phases": {
     "lobby": {
@@ -9,11 +9,10 @@
     },
     "intro": {
       "type": "announce",
-      "message": "SPEED QUIZ!\n\nOne question. Four choices. Get it right fast for max points � your score drops the longer you take.",
-      "timer": 6,
-      "next": "ask"
+      "message": "SPEED QUIZ!\n\nFive questions. Four choices each. Get it right fast for max points — your score drops the longer you take.",
+      "next": "ask1"
     },
-    "ask": {
+    "ask1": {
       "type": "collect-choice",
       "prompt": "What is the capital of Australia?",
       "choices": [
@@ -26,26 +25,111 @@
       "pointsCorrect": 1000,
       "speedBonus": true,
       "timer": 15,
-      "next": "reveal"
+      "next": "reveal1"
     },
-    "reveal": {
+    "reveal1": {
       "type": "announce",
-      "message": "The answer was: Canberra!\n\nClass picks:\n{{ask.barChart}}",
-      "timer": 8,
+      "message": "The answer was: Canberra!\n\nClass picks:\n{{ask1.barChart}}",
+      "next": "ask2"
+    },
+    "ask2": {
+      "type": "collect-choice",
+      "prompt": "Which planet is closest to the Sun?",
+      "choices": [
+        "Venus",
+        "Mars",
+        "Mercury",
+        "Jupiter"
+      ],
+      "correctAnswer": "Mercury",
+      "pointsCorrect": 1000,
+      "speedBonus": true,
+      "timer": 15,
+      "next": "reveal2"
+    },
+    "reveal2": {
+      "type": "announce",
+      "message": "The answer was: Mercury!\n\nClass picks:\n{{ask2.barChart}}",
+      "next": "ask3"
+    },
+    "ask3": {
+      "type": "collect-choice",
+      "prompt": "How many sides does a hexagon have?",
+      "choices": [
+        "Five",
+        "Six",
+        "Seven",
+        "Eight"
+      ],
+      "correctAnswer": "Six",
+      "pointsCorrect": 1000,
+      "speedBonus": true,
+      "timer": 15,
+      "next": "reveal3"
+    },
+    "reveal3": {
+      "type": "announce",
+      "message": "The answer was: Six!\n\nClass picks:\n{{ask3.barChart}}",
+      "next": "ask4"
+    },
+    "ask4": {
+      "type": "collect-choice",
+      "prompt": "Which is the largest ocean on Earth?",
+      "choices": [
+        "Atlantic",
+        "Indian",
+        "Arctic",
+        "Pacific"
+      ],
+      "correctAnswer": "Pacific",
+      "pointsCorrect": 1000,
+      "speedBonus": true,
+      "timer": 15,
+      "next": "reveal4"
+    },
+    "reveal4": {
+      "type": "announce",
+      "message": "The answer was: Pacific!\n\nClass picks:\n{{ask4.barChart}}",
+      "next": "ask5"
+    },
+    "ask5": {
+      "type": "collect-choice",
+      "prompt": "In what year did World War II end?",
+      "choices": [
+        "1943",
+        "1944",
+        "1945",
+        "1946"
+      ],
+      "correctAnswer": "1945",
+      "pointsCorrect": 1000,
+      "speedBonus": true,
+      "timer": 15,
+      "next": "reveal5"
+    },
+    "reveal5": {
+      "type": "announce",
+      "message": "The answer was: 1945!\n\nClass picks:\n{{ask5.barChart}}\n\nLast stop: the leaderboard.",
       "next": "scores"
     },
     "scores": {
       "type": "leaderboard",
-      "from": "ask.scores",
-      "timer": 20,
+      "from": [
+        "ask1.scores",
+        "ask2.scores",
+        "ask3.scores",
+        "ask4.scores",
+        "ask5.scores"
+      ],
+      "style": "full",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "Thanks for playing!"
+      "message": "That's Speed Quiz! Five questions, no mercy."
     }
   },
-  "playTime": "~2 min",
+  "playTime": "~5 min",
   "classSize": "1-30 players",
   "tags": [
     "quiz",
@@ -54,5 +138,5 @@
     "energize",
     "review"
   ],
-  "recommendedFor": "Quick warm-up. Edit the question + correct answer in the editor for any topic."
+  "recommendedFor": "Quick warm-up or unit review. Swap the five questions in the editor for any topic — the speed scoring does the rest."
 }

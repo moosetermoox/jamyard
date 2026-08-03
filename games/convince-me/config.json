@@ -42,6 +42,7 @@
       "type": "foreach",
       "data": "prep.responses",
       "shuffle": true,
+      "limit": 8,
       "subPhases": {
         "intro-speaker": {
           "type": "announce",
@@ -82,7 +83,6 @@
       "type": "leaderboard",
       "from": "speeches.scores",
       "style": "full",
-      "timer": 20,
       "next": "conclusion"
     },
     "conclusion": {

@@ -1,6 +1,6 @@
 {
   "name": "Lightning Round",
-  "description": "A buzzer round plus two guess-the-number questions — quick-fire class energy with a leaderboard at the end.",
+  "description": "A buzzer round plus two guess-the-number questions — quick-fire class energy with a leaderboard at the end. Teacher: bring about 5 quick questions to ask out loud in the buzzer round (any subject works).",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -8,8 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "LIGHTNING ROUND!\n\nFirst: a buzzer round — questions are asked out loud. Buzz fast, answer faster. Wrong answers are locked out until the next question.\n\nThen: guess-the-number. Closest guess wins the points.",
-      "timer": 10,
+      "message": "LIGHTNING ROUND!\n\nFirst: a buzzer round — your teacher asks about 5 questions out loud. Buzz fast, answer faster. Wrong answers are locked out until the next question.\n\nThen: guess-the-number. Closest guess wins the points.",
       "next": "buzzer"
     },
     "buzzer": {
@@ -49,11 +48,11 @@
     },
     "end": {
       "type": "end",
-      "message": "That's the Lightning Round! Same time next week."
+      "message": "That's the Lightning Round! Rematch anytime."
     }
   },
   "tags": [
-    "energize",
-    "review"
-  ]
+    "energize"
+  ],
+  "recommendedFor": "Zero-prep energizer — any subject. Out of questions? Starter pack: How many bones in an adult human body? (206) · What's the largest planet? (Jupiter) · How many strings on a standard guitar? (6) · What year did the first iPhone launch? (2007) · How many continents are there? (7)"
 }

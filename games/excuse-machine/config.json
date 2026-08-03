@@ -22,6 +22,7 @@
       "type": "foreach",
       "data": "write-excuse.responses",
       "shuffle": true,
+      "limit": 12,
       "subPhases": {
         "show-excuse": {
           "type": "announce",
@@ -41,8 +42,7 @@
         },
         "result": {
           "type": "announce",
-          "message": "That excuse was by {{_current.playerName}}!",
-          "timer": 4
+          "message": "That excuse was by {{_current.playerName}}!"
         }
       },
       "scoring": {
@@ -60,7 +60,6 @@
     "scoreboard": {
       "type": "leaderboard",
       "from": "rate-loop.scores",
-      "timer": 15,
       "next": "end"
     },
     "end": {

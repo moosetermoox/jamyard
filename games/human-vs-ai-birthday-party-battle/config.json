@@ -28,8 +28,9 @@
       "type": "foreach",
       "data": "collect-ideas.responses",
       "shuffle": true,
+      "limit": 8,
       "aiInject": {
-        "count": 3,
+        "count": 4,
         "instruction": "Generate creative, detailed birthday party ideas (at least 240 characters each). Match the tone, detail level, and creativity of the real student submissions. Make each idea unique — mix whimsical, sophisticated, and adventurous themes. Do NOT make them obviously AI-generated."
       },
       "pairMode": "human-vs-ai",
@@ -69,7 +70,6 @@
       "type": "leaderboard",
       "from": "foreach-pairs.scores",
       "message": "AI Detection Leaderboard",
-      "timer": 20,
       "next": "end"
     },
     "end": {
