@@ -51,8 +51,12 @@ import {
   listFeedback,
   setFeedbackStatus,
   recordActivityRun,
-  activityRunSummary
+  activityRunSummary,
+  getFeaturedOverrides,
+  setFeaturedOverride,
+  clearFeaturedOverride
 } from './db.js';
+import { applyFeaturedOverrides } from './engine/featured-merge.js';
 import { createFeedbackStore } from './services/feedback-store.js';
 import { validateFeedback } from './engine/feedback-validate.js';
 import { createRateLimiter } from './engine/simple-rate-limit.js';
@@ -183,6 +187,19 @@ const USER_GAMES_DIR = join(GAMES_DIR, 'user');
 // owner mode only see featured built-ins (plus activities made on their
 // own device) in the host/designer/prototype pickers.
 const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor', 'featured', 'family'];
+
+// Owner curation of built-ins lives in Neon (featured_overrides) because the
+// deployed filesystem resets on every push. A read failure must never take
+// down the pickers — fall back to the repo defaults.
+async function featuredOverridesSafe() {
+  if (!DB_ENABLED) return {};
+  try {
+    return await getFeaturedOverrides();
+  } catch (err) {
+    console.log(`[featured] Override read failed (using repo defaults): ${err.message}`);
+    return {};
+  }
+}
 
 function pickCardMeta(config) {
   const out = {};
@@ -1925,7 +1942,7 @@ app.get('/api/games', async (req, res) => {
       }
     }
 
-    res.json({ games });
+    res.json({ games: applyFeaturedOverrides(games, await featuredOverridesSafe()) });
   } catch (error) {
     console.log(`[api/games] Error: ${error.message}`);
     res.status(500).json({ games: [], error: 'Failed to load games' });
@@ -2023,6 +2040,54 @@ app.get('/api/activity-runs', async (req, res) => {
   } catch (err) {
     console.log(`[api/activity-runs] Error: ${err.message}`);
     res.status(500).json({ error: 'Could not load run counts.' });
+  }
+});
+
+// Owner curation: flip a game's featured flag DURABLY. Built-in flags flipped
+// via the old whole-config PUT landed on Render's ephemeral disk and silently
+// reverted on every deploy — with the DB on, built-ins now persist to the
+// featured_overrides table (repo flags stay the defaults). User games keep the
+// flag inside their config (already durable in user_games / local disk).
+app.post('/api/games/:gameId/featured', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    if (!req.body || typeof req.body.featured !== 'boolean') {
+      return res.status(400).json({ error: 'Body must be { "featured": true|false }.' });
+    }
+    const featured = req.body.featured;
+
+    if (DB_ENABLED && await userGameExists(gameId)) {
+      const row = await getUserGame(gameId);
+      const config = { ...row.config, featured };
+      await saveUserGame(gameId, config);
+      return res.json({ success: true, featured, storage: 'user-config' });
+    }
+
+    const { configPath, source } = await resolveGamePath(gameId);
+    if (source === 'built-in' && !isOwnerRequest(req)) {
+      res.set('WWW-Authenticate', 'Basic realm="Lanyard Owner Area"');
+      return res.status(401).json({ error: 'Curating a built-in activity requires the owner password.' });
+    }
+    if (source === 'built-in' && DB_ENABLED) {
+      // Flipping back to the repo default clears the override instead of
+      // storing a redundant row — no drift marker, repo regains control.
+      const repoConfig = JSON.parse(await readFile(configPath, 'utf-8'));
+      if (featured === !!repoConfig.featured) {
+        await clearFeaturedOverride(gameId);
+        return res.json({ success: true, featured, storage: 'default' });
+      }
+      await setFeaturedOverride(gameId, featured);
+      return res.json({ success: true, featured, storage: 'override' });
+    }
+    // Local dev (no DB) or filesystem user game: the disk IS durable here.
+    const config = JSON.parse(await readFile(configPath, 'utf-8'));
+    config.featured = featured;
+    await writeFile(configPath, JSON.stringify(config, null, 2));
+    res.json({ success: true, featured, storage: 'config' });
+  } catch (error) {
+    console.log(`[api/games featured] Error: ${error.message}`);
+    const missing = /not found|ENOENT/i.test(error.message);
+    res.status(missing ? 404 : 500).json({ error: missing ? 'Activity not found.' : 'Could not change featured.' });
   }
 });
 
@@ -2418,7 +2483,7 @@ io.on('connection', (socket) => {
           games.push({ id: row.id, source: 'user', name: row.name, description: row.config.description || '', featured: !!row.config.featured });
         }
       }
-      socket.emit(EVENTS.GAMES_LIST, { games });
+      socket.emit(EVENTS.GAMES_LIST, { games: applyFeaturedOverrides(games, await featuredOverridesSafe()) });
     } catch (error) {
       console.log(`[get-games] Error: ${error.message}`);
       socket.emit(EVENTS.GAMES_LIST, { games: [] });

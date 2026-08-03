@@ -53,6 +53,13 @@ export async function initDb() {
     )
   `;
   await getSql()`
+    CREATE TABLE IF NOT EXISTS featured_overrides (
+      game_id     TEXT        PRIMARY KEY,
+      featured    BOOLEAN     NOT NULL,
+      updated_at  TIMESTAMPTZ DEFAULT now()
+    )
+  `;
+  await getSql()`
     CREATE TABLE IF NOT EXISTS feedback (
       id          SERIAL      PRIMARY KEY,
       created_at  TIMESTAMPTZ DEFAULT now(),
@@ -196,6 +203,35 @@ export async function activityRunSummary() {
     WHERE started_at > now() - interval '7 days'
   `;
   return { totals, lastSevenDays: week[0] ? week[0].runs : 0 };
+}
+
+// --- Featured overrides (owner curation of BUILT-IN activities must survive
+// --- redeploys — the ★ toggle used to write config.json on Render's
+// --- ephemeral disk and silently revert on every push. Repo flags stay the
+// --- defaults; a row here wins.) ---
+
+export async function getFeaturedOverrides() {
+  const rows = await getSql()`SELECT game_id, featured FROM featured_overrides`;
+  const map = {};
+  for (const r of rows) map[r.game_id] = !!r.featured;
+  return map;
+}
+
+export async function setFeaturedOverride(gameId, featured) {
+  await getSql()`
+    INSERT INTO featured_overrides (game_id, featured, updated_at)
+    VALUES (${gameId}, ${!!featured}, now())
+    ON CONFLICT (game_id) DO UPDATE SET
+      featured   = EXCLUDED.featured,
+      updated_at = now()
+  `;
+}
+
+export async function clearFeaturedOverride(gameId) {
+  const rows = await getSql()`
+    DELETE FROM featured_overrides WHERE game_id = ${gameId} RETURNING game_id
+  `;
+  return rows.length > 0;
 }
 
 // --- Site feedback (anonymous by design — no name/email columns on purpose;

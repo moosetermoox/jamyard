@@ -207,27 +207,25 @@ function rememberMine(id) {
   if (window.MyGames) MyGames.add(id);
 }
 
-// Owner ★ toggle: flips `featured` on the config and saves it back. For
-// built-ins the server demands the owner password (the browser has it cached
-// after the owner unlock). Note: built-in flags flipped on a deployed server
-// last until the next redeploy — the durable place for those is the repo.
+// Owner ★ toggle: durable curation via /api/games/:id/featured. Built-in
+// flips land in the Neon featured_overrides table, so they SURVIVE redeploys
+// (the old whole-config PUT wrote to the ephemeral disk and silently reverted
+// on every push). The repo config flag stays the default; the card shows a
+// marker when the live state differs from it.
 async function toggleFeatured(game) {
   try {
-    var resp = await fetch('/api/games/' + encodeURIComponent(game.id));
-    if (!resp.ok) throw new Error('could not load the activity');
-    var config = await resp.json();
-    config.featured = !config.featured;
-    var save = await fetch('/api/games/' + encodeURIComponent(game.id), {
-      method: 'PUT',
+    var save = await fetch('/api/games/' + encodeURIComponent(game.id) + '/featured', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config)
+      body: JSON.stringify({ featured: !game.featured })
     });
     if (!save.ok) {
       var saveData = {};
       try { saveData = await save.json(); } catch (e) {}
       throw new Error(saveData.error || 'save failed (status ' + save.status + ')');
     }
-    game.featured = !!config.featured;
+    var result = await save.json();
+    game.featured = !!result.featured;
     refreshLibrary();
   } catch (err) {
     alert('Could not change featured: ' + err.message);
@@ -490,10 +488,14 @@ function buildGameCard(game) {
   if (window.OwnerMode && OwnerMode.isOn()) {
     var starBtn = document.createElement('button');
     starBtn.className = 'game-card-star' + (game.featured ? ' is-featured' : '');
-    starBtn.textContent = game.featured ? '★ Featured' : '☆ Feature';
-    starBtn.title = game.featured
+    // Live state can legitimately differ from the repo's default (overrides
+    // live in the DB) — mark the drift so it's visible, never silent.
+    var drift = game.featuredDefault !== undefined && game.featuredDefault !== game.featured;
+    starBtn.textContent = (game.featured ? '★ Featured' : '☆ Feature') + (drift ? ' •' : '');
+    starBtn.title = (game.featured
       ? 'Shown to everyone — click to remove from the public list'
-      : 'Hidden from visitors — click to add to the public list';
+      : 'Hidden from visitors — click to add to the public list')
+      + (drift ? ' (differs from the repo default — a saved override is in effect)' : '');
     starBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       toggleFeatured(game);
