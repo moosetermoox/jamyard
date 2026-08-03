@@ -2647,3 +2647,19 @@ textarea.sar-input {
   padding: 8px 12px;
   margin-bottom: 10px;
 }
+
+/* The + between steps whispers until hovered (teacher: "overly prominent") */
+.builder-plus:not(.open) {
+  width: 22px;
+  height: 22px;
+  font-size: 0.8rem;
+  box-shadow: none;
+  opacity: 0.3;
+  transition: opacity 0.12s, transform 0.12s;
+}
+.builder-plus:not(.open):hover {
+  opacity: 1;
+  transform: scale(1.15);
+  box-shadow: 2px 2px 0 #000;
+}
+.builder-plusline { margin: -6px 0 6px; }
