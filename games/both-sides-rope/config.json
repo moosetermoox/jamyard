@@ -37,14 +37,24 @@
     },
     "evidence": {
       "type": "collect",
-      "prompt": "Give the strongest single piece of evidence you know — on EITHER side, not just yours. Start with YES: or NO: so we know which way it pulls.",
-      "timer": 120,
+      "prompt": "Build the rope from BOTH ends — one piece of evidence for each side. Arguing the side you DON'T agree with is the real skill. (Stuck on one side? Give it your best guess anyway.)",
+      "fields": [
+        {
+          "label": "Strongest evidence for YES",
+          "key": "yes"
+        },
+        {
+          "label": "Strongest evidence for NO",
+          "key": "no"
+        }
+      ],
+      "timer": 150,
       "next": "rope"
     },
     "rope": {
       "type": "ai-process",
       "task": "summarize",
-      "instruction": "These are pieces of evidence about the claim 'Homework should be optional.' Sort them into a YES side and a NO side (use the YES:/NO: prefixes where present; judge the rest by content). Present it as a tug-of-war rope: each side's evidence strongest-first as short bullet lines, duplicates merged but every distinct idea kept. Finish with ONE line naming where the rope strains hardest — the strongest tension between the two sides. Do not declare a winner.",
+      "instruction": "These are pieces of evidence about the claim 'Homework should be optional.' Each submission has two parts separated by ' | ': the FIRST part is evidence for YES, the SECOND part is evidence for NO. Build the two sides from those parts. Present it as a tug-of-war rope: each side's evidence strongest-first as short bullet lines, duplicates merged but every distinct idea kept. Finish with ONE line naming where the rope strains hardest — the strongest tension between the two sides. Do not declare a winner.",
       "input": "evidence.responses",
       "next": "rope-reveal"
     },
