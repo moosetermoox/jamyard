@@ -39,6 +39,7 @@
   var openGapAfter = null;    // gap whose suggestion row is open (null = frontier)
   var aiFlavorGap = null;     // gap currently showing the AI flavor question
   var finishDismissed = false;
+  var pendingSetupId = null;  // skeleton step awaiting its settings
 
   // Original home of the relocated settings sidebar. The step form
   // (#phase-config-form) is already a portable node — editor.js moves it
@@ -197,7 +198,9 @@
     }
 
     var phase = S.defaultPhaseFor(type, ctx);
+    var isSkeleton = false;
     if (!phase) {
+      isSkeleton = true;
       // No certified default — insert a skeleton; the rail's real
       // settings form opens so the teacher fills in what the step needs.
       // Save-time validation catches anything missing.
@@ -205,6 +208,7 @@
     }
     var id = S.freshId(p, BASE_IDS[type] || type);
     S.insertAfter(p, after, id, phase);
+    pendingSetupId = isSkeleton ? id : null;
     afterInsert(id);
   }
 
@@ -584,6 +588,13 @@
       if (settingsPanel) settingsPanel.classList.add('builder-hidden');
       renderRailPrimary();
       railBodyEl.appendChild(railPrimary);
+      var oldNudge = railBodyEl.querySelector('.builder-setup-nudge');
+      if (oldNudge) oldNudge.remove();
+      if (selectedId === pendingSetupId) {
+        var nudge = el('p', 'builder-setup-nudge',
+          'New step — fill in its settings below to make it playable.');
+        railBodyEl.insertBefore(nudge, railPrimary);
+      }
       if (form) railBodyEl.appendChild(form);
       if (preview) railBodyEl.appendChild(preview);
     } else {
@@ -600,19 +611,16 @@
   function renderPalette() {
     paletteEl.textContent = '';
     paletteEl.appendChild(el('h2', 'builder-palette-title', 'Steps'));
-    paletteEl.appendChild(el('p', 'builder-palette-hint', paletteExpanded
-      ? 'Every step type. Solid blocks work as-is; dashed ones open ready to set up.'
-      : 'Click a block to add it to your activity.'));
+    paletteEl.appendChild(el('p', 'builder-palette-hint',
+      'Click a block to add it to your activity.'));
     PALETTE_GROUPS.forEach(function (group) {
       var tiles = group.tiles.concat(paletteExpanded ? (group.more || []) : []);
       if (tiles.length === 0) return;
       var g = el('div', 'builder-pgroup');
       g.appendChild(el('h3', null, group.title));
       tiles.forEach(function (t) {
-        var isMore = group.tiles.indexOf(t) === -1;
-        var tile = el('button', 'builder-tile ' + group.cls + (isMore ? ' builder-tile-setup' : ''));
+        var tile = el('button', 'builder-tile ' + group.cls);
         tile.type = 'button';
-        if (isMore) tile.title = 'Adds the step ready to set up — fill in its settings in the right panel.';
         tile.appendChild(el('span', 'builder-tile-title', t.title));
         tile.addEventListener('click', function () {
           insertStep(t.type, null);

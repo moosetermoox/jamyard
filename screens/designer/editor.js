@@ -3530,6 +3530,12 @@ function renderPhaseConfig(phaseId) {
 
     // Loop (Optional) — collapsible; expanded when already configured
     var loopHandle = beginCollapsible('flow', 'Loop this section', phaseId + ':loop', !!phase.loopBack);
+    // Tag the wrapper so the Builder rail can hide this power feature
+    // (one shipped game uses loops; the recipe covers it for teachers).
+    if (phaseConfigForm && phaseConfigForm.closest) {
+      var loopWrap = phaseConfigForm.closest('.collapsible-section');
+      if (loopWrap) loopWrap.classList.add('loop-collapsible');
+    }
 
     // loopBack dropdown — filter to phases before current
     var loopBackOptions = [{ value: '', label: '(none — no loop)' }];

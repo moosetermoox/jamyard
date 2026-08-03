@@ -2633,3 +2633,17 @@ textarea.sar-input {
 
 .btn-host:hover { background: #0041CC; }
 .builder-tile-setup { opacity: 0.85; box-shadow: none; border-style: dashed; }
+
+/* Builder rail: hide the loop power-feature (Technical view keeps it) */
+#builder-rail .loop-collapsible { display: none; }
+
+.builder-setup-nudge {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background: #E3F2FD;
+  border: 2px solid #0057FF;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+}
