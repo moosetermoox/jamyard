@@ -68,28 +68,59 @@
     'eliminate': 'Eliminate players', 'ai-eliminate': 'AI judges and eliminates'
   };
 
+  // Essentials = types whose one-click defaults are validator-certified
+  // hostable-as-is (the brick set). "more" = every other phase type, in
+  // the SAME groups with the SAME labels — they insert ready to set up,
+  // with the step's settings open in the rail.
   var PALETTE_GROUPS = [
     { title: 'Ask the class', cls: 'ask', tiles: [
       { type: 'collect', title: 'Open answer' },
       { type: 'collect-choice', title: 'Multiple choice' },
       { type: 'estimate', title: 'Guess a number' },
       { type: 'collect-two', title: 'Secret + clue' }
+    ], more: [
+      { type: 'match', title: 'Match pairs' },
+      { type: 'sort', title: 'Sort into buckets' },
+      { type: 'buzz', title: 'Buzzer round' }
     ] },
     { title: 'Show the class', cls: 'show', tiles: [
       { type: 'announce', title: 'Announcement' },
       { type: 'reveal', title: 'Reveal results' },
       { type: 'reveal-one', title: 'Reveal one at a time' }
+    ], more: [
+      { type: 'leaderboard', title: 'Leaderboard' },
+      { type: 'winner', title: 'Crown a winner' },
+      { type: 'preview', title: 'You review privately first' }
     ] },
     { title: 'Decide together', cls: 'decide', tiles: [
       { type: 'vote', title: 'Vote' }
+    ], more: [
+      { type: 'rank', title: 'Rank a list' },
+      { type: 'rate', title: 'Rate on scales' },
+      { type: 'wager', title: 'Place bets' },
+      { type: 'eliminate', title: 'Eliminate players' }
+    ] },
+    { title: 'Team up', cls: 'team', tiles: [], more: [
+      { type: 'team-split', title: 'Split into teams' },
+      { type: 'merge', title: 'Groups combine answers' },
+      { type: 'relay', title: 'Take turns' },
+      { type: 'turn', title: 'Team turns (charades)' },
+      { type: 'checklist', title: 'Group checklist' },
+      { type: 'one-voice', title: 'Count together' }
     ] },
     { title: 'Rounds', cls: 'team', tiles: [
       { type: 'guessing-rounds', title: 'Guessing rounds' }
+    ], more: [
+      { type: 'foreach', title: 'For each answer…' }
     ] },
     { title: 'AI', cls: 'ai', tiles: [
       { type: 'ai', title: 'AI transforms answers', ai: true }
+    ], more: [
+      { type: 'ai-eliminate', title: 'AI judges and eliminates' }
     ] }
   ];
+
+  var paletteExpanded = false;
 
   // ---- Helpers ----
 
@@ -166,7 +197,12 @@
     }
 
     var phase = S.defaultPhaseFor(type, ctx);
-    if (!phase) return;
+    if (!phase) {
+      // No certified default — insert a skeleton; the rail's real
+      // settings form opens so the teacher fills in what the step needs.
+      // Save-time validation catches anything missing.
+      phase = { type: type };
+    }
     var id = S.freshId(p, BASE_IDS[type] || type);
     S.insertAfter(p, after, id, phase);
     afterInsert(id);
@@ -310,7 +346,9 @@
     var all = el('button', 'builder-suggest-all', 'Browse all steps →');
     all.type = 'button';
     all.addEventListener('click', function () {
-      if (typeof addPhaseBtn !== 'undefined' && addPhaseBtn) addPhaseBtn.click();
+      paletteExpanded = true;
+      renderPalette();
+      paletteEl.scrollTop = 0;
     });
     foot.appendChild(all);
     row.appendChild(foot);
@@ -562,14 +600,19 @@
   function renderPalette() {
     paletteEl.textContent = '';
     paletteEl.appendChild(el('h2', 'builder-palette-title', 'Steps'));
-    paletteEl.appendChild(el('p', 'builder-palette-hint',
-      'Click a block to add it to your activity.'));
+    paletteEl.appendChild(el('p', 'builder-palette-hint', paletteExpanded
+      ? 'Every step type. Solid blocks work as-is; dashed ones open ready to set up.'
+      : 'Click a block to add it to your activity.'));
     PALETTE_GROUPS.forEach(function (group) {
+      var tiles = group.tiles.concat(paletteExpanded ? (group.more || []) : []);
+      if (tiles.length === 0) return;
       var g = el('div', 'builder-pgroup');
       g.appendChild(el('h3', null, group.title));
-      group.tiles.forEach(function (t) {
-        var tile = el('button', 'builder-tile ' + group.cls);
+      tiles.forEach(function (t) {
+        var isMore = group.tiles.indexOf(t) === -1;
+        var tile = el('button', 'builder-tile ' + group.cls + (isMore ? ' builder-tile-setup' : ''));
         tile.type = 'button';
+        if (isMore) tile.title = 'Adds the step ready to set up — fill in its settings in the right panel.';
         tile.appendChild(el('span', 'builder-tile-title', t.title));
         tile.addEventListener('click', function () {
           insertStep(t.type, null);
@@ -578,11 +621,15 @@
       });
       paletteEl.appendChild(g);
     });
-    var more = el('button', 'builder-suggest-all builder-more', 'All step types →');
+    var more = el('button', 'builder-suggest-all builder-more',
+      paletteExpanded ? '← Just the essentials' : 'All step types →');
     more.type = 'button';
-    more.title = 'The full picker — every step type, including the advanced ones';
+    more.title = paletteExpanded
+      ? 'Back to the steps that work with one click'
+      : 'Show every step type in the same groups';
     more.addEventListener('click', function () {
-      if (typeof addPhaseBtn !== 'undefined' && addPhaseBtn) addPhaseBtn.click();
+      paletteExpanded = !paletteExpanded;
+      renderPalette();
     });
     paletteEl.appendChild(more);
   }

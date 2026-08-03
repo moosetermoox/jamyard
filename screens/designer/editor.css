@@ -2632,3 +2632,4 @@ textarea.sar-input {
 }
 
 .btn-host:hover { background: #0041CC; }
+.builder-tile-setup { opacity: 0.85; box-shadow: none; border-style: dashed; }
