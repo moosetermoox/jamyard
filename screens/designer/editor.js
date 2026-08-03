@@ -5540,9 +5540,11 @@ async function testGame() {
   if (!gameId || isDirty) {
     await saveGame();
   }
-  // Only open if we have a valid gameId (save succeeded)
+  // Only open if we have a valid gameId (save succeeded). from=editor makes
+  // the prototype page's back link return HERE, not to the library — you
+  // preview, spot a fix, and need the way back (teacher feedback 2026-08-03).
   if (gameId) {
-    window.open('/prototype?game=' + encodeURIComponent(gameId), '_blank');
+    window.open('/prototype?game=' + encodeURIComponent(gameId) + '&from=editor', '_blank');
   }
 }
 

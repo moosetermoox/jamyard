@@ -24,6 +24,29 @@ const carouselDots = document.getElementById('carousel-dots');
 let viewMode = 'grid';
 let carouselIndex = 0; // 0-based index into player panels
 
+// Arrived from the editor's Preview button? "Back" should return to the
+// editor, not the library — you preview, spot something to change, and need
+// the way back to change it. Preview opens in a new tab, so if the original
+// editor tab is still open, just close this one and land back on it.
+(function () {
+  const navParams = new URLSearchParams(window.location.search);
+  const fromEditor = navParams.get('from') === 'editor';
+  const navGame = navParams.get('game');
+  if (!fromEditor || !navGame) return;
+  const backLink = document.getElementById('back-link');
+  if (!backLink) return;
+  backLink.textContent = '← Back to editor';
+  backLink.href = '/designer/edit?game=' + encodeURIComponent(navGame);
+  backLink.addEventListener('click', function (e) {
+    try {
+      if (window.opener && !window.opener.closed) {
+        e.preventDefault();
+        window.close();
+      }
+    } catch (err) { /* opener gone or blocked — the href navigation covers it */ }
+  });
+})();
+
 playerCount.addEventListener('input', () => {
   playerCountDisplay.textContent = playerCount.value;
 });
