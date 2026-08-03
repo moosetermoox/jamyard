@@ -25,10 +25,17 @@ device" (laptop / spare Chromebook). Keep it that way in new copy.
    fix wave (lobby join line, editor Host btn, Preview rename/auto-launch,
    beforeunload guard), Emoji Movies (#32), and STORYBOARD-BEFORE-GENERATE
    (collect-two + guessing-rounds bricks, compileStoryboard, /api/games/
-   storyboard, approval cards). Next on this thread: promote storyboard to
-   the DEFAULT "Make it" path after real use proves it; usability backlog
-   in SURFACES-PLAN §8 (Question & Share template, topic field, teacher-
-   language errors).
+   storyboard, approval cards). 2026-08-02: Question & Share template SHIPPED; projector style rules
+   (docs/PROJECTOR-STYLE.md — headline/body/cards, brand-to-corner) on
+   host AND player; Builder palette = one expandable taxonomy + setup
+   nudge, loop hidden from rail, quiet + circles; Preview slider fixed.
+   Next on this thread: promote storyboard to the DEFAULT "Make it" path
+   after real use proves it; usability backlog in SURFACES-PLAN §8
+   (single topic field, teacher-language errors, draft-keeping, Simple's
+   "+ Add a step" → palette); TEACHER CHEAT SHEET still unwritten (top
+   pick); match/sort/drawing recipes still owed. CLAUDE.md is over the
+   memory warning threshold (~62.7k chars) — a trim pass was offered and
+   deferred 2026-08-02.
 0.5. **SURFACES PLAN drafted 2026-08-01** ([SURFACES-PLAN.md](SURFACES-PLAN.md)):
    /designer and /library are near-duplicate grids; plan collapses to
    Library (one shelf) / Create (idea box + recipes, no grid) / Editor,
