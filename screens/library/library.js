@@ -440,68 +440,25 @@ function customizeCopy(game, btn) {
     });
 }
 
-// --- Builder doorway: opening the second layer files a signal ------------
+// --- Builder doorway ------------------------------------------------------
+// Straight to the Create page — its idea box asks the question once (the
+// old intermediate dialog asked it twice; teacher's call 2026-08-07). The
+// builder-request signal still files quietly on the way.
 
 document.getElementById('build-your-own-btn').addEventListener('click', function () {
-  var overlay = document.createElement('div');
-  overlay.className = 'template-picker-overlay';
-  var modal = document.createElement('div');
-  modal.className = 'template-picker-modal';
-  modal.style.maxWidth = '520px';
-
-  var title = document.createElement('h2');
-  title.className = 'template-picker-title';
-  title.textContent = 'Build your own activity';
-  modal.appendChild(title);
-
-  var subtitle = document.createElement('p');
-  subtitle.className = 'template-picker-subtitle';
-  subtitle.textContent = 'The designer lets you describe an activity in plain words, start from a recipe, or build step by step. One optional question first:';
-  modal.appendChild(subtitle);
-
-  var note = document.createElement('textarea');
-  note.rows = 3;
-  note.placeholder = 'What do you want to make? (optional — the designer starts from your words, and your request also goes to the person who builds Lanyard)';
-  note.style.cssText = 'width:100%; padding:12px; border:3px solid #000; border-radius:10px; font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; resize:vertical; box-sizing:border-box; margin-bottom:14px;';
-  modal.appendChild(note);
-
-  var btnRow = document.createElement('div');
-  btnRow.className = 'recipe-form-buttons';
-  var goBtn = document.createElement('button');
-  goBtn.type = 'button';
-  goBtn.className = 'recipe-create-btn';
-  goBtn.textContent = 'Start building';
-  goBtn.addEventListener('click', function () {
-    goBtn.disabled = true;
-    try { localStorage.setItem('lanyard-builder', '1'); } catch (e) {}
-    var message = note.value.trim();
-    var payload = {
+  try { localStorage.setItem('lanyard-builder', '1'); } catch (e) {}
+  // Best-effort signal — never block the teacher on it.
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       page: '/library',
       category: 'builder-request',
-      message: message.length >= 3 ? message : 'Opened the designer from the library (no note).'
-    };
-    // A real idea rides along as the ?idea= deep link, so the Create page
-    // starts the flow from their words instead of asking again. (10+ chars
-    // matches the Create page's own launch threshold.)
-    var target = message.length >= 10
-      ? '/designer?idea=' + encodeURIComponent(message)
-      : '/designer';
-    // Best-effort signal — never block the teacher on it.
-    fetch('/api/feedback', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    }).catch(function () {}).finally(function () {
-      window.location.href = target;
-    });
+      message: 'Opened the designer from the library.'
+    })
+  }).catch(function () {}).finally(function () {
+    window.location.href = '/designer';
   });
-  btnRow.appendChild(goBtn);
-  modal.appendChild(btnRow);
-
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-  Dialog.enhance(overlay, modal, { title: 'Build your own activity' });
-  note.focus();
 });
 
 // --- Load ---------------------------------------------------------------
