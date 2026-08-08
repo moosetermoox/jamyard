@@ -2240,6 +2240,22 @@ app.post('/api/games/fix-issue', async (req, res) => {
   }
 });
 
+// Library Customize: short tailoring questions for a built-in's copy.
+// Works in mock mode too (canned questions) so the flow is always testable.
+app.post('/api/games/customize-questions', async (req, res) => {
+  try {
+    const { config } = req.body;
+    if (!config || !config.phases) {
+      return res.status(400).json({ error: 'Missing config or phases' });
+    }
+    const result = await aiService.generateCustomizeQuestions(config);
+    res.json(result);
+  } catch (error) {
+    console.log(`[api/games/customize-questions] Error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+});
+
 app.post('/api/games/revise', async (req, res) => {
   try {
     if (!requireRealAI(res)) return;

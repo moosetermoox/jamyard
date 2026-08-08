@@ -953,6 +953,62 @@ Return the revised step.`;
     }
   }
 
+  // Library "Customize" flow: 2-3 short questions whose answers let the
+  // revise flow tailor a built-in's WORDS for this teacher's class. Config
+  // in, questions out — no student data, Haiku-cheap.
+  async generateCustomizeQuestions(config) {
+    if (this.mode === 'mock') {
+      return { questions: [
+        { question: 'What topic or subject should this be about?', placeholder: 'e.g. photosynthesis, To Kill a Mockingbird, fractions' },
+        { question: 'Who is it for?', placeholder: 'e.g. 7th grade science, my homeroom' }
+      ] };
+    }
+    try {
+      const phaseTexts = [];
+      for (const [id, phase] of Object.entries(config.phases || {})) {
+        const text = phase.prompt || phase.message || phase.question || '';
+        if (text) phaseTexts.push(`${id} (${phase.type}): ${String(text).slice(0, 160)}`);
+      }
+      const message = await this._callClaude({
+        model: MODELS.haiku,
+        max_tokens: 400,
+        messages: [{
+          role: 'user',
+          content: `A teacher is about to make their own copy of this ready-made classroom activity. Ask 2-3 SHORT questions whose answers would let us rewrite its text (topic, examples, tone) for THEIR class. Plain everyday language, no jargon. Only ask what the activity's content actually depends on — e.g. a vocabulary activity needs the word list's subject, an icebreaker might only need the group. Every question must be answerable in a few words.
+
+Activity: ${String(config.name || '').slice(0, 80)}
+Description: ${String(config.description || '').slice(0, 200)}
+Steps:
+${phaseTexts.slice(0, 10).join('\n')}
+
+Return ONLY JSON: {"questions":[{"question":"...","placeholder":"e.g. ..."}]}`
+        }]
+      });
+      const text = extractText(message);
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI response was not valid JSON');
+        parsed = JSON.parse(match[0]);
+      }
+      const questions = (Array.isArray(parsed.questions) ? parsed.questions : [])
+        .filter(q => q && typeof q.question === 'string' && q.question.trim())
+        .slice(0, 3)
+        .map(q => ({
+          question: q.question.trim().slice(0, 200),
+          placeholder: typeof q.placeholder === 'string' ? q.placeholder.trim().slice(0, 120) : ''
+        }));
+      return { questions };
+    } catch (error) {
+      if (error && error.name === 'AiBudgetError') throw error;
+      console.error('[AIService] generateCustomizeQuestions error:', error.message);
+      // Question generation is a nicety — an empty list means "skip to the copy".
+      return { questions: [] };
+    }
+  }
+
   // Storyboard-before-generate (SURFACES-PLAN Phase 4): the AI never
   // writes config JSON — it arranges BRICKS (the Builder's validated
   // step vocabulary) and writes the words. The client compiles the

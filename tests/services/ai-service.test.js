@@ -239,3 +239,44 @@ describe('AIService', () => {
     });
   });
 });
+
+// Library Customize: quick tailoring questions before the copy opens.
+describe('generateCustomizeQuestions', () => {
+  const config = {
+    name: 'Vocab Match',
+    description: 'Match words to definitions',
+    phases: {
+      lobby: { type: 'lobby', next: 'round' },
+      round: { type: 'match', prompt: 'Match each word', pairs: [], next: 'end' },
+      end: { type: 'end' }
+    }
+  };
+
+  it('mock mode returns usable questions', async () => {
+    const service = new AIService();
+    const result = await service.generateCustomizeQuestions(config);
+    expect(result.questions.length).toBeGreaterThanOrEqual(2);
+    for (const q of result.questions) {
+      expect(typeof q.question).toBe('string');
+      expect(q.question.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('real mode parses JSON wrapped in preamble and caps at 3', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => ({
+      content: [{ type: 'text', text: 'Sure! Here you go:\n{"questions":[{"question":"What subject?","placeholder":"e.g. biology"},{"question":"Grade?"},{"question":"Tone?"},{"question":"Extra one"}]}' }]
+    });
+    const result = await service.generateCustomizeQuestions(config);
+    expect(result.questions.length).toBe(3);
+    expect(result.questions[0]).toEqual({ question: 'What subject?', placeholder: 'e.g. biology' });
+    expect(result.questions[1].placeholder).toBe('');
+  });
+
+  it('real-mode failure degrades to an empty list, never throws', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => { throw new Error('api down'); };
+    const result = await service.generateCustomizeQuestions(config);
+    expect(result.questions).toEqual([]);
+  });
+});

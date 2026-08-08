@@ -401,43 +401,181 @@ function metaBadge(text) {
 
 // Clone a built-in into this teacher's own editable copy, then open the
 // editor on it. The copy is device-scoped like any user creation.
+// Save a finished copy config as this device's activity and open the editor.
+function saveCopyAndEdit(config) {
+  delete config.featured; // the copy is yours, not the public front door's
+  var base = (config.name || 'my-activity').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40) || 'my-activity';
+  var existing = allGames.map(function (g) { return g.id; });
+  var copyId = base;
+  var counter = 2;
+  while (existing.indexOf(copyId) !== -1) { copyId = base + '-' + counter; counter++; }
+  return fetch('/api/games', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: copyId, config: config })
+  }).then(function (resp) {
+    if (!resp.ok) {
+      return resp.json().catch(function () { return {}; }).then(function (d) {
+        throw new Error(d.error || 'save failed');
+      });
+    }
+    if (window.MyGames) MyGames.add(copyId);
+    Recents.add(copyId);
+    window.location.href = '/designer/edit?game=' + encodeURIComponent(copyId) + '&from=library';
+  });
+}
+
 function customizeCopy(game, btn) {
   btn.disabled = true;
-  btn.textContent = 'Copying…';
-  fetch('/api/games/' + encodeURIComponent(game.id))
+  btn.textContent = 'Loading…';
+  var configPromise = fetch('/api/games/' + encodeURIComponent(game.id))
     .then(function (resp) {
       if (!resp.ok) throw new Error('could not load the activity');
       return resp.json();
-    })
-    .then(function (config) {
-      config.name = game.name + ' (my version)';
-      delete config.featured; // the copy is yours, not the public front door's
-      var base = (config.name || 'my-activity').toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40) || 'my-activity';
-      var existing = allGames.map(function (g) { return g.id; });
-      var copyId = base;
-      var counter = 2;
-      while (existing.indexOf(copyId) !== -1) { copyId = base + '-' + counter; counter++; }
-      return fetch('/api/games', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: copyId, config: config })
-      }).then(function (resp) {
-        if (!resp.ok) {
-          return resp.json().catch(function () { return {}; }).then(function (d) {
-            throw new Error(d.error || 'save failed');
-          });
-        }
-        if (window.MyGames) MyGames.add(copyId);
-        Recents.add(copyId);
-        window.location.href = '/designer/edit?game=' + encodeURIComponent(copyId) + '&from=library';
-      });
+    });
+  // A few AI questions tailor the copy before the editor opens. Best-effort:
+  // no questions (error, budget, mock hiccup) = plain copy, like before.
+  var questionsPromise = configPromise.then(function (config) {
+    return fetch('/api/games/customize-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: config })
+    }).then(function (r) { return r.ok ? r.json() : { questions: [] }; })
+      .catch(function () { return { questions: [] }; });
+  });
+  Promise.all([configPromise, questionsPromise])
+    .then(function (parts) {
+      btn.disabled = false;
+      btn.textContent = 'Customize';
+      var config = parts[0];
+      var questions = (parts[1] && parts[1].questions) || [];
+      if (questions.length === 0) {
+        config.name = game.name + ' (my version)';
+        return saveCopyAndEdit(config);
+      }
+      showCustomizeDialog(game, config, questions);
     })
     .catch(function (err) {
       btn.disabled = false;
       btn.textContent = 'Customize';
       alert('Could not make your copy: ' + err.message);
     });
+}
+
+// The tailoring dialog: answer what you like (or skip), and the AI rewrites
+// the copy's WORDS — structure never changes (the revise endpoint validates).
+function showCustomizeDialog(game, config, questions) {
+  var overlay = document.createElement('div');
+  overlay.className = 'template-picker-overlay';
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal';
+  modal.style.maxWidth = '560px';
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = 'Make it yours';
+  modal.appendChild(title);
+
+  var subtitle = document.createElement('p');
+  subtitle.className = 'template-picker-subtitle';
+  subtitle.textContent = 'Answer what you like and we’ll word your copy of “' + game.name + '” for your class. Anything you skip stays as-is.';
+  modal.appendChild(subtitle);
+
+  var inputs = [];
+  questions.forEach(function (q) {
+    var label = document.createElement('label');
+    label.style.cssText = 'display:block; font-weight:700; margin:10px 0 4px; font-family:"Nunito", Arial, sans-serif;';
+    label.textContent = q.question;
+    modal.appendChild(label);
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = q.placeholder || '';
+    input.style.cssText = 'width:100%; padding:10px 12px; border:3px solid #000; border-radius:10px; font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; box-sizing:border-box;';
+    modal.appendChild(input);
+    inputs.push({ question: q.question, input: input });
+  });
+
+  var status = document.createElement('p');
+  status.className = 'template-picker-subtitle';
+  status.style.marginTop = '12px';
+  status.hidden = true;
+  modal.appendChild(status);
+
+  var btnRow = document.createElement('div');
+  btnRow.className = 'recipe-form-buttons';
+  btnRow.style.marginTop = '14px';
+
+  var skipBtn = document.createElement('button');
+  skipBtn.type = 'button';
+  skipBtn.className = 'recipe-cancel-btn';
+  skipBtn.textContent = 'Skip — just copy it';
+  btnRow.appendChild(skipBtn);
+
+  var goBtn = document.createElement('button');
+  goBtn.type = 'button';
+  goBtn.className = 'recipe-create-btn';
+  goBtn.textContent = 'Set it up for my class';
+  btnRow.appendChild(goBtn);
+  modal.appendChild(btnRow);
+
+  function plainCopy() {
+    skipBtn.disabled = true;
+    goBtn.disabled = true;
+    config.name = game.name + ' (my version)';
+    saveCopyAndEdit(config).catch(function (err) {
+      skipBtn.disabled = false;
+      goBtn.disabled = false;
+      status.hidden = false;
+      status.textContent = 'Could not make your copy: ' + err.message;
+    });
+  }
+
+  skipBtn.addEventListener('click', plainCopy);
+
+  goBtn.addEventListener('click', function () {
+    var answered = inputs.filter(function (pair) { return pair.input.value.trim(); });
+    if (answered.length === 0) return plainCopy();
+    skipBtn.disabled = true;
+    goBtn.disabled = true;
+    goBtn.textContent = 'Setting it up…';
+    status.hidden = false;
+    status.textContent = 'Rewording the activity for your class — this can take ~20 seconds.';
+    var request = 'A teacher is adapting this ready-made activity for their own class. ' +
+      'Rewrite ONLY the teacher- and student-facing words (name, description, prompts, messages, choices, reveal templates) to fit their answers below. ' +
+      'Keep every step, the structure, timers, data references, and {{tokens}} exactly as they are.\n\n' +
+      answered.map(function (pair) {
+        return 'Q: ' + pair.question + '\nA: ' + pair.input.value.trim();
+      }).join('\n');
+    fetch('/api/games/revise', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: config, request: request })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (result) {
+        var d = result.data;
+        var structuralErrors = d.structural && d.structural.errors ? d.structural.errors.length : 0;
+        if (!result.ok || d.error || !d.updatedConfig || structuralErrors > 0) {
+          throw new Error(d.error || (structuralErrors > 0 ? 'the reworded copy had problems' : 'no config returned'));
+        }
+        var revised = d.updatedConfig;
+        if (!revised.name || revised.name === game.name) {
+          revised.name = game.name + ' (my version)';
+        }
+        return saveCopyAndEdit(revised);
+      })
+      .catch(function (err) {
+        // The tailoring is a bonus — never strand the teacher without a copy.
+        status.textContent = 'The AI setup didn’t work (' + err.message + ') — making a plain copy instead.';
+        setTimeout(plainCopy, 1400);
+      });
+  });
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  Dialog.enhance(overlay, modal, { title: 'Make it yours' });
+  if (inputs.length > 0) inputs[0].input.focus();
 }
 
 // --- Builder doorway ------------------------------------------------------
