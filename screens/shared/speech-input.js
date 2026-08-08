@@ -143,10 +143,32 @@
     return btn;
   }
 
+  /**
+   * Builder-surface mode: any text field the user focuses grows a compact
+   * mic, so dynamically rendered forms (Simple view boxes, Builder rail,
+   * Ask AI, recipe params) all get dictation without per-form wiring.
+   * Opt-out per area with a `.no-mic` ancestor class.
+   * Returns false (and installs nothing) when speech isn't supported.
+   */
+  function enableFocusMics() {
+    if (!isSupported() || typeof document === 'undefined') return false;
+    document.addEventListener('focusin', function (e) {
+      var el = e.target;
+      if (!el || !el.dataset || el.dataset.micAttached) return;
+      var tag = (el.tagName || '').toLowerCase();
+      var isText = tag === 'textarea' || (tag === 'input' && (el.type === 'text' || el.type === 'search'));
+      if (!isText || el.readOnly || el.disabled) return;
+      if (el.closest && el.closest('.no-mic')) return;
+      attachMic(el, { compact: true });
+    });
+    return true;
+  }
+
   var Speech = {
     isSupported: isSupported,
     attachMic: attachMic,
     stopAll: stopAll,
+    enableFocusMics: enableFocusMics,
     mergeTranscript: mergeTranscript
   };
 

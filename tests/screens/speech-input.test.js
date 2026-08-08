@@ -45,4 +45,8 @@ describe('speech-input unsupported browser', () => {
   it('stopAll is a safe no-op with nothing active', () => {
     expect(() => Speech.stopAll()).not.toThrow();
   });
+
+  it('enableFocusMics installs nothing when unsupported', () => {
+    expect(Speech.enableFocusMics()).toBe(false);
+  });
 });
