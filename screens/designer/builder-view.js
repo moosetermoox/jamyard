@@ -38,6 +38,7 @@
   var selectedId = null;      // step selected in the rail
   var openGapAfter = null;    // gap whose suggestion row is open (null = frontier)
   var aiFlavorGap = null;     // gap currently showing the AI flavor question
+  var browseAllGap = null;    // gap whose popover shows the FULL step list
   var finishDismissed = false;
   var pendingSetupId = null;  // skeleton step awaiting its settings
 
@@ -172,6 +173,7 @@
   // ---- Inserting steps ----
 
   function insertStep(type, afterId) {
+    browseAllGap = null;
     var p = phases();
     if (!p) return;
     var after = afterId || frontierId();
@@ -281,6 +283,43 @@
     var plus = el('span', 'builder-plus open', '+');
     head.appendChild(plus);
 
+    // "Browse all steps" mode: the popover itself becomes the full grouped
+    // step list, and picking one inserts into THIS gap. (It used to expand
+    // the left palette — invisible behind the popover, and palette tiles
+    // insert at the end, not here.)
+    if (browseAllGap === afterId) {
+      row.classList.add('builder-suggest-browse');
+      head.appendChild(el('span', null, 'Pick any step'));
+      row.appendChild(head);
+      PALETTE_GROUPS.forEach(function (group) {
+        var allTiles = group.tiles.concat(group.more || []);
+        if (allTiles.length === 0) return;
+        row.appendChild(el('h4', 'builder-browse-group', group.title));
+        var g = el('div', 'builder-suggest-row');
+        allTiles.forEach(function (t) {
+          var tile = el('button', 'builder-tile sug ' + group.cls);
+          tile.type = 'button';
+          tile.appendChild(el('span', 'builder-tile-title', t.title));
+          tile.addEventListener('click', function () {
+            browseAllGap = null;
+            insertStep(t.type, afterId);
+          });
+          g.appendChild(tile);
+        });
+        row.appendChild(g);
+      });
+      var browseFoot = el('div', 'builder-suggest-foot');
+      var backBtn = el('button', 'builder-suggest-all', '← Back to suggestions');
+      backBtn.type = 'button';
+      backBtn.addEventListener('click', function () {
+        browseAllGap = null;
+        renderBuilder();
+      });
+      browseFoot.appendChild(backBtn);
+      row.appendChild(browseFoot);
+      return row;
+    }
+
     var tiles;
     var headText;
 
@@ -343,6 +382,7 @@
       close.type = 'button';
       close.addEventListener('click', function () {
         openGapAfter = null;
+        browseAllGap = null;
         renderBuilder();
       });
       foot.appendChild(close);
@@ -350,9 +390,9 @@
     var all = el('button', 'builder-suggest-all', 'Browse all steps →');
     all.type = 'button';
     all.addEventListener('click', function () {
-      paletteExpanded = true;
-      renderPalette();
-      paletteEl.scrollTop = 0;
+      browseAllGap = afterId;
+      aiFlavorGap = null;
+      renderBuilder();
     });
     foot.appendChild(all);
     row.appendChild(foot);
@@ -516,6 +556,7 @@
         plus.addEventListener('click', function () {
           openGapAfter = id;
           aiFlavorGap = null;
+          browseAllGap = null;
           renderBuilder();
         });
         line.appendChild(plus);

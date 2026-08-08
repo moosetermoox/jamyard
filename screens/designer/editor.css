@@ -2494,6 +2494,17 @@ textarea.sar-input {
 
 .builder-suggest-foot { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
 
+/* Browse-all mode: the popover shows every step in its palette groups */
+.builder-browse-group {
+  margin: 12px 0 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-soft, #555);
+}
+.builder-suggest-browse .builder-suggest-row { margin-top: 0; }
+
 .builder-suggest-all {
   font-family: 'Nunito', Arial, sans-serif;
   font-weight: 800;

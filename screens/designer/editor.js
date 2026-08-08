@@ -291,6 +291,39 @@ var PHASE_CATALOG = {
     player: 'Two columns — drag the right column until each row is a correct pair',
     ai: null
   },
+  'merge': {
+    icon: '',
+    friendlyName: 'Groups Combine Answers',
+    description: 'Group members merge their answers into one shared answer (think-pair-share)',
+    color: '#00897B',
+    bg: '#B2DFDB',
+    detailField: 'prompt',
+    host: 'Live group progress, Close button',
+    player: 'Shared live draft, agree-to-submit buttons',
+    ai: null
+  },
+  'one-voice': {
+    icon: '',
+    friendlyName: 'Count Together',
+    description: 'The class counts to a target together — collisions reset, one voice at a time',
+    color: '#5E35B1',
+    bg: '#D1C4E9',
+    detailField: null,
+    host: 'Big live count, attempts, celebration',
+    player: 'One tap button',
+    ai: null
+  },
+  'collect-two': {
+    icon: '',
+    friendlyName: 'Secret + Clue',
+    description: 'Students type two things — the first stays hidden until the reveal (party-game shape)',
+    color: '#00C853',
+    bg: '#C8E6C9',
+    detailField: 'prompt',
+    host: 'Prompt text, submission counter, Close Submissions button',
+    player: 'Two labeled text boxes, Submit button',
+    ai: null
+  },
   'checklist': {
     icon: '✅',
     friendlyName: 'To-Do Checklist',
@@ -4807,26 +4840,40 @@ function addToggleCheckboxes(label, helpText, phase, field, toggleNames) {
 // --- Phase management ---
 
 // Picker modal: which phase types can be added
+// One taxonomy with the Builder palette (same verb groups, ALL step types)
+// — Simple's "Add a Step" must never show fewer steps than the Builder
+// sidebar. 'collect-two' is the Builder's Secret + Clue brick (compiles to
+// a two-field collect via StepSuggestions.defaultPhaseFor).
 var PHASE_CATEGORIES = [
   {
-    name: 'Player Input',
-    description: 'Get responses from players',
-    types: ['collect', 'collect-choice', 'rank', 'rate', 'wager', 'relay']
+    name: 'Ask the class',
+    description: 'Get responses from students',
+    types: ['collect', 'collect-two', 'collect-choice', 'estimate', 'match', 'sort', 'buzz']
+  },
+  {
+    name: 'Show the class',
+    description: 'Put something on the projector',
+    types: ['announce', 'reveal', 'reveal-one', 'leaderboard', 'winner', 'preview']
+  },
+  {
+    name: 'Decide together',
+    description: 'Vote, rank, rate, bet, eliminate',
+    types: ['vote', 'rank', 'rate', 'wager', 'eliminate']
+  },
+  {
+    name: 'Team up',
+    description: 'Groups, turns, and cooperation',
+    types: ['team-split', 'merge', 'relay', 'turn', 'checklist', 'one-voice']
+  },
+  {
+    name: 'Rounds',
+    description: 'Repeat steps for each answer',
+    types: ['foreach']
   },
   {
     name: 'AI',
     description: 'Let AI process or judge',
     types: ['ai-process', 'ai-eliminate']
-  },
-  {
-    name: 'Display',
-    description: 'Show info to the class',
-    types: ['announce', 'reveal', 'reveal-one', 'leaderboard', 'preview']
-  },
-  {
-    name: 'Flow',
-    description: 'Control how the activity plays out',
-    types: ['vote', 'eliminate', 'winner', 'team-split', 'foreach']
   }
 ];
 
@@ -4945,10 +4992,18 @@ function addPhaseOfType(type) {
     }
   }
 
-  // Create the new phase with sensible defaults that produce a working step out of the box
-  var newPhase = { type: type };
+  // Create the new phase with sensible defaults that produce a working step
+  // out of the box. The Builder's certified hostable-as-is defaults win when
+  // they exist (also turns the 'collect-two' brick into its real two-field
+  // collect); the per-type chain below covers the rest.
+  var certified = (window.StepSuggestions && StepSuggestions.defaultPhaseFor)
+    ? StepSuggestions.defaultPhaseFor(type, { phases: gameConfig.phases })
+    : null;
+  var newPhase = certified || { type: type };
 
-  if (type === 'collect') {
+  if (certified) {
+    // done — certified defaults are complete
+  } else if (type === 'collect') {
     newPhase.prompt = 'What do you think?';
     newPhase.timer = 60;
   } else if (type === 'collect-choice') {
