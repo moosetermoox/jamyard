@@ -2371,17 +2371,63 @@ textarea.sar-input {
   border: 2px solid #000;
   border-radius: 14px;
   padding: 14px 16px;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   display: flex;
   gap: 12px;
   align-items: flex-start;
   cursor: pointer;
+  position: relative;
 }
+
+/* Puzzle-piece connectors: a tab bumps out of each step's bottom edge and
+   a matching notch is cut into the next step's top edge, so the stack
+   reads as pieces that snap together. First card has no notch; the end
+   card has no tab. */
+.builder-step::before {
+  /* notch: a canvas-colored cutout in the top edge */
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: 44px;
+  width: 26px;
+  height: 11px;
+  background: #FFFDE7;
+  border: 2px solid #000;
+  border-top: none;
+  border-radius: 0 0 13px 13px;
+}
+
+.builder-step::after {
+  /* tab: same shape bumping out of the bottom edge */
+  content: '';
+  position: absolute;
+  bottom: -13px;
+  left: 44px;
+  width: 26px;
+  height: 11px;
+  background: inherit;
+  border: 2px solid #000;
+  border-top: none;
+  border-radius: 0 0 13px 13px;
+  z-index: 1;
+}
+
+.builder-step.puzzle-first::before { display: none; }
+.builder-step.puzzle-last::after { display: none; }
 
 .builder-step.selected {
   border: 3px solid #0057FF;
   box-shadow: 4px 4px 0 #0057FF;
 }
+
+.builder-step.selected::before,
+.builder-step.selected::after {
+  border-color: #0057FF;
+  border-top: none;
+}
+
+.builder-step.selected::before { top: -3px; }
+.builder-step.selected::after { bottom: -14px; }
 
 .builder-step.ai { background: #F3E5F5; }
 

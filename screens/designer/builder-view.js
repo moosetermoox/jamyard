@@ -124,6 +124,18 @@
 
   var paletteExpanded = false;
 
+  // What a freshly inserted step still needs from EARLIER in the activity.
+  // Shown in the rail nudge the moment the step lands, so a dependency is
+  // explained right away instead of at save time.
+  var STEP_NEEDS = {
+    'leaderboard': 'Leaderboards read scores, so it needs a scored step earlier: multiple choice with a correct answer, guess a number, match, sort, or a vote.',
+    'winner': 'Crowning a winner reads scores, so it needs a scored step earlier (a vote works great). Point "Scores from" at it below.',
+    'eliminate': 'Eliminating players reads scores, so it needs a scored step earlier to decide who stays.',
+    'foreach': 'Rounds repeat over collected answers, so it needs a question step earlier to draw from.',
+    'reveal-one': 'This reveals collected answers one at a time, so it needs a question step earlier. Point "Items from" at it below.',
+    'turn': 'Team turns need two things earlier: a team split, and a question step that collects the phrases to act out.'
+  };
+
   // ---- Helpers ----
 
   function el(tag, className, text) {
@@ -181,6 +193,12 @@
     var ctx = { phases: p, afterId: after };
 
     if (type === 'ai') {
+      // AI steps transform answers; without a question step earlier there
+      // is nothing to transform (this used to be a silent no-op).
+      if (!S.buildAiPair(S.aiFlavors()[0], ctx)) {
+        alert('AI steps transform the class\'s answers. Add a question step first (Open answer, Multiple choice, or Secret + clue).');
+        return;
+      }
       // Palette AI tile → open the flavor question at that gap instead.
       aiFlavorGap = after;
       openGapAfter = after;
@@ -207,6 +225,10 @@
       // settings form opens so the teacher fills in what the step needs.
       // Save-time validation catches anything missing.
       phase = { type: type };
+    } else if (type === 'reveal-one' && !phase.from) {
+      // Certified default but no question step to draw from yet — treat
+      // like a skeleton so the rail explains the dependency.
+      isSkeleton = true;
     }
     var id = S.freshId(p, BASE_IDS[type] || type);
     S.insertAfter(p, after, id, phase);
@@ -218,7 +240,10 @@
     var p = phases();
     if (!p) return;
     var pair = S.buildAiPair(flavor, { phases: p, afterId: afterId });
-    if (!pair) return;
+    if (!pair) {
+      alert('AI steps transform the class\'s answers. Add a question step first (Open answer, Multiple choice, or Secret + clue).');
+      return;
+    }
     S.insertAfter(p, afterId, pair[0].id, pair[0].phase);
     S.insertAfter(p, pair[0].id, pair[1].id, pair[1].phase);
     aiFlavorGap = null;
@@ -474,7 +499,9 @@
       var phase = p[id];
       num++;
 
-      var card = el('div', 'builder-step ' + stepClass(phase.type));
+      var card = el('div', 'builder-step ' + stepClass(phase.type) +
+        (idx === 0 ? ' puzzle-first' : '') +
+        (phase.type === 'end' ? ' puzzle-last' : ''));
       card.setAttribute('data-id', id);
       card.appendChild(el('span', 'builder-step-num', String(num)));
       var body = el('div', 'builder-step-body');
@@ -632,8 +659,12 @@
       var oldNudge = railBodyEl.querySelector('.builder-setup-nudge');
       if (oldNudge) oldNudge.remove();
       if (selectedId === pendingSetupId) {
-        var nudge = el('p', 'builder-setup-nudge',
-          'New step, fill in its settings below to make it playable.');
+        var liveP = phases();
+        var selType = liveP && liveP[selectedId] && liveP[selectedId].type;
+        var needs = STEP_NEEDS[selType];
+        var nudge = el('p', 'builder-setup-nudge', needs
+          ? 'New step. ' + needs
+          : 'New step, fill in its settings below to make it playable.');
         railBodyEl.insertBefore(nudge, railPrimary);
       }
       if (form) railBodyEl.appendChild(form);
