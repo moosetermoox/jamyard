@@ -461,7 +461,7 @@ document.getElementById('build-your-own-btn').addEventListener('click', function
 
   var note = document.createElement('textarea');
   note.rows = 3;
-  note.placeholder = 'What do you want to make? (optional — this goes straight to the person who builds Lanyard)';
+  note.placeholder = 'What do you want to make? (optional — the designer starts from your words, and your request also goes to the person who builds Lanyard)';
   note.style.cssText = 'width:100%; padding:12px; border:3px solid #000; border-radius:10px; font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; resize:vertical; box-sizing:border-box; margin-bottom:14px;';
   modal.appendChild(note);
 
@@ -480,13 +480,19 @@ document.getElementById('build-your-own-btn').addEventListener('click', function
       category: 'builder-request',
       message: message.length >= 3 ? message : 'Opened the designer from the library (no note).'
     };
+    // A real idea rides along as the ?idea= deep link, so the Create page
+    // starts the flow from their words instead of asking again. (10+ chars
+    // matches the Create page's own launch threshold.)
+    var target = message.length >= 10
+      ? '/designer?idea=' + encodeURIComponent(message)
+      : '/designer';
     // Best-effort signal — never block the teacher on it.
     fetch('/api/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     }).catch(function () {}).finally(function () {
-      window.location.href = '/designer';
+      window.location.href = target;
     });
   });
   btnRow.appendChild(goBtn);
