@@ -172,6 +172,7 @@ const eliminationContinueBtn = document.getElementById('elimination-continue-btn
 // Elements - Winner
 const winnerSection = document.getElementById('winner-section');
 const winnerNameDisplay = document.getElementById('winner-name');
+const winnerEntryDisplay = document.getElementById('winner-entry');
 const standingsList = document.getElementById('standings-list');
 const winnerEndBtn = document.getElementById('winner-end-btn');
 
@@ -2115,36 +2116,76 @@ socket.on('elimination-results', ({ eliminatedNames, remaining, hostTemplate, ho
 
 // --- Socket events - Winner ---
 
-socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, standings, hostTemplate, hostShow }) => {
+let winnerRevealTimer = null;
+
+socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, standings, winnerEntry, winnerEntries, hostTemplate, hostShow }) => {
   showSection(winnerSection);
-  if (J) {
-    J.sound('fanfare');
-    J.confetti();
-  }
-  if (isTie && winnerNames && winnerNames.length > 1) {
-    winnerNameDisplay.textContent = formatTieNames(winnerNames) + ' tie!';
-  } else {
-    const avatar = J ? J.avatarFor(winnerName) + ' ' : '';
-    winnerNameDisplay.textContent = avatar + winnerName + ' wins!';
-  }
+
+  // Build-up beat: drumroll while the room holds its breath, then the crown
+  // lands. The teacher-facing toggles still decide what's visible.
+  const entryAllowed = !hostShow || hostShow.indexOf('entry') !== -1;
+  winnerNameDisplay.classList.remove('winner-reveal');
+  winnerNameDisplay.classList.add('winner-buildup');
+  winnerNameDisplay.textContent = 'And the winner is\u2026';
+  winnerEntryDisplay.hidden = true;
+  winnerEntryDisplay.innerHTML = '';
+  standingsList.innerHTML = '';
+  if (J) J.sound('drumroll');
   applyTemplate(winnerSection, hostTemplate);
   applyShow(hostShow, {
     name: winnerNameDisplay,
+    entry: winnerEntryDisplay,
     standings: standingsList,
     endButton: winnerEndBtn
   });
+  winnerEntryDisplay.hidden = true; // stays hidden until the reveal fills it
 
-  standingsList.innerHTML = '';
-  if (standings && standings.length > 0) {
-    for (var i = 0; i < standings.length; i++) {
-      var p = document.createElement('p');
-      var rowAvatar = J ? J.avatarFor(standings[i].name) + ' ' : '';
-      p.textContent = (i + 1) + '. ' + rowAvatar + standings[i].name + ' \u2014 ' + standings[i].score;
-      p.classList.add('juice-stagger');
-      p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
-      standingsList.appendChild(p);
+  clearTimeout(winnerRevealTimer);
+  winnerRevealTimer = setTimeout(function () {
+    if (winnerSection.hidden) return; // phase moved on during the build-up
+    winnerNameDisplay.classList.remove('winner-buildup');
+    winnerNameDisplay.classList.add('winner-reveal');
+    if (J) {
+      J.sound('fanfare');
+      J.confetti();
     }
-  }
+    if (isTie && winnerNames && winnerNames.length > 1) {
+      winnerNameDisplay.textContent = '\ud83d\udc51 ' + formatTieNames(winnerNames) + ' tie!';
+    } else {
+      const avatar = J ? J.avatarFor(winnerName) + ' ' : '';
+      winnerNameDisplay.textContent = '\ud83d\udc51 ' + avatar + winnerName + ' wins!';
+    }
+
+    // What they won FOR \u2014 the winning entry itself, big on the projector.
+    const entries = (isTie && winnerEntries && winnerEntries.length > 0) ? winnerEntries
+      : (winnerEntry ? [{ text: winnerEntry }] : []);
+    if (entries.length > 0 && entryAllowed) {
+      for (var e = 0; e < entries.length; e++) {
+        var quote = document.createElement('p');
+        quote.className = 'winner-entry-quote';
+        quote.textContent = '\u201c' + entries[e].text + '\u201d';
+        winnerEntryDisplay.appendChild(quote);
+        if (entries.length > 1 && entries[e].name) {
+          var by = document.createElement('p');
+          by.className = 'winner-entry-by';
+          by.textContent = '\u2014 ' + entries[e].name;
+          winnerEntryDisplay.appendChild(by);
+        }
+      }
+      winnerEntryDisplay.hidden = false;
+    }
+
+    if (standings && standings.length > 0) {
+      for (var i = 0; i < standings.length; i++) {
+        var p = document.createElement('p');
+        var rowAvatar = J ? J.avatarFor(standings[i].name) + ' ' : '';
+        p.textContent = (i + 1) + '. ' + rowAvatar + standings[i].name + ' \u2014 ' + standings[i].score;
+        p.classList.add('juice-stagger');
+        p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
+        standingsList.appendChild(p);
+      }
+    }
+  }, 1500);
 });
 
 function formatTieNames(names) {

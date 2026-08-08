@@ -2413,6 +2413,13 @@ function renderPhaseConfig(phaseId) {
     addDataRefDropdown('Scores from', 'Which step\'s scores determine the winner', 'phase-from', phaseId, phase.from, function (value) {
       phase.from = value;
     });
+    var entryOptions = [{ value: '', label: '(auto — traced from the vote)' }].concat(buildDataRefOptions(phaseId));
+    if (phase.entryFrom && !entryOptions.some(function (o) { return o.value === phase.entryFrom; })) {
+      entryOptions.push({ value: phase.entryFrom, label: phase.entryFrom + ' (custom)' });
+    }
+    addSelectWithHelp('What they won for', 'The step whose answers were judged — the winner\'s own entry is shown with the crown. Usually auto-detected from the vote.', 'phase-entryFrom', entryOptions, phase.entryFrom || '', function (value) {
+      phase.entryFrom = value || undefined;
+    });
   }
 
   if (type === 'leaderboard') {
@@ -6056,11 +6063,13 @@ function buildPreviewHTML(phase, screen) {
 
   if (type === 'winner') {
     if (screen === 'host') {
-      html += previewEl('name', 'Winner', 'Player1!', showList);
+      html += previewEl('name', 'Winner', '👑 Player1 wins!', showList);
+      html += previewEl('entry', 'Winning entry', '“Their winning answer”', showList);
       html += previewEl('standings', 'Standings', '1st: Player1, 2nd: Player2...', showList);
       html += previewBtn('endButton', 'End Session', showList);
     } else {
-      html += previewEl('name', 'Winner', 'Player1!', showList);
+      html += previewEl('name', 'Winner', '👑 Player1 wins!', showList);
+      html += previewEl('entry', 'Winning entry', '“Their winning answer”', showList);
       html += previewEl('details', 'Details', 'Congratulations!', showList);
       html += previewEl('standings', 'Standings', '1st: Player1, 2nd: Player2...', showList);
     }

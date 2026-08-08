@@ -518,6 +518,31 @@ button[hidden] {
   color: var(--theme-text, #333);
 }
 
+/* What they won for — the winning entry */
+.winner-entry {
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-accent, #f0ad4e);
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin: 12px 0;
+}
+
+.winner-entry[hidden] { display: none; }
+
+.winner-entry-quote {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--theme-text, #333);
+}
+
+.winner-entry-by {
+  font-size: 0.95rem;
+  margin-top: 4px;
+  color: var(--theme-text, #555);
+  opacity: 0.75;
+}
+
 #standings-list {
   text-align: left;
   margin-top: 15px;

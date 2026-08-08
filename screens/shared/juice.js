@@ -56,7 +56,18 @@
     // Elimination / reset — descending womp.
     womp:    { gain: 0.10, notes: [{ f: 220, at: 0, d: 0.35, slide: 110 }] },
     // Timer in its final seconds — short tick.
-    tick:    { gain: 0.06, notes: [{ f: 1200, at: 0, d: 0.03 }] }
+    tick:    { gain: 0.06, notes: [{ f: 1200, at: 0, d: 0.03 }] },
+    // Winner build-up — accelerating low tom roll (~1.3s), one cue so the
+    // per-cue throttle can't chop it up. The fanfare lands right after.
+    drumroll: { gain: 0.09, notes: [
+      { f: 165, at: 0, d: 0.05 }, { f: 196, at: 0.18, d: 0.05 },
+      { f: 165, at: 0.35, d: 0.05 }, { f: 196, at: 0.50, d: 0.05 },
+      { f: 165, at: 0.63, d: 0.05 }, { f: 196, at: 0.75, d: 0.04 },
+      { f: 165, at: 0.86, d: 0.04 }, { f: 196, at: 0.95, d: 0.04 },
+      { f: 165, at: 1.03, d: 0.04 }, { f: 196, at: 1.10, d: 0.04 },
+      { f: 165, at: 1.16, d: 0.04 }, { f: 196, at: 1.21, d: 0.03 },
+      { f: 165, at: 1.25, d: 0.03 }, { f: 196, at: 1.29, d: 0.03 }
+    ] }
   };
 
   // --- Mute (persisted) ------------------------------------------------------

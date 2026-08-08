@@ -1040,6 +1040,12 @@ export const PHASE_SCHEMAS = {
         type: 'dataRef',
         accepts: [{ type: 'scoreMap', capability: 'scoreMap' }],
         required: true, label: 'Final scores'
+      },
+      entryFrom: {
+        type: 'dataRef',
+        accepts: [{ type: 'array', capability: 'responseArray' }],
+        optional: true, label: 'What they won for',
+        helper: 'Optional. The step whose submissions the scores judged (e.g. "ideas.responses") — the winner\'s own entry is shown with the crown. Auto-detected when the scores come from a vote over responses, so usually leave blank.'
       }
     },
     transitions: {
@@ -1048,18 +1054,20 @@ export const PHASE_SCHEMAS = {
     output: {
       kind: 'static',
       fields: {
-        winnerId:    { type: 'string' },
-        winnerName:  { type: 'string', capability: 'renderable' },
-        winnerScore: { type: 'integer' },
-        winnerIds:   { type: 'array' },
-        winnerNames: { type: 'array', renderers: { list: 'responseList' } },
-        isTie:       { type: 'boolean' },
-        standings:   { type: 'array', renderers: { list: 'rankingList' } }
+        winnerId:      { type: 'string' },
+        winnerName:    { type: 'string', capability: 'renderable' },
+        winnerScore:   { type: 'integer' },
+        winnerIds:     { type: 'array' },
+        winnerNames:   { type: 'array', renderers: { list: 'responseList' } },
+        winnerEntry:   { type: 'string', capability: 'renderable' },
+        winnerEntries: { type: 'array' },
+        isTie:         { type: 'boolean' },
+        standings:     { type: 'array', renderers: { list: 'rankingList' } }
       }
     },
     ui: {
-      hostToggles: ['name', 'standings', 'endButton'],
-      playerToggles: ['name', 'details', 'standings']
+      hostToggles: ['name', 'entry', 'standings', 'endButton'],
+      playerToggles: ['name', 'entry', 'details', 'standings']
     }
   },
 

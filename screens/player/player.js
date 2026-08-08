@@ -171,6 +171,7 @@ const announceMessage = document.getElementById('announce-message');
 const announceTimerDisplay = document.getElementById('announce-timer');
 const winnerSection = document.getElementById('winner-section');
 const winnerTitle = document.getElementById('winner-title');
+const winnerEntryDisplay = document.getElementById('winner-entry');
 const winnerDetails = document.getElementById('winner-details');
 const standingsList = document.getElementById('standings-list');
 
@@ -2592,35 +2593,72 @@ socket.on('elimination-results', ({ eliminated, eliminatedNames, remaining, play
 
 // --- Socket events - Winner ---
 
-socket.on('winner-announced', ({ winnerName, winnerScore, winnerIds, winnerNames, isTie, standings, playerTemplate, playerShow }) => {
+let winnerRevealTimer = null;
+
+socket.on('winner-announced', ({ winnerName, winnerScore, winnerIds, winnerNames, isTie, standings, winnerEntry, winnerEntries, playerTemplate, playerShow }) => {
   showSection(winnerSection);
-  // Personal celebration only on the winner's own device.
-  if (J && winnerIds && winnerIds.indexOf(socket.id) !== -1) {
-    J.sound('fanfare');
-    J.confetti();
-  }
-  if (isTie && winnerNames && winnerNames.length > 1) {
-    winnerTitle.textContent = formatTieNamesPlayer(winnerNames) + ' tie!';
-    winnerDetails.textContent = winnerScore + ' each';
-  } else {
-    winnerTitle.textContent = winnerName + ' wins!';
-    winnerDetails.textContent = String(winnerScore);
-  }
+
+  // Same build-up beat as the projector, quietly \u2014 sound stays reserved for
+  // the winner's own device at the reveal.
+  const entryAllowed = !playerShow || playerShow.indexOf('entry') !== -1;
+  winnerTitle.textContent = 'And the winner is\u2026';
+  winnerDetails.textContent = '';
+  winnerEntryDisplay.hidden = true;
+  winnerEntryDisplay.innerHTML = '';
+  standingsList.innerHTML = '';
   applyTemplate(winnerSection, playerTemplate);
   applyShow(playerShow, {
     name: winnerTitle,
+    entry: winnerEntryDisplay,
     details: winnerDetails,
     standings: standingsList
   });
+  winnerEntryDisplay.hidden = true; // stays hidden until the reveal fills it
 
-  standingsList.innerHTML = '';
-  if (standings && standings.length > 0) {
-    for (let i = 0; i < standings.length; i++) {
-      const p = document.createElement('p');
-      p.textContent = (i + 1) + '. ' + standings[i].name + ' \u2014 ' + standings[i].score;
-      standingsList.appendChild(p);
+  clearTimeout(winnerRevealTimer);
+  winnerRevealTimer = setTimeout(() => {
+    if (winnerSection.hidden) return; // phase moved on during the build-up
+    // Personal celebration only on the winner's own device.
+    const iWon = winnerIds && winnerIds.indexOf(socket.id) !== -1;
+    if (J && iWon) {
+      J.sound('fanfare');
+      J.confetti();
     }
-  }
+    if (isTie && winnerNames && winnerNames.length > 1) {
+      winnerTitle.textContent = '\ud83d\udc51 ' + formatTieNamesPlayer(winnerNames) + ' tie!';
+      winnerDetails.textContent = iWon ? 'That\'s you! ' + winnerScore + ' each' : winnerScore + ' each';
+    } else {
+      winnerTitle.textContent = '\ud83d\udc51 ' + winnerName + ' wins!';
+      winnerDetails.textContent = iWon ? 'That\'s you! ' + winnerScore : String(winnerScore);
+    }
+
+    // What they won for \u2014 the winning entry itself.
+    const entries = (isTie && winnerEntries && winnerEntries.length > 0) ? winnerEntries
+      : (winnerEntry ? [{ text: winnerEntry }] : []);
+    if (entries.length > 0 && entryAllowed) {
+      for (const entry of entries) {
+        const quote = document.createElement('p');
+        quote.className = 'winner-entry-quote';
+        quote.textContent = '\u201c' + entry.text + '\u201d';
+        winnerEntryDisplay.appendChild(quote);
+        if (entries.length > 1 && entry.name) {
+          const by = document.createElement('p');
+          by.className = 'winner-entry-by';
+          by.textContent = '\u2014 ' + entry.name;
+          winnerEntryDisplay.appendChild(by);
+        }
+      }
+      winnerEntryDisplay.hidden = false;
+    }
+
+    if (standings && standings.length > 0) {
+      for (let i = 0; i < standings.length; i++) {
+        const p = document.createElement('p');
+        p.textContent = (i + 1) + '. ' + standings[i].name + ' \u2014 ' + standings[i].score;
+        standingsList.appendChild(p);
+      }
+    }
+  }, 1500);
 });
 
 function formatTieNamesPlayer(names) {

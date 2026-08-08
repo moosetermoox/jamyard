@@ -1,0 +1,33 @@
+{
+  "name": "_Winner Entry Fixture",
+  "description": "Hidden test fixture: collect then vote then crown — proves the winner phase traces and shows the winning entry.",
+  "minPlayers": 3,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "minPlayers": 3,
+      "next": "ideas"
+    },
+    "ideas": {
+      "type": "collect",
+      "prompt": "Best invention idea?",
+      "next": "vote"
+    },
+    "vote": {
+      "type": "vote",
+      "mode": "pick-one",
+      "candidates": "ideas.responses",
+      "question": "Pick the best idea!",
+      "next": "crown"
+    },
+    "crown": {
+      "type": "winner",
+      "from": "vote.scores",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Fixture complete."
+    }
+  }
+}

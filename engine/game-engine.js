@@ -17,7 +17,7 @@ import { StateMachine } from './state-machine.js';
 import { PlayerRegistry } from './player-registry.js';
 import { runEliminate } from './phases/eliminate-handler.js';
 import { generateMatchups, getEligibleVoters } from './phases/vote-handler.js';
-import { determineWinner } from './phases/winner-handler.js';
+import { determineWinner, traceEntryRef, findWinnerEntries } from './phases/winner-handler.js';
 import { parseRef } from './resolver-grammar.js';
 
 export class GameEngine {
@@ -282,7 +282,26 @@ export class GameEngine {
 
   _runWinner(phase) {
     const scores = phase.from ? this.resolve(phase.from) : {};
-    return determineWinner(scores, this.players);
+    const result = determineWinner(scores, this.players);
+
+    // What they won FOR: trace the scores back to the submissions they
+    // judged and attach each winner's own entry. Display nicety — a broken
+    // trace must never crash the crown, so failures resolve to no entry.
+    result.winnerEntry = null;
+    result.winnerEntries = [];
+    const entryRef = traceEntryRef(phase, this.config.phases);
+    if (entryRef && result.winnerIds.length > 0) {
+      let records = null;
+      try {
+        records = this.resolve(entryRef);
+      } catch (err) {
+        console.warn(`[winner] could not resolve entry source "${entryRef}": ${err.message}`);
+      }
+      result.winnerEntries = findWinnerEntries(result.winnerIds, Array.isArray(records) ? records : []);
+      const own = result.winnerEntries.find(e => e.playerId === result.winnerId);
+      result.winnerEntry = own ? own.text : null;
+    }
+    return result;
   }
 }
 
