@@ -60,7 +60,7 @@ Framework for quickly building classroom games where:
 - **Screen control** — `hostTemplate`/`playerTemplate` for custom content, `hostShow`/`playerShow` for toggling built-in UI elements per phase
 - **Announce phase fixed** — host and player screens now have announce sections with message, timer, continue button
 - **Keith Haring editor restyle** — bold black borders, flat colors, warm canvas, energy marks on hover
-- **Game templates** — 5 pre-built templates (blank, simple poll, creative writing, elimination game, quiz show) accessible via template picker modal
+- **Templates consolidated into recipes (2026-08-07)** — the template picker and the 5 content templates are GONE (recipes ask for content up front and compile validated configs; every template had a recipe twin — Question & Share's zero-AI shape became `recipes/question-share.json`, the 19th recipe). Create page side doors are now "Browse recipes · Start from scratch". `templates.js` survives blank-only (the editor's `createBlankConfig` skeleton; loaded by editor.html only)
 - **Live preview** — side-by-side host/player screen mockups in editor, respects hostShow/playerShow toggles
 - **Game themes** — pre-built themes (pop-art, arcade, ocean, sunset) + AI-generated custom palettes, applied via CSS custom properties
 - **Leaderboard phase** — shows scores/rankings with medal emojis, personal rank highlight on player screen, optional timer auto-advance

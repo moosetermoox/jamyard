@@ -1,0 +1,62 @@
+{
+  "id": "question-share",
+  "name": "Question & Share",
+  "icon": "💬",
+  "description": "Ask an open question, then show everyone's answers on the projector — no AI, just the class's own words.",
+  "tagline": "The classic review move: think, type, talk it through together.",
+  "version": "1",
+
+  "parameters": {
+    "question": {
+      "type": "templateString",
+      "label": "Question to ask the class",
+      "helper": "An open question — every answer goes up on the projector, unedited.",
+      "placeholder": "What is one thing you learned today?",
+      "required": true,
+      "minLength": 5,
+      "maxLength": 400
+    },
+    "timer": {
+      "type": "integer",
+      "label": "Time to answer (seconds)",
+      "helper": "How long students have to type their answer.",
+      "default": 90,
+      "min": 15,
+      "max": 600
+    }
+  },
+
+  "template": {
+    "name": "Question & Share: ${question}",
+    "description": "Everyone answers an open question, then all the answers go up on the projector to talk through together.",
+    "minPlayers": 2,
+    "maxPlayers": 36,
+    "tags": ["discuss", "review"],
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "Here's the question — think for a second, then type your answer. Everyone's answers go up on the board after.",
+        "next": "ask"
+      },
+      "ask": {
+        "type": "collect",
+        "prompt": "${question}",
+        "timer": "${timer}",
+        "next": "share"
+      },
+      "share": {
+        "type": "reveal",
+        "template": "Here's what we said —\n\n{{ask.responses.list}}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "Nice thinking, everyone. That's a wrap!"
+      }
+    }
+  }
+}

@@ -12,14 +12,13 @@ var errorMessage = document.getElementById('error-message');
 var ideaInput = document.getElementById('idea-input');
 var ideaGoBtn = document.getElementById('idea-go-btn');
 var useRecipeLink = document.getElementById('use-recipe-link');
-var createNewLink = document.getElementById('create-new-link');
 
 var allGames = [];
 
 // The activity grid moved to /library (docs/SURFACES-PLAN.md); this page
 // only hosts the create flows now. The games list is still fetched —
-// generateGameId dedupes new ids against it (skipping the fetch made
-// "Start from a template" 409 on the second blank) — but rendering only
+// generateGameId dedupes new ids against it (skipping the fetch once made
+// duplicate creations 409 on the second blank) — but rendering only
 // happens where a grid exists.
 fetchGames();
 
@@ -72,12 +71,8 @@ if (useRecipeLink) {
     showRecipePicker();
   });
 }
-if (createNewLink) {
-  createNewLink.addEventListener('click', function (e) {
-    e.preventDefault();
-    showTemplatePicker();
-  });
-}
+// (The template picker is gone — templates consolidated into recipes
+// 2026-08-07. "Start from scratch" links straight to the blank editor.)
 
 // Deep link: /designer?idea=... launches the flow immediately (lets the
 // home screen or anything else hand an idea straight to the front door).
@@ -578,99 +573,6 @@ function clearModal(modal) {
     if (!(kids[i].classList && kids[i].classList.contains('dialog-close-btn'))) {
       kids[i].remove();
     }
-  }
-}
-
-function showTemplatePicker() {
-  // Remove any existing modal
-  var existing = document.getElementById('template-picker-modal');
-  if (existing) existing.remove();
-
-  var overlay = document.createElement('div');
-  overlay.id = 'template-picker-modal';
-  overlay.className = 'template-picker-overlay';
-
-  var modal = document.createElement('div');
-  modal.className = 'template-picker-modal';
-
-  var title = document.createElement('h2');
-  title.className = 'template-picker-title';
-  title.textContent = 'Start a New Activity';
-  modal.appendChild(title);
-
-  var subtitle = document.createElement('p');
-  subtitle.className = 'template-picker-subtitle';
-  subtitle.textContent = 'Pick a template to get started quickly, or start from scratch.';
-  modal.appendChild(subtitle);
-
-  var grid = document.createElement('div');
-  grid.className = 'template-picker-grid';
-
-  var templateKeys = Object.keys(window.GAME_TEMPLATES);
-  for (var i = 0; i < templateKeys.length; i++) {
-    var key = templateKeys[i];
-    var tmpl = window.GAME_TEMPLATES[key];
-
-    var card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'template-card';
-    card.setAttribute('data-template-key', key);
-
-    var cardIcon = document.createElement('span');
-    cardIcon.className = 'template-card-icon';
-    cardIcon.textContent = tmpl.icon;
-
-    var cardName = document.createElement('div');
-    cardName.className = 'template-card-name';
-    cardName.textContent = tmpl.name;
-
-    var cardDesc = document.createElement('div');
-    cardDesc.className = 'template-card-desc';
-    cardDesc.textContent = tmpl.description;
-
-    card.appendChild(cardIcon);
-    card.appendChild(cardName);
-    card.appendChild(cardDesc);
-
-    card.addEventListener('click', (function (chosenKey) {
-      return function () {
-        closeOverlay(overlay);
-        createFromTemplate(chosenKey);
-      };
-    })(key));
-
-    grid.appendChild(card);
-  }
-
-  modal.appendChild(grid);
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-  overlay._dlg = Dialog.enhance(overlay, modal, { title: 'Start a New Activity' });
-}
-
-async function createFromTemplate(templateKey) {
-  var tmpl = window.GAME_TEMPLATES[templateKey];
-  if (!tmpl) return;
-
-  var newId = generateGameId(templateKey);
-  var config = tmpl.config();
-
-  try {
-    var response = await fetch('/api/games', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: newId, config: config })
-    });
-
-    if (response.ok) {
-      rememberMine(newId);
-      window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
-    } else {
-      var result = await response.json();
-      alert('Create failed: ' + (result.error || 'Unknown error'));
-    }
-  } catch (error) {
-    alert('Create failed: ' + error.message);
   }
 }
 
