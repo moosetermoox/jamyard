@@ -508,6 +508,47 @@ button[hidden] {
   color: var(--theme-danger, #d9534f);
 }
 
+/* Mic button — speak instead of typing */
+.mic-btn {
+  display: inline-block;
+  margin: 6px 0 0;
+  padding: 8px 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  background: var(--theme-surface, white);
+  color: var(--theme-text, #333);
+  border: 2px solid var(--theme-border, #333);
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.mic-btn[hidden] { display: none; }
+
+.mic-btn-compact {
+  padding: 6px 12px;
+  margin: 2px 0 8px;
+  font-size: 0.95rem;
+}
+
+.mic-btn.mic-live {
+  background: var(--theme-danger, #d9534f);
+  color: white;
+  border-color: var(--theme-danger, #d9534f);
+  animation: micPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes micPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mic-btn.mic-live { animation: none; }
+}
+
+/* The mic hides whenever its text box does (choice/drawing/fields modes). */
+#response-input[hidden] + .mic-btn { display: none; }
+
 /* Winner section */
 #winner-section h1 {
   color: var(--theme-accent, #f0ad4e);

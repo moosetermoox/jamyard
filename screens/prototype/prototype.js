@@ -149,6 +149,8 @@ function createPlayerIframes(code, count) {
 
     const iframe = document.createElement('iframe');
     iframe.src = '/player?prototype=true&code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent('Player ' + i);
+    // Same-origin embed; lets the mic button work during teacher previews.
+    iframe.allow = 'microphone';
     wrapper.appendChild(iframe);
     iframeContainer.appendChild(wrapper);
   }

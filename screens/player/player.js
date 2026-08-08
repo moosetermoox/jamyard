@@ -137,6 +137,12 @@ if (responseInput) {
   });
 }
 
+// Mic button — speak instead of typing (hidden on browsers without the Web
+// Speech API; text lands in the same box and same submit path as typing).
+if (responseInput && window.Speech) {
+  Speech.attachMic(responseInput);
+}
+
 function showResponseNotice(message) {
   if (!responseNotice) return;
   responseNotice.textContent = message;
@@ -788,6 +794,8 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
       fieldInput.setAttribute('data-key', fieldDef.key);
       fieldInput.placeholder = fieldDef.placeholder || fieldDef.label;
       fieldsContainer.appendChild(fieldInput);
+      // Per-field mic — dictate into whichever field it sits under.
+      if (window.Speech) Speech.attachMic(fieldInput, { compact: true });
     }
     collectSection.insertBefore(fieldsContainer, submitBtn);
     submitBtn.hidden = false;
@@ -2750,6 +2758,8 @@ const allPlayerSections = [
 
 function showSection(el) {
   clearTimer();
+  // Leaving a screen always ends any live dictation.
+  if (window.Speech) Speech.stopAll();
   for (const s of allPlayerSections) {
     s.classList.remove('active');
     s.hidden = true;
