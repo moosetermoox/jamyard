@@ -57,6 +57,7 @@ import {
   clearFeaturedOverride
 } from './db.js';
 import { applyFeaturedOverrides } from './engine/featured-merge.js';
+import { validateSuggestions } from './engine/suggest-validate.js';
 import { createFeedbackStore } from './services/feedback-store.js';
 import { validateFeedback } from './engine/feedback-validate.js';
 import { createRateLimiter } from './engine/simple-rate-limit.js';
@@ -2316,6 +2317,66 @@ app.post('/api/games/generate-theme', async (req, res) => {
 // /api/games/generate-questions) were REMOVED 2026-08-07: if an activity
 // can't be assembled from validated storyboard bricks, it shouldn't be
 // makeable — raw-config generation added too many ways to break.
+
+// "Not sure what to make" concierge: fixed teacher answers in, up to 3
+// suggestions out. Every suggestion must resolve to something real (a
+// featured activity, a recipe with legal params, or a bricks-only
+// storyboard) via engine/suggest-validate.js, so the AI structurally
+// cannot show a teacher something the platform can't deliver.
+app.post('/api/games/suggest', async (req, res) => {
+  try {
+    const { occasion, topic, time } = req.body || {};
+    if (!occasion && !topic) {
+      return res.status(400).json({ error: 'Tell us the occasion or a topic first' });
+    }
+    const loaded = await listGames();
+    let games = loaded.map(({ id, config }) => ({
+      id,
+      featured: !!config.featured,
+      name: config.name,
+      description: config.description || '',
+      playTime: config.playTime || null
+    }));
+    games = applyFeaturedOverrides(games, await featuredOverridesSafe())
+      .filter(g => g.featured);
+    const recipes = listRecipes();
+
+    const raw = await aiService.generateSuggestions({
+      occasion, topic, time,
+      games,
+      recipes: recipes.map(r => ({
+        id: r.id, name: r.name, description: r.description, parameters: r.parameters
+      }))
+    });
+
+    const recipesById = {};
+    for (const r of recipes) recipesById[r.id] = r;
+    const checked = validateSuggestions(raw.suggestions, {
+      gameIds: games.map(g => g.id),
+      recipes: recipesById
+    });
+
+    // Enrich with real catalog data so the cards never rely on AI prose.
+    const gamesById = {};
+    for (const g of games) gamesById[g.id] = g;
+    const suggestions = checked.suggestions.map(s => {
+      if (s.kind === 'host') {
+        const g = gamesById[s.id];
+        return { ...s, name: g.name, description: g.description, playTime: g.playTime };
+      }
+      if (s.kind === 'recipe') {
+        const r = recipesById[s.id];
+        return { ...s, name: r.name, description: r.description || '' };
+      }
+      return s;
+    });
+
+    res.json({ suggestions, note: raw.note, dropped: checked.dropped });
+  } catch (error) {
+    console.log(`[api/games/suggest] Error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+});
 
 // Storyboard-before-generate: AI proposes a step outline in the
 // Builder's brick vocabulary; the CLIENT compiles it deterministically

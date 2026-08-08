@@ -1780,7 +1780,7 @@ var SB_BRICK_LABELS = {
   'end': 'Wrap up'
 };
 
-async function showStoryboardFlow(description) {
+async function showStoryboardFlow(description, seededStoryboard) {
   var overlay = document.createElement('div');
   overlay.className = 'picker-overlay';
   var modal = document.createElement('div');
@@ -1803,21 +1803,26 @@ async function showStoryboardFlow(description) {
   status.style.cssText = 'font-family:"Nunito", Arial, sans-serif; color:#666; margin:8px 0 12px;';
   modal.appendChild(status);
 
-  var resp;
-  try {
-    var r = await fetch('/api/games/storyboard', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: description })
-    });
-    resp = await r.json();
-    if (!r.ok || !resp.storyboard) throw new Error(resp.error || 'No storyboard came back.');
-  } catch (err) {
-    status.textContent = 'Could not sketch the plan: ' + err.message;
-    return;
+  var storyboard;
+  if (seededStoryboard) {
+    // The concierge already proposed a plan; open it for approval directly.
+    storyboard = seededStoryboard;
+  } else {
+    var resp;
+    try {
+      var r = await fetch('/api/games/storyboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description: description })
+      });
+      resp = await r.json();
+      if (!r.ok || !resp.storyboard) throw new Error(resp.error || 'No storyboard came back.');
+    } catch (err) {
+      status.textContent = 'Could not sketch the plan: ' + err.message;
+      return;
+    }
+    storyboard = resp.storyboard;
   }
-
-  var storyboard = resp.storyboard;
   status.textContent = 'Change any words you like, drop steps you don’t, then build it. Nothing exists until you do.';
 
   var nameRow = sbEl('div');
@@ -1909,4 +1914,262 @@ async function showStoryboardFlow(description) {
   });
   btnRow.appendChild(buildBtn);
   modal.appendChild(btnRow);
+}
+
+// =======================================================================
+// "Not sure what to make" concierge (2026-08-08). Three fixed questions,
+// one AI call, up to three suggestion cards. Every card points at
+// something real: a featured activity (host it), a recipe (opens the
+// form prefilled), or a bricks-only storyboard (opens the approval flow,
+// which compiles through validated builders). The server drops anything
+// that does not resolve, so an impossible suggestion never renders.
+// =======================================================================
+
+var CONCIERGE_OCCASIONS = [
+  'Help the class connect',
+  'Discuss something',
+  'Review material',
+  'Decide together',
+  'Reflect',
+  'Fill some time',
+  'Just have fun'
+];
+var CONCIERGE_TIMES = ['About 5 minutes', '10 to 20 minutes', 'Half the period', 'The whole period'];
+
+function showConciergeDialog() {
+  var overlay = document.createElement('div');
+  overlay.className = 'template-picker-overlay';
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal';
+  modal.style.maxWidth = '600px';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  Dialog.enhance(overlay, modal, { title: 'Let’s figure it out' });
+
+  function cEl(tag, text, cls) {
+    var n = document.createElement(tag);
+    if (text != null) n.textContent = text;
+    if (cls) n.className = cls;
+    return n;
+  }
+
+  function chipRow(options) {
+    var row = cEl('div');
+    row.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 14px;';
+    var picked = { value: null };
+    options.forEach(function (label) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.textContent = label;
+      chip.style.cssText = 'padding:7px 14px; border:2px solid #000; border-radius:16px; background:#fff; cursor:pointer; font-family:"Nunito", Arial, sans-serif; font-size:0.9rem; font-weight:700;';
+      chip.addEventListener('click', function () {
+        picked.value = (picked.value === label) ? null : label;
+        Array.prototype.forEach.call(row.children, function (c) {
+          c.style.background = (c.textContent === picked.value) ? '#FFD600' : '#fff';
+        });
+      });
+      row.appendChild(chip);
+    });
+    return { row: row, picked: picked };
+  }
+
+  modal.appendChild(cEl('h2', 'Not sure what to make?', 'template-picker-title'));
+  modal.appendChild(cEl('p', 'Three quick questions and we’ll suggest something that fits.', 'template-picker-subtitle'));
+
+  var q1 = cEl('label', 'What’s the moment?');
+  q1.style.cssText = 'display:block; font-weight:800; margin-top:6px; font-family:"Nunito", Arial, sans-serif;';
+  modal.appendChild(q1);
+  var occasion = chipRow(CONCIERGE_OCCASIONS);
+  modal.appendChild(occasion.row);
+
+  var q2 = cEl('label', 'Topic or subject? (optional)');
+  q2.style.cssText = 'display:block; font-weight:800; font-family:"Nunito", Arial, sans-serif;';
+  modal.appendChild(q2);
+  var topicInput = document.createElement('input');
+  topicInput.type = 'text';
+  topicInput.placeholder = 'e.g. photosynthesis, fractions, our field trip';
+  topicInput.style.cssText = 'width:100%; padding:10px 12px; border:2px solid #000; border-radius:10px; font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; box-sizing:border-box; margin:6px 0 14px;';
+  modal.appendChild(topicInput);
+
+  var q3 = cEl('label', 'How much time do you have?');
+  q3.style.cssText = 'display:block; font-weight:800; font-family:"Nunito", Arial, sans-serif;';
+  modal.appendChild(q3);
+  var timeRow = chipRow(CONCIERGE_TIMES);
+  modal.appendChild(timeRow.row);
+
+  var status = cEl('p', '', 'template-picker-subtitle');
+  status.hidden = true;
+  modal.appendChild(status);
+
+  var resultsEl = cEl('div');
+  modal.appendChild(resultsEl);
+
+  var btnRow = cEl('div', null, 'recipe-form-buttons');
+  var goBtn = document.createElement('button');
+  goBtn.type = 'button';
+  goBtn.className = 'recipe-create-btn';
+  goBtn.textContent = 'Get ideas';
+  btnRow.appendChild(goBtn);
+  modal.appendChild(btnRow);
+
+  goBtn.addEventListener('click', function () {
+    var topic = topicInput.value.trim();
+    if (!occasion.picked.value && !topic) {
+      status.hidden = false;
+      status.textContent = 'Pick a moment or type a topic first.';
+      return;
+    }
+    goBtn.disabled = true;
+    goBtn.textContent = 'Thinking…';
+    status.hidden = false;
+    status.textContent = 'Looking at what would fit your class…';
+    resultsEl.textContent = '';
+    fetch('/api/games/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        occasion: occasion.picked.value || '',
+        topic: topic,
+        time: timeRow.picked.value || ''
+      })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (result) {
+        goBtn.disabled = false;
+        goBtn.textContent = 'Get more ideas';
+        if (!result.ok || result.data.error) throw new Error(result.data.error || 'no ideas came back');
+        renderConciergeResults(result.data, resultsEl, status, overlay);
+      })
+      .catch(function (err) {
+        goBtn.disabled = false;
+        goBtn.textContent = 'Try again';
+        status.textContent = 'That didn’t work (' + err.message + '). Browsing the library by goal is a good plan B.';
+      });
+  });
+}
+
+function renderConciergeResults(data, resultsEl, status, overlay) {
+  resultsEl.textContent = '';
+  var suggestions = data.suggestions || [];
+  if (suggestions.length === 0) {
+    status.textContent = 'Nothing clicked for that combination. The library sorted by goal is the best next stop.';
+    var libLink = document.createElement('a');
+    libLink.href = '/library';
+    libLink.textContent = 'Open the Library';
+    libLink.style.cssText = 'font-weight:800;';
+    resultsEl.appendChild(libLink);
+    return;
+  }
+  status.textContent = data.note ? data.note : 'Here’s what would fit:';
+
+  suggestions.forEach(function (s) {
+    var card = document.createElement('div');
+    card.style.cssText = 'border:2px solid #000; border-radius:12px; padding:12px 14px; margin:10px 0; background:#fff; text-align:left;';
+
+    var kindLabel = s.kind === 'host' ? 'Ready to run'
+      : s.kind === 'recipe' ? 'Fill in a recipe' : 'A new plan, step by step';
+    var tag = document.createElement('div');
+    tag.textContent = kindLabel;
+    tag.style.cssText = 'font-size:0.7rem; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; color:#888; font-family:"Nunito", Arial, sans-serif;';
+    card.appendChild(tag);
+
+    var name = document.createElement('div');
+    name.textContent = s.name || (s.storyboard && s.storyboard.name) || '';
+    name.style.cssText = 'font-weight:900; font-size:1.05rem; margin:2px 0;';
+    card.appendChild(name);
+
+    var desc = document.createElement('div');
+    desc.textContent = s.description || (s.storyboard && s.storyboard.description) || '';
+    desc.style.cssText = 'font-family:"Nunito", Arial, sans-serif; font-size:0.85rem; color:#444;';
+    card.appendChild(desc);
+
+    if (s.why) {
+      var why = document.createElement('div');
+      why.textContent = s.why;
+      why.style.cssText = 'font-family:"Nunito", Arial, sans-serif; font-size:0.85rem; color:#0057FF; margin-top:4px;';
+      card.appendChild(why);
+    }
+
+    var action = document.createElement('button');
+    action.type = 'button';
+    action.className = 'recipe-create-btn';
+    action.style.marginTop = '8px';
+    if (s.kind === 'host') {
+      action.textContent = '▶ Host this' + (s.playTime ? ' (' + s.playTime + ')' : '');
+      action.addEventListener('click', function () {
+        window.location.href = '/host?game=' + encodeURIComponent(s.id);
+      });
+    } else if (s.kind === 'recipe') {
+      action.textContent = 'Use this recipe';
+      action.addEventListener('click', function () {
+        closeOverlay(overlay);
+        openRecipeFormPrefilled(s.id, s.params || {});
+      });
+    } else {
+      action.textContent = 'Plan it step by step';
+      action.addEventListener('click', function () {
+        closeOverlay(overlay);
+        showStoryboardFlow(null, s.storyboard);
+      });
+    }
+    card.appendChild(action);
+    resultsEl.appendChild(card);
+  });
+
+  var footer = document.createElement('p');
+  footer.className = 'template-picker-subtitle';
+  footer.style.marginTop = '10px';
+  var libLink2 = document.createElement('a');
+  libLink2.href = '/library';
+  libLink2.textContent = 'None of these? Browse the whole library';
+  footer.appendChild(libLink2);
+  resultsEl.appendChild(footer);
+}
+
+// Open a recipe's form directly (skipping the picker), prefilled with the
+// concierge's proposed params. Values land through the same inputs the
+// teacher would type into, so recipe validation applies unchanged.
+async function openRecipeFormPrefilled(recipeId, params) {
+  try {
+    var listResp = await fetch('/api/recipes');
+    var allRecipes = await listResp.json();
+    var recipe = null;
+    for (var i = 0; i < allRecipes.length; i++) {
+      if (allRecipes[i].id === recipeId) { recipe = allRecipes[i]; break; }
+    }
+    if (!recipe) throw new Error('recipe not found');
+
+    var overlay = document.createElement('div');
+    overlay.id = 'recipe-picker-modal';
+    overlay.className = 'template-picker-overlay';
+    var modal = document.createElement('div');
+    modal.className = 'template-picker-modal recipe-picker-modal';
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    overlay._dlg = Dialog.enhance(overlay, modal, { title: recipe.name });
+    renderRecipeFormView(modal, recipe, allRecipes, overlay);
+
+    for (var key in params) {
+      var input = modal.querySelector('[data-param-name="' + key + '"]');
+      if (input && 'value' in input) {
+        input.value = params[key];
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+  } catch (err) {
+    alert('Could not open that recipe: ' + err.message);
+  }
+}
+
+// Entry points: the link under the idea box, and ?notsure=1 (used by the
+// library's empty search results).
+var notSureLink = document.getElementById('not-sure-link');
+if (notSureLink) {
+  notSureLink.addEventListener('click', function (e) {
+    e.preventDefault();
+    showConciergeDialog();
+  });
+}
+if (new URLSearchParams(window.location.search).get('notsure') === '1') {
+  showConciergeDialog();
 }

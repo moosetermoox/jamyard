@@ -280,3 +280,36 @@ describe('generateCustomizeQuestions', () => {
     expect(result.questions).toEqual([]);
   });
 });
+
+// Concierge: suggestions must parse and degrade safely.
+describe('generateSuggestions', () => {
+  const args = {
+    occasion: 'Review material', topic: 'fractions', time: '10 to 20 minutes',
+    games: [{ id: 'vocab-match', name: 'Vocab Match', description: 'Match words', playTime: '~10 min' }],
+    recipes: [{ id: 'question-share', name: 'Question & Share', description: 'Open question', parameters: { question: {}, timer: {} } }]
+  };
+
+  it('mock mode returns suggestions referencing real things', async () => {
+    const service = new AIService();
+    const result = await service.generateSuggestions(args);
+    expect(result.suggestions.length).toBeGreaterThan(0);
+    expect(result.suggestions[0].kind).toBe('host');
+    expect(result.suggestions[0].id).toBe('vocab-match');
+  });
+
+  it('real mode parses preamble-wrapped JSON', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => ({
+      content: [{ type: 'text', text: 'Here:\n{"suggestions":[{"kind":"host","id":"vocab-match","why":"Fits review."}],"note":null}' }]
+    });
+    const result = await service.generateSuggestions(args);
+    expect(result.suggestions).toEqual([{ kind: 'host', id: 'vocab-match', why: 'Fits review.' }]);
+  });
+
+  it('real-mode failure degrades to empty suggestions, never throws', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => { throw new Error('api down'); };
+    const result = await service.generateSuggestions(args);
+    expect(result.suggestions).toEqual([]);
+  });
+});

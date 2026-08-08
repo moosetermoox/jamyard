@@ -116,6 +116,14 @@ function renderLibrary(games) {
       ? 'No matches, try a different search or clear the filter.'
       : 'Nothing here yet.';
     libraryGrid.appendChild(empty);
+    // Dead-end rescue: the concierge on the Create page can suggest
+    // something that fits even when the search found nothing.
+    var notSure = document.createElement('a');
+    notSure.className = 'empty-message';
+    notSure.href = '/designer?notsure=1';
+    notSure.textContent = 'Not sure what to make? Let\'s figure it out';
+    notSure.style.cssText = 'display:block; margin-top:8px; font-weight:800;';
+    libraryGrid.appendChild(notSure);
     if (!ownerOn) appendOwnerLink();
     return;
   }

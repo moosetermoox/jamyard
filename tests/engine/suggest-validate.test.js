@@ -1,0 +1,84 @@
+// The concierge's structural guarantee: an AI suggestion the platform can't
+// actually deliver never reaches the teacher. Every suggestion must resolve
+// to something real (a library activity, a recipe with legal params, or a
+// storyboard made only of known bricks); anything else is dropped.
+import { describe, it, expect } from 'vitest';
+import { validateSuggestions, STORYBOARD_BRICKS } from '../../engine/suggest-validate.js';
+
+const ctx = {
+  gameIds: ['snowball', 'vocab-match'],
+  recipes: {
+    'class-poll': { parameters: { question: {}, choices: {}, timer: {} } },
+    'question-share': { parameters: { question: {}, timer: {} } }
+  }
+};
+
+describe('validateSuggestions', () => {
+  it('keeps a valid host suggestion and trims the why line', () => {
+    const out = validateSuggestions([
+      { kind: 'host', id: 'snowball', why: '  Fits a connect moment.  ' }
+    ], ctx);
+    expect(out.suggestions).toEqual([{ kind: 'host', id: 'snowball', why: 'Fits a connect moment.' }]);
+    expect(out.dropped).toBe(0);
+  });
+
+  it('drops host suggestions for unknown activities', () => {
+    const out = validateSuggestions([{ kind: 'host', id: 'made-up-game', why: 'x' }], ctx);
+    expect(out.suggestions).toEqual([]);
+    expect(out.dropped).toBe(1);
+  });
+
+  it('keeps recipe suggestions and strips unknown params', () => {
+    const out = validateSuggestions([
+      { kind: 'recipe', id: 'class-poll', params: { question: 'Favorite planet?', bogus: 'x', timer: 60 }, why: 'w' }
+    ], ctx);
+    expect(out.suggestions[0].params).toEqual({ question: 'Favorite planet?', timer: 60 });
+  });
+
+  it('drops recipes that do not exist; keeps a recipe with no params', () => {
+    const out = validateSuggestions([
+      { kind: 'recipe', id: 'ghost-recipe', why: 'w' },
+      { kind: 'recipe', id: 'question-share', why: 'w' }
+    ], ctx);
+    expect(out.suggestions).toEqual([{ kind: 'recipe', id: 'question-share', params: {}, why: 'w' }]);
+    expect(out.dropped).toBe(1);
+  });
+
+  it('keeps storyboards built only of known bricks', () => {
+    const sb = { name: 'Quick Check', steps: [
+      { brick: 'announce', text: 'Welcome!' },
+      { brick: 'collect', text: 'One thing you learned?' },
+      { brick: 'reveal', text: 'Here is what we said:' },
+      { brick: 'end', text: 'Nice work.' }
+    ] };
+    const out = validateSuggestions([{ kind: 'storyboard', storyboard: sb, why: 'w' }], ctx);
+    expect(out.suggestions.length).toBe(1);
+    expect(out.suggestions[0].storyboard.steps.length).toBe(4);
+  });
+
+  it('drops storyboards with unknown bricks or too few steps', () => {
+    const bad1 = { steps: [{ brick: 'record-audio', text: 'x' }, { brick: 'end' }] };
+    const bad2 = { steps: [{ brick: 'end' }] };
+    const out = validateSuggestions([
+      { kind: 'storyboard', storyboard: bad1, why: 'w' },
+      { kind: 'storyboard', storyboard: bad2, why: 'w' }
+    ], ctx);
+    expect(out.suggestions).toEqual([]);
+    expect(out.dropped).toBe(2);
+  });
+
+  it('caps at three suggestions and survives malformed input', () => {
+    const many = ['snowball', 'vocab-match', 'snowball', 'vocab-match'].map(function (id) {
+      return { kind: 'host', id: id, why: 'w' };
+    });
+    expect(validateSuggestions(many, ctx).suggestions.length).toBe(3);
+    expect(validateSuggestions(null, ctx).suggestions).toEqual([]);
+    expect(validateSuggestions([null, 'nope', { kind: 'dance' }], ctx).suggestions).toEqual([]);
+  });
+
+  it('exports the storyboard brick vocabulary', () => {
+    expect(STORYBOARD_BRICKS).toContain('collect-two');
+    expect(STORYBOARD_BRICKS).toContain('guessing-rounds');
+    expect(STORYBOARD_BRICKS).not.toContain('foreach');
+  });
+});

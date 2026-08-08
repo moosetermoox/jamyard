@@ -1021,6 +1021,75 @@ Return ONLY JSON: {"questions":[{"question":"...","placeholder":"e.g. ..."}]}`
     }
   }
 
+  // "Not sure what to make" concierge: teacher answers (occasion, topic,
+  // time) in; up to 3 suggestions out, each a REFERENCE to something real
+  // (host an activity, fill a recipe, or a bricks-only storyboard). The
+  // server validates every suggestion against the actual catalogs before
+  // showing anything, so an impossible suggestion structurally cannot
+  // reach a teacher. No student data.
+  async generateSuggestions({ occasion, topic, time, games, recipes }) {
+    if (this.mode === 'mock') {
+      return {
+        suggestions: [
+          { kind: 'host', id: (games[0] && games[0].id) || 'snowball', why: 'A ready-made fit for that moment.' },
+          { kind: 'recipe', id: 'question-share', params: { question: topic ? 'What do you already know about ' + topic + '?' : 'What is one thing you learned today?' }, why: 'Your question, everyone\'s answers on the board.' }
+        ],
+        note: null
+      };
+    }
+    try {
+      const gameLines = games.map(g =>
+        `- ${g.id}: ${g.name}. ${String(g.description || '').slice(0, 140)} (${g.playTime || 'time varies'})`);
+      const recipeLines = recipes.map(r =>
+        `- ${r.id}: ${r.name}. ${String(r.description || '').slice(0, 120)} Params: ${Object.keys(r.parameters || {}).join(', ')}`);
+      const message = await this._callClaude({
+        model: MODELS.sonnet,
+        max_tokens: 1200,
+        messages: [{
+          role: 'user',
+          content: `You are the guide for Lanyard, a classroom activity platform (teacher projects a host screen, students join on Chromebooks, everything is text or simple taps). A teacher is not sure what to run or make. Suggest up to 3 things, best first.
+
+THE TEACHER'S ANSWERS:
+Occasion: ${String(occasion || '').slice(0, 100)}
+Topic or subject: ${String(topic || '').slice(0, 200) || '(none given)'}
+Time available: ${String(time || '').slice(0, 50)}
+
+YOU MAY ONLY SUGGEST THESE THREE KINDS:
+1. {"kind":"host","id":"<activity id>","why":"one sentence"} to run a ready-made activity from this list:
+${gameLines.join('\n')}
+2. {"kind":"recipe","id":"<recipe id>","params":{...},"why":"one sentence"} to fill a recipe (params optional, only the listed names, values short strings or numbers):
+${recipeLines.join('\n')}
+3. {"kind":"storyboard","storyboard":{"name":"...","description":"...","steps":[{"brick":"...","text":"..."}]},"why":"one sentence"} ONLY when nothing above fits. Bricks allowed: announce, collect (open answer), collect-two (secret + clue), collect-choice (needs "choices" array), estimate (guess a number), reveal, reveal-one, vote, guessing-rounds (must come after a collect), end. 3 to 8 steps, always finish with end.
+
+HARD RULES:
+- Never invent an activity id, recipe id, param name, or brick that is not listed.
+- Prefer kind "host", then "recipe". A storyboard is the last resort.
+- The platform cannot do: audio or video recording, live drawing between students, file uploads, external websites, grading into a gradebook, anything real-time beyond the listed steps. If the teacher's answers imply one of those, say so briefly in "note" and suggest the nearest possible thing.
+- "why" is one plain sentence tied to THEIR answers. No hype.
+
+Return ONLY JSON: {"suggestions":[...], "note": null or "one honest sentence about a limit"}`
+        }]
+      });
+      const text = extractText(message);
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI response was not valid JSON');
+        parsed = JSON.parse(match[0]);
+      }
+      return {
+        suggestions: Array.isArray(parsed.suggestions) ? parsed.suggestions : [],
+        note: typeof parsed.note === 'string' ? parsed.note.slice(0, 300) : null
+      };
+    } catch (error) {
+      if (error && error.name === 'AiBudgetError') throw error;
+      console.error('[AIService] generateSuggestions error:', error.message);
+      return { suggestions: [], note: null };
+    }
+  }
+
   // Storyboard-before-generate (SURFACES-PLAN Phase 4): the AI never
   // writes config JSON — it arranges BRICKS (the Builder's validated
   // step vocabulary) and writes the words. The client compiles the
