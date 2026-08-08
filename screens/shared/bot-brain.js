@@ -18,7 +18,7 @@
   var BANKS = {
     food: [
       'Cold pizza, no contest', 'Spicy ramen with extra everything',
-      'Tacos — crunchy, never soft', 'My grandma\'s dumplings',
+      'Tacos, crunchy, never soft', 'My grandma\'s dumplings',
       'Mac and cheese with hot sauce', 'Watermelon on a hot day'
     ],
     feelings: [
@@ -27,7 +27,7 @@
       'Better than yesterday'
     ],
     animals: [
-      'A red panda', 'An octopus — eight arms, zero rules', 'A golden retriever',
+      'A red panda', 'An octopus, eight arms, zero rules', 'A golden retriever',
       'A snow leopard', 'A capybara, obviously', 'A very confident pigeon'
     ],
     places: [
@@ -44,7 +44,7 @@
       'My dog reorganized my backpack alphabetically',
       'A wizard turned my homework into a sandwich',
       'I was busy rescuing a cat from a tree, twice',
-      'Time travel mishap — I did it tomorrow',
+      'Time travel mishap. I did it tomorrow',
       'My little brother traded it for a juice box'
     ],
     ideas: [
@@ -58,7 +58,7 @@
       'And then the lights flickered and everyone gasped.',
       'Suddenly, a tiny dragon landed on the teacher\'s desk.',
       'Nobody noticed the door slowly creaking open.',
-      'That\'s when the principal announced a snow day — in May.',
+      'That\'s when the principal announced a snow day, in May.',
       'The map led them straight back to the cafeteria.'
     ],
     questions: [
@@ -69,7 +69,7 @@
       'What\'s your most controversial snack opinion?'
     ],
     media: [
-      'Spirited Away', 'The first Spider-Verse movie', 'Holes — book AND movie',
+      'Spirited Away', 'The first Spider-Verse movie', 'Holes, book AND movie',
       'Anything with a heist in it', 'The one everyone says is overrated (it\'s not)'
     ],
     songs: [
@@ -84,7 +84,7 @@
     ],
     activities: [
       'Played soccer until it got dark', 'Built a fort and read in it',
-      'Tried baking bread — half success', 'Watched movies with my cousins',
+      'Tried baking bread, half success', 'Watched movies with my cousins',
       'Went on a long bike ride'
     ],
     norms: [
@@ -108,7 +108,7 @@
   };
 
   var ONE_WORD = ['Connected', 'Curious', 'Energized', 'Calm', 'Inspired', 'Hungry', 'Ready'];
-  var YES_NO = ['Yes, definitely', 'No way', 'Absolutely yes', 'Probably not', 'Yes — no doubt about it'];
+  var YES_NO = ['Yes, definitely', 'No way', 'Absolutely yes', 'Probably not', 'Yes, no doubt about it'];
 
   function containsAny(text, words) {
     for (var i = 0; i < words.length; i++) {

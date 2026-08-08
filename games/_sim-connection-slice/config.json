@@ -14,7 +14,7 @@
     },
     "answer": {
       "type": "collect",
-      "prompt": "Your pair's question: {{seed.assigned}}\n\nAnswer honestly — only your partner will see it. Pass anytime.",
+      "prompt": "Your pair's question: {{seed.assigned}}\n\nAnswer honestly, only your partner will see it. Pass anytime.",
       "assign": "pairwise",
       "pairsFrom": "seed",
       "passAllowed": true,

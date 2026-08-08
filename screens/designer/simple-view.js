@@ -296,7 +296,7 @@
     input.className = 'sv-timer';
     input.min = '1';
     input.max = '3600';
-    input.placeholder = '—';
+    input.placeholder = '. ';
     if (phase.timer) input.value = phase.timer;
     input.addEventListener('input', function () {
       markEdited();
@@ -495,7 +495,7 @@
         } else if (phase.choicePool) {
           d.facts.push(fact('choices are built from earlier answers'));
         }
-        if (phase.correctAnswer) d.facts.push(fact('graded — correct answer earns points'));
+        if (phase.correctAnswer) d.facts.push(fact('graded, correct answer earns points'));
         d.facts.push(timerFact(phase));
         break;
       }
@@ -517,7 +517,7 @@
           d.muted = true;
         } else {
           d.sentence = 'The class sees:';
-          d.field = textBox(phase.template, 'What to show — open All settings to insert answers from earlier steps…', function (v) { phase.template = v; });
+          d.field = textBox(phase.template, 'What to show, open All settings to insert answers from earlier steps…', function (v) { phase.template = v; });
         }
         break;
 
@@ -603,12 +603,12 @@
 
       case 'one-voice':
         d.sentence = 'The class counts to ' + (phase.target || 20) +
-          ' together — two voices at once and it starts over.';
+          ' together, two voices at once and it starts over.';
         d.muted = true;
         break;
 
       case 'buzz':
-        d.sentence = 'Buzzer round — you ask questions out loud, first to buzz answers:';
+        d.sentence = 'Buzzer round, you ask questions out loud, first to buzz answers:';
         d.field = textBox(phase.prompt, 'On-screen prompt, e.g. "Listen for the question, then BUZZ!"', function (v) { phase.prompt = v; });
         d.facts.push(fact((phase.points || 10) + ' pts per correct answer'));
         if (phase.lockoutOnWrong !== false) d.facts.push(fact('wrong answers locked out for the question'));
@@ -621,7 +621,7 @@
         var sortGraded = Array.isArray(phase.items) && phase.items.length > 0 &&
           phase.items.every(function (it) { return it && it.bucket; });
         d.facts.push(fact((Array.isArray(phase.items) ? phase.items.length : 0) + ' items'));
-        d.facts.push(fact(sortGraded ? (phase.pointsPerItem || 10) + ' pts per correct placement' : 'consensus poll — no right answers'));
+        d.facts.push(fact(sortGraded ? (phase.pointsPerItem || 10) + ' pts per correct placement' : 'consensus poll, no right answers'));
         d.facts.push(timerFact(phase));
         break;
       }
@@ -634,7 +634,7 @@
           function (a) { phase.items = a; },
           'task'
         );
-        d.facts.push(fact(phase.teamsFrom ? 'shared per group — live dashboard on the projector' : 'one list per student'));
+        d.facts.push(fact(phase.teamsFrom ? 'shared per group, live dashboard on the projector' : 'one list per student'));
         d.facts.push(timerFact(phase));
         break;
       }
@@ -657,7 +657,7 @@
           d.facts.push(fact('answer: ' + phase.answer + (phase.unit ? ' ' + phase.unit : '')));
           d.facts.push(fact(phase.scoring === 'graduated' ? 'points by closeness rank' : 'closest guess earns ' + (phase.points || 10) + ' pts'));
         } else {
-          d.facts.push(fact('no answer set — shows the class distribution only'));
+          d.facts.push(fact('no answer set, shows the class distribution only'));
         }
         d.facts.push(timerFact(phase));
         break;
@@ -701,7 +701,7 @@
           : phase.method === 'choice' ? (phase.capacity === 'open' ? 'students join their own team (no size caps)' : 'students pick their own spots')
           : phase.method === 'balanced' ? 'balanced by score'
           : 'at random';
-        d.sentence = 'The class splits into ' + sizing + ' — ' + how + '.';
+        d.sentence = 'The class splits into ' + sizing + '. ' + how + '.';
         d.muted = true;
         break;
       }

@@ -107,7 +107,7 @@
       box-shadow: 2px 2px 0 #000;
     }
 
-    /* Hosting is the dominant action — teachers usually arrive to RUN
+    /* Hosting is the dominant action, teachers usually arrive to RUN
        something now; building is the secondary path. */
     .card.card-host {
       background: #C8E6C9;
@@ -384,13 +384,13 @@
   <main>
     <div class="hero">
       <h1>What are we going to do together?</h1>
-      <p>Simple activities for connecting, thinking, and fun — together.</p>
+      <p>Simple activities for connecting, thinking, and fun together.</p>
     </div>
 
     <div class="cards">
       <a href="/library" class="card card-host">
         <div class="card-title">Find an Activity</div>
-        <div class="card-desc">Browse the library by what you want your class to do — connect, discuss, decide, reflect — and host it in one click. Students join on their Chromebooks.</div>
+        <div class="card-desc">Browse the library by what you want your class to do, connect, discuss, decide, reflect, and host it in one click. Students join on their Chromebooks.</div>
         <div class="card-cta">Open the Library</div>
       </a>
 
@@ -425,10 +425,10 @@
   </main>
 
   <footer>
-    <a href="/designer" title="Build your own activity — describe it in plain words, use a recipe, or start from scratch">Create an Activity</a>
+    <a href="/designer" title="Build your own activity, describe it in plain words, use a recipe, or start from scratch">Create an Activity</a>
     <a href="/prototype">Preview</a>
     <a href="/player">Player Screen</a>
-    <a href="/teacher" title="Private controls for a running activity — join with the room code + PIN from the host screen">Teacher Console</a>
+    <a href="/teacher" title="Private controls for a running activity, join with the room code + PIN from the host screen">Teacher Console</a>
   </footer>
 
   <script src="/shared/feedback-widget.js"></script>
@@ -453,7 +453,7 @@
       function render() {
         var g = games[idx];
         slideEl.href = '/host?game=' + encodeURIComponent(g.id);
-        slideEl.title = 'Host "' + g.name + '" now — students join with the room code';
+        slideEl.title = 'Host "' + g.name + '" now, students join with the room code';
         nameEl.textContent = g.name;
         descEl.textContent = g.description || '';
         var meta = [];
@@ -497,7 +497,7 @@
           carouselEl.addEventListener('mouseenter', function () { clearInterval(timer); });
           carouselEl.addEventListener('mouseleave', startRotation);
         })
-        .catch(function () { /* the carousel is decoration — never block the page */ });
+        .catch(function () { /* the carousel is decoration, never block the page */ });
     })();
   </script>
   <script>

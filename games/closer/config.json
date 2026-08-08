@@ -1,6 +1,6 @@
 {
   "name": "Closer",
-  "description": "Escalating pair conversations — playful to reflective. No winners. A full advisory/homeroom block; each tier is a natural stopping point if the bell wins.",
+  "description": "Escalating pair conversations, playful to reflective. No winners. A full advisory/homeroom block; each tier is a natural stopping point if the bell wins.",
   "playTime": "~30–40 min",
   "classSize": "4–35 players",
   "family": "connection",
@@ -11,17 +11,17 @@
     },
     "welcome": {
       "type": "announce",
-      "message": "This isn't a quiz. There are no points and no winners.\n\nYou'll be paired up and answer the same question as your partner — privately. When everyone's done, you'll see each other's answers at the same moment.\n\nYou can pass on any question, anytime. Nobody will know.",
+      "message": "This isn't a quiz. There are no points and no winners.\n\nYou'll be paired up and answer the same question as your partner, privately. When everyone's done, you'll see each other's answers at the same moment.\n\nYou can pass on any question, anytime. Nobody will know.",
       "next": "tier1-intro"
     },
     "tier1-intro": {
       "type": "announce",
-      "message": "Tier 1 — Warm-up.\n\nYou have a partner — their name will appear on your screen. Three quick questions, just for fun.",
+      "message": "Tier 1. Warm-up.\n\nYou have a partner, their name will appear on your screen. Three quick questions, just for fun.",
       "next": "t1q1"
     },
     "t1q1": {
       "type": "collect",
-      "prompt": "Window seat or aisle seat — and why?",
+      "prompt": "Window seat or aisle seat, and why?",
       "assign": "pairwise",
       "oddHandling": "triple",
       "passAllowed": true,
@@ -33,7 +33,7 @@
       "type": "reveal",
       "scope": "pair",
       "pairsFrom": "t1q1",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner — take a minute and tell them what stood out.",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
       "next": "t1q2"
     },
     "t1q2": {
@@ -50,7 +50,7 @@
       "type": "reveal",
       "scope": "pair",
       "pairsFrom": "t1q2",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner — take a minute and tell them what stood out.",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
       "next": "t1q3"
     },
     "t1q3": {
@@ -67,12 +67,12 @@
       "type": "reveal",
       "scope": "pair",
       "pairsFrom": "t1q3",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner — take a minute and tell them what stood out.",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
       "next": "tier2-intro"
     },
     "tier2-intro": {
       "type": "announce",
-      "message": "Tier 2 — A little deeper.\n\nNew partner — check your screen for who. Three questions about what matters to you.",
+      "message": "Tier 2. A little deeper.\n\nNew partner, check your screen for who. Three questions about what matters to you.",
       "next": "t2q1"
     },
     "t2q1": {
@@ -90,7 +90,7 @@
       "type": "reveal",
       "scope": "pair",
       "pairsFrom": "t2q1",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner — take a minute and tell them what stood out.",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
       "next": "t2q2"
     },
     "t2q2": {
@@ -107,7 +107,7 @@
       "type": "reveal",
       "scope": "pair",
       "pairsFrom": "t2q2",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner — take a minute and tell them what stood out.",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
       "next": "t2q3"
     },
     "t2q3": {
@@ -124,12 +124,12 @@
       "type": "reveal",
       "scope": "pair",
       "pairsFrom": "t2q3",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner — take a minute and tell them what stood out.",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
       "next": "tier3-intro"
     },
     "tier3-intro": {
       "type": "announce",
-      "message": "Tier 3 — Reflective.\n\nOne more new partner. These questions are slower — take your time, and remember you can always pass.",
+      "message": "Tier 3. Reflective.\n\nOne more new partner. These questions are slower, take your time, and remember you can always pass.",
       "next": "t3q1"
     },
     "t3q1": {
@@ -147,7 +147,7 @@
       "type": "reveal",
       "scope": "pair",
       "pairsFrom": "t3q1",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner — take a minute and tell them what stood out.",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
       "next": "t3q2"
     },
     "t3q2": {
@@ -164,7 +164,7 @@
       "type": "reveal",
       "scope": "pair",
       "pairsFrom": "t3q2",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner — take a minute and tell them what stood out.",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
       "next": "t3q3"
     },
     "t3q3": {
@@ -181,7 +181,7 @@
       "type": "reveal",
       "scope": "pair",
       "pairsFrom": "t3q3",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner — take a minute and tell them what stood out.",
+      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
       "next": "checkout"
     },
     "checkout": {

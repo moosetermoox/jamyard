@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "Welcome to Convince Me!\n\nYou'll each get a random debate topic and two minutes to WRITE your most persuasive argument. Then each argument goes up on the screen — read it aloud to the class if you're up for it! — and everyone rates how well it lands.\n\nBe creative, confident, and persuasive!",
+      "message": "Welcome to Convince Me!\n\nYou'll each get a random debate topic and two minutes to WRITE your most persuasive argument. Then each argument goes up on the screen, read it aloud to the class if you're up for it!, and everyone rates how well it lands.\n\nBe creative, confident, and persuasive!",
       "timer": 20,
       "next": "get-topics"
     },
@@ -34,7 +34,7 @@
     },
     "prep-done": {
       "type": "announce",
-      "message": "Time's up! Arguments are in.\n\nEach argument goes up on the screen — authors, read yours aloud if you want the full effect. Then everyone rates how well it landed.\n\nLet's start!",
+      "message": "Time's up! Arguments are in.\n\nEach argument goes up on the screen, authors, read yours aloud if you want the full effect. Then everyone rates how well it landed.\n\nLet's start!",
       "timer": 8,
       "next": "speeches"
     },
@@ -51,7 +51,7 @@
         },
         "show-speech": {
           "type": "announce",
-          "message": "{{_current.playerName}} argues:\n\n\"{{_current.text}}\"\n\n{{_current.playerName}} — read it aloud if you're up for it! Then we rate."
+          "message": "{{_current.playerName}} argues:\n\n\"{{_current.text}}\"\n\n{{_current.playerName}}, read it aloud if you're up for it! Then we rate."
         },
         "rate": {
           "type": "collect-choice",

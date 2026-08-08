@@ -34,7 +34,7 @@ function clamp01(n) {
  */
 export function validateDrawing(raw) {
   if (!raw || typeof raw !== 'object' || !Array.isArray(raw.strokes)) {
-    return { ok: false, reason: 'malformed', message: 'That drawing didn\'t come through — try again.' };
+    return { ok: false, reason: 'malformed', message: 'That drawing didn\'t come through, try again.' };
   }
 
   const strokes = [];
@@ -64,7 +64,7 @@ export function validateDrawing(raw) {
   }
 
   if (strokes.length === 0) {
-    return { ok: false, reason: 'empty', message: 'Draw something first — the canvas is blank.' };
+    return { ok: false, reason: 'empty', message: 'Draw something first, the canvas is blank.' };
   }
   return { ok: true, strokes };
 }

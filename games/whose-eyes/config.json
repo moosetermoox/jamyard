@@ -1,8 +1,8 @@
 {
   "name": "Whose Eyes?",
-  "description": "The class names everyone a topic touches, then each student steps inside a DIFFERENT classmate's suggestion — 30 viewpoints instead of the 5 a discussion gets. No scores; the circle of voices is the point.",
+  "description": "The class names everyone a topic touches, then each student steps inside a DIFFERENT classmate's suggestion, 30 viewpoints instead of the 5 a discussion gets. No scores; the circle of voices is the point.",
   "featured": true,
-  "playTime": "~15–20 min (scales with class size — the circle reads every voice)",
+  "playTime": "~15–20 min (scales with class size, the circle reads every voice)",
   "classSize": "4–35 players",
   "tags": [
     "discuss",
@@ -17,19 +17,19 @@
     },
     "intro": {
       "type": "announce",
-      "message": "WHOSE EYES?\n\nToday's topic: our school's homework policy.\n\nFirst, name someone — or something — this topic touches. Then a classmate's suggestion will appear on your screen, and you'll look through THEIR eyes.",
+      "message": "WHOSE EYES?\n\nToday's topic: our school's homework policy.\n\nFirst, name someone, or something, this topic touches. Then a classmate's suggestion will appear on your screen, and you'll look through THEIR eyes.",
       "next": "viewpoints"
     },
     "viewpoints": {
       "type": "collect",
-      "prompt": "Name ONE person, creature, or thing affected by our school's homework policy. Anyone whose eyes we could look through — a substitute teacher? a parent at dinner? the kitchen table it gets done on?",
+      "prompt": "Name ONE person, creature, or thing affected by our school's homework policy. Anyone whose eyes we could look through, a substitute teacher? a parent at dinner? the kitchen table it gets done on?",
       "timer": 90,
       "next": "step-inside"
     },
     "step-inside": {
       "type": "collect",
       "rotateFrom": "viewpoints",
-      "prompt": "A classmate suggested looking through the eyes of:\n\n{{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing — be an actor.",
+      "prompt": "A classmate suggested looking through the eyes of:\n\n{{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing, be an actor.",
       "fields": [
         {
           "label": "From this viewpoint, I think...",
@@ -49,14 +49,14 @@
     },
     "circle": {
       "type": "reveal-one",
-      "message": "The circle of voices — one pair of eyes at a time.",
+      "message": "The circle of voices, one pair of eyes at a time.",
       "from": "step-inside.responses",
       "itemTemplate": "Through the eyes of {{_current.assigned}}\n\n“{{_current.fields.think}}”\n\nThey feel: {{_current.fields.feel}}\n\nThey would ask: {{_current.fields.ask}}",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "That's the circle. Thirty pairs of eyes — and the question column is tomorrow's lesson. Edit the topic to use this on anything."
+      "message": "That's the circle. Thirty pairs of eyes, and the question column is tomorrow's lesson. Edit the topic to use this on anything."
     }
   }
 }

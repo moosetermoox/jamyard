@@ -52,12 +52,12 @@
       "type": "boolean",
       "default": false,
       "label": "Snowball again (groups of 4)",
-      "helper": "After pairs merge, two pairs join into a group of four and merge once more — one extra distillation round."
+      "helper": "After pairs merge, two pairs join into a group of four and merge once more, one extra distillation round."
     }
   },
   "template": {
     "name": "Snowball",
-    "description": "Alone, together, all of us — one question, distilled by everyone.",
+    "description": "Alone, together, all of us, one question, distilled by everyone.",
     "family": "connection",
     "phases": {
       "lobby": {
@@ -66,7 +66,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "Three rounds: alone, together, all of us.\n\nFirst you'll answer on your own — nobody can skip the thinking step. Then you and a partner will merge your answers into one. Then the whole class sees what the pairs built.",
+        "message": "Three rounds: alone, together, all of us.\n\nFirst you'll answer on your own, nobody can skip the thinking step. Then you and a partner will merge your answers into one. Then the whole class sees what the pairs built.",
         "next": "solo"
       },
       "solo": {
@@ -108,7 +108,7 @@
       },
       "end": {
         "type": "end",
-        "message": "Started as everyone's own idea. Ended as a few strong ones — built by all of us."
+        "message": "Started as everyone's own idea. Ended as a few strong ones, built by all of us."
       }
     }
   }

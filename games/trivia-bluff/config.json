@@ -1,6 +1,6 @@
 {
   "name": "Trivia Bluff",
-  "description": "An obscure fact has a blank. Players write believable lies to fool the class. Everyone votes — picking the truth scores, fooling others scores too.",
+  "description": "An obscure fact has a blank. Players write believable lies to fool the class. Everyone votes, picking the truth scores, fooling others scores too.",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -8,7 +8,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "TRIVIA BLUFF!\n\nYou'll see an obscure fact with a blank. Write a believable lie to fill it in. The class will then try to spot the truth — but your lie might fool them!",
+      "message": "TRIVIA BLUFF!\n\nYou'll see an obscure fact with a blank. Write a believable lie to fill it in. The class will then try to spot the truth, but your lie might fool them!",
       "timer": 10,
       "next": "trivia"
     },
@@ -59,7 +59,7 @@
     },
     "reveal": {
       "type": "announce",
-      "message": "The truth was: {{trivia.result.truth}}!\n\nWhat the class picked:\n{{vote-truth.barChart}}\n\nLiars — own up! Whose lie pulled the most votes?",
+      "message": "The truth was: {{trivia.result.truth}}!\n\nWhat the class picked:\n{{vote-truth.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
       "next": "scoreboard"
     },
     "scoreboard": {

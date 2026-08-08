@@ -151,7 +151,7 @@ export const PHASE_SCHEMAS = {
       message: {
         type: 'templateString', required: true,
         label: 'Message',
-        placeholder: 'Round 1 — get ready!'
+        placeholder: 'Round 1, get ready!'
       },
       image: {
         type: 'string', optional: true,
@@ -227,7 +227,7 @@ export const PHASE_SCHEMAS = {
       oddHandling: {
         type: 'enum', values: ['sit-out', 'triple'], optional: true, default: 'sit-out',
         label: 'Odd player count',
-        helper: '"sit-out" (default): the leftover player waits this round. "triple": the last three players form one group of three — use for connection games where nobody should sit out. Avoid "triple" when a later vote uses matchupsFromPairs (head-to-head needs exactly 2).'
+        helper: '"sit-out" (default): the leftover player waits this round. "triple": the last three players form one group of three, use for connection games where nobody should sit out. Avoid "triple" when a later vote uses matchupsFromPairs (head-to-head needs exactly 2).'
       },
       rotatePairsFrom: {
         type: 'phaseRef', optional: true,
@@ -247,12 +247,12 @@ export const PHASE_SCHEMAS = {
       prefillFromAssigned: {
         type: 'boolean', optional: true,
         label: 'Start the box with the passed item',
-        helper: 'With "Rotate items from" set: the classmate\'s item lands IN the text box so this student adds to it (accumulating lists — write, pass, add one). Text answers only.'
+        helper: 'With "Rotate items from" set: the classmate\'s item lands IN the text box so this student adds to it (accumulating lists, write, pass, add one). Text answers only.'
       },
       appendOnly: {
         type: 'boolean', optional: true,
         label: 'Protect the passed item (add-only)',
-        helper: 'With "Rotate items from" + prefill: the classmate\'s lines render read-only and this student can only ADD below them — nobody can delete or rewrite a classmate\'s work. The server enforces it.'
+        helper: 'With "Rotate items from" + prefill: the classmate\'s lines render read-only and this student can only ADD below them, nobody can delete or rewrite a classmate\'s work. The server enforces it.'
       },
       maxLength: {
         type: 'integer', min: 40, max: 2000, optional: true,
@@ -262,7 +262,7 @@ export const PHASE_SCHEMAS = {
       simultaneousReveal: {
         type: 'boolean', optional: true,
         label: 'Reveal all at once',
-        helper: 'Hide who has answered until the step closes — the projected counter shows numbers only, no names. The host moderation panel still sees submissions live.'
+        helper: 'Hide who has answered until the step closes, the projected counter shows numbers only, no names. The host moderation panel still sees submissions live.'
       },
       image: {
         type: 'string', optional: true,
@@ -321,7 +321,7 @@ export const PHASE_SCHEMAS = {
       poolLimit: {
         type: 'integer', min: 2, max: 30, optional: true,
         label: 'Max options per ballot (random sample)',
-        helper: 'With a choice pool: cap each player\'s ballot at a readable size — 25 fakes + the truth is a wall of text on a timer. Injected answers (the truth, the house lie) always stay on every ballot.'
+        helper: 'With a choice pool: cap each player\'s ballot at a readable size, 25 fakes + the truth is a wall of text on a timer. Injected answers (the truth, the house lie) always stay on every ballot.'
       },
       shuffle: {
         type: 'boolean', optional: true,
@@ -504,7 +504,7 @@ export const PHASE_SCHEMAS = {
       matchupsFromPairs: {
         type: 'phaseRef', optional: true,
         label: 'Matchups from pairs',
-        helper: 'Optional (head-to-head only). Use the pairs produced by a collect step with assign:"pairwise" — one matchup per pair, comparing the two paired responses.'
+        helper: 'Optional (head-to-head only). Use the pairs produced by a collect step with assign:"pairwise", one matchup per pair, comparing the two paired responses.'
       },
       excludeAuthors: {
         type: 'boolean', optional: true,
@@ -644,7 +644,7 @@ export const PHASE_SCHEMAS = {
         accepts: [{ type: 'array', capability: 'responseArray' }],
         required: true,
         label: 'Answers to merge',
-        helper: 'Where each group\'s starting answers come from — a collect step ("solo.responses") or an earlier merge ("pairs.merged").'
+        helper: 'Where each group\'s starting answers come from, a collect step ("solo.responses") or an earlier merge ("pairs.merged").'
       },
       instruction: {
         type: 'templateString', optional: true,
@@ -655,7 +655,7 @@ export const PHASE_SCHEMAS = {
       groupSize: {
         type: 'enum', values: [2, 3, 4], optional: true, default: 2,
         label: 'Group size',
-        helper: '2 = pairs merge their own answers (odd class forms one group of three). 3 = trios (consulting/listening protocols; leftover of one joins a trio). 4 = pairs of pairs — requires "Answers to merge" pointing at an earlier merge step.'
+        helper: '2 = pairs merge their own answers (odd class forms one group of three). 3 = trios (consulting/listening protocols; leftover of one joins a trio). 4 = pairs of pairs, requires "Answers to merge" pointing at an earlier merge step.'
       },
       agreeMode: {
         type: 'enum', values: ['both', 'any', 'timer'], optional: true, default: 'both',
@@ -686,7 +686,7 @@ export const PHASE_SCHEMAS = {
   'one-voice': {
     label: 'One Voice',
     icon: '📣',
-    description: 'The class counts to a target together. Anyone may say the next number — but two voices at once resets the count to zero. No winners; the class makes it or laughs and tries again.',
+    description: 'The class counts to a target together. Anyone may say the next number, but two voices at once resets the count to zero. No winners; the class makes it or laughs and tries again.',
     role: 'input',
     allowedIn: ['topLevel'],
     mixins: ['screenControl', 'participantSelector', 'loops'],
@@ -709,7 +709,7 @@ export const PHASE_SCHEMAS = {
       maxAttempts: {
         type: 'integer', min: 1, max: 100, optional: true,
         label: 'Attempt cap (optional)',
-        helper: 'Optional soft cap. After this many attempts the step ends with the story so far. Leave empty for unlimited — the teacher can always move on manually.'
+        helper: 'Optional soft cap. After this many attempts the step ends with the story so far. Leave empty for unlimited, the teacher can always move on manually.'
       }
     },
     transitions: {
@@ -744,7 +744,7 @@ export const PHASE_SCHEMAS = {
       prompt: {
         type: 'templateString', optional: true,
         label: 'On-screen prompt',
-        helper: 'Shown above the buzzer, e.g. "Listen for the question!" — the actual questions are usually asked aloud.',
+        helper: 'Shown above the buzzer, e.g. "Listen for the question!", the actual questions are usually asked aloud.',
         placeholder: 'Listen for the question, then BUZZ!'
       },
       points: {
@@ -790,7 +790,7 @@ export const PHASE_SCHEMAS = {
       answer: {
         type: 'number', optional: true,
         label: 'The answer (optional)',
-        helper: 'The true value. Leave empty for poll-the-room mode — no scoring, just the class distribution.'
+        helper: 'The true value. Leave empty for poll-the-room mode, no scoring, just the class distribution.'
       },
       unit: {
         type: 'string', optional: true,
@@ -817,7 +817,7 @@ export const PHASE_SCHEMAS = {
       image: {
         type: 'string', optional: true,
         label: 'Image (optional)',
-        helper: 'Path to an uploaded image (e.g. assets/jar.jpg) — perfect for "guess the jar". Stays up while students guess. Use the upload widget below.'
+        helper: 'Path to an uploaded image (e.g. assets/jar.jpg), perfect for "guess the jar". Stays up while students guess. Use the upload widget below.'
       }
     },
     transitions: {
@@ -843,7 +843,7 @@ export const PHASE_SCHEMAS = {
   match: {
     label: 'Match Pairs',
     icon: '🔗',
-    description: 'Students match items from two lists (vocab ↔ definitions, quotes ↔ authors). Auto-scored — every correct pair earns points. Closing reveals which pairs the class nailed or missed.',
+    description: 'Students match items from two lists (vocab ↔ definitions, quotes ↔ authors). Auto-scored, every correct pair earns points. Closing reveals which pairs the class nailed or missed.',
     role: 'input',
     allowedIn: ['topLevel'],
     mixins: ['screenControl', 'timer', 'participantSelector', 'loops'],
@@ -990,7 +990,7 @@ export const PHASE_SCHEMAS = {
       scope: {
         type: 'enum', values: ['all', 'pair', 'own'], optional: true, default: 'all',
         label: 'Who sees what',
-        helper: '"all" shows the same content to everyone. "pair" shows each pair only their own two answers (requires pairsFrom; use {{_pair.answers}}). "own" returns each rotation chain to its author — every student sees what classmates did with THEIR item (requires chainFrom).'
+        helper: '"all" shows the same content to everyone. "pair" shows each pair only their own two answers (requires pairsFrom; use {{_pair.answers}}). "own" returns each rotation chain to its author, every student sees what classmates did with THEIR item (requires chainFrom).'
       },
       pairsFrom: {
         type: 'phaseRef', optional: true,
@@ -1045,7 +1045,7 @@ export const PHASE_SCHEMAS = {
         type: 'dataRef',
         accepts: [{ type: 'array', capability: 'responseArray' }],
         optional: true, label: 'What they won for',
-        helper: 'Optional. The step whose submissions the scores judged (e.g. "ideas.responses") — the winner\'s own entry is shown with the crown. Auto-detected when the scores come from a vote over responses, so usually leave blank.'
+        helper: 'Optional. The step whose submissions the scores judged (e.g. "ideas.responses"), the winner\'s own entry is shown with the crown. Auto-detected when the scores come from a vote over responses, so usually leave blank.'
       }
     },
     transitions: {
@@ -1118,7 +1118,7 @@ export const PHASE_SCHEMAS = {
   'reveal-one': {
     label: 'Reveal One-by-One',
     icon: '🎰',
-    description: 'Host reveals each item incrementally — good for top-N countdowns.',
+    description: 'Host reveals each item incrementally, good for top-N countdowns.',
     role: 'display',
     allowedIn: ['topLevel'],
     mixins: ['screenControl', 'timer', 'loops'],
@@ -1179,7 +1179,7 @@ export const PHASE_SCHEMAS = {
       capacity: {
         type: 'enum', values: ['even', 'open'], optional: true, default: 'even',
         label: 'Team spots',
-        helper: '"even" caps every team at an even split so a free pick stays fair. "open" removes the caps — use with "choice" when the class already has real teams and students should join their own (uneven sizes and absences are fine).'
+        helper: '"even" caps every team at an even split so a free pick stays fair. "open" removes the caps, use with "choice" when the class already has real teams and students should join their own (uneven sizes and absences are fine).'
       },
       teamCount: {
         type: 'integer', min: 2, max: 20, optional: true,
@@ -1238,7 +1238,7 @@ export const PHASE_SCHEMAS = {
           { type: 'array', capability: 'responseArray' }
         ],
         required: true, label: 'Items to rank',
-        helper: 'Either a reference to an earlier step (e.g. "ask.responses") OR a fixed list you write yourself — a JSON array of strings like ["Pizza", "Tacos", "Sushi"] (at least 2 items).'
+        helper: 'Either a reference to an earlier step (e.g. "ask.responses") OR a fixed list you write yourself, a JSON array of strings like ["Pizza", "Tacos", "Sushi"] (at least 2 items).'
       }
     },
     transitions: {
@@ -1352,7 +1352,7 @@ export const PHASE_SCHEMAS = {
       poolLimit: {
         type: 'integer', min: 2, max: 200, optional: true,
         label: 'Max phrases in the bowl (random draw)',
-        helper: 'Phrases scale with class size — 3 per student is a 75-phrase bowl at 25 kids (~35 min of turns). Cap the draw here. The drawn set is stored as this step\'s ".pool", so point later rounds\' pool at it (e.g. "round1.pool") to keep Fishbowl\'s same-phrases-every-round mechanic.'
+        helper: 'Phrases scale with class size, 3 per student is a 75-phrase bowl at 25 kids (~35 min of turns). Cap the draw here. The drawn set is stored as this step\'s ".pool", so point later rounds\' pool at it (e.g. "round1.pool") to keep Fishbowl\'s same-phrases-every-round mechanic.'
       }
     },
     transitions: {
@@ -1502,7 +1502,7 @@ export const PHASE_SCHEMAS = {
       limit: {
         type: 'integer', min: 1, max: 100, optional: true,
         label: 'Max rounds (random sample)',
-        description: 'Cap how many items actually run — a round per response drags past ~12 in a full class. Leave blank to run every item.'
+        description: 'Cap how many items actually run, a round per response drags past ~12 in a full class. Leave blank to run every item.'
       },
       selfExclude: {
         type: 'boolean', default: true, optional: true,

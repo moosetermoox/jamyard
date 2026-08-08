@@ -35,7 +35,7 @@ registerHandler('match', {
     // Fewer than 2 usable pairs (blank editor rows, bad AI output) — skip
     // rather than strand students on an unplayable board.
     if (pairs.length < 2) {
-      console.warn(`[match:${phase.id}] fewer than 2 usable pairs — skipping the step`);
+      console.warn(`[match:${phase.id}] fewer than 2 usable pairs, skipping the step`);
       const nextId = ctx.getNextPhaseId();
       if (nextId) {
         engine.storePhaseData(phase.id, { scores: {}, results: [], resultsList: '', pairCount: 0 });

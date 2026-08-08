@@ -41,7 +41,7 @@ registerHandler('estimate', {
     const prompt = phase.prompt ? ctx.resolveTemplate(phase.prompt) : 'Guess the number!';
     state.prompt = prompt;
 
-    console.log(`[handlePhase] Estimate: answer=${state.answer ?? '(none — poll mode)'}`);
+    console.log(`[handlePhase] Estimate: answer=${state.answer ?? '(none, poll mode)'}`);
 
     const image = ctx.services.resolveImageUrl(phase.image, room.gameId, room.gameSource);
 

@@ -96,7 +96,7 @@ export function createAiBudget(opts = {}) {
         if (windowStamps.length >= perMinute) {
           const retryAfter = Math.ceil((windowStamps[0] + 60000 - t) / 1000);
           throw new AiBudgetError(
-            `AI requests are coming too fast (limit ${perMinute}/minute — AI_CALLS_PER_MINUTE). ` +
+            `AI requests are coming too fast (limit ${perMinute}/minute. AI_CALLS_PER_MINUTE). ` +
             `Try again in about ${retryAfter}s.`,
             retryAfter
           );
@@ -105,7 +105,7 @@ export function createAiBudget(opts = {}) {
 
       if (dailyCap > 0 && dayCount >= dailyCap) {
         throw new AiBudgetError(
-          `The AI has reached today's usage cap (${dailyCap} calls — AI_DAILY_CAP). ` +
+          `The AI has reached today's usage cap (${dailyCap} calls. AI_DAILY_CAP). ` +
           `Raise the cap or try again tomorrow.`
         );
       }

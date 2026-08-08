@@ -9,7 +9,7 @@
     "topic": {
       "type": "templateString",
       "label": "What is being rated?",
-      "helper": "Describe what students should rate — a presentation, an idea, a piece of writing, etc. The teacher can also explain verbally.",
+      "helper": "Describe what students should rate, a presentation, an idea, a piece of writing, etc. The teacher can also explain verbally.",
       "placeholder": "Rate the presentation you just heard.",
       "required": true,
       "minLength": 3,
@@ -43,7 +43,7 @@
         "host-only"
       ],
       "label": "Who sees the results",
-      "helper": "Everyone — the whole class sees averages + distribution. Teacher only — results stay on the teacher screen.",
+      "helper": "Everyone, the whole class sees averages + distribution. Teacher only, results stay on the teacher screen.",
       "default": "all"
     },
     "timer": {

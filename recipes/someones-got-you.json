@@ -13,8 +13,8 @@
     "notePrompt": {
       "type": "promptDeck",
       "label": "What students share",
-      "helper": "The sentence students complete. Keep it low-stakes — small and real beats deep.",
-      "default": "One thing you're working on, wrestling with, or quietly proud of this week. Small is fine — 'trying to get more sleep' counts. One sentence.",
+      "helper": "The sentence students complete. Keep it low-stakes, small and real beats deep.",
+      "default": "One thing you're working on, wrestling with, or quietly proud of this week. Small is fine. 'trying to get more sleep' counts. One sentence.",
       "bank": "lanyard",
       "decks": [
         "encouragement-openers"
@@ -46,7 +46,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "SOMEONE'S GOT YOU\n\nNo points, no winners. You'll write one small real thing — then a classmate you don't get to pick writes something FOR you.\n\nWrite like someone's day depends on it. It might.",
+        "message": "SOMEONE'S GOT YOU\n\nNo points, no winners. You'll write one small real thing, then a classmate you don't get to pick writes something FOR you.\n\nWrite like someone's day depends on it. It might.",
         "timer": 12,
         "next": "notes"
       },
@@ -60,7 +60,7 @@
       "boost": {
         "type": "collect",
         "rotateFrom": "notes",
-        "prompt": "A classmate wrote:\n\n“{{notes.assigned}}”\n\nWrite them ONE line of genuine encouragement. Specific beats generic — talk to the thing they actually said.",
+        "prompt": "A classmate wrote:\n\n“{{notes.assigned}}”\n\nWrite them ONE line of genuine encouragement. Specific beats generic, talk to the thing they actually said.",
         "timer": "${writeTime}",
         "next": "check"
       },
@@ -72,7 +72,7 @@
       },
       "wall": {
         "type": "reveal-one",
-        "message": "The encouragement wall — one line at a time.",
+        "message": "The encouragement wall, one line at a time.",
         "from": "boost.responses",
         "next": "end"
       },

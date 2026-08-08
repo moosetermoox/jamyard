@@ -5,7 +5,6 @@
   "description": "Players take turns adding one sentence to a shared story. AI optionally polishes it at the end.",
   "tagline": "Perfect for collaborative storytelling, word chains, and sentence-by-sentence narratives.",
   "version": "1",
-
   "parameters": {
     "opening": {
       "type": "templateString",
@@ -27,12 +26,14 @@
     "order": {
       "type": "enum",
       "label": "Turn order",
-      "values": ["random", "join-order"],
+      "values": [
+        "random",
+        "join-order"
+      ],
       "default": "random",
       "helper": "Random keeps things unpredictable. Join-order goes around the room in the order students joined."
     }
   },
-
   "template": {
     "name": "Story: ${opening}",
     "description": "A collaborative story-building game built with the Story Builder recipe.",
@@ -44,7 +45,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "## Let's build a story together!\n\nEveryone takes a turn adding one sentence. Try to keep the story going — don't end it on your turn!",
+        "message": "## Let's build a story together!\n\nEveryone takes a turn adding one sentence. Try to keep the story going, don't end it on your turn!",
         "timer": 6,
         "next": "story"
       },

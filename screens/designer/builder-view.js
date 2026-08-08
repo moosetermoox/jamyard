@@ -191,7 +191,7 @@
     if (type === 'guessing-rounds') {
       var rounds = S.buildGuessingRounds(ctx);
       if (!rounds) {
-        alert('Guessing rounds cycle through answers — add a question step (like Open answer or Secret + clue) first.');
+        alert('Guessing rounds cycle through answers, add a question step (like Open answer or Secret + clue) first.');
         return;
       }
       S.insertAfter(p, after, rounds.id, rounds.phase);
@@ -633,7 +633,7 @@
       if (oldNudge) oldNudge.remove();
       if (selectedId === pendingSetupId) {
         var nudge = el('p', 'builder-setup-nudge',
-          'New step — fill in its settings below to make it playable.');
+          'New step, fill in its settings below to make it playable.');
         railBodyEl.insertBefore(nudge, railPrimary);
       }
       if (form) railBodyEl.appendChild(form);

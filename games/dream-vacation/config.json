@@ -1,6 +1,6 @@
 {
   "name": "Dream Vacation Pitch",
-  "description": "Suggest dream destinations, rank the AI-merged shortlist as a class, then collaboratively write a vacation pitch for the winner — one sentence at a time.",
+  "description": "Suggest dream destinations, rank the AI-merged shortlist as a class, then collaboratively write a vacation pitch for the winner, one sentence at a time.",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -14,7 +14,7 @@
     },
     "show-suggestions": {
       "type": "reveal",
-      "template": "Suggestions are in!\n\n{{submit-destinations.responses.list}}\n\nThe AI will merge the duplicates into a shortlist — then you rank it.",
+      "template": "Suggestions are in!\n\n{{submit-destinations.responses.list}}\n\nThe AI will merge the duplicates into a shortlist, then you rank it.",
       "next": "shortlist"
     },
     "shortlist": {
@@ -34,12 +34,12 @@
     },
     "announce-winner": {
       "type": "announce",
-      "message": "The class has spoken!\n\nWINNER: {{rank-destinations.rankings.0.item}}\n\nRunners-up: {{rank-destinations.rankings.1.item}} and {{rank-destinations.rankings.2.item}}\n\nNext up: build a vacation pitch for the winner — one sentence at a time.",
+      "message": "The class has spoken!\n\nWINNER: {{rank-destinations.rankings.0.item}}\n\nRunners-up: {{rank-destinations.rankings.1.item}} and {{rank-destinations.rankings.2.item}}\n\nNext up: build a vacation pitch for the winner, one sentence at a time.",
       "next": "write-pitch"
     },
     "write-pitch": {
       "type": "relay",
-      "prompt": "Top pick: {{rank-destinations.rankings.0.item}}\n\nAdd the next sentence to the class's vacation pitch about it. Build on what came before — make it exciting!",
+      "prompt": "Top pick: {{rank-destinations.rankings.0.item}}\n\nAdd the next sentence to the class's vacation pitch about it. Build on what came before, make it exciting!",
       "order": "random",
       "turns": 8,
       "timer": 45,
@@ -47,7 +47,7 @@
     },
     "pitch-reveal": {
       "type": "reveal",
-      "template": "Your vacation pitch:\n\n{{write-pitch.text}}\n\nRead it aloud like a travel ad — dramatic voice mandatory.",
+      "template": "Your vacation pitch:\n\n{{write-pitch.text}}\n\nRead it aloud like a travel ad, dramatic voice mandatory.",
       "next": "end"
     },
     "end": {

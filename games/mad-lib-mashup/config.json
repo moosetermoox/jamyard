@@ -14,7 +14,7 @@
     },
     "collect": {
       "type": "collect",
-      "prompt": "Write ONE simple sentence about anything. Keep it short and normal—the AI will make it weird.",
+      "prompt": "Write ONE simple sentence about anything. Keep it short and normal, the AI will make it weird.",
       "timer": 45,
       "from": "all",
       "next": "processing"
@@ -106,7 +106,7 @@
       "task": "rank",
       "format": "json",
       "input": "bonus-collect.responses",
-      "instruction": "From these student-written absurd sentences, pick the 6 WILDEST — the most inventive, unexpected, and funny. Keep each exactly as written (verbatim — students vote on these and authors must recognize their own words). Return ONLY a JSON array of the 6 chosen sentence strings, nothing else. School-appropriate picks only; skip anything mean-spirited.",
+      "instruction": "From these student-written absurd sentences, pick the 6 WILDEST, the most inventive, unexpected, and funny. Keep each exactly as written (verbatim, students vote on these and authors must recognize their own words). Return ONLY a JSON array of the 6 chosen sentence strings, nothing else. School-appropriate picks only; skip anything mean-spirited.",
       "next": "final-vote-intro"
     },
     "final-vote-intro": {
@@ -125,7 +125,7 @@
     },
     "champion": {
       "type": "announce",
-      "message": "CHAOS CHAMPION\n\nThe sentence the room couldn't stop laughing at:\n\n{{final-vote.winner}}\n\nAuthor — take a bow!",
+      "message": "CHAOS CHAMPION\n\nThe sentence the room couldn't stop laughing at:\n\n{{final-vote.winner}}\n\nAuthor, take a bow!",
       "next": "final-scores"
     },
     "final-scores": {

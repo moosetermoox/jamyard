@@ -2,7 +2,7 @@
   "id": "whose-eyes",
   "name": "Whose Eyes?",
   "icon": "👁",
-  "description": "The class names everyone your topic touches, then each student steps inside a DIFFERENT classmate's suggestion and speaks from that viewpoint — 30 perspectives instead of the 5 a discussion gets. No scores.",
+  "description": "The class names everyone your topic touches, then each student steps inside a DIFFERENT classmate's suggestion and speaks from that viewpoint, 30 perspectives instead of the 5 a discussion gets. No scores.",
   "tagline": "Perfect for a historical decision, a science dilemma, a novel's turning point, or a school policy.",
   "version": "1",
   "feel": [
@@ -45,7 +45,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "WHOSE EYES?\n\nToday's topic: ${topic}\n\nFirst, name someone — or something — this topic touches. Then you'll get a classmate's suggestion and look through THEIR eyes.",
+        "message": "WHOSE EYES?\n\nToday's topic: ${topic}\n\nFirst, name someone, or something, this topic touches. Then you'll get a classmate's suggestion and look through THEIR eyes.",
         "timer": 12,
         "next": "viewpoints"
       },
@@ -58,7 +58,7 @@
       "step-inside": {
         "type": "collect",
         "rotateFrom": "viewpoints",
-        "prompt": "A classmate suggested looking through the eyes of:\n\n{{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing — be an actor.",
+        "prompt": "A classmate suggested looking through the eyes of:\n\n{{viewpoints.assigned}}\n\nStep inside. Answer as that person or thing, be an actor.",
         "fields": [
           {
             "label": "Whose eyes? (copy the viewpoint above)",
@@ -82,14 +82,14 @@
       },
       "circle": {
         "type": "reveal-one",
-        "message": "The circle of voices — one pair of eyes at a time.",
+        "message": "The circle of voices, one pair of eyes at a time.",
         "from": "step-inside.responses",
         "itemTemplate": "Through the eyes of {{_current.eyes}}\n\n“{{_current.think}}”\n\n{{_current.feel}}\n\n{{_current.ask}}",
         "next": "end"
       },
       "end": {
         "type": "end",
-        "message": "That's the circle — and the question column is tomorrow's lesson."
+        "message": "That's the circle, and the question column is tomorrow's lesson."
       }
     }
   }

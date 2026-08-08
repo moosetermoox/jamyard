@@ -62,7 +62,7 @@
         },
         "reveal": {
           "type": "announce",
-          "message": "How the class voted:\n{{guess.barChart}}\n\nThe correct answer was:\n\n{{_current.fields.correct}}\n\n{{_current.playerName}} — anything to say about the guesses?"
+          "message": "How the class voted:\n{{guess.barChart}}\n\nThe correct answer was:\n\n{{_current.fields.correct}}\n\n{{_current.playerName}}, anything to say about the guesses?"
         }
       },
       "next": "final-scores",

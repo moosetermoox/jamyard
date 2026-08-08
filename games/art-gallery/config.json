@@ -1,6 +1,6 @@
 {
   "name": "Art Gallery",
-  "description": "Everyone draws the same prompt, the teacher previews the gallery, then the drawings reveal one at a time on the projector — the template for any draw-and-share moment. Swap in your own drawing prompt for any topic.",
+  "description": "Everyone draws the same prompt, the teacher previews the gallery, then the drawings reveal one at a time on the projector, the template for any draw-and-share moment. Swap in your own drawing prompt for any topic.",
   "featured": true,
   "phases": {
     "lobby": {
@@ -9,19 +9,19 @@
     },
     "intro": {
       "type": "announce",
-      "message": "ART GALLERY!\n\nYou'll get one prompt and 90 seconds to draw it on your device. Every drawing goes up on the wall — so give it your best 90 seconds.",
+      "message": "ART GALLERY!\n\nYou'll get one prompt and 90 seconds to draw it on your device. Every drawing goes up on the wall, so give it your best 90 seconds.",
       "next": "draw"
     },
     "draw": {
       "type": "collect",
       "inputType": "drawing",
-      "prompt": "Draw your dream invention — something the world needs but nobody has built yet.",
+      "prompt": "Draw your dream invention, something the world needs but nobody has built yet.",
       "timer": 90,
       "next": "check"
     },
     "check": {
       "type": "preview",
-      "template": "Review the drawings below, then open the gallery. One bad drawing? Hide it from the moderation list — 'Try again' restarts the WHOLE round for everyone.",
+      "template": "Review the drawings below, then open the gallery. One bad drawing? Hide it from the moderation list. 'Try again' restarts the WHOLE round for everyone.",
       "approveNext": "gallery",
       "rejectNext": "draw"
     },

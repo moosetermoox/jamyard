@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Teacher View — Lanyard</title>
+  <title>Teacher View. Lanyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -17,7 +17,7 @@
   <!-- JOIN -->
   <section id="join-section">
     <h1>Your private view</h1>
-    <p class="join-hint">This screen is just for you — open it on your laptop or a spare Chromebook to moderate entries and approve previews without showing the class. Tap <strong>💻 Teacher controls on a second device</strong> on the host screen to see the PIN.</p>
+    <p class="join-hint">This screen is just for you, open it on your laptop or a spare Chromebook to moderate entries and approve previews without showing the class. Tap <strong>💻 Teacher controls on a second device</strong> on the host screen to see the PIN.</p>
     <label for="code-input">Room code</label>
     <input type="text" id="code-input" maxlength="4" autocomplete="off" spellcheck="false" placeholder="ABCD">
     <label for="pin-input">Teacher PIN</label>
@@ -38,20 +38,20 @@
       <h2 id="lobby-count">0 students joined</h2>
       <p id="lobby-roster" class="block-hint"></p>
       <button id="start-activity-btn" class="btn-go" disabled title="Start the activity for everyone in the room">Start activity</button>
-      <p class="block-hint">Starts for everyone — same as the button on the projector.</p>
+      <p class="block-hint">Starts for everyone, same as the button on the projector.</p>
     </div>
 
     <!-- Live entries (collect phases) -->
     <div id="entries-block" hidden>
       <h2>Live entries</h2>
-      <p class="block-hint">Only you can see these. Hide anything that shouldn't reach the class — hidden entries are skipped by the AI and the reveal.</p>
+      <p class="block-hint">Only you can see these. Hide anything that shouldn't reach the class, hidden entries are skipped by the AI and the reveal.</p>
       <ul id="entries-list" class="entries-list"></ul>
     </div>
 
     <!-- Checklist detail (checklist phase) -->
     <div id="checklist-block" hidden>
       <h2>Group checklists</h2>
-      <p class="block-hint">Tap any item to check or un-check it for that group — handy when a group forgets to tap.</p>
+      <p class="block-hint">Tap any item to check or un-check it for that group, handy when a group forgets to tap.</p>
       <div id="checklist-groups"></div>
     </div>
 
@@ -64,8 +64,8 @@
         <ul id="preview-resp-list" class="entries-list"></ul>
       </div>
       <div class="btn-row">
-        <button id="approve-btn" class="btn-go" title="Looks good — show this to the whole class">Approve &amp; show class</button>
-        <button id="reject-btn" class="btn-danger" title="Don’t show it — run this step again">Try again</button>
+        <button id="approve-btn" class="btn-go" title="Looks good, show this to the whole class">Approve &amp; show class</button>
+        <button id="reject-btn" class="btn-danger" title="Don’t show it, run this step again">Try again</button>
       </div>
     </div>
 

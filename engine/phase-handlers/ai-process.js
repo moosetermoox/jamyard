@@ -32,7 +32,7 @@ registerHandler('ai-process', {
     if (phase.perPlayer) {
       perPlayerEligible = ctx.getEligibleVoters(phase.from || 'all');
       const n = perPlayerEligible.length;
-      instruction = `${instruction}\n\nIMPORTANT: Generate exactly ${n} distinct items, one per player. Return a JSON array of ${n} strings — no preamble, no keys, just the array.`;
+      instruction = `${instruction}\n\nIMPORTANT: Generate exactly ${n} distinct items, one per player. Return a JSON array of ${n} strings, no preamble, no keys, just the array.`;
     }
 
     const expectJson = phase.format === 'json' || phase.perPlayer;
@@ -49,7 +49,7 @@ registerHandler('ai-process', {
     while (attempts < maxAttempts) {
       attempts++;
       const stricter = attempts > 1
-        ? `${instruction}\n\nYour previous response wasn't valid JSON. Reply with ONLY a JSON array like ["item1","item2","item3"] — nothing else, no numbering, no preamble.`
+        ? `${instruction}\n\nYour previous response wasn't valid JSON. Reply with ONLY a JSON array like ["item1","item2","item3"], nothing else, no numbering, no preamble.`
         : instruction;
       // Instructions can embed resolved student content via {{tokens}}, and
       // the result is derived from it — both stay out of production logs.
@@ -105,7 +105,7 @@ registerHandler('ai-process', {
         // dialog with Retry / Skip buttons. The cryptic shape ("expected
         // a JSON array but got string") was the previous message.
         throw new Error(
-          `The AI didn't return a list of items for "${phase.id}". This can happen on the first try with simple "generate" tasks. Click Retry — it usually works the second time. If it keeps failing, simplify the instruction or split it into smaller phases.`
+          `The AI didn't return a list of items for "${phase.id}". This can happen on the first try with simple "generate" tasks. Click Retry, it usually works the second time. If it keeps failing, simplify the instruction or split it into smaller phases.`
         );
       }
       for (let i = 0; i < perPlayerEligible.length; i++) {

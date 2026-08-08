@@ -1,6 +1,6 @@
 {
   "name": "One Voice",
-  "description": "Count to the target together — two voices at once and it's back to one.",
+  "description": "Count to the target together, two voices at once and it's back to one.",
   "featured": true,
   "family": "connection",
   "phases": {
@@ -10,7 +10,7 @@
     },
     "rules": {
       "type": "announce",
-      "message": "We're going to count to 20 — together, as one voice.\n\nAnyone can tap the next number, anytime. But if two people tap at almost the same moment, we start over from zero.\n\nThe rules: no pointing at who should go next, no turn order, no talking strategy. Just feel the room.\n\n(Big classes restart a LOT. That's the game.)",
+      "message": "We're going to count to 20, together, as one voice.\n\nAnyone can tap the next number, anytime. But if two people tap at almost the same moment, we start over from zero.\n\nThe rules: no pointing at who should go next, no turn order, no talking strategy. Just feel the room.\n\n(Big classes restart a LOT. That's the game.)",
       "next": "count"
     },
     "count": {

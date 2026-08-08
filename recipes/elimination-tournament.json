@@ -5,12 +5,11 @@
   "description": "Multi-round survival game: respond, vote, eliminate the lowest-scoring players, repeat. Last one standing wins.",
   "tagline": "Perfect for high-energy competitions and 'last one standing' classroom games.",
   "version": "1",
-
   "parameters": {
     "prompt": {
       "type": "templateString",
       "label": "Prompt students will answer each round",
-      "helper": "Same prompt every round — students give a fresh answer each time.",
+      "helper": "Same prompt every round, students give a fresh answer each time.",
       "placeholder": "What's a creative use for a paper clip?",
       "required": true,
       "minLength": 5,
@@ -47,7 +46,6 @@
       "max": 600
     }
   },
-
   "template": {
     "name": "Tournament: ${prompt}",
     "description": "An elimination tournament built with the Elimination Tournament recipe.",
@@ -59,7 +57,7 @@
       },
       "round-intro": {
         "type": "announce",
-        "message": "Round {{_loop.eliminate.iteration}} of {{_loop.eliminate.total}} — answer the prompt and survive the vote!",
+        "message": "Round {{_loop.eliminate.iteration}} of {{_loop.eliminate.total}}, answer the prompt and survive the vote!",
         "timer": 5,
         "next": "answer"
       },

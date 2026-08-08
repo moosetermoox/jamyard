@@ -1,6 +1,6 @@
 {
   "name": "Finish My Drawing",
-  "description": "Everyone starts a drawing, then it passes to a classmate to continue — twice — before the collaborative results hit the gallery. Nobody knows what their drawing became until the reveal.",
+  "description": "Everyone starts a drawing, then it passes to a classmate to continue, twice, before the collaborative results hit the gallery. Nobody knows what their drawing became until the reveal.",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -8,14 +8,14 @@
     },
     "intro": {
       "type": "announce",
-      "message": "FINISH MY DRAWING!\n\nStart a drawing — anything you like. Then it passes to a classmate who has to keep it going. Twice. You won't know what yours became until the gallery.",
+      "message": "FINISH MY DRAWING!\n\nStart a drawing, anything you like. Then it passes to a classmate who has to keep it going. Twice. You won't know what yours became until the gallery.",
       "timer": 10,
       "next": "start-drawing"
     },
     "start-drawing": {
       "type": "collect",
       "inputType": "drawing",
-      "prompt": "Start a drawing — anything at all. Someone else will finish it!",
+      "prompt": "Start a drawing, anything at all. Someone else will finish it!",
       "timer": 45,
       "next": "continue-1"
     },
@@ -23,7 +23,7 @@
       "type": "collect",
       "inputType": "drawing",
       "rotateFrom": "start-drawing",
-      "prompt": "You've inherited a classmate's drawing. Keep it going — add to it, don't scribble it out!",
+      "prompt": "You've inherited a classmate's drawing. Keep it going, add to it, don't scribble it out!",
       "timer": 45,
       "next": "continue-2"
     },
@@ -31,7 +31,7 @@
       "type": "collect",
       "inputType": "drawing",
       "rotateFrom": "continue-1",
-      "prompt": "One more pass! Finish this drawing — final touches, background, a title character, whatever it needs.",
+      "prompt": "One more pass! Finish this drawing, final touches, background, a title character, whatever it needs.",
       "timer": 45,
       "next": "check"
     },
@@ -43,7 +43,7 @@
     },
     "gallery": {
       "type": "reveal-one",
-      "message": "Three artists each — here's what your drawings became!",
+      "message": "Three artists each, here's what your drawings became!",
       "from": "continue-2.responses",
       "next": "end"
     },

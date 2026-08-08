@@ -29,7 +29,7 @@ function buildRotationAssignment(ctx) {
 
   const sourceData = engine.phaseData[phase.rotateFrom];
   if (!sourceData) {
-    console.warn(`[collect:${phase.id}] rotateFrom "${phase.rotateFrom}" has no data yet — skipping rotation`);
+    console.warn(`[collect:${phase.id}] rotateFrom "${phase.rotateFrom}" has no data yet, skipping rotation`);
     return {};
   }
 
@@ -132,7 +132,7 @@ function buildPairwiseAssignment(ctx) {
   if (phase.pairsFrom) {
     const sourceData = engine.phaseData[phase.pairsFrom];
     if (!sourceData) {
-      console.warn(`[collect:${phase.id}] pairsFrom "${phase.pairsFrom}" has no data yet — skipping pairing`);
+      console.warn(`[collect:${phase.id}] pairsFrom "${phase.pairsFrom}" has no data yet, skipping pairing`);
       return null;
     }
     // Items can come from collect (.responses) or ai-process (.result is a JSON array)
@@ -140,7 +140,7 @@ function buildPairwiseAssignment(ctx) {
     if (Array.isArray(sourceData.responses)) rawItems = sourceData.responses;
     else if (Array.isArray(sourceData.result)) rawItems = sourceData.result;
     if (!rawItems) {
-      console.warn(`[collect:${phase.id}] pairsFrom "${phase.pairsFrom}" has no array of items (.responses or .result) — skipping pairing`);
+      console.warn(`[collect:${phase.id}] pairsFrom "${phase.pairsFrom}" has no array of items (.responses or .result), skipping pairing`);
       return null;
     }
     items = rawItems
@@ -162,7 +162,7 @@ function buildPairwiseAssignment(ctx) {
         .map(p => (p.playerIds || []).filter(id => eligibleIds.has(id)))
         .filter(g => g.length > 0);
     } else {
-      console.warn(`[collect:${phase.id}] reusePairsFrom "${phase.reusePairsFrom}" has no pairs — building a fresh pairing instead`);
+      console.warn(`[collect:${phase.id}] reusePairsFrom "${phase.reusePairsFrom}" has no pairs, building a fresh pairing instead`);
     }
   }
 
@@ -180,7 +180,7 @@ function buildPairwiseAssignment(ctx) {
       if (rotData && Array.isArray(rotData.pairs)) {
         avoid = buildAvoidSet(rotData.pairs);
       } else {
-        console.warn(`[collect:${phase.id}] rotatePairsFrom "${phase.rotatePairsFrom}" has no pairs — pairing without an avoid-set`);
+        console.warn(`[collect:${phase.id}] rotatePairsFrom "${phase.rotatePairsFrom}" has no pairs, pairing without an avoid-set`);
       }
     }
 
@@ -191,7 +191,7 @@ function buildPairwiseAssignment(ctx) {
 
   if (groups.length === 0) return null;
   if (leftover) {
-    console.log(`[collect:${phase.id}] odd player count (${eligible.length}) — last player unpaired and skipped this round`);
+    console.log(`[collect:${phase.id}] odd player count (${eligible.length}), last player unpaired and skipped this round`);
   }
 
   // --- Assemble pairs + per-player prompt assignment ------------------
@@ -284,7 +284,7 @@ registerHandler('collect', {
     // For pairwise, players who weren't paired (odd count) skip the prompt and wait.
     for (const player of eligible) {
       if (pairedIds && !pairedIds.has(player.id)) {
-        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Sitting out this round — waiting for others...' });
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Sitting out this round, waiting for others...' });
         continue;
       }
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(phase.prompt || '', engine, player.id);

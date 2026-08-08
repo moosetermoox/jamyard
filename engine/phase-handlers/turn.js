@@ -222,7 +222,7 @@ registerHandler('turn', {
     }
 
     if (items.length === 0) {
-      console.warn(`[turn:${phase.id}] pool "${phase.pool}" resolved to no items — skipping phase`);
+      console.warn(`[turn:${phase.id}] pool "${phase.pool}" resolved to no items, skipping phase`);
       ctx.engine.storePhaseData(phase.id, { teamScores: {}, capturedBy: {}, itemCount: 0 });
       return ctx.advanceToNext();
     }
@@ -231,7 +231,7 @@ registerHandler('turn', {
     const teamsRef = phase.teamsFrom;
     const teamData = teamsRef ? engine.phaseData[teamsRef] : null;
     if (!teamData || !teamData.teams) {
-      console.warn(`[turn:${phase.id}] teamsFrom "${teamsRef}" has no teams data — skipping phase`);
+      console.warn(`[turn:${phase.id}] teamsFrom "${teamsRef}" has no teams data, skipping phase`);
       ctx.engine.storePhaseData(phase.id, { teamScores: {}, capturedBy: {}, itemCount: items.length });
       return ctx.advanceToNext();
     }

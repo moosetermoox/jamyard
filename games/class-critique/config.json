@@ -11,7 +11,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "Class Critique\n\nThe presenter shares their idea now — give them your full attention. When they finish, you'll rate it on three scales. Be honest and constructive.",
+      "message": "Class Critique\n\nThe presenter shares their idea now, give them your full attention. When they finish, you'll rate it on three scales. Be honest and constructive.",
       "next": "rate-it"
     },
     "rate-it": {
@@ -59,7 +59,7 @@
     },
     "phase-4": {
       "type": "announce",
-      "message": "Talk it out\n\nWhere did we disagree the most? Presenter — which score surprised you, and what's one thing you'd change based on the charts?",
+      "message": "Talk it out\n\nWhere did we disagree the most? Presenter, which score surprised you, and what's one thing you'd change based on the charts?",
       "next": "end"
     }
   },

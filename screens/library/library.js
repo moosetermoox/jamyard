@@ -95,7 +95,7 @@ function renderLibrary(games) {
     var ownerBar = document.createElement('div');
     ownerBar.className = 'owner-bar';
     var ownerLabel = document.createElement('span');
-    ownerLabel.textContent = 'Owner view — showing every activity';
+    ownerLabel.textContent = 'Owner view, showing every activity';
     ownerBar.appendChild(ownerLabel);
     var inboxLink = document.createElement('a');
     inboxLink.href = '/feedback';
@@ -113,7 +113,7 @@ function renderLibrary(games) {
     var empty = document.createElement('p');
     empty.className = 'empty-message';
     empty.textContent = (libraryQuery || activeGoal)
-      ? 'No matches — try a different search or clear the filter.'
+      ? 'No matches, try a different search or clear the filter.'
       : 'Nothing here yet.';
     libraryGrid.appendChild(empty);
     if (!ownerOn) appendOwnerLink();
@@ -142,7 +142,7 @@ function renderLibrary(games) {
     var liveFeatured = games.filter(function (g) { return g.featured; });
     var hidden = games.filter(function (g) { return !g.featured; });
     if (liveFeatured.length > 0) {
-      appendSection('★ Featured right now (' + liveFeatured.length + ') — what visitors see', liveFeatured);
+      appendSection('★ Featured right now (' + liveFeatured.length + '), what visitors see', liveFeatured);
     }
     if (hidden.length > 0) {
       appendSection('Hidden from visitors (' + hidden.length + ')', hidden);
@@ -177,7 +177,7 @@ async function enterOwnerMode() {
   if (ok) {
     refreshLibrary();
   } else {
-    alert('That didn\'t unlock owner view — check the password and try again.');
+    alert('That didn\'t unlock owner view, check the password and try again.');
   }
 }
 
@@ -264,7 +264,7 @@ function buildCard(game) {
     var noWinner = document.createElement('div');
     noWinner.className = 'game-card-no-winner';
     noWinner.textContent = '🕊 No scores, no winners';
-    noWinner.title = 'A connection activity — the framework refuses to add points, rankings, or eliminations to it.';
+    noWinner.title = 'A connection activity, the framework refuses to add points, rankings, or eliminations to it.';
     card.appendChild(noWinner);
   }
 
@@ -286,7 +286,7 @@ function buildCard(game) {
   previewBtn.className = 'game-card-preview';
   previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
   previewBtn.textContent = 'Preview';
-  previewBtn.title = 'See the teacher and student screens side by side, with practice players — no class needed';
+  previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
   previewBtn.setAttribute('aria-label', 'Preview "' + game.name + '" with practice players');
   previewBtn.addEventListener('click', rememberRecent);
   actions.appendChild(previewBtn);
@@ -341,7 +341,7 @@ function buildCard(game) {
     deleteBtn.type = 'button';
     deleteBtn.className = 'game-card-delete';
     deleteBtn.textContent = 'Delete';
-    deleteBtn.title = 'Delete this activity — this cannot be undone';
+    deleteBtn.title = 'Delete this activity, this cannot be undone';
     deleteBtn.setAttribute('aria-label', 'Delete "' + game.name + '"');
     deleteBtn.addEventListener('click', function () {
       deleteOwnGame(game);
@@ -360,9 +360,9 @@ function buildCard(game) {
     var drift = game.featuredDefault !== undefined && game.featuredDefault !== game.featured;
     starBtn.textContent = (game.featured ? '★ Featured' : '☆ Feature') + (drift ? ' •' : '');
     starBtn.title = (game.featured
-      ? 'Shown to everyone — click to remove from the public list'
-      : 'Hidden from visitors — click to add to the public list')
-      + (drift ? ' (differs from the repo default — a saved override is in effect)' : '');
+      ? 'Shown to everyone, click to remove from the public list'
+      : 'Hidden from visitors, click to add to the public list')
+      + (drift ? ' (differs from the repo default, a saved override is in effect)' : '');
     starBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       toggleFeatured(game);
@@ -509,7 +509,7 @@ function showCustomizeDialog(game, config, questions) {
   var skipBtn = document.createElement('button');
   skipBtn.type = 'button';
   skipBtn.className = 'recipe-cancel-btn';
-  skipBtn.textContent = 'Skip — just copy it';
+  skipBtn.textContent = 'Skip, just copy it';
   btnRow.appendChild(skipBtn);
 
   var goBtn = document.createElement('button');
@@ -540,7 +540,7 @@ function showCustomizeDialog(game, config, questions) {
     goBtn.disabled = true;
     goBtn.textContent = 'Setting it up…';
     status.hidden = false;
-    status.textContent = 'Rewording the activity for your class — this can take ~20 seconds.';
+    status.textContent = 'Rewording the activity for your class, this can take ~20 seconds.';
     var request = 'A teacher is adapting this ready-made activity for their own class. ' +
       'Rewrite ONLY the teacher- and student-facing words (name, description, prompts, messages, choices, reveal templates) to fit their answers below. ' +
       'Keep every step, the structure, timers, data references, and {{tokens}} exactly as they are.\n\n' +
@@ -567,7 +567,7 @@ function showCustomizeDialog(game, config, questions) {
       })
       .catch(function (err) {
         // The tailoring is a bonus — never strand the teacher without a copy.
-        status.textContent = 'The AI setup didn’t work (' + err.message + ') — making a plain copy instead.';
+        status.textContent = 'The AI setup didn’t work (' + err.message + '), making a plain copy instead.';
         setTimeout(plainCopy, 1400);
       });
   });

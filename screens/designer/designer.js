@@ -236,7 +236,7 @@ async function enterOwnerMode() {
   if (ok) {
     refreshLibrary();
   } else {
-    alert('That didn\'t unlock owner view — check the password and try again.');
+    alert('That didn\'t unlock owner view, check the password and try again.');
   }
 }
 
@@ -261,7 +261,7 @@ function renderGames(games) {
     var ownerBar = document.createElement('div');
     ownerBar.className = 'owner-bar';
     var ownerLabel = document.createElement('span');
-    ownerLabel.textContent = 'Owner view — showing every activity';
+    ownerLabel.textContent = 'Owner view, showing every activity';
     ownerBar.appendChild(ownerLabel);
     var inboxLink = document.createElement('a');
     inboxLink.href = '/feedback';
@@ -279,7 +279,7 @@ function renderGames(games) {
     var empty = document.createElement('p');
     empty.className = 'empty-message';
     empty.textContent = (libraryQuery || activeGoal)
-      ? 'No matches — try a different search or clear the filter.'
+      ? 'No matches, try a different search or clear the filter.'
       : 'Nothing here yet. Create your first activity!';
     gamesGrid.appendChild(empty);
     if (!ownerOn) appendOwnerLink();
@@ -416,7 +416,7 @@ function buildGameCard(game) {
     var noWinner = document.createElement('div');
     noWinner.className = 'game-card-no-winner';
     noWinner.textContent = '🕊 No scores, no winners';
-    noWinner.title = 'A connection activity — the framework refuses to add points, rankings, or eliminations to it.';
+    noWinner.title = 'A connection activity, the framework refuses to add points, rankings, or eliminations to it.';
     card.appendChild(noWinner);
   }
 
@@ -451,7 +451,7 @@ function buildGameCard(game) {
   previewBtn.className = 'game-card-preview';
   previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
   previewBtn.textContent = 'Preview';
-  previewBtn.title = 'See the teacher and student screens side by side, with practice players — no class needed';
+  previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
   previewBtn.setAttribute('aria-label', 'Preview "' + game.name + '" with practice players');
   previewBtn.addEventListener('click', rememberRecent);
   actions.appendChild(previewBtn);
@@ -492,9 +492,9 @@ function buildGameCard(game) {
     var drift = game.featuredDefault !== undefined && game.featuredDefault !== game.featured;
     starBtn.textContent = (game.featured ? '★ Featured' : '☆ Feature') + (drift ? ' •' : '');
     starBtn.title = (game.featured
-      ? 'Shown to everyone — click to remove from the public list'
-      : 'Hidden from visitors — click to add to the public list')
-      + (drift ? ' (differs from the repo default — a saved override is in effect)' : '');
+      ? 'Shown to everyone, click to remove from the public list'
+      : 'Hidden from visitors, click to add to the public list')
+      + (drift ? ' (differs from the repo default, a saved override is in effect)' : '');
     starBtn.addEventListener('click', function (e) {
       e.stopPropagation();
       toggleFeatured(game);
@@ -1084,7 +1084,7 @@ function openDeckPicker(spec, targetInput) {
       });
     });
   }).catch(function (err) {
-    loading.textContent = 'Could not load the deck (' + err.message + ') — you can still write your own.';
+    loading.textContent = 'Could not load the deck (' + err.message + '), you can still write your own.';
   });
 }
 
@@ -1472,7 +1472,7 @@ function renderAIDescriptionStep(modal, overlay, initialDescription) {
 
   var textarea = document.createElement('textarea');
   textarea.id = 'ai-match-description';
-  textarea.placeholder = 'Example: A quick poll about what we should have for lunch — choices are pizza, sushi, tacos, salad.\n\nOr: A 4-round elimination game where students write puns and the bottom 30% gets eliminated each round.';
+  textarea.placeholder = 'Example: A quick poll about what we should have for lunch, choices are pizza, sushi, tacos, salad.\n\nOr: A 4-round elimination game where students write puns and the bottom 30% gets eliminated each round.';
   textarea.rows = 5;
   textarea.className = 'recipe-field-input';
   textarea.style.cssText = 'width:100%; resize:vertical; box-sizing:border-box; margin:0 0 16px 0;';
@@ -1747,7 +1747,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   storyboardBtn.type = 'button';
   storyboardBtn.className = 'recipe-create-btn';
   storyboardBtn.textContent = 'Plan it step by step';
-  storyboardBtn.title = 'AI sketches your activity as steps you approve and edit BEFORE anything is built — the safest way to a custom activity.';
+  storyboardBtn.title = 'AI sketches your activity as steps you approve and edit BEFORE anything is built, the safest way to a custom activity.';
   storyboardBtn.addEventListener('click', function () {
     closeOverlay(overlay);
     showStoryboardFlow(description);
@@ -1776,7 +1776,7 @@ var SB_BRICK_LABELS = {
   'reveal': 'Results on the projector',
   'reveal-one': 'Reveal one at a time',
   'vote': 'The class votes',
-  'guessing-rounds': 'Guessing rounds — show each clue, everyone guesses, then the reveal',
+  'guessing-rounds': 'Guessing rounds, show each clue, everyone guesses, then the reveal',
   'end': 'Wrap up'
 };
 
@@ -1818,7 +1818,7 @@ async function showStoryboardFlow(description) {
   }
 
   var storyboard = resp.storyboard;
-  status.textContent = 'Change any words you like, drop steps you don’t — then build it. Nothing exists until you do.';
+  status.textContent = 'Change any words you like, drop steps you don’t, then build it. Nothing exists until you do.';
 
   var nameRow = sbEl('div');
   nameRow.style.marginBottom = '12px';

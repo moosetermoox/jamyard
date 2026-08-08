@@ -18,8 +18,8 @@
     "transformPrompt": {
       "type": "templateString",
       "label": "How to transform each round",
-      "helper": "What students should do with someone else's idea each round. Keep it broad — same instruction is reused across all four rounds.",
-      "placeholder": "Keep the sentence going — add what happens next.",
+      "helper": "What students should do with someone else's idea each round. Keep it broad, same instruction is reused across all four rounds.",
+      "placeholder": "Keep the sentence going, add what happens next.",
       "required": true,
       "minLength": 3,
       "maxLength": 300
@@ -44,7 +44,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "Idea Chain\n\nEveryone writes one idea to start. Then for 4 rounds, your idea passes to the next person — and you'll see someone else's idea to transform.",
+        "message": "Idea Chain\n\nEveryone writes one idea to start. Then for 4 rounds, your idea passes to the next person, and you'll see someone else's idea to transform.",
         "timer": 10,
         "next": "starter"
       },
@@ -56,7 +56,7 @@
       },
       "intro-round-1": {
         "type": "announce",
-        "message": "Round 1 of 4 — pass it on!",
+        "message": "Round 1 of 4, pass it on!",
         "timer": 5,
         "next": "round-1"
       },
@@ -69,7 +69,7 @@
       },
       "intro-round-2": {
         "type": "announce",
-        "message": "Round 2 of 4 — keep it going!",
+        "message": "Round 2 of 4, keep it going!",
         "timer": 5,
         "next": "round-2"
       },
@@ -82,7 +82,7 @@
       },
       "intro-round-3": {
         "type": "announce",
-        "message": "Round 3 of 4 — getting wild yet?",
+        "message": "Round 3 of 4, getting wild yet?",
         "timer": 5,
         "next": "round-3"
       },

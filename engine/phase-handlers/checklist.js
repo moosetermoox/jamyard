@@ -47,7 +47,7 @@ registerHandler('checklist', {
     // An unplayable list (blank editor rows, bad AI output) — skip rather
     // than strand students on an empty screen.
     if (items.length === 0) {
-      console.warn(`[checklist:${phase.id}] no usable items — skipping the step`);
+      console.warn(`[checklist:${phase.id}] no usable items, skipping the step`);
       const nextId = ctx.getNextPhaseId();
       if (nextId) {
         engine.storePhaseData(phase.id, {
@@ -62,7 +62,7 @@ registerHandler('checklist', {
     // back to solo checklists — the activity still works.
     const teamData = phase.teamsFrom ? engine.phaseData[phase.teamsFrom] : null;
     if (phase.teamsFrom && (!teamData || !teamData.teams)) {
-      console.warn(`[checklist:${phase.id}] teamsFrom "${phase.teamsFrom}" has no teams data — falling back to solo checklists`);
+      console.warn(`[checklist:${phase.id}] teamsFrom "${phase.teamsFrom}" has no teams data, falling back to solo checklists`);
     }
     const usableTeams = teamData && teamData.teams ? teamData : null;
 

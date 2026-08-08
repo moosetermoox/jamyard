@@ -1,6 +1,6 @@
 {
   "name": "Snowball",
-  "description": "Alone, together, all of us — one question, distilled by everyone. The default question is class norms, which makes this a natural day-one or fresh-start activity; edit the question to snowball anything.",
+  "description": "Alone, together, all of us, one question, distilled by everyone. The default question is class norms, which makes this a natural day-one or fresh-start activity; edit the question to snowball anything.",
   "featured": true,
   "family": "connection",
   "phases": {
@@ -10,7 +10,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "Three rounds: alone, together, all of us.\n\nFirst you'll answer on your own — nobody can skip the thinking step. Then you and a partner will merge your answers into one. Then the whole class sees what the pairs built.",
+      "message": "Three rounds: alone, together, all of us.\n\nFirst you'll answer on your own, nobody can skip the thinking step. Then you and a partner will merge your answers into one. Then the whole class sees what the pairs built.",
       "next": "solo"
     },
     "solo": {
@@ -35,7 +35,7 @@
     },
     "end": {
       "type": "end",
-      "message": "Started as everyone's own idea. Ended as a few strong ones — built by all of us."
+      "message": "Started as everyone's own idea. Ended as a few strong ones, built by all of us."
     }
   },
   "tags": [

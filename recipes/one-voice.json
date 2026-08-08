@@ -2,10 +2,14 @@
   "id": "one-voice",
   "name": "One Voice",
   "icon": "📣",
-  "description": "The class counts to a target number together. Anyone may say the next number at any moment — but if two people jump in at almost the same time, the count resets and everyone groans and laughs. No turn order, no strategy talk, no winner: the class makes it together or tries again. Each number is spoken aloud through the teacher's speakers. Good for laughter, togetherness, and a little wonder.",
+  "description": "The class counts to a target number together. Anyone may say the next number at any moment, but if two people jump in at almost the same time, the count resets and everyone groans and laughs. No turn order, no strategy talk, no winner: the class makes it together or tries again. Each number is spoken aloud through the teacher's speakers. Good for laughter, togetherness, and a little wonder.",
   "tagline": "Perfect for the five minutes after a test, a rainy-day reset, or any moment the room needs to breathe together.",
   "family": "connection",
-  "feel": ["laughter", "togetherness", "wonder"],
+  "feel": [
+    "laughter",
+    "togetherness",
+    "wonder"
+  ],
   "version": "1",
   "parameters": {
     "target": {
@@ -29,25 +33,31 @@
       "min": 1,
       "max": 20,
       "label": "Attempt cap (optional)",
-      "helper": "End after this many attempts with the story so far. Leave empty for unlimited — you can always move on manually."
+      "helper": "End after this many attempts with the story so far. Leave empty for unlimited, you can always move on manually."
     }
   },
   "template": {
     "name": "One Voice",
-    "description": "Count to the target together — two voices at once and it's back to one.",
+    "description": "Count to the target together, two voices at once and it's back to one.",
     "family": "connection",
     "phases": {
-      "lobby": { "type": "lobby", "next": "rules" },
+      "lobby": {
+        "type": "lobby",
+        "next": "rules"
+      },
       "rules": {
         "type": "announce",
-        "message": "We're going to count to ${target} — together, as one voice.\n\nAnyone can tap the next number, anytime. But if two people tap at almost the same moment, we start over from zero.\n\nThe rules: no pointing at who should go next, no turn order, no talking strategy. Just feel the room.",
+        "message": "We're going to count to ${target}, together, as one voice.\n\nAnyone can tap the next number, anytime. But if two people tap at almost the same moment, we start over from zero.\n\nThe rules: no pointing at who should go next, no turn order, no talking strategy. Just feel the room.",
         "next": "count"
       },
       "count": {
         "type": "one-voice",
         "target": "${target}",
         "collisionWindowMs": "${collisionWindow}",
-        "maxAttempts": { "$if": "maxAttempts", "$value": "${maxAttempts}" },
+        "maxAttempts": {
+          "$if": "maxAttempts",
+          "$value": "${maxAttempts}"
+        },
         "next": "story"
       },
       "story": {

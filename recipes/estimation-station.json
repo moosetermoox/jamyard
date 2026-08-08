@@ -2,7 +2,7 @@
   "id": "estimation-station",
   "name": "Estimation Station",
   "icon": "🎯",
-  "description": "Practice estimating large quantities. You write a few 'how many...?' challenges (jelly beans in a jar, breaths in a day, grains of rice in a cup), students each guess a number on their device, and the class sees how close everyone got — plus the class's average guess, which is often closer than almost anyone's. Great for number sense, Fermi problems, and 'guess the quantity' warm-ups.",
+  "description": "Practice estimating large quantities. You write a few 'how many...?' challenges (jelly beans in a jar, breaths in a day, grains of rice in a cup), students each guess a number on their device, and the class sees how close everyone got, plus the class's average guess, which is often closer than almost anyone's. Great for number sense, Fermi problems, and 'guess the quantity' warm-ups.",
   "tagline": "How many jelly beans are in the jar? Let the whole class find out.",
   "version": "1",
   "feel": [
@@ -17,7 +17,7 @@
       "minItems": 1,
       "maxItems": 15,
       "label": "Estimation challenges",
-      "helper": "One round per challenge. Give the real number and what it's counting — students guess, then the class sees who came closest.",
+      "helper": "One round per challenge. Give the real number and what it's counting, students guess, then the class sees who came closest.",
       "item": {
         "type": "object",
         "fields": {
@@ -75,12 +75,12 @@
       "max": 300,
       "default": 45,
       "label": "Seconds per challenge",
-      "helper": "Estimating well takes a little thinking — 45 seconds is a good default."
+      "helper": "Estimating well takes a little thinking, 45 seconds is a good default."
     }
   },
   "template": {
     "name": "Estimation Station",
-    "description": "Guess the quantity — closest guesses earn the most, and the class average is the one to beat.",
+    "description": "Guess the quantity, closest guesses earn the most, and the class average is the one to beat.",
     "family": null,
     "phases": {
       "lobby": {
@@ -89,7 +89,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "ESTIMATION STATION!\n\nEach round you'll see a 'how many...?' challenge. Type your best estimate — no need to be exact, just reason it out.\n\nClosest guesses earn the most points. And watch the class's average guess: a whole room together is usually closer than almost anyone alone.",
+        "message": "ESTIMATION STATION!\n\nEach round you'll see a 'how many...?' challenge. Type your best estimate, no need to be exact, just reason it out.\n\nClosest guesses earn the most points. And watch the class's average guess: a whole room together is usually closer than almost anyone alone.",
         "timer": 10,
         "next": "q1"
       },

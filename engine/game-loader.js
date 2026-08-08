@@ -246,7 +246,7 @@ export function validate(config, gameId, options) {
       for (const field of Object.keys(phase)) {
         if (!allowedFields.has(field)) {
           errors.push(
-            `Game "${gameId}": phase "${name}" (${phase.type}) has unknown field "${field}". This isn't a real setting — the engine will ignore it. Remove it or use a valid field.`
+            `Game "${gameId}": phase "${name}" (${phase.type}) has unknown field "${field}". This isn't a real setting, the engine will ignore it. Remove it or use a valid field.`
           );
         }
       }
@@ -307,7 +307,7 @@ export function validate(config, gameId, options) {
       }
       if (hasChoices && hasPool) {
         errors.push(
-          `Game "${gameId}": phase "${name}" (collect-choice) cannot set both "choices" and "choicePool" — pick one`
+          `Game "${gameId}": phase "${name}" (collect-choice) cannot set both "choices" and "choicePool", pick one`
         );
       }
     }
@@ -333,14 +333,14 @@ export function validate(config, gameId, options) {
     if (phase.type === 'collect') {
       if (phase.rotatePairsFrom && phase.reusePairsFrom) {
         errors.push(
-          `Game "${gameId}": phase "${name}" (collect) sets both "rotatePairsFrom" and "reusePairsFrom" — pick one (new partners vs. same partners).`
+          `Game "${gameId}": phase "${name}" (collect) sets both "rotatePairsFrom" and "reusePairsFrom", pick one (new partners vs. same partners).`
         );
       }
       for (const pairingField of ['rotatePairsFrom', 'reusePairsFrom']) {
         if (!phase[pairingField]) continue;
         if (phase.assign !== 'pairwise') {
           errors.push(
-            `Game "${gameId}": phase "${name}" (collect) sets "${pairingField}" but assign is not "pairwise" — the field only applies to paired steps.`
+            `Game "${gameId}": phase "${name}" (collect) sets "${pairingField}" but assign is not "pairwise", the field only applies to paired steps.`
           );
           continue;
         }
@@ -364,7 +364,7 @@ export function validate(config, gameId, options) {
       const matchSrc = config.phases[phase.matchupsFromPairs];
       if (matchSrc && matchSrc.oddHandling === 'triple') {
         warnings.push(
-          `Game "${gameId}": phase "${name}" (vote) builds matchups from "${phase.matchupsFromPairs}", which uses oddHandling:"triple". With an odd class a group of three will form and head-to-head matchups need exactly 2 — use oddHandling:"sit-out" on that step instead.`
+          `Game "${gameId}": phase "${name}" (vote) builds matchups from "${phase.matchupsFromPairs}", which uses oddHandling:"triple". With an odd class a group of three will form and head-to-head matchups need exactly 2, use oddHandling:"sit-out" on that step instead.`
         );
       }
     }
@@ -464,7 +464,7 @@ export function validate(config, gameId, options) {
         }
         if (usable.length > 8) {
           warnings.push(
-            `Game "${gameId}": phase "${name}" (match) has ${usable.length} pairs — that's a lot of dragging on a phone. Consider 8 or fewer.`
+            `Game "${gameId}": phase "${name}" (match) has ${usable.length} pairs, that's a lot of dragging on a phone. Consider 8 or fewer.`
           );
         }
       }
@@ -474,7 +474,7 @@ export function validate(config, gameId, options) {
     if (phase.type === 'collect' && phase.inputType === 'drawing') {
       if (Array.isArray(phase.fields) && phase.fields.length > 0) {
         errors.push(
-          `Game "${gameId}": phase "${name}" (collect) can't combine a drawing pad with multi-field inputs — pick one.`
+          `Game "${gameId}": phase "${name}" (collect) can't combine a drawing pad with multi-field inputs, pick one.`
         );
       }
       // Any AI step reading this phase's responses will see "[drawing]"
@@ -484,7 +484,7 @@ export function validate(config, gameId, options) {
         const ref = other.input || other.data;
         if (typeof ref === 'string' && ref.split('.')[0] === name) {
           warnings.push(
-            `Game "${gameId}": phase "${otherName}" sends "${name}"'s responses to the AI, but they're drawings — the AI can't see pictures, only "[drawing]" placeholders.`
+            `Game "${gameId}": phase "${otherName}" sends "${name}"'s responses to the AI, but they're drawings, the AI can't see pictures, only "[drawing]" placeholders.`
           );
         }
       }
@@ -506,7 +506,7 @@ export function validate(config, gameId, options) {
         }
         if (buckets.length > 5) {
           warnings.push(
-            `Game "${gameId}": phase "${name}" (sort) has ${buckets.length} buckets — more than 5 is cramped on a phone.`
+            `Game "${gameId}": phase "${name}" (sort) has ${buckets.length} buckets, more than 5 is cramped on a phone.`
           );
         }
       }
@@ -537,7 +537,7 @@ export function validate(config, gameId, options) {
         }
         if (usable.length > 10) {
           warnings.push(
-            `Game "${gameId}": phase "${name}" (sort) has ${usable.length} items — that's a lot of tapping. Consider 10 or fewer.`
+            `Game "${gameId}": phase "${name}" (sort) has ${usable.length} items, that's a lot of tapping. Consider 10 or fewer.`
           );
         }
       }
@@ -553,7 +553,7 @@ export function validate(config, gameId, options) {
         );
       } else if (items.length > 15) {
         warnings.push(
-          `Game "${gameId}": phase "${name}" (checklist) has ${items.length} items — that's a long list for one work session. Consider 15 or fewer.`
+          `Game "${gameId}": phase "${name}" (checklist) has ${items.length} items, that's a long list for one work session. Consider 15 or fewer.`
         );
       }
       if (phase.teamsFrom != null) {
@@ -564,7 +564,7 @@ export function validate(config, gameId, options) {
           );
         } else if (src.type !== 'team-split') {
           errors.push(
-            `Game "${gameId}": phase "${name}" (checklist) takes groups from "${phase.teamsFrom}", which is a ${src.type} step — it must be a Split into Teams step.`
+            `Game "${gameId}": phase "${name}" (checklist) takes groups from "${phase.teamsFrom}", which is a ${src.type} step, it must be a Split into Teams step.`
           );
         }
       }
@@ -580,14 +580,14 @@ export function validate(config, gameId, options) {
         );
       } else if (hasCount && hasSize) {
         errors.push(
-          `Game "${gameId}": phase "${name}" (team-split) has BOTH "Number of teams" and "Group size" — pick one.`
+          `Game "${gameId}": phase "${name}" (team-split) has BOTH "Number of teams" and "Group size", pick one.`
         );
       }
       // capacity:"open" only changes behavior when students pick (choice) or
       // the teacher arranges (display only) — automatic methods ignore it.
       if (phase.capacity === 'open' && phase.method !== 'choice' && phase.method !== 'teacher') {
         warnings.push(
-          `Game "${gameId}": phase "${name}" (team-split) sets Team spots to "open", but method "${phase.method || 'random'}" assigns players automatically — the setting only matters for "choice" (students pick) and will be ignored here.`
+          `Game "${gameId}": phase "${name}" (team-split) sets Team spots to "open", but method "${phase.method || 'random'}" assigns players automatically, the setting only matters for "choice" (students pick) and will be ignored here.`
         );
       }
     }
@@ -614,7 +614,7 @@ export function validate(config, gameId, options) {
         const voteOpts = phase.candidates.filter(c => typeof c === 'string' && c.trim().length > 0);
         if (voteOpts.length < 2) {
           errors.push(
-            `Game "${gameId}": phase "${name}" (vote) needs at least 2 options to vote on — add more options to the list, or point it at an earlier step.`
+            `Game "${gameId}": phase "${name}" (vote) needs at least 2 options to vote on, add more options to the list, or point it at an earlier step.`
           );
         }
       }
@@ -641,7 +641,7 @@ export function validate(config, gameId, options) {
           }
           if (!Array.isArray(phase.candidates)) {
             warnings.push(
-              `Game "${gameId}": phase "${name}" uses nextByWinner with candidates from an earlier step — branch keys must match the winning answer's exact text, which you can't know in advance. A fixed option list is recommended for branching votes.`
+              `Game "${gameId}": phase "${name}" uses nextByWinner with candidates from an earlier step, branch keys must match the winning answer's exact text, which you can't know in advance. A fixed option list is recommended for branching votes.`
             );
           }
         }
@@ -653,7 +653,7 @@ export function validate(config, gameId, options) {
       const rankItems = phase.candidates.filter(c => typeof c === 'string' && c.trim().length > 0);
       if (rankItems.length < 2) {
         errors.push(
-          `Game "${gameId}": phase "${name}" (rank) needs at least 2 items to rank — add more items to the list, or point it at an earlier step.`
+          `Game "${gameId}": phase "${name}" (rank) needs at least 2 items to rank, add more items to the list, or point it at an earlier step.`
         );
       }
     }
@@ -710,7 +710,7 @@ export function validate(config, gameId, options) {
           (srcPhase.type === 'collect-choice' && !srcPhase.correctAnswer && !srcPhase.foolPoints);
         if (cantScore) {
           warnings.push(
-            `Game "${gameId}": phase "${name}" reads scores from "${ref}", but that phase has no scoring configured — every score will be 0 and the ${phase.type} will be meaningless. Add scoring there, or remove this ${phase.type}.`
+            `Game "${gameId}": phase "${name}" reads scores from "${ref}", but that phase has no scoring configured, every score will be 0 and the ${phase.type} will be meaningless. Add scoring there, or remove this ${phase.type}.`
           );
         }
       }
@@ -838,7 +838,7 @@ export function validate(config, gameId, options) {
             const pointValues = Object.values(phase.scoring.pointMap).filter(v => typeof v === 'number');
             if (pointValues.length > 0 && pointValues.every(v => v === 0)) {
               warnings.push(
-                `Game "${gameId}": phase "${name}" scoring can never award points — every pointMap value is 0. Give the choices real point values, or remove scoring (and any leaderboard/winner reading it).`
+                `Game "${gameId}": phase "${name}" scoring can never award points, every pointMap value is 0. Give the choices real point values, or remove scoring (and any leaderboard/winner reading it).`
               );
             }
           }
@@ -853,18 +853,18 @@ export function validate(config, gameId, options) {
     // Screen control validation
     if (phase.hostTemplate !== undefined && phase.hostTemplate !== null && typeof phase.hostTemplate !== 'string') {
       errors.push(
-        `Game "${gameId}": phase "${name}" has invalid hostTemplate — must be a string`
+        `Game "${gameId}": phase "${name}" has invalid hostTemplate, must be a string`
       );
     }
     if (phase.playerTemplate !== undefined && phase.playerTemplate !== null && typeof phase.playerTemplate !== 'string') {
       errors.push(
-        `Game "${gameId}": phase "${name}" has invalid playerTemplate — must be a string`
+        `Game "${gameId}": phase "${name}" has invalid playerTemplate, must be a string`
       );
     }
     if (phase.hostShow !== undefined && phase.hostShow !== null) {
       if (!Array.isArray(phase.hostShow)) {
         errors.push(
-          `Game "${gameId}": phase "${name}" has invalid hostShow — must be an array`
+          `Game "${gameId}": phase "${name}" has invalid hostShow, must be an array`
         );
       } else {
         const validToggles = schemaGetHostToggles(phase.type);
@@ -882,7 +882,7 @@ export function validate(config, gameId, options) {
     if (phase.playerShow !== undefined && phase.playerShow !== null) {
       if (!Array.isArray(phase.playerShow)) {
         errors.push(
-          `Game "${gameId}": phase "${name}" has invalid playerShow — must be an array`
+          `Game "${gameId}": phase "${name}" has invalid playerShow, must be an array`
         );
       } else {
         const validToggles = schemaGetPlayerToggles(phase.type);
@@ -943,11 +943,11 @@ export function validate(config, gameId, options) {
       if (phase.collisionWindowMs !== undefined && phase.collisionWindowMs !== null) {
         if (typeof phase.collisionWindowMs !== 'number' || phase.collisionWindowMs < 100) {
           errors.push(
-            `Game "${gameId}": phase "${name}" (one-voice) has collisionWindowMs "${phase.collisionWindowMs}" — below 100ms the game is physically unwinnable. Use 100-1500.`
+            `Game "${gameId}": phase "${name}" (one-voice) has collisionWindowMs "${phase.collisionWindowMs}", below 100ms the game is physically unwinnable. Use 100-1500.`
           );
         } else if (phase.collisionWindowMs > 1500) {
           warnings.push(
-            `Game "${gameId}": phase "${name}" (one-voice) has collisionWindowMs ${phase.collisionWindowMs} — above 1500ms almost every tap collides. Consider 300-600.`
+            `Game "${gameId}": phase "${name}" (one-voice) has collisionWindowMs ${phase.collisionWindowMs}, above 1500ms almost every tap collides. Consider 300-600.`
           );
         }
       }
@@ -972,17 +972,17 @@ export function validate(config, gameId, options) {
           );
         } else if (!phaseAlwaysPrecedes(config, seedPhaseId, name)) {
           errors.push(
-            `Game "${gameId}": phase "${name}" (merge) can be reached without going through "${seedPhaseId}" first — every path from the lobby to "${name}" must pass through it so the pair answers exist.`
+            `Game "${gameId}": phase "${name}" (merge) can be reached without going through "${seedPhaseId}" first, every path from the lobby to "${name}" must pass through it so the pair answers exist.`
           );
         }
       } else if (seedPhaseId && !phaseAlwaysPrecedes(config, seedPhaseId, name)) {
         errors.push(
-          `Game "${gameId}": phase "${name}" (merge) can be reached without going through "${seedPhaseId}" first — every path from the lobby to "${name}" must pass through it so the answers to merge exist.`
+          `Game "${gameId}": phase "${name}" (merge) can be reached without going through "${seedPhaseId}" first, every path from the lobby to "${name}" must pass through it so the answers to merge exist.`
         );
       }
       if (phase.agreeMode === 'timer' && !phase.timer) {
         warnings.push(
-          `Game "${gameId}": phase "${name}" (merge) uses agreeMode "timer" but has no timer — only the teacher's Close Merging button will end the step. Add a timer or switch agreeMode.`
+          `Game "${gameId}": phase "${name}" (merge) uses agreeMode "timer" but has no timer, only the teacher's Close Merging button will end the step. Add a timer or switch agreeMode.`
         );
       }
     }
@@ -1007,7 +1007,7 @@ export function validate(config, gameId, options) {
           );
         } else if (!phaseAlwaysPrecedes(config, phase.pairsFrom, name)) {
           errors.push(
-            `Game "${gameId}": phase "${name}" (pair reveal) can be reached without going through "${phase.pairsFrom}" first — every path from the lobby to "${name}" must pass through "${phase.pairsFrom}" so the pairing data exists.`
+            `Game "${gameId}": phase "${name}" (pair reveal) can be reached without going through "${phase.pairsFrom}" first, every path from the lobby to "${name}" must pass through "${phase.pairsFrom}" so the pairing data exists.`
           );
         }
       }
@@ -1024,7 +1024,7 @@ export function validate(config, gameId, options) {
     .filter(p => p && p.type === 'collect' && p.assign === 'pairwise').length;
   if (pairRoundCount > 12) {
     warnings.push(
-      `Game "${gameId}" has ${pairRoundCount} pair-prompt rounds. More than 12 rarely fits a class period — consider trimming prompts.`
+      `Game "${gameId}" has ${pairRoundCount} pair-prompt rounds. More than 12 rarely fits a class period, consider trimming prompts.`
     );
   }
 
@@ -1197,7 +1197,7 @@ function checkConnectionFamily(config, gameId, errors) {
   const checkPhase = (label, phase) => {
     if (CONNECTION_FORBIDDEN_TYPES.has(phase.type)) {
       errors.push(
-        `Game "${gameId}": ${label} (${phase.type}) is not allowed in a connection-family game — these games promise no winners, points, or eliminations. Remove this step or remove the "family" flag.`
+        `Game "${gameId}": ${label} (${phase.type}) is not allowed in a connection-family game, these games promise no winners, points, or eliminations. Remove this step or remove the "family" flag.`
       );
     }
     if (phase.type === 'collect-choice' && (phase.correctAnswer || phase.speedBonus === true)) {
@@ -1377,7 +1377,7 @@ function scanForDesignHoles(config, gameId, warnings) {
       const hasCorrect = !!phase.correctOption;
       if (!hasScores && !hasCorrect) {
         warnings.push(
-          `Game "${gameId}": phase "${name}" (wager) has no "scoresFrom" and no "correctOption" — players will start with default points and the host will have to pick the winner manually. Set "correctOption" if there's a verifiable answer, or use "scoresFrom" to chain scores from a previous round.`
+          `Game "${gameId}": phase "${name}" (wager) has no "scoresFrom" and no "correctOption", players will start with default points and the host will have to pick the winner manually. Set "correctOption" if there's a verifiable answer, or use "scoresFrom" to chain scores from a previous round.`
         );
       }
     }
@@ -1413,7 +1413,7 @@ function scanDataRefTypeMismatches(config, gameId, warnings) {
       const compat = checkDataRefCompat(parsed, fieldDef.accepts, config.phases);
       if (compat) {
         warnings.push(
-          `Game "${gameId}": phase "${name}" field "${fieldName}" — ${compat.message}`
+          `Game "${gameId}": phase "${name}" field "${fieldName}":${compat.message}`
         );
       }
     }
@@ -1454,12 +1454,12 @@ function scanSpecialScopesOutOfContext(config, gameId, warnings) {
             ? ` Per-item values belong in "itemTemplate", not "${field}".`
             : ` ${scope} only works inside a foreach step's sub-steps.`;
           warnings.push(
-            `Game "${gameId}": phase "${name}" ${field} contains "{{${tok.ref}}}" — ${scope} doesn't exist here, so students will see the raw code on screen.${hint}`
+            `Game "${gameId}": phase "${name}" ${field} contains "{{${tok.ref}}}":${scope} doesn't exist here, so students will see the raw code on screen.${hint}`
           );
         }
         if (parsed.kind === 'pairScope' && !(phase.type === 'reveal' && phase.scope === 'pair')) {
           warnings.push(
-            `Game "${gameId}": phase "${name}" ${field} contains "{{${tok.ref}}}" — _pair only works on a reveal step with scope "pair", so students will see the raw code on screen.`
+            `Game "${gameId}": phase "${name}" ${field} contains "{{${tok.ref}}}", _pair only works on a reveal step with scope "pair", so students will see the raw code on screen.`
           );
         }
       }
@@ -1487,7 +1487,7 @@ function scanTemplatesForRawArrays(config, gameId, warnings) {
           const phaseId = parsed.segments[0];
           const leaf = parsed.segments[1];
           warnings.push(
-            `Game "${gameId}": phase "${name}" template ${field} contains "{{${phaseId}.${leaf}}}" — "${leaf}" is a list and will display as "[object Object],...". Add ".list" to format it (e.g. {{${phaseId}.${leaf}.list}}).`
+            `Game "${gameId}": phase "${name}" template ${field} contains "{{${phaseId}.${leaf}}}". "${leaf}" is a list and will display as "[object Object],...". Add ".list" to format it (e.g. {{${phaseId}.${leaf}.list}}).`
           );
         }
       }

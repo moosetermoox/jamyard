@@ -1,6 +1,6 @@
 {
   "name": "Definition Bluff",
-  "description": "An obscure real word. Players invent plausible-sounding fake definitions. The class votes on which one is real — picking the truth scores, fooling others scores too.",
+  "description": "An obscure real word. Players invent plausible-sounding fake definitions. The class votes on which one is real, picking the truth scores, fooling others scores too.",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -59,7 +59,7 @@
     },
     "reveal": {
       "type": "announce",
-      "message": "{{wordpick.result.word}} actually means:\n\n{{wordpick.result.truth}}\n\nClass votes:\n{{vote-def.barChart}}\n\nAuthors — claim your lies! Which fake fooled the most people?",
+      "message": "{{wordpick.result.word}} actually means:\n\n{{wordpick.result.truth}}\n\nClass votes:\n{{vote-def.barChart}}\n\nAuthors, claim your lies! Which fake fooled the most people?",
       "next": "scoreboard"
     },
     "scoreboard": {

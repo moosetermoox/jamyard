@@ -2,7 +2,7 @@
   "id": "group-work",
   "name": "Group Work Day",
   "icon": "✅",
-  "description": "A shared to-do list for classwork: split into groups, every group gets the same checklist on their devices, and the projector shows every group's live progress. For lab days, station rotations, project work — any 'here's what your group must finish today'. No points, no winners: completion tracking.",
+  "description": "A shared to-do list for classwork: split into groups, every group gets the same checklist on their devices, and the projector shows every group's live progress. For lab days, station rotations, project work, any 'here's what your group must finish today'. No points, no winners: completion tracking.",
   "tagline": "Perfect for labs, stations, and project sessions where every group works the same task list.",
   "version": "1",
   "parameters": {
@@ -12,7 +12,7 @@
         "type": "string"
       },
       "label": "The to-do items",
-      "helper": "The tasks every group must finish. Any group member can check one off — the whole group sees it instantly.",
+      "helper": "The tasks every group must finish. Any group member can check one off, the whole group sees it instantly.",
       "minItems": 1,
       "maxItems": 15,
       "default": [
@@ -27,7 +27,7 @@
       "min": 2,
       "max": 8,
       "label": "Students per group",
-      "helper": "Groups of this size (a 22-kid class in groups of 4 makes 4,4,4,4,3,3 — nobody works alone).",
+      "helper": "Groups of this size (a 22-kid class in groups of 4 makes 4,4,4,4,3,3, nobody works alone).",
       "default": 3
     },
     "method": {
@@ -46,7 +46,7 @@
       "min": 60,
       "max": 3600,
       "label": "Work time (seconds, optional)",
-      "helper": "A visible countdown for the work session. Leave empty for no limit — you end work time from the host screen."
+      "helper": "A visible countdown for the work session. Leave empty for no limit, you end work time from the host screen."
     }
   },
   "template": {
@@ -59,7 +59,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "GROUP WORK DAY!\n\nYou're about to be split into groups. Every group has the same checklist on their devices — check tasks off as your group finishes them, and watch the progress board up here.",
+        "message": "GROUP WORK DAY!\n\nYou're about to be split into groups. Every group has the same checklist on their devices, check tasks off as your group finishes them, and watch the progress board up here.",
         "timer": 10,
         "next": "make-groups"
       },

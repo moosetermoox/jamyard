@@ -384,7 +384,7 @@ function substituteAll(template, params, recipe, dropped) {
   function expandRepeat(spec, scope, out) {
     if (!spec || typeof spec !== 'object' || typeof spec.forEach !== 'string' ||
         typeof spec.keyPattern !== 'string' || spec.phase == null) {
-      throw new Error(`Recipe "${recipe.id}" has an invalid $repeat — needs "forEach", "keyPattern", and "phase".`);
+      throw new Error(`Recipe "${recipe.id}" has an invalid $repeat, needs "forEach", "keyPattern", and "phase".`);
     }
     const arr = lookupParam(scope, recipe, spec.forEach, '');
     if (!Array.isArray(arr)) {

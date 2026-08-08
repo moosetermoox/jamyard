@@ -79,7 +79,7 @@ export function buildChainViews(chainDatas) {
  */
 export function formatChainContent(view, opts = {}) {
   if (!view || view.original === undefined) {
-    return 'You didn\'t start one this round — lean over and see what a neighbor got back!';
+    return 'You didn\'t start one this round, lean over and see what a neighbor got back!';
   }
   const display = opts.display === 'final' ? 'final' : 'steps';
   const lines = ['🌱 You started with:', `“${view.original}”`];
@@ -97,7 +97,7 @@ export function formatChainContent(view, opts = {}) {
   }
 
   if (!view.complete) {
-    lines.push('', '(Part of the chain went missing along the way — wifi happens.)');
+    lines.push('', '(Part of the chain went missing along the way, wifi happens.)');
   }
   return lines.join('\n');
 }

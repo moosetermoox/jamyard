@@ -1,6 +1,6 @@
 {
   "name": "SCAMPER Brainstorm",
-  "description": "The whole class evolves each other's ideas through four creative lenses — swap, merge, repurpose, strip. At the end, your own idea comes back and you see everything four classmates did to it.",
+  "description": "The whole class evolves each other's ideas through four creative lenses, swap, merge, repurpose, strip. At the end, your own idea comes back and you see everything four classmates did to it.",
   "minPlayers": 3,
   "maxPlayers": 30,
   "phases": {
@@ -11,39 +11,39 @@
     },
     "intro": {
       "type": "announce",
-      "message": "SCAMPER BRAINSTORM\n\nToday's problem: lunch lines at school are painfully slow.\n\nYou'll write ONE idea to solve it. Then your idea travels — four classmates each reshape it through a different creative lens. At the end, your idea comes back and you see its whole journey.",
+      "message": "SCAMPER BRAINSTORM\n\nToday's problem: lunch lines at school are painfully slow.\n\nYou'll write ONE idea to solve it. Then your idea travels, four classmates each reshape it through a different creative lens. At the end, your idea comes back and you see its whole journey.",
       "next": "initial-idea"
     },
     "initial-idea": {
       "type": "collect",
-      "prompt": "The problem: lunch lines at school are painfully slow.\n\nWrite ONE idea that could help. Don't polish it — just get something down. Four classmates are about to make it stranger and better.",
+      "prompt": "The problem: lunch lines at school are painfully slow.\n\nWrite ONE idea that could help. Don't polish it, just get something down. Four classmates are about to make it stranger and better.",
       "timer": 90,
       "next": "substitute"
     },
     "substitute": {
       "type": "collect",
-      "prompt": "A classmate's idea:\n\n{{initial-idea.assigned}}\n\nLens 1 — SUBSTITUTE: swap one part (an object, person, place, or material) for something else. What did you swap, and what does the new idea look like?",
+      "prompt": "A classmate's idea:\n\n{{initial-idea.assigned}}\n\nLens 1. SUBSTITUTE: swap one part (an object, person, place, or material) for something else. What did you swap, and what does the new idea look like?",
       "rotateFrom": "initial-idea",
       "timer": 90,
       "next": "combine"
     },
     "combine": {
       "type": "collect",
-      "prompt": "The idea so far:\n\n{{substitute.assigned}}\n\nLens 2 — COMBINE: merge it with something else (another idea, a technology, an audience, a feature). Describe the combined version.",
+      "prompt": "The idea so far:\n\n{{substitute.assigned}}\n\nLens 2. COMBINE: merge it with something else (another idea, a technology, an audience, a feature). Describe the combined version.",
       "rotateFrom": "substitute",
       "timer": 90,
       "next": "another-use"
     },
     "another-use": {
       "type": "collect",
-      "prompt": "The idea so far:\n\n{{combine.assigned}}\n\nLens 3 — PUT IT TO ANOTHER USE: who else could this help, or what other problem could it solve? Describe the repurposed idea.",
+      "prompt": "The idea so far:\n\n{{combine.assigned}}\n\nLens 3. PUT IT TO ANOTHER USE: who else could this help, or what other problem could it solve? Describe the repurposed idea.",
       "rotateFrom": "combine",
       "timer": 90,
       "next": "eliminate-step"
     },
     "eliminate-step": {
       "type": "collect",
-      "prompt": "The idea so far:\n\n{{another-use.assigned}}\n\nLast lens — ELIMINATE: strip out one feature, step, person, or rule. What did you remove, and what's the leaner final idea?",
+      "prompt": "The idea so far:\n\n{{another-use.assigned}}\n\nLast lens. ELIMINATE: strip out one feature, step, person, or rule. What did you remove, and what's the leaner final idea?",
       "rotateFrom": "another-use",
       "timer": 90,
       "next": "returned"
@@ -59,12 +59,12 @@
         "eliminate-step"
       ],
       "chainDisplay": "steps",
-      "hostTemplate": "Everyone's original idea just came home — with its full journey through four classmates' hands.\n\nGive the room a quiet minute to read. Then ask 2-3 students to read their idea's whole evolution aloud — the jumps are the fun part.",
+      "hostTemplate": "Everyone's original idea just came home, with its full journey through four classmates' hands.\n\nGive the room a quiet minute to read. Then ask 2-3 students to read their idea's whole evolution aloud, the jumps are the fun part.",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "That's SCAMPER! Nobody's idea survived unchanged — that was the point. Edit the problem in the intro and first prompt to brainstorm anything."
+      "message": "That's SCAMPER! Nobody's idea survived unchanged, that was the point. Edit the problem in the intro and first prompt to brainstorm anything."
     }
   },
   "playTime": "~12–15 min",
@@ -75,5 +75,5 @@
     "collaborative",
     "create"
   ],
-  "recommendedFor": "Project-based learning and innovation units. Swap the default problem (lunch lines) for your real one — it appears in the intro and the first prompt."
+  "recommendedFor": "Project-based learning and innovation units. Swap the default problem (lunch lines) for your real one, it appears in the intro and the first prompt."
 }

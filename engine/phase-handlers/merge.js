@@ -198,7 +198,7 @@ registerHandler('merge', {
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       } else if (!groupedIds.has(player.id)) {
-        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Groups are merging their answers — hang tight...' });
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Groups are merging their answers, hang tight...' });
       }
     }
 
@@ -217,7 +217,7 @@ registerHandler('merge', {
     const sc = ctx.resolveScreenControl();
     const group = state.byPlayer[socket.id];
     if (!group) {
-      socket.emit(EVENTS.WAITING, { message: 'Groups are merging their answers — hang tight...' });
+      socket.emit(EVENTS.WAITING, { message: 'Groups are merging their answers, hang tight...' });
       return;
     }
     if (group.submitted) {

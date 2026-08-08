@@ -1,6 +1,6 @@
 {
   "name": "Both Sides of the Rope",
-  "description": "The class takes a stance, builds the strongest evidence rope for BOTH sides, asks 'what if?' — then votes again and watches whether its own mind moved. The delta is the lesson.",
+  "description": "The class takes a stance, builds the strongest evidence rope for BOTH sides, asks 'what if?', then votes again and watches whether its own mind moved. The delta is the lesson.",
   "featured": true,
   "playTime": "~15 min",
   "classSize": "4–35 players",
@@ -18,7 +18,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "BOTH SIDES OF THE ROPE\n\n“Homework should be optional.”\n\nYou'll vote where you stand, build the strongest rope of evidence on BOTH sides — then vote again. Let's see if the rope moves.",
+      "message": "BOTH SIDES OF THE ROPE\n\n“Homework should be optional.”\n\nYou'll vote where you stand, build the strongest rope of evidence on BOTH sides, then vote again. Let's see if the rope moves.",
       "timer": 12,
       "next": "stance1"
     },
@@ -37,7 +37,7 @@
     },
     "evidence": {
       "type": "collect",
-      "prompt": "Build the rope from BOTH ends — one piece of evidence for each side. Arguing the side you DON'T agree with is the real skill. (Stuck on one side? Give it your best guess anyway.)",
+      "prompt": "Build the rope from BOTH ends, one piece of evidence for each side. Arguing the side you DON'T agree with is the real skill. (Stuck on one side? Give it your best guess anyway.)",
       "fields": [
         {
           "label": "Strongest evidence for YES",
@@ -54,24 +54,24 @@
     "rope": {
       "type": "ai-process",
       "task": "summarize",
-      "instruction": "These are pieces of evidence about the claim 'Homework should be optional.' Each submission has two parts separated by ' | ': the FIRST part is evidence for YES, the SECOND part is evidence for NO. Build the two sides from those parts. Present it as a tug-of-war rope: each side's evidence strongest-first as short bullet lines, duplicates merged but every distinct idea kept. Finish with ONE line naming where the rope strains hardest — the strongest tension between the two sides. Do not declare a winner.",
+      "instruction": "These are pieces of evidence about the claim 'Homework should be optional.' Each submission has two parts separated by ' | ': the FIRST part is evidence for YES, the SECOND part is evidence for NO. Build the two sides from those parts. Present it as a tug-of-war rope: each side's evidence strongest-first as short bullet lines, duplicates merged but every distinct idea kept. Finish with ONE line naming where the rope strains hardest, the strongest tension between the two sides. Do not declare a winner.",
       "input": "evidence.responses",
       "next": "rope-reveal"
     },
     "rope-reveal": {
       "type": "reveal",
-      "template": "THE ROPE\n\n{{rope.result}}\n\nRead each side out loud — which pull surprises you?",
+      "template": "THE ROPE\n\n{{rope.result}}\n\nRead each side out loud, which pull surprises you?",
       "next": "whatif"
     },
     "whatif": {
       "type": "collect",
-      "prompt": "Ask one “What if...?” question about the rope — something that could actually move it. (What if homework took 10 minutes? What if grades didn't exist?)",
+      "prompt": "Ask one “What if...?” question about the rope, something that could actually move it. (What if homework took 10 minutes? What if grades didn't exist?)",
       "timer": 90,
       "next": "whatif-reveal"
     },
     "whatif-reveal": {
       "type": "reveal",
-      "template": "THE WHAT-IFS\n\n{{whatif.responses.list}}\n\nRead these before you vote again — could any of them move you?",
+      "template": "THE WHAT-IFS\n\n{{whatif.responses.list}}\n\nRead these before you vote again, could any of them move you?",
       "next": "stance2"
     },
     "stance2": {
@@ -89,12 +89,12 @@
     },
     "delta": {
       "type": "reveal",
-      "template": "DID THE ROPE MOVE?\n\nWHERE WE STARTED:\n{{stance1.barChart}}\n\nWHERE WE LANDED:\n{{stance2.barChart}}\n\nChanged your mind? That's not losing — that's thinking.",
+      "template": "DID THE ROPE MOVE?\n\nWHERE WE STARTED:\n{{stance1.barChart}}\n\nWHERE WE LANDED:\n{{stance2.barChart}}\n\nChanged your mind? That's not losing, that's thinking.",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "That's Both Sides of the Rope. Edit the claim to run it on anything — history, science, a novel, a school rule."
+      "message": "That's Both Sides of the Rope. Edit the claim to run it on anything, history, science, a novel, a school rule."
     }
   }
 }

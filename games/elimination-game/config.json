@@ -1,6 +1,6 @@
 {
   "name": "Last One Standing",
-  "description": "Three escalating rounds of absurd questions — survive the class vote, or join the jury that crowns the champion. Eliminated players never stop voting.",
+  "description": "Three escalating rounds of absurd questions, survive the class vote, or join the jury that crowns the champion. Eliminated players never stop voting.",
   "minPlayers": 4,
   "maxPlayers": 36,
   "phases": {
@@ -10,7 +10,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "LAST ONE STANDING\n\nThree rounds, three questions, each weirder than the last. The class votes for its favorite answer each round — the least-loved answers are OUT.\n\nEliminated? You become the JURY. Your vote still counts every round, and the jury crowns the champion.",
+      "message": "LAST ONE STANDING\n\nThree rounds, three questions, each weirder than the last. The class votes for its favorite answer each round, the least-loved answers are OUT.\n\nEliminated? You become the JURY. Your vote still counts every round, and the jury crowns the champion.",
       "next": "r1-answer"
     },
     "r1-answer": {
@@ -22,7 +22,7 @@
     },
     "r1-show": {
       "type": "reveal",
-      "template": "ROUND 1 — here's what everyone said:\n\n{{r1-answer.responses.list}}",
+      "template": "ROUND 1, here's what everyone said:\n\n{{r1-answer.responses.list}}",
       "next": "r1-vote"
     },
     "r1-vote": {
@@ -44,7 +44,7 @@
     },
     "r2-intro": {
       "type": "announce",
-      "message": "The class has spoken.\n\nEliminated this round? Welcome to the JURY — you vote in every round from here, and the finale is yours to decide.\n\nSurvivors: it gets harder.",
+      "message": "The class has spoken.\n\nEliminated this round? Welcome to the JURY, you vote in every round from here, and the finale is yours to decide.\n\nSurvivors: it gets harder.",
       "next": "r2-answer"
     },
     "r2-answer": {
@@ -56,7 +56,7 @@
     },
     "r2-show": {
       "type": "reveal",
-      "template": "ROUND 2 — the pitches:\n\n{{r2-answer.responses.list}}",
+      "template": "ROUND 2, the pitches:\n\n{{r2-answer.responses.list}}",
       "next": "r2-vote"
     },
     "r2-vote": {
@@ -78,7 +78,7 @@
     },
     "r3-intro": {
       "type": "announce",
-      "message": "THE FINALE.\n\nOnly the finalists answer now — but the whole room votes, and only THIS round counts for the crown. Jury, this is your moment.",
+      "message": "THE FINALE.\n\nOnly the finalists answer now, but the whole room votes, and only THIS round counts for the crown. Jury, this is your moment.",
       "next": "r3-answer"
     },
     "r3-answer": {
@@ -98,7 +98,7 @@
       "mode": "pick-one",
       "candidates": "r3-answer.responses",
       "voters": "all",
-      "question": "Crown the champion — best answer wins it all!",
+      "question": "Crown the champion, best answer wins it all!",
       "timer": 45,
       "next": "winner"
     },
@@ -117,5 +117,5 @@
   "tags": [
     "energize"
   ],
-  "recommendedFor": "High-energy party round. Swap the chicken questions for anything — the escalation is the game."
+  "recommendedFor": "High-energy party round. Swap the chicken questions for anything, the escalation is the game."
 }

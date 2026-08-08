@@ -435,7 +435,7 @@ window.addEventListener('message', function(e) {
         seedTexts.push(seedEls[si2].textContent.replace(/^[^:]{1,20}:\s*/, ''));
       }
       var botDraft = seedTexts.length >= 2
-        ? seedTexts[0] + ' — and also ' + seedTexts[1].charAt(0).toLowerCase() + seedTexts[1].slice(1)
+        ? seedTexts[0] + ', and also ' + seedTexts[1].charAt(0).toLowerCase() + seedTexts[1].slice(1)
         : (seedTexts[0] || botFillAnswer(mergeInstruction.textContent));
       mergeDraftInput.value = botDraft;
       socket.emit('merge-draft', { code: currentRoomCode, text: botDraft });
@@ -1010,7 +1010,7 @@ socket.on('leaderboard', ({ standings, allStandings, style, timer, playerTemplat
   // Find current player in standings
   var myStanding = (allStandings || standings || []).find(function(s) { return s.playerId === socket.id; });
   if (myStanding) {
-    leaderboardRank.textContent = '#' + myStanding.rank + ' — ' + myStanding.name;
+    leaderboardRank.textContent = '#' + myStanding.rank + '. ' + myStanding.name;
     leaderboardScore.textContent = myStanding.score + ' points';
     // First place gets a personal celebration on their own device.
     if (myStanding.rank === 1 && J) J.confetti({ count: 60 });
@@ -1108,7 +1108,7 @@ function renderTeamPick(payload) {
       title.className = 'team-pick-title';
       // open == null means no caps (capacity:"open") — just show the name
       title.textContent = r.open == null ? r.name
-        : r.name + ' — ' + (full ? 'full' : r.open + (r.open === 1 ? ' spot left' : ' spots left'));
+        : r.name + '. ' + (full ? 'full' : r.open + (r.open === 1 ? ' spot left' : ' spots left'));
       card.appendChild(title);
 
       if (r.members.length > 0) {
@@ -1237,7 +1237,7 @@ socket.on('one-voice-you', ({ number }) => {
 socket.on('one-voice-reset', ({ lockoutMs, final, bestRun, target }) => {
   setOneVoiceNext(0);
   oneVoiceStatus.textContent = final
-    ? 'That was our last try — best run: ' + bestRun + ' of ' + target + '. Look up!'
+    ? 'That was our last try, best run: ' + bestRun + ' of ' + target + '. Look up!'
     : 'Two voices! Back to one…';
   oneVoiceTapBtn.disabled = true;
   if (oneVoiceLockout) clearTimeout(oneVoiceLockout);
@@ -1252,7 +1252,7 @@ socket.on('one-voice-reset', ({ lockoutMs, final, bestRun, target }) => {
 
 socket.on('one-voice-reject', ({ reason }) => {
   if (reason === 'same-player') {
-    oneVoiceStatus.textContent = 'You just went — let someone else take this one.';
+    oneVoiceStatus.textContent = 'You just went, let someone else take this one.';
     oneVoiceTapBtn.disabled = false;
   }
   // 'lockout' and 'finished' need no message — the screen already shows why.
@@ -1300,7 +1300,7 @@ buzzTapBtn.addEventListener('click', function () {
 socket.on('buzz-locked', ({ playerId, playerName }) => {
   buzzTapBtn.disabled = true;
   if (playerId === socket.id) {
-    buzzPlayerStatus.textContent = '🔔 You buzzed first — answer out loud!';
+    buzzPlayerStatus.textContent = '🔔 You buzzed first, answer out loud!';
     if (J) J.sound('tada');
   } else {
     buzzPlayerStatus.textContent = playerName + ' buzzed first.';
@@ -1311,7 +1311,7 @@ socket.on('buzz-reject', ({ reason }) => {
   buzzTapBtn.disabled = true;
   buzzPlayerStatus.textContent = reason === 'locked-out'
     ? 'Locked out until the next question.'
-    : 'Too late — someone beat you to it!';
+    : 'Too late, someone beat you to it!';
 });
 
 socket.on('buzz-result', ({ correct, playerId, playerName, points }) => {
@@ -1326,11 +1326,11 @@ socket.on('buzz-result', ({ correct, playerId, playerName, points }) => {
   } else {
     // Wrong answer — buzzer reopens for everyone but the locked-out player
     if (playerId === socket.id) {
-      buzzPlayerStatus.textContent = '✗ Not this time — locked out until the next question.';
+      buzzPlayerStatus.textContent = '✗ Not this time, locked out until the next question.';
       if (J) J.sound('womp');
       buzzTapBtn.disabled = true;
     } else {
-      buzzPlayerStatus.textContent = 'Buzzer reopened — go!';
+      buzzPlayerStatus.textContent = 'Buzzer reopened, go!';
       buzzTapBtn.disabled = false;
     }
   }
@@ -1361,7 +1361,7 @@ function submitEstimate() {
   }
   socket.emit('estimate-submit', { code: currentRoomCode, value: v });
   estimatePlayerStatus.textContent =
-    'Got it — you guessed ' + v + '. You can change it until the teacher reveals.';
+    'Got it, you guessed ' + v + '. You can change it until the teacher reveals.';
   if (J) J.sound('blip');
   return true;
 }
@@ -1414,7 +1414,7 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
   }
   if (mine) {
     html += '<p>You guessed <strong>' + escapeHtml(mine.value) + '</strong>' +
-            (mine.score > 0 ? ' — +' + mine.score + ' points!' : '') + '</p>';
+            (mine.score > 0 ? ', +' + mine.score + ' points!' : '') + '</p>';
     if (mine.score > 0 && J) J.confetti({ count: 40 });
   }
   if (stats && stats.count > 0) {
@@ -1481,7 +1481,7 @@ socket.on('match-results', function(payload) {
     var myLine = document.createElement('p');
     myLine.className = 'match-my-score';
     myLine.textContent = 'You matched ' + mine.correct + ' of ' + pairCount +
-      (mine.score > 0 ? ' — +' + mine.score + ' points!' : '');
+      (mine.score > 0 ? ', +' + mine.score + ' points!' : '');
     matchPlayerResults.appendChild(myLine);
     // Own-moment juice only: a perfect board earns confetti.
     if (mine.correct === pairCount && pairCount > 0 && J) J.confetti({ count: 40 });
@@ -1592,7 +1592,7 @@ socket.on('sort-results', function (payload) {
     var myLine = document.createElement('p');
     myLine.className = 'match-my-score';
     myLine.textContent = 'You got ' + mine.correct + ' of ' + (payload.itemCount || results.length) +
-      (mine.score > 0 ? ' — +' + mine.score + ' points!' : '');
+      (mine.score > 0 ? ', +' + mine.score + ' points!' : '');
     sortPlayerResults.appendChild(myLine);
     // Own-moment juice only: a perfect sort earns confetti.
     if (mine.correct === (payload.itemCount || results.length) && results.length > 0 && J) J.confetti({ count: 40 });
@@ -1712,7 +1712,7 @@ socket.on('checklist-results', function (payload) {
   myLine.className = 'match-my-score';
   myLine.textContent = checklistItemTexts.length > 0
     ? (mineDone >= checklistItemTexts.length
-        ? 'All ' + checklistItemTexts.length + ' tasks done — nice work!'
+        ? 'All ' + checklistItemTexts.length + ' tasks done, nice work!'
         : 'Your list: ' + mineDone + ' of ' + checklistItemTexts.length + ' done')
     : 'Work time is over!';
   checklistPlayerResults.appendChild(myLine);
@@ -1756,7 +1756,7 @@ socket.on('merge-start', ({ instruction, seeds, draft, memberNames, agreeMode, a
     mergeAgreeBtn.hidden = true;
   } else {
     mergeAgreeBtn.hidden = false;
-    mergeAgreeBtn.textContent = agreeMode === 'any' ? 'Submit for the group' : 'We agree — submit';
+    mergeAgreeBtn.textContent = agreeMode === 'any' ? 'Submit for the group' : 'We agree, submit';
   }
 
   // Who you're working with
@@ -1812,7 +1812,7 @@ socket.on('merge-draft-update', ({ draft }) => {
     mergeDraftInput.value = draft;
   }
   mergeAgreeBtn.disabled = false;
-  setMergeStatus('The shared answer changed — agree again when it looks right.');
+  setMergeStatus('The shared answer changed, agree again when it looks right.');
 });
 
 mergeAgreeBtn.addEventListener('click', function() {
@@ -1829,12 +1829,12 @@ mergeAgreeBtn.addEventListener('click', function() {
   }
   socket.emit('merge-agree', { code: currentRoomCode });
   mergeAgreeBtn.disabled = true;
-  setMergeStatus('You agreed — waiting for the rest of your group...');
+  setMergeStatus('You agreed, waiting for the rest of your group...');
 });
 
 socket.on('merge-status', ({ agreedCount, agreesNeeded, youAgreed }) => {
   mergeAgreeBtn.disabled = !!youAgreed;
-  setMergeStatus(agreedCount + ' of ' + agreesNeeded + ' agreed' + (youAgreed ? ' — waiting for the rest of your group...' : ''));
+  setMergeStatus(agreedCount + ' of ' + agreesNeeded + ' agreed' + (youAgreed ? ', waiting for the rest of your group...' : ''));
 });
 
 var rankDragSrcIndex = null;
@@ -2442,7 +2442,7 @@ socket.on('turn-item', (data = {}) => {
   turnInstruction.hidden = !instruction;
 
   if (role === 'describer') {
-    turnRoleLabel.textContent = "Your turn — describe this!";
+    turnRoleLabel.textContent = "Your turn, describe this!";
     turnRoleLabel.className = 'turn-role-label role-describer';
     turnItemDisplay.textContent = item || '';
     turnItemDisplay.hidden = false;
@@ -2460,7 +2460,7 @@ socket.on('turn-item', (data = {}) => {
     turnControls.hidden = true;
   } else {
     // audience (other team)
-    turnRoleLabel.textContent = "Watching — " + (teamName || 'other team') + " plays";
+    turnRoleLabel.textContent = "Watching. " + (teamName || 'other team') + " plays";
     turnRoleLabel.className = 'turn-role-label role-audience';
     turnItemDisplay.textContent = item || '';
     turnItemDisplay.hidden = false;
@@ -2474,7 +2474,7 @@ socket.on('turn-item', (data = {}) => {
 
 socket.on('turn-end', (data = {}) => {
   const { teamScores, reason } = data;
-  turnRoleLabel.textContent = reason === 'pool-empty' ? 'Pool empty — round over!' : "Time's up!";
+  turnRoleLabel.textContent = reason === 'pool-empty' ? 'Pool empty, round over!' : "Time's up!";
   turnRoleLabel.className = 'turn-role-label';
   turnItemDisplay.textContent = '';
   turnItemDisplay.hidden = true;

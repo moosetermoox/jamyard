@@ -1,6 +1,6 @@
 {
   "name": "Charades Bowl",
-  "description": "Everyone secretly writes 3 phrases. Two teams. Round 1: describe. Round 2: act it out. Round 3: one word only. Same pool, three rounds — most points wins.",
+  "description": "Everyone secretly writes 3 phrases. Two teams. Round 1: describe. Round 2: act it out. Round 3: one word only. Same pool, three rounds, most points wins.",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -14,19 +14,19 @@
     },
     "phrases-1": {
       "type": "collect",
-      "prompt": "Type a short, fun phrase for the bowl. Anything goes — movies, foods, animals, idioms. Keep it school-appropriate.",
+      "prompt": "Type a short, fun phrase for the bowl. Anything goes, movies, foods, animals, idioms. Keep it school-appropriate.",
       "timer": 75,
       "next": "phrases-2"
     },
     "phrases-2": {
       "type": "collect",
-      "prompt": "Phrase #2 — try something different from your first one.",
+      "prompt": "Phrase #2: try something different from your first one.",
       "timer": 60,
       "next": "phrases-3"
     },
     "phrases-3": {
       "type": "collect",
-      "prompt": "Phrase #3 — last one, make it a good one!",
+      "prompt": "Phrase #3: last one, make it a good one!",
       "timer": 60,
       "next": "teams"
     },
@@ -42,7 +42,7 @@
     },
     "round1-intro": {
       "type": "announce",
-      "message": "ROUND 1: DESCRIBE!\n\nThe describer can use any words EXCEPT the phrase itself. 60 seconds per turn. Get as many right as you can — then it's the other team's turn.",
+      "message": "ROUND 1: DESCRIBE!\n\nThe describer can use any words EXCEPT the phrase itself. 60 seconds per turn. Get as many right as you can, then it's the other team's turn.",
       "timer": 10,
       "next": "round1"
     },
@@ -57,12 +57,12 @@
       "teamsFrom": "teams",
       "timer": 60,
       "allowSkip": true,
-      "instruction": "Describe the phrase — say anything EXCEPT the words on the card.",
+      "instruction": "Describe the phrase, say anything EXCEPT the words on the card.",
       "next": "round2-intro"
     },
     "round2-intro": {
       "type": "announce",
-      "message": "ROUND 2: ACT IT OUT!\n\nSame phrases, same teams — but now no words at all. Just gestures. 60 seconds.",
+      "message": "ROUND 2: ACT IT OUT!\n\nSame phrases, same teams, but now no words at all. Just gestures. 60 seconds.",
       "timer": 10,
       "next": "round2"
     },
@@ -72,7 +72,7 @@
       "teamsFrom": "teams",
       "timer": 60,
       "allowSkip": true,
-      "instruction": "Act it out — no words, no sounds!",
+      "instruction": "Act it out, no words, no sounds!",
       "next": "round3-intro"
     },
     "round3-intro": {
@@ -87,7 +87,7 @@
       "teamsFrom": "teams",
       "timer": 60,
       "allowSkip": true,
-      "instruction": "Say ONE word — that's it!",
+      "instruction": "Say ONE word, that's it!",
       "next": "final-board"
     },
     "final-board": {
@@ -101,7 +101,7 @@
     },
     "end": {
       "type": "end",
-      "message": "That's Charades Bowl! Same bowl, three ways — rematch anytime with fresh phrases."
+      "message": "That's Charades Bowl! Same bowl, three ways, rematch anytime with fresh phrases."
     }
   },
   "playTime": "~25–30 min (bowl capped at 30 phrases)",

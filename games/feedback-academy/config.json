@@ -41,7 +41,7 @@
     "coach-feedback": {
       "type": "ai-process",
       "task": "summarize",
-      "instruction": "You are a friendly feedback coach. Read all the feedback the class just wrote about the practice scenario. In 4-6 warm sentences addressed to the whole class: name two things the class did well (quote a short snippet or two, never with names), then give the ONE most common way this class could make its feedback more specific and actionable. Coach a team, don't grade individuals — no scores, no rankings.",
+      "instruction": "You are a friendly feedback coach. Read all the feedback the class just wrote about the practice scenario. In 4-6 warm sentences addressed to the whole class: name two things the class did well (quote a short snippet or two, never with names), then give the ONE most common way this class could make its feedback more specific and actionable. Coach a team, don't grade individuals, no scores, no rankings.",
       "input": "practice-feedback.responses",
       "next": "reveal-coaching"
     },
@@ -58,7 +58,7 @@
     },
     "collect-work": {
       "type": "collect",
-      "prompt": "Submit your work for peer feedback — your teacher will say what to submit (a paragraph, a solution, a project idea...).\n\nIt will be shared anonymously with one classmate, who will write you feedback.",
+      "prompt": "Submit your work for peer feedback, your teacher will say what to submit (a paragraph, a solution, a project idea...).\n\nIt will be shared anonymously with one classmate, who will write you feedback.",
       "timer": 120,
       "from": "all",
       "next": "real-feedback-round"
@@ -66,14 +66,14 @@
     "real-feedback-round": {
       "type": "collect",
       "rotateFrom": "collect-work",
-      "prompt": "A classmate submitted:\n\n\"{{collect-work.assigned}}\"\n\nGive them formative feedback that would actually help. Be specific, actionable, and constructive — strengths AND one concrete next step.",
+      "prompt": "A classmate submitted:\n\n\"{{collect-work.assigned}}\"\n\nGive them formative feedback that would actually help. Be specific, actionable, and constructive, strengths AND one concrete next step.",
       "timer": 150,
       "next": "coach-real-feedback"
     },
     "coach-real-feedback": {
       "type": "ai-process",
       "task": "summarize",
-      "instruction": "You are a friendly feedback coach watching a class practice peer feedback. Read the feedback they wrote for each other. In 3-5 warm sentences addressed to the whole class: say whether the four pillars (specific, actionable, growth-focused, balanced) showed up more than in a typical first try, and quote two great moves you saw (short snippets, never with names). No scores, no rankings — coach the team.",
+      "instruction": "You are a friendly feedback coach watching a class practice peer feedback. Read the feedback they wrote for each other. In 3-5 warm sentences addressed to the whole class: say whether the four pillars (specific, actionable, growth-focused, balanced) showed up more than in a typical first try, and quote two great moves you saw (short snippets, never with names). No scores, no rankings, coach the team.",
       "input": "real-feedback-round.responses",
       "next": "returned-feedback"
     },
@@ -89,7 +89,7 @@
     },
     "coach-summary": {
       "type": "announce",
-      "message": "FEEDBACK COACH — REAL ROUND\n\n{{coach-real-feedback.result}}",
+      "message": "FEEDBACK COACH. REAL ROUND\n\n{{coach-real-feedback.result}}",
       "next": "reflection"
     },
     "reflection": {

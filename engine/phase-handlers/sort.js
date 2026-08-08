@@ -37,7 +37,7 @@ registerHandler('sort', {
     // An unplayable board (blank editor rows, bad AI output) — skip
     // rather than strand students.
     if (items.length < 2 || buckets.length < 2) {
-      console.warn(`[sort:${phase.id}] fewer than 2 usable items/buckets — skipping the step`);
+      console.warn(`[sort:${phase.id}] fewer than 2 usable items/buckets, skipping the step`);
       const nextId = ctx.getNextPhaseId();
       if (nextId) {
         engine.storePhaseData(phase.id, { scores: {}, results: [], resultsList: '', itemCount: 0 });

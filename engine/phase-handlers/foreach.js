@@ -55,7 +55,7 @@ registerHandler('foreach', {
     });
 
     if (items.length === 0) {
-      console.log(`[foreach] '${phase.id}' has 0 items — skipping to next`);
+      console.log(`[foreach] '${phase.id}' has 0 items, skipping to next`);
       if (phase.next) {
         await ctx.advanceTo(phase.next);
       }
@@ -68,7 +68,7 @@ registerHandler('foreach', {
       const humans = items.filter(it => it.isHuman);
       const ais = items.filter(it => it.isAI);
       if (ais.length === 0) {
-        console.log(`[foreach] '${phase.id}' pairMode=human-vs-ai but no AI items — skipping`);
+        console.log(`[foreach] '${phase.id}' pairMode=human-vs-ai but no AI items, skipping`);
         if (phase.next) {
           await ctx.advanceTo(phase.next);
         }

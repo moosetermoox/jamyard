@@ -323,7 +323,7 @@ export function classifyRef(parsed, allPhases) {
     // "[object Object],..." — flag it.
     out.problem = {
       code: 'RAW_ARRAY_IN_TEMPLATE',
-      message: `"${parsed.raw}" — ${leafFieldName} is a list and will display as "[object Object],...". Add a suffix like .list or .barChart to format it.`
+      message: `"${parsed.raw}":${leafFieldName} is a list and will display as "[object Object],...". Add a suffix like .list or .barChart to format it.`
     };
   }
 

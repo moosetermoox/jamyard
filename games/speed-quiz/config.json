@@ -9,7 +9,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "SPEED QUIZ!\n\nFive questions. Four choices each. Get it right fast for max points — your score drops the longer you take.",
+      "message": "SPEED QUIZ!\n\nFive questions. Four choices each. Get it right fast for max points, your score drops the longer you take.",
       "next": "ask1"
     },
     "ask1": {
@@ -138,5 +138,5 @@
     "energize",
     "review"
   ],
-  "recommendedFor": "Quick warm-up or unit review. Swap the five questions in the editor for any topic — the speed scoring does the rest."
+  "recommendedFor": "Quick warm-up or unit review. Swap the five questions in the editor for any topic, the speed scoring does the rest."
 }

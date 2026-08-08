@@ -94,7 +94,7 @@ export function checkPayload(eventName, data, config) {
         add('warning', `A prompt still contains unresolved placeholders: "${String(data.prompt).slice(0, 80)}"`, data.prompt);
       }
       if (data.isChoice && (!Array.isArray(data.choices) || data.choices.length < 2)) {
-        add('error', `A multiple-choice step offered ${(data.choices || []).length} choice(s) — students need at least 2.`, data.prompt);
+        add('error', `A multiple-choice step offered ${(data.choices || []).length} choice(s), students need at least 2.`, data.prompt);
       }
       break;
     }
@@ -102,7 +102,7 @@ export function checkPayload(eventName, data, config) {
       // Player payloads carry the candidates list; the HOST's rank-start
       // only has a counter — its missing array is not a finding.
       if (Array.isArray(data.candidates) && data.candidates.length === 0) {
-        add('error', 'A ranking step started with NOTHING to rank — students saw an empty list with a Submit button.', data.prompt);
+        add('error', 'A ranking step started with NOTHING to rank, students saw an empty list with a Submit button.', data.prompt);
       }
       break;
     }
@@ -110,7 +110,7 @@ export function checkPayload(eventName, data, config) {
       // Player payloads carry both columns; the HOST's match-start only
       // has a counter — its missing arrays are not a finding.
       if (Array.isArray(data.rightItems) && data.rightItems.length < 2) {
-        add('error', 'A matching step started with fewer than 2 pairs — students saw an unplayable board.', data.prompt);
+        add('error', 'A matching step started with fewer than 2 pairs, students saw an unplayable board.', data.prompt);
       }
       break;
     }
@@ -118,7 +118,7 @@ export function checkPayload(eventName, data, config) {
       // Player payloads carry items + buckets; the HOST's sort-start only
       // has a counter — its missing arrays are not a finding.
       if (Array.isArray(data.items) && data.items.length < 2) {
-        add('error', 'A sorting step started with fewer than 2 items — students saw an unplayable board.', data.prompt);
+        add('error', 'A sorting step started with fewer than 2 items, students saw an unplayable board.', data.prompt);
       }
       if (Array.isArray(data.buckets) && data.buckets.length < 2) {
         add('error', 'A sorting step started with fewer than 2 buckets to sort into.', data.prompt);
@@ -129,7 +129,7 @@ export function checkPayload(eventName, data, config) {
       // Player payloads carry the items; the HOST's checklist-start only
       // has progress — its missing array is not a finding.
       if (Array.isArray(data.items) && data.items.length === 0) {
-        add('error', 'A checklist step started with no items — students saw an empty list.', data.prompt);
+        add('error', 'A checklist step started with no items, students saw an empty list.', data.prompt);
       }
       break;
     }
@@ -142,7 +142,7 @@ export function checkPayload(eventName, data, config) {
         add('error', 'A voting step started with no options to vote on.', null);
       }
       if (data.totalVoters === 0) {
-        add('error', 'A voting step started with NOBODY eligible to vote — check its "who can vote" setting.', null);
+        add('error', 'A voting step started with NOBODY eligible to vote, check its "who can vote" setting.', null);
       }
       break;
     }
@@ -163,7 +163,7 @@ export function checkPayload(eventName, data, config) {
     case 'show-results': {
       const content = data.content || data.aiResult || '';
       if (hasObjectGoo(content)) {
-        add('error', 'A results screen rendered "[object Object]" — a template is showing a raw list. Add .list to the token.', content);
+        add('error', 'A results screen rendered "[object Object]", a template is showing a raw list. Add .list to the token.', content);
       } else if (hasUnresolved(content)) {
         add('warning', `A results screen still contains unresolved placeholders: "${String(content).slice(0, 80)}"`, content);
       } else if (!String(content).trim() && !data.image && !data.video) {
@@ -173,7 +173,7 @@ export function checkPayload(eventName, data, config) {
     }
     case 'merge-start': {
       if (!Array.isArray(data.seeds) || data.seeds.length === 0) {
-        add('warning', 'A merge step started with no answers to merge — students got an empty shared box.', data.instruction);
+        add('warning', 'A merge step started with no answers to merge, students got an empty shared box.', data.instruction);
       }
       break;
     }
@@ -294,7 +294,7 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
                   severity: 'error',
                   phaseId: null,
                   source: 'simulation',
-                  message: `A player who dropped mid-game was NOT recognized on reconnect (during ${lastScreen}) — in class they'd lose their identity/score.`
+                  message: `A player who dropped mid-game was NOT recognized on reconnect (during ${lastScreen}), in class they'd lose their identity/score.`
                 });
               }
               players[i] = fresh;
@@ -362,7 +362,7 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
               severity: 'warning',
               phaseId: null,
               source: 'simulation',
-              message: `The game got stuck after ${lastScreen} — nothing happened for ${Math.round(stallMs / 1000)}s until the bots force-skipped it. In class you would have to manually skip this step.`
+              message: `The game got stuck after ${lastScreen}, nothing happened for ${Math.round(stallMs / 1000)}s until the bots force-skipped it. In class you would have to manually skip this step.`
             });
             host.emit('advance-phase', { code });
             lastActivity = Date.now();
@@ -372,7 +372,7 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
             severity: 'error',
             phaseId: null,
             source: 'simulation',
-            message: `The game STALLED after "${lastScreen}" — the bots waited ${Math.round(stallMs / 1000)}s and nothing happened. Students would be stuck on a frozen screen here.`
+            message: `The game STALLED after "${lastScreen}", the bots waited ${Math.round(stallMs / 1000)}s and nothing happened. Students would be stuck on a frozen screen here.`
           });
           break;
         }
@@ -798,7 +798,7 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
                     severity: 'error',
                     phaseId: null,
                     source: 'simulation',
-                    message: 'The leaderboard showed with EVERY score at 0 even though the practice players answered everything — the scoring never awards points, so the standings (and any winner) are meaningless. Check the scoring setup on the step the leaderboard reads from.'
+                    message: 'The leaderboard showed with EVERY score at 0 even though the practice players answered everything, the scoring never awards points, so the standings (and any winner) are meaningless. Check the scoring setup on the step the leaderboard reads from.'
                   });
                 }
               }
@@ -821,7 +821,7 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
         severity: 'warning',
         phaseId: null,
         source: 'simulation',
-        message: `The playtest hit its ${Math.round(timeLimitMs / 1000)}s limit before reaching the end (last seen: ${lastScreen}). The game may just be long — or something near the end never finishes.`
+        message: `The playtest hit its ${Math.round(timeLimitMs / 1000)}s limit before reaching the end (last seen: ${lastScreen}). The game may just be long, or something near the end never finishes.`
       });
     }
   } finally {

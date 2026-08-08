@@ -49,7 +49,7 @@ var checklistItemTexts = [];
 var latestRoster = { count: 0, players: [] };
 
 var PHASE_LABELS = {
-  lobby: 'Lobby — players joining',
+  lobby: 'Lobby, players joining',
   collect: 'Students are writing',
   'collect-choice': 'Students are choosing',
   'ai-process': 'AI is working…',
@@ -194,7 +194,7 @@ function setPhase(phaseType, phaseId, phaseInstanceId, continueLabel) {
   controlsBlock.hidden = closeStepBtn.hidden && nextStepBtn.hidden;
 
   consoleNote.textContent = phaseType === 'end'
-    ? 'All done — nice work.'
+    ? 'All done, nice work.'
     : '';
 }
 
@@ -228,7 +228,7 @@ socket.on('teacher-console-joined', function (data) {
   var n = (data && data.deviceCount) || 2;
   deviceNotice.hidden = false;
   deviceNotice.textContent = '💻 Another teacher device just connected (' + n +
-    ' total). If that wasn\'t you, a student may have the PIN — end the session or change rooms.';
+    ' total). If that wasn\'t you, a student may have the PIN, end the session or change rooms.';
 });
 
 socket.on('response-received', function (data) {
@@ -283,7 +283,7 @@ function renderEntries(submissions) {
       var hideBtn = document.createElement('button');
       hideBtn.className = 'entry-btn';
       hideBtn.textContent = sub.hidden ? 'Unhide' : 'Hide';
-      hideBtn.title = sub.hidden ? 'Put this entry back in the activity' : 'Hide this entry from the class and the AI — you can unhide it later';
+      hideBtn.title = sub.hidden ? 'Put this entry back in the activity' : 'Hide this entry from the class and the AI, you can unhide it later';
       hideBtn.addEventListener('click', function () {
         socket.emit('moderate-hide', { code: currentCode, playerId: sub.playerId, hidden: !sub.hidden });
       });
@@ -292,7 +292,7 @@ function renderEntries(submissions) {
       var kickBtn = document.createElement('button');
       kickBtn.className = 'entry-btn entry-btn-danger';
       kickBtn.textContent = 'Kick';
-      kickBtn.title = 'Remove this student from the room — they cannot rejoin this session';
+      kickBtn.title = 'Remove this student from the room, they cannot rejoin this session';
       kickBtn.addEventListener('click', function () {
         if (confirm('Remove ' + sub.name + '? They can\'t rejoin this session.')) {
           socket.emit('moderate-kick', { code: currentCode, playerId: sub.playerId });
@@ -322,7 +322,7 @@ function renderChecklistGroups(groups) {
       var doneCount = 0;
       for (var k = 0; k < group.checked.length; k++) { if (group.checked[k]) doneCount++; }
       var title = document.createElement('h3');
-      title.textContent = group.label + ' — ' + doneCount + '/' + group.checked.length;
+      title.textContent = group.label + '. ' + doneCount + '/' + group.checked.length;
       card.appendChild(title);
 
       for (var i = 0; i < checklistItemTexts.length; i++) {

@@ -351,7 +351,7 @@ export function validateParams(recipe, params) {
         code: RECIPE_DIAGNOSTIC_CODES.PARAM_UNKNOWN,
         path: path('params', key),
         field: key,
-        message: `Unknown parameter "${key}" — recipe does not declare it.`,
+        message: `Unknown parameter "${key}", recipe does not declare it.`,
         source: 'validator'
       }));
     }

@@ -16,7 +16,7 @@
     },
     "process": {
       "type": "ai-process",
-      "instruction": "Write a playful class poem from these weekend activities. Length: about one line for every 2 students (a full class should get 8-12 lines, a small group 4-6). Weave in as many students' actual words as fit, close to verbatim, so each student can spot their own weekend in it — group similar weekends into a shared line rather than dropping anyone. Warm and funny, never mocking.",
+      "instruction": "Write a playful class poem from these weekend activities. Length: about one line for every 2 students (a full class should get 8-12 lines, a small group 4-6). Weave in as many students' actual words as fit, close to verbatim, so each student can spot their own weekend in it, group similar weekends into a shared line rather than dropping anyone. Warm and funny, never mocking.",
       "input": "collect.responses",
       "format": "text",
       "next": "check"

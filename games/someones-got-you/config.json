@@ -1,6 +1,6 @@
 {
   "name": "Someone's Got You",
-  "description": "Everyone shares one small real thing they're working on; a classmate writes them one line of genuine encouragement. Teacher reviews every line before the wall goes up. Nobody is picked, nobody wins — and passing is always okay (a pass just means no line comes back this round).",
+  "description": "Everyone shares one small real thing they're working on; a classmate writes them one line of genuine encouragement. Teacher reviews every line before the wall goes up. Nobody is picked, nobody wins, and passing is always okay (a pass just means no line comes back this round).",
   "featured": true,
   "family": "connection",
   "playTime": "~10 min",
@@ -22,13 +22,13 @@
     },
     "intro": {
       "type": "announce",
-      "message": "SOMEONE'S GOT YOU\n\nNo points, no winners. You'll write one small real thing — then a classmate you don't get to pick writes something FOR you.\n\nWrite like someone's day depends on it. It might.",
+      "message": "SOMEONE'S GOT YOU\n\nNo points, no winners. You'll write one small real thing, then a classmate you don't get to pick writes something FOR you.\n\nWrite like someone's day depends on it. It might.",
       "timer": 12,
       "next": "notes"
     },
     "notes": {
       "type": "collect",
-      "prompt": "One thing you're working on, wrestling with, or quietly proud of this week. Small is fine — 'trying to get more sleep' counts. One sentence.",
+      "prompt": "One thing you're working on, wrestling with, or quietly proud of this week. Small is fine. 'trying to get more sleep' counts. One sentence.",
       "passAllowed": true,
       "timer": 120,
       "next": "boost"
@@ -36,7 +36,7 @@
     "boost": {
       "type": "collect",
       "rotateFrom": "notes",
-      "prompt": "A classmate wrote:\n\n“{{notes.assigned}}”\n\nWrite them ONE line of genuine encouragement. Specific beats generic — talk to the thing they actually said.\n\n(Stuck? “Someone in this room is rooting for you” always counts.)",
+      "prompt": "A classmate wrote:\n\n“{{notes.assigned}}”\n\nWrite them ONE line of genuine encouragement. Specific beats generic, talk to the thing they actually said.\n\n(Stuck? “Someone in this room is rooting for you” always counts.)",
       "timer": 120,
       "next": "check"
     },
@@ -48,7 +48,7 @@
     },
     "wall": {
       "type": "reveal-one",
-      "message": "The encouragement wall — one line at a time.",
+      "message": "The encouragement wall, one line at a time.",
       "from": "boost.responses",
       "next": "end"
     },

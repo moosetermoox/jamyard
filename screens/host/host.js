@@ -116,7 +116,7 @@ teacherViewToggle.addEventListener('click', () => {
   if (!teacherViewInfo.hidden) { hidePinInfo(); return; }
   if (!pinRevealArmed) {
     pinRevealArmed = true;
-    teacherViewToggle.textContent = '⚠ Students may see this — tap again to show the PIN';
+    teacherViewToggle.textContent = '⚠ Students may see this, tap again to show the PIN';
     // Disarm quietly if the teacher thinks better of it.
     setTimeout(() => { if (teacherViewInfo.hidden) hidePinInfo(); }, 6000);
     return;
@@ -1071,7 +1071,7 @@ socket.on('team-split-setup', ({ rosters, unassigned }) => {
   if ((unassigned || []).length === 0) {
     const done = document.createElement('p');
     done.className = 'team-arrange-hint';
-    done.textContent = 'Everyone is placed — Confirm when it looks right.';
+    done.textContent = 'Everyone is placed. Confirm when it looks right.';
     teamArrangeUnassigned.appendChild(done);
   }
 
@@ -1125,7 +1125,7 @@ function renderTeamChoiceHost(rosters, placed, total) {
     const h3 = document.createElement('h3');
     // open == null means no caps (capacity:"open") — show the name only
     h3.textContent = r.open == null ? r.name
-      : r.name + ' — ' + r.open + (r.open === 1 ? ' spot' : ' spots') + ' left';
+      : r.name + '. ' + r.open + (r.open === 1 ? ' spot' : ' spots') + ' left';
     card.appendChild(h3);
     for (const m of r.members) {
       const p = document.createElement('p');
@@ -1263,7 +1263,7 @@ socket.on('match-results', ({ results, players }) => {
     html += '<div class="match-player-list">';
     for (const p of players) {
       const avatar = J ? J.avatarFor(p.name) + ' ' : '';
-      html += '<p>' + avatar + escapeHtml(p.name) + ' — ' + p.correct + ' correct' +
+      html += '<p>' + avatar + escapeHtml(p.name) + '. ' + p.correct + ' correct' +
         (p.score > 0 ? ' (+' + p.score + ')' : '') + '</p>';
     }
     html += '</div>';
@@ -1351,7 +1351,7 @@ socket.on('sort-results', ({ graded, results, players }) => {
     html += '<div class="match-player-list">';
     for (const p of players) {
       const avatar = J ? J.avatarFor(p.name) + ' ' : '';
-      html += '<p>' + avatar + escapeHtml(p.name) + ' — ' + p.correct + ' correct' +
+      html += '<p>' + avatar + escapeHtml(p.name) + '. ' + p.correct + ' correct' +
         (p.score > 0 ? ' (+' + p.score + ')' : '') + '</p>';
     }
     html += '</div>';
@@ -1526,7 +1526,7 @@ socket.on('one-voice-reset', (data) => {
   renderOneVoice(data);
   oneVoiceBanner.hidden = false;
   oneVoiceBanner.textContent = data.final
-    ? 'That was our last try — what a run. Best: ' + data.bestRun + ' of ' + oneVoiceTarget + '.'
+    ? 'That was our last try, what a run. Best: ' + data.bestRun + ' of ' + oneVoiceTarget + '.'
     : 'Two voices! Back to one…';
   if (!data.final) {
     setTimeout(() => { oneVoiceBanner.hidden = true; }, (data.lockoutMs || 800) + 1200);
@@ -1538,7 +1538,7 @@ socket.on('one-voice-success', (data) => {
   if (J) J.confetti(); // shared win — no fanfare; roomSpeak below is the voice of this moment
   oneVoiceSection.classList.add('one-voice-celebrating');
   oneVoiceBanner.hidden = false;
-  oneVoiceBanner.textContent = 'WE DID IT — ' + oneVoiceTarget + ', as one voice! (Attempt ' + data.attempt + ')';
+  oneVoiceBanner.textContent = 'WE DID IT. ' + oneVoiceTarget + ', as one voice! (Attempt ' + data.attempt + ')';
   roomSpeak(data.count + '! We did it!');
 });
 
@@ -1578,7 +1578,7 @@ function renderBuzzScores(scores) {
   for (const [pid, pts] of entries) {
     const p = document.createElement('p');
     const name = buzzNames[pid] || '…';
-    p.textContent = (J ? J.avatarFor(name) + ' ' : '') + name + ' — ' + pts + ' pts';
+    p.textContent = (J ? J.avatarFor(name) + ' ' : '') + name + '. ' + pts + ' pts';
     buzzScores.appendChild(p);
   }
 }
@@ -1588,7 +1588,7 @@ socket.on('buzz-start', ({ prompt, question, scores, hostTemplate, show }) => {
   showSection(buzzSection);
   buzzPrompt.textContent = prompt || 'Listen for the question!';
   buzzQuestionNum.textContent = 'Question ' + (question || 1);
-  buzzStatus.textContent = 'Buzzer is OPEN — ask away!';
+  buzzStatus.textContent = 'Buzzer is OPEN, ask away!';
   buzzStatus.classList.remove('buzz-status-locked');
   buzzJudgeRow.hidden = true;
   renderBuzzScores(scores);
@@ -1613,10 +1613,10 @@ socket.on('buzz-result', ({ correct, playerId, playerName, scores, points }) => 
   buzzNames[playerId] = playerName;
   buzzJudgeRow.hidden = true;
   if (correct) {
-    buzzStatus.textContent = '✓ ' + playerName + ' +' + points + ' — click "Next question" when ready';
+    buzzStatus.textContent = '✓ ' + playerName + ' +' + points + ', click "Next question" when ready';
     if (J) J.sound('tada');
   } else {
-    buzzStatus.textContent = '✗ ' + playerName + ' — buzzer reopened!';
+    buzzStatus.textContent = '✗ ' + playerName + ', buzzer reopened!';
     buzzStatus.classList.remove('buzz-status-locked');
     if (J) J.sound('womp');
   }
@@ -1625,7 +1625,7 @@ socket.on('buzz-result', ({ correct, playerId, playerName, scores, points }) => 
 
 socket.on('buzz-open', ({ question, scores }) => {
   buzzQuestionNum.textContent = 'Question ' + question;
-  buzzStatus.textContent = 'Buzzer is OPEN — ask away!';
+  buzzStatus.textContent = 'Buzzer is OPEN, ask away!';
   buzzStatus.classList.remove('buzz-status-locked');
   buzzJudgeRow.hidden = true;
   renderBuzzScores(scores);
@@ -1707,7 +1707,7 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
     const g = guesses[i];
     const avatar = J ? J.avatarFor(g.name) + ' ' : '';
     html += '<p class="' + (g.score > 0 ? 'estimate-winner' : '') + '">' +
-            avatar + escapeHtml(g.name) + ' — ' + escapeHtml(g.value) +
+            avatar + escapeHtml(g.name) + '. ' + escapeHtml(g.value) +
             (g.score > 0 ? ' (+' + g.score + ')' : '') + '</p>';
   }
   html += '</div>';

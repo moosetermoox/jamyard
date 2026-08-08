@@ -82,7 +82,7 @@
 
     var hint = document.createElement('p');
     hint.className = 'feedback-widget-hint';
-    hint.textContent = 'Anonymous — please don\'t include names or personal info.';
+    hint.textContent = 'Anonymous, please don\'t include names or personal info.';
     panel.appendChild(hint);
 
     var status = document.createElement('p');
@@ -138,7 +138,7 @@
           send.disabled = false;
           if (resp.ok) {
             status.style.color = '#1B5E20';
-            status.textContent = 'Thanks — got it!';
+            status.textContent = 'Thanks, got it!';
             textarea.value = '';
             setTimeout(function () {
               panel.hidden = true;
@@ -152,7 +152,7 @@
       }).catch(function () {
         send.disabled = false;
         status.style.color = '#CC0000';
-        status.textContent = 'Network problem — please try again.';
+        status.textContent = 'Network problem, please try again.';
       });
     });
   }

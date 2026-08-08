@@ -1,6 +1,6 @@
 {
   "name": "Human vs AI: Birthday Party Battle",
-  "description": "Come up with creative birthday party ideas, then see them paired against AI ideas — can you spot the impostor?",
+  "description": "Come up with creative birthday party ideas, then see them paired against AI ideas, can you spot the impostor?",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -8,7 +8,7 @@
     },
     "rules": {
       "type": "announce",
-      "message": "Welcome to Human vs AI: Birthday Party Battle!\n\nYou'll each create a unique birthday party idea. Then the AI will also write some ideas. In each round, you'll see TWO ideas side by side — one human, one AI — and guess which is which. Points for spotting the AI!\n\nMake your idea detailed and creative (at least 240 characters).",
+      "message": "Welcome to Human vs AI: Birthday Party Battle!\n\nYou'll each create a unique birthday party idea. Then the AI will also write some ideas. In each round, you'll see TWO ideas side by side, one human, one AI, and guess which is which. Points for spotting the AI!\n\nMake your idea detailed and creative (at least 240 characters).",
       "timer": 15,
       "next": "collect-ideas"
     },
@@ -31,7 +31,7 @@
       "limit": 8,
       "aiInject": {
         "count": 4,
-        "instruction": "Generate creative, detailed birthday party ideas (at least 240 characters each). Match the tone, detail level, and creativity of the real student submissions. Make each idea unique — mix whimsical, sophisticated, and adventurous themes. Do NOT make them obviously AI-generated."
+        "instruction": "Generate creative, detailed birthday party ideas (at least 240 characters each). Match the tone, detail level, and creativity of the real student submissions. Make each idea unique, mix whimsical, sophisticated, and adventurous themes. Do NOT make them obviously AI-generated."
       },
       "pairMode": "human-vs-ai",
       "selfExclude": true,
@@ -52,7 +52,7 @@
         },
         "reveal-ai": {
           "type": "announce",
-          "message": "{{_current.aiPosition}} was the AI!\n\nThe human idea came from {{_current.human.playerName}}.\n\nWhat gave it away — or what fooled you?"
+          "message": "{{_current.aiPosition}} was the AI!\n\nThe human idea came from {{_current.human.playerName}}.\n\nWhat gave it away, or what fooled you?"
         }
       },
       "scoring": {
@@ -78,7 +78,7 @@
     },
     "end": {
       "type": "end",
-      "message": "That's the battle! Talk it out: what actually gives AI writing away — and which human ideas could have fooled YOU?"
+      "message": "That's the battle! Talk it out: what actually gives AI writing away, and which human ideas could have fooled YOU?"
     }
   },
   "playTime": "~12 min",
@@ -88,5 +88,5 @@
     "AI literacy",
     "guessing"
   ],
-  "recommendedFor": "Great hook for an AI-literacy unit — students see firsthand what AI is and is not good at."
+  "recommendedFor": "Great hook for an AI-literacy unit, students see firsthand what AI is and is not good at."
 }

@@ -96,7 +96,7 @@
     'announce': function () {
       return {
         type: 'announce',
-        message: 'Welcome! Here is what we are doing today — listen up, then grab your device.'
+        message: 'Welcome! Here is what we are doing today, listen up, then grab your device.'
       };
     },
     'collect': function () {
@@ -117,7 +117,7 @@
     'estimate': function () {
       return {
         type: 'estimate',
-        prompt: 'Take a guess — what number do you think it is?',
+        prompt: 'Take a guess, what number do you think it is?',
         timer: 60
       };
     },
@@ -126,19 +126,19 @@
       if (src) {
         return {
           type: 'reveal',
-          template: 'Here is what we said —\n\n{{' + src + '.responses.list}}'
+          template: 'Here is what we said, \n\n{{' + src + '.responses.list}}'
         };
       }
       return {
         type: 'reveal',
-        template: 'Look up here — let us talk through what just happened.'
+        template: 'Look up here, let us talk through what just happened.'
       };
     },
     'reveal-one': function (ctx) {
       var src = lastOfType(ctx.phases, ['collect'], ctx.afterId);
       return {
         type: 'reveal-one',
-        message: 'One at a time — here they come.',
+        message: 'One at a time, here they come.',
         from: src ? src + '.responses' : undefined
       };
     },
@@ -171,7 +171,7 @@
     'collect-two': function () {
       return {
         type: 'collect',
-        prompt: 'Two parts — the class only sees the second one!',
+        prompt: 'Two parts, the class only sees the second one!',
         fields: [
           { label: 'The answer (kept secret until the reveal)', key: 'secret' },
           { label: 'The clue everyone will see', key: 'clue' }
@@ -200,10 +200,10 @@
 
   function suggestOpening() {
     return [
-      { type: 'announce', title: 'Announcement', reason: 'set the scene — "here is what we are doing today"', mostCommon: true },
+      { type: 'announce', title: 'Announcement', reason: 'set the scene. "here is what we are doing today"', mostCommon: true },
       { type: 'collect-choice', title: 'Multiple choice', reason: 'warm up with a quick poll' },
       { type: 'collect', title: 'Open answer', reason: 'jump straight to the question' },
-      { type: 'estimate', title: 'Guess a number', reason: 'a low-stakes hook — everyone has a guess' }
+      { type: 'estimate', title: 'Guess a number', reason: 'a low-stakes hook, everyone has a guess' }
     ];
   }
 
@@ -214,7 +214,7 @@
 
     if (stepType === 'collect') {
       out.push({ type: 'reveal', title: 'Reveal results', reason: 'show everyone’s answers on the projector', mostCommon: true });
-      out.push({ type: 'guessing-rounds', title: 'Guessing rounds', reason: 'cycle through the answers — everyone guesses each one' });
+      out.push({ type: 'guessing-rounds', title: 'Guessing rounds', reason: 'cycle through the answers, everyone guesses each one' });
       out.push({ type: 'ai', title: 'AI transforms answers', reason: 'turn them into a summary, themes, or a poem', ai: true });
       out.push({ type: 'vote', title: 'Vote', reason: 'the class picks a favorite' });
       out.push({ type: 'collect', title: 'Ask another question', reason: 'build a second round' });
@@ -257,7 +257,7 @@
 
     // The wrap-up joins only once the activity has an arc and no end yet.
     if (hasArc(phases) && !hasEnd(phases)) {
-      out.unshift({ type: 'end', title: 'Wrap it up', reason: 'this already has a full arc — end on a good note', feelsComplete: true });
+      out.unshift({ type: 'end', title: 'Wrap it up', reason: 'this already has a full arc, end on a good note', feelsComplete: true });
       // Keep "most common" on at most one tile.
       for (var i = 1; i < out.length; i++) out[i].mostCommon = false;
     }
@@ -278,7 +278,7 @@
         mostCommon: true,
         task: 'summarize',
         instructions: 'Read all the answers. Find the 2-3 big themes the class is circling around. Name each theme in a friendly phrase and quote one anonymous answer for each.',
-        revealMessage: 'The big themes from your answers —'
+        revealMessage: 'The big themes from your answers. '
       },
       {
         key: 'poem',
@@ -286,7 +286,7 @@
         reason: 'one poem woven from every answer',
         task: 'generate',
         instructions: 'Write a short, warm poem (8-12 lines) that weaves in ideas from as many of the answers as possible. Keep it readable aloud in under a minute.',
-        revealMessage: 'A poem made of your answers —'
+        revealMessage: 'A poem made of your answers. '
       },
       {
         key: 'group',
@@ -294,15 +294,15 @@
         reason: 'who is thinking alike?',
         task: 'summarize',
         instructions: 'Group the answers into clusters of similar thinking. Give each cluster a short name and list the answers that belong to it.',
-        revealMessage: 'Here is who was thinking alike —'
+        revealMessage: 'Here is who was thinking alike. '
       },
       {
         key: 'standout',
         title: 'Pick a standout',
         reason: 'one great answer, and why',
         task: 'summarize',
-        instructions: 'Pick one answer that stands out for being thoughtful, surprising, or funny. Quote it and explain in two sentences why it stood out. Be kind — never mock an answer.',
-        revealMessage: 'Today’s standout —'
+        instructions: 'Pick one answer that stands out for being thoughtful, surprising, or funny. Quote it and explain in two sentences why it stood out. Be kind, never mock an answer.',
+        revealMessage: 'Today’s standout. '
       }
     ];
   }

@@ -84,7 +84,7 @@
     btn.className = 'mic-btn';
     btn.textContent = IDLE_LABEL;
     btn.setAttribute('aria-label', 'Speak instead of typing');
-    btn.title = 'Tap and talk — your words appear in the box. Tap again to stop.';
+    btn.title = 'Tap and talk, your words appear in the box. Tap again to stop.';
     wrap.appendChild(btn);
 
     function reset() {

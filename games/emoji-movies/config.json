@@ -1,9 +1,12 @@
 {
   "name": "Emoji Movies",
-  "description": "Describe your favorite movie in nothing but emojis — then the class cycles through every clue and types their guesses. The reveal is the fun part.",
+  "description": "Describe your favorite movie in nothing but emojis, then the class cycles through every clue and types their guesses. The reveal is the fun part.",
   "playTime": "~15 min",
   "classSize": "3-35 players",
-  "tags": ["energize", "connect"],
+  "tags": [
+    "energize",
+    "connect"
+  ],
   "minPlayers": 3,
   "phases": {
     "lobby": {
@@ -12,22 +15,28 @@
     },
     "intro": {
       "type": "announce",
-      "message": "EMOJI MOVIES\n\nThink of a movie you love. You'll type its name — kept secret — and then describe it using ONLY emojis.\n\nLike this: 🦈🌊🏖️😱\n\nThen we cycle through everyone's clues and guess each other's movies.",
+      "message": "EMOJI MOVIES\n\nThink of a movie you love. You'll type its name, kept secret, and then describe it using ONLY emojis.\n\nLike this: 🦈🌊🏖️😱\n\nThen we cycle through everyone's clues and guess each other's movies.",
       "next": "share"
     },
     "share": {
       "type": "collect",
-      "prompt": "Your movie — in emojis only!",
+      "prompt": "Your movie, in emojis only!",
       "fields": [
-        { "label": "The movie title (kept secret until the reveal)", "key": "movie" },
-        { "label": "Describe it in emojis only — no letters, no numbers", "key": "clues" }
+        {
+          "label": "The movie title (kept secret until the reveal)",
+          "key": "movie"
+        },
+        {
+          "label": "Describe it in emojis only, no letters, no numbers",
+          "key": "clues"
+        }
       ],
       "timer": 120,
       "next": "get-ready"
     },
     "get-ready": {
       "type": "announce",
-      "message": "All clues are in! One movie at a time — type your guess when the emojis appear.\n\nIf it's yours: keep a straight face.",
+      "message": "All clues are in! One movie at a time, type your guess when the emojis appear.\n\nIf it's yours: keep a straight face.",
       "next": "guess-round"
     },
     "guess-round": {
@@ -54,7 +63,7 @@
     },
     "wrap": {
       "type": "end",
-      "message": "That's Emoji Movies! Same class next time — new movies, harder clues."
+      "message": "That's Emoji Movies! Same class next time, new movies, harder clues."
     }
   }
 }

@@ -2,10 +2,9 @@
   "id": "anonymous-feedback",
   "name": "Anonymous Feedback",
   "icon": "🤐",
-  "description": "Students submit feedback anonymously. AI groups responses into themes — no individual answers shown to the class.",
+  "description": "Students submit feedback anonymously. AI groups responses into themes, no individual answers shown to the class.",
   "tagline": "Perfect for end-of-unit reflection, course evaluations, and 'tell me how I'm doing' moments.",
   "version": "1",
-
   "parameters": {
     "question": {
       "type": "templateString",
@@ -19,13 +18,12 @@
     "timer": {
       "type": "integer",
       "label": "Time to respond (seconds)",
-      "helper": "Give students enough time to think — anonymous feedback rewards reflection.",
+      "helper": "Give students enough time to think, anonymous feedback rewards reflection.",
       "default": 120,
       "min": 30,
       "max": 900
     }
   },
-
   "template": {
     "name": "Feedback: ${question}",
     "description": "An anonymous feedback collection built with the Anonymous Feedback recipe.",
@@ -50,7 +48,7 @@
       "process": {
         "type": "ai-process",
         "task": "summarize",
-        "instruction": "You are summarizing anonymous student feedback. Group similar responses into 3-5 themes. For each theme, give it a short heading and a 1-2 sentence summary describing what students said. Do NOT quote individual responses verbatim — paraphrase to preserve anonymity. Highlight any actionable patterns the teacher could use. Keep the total response under 250 words. Use plain markdown.",
+        "instruction": "You are summarizing anonymous student feedback. Group similar responses into 3-5 themes. For each theme, give it a short heading and a 1-2 sentence summary describing what students said. Do NOT quote individual responses verbatim, paraphrase to preserve anonymity. Highlight any actionable patterns the teacher could use. Keep the total response under 250 words. Use plain markdown.",
         "input": "ask.responses",
         "next": "results"
       },
@@ -61,7 +59,7 @@
       },
       "end": {
         "type": "end",
-        "message": "Thanks for sharing — your feedback matters."
+        "message": "Thanks for sharing, your feedback matters."
       }
     }
   }

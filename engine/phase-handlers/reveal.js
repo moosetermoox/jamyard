@@ -15,18 +15,18 @@ const PER_PLAYER_REF = /\{\{\s*[a-zA-Z0-9_-]+\.mine\s*\}\}/;
 // Default copy for pair-scoped reveals. The host screen is projected to the
 // class, so it NEVER shows pair-private answers — only a neutral status line.
 const PAIR_HOST_CONTENT = "Everyone is reading their pair's answers on their own screen.";
-const PAIR_UNPAIRED_CONTENT = 'Sit tight — pairs are sharing this round.';
+const PAIR_UNPAIRED_CONTENT = 'Sit tight, pairs are sharing this round.';
 
 // Same discipline for return-to-author reveals: each chain is private to
 // its author; the projector only narrates.
-const OWN_HOST_CONTENT = 'Everyone is reading what became of the thing they started. Give it a minute — then ask who got the best surprise.';
+const OWN_HOST_CONTENT = 'Everyone is reading what became of the thing they started. Give it a minute, then ask who got the best surprise.';
 
 // Chain views for a scope:"own" reveal: walk chainFrom's phase data
 // (origin first) through the assignedFrom links the rotation stored.
 function getChainViews(ctx) {
   const ids = Array.isArray(ctx.phase.chainFrom) ? ctx.phase.chainFrom : [];
   if (ids.length === 0) {
-    throw new Error(`reveal "${ctx.phase.id}" has scope:"own" but no chainFrom — list the chain's collect steps in order`);
+    throw new Error(`reveal "${ctx.phase.id}" has scope:"own" but no chainFrom, list the chain's collect steps in order`);
   }
   const chainDatas = ids.map(id => ctx.engine.phaseData[id] || {});
   return buildChainViews(chainDatas);

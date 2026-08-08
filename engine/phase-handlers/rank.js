@@ -38,7 +38,7 @@ registerHandler('rank', {
     // skip rather than strand students on an empty list with a Submit
     // button. Found by the chaos simulator.
     if (rkItems.length === 0) {
-      console.warn(`[rank:${phase.id}] nothing to rank — skipping the step`);
+      console.warn(`[rank:${phase.id}] nothing to rank, skipping the step`);
       const nextId = ctx.getNextPhaseId();
       if (nextId) {
         engine.storePhaseData(phase.id, { rankings: [], rankedList: '' });

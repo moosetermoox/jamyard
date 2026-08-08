@@ -239,7 +239,7 @@ var PHASE_CATALOG = {
   'foreach': {
     icon: '',
     friendlyName: 'Go Through Answers',
-    description: 'Show each player\'s answer one at a time — guess, rate, or discuss',
+    description: 'Show each player\'s answer one at a time, guess, rate, or discuss',
     color: '#6A1B9A',
     bg: '#E1BEE7',
     detailField: 'data',
@@ -250,7 +250,7 @@ var PHASE_CATALOG = {
   'buzz': {
     icon: '🔔',
     friendlyName: 'Buzzer Round',
-    description: 'Ask questions out loud — first to buzz answers, you judge Right/Wrong',
+    description: 'Ask questions out loud, first to buzz answers, you judge Right/Wrong',
     color: '#C62828',
     bg: '#FFCDD2',
     detailField: 'prompt',
@@ -261,7 +261,7 @@ var PHASE_CATALOG = {
   'estimate': {
     icon: '🔢',
     friendlyName: 'Guess the Number',
-    description: 'Everyone guesses a number — closest to the answer earns points',
+    description: 'Everyone guesses a number, closest to the answer earns points',
     color: '#00838F',
     bg: '#B2EBF2',
     detailField: 'prompt',
@@ -272,23 +272,23 @@ var PHASE_CATALOG = {
   'sort': {
     icon: '🗂️',
     friendlyName: 'Sort into Buckets',
-    description: 'Students place each item into a category (metaphor vs simile) — scored, or a consensus poll',
+    description: 'Students place each item into a category (metaphor vs simile), scored, or a consensus poll',
     color: '#00695C',
     bg: '#B2DFDB',
     detailField: 'prompt',
     host: 'Submission counter, then per-item class distributions (+accuracy when scored)',
-    player: 'Each item with bucket buttons — tap one per item, then submit',
+    player: 'Each item with bucket buttons, tap one per item, then submit',
     ai: null
   },
   'match': {
     icon: '🔗',
     friendlyName: 'Match Pairs',
-    description: 'Students match items from two lists (vocab ↔ definitions) — auto-scored',
+    description: 'Students match items from two lists (vocab ↔ definitions), auto-scored',
     color: '#5E35B1',
     bg: '#D1C4E9',
     detailField: 'prompt',
     host: 'Submission counter, then correct pairs + per-pair class accuracy',
-    player: 'Two columns — drag the right column until each row is a correct pair',
+    player: 'Two columns, drag the right column until each row is a correct pair',
     ai: null
   },
   'merge': {
@@ -305,7 +305,7 @@ var PHASE_CATALOG = {
   'one-voice': {
     icon: '',
     friendlyName: 'Count Together',
-    description: 'The class counts to a target together — collisions reset, one voice at a time',
+    description: 'The class counts to a target together, collisions reset, one voice at a time',
     color: '#5E35B1',
     bg: '#D1C4E9',
     detailField: null,
@@ -316,7 +316,7 @@ var PHASE_CATALOG = {
   'collect-two': {
     icon: '',
     friendlyName: 'Secret + Clue',
-    description: 'Students type two things — the first stays hidden until the reveal (party-game shape)',
+    description: 'Students type two things, the first stays hidden until the reveal (party-game shape)',
     color: '#00C853',
     bg: '#C8E6C9',
     detailField: 'prompt',
@@ -332,7 +332,7 @@ var PHASE_CATALOG = {
     bg: '#DCEDC8',
     detailField: 'prompt',
     host: 'Per-group progress bars, groups-finished count, End Work Time button',
-    player: 'The to-do list — tap items to check them off for your group',
+    player: 'The to-do list, tap items to check them off for your group',
     ai: null
   },
   'end': {
@@ -1736,7 +1736,7 @@ function renderPhaseConfig(phaseId) {
       'What\'s one word that describes how you feel today?',
       'What\'s one thing you learned this week?'
     ]);
-    addSelectWithHelp('Students answer with', 'A drawing pad replaces the text box. Drawings show in reveal galleries and pass through rotation chains — AI steps can\'t read them.', 'phase-inputType',
+    addSelectWithHelp('Students answer with', 'A drawing pad replaces the text box. Drawings show in reveal galleries and pass through rotation chains. AI steps can\'t read them.', 'phase-inputType',
       [
         { value: 'text', label: 'Text' },
         { value: 'drawing', label: 'A drawing' }
@@ -1818,7 +1818,7 @@ function renderPhaseConfig(phaseId) {
       else pairingValue = 'random';
     }
     var pairingOptions = [
-      { value: 'none', label: 'No pairing — everyone answers solo' },
+      { value: 'none', label: 'No pairing, everyone answers solo' },
       { value: 'random', label: 'Pair players up (random pairs)' }
     ];
     var collectOrder = buildPhaseOrder();
@@ -1854,7 +1854,7 @@ function renderPhaseConfig(phaseId) {
     if (phase.assign === 'pairwise') {
       addSelectWithHelp('Odd number of players', 'What happens when someone can\'t be paired', 'phase-oddHandling',
         [
-          { value: 'triple', label: 'Make one group of 3 — nobody sits out' },
+          { value: 'triple', label: 'Make one group of 3, nobody sits out' },
           { value: 'sit-out', label: 'Last player sits out this round' }
         ],
         phase.oddHandling === 'sit-out' ? 'sit-out' : 'triple', function (value) {
@@ -1866,17 +1866,17 @@ function renderPhaseConfig(phaseId) {
     addSelectWithHelp('Allow passing', 'Adds a Pass button. A pass counts like an answer (the step can finish) and is never shown to anyone.', 'phase-passAllowed',
       [
         { value: 'no', label: 'No' },
-        { value: 'yes', label: 'Yes — students can pass quietly' }
+        { value: 'yes', label: 'Yes, students can pass quietly' }
       ],
       phase.passAllowed ? 'yes' : 'no', function (value) {
         isDirty = true;
         if (value === 'yes') { phase.passAllowed = true; } else { delete phase.passAllowed; }
       });
 
-    addSelectWithHelp('Hide answers until everyone is done', 'The projected counter shows numbers only — no names — until the step closes. You still see everything on your Teacher view.', 'phase-simultaneousReveal',
+    addSelectWithHelp('Hide answers until everyone is done', 'The projected counter shows numbers only, no names, until the step closes. You still see everything on your Teacher view.', 'phase-simultaneousReveal',
       [
         { value: 'no', label: 'No' },
-        { value: 'yes', label: 'Yes — reveal all at once' }
+        { value: 'yes', label: 'Yes, reveal all at once' }
       ],
       phase.simultaneousReveal ? 'yes' : 'no', function (value) {
         isDirty = true;
@@ -1951,7 +1951,7 @@ function renderPhaseConfig(phaseId) {
     addSelectWithHelp('Choices come from', 'Pull the choices from an earlier step, or write your own fixed list (fixed lists can branch what happens next by winner)', 'phase-vote-source',
       [
         { value: 'step', label: 'An earlier step (answers, AI output)' },
-        { value: 'own', label: 'My own list — I\'ll type the options' }
+        { value: 'own', label: 'My own list. I\'ll type the options' }
       ],
       voteIsOwnList ? 'own' : 'step', function (value) {
         isDirty = true;
@@ -2036,7 +2036,7 @@ function renderPhaseConfig(phaseId) {
             if (pid === phaseId) continue;
             var o = document.createElement('option');
             o.value = pid;
-            o.textContent = 'step ' + (bo + 1) + ' — ' + phaseRefLabel(pid, false);
+            o.textContent = 'step ' + (bo + 1) + '. ' + phaseRefLabel(pid, false);
             branchSel.appendChild(o);
           }
           var curText = voteOptsArr[index];
@@ -2300,7 +2300,7 @@ function renderPhaseConfig(phaseId) {
       else phase.lockoutOnWrong = false;
     });
     var loText = document.createElement('div');
-    loText.innerHTML = '<strong>Lock out wrong answers</strong><div style="font-size:12px;color:#666;margin-top:2px;">A wrong answer locks that player out until the next question — stops buzz-spamming.</div>';
+    loText.innerHTML = '<strong>Lock out wrong answers</strong><div style="font-size:12px;color:#666;margin-top:2px;">A wrong answer locks that player out until the next question, stops buzz-spamming.</div>';
     loLabel.appendChild(loCb);
     loLabel.appendChild(loText);
     phaseConfigForm.appendChild(loLabel);
@@ -2311,7 +2311,7 @@ function renderPhaseConfig(phaseId) {
       phase.prompt = value;
       renderCanvas();
     });
-    addFieldWithHelp('The answer (optional)', 'The true value (decimals ok). Leave empty for poll-the-room mode — no scoring, just the class distribution.', 'text', 'phase-answer', phase.answer, false, function (value) {
+    addFieldWithHelp('The answer (optional)', 'The true value (decimals ok). Leave empty for poll-the-room mode, no scoring, just the class distribution.', 'text', 'phase-answer', phase.answer, false, function (value) {
       var n = parseFloat(value);
       if (value == null || value === '' || !isFinite(n)) delete phase.answer;
       else phase.answer = n;
@@ -2323,14 +2323,14 @@ function renderPhaseConfig(phaseId) {
       if (value == null || value === '') delete phase.points;
       else phase.points = value;
     });
-    addSelectWithHelp('Scoring', 'closest: the closest guess takes all the points. graduated: points fall off by closeness rank — everyone earns something.', 'phase-scoring', [
+    addSelectWithHelp('Scoring', 'closest: the closest guess takes all the points. graduated: points fall off by closeness rank, everyone earns something.', 'phase-scoring', [
       { value: 'closest', label: 'Closest guess takes all' },
-      { value: 'graduated', label: 'Graduated — points by closeness rank' }
+      { value: 'graduated', label: 'Graduated, points by closeness rank' }
     ], phase.scoring || 'closest', function (value) {
       if (value === 'closest') delete phase.scoring; // default — keep config clean
       else phase.scoring = value;
     });
-    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit — you close guessing manually.', 'number', 'phase-timer', phase.timer, false, function (value) {
+    addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit, you close guessing manually.', 'number', 'phase-timer', phase.timer, false, function (value) {
       if (value == null || value === '') delete phase.timer;
       else phase.timer = value;
     });
@@ -2390,7 +2390,7 @@ function renderPhaseConfig(phaseId) {
         var noPairsMsg = document.createElement('p');
         noPairsMsg.className = 'field-help';
         noPairsMsg.style.color = '#C62828';
-        noPairsMsg.textContent = 'No paired step found before this one. Add an "Ask Players" step earlier and turn on "Pair players up" in its Pairing & privacy section — that\'s where the pairs and their answers come from.';
+        noPairsMsg.textContent = 'No paired step found before this one. Add an "Ask Players" step earlier and turn on "Pair players up" in its Pairing & privacy section, that\'s where the pairs and their answers come from.';
         phaseConfigForm.appendChild(noPairsMsg);
       } else {
         // Default to the nearest paired step before this reveal
@@ -2406,7 +2406,7 @@ function renderPhaseConfig(phaseId) {
 
       var pairTipMsg = document.createElement('p');
       pairTipMsg.className = 'field-help';
-      pairTipMsg.textContent = 'Tip: leave the template empty to show each pair their answers plainly — or use {{_pair.prompt}} (the pair\'s question) and {{_pair.answers}} (both answers) to arrange it yourself.';
+      pairTipMsg.textContent = 'Tip: leave the template empty to show each pair their answers plainly, or use {{_pair.prompt}} (the pair\'s question) and {{_pair.answers}} (both answers) to arrange it yourself.';
       phaseConfigForm.appendChild(pairTipMsg);
     }
 
@@ -2451,11 +2451,11 @@ function renderPhaseConfig(phaseId) {
     addDataRefDropdown('Scores from', 'Which step\'s scores determine the winner', 'phase-from', phaseId, phase.from, function (value) {
       phase.from = value;
     });
-    var entryOptions = [{ value: '', label: '(auto — traced from the vote)' }].concat(buildDataRefOptions(phaseId));
+    var entryOptions = [{ value: '', label: '(auto, traced from the vote)' }].concat(buildDataRefOptions(phaseId));
     if (phase.entryFrom && !entryOptions.some(function (o) { return o.value === phase.entryFrom; })) {
       entryOptions.push({ value: phase.entryFrom, label: phase.entryFrom + ' (custom)' });
     }
-    addSelectWithHelp('What they won for', 'The step whose answers were judged — the winner\'s own entry is shown with the crown. Usually auto-detected from the vote.', 'phase-entryFrom', entryOptions, phase.entryFrom || '', function (value) {
+    addSelectWithHelp('What they won for', 'The step whose answers were judged, the winner\'s own entry is shown with the crown. Usually auto-detected from the vote.', 'phase-entryFrom', entryOptions, phase.entryFrom || '', function (value) {
       phase.entryFrom = value || undefined;
     });
   }
@@ -2545,10 +2545,10 @@ function renderPhaseConfig(phaseId) {
       }
     );
     if (phase.method === 'choice') {
-      addSelectWithHelp('Team spots', 'Even spots keep a free pick fair. Open spots let students join any team — use when the class already has teams and kids should tap their own (uneven sizes and absences are fine).', 'phase-team-capacity',
+      addSelectWithHelp('Team spots', 'Even spots keep a free pick fair. Open spots let students join any team, use when the class already has teams and kids should tap their own (uneven sizes and absences are fine).', 'phase-team-capacity',
         [
-          { value: 'even', label: 'Even — spots capped for fairness' },
-          { value: 'open', label: 'Open — any team, any size' }
+          { value: 'even', label: 'Even, spots capped for fairness' },
+          { value: 'open', label: 'Open, any team, any size' }
         ],
         phase.capacity || 'even', function (value) {
           if (value === 'open') { phase.capacity = 'open'; } else { delete phase.capacity; }
@@ -2584,7 +2584,7 @@ function renderPhaseConfig(phaseId) {
     addSelectWithHelp('Items come from', 'Pull the list from an earlier step, or write your own fixed list', 'phase-rank-source',
       [
         { value: 'step', label: 'An earlier step (answers, AI output)' },
-        { value: 'own', label: 'My own list — I\'ll type the items' }
+        { value: 'own', label: 'My own list. I\'ll type the items' }
       ],
       rankIsOwnList ? 'own' : 'step', function (value) {
         isDirty = true;
@@ -2720,7 +2720,7 @@ function renderPhaseConfig(phaseId) {
     addSectionHeader('The items to sort');
     var sortHelp = document.createElement('p');
     sortHelp.className = 'field-help';
-    sortHelp.textContent = 'Set the correct bucket on every item for a scored round — or leave them all on "no right answer" for a consensus poll.';
+    sortHelp.textContent = 'Set the correct bucket on every item for a scored round, or leave them all on "no right answer" for a consensus poll.';
     phaseConfigForm.appendChild(sortHelp);
 
     if (!Array.isArray(phase.items)) phase.items = [];
@@ -2864,7 +2864,7 @@ function renderPhaseConfig(phaseId) {
     phaseConfigForm.appendChild(addTaskBtn);
 
     // Groups: any earlier team-split step, or solo checklists
-    var teamSplitOpts = [{ value: '', label: 'No groups — one checklist per student' }];
+    var teamSplitOpts = [{ value: '', label: 'No groups, one checklist per student' }];
     for (var pid in gameConfig.phases) {
       if (gameConfig.phases[pid].type === 'team-split') {
         teamSplitOpts.push({ value: pid, label: 'Teams from "' + phaseContentLabel(pid) + '"' });
@@ -2875,7 +2875,7 @@ function renderPhaseConfig(phaseId) {
         if (value) { phase.teamsFrom = value; } else { delete phase.teamsFrom; }
       });
 
-    addFieldWithHelp('Work time (seconds)', 'Leave empty for no limit — you end work time from the host screen.', 'number', 'phase-timer', phase.timer, false, function (value) {
+    addFieldWithHelp('Work time (seconds)', 'Leave empty for no limit, you end work time from the host screen.', 'number', 'phase-timer', phase.timer, false, function (value) {
       if (value == null || value === '') delete phase.timer;
       else phase.timer = value;
     });
@@ -3041,7 +3041,7 @@ function renderPhaseConfig(phaseId) {
 
         var endLabelHeader = document.createElement('div');
         endLabelHeader.style.cssText = 'font-size:0.85rem; color:#555; margin-top:6px; margin-bottom:2px;';
-        endLabelHeader.textContent = 'End labels (optional — shown next to the buttons on the player screen)';
+        endLabelHeader.textContent = 'End labels (optional, shown next to the buttons on the player screen)';
         card.appendChild(endLabelHeader);
 
         var endRow = document.createElement('div');
@@ -3283,12 +3283,12 @@ function renderPhaseConfig(phaseId) {
     phaseConfigForm.appendChild(patternHelp);
 
     var patternOptions = [
-      { value: 'guess-author', label: 'Guess who wrote it — players see the answer and pick from a list of names' },
-      { value: 'guess-the-truth', label: 'Guess the right answer — players answer each other\'s questions (1 correct + decoys)' },
-      { value: 'rate-answers', label: 'Rate each answer — players rate responses and authors earn points' },
-      { value: 'spot-the-lie', label: 'Spot the lie — players pick which of someone\'s statements is false' },
-      { value: 'discuss', label: 'Just show and discuss — show each answer with time to talk' },
-      { value: 'custom', label: 'Custom — build your own steps' }
+      { value: 'guess-author', label: 'Guess who wrote it, players see the answer and pick from a list of names' },
+      { value: 'guess-the-truth', label: 'Guess the right answer, players answer each other\'s questions (1 correct + decoys)' },
+      { value: 'rate-answers', label: 'Rate each answer, players rate responses and authors earn points' },
+      { value: 'spot-the-lie', label: 'Spot the lie, players pick which of someone\'s statements is false' },
+      { value: 'discuss', label: 'Just show and discuss, show each answer with time to talk' },
+      { value: 'custom', label: 'Custom, build your own steps' }
     ];
 
     for (var pi = 0; pi < patternOptions.length; pi++) {
@@ -3583,7 +3583,7 @@ function renderPhaseConfig(phaseId) {
     }
 
     // loopBack dropdown — filter to phases before current
-    var loopBackOptions = [{ value: '', label: '(none — no loop)' }];
+    var loopBackOptions = [{ value: '', label: '(none, no loop)' }];
     var order = buildPhaseOrder();
     var currentIdx = order.indexOf(phaseId);
     for (var li = 0; li < order.length; li++) {
@@ -4307,7 +4307,7 @@ function buildTemplateVariables(currentPhaseId, extraVars) {
     var p = gameConfig.phases[pid];
     var cat = PHASE_CATALOG[p.type];
     if (!cat) continue;
-    var at = ' — ' + stepN(pid);
+    var at = '. ' + stepN(pid);
 
     if (p.type === 'collect') {
       vars.push({ label: 'List of answers' + at, variable: '{{' + pid + '.responses.list}}' });
@@ -4379,7 +4379,7 @@ function buildTemplateVariables(currentPhaseId, extraVars) {
   for (var ai = 0; ai < order.length && ai < currentIndex; ai++) {
     var ap = gameConfig.phases[order[ai]];
     if (!ap) continue;
-    var aat = ' — ' + stepN(order[ai]);
+    var aat = '. ' + stepN(order[ai]);
     if (ap.type === 'collect') {
       vars.push({ label: 'List of answers' + aat, variable: '{{' + order[ai] + '.list}}', hidden: true });
     }
@@ -5098,7 +5098,7 @@ function addPhaseOfType(type) {
 
   renderCanvas();
   selectPhase(newId);
-  showToast('We added a typical setup — change anything you want');
+  showToast('We added a typical setup, change anything you want');
 }
 
 // Transient bottom-of-screen toast (4s). Re-used for any "here's what happened" messages.
@@ -5712,10 +5712,10 @@ function showReviewPanel(result) {
     } else if (sim.completed) {
       simDiv.className = 'review-summary review-playtest review-playtest-warn';
       simDiv.textContent = '🤖 Robot playtest: 4 bots reached the end in ' + seconds +
-        's, but hit ' + simErrors.length + ' problem' + (simErrors.length === 1 ? '' : 's') + ' along the way — see below.';
+        's, but hit ' + simErrors.length + ' problem' + (simErrors.length === 1 ? '' : 's') + ' along the way, see below.';
     } else {
       simDiv.className = 'review-summary review-playtest review-playtest-bad';
-      simDiv.textContent = '🤖 Robot playtest: 4 bots could NOT finish your activity — see below for where it got stuck.';
+      simDiv.textContent = '🤖 Robot playtest: 4 bots could NOT finish your activity, see below for where it got stuck.';
     }
     reviewContent.appendChild(simDiv);
   }
@@ -6137,12 +6137,12 @@ function buildPreviewHTML(phase, screen) {
 
   if (type === 'leaderboard') {
     if (screen === 'host') {
-      html += previewEl('standings', 'Rankings', '1st Player1 — 10pts, 2nd Player2 — 7pts...', showList);
+      html += previewEl('standings', 'Rankings', '1st Player1, 10pts, 2nd Player2, 7pts...', showList);
       if (phase.timer) html += previewEl('timer', 'Timer', phase.timer + 's auto-advance', showList);
       html += previewBtn('continueButton', 'Continue', showList);
     } else {
-      html += previewEl('rank', 'Your Rank', '#2 — YourName', showList);
-      html += previewEl('standings', 'Rankings', '1st Player1 — 10pts, 2nd Player2 — 7pts...', showList);
+      html += previewEl('rank', 'Your Rank', '#2: YourName', showList);
+      html += previewEl('standings', 'Rankings', '1st Player1, 10pts, 2nd Player2, 7pts...', showList);
     }
   }
 

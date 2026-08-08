@@ -2,31 +2,43 @@
   "id": "closer",
   "name": "Closer",
   "icon": "🤝",
-  "description": "Pairs answer the same question privately, then see each other's answers at the same moment. Three tiers of prompts move from playful to reflective, with a new partner each tier. No points, no winners — just real conversations. Good for belonging, trust, and calm.",
+  "description": "Pairs answer the same question privately, then see each other's answers at the same moment. Three tiers of prompts move from playful to reflective, with a new partner each tier. No points, no winners, just real conversations. Good for belonging, trust, and calm.",
   "tagline": "Perfect for advisory, the first week of school, or rebuilding class culture after a rough patch.",
   "family": "connection",
-  "feel": ["belonging", "trust", "calm"],
+  "feel": [
+    "belonging",
+    "trust",
+    "calm"
+  ],
   "version": "1",
   "parameters": {
     "tier1Prompts": {
       "type": "array",
-      "item": { "type": "templateString", "minLength": 5, "maxLength": 200 },
+      "item": {
+        "type": "templateString",
+        "minLength": 5,
+        "maxLength": 200
+      },
       "minItems": 3,
       "maxItems": 3,
-      "label": "Tier 1 — light & playful (3 prompts)",
+      "label": "Tier 1, light & playful (3 prompts)",
       "helper": "Warm-up questions. Easy, fun, zero risk.",
       "default": [
-        "Window seat or aisle seat — and why?",
+        "Window seat or aisle seat, and why?",
         "If our class had a mascot, what should it be?",
         "If you could teleport to any place for just one hour, where would you go?"
       ]
     },
     "tier2Prompts": {
       "type": "array",
-      "item": { "type": "templateString", "minLength": 5, "maxLength": 200 },
+      "item": {
+        "type": "templateString",
+        "minLength": 5,
+        "maxLength": 200
+      },
       "minItems": 3,
       "maxItems": 3,
-      "label": "Tier 2 — values & preferences (3 prompts)",
+      "label": "Tier 2, values & preferences (3 prompts)",
       "helper": "A little deeper. What matters to them, what they're like.",
       "default": [
         "What's something you've changed your mind about in the last year?",
@@ -36,10 +48,14 @@
     },
     "tier3Prompts": {
       "type": "array",
-      "item": { "type": "templateString", "minLength": 5, "maxLength": 200 },
+      "item": {
+        "type": "templateString",
+        "minLength": 5,
+        "maxLength": 200
+      },
       "minItems": 3,
       "maxItems": 3,
-      "label": "Tier 3 — reflective (3 prompts)",
+      "label": "Tier 3, reflective (3 prompts)",
       "helper": "Proud-of, gratitude, growth. Best after the class has done Tiers 1-2 at least once before.",
       "default": [
         "What's something you're proud of that you rarely get to talk about?",
@@ -49,7 +65,10 @@
     },
     "partners": {
       "type": "enum",
-      "values": ["new-each-tier", "same-all-game"],
+      "values": [
+        "new-each-tier",
+        "same-all-game"
+      ],
       "default": "new-each-tier",
       "label": "Partners",
       "helper": "Switch to a new partner at each tier (meet more classmates), or keep the same partner the whole game (go deeper with one person)."
@@ -57,19 +76,21 @@
   },
   "template": {
     "name": "Closer",
-    "description": "Escalating pair conversations — playful to reflective. No winners.",
+    "description": "Escalating pair conversations, playful to reflective. No winners.",
     "family": "connection",
     "phases": {
-      "lobby": { "type": "lobby", "next": "welcome" },
+      "lobby": {
+        "type": "lobby",
+        "next": "welcome"
+      },
       "welcome": {
         "type": "announce",
-        "message": "This isn't a quiz. There are no points and no winners.\n\nYou'll be paired up and answer the same question as your partner — privately. When everyone's done, you'll see each other's answers at the same moment.\n\nYou can pass on any question, anytime. Nobody will know.",
+        "message": "This isn't a quiz. There are no points and no winners.\n\nYou'll be paired up and answer the same question as your partner, privately. When everyone's done, you'll see each other's answers at the same moment.\n\nYou can pass on any question, anytime. Nobody will know.",
         "next": "tier1-intro"
       },
-
       "tier1-intro": {
         "type": "announce",
-        "message": "Tier 1 — Warm-up.\n\nYou have a partner. Three quick questions, just for fun.",
+        "message": "Tier 1. Warm-up.\n\nYou have a partner. Three quick questions, just for fun.",
         "next": "t1q1"
       },
       "t1q1": {
@@ -123,10 +144,9 @@
         "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
         "next": "tier2-intro"
       },
-
       "tier2-intro": {
         "type": "announce",
-        "message": "Tier 2 — A little deeper.\n\nNew partner! Three questions about what matters to you.",
+        "message": "Tier 2. A little deeper.\n\nNew partner! Three questions about what matters to you.",
         "next": "t2q1"
       },
       "t2q1": {
@@ -134,8 +154,14 @@
         "prompt": "${tier2Prompts[0]}",
         "assign": "pairwise",
         "oddHandling": "triple",
-        "rotatePairsFrom": { "$if": "partners=new-each-tier", "$value": "t1q1" },
-        "reusePairsFrom": { "$if": "partners=same-all-game", "$value": "t1q1" },
+        "rotatePairsFrom": {
+          "$if": "partners=new-each-tier",
+          "$value": "t1q1"
+        },
+        "reusePairsFrom": {
+          "$if": "partners=same-all-game",
+          "$value": "t1q1"
+        },
         "passAllowed": true,
         "simultaneousReveal": true,
         "timer": 150,
@@ -182,10 +208,9 @@
         "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
         "next": "tier3-intro"
       },
-
       "tier3-intro": {
         "type": "announce",
-        "message": "Tier 3 — Reflective.\n\nOne more new partner. These questions are slower — take your time, and remember you can always pass.",
+        "message": "Tier 3. Reflective.\n\nOne more new partner. These questions are slower, take your time, and remember you can always pass.",
         "next": "t3q1"
       },
       "t3q1": {
@@ -193,8 +218,14 @@
         "prompt": "${tier3Prompts[0]}",
         "assign": "pairwise",
         "oddHandling": "triple",
-        "rotatePairsFrom": { "$if": "partners=new-each-tier", "$value": "t2q1" },
-        "reusePairsFrom": { "$if": "partners=same-all-game", "$value": "t2q1" },
+        "rotatePairsFrom": {
+          "$if": "partners=new-each-tier",
+          "$value": "t2q1"
+        },
+        "reusePairsFrom": {
+          "$if": "partners=same-all-game",
+          "$value": "t2q1"
+        },
         "passAllowed": true,
         "simultaneousReveal": true,
         "timer": 180,
@@ -241,7 +272,6 @@
         "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
         "next": "checkout"
       },
-
       "checkout": {
         "type": "collect",
         "prompt": "Last one, for the whole class: one word for how that felt.",

@@ -1,6 +1,6 @@
 {
   "name": "Two Truths & a Lie",
-  "description": "Submit two truths and a lie about yourself, then spot your classmates' lies — 100 points per catch, and every round ends with the author telling the story.",
+  "description": "Submit two truths and a lie about yourself, then spot your classmates' lies, 100 points per catch, and every round ends with the author telling the story.",
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -8,13 +8,13 @@
     },
     "instructions": {
       "type": "announce",
-      "message": "Welcome to Two Truths & a Lie!\n\nYou'll share two TRUE facts about yourself and one LIE.\n\nThen everyone tries to spot each other's lies — 100 points every time you catch one. After each vote, the lie is revealed and the author gets the mic.\n\nMake your lie believable!",
+      "message": "Welcome to Two Truths & a Lie!\n\nYou'll share two TRUE facts about yourself and one LIE.\n\nThen everyone tries to spot each other's lies, 100 points every time you catch one. After each vote, the lie is revealed and the author gets the mic.\n\nMake your lie believable!",
       "timer": 12,
       "next": "collect"
     },
     "collect": {
       "type": "collect",
-      "prompt": "Two truths and one lie about yourself. Make the lie believable — it gets shuffled in with your truths.",
+      "prompt": "Two truths and one lie about yourself. Make the lie believable, it gets shuffled in with your truths.",
       "fields": [
         {
           "label": "Something TRUE about you",
@@ -47,18 +47,18 @@
       "subPhases": {
         "show-statements": {
           "type": "announce",
-          "message": "Next up: {{_current.playerName}}!\n\nThree statements are landing on your screens — two true, one lie.",
+          "message": "Next up: {{_current.playerName}}!\n\nThree statements are landing on your screens, two true, one lie.",
           "timer": 6
         },
         "vote-lie": {
           "type": "collect-choice",
-          "prompt": "Two truths and a lie from {{_current.playerName}} — tap the LIE!",
+          "prompt": "Two truths and a lie from {{_current.playerName}}, tap the LIE!",
           "choices": "_current.shuffledFields",
           "timer": 20
         },
         "reveal-lie": {
           "type": "announce",
-          "message": "The lie was:\n\n“{{_current.fields.lie}}”\n\n{{_current.playerName}} — which truth surprises people most? Tell the story!"
+          "message": "The lie was:\n\n“{{_current.fields.lie}}”\n\n{{_current.playerName}}, which truth surprises people most? Tell the story!"
         }
       },
       "scoring": {
@@ -71,7 +71,7 @@
     },
     "ai-analyze": {
       "type": "ai-process",
-      "instruction": "These are 'Two Truths and a Lie' submissions. Each one has three parts separated by ' | ' — the FIRST TWO parts are true, the LAST part is invented. Base your analysis ONLY on the true parts; never treat the last part of any submission as a fact. Identify interesting patterns among the truths: common themes (travel, pets, talents), the most surprising true facts, and shared experiences between students. Return a brief, engaging summary (3-4 sentences) highlighting the most interesting real discoveries about this group.",
+      "instruction": "These are 'Two Truths and a Lie' submissions. Each one has three parts separated by ' | ', the FIRST TWO parts are true, the LAST part is invented. Base your analysis ONLY on the true parts; never treat the last part of any submission as a fact. Identify interesting patterns among the truths: common themes (travel, pets, talents), the most surprising true facts, and shared experiences between students. Return a brief, engaging summary (3-4 sentences) highlighting the most interesting real discoveries about this group.",
       "input": "collect.responses",
       "task": "summarize",
       "format": "text",
@@ -79,7 +79,7 @@
     },
     "reveal-insights": {
       "type": "reveal",
-      "template": "What we learned about each other:\n\n{{ai-analyze.result}}\n\nNow — who's the sharpest lie detector in the room?",
+      "template": "What we learned about each other:\n\n{{ai-analyze.result}}\n\nNow, who's the sharpest lie detector in the room?",
       "next": "leaderboard"
     },
     "leaderboard": {

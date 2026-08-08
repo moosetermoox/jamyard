@@ -57,7 +57,7 @@ registerHandler('vote', {
     // rather than strand voters on an empty ballot. Same class of bug the
     // chaos simulator caught on rank.
     if (candidates.length === 0) {
-      console.warn(`[vote:${phase.id}] no candidates — skipping the step`);
+      console.warn(`[vote:${phase.id}] no candidates, skipping the step`);
       const nextId = ctx.getNextPhaseId();
       if (nextId) {
         engine.storePhaseData(phase.id, { votes: [], scores: {}, winner: null, tied: false, totalVotes: 0 });
@@ -106,7 +106,7 @@ registerHandler('vote', {
           // Voter has nothing to vote on (excluded from every matchup) —
           // pre-mark them complete so the room isn't blocked waiting.
           room.phaseState.votersCompleted.add(voter.id);
-          ctx.emitToPlayer(voter.id, EVENTS.WAITING, { message: 'Nothing for you to vote on this round — waiting for others...' });
+          ctx.emitToPlayer(voter.id, EVENTS.WAITING, { message: 'Nothing for you to vote on this round, waiting for others...' });
           continue;
         }
         ctx.emitToPlayer(voter.id, EVENTS.VOTE_START, {

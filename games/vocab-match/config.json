@@ -1,6 +1,6 @@
 {
   "name": "Vocab Match",
-  "description": "Two quick match-the-pairs rounds (French animals, then French food) with a leaderboard — the template for any vocab/definitions review. Swap in your own pairs for any subject.",
+  "description": "Two quick match-the-pairs rounds (French animals, then French food) with a leaderboard, the template for any vocab/definitions review. Swap in your own pairs for any subject.",
   "featured": true,
   "phases": {
     "lobby": {
@@ -9,7 +9,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "VOCAB MATCH!\n\nTwo rounds. Drag the right column on your device so every row is a correct pair. Every correct match earns points — fastest fingers don't matter, correct ones do.",
+      "message": "VOCAB MATCH!\n\nTwo rounds. Drag the right column on your device so every row is a correct pair. Every correct match earns points, fastest fingers don't matter, correct ones do.",
       "timer": 10,
       "next": "round1"
     },
@@ -48,7 +48,7 @@
     },
     "round2": {
       "type": "match",
-      "prompt": "Round 2 — match each French food word to its English meaning",
+      "prompt": "Round 2, match each French food word to its English meaning",
       "pairs": [
         {
           "left": "pain",

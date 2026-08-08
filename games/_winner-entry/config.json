@@ -1,6 +1,6 @@
 {
   "name": "_Winner Entry Fixture",
-  "description": "Hidden test fixture: collect then vote then crown — proves the winner phase traces and shows the winning entry.",
+  "description": "Hidden test fixture: collect then vote then crown, proves the winner phase traces and shows the winning entry.",
   "minPlayers": 3,
   "phases": {
     "lobby": {

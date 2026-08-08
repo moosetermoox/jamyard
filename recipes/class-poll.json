@@ -26,7 +26,7 @@
         "building-blocks"
       ],
       "choicesParam": "choices",
-      "deckHelper": "Pick a ready-made question — ones marked with answer choices fill the choices for you.",
+      "deckHelper": "Pick a ready-made question, ones marked with answer choices fill the choices for you.",
       "default": "How are you feeling about today's lesson?"
     },
     "choices": {
