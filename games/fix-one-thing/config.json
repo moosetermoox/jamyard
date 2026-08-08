@@ -1,0 +1,56 @@
+{
+  "name": "Fix One Thing",
+  "description": "Six minutes, one sentence each: what would you fix about school tomorrow? The room's answers come back as one shared manifesto — every voice in it, findable. Built as a demo of the write → AI-weave → teacher-gate → reveal loop.",
+  "featured": false,
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "minPlayers": 2,
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "FIX ONE THING\n\nIf you could fix ONE thing about school tomorrow — policy, schedule, space, anything — what would it be?\n\nOne sentence each. The room's answers come back as something bigger.",
+      "next": "collect"
+    },
+    "collect": {
+      "type": "collect",
+      "prompt": "One thing about school you'd fix tomorrow — and what you'd do instead. One sentence.\n\n(Pass is always an option — that's true for students too.)",
+      "passAllowed": true,
+      "timer": 90,
+      "next": "process"
+    },
+    "process": {
+      "type": "ai-process",
+      "task": "summarize",
+      "instruction": "Weave these submissions into 'WHAT THIS ROOM WOULD FIX' — a short manifesto. One punchy line per submission, staying close to each author's actual words so everyone can spot their own fix in it. Group related fixes next to each other. End with a single line naming the boldest idea in the room. Warm and sharp; never mock a submission.",
+      "input": "collect.responses",
+      "format": "text",
+      "next": "check"
+    },
+    "check": {
+      "type": "preview",
+      "content": "process.result",
+      "showResponses": true,
+      "approveNext": "reveal",
+      "rejectNext": "process"
+    },
+    "reveal": {
+      "type": "reveal",
+      "template": "WHAT THIS ROOM WOULD FIX\n\n{{process.result}}\n\nWhose fix can you spot?",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "That took four minutes and one sentence each. Now imagine thirty students — every activity in the library runs on this loop: their words in, something shared back, a teacher gate in between."
+    }
+  },
+  "playTime": "~5 min",
+  "classSize": "2–35 players",
+  "tags": [
+    "connect",
+    "discuss"
+  ],
+  "recommendedFor": "The six-minute demo: adults, staff meetings, open houses. Swap the question for any audience."
+}
