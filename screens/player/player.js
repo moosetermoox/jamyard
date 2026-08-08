@@ -794,8 +794,8 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
       fieldInput.setAttribute('data-key', fieldDef.key);
       fieldInput.placeholder = fieldDef.placeholder || fieldDef.label;
       fieldsContainer.appendChild(fieldInput);
-      // Per-field mic — dictate into whichever field it sits under.
-      if (window.Speech) Speech.attachMic(fieldInput, { compact: true });
+      // Per-field mic — dictate into whichever field it sits in.
+      if (window.Speech) Speech.attachMic(fieldInput);
     }
     collectSection.insertBefore(fieldsContainer, submitBtn);
     submitBtn.hidden = false;

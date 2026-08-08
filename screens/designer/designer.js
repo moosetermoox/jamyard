@@ -44,12 +44,9 @@ if (ideaGoBtn) {
   ideaGoBtn.addEventListener('click', launchIdea);
 }
 
-// Speak your idea instead of typing it — full-size mic in the idea row,
-// plus compact mics on any other text field you focus (recipe params etc.).
-if (window.Speech) {
-  if (ideaInput) Speech.attachMic(ideaInput);
-  Speech.enableFocusMics();
-}
+// Speak instead of typing — every text box (idea box, recipe params,
+// dialogs) gets the corner mic, current and future-rendered alike.
+if (window.Speech) Speech.autoAttach();
 if (ideaInput) {
   // Enter submits (ideas are usually one line); Shift+Enter makes a newline.
   ideaInput.addEventListener('keydown', function (e) {

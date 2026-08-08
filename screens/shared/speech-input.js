@@ -47,9 +47,11 @@
 
   /**
    * Add a mic button that dictates into inputEl.
-   * opts: { compact: true } for an icon-only button (multi-field rows),
-   *       { lang } to override the recognition language.
-   * Inserts the button right after inputEl unless opts.container is given.
+   * The mic renders as a quiet transparent icon in the input's top-right
+   * corner: the input moves into a position:relative wrapper (same node —
+   * existing references and value bindings keep working) and the button is
+   * absolutely positioned inside it.
+   * opts: { lang } to override the recognition language.
    * Returns the button, or null when speech isn't supported.
    */
   function attachMic(inputEl, opts) {
@@ -58,20 +60,32 @@
     if (!Ctor || !inputEl || inputEl.dataset.micAttached) return null;
     inputEl.dataset.micAttached = '1';
 
-    var IDLE_LABEL = opts.compact ? '🎤' : '🎤 Speak instead';
-    var LIVE_LABEL = opts.compact ? '■' : '■ Stop';
+    var IDLE_LABEL = '🎤';
+    var LIVE_LABEL = '■';
+
+    // Corner-overlay wrapper. If the input sat in a flex row, the wrapper
+    // takes over its flexing so the row's layout doesn't change.
+    var wrap = document.createElement('span');
+    wrap.className = 'mic-wrap';
+    var parent = inputEl.parentNode;
+    try {
+      if (getComputedStyle(parent).display.indexOf('flex') !== -1) {
+        wrap.classList.add('mic-wrap-flex');
+      }
+    } catch (e) { /* detached node — plain wrapper */ }
+    var hadFocus = document.activeElement === inputEl;
+    parent.insertBefore(wrap, inputEl);
+    wrap.appendChild(inputEl);
+    if (hadFocus) inputEl.focus();
+    inputEl.style.paddingRight = '36px';
 
     var btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'mic-btn' + (opts.compact ? ' mic-btn-compact' : '');
+    btn.className = 'mic-btn';
     btn.textContent = IDLE_LABEL;
-    btn.setAttribute('aria-label', 'Speak your answer instead of typing');
+    btn.setAttribute('aria-label', 'Speak instead of typing');
     btn.title = 'Tap and talk — your words appear in the box. Tap again to stop.';
-    if (opts.container) {
-      opts.container.appendChild(btn);
-    } else {
-      inputEl.parentNode.insertBefore(btn, inputEl.nextSibling);
-    }
+    wrap.appendChild(btn);
 
     function reset() {
       btn.textContent = IDLE_LABEL;
@@ -80,8 +94,8 @@
 
     function markUnavailable() {
       reset();
-      btn.textContent = opts.compact ? '🎤✕' : '🎤 Mic unavailable';
       btn.disabled = true;
+      btn.classList.add('mic-off');
       btn.title = 'The microphone is blocked on this device.';
     }
 
@@ -143,24 +157,44 @@
     return btn;
   }
 
+  function eligible(el) {
+    if (!el || !el.tagName || !el.dataset || el.dataset.micAttached) return false;
+    var tag = el.tagName.toLowerCase();
+    var isText = tag === 'textarea' || (tag === 'input' && (el.type === 'text' || el.type === 'search'));
+    if (!isText || el.readOnly || el.disabled) return false;
+    if (el.closest && el.closest('.no-mic')) return false;
+    return true;
+  }
+
+  function sweep(root) {
+    var nodes = root.querySelectorAll('textarea, input[type="text"], input[type="search"]');
+    for (var i = 0; i < nodes.length; i++) {
+      if (eligible(nodes[i])) attachMic(nodes[i]);
+    }
+  }
+
   /**
-   * Builder-surface mode: any text field the user focuses grows a compact
-   * mic, so dynamically rendered forms (Simple view boxes, Builder rail,
-   * Ask AI, recipe params) all get dictation without per-form wiring.
-   * Opt-out per area with a `.no-mic` ancestor class.
+   * Builder-surface mode: every text box on the page — present or rendered
+   * later — gets the corner mic, so dynamically built forms (Simple view
+   * boxes, Builder rail, Ask AI, recipe params, dialogs) all speak without
+   * per-form wiring. Opt an area out with a `.no-mic` ancestor class.
    * Returns false (and installs nothing) when speech isn't supported.
    */
-  function enableFocusMics() {
+  function autoAttach() {
     if (!isSupported() || typeof document === 'undefined') return false;
-    document.addEventListener('focusin', function (e) {
-      var el = e.target;
-      if (!el || !el.dataset || el.dataset.micAttached) return;
-      var tag = (el.tagName || '').toLowerCase();
-      var isText = tag === 'textarea' || (tag === 'input' && (el.type === 'text' || el.type === 'search'));
-      if (!isText || el.readOnly || el.disabled) return;
-      if (el.closest && el.closest('.no-mic')) return;
-      attachMic(el, { compact: true });
+    sweep(document);
+    var mo = new MutationObserver(function (mutations) {
+      for (var m = 0; m < mutations.length; m++) {
+        var added = mutations[m].addedNodes;
+        for (var n = 0; n < added.length; n++) {
+          var node = added[n];
+          if (node.nodeType !== 1) continue;
+          if (eligible(node)) attachMic(node);
+          else if (node.querySelectorAll) sweep(node);
+        }
+      }
     });
+    mo.observe(document.body, { childList: true, subtree: true });
     return true;
   }
 
@@ -168,7 +202,7 @@
     isSupported: isSupported,
     attachMic: attachMic,
     stopAll: stopAll,
-    enableFocusMics: enableFocusMics,
+    autoAttach: autoAttach,
     mergeTranscript: mergeTranscript
   };
 

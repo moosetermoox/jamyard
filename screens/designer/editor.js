@@ -374,9 +374,9 @@ async function fetchSchemas() {
 async function init() {
   await fetchSchemas();
 
-  // Dictation everywhere you can type: any focused text field grows a
-  // compact mic (covers Simple view boxes, Builder rail, Ask AI, tokens).
-  if (window.Speech) Speech.enableFocusMics();
+  // Dictation everywhere you can type: every text box carries the corner
+  // mic (covers Simple view boxes, Builder rail, Ask AI, dialogs).
+  if (window.Speech) Speech.autoAttach();
 
   var params = new URLSearchParams(window.location.search);
   gameId = params.get('game');

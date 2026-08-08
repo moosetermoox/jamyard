@@ -521,3 +521,7 @@ fetch('/api/games')
     errorMessage.textContent = 'Could not load the library: ' + err.message;
     errorMessage.hidden = false;
   });
+
+// Speak instead of typing — search box, the build-your-own note, feedback:
+// every text box (current and future-rendered) carries the corner mic.
+if (window.Speech) Speech.autoAttach();

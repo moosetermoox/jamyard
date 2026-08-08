@@ -46,7 +46,7 @@ describe('speech-input unsupported browser', () => {
     expect(() => Speech.stopAll()).not.toThrow();
   });
 
-  it('enableFocusMics installs nothing when unsupported', () => {
-    expect(Speech.enableFocusMics()).toBe(false);
+  it('autoAttach installs nothing when unsupported', () => {
+    expect(Speech.autoAttach()).toBe(false);
   });
 });
