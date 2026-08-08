@@ -2296,46 +2296,10 @@ app.post('/api/games/generate-theme', async (req, res) => {
   }
 });
 
-app.post('/api/games/generate-questions', async (req, res) => {
-  try {
-    if (!requireRealAI(res)) return;
-    const { description } = req.body;
-    if (!description || description.trim().length < 10) {
-      return res.status(400).json({ error: 'Please provide a description (at least 10 characters)' });
-    }
-    console.log(`[api/games/generate-questions] Analyzing: "${description.substring(0, 80)}..."`);
-    const result = await aiService.generateQuestions(description);
-    if (result.error) {
-      return res.status(500).json({ error: result.error });
-    }
-    res.json(result);
-  } catch (error) {
-    console.log(`[api/games/generate-questions] Error: ${error.message}`);
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
-});
-
-app.post('/api/games/generate', async (req, res) => {
-  try {
-    if (!requireRealAI(res)) return;
-    const { description, answers } = req.body;
-    if (!description || description.trim().length < 10) {
-      return res.status(400).json({ error: 'Please provide a description (at least 10 characters)' });
-    }
-    console.log(`[api/games/generate] Generating game from: "${description.substring(0, 80)}..."`);
-    const config = await aiService.generateGame(description, answers);
-    if (config.error) {
-      return res.status(500).json({ error: config.error, raw: config.raw });
-    }
-    if (config.unsupported) {
-      return res.json({ unsupported: true, reason: config.reason, suggestion: config.suggestion });
-    }
-    res.json({ config });
-  } catch (error) {
-    console.log(`[api/games/generate] Error: ${error.message}`);
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
-});
+// The legacy whole-config generator endpoints (/api/games/generate +
+// /api/games/generate-questions) were REMOVED 2026-08-07: if an activity
+// can't be assembled from validated storyboard bricks, it shouldn't be
+// makeable — raw-config generation added too many ways to break.
 
 // Storyboard-before-generate: AI proposes a step outline in the
 // Builder's brick vocabulary; the CLIENT compiles it deterministically
