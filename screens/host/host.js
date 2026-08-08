@@ -431,6 +431,8 @@ socket.on('games-list', ({ games }) => {
   const updateDesc = () => {
     const chosen = games.find(g => g.id === gameSelect.value);
     if (descEl) descEl.textContent = (chosen && chosen.description) || '';
+    // Remembered past room creation: the lobby's start hint reads it.
+    selectedGameMinPlayers = (chosen && chosen.minPlayers) || null;
   };
   gameSelect.addEventListener('change', updateDesc);
   updateDesc();
@@ -442,6 +444,10 @@ socket.on('games-list', ({ games }) => {
     const match = Array.from(gameSelect.options).find(o => o.value === autoGame);
     if (match) {
       gameSelect.value = autoGame;
+      // Programmatic select fires no 'change' — sync the description +
+      // minPlayers stash (the start hint read the WRONG game's minimum
+      // on every library deep link until 2026-08-08).
+      updateDesc();
       createRoomBtn.click();
     }
   }
@@ -673,6 +679,12 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored 
   // The roster + Start only mean something once a room exists.
   document.getElementById('players-section').hidden = false;
   startGameBtn.hidden = false;
+  // Fresh room: show the empty state + the why-is-Start-grey hint now,
+  // not on the first join.
+  if (playerList.children.length === 0) {
+    renderPlayerList([]);
+    updateStartButton(0);
+  }
 
   // Prototype mode: notify parent window of room code
   const params = new URLSearchParams(window.location.search);
@@ -969,7 +981,7 @@ socket.on('leaderboard', ({ standings, style, timer, hostTemplate, show }) => {
     // Medal based on rank, not array index, so tied players share medals
     // (e.g. two players tied for 1st both get gold; no silver awarded).
     const avatar = J ? J.avatarFor(s.name) + ' ' : '';
-    p.textContent = '#' + s.rank + ' ' + avatar + s.name + ' \u2014 ' + s.score + ' pts';
+    p.textContent = '#' + s.rank + ' ' + avatar + s.name + ': ' + s.score + ' pts';
     // Rows pop in one after another, top rank first.
     p.classList.add('juice-stagger');
     p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
@@ -2168,7 +2180,7 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, st
         if (entries.length > 1 && entries[e].name) {
           var by = document.createElement('p');
           by.className = 'winner-entry-by';
-          by.textContent = '\u2014 ' + entries[e].name;
+          by.textContent = 'by ' + entries[e].name;
           winnerEntryDisplay.appendChild(by);
         }
       }
@@ -2179,7 +2191,7 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, st
       for (var i = 0; i < standings.length; i++) {
         var p = document.createElement('p');
         var rowAvatar = J ? J.avatarFor(standings[i].name) + ' ' : '';
-        p.textContent = (i + 1) + '. ' + rowAvatar + standings[i].name + ' \u2014 ' + standings[i].score;
+        p.textContent = (i + 1) + '. ' + rowAvatar + standings[i].name + ': ' + standings[i].score;
         p.classList.add('juice-stagger');
         p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
         standingsList.appendChild(p);
@@ -2205,7 +2217,16 @@ function nameToColor(name) {
   return 'hsl(' + hue + ', 55%, 50%)';
 }
 
+let selectedGameMinPlayers = null;
+
 function renderPlayerList(players) {
+  const emptyEl = document.getElementById('roster-empty');
+  if (emptyEl) emptyEl.hidden = players.length > 0;
+  const countEl = document.getElementById('roster-count');
+  if (countEl) {
+    countEl.textContent = players.length > 0 ? players.length + ' in' : '';
+    countEl.hidden = players.length === 0;
+  }
   playerList.innerHTML = '';
   for (const player of players) {
     const li = document.createElement('li');
@@ -2248,6 +2269,20 @@ function renderPlayerList(players) {
 
 function updateStartButton(playerCount) {
   startGameBtn.disabled = playerCount < 1;
+  // Say WHY Start is grey (2026-08-08 field test: a disabled button with no
+  // explanation). Real rule: unlocks at the first student; below the
+  // activity's minPlayers the hint stays informational, never blocking.
+  const hint = document.getElementById('start-hint');
+  if (!hint) return;
+  if (playerCount < 1) {
+    hint.textContent = 'Start unlocks when the first student joins.';
+    hint.hidden = false;
+  } else if (selectedGameMinPlayers && playerCount < selectedGameMinPlayers) {
+    hint.textContent = 'Made for ' + selectedGameMinPlayers + '+ students, ' + playerCount + ' in so far.';
+    hint.hidden = false;
+  } else {
+    hint.hidden = true;
+  }
 }
 
 function renderResponses(responses) {

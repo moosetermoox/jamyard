@@ -46,7 +46,10 @@
   <section id="waiting-section" hidden>
     <h1>You're in!</h1>
     <p>Playing as: <strong id="player-name"></strong></p>
-    <p>Waiting to start...</p>
+    <p id="lobby-count" class="holding-progress" hidden></p>
+    <div id="lobby-avatars" class="holding-avatars" hidden></div>
+    <div class="holding-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p class="holding-next">Your teacher starts the activity from the big screen.</p>
   </section>
 
   <!-- COLLECT SECTION -->
@@ -82,14 +85,16 @@
   <!-- SUBMITTED SECTION -->
   <section id="submitted-section" hidden>
     <h1>Answer submitted!</h1>
-    <p>Waiting for others...</p>
+    <p id="submitted-progress" class="holding-progress" hidden></p>
+    <div class="holding-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p class="holding-next">When everyone's in, your teacher shows what's next.</p>
   </section>
 
   <!-- PROCESS SECTION -->
   <section id="process-section" hidden>
     <div class="screen-template" hidden></div>
-    <h1 id="process-title">AI is working on something special...</h1>
-    <p>Please wait...</p>
+    <h1 id="process-title">Reading everyone's answers...</h1>
+    <div class="holding-dots" aria-hidden="true"><span></span><span></span><span></span></div>
   </section>
 
   <!-- REVEAL SECTION -->
@@ -103,6 +108,7 @@
   <!-- GAME WAITING SECTION (for non-eligible players) -->
   <section id="game-waiting-section" hidden>
     <p id="game-waiting-message">Waiting...</p>
+    <div class="holding-dots" aria-hidden="true"><span></span><span></span><span></span></div>
   </section>
 
   <!-- VOTE SECTION -->
@@ -120,7 +126,9 @@
   <!-- VOTE SUBMITTED SECTION -->
   <section id="vote-submitted-section" hidden>
     <h1>Vote submitted!</h1>
-    <p>Waiting for results...</p>
+    <p id="vote-submitted-progress" class="holding-progress" hidden></p>
+    <div class="holding-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p class="holding-next">Results as soon as the votes are in.</p>
   </section>
 
   <!-- ELIMINATION RESULTS SECTION -->

@@ -313,3 +313,43 @@ describe('generateSuggestions', () => {
     expect(result.suggestions).toEqual([]);
   });
 });
+
+describe('reviseGame envelope tolerance', () => {
+  // Found by the 2026-08-08 persona field test: Sonnet sometimes returns the
+  // revised config BARE (valid JSON, no {updatedConfig, summary} envelope),
+  // which read as "AI response missing updatedConfig" and silently degraded
+  // the library's Customize flow to a plain copy.
+  const config = {
+    name: 'Test Game',
+    phases: { lobby: { type: 'lobby', next: 'ask' }, ask: { type: 'collect', prompt: 'Hi?', next: 'end' }, end: { type: 'end' } }
+  };
+
+  it('accepts the proper envelope', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => ({
+      content: [{ type: 'text', text: JSON.stringify({ updatedConfig: config, summary: 'Did the thing.' }) }]
+    });
+    const result = await service.reviseGame({ config, request: 'test' });
+    expect(result.updatedConfig.phases.ask.prompt).toBe('Hi?');
+    expect(result.summary).toBe('Did the thing.');
+  });
+
+  it('accepts a bare config returned without the envelope', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => ({
+      content: [{ type: 'text', text: JSON.stringify(config) }]
+    });
+    const result = await service.reviseGame({ config, request: 'test' });
+    expect(result.updatedConfig.phases.ask.prompt).toBe('Hi?');
+    expect(typeof result.summary).toBe('string');
+    expect(result.summary.length).toBeGreaterThan(0);
+  });
+
+  it('still rejects JSON that is neither envelope nor config', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => ({
+      content: [{ type: 'text', text: '{"message": "sure, here you go"}' }]
+    });
+    await expect(service.reviseGame({ config, request: 'test' })).rejects.toThrow(/updatedConfig/);
+  });
+});

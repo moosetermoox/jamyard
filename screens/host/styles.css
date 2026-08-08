@@ -12,9 +12,12 @@ body {
   color: var(--theme-text, #222);
 }
 
+/* Pre-room wordmark: a mark, not a headline — the picker card and the room
+   code own the screen (in-activity shrinks this further to the corner). */
 h1 {
-  font-size: 3rem;
-  margin-bottom: 40px;
+  font-size: 2rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 24px;
   color: var(--theme-heading, inherit);
 }
 
@@ -135,13 +138,73 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* --- Pre-room picker: a designed card, not a bare form (2026-08-08) --- */
+#game-select-section {
+  max-width: 560px;
+  margin: 0 auto;
+  background: var(--theme-surface, #fff);
+  border: 3px solid var(--theme-border, #000);
+  border-radius: 20px;
+  box-shadow: 6px 6px 0 var(--theme-border, #000);
+  padding: 30px 34px 26px;
+}
+
+.preroom-headline {
+  font-size: 1.8rem;
+  margin: 0 0 6px;
+}
+
+.preroom-sub {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--theme-text, #555);
+  margin: 0 0 22px;
+}
+
+#game-select-section label {
+  display: block;
+  text-align: left;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+#game-select {
+  width: 100%;
+  padding: 12px 14px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--theme-text, #222);
+  background: var(--theme-surface, #fff);
+  border: 3px solid var(--theme-border, #000);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.preroom-library-link {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin: 14px 0 0;
+}
+
+.preroom-library-link a {
+  color: var(--theme-text, #555);
+}
+
 .game-select-desc {
   max-width: 520px;
   margin: 10px auto 16px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 700;
   font-size: 0.95rem;
-  color: #444;
+  color: var(--theme-text, #444);
   line-height: 1.5;
   min-height: 1.4em;
+  text-align: left;
 }
 
 #close-submissions-btn {
@@ -156,29 +219,67 @@ button:disabled {
   background: var(--theme-success, #5cb85c);
 }
 
-/* Players section */
+/* Players section: avatar chips that fill in as the class arrives — rhymes
+   with the student lobby's holding screen (2026-08-08). */
 #players-section {
   margin: 40px 0;
   text-align: left;
   background: var(--theme-surface, white);
-  padding: 30px;
-  border-radius: 8px;
-  border: 2px solid var(--theme-border, transparent);
+  padding: 24px 30px;
+  border-radius: 20px;
+  border: 3px solid var(--theme-border, #000);
+  box-shadow: 6px 6px 0 var(--theme-border, #000);
 }
 
-#player-list {
-  font-size: 1.5rem;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-#player-list li {
-  padding: 10px 0;
-  border-bottom: 1px solid var(--theme-border, #eee);
+.roster-heading {
+  font-size: 1.4rem;
+  margin: 0 0 14px;
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.roster-count {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  background: var(--theme-accent, #FFD600);
+  border: 2px solid var(--theme-border, #000);
+  border-radius: 999px;
+  padding: 3px 12px;
+}
+
+.roster-empty {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--theme-text, #666);
+  opacity: 0.75;
+  margin: 4px 0;
+}
+
+.roster-empty[hidden] { display: none; }
+
+#player-list {
+  font-size: 1.1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+#player-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 6px;
+  background: var(--theme-bg, #FFF9C4);
+  border: 2px solid var(--theme-border, #000);
+  border-radius: 999px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
 }
 
 #player-list li.player-disconnected {
@@ -959,13 +1060,32 @@ button:disabled {
   border: 2px solid #000;
 }
 .player-kick-btn {
-  margin-left: auto;
+  margin-left: 2px;
   font-size: 0.75rem;
   line-height: 1;
   padding: 2px 7px;
-  border-radius: 6px;
+  border-radius: 999px;
   cursor: pointer;
 }
+
+/* Chip-sized avatar (the 36px disc was built for the old vertical list) */
+#player-list .player-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 0.9rem;
+}
+
+/* Why-is-Start-grey hint under the start button */
+.start-hint {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--theme-text, #666);
+  opacity: 0.8;
+  margin: 2px 0 0;
+}
+
+.start-hint[hidden] { display: none; }
 
 /* Rate */
 .rate-results-header {

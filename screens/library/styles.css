@@ -51,3 +51,33 @@
   outline: 3px solid #0057FF;
   outline-offset: 2px;
 }
+
+/* Subject-search rescue: honest any-subject note above the full shelf */
+.search-rescue {
+  grid-column: 1 / -1;
+  background: var(--blue-soft, #E3F2FD);
+  border: var(--border, 3px solid #000);
+  border-radius: var(--radius, 14px);
+  box-shadow: var(--shadow-pop-sm, 3px 3px 0 #000);
+  padding: 16px 20px;
+  text-align: left;
+}
+.search-rescue-head {
+  font-family: var(--font-display, 'Archivo Black', sans-serif);
+  font-size: 1.05rem;
+  margin: 0 0 6px;
+}
+.search-rescue-body {
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+.search-rescue-link {
+  font-weight: 800;
+}
+
+.privacy-footnote {
+  text-align: center;
+  margin-top: 28px;
+  font-size: 0.9rem;
+}
+.privacy-footnote a { color: var(--text-soft, #555); font-weight: 700; }

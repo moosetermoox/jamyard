@@ -82,3 +82,47 @@ describe('validateSuggestions', () => {
     expect(STORYBOARD_BRICKS).not.toContain('foreach');
   });
 });
+
+describe('validateSuggestions — numeric params clamp to recipe min/max', () => {
+  // 2026-08-08 field test: the AI thinks in minutes ("evidenceTime": 4) but
+  // recipe fields are seconds (min 60), so the prefilled form failed create
+  // with "must be at least 60" — an error the teacher didn't cause. Numbers
+  // now clamp into the spec's legal range before reaching the form.
+  const clampCtx = {
+    gameIds: [],
+    recipes: {
+      'debate': { parameters: {
+        claim: { type: 'string' },
+        evidenceTime: { type: 'integer', min: 60, max: 300, default: 120 }
+      } }
+    }
+  };
+
+  it('clamps a below-min number up to min', () => {
+    const out = validateSuggestions([
+      { kind: 'recipe', id: 'debate', params: { evidenceTime: 4 }, why: 'w' }
+    ], clampCtx);
+    expect(out.suggestions[0].params.evidenceTime).toBe(60);
+  });
+
+  it('clamps an above-max number down to max', () => {
+    const out = validateSuggestions([
+      { kind: 'recipe', id: 'debate', params: { evidenceTime: 9999 }, why: 'w' }
+    ], clampCtx);
+    expect(out.suggestions[0].params.evidenceTime).toBe(300);
+  });
+
+  it('leaves in-range numbers alone', () => {
+    const out = validateSuggestions([
+      { kind: 'recipe', id: 'debate', params: { evidenceTime: 180 }, why: 'w' }
+    ], clampCtx);
+    expect(out.suggestions[0].params.evidenceTime).toBe(180);
+  });
+
+  it('drops a non-numeric value aimed at an integer param', () => {
+    const out = validateSuggestions([
+      { kind: 'recipe', id: 'debate', params: { evidenceTime: 'three minutes', claim: 'Cats rule.' }, why: 'w' }
+    ], clampCtx);
+    expect(out.suggestions[0].params).toEqual({ claim: 'Cats rule.' });
+  });
+});

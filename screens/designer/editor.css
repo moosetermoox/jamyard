@@ -87,6 +87,50 @@ body {
   background: #FFEA00;
 }
 
+/* ------------------------------------------------------------
+   HEADER BUTTON ROLES (2026-08-08 field test: five equally-loud
+   saturated pills = no hierarchy). On the cobalt header there are
+   exactly three roles — keep it that way:
+   1. PRIMARY (one per bar): solid green = "go live", same semantic
+      as the projected START! button → ▶ Host (.btn-host)
+   2. ATTENTION (state-driven, not a role you assign): solid yellow
+      = "you have unsaved changes" → Save while dirty (CSS-only via
+      the save-status sibling selector below)
+   3. QUIET (everything else): white outline on the cobalt → More,
+      Check for Errors, Preview, Save-when-clean (.btn-ghost)
+   ------------------------------------------------------------ */
+#editor-header .btn {
+  white-space: nowrap;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.85);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: #fff;
+}
+
+.btn-ghost:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Unsaved changes: Save wakes up (pure CSS — the dirty class already
+   lands on the save-status text, a preceding sibling). */
+#save-status.save-status-dirty ~ #save-btn {
+  background: #FFD600;
+  color: #000;
+  border-color: #000;
+}
+
+#save-status.save-status-dirty ~ #save-btn:hover {
+  background: #FFEA00;
+}
+
 .btn-add {
   background: #00C853;
   color: #000;
@@ -2683,12 +2727,14 @@ textarea.sar-input {
 .builder-step-del:hover { background: #FF2D2D; color: #fff; }
 
 /* Header Host button — the customize-to-classroom shortcut */
+/* The one primary on the cobalt header: go-live green (blue-on-blue
+   disappeared; green matches the host screen's START! semantics). */
 .btn-host {
-  background: #0057FF;
-  color: #fff;
+  background: #00C853;
+  color: #000;
 }
 
-.btn-host:hover { background: #0041CC; }
+.btn-host:hover { background: #00E676; }
 .builder-tile-setup { opacity: 0.85; box-shadow: none; border-style: dashed; }
 
 /* Builder rail: hide the loop power-feature (Technical view keeps it) */

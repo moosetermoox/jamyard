@@ -106,6 +106,14 @@ teacher PIN.
       kept, why, exactly when destroyed. Mandatory under the amended COPPA
       rule ("we don't plan to keep it" does not count). Substance is already
       true in code; write it down and put it on the site.
+      **Draft shipped 2026-08-08**: `/privacy` (screens/privacy/) is live
+      with the plain-language summary + full retention table (snapshot
+      contents named: responses, drawings, player names, reconnect tokens,
+      teacher PIN), AI data-flow section with the defensible pii-scrub
+      claim, feedback-channel retention, linked from home + library.
+      Still needed before it counts as the formal policy: the two
+      yellow-highlighted placeholders (operator name, privacy contact
+      email) + rubric pass (§ 3).
 - [ ] **§ 49073.1 provisions in the Terms of Service** — all nine, the
       California student-data terms districts look for.
 - [ ] **Written information-security program** — named coordinator, current

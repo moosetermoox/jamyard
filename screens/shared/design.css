@@ -84,6 +84,23 @@
 }
 
 /* ------------------------------------------------------------
+   Keyboard focus — every interactive element gets the ring.
+   design.css loads first on every page, so page-specific
+   :focus-visible rules (the editor has deliberate ones) still win.
+   Before 2026-08-08 this token had zero consumers: student and
+   host buttons rode default browser focus.
+   ------------------------------------------------------------ */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------
    Mic (speech input) — a quiet transparent icon in the top-right
    corner of a text box. The wrapper positions it; the input keeps
    its own styling. Shared by player, designer, editor, library.
@@ -107,18 +124,20 @@
 
 .mic-btn {
   position: absolute;
-  top: 5px;
-  right: 5px;
-  width: 30px;
-  height: 30px;
+  top: 2px;
+  right: 2px;
+  /* 40px hit area: touchscreen Chromebooks fat-finger anything smaller
+     (2026-08-08 field test) — the glyph stays small, the target doesn't. */
+  width: 40px;
+  height: 40px;
   padding: 0;
   font-size: 1.05rem;
-  line-height: 30px;
+  line-height: 40px;
   text-align: center;
   background: transparent;
   border: none;
   border-radius: 50%;
-  opacity: 0.4;
+  opacity: 0.55;
   cursor: pointer;
 }
 

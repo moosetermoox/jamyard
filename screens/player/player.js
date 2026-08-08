@@ -565,6 +565,49 @@ socket.on('join-success', ({ name, reconnected, token, theme }) => {
   }
 });
 
+// --- Holding screens (2026-08-08): waits show the room, not a void ---
+
+const lobbyCount = document.getElementById('lobby-count');
+const lobbyAvatars = document.getElementById('lobby-avatars');
+const submittedProgress = document.getElementById('submitted-progress');
+const voteSubmittedProgress = document.getElementById('vote-submitted-progress');
+
+// Lobby roster: classmates pop in as they join (lobby only — the projected
+// host roster already shows this to the class).
+socket.on('room-roster', ({ count, names } = {}) => {
+  if (!Array.isArray(names)) return;
+  lobbyCount.textContent = names.length <= 1
+    ? 'Just you so far...'
+    : names.length + ' of us here';
+  lobbyCount.hidden = false;
+  lobbyAvatars.innerHTML = '';
+  for (const n of names) {
+    const chip = document.createElement('span');
+    chip.className = 'holding-avatar-chip';
+    chip.textContent = (J ? J.avatarFor(n) + ' ' : '') + n;
+    lobbyAvatars.appendChild(chip);
+  }
+  lobbyAvatars.hidden = names.length === 0;
+});
+
+// Submission/vote progress: counts only, never names.
+socket.on('room-progress', ({ count, total } = {}) => {
+  if (typeof count !== 'number' || typeof total !== 'number') return;
+  const text = count + ' of ' + total + ' in';
+  submittedProgress.textContent = text;
+  submittedProgress.hidden = false;
+  voteSubmittedProgress.textContent = text;
+  voteSubmittedProgress.hidden = false;
+});
+
+// A new phase starts fresh — hide stale counts until this phase's first tick.
+function resetHoldingProgress() {
+  submittedProgress.hidden = true;
+  submittedProgress.textContent = '';
+  voteSubmittedProgress.hidden = true;
+  voteSubmittedProgress.textContent = '';
+}
+
 // Auto-rejoin on socket reconnect
 socket.on('connect', () => {
   if (currentRoomCode && currentPlayerName) {
@@ -683,6 +726,7 @@ function initDrawPad() {
 }
 
 socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, prefill, appendOnly, maxLength }) => {
+  resetHoldingProgress();
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   responseMax = Number(maxLength) || RESPONSE_MAX;
@@ -912,7 +956,7 @@ const AI_TASK_MESSAGES = {
 };
 
 socket.on('processing-started', ({ task, playerTemplate, playerShow } = {}) => {
-  processTitle.textContent = AI_TASK_MESSAGES[task] || 'AI is working on something special...';
+  processTitle.textContent = AI_TASK_MESSAGES[task] || 'Reading everyone\'s answers...';
   showSection(processSection);
   applyTemplate(processSection, playerTemplate);
   applyShow(playerShow, { message: processTitle });
@@ -1027,7 +1071,7 @@ socket.on('leaderboard', ({ standings, allStandings, style, timer, playerTemplat
     var p = document.createElement('p');
     var r = list[i].rank;
     var prefix = r + '. ';
-    p.textContent = prefix + list[i].name + ' \u2014 ' + list[i].score + ' points';
+    p.textContent = prefix + list[i].name + ': ' + list[i].score + ' points';
     if (list[i].playerId === socket.id) {
       p.className = 'leaderboard-highlight';
     }
@@ -2531,6 +2575,7 @@ socket.on('phase-paused', ({ message }) => {
 // --- Socket events - Voting ---
 
 socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, show }) => {
+  resetHoldingProgress();
   showSection(voteSection);
   voteOptions.innerHTML = '';
   applyTemplate(voteSection, playerTemplate);
@@ -2652,7 +2697,7 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerIds, winnerNames
         if (entries.length > 1 && entry.name) {
           const by = document.createElement('p');
           by.className = 'winner-entry-by';
-          by.textContent = '\u2014 ' + entry.name;
+          by.textContent = 'by ' + entry.name;
           winnerEntryDisplay.appendChild(by);
         }
       }
@@ -2662,7 +2707,7 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerIds, winnerNames
     if (standings && standings.length > 0) {
       for (let i = 0; i < standings.length; i++) {
         const p = document.createElement('p');
-        p.textContent = (i + 1) + '. ' + standings[i].name + ' \u2014 ' + standings[i].score;
+        p.textContent = (i + 1) + '. ' + standings[i].name + ': ' + standings[i].score;
         standingsList.appendChild(p);
       }
     }

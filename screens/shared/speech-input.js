@@ -74,10 +74,17 @@
       }
     } catch (e) { /* detached node — plain wrapper */ }
     var hadFocus = document.activeElement === inputEl;
+    // A capped input inside a full-width wrapper strands the mic at the
+    // wrapper's far edge (the library search box did this) — the wrapper
+    // must adopt the input's max-width so the corner is the INPUT's corner.
+    try {
+      var maxW = getComputedStyle(inputEl).maxWidth;
+      if (maxW && maxW !== 'none') wrap.style.maxWidth = maxW;
+    } catch (e) { /* detached node — plain wrapper */ }
     parent.insertBefore(wrap, inputEl);
     wrap.appendChild(inputEl);
     if (hadFocus) inputEl.focus();
-    inputEl.style.paddingRight = '36px';
+    inputEl.style.paddingRight = '44px';
 
     var btn = document.createElement('button');
     btn.type = 'button';

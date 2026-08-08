@@ -31,13 +31,17 @@ function jsStringLiteralOffenses(source) {
     ecmaVersion: 'latest',
     sourceType: source.includes('import ') || source.includes('export ') ? 'module' : 'script',
     onToken: (tok) => {
-      if ((tok.type.label === 'string' || tok.type.label === 'template') &&
-          source.slice(tok.start, tok.end).includes(EM)) {
-        const text = source.slice(tok.start, tok.end);
+      if (tok.type.label !== 'string' && tok.type.label !== 'template') return;
+      const raw = source.slice(tok.start, tok.end);
+      // Check the DECODED value too — '—' in source contains no literal
+      // em dash but renders one to students (how the leaderboard dash hid
+      // from this test until 2026-08-08).
+      const cooked = typeof tok.value === 'string' ? tok.value : '';
+      if (raw.includes(EM) || cooked.includes(EM)) {
         // The one legitimate mention: the AI style rule must NAME the
         // character it bans.
-        if (text.includes('Never use an em dash')) return;
-        offenses.push(text.slice(0, 80));
+        if (raw.includes('Never use an em dash')) return;
+        offenses.push(raw.slice(0, 80));
       }
     }
   });
@@ -69,7 +73,9 @@ describe('no em dashes in user-facing text', () => {
     const dirty = [];
     for (const f of files) {
       const src = readFileSync(join(root, f), 'utf8');
-      if (!src.includes(EM)) continue; // comments-only files short-circuit below anyway
+      // Short-circuit only when the file has neither a literal em dash nor
+      // an escape sequence that decodes to one.
+      if (!src.includes(EM) && !src.includes('\\u2014') && !src.includes('\\u{2014}')) continue;
       const offenses = jsStringLiteralOffenses(src);
       if (offenses.length > 0) dirty.push(f + ': ' + offenses[0]);
     }
@@ -80,5 +86,9 @@ describe('no em dashes in user-facing text', () => {
     expect(jsStringLiteralOffenses('var x = "oops — an em dash";').length).toBe(1);
     expect(jsStringLiteralOffenses('// a comment — with a dash\nvar x = 1;').length).toBe(0);
     expect(jsStringLiteralOffenses('var t = `template — dash`;').length).toBe(1);
+    // Escaped forms decode to an em dash at runtime and must be caught too.
+    expect(jsStringLiteralOffenses('var x = "a \\u2014 b";').length).toBe(1);
+    expect(jsStringLiteralOffenses('var x = "a \\u{2014} b";').length).toBe(1);
+    expect(jsStringLiteralOffenses('var t = `a \\u2014 b`;').length).toBe(1);
   });
 });

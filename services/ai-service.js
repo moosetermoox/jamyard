@@ -795,6 +795,7 @@ Rules:
 - Every phase must follow the same field rules as a freshly generated game (see the field allow-list).
 - The "summary" is for the teacher: plain English, no JSON, no curly braces, no field names. Describe the change like "I shortened round 1 from 90s to 60s and added a leaderboard at the end."
 - If the request is impossible or destructive (e.g., "delete everything"), return {"updatedConfig": <unchanged>, "summary": "I couldn't do that because..."}.
+- The top-level JSON object has EXACTLY two keys: "updatedConfig" and "summary". Never return the game config itself at the top level.
 
 ` + GAME_GENERATOR_PROMPT;
 
@@ -809,7 +810,9 @@ Return the revised config.`;
       const start = Date.now();
       const message = await this._callClaude({
         model: MODELS.sonnet,
-        max_tokens: 4096,
+        // The response carries the FULL config back — 4096 truncated real
+        // classroom configs into unparseable JSON.
+        max_tokens: 8192,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }]
       });
@@ -824,6 +827,13 @@ Return the revised config.`;
         const match = text.match(/\{[\s\S]*\}/);
         if (!match) throw new Error('AI response was not valid JSON');
         parsed = JSON.parse(match[0]);
+      }
+      // The model sometimes returns the revised config BARE, without the
+      // {updatedConfig, summary} envelope (2026-08-08 field test: this made
+      // every library Customize silently fall back to a plain copy). A
+      // top-level object with phases IS the config — accept it.
+      if (!parsed.updatedConfig && parsed.phases) {
+        parsed = { updatedConfig: parsed, summary: 'Changes applied.' };
       }
       if (!parsed.updatedConfig || !parsed.updatedConfig.phases) {
         throw new Error('AI response missing updatedConfig');
@@ -1040,8 +1050,19 @@ Return ONLY JSON: {"questions":[{"question":"...","placeholder":"e.g. ..."}]}`
     try {
       const gameLines = games.map(g =>
         `- ${g.id}: ${g.name}. ${String(g.description || '').slice(0, 140)} (${g.playTime || 'time varies'})`);
-      const recipeLines = recipes.map(r =>
-        `- ${r.id}: ${r.name}. ${String(r.description || '').slice(0, 120)} Params: ${Object.keys(r.parameters || {}).join(', ')}`);
+      const recipeLines = recipes.map(r => {
+        // Numeric params carry their label + range so the model fills legal
+        // values (labels name the unit — "Evidence time (seconds)" — the
+        // model used to answer in minutes).
+        const paramBits = Object.entries(r.parameters || {}).map(([name, spec]) => {
+          if (spec && (spec.type === 'integer' || spec.type === 'number')) {
+            const range = [spec.min, spec.max].filter(v => typeof v === 'number').join('-');
+            return `${name} (${spec.label || 'number'}${range ? ', ' + range : ''})`;
+          }
+          return name;
+        });
+        return `- ${r.id}: ${r.name}. ${String(r.description || '').slice(0, 120)} Params: ${paramBits.join(', ')}`;
+      });
       const message = await this._callClaude({
         model: MODELS.sonnet,
         max_tokens: 1200,

@@ -36,6 +36,13 @@ export const EVENTS = {
   RESPONSE_REJECTED:    'response-rejected',
   CLOSE_SUBMISSIONS:    'close-submissions',
 
+  // --- Holding screens (2026-08-08 field test: waits had zero content) ---
+  // Counts only, never names — mid-phase submission status on a student
+  // device must not create who's-slow pressure (names stay on host/console).
+  ROOM_PROGRESS:        'room-progress',
+  // Lobby only — the projected host roster is already public to the class.
+  ROOM_ROSTER:          'room-roster',
+
   // --- Host Moderation ---
   SUBMISSIONS_UPDATE:   'submissions-update',
   MODERATE_HIDE:        'moderate-hide',

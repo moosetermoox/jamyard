@@ -54,7 +54,20 @@ export function validateSuggestions(raw, ctx) {
       if (item.params && typeof item.params === 'object') {
         for (const [key, value] of Object.entries(item.params)) {
           if (!(key in legalParams)) continue;
-          if (typeof value === 'string' || typeof value === 'number') params[key] = value;
+          const spec = legalParams[key] || {};
+          const numeric = spec.type === 'integer' || spec.type === 'number';
+          if (numeric) {
+            // The AI thinks in minutes; recipe fields are seconds (min/max
+            // bounded). Clamp into the legal range so the prefilled form
+            // never fails create with an error the teacher didn't cause.
+            if (typeof value !== 'number' || !Number.isFinite(value)) continue;
+            let v = value;
+            if (typeof spec.min === 'number' && v < spec.min) v = spec.min;
+            if (typeof spec.max === 'number' && v > spec.max) v = spec.max;
+            params[key] = v;
+          } else if (typeof value === 'string' || typeof value === 'number') {
+            params[key] = value;
+          }
         }
       }
       suggestions.push({ kind: 'recipe', id: item.id, params, why: cleanWhy(item.why) });

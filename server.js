@@ -188,7 +188,10 @@ const USER_GAMES_DIR = join(GAMES_DIR, 'user');
 // `featured` marks the curated public set: visitors who haven't unlocked
 // owner mode only see featured built-ins (plus activities made on their
 // own device) in the host/designer/prototype pickers.
-const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor', 'featured', 'family'];
+// keywords: searchable subject/topic terms (2026-08-08 field test: a teacher's
+// first search is her subject — "history" matched nothing because the shells
+// are topic-agnostic and nothing said so).
+const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor', 'featured', 'family', 'keywords'];
 
 // Owner curation of built-ins lives in Neon (featured_overrides) because the
 // deployed filesystem resets on every push. A read failure must never take
@@ -1394,6 +1397,19 @@ function emitTeacherRoster(code, room) {
   });
 }
 
+// Live roster for the player lobby's holding screen (names + count). LOBBY
+// ONLY: the projected host roster already makes this public to the class,
+// but mid-game the roster stays off student devices.
+function emitRoomRoster(code, room) {
+  if (!room || !room.engine) return;
+  const phase = room.engine.getCurrentPhase();
+  if (!phase || phase.type !== 'lobby') return;
+  const names = room.engine.players.list()
+    .filter(p => p.connected)
+    .map(p => p.name);
+  io.to(code).emit(EVENTS.ROOM_ROSTER, { count: names.length, names });
+}
+
 // Push the live moderation list (submitter name + text + hidden flag) to the
 // teacher consoles only so the teacher can hide/kick during a collect phase.
 // Deliberately NOT sent to the host: that screen is projected to the class, so
@@ -1599,6 +1615,9 @@ app.use('/shared', express.static(join(__dirname, 'screens/shared')));
 app.use('/prototype', express.static(join(__dirname, 'screens/prototype')));
 // The teacher-facing front door (library-first, 2026-07-28): browse + host.
 app.use('/library', express.static(join(__dirname, 'screens/library')));
+// Public privacy page (2026-08-08 field test: admins need practice they can
+// cite; the careful engineering was invisible).
+app.use('/privacy', express.static(join(__dirname, 'screens/privacy')));
 // Owner-only feedback inbox (ownerAreaGate runs first and demands the password).
 app.use('/feedback', express.static(join(__dirname, 'screens/feedback')));
 
@@ -1922,7 +1941,9 @@ app.get('/api/games', async (req, res) => {
       name: config.name,
       description: config.description || '',
       phaseCount: Object.keys(config.phases).length,
-      minPlayers: config.minPlayers || null,
+      // Some configs declare minPlayers on the lobby phase instead of
+      // top-level — the host lobby's start hint needs either.
+      minPlayers: config.minPlayers || (config.phases.lobby && config.phases.lobby.minPlayers) || null,
       maxPlayers: config.maxPlayers || null,
       ...pickCardMeta(config)
     }));
@@ -1937,7 +1958,7 @@ app.get('/api/games', async (req, res) => {
           name: config.name,
           description: config.description || '',
           phaseCount: Object.keys(config.phases || {}).length,
-          minPlayers: config.minPlayers || null,
+          minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null,
           maxPlayers: config.maxPlayers || null,
           ...pickCardMeta(config)
         });
@@ -2512,17 +2533,27 @@ io.on('connection', (socket) => {
   socket.on(EVENTS.GET_GAMES, async () => {
     try {
       const loaded = await listGames();
+      // minPlayers feeds the host lobby's start hint (falls back to the
+      // lobby phase's value — some configs declare it there).
       const games = loaded.map(({ id, source, config }) => ({
         id,
         source,
         name: config.name,
         description: config.description || '',
-        featured: !!config.featured
+        featured: !!config.featured,
+        minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null
       }));
       if (DB_ENABLED) {
         const userRows = await listUserGames();
         for (const row of userRows) {
-          games.push({ id: row.id, source: 'user', name: row.name, description: row.config.description || '', featured: !!row.config.featured });
+          games.push({
+            id: row.id,
+            source: 'user',
+            name: row.name,
+            description: row.config.description || '',
+            featured: !!row.config.featured,
+            minPlayers: row.config.minPlayers || (row.config.phases && row.config.phases.lobby && row.config.phases.lobby.minPlayers) || null
+          });
         }
       }
       socket.emit(EVENTS.GAMES_LIST, { games: applyFeaturedOverrides(games, await featuredOverridesSafe()) });
@@ -2680,6 +2711,7 @@ io.on('connection', (socket) => {
         // Send current game state to reconnecting player. A restored room
         // has no live phase screen yet — that returns when the host does.
         sendCurrentState(socket, code, room);
+        emitRoomRoster(code, room);
         if (room.restored && !roomToHost.get(code)) {
           socket.emit(EVENTS.WAITING, { message: 'Reconnecting — waiting for your teacher\'s screen…' });
         }
@@ -2706,6 +2738,23 @@ io.on('connection', (socket) => {
         });
       }
       emitTeacherRoster(code, room);
+      emitRoomRoster(code, room);
+
+      // Late join: the game may already be running. Drop the new player into
+      // the current phase — the onReconnect handlers tolerate a player they've
+      // never seen (collect offers the input box, merge/vote/team-split fall
+      // back to a contextual waiting message). Without this, a student joining
+      // two minutes late stares at lobby copy while the class is mid-activity,
+      // AND blocks every "all submitted" auto-advance (the eligible count
+      // includes them the moment they join). No-op in the lobby phase.
+      try {
+        sendCurrentState(socket, code, room);
+      } catch (stateError) {
+        // A phase that can't seat a late joiner degrades to the waiting
+        // screen — never fail the join itself over it.
+        console.warn(`[join-room] Late-join state send failed for ${socket.id}: ${stateError.message}`);
+      }
+
       persistRoom(code, room);
     } catch (error) {
       console.log(`[join-room] Error: ${error.message}`);
@@ -2916,6 +2965,9 @@ io.on('connection', (socket) => {
       count: submitted,
       total
     });
+
+    // Everyone waiting sees the room fill up — counts only, never names.
+    io.to(code).emit(EVENTS.ROOM_PROGRESS, { count: submitted, total });
 
     // Push the live moderation list so the host can hide/kick before closing.
     emitSubmissionsUpdate(code, room);
@@ -3199,6 +3251,11 @@ io.on('connection', (socket) => {
         total: vs.eligibleVoterIds.length
       });
     }
+    // Everyone waiting sees the count climb — counts only, never names.
+    io.to(code).emit(EVENTS.ROOM_PROGRESS, {
+      count: vs.votersCompleted.size,
+      total: vs.eligibleVoterIds.length
+    });
 
     // Auto-tally when all eligible voters have voted
     if (vs.votersCompleted.size >= vs.eligibleVoterIds.length) {
@@ -4094,6 +4151,7 @@ io.on('connection', (socket) => {
               players: players.listPublic()
             });
           }
+          emitRoomRoster(code, room);
 
           // Set grace period — remove after 30s if still disconnected
           const timerId = setTimeout(() => {
@@ -4110,6 +4168,7 @@ io.on('connection', (socket) => {
                 });
               }
               emitTeacherRoster(code, room);
+              emitRoomRoster(code, room);
             }
           }, 30000);
           disconnectTimers.set(socket.id, timerId);

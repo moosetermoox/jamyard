@@ -42,14 +42,18 @@ function applyVisibility(games) {
   });
 }
 
+function matchesGoal(game) {
+  if (!activeGoal) return true;
+  var tags = Array.isArray(game.tags) ? game.tags : [];
+  return tags.indexOf(activeGoal) !== -1;
+}
+
 function matchesFilters(game) {
-  if (activeGoal) {
-    var tags = Array.isArray(game.tags) ? game.tags : [];
-    if (tags.indexOf(activeGoal) === -1) return false;
-  }
+  if (!matchesGoal(game)) return false;
   if (libraryQuery) {
     var hay = (game.name + ' ' + (game.description || '') + ' ' +
-      (Array.isArray(game.tags) ? game.tags.join(' ') : '')).toLowerCase();
+      (Array.isArray(game.tags) ? game.tags.join(' ') : '') + ' ' +
+      (Array.isArray(game.keywords) ? game.keywords.join(' ') : '')).toLowerCase();
     if (hay.indexOf(libraryQuery) === -1) return false;
   }
   return true;
@@ -84,11 +88,40 @@ function refreshLibrary() {
   var visible = applyVisibility(allGames);
   document.getElementById('library-controls').hidden = visible.length === 0;
   buildGoalChips(visible);
-  renderLibrary(visible.filter(matchesFilters));
+  var filtered = visible.filter(matchesFilters);
+  // Subject-search rescue (2026-08-08 field test): the activities are
+  // topic-agnostic shells, so "history" matching nothing is our failure to
+  // explain, not a real empty result. Show the shelf anyway (goal filter
+  // still respected) with an honest note instead of a dead end.
+  if (filtered.length === 0 && libraryQuery && visible.length > 0) {
+    var goalOnly = visible.filter(matchesGoal);
+    renderLibrary(goalOnly.length ? goalOnly : visible, libraryQuery);
+    return;
+  }
+  renderLibrary(filtered);
 }
 
-function renderLibrary(games) {
+function renderLibrary(games, rescueQuery) {
   libraryGrid.innerHTML = '';
+
+  if (rescueQuery) {
+    var rescue = document.createElement('div');
+    rescue.className = 'search-rescue';
+    var rescueHead = document.createElement('p');
+    rescueHead.className = 'search-rescue-head';
+    rescueHead.textContent = 'Nothing is named "' + rescueQuery + '", and that\'s okay:';
+    rescue.appendChild(rescueHead);
+    var rescueBody = document.createElement('p');
+    rescueBody.className = 'search-rescue-body';
+    rescueBody.textContent = 'These activities work with any subject. Pick one and your topic goes in when you host or customize it.';
+    rescue.appendChild(rescueBody);
+    var rescueLink = document.createElement('a');
+    rescueLink.className = 'search-rescue-link';
+    rescueLink.href = '/designer?notsure=1';
+    rescueLink.textContent = 'Or tell us what you\'re teaching and we\'ll suggest a fit';
+    rescue.appendChild(rescueLink);
+    libraryGrid.appendChild(rescue);
+  }
 
   var ownerOn = window.OwnerMode && OwnerMode.isOn();
   if (ownerOn) {
@@ -614,6 +647,15 @@ searchEl.addEventListener('input', function () {
   libraryQuery = searchEl.value.trim().toLowerCase();
   refreshLibrary();
 });
+
+// ?q= deep link: land on the library with a search already applied.
+try {
+  var urlQuery = new URLSearchParams(window.location.search).get('q');
+  if (urlQuery) {
+    searchEl.value = urlQuery;
+    libraryQuery = urlQuery.trim().toLowerCase();
+  }
+} catch (e) { /* URL parsing unavailable — search box still works */ }
 
 fetch('/api/games')
   .then(function (resp) {

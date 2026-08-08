@@ -146,7 +146,8 @@ function matchesLibraryFilters(game) {
   }
   if (libraryQuery) {
     var hay = (game.name + ' ' + (game.description || '') + ' ' +
-      (Array.isArray(game.tags) ? game.tags.join(' ') : '')).toLowerCase();
+      (Array.isArray(game.tags) ? game.tags.join(' ') : '') + ' ' +
+      (Array.isArray(game.keywords) ? game.keywords.join(' ') : '')).toLowerCase();
     if (hay.indexOf(libraryQuery) === -1) return false;
   }
   return true;
