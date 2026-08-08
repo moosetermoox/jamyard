@@ -10,13 +10,37 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-07-28)
+### START HERE next session (updated 2026-08-08)
 
-Everything through the chain primitives is DEPLOYED (SITE_PASSWORD set,
-deploy-on-green live, UptimeRobot pinging). Device stance: **students are
-on Chromebooks — phones are banned in schools.** Student-facing copy and
-docs were swept 2026-07-28; the teacher console is pitched as "a second
-device" (laptop / spare Chromebook). Keep it that way in new copy.
+Everything through the 2026-08-08 session is DEPLOYED. That session (see
+CHANGELOG 2026-08-07/08 entries, 15 commits): winner phase shows WHAT was
+won for + drumroll reveal; mic input everywhere (corner icon, student +
+teacher surfaces, Web Speech, no audio to server); library doorway goes
+straight to Create; legacy whole-config generator RETIRED (bricks-only);
+templates consolidated into recipes (question-share is recipe 19); landing
+refresh (new headline/tagline + library carousel); Customize asks 2-3 AI
+questions then tailors the copy via the validated revise flow; the em dash
+rule (swept ~500 sites, enforced by tests/style/no-em-dash.test.js +
+STYLE_RULES on every AI call); the "Not sure what to make" concierge
+(fixed questions, suggestions validated against real catalogs); Builder
+puzzle-piece cards + dependency nudges + AI-tile guard. 991 tests.
+New game #33: Fix One Thing. Fresh user feedback shaping the product:
+students read em dashes as an AI tell; nothing should be makeable that
+can't be assembled from validated bricks.
+
+Device stance unchanged: **students are on Chromebooks — phones are
+banned in schools**; the teacher console is "a second device."
+
+NEXT PRIORITIES (August field tests are NOW):
+1. **Real-device pass**: mic dictation quality on an actual Chromebook,
+   the concierge with a real upcoming lesson, Customize on a real class.
+   These three shipped verified-by-automation but never human-tested.
+2. **Teacher cheat sheet** (one page, "if X goes wrong do Y") — still the
+   top pick, still unwritten.
+3. Proxy playtests / day-one kit / compliance facts / PZ email — see the
+   numbered items below (unchanged).
+4. Deferred polish: semantic puzzle tabs (shape by what a step produces),
+   relay + merge mic coverage, match/sort/drawing recipes (#4 below).
 
 0.4. **BUILT 2026-08-01 (one arc, one day):** design pass (fonts/theme/
    emoji cleanup), tooltips, surfaces Phase 1 (library = one shelf,
