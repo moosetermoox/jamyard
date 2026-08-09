@@ -300,6 +300,7 @@ describe('validator diagnostics — game snapshot', () => {
       'elimination-game': [],
       'finish-my-drawing': [],
       'fix-one-thing': [],
+      'last-one-standing': [],
       'excuse-machine': [],
       // 2026-08-02 coherence sweep: feedback-academy's judge-result leaderboards
       // (the DATA_REF_TYPE_MISMATCH source) replaced by class-level coaching +

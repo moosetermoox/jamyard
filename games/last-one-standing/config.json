@@ -1,0 +1,90 @@
+{
+  "name": "Last One Standing",
+  "description": "Everyone writes four facts, from common to one-of-a-kind. The room stands, each fact thins the crowd, and whoever is left standing wrote the card. Played on your feet; the screen just deals the cards.",
+  "family": "connection",
+  "tags": ["connect", "icebreaker"],
+  "keywords": ["icebreaker", "staff meeting", "faculty", "getting to know you", "first day", "community", "index cards", "any subject"],
+  "playTime": "~25-35 min",
+  "classSize": "5–30 players",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "minPlayers": 3,
+      "next": "instructions"
+    },
+    "instructions": {
+      "type": "announce",
+      "message": "Last One Standing\n\nYou'll write four facts about yourself. Then we play one card at a time: the whole room stands up, and each fact knocks people back into their seats. Whoever is left standing at the end wrote the card.\n\nFact 1: something common, true of many people here.\nFact 2: a little more specific or distinctive.\nFact 3: something unusual, interesting, or personal.\nFact 4: true of only you, or very few of us.\n\nTip: skip job titles and resume facts. Hobbies, adventures, and funny stories work best.",
+      "next": "write"
+    },
+    "write": {
+      "type": "collect",
+      "prompt": "Your four facts, from 'lots of us' to 'only me'. Example: I enjoy podcasts. I have 9 siblings. I played college soccer. I have been to Space Camp twice.",
+      "fields": [
+        { "label": "Fact 1: common, many people here might say this too", "key": "fact1" },
+        { "label": "Fact 2: a little more specific or distinctive", "key": "fact2" },
+        { "label": "Fact 3: unusual, interesting, or personal", "key": "fact3" },
+        { "label": "Fact 4: almost certainly just you", "key": "fact4" }
+      ],
+      "from": "all",
+      "next": "ready"
+    },
+    "ready": {
+      "type": "announce",
+      "message": "Cards are in!\n\nHere's how it works: when a card's fact is NOT true of you, sit down. Stay standing as long as the card keeps describing you.\n\nDevices down, eyes up. Let's meet each other.",
+      "next": "rounds"
+    },
+    "rounds": {
+      "type": "foreach",
+      "data": "write.responses",
+      "shuffle": true,
+      "limit": 8,
+      "subPhases": {
+        "fact-one": {
+          "type": "announce",
+          "message": "New card! Everyone stand up.\n\nStay standing if this is true of you:\n\n“{{_current.fields.fact1}}”"
+        },
+        "fact-two": {
+          "type": "announce",
+          "message": "Keep standing only if this is you too:\n\n“{{_current.fields.fact2}}”"
+        },
+        "fact-three": {
+          "type": "announce",
+          "message": "Getting specific now. Still you?\n\n“{{_current.fields.fact3}}”"
+        },
+        "fact-four": {
+          "type": "announce",
+          "message": "Last fact. If this is not you, take a seat:\n\n“{{_current.fields.fact4}}”"
+        },
+        "the-owner": {
+          "type": "announce",
+          "message": "Whoever is still standing wrote this card...\n\nIt's {{_current.playerName}}!\n\nTell us the story behind that last fact."
+        }
+      },
+      "next": "common-ground"
+    },
+    "common-ground": {
+      "type": "ai-process",
+      "instruction": "These are icebreaker cards from one group of colleagues. Each card has four parts separated by ' | ', ordered from a common fact to a one-of-a-kind fact. Find what this group shares: recurring themes, overlapping hobbies or experiences, and one or two delightful surprises. Return a warm 3-4 sentence summary of what this room has in common, written to be read aloud.",
+      "input": "write.responses",
+      "task": "summarize",
+      "format": "text",
+      "next": "check"
+    },
+    "check": {
+      "type": "preview",
+      "content": "common-ground.result",
+      "showResponses": false,
+      "approveNext": "share",
+      "rejectNext": "common-ground"
+    },
+    "share": {
+      "type": "reveal",
+      "template": "What this room has in common\n\n{{common-ground.result}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end"
+    }
+  }
+}
