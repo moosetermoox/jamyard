@@ -279,6 +279,31 @@ describe('generateCustomizeQuestions', () => {
     const result = await service.generateCustomizeQuestions(config);
     expect(result.questions).toEqual([]);
   });
+
+  // The teacher's saved profile must not be re-asked ("you already asked me
+  // my subject" - field feedback 2026-08-09).
+  it('real mode tells the model the known class and forbids re-asking it', async () => {
+    const service = new AIService({ mode: 'real' });
+    let sentPrompt = '';
+    service._callClaude = async (req) => {
+      sentPrompt = req.messages[0].content;
+      return { content: [{ type: 'text', text: '{"questions":[{"question":"Which unit are you on?"}]}' }] };
+    };
+    await service.generateCustomizeQuestions(config, 'Middle school (6-8), Science');
+    expect(sentPrompt).toContain('Middle school (6-8), Science');
+    expect(sentPrompt).toContain('Do not ask about grade level, age, or subject');
+  });
+
+  it('mock mode with a known class asks deeper questions, not subject or grade', async () => {
+    const service = new AIService();
+    const result = await service.generateCustomizeQuestions(config, 'Middle school (6-8), Science');
+    expect(result.questions.length).toBeGreaterThanOrEqual(2);
+    for (const q of result.questions) {
+      expect(q.question.toLowerCase()).not.toContain('subject');
+      expect(q.question.toLowerCase()).not.toContain('grade');
+      expect(q.question.toLowerCase()).not.toContain('who is it for');
+    }
+  });
 });
 
 // Concierge: suggestions must parse and degrade safely.

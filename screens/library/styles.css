@@ -75,6 +75,113 @@
   font-weight: 800;
 }
 
+/* First-visit teacher setup card + the quiet "Your class" line it becomes. */
+.teacher-setup-card {
+  background: var(--yellow-soft, #FFF9C4);
+  border: var(--border, 3px solid #000);
+  border-radius: var(--radius, 14px);
+  box-shadow: var(--shadow-pop-sm, 3px 3px 0 #000);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+}
+.teacher-setup-title {
+  font-family: var(--font-display, 'Archivo Black', sans-serif);
+  font-size: 1.2rem;
+  margin: 0 0 10px;
+}
+.teacher-setup-intro {
+  margin: 0 0 10px;
+  padding-left: 20px;
+  font-weight: 700;
+}
+.teacher-setup-intro li { margin-bottom: 4px; }
+.teacher-setup-guide-link {
+  font-weight: 800;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+.teacher-setup-ask {
+  font-weight: 700;
+  margin: 10px 0 4px;
+}
+.teacher-setup-label {
+  font-family: var(--font-display, 'Archivo Black', sans-serif);
+  font-size: 0.85rem;
+  margin: 10px 0 6px;
+}
+.teacher-setup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.setup-chip {
+  padding: 8px 14px;
+  border: 2.5px solid #000;
+  border-radius: 999px;
+  background: #fff;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.setup-chip.active {
+  background: var(--blue, #0057FF);
+  color: #fff;
+}
+.setup-chip:focus-visible {
+  outline: 3px solid #0057FF;
+  outline-offset: 2px;
+}
+.teacher-setup-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+.teacher-setup-save {
+  padding: 10px 26px;
+  border: 2.5px solid #000;
+  border-radius: 12px;
+  background: var(--green, #00C853);
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.teacher-setup-skip {
+  padding: 10px 18px;
+  border: 2.5px solid #000;
+  border-radius: 12px;
+  background: #fff;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.teacher-setup-save:focus-visible,
+.teacher-setup-skip:focus-visible,
+.class-line-change:focus-visible {
+  outline: 3px solid #0057FF;
+  outline-offset: 2px;
+}
+.class-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  color: var(--text-soft, #555);
+  margin: 0 0 14px;
+}
+.class-line-change {
+  padding: 4px 12px;
+  border: 2px solid #000;
+  border-radius: 999px;
+  background: #fff;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
 .privacy-footnote {
   text-align: center;
   margin-top: 28px;

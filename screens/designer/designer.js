@@ -232,15 +232,8 @@ async function toggleFeatured(game) {
   }
 }
 
-async function enterOwnerMode() {
-  var ok = window.OwnerMode ? await OwnerMode.unlock() : false;
-  if (ok) {
-    refreshLibrary();
-  } else {
-    alert('That didn\'t unlock owner view, check the password and try again.');
-  }
-}
-
+// Owner view is entered via /owner (which lands on the library); this page
+// just reflects the shared OwnerMode flag.
 function exitOwnerMode() {
   if (window.OwnerMode) OwnerMode.lock();
   refreshLibrary();
@@ -325,17 +318,6 @@ function renderGames(games) {
     // Flat grid (no heading) when it's the only section.
     appendGameSection(sectioned ? 'Built-in Activities' : null, builtIn);
   }
-
-  // A quiet doorway to the full list for the site owner.
-  if (!ownerOn) appendOwnerLink();
-}
-
-function appendOwnerLink() {
-  var link = document.createElement('button');
-  link.className = 'owner-link';
-  link.textContent = 'Show full library (site owner)';
-  link.addEventListener('click', enterOwnerMode);
-  gamesGrid.appendChild(link);
 }
 
 function appendGameSection(headingText, games) {
@@ -970,6 +952,21 @@ function fetchPromptBank(bankId) {
     });
 }
 
+// Does this deck fit the teacher's saved class profile (subject match, and
+// grade band not explicitly excluded)? Decks without subject metadata never
+// match — they're the generic pool, not a personalized pick.
+function deckMatchesClass(deck, profile) {
+  if (!profile || !deck || !Array.isArray(deck.subjects)) return false;
+  if (!Array.isArray(profile.subjects) || profile.subjects.length === 0) return false;
+  var subjectHit = deck.subjects.some(function (s) {
+    return profile.subjects.indexOf(s) !== -1;
+  });
+  if (!subjectHit) return false;
+  if (Array.isArray(deck.gradeBands) && profile.gradeBand &&
+      deck.gradeBands.indexOf(profile.gradeBand) === -1) return false;
+  return true;
+}
+
 function buildPromptDeckInput(name, spec) {
   var wrap = document.createElement('div');
 
@@ -991,7 +988,36 @@ function buildPromptDeckInput(name, spec) {
   });
   wrap.appendChild(pickBtn);
 
+  prefillFromClassDeck(spec, input, wrap);
+
   return wrap;
+}
+
+// Fill the untouched default with a prompt that fits the teacher's saved
+// class (their subject, their grade band). Best-effort: any hiccup leaves
+// the generic default in place. Prompts carrying answer choices are skipped
+// so a prefill never half-fills a companion choices param.
+function prefillFromClassDeck(spec, input, wrap) {
+  var profile = window.TeacherProfile ? TeacherProfile.get() : null;
+  if (!profile || !spec.bank || !Array.isArray(spec.decks)) return;
+  fetchPromptBank(spec.bank).then(function (bank) {
+    var candidates = [];
+    spec.decks.forEach(function (deckId) {
+      var deck = (bank.decks || []).find(function (d) { return d.id === deckId; });
+      if (!deck || !deckMatchesClass(deck, profile)) return;
+      (deck.prompts || []).forEach(function (prompt) {
+        if (!prompt.choices) candidates.push(prompt);
+      });
+    });
+    // Only replace a value the teacher hasn't touched.
+    if (candidates.length === 0 || input.value !== (spec.default != null ? spec.default : '')) return;
+    var pick = candidates[Math.floor(Math.random() * candidates.length)];
+    input.value = pick.text;
+    var note = document.createElement('div');
+    note.className = 'recipe-field-helper';
+    note.textContent = 'Filled in for your class. Edit it, or pick another from the deck.';
+    wrap.appendChild(note);
+  }).catch(function () { /* generic default stays — the picker still works */ });
 }
 
 // Fill an array param's rows programmatically (poll choices from a picked
@@ -1038,13 +1064,19 @@ function openDeckPicker(spec, targetInput) {
     }
 
     var deckIds = Array.isArray(spec.decks) ? spec.decks : [];
-    deckIds.forEach(function (deckId) {
-      var deck = (bank.decks || []).find(function (d) { return d.id === deckId; });
-      if (!deck || !deck.prompts || deck.prompts.length === 0) return;
-
+    var profile = window.TeacherProfile ? TeacherProfile.get() : null;
+    var decks = deckIds.map(function (deckId) {
+      return (bank.decks || []).find(function (d) { return d.id === deckId; });
+    }).filter(function (d) { return d && d.prompts && d.prompts.length > 0; });
+    // Decks that fit the teacher's saved class float to the top, marked.
+    decks.sort(function (a, b) {
+      return (deckMatchesClass(b, profile) ? 1 : 0) - (deckMatchesClass(a, profile) ? 1 : 0);
+    });
+    decks.forEach(function (deck) {
       var heading = document.createElement('h3');
       heading.className = 'deck-heading';
-      heading.textContent = deck.label;
+      heading.textContent = deck.label +
+        (deckMatchesClass(deck, profile) ? ' · for your class' : '');
       modal.appendChild(heading);
 
       if (deck.description) {

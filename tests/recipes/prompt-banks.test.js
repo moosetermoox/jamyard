@@ -63,6 +63,35 @@ describe('the Along corpus', () => {
   });
 });
 
+describe('subject decks (the "for your class" layer)', () => {
+  // The deck metadata and the TeacherProfile pickers must speak the same
+  // ids, or personalization silently matches nothing.
+  it('subjects/gradeBands metadata uses ids TeacherProfile knows', async () => {
+    await import('../../screens/shared/teacher-profile.js');
+    const TP = globalThis.TeacherProfile;
+    const knownSubjects = TP.SUBJECTS.map(s => s.id);
+    const knownBands = TP.GRADE_BANDS.map(g => g.id);
+    for (const bank of [along, lanyard]) {
+      for (const deck of bank.decks) {
+        for (const s of deck.subjects || []) {
+          expect(knownSubjects, `${bank.id}/${deck.id}: unknown subject "${s}"`).toContain(s);
+        }
+        for (const g of deck.gradeBands || []) {
+          expect(knownBands, `${bank.id}/${deck.id}: unknown grade band "${g}"`).toContain(g);
+        }
+      }
+    }
+  });
+
+  it('the lanyard bank covers the core subjects', () => {
+    const tagged = lanyard.decks.filter(d => Array.isArray(d.subjects));
+    const covered = new Set(tagged.flatMap(d => d.subjects));
+    for (const s of ['social-studies', 'english', 'science']) {
+      expect(covered.has(s), `no deck tagged for ${s}`).toBe(true);
+    }
+  });
+});
+
 describe('recipe promptDeck references resolve', () => {
   const banks = { along, lanyard };
   const recipesDir = join(root, 'recipes');

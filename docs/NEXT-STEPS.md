@@ -47,6 +47,18 @@ unfeatured (teacher's call, don't re-raise).
 Device stance unchanged: **students are on Chromebooks — phones are
 banned in schools**; the teacher console is "a second device."
 
+2026-08-09 session (social-studies persona review → onboarding wave):
+**Teacher cheat sheet SHIPPED as /guide** (finally — was the top doc pick),
+plus: /owner route replaces the confusing "Show full library (site owner)"
+link, first-visit teacher setup card on the library (grade band + subjects
+→ localStorage TeacherProfile), six subject prompt decks (social studies /
+ELA / science) wired into both-sides-rope + whose-eyes with "for your
+class" picker sorting + prefill, Customize passes the class profile to the
+revise request. 1008 tests. Reviewer items consciously deferred: standards
+filters (subject keywords cover it), full differentiation support, card
+metadata (grade band / noise level / interaction mode on cards — good
+next-session candidate).
+
 NEXT PRIORITIES (August field tests are NOW):
 1. **Fill the /privacy placeholders** — the page is LIVE with visible
    yellow "[operator name]" / "[privacy contact email]" placeholders.
@@ -54,9 +66,11 @@ NEXT PRIORITIES (August field tests are NOW):
    compliance documents).
 2. **Real-device pass**: mic dictation on an actual Chromebook, the
    concierge with a real lesson, Customize on a real class — now ALSO
-   the holding screens + late-join on real school wifi.
-3. **Teacher cheat sheet** (one page, "if X goes wrong do Y") — still
-   the top pick among docs, still unwritten.
+   the holding screens + late-join + the new setup card/guide on real
+   school wifi.
+3. **Activity-card teacher metadata** (from the persona review): grade
+   band, ideal class size, noise level, and write/speak/draw/vote
+   interaction chips (derivable from the phase graph) on library cards.
 4. Field-test copy nits (small): "Answer the question:" hardcoded over
    drawing pads; stray 0/280 counter on choice screens; home/library
    near-identical headlines.

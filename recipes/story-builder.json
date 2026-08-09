@@ -2,42 +2,46 @@
   "id": "story-builder",
   "name": "Story Builder",
   "icon": "📖",
-  "description": "Players take turns adding one sentence to a shared story. AI optionally polishes it at the end.",
-  "tagline": "Perfect for collaborative storytelling, word chains, and sentence-by-sentence narratives.",
+  "description": "Every student starts a story from the same seed, then the stories travel: each pass, a classmate reads and adds the next sentence. Nobody waits for a turn, every story comes back to its starter finished, and a few get read aloud.",
+  "tagline": "Perfect for creative writing warm-ups, narrative arcs, and any class that loves a plot twist.",
   "version": "1",
   "parameters": {
-    "opening": {
-      "type": "templateString",
-      "label": "Story opening or prompt",
-      "helper": "What students are continuing. The first player picks up where this leaves off.",
-      "placeholder": "Once upon a time, a goose walked into a coffee shop and ordered…",
-      "required": true,
-      "minLength": 5,
-      "maxLength": 500
+    "premise": {
+      "type": "promptDeck",
+      "label": "The story seed",
+      "helper": "Every student writes their own opening for this seed, so one seed becomes a whole class of different stories.",
+      "default": "A mysterious door appears in the school hallway overnight.",
+      "bank": "lanyard",
+      "decks": [
+        "story-premises"
+      ],
+      "deckHelper": "Pick a seed with somewhere to go, or write your own (a scene from your novel study works great)."
     },
-    "turnTimer": {
+    "writeTime": {
       "type": "integer",
-      "label": "Time per turn (seconds)",
-      "helper": "How long each player has to add their sentence.",
-      "default": 45,
-      "min": 10,
+      "label": "Time per sentence (seconds)",
+      "helper": "Each of the five writing rounds gets this long. Later rounds include reading the story so far.",
+      "default": 75,
+      "min": 20,
       "max": 300
     },
-    "order": {
-      "type": "enum",
-      "label": "Turn order",
-      "values": [
-        "random",
-        "join-order"
-      ],
-      "default": "random",
-      "helper": "Random keeps things unpredictable. Join-order goes around the room in the order students joined."
+    "storiesRead": {
+      "type": "integer",
+      "label": "Stories read aloud at the end",
+      "helper": "A random sample for the projector. Everyone already gets their own story back, this is the encore.",
+      "default": 5,
+      "min": 1,
+      "max": 30
     }
   },
   "template": {
-    "name": "Story: ${opening}",
-    "description": "A collaborative story-building game built with the Story Builder recipe.",
+    "name": "Story Builder",
+    "description": "A pass-and-add story chain built with the Story Builder recipe. Every student starts a story; every story comes back finished.",
     "minPlayers": 3,
+    "tags": [
+      "create",
+      "collaborative"
+    ],
     "phases": {
       "lobby": {
         "type": "lobby",
@@ -45,26 +49,80 @@
       },
       "intro": {
         "type": "announce",
-        "message": "## Let's build a story together!\n\nEveryone takes a turn adding one sentence. Try to keep the story going, don't end it on your turn!",
-        "timer": 6,
-        "next": "story"
+        "message": "STORY BUILDER\n\nEveryone starts a story from the same seed. Then your story travels: classmates add one sentence at a time and pass it on.\n\nAt the end, the story YOU started comes back to you, finished.",
+        "timer": 12,
+        "next": "start"
       },
-      "story": {
-        "type": "relay",
-        "prompt": "${opening}",
-        "order": "${order}",
-        "timer": "${turnTimer}",
-        "from": "all",
-        "next": "reveal"
+      "start": {
+        "type": "collect",
+        "prompt": "Your seed: ${premise}\n\nWrite the OPENING of your story, one or two sentences. Set the scene, introduce someone, and stop before anything gets resolved.",
+        "timer": "${writeTime}",
+        "maxLength": 240,
+        "next": "pass-1"
       },
-      "reveal": {
+      "pass-1": {
+        "type": "collect",
+        "rotateFrom": "start",
+        "prefillFromAssigned": true,
+        "appendOnly": true,
+        "prompt": "A classmate's story so far is in the box. Read it, then ADD the next sentence. Keep it moving, don't end it!",
+        "timer": "${writeTime}",
+        "maxLength": 480,
+        "next": "pass-2"
+      },
+      "pass-2": {
+        "type": "collect",
+        "rotateFrom": "pass-1",
+        "prefillFromAssigned": true,
+        "appendOnly": true,
+        "prompt": "A new story lands in your hands. Read the whole thing, then ADD the next sentence. Raise the stakes: a twist, a problem, a surprise.",
+        "timer": "${writeTime}",
+        "maxLength": 720,
+        "next": "pass-3"
+      },
+      "pass-3": {
+        "type": "collect",
+        "rotateFrom": "pass-2",
+        "prefillFromAssigned": true,
+        "appendOnly": true,
+        "prompt": "Read this one all the way through, then ADD the next sentence and start steering it toward an ending.",
+        "timer": "${writeTime}",
+        "maxLength": 960,
+        "next": "ending"
+      },
+      "ending": {
+        "type": "collect",
+        "rotateFrom": "pass-3",
+        "prefillFromAssigned": true,
+        "appendOnly": true,
+        "prompt": "Last pass! Read the whole story, then write the FINAL sentence. Land the ending.",
+        "timer": "${writeTime}",
+        "maxLength": 1200,
+        "next": "returned"
+      },
+      "returned": {
         "type": "reveal",
-        "template": "## Our Story\n\n${opening}\n\n{{story.text}}",
+        "scope": "own",
+        "chainFrom": [
+          "start",
+          "pass-1",
+          "pass-2",
+          "pass-3",
+          "ending"
+        ],
+        "chainDisplay": "final",
+        "next": "gallery"
+      },
+      "gallery": {
+        "type": "reveal-one",
+        "message": "STORY TIME\n\nA few finished stories, read aloud. Call out when you hear the sentence you wrote!",
+        "from": "ending.responses",
+        "limit": "${storiesRead}",
         "next": "end"
       },
       "end": {
         "type": "end",
-        "message": "What a story!"
+        "message": "That's Story Builder! Every story had five authors, and every one of you wrote a piece of five different stories."
       }
     }
   }

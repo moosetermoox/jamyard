@@ -977,9 +977,18 @@ Return the revised step.`;
 
   // Library "Customize" flow: 2-3 short questions whose answers let the
   // revise flow tailor a built-in's WORDS for this teacher's class. Config
-  // in, questions out — no student data, Haiku-cheap.
-  async generateCustomizeQuestions(config) {
+  // in, questions out — no student data, Haiku-cheap. classDescription is
+  // the teacher's saved profile ("Middle school (6-8), Science"): when
+  // present, the questions must BUILD on it, never re-ask it.
+  async generateCustomizeQuestions(config, classDescription = '') {
+    const classDesc = String(classDescription || '').trim().slice(0, 160);
     if (this.mode === 'mock') {
+      if (classDesc) {
+        return { questions: [
+          { question: 'What topic or unit is your class working on?', placeholder: 'e.g. cells, the water cycle, World War I' },
+          { question: 'Anything the wording should fit or avoid?', placeholder: 'e.g. they love space, keep it silly' }
+        ] };
+      }
       return { questions: [
         { question: 'What topic or subject should this be about?', placeholder: 'e.g. photosynthesis, To Kill a Mockingbird, fractions' },
         { question: 'Who is it for?', placeholder: 'e.g. 7th grade science, my homeroom' }
@@ -991,13 +1000,16 @@ Return the revised step.`;
         const text = phase.prompt || phase.message || phase.question || '';
         if (text) phaseTexts.push(`${id} (${phase.type}): ${String(text).slice(0, 160)}`);
       }
+      const knownClass = classDesc
+        ? `\nWe ALREADY KNOW their class: ${classDesc}. Do not ask about grade level, age, or subject in any form. Write questions that assume that knowledge and go one level deeper, like the specific unit, book, era, or topic they are teaching right now, or what their class enjoys.\n`
+        : '';
       const message = await this._callClaude({
         model: MODELS.haiku,
         max_tokens: 400,
         messages: [{
           role: 'user',
           content: `A teacher is about to make their own copy of this ready-made classroom activity. Ask 2-3 SHORT questions whose answers would let us rewrite its text (topic, examples, tone) for THEIR class. Plain everyday language, no jargon. Only ask what the activity's content actually depends on, e.g. a vocabulary activity needs the word list's subject, an icebreaker might only need the group. Every question must be answerable in a few words.
-
+${knownClass}
 Activity: ${String(config.name || '').slice(0, 80)}
 Description: ${String(config.description || '').slice(0, 200)}
 Steps:

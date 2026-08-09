@@ -157,7 +157,6 @@ function renderLibrary(games, rescueQuery) {
     notSure.textContent = 'Not sure what to make? Let\'s figure it out';
     notSure.style.cssText = 'display:block; margin-top:8px; font-weight:800;';
     libraryGrid.appendChild(notSure);
-    if (!ownerOn) appendOwnerLink();
     return;
   }
 
@@ -200,17 +199,6 @@ function renderLibrary(games, rescueQuery) {
   if (rest.length > 0) {
     appendSection(favs.length || recents.length ? 'The library' : null, rest);
   }
-
-  // A quiet doorway to the full list for the site owner.
-  appendOwnerLink();
-}
-
-function appendOwnerLink() {
-  var link = document.createElement('button');
-  link.className = 'owner-link';
-  link.textContent = 'Show full library (site owner)';
-  link.addEventListener('click', enterOwnerMode);
-  libraryGrid.appendChild(link);
 }
 
 async function enterOwnerMode() {
@@ -481,7 +469,12 @@ function customizeCopy(game, btn) {
     return fetch('/api/games/customize-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ config: config })
+      body: JSON.stringify({
+        config: config,
+        // The saved class profile rides along so the questions build on it
+        // instead of re-asking grade and subject.
+        classDescription: window.TeacherProfile ? TeacherProfile.describe() : ''
+      })
     }).then(function (r) { return r.ok ? r.json() : { questions: [] }; })
       .catch(function () { return { questions: [] }; });
   });
@@ -522,6 +515,17 @@ function showCustomizeDialog(game, config, questions) {
   subtitle.className = 'template-picker-subtitle';
   subtitle.textContent = 'Answer what you like and we’ll word your copy of “' + game.name + '” for your class. Anything you skip stays as-is.';
   modal.appendChild(subtitle);
+
+  // Show what we already know so the teacher never wonders whether to
+  // repeat their grade and subject in the answers.
+  var knownClass = window.TeacherProfile ? TeacherProfile.describe() : '';
+  if (knownClass) {
+    var knownLine = document.createElement('p');
+    knownLine.className = 'template-picker-subtitle';
+    knownLine.style.fontWeight = '800';
+    knownLine.textContent = 'Writing for your class: ' + knownClass + '.';
+    modal.appendChild(knownLine);
+  }
 
   var inputs = [];
   questions.forEach(function (q) {
@@ -582,9 +586,11 @@ function showCustomizeDialog(game, config, questions) {
     goBtn.textContent = 'Setting it up…';
     status.hidden = false;
     status.textContent = 'Rewording the activity for your class, this can take ~20 seconds.';
+    var classDesc = window.TeacherProfile ? TeacherProfile.describe() : '';
     var request = 'A teacher is adapting this ready-made activity for their own class. ' +
       'Rewrite ONLY the teacher- and student-facing words (name, description, prompts, messages, choices, reveal templates) to fit their answers below. ' +
       'Keep every step, the structure, timers, data references, and {{tokens}} exactly as they are.\n\n' +
+      (classDesc ? 'Their class: ' + classDesc + '.\n' : '') +
       answered.map(function (pair) {
         return 'Q: ' + pair.question + '\nA: ' + pair.input.value.trim();
       }).join('\n');
@@ -618,6 +624,158 @@ function showCustomizeDialog(game, config, questions) {
   Dialog.enhance(overlay, modal, { title: 'Make it yours' });
   if (inputs.length > 0) inputs[0].input.focus();
 }
+
+// --- Teacher setup (first visit) ------------------------------------------
+// Grade band + subjects, saved on this device only (no accounts). Drives the
+// "for your class" prompt picks in recipe forms and the Customize tailoring.
+
+var setupEl = document.getElementById('teacher-setup');
+
+function renderTeacherSetup() {
+  if (!setupEl || !window.TeacherProfile) return;
+  setupEl.innerHTML = '';
+  if (TeacherProfile.shouldOffer()) return renderSetupCard();
+  renderClassLine(TeacherProfile.get());
+}
+
+function renderClassLine(profile) {
+  var line = document.createElement('p');
+  line.className = 'class-line';
+  var text = document.createElement('span');
+  text.textContent = profile
+    ? 'Your class: ' + TeacherProfile.describe()
+    : 'Tell us your grade and subjects and we\'ll suggest questions that fit your class.';
+  line.appendChild(text);
+  var change = document.createElement('button');
+  change.type = 'button';
+  change.className = 'class-line-change';
+  change.textContent = profile ? 'Change' : 'Set up';
+  change.addEventListener('click', function () {
+    setupEl.innerHTML = '';
+    renderSetupCard();
+  });
+  line.appendChild(change);
+  setupEl.appendChild(line);
+}
+
+function renderSetupCard() {
+  var existing = TeacherProfile.get() || { gradeBand: null, subjects: [] };
+  var picked = { gradeBand: existing.gradeBand, subjects: existing.subjects.slice() };
+
+  var card = document.createElement('div');
+  card.className = 'teacher-setup-card';
+
+  var title = document.createElement('h2');
+  title.className = 'teacher-setup-title';
+  title.textContent = 'New here? Start with this';
+  card.appendChild(title);
+
+  var intro = document.createElement('ul');
+  intro.className = 'teacher-setup-intro';
+  [
+    'You project the host screen; students join on Chromebooks or tablets with a room code. No student accounts.',
+    'Setup takes about 3 minutes the first time.',
+    'Not sure yet? Preview any activity to see your screen and practice students side by side, no class needed.'
+  ].forEach(function (lineText) {
+    var li = document.createElement('li');
+    li.textContent = lineText;
+    intro.appendChild(li);
+  });
+  card.appendChild(intro);
+
+  var guideLink = document.createElement('a');
+  guideLink.className = 'teacher-setup-guide-link';
+  guideLink.href = '/guide';
+  guideLink.textContent = 'Read the one-page teacher guide';
+  card.appendChild(guideLink);
+
+  var ask = document.createElement('p');
+  ask.className = 'teacher-setup-ask';
+  ask.textContent = 'What do you teach? We\'ll suggest ready-made questions that fit your class.';
+  card.appendChild(ask);
+
+  function chipRow(options, isPicked, onPick) {
+    var row = document.createElement('div');
+    row.className = 'teacher-setup-chips';
+    options.forEach(function (opt) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'setup-chip' + (isPicked(opt.id) ? ' active' : '');
+      chip.textContent = opt.label;
+      chip.setAttribute('aria-pressed', isPicked(opt.id) ? 'true' : 'false');
+      chip.addEventListener('click', function () {
+        onPick(opt.id);
+        var active = isPicked(opt.id);
+        chip.classList.toggle('active', active);
+        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+        // Single-select rows: repaint siblings so only one stays lit.
+        var siblings = row.querySelectorAll('.setup-chip');
+        for (var i = 0; i < siblings.length; i++) {
+          var lit = isPicked(options[i].id);
+          siblings[i].classList.toggle('active', lit);
+          siblings[i].setAttribute('aria-pressed', lit ? 'true' : 'false');
+        }
+      });
+      row.appendChild(chip);
+    });
+    return row;
+  }
+
+  var gradeLabel = document.createElement('p');
+  gradeLabel.className = 'teacher-setup-label';
+  gradeLabel.textContent = 'Grade band';
+  card.appendChild(gradeLabel);
+  card.appendChild(chipRow(
+    TeacherProfile.GRADE_BANDS,
+    function (id) { return picked.gradeBand === id; },
+    function (id) { picked.gradeBand = (picked.gradeBand === id) ? null : id; }
+  ));
+
+  var subjectLabel = document.createElement('p');
+  subjectLabel.className = 'teacher-setup-label';
+  subjectLabel.textContent = 'Subjects, pick any';
+  card.appendChild(subjectLabel);
+  card.appendChild(chipRow(
+    TeacherProfile.SUBJECTS,
+    function (id) { return picked.subjects.indexOf(id) !== -1; },
+    function (id) {
+      var at = picked.subjects.indexOf(id);
+      if (at === -1) picked.subjects.push(id); else picked.subjects.splice(at, 1);
+    }
+  ));
+
+  var btnRow = document.createElement('div');
+  btnRow.className = 'teacher-setup-buttons';
+
+  var skipBtn = document.createElement('button');
+  skipBtn.type = 'button';
+  skipBtn.className = 'teacher-setup-skip';
+  skipBtn.textContent = 'Skip for now';
+  skipBtn.addEventListener('click', function () {
+    TeacherProfile.dismiss();
+    renderTeacherSetup();
+  });
+  btnRow.appendChild(skipBtn);
+
+  var saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className = 'teacher-setup-save';
+  saveBtn.textContent = 'Save';
+  saveBtn.addEventListener('click', function () {
+    if (!picked.gradeBand && picked.subjects.length === 0) {
+      TeacherProfile.dismiss();
+    } else {
+      TeacherProfile.save(picked);
+    }
+    renderTeacherSetup();
+  });
+  btnRow.appendChild(saveBtn);
+
+  card.appendChild(btnRow);
+  setupEl.appendChild(card);
+}
+
+renderTeacherSetup();
 
 // --- Builder doorway ------------------------------------------------------
 // Straight to the Create page — its idea box asks the question once (the
@@ -656,6 +814,20 @@ try {
     libraryQuery = urlQuery.trim().toLowerCase();
   }
 } catch (e) { /* URL parsing unavailable — search box still works */ }
+
+// /owner lands here as ?owner=1 — the only doorway into owner view (the old
+// in-page link confused teachers). Strip the param so a refresh doesn't
+// re-prompt for the password.
+try {
+  var urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('owner') === '1') {
+    urlParams.delete('owner');
+    var cleaned = window.location.pathname +
+      (urlParams.toString() ? '?' + urlParams.toString() : '');
+    window.history.replaceState(null, '', cleaned);
+    if (!(window.OwnerMode && OwnerMode.isOn())) enterOwnerMode();
+  }
+} catch (e) { /* URL parsing unavailable — owner view still reachable later */ }
 
 fetch('/api/games')
   .then(function (resp) {

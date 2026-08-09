@@ -1615,6 +1615,14 @@ app.use('/shared', express.static(join(__dirname, 'screens/shared')));
 app.use('/prototype', express.static(join(__dirname, 'screens/prototype')));
 // The teacher-facing front door (library-first, 2026-07-28): browse + host.
 app.use('/library', express.static(join(__dirname, 'screens/library')));
+// Owner doorway: replaces the old in-page "Show full library (site owner)"
+// link, which read to teachers as content being withheld from them.
+app.get('/owner', (req, res) => {
+  res.redirect('/library?owner=1');
+});
+// One-page teacher guide: what you need, the first five minutes, what you
+// control live, and what to do when something goes wrong.
+app.use('/guide', express.static(join(__dirname, 'screens/guide')));
 // Public privacy page (2026-08-08 field test: admins need practice they can
 // cite; the careful engineering was invisible).
 app.use('/privacy', express.static(join(__dirname, 'screens/privacy')));
@@ -2266,11 +2274,12 @@ app.post('/api/games/fix-issue', async (req, res) => {
 // Works in mock mode too (canned questions) so the flow is always testable.
 app.post('/api/games/customize-questions', async (req, res) => {
   try {
-    const { config } = req.body;
+    const { config, classDescription } = req.body;
     if (!config || !config.phases) {
       return res.status(400).json({ error: 'Missing config or phases' });
     }
-    const result = await aiService.generateCustomizeQuestions(config);
+    const classDesc = typeof classDescription === 'string' ? classDescription : '';
+    const result = await aiService.generateCustomizeQuestions(config, classDesc);
     res.json(result);
   } catch (error) {
     console.log(`[api/games/customize-questions] Error: ${error.message}`);

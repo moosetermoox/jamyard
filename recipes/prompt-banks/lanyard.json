@@ -114,6 +114,259 @@
       ]
     },
     {
+      "id": "ss-debate-claims",
+      "label": "Social studies claims",
+      "description": "Civics and history claims with honest evidence on both sides.",
+      "subjects": ["social-studies"],
+      "gradeBands": ["middle", "high"],
+      "prompts": [
+        {
+          "id": "lny-ssc-01",
+          "text": "The federal government should have more power during a crisis."
+        },
+        {
+          "id": "lny-ssc-02",
+          "text": "Geography shapes a country's history more than its leaders do."
+        },
+        {
+          "id": "lny-ssc-03",
+          "text": "The Industrial Revolution did more good than harm."
+        },
+        {
+          "id": "lny-ssc-04",
+          "text": "Voting should be required by law."
+        },
+        {
+          "id": "lny-ssc-05",
+          "text": "Trade between countries makes war less likely."
+        },
+        {
+          "id": "lny-ssc-06",
+          "text": "A primary source is more trustworthy than a textbook."
+        },
+        {
+          "id": "lny-ssc-07",
+          "text": "Cities should replace old statues that honor people we no longer admire."
+        },
+        {
+          "id": "lny-ssc-08",
+          "text": "The best way to change an unfair law is to work inside the system."
+        }
+      ]
+    },
+    {
+      "id": "ss-perspective-topics",
+      "label": "Social studies perspective topics",
+      "description": "Historical moments and civic decisions with many stakeholders.",
+      "subjects": ["social-studies"],
+      "gradeBands": ["middle", "high"],
+      "prompts": [
+        {
+          "id": "lny-sst-01",
+          "text": "the signing of the Declaration of Independence"
+        },
+        {
+          "id": "lny-sst-02",
+          "text": "the California Gold Rush"
+        },
+        {
+          "id": "lny-sst-03",
+          "text": "the building of the transcontinental railroad"
+        },
+        {
+          "id": "lny-sst-04",
+          "text": "women winning the right to vote"
+        },
+        {
+          "id": "lny-sst-05",
+          "text": "a town deciding whether to remove an old statue from the square"
+        },
+        {
+          "id": "lny-sst-06",
+          "text": "the invention of the printing press"
+        },
+        {
+          "id": "lny-sst-07",
+          "text": "a new factory opening in a small farming town"
+        },
+        {
+          "id": "lny-sst-08",
+          "text": "the first year of a brand-new country writing its constitution"
+        }
+      ]
+    },
+    {
+      "id": "ela-debate-claims",
+      "label": "English and ELA claims",
+      "description": "Claims about stories, authors, and reading that split a room.",
+      "subjects": ["english"],
+      "gradeBands": ["middle", "high"],
+      "prompts": [
+        {
+          "id": "lny-elc-01",
+          "text": "A story's villain matters more than its hero."
+        },
+        {
+          "id": "lny-elc-02",
+          "text": "Reading fiction teaches you more about people than studying facts."
+        },
+        {
+          "id": "lny-elc-03",
+          "text": "Some books should be required reading for everyone."
+        },
+        {
+          "id": "lny-elc-04",
+          "text": "Poetry can say things plain language cannot."
+        },
+        {
+          "id": "lny-elc-05",
+          "text": "An author's life should change how we read their books."
+        },
+        {
+          "id": "lny-elc-06",
+          "text": "Happy endings are overrated."
+        }
+      ]
+    },
+    {
+      "id": "ela-perspective-topics",
+      "label": "English and ELA perspective topics",
+      "description": "Story moments and book-world dilemmas worth seeing through other eyes.",
+      "subjects": ["english"],
+      "gradeBands": ["middle", "high"],
+      "prompts": [
+        {
+          "id": "lny-elt-01",
+          "text": "the moment the main character makes their biggest mistake"
+        },
+        {
+          "id": "lny-elt-02",
+          "text": "a banned book arriving at the school library"
+        },
+        {
+          "id": "lny-elt-03",
+          "text": "an author deciding how their story should end"
+        },
+        {
+          "id": "lny-elt-04",
+          "text": "a small town where the newspaper prints its last issue"
+        },
+        {
+          "id": "lny-elt-05",
+          "text": "the villain's version of the story"
+        }
+      ]
+    },
+    {
+      "id": "sci-debate-claims",
+      "label": "Science claims",
+      "description": "Science and technology claims where the evidence genuinely pulls both ways.",
+      "subjects": ["science"],
+      "gradeBands": ["middle", "high"],
+      "prompts": [
+        {
+          "id": "lny-scc-01",
+          "text": "Space exploration is worth the cost."
+        },
+        {
+          "id": "lny-scc-02",
+          "text": "Humans should try to bring back extinct species."
+        },
+        {
+          "id": "lny-scc-03",
+          "text": "Nuclear power is the best replacement for fossil fuels."
+        },
+        {
+          "id": "lny-scc-04",
+          "text": "Scientists should be allowed to edit genes to prevent disease."
+        },
+        {
+          "id": "lny-scc-05",
+          "text": "Robots should do every job that is dangerous for humans."
+        },
+        {
+          "id": "lny-scc-06",
+          "text": "Every big scientific discovery eventually gets used for both good and harm."
+        }
+      ]
+    },
+    {
+      "id": "sci-perspective-topics",
+      "label": "Science perspective topics",
+      "description": "Discoveries and dilemmas that look different to everyone they touch.",
+      "subjects": ["science"],
+      "gradeBands": ["middle", "high"],
+      "prompts": [
+        {
+          "id": "lny-sct-01",
+          "text": "a new wind farm planned for the ridge above town"
+        },
+        {
+          "id": "lny-sct-02",
+          "text": "the discovery of antibiotics"
+        },
+        {
+          "id": "lny-sct-03",
+          "text": "a plan to reintroduce wolves to a national park"
+        },
+        {
+          "id": "lny-sct-04",
+          "text": "the first mission to settle Mars"
+        },
+        {
+          "id": "lny-sct-05",
+          "text": "a drought forcing a town to decide who gets water first"
+        }
+      ]
+    },
+    {
+      "id": "story-premises",
+      "label": "Story Builder seeds",
+      "description": "Open-ended premises with somewhere to go, every one supports twenty different stories.",
+      "prompts": [
+        {
+          "id": "lny-sp-01",
+          "text": "A mysterious door appears in the school hallway overnight."
+        },
+        {
+          "id": "lny-sp-02",
+          "text": "The class pet has been keeping a secret."
+        },
+        {
+          "id": "lny-sp-03",
+          "text": "At exactly noon, every screen in the world shows the same face."
+        },
+        {
+          "id": "lny-sp-04",
+          "text": "The substitute teacher is definitely not from around here."
+        },
+        {
+          "id": "lny-sp-05",
+          "text": "A message in a bottle washes up, dated fifty years in the future."
+        },
+        {
+          "id": "lny-sp-06",
+          "text": "The elevator has only one button, and it is labeled MAYBE."
+        },
+        {
+          "id": "lny-sp-07",
+          "text": "On the last day of summer, the ocean quietly disappears."
+        },
+        {
+          "id": "lny-sp-08",
+          "text": "Somebody's homework starts answering back."
+        },
+        {
+          "id": "lny-sp-09",
+          "text": "The town's statues switch places every night."
+        },
+        {
+          "id": "lny-sp-10",
+          "text": "A tiny dragon is living in the school's lost and found."
+        }
+      ]
+    },
+    {
       "id": "encouragement-openers",
       "label": "Someone's Got You openers",
       "description": "Low-stakes versions of \"what are you working on?\", pick the one that fits the week.",

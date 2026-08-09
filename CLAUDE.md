@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **998 tests passing** (`npm test`, ~4s) · **261 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1010 tests passing** (`npm test`, ~4s) · **309 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **28 phase types**, **19 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -47,7 +47,9 @@ Framework for quickly building classroom games where:
 - `/host` projector screen · `/player` student screen · `/teacher` private console (room code + PIN, or SITE_PASSWORD basic auth)
 - `/designer` Create page (idea box → recipe match or storyboard) · `/designer/edit` editor (Simple | Builder | Advanced views; Simple is default)
 - `/prototype` host + player iframes side-by-side for playtesting
+- `/guide` one-page teacher guide (setup, live controls, quick fixes) · `/owner` owner-mode doorway (redirects to the library unlock; no in-page owner links)
 - `/feedback` owner inbox (SITE_PASSWORD-gated)
+- Teacher profile (grade band + subjects, localStorage via `screens/shared/teacher-profile.js`) personalizes prompt-deck picks ("for your class") and Customize; set from the library's first-visit card
 - Surfaces model: **find it in the Library, start it in Create, shape it in the Editor** (docs/SURFACES-PLAN.md)
 
 ## Standing Rules (active doctrine — check before writing code or copy)

@@ -17,7 +17,10 @@
       "default": "our school's homework policy",
       "bank": "lanyard",
       "decks": [
-        "perspective-topics"
+        "perspective-topics",
+        "ss-perspective-topics",
+        "ela-perspective-topics",
+        "sci-perspective-topics"
       ],
       "deckHelper": "Pick a topic with many stakeholders, or bring your own."
     },

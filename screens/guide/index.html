@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teacher Guide - Lanyard</title>
+  <link rel="stylesheet" href="/shared/design.css">
+  <style>
+    body {
+      background: var(--canvas, #FFFDE7);
+      color: var(--text, #222);
+      font-family: var(--font-body, 'Nunito', Arial, sans-serif);
+      margin: 0;
+      padding: 24px 20px 80px;
+    }
+    .wrap { max-width: 780px; margin: 0 auto; }
+    h1 {
+      font-family: var(--font-display, 'Archivo Black', sans-serif);
+      font-size: 2rem;
+      margin: 18px 0 6px;
+    }
+    h2 {
+      font-family: var(--font-display, 'Archivo Black', sans-serif);
+      font-size: 1.15rem;
+      margin: 34px 0 10px;
+    }
+    p, li { font-size: 1.02rem; line-height: 1.55; }
+    .subtitle { color: var(--text-soft, #555); font-weight: 700; font-size: 0.95rem; }
+    .card {
+      background: var(--card, #fff);
+      border: var(--border, 3px solid #000);
+      border-radius: var(--radius, 14px);
+      box-shadow: var(--shadow-pop-sm, 3px 3px 0 #000);
+      padding: 18px 22px;
+      margin: 18px 0;
+    }
+    .card li { margin: 8px 0; font-weight: 700; }
+    ol.steps li { margin: 10px 0; }
+    .table-scroll { overflow-x: auto; }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 560px;
+      background: var(--card, #fff);
+      border: var(--border-thin, 2px solid #000);
+      font-size: 0.95rem;
+    }
+    th, td {
+      border: var(--border-thin, 2px solid #000);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--cream, #FFF9C4);
+      font-family: var(--font-display, 'Archivo Black', sans-serif);
+      font-weight: 400;
+      font-size: 0.85rem;
+    }
+    .reassure {
+      background: var(--blue-soft, #E3F2FD);
+      border: var(--border-thin, 2px solid #000);
+      border-radius: var(--radius, 14px);
+      padding: 14px 18px;
+      font-weight: 700;
+    }
+    a { color: var(--blue, #0057FF); font-weight: 800; }
+    .back { display: inline-block; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="back" href="/library">Back to the library</a>
+    <h1>Teacher guide</h1>
+    <p class="subtitle">One page: what you need, the first five minutes, what you control during a live activity, and quick fixes.</p>
+
+    <h2>What you need</h2>
+    <div class="card">
+      <ul>
+        <li>A projector or shared screen for the host view. The whole class watches this together.</li>
+        <li>A device per student. Chromebooks or tablets are perfect. Students install nothing and never make accounts.</li>
+        <li>Any device for you. A second device for the private teacher console is optional but handy for moderation.</li>
+      </ul>
+    </div>
+
+    <h2>The first five minutes</h2>
+    <ol class="steps">
+      <li>Open the <a href="/library">library</a>, pick an activity, and press <strong>Host this</strong>.</li>
+      <li>A room code appears on the projector. Students open this site on their devices and type the code and their first name.</li>
+      <li>Watch names appear on the projector. When everyone is in, press <strong>Start</strong>.</li>
+      <li>From there, you set the pace. Reveals and results wait for you, and the continue button always says what happens next.</li>
+    </ol>
+    <p><strong>Trying it without a class?</strong> Every activity has a <strong>Preview</strong> button that shows your screen and simulated students side by side. Run one activity in Preview before your first real class; it is the fastest way to know what your students will see.</p>
+
+    <h2>What you control during a live activity</h2>
+    <div class="card">
+      <ul>
+        <li><strong>Pacing.</strong> Payoff moments (reveals, results, winners) never auto-advance. The class moves when you press the button.</li>
+        <li><strong>The teacher console.</strong> Open <a href="/teacher">/teacher</a> on a second device and enter the room code plus the teacher PIN. The PIN sits behind a deliberate two-tap reveal on the host screen so the class does not see it.</li>
+        <li><strong>Moderation.</strong> From the console you can hide any student response or remove a student from the room. A text filter also runs on everything students submit.</li>
+        <li><strong>Drawings.</strong> Activities with student drawings include a teacher preview step, so nothing hand-drawn reaches the projector without your approval.</li>
+        <li><strong>Sound.</strong> The speaker chip on each screen mutes sound effects, and it remembers the choice.</li>
+      </ul>
+    </div>
+
+    <h2>Quick fixes</h2>
+    <div class="table-scroll">
+      <table>
+        <tr><th>If this happens</th><th>Do this</th></tr>
+        <tr>
+          <td>A student's room code will not work</td>
+          <td>Have them retype the code exactly as it appears on the projector. If the activity already ended, host it again; each run gets a fresh code.</td>
+        </tr>
+        <tr>
+          <td>A student's device drops off the wifi</td>
+          <td>Have them refresh the page. They rejoin automatically with their work intact.</td>
+        </tr>
+        <tr>
+          <td>You close or refresh the host tab by accident</td>
+          <td>Reopen it. The room resumes where it was, even if the mistake happens mid-activity.</td>
+        </tr>
+        <tr>
+          <td>Something on the projector needs to go</td>
+          <td>Hide that response from the teacher console. It disappears everywhere immediately.</td>
+        </tr>
+        <tr>
+          <td>A student joined late</td>
+          <td>Nothing to do. Late joiners drop straight into the current step.</td>
+        </tr>
+        <tr>
+          <td>An AI step feels slow</td>
+          <td>With a full class, AI summaries can take around 20 seconds. The room is not stuck; the screen says what it is working on.</td>
+        </tr>
+      </table>
+    </div>
+
+    <h2>Privacy in one breath</h2>
+    <p class="reassure">
+      No student accounts. First names only. Student work is deleted when the activity ends. When AI summarizes class answers, student names are stripped first and never sent. Full details on the <a href="/privacy">privacy page</a>.
+    </p>
+
+    <p><a href="/library">Back to the library</a></p>
+  </div>
+</body>
+</html>

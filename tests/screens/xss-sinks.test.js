@@ -37,6 +37,7 @@ const FILES = [
   'screens/shared/owner-mode.js',
   'screens/shared/dialog.js',
   'screens/shared/activity-prefs.js',
+  'screens/shared/teacher-profile.js',
   'screens/shared/speech-input.js',
   'screens/library/library.js'
 ];
