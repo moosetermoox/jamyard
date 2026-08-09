@@ -10,37 +10,58 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-08)
+### START HERE next session (updated 2026-08-08, evening session)
 
-Everything through the 2026-08-08 session is DEPLOYED. That session (see
-CHANGELOG 2026-08-07/08 entries, 15 commits): winner phase shows WHAT was
-won for + drumroll reveal; mic input everywhere (corner icon, student +
-teacher surfaces, Web Speech, no audio to server); library doorway goes
-straight to Create; legacy whole-config generator RETIRED (bricks-only);
-templates consolidated into recipes (question-share is recipe 19); landing
-refresh (new headline/tagline + library carousel); Customize asks 2-3 AI
-questions then tailors the copy via the validated revise flow; the em dash
-rule (swept ~500 sites, enforced by tests/style/no-em-dash.test.js +
-STYLE_RULES on every AI call); the "Not sure what to make" concierge
-(fixed questions, suggestions validated against real catalogs); Builder
-puzzle-piece cards + dependency nudges + AI-tile guard. 991 tests.
-New game #33: Fix One Thing. Fresh user feedback shaping the product:
-students read em dashes as an AI tell; nothing should be makeable that
-can't be assembled from validated bricks.
+Everything through the 2026-08-08 EVENING session is DEPLOYED (5 commits
+on top of the day session, all CI-green). The evening session (see the
+six CHANGELOG 2026-08-08 entries from "persona field test" onward):
+
+- **Persona field test**: three agent testers (history teacher / bored
+  student / ex-IDEO designer) reviewed the live build independently.
+  Report artifact + full findings in the session transcript. The two
+  convergent findings were late-join stranding and dead wait screens.
+- **Everything actionable shipped same day**: late-join fix (new players
+  drop into the current phase; simulate-late-join.js), Customize revise
+  envelope fix + concierge min/max clamping, escaped-em-dash sweep +
+  scanner hardening (decoded token values), holding screens (lobby
+  avatar roster + counts-only room-progress on every wait;
+  simulate-holding.js), library findability (keywords on 12 configs +
+  any-subject search rescue + ?q=), /privacy page, a11y batch
+  (focus-visible ring, 40px mic target, detached-mic fix), host
+  pre-room redesign (picker card, roster chips, start hint; found the
+  ?game= deep-link updateDesc bug), editor header 3-role button palette.
+- **New game #34: Last One Standing** (games/last-one-standing) — the
+  teacher's faculty icebreaker: 4 escalating facts, foreach deals cards
+  fact-by-fact on the projector, the ROOM stands/sits physically.
+  Robot-playtested clean. Lesson recorded in memory: the universal sim
+  false-alarms on timerless announce→collect chains (double-advance);
+  verify with the robot playtest.
+- **Editor: "How many get read"** — foreach/reveal-one limit now
+  editable in Simple (inline fragment), Builder, and Advanced.
+- **CLAUDE.md slimmed** 9.3k → 1.7k words (history in
+  docs/CLAUDE-ARCHIVE.md).
+
+998 tests. Curation DECIDED: one-voice stays override-off, Closer stays
+unfeatured (teacher's call, don't re-raise).
 
 Device stance unchanged: **students are on Chromebooks — phones are
 banned in schools**; the teacher console is "a second device."
 
 NEXT PRIORITIES (August field tests are NOW):
-1. **Real-device pass**: mic dictation quality on an actual Chromebook,
-   the concierge with a real upcoming lesson, Customize on a real class.
-   These three shipped verified-by-automation but never human-tested.
-2. **Teacher cheat sheet** (one page, "if X goes wrong do Y") — still the
-   top pick, still unwritten.
-3. Proxy playtests / day-one kit / compliance facts / PZ email — see the
-   numbered items below (unchanged).
-4. Deferred polish: semantic puzzle tabs (shape by what a step produces),
-   relay + merge mic coverage, match/sort/drawing recipes (#4 below).
+1. **Fill the /privacy placeholders** — the page is LIVE with visible
+   yellow "[operator name]" / "[privacy contact email]" placeholders.
+   Two facts from the teacher close it (same facts block the § 1
+   compliance documents).
+2. **Real-device pass**: mic dictation on an actual Chromebook, the
+   concierge with a real lesson, Customize on a real class — now ALSO
+   the holding screens + late-join on real school wifi.
+3. **Teacher cheat sheet** (one page, "if X goes wrong do Y") — still
+   the top pick among docs, still unwritten.
+4. Field-test copy nits (small): "Answer the question:" hardcoded over
+   drawing pads; stray 0/280 counter on choice screens; home/library
+   near-identical headlines.
+5. Proxy playtests / day-one kit / PZ email — see the numbered items
+   below (unchanged).
 
 0.4. **BUILT 2026-08-01 (one arc, one day):** design pass (fonts/theme/
    emoji cleanup), tooltips, surfaces Phase 1 (library = one shelf,
