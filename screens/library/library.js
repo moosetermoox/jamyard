@@ -644,7 +644,7 @@ function renderClassLine(profile) {
   var text = document.createElement('span');
   text.textContent = profile
     ? 'Your class: ' + TeacherProfile.describe()
-    : 'Tell us your grade and subjects and we\'ll suggest questions that fit your class.';
+    : 'Tell us your grade and subjects, and Customize will suggest ready-made questions that fit your class.';
   line.appendChild(text);
   var change = document.createElement('button');
   change.type = 'button';
@@ -691,7 +691,7 @@ function renderSetupCard() {
 
   var ask = document.createElement('p');
   ask.className = 'teacher-setup-ask';
-  ask.textContent = 'What do you teach? We\'ll suggest ready-made questions that fit your class.';
+  ask.textContent = 'What do you teach? When you customize an activity, we\'ll suggest ready-made questions that fit your class.';
   card.appendChild(ask);
 
   function chipRow(options, isPicked, onPick) {
