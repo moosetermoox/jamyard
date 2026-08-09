@@ -47,17 +47,39 @@ unfeatured (teacher's call, don't re-raise).
 Device stance unchanged: **students are on Chromebooks — phones are
 banned in schools**; the teacher console is "a second device."
 
-2026-08-09 session (social-studies persona review → onboarding wave):
-**Teacher cheat sheet SHIPPED as /guide** (finally — was the top doc pick),
-plus: /owner route replaces the confusing "Show full library (site owner)"
-link, first-visit teacher setup card on the library (grade band + subjects
-→ localStorage TeacherProfile), six subject prompt decks (social studies /
-ELA / science) wired into both-sides-rope + whose-eyes with "for your
-class" picker sorting + prefill, Customize passes the class profile to the
-revise request. 1008 tests. Reviewer items consciously deferred: standards
-filters (subject keywords cover it), full differentiation support, card
-metadata (grade band / noise level / interaction mode on cards — good
-next-session candidate).
+2026-08-09 session (social-studies persona review → onboarding wave), ALL
+DEPLOYED (4 CI-green pushes through ce1f1b9):
+- **Teacher cheat sheet SHIPPED as /guide** (finally — was the top doc
+  pick): what you need, first five minutes, live controls, if-X-do-Y
+  table, privacy in a breath. Promoted from the homepage ("First time?"
+  line under the primary cards + footer link) and the library footnote.
+- **/owner route** replaces the confusing "Show full library (site owner)"
+  links (library + designer); 302 → /library?owner=1 unlock flow.
+- **TeacherProfile + first-visit setup card** on the library (grade band +
+  subjects → localStorage, screens/shared/teacher-profile.js). Card copy
+  promises suggestions "when you customize" (not before — teacher's catch).
+- **Six subject prompt decks** (social studies / ELA / science claims +
+  perspective topics) wired into both-sides-rope + whose-eyes; deck picker
+  floats profile-matched decks first ("for your class") and prefills
+  untouched defaults. Prompts 261 → 309.
+- **Customize knows the class**: profile rides customize-questions (the
+  prompt forbids re-asking grade/subject and goes one level deeper, e.g.
+  "What specific science topic is your class studying right now?"), the
+  dialog shows "Writing for your class: ...", revise gets it too.
+  Teacher's live feedback drove this: it was re-asking what the card asked.
+- **Story Builder rebuilt everyone-writes** (teacher's call: relay = one
+  types, 17 wait): all students open from a shared seed (promptDeck, new
+  story-premises deck), 4 appendOnly rotation rounds, reveal scope:"own"
+  returns each story to its starter, reveal-one gallery samples
+  ${storiesRead}. N students = N stories, five authors each.
+  Robot-playtested clean (temp-save → simulateGame → delete pattern).
+- CI: checkout/setup-node bumped to v5, test job Node 22 → 24 (matches
+  prod); the deprecated-Node-20 warning is gone.
+**1010 tests.** Reviewer items consciously deferred: standards filters
+(subject keywords cover it), full differentiation support, card metadata
+(grade band / noise level / interaction mode on cards — good next-session
+candidate, now NEXT PRIORITIES #3). Subject decks for along-bank recipes
+(snowball, class-poll) blocked on single-bank spec.bank.
 
 NEXT PRIORITIES (August field tests are NOW):
 1. **Fill the /privacy placeholders** — the page is LIVE with visible
