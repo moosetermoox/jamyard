@@ -316,6 +316,29 @@
     return el('span', 'sv-fact', text);
   }
 
+  // "reads [8] of them at random" — empty means every answer gets a round
+  function limitFact(phase) {
+    var wrap = el('span', 'sv-fact');
+    wrap.appendChild(document.createTextNode('reads '));
+    var input = document.createElement('input');
+    input.type = 'number';
+    input.className = 'sv-timer';
+    input.min = '1';
+    input.max = '100';
+    input.placeholder = 'all';
+    if (phase.limit) input.value = phase.limit;
+    input.addEventListener('input', function () {
+      markEdited();
+      var v = parseInt(input.value, 10);
+      if (v > 0) { phase.limit = Math.min(v, 100); } else { delete phase.limit; }
+    });
+    input.addEventListener('blur', function () { autoSaveIfDirty(); });
+    input.addEventListener('wheel', function () { input.blur(); }, { passive: true });
+    wrap.appendChild(input);
+    wrap.appendChild(document.createTextNode(' of them at random, blank reads all'));
+    return wrap;
+  }
+
   // Reference another step by its number — many steps share a friendly
   // name (Closer has nine "Ask Players"), so "step 4" is the only
   // unambiguous way to point at one.
@@ -679,6 +702,7 @@
           })(phase.subPhases[subNames[si]]);
         }
         d.extra = subWrap;
+        d.facts.push(limitFact(phase));
         if (phase.scoring) d.facts.push(fact(phase.scoring.mode === 'tally' ? 'authors earn points from ratings' : 'correct guesses earn points'));
         break;
       }
@@ -723,6 +747,7 @@
       case 'reveal-one':
         d.sentence = 'Items are revealed one at a time' +
           (phase.from ? ' from ' + humanizeRef(String(phase.from)).toLowerCase() : '') + '.';
+        d.facts.push(limitFact(phase));
         d.muted = true;
         break;
 

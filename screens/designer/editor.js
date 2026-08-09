@@ -2482,6 +2482,13 @@ function renderPhaseConfig(phaseId) {
     addDataRefDropdown('Items from', 'Where to get the list of items to reveal one-by-one', 'phase-from', phaseId, phase.from, function (value) {
       phase.from = value;
     });
+    addFieldWithHelp('How many get shown', 'Leave empty to reveal every item. A number reveals a random sample of that many. Keep it empty when every student\'s item must appear (galleries, encouragement walls).', 'number', 'phase-limit',
+      phase.limit, false, function (value) {
+        var n = parseInt(value, 10);
+        phase.limit = (n >= 1) ? Math.min(n, 100) : undefined;
+        isDirty = true;
+      }
+    );
     var revOneTA = addTextAreaWithHelp('Title message', 'Shown above the reveal area.', 'phase-message', phase.message, 'e.g. And the answers are...', function (value) {
       phase.message = value;
       renderCanvas();
@@ -3268,6 +3275,14 @@ function renderPhaseConfig(phaseId) {
     addSelectWithHelp('Go through', 'Pick which set of player answers to show one at a time', 'phase-data',
       foreachDataOptions, phase.data || '', function (value) {
         phase.data = value || undefined;
+        isDirty = true;
+      }
+    );
+
+    addFieldWithHelp('How many get read', 'Leave empty to run every answer. A number runs a random sample of that many (a round per answer drags past ~12 in a full class).', 'number', 'phase-limit',
+      phase.limit, false, function (value) {
+        var n = parseInt(value, 10);
+        phase.limit = (n >= 1) ? Math.min(n, 100) : undefined;
         isDirty = true;
       }
     );
