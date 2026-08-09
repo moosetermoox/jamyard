@@ -1303,15 +1303,22 @@ select {
 .one-voice-celebrating .one-voice-banner { background: #C8E6C9; }
 .one-voice-controls { margin-top: 18px; display: flex; gap: 12px; justify-content: center; }
 
-/* --- Teacher view chip (click-to-reveal PIN) --- */
+/* --- Teacher view chip (click-to-reveal PIN) ---
+   Fixed corner chip, present in every phase once a room exists, so the
+   teacher can pair a console mid-activity. Bottom-right: the sound toggle
+   owns top-right, the brand mark owns top-left. */
 .teacher-view-chip {
-  margin-top: 10px;
+  position: fixed;
+  bottom: 14px;
+  right: 14px;
+  z-index: 100;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
 }
+/* display:flex beats the hidden attribute; without this the chip never hides */
+.teacher-view-chip[hidden] { display: none; }
 #teacher-view-toggle {
   font-size: 0.85em;
   padding: 6px 14px;
@@ -1329,6 +1336,9 @@ select {
   border: 2px solid #000;
   border-radius: 10px;
   padding: 6px 12px;
+  max-width: min(420px, calc(100vw - 40px));
+  text-align: right;
+  overflow-wrap: break-word;
 }
 
 /* --- Preview privacy (content off the projector by default) --- */

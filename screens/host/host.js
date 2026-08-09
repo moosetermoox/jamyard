@@ -93,11 +93,14 @@ const previewApproveBtn = document.getElementById('preview-approve-btn');
 const previewRejectBtn = document.getElementById('preview-reject-btn');
 const previewPrivate = document.getElementById('preview-private');
 const previewRevealBtn = document.getElementById('preview-reveal-btn');
+const previewPrivacyHint = document.getElementById('preview-privacy-hint');
 
 // Elements - Teacher view chip (click-to-reveal PIN)
+const teacherViewChip = document.getElementById('teacher-view-chip');
 const teacherViewToggle = document.getElementById('teacher-view-toggle');
 const teacherViewInfo = document.getElementById('teacher-view-info');
 let currentTeacherPin = null;
+let teacherConsolePaired = false;
 
 // The host screen is projected — the PIN appears only after a deliberate
 // two-step confirm (first tap warns, second tap shows), and auto-hides
@@ -132,6 +135,7 @@ teacherViewToggle.addEventListener('click', () => {
 // Pairing visibility: announce every console join on the projector chip.
 const teacherDeviceNotice = document.getElementById('teacher-device-notice');
 socket.on('teacher-console-joined', ({ deviceCount }) => {
+  teacherConsolePaired = true;
   hidePinInfo(); // paired — no reason to keep the PIN on the wall
   if (teacherDeviceNotice) {
     teacherDeviceNotice.hidden = false;
@@ -658,6 +662,7 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored 
   if (qrPanel) qrPanel.hidden = true;
   if (showQrBtn) showQrBtn.textContent = 'Show QR code';
   teacherViewInfo.hidden = true; // PIN stays hidden until deliberately revealed
+  teacherViewChip.hidden = false; // room exists, pairing is possible from any phase
 
   // Remember this room so an F5 (or a server restart) can rebind instead of
   // killing the game for the whole class.
@@ -816,7 +821,11 @@ socket.on('processing-started', ({ task, hostTemplate, hostShow } = {}) => {
 socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
   showSection(previewSection);
   // Private by default: this screen is projected. The teacher reviews on
-  // their Teacher view, or deliberately reveals here.
+  // their Teacher view, or deliberately reveals here. If no console is
+  // paired yet, point at the corner chip instead of a view they don't have.
+  previewPrivacyHint.textContent = teacherConsolePaired
+    ? 'The content is hidden from this (projected) screen. Review it on your 👁 Teacher view, or reveal it here.'
+    : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use the 💻 chip in the corner to pair one on a second device, or reveal it here.';
   previewPrivate.hidden = true;
   previewRevealBtn.textContent = '👁 Show on this screen';
   previewContent.textContent = content;

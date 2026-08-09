@@ -37,11 +37,6 @@
         <img id="qr-image" class="qr-image" alt="Scan this code to join">
         <p id="join-url" class="join-url"></p>
       </div>
-      <div class="teacher-view-chip">
-        <button id="teacher-view-toggle" type="button" title="Open the private teacher console on a second device, your laptop or a spare Chromebook, to moderate entries, approve previews, and control pacing away from the projector">💻 Teacher controls on a second device</button>
-        <span id="teacher-view-info" class="teacher-view-info" hidden></span>
-        <span id="teacher-device-notice" class="teacher-view-info" hidden></span>
-      </div>
     </div>
 
     <!-- Hidden until a room exists, an empty roster and a dead Start
@@ -435,6 +430,16 @@
     <h2 class="game-over">That's a wrap!</h2>
     <button id="play-again-btn">Play Again</button>
   </section>
+
+  <!-- Teacher-view pairing chip: fixed corner, visible in every phase once a
+       room exists, so a teacher who skipped pairing in the lobby can still
+       open the console mid-activity (e.g. at a preview gate). The PIN itself
+       stays behind the two-step reveal in host.js. -->
+  <div id="teacher-view-chip" class="teacher-view-chip" hidden>
+    <button id="teacher-view-toggle" type="button" title="Open the private teacher console on a second device, your laptop or a spare Chromebook, to moderate entries, approve previews, and control pacing away from the projector">💻 Teacher controls on a second device</button>
+    <span id="teacher-view-info" class="teacher-view-info" hidden></span>
+    <span id="teacher-device-notice" class="teacher-view-info" hidden></span>
+  </div>
 
   <script src="/shared/themes.js"></script>
   <script src="/shared/juice.js"></script>
