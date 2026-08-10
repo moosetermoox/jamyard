@@ -3019,3 +3019,244 @@ body {
 
 .save-status-clean { color: #CFC5B4; }
 .save-status-dirty { color: #FFC3DC; }
+
+/* ════════════════════════════════════════════════════════════════
+   PASTE-UP SKIN, PASS 2 — Builder view + rail + advanced settings.
+   The rail hosts the relocated settings forms, so it needs its own
+   input coverage. Role-coded section bands and step-category tints
+   keep their hues (data coding) but square onto paper geometry.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Header view toggle: a scrap holding two chips, active flips to ink */
+.view-toggle {
+  background: #FFFDF6;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
+  padding: 3px;
+}
+
+.view-toggle-btn {
+  border-radius: 2px;
+  color: #55503F;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+}
+
+/* More-menu dropdown: a pasted sheet with plain scrap items */
+.header-menu-items {
+  background: #FBF7EC;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 4px 5px 0 rgba(34,30,28,0.25);
+}
+
+.header-menu-items .btn {
+  background: #FFFDF6;
+  color: #221E1C;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
+}
+
+.header-menu-items .btn:hover { background: #FFFDF6; }
+
+/* The builder rail: sheet, not yellow */
+#builder-rail {
+  background: #FBF7EC;
+  border-left: 1px solid rgba(34,30,28,0.18);
+}
+
+.builder-tab {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+  color: #55503F;
+}
+
+.builder-tab.active { background: #221E1C; color: #FBF7EC; }
+
+/* Relocated settings forms: rail inputs sit square with inset shadows
+   (the #settings-panel/#phase-panel selectors stop matching here) */
+#builder-rail input, #builder-rail textarea, #builder-rail select,
+#builder-rail-body input, #builder-rail-body textarea, #builder-rail-body select {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16);
+}
+
+#builder-rail input:focus, #builder-rail textarea:focus, #builder-rail select:focus,
+#builder-rail-body input:focus, #builder-rail-body textarea:focus, #builder-rail-body select:focus {
+  border: none;
+  outline: none;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C;
+}
+
+#builder-rail input[type="checkbox"], #builder-rail-body input[type="checkbox"] {
+  box-shadow: none;
+}
+
+/* Role-coded section bands keep their hues, squared onto paper */
+.config-section-header.role-section-host,
+.config-section-header.role-section-player,
+.config-section-header.role-section-ai,
+.config-section-header.role-section-both,
+.config-section-header.role-section-flow {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.18);
+}
+
+.config-section-header { border-top-color: rgba(34,30,28,0.18); color: #55503F; }
+
+/* Advanced/optional collapsible toggles: scrap paper strips */
+.advanced-toggle {
+  background: #FFFDF6;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+}
+
+.advanced-toggle:hover { background: #FFFDF6; filter: none; box-shadow: 1px 1px 0 rgba(34,30,28,0.14), 0 0 0 2px #221E1C; }
+
+.advanced-fields {
+  border: none;
+  border-radius: 0 0 2px 2px;
+  background: rgba(255,253,246,0.6);
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.12);
+}
+
+/* Builder canvas cards: puzzle pieces on the gesso */
+.builder-step::before {
+  background: #EFE9DC;
+  border-color: #221E1C;
+  border-top: none;
+}
+
+.builder-step::after { border-color: #221E1C; border-top: none; }
+
+/* Selection reads as the ink ring, not cobalt */
+.builder-step.selected {
+  border: 3px solid #221E1C;
+  box-shadow: 4px 4px 0 rgba(34,30,28,0.25);
+}
+
+.builder-step.selected::before,
+.builder-step.selected::after {
+  border-color: #221E1C;
+  border-top: none;
+}
+
+.builder-step-num { border-radius: 2px; border: none; box-shadow: 0 0 0 1px rgba(34,30,28,0.25); }
+
+/* Step tools: visible enough to find, quiet enough to ignore */
+.builder-step-tools { opacity: 0.45; }
+
+.builder-step-tool {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.3);
+}
+
+.builder-step-tool:hover { background: #EFE9DC; }
+.builder-step-del { color: #B31E63; box-shadow: 0 0 0 1px #B31E63; }
+.builder-step-del:hover { background: #B31E63; color: #FFF6EA; }
+
+/* Insert dots + suggestion popover */
+.builder-plus {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
+}
+
+.builder-plus.open { background: #221E1C; color: #FBF7EC; box-shadow: none; }
+
+.builder-suggest {
+  border: none;
+  border-radius: 2px;
+  background: #FBF7EC;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.14), 0 0 0 2px #221E1C;
+}
+
+.builder-suggest-ai {
+  background: #F3E5F5;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.14), 0 0 0 2px #221E1C;
+}
+
+.builder-suggest-ai .builder-plus.open { background: #221E1C; }
+
+.builder-why {
+  background: #FFFDF6;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.3);
+}
+
+.builder-suggest-all {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+}
+
+/* "Your activity is ready": a paper sheet with the loud ring */
+.builder-done {
+  border: none;
+  border-radius: 2px;
+  background: #FBF7EC;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.12), 0 0 0 2px #D62A78;
+}
+
+.builder-done-check { color: #55503F; }
+
+.builder-done-btn {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.builder-done-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+}
+
+.builder-done-btn.primary { background: #D62A78; color: #FFF6EA; transform: rotate(-0.8deg); }
+.builder-done-btn.primary:hover { transform: rotate(-0.8deg) translate(2px, 2px); }
+.builder-done-btn.secondary { background: #FFFDF6; color: #221E1C; }
+
+.builder-done-link { color: #6E6353; }
+
+/* Technical view: toolbar strip + inline phase-box editors onto paper */
+#canvas-toolbar {
+  background: #FBF7EC;
+  border-bottom: 1px solid rgba(34,30,28,0.18);
+}
+
+#canvas-loading { color: #6E6353; text-transform: none; }
+#canvas-error { color: #B31E63; text-transform: none; }
+
+.phase-box { border-radius: 2px; }
+
+.phase-box-primary-input {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.20);
+}
+
+.phase-box-primary-input:focus {
+  border: none;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C;
+}
+
+.phase-box-primary-summary {
+  border-radius: 2px;
+  background: rgba(255,253,246,0.75);
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.14);
+}
+
+.phase-box-primary-preview { border-radius: 2px; }

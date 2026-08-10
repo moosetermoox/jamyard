@@ -6,36 +6,58 @@
   <title>Feedback Inbox. Lanyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <style>
+    /* Paste-up system (docs/paper-layout-test/): paper entries on a
+       grained gesso ground, ink band header, category chips flip ink. */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root { --focus-ring: 3px solid #221E1C; }
 
     body {
       font-family: 'Nunito', Arial, sans-serif;
-      background: #FFFDE7;
+      font-weight: 600;
+      background: #EFE9DC;
+      color: #221E1C;
       min-height: 100vh;
     }
 
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      pointer-events: none;
+      opacity: 0.5;
+      background-image:
+        radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px),
+        radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px);
+      background-size: 4px 4px, 7px 7px;
+      background-position: 0 0, 2px 3px;
+    }
+
     header {
-      background: #0057FF;
-      border-bottom: 4px solid #000;
-      padding: 16px 28px;
+      background: #221E1C;
+      padding: 14px 28px;
       display: flex;
       align-items: center;
       gap: 14px;
       flex-wrap: wrap;
+      box-shadow: 0 3px 0 rgba(34,30,28,0.10);
     }
 
     header a.logo {
       font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-size: 1.4rem;
-      font-weight: 900;
-      color: #FFD600;
+      font-size: 1.2rem;
+      color: #FBF7EC;
       text-decoration: none;
     }
 
     header .title {
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-size: 1rem;
-      color: #fff;
+      font-family: 'Nunito', Arial, sans-serif;
+      font-weight: 800;
+      font-size: 0.9rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #CFC5B4;
     }
 
     main {
@@ -52,39 +74,54 @@
 
     .tabs button {
       padding: 8px 18px;
-      border: 2.5px solid #000;
-      border-radius: 999px;
-      background: #fff;
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+      border: none;
+      border-radius: 2px;
+      background: #FFFDF6;
+      box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+      font-family: 'Nunito', Arial, sans-serif;
       font-size: 0.85rem;
-      font-weight: 900;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      color: #221E1C;
       cursor: pointer;
+      transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
     }
 
+    .tabs button:nth-child(odd) { transform: rotate(-0.7deg); }
+    .tabs button:nth-child(even) { transform: rotate(0.6deg); }
+
+    .tabs button:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 0 0 0 rgba(34,30,28,0.14);
+    }
+
+    /* Selected tab flips to ink */
     .tabs button.active {
-      background: #FFD600;
+      background: #221E1C;
+      color: #FBF7EC;
     }
 
     .empty, .loading, .error {
-      color: #666;
+      color: #6E6353;
+      font-weight: 700;
       padding: 30px 0;
       text-align: center;
     }
 
-    .error { color: #CC0000; }
+    .error { color: #B31E63; }
 
     .entry {
-      background: #fff;
-      border: 3px solid #000;
-      border-radius: 14px;
-      box-shadow: 3px 3px 0 #000;
+      background: #FFFDF6;
+      border: none;
+      border-radius: 2px;
+      box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.08);
       padding: 14px 16px;
       margin-bottom: 14px;
     }
 
     .entry.is-done {
       opacity: 0.55;
-      box-shadow: none;
+      box-shadow: 0 0 0 1px rgba(34,30,28,0.10);
     }
 
     .entry-top {
@@ -94,23 +131,25 @@
       flex-wrap: wrap;
       margin-bottom: 8px;
       font-size: 0.78rem;
-      color: #555;
+      color: #6E6353;
     }
 
     .entry-category {
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-size: 0.78rem;
-      font-weight: 900;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       padding: 3px 10px;
-      border: 2px solid #000;
-      border-radius: 999px;
-      background: #E3F2FD;
-      color: #000;
+      border: none;
+      border-radius: 2px;
+      background: #EFE9DC;
+      box-shadow: 0 0 0 1px rgba(34,30,28,0.18);
+      color: #221E1C;
     }
 
-    .entry-category.cat-problem { background: #FFCDD2; }
-    .entry-category.cat-idea    { background: #C8E6C9; }
-    .entry-category.cat-praise  { background: #FFF3C4; }
+    /* Problems get the loud mark; other categories stay quiet paper */
+    .entry-category.cat-problem { box-shadow: 0 0 0 2px #B31E63; color: #B31E63; }
+    .entry-category.cat-praise  { background: #FFD3E6; }
 
     .entry-message {
       white-space: pre-wrap;
@@ -122,16 +161,23 @@
 
     .entry-actions button {
       padding: 6px 14px;
-      border: 2px solid #000;
-      border-radius: 8px;
-      background: #fff;
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+      border: none;
+      border-radius: 2px;
+      background: #FFFDF6;
+      box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+      font-family: 'Nunito', Arial, sans-serif;
       font-size: 0.75rem;
-      font-weight: 900;
+      font-weight: 800;
       cursor: pointer;
+      transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
     }
 
-    .entry-actions button:hover { background: #000; color: #fff; }
+    .entry-actions button:hover {
+      background: #221E1C;
+      color: #FBF7EC;
+      transform: translate(2px, 2px);
+      box-shadow: 0 0 0 rgba(34,30,28,0.14);
+    }
   </style>
 </head>
 <body>

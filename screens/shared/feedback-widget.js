@@ -24,30 +24,43 @@
   function init() {
     if (document.getElementById('feedback-widget-btn')) return;
 
+    // Paste-up system: a quiet paper scrap that opens a pasted sheet.
     var style = document.createElement('style');
     style.textContent = [
       '#feedback-widget-btn { position: fixed; bottom: 18px; right: 18px; z-index: 9000;',
-      '  padding: 10px 16px; background: #0057FF; color: #fff; border: 2.5px solid #000;',
-      '  border-radius: 999px; font-family: "Archivo Black", "Arial Black", Arial, sans-serif; font-size: 0.85rem;',
-      '  font-weight: 900; cursor: pointer; box-shadow: 3px 3px 0 #000; }',
-      '#feedback-widget-btn:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 #000; }',
-      '#feedback-widget-panel { position: fixed; bottom: 70px; right: 18px; z-index: 9001;',
-      '  width: 300px; max-width: calc(100vw - 36px); background: #FFFDE7; border: 3px solid #000;',
-      '  border-radius: 16px; padding: 16px; box-shadow: 5px 5px 0 #000;',
-      '  font-family: "Nunito", Arial, sans-serif; }',
+      '  padding: 9px 16px; background: #FFFDF6; color: #221E1C; border: none;',
+      '  border-radius: 2px; font-family: "Nunito", Arial, sans-serif; font-size: 0.82rem;',
+      '  font-weight: 800; letter-spacing: 0.04em; cursor: pointer; transform: rotate(1deg);',
+      '  box-shadow: 2px 2px 0 rgba(34,30,28,0.18);',
+      '  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end); }',
+      '#feedback-widget-btn:hover { transform: rotate(1deg) translate(2px, 2px); box-shadow: 0 0 0 rgba(34,30,28,0.18); }',
+      '#feedback-widget-panel { position: fixed; bottom: 66px; right: 18px; z-index: 9001;',
+      '  width: 300px; max-width: calc(100vw - 36px); background: #FBF7EC; border: none;',
+      '  border-radius: 2px; padding: 16px; box-shadow: 5px 6px 0 rgba(34,30,28,0.25);',
+      '  transform: rotate(-0.4deg); color: #221E1C;',
+      '  font-family: "Nunito", Arial, sans-serif; font-weight: 600; }',
       '#feedback-widget-panel[hidden] { display: none; }',
       '#feedback-widget-panel h3 { margin: 0 0 10px; font-family: "Archivo Black", "Arial Black", Arial, sans-serif;',
-      '  font-size: 1rem; }',
+      '  font-weight: 400; font-size: 0.95rem; letter-spacing: 0.04em; }',
       '#feedback-widget-panel select, #feedback-widget-panel textarea { width: 100%;',
-      '  border: 2px solid #000; border-radius: 8px; padding: 8px; font-family: "Nunito", Arial, sans-serif;',
-      '  font-size: 0.9rem; background: #fff; margin-bottom: 8px; box-sizing: border-box; }',
+      '  border: none; border-radius: 2px; padding: 8px; font-family: "Nunito", Arial, sans-serif; font-weight: 600;',
+      '  font-size: 0.9rem; background: #FFFDF6; color: #221E1C; margin-bottom: 8px; box-sizing: border-box;',
+      '  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16); }',
+      '#feedback-widget-panel select:focus, #feedback-widget-panel textarea:focus { outline: none;',
+      '  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C; }',
       '#feedback-widget-panel textarea { min-height: 90px; resize: vertical; }',
-      '.feedback-widget-hint { font-size: 0.72rem; color: #777; margin: 0 0 10px; }',
+      '.feedback-widget-hint { font-size: 0.72rem; color: #6E6353; margin: 0 0 10px; }',
       '.feedback-widget-row { display: flex; gap: 8px; justify-content: flex-end; }',
-      '.feedback-widget-row button { padding: 8px 14px; border: 2px solid #000; border-radius: 8px;',
-      '  font-family: "Archivo Black", "Arial Black", Arial, sans-serif; font-size: 0.8rem; font-weight: 900; cursor: pointer; }',
-      '#feedback-widget-send { background: #FFD600; }',
-      '#feedback-widget-cancel { background: #fff; }',
+      '.feedback-widget-row button { padding: 8px 14px; border: none; border-radius: 2px;',
+      '  font-size: 0.8rem; cursor: pointer; box-shadow: 2px 2px 0 rgba(34,30,28,0.18);',
+      '  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end); }',
+      '.feedback-widget-row button:hover { transform: translate(2px, 2px); box-shadow: 0 0 0 rgba(34,30,28,0.18); }',
+      '#feedback-widget-send { background: #D62A78; color: #FFF6EA;',
+      '  font-family: "Archivo Black", "Arial Black", Arial, sans-serif; font-weight: 400; transform: rotate(-0.8deg); }',
+      '#feedback-widget-send:hover { transform: rotate(-0.8deg) translate(2px, 2px); }',
+      '#feedback-widget-send:disabled { background: #D8D2C4; color: #857A66; box-shadow: none; transform: none; }',
+      '#feedback-widget-cancel { background: #FFFDF6; color: #221E1C;',
+      '  font-family: "Nunito", Arial, sans-serif; font-weight: 800; }',
       '.feedback-widget-status { font-size: 0.82rem; font-weight: bold; margin: 0 0 8px; }'
     ].join('\n');
     document.head.appendChild(style);
@@ -117,13 +130,13 @@
     send.addEventListener('click', function () {
       var message = textarea.value.trim();
       status.hidden = false;
-      status.style.color = '#CC0000';
+      status.style.color = '#B31E63';
       if (message.length < 3) {
         status.textContent = 'Please write a bit more.';
         return;
       }
       send.disabled = true;
-      status.style.color = '#333';
+      status.style.color = '#55503F';
       status.textContent = 'Sending…';
       fetch('/api/feedback', {
         method: 'POST',
@@ -137,7 +150,7 @@
         return resp.json().catch(function () { return {}; }).then(function (data) {
           send.disabled = false;
           if (resp.ok) {
-            status.style.color = '#1B5E20';
+            status.style.color = '#221E1C';
             status.textContent = 'Thanks, got it!';
             textarea.value = '';
             setTimeout(function () {
@@ -145,13 +158,13 @@
               status.hidden = true;
             }, 1600);
           } else {
-            status.style.color = '#CC0000';
+            status.style.color = '#B31E63';
             status.textContent = data.error || 'Could not send. Please try again.';
           }
         });
       }).catch(function () {
         send.disabled = false;
-        status.style.color = '#CC0000';
+        status.style.color = '#B31E63';
         status.textContent = 'Network problem, please try again.';
       });
     });
