@@ -2766,3 +2766,256 @@ textarea.sar-input {
   box-shadow: 2px 2px 0 #000;
 }
 .builder-plusline { margin: -6px 0 6px; }
+
+/* ════════════════════════════════════════════════════════════════
+   PASTE-UP SKIN (docs/paper-layout-test/) — editor chrome re-theme.
+   Ink header band, cut-paper buttons, gesso canvas, paper panels,
+   square inset inputs, 2px radii. Phase-type and builder-tile
+   category colors are kept: they are data coding, not decoration.
+   Appended last so it wins every earlier rule it repeats.
+   ════════════════════════════════════════════════════════════════ */
+
+:root { --focus-ring: 3px solid #221E1C; }
+
+body {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 600;
+  background: #EFE9DC;
+  color: #221E1C;
+}
+
+/* Ink band header (the tool chrome) */
+#editor-header {
+  background: #221E1C;
+  border-bottom: none;
+  box-shadow: 0 3px 0 rgba(34,30,28,0.10);
+}
+
+.header-left h1 {
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  color: #FBF7EC;
+  letter-spacing: 0.08em;
+}
+
+#editor-header .back-link { color: #CFC5B4; }
+#editor-header .back-link:hover { color: #FBF7EC; text-decoration: none; }
+
+/* Buttons: paper cuts with the two-step snap. Three header roles keep
+   their hierarchy: primary = the one magenta, attention = paper pops
+   on ink, quiet = outlined ghost. */
+.btn {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.30);
+}
+
+.btn-primary { background: #D62A78; color: #FFF6EA; }
+.btn-primary:hover { background: #D62A78; }
+
+.btn-secondary { background: #FFFDF6; color: #221E1C; }
+.btn-secondary:hover { background: #FFFDF6; }
+
+.btn-ghost {
+  background: transparent;
+  color: #FBF7EC;
+  border: none;
+  box-shadow: inset 0 0 0 2px rgba(251,247,236,0.7);
+}
+
+.btn-ghost:hover {
+  background: rgba(251,247,236,0.12);
+  border: none;
+  box-shadow: inset 0 0 0 2px #FBF7EC;
+  transform: none;
+}
+
+.btn-danger { background: #FFFDF6; color: #B31E63; box-shadow: 2px 2px 0 rgba(34,30,28,0.30), inset 0 0 0 1px #B31E63; }
+
+/* Panels: paper on the gesso */
+#settings-panel,
+#phase-panel,
+#builder-palette {
+  background: #FBF7EC;
+  border-color: rgba(34,30,28,0.18);
+}
+
+#canvas-area, #phase-canvas, #builder-canvas { background: #EFE9DC; }
+
+/* Inputs sit square with an inset shadow */
+#settings-panel input, #settings-panel textarea, #settings-panel select,
+#phase-panel input, #phase-panel textarea, #phase-panel select,
+.sv-text, .sv-list-input, .sv-timer, .sar-input,
+.picker-modal input, .picker-modal textarea {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16);
+}
+
+#settings-panel input:focus, #settings-panel textarea:focus, #settings-panel select:focus,
+#phase-panel input:focus, #phase-panel textarea:focus, #phase-panel select:focus,
+.sv-text:focus, .sv-list-input:focus, .sar-input:focus {
+  border: none;
+  outline: none;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C;
+}
+
+.sv-token-box {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16);
+  padding: 8px 10px;
+}
+
+.sv-token-box:focus-within {
+  border: none;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C;
+}
+
+/* Phase boxes: keep the type color coding, square the paper */
+.phase-box {
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+}
+
+/* Simple view: numbered sentence cards as paper scraps */
+.sv-card {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.08);
+}
+
+.sv-card.sv-muted { background: #F4EFE2; border: none; }
+
+.sv-num {
+  border: none;
+  border-radius: 2px;
+  background: #221E1C;
+  color: #FBF7EC;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
+.sv-muted .sv-num { background: #857A66; }
+
+/* Token chips: data references as little labeled scraps */
+.sv-chip {
+  background: #EFE9DC;
+  border: none;
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.3);
+  border-radius: 2px;
+  color: #221E1C;
+  font-weight: 800;
+}
+
+.sv-chip-delete { color: #857A66; }
+.sv-chip-delete:hover { color: #B31E63; }
+
+.sv-action { color: #B31E63; }
+.sv-action-quiet { color: #857A66; }
+
+.sv-list-add {
+  border: 1px solid rgba(34,30,28,0.3);
+  border-radius: 2px;
+  color: #55503F;
+}
+
+.sv-list-add:hover { border-color: #221E1C; color: #221E1C; }
+
+.sv-list-remove { border: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(34,30,28,0.2); color: #857A66; }
+.sv-list-remove:hover { color: #B31E63; box-shadow: 0 0 0 1px #B31E63; }
+
+/* Builder view: tiles keep their category colors, squared + pasted */
+.builder-tile {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.18);
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.builder-tile:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+}
+
+.builder-step {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.10);
+}
+
+/* View toggle chips flip to ink */
+.view-toggle-btn.active { background: #221E1C; color: #FBF7EC; }
+
+/* Modals: pasted sheets */
+.picker-overlay, .sar-overlay { background: rgba(34, 30, 28, 0.5); }
+
+.picker-modal, .sar-modal, .fix-preview-modal, .ask-ai-modal-inner, .review-panel {
+  background: #FBF7EC;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 6px 7px 0 rgba(34,30,28,0.25);
+}
+
+.picker-card {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.picker-card:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.14);
+}
+
+.picker-title, .sar-title {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  text-shadow: 1.5px 0 0 rgba(214,42,120,0.26), -1.5px 0 0 rgba(0,165,196,0.20);
+}
+
+.editor-toast {
+  background: #221E1C;
+  color: #FBF7EC;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.25);
+}
+
+/* Blue focus rings go ink on this surface */
+:focus-visible { outline-color: #221E1C !important; }
+
+/* Skin follow-ups: rules that live below the first skin block */
+.btn-host { background: #D62A78; color: #FFF6EA; }
+.btn-host:hover { background: #D62A78; }
+
+.btn-add { background: #221E1C; color: #FBF7EC; }
+.btn-add:hover { background: #221E1C; }
+
+/* Unsaved-changes attention: paper pops on the ink band */
+#save-status.save-status-dirty ~ #save-btn {
+  background: #FFFDF6;
+  color: #221E1C;
+  border-color: transparent;
+}
+
+#save-status.save-status-dirty ~ #save-btn:hover { background: #FFFDF6; }
+
+.save-status-clean { color: #CFC5B4; }
+.save-status-dirty { color: #FFC3DC; }
