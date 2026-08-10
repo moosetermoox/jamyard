@@ -1418,3 +1418,300 @@ body.in-activity h1 {
   font-family: 'Nunito', Arial, sans-serif; font-weight: 700; font-size: 0.55em; line-height: 1.4;
 }
 .msg-card-num { font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif; font-size: 0.85em; opacity: 0.5; flex-shrink: 0; }
+
+/* ════════════════════════════════════════════════════════════════
+   PASTE-UP SKIN (docs/paper-layout-test/) — structural re-theme.
+   Colors flow through the --theme-* variables (default preset
+   'paste-up' in shared/themes.js; per-game themes still override).
+   This layer replaces the border-and-radius look with cut paper:
+   no borders, 2px radii, hard paste shadows, 90ms two-step snaps.
+   Appended last so it wins every earlier rule it repeats.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Ground: readable text is Nunito; display moments stay Archivo. */
+body {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 600;
+}
+
+/* Grain over the gesso, under every paper piece */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px),
+    radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px);
+  background-size: 4px 4px, 7px 7px;
+  background-position: 0 0, 2px 3px;
+}
+
+h1,
+#room-code,
+.big-text,
+.winner-text,
+.game-over,
+.preroom-headline,
+.roster-heading,
+.timer-ring-text,
+.one-voice-count,
+.holding-progress {
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+}
+
+/* The phase heading is the projector's spoken line */
+h2 {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-weight: 400;
+  text-shadow: 2px 0 0 rgba(214,42,120,0.26), -2px 0 0 rgba(0,165,196,0.20);
+}
+
+/* ...except chrome headings that are labels, not spoken lines */
+.preroom-headline,
+.roster-heading {
+  text-shadow: none;
+}
+
+/* The projected question reads in the serif voice too */
+.prompt {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-weight: 400;
+}
+
+/* Hard cuts between phases: fades are off-brand */
+section {
+  transition: none;
+  transform: none;
+}
+
+/* Buttons are paper cuts with the two-step snap */
+button {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+button:hover {
+  opacity: 1;
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 rgba(34,30,28,0.18);
+}
+
+button:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+}
+
+button:disabled,
+#start-game-btn:disabled,
+#close-submissions-btn:disabled,
+#end-game-btn:disabled {
+  background: #D8D2C4;
+  color: #857A66;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Pasted sheets: the big panels */
+#game-select-section,
+#players-section,
+.prompt,
+.buzz-status,
+#responses-list,
+.reveal-content,
+.standings,
+.winner-entry,
+#preview-responses-list,
+.turn-item-card,
+.turn-scoreboard,
+.one-voice-banner,
+#phase-error-section {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 5px 6px 0 rgba(34,30,28,0.10);
+}
+
+#game-select-section { transform: rotate(-0.25deg); }
+.prompt { transform: rotate(-0.3deg); }
+.winner-entry { transform: rotate(0.4deg); }
+.buzz-status { transform: rotate(0.3deg); }
+.turn-item-card { transform: rotate(-0.4deg); }
+.one-voice-banner { transform: rotate(0.35deg); }
+
+/* Smaller cuts: cards, chips, rows */
+.team-card,
+.checklist-group,
+.rate-avg-bars,
+.rate-pie-card,
+#relay-shared-result,
+.reveal-one-item,
+.msg-card,
+.teacher-view-info {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.08);
+}
+
+.checklist-group-done {
+  border: none;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D62A78);
+}
+
+/* Roster chips: little scraps, not pills */
+#player-list li {
+  background: var(--theme-surface, #FBF7EC);
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12);
+}
+
+#player-list li:nth-child(odd) { transform: rotate(-0.6deg); }
+#player-list li:nth-child(even) { transform: rotate(0.5deg); }
+
+.roster-count {
+  border: none;
+  border-radius: 2px;
+  background: var(--theme-bg, #EFE9DC);
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.14);
+}
+
+/* Inputs and selects sit square with an inset shadow */
+select,
+#game-select {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16);
+}
+
+/* Frames around student-made and shared media: white paper, hard shadow */
+.qr-image,
+.phase-image,
+.phase-video,
+.reveal-drawing {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 4px 4px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+}
+
+/* Timer ring: quiet track (the border var is full ink now) */
+.timer-ring-bg {
+  stroke: rgba(34,30,28,0.15);
+}
+
+/* Progress bars: square tracks, hairline rings */
+.checklist-bar,
+.match-accuracy-bar,
+.one-voice-bar-wrapper,
+.rate-avg-bar-track {
+  border: none;
+  border-radius: 2px;
+  background: rgba(34,30,28,0.10);
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.14);
+}
+
+.one-voice-bar-fill { background: var(--theme-success, #D62A78); }
+
+.sort-count {
+  border: none;
+  border-radius: 2px;
+  background: var(--theme-bg, #EFE9DC);
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.14);
+}
+
+/* Corner chrome: sound toggle + teacher chip as small scraps */
+.sfx-toggle {
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
+  transform: rotate(1deg);
+}
+
+.sfx-toggle:hover {
+  transform: rotate(1deg) translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.16);
+}
+
+#teacher-view-toggle,
+#preview-reveal-btn,
+.player-kick-btn {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
+}
+
+#teacher-view-toggle:hover,
+#preview-reveal-btn:hover {
+  background: #FFFDF6;
+}
+
+.teacher-view-info {
+  background: #FFFDF6;
+}
+
+/* Team chips */
+.team-chip {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+}
+
+.team-card-tappable:hover {
+  border: none;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D62A78);
+}
+
+.match-player-list { border-top: 1px solid rgba(34,30,28,0.18); }
+
+/* List row separators soften to hairlines */
+#responses-list li,
+#preview-responses-list li,
+.standings p {
+  border-bottom: 1px solid rgba(34,30,28,0.12);
+}
+
+#responses-list li:last-child,
+#preview-responses-list li:last-child,
+.standings p:last-child {
+  border-bottom: none;
+}
+
+/* Winner entry: the payoff clipping leans on the loud color */
+.winner-entry {
+  box-shadow: 5px 6px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-success, #D62A78);
+}
+
+.leaderboard-highlight { border-radius: 2px; }
+
+#phase-error-section { background: var(--theme-surface, #FBF7EC); }
+
+#phase-error-retry-btn,
+#phase-error-skip-btn {
+  border-radius: 2px;
+  background: var(--theme-button, #221E1C);
+  color: var(--theme-button-text, #FBF7EC);
+}
+
+/* Turn + one-voice hardcoded pre-skin colors, brought onto the palette */
+.turn-item-card,
+.one-voice-banner {
+  background: var(--theme-surface, #FBF7EC);
+}
+
+.turn-team-name,
+.turn-score-value {
+  color: var(--theme-success, #D62A78);
+}
+
+.one-voice-celebrating .one-voice-count { color: var(--theme-success, #D62A78); }
+
+.one-voice-celebrating .one-voice-banner {
+  background: var(--theme-surface, #FBF7EC);
+  box-shadow: 5px 6px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-success, #D62A78);
+}

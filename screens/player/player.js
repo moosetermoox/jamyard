@@ -10,10 +10,10 @@
  * student's own moments (their submit, their personal win).
  */
 
-// Default theme — bold black borders + flat colors, matches the game designer's
-// Keith Haring vibe. Overridden by a game-specific theme when one is set.
+// Default theme — paste-up: paper and ink on gesso, one loud magenta.
+// Overridden by a game-specific theme when one is set.
 if (window.applyGameTheme) {
-  window.applyGameTheme('pop-art');
+  window.applyGameTheme('paste-up');
 }
 
 const socket = io();

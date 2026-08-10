@@ -2,6 +2,25 @@
 // Used by editor (theme picker) and host/player screens (apply CSS vars)
 
 window.GAME_THEMES = {
+  'paste-up': {
+    name: 'Paste-up',
+    icon: '✂️',
+    description: 'Paper and ink on a gesso ground, one loud magenta',
+    juice: { wave: 'triangle' },
+    colors: {
+      bg: '#EFE9DC',
+      surface: '#FBF7EC',
+      accent: '#221E1C',
+      text: '#221E1C',
+      heading: '#221E1C',
+      button: '#221E1C',
+      buttonText: '#FBF7EC',
+      border: '#221E1C',
+      timer: '#221E1C',
+      success: '#D62A78',
+      danger: '#B31E63'
+    }
+  },
   'pop-art': {
     name: 'Pop Art',
     icon: '\uD83C\uDFA8',

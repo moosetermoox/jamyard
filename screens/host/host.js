@@ -10,12 +10,11 @@
  * single active <section>.
  */
 
-// Default theme — bold black borders + flat colors, matches the game designer's
-// Keith Haring vibe. Applied immediately so even pre-game lobby screens look
-// like the rest of the app. A game with its own theme will override this on
-// room-created.
+// Default theme — paste-up: paper and ink on gesso, one loud magenta. Applied
+// immediately so even pre-game lobby screens look like the rest of the app.
+// A game with its own theme will override this on room-created.
 if (window.applyGameTheme) {
-  window.applyGameTheme('pop-art');
+  window.applyGameTheme('paste-up');
 }
 
 const socket = io();

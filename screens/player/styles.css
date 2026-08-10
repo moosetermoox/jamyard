@@ -1395,3 +1395,324 @@ button[hidden] {
   .holding-dots span { animation: none; opacity: 0.5; }
   .holding-avatar-chip { animation: none; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   PASTE-UP SKIN (docs/paper-layout-test/) — structural re-theme.
+   Colors flow through the --theme-* variables (default preset
+   'paste-up' in shared/themes.js; per-game themes still override).
+   Cut paper on a grained gesso ground: no borders, 2px radii, hard
+   paste shadows, 90ms two-step snaps. Appended last so it wins.
+   ════════════════════════════════════════════════════════════════ */
+
+body {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 600;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px),
+    radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px);
+  background-size: 4px 4px, 7px 7px;
+  background-position: 0 0, 2px 3px;
+}
+
+h1,
+.holding-progress,
+.timer-bar-text {
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+}
+
+/* The question is the spoken line, serif with a whisper of misprint */
+.prompt {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-weight: 400;
+  font-size: 1.4rem;
+  text-shadow: 1px 0 0 rgba(214,42,120,0.24), -1px 0 0 rgba(0,165,196,0.18);
+}
+
+/* Hard cuts between phases */
+section {
+  transition: none;
+  transform: none;
+}
+
+/* Buttons are paper cuts with the two-step snap */
+button {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+button:hover {
+  opacity: 1;
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 rgba(34,30,28,0.18);
+}
+
+button:active {
+  opacity: 1;
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+}
+
+button:disabled {
+  background: #D8D2C4;
+  color: #857A66;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Join is the student's "go" moment, same loud color as Submit */
+#join-btn {
+  background: var(--theme-success, #D62A78);
+  color: #FFF6EA;
+}
+
+/* The pass button stays quiet: readable Nunito on scrap */
+.pass-btn {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+}
+
+/* Inputs sit square with an inset shadow */
+input, textarea, .field-input, #merge-draft-input {
+  border: none;
+  background: #FFFDF6;
+  border-radius: 2px;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16);
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 600;
+}
+
+input:focus, textarea:focus, .field-input:focus, #merge-draft-input:focus {
+  border: none;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-text, #221E1C);
+}
+
+#room-code-input {
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+}
+
+input::placeholder, textarea::placeholder {
+  color: #9A8F7C;
+  font-family: 'Nunito', Arial, sans-serif;
+}
+
+.join-label { color: #6E6353; }
+.join-hint { color: #857A66; }
+.char-counter { color: #857A66; }
+
+/* Paper panels and rows */
+.prompt,
+.ai-result,
+#standings-list,
+#leaderboard-standings,
+.winner-entry,
+.screen-template,
+.merge-seed,
+.inherited-block,
+#relay-shared-display,
+.reveal-one-item,
+.team-card,
+.rank-item,
+.sort-item,
+.checklist-item,
+.match-left,
+.match-right,
+.match-answer-list p,
+.rate-scale,
+.rate-avg-bars,
+.rate-pie-card,
+.msg-card {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.08);
+}
+
+.prompt {
+  box-shadow: 4px 4px 0 rgba(34,30,28,0.10);
+  transform: rotate(-0.3deg);
+}
+
+.winner-entry {
+  box-shadow: 4px 4px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-success, #D62A78);
+  transform: rotate(0.4deg);
+}
+
+/* Choice and vote buttons: ink cuts, left-aligned reading */
+.choice-btn,
+.vote-btn,
+.wager-option-btn {
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  color: var(--theme-button-text, #FBF7EC);
+}
+
+/* Selection states flip to the loud color via the theme vars already */
+
+/* Buzzer and one-voice taps: big paper cuts, not circles */
+.buzz-tap {
+  border: none;
+  border-radius: 2px;
+  background: var(--theme-success, #D62A78);
+  transform: rotate(-1deg);
+  box-shadow: 6px 6px 0 rgba(34,30,28,0.22);
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.buzz-tap:active {
+  transform: rotate(-1deg) translate(5px, 5px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.22);
+}
+
+.buzz-tap:disabled {
+  background: #D8D2C4;
+  color: #857A66;
+  box-shadow: none;
+  transform: none;
+}
+
+.one-voice-tap {
+  border: none;
+  border-radius: 2px;
+  transform: rotate(1deg);
+  box-shadow: 6px 6px 0 rgba(34,30,28,0.22);
+}
+
+.one-voice-tap:active:not(:disabled) {
+  transform: rotate(1deg) translate(5px, 5px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.22);
+}
+
+/* Notices */
+.response-notice {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  color: var(--theme-danger, #B31E63);
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px var(--theme-danger, #B31E63);
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+}
+
+#eliminated-banner {
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
+}
+
+/* Timer bar: quiet square track */
+.timer-bar {
+  border-radius: 2px;
+  background: rgba(34,30,28,0.12);
+}
+
+.timer-bar-fill { border-radius: 2px; }
+
+/* Drawing pad: white paper on the gesso */
+.draw-pad,
+.assigned-drawing,
+.reveal-drawing,
+.phase-image {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+}
+
+.draw-swatch { border-radius: 2px; }
+.draw-swatch-active { outline: 3px solid var(--theme-text, #221E1C); outline-offset: 1px; }
+
+.draw-tool-btn {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+}
+
+/* Rank / match drag affordances keep their motion cues */
+.rank-item.rank-drag-over {
+  border: none;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D62A78);
+}
+
+.match-row.rank-drag-over .match-right {
+  border: none;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D62A78);
+}
+
+.rank-arrow { border-radius: 2px; }
+
+.sort-bucket-btn {
+  border-radius: 2px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  background: #FFFDF6;
+  color: var(--theme-text, #221E1C);
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+}
+
+.sort-bucket-btn.sort-bucket-chosen {
+  background: var(--theme-button, #221E1C);
+  color: var(--theme-button-text, #FBF7EC);
+}
+
+.checklist-box {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 2px rgba(34,30,28,0.55);
+}
+
+.checklist-item-done .checklist-box {
+  background: var(--theme-success, #D62A78);
+  color: #FFF6EA;
+  box-shadow: 0 0 0 2px var(--theme-success, #D62A78);
+}
+
+.team-pick-mine {
+  outline: 3px solid var(--theme-success, #D62A78);
+  outline-offset: 1px;
+}
+
+/* Holding screen chips: little scraps */
+.holding-avatar-chip {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12);
+}
+
+.holding-avatar-chip:nth-child(odd) { transform: rotate(-0.8deg); }
+.holding-avatar-chip:nth-child(even) { transform: rotate(0.7deg); }
+
+.leaderboard-highlight { border-radius: 2px; }
+
+/* Turn phase cards */
+.turn-item {
+  border: none;
+  border-radius: 2px;
+  background: var(--theme-surface, #FBF7EC);
+  box-shadow: 4px 4px 0 rgba(34,30,28,0.12);
+  transform: rotate(-0.4deg);
+}
+
+.turn-got-btn,
+.turn-skip-btn {
+  border: none;
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
+}
+
+.turn-role-label.role-describer { color: var(--theme-success, #D62A78); }
+.turn-role-label.role-teammate { color: var(--theme-text, #221E1C); }
