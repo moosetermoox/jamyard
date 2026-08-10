@@ -1,3 +1,8 @@
+/* ══ Preview (prototype) in the paste-up system (docs/paper-layout-test/) ══
+   Cut paper on a grained gesso ground: no borders, 2px radii, hard paste
+   shadows, ink for chrome, one magenta for the primary action (Launch)
+   and the host panel mark. Layout rules (grids, carousel) unchanged. */
+
 * {
   margin: 0;
   padding: 0;
@@ -6,26 +11,43 @@
 
 body {
   font-family: 'Nunito', Arial, sans-serif;
-  background: #FFFDE7;
-  color: #222;
+  background: #EFE9DC;
+  color: #221E1C;
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+/* Grain over the gesso, under the paper pieces */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px),
+    radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px);
+  background-size: 4px 4px, 7px 7px;
+  background-position: 0 0, 2px 3px;
+}
+
 #control-bar {
-  background: #fff;
+  background: #FBF7EC;
   padding: 12px 20px;
   display: flex;
   align-items: center;
   gap: 20px;
-  border-bottom: 3px solid #000;
+  box-shadow: 0 3px 0 rgba(34,30,28,0.10);
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 #back-link {
-  color: #0057FF;
+  color: #6E6353;
   text-decoration: none;
   font-size: 0.9em;
   font-weight: 800;
@@ -33,16 +55,16 @@ body {
 }
 
 #back-link:hover {
-  text-decoration: underline;
+  color: #221E1C;
 }
 
 #control-bar h1 {
   font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-size: 1.05em;
+  font-size: 0.95em;
   white-space: nowrap;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #000;
+  letter-spacing: 0.12em;
+  color: #221E1C;
 }
 
 .controls {
@@ -53,71 +75,124 @@ body {
 }
 
 .controls label {
-  font-size: 0.9em;
-  color: #555;
+  font-size: 0.78em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6E6353;
 }
 
+/* Inputs sit square with an inset shadow */
 #game-select {
-  padding: 6px 10px;
-  border-radius: 8px;
-  border: 2px solid #000;
-  background: #fff;
-  color: #222;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16);
+  color: #221E1C;
   font-family: inherit;
+  font-weight: 700;
   font-size: 0.9em;
+  cursor: pointer;
 }
 
 #player-count {
   width: 80px;
-  accent-color: #0057FF;
+  accent-color: #D62A78;
 }
 
 #player-count-display {
-  font-weight: bold;
+  font-weight: 800;
   min-width: 1em;
   text-align: center;
 }
 
+/* Cut-paper buttons with the two-step snap */
 #launch-btn, #reset-btn, #bot-fill-btn, #skip-btn {
-  padding: 6px 16px;
-  border: 2px solid #000;
-  border-radius: 10px;
+  padding: 7px 16px;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.18);
   font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
   font-size: 0.85em;
   cursor: pointer;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
 }
 
-/* View toggle */
+#launch-btn:hover:not(:disabled),
+#reset-btn:hover,
+#bot-fill-btn:hover,
+#skip-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+}
+
+#launch-btn {
+  background: #D62A78;
+  color: #FFF6EA;
+  transform: rotate(-0.8deg);
+}
+
+#launch-btn:hover:not(:disabled) {
+  transform: rotate(-0.8deg) translate(2px, 2px);
+}
+
+#launch-btn:disabled {
+  background: #D8D2C4;
+  color: #857A66;
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
+
+#bot-fill-btn {
+  background: #221E1C;
+  color: #FBF7EC;
+}
+
+#skip-btn {
+  background: #FFFDF6;
+  color: #221E1C;
+}
+
+#reset-btn {
+  background: #FFFDF6;
+  color: #221E1C;
+}
+
+/* View toggle: a scrap holding two chips, the active one flips to ink */
 #view-toggle {
   display: flex;
   gap: 2px;
-  background: #fff;
-  border: 2px solid #000;
-  border-radius: 10px;
-  padding: 2px;
+  background: #FFFDF6;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+  padding: 3px;
 }
+
+/* display:flex above would override the hidden attribute */
+#view-toggle[hidden] { display: none; }
 
 .view-btn {
   padding: 5px 12px;
   border: none;
-  border-radius: 7px;
+  border-radius: 2px;
   font-family: inherit;
   font-size: 0.85em;
   font-weight: 800;
   cursor: pointer;
   background: transparent;
-  color: #555;
-  transition: background 0.15s, color 0.15s;
+  color: #6E6353;
 }
 
 .view-btn.active {
-  background: #0057FF;
-  color: white;
+  background: #221E1C;
+  color: #FBF7EC;
 }
 
 .view-btn:hover:not(.active) {
-  background: #FFF9C4;
-  color: #222;
+  color: #221E1C;
 }
 
 /* Carousel fixed overlays — sit above iframes */
@@ -128,10 +203,10 @@ body {
   z-index: 9999;
   width: 52px;
   height: 80px;
-  border: 2px solid #000;
-  border-radius: 10px;
-  background: rgba(0, 87, 255, 0.88);
-  color: white;
+  border: none;
+  border-radius: 2px;
+  background: rgba(34, 30, 28, 0.85);
+  color: #FBF7EC;
   font-size: 1.6rem;
   font-weight: bold;
   cursor: pointer;
@@ -155,7 +230,7 @@ body {
   display: none;
 }
 
-.carousel-arrow:hover:not(:disabled) { background: rgba(0, 87, 255, 1); }
+.carousel-arrow:hover:not(:disabled) { background: rgba(34, 30, 28, 1); }
 .carousel-arrow:disabled { opacity: 0.2; cursor: default; }
 
 #carousel-dots {
@@ -169,10 +244,10 @@ body {
   display: flex;
   gap: 8px;
   align-items: center;
-  /* Dark pill so the dots read against cream game screens in the iframe */
-  background: rgba(0, 0, 0, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 999px;
+  /* Dark strip so the dots read against gesso game screens in the iframe */
+  background: rgba(34, 30, 28, 0.85);
+  border: none;
+  border-radius: 2px;
   padding: 8px 14px;
   backdrop-filter: blur(2px);
 }
@@ -181,70 +256,29 @@ body {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  border: 2px solid rgba(255,255,255,0.6);
-  background: rgba(255,255,255,0.25);
+  border: 2px solid rgba(251,247,236,0.6);
+  background: rgba(251,247,236,0.25);
   cursor: pointer;
   padding: 0;
   transition: background 0.15s, transform 0.15s;
 }
 
 .carousel-dot.active {
-  background: #FFD600;
-  border-color: #FFD600;
+  background: #FBF7EC;
+  border-color: #FBF7EC;
   transform: scale(1.3);
 }
 
 .carousel-dot:hover:not(.active) {
-  background: rgba(255,255,255,0.5);
-}
-
-#skip-btn {
-  background: #FFD600;
-  color: #000;
-}
-
-#skip-btn:hover {
-  background: #FFEA00;
-}
-
-#launch-btn {
-  background: #0057FF;
-  color: white;
-}
-
-#launch-btn:hover:not(:disabled) {
-  background: #0041CC;
-}
-
-#launch-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-#bot-fill-btn {
-  background: #FF4081;
-  color: white;
-}
-
-#bot-fill-btn:hover {
-  background: #F50057;
-}
-
-#reset-btn {
-  background: #fff;
-  color: #222;
-}
-
-#reset-btn:hover {
-  background: #eee;
+  background: rgba(251,247,236,0.5);
 }
 
 /* Iframe container */
 #iframe-container {
   flex: 1;
   display: grid;
-  gap: 4px;
-  padding: 4px;
+  gap: 6px;
+  padding: 6px;
   min-height: 0;
   position: relative;
 }
@@ -283,17 +317,19 @@ body {
   grid-template-rows: 2fr repeat(2, 1fr);
 }
 
+/* Panels are paper pieces: hairline ring + paste shadow, magenta for host */
 .iframe-panel {
   position: relative;
-  border-radius: 8px;
+  border-radius: 2px;
   overflow: hidden;
-  border: 2px solid #000;
+  border: none;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.25);
   display: flex;
   flex-direction: column;
 }
 
 .host-panel {
-  border-color: #0057FF;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px #D62A78;
 }
 
 /* 1-4 players: host spans all rows on left */
@@ -317,53 +353,37 @@ body {
 }
 
 .panel-label {
-  background: #000;
-  color: #fff;
+  background: #221E1C;
+  color: #FBF7EC;
   padding: 4px 10px;
   font-size: 0.75em;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   flex-shrink: 0;
 }
 
 .host-panel .panel-label {
-  background: #0057FF;
-  color: #fff;
+  background: #D62A78;
+  color: #FFF6EA;
 }
 
 .player-panel .panel-label {
-  background: #000;
-  color: #fff;
+  background: #221E1C;
+  color: #FBF7EC;
 }
 
 .iframe-panel iframe {
   flex: 1;
   width: 100%;
   border: none;
-  background: white;
-}
-
-/* Carousel mode — always host-left / one-player-right, regardless of count */
-#iframe-container[data-view="carousel"] {
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr;
-}
-
-#iframe-container[data-view="carousel"] .host-panel {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-#iframe-container[data-view="carousel"] .player-panel {
-  grid-column: 2;
-  grid-row: 1;
+  background: #EFE9DC;
 }
 
 /* Pre-launch hint — the stage is never silently blank */
 #prelaunch-hint {
   text-align: center;
-  color: #777;
+  color: #6E6353;
   font-size: 1rem;
   font-weight: 700;
   padding: 60px 20px;
