@@ -6,449 +6,549 @@
   <title>Lanyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <style>
+    /* ══ Paste-up system (docs/paper-layout-test/) ══
+       Everything is a clean-cut piece of paper pasted on a grained
+       gesso ground. Ink carries text, one magenta carries loudness,
+       cyan/yellow appear only as misprint traces. Motion is a 90ms
+       two-step snap, interaction-only. */
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      background: #FFFDE7;
+      font-family: 'Nunito', Arial, sans-serif;
+      background: #EFE9DC;
+      color: #221E1C;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
     }
 
-    /* ── Header ── */
+    a { color: #B31E63; }
+    a:hover { color: #221E1C; }
+
+    :focus-visible {
+      outline: 3px solid #221E1C;
+      outline-offset: 2px;
+    }
+
+    /* ── Ground textures (under all paper pieces) ── */
+    .grain {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.5;
+      background-image:
+        radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px),
+        radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px);
+      background-size: 4px 4px, 7px 7px;
+      background-position: 0 0, 2px 3px;
+    }
+
+    .halftone-corner {
+      position: fixed;
+      right: -40px;
+      top: -40px;
+      width: 260px;
+      height: 260px;
+      pointer-events: none;
+      opacity: 0.25;
+      background-image: radial-gradient(circle, rgba(214,42,120,0.9) 1.6px, transparent 1.8px);
+      background-size: 10px 10px;
+      -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 68%);
+      mask-image: radial-gradient(circle, #000 25%, transparent 68%);
+    }
+
+    .page {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      max-width: 1060px;
+      margin: 0 auto;
+      padding: 26px 32px 20px;
+      gap: 22px;
+    }
+
+    /* ── Paper pieces ── */
+    /* Compose each piece's resting tilt with the hover/press snap:
+       the tilt rides in a custom property so translate can stack on it. */
+    .paper {
+      background: #FFFDF6;
+      border-radius: 2px;
+      transform: rotate(var(--tilt, 0deg));
+      box-shadow: 3px 3px 0 rgba(34,30,28,0.16);
+    }
+
+    .snap {
+      transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+    }
+
+    .snap:hover {
+      transform: rotate(var(--tilt, 0deg)) translate(2px, 2px);
+      box-shadow: 1px 1px 0 rgba(34,30,28,0.16);
+    }
+
+    .snap:active {
+      transform: rotate(var(--tilt, 0deg)) translate(3px, 3px);
+      box-shadow: 0 0 0 rgba(34,30,28,0.16);
+    }
+
+    /* ── Header: ransom wordmark + spaced-caps tagline ── */
     header {
-      background: #0057FF;
-      border-bottom: 4px solid #000;
-      padding: 18px 32px;
       display: flex;
       align-items: center;
-      gap: 14px;
-    }
-
-    header .logo {
-      font-size: 1.6rem;
-      font-weight: 900;
-      color: #FFD600;
-      text-decoration: none;
-      letter-spacing: -0.5px;
-    }
-
-    header .tagline {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: rgba(255,255,255,0.75);
-      letter-spacing: 0.3px;
-    }
-
-    /* ── Main content ── */
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 24px 40px;
-      gap: 48px;
-    }
-
-    .hero {
-      text-align: center;
-    }
-
-    .hero h1 {
-      font-size: 2.6rem;
-      font-weight: 900;
-      color: #000;
-      line-height: 1.1;
-      letter-spacing: -1px;
-    }
-
-    .hero p {
-      margin-top: 14px;
-      font-size: 1rem;
-      font-weight: 400;
-      font-family: 'Nunito', Arial, sans-serif;
-      color: #444;
-      max-width: 440px;
-      line-height: 1.55;
-    }
-
-    /* ── Primary cards ── */
-    .cards {
-      display: flex;
-      gap: 24px;
+      justify-content: space-between;
+      gap: 16px;
       flex-wrap: wrap;
-      justify-content: center;
     }
 
-    .card {
-      width: 280px;
-      border: 3px solid #000;
-      border-radius: 20px;
-      padding: 32px 28px 28px;
+    .wordmark {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      text-decoration: none;
+    }
+
+    .wordmark span {
+      display: inline-block;
+      border-radius: 2px;
+      box-shadow: 2px 2px 0 rgba(34,30,28,0.18);
+      padding: 3px 10px 5px;
+      font-size: 24px;
+    }
+
+    .lm-archivo { font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif; }
+    .lm-garamond { font-family: 'EB Garamond', Georgia, serif; font-size: 27px !important; padding: 1px 10px 3px !important; }
+    .lm-nunito { font-family: 'Nunito', Arial, sans-serif; font-weight: 900; }
+    .lm-scrap { background: #FFFDF6; color: #221E1C; }
+    .lm-ink { background: #221E1C; color: #FBF7EC; }
+    .lm-magenta { background: #D62A78; color: #FFF6EA; }
+
+    .tagline {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      color: #6E6353;
+    }
+
+    /* ── The big pasted sheet ── */
+    .sheet {
+      position: relative;
+      background: #FBF7EC;
+      border-radius: 2px;
+      transform: rotate(-0.3deg);
+      box-shadow: 5px 6px 0 rgba(34,30,28,0.10);
+      padding: 34px 40px 30px;
       display: flex;
       flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-      text-decoration: none;
-      color: #000;
-      transition: transform 0.12s, box-shadow 0.12s;
-      box-shadow: 4px 4px 0 #000;
+      gap: 14px;
+      overflow: hidden;
     }
 
-    .card:hover {
-      transform: translate(-2px, -2px);
-      box-shadow: 6px 6px 0 #000;
-    }
+    .sheet > * { position: relative; }
 
-    .card:active {
-      transform: translate(1px, 1px);
-      box-shadow: 2px 2px 0 #000;
-    }
-
-    /* Hosting is the dominant action, teachers usually arrive to RUN
-       something now; building is the secondary path. */
-    .card.card-host {
-      background: #C8E6C9;
-      width: 340px;
-      box-shadow: 6px 6px 0 #000;
-    }
-    .card.card-host .card-title { font-size: 1.5rem; }
-    .card.card-host .card-cta { background: #0057FF; font-size: 0.95rem; }
-    .card.card-host:hover .card-cta { background: #0041CC; }
-    .card.card-design {
-      background: #FFF9C4;
+    .sheet > .sheet-halftone {
+      position: absolute;
+      right: -20px;
+      bottom: -20px;
       width: 240px;
+      height: 200px;
+      pointer-events: none;
+      opacity: 0.22;
+      background-image: radial-gradient(circle, rgba(34,30,28,0.9) 1.3px, transparent 1.5px);
+      background-size: 8px 8px;
+      -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 66%);
+      mask-image: radial-gradient(circle, #000 20%, transparent 66%);
     }
 
-    .card-icon {
-      font-size: 2.4rem;
-      line-height: 1;
-    }
-
-    .card-title {
-      font-size: 1.25rem;
-      font-weight: 900;
-      letter-spacing: -0.3px;
-    }
-
-    .card-desc {
-      font-size: 0.85rem;
-      font-family: 'Nunito', Arial, sans-serif;
+    .spoken {
+      font-family: 'EB Garamond', Georgia, serif;
       font-weight: 400;
-      color: #333;
+      font-size: clamp(32px, 4.5vw, 46px);
+      line-height: 1.14;
+      color: #221E1C;
+      max-width: 740px;
+      text-wrap: balance;
+      text-shadow: 2px 0 0 rgba(214,42,120,0.26), -2px 0 0 rgba(0,165,196,0.20);
+    }
+
+    .sub {
+      font-size: 19px;
+      font-weight: 600;
       line-height: 1.5;
-      flex: 1;
+      color: #5C5546;
+      max-width: 640px;
     }
 
-    .card-cta {
-      margin-top: 8px;
-      display: inline-block;
-      padding: 9px 20px;
-      border: 2.5px solid #000;
-      border-radius: 10px;
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-size: 0.85rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      cursor: pointer;
-      background: #000;
-      color: #fff;
+    /* ── Featured clipping (the live carousel) ── */
+    .clipping {
+      margin-top: 10px;
+      align-self: flex-start;
+      width: 620px;
+      max-width: 100%;
+      background: #D62A78;
+      border-radius: 2px;
+      transform: rotate(0.5deg);
+      box-shadow: 4px 4px 0 rgba(34,30,28,0.14);
+      padding: 16px 22px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .card:hover .card-cta {
-      background: #222;
-    }
+    /* flex display beats the hidden attribute */
+    .clipping[hidden] { display: none; }
 
-    /* ── Library carousel ── */
-    .card.card-carousel {
-      background: #fff;
-      width: 300px;
-      padding: 22px 22px 18px;
-      gap: 8px;
-      cursor: default;
-    }
-
-    /* .card sets display:flex, which beats the hidden attribute */
-    .card.card-carousel[hidden] { display: none; }
-
-    .carousel-top {
+    .clipping-top {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      width: 100%;
+      gap: 12px;
     }
 
-    .carousel-label {
-      font-size: 0.7rem;
-      font-weight: 900;
+    .clipping-label {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: #999;
+      color: #FFD3E6;
     }
 
-    .carousel-count {
-      font-family: 'Nunito', Arial, sans-serif;
-      font-size: 0.75rem;
-      color: #aaa;
+    .clipping-count {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFC3DC;
     }
 
-    .carousel-slide {
+    .clipping-slide {
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      flex: 1;
-      width: 100%;
+      gap: 5px;
       text-decoration: none;
-      color: #000;
     }
 
-    .carousel-slide.slide-in {
-      animation: slideFade 0.35s ease-out;
+    .clipping-name {
+      font-family: 'EB Garamond', Georgia, serif;
+      font-size: 28px;
+      line-height: 1.15;
+      color: #FFF6EA;
     }
 
-    @keyframes slideFade {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: none; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      .carousel-slide.slide-in { animation: none; }
-    }
-
-    .carousel-name {
-      font-size: 1.15rem;
-      font-weight: 900;
-      letter-spacing: -0.3px;
-    }
-
-    .carousel-desc {
-      font-family: 'Nunito', Arial, sans-serif;
-      font-size: 0.82rem;
-      color: #333;
-      line-height: 1.45;
-      flex: 1;
+    .clipping-desc {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.5;
+      color: #FFE4F0;
       display: -webkit-box;
-      -webkit-line-clamp: 4;
+      -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
 
-    .carousel-meta {
-      font-family: 'Nunito', Arial, sans-serif;
-      font-size: 0.75rem;
-      color: #777;
+    .clipping-meta {
+      font-size: 14px;
+      font-weight: 700;
+      color: #FFC3DC;
     }
 
-    .carousel-cta {
-      display: inline-block;
-      align-self: flex-start;
-      padding: 7px 16px;
-      border: 2.5px solid #000;
-      border-radius: 10px;
-      font-size: 0.78rem;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      background: #0057FF;
-      color: #fff;
+    .clipping-bottom {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
 
-    .carousel-slide:hover .carousel-cta { background: #0041CC; }
+    .clipping-cta {
+      background: #FFFDF6;
+      border-radius: 2px;
+      box-shadow: 2px 2px 0 rgba(34,30,28,0.22);
+      transform: rotate(-0.8deg);
+      padding: 8px 16px;
+      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      color: #221E1C;
+    }
 
-    .carousel-nav {
+    .clipping-slide:hover .clipping-cta {
+      transform: rotate(-0.8deg) translate(2px, 2px);
+      box-shadow: 0 0 0 rgba(34,30,28,0.22);
+      transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+    }
+
+    .clipping-nav {
       display: flex;
       gap: 8px;
-      align-self: flex-end;
-      margin-top: 2px;
     }
 
-    .carousel-nav button {
-      width: 30px;
-      height: 30px;
-      border: 2px solid #000;
-      border-radius: 50%;
-      background: #fff;
-      font-size: 1.05rem;
-      line-height: 1;
-      cursor: pointer;
+    .clipping-nav button {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: #FFFDF6;
+      border-radius: 2px;
+      box-shadow: 2px 2px 0 rgba(34,30,28,0.22);
       font-family: 'Nunito', Arial, sans-serif;
-      font-weight: 700;
+      font-size: 17px;
+      font-weight: 800;
+      line-height: 1;
+      color: #221E1C;
+      cursor: pointer;
     }
 
-    .carousel-nav button:hover { background: #FFD600; }
+    .clipping-nav button:first-child { transform: rotate(-1deg); }
+    .clipping-nav button:last-child { transform: rotate(0.8deg); }
+
+    .clipping-nav button:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 0 0 0 rgba(34,30,28,0.22);
+    }
+
+    /* ── Action row: cut-paper buttons ── */
+    .actions {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 18px;
+    }
+
+    .btn {
+      padding: 16px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      text-decoration: none;
+      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+      font-size: 16px;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+    }
+
+    .btn-primary {
+      background: #D62A78;
+      color: #FFF6EA;
+      box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
+    }
+
+    .btn-primary:hover { color: #FFF6EA; }
+
+    .btn-secondary { color: #221E1C; }
+    .btn-secondary:hover { color: #221E1C; }
+
+    /* Misprint offset: secondary button labels only, never body text */
+    .misprint {
+      text-shadow: 1.5px 0 0 rgba(214,42,120,0.3), -1.5px 0 0 rgba(0,165,196,0.24);
+    }
 
     /* ── First-time guide link ── */
     .guide-link-row {
-      font-family: 'Nunito', Arial, sans-serif;
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: #555;
+      font-size: 15px;
+      font-weight: 600;
+      color: #55503F;
       text-align: center;
-      margin-top: -28px;
     }
 
-    .guide-link-row a {
-      color: #0057FF;
-      font-weight: 800;
-    }
+    .guide-link-row a { font-weight: 800; }
 
-    /* ── Player join ── */
-    .player-section {
+    /* ── Student join: its own pasted scrap ── */
+    .join {
+      background: #FBF7EC;
+      box-shadow: 4px 4px 0 rgba(34,30,28,0.10);
+      align-self: center;
+      width: 100%;
+      max-width: 480px;
+      padding: 22px 30px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 12px;
-      padding: 24px 32px;
-      border: 2px dashed #aaa;
-      border-radius: 16px;
-      background: rgba(255,255,255,0.5);
-      width: 100%;
-      max-width: 440px;
     }
 
-    .player-section label {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: #555;
+    .join label {
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      color: #6E6353;
     }
 
-    .player-join-row {
+    .join-row {
       display: flex;
-      gap: 10px;
+      gap: 12px;
       width: 100%;
     }
 
-    .player-join-row input {
+    /* The one un-rotated piece: inputs sit square with an inset shadow */
+    .join-row input {
       flex: 1;
-      padding: 10px 14px;
-      border: 2.5px solid #000;
-      border-radius: 10px;
+      min-width: 0;
+      border: none;
+      background: #FFFDF6;
+      border-radius: 2px;
+      box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16);
+      padding: 11px 14px;
       font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
       font-size: 1.1rem;
-      font-weight: 900;
       text-transform: uppercase;
       letter-spacing: 3px;
-      background: white;
       text-align: center;
+      color: #221E1C;
     }
 
-    .player-join-row input::placeholder {
-      color: #bbb;
-      letter-spacing: 2px;
-      font-weight: 400;
+    .join-row input::placeholder {
+      color: #9A8F7C;
       font-family: 'Nunito', Arial, sans-serif;
+      font-weight: 600;
+      letter-spacing: 2px;
     }
 
-    .player-join-row input:focus {
+    .join-row input:focus {
       outline: none;
-      border-color: #0057FF;
+      box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 2px #221E1C;
     }
 
-    .player-join-row button {
-      padding: 10px 20px;
-      background: #0057FF;
-      color: white;
-      border: 2.5px solid #000;
-      border-radius: 10px;
+    .join-row button {
+      border: none;
+      padding: 11px 26px;
       font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-size: 0.9rem;
-      font-weight: 900;
+      font-size: 15px;
+      color: #221E1C;
       cursor: pointer;
       white-space: nowrap;
     }
 
-    .player-join-row button:hover { background: #0041CC; }
-
-    .player-join-error {
-      font-size: 0.8rem;
-      font-family: 'Nunito', Arial, sans-serif;
-      color: #CC0000;
+    .join-error {
+      font-size: 14px;
+      font-weight: 800;
+      color: #221E1C;
       display: none;
     }
 
-    /* ── Footer links ── */
+    /* ── Footer: small nav + registration marks ── */
     footer {
-      text-align: center;
-      padding: 20px;
-      font-family: 'Nunito', Arial, sans-serif;
-      font-size: 0.78rem;
-      color: #999;
+      display: flex;
+      align-items: center;
+      gap: 26px;
+      flex-wrap: wrap;
+      padding: 6px 2px 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #6E6353;
     }
 
     footer a {
-      color: #666;
+      color: #6E6353;
       text-decoration: none;
-      margin: 0 10px;
     }
 
-    footer a:hover { color: #000; }
+    footer a:hover { color: #221E1C; }
+
+    .reg-marks {
+      margin-left: auto;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .reg-marks div { width: 11px; height: 11px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .snap, .clipping-nav button, .clipping-slide .clipping-cta { transition: none; }
+    }
+
+    @media (max-width: 760px) {
+      .page { padding: 20px 16px 16px; }
+      .tagline { display: none; }
+      .wordmark span { font-size: 18px; padding: 2px 7px 4px; }
+      .lm-garamond { font-size: 21px !important; padding: 1px 7px 2px !important; }
+      .sheet { padding: 24px 22px 22px; }
+      .actions { grid-template-columns: 1fr; }
+      footer { justify-content: center; }
+      .reg-marks { margin-left: 0; width: 100%; justify-content: center; }
+    }
   </style>
 </head>
 <body>
 
-  <header>
-    <span class="logo">Lanyard</span>
-    <span class="tagline">Interactive activities for your class</span>
-  </header>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="halftone-corner" aria-hidden="true"></div>
 
-  <main>
-    <div class="hero">
-      <h1>What are we going to do together?</h1>
-      <p>Simple activities for connecting, thinking, and fun.</p>
-    </div>
+  <div class="page">
 
-    <div class="cards">
-      <a href="/library" class="card card-host">
-        <div class="card-title">Find an Activity</div>
-        <div class="card-desc">Browse the library by what you want your class to do, connect, discuss, decide, reflect, and host it in one click. Students join on their Chromebooks.</div>
-        <div class="card-cta">Open the Library</div>
-      </a>
+    <header>
+      <span class="wordmark" aria-label="Lanyard">
+        <span class="lm-archivo lm-scrap" style="transform: rotate(-2deg)">L</span>
+        <span class="lm-garamond lm-magenta" style="transform: rotate(1.5deg)">A</span>
+        <span class="lm-nunito lm-ink" style="transform: rotate(-1deg)">N</span>
+        <span class="lm-archivo lm-scrap" style="transform: rotate(2deg)">Y</span>
+        <span class="lm-garamond lm-scrap" style="transform: rotate(-1.5deg)">A</span>
+        <span class="lm-archivo lm-ink" style="transform: rotate(1deg)">R</span>
+        <span class="lm-nunito lm-scrap" style="transform: rotate(-2deg)">D</span>
+      </span>
+      <span class="tagline">INTERACTIVE ACTIVITIES FOR YOUR CLASS</span>
+    </header>
+
+    <main class="sheet">
+      <div class="sheet-halftone" aria-hidden="true"></div>
+      <h1 class="spoken">What are we going to do together?</h1>
+      <p class="sub">Simple activities for connecting, thinking, and fun. Browse by what you want your class to do, then host it in one click. Students join on their Chromebooks.</p>
 
       <!-- Rotating peek at the library: one activity card at a time,
            click to host it now. Hidden until the list loads. -->
-      <div class="card card-carousel" id="activity-carousel" hidden>
-        <div class="carousel-top">
-          <span class="carousel-label">From the library</span>
-          <span class="carousel-count" id="carousel-count"></span>
+      <div class="clipping" id="activity-carousel" hidden>
+        <div class="clipping-top">
+          <span class="clipping-label">From the library</span>
+          <span class="clipping-count" id="carousel-count"></span>
         </div>
-        <a class="carousel-slide" id="carousel-slide" href="/library">
-          <div class="carousel-name" id="carousel-name"></div>
-          <div class="carousel-desc" id="carousel-desc"></div>
-          <div class="carousel-meta" id="carousel-meta"></div>
-          <div class="carousel-cta">▶ Host this</div>
+        <a class="clipping-slide" id="carousel-slide" href="/library">
+          <div class="clipping-name" id="carousel-name"></div>
+          <div class="clipping-desc" id="carousel-desc"></div>
+          <div class="clipping-meta" id="carousel-meta"></div>
         </a>
-        <div class="carousel-nav">
-          <button type="button" id="carousel-prev" aria-label="Previous activity">‹</button>
-          <button type="button" id="carousel-next" aria-label="Next activity">›</button>
+        <div class="clipping-bottom">
+          <a class="clipping-cta" id="carousel-cta" href="/library">▶ HOST THIS</a>
+          <div class="clipping-nav">
+            <button type="button" id="carousel-prev" aria-label="Previous activity">‹</button>
+            <button type="button" id="carousel-next" aria-label="Next activity">›</button>
+          </div>
         </div>
       </div>
+    </main>
+
+    <div class="actions">
+      <a class="paper snap btn btn-primary" style="--tilt: -0.8deg" href="/library" title="Browse the library and host an activity in one click">FIND AN ACTIVITY</a>
+      <a class="paper snap btn btn-secondary" style="--tilt: 0.6deg" href="/designer" title="Build your own activity, describe it in plain words, use a recipe, or start from scratch"><span class="misprint">CREATE</span></a>
+      <a class="paper snap btn btn-secondary" style="--tilt: -0.5deg" href="/guide" title="One page: setup, live controls, and what to do when something goes wrong"><span class="misprint">TEACHER GUIDE</span></a>
     </div>
 
     <p class="guide-link-row">First time? <a href="/guide">Read the one-page teacher guide</a>: setup, live controls, quick fixes.</p>
 
-    <div class="player-section">
-      <label>Joining as a student? Enter your room code</label>
-      <div class="player-join-row">
+    <section class="paper join" style="--tilt: 0.4deg">
+      <label for="room-code">Joining as a student? Enter your room code</label>
+      <div class="join-row">
         <input type="text" id="room-code" placeholder="ABCD" maxlength="4" autocomplete="off" spellcheck="false">
-        <button onclick="joinRoom()">Join</button>
+        <button type="button" class="paper snap" style="--tilt: -0.6deg" onclick="joinRoom()"><span class="misprint">JOIN</span></button>
       </div>
-      <div class="player-join-error" id="join-error">Please enter a 4-letter room code.</div>
-    </div>
-  </main>
+      <div class="join-error" id="join-error">Please enter a 4-letter room code.</div>
+    </section>
 
-  <footer>
-    <a href="/designer" title="Build your own activity, describe it in plain words, use a recipe, or start from scratch">Create an Activity</a>
-    <a href="/prototype">Preview</a>
-    <a href="/player">Player Screen</a>
-    <a href="/teacher" title="Private controls for a running activity, join with the room code + PIN from the host screen">Teacher Console</a>
-    <a href="/guide" title="One page: setup, live controls, and what to do when something goes wrong">Teacher Guide</a>
-    <a href="/privacy" title="What we keep, why, and when it is deleted">Privacy</a>
-  </footer>
+    <footer>
+      <a href="/designer" title="Build your own activity, describe it in plain words, use a recipe, or start from scratch">create an activity</a>
+      <a href="/prototype">preview</a>
+      <a href="/player">player screen</a>
+      <a href="/teacher" title="Private controls for a running activity, join with the room code + PIN from the host screen">teacher console</a>
+      <a href="/privacy" title="What we keep, why, and when it is deleted">privacy</a>
+      <div class="reg-marks" aria-hidden="true">
+        <div style="background: #00A5C4"></div>
+        <div style="background: #D62A78"></div>
+        <div style="background: #F2C230"></div>
+        <div style="background: #221E1C"></div>
+      </div>
+    </footer>
+
+  </div>
 
   <script src="/shared/feedback-widget.js"></script>
   <script src="/shared/game-visibility.js"></script>
@@ -459,6 +559,7 @@
     (function () {
       var carouselEl = document.getElementById('activity-carousel');
       var slideEl = document.getElementById('carousel-slide');
+      var ctaEl = document.getElementById('carousel-cta');
       var nameEl = document.getElementById('carousel-name');
       var descEl = document.getElementById('carousel-desc');
       var metaEl = document.getElementById('carousel-meta');
@@ -469,10 +570,15 @@
       var reducedMotion = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+      // Paste-up motion rule: slides hard-cut, no fade.
       function render() {
         var g = games[idx];
-        slideEl.href = '/host?game=' + encodeURIComponent(g.id);
-        slideEl.title = 'Host "' + g.name + '" now, students join with the room code';
+        var hostHref = '/host?game=' + encodeURIComponent(g.id);
+        var hostTitle = 'Host "' + g.name + '" now, students join with the room code';
+        slideEl.href = hostHref;
+        slideEl.title = hostTitle;
+        ctaEl.href = hostHref;
+        ctaEl.title = hostTitle;
         nameEl.textContent = g.name;
         descEl.textContent = g.description || '';
         var meta = [];
@@ -480,9 +586,6 @@
         if (g.family === 'connection') meta.push('🕊 no scores, no winners');
         metaEl.textContent = meta.join(' · ');
         countEl.textContent = (idx + 1) + ' of ' + games.length;
-        slideEl.classList.remove('slide-in');
-        void slideEl.offsetWidth;
-        slideEl.classList.add('slide-in');
       }
 
       function step(delta) {

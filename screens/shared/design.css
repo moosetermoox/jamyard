@@ -48,6 +48,24 @@
   font-display: swap;
 }
 
+/* Serif voice for the paste-up system's "spoken line"
+   (one big EB Garamond sentence per screen). */
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('fonts/eb-garamond-v33-latin-regular.woff2') format('woff2');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'EB Garamond';
+  src: url('fonts/eb-garamond-v33-latin-italic.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
 :root {
   /* Type */
   --font-display: 'Archivo Black', 'Arial Black', Arial, sans-serif;
