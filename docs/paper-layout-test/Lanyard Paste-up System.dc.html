@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: 'Archivo Black'; src: url('fonts/archivo-black-v23-latin-regular.woff2') format('woff2'); font-weight: 400 900; font-display: swap; }
+@font-face { font-family: 'Nunito'; src: url('fonts/nunito-v32-latin-regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Nunito'; src: url('fonts/nunito-v32-latin-700.woff2') format('woff2'); font-weight: 500 700; font-display: swap; }
+@font-face { font-family: 'Nunito'; src: url('fonts/nunito-v32-latin-800.woff2') format('woff2'); font-weight: 800 900; font-display: swap; }
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: #EFE9DC; font-family: 'Nunito', sans-serif; color: #221E1C; }
+a { color: #B31E63; } a:hover { color: #221E1C; }
+</style>
+</helmet>
+
+<div style="min-height: 100vh; position: relative; padding: 64px 56px 96px;">
+  <div style="position: fixed; inset: 0; pointer-events: none; opacity: 0.5; background-image: radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px), radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px); background-size: 4px 4px, 7px 7px; background-position: 0 0, 2px 3px;"></div>
+
+  <div style="position: relative; max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px;">
+
+    <div style="display: flex; flex-direction: column; gap: 16px;">
+      <div style="display: flex; gap: 6px; align-items: center;">
+        <span style="font-family: 'Archivo Black', sans-serif; font-size: 34px; color: #221E1C; background: #FFFDF6; padding: 4px 14px 6px; border-radius: 2px; box-shadow: 3px 3px 0 rgba(34,30,28,0.18); transform: rotate(-2deg); display: inline-block;">P</span>
+        <span style="font-family: 'EB Garamond', Georgia, serif; font-size: 38px; color: #FFF6EA; background: #D62A78; padding: 0 14px 4px; border-radius: 2px; box-shadow: 3px 3px 0 rgba(34,30,28,0.18); transform: rotate(1.5deg); display: inline-block;">A</span>
+        <span style="font-weight: 900; font-size: 34px; color: #FBF7EC; background: #221E1C; padding: 4px 14px 6px; border-radius: 2px; box-shadow: 3px 3px 0 rgba(34,30,28,0.18); transform: rotate(-1deg); display: inline-block;">S</span>
+        <span style="font-family: 'Archivo Black', sans-serif; font-size: 34px; color: #221E1C; background: #FFFDF6; padding: 4px 14px 6px; border-radius: 2px; box-shadow: 3px 3px 0 rgba(34,30,28,0.18); transform: rotate(2deg); display: inline-block;">T</span>
+        <span style="font-family: 'EB Garamond', Georgia, serif; font-size: 38px; color: #221E1C; background: #FFFDF6; padding: 0 14px 4px; border-radius: 2px; box-shadow: 3px 3px 0 rgba(34,30,28,0.18); transform: rotate(-1.5deg); display: inline-block;">E</span>
+        <span style="width: 14px;"></span>
+        <span style="font-family: 'Archivo Black', sans-serif; font-size: 34px; color: #FBF7EC; background: #221E1C; padding: 4px 14px 6px; border-radius: 2px; box-shadow: 3px 3px 0 rgba(34,30,28,0.18); transform: rotate(1deg); display: inline-block;">U</span>
+        <span style="font-weight: 900; font-size: 34px; color: #221E1C; background: #FFFDF6; padding: 4px 14px 6px; border-radius: 2px; box-shadow: 3px 3px 0 rgba(34,30,28,0.18); transform: rotate(-2deg); display: inline-block;">P</span>
+      </div>
+      <div style="max-width: 720px; font-size: 17px; font-weight: 600; line-height: 1.6; color: #55503F; text-wrap: pretty;">The Lanyard design system. Everything is a piece of paper cut clean and pasted on a gesso ground: no torn edges, no tape, no gradients. Paper and ink carry the interface; one magenta carries all the loudness; cyan and yellow exist only as misprint traces. Applied to the Home screen as <a href="Lanyard Home.dc.html#7a" style="font-weight: 800;">7a</a>.</div>
+    </div>
+
+    <!-- PALETTE -->
+    <div style="background: #FBF7EC; border-radius: 2px; box-shadow: 5px 6px 0 rgba(34,30,28,0.10); transform: rotate(-0.2deg); padding: 32px 38px 36px; display: flex; flex-direction: column; gap: 20px;">
+      <div style="font-family: 'Archivo Black', sans-serif; font-size: 15px; letter-spacing: 0.12em; color: #221E1C;">1 · PALETTE</div>
+      <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px;">
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="height: 84px; background: #EFE9DC; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(34,30,28,0.14);"></div>
+          <div style="font-size: 13px; font-weight: 800;">Gesso <span style="font-weight: 600; color: #7A7060;">#EFE9DC</span></div>
+          <div style="font-size: 12px; font-weight: 600; color: #7A7060; line-height: 1.45;">The ground. Always grained.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="height: 84px; background: #FBF7EC; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(34,30,28,0.14);"></div>
+          <div style="font-size: 13px; font-weight: 800;">Sheet <span style="font-weight: 600; color: #7A7060;">#FBF7EC</span></div>
+          <div style="font-size: 12px; font-weight: 600; color: #7A7060; line-height: 1.45;">Large pasted panels.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="height: 84px; background: #FFFDF6; border-radius: 2px; box-shadow: inset 0 0 0 1px rgba(34,30,28,0.14);"></div>
+          <div style="font-size: 13px; font-weight: 800;">Scrap <span style="font-weight: 600; color: #7A7060;">#FFFDF6</span></div>
+          <div style="font-size: 12px; font-weight: 600; color: #7A7060; line-height: 1.45;">Small cuts: buttons, chips, letters.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="height: 84px; background: #221E1C; border-radius: 2px;"></div>
+          <div style="font-size: 13px; font-weight: 800;">Ink <span style="font-weight: 600; color: #7A7060;">#221E1C</span></div>
+          <div style="font-size: 12px; font-weight: 600; color: #7A7060; line-height: 1.45;">All reading text. Never gray below #5C5546.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="height: 84px; background: #D62A78; border-radius: 2px;"></div>
+          <div style="font-size: 13px; font-weight: 800;">Magenta <span style="font-weight: 600; color: #7A7060;">#D62A78</span></div>
+          <div style="font-size: 12px; font-weight: 600; color: #7A7060; line-height: 1.45;">The one loud color. Primary action + featured clipping, nothing else.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="height: 84px; border-radius: 2px; display: grid; grid-template-columns: 1fr 1fr;"><div style="background: #00A5C4; border-radius: 2px 0 0 2px;"></div><div style="background: #F2C230; border-radius: 0 2px 2px 0;"></div></div>
+          <div style="font-size: 13px; font-weight: 800;">Traces <span style="font-weight: 600; color: #7A7060;">#00A5C4 · #F2C230</span></div>
+          <div style="font-size: 12px; font-weight: 600; color: #7A7060; line-height: 1.45;">Misprint offsets and registration marks only. Never a fill, never text.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TYPE -->
+    <div style="background: #FBF7EC; border-radius: 2px; box-shadow: 5px 6px 0 rgba(34,30,28,0.10); transform: rotate(0.2deg); padding: 32px 38px 36px; display: flex; flex-direction: column; gap: 24px;">
+      <div style="font-family: 'Archivo Black', sans-serif; font-size: 15px; letter-spacing: 0.12em; color: #221E1C;">2 · TYPE</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px;">
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #7A7060;">RANSOM DISPLAY — WORDMARKS &amp; NAV LABELS</div>
+          <div style="display: flex; gap: 4px; align-items: center;">
+            <span style="font-family: 'Archivo Black', sans-serif; font-size: 20px; color: #221E1C; background: #FFFDF6; padding: 2px 8px 4px; border-radius: 2px; box-shadow: 2px 2px 0 rgba(34,30,28,0.18); transform: rotate(-2deg); display: inline-block;">C</span>
+            <span style="font-family: 'EB Garamond', Georgia, serif; font-size: 23px; color: #FFF6EA; background: #D62A78; padding: 0 8px 2px; border-radius: 2px; box-shadow: 2px 2px 0 rgba(34,30,28,0.18); transform: rotate(1.5deg); display: inline-block;">U</span>
+            <span style="font-weight: 900; font-size: 20px; color: #FBF7EC; background: #221E1C; padding: 2px 8px 4px; border-radius: 2px; box-shadow: 2px 2px 0 rgba(34,30,28,0.18); transform: rotate(-1deg); display: inline-block;">T</span>
+          </div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55;">One chip per letter. Fonts rotate through Archivo Black, EB Garamond, Nunito 900; rotation ±2°; radius 2px; shadow 2px 2px 0 ink at 18%. At most one magenta chip per word. Words only — never sentences.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #7A7060;">SPOKEN LINE — EB GARAMOND</div>
+          <div style="font-family: 'EB Garamond', Georgia, serif; font-size: 30px; line-height: 1.16; color: #221E1C; text-shadow: 1.5px 0 0 rgba(214,42,120,0.26), -1.5px 0 0 rgba(0,165,196,0.20);">What are we going to do together?</div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55;">The panel's voice. Large, ink, with the misprint offset (below). One per screen.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #7A7060;">UI &amp; BODY — NUNITO, CLEAN</div>
+          <div style="font-size: 17px; font-weight: 600; line-height: 1.55; color: #221E1C;">Simple activities for connecting, thinking, and fun. <span style="font-weight: 800; letter-spacing: 0.12em; font-size: 13px; color: #6E6353;">LABELS 800 SPACED</span></div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55;">Everything readable: 600 body, 800 spaced-caps labels, Archivo Black on buttons. No misprint, no rotation — clean against the cut-out noise.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEXTURE -->
+    <div style="background: #FBF7EC; border-radius: 2px; box-shadow: 5px 6px 0 rgba(34,30,28,0.10); transform: rotate(-0.2deg); padding: 32px 38px 36px; display: flex; flex-direction: column; gap: 20px;">
+      <div style="font-family: 'Archivo Black', sans-serif; font-size: 15px; letter-spacing: 0.12em; color: #221E1C;">3 · TEXTURE</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="height: 110px; border-radius: 2px; background: #EFE9DC; box-shadow: inset 0 0 0 1px rgba(34,30,28,0.14); background-image: radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px), radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px); background-size: 4px 4px, 7px 7px; background-position: 0 0, 2px 3px;"></div>
+          <div style="font-size: 13px; font-weight: 800;">Gesso grain</div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55;">Two speckle layers on the ground, 4px and 7px grids at 50% opacity. Always on, never on paper pieces.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="height: 110px; border-radius: 2px; background: #FBF7EC; box-shadow: inset 0 0 0 1px rgba(34,30,28,0.14); position: relative; overflow: hidden;"><div style="position: absolute; right: -30px; top: -30px; width: 170px; height: 170px; opacity: 0.28; background-image: radial-gradient(circle, rgba(214,42,120,0.9) 1.6px, transparent 1.8px); background-size: 10px 10px; -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 68%); mask-image: radial-gradient(circle, #000 25%, transparent 68%);"></div></div>
+          <div style="font-size: 13px; font-weight: 800;">Halftone field</div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55;">A dot field fading from a corner — magenta on gesso, ink on sheets. Decoration only, one or two per screen, never under text.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="height: 110px; border-radius: 2px; background: #FBF7EC; box-shadow: inset 0 0 0 1px rgba(34,30,28,0.14); display: flex; align-items: center; justify-content: center;"><span style="font-family: 'EB Garamond', Georgia, serif; font-size: 42px; color: #221E1C; text-shadow: 2px 0 0 rgba(214,42,120,0.26), -2px 0 0 rgba(0,165,196,0.20);">Aa</span></div>
+          <div style="font-size: 13px; font-weight: 800;">Misprint offset</div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55;">text-shadow ±2px: magenta trace right, cyan trace left, ~25% opacity. Spoken line and secondary button labels only.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COMPONENTS -->
+    <div style="background: #FBF7EC; border-radius: 2px; box-shadow: 5px 6px 0 rgba(34,30,28,0.10); transform: rotate(0.2deg); padding: 32px 38px 36px; display: flex; flex-direction: column; gap: 24px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <div style="font-family: 'Archivo Black', sans-serif; font-size: 15px; letter-spacing: 0.12em; color: #221E1C;">4 · COMPONENTS</div>
+        <div style="font-size: 13px; font-weight: 600; color: #7A7060;">hover the buttons — motion is a 90ms two-step snap, no easing</div>
+      </div>
+      <div style="display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #7A7060;">PRIMARY</div>
+          <div style="background: #D62A78; border-radius: 2px; transform: rotate(-0.8deg); box-shadow: 3px 3px 0 rgba(34,30,28,0.18); padding: 15px 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);" style-hover="transform: rotate(-0.8deg) translate(2px, 2px); box-shadow: 1px 1px 0 rgba(34,30,28,0.18);" style-active="transform: rotate(-0.8deg) translate(3px, 3px); box-shadow: 0 0 0 rgba(34,30,28,0.18);">
+            <span style="font-family: 'Archivo Black', sans-serif; font-size: 15px; color: #FFF6EA;">HOST</span>
+          </div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55; max-width: 200px;">Magenta cut. One per screen.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #7A7060;">SECONDARY</div>
+          <div style="background: #FFFDF6; border-radius: 2px; transform: rotate(0.6deg); box-shadow: 3px 3px 0 rgba(34,30,28,0.16); padding: 15px 34px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);" style-hover="transform: rotate(0.6deg) translate(2px, 2px); box-shadow: 1px 1px 0 rgba(34,30,28,0.16);" style-active="transform: rotate(0.6deg) translate(3px, 3px); box-shadow: 0 0 0 rgba(34,30,28,0.16);">
+            <span style="font-family: 'Archivo Black', sans-serif; font-size: 15px; color: #221E1C; text-shadow: 1.5px 0 0 rgba(214,42,120,0.3), -1.5px 0 0 rgba(0,165,196,0.24);">JOIN</span>
+          </div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55; max-width: 200px;">Scrap paper, ink letters with misprint.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #7A7060;">CHIP</div>
+          <div style="display: flex; gap: 10px;">
+            <div style="background: #221E1C; border-radius: 2px; transform: rotate(-1deg); box-shadow: 2px 2px 0 rgba(34,30,28,0.16); padding: 8px 16px; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; color: #FBF7EC;">CONNECT 7</div>
+            <div style="background: #FFFDF6; border-radius: 2px; transform: rotate(0.8deg); box-shadow: 2px 2px 0 rgba(34,30,28,0.14); padding: 8px 16px; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; color: #221E1C;">DISCUSS 5</div>
+          </div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55; max-width: 220px;">Selected chip flips to ink. Never magenta.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #7A7060;">INPUT</div>
+          <div style="background: #FFFDF6; border-radius: 2px; box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); padding: 13px 20px; width: 260px; font-size: 16px; font-weight: 600; color: #9A8F7C;">Search activities</div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55; max-width: 240px;">The one un-rotated piece — inputs sit square. Inset shadow instead of paste shadow.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: #7A7060;">CLIPPING CARD</div>
+          <div style="background: #D62A78; border-radius: 2px; transform: rotate(0.5deg); box-shadow: 4px 4px 0 rgba(34,30,28,0.14); padding: 16px 22px 18px; width: 320px; display: flex; flex-direction: column; gap: 4px;">
+            <div style="font-size: 11px; font-weight: 800; letter-spacing: 0.12em; color: #FFD3E6;">FROM THE LIBRARY — 4 OF 19</div>
+            <div style="font-family: 'EB Garamond', Georgia, serif; font-size: 24px; color: #FFF6EA;">Snowball <span style="font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; color: #FFC3DC;">~10 min</span></div>
+            <div style="font-size: 14px; font-weight: 600; line-height: 1.5; color: #FFE4F0;">Alone, together, all of us.</div>
+          </div>
+          <div style="font-size: 13px; font-weight: 600; color: #55503F; line-height: 1.55; max-width: 300px;">Featured content is the magenta moment. Ordinary cards are Scrap on Gesso with the same geometry.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOTION + RULES -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start;">
+      <div style="background: #FBF7EC; border-radius: 2px; box-shadow: 5px 6px 0 rgba(34,30,28,0.10); transform: rotate(-0.2deg); padding: 32px 38px 34px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-family: 'Archivo Black', sans-serif; font-size: 15px; letter-spacing: 0.12em; color: #221E1C;">5 · MOTION</div>
+        <div style="font-size: 15px; font-weight: 600; line-height: 1.65; color: #55503F;">Interaction-only. Nothing moves at rest — no ambient jitter, no loops. Hover snaps the piece 2px toward its shadow; press lands it flat (shadow to zero). Timing is <span style="font-weight: 800; color: #221E1C;">90ms, steps(2, end)</span> — a stop-motion frame click, never an ease. Screen transitions may hard-cut; fades are off-brand.</div>
+      </div>
+      <div style="background: #221E1C; border-radius: 2px; box-shadow: 5px 6px 0 rgba(34,30,28,0.18); transform: rotate(0.25deg); padding: 32px 38px 34px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-family: 'Archivo Black', sans-serif; font-size: 15px; letter-spacing: 0.12em; color: #FBF7EC;">6 · NEVER</div>
+        <div style="font-size: 15px; font-weight: 600; line-height: 1.9; color: #CFC5B4;">Torn edges or tape · gradients · rounded corners past 2px · a second loud color · misprint on body text · rotation past 2° · gray text lighter than #5C5546 · easing curves</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
