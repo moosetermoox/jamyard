@@ -5,37 +5,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Activity Library - Lanyard</title>
   <link rel="stylesheet" href="/shared/design.css">
-  <!-- Reuses the designer's stylesheet for the shared card/chip look, plus
-       library-specific overrides. -->
-  <link rel="stylesheet" href="/designer/styles.css">
+  <!-- Paste-up system (docs/paper-layout-test/): this stylesheet is
+       standalone, the library no longer borrows the designer's look. -->
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
-    <h1>What do you want to do together?</h1>
-    <a href="/" class="back-link">Back to Home</a>
-  </header>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="halftone-corner" aria-hidden="true"></div>
 
-  <main>
-    <section id="library-section">
-      <div id="teacher-setup"></div>
-      <div id="library-controls" hidden>
-        <input type="search" id="library-search" placeholder="Search activities…"
-               aria-label="Search activities">
-        <div id="goal-chips" role="group" aria-label="Filter by goal"></div>
-      </div>
-      <p id="loading-message">Loading the library…</p>
-      <p id="error-message" hidden></p>
-      <div id="library-grid"></div>
+  <div class="page">
+    <header>
+      <a class="wordmark" href="/" aria-label="Lanyard, back to home">
+        <span class="lm-archivo lm-scrap" style="transform: rotate(-2deg)">L</span>
+        <span class="lm-garamond lm-magenta" style="transform: rotate(1.5deg)">A</span>
+        <span class="lm-nunito lm-ink" style="transform: rotate(-1deg)">N</span>
+        <span class="lm-archivo lm-scrap" style="transform: rotate(2deg)">Y</span>
+        <span class="lm-garamond lm-scrap" style="transform: rotate(-1.5deg)">A</span>
+        <span class="lm-archivo lm-ink" style="transform: rotate(1deg)">R</span>
+        <span class="lm-nunito lm-scrap" style="transform: rotate(-2deg)">D</span>
+      </a>
+      <a href="/" class="back-link">back to home</a>
+    </header>
 
-      <div class="builder-doorway">
-        <p>Want something that isn't here?</p>
-        <button id="build-your-own-btn" type="button">🛠 Build your own activity</button>
-      </div>
+    <main>
+      <section id="library-section">
+        <h1 class="spoken">What do you want to do together?</h1>
+        <div id="teacher-setup"></div>
+        <div id="library-controls" hidden>
+          <input type="search" id="library-search" placeholder="Search activities…"
+                 aria-label="Search activities">
+          <div id="goal-chips" role="group" aria-label="Filter by goal"></div>
+        </div>
+        <p id="loading-message">Loading the library…</p>
+        <p id="error-message" hidden></p>
+        <div id="library-grid"></div>
 
-      <p class="privacy-footnote"><a href="/guide">Teacher guide: setup, live controls, quick fixes</a> · <a href="/privacy">Privacy: what we keep, why, and when it is deleted</a></p>
-    </section>
-  </main>
+        <div class="builder-doorway">
+          <p>Want something that isn't here?</p>
+          <button id="build-your-own-btn" type="button"><span class="misprint">🛠 BUILD YOUR OWN ACTIVITY</span></button>
+        </div>
+
+        <p class="privacy-footnote"><a href="/guide">Teacher guide: setup, live controls, quick fixes</a> · <a href="/privacy">Privacy: what we keep, why, and when it is deleted</a></p>
+      </section>
+    </main>
+  </div>
 
   <script src="/shared/dialog.js"></script>
   <script src="/shared/game-visibility.js"></script>

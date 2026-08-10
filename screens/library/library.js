@@ -536,7 +536,7 @@ function showCustomizeDialog(game, config, questions) {
     var input = document.createElement('input');
     input.type = 'text';
     input.placeholder = q.placeholder || '';
-    input.style.cssText = 'width:100%; padding:10px 12px; border:3px solid #000; border-radius:10px; font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; box-sizing:border-box;';
+    input.style.cssText = 'width:100%; padding:10px 12px; border:none; background:#FFFDF6; border-radius:2px; box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; font-weight:600; box-sizing:border-box;';
     modal.appendChild(input);
     inputs.push({ question: q.question, input: input });
   });

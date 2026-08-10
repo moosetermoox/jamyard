@@ -1,190 +1,732 @@
-/* Library-page overrides on top of /designer/styles.css — the library is
-   for RUNNING, so Host is visually dominant and builder chrome is absent. */
+/* ══ Library in the paste-up system (docs/paper-layout-test/) ══
+   Standalone: covers everything library.js and shared/dialog.js render.
+   Everything is a clean-cut piece of paper pasted on a grained gesso
+   ground. Ink carries text, one magenta carries loudness (Host + the
+   primary dialog action), cyan/yellow appear only as misprint traces.
+   Motion is a 90ms two-step snap, interaction-only. */
 
-#library-section {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 24px 20px 80px;
-}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-.library-host {
-  font-size: 1rem !important;
-  padding: 10px 22px !important;
-}
-
-.library-card .game-card-description {
-  min-height: 3.6em;
-}
-
-/* The quiet doorway to the builder layer. */
-.builder-doorway {
-  margin-top: 48px;
-  padding: 24px;
-  text-align: center;
-  border: 2px dashed #aaa;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.builder-doorway p {
-  margin: 0 0 12px;
+body {
   font-family: 'Nunito', Arial, sans-serif;
-  color: #555;
+  background: #EFE9DC;
+  color: #221E1C;
+  min-height: 100vh;
 }
 
-#build-your-own-btn {
-  padding: 10px 22px;
-  border: 2.5px solid #000;
-  border-radius: 12px;
-  background: #FFF9C4;
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-size: 0.9rem;
-  font-weight: 900;
-  cursor: pointer;
-}
+a { color: #B31E63; }
+a:hover { color: #221E1C; }
 
-#build-your-own-btn:hover {
-  background: #FFD600;
-}
-
-#build-your-own-btn:focus-visible {
-  outline: 3px solid #0057FF;
+:focus-visible {
+  outline: 3px solid #221E1C;
   outline-offset: 2px;
 }
 
-/* Subject-search rescue: honest any-subject note above the full shelf */
-.search-rescue {
-  grid-column: 1 / -1;
-  background: var(--blue-soft, #E3F2FD);
-  border: var(--border, 3px solid #000);
-  border-radius: var(--radius, 14px);
-  box-shadow: var(--shadow-pop-sm, 3px 3px 0 #000);
-  padding: 16px 20px;
-  text-align: left;
-}
-.search-rescue-head {
-  font-family: var(--font-display, 'Archivo Black', sans-serif);
-  font-size: 1.05rem;
-  margin: 0 0 6px;
-}
-.search-rescue-body {
-  font-weight: 700;
-  margin: 0 0 8px;
-}
-.search-rescue-link {
-  font-weight: 800;
+/* ── Ground textures (under all paper pieces) ── */
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px),
+    radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px);
+  background-size: 4px 4px, 7px 7px;
+  background-position: 0 0, 2px 3px;
 }
 
-/* First-visit teacher setup card + the quiet "Your class" line it becomes. */
+.halftone-corner {
+  position: fixed;
+  right: -40px;
+  top: -40px;
+  width: 260px;
+  height: 260px;
+  pointer-events: none;
+  opacity: 0.25;
+  background-image: radial-gradient(circle, rgba(214,42,120,0.9) 1.6px, transparent 1.8px);
+  background-size: 10px 10px;
+  -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 68%);
+  mask-image: radial-gradient(circle, #000 25%, transparent 68%);
+}
+
+.page {
+  position: relative;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 26px 32px 40px;
+}
+
+/* ── Header: small ransom wordmark + quiet return link ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+}
+
+.wordmark {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  text-decoration: none;
+}
+
+.wordmark span {
+  display: inline-block;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.18);
+  padding: 2px 8px 4px;
+  font-size: 19px;
+}
+
+.lm-archivo { font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif; }
+.lm-garamond { font-family: 'EB Garamond', Georgia, serif; font-size: 22px !important; padding: 0 8px 2px !important; }
+.lm-nunito { font-family: 'Nunito', Arial, sans-serif; font-weight: 900; }
+.lm-scrap { background: #FFFDF6; color: #221E1C; }
+.lm-ink { background: #221E1C; color: #FBF7EC; }
+.lm-magenta { background: #D62A78; color: #FFF6EA; }
+
+.back-link {
+  font-size: 14px;
+  font-weight: 700;
+  color: #6E6353;
+  text-decoration: none;
+}
+
+.back-link:hover { color: #221E1C; }
+
+/* ── The spoken line ── */
+.spoken {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(30px, 4vw, 42px);
+  line-height: 1.14;
+  color: #221E1C;
+  max-width: 740px;
+  text-wrap: balance;
+  text-shadow: 2px 0 0 rgba(214,42,120,0.26), -2px 0 0 rgba(0,165,196,0.20);
+  margin-bottom: 20px;
+}
+
+/* ── Paper vocabulary ── */
+/* Resting tilt rides in a custom property so the hover/press snap can
+   stack a translate on it without losing the rotation. */
+.snap {
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .snap { transition: none; }
+}
+
+/* Cut-paper action buttons (shared look for card actions and dialogs) */
+.game-card-actions a,
+.game-card-actions button,
+.recipe-cancel-btn,
+.recipe-create-btn,
+#build-your-own-btn,
+.owner-bar-exit,
+.class-line-change,
+.teacher-setup-save,
+.teacher-setup-skip {
+  border: none;
+  text-decoration: none;
+  background: #FFFDF6;
+  color: #221E1C;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
+  padding: 8px 14px;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.game-card-actions a:hover,
+.game-card-actions button:hover,
+.recipe-cancel-btn:hover,
+.recipe-create-btn:hover:not(:disabled),
+#build-your-own-btn:hover,
+.owner-bar-exit:hover,
+.class-line-change:hover,
+.teacher-setup-save:hover,
+.teacher-setup-skip:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.16);
+  color: #221E1C;
+}
+
+/* Misprint offset: secondary button labels only, never body text */
+.misprint {
+  text-shadow: 1.5px 0 0 rgba(214,42,120,0.3), -1.5px 0 0 rgba(0,165,196,0.24);
+}
+
+/* ── Search + goal chips ── */
+#library-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+/* flex display beats the hidden attribute */
+#library-controls[hidden] { display: none; }
+
+/* The one un-rotated piece: inputs sit square with an inset shadow */
+#library-search {
+  flex: 1 1 220px;
+  max-width: 320px;
+  border: none;
+  background: #FFFDF6;
+  border-radius: 2px;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16);
+  padding: 11px 14px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #221E1C;
+}
+
+#library-search::placeholder { color: #9A8F7C; font-weight: 600; }
+
+#library-search:focus {
+  outline: none;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 2px #221E1C;
+}
+
+#goal-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.goal-chip {
+  border: none;
+  background: #FFFDF6;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+  padding: 8px 14px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #221E1C;
+  cursor: pointer;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.goal-chip:nth-child(odd) { transform: rotate(-0.8deg); }
+.goal-chip:nth-child(even) { transform: rotate(0.7deg); }
+
+.goal-chip:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.14);
+}
+
+/* Selected chip flips to ink. Never magenta. */
+.goal-chip.active {
+  background: #221E1C;
+  color: #FBF7EC;
+}
+
+/* ── Messages ── */
+#loading-message,
+#error-message,
+.empty-message {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #55503F;
+  text-align: center;
+  margin: 40px 0 8px;
+}
+
+/* ── Sections ── */
+#library-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.games-section-heading {
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #221E1C;
+  margin: 10px 0 -6px;
+}
+
+.games-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 22px;
+}
+
+/* ── Activity cards: ordinary cards are scrap on gesso ── */
+.game-card {
+  position: relative;
+  background: #FFFDF6;
+  border-radius: 2px;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.12);
+  padding: 22px 24px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.games-section-grid > .game-card:nth-child(3n+1) { transform: rotate(-0.4deg); }
+.games-section-grid > .game-card:nth-child(3n+2) { transform: rotate(0.3deg); }
+.games-section-grid > .game-card:nth-child(3n) { transform: rotate(0.5deg); }
+
+/* Your own copies sit on slightly warmer paper */
+.game-card-user { background: #FBF7EC; }
+
+.game-card-name {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.15;
+  color: #221E1C;
+  margin-bottom: 6px;
+}
+
+.game-card-description {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #55503F;
+  margin-bottom: 12px;
+}
+
+.library-card .game-card-description { min-height: 3.6em; flex: 1; }
+
+.game-card-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.game-card-meta-badge {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #6E6353;
+}
+
+.game-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.game-card-tag {
+  background: #FFFDF6;
+  border-radius: 2px;
+  box-shadow: 1px 1px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #55503F;
+}
+
+.game-card-no-winner {
+  align-self: flex-start;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #6E6353;
+}
+
+/* ── Card actions: Host is the magenta cut ── */
+.game-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 14px;
+  align-items: center;
+}
+
+.game-card-host {
+  background: #D62A78 !important;
+  color: #FFF6EA !important;
+  transform: rotate(-0.8deg);
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
+}
+
+.game-card-host:hover {
+  transform: rotate(-0.8deg) translate(2px, 2px) !important;
+  box-shadow: 0 0 0 rgba(34,30,28,0.18) !important;
+  color: #FFF6EA !important;
+}
+
+.library-host {
+  font-size: 14px !important;
+  padding: 10px 18px !important;
+}
+
+.game-card-fav {
+  font-family: 'Nunito', Arial, sans-serif !important;
+  font-size: 15px !important;
+  line-height: 1;
+  padding: 7px 11px !important;
+}
+
+.game-card-fav.is-fav {
+  background: #221E1C;
+  color: #FBF7EC;
+}
+
+.game-card-actions .game-card-delete {
+  margin-left: auto;
+  font-family: 'Nunito', Arial, sans-serif !important;
+  font-weight: 800;
+  font-size: 12px !important;
+  color: #6E6353;
+  box-shadow: 1px 1px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+}
+
+.game-card-delete:hover { color: #221E1C; }
+
+/* Owner curation star */
+.game-card-star {
+  align-self: flex-start;
+  margin-top: 12px;
+  border: none;
+  background: #FFFDF6;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
+  padding: 7px 14px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #221E1C;
+  cursor: pointer;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.game-card-star:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.16);
+}
+
+.game-card-star.is-featured {
+  background: #221E1C;
+  color: #FBF7EC;
+}
+
+/* ── Owner bar: the ink panel ── */
+.owner-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: #221E1C;
+  border-radius: 2px;
+  transform: rotate(0.25deg);
+  box-shadow: 4px 4px 0 rgba(34,30,28,0.18);
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #FBF7EC;
+}
+
+.owner-bar a { color: #FFC3DC; }
+.owner-bar a:hover { color: #FFF6EA; }
+
+/* ── Search rescue: honest any-subject note ── */
+.search-rescue {
+  background: #FBF7EC;
+  border-radius: 2px;
+  transform: rotate(-0.3deg);
+  box-shadow: 4px 4px 0 rgba(34,30,28,0.10);
+  padding: 18px 24px;
+}
+
+.search-rescue-head {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.search-rescue-body {
+  font-weight: 600;
+  color: #55503F;
+  margin-bottom: 8px;
+}
+
+.search-rescue-link { font-weight: 800; }
+
+/* ── Teacher setup card + class line ── */
 .teacher-setup-card {
-  background: var(--yellow-soft, #FFF9C4);
-  border: var(--border, 3px solid #000);
-  border-radius: var(--radius, 14px);
-  box-shadow: var(--shadow-pop-sm, 3px 3px 0 #000);
-  padding: 20px 24px;
+  background: #FBF7EC;
+  border-radius: 2px;
+  transform: rotate(-0.25deg);
+  box-shadow: 5px 6px 0 rgba(34,30,28,0.10);
+  padding: 24px 30px 22px;
   margin-bottom: 24px;
 }
+
 .teacher-setup-title {
-  font-family: var(--font-display, 'Archivo Black', sans-serif);
-  font-size: 1.2rem;
-  margin: 0 0 10px;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #221E1C;
+  margin-bottom: 12px;
 }
+
 .teacher-setup-intro {
   margin: 0 0 10px;
   padding-left: 20px;
-  font-weight: 700;
+  font-weight: 600;
+  color: #55503F;
+  line-height: 1.55;
 }
+
 .teacher-setup-intro li { margin-bottom: 4px; }
+
 .teacher-setup-guide-link {
   font-weight: 800;
   display: inline-block;
   margin-bottom: 6px;
 }
+
 .teacher-setup-ask {
-  font-weight: 700;
-  margin: 10px 0 4px;
+  font-weight: 600;
+  color: #221E1C;
+  margin: 12px 0 4px;
 }
+
 .teacher-setup-label {
-  font-family: var(--font-display, 'Archivo Black', sans-serif);
-  font-size: 0.85rem;
-  margin: 10px 0 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6E6353;
+  margin: 12px 0 8px;
 }
+
 .teacher-setup-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 9px;
 }
+
 .setup-chip {
+  border: none;
+  background: #FFFDF6;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
   padding: 8px 14px;
-  border: 2.5px solid #000;
-  border-radius: 999px;
-  background: #fff;
   font-family: 'Nunito', Arial, sans-serif;
+  font-size: 13px;
   font-weight: 800;
-  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  color: #221E1C;
   cursor: pointer;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
 }
+
+.setup-chip:nth-child(odd) { transform: rotate(-0.7deg); }
+.setup-chip:nth-child(even) { transform: rotate(0.6deg); }
+
+.setup-chip:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.14);
+}
+
 .setup-chip.active {
-  background: var(--blue, #0057FF);
-  color: #fff;
+  background: #221E1C;
+  color: #FBF7EC;
 }
-.setup-chip:focus-visible {
-  outline: 3px solid #0057FF;
-  outline-offset: 2px;
-}
+
 .teacher-setup-buttons {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 16px;
+  gap: 12px;
+  margin-top: 18px;
 }
+
 .teacher-setup-save {
-  padding: 10px 26px;
-  border: 2.5px solid #000;
-  border-radius: 12px;
-  background: var(--green, #00C853);
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-size: 0.9rem;
-  cursor: pointer;
+  background: #D62A78;
+  color: #FFF6EA;
+  transform: rotate(-0.8deg);
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
+  padding: 10px 24px;
 }
+
+.teacher-setup-save:hover {
+  transform: rotate(-0.8deg) translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+  color: #FFF6EA;
+}
+
 .teacher-setup-skip {
-  padding: 10px 18px;
-  border: 2.5px solid #000;
-  border-radius: 12px;
-  background: #fff;
   font-family: 'Nunito', Arial, sans-serif;
   font-weight: 800;
-  font-size: 0.9rem;
-  cursor: pointer;
 }
-.teacher-setup-save:focus-visible,
-.teacher-setup-skip:focus-visible,
-.class-line-change:focus-visible {
-  outline: 3px solid #0057FF;
-  outline-offset: 2px;
-}
+
 .class-line {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
-  font-weight: 700;
-  color: var(--text-soft, #555);
-  margin: 0 0 14px;
+  font-weight: 600;
+  color: #55503F;
+  margin: 0 0 16px;
 }
+
 .class-line-change {
-  padding: 4px 12px;
-  border: 2px solid #000;
-  border-radius: 999px;
-  background: #fff;
   font-family: 'Nunito', Arial, sans-serif;
   font-weight: 800;
-  font-size: 0.8rem;
-  cursor: pointer;
+  font-size: 12px;
+  padding: 5px 12px;
+}
+
+/* ── Builder doorway ── */
+.builder-doorway {
+  margin-top: 48px;
+  text-align: center;
+  background: #FBF7EC;
+  border-radius: 2px;
+  transform: rotate(0.25deg);
+  box-shadow: 4px 4px 0 rgba(34,30,28,0.10);
+  padding: 24px;
+}
+
+.builder-doorway p {
+  margin: 0 0 12px;
+  font-weight: 600;
+  color: #55503F;
+}
+
+#build-your-own-btn {
+  font-size: 14px;
+  padding: 12px 24px;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.16);
 }
 
 .privacy-footnote {
   text-align: center;
   margin-top: 28px;
   font-size: 0.9rem;
+  font-weight: 600;
 }
-.privacy-footnote a { color: var(--text-soft, #555); font-weight: 700; }
+
+.privacy-footnote a { color: #6E6353; font-weight: 700; }
+.privacy-footnote a:hover { color: #221E1C; }
+
+/* ── Customize dialog (shared/dialog.js + library.js) ── */
+.template-picker-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(34, 30, 28, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.template-picker-modal {
+  background: #FBF7EC;
+  border-radius: 2px;
+  box-shadow: 6px 7px 0 rgba(34,30,28,0.25);
+  padding: 30px 34px 26px;
+  max-width: 620px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative; /* anchors the dialog × */
+}
+
+.dialog-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: #FFFDF6;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.18);
+  font-family: 'Nunito', Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #221E1C;
+  cursor: pointer;
+  z-index: 2;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.dialog-close-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+}
+
+.template-picker-title {
+  font-family: 'EB Garamond', Georgia, serif;
+  font-weight: 400;
+  font-size: 30px;
+  color: #221E1C;
+  margin-bottom: 8px;
+  text-shadow: 1.5px 0 0 rgba(214,42,120,0.26), -1.5px 0 0 rgba(0,165,196,0.20);
+}
+
+.template-picker-subtitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #55503F;
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.recipe-form-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.recipe-cancel-btn {
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  padding: 10px 18px;
+}
+
+.recipe-create-btn {
+  background: #D62A78;
+  color: #FFF6EA;
+  transform: rotate(-0.8deg);
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
+  padding: 10px 24px;
+}
+
+.recipe-create-btn:hover:not(:disabled) {
+  transform: rotate(-0.8deg) translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+  color: #FFF6EA;
+}
+
+.recipe-create-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 700px) {
+  .page { padding: 20px 16px 32px; }
+  .wordmark span { font-size: 15px; padding: 1px 6px 3px; }
+  .lm-garamond { font-size: 18px !important; padding: 0 6px 1px !important; }
+  .games-section-grid { grid-template-columns: 1fr; }
+}
