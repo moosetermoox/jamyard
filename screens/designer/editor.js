@@ -353,9 +353,9 @@ var PHASE_CATALOG = {
 // the registry wins so Simple view, pickers, refs, and the Builder all say
 // the same thing.
 (function () {
-  if (!window.PHASE_NAMES) return;
   for (var t in PHASE_CATALOG) {
-    if (window.PHASE_NAMES[t]) PHASE_CATALOG[t].friendlyName = window.PHASE_NAMES[t];
+    if (window.PHASE_NAMES && window.PHASE_NAMES[t]) PHASE_CATALOG[t].friendlyName = window.PHASE_NAMES[t];
+    if (window.PHASE_BLURBS && window.PHASE_BLURBS[t]) PHASE_CATALOG[t].description = window.PHASE_BLURBS[t];
   }
 })();
 

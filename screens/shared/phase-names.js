@@ -43,3 +43,41 @@ window.PHASE_NAMES = {
   'guessing-rounds': 'Guessing rounds',
   'end': 'Wrap up'
 };
+
+// One-sentence teacher-facing blurb per step type. Shown as hover
+// tooltips on Builder palette tiles and anywhere else a step needs a
+// short "what does this do". Same rule as names: this is the only copy
+// of each blurb.
+window.PHASE_BLURBS = {
+  'lobby': 'Students join with the room code and wait for you to start.',
+  'collect': 'Every student types a short answer to your question.',
+  'collect-choice': 'Students pick one of the choices you set; add a correct answer to make it a quiz.',
+  'collect-two': 'Students submit two linked answers; the secret one stays hidden until a reveal.',
+  'estimate': 'Everyone guesses a number; closest to the answer earns points. No answer set makes it a poll.',
+  'match': 'Students pair up two lists (like words and definitions), scored automatically.',
+  'sort': 'Students place each item into the right bucket, graded or as a class poll.',
+  'buzz': 'You ask a question out loud; the first student to buzz answers and you judge it.',
+  'announce': 'Puts a message on every screen, good for intros and instructions.',
+  'reveal': 'Shows results or content from an earlier step to the whole class.',
+  'reveal-one': 'You reveal submissions one at a time, at your own pace.',
+  'leaderboard': 'Shows current scores and rankings to everyone.',
+  'winner': 'Crowns the winner with a drumroll and shows what they won for.',
+  'preview': 'Only you see the content first; approve it before the class does.',
+  'vote': 'The class votes for a favorite, one pick each or head-to-head.',
+  'rank': 'Students put a list in their preferred order; the class ranking combines them.',
+  'rate': 'Students rate something on scales you define.',
+  'wager': 'Students bet points on which option will be right.',
+  'eliminate': 'Removes the lowest-scoring players from the running.',
+  'ai-eliminate': 'AI checks each answer against your rule and eliminates rule-breakers.',
+  'team-split': 'Divides the class into teams: random, balanced, your picks, or student choice.',
+  'merge': 'Pairs or small groups combine their answers into one shared answer.',
+  'relay': 'Students take turns adding to one growing piece, one at a time.',
+  'turn': 'Charades style: one describer per team, the team guesses against the clock.',
+  'checklist': 'Each group works through the same to-do list; the projector shows live progress.',
+  'one-voice': 'The class counts to a target together; two voices at once resets it.',
+  'ai-process': 'AI reads the class\'s answers and turns them into something new.',
+  'ai': 'AI reads the class\'s answers and turns them into something new.',
+  'foreach': 'Repeats a set of steps once for each answer from an earlier step.',
+  'guessing-rounds': 'A round per submission: show each clue, everyone guesses, then the reveal.',
+  'end': 'Wraps up the activity with a final message.'
+};

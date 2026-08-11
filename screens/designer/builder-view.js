@@ -315,6 +315,7 @@
         allTiles.forEach(function (t) {
           var tile = el('button', 'builder-tile sug ' + group.cls);
           tile.type = 'button';
+          if (window.PHASE_BLURBS && window.PHASE_BLURBS[t.type]) tile.title = window.PHASE_BLURBS[t.type];
           tile.appendChild(el('span', 'builder-tile-title', t.title));
           tile.addEventListener('click', function () {
             browseAllGap = null;
@@ -375,6 +376,7 @@
     tiles.forEach(function (t) {
       var tile = el('button', 'builder-tile sug ' + (t.cls || ''));
       tile.type = 'button';
+      if (t.type && window.PHASE_BLURBS && window.PHASE_BLURBS[t.type]) tile.title = window.PHASE_BLURBS[t.type];
       if (t.mostCommon) tile.appendChild(el('span', 'builder-why', 'most common'));
       if (t.feelsComplete) tile.appendChild(el('span', 'builder-why', 'feels complete'));
       tile.appendChild(el('span', 'builder-tile-title', t.title));
@@ -684,6 +686,7 @@
       tiles.forEach(function (t) {
         var tile = el('button', 'builder-tile ' + group.cls);
         tile.type = 'button';
+        if (window.PHASE_BLURBS && window.PHASE_BLURBS[t.type]) tile.title = window.PHASE_BLURBS[t.type];
         tile.appendChild(el('span', 'builder-tile-title', t.title));
         tile.addEventListener('click', function () {
           insertStep(t.type, null);
