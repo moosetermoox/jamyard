@@ -1080,7 +1080,7 @@ Return ONLY JSON: {"questions":[{"question":"...","placeholder":"e.g. ..."}]}`
         max_tokens: 1200,
         messages: [{
           role: 'user',
-          content: `You are the guide for Lanyard, a classroom activity platform (teacher projects a host screen, students join on Chromebooks, everything is text or simple taps). A teacher is not sure what to run or make. Suggest up to 3 things, best first.
+          content: `You are the guide for Jamyard, a classroom activity platform (teacher projects a host screen, students join on Chromebooks, everything is text or simple taps). A teacher is not sure what to run or make. Suggest up to 3 things, best first.
 
 THE TEACHER'S ANSWERS:
 Occasion: ${String(occasion || '').slice(0, 100)}

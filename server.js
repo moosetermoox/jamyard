@@ -174,7 +174,7 @@ function ownerAreaGate(req, res, next) {
     (path.startsWith('/api/feedback') && req.method !== 'POST');     // list/status; submitting stays open
   if (!needsOwner) return next();
   if (isOwnerRequest(req)) return next();
-  res.set('WWW-Authenticate', 'Basic realm="Lanyard Owner Area"');
+  res.set('WWW-Authenticate', 'Basic realm="Jamyard Owner Area"');
   res.status(401).type('text/plain').send('Owner area - password required.');
 }
 app.use(ownerAreaGate);
@@ -2125,7 +2125,7 @@ app.post('/api/games/:gameId/featured', async (req, res) => {
 
     const { configPath, source } = await resolveGamePath(gameId);
     if (source === 'built-in' && !isOwnerRequest(req)) {
-      res.set('WWW-Authenticate', 'Basic realm="Lanyard Owner Area"');
+      res.set('WWW-Authenticate', 'Basic realm="Jamyard Owner Area"');
       return res.status(401).json({ error: 'Curating a built-in activity requires the owner password.' });
     }
     if (source === 'built-in' && DB_ENABLED) {
@@ -2167,7 +2167,7 @@ app.put('/api/games/:gameId', async (req, res) => {
       // The site is public: anyone may create and edit their own activities,
       // but only the owner may modify the shipped built-ins.
       if (source === 'built-in' && !isOwnerRequest(req)) {
-        res.set('WWW-Authenticate', 'Basic realm="Lanyard Owner Area"');
+        res.set('WWW-Authenticate', 'Basic realm="Jamyard Owner Area"');
         return res.status(401).json({ error: 'Editing a built-in activity requires the owner password.' });
       }
       await writeFile(configPath, JSON.stringify(config, null, 2));
@@ -2533,7 +2533,7 @@ app.delete('/api/games/:gameId', async (req, res) => {
       const { gameDir, source } = await resolveGamePath(gameId);
       // Public site: deleting a shipped built-in is owner-only.
       if (source === 'built-in' && !isOwnerRequest(req)) {
-        res.set('WWW-Authenticate', 'Basic realm="Lanyard Owner Area"');
+        res.set('WWW-Authenticate', 'Basic realm="Jamyard Owner Area"');
         return res.status(401).json({ error: 'Deleting a built-in activity requires the owner password.' });
       }
       await rm(gameDir, { recursive: true });
