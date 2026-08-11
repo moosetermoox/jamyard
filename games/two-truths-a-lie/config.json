@@ -1,6 +1,6 @@
 {
   "name": "Two Truths & a Lie",
-  "description": "Submit two truths and a lie about yourself, then spot your classmates' lies, 100 points per catch, and every round ends with the author telling the story.",
+  "description": "Two truths and a lie: spot your classmates' lies, then hear the story behind each truth.",
   "phases": {
     "lobby": {
       "type": "lobby",

@@ -1,6 +1,6 @@
 {
   "name": "Finish My Drawing",
-  "description": "Everyone starts a drawing, then it passes to a classmate to continue, twice, before the collaborative results hit the gallery. Nobody knows what their drawing became until the reveal.",
+  "description": "Start a drawing, pass it on twice, then see what it became at the gallery reveal.",
   "phases": {
     "lobby": {
       "type": "lobby",

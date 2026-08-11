@@ -1,6 +1,6 @@
 {
   "name": "Last One Standing",
-  "description": "Three escalating rounds of absurd questions, survive the class vote, or join the jury that crowns the champion. Eliminated players never stop voting.",
+  "description": "Three rounds of absurd questions: survive the class vote or join the jury that crowns the champion.",
   "minPlayers": 4,
   "maxPlayers": 36,
   "phases": {

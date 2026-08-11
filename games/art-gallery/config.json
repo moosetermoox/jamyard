@@ -1,6 +1,6 @@
 {
   "name": "Art Gallery",
-  "description": "Everyone draws the same prompt, the teacher previews the gallery, then the drawings reveal one at a time on the projector, the template for any draw-and-share moment. Swap in your own drawing prompt for any topic.",
+  "description": "Everyone draws the same prompt; after a teacher preview, the drawings reveal one at a time. Swap in any prompt.",
   "featured": true,
   "phases": {
     "lobby": {

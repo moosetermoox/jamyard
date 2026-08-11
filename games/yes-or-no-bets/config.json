@@ -1,6 +1,6 @@
 {
   "name": "Yes or No Bets",
-  "description": "Teacher asks a yes-or-no question. Everyone answers, then one by one the class bets on what each classmate said. Most correct guesses wins.",
+  "description": "Answer a yes-or-no question, then bet on what each classmate said. Best reader of the room wins.",
   "phases": {
     "lobby": {
       "type": "lobby",

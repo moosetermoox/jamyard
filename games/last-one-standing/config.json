@@ -1,9 +1,21 @@
 {
   "name": "Last One Standing",
-  "description": "Everyone writes four facts, from common to one-of-a-kind. The room stands, each fact thins the crowd, and whoever is left standing wrote the card. Played on your feet; the screen just deals the cards.",
+  "description": "Everyone writes four facts; the room stands and each fact thins the crowd. Last one up wrote the card.",
   "family": "connection",
-  "tags": ["connect", "icebreaker"],
-  "keywords": ["icebreaker", "staff meeting", "faculty", "getting to know you", "first day", "community", "index cards", "any subject"],
+  "tags": [
+    "connect",
+    "icebreaker"
+  ],
+  "keywords": [
+    "icebreaker",
+    "staff meeting",
+    "faculty",
+    "getting to know you",
+    "first day",
+    "community",
+    "index cards",
+    "any subject"
+  ],
   "playTime": "~25-35 min",
   "classSize": "5–30 players",
   "phases": {
@@ -21,10 +33,22 @@
       "type": "collect",
       "prompt": "Your four facts, from 'lots of us' to 'only me'. Example: I enjoy podcasts. I have 9 siblings. I played college soccer. I have been to Space Camp twice.",
       "fields": [
-        { "label": "Fact 1: common, many people here might say this too", "key": "fact1" },
-        { "label": "Fact 2: a little more specific or distinctive", "key": "fact2" },
-        { "label": "Fact 3: unusual, interesting, or personal", "key": "fact3" },
-        { "label": "Fact 4: almost certainly just you", "key": "fact4" }
+        {
+          "label": "Fact 1: common, many people here might say this too",
+          "key": "fact1"
+        },
+        {
+          "label": "Fact 2: a little more specific or distinctive",
+          "key": "fact2"
+        },
+        {
+          "label": "Fact 3: unusual, interesting, or personal",
+          "key": "fact3"
+        },
+        {
+          "label": "Fact 4: almost certainly just you",
+          "key": "fact4"
+        }
       ],
       "from": "all",
       "next": "ready"

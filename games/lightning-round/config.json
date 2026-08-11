@@ -1,6 +1,6 @@
 {
   "name": "Lightning Round",
-  "description": "A buzzer round plus two guess-the-number questions, quick-fire class energy with a leaderboard at the end. Teacher: bring about 5 quick questions to ask out loud in the buzzer round (any subject works).",
+  "description": "A buzzer round plus two guess-the-number questions. Bring about 5 quick questions to ask out loud.",
   "phases": {
     "lobby": {
       "type": "lobby",

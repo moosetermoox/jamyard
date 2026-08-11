@@ -1,6 +1,6 @@
 {
   "name": "Group Work Day",
-  "description": "Split into groups and work through a shared to-do list, any group member checks items off, the projector shows every group's live progress. The template for lab days, stations, and project work. Hosted as-is it runs a zero-prep team challenge; swap in your own task list for a real work session.",
+  "description": "Teams check off a shared to-do list, live progress on the projector. Swap in your own tasks for any work day.",
   "featured": true,
   "phases": {
     "lobby": {

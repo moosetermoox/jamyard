@@ -1,6 +1,6 @@
 {
   "name": "Class Critique",
-  "description": "Whole-class critique on a presentation, idea, or pitch. The presenter shares verbally; the class rates on three custom scales.",
+  "description": "The presenter shares their work; the class rates it on three custom scales.",
   "minPlayers": 2,
   "maxPlayers": 35,
   "phases": {

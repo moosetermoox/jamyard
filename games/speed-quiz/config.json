@@ -1,6 +1,6 @@
 {
   "name": "Speed Quiz",
-  "description": "Five trivia questions, race to answer. Faster correct answers earn more points (Kahoot-style). Swap in your own questions for any unit review.",
+  "description": "Five trivia questions; faster correct answers earn more points. Swap in your own questions.",
   "featured": true,
   "phases": {
     "lobby": {

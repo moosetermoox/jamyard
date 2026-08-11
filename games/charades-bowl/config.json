@@ -1,6 +1,6 @@
 {
   "name": "Charades Bowl",
-  "description": "Everyone secretly writes 3 phrases. Two teams. Round 1: describe. Round 2: act it out. Round 3: one word only. Same pool, three rounds, most points wins.",
+  "description": "One phrase pool, three rounds: describe it, act it out, one word only. Most points wins.",
   "phases": {
     "lobby": {
       "type": "lobby",

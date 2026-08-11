@@ -1,6 +1,6 @@
 {
   "name": "Fix One Thing",
-  "description": "Six minutes, one sentence each: what would you fix about school tomorrow? The room's answers come back as one shared manifesto, every voice in it, findable. Built as a demo of the write → AI-weave → teacher-gate → reveal loop.",
+  "description": "One sentence each: what would you fix about school tomorrow? The answers return as one shared manifesto.",
   "featured": false,
   "minPlayers": 2,
   "phases": {

@@ -1,6 +1,6 @@
 {
   "name": "Dream Vacation Pitch",
-  "description": "Suggest dream destinations, rank the AI-merged shortlist as a class, then collaboratively write a vacation pitch for the winner, one sentence at a time.",
+  "description": "Suggest destinations, rank the shortlist, then write the winner's pitch one sentence at a time.",
   "phases": {
     "lobby": {
       "type": "lobby",

@@ -1,6 +1,6 @@
 {
   "name": "Trivia Bluff",
-  "description": "An obscure fact has a blank. Players write believable lies to fool the class. Everyone votes, picking the truth scores, fooling others scores too.",
+  "description": "A fact with a blank and believable lies. Pick the truth to score; fool the class to score too.",
   "phases": {
     "lobby": {
       "type": "lobby",

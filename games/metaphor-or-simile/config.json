@@ -1,6 +1,6 @@
 {
   "name": "Metaphor or Simile?",
-  "description": "A scored sorting round (figure-of-speech ID) followed by a just-for-fun consensus sort, the template for any categorization review.",
+  "description": "A scored sort, then a just-for-fun consensus sort. Swap in your own categories for any review.",
   "phases": {
     "lobby": {
       "type": "lobby",

@@ -1,6 +1,6 @@
 {
   "name": "Vocab Match",
-  "description": "Two quick match-the-pairs rounds (French animals, then French food) with a leaderboard, the template for any vocab/definitions review. Swap in your own pairs for any subject.",
+  "description": "Two quick match-the-pairs rounds with a leaderboard. Swap in your own pairs for any review.",
   "featured": true,
   "phases": {
     "lobby": {

@@ -1,6 +1,6 @@
 {
   "name": "Definition Bluff",
-  "description": "An obscure real word. Players invent plausible-sounding fake definitions. The class votes on which one is real, picking the truth scores, fooling others scores too.",
+  "description": "One obscure real word, invented fake definitions. Pick the truth to score; fool the class to score too.",
   "phases": {
     "lobby": {
       "type": "lobby",

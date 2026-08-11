@@ -1,6 +1,6 @@
 {
   "name": "Emoji Movies",
-  "description": "Describe your favorite movie in nothing but emojis, then the class cycles through every clue and types their guesses. The reveal is the fun part.",
+  "description": "Describe a movie in nothing but emojis, then guess everyone else's clues.",
   "playTime": "~15 min",
   "classSize": "3-35 players",
   "tags": [
