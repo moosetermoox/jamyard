@@ -109,10 +109,9 @@ launchBtn.addEventListener('click', () => {
 
   const count = parseInt(playerCount.value, 10);
 
-  // Disable controls
+  // Disable Launch while a session runs. The activity select and player
+  // slider stay enabled — changing either relaunches with the new value.
   launchBtn.disabled = true;
-  gameSelect.disabled = true;
-  // playerCount stays enabled — moving it relaunches with the new count
 
   // Clear previous iframes
   iframeContainer.innerHTML = '';
@@ -224,6 +223,15 @@ playerCount.addEventListener('input', () => {
 playerCount.addEventListener('change', () => {
   if (!launchBtn.disabled) return; // not launched yet — Launch will use it
   playerCount.disabled = false;
+  resetBtn.click();
+  launchBtn.click();
+});
+
+// Picking a different activity mid-preview relaunches with it (same
+// pattern as the players slider; the select used to be disabled after
+// launch, which read as a broken dropdown).
+gameSelect.addEventListener('change', () => {
+  if (!launchBtn.disabled) return; // not launched yet — Launch will use it
   resetBtn.click();
   launchBtn.click();
 });

@@ -352,6 +352,25 @@ body::before {
   grid-row: 1;
 }
 
+/* One-at-a-time: whatever the player count, the layout collapses to
+   host left + the single visible player right, both full height.
+   Without this the grid keeps its N stacked rows and the visible
+   player fills only the first one (half height at 2 players). */
+#iframe-container[data-view="carousel"] {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+}
+
+#iframe-container[data-view="carousel"] .host-panel {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+#iframe-container[data-view="carousel"] .player-panel {
+  grid-column: 2;
+  grid-row: 1;
+}
+
 .panel-label {
   background: #221E1C;
   color: #FBF7EC;
