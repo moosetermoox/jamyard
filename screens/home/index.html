@@ -320,6 +320,60 @@
       box-shadow: 0 0 0 rgba(34,30,28,0.22);
     }
 
+    /* ── How it works: three scraps, the whole concept at a glance ── */
+    .how-strip {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .how-step {
+      background: #FFFDF6;
+      border-radius: 2px;
+      transform: rotate(var(--tilt, 0deg));
+      box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .how-num {
+      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+      font-size: 21px;
+      line-height: 1;
+      color: #FFF6EA;
+      background: #D9481C;
+      border-radius: 2px;
+      box-shadow: 1px 1px 0 rgba(34,30,28,0.18);
+      padding: 5px 9px 7px;
+      transform: rotate(-1.2deg);
+      flex-shrink: 0;
+    }
+
+    .how-step:nth-child(2) .how-num { transform: rotate(1deg); }
+
+    .how-step p {
+      font-size: 15px;
+      font-weight: 600;
+      line-height: 1.45;
+      color: #5C5546;
+    }
+
+    .how-step strong {
+      color: #221E1C;
+      font-weight: 800;
+    }
+
+    .how-try {
+      font-size: 15px;
+      font-weight: 600;
+      color: #5C5546;
+    }
+
+    .how-try a { font-weight: 800; }
+
     /* ── Action row: cut-paper buttons ── */
     .actions {
       display: grid;
@@ -478,6 +532,7 @@
       .wordmark span { font-size: 18px; padding: 2px 7px 4px; }
       .lm-garamond { font-size: 21px !important; padding: 1px 7px 2px !important; }
       .sheet { padding: 24px 22px 22px; }
+      .how-strip { grid-template-columns: 1fr; }
       .actions { grid-template-columns: 1fr; }
       footer { justify-content: center; }
       .reg-marks { margin-left: 0; width: 100%; justify-content: center; }
@@ -507,7 +562,7 @@
     <main class="sheet">
       <div class="sheet-halftone" aria-hidden="true"></div>
       <h1 class="spoken">What are we going to do together?</h1>
-      <p class="sub">Simple activities for connecting, thinking, and fun. Browse by what you want your class to do, then host it in one click. Students join on their Chromebooks.</p>
+      <p class="sub">Simple activities for connecting, thinking, and fun. Browse by what you want your class to do, then host it in one click. Students join on their own devices.</p>
 
       <!-- Rotating peek at the library: one activity card at a time,
            click to host it now. Hidden until the list loads. -->
@@ -533,6 +588,25 @@
           </div>
         </div>
       </div>
+
+      <!-- How it works: the whole concept in three scraps, then a way to
+           see it run without a class. A new teacher should get the picture
+           without already knowing the genre. -->
+      <div class="how-strip" aria-label="How it works">
+        <div class="how-step" style="--tilt: -0.6deg">
+          <span class="how-num" aria-hidden="true">1</span>
+          <p><strong>Pick an activity</strong> from the library, or make your own.</p>
+        </div>
+        <div class="how-step" style="--tilt: 0.5deg">
+          <span class="how-num" aria-hidden="true">2</span>
+          <p><strong>Project your screen.</strong> The activity plays out up front for the whole class.</p>
+        </div>
+        <div class="how-step" style="--tilt: -0.4deg">
+          <span class="how-num" aria-hidden="true">3</span>
+          <p><strong>Students join with a 4-letter code</strong> on their devices. No accounts, nothing to install.</p>
+        </div>
+      </div>
+      <p class="how-try">Curious? <a href="/prototype?game=art-gallery" title="See the teacher screen and practice students side by side">Watch one run</a> with practice students, no class needed.</p>
     </main>
 
     <div class="actions">
