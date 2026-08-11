@@ -10,6 +10,7 @@ const gameSelect = document.getElementById('game-select');
 const playerCount = document.getElementById('player-count');
 const playerCountDisplay = document.getElementById('player-count-display');
 const launchBtn = document.getElementById('launch-btn');
+const hostBtn = document.getElementById('host-btn');
 const botFillBtn = document.getElementById('bot-fill-btn');
 const skipBtn = document.getElementById('skip-btn');
 const resetBtn = document.getElementById('reset-btn');
@@ -83,6 +84,7 @@ fetch('/api/games')
       gameSelect.appendChild(option);
     }
     launchBtn.disabled = false;
+    hostBtn.disabled = false;
 
     // Auto-select game from URL param (e.g. from editor's Test Game button)
     const params = new URLSearchParams(window.location.search);
@@ -101,6 +103,14 @@ fetch('/api/games')
   .catch(() => {
     gameSelect.innerHTML = '<option value="">Failed to load games</option>';
   });
+
+// Host for real — the step after a good preview. Same activity the
+// preview is showing; the practice room is simply left behind.
+hostBtn.addEventListener('click', () => {
+  const gameId = gameSelect.value;
+  if (!gameId) return;
+  window.location.href = '/host?game=' + encodeURIComponent(gameId);
+});
 
 // Launch prototype
 launchBtn.addEventListener('click', () => {

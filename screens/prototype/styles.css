@@ -160,6 +160,38 @@ body::before {
   color: #221E1C;
 }
 
+/* The real-class payoff: preview it here, then host it for real. Sits at
+   the far edge, apart from the practice controls, so it reads as the next
+   step rather than another knob. */
+#host-btn {
+  margin-left: auto;
+  padding: 7px 16px;
+  border: none;
+  border-radius: 2px;
+  background: #D9481C;
+  color: #FFF6EA;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.18);
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-size: 0.85em;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: rotate(0.6deg);
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+#host-btn:hover:not(:disabled) {
+  transform: rotate(0.6deg) translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+}
+
+#host-btn:disabled {
+  background: #D8D2C4;
+  color: #857A66;
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
+
 /* View toggle: a scrap holding two chips, the active one flips to ink */
 #view-toggle {
   display: flex;

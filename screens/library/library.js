@@ -341,6 +341,7 @@ function buildCard(game) {
     customizeBtn.textContent = 'Customize';
     customizeBtn.title = 'Make your own editable copy of this activity';
     customizeBtn.setAttribute('aria-label', 'Customize a copy of "' + game.name + '"');
+    customizeBtn.setAttribute('data-game-id', game.id);
     customizeBtn.addEventListener('click', function () {
       customizeCopy(game, customizeBtn);
     });
@@ -829,6 +830,38 @@ try {
   }
 } catch (e) { /* URL parsing unavailable — owner view still reachable later */ }
 
+// ?customize= deep link (the designer's concierge points here): open the
+// Customize flow for that activity once the library knows its games. The
+// param is stripped first so a refresh lands on the plain library.
+function handleCustomizeDeepLink() {
+  var wantedId;
+  try {
+    var params = new URLSearchParams(window.location.search);
+    wantedId = params.get('customize');
+    if (!wantedId) return;
+    params.delete('customize');
+    window.history.replaceState(null, '', window.location.pathname +
+      (params.toString() ? '?' + params.toString() : ''));
+  } catch (e) { return; }
+  var game = null;
+  for (var i = 0; i < allGames.length; i++) {
+    if (allGames[i].id === wantedId) { game = allGames[i]; break; }
+  }
+  if (!game) return; // unknown id — the teacher still has the full library
+  // Own activities (and the owner) edit directly, same as the card.
+  var canEditDirectly = (window.MyGames && MyGames.has(game.id)) ||
+    (window.OwnerMode && OwnerMode.isOn());
+  if (canEditDirectly) {
+    window.location.href = '/designer/edit?game=' + encodeURIComponent(game.id) + '&from=library';
+    return;
+  }
+  // Reuse the card's own button for loading feedback when it's on screen;
+  // a detached one keeps the flow working if the card is filtered out.
+  var btn = document.querySelector('.game-card-edit[data-game-id="' + game.id + '"]') ||
+    document.createElement('button');
+  customizeCopy(game, btn);
+}
+
 fetch('/api/games')
   .then(function (resp) {
     if (!resp.ok) throw new Error('status ' + resp.status);
@@ -838,6 +871,7 @@ fetch('/api/games')
     allGames = data.games || [];
     loadingMessage.hidden = true;
     refreshLibrary();
+    handleCustomizeDeepLink();
   })
   .catch(function (err) {
     loadingMessage.hidden = true;

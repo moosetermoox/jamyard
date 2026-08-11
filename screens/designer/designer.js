@@ -2114,16 +2114,52 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       card.appendChild(why);
     }
 
+    if (s.kind === 'host') {
+      // Ready-to-run cards get the same three doors as a library card:
+      // host it now, preview it with practice players, or customize a copy.
+      var row = document.createElement('div');
+      row.style.cssText = 'display:flex; flex-wrap:wrap; gap:8px; margin-top:8px;';
+
+      var hostBtn = document.createElement('button');
+      hostBtn.type = 'button';
+      hostBtn.className = 'recipe-create-btn';
+      hostBtn.textContent = '▶ Host this' + (s.playTime ? ' (' + s.playTime + ')' : '');
+      hostBtn.title = 'Start a live room your class can join right now';
+      hostBtn.addEventListener('click', function () {
+        window.location.href = '/host?game=' + encodeURIComponent(s.id);
+      });
+      row.appendChild(hostBtn);
+
+      var previewBtn = document.createElement('button');
+      previewBtn.type = 'button';
+      previewBtn.className = 'recipe-cancel-btn';
+      previewBtn.textContent = 'Preview';
+      previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
+      previewBtn.addEventListener('click', function () {
+        window.location.href = '/prototype?game=' + encodeURIComponent(s.id);
+      });
+      row.appendChild(previewBtn);
+
+      var customizeBtn = document.createElement('button');
+      customizeBtn.type = 'button';
+      customizeBtn.className = 'recipe-cancel-btn';
+      customizeBtn.textContent = 'Customize';
+      customizeBtn.title = 'Make your own editable copy of this activity';
+      customizeBtn.addEventListener('click', function () {
+        window.location.href = '/library?customize=' + encodeURIComponent(s.id);
+      });
+      row.appendChild(customizeBtn);
+
+      card.appendChild(row);
+      resultsEl.appendChild(card);
+      return;
+    }
+
     var action = document.createElement('button');
     action.type = 'button';
     action.className = 'recipe-create-btn';
     action.style.marginTop = '8px';
-    if (s.kind === 'host') {
-      action.textContent = '▶ Host this' + (s.playTime ? ' (' + s.playTime + ')' : '');
-      action.addEventListener('click', function () {
-        window.location.href = '/host?game=' + encodeURIComponent(s.id);
-      });
-    } else if (s.kind === 'recipe') {
+    if (s.kind === 'recipe') {
       action.textContent = 'Use this recipe';
       action.addEventListener('click', function () {
         closeOverlay(overlay);
