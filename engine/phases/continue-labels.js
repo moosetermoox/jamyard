@@ -9,6 +9,7 @@
  */
 
 const LABELS = {
+  announce: 'Show the message',
   collect: 'Send the question to students',
   'collect-choice': 'Start the question',
   vote: 'Start the voting',
@@ -43,6 +44,28 @@ const LABELS = {
  */
 export function continueLabelFor(nextType) {
   return LABELS[nextType] || 'Continue';
+}
+
+/**
+ * Two-stage phases: closing shows results on the projector BEFORE the game
+ * moves on. While such a phase is open, the console's button closes it (it
+ * does not advance), so the button must say the CLOSE action. Types not
+ * listed here have no separate close stage (or their own dedicated button).
+ */
+const CLOSE_LABELS = {
+  rate: 'End the ratings',
+  estimate: 'Lock in the guesses',
+  match: 'Reveal the answers',
+  sort: 'Reveal the answers',
+  checklist: 'End work time'
+};
+
+/**
+ * @param {string|null|undefined} phaseType — the phase currently running
+ * @returns {string|null} close-action label, or null when one click advances
+ */
+export function closeLabelFor(phaseType) {
+  return CLOSE_LABELS[phaseType] || null;
 }
 
 /**

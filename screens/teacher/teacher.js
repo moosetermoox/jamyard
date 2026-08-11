@@ -28,6 +28,7 @@ var previewRespList = document.getElementById('preview-resp-list');
 var approveBtn = document.getElementById('approve-btn');
 var rejectBtn = document.getElementById('reject-btn');
 var closeStepBtn = document.getElementById('close-step-btn');
+var revealNextBtn = document.getElementById('reveal-next-btn');
 var nextStepBtn = document.getElementById('next-step-btn');
 var controlsBlock = document.getElementById('controls-block');
 var consoleNote = document.getElementById('console-note');
@@ -125,7 +126,7 @@ socket.on('teacher-joined', function (snap) {
   headerRoom.textContent = (snap.gameName ? snap.gameName + ' · ' : '') + 'Room ' + snap.code;
 
   latestRoster = { count: snap.playerCount || 0, players: snap.players || [] };
-  setPhase(snap.phaseType, snap.phaseId, snap.phaseInstanceId, snap.continueLabel);
+  setPhase(snap);
   renderEntries(snap.submissions || []);
   // Seed the "X of Y in" count when joining mid-collect (live updates take
   // over from the next response-received event).
@@ -157,10 +158,11 @@ socket.on('connect', function () {
 
 // --- Phase tracking: decides which controls show ---
 
-function setPhase(phaseType, phaseId, phaseInstanceId, continueLabel) {
+function setPhase(data) {
+  var phaseType = data.phaseType;
   currentPhaseType = phaseType;
-  if (phaseInstanceId !== undefined && phaseInstanceId !== null) {
-    currentPhaseInstanceId = phaseInstanceId;
+  if (data.phaseInstanceId !== undefined && data.phaseInstanceId !== null) {
+    currentPhaseInstanceId = data.phaseInstanceId;
   }
   phaseLabel.textContent = PHASE_LABELS[phaseType] || (phaseType || 'Waiting…');
   phaseLabel.classList.toggle('phase-label-attention', phaseType === 'preview');
@@ -172,7 +174,14 @@ function setPhase(phaseType, phaseId, phaseInstanceId, continueLabel) {
 
   var isCollect = phaseType === 'collect' || phaseType === 'collect-choice';
   entriesBlock.hidden = !isCollect;
-  if (!isCollect) entriesList.innerHTML = '';
+  if (isCollect) {
+    // Seed the count and the empty state right away — a blank area until
+    // the first submission reads as "not syncing".
+    if (latestRoster.count) countLabel.textContent = '0 of ' + latestRoster.count + ' in';
+    renderEntries([]);
+  } else {
+    entriesList.innerHTML = '';
+  }
 
   if (phaseType !== 'preview') previewBlock.hidden = true;
   if (phaseType !== 'checklist') {
@@ -182,24 +191,32 @@ function setPhase(phaseType, phaseId, phaseInstanceId, continueLabel) {
 
   closeStepBtn.hidden = !isCollect;
   closeStepBtn.disabled = false;
+
+  // Reveal-one is paced from here too: same button the host screen has.
+  revealNextBtn.hidden = phaseType !== 'reveal-one';
+  revealNextBtn.disabled = false;
+
   // During preview, Approve / Try again are the only ways forward — a bare
   // next-step would skip the review entirely. In the lobby the only forward
   // path is the explicit Start activity button (an accidental generic
   // advance shouldn't be able to start the class).
   nextStepBtn.hidden = phaseType === 'preview' || isLobby;
   nextStepBtn.disabled = false;
-  // The button says what advancing DOES ("Start the voting"), not "Next step".
-  nextStepBtn.textContent = continueLabel ? continueLabel + ' ▸' : 'Next step ▸';
+  // The button says what clicking DOES right now: while a two-stage step
+  // is open that's the CLOSE action ("End the ratings"); once closed (or
+  // for one-stage steps) it's the advance action ("Start the voting").
+  var label = (!data.closed && data.closeLabel) ? data.closeLabel : (data.continueLabel || 'Next step');
+  nextStepBtn.textContent = label + ' ▸';
   // No visible buttons → no floating dashed divider.
-  controlsBlock.hidden = closeStepBtn.hidden && nextStepBtn.hidden;
+  controlsBlock.hidden = closeStepBtn.hidden && nextStepBtn.hidden && revealNextBtn.hidden;
 
   consoleNote.textContent = phaseType === 'end'
     ? 'All done, nice work.'
-    : '';
+    : (data.closed ? 'Results are on the projector.' : '');
 }
 
 socket.on('teacher-phase', function (data) {
-  setPhase(data.phaseType, data.phaseId, data.phaseInstanceId, data.continueLabel);
+  setPhase(data);
 });
 
 // --- Lobby: live roster + start control ---
@@ -416,6 +433,22 @@ rejectBtn.addEventListener('click', function () {
 closeStepBtn.addEventListener('click', function () {
   closeStepBtn.disabled = true;
   socket.emit('close-submissions', { code: currentCode, phaseInstanceId: currentPhaseInstanceId });
+});
+
+revealNextBtn.addEventListener('click', function () {
+  socket.emit('reveal-next', { code: currentCode, phaseInstanceId: currentPhaseInstanceId });
+});
+
+// Gallery progress mirrors here so this screen tracks the projector.
+socket.on('reveal-one-item', function (data) {
+  if (currentPhaseType !== 'reveal-one' || !data) return;
+  countLabel.textContent = data.index + ' of ' + data.total + ' revealed';
+});
+
+socket.on('reveal-one-complete', function () {
+  if (currentPhaseType !== 'reveal-one') return;
+  revealNextBtn.disabled = true;
+  consoleNote.textContent = 'All revealed.';
 });
 
 nextStepBtn.addEventListener('click', function () {

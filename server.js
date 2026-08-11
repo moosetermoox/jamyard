@@ -76,7 +76,7 @@ import { scoreSorting, sortStats, buildSortResultsList } from './engine/phases/s
 import { buildTeamRosters } from './engine/phase-handlers/team-split.js';
 import { applyCheck, groupProgress, checklistResults } from './engine/phases/checklist-state.js';
 import { playerChecklistView, teacherDetail } from './engine/phase-handlers/checklist.js';
-import { continueLabelForPhase } from './engine/phases/continue-labels.js';
+import { continueLabelForPhase, closeLabelFor } from './engine/phases/continue-labels.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
@@ -634,6 +634,7 @@ async function closeEstimates(code, room) {
     phaseInstanceId: room.phaseInstanceId
   };
   io.to(code).emit(EVENTS.ESTIMATE_RESULTS, state.resultsPayload);
+  notifyTeachersClosed(code, room);
 }
 
 // --- Match helpers ---
@@ -680,6 +681,7 @@ async function closeMatching(code, room) {
     phaseInstanceId: room.phaseInstanceId
   };
   io.to(code).emit(EVENTS.MATCH_RESULTS, state.resultsPayload);
+  notifyTeachersClosed(code, room);
 }
 
 // --- Sort helpers ---
@@ -729,6 +731,7 @@ async function closeSorting(code, room) {
     phaseInstanceId: room.phaseInstanceId
   };
   io.to(code).emit(EVENTS.SORT_RESULTS, state.resultsPayload);
+  notifyTeachersClosed(code, room);
 }
 
 // End the checklist work time: store per-group results, show the final
@@ -757,6 +760,7 @@ async function closeChecklist(code, room) {
   };
   io.to(code).emit(EVENTS.CHECKLIST_RESULTS, state.resultsPayload);
   io.to(teachersChannel(code)).emit(EVENTS.CHECKLIST_RESULTS, state.resultsPayload);
+  notifyTeachersClosed(code, room);
 }
 
 // Fan out a checklist change: the touched group sees its items, the
@@ -901,6 +905,7 @@ async function closeRating(code, room) {
       });
     }
   }
+  notifyTeachersClosed(code, room);
 }
 
 // --- Wager helpers ---
@@ -1353,6 +1358,25 @@ function isTeacherSocket(code, room, socketId) {
   return !!(room && room.teacherSocketIds && room.teacherSocketIds.has(socketId));
 }
 
+// A two-stage phase just closed (host click, console click, all-in
+// auto-close, or timer expiry): results are on the projector, so every
+// console must relabel its button from the close action to the advance
+// action. Without this the console reads "Reveal the answers" after the
+// answers are already up.
+function notifyTeachersClosed(code, room) {
+  const engine = room && room.engine;
+  const phase = engine && engine.getCurrentPhase();
+  if (!phase) return;
+  io.to(teachersChannel(code)).emit(EVENTS.TEACHER_PHASE, {
+    phaseId: phase.id,
+    phaseType: phase.type,
+    phaseInstanceId: room.phaseInstanceId,
+    continueLabel: continueLabelForPhase(phase, engine.config.phases),
+    closeLabel: null,
+    closed: true
+  });
+}
+
 // Everything a console needs to render when it joins mid-game.
 function buildTeacherSnapshot(code, room) {
   const engine = room.engine;
@@ -1381,6 +1405,8 @@ function buildTeacherSnapshot(code, room) {
   }
   if (engine && phase) {
     snap.continueLabel = continueLabelForPhase(phase, engine.config.phases);
+    snap.closeLabel = closeLabelFor(phase.type);
+    snap.closed = !!(ps && ps.closed);
     snap.players = engine.players.listPublic();
   }
   return snap;
@@ -1544,7 +1570,10 @@ async function handlePhase(code, room) {
     phaseInstanceId: room.phaseInstanceId,
     // Lets the console's next-step button say what advancing DOES
     // ("Start the voting"), not a generic "Next step".
-    continueLabel: continueLabelForPhase(phase, engine.config.phases)
+    continueLabel: continueLabelForPhase(phase, engine.config.phases),
+    // Two-stage phases: while open, the console button CLOSES (results
+    // show on the projector first), so it must say the close action.
+    closeLabel: closeLabelFor(phase.type)
   });
 
   // Dispatch to registered handler
@@ -3300,6 +3329,13 @@ io.on('connection', (socket) => {
       // lost. Found by the chaos simulator (one-voice advanced before
       // closeOneVoice stored its stats).
       const vs = room.phaseState;
+      // A CONSOLE click (second device, not the host screen) on an open
+      // two-stage phase closes it and STOPS, mirroring the host's own
+      // close-then-continue buttons — one console click must not blow past
+      // the results the class never saw. The host's generic advance keeps
+      // close-and-move-on semantics (team-split Continue depends on it).
+      const fromConsole = socket.id !== roomToHost.get(code);
+      const TWO_STAGE = { rate: 1, estimate: 1, match: 1, sort: 1, checklist: 1 };
       if (vs && !vs.closed) {
         switch (vs.kind) {
           case 'vote':      await tallyAndAdvance(code, room); return;
@@ -3334,6 +3370,10 @@ io.on('connection', (socket) => {
           default:
             break;
         }
+        // Stop here: the results just went up on the projector, and the
+        // closers notified every console (notifyTeachersClosed). The next
+        // console click advances for real.
+        if (fromConsole && TWO_STAGE[vs.kind]) return;
       }
 
       const currentPhase = room.engine.getCurrentPhase();
@@ -3399,10 +3439,16 @@ io.on('connection', (socket) => {
     io.to(code).emit(EVENTS.REVEAL_ONE_ITEM, {
       item, index: state.revealed, total: state.items.length
     });
+    // Teacher consoles live in their own channel — mirror the progress
+    // (count only) so the console tracks the gallery.
+    io.to(teachersChannel(code)).emit(EVENTS.REVEAL_ONE_ITEM, {
+      index: state.revealed, total: state.items.length
+    });
 
     // If all revealed, send complete and allow advance
     if (state.revealed >= state.items.length) {
       io.to(code).emit(EVENTS.REVEAL_ONE_COMPLETE, {});
+      io.to(teachersChannel(code)).emit(EVENTS.REVEAL_ONE_COMPLETE, {});
     }
   });
 
