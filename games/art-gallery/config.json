@@ -1,5 +1,5 @@
 {
-  "name": "Art Gallery",
+  "name": "Draw Gallery",
   "description": "Everyone draws the same prompt; after a teacher preview, the drawings reveal one at a time. Swap in any prompt.",
   "featured": true,
   "phases": {
@@ -9,7 +9,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "ART GALLERY!\n\nYou'll get one prompt and 90 seconds to draw it on your device. Every drawing goes up on the wall, so give it your best 90 seconds.",
+      "message": "DRAW GALLERY!\n\nYou'll get one prompt and 90 seconds to draw it on your device. Every drawing goes up on the wall, so give it your best 90 seconds.",
       "next": "draw"
     },
     "draw": {
@@ -33,7 +33,7 @@
     },
     "end": {
       "type": "end",
-      "message": "That's the Art Gallery! Somebody in this room should patent something."
+      "message": "That's the Draw Gallery! Somebody in this room should patent something."
     }
   },
   "tags": [
