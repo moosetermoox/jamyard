@@ -6,9 +6,9 @@
  * scripts. Validator checks are run inline.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { validate } from '../../engine/game-loader.js';
-import { handleGotIt, handleSkip, advanceItemInPhase } from '../../engine/phase-handlers/turn.js';
+import { handleGotIt, handleSkip, advanceItemInPhase, startNextTurn, endCurrentTurn } from '../../engine/phase-handlers/turn.js';
 
 const baseGame = (phases) => ({ name: 'Test', phases });
 
@@ -128,5 +128,77 @@ describe('leaderboard — sum across multiple sources', () => {
       end: { type: 'end' }
     });
     expect(() => validate(cfg, 'multi-source-board')).not.toThrow();
+  });
+});
+
+describe('turn phase — stale timers after the room moves on', () => {
+  // Regression: a turn timer outliving its phase fired into the NEXT phase's
+  // phaseState (vs.pool undefined -> uncaught TypeError in the setTimeout
+  // callback -> server crash, 2026-08-10). Stale calls must be silent no-ops.
+  function makeCtx() {
+    const room = {
+      phaseState: {
+        kind: 'turn',
+        phaseId: 'round1',
+        pool: ['Pizza'],
+        itemCount: 1,
+        teams: { 'Team 1': [{ playerId: 'p1', name: 'Alice' }] },
+        playerTeam: { p1: 'Team 1' },
+        teamNames: ['Team 1'],
+        currentTeamIdx: -1,
+        describerIdxByTeam: { 'Team 1': 0 },
+        teamScores: { 'Team 1': 0 },
+        capturedBy: { 'Team 1': [] },
+        timer: 60,
+        allowSkip: true,
+        instruction: '',
+        ended: false
+      }
+    };
+    return {
+      room,
+      phase: { id: 'round1' },
+      engine: {
+        players: { list: () => [] },
+        phaseData: {},
+        storePhaseData: () => {}
+      },
+      emitToHost: () => {},
+      emitToPlayer: () => {},
+      advanceToNext: () => {}
+    };
+  }
+
+  it('endCurrentTurn is a no-op when phaseState belongs to another phase type', () => {
+    const ctx = makeCtx();
+    ctx.room.phaseState = { kind: 'rate', phaseId: 'rate-it' }; // no .pool, no .ended
+    expect(() => endCurrentTurn(ctx, 'timeout')).not.toThrow();
+  });
+
+  it('startNextTurn is a no-op when phaseState belongs to another phase type', () => {
+    const ctx = makeCtx();
+    ctx.room.phaseState = { kind: 'rate', phaseId: 'rate-it' };
+    expect(() => startNextTurn(ctx)).not.toThrow();
+  });
+
+  it('a scheduled turn timer does not fire into a later phase', () => {
+    vi.useFakeTimers();
+    try {
+      const ctx = makeCtx();
+      startNextTurn(ctx); // schedules the end-of-turn timeout
+      // Room advances past the turn phase; phaseState is replaced wholesale.
+      ctx.room.phaseState = { kind: 'rate', phaseId: 'rate-it' };
+      expect(() => vi.advanceTimersByTime(120000)).not.toThrow();
+      // The stale timer must not have mutated the new phase's state.
+      expect(ctx.room.phaseState).toEqual({ kind: 'rate', phaseId: 'rate-it' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('advanceItemInPhase is a no-op on a foreign phaseState', () => {
+    const ctx = makeCtx();
+    ctx.room.phaseState = { kind: 'collect', phaseId: 'later' };
+    expect(() => advanceItemInPhase(ctx)).not.toThrow();
   });
 });

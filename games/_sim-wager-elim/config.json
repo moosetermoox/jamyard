@@ -1,0 +1,34 @@
+{
+  "name": "Sim Wager + AI Judge",
+  "description": "Hidden fixture covering the wager and ai-eliminate phase types for visual checks and sims.",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "minPlayers": 2,
+      "next": "answers"
+    },
+    "answers": {
+      "type": "collect",
+      "prompt": "Name an animal that could survive a week loose in the school.",
+      "timer": 30,
+      "next": "judge"
+    },
+    "judge": {
+      "type": "ai-eliminate",
+      "instruction": "Eliminate any answer that is not a real animal.",
+      "input": "answers.responses",
+      "next": "bet"
+    },
+    "bet": {
+      "type": "wager",
+      "prompt": "Which janitor tool would win in a fight?",
+      "options": ["Mop", "Broom", "Wet floor sign"],
+      "correctOption": "Wet floor sign",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for playing!"
+    }
+  }
+}

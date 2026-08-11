@@ -104,6 +104,7 @@ function pickNextDescriber(vs, teamName) {
 /** Begin a fresh turn for the team-after-the-current-team. */
 function startNextTurn(ctx) {
   const vs = ctx.room.phaseState;
+  if (!vs || vs.kind !== 'turn' || vs.ended) return; // stale timer — room moved on
   if (!vs.pool.length) {
     return finishPhase(ctx);
   }
@@ -138,12 +139,15 @@ function startNextTurn(ctx) {
   // Schedule timer expiry to roll to the next team. Server is authoritative —
   // clients show the countdown but can't end the turn themselves.
   if (vs.turnTimer) clearTimeout(vs.turnTimer);
-  vs.turnTimer = setTimeout(() => endCurrentTurn(ctx, 'timeout'), vs.timer * 1000);
+  vs.turnTimer = setTimeout(() => {
+    if (ctx.room.phaseState !== vs) return; // room left this phase — stale timer
+    endCurrentTurn(ctx, 'timeout');
+  }, vs.timer * 1000);
 }
 
 function endCurrentTurn(ctx, reason) {
   const vs = ctx.room.phaseState;
-  if (!vs || vs.ended) return;
+  if (!vs || vs.kind !== 'turn' || vs.ended) return;
   if (vs.turnTimer) { clearTimeout(vs.turnTimer); vs.turnTimer = null; }
 
   // If an item was in the describer's hand when the turn ended, return it to
@@ -162,7 +166,10 @@ function endCurrentTurn(ctx, reason) {
 
   if (vs.pool.length === 0) return finishPhase(ctx);
   // Small pause so clients can show "Turn over" before the next turn begins
-  setTimeout(() => startNextTurn(ctx), 1500);
+  setTimeout(() => {
+    if (ctx.room.phaseState !== vs) return; // room left this phase — stale timer
+    startNextTurn(ctx);
+  }, 1500);
 }
 
 function finishPhase(ctx) {
@@ -270,7 +277,7 @@ registerHandler('turn', {
 
   onReconnect(ctx, socket) {
     const vs = ctx.room.phaseState;
-    if (!vs || vs.ended) return;
+    if (!vs || vs.kind !== 'turn' || vs.ended) return;
     // Re-emit the current item view to whichever role this player has
     emitItemViews(ctx, vs);
   }
@@ -305,10 +312,13 @@ export function handleSkip(room, socketId) {
  */
 export function advanceItemInPhase(ctx) {
   const vs = ctx.room.phaseState;
-  if (!vs || vs.ended) return;
+  if (!vs || vs.kind !== 'turn' || vs.ended) return;
   if (vs.pool.length === 0) {
     return endCurrentTurn(ctx, 'pool-empty');
   }
   vs.currentItem = vs.pool.shift();
   emitItemViews(ctx, vs);
 }
+
+// Exported for tests — stale turn timers must not touch a later phase's state
+export { startNextTurn, endCurrentTurn };

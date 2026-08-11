@@ -2307,7 +2307,7 @@ const allSections = [
   revealSection, voteSection, eliminationSection, winnerSection,
   announceSection, leaderboardSection, revealOneSection,
   teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
-  buzzSection, estimateSection, matchSection, sortSection, checklistSection,
+  turnSection, buzzSection, estimateSection, matchSection, sortSection, checklistSection,
   phaseErrorSection, endSection
 ];
 

@@ -2798,7 +2798,7 @@ const allPlayerSections = [
   voteSection, voteSubmittedSection, eliminationResultsSection,
   announceSection, winnerSection, leaderboardSection, revealOneSection,
   teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
-  buzzSection, estimateSection, matchSection, sortSection, checklistSection
+  turnSection, buzzSection, estimateSection, matchSection, sortSection, checklistSection
 ];
 
 function showSection(el) {
