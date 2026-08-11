@@ -5,7 +5,7 @@ window.GAME_THEMES = {
   'paste-up': {
     name: 'Paste-up',
     icon: '✂️',
-    description: 'Paper and ink on a gesso ground, one loud magenta',
+    description: 'Paper and ink on a gesso ground, one loud vermillion',
     juice: { wave: 'triangle' },
     colors: {
       bg: '#EFE9DC',
@@ -17,8 +17,8 @@ window.GAME_THEMES = {
       buttonText: '#FBF7EC',
       border: '#221E1C',
       timer: '#221E1C',
-      success: '#D62A78',
-      danger: '#B31E63'
+      success: '#D9481C',
+      danger: '#AE3A16'
     }
   },
   'pop-art': {

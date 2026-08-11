@@ -10,7 +10,7 @@
  * student's own moments (their submit, their personal win).
  */
 
-// Default theme — paste-up: paper and ink on gesso, one loud magenta.
+// Default theme — paste-up: paper and ink on gesso, one loud vermillion.
 // Overridden by a game-specific theme when one is set.
 if (window.applyGameTheme) {
   window.applyGameTheme('paste-up');

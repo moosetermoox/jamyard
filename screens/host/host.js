@@ -10,7 +10,7 @@
  * single active <section>.
  */
 
-// Default theme — paste-up: paper and ink on gesso, one loud magenta. Applied
+// Default theme — paste-up: paper and ink on gesso, one loud vermillion. Applied
 // immediately so even pre-game lobby screens look like the rest of the app.
 // A game with its own theme will override this on room-created.
 if (window.applyGameTheme) {

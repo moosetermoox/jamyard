@@ -1272,7 +1272,7 @@ select.recipe-field-input {
 
 /* ════════════════════════════════════════════════════════════════
    PASTE-UP SKIN (docs/paper-layout-test/) — Create page re-theme.
-   Cut paper on a grained gesso ground, ink text, one magenta for
+   Cut paper on a grained gesso ground, ink text, one vermillion for
    primary actions, 2px radii, hard paste shadows, 90ms snaps.
    Appended last so it wins every earlier rule it repeats.
    ════════════════════════════════════════════════════════════════ */
@@ -1319,7 +1319,7 @@ h1 {
 
 .back-link:hover { color: #221E1C; text-decoration: none; }
 
-a { color: #B31E63; }
+a { color: #AE3A16; }
 
 /* The idea box is the pasted sheet; its title is the spoken line */
 #idea-hero {
@@ -1334,7 +1334,7 @@ a { color: #B31E63; }
   font-family: 'EB Garamond', Georgia, serif;
   font-weight: 400;
   font-size: 1.9rem;
-  text-shadow: 1.5px 0 0 rgba(214,42,120,0.26), -1.5px 0 0 rgba(0,165,196,0.20);
+  text-shadow: 1.5px 0 0 rgba(217,72,28,0.26), -1.5px 0 0 rgba(0,165,196,0.20);
 }
 
 #idea-input {
@@ -1353,7 +1353,7 @@ a { color: #B31E63; }
 #idea-go-btn {
   border: none;
   border-radius: 2px;
-  background: #D62A78;
+  background: #D9481C;
   color: #FFF6EA;
   font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
   font-weight: 400;
@@ -1363,7 +1363,7 @@ a { color: #B31E63; }
 }
 
 #idea-go-btn:hover {
-  background: #D62A78;
+  background: #D9481C;
   transform: rotate(-0.8deg) translate(2px, 2px);
   box-shadow: 0 0 0 rgba(34,30,28,0.18);
 }
@@ -1389,12 +1389,12 @@ a { color: #B31E63; }
 }
 
 .idea-advanced-links { color: #55503F; }
-.idea-advanced-links a { color: #B31E63; }
+.idea-advanced-links a { color: #AE3A16; }
 .idea-advanced-links a:hover { color: #221E1C; text-decoration: none; }
 .idea-library-link { color: #55503F; }
 
 #loading-message { color: #6E6353; font-weight: 700; text-transform: none; letter-spacing: 0; }
-#error-message { color: #B31E63; text-transform: none; }
+#error-message { color: #AE3A16; text-transform: none; }
 .empty-message { color: #6E6353; text-transform: none; letter-spacing: 0; }
 
 /* ---- Modals (template picker, recipe picker/forms, concierge) ---- */
@@ -1432,7 +1432,7 @@ a { color: #B31E63; }
   font-size: 1.7rem;
   text-transform: none;
   letter-spacing: 0;
-  text-shadow: 1.5px 0 0 rgba(214,42,120,0.26), -1.5px 0 0 rgba(0,165,196,0.20);
+  text-shadow: 1.5px 0 0 rgba(217,72,28,0.26), -1.5px 0 0 rgba(0,165,196,0.20);
 }
 
 .template-picker-subtitle { color: #55503F; font-weight: 600; }
@@ -1483,10 +1483,10 @@ a { color: #B31E63; }
 .recipe-card-broken {
   background: #FFFDF6 !important;
   border: none !important;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px #B31E63;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px #AE3A16;
 }
 
-.recipe-card-broken-badge { background: #B31E63; border-radius: 2px; }
+.recipe-card-broken-badge { background: #AE3A16; border-radius: 2px; }
 
 .recipe-loading { color: #6E6353; }
 
@@ -1529,7 +1529,7 @@ a { color: #B31E63; }
   color: #55503F;
 }
 
-.recipe-field-required { color: #B31E63; }
+.recipe-field-required { color: #AE3A16; }
 .recipe-field-helper { color: #6E6353; font-weight: 600; }
 
 .recipe-field-input {
@@ -1567,7 +1567,7 @@ select.recipe-field-input { font-family: 'Nunito', Arial, sans-serif; font-weigh
   box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
 }
 
-.recipe-field-array-remove:hover { background: #FFFDF6; color: #B31E63; }
+.recipe-field-array-remove:hover { background: #FFFDF6; color: #AE3A16; }
 
 .recipe-field-array-add {
   border: none;
@@ -1591,11 +1591,11 @@ select.recipe-field-input { font-family: 'Nunito', Arial, sans-serif; font-weigh
   background: #FFFDF6;
   border: none;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px #B31E63;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px #AE3A16;
   font-weight: 600;
 }
 
-.recipe-form-diagnostic-list { color: #B31E63; }
+.recipe-form-diagnostic-list { color: #AE3A16; }
 
 .recipe-cancel-btn {
   border: none;
@@ -1618,7 +1618,7 @@ select.recipe-field-input { font-family: 'Nunito', Arial, sans-serif; font-weigh
 .recipe-create-btn {
   border: none;
   border-radius: 2px;
-  background: #D62A78;
+  background: #D9481C;
   color: #FFF6EA;
   font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
   font-weight: 400;
@@ -1629,7 +1629,7 @@ select.recipe-field-input { font-family: 'Nunito', Arial, sans-serif; font-weigh
 }
 
 .recipe-create-btn:hover:not(:disabled) {
-  background: #D62A78;
+  background: #D9481C;
   transform: rotate(-0.8deg) translate(2px, 2px);
   box-shadow: 0 0 0 rgba(34,30,28,0.18);
 }
@@ -1696,5 +1696,5 @@ select.recipe-field-input { font-family: 'Nunito', Arial, sans-serif; font-weigh
 :focus-visible { outline-color: #221E1C !important; }
 
 /* Skin follow-up: the library link sits below the first skin block */
-.idea-library-link a { color: #B31E63; }
+.idea-library-link a { color: #AE3A16; }
 .idea-library-link a:hover { color: #221E1C; }

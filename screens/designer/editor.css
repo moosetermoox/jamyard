@@ -2802,7 +2802,7 @@ body {
 #editor-header .back-link:hover { color: #FBF7EC; text-decoration: none; }
 
 /* Buttons: paper cuts with the two-step snap. Three header roles keep
-   their hierarchy: primary = the one magenta, attention = paper pops
+   their hierarchy: primary = the one vermillion, attention = paper pops
    on ink, quiet = outlined ghost. */
 .btn {
   border: none;
@@ -2818,8 +2818,8 @@ body {
   box-shadow: 0 0 0 rgba(34,30,28,0.30);
 }
 
-.btn-primary { background: #D62A78; color: #FFF6EA; }
-.btn-primary:hover { background: #D62A78; }
+.btn-primary { background: #D9481C; color: #FFF6EA; }
+.btn-primary:hover { background: #D9481C; }
 
 .btn-secondary { background: #FFFDF6; color: #221E1C; }
 .btn-secondary:hover { background: #FFFDF6; }
@@ -2838,7 +2838,7 @@ body {
   transform: none;
 }
 
-.btn-danger { background: #FFFDF6; color: #B31E63; box-shadow: 2px 2px 0 rgba(34,30,28,0.30), inset 0 0 0 1px #B31E63; }
+.btn-danger { background: #FFFDF6; color: #AE3A16; box-shadow: 2px 2px 0 rgba(34,30,28,0.30), inset 0 0 0 1px #AE3A16; }
 
 /* Panels: paper on the gesso */
 #settings-panel,
@@ -2921,9 +2921,9 @@ body {
 }
 
 .sv-chip-delete { color: #857A66; }
-.sv-chip-delete:hover { color: #B31E63; }
+.sv-chip-delete:hover { color: #AE3A16; }
 
-.sv-action { color: #B31E63; }
+.sv-action { color: #AE3A16; }
 .sv-action-quiet { color: #857A66; }
 
 .sv-list-add {
@@ -2935,7 +2935,7 @@ body {
 .sv-list-add:hover { border-color: #221E1C; color: #221E1C; }
 
 .sv-list-remove { border: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(34,30,28,0.2); color: #857A66; }
-.sv-list-remove:hover { color: #B31E63; box-shadow: 0 0 0 1px #B31E63; }
+.sv-list-remove:hover { color: #AE3A16; box-shadow: 0 0 0 1px #AE3A16; }
 
 /* Builder view: tiles keep their category colors, squared + pasted */
 .builder-tile {
@@ -2987,7 +2987,7 @@ body {
   font-weight: 400;
   text-transform: none;
   letter-spacing: 0;
-  text-shadow: 1.5px 0 0 rgba(214,42,120,0.26), -1.5px 0 0 rgba(0,165,196,0.20);
+  text-shadow: 1.5px 0 0 rgba(217,72,28,0.26), -1.5px 0 0 rgba(0,165,196,0.20);
 }
 
 .editor-toast {
@@ -3002,8 +3002,8 @@ body {
 :focus-visible { outline-color: #221E1C !important; }
 
 /* Skin follow-ups: rules that live below the first skin block */
-.btn-host { background: #D62A78; color: #FFF6EA; }
-.btn-host:hover { background: #D62A78; }
+.btn-host { background: #D9481C; color: #FFF6EA; }
+.btn-host:hover { background: #D9481C; }
 
 .btn-add { background: #221E1C; color: #FBF7EC; }
 .btn-add:hover { background: #221E1C; }
@@ -3159,8 +3159,8 @@ body {
 }
 
 .builder-step-tool:hover { background: #EFE9DC; }
-.builder-step-del { color: #B31E63; box-shadow: 0 0 0 1px #B31E63; }
-.builder-step-del:hover { background: #B31E63; color: #FFF6EA; }
+.builder-step-del { color: #AE3A16; box-shadow: 0 0 0 1px #AE3A16; }
+.builder-step-del:hover { background: #AE3A16; color: #FFF6EA; }
 
 /* Insert dots + suggestion popover */
 .builder-plus {
@@ -3205,7 +3205,7 @@ body {
   border: none;
   border-radius: 2px;
   background: #FBF7EC;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.12), 0 0 0 2px #D62A78;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.12), 0 0 0 2px #D9481C;
 }
 
 .builder-done-check { color: #55503F; }
@@ -3224,7 +3224,7 @@ body {
   box-shadow: 0 0 0 rgba(34,30,28,0.18);
 }
 
-.builder-done-btn.primary { background: #D62A78; color: #FFF6EA; transform: rotate(-0.8deg); }
+.builder-done-btn.primary { background: #D9481C; color: #FFF6EA; transform: rotate(-0.8deg); }
 .builder-done-btn.primary:hover { transform: rotate(-0.8deg) translate(2px, 2px); }
 .builder-done-btn.secondary { background: #FFFDF6; color: #221E1C; }
 
@@ -3237,7 +3237,7 @@ body {
 }
 
 #canvas-loading { color: #6E6353; text-transform: none; }
-#canvas-error { color: #B31E63; text-transform: none; }
+#canvas-error { color: #AE3A16; text-transform: none; }
 
 .phase-box { border-radius: 2px; }
 

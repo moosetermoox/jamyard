@@ -55,7 +55,7 @@
       '  font-size: 0.8rem; cursor: pointer; box-shadow: 2px 2px 0 rgba(34,30,28,0.18);',
       '  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end); }',
       '.feedback-widget-row button:hover { transform: translate(2px, 2px); box-shadow: 0 0 0 rgba(34,30,28,0.18); }',
-      '#feedback-widget-send { background: #D62A78; color: #FFF6EA;',
+      '#feedback-widget-send { background: #D9481C; color: #FFF6EA;',
       '  font-family: "Archivo Black", "Arial Black", Arial, sans-serif; font-weight: 400; transform: rotate(-0.8deg); }',
       '#feedback-widget-send:hover { transform: rotate(-0.8deg) translate(2px, 2px); }',
       '#feedback-widget-send:disabled { background: #D8D2C4; color: #857A66; box-shadow: none; transform: none; }',
@@ -130,7 +130,7 @@
     send.addEventListener('click', function () {
       var message = textarea.value.trim();
       status.hidden = false;
-      status.style.color = '#B31E63';
+      status.style.color = '#AE3A16';
       if (message.length < 3) {
         status.textContent = 'Please write a bit more.';
         return;
@@ -158,13 +158,13 @@
               status.hidden = true;
             }, 1600);
           } else {
-            status.style.color = '#B31E63';
+            status.style.color = '#AE3A16';
             status.textContent = data.error || 'Could not send. Please try again.';
           }
         });
       }).catch(function () {
         send.disabled = false;
-        status.style.color = '#B31E63';
+        status.style.color = '#AE3A16';
         status.textContent = 'Network problem, please try again.';
       });
     });

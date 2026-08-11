@@ -1435,7 +1435,7 @@ h1,
   font-family: 'EB Garamond', Georgia, serif;
   font-weight: 400;
   font-size: 1.4rem;
-  text-shadow: 1px 0 0 rgba(214,42,120,0.24), -1px 0 0 rgba(0,165,196,0.18);
+  text-shadow: 1px 0 0 rgba(217,72,28,0.24), -1px 0 0 rgba(0,165,196,0.18);
 }
 
 /* Hard cuts between phases */
@@ -1475,7 +1475,7 @@ button:disabled {
 
 /* Join is the student's "go" moment, same loud color as Submit */
 #join-btn {
-  background: var(--theme-success, #D62A78);
+  background: var(--theme-success, #D9481C);
   color: #FFF6EA;
 }
 
@@ -1548,7 +1548,7 @@ input::placeholder, textarea::placeholder {
 }
 
 .winner-entry {
-  box-shadow: 4px 4px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-success, #D62A78);
+  box-shadow: 4px 4px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-success, #D9481C);
   transform: rotate(0.4deg);
 }
 
@@ -1569,7 +1569,7 @@ input::placeholder, textarea::placeholder {
 .buzz-tap {
   border: none;
   border-radius: 2px;
-  background: var(--theme-success, #D62A78);
+  background: var(--theme-success, #D9481C);
   transform: rotate(-1deg);
   box-shadow: 6px 6px 0 rgba(34,30,28,0.22);
   transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
@@ -1604,8 +1604,8 @@ input::placeholder, textarea::placeholder {
   border: none;
   border-radius: 2px;
   background: #FFFDF6;
-  color: var(--theme-danger, #B31E63);
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px var(--theme-danger, #B31E63);
+  color: var(--theme-danger, #AE3A16);
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px var(--theme-danger, #AE3A16);
   font-family: 'Nunito', Arial, sans-serif;
   font-weight: 800;
 }
@@ -1645,12 +1645,12 @@ input::placeholder, textarea::placeholder {
 /* Rank / match drag affordances keep their motion cues */
 .rank-item.rank-drag-over {
   border: none;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D62A78);
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D9481C);
 }
 
 .match-row.rank-drag-over .match-right {
   border: none;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D62A78);
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D9481C);
 }
 
 .rank-arrow { border-radius: 2px; }
@@ -1676,13 +1676,13 @@ input::placeholder, textarea::placeholder {
 }
 
 .checklist-item-done .checklist-box {
-  background: var(--theme-success, #D62A78);
+  background: var(--theme-success, #D9481C);
   color: #FFF6EA;
-  box-shadow: 0 0 0 2px var(--theme-success, #D62A78);
+  box-shadow: 0 0 0 2px var(--theme-success, #D9481C);
 }
 
 .team-pick-mine {
-  outline: 3px solid var(--theme-success, #D62A78);
+  outline: 3px solid var(--theme-success, #D9481C);
   outline-offset: 1px;
 }
 
@@ -1714,5 +1714,5 @@ input::placeholder, textarea::placeholder {
   box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
 }
 
-.turn-role-label.role-describer { color: var(--theme-success, #D62A78); }
+.turn-role-label.role-describer { color: var(--theme-success, #D9481C); }
 .turn-role-label.role-teammate { color: var(--theme-text, #221E1C); }

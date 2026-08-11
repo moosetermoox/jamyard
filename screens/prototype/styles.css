@@ -1,6 +1,6 @@
 /* ══ Preview (prototype) in the paste-up system (docs/paper-layout-test/) ══
    Cut paper on a grained gesso ground: no borders, 2px radii, hard paste
-   shadows, ink for chrome, one magenta for the primary action (Launch)
+   shadows, ink for chrome, one vermillion for the primary action (Launch)
    and the host panel mark. Layout rules (grids, carousel) unchanged. */
 
 * {
@@ -98,7 +98,7 @@ body::before {
 
 #player-count {
   width: 80px;
-  accent-color: #D62A78;
+  accent-color: #D9481C;
 }
 
 #player-count-display {
@@ -128,7 +128,7 @@ body::before {
 }
 
 #launch-btn {
-  background: #D62A78;
+  background: #D9481C;
   color: #FFF6EA;
   transform: rotate(-0.8deg);
 }
@@ -317,7 +317,7 @@ body::before {
   grid-template-rows: 2fr repeat(2, 1fr);
 }
 
-/* Panels are paper pieces: hairline ring + paste shadow, magenta for host */
+/* Panels are paper pieces: hairline ring + paste shadow, vermillion for host */
 .iframe-panel {
   position: relative;
   border-radius: 2px;
@@ -329,7 +329,7 @@ body::before {
 }
 
 .host-panel {
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px #D62A78;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px #D9481C;
 }
 
 /* 1-4 players: host spans all rows on left */
@@ -364,7 +364,7 @@ body::before {
 }
 
 .host-panel .panel-label {
-  background: #D62A78;
+  background: #D9481C;
   color: #FFF6EA;
 }
 

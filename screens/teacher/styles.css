@@ -1,6 +1,6 @@
 /* Teacher console — mobile-first private view, in the paste-up system
    (docs/paper-layout-test/): cut paper on a grained gesso ground, ink
-   chrome, one magenta for the go actions. Quieter than the projector:
+   chrome, one vermillion for the go actions. Quieter than the projector:
    this is a tool. */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -111,7 +111,7 @@ h1, h2 {
   box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 2px #221E1C;
 }
 
-/* Connect is the go action: the magenta cut */
+/* Connect is the go action: the vermillion cut */
 #join-btn {
   width: 100%;
   margin-top: 18px;
@@ -119,7 +119,7 @@ h1, h2 {
   font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
   font-size: 1.1rem;
   text-transform: uppercase;
-  background: #D62A78;
+  background: #D9481C;
   color: #FFF6EA;
   border: none;
   border-radius: 2px;
@@ -143,7 +143,7 @@ h1, h2 {
 
 .join-error {
   margin-top: 12px;
-  color: #B31E63;
+  color: #AE3A16;
   font-weight: 800;
   font-size: 0.9rem;
 }
@@ -249,8 +249,8 @@ h1, h2 {
 }
 
 .entry-btn-danger {
-  color: #B31E63;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px #B31E63;
+  color: #AE3A16;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px #AE3A16;
 }
 
 /* --- Checklist detail --- */
@@ -287,7 +287,7 @@ h1, h2 {
 .checklist-console-item.checklist-console-done {
   background: #EFE9DC;
   text-decoration: line-through;
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.14), inset 3px 0 0 #D62A78;
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.14), inset 3px 0 0 #D9481C;
 }
 
 /* --- Preview --- */
@@ -323,12 +323,12 @@ h1, h2 {
   box-shadow: 0 0 0 rgba(34,30,28,0.18);
 }
 
-.btn-go { background: #D62A78; color: #FFF6EA; transform: rotate(-0.5deg); }
+.btn-go { background: #D9481C; color: #FFF6EA; transform: rotate(-0.5deg); }
 .btn-go:hover:not(:disabled) { transform: rotate(-0.5deg) translate(2px, 2px); }
 .btn-danger {
   background: #FFFDF6;
-  color: #B31E63;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.18), 0 0 0 1px #B31E63;
+  color: #AE3A16;
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.18), 0 0 0 1px #AE3A16;
 }
 .btn-go:disabled, .btn-danger:disabled {
   background: #D8D2C4;
