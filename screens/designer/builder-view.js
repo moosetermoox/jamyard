@@ -54,29 +54,12 @@
     'vote': 'vote', 'end': 'wrap'
   };
 
-  // One vocabulary: these card labels must match the palette tile titles
-  // below (teacher feedback 2026-08-11: "Everyone sees a message" showed on
-  // cards but was not an available step).
-  var TYPE_LABELS = {
-    'lobby': 'Players join the room', 'collect': 'Open answer',
-    'collect-choice': 'Multiple choice', 'estimate': 'Guess a number',
-    'announce': 'Announcement', 'reveal': 'Reveal results',
-    'reveal-one': 'Reveal one at a time', 'vote': 'Vote',
-    'ai-process': 'AI transforms answers', 'end': 'Wrap up',
-    'leaderboard': 'Leaderboard', 'team-split': 'Split into teams',
-    'preview': 'You review privately first', 'foreach': 'For each answer…',
-    'merge': 'Groups combine answers', 'rank': 'Rank a list',
-    'rate': 'Rate on scales', 'match': 'Match pairs', 'sort': 'Sort into buckets',
-    'wager': 'Place bets', 'relay': 'Take turns', 'turn': 'Team turns',
-    'buzz': 'Buzzer round', 'one-voice': 'Count together',
-    'checklist': 'Group checklist', 'winner': 'Crown a winner',
-    'eliminate': 'Eliminate players', 'ai-eliminate': 'AI judges and eliminates'
-  };
-
-  // Shared with editor.js: while the Builder is active, refs ("Goes to:
-  // ...") use these labels so the rail speaks the same vocabulary as the
-  // palette and cards.
-  window.BUILDER_TYPE_LABELS = TYPE_LABELS;
+  // One vocabulary: cards, palette tiles, and refs all read the canonical
+  // step names from shared/phase-names.js (teacher feedback 2026-08-11:
+  // "Everyone sees a message" showed on cards but was not an available
+  // step). N() is the lookup every label below goes through.
+  var TYPE_LABELS = window.PHASE_NAMES || {};
+  function N(type) { return TYPE_LABELS[type] || type; }
 
   // Essentials = types whose one-click defaults are validator-certified
   // hostable-as-is (the brick set). "more" = every other phase type, in
@@ -84,49 +67,49 @@
   // with the step's settings open in the rail.
   var PALETTE_GROUPS = [
     { title: 'Ask the class', cls: 'ask', tiles: [
-      { type: 'collect', title: 'Open answer' },
-      { type: 'collect-choice', title: 'Multiple choice' },
-      { type: 'estimate', title: 'Guess a number' },
-      { type: 'collect-two', title: 'Secret + clue' }
+      { type: 'collect', title: N('collect') },
+      { type: 'collect-choice', title: N('collect-choice') },
+      { type: 'estimate', title: N('estimate') },
+      { type: 'collect-two', title: N('collect-two') }
     ], more: [
-      { type: 'match', title: 'Match pairs' },
-      { type: 'sort', title: 'Sort into buckets' },
-      { type: 'buzz', title: 'Buzzer round' }
+      { type: 'match', title: N('match') },
+      { type: 'sort', title: N('sort') },
+      { type: 'buzz', title: N('buzz') }
     ] },
     { title: 'Show the class', cls: 'show', tiles: [
-      { type: 'announce', title: 'Announcement' },
-      { type: 'reveal', title: 'Reveal results' },
-      { type: 'reveal-one', title: 'Reveal one at a time' }
+      { type: 'announce', title: N('announce') },
+      { type: 'reveal', title: N('reveal') },
+      { type: 'reveal-one', title: N('reveal-one') }
     ], more: [
-      { type: 'leaderboard', title: 'Leaderboard' },
-      { type: 'winner', title: 'Crown a winner' },
-      { type: 'preview', title: 'You review privately first' }
+      { type: 'leaderboard', title: N('leaderboard') },
+      { type: 'winner', title: N('winner') },
+      { type: 'preview', title: N('preview') }
     ] },
     { title: 'Decide together', cls: 'decide', tiles: [
-      { type: 'vote', title: 'Vote' }
+      { type: 'vote', title: N('vote') }
     ], more: [
-      { type: 'rank', title: 'Rank a list' },
-      { type: 'rate', title: 'Rate on scales' },
-      { type: 'wager', title: 'Place bets' },
-      { type: 'eliminate', title: 'Eliminate players' }
+      { type: 'rank', title: N('rank') },
+      { type: 'rate', title: N('rate') },
+      { type: 'wager', title: N('wager') },
+      { type: 'eliminate', title: N('eliminate') }
     ] },
     { title: 'Team up', cls: 'team', tiles: [], more: [
-      { type: 'team-split', title: 'Split into teams' },
-      { type: 'merge', title: 'Groups combine answers' },
-      { type: 'relay', title: 'Take turns' },
-      { type: 'turn', title: 'Team turns (charades)' },
-      { type: 'checklist', title: 'Group checklist' },
-      { type: 'one-voice', title: 'Count together' }
+      { type: 'team-split', title: N('team-split') },
+      { type: 'merge', title: N('merge') },
+      { type: 'relay', title: N('relay') },
+      { type: 'turn', title: N('turn') },
+      { type: 'checklist', title: N('checklist') },
+      { type: 'one-voice', title: N('one-voice') }
     ] },
     { title: 'Rounds', cls: 'team', tiles: [
-      { type: 'guessing-rounds', title: 'Guessing rounds' }
+      { type: 'guessing-rounds', title: N('guessing-rounds') }
     ], more: [
-      { type: 'foreach', title: 'For each answer…' }
+      { type: 'foreach', title: N('foreach') }
     ] },
     { title: 'AI', cls: 'ai', tiles: [
-      { type: 'ai', title: 'AI transforms answers', ai: true }
+      { type: 'ai', title: N('ai'), ai: true }
     ], more: [
-      { type: 'ai-eliminate', title: 'AI judges and eliminates' }
+      { type: 'ai-eliminate', title: N('ai-eliminate') }
     ] }
   ];
 

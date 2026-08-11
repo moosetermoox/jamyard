@@ -75,6 +75,7 @@ Framework for quickly building classroom games where:
 - Phase handlers self-register in `engine/phase-handlers/` via `registerHandler(type, {onEnter, onReconnect})`; use `EVENTS` constants (`engine/events.js`) and `players.listPublic()` (strips tokens).
 - Review prompts in `services/ai-service.js` (PHASE_EXTRA_GUIDANCE) must be updated when adding phase types.
 - Client validation in `screens/designer/editor.js` mirrors server validation in `engine/game-loader.js` — change both.
+- **Step display names live in `screens/shared/phase-names.js`** (one canonical name per phase type; palette, Builder cards, refs, pickers, and the storyboard all read it). New phase types must be added there; never hardcode a step name in a screen.
 
 ## 28 Phase Types
 `engine/phase-schemas.js` is the single source of truth (validator + AI prompts + editor fields + `{{...}}` grammar). Quick reference:

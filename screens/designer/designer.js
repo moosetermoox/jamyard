@@ -1800,18 +1800,9 @@ function renderNoMatchView(modal, description, data, overlay) {
 // structure; the finished activity opens in the Builder.
 // =======================================================================
 
-var SB_BRICK_LABELS = {
-  'announce': 'Announcement',
-  'collect': 'Open answer',
-  'collect-two': 'Secret + clue (two boxes)',
-  'collect-choice': 'Multiple choice',
-  'estimate': 'Guess a number',
-  'reveal': 'Reveal results',
-  'reveal-one': 'Reveal one at a time',
-  'vote': 'Vote',
-  'guessing-rounds': 'Guessing rounds, show each clue, everyone guesses, then the reveal',
-  'end': 'Wrap up'
-};
+// Storyboard bricks use the canonical step names (shared/phase-names.js),
+// the same vocabulary the Builder shows once the activity opens there.
+var SB_BRICK_LABELS = window.PHASE_NAMES || {};
 
 async function showStoryboardFlow(description, seededStoryboard) {
   var overlay = document.createElement('div');

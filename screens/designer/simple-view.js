@@ -340,7 +340,7 @@
   }
 
   // Reference another step by its number — many steps share a friendly
-  // name (Closer has nine "Ask Players"), so "step 4" is the only
+  // name (Closer has nine "Open answer" steps), so "step 4" is the only
   // unambiguous way to point at one.
   function stepName(phaseId) {
     var order = buildPhaseOrder();

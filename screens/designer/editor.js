@@ -348,6 +348,17 @@ var PHASE_CATALOG = {
   }
 };
 
+// Canonical step vocabulary: every teacher-facing surface names steps from
+// shared/phase-names.js. The catalog literals above are fallbacks only;
+// the registry wins so Simple view, pickers, refs, and the Builder all say
+// the same thing.
+(function () {
+  if (!window.PHASE_NAMES) return;
+  for (var t in PHASE_CATALOG) {
+    if (window.PHASE_NAMES[t]) PHASE_CATALOG[t].friendlyName = window.PHASE_NAMES[t];
+  }
+})();
+
 var PHASE_TYPES = Object.keys(PHASE_CATALOG);
 
 // Friendly names for AI task types
@@ -1302,7 +1313,7 @@ function openInsertMenu(input, phaseId, anchor) {
   if (groupCount === 0) {
     var empty = document.createElement('div');
     empty.className = 'primary-insert-empty';
-    empty.textContent = 'No earlier steps produce content you can reference yet. Add a step like Multiple Choice, Ask Players, or AI Does Something first.';
+    empty.textContent = 'No earlier steps produce content you can reference yet. Add a step like Multiple choice, Open answer, or AI transforms answers first.';
     menu.appendChild(empty);
   }
 
@@ -2357,7 +2368,7 @@ function renderPhaseConfig(phaseId) {
 
   if (type === 'reveal') {
     // Audience: the whole class, or each pair privately (Closer-style).
-    addSelectWithHelp('Who sees it', 'Everyone = the class and the projector see the same thing. Each pair privately = every pair sees only its own two answers (needs an earlier "Ask Players" step with pairing turned on).', 'phase-scope',
+    addSelectWithHelp('Who sees it', 'Everyone = the class and the projector see the same thing. Each pair privately = every pair sees only its own two answers (needs an earlier "Open answer" step with pairing turned on).', 'phase-scope',
       [
         { value: 'all', label: 'Everyone' },
         { value: 'pair', label: 'Each pair privately' }
@@ -2390,7 +2401,7 @@ function renderPhaseConfig(phaseId) {
         var noPairsMsg = document.createElement('p');
         noPairsMsg.className = 'field-help';
         noPairsMsg.style.color = '#C62828';
-        noPairsMsg.textContent = 'No paired step found before this one. Add an "Ask Players" step earlier and turn on "Pair players up" in its Pairing & privacy section, that\'s where the pairs and their answers come from.';
+        noPairsMsg.textContent = 'No paired step found before this one. Add an "Open answer" step earlier and turn on "Pair players up" in its Pairing & privacy section, that\'s where the pairs and their answers come from.';
         phaseConfigForm.appendChild(noPairsMsg);
       } else {
         // Default to the nearest paired step before this reveal
@@ -3729,7 +3740,7 @@ function stripPrimaryFieldFromForm(type) {
 
 // --- Form field helpers ---
 
-// True when 2+ steps share the same friendly name (e.g. two "Ask Players").
+// True when 2+ steps share the same friendly name (e.g. two "Open answer").
 // Used to decide whether a disambiguating "(step N)" suffix is needed.
 function phaseNameIsAmbiguous(phaseId) {
   var phase = gameConfig.phases[phaseId];
@@ -3752,15 +3763,7 @@ function phaseRefLabel(phaseId, withIcon) {
   if (!phase) return phaseId;
   var cat = PHASE_CATALOG[phase.type];
   if (!cat) return phaseId;
-  var name = cat.friendlyName;
-  // In the Builder, refs speak the palette vocabulary (one set of step
-  // names per view; "Goes to: Ask Players" next to an "Open answer" tile
-  // read as two different steps).
-  if (document.body.classList.contains('builder-mode') &&
-      window.BUILDER_TYPE_LABELS && window.BUILDER_TYPE_LABELS[phase.type]) {
-    name = window.BUILDER_TYPE_LABELS[phase.type];
-  }
-  if (phase.type === 'reveal' && phase.scope === 'pair') name = 'Show Each Pair';
+  var name = (phase.type === 'reveal' && phase.scope === 'pair') ? 'Show each pair' : cat.friendlyName;
   var label = (withIcon ? cat.icon + ' ' : '') + name;
   if (phaseNameIsAmbiguous(phaseId)) {
     var n = buildPhaseOrder().indexOf(phaseId) + 1;
@@ -5320,7 +5323,7 @@ function validateConfig() {
 
   var hasLobby = phaseIds.some(function (id) { return phases[id].type === 'lobby'; });
   var hasEnd = phaseIds.some(function (id) { return phases[id].type === 'end'; });
-  if (!hasLobby) errors.push('Your activity needs a Waiting Room (lobby) step.');
+  if (!hasLobby) errors.push('Your activity needs a Waiting room (lobby) step.');
   if (!hasEnd) errors.push('Your activity needs a Wrap Up (end) step.');
 
   for (var i = 0; i < phaseIds.length; i++) {
