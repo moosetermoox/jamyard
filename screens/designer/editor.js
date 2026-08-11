@@ -3752,7 +3752,15 @@ function phaseRefLabel(phaseId, withIcon) {
   if (!phase) return phaseId;
   var cat = PHASE_CATALOG[phase.type];
   if (!cat) return phaseId;
-  var name = (phase.type === 'reveal' && phase.scope === 'pair') ? 'Show Each Pair' : cat.friendlyName;
+  var name = cat.friendlyName;
+  // In the Builder, refs speak the palette vocabulary (one set of step
+  // names per view; "Goes to: Ask Players" next to an "Open answer" tile
+  // read as two different steps).
+  if (document.body.classList.contains('builder-mode') &&
+      window.BUILDER_TYPE_LABELS && window.BUILDER_TYPE_LABELS[phase.type]) {
+    name = window.BUILDER_TYPE_LABELS[phase.type];
+  }
+  if (phase.type === 'reveal' && phase.scope === 'pair') name = 'Show Each Pair';
   var label = (withIcon ? cat.icon + ' ' : '') + name;
   if (phaseNameIsAmbiguous(phaseId)) {
     var n = buildPhaseOrder().indexOf(phaseId) + 1;

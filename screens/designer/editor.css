@@ -3208,6 +3208,66 @@ body {
 /* Native checkbox/radio glyphs go ink, not browser blue */
 input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
 
+/* The "Goes to" chip wrapper: scrap strip, not the old outlined box */
+.compact-next-ref {
+  background: #FFFDF6;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.18);
+}
+
+/* Rail meta actions (Ask AI, Show Preview) were still the old purple
+   and cobalt pills. Paper cuts with the snap. */
+.ask-step-btn,
+#toggle-preview-btn {
+  background: #FFFDF6;
+  color: #221E1C;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.72rem;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.ask-step-btn:hover,
+#toggle-preview-btn:hover {
+  background: #FFFDF6;
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.30);
+}
+
+/* Delete Step carries btn-danger without the .btn base: outlined
+   vermillion strip, fills on hover (same idiom as the card ✕). */
+.btn-danger:not(.btn) {
+  padding: 6px 14px;
+  background: #FFFDF6;
+  color: #AE3A16;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #AE3A16;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.btn-danger:not(.btn):hover { background: #AE3A16; color: #FFF6EA; }
+
+.delete-phase-section { border-top: 1px solid rgba(34,30,28,0.18); }
+
+/* Step cards drop the pastel coding: number chips and the AI tint go
+   paper (the palette tiles keep their category colors; on the canvas
+   everything reads as one paper system). */
+.builder-step-num { background: #FFFDF6; }
+.builder-step.ai { background: #fff; }
+.builder-step.ai .builder-step-num { background: #FFFDF6; }
+
 /* Insert dots + suggestion popover */
 .builder-plus {
   border: none;

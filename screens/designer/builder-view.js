@@ -54,12 +54,15 @@
     'vote': 'vote', 'end': 'wrap'
   };
 
+  // One vocabulary: these card labels must match the palette tile titles
+  // below (teacher feedback 2026-08-11: "Everyone sees a message" showed on
+  // cards but was not an available step).
   var TYPE_LABELS = {
-    'lobby': 'Players join the room', 'collect': 'Students answer',
+    'lobby': 'Players join the room', 'collect': 'Open answer',
     'collect-choice': 'Multiple choice', 'estimate': 'Guess a number',
-    'announce': 'Everyone sees a message', 'reveal': 'Results on the projector',
-    'reveal-one': 'Reveal one at a time', 'vote': 'The class votes',
-    'ai-process': 'AI transforms the answers', 'end': 'Wrap up',
+    'announce': 'Announcement', 'reveal': 'Reveal results',
+    'reveal-one': 'Reveal one at a time', 'vote': 'Vote',
+    'ai-process': 'AI transforms answers', 'end': 'Wrap up',
     'leaderboard': 'Leaderboard', 'team-split': 'Split into teams',
     'preview': 'You review privately first', 'foreach': 'For each answer…',
     'merge': 'Groups combine answers', 'rank': 'Rank a list',
@@ -69,6 +72,11 @@
     'checklist': 'Group checklist', 'winner': 'Crown a winner',
     'eliminate': 'Eliminate players', 'ai-eliminate': 'AI judges and eliminates'
   };
+
+  // Shared with editor.js: while the Builder is active, refs ("Goes to:
+  // ...") use these labels so the rail speaks the same vocabulary as the
+  // palette and cards.
+  window.BUILDER_TYPE_LABELS = TYPE_LABELS;
 
   // Essentials = types whose one-click defaults are validator-certified
   // hostable-as-is (the brick set). "more" = every other phase type, in

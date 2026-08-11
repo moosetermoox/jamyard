@@ -1801,14 +1801,14 @@ function renderNoMatchView(modal, description, data, overlay) {
 // =======================================================================
 
 var SB_BRICK_LABELS = {
-  'announce': 'Everyone sees a message',
-  'collect': 'Students answer',
+  'announce': 'Announcement',
+  'collect': 'Open answer',
   'collect-two': 'Secret + clue (two boxes)',
   'collect-choice': 'Multiple choice',
   'estimate': 'Guess a number',
-  'reveal': 'Results on the projector',
+  'reveal': 'Reveal results',
   'reveal-one': 'Reveal one at a time',
-  'vote': 'The class votes',
+  'vote': 'Vote',
   'guessing-rounds': 'Guessing rounds, show each clue, everyone guesses, then the reveal',
   'end': 'Wrap up'
 };
