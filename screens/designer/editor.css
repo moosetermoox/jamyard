@@ -2824,6 +2824,29 @@ body {
 .btn-secondary { background: #FFFDF6; color: #221E1C; }
 .btn-secondary:hover { background: #FFFDF6; }
 
+/* The "+ Add X" buttons carry btn-secondary WITHOUT the .btn base, so
+   they fell all the way back to the browser-default border. Give them
+   the same paper-cut structure (scoped so .btn.btn-secondary header
+   buttons keep their own padding). */
+.btn-secondary:not(.btn) {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+}
+
+.btn-secondary:not(.btn):hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.30);
+}
+
 .btn-ghost {
   background: transparent;
   color: #FBF7EC;
@@ -3097,15 +3120,24 @@ body {
 }
 
 /* Role-coded section bands keep their hues, squared onto paper */
+/* Section headers: paper strips, the role color survives as a left
+   edge chip (data coding) instead of a pastel field fill. */
 .config-section-header.role-section-host,
 .config-section-header.role-section-player,
 .config-section-header.role-section-ai,
 .config-section-header.role-section-both,
 .config-section-header.role-section-flow {
+  background: #FFFDF6;
   border: none;
   border-radius: 2px;
   box-shadow: 0 0 0 1px rgba(34,30,28,0.18);
 }
+
+.config-section-header.role-section-host   { border-left: 6px solid #DBEAFE; }
+.config-section-header.role-section-player { border-left: 6px solid #DCFCE7; }
+.config-section-header.role-section-ai     { border-left: 6px solid #F3E8FF; }
+.config-section-header.role-section-both   { border-left: 6px solid #FEF9C3; }
+.config-section-header.role-section-flow   { border-left: 6px solid #F1F5F9; }
 
 .config-section-header { border-top-color: rgba(34,30,28,0.18); color: #55503F; }
 
@@ -3161,6 +3193,20 @@ body {
 .builder-step-tool:hover { background: #EFE9DC; }
 .builder-step-del { color: #AE3A16; box-shadow: 0 0 0 1px #AE3A16; }
 .builder-step-del:hover { background: #AE3A16; color: #FFF6EA; }
+
+/* The inline "what happens next" change chip: square paper, not the
+   old rounded black outline. */
+.compact-next-change {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.3);
+}
+
+.compact-next-change:hover { background: #EFE9DC; }
+
+/* Native checkbox/radio glyphs go ink, not browser blue */
+input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
 
 /* Insert dots + suggestion popover */
 .builder-plus {
