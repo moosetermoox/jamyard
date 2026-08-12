@@ -322,6 +322,7 @@ describe('validator diagnostics — game snapshot', () => {
       'charades-bowl': [],
       'closer': [],
       'definition-bluff': [],
+      'doodle-bluff': [],
       'punchline-showdown': [],
       'trivia-bluff': [],
       'speed-quiz': [],

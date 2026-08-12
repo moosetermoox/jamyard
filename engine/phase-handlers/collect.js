@@ -10,6 +10,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { buildGroups, buildAvoidSet } from '../phases/pairing.js';
+import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 
 /**
  * Build the rotation assignment map for a collect phase that has
@@ -258,6 +259,10 @@ registerHandler('collect', {
       : null;
     const inputType = phase.inputType === 'drawing' ? 'drawing' : 'text';
 
+    // drawingFrom: one shared drawing shown to EVERYONE (read-only), distinct
+    // from assignedDrawing's per-player rotation. Doodle Bluff's title round.
+    const displayDrawing = resolveDisplayDrawing(phase, engine);
+
     // Who counts toward "X of Y submitted" — must mirror the submit
     // handler's math (foreach author self-exclusion, unpaired players)
     // or the seeded total would disagree with the first live update.
@@ -274,7 +279,7 @@ registerHandler('collect', {
     // landed (2026-07-26 UI review; the console got this fix in June, the
     // host screen never did).
     ctx.emitToHost(EVENTS.GAME_STARTED, {
-      prompt: hostPrompt, image, video, timer: phase.timer || null, fields: phase.fields || null,
+      prompt: hostPrompt, image, video, displayDrawing, timer: phase.timer || null, fields: phase.fields || null,
       inputType,
       count: 0, total: countEligible.length,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
@@ -283,6 +288,13 @@ registerHandler('collect', {
     // Send prompt to eligible players — resolve `{{X.mine}}` and `{{X.assigned}}` per-recipient.
     // For pairwise, players who weren't paired (odd count) skip the prompt and wait.
     for (const player of eligible) {
+      // Foreach self-exclusion: the current item's author sits this one out
+      // (mirrors collect-choice; without it the Doodle Bluff artist could
+      // write a decoy title for their own drawing and farm fool points).
+      if (phase._foreachAuthorId && player.id === phase._foreachAuthorId) {
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'This one is yours! Waiting for the others...' });
+        continue;
+      }
       if (pairedIds && !pairedIds.has(player.id)) {
         ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Sitting out this round, waiting for others...' });
         continue;
@@ -295,7 +307,7 @@ registerHandler('collect', {
         ? rotation[player.id]
         : null;
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
-        prompt: playerPrompt, image, video, timer: phase.timer || null, fields: phase.fields || null,
+        prompt: playerPrompt, image, video, displayDrawing, timer: phase.timer || null, fields: phase.fields || null,
         inputType,
         assignedDrawing: (rotatedDrawings && rotatedDrawings[player.id]) || null,
         prefill,
@@ -317,7 +329,9 @@ registerHandler('collect', {
   onReconnect(ctx, socket) {
     const sc = ctx.resolveScreenControl();
     const player = ctx.engine.players.find(socket.id);
-    if (player && player.response) {
+    if (player && ctx.phase._foreachAuthorId && player.id === ctx.phase._foreachAuthorId) {
+      socket.emit(EVENTS.WAITING, { message: 'This one is yours! Waiting for the others...' });
+    } else if (player && player.response) {
       socket.emit(EVENTS.WAITING, { message: 'Answer submitted. Waiting for others...' });
     } else {
       const playerPrompt = player
@@ -335,6 +349,7 @@ registerHandler('collect', {
         : null;
       socket.emit(EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, timer: null,
+        displayDrawing: resolveDisplayDrawing(ctx.phase, ctx.engine),
         fields: ctx.phase.fields || null,
         inputType: ctx.phase.inputType === 'drawing' ? 'drawing' : 'text',
         assignedDrawing: (player && reconRotated && reconRotated[player.id]) || null,

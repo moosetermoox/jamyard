@@ -162,6 +162,11 @@ export const PHASE_SCHEMAS = {
         type: 'string', optional: true,
         label: 'YouTube video (optional)',
         helper: 'Paste a YouTube link. Plays on the host/projector screen.'
+      },
+      drawingFrom: {
+        type: 'string', optional: true,
+        label: 'Show a drawing from (optional)',
+        helper: 'Data path to a student drawing shown on every screen during this step. Inside a For Each over drawing responses, use "_current.drawing" for the round\'s drawing. Display only; it never preloads the drawing pad.'
       }
     },
     transitions: {
@@ -273,6 +278,11 @@ export const PHASE_SCHEMAS = {
         type: 'string', optional: true,
         label: 'YouTube video (optional)',
         helper: 'Paste a YouTube link. Plays on the host/projector screen.'
+      },
+      drawingFrom: {
+        type: 'string', optional: true,
+        label: 'Show a drawing from (optional)',
+        helper: 'Data path to a student drawing shown on every screen during this step. Inside a For Each over drawing responses, use "_current.drawing" for the round\'s drawing. Display only; it never preloads the drawing pad.'
       }
     },
     transitions: {
@@ -352,6 +362,11 @@ export const PHASE_SCHEMAS = {
         type: 'string', optional: true,
         label: 'YouTube video (optional)',
         helper: 'Paste a YouTube link. Plays on the host/projector screen.'
+      },
+      drawingFrom: {
+        type: 'string', optional: true,
+        label: 'Show a drawing from (optional)',
+        helper: 'Data path to a student drawing shown on every screen during this step. Inside a For Each over drawing responses, use "_current.drawing" for the round\'s drawing. Display only; it never preloads the drawing pad.'
       }
     },
     transitions: {

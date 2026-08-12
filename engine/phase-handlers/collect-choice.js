@@ -10,6 +10,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { sampleItems } from '../phases/sampling.js';
+import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 
 /**
  * Resolve the base choice array for a collect-choice phase.
@@ -155,6 +156,7 @@ registerHandler('collect-choice', {
 
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
     const video = ctx.services.resolveVideoEmbed(phase.video);
+    const displayDrawing = resolveDisplayDrawing(phase, engine);
 
     // Send to host (resolve refs once for host view). count/total seed the
     // progress counter — mirrors the submit handler's eligibility math
@@ -166,6 +168,7 @@ registerHandler('collect-choice', {
       choices: hostChoices,
       image,
       video,
+      displayDrawing,
       timer: phase.timer || null,
       isChoice: true,
       count: 0, total: countTotal,
@@ -196,6 +199,7 @@ registerHandler('collect-choice', {
         choices: choicesFor(player.id),
         image,
         video,
+        displayDrawing,
         timer: phase.timer || null,
         isChoice: true,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -235,6 +239,7 @@ registerHandler('collect-choice', {
         choices,
         image,
         video,
+        displayDrawing: resolveDisplayDrawing(ctx.phase, ctx.engine),
         timer: null,
         isChoice: true,
         playerTemplate: sc.playerTemplate, show: sc.playerShow

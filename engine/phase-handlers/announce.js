@@ -8,6 +8,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { continueLabelForPhase } from '../phases/continue-labels.js';
+import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 
 const PER_PLAYER_REF = /\{\{\s*[a-zA-Z0-9_-]+\.mine\s*\}\}/;
 
@@ -18,6 +19,7 @@ registerHandler('announce', {
     const timer = ctx.phase.timer || null;
     const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
     const video = ctx.services.resolveVideoEmbed(ctx.phase.video);
+    const displayDrawing = resolveDisplayDrawing(ctx.phase, ctx.engine);
     // The host button says what happens next ("Start the voting"), not "Continue".
     const continueLabel = continueLabelForPhase(ctx.phase, ctx.engine.config.phases);
 
@@ -25,15 +27,15 @@ registerHandler('announce', {
       // Per-recipient: host gets the generic resolved version, each player gets their own
       const hostMessage = ctx.resolveTemplate(rawMessage);
       ctx.engine.storePhaseData(ctx.phase.id, { message: hostMessage });
-      ctx.emitToHost(EVENTS.ANNOUNCE, { message: hostMessage, image, video, timer, continueLabel, ...sc });
+      ctx.emitToHost(EVENTS.ANNOUNCE, { message: hostMessage, image, video, displayDrawing, timer, continueLabel, ...sc });
       for (const player of ctx.engine.players.list()) {
         const msg = ctx.services.resolvePerPlayerTemplate(rawMessage, ctx.engine, player.id);
-        ctx.emitToPlayer(player.id, EVENTS.ANNOUNCE, { message: msg, image, video, timer, ...sc });
+        ctx.emitToPlayer(player.id, EVENTS.ANNOUNCE, { message: msg, image, video, displayDrawing, timer, ...sc });
       }
     } else {
       const message = rawMessage.includes('{{') ? ctx.resolveTemplate(rawMessage) : rawMessage;
       ctx.engine.storePhaseData(ctx.phase.id, { message });
-      ctx.emitToRoom(EVENTS.ANNOUNCE, { message, image, video, timer, continueLabel, ...sc });
+      ctx.emitToRoom(EVENTS.ANNOUNCE, { message, image, video, displayDrawing, timer, continueLabel, ...sc });
     }
 
     // Auto-advance after timer, or wait for host advance-phase
@@ -51,15 +53,16 @@ registerHandler('announce', {
     const sc = ctx.resolveScreenControl();
     const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
     const video = ctx.services.resolveVideoEmbed(ctx.phase.video);
+    const displayDrawing = resolveDisplayDrawing(ctx.phase, ctx.engine);
     const continueLabel = continueLabelForPhase(ctx.phase, ctx.engine.config.phases);
     if (PER_PLAYER_REF.test(rawMessage)) {
       const player = ctx.engine.players.find(socket.id);
       const msg = player
         ? ctx.services.resolvePerPlayerTemplate(rawMessage, ctx.engine, player.id)
         : ctx.resolveTemplate(rawMessage);
-      socket.emit(EVENTS.ANNOUNCE, { message: msg, image, video, timer: null, continueLabel, ...sc });
+      socket.emit(EVENTS.ANNOUNCE, { message: msg, image, video, displayDrawing, timer: null, continueLabel, ...sc });
     } else if (announceData) {
-      socket.emit(EVENTS.ANNOUNCE, { message: announceData.message, image, video, timer: null, continueLabel, ...sc });
+      socket.emit(EVENTS.ANNOUNCE, { message: announceData.message, image, video, displayDrawing, timer: null, continueLabel, ...sc });
     }
   }
 });

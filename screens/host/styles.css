@@ -429,6 +429,11 @@ button:disabled {
   border-radius: 10px;
 }
 
+/* display:block above would defeat the hidden attribute (recurring gotcha) */
+.display-drawing[hidden] {
+  display: none;
+}
+
 .preview-drawing-thumb {
   max-width: 260px;
   margin: 6px 0 0;

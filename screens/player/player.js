@@ -701,7 +701,22 @@ var drawColors = document.getElementById('draw-colors');
 var drawUndoBtn = document.getElementById('draw-undo');
 var drawClearBtn = document.getElementById('draw-clear');
 var assignedDrawingCanvas = document.getElementById('assigned-drawing');
+var displayDrawingCanvas = document.getElementById('display-drawing');
+var announceDrawingCanvas = document.getElementById('announce-drawing');
 var drawPadApi = null;
+
+// drawingFrom: a shared read-only drawing everyone sees during this step
+// (Doodle Bluff: title THIS drawing, then vote). Distinct from the rotated
+// assigned-drawing, which is per-player.
+function applyDisplayDrawing(canvasEl, strokes) {
+  if (!canvasEl) return;
+  if (strokes && strokes.length && window.Draw) {
+    canvasEl.hidden = false;
+    Draw.renderStrokes(canvasEl, strokes);
+  } else {
+    canvasEl.hidden = true;
+  }
+}
 
 function initDrawPad() {
   if (drawPadApi || !window.Draw) return;
@@ -725,7 +740,7 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, prefill, appendOnly, maxLength }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength }) => {
   resetHoldingProgress();
   showSection(collectSection);
   promptDisplay.textContent = prompt;
@@ -756,6 +771,7 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
   assignedDrawingCanvas.hidden = true;
   applyTemplate(collectSection, playerTemplate);
   applyImage(collectImage, image, show);
+  applyDisplayDrawing(displayDrawingCanvas, displayDrawing);
 
   // A rotated-in drawing shown with a TEXT input = caption mode ("what is
   // this?"). With a drawing input it preloads onto the pad instead.
@@ -1025,11 +1041,12 @@ function buildPlayerBody(text) {
   return span;
 }
 
-socket.on('announce', ({ message, image, timer, playerTemplate, playerShow }) => {
+socket.on('announce', ({ message, image, displayDrawing, timer, playerTemplate, playerShow }) => {
   showSection(announceSection);
   renderPlayerMessage(announceMessage, message);
   applyTemplate(announceSection, playerTemplate);
   applyImage(announceImage, image, playerShow);
+  applyDisplayDrawing(announceDrawingCanvas, displayDrawing);
   applyShow(playerShow, {
     message: announceMessage,
     timer: announceTimerDisplay

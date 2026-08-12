@@ -66,6 +66,8 @@ import { migrateIdsInPlace } from './engine/id-migration.js';
 import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
 import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
+import { remapForeachSubConfig, resolveCurrentRefsInSubConfig } from './engine/phases/foreach-remap.js';
+import { applyIterationScoring } from './engine/phases/foreach-scoring.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
 import { applyBuzz, applyJudge, applyNextQuestion } from './engine/phase-handlers/buzz.js';
@@ -1107,44 +1109,15 @@ function setupForeachIteration(engine, foreachPhaseId, feConfig, index) {
       subConfig._foreachAuthorId = item.playerId || null;
     }
 
-    // Resolve _current references in templates (but preserve other {{refs}} for runtime)
-    if (subConfig.message) {
-      subConfig.message = subConfig.message.replace(/\{\{(_current[^}]*)\}\}/g, (match, ref) => {
-        const value = engine.resolve(ref.trim());
-        return value !== undefined ? String(value) : match;
-      });
-    }
-    if (subConfig.prompt) {
-      subConfig.prompt = subConfig.prompt.replace(/\{\{(_current[^}]*)\}\}/g, (match, ref) => {
-        const value = engine.resolve(ref.trim());
-        return value !== undefined ? String(value) : match;
-      });
-    }
+    // Resolve _current references eagerly (message, prompt, correctAnswer,
+    // choicePool literals), preserving other {{refs}} for runtime.
+    // engine/phases/foreach-remap.js explains why this must happen here.
+    resolveCurrentRefsInSubConfig(subConfig, (ref) => engine.resolve(ref));
 
-    // Remap data refs: sub-phase names -> virtual IDs (e.g. "generate-roast.result" -> "_fe:roast-loop:generate-roast.result")
-    function remapSubPhaseRefs(str) {
-      return str.replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
-        const refId = ref.trim().split('.')[0];
-        if (subNames.includes(refId)) {
-          return '{{' + ref.trim().replace(refId, `_fe:${foreachPhaseId}:${refId}`) + '}}';
-        }
-        return match;
-      });
-    }
-    if (subConfig.message) {
-      subConfig.message = remapSubPhaseRefs(subConfig.message);
-    }
-    if (subConfig.prompt) {
-      subConfig.prompt = remapSubPhaseRefs(subConfig.prompt);
-    }
-    if (subConfig.input && subNames.includes(subConfig.input.split('.')[0])) {
-      const refParts = subConfig.input.split('.');
-      subConfig.input = `_fe:${foreachPhaseId}:${refParts[0]}` + (refParts.length > 1 ? '.' + refParts.slice(1).join('.') : '');
-    }
-    if (subConfig.content && subNames.includes(subConfig.content.split('.')[0])) {
-      const refParts = subConfig.content.split('.');
-      subConfig.content = `_fe:${foreachPhaseId}:${refParts[0]}` + (refParts.length > 1 ? '.' + refParts.slice(1).join('.') : '');
-    }
+    // Remap data refs naming sibling sub-phases -> virtual IDs, in templates
+    // (message/prompt), bare refs (input/content), and the bluff-vote fields
+    // (choicePool sources, excludeAuthored). engine/phases/foreach-remap.js.
+    remapForeachSubConfig(subConfig, subNames, foreachPhaseId);
 
     // Set next: chain sub-phases, last one loops back to foreach orchestrator
     if (i < subNames.length - 1) {
@@ -1186,61 +1159,23 @@ async function advanceForeach(code, room, foreachPhaseId) {
   const state = engine.foreachState[foreachPhaseId];
   const feConfig = engine.config.phases[foreachPhaseId];
 
-  // Apply scoring for this iteration if configured
+  // Apply scoring for this iteration if configured. Modes: correct (guessers
+  // earn points), tally (item author earns points), scores (adopt the
+  // sub-phase's own computed map, the bluff-vote pattern). Logic lives in
+  // engine/phases/foreach-scoring.js.
   if (feConfig.scoring) {
     const scoringSubId = `_fe:${foreachPhaseId}:${feConfig.scoring.subPhase}`;
     const subData = engine.getPhaseData(scoringSubId);
     if (subData) {
-      const item = state.items[state.currentIndex];
-      const scoringMode = feConfig.scoring.mode || 'correct';
-      const responses = subData.responses || [];
-
-      if (scoringMode === 'tally') {
-        // Tally mode: award points to the ITEM'S AUTHOR based on what others picked
-        const authorId = item.playerId;
-        const pointMap = feConfig.scoring.pointMap || {};
-        if (authorId) {
-          if (!state.scores[authorId]) state.scores[authorId] = 0;
-          for (const r of responses) {
-            const choice = r.choice || r.text;
-            const points = pointMap[choice] !== undefined ? pointMap[choice] : 0;
-            state.scores[authorId] += points;
-          }
-        }
-      } else {
-        // Correct mode (default): award points to the GUESSER for correct guesses
-        const correctRef = feConfig.scoring.correctAnswer;
-        let correctAnswer;
-        if (correctRef === '_current.playerId') {
-          correctAnswer = item.playerId;
-        } else if (correctRef === '_current.playerName') {
-          correctAnswer = item.playerName;
-        } else if (correctRef === '_current.isHuman') {
-          correctAnswer = item.isAI ? 'AI' : 'Human';
-        } else if (correctRef === '_current.aiPosition') {
-          correctAnswer = item.aiPosition;
-        } else if (correctRef === '_current.humanPosition') {
-          correctAnswer = item.humanPosition;
-        } else if (correctRef && correctRef.startsWith('_current.')) {
-          correctAnswer = engine.resolve(correctRef);
-        } else {
-          correctAnswer = correctRef;
-        }
-
-        const pointsCorrect = feConfig.scoring.pointsCorrect || 100;
-        const pointsDecoy = feConfig.scoring.pointsDecoy || 0;
-
-        for (const r of responses) {
-          if (!state.scores[r.playerId]) state.scores[r.playerId] = 0;
-          const playerChoice = r.choice || r.text;
-          const chosenPlayer = engine.players.list().find(p => p.name === playerChoice);
-          const isCorrect = (playerChoice === correctAnswer) ||
-                            (chosenPlayer && chosenPlayer.id === correctAnswer);
-          state.scores[r.playerId] += isCorrect ? pointsCorrect : pointsDecoy;
-        }
-      }
-
-      console.log(`[foreach] Iteration ${state.currentIndex + 1}/${state.items.length} scored (${scoringMode}). Scores:`,
+      applyIterationScoring({
+        scores: state.scores,
+        scoring: feConfig.scoring,
+        subData,
+        item: state.items[state.currentIndex],
+        resolve: (ref) => engine.resolve(ref),
+        players: engine.players.list()
+      });
+      console.log(`[foreach] Iteration ${state.currentIndex + 1}/${state.items.length} scored (${feConfig.scoring.mode || 'correct'}). Scores:`,
         Object.fromEntries(Object.entries(state.scores).map(([pid, s]) => [engine.players.find(pid)?.name || pid, s]))
       );
     }
@@ -3096,6 +3031,12 @@ io.on('connection', (socket) => {
         // Gather responses from eligible players and store as phase data.
         // Host-hidden responses are excluded (kept off AI input + reveal).
         let eligible = getEligibleVoters(players, from);
+        // Foreach self-exclusion: the current item's author never counts as
+        // a submitter (they get a waiting screen, but a crafted socket
+        // event could still try to plant a response).
+        if (collectPhase._foreachAuthorId) {
+          eligible = eligible.filter(p => p.id !== collectPhase._foreachAuthorId);
+        }
         // Pairwise: only paired players are real submitters
         if (collectPhase.assign === 'pairwise') {
           const cpData = room.engine.phaseData[collectPhase.id];

@@ -842,6 +842,16 @@ export function validate(config, gameId, options) {
               );
             }
           }
+        } else if (phase.scoring.mode === 'scores') {
+          // "scores" adopts the sub-phase's own graded map (bluff votes:
+          // correctAnswer points + foolPoints). It only accumulates something
+          // if the named sub-phase actually grades.
+          const target = phase.scoring.subPhase && phase.subPhases && phase.subPhases[phase.scoring.subPhase];
+          if (target && !target.correctAnswer && !target.foolPoints) {
+            warnings.push(
+              `Game "${gameId}": phase "${name}" scoring mode "scores" reads sub-step "${phase.scoring.subPhase}", but that step grades nothing (no correctAnswer or foolPoints), so nobody can ever score.`
+            );
+          }
         } else if (!phase.scoring.correctAnswer) {
           errors.push(
             `Game "${gameId}": phase "${name}" scoring is missing "correctAnswer" field`
@@ -1104,11 +1114,12 @@ function inferDiagnosticCode(msg, severity) {
   if (/will display as "\[object Object\]/.test(msg)) return DIAGNOSTIC_CODES.RAW_ARRAY_IN_TEMPLATE;
   if (/produces .+ but the field needs/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
   if (/students will see the raw code on screen/.test(msg)) return DIAGNOSTIC_CODES.SPECIAL_SCOPE_OUT_OF_CONTEXT;
+  if (/drawingFrom .+ uses _current/.test(msg)) return DIAGNOSTIC_CODES.SPECIAL_SCOPE_OUT_OF_CONTEXT;
 
   // Design-hole warnings
   if (/no "scoresFrom" and no "correctOption"/.test(msg)) return DIAGNOSTIC_CODES.WAGER_NO_RESOLUTION_BASIS;
   if (/no later template references team data/.test(msg)) return DIAGNOSTIC_CODES.TEAM_SPLIT_UNUSED;
-  if (/can never award points|every score will be 0/.test(msg)) return DIAGNOSTIC_CODES.SCORING_NEVER_AWARDS;
+  if (/can never award points|every score will be 0|nobody can ever score/.test(msg)) return DIAGNOSTIC_CODES.SCORING_NEVER_AWARDS;
 
   // Connection pack
   if (/not allowed in a connection-family game/.test(msg)) return DIAGNOSTIC_CODES.CONNECTION_FAMILY_VIOLATION;
@@ -1442,6 +1453,14 @@ function scanSpecialScopesOutOfContext(config, gameId, warnings) {
   const FOREACH_KINDS = { foreachItem: '_current', foreachScope: '_foreach', foreachCandidates: '_candidates' };
   for (const [name, phase] of Object.entries(config.phases)) {
     if (phase.type === 'foreach') continue; // subPhases are the valid context
+    // drawingFrom is a bare dataRef, not a template, so the token scan below
+    // never sees it — but "_current.drawing" outside a foreach resolves to
+    // nothing and the drawing silently never shows.
+    if (typeof phase.drawingFrom === 'string' && phase.drawingFrom.startsWith('_current')) {
+      warnings.push(
+        `Game "${gameId}": phase "${name}" drawingFrom "${phase.drawingFrom}" uses _current, which only exists inside a For Each step's sub-steps, so no drawing will show here.`
+      );
+    }
     for (const field of TEMPLATE_FIELDS) {
       const tpl = phase[field];
       if (!tpl || typeof tpl !== 'string') continue;

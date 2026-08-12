@@ -1,0 +1,108 @@
+{
+  "name": "Doodle Bluff",
+  "description": "Draw a classmate's strange phrase, then write fake titles for each drawing and hunt for the real one. Fool the class to score.",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "DOODLE BLUFF!\n\nFirst, write a strange phrase. Next, draw the phrase you get handed. Then, round by round: invent a fake title for each drawing and vote for the real one.\n\n100 points for spotting the truth. 50 for every classmate your fake fools.",
+      "timer": 15,
+      "next": "phrases"
+    },
+    "phrases": {
+      "type": "collect",
+      "prompt": "Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous volcano on its first day of school.",
+      "timer": 60,
+      "next": "draw"
+    },
+    "draw": {
+      "type": "collect",
+      "inputType": "drawing",
+      "rotateFrom": "phrases",
+      "prompt": "Draw this: {{phrases.assigned}}\n\nNo letters or numbers in your drawing!",
+      "timer": 120,
+      "next": "check"
+    },
+    "check": {
+      "type": "preview",
+      "template": "Review the drawings below, then start the rounds. One bad drawing? Hide it from the moderation list. 'Try again' restarts the drawing round for everyone.",
+      "approveNext": "rounds",
+      "rejectNext": "draw"
+    },
+    "rounds": {
+      "type": "foreach",
+      "data": "draw.responses",
+      "shuffle": true,
+      "limit": 8,
+      "subPhases": {
+        "titles": {
+          "type": "collect",
+          "prompt": "What is the REAL title of this drawing? Make up a fake so convincing your classmates pick it.",
+          "drawingFrom": "_current.drawing",
+          "timer": 45
+        },
+        "guess": {
+          "type": "collect-choice",
+          "prompt": "Which is the REAL title?",
+          "drawingFrom": "_current.drawing",
+          "choicePool": [
+            {
+              "from": "titles.responses",
+              "field": "text"
+            },
+            {
+              "literal": "{{_current.assigned}}"
+            }
+          ],
+          "excludeAuthored": "titles",
+          "shuffle": true,
+          "poolLimit": 8,
+          "correctAnswer": "{{_current.assigned}}",
+          "pointsCorrect": 100,
+          "speedBonus": false,
+          "foolPoints": 50,
+          "timer": 45
+        },
+        "reveal-truth": {
+          "type": "announce",
+          "message": "The real title:\n{{_current.assigned}}\n\nDrawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\nTitle authors, own up! Whose fake pulled the votes?",
+          "drawingFrom": "_current.drawing"
+        }
+      },
+      "scoring": {
+        "subPhase": "guess",
+        "mode": "scores"
+      },
+      "next": "scoreboard"
+    },
+    "scoreboard": {
+      "type": "leaderboard",
+      "from": "rounds.scores",
+      "style": "full",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "That's Doodle Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again, the phrases only get weirder."
+    }
+  },
+  "playTime": "~20 min",
+  "classSize": "4–25 players",
+  "tags": [
+    "bluffing",
+    "drawing",
+    "creative",
+    "energize"
+  ],
+  "keywords": [
+    "bluff",
+    "fake titles",
+    "doodle",
+    "drawing game",
+    "party"
+  ],
+  "recommendedFor": "Icebreakers, reward days, and any class that loved Art Gallery. The artist sits out their own round, so nobody can rig their own drawing."
+}

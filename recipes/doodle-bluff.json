@@ -1,0 +1,128 @@
+{
+  "id": "doodle-bluff",
+  "name": "Doodle Bluff",
+  "icon": "🎨",
+  "description": "Everyone draws a secret phrase written by a classmate. Then round by round: one drawing goes up, everyone invents a fake title for it, and the class votes for the real one. Points for spotting the truth, points for fooling classmates.",
+  "tagline": "The draw-and-bluff party format. Works as an icebreaker with silly phrases, or as sneaky review with vocabulary and concepts from your unit.",
+  "version": "1",
+  "parameters": {
+    "phrasePrompt": {
+      "type": "templateString",
+      "label": "What should students write as secret phrases?",
+      "helper": "Each student writes one, and someone else draws it. Silly phrases for fun, or terms from your unit for review.",
+      "placeholder": "Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous volcano on its first day of school.",
+      "required": true,
+      "minLength": 3,
+      "maxLength": 300
+    },
+    "rounds": {
+      "type": "integer",
+      "label": "How many drawings get a round",
+      "helper": "Each round is about two minutes: title, vote, reveal. A random sample of drawings runs; 6 to 8 keeps the energy up.",
+      "default": 8,
+      "min": 1,
+      "max": 20
+    },
+    "drawTimer": {
+      "type": "integer",
+      "label": "Drawing time (seconds)",
+      "helper": "How long students get to draw their phrase.",
+      "default": 120,
+      "min": 30,
+      "max": 600
+    }
+  },
+  "template": {
+    "name": "Doodle Bluff",
+    "description": "Draw a classmate's phrase, write fake titles, hunt for the real one. Built with the Doodle Bluff recipe.",
+    "minPlayers": 4,
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "DOODLE BLUFF!\n\nFirst, write a secret phrase. Next, draw the phrase you get handed. Then, round by round: invent a fake title for each drawing and vote for the real one.\n\n100 points for spotting the truth. 50 for every classmate your fake fools.",
+        "timer": 15,
+        "next": "phrases"
+      },
+      "phrases": {
+        "type": "collect",
+        "prompt": "${phrasePrompt}",
+        "timer": 60,
+        "next": "draw"
+      },
+      "draw": {
+        "type": "collect",
+        "inputType": "drawing",
+        "rotateFrom": "phrases",
+        "prompt": "Draw this: {{phrases.assigned}}\n\nNo letters or numbers in your drawing!",
+        "timer": "${drawTimer}",
+        "next": "check"
+      },
+      "check": {
+        "type": "preview",
+        "template": "Review the drawings below, then start the rounds. One bad drawing? Hide it from the moderation list. 'Try again' restarts the drawing round for everyone.",
+        "approveNext": "rounds",
+        "rejectNext": "draw"
+      },
+      "rounds": {
+        "type": "foreach",
+        "data": "draw.responses",
+        "shuffle": true,
+        "limit": "${rounds}",
+        "subPhases": {
+          "titles": {
+            "type": "collect",
+            "prompt": "What is the REAL title of this drawing? Make up a fake so convincing your classmates pick it.",
+            "drawingFrom": "_current.drawing",
+            "timer": 45
+          },
+          "guess": {
+            "type": "collect-choice",
+            "prompt": "Which is the REAL title?",
+            "drawingFrom": "_current.drawing",
+            "choicePool": [
+              {
+                "from": "titles.responses",
+                "field": "text"
+              },
+              {
+                "literal": "{{_current.assigned}}"
+              }
+            ],
+            "excludeAuthored": "titles",
+            "shuffle": true,
+            "poolLimit": 8,
+            "correctAnswer": "{{_current.assigned}}",
+            "pointsCorrect": 100,
+            "speedBonus": false,
+            "foolPoints": 50,
+            "timer": 45
+          },
+          "reveal-truth": {
+            "type": "announce",
+            "message": "The real title:\n{{_current.assigned}}\n\nDrawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\nTitle authors, own up! Whose fake pulled the votes?",
+            "drawingFrom": "_current.drawing"
+          }
+        },
+        "scoring": {
+          "subPhase": "guess",
+          "mode": "scores"
+        },
+        "next": "scoreboard"
+      },
+      "scoreboard": {
+        "type": "leaderboard",
+        "from": "rounds.scores",
+        "style": "full",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "That's Doodle Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again, the phrases only get weirder."
+      }
+    }
+  }
+}

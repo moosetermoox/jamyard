@@ -36,8 +36,8 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1010 tests passing** (`npm test`, ~4s) · **309 prompts** across 3 banks (`recipes/prompt-banks/`)
-- **28 phase types**, **19 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
+- **1042 tests passing** (`npm test`, ~4s) · **309 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **28 phase types**, **20 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
 
@@ -87,7 +87,7 @@ Framework for quickly building classroom games where:
 6. `reveal` — show content; `scope:"pair"`+`pairsFrom` (pair-private), `scope:"own"`+`chainFrom` (return-to-author chains)
 7. `preview` — teacher-only gate before reveal (requires `content`, `approveNext`, `rejectNext`)
 8. `winner` — crown with drumroll; `winnerEntry` shows WHAT they won for
-9. `announce` — message to everyone; `video:` YouTube embed (host-only), `image` field
+9. `announce` — message to everyone; `video:` YouTube embed (host-only), `image` field; `drawingFrom` shows a drawing (announce/collect/collect-choice all have it; `_current.drawing` in foreach = Doodle Bluff rounds)
 10. `collect-choice` — pick from choices; `correctAnswer`+`speedBonus` (Kahoot scoring), `choicePool`/`excludeAuthored`/`shuffle`/`foolPoints`/`poolLimit` (bluffing)
 11. `ai-eliminate` — AI judges and eliminates
 12. `leaderboard` — rankings; `from` accepts array of refs to sum rounds
@@ -96,7 +96,7 @@ Framework for quickly building classroom games where:
 15. `rank` — reorder a list; earlier-step ref OR literal item list
 16. `wager` — bet points, auto or host-resolved
 17. `relay` — turn-by-turn collaborative input
-18. `foreach` — sub-phases per item; `limit` sample (a round per response kills the room ~round 12), `pairMode:"human-vs-ai"`, scoring `correct`/`tally`, `_current`/`_foreach`/`_candidates` vars
+18. `foreach` — sub-phases per item; `limit` sample (a round per response kills the room ~round 12), `pairMode:"human-vs-ai"`, scoring `correct`/`tally`/`scores` (scores = adopt the sub-phase's own graded map; the bluff-rounds mode, keeps foolPoints), `_current`/`_foreach`/`_candidates` vars; choicePool/excludeAuthored refs to sibling sub-phases remap automatically
 19. `rate` — 1-N custom scales; bar + pie results; `visibility: all|host-only`
 20. `turn` — charades; server timer, team rotation, `poolLimit`
 21. `merge` — shared live draft (think-pair-share); `agreeMode both|any|timer`, `groupSize` 2/3/4; output `merged`

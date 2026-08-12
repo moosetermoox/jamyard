@@ -297,6 +297,24 @@ const collectVideo = document.getElementById('collect-video');
 const revealVideo = document.getElementById('reveal-video');
 const announceVideo = document.getElementById('announce-video');
 
+// Elements - shared display drawings (drawingFrom: the round's drawing stays
+// on the projector while students title it / vote on it)
+const collectDrawing = document.getElementById('collect-drawing');
+const announceDrawing = document.getElementById('announce-drawing');
+
+// --- Display-drawing helper ---
+// Paints a strokes array onto the section's canvas, hides the canvas when
+// the phase has no drawing.
+function applyDisplayDrawing(canvasEl, strokes) {
+  if (!canvasEl) return;
+  if (strokes && strokes.length && window.Draw) {
+    canvasEl.hidden = false;
+    Draw.renderStrokes(canvasEl, strokes);
+  } else {
+    canvasEl.hidden = true;
+  }
+}
+
 // --- Phase image helper ---
 // Sets src on the section's <img.phase-image> and respects the 'image' show toggle.
 function applyImage(imgEl, url, show) {
@@ -764,7 +782,7 @@ function clearTimer() {
 
 // --- Socket events - Game phases ---
 
-socket.on('game-started', ({ prompt, image, video, timer, count, total, hostTemplate, show }) => {
+socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count, total, hostTemplate, show }) => {
   document.body.classList.add('in-activity');
   showSection(collectSection);
   promptDisplay.textContent = prompt;
@@ -772,6 +790,7 @@ socket.on('game-started', ({ prompt, image, video, timer, count, total, hostTemp
   applyTemplate(collectSection, hostTemplate);
   applyImage(collectImage, image, show);
   applyVideo(collectVideo, video, show);
+  applyDisplayDrawing(collectDrawing, displayDrawing);
   applyShow(show, {
     prompt: promptDisplay,
     counter: submissionCount,
@@ -946,13 +965,14 @@ function buildMessageBody(text, className) {
   return span;
 }
 
-socket.on('announce', ({ message, image, video, timer, continueLabel, hostTemplate, hostShow }) => {
+socket.on('announce', ({ message, image, video, displayDrawing, timer, continueLabel, hostTemplate, hostShow }) => {
   showSection(announceSection);
   announceContinueBtn.textContent = continueLabel || 'Continue';
   renderProjectorMessage(announceMessage, message);
   applyTemplate(announceSection, hostTemplate);
   applyImage(announceImage, image, hostShow);
   applyVideo(announceVideo, video, hostShow);
+  applyDisplayDrawing(announceDrawing, displayDrawing);
   applyShow(hostShow, {
     message: announceMessage,
     continueButton: announceContinueBtn,

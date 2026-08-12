@@ -167,6 +167,13 @@ const PHASE_EXTRA_GUIDANCE = {
     FIELD-BASED CHOICES (for "pick from the player's own answers" games like Two Truths and a Lie):
     When the collect phase uses "fields", use "choices": "_current.shuffledFields" in a collect-choice sub-phase.
     This creates a shuffled array of ALL the current item's field values as choices.
+
+    BLUFF ROUNDS (Drawful/Fibbage style, one item per round, everyone fakes then votes):
+    Inside the foreach, a collect sub-phase gathers fakes for the current item, then a collect-choice sub-phase pools them with the truth:
+    "titles": { "type": "collect", "prompt": "Write a convincing fake title.", "drawingFrom": "_current.drawing", "timer": 45 },
+    "guess": { "type": "collect-choice", "prompt": "Which is the REAL one?", "drawingFrom": "_current.drawing", "choicePool": [{ "from": "titles.responses", "field": "text" }, { "literal": "{{_current.assigned}}" }], "excludeAuthored": "titles", "shuffle": true, "correctAnswer": "{{_current.assigned}}", "pointsCorrect": 100, "speedBonus": false, "foolPoints": 50, "timer": 45 }
+    Then set foreach "scoring": { "subPhase": "guess", "mode": "scores" }, which accumulates the vote's own graded scores (truth points AND fool points) across rounds; do not use mode "correct" there or fool points are lost.
+    "drawingFrom": "_current.drawing" shows the round's drawing on every screen; it only works when the foreach data is a drawing collect's .responses. "{{_current.assigned}}" is the prompt the drawer was handed, which exists only when the drawing collect used rotateFrom.
     Use "correctAnswer": "_current.fields.<key>" to score against a specific field (e.g. "_current.fields.lie").
     EXAMPLE: Two Truths and a Lie scoring: { "subPhase": "guess", "correctAnswer": "_current.fields.lie", "pointsCorrect": 100 }
 
