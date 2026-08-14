@@ -17,13 +17,15 @@ wins (bucket 1) SHIPPED same day (see CHANGELOG 2026-08-13: join-line
 font, leaderboard ink-on-ink fix, card button order, 3 fun games
 featured, recipe #21 Memory Sketch). Remaining, in priority order:
 
-1. **Spanish-case reproduction (the strategic diagnostic).** A coworker
-   asked Create for a Jackbox-style team competition reviewing Spanish
-   past/present tense with easy vocab, and it struggled to assemble it.
-   Reproduce the exact request through /designer and find which layer
-   failed: intent capture, recipe match, storyboard assembly, or content
-   generation. This is the north-star failure for "teacher builds
-   anything, works first try" — let the findings reorder item 2.
+1. ~~**Spanish-case reproduction (the strategic diagnostic).**~~ DONE
+   2026-08-13 (see CHANGELOG): root cause was the storyboard grammar
+   knowing only 10 of 28 phase types, nothing for scoring/teams. Fixed
+   with quiz + teams bricks, prompt honesty rule, approval-UI question
+   review; same request now robot-playtests clean end to end. Follow-ups
+   surfaced: **team-scored leaderboard** (leaderboard has no team
+   aggregation — the one thing "team competition" still can't literally
+   mean) and consider recipe-match learning to counter-offer the closest
+   recipe instead of a flat no-match.
 2. **Speed Quiz editor + per-game setup pass** (pattern-setter for the
    core games, one game at a time, no blanket decisions): a real "mark
    the correct answer" control (not field-order convention), shuffle-

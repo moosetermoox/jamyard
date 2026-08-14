@@ -399,11 +399,16 @@
   //
   // storyboard: { name, description, steps: [
   //   { brick: 'announce'|'collect'|'collect-two'|'collect-choice'|
-  //            'estimate'|'reveal'|'reveal-one'|'vote'|'guessing-rounds'|'end',
+  //            'estimate'|'reveal'|'reveal-one'|'vote'|'guessing-rounds'|
+  //            'quiz'|'teams'|'end',
   //     text?: string,          // the brick's primary field (prompt/message)
   //     choices?: string[],     // collect-choice only
   //     secretLabel?: string,   // collect-two field labels
   //     clueLabel?: string,
+  //     questions?: [{ text, choices, correct }],  // quiz only
+  //     speedBonus?: boolean,   // quiz only (default true)
+  //     teamCount?: number,     // teams only (2-20)
+  //     groupSize?: number,     // teams only (2-12, wins over teamCount)
   //     timer?: number } ] }
 
   var STORYBOARD_PRIMARY = {
@@ -411,6 +416,86 @@
     'collect-choice': 'prompt', 'estimate': 'prompt', 'reveal': 'template',
     'reveal-one': 'message', 'end': 'message'
   };
+
+  // ---- Quiz brick ----
+  // Compiles to the proven Speed Quiz shape: a graded collect-choice per
+  // question, an answer announce after each, then a leaderboard summing
+  // every question's scores. Structure is deterministic; the AI supplies
+  // only the questions and words. Wires phases in place, returns the new
+  // lastId, or null when nothing usable compiled.
+  var MAX_QUIZ_QUESTIONS = 15;
+
+  function appendQuizChain(step, stepNo, phases, lastId, problems) {
+    var raw = Array.isArray(step.questions) ? step.questions : [];
+    var speedBonus = step.speedBonus !== false;
+    var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
+      ? Math.round(step.timer) : 15;
+    if (raw.length > MAX_QUIZ_QUESTIONS) {
+      problems.push('Step ' + stepNo + ': quizzes cap at ' + MAX_QUIZ_QUESTIONS +
+        ' questions, the extras were dropped.');
+      raw = raw.slice(0, MAX_QUIZ_QUESTIONS);
+    }
+
+    var scoreRefs = [];
+    raw.forEach(function (q, qi) {
+      var text = (q && typeof q.text === 'string') ? q.text.trim() : '';
+      var choices = (q && Array.isArray(q.choices) ? q.choices : []).slice(0, 8).map(String);
+      var correct = (q && typeof q.correct === 'string') ? q.correct : '';
+      if (!text || choices.length < 2 || choices.indexOf(correct) === -1) {
+        problems.push('Step ' + stepNo + ', question ' + (qi + 1) +
+          ': needs a question, 2-8 choices, and a correct answer that exactly matches one choice.');
+        return;
+      }
+      var qId = freshId(phases, 'quiz');
+      phases[lastId].next = qId;
+      phases[qId] = {
+        type: 'collect-choice',
+        prompt: text,
+        choices: choices,
+        correctAnswer: correct,
+        pointsCorrect: 1000,
+        speedBonus: speedBonus,
+        timer: timer
+      };
+      var aId = freshId(phases, 'answer');
+      phases[qId].next = aId;
+      phases[aId] = {
+        type: 'announce',
+        message: 'The answer was: ' + correct + '!\n\nClass picks:\n{{' + qId + '.barChart}}'
+      };
+      lastId = aId;
+      scoreRefs.push(qId + '.scores');
+    });
+
+    if (scoreRefs.length === 0) {
+      if (raw.length === 0) {
+        problems.push('Step ' + stepNo + ': the quiz has no questions.');
+      }
+      return null;
+    }
+
+    var lbId = freshId(phases, 'standings');
+    phases[lastId].next = lbId;
+    phases[lbId] = { type: 'leaderboard', from: scoreRefs, style: 'full' };
+    return lbId;
+  }
+
+  // ---- Teams brick ----
+  // Random split only in storyboards (the editor offers the other methods).
+  // groupSize wins over teamCount; out-of-range values fall back to 4 teams.
+  function buildTeamSplit(step) {
+    var phase = { type: 'team-split', method: 'random' };
+    var gs = (step && typeof step.groupSize === 'number') ? Math.round(step.groupSize) : null;
+    var tc = (step && typeof step.teamCount === 'number') ? Math.round(step.teamCount) : null;
+    if (gs && gs >= 2 && gs <= 12) {
+      phase.groupSize = gs;
+    } else if (tc && tc >= 2 && tc <= 20) {
+      phase.teamCount = tc;
+    } else {
+      phase.teamCount = 4;
+    }
+    return phase;
+  }
 
   function compileStoryboard(storyboard) {
     var problems = [];
@@ -426,6 +511,20 @@
       var brick = step && step.brick;
       var built = null;
       var id = null;
+
+      if (brick === 'quiz') {
+        var quizLast = appendQuizChain(step, i + 1, phases, lastId, problems);
+        if (quizLast) lastId = quizLast;
+        return;
+      }
+
+      if (brick === 'teams') {
+        id = freshId(phases, 'teams');
+        phases[lastId].next = id;
+        phases[id] = buildTeamSplit(step);
+        lastId = id;
+        return;
+      }
 
       if (brick === 'guessing-rounds') {
         var rounds = buildGuessingRounds({ phases: phases, afterId: lastId });

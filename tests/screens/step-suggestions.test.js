@@ -235,6 +235,147 @@ describe('storyboard compiler', () => {
     expect(bad.problems[0]).toContain('need a question step');
     expect(bad.problems[1]).toContain('unknown brick');
   });
+
+  // The quiz brick — graded rounds compiled to the proven Speed Quiz shape:
+  // collect-choice with correctAnswer + speedBonus, an answer announce per
+  // question, then a leaderboard summing every question's scores.
+  it('compiles a quiz brick to graded rounds + leaderboard, hostable as-is', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Conjugation Showdown',
+      steps: [
+        { brick: 'announce', text: 'Verbs. Speed. Glory.' },
+        {
+          brick: 'quiz',
+          timer: 20,
+          questions: [
+            { text: 'YO + HABLAR (present)?', choices: ['hablo', 'hablas', 'habla'], correct: 'hablo' },
+            { text: 'ELLA + COMER (preterite)?', choices: ['comió', 'come', 'comí'], correct: 'comió' }
+          ]
+        },
+        { brick: 'end', text: 'Adiós!' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const phases = config.phases;
+    const graded = Object.entries(phases).filter(([, p]) => p.type === 'collect-choice' && p.correctAnswer);
+    expect(graded.length).toBe(2);
+    for (const [, p] of graded) {
+      expect(p.pointsCorrect).toBe(1000);
+      expect(p.speedBonus).toBe(true);
+      expect(p.timer).toBe(20);
+      expect(p.choices).toContain(p.correctAnswer);
+    }
+    // Each question is followed by an announce that shows the answer + bar chart.
+    for (const [id, p] of graded) {
+      const reveal = phases[p.next];
+      expect(reveal.type).toBe('announce');
+      expect(reveal.message).toContain('{{' + id + '.barChart}}');
+      expect(reveal.message).toContain(p.correctAnswer);
+    }
+    const lb = Object.values(phases).find(p => p.type === 'leaderboard');
+    expect(lb, 'quiz brick must end in a leaderboard').toBeTruthy();
+    expect(lb.from.sort()).toEqual(graded.map(([id]) => id + '.scores').sort());
+    validateGame(phases, 'quiz storyboard');
+  });
+
+  it('quiz: speedBonus false scores correctness only', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Slow Quiz',
+      steps: [{
+        brick: 'quiz',
+        speedBonus: false,
+        questions: [{ text: '2+2?', choices: ['3', '4'], correct: '4' }]
+      }]
+    });
+    expect(problems).toEqual([]);
+    const q = Object.values(config.phases).find(p => p.type === 'collect-choice');
+    expect(q.speedBonus).toBe(false);
+    validateGame(config.phases, 'no-speed-bonus quiz');
+  });
+
+  it('quiz: a correct answer that is not among the choices is a plain-sentence problem', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Broken Quiz',
+      steps: [{
+        brick: 'quiz',
+        questions: [
+          { text: 'Good?', choices: ['yes', 'no'], correct: 'yes' },
+          { text: 'Bad?', choices: ['a', 'b'], correct: 'c' }
+        ]
+      }]
+    });
+    expect(problems.length).toBe(1);
+    expect(problems[0]).toContain('question 2');
+    // The good question still compiles.
+    const graded = Object.values(config.phases).filter(p => p.type === 'collect-choice' && p.correctAnswer);
+    expect(graded.length).toBe(1);
+    validateGame(config.phases, 'partial quiz');
+  });
+
+  it('quiz with no usable questions fails with a plain sentence', () => {
+    const bad = S.compileStoryboard({
+      name: 'Empty Quiz',
+      steps: [{ brick: 'quiz', questions: [] }]
+    });
+    expect(bad.problems.length).toBeGreaterThan(0);
+    expect(bad.problems[0]).toContain('question');
+  });
+
+  it('compiles a teams brick to a valid random team-split', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Team Time',
+      steps: [
+        { brick: 'teams', teamCount: 3 },
+        { brick: 'collect', text: 'Talk in your team: what is our answer?' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const split = Object.values(config.phases).find(p => p.type === 'team-split');
+    expect(split.method).toBe('random');
+    expect(split.teamCount).toBe(3);
+    validateGame(config.phases, 'teams storyboard');
+  });
+
+  it('teams: groupSize wins when given, defaults apply otherwise', () => {
+    const bySize = S.compileStoryboard({
+      name: 'G', steps: [{ brick: 'teams', groupSize: 4 }]
+    });
+    const split = Object.values(bySize.config.phases).find(p => p.type === 'team-split');
+    expect(split.groupSize).toBe(4);
+    expect(split.teamCount).toBeUndefined();
+    const byDefault = S.compileStoryboard({ name: 'D', steps: [{ brick: 'teams' }] });
+    const dflt = Object.values(byDefault.config.phases).find(p => p.type === 'team-split');
+    expect(dflt.teamCount).toBe(4);
+    validateGame(bySize.config.phases, 'groupSize teams');
+    validateGame(byDefault.config.phases, 'default teams');
+  });
+
+  it('compiles the full Spanish-review shape: announce → teams → quiz → end', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Conjugation Showdown',
+      description: 'Teams review Spanish present and past tense.',
+      steps: [
+        { brick: 'announce', text: 'Welcome to Conjugation Showdown!' },
+        { brick: 'teams', teamCount: 4 },
+        {
+          brick: 'quiz',
+          timer: 15,
+          questions: [
+            { text: 'YO + HABLAR (present)?', choices: ['hablo', 'hablas', 'habla', 'hablan'], correct: 'hablo' },
+            { text: 'ELLA + COMER (preterite)?', choices: ['comió', 'come', 'comí', 'comen'], correct: 'comió' },
+            { text: 'NOSOTROS + VIVIR (present)?', choices: ['vivimos', 'viven', 'vivo', 'vives'], correct: 'vivimos' }
+          ]
+        },
+        { brick: 'end', text: 'That is the showdown!' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const types = Object.values(config.phases).map(p => p.type);
+    expect(types).toContain('team-split');
+    expect(types).toContain('leaderboard');
+    expect(types.filter(t => t === 'collect-choice').length).toBe(3);
+    validateGame(config.phases, 'Spanish review storyboard');
+  });
 });
 
 describe('moveStep reorders the chain', () => {

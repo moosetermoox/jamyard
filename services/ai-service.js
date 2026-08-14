@@ -1166,11 +1166,15 @@ BRICKS (each step is one):
 - reveal-one: answers revealed one at a time. text = the message above.
 - vote: the class votes on the collected answers.
 - guessing-rounds: cycles through every prior submission one at a time, the clue goes on the projector, everyone types a guess, then the secret and author are revealed. REQUIRES an earlier collect or collect-two step. No text needed.
+- quiz: scored quiz rounds with automatic grading and a leaderboard at the end. questions = an array of {"text": the question, "choices": 2-8 strings, "correct": one string that EXACTLY matches one of the choices}. Faster correct answers earn more points; set speedBonus: false to score correctness only. timer = seconds per question (optional, default 15). No text needed. Use this whenever the teacher wants review, trivia, competition, or anything with right answers; never fake a quiz out of plain collect steps.
+- teams: splits the class into random teams. teamCount (2-8) OR groupSize (2-6). Good for team spirit and discussion between rounds. IMPORTANT: scores are always per student, there is no team score, so never promise one.
 - end: the wrap-up. text = the goodbye message.
 
 RULES:
 - 3 to 8 steps. Start with an announce that explains the activity in a warm teacher voice.
 - If players guess each other's submissions, use collect-two followed by guessing-rounds.
+- BE HONEST IN THE WORDS: mechanics exist only where a brick provides them. Points, scoring, winners, and leaderboards come ONLY from the quiz brick; if there is no quiz step, no text may mention points or winning. Never promise team scores, prizes, or eliminations.
+- Quiz questions must be factually correct and unambiguous, only write what you are certain of. For a quiz, 5 to 8 questions is the sweet spot unless the teacher asked for a number. The teacher reviews and can edit every question before anything is built.
 - Write engaging, classroom-ready text for every step that takes text. Never include student names. Do not decorate text with emojis unless the activity itself is about emojis.
 - Output ONLY a JSON object, no other prose: {"name": "...", "description": "one library-card sentence", "steps": [{"brick": "...", "text": "...", ...}]}
 

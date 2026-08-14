@@ -1891,6 +1891,34 @@ async function showStoryboardFlow(description, seededStoryboard) {
           row.appendChild(box);
         }
       }
+      // Quiz questions are the teacher's fact-check moment: every question
+      // and its correct answer is visible BEFORE anything is built. ✕ drops
+      // a single wrong question; deeper edits happen in the editor after.
+      if (step.brick === 'quiz' && Array.isArray(step.questions)) {
+        var qList = sbEl('div');
+        qList.style.cssText = 'margin-top:6px; font-family:"Nunito", Arial, sans-serif; font-size:0.88rem;';
+        step.questions.forEach(function (q, qi) {
+          var qRow = sbEl('div');
+          qRow.style.cssText = 'display:flex; align-items:baseline; gap:6px; padding:3px 0; border-top:1px solid #ddd;';
+          var qText = sbEl('span', (qi + 1) + '. ' + (q.text || '') + '  ✓ ' + (q.correct || ''));
+          qText.style.flex = '1';
+          qRow.appendChild(qText);
+          var qRm = sbEl('button', '✕');
+          qRm.type = 'button';
+          qRm.title = 'Drop this question';
+          qRm.style.cssText = 'border:1px solid #000; border-radius:6px; background:#fff; cursor:pointer; font-size:0.8rem;';
+          qRm.addEventListener('click', function () {
+            step.questions.splice(qi, 1);
+            renderSteps();
+          });
+          qRow.appendChild(qRm);
+          qList.appendChild(qRow);
+        });
+        var qHint = sbEl('div', 'Check every answer, drop any question that is wrong. You can rewrite them after building.');
+        qHint.style.cssText = 'color:#666; padding-top:4px; font-size:0.8rem;';
+        qList.appendChild(qHint);
+        row.appendChild(qList);
+      }
       list.appendChild(row);
     });
   }

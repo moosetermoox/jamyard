@@ -41,6 +41,8 @@ window.PHASE_NAMES = {
   'ai': 'AI transforms answers',
   'foreach': 'For each answer',
   'guessing-rounds': 'Guessing rounds',
+  'quiz': 'Quiz rounds',
+  'teams': 'Split into teams',
   'end': 'Wrap up'
 };
 
@@ -79,5 +81,7 @@ window.PHASE_BLURBS = {
   'ai': 'AI reads the class\'s answers and turns them into something new.',
   'foreach': 'Repeats a set of steps once for each answer from an earlier step.',
   'guessing-rounds': 'A round per submission: show each clue, everyone guesses, then the reveal.',
+  'quiz': 'Scored questions with one right answer each; fast correct answers earn more, leaderboard at the end.',
+  'teams': 'Divides the class into teams: random, balanced, your picks, or student choice.',
   'end': 'Wraps up the activity with a final message.'
 };

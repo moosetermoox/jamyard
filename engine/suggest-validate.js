@@ -10,8 +10,23 @@
 // (screens/shared/step-suggestions.js).
 export const STORYBOARD_BRICKS = [
   'announce', 'collect', 'collect-two', 'collect-choice', 'estimate',
-  'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'end'
+  'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'quiz', 'teams', 'end'
 ];
+
+const MAX_QUIZ_QUESTIONS = 15;
+
+// Quiz questions ride through the concierge only in this trimmed shape;
+// compileStoryboard re-validates (correct must match a choice, etc.).
+function cleanQuestions(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.slice(0, MAX_QUIZ_QUESTIONS)
+    .filter(q => q && typeof q === 'object')
+    .map(q => ({
+      text: typeof q.text === 'string' ? q.text.slice(0, 300) : '',
+      choices: Array.isArray(q.choices) ? q.choices.slice(0, 8).map(String) : [],
+      correct: typeof q.correct === 'string' ? q.correct.slice(0, 200) : ''
+    }));
+}
 
 const MAX_SUGGESTIONS = 3;
 const MAX_STORYBOARD_STEPS = 12;
@@ -91,6 +106,10 @@ export function validateSuggestions(raw, ctx) {
             choices: Array.isArray(s.choices) ? s.choices.slice(0, 8).map(String) : undefined,
             secretLabel: typeof s.secretLabel === 'string' ? s.secretLabel.slice(0, 80) : undefined,
             clueLabel: typeof s.clueLabel === 'string' ? s.clueLabel.slice(0, 80) : undefined,
+            questions: cleanQuestions(s.questions),
+            speedBonus: typeof s.speedBonus === 'boolean' ? s.speedBonus : undefined,
+            teamCount: typeof s.teamCount === 'number' ? s.teamCount : undefined,
+            groupSize: typeof s.groupSize === 'number' ? s.groupSize : undefined,
             timer: typeof s.timer === 'number' ? s.timer : undefined
           }))
         },
