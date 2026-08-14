@@ -1,6 +1,7 @@
 {
   "name": "Doodle Bluff",
   "description": "Draw a classmate's strange phrase, then write fake titles for each drawing and hunt for the real one. Fool the class to score.",
+  "featured": true,
   "phases": {
     "lobby": {
       "type": "lobby",

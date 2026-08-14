@@ -302,6 +302,9 @@ function buildCard(game) {
 
   var rememberRecent = function () { Recents.add(game.id); };
 
+  // Button order is Customize/Edit, Preview, Host — a teacher meeting an
+  // activity for the first time previews before hosting, so Host anchors
+  // the right edge (still visually primary via its vermillion style).
   var hostBtn = document.createElement('a');
   hostBtn.className = 'game-card-host library-host';
   hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
@@ -309,7 +312,6 @@ function buildCard(game) {
   hostBtn.title = 'Start a live room your class can join right now';
   hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');
   hostBtn.addEventListener('click', rememberRecent);
-  actions.appendChild(hostBtn);
 
   var previewBtn = document.createElement('a');
   previewBtn.className = 'game-card-preview';
@@ -318,7 +320,6 @@ function buildCard(game) {
   previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
   previewBtn.setAttribute('aria-label', 'Preview "' + game.name + '" with practice players');
   previewBtn.addEventListener('click', rememberRecent);
-  actions.appendChild(previewBtn);
 
   // Customization is the point (play community: the players change the
   // rules). Own activities — and the owner — edit directly. Built-ins get
@@ -347,6 +348,9 @@ function buildCard(game) {
     });
     actions.appendChild(customizeBtn);
   }
+
+  actions.appendChild(previewBtn);
+  actions.appendChild(hostBtn);
 
   var favBtn = document.createElement('button');
   var isFav = Favorites.has(game.id);

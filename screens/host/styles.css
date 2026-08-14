@@ -91,12 +91,13 @@ section.active {
   border-radius: 12px;
   background: #fff;
 }
+/* Projector-readable: students type this from the back of the room */
 .join-url {
-  font-size: 1rem;
+  font-size: 1.8rem;
+  font-weight: 700;
   word-break: break-all;
-  max-width: 420px;
+  max-width: 90%;
   color: var(--theme-heading, #333);
-  opacity: 0.8;
 }
 
 /* Buttons */
@@ -877,8 +878,9 @@ button:disabled {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Leaderboard rank highlight */
-.leaderboard-highlight {
+/* Leaderboard rank highlight — .standings p.* so the color beats the
+   .standings p text rule (was ink-on-ink under themes with a dark accent) */
+.standings p.leaderboard-highlight {
   background: var(--theme-accent, #FFD600);
   color: var(--theme-button-text, #000);
   font-weight: bold;
@@ -1368,7 +1370,7 @@ select {
 /* Join instructions under the big room code — student-facing, projected */
 .join-instructions {
   font-family: 'Nunito', Arial, sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.8rem;
   font-weight: 700;
   color: #333;
   margin: 2px 0 10px;
@@ -1692,7 +1694,7 @@ select,
   box-shadow: 5px 6px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-success, #D9481C);
 }
 
-.leaderboard-highlight { border-radius: 2px; }
+.standings p.leaderboard-highlight { border-radius: 2px; }
 
 #phase-error-section { background: var(--theme-surface, #FBF7EC); }
 

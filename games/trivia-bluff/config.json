@@ -1,6 +1,7 @@
 {
   "name": "Trivia Bluff",
   "description": "A fact with a blank and believable lies. Pick the truth to score; fool the class to score too.",
+  "featured": true,
   "phases": {
     "lobby": {
       "type": "lobby",

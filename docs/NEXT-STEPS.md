@@ -10,7 +10,39 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-08, evening session)
+### START HERE next session (updated 2026-08-13, field-feedback triage)
+
+The 2026-08-13 feedback batch was triaged into four buckets; the quick
+wins (bucket 1) SHIPPED same day (see CHANGELOG 2026-08-13: join-line
+font, leaderboard ink-on-ink fix, card button order, 3 fun games
+featured, recipe #21 Memory Sketch). Remaining, in priority order:
+
+1. **Spanish-case reproduction (the strategic diagnostic).** A coworker
+   asked Create for a Jackbox-style team competition reviewing Spanish
+   past/present tense with easy vocab, and it struggled to assemble it.
+   Reproduce the exact request through /designer and find which layer
+   failed: intent capture, recipe match, storyboard assembly, or content
+   generation. This is the north-star failure for "teacher builds
+   anything, works first try" — let the findings reorder item 2.
+2. **Speed Quiz editor + per-game setup pass** (pattern-setter for the
+   core games, one game at a time, no blanket decisions): a real "mark
+   the correct answer" control (not field-order convention), shuffle-
+   choices option, question count as a setup/host-time param, and a
+   rethought announce step that reads like a sentence. Related trust
+   issue: Speed Quiz Builder generated WRONG facts — generated questions
+   need an effortless teacher review gate before class.
+3. **foreach in the editor is confusing** (teacher's words). Hardest
+   editor UX problem; deserves its own session.
+4. **Accessibility audit** (blind + colorblind users) before August:
+   screen-reader labels on the player screen, contrast, focus order.
+   Bigger than a tweak; schedule as a wave.
+5. **New activity ideas from feedback** (build as brick stress-tests):
+   player-built quiz (students submit Q+A, class plays them — overlaps
+   with item 2's correct-answer work), yes-and machine (appendOnly /
+   relay bricks), Imposter game (needs ONE new primitive: secret
+   asymmetric role deal — unlocks the whole Chameleon/Spyfall genre).
+
+### Previous START HERE (2026-08-08, evening session)
 
 Everything through the 2026-08-08 EVENING session is DEPLOYED (5 commits
 on top of the day session, all CI-green). The evening session (see the

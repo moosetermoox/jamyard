@@ -392,6 +392,61 @@
           "text": "Something you're trying to get better at right now. One sentence."
         }
       ]
+    },
+    {
+      "id": "from-memory",
+      "label": "Draw-from-memory subjects",
+      "description": "Things everyone is sure they know until the pen hits the canvas. The gap between memory and reality is the whole show.",
+      "prompts": [
+        {
+          "id": "lny-fm-01",
+          "text": "Winnie the Pooh"
+        },
+        {
+          "id": "lny-fm-02",
+          "text": "SpongeBob SquarePants"
+        },
+        {
+          "id": "lny-fm-03",
+          "text": "Pikachu"
+        },
+        {
+          "id": "lny-fm-04",
+          "text": "the Mona Lisa"
+        },
+        {
+          "id": "lny-fm-05",
+          "text": "a bicycle, the whole thing, pedals and chain included"
+        },
+        {
+          "id": "lny-fm-06",
+          "text": "a world map with the continents"
+        },
+        {
+          "id": "lny-fm-07",
+          "text": "a computer keyboard with the keys where you think they are"
+        },
+        {
+          "id": "lny-fm-08",
+          "text": "Mickey Mouse"
+        },
+        {
+          "id": "lny-fm-09",
+          "text": "the front of a one-dollar bill"
+        },
+        {
+          "id": "lny-fm-10",
+          "text": "your school's logo or mascot"
+        },
+        {
+          "id": "lny-fm-11",
+          "text": "a map of your state with your town marked"
+        },
+        {
+          "id": "lny-fm-12",
+          "text": "the Statue of Liberty"
+        }
+      ]
     }
   ]
 }

@@ -1,0 +1,76 @@
+{
+  "id": "memory-sketch",
+  "name": "Memory Sketch",
+  "icon": "🧠",
+  "description": "Everyone draws the same famous thing from memory, no references allowed. After a teacher check, the gallery reveals one attempt at a time.",
+  "tagline": "Pick something everyone is sure they can picture: Winnie the Pooh, a bicycle, a world map. The gap between memory and the real thing is the whole show.",
+  "version": "1",
+  "parameters": {
+    "subject": {
+      "type": "promptDeck",
+      "label": "What should everyone draw from memory?",
+      "helper": "Something famous enough that everyone has seen it, tricky enough that nobody remembers it right.",
+      "placeholder": "Winnie the Pooh",
+      "required": true,
+      "minLength": 2,
+      "maxLength": 200,
+      "bank": "lanyard",
+      "decks": [
+        "from-memory"
+      ],
+      "deckHelper": "Pick a ready-made subject, or type your own. Anything from your unit works too: a cell diagram, a map region, a historical figure.",
+      "default": "Winnie the Pooh"
+    },
+    "drawTimer": {
+      "type": "integer",
+      "label": "Drawing time (seconds)",
+      "helper": "How long students get to draw. Shorter is funnier.",
+      "default": 90,
+      "min": 30,
+      "max": 600
+    }
+  },
+  "template": {
+    "name": "Memory Sketch: ${subject}",
+    "description": "Draw it from memory, then compare against the whole gallery. Built with the Memory Sketch recipe.",
+    "minPlayers": 2,
+    "tags": [
+      "create",
+      "energize"
+    ],
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "MEMORY SKETCH!\n\nYou are about to draw something you have seen a hundred times. From memory only: no searching, no peeking, no asking a neighbor.\n\nYour brain says it knows. Let's find out.",
+        "next": "draw"
+      },
+      "draw": {
+        "type": "collect",
+        "inputType": "drawing",
+        "prompt": "Draw from memory: ${subject}\n\nNo references! Just what your brain remembers.",
+        "timer": "${drawTimer}",
+        "next": "check"
+      },
+      "check": {
+        "type": "preview",
+        "template": "Review the drawings below, then open the gallery. One bad drawing? Hide it from the moderation list. 'Try again' restarts the round for everyone.",
+        "approveNext": "gallery",
+        "rejectNext": "draw"
+      },
+      "gallery": {
+        "type": "reveal-one",
+        "message": "The gallery is open: ${subject}, as this class remembers it. As each one lands, artists get the last word.",
+        "from": "draw.responses",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "That's Memory Sketch! Now look up the real thing and enjoy how wrong everyone was."
+      }
+    }
+  }
+}

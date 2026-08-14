@@ -635,7 +635,9 @@ button[hidden] {
   color: var(--theme-text, #333);
 }
 
-.leaderboard-highlight {
+/* Scoped under the container id so the color beats #leaderboard-standings p
+   (was losing that fight: ink-on-ink under themes with a dark accent) */
+#leaderboard-standings p.leaderboard-highlight {
   background: var(--theme-accent, #FFD600);
   color: var(--theme-button-text, #000);
   font-weight: bold;
@@ -1696,7 +1698,7 @@ input::placeholder, textarea::placeholder {
 .holding-avatar-chip:nth-child(odd) { transform: rotate(-0.8deg); }
 .holding-avatar-chip:nth-child(even) { transform: rotate(0.7deg); }
 
-.leaderboard-highlight { border-radius: 2px; }
+#leaderboard-standings p.leaderboard-highlight { border-radius: 2px; }
 
 /* Turn phase cards */
 .turn-item {
