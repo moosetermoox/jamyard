@@ -359,7 +359,11 @@
   }
 
   // Editable list of strings (multiple-choice answers, rank items)
-  function stringListEditor(getArr, setArr, itemLabel) {
+  // Optional `marker`: { get(), set(value|null), title } renders a ✓ toggle
+  // per row (quiz correct answers). Marking stores the row's TEXT; editing
+  // a marked row keeps the stored value in sync, removing it clears the
+  // mark. Tapping the marked row's ✓ again unmarks (back to a poll).
+  function stringListEditor(getArr, setArr, itemLabel, marker) {
     var wrap = el('div', 'sv-list');
     function render() {
       wrap.innerHTML = '';
@@ -374,14 +378,31 @@
           input.placeholder = itemLabel + ' ' + (index + 1);
           input.addEventListener('input', function () {
             markEdited();
+            var wasMarked = marker && marker.get() === getArr()[index];
             getArr()[index] = input.value;
+            if (wasMarked) marker.set(input.value);
           });
           input.addEventListener('blur', function () { autoSaveIfDirty(); });
+          if (marker) {
+            var isMarked = marker.get() === arr[index] && arr[index] !== '';
+            var mk = el('button', 'sv-list-mark' + (isMarked ? ' is-marked' : ''), isMarked ? '✓' : '○');
+            mk.type = 'button';
+            mk.title = isMarked ? (marker.title || 'This is the correct answer') + ' (tap to unmark)'
+                                : 'Mark as the correct answer';
+            mk.setAttribute('aria-pressed', isMarked ? 'true' : 'false');
+            mk.addEventListener('click', function () {
+              markEdited();
+              marker.set(isMarked ? null : getArr()[index]);
+              render();
+            });
+            row.appendChild(mk);
+          }
           var rm = el('button', 'sv-list-remove', '✕');
           rm.type = 'button';
           rm.title = 'Remove';
           rm.addEventListener('click', function () {
             markEdited();
+            if (marker && marker.get() === getArr()[index]) marker.set(null);
             getArr().splice(index, 1);
             render();
           });
@@ -508,17 +529,31 @@
         d.sentence = 'Students pick one:';
         d.field = textBox(phase.prompt, 'The question students see…', function (v) { phase.prompt = v; });
         if (Array.isArray(phase.choices)) {
+          // A templated correct answer ({{ref}}) is structural — the ✓
+          // toggle only drives plain-text answers, so hide it then.
+          var templatedCorrect = typeof phase.correctAnswer === 'string' &&
+            phase.correctAnswer.indexOf('{{') !== -1;
           d.extra = stringListEditor(
             function () { return phase.choices; },
             function (a) { phase.choices = a; },
-            'Choice'
+            'Choice',
+            templatedCorrect ? null : {
+              get: function () { return phase.correctAnswer; },
+              set: function (v) {
+                if (v) phase.correctAnswer = v;
+                else delete phase.correctAnswer;
+              },
+              title: 'The correct answer'
+            }
           );
         } else if (typeof phase.choices === 'string') {
           d.facts.push(fact('choices come from ' + humanizeRef(phase.choices)));
         } else if (phase.choicePool) {
           d.facts.push(fact('choices are built from earlier answers'));
         }
-        if (phase.correctAnswer) d.facts.push(fact('graded, correct answer earns points'));
+        if (phase.correctAnswer) d.facts.push(fact('graded, the ✓ answer earns points'));
+        else if (Array.isArray(phase.choices)) d.facts.push(fact('a poll, tap ○ on a choice to make it a graded question'));
+        if (phase.shuffle) d.facts.push(fact('choices shuffled for each student'));
         d.facts.push(timerFact(phase));
         break;
       }

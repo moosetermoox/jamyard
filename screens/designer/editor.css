@@ -2269,6 +2269,25 @@ textarea.sar-input {
 
 .sv-list-remove:hover { color: #C62828; border-color: #C62828; }
 
+/* ✓ correct-answer toggle on quiz choice rows */
+.sv-list-mark {
+  border: 2px solid #bbb;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 0 10px;
+  color: #999;
+  font-weight: 800;
+}
+
+.sv-list-mark:hover { color: #2E7D32; border-color: #2E7D32; }
+
+.sv-list-mark.is-marked {
+  color: #fff;
+  background: #2E7D32;
+  border-color: #2E7D32;
+}
+
 .sv-list-add {
   border: 2px dashed #bbb;
   background: transparent;
@@ -2959,6 +2978,9 @@ body {
 
 .sv-list-remove { border: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(34,30,28,0.2); color: #857A66; }
 .sv-list-remove:hover { color: #AE3A16; box-shadow: 0 0 0 1px #AE3A16; }
+.sv-list-mark { border: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(34,30,28,0.2); color: #857A66; background: #FFFDF6; }
+.sv-list-mark:hover { color: #2E5E2F; box-shadow: 0 0 0 1px #2E5E2F; }
+.sv-list-mark.is-marked { color: #FBF7EC; background: #2E5E2F; box-shadow: 0 0 0 1px #2E5E2F; }
 
 /* Builder view: tiles keep their category colors, squared + pasted */
 .builder-tile {

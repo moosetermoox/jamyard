@@ -134,6 +134,32 @@ describe('GameLoader', () => {
     });
   });
 
+  describe('correct-answer typo trap', () => {
+    function quizConfig(correctAnswer, choices) {
+      return {
+        name: 'Test',
+        phases: {
+          lobby: { type: 'lobby', next: 'q' },
+          q: { type: 'collect-choice', prompt: '?', choices, correctAnswer, timer: 15, next: 'end' },
+          end: { type: 'end' }
+        }
+      };
+    }
+
+    it('warns when a literal correctAnswer matches no choice exactly', () => {
+      const result = validate(quizConfig('Camberra', ['Canberra', 'Sydney']), 'typo', { returnResults: true });
+      expect(result.errors).toEqual([]);
+      expect(result.warnings.some(w => String(w).includes('nobody can ever be right'))).toBe(true);
+    });
+
+    it('stays quiet when the correctAnswer matches, or is templated', () => {
+      const ok = validate(quizConfig('Canberra', ['Canberra', 'Sydney']), 'ok', { returnResults: true });
+      expect(ok.warnings.some(w => String(w).includes('nobody can ever be right'))).toBe(false);
+      const templated = validate(quizConfig('{{trivia.result.truth}}', ['Canberra', 'Sydney']), 'tpl', { returnResults: true });
+      expect(templated.warnings.some(w => String(w).includes('nobody can ever be right'))).toBe(false);
+    });
+  });
+
   describe('enhanced validation - required fields per type', () => {
     it('rejects collect phase missing prompt', () => {
       const config = {

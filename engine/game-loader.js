@@ -310,6 +310,19 @@ export function validate(config, gameId, options) {
           `Game "${gameId}": phase "${name}" (collect-choice) cannot set both "choices" and "choicePool", pick one`
         );
       }
+      // Correct-answer typo trap: a literal correctAnswer must exactly match
+      // one of the literal choices, or nobody can ever be right and the
+      // question silently grades everyone wrong. Templated answers ({{ref}})
+      // and templated/ref choices resolve at runtime, skip those.
+      if (typeof phase.correctAnswer === 'string' &&
+          phase.correctAnswer.indexOf('{{') === -1 &&
+          Array.isArray(phase.choices) &&
+          phase.choices.every(c => typeof c === 'string' && c.indexOf('{{') === -1) &&
+          !phase.choices.includes(phase.correctAnswer)) {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (collect-choice) has correct answer "${phase.correctAnswer}", which matches none of the choices exactly, so nobody can ever be right. Check for a typo or extra spaces.`
+        );
+      }
     }
 
     // vote must have EITHER candidates OR matchupsFromPairs (and the latter is head-to-head only)

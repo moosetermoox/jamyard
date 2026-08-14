@@ -2178,12 +2178,35 @@ function renderPhaseConfig(phaseId) {
       });
     } else {
       var choicesArr = Array.isArray(phase.choices) ? phase.choices : [];
+      // The \u2713 toggle drives plain-text correct answers; a templated
+      // {{ref}} answer is structural and keeps using the text field below.
+      var templatedCorrect = typeof phase.correctAnswer === 'string' &&
+        phase.correctAnswer.indexOf('{{') !== -1;
       for (var ci = 0; ci < choicesArr.length; ci++) {
         (function (index) {
           var choiceGroup = document.createElement('div');
           choiceGroup.className = 'form-group';
           choiceGroup.style.display = 'flex';
           choiceGroup.style.gap = '6px';
+
+          if (!templatedCorrect) {
+            var isCorrect = phase.correctAnswer !== undefined &&
+              phase.correctAnswer === choicesArr[index] && choicesArr[index] !== '';
+            var markBtn = document.createElement('button');
+            markBtn.className = 'btn-icon sv-list-mark' + (isCorrect ? ' is-marked' : '');
+            markBtn.textContent = isCorrect ? '\u2713' : '\u25cb';
+            markBtn.title = isCorrect
+              ? 'The correct answer (tap to unmark, back to a poll)'
+              : 'Mark as the correct answer';
+            markBtn.setAttribute('aria-pressed', isCorrect ? 'true' : 'false');
+            markBtn.addEventListener('click', function () {
+              isDirty = true;
+              if (isCorrect) delete phase.correctAnswer;
+              else phase.correctAnswer = phase.choices[index];
+              renderPhaseConfig(phaseId);
+            });
+            choiceGroup.appendChild(markBtn);
+          }
 
           var choiceInput = document.createElement('input');
           choiceInput.type = 'text';
@@ -2192,7 +2215,10 @@ function renderPhaseConfig(phaseId) {
           choiceInput.style.flex = '1';
           choiceInput.addEventListener('input', function () {
             isDirty = true;
+            var wasCorrect = phase.correctAnswer !== undefined &&
+              phase.correctAnswer === phase.choices[index];
             phase.choices[index] = choiceInput.value;
+            if (wasCorrect) phase.correctAnswer = choiceInput.value;
           });
 
           var removeBtn = document.createElement('button');
@@ -2201,6 +2227,9 @@ function renderPhaseConfig(phaseId) {
           removeBtn.title = 'Remove choice';
           removeBtn.addEventListener('click', function () {
             isDirty = true;
+            if (phase.correctAnswer !== undefined && phase.correctAnswer === phase.choices[index]) {
+              delete phase.correctAnswer;
+            }
             phase.choices.splice(index, 1);
             renderPhaseConfig(phaseId);
           });
@@ -2222,6 +2251,28 @@ function renderPhaseConfig(phaseId) {
         renderPhaseConfig(phaseId);
       });
       phaseConfigForm.appendChild(addChoiceBtn);
+
+      // Shuffle: each student sees the choices in their own random order.
+      var shLabel = document.createElement('label');
+      shLabel.className = 'form-group';
+      shLabel.style.display = 'flex';
+      shLabel.style.alignItems = 'flex-start';
+      shLabel.style.gap = '8px';
+      shLabel.style.cursor = 'pointer';
+      var shCb = document.createElement('input');
+      shCb.type = 'checkbox';
+      shCb.style.marginTop = '4px';
+      shCb.checked = !!phase.shuffle;
+      shCb.addEventListener('change', function () {
+        isDirty = true;
+        if (shCb.checked) phase.shuffle = true;
+        else delete phase.shuffle;
+      });
+      var shText = document.createElement('div');
+      shText.innerHTML = '<strong>Shuffle choices for each student</strong><div style="font-size:12px;color:#666;margin-top:2px;">Every student sees the choices in a different order, so "it\'s the second one" whispers stop working. The bar chart still groups by choice.</div>';
+      shLabel.appendChild(shCb);
+      shLabel.appendChild(shText);
+      phaseConfigForm.appendChild(shLabel);
     }
 
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits random choice on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
@@ -2243,7 +2294,7 @@ function renderPhaseConfig(phaseId) {
     var scoreHandle = beginCollapsible('ai', 'Score this question (quiz mode)', phaseId + ':scoring', hasCorrect);
     addFieldWithHelp(
       'Correct answer',
-      'The choice that earns points. Leave empty for a non-graded poll. Plain text or a {{ref}} (e.g. {{trivia.result.truth}}).',
+      'Easiest: tap the ○ next to a choice above, it fills this for you. Type here only for a {{ref}} answer (e.g. {{trivia.result.truth}}). Empty = a non-graded poll.',
       'text', 'phase-correctAnswer', phase.correctAnswer || '', false,
       function (value) {
         if (value) phase.correctAnswer = value;
@@ -2472,9 +2523,41 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'leaderboard') {
-    addDataRefDropdown('Scores from', 'Which step\'s scores to display as a leaderboard', 'phase-from', phaseId, phase.from, function (value) {
-      phase.from = value;
-    });
+    if (Array.isArray(phase.from)) {
+      // Array form: this board sums several steps. Show that in plain
+      // words instead of the single-ref dropdown mangling the array.
+      var sumNote = document.createElement('div');
+      sumNote.className = 'form-group';
+      sumNote.style.cssText = 'font-size:13px; font-weight:700;';
+      sumNote.textContent = 'Summing scores from ' + phase.from.length + ' steps: ' +
+        phase.from.map(function (r) { return String(r).split('.')[0]; }).join(', ');
+      phaseConfigForm.appendChild(sumNote);
+    } else {
+      addDataRefDropdown('Scores from', 'Which step\'s scores to display as a leaderboard', 'phase-from', phaseId, phase.from, function (value) {
+        phase.from = value;
+      });
+    }
+    // The add-a-question trap: a new graded question's scores never reach
+    // the board unless someone hand-edits the "from" array. One tap fixes it.
+    var scoredRefs = scoredRefsBefore(phaseId);
+    var alreadySumsAll = Array.isArray(phase.from)
+      ? scoredRefs.length === phase.from.length && scoredRefs.every(function (r) { return phase.from.indexOf(r) !== -1; })
+      : (scoredRefs.length === 1 && phase.from === scoredRefs[0]);
+    if (scoredRefs.length > 0 && !alreadySumsAll) {
+      var sumBtn = document.createElement('button');
+      sumBtn.className = 'btn-secondary';
+      sumBtn.style.marginBottom = '12px';
+      sumBtn.textContent = 'Σ Count every scored step (' + scoredRefs.length + ')';
+      sumBtn.title = 'Sets this board to total the points from every earlier step that awards them: ' +
+        scoredRefs.map(function (r) { return r.split('.')[0]; }).join(', ');
+      sumBtn.addEventListener('click', function () {
+        isDirty = true;
+        phase.from = scoredRefs.length === 1 ? scoredRefs[0] : scoredRefs.slice();
+        renderPhaseConfig(phaseId);
+        renderCanvas();
+      });
+      phaseConfigForm.appendChild(sumBtn);
+    }
     var lbTeamOpts = [{ value: '', label: 'No teams, rank each student' }];
     for (var lbPid in gameConfig.phases) {
       if (gameConfig.phases[lbPid].type === 'team-split') {
@@ -4622,6 +4705,9 @@ function buildDataRefOptions(currentPhaseId) {
     } else if (p.type === 'collect-choice') {
       options.push({ value: pid + '.responses', label: 'Choices from ' + stepLabel });
       options.push({ value: pid + '.tally', label: 'Tally from ' + stepLabel });
+      if (p.correctAnswer || p.foolPoints) {
+        options.push({ value: pid + '.scores', label: 'Question scores from ' + stepLabel });
+      }
     } else if (p.type === 'ai-process') {
       options.push({ value: pid + '.result', label: 'AI result from ' + stepLabel });
     } else if (p.type === 'vote') {
@@ -4652,10 +4738,38 @@ function buildDataRefOptions(currentPhaseId) {
       options.push({ value: pid + '.text', label: 'Combined text from ' + stepLabel });
     } else if (p.type === 'foreach') {
       options.push({ value: pid + '.scores', label: 'Scores from ' + stepLabel });
+    } else if (p.type === 'buzz') {
+      options.push({ value: pid + '.scores', label: 'Buzzer scores from ' + stepLabel });
+    } else if (p.type === 'estimate' && p.answer != null) {
+      options.push({ value: pid + '.scores', label: 'Closeness scores from ' + stepLabel });
     }
   }
 
   return options;
+}
+
+// Every step before `phaseId` that actually produces player scores — the
+// refs a leaderboard/winner can honestly sum. Mirrors the runtime score
+// producers; team-keyed maps (turn) are deliberately excluded, mixing them
+// with player-keyed maps would corrupt the totals.
+function scoredRefsBefore(phaseId) {
+  var order = buildPhaseOrder();
+  var stop = order.indexOf(phaseId);
+  var refs = [];
+  for (var i = 0; i < order.length; i++) {
+    if (i >= stop) break;
+    var pid = order[i];
+    var p = gameConfig.phases[pid];
+    if (!p) continue;
+    var scores =
+      (p.type === 'collect-choice' && (p.correctAnswer || p.foolPoints)) ||
+      (p.type === 'foreach' && p.scoring) ||
+      (p.type === 'estimate' && p.answer != null) ||
+      p.type === 'vote' || p.type === 'wager' || p.type === 'match' ||
+      p.type === 'sort' || p.type === 'buzz';
+    if (scores) refs.push(pid + '.scores');
+  }
+  return refs;
 }
 
 // Data reference dropdown

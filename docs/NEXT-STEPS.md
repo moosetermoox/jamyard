@@ -28,13 +28,18 @@ featured, recipe #21 Memory Sketch). Remaining, in priority order:
    recipe-match learning to counter-offer the closest recipe instead of
    a flat no-match. Still worth a glance: team leaderboard host/player
    rendering has not been eyeballed in a browser (robot-verified only).
-2. **Speed Quiz editor + per-game setup pass** (pattern-setter for the
-   core games, one game at a time, no blanket decisions): a real "mark
-   the correct answer" control (not field-order convention), shuffle-
-   choices option, question count as a setup/host-time param, and a
-   rethought announce step that reads like a sentence. Related trust
-   issue: Speed Quiz Builder generated WRONG facts — generated questions
-   need an effortless teacher review gate before class.
+2. ~~**Speed Quiz editor pass**~~ MOSTLY DONE 2026-08-13 (see
+   CHANGELOG): ✓ correct-answer toggle in Simple + sidebar, shuffle
+   checkbox, typo-trap validator warning, leaderboard score-wiring (Σ
+   sum-every-scored-step button + .scores finally in the dropdown).
+   Announce clarity: Simple view's token chips already read well.
+   Wrong-facts review gate: shipped for storyboard quizzes (approval
+   UI); the standalone Speed Quiz Builder path still deserves one.
+   REMAINING, its own design wave: **per-game setup mode** (host-time
+   params, e.g. question count when hosting Speed Quiz). Deliberately
+   not bolted onto the words-only Customize dialog. Design thought:
+   recipe-born activities could re-open their recipe form at host time;
+   quiz-show's questions array already covers add/remove today.
 3. **foreach in the editor is confusing** (teacher's words). Hardest
    editor UX problem; deserves its own session.
 4. **Accessibility audit** (blind + colorblind users) before August:
