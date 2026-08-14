@@ -2475,6 +2475,16 @@ function renderPhaseConfig(phaseId) {
     addDataRefDropdown('Scores from', 'Which step\'s scores to display as a leaderboard', 'phase-from', phaseId, phase.from, function (value) {
       phase.from = value;
     });
+    var lbTeamOpts = [{ value: '', label: 'No teams, rank each student' }];
+    for (var lbPid in gameConfig.phases) {
+      if (gameConfig.phases[lbPid].type === 'team-split') {
+        lbTeamOpts.push({ value: lbPid, label: 'Teams from "' + phaseContentLabel(lbPid) + '"' });
+      }
+    }
+    addSelectWithHelp('Team totals', 'Point at a Split into Teams step to roll individual scores up into ranked team totals. Students still see their own contribution.', 'phase-teamsFrom',
+      lbTeamOpts, phase.teamsFrom || '', function (value) {
+        if (value) { phase.teamsFrom = value; } else { delete phase.teamsFrom; }
+      });
     addSelectWithHelp('Style', 'How many players to show', 'phase-style',
       [
         { value: 'full', label: 'Full standings (all players)' },

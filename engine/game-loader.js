@@ -570,6 +570,22 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Leaderboard team mode: teamsFrom must point at a real team-split
+    // (same rule as checklist — a dangling ref would silently fall back
+    // to the individual board at runtime, so fail loudly here instead).
+    if (phase.type === 'leaderboard' && phase.teamsFrom != null) {
+      const teamSrc = config.phases[phase.teamsFrom];
+      if (!teamSrc) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (leaderboard) takes team totals from "${phase.teamsFrom}", which doesn't exist.`
+        );
+      } else if (teamSrc.type !== 'team-split') {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (leaderboard) takes team totals from "${phase.teamsFrom}", which is a ${teamSrc.type} step, it must be a Split into Teams step.`
+        );
+      }
+    }
+
     // Team-split: sizing comes from teamCount OR groupSize — exactly one.
     if (phase.type === 'team-split') {
       const hasCount = phase.teamCount != null;

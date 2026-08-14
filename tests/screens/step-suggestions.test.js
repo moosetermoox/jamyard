@@ -350,6 +350,31 @@ describe('storyboard compiler', () => {
     validateGame(byDefault.config.phases, 'default teams');
   });
 
+  it('a teams step before a quiz makes the leaderboard team-scored', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Team Quiz',
+      steps: [
+        { brick: 'teams', teamCount: 3 },
+        { brick: 'quiz', questions: [{ text: '2+2?', choices: ['3', '4'], correct: '4' }] }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const lb = Object.values(config.phases).find(p => p.type === 'leaderboard');
+    const splitId = Object.keys(config.phases).find(id => config.phases[id].type === 'team-split');
+    expect(lb.teamsFrom).toBe(splitId);
+    validateGame(config.phases, 'team-scored quiz storyboard');
+  });
+
+  it('a quiz without a teams step stays an individual board', () => {
+    const { config } = S.compileStoryboard({
+      name: 'Solo Quiz',
+      steps: [{ brick: 'quiz', questions: [{ text: '2+2?', choices: ['3', '4'], correct: '4' }] }]
+    });
+    const lb = Object.values(config.phases).find(p => p.type === 'leaderboard');
+    expect(lb.teamsFrom).toBeUndefined();
+    validateGame(config.phases, 'individual quiz storyboard');
+  });
+
   it('compiles the full Spanish-review shape: announce → teams → quiz → end', () => {
     const { config, problems } = S.compileStoryboard({
       name: 'Conjugation Showdown',

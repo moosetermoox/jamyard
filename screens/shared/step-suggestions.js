@@ -477,6 +477,13 @@
     var lbId = freshId(phases, 'standings');
     phases[lastId].next = lbId;
     phases[lbId] = { type: 'leaderboard', from: scoreRefs, style: 'full' };
+    // A teams step earlier in the plan makes this a real team competition:
+    // individual points roll up into ranked team totals on the projector.
+    var splitId = null;
+    for (var pid in phases) {
+      if (phases[pid].type === 'team-split') splitId = pid;
+    }
+    if (splitId) phases[lbId].teamsFrom = splitId;
     return lbId;
   }
 

@@ -22,10 +22,12 @@ featured, recipe #21 Memory Sketch). Remaining, in priority order:
    knowing only 10 of 28 phase types, nothing for scoring/teams. Fixed
    with quiz + teams bricks, prompt honesty rule, approval-UI question
    review; same request now robot-playtests clean end to end. Follow-ups
-   surfaced: **team-scored leaderboard** (leaderboard has no team
-   aggregation — the one thing "team competition" still can't literally
-   mean) and consider recipe-match learning to counter-offer the closest
-   recipe instead of a flat no-match.
+   surfaced: ~~team-scored leaderboard~~ (SHIPPED same day:
+   leaderboard.teamsFrom + team-standings.js + auto-wired in teams+quiz
+   storyboards; "team competition" is now literal) and consider
+   recipe-match learning to counter-offer the closest recipe instead of
+   a flat no-match. Still worth a glance: team leaderboard host/player
+   rendering has not been eyeballed in a browser (robot-verified only).
 2. **Speed Quiz editor + per-game setup pass** (pattern-setter for the
    core games, one game at a time, no blanket decisions): a real "mark
    the correct answer" control (not field-order convention), shuffle-

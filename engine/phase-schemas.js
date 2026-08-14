@@ -1108,6 +1108,11 @@ export const PHASE_SCHEMAS = {
         type: 'enum', values: ['full', 'top3'], default: 'full',
         label: 'Display style'
       },
+      teamsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Team totals from',
+        helper: 'An earlier Split into Teams step. Individual scores roll up into ranked team totals; the projector leads with teams, each student still sees their own contribution. Leave empty for an individual board.'
+      },
       message: {
         type: 'templateString', optional: true,
         label: 'Header message'

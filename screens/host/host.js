@@ -992,7 +992,7 @@ socket.on('announce', ({ message, image, video, displayDrawing, timer, continueL
   }
 });
 
-socket.on('leaderboard', ({ standings, style, timer, hostTemplate, show }) => {
+socket.on('leaderboard', ({ standings, teamStandings, style, timer, hostTemplate, show }) => {
   showSection(leaderboardSection);
   applyTemplate(leaderboardSection, hostTemplate);
   applyShow(show, {
@@ -1003,17 +1003,37 @@ socket.on('leaderboard', ({ standings, style, timer, hostTemplate, show }) => {
 
   if (J) J.sound('tada');
   leaderboardStandings.innerHTML = '';
-  for (let i = 0; i < standings.length; i++) {
-    const s = standings[i];
-    const p = document.createElement('p');
-    // Medal based on rank, not array index, so tied players share medals
-    // (e.g. two players tied for 1st both get gold; no silver awarded).
-    const avatar = J ? J.avatarFor(s.name) + ' ' : '';
-    p.textContent = '#' + s.rank + ' ' + avatar + s.name + ': ' + s.score + ' pts';
-    // Rows pop in one after another, top rank first.
-    p.classList.add('juice-stagger');
-    p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
-    leaderboardStandings.appendChild(p);
+  if (teamStandings && teamStandings.length > 0) {
+    // Team competition: teams lead the projector, each with its members'
+    // contributions underneath.
+    for (let i = 0; i < teamStandings.length; i++) {
+      const t = teamStandings[i];
+      const p = document.createElement('p');
+      p.textContent = '#' + t.rank + ' ' + t.team + ': ' + t.score + ' pts';
+      p.classList.add('juice-stagger', 'team-standing-row');
+      p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
+      leaderboardStandings.appendChild(p);
+      const members = document.createElement('p');
+      members.className = 'team-standing-members juice-stagger';
+      members.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
+      members.textContent = t.members
+        .map(m => (J ? J.avatarFor(m.name) + ' ' : '') + m.name + ' ' + m.score)
+        .join('  ·  ');
+      leaderboardStandings.appendChild(members);
+    }
+  } else {
+    for (let i = 0; i < standings.length; i++) {
+      const s = standings[i];
+      const p = document.createElement('p');
+      // Medal based on rank, not array index, so tied players share medals
+      // (e.g. two players tied for 1st both get gold; no silver awarded).
+      const avatar = J ? J.avatarFor(s.name) + ' ' : '';
+      p.textContent = '#' + s.rank + ' ' + avatar + s.name + ': ' + s.score + ' pts';
+      // Rows pop in one after another, top rank first.
+      p.classList.add('juice-stagger');
+      p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
+      leaderboardStandings.appendChild(p);
+    }
   }
 
   if (timer) {

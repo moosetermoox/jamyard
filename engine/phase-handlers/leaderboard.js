@@ -7,6 +7,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { buildTeamStandings } from '../phases/team-standings.js';
 
 /**
  * Resolve and sum one or more score sources into a single { key: total } map.
@@ -77,22 +78,43 @@ registerHandler('leaderboard', {
     });
 
     const display = style === 'top3' ? standings.slice(0, 3) : standings;
-    engine.storePhaseData(phase.id, { standings, style });
+
+    // Team competition: `teamsFrom` names an earlier team-split, and the
+    // individual totals also roll up into ranked team totals. A missing or
+    // skipped split falls back to the individual board (checklist's rule:
+    // the activity still works).
+    let teamStandings = null;
+    if (phase.teamsFrom) {
+      const teamData = engine.phaseData[phase.teamsFrom];
+      const combined = {};
+      for (const s of standings) combined[s.playerId] = s.score;
+      const built = buildTeamStandings(combined, teamData);
+      if (built.length > 0) {
+        teamStandings = built;
+      } else {
+        console.warn(`[leaderboard:${phase.id}] teamsFrom "${phase.teamsFrom}" has no teams data, showing individual standings`);
+      }
+    }
+
+    engine.storePhaseData(phase.id, { standings, teamStandings, style });
     const sc = ctx.resolveScreenControl();
 
-    console.log(`[handlePhase] Leaderboard: ${standings.length} players, style=${style}`);
+    console.log(`[handlePhase] Leaderboard: ${standings.length} players` +
+      (teamStandings ? `, ${teamStandings.length} teams` : '') + `, style=${style}`);
 
     // Send to host
     ctx.emitToHost(EVENTS.LEADERBOARD, {
-      standings: display, allStandings: standings, style,
+      standings: display, allStandings: standings, teamStandings, style,
       timer: phase.timer || null,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
-    // Send to players — each gets their own rank highlighted
+    // Send to players — each gets their own rank (and team) highlighted
+    const playerTeam = teamStandings ? (engine.phaseData[phase.teamsFrom].playerTeam || {}) : {};
     for (const player of engine.players.list()) {
       ctx.emitToPlayer(player.id, EVENTS.LEADERBOARD, {
-        standings: display, allStandings: standings, style,
+        standings: display, allStandings: standings, teamStandings, style,
+        myTeam: teamStandings ? (playerTeam[player.id] || null) : null,
         timer: phase.timer || null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
@@ -116,8 +138,15 @@ registerHandler('leaderboard', {
       const sc = ctx.resolveScreenControl();
       const lbStyle = lbData.style || 'full';
       const lbDisplay = lbStyle === 'top3' ? lbData.standings.slice(0, 3) : lbData.standings;
+      const teamStandings = lbData.teamStandings || null;
+      let myTeam = null;
+      if (teamStandings && ctx.phase.teamsFrom) {
+        const teamData = ctx.engine.phaseData[ctx.phase.teamsFrom];
+        myTeam = (teamData && teamData.playerTeam && teamData.playerTeam[socket.id]) || null;
+      }
       socket.emit(EVENTS.LEADERBOARD, {
-        standings: lbDisplay, allStandings: lbData.standings, style: lbStyle,
+        standings: lbDisplay, allStandings: lbData.standings, teamStandings, style: lbStyle,
+        myTeam,
         timer: null,
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });

@@ -1060,7 +1060,7 @@ socket.on('announce', ({ message, image, displayDrawing, timer, playerTemplate, 
 
 // --- Socket events - Leaderboard ---
 
-socket.on('leaderboard', ({ standings, allStandings, style, timer, playerTemplate, show }) => {
+socket.on('leaderboard', ({ standings, allStandings, teamStandings, myTeam, style, timer, playerTemplate, show }) => {
   showSection(leaderboardSection);
   applyTemplate(leaderboardSection, playerTemplate);
   applyShow(show, {
@@ -1070,7 +1070,15 @@ socket.on('leaderboard', ({ standings, allStandings, style, timer, playerTemplat
 
   // Find current player in standings
   var myStanding = (allStandings || standings || []).find(function(s) { return s.playerId === socket.id; });
-  if (myStanding) {
+  var myTeamStanding = (teamStandings || []).find(function(t) { return t.team === myTeam; });
+  if (myTeamStanding) {
+    // Team competition: lead with the team result, own contribution below.
+    leaderboardRank.textContent = '#' + myTeamStanding.rank + '. Team ' + myTeamStanding.team;
+    leaderboardScore.textContent = myTeamStanding.score + ' team points' +
+      (myStanding ? ' (' + myStanding.score + ' from you)' : '');
+    // The whole winning team celebrates on their own devices.
+    if (myTeamStanding.rank === 1 && J) J.confetti({ count: 60 });
+  } else if (myStanding) {
     leaderboardRank.textContent = '#' + myStanding.rank + '. ' + myStanding.name;
     leaderboardScore.textContent = myStanding.score + ' points';
     // First place gets a personal celebration on their own device.
@@ -1080,19 +1088,32 @@ socket.on('leaderboard', ({ standings, allStandings, style, timer, playerTemplat
     leaderboardScore.textContent = '';
   }
 
-  // Render standings list \u2014 medal/number based on rank so tied players
-  // share the same medal (two tied for 1st \u2192 both gold; no silver).
   leaderboardStandings.innerHTML = '';
-  var list = allStandings || standings || [];
-  for (var i = 0; i < list.length; i++) {
-    var p = document.createElement('p');
-    var r = list[i].rank;
-    var prefix = r + '. ';
-    p.textContent = prefix + list[i].name + ': ' + list[i].score + ' points';
-    if (list[i].playerId === socket.id) {
-      p.className = 'leaderboard-highlight';
+  if (teamStandings && teamStandings.length > 0) {
+    // Team standings list; the student's own team gets the highlight.
+    for (var ti = 0; ti < teamStandings.length; ti++) {
+      var t = teamStandings[ti];
+      var tp = document.createElement('p');
+      tp.textContent = t.rank + '. ' + t.team + ': ' + t.score + ' points';
+      if (t.team === myTeam) {
+        tp.className = 'leaderboard-highlight';
+      }
+      leaderboardStandings.appendChild(tp);
     }
-    leaderboardStandings.appendChild(p);
+  } else {
+    // Render standings list \u2014 medal/number based on rank so tied players
+    // share the same medal (two tied for 1st \u2192 both gold; no silver).
+    var list = allStandings || standings || [];
+    for (var i = 0; i < list.length; i++) {
+      var p = document.createElement('p');
+      var r = list[i].rank;
+      var prefix = r + '. ';
+      p.textContent = prefix + list[i].name + ': ' + list[i].score + ' points';
+      if (list[i].playerId === socket.id) {
+        p.className = 'leaderboard-highlight';
+      }
+      leaderboardStandings.appendChild(p);
+    }
   }
 });
 

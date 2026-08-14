@@ -878,6 +878,18 @@ button:disabled {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Team leaderboard: team totals lead, member contributions ride below */
+.standings p.team-standing-row {
+  font-weight: 900;
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+.standings p.team-standing-members {
+  font-size: 1.1rem;
+  opacity: 0.75;
+  padding-top: 0;
+}
+
 /* Leaderboard rank highlight — .standings p.* so the color beats the
    .standings p text rule (was ink-on-ink under themes with a dark accent) */
 .standings p.leaderboard-highlight {
