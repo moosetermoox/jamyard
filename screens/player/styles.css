@@ -1512,12 +1512,11 @@ h1,
   font-weight: 400;
 }
 
-/* The question is the spoken line, serif with a whisper of misprint */
+/* The question is the spoken line, serif */
 .prompt {
   font-family: 'EB Garamond', Georgia, serif;
   font-weight: 400;
   font-size: 1.4rem;
-  text-shadow: 1px 0 0 rgba(217,72,28,0.24), -1px 0 0 rgba(0,165,196,0.18);
 }
 
 /* Hard cuts between phases */

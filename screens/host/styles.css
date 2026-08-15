@@ -1563,17 +1563,11 @@ h1,
   font-weight: 400;
 }
 
-/* The phase heading is the projector's spoken line */
+/* The phase heading is the projector's spoken line. (The misprint
+   text-shadow that used to sit here read as blur, cut 2026-08-15.) */
 h2 {
   font-family: 'EB Garamond', Georgia, serif;
   font-weight: 400;
-  text-shadow: 2px 0 0 rgba(217,72,28,0.26), -2px 0 0 rgba(0,165,196,0.20);
-}
-
-/* ...except chrome headings that are labels, not spoken lines */
-.preroom-headline,
-.roster-heading {
-  text-shadow: none;
 }
 
 /* The projected question reads in the serif voice too */

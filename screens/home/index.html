@@ -170,7 +170,6 @@
       color: #221E1C;
       max-width: 740px;
       text-wrap: balance;
-      text-shadow: 2px 0 0 rgba(217,72,28,0.26), -2px 0 0 rgba(0,165,196,0.20);
     }
 
     .sub {
@@ -405,10 +404,8 @@
     .btn-secondary { color: #221E1C; }
     .btn-secondary:hover { color: #221E1C; }
 
-    /* Misprint offset: secondary button labels only, never body text */
-    .misprint {
-      text-shadow: 1.5px 0 0 rgba(217,72,28,0.3), -1.5px 0 0 rgba(0,165,196,0.24);
-    }
+    /* The .misprint offset (chromatic text-shadow) read as blur on real
+       screens and was removed 2026-08-15; the class remains in markup, inert. */
 
     .sub a { font-weight: 800; }
 
