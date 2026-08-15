@@ -131,6 +131,43 @@ describe('shipped recipes — compile + validate', () => {
 // class-poll specific tests — the canary recipe.
 // =======================================================================
 
+describe('recipes/quiz-show.json — teams mode', () => {
+  let recipe;
+  const QUESTIONS = [
+    { question: 'Capital of Australia?', choices: ['Canberra', 'Sydney'], correct: 'Canberra' },
+    { question: '2+2?', choices: ['3', '4'], correct: '4' }
+  ];
+
+  it('loads', async () => {
+    recipe = JSON.parse(
+      await readFile(join(RECIPES_DIR, 'quiz-show.json'), 'utf-8')
+    );
+    expect(recipe.id).toBe('quiz-show');
+  });
+
+  it('teams on: team-split before q1, leaderboard ranks team totals', () => {
+    const { config, diagnostics } = compileRecipe(recipe, {
+      questions: QUESTIONS, teams: true, teamCount: 3
+    });
+    expect(diagnostics).toEqual([]);
+    expect(config.phases.intro.next).toBe('makeTeams');
+    expect(config.phases.makeTeams).toMatchObject({
+      type: 'team-split', method: 'random', teamCount: 3, next: 'q1'
+    });
+    expect(config.phases.scoreboard.teamsFrom).toBe('makeTeams');
+    const result = validate(config, 'quiz-show-teams', { returnResults: true });
+    expect(result.errors).toEqual([]);
+  });
+
+  it('teams off (default): no team-split, no teamsFrom, intro rewires to q1', () => {
+    const { config, diagnostics } = compileRecipe(recipe, { questions: QUESTIONS });
+    expect(diagnostics).toEqual([]);
+    expect(config.phases.makeTeams).toBeUndefined();
+    expect(config.phases.intro.next).toBe('q1');
+    expect(config.phases.scoreboard.teamsFrom).toBeUndefined();
+  });
+});
+
 describe('recipes/class-poll.json — golden output', () => {
   let recipe;
 

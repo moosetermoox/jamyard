@@ -1073,7 +1073,11 @@ socket.on('leaderboard', ({ standings, allStandings, teamStandings, myTeam, styl
   var myTeamStanding = (teamStandings || []).find(function(t) { return t.team === myTeam; });
   if (myTeamStanding) {
     // Team competition: lead with the team result, own contribution below.
-    leaderboardRank.textContent = '#' + myTeamStanding.rank + '. Team ' + myTeamStanding.team;
+    // Default team names already read "Team 1", so only add the word for
+    // custom names that lack it ("Team Team 1" looked broken on the wall).
+    var myTeamLabel = /^team\b/i.test(String(myTeamStanding.team))
+      ? myTeamStanding.team : 'Team ' + myTeamStanding.team;
+    leaderboardRank.textContent = '#' + myTeamStanding.rank + '. ' + myTeamLabel;
     leaderboardScore.textContent = myTeamStanding.score + ' team points' +
       (myStanding ? ' (' + myStanding.score + ' from you)' : '');
     // The whole winning team celebrates on their own devices.

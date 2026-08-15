@@ -26,8 +26,10 @@ featured, recipe #21 Memory Sketch). Remaining, in priority order:
    leaderboard.teamsFrom + team-standings.js + auto-wired in teams+quiz
    storyboards; "team competition" is now literal) and consider
    recipe-match learning to counter-offer the closest recipe instead of
-   a flat no-match. Still worth a glance: team leaderboard host/player
-   rendering has not been eyeballed in a browser (robot-verified only).
+   a flat no-match. ~~Team leaderboard browser eyeball~~ DONE 2026-08-14:
+   host + player rendering verified live (fixed a "Team Team 1" player
+   headline on the way); quiz-show also gained teams/teamCount setup
+   knobs, so Speed Quiz copies can be team competitions from Customize.
 2. ~~**Speed Quiz editor pass**~~ DONE across 2026-08-13/14 (see
    CHANGELOG): ✓ correct-answer toggle in Simple + sidebar, shuffle
    checkbox, typo-trap validator warning, leaderboard score-wiring (Σ

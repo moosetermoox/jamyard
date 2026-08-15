@@ -59,7 +59,9 @@
         }
       ],
       "questionTimer": 15,
-      "speedBonus": true
+      "speedBonus": true,
+      "teams": false,
+      "teamCount": 4
     }
   },
   "phases": {

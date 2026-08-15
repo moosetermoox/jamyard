@@ -72,6 +72,22 @@
       "label": "Speed bonus",
       "helper": "Faster correct answers earn more points (Kahoot-style). Off = every correct answer is worth the same.",
       "setup": true
+    },
+    "teams": {
+      "type": "boolean",
+      "default": false,
+      "label": "Play in teams",
+      "helper": "Random teams before the first question; everyone still answers, and the leaderboard ranks team totals.",
+      "setup": true
+    },
+    "teamCount": {
+      "type": "integer",
+      "min": 2,
+      "max": 8,
+      "default": 4,
+      "label": "How many teams",
+      "helper": "Only used when playing in teams.",
+      "setup": true
     }
   },
   "template": {
@@ -85,6 +101,13 @@
       "intro": {
         "type": "announce",
         "message": "QUIZ SHOW!\n\nAnswer on your device as fast as you can, correct answers earn points, and speed counts.\n\nGet ready...",
+        "next": "makeTeams"
+      },
+      "makeTeams": {
+        "$if": "teams",
+        "type": "team-split",
+        "method": "random",
+        "teamCount": "${teamCount}",
         "next": "q1"
       },
       "$repeat": {
@@ -112,6 +135,10 @@
         "from": {
           "$map": "questions",
           "value": "q${i}.scores"
+        },
+        "teamsFrom": {
+          "$if": "teams",
+          "$value": "makeTeams"
         },
         "style": "full",
         "next": "end"
