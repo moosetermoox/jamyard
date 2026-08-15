@@ -6566,7 +6566,7 @@ function openAskAiModal(phaseId) {
   } else {
     title.textContent = 'Ask AI to revise this activity';
     subtitle.textContent = 'Describe what you\'d like to change in plain English.';
-    input.placeholder = 'e.g. Make round 1 longer, add a leaderboard at the end, change the AI roast to be more sarcastic';
+    input.placeholder = 'e.g. Make round 1 longer, add a leaderboard at the end, make the wording friendlier for 6th graders';
   }
 
   input.value = '';

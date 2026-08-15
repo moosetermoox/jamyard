@@ -3275,6 +3275,43 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
   box-shadow: 0 0 0 rgba(34,30,28,0.30);
 }
 
+/* Ask AI modal interior: the shell was reskinned but the boxes inside
+   were still the old pastel pills (purple status, mint summary, pink
+   errors) with rounded borders. Paper scraps instead; the failures list
+   keeps an outlined vermillion strip (same idiom as btn-danger). */
+.ask-ai-modal { background: rgba(34, 30, 28, 0.5); }
+
+.ask-ai-modal textarea {
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16);
+}
+
+.ask-ai-status {
+  background: #FFFDF6;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.10);
+  color: #55503F;
+  font-style: italic;
+}
+
+.ask-ai-summary {
+  background: #FFFDF6;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.10);
+}
+
+.ask-ai-errors {
+  background: #FFFDF6;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #AE3A16;
+  color: #AE3A16;
+}
+
 /* Delete Step carries btn-danger without the .btn base: outlined
    vermillion strip, fills on hover (same idiom as the card ✕). */
 .btn-danger:not(.btn) {
