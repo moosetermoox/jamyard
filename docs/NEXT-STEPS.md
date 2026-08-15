@@ -10,7 +10,42 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-13, field-feedback triage)
+### START HERE next session (updated 2026-08-14, setup-mode day)
+
+Three waves shipped and DEPLOYED 2026-08-14 (commits 0e33bd8 + 9d75931,
+both CI-green; see the three CHANGELOG 2026-08-14 entries): per-game
+setup mode in the Customize dialog (recipe provenance stamps, knobs,
+multi-phase $repeat, Speed Quiz recipe-born + drift-guarded, land on
+/library?highlight=), the quiz Customize panel (editable question list,
+topic box → AI-written questions with the fact-check gate, generic AI
+interview skipped for quiz games), and the teams knob (Speed Quiz
+copies become team competitions from Customize; team leaderboard
+browser eyeball DONE, "Team Team 1" player headline fixed). 1119 tests.
+
+Remaining, in priority order:
+
+1. **Accessibility audit** (blind + colorblind users) — NOW THE TOP
+   ITEM and overdue: field tests are live this August. Screen-reader
+   labels on the player screen, contrast, focus order. Bigger than a
+   tweak; schedule as a wave.
+2. **foreach in the editor is confusing** (teacher's words). Hardest
+   editor UX problem; deserves its own session.
+3. **New activity ideas from feedback** (build as brick stress-tests):
+   player-built quiz (students submit Q+A, class plays them — the quiz
+   brick + collect-multi-field cover most of it now), yes-and machine
+   (appendOnly / relay bricks), Imposter game (needs ONE new primitive:
+   secret asymmetric role deal — unlocks the Chameleon/Spyfall genre).
+4. **Fill-in-the-blank question format** (owner deferred 2026-08-14):
+   needs graded typed answers in the engine with forgiving matching
+   (case/spaces/small typos — slow spellers must not be punished);
+   then it becomes a quiz-panel format toggle.
+5. **Smaller follow-ups from the setup-mode day**: flag setup params on
+   more recipes (knobs are free once flagged), review gate for the
+   standalone quiz Builder path, recipe-match counter-offering the
+   closest recipe instead of a flat no-match, empty 0-pt teams render
+   when teamCount > player count (degenerate in real classes, low).
+
+### Previous START HERE (2026-08-13, field-feedback triage)
 
 The 2026-08-13 feedback batch was triaged into four buckets; the quick
 wins (bucket 1) SHIPPED same day (see CHANGELOG 2026-08-13: join-line
