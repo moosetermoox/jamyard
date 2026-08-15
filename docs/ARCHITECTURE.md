@@ -528,9 +528,10 @@ can **Hide** a response (excluded from AI input + reveal, reversible) or
 **Where moderation actually lives: the teacher console** (`/teacher`).
 The host screen is *projected to the class*, so moderation with student
 names on it is effectively public. The console is a private second-device
-view (the teacher's laptop or a spare Chromebook), joined with the room code + a 4-digit PIN
-(shown click-to-reveal on the host screen) or the `SITE_PASSWORD`
-basic-auth header. It gets the live entries-with-names, preview
+view (the teacher's laptop or a spare Chromebook), joined via the host
+screen's "Copy teacher link" deep link (`/teacher#code=...&pin=...`, the
+room code + a 4-digit PIN in the hash fragment so it stays out of server
+logs and off the projector) or the `SITE_PASSWORD` basic-auth header. It gets the live entries-with-names, preview
 approve/reject, and close/next controls; the host screen's preview
 content stays hidden behind "👁 Show on this screen" by default.
 Privileged socket actions check `isTeacherSocket` (host OR a joined
@@ -805,7 +806,7 @@ Teacher uses for real
   └─ Open /host  → Create Room → projects 4-letter code (+ a hostToken
        stashed in sessionStorage for F5 / restart recovery)
   └─ Students open /player → enter code + name
-  └─ (optional) Teacher's second device → /teacher → enter code + PIN
+  └─ (optional) "Copy teacher link" on host → paste in a private window/device → /teacher auto-joins
   └─ Teacher clicks Start
        └─ engine.transition('lobby' → first phase)
        └─ handlePhase() dispatches via registry; snapshots the room

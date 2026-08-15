@@ -1356,7 +1356,7 @@ select {
 .one-voice-celebrating .one-voice-banner { background: #C8E6C9; }
 .one-voice-controls { margin-top: 18px; display: flex; gap: 12px; justify-content: center; }
 
-/* --- Teacher view chip (click-to-reveal PIN) ---
+/* --- Teacher view chip (copy-link pairing) ---
    Fixed corner chip, present in every phase once a room exists, so the
    teacher can pair a console mid-activity. Bottom-right: the sound toggle
    owns top-right, the brand mark owns top-left. */
@@ -1372,7 +1372,7 @@ select {
 }
 /* display:flex beats the hidden attribute; without this the chip never hides */
 .teacher-view-chip[hidden] { display: none; }
-#teacher-view-toggle {
+#teacher-link-copy {
   font-size: 0.85em;
   padding: 6px 14px;
   background: white;
@@ -1381,7 +1381,7 @@ select {
   border-radius: 999px;
   cursor: pointer;
 }
-#teacher-view-toggle:hover { background: #FFF59D; }
+#teacher-link-copy:hover { background: #FFF59D; }
 .teacher-view-info {
   font-size: 0.95em;
   font-weight: bold;
@@ -1691,7 +1691,7 @@ select,
   box-shadow: 0 0 0 rgba(34,30,28,0.16);
 }
 
-#teacher-view-toggle,
+#teacher-link-copy,
 #preview-reveal-btn,
 .player-kick-btn {
   border: none;
@@ -1699,7 +1699,7 @@ select,
   box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
 }
 
-#teacher-view-toggle:hover,
+#teacher-link-copy:hover,
 #preview-reveal-btn:hover {
   background: #FFFDF6;
 }

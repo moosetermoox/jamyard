@@ -4,7 +4,7 @@
  * Drives games/_sim-teacher (collect → preview → reveal) with 1 host,
  * 3 players, and a TEACHER CONSOLE socket, asserting:
  *
- *   1. The host receives a teacher PIN at room creation (click-to-reveal).
+ *   1. The host receives a teacher PIN at room creation (delivered to the teacher via copy-link).
  *   2. A wrong PIN is rejected; the right PIN joins with a state snapshot.
  *   3. The console receives live entries (names + text) and counts.
  *   4. Hiding an entry from the console works — and the hidden entry is

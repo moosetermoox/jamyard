@@ -94,48 +94,43 @@ const previewPrivate = document.getElementById('preview-private');
 const previewRevealBtn = document.getElementById('preview-reveal-btn');
 const previewPrivacyHint = document.getElementById('preview-privacy-hint');
 
-// Elements - Teacher view chip (click-to-reveal PIN)
+// Elements - Teacher view chip (copy-link pairing)
 const teacherViewChip = document.getElementById('teacher-view-chip');
-const teacherViewToggle = document.getElementById('teacher-view-toggle');
-const teacherViewInfo = document.getElementById('teacher-view-info');
 let currentTeacherPin = null;
 let teacherConsolePaired = false;
 
-// The host screen is projected — the PIN appears only after a deliberate
-// two-step confirm (first tap warns, second tap shows), and auto-hides
-// after 15 seconds. A student photographing the projector is the threat
-// model here; console joins are also announced loudly (below) so a
-// hijacked pairing can't happen silently.
-let pinRevealArmed = false;
-let pinHideTimer = null;
-function hidePinInfo() {
-  teacherViewInfo.hidden = true;
-  pinRevealArmed = false;
-  teacherViewToggle.textContent = '💻 Teacher controls on a second device';
-  if (pinHideTimer) { clearTimeout(pinHideTimer); pinHideTimer = null; }
+// The host screen is projected, so pairing never shows the PIN on the wall:
+// the button puts a /teacher deep link (code + PIN in the hash fragment, so
+// it never reaches server logs) on the clipboard. Paste it into another
+// window if you're extending your display, or send it to a second device.
+// Console joins are announced loudly (below) so a hijacked pairing can't
+// happen silently.
+const teacherLinkCopyBtn = document.getElementById('teacher-link-copy');
+let copyFeedbackTimer = null;
+function showCopyFeedback(text) {
+  teacherLinkCopyBtn.textContent = text;
+  if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
+  copyFeedbackTimer = setTimeout(() => {
+    teacherLinkCopyBtn.textContent = '🔗 Copy teacher link';
+    copyFeedbackTimer = null;
+  }, 2500);
 }
-teacherViewToggle.addEventListener('click', () => {
-  if (!teacherViewInfo.hidden) { hidePinInfo(); return; }
-  if (!pinRevealArmed) {
-    pinRevealArmed = true;
-    teacherViewToggle.textContent = '⚠ Students may see this, tap again to show the PIN';
-    // Disarm quietly if the teacher thinks better of it.
-    setTimeout(() => { if (teacherViewInfo.hidden) hidePinInfo(); }, 6000);
-    return;
+teacherLinkCopyBtn.addEventListener('click', () => {
+  if (!currentRoomCode) return;
+  let link = window.location.origin + '/teacher#code=' + currentRoomCode;
+  if (currentTeacherPin) link += '&pin=' + currentTeacherPin;
+  const done = () => showCopyFeedback('✓ Copied, paste it in a private window');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(done).catch(() => fallbackCopy(link, done));
+  } else {
+    fallbackCopy(link, done);
   }
-  teacherViewInfo.textContent = 'Open ' + window.location.origin +
-    '/teacher on a second device · room ' + (currentRoomCode || '????') +
-    ' · PIN ' + (currentTeacherPin || '????');
-  teacherViewInfo.hidden = false;
-  teacherViewToggle.textContent = 'Hide';
-  pinHideTimer = setTimeout(hidePinInfo, 15000);
 });
 
 // Pairing visibility: announce every console join on the projector chip.
 const teacherDeviceNotice = document.getElementById('teacher-device-notice');
 socket.on('teacher-console-joined', ({ deviceCount }) => {
   teacherConsolePaired = true;
-  hidePinInfo(); // paired — no reason to keep the PIN on the wall
   if (teacherDeviceNotice) {
     teacherDeviceNotice.hidden = false;
     teacherDeviceNotice.textContent = deviceCount > 1
@@ -678,7 +673,6 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored 
   qrRendered = false;
   if (qrPanel) qrPanel.hidden = true;
   if (showQrBtn) showQrBtn.textContent = 'Show QR code';
-  teacherViewInfo.hidden = true; // PIN stays hidden until deliberately revealed
   teacherViewChip.hidden = false; // room exists, pairing is possible from any phase
 
   // Remember this room so an F5 (or a server restart) can rebind instead of
@@ -843,7 +837,7 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
   // paired yet, point at the corner chip instead of a view they don't have.
   previewPrivacyHint.textContent = teacherConsolePaired
     ? 'The content is hidden from this (projected) screen. Review it on your 👁 Teacher view, or reveal it here.'
-    : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use the 💻 chip in the corner to pair one on a second device, or reveal it here.';
+    : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use "🔗 Copy teacher link" in the corner and paste it in a private window, or reveal it here.';
   previewPrivate.hidden = true;
   previewRevealBtn.textContent = '👁 Show on this screen';
   previewContent.textContent = content;

@@ -5,9 +5,9 @@
  * second, private device — the /teacher console. The console proves it's
  * the teacher one of two ways:
  *
- *   1. Room PIN — a 4-digit PIN generated at room creation, shown on the
- *      host screen behind a click-to-reveal (the teacher peeks before
- *      projecting). Defense for setups without a site password.
+ *   1. Room PIN — a 4-digit PIN generated at room creation, delivered via
+ *      the host screen's "Copy teacher link" deep link (never displayed on
+ *      the projector). Defense for setups without a site password.
  *   2. Site password — when SITE_PASSWORD is set, the /teacher page sits
  *      behind HTTP Basic Auth, and the socket handshake carries the same
  *      Authorization header. A valid header is teacher-proof on its own
@@ -43,7 +43,7 @@ export function checkTeacherAccess(provided, expected) {
   return false;
 }
 
-/** 4-digit PIN, "1000"–"9999" — easy to read off a click-to-reveal chip. */
+/** 4-digit PIN, "1000"–"9999" — short enough to live in a copyable link. */
 export function generateTeacherPin() {
   return String(Math.floor(1000 + Math.random() * 9000));
 }

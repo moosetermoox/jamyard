@@ -4,8 +4,9 @@
 // there is actually public. This page (on the teacher's laptop or a spare Chromebook)
 // receives the live moderation list and preview content privately, and can
 // hide/kick entries, approve/reject previews, close submissions, and
-// advance steps. It joins with the room code + the PIN shown click-to-reveal
-// on the host screen (or rides the site password when one is set).
+// advance steps. It joins via the deep link from the host screen's "Copy
+// teacher link" button, which carries the room code + PIN in the hash
+// (or rides the site password when one is set).
 
 var socket = io();
 
@@ -101,6 +102,22 @@ function tryJoin() {
 joinBtn.addEventListener('click', tryJoin);
 pinInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') tryJoin(); });
 
+// Deep link from the host screen's "Copy teacher link" button:
+// /teacher#code=ABCD&pin=1234. Hash fragment, not query string, so the PIN
+// never reaches server logs; it is wiped from the address bar right after
+// reading so it doesn't sit on screen or in an over-the-shoulder glance.
+var autoJoinFromLink = false;
+(function () {
+  if (!window.location.hash) return;
+  var params = new URLSearchParams(window.location.hash.slice(1));
+  var code = (params.get('code') || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (code.length !== 4) return;
+  codeInput.value = code;
+  pinInput.value = params.get('pin') || '';
+  autoJoinFromLink = true;
+  try { history.replaceState(null, '', window.location.pathname); } catch (e) { /* old browser */ }
+})();
+
 function showJoinError(message) {
   joinError.textContent = message;
   joinError.hidden = false;
@@ -145,6 +162,10 @@ socket.on('teacher-joined', function (snap) {
 socket.on('connect', function () {
   if (currentCode) {
     socket.emit('join-teacher', { code: currentCode, pin: currentPin });
+  } else if (autoJoinFromLink) {
+    // Arrived via the host screen's copied link — connect without a tap.
+    autoJoinFromLink = false;
+    tryJoin();
   } else {
     // Prefill from a previous session on this device
     try {

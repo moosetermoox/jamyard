@@ -435,11 +435,11 @@
 
   <!-- Teacher-view pairing chip: fixed corner, visible in every phase once a
        room exists, so a teacher who skipped pairing in the lobby can still
-       open the console mid-activity (e.g. at a preview gate). The PIN itself
-       stays behind the two-step reveal in host.js. -->
+       open the console mid-activity (e.g. at a preview gate). Pairing is
+       copy-link only: the PIN rides inside the copied URL and never shows
+       on this (projected) screen. -->
   <div id="teacher-view-chip" class="teacher-view-chip" hidden>
-    <button id="teacher-view-toggle" type="button" title="Open the private teacher console on a second device, your laptop or a spare Chromebook, to moderate entries, approve previews, and control pacing away from the projector">💻 Teacher controls on a second device</button>
-    <span id="teacher-view-info" class="teacher-view-info" hidden></span>
+    <button id="teacher-link-copy" type="button" title="Copy a private link to the teacher console, where you can moderate entries, approve previews, and control pacing away from the projector. Nothing shows on screen: paste the link into another window (if you're extending your display) or send it to a second device.">🔗 Copy teacher link</button>
     <span id="teacher-device-notice" class="teacher-view-info" hidden></span>
   </div>
 

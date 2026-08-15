@@ -2578,8 +2578,8 @@ io.on('connection', (socket) => {
       room.gameSource = config._source || 'built-in';
       // Robot-playtest rooms run with the mock AI service (see phase-context)
       room.simulated = selectedGame.startsWith('_sim-tmp-');
-      // Teacher console PIN — shown click-to-reveal on the host screen,
-      // typed once into /teacher on the teacher's phone/second device.
+      // Teacher console PIN — carried inside the "Copy teacher link" deep
+      // link on the host screen; it never displays on the projector.
       room.teacherPin = generateTeacherPin();
       room.teacherSocketIds = new Set();
       // Host rebind credential: lets the host screen recover from an F5 or
@@ -2597,8 +2597,8 @@ io.on('connection', (socket) => {
   });
 
   // Teacher console joins: private second-device view. Proof of teacher-ness
-  // is the room PIN (click-to-reveal on the host screen) or, when the site
-  // password is set, the basic-auth header the page was loaded with.
+  // is the room PIN (delivered via the host screen's copy-link deep link) or,
+  // when the site password is set, the basic-auth header the page was loaded with.
   socket.on(EVENTS.JOIN_TEACHER, (payload = {}) => {
     if (!checkEventPayload(socket, 'join-teacher', payload)) return;
     const { code, pin } = payload;
@@ -2629,7 +2629,7 @@ io.on('connection', (socket) => {
       socket.emit(EVENTS.TEACHER_JOIN_ERROR, {
         message: fail.locked
           ? 'Too many wrong PINs — the teacher view is locked for a few minutes.'
-          : 'Wrong PIN. Tap "💻 Teacher controls on a second device" on the host screen to see it.'
+          : 'Wrong PIN. Use "🔗 Copy teacher link" on the host screen to get a working link.'
       });
       return;
     }
