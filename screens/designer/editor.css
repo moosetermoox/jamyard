@@ -3137,6 +3137,13 @@ body {
 }
 
 #builder-rail input:focus, #builder-rail textarea:focus, #builder-rail select:focus,
+.builder-also-show-hint {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-top: 3px;
+}
+
 #builder-rail-body input:focus, #builder-rail-body textarea:focus, #builder-rail-body select:focus {
   border: none;
   outline: none;

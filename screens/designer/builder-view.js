@@ -153,7 +153,13 @@
 
   function primaryTextOf(phase) {
     var t = phase.prompt || phase.message || phase.template || phase.instruction || '';
-    t = String(t).replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim();
+    // Tokens read as what they show ("[bar chart from 'Question 1...']")
+    // instead of a mystery "…" — humanizeRef is the editor's own labeler.
+    t = String(t).replace(/\{\{([^}]*)\}\}/g, function (whole, ref) {
+      if (typeof humanizeRef !== 'function') return '…';
+      var friendly = humanizeRef(ref.trim());
+      return friendly === ref.trim() ? '…' : '[' + friendly + ']';
+    }).replace(/\s+/g, ' ').trim();
     return t.length > 90 ? t.slice(0, 87) + '…' : t;
   }
 
@@ -711,26 +717,84 @@
     var spec = PRIMARY_FIELDS[phase.type];
     if (!spec) return;
     var field = spec[0];
-    var group = el('div', 'form-group');
-    group.appendChild(el('label', null, spec[1]));
-    var box = document.createElement('textarea');
-    box.rows = 3;
-    box.value = phase[field] || '';
     var stepId = selectedId;
-    box.addEventListener('input', function () {
+
+    function updateCard() {
       var live = phases();
       if (!live || !live[stepId]) return;
-      live[stepId][field] = box.value;
-      markDirty();
       var card = canvasEl.querySelector('.builder-step[data-id="' + stepId + '"] p');
       if (card) {
         var label = TYPE_LABELS[live[stepId].type] || live[stepId].type;
         var text = primaryTextOf(live[stepId]);
         card.textContent = text ? label + ': “' + text + '”' : label + '.';
       }
+    }
+
+    // Announce and reveal messages split into words + an "Also show"
+    // dropdown for the chart/list (raw {{tokens}} overwhelmed teachers).
+    // Unusual hand-authored shapes (parse null) keep the raw box below.
+    var structured = null;
+    if ((phase.type === 'announce' || phase.type === 'reveal') &&
+        typeof parseMessageDisplay === 'function') {
+      structured = parseMessageDisplay(phase[field]);
+    }
+
+    var group = el('div', 'form-group');
+    group.appendChild(el('label', null, spec[1]));
+    var box = document.createElement('textarea');
+    box.rows = 3;
+    box.value = structured ? structured.words : (phase[field] || '');
+    box.addEventListener('input', function () {
+      var live = phases();
+      if (!live || !live[stepId]) return;
+      if (structured) {
+        structured.words = box.value;
+        live[stepId][field] = serializeMessageDisplay(structured.words, structured.ref, structured.sep);
+      } else {
+        live[stepId][field] = box.value;
+      }
+      markDirty();
+      updateCard();
     });
     group.appendChild(box);
     railPrimary.appendChild(group);
+
+    if (structured) {
+      var dGroup = el('div', 'form-group');
+      dGroup.appendChild(el('label', null, 'Also show'));
+      var sel = document.createElement('select');
+      var opts = [{ value: '', label: '(nothing extra)' }]
+        .concat(typeof buildDisplayOptions === 'function' ? buildDisplayOptions(stepId) : []);
+      var known = false;
+      for (var oi = 0; oi < opts.length; oi++) {
+        if (opts[oi].value === structured.ref) known = true;
+      }
+      if (structured.ref && !known) {
+        opts.push({
+          value: structured.ref,
+          label: typeof humanizeRef === 'function' ? humanizeRef(structured.ref) : structured.ref
+        });
+      }
+      opts.forEach(function (o) {
+        var optEl = document.createElement('option');
+        optEl.value = o.value;
+        optEl.textContent = o.label;
+        sel.appendChild(optEl);
+      });
+      sel.value = structured.ref || '';
+      sel.addEventListener('change', function () {
+        var live = phases();
+        if (!live || !live[stepId]) return;
+        structured.ref = sel.value || null;
+        live[stepId][field] = serializeMessageDisplay(structured.words, structured.ref, structured.sep);
+        markDirty();
+        updateCard();
+      });
+      dGroup.appendChild(sel);
+      dGroup.appendChild(el('small', 'builder-also-show-hint',
+        'Information from an earlier step, shown under the message.'));
+      railPrimary.appendChild(dGroup);
+    }
   }
 
   // Pull the real step form (filled by renderPhaseConfig) into the rail;
@@ -753,7 +817,19 @@
           : 'New step, fill in its settings below to make it playable.');
         railBodyEl.insertBefore(nudge, railPrimary);
       }
-      if (form) railBodyEl.appendChild(form);
+      if (form) {
+        railBodyEl.appendChild(form);
+        // The rail's own primary field edits reveal's template — drop the
+        // form's copy (announce/collect primaries are already stripped by
+        // the editor, reveal's template is not: its canvas primary is the
+        // content ref). Two boxes editing one value = stale-write bug.
+        var liveSel = phases();
+        if (liveSel && liveSel[selectedId] && liveSel[selectedId].type === 'reveal') {
+          var dupTemplate = form.querySelector('#phase-template');
+          var dupGroup = dupTemplate && dupTemplate.closest ? dupTemplate.closest('.form-group') : null;
+          if (dupGroup && dupGroup.parentNode) dupGroup.parentNode.removeChild(dupGroup);
+        }
+      }
       if (preview) railBodyEl.appendChild(preview);
     } else {
       if (settingsPanel) settingsPanel.classList.remove('builder-hidden');

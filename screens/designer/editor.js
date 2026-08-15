@@ -3708,11 +3708,20 @@ function renderPhaseConfig(phaseId) {
   }
 
   // --- Flow: Next phase (for all types except end and preview) ---
+  // The canvas order IS the next-chain, so a step that flows into the one
+  // right below it gets NO "Goes to" row at all — the arrow on the canvas
+  // already says it, and there is no answer-based branching on ordinary
+  // steps (vote/preview branch fields are their own settings). The row
+  // only appears when the wiring is unusual and worth seeing: a loop back
+  // to an earlier step or an orphaned step; a missing/dangling next shows
+  // the full dropdown so it can be fixed.
   if (type !== 'end' && type !== 'preview') {
-    // When next is already set, show a compact read-only display with a "Change" chip.
-    // This hides a dropdown teachers rarely need to touch (canvas order = next = correct 90% of the time).
     if (phase.next && gameConfig.phases[phase.next]) {
-      addCompactNextRef(phaseId);
+      var flowOrder = buildPhaseOrder();
+      var flowIdx = flowOrder.indexOf(phaseId);
+      if (flowIdx === -1 || flowOrder[flowIdx + 1] !== phase.next) {
+        addCompactNextRef(phaseId);
+      }
     } else {
       addPhaseRefSelect('Next step', 'Which step comes after this one', 'phase-next', phaseId, phase.next, function (value) {
         phase.next = value === '(none)' ? undefined : value;
@@ -4872,6 +4881,71 @@ function addExampleChips(textarea, examples) {
   }
 
   textarea.parentNode.appendChild(container);
+}
+
+// ---- "Also show" display split (announce message / reveal template) ----
+// A message is words plus at most ONE block display (a chart or list) from
+// an earlier step. These helpers split and rejoin the stored string so the
+// Builder can offer the display as a dropdown instead of a raw {{token}}.
+// The token grammar and configs are unchanged — this is a UI-level view.
+
+var BLOCK_DISPLAY_SUFFIXES = {
+  barChart: 1, pieChart: 1, chart: 1, list: 1,
+  rankedList: 1, resultsList: 1, result: 1
+};
+
+function isBlockDisplayRef(ref) {
+  var parts = String(ref || '').split('.');
+  return BLOCK_DISPLAY_SUFFIXES[parts[parts.length - 1]] === 1;
+}
+
+// {words, ref, sep} when the text fits the simple shape (no block tokens,
+// or exactly one at the very end); null otherwise (caller keeps the raw
+// textarea). Inline tokens like {{x.winner}} count as words and stay put.
+function parseMessageDisplay(text) {
+  var s = String(text == null ? '' : text);
+  var found = [];
+  var re = /\{\{([^}]+)\}\}/g;
+  var m;
+  while ((m = re.exec(s)) !== null) {
+    if (isBlockDisplayRef(m[1].trim())) {
+      found.push({ ref: m[1].trim(), start: m.index, end: re.lastIndex });
+    }
+  }
+  if (found.length === 0) return { words: s, ref: null, sep: '\n\n' };
+  if (found.length > 1) return null;
+  var t = found[0];
+  if (s.slice(t.end).trim() !== '') return null;
+  var before = s.slice(0, t.start);
+  var sepMatch = before.match(/\s+$/);
+  return {
+    words: before.replace(/\s+$/, ''),
+    ref: t.ref,
+    sep: sepMatch ? sepMatch[0] : '\n\n'
+  };
+}
+
+function serializeMessageDisplay(words, ref, sep) {
+  var w = String(words || '').replace(/\s+$/, '');
+  if (!ref) return w;
+  if (!w) return '{{' + ref + '}}';
+  return w + (sep || '\n\n') + '{{' + ref + '}}';
+}
+
+// Options for the "Also show" dropdown: the chart/list subset of the
+// insert-variable catalog, with the same step-unique labels.
+function buildDisplayOptions(currentPhaseId) {
+  var vars = buildTemplateVariables(currentPhaseId);
+  var opts = [];
+  for (var i = 0; i < vars.length; i++) {
+    if (vars[i].hidden) continue;
+    var mm = /^\{\{([^}]+)\}\}$/.exec(vars[i].variable);
+    if (!mm || !isBlockDisplayRef(mm[1])) continue;
+    // Chip labels read "Bar chart of picks. step 3" — dropdowns read
+    // better as "Bar chart of picks (step 3)".
+    opts.push({ value: mm[1], label: vars[i].label.replace(/\. (step \d+)$/, ' ($1)') });
+  }
+  return opts;
 }
 
 function addAskAiStepButton(phaseId) {
