@@ -36,4 +36,36 @@ describe('continueLabelForPhase', () => {
     expect(continueLabelForPhase(null, phases)).toBe('Continue');
     expect(continueLabelForPhase(phases.intro, null)).toBe('Continue');
   });
+
+  // Quiz flows: the button into the FIRST multiple-choice question starts
+  // the quiz; every later one is just the next question.
+  describe('multiple-choice question labels', () => {
+    const quiz = {
+      lobby: { type: 'lobby', next: 'intro' },
+      intro: { type: 'announce', next: 'q1' },
+      q1: { type: 'collect-choice', next: 'r1' },
+      r1: { type: 'announce', next: 'q2' },
+      q2: { type: 'collect-choice', next: 'scores' },
+      scores: { type: 'leaderboard', next: 'end' },
+      end: { type: 'end' }
+    };
+
+    it('says Start the first question before any question has run', () => {
+      expect(continueLabelForPhase(quiz.intro, quiz)).toBe('Start the first question');
+    });
+
+    it('says Next question once a question is behind us', () => {
+      expect(continueLabelForPhase(quiz.r1, quiz)).toBe('Next question');
+    });
+
+    it('counts a question that leads straight into another question', () => {
+      const backToBack = {
+        lobby: { type: 'lobby', next: 'q1' },
+        q1: { type: 'collect-choice', next: 'q2' },
+        q2: { type: 'collect-choice', next: 'end' },
+        end: { type: 'end' }
+      };
+      expect(continueLabelForPhase(backToBack.q1, backToBack)).toBe('Next question');
+    });
+  });
 });

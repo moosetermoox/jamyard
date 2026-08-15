@@ -885,16 +885,7 @@ socket.on('show-results', ({ content, aiResult, responses, image, video, continu
   if (J) J.sound('reveal');
   // The button says what happens next ("Start the voting"), not "Continue".
   continueBtn.textContent = continueLabel || 'Continue';
-  // Charts keep their monospace block; everything else gets the
-  // headline+body projector treatment (docs/PROJECTOR-STYLE.md).
-  var revealText = content || aiResult;
-  if (/[█░]/.test(String(revealText || ''))) {
-    aiResultDisplay.textContent = revealText;
-    aiResultDisplay.classList.add('chart');
-  } else {
-    aiResultDisplay.classList.remove('chart');
-    renderProjectorMessage(aiResultDisplay, revealText);
-  }
+  renderProjectorMessage(aiResultDisplay, content || aiResult);
   applyTemplate(revealSection, hostTemplate);
   applyImage(revealImage, image, hostShow);
   applyVideo(revealVideo, video, hostShow);
@@ -921,6 +912,24 @@ socket.on('show-results', ({ content, aiResult, responses, image, video, continu
 function renderProjectorMessage(el, message) {
   el.textContent = '';
   var text = String(message == null ? '' : message);
+  // Embedded {{x.barChart}} text renders as a real bar chart (one fixed
+  // layout: label | bar | count) via shared/chart-render.js; the text
+  // around it keeps the normal headline+body treatment.
+  if (window.ChartRender && ChartRender.containsChart(text)) {
+    ChartRender.split(text).forEach(function (seg, i) {
+      if (seg.type === 'chart') {
+        el.appendChild(ChartRender.buildChart(seg.rows));
+      } else if (seg.text.trim()) {
+        if (i === 0) appendProjectorParts(el, seg.text.trim());
+        else el.appendChild(buildMessageBody(seg.text.trim(), 'msg-body'));
+      }
+    });
+    return;
+  }
+  appendProjectorParts(el, text);
+}
+
+function appendProjectorParts(el, text) {
   var parts = text.split(/\n\s*\n/);
   var first = (parts[0] || '').trim();
   if (parts.length > 1 && first.length > 0 && first.length <= 60 && first.indexOf('\n') === -1) {

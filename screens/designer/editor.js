@@ -427,10 +427,14 @@ async function init() {
 
   // Arrived from the library? Send "back" there, not to the designer grid —
   // the two pages look alike and landing on the wrong one is disorienting.
+  // ?highlight= flashes this activity's card so the teacher sees where it
+  // lives (Preview and Host are right on it).
   if (params.get('from') === 'library') {
     var backLink = document.querySelector('.back-link');
     if (backLink) {
-      backLink.href = '/library';
+      backLink.href = gameId
+        ? '/library?highlight=' + encodeURIComponent(gameId)
+        : '/library';
       backLink.textContent = '← Back to Library';
     }
   }
@@ -2292,15 +2296,28 @@ function renderPhaseConfig(phaseId) {
     // --- Speed-bonus quiz scoring (Kahoot-style) ---
     var hasCorrect = phase.correctAnswer !== undefined && phase.correctAnswer !== '';
     var scoreHandle = beginCollapsible('ai', 'Score this question (quiz mode)', phaseId + ':scoring', hasCorrect);
-    addFieldWithHelp(
-      'Correct answer',
-      'Easiest: tap the ○ next to a choice above, it fills this for you. Type here only for a {{ref}} answer (e.g. {{trivia.result.truth}}). Empty = a non-graded poll.',
-      'text', 'phase-correctAnswer', phase.correctAnswer || '', false,
-      function (value) {
-        if (value) phase.correctAnswer = value;
-        else delete phase.correctAnswer;
-      }
-    );
+    // The ✓ toggle on the choice list owns the correct answer, so no
+    // duplicate text field here. The field only appears for the cases the
+    // toggle can't reach: choices pulled from a ref (no rows to mark) or a
+    // templated {{ref}} answer.
+    if (choicesIsRef || (typeof phase.correctAnswer === 'string' && phase.correctAnswer.indexOf('{{') !== -1)) {
+      addFieldWithHelp(
+        'Correct answer',
+        'A {{ref}} answer resolved at game time (e.g. {{trivia.result.truth}}). Empty = a non-graded poll.',
+        'text', 'phase-correctAnswer', phase.correctAnswer || '', false,
+        function (value) {
+          if (value) phase.correctAnswer = value;
+          else delete phase.correctAnswer;
+        }
+      );
+    } else if (!hasCorrect) {
+      var markHint = document.createElement('p');
+      markHint.className = 'form-hint';
+      markHint.style.fontSize = '13px';
+      markHint.style.color = '#666';
+      markHint.textContent = 'Tap the ○ next to a choice above to mark the correct answer. No mark = a non-graded poll.';
+      phaseConfigForm.appendChild(markHint);
+    }
     addFieldWithHelp(
       'Max points',
       'Points awarded for an instant correct answer. Default 1000.',
@@ -2601,19 +2618,35 @@ function renderPhaseConfig(phaseId) {
   }
 
   if (type === 'team-split') {
+    // "Balanced by score" needs an earlier scoring step to balance
+    // against; without one it silently behaves like random, so the
+    // option is hidden (kept only when a loaded config already uses it,
+    // a select can't display a value it doesn't have).
+    var scoreRefs = scoredRefsBefore(phaseId);
+    var methodOptions = [{ value: 'random', label: 'Random shuffle' }];
+    if (scoreRefs.length > 0 || phase.method === 'balanced') {
+      methodOptions.push({ value: 'balanced', label: 'Balanced by score' });
+    }
+    methodOptions.push(
+      { value: 'teacher', label: 'You arrange them on screen' },
+      { value: 'choice', label: 'Students pick their own' }
+    );
     addSelectWithHelp('How teams are made', 'random/balanced assign instantly. "You arrange them" shows the roster on your screen. "Students pick" lets them tap the group they want (open spots only).', 'phase-method',
-      [
-        { value: 'random', label: 'Random shuffle' },
-        { value: 'balanced', label: 'Balanced by score' },
-        { value: 'teacher', label: 'You arrange them on screen' },
-        { value: 'choice', label: 'Students pick their own' }
-      ],
+      methodOptions,
       phase.method || 'random', function (value) {
         phase.method = value;
         renderCanvas();
         renderPhaseConfig(phaseId);
       }
     );
+    if (phase.method === 'balanced') {
+      var scoreRefOptions = buildDataRefOptions(phaseId).filter(function (o) {
+        return scoreRefs.indexOf(o.value) !== -1;
+      });
+      addDataRefDropdown('Balance scores from', 'Score data to balance teams with. Top scorers get spread across the teams.', 'phase-balanceFrom', phaseId, phase.balanceFrom, function (value) {
+        phase.balanceFrom = value || undefined;
+      }, scoreRefOptions);
+    }
 
     // Sizing: a number of teams OR a group size (exactly one)
     var sizedByGroup = phase.groupSize != null && phase.teamCount == null;
@@ -2664,11 +2697,6 @@ function renderPhaseConfig(phaseId) {
         phase.capacity || 'even', function (value) {
           if (value === 'open') { phase.capacity = 'open'; } else { delete phase.capacity; }
         });
-    }
-    if (phase.method === 'balanced') {
-      addDataRefDropdown('Balance scores from', 'Score data to balance teams with', 'phase-balanceFrom', phaseId, phase.balanceFrom, function (value) {
-        phase.balanceFrom = value || undefined;
-      });
     }
     addSelectWithHelp('Who gets assigned', 'Which players are put into teams', 'phase-from',
       [
@@ -4772,9 +4800,12 @@ function scoredRefsBefore(phaseId) {
   return refs;
 }
 
-// Data reference dropdown
-function addDataRefDropdown(label, helpText, id, currentPhaseId, value, onChange) {
-  var options = buildDataRefOptions(currentPhaseId);
+// Data reference dropdown. optionsOverride narrows the list to refs that
+// fit the field (e.g. only score-producing steps for balanceFrom).
+function addDataRefDropdown(label, helpText, id, currentPhaseId, value, onChange, optionsOverride) {
+  var options = optionsOverride
+    ? [{ value: '', label: '(none)' }].concat(optionsOverride)
+    : buildDataRefOptions(currentPhaseId);
 
   // If current value isn't in the list, add it as a custom option
   var found = false;

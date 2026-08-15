@@ -2492,6 +2492,12 @@ textarea.sar-input {
 .builder-step.selected::before { top: -3px; }
 .builder-step.selected::after { bottom: -14px; }
 
+/* Drag-to-reorder: the dragged card ghosts; a vermillion slab above or
+   below the hovered card marks where it will land. */
+.builder-step.dragging { opacity: 0.45; }
+.builder-step.drop-before { box-shadow: 0 -8px 0 #D9481C; }
+.builder-step.drop-after { box-shadow: 0 8px 0 #D9481C; }
+
 .builder-step.ai { background: #F3E5F5; }
 
 .builder-step-num {

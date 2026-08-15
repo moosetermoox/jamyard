@@ -437,10 +437,9 @@ function metaBadge(text) {
 // Clone a built-in into this teacher's own editable copy, then open the
 // editor on it. The copy is device-scoped like any user creation.
 // Save a finished copy config as this device's activity and open the editor.
-// Save the teacher's copy, then land back on the library with the new
-// card highlighted: its Preview and Host buttons are the natural next
-// steps (customize, preview it, host it; next time just Host). The
-// editor stays one click away via the card's Edit button.
+// Save the teacher's copy, then open it in the editor (Simple view):
+// "Make my copy" is an editing intent, so land where the editing
+// happens. The library card (Preview / Host) is one click back.
 function saveCopyAndReturn(config) {
   delete config.featured; // the copy is yours, not the public front door's
   var base = (config.name || 'my-activity').toLowerCase()
@@ -461,7 +460,7 @@ function saveCopyAndReturn(config) {
     }
     if (window.MyGames) MyGames.add(copyId);
     Recents.add(copyId);
-    window.location.href = '/library?highlight=' + encodeURIComponent(copyId);
+    window.location.href = '/designer/edit?game=' + encodeURIComponent(copyId) + '&from=library';
   });
 }
 
@@ -1416,10 +1415,10 @@ function handleCustomizeDeepLink() {
   customizeCopy(game, btn);
 }
 
-// ?highlight= (where saveCopyAndReturn lands): scroll the fresh copy's
-// card into view and flash it so the teacher sees where their activity
-// lives — Preview and Host are right on it. Param stripped so a refresh
-// lands on the plain library.
+// ?highlight= (where the editor's Back-to-Library link lands): scroll the
+// activity's card into view and flash it so the teacher sees where their
+// activity lives — Preview and Host are right on it. Param stripped so a
+// refresh lands on the plain library.
 function handleHighlightParam() {
   var wantedId;
   try {

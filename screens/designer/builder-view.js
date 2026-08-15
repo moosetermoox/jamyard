@@ -41,6 +41,7 @@
   var browseAllGap = null;    // gap whose popover shows the FULL step list
   var finishDismissed = false;
   var pendingSetupId = null;  // skeleton step awaiting its settings
+  var dragId = null;          // step card currently being dragged
 
   // Original home of the relocated settings sidebar. The step form
   // (#phase-config-form) is already a portable node — editor.js moves it
@@ -172,6 +173,85 @@
     }
     return null;
   }
+
+  // ---- Drag to reorder ----
+  // A drop is executed as repeated one-position moveStep hops, so every
+  // hop goes through the same certified pointer surgery as the ↑/↓
+  // buttons (which stay — they're the keyboard and touch path). If a hop
+  // is refused mid-way (branch-entered step in the path), the step simply
+  // stops there instead of tearing the graph.
+
+  function moveStepAfter(p, id, afterId) {
+    if (!afterId || afterId === id) return false;
+    var moved = false;
+    for (var guard = 0; guard < 100; guard++) {
+      var order = S.orderedPhaseIds(p);
+      var cur = order.indexOf(id);
+      var want = order.indexOf(afterId);
+      if (cur === -1 || want === -1 || cur === want + 1) break;
+      if (!S.moveStep(p, id, cur < want ? 'down' : 'up')) break;
+      moved = true;
+    }
+    return moved;
+  }
+
+  // Which card the pointer is over and which half; lobby only accepts
+  // "after", end only "before" (the positions outside them don't exist).
+  function dropTargetFor(e) {
+    if (!dragId) return null;
+    var card = e.target && e.target.closest ? e.target.closest('.builder-step') : null;
+    if (!card) return null;
+    var overId = card.getAttribute('data-id');
+    var p = phases();
+    if (!overId || overId === dragId || !p || !p[overId]) return null;
+    var rect = card.getBoundingClientRect();
+    var before = (e.clientY - rect.top) < rect.height / 2;
+    if (p[overId].type === 'lobby') before = false;
+    if (p[overId].type === 'end') before = true;
+    return { card: card, overId: overId, before: before };
+  }
+
+  function clearDropMarkers() {
+    var marked = canvasEl.querySelectorAll('.drop-before, .drop-after');
+    for (var i = 0; i < marked.length; i++) {
+      marked[i].classList.remove('drop-before');
+      marked[i].classList.remove('drop-after');
+    }
+  }
+
+  canvasEl.addEventListener('dragover', function (e) {
+    clearDropMarkers();
+    var t = dropTargetFor(e);
+    if (!t) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    t.card.classList.add(t.before ? 'drop-before' : 'drop-after');
+  });
+
+  canvasEl.addEventListener('dragleave', clearDropMarkers);
+
+  canvasEl.addEventListener('drop', function (e) {
+    var t = dropTargetFor(e);
+    clearDropMarkers();
+    if (!t) return;
+    e.preventDefault();
+    var p = phases();
+    var order = S.orderedPhaseIds(p);
+    var afterId;
+    if (t.before) {
+      var j = order.indexOf(t.overId) - 1;
+      while (j >= 0 && order[j] === dragId) j--;
+      afterId = j >= 0 ? order[j] : null;
+    } else {
+      afterId = t.overId;
+    }
+    var id = dragId;
+    dragId = null;
+    if (moveStepAfter(p, id, afterId)) {
+      markDirty();
+      rerenderAll();
+    }
+  });
 
   // ---- Inserting steps ----
 
@@ -511,6 +591,19 @@
       // suggestions module, deletePhase is the editor's own (re-links
       // next/approveNext/nextByWinner and refuses lobby/end).
       if (phase.type !== 'lobby' && phase.type !== 'end') {
+        card.draggable = true;
+        card.title = 'Drag to reorder';
+        card.addEventListener('dragstart', function (e) {
+          dragId = id;
+          card.classList.add('dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          try { e.dataTransfer.setData('text/plain', id); } catch (err) { /* IE quirk, harmless */ }
+        });
+        card.addEventListener('dragend', function () {
+          dragId = null;
+          card.classList.remove('dragging');
+          clearDropMarkers();
+        });
         var tools = el('div', 'builder-step-tools');
         var upBtn = el('button', 'builder-step-tool', '↑');
         upBtn.type = 'button';

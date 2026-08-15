@@ -605,10 +605,44 @@ button:disabled {
   text-align: left;
 }
 
-.reveal-content.chart {
-  font-family: "Courier New", Consolas, monospace;
-  font-size: 1.5rem;
-  line-height: 1.5;
+/* Bar chart from {{x.barChart}} (shared/chart-render.js): a 3-column grid
+   so every row lays out identically — label | bar | count (%). Leading
+   row(s) get the accent fill. white-space reset: the message containers
+   use pre-wrap, which would double-space the grid. */
+.msg-chart {
+  display: grid;
+  grid-template-columns: fit-content(38%) 1fr auto;
+  gap: 12px 16px;
+  align-items: center;
+  width: 100%;
+  max-width: 900px;
+  margin: 24px auto 0;
+  text-align: left;
+  white-space: normal;
+  font-size: 1.6rem;
+}
+.msg-chart-label {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  line-height: 1.2;
+}
+.msg-chart-track {
+  background: rgba(34, 30, 28, 0.12);
+  border-radius: 5px;
+  height: 32px;
+}
+.msg-chart-fill {
+  height: 100%;
+  border-radius: 5px;
+  background: var(--theme-text, #221E1C);
+}
+/* Leading bar pops. --theme-success, not accent: paste-up's accent slot
+   is ink; its loud vermillion lives in success. */
+.msg-chart-fill.top { background: var(--theme-success, #D9481C); }
+.msg-chart-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* Continue button */

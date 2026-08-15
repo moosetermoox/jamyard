@@ -11,7 +11,7 @@
 const LABELS = {
   announce: 'Show the message',
   collect: 'Send the question to students',
-  'collect-choice': 'Start the question',
+  'collect-choice': 'Next question',
   vote: 'Start the voting',
   reveal: 'Reveal the results',
   'reveal-one': 'Start revealing',
@@ -69,6 +69,26 @@ export function closeLabelFor(phaseType) {
 }
 
 /**
+ * Whether a multiple-choice question sits at or before `phase` on the main
+ * next-chain. Decides "Start the first question" vs "Next question". The
+ * current phase itself counts (a question leading into another question is
+ * never the first). A phase the chain never reaches reports false, which
+ * errs toward the friendlier "Start the first question".
+ */
+function questionRanBefore(phase, phases) {
+  const ids = Object.keys(phases);
+  const seen = new Set();
+  let cur = phases.lobby ? 'lobby' : ids[0];
+  while (cur && phases[cur] && !seen.has(cur)) {
+    if (phases[cur].type === 'collect-choice') return true;
+    if (phases[cur] === phase) return false;
+    seen.add(cur);
+    cur = phases[cur].next;
+  }
+  return false;
+}
+
+/**
  * Convenience: resolve the label for a phase's `next` reference from a
  * config's phase map (virtual foreach sub-phases are injected into the same
  * map at runtime, so this covers them too).
@@ -78,5 +98,8 @@ export function closeLabelFor(phaseType) {
 export function continueLabelForPhase(phase, phases) {
   const nextId = phase && phase.next;
   const next = nextId && phases ? phases[nextId] : null;
+  if (next && next.type === 'collect-choice' && !questionRanBefore(phase, phases)) {
+    return 'Start the first question';
+  }
   return continueLabelFor(next && next.type);
 }

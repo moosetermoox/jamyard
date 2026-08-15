@@ -980,14 +980,7 @@ socket.on('processing-started', ({ task, playerTemplate, playerShow } = {}) => {
 
 socket.on('show-results', ({ content, aiResult, image, playerTemplate, playerShow }) => {
   showSection(revealSection);
-  var revealText = content || aiResult;
-  if (/[█░]/.test(String(revealText || ''))) {
-    aiResultDisplay.textContent = revealText;
-    aiResultDisplay.classList.add('chart');
-  } else {
-    aiResultDisplay.classList.remove('chart');
-    renderPlayerMessage(aiResultDisplay, revealText);
-  }
+  renderPlayerMessage(aiResultDisplay, content || aiResult);
   applyTemplate(revealSection, playerTemplate);
   applyImage(revealImage, image, playerShow);
   applyShow(playerShow, { content: aiResultDisplay });
@@ -1000,6 +993,24 @@ socket.on('show-results', ({ content, aiResult, image, playerTemplate, playerSho
 function renderPlayerMessage(el, message) {
   el.textContent = '';
   var text = String(message == null ? '' : message);
+  // Embedded {{x.barChart}} text renders as a real bar chart (one fixed
+  // layout: label | bar | count) via shared/chart-render.js; the text
+  // around it keeps the normal headline+body treatment.
+  if (window.ChartRender && ChartRender.containsChart(text)) {
+    ChartRender.split(text).forEach(function (seg, i) {
+      if (seg.type === 'chart') {
+        el.appendChild(ChartRender.buildChart(seg.rows));
+      } else if (seg.text.trim()) {
+        if (i === 0) appendPlayerParts(el, seg.text.trim());
+        else el.appendChild(buildPlayerBody(seg.text.trim()));
+      }
+    });
+    return;
+  }
+  appendPlayerParts(el, text);
+}
+
+function appendPlayerParts(el, text) {
   var parts = text.split(/\n\s*\n/);
   var first = (parts[0] || '').trim();
   if (parts.length > 1 && first.length > 0 && first.length <= 60 && first.indexOf('\n') === -1) {
