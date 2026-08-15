@@ -773,35 +773,10 @@ body {
   color: #FFD9A0;
 }
 
-/* "More ▾" menu — parks Ask AI + Save as Recipe so the header has a clear
-   hierarchy: Save primary, Check for Errors / Prototype Mode secondary. */
-.header-menu {
-  position: relative;
-  display: inline-block;
-}
-
-.header-menu-items {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 6px);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 10px;
-  background: #fff;
-  border: 3px solid #000;
-  border-radius: 12px;
-  box-shadow: 4px 4px 0 #000;
-  z-index: 50;
-  min-width: 180px;
-}
-
-.header-menu-items[hidden] { display: none; }
-
-.header-menu-items .btn {
-  width: 100%;
-  text-align: left;
-}
+/* The "More ▾" menu is gone (2026-08-15): Ask AI sits directly in the
+   header; Technical view and Save as Recipe are parked as hidden buttons.
+   CSS display beats the hidden attribute, so pin them (recurring gotcha). */
+#view-advanced-btn[hidden], #save-as-recipe-btn[hidden] { display: none; }
 
 /* Transient bottom-of-screen confirmation toast */
 .editor-toast {
@@ -1047,49 +1022,9 @@ body {
   cursor: wait;
 }
 
-.btn-ask-ai {
-  background: #6A1B9A;
-  color: white;
-  padding: 8px 18px;
-  border: 3px solid #000;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.btn-ask-ai:hover {
-  background: #8E24AA;
-}
-
-.btn-ask-ai:disabled {
-  background: #CE93D8;
-  cursor: wait;
-}
-
-.btn-save-recipe {
-  background: #FFD600;
-  color: #000;
-  padding: 8px 18px;
-  border: 3px solid #000;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.btn-save-recipe:hover {
-  background: #FFEB3B;
-}
-
-.btn-save-recipe:disabled {
-  background: #FFF59D;
-  cursor: wait;
-}
+/* .btn-ask-ai / .btn-save-recipe (the old purple and yellow pills) died
+   with the More menu (2026-08-15): Ask AI is a plain ghost header button
+   now and Save as Recipe is parked hidden. */
 
 /* ---- Save as Recipe modal (R5) ---- */
 .sar-overlay {
@@ -3092,22 +3027,6 @@ body {
   font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
   font-weight: 400;
 }
-
-/* More-menu dropdown: a pasted sheet with plain scrap items */
-.header-menu-items {
-  background: #FBF7EC;
-  border: none;
-  border-radius: 2px;
-  box-shadow: 4px 5px 0 rgba(34,30,28,0.25);
-}
-
-.header-menu-items .btn {
-  background: #FFFDF6;
-  color: #221E1C;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
-}
-
-.header-menu-items .btn:hover { background: #FFFDF6; }
 
 /* The builder rail: sheet, not yellow */
 #builder-rail {

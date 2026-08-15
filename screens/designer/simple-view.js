@@ -24,6 +24,11 @@
   try {
     currentView = localStorage.getItem('lanyardEditorView') || 'simple';
   } catch (e) { /* storage unavailable */ }
+  // Technical view is retired from the header menu (2026-08-15): a stored
+  // 'advanced' would land the teacher on a surface nothing names anymore.
+  // Normalize to simple; the Builder's own restore flag still wins after
+  // load, and programmatic setEditorView('advanced') keeps working.
+  if (currentView === 'advanced') currentView = 'simple';
 
   // --- View switching ---
 

@@ -521,27 +521,8 @@ async function init() {
     deselectPhase();
   });
 
-  // "More ▾" header menu — parks Ask AI + Save as Recipe so the header
-  // reads Save > Check for Errors / Prototype Mode > everything else.
-  var headerMoreBtn = document.getElementById('header-more-btn');
-  var headerMenuItems = document.getElementById('header-menu-items');
-  function setHeaderMenu(open) {
-    headerMenuItems.hidden = !open;
-    headerMoreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-  }
-  if (headerMoreBtn && headerMenuItems) {
-    headerMoreBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      setHeaderMenu(headerMenuItems.hidden);
-    });
-    document.addEventListener('click', function (e) {
-      if (!headerMenuItems.hidden && !headerMenuItems.contains(e.target)) {
-        setHeaderMenu(false);
-      }
-    });
-    // Choosing an item closes the menu (the item's own handler still runs).
-    headerMenuItems.addEventListener('click', function () { setHeaderMenu(false); });
-  }
+  // The "More ▾" menu is gone (2026-08-15): Ask AI sits directly in the
+  // header; Technical view and Save as Recipe are parked as hidden buttons.
 
   // Ask AI (whole-game revise)
   var askAiBtn = document.getElementById('ask-ai-btn');

@@ -19,13 +19,15 @@
     </div>
     <div class="header-right">
       <span id="save-status" class="save-status save-status-clean">Saved</span>
-      <div class="header-menu">
-        <button id="header-more-btn" class="btn btn-ghost" aria-haspopup="true" aria-expanded="false" title="More actions">More ▾</button>
-        <div id="header-menu-items" class="header-menu-items" hidden>
-          <button id="ask-ai-btn" class="btn btn-ask-ai" title="Describe a change in plain words and the AI edits the activity for you">✨ Ask AI</button>
-          <button id="view-advanced-btn" class="btn btn-secondary" title="The technical step map, every field, raw step ids, branch structure. For debugging and unusual activities.">Technical view</button>
-          <button id="save-as-recipe-btn" class="btn btn-save-recipe" title="Turn this activity into a reusable template with fill-in-the-blank questions">Save as Recipe</button>
-        </div>
+      <button id="ask-ai-btn" class="btn btn-ghost" title="Describe a change in plain words and the AI edits the activity for you">✨ Ask AI</button>
+      <!-- Retired header actions, kept in the DOM but never shown:
+           Technical view is clicked programmatically when entering the
+           Builder (parks simple-view's state) and is the fallback surface
+           if the Builder fails to load; Save as Recipe is parked for now
+           (2026-08-15) with its wiring intact for an easy re-enable. -->
+      <div hidden>
+        <button id="view-advanced-btn" hidden title="The technical step map, every field, raw step ids, branch structure. For debugging and unusual activities.">Technical view</button>
+        <button id="save-as-recipe-btn" hidden title="Turn this activity into a reusable template with fill-in-the-blank questions">Save as Recipe</button>
       </div>
       <button id="review-btn" class="btn btn-ghost" title="AI reviews your activity and robot players test-play it, then report anything broken or confusing">Check for Errors</button>
       <button id="test-game-btn" class="btn btn-ghost" title="Try the activity yourself with pretend players, no class needed">Preview</button>
