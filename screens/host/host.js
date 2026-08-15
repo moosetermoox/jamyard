@@ -929,7 +929,9 @@ function appendProjectorParts(el, text) {
   if (parts.length > 1 && first.length > 0 && first.length <= 60 && first.indexOf('\n') === -1) {
     var head = document.createElement('span');
     head.className = 'msg-headline';
-    head.textContent = first;
+    // AI first lines can arrive as "# HEADING" or "**HEADING**" — the
+    // headline slot is already styled, so markers just get stripped.
+    head.textContent = window.RichText ? RichText.plainLine(first) : first;
     el.appendChild(head);
     el.appendChild(buildMessageBody(parts.slice(1).join('\n\n'), 'msg-body'));
   } else {
@@ -956,11 +958,16 @@ function buildMessageBody(text, className) {
       num.textContent = m[1];
       card.appendChild(num);
       var body = document.createElement('span');
-      body.textContent = m[2];
+      body.textContent = window.RichText ? RichText.plainLine(m[2]) : m[2];
       card.appendChild(body);
       wrap.appendChild(card);
     });
     return wrap;
+  }
+  // AI results arrive markdown-flavored (# headings, ** bold, - bullets);
+  // shared/rich-text.js structures them instead of showing the markers.
+  if (window.RichText && RichText.hasRich(text)) {
+    return RichText.buildBody(text, className);
   }
   var span = document.createElement('span');
   span.className = className;

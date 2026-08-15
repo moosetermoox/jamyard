@@ -1361,6 +1361,53 @@ button[hidden] {
   line-height: 1.5;
 }
 
+/* Markdown-flavored AI text, structured by shared/rich-text.js: subheads,
+   hanging-indent bullets, inline bold — instead of literal ** and # marks */
+.msg-rich {
+  white-space: normal;
+  max-width: 44ch;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.msg-subhead {
+  display: block;
+  text-align: left;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 16px 0 8px;
+}
+.msg-subhead:first-child { margin-top: 0; }
+.msg-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 2px 0 5px;
+}
+.msg-bullet {
+  display: flex;
+  gap: 10px;
+  text-align: left;
+  line-height: 1.4;
+}
+.msg-bullet-dot {
+  flex-shrink: 0;
+  width: 0.4em;
+  height: 0.4em;
+  margin-top: 0.5em;
+  background: var(--theme-success, #D9481C);
+  border-radius: 1px;
+}
+.msg-rich-para {
+  display: block;
+  text-align: left;
+  white-space: pre-line;
+  margin: 5px 0;
+}
+.msg-rich strong { font-weight: 900; }
+
 .msg-list { display: flex; flex-direction: column; gap: 8px; max-width: 44ch; margin: 0 auto; }
 .msg-card {
   display: flex; align-items: baseline; gap: 8px; text-align: left;

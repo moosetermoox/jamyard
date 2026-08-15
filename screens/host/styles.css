@@ -1462,6 +1462,53 @@ body.in-activity h1 {
    the empty phase image painted as a stray dot on every announce */
 .phase-image[hidden], .phase-video[hidden], .screen-template[hidden] { display: none; }
 
+/* Markdown-flavored AI text, structured by shared/rich-text.js: subheads,
+   hanging-indent bullets, inline bold — instead of literal ** and # marks */
+.msg-rich {
+  white-space: normal;
+  max-width: 44ch;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.msg-subhead {
+  display: block;
+  text-align: left;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-size: 0.95em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 20px 0 10px;
+}
+.msg-subhead:first-child { margin-top: 0; }
+.msg-bullets {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 2px 0 6px;
+}
+.msg-bullet {
+  display: flex;
+  gap: 12px;
+  text-align: left;
+  line-height: 1.35;
+}
+.msg-bullet-dot {
+  flex-shrink: 0;
+  width: 0.4em;
+  height: 0.4em;
+  margin-top: 0.48em;
+  background: var(--theme-success, #D9481C);
+  border-radius: 1px;
+}
+.msg-rich-para {
+  display: block;
+  text-align: left;
+  white-space: pre-line;
+  margin: 6px 0;
+}
+.msg-rich strong { font-weight: 900; }
+
 /* Response lists render as cards, not a text blob (PROJECTOR-STYLE rule 4) */
 .msg-list { display: flex; flex-direction: column; gap: 10px; max-width: 48ch; margin: 0 auto; }
 .msg-card {

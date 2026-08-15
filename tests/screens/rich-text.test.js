@@ -1,0 +1,106 @@
+/**
+ * RichText (screens/shared/rich-text.js) — the markdown-flavored-AI-text
+ * parser behind the projector reveal layout. parse() is pure (no DOM);
+ * buildBody() is browser-only and screenshot-verified instead.
+ */
+import { describe, it, expect } from 'vitest';
+import '../../screens/shared/rich-text.js';
+
+const RT = globalThis.RichText;
+
+// The real Haiku output for Both Sides of the Rope that triggered this work.
+const ROPE = [
+  '# HOMEWORK TUG-OF-WAR ROPE',
+  '',
+  '**TEAM YES (Optional Homework)**',
+  '- Students already spend 7 hours in school and need rest',
+  '- Homework stress hurts sleep and mental health',
+  '',
+  '**TEAM NO (Keep Homework Required)**',
+  '- Practice at home makes new skills stick',
+  '- Some subjects like math need repetition',
+  '',
+  '**The Rope Strains Hardest Here:**',
+  'Does the value outweigh the costs?'
+].join('\n');
+
+describe('hasRich', () => {
+  it('is false for plain prose, even with line breaks and colons', () => {
+    expect(RT.hasRich('Just a message.\n\nWith two paragraphs: nice.')).toBe(false);
+  });
+
+  it('is true for hash headings, bold lines, bullets, and inline bold', () => {
+    expect(RT.hasRich('# Heading')).toBe(true);
+    expect(RT.hasRich('**Section:**')).toBe(true);
+    expect(RT.hasRich('- a bullet')).toBe(true);
+    expect(RT.hasRich('* a star bullet')).toBe(true);
+    expect(RT.hasRich('so **bold** words')).toBe(true);
+  });
+
+  it('does not treat math or stray stars as rich', () => {
+    expect(RT.hasRich('5 * 3 = 15')).toBe(false);
+    expect(RT.hasRich('rated ****')).toBe(false);
+  });
+});
+
+describe('parse', () => {
+  it('structures the real rope output: subheads, bullet groups, closing text', () => {
+    const segs = RT.parse(ROPE);
+    expect(segs.map(s => s.type)).toEqual([
+      'subhead', 'subhead', 'bullets', 'subhead', 'bullets', 'subhead', 'text'
+    ]);
+    expect(segs[0].text).toBe('HOMEWORK TUG-OF-WAR ROPE');
+    expect(segs[1].text).toBe('TEAM YES (Optional Homework)');
+    expect(segs[2].items).toHaveLength(2);
+    expect(segs[2].items[0][0].text).toBe('Students already spend 7 hours in school and need rest');
+    expect(segs[5].text).toBe('The Rope Strains Hardest Here:');
+    expect(segs[6].lines[0][0].text).toBe('Does the value outweigh the costs?');
+  });
+
+  it('merges bullet lines split by blank lines into one group', () => {
+    const segs = RT.parse('- one\n\n- two');
+    expect(segs).toHaveLength(1);
+    expect(segs[0].items).toHaveLength(2);
+  });
+
+  it('treats a short colon line above bullets as a subhead (plain-text AI shape)', () => {
+    const segs = RT.parse('TEAM YES:\n- first\n- second');
+    expect(segs[0]).toEqual({ type: 'subhead', text: 'TEAM YES:' });
+    expect(segs[1].type).toBe('bullets');
+  });
+
+  it('leaves a colon sentence alone when no bullets follow', () => {
+    const segs = RT.parse('Here is the thing:\nplain words after');
+    expect(segs).toHaveLength(1);
+    expect(segs[0].type).toBe('text');
+  });
+
+  it('treats an ALL-CAPS colon line as a subhead even without bullets after', () => {
+    const segs = RT.parse('THE STRONGEST STRAIN:\nA closing thought.');
+    expect(segs[0]).toEqual({ type: 'subhead', text: 'THE STRONGEST STRAIN:' });
+    expect(segs[1].type).toBe('text');
+  });
+
+  it('splits inline bold into runs and leaves unmatched stars literal', () => {
+    const runs = RT.inlineRuns('a **b** c ** d');
+    expect(runs).toEqual([
+      { text: 'a ', bold: false },
+      { text: 'b', bold: true },
+      { text: ' c ** d', bold: false }
+    ]);
+  });
+
+  it('keeps plain multi-line text as one text segment with per-line runs', () => {
+    const segs = RT.parse('line one\nline two');
+    expect(segs).toHaveLength(1);
+    expect(segs[0].lines).toHaveLength(2);
+  });
+});
+
+describe('plainLine', () => {
+  it('strips heading and bold markers for headline slots', () => {
+    expect(RT.plainLine('# THE ROPE')).toBe('THE ROPE');
+    expect(RT.plainLine('**THE ROPE**')).toBe('THE ROPE');
+    expect(RT.plainLine('plain already')).toBe('plain already');
+  });
+});

@@ -38,6 +38,7 @@ const FILES = [
   'screens/shared/dialog.js',
   'screens/shared/activity-prefs.js',
   'screens/shared/teacher-profile.js',
+  'screens/shared/rich-text.js',
   'screens/shared/speech-input.js',
   'screens/library/library.js'
 ];

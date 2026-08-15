@@ -303,7 +303,9 @@ Be creative, playful, and engaging. Keep responses concise.`;
 // must treat student text as data — not instructions.
 // Appended to EVERY outbound system prompt in _callClaude. Students read
 // em dashes as an AI tell, so nothing we generate may use one.
-const STYLE_RULES = `STYLE RULE (always apply): Never use an em dash (—) in any text you write. Use a comma, a colon, or a separate sentence instead.`;
+const STYLE_RULES = `STYLE RULES (always apply):
+- Never use an em dash (—) in any text you write. Use a comma, a colon, or a separate sentence instead.
+- Display text is projected as plain text, never through a markdown renderer. Do not use markdown syntax: no # headings, no ** or * emphasis, no backticks, no tables. For a list, start each line with "- ". For a section header, write a short line ending with a colon.`;
 
 const SAFETY_RULES = `
 
