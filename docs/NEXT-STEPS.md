@@ -28,18 +28,26 @@ featured, recipe #21 Memory Sketch). Remaining, in priority order:
    recipe-match learning to counter-offer the closest recipe instead of
    a flat no-match. Still worth a glance: team leaderboard host/player
    rendering has not been eyeballed in a browser (robot-verified only).
-2. ~~**Speed Quiz editor pass**~~ MOSTLY DONE 2026-08-13 (see
+2. ~~**Speed Quiz editor pass**~~ DONE across 2026-08-13/14 (see
    CHANGELOG): ✓ correct-answer toggle in Simple + sidebar, shuffle
    checkbox, typo-trap validator warning, leaderboard score-wiring (Σ
    sum-every-scored-step button + .scores finally in the dropdown).
    Announce clarity: Simple view's token chips already read well.
    Wrong-facts review gate: shipped for storyboard quizzes (approval
    UI); the standalone Speed Quiz Builder path still deserves one.
-   REMAINING, its own design wave: **per-game setup mode** (host-time
-   params, e.g. question count when hosting Speed Quiz). Deliberately
-   not bolted onto the words-only Customize dialog. Design thought:
-   recipe-born activities could re-open their recipe form at host time;
-   quiz-show's questions array already covers add/remove today.
+   ~~Per-game setup mode~~ SHIPPED 2026-08-14 the owner's way: setup
+   knobs (question count, timer, speed bonus) live in the library
+   Customize dialog, choices persist into the copy, then Preview →
+   Host (next time just Host). Built on recipe provenance stamps +
+   multi-phase $repeat; Speed Quiz re-authored as a quiz-show compile
+   (drift-guarded). SAME DAY: the **quiz Customize panel** (teacher
+   follow-up feedback): setupPanel:"quiz" recipes skip the generic AI
+   interview and get an editable question list + topic box (AI writes
+   questions, teacher fact-checks in the dialog). Follow-up candidates:
+   flag setup params on more recipes (knobs are free once flagged),
+   **fill-in-the-blank question format** (owner deferred it: needs
+   graded typed answers in the engine with forgiving matching), a
+   review gate for the standalone quiz Builder path.
 3. **foreach in the editor is confusing** (teacher's words). Hardest
    editor UX problem; deserves its own session.
 4. **Accessibility audit** (blind + colorblind users) before August:

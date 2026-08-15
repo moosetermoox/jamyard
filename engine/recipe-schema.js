@@ -37,6 +37,7 @@ export const RECIPE_DIAGNOSTIC_CODES = {
   RECIPE_MISSING_FIELD:       'RECIPE_MISSING_FIELD',
   RECIPE_INVALID_FIELD_TYPE:  'RECIPE_INVALID_FIELD_TYPE',
   RECIPE_INVALID_PARAM_SPEC:  'RECIPE_INVALID_PARAM_SPEC',
+  RECIPE_INVALID_SETUP_FLAG:  'RECIPE_INVALID_SETUP_FLAG',
   RECIPE_TEMPLATE_MISSING:    'RECIPE_TEMPLATE_MISSING',
 
   // Parameter validation (when teacher submits values)
@@ -89,6 +90,11 @@ export const RECIPE_PARAM_TYPES = new Set([
  * @property {string} [placeholder]
  * @property {boolean} [required]
  * @property {*} [default]
+ * @property {boolean|{mode:'count', label?:string}} [setup]
+ *   Marks the param as a Customize-dialog knob (library setup mode).
+ *   `true` on integer/boolean/enum shows the param's normal widget;
+ *   `{mode:"count"}` on an array shows a how-many stepper that slices
+ *   the stamped array to the first N at recompile time.
  *
  * Type-specific:
  * @property {number} [min]               integer
@@ -181,6 +187,20 @@ export function validateRecipe(recipe) {
       path: 'family',
       field: 'family',
       message: 'Recipe field "family" must be "connection" (the only family currently defined).',
+      source: 'validator'
+    }));
+  }
+
+  // setupPanel: opt-in dedicated Customize experience for games born from
+  // this recipe ("quiz" = topic box + AI-written questions + editable
+  // question list). Generic setup knobs need no panel.
+  if (recipe.setupPanel != null && recipe.setupPanel !== 'quiz') {
+    diags.push(mkDiagnostic({
+      severity: 'error',
+      code: RECIPE_DIAGNOSTIC_CODES.RECIPE_INVALID_FIELD_TYPE,
+      path: 'setupPanel',
+      field: 'setupPanel',
+      message: 'Recipe field "setupPanel" must be "quiz" (the only panel currently defined).',
       source: 'validator'
     }));
   }
@@ -310,7 +330,49 @@ function validateParamSpec(paramName, spec) {
     }
   }
 
+  if (spec.setup != null) {
+    diags.push(...validateSetupFlag(paramName, spec, where));
+  }
+
   return diags;
+}
+
+// Which scalar types may carry `setup: true` (rendered with their normal
+// widget in the Customize dialog). Arrays use the {mode:"count"} object
+// form instead; free-text types have no sensible knob widget.
+const SETUP_SCALAR_TYPES = new Set(['integer', 'boolean', 'enum']);
+
+function validateSetupFlag(paramName, spec, where) {
+  const bad = (message) => [mkDiagnostic({
+    severity: 'error',
+    code: RECIPE_DIAGNOSTIC_CODES.RECIPE_INVALID_SETUP_FLAG,
+    path: path(where, 'setup'),
+    field: paramName,
+    message,
+    source: 'validator'
+  })];
+
+  if (spec.setup === true) {
+    if (!SETUP_SCALAR_TYPES.has(spec.type)) {
+      return bad(`Parameter "${paramName}": "setup": true is only allowed on ${[...SETUP_SCALAR_TYPES].join('/')} params (arrays use {"mode": "count"}).`);
+    }
+    return [];
+  }
+
+  if (typeof spec.setup === 'object' && !Array.isArray(spec.setup)) {
+    if (spec.type !== 'array') {
+      return bad(`Parameter "${paramName}": a setup object is only allowed on array params.`);
+    }
+    if (spec.setup.mode !== 'count') {
+      return bad(`Parameter "${paramName}": setup.mode must be "count".`);
+    }
+    if (spec.setup.label != null && typeof spec.setup.label !== 'string') {
+      return bad(`Parameter "${paramName}": setup.label must be a string.`);
+    }
+    return [];
+  }
+
+  return bad(`Parameter "${paramName}": "setup" must be true or {"mode": "count"}.`);
 }
 
 // =======================================================================

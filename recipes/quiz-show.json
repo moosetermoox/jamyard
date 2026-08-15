@@ -5,6 +5,7 @@
   "description": "A multi-round quiz you write yourself: students race to answer each question on their devices, faster correct answers earn more points, and a leaderboard crowns the round. Write as many questions as you like, the game builds one round per question.",
   "tagline": "Perfect for test review, vocabulary checks, or a Friday brain-teaser block.",
   "version": "1",
+  "setupPanel": "quiz",
   "parameters": {
     "questions": {
       "type": "array",
@@ -13,6 +14,10 @@
       "maxItems": 20,
       "label": "Questions",
       "helper": "One round per question. Mark the right answer, it must match one of the choices exactly.",
+      "setup": {
+        "mode": "count",
+        "label": "How many questions"
+      },
       "item": {
         "type": "object",
         "fields": {
@@ -58,13 +63,15 @@
       "min": 5,
       "max": 120,
       "label": "Seconds per question",
-      "default": 20
+      "default": 20,
+      "setup": true
     },
     "speedBonus": {
       "type": "boolean",
       "default": true,
       "label": "Speed bonus",
-      "helper": "Faster correct answers earn more points (Kahoot-style). Off = every correct answer is worth the same."
+      "helper": "Faster correct answers earn more points (Kahoot-style). Off = every correct answer is worth the same.",
+      "setup": true
     }
   },
   "template": {
@@ -78,20 +85,25 @@
       "intro": {
         "type": "announce",
         "message": "QUIZ SHOW!\n\nAnswer on your device as fast as you can, correct answers earn points, and speed counts.\n\nGet ready...",
-        "timer": 6,
         "next": "q1"
       },
       "$repeat": {
         "forEach": "questions",
-        "keyPattern": "q${i}",
-        "phase": {
-          "type": "collect-choice",
-          "prompt": "Question ${i} of ${n}:\n\n${item.question}",
-          "choices": "${item.choices}",
-          "correctAnswer": "${item.correct}",
-          "speedBonus": "${speedBonus}",
-          "timer": "${questionTimer}",
-          "next": "${nextKey}"
+        "phases": {
+          "q${i}": {
+            "type": "collect-choice",
+            "prompt": "Question ${i} of ${n}:\n\n${item.question}",
+            "choices": "${item.choices}",
+            "correctAnswer": "${item.correct}",
+            "speedBonus": "${speedBonus}",
+            "timer": "${questionTimer}",
+            "next": "r${i}"
+          },
+          "r${i}": {
+            "type": "announce",
+            "message": "The answer was: ${item.correct}!\n\nClass picks:\n{{q${i}.barChart}}",
+            "next": "${nextKey}"
+          }
         },
         "after": "scoreboard"
       },

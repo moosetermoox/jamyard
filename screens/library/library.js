@@ -258,6 +258,7 @@ function buildCard(game) {
   var card = document.createElement('div');
   card.className = 'game-card library-card' +
     ((game.source || 'built-in') === 'user' ? ' game-card-user' : ' game-card-built-in');
+  card.setAttribute('data-game-id', game.id);
 
   var name = document.createElement('h2');
   name.className = 'game-card-name';
@@ -436,7 +437,11 @@ function metaBadge(text) {
 // Clone a built-in into this teacher's own editable copy, then open the
 // editor on it. The copy is device-scoped like any user creation.
 // Save a finished copy config as this device's activity and open the editor.
-function saveCopyAndEdit(config) {
+// Save the teacher's copy, then land back on the library with the new
+// card highlighted: its Preview and Host buttons are the natural next
+// steps (customize, preview it, host it; next time just Host). The
+// editor stays one click away via the card's Edit button.
+function saveCopyAndReturn(config) {
   delete config.featured; // the copy is yours, not the public front door's
   var base = (config.name || 'my-activity').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40) || 'my-activity';
@@ -456,8 +461,385 @@ function saveCopyAndEdit(config) {
     }
     if (window.MyGames) MyGames.add(copyId);
     Recents.add(copyId);
-    window.location.href = '/designer/edit?game=' + encodeURIComponent(copyId) + '&from=library';
+    window.location.href = '/library?highlight=' + encodeURIComponent(copyId);
   });
+}
+
+// Recompile a recipe-born config with new params. The source config's
+// card metadata (name, description, tags...) always wins; phases, the
+// provenance stamp, and family come from the fresh compile. Rejects with
+// the first compile diagnostic so dialogs can show it as-is.
+function compileWorkingConfig(config, params) {
+  return fetch('/api/recipes/' + encodeURIComponent(config.recipe.id) + '/compile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ params: params })
+  }).then(function (r) {
+    return r.json().catch(function () { return {}; }).then(function (d) {
+      if (!r.ok || !d.config) {
+        var diag = d.diagnostics && d.diagnostics[0] && d.diagnostics[0].message;
+        throw new Error(diag || d.error || 'could not apply your settings');
+      }
+      var working = {};
+      Object.keys(config).forEach(function (k) { working[k] = config[k]; });
+      working.phases = d.config.phases;
+      working.recipe = d.config.recipe;
+      if (d.config.family != null) working.family = d.config.family;
+      return working;
+    });
+  });
+}
+
+// The quiz Customize panel (recipes with setupPanel:"quiz", e.g. Speed
+// Quiz): the questions ARE the content, so instead of the generic
+// words-tailoring interview the teacher gets the actual question list,
+// editable in place, plus a topic box that has the AI write fresh ones.
+// Every question shows its ✓ answer; nothing is saved until the teacher
+// has the list in front of them (the wrong-facts review gate).
+function showQuizCustomizeDialog(game, config, recipeSummary) {
+  var stamp = config.recipe;
+  var questions = JSON.parse(JSON.stringify(stamp.params.questions || []));
+  var paceKnobs = SetupKnobs.knobsFor(recipeSummary, stamp).filter(function (k) {
+    return k.kind !== 'count'; // the visible list IS the count
+  });
+
+  var LABEL_CSS = 'display:block; font-weight:700; margin:10px 0 4px; font-family:"Nunito", Arial, sans-serif;';
+  var INPUT_CSS = 'padding:8px 10px; border:none; background:#FFFDF6; border-radius:2px; box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; font-weight:600; box-sizing:border-box;';
+
+  var overlay = document.createElement('div');
+  overlay.className = 'template-picker-overlay';
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal';
+  modal.style.maxWidth = '640px';
+  modal.style.maxHeight = '88vh';
+  modal.style.overflowY = 'auto';
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = 'Make it yours';
+  modal.appendChild(title);
+
+  var subtitle = document.createElement('p');
+  subtitle.className = 'template-picker-subtitle';
+  subtitle.textContent = 'Your copy of “' + game.name + '”. Keep these questions, adjust them, or have new ones written for your topic.';
+  modal.appendChild(subtitle);
+
+  // --- Topic row: AI writes fresh questions ---
+  var topicLabel = document.createElement('label');
+  topicLabel.style.cssText = LABEL_CSS;
+  topicLabel.textContent = 'Want new questions? Give a topic:';
+  modal.appendChild(topicLabel);
+
+  var topicRow = document.createElement('div');
+  topicRow.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap;';
+  var topicInput = document.createElement('input');
+  topicInput.type = 'text';
+  topicInput.placeholder = 'e.g. fractions, the water cycle, Spanish past tense';
+  topicInput.style.cssText = 'flex:1; min-width:200px; ' + INPUT_CSS;
+  topicRow.appendChild(topicInput);
+
+  var countLabel = document.createElement('label');
+  countLabel.style.cssText = 'font-weight:700; font-family:"Nunito", Arial, sans-serif; white-space:nowrap;';
+  countLabel.textContent = 'How many:';
+  topicRow.appendChild(countLabel);
+  var countInput = document.createElement('input');
+  countInput.type = 'number';
+  countInput.min = 1;
+  countInput.max = 20;
+  countInput.value = Math.max(1, questions.length);
+  countInput.style.cssText = 'width:70px; ' + INPUT_CSS;
+  topicRow.appendChild(countInput);
+
+  var writeBtn = document.createElement('button');
+  writeBtn.type = 'button';
+  writeBtn.className = 'recipe-cancel-btn';
+  writeBtn.textContent = 'Write my questions';
+  topicRow.appendChild(writeBtn);
+  modal.appendChild(topicRow);
+
+  var status = document.createElement('p');
+  status.className = 'template-picker-subtitle';
+  status.style.marginTop = '10px';
+  status.hidden = true;
+  modal.appendChild(status);
+
+  // --- The question list, always visible and editable ---
+  var listHeading = document.createElement('p');
+  listHeading.className = 'template-picker-subtitle';
+  listHeading.style.fontWeight = '800';
+  listHeading.style.marginTop = '14px';
+  modal.appendChild(listHeading);
+
+  var listHint = document.createElement('p');
+  listHint.className = 'template-picker-subtitle';
+  listHint.textContent = 'Check every answer. Tap ○ to mark the right choice, ✕ to drop one.';
+  modal.appendChild(listHint);
+
+  var listWrap = document.createElement('div');
+  listWrap.style.cssText = 'max-height:320px; overflow-y:auto; padding-right:4px; margin-top:6px;';
+  modal.appendChild(listWrap);
+
+  var addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'recipe-cancel-btn';
+  addBtn.textContent = '+ Add a question';
+  addBtn.style.marginTop = '8px';
+  addBtn.addEventListener('click', function () {
+    if (questions.length >= 20) return;
+    questions.push({ question: '', choices: ['', '', '', ''], correct: '' });
+    renderQuestions();
+    var inputs = listWrap.querySelectorAll('input[data-role="question"]');
+    if (inputs.length > 0) inputs[inputs.length - 1].focus();
+  });
+  modal.appendChild(addBtn);
+
+  function renderQuestions() {
+    listWrap.textContent = '';
+    listHeading.textContent = 'The questions (' + questions.length + '):';
+    addBtn.disabled = questions.length >= 20;
+    questions.forEach(function (q, qi) {
+      var card = document.createElement('div');
+      card.style.cssText = 'background:#FFFDF6; box-shadow: 0 0 0 1px rgba(34,30,28,0.16); border-radius:2px; padding:10px; margin-bottom:10px;';
+
+      var head = document.createElement('div');
+      head.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:6px;';
+      var headText = document.createElement('strong');
+      headText.style.cssText = 'font-family:"Nunito", Arial, sans-serif; flex:1;';
+      headText.textContent = 'Question ' + (qi + 1);
+      head.appendChild(headText);
+      var qRemove = document.createElement('button');
+      qRemove.type = 'button';
+      qRemove.textContent = '✕';
+      qRemove.title = 'Drop this question';
+      qRemove.setAttribute('aria-label', 'Drop question ' + (qi + 1));
+      qRemove.style.cssText = 'border:none; background:none; cursor:pointer; font-size:1rem; font-weight:800; color:#221E1C; opacity:0.6;';
+      qRemove.addEventListener('click', function () {
+        questions.splice(qi, 1);
+        renderQuestions();
+      });
+      head.appendChild(qRemove);
+      card.appendChild(head);
+
+      var qInput = document.createElement('input');
+      qInput.type = 'text';
+      qInput.value = q.question || '';
+      qInput.placeholder = 'The question';
+      qInput.maxLength = 300;
+      qInput.setAttribute('data-role', 'question');
+      qInput.style.cssText = 'width:100%; margin-bottom:6px; ' + INPUT_CSS;
+      qInput.addEventListener('input', function () { q.question = qInput.value; });
+      card.appendChild(qInput);
+
+      q.choices.forEach(function (choice, ci) {
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex; align-items:center; gap:6px; margin-bottom:4px;';
+
+        var mark = document.createElement('button');
+        mark.type = 'button';
+        var isCorrect = choice !== '' && q.correct === choice;
+        mark.textContent = isCorrect ? '✓' : '○';
+        mark.title = isCorrect ? 'The correct answer' : 'Mark as the correct answer';
+        mark.setAttribute('aria-label', 'Mark choice ' + (ci + 1) + ' of question ' + (qi + 1) + ' as correct');
+        mark.style.cssText = 'border:none; background:none; cursor:pointer; font-size:1.05rem; font-weight:800; width:26px; color:' + (isCorrect ? '#1B7F3B' : '#221E1C') + '; opacity:' + (isCorrect ? '1' : '0.45') + ';';
+        mark.addEventListener('click', function () {
+          q.correct = q.choices[ci];
+          renderQuestions();
+        });
+        row.appendChild(mark);
+
+        var cInput = document.createElement('input');
+        cInput.type = 'text';
+        cInput.value = choice;
+        cInput.placeholder = 'Choice ' + (ci + 1);
+        cInput.maxLength = 200;
+        cInput.style.cssText = 'flex:1; ' + INPUT_CSS;
+        cInput.addEventListener('input', function () {
+          // Editing the marked choice keeps the ✓ on it (blank rows are
+          // never silently marked: '' matches every other blank).
+          if (q.choices[ci] !== '' && q.correct === q.choices[ci]) q.correct = cInput.value;
+          q.choices[ci] = cInput.value;
+        });
+        row.appendChild(cInput);
+
+        if (q.choices.length > 2) {
+          var cRemove = document.createElement('button');
+          cRemove.type = 'button';
+          cRemove.textContent = '✕';
+          cRemove.title = 'Drop this choice';
+          cRemove.setAttribute('aria-label', 'Drop choice ' + (ci + 1) + ' of question ' + (qi + 1));
+          cRemove.style.cssText = 'border:none; background:none; cursor:pointer; font-weight:800; color:#221E1C; opacity:0.4;';
+          cRemove.addEventListener('click', function () {
+            if (q.correct === q.choices[ci]) q.correct = '';
+            q.choices.splice(ci, 1);
+            renderQuestions();
+          });
+          row.appendChild(cRemove);
+        }
+        card.appendChild(row);
+      });
+
+      if (q.choices.length < 6) {
+        var addChoice = document.createElement('button');
+        addChoice.type = 'button';
+        addChoice.textContent = '+ choice';
+        addChoice.style.cssText = 'border:none; background:none; cursor:pointer; font-family:"Nunito", Arial, sans-serif; font-weight:700; color:#221E1C; opacity:0.6; padding:2px 0 0 32px;';
+        addChoice.addEventListener('click', function () {
+          q.choices.push('');
+          renderQuestions();
+        });
+        card.appendChild(addChoice);
+      }
+
+      listWrap.appendChild(card);
+    });
+  }
+  renderQuestions();
+
+  // --- Pace knobs (timer, speed bonus) ---
+  var knobInputs = [];
+  paceKnobs.forEach(function (knob) {
+    if (knob.kind === 'boolean') {
+      var boolLabel = document.createElement('label');
+      boolLabel.style.cssText = LABEL_CSS + ' cursor:pointer;';
+      var check = document.createElement('input');
+      check.type = 'checkbox';
+      check.checked = knob.value === true;
+      check.style.cssText = 'margin-right:8px; width:18px; height:18px; vertical-align:middle;';
+      boolLabel.appendChild(check);
+      boolLabel.appendChild(document.createTextNode(knob.label));
+      if (knob.helper) boolLabel.title = knob.helper;
+      modal.appendChild(boolLabel);
+      knobInputs.push({ knob: knob, getValue: function (el) {
+        return function () { return el.checked; };
+      }(check) });
+    } else {
+      var numLabel = document.createElement('label');
+      numLabel.style.cssText = LABEL_CSS;
+      numLabel.textContent = knob.label +
+        (knob.min != null && knob.max != null ? ' (' + knob.min + '–' + knob.max + ')' : '');
+      if (knob.helper) numLabel.title = knob.helper;
+      modal.appendChild(numLabel);
+      var num = document.createElement('input');
+      num.type = 'number';
+      if (knob.min != null) num.min = knob.min;
+      if (knob.max != null) num.max = knob.max;
+      num.value = knob.value;
+      num.style.cssText = 'width:120px; ' + INPUT_CSS;
+      modal.appendChild(num);
+      knobInputs.push({ knob: knob, getValue: function (el, k) {
+        return function () {
+          var n = parseInt(el.value, 10);
+          if (isNaN(n)) return k.value;
+          if (k.min != null && n < k.min) n = k.min;
+          if (k.max != null && n > k.max) n = k.max;
+          return n;
+        };
+      }(num, knob) });
+    }
+  });
+
+  // --- Actions ---
+  var btnRow = document.createElement('div');
+  btnRow.className = 'recipe-form-buttons';
+  btnRow.style.marginTop = '14px';
+  var makeBtn = document.createElement('button');
+  makeBtn.type = 'button';
+  makeBtn.className = 'recipe-create-btn';
+  makeBtn.textContent = 'Make my copy';
+  btnRow.appendChild(makeBtn);
+  modal.appendChild(btnRow);
+
+  function showStatus(text) {
+    status.hidden = false;
+    status.textContent = text;
+  }
+
+  // Trim question rows the way the save will see them: empty choices
+  // fall away, everything trimmed.
+  function cleanedList() {
+    return questions.map(function (q) {
+      var choices = q.choices.map(function (c) { return String(c).trim(); })
+        .filter(function (c) { return c.length > 0; });
+      return {
+        question: String(q.question || '').trim(),
+        choices: choices,
+        correct: String(q.correct || '').trim()
+      };
+    });
+  }
+
+  writeBtn.addEventListener('click', function () {
+    var topic = topicInput.value.trim();
+    if (topic.length < 3) {
+      showStatus('Give a topic first, a few words is plenty.');
+      topicInput.focus();
+      return;
+    }
+    var n = parseInt(countInput.value, 10);
+    if (isNaN(n) || n < 1) n = 5;
+    if (n > 20) n = 20;
+    writeBtn.disabled = true;
+    makeBtn.disabled = true;
+    writeBtn.textContent = 'Writing…';
+    showStatus('Writing ' + n + ' questions about "' + topic + '", this can take ~20 seconds.');
+    fetch('/api/games/quiz-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: topic,
+        count: n,
+        classDescription: window.TeacherProfile ? TeacherProfile.describe() : ''
+      })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (result) {
+        if (!result.ok || result.data.error || !Array.isArray(result.data.questions)) {
+          throw new Error(result.data.error || 'no questions came back');
+        }
+        questions = result.data.questions;
+        renderQuestions();
+        showStatus('Check every answer before you save, fix or drop anything that looks wrong.');
+        listWrap.scrollTop = 0;
+      })
+      .catch(function (err) {
+        showStatus('Could not write questions: ' + err.message);
+      })
+      .then(function () {
+        writeBtn.disabled = false;
+        makeBtn.disabled = false;
+        writeBtn.textContent = 'Write my questions';
+      });
+  });
+
+  makeBtn.addEventListener('click', function () {
+    var cleaned = cleanedList();
+    var problems = SetupKnobs.validateQuizList(cleaned);
+    if (problems.length > 0) {
+      showStatus(problems.slice(0, 2).join(' '));
+      return;
+    }
+    makeBtn.disabled = true;
+    writeBtn.disabled = true;
+    showStatus('Building your copy…');
+    var params = JSON.parse(JSON.stringify(stamp.params));
+    params.questions = cleaned;
+    knobInputs.forEach(function (ki) { params[ki.knob.name] = ki.getValue(); });
+    compileWorkingConfig(config, params)
+      .then(function (working) {
+        working.name = game.name + ' (my version)';
+        return saveCopyAndReturn(working);
+      })
+      .catch(function (err) {
+        makeBtn.disabled = false;
+        writeBtn.disabled = false;
+        showStatus('Could not make your copy: ' + err.message);
+      });
+  });
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  Dialog.enhance(overlay, modal, { title: 'Make it yours' });
+  topicInput.focus();
 }
 
 function customizeCopy(game, btn) {
@@ -468,9 +850,25 @@ function customizeCopy(game, btn) {
       if (!resp.ok) throw new Error('could not load the activity');
       return resp.json();
     });
+  // Recipe-born games (config.recipe provenance stamp) get setup knobs in
+  // the dialog: instant, no-AI controls like "how many questions". Best-
+  // effort: recipe missing/broken/version-drifted = no knobs, flow as before.
+  var recipePromise = configPromise.then(function (config) {
+    var stamp = config && config.recipe;
+    if (!stamp || typeof stamp.id !== 'string' || !window.SetupKnobs) return null;
+    return fetch('/api/recipes/' + encodeURIComponent(stamp.id))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; });
+  });
   // A few AI questions tailor the copy before the editor opens. Best-effort:
   // no questions (error, budget, mock hiccup) = plain copy, like before.
-  var questionsPromise = configPromise.then(function (config) {
+  // Waits on the recipe summary so games with a dedicated setup panel
+  // never spend this AI call (their panel owns the content).
+  var questionsPromise = Promise.all([configPromise, recipePromise]).then(function (parts) {
+    var config = parts[0];
+    if (window.SetupKnobs && parts[1] && SetupKnobs.panelFor(parts[1], config.recipe)) {
+      return { questions: [] };
+    }
     return fetch('/api/games/customize-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -483,17 +881,29 @@ function customizeCopy(game, btn) {
     }).then(function (r) { return r.ok ? r.json() : { questions: [] }; })
       .catch(function () { return { questions: [] }; });
   });
-  Promise.all([configPromise, questionsPromise])
+  Promise.all([configPromise, questionsPromise, recipePromise])
     .then(function (parts) {
       btn.disabled = false;
       btn.textContent = 'Customize';
       var config = parts[0];
-      var questions = (parts[1] && parts[1].questions) || [];
-      if (questions.length === 0) {
-        config.name = game.name + ' (my version)';
-        return saveCopyAndEdit(config);
+      var summary = parts[2];
+      // A recipe with a dedicated panel (quiz) owns the whole dialog: the
+      // questions ARE the content, so the generic words-tailoring flow
+      // (which can rewrite choices out from under a correct answer) is
+      // skipped entirely for these games.
+      var panel = (window.SetupKnobs && summary)
+        ? SetupKnobs.panelFor(summary, config.recipe) : null;
+      if (panel === 'quiz') {
+        return showQuizCustomizeDialog(game, config, summary);
       }
-      showCustomizeDialog(game, config, questions);
+      var questions = (parts[1] && parts[1].questions) || [];
+      var knobs = (window.SetupKnobs && summary)
+        ? SetupKnobs.knobsFor(summary, config.recipe) : [];
+      if (questions.length === 0 && knobs.length === 0) {
+        config.name = game.name + ' (my version)';
+        return saveCopyAndReturn(config);
+      }
+      showCustomizeDialog(game, config, questions, knobs);
     })
     .catch(function (err) {
       btn.disabled = false;
@@ -502,9 +912,12 @@ function customizeCopy(game, btn) {
     });
 }
 
-// The tailoring dialog: answer what you like (or skip), and the AI rewrites
-// the copy's WORDS — structure never changes (the revise endpoint validates).
-function showCustomizeDialog(game, config, questions) {
+// The tailoring dialog: setup knobs first (instant, no AI — question count,
+// timers), then the AI questions. Answer what you like (or skip); the AI
+// rewrites the copy's WORDS — structure only changes through the knobs'
+// recipe recompile (the revise endpoint validates).
+function showCustomizeDialog(game, config, questions, knobs) {
+  knobs = knobs || [];
   var overlay = document.createElement('div');
   overlay.className = 'template-picker-overlay';
   var modal = document.createElement('div');
@@ -516,32 +929,111 @@ function showCustomizeDialog(game, config, questions) {
   title.textContent = 'Make it yours';
   modal.appendChild(title);
 
-  var subtitle = document.createElement('p');
-  subtitle.className = 'template-picker-subtitle';
-  subtitle.textContent = 'Answer what you like and we’ll word your copy of “' + game.name + '” for your class. Anything you skip stays as-is.';
-  modal.appendChild(subtitle);
+  var LABEL_CSS = 'display:block; font-weight:700; margin:10px 0 4px; font-family:"Nunito", Arial, sans-serif;';
+  var INPUT_CSS = 'padding:10px 12px; border:none; background:#FFFDF6; border-radius:2px; box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; font-weight:600; box-sizing:border-box;';
 
-  // Show what we already know so the teacher never wonders whether to
-  // repeat their grade and subject in the answers.
-  var knownClass = window.TeacherProfile ? TeacherProfile.describe() : '';
-  if (knownClass) {
-    var knownLine = document.createElement('p');
-    knownLine.className = 'template-picker-subtitle';
-    knownLine.style.fontWeight = '800';
-    knownLine.textContent = 'Writing for your class: ' + knownClass + '.';
-    modal.appendChild(knownLine);
+  // --- Setup knobs (recipe-born games only) ---
+  var knobInputs = [];
+  if (knobs.length > 0) {
+    var knobsHeading = document.createElement('p');
+    knobsHeading.className = 'template-picker-subtitle';
+    knobsHeading.style.fontWeight = '800';
+    knobsHeading.textContent = 'Set it up:';
+    modal.appendChild(knobsHeading);
+
+    knobs.forEach(function (knob) {
+      var input;
+      if (knob.kind === 'boolean') {
+        var boolLabel = document.createElement('label');
+        boolLabel.style.cssText = LABEL_CSS + ' cursor:pointer;';
+        input = document.createElement('input');
+        input.type = 'checkbox';
+        input.checked = knob.value === true;
+        input.style.cssText = 'margin-right:8px; width:18px; height:18px; vertical-align:middle;';
+        boolLabel.appendChild(input);
+        boolLabel.appendChild(document.createTextNode(knob.label));
+        if (knob.helper) boolLabel.title = knob.helper;
+        modal.appendChild(boolLabel);
+        knobInputs.push({ knob: knob, getValue: function (el) {
+          return function () { return el.checked; };
+        }(input) });
+      } else if (knob.kind === 'enum') {
+        var enumLabel = document.createElement('label');
+        enumLabel.style.cssText = LABEL_CSS;
+        enumLabel.textContent = knob.label;
+        modal.appendChild(enumLabel);
+        input = document.createElement('select');
+        input.style.cssText = 'width:100%; ' + INPUT_CSS;
+        (knob.values || []).forEach(function (v) {
+          var opt = document.createElement('option');
+          opt.value = String(v);
+          opt.textContent = String(v);
+          if (String(v) === String(knob.value)) opt.selected = true;
+          input.appendChild(opt);
+        });
+        modal.appendChild(input);
+        knobInputs.push({ knob: knob, getValue: function (el) {
+          return function () { return el.value; };
+        }(input) });
+      } else {
+        // count + integer share a number input
+        var numLabel = document.createElement('label');
+        numLabel.style.cssText = LABEL_CSS;
+        numLabel.textContent = knob.label +
+          (knob.min != null && knob.max != null ? ' (' + knob.min + '–' + knob.max + ')' : '');
+        if (knob.helper) numLabel.title = knob.helper;
+        modal.appendChild(numLabel);
+        input = document.createElement('input');
+        input.type = 'number';
+        if (knob.min != null) input.min = knob.min;
+        if (knob.max != null) input.max = knob.max;
+        input.value = knob.value;
+        input.style.cssText = 'width:120px; ' + INPUT_CSS;
+        modal.appendChild(input);
+        knobInputs.push({ knob: knob, getValue: function (el, k) {
+          return function () {
+            var n = parseInt(el.value, 10);
+            if (isNaN(n)) return k.value; // blank/garbage = leave it alone
+            if (k.min != null && n < k.min) n = k.min;
+            if (k.max != null && n > k.max) n = k.max;
+            return n;
+          };
+        }(input, knob) });
+      }
+      input.addEventListener('input', updateSkipLabel);
+      input.addEventListener('change', updateSkipLabel);
+    });
+  }
+
+  // Only introduce the AI questions when there are any to answer.
+  if (questions.length > 0) {
+    var subtitle = document.createElement('p');
+    subtitle.className = 'template-picker-subtitle';
+    subtitle.textContent = 'Answer what you like and we’ll word your copy of “' + game.name + '” for your class. Anything you skip stays as-is.';
+    modal.appendChild(subtitle);
+
+    // Show what we already know so the teacher never wonders whether to
+    // repeat their grade and subject in the answers.
+    var knownClass = window.TeacherProfile ? TeacherProfile.describe() : '';
+    if (knownClass) {
+      var knownLine = document.createElement('p');
+      knownLine.className = 'template-picker-subtitle';
+      knownLine.style.fontWeight = '800';
+      knownLine.textContent = 'Writing for your class: ' + knownClass + '.';
+      modal.appendChild(knownLine);
+    }
   }
 
   var inputs = [];
   questions.forEach(function (q) {
     var label = document.createElement('label');
-    label.style.cssText = 'display:block; font-weight:700; margin:10px 0 4px; font-family:"Nunito", Arial, sans-serif;';
+    label.style.cssText = LABEL_CSS;
     label.textContent = q.question;
     modal.appendChild(label);
     var input = document.createElement('input');
     input.type = 'text';
     input.placeholder = q.placeholder || '';
-    input.style.cssText = 'width:100%; padding:10px 12px; border:none; background:#FFFDF6; border-radius:2px; box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; font-weight:600; box-sizing:border-box;';
+    input.style.cssText = 'width:100%; ' + INPUT_CSS;
     modal.appendChild(input);
     inputs.push({ question: q.question, input: input });
   });
@@ -558,27 +1050,66 @@ function showCustomizeDialog(game, config, questions) {
 
   var skipBtn = document.createElement('button');
   skipBtn.type = 'button';
-  skipBtn.className = 'recipe-cancel-btn';
-  skipBtn.textContent = 'Skip, just copy it';
+  // Knobs-only dialog (no AI questions): one primary button, nothing to skip.
+  var knobsOnly = questions.length === 0;
+  skipBtn.className = knobsOnly ? 'recipe-create-btn' : 'recipe-cancel-btn';
+  skipBtn.textContent = knobsOnly ? 'Make my copy' : 'Skip, just copy it';
   btnRow.appendChild(skipBtn);
 
   var goBtn = document.createElement('button');
   goBtn.type = 'button';
   goBtn.className = 'recipe-create-btn';
   goBtn.textContent = 'Set it up for my class';
+  goBtn.hidden = knobsOnly;
   btnRow.appendChild(goBtn);
   modal.appendChild(btnRow);
+
+  function currentKnobValues() {
+    return knobInputs.map(function (ki) {
+      return { name: ki.knob.name, kind: ki.knob.kind, value: ki.getValue() };
+    });
+  }
+
+  function anyKnobTouched() {
+    return knobInputs.some(function (ki) {
+      var now = ki.getValue();
+      return ki.knob.kind === 'boolean' ? now !== ki.knob.value : String(now) !== String(ki.knob.value);
+    });
+  }
+
+  // "Skip" refers to the AI questions; touched knobs are deliberate input
+  // and always apply. Say so on the button.
+  function updateSkipLabel() {
+    if (knobsOnly) return;
+    skipBtn.textContent = anyKnobTouched() ? 'Copy with these settings' : 'Skip, just copy it';
+  }
+
+  // The config the save/revise steps work from: the source config, with
+  // phases rebuilt by the recipe compiler when any knob was touched.
+  // Untouched knobs never recompile, so a hand-edited copy of a stamped
+  // game can't be silently clobbered.
+  function buildWorkingConfig() {
+    if (knobInputs.length === 0 || !anyKnobTouched()) return Promise.resolve(config);
+    var params = SetupKnobs.applyKnobs(config.recipe.params, currentKnobValues());
+    return compileWorkingConfig(config, params);
+  }
+
+  function saveWorking(working) {
+    working.name = game.name + ' (my version)';
+    return saveCopyAndReturn(working);
+  }
 
   function plainCopy() {
     skipBtn.disabled = true;
     goBtn.disabled = true;
-    config.name = game.name + ' (my version)';
-    saveCopyAndEdit(config).catch(function (err) {
-      skipBtn.disabled = false;
-      goBtn.disabled = false;
-      status.hidden = false;
-      status.textContent = 'Could not make your copy: ' + err.message;
-    });
+    buildWorkingConfig()
+      .then(saveWorking)
+      .catch(function (err) {
+        skipBtn.disabled = false;
+        goBtn.disabled = false;
+        status.hidden = false;
+        status.textContent = 'Could not make your copy: ' + err.message;
+      });
   }
 
   skipBtn.addEventListener('click', plainCopy);
@@ -591,36 +1122,55 @@ function showCustomizeDialog(game, config, questions) {
     goBtn.textContent = 'Setting it up…';
     status.hidden = false;
     status.textContent = 'Rewording the activity for your class, this can take ~20 seconds.';
-    var classDesc = window.TeacherProfile ? TeacherProfile.describe() : '';
-    var request = 'A teacher is adapting this ready-made activity for their own class. ' +
-      'Rewrite ONLY the teacher- and student-facing words (name, description, prompts, messages, choices, reveal templates) to fit their answers below. ' +
-      'Keep every step, the structure, timers, data references, and {{tokens}} exactly as they are.\n\n' +
-      (classDesc ? 'Their class: ' + classDesc + '.\n' : '') +
-      answered.map(function (pair) {
-        return 'Q: ' + pair.question + '\nA: ' + pair.input.value.trim();
-      }).join('\n');
-    fetch('/api/games/revise', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ config: config, request: request })
-    })
-      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
-      .then(function (result) {
-        var d = result.data;
-        var structuralErrors = d.structural && d.structural.errors ? d.structural.errors.length : 0;
-        if (!result.ok || d.error || !d.updatedConfig || structuralErrors > 0) {
-          throw new Error(d.error || (structuralErrors > 0 ? 'the reworded copy had problems' : 'no config returned'));
-        }
-        var revised = d.updatedConfig;
-        if (!revised.name || revised.name === game.name) {
-          revised.name = game.name + ' (my version)';
-        }
-        return saveCopyAndEdit(revised);
+    buildWorkingConfig()
+      .then(function (working) {
+        var classDesc = window.TeacherProfile ? TeacherProfile.describe() : '';
+        var request = 'A teacher is adapting this ready-made activity for their own class. ' +
+          'Rewrite ONLY the teacher- and student-facing words (name, description, prompts, messages, choices, reveal templates) to fit their answers below. ' +
+          'Keep every step, the structure, timers, data references, and {{tokens}} exactly as they are.\n\n' +
+          (classDesc ? 'Their class: ' + classDesc + '.\n' : '') +
+          answered.map(function (pair) {
+            return 'Q: ' + pair.question + '\nA: ' + pair.input.value.trim();
+          }).join('\n');
+        return fetch('/api/games/revise', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: working, request: request })
+        })
+          .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+          .then(function (result) {
+            var d = result.data;
+            var structuralErrors = d.structural && d.structural.errors ? d.structural.errors.length : 0;
+            if (!result.ok || d.error || !d.updatedConfig || structuralErrors > 0) {
+              throw new Error(d.error || (structuralErrors > 0 ? 'the reworded copy had problems' : 'no config returned'));
+            }
+            var revised = d.updatedConfig;
+            if (!revised.name || revised.name === game.name) {
+              revised.name = game.name + ' (my version)';
+            }
+            return saveCopyAndReturn(revised);
+          })
+          .catch(function (err) {
+            // The tailoring is a bonus — never strand the teacher without a
+            // copy, and never lose their knob settings with it.
+            status.textContent = 'The AI setup didn’t work (' + err.message + '), making your copy without the rewording.';
+            setTimeout(function () {
+              saveWorking(working).catch(function (saveErr) {
+                skipBtn.disabled = false;
+                goBtn.disabled = false;
+                goBtn.textContent = 'Set it up for my class';
+                status.textContent = 'Could not make your copy: ' + saveErr.message;
+              });
+            }, 1400);
+          });
       })
       .catch(function (err) {
-        // The tailoring is a bonus — never strand the teacher without a copy.
-        status.textContent = 'The AI setup didn’t work (' + err.message + '), making a plain copy instead.';
-        setTimeout(plainCopy, 1400);
+        // The knob recompile failed (bad settings, recipe drift): let the
+        // teacher adjust instead of quietly saving something else.
+        skipBtn.disabled = false;
+        goBtn.disabled = false;
+        goBtn.textContent = 'Set it up for my class';
+        status.textContent = 'Could not apply your settings: ' + err.message;
       });
   });
 
@@ -866,6 +1416,26 @@ function handleCustomizeDeepLink() {
   customizeCopy(game, btn);
 }
 
+// ?highlight= (where saveCopyAndReturn lands): scroll the fresh copy's
+// card into view and flash it so the teacher sees where their activity
+// lives — Preview and Host are right on it. Param stripped so a refresh
+// lands on the plain library.
+function handleHighlightParam() {
+  var wantedId;
+  try {
+    var params = new URLSearchParams(window.location.search);
+    wantedId = params.get('highlight');
+    if (!wantedId) return;
+    params.delete('highlight');
+    window.history.replaceState(null, '', window.location.pathname +
+      (params.toString() ? '?' + params.toString() : ''));
+  } catch (e) { return; }
+  var card = document.querySelector('.library-card[data-game-id="' + CSS.escape(wantedId) + '"]');
+  if (!card) return; // filtered out or unknown — the library itself is the fallback
+  card.scrollIntoView({ block: 'center' });
+  card.classList.add('game-card-highlight');
+}
+
 fetch('/api/games')
   .then(function (resp) {
     if (!resp.ok) throw new Error('status ' + resp.status);
@@ -876,6 +1446,7 @@ fetch('/api/games')
     loadingMessage.hidden = true;
     refreshLibrary();
     handleCustomizeDeepLink();
+    handleHighlightParam();
   })
   .catch(function (err) {
     loadingMessage.hidden = true;

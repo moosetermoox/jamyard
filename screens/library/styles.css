@@ -285,6 +285,21 @@ header {
 /* Your own copies sit on slightly warmer paper */
 .game-card-user { background: #FBF7EC; }
 
+/* Fresh-copy highlight: where ?highlight= lands after Customize saves a
+   copy. A brief flash draws the eye, then the outline stays put so the
+   card is still findable after the animation ends. */
+.game-card-highlight {
+  outline: 3px solid #D9481C;
+  outline-offset: 3px;
+  animation: card-highlight-flash 1.1s steps(2, end) 2;
+}
+@keyframes card-highlight-flash {
+  50% { outline-color: rgba(217, 72, 28, 0.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .game-card-highlight { animation: none; }
+}
+
 .game-card-name {
   font-family: 'EB Garamond', Georgia, serif;
   font-weight: 400;

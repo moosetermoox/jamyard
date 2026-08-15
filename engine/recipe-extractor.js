@@ -220,6 +220,10 @@ export function buildUserRecipe(gameConfig, paramSpecs, metadata) {
 
   // Build the parameters block + the modified template (deep clone first)
   const template = deepClone(gameConfig);
+  // A recipe-born config carries a provenance stamp; a stale copy baked
+  // into a new template would be overwritten at compile time anyway, but
+  // keep templates clean of it.
+  delete template.recipe;
   const parameters = {};
 
   // We need the candidate list to know each path's field type + schema

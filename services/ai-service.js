@@ -3,6 +3,7 @@ import { getAllowedFields, validate as validateGame } from '../engine/game-loade
 import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schemas.js';
 import { createAiBudget, AiBudgetError } from './ai-budget.js';
 import { scrubForAI } from '../engine/pii-scrub.js';
+import { cleanQuizQuestions, QUIZ_LIMITS } from '../engine/quiz-questions.js';
 
 /**
  * Extract text from the first text-type content block. Claude's content
@@ -1048,6 +1049,73 @@ Return ONLY JSON: {"questions":[{"question":"...","placeholder":"e.g. ..."}]}`
       console.error('[AIService] generateCustomizeQuestions error:', error.message);
       // Question generation is a nicety — an empty list means "skip to the copy".
       return { questions: [] };
+    }
+  }
+
+  // Library quiz Customize panel: teacher topic in, ready-to-review
+  // multiple-choice questions out (quiz-show recipe param shape). Sonnet,
+  // because wrong facts on a projector are the failure mode; the teacher
+  // still reviews and can edit every question before anything is built.
+  // No student data ever enters this call.
+  async generateQuizQuestions({ topic, count, classDescription = '' } = {}) {
+    const cleanTopic = String(topic || '').trim().slice(0, 400);
+    const classDesc = String(classDescription || '').trim().slice(0, 160);
+    const n = Number.isInteger(count) && count >= 1 && count <= QUIZ_LIMITS.maxQuestions
+      ? count : 5;
+    if (this.mode === 'mock') {
+      const questions = [];
+      for (let i = 1; i <= n; i++) {
+        questions.push({
+          question: `Practice question ${i} about ${cleanTopic || 'your topic'} (mock mode, swap in real facts)`,
+          choices: ['Answer A', 'Answer B', 'Answer C', 'Answer D'],
+          correct: 'Answer A'
+        });
+      }
+      return { questions };
+    }
+    try {
+      const classLine = classDesc
+        ? `Their class: ${classDesc}. Match the difficulty and vocabulary to them.\n`
+        : '';
+      const message = await this._callClaude({
+        model: MODELS.sonnet,
+        max_tokens: 2500,
+        messages: [{
+          role: 'user',
+          content: `A teacher wants multiple-choice questions for a live classroom speed quiz (projected on a wall, students answer on their devices).
+
+Topic: ${cleanTopic}
+${classLine}Write exactly ${n} questions.
+
+Rules:
+- Questions must be factually correct and unambiguous, only write what you are certain of. The teacher reviews and can edit every question before anything is built.
+- Each question has 2 to ${QUIZ_LIMITS.maxChoices} answer choices with exactly ONE correct answer; "correct" must EXACTLY match one of the choices.
+- Wrong choices should be plausible (common mistakes beat nonsense), but never ambiguous.
+- Keep every question and choice short enough to read off a projector in seconds.
+- Never include student names. Do not use emojis.
+
+Return ONLY JSON, no other prose:
+{"questions": [{"question": "...", "choices": ["...", "..."], "correct": "..."}]}`
+        }]
+      });
+      const text = extractText(message);
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI response was not valid JSON');
+        parsed = JSON.parse(match[0]);
+      }
+      const questions = cleanQuizQuestions(parsed.questions, n);
+      if (questions.length === 0) {
+        return { error: 'The AI could not write usable questions for that topic. Try wording the topic differently.' };
+      }
+      return { questions };
+    } catch (error) {
+      if (error && error.name === 'AiBudgetError') throw error;
+      console.error('[AIService] generateQuizQuestions error:', error.message);
+      return { error: error.message };
     }
   }
 

@@ -102,6 +102,8 @@ export function summarizeRecipe(recipe) {
     icon: recipe.icon || null,
     description: recipe.description,
     tagline: recipe.tagline || null,
+    version: recipe.version || '1',
+    setupPanel: recipe.setupPanel || null,
     parameters: recipe.parameters,
     source: recipe._source || null,        // 'built-in' | 'user'
     broken: !!recipe._broken,              // schema drift, needs attention

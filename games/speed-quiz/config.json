@@ -1,7 +1,67 @@
 {
   "name": "Speed Quiz",
-  "description": "Five trivia questions; faster correct answers earn more points. Swap in your own questions.",
+  "description": "Trivia questions, faster correct answers earn more points. Swap in your own questions.",
   "featured": true,
+  "recipe": {
+    "id": "quiz-show",
+    "version": "1",
+    "params": {
+      "questions": [
+        {
+          "question": "What is the capital of Australia?",
+          "choices": [
+            "Sydney",
+            "Canberra",
+            "Melbourne",
+            "Perth"
+          ],
+          "correct": "Canberra"
+        },
+        {
+          "question": "Which planet is closest to the Sun?",
+          "choices": [
+            "Venus",
+            "Mars",
+            "Mercury",
+            "Jupiter"
+          ],
+          "correct": "Mercury"
+        },
+        {
+          "question": "How many sides does a hexagon have?",
+          "choices": [
+            "Five",
+            "Six",
+            "Seven",
+            "Eight"
+          ],
+          "correct": "Six"
+        },
+        {
+          "question": "Which is the largest ocean on Earth?",
+          "choices": [
+            "Atlantic",
+            "Indian",
+            "Arctic",
+            "Pacific"
+          ],
+          "correct": "Pacific"
+        },
+        {
+          "question": "In what year did World War II end?",
+          "choices": [
+            "1943",
+            "1944",
+            "1945",
+            "1946"
+          ],
+          "correct": "1945"
+        }
+      ],
+      "questionTimer": 15,
+      "speedBonus": true
+    }
+  },
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -9,12 +69,12 @@
     },
     "intro": {
       "type": "announce",
-      "message": "SPEED QUIZ!\n\nFive questions. Four choices each. Get it right fast for max points, your score drops the longer you take.",
-      "next": "ask1"
+      "message": "QUIZ SHOW!\n\nAnswer on your device as fast as you can, correct answers earn points, and speed counts.\n\nGet ready...",
+      "next": "q1"
     },
-    "ask1": {
+    "q1": {
       "type": "collect-choice",
-      "prompt": "What is the capital of Australia?",
+      "prompt": "Question 1 of 5:\n\nWhat is the capital of Australia?",
       "choices": [
         "Sydney",
         "Canberra",
@@ -22,19 +82,18 @@
         "Perth"
       ],
       "correctAnswer": "Canberra",
-      "pointsCorrect": 1000,
       "speedBonus": true,
       "timer": 15,
-      "next": "reveal1"
+      "next": "r1"
     },
-    "reveal1": {
+    "r1": {
       "type": "announce",
-      "message": "The answer was: Canberra!\n\nClass picks:\n{{ask1.barChart}}",
-      "next": "ask2"
+      "message": "The answer was: Canberra!\n\nClass picks:\n{{q1.barChart}}",
+      "next": "q2"
     },
-    "ask2": {
+    "q2": {
       "type": "collect-choice",
-      "prompt": "Which planet is closest to the Sun?",
+      "prompt": "Question 2 of 5:\n\nWhich planet is closest to the Sun?",
       "choices": [
         "Venus",
         "Mars",
@@ -42,19 +101,18 @@
         "Jupiter"
       ],
       "correctAnswer": "Mercury",
-      "pointsCorrect": 1000,
       "speedBonus": true,
       "timer": 15,
-      "next": "reveal2"
+      "next": "r2"
     },
-    "reveal2": {
+    "r2": {
       "type": "announce",
-      "message": "The answer was: Mercury!\n\nClass picks:\n{{ask2.barChart}}",
-      "next": "ask3"
+      "message": "The answer was: Mercury!\n\nClass picks:\n{{q2.barChart}}",
+      "next": "q3"
     },
-    "ask3": {
+    "q3": {
       "type": "collect-choice",
-      "prompt": "How many sides does a hexagon have?",
+      "prompt": "Question 3 of 5:\n\nHow many sides does a hexagon have?",
       "choices": [
         "Five",
         "Six",
@@ -62,19 +120,18 @@
         "Eight"
       ],
       "correctAnswer": "Six",
-      "pointsCorrect": 1000,
       "speedBonus": true,
       "timer": 15,
-      "next": "reveal3"
+      "next": "r3"
     },
-    "reveal3": {
+    "r3": {
       "type": "announce",
-      "message": "The answer was: Six!\n\nClass picks:\n{{ask3.barChart}}",
-      "next": "ask4"
+      "message": "The answer was: Six!\n\nClass picks:\n{{q3.barChart}}",
+      "next": "q4"
     },
-    "ask4": {
+    "q4": {
       "type": "collect-choice",
-      "prompt": "Which is the largest ocean on Earth?",
+      "prompt": "Question 4 of 5:\n\nWhich is the largest ocean on Earth?",
       "choices": [
         "Atlantic",
         "Indian",
@@ -82,19 +139,18 @@
         "Pacific"
       ],
       "correctAnswer": "Pacific",
-      "pointsCorrect": 1000,
       "speedBonus": true,
       "timer": 15,
-      "next": "reveal4"
+      "next": "r4"
     },
-    "reveal4": {
+    "r4": {
       "type": "announce",
-      "message": "The answer was: Pacific!\n\nClass picks:\n{{ask4.barChart}}",
-      "next": "ask5"
+      "message": "The answer was: Pacific!\n\nClass picks:\n{{q4.barChart}}",
+      "next": "q5"
     },
-    "ask5": {
+    "q5": {
       "type": "collect-choice",
-      "prompt": "In what year did World War II end?",
+      "prompt": "Question 5 of 5:\n\nIn what year did World War II end?",
       "choices": [
         "1943",
         "1944",
@@ -102,31 +158,30 @@
         "1946"
       ],
       "correctAnswer": "1945",
-      "pointsCorrect": 1000,
       "speedBonus": true,
       "timer": 15,
-      "next": "reveal5"
+      "next": "r5"
     },
-    "reveal5": {
+    "r5": {
       "type": "announce",
-      "message": "The answer was: 1945!\n\nClass picks:\n{{ask5.barChart}}\n\nLast stop: the leaderboard.",
-      "next": "scores"
+      "message": "The answer was: 1945!\n\nClass picks:\n{{q5.barChart}}",
+      "next": "scoreboard"
     },
-    "scores": {
+    "scoreboard": {
       "type": "leaderboard",
       "from": [
-        "ask1.scores",
-        "ask2.scores",
-        "ask3.scores",
-        "ask4.scores",
-        "ask5.scores"
+        "q1.scores",
+        "q2.scores",
+        "q3.scores",
+        "q4.scores",
+        "q5.scores"
       ],
       "style": "full",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "That's Speed Quiz! Five questions, no mercy."
+      "message": "That's the quiz! Great playing, everyone."
     }
   },
   "playTime": "~5 min",

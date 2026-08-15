@@ -13,7 +13,7 @@ import { loadGame, validate, getAllowedFields, listGames, resolveGamePath } from
 import { normalizeConfig } from './engine/normalizer.js';
 import { PHASE_SCHEMAS, getFields } from './engine/phase-schemas.js';
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
-import { compileRecipe } from './engine/recipe-compiler.js';
+import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
@@ -2251,6 +2251,27 @@ app.post('/api/games/customize-questions', async (req, res) => {
   }
 });
 
+// Library quiz Customize panel: topic in, multiple-choice questions out
+// (quiz-show recipe param shape). Works in mock mode too (canned
+// questions) so the flow is always testable; no student data involved.
+app.post('/api/games/quiz-questions', async (req, res) => {
+  try {
+    const { topic, count, classDescription } = req.body || {};
+    if (!topic || typeof topic !== 'string' || topic.trim().length < 3) {
+      return res.status(400).json({ error: 'Give a topic of at least a few characters.' });
+    }
+    const result = await aiService.generateQuizQuestions({
+      topic,
+      count: Number.isInteger(count) ? count : parseInt(count, 10) || undefined,
+      classDescription: typeof classDescription === 'string' ? classDescription : ''
+    });
+    res.json(result);
+  } catch (error) {
+    console.log(`[api/games/quiz-questions] Error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+});
+
 app.post('/api/games/revise', async (req, res) => {
   try {
     if (!requireRealAI(res)) return;
@@ -2262,6 +2283,9 @@ app.post('/api/games/revise', async (req, res) => {
       return res.status(400).json({ error: 'Missing request' });
     }
     const result = await aiService.reviseGame({ config, request });
+    // The AI rebuilds the whole config and loses the provenance stamp;
+    // restore it so recipe-born copies keep their Customize knobs.
+    carryRecipeStamp(config, result.updatedConfig);
     // Validate the AI's revised config; surface errors so the client can show them
     const structural = validate(result.updatedConfig, 'revise', { returnResults: true });
     res.json({ ...result, structural });

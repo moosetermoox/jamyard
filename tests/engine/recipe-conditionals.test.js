@@ -281,6 +281,112 @@ describe('$repeat', () => {
 });
 
 // =====================================================================
+// $repeat with a "phases" map — several phases per item (question +
+// reveal beats, the Speed Quiz shape)
+// =====================================================================
+
+describe('$repeat — multi-phase "phases" map', () => {
+  const revealRecipe = mkRecipe(
+    {
+      questions: {
+        type: 'array', required: true,
+        item: {
+          type: 'object',
+          fields: {
+            question: { type: 'string' },
+            correct: { type: 'string' }
+          }
+        }
+      }
+    },
+    {
+      lobby: { type: 'lobby', next: 'q1' },
+      $repeat: {
+        forEach: 'questions',
+        phases: {
+          'q${i}': {
+            type: 'collect-choice',
+            prompt: 'Q${i} of ${n}: ${item.question}',
+            choices: ['a', 'b'],
+            correctAnswer: '${item.correct}',
+            next: 'r${i}'
+          },
+          'r${i}': {
+            type: 'announce',
+            message: 'The answer was: ${item.correct}!\n\n{{q${i}.barChart}}',
+            next: '${nextKey}'
+          }
+        },
+        after: 'end'
+      },
+      end: { type: 'end' }
+    }
+  );
+
+  const QUESTIONS = [
+    { question: 'Capital of Australia?', correct: 'Canberra' },
+    { question: '2+2?', correct: '4' }
+  ];
+
+  it('interleaves the per-item phases in declaration order', () => {
+    const config = compileOk(revealRecipe, { questions: QUESTIONS });
+    expect(Object.keys(config.phases)).toEqual(['lobby', 'q1', 'r1', 'q2', 'r2', 'end']);
+  });
+
+  it('chains within an item explicitly and across items via nextKey', () => {
+    const config = compileOk(revealRecipe, { questions: QUESTIONS });
+    expect(config.phases.q1.next).toBe('r1');
+    expect(config.phases.r1.next).toBe('q2'); // nextKey = FIRST phase of next item
+    expect(config.phases.q2.next).toBe('r2');
+    expect(config.phases.r2.next).toBe('end'); // last item exits via "after"
+  });
+
+  it('compile-time ${i} composes with runtime {{...}} tokens', () => {
+    const config = compileOk(revealRecipe, { questions: QUESTIONS });
+    expect(config.phases.r2.message).toBe('The answer was: 4!\n\n{{q2.barChart}}');
+  });
+
+  it('rewires refs through an $if-dropped generated phase', () => {
+    const r = mkRecipe(
+      {
+        questions: { type: 'array', required: true, item: { type: 'string' } },
+        reveal: { type: 'boolean', default: true }
+      },
+      {
+        lobby: { type: 'lobby', next: 'q1' },
+        $repeat: {
+          forEach: 'questions',
+          phases: {
+            'q${i}': { type: 'announce', message: '${item}', next: 'r${i}' },
+            'r${i}': { $if: 'reveal', type: 'announce', message: 'reveal', next: '${nextKey}' }
+          },
+          after: 'end'
+        },
+        end: { type: 'end' }
+      }
+    );
+    const config = compileOk(r, { questions: ['a', 'b'], reveal: false });
+    expect(config.phases.r1).toBeUndefined();
+    expect(config.phases.q1.next).toBe('q2'); // skips the dropped reveal
+    expect(config.phases.q2.next).toBe('end');
+  });
+
+  it('errors on a $repeat with neither "phase" nor a "phases" map', () => {
+    const r = mkRecipe(
+      { questions: { type: 'array', required: true, item: { type: 'string' } } },
+      {
+        lobby: { type: 'lobby', next: 'end' },
+        $repeat: { forEach: 'questions', keyPattern: 'x${i}' },
+        end: { type: 'end' }
+      }
+    );
+    const { config, diagnostics } = compileRecipe(r, { questions: ['a'] });
+    expect(config).toBeNull();
+    expect(diagnostics.some(d => /invalid \$repeat/.test(d.message))).toBe(true);
+  });
+});
+
+// =====================================================================
 // $map — derived arrays (leaderboard summing N generated rounds)
 // =====================================================================
 

@@ -128,6 +128,66 @@ describe('validateRecipe — parameter spec checks', () => {
   });
 });
 
+describe('validateRecipe — setup flags (Customize knobs)', () => {
+  function buildRecipe(parameters) {
+    return { id: 'x', name: 'x', description: 'x', parameters, template: {} };
+  }
+
+  it('accepts setup: true on integer, boolean, and enum params', () => {
+    const diags = validateRecipe(buildRecipe({
+      timer: { type: 'integer', setup: true },
+      bonus: { type: 'boolean', setup: true },
+      style: { type: 'enum', values: ['a', 'b'], setup: true }
+    }));
+    expect(diags).toEqual([]);
+  });
+
+  it('accepts a count setup object on array params, label optional', () => {
+    const diags = validateRecipe(buildRecipe({
+      items: { type: 'array', item: { type: 'string' }, setup: { mode: 'count' } },
+      more: { type: 'array', item: { type: 'string' }, setup: { mode: 'count', label: 'How many' } }
+    }));
+    expect(diags).toEqual([]);
+  });
+
+  it('rejects setup: true on free-text and array params', () => {
+    for (const spec of [
+      { type: 'string', setup: true },
+      { type: 'templateString', setup: true },
+      { type: 'promptDeck', setup: true },
+      { type: 'array', item: { type: 'string' }, setup: true }
+    ]) {
+      const diags = validateRecipe(buildRecipe({ q: spec }));
+      expect(codeSet(diags)).toContain(codes.RECIPE_INVALID_SETUP_FLAG);
+    }
+  });
+
+  it('rejects a setup object on non-array params', () => {
+    const diags = validateRecipe(buildRecipe({
+      timer: { type: 'integer', setup: { mode: 'count' } }
+    }));
+    expect(codeSet(diags)).toContain(codes.RECIPE_INVALID_SETUP_FLAG);
+  });
+
+  it('rejects setup modes other than "count" and bad labels', () => {
+    const badMode = validateRecipe(buildRecipe({
+      items: { type: 'array', item: { type: 'string' }, setup: { mode: 'pick' } }
+    }));
+    expect(codeSet(badMode)).toContain(codes.RECIPE_INVALID_SETUP_FLAG);
+    const badLabel = validateRecipe(buildRecipe({
+      items: { type: 'array', item: { type: 'string' }, setup: { mode: 'count', label: 7 } }
+    }));
+    expect(codeSet(badLabel)).toContain(codes.RECIPE_INVALID_SETUP_FLAG);
+  });
+
+  it('rejects non-boolean, non-object setup values', () => {
+    const diags = validateRecipe(buildRecipe({
+      timer: { type: 'integer', setup: 'yes' }
+    }));
+    expect(codeSet(diags)).toContain(codes.RECIPE_INVALID_SETUP_FLAG);
+  });
+});
+
 // =======================================================================
 // validateParams — teacher-submitted parameter values
 // =======================================================================

@@ -33,7 +33,14 @@
  *                                       template: ${item...}, ${i} (1-based),
  *                                       ${n} (total), ${nextKey} (next
  *                                       generated phase, or "after" on the
- *                                       last one).
+ *                                       last one). Alternative: "phases":
+ *                                       { "q${i}": {...}, "r${i}": {...} }
+ *                                       emits SEVERAL phases per item
+ *                                       (question + reveal beats). Chain
+ *                                       within one item explicitly
+ *                                       ("next": "r${i}"); ${nextKey} is the
+ *                                       FIRST phase of the next item, or
+ *                                       "after" on the last.
  *   - { "$map": "<arrayParam>", "value": v }   compiles to an array with one
  *                                       compiled v per item (same scope vars
  *                                       as $repeat) — e.g. a leaderboard
@@ -110,7 +117,34 @@ export function compileRecipe(recipe, rawParams = {}) {
     config.family = recipe.family;
   }
 
+  // 6. Stamp provenance: which recipe and which normalized params built
+  //    this config. The library's Customize knobs recompile from this
+  //    stamp. Stamped AFTER substitution so a template-authored "recipe"
+  //    key can never spoof it.
+  if (config && typeof config === 'object') {
+    config.recipe = {
+      id: recipe.id,
+      version: recipe.version || '1',
+      params: structuredClone(withDefaults)
+    };
+  }
+
   return { config, diagnostics: [...paramDiags, ...subDiags] };
+}
+
+/**
+ * Copy a well-formed provenance stamp from one config onto another.
+ * Used by the revise route: the AI reconstructs the whole config and
+ * would otherwise drop the stamp (and with it the Customize knobs).
+ *
+ * @param {Object} fromConfig  The config the caller sent in.
+ * @param {Object} toConfig    The revised config to stamp (mutated).
+ */
+export function carryRecipeStamp(fromConfig, toConfig) {
+  const stamp = fromConfig && fromConfig.recipe;
+  if (!stamp || typeof stamp !== 'object' || typeof stamp.id !== 'string') return;
+  if (!toConfig || typeof toConfig !== 'object') return;
+  toConfig.recipe = structuredClone(stamp);
 }
 
 // =======================================================================
@@ -382,9 +416,17 @@ function substituteAll(template, params, recipe, dropped) {
   }
 
   function expandRepeat(spec, scope, out) {
+    // Two shapes: single-phase ("keyPattern" + "phase") or multi-phase
+    // ("phases": ordered map of keyPattern → phase template, so one item
+    // can expand to a question AND its reveal beat).
+    const multi = spec && typeof spec === 'object' &&
+      spec.phases != null && typeof spec.phases === 'object' && !Array.isArray(spec.phases);
+    const keyPatterns = multi
+      ? Object.keys(spec.phases)
+      : (spec && typeof spec.keyPattern === 'string' ? [spec.keyPattern] : []);
     if (!spec || typeof spec !== 'object' || typeof spec.forEach !== 'string' ||
-        typeof spec.keyPattern !== 'string' || spec.phase == null) {
-      throw new Error(`Recipe "${recipe.id}" has an invalid $repeat, needs "forEach", "keyPattern", and "phase".`);
+        keyPatterns.length === 0 || (!multi && spec.phase == null)) {
+      throw new Error(`Recipe "${recipe.id}" has an invalid $repeat, needs "forEach" plus either "keyPattern" + "phase" or a "phases" map.`);
     }
     const arr = lookupParam(scope, recipe, spec.forEach, '');
     if (!Array.isArray(arr)) {
@@ -392,17 +434,28 @@ function substituteAll(template, params, recipe, dropped) {
     }
     for (let idx = 0; idx < arr.length; idx++) {
       const iterScope = { ...scope, item: arr[idx], i: idx + 1, n: arr.length };
-      const key = interpolate(spec.keyPattern, iterScope, recipe);
-      // ${nextKey}: the next generated phase, or "after" on the last one.
+      // ${nextKey}: the FIRST phase of the next item, or "after" on the
+      // last one. Chaining WITHIN one item is explicit ("next": "r${i}").
       if (idx < arr.length - 1) {
         iterScope.nextKey = interpolate(
-          spec.keyPattern, { ...scope, item: arr[idx + 1], i: idx + 2, n: arr.length }, recipe
+          keyPatterns[0], { ...scope, item: arr[idx + 1], i: idx + 2, n: arr.length }, recipe
         );
       } else if (spec.after !== undefined) {
         iterScope.nextKey = substituteString(String(spec.after), scope, recipe);
       }
-      const compiled = walk(spec.phase, iterScope, key);
-      if (compiled !== DROP) out[key] = compiled;
+      for (const pattern of keyPatterns) {
+        const key = interpolate(pattern, iterScope, recipe);
+        const tpl = multi ? spec.phases[pattern] : spec.phase;
+        const compiled = walk(tpl, iterScope, key);
+        if (compiled !== DROP) {
+          out[key] = compiled;
+        } else {
+          // Register $if-dropped generated phases so pointers to them
+          // (the previous item's ${nextKey}, an intra-item "next") get
+          // rewired instead of dangling.
+          dropped.push({ key, next: droppedPhaseNext(tpl, iterScope) });
+        }
+      }
     }
   }
 

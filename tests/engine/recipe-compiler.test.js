@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   compileRecipe,
+  carryRecipeStamp,
   coerceParams,
   applyDefaults
 } from '../../engine/recipe-compiler.js';
@@ -246,7 +247,10 @@ describe('compileRecipe — recursion', () => {
       template: { a: null, b: 42, c: true, d: 'plain' }
     };
     const { config } = compileRecipe(recipe, {});
-    expect(config).toEqual({ a: null, b: 42, c: true, d: 'plain' });
+    expect(config).toEqual({
+      a: null, b: 42, c: true, d: 'plain',
+      recipe: { id: 'x', version: '1', params: {} }
+    });
   });
 });
 
@@ -299,5 +303,79 @@ describe('compileRecipe — form-string coercion before validation', () => {
     const { config, diagnostics } = compileRecipe(recipe, { n: '30' });
     expect(diagnostics).toEqual([]);
     expect(config.value).toBe(30);
+  });
+});
+
+// =======================================================================
+// Provenance stamp
+// =======================================================================
+
+describe('compileRecipe — provenance stamp', () => {
+  const recipe = {
+    id: 'my-recipe', name: 'x', description: 'x', version: '3',
+    parameters: {
+      q: { type: 'string' },
+      timer: { type: 'integer', default: 60, min: 10, max: 600 },
+      items: { type: 'array', item: { type: 'string' } }
+    },
+    template: { phases: { collect: { type: 'collect', prompt: '${q}' } } }
+  };
+
+  it('stamps recipe id, version, and normalized params', () => {
+    const { config } = compileRecipe(recipe, { q: 'Hi', items: ['a', 'b'] });
+    expect(config.recipe).toEqual({
+      id: 'my-recipe',
+      version: '3',
+      params: { q: 'Hi', timer: 60, items: ['a', 'b'] }
+    });
+  });
+
+  it('defaults version to "1" when the recipe has none', () => {
+    const bare = { ...recipe, version: undefined };
+    const { config } = compileRecipe(bare, { q: 'Hi' });
+    expect(config.recipe.version).toBe('1');
+  });
+
+  it('stamp params are materialized post-defaults and post-coercion', () => {
+    const { config } = compileRecipe(recipe, { q: 'Hi', timer: '45' });
+    expect(config.recipe.params.timer).toBe(45);
+  });
+
+  it('stamp params are an isolated deep copy', () => {
+    const params = { q: 'Hi', items: ['a', 'b'] };
+    const { config } = compileRecipe(recipe, params);
+    config.recipe.params.items.push('c');
+    expect(params.items).toEqual(['a', 'b']);
+  });
+
+  it('overwrites a template-authored recipe key (no spoofing)', () => {
+    const spoofing = {
+      ...recipe,
+      template: { recipe: { id: 'fake', params: {} }, phases: recipe.template.phases }
+    };
+    const { config } = compileRecipe(spoofing, { q: 'Hi' });
+    expect(config.recipe.id).toBe('my-recipe');
+  });
+});
+
+describe('carryRecipeStamp — revise round-trip protection', () => {
+  it('copies a well-formed stamp onto the revised config', () => {
+    const from = { recipe: { id: 'r', version: '1', params: { n: 2 } } };
+    const to = { phases: {} };
+    carryRecipeStamp(from, to);
+    expect(to.recipe).toEqual(from.recipe);
+    expect(to.recipe).not.toBe(from.recipe);
+  });
+
+  it('does nothing without a stamp or with a malformed one', () => {
+    const to = { phases: {} };
+    carryRecipeStamp({}, to);
+    carryRecipeStamp({ recipe: 'bogus' }, to);
+    carryRecipeStamp({ recipe: { params: {} } }, to);
+    expect(to.recipe).toBeUndefined();
+  });
+
+  it('tolerates a null revised config', () => {
+    expect(() => carryRecipeStamp({ recipe: { id: 'r' } }, null)).not.toThrow();
   });
 });

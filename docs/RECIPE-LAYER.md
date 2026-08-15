@@ -281,6 +281,53 @@ Used by: `one-voice` (`maxAttempts`), `snowball` (`snowballAgain` — second
 merge with groupSize 4), `closer` (`partners` — rotate vs reuse), and
 `quiz-show` (the R3-deferred recipe this milestone unlocked).
 
+### Setup mode (2026-08-14): provenance stamps + Customize knobs
+
+Per-game setup mode, the owner's flow: customize and set up together in
+one dialog, then preview, then host; next time just Host.
+
+- **Provenance stamp** — `compileRecipe` writes
+  `config.recipe = {id, version, params}` onto every compiled config
+  (normalized post-default params, deep-cloned, stamped after
+  substitution so a template can't spoof it). The stamp survives
+  save/load untouched (top-level unknown fields pass the game
+  validator), rides through `/api/games/revise` via `carryRecipeStamp`
+  (the AI rebuilds the whole config and would drop it), and is stripped
+  by save-as-recipe so new templates stay clean. Storyboard-born games
+  have no stamp — there is no recipe to recompile from.
+- **Setup flags** — a recipe parameter can declare itself a Customize
+  knob: `"setup": true` on integer/boolean/enum (renders its normal
+  widget), `"setup": {"mode": "count", "label": ...}` on arrays
+  (renders a how-many stepper; applying it slices the stamped array to
+  the first N). Anything else is rejected with
+  `RECIPE_INVALID_SETUP_FLAG`.
+- **Multi-phase `$repeat`** — `"phases"` (an ordered map of keyPattern →
+  phase template) instead of `"keyPattern"` + `"phase"` emits several
+  phases per item. Chain within an item explicitly
+  (`"next": "r${i}"`); `${nextKey}` is the FIRST phase of the next item,
+  or `after` on the last. quiz-show uses it for question + host-paced
+  reveal pairs.
+- **The dialog** — `screens/shared/setup-knobs.js`: `knobsFor(summary,
+  stamp)` returns knobs only when stamp id AND version match the live
+  recipe and it isn't broken; any mismatch degrades to the knobless
+  Customize dialog. Touched knobs recompile via
+  `POST /api/recipes/:id/compile` into the teacher's copy; **untouched
+  knobs never recompile** (a hand-edited stamped copy can't be silently
+  rebuilt). The stamp records the last recipe-authored state by design.
+- **Reference game** — `games/speed-quiz` is a faithful quiz-show
+  compile of its own stamp; `tests/engine/speed-quiz-recipe-born.test.js`
+  drift-guards phases against a fresh compile. To change Speed Quiz,
+  change the recipe template or the stamped params and recompile.
+- **Dedicated panels (`setupPanel: "quiz"`)** — a recipe whose params ARE
+  the content can declare a whole Customize experience instead of knobs.
+  For "quiz": the generic AI words-interview is skipped (a words-rewrite
+  can break `correctAnswer`/choices agreement and desyncs the stamp);
+  the dialog shows the editable question list (✓ the answer, ✕ to drop,
+  add up to 20) plus a topic box that has the AI write fresh questions
+  (`POST /api/games/quiz-questions` → `AIService.generateQuizQuestions`
+  → `engine/quiz-questions.js` cleaning). Same gate as knobs: stamp and
+  recipe must agree or the panel never shows.
+
 ### What's in R1 (this milestone)
 
 - `engine/recipe-schema.js` — Recipe shape, `validateRecipe()`,

@@ -378,3 +378,53 @@ describe('reviseGame envelope tolerance', () => {
     await expect(service.reviseGame({ config, request: 'test' })).rejects.toThrow(/updatedConfig/);
   });
 });
+
+describe('generateQuizQuestions (quiz Customize panel)', () => {
+  it('mock mode returns the requested number of well-formed questions', async () => {
+    const service = new AIService();
+    const result = await service.generateQuizQuestions({ topic: 'the water cycle', count: 3 });
+    expect(result.questions).toHaveLength(3);
+    for (const q of result.questions) {
+      expect(q.question).toContain('the water cycle');
+      expect(q.choices.length).toBeGreaterThanOrEqual(2);
+      expect(q.choices).toContain(q.correct);
+    }
+  });
+
+  it('defaults to 5 questions when count is missing or out of range', async () => {
+    const service = new AIService();
+    expect((await service.generateQuizQuestions({ topic: 'x y z' })).questions).toHaveLength(5);
+    expect((await service.generateQuizQuestions({ topic: 'x y z', count: 99 })).questions).toHaveLength(5);
+  });
+
+  it('real mode cleans the AI output through the drop-dont-fail gate', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => ({
+      content: [{ type: 'text', text: 'Sure! Here you go: ' + JSON.stringify({
+        questions: [
+          { question: 'Good?', choices: ['yes', 'no'], correct: 'yes' },
+          { question: 'Bad?', choices: ['a', 'b'], correct: 'nope' }
+        ]
+      }) }]
+    });
+    const result = await service.generateQuizQuestions({ topic: 'anything here', count: 5 });
+    expect(result.questions).toEqual([{ question: 'Good?', choices: ['yes', 'no'], correct: 'yes' }]);
+  });
+
+  it('real mode returns a friendly error when nothing usable comes back', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => ({
+      content: [{ type: 'text', text: '{"questions": []}' }]
+    });
+    const result = await service.generateQuizQuestions({ topic: 'anything here' });
+    expect(result.error).toMatch(/could not write usable questions/);
+  });
+
+  it('rethrows budget errors so the route can 429', async () => {
+    const service = new AIService({ mode: 'real' });
+    const budgetErr = new Error('cap');
+    budgetErr.name = 'AiBudgetError';
+    service._callClaude = async () => { throw budgetErr; };
+    await expect(service.generateQuizQuestions({ topic: 'anything here' })).rejects.toThrow('cap');
+  });
+});
