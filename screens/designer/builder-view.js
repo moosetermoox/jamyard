@@ -744,17 +744,27 @@
     var box = document.createElement('textarea');
     box.rows = 3;
     box.value = structured ? structured.words : (phase[field] || '');
-    box.addEventListener('input', function () {
+    function writeStructured() {
       var live = phases();
       if (!live || !live[stepId]) return;
-      if (structured) {
-        structured.words = box.value;
-        live[stepId][field] = serializeMessageDisplay(structured.words, structured.ref, structured.sep);
-      } else {
-        live[stepId][field] = box.value;
-      }
+      live[stepId][field] = serializeMessageDisplay(
+        structured.words, structured.ref, structured.sep,
+        structured.after, structured.sepAfter);
       markDirty();
       updateCard();
+    }
+
+    box.addEventListener('input', function () {
+      if (structured) {
+        structured.words = box.value;
+        writeStructured();
+      } else {
+        var live = phases();
+        if (!live || !live[stepId]) return;
+        live[stepId][field] = box.value;
+        markDirty();
+        updateCard();
+      }
     });
     group.appendChild(box);
     railPrimary.appendChild(group);
@@ -783,17 +793,32 @@
       });
       sel.value = structured.ref || '';
       sel.addEventListener('change', function () {
-        var live = phases();
-        if (!live || !live[stepId]) return;
         structured.ref = sel.value || null;
-        live[stepId][field] = serializeMessageDisplay(structured.words, structured.ref, structured.sep);
-        markDirty();
-        updateCard();
+        writeStructured();
+        // Re-render: picking a display reveals the words-under-it box;
+        // removing it folds those words back into the main box.
+        renderRailPrimary();
       });
       dGroup.appendChild(sel);
       dGroup.appendChild(el('small', 'builder-also-show-hint',
         'Information from an earlier step, shown under the message.'));
       railPrimary.appendChild(dGroup);
+
+      // Words that come AFTER the display (a closing line under the chart,
+      // "Read each side out loud..."). Only meaningful when a display exists.
+      if (structured.ref) {
+        var aGroup = el('div', 'form-group');
+        aGroup.appendChild(el('label', null, 'Words under it'));
+        var afterBox = document.createElement('textarea');
+        afterBox.rows = 2;
+        afterBox.value = structured.after || '';
+        afterBox.addEventListener('input', function () {
+          structured.after = afterBox.value;
+          writeStructured();
+        });
+        aGroup.appendChild(afterBox);
+        railPrimary.appendChild(aGroup);
+      }
     }
   }
 

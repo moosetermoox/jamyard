@@ -4899,8 +4899,10 @@ function isBlockDisplayRef(ref) {
   return BLOCK_DISPLAY_SUFFIXES[parts[parts.length - 1]] === 1;
 }
 
-// {words, ref, sep} when the text fits the simple shape (no block tokens,
-// or exactly one at the very end); null otherwise (caller keeps the raw
+// {words, ref, sep, after, sepAfter} when the text fits the simple shape:
+// no block tokens, or exactly ONE anywhere in the text. Words after the
+// display land in `after`, so "TITLE {{chart}} closing line" still gets the
+// dropdown. Two or more block tokens return null (caller keeps the raw
 // textarea). Inline tokens like {{x.winner}} count as words and stay put.
 function parseMessageDisplay(text) {
   var s = String(text == null ? '' : text);
@@ -4912,24 +4914,33 @@ function parseMessageDisplay(text) {
       found.push({ ref: m[1].trim(), start: m.index, end: re.lastIndex });
     }
   }
-  if (found.length === 0) return { words: s, ref: null, sep: '\n\n' };
+  if (found.length === 0) return { words: s, ref: null, sep: '\n\n', after: '', sepAfter: '\n\n' };
   if (found.length > 1) return null;
   var t = found[0];
-  if (s.slice(t.end).trim() !== '') return null;
   var before = s.slice(0, t.start);
+  var afterRaw = s.slice(t.end);
   var sepMatch = before.match(/\s+$/);
+  var sepAfterMatch = afterRaw.match(/^\s+/);
   return {
     words: before.replace(/\s+$/, ''),
     ref: t.ref,
-    sep: sepMatch ? sepMatch[0] : '\n\n'
+    sep: sepMatch ? sepMatch[0] : '\n\n',
+    after: afterRaw.replace(/^\s+/, ''),
+    sepAfter: sepAfterMatch ? sepAfterMatch[0] : '\n\n'
   };
 }
 
-function serializeMessageDisplay(words, ref, sep) {
+function serializeMessageDisplay(words, ref, sep, after, sepAfter) {
   var w = String(words || '').replace(/\s+$/, '');
-  if (!ref) return w;
-  if (!w) return '{{' + ref + '}}';
-  return w + (sep || '\n\n') + '{{' + ref + '}}';
+  var a = String(after || '').replace(/^\s+/, '');
+  if (!ref) {
+    // Display removed: fold any after-words back into one message.
+    if (!a) return w;
+    return w ? w + (sepAfter || '\n\n') + a : a;
+  }
+  var out = w ? w + (sep || '\n\n') + '{{' + ref + '}}' : '{{' + ref + '}}';
+  if (a) out += (sepAfter || '\n\n') + a;
+  return out;
 }
 
 // Options for the "Also show" dropdown: the chart/list subset of the
