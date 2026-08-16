@@ -212,7 +212,10 @@
       letter-spacing: 0.12em;
       text-transform: uppercase;
       color: #FFD3E6;
+      text-decoration: none;
     }
+
+    a.clipping-label:hover { color: #FFF6EA; }
 
     .clipping-count {
       font-size: 13px;
@@ -557,7 +560,7 @@
            click to host it now. Hidden until the list loads. -->
       <div class="clipping" id="activity-carousel" hidden>
         <div class="clipping-top">
-          <span class="clipping-label">From the library</span>
+          <a class="clipping-label" href="/library" title="Browse the full library">From the library</a>
           <span class="clipping-count" id="carousel-count"></span>
         </div>
         <a class="clipping-slide" id="carousel-slide" href="/library">
@@ -571,6 +574,12 @@
             <a class="clipping-cta clipping-cta-quiet" id="carousel-preview" style="--ctilt: 0.6deg" href="/prototype" title="See the teacher and student screens side by side, with practice players, no class needed">PREVIEW</a>
             <a class="clipping-cta" id="carousel-cta" href="/library">▶ HOST THIS</a>
           </div>
+        </div>
+        <!-- The library door, right where the attention is: visitors were
+             browsing the carousel one card at a time and never realizing
+             the full shelf exists (field feedback 2026-08-16). -->
+        <div class="clipping-bottom">
+          <a class="clipping-cta" id="carousel-seeall" style="--ctilt: 0.5deg" href="/library" title="Browse the full library">SEE ALL →</a>
           <div class="clipping-nav">
             <button type="button" id="carousel-prev" aria-label="Previous activity">‹</button>
             <button type="button" id="carousel-next" aria-label="Next activity">›</button>
@@ -694,6 +703,9 @@
               })
             : all.filter(function (g) { return g.featured; });
           if (games.length === 0) return;
+          // The count turns "is this all there is?" into an invitation.
+          document.getElementById('carousel-seeall').textContent =
+            'SEE ALL ' + games.length + ' →';
           carouselEl.hidden = false;
           render();
           startRotation();
