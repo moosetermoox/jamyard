@@ -26,7 +26,7 @@
  *                                       c is true, otherwise the field is
  *                                       dropped. v can hold placeholders and
  *                                       keeps its native type.
- *   - "$repeat" key inside "phases":    { "forEach": "<arrayParam>",
+ *   - "$repeat" key inside "phases":    { "forEach": "<arrayOrIntParam>",
  *                                       "keyPattern": "q${i}", "phase": {...},
  *                                       "after": "<phaseId>" } expands to one
  *                                       phase per item. Inside the phase
@@ -41,10 +41,12 @@
  *                                       ("next": "r${i}"); ${nextKey} is the
  *                                       FIRST phase of the next item, or
  *                                       "after" on the last.
- *   - { "$map": "<arrayParam>", "value": v }   compiles to an array with one
- *                                       compiled v per item (same scope vars
- *                                       as $repeat) — e.g. a leaderboard
+ *   - { "$map": "<arrayOrIntParam>", "value": v }  compiles to an array with
+ *                                       one compiled v per item (same scope
+ *                                       vars as $repeat) — e.g. a leaderboard
  *                                       summing every generated round.
+ *   forEach/$map over an INTEGER param is count mode: iterations 1..N,
+ *   ${item} = the round number (no per-item content — trivia-bluff rounds).
  *
  * When $if drops a PHASE, any next/approveNext/rejectNext/loopBack that
  * pointed at it is rewired to the dropped phase's own "next" (following
@@ -428,9 +430,9 @@ function substituteAll(template, params, recipe, dropped) {
         keyPatterns.length === 0 || (!multi && spec.phase == null)) {
       throw new Error(`Recipe "${recipe.id}" has an invalid $repeat, needs "forEach" plus either "keyPattern" + "phase" or a "phases" map.`);
     }
-    const arr = lookupParam(scope, recipe, spec.forEach, '');
-    if (!Array.isArray(arr)) {
-      throw new Error(`Recipe "${recipe.id}" $repeat forEach "${spec.forEach}" must be an array parameter.`);
+    const arr = resolveIterationItems(spec.forEach, scope);
+    if (!arr) {
+      throw new Error(`Recipe "${recipe.id}" $repeat forEach "${spec.forEach}" must be an array or non-negative integer parameter.`);
     }
     for (let idx = 0; idx < arr.length; idx++) {
       const iterScope = { ...scope, item: arr[idx], i: idx + 1, n: arr.length };
@@ -460,9 +462,9 @@ function substituteAll(template, params, recipe, dropped) {
   }
 
   function expandMap(node, scope) {
-    const arr = lookupParam(scope, recipe, node.$map, '');
-    if (!Array.isArray(arr)) {
-      throw new Error(`Recipe "${recipe.id}" $map "${node.$map}" must name an array parameter.`);
+    const arr = resolveIterationItems(node.$map, scope);
+    if (!arr) {
+      throw new Error(`Recipe "${recipe.id}" $map "${node.$map}" must name an array or non-negative integer parameter.`);
     }
     if (node.value === undefined) {
       throw new Error(`Recipe "${recipe.id}" $map needs a "value" template.`);
@@ -470,6 +472,20 @@ function substituteAll(template, params, recipe, dropped) {
     return arr.map((item, idx) =>
       walk(node.value, { ...scope, item, i: idx + 1, n: arr.length }, null)
     ).filter((el) => el !== DROP);
+  }
+
+  // $repeat.forEach and $map accept either an array parameter (one
+  // iteration per item) or a non-negative INTEGER parameter — count mode:
+  // iterations 1..N with ${item} = the round number. Count mode powers
+  // "how many rounds" setup knobs where each round's content is generated
+  // at game time and there is nothing per-item to iterate (trivia-bluff).
+  function resolveIterationItems(name, scope) {
+    const v = lookupParam(scope, recipe, name, '');
+    if (Array.isArray(v)) return v;
+    if (Number.isInteger(v) && v >= 0) {
+      return Array.from({ length: v }, (_, k) => k + 1);
+    }
+    return null;
   }
 }
 

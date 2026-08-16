@@ -868,6 +868,11 @@ function customizeCopy(game, btn) {
     if (window.SetupKnobs && parts[1] && SetupKnobs.panelFor(parts[1], config.recipe)) {
       return { questions: [] };
     }
+    // Labels of the setup knobs this dialog already renders (round count,
+    // timers...) ride along so the AI never asks about a setting the
+    // teacher can see a control for (trivia-bluff's rounds knob, 2026-08-16).
+    var knobs = (window.SetupKnobs && parts[1])
+      ? SetupKnobs.knobsFor(parts[1], config.recipe) : [];
     return fetch('/api/games/customize-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -875,7 +880,8 @@ function customizeCopy(game, btn) {
         config: config,
         // The saved class profile rides along so the questions build on it
         // instead of re-asking grade and subject.
-        classDescription: window.TeacherProfile ? TeacherProfile.describe() : ''
+        classDescription: window.TeacherProfile ? TeacherProfile.describe() : '',
+        knownSettings: (knobs || []).map(function (k) { return k.label; })
       })
     }).then(function (r) { return r.ok ? r.json() : { questions: [] }; })
       .catch(function () { return { questions: [] }; });

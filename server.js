@@ -2238,12 +2238,12 @@ app.post('/api/games/fix-issue', async (req, res) => {
 // Works in mock mode too (canned questions) so the flow is always testable.
 app.post('/api/games/customize-questions', async (req, res) => {
   try {
-    const { config, classDescription } = req.body;
+    const { config, classDescription, knownSettings } = req.body;
     if (!config || !config.phases) {
       return res.status(400).json({ error: 'Missing config or phases' });
     }
     const classDesc = typeof classDescription === 'string' ? classDescription : '';
-    const result = await aiService.generateCustomizeQuestions(config, classDesc);
+    const result = await aiService.generateCustomizeQuestions(config, classDesc, knownSettings);
     res.json(result);
   } catch (error) {
     console.log(`[api/games/customize-questions] Error: ${error.message}`);

@@ -1,0 +1,113 @@
+{
+  "id": "trivia-bluff",
+  "name": "Trivia Bluff",
+  "icon": "🕵️",
+  "description": "Round by round, the AI finds an obscure real fact with a blank. Students write believable lies to fill it, then everyone votes for the truth among the fakes. Points for spotting the truth, points for every classmate your lie fools.",
+  "tagline": "The Fibbage shape: a quick-witted bluffing game that gets sharper with every round.",
+  "version": "1",
+  "parameters": {
+    "rounds": {
+      "type": "integer",
+      "label": "How many rounds",
+      "helper": "Each round is a fresh AI-found fact: write lies, then vote. Plan on 6 to 8 minutes per round.",
+      "default": 3,
+      "min": 1,
+      "max": 6,
+      "setup": true
+    },
+    "lieTimer": {
+      "type": "integer",
+      "label": "Lie-writing time (seconds)",
+      "helper": "How long students get to write their fake answer each round.",
+      "default": 45,
+      "min": 15,
+      "max": 180,
+      "setup": true
+    }
+  },
+  "template": {
+    "name": "Trivia Bluff",
+    "description": "A fact with a blank and believable lies. Pick the truth to score; fool the class to score too.",
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "TRIVIA BLUFF!\n\nYou'll see an obscure fact with a blank. Write a believable lie to fill it in. The class will then try to spot the truth, but your lie might fool them!",
+        "timer": 10,
+        "next": "fact1"
+      },
+      "$repeat": {
+        "forEach": "rounds",
+        "phases": {
+          "fact${i}": {
+            "type": "ai-process",
+            "task": "generate",
+            "format": "json",
+            "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a fill-in-the-blank bluffing game. This is round ${i} of ${n} in one session. So that rounds never repeat a topic, pick this round's category by its number: 1 = your pick, any surprising topic; 2 = geography or world places; 3 = animals or nature; 4 = food and drink; 5 = history or inventions; 6 = sports, games, or odd laws. This is round ${i}, so use category ${i}, and within it choose an unexpected fact. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative the system can mix into the choices (e.g. \"chicken\")\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics.",
+            "next": "show${i}"
+          },
+          "show${i}": {
+            "type": "announce",
+            "message": "Round ${i} of ${n}\n\nCategory: {{fact${i}.result.category}}\n\n{{fact${i}.result.question}}\n\nWrite your most believable lie!",
+            "timer": 8,
+            "next": "lies${i}"
+          },
+          "lies${i}": {
+            "type": "collect",
+            "prompt": "{{fact${i}.result.question}}\n\nWrite a lie that could fool the class.",
+            "timer": "${lieTimer}",
+            "next": "vote${i}"
+          },
+          "vote${i}": {
+            "type": "collect-choice",
+            "prompt": "Which one is the TRUTH?\n\n{{fact${i}.result.question}}",
+            "choicePool": [
+              {
+                "from": "lies${i}.responses",
+                "field": "text"
+              },
+              {
+                "literal": "{{fact${i}.result.truth}}"
+              },
+              {
+                "literal": "{{fact${i}.result.houseLie}}",
+                "optional": true
+              }
+            ],
+            "excludeAuthored": "lies${i}",
+            "shuffle": true,
+            "poolLimit": 8,
+            "correctAnswer": "{{fact${i}.result.truth}}",
+            "pointsCorrect": 100,
+            "speedBonus": false,
+            "foolPoints": 50,
+            "timer": 40,
+            "next": "reveal${i}"
+          },
+          "reveal${i}": {
+            "type": "announce",
+            "message": "The truth was: {{fact${i}.result.truth}}!\n\nWhat the class picked:\n{{vote${i}.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
+            "next": "${nextKey}"
+          }
+        },
+        "after": "scoreboard"
+      },
+      "scoreboard": {
+        "type": "leaderboard",
+        "from": {
+          "$map": "rounds",
+          "value": "vote${i}.scores"
+        },
+        "style": "full",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "That's Trivia Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again for fresh facts."
+      }
+    }
+  }
+}

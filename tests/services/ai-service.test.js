@@ -294,6 +294,31 @@ describe('generateCustomizeQuestions', () => {
     expect(sentPrompt).toContain('Do not ask about grade level, age, or subject');
   });
 
+  // Setup knobs the dialog renders (round count, timers) must not be
+  // re-asked as interview questions (trivia-bluff rounds knob, 2026-08-16).
+  it('real mode tells the model the dialog\'s setting knobs and forbids re-asking them', async () => {
+    const service = new AIService({ mode: 'real' });
+    let sentPrompt = '';
+    service._callClaude = async (req) => {
+      sentPrompt = req.messages[0].content;
+      return { content: [{ type: 'text', text: '{"questions":[{"question":"What topic?"}]}' }] };
+    };
+    await service.generateCustomizeQuestions(config, '', ['How many rounds', 'Lie-writing time (seconds)']);
+    expect(sentPrompt).toContain('How many rounds');
+    expect(sentPrompt).toContain('Never ask about any of those');
+  });
+
+  it('no knobs = no settings block in the prompt', async () => {
+    const service = new AIService({ mode: 'real' });
+    let sentPrompt = '';
+    service._callClaude = async (req) => {
+      sentPrompt = req.messages[0].content;
+      return { content: [{ type: 'text', text: '{"questions":[]}' }] };
+    };
+    await service.generateCustomizeQuestions(config, '', []);
+    expect(sentPrompt).not.toContain('ALREADY HAS setting controls');
+  });
+
   it('mock mode with a known class asks deeper questions, not subject or grade', async () => {
     const service = new AIService();
     const result = await service.generateCustomizeQuestions(config, 'Middle school (6-8), Science');

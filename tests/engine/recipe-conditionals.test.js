@@ -265,18 +265,61 @@ describe('$repeat', () => {
     expect(keys.indexOf('q2')).toBeLessThan(keys.indexOf('end'));
   });
 
-  it('errors when forEach names a non-array param', () => {
+  it('errors when forEach names a param that is neither array nor integer', () => {
     const r = mkRecipe(
-      { count: { type: 'integer', default: 3 } },
+      { title: { type: 'string', default: 'hello' } },
       {
         lobby: { type: 'lobby', next: 'end' },
-        $repeat: { forEach: 'count', keyPattern: 'x${i}', phase: { type: 'announce', message: 'x', next: '${nextKey}' }, after: 'end' },
+        $repeat: { forEach: 'title', keyPattern: 'x${i}', phase: { type: 'announce', message: 'x', next: '${nextKey}' }, after: 'end' },
         end: { type: 'end' }
       }
     );
     const { config, diagnostics } = compileRecipe(r, {});
     expect(config).toBeNull();
-    expect(diagnostics.some(d => /count/.test(d.message))).toBe(true);
+    expect(diagnostics.some(d => /title/.test(d.message))).toBe(true);
+  });
+
+  // Count mode: forEach over an INTEGER param repeats 1..N with no per-item
+  // content. Powers "how many rounds" setup knobs where each round's
+  // content is generated at game time (trivia-bluff).
+  it('forEach over an integer param repeats count times (item = round number)', () => {
+    const r = mkRecipe(
+      { rounds: { type: 'integer', default: 3 } },
+      {
+        lobby: { type: 'lobby', next: 'x1' },
+        $repeat: {
+          forEach: 'rounds',
+          keyPattern: 'x${i}',
+          phase: { type: 'announce', message: 'Round ${i} of ${n} (item=${item})', next: '${nextKey}' },
+          after: 'end'
+        },
+        end: { type: 'end' }
+      }
+    );
+    const config = compileOk(r, {});
+    expect(config.phases.x1.message).toBe('Round 1 of 3 (item=1)');
+    expect(config.phases.x1.next).toBe('x2');
+    expect(config.phases.x3.message).toBe('Round 3 of 3 (item=3)');
+    expect(config.phases.x3.next).toBe('end');
+  });
+
+  it('count of 1 generates a single phase chained straight to "after"', () => {
+    const r = mkRecipe(
+      { rounds: { type: 'integer', default: 3 } },
+      {
+        lobby: { type: 'lobby', next: 'x1' },
+        $repeat: {
+          forEach: 'rounds',
+          keyPattern: 'x${i}',
+          phase: { type: 'announce', message: 'Round ${i} of ${n}', next: '${nextKey}' },
+          after: 'end'
+        },
+        end: { type: 'end' }
+      }
+    );
+    const config = compileOk(r, { rounds: 1 });
+    expect(config.phases.x1.next).toBe('end');
+    expect(config.phases.x2).toBeUndefined();
   });
 });
 
@@ -406,6 +449,23 @@ describe('$map', () => {
     );
     const config = compileOk(r, { questions: ['a', 'b', 'c'] });
     expect(config.phases.board.from).toEqual(['q1.scores', 'q2.scores', 'q3.scores']);
+  });
+
+  it('maps over an integer param in count mode (matching count-mode $repeat)', () => {
+    const r = mkRecipe(
+      { rounds: { type: 'integer', default: 2 } },
+      {
+        lobby: { type: 'lobby', next: 'board' },
+        board: {
+          type: 'leaderboard',
+          from: { $map: 'rounds', value: 'vote${i}.scores' },
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    );
+    const config = compileOk(r, { rounds: 2 });
+    expect(config.phases.board.from).toEqual(['vote1.scores', 'vote2.scores']);
   });
 });
 

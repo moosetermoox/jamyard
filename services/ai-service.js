@@ -1088,8 +1088,15 @@ Return the revised config.`;
   // in, questions out — no student data, Haiku-cheap. classDescription is
   // the teacher's saved profile ("Middle school (6-8), Science"): when
   // present, the questions must BUILD on it, never re-ask it.
-  async generateCustomizeQuestions(config, classDescription = '') {
+  async generateCustomizeQuestions(config, classDescription = '', knownSettings = []) {
     const classDesc = String(classDescription || '').trim().slice(0, 160);
+    // Setup knobs the Customize dialog already renders (round count,
+    // timers...): the AI must never re-ask about a setting the teacher can
+    // see a control for, same rule as the known-class block below.
+    const settings = (Array.isArray(knownSettings) ? knownSettings : [])
+      .filter(s => typeof s === 'string' && s.trim())
+      .map(s => s.trim().slice(0, 60))
+      .slice(0, 8);
     if (this.mode === 'mock') {
       if (classDesc) {
         return { questions: [
@@ -1111,13 +1118,16 @@ Return the revised config.`;
       const knownClass = classDesc
         ? `\nWe ALREADY KNOW their class: ${classDesc}. Do not ask about grade level, age, or subject in any form. Write questions that assume that knowledge and go one level deeper, like the specific unit, book, era, or topic they are teaching right now, or what their class enjoys.\n`
         : '';
+      const knownKnobs = settings.length
+        ? `\nThe dialog ALREADY HAS setting controls for: ${settings.join('; ')}. Never ask about any of those in any wording (no round counts, timer lengths, or anything those controls cover). Only ask about the activity's words and content.\n`
+        : '';
       const message = await this._callClaude({
         model: MODELS.haiku,
         max_tokens: 400,
         messages: [{
           role: 'user',
           content: `A teacher is about to make their own copy of this ready-made classroom activity. Ask 2-3 SHORT questions whose answers would let us rewrite its text (topic, examples, tone) for THEIR class. Plain everyday language, no jargon. Only ask what the activity's content actually depends on, e.g. a vocabulary activity needs the word list's subject, an icebreaker might only need the group. Every question must be answerable in a few words.
-${knownClass}
+${knownClass}${knownKnobs}
 Activity: ${String(config.name || '').slice(0, 80)}
 Description: ${String(config.description || '').slice(0, 200)}
 Steps:
