@@ -1,7 +1,7 @@
 {
   "name": "One Voice",
   "description": "Count to the target together, two voices at once and it's back to one.",
-  "featured": true,
+  "featured": false,
   "family": "connection",
   "phases": {
     "lobby": {
