@@ -526,12 +526,9 @@ async function init() {
   // The "More ▾" menu is gone (2026-08-15): Ask AI sits directly in the
   // header; Technical view and Save as Recipe are parked as hidden buttons.
 
-  // Ask AI: opens the design chat panel (chat-panel.js, loads after this
-  // file — resolve the global at click time, not wiring time).
-  var askAiBtn = document.getElementById('ask-ai-btn');
-  if (askAiBtn) askAiBtn.addEventListener('click', function () {
-    if (window.openDesignChat) openDesignChat(null);
-  });
+  // No header Ask AI button: the design chat panel is always open in the
+  // Simple view; per-step buttons (Simple cards + Builder rail) reach it
+  // with step context via openDesignChat.
 
   // Save as Recipe (R5) — turn the current game into a reusable recipe
   var saveAsRecipeBtn = document.getElementById('save-as-recipe-btn');
