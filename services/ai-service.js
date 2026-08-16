@@ -459,7 +459,107 @@ When returning unsupported, your suggestion should be a SPECIFIC game design usi
 
 Do NOT try to force-fit impossible concepts. Be honest about limitations, but always offer a creative alternative.`;
 
+// =======================================================================
+// Design chat (editor chat panel). One Haiku triage-and-answer call per
+// turn: the model both replies AND classifies the turn. Only when it says
+// "edit" does the turn chain into the full Sonnet reviseGame pipeline, so
+// brainstorm turns stay cheap and fast. History is client-held; the
+// server stays stateless.
+// =======================================================================
 
+const DESIGN_CHAT_PROMPT = `You are a friendly design partner chatting with a teacher inside a classroom activity editor. The teacher is NOT a programmer. You help them think through their activity: brainstorm ideas, answer questions about how the activity works, and suggest improvements.
+
+You will receive a summary of the teacher's current activity and the conversation so far. Reply to the teacher's LAST message.
+
+Decide ONE of two actions:
+- "answer": the teacher is asking a question, brainstorming, comparing options, or thinking out loud. Reply conversationally. Keep it short: 2-5 sentences, concrete, specific to THEIR activity. Offer one or two ideas at a time, not a list of everything.
+- "edit": the teacher clearly asked for a concrete change to this activity, including agreeing to a change you suggested ("yes, do that"). Set "reply" to one short lead-in sentence, and set "editRequest" to a self-contained plain-English instruction for another AI that will edit the activity. The editRequest must stand alone with no conversation context: name the specific step or steps and exactly what to change.
+
+Only choose "edit" for a clear, concrete request. Questions and "what if" talk are "answer". Never choose "edit" just because a change was mentioned as a possibility.
+
+WRITING RULES:
+- Plain, everyday language. No technical jargon. NEVER write {{anything}}, backticks, or config field names.
+- Talk about "steps", not phases or JSON.
+- Warm but efficient. No filler like "Great question!".
+
+STEP TYPES available in this editor (internal reference, do NOT use these technical names in your reply):
+${buildPhaseDocsForPrompt({ format: 'terse' })}
+
+Return ONLY valid JSON, one of:
+{"action": "answer", "reply": "your reply to the teacher"}
+{"action": "edit", "reply": "one short lead-in sentence", "editRequest": "self-contained change instruction"}`;
+
+function truncateForSummary(text, max) {
+  if (typeof text !== 'string') return '';
+  const flat = text.replace(/\s+/g, ' ').trim();
+  return flat.length > max ? flat.slice(0, max) + '...' : flat;
+}
+
+// The first teacher-authored text on a phase, for the one-line-per-step
+// config summary. Order matters: the most identity-giving field first.
+function phaseSnippet(phase) {
+  for (const field of ['prompt', 'message', 'question', 'instruction', 'template', 'content']) {
+    if (typeof phase[field] === 'string' && phase[field].trim()) return phase[field];
+  }
+  return '';
+}
+
+/**
+ * Compact plain-text picture of a config for the design chat's cheap
+ * (Haiku) turns: name, description, players, then one line per step in
+ * next-chain order. Never includes raw JSON. Pure; exported for tests.
+ */
+export function summarizeConfigForChat(config) {
+  const lines = [];
+  lines.push(`Name: ${config.name || '(untitled)'}`);
+  if (config.description) lines.push(`Description: ${truncateForSummary(config.description, 120)}`);
+  if (config.minPlayers || config.maxPlayers) {
+    lines.push(`Players: ${config.minPlayers || '?'}-${config.maxPlayers || '?'}`);
+  }
+  if (config.recipe && config.recipe.id) lines.push(`Built from the "${config.recipe.id}" recipe.`);
+  lines.push('Steps in order:');
+
+  const phases = config.phases || {};
+  const order = [];
+  const seen = new Set();
+  let cur = phases.lobby ? 'lobby' : Object.keys(phases)[0];
+  while (cur && phases[cur] && !seen.has(cur)) {
+    seen.add(cur);
+    order.push(cur);
+    cur = typeof phases[cur].next === 'string' ? phases[cur].next : null;
+  }
+  for (const id of Object.keys(phases)) {
+    if (!seen.has(id)) order.push(id);
+  }
+
+  order.forEach((id, i) => {
+    const p = phases[id];
+    const snippet = truncateForSummary(phaseSnippet(p), 80);
+    lines.push(`${i + 1}. [${id}] ${p.type}${snippet ? ': ' + snippet : ''}`);
+    if (p.type === 'foreach' && p.phases && typeof p.phases === 'object') {
+      for (const [subId, sub] of Object.entries(p.phases)) {
+        const s = truncateForSummary(phaseSnippet(sub), 60);
+        lines.push(`   - [${id}.${subId}] ${sub.type}${s ? ': ' + s : ''}`);
+      }
+    }
+  });
+  return lines.join('\n');
+}
+
+/**
+ * Server-side re-enforcement of the client's history cap: last 12 valid
+ * {role, content} entries, each content capped at 2,000 chars. Full
+ * configs never belong in history. Pure; exported for tests.
+ */
+export function trimChatHistory(messages) {
+  const valid = (Array.isArray(messages) ? messages : []).filter(m =>
+    m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string'
+  );
+  return valid.slice(-12).map(m => ({
+    role: m.role,
+    content: m.content.length > 2000 ? m.content.slice(0, 2000) : m.content
+  }));
+}
 
 /**
  * AIService - Processes collected responses using AI
@@ -858,80 +958,77 @@ Return the revised config.`;
     }
   }
 
-  async revisePhase({ config, phaseId, request }) {
+  /**
+   * One turn of the editor's design chat. Returns either
+   *   { kind: 'chat', reply }                                — discussion turn
+   *   { kind: 'proposal', reply, updatedConfig, summary }    — edit turn
+   * The caller (server.js) stamps + validates proposal turns, exactly
+   * like /api/games/revise.
+   */
+  async designChat({ config, messages, focusPhaseId, classDescription } = {}) {
     if (this.mode === 'mock') {
-      const phase = config.phases[phaseId];
-      return { updatedPhase: phase, summary: '[MOCK] No changes applied.' };
+      return { kind: 'chat', reply: '[MOCK] AI chat is offline on this server. Set ANTHROPIC_API_KEY for real replies.' };
     }
-    return this._revisePhaseReal({ config, phaseId, request });
+    return this._designChatReal({ config, messages, focusPhaseId, classDescription });
   }
 
-  async _revisePhaseReal({ config, phaseId, request }) {
-    const phase = config.phases[phaseId];
-    if (!phase) throw new Error(`Phase "${phaseId}" not found`);
-    const otherPhaseIds = Object.keys(config.phases).filter(id => id !== phaseId);
+  async _designChatReal({ config, messages, focusPhaseId, classDescription }) {
     try {
-      const systemPrompt = `You are revising ONE step of a classroom game based on the teacher's request. You will be given the step's current JSON, the IDs of the other steps in the game, and the teacher's plain-English request.
+      const history = trimChatHistory(messages);
+      const transcript = history
+        .map(m => (m.role === 'user' ? 'Teacher: ' : 'Assistant: ') + m.content)
+        .join('\n');
 
-Return ONLY valid JSON matching this schema:
-{"updatedPhase": { ...the revised step config... }, "summary": "one short sentence in plain English describing what you changed"}
-
-Rules:
-- Keep the step's "type" unchanged unless the request explicitly asks to change it.
-- Keep "next" pointing to a real phase ID from the provided list.
-- Make the SMALLEST change that fulfills the request.
-- The "summary" is for the teacher: plain English, no JSON, no curly braces, no field names.
-- Follow the same field rules as a freshly generated game (only fields documented in the schema).
-
-` + GAME_GENERATOR_PROMPT;
-
-      const userContent = `Step ID: ${phaseId}
-Other step IDs in this game: ${JSON.stringify(otherPhaseIds)}
-
-Current step JSON:
-${JSON.stringify(phase, null, 0)}
-
-Teacher's request:
-${request}
-
-Return the revised step.`;
+      let userContent = `Current activity:\n${summarizeConfigForChat(config)}\n`;
+      if (focusPhaseId && config.phases && config.phases[focusPhaseId]) {
+        userContent += `\nThe teacher opened this chat from the step "${focusPhaseId}".\n`;
+      }
+      if (classDescription && typeof classDescription === 'string' && classDescription.trim()) {
+        userContent += `\nThe teacher's class: ${truncateForSummary(classDescription, 200)}\n`;
+      }
+      userContent += `\nConversation so far:\n${transcript}\n\nReply to the teacher's last message. Return ONLY the JSON.`;
 
       const start = Date.now();
       const message = await this._callClaude({
-        model: MODELS.sonnet,
-        max_tokens: 1536,
-        system: systemPrompt,
+        model: MODELS.haiku,
+        max_tokens: 700,
+        system: DESIGN_CHAT_PROMPT,
         messages: [{ role: 'user', content: userContent }]
       });
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-      console.log(`[AIService] revisePhase completed in ${elapsed}s (model: ${MODELS.sonnet})`);
+      console.log(`[AIService] designChat triage completed in ${elapsed}s (model: ${MODELS.haiku})`);
 
       const text = extractText(message);
-      let parsed;
+      let parsed = null;
       try {
         parsed = JSON.parse(text);
       } catch {
         const match = text.match(/\{[\s\S]*\}/);
-        if (!match) throw new Error('AI response was not valid JSON');
-        parsed = JSON.parse(match[0]);
-      }
-      if (!parsed.updatedPhase || typeof parsed.updatedPhase !== 'object') {
-        throw new Error('AI response missing updatedPhase');
-      }
-      // Strip invented fields on the single phase
-      const updated = parsed.updatedPhase;
-      const allowed = getAllowedFields(updated.type || phase.type);
-      if (allowed.size > 0) {
-        for (const f of Object.keys(updated)) {
-          if (!allowed.has(f)) {
-            console.log(`[revisePhase] Stripped unknown field "${f}" from "${phaseId}"`);
-            delete updated[f];
-          }
+        if (match) {
+          try { parsed = JSON.parse(match[0]); } catch { parsed = null; }
         }
       }
-      return { updatedPhase: updated, summary: parsed.summary || 'Changes applied.' };
+      // Never fail a chat turn on a parse hiccup: raw prose IS the answer.
+      if (!parsed || typeof parsed.reply !== 'string' || !parsed.reply.trim()) {
+        return { kind: 'chat', reply: text.trim() || 'Sorry, I lost my train of thought. Ask me again?' };
+      }
+
+      const editRequest = typeof parsed.editRequest === 'string' ? parsed.editRequest.trim() : '';
+      if (parsed.action !== 'edit' || !editRequest) {
+        return { kind: 'chat', reply: parsed.reply };
+      }
+
+      // Edit turn: chain into the full revise pipeline (envelope
+      // tolerance, field stripping, defensive fixes — zero duplication).
+      const revised = await this.reviseGame({ config, request: editRequest });
+      return {
+        kind: 'proposal',
+        reply: parsed.reply,
+        updatedConfig: revised.updatedConfig,
+        summary: revised.summary
+      };
     } catch (error) {
-      console.error('[AIService] revisePhase error:', error.message);
+      console.error('[AIService] designChat error:', error.message);
       throw error;
     }
   }

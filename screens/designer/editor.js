@@ -513,7 +513,9 @@ async function init() {
     if (document.body.classList.contains('builder-mode')) return;
     // Active modal / overlay UIs that the user is interacting with.
     if (e.target.closest('.picker-overlay')) return;
-    if (e.target.closest('.ask-ai-modal')) return;
+    // The design chat is its own surface — chatting must not collapse a
+    // just-made step selection out from under the teacher.
+    if (e.target.closest('#chat-panel')) return;
     if (e.target.closest('#validation-panel')) return;
     if (e.target.closest('#review-panel')) return;
     // Header buttons (Save/Test/etc.) run their own handlers — fine to also
@@ -524,21 +526,16 @@ async function init() {
   // The "More ▾" menu is gone (2026-08-15): Ask AI sits directly in the
   // header; Technical view and Save as Recipe are parked as hidden buttons.
 
-  // Ask AI (whole-game revise)
+  // Ask AI: opens the design chat panel (chat-panel.js, loads after this
+  // file — resolve the global at click time, not wiring time).
   var askAiBtn = document.getElementById('ask-ai-btn');
-  if (askAiBtn) askAiBtn.addEventListener('click', function () { openAskAiModal(null); });
+  if (askAiBtn) askAiBtn.addEventListener('click', function () {
+    if (window.openDesignChat) openDesignChat(null);
+  });
 
   // Save as Recipe (R5) — turn the current game into a reusable recipe
   var saveAsRecipeBtn = document.getElementById('save-as-recipe-btn');
   if (saveAsRecipeBtn) saveAsRecipeBtn.addEventListener('click', openSaveAsRecipeModal);
-  var askAiCloseBtn = document.getElementById('ask-ai-close');
-  if (askAiCloseBtn) askAiCloseBtn.addEventListener('click', closeAskAiModal);
-  var askAiSubmitBtn = document.getElementById('ask-ai-submit');
-  if (askAiSubmitBtn) askAiSubmitBtn.addEventListener('click', submitAskAi);
-  var askAiApplyBtn = document.getElementById('ask-ai-apply');
-  if (askAiApplyBtn) askAiApplyBtn.addEventListener('click', applyAskAiResult);
-  var askAiDiscardBtn = document.getElementById('ask-ai-discard');
-  if (askAiDiscardBtn) askAiDiscardBtn.addEventListener('click', closeAskAiModal);
 
   // Live preview toggle
   var togglePreviewBtn = document.getElementById('toggle-preview-btn');
@@ -4946,7 +4943,8 @@ function addAskAiStepButton(phaseId) {
   btn.className = 'ask-step-btn';
   btn.textContent = '✨ Ask AI about this step';
   btn.addEventListener('click', function () {
-    openAskAiModal(phaseId);
+    // Jumps to the Simple view with this step as the chat's context.
+    if (window.openDesignChat) openDesignChat(phaseId);
   });
   phaseConfigForm.appendChild(btn);
 }
@@ -6525,129 +6523,9 @@ function renderLivePreview(phaseId) {
   if (playerContent) playerContent.innerHTML = buildPreviewHTML(phase, 'player');
 }
 
-// --- Ask AI (whole-game and per-step revise) ---
-
-var askAiContext = null; // null = whole game, or { phaseId } for per-step
-var askAiPendingResult = null; // { updatedConfig } or { phaseId, updatedPhase }
-
-function openAskAiModal(phaseId) {
-  askAiContext = phaseId ? { phaseId: phaseId } : null;
-  askAiPendingResult = null;
-  var modal = document.getElementById('ask-ai-modal');
-  var title = document.getElementById('ask-ai-title');
-  var subtitle = document.getElementById('ask-ai-subtitle');
-  var input = document.getElementById('ask-ai-input');
-  var status = document.getElementById('ask-ai-status');
-  var result = document.getElementById('ask-ai-result');
-
-  if (phaseId) {
-    title.textContent = 'Ask AI to revise: ' + getFriendlyPhaseName(phaseId);
-    subtitle.textContent = 'Describe what you\'d like to change about this step.';
-    input.placeholder = 'e.g. Give players more time, make the prompt friendlier, add a hint';
-  } else {
-    title.textContent = 'Ask AI to revise this activity';
-    subtitle.textContent = 'Describe what you\'d like to change in plain English.';
-    input.placeholder = 'e.g. Make round 1 longer, add a leaderboard at the end, make the wording friendlier for 6th graders';
-  }
-
-  input.value = '';
-  status.hidden = true;
-  status.textContent = '';
-  result.hidden = true;
-  modal.hidden = false;
-  setTimeout(function () { input.focus(); }, 50);
-}
-
-function closeAskAiModal() {
-  askAiContext = null;
-  askAiPendingResult = null;
-  document.getElementById('ask-ai-modal').hidden = true;
-}
-
-async function submitAskAi() {
-  var input = document.getElementById('ask-ai-input');
-  var status = document.getElementById('ask-ai-status');
-  var result = document.getElementById('ask-ai-result');
-  var submitBtn = document.getElementById('ask-ai-submit');
-  var request = (input.value || '').trim();
-  if (!request) {
-    status.hidden = false;
-    status.textContent = 'Please describe what you\'d like to change.';
-    return;
-  }
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Thinking...';
-  status.hidden = false;
-  status.textContent = 'AI is revising' + (askAiContext ? ' this step' : ' the activity') + '... (10-30 seconds)';
-  result.hidden = true;
-
-  try {
-    var response;
-    if (askAiContext && askAiContext.phaseId) {
-      response = await fetch('/api/games/revise-phase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: gameConfig, phaseId: askAiContext.phaseId, request: request })
-      });
-    } else {
-      response = await fetch('/api/games/revise', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ config: gameConfig, request: request })
-      });
-    }
-    if (!response.ok) {
-      var err = await response.json().catch(function () { return { error: 'Server error' }; });
-      status.textContent = 'Couldn\'t revise: ' + (err.error || 'Unknown error');
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Ask AI';
-      return;
-    }
-    var data = await response.json();
-    askAiPendingResult = data;
-    status.hidden = true;
-
-    // Show summary
-    var summary = document.getElementById('ask-ai-summary');
-    summary.textContent = humanizeReviewText(data.summary || 'AI made changes.');
-
-    // Show structural errors if any (whole-game revise only)
-    var errBox = document.getElementById('ask-ai-errors');
-    var errors = (data.structural && data.structural.errors) || [];
-    if (errors.length > 0) {
-      errBox.hidden = false;
-      errBox.innerHTML = '<strong>The AI\'s revision has problems:</strong><ul>' +
-        errors.map(function (e) { return '<li>' + escapeHtml(humanizeReviewText(e)) + '</li>'; }).join('') +
-        '</ul>';
-    } else {
-      errBox.hidden = true;
-    }
-
-    result.hidden = false;
-  } catch (e) {
-    status.textContent = 'Error: ' + e.message;
-  }
-  submitBtn.disabled = false;
-  submitBtn.textContent = 'Ask AI';
-}
-
-function applyAskAiResult() {
-  if (!askAiPendingResult) return closeAskAiModal();
-  if (askAiContext && askAiContext.phaseId) {
-    gameConfig.phases[askAiContext.phaseId] = askAiPendingResult.updatedPhase;
-  } else if (askAiPendingResult.updatedConfig) {
-    gameConfig = askAiPendingResult.updatedConfig;
-  }
-  isDirty = true;
-  closeAskAiModal();
-  renderCanvas();
-  if (selectedPhaseId && gameConfig.phases[selectedPhaseId]) {
-    renderPhaseConfig(selectedPhaseId);
-  } else {
-    deselectPhase();
-  }
-}
+// The Ask AI modal is gone (2026-08-15): all AI revision now runs
+// through the design chat panel (chat-panel.js), which proposes changes
+// as cards and gates Apply on validation errors.
 
 // =======================================================================
 // Save as Recipe modal (R5)

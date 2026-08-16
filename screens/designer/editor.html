@@ -19,7 +19,7 @@
     </div>
     <div class="header-right">
       <span id="save-status" class="save-status save-status-clean">Saved</span>
-      <button id="ask-ai-btn" class="btn btn-ghost" title="Describe a change in plain words and the AI edits the activity for you">✨ Ask AI</button>
+      <button id="ask-ai-btn" class="btn btn-ghost" title="Chat with the AI about your activity: brainstorm ideas or describe a change, and approve it before anything is applied">✨ Ask AI</button>
       <!-- Retired header actions, kept in the DOM but never shown:
            Technical view is clicked programmatically when entering the
            Builder (parks simple-view's state) and is the fallback surface
@@ -101,6 +101,25 @@
       </div>
     </main>
 
+    <!-- Design chat: right column, Simple view only (chat-panel.js syncs
+         visibility). The bot proposes changes as cards; nothing touches
+         the config until the teacher clicks Apply. -->
+    <aside id="chat-panel" hidden>
+      <div class="chat-header">
+        <h2>Design with AI</h2>
+        <button id="chat-clear" class="btn-icon" type="button" title="Clear this conversation">Start over</button>
+      </div>
+      <div id="chat-messages"></div>
+      <div id="chat-context-chip" hidden>
+        <span id="chat-context-label"></span>
+        <button id="chat-context-clear" class="btn-icon" type="button" title="Stop talking about this step">&times;</button>
+      </div>
+      <div class="chat-input-row">
+        <textarea id="chat-input" rows="2" placeholder="Ask anything, or describe a change..."></textarea>
+        <button id="chat-send" class="btn btn-primary" type="button">Send</button>
+      </div>
+    </aside>
+
     <!-- Builder view: palette / canvas / rail. The rail hosts the REAL
          settings panels (relocated by builder-view.js), no duplicate
          forms. See docs/SURFACES-PLAN.md Phase 3. -->
@@ -154,38 +173,18 @@
     </aside>
   </div>
 
-  <div id="ask-ai-modal" class="ask-ai-modal" hidden>
-    <div class="ask-ai-modal-inner">
-      <div class="ask-ai-header">
-        <h3 id="ask-ai-title">Ask AI to revise this activity</h3>
-        <button id="ask-ai-close" class="btn-icon">&times;</button>
-      </div>
-      <p id="ask-ai-subtitle" class="ask-ai-subtitle">Describe what you'd like to change in plain English.</p>
-      <textarea id="ask-ai-input" rows="3" placeholder="e.g. Make round 1 longer, add a leaderboard at the end, make the wording friendlier for 6th graders"></textarea>
-      <div class="ask-ai-actions">
-        <button id="ask-ai-submit" class="btn btn-primary">Ask AI</button>
-      </div>
-      <div id="ask-ai-status" class="ask-ai-status" hidden></div>
-      <div id="ask-ai-result" hidden>
-        <div class="ask-ai-summary" id="ask-ai-summary"></div>
-        <div id="ask-ai-errors" class="ask-ai-errors" hidden></div>
-        <div class="ask-ai-result-actions">
-          <button id="ask-ai-apply" class="btn btn-primary">Apply</button>
-          <button id="ask-ai-discard" class="btn btn-secondary">Discard</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script src="/shared/phase-names.js"></script>
   <script src="/shared/themes.js"></script>
   <script src="/shared/my-games.js"></script>
   <script src="/shared/feedback-widget.js"></script>
   <script src="/shared/speech-input.js"></script>
+  <script src="/shared/teacher-profile.js"></script>
   <script src="templates.js"></script>
   <script src="editor.js"></script>
   <script src="simple-view.js"></script>
   <script src="/shared/step-suggestions.js"></script>
   <script src="builder-view.js"></script>
+  <!-- Loads last: wraps renderCanvas (visibility sync must be outermost). -->
+  <script src="chat-panel.js"></script>
 </body>
 </html>

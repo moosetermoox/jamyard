@@ -2295,23 +2295,45 @@ app.post('/api/games/revise', async (req, res) => {
   }
 });
 
-app.post('/api/games/revise-phase', async (req, res) => {
+// One turn of the editor's design chat panel. Discussion turns come back
+// as { kind: 'chat', reply }; edit turns chain into the revise pipeline
+// server-side and come back as { kind: 'proposal', reply, proposal:
+// { updatedConfig, summary, structural } }. History is client-held (and
+// re-trimmed in the service); this endpoint is stateless.
+app.post('/api/games/chat', async (req, res) => {
   try {
     if (!requireRealAI(res)) return;
-    const { config, phaseId, request } = req.body;
+    const { config, messages, focusPhaseId, classDescription } = req.body;
     if (!config || !config.phases) {
       return res.status(400).json({ error: 'Missing config or phases' });
     }
-    if (!phaseId || !config.phases[phaseId]) {
-      return res.status(400).json({ error: 'Invalid phaseId' });
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'Missing messages' });
     }
-    if (!request || typeof request !== 'string' || !request.trim()) {
-      return res.status(400).json({ error: 'Missing request' });
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'user' || typeof last.content !== 'string' || !last.content.trim()) {
+      return res.status(400).json({ error: 'Last message must be from the teacher' });
     }
-    const result = await aiService.revisePhase({ config, phaseId, request });
-    res.json(result);
+    const result = await aiService.designChat({
+      config,
+      messages,
+      focusPhaseId: typeof focusPhaseId === 'string' ? focusPhaseId : null,
+      classDescription: typeof classDescription === 'string' ? classDescription : ''
+    });
+    if (result.kind !== 'proposal') {
+      return res.json({ kind: 'chat', reply: result.reply });
+    }
+    // Same treatment as /api/games/revise: restore the provenance stamp
+    // the AI drops, then validate so the client can gate Apply on errors.
+    carryRecipeStamp(config, result.updatedConfig);
+    const structural = validate(result.updatedConfig, 'chat', { returnResults: true });
+    res.json({
+      kind: 'proposal',
+      reply: result.reply,
+      proposal: { updatedConfig: result.updatedConfig, summary: result.summary, structural }
+    });
   } catch (error) {
-    console.log(`[api/games/revise-phase] Error: ${error.message}`);
+    console.log(`[api/games/chat] Error: ${error.message}`);
     res.status(error.statusCode || 500).json({ error: error.message });
   }
 });

@@ -29,6 +29,7 @@ const FILES = [
   'screens/designer/editor.js',
   'screens/designer/simple-view.js',
   'screens/designer/builder-view.js',
+  'screens/designer/chat-panel.js',
   'screens/shared/step-suggestions.js',
   'screens/feedback/feedback.js',
   'screens/shared/feedback-widget.js',

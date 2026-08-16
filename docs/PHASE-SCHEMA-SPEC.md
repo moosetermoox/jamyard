@@ -425,7 +425,7 @@ strict mode (default)
 
 ai-cleanup mode
   Used only for AI-generated or AI-revised configs (POST /api/games/generate,
-  /revise, /revise-phase).
+  /revise, /chat proposal turns).
   Unknown fields → removed, but each removal emits a warning diagnostic
   (UNKNOWN_FIELD_REMOVED) that surfaces in the diff modal so the teacher
   sees what changed.

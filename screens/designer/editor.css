@@ -1326,103 +1326,6 @@ textarea.sar-input {
   }
 }
 
-/* ---- Ask AI modal ---- */
-.ask-ai-modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.ask-ai-modal[hidden] {
-  display: none;
-}
-
-.ask-ai-modal-inner {
-  background: #FFF9C4;
-  border: 4px solid #000;
-  border-radius: 16px;
-  padding: 24px;
-  width: min(560px, 92vw);
-  max-height: 88vh;
-  overflow: auto;
-  box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.2);
-}
-
-.ask-ai-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.ask-ai-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.ask-ai-subtitle {
-  margin: 0 0 12px;
-  font-size: 0.85rem;
-  color: #555;
-}
-
-.ask-ai-modal textarea {
-  width: 100%;
-  padding: 10px;
-  border: 2px solid #000;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 0.95rem;
-  resize: vertical;
-  background: white;
-  box-sizing: border-box;
-}
-
-.ask-ai-actions,
-.ask-ai-result-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-
-.ask-ai-status {
-  margin-top: 12px;
-  padding: 10px;
-  background: #E1BEE7;
-  border: 2px solid #000;
-  border-radius: 8px;
-  font-size: 0.9rem;
-}
-
-.ask-ai-summary {
-  margin-top: 12px;
-  padding: 12px;
-  background: #C8E6C9;
-  border: 2px solid #000;
-  border-radius: 8px;
-  font-size: 0.95rem;
-  white-space: pre-wrap;
-}
-
-.ask-ai-errors {
-  margin-top: 8px;
-  padding: 10px;
-  background: #FFCDD2;
-  border: 2px solid #000;
-  border-radius: 8px;
-  font-size: 0.85rem;
-}
-
-.ask-ai-errors ul {
-  margin: 4px 0 0;
-  padding-left: 20px;
-}
-
 .ask-step-btn {
   background: #E1BEE7;
   color: #4A148C;
@@ -2948,7 +2851,7 @@ body {
 /* Modals: pasted sheets */
 .picker-overlay, .sar-overlay { background: rgba(34, 30, 28, 0.5); }
 
-.picker-modal, .sar-modal, .fix-preview-modal, .ask-ai-modal-inner, .review-panel {
+.picker-modal, .sar-modal, .fix-preview-modal, .review-panel {
   background: #FBF7EC;
   border: none;
   border-radius: 2px;
@@ -3193,43 +3096,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
   box-shadow: 0 0 0 rgba(34,30,28,0.30);
 }
 
-/* Ask AI modal interior: the shell was reskinned but the boxes inside
-   were still the old pastel pills (purple status, mint summary, pink
-   errors) with rounded borders. Paper scraps instead; the failures list
-   keeps an outlined vermillion strip (same idiom as btn-danger). */
-.ask-ai-modal { background: rgba(34, 30, 28, 0.5); }
-
-.ask-ai-modal textarea {
-  border: none;
-  border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16);
-}
-
-.ask-ai-status {
-  background: #FFFDF6;
-  border: none;
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.10);
-  color: #55503F;
-  font-style: italic;
-}
-
-.ask-ai-summary {
-  background: #FFFDF6;
-  border: none;
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.10);
-}
-
-.ask-ai-errors {
-  background: #FFFDF6;
-  border: none;
-  border-radius: 2px;
-  box-shadow: 0 0 0 1px #AE3A16;
-  color: #AE3A16;
-}
-
 /* Delete Step carries btn-danger without the .btn base: outlined
    vermillion strip, fills on hover (same idiom as the card ✕). */
 .btn-danger:not(.btn) {
@@ -3356,3 +3222,235 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
 }
 
 .phase-box-primary-preview { border-radius: 2px; }
+
+/* =======================================================================
+   DESIGN CHAT PANEL — right column beside the Simple view (chat-panel.js).
+   Paste-up palette: paper #FBF7EC, paper-bright #FFFDF6, ink #221E1C,
+   vermillion #D9481C, hairline rgba(34,30,28,0.18).
+   ======================================================================= */
+
+#chat-panel {
+  width: 340px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #FBF7EC;
+  border-left: 1px solid rgba(34,30,28,0.18);
+}
+
+/* display:flex above would beat the hidden attribute (recurring gotcha) */
+#chat-panel[hidden] { display: none; }
+
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(34,30,28,0.16);
+}
+
+.chat-header h2 {
+  margin: 0;
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #221E1C;
+}
+
+#chat-clear {
+  background: none;
+  border: none;
+  color: #857A66;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 2px 4px;
+}
+
+#chat-clear:hover { color: #221E1C; }
+
+#chat-messages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chat-hint {
+  font-size: 0.8rem;
+  color: #857A66;
+  font-style: italic;
+  padding: 4px 2px;
+}
+
+.chat-msg {
+  max-width: 90%;
+  padding: 8px 10px;
+  border-radius: 2px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.chat-msg-user {
+  align-self: flex-end;
+  background: #D9481C;
+  color: #FFF6EA;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
+}
+
+.chat-msg-ai {
+  align-self: flex-start;
+  background: #FFFDF6;
+  color: #221E1C;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.10);
+}
+
+.chat-system {
+  font-size: 0.78rem;
+  color: #AE3A16;
+  padding: 4px 2px;
+}
+
+.chat-thinking {
+  font-size: 0.8rem;
+  color: #55503F;
+  font-style: italic;
+  padding: 4px 2px;
+}
+
+/* Proposal card: a pasted scrap with the change and the decision */
+.chat-proposal {
+  background: #EFE9DC;
+  border-radius: 2px;
+  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
+  transform: rotate(-0.4deg);
+  padding: 10px 12px;
+  font-size: 0.85rem;
+}
+
+.chat-proposal-status {
+  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-weight: 400;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #55503F;
+  margin-bottom: 6px;
+}
+
+.chat-proposal-summary {
+  color: #221E1C;
+  line-height: 1.4;
+  white-space: pre-wrap;
+}
+
+.chat-proposal-errors-head {
+  margin-top: 8px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #AE3A16;
+}
+
+.chat-proposal-errors {
+  margin: 4px 0 0;
+  padding: 8px 8px 8px 24px;
+  background: #FFFDF6;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px #AE3A16;
+  color: #AE3A16;
+  font-size: 0.78rem;
+}
+
+.chat-proposal-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.chat-proposal-actions .btn,
+.chat-revert-btn {
+  font-size: 0.72rem;
+  padding: 6px 14px;
+}
+
+.chat-apply-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.chat-revert-btn { margin-top: 8px; }
+
+/* Settled cards fade back so the live one reads as the decision point */
+.chat-proposal-expired,
+.chat-proposal-discarded,
+.chat-proposal-reverted { opacity: 0.55; transform: none; }
+
+#chat-context-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 12px 6px;
+  padding: 4px 8px;
+  background: #FFFDF6;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(34,30,28,0.18);
+  font-size: 0.75rem;
+  color: #55503F;
+}
+
+#chat-context-chip[hidden] { display: none; }
+
+#chat-context-clear {
+  background: none;
+  border: none;
+  color: #857A66;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid rgba(34,30,28,0.16);
+  align-items: flex-end;
+}
+
+.chat-input-row textarea {
+  flex: 1;
+  resize: none;
+  border: none;
+  border-radius: 2px;
+  background: #FFFDF6;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16);
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+
+.chat-input-row textarea:focus {
+  outline: none;
+  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C;
+}
+
+.chat-input-row .btn { font-size: 0.72rem; padding: 8px 14px; }
+
+/* While the chat is open, the fixed feedback corner button moves left of
+   the 340px panel so it never covers the chat input. */
+body.chat-open #feedback-widget-btn { right: 358px; }
+body.chat-open #feedback-widget-panel { right: 358px; }

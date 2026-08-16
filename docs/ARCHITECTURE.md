@@ -839,7 +839,7 @@ playerIds only, never student names.
 | `POST /api/games/review` | Light or deep review of issues | Haiku / Sonnet |
 | `POST /api/games/fix-issue` | Apply a single fix to one phase (constrained) | Haiku |
 | `POST /api/games/revise` | Plain-English revise of whole game | Sonnet |
-| `POST /api/games/revise-phase` | Plain-English revise of one phase | Sonnet |
+| `POST /api/games/chat` | Design chat turn: brainstorm reply, or a proposed revise | Haiku (+ Sonnet on edit turns) |
 | `POST /api/games/generate-theme` | Generate a CSS color palette | Haiku |
 | `POST /api/recipes/:id/compile` | Compile a recipe with given params | (no AI) |
 | `POST /api/games/from-description` | AI picks recipe + fills params | Haiku |

@@ -871,7 +871,8 @@
       askBtn.type = 'button';
       askBtn.setAttribute('data-phase-id', phaseId);
       askBtn.addEventListener('click', function () {
-        openAskAiModal(this.getAttribute('data-phase-id'));
+        // chat-panel.js loads after this file — resolve at click time.
+        if (window.openDesignChat) openDesignChat(this.getAttribute('data-phase-id'));
       });
       actions.appendChild(askBtn);
 
