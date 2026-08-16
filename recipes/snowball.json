@@ -37,7 +37,7 @@
       "minLength": 5,
       "maxLength": 200,
       "label": "Merge instruction",
-      "helper": "Shown to pairs above the shared text box.",
+      "helper": "Shown to pairs above the shared text box. A go-sit-next-to-your-partner line is added in front of it automatically.",
       "default": "Combine your answers into one stronger answer."
     },
     "soloTimer": {
@@ -66,7 +66,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "Three rounds: alone, together, all of us.\n\nFirst you'll answer on your own, nobody can skip the thinking step. Then you and a partner will merge your answers into one. Then the whole class sees what the pairs built.",
+        "message": "Three rounds: alone, together, all of us.\n\nFirst you'll answer on your own, nobody can skip the thinking step. Then you and a partner will merge your answers into one; when their name appears on your screen, go sit next to them. Then the whole class sees what the pairs built.",
         "next": "solo"
       },
       "solo": {
@@ -78,7 +78,7 @@
       "pairs": {
         "type": "merge",
         "seedFrom": "solo.responses",
-        "instruction": "${mergeInstruction}",
+        "instruction": "Stand up and go sit next to your partner. ${mergeInstruction}",
         "groupSize": 2,
         "agreeMode": "both",
         "timer": 240,
@@ -88,7 +88,7 @@
         "$if": "snowballAgain",
         "type": "merge",
         "seedFrom": "pairs.merged",
-        "instruction": "${mergeInstruction}",
+        "instruction": "Two pairs join up now: go sit together as a group of four. ${mergeInstruction}",
         "groupSize": 4,
         "agreeMode": "both",
         "timer": 240,

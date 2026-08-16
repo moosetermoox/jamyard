@@ -10,7 +10,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "Three rounds: alone, together, all of us.\n\nFirst you'll answer on your own, nobody can skip the thinking step. Then you and a partner will merge your answers into one. Then the whole class sees what the pairs built.",
+      "message": "Three rounds: alone, together, all of us.\n\nFirst you'll answer on your own, nobody can skip the thinking step. Then you and a partner will merge your answers into one; when their name appears on your screen, go sit next to them. Then the whole class sees what the pairs built.",
       "next": "solo"
     },
     "solo": {
@@ -22,7 +22,7 @@
     "pairs": {
       "type": "merge",
       "seedFrom": "solo.responses",
-      "instruction": "Combine your answers into one stronger answer.",
+      "instruction": "Stand up and go sit next to your partner. Combine your answers into one stronger answer.",
       "groupSize": 2,
       "agreeMode": "both",
       "timer": 240,

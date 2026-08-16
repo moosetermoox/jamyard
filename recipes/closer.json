@@ -90,7 +90,7 @@
       },
       "tier1-intro": {
         "type": "announce",
-        "message": "Tier 1. Warm-up.\n\nYou have a partner. Three quick questions, just for fun.",
+        "message": "Tier 1. Warm-up.\n\nYou have a partner, their name will appear on your screen. Answer from where you're sitting now; you'll go sit next to them when the answers appear.\n\nThree quick questions, just for fun.",
         "next": "t1q1"
       },
       "t1q1": {
@@ -107,7 +107,7 @@
         "type": "reveal",
         "scope": "pair",
         "pairsFrom": "t1q1",
-        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nStand up and go sit next to your partner. Then take a minute and tell them what stood out.",
         "next": "t1q2"
       },
       "t1q2": {
@@ -124,7 +124,7 @@
         "type": "reveal",
         "scope": "pair",
         "pairsFrom": "t1q2",
-        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
         "next": "t1q3"
       },
       "t1q3": {
@@ -141,12 +141,16 @@
         "type": "reveal",
         "scope": "pair",
         "pairsFrom": "t1q3",
-        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
         "next": "tier2-intro"
       },
       "tier2-intro": {
         "type": "announce",
-        "message": "Tier 2. A little deeper.\n\nNew partner! Three questions about what matters to you.",
+        "message": {
+          "$if": "partners=new-each-tier",
+          "$value": "Tier 2. A little deeper.\n\nNew partner, check your screen for who. Answer from your seat first; you'll go sit with them when the answers appear.\n\nThree questions about what matters to you.",
+          "$else": "Tier 2. A little deeper.\n\nSame partner, stay where you are. Three questions about what matters to you."
+        },
         "next": "t2q1"
       },
       "t2q1": {
@@ -171,7 +175,11 @@
         "type": "reveal",
         "scope": "pair",
         "pairsFrom": "t2q1",
-        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "template": {
+          "$if": "partners=new-each-tier",
+          "$value": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nStand up and go sit next to your new partner. Then take a minute and tell them what stood out.",
+          "$else": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out."
+        },
         "next": "t2q2"
       },
       "t2q2": {
@@ -188,7 +196,7 @@
         "type": "reveal",
         "scope": "pair",
         "pairsFrom": "t2q2",
-        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
         "next": "t2q3"
       },
       "t2q3": {
@@ -205,12 +213,16 @@
         "type": "reveal",
         "scope": "pair",
         "pairsFrom": "t2q3",
-        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
         "next": "tier3-intro"
       },
       "tier3-intro": {
         "type": "announce",
-        "message": "Tier 3. Reflective.\n\nOne more new partner. These questions are slower, take your time, and remember you can always pass.",
+        "message": {
+          "$if": "partners=new-each-tier",
+          "$value": "Tier 3. Reflective.\n\nOne more new partner, same routine: answer from your seat, then go sit together. These questions are slower, take your time, and remember you can always pass.",
+          "$else": "Tier 3. Reflective.\n\nSame partner, stay together. These questions are slower, take your time, and remember you can always pass."
+        },
         "next": "t3q1"
       },
       "t3q1": {
@@ -235,7 +247,11 @@
         "type": "reveal",
         "scope": "pair",
         "pairsFrom": "t3q1",
-        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "template": {
+          "$if": "partners=new-each-tier",
+          "$value": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nStand up and go sit next to your new partner. Then take a minute and tell them what stood out.",
+          "$else": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out."
+        },
         "next": "t3q2"
       },
       "t3q2": {
@@ -252,7 +268,7 @@
         "type": "reveal",
         "scope": "pair",
         "pairsFrom": "t3q2",
-        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
         "next": "t3q3"
       },
       "t3q3": {
@@ -269,7 +285,7 @@
         "type": "reveal",
         "scope": "pair",
         "pairsFrom": "t3q3",
-        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}",
+        "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
         "next": "checkout"
       },
       "checkout": {
