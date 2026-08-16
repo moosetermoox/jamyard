@@ -128,10 +128,40 @@
     return problems;
   }
 
+  // Friendly pre-save check for the bluff panel's prepared-fact list.
+  // Mirrors the server's cleaning rules (engine/bluff-questions.js) but
+  // reports problems instead of dropping rows — the teacher is mid-edit.
+  // Returns [] when the list is saveable.
+  function validateBluffList(questions) {
+    var problems = [];
+    if (!Array.isArray(questions) || questions.length === 0) {
+      return ['Prepared facts need at least one fact.'];
+    }
+    if (questions.length > 10) {
+      problems.push('Trivia Bluff caps at 10 facts, remove ' + (questions.length - 10) + '.');
+    }
+    questions.forEach(function (q, i) {
+      var label = 'Fact ' + (i + 1);
+      var text = q && typeof q.question === 'string' ? q.question.trim() : '';
+      var truth = q && typeof q.truth === 'string' ? q.truth.trim() : '';
+      var houseLie = q && typeof q.houseLie === 'string' ? q.houseLie.trim() : '';
+      if (!text) problems.push(label + ' has no text.');
+      else if (text.indexOf('___') === -1) {
+        problems.push(label + ' needs a blank shown as ___ for students to fill.');
+      }
+      if (!truth) problems.push(label + ' needs the real answer.');
+      if (truth && houseLie && houseLie.toLowerCase() === truth.toLowerCase()) {
+        problems.push(label + "'s decoy matches the real answer, change or clear it.");
+      }
+    });
+    return problems;
+  }
+
   globalThis.SetupKnobs = {
     knobsFor: knobsFor,
     panelFor: panelFor,
     applyKnobs: applyKnobs,
-    validateQuizList: validateQuizList
+    validateQuizList: validateQuizList,
+    validateBluffList: validateBluffList
   };
 })();

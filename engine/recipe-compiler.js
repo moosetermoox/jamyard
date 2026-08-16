@@ -26,6 +26,14 @@
  *                                       c is true, otherwise the field is
  *                                       dropped. v can hold placeholders and
  *                                       keeps its native type.
+ *   - { "$if": c, "$value": v, "$else": w }  either/or: compiles to v when c
+ *                                       is true, w when it is false — a
+ *                                       branching "next", a mode-dependent
+ *                                       leaderboard "from" (trivia-bluff's
+ *                                       live vs prepared question rounds).
+ *                                       "$else" also works on the whole-node
+ *                                       form: false swaps in w instead of
+ *                                       dropping the node.
  *   - "$repeat" key inside "phases":    { "forEach": "<arrayOrIntParam>",
  *                                       "keyPattern": "q${i}", "phase": {...},
  *                                       "after": "<phaseId>" } expands to one
@@ -213,6 +221,14 @@ function coerceValue(spec, value) {
         for (const [k, v] of Object.entries(value)) {
           out[k] = spec.fields[k] ? coerceValue(spec.fields[k], v) : v;
         }
+        // Fill missing sub-fields from their declared defaults. Form UIs
+        // omit blank optional fields entirely; a template that reads
+        // ${item.field} needs the key to exist.
+        for (const [k, fieldSpec] of Object.entries(spec.fields)) {
+          if (out[k] == null && fieldSpec.default !== undefined) {
+            out[k] = deepClone(fieldSpec.default);
+          }
+        }
         return out;
       }
       return value;
@@ -367,11 +383,15 @@ function substituteAll(template, params, recipe, dropped) {
         return expandMap(node, scope);
       }
 
-      // $if gate — drop the node, or strip the directive keys and continue
+      // $if gate — drop the node (or compile its $else), or strip the
+      // directive keys and continue
       if (node.$if !== undefined) {
-        if (!evaluateCondition(node.$if, scope, recipe)) return DROP;
+        if (!evaluateCondition(node.$if, scope, recipe)) {
+          if ('$else' in node) return walk(node.$else, scope, parentKey);
+          return DROP;
+        }
         if ('$value' in node) return walk(node.$value, scope, null);
-        const { $if, ...rest } = node;
+        const { $if, $else, ...rest } = node;
         return walk(rest, scope, parentKey);
       }
 

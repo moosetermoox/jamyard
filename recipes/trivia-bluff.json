@@ -2,14 +2,55 @@
   "id": "trivia-bluff",
   "name": "Trivia Bluff",
   "icon": "🕵️",
-  "description": "Round by round, the AI finds an obscure real fact with a blank. Students write believable lies to fill it, then everyone votes for the truth among the fakes. Points for spotting the truth, points for every classmate your lie fools.",
+  "description": "Round by round, an obscure real fact with a blank. Students write believable lies to fill it, then everyone votes for the truth among the fakes. Points for spotting the truth, points for every classmate your lie fools. Facts can come from the AI live during the game, or from a question list you write or review ahead of time.",
   "tagline": "The Fibbage shape: a quick-witted bluffing game that gets sharper with every round.",
   "version": "1",
+  "setupPanel": "bluff",
   "parameters": {
+    "questionSource": {
+      "type": "enum",
+      "values": [
+        "live",
+        "prepared"
+      ],
+      "default": "live",
+      "label": "Where the facts come from",
+      "helper": "live: the AI finds a fresh fact for each round while you play. prepared: the game uses the fact list below, written by you or by the AI ahead of time so you can check every one."
+    },
+    "questions": {
+      "type": "array",
+      "maxItems": 10,
+      "default": [],
+      "label": "Prepared facts",
+      "helper": "Only used when facts are prepared. Each is a sentence with a blank shown as ___ plus the real answer. The decoy is an optional extra wrong choice to mix in with student lies.",
+      "item": {
+        "type": "object",
+        "fields": {
+          "question": {
+            "type": "string",
+            "required": true,
+            "label": "Fact with a blank",
+            "placeholder": "The mayor of Rabbit Hash, Kentucky is a ___."
+          },
+          "truth": {
+            "type": "string",
+            "required": true,
+            "label": "The real answer",
+            "placeholder": "dog"
+          },
+          "houseLie": {
+            "type": "string",
+            "default": "",
+            "label": "Decoy answer (optional)",
+            "placeholder": "chicken"
+          }
+        }
+      }
+    },
     "rounds": {
       "type": "integer",
       "label": "How many rounds",
-      "helper": "Each round is a fresh AI-found fact: write lies, then vote. Plan on 6 to 8 minutes per round.",
+      "helper": "Each round is a fresh AI-found fact: write lies, then vote. Plan on 6 to 8 minutes per round. Only used when facts come from the AI live; prepared facts play one round per fact.",
       "default": 3,
       "min": 1,
       "max": 6,
@@ -37,12 +78,17 @@
         "type": "announce",
         "message": "TRIVIA BLUFF!\n\nYou'll see an obscure fact with a blank. Write a believable lie to fill it in. The class will then try to spot the truth, but your lie might fool them!",
         "timer": 10,
-        "next": "fact1"
+        "next": {
+          "$if": "questionSource=prepared",
+          "$value": "qshow1",
+          "$else": "fact1"
+        }
       },
-      "$repeat": {
+      "$repeat-live": {
         "forEach": "rounds",
         "phases": {
           "fact${i}": {
+            "$if": "questionSource=live",
             "type": "ai-process",
             "task": "generate",
             "format": "json",
@@ -50,18 +96,21 @@
             "next": "show${i}"
           },
           "show${i}": {
+            "$if": "questionSource=live",
             "type": "announce",
             "message": "Round ${i} of ${n}\n\nCategory: {{fact${i}.result.category}}\n\n{{fact${i}.result.question}}\n\nWrite your most believable lie!",
             "timer": 8,
             "next": "lies${i}"
           },
           "lies${i}": {
+            "$if": "questionSource=live",
             "type": "collect",
             "prompt": "{{fact${i}.result.question}}\n\nWrite a lie that could fool the class.",
             "timer": "${lieTimer}",
             "next": "vote${i}"
           },
           "vote${i}": {
+            "$if": "questionSource=live",
             "type": "collect-choice",
             "prompt": "Which one is the TRUTH?\n\n{{fact${i}.result.question}}",
             "choicePool": [
@@ -88,8 +137,62 @@
             "next": "reveal${i}"
           },
           "reveal${i}": {
+            "$if": "questionSource=live",
             "type": "announce",
             "message": "The truth was: {{fact${i}.result.truth}}!\n\nWhat the class picked:\n{{vote${i}.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
+            "next": "${nextKey}"
+          }
+        },
+        "after": "scoreboard"
+      },
+      "$repeat-prepared": {
+        "forEach": "questions",
+        "phases": {
+          "qshow${i}": {
+            "$if": "questionSource=prepared",
+            "type": "announce",
+            "message": "Round ${i} of ${n}\n\n${item.question}\n\nWrite your most believable lie!",
+            "timer": 8,
+            "next": "qlies${i}"
+          },
+          "qlies${i}": {
+            "$if": "questionSource=prepared",
+            "type": "collect",
+            "prompt": "${item.question}\n\nWrite a lie that could fool the class.",
+            "timer": "${lieTimer}",
+            "next": "qvote${i}"
+          },
+          "qvote${i}": {
+            "$if": "questionSource=prepared",
+            "type": "collect-choice",
+            "prompt": "Which one is the TRUTH?\n\n${item.question}",
+            "choicePool": [
+              {
+                "from": "qlies${i}.responses",
+                "field": "text"
+              },
+              {
+                "literal": "${item.truth}"
+              },
+              {
+                "literal": "${item.houseLie}",
+                "optional": true
+              }
+            ],
+            "excludeAuthored": "qlies${i}",
+            "shuffle": true,
+            "poolLimit": 8,
+            "correctAnswer": "${item.truth}",
+            "pointsCorrect": 100,
+            "speedBonus": false,
+            "foolPoints": 50,
+            "timer": 40,
+            "next": "qreveal${i}"
+          },
+          "qreveal${i}": {
+            "$if": "questionSource=prepared",
+            "type": "announce",
+            "message": "The truth was: ${item.truth}!\n\nWhat the class picked:\n{{qvote${i}.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
             "next": "${nextKey}"
           }
         },
@@ -98,8 +201,15 @@
       "scoreboard": {
         "type": "leaderboard",
         "from": {
-          "$map": "rounds",
-          "value": "vote${i}.scores"
+          "$if": "questionSource=prepared",
+          "$value": {
+            "$map": "questions",
+            "value": "qvote${i}.scores"
+          },
+          "$else": {
+            "$map": "rounds",
+            "value": "vote${i}.scores"
+          }
         },
         "style": "full",
         "next": "end"

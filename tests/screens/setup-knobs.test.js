@@ -153,6 +153,40 @@ describe('validateQuizList', () => {
   });
 });
 
+describe('validateBluffList', () => {
+  const OK = { question: 'The mayor of Rabbit Hash is a ___.', truth: 'dog', houseLie: 'chicken' };
+
+  it('returns [] for a saveable list, decoy optional', () => {
+    expect(K.validateBluffList([OK])).toEqual([]);
+    expect(K.validateBluffList([{ question: 'Honey never ___.', truth: 'spoils', houseLie: '' }])).toEqual([]);
+  });
+
+  it('requires at least one fact', () => {
+    expect(K.validateBluffList([])).toEqual(['Prepared facts need at least one fact.']);
+    expect(K.validateBluffList(null)).toEqual(['Prepared facts need at least one fact.']);
+  });
+
+  it('names each problem with its fact number', () => {
+    const problems = K.validateBluffList([
+      { question: '', truth: 'x', houseLie: '' },
+      { question: 'No blank here.', truth: 'x', houseLie: '' },
+      { question: 'A ___ fact.', truth: '', houseLie: '' },
+      { question: 'A ___ fact.', truth: 'dog', houseLie: 'Dog' },
+      OK
+    ]);
+    expect(problems.some(p => p.startsWith('Fact 1 has no text'))).toBe(true);
+    expect(problems.some(p => p.startsWith('Fact 2 needs a blank'))).toBe(true);
+    expect(problems.some(p => p.startsWith('Fact 3 needs the real answer'))).toBe(true);
+    expect(problems.some(p => p.startsWith("Fact 4's decoy matches"))).toBe(true);
+    expect(problems.some(p => p.includes('Fact 5'))).toBe(false);
+  });
+
+  it('caps at 10 facts', () => {
+    const many = Array.from({ length: 11 }, () => OK);
+    expect(K.validateBluffList(many).some(p => p.includes('caps at 10'))).toBe(true);
+  });
+});
+
 describe('applyKnobs', () => {
   it('slices count knobs to the first N and overrides scalars', () => {
     const params = K.applyKnobs(STAMP.params, [

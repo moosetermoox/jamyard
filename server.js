@@ -2272,6 +2272,28 @@ app.post('/api/games/quiz-questions', async (req, res) => {
   }
 });
 
+// Library bluff Customize panel (Trivia Bluff prepared mode): topic in,
+// fill-in-the-blank facts out (trivia-bluff recipe `questions` param
+// shape). Works in mock mode too (canned facts) so the flow is always
+// testable; no student data involved.
+app.post('/api/games/bluff-facts', async (req, res) => {
+  try {
+    const { topic, count, classDescription } = req.body || {};
+    if (!topic || typeof topic !== 'string' || topic.trim().length < 3) {
+      return res.status(400).json({ error: 'Give a topic of at least a few characters.' });
+    }
+    const result = await aiService.generateBluffFacts({
+      topic,
+      count: Number.isInteger(count) ? count : parseInt(count, 10) || undefined,
+      classDescription: typeof classDescription === 'string' ? classDescription : ''
+    });
+    res.json(result);
+  } catch (error) {
+    console.log(`[api/games/bluff-facts] Error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+});
+
 app.post('/api/games/revise', async (req, res) => {
   try {
     if (!requireRealAI(res)) return;

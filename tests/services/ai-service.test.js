@@ -493,3 +493,56 @@ describe('generateQuizQuestions (quiz Customize panel)', () => {
     await expect(service.generateQuizQuestions({ topic: 'anything here' })).rejects.toThrow('cap');
   });
 });
+
+describe('generateBluffFacts (bluff Customize panel)', () => {
+  it('mock mode returns the requested number of well-formed facts', async () => {
+    const service = new AIService();
+    const result = await service.generateBluffFacts({ topic: 'ocean animals', count: 4 });
+    expect(result.questions).toHaveLength(4);
+    for (const q of result.questions) {
+      expect(q.question).toContain('ocean animals');
+      expect(q.question).toContain('___');
+      expect(q.truth.length).toBeGreaterThan(0);
+      expect(typeof q.houseLie).toBe('string');
+    }
+  });
+
+  it('defaults to 3 facts when count is missing or out of range', async () => {
+    const service = new AIService();
+    expect((await service.generateBluffFacts({ topic: 'x y z' })).questions).toHaveLength(3);
+    expect((await service.generateBluffFacts({ topic: 'x y z', count: 99 })).questions).toHaveLength(3);
+  });
+
+  it('real mode cleans the AI output through the drop-dont-fail gate', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => ({
+      content: [{ type: 'text', text: 'Sure! Here you go: ' + JSON.stringify({
+        questions: [
+          { question: 'A group of flamingos is a ___.', truth: 'flamboyance', houseLie: 'flock' },
+          { question: 'No blank in this one.', truth: 'x', houseLie: 'y' }
+        ]
+      }) }]
+    });
+    const result = await service.generateBluffFacts({ topic: 'anything here', count: 5 });
+    expect(result.questions).toEqual([
+      { question: 'A group of flamingos is a ___.', truth: 'flamboyance', houseLie: 'flock' }
+    ]);
+  });
+
+  it('real mode returns a friendly error when nothing usable comes back', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => ({
+      content: [{ type: 'text', text: '{"questions": []}' }]
+    });
+    const result = await service.generateBluffFacts({ topic: 'anything here' });
+    expect(result.error).toMatch(/could not write usable facts/);
+  });
+
+  it('rethrows budget errors so the route can 429', async () => {
+    const service = new AIService({ mode: 'real' });
+    const budgetErr = new Error('cap');
+    budgetErr.name = 'AiBudgetError';
+    service._callClaude = async () => { throw budgetErr; };
+    await expect(service.generateBluffFacts({ topic: 'anything here' })).rejects.toThrow('cap');
+  });
+});

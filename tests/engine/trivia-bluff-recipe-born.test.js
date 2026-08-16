@@ -12,6 +12,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFile } from 'node:fs/promises';
 import { compileRecipe } from '../../engine/recipe-compiler.js';
+import { validate } from '../../engine/game-loader.js';
 
 const ROOT = new URL('../..', import.meta.url);
 
@@ -52,6 +53,62 @@ describe('trivia-bluff is a faithful trivia-bluff-recipe compile', () => {
     expect(compiled.phases.scoreboard.from).toEqual([
       'vote1.scores', 'vote2.scores', 'vote3.scores'
     ]);
+  });
+
+  it('prepared mode compiles the question list instead of live AI rounds', async () => {
+    const recipe = await loadJson('recipes/trivia-bluff.json');
+    const { config: compiled, diagnostics } = compileRecipe(recipe, {
+      questionSource: 'prepared',
+      questions: [
+        { question: 'The mayor of Rabbit Hash, Kentucky is a ___.', truth: 'dog', houseLie: 'chicken' },
+        { question: 'A group of flamingos is called a ___.', truth: 'flamboyance', houseLie: '' }
+      ],
+      lieTimer: 60
+    });
+    expect(diagnostics.filter(d => d.severity === 'error')).toEqual([]);
+
+    // No live phases at all: no ai-process, nothing referencing fact results.
+    expect(compiled.phases.fact1).toBeUndefined();
+    expect(compiled.phases.vote1).toBeUndefined();
+    expect(Object.values(compiled.phases).some(p => p.type === 'ai-process')).toBe(false);
+
+    // The prepared chain: intro → qshow1 → qlies1 → qvote1 → qreveal1 → qshow2 …
+    expect(compiled.phases.intro.next).toBe('qshow1');
+    expect(compiled.phases.qshow1.message).toContain('The mayor of Rabbit Hash');
+    expect(compiled.phases.qlies1.timer).toBe(60);
+    expect(compiled.phases.qvote1.correctAnswer).toBe('dog');
+    expect(compiled.phases.qvote1.choicePool).toEqual([
+      { from: 'qlies1.responses', field: 'text' },
+      { literal: 'dog' },
+      { literal: 'chicken', optional: true }
+    ]);
+    expect(compiled.phases.qreveal1.next).toBe('qshow2');
+    expect(compiled.phases.qreveal2.next).toBe('scoreboard');
+    expect(compiled.phases.scoreboard.from).toEqual(['qvote1.scores', 'qvote2.scores']);
+
+    // A fact without a decoy compiles to an empty optional literal, which
+    // the vote phase skips at runtime.
+    expect(compiled.phases.qvote2.choicePool[2]).toEqual({ literal: '', optional: true });
+
+    // The compiled config passes full game validation.
+    const result = validate(compiled, 'trivia-bluff-prepared-test', { returnResults: true });
+    expect(result.errors).toEqual([]);
+  });
+
+  it('a Create-form item that omits the optional decoy still compiles', async () => {
+    const recipe = await loadJson('recipes/trivia-bluff.json');
+    const { config: compiled, diagnostics } = compileRecipe(recipe, {
+      questionSource: 'prepared',
+      questions: [{ question: 'Honey never ___.', truth: 'spoils' }]
+    });
+    expect(diagnostics.filter(d => d.severity === 'error')).toEqual([]);
+    expect(compiled.phases.qvote1.choicePool[2]).toEqual({ literal: '', optional: true });
+  });
+
+  it('the shipped stamp is live mode with an empty prepared list', async () => {
+    const config = await loadJson('games/trivia-bluff/config.json');
+    expect(config.recipe.params.questionSource).toBe('live');
+    expect(config.recipe.params.questions).toEqual([]);
   });
 
   it('keeps its hand-authored card metadata', async () => {

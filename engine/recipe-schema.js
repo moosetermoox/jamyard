@@ -123,6 +123,9 @@ export const RECIPE_PARAM_TYPES = new Set([
  * @property {string} [version]    Recipe schema version (currently always '1').
  */
 
+// Dedicated Customize panels a recipe may declare via `setupPanel`.
+export const SETUP_PANELS = new Set(['quiz', 'bluff']);
+
 // =======================================================================
 // validateRecipe — is the recipe file well-formed?
 // =======================================================================
@@ -193,14 +196,15 @@ export function validateRecipe(recipe) {
 
   // setupPanel: opt-in dedicated Customize experience for games born from
   // this recipe ("quiz" = topic box + AI-written questions + editable
-  // question list). Generic setup knobs need no panel.
-  if (recipe.setupPanel != null && recipe.setupPanel !== 'quiz') {
+  // question list; "bluff" = the same plus a live-vs-prepared source
+  // choice, trivia-bluff). Generic setup knobs need no panel.
+  if (recipe.setupPanel != null && !SETUP_PANELS.has(recipe.setupPanel)) {
     diags.push(mkDiagnostic({
       severity: 'error',
       code: RECIPE_DIAGNOSTIC_CODES.RECIPE_INVALID_FIELD_TYPE,
       path: 'setupPanel',
       field: 'setupPanel',
-      message: 'Recipe field "setupPanel" must be "quiz" (the only panel currently defined).',
+      message: `Recipe field "setupPanel" must be one of: ${[...SETUP_PANELS].join(', ')}.`,
       source: 'validator'
     }));
   }

@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1166 tests passing** (`npm test`, ~4s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1194 tests passing** (`npm test`, ~4s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **28 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -144,7 +144,7 @@ AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `
 - Local dev shares the prod DATABASE_URL — owner ★ flips affect the live site
 
 ## Testing
-- `npm test` — all 998 Vitest tests (~4s)
+- `npm test` — all Vitest tests (~4s; count in Current Snapshot)
 - `node scripts/simulate-any-game.js <game-id>` — universal playthrough (server running)
 - `node scripts/simulate-chaos.js [gameId] [--players N]` — school-wifi chaos suite
 - `node scripts/simulate-restart.js` — restart-survival proof (needs DATABASE_URL)

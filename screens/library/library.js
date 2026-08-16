@@ -841,6 +841,395 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
   topicInput.focus();
 }
 
+// The bluff Customize panel (recipes with setupPanel:"bluff", Trivia
+// Bluff): where do the facts come from? Three doors: the AI finds facts
+// live during the game (the classic), the AI writes a reviewable list
+// now, or the teacher writes their own. The two prepared doors share one
+// editable fact list; nothing is saved until the teacher has the list in
+// front of them (the wrong-facts review gate, same as the quiz panel).
+function showBluffCustomizeDialog(game, config, recipeSummary) {
+  var stamp = config.recipe;
+  var questions = JSON.parse(JSON.stringify(stamp.params.questions || []));
+  var knobs = SetupKnobs.knobsFor(recipeSummary, stamp);
+  var roundsKnob = null;
+  var lieTimerKnob = null;
+  knobs.forEach(function (k) {
+    if (k.name === 'rounds') roundsKnob = k;
+    if (k.name === 'lieTimer') lieTimerKnob = k;
+  });
+
+  var LABEL_CSS = 'display:block; font-weight:700; margin:10px 0 4px; font-family:"Nunito", Arial, sans-serif;';
+  var INPUT_CSS = 'padding:8px 10px; border:none; background:#FFFDF6; border-radius:2px; box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; font-weight:600; box-sizing:border-box;';
+
+  var overlay = document.createElement('div');
+  overlay.className = 'template-picker-overlay';
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal';
+  modal.style.maxWidth = '640px';
+  modal.style.maxHeight = '88vh';
+  modal.style.overflowY = 'auto';
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = 'Make it yours';
+  modal.appendChild(title);
+
+  var subtitle = document.createElement('p');
+  subtitle.className = 'template-picker-subtitle';
+  subtitle.textContent = 'Your copy of “' + game.name + '”. Choose where the fill-in-the-blank facts come from.';
+  modal.appendChild(subtitle);
+
+  // --- The three source doors ---
+  var SOURCES = [
+    {
+      id: 'live',
+      title: 'AI picks facts during the game',
+      detail: 'Fresh obscure facts every time you play. You see each fact when the class does.'
+    },
+    {
+      id: 'ai-now',
+      title: 'AI writes the facts now',
+      detail: 'Give a topic, get a fact list you can check and edit before class.'
+    },
+    {
+      id: 'own',
+      title: 'I write my own facts',
+      detail: 'Fill-in-the-blank facts with the real answer, written by you.'
+    }
+  ];
+  var selectedSource = (stamp.params.questionSource === 'prepared' && questions.length > 0)
+    ? 'own' : 'live';
+
+  var sourceRow = document.createElement('div');
+  sourceRow.setAttribute('role', 'radiogroup');
+  sourceRow.setAttribute('aria-label', 'Where the facts come from');
+  sourceRow.style.cssText = 'display:flex; flex-direction:column; gap:8px; margin-top:10px;';
+  var sourceButtons = {};
+  SOURCES.forEach(function (src) {
+    var card = document.createElement('button');
+    card.type = 'button';
+    card.setAttribute('role', 'radio');
+    card.style.cssText = 'text-align:left; cursor:pointer; border:none; background:#FFFDF6; border-radius:2px; padding:10px 12px; font-family:"Nunito", Arial, sans-serif;';
+    var cardTitle = document.createElement('strong');
+    cardTitle.textContent = src.title;
+    card.appendChild(cardTitle);
+    var cardDetail = document.createElement('span');
+    cardDetail.style.cssText = 'display:block; font-weight:600; opacity:0.75; font-size:0.9rem; margin-top:2px;';
+    cardDetail.textContent = src.detail;
+    card.appendChild(cardDetail);
+    card.addEventListener('click', function () {
+      selectedSource = src.id;
+      renderSourceState();
+    });
+    sourceButtons[src.id] = card;
+    sourceRow.appendChild(card);
+  });
+  modal.appendChild(sourceRow);
+
+  // --- Live section: how many rounds ---
+  var liveSection = document.createElement('div');
+  var roundsLabel = document.createElement('label');
+  roundsLabel.style.cssText = LABEL_CSS;
+  roundsLabel.textContent = (roundsKnob ? roundsKnob.label : 'How many rounds') +
+    (roundsKnob && roundsKnob.min != null ? ' (' + roundsKnob.min + '–' + roundsKnob.max + ')' : '');
+  if (roundsKnob && roundsKnob.helper) roundsLabel.title = roundsKnob.helper;
+  liveSection.appendChild(roundsLabel);
+  var roundsInput = document.createElement('input');
+  roundsInput.type = 'number';
+  roundsInput.min = roundsKnob && roundsKnob.min != null ? roundsKnob.min : 1;
+  roundsInput.max = roundsKnob && roundsKnob.max != null ? roundsKnob.max : 6;
+  roundsInput.value = roundsKnob ? roundsKnob.value : 3;
+  roundsInput.style.cssText = 'width:120px; ' + INPUT_CSS;
+  liveSection.appendChild(roundsInput);
+  modal.appendChild(liveSection);
+
+  // --- Topic section (AI writes now) ---
+  var topicSection = document.createElement('div');
+  var topicLabel = document.createElement('label');
+  topicLabel.style.cssText = LABEL_CSS;
+  topicLabel.textContent = 'What should the facts be about?';
+  topicSection.appendChild(topicLabel);
+  var topicRow = document.createElement('div');
+  topicRow.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap;';
+  var topicInput = document.createElement('input');
+  topicInput.type = 'text';
+  topicInput.placeholder = 'e.g. ocean animals, ancient Rome, anything surprising';
+  topicInput.style.cssText = 'flex:1; min-width:200px; ' + INPUT_CSS;
+  topicRow.appendChild(topicInput);
+  var countLabel = document.createElement('label');
+  countLabel.style.cssText = 'font-weight:700; font-family:"Nunito", Arial, sans-serif; white-space:nowrap;';
+  countLabel.textContent = 'How many:';
+  topicRow.appendChild(countLabel);
+  var countInput = document.createElement('input');
+  countInput.type = 'number';
+  countInput.min = 1;
+  countInput.max = 10;
+  countInput.value = Math.min(10, Math.max(1, questions.length || 3));
+  countInput.style.cssText = 'width:70px; ' + INPUT_CSS;
+  topicRow.appendChild(countInput);
+  var writeBtn = document.createElement('button');
+  writeBtn.type = 'button';
+  writeBtn.className = 'recipe-cancel-btn';
+  writeBtn.textContent = 'Write my facts';
+  topicRow.appendChild(writeBtn);
+  topicSection.appendChild(topicRow);
+  modal.appendChild(topicSection);
+
+  var status = document.createElement('p');
+  status.className = 'template-picker-subtitle';
+  status.style.marginTop = '10px';
+  status.hidden = true;
+  modal.appendChild(status);
+
+  // --- The fact list, editable in place (both prepared doors) ---
+  var listSection = document.createElement('div');
+  var listHeading = document.createElement('p');
+  listHeading.className = 'template-picker-subtitle';
+  listHeading.style.fontWeight = '800';
+  listHeading.style.marginTop = '14px';
+  listSection.appendChild(listHeading);
+  var listHint = document.createElement('p');
+  listHint.className = 'template-picker-subtitle';
+  listHint.textContent = 'Each fact is a sentence with a blank shown as ___ plus the real answer. The decoy is one extra wrong choice, mixed in with student lies.';
+  listSection.appendChild(listHint);
+  var listWrap = document.createElement('div');
+  listWrap.style.cssText = 'max-height:320px; overflow-y:auto; padding-right:4px; margin-top:6px;';
+  listSection.appendChild(listWrap);
+  var addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.className = 'recipe-cancel-btn';
+  addBtn.textContent = '+ Add a fact';
+  addBtn.style.marginTop = '8px';
+  addBtn.addEventListener('click', function () {
+    if (questions.length >= 10) return;
+    questions.push({ question: '', truth: '', houseLie: '' });
+    renderQuestions();
+    var inputs = listWrap.querySelectorAll('input[data-role="question"]');
+    if (inputs.length > 0) inputs[inputs.length - 1].focus();
+  });
+  listSection.appendChild(addBtn);
+  modal.appendChild(listSection);
+
+  function renderQuestions() {
+    listWrap.textContent = '';
+    listHeading.textContent = 'The facts (' + questions.length + '):';
+    addBtn.disabled = questions.length >= 10;
+    questions.forEach(function (q, qi) {
+      var card = document.createElement('div');
+      card.style.cssText = 'background:#FFFDF6; box-shadow: 0 0 0 1px rgba(34,30,28,0.16); border-radius:2px; padding:10px; margin-bottom:10px;';
+
+      var head = document.createElement('div');
+      head.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:6px;';
+      var headText = document.createElement('strong');
+      headText.style.cssText = 'font-family:"Nunito", Arial, sans-serif; flex:1;';
+      headText.textContent = 'Fact ' + (qi + 1);
+      head.appendChild(headText);
+      var qRemove = document.createElement('button');
+      qRemove.type = 'button';
+      qRemove.textContent = '✕';
+      qRemove.title = 'Drop this fact';
+      qRemove.setAttribute('aria-label', 'Drop fact ' + (qi + 1));
+      qRemove.style.cssText = 'border:none; background:none; cursor:pointer; font-size:1rem; font-weight:800; color:#221E1C; opacity:0.6;';
+      qRemove.addEventListener('click', function () {
+        questions.splice(qi, 1);
+        renderQuestions();
+      });
+      head.appendChild(qRemove);
+      card.appendChild(head);
+
+      var qInput = document.createElement('input');
+      qInput.type = 'text';
+      qInput.value = q.question || '';
+      qInput.placeholder = 'A sentence with a blank shown as ___';
+      qInput.maxLength = 300;
+      qInput.setAttribute('data-role', 'question');
+      qInput.style.cssText = 'width:100%; margin-bottom:6px; ' + INPUT_CSS;
+      qInput.addEventListener('input', function () { q.question = qInput.value; });
+      card.appendChild(qInput);
+
+      var answerRow = document.createElement('div');
+      answerRow.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap;';
+      var truthWrap = document.createElement('label');
+      truthWrap.style.cssText = 'flex:1; min-width:140px; font-weight:700; font-size:0.85rem; font-family:"Nunito", Arial, sans-serif;';
+      truthWrap.appendChild(document.createTextNode('The real answer'));
+      var truthInput = document.createElement('input');
+      truthInput.type = 'text';
+      truthInput.value = q.truth || '';
+      truthInput.placeholder = 'e.g. dog';
+      truthInput.maxLength = 100;
+      truthInput.style.cssText = 'width:100%; margin-top:2px; ' + INPUT_CSS;
+      truthInput.addEventListener('input', function () { q.truth = truthInput.value; });
+      truthWrap.appendChild(truthInput);
+      answerRow.appendChild(truthWrap);
+      var lieWrap = document.createElement('label');
+      lieWrap.style.cssText = 'flex:1; min-width:140px; font-weight:700; font-size:0.85rem; font-family:"Nunito", Arial, sans-serif;';
+      lieWrap.appendChild(document.createTextNode('Decoy (optional)'));
+      var lieInput = document.createElement('input');
+      lieInput.type = 'text';
+      lieInput.value = q.houseLie || '';
+      lieInput.placeholder = 'e.g. chicken';
+      lieInput.maxLength = 100;
+      lieInput.style.cssText = 'width:100%; margin-top:2px; ' + INPUT_CSS;
+      lieInput.addEventListener('input', function () { q.houseLie = lieInput.value; });
+      lieWrap.appendChild(lieInput);
+      answerRow.appendChild(lieWrap);
+      card.appendChild(answerRow);
+
+      listWrap.appendChild(card);
+    });
+  }
+  renderQuestions();
+
+  // --- Lie timer (applies to every source) ---
+  var timerLabel = document.createElement('label');
+  timerLabel.style.cssText = LABEL_CSS;
+  timerLabel.textContent = (lieTimerKnob ? lieTimerKnob.label : 'Lie-writing time (seconds)') +
+    (lieTimerKnob && lieTimerKnob.min != null ? ' (' + lieTimerKnob.min + '–' + lieTimerKnob.max + ')' : '');
+  if (lieTimerKnob && lieTimerKnob.helper) timerLabel.title = lieTimerKnob.helper;
+  modal.appendChild(timerLabel);
+  var timerInput = document.createElement('input');
+  timerInput.type = 'number';
+  timerInput.min = lieTimerKnob && lieTimerKnob.min != null ? lieTimerKnob.min : 15;
+  timerInput.max = lieTimerKnob && lieTimerKnob.max != null ? lieTimerKnob.max : 180;
+  timerInput.value = lieTimerKnob ? lieTimerKnob.value : 45;
+  timerInput.style.cssText = 'width:120px; ' + INPUT_CSS;
+  modal.appendChild(timerInput);
+
+  function renderSourceState() {
+    SOURCES.forEach(function (src) {
+      var card = sourceButtons[src.id];
+      var on = selectedSource === src.id;
+      card.setAttribute('aria-checked', on ? 'true' : 'false');
+      card.style.boxShadow = on
+        ? '0 0 0 2px #221E1C'
+        : '0 0 0 1px rgba(34,30,28,0.16)';
+      card.style.opacity = on ? '1' : '0.8';
+    });
+    liveSection.hidden = selectedSource !== 'live';
+    topicSection.hidden = selectedSource !== 'ai-now';
+    listSection.hidden = selectedSource === 'live';
+  }
+  renderSourceState();
+
+  // --- Actions ---
+  var btnRow = document.createElement('div');
+  btnRow.className = 'recipe-form-buttons';
+  btnRow.style.marginTop = '14px';
+  var makeBtn = document.createElement('button');
+  makeBtn.type = 'button';
+  makeBtn.className = 'recipe-create-btn';
+  makeBtn.textContent = 'Make my copy';
+  btnRow.appendChild(makeBtn);
+  modal.appendChild(btnRow);
+
+  function showStatus(text) {
+    status.hidden = false;
+    status.textContent = text;
+  }
+
+  function clampedInt(el, min, max, fallback) {
+    var n = parseInt(el.value, 10);
+    if (isNaN(n)) return fallback;
+    if (n < min) n = min;
+    if (n > max) n = max;
+    return n;
+  }
+
+  // Trim fact rows the way the save will see them; the houseLie key is
+  // always present because the recipe template reads ${item.houseLie}.
+  function cleanedList() {
+    return questions.map(function (q) {
+      return {
+        question: String(q.question || '').trim(),
+        truth: String(q.truth || '').trim(),
+        houseLie: String(q.houseLie || '').trim()
+      };
+    });
+  }
+
+  writeBtn.addEventListener('click', function () {
+    var topic = topicInput.value.trim();
+    if (topic.length < 3) {
+      showStatus('Give a topic first, a few words is plenty.');
+      topicInput.focus();
+      return;
+    }
+    var n = clampedInt(countInput, 1, 10, 3);
+    writeBtn.disabled = true;
+    makeBtn.disabled = true;
+    writeBtn.textContent = 'Writing…';
+    showStatus('Writing ' + n + ' facts about "' + topic + '", this can take ~20 seconds.');
+    fetch('/api/games/bluff-facts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        topic: topic,
+        count: n,
+        classDescription: window.TeacherProfile ? TeacherProfile.describe() : ''
+      })
+    })
+      .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (result) {
+        if (!result.ok || result.data.error || !Array.isArray(result.data.questions)) {
+          throw new Error(result.data.error || 'no facts came back');
+        }
+        questions = result.data.questions;
+        renderQuestions();
+        showStatus('Check every fact before you save, fix or drop anything that looks wrong.');
+        listWrap.scrollTop = 0;
+      })
+      .catch(function (err) {
+        showStatus('Could not write facts: ' + err.message);
+      })
+      .then(function () {
+        writeBtn.disabled = false;
+        makeBtn.disabled = false;
+        writeBtn.textContent = 'Write my facts';
+      });
+  });
+
+  makeBtn.addEventListener('click', function () {
+    var params = JSON.parse(JSON.stringify(stamp.params));
+    if (selectedSource === 'live') {
+      params.questionSource = 'live';
+      params.rounds = clampedInt(roundsInput,
+        roundsKnob && roundsKnob.min != null ? roundsKnob.min : 1,
+        roundsKnob && roundsKnob.max != null ? roundsKnob.max : 6,
+        roundsKnob ? roundsKnob.value : 3);
+    } else {
+      var cleaned = cleanedList();
+      var problems = SetupKnobs.validateBluffList(cleaned);
+      if (problems.length > 0) {
+        showStatus(problems.slice(0, 2).join(' '));
+        return;
+      }
+      params.questionSource = 'prepared';
+      params.questions = cleaned;
+    }
+    params.lieTimer = clampedInt(timerInput,
+      lieTimerKnob && lieTimerKnob.min != null ? lieTimerKnob.min : 15,
+      lieTimerKnob && lieTimerKnob.max != null ? lieTimerKnob.max : 180,
+      lieTimerKnob ? lieTimerKnob.value : 45);
+    makeBtn.disabled = true;
+    writeBtn.disabled = true;
+    showStatus('Building your copy…');
+    compileWorkingConfig(config, params)
+      .then(function (working) {
+        working.name = game.name + ' (my version)';
+        return saveCopyAndReturn(working);
+      })
+      .catch(function (err) {
+        makeBtn.disabled = false;
+        writeBtn.disabled = false;
+        showStatus('Could not make your copy: ' + err.message);
+      });
+  });
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  Dialog.enhance(overlay, modal, { title: 'Make it yours' });
+}
+
 function customizeCopy(game, btn) {
   btn.disabled = true;
   btn.textContent = 'Loading…';
@@ -900,6 +1289,9 @@ function customizeCopy(game, btn) {
         ? SetupKnobs.panelFor(summary, config.recipe) : null;
       if (panel === 'quiz') {
         return showQuizCustomizeDialog(game, config, summary);
+      }
+      if (panel === 'bluff') {
+        return showBluffCustomizeDialog(game, config, summary);
       }
       var questions = (parts[1] && parts[1].questions) || [];
       var knobs = (window.SetupKnobs && summary)

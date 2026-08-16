@@ -267,6 +267,10 @@ versioning) happens incrementally as real classroom feedback comes in.
 - `{"$if": "cond", ...}` — drop this object (phase / field via `$value` /
   array element) unless the condition holds. Conditions: `name`, `!name`,
   `name=value`, `name!=value`. Declared-but-blank optional params are falsy.
+- `{"$if": c, "$value": v, "$else": w}` — either/or: compiles to `v` when
+  the condition holds, `w` when it doesn't (2026-08-16, trivia-bluff's
+  branching `next` between its live and prepared round chains). `$else`
+  also works on the whole-node form.
 - Transitions auto-rewire through `$if`-dropped phases (chains followed;
   a ref with nowhere to go is a compile error).
 - `"$repeat"` key inside `phases` expands one phase per array item with

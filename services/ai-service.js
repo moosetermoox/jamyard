@@ -4,6 +4,7 @@ import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schema
 import { createAiBudget, AiBudgetError } from './ai-budget.js';
 import { scrubForAI } from '../engine/pii-scrub.js';
 import { cleanQuizQuestions, QUIZ_LIMITS } from '../engine/quiz-questions.js';
+import { cleanBluffQuestions, BLUFF_LIMITS } from '../engine/bluff-questions.js';
 
 /**
  * Extract text from the first text-type content block. Claude's content
@@ -1275,6 +1276,76 @@ Return ONLY JSON, no other prose:
     } catch (error) {
       if (error && error.name === 'AiBudgetError') throw error;
       console.error('[AIService] generateQuizQuestions error:', error.message);
+      return { error: error.message };
+    }
+  }
+
+  // Library bluff Customize panel (Trivia Bluff prepared mode): teacher
+  // topic in, ready-to-review fill-in-the-blank facts out (trivia-bluff
+  // recipe `questions` param shape). Sonnet, because wrong facts on a
+  // projector are the failure mode; the teacher still reviews and can
+  // edit every fact before anything is built. No student data ever
+  // enters this call.
+  async generateBluffFacts({ topic, count, classDescription = '' } = {}) {
+    const cleanTopic = String(topic || '').trim().slice(0, 400);
+    const classDesc = String(classDescription || '').trim().slice(0, 160);
+    const n = Number.isInteger(count) && count >= 1 && count <= BLUFF_LIMITS.maxQuestions
+      ? count : 3;
+    if (this.mode === 'mock') {
+      const questions = [];
+      for (let i = 1; i <= n; i++) {
+        questions.push({
+          question: `Practice fact ${i} about ${cleanTopic || 'your topic'}: the surprising answer is ___ (mock mode, swap in real facts)`,
+          truth: 'the truth',
+          houseLie: 'a decoy'
+        });
+      }
+      return { questions };
+    }
+    try {
+      const classLine = classDesc
+        ? `Their class: ${classDesc}. Match the difficulty and vocabulary to them.\n`
+        : '';
+      const message = await this._callClaude({
+        model: MODELS.sonnet,
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: `A teacher wants fill-in-the-blank facts for a live classroom bluffing game (Fibbage-style: the fact is projected with a blank, students write believable lies to fill it, then everyone votes for the truth among the fakes).
+
+Topic: ${cleanTopic}
+${classLine}Write exactly ${n} facts.
+
+Rules:
+- Facts must be REAL and verifiable, only write what you are certain of. The teacher reviews and can edit every fact before anything is built.
+- Each fact is one sentence with the blank shown as ___ (e.g. "The mayor of Rabbit Hash, Kentucky is a ___."). Keep it specific.
+- "truth" is the real word or short phrase that fills the blank. Pick facts where the truth is genuinely surprising, so student lies can compete with it.
+- "houseLie" is one believable but wrong alternative to mix in with student lies. It must NOT equal the truth.
+- Vary the angle from fact to fact so no two feel alike.
+- Keep everything short enough to read off a projector in seconds.
+- No politics, no sensitive topics. Never include student names. Do not use emojis.
+
+Return ONLY JSON, no other prose:
+{"questions": [{"question": "... ___ ...", "truth": "...", "houseLie": "..."}]}`
+        }]
+      });
+      const text = extractText(message);
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI response was not valid JSON');
+        parsed = JSON.parse(match[0]);
+      }
+      const questions = cleanBluffQuestions(parsed.questions, n);
+      if (questions.length === 0) {
+        return { error: 'The AI could not write usable facts for that topic. Try wording the topic differently.' };
+      }
+      return { questions };
+    } catch (error) {
+      if (error && error.name === 'AiBudgetError') throw error;
+      console.error('[AIService] generateBluffFacts error:', error.message);
       return { error: error.message };
     }
   }

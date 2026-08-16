@@ -207,6 +207,117 @@ describe('$value envelope', () => {
 });
 
 // =====================================================================
+// $else — either/or branching (the trivia-bluff live-vs-prepared enabler)
+// =====================================================================
+
+describe('$else', () => {
+  const branchRecipe = mkRecipe(
+    { source: { type: 'enum', values: ['live', 'prepared'], default: 'live' } },
+    {
+      lobby: { type: 'lobby', next: 'intro' },
+      intro: {
+        type: 'announce', message: 'hi',
+        next: { $if: 'source=prepared', $value: 'prepPath', $else: 'livePath' }
+      },
+      livePath: { $if: 'source=live', type: 'announce', message: 'live', next: 'end' },
+      prepPath: { $if: 'source=prepared', type: 'announce', message: 'prep', next: 'end' },
+      end: { type: 'end' }
+    }
+  );
+
+  it('compiles $value when true, $else when false (branching next)', () => {
+    expect(compileOk(branchRecipe, { source: 'live' }).phases.intro.next).toBe('livePath');
+    expect(compileOk(branchRecipe, { source: 'prepared' }).phases.intro.next).toBe('prepPath');
+  });
+
+  it('the untaken branch phase is dropped, the taken one kept', () => {
+    const live = compileOk(branchRecipe, { source: 'live' });
+    expect(live.phases.livePath).toBeDefined();
+    expect(live.phases.prepPath).toBeUndefined();
+  });
+
+  it('$else can hold a structural directive ($map) that compiles in place', () => {
+    const r = mkRecipe(
+      {
+        source: { type: 'enum', values: ['live', 'prepared'], default: 'live' },
+        rounds: { type: 'integer', default: 2 },
+        questions: { type: 'array', default: [], item: { type: 'string' } }
+      },
+      {
+        lobby: { type: 'lobby', next: 'board' },
+        board: {
+          type: 'leaderboard',
+          from: {
+            $if: 'source=prepared',
+            $value: { $map: 'questions', value: 'qvote${i}.scores' },
+            $else: { $map: 'rounds', value: 'vote${i}.scores' }
+          },
+          next: 'end'
+        },
+        end: { type: 'end' }
+      }
+    );
+    expect(compileOk(r, { source: 'live' }).phases.board.from)
+      .toEqual(['vote1.scores', 'vote2.scores']);
+    expect(compileOk(r, { source: 'prepared', questions: ['a'] }).phases.board.from)
+      .toEqual(['qvote1.scores']);
+  });
+
+  it('works on the whole-node form: false swaps in $else instead of dropping', () => {
+    const r = mkRecipe(
+      { loud: { type: 'boolean', default: false } },
+      {
+        lobby: { type: 'lobby', next: 'a' },
+        a: {
+          $if: 'loud',
+          type: 'announce', message: 'LOUD', next: 'end',
+          $else: { type: 'announce', message: 'quiet', next: 'end' }
+        },
+        end: { type: 'end' }
+      }
+    );
+    expect(compileOk(r, { loud: true }).phases.a.message).toBe('LOUD');
+    expect(compileOk(r, { loud: false }).phases.a.message).toBe('quiet');
+  });
+});
+
+// =====================================================================
+// Object-item field defaults — form UIs omit blank optional fields; a
+// template reading ${item.field} needs the key to exist
+// =====================================================================
+
+describe('object-item field defaults', () => {
+  it('fills a missing declared sub-field from its default during coercion', () => {
+    const r = mkRecipe(
+      {
+        questions: {
+          type: 'array', required: true,
+          item: {
+            type: 'object',
+            fields: {
+              question: { type: 'string', required: true },
+              houseLie: { type: 'string', default: '' }
+            }
+          }
+        }
+      },
+      {
+        lobby: { type: 'lobby', next: 'q1' },
+        $repeat: {
+          forEach: 'questions',
+          keyPattern: 'q${i}',
+          phase: { type: 'announce', message: '${item.question} / decoy: ${item.houseLie}', next: '${nextKey}' },
+          after: 'end'
+        },
+        end: { type: 'end' }
+      }
+    );
+    const config = compileOk(r, { questions: [{ question: 'no decoy given' }] });
+    expect(config.phases.q1.message).toBe('no decoy given / decoy: ');
+  });
+});
+
+// =====================================================================
 // $repeat — array-driven phase generation (the quiz-show enabler)
 // =====================================================================
 
