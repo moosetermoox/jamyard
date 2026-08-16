@@ -372,6 +372,8 @@ const GAME_GENERATOR_PROMPT = `You are a classroom game designer. Given a descri
 
 IMPORTANT: Return ONLY valid JSON. No explanation, no markdown, just the JSON object.
 
+STRICT JSON RULE: never put an unescaped straight double quote (") inside a JSON string value. When existing text contains typographic quotes (“ ”), KEEP them as typographic quotes exactly as written, do NOT convert them to straight quotes. If you write new quoted words inside a string value, use typographic quotes or apostrophes. (A revise request once broke on exactly this: “{{notes.assigned}}” rewritten with straight quotes produced unparseable JSON.)
+
 The config format is:
 {
   "name": "Game Name",
@@ -502,6 +504,48 @@ function phaseSnippet(phase) {
     if (typeof phase[field] === 'string' && phase[field].trim()) return phase[field];
   }
   return '';
+}
+
+/**
+ * Best-effort repair for the most common way the model breaks JSON:
+ * an unescaped straight double quote INSIDE a string value (typically
+ * from normalizing typographic “quotes” — the someones-got-you revise
+ * incident, 2026-08-16; a prompt rule alone did not stop it). Walks the
+ * text: inside a string, a quote whose next non-whitespace character
+ * could not legally follow a string end (, } ] :) is interior — escape
+ * it. Only ever called AFTER normal parsing fails, so it cannot corrupt
+ * healthy responses. Pure; exported for tests.
+ */
+export function repairJsonStringQuotes(text) {
+  let out = '';
+  let inString = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (!inString) {
+      if (ch === '"') inString = true;
+      out += ch;
+      continue;
+    }
+    if (ch === '\\') {
+      out += ch + (text[i + 1] || '');
+      i++;
+      continue;
+    }
+    if (ch === '"') {
+      let j = i + 1;
+      while (j < text.length && /\s/.test(text[j])) j++;
+      const next = text[j];
+      if (next === ',' || next === '}' || next === ']' || next === ':' || next === undefined) {
+        inString = false;
+        out += ch;
+      } else {
+        out += '\\"';
+      }
+      continue;
+    }
+    out += ch;
+  }
+  return out;
 }
 
 /**
@@ -937,7 +981,14 @@ Return the revised config.`;
       } catch {
         const match = text.match(/\{[\s\S]*\}/);
         if (!match) throw new Error('AI response was not valid JSON');
-        parsed = JSON.parse(match[0]);
+        try {
+          parsed = JSON.parse(match[0]);
+        } catch {
+          // Last resort: the model put unescaped quotes inside a string
+          // (usually normalized typographic quotes). Repair and retry;
+          // if this parse throws too, the error propagates as before.
+          parsed = JSON.parse(repairJsonStringQuotes(match[0]));
+        }
       }
       // The model sometimes returns the revised config BARE, without the
       // {updatedConfig, summary} envelope (2026-08-08 field test: this made

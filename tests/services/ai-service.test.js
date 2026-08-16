@@ -364,6 +364,46 @@ describe('generateSuggestions', () => {
   });
 });
 
+describe('repairJsonStringQuotes (unescaped-quote model output)', () => {
+  // The someones-got-you incident (2026-08-16): the config's typographic
+  // “{{notes.assigned}}” came back from Sonnet as straight quotes inside
+  // a JSON string, unescaped — unparseable, and a prompt rule alone did
+  // not stop the normalization. The repair escapes interior quotes whose
+  // next non-whitespace char can't legally follow a string.
+  it('escapes interior quotes around a token', async () => {
+    const { repairJsonStringQuotes } = await import('../../services/ai-service.js');
+    const broken = '{"prompt": "A classmate wrote:\\n\\n"{{notes.assigned}}"\\n\\nWrite ONE line."}';
+    const parsed = JSON.parse(repairJsonStringQuotes(broken));
+    expect(parsed.prompt).toContain('"{{notes.assigned}}"');
+    expect(parsed.prompt).toContain('Write ONE line.');
+  });
+
+  it('leaves valid JSON byte-identical', async () => {
+    const { repairJsonStringQuotes } = await import('../../services/ai-service.js');
+    const valid = JSON.stringify({ a: 'text with \\ and "escaped" quotes', b: [1, 2], c: { d: 'x' } });
+    expect(repairJsonStringQuotes(valid)).toBe(valid);
+  });
+
+  it('reviseGame recovers a response with unescaped interior quotes', async () => {
+    const { AIService } = await import('../../services/ai-service.js');
+    const service = new AIService({ mode: 'real' });
+    const cfg = {
+      name: 'T',
+      phases: {
+        lobby: { type: 'lobby', next: 'end' },
+        end: { type: 'end' }
+      }
+    };
+    const brokenEnvelope =
+      '{"updatedConfig": {"name": "T", "phases": {"lobby": {"type": "lobby", "next": "end"}, ' +
+      '"end": {"type": "end", "message": "He said "cowabunga" and left."}}}, "summary": "Themed it."}';
+    service._callClaude = async () => ({ content: [{ type: 'text', text: brokenEnvelope }] });
+    const result = await service.reviseGame({ config: cfg, request: 'theme it' });
+    expect(result.updatedConfig.phases.end.message).toBe('He said "cowabunga" and left.');
+    expect(result.summary).toBe('Themed it.');
+  });
+});
+
 describe('reviseGame envelope tolerance', () => {
   // Found by the 2026-08-08 persona field test: Sonnet sometimes returns the
   // revised config BARE (valid JSON, no {updatedConfig, summary} envelope),

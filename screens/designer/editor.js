@@ -18,6 +18,11 @@ var selectedPhaseId = null;
 var draggedPhaseId = null;
 var didDrag = false;
 var isDirty = false;
+// Why the last save was rejected (null = last save succeeded). Drives the
+// "Save failed" header state so a rejected save can never pass silently
+// (built-in edits 401 without the owner password; the teacher edited for
+// minutes and previewed the server's stale copy, 2026-08-16).
+var lastSaveError = null;
 var foreachAdvancedOpen = false;
 var aiIssues = {};
 var lastReviewResult = null;
@@ -527,12 +532,20 @@ async function init() {
   // Save-status indicator: poll isDirty every 250ms. Cheap, avoids refactoring
   // the ~40 `isDirty = true` call sites scattered through the editor.
   var lastShownDirty = null;
+  var lastShownFailed = null;
   setInterval(function () {
     var el = document.getElementById('save-status');
     if (!el) return;
-    if (isDirty === lastShownDirty) return;
+    var failed = !!lastSaveError;
+    if (isDirty === lastShownDirty && failed === lastShownFailed) return;
     lastShownDirty = isDirty;
-    if (isDirty) {
+    lastShownFailed = failed;
+    if (isDirty && failed) {
+      // Edits exist AND the last save was rejected — the server still has
+      // the old version, so Preview/Host would show stale content.
+      el.textContent = 'Save failed';
+      el.className = 'save-status save-status-failed';
+    } else if (isDirty) {
       el.textContent = 'Unsaved changes';
       el.className = 'save-status save-status-dirty';
     } else {
@@ -1670,14 +1683,22 @@ async function autoSaveIfDirty() {
     });
     if (!resp.ok) {
       var err = await resp.json().catch(function () { return {}; });
-      console.warn('[autosave] save failed:', err.error || resp.statusText);
+      var msg = err.error || resp.statusText;
+      console.warn('[autosave] save failed:', msg);
+      // Toast once per failure streak (autosave fires on every blur, a
+      // toast each time would nag); the header chip stays on "Save failed".
+      if (!lastSaveError) showToast('Couldn\'t save: ' + msg);
+      lastSaveError = msg;
       return;
     }
+    lastSaveError = null;
     isDirty = false;
     validationPanel.hidden = true;
     runLightReview(); // async, non-blocking
   } catch (err) {
     console.warn('[autosave] error:', err.message);
+    if (!lastSaveError) showToast('Couldn\'t save: ' + err.message);
+    lastSaveError = err.message;
   }
 }
 
@@ -5879,10 +5900,12 @@ async function saveGame() {
     var result = await response.json();
 
     if (response.ok) {
+      lastSaveError = null;
       isDirty = false;
       saveBtn.textContent = 'Saved!';
       runLightReview();  // async, non-blocking
     } else {
+      lastSaveError = result.error || 'Unknown error';
       showToast('Save failed: ' + (result.error || 'Unknown error'));
       saveBtn.textContent = originalText;
     }
@@ -5901,13 +5924,17 @@ async function testGame() {
   // Save first if needed
   if (!gameId || isDirty) {
     await saveGame();
+    // saveGame clears isDirty only on success. gameId alone is NOT proof
+    // the save landed (it stays set when a PUT is rejected), and the
+    // prototype loads the SERVER's copy — opening it after a failed save
+    // shows the teacher a stale version of their activity (the missing
+    // ninja-turtle theme, 2026-08-16). saveGame already explained why.
+    if (!gameId || isDirty) return;
   }
-  // Only open if we have a valid gameId (save succeeded). from=editor makes
-  // the prototype page's back link return HERE, not to the library — you
-  // preview, spot a fix, and need the way back (teacher feedback 2026-08-03).
-  if (gameId) {
-    window.open('/prototype?game=' + encodeURIComponent(gameId) + '&from=editor', '_blank');
-  }
+  // from=editor makes the prototype page's back link return HERE, not to
+  // the library — you preview, spot a fix, and need the way back
+  // (teacher feedback 2026-08-03).
+  window.open('/prototype?game=' + encodeURIComponent(gameId) + '&from=editor', '_blank');
 }
 
 // --- AI Review ---

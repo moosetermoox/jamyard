@@ -772,6 +772,9 @@ body {
 .save-status-dirty {
   color: #FFD9A0;
 }
+.save-status-failed {
+  color: #FF8A80;
+}
 
 /* The "More ▾" menu is gone (2026-08-15): Ask AI sits directly in the
    header; Technical view and Save as Recipe are parked as hidden buttons.
@@ -2907,6 +2910,15 @@ body {
 
 .save-status-clean { color: #CFC5B4; }
 .save-status-dirty { color: #FFC3DC; }
+/* A rejected save must not read like ordinary unsaved edits: loud coral
+   on the ink band, and Save keeps its attention treatment. */
+.save-status-failed { color: #FF9B80; }
+
+#save-status.save-status-failed ~ #save-btn {
+  background: #FFFDF6;
+  color: #AE3A16;
+  border-color: transparent;
+}
 
 /* ════════════════════════════════════════════════════════════════
    PASTE-UP SKIN, PASS 2 — Builder view + rail + advanced settings.
