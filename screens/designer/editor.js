@@ -415,6 +415,58 @@ async function fetchSchemas() {
   }
 }
 
+// First landing from the library's Customize flow: nothing on this page
+// says what the step cards ARE, and a new teacher can read the plan as
+// the product itself (field feedback 2026-08-16). One-time explainer:
+// this is the activity's plan, edit the cards, Preview plays it for real.
+function maybeShowPlanIntro() {
+  var KEY = 'lanyardPlanIntroSeen';
+  try { if (localStorage.getItem(KEY)) return; } catch (e) { return; }
+  if (!window.Dialog) return;
+
+  var overlay = document.createElement('div');
+  overlay.className = 'plan-intro-overlay';
+  var modal = document.createElement('div');
+  modal.className = 'plan-intro-modal';
+
+  var heading = document.createElement('h3');
+  heading.textContent = 'This is your activity\'s plan';
+  modal.appendChild(heading);
+
+  var lines = [
+    'You\'re looking at the plan, not the activity itself. Each numbered card is one step: what goes up on the projector and what students do on their devices.',
+    'Read it top to bottom, and change any wording right on the cards. Edits save on their own.',
+    'Then click Preview up top to play it for real with a pretend class, so you can see exactly what you and your students will see.'
+  ];
+  for (var i = 0; i < lines.length; i++) {
+    var p = document.createElement('p');
+    p.textContent = lines[i];
+    modal.appendChild(p);
+  }
+
+  var row = document.createElement('div');
+  row.className = 'plan-intro-actions';
+  var okBtn = document.createElement('button');
+  okBtn.type = 'button';
+  okBtn.className = 'btn btn-primary';
+  okBtn.textContent = 'Got it';
+  row.appendChild(okBtn);
+  modal.appendChild(row);
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  var dlg = Dialog.enhance(overlay, modal, {
+    title: 'What you are looking at',
+    onClose: function () {
+      // Every dismissal path (button, x, Escape, backdrop) funnels here.
+      try { localStorage.setItem(KEY, '1'); } catch (e) { /* private mode */ }
+    }
+  });
+  okBtn.addEventListener('click', dlg.close);
+  okBtn.focus();
+}
+
 async function init() {
   await fetchSchemas();
 
@@ -437,6 +489,7 @@ async function init() {
         : '/library';
       backLink.textContent = '← Back to Library';
     }
+    maybeShowPlanIntro();
   }
 
   if (gameId) {
