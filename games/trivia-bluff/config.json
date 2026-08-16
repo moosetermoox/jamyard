@@ -6,7 +6,7 @@
     "id": "trivia-bluff",
     "version": "1",
     "params": {
-      "rounds": 1,
+      "rounds": 3,
       "lieTimer": 45
     }
   },
@@ -25,12 +25,12 @@
       "type": "ai-process",
       "task": "generate",
       "format": "json",
-      "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a fill-in-the-blank bluffing game. This is round 1 of 1 in one session. So that rounds never repeat a topic, pick this round's category by its number: 1 = your pick, any surprising topic; 2 = geography or world places; 3 = animals or nature; 4 = food and drink; 5 = history or inventions; 6 = sports, games, or odd laws. This is round 1, so use category 1, and within it choose an unexpected fact. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative the system can mix into the choices (e.g. \"chicken\")\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics.",
+      "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a fill-in-the-blank bluffing game. This is round 1 of 3 in one session. So that rounds never repeat a topic, pick this round's category by its number: 1 = your pick, any surprising topic; 2 = geography or world places; 3 = animals or nature; 4 = food and drink; 5 = history or inventions; 6 = sports, games, or odd laws. This is round 1, so use category 1, and within it choose an unexpected fact. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative the system can mix into the choices (e.g. \"chicken\")\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics.",
       "next": "show1"
     },
     "show1": {
       "type": "announce",
-      "message": "Round 1 of 1\n\nCategory: {{fact1.result.category}}\n\n{{fact1.result.question}}\n\nWrite your most believable lie!",
+      "message": "Round 1 of 3\n\nCategory: {{fact1.result.category}}\n\n{{fact1.result.question}}\n\nWrite your most believable lie!",
       "timer": 8,
       "next": "lies1"
     },
@@ -69,12 +69,114 @@
     "reveal1": {
       "type": "announce",
       "message": "The truth was: {{fact1.result.truth}}!\n\nWhat the class picked:\n{{vote1.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
+      "next": "fact2"
+    },
+    "fact2": {
+      "type": "ai-process",
+      "task": "generate",
+      "format": "json",
+      "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a fill-in-the-blank bluffing game. This is round 2 of 3 in one session. So that rounds never repeat a topic, pick this round's category by its number: 1 = your pick, any surprising topic; 2 = geography or world places; 3 = animals or nature; 4 = food and drink; 5 = history or inventions; 6 = sports, games, or odd laws. This is round 2, so use category 2, and within it choose an unexpected fact. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative the system can mix into the choices (e.g. \"chicken\")\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics.",
+      "next": "show2"
+    },
+    "show2": {
+      "type": "announce",
+      "message": "Round 2 of 3\n\nCategory: {{fact2.result.category}}\n\n{{fact2.result.question}}\n\nWrite your most believable lie!",
+      "timer": 8,
+      "next": "lies2"
+    },
+    "lies2": {
+      "type": "collect",
+      "prompt": "{{fact2.result.question}}\n\nWrite a lie that could fool the class.",
+      "timer": 45,
+      "next": "vote2"
+    },
+    "vote2": {
+      "type": "collect-choice",
+      "prompt": "Which one is the TRUTH?\n\n{{fact2.result.question}}",
+      "choicePool": [
+        {
+          "from": "lies2.responses",
+          "field": "text"
+        },
+        {
+          "literal": "{{fact2.result.truth}}"
+        },
+        {
+          "literal": "{{fact2.result.houseLie}}",
+          "optional": true
+        }
+      ],
+      "excludeAuthored": "lies2",
+      "shuffle": true,
+      "poolLimit": 8,
+      "correctAnswer": "{{fact2.result.truth}}",
+      "pointsCorrect": 100,
+      "speedBonus": false,
+      "foolPoints": 50,
+      "timer": 40,
+      "next": "reveal2"
+    },
+    "reveal2": {
+      "type": "announce",
+      "message": "The truth was: {{fact2.result.truth}}!\n\nWhat the class picked:\n{{vote2.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
+      "next": "fact3"
+    },
+    "fact3": {
+      "type": "ai-process",
+      "task": "generate",
+      "format": "json",
+      "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a fill-in-the-blank bluffing game. This is round 3 of 3 in one session. So that rounds never repeat a topic, pick this round's category by its number: 1 = your pick, any surprising topic; 2 = geography or world places; 3 = animals or nature; 4 = food and drink; 5 = history or inventions; 6 = sports, games, or odd laws. This is round 3, so use category 3, and within it choose an unexpected fact. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative the system can mix into the choices (e.g. \"chicken\")\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics.",
+      "next": "show3"
+    },
+    "show3": {
+      "type": "announce",
+      "message": "Round 3 of 3\n\nCategory: {{fact3.result.category}}\n\n{{fact3.result.question}}\n\nWrite your most believable lie!",
+      "timer": 8,
+      "next": "lies3"
+    },
+    "lies3": {
+      "type": "collect",
+      "prompt": "{{fact3.result.question}}\n\nWrite a lie that could fool the class.",
+      "timer": 45,
+      "next": "vote3"
+    },
+    "vote3": {
+      "type": "collect-choice",
+      "prompt": "Which one is the TRUTH?\n\n{{fact3.result.question}}",
+      "choicePool": [
+        {
+          "from": "lies3.responses",
+          "field": "text"
+        },
+        {
+          "literal": "{{fact3.result.truth}}"
+        },
+        {
+          "literal": "{{fact3.result.houseLie}}",
+          "optional": true
+        }
+      ],
+      "excludeAuthored": "lies3",
+      "shuffle": true,
+      "poolLimit": 8,
+      "correctAnswer": "{{fact3.result.truth}}",
+      "pointsCorrect": 100,
+      "speedBonus": false,
+      "foolPoints": 50,
+      "timer": 40,
+      "next": "reveal3"
+    },
+    "reveal3": {
+      "type": "announce",
+      "message": "The truth was: {{fact3.result.truth}}!\n\nWhat the class picked:\n{{vote3.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
       "next": "scoreboard"
     },
     "scoreboard": {
       "type": "leaderboard",
       "from": [
-        "vote1.scores"
+        "vote1.scores",
+        "vote2.scores",
+        "vote3.scores"
       ],
       "style": "full",
       "next": "end"
@@ -84,7 +186,7 @@
       "message": "That's Trivia Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again for fresh facts."
     }
   },
-  "playTime": "~8 min",
+  "playTime": "~20 min",
   "classSize": "4–25 players",
   "tags": [
     "bluffing",
@@ -93,5 +195,5 @@
     "review",
     "energize"
   ],
-  "recommendedFor": "Older students who can write convincingly. Works as a quick warm-up."
+  "recommendedFor": "Older students who can write convincingly. Customize it down to one round for a quick warm-up."
 }

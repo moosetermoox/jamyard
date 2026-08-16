@@ -1,7 +1,7 @@
 /**
  * Trivia Bluff is recipe-born: its phases must be EXACTLY what the
- * trivia-bluff recipe compiles from its own provenance stamp (rounds=1,
- * the shipped quick-warm-up shape). If this drifts, the library's
+ * trivia-bluff recipe compiles from its own provenance stamp (rounds=3,
+ * the shipped shape; owner's call 2026-08-16). If this drifts, the library's
  * Customize knobs (round count, lie timer) would silently rebuild
  * something different from what the teacher sees.
  *
@@ -24,7 +24,7 @@ describe('trivia-bluff is a faithful trivia-bluff-recipe compile', () => {
     const config = await loadJson('games/trivia-bluff/config.json');
     expect(config.recipe).toBeDefined();
     expect(config.recipe.id).toBe('trivia-bluff');
-    expect(config.recipe.params.rounds).toBe(1);
+    expect(config.recipe.params.rounds).toBe(3);
   });
 
   it('stamp version matches the shipped recipe version', async () => {
