@@ -701,11 +701,6 @@ function buildRecipeCard(modal, recipe, allRecipes, overlay, deletable) {
   });
   if (recipe.broken) card.classList.add('recipe-card-broken');
 
-  var cardIcon = document.createElement('span');
-  cardIcon.className = 'template-card-icon';
-  cardIcon.textContent = recipe.icon || '🧩';
-  card.appendChild(cardIcon);
-
   var cardName = document.createElement('div');
   cardName.className = 'template-card-name';
   cardName.textContent = recipe.name;
@@ -797,11 +792,6 @@ function renderRecipeFormView(modal, recipe, allRecipes, overlay) {
 
   var titleWrap = document.createElement('div');
   titleWrap.className = 'recipe-form-title-wrap';
-
-  var icon = document.createElement('span');
-  icon.className = 'recipe-form-icon';
-  icon.textContent = recipe.icon || '🧩';
-  titleWrap.appendChild(icon);
 
   var title = document.createElement('h2');
   title.className = 'recipe-form-title';
@@ -1604,11 +1594,6 @@ function renderMatchPreview(modal, data, overlay) {
 
   var titleWrap = document.createElement('div');
   titleWrap.className = 'recipe-form-title-wrap';
-
-  var icon = document.createElement('span');
-  icon.className = 'recipe-form-icon';
-  icon.textContent = data.recipe.icon || '🧩';
-  titleWrap.appendChild(icon);
 
   var title = document.createElement('h2');
   title.className = 'recipe-form-title';

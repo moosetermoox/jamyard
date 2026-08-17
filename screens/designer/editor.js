@@ -7055,11 +7055,6 @@ function renderSarSuccessView(modal, recipe, overlay) {
   var card = document.createElement('div');
   card.className = 'sar-success-card';
 
-  var iconEl = document.createElement('div');
-  iconEl.className = 'sar-success-icon';
-  iconEl.textContent = recipe.icon || '🧩';
-  card.appendChild(iconEl);
-
   var nameEl = document.createElement('div');
   nameEl.className = 'sar-success-name';
   nameEl.textContent = recipe.name;

@@ -692,12 +692,6 @@ h1 {
   background: #BBDEFB;
 }
 
-.template-card-icon {
-  font-size: 1.8rem;
-  display: block;
-  margin-bottom: 8px;
-}
-
 .template-card-name {
   font-weight: 900;
   font-size: 1rem;
@@ -874,10 +868,6 @@ h1 {
   align-items: center;
   gap: 12px;
   flex: 1;
-}
-
-.recipe-form-icon {
-  font-size: 2.2rem;
 }
 
 .recipe-form-title {
