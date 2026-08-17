@@ -281,13 +281,6 @@
       color: #221E1C;
     }
 
-    .clipping-cta-quiet {
-      background: #FFF6EA;
-      padding: 8px 12px;
-      font-size: 11px;
-    }
-
-    .clipping-slide:hover .clipping-cta,
     .clipping-cta:hover {
       transform: rotate(var(--ctilt, -0.8deg)) translate(2px, 2px);
       box-shadow: 0 0 0 rgba(34,30,28,0.22);
@@ -376,10 +369,10 @@
 
     .how-try a { font-weight: 800; }
 
-    /* ── Action row: cut-paper buttons ── */
+    /* ── Action row: cut-paper buttons (Create lives in the footer) ── */
     .actions {
       display: grid;
-      grid-template-columns: 1.2fr 1fr 1fr;
+      grid-template-columns: 1.2fr 1fr;
       gap: 18px;
     }
 
@@ -515,7 +508,7 @@
     .reg-marks div { width: 11px; height: 11px; }
 
     @media (prefers-reduced-motion: reduce) {
-      .snap, .clipping-nav button, .clipping-slide .clipping-cta { transition: none; }
+      .snap, .clipping-nav button, .clipping-cta { transition: none; }
     }
 
     @media (max-width: 760px) {
@@ -568,18 +561,15 @@
           <div class="clipping-desc" id="carousel-desc"></div>
           <div class="clipping-meta" id="carousel-meta"></div>
         </a>
-        <div class="clipping-bottom">
-          <div class="clipping-actions">
-            <a class="clipping-cta clipping-cta-quiet" id="carousel-customize" style="--ctilt: -0.5deg" href="/library" title="Make your own editable copy of this activity">CUSTOMIZE</a>
-            <a class="clipping-cta clipping-cta-quiet" id="carousel-preview" style="--ctilt: 0.6deg" href="/prototype" title="See the teacher and student screens side by side, with practice players, no class needed">PREVIEW</a>
-            <a class="clipping-cta" id="carousel-cta" href="/library">▶ HOST THIS</a>
-          </div>
-        </div>
-        <!-- The library door, right where the attention is: visitors were
+        <!-- Two doors only: make it yours, or see the whole shelf. The
+             SEE ALL count sits right where the attention is: visitors were
              browsing the carousel one card at a time and never realizing
              the full shelf exists (field feedback 2026-08-16). -->
         <div class="clipping-bottom">
-          <a class="clipping-cta" id="carousel-seeall" style="--ctilt: 0.5deg" href="/library" title="Browse the full library">SEE ALL →</a>
+          <div class="clipping-actions">
+            <a class="clipping-cta" id="carousel-customize" style="--ctilt: -0.5deg" href="/library" title="Make your own editable copy of this activity">CUSTOMIZE</a>
+            <a class="clipping-cta" id="carousel-seeall" style="--ctilt: 0.5deg" href="/library" title="Browse the full library">SEE ALL →</a>
+          </div>
           <div class="clipping-nav">
             <button type="button" id="carousel-prev" aria-label="Previous activity">‹</button>
             <button type="button" id="carousel-next" aria-label="Next activity">›</button>
@@ -609,7 +599,6 @@
 
     <div class="actions">
       <a class="paper snap btn btn-primary" style="--tilt: -0.8deg" href="/library" title="Browse the library and host an activity in one click">FIND AN ACTIVITY</a>
-      <a class="paper snap btn btn-secondary" style="--tilt: 0.6deg" href="/designer" title="Build your own activity, describe it in plain words, use a recipe, or start from scratch"><span class="misprint">CREATE</span></a>
       <a class="paper snap btn btn-secondary" style="--tilt: -0.5deg" href="/guide" title="One page: setup, live controls, and what to do when something goes wrong"><span class="misprint">TEACHER GUIDE</span></a>
     </div>
 
@@ -647,8 +636,6 @@
     (function () {
       var carouselEl = document.getElementById('activity-carousel');
       var slideEl = document.getElementById('carousel-slide');
-      var ctaEl = document.getElementById('carousel-cta');
-      var previewEl = document.getElementById('carousel-preview');
       var customizeEl = document.getElementById('carousel-customize');
       var nameEl = document.getElementById('carousel-name');
       var descEl = document.getElementById('carousel-desc');
@@ -663,15 +650,12 @@
       // Paste-up motion rule: slides hard-cut, no fade.
       function render() {
         var g = games[idx];
-        var hostHref = '/host?game=' + encodeURIComponent(g.id);
-        var hostTitle = 'Host "' + g.name + '" now, students join with the room code';
-        slideEl.href = hostHref;
-        slideEl.title = hostTitle;
-        ctaEl.href = hostHref;
-        ctaEl.title = hostTitle;
-        previewEl.href = '/prototype?game=' + encodeURIComponent(g.id);
-        customizeEl.href = '/library?customize=' + encodeURIComponent(g.id);
-        customizeEl.title = 'Make your own editable copy of "' + g.name + '"';
+        var customizeHref = '/library?customize=' + encodeURIComponent(g.id);
+        var customizeTitle = 'Make your own editable copy of "' + g.name + '"';
+        slideEl.href = customizeHref;
+        slideEl.title = customizeTitle;
+        customizeEl.href = customizeHref;
+        customizeEl.title = customizeTitle;
         nameEl.textContent = g.name;
         descEl.textContent = g.description || '';
         var meta = [];

@@ -45,6 +45,7 @@
     KEY: 'lanyard-recents',
     MAX: 8,
     list: function () { return readIdList(this.KEY); },
+    has: function (id) { return this.list().indexOf(id) !== -1; },
     add: function (id) {
       var ids = this.list().filter(function (x) { return x !== id; });
       ids.unshift(id);

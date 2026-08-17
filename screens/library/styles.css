@@ -384,6 +384,23 @@ header {
   padding: 10px 18px !important;
 }
 
+/* Untouched activities show one door: Customize takes the vermillion cut
+   that Host wears once the activity has been tried. */
+.game-card-actions .game-card-customize-only {
+  background: #D9481C;
+  color: #FFF6EA;
+  transform: rotate(-0.8deg);
+  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
+  font-size: 14px;
+  padding: 10px 18px;
+}
+
+.game-card-actions .game-card-customize-only:hover {
+  transform: rotate(-0.8deg) translate(2px, 2px);
+  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+  color: #FFF6EA;
+}
+
 .game-card-fav {
   font-family: 'Nunito', Arial, sans-serif !important;
   font-size: 15px !important;

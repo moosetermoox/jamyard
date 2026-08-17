@@ -303,31 +303,18 @@ function buildCard(game) {
 
   var rememberRecent = function () { Recents.add(game.id); };
 
-  // Button order is Customize/Edit, Preview, Host — a teacher meeting an
-  // activity for the first time previews before hosting, so Host anchors
-  // the right edge (still visually primary via its vermillion style).
-  var hostBtn = document.createElement('a');
-  hostBtn.className = 'game-card-host library-host';
-  hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
-  hostBtn.textContent = '▶ Host this';
-  hostBtn.title = 'Start a live room your class can join right now';
-  hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');
-  hostBtn.addEventListener('click', rememberRecent);
-
-  var previewBtn = document.createElement('a');
-  previewBtn.className = 'game-card-preview';
-  previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
-  previewBtn.textContent = 'Preview';
-  previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
-  previewBtn.setAttribute('aria-label', 'Preview "' + game.name + '" with practice players');
-  previewBtn.addEventListener('click', rememberRecent);
-
   // Customization is the point (play community: the players change the
   // rules). Own activities — and the owner — edit directly. Built-ins get
   // "Customize": clone into an editable copy first, because saving over a
   // shared built-in is owner-only server-side.
   var canEditDirectly = (window.MyGames && MyGames.has(game.id)) ||
     (window.OwnerMode && OwnerMode.isOn());
+  // Untouched activities get ONE door: Customize, in the vermillion cut.
+  // Preview and Host appear once the activity has been tried (it is in
+  // recents) or is editable (yours, or owner view) — the customize flow
+  // drops your copy into recents, so the copy arrives with all three.
+  var touched = canEditDirectly || Recents.has(game.id);
+
   if (canEditDirectly) {
     var editBtn = document.createElement('a');
     editBtn.className = 'game-card-edit';
@@ -339,7 +326,7 @@ function buildCard(game) {
   } else {
     var customizeBtn = document.createElement('button');
     customizeBtn.type = 'button';
-    customizeBtn.className = 'game-card-edit';
+    customizeBtn.className = 'game-card-edit' + (touched ? '' : ' game-card-customize-only');
     customizeBtn.textContent = 'Customize';
     customizeBtn.title = 'Make your own editable copy of this activity';
     customizeBtn.setAttribute('aria-label', 'Customize a copy of "' + game.name + '"');
@@ -350,8 +337,28 @@ function buildCard(game) {
     actions.appendChild(customizeBtn);
   }
 
-  actions.appendChild(previewBtn);
-  actions.appendChild(hostBtn);
+  if (touched) {
+    // Button order is Customize/Edit, Preview, Host — a teacher meeting an
+    // activity previews before hosting, so Host anchors the right edge
+    // (still visually primary via its vermillion style).
+    var previewBtn = document.createElement('a');
+    previewBtn.className = 'game-card-preview';
+    previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
+    previewBtn.textContent = 'Preview';
+    previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
+    previewBtn.setAttribute('aria-label', 'Preview "' + game.name + '" with practice players');
+    previewBtn.addEventListener('click', rememberRecent);
+    actions.appendChild(previewBtn);
+
+    var hostBtn = document.createElement('a');
+    hostBtn.className = 'game-card-host library-host';
+    hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
+    hostBtn.textContent = '▶ Host this';
+    hostBtn.title = 'Start a live room your class can join right now';
+    hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');
+    hostBtn.addEventListener('click', rememberRecent);
+    actions.appendChild(hostBtn);
+  }
 
   var favBtn = document.createElement('button');
   var isFav = Favorites.has(game.id);
@@ -1231,6 +1238,9 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
 }
 
 function customizeCopy(game, btn) {
+  // Customizing counts as trying the original: it enters recents, so its
+  // card gains Preview/Host next render (the untouched-card unlock rule).
+  Recents.add(game.id);
   btn.disabled = true;
   btn.textContent = 'Loading…';
   var configPromise = fetch('/api/games/' + encodeURIComponent(game.id))
