@@ -352,8 +352,8 @@ button[hidden] {
 }
 
 @keyframes merge-remote-flash {
-  0% { box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 3px var(--theme-success, #D9481C); }
-  100% { box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); }
+  0% { box-shadow: inset 0 0 0 3px var(--theme-success, #22A05A); }
+  100% { box-shadow: inset 0 0 0 3px rgba(34, 160, 90, 0); }
 }
 
 #merge-agree-btn {
@@ -1496,45 +1496,31 @@ button[hidden] {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   PASTE-UP SKIN (docs/paper-layout-test/) — structural re-theme.
-   Colors flow through the --theme-* variables (default preset
-   'paste-up' in shared/themes.js; per-game themes still override).
-   Cut paper on a grained gesso ground: no borders, 2px radii, hard
-   paste shadows, 90ms two-step snaps. Appended last so it wins.
+   TOTEM SKIN (docs/design/totem/) — structural re-theme.
+   Painted scrap-wood offcuts on a gesso ground, sized for student
+   Chromebooks: 44px+ targets, sanded input planks with a dashed
+   pencil line, one signal-red action per screen (Join / Submit).
+   Colors flow through --theme-* (default preset 'totem' in
+   shared/themes.js; per-game themes still override) and the --t-*
+   tokens from shared/totem.css. Appended last so it wins.
    ════════════════════════════════════════════════════════════════ */
 
-body {
-  font-family: 'Nunito', Arial, sans-serif;
-  font-weight: 600;
-}
+* { border-radius: 0 !important; }
 
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.5;
-  background-image:
-    radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px),
-    radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px);
-  background-size: 4px 4px, 7px 7px;
-  background-position: 0 0, 2px 3px;
+body {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 500;
 }
 
 h1,
 .holding-progress,
-.timer-bar-text {
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
+.timer-bar-text,
+.prompt {
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
 }
 
-/* The question is the spoken line, serif */
-.prompt {
-  font-family: 'EB Garamond', Georgia, serif;
-  font-weight: 400;
-  font-size: 1.4rem;
-}
+.prompt { font-size: 1.5rem; line-height: 1.16; }
 
 /* Hard cuts between phases */
 section {
@@ -1542,79 +1528,179 @@ section {
   transform: none;
 }
 
-/* Buttons are paper cuts with the two-step snap */
+/* ── Buttons: painted blocks. Paper = secondary (default);
+   the student's own "go" action is signal red. ── */
 button {
   border: none;
-  border-radius: 2px;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
-  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+  background: var(--t-paper);
+  color: var(--t-ink);
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: none;
+  clip-path: polygon(0 0, 100% 6%, 98% 100%, 2% 96%);
+  filter: drop-shadow(0 4px 4px rgba(50, 35, 15, 0.22));
+  transform: rotate(var(--rot, -0.6deg));
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 button:hover {
   opacity: 1;
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 rgba(34,30,28,0.18);
+  transform: rotate(var(--rot, -0.6deg)) translateY(-5px);
 }
 
 button:active {
   opacity: 1;
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+  transform: rotate(var(--rot, -0.6deg)) translateY(0);
 }
 
 button:disabled {
   background: #D8D2C4;
   color: #857A66;
-  box-shadow: none;
-  transform: none;
+  filter: none;
+  transform: rotate(var(--rot, -0.6deg));
 }
 
-/* Join is the student's "go" moment, same loud color as Submit */
-#join-btn {
-  background: var(--theme-success, #D9481C);
-  color: #FFF6EA;
+/* The red action: joining, submitting, agreeing */
+#join-btn,
+#submit-btn,
+#estimate-submit-btn,
+#rank-submit-btn,
+#rate-submit-btn,
+#relay-submit-btn,
+#wager-submit-btn,
+#merge-agree-btn {
+  background: var(--theme-button, #E5482B);
+  color: var(--theme-button-text, #FDF9F0);
+  --rot: -1deg;
+  clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
 }
 
-/* The pass button stays quiet: readable Nunito on scrap */
+/* The pass button stays quiet: readable on paper */
 .pass-btn {
-  font-family: 'Nunito', Arial, sans-serif;
-  font-weight: 800;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
 }
 
-/* Inputs sit square with an inset shadow */
+/* ── Inputs: sanded planks with a dashed pencil line ── */
 input, textarea, .field-input, #merge-draft-input {
   border: none;
-  background: #FFFDF6;
-  border-radius: 2px;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16);
-  font-family: 'Nunito', Arial, sans-serif;
-  font-weight: 600;
+  background: var(--t-sanded, #EAD9BA);
+  background-image: var(--t-grain);
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+  box-shadow: none;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 500;
+  color: var(--t-ink);
 }
 
 input:focus, textarea:focus, .field-input:focus, #merge-draft-input:focus {
   border: none;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-text, #221E1C);
-}
-
-#room-code-input {
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--t-ink);
 }
 
 input::placeholder, textarea::placeholder {
-  color: #9A8F7C;
-  font-family: 'Nunito', Arial, sans-serif;
+  color: #8A7455;
+  font-family: 'DM Sans', Arial, sans-serif;
 }
 
-.join-label { color: #6E6353; }
-.join-hint { color: #857A66; }
-.char-counter { color: #857A66; }
+.join-label {
+  color: var(--t-muted-caps, #8A7B62);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
 
-/* Paper panels and rows */
-.prompt,
+.join-hint { color: var(--t-muted, #6B6250); }
+.char-counter { color: #8A7455; font-weight: 700; }
+
+/* ── Join: typed letters fill painted blocks ── */
+.code-entry {
+  position: relative;
+  display: inline-block;
+  margin: 0 auto;
+}
+
+.code-slots {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.code-slot {
+  width: 62px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 32px;
+  background: var(--t-gesso);
+  border: 3px dashed rgba(110, 75, 40, 0.35);
+  color: var(--t-ink);
+}
+
+/* A filled slot turns into a painted block */
+.code-slot-filled { border: none; }
+
+.code-slot-0.code-slot-filled {
+  background: var(--t-yellow);
+  background-image: var(--t-grain);
+  clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
+  transform: rotate(-1.5deg);
+}
+
+.code-slot-1.code-slot-filled {
+  background: var(--t-cyan);
+  color: var(--t-paper);
+  clip-path: polygon(0 0, 100% 6%, 97% 100%, 3% 96%);
+  transform: rotate(1deg);
+}
+
+.code-slot-2.code-slot-filled {
+  background: var(--t-red);
+  color: var(--t-paper);
+  clip-path: polygon(3% 4%, 97% 0, 100% 96%, 0 92%);
+  transform: rotate(-0.8deg);
+}
+
+.code-slot-3.code-slot-filled {
+  background: var(--t-magenta);
+  color: var(--t-paper);
+  clip-path: polygon(0 6%, 100% 0, 98% 92%, 2% 100%);
+  transform: rotate(1.4deg);
+}
+
+/* The real input rides invisibly over the slots: taps focus it, the
+   keyboard opens, but the blocks do the showing. */
+.code-entry #room-code-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: none;
+  background-image: none;
+  border: none;
+  color: transparent;
+  caret-color: transparent;
+  text-shadow: none;
+  letter-spacing: 0;
+  box-shadow: none;
+}
+
+.code-entry #room-code-input:focus { box-shadow: none; }
+.code-entry #room-code-input::placeholder { color: transparent; }
+.code-entry #room-code-input::selection { background: transparent; }
+
+/* ── Boards: content sits on paper ── */
 .ai-result,
 #standings-list,
 #leaderboard-standings,
@@ -1636,90 +1722,118 @@ input::placeholder, textarea::placeholder {
 .rate-pie-card,
 .msg-card {
   border: none;
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.08);
+  background: var(--theme-surface, #FDF9F0);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20);
 }
 
 .prompt {
-  box-shadow: 4px 4px 0 rgba(34,30,28,0.10);
-  transform: rotate(-0.3deg);
+  background: none;
+  border: none;
+  box-shadow: none;
+  transform: none;
 }
 
 .winner-entry {
-  box-shadow: 4px 4px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-success, #D9481C);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), inset 0 0 0 3px var(--theme-success, #22A05A);
   transform: rotate(0.4deg);
 }
 
-/* Choice and vote buttons: ink cuts, left-aligned reading */
+/* Choice and vote options: paper boards, selection is an inset ink
+   ring (never a color change) */
 .choice-btn,
 .vote-btn,
 .wager-option-btn {
-  border-radius: 2px;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
-  font-family: 'Nunito', Arial, sans-serif;
-  font-weight: 800;
-  color: var(--theme-button-text, #FBF7EC);
+  background: var(--t-paper);
+  color: var(--t-ink);
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  clip-path: none;
+  filter: none;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20);
 }
 
-/* Selection states flip to the loud color via the theme vars already */
+.choice-btn:hover,
+.vote-btn:hover,
+.wager-option-btn:hover {
+  transform: rotate(var(--rot, -0.6deg)) translateY(-3px);
+}
 
-/* Buzzer and one-voice taps: big paper cuts, not circles */
+/* Buzzer and one-voice taps: big painted blocks */
 .buzz-tap {
   border: none;
-  border-radius: 2px;
-  background: var(--theme-success, #D9481C);
+  background: var(--theme-button, #E5482B);
+  color: var(--theme-button-text, #FDF9F0);
   transform: rotate(-1deg);
-  box-shadow: 6px 6px 0 rgba(34,30,28,0.22);
-  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+  clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
+  filter: drop-shadow(0 5px 5px rgba(50, 35, 15, 0.28));
+  box-shadow: none;
 }
 
 .buzz-tap:active {
-  transform: rotate(-1deg) translate(5px, 5px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.22);
+  transform: rotate(-1deg) translateY(0);
 }
 
 .buzz-tap:disabled {
   background: #D8D2C4;
   color: #857A66;
-  box-shadow: none;
-  transform: none;
+  filter: none;
 }
 
 .one-voice-tap {
   border: none;
-  border-radius: 2px;
   transform: rotate(1deg);
-  box-shadow: 6px 6px 0 rgba(34,30,28,0.22);
+  clip-path: polygon(0 6%, 100% 0, 98% 92%, 2% 100%);
+  filter: drop-shadow(0 5px 5px rgba(50, 35, 15, 0.28));
+  box-shadow: none;
 }
 
 .one-voice-tap:active:not(:disabled) {
-  transform: rotate(1deg) translate(5px, 5px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.22);
+  transform: rotate(1deg) translateY(0);
 }
 
 /* Notices */
 .response-notice {
   border: none;
-  border-radius: 2px;
-  background: #FFFDF6;
-  color: var(--theme-danger, #AE3A16);
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 2px var(--theme-danger, #AE3A16);
-  font-family: 'Nunito', Arial, sans-serif;
-  font-weight: 800;
+  background: var(--t-paper);
+  color: var(--t-ink);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), inset 0 0 0 3px var(--theme-danger, #F08C1E);
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
 }
 
 #eliminated-banner {
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
+  background: var(--theme-danger, #F08C1E);
+  color: var(--t-paper);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.24);
 }
 
-/* Timer bar: quiet square track */
-.timer-bar {
-  border-radius: 2px;
-  background: rgba(34,30,28,0.12);
+/* ── Timer: a painted chip, orange for last call ── */
+.timer-bar-wrapper {
+  display: flex;
+  justify-content: center;
 }
 
-.timer-bar-fill { border-radius: 2px; }
+.timer-bar { display: none; }
+
+.timer-bar-text {
+  display: inline-block;
+  transform: rotate(-1.5deg);
+  background: var(--theme-timer, #FFC800);
+  background-image: var(--t-grain);
+  color: var(--t-ink);
+  font-size: 15px;
+  padding: 6px 14px 7px;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(50, 35, 15, 0.25);
+}
+
+.timer-warning .timer-bar-text {
+  background: var(--theme-danger, #F08C1E);
+  background-image: none;
+  color: var(--t-paper);
+}
 
 /* Drawing pad: white paper on the gesso */
 .draw-pad,
@@ -1727,90 +1841,95 @@ input::placeholder, textarea::placeholder {
 .reveal-drawing,
 .phase-image {
   border: none;
-  border-radius: 2px;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), 0 0 0 6px var(--t-paper);
 }
 
-.draw-swatch { border-radius: 2px; }
-.draw-swatch-active { outline: 3px solid var(--theme-text, #221E1C); outline-offset: 1px; }
+.draw-swatch-active { outline: 3px solid var(--t-ink); outline-offset: 1px; }
 
 .draw-tool-btn {
-  font-family: 'Nunito', Arial, sans-serif;
-  font-weight: 800;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.20);
+  clip-path: none;
+  filter: none;
 }
 
-/* Rank / match drag affordances keep their motion cues */
-.rank-item.rank-drag-over {
-  border: none;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D9481C);
-}
-
+/* Rank / match drag affordances: ink ring, never a color change */
+.rank-item.rank-drag-over,
 .match-row.rank-drag-over .match-right {
   border: none;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D9481C);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), inset 0 0 0 3px var(--t-ink);
 }
 
-.rank-arrow { border-radius: 2px; }
-
 .sort-bucket-btn {
-  border-radius: 2px;
-  font-family: 'Nunito', Arial, sans-serif;
-  font-weight: 800;
-  background: #FFFDF6;
-  color: var(--theme-text, #221E1C);
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+  background: var(--t-paper);
+  color: var(--t-ink);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.20);
+  clip-path: none;
+  filter: none;
 }
 
 .sort-bucket-btn.sort-bucket-chosen {
-  background: var(--theme-button, #221E1C);
-  color: var(--theme-button-text, #FBF7EC);
+  background: var(--t-ink);
+  color: var(--t-paper);
 }
 
 .checklist-box {
   border: none;
-  border-radius: 2px;
-  box-shadow: 0 0 0 2px rgba(34,30,28,0.55);
+  box-shadow: 0 0 0 2px rgba(42, 38, 32, 0.55);
 }
 
 .checklist-item-done .checklist-box {
-  background: var(--theme-success, #D9481C);
-  color: #FFF6EA;
-  box-shadow: 0 0 0 2px var(--theme-success, #D9481C);
+  background: var(--theme-success, #22A05A);
+  color: var(--t-paper);
+  box-shadow: 0 0 0 2px var(--theme-success, #22A05A);
 }
 
 .team-pick-mine {
-  outline: 3px solid var(--theme-success, #D9481C);
+  outline: 3px solid var(--t-ink);
   outline-offset: 1px;
 }
 
-/* Holding screen chips: little scraps */
+/* Holding screen chips: little offcuts */
 .holding-avatar-chip {
   border: none;
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12);
+  background: var(--t-paper);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.18);
 }
 
-.holding-avatar-chip:nth-child(odd) { transform: rotate(-0.8deg); }
-.holding-avatar-chip:nth-child(even) { transform: rotate(0.7deg); }
+.holding-avatar-chip:nth-child(odd) { transform: rotate(-1deg); }
+.holding-avatar-chip:nth-child(even) { transform: rotate(0.8deg); }
 
-#leaderboard-standings p.leaderboard-highlight { border-radius: 2px; }
+#leaderboard-standings p.leaderboard-highlight {
+  background: var(--t-yellow);
+  background-image: var(--t-grain);
+}
 
 /* Turn phase cards */
 .turn-item {
   border: none;
-  border-radius: 2px;
-  background: var(--theme-surface, #FBF7EC);
-  box-shadow: 4px 4px 0 rgba(34,30,28,0.12);
+  background: var(--theme-surface, #FDF9F0);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.20);
   transform: rotate(-0.4deg);
 }
 
 .turn-got-btn,
 .turn-skip-btn {
   border: none;
-  border-radius: 2px;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
 }
 
-.turn-role-label.role-describer { color: var(--theme-success, #D9481C); }
-.turn-role-label.role-teammate { color: var(--theme-text, #221E1C); }
+.turn-role-label.role-describer { color: var(--theme-success, #22A05A); }
+.turn-role-label.role-teammate { color: var(--t-ink); }
+
+/* Shared-box hint keeps its quiet voice */
+.merge-shared-hint { color: var(--t-muted, #6B6250); }
+
+@media (prefers-reduced-motion: reduce) {
+  button { transition: none; }
+}

@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Join. Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
+  <link rel="stylesheet" href="/shared/totem.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -18,15 +19,26 @@
     <h1>Join In</h1>
 
     <label class="join-label" for="room-code-input">Room code</label>
-    <input
-      type="text"
-      id="room-code-input"
-      placeholder="ABCD"
-      maxlength="4"
-      autocapitalize="characters"
-      autocomplete="off"
-      spellcheck="false"
-    >
+    <!-- Each typed letter fills a painted block; the real input rides
+         invisibly on top so taps focus it and keyboards behave. -->
+    <div class="code-entry">
+      <div class="code-slots" aria-hidden="true">
+        <div class="code-slot code-slot-0"></div>
+        <div class="code-slot code-slot-1"></div>
+        <div class="code-slot code-slot-2"></div>
+        <div class="code-slot code-slot-3"></div>
+      </div>
+      <input
+        type="text"
+        id="room-code-input"
+        placeholder="ABCD"
+        maxlength="4"
+        autocapitalize="characters"
+        autocomplete="off"
+        spellcheck="false"
+      >
+    </div>
+    <p class="join-hint">Each letter you type fills a block.</p>
 
     <label class="join-label" for="name-input">Your name</label>
     <input

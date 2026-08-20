@@ -13,7 +13,7 @@
 // Default theme — paste-up: paper and ink on gesso, one loud vermillion.
 // Overridden by a game-specific theme when one is set.
 if (window.applyGameTheme) {
-  window.applyGameTheme('paste-up');
+  window.applyGameTheme('totem');
 }
 
 const socket = io();
@@ -293,6 +293,21 @@ let turnCurrentInstanceId = null;
 
 // --- Button handlers ---
 
+// Typed code letters fill the painted blocks behind the input (Totem: 10c)
+function renderCodeSlots() {
+  const letters = roomCodeInput.value.toUpperCase();
+  const slots = document.querySelectorAll('.code-slot');
+  for (let i = 0; i < slots.length; i++) {
+    slots[i].textContent = letters[i] || '';
+    slots[i].classList.toggle('code-slot-filled', !!letters[i]);
+  }
+}
+
+roomCodeInput.addEventListener('input', function () {
+  this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
+  renderCodeSlots();
+});
+
 // Prototype mode: auto-fill and auto-join
 (function() {
   const params = new URLSearchParams(window.location.search);
@@ -302,6 +317,7 @@ let turnCurrentInstanceId = null;
     if (code && name) {
       roomCodeInput.value = code;
       nameInput.value = name;
+      renderCodeSlots();
       // Delay to ensure socket is connected
       setTimeout(() => joinBtn.click(), 500);
     }
@@ -317,6 +333,7 @@ let turnCurrentInstanceId = null;
   const code = params.get('code');
   if (code) {
     roomCodeInput.value = code.toUpperCase().trim().slice(0, 4);
+    renderCodeSlots();
     if (nameInput) setTimeout(() => nameInput.focus(), 100);
   }
 })();
@@ -652,6 +669,14 @@ socket.on('kicked', ({ message } = {}) => {
 });
 
 // --- Timer ---
+// The Totem timer is a chip that reads like a clock, not a bar
+function formatTimerText(seconds) {
+  if (seconds >= 60) {
+    return Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+  }
+  return String(seconds);
+}
+
 function startTimer(seconds, wrapperEl, onExpire) {
   clearTimer();
   let remaining = seconds;
@@ -661,12 +686,12 @@ function startTimer(seconds, wrapperEl, onExpire) {
 
   wrapperEl.hidden = false;
   wrapperEl.classList.remove('timer-warning');
-  textEl.textContent = remaining + 's';
+  textEl.textContent = formatTimerText(remaining);
   fillEl.style.width = '100%';
 
   timerInterval = setInterval(() => {
     remaining--;
-    textEl.textContent = remaining + 's';
+    textEl.textContent = formatTimerText(remaining);
     fillEl.style.width = ((remaining / total) * 100) + '%';
     if (remaining <= 5) {
       wrapperEl.classList.add('timer-warning');
