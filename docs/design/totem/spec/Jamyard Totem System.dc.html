@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&amp;display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: #F2EEE5; font-family: 'DM Sans', sans-serif; color: #2A2620; }
+a { color: #B0197E; } a:hover { color: #2A2620; }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&display=swap" rel="stylesheet">
+</helmet>
+
+<div style="min-height: 100vh; padding: 64px 56px 96px;">
+  <div style="max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 44px;">
+
+    <div style="display: flex; flex-direction: column; gap: 18px;">
+      <div style="display: flex; gap: 5px; align-items: flex-end;">
+        <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px; color: #2A2620; background: #E3C8A0; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); padding: 6px 14px 8px; transform: rotate(-2deg); display: inline-block; box-shadow: 0 3px 5px rgba(50,35,15,0.30);">JAM</span>
+        <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px; color: #FDF9F0; background: #E5482B; padding: 6px 14px 8px; transform: rotate(1.5deg); display: inline-block; box-shadow: 0 3px 5px rgba(50,35,15,0.30);">YARD</span>
+        <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 30px; color: #2A2620; background: #FFC800; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); padding: 6px 14px 8px; transform: rotate(-1deg); display: inline-block; box-shadow: 0 3px 5px rgba(50,35,15,0.30);">TOTEM</span>
+      </div>
+      <div style="max-width: 720px; font-size: 17px; font-weight: 500; line-height: 1.6; color: #55503F; text-wrap: pretty;">The Jamyard design system. Everything is an offcut: a piece of painted scrap wood, cut a little off-square, stacked with its neighbors into totems. Stacks mean sequence — rounds in an activity, steps in an editor, piles in a library — and the interface literally builds as you use it. Applied in <a href="Lanyard Home.dc.html#8a" style="font-weight: 700;">8a</a>, <a href="Lanyard Home.dc.html#9a" style="font-weight: 700;">9a</a>, <a href="Lanyard Home.dc.html#9d" style="font-weight: 700;">9d</a>, <a href="Lanyard Home.dc.html#9g" style="font-weight: 700;">9g</a>.</div>
+    </div>
+
+    <!-- 1 PALETTE -->
+    <div style="background: #FDF9F0; box-shadow: 0 4px 8px rgba(50,35,15,0.14); transform: rotate(-0.2deg); padding: 32px 38px 36px; display: flex; flex-direction: column; gap: 22px;">
+      <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.12em; color: #2A2620;">1 · PALETTE — WOOD CARRIES, PAINT SPEAKS</div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">WOOD — STRUCTURE, SURFACES, ANYTHING THAT HOLDS CONTENT</div>
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px;">
+          <div><div style="height: 72px; background: #F2EEE5; box-shadow: inset 0 0 0 1px rgba(42,38,32,0.12);"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Gesso <span style="font-weight: 500; color: #8A7B62;">#F2EEE5</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">the ground</div></div>
+          <div><div style="height: 72px; background: #FDF9F0; box-shadow: inset 0 0 0 1px rgba(42,38,32,0.12);"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Paper <span style="font-weight: 500; color: #8A7B62;">#FDF9F0</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">cards, inputs, labels</div></div>
+          <div><div style="height: 72px; background: #E3C8A0;"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Birch <span style="font-weight: 500; color: #8A7B62;">#E3C8A0</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">light blocks</div></div>
+          <div><div style="height: 72px; background: #D2B285;"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Pine <span style="font-weight: 500; color: #8A7B62;">#D2B285</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">mid blocks, boards</div></div>
+          <div><div style="height: 72px; background: #C29A67;"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Oak <span style="font-weight: 500; color: #8A7B62;">#C29A67</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">dark blocks</div></div>
+          <div><div style="height: 72px; display: grid; grid-template-columns: 1fr 1fr;"><div style="background: #B08350;"></div><div style="background: #8F6438;"></div></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Walnut · Base <span style="font-weight: 500; color: #8A7B62;">#B08350 · #8F6438</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">plinths and bases only</div></div>
+        </div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">PAINT — MEANING. A COLOR IS A JOB, NOT A DECORATION</div>
+        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 14px;">
+          <div><div style="height: 72px; background: #E5482B;"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Signal red <span style="font-weight: 500; color: #8A7B62;">#E5482B</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">THE primary action. One per screen.</div></div>
+          <div><div style="height: 72px; background: #FFC800;"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Yellow <span style="font-weight: 500; color: #8A7B62;">#FFC800</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">now / selected / highlight</div></div>
+          <div><div style="height: 72px; background: #1BA9C4;"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Cyan <span style="font-weight: 500; color: #8A7B62;">#1BA9C4</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">think / info</div></div>
+          <div><div style="height: 72px; background: #22A05A;"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Green <span style="font-weight: 500; color: #8A7B62;">#22A05A</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">done / progress</div></div>
+          <div><div style="height: 72px; background: #B0197E;"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Magenta <span style="font-weight: 500; color: #8A7B62;">#B0197E</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">play / social</div></div>
+          <div><div style="height: 72px; background: #F08C1E;"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Orange <span style="font-weight: 500; color: #8A7B62;">#F08C1E</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">warn / timer</div></div>
+          <div><div style="height: 72px; background: #2A2620;"></div><div style="font-size: 13px; font-weight: 700; margin-top: 8px;">Ink <span style="font-weight: 500; color: #8A7B62;">#2A2620</span></div><div style="font-size: 12px; font-weight: 500; color: #8A7B62;">all reading text; muted floor #6B6250</div></div>
+        </div>
+      </div>
+      <div style="font-size: 13px; font-weight: 500; color: #55503F; line-height: 1.6; max-width: 760px;">Ratio per screen: mostly gesso and wood, 2–4 painted pieces. Text on paint is Paper #FDF9F0 (or Ink on yellow/birch). Meta text never lighter than #6B6250 on gesso, #8A7B62 for small caps labels only.</div>
+    </div>
+
+    <!-- 2 TYPE -->
+    <div style="background: #FDF9F0; box-shadow: 0 4px 8px rgba(50,35,15,0.14); transform: rotate(0.2deg); padding: 32px 38px 36px; display: flex; flex-direction: column; gap: 22px;">
+      <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.12em; color: #2A2620;">2 · TYPE — SANS ONLY</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">DISPLAY — SYNE 800</div>
+          <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 32px; line-height: 1.12; color: #2A2620;">What are we going to <span style="background: linear-gradient(180deg, transparent 12%, #FFC800 12%, #FFC800 88%, transparent 88%); padding: 0 5px; display: inline-block; transform: rotate(-1deg);">make</span> together?</div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; line-height: 1.55;">Questions, headings, block labels. The painted-word highlight (yellow band, ±1° rotation) marks the key word — at most one per heading.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">BLOCK LABELS — SYNE 800 CAPS</div>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 19px; letter-spacing: 0.06em; color: #2A2620;">HOST</span>
+            <span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 13px; letter-spacing: 0.06em; color: #2A2620; opacity: 0.6;">2</span>
+            <span style="font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: #8A7B62;">ROOM ABCD · 24 HERE</span>
+          </div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; line-height: 1.55;">Words painted on blocks: caps, letter-spacing 0.06em, 15–21px. Step numbers ride at 60% opacity. Spaced-caps meta labels are DM Sans 700, 0.12–0.14em, 11–13px.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">BODY — DM SANS</div>
+          <div style="font-size: 16px; font-weight: 500; line-height: 1.55; color: #2A2620;">One sentence. It gets stacked with everyone else's, no names.</div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; line-height: 1.55;">500 for reading text (15–19px), 700 for emphasis and meta. Body never rotates and never sits directly on wood grain — put it on paper or gesso.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 MATERIAL -->
+    <div style="background: #FDF9F0; box-shadow: 0 4px 8px rgba(50,35,15,0.14); transform: rotate(-0.2deg); padding: 32px 38px 36px; display: flex; flex-direction: column; gap: 22px;">
+      <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.12em; color: #2A2620;">3 · MATERIAL — HOW AN OFFCUT IS MADE</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="height: 110px; background: #D2B285; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px), repeating-linear-gradient(88deg, rgba(70,45,20,0.06) 0px, rgba(70,45,20,0.06) 2px, transparent 2px, transparent 14px);"></div>
+          <div style="font-size: 13px; font-weight: 700;">Grain</div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; line-height: 1.55;">Two repeating-linear-gradients at 92° and 88° (1px/6px and 2px/14px). Goes on every wood tone. Paint colors get no grain except yellow, which is painted thin.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="height: 110px; display: flex; align-items: center; justify-content: center;"><div style="width: 200px; height: 74px; background: #1BA9C4; clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%); transform: rotate(-1.2deg);"></div></div>
+          <div style="font-size: 13px; font-weight: 700;">The cut</div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; line-height: 1.55;">clip-path polygons, 4–8 vertices, every edge within 8% of square — sawed, never torn. Rotation ±2° max. Notches and roof-cuts are allowed on feature pieces, one gimmick per piece.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="height: 110px; display: flex; align-items: center; justify-content: center;"><div style="filter: drop-shadow(5px 8px 0 rgba(80,60,30,0.14));"><div style="width: 150px; height: 40px; background: #E3C8A0; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); clip-path: polygon(0 6%, 100% 0, 98% 100%, 2% 94%); transform: rotate(-1deg);"></div><div style="width: 170px; height: 44px; background: #FFC800; clip-path: polygon(2% 0, 98% 4%, 100% 96%, 0 100%); transform: rotate(1deg); margin-top: -4px;"></div></div></div>
+          <div style="font-size: 13px; font-weight: 700;">The shadow</div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; line-height: 1.55;">One flat drop-shadow(5–6px 8–10px 0 rgba(80,60,30,0.14)) on the whole stack's wrapper — pieces inside cast no shadow of their own. Free-standing paper: box-shadow 0 3–4px 5–6px rgba(50,35,15,0.2–0.3). Nothing blurs more than 6px.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 THE STACK -->
+    <div style="background: #FDF9F0; box-shadow: 0 4px 8px rgba(50,35,15,0.14); transform: rotate(0.2deg); padding: 32px 38px 36px; display: flex; flex-direction: column; gap: 22px;">
+      <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.12em; color: #2A2620;">4 · THE STACK — THE CORE PATTERN</div>
+      <div style="display: flex; gap: 44px; align-items: flex-start;">
+        <div style="display: flex; flex-direction: column; align-items: center; filter: drop-shadow(5px 8px 0 rgba(80,60,30,0.14));">
+          <div style="width: 168px; padding: 13px 0 15px; background: #E3C8A0; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); transform: rotate(-1.2deg); text-align: center; clip-path: polygon(0 6%, 100% 0, 98% 100%, 2% 94%); cursor: pointer; transition: transform 120ms cubic-bezier(0.4,0,0.2,1); opacity: 0.55;" style-hover="transform: rotate(-1.2deg) translateX(10px);"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.06em; color: #6B4E2A;">ALONE ✓</span></div>
+          <div style="width: 196px; padding: 15px 0 17px; background: #FFC800; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); transform: rotate(1.2deg); text-align: center; clip-path: polygon(2% 0, 98% 4%, 100% 96%, 0 100%); margin-top: -4px; cursor: pointer; transition: transform 120ms cubic-bezier(0.4,0,0.2,1);" style-hover="transform: rotate(1.2deg) translateX(-10px);"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: 0.06em; color: #2A2620;">PAIR ← NOW</span></div>
+          <div style="width: 168px; padding: 13px 0 15px; background: #D2B285; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); transform: rotate(-0.8deg); text-align: center; clip-path: polygon(0 0, 100% 8%, 96% 92%, 4% 100%); margin-top: -4px; cursor: pointer; transition: transform 120ms cubic-bezier(0.4,0,0.2,1);" style-hover="transform: rotate(-0.8deg) translateX(10px);"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.06em; color: #6B4E2A;">EVERYONE</span></div>
+          <div style="width: 128px; height: 46px; background: #B08350; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); margin-top: -2px;"></div>
+          <div style="width: 220px; height: 22px; background: #8F6438; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px);"></div>
+        </div>
+        <div style="flex: 1; font-size: 14px; font-weight: 500; line-height: 1.7; color: #55503F; max-width: 640px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62; margin-bottom: 8px;">GRAMMAR</div>
+          A stack is a sequence read top-to-bottom or built bottom-up. Blocks overlap −4px, alternate rotation sign, vary width by 10–20%. Every stack stands on a <b>plinth</b> (walnut, ~60% width) and a <b>base board</b> (base brown, ~110% width) — a stack never floats. State on a block: <b>yellow</b> = current, <b>55% opacity + ✓</b> = done, wood = not yet. Hover pulls a block out sideways (±10px, away from its rotation); a dashed drop slot (3px dashed rgba(110,75,40,0.35) on a solid ground) marks where a new block can land. Cap: 6 blocks per stack — beyond that, split into piles like the library.
+        </div>
+      </div>
+    </div>
+
+    <!-- 5 COMPONENTS -->
+    <div style="background: #FDF9F0; box-shadow: 0 4px 8px rgba(50,35,15,0.14); transform: rotate(-0.2deg); padding: 32px 38px 36px; display: flex; flex-direction: column; gap: 24px;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.12em; color: #2A2620;">5 · COMPONENTS</div>
+        <div style="font-size: 13px; font-weight: 500; color: #8A7B62;">hover everything — 120ms cubic-bezier(0.4,0,0.2,1)</div>
+      </div>
+      <div style="display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start;">
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">PRIMARY — SIGNAL RED, ONE PER SCREEN</div>
+          <div style="align-self: flex-start; background: #E5482B; padding: 14px 30px 16px; transform: rotate(-1deg); cursor: pointer; box-shadow: 0 4px 6px rgba(50,35,15,0.28); clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%); transition: transform 120ms cubic-bezier(0.4,0,0.2,1);" style-hover="transform: rotate(-1deg) translateY(-5px);"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: 0.04em; color: #FDF9F0; white-space: nowrap;">ADD MY BLOCK</span></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">SECONDARY — PAPER</div>
+          <div style="align-self: flex-start; background: #FDF9F0; padding: 14px 30px 16px; transform: rotate(0.8deg); cursor: pointer; box-shadow: 0 4px 6px rgba(50,35,15,0.22); clip-path: polygon(0 0, 100% 6%, 98% 100%, 2% 96%); transition: transform 120ms cubic-bezier(0.4,0,0.2,1);" style-hover="transform: rotate(0.8deg) translateY(-5px);"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 16px; letter-spacing: 0.04em; color: #2A2620;">SHARE</span></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">PLANK — LIST ITEM</div>
+          <div style="width: 250px; padding: 13px 16px 15px; background: #E3C8A0; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); transform: rotate(-1deg); clip-path: polygon(0 8%, 100% 0, 99% 94%, 1% 100%); cursor: pointer; transition: transform 120ms cubic-bezier(0.4,0,0.2,1);" style-hover="transform: rotate(-1deg) translateX(12px);"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; color: #2A2620;">Snowball</span> <span style="font-size: 11px; font-weight: 600; color: #2A2620; opacity: 0.7; margin-left: 8px;">~10 min</span></div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; max-width: 250px; line-height: 1.5;">Selection = inset 0 0 0 3px Ink, never a color change.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">INPUT — WRITE ON THE PLANK</div>
+          <div style="width: 280px; background: #EAD9BA; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); padding: 20px 22px 18px; transform: rotate(0.5deg); filter: drop-shadow(4px 6px 0 rgba(80,60,30,0.15)); clip-path: polygon(0 5%, 34% 0, 68% 4%, 100% 0, 99% 95%, 64% 100%, 30% 94%, 0 99%);"><div style="font-size: 16px; font-weight: 500; color: #8A7455; border-bottom: 3px dashed rgba(110,75,40,0.35); padding-bottom: 8px;">Write it on the plank…</div></div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; max-width: 280px; line-height: 1.5;">Sanded plank + dashed pencil line. Typed text is Ink 500; the dashed line is the caret's home.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">FEATURED CARD — JIGSAW BOARD</div>
+          <div style="width: 330px; background: #D2B285; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); clip-path: polygon(0 4%, 30% 0, 62% 3%, 100% 0, 98% 55%, 100% 96%, 66% 100%, 30% 95%, 0 100%, 2% 50%); padding: 20px 24px 22px; filter: drop-shadow(5px 7px 0 rgba(80,60,30,0.16)); transform: rotate(0.6deg); display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.14em; color: #6B4E2A;">FROM THE LIBRARY — 4 OF 19</div>
+            <div style="display: flex; align-items: baseline; gap: 10px;"><span style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 22px; color: #FDF9F0; background: #B0197E; padding: 2px 12px 5px; transform: rotate(-1.2deg); display: inline-block; box-shadow: 0 3px 4px rgba(50,35,15,0.28);">Snowball</span><span style="font-size: 12px; font-weight: 700; color: #6B4E2A;">~10 min</span></div>
+            <div style="font-size: 14px; font-weight: 500; line-height: 1.5; color: #4A3A22;">Alone, together, all of us. One question, distilled by everyone.</div>
+          </div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; max-width: 330px; line-height: 1.5;">The title is its own painted piece glued on. Sub-text sits directly on the board in dark wood-ink #4A3A22.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">TIMER / STATUS CHIP</div>
+          <div style="display: flex; gap: 12px;">
+            <div style="background: #FFC800; background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0px, rgba(110,75,40,0.10) 1px, transparent 1px, transparent 6px); padding: 8px 16px; transform: rotate(-1.5deg); font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 14px; color: #2A2620; box-shadow: 0 3px 5px rgba(50,35,15,0.25);">1:24 LEFT</div>
+            <div style="background: #22A05A; padding: 8px 16px; transform: rotate(1deg); font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 14px; color: #FDF9F0; box-shadow: 0 3px 5px rgba(50,35,15,0.25);">9 OF 24 IN</div>
+          </div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; max-width: 260px; line-height: 1.5;">Yellow = time, green = progress, orange = last call. Counts tick by swapping the number — no bars.</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #8A7B62;">DROP SLOT</div>
+          <div style="width: 220px; padding: 13px 0; background: #F2EEE5; border: 3px dashed rgba(110,75,40,0.35); text-align: center; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 13px; color: #A08A68; cursor: pointer;">+ DROP A STEP HERE</div>
+          <div style="font-size: 13px; font-weight: 500; color: #55503F; max-width: 240px; line-height: 1.5;">Always solid gesso fill (a transparent slot ghosts under stack shadows). Square, un-rotated — it isn't wood yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6 MOTION + NEVER -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start;">
+      <div style="background: #FDF9F0; box-shadow: 0 4px 8px rgba(50,35,15,0.14); transform: rotate(-0.2deg); padding: 32px 38px 34px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.12em; color: #2A2620;">6 · MOTION</div>
+        <div style="font-size: 15px; font-weight: 500; line-height: 1.7; color: #55503F;">Interaction-only; nothing moves at rest. <b>120ms cubic-bezier(0.4,0,0.2,1)</b> everywhere. Blocks in stacks slide out sideways ±10–12px on hover; free pieces lift −5px; press settles back to 0. New blocks arrive by dropping onto the stack (translateY −16px → 0, same curve, 180ms) — the one entrance animation. No fades, no scaling, no springs.</div>
+      </div>
+      <div style="background: #2A2620; box-shadow: 0 4px 8px rgba(50,35,15,0.3); transform: rotate(0.25deg); padding: 32px 38px 34px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="font-family: 'Bricolage Grotesque', sans-serif; font-weight: 800; font-size: 15px; letter-spacing: 0.12em; color: #FDF9F0;">7 · NEVER</div>
+        <div style="font-size: 15px; font-weight: 500; line-height: 1.9; color: #CFC5B4;">Serifs · torn or curved edges · border-radius (0 everywhere) · gradients except the grain · floating stacks (no plinth) · two red actions on one screen · body text on raw grain · rotation past 2° · blurry shadows · emoji</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
