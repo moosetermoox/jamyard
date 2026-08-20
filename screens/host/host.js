@@ -24,7 +24,7 @@ const socket = io();
 const J = window.Juice || null;
 const sfxToggle = document.getElementById('sfx-toggle');
 function labelSfxToggle(isMuted) {
-  sfxToggle.textContent = isMuted ? '🔇' : '🔊';
+  sfxToggle.textContent = isMuted ? 'Sound off' : 'Sound on';
   // Screen readers announce the action, not just an emoji.
   sfxToggle.setAttribute('aria-label', isMuted ? 'Turn sound effects on' : 'Turn sound effects off');
   sfxToggle.title = isMuted ? 'Turn sound effects on' : 'Turn sound effects off';
@@ -111,7 +111,7 @@ function showCopyFeedback(text) {
   teacherLinkCopyBtn.textContent = text;
   if (copyFeedbackTimer) clearTimeout(copyFeedbackTimer);
   copyFeedbackTimer = setTimeout(() => {
-    teacherLinkCopyBtn.textContent = '🔗 Copy teacher link';
+    teacherLinkCopyBtn.textContent = 'Copy teacher link';
     copyFeedbackTimer = null;
   }, 2500);
 }
@@ -143,7 +143,7 @@ socket.on('teacher-console-joined', ({ deviceCount }) => {
 previewRevealBtn.addEventListener('click', () => {
   previewPrivate.hidden = !previewPrivate.hidden;
   previewRevealBtn.textContent = previewPrivate.hidden
-    ? '👁 Show on this screen'
+    ? 'Show on this screen'
     : 'Hide from this screen';
 });
 
@@ -872,10 +872,10 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
   // their Teacher view, or deliberately reveals here. If no console is
   // paired yet, point at the corner chip instead of a view they don't have.
   previewPrivacyHint.textContent = teacherConsolePaired
-    ? 'The content is hidden from this (projected) screen. Review it on your 👁 Teacher view, or reveal it here.'
-    : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use "🔗 Copy teacher link" in the corner and paste it in a private window, or reveal it here.';
+    ? 'The content is hidden from this (projected) screen. Review it on your Teacher view, or reveal it here.'
+    : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use "Copy teacher link" in the corner and paste it in a private window, or reveal it here.';
   previewPrivate.hidden = true;
-  previewRevealBtn.textContent = '👁 Show on this screen';
+  previewRevealBtn.textContent = 'Show on this screen';
   previewContent.textContent = content;
   applyTemplate(previewSection, hostTemplate);
   applyShow(show, {
@@ -1650,7 +1650,7 @@ socket.on('one-voice-success', (data) => {
 
 oneVoiceMuteBtn.addEventListener('click', () => {
   roomVoiceMuted = !roomVoiceMuted;
-  oneVoiceMuteBtn.textContent = roomVoiceMuted ? '🔇 Voice off' : '🔊 Voice on';
+  oneVoiceMuteBtn.textContent = roomVoiceMuted ? 'Voice off' : 'Voice on';
 });
 
 oneVoiceContinueBtn.addEventListener('click', () => {
@@ -1709,7 +1709,7 @@ socket.on('buzz-start', ({ prompt, question, scores, hostTemplate, show }) => {
 
 socket.on('buzz-locked', ({ playerId, playerName }) => {
   buzzNames[playerId] = playerName;
-  buzzStatus.textContent = '🔔 ' + (J ? J.avatarFor(playerName) + ' ' : '') + playerName + ' buzzed in!';
+  buzzStatus.textContent = (J ? J.avatarFor(playerName) + ' ' : '') + playerName + ' buzzed in!';
   buzzStatus.classList.add('buzz-status-locked');
   buzzJudgeRow.hidden = false;
   if (J) J.sound('reveal');

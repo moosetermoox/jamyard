@@ -5,31 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Activity Library - Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
-  <!-- Paste-up system (docs/paper-layout-test/): this stylesheet is
+  <!-- Totem system (docs/design/totem/): this stylesheet is
        standalone, the library no longer borrows the designer's look. -->
+  <link rel="stylesheet" href="/shared/totem.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div class="grain" aria-hidden="true"></div>
-  <div class="halftone-corner" aria-hidden="true"></div>
-
   <div class="page">
     <header>
       <a class="wordmark" href="/" aria-label="Jamyard, back to home">
-        <span class="lm-archivo lm-scrap" style="transform: rotate(-2deg)">J</span>
-        <span class="lm-garamond lm-vermillion" style="transform: rotate(1.5deg)">A</span>
-        <span class="lm-nunito lm-ink" style="transform: rotate(-1deg)">M</span>
-        <span class="lm-archivo lm-scrap" style="transform: rotate(2deg)">Y</span>
-        <span class="lm-garamond lm-scrap" style="transform: rotate(-1.5deg)">A</span>
-        <span class="lm-archivo lm-ink" style="transform: rotate(1deg)">R</span>
-        <span class="lm-nunito lm-scrap" style="transform: rotate(-2deg)">D</span>
+        <span class="wm-jam">JAM</span>
+        <span class="wm-yard">YARD</span>
       </a>
       <a href="/" class="back-link">back to home</a>
     </header>
 
     <main>
       <section id="library-section">
-        <h1 class="spoken">What do you want to do together?</h1>
+        <h1 class="spoken">What do you want to do <span class="t-painted-word">together</span>?</h1>
         <div id="teacher-setup"></div>
         <div id="library-controls" hidden>
           <input type="search" id="library-search" placeholder="Search activities…"
@@ -42,7 +35,7 @@
 
         <div class="builder-doorway">
           <p>Want something that isn't here?</p>
-          <button id="build-your-own-btn" type="button"><span class="misprint">🛠 BUILD YOUR OWN ACTIVITY</span></button>
+          <button id="build-your-own-btn" type="button">+ BUILD YOUR OWN ACTIVITY</button>
         </div>
 
         <p class="privacy-footnote"><a href="/guide">Teacher guide: setup, live controls, quick fixes</a> · <a href="/privacy">Privacy: what we keep, why, and when it is deleted</a></p>

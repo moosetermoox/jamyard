@@ -1430,7 +1430,7 @@ buzzTapBtn.addEventListener('click', function () {
 socket.on('buzz-locked', ({ playerId, playerName }) => {
   buzzTapBtn.disabled = true;
   if (playerId === socket.id) {
-    buzzPlayerStatus.textContent = '🔔 You buzzed first, answer out loud!';
+    buzzPlayerStatus.textContent = 'You buzzed first, answer out loud!';
     if (J) J.sound('tada');
   } else {
     buzzPlayerStatus.textContent = playerName + ' buzzed first.';
