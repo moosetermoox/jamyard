@@ -398,7 +398,7 @@ function buildGameCard(game) {
   if (game.family === 'connection') {
     var noWinner = document.createElement('div');
     noWinner.className = 'game-card-no-winner';
-    noWinner.textContent = '🕊 No scores, no winners';
+    noWinner.textContent = 'No scores, no winners';
     noWinner.title = 'A connection activity, the framework refuses to add points, rankings, or eliminations to it.';
     card.appendChild(noWinner);
   }

@@ -5,7 +5,7 @@
 }
 
 body {
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
   background: #FFFDE7;
   color: #222;
   height: 100vh;
@@ -227,7 +227,7 @@ body {
   border: 3px solid #000;
   border-radius: 10px;
   font-size: 0.9rem;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   background: white;
 }
 
@@ -532,7 +532,7 @@ body {
   border: 2px solid #bbb;
   border-radius: 10px;
   font-size: 0.9rem;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   background: white;
   box-sizing: border-box;
   transition: border-color 0.15s;
@@ -601,7 +601,7 @@ body {
   color: #666;
   margin-top: 3px;
   line-height: 1.35;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -610,7 +610,7 @@ body {
   color: #888;
   margin-top: 2px;
   margin-left: 30px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -621,7 +621,7 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -791,7 +791,7 @@ body {
   color: #FFF;
   padding: 10px 18px;
   border-radius: 6px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.9rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   opacity: 0;
@@ -835,7 +835,7 @@ body {
   color: #666;
   margin-top: 5px;
   line-height: 1.4;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -934,7 +934,7 @@ body {
   font-size: 0.8rem;
   color: #555;
   line-height: 1.3;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -984,7 +984,7 @@ body {
   margin: 0;
   font-size: 0.85rem;
   line-height: 1.5;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1049,7 +1049,7 @@ body {
   width: 92%;
   max-height: 92vh;
   overflow-y: auto;
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
 }
 
 .sar-loading {
@@ -1070,7 +1070,7 @@ body {
   text-align: center;
   font-size: 0.9rem;
   color: #444;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
   margin: 0 0 20px 0;
   line-height: 1.4;
@@ -1133,7 +1133,7 @@ body {
 
 .sar-candidate-preview {
   margin-top: 6px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
   font-size: 0.85rem;
   color: #555;
@@ -1190,7 +1190,7 @@ body {
 .sar-field-helper {
   font-size: 0.78rem;
   color: #555;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
   margin-bottom: 2px;
 }
@@ -1200,7 +1200,7 @@ body {
   border: 3px solid #000;
   border-radius: 8px;
   font-size: 0.92rem;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   background: white;
   font-weight: normal;
   width: 100%;
@@ -1229,7 +1229,7 @@ textarea.sar-input {
   border: 3px solid #000;
   border-radius: 8px;
   padding: 12px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
   font-size: 0.88rem;
 }
@@ -1310,7 +1310,7 @@ textarea.sar-input {
 }
 
 .sar-success-desc {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
   font-size: 0.95rem;
   color: #444;
@@ -1398,7 +1398,7 @@ textarea.sar-input {
   background: white;
   border-radius: 10px;
   border: 3px solid #000;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1423,7 +1423,7 @@ textarea.sar-input {
   background: white;
   font-size: 0.85rem;
   line-height: 1.4;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1496,7 +1496,7 @@ textarea.sar-input {
   font-size: 0.8rem;
   line-height: 1.4;
   border: 2px solid #000;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1568,7 +1568,7 @@ textarea.sar-input {
   border-radius: 8px;
   background: #E1BEE7;
   cursor: pointer;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   letter-spacing: 0.3px;
 }
 
@@ -1599,7 +1599,7 @@ textarea.sar-input {
   border-radius: 8px;
   background: #FFF9C4;
   cursor: pointer;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
 }
 .example-chip:hover {
   background: #FFF176;
@@ -1623,7 +1623,7 @@ textarea.sar-input {
   cursor: pointer;
   font-weight: 900;
   font-size: 0.85rem;
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
   text-align: left;
   letter-spacing: 0.5px;
 }
@@ -1655,7 +1655,7 @@ textarea.sar-input {
   font-size: 0.85rem;
   color: #333;
   cursor: pointer;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1742,7 +1742,7 @@ textarea.sar-input {
   border: 2px solid #000;
   border-radius: 8px;
   font-size: 0.7rem;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
   background: #F5F5F5;
 }
@@ -1795,7 +1795,7 @@ textarea.sar-input {
   font-size: 0.7rem;
   background: #FAFAFA;
   color: #AAA;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
 }
 
 /* ---- Theme swatches ---- */
@@ -1816,7 +1816,7 @@ textarea.sar-input {
   font-size: 0.7rem;
   font-style: italic;
   color: #555;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
 }
 
@@ -1985,7 +1985,7 @@ textarea.sar-input {
   border: 2px solid #bbb;
   border-radius: 8px;
   padding: 8px 10px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.95rem;
   line-height: 1.4;
   resize: none;
@@ -2010,7 +2010,7 @@ textarea.sar-input {
   width: 100%;
   border: none;
   padding: 2px 0;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.95rem;
   line-height: 1.4;
   resize: none;
@@ -2032,7 +2032,7 @@ textarea.sar-input {
   color: #4A148C;
   border-radius: 999px;
   padding: 3px 6px 3px 12px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.8rem;
   font-weight: bold;
   cursor: default;
@@ -2057,7 +2057,7 @@ textarea.sar-input {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.8rem;
   color: #666;
 }
@@ -2088,7 +2088,7 @@ textarea.sar-input {
   border: 2px solid #bbb;
   border-radius: 8px;
   padding: 6px 10px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.9rem;
 }
 
@@ -2130,7 +2130,7 @@ textarea.sar-input {
   border-radius: 8px;
   cursor: pointer;
   padding: 5px 12px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.8rem;
   color: #666;
 }
@@ -2148,7 +2148,7 @@ textarea.sar-input {
 }
 
 .sv-sub-lead {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.85rem;
   font-weight: bold;
   color: #555;
@@ -2165,7 +2165,7 @@ textarea.sar-input {
 .sv-action {
   border: none;
   background: transparent;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.8rem;
   font-weight: bold;
   color: #6A1B9A;
@@ -2210,7 +2210,7 @@ textarea.sar-input {
 }
 
 .builder-palette-hint {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.75rem;
   color: #777;
   margin: 0 0 12px;
@@ -2219,7 +2219,7 @@ textarea.sar-input {
 .builder-pgroup { margin-bottom: 14px; }
 
 .builder-pgroup h3 {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 1px;
@@ -2239,7 +2239,7 @@ textarea.sar-input {
   padding: 7px 10px;
   margin-bottom: 6px;
   background: #fff;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 800;
   font-size: 0.82rem;
   cursor: pointer;
@@ -2331,8 +2331,8 @@ textarea.sar-input {
 /* Drag-to-reorder: the dragged card ghosts; a vermillion slab above or
    below the hovered card marks where it will land. */
 .builder-step.dragging { opacity: 0.45; }
-.builder-step.drop-before { box-shadow: 0 -8px 0 #D9481C; }
-.builder-step.drop-after { box-shadow: 0 8px 0 #D9481C; }
+.builder-step.drop-before { box-shadow: 0 -8px 0 #E5482B; }
+.builder-step.drop-after { box-shadow: 0 8px 0 #E5482B; }
 
 .builder-step.ai { background: #F3E5F5; }
 
@@ -2355,14 +2355,14 @@ textarea.sar-input {
 
 .builder-step-body p {
   margin: 0;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 700;
 }
 
 .builder-step-body small {
   display: block;
   margin-top: 3px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 400;
   color: #777;
 }
@@ -2410,7 +2410,7 @@ textarea.sar-input {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 800;
   margin-bottom: 10px;
 }
@@ -2457,7 +2457,7 @@ textarea.sar-input {
 .builder-suggest-browse .builder-suggest-row { margin-top: 0; }
 
 .builder-suggest-all {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 800;
   font-size: 0.8rem;
   border: 2px solid #000;
@@ -2482,7 +2482,7 @@ textarea.sar-input {
 }
 
 .builder-done-check {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.82rem;
   font-weight: 700;
   color: #2E7D32;
@@ -2506,7 +2506,7 @@ textarea.sar-input {
 .builder-done-btn.secondary { background: #fff; }
 
 .builder-done-link {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 800;
   font-size: 0.85rem;
   color: #555;
@@ -2528,7 +2528,7 @@ textarea.sar-input {
 #builder-rail-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
 
 .builder-tab {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-size: 0.75rem;
   font-weight: 800;
   padding: 6px 12px;
@@ -2576,7 +2576,7 @@ textarea.sar-input {
   border: 2px solid #000;
   border-radius: 8px;
   background: #fff;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 800;
   font-size: 0.8rem;
   cursor: pointer;
@@ -2602,7 +2602,7 @@ textarea.sar-input {
 #builder-rail .loop-collapsible { display: none; }
 
 .builder-setup-nudge {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 700;
   font-size: 0.85rem;
   background: #E3F2FD;
@@ -2636,31 +2636,31 @@ textarea.sar-input {
    Appended last so it wins every earlier rule it repeats.
    ════════════════════════════════════════════════════════════════ */
 
-:root { --focus-ring: 3px solid #221E1C; }
+:root { --focus-ring: 3px solid #2A2620; }
 
 body {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 600;
-  background: #EFE9DC;
-  color: #221E1C;
+  background: #F2EEE5;
+  color: #2A2620;
 }
 
 /* Ink band header (the tool chrome) */
 #editor-header {
-  background: #221E1C;
+  background: #2A2620;
   border-bottom: none;
-  box-shadow: 0 3px 0 rgba(34,30,28,0.10);
+  box-shadow: 0 3px 0 rgba(50,35,15,0.10);
 }
 
 .header-left h1 {
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
-  color: #FBF7EC;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  color: #FDF9F0;
   letter-spacing: 0.08em;
 }
 
 #editor-header .back-link { color: #CFC5B4; }
-#editor-header .back-link:hover { color: #FBF7EC; text-decoration: none; }
+#editor-header .back-link:hover { color: #FDF9F0; text-decoration: none; }
 
 /* Buttons: paper cuts with the two-step snap. Three header roles keep
    their hierarchy: primary = the one vermillion, attention = paper pops
@@ -2668,22 +2668,22 @@ body {
 .btn {
   border: none;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
-  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.30);
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn:hover:not(:disabled) {
   transform: translate(2px, 2px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.30);
+  box-shadow: 0 0 0 rgba(50,35,15,0.30);
 }
 
-.btn-primary { background: #D9481C; color: #FFF6EA; }
-.btn-primary:hover { background: #D9481C; }
+.btn-primary { background: #E5482B; color: #FDF9F0; }
+.btn-primary:hover { background: #E5482B; }
 
-.btn-secondary { background: #FFFDF6; color: #221E1C; }
-.btn-secondary:hover { background: #FFFDF6; }
+.btn-secondary { background: #FDF9F0; color: #2A2620; }
+.btn-secondary:hover { background: #FDF9F0; }
 
 /* The "+ Add X" buttons carry btn-secondary WITHOUT the .btn base, so
    they fell all the way back to the browser-default border. Give them
@@ -2693,24 +2693,24 @@ body {
   padding: 6px 14px;
   border: none;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.30);
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   cursor: pointer;
-  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .btn-secondary:not(.btn):hover:not(:disabled) {
   transform: translate(2px, 2px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.30);
+  box-shadow: 0 0 0 rgba(50,35,15,0.30);
 }
 
 .btn-ghost {
   background: transparent;
-  color: #FBF7EC;
+  color: #FDF9F0;
   border: none;
   box-shadow: inset 0 0 0 2px rgba(251,247,236,0.7);
 }
@@ -2718,21 +2718,21 @@ body {
 .btn-ghost:hover {
   background: rgba(251,247,236,0.12);
   border: none;
-  box-shadow: inset 0 0 0 2px #FBF7EC;
+  box-shadow: inset 0 0 0 2px #FDF9F0;
   transform: none;
 }
 
-.btn-danger { background: #FFFDF6; color: #AE3A16; box-shadow: 2px 2px 0 rgba(34,30,28,0.30), inset 0 0 0 1px #AE3A16; }
+.btn-danger { background: #FDF9F0; color: #AE3A16; box-shadow: 2px 2px 0 rgba(50,35,15,0.30), inset 0 0 0 1px #AE3A16; }
 
 /* Panels: paper on the gesso */
 #settings-panel,
 #phase-panel,
 #builder-palette {
-  background: #FBF7EC;
-  border-color: rgba(34,30,28,0.18);
+  background: #FDF9F0;
+  border-color: rgba(50,35,15,0.18);
 }
 
-#canvas-area, #phase-canvas, #builder-canvas { background: #EFE9DC; }
+#canvas-area, #phase-canvas, #builder-canvas { background: #F2EEE5; }
 
 /* Inputs sit square with an inset shadow */
 #settings-panel input, #settings-panel textarea, #settings-panel select,
@@ -2741,8 +2741,8 @@ body {
 .picker-modal input, .picker-modal textarea {
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16);
+  background: #FDF9F0;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 1px rgba(50,35,15,0.16);
 }
 
 #settings-panel input:focus, #settings-panel textarea:focus, #settings-panel select:focus,
@@ -2750,34 +2750,34 @@ body {
 .sv-text:focus, .sv-list-input:focus, .sar-input:focus {
   border: none;
   outline: none;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 2px #2A2620;
 }
 
 .sv-token-box {
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16);
+  background: #FDF9F0;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 1px rgba(50,35,15,0.16);
   padding: 8px 10px;
 }
 
 .sv-token-box:focus-within {
   border: none;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 2px #2A2620;
 }
 
 /* Phase boxes: keep the type color coding, square the paper */
 .phase-box {
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.14);
 }
 
 /* Simple view: numbered sentence cards as paper scraps */
 .sv-card {
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.08);
+  background: #FDF9F0;
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.12), 0 0 0 1px rgba(50,35,15,0.08);
 }
 
 .sv-card.sv-muted { background: #F4EFE2; border: none; }
@@ -2785,10 +2785,10 @@ body {
 .sv-num {
   border: none;
   border-radius: 2px;
-  background: #221E1C;
-  color: #FBF7EC;
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
+  background: #2A2620;
+  color: #FDF9F0;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
   font-size: 0.85rem;
 }
 
@@ -2796,11 +2796,11 @@ body {
 
 /* Token chips: data references as little labeled scraps */
 .sv-chip {
-  background: #EFE9DC;
+  background: #F2EEE5;
   border: none;
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.3);
+  box-shadow: 0 0 0 1px rgba(50,35,15,0.3);
   border-radius: 2px;
-  color: #221E1C;
+  color: #2A2620;
   font-weight: 800;
 }
 
@@ -2811,97 +2811,97 @@ body {
 .sv-action-quiet { color: #857A66; }
 
 .sv-list-add {
-  border: 1px solid rgba(34,30,28,0.3);
+  border: 1px solid rgba(50,35,15,0.3);
   border-radius: 2px;
   color: #55503F;
 }
 
-.sv-list-add:hover { border-color: #221E1C; color: #221E1C; }
+.sv-list-add:hover { border-color: #2A2620; color: #2A2620; }
 
-.sv-list-remove { border: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(34,30,28,0.2); color: #857A66; }
+.sv-list-remove { border: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(50,35,15,0.2); color: #857A66; }
 .sv-list-remove:hover { color: #AE3A16; box-shadow: 0 0 0 1px #AE3A16; }
-.sv-list-mark { border: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(34,30,28,0.2); color: #857A66; background: #FFFDF6; }
+.sv-list-mark { border: none; border-radius: 2px; box-shadow: 0 0 0 1px rgba(50,35,15,0.2); color: #857A66; background: #FDF9F0; }
 .sv-list-mark:hover { color: #2E5E2F; box-shadow: 0 0 0 1px #2E5E2F; }
-.sv-list-mark.is-marked { color: #FBF7EC; background: #2E5E2F; box-shadow: 0 0 0 1px #2E5E2F; }
+.sv-list-mark.is-marked { color: #FDF9F0; background: #2E5E2F; box-shadow: 0 0 0 1px #2E5E2F; }
 
 /* Builder view: tiles keep their category colors, squared + pasted */
 .builder-tile {
   border: none;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.18);
-  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.18);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .builder-tile:hover {
   transform: translate(2px, 2px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+  box-shadow: 0 0 0 rgba(50,35,15,0.18);
 }
 
 .builder-step {
   border: none;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.10);
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.12), 0 0 0 1px rgba(50,35,15,0.10);
 }
 
 /* View toggle chips flip to ink */
-.view-toggle-btn.active { background: #221E1C; color: #FBF7EC; }
+.view-toggle-btn.active { background: #2A2620; color: #FDF9F0; }
 
 /* Modals: pasted sheets */
 .picker-overlay, .sar-overlay { background: rgba(34, 30, 28, 0.5); }
 
 .picker-modal, .sar-modal, .fix-preview-modal, .review-panel {
-  background: #FBF7EC;
+  background: #FDF9F0;
   border: none;
   border-radius: 2px;
-  box-shadow: 6px 7px 0 rgba(34,30,28,0.25);
+  box-shadow: 6px 7px 0 rgba(50,35,15,0.25);
 }
 
 .picker-card {
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
-  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+  background: #FDF9F0;
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.14);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .picker-card:hover {
   transform: translate(2px, 2px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.14);
+  box-shadow: 0 0 0 rgba(50,35,15,0.14);
 }
 
 .picker-title, .sar-title {
-  font-family: 'EB Garamond', Georgia, serif;
-  font-weight: 400;
+  font-family: 'Bricolage Grotesque', Arial, sans-serif;
+  font-weight: 800;
   text-transform: none;
   letter-spacing: 0;
 }
 
 .editor-toast {
-  background: #221E1C;
-  color: #FBF7EC;
+  background: #2A2620;
+  color: #FDF9F0;
   border: none;
   border-radius: 2px;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.25);
+  box-shadow: 3px 3px 0 rgba(50,35,15,0.25);
 }
 
 /* Blue focus rings go ink on this surface */
-:focus-visible { outline-color: #221E1C !important; }
+:focus-visible { outline-color: #2A2620 !important; }
 
 /* Skin follow-ups: rules that live below the first skin block */
-.btn-host { background: #D9481C; color: #FFF6EA; }
-.btn-host:hover { background: #D9481C; }
+.btn-host { background: #E5482B; color: #FDF9F0; }
+.btn-host:hover { background: #E5482B; }
 
-.btn-add { background: #221E1C; color: #FBF7EC; }
-.btn-add:hover { background: #221E1C; }
+.btn-add { background: #2A2620; color: #FDF9F0; }
+.btn-add:hover { background: #2A2620; }
 
 /* Unsaved-changes attention: paper pops on the ink band */
 #save-status.save-status-dirty ~ #save-btn {
-  background: #FFFDF6;
-  color: #221E1C;
+  background: #FDF9F0;
+  color: #2A2620;
   border-color: transparent;
 }
 
-#save-status.save-status-dirty ~ #save-btn:hover { background: #FFFDF6; }
+#save-status.save-status-dirty ~ #save-btn:hover { background: #FDF9F0; }
 
 .save-status-clean { color: #CFC5B4; }
 .save-status-dirty { color: #FFC3DC; }
@@ -2910,7 +2910,7 @@ body {
 .save-status-failed { color: #FF9B80; }
 
 #save-status.save-status-failed ~ #save-btn {
-  background: #FFFDF6;
+  background: #FDF9F0;
   color: #AE3A16;
   border-color: transparent;
 }
@@ -2924,35 +2924,35 @@ body {
 
 /* Header view toggle: a scrap holding two chips, active flips to ink */
 .view-toggle {
-  background: #FFFDF6;
+  background: #FDF9F0;
   border: none;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.30);
   padding: 3px;
 }
 
 .view-toggle-btn {
   border-radius: 2px;
   color: #55503F;
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
 }
 
 /* The builder rail: sheet, not yellow */
 #builder-rail {
-  background: #FBF7EC;
-  border-left: 1px solid rgba(34,30,28,0.18);
+  background: #FDF9F0;
+  border-left: 1px solid rgba(50,35,15,0.18);
 }
 
 .builder-tab {
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+  background: #FDF9F0;
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.14);
   color: #55503F;
 }
 
-.builder-tab.active { background: #221E1C; color: #FBF7EC; }
+.builder-tab.active { background: #2A2620; color: #FDF9F0; }
 
 /* Relocated settings forms: rail inputs sit square with inset shadows
    (the #settings-panel/#phase-panel selectors stop matching here) */
@@ -2960,8 +2960,8 @@ body {
 #builder-rail-body input, #builder-rail-body textarea, #builder-rail-body select {
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16);
+  background: #FDF9F0;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 1px rgba(50,35,15,0.16);
 }
 
 #builder-rail input:focus, #builder-rail textarea:focus, #builder-rail select:focus,
@@ -2975,7 +2975,7 @@ body {
 #builder-rail-body input:focus, #builder-rail-body textarea:focus, #builder-rail-body select:focus {
   border: none;
   outline: none;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 2px #2A2620;
 }
 
 #builder-rail input[type="checkbox"], #builder-rail-body input[type="checkbox"] {
@@ -2990,10 +2990,10 @@ body {
 .config-section-header.role-section-ai,
 .config-section-header.role-section-both,
 .config-section-header.role-section-flow {
-  background: #FFFDF6;
+  background: #FDF9F0;
   border: none;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.18);
+  box-shadow: 0 0 0 1px rgba(50,35,15,0.18);
 }
 
 .config-section-header.role-section-host   { border-left: 6px solid #DBEAFE; }
@@ -3002,47 +3002,47 @@ body {
 .config-section-header.role-section-both   { border-left: 6px solid #FEF9C3; }
 .config-section-header.role-section-flow   { border-left: 6px solid #F1F5F9; }
 
-.config-section-header { border-top-color: rgba(34,30,28,0.18); color: #55503F; }
+.config-section-header { border-top-color: rgba(50,35,15,0.18); color: #55503F; }
 
 /* Advanced/optional collapsible toggles: scrap paper strips */
 .advanced-toggle {
-  background: #FFFDF6;
+  background: #FDF9F0;
   border: none;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.14), 0 0 0 1px rgba(50,35,15,0.10);
 }
 
-.advanced-toggle:hover { background: #FFFDF6; filter: none; box-shadow: 1px 1px 0 rgba(34,30,28,0.14), 0 0 0 2px #221E1C; }
+.advanced-toggle:hover { background: #FDF9F0; filter: none; box-shadow: 1px 1px 0 rgba(50,35,15,0.14), 0 0 0 2px #2A2620; }
 
 .advanced-fields {
   border: none;
   border-radius: 0 0 2px 2px;
   background: rgba(255,253,246,0.6);
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.12);
+  box-shadow: 0 0 0 1px rgba(50,35,15,0.12);
 }
 
 /* Builder canvas cards: puzzle pieces on the gesso */
 .builder-step::before {
-  background: #EFE9DC;
-  border-color: #221E1C;
+  background: #F2EEE5;
+  border-color: #2A2620;
   border-top: none;
 }
 
-.builder-step::after { border-color: #221E1C; border-top: none; }
+.builder-step::after { border-color: #2A2620; border-top: none; }
 
 /* Selection reads as the ink ring, not cobalt */
 .builder-step.selected {
-  border: 3px solid #221E1C;
-  box-shadow: 4px 4px 0 rgba(34,30,28,0.25);
+  border: 3px solid #2A2620;
+  box-shadow: 4px 4px 0 rgba(50,35,15,0.25);
 }
 
 .builder-step.selected::before,
 .builder-step.selected::after {
-  border-color: #221E1C;
+  border-color: #2A2620;
   border-top: none;
 }
 
-.builder-step-num { border-radius: 2px; border: none; box-shadow: 0 0 0 1px rgba(34,30,28,0.25); }
+.builder-step-num { border-radius: 2px; border: none; box-shadow: 0 0 0 1px rgba(50,35,15,0.25); }
 
 /* Step tools: visible enough to find, quiet enough to ignore */
 .builder-step-tools { opacity: 0.45; }
@@ -3050,131 +3050,131 @@ body {
 .builder-step-tool {
   border: none;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.3);
+  box-shadow: 0 0 0 1px rgba(50,35,15,0.3);
 }
 
-.builder-step-tool:hover { background: #EFE9DC; }
+.builder-step-tool:hover { background: #F2EEE5; }
 .builder-step-del { color: #AE3A16; box-shadow: 0 0 0 1px #AE3A16; }
-.builder-step-del:hover { background: #AE3A16; color: #FFF6EA; }
+.builder-step-del:hover { background: #AE3A16; color: #FDF9F0; }
 
 /* The inline "what happens next" change chip: square paper, not the
    old rounded black outline. */
 .compact-next-change {
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.3);
+  background: #FDF9F0;
+  box-shadow: 0 0 0 1px rgba(50,35,15,0.3);
 }
 
-.compact-next-change:hover { background: #EFE9DC; }
+.compact-next-change:hover { background: #F2EEE5; }
 
 /* Native checkbox/radio glyphs go ink, not browser blue */
-input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
+input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
 
 /* The "Goes to" chip wrapper: scrap strip, not the old outlined box */
 .compact-next-ref {
-  background: #FFFDF6;
+  background: #FDF9F0;
   border: none;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.18);
+  box-shadow: 0 0 0 1px rgba(50,35,15,0.18);
 }
 
 /* Rail meta actions (Ask AI, Show Preview) were still the old purple
    and cobalt pills. Paper cuts with the snap. */
 .ask-step-btn,
 #toggle-preview-btn {
-  background: #FFFDF6;
-  color: #221E1C;
+  background: #FDF9F0;
+  color: #2A2620;
   border: none;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.30);
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: 0.72rem;
-  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .ask-step-btn:hover,
 #toggle-preview-btn:hover {
-  background: #FFFDF6;
+  background: #FDF9F0;
   transform: translate(2px, 2px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.30);
+  box-shadow: 0 0 0 rgba(50,35,15,0.30);
 }
 
 /* Delete Step carries btn-danger without the .btn base: outlined
    vermillion strip, fills on hover (same idiom as the card ✕). */
 .btn-danger:not(.btn) {
   padding: 6px 14px;
-  background: #FFFDF6;
+  background: #FDF9F0;
   color: #AE3A16;
   border: none;
   border-radius: 2px;
   box-shadow: 0 0 0 1px #AE3A16;
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: 0.72rem;
   cursor: pointer;
 }
 
-.btn-danger:not(.btn):hover { background: #AE3A16; color: #FFF6EA; }
+.btn-danger:not(.btn):hover { background: #AE3A16; color: #FDF9F0; }
 
-.delete-phase-section { border-top: 1px solid rgba(34,30,28,0.18); }
+.delete-phase-section { border-top: 1px solid rgba(50,35,15,0.18); }
 
 /* Step cards drop the pastel coding: number chips and the AI tint go
    paper (the palette tiles keep their category colors; on the canvas
    everything reads as one paper system). */
-.builder-step-num { background: #FFFDF6; }
+.builder-step-num { background: #FDF9F0; }
 .builder-step.ai { background: #fff; }
-.builder-step.ai .builder-step-num { background: #FFFDF6; }
+.builder-step.ai .builder-step-num { background: #FDF9F0; }
 
 /* Insert dots + suggestion popover */
 .builder-plus {
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
+  background: #FDF9F0;
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.16);
 }
 
-.builder-plus.open { background: #221E1C; color: #FBF7EC; box-shadow: none; }
+.builder-plus.open { background: #2A2620; color: #FDF9F0; box-shadow: none; }
 
 .builder-suggest {
   border: none;
   border-radius: 2px;
-  background: #FBF7EC;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.14), 0 0 0 2px #221E1C;
+  background: #FDF9F0;
+  box-shadow: 3px 3px 0 rgba(50,35,15,0.14), 0 0 0 2px #2A2620;
 }
 
 .builder-suggest-ai {
   background: #F3E5F5;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.14), 0 0 0 2px #221E1C;
+  box-shadow: 3px 3px 0 rgba(50,35,15,0.14), 0 0 0 2px #2A2620;
 }
 
-.builder-suggest-ai .builder-plus.open { background: #221E1C; }
+.builder-suggest-ai .builder-plus.open { background: #2A2620; }
 
 .builder-why {
-  background: #FFFDF6;
+  background: #FDF9F0;
   border: none;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.3);
+  box-shadow: 0 0 0 1px rgba(50,35,15,0.3);
 }
 
 .builder-suggest-all {
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+  background: #FDF9F0;
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.14);
 }
 
 /* "Your activity is ready": a paper sheet with the loud ring */
 .builder-done {
   border: none;
   border-radius: 2px;
-  background: #FBF7EC;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.12), 0 0 0 2px #D9481C;
+  background: #FDF9F0;
+  box-shadow: 3px 3px 0 rgba(50,35,15,0.12), 0 0 0 2px #E5482B;
 }
 
 .builder-done-check { color: #55503F; }
@@ -3182,27 +3182,27 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
 .builder-done-btn {
   border: none;
   border-radius: 2px;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
-  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+  box-shadow: 3px 3px 0 rgba(50,35,15,0.18);
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .builder-done-btn:hover {
   transform: translate(2px, 2px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+  box-shadow: 0 0 0 rgba(50,35,15,0.18);
 }
 
-.builder-done-btn.primary { background: #D9481C; color: #FFF6EA; transform: rotate(-0.8deg); }
+.builder-done-btn.primary { background: #E5482B; color: #FDF9F0; transform: rotate(-0.8deg); }
 .builder-done-btn.primary:hover { transform: rotate(-0.8deg) translate(2px, 2px); }
-.builder-done-btn.secondary { background: #FFFDF6; color: #221E1C; }
+.builder-done-btn.secondary { background: #FDF9F0; color: #2A2620; }
 
 .builder-done-link { color: #6E6353; }
 
 /* Technical view: toolbar strip + inline phase-box editors onto paper */
 #canvas-toolbar {
-  background: #FBF7EC;
-  border-bottom: 1px solid rgba(34,30,28,0.18);
+  background: #FDF9F0;
+  border-bottom: 1px solid rgba(50,35,15,0.18);
 }
 
 #canvas-loading { color: #6E6353; text-transform: none; }
@@ -3213,27 +3213,27 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
 .phase-box-primary-input {
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.20);
+  background: #FDF9F0;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 1px rgba(50,35,15,0.20);
 }
 
 .phase-box-primary-input:focus {
   border: none;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 2px #2A2620;
 }
 
 .phase-box-primary-summary {
   border-radius: 2px;
   background: rgba(255,253,246,0.75);
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.14);
+  box-shadow: 0 0 0 1px rgba(50,35,15,0.14);
 }
 
 .phase-box-primary-preview { border-radius: 2px; }
 
 /* =======================================================================
    DESIGN CHAT PANEL — right column beside the Simple view (chat-panel.js).
-   Paste-up palette: paper #FBF7EC, paper-bright #FFFDF6, ink #221E1C,
-   vermillion #D9481C, hairline rgba(34,30,28,0.18).
+   Paste-up palette: paper #FDF9F0, paper-bright #FDF9F0, ink #2A2620,
+   vermillion #E5482B, hairline rgba(50,35,15,0.18).
    ======================================================================= */
 
 #chat-panel {
@@ -3242,8 +3242,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: #FBF7EC;
-  border-left: 1px solid rgba(34,30,28,0.18);
+  background: #FDF9F0;
+  border-left: 1px solid rgba(50,35,15,0.18);
 }
 
 /* display:flex above would beat the hidden attribute (recurring gotcha) */
@@ -3254,24 +3254,24 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(34,30,28,0.16);
+  border-bottom: 1px solid rgba(50,35,15,0.16);
 }
 
 .chat-header h2 {
   margin: 0;
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
   font-size: 0.9rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #221E1C;
+  color: #2A2620;
 }
 
 #chat-clear {
   background: none;
   border: none;
   color: #857A66;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 600;
   font-size: 0.75rem;
   cursor: pointer;
@@ -3279,7 +3279,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
   padding: 2px 4px;
 }
 
-#chat-clear:hover { color: #221E1C; }
+#chat-clear:hover { color: #2A2620; }
 
 #chat-messages {
   flex: 1;
@@ -3310,16 +3310,16 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
 
 .chat-msg-user {
   align-self: flex-end;
-  background: #D9481C;
-  color: #FFF6EA;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
+  background: #E5482B;
+  color: #FDF9F0;
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.30);
 }
 
 .chat-msg-ai {
   align-self: flex-start;
-  background: #FFFDF6;
-  color: #221E1C;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.10);
+  background: #FDF9F0;
+  color: #2A2620;
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.12), 0 0 0 1px rgba(50,35,15,0.10);
 }
 
 .chat-system {
@@ -3337,17 +3337,17 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
 
 /* Proposal card: a pasted scrap with the change and the decision */
 .chat-proposal {
-  background: #EFE9DC;
+  background: #F2EEE5;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.30);
+  box-shadow: 2px 2px 0 rgba(50,35,15,0.30);
   transform: rotate(-0.4deg);
   padding: 10px 12px;
   font-size: 0.85rem;
 }
 
 .chat-proposal-status {
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -3356,7 +3356,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
 }
 
 .chat-proposal-summary {
-  color: #221E1C;
+  color: #2A2620;
   line-height: 1.4;
   white-space: pre-wrap;
 }
@@ -3371,7 +3371,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
 .chat-proposal-errors {
   margin: 4px 0 0;
   padding: 8px 8px 8px 24px;
-  background: #FFFDF6;
+  background: #FDF9F0;
   border-radius: 2px;
   box-shadow: 0 0 0 1px #AE3A16;
   color: #AE3A16;
@@ -3409,9 +3409,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
   gap: 6px;
   margin: 0 12px 6px;
   padding: 4px 8px;
-  background: #FFFDF6;
+  background: #FDF9F0;
   border-radius: 2px;
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.18);
+  box-shadow: 0 0 0 1px rgba(50,35,15,0.18);
   font-size: 0.75rem;
   color: #55503F;
 }
@@ -3432,7 +3432,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
   display: flex;
   gap: 8px;
   padding: 10px 12px;
-  border-top: 1px solid rgba(34,30,28,0.16);
+  border-top: 1px solid rgba(50,35,15,0.16);
   align-items: flex-end;
 }
 
@@ -3441,9 +3441,9 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
   resize: none;
   border: none;
   border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16);
-  font-family: 'Nunito', Arial, sans-serif;
+  background: #FDF9F0;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 1px rgba(50,35,15,0.16);
+  font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 600;
   font-size: 0.85rem;
   padding: 8px 10px;
@@ -3452,7 +3452,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #221E1C; }
 
 .chat-input-row textarea:focus {
   outline: none;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 2px #2A2620;
 }
 
 .chat-input-row .btn { font-size: 0.72rem; padding: 8px 14px; }
@@ -3470,7 +3470,7 @@ body.chat-open #feedback-widget-panel { right: 358px; }
 .plan-intro-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(34,30,28,0.5);
+  background: rgba(50,35,15,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3480,21 +3480,21 @@ body.chat-open #feedback-widget-panel { right: 358px; }
 .plan-intro-modal {
   position: relative;
   width: min(480px, 92vw);
-  background: #FBF7EC;
+  background: #FDF9F0;
   border-radius: 2px;
-  box-shadow: 6px 7px 0 rgba(34,30,28,0.25);
+  box-shadow: 6px 7px 0 rgba(50,35,15,0.25);
   transform: rotate(-0.3deg);
   padding: 24px 26px 20px;
 }
 
 .plan-intro-modal h3 {
   margin: 0 0 12px;
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
   font-size: 1.02rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: #221E1C;
+  color: #2A2620;
 }
 
 .plan-intro-modal p {
@@ -3522,4 +3522,15 @@ body.chat-open #feedback-widget-panel { right: 358px; }
   color: #857A66;
 }
 
-.plan-intro-modal .dialog-close-btn:hover { color: #221E1C; }
+.plan-intro-modal .dialog-close-btn:hover { color: #2A2620; }
+
+
+/* ================================================================
+   TOTEM PASS (docs/design/totem/): square cuts, flat gesso ground.
+   The Paste-up skin above was transformed in place (palette, type,
+   motion); this tail retires the last paper-era details.
+   ================================================================ */
+
+* { border-radius: 0 !important; }
+
+body::before { content: none; }
