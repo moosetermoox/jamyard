@@ -244,6 +244,7 @@ const mergeInstruction = document.getElementById('merge-instruction');
 const mergeTimerDisplay = document.getElementById('merge-timer-display');
 const mergeMembers = document.getElementById('merge-members');
 const mergeSeeds = document.getElementById('merge-seeds');
+const mergeSharedHint = document.getElementById('merge-shared-hint');
 const mergeDraftInput = document.getElementById('merge-draft-input');
 const mergeStatus = document.getElementById('merge-status');
 const mergeAgreeBtn = document.getElementById('merge-agree-btn');
@@ -1892,6 +1893,9 @@ socket.on('merge-start', ({ instruction, seeds, draft, memberNames, agreeMode, a
     timer: mergeTimerDisplay
   });
 
+  // The shared-box note travels with the box it explains.
+  mergeSharedHint.hidden = mergeDraftInput.hidden;
+
   if (timer) {
     // Server closes the phase authoritatively at expiry; the bar is just a countdown.
     startTimer(timer, mergeTimerDisplay, function() {});
@@ -1914,6 +1918,10 @@ mergeDraftInput.addEventListener('input', function() {
 socket.on('merge-draft-update', ({ draft }) => {
   if (mergeDraftInput.value !== draft) {
     mergeDraftInput.value = draft;
+    // Flash the box so a group-mate's edit reads as "shared", not a glitch.
+    mergeDraftInput.classList.remove('merge-remote-flash');
+    void mergeDraftInput.offsetWidth; // restart the animation
+    mergeDraftInput.classList.add('merge-remote-flash');
   }
   mergeAgreeBtn.disabled = false;
   setMergeStatus('The shared answer changed, agree again when it looks right.');

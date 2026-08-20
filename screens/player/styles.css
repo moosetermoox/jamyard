@@ -339,6 +339,23 @@ button[hidden] {
   margin: 8px 0 0;
 }
 
+.merge-shared-hint {
+  font-size: 0.9rem;
+  color: var(--theme-text, #555);
+  margin: 10px 0 4px;
+}
+
+/* A group-mate just changed the shared draft: ring the box in
+   vermillion for a beat so the change reads as shared, not a glitch. */
+#merge-draft-input.merge-remote-flash {
+  animation: merge-remote-flash 0.9s ease-out;
+}
+
+@keyframes merge-remote-flash {
+  0% { box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 3px var(--theme-success, #D9481C); }
+  100% { box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); }
+}
+
 #merge-agree-btn {
   background: var(--theme-success, #5cb85c);
 }
