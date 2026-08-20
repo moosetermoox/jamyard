@@ -710,8 +710,127 @@ header {
   cursor: not-allowed;
 }
 
+/* ── Goal piles (Totem 10d): one plank per activity ── */
+.pile-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 40px 44px;
+  padding: 12px 0 4px;
+}
+
+.pile-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pile-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps, #8A7B62);
+  margin-bottom: 12px;
+}
+
+.pile-columns {
+  display: flex;
+  align-items: flex-end;
+  gap: 28px;
+}
+
+/* One flat shadow per pile; pieces inside cast none */
+.pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(5px 8px 0 rgba(80, 60, 30, 0.14));
+}
+
+.plank {
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 9px 18px 11px;
+  margin-top: -4px;
+  clip-path: polygon(0 8%, 100% 0, 99% 94%, 1% 100%);
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 15px;
+  white-space: nowrap;
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Alternate tilt; hover pulls the plank out of the pile */
+.pile .plank:nth-child(odd) { transform: rotate(-1.1deg); }
+.pile .plank:nth-child(even) { transform: rotate(0.9deg); }
+.pile .plank:nth-child(odd):hover,
+.pile .plank:nth-child(odd):focus-visible { transform: rotate(-1.1deg) translateX(12px); }
+.pile .plank:nth-child(even):hover,
+.pile .plank:nth-child(even):focus-visible { transform: rotate(0.9deg) translateX(12px); }
+
+/* Painted by position: a wood/paint mix, no signal red (that is the
+   popup's Customize/Host block) */
+.plank-tone-0 { background: var(--t-yellow, #FFC800); background-image: var(--t-grain); color: var(--t-ink, #2A2620); }
+.plank-tone-1 { background: var(--t-birch, #E3C8A0); background-image: var(--t-grain); color: var(--t-ink, #2A2620); }
+.plank-tone-2 { background: var(--t-cyan, #1BA9C4); color: var(--t-paper, #FDF9F0); }
+.plank-tone-3 { background: var(--t-pine, #D2B285); background-image: var(--t-grain); color: var(--t-ink, #2A2620); }
+.plank-tone-4 { background: var(--t-green, #22A05A); color: var(--t-paper, #FDF9F0); }
+.plank-tone-5 { background: var(--t-oak, #C29A67); background-image: var(--t-grain); color: var(--t-paper, #FDF9F0); }
+.plank-tone-6 { background: var(--t-magenta, #B0197E); color: var(--t-paper, #FDF9F0); }
+.plank-tone-7 { background: var(--t-orange, #F08C1E); color: var(--t-paper, #FDF9F0); }
+
+.plank-time {
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.75;
+}
+
+.plank-fav { font-size: 12px; }
+
+.pile-plinth { width: 120px; height: 30px; margin-top: -2px; }
+.pile-baseboard { width: 230px; height: 16px; }
+
+/* ── The plank popup ── */
+.activity-dialog { max-width: 460px; }
+
+.activity-dialog-name {
+  display: inline-block;
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--t-paper, #FDF9F0);
+  background: var(--t-magenta, #B0197E);
+  padding: 3px 14px 7px;
+  transform: rotate(-1.2deg);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.28);
+  margin: 0 44px 12px 0;
+}
+
+.activity-dialog-meta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t-muted-caps, #8A7B62);
+  margin-bottom: 10px;
+}
+
+.activity-dialog-desc {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--t-ink, #2A2620);
+}
+
+.activity-dialog-actions { margin-top: 18px; }
+
 @media (max-width: 700px) {
   .page { padding: 20px 16px 32px; }
   .wordmark span { font-size: 14px; padding: 3px 6px 5px; }
   .games-section-grid { grid-template-columns: 1fr; }
+  .pile-shelf { gap: 30px 24px; justify-content: center; }
 }

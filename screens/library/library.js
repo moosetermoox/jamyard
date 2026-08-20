@@ -19,7 +19,7 @@ var Favorites = ActivityPrefs.Favorites;
 var Recents = ActivityPrefs.Recents;
 
 // Connect leads — the library is about doing things together.
-var GOAL_ORDER = ['connect', 'discuss', 'decide', 'reflect', 'create', 'review', 'energize'];
+// Fine-grained goal labels: owner-mode cards only (teachers see piles).
 var GOAL_LABELS = {
   connect: '🤝 Connect',
   discuss: '💬 Discuss',
@@ -30,9 +30,43 @@ var GOAL_LABELS = {
   energize: '⚡ Energize'
 };
 
+// Six piles (Totem: 10d + popup): three personal shelves, then the three
+// broad goal piles. Placement precedence differs from display order: your
+// own copies always live in CUSTOMIZED, hearts beat recency, and each
+// activity stands in exactly one pile.
+var PILE_GROUPS = [
+  { key: 'recent', label: 'Recent' },
+  { key: 'favorites', label: 'Favorites' },
+  { key: 'customized', label: 'Customized' },
+  { key: 'connect', label: 'Connect', goals: ['connect'] },
+  { key: 'think', label: 'Think', goals: ['discuss', 'decide', 'reflect', 'review'] },
+  { key: 'play', label: 'Play', goals: ['create', 'energize'] }
+];
+
+var GOAL_TO_GROUP = {
+  connect: 'connect',
+  discuss: 'think', decide: 'think', reflect: 'think', review: 'think',
+  create: 'play', energize: 'play'
+};
+
+// Plain goal words for the activity popup (the emoji labels stay on the
+// owner-mode cards only).
+var GOAL_WORDS = {
+  connect: 'Connect', discuss: 'Discuss', decide: 'Decide', reflect: 'Reflect',
+  create: 'Create', review: 'Review', energize: 'Energize'
+};
+
+function goalGroupOf(game) {
+  var tags = Array.isArray(game.tags) ? game.tags : [];
+  for (var i = 0; i < tags.length; i++) {
+    if (GOAL_TO_GROUP[tags[i]]) return GOAL_TO_GROUP[tags[i]];
+  }
+  return 'think';
+}
+
 var allGames = [];
 var libraryQuery = '';
-var activeGoal = null;
+var activeGoal = null; // a PILE_GROUPS goal key: connect | think | play
 
 function applyVisibility(games) {
   if (!window.GameVisibility) return games;
@@ -44,8 +78,16 @@ function applyVisibility(games) {
 
 function matchesGoal(game) {
   if (!activeGoal) return true;
+  var group = null;
+  for (var i = 0; i < PILE_GROUPS.length; i++) {
+    if (PILE_GROUPS[i].key === activeGoal) { group = PILE_GROUPS[i]; break; }
+  }
+  if (!group || !group.goals) return true;
   var tags = Array.isArray(game.tags) ? game.tags : [];
-  return tags.indexOf(activeGoal) !== -1;
+  for (var t = 0; t < tags.length; t++) {
+    if (group.goals.indexOf(tags[t]) !== -1) return true;
+  }
+  return false;
 }
 
 function matchesFilters(game) {
@@ -62,22 +104,23 @@ function matchesFilters(game) {
 function buildGoalChips(games) {
   var chipsEl = document.getElementById('goal-chips');
   chipsEl.innerHTML = '';
-  var counts = {};
-  for (var i = 0; i < games.length; i++) {
-    var tags = Array.isArray(games[i].tags) ? games[i].tags : [];
-    for (var t = 0; t < tags.length; t++) {
-      if (GOAL_LABELS[tags[t]]) counts[tags[t]] = (counts[tags[t]] || 0) + 1;
+  PILE_GROUPS.forEach(function (group) {
+    if (!group.goals) return; // personal piles are shelves, not filters
+    var count = 0;
+    for (var i = 0; i < games.length; i++) {
+      var tags = Array.isArray(games[i].tags) ? games[i].tags : [];
+      for (var t = 0; t < tags.length; t++) {
+        if (group.goals.indexOf(tags[t]) !== -1) { count++; break; }
+      }
     }
-  }
-  GOAL_ORDER.forEach(function (goal) {
-    if (!counts[goal] && goal !== activeGoal) return;
+    if (count === 0 && group.key !== activeGoal) return;
     var chip = document.createElement('button');
     chip.type = 'button';
-    chip.className = 'goal-chip' + (goal === activeGoal ? ' active' : '');
-    chip.textContent = GOAL_LABELS[goal] + ' ' + (counts[goal] || 0);
-    chip.setAttribute('aria-pressed', goal === activeGoal ? 'true' : 'false');
+    chip.className = 'goal-chip' + (group.key === activeGoal ? ' active' : '');
+    chip.textContent = group.label + ' ' + count;
+    chip.setAttribute('aria-pressed', group.key === activeGoal ? 'true' : 'false');
     chip.addEventListener('click', function () {
-      activeGoal = (activeGoal === goal) ? null : goal;
+      activeGoal = (activeGoal === group.key) ? null : group.key;
       refreshLibrary();
     });
     chipsEl.appendChild(chip);
@@ -160,25 +203,11 @@ function renderLibrary(games, rescueQuery) {
     return;
   }
 
-  // Sections, each activity exactly once: Favorites → Recently used → rest.
-  var placed = {};
-  function take(ids) {
-    var out = [];
-    for (var i = 0; i < ids.length; i++) {
-      for (var g = 0; g < games.length; g++) {
-        if (games[g].id === ids[i] && !placed[ids[i]]) {
-          out.push(games[g]);
-          placed[ids[i]] = true;
-        }
-      }
-    }
-    return out;
-  }
-
   if (ownerOn) {
     // Owner view sorts by CURATION, not personal use: what the public shelf
     // shows right now, then everything hidden from visitors — so the owner
-    // can read the live featured set at a glance.
+    // can read the live featured set at a glance. Owner mode keeps the card
+    // grid: it is a curation tool, every control visible at once.
     var liveFeatured = games.filter(function (g) { return g.featured; });
     var hidden = games.filter(function (g) { return !g.featured; });
     if (liveFeatured.length > 0) {
@@ -190,15 +219,242 @@ function renderLibrary(games, rescueQuery) {
     return;
   }
 
-  var favs = take(Favorites.list());
-  var recents = take(Recents.list());
-  var rest = games.filter(function (g) { return !placed[g.id]; });
+  // Teacher view: six piles, each activity stands in exactly one.
+  // Placement precedence: yours → hearted → recently used → home goal pile.
+  var piles = { recent: [], favorites: [], customized: [], connect: [], think: [], play: [] };
+  var placed = {};
 
-  if (favs.length > 0) appendSection('♥ Favorites', favs);
-  if (recents.length > 0) appendSection('Recently used', recents);
-  if (rest.length > 0) {
-    appendSection(favs.length || recents.length ? 'The library' : null, rest);
+  games.forEach(function (g) {
+    if (window.MyGames && MyGames.has(g.id)) {
+      piles.customized.push(g);
+      placed[g.id] = true;
+    }
+  });
+  Favorites.list().forEach(function (id) {
+    for (var g = 0; g < games.length; g++) {
+      if (games[g].id === id && !placed[id]) {
+        piles.favorites.push(games[g]);
+        placed[id] = true;
+      }
+    }
+  });
+  Recents.list().forEach(function (id) {
+    for (var g = 0; g < games.length; g++) {
+      if (games[g].id === id && !placed[id]) {
+        piles.recent.push(games[g]);
+        placed[id] = true;
+      }
+    }
+  });
+  games.forEach(function (g) {
+    if (!placed[g.id]) piles[goalGroupOf(g)].push(g);
+  });
+
+  var shelf = document.createElement('div');
+  shelf.className = 'pile-shelf';
+  PILE_GROUPS.forEach(function (group) {
+    if (piles[group.key].length === 0) return;
+    shelf.appendChild(buildPileGroup(group.label, piles[group.key]));
+  });
+  libraryGrid.appendChild(shelf);
+}
+
+// A pile group: a spaced-caps label over one or more pile columns. Stacks
+// cap at 6 blocks (Totem rule); a seventh plank starts the next column.
+var PILE_COLUMN_MAX = 6;
+
+function buildPileGroup(label, games) {
+  var group = document.createElement('div');
+  group.className = 'pile-group';
+
+  var lab = document.createElement('div');
+  lab.className = 'pile-label';
+  lab.textContent = label;
+  group.appendChild(lab);
+
+  var cols = document.createElement('div');
+  cols.className = 'pile-columns';
+  // Balance columns: 7 planks read as 4 + 3, never 6 + 1.
+  var colCount = Math.ceil(games.length / PILE_COLUMN_MAX);
+  var perCol = Math.ceil(games.length / colCount);
+  for (var start = 0; start < games.length; start += perCol) {
+    var pile = document.createElement('div');
+    pile.className = 'pile';
+    var chunk = games.slice(start, start + perCol);
+    for (var i = 0; i < chunk.length; i++) {
+      pile.appendChild(buildPlank(chunk[i], start + i));
+    }
+    var plinth = document.createElement('div');
+    plinth.className = 't-plinth pile-plinth';
+    pile.appendChild(plinth);
+    var base = document.createElement('div');
+    base.className = 't-baseboard pile-baseboard';
+    pile.appendChild(base);
+    cols.appendChild(pile);
   }
+  group.appendChild(cols);
+  return group;
+}
+
+// One plank per activity: name + minutes, painted by position. Clicking
+// opens the activity popup; every card action lives there.
+function buildPlank(game, index) {
+  var plank = document.createElement('button');
+  plank.type = 'button';
+  plank.className = 'plank plank-tone-' + (index % 8);
+  plank.setAttribute('data-game-id', game.id);
+  plank.setAttribute('aria-haspopup', 'dialog');
+  plank.setAttribute('aria-label', game.name + ', see what it is and customize it');
+  plank.title = 'See what "' + game.name + '" is';
+
+  if (Favorites.has(game.id)) {
+    var fav = document.createElement('span');
+    fav.className = 'plank-fav';
+    fav.textContent = '♥';
+    fav.setAttribute('aria-hidden', 'true');
+    plank.appendChild(fav);
+  }
+
+  var name = document.createElement('span');
+  name.className = 'plank-name';
+  name.textContent = game.name;
+  plank.appendChild(name);
+
+  if (game.playTime) {
+    var time = document.createElement('span');
+    time.className = 'plank-time';
+    // Planks carry the short time only; parentheticals live in the popup.
+    time.textContent = String(game.playTime).split('(')[0].trim();
+    plank.appendChild(time);
+  }
+
+  plank.addEventListener('click', function () {
+    openActivityDialog(game);
+  });
+  return plank;
+}
+
+// The plank popup: what it is, then every door the old card offered.
+// One red action per screen: Customize while an activity is untouched
+// (the customize-first funnel), Host once it has been tried.
+function openActivityDialog(game) {
+  var overlay = document.createElement('div');
+  overlay.className = 'template-picker-overlay';
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal activity-dialog';
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  var dlg = Dialog.enhance(overlay, modal, { title: game.name });
+
+  var name = document.createElement('h2');
+  name.className = 'activity-dialog-name';
+  name.textContent = game.name;
+  modal.insertBefore(name, dlg.closeBtn);
+
+  var metaBits = [];
+  if (game.playTime) metaBits.push(game.playTime);
+  if (game.family === 'connection') metaBits.push('no scores, no winners');
+  var goals = (Array.isArray(game.tags) ? game.tags : [])
+    .filter(function (t) { return GOAL_WORDS[t]; })
+    .map(function (t) { return GOAL_WORDS[t]; });
+  if (goals.length > 0) metaBits.push(goals.join(' · '));
+  if (metaBits.length > 0) {
+    var meta = document.createElement('p');
+    meta.className = 'activity-dialog-meta';
+    meta.textContent = metaBits.join(' · ');
+    modal.appendChild(meta);
+  }
+
+  var desc = document.createElement('p');
+  desc.className = 'activity-dialog-desc';
+  desc.textContent = game.description || '';
+  modal.appendChild(desc);
+
+  var actions = document.createElement('div');
+  actions.className = 'game-card-actions activity-dialog-actions';
+
+  var rememberRecent = function () { Recents.add(game.id); };
+  var canEditDirectly = (window.MyGames && MyGames.has(game.id)) ||
+    (window.OwnerMode && OwnerMode.isOn());
+  var touched = canEditDirectly || Recents.has(game.id);
+
+  if (canEditDirectly) {
+    var editBtn = document.createElement('a');
+    editBtn.className = 'game-card-edit';
+    editBtn.href = '/designer/edit?game=' + encodeURIComponent(game.id) + '&from=library';
+    editBtn.textContent = 'Edit';
+    editBtn.setAttribute('aria-label', 'Edit "' + game.name + '"');
+    editBtn.addEventListener('click', rememberRecent);
+    actions.appendChild(editBtn);
+  } else {
+    var customizeBtn = document.createElement('button');
+    customizeBtn.type = 'button';
+    customizeBtn.className = 'game-card-edit' + (touched ? '' : ' game-card-customize-only');
+    customizeBtn.textContent = 'Customize';
+    customizeBtn.title = 'Make your own editable copy of this activity';
+    customizeBtn.setAttribute('aria-label', 'Customize a copy of "' + game.name + '"');
+    customizeBtn.setAttribute('data-game-id', game.id);
+    customizeBtn.addEventListener('click', function () {
+      customizeCopy(game, customizeBtn);
+    });
+    actions.appendChild(customizeBtn);
+  }
+
+  if (touched) {
+    var previewBtn = document.createElement('a');
+    previewBtn.className = 'game-card-preview';
+    previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
+    previewBtn.textContent = 'Preview';
+    previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
+    previewBtn.setAttribute('aria-label', 'Preview "' + game.name + '" with practice players');
+    previewBtn.addEventListener('click', rememberRecent);
+    actions.appendChild(previewBtn);
+
+    var hostBtn = document.createElement('a');
+    hostBtn.className = 'game-card-host library-host';
+    hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
+    hostBtn.textContent = '▶ Host this';
+    hostBtn.title = 'Start a live room your class can join right now';
+    hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');
+    hostBtn.addEventListener('click', rememberRecent);
+    actions.appendChild(hostBtn);
+  }
+
+  var favBtn = document.createElement('button');
+  var isFav = Favorites.has(game.id);
+  favBtn.type = 'button';
+  favBtn.className = 'game-card-fav' + (isFav ? ' is-fav' : '');
+  favBtn.textContent = isFav ? '♥' : '♡';
+  favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+  favBtn.setAttribute('aria-label', (isFav ? 'Remove "' : 'Favorite "') + game.name + '"');
+  favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+  favBtn.addEventListener('click', function () {
+    Favorites.toggle(game.id);
+    var nowFav = Favorites.has(game.id);
+    favBtn.textContent = nowFav ? '♥' : '♡';
+    favBtn.className = 'game-card-fav' + (nowFav ? ' is-fav' : '');
+    favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
+    refreshLibrary(); // the plank moves piles behind the popup
+  });
+  actions.appendChild(favBtn);
+
+  var canDelete = (window.MyGames && MyGames.has(game.id)) ||
+    (window.OwnerMode && OwnerMode.isOn());
+  if (canDelete) {
+    var deleteBtn = document.createElement('button');
+    deleteBtn.type = 'button';
+    deleteBtn.className = 'game-card-delete';
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.title = 'Delete this activity, this cannot be undone';
+    deleteBtn.setAttribute('aria-label', 'Delete "' + game.name + '"');
+    deleteBtn.addEventListener('click', function () {
+      deleteOwnGame(game);
+      dlg.close();
+    });
+    actions.appendChild(deleteBtn);
+  }
+
+  modal.appendChild(actions);
 }
 
 async function enterOwnerMode() {
@@ -1837,10 +2093,11 @@ function handleHighlightParam() {
     window.history.replaceState(null, '', window.location.pathname +
       (params.toString() ? '?' + params.toString() : ''));
   } catch (e) { return; }
-  var card = document.querySelector('.library-card[data-game-id="' + CSS.escape(wantedId) + '"]');
-  if (!card) return; // filtered out or unknown — the library itself is the fallback
-  card.scrollIntoView({ block: 'center' });
-  card.classList.add('game-card-highlight');
+  var piece = document.querySelector('.plank[data-game-id="' + CSS.escape(wantedId) + '"]') ||
+    document.querySelector('.library-card[data-game-id="' + CSS.escape(wantedId) + '"]');
+  if (!piece) return; // filtered out or unknown — the library itself is the fallback
+  piece.scrollIntoView({ block: 'center' });
+  piece.classList.add('game-card-highlight');
 }
 
 fetch('/api/games')
