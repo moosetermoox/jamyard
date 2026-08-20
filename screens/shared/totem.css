@@ -1,0 +1,262 @@
+/* ============================================================
+   Jamyard "Totem" design system (docs/design/totem/README.md)
+   ------------------------------------------------------------
+   Every UI element is an offcut of painted scrap wood, cut
+   slightly off-square, stacked into totems. Stacks mean
+   sequence; the interface literally builds as students use it.
+
+   Load AFTER design.css on migrated screens (its focus rule and
+   tokens are meant to win). Screens not yet migrated keep the
+   Paste-up skin and never link this file.
+
+   Grammar in one breath:
+   - Wood holds content, paint means something. Signal red is
+     THE primary action, one per screen. Yellow = now, cyan =
+     think, green = done, magenta = play, orange = last call.
+   - The cut: clip-path polygons, every edge within 8% of
+     square. Rotation 2 degrees max, alternate sign between
+     stacked neighbors.
+   - Stacks overlap -4px and always stand on a plinth + base.
+   - Motion is interaction-only, 120ms cubic-bezier(.4,0,.2,1).
+     The only entrance animation is a block arriving on a pile.
+   - Never: serifs, border-radius, gradients (except grain),
+     blurry shadows, floating stacks, emoji, body text on raw
+     grain, two red actions on one screen.
+   ============================================================ */
+
+@font-face {
+  font-family: 'Bricolage Grotesque';
+  src: url('fonts/bricolage-grotesque-v9-latin-variable.woff2') format('woff2');
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DM Sans';
+  src: url('fonts/dm-sans-v17-latin-variable.woff2') format('woff2');
+  font-weight: 100 1000;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Type */
+  --t-display: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  --t-body: 'DM Sans', Arial, sans-serif;
+
+  /* Wood (structure: anything that holds content) */
+  --t-gesso: #F2EEE5;    /* page background, drop slots */
+  --t-paper: #FDF9F0;    /* cards, secondary buttons, labels */
+  --t-birch: #E3C8A0;    /* light blocks */
+  --t-pine: #D2B285;     /* mid blocks, boards */
+  --t-sanded: #EAD9BA;   /* input planks */
+  --t-oak: #C29A67;      /* dark blocks */
+  --t-walnut: #B08350;   /* plinths only */
+  --t-base: #8F6438;     /* base boards only */
+
+  /* Paint (meaning: a color is a job, not a decoration) */
+  --t-red: #E5482B;      /* THE primary action, one per screen */
+  --t-yellow: #FFC800;   /* now / selected / highlight / timer */
+  --t-cyan: #1BA9C4;     /* think / info */
+  --t-green: #22A05A;    /* done / progress counts */
+  --t-magenta: #B0197E;  /* play / social */
+  --t-orange: #F08C1E;   /* warn / last-call timer */
+  --t-ink: #2A2620;      /* all reading text */
+
+  /* Muted text */
+  --t-muted: #6B6250;        /* on gesso */
+  --t-muted-caps: #8A7B62;   /* small spaced-caps labels only */
+  --t-muted-wood: #6B4E2A;   /* meta on wood */
+
+  /* Material */
+  --t-grain:
+    repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0 1px, transparent 1px 6px),
+    repeating-linear-gradient(88deg, rgba(70,45,20,0.06) 0 2px, transparent 2px 14px);
+  --t-shadow-free: 0 4px 6px rgba(50,35,15,0.25);       /* free-standing pieces */
+  --t-shadow-stack: 5px 8px 0 rgba(80,60,30,0.14);      /* one per stack wrapper */
+
+  /* Motion: interaction-only, nothing moves at rest */
+  --t-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-quick: 120ms;
+}
+
+/* The hidden attribute always wins, whatever display a class sets
+   (the recurring CSS-display-beats-hidden bug, pre-answered). */
+[hidden] { display: none !important; }
+
+/* Keyboard focus (overrides design.css's blue ring: Totem is Ink) */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid var(--t-ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------
+   Blocks: a piece of wood or paint that holds a word.
+   Compose rotation via --rot so hover transforms can stack.
+   ------------------------------------------------------------ */
+.t-block {
+  display: inline-block;
+  transform: rotate(var(--rot, 0deg));
+  color: var(--t-ink);
+}
+
+/* Wood tones (grain on every wood tone). Each tone declares its
+   text color so links and buttons never fall back to UA blue. */
+.t-gesso  { background: var(--t-gesso);  background-image: var(--t-grain); color: var(--t-ink); }
+.t-paper  { background: var(--t-paper); color: var(--t-ink); }
+.t-birch  { background: var(--t-birch);  background-image: var(--t-grain); color: var(--t-ink); }
+.t-pine   { background: var(--t-pine);   background-image: var(--t-grain); color: var(--t-ink); }
+.t-sanded { background: var(--t-sanded); background-image: var(--t-grain); color: var(--t-ink); }
+.t-oak    { background: var(--t-oak);    background-image: var(--t-grain); color: var(--t-paper); }
+.t-walnut { background: var(--t-walnut); background-image: var(--t-grain); color: var(--t-paper); }
+.t-basewood { background: var(--t-base); background-image: var(--t-grain); color: var(--t-paper); }
+
+/* Paints (no grain, except thin yellow which keeps it) */
+.t-red     { background: var(--t-red);     color: var(--t-paper); }
+.t-yellow  { background: var(--t-yellow);  background-image: var(--t-grain); color: var(--t-ink); }
+.t-cyan    { background: var(--t-cyan);    color: var(--t-paper); }
+.t-green   { background: var(--t-green);   color: var(--t-paper); }
+.t-magenta { background: var(--t-magenta); color: var(--t-paper); }
+.t-orange  { background: var(--t-orange);  color: var(--t-paper); }
+
+/* Block label type: Bricolage CAPS */
+.t-label {
+  font-family: var(--t-display);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Spaced-caps meta label: DM Sans 700 */
+.t-caps {
+  font-family: var(--t-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+}
+
+/* ------------------------------------------------------------
+   The stack: blocks overlap -4px, alternate rotation sign,
+   and always stand on a plinth + base board. ONE flat
+   drop-shadow on the wrapper; pieces inside cast none.
+   Warning from the handoff: transparent-background elements
+   inside this wrapper render ghost duplicates of the shadow;
+   give them a solid background or keep them outside.
+   ------------------------------------------------------------ */
+.t-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(var(--t-shadow-stack));
+}
+
+.t-stack > * { margin-top: -4px; }
+.t-stack > :first-child { margin-top: 0; }
+
+.t-plinth {
+  width: 150px;
+  height: 60px;
+  background: var(--t-walnut);
+  background-image: var(--t-grain);
+  margin-top: -2px;
+}
+
+.t-baseboard {
+  width: 260px;
+  height: 26px;
+  background: var(--t-base);
+  background-image: var(--t-grain);
+}
+
+/* A block that acts (stacked): hover slides sideways, away from
+   its rotation. Set --rot and --slide (sign opposite to --rot). */
+.t-block-btn {
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  text-align: center;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+.t-block-btn:hover,
+.t-block-btn:focus-visible {
+  transform: rotate(var(--rot, 0deg)) translateX(var(--slide, 10px));
+}
+
+/* A free-standing piece that acts: hover lifts, press settles. */
+.t-lift {
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: var(--t-shadow-free);
+  transform: rotate(var(--rot, 0deg));
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+.t-lift:hover,
+.t-lift:focus-visible {
+  transform: rotate(var(--rot, 0deg)) translateY(-5px);
+}
+
+.t-lift:active {
+  transform: rotate(var(--rot, 0deg)) translateY(0);
+}
+
+/* Selection is always an inset Ink ring, never a color change */
+.t-selected { box-shadow: inset 0 0 0 3px var(--t-ink); }
+
+/* ------------------------------------------------------------
+   New block arrival (submission lands on a pile, student joins
+   the roster): the only entrance animation in the system.
+   ------------------------------------------------------------ */
+@keyframes t-arrive {
+  from { transform: rotate(var(--rot, 0deg)) translateY(-16px); }
+  to   { transform: rotate(var(--rot, 0deg)) translateY(0); }
+}
+
+.t-arrive { animation: t-arrive 180ms var(--t-ease); }
+
+/* ------------------------------------------------------------
+   The painted word: yellow band inside a headline. Max one
+   per headline. Body text never rotates; this word may.
+   ------------------------------------------------------------ */
+.t-painted-word {
+  background: linear-gradient(180deg, transparent 12%, var(--t-yellow) 12%, var(--t-yellow) 88%, transparent 88%);
+  display: inline-block;
+  transform: rotate(-1deg);
+  padding: 0 6px;
+}
+
+/* Chips: timer (yellow, orange for last call) and counts (green) */
+.t-chip {
+  display: inline-block;
+  font-family: var(--t-display);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  padding: 6px 14px 8px;
+  box-shadow: var(--t-shadow-free);
+  transform: rotate(var(--rot, 0deg));
+}
+
+/* Drop slots: the dashed affordance for "add / create" everywhere.
+   Solid gesso fill (see the ghost-shadow warning above). */
+.t-slot {
+  background: var(--t-gesso);
+  border: 3px dashed rgba(110, 75, 40, 0.35);
+  color: var(--t-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-block-btn, .t-lift { transition: none; }
+  .t-arrive { animation: none; }
+}

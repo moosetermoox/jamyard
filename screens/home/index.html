@@ -5,57 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
+  <link rel="stylesheet" href="/shared/totem.css">
   <style>
-    /* ══ Paste-up system (docs/paper-layout-test/) ══
-       Everything is a clean-cut piece of paper pasted on a grained
-       gesso ground. Ink carries text, one vermillion carries loudness,
-       cyan/yellow appear only as misprint traces. Motion is a 90ms
-       two-step snap, interaction-only. */
+    /* ══ Totem system (docs/design/totem/) ══
+       Painted scrap-wood offcuts stacked into totems on a gesso
+       ground. Wood holds content, paint means something, and the
+       one signal-red action on this screen is FIND. */
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: 'Nunito', Arial, sans-serif;
-      background: #EFE9DC;
-      color: #221E1C;
+      font-family: var(--t-body);
+      background: var(--t-gesso);
+      color: var(--t-ink);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-    }
-
-    a { color: #AE3A16; }
-    a:hover { color: #221E1C; }
-
-    :focus-visible {
-      outline: 3px solid #221E1C;
-      outline-offset: 2px;
-    }
-
-    /* ── Ground textures (under all paper pieces) ── */
-    .grain {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      opacity: 0.5;
-      background-image:
-        radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px),
-        radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px);
-      background-size: 4px 4px, 7px 7px;
-      background-position: 0 0, 2px 3px;
-    }
-
-    .halftone-corner {
-      position: fixed;
-      right: -40px;
-      top: -40px;
-      width: 260px;
-      height: 260px;
-      pointer-events: none;
-      opacity: 0.25;
-      background-image: radial-gradient(circle, rgba(217,72,28,0.9) 1.6px, transparent 1.8px);
-      background-size: 10px 10px;
-      -webkit-mask-image: radial-gradient(circle, #000 25%, transparent 68%);
-      mask-image: radial-gradient(circle, #000 25%, transparent 68%);
     }
 
     .page {
@@ -64,40 +29,16 @@
       display: flex;
       flex-direction: column;
       width: 100%;
-      max-width: 1060px;
+      max-width: 1100px;
       margin: 0 auto;
-      padding: 26px 32px 20px;
-      gap: 22px;
+      padding: 30px 40px 24px;
+      gap: 26px;
     }
 
-    /* ── Paper pieces ── */
-    /* Compose each piece's resting tilt with the hover/press snap:
-       the tilt rides in a custom property so translate can stack on it. */
-    .paper {
-      background: #FFFDF6;
-      border-radius: 2px;
-      transform: rotate(var(--tilt, 0deg));
-      box-shadow: 3px 3px 0 rgba(34,30,28,0.16);
-    }
-
-    .snap {
-      transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
-    }
-
-    .snap:hover {
-      transform: rotate(var(--tilt, 0deg)) translate(2px, 2px);
-      box-shadow: 1px 1px 0 rgba(34,30,28,0.16);
-    }
-
-    .snap:active {
-      transform: rotate(var(--tilt, 0deg)) translate(3px, 3px);
-      box-shadow: 0 0 0 rgba(34,30,28,0.16);
-    }
-
-    /* ── Header: ransom wordmark + spaced-caps tagline ── */
+    /* ── Header: wordmark letter blocks + spaced-caps tagline ── */
     header {
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       justify-content: space-between;
       gap: 16px;
       flex-wrap: wrap;
@@ -105,326 +46,317 @@
 
     .wordmark {
       display: flex;
-      gap: 5px;
-      align-items: center;
+      gap: 6px;
+      align-items: flex-end;
       text-decoration: none;
     }
 
     .wordmark span {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 26px;
+      padding: 6px 12px 8px;
       display: inline-block;
-      border-radius: 2px;
-      box-shadow: 2px 2px 0 rgba(34,30,28,0.18);
-      padding: 3px 10px 5px;
-      font-size: 24px;
+      transform: rotate(var(--rot, 0deg));
+      box-shadow: 0 3px 5px rgba(50,35,15,0.30);
     }
 
-    .lm-archivo { font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif; }
-    .lm-garamond { font-family: 'EB Garamond', Georgia, serif; font-size: 27px !important; padding: 1px 10px 3px !important; }
-    .lm-nunito { font-family: 'Nunito', Arial, sans-serif; font-weight: 900; }
-    .lm-scrap { background: #FFFDF6; color: #221E1C; }
-    .lm-ink { background: #221E1C; color: #FBF7EC; }
-    .lm-vermillion { background: #D9481C; color: #FFF6EA; }
+    /* Two letters carry a saw cut */
+    .wm-notch { clip-path: polygon(0 0, 100% 0, 100% 30%, 88% 30%, 88% 48%, 100% 48%, 100% 100%, 0 100%); }
+    .wm-corner { clip-path: polygon(0 0, 78% 0, 100% 22%, 100% 100%, 0 100%); }
 
     .tagline {
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 700;
       letter-spacing: 0.14em;
-      color: #6E6353;
+      color: var(--t-muted-caps);
+      padding-bottom: 8px;
     }
 
-    /* ── The big pasted sheet ── */
-    .sheet {
-      position: relative;
-      background: #FBF7EC;
-      border-radius: 2px;
-      transform: rotate(-0.3deg);
-      box-shadow: 5px 6px 0 rgba(34,30,28,0.10);
-      padding: 34px 40px 30px;
+    /* ── Main: actions totem on the left, message on the right ── */
+    .hero {
+      display: flex;
+      gap: 56px;
+      align-items: stretch;
+    }
+
+    .totem-col {
+      width: 280px;
+      flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      overflow: hidden;
+      justify-content: flex-end;
+      align-items: center;
     }
 
-    .sheet > * { position: relative; }
-
-    .sheet > .sheet-halftone {
-      position: absolute;
-      right: -20px;
-      bottom: -20px;
-      width: 240px;
-      height: 200px;
-      pointer-events: none;
-      opacity: 0.22;
-      background-image: radial-gradient(circle, rgba(34,30,28,0.9) 1.3px, transparent 1.5px);
-      background-size: 8px 8px;
-      -webkit-mask-image: radial-gradient(circle, #000 20%, transparent 66%);
-      mask-image: radial-gradient(circle, #000 20%, transparent 66%);
+    /* The action blocks (widths vary 10-20%, rotation alternates sign,
+       hover slides away from the tilt). Labels ride Bricolage CAPS. */
+    .act {
+      font-size: 21px;
+      padding: 18px 0 20px;
+      display: block;
     }
 
-    .spoken {
-      font-family: 'EB Garamond', Georgia, serif;
-      font-weight: 400;
-      font-size: clamp(32px, 4.5vw, 46px);
-      line-height: 1.14;
-      color: #221E1C;
-      max-width: 740px;
+    .act-offcut {
+      width: 96px;
+      height: 44px;
+      clip-path: polygon(0 100%, 8% 0, 92% 12%, 100% 100%);
+      margin-bottom: -2px;
+    }
+
+    .act-find {
+      width: 238px;
+      clip-path: polygon(2% 0, 98% 4%, 100% 96%, 0 100%, 0 62%, 5% 62%, 5% 38%, 0 38%);
+    }
+
+    .act-create {
+      width: 210px;
+      clip-path: polygon(0 6%, 100% 0, 98% 100%, 2% 94%);
+    }
+
+    .act-join {
+      width: 196px;
+      clip-path: polygon(0 0, 100% 8%, 96% 92%, 4% 100%);
+    }
+
+    .act-guide {
+      width: 224px;
+      clip-path: polygon(0 4%, 100% 0, 100% 100%, 74% 92%, 52% 100%, 28% 92%, 0 100%);
+    }
+
+    .message-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      padding-top: 8px;
+    }
+
+    h1 {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: clamp(34px, 4.6vw, 46px);
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      color: var(--t-ink);
+      max-width: 560px;
       text-wrap: balance;
     }
 
     .sub {
       font-size: 19px;
-      font-weight: 600;
-      line-height: 1.5;
-      color: #5C5546;
-      max-width: 640px;
+      font-weight: 500;
+      line-height: 1.55;
+      color: var(--t-muted);
+      max-width: 500px;
     }
 
-    /* ── Featured clipping (the live carousel) ── */
-    .clipping {
-      margin-top: 10px;
-      align-self: flex-start;
-      width: 620px;
-      max-width: 100%;
-      background: #D9481C;
-      border-radius: 2px;
-      transform: rotate(0.5deg);
-      box-shadow: 4px 4px 0 rgba(34,30,28,0.14);
-      padding: 16px 22px 16px;
+    .sub a, .how-try a {
+      color: var(--t-ink);
+      font-weight: 700;
+    }
+
+    .sub a:hover, .how-try a:hover { color: var(--t-red); }
+
+    /* ── Featured board: a pine offcut with jigsaw edges ── */
+    .board {
+      margin-top: auto;
+      width: 100%;
+      max-width: 520px;
+      background: var(--t-pine);
+      background-image: var(--t-grain);
+      clip-path: polygon(0 3%, 30% 0, 62% 2%, 100% 0, 99% 55%, 100% 97%, 66% 100%, 30% 96%, 0 100%, 1% 50%);
+      padding: 26px 30px 28px;
+      filter: drop-shadow(6px 8px 0 rgba(80,60,30,0.16));
+      transform: rotate(0.6deg);
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 10px;
     }
 
-    /* flex display beats the hidden attribute */
-    .clipping[hidden] { display: none; }
-
-    .clipping-top {
+    .board-top {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
       gap: 12px;
     }
 
-    .clipping-label {
+    .board-label {
       font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
+      font-weight: 700;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: #FFD3E6;
+      color: var(--t-muted-wood);
       text-decoration: none;
     }
 
-    a.clipping-label:hover { color: #FFF6EA; }
+    a.board-label:hover { color: var(--t-ink); }
 
-    .clipping-count {
+    .board-count {
       font-size: 13px;
       font-weight: 700;
-      color: #FFC3DC;
+      color: var(--t-muted-wood);
     }
 
-    .clipping-slide {
+    .board-slide {
       display: flex;
       flex-direction: column;
-      gap: 5px;
+      gap: 8px;
       text-decoration: none;
     }
 
-    .clipping-name {
-      font-family: 'EB Garamond', Georgia, serif;
-      font-size: 28px;
-      line-height: 1.15;
-      color: #FFF6EA;
+    .board-titlerow {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .clipping-desc {
+    /* The activity's name: a magenta painted piece glued on */
+    .board-name {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 28px;
+      color: var(--t-paper);
+      background: var(--t-magenta);
+      padding: 2px 14px 6px;
+      transform: rotate(-1.2deg);
+      display: inline-block;
+      box-shadow: 0 3px 4px rgba(50,35,15,0.28);
+    }
+
+    .board-meta {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--t-muted-wood);
+    }
+
+    .board-desc {
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 500;
       line-height: 1.5;
-      color: #FFE4F0;
+      color: #4A3A22;
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
 
-    .clipping-meta {
-      font-size: 14px;
-      font-weight: 700;
-      color: #FFC3DC;
-    }
-
-    .clipping-bottom {
-      margin-top: 8px;
+    .board-bottom {
+      margin-top: 6px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
-    }
-
-    .clipping-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
       flex-wrap: wrap;
     }
 
-    .clipping-cta {
-      background: #FFFDF6;
-      border-radius: 2px;
-      box-shadow: 2px 2px 0 rgba(34,30,28,0.22);
-      transform: rotate(var(--ctilt, -0.8deg));
-      padding: 8px 16px;
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+    .board-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Paper secondary pieces on the board */
+    .board-cta {
+      background: var(--t-paper);
+      color: var(--t-ink);
+      font-family: var(--t-display);
+      font-weight: 800;
       font-size: 13px;
       letter-spacing: 0.06em;
-      color: #221E1C;
+      padding: 9px 16px 10px;
+      box-shadow: 0 3px 4px rgba(50,35,15,0.24);
     }
 
-    .clipping-cta:hover {
-      transform: rotate(var(--ctilt, -0.8deg)) translate(2px, 2px);
-      box-shadow: 0 0 0 rgba(34,30,28,0.22);
-      transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
-    }
-
-    .clipping-nav {
+    .board-nav {
       display: flex;
       gap: 8px;
     }
 
-    .clipping-nav button {
-      width: 32px;
-      height: 32px;
-      border: none;
-      background: #FFFDF6;
-      border-radius: 2px;
-      box-shadow: 2px 2px 0 rgba(34,30,28,0.22);
-      font-family: 'Nunito', Arial, sans-serif;
+    .board-nav button {
+      width: 34px;
+      height: 34px;
+      background: var(--t-paper);
+      color: var(--t-ink);
+      font-family: var(--t-body);
       font-size: 17px;
-      font-weight: 800;
+      font-weight: 700;
       line-height: 1;
-      color: #221E1C;
-      cursor: pointer;
+      box-shadow: 0 3px 4px rgba(50,35,15,0.24);
     }
 
-    .clipping-nav button:first-child { transform: rotate(-1deg); }
-    .clipping-nav button:last-child { transform: rotate(0.8deg); }
+    .board-nav button:first-child { --rot: -1deg; }
+    .board-nav button:last-child { --rot: 0.8deg; }
 
-    .clipping-nav button:hover {
-      transform: translate(2px, 2px);
-      box-shadow: 0 0 0 rgba(34,30,28,0.22);
-    }
-
-    /* ── How it works: three scraps, the whole concept at a glance ── */
+    /* ── How it works: three paper cards, numbers painted on ── */
     .how-strip {
-      margin-top: 8px;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
+      gap: 16px;
     }
 
     .how-step {
-      background: #FFFDF6;
-      border-radius: 2px;
-      transform: rotate(var(--tilt, 0deg));
-      box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
-      padding: 14px 16px;
+      background: var(--t-paper);
+      box-shadow: var(--t-shadow-free);
+      padding: 16px 18px;
       display: flex;
       gap: 12px;
       align-items: flex-start;
     }
 
     .how-num {
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-size: 21px;
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 19px;
       line-height: 1;
-      color: #FFF6EA;
-      background: #D9481C;
-      border-radius: 2px;
-      box-shadow: 1px 1px 0 rgba(34,30,28,0.18);
-      padding: 5px 9px 7px;
-      transform: rotate(-1.2deg);
+      padding: 6px 10px 8px;
+      transform: rotate(var(--rot, -1.2deg));
       flex-shrink: 0;
+      box-shadow: 0 2px 3px rgba(50,35,15,0.24);
     }
-
-    .how-step:nth-child(2) .how-num { transform: rotate(1deg); }
 
     .how-step p {
       font-size: 15px;
-      font-weight: 600;
-      line-height: 1.45;
-      color: #5C5546;
+      font-weight: 500;
+      line-height: 1.5;
+      color: var(--t-muted);
     }
 
     .how-step strong {
-      color: #221E1C;
-      font-weight: 800;
+      color: var(--t-ink);
+      font-weight: 700;
     }
 
     .how-try {
       font-size: 15px;
-      font-weight: 600;
-      color: #5C5546;
+      font-weight: 500;
+      color: var(--t-muted);
+      margin-top: -8px;
     }
 
-    .how-try a { font-weight: 800; }
-
-    /* ── Action row: cut-paper buttons (Create lives in the footer) ── */
-    .actions {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 18px;
-    }
-
-    .btn {
-      padding: 16px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      text-decoration: none;
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-size: 16px;
-      letter-spacing: 0.02em;
-      cursor: pointer;
-    }
-
-    .btn-primary {
-      background: #D9481C;
-      color: #FFF6EA;
-      box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
-    }
-
-    .btn-primary:hover { color: #FFF6EA; }
-
-    .btn-secondary { color: #221E1C; }
-    .btn-secondary:hover { color: #221E1C; }
-
-    /* The .misprint offset (chromatic text-shadow) read as blur on real
-       screens and was removed 2026-08-15; the class remains in markup, inert. */
-
-    .sub a { font-weight: 800; }
-
-    /* ── Student join: its own pasted scrap ── */
+    /* ── Student join: a paper board with a sanded input plank ── */
     .join {
-      background: #FBF7EC;
-      box-shadow: 4px 4px 0 rgba(34,30,28,0.10);
+      background: var(--t-paper);
+      box-shadow: var(--t-shadow-free);
       align-self: center;
       width: 100%;
       max-width: 480px;
-      padding: 22px 30px 20px;
+      padding: 24px 30px 22px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
 
     .join label {
       font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 0.12em;
+      font-weight: 700;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
-      color: #6E6353;
+      color: var(--t-muted-caps);
     }
 
     .join-row {
@@ -433,53 +365,49 @@
       width: 100%;
     }
 
-    /* The one un-rotated piece: inputs sit square with an inset shadow */
+    /* The input is a sanded plank with a dashed pencil line */
     .join-row input {
       flex: 1;
       min-width: 0;
       border: none;
-      background: #FFFDF6;
-      border-radius: 2px;
-      box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16);
-      padding: 11px 14px;
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-size: 1.1rem;
+      background: var(--t-sanded);
+      background-image: var(--t-grain);
+      border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+      padding: 12px 14px 9px;
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 1.15rem;
       text-transform: uppercase;
-      letter-spacing: 3px;
+      letter-spacing: 6px;
       text-align: center;
-      color: #221E1C;
+      color: var(--t-ink);
     }
 
     .join-row input::placeholder {
-      color: #9A8F7C;
-      font-family: 'Nunito', Arial, sans-serif;
-      font-weight: 600;
-      letter-spacing: 2px;
+      color: rgba(110, 75, 40, 0.45);
+      letter-spacing: 6px;
     }
 
     .join-row input:focus {
       outline: none;
-      box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 2px #221E1C;
+      box-shadow: inset 0 0 0 3px var(--t-ink);
     }
 
+    /* Yellow = now: the student's own next step */
     .join-row button {
-      border: none;
-      padding: 11px 26px;
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
       font-size: 15px;
-      color: #221E1C;
-      cursor: pointer;
+      padding: 12px 26px 14px;
       white-space: nowrap;
     }
 
     .join-error {
       font-size: 14px;
-      font-weight: 800;
-      color: #221E1C;
+      font-weight: 700;
+      color: var(--t-red);
       display: none;
     }
 
-    /* ── Footer: small nav + registration marks ── */
+    /* ── Footer: plain spaced links ── */
     footer {
       display: flex;
       align-items: center;
@@ -488,125 +416,127 @@
       padding: 6px 2px 8px;
       font-size: 14px;
       font-weight: 700;
-      color: #6E6353;
+      color: var(--t-muted-caps);
     }
 
     footer a {
-      color: #6E6353;
+      color: var(--t-muted-caps);
       text-decoration: none;
     }
 
-    footer a:hover { color: #221E1C; }
+    footer a:hover { color: var(--t-ink); }
 
-    .reg-marks {
-      margin-left: auto;
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .reg-marks div { width: 11px; height: 11px; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .snap, .clipping-nav button, .clipping-cta { transition: none; }
-    }
-
-    @media (max-width: 760px) {
-      .page { padding: 20px 16px 16px; }
+    @media (max-width: 860px) {
+      .page { padding: 20px 18px 16px; }
       .tagline { display: none; }
-      .wordmark span { font-size: 18px; padding: 2px 7px 4px; }
-      .lm-garamond { font-size: 21px !important; padding: 1px 7px 2px !important; }
-      .sheet { padding: 24px 22px 22px; }
+      .wordmark span { font-size: 19px; padding: 4px 8px 6px; }
+      .hero { flex-direction: column; gap: 34px; }
+      .message-col { padding-top: 0; }
+      .totem-col { order: 2; width: 100%; }
+      .board { max-width: 100%; margin-top: 4px; }
       .how-strip { grid-template-columns: 1fr; }
-      .actions { grid-template-columns: 1fr; }
       footer { justify-content: center; }
-      .reg-marks { margin-left: 0; width: 100%; justify-content: center; }
     }
   </style>
 </head>
 <body>
 
-  <div class="grain" aria-hidden="true"></div>
-  <div class="halftone-corner" aria-hidden="true"></div>
-
   <div class="page">
 
     <header>
       <span class="wordmark" aria-label="Jamyard">
-        <span class="lm-archivo lm-scrap" style="transform: rotate(-2deg)">J</span>
-        <span class="lm-garamond lm-vermillion" style="transform: rotate(1.5deg)">A</span>
-        <span class="lm-nunito lm-ink" style="transform: rotate(-1deg)">M</span>
-        <span class="lm-archivo lm-scrap" style="transform: rotate(2deg)">Y</span>
-        <span class="lm-garamond lm-scrap" style="transform: rotate(-1.5deg)">A</span>
-        <span class="lm-archivo lm-ink" style="transform: rotate(1deg)">R</span>
-        <span class="lm-nunito lm-scrap" style="transform: rotate(-2deg)">D</span>
+        <span class="t-birch" style="--rot: -2deg">J</span>
+        <span class="t-yellow" style="--rot: 1.5deg">A</span>
+        <span class="t-oak wm-notch" style="--rot: -1deg">M</span>
+        <span class="t-cyan" style="--rot: 2deg">Y</span>
+        <span class="t-pine" style="--rot: -1.5deg">A</span>
+        <span class="t-red" style="--rot: 1deg">R</span>
+        <span class="t-walnut wm-corner" style="--rot: -2deg">D</span>
       </span>
       <span class="tagline">INTERACTIVE WHOLE-CLASS ACTIVITIES</span>
     </header>
 
-    <main class="sheet">
-      <div class="sheet-halftone" aria-hidden="true"></div>
-      <h1 class="spoken">What are we going to do together?</h1>
-      <p class="sub">First time? <a href="/guide">Read the one-page teacher guide</a>: setup, live controls, quick fixes.</p>
+    <div class="hero">
 
-      <!-- Rotating peek at the library: one activity card at a time,
-           click to host it now. Hidden until the list loads. -->
-      <div class="clipping" id="activity-carousel" hidden>
-        <div class="clipping-top">
-          <a class="clipping-label" href="/library" title="Browse the full library">From the library</a>
-          <span class="clipping-count" id="carousel-count"></span>
+      <!-- The actions ARE a totem: four labeled blocks on a plinth.
+           FIND is the screen's one signal-red action. -->
+      <nav class="totem-col" aria-label="Main actions">
+        <div class="t-stack">
+          <div class="t-yellow act-offcut" style="--rot: -2deg" aria-hidden="true"></div>
+          <a class="t-block-btn t-label t-red act act-find" style="--rot: 1.4deg; --slide: -10px"
+             href="/library" title="Browse the library and host an activity in one click">Find</a>
+          <a class="t-block-btn t-label t-birch act act-create" style="--rot: -1.2deg; --slide: 10px"
+             href="/designer" title="Build your own activity, describe it in plain words, use a recipe, or start from scratch">Create</a>
+          <a class="t-block-btn t-label t-oak act act-join" style="--rot: 0.8deg; --slide: -10px"
+             href="#join" onclick="document.getElementById('room-code').focus()" title="Joining as a student? Enter your room code">Join</a>
+          <a class="t-block-btn t-label t-cyan act act-guide" style="--rot: -1deg; --slide: 10px"
+             href="/guide" title="One page: setup, live controls, and what to do when something goes wrong">Guide</a>
+          <div class="t-plinth" aria-hidden="true"></div>
+          <div class="t-baseboard" aria-hidden="true"></div>
         </div>
-        <a class="clipping-slide" id="carousel-slide" href="/library">
-          <div class="clipping-name" id="carousel-name"></div>
-          <div class="clipping-desc" id="carousel-desc"></div>
-          <div class="clipping-meta" id="carousel-meta"></div>
-        </a>
-        <!-- Two doors only: make it yours, or see the whole shelf. The
-             SEE ALL count sits right where the attention is: visitors were
-             browsing the carousel one card at a time and never realizing
-             the full shelf exists (field feedback 2026-08-16). -->
-        <div class="clipping-bottom">
-          <div class="clipping-actions">
-            <a class="clipping-cta" id="carousel-customize" style="--ctilt: -0.5deg" href="/library" title="Make your own editable copy of this activity">CUSTOMIZE</a>
-            <a class="clipping-cta" id="carousel-seeall" style="--ctilt: 0.5deg" href="/library" title="Browse the full library">SEE ALL →</a>
+      </nav>
+
+      <div class="message-col">
+        <h1>What are we going to <span class="t-painted-word">do</span> together?</h1>
+        <p class="sub">First time? <a href="/guide">Read the one-page teacher guide</a>: setup, live controls, quick fixes.</p>
+
+        <!-- Rotating peek at the library: one activity card at a time,
+             click to host it now. Hidden until the list loads. -->
+        <div class="board" id="activity-carousel" hidden>
+          <div class="board-top">
+            <a class="board-label" href="/library" title="Browse the full library">From the library</a>
+            <span class="board-count" id="carousel-count"></span>
           </div>
-          <div class="clipping-nav">
-            <button type="button" id="carousel-prev" aria-label="Previous activity">‹</button>
-            <button type="button" id="carousel-next" aria-label="Next activity">›</button>
+          <a class="board-slide" id="carousel-slide" href="/library">
+            <div class="board-titlerow">
+              <span class="board-name" id="carousel-name"></span>
+              <span class="board-meta" id="carousel-meta"></span>
+            </div>
+            <div class="board-desc" id="carousel-desc"></div>
+          </a>
+          <!-- Two doors only: make it yours, or see the whole shelf. The
+               SEE ALL count sits right where the attention is: visitors were
+               browsing the carousel one card at a time and never realizing
+               the full shelf exists (field feedback 2026-08-16). -->
+          <div class="board-bottom">
+            <div class="board-actions">
+              <a class="t-lift board-cta" id="carousel-customize" style="--rot: -0.5deg" href="/library" title="Make your own editable copy of this activity">CUSTOMIZE</a>
+              <a class="t-lift board-cta" id="carousel-seeall" style="--rot: 0.5deg" href="/library" title="Browse the full library">SEE ALL →</a>
+            </div>
+            <div class="board-nav">
+              <button type="button" class="t-lift" id="carousel-prev" aria-label="Previous activity">‹</button>
+              <button type="button" class="t-lift" id="carousel-next" aria-label="Next activity">›</button>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- How it works: the whole concept in three scraps, then a way to
-           see it run without a class. A new teacher should get the picture
-           without already knowing the genre. -->
-      <div class="how-strip" aria-label="How it works">
-        <div class="how-step" style="--tilt: -0.6deg">
-          <span class="how-num" aria-hidden="true">1</span>
-          <p><strong>Pick an activity</strong> from the library, or make your own.</p>
-        </div>
-        <div class="how-step" style="--tilt: 0.5deg">
-          <span class="how-num" aria-hidden="true">2</span>
-          <p><strong>Project your screen.</strong> The activity plays out up front for the whole class.</p>
-        </div>
-        <div class="how-step" style="--tilt: -0.4deg">
-          <span class="how-num" aria-hidden="true">3</span>
-          <p><strong>Students join with a 4-letter code</strong> on their devices. No accounts, nothing to install.</p>
-        </div>
-      </div>
-      <p class="how-try">Curious? <a href="/prototype?game=art-gallery" title="See the teacher screen and practice students side by side">Test one in preview mode</a> with practice students, no class needed.</p>
-    </main>
-
-    <div class="actions">
-      <a class="paper snap btn btn-primary" style="--tilt: -0.8deg" href="/library" title="Browse the library and host an activity in one click">FIND AN ACTIVITY</a>
-      <a class="paper snap btn btn-secondary" style="--tilt: -0.5deg" href="/guide" title="One page: setup, live controls, and what to do when something goes wrong"><span class="misprint">TEACHER GUIDE</span></a>
     </div>
 
-    <section class="paper join" style="--tilt: 0.4deg">
+    <!-- How it works: the whole concept in three cards, then a way to
+         see it run without a class. A new teacher should get the picture
+         without already knowing the genre. -->
+    <div class="how-strip" aria-label="How it works">
+      <div class="how-step">
+        <span class="how-num t-yellow" style="--rot: -1.2deg" aria-hidden="true">1</span>
+        <p><strong>Pick an activity</strong> from the library, or make your own.</p>
+      </div>
+      <div class="how-step">
+        <span class="how-num t-cyan" style="--rot: 1deg" aria-hidden="true">2</span>
+        <p><strong>Project your screen.</strong> The activity plays out up front for the whole class.</p>
+      </div>
+      <div class="how-step">
+        <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
+        <p><strong>Students join with a 4-letter code</strong> on their devices. No accounts, nothing to install.</p>
+      </div>
+    </div>
+    <p class="how-try">Curious? <a href="/prototype?game=art-gallery" title="See the teacher screen and practice students side by side">Test one in preview mode</a> with practice students, no class needed.</p>
+
+    <section class="join" id="join">
       <label for="room-code">Joining as a student? Enter your room code</label>
       <div class="join-row">
         <input type="text" id="room-code" placeholder="ABCD" maxlength="4" autocomplete="off" spellcheck="false">
-        <button type="button" class="paper snap" style="--tilt: -0.6deg" onclick="joinRoom()"><span class="misprint">JOIN</span></button>
+        <button type="button" class="t-lift t-label t-yellow" style="--rot: -0.6deg" onclick="joinRoom()">Join</button>
       </div>
       <div class="join-error" id="join-error">Please enter a 4-letter room code.</div>
     </section>
@@ -617,12 +547,6 @@
       <a href="/player">player screen</a>
       <a href="/teacher" title="Private controls for a running activity, join with the room code + PIN from the host screen">teacher console</a>
       <a href="/privacy" title="What we keep, why, and when it is deleted">privacy</a>
-      <div class="reg-marks" aria-hidden="true">
-        <div style="background: #00A5C4"></div>
-        <div style="background: #D9481C"></div>
-        <div style="background: #F2C230"></div>
-        <div style="background: #221E1C"></div>
-      </div>
     </footer>
 
   </div>
@@ -647,7 +571,7 @@
       var reducedMotion = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      // Paste-up motion rule: slides hard-cut, no fade.
+      // Totem motion rule: slides hard-cut, no fade.
       function render() {
         var g = games[idx];
         var customizeHref = '/library?customize=' + encodeURIComponent(g.id);
@@ -660,7 +584,7 @@
         descEl.textContent = g.description || '';
         var meta = [];
         if (g.playTime) meta.push(g.playTime);
-        if (g.family === 'connection') meta.push('🕊 no scores, no winners');
+        if (g.family === 'connection') meta.push('no scores, no winners');
         metaEl.textContent = meta.join(' · ');
         countEl.textContent = (idx + 1) + ' of ' + games.length;
       }
