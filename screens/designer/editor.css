@@ -3534,3 +3534,348 @@ body.chat-open #feedback-widget-panel { right: 358px; }
 * { border-radius: 0 !important; }
 
 body::before { content: none; }
+
+/* ================================================================
+   TOTEM PASS 2 (docs/design/totem/ 9d): the Builder canvas becomes
+   THE totem. Steps are painted blocks stacked on a plinth; family
+   colors are data coding (ask birch, show pine, decide magenta,
+   team oak, AI cyan); selected = yellow with an inset ink ring;
+   the frontier gap is a standing dashed drop slot. builder-view.js
+   sets each block's cut (--rot, clip-path, width) inline.
+   ================================================================ */
+
+/* Canvas: a centered gesso bench for one stack */
+#builder-canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 26px 24px 70px;
+  overflow-x: hidden;
+}
+
+.builder-stack-caps {
+  font-family: var(--t-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  margin: 0 0 20px;
+}
+
+/* One flat drop-shadow for the whole stack; pieces inside cast none.
+   Side padding keeps hover slides inside the scroll box. */
+.builder-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(var(--t-shadow-stack));
+  padding: 0 44px;
+}
+
+/* Blocks: painted offcuts, -4px overlap, hover slides sideways */
+#builder-canvas .builder-step {
+  position: relative;
+  margin: -4px 0 0;
+  padding: 11px 16px 13px;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform var(--t-quick) var(--t-ease);
+  cursor: pointer;
+}
+
+.builder-stack > .builder-step:first-child { margin-top: 0; }
+
+#builder-canvas .builder-step:hover {
+  transform: rotate(var(--rot, 0deg)) translateX(var(--slide, 10px));
+}
+
+/* Puzzle-era connectors are gone */
+#builder-canvas .builder-step::before,
+#builder-canvas .builder-step::after { content: none; }
+
+/* Family paint (grain on wood tones, none on paints) */
+#builder-canvas .builder-step.ask       { background: var(--t-birch); background-image: var(--t-grain); color: var(--t-ink); }
+#builder-canvas .builder-step.show      { background: var(--t-pine); background-image: var(--t-grain); color: var(--t-ink); }
+#builder-canvas .builder-step.decide    { background: var(--t-magenta); background-image: none; color: var(--t-paper); }
+#builder-canvas .builder-step.team      { background: var(--t-oak); background-image: var(--t-grain); color: var(--t-paper); }
+#builder-canvas .builder-step.ai        { background: var(--t-cyan); background-image: none; color: var(--t-paper); }
+#builder-canvas .builder-step.lobbystep { background: var(--t-sanded); background-image: var(--t-grain); color: var(--t-ink); cursor: default; }
+#builder-canvas .builder-step.endstep   { background: var(--t-base); background-image: var(--t-grain); color: var(--t-paper); }
+
+/* Selected: yellow (thin paint keeps grain) with the inset ink ring */
+#builder-canvas .builder-step.selected {
+  border: none;
+  background: var(--t-yellow);
+  background-image: var(--t-grain);
+  color: var(--t-ink);
+  box-shadow: inset 0 0 0 3px var(--t-ink);
+}
+
+/* Drag: dragged block ghosts; an ink bar inside the hovered block's
+   top or bottom edge marks the landing seam (outset shadows would be
+   clipped away by the cut). */
+#builder-canvas .builder-step.dragging { opacity: 0.45; }
+#builder-canvas .builder-step.drop-before { box-shadow: inset 0 8px 0 var(--t-ink); }
+#builder-canvas .builder-step.drop-after { box-shadow: inset 0 -8px 0 var(--t-ink); }
+
+/* Step number rides on the block at 60% */
+#builder-canvas .builder-step-num {
+  width: auto;
+  height: auto;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 13px;
+  color: inherit;
+  opacity: 0.6;
+}
+
+#builder-canvas .builder-step-body { min-width: 0; flex: 1; }
+
+#builder-canvas .builder-step-label {
+  margin: 0;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.15;
+}
+
+#builder-canvas .builder-step-meta {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--t-body);
+  font-weight: 500;
+  font-size: 11.5px;
+  color: inherit;
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Block tools: paper squares, hidden until the block is engaged
+   (focus-within keeps them reachable by keyboard) */
+#builder-canvas .builder-step-tools { opacity: 0; }
+
+#builder-canvas .builder-step:hover .builder-step-tools,
+#builder-canvas .builder-step.selected .builder-step-tools,
+#builder-canvas .builder-step-tools:focus-within { opacity: 1; }
+
+#builder-canvas .builder-step-tool {
+  background: rgba(253, 249, 240, 0.92);
+  color: var(--t-ink);
+  border: none;
+  box-shadow: none;
+}
+
+#builder-canvas .builder-step-tool:hover { background: var(--t-paper); }
+#builder-canvas .builder-step-del { color: #AE3A16; }
+#builder-canvas .builder-step-del:hover { background: #AE3A16; color: var(--t-paper); }
+
+/* Seam plus: a whisper beside the joint between two blocks */
+#builder-canvas .builder-plusline {
+  width: 250px;
+  height: 0;
+  margin: 0;
+  position: relative;
+  z-index: 8;
+  overflow: visible;
+}
+
+#builder-canvas .builder-plusline .builder-plus {
+  position: absolute;
+  right: -40px;
+  top: -13px;
+}
+
+/* The frontier drop slot: dashed, SOLID gesso fill (a transparent
+   background inside the stack's drop-shadow filter would ghost) */
+.builder-add-slot {
+  width: 250px;
+  margin: 14px 0 2px;
+  padding: 12px 0 13px;
+  background: var(--t-gesso);
+  border: 3px dashed rgba(110, 75, 40, 0.35);
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  color: #A08A68;
+  cursor: pointer;
+  transition: border-color var(--t-quick) var(--t-ease), color var(--t-quick) var(--t-ease);
+}
+
+.builder-add-slot:hover { border-color: var(--t-muted-wood); color: var(--t-muted-wood); }
+
+/* Plinth + base board: the stack never floats */
+.builder-plinth {
+  width: 170px;
+  height: 44px;
+  background: var(--t-walnut);
+  background-image: var(--t-grain);
+  margin-top: 14px;
+}
+
+.builder-baseboard {
+  width: 250px;
+  height: 22px;
+  background: var(--t-base);
+  background-image: var(--t-grain);
+  margin-top: -2px;
+}
+
+/* Suggestion boards open the stack mid-seam as a paper sheet */
+#builder-canvas .builder-suggest {
+  width: 520px;
+  max-width: 78vw;
+  margin: 10px 0 12px;
+  position: relative;
+  z-index: 9;
+}
+
+/* Suggestion tiles are readable paper cards; the family color survives
+   as a painted left edge (they carry body text, so no cuts here) */
+.builder-suggest .builder-tile {
+  background: var(--t-paper);
+  color: var(--t-ink);
+  box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.2);
+  transform: none;
+  clip-path: none;
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+.builder-suggest .builder-tile:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.35); }
+.builder-suggest .builder-tile.ask     { border-left: 6px solid var(--t-birch); background: var(--t-paper); }
+.builder-suggest .builder-tile.show    { border-left: 6px solid var(--t-pine); background: var(--t-paper); }
+.builder-suggest .builder-tile.decide  { border-left: 6px solid var(--t-magenta); background: var(--t-paper); }
+.builder-suggest .builder-tile.team    { border-left: 6px solid var(--t-oak); background: var(--t-paper); }
+.builder-suggest .builder-tile.ai      { border-left: 6px solid var(--t-cyan); background: var(--t-paper); }
+.builder-suggest .builder-tile.endtile { border-left: 6px solid var(--t-base); background: var(--t-paper); }
+
+/* "Your activity is ready": green means done */
+.builder-done {
+  max-width: 560px;
+  margin-top: 22px;
+  box-shadow: 3px 3px 0 rgba(50, 35, 15, 0.12), 0 0 0 2px var(--t-green);
+}
+
+.builder-done-check { color: #1E7A46; }
+
+/* The header's red ▶ Host is THE red on this screen — the done
+   panel's primary goes ink instead of competing */
+.builder-done-btn.primary { background: var(--t-ink); color: var(--t-paper); }
+
+/* Scrap bin (left palette): painted offcuts on the gesso */
+#builder-palette {
+  background: var(--t-gesso);
+  border-right: 1px solid rgba(50, 35, 15, 0.18);
+  padding: 18px 18px 26px;
+}
+
+.builder-palette-title {
+  font-family: var(--t-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  margin: 0 0 4px;
+}
+
+.builder-palette-hint { color: var(--t-muted); }
+
+.builder-pgroup h3 {
+  font-family: var(--t-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--t-muted-caps);
+  margin: 0 0 8px;
+}
+
+#builder-palette .builder-tile {
+  display: inline-block;
+  width: auto;
+  margin: 0 8px 12px 0;
+  padding: 10px 14px 12px;
+  border: none;
+  box-shadow: none;
+  filter: drop-shadow(0 3px 4px rgba(50, 35, 15, 0.28));
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+#builder-palette .builder-tile:hover {
+  transform: rotate(var(--rot, 0deg)) translateY(-5px);
+  box-shadow: none;
+}
+
+#builder-palette .builder-tile.ask    { background: var(--t-birch); background-image: var(--t-grain); color: var(--t-ink); }
+#builder-palette .builder-tile.show   { background: var(--t-pine); background-image: var(--t-grain); color: var(--t-ink); }
+#builder-palette .builder-tile.decide { background: var(--t-magenta); background-image: none; color: var(--t-paper); }
+#builder-palette .builder-tile.team   { background: var(--t-oak); background-image: var(--t-grain); color: var(--t-paper); }
+#builder-palette .builder-tile.ai     { background: var(--t-cyan); background-image: none; color: var(--t-paper); }
+
+#builder-palette .builder-more {
+  clip-path: none;
+  transform: none;
+  filter: none;
+  display: block;
+  box-shadow: 2px 2px 0 rgba(50, 35, 15, 0.14);
+}
+
+/* Rail: gesso ground, the detail forms on one paper board */
+#builder-rail {
+  background: var(--t-gesso);
+  border-left: 1px solid rgba(50, 35, 15, 0.18);
+}
+
+#builder-rail-body {
+  background: var(--t-paper);
+  padding: 14px;
+  box-shadow: var(--t-shadow-free);
+}
+
+/* Rail tabs: yellow = the one you're on */
+.builder-tab {
+  background: var(--t-paper);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+  font-family: var(--t-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #55503F;
+}
+
+.builder-tab.active {
+  background: var(--t-yellow);
+  background-image: var(--t-grain);
+  color: var(--t-ink);
+  transform: rotate(-1deg);
+}
+
+/* New-step nudge: cyan means info */
+.builder-setup-nudge {
+  background: var(--t-paper);
+  border: none;
+  border-left: 6px solid var(--t-cyan);
+  box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.18);
+}

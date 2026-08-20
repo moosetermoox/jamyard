@@ -163,9 +163,47 @@
     return t.length > 90 ? t.slice(0, 87) + '…' : t;
   }
 
+  // Every block wears its family's paint (docs/design/totem/): asks are
+  // birch, shows are pine, decisions are magenta, team moves are oak, AI
+  // is cyan, the waiting room is sanded, the wrap-up is base wood.
   function stepClass(type) {
     if (type === 'ai-process' || type === 'ai-eliminate') return 'ai';
-    return '';
+    if (type === 'lobby') return 'lobbystep';
+    if (type === 'end') return 'endstep';
+    if (type === 'collect' || type === 'collect-choice' || type === 'estimate' ||
+        type === 'collect-two' || type === 'match' || type === 'sort' || type === 'buzz') return 'ask';
+    if (type === 'announce' || type === 'reveal' || type === 'reveal-one' ||
+        type === 'leaderboard' || type === 'winner' || type === 'preview') return 'show';
+    if (type === 'vote' || type === 'rank' || type === 'rate' ||
+        type === 'wager' || type === 'eliminate') return 'decide';
+    return 'team';
+  }
+
+  // The cut: sawed clip-path polygons, every edge within 8% of square.
+  // Cycled by position so a block keeps its cut across re-renders.
+  var CUTS = [
+    'polygon(0 6%, 100% 0, 98% 100%, 2% 94%)',
+    'polygon(2% 0, 100% 4%, 100% 94%, 0 100%)',
+    'polygon(0 0, 98% 6%, 100% 100%, 2% 96%)',
+    'polygon(1% 4%, 100% 0, 99% 96%, 0 100%)'
+  ];
+
+  // Slight off-square per position: rotation alternates sign between
+  // neighbors (2 degrees max), width varies block to block.
+  function cutBlock(node, idx) {
+    var rot = ((idx % 2 === 0) ? -1 : 1) * (0.7 + ((idx * 37) % 12) / 10);
+    node.style.setProperty('--rot', rot.toFixed(1) + 'deg');
+    node.style.setProperty('--slide', (rot > 0 ? -11 : 11) + 'px');
+    node.style.clipPath = CUTS[idx % CUTS.length];
+    return rot;
+  }
+
+  function metaTextOf(phase) {
+    var bits = [];
+    var text = primaryTextOf(phase);
+    if (text) bits.push(text);
+    if (phase.timer) bits.push(phase.timer + 's timer');
+    return bits.join(' · ');
   }
 
   // The step everything inserts after by default: last step before the
@@ -566,6 +604,13 @@
     selectedId = (typeof selectedPhaseId !== 'undefined' && selectedPhaseId) || null;
 
     canvasEl.textContent = '';
+    // The activity IS a totem: one stack wrapper carries the single flat
+    // drop-shadow for every block in it (pieces inside cast none). Any
+    // see-through element inside it would ghost — the dashed add slot
+    // gets a solid gesso fill for exactly that reason.
+    canvasEl.appendChild(el('div', 'builder-stack-caps', 'The stack · drag to reorder'));
+    var stackEl = el('div', 'builder-stack');
+    canvasEl.appendChild(stackEl);
     var order = S.orderedPhaseIds(p);
     var frontier = frontierId();
     var ended = S.hasEnd(p);
@@ -578,18 +623,16 @@
       var phase = p[id];
       num++;
 
-      var card = el('div', 'builder-step ' + stepClass(phase.type) +
-        (idx === 0 ? ' puzzle-first' : '') +
-        (phase.type === 'end' ? ' puzzle-last' : ''));
+      var card = el('div', 'builder-step ' + stepClass(phase.type));
       card.setAttribute('data-id', id);
+      cutBlock(card, idx);
+      card.style.width = (250 + ((idx * 53) % 4) * 16) + 'px';
       card.appendChild(el('span', 'builder-step-num', String(num)));
       var body = el('div', 'builder-step-body');
       var label = TYPE_LABELS[phase.type] || phase.type;
-      var text = primaryTextOf(phase);
-      body.appendChild(el('p', null, text ? label + ': “' + text + '”' : label + '.'));
-      var facts = [];
-      if (phase.timer) facts.push('⏱ ' + phase.timer + 's');
-      if (facts.length) body.appendChild(el('small', null, facts.join(' · ')));
+      body.appendChild(el('p', 'builder-step-label', label));
+      var meta = metaTextOf(phase);
+      if (meta) body.appendChild(el('small', 'builder-step-meta', meta));
       card.appendChild(body);
 
       // Reorder/delete tools — quiet until the card is hovered. All three
@@ -653,7 +696,7 @@
           showStepTab();
         });
       }
-      canvasEl.appendChild(card);
+      stackEl.appendChild(card);
 
       // Gap after this step (not after the end step)
       var isLast = idx === order.length - 1;
@@ -666,7 +709,20 @@
         (isFrontierGap && openGapAfter === null && !complete);
 
       if (gapOpen) {
-        canvasEl.appendChild(suggestionRow(id, isFrontierGap && !complete));
+        stackEl.appendChild(suggestionRow(id, isFrontierGap && !complete));
+      } else if (isFrontierGap) {
+        // The frontier keeps a standing dashed drop slot — the "add"
+        // affordance of the design system — instead of a whisper-plus.
+        var slot = el('button', 'builder-add-slot', '+ Add a step');
+        slot.type = 'button';
+        slot.title = 'Add a step here';
+        slot.addEventListener('click', function () {
+          openGapAfter = id;
+          aiFlavorGap = null;
+          browseAllGap = null;
+          renderBuilder();
+        });
+        stackEl.appendChild(slot);
       } else {
         var line = el('div', 'builder-plusline');
         var plus = el('button', 'builder-plus', '+');
@@ -679,10 +735,14 @@
           renderBuilder();
         });
         line.appendChild(plus);
-        canvasEl.appendChild(line);
+        stackEl.appendChild(line);
       }
       void isLast;
     });
+
+    // A stack never floats: plinth + base board under the whole totem.
+    stackEl.appendChild(el('div', 'builder-plinth'));
+    stackEl.appendChild(el('div', 'builder-baseboard'));
 
     if (complete && !finishDismissed) {
       canvasEl.appendChild(finishPanel());
@@ -722,11 +782,15 @@
     function updateCard() {
       var live = phases();
       if (!live || !live[stepId]) return;
-      var card = canvasEl.querySelector('.builder-step[data-id="' + stepId + '"] p');
-      if (card) {
-        var label = TYPE_LABELS[live[stepId].type] || live[stepId].type;
-        var text = primaryTextOf(live[stepId]);
-        card.textContent = text ? label + ': “' + text + '”' : label + '.';
+      var card = canvasEl.querySelector('.builder-step[data-id="' + stepId + '"]');
+      if (!card) return;
+      var meta = metaTextOf(live[stepId]);
+      var metaEl = card.querySelector('.builder-step-meta');
+      if (metaEl) {
+        metaEl.textContent = meta;
+      } else if (meta) {
+        var body = card.querySelector('.builder-step-body');
+        if (body) body.appendChild(el('small', 'builder-step-meta', meta));
       }
     }
 
@@ -869,9 +933,10 @@
 
   function renderPalette() {
     paletteEl.textContent = '';
-    paletteEl.appendChild(el('h2', 'builder-palette-title', 'Steps'));
+    paletteEl.appendChild(el('h2', 'builder-palette-title', 'Scrap bin · new steps'));
     paletteEl.appendChild(el('p', 'builder-palette-hint',
-      'Click a block to add it to your activity.'));
+      'Click a piece to add it to your stack.'));
+    var tileIdx = 0;
     PALETTE_GROUPS.forEach(function (group) {
       var tiles = group.tiles.concat(paletteExpanded ? (group.more || []) : []);
       if (tiles.length === 0) return;
@@ -880,6 +945,8 @@
       tiles.forEach(function (t) {
         var tile = el('button', 'builder-tile ' + group.cls);
         tile.type = 'button';
+        cutBlock(tile, tileIdx);
+        tileIdx++;
         if (window.PHASE_BLURBS && window.PHASE_BLURBS[t.type]) tile.title = window.PHASE_BLURBS[t.type];
         tile.appendChild(el('span', 'builder-tile-title', t.title));
         tile.addEventListener('click', function () {
