@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Host - Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
+  <link rel="stylesheet" href="/shared/totem.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Jamyard</h1>
+  <h1 aria-label="Jamyard"><span class="brand-jam">JAM</span><span class="brand-yard">YARD</span></h1>
   <button id="sfx-toggle" class="sfx-toggle" type="button" title="Sounds on/off">🔊</button>
 
   <!-- LOBBY SECTION -->
@@ -27,6 +28,7 @@
 
     <div id="room-code-section" hidden>
       <p id="game-name-display"></p>
+      <h2 class="room-open-headline">The room is <span class="t-painted-word">open.</span></h2>
       <div id="room-code">XXXX</div>
       <p id="join-instructions" class="join-instructions" hidden></p>
       <div class="join-share">
@@ -45,6 +47,11 @@
       <h2 class="roster-heading">Who's in <span id="roster-count" class="roster-count" hidden></span></h2>
       <p id="roster-empty" class="roster-empty">Waiting for students to join...</p>
       <ul id="player-list"></ul>
+      <!-- Every join adds a plank; the pile always stands on wood -->
+      <div class="roster-footing" aria-hidden="true">
+        <div class="t-plinth"></div>
+        <div class="t-baseboard"></div>
+      </div>
     </div>
 
     <button id="start-game-btn" hidden disabled>Start!</button>
@@ -65,6 +72,12 @@
         <circle class="timer-ring-fill" cx="60" cy="60" r="52" />
       </svg>
       <span class="timer-ring-text"></span>
+    </div>
+    <!-- The pile IS the count: one block per submission, newest on top -->
+    <div id="submission-pile-wrap" class="submission-pile-wrap" aria-hidden="true" hidden>
+      <div id="submission-pile" class="submission-pile"></div>
+      <div class="t-plinth"></div>
+      <div class="t-baseboard"></div>
     </div>
     <p id="submission-count" class="big-text">0 of 0 submitted</p>
     <button id="close-submissions-btn">Close Submissions</button>

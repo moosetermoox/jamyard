@@ -14,7 +14,7 @@
 // immediately so even pre-game lobby screens look like the rest of the app.
 // A game with its own theme will override this on room-created.
 if (window.applyGameTheme) {
-  window.applyGameTheme('paste-up');
+  window.applyGameTheme('totem');
 }
 
 const socket = io();
@@ -654,7 +654,14 @@ window.addEventListener('message', (e) => {
 socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored }) => {
   currentRoomCode = code;
   currentTeacherPin = teacherPin || null;
-  roomCodeDisplay.textContent = code;
+  // Each code letter is its own painted block (Totem: 10a)
+  roomCodeDisplay.textContent = '';
+  for (let i = 0; i < String(code).length; i++) {
+    const block = document.createElement('span');
+    block.className = 'code-block code-block-' + (i % 4);
+    block.textContent = String(code)[i];
+    roomCodeDisplay.appendChild(block);
+  }
   gameNameDisplay.textContent = game || '';
 
   // The projected screen must tell students WHERE to go, not just the
@@ -732,6 +739,14 @@ socket.on('player-reconnected', ({ players }) => {
 let timerInterval = null;
 const RING_CIRCUMFERENCE = 2 * Math.PI * 52; // ~326.73
 
+// The Totem timer is a chip that reads like a clock, not a ring
+function formatTimerText(seconds) {
+  if (seconds >= 60) {
+    return Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
+  }
+  return String(seconds);
+}
+
 function startTimer(seconds, containerEl, onExpire) {
   clearTimer();
   let remaining = seconds;
@@ -741,12 +756,12 @@ function startTimer(seconds, containerEl, onExpire) {
 
   containerEl.hidden = false;
   containerEl.classList.remove('timer-warning');
-  textEl.textContent = remaining;
+  textEl.textContent = formatTimerText(remaining);
   fillEl.style.strokeDashoffset = '0';
 
   timerInterval = setInterval(() => {
     remaining--;
-    textEl.textContent = remaining;
+    textEl.textContent = formatTimerText(remaining);
     const offset = RING_CIRCUMFERENCE * (1 - remaining / total);
     fillEl.style.strokeDashoffset = offset;
     if (remaining <= 5) {
@@ -776,11 +791,31 @@ function clearTimer() {
 
 // --- Socket events - Game phases ---
 
+// The pile IS the count (Totem: 10b): one block per submission, newest
+// lands on top with the arrival animation. The chip carries the number,
+// so the pile can cap its height for big classes.
+const SUBMISSION_PILE_MAX = 10;
+
+function renderSubmissionPile(count) {
+  const wrap = document.getElementById('submission-pile-wrap');
+  const pile = document.getElementById('submission-pile');
+  if (!wrap || !pile) return;
+  wrap.hidden = false;
+  const want = Math.min(count || 0, SUBMISSION_PILE_MAX);
+  while (pile.children.length > want) pile.removeChild(pile.firstChild);
+  while (pile.children.length < want) {
+    const block = document.createElement('div');
+    block.className = 'pile-block pile-block-' + (pile.children.length % 9) + ' t-arrive';
+    pile.insertBefore(block, pile.firstChild);
+  }
+}
+
 socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count, total, hostTemplate, show }) => {
   document.body.classList.add('in-activity');
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
+  renderSubmissionPile(count || 0);
   applyTemplate(collectSection, hostTemplate);
   applyImage(collectImage, image, show);
   applyVideo(collectVideo, video, show);
@@ -800,6 +835,7 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
 
 socket.on('response-received', ({ playerName, count, total }) => {
   submissionCount.textContent = count + ' of ' + total + ' submitted';
+  renderSubmissionPile(count);
   if (J) J.sound('blip');
 });
 
@@ -2282,7 +2318,7 @@ function renderPlayerList(players) {
   if (emptyEl) emptyEl.hidden = players.length > 0;
   const countEl = document.getElementById('roster-count');
   if (countEl) {
-    countEl.textContent = players.length > 0 ? players.length + ' in' : '';
+    countEl.textContent = players.length > 0 ? String(players.length) : '';
     countEl.hidden = players.length === 0;
   }
   playerList.innerHTML = '';

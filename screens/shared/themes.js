@@ -2,6 +2,25 @@
 // Used by editor (theme picker) and host/player screens (apply CSS vars)
 
 window.GAME_THEMES = {
+  'totem': {
+    name: 'Totem',
+    icon: '🪵',
+    description: 'Painted scrap-wood blocks stacked on a gesso ground',
+    juice: { wave: 'triangle' },
+    colors: {
+      bg: '#F2EEE5',
+      surface: '#FDF9F0',
+      accent: '#2A2620',
+      text: '#2A2620',
+      heading: '#2A2620',
+      button: '#E5482B',
+      buttonText: '#FDF9F0',
+      border: '#2A2620',
+      timer: '#FFC800',
+      success: '#22A05A',
+      danger: '#F08C1E'
+    }
+  },
   'paste-up': {
     name: 'Paste-up',
     icon: '✂️',

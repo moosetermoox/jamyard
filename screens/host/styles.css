@@ -1520,60 +1520,81 @@ body.in-activity h1 {
 .msg-card-num { font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif; font-size: 0.85em; opacity: 0.5; flex-shrink: 0; }
 
 /* ════════════════════════════════════════════════════════════════
-   PASTE-UP SKIN (docs/paper-layout-test/) — structural re-theme.
-   Colors flow through the --theme-* variables (default preset
-   'paste-up' in shared/themes.js; per-game themes still override).
-   This layer replaces the border-and-radius look with cut paper:
-   no borders, 2px radii, hard paste shadows, 90ms two-step snaps.
-   Appended last so it wins every earlier rule it repeats.
+   TOTEM SKIN (docs/design/totem/) — structural re-theme.
+   Everything is an offcut of painted scrap wood on a gesso ground.
+   Wood holds content, paint means something; the one signal-red
+   action per screen is the button that moves the room forward.
+   Colors flow through --theme-* (default preset 'totem' in
+   shared/themes.js; per-game themes still override) and the --t-*
+   tokens from shared/totem.css. Appended last so it wins every
+   earlier rule it repeats.
    ════════════════════════════════════════════════════════════════ */
 
-/* Ground: readable text is Nunito; display moments stay Archivo. */
+/* Ground: reading text is DM Sans; display moments are Bricolage.
+   No radius anywhere — every piece is sawed square-ish. */
+* { border-radius: 0 !important; }
+
 body {
-  font-family: 'Nunito', Arial, sans-serif;
-  font-weight: 600;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 500;
+  max-width: 1060px;
 }
 
-/* Grain over the gesso, under every paper piece */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 0.5;
-  background-image:
-    radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px),
-    radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px);
-  background-size: 4px 4px, 7px 7px;
-  background-position: 0 0, 2px 3px;
-}
-
-h1,
-#room-code,
+h1, h2,
 .big-text,
 .winner-text,
 .game-over,
 .preroom-headline,
-.roster-heading,
 .timer-ring-text,
 .one-voice-count,
-.holding-progress {
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
-}
-
-/* The phase heading is the projector's spoken line. (The misprint
-   text-shadow that used to sit here read as blur, cut 2026-08-15.) */
-h2 {
-  font-family: 'EB Garamond', Georgia, serif;
-  font-weight: 400;
-}
-
-/* The projected question reads in the serif voice too */
 .prompt {
-  font-family: 'EB Garamond', Georgia, serif;
-  font-weight: 400;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+}
+
+/* ── Brand: two painted blocks; in-activity it fades to a corner mark ── */
+h1 {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  align-items: flex-end;
+}
+
+h1 span {
+  display: inline-block;
+  font-size: 17px;
+  letter-spacing: 0.02em;
+  padding: 4px 9px 6px;
+  box-shadow: 0 2px 4px rgba(50, 35, 15, 0.30);
+}
+
+h1 .brand-jam {
+  background: var(--t-birch);
+  background-image: var(--t-grain);
+  color: var(--t-ink);
+  transform: rotate(-2deg);
+}
+
+h1 .brand-yard {
+  background: var(--t-red);
+  color: var(--t-paper);
+  transform: rotate(1.5deg);
+}
+
+/* Projector rule: during an activity the brand is a faint whisper */
+body.in-activity h1 { opacity: 1; }
+
+body.in-activity h1 span {
+  background: none;
+  background-image: none;
+  box-shadow: none;
+  color: #C9BBA0;
+  transform: none;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  padding: 0 2px;
 }
 
 /* Hard cuts between phases: fades are off-brand */
@@ -1582,25 +1603,64 @@ section {
   transform: none;
 }
 
-/* Buttons are paper cuts with the two-step snap */
+/* ── Buttons: painted blocks. Paper = secondary (the default);
+   signal red = THE action that moves the room forward. ── */
 button {
   border: none;
-  border-radius: 2px;
-  box-shadow: 3px 3px 0 rgba(34,30,28,0.18);
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  font-weight: 400;
-  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end);
+  background: var(--t-paper);
+  color: var(--t-ink);
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 13px 26px 15px;
+  box-shadow: none;
+  clip-path: polygon(0 0, 100% 6%, 98% 100%, 2% 96%);
+  filter: drop-shadow(0 4px 4px rgba(50, 35, 15, 0.22));
+  transform: rotate(var(--rot, -0.6deg));
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 button:hover {
   opacity: 1;
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 rgba(34,30,28,0.18);
+  transform: rotate(var(--rot, -0.6deg)) translateY(-5px);
 }
 
 button:active {
-  transform: translate(3px, 3px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.18);
+  transform: rotate(var(--rot, -0.6deg)) translateY(0);
+}
+
+/* The one red action per screen */
+#start-game-btn,
+#continue-btn,
+#elimination-continue-btn,
+#announce-continue-btn,
+#leaderboard-continue-btn,
+#reveal-one-continue-btn,
+#team-split-continue-btn,
+#match-continue-btn,
+#sort-continue-btn,
+#checklist-continue-btn,
+#estimate-continue-btn,
+#rate-continue-btn,
+#winner-end-btn,
+#play-again-btn,
+#preview-approve-btn,
+#create-room-btn {
+  background: var(--theme-button, #E5482B);
+  color: var(--theme-button-text, #FDF9F0);
+  font-size: 19px;
+  padding: 16px 38px 18px;
+  --rot: -1deg;
+  clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
+}
+
+/* Warn-orange for destructive choices */
+.btn-danger,
+#phase-error-end-btn {
+  background: var(--theme-danger, #F08C1E);
+  color: var(--t-paper);
 }
 
 button:disabled,
@@ -1609,14 +1669,407 @@ button:disabled,
 #end-game-btn:disabled {
   background: #D8D2C4;
   color: #857A66;
-  box-shadow: none;
-  transform: none;
+  filter: none;
+  transform: rotate(var(--rot, -0.6deg));
 }
 
-/* Pasted sheets: the big panels */
-#game-select-section,
-#players-section,
-.prompt,
+#close-submissions-btn { background: var(--t-paper); color: var(--t-ink); }
+
+/* ── Lobby: code blocks left, roster pile right ── */
+#lobby-section.active:has(#room-code-section:not([hidden])) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-areas:
+    "code roster"
+    "start roster"
+    "hint roster";
+  grid-template-rows: 1fr auto auto;
+  column-gap: 56px;
+  text-align: left;
+  align-items: start;
+}
+
+#room-code-section { grid-area: code; }
+#players-section { grid-area: roster; }
+
+#lobby-section.active:has(#room-code-section:not([hidden])) #start-game-btn {
+  grid-area: start;
+  justify-self: start;
+  margin: 18px 0 4px;
+}
+
+#start-hint { grid-area: hint; margin: 4px 0 0; }
+
+#game-name-display {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps, #8A7B62);
+  margin: 0 0 14px;
+}
+
+.room-open-headline {
+  font-size: clamp(28px, 3.8vw, 38px);
+  line-height: 1.12;
+  margin: 0 0 14px;
+  text-align: left;
+}
+
+.join-instructions {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--t-muted, #6B6250);
+  margin: 0 0 16px;
+}
+
+/* Room code: four painted letter blocks on one shadow */
+#room-code {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  font-size: unset;
+  letter-spacing: 0;
+  margin-bottom: 22px;
+  filter: drop-shadow(5px 8px 0 rgba(80, 60, 30, 0.14));
+}
+
+#room-code .code-block {
+  width: 92px;
+  height: 108px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 56px;
+}
+
+#room-code .code-block-0 {
+  background: var(--t-yellow);
+  background-image: var(--t-grain);
+  color: var(--t-ink);
+  clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
+  transform: rotate(-1.5deg);
+}
+
+#room-code .code-block-1 {
+  background: var(--t-cyan);
+  color: var(--t-paper);
+  height: 114px;
+  clip-path: polygon(0 0, 100% 6%, 97% 100%, 3% 96%);
+  transform: rotate(1deg);
+}
+
+#room-code .code-block-2 {
+  background: var(--t-red);
+  color: var(--t-paper);
+  height: 106px;
+  clip-path: polygon(3% 4%, 97% 0, 100% 96%, 0 92%);
+  transform: rotate(-0.8deg);
+}
+
+#room-code .code-block-3 {
+  background: var(--t-magenta);
+  color: var(--t-paper);
+  height: 112px;
+  clip-path: polygon(0 6%, 100% 0, 98% 92%, 2% 100%);
+  transform: rotate(1.4deg);
+}
+
+.join-share { justify-content: flex-start; }
+
+.share-btn {
+  font-size: 14px;
+  padding: 12px 22px 14px;
+  background: var(--t-paper);
+  color: var(--t-ink);
+}
+
+.qr-panel { align-items: flex-start; }
+
+.qr-image {
+  border: none;
+  background: #fff;
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22);
+}
+
+.join-url {
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  color: var(--t-ink);
+}
+
+.start-hint {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--t-muted, #6B6250);
+}
+
+/* ── Roster: every join stacks a plank on the pile ── */
+#players-section {
+  margin: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100%;
+}
+
+.roster-heading {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps, #8A7B62);
+  justify-content: center;
+  margin: 0 0 14px;
+}
+
+.roster-count {
+  background: none;
+  border: none;
+  box-shadow: none;
+  font-family: inherit;
+  font-size: inherit;
+  padding: 0;
+}
+
+.roster-count::before { content: '· '; }
+
+.roster-empty {
+  font-weight: 500;
+  color: var(--t-muted, #6B6250);
+}
+
+/* The pile: planks wrap into rows for big classes, standing on the
+   footing below. One flat shadow belongs to the whole pile. */
+#player-list {
+  justify-content: center;
+  align-items: flex-end;
+  gap: 0 6px;
+  filter: drop-shadow(5px 8px 0 rgba(80, 60, 30, 0.14));
+}
+
+#player-list li {
+  border: none;
+  padding: 6px 12px 8px 8px;
+  margin-top: -3px;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  clip-path: polygon(0 8%, 100% 0, 99% 94%, 1% 100%);
+  box-shadow: none;
+}
+
+#player-list li:nth-child(odd) { transform: rotate(-1.2deg); }
+#player-list li:nth-child(even) { transform: rotate(1deg); }
+
+#player-list li:nth-child(8n+1) { background: var(--t-green); color: var(--t-paper); }
+#player-list li:nth-child(8n+2) { background: var(--t-birch); background-image: var(--t-grain); color: var(--t-ink); }
+#player-list li:nth-child(8n+3) { background: var(--t-orange); color: var(--t-paper); }
+#player-list li:nth-child(8n+4) { background: var(--t-pine); background-image: var(--t-grain); color: var(--t-ink); }
+#player-list li:nth-child(8n+5) { background: var(--t-cyan); color: var(--t-paper); }
+#player-list li:nth-child(8n+6) { background: var(--t-oak); background-image: var(--t-grain); color: var(--t-paper); }
+#player-list li:nth-child(8n+7) { background: var(--t-magenta); color: var(--t-paper); }
+#player-list li:nth-child(8n+8) { background: var(--t-yellow); background-image: var(--t-grain); color: var(--t-ink); }
+
+#player-list li.player-disconnected { opacity: 0.45; text-decoration: line-through; }
+
+/* Names read on paint: the avatar is a small functional mark */
+.player-avatar {
+  width: 22px;
+  height: 22px;
+  font-size: 0.85rem;
+  background: rgba(253, 249, 240, 0.35) !important;
+}
+
+.player-avatar.juice-emoji { font-size: 1rem; background: none !important; }
+
+.player-kick-btn {
+  background: none;
+  box-shadow: none;
+  filter: none;
+  clip-path: none;
+  padding: 0 2px;
+  font-size: 0.9rem;
+  color: inherit;
+  opacity: 0.6;
+}
+
+.player-kick-btn:hover { opacity: 1; transform: none; }
+
+.roster-footing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(5px 8px 0 rgba(80, 60, 30, 0.14));
+  margin-top: -2px;
+}
+
+.roster-footing .t-plinth { width: 130px; height: 46px; }
+.roster-footing .t-baseboard { width: 230px; height: 22px; }
+
+/* ── Pre-room picker: a paper board ── */
+#game-select-section {
+  border: none;
+  background: var(--t-paper);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22);
+  transform: rotate(-0.25deg);
+}
+
+.preroom-sub, .game-select-desc, .preroom-library-link {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 500;
+}
+
+select,
+#game-select {
+  border: none;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+  box-shadow: none;
+}
+
+/* ── Collect: the prompt owns the projector, the pile is the count ── */
+#collect-section.active {
+  position: relative;
+  text-align: left;
+  padding-right: 320px;
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+#collect-section h2 {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps, #8A7B62);
+  margin: 0;
+}
+
+#collect-section .prompt {
+  background: none;
+  border: none;
+  box-shadow: none;
+  transform: none;
+  padding: 0;
+  margin: 0;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 1.1;
+  max-width: 560px;
+  text-wrap: balance;
+  text-align: left;
+}
+
+.submission-pile-wrap {
+  position: absolute;
+  right: 0;
+  bottom: 40px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(6px 10px 0 rgba(80, 60, 30, 0.14));
+  pointer-events: none;
+}
+
+.submission-pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.submission-pile .pile-block { margin-bottom: -4px; }
+
+.pile-block-0 { width: 170px; height: 40px; background: var(--t-birch); background-image: var(--t-grain); transform: rotate(2deg); clip-path: polygon(0 8%, 100% 0, 97% 100%, 3% 92%); }
+.pile-block-1 { width: 132px; height: 38px; background: var(--t-cyan); transform: rotate(-2deg); clip-path: polygon(2% 0, 98% 10%, 100% 92%, 0 100%); }
+.pile-block-2 { width: 188px; height: 42px; background: var(--t-pine); background-image: var(--t-grain); transform: rotate(1deg); clip-path: polygon(0 4%, 100% 0, 98% 100%, 2% 96%); }
+.pile-block-3 { width: 148px; height: 38px; background: var(--t-yellow); background-image: var(--t-grain); transform: rotate(-1.5deg); clip-path: polygon(3% 0, 97% 6%, 100% 100%, 0 94%); }
+.pile-block-4 { width: 204px; height: 44px; background: var(--t-oak); background-image: var(--t-grain); transform: rotate(1.2deg); clip-path: polygon(0 0, 100% 6%, 96% 100%, 4% 94%); }
+.pile-block-5 { width: 168px; height: 40px; background: var(--t-green); transform: rotate(-1deg); clip-path: polygon(2% 6%, 98% 0, 100% 96%, 0 100%); }
+.pile-block-6 { width: 190px; height: 42px; background: var(--t-magenta); transform: rotate(1.5deg); clip-path: polygon(0 6%, 100% 0, 97% 94%, 3% 100%); }
+.pile-block-7 { width: 156px; height: 38px; background: var(--t-orange); transform: rotate(-1.8deg); clip-path: polygon(2% 0, 98% 8%, 100% 94%, 0 100%); }
+.pile-block-8 { width: 176px; height: 40px; background: var(--t-sanded); background-image: var(--t-grain); transform: rotate(0.9deg); clip-path: polygon(0 4%, 100% 0, 99% 96%, 1% 100%); }
+
+.submission-pile-wrap .t-plinth { width: 140px; height: 52px; }
+.submission-pile-wrap .t-baseboard { width: 250px; height: 24px; }
+
+/* The chip carries the number: green = progress counts */
+#submission-count {
+  background: var(--theme-success, #22A05A);
+  color: var(--t-paper);
+  text-transform: uppercase;
+  font-size: 20px;
+  padding: 10px 20px 12px;
+  transform: rotate(1deg);
+  box-shadow: 0 3px 5px rgba(50, 35, 15, 0.25);
+  display: inline-block;
+  margin: 0;
+}
+
+/* ── Timer: a painted chip, orange for last call ── */
+.timer-ring-container {
+  width: auto;
+  height: auto;
+  display: inline-block;
+  position: static;
+  margin: 0;
+}
+
+.timer-ring { display: none; }
+
+.timer-ring-text {
+  position: static;
+  display: inline-block;
+  transform: rotate(-1.5deg);
+  background: var(--theme-timer, #FFC800);
+  background-image: var(--t-grain);
+  color: var(--t-ink);
+  font-size: 26px;
+  padding: 12px 24px;
+  white-space: nowrap;
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.25);
+}
+
+.timer-warning .timer-ring-text {
+  background: var(--theme-danger, #F08C1E);
+  background-image: none;
+  color: var(--t-paper);
+}
+
+/* Projector message voices: reading text is DM Sans, subheads Bricolage */
+.msg-body,
+.msg-rich-para,
+.msg-card {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 500;
+}
+
+.msg-subhead,
+.msg-card-num {
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+}
+
+/* ── Boards: content sits on paper ── */
 .buzz-status,
 #responses-list,
 .reveal-content,
@@ -1626,20 +2079,7 @@ button:disabled,
 .turn-item-card,
 .turn-scoreboard,
 .one-voice-banner,
-#phase-error-section {
-  border: none;
-  border-radius: 2px;
-  box-shadow: 5px 6px 0 rgba(34,30,28,0.10);
-}
-
-#game-select-section { transform: rotate(-0.25deg); }
-.prompt { transform: rotate(-0.3deg); }
-.winner-entry { transform: rotate(0.4deg); }
-.buzz-status { transform: rotate(0.3deg); }
-.turn-item-card { transform: rotate(-0.4deg); }
-.one-voice-banner { transform: rotate(0.35deg); }
-
-/* Smaller cuts: cards, chips, rows */
+#phase-error-section,
 .team-card,
 .checklist-group,
 .rate-avg-bars,
@@ -1649,125 +2089,92 @@ button:disabled,
 .msg-card,
 .teacher-view-info {
   border: none;
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 1px rgba(34,30,28,0.08);
+  background: var(--theme-surface, #FDF9F0);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22);
 }
+
+.winner-entry { transform: rotate(0.4deg); box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22), inset 0 0 0 3px var(--theme-success, #22A05A); }
+.buzz-status { transform: rotate(0.3deg); }
+.turn-item-card { transform: rotate(-0.4deg); }
+.one-voice-banner { transform: rotate(0.35deg); }
 
 .checklist-group-done {
   border: none;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D9481C);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22), inset 0 0 0 3px var(--theme-success, #22A05A);
 }
 
-/* Roster chips: little scraps, not pills */
-#player-list li {
-  background: var(--theme-surface, #FBF7EC);
-  border: none;
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12);
-}
-
-#player-list li:nth-child(odd) { transform: rotate(-0.6deg); }
-#player-list li:nth-child(even) { transform: rotate(0.5deg); }
-
-.roster-count {
-  border: none;
-  border-radius: 2px;
-  background: var(--theme-bg, #EFE9DC);
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.14);
-}
-
-/* Inputs and selects sit square with an inset shadow */
-select,
-#game-select {
-  border: none;
-  border-radius: 2px;
-  background: #FFFDF6;
-  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16);
-}
-
-/* Frames around student-made and shared media: white paper, hard shadow */
-.qr-image,
+/* Frames around student-made and shared media */
 .phase-image,
 .phase-video,
 .reveal-drawing {
   border: none;
-  border-radius: 2px;
-  box-shadow: 4px 4px 0 rgba(34,30,28,0.14), 0 0 0 1px rgba(34,30,28,0.10);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22), 0 0 0 6px var(--t-paper);
 }
 
-/* Timer ring: quiet track (the border var is full ink now) */
-.timer-ring-bg {
-  stroke: rgba(34,30,28,0.15);
-}
-
-/* Progress bars: square tracks, hairline rings */
+/* Progress bars: square tracks */
 .checklist-bar,
 .match-accuracy-bar,
 .one-voice-bar-wrapper,
 .rate-avg-bar-track {
   border: none;
-  border-radius: 2px;
-  background: rgba(34,30,28,0.10);
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.14);
+  background: rgba(42, 38, 32, 0.10);
+  box-shadow: 0 0 0 1px rgba(42, 38, 32, 0.14);
 }
 
-.one-voice-bar-fill { background: var(--theme-success, #D9481C); }
+.one-voice-bar-fill { background: var(--theme-success, #22A05A); }
 
 .sort-count {
   border: none;
-  border-radius: 2px;
-  background: var(--theme-bg, #EFE9DC);
-  box-shadow: 0 0 0 1px rgba(34,30,28,0.14);
+  background: var(--theme-bg, #F2EEE5);
+  box-shadow: 0 0 0 1px rgba(42, 38, 32, 0.14);
 }
 
-/* Corner chrome: sound toggle + teacher chip as small scraps */
+/* Corner chrome: sound toggle + teacher chip as small pieces */
 .sfx-toggle {
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.24);
   transform: rotate(1deg);
+  background: var(--t-paper);
+  clip-path: none;
+  filter: none;
 }
 
-.sfx-toggle:hover {
-  transform: rotate(1deg) translate(2px, 2px);
-  box-shadow: 0 0 0 rgba(34,30,28,0.16);
-}
+.sfx-toggle:hover { transform: rotate(1deg) translateY(-3px); }
 
 #teacher-link-copy,
 #preview-reveal-btn,
 .player-kick-btn {
   border: none;
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.16);
 }
 
-#teacher-link-copy:hover,
-#preview-reveal-btn:hover {
-  background: #FFFDF6;
+#teacher-link-copy,
+#preview-reveal-btn {
+  background: var(--t-paper);
+  color: var(--t-ink);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.24);
+  clip-path: none;
+  filter: none;
 }
 
-.teacher-view-info {
-  background: #FFFDF6;
-}
+.teacher-view-info { background: var(--t-paper); }
 
 /* Team chips */
 .team-chip {
   border: none;
-  border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.14);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.20);
 }
 
 .team-card-tappable:hover {
   border: none;
-  box-shadow: 2px 2px 0 rgba(34,30,28,0.12), 0 0 0 2px var(--theme-success, #D9481C);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22), inset 0 0 0 3px var(--t-ink);
 }
 
-.match-player-list { border-top: 1px solid rgba(34,30,28,0.18); }
+.match-player-list { border-top: 1px solid rgba(42, 38, 32, 0.18); }
 
 /* List row separators soften to hairlines */
 #responses-list li,
 #preview-responses-list li,
 .standings p {
-  border-bottom: 1px solid rgba(34,30,28,0.12);
+  border-bottom: 1px solid rgba(42, 38, 32, 0.12);
 }
 
 #responses-list li:last-child,
@@ -1776,36 +2183,49 @@ select,
   border-bottom: none;
 }
 
-/* Winner entry: the payoff clipping leans on the loud color */
-.winner-entry {
-  box-shadow: 5px 6px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-success, #D9481C);
-}
+.standings p.leaderboard-highlight { background: var(--t-yellow); background-image: var(--t-grain); }
 
-.standings p.leaderboard-highlight { border-radius: 2px; }
-
-#phase-error-section { background: var(--theme-surface, #FBF7EC); }
+#phase-error-section { background: var(--theme-surface, #FDF9F0); }
 
 #phase-error-retry-btn,
 #phase-error-skip-btn {
-  border-radius: 2px;
-  background: var(--theme-button, #221E1C);
-  color: var(--theme-button-text, #FBF7EC);
+  background: var(--t-paper);
+  color: var(--t-ink);
 }
 
-/* Turn + one-voice hardcoded pre-skin colors, brought onto the palette */
+/* Turn + one-voice accents follow the paint jobs */
 .turn-item-card,
 .one-voice-banner {
-  background: var(--theme-surface, #FBF7EC);
+  background: var(--theme-surface, #FDF9F0);
 }
 
 .turn-team-name,
 .turn-score-value {
-  color: var(--theme-success, #D9481C);
+  color: var(--theme-success, #22A05A);
 }
 
-.one-voice-celebrating .one-voice-count { color: var(--theme-success, #D9481C); }
+.one-voice-celebrating .one-voice-count { color: var(--theme-success, #22A05A); }
 
 .one-voice-celebrating .one-voice-banner {
-  background: var(--theme-surface, #FBF7EC);
-  box-shadow: 5px 6px 0 rgba(34,30,28,0.10), 0 0 0 2px var(--theme-success, #D9481C);
+  background: var(--theme-surface, #FDF9F0);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22), inset 0 0 0 3px var(--theme-success, #22A05A);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button, .sfx-toggle { transition: none; }
+}
+
+@media (max-width: 900px) {
+  #lobby-section.active:has(#room-code-section:not([hidden])) {
+    display: block;
+    text-align: center;
+  }
+  .room-open-headline, #collect-section .prompt { text-align: center; }
+  #room-code, .join-share { justify-content: center; }
+  #collect-section.active { padding-right: 0; align-items: center; }
+  .submission-pile-wrap { position: static; margin-top: 10px; }
+  #room-code .code-block { width: 64px; height: 78px; font-size: 40px; }
+  #room-code .code-block-1 { height: 82px; }
+  #room-code .code-block-2 { height: 76px; }
+  #room-code .code-block-3 { height: 80px; }
 }
