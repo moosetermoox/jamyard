@@ -1,4 +1,4 @@
-// Feedback widget — the floating 💬 button on teacher-facing pages.
+// Feedback widget — the floating Feedback button on teacher-facing pages.
 //
 // Opens a small panel (category + message), POSTs to /api/feedback, done.
 // Anonymous by design: there is no name/email field, and the hint asks
@@ -24,51 +24,52 @@
   function init() {
     if (document.getElementById('feedback-widget-btn')) return;
 
-    // Paste-up system: a quiet paper scrap that opens a pasted sheet.
+    // Totem system (docs/design/totem/): a quiet paper offcut that opens
+    // a paper sheet. Literal values on purpose — the widget rides along on
+    // any page, so it never depends on totem.css being linked there.
     var style = document.createElement('style');
     style.textContent = [
       '#feedback-widget-btn { position: fixed; bottom: 18px; right: 18px; z-index: 9000;',
-      '  padding: 9px 16px; background: #FFFDF6; color: #221E1C; border: none;',
-      '  border-radius: 2px; font-family: "Nunito", Arial, sans-serif; font-size: 0.82rem;',
-      '  font-weight: 800; letter-spacing: 0.04em; cursor: pointer; transform: rotate(1deg);',
-      '  box-shadow: 2px 2px 0 rgba(34,30,28,0.18);',
-      '  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end); }',
-      '#feedback-widget-btn:hover { transform: rotate(1deg) translate(2px, 2px); box-shadow: 0 0 0 rgba(34,30,28,0.18); }',
+      '  padding: 9px 16px; background: #FDF9F0; color: #2A2620; border: none;',
+      '  font-family: "Bricolage Grotesque", "Arial Black", Arial, sans-serif; font-size: 0.78rem;',
+      '  font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; transform: rotate(1deg);',
+      '  box-shadow: 0 2px 4px rgba(50,35,15,0.25);',
+      '  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1); }',
+      '#feedback-widget-btn:hover { transform: rotate(1deg) translateY(-3px); }',
       '#feedback-widget-panel { position: fixed; bottom: 66px; right: 18px; z-index: 9001;',
-      '  width: 300px; max-width: calc(100vw - 36px); background: #FBF7EC; border: none;',
-      '  border-radius: 2px; padding: 16px; box-shadow: 5px 6px 0 rgba(34,30,28,0.25);',
-      '  transform: rotate(-0.4deg); color: #221E1C;',
-      '  font-family: "Nunito", Arial, sans-serif; font-weight: 600; }',
+      '  width: 300px; max-width: calc(100vw - 36px); background: #FDF9F0; border: none;',
+      '  padding: 16px; box-shadow: 0 4px 6px rgba(50,35,15,0.28); color: #2A2620;',
+      '  font-family: "DM Sans", Arial, sans-serif; font-weight: 500; }',
       '#feedback-widget-panel[hidden] { display: none; }',
-      '#feedback-widget-panel h3 { margin: 0 0 10px; font-family: "Archivo Black", "Arial Black", Arial, sans-serif;',
-      '  font-weight: 400; font-size: 0.95rem; letter-spacing: 0.04em; }',
+      '#feedback-widget-panel h3 { margin: 0 0 10px; font-family: "Bricolage Grotesque", "Arial Black", Arial, sans-serif;',
+      '  font-weight: 800; font-size: 0.95rem; letter-spacing: 0.02em; }',
       '#feedback-widget-panel select, #feedback-widget-panel textarea { width: 100%;',
-      '  border: none; border-radius: 2px; padding: 8px; font-family: "Nunito", Arial, sans-serif; font-weight: 600;',
-      '  font-size: 0.9rem; background: #FFFDF6; color: #221E1C; margin-bottom: 8px; box-sizing: border-box;',
-      '  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 1px rgba(34,30,28,0.16); }',
+      '  border: none; padding: 8px; font-family: "DM Sans", Arial, sans-serif; font-weight: 500;',
+      '  font-size: 0.9rem; background: #fff; color: #2A2620; margin-bottom: 8px; box-sizing: border-box;',
+      '  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 1px rgba(50,35,15,0.16); }',
       '#feedback-widget-panel select:focus, #feedback-widget-panel textarea:focus { outline: none;',
-      '  box-shadow: inset 2px 2px 0 rgba(34,30,28,0.08), 0 0 0 2px #221E1C; }',
+      '  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 2px #2A2620; }',
       '#feedback-widget-panel textarea { min-height: 90px; resize: vertical; }',
-      '.feedback-widget-hint { font-size: 0.72rem; color: #6E6353; margin: 0 0 10px; }',
+      '.feedback-widget-hint { font-size: 0.72rem; color: #6B6250; margin: 0 0 10px; }',
       '.feedback-widget-row { display: flex; gap: 8px; justify-content: flex-end; }',
-      '.feedback-widget-row button { padding: 8px 14px; border: none; border-radius: 2px;',
-      '  font-size: 0.8rem; cursor: pointer; box-shadow: 2px 2px 0 rgba(34,30,28,0.18);',
-      '  transition: transform 90ms steps(2, end), box-shadow 90ms steps(2, end); }',
-      '.feedback-widget-row button:hover { transform: translate(2px, 2px); box-shadow: 0 0 0 rgba(34,30,28,0.18); }',
-      '#feedback-widget-send { background: #D9481C; color: #FFF6EA;',
-      '  font-family: "Archivo Black", "Arial Black", Arial, sans-serif; font-weight: 400; transform: rotate(-0.8deg); }',
-      '#feedback-widget-send:hover { transform: rotate(-0.8deg) translate(2px, 2px); }',
-      '#feedback-widget-send:disabled { background: #D8D2C4; color: #857A66; box-shadow: none; transform: none; }',
-      '#feedback-widget-cancel { background: #FFFDF6; color: #221E1C;',
-      '  font-family: "Nunito", Arial, sans-serif; font-weight: 800; }',
-      '.feedback-widget-status { font-size: 0.82rem; font-weight: bold; margin: 0 0 8px; }'
+      '.feedback-widget-row button { padding: 8px 14px; border: none;',
+      '  font-size: 0.8rem; cursor: pointer; box-shadow: 0 2px 3px rgba(50,35,15,0.25);',
+      '  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1); }',
+      '.feedback-widget-row button:hover { transform: translateY(-3px); }',
+      '#feedback-widget-send { background: #E5482B; color: #FDF9F0; text-transform: uppercase; letter-spacing: 0.05em;',
+      '  font-family: "Bricolage Grotesque", "Arial Black", Arial, sans-serif; font-weight: 800; transform: rotate(-0.8deg); }',
+      '#feedback-widget-send:hover { transform: rotate(-0.8deg) translateY(-3px); }',
+      '#feedback-widget-send:disabled { background: #E0D8C6; color: #8A7B62; box-shadow: none; transform: none; }',
+      '#feedback-widget-cancel { background: #FDF9F0; color: #2A2620;',
+      '  font-family: "DM Sans", Arial, sans-serif; font-weight: 700; }',
+      '.feedback-widget-status { font-size: 0.82rem; font-weight: 700; margin: 0 0 8px; }'
     ].join('\n');
     document.head.appendChild(style);
 
     var btn = document.createElement('button');
     btn.id = 'feedback-widget-btn';
     btn.type = 'button';
-    btn.textContent = '💬 Feedback';
+    btn.textContent = 'Feedback';
     document.body.appendChild(btn);
 
     var panel = document.createElement('div');
@@ -136,7 +137,7 @@
         return;
       }
       send.disabled = true;
-      status.style.color = '#55503F';
+      status.style.color = '#6B6250';
       status.textContent = 'Sending…';
       fetch('/api/feedback', {
         method: 'POST',
@@ -150,7 +151,7 @@
         return resp.json().catch(function () { return {}; }).then(function (data) {
           send.disabled = false;
           if (resp.ok) {
-            status.style.color = '#221E1C';
+            status.style.color = '#2A2620';
             status.textContent = 'Thanks, got it!';
             textarea.value = '';
             setTimeout(function () {

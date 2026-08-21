@@ -17,6 +17,7 @@ Last updated: 2026-08-20.
 | Player join + collect | 10c | Done. Letters fill slot blocks, sanded planks, red Join/Submit. |
 | Library | 10d | Done, including the interaction change: six piles (RECENT / FAVORITES / CUSTOMIZED / CONNECT / THINK / PLAY), balanced columns capped at 6, plank popup with full card actions. Owner mode keeps the card grid on purpose. |
 | Designer create + editor chrome | 9d (partial) | Skin only: palette, type, motion, square cuts. |
+| Guide, privacy, feedback inbox, prototype chrome, feedback widget | system grammar | Done (2026-08-20). Paper sheets on flat gesso, ink table bands, painted-word on the guide h1, yellow active tabs/toggles, prototype's host panel marked yellow (Launch keeps THE red; Host this goes ink), widget self-contained with literal Totem values. Inbox category emoji retired. |
 | Teacher console `/teacher` | system grammar | Done. Sanded-plank join inputs, yellow attention chip (pulse retired: nothing moves at rest), paper entry/preview pieces, green checklist done-bar, one red go-action per state. |
 | Editor Builder view | 9d | Done. Steps are painted blocks in one stack (family colors = data coding), plinth + base, selected = yellow + inset ink ring, dashed "+ ADD A STEP" frontier slot, scrap-bin palette, gesso rail with paper detail board. Drag markers became inset ink bars (outset shadows die under clip-path). Simple view untouched by design (it is the sentences face, not the blocks face). |
 
@@ -26,15 +27,12 @@ teacher copy updated to match ("Copy teacher link").
 
 ## Still to do
 
-1. **Unmigrated surfaces** (still Paste-up): `/guide`,
-   `/prototype` chrome, `/privacy`, `/feedback`, and
-   `shared/feedback-widget.js`.
-2. Residue: some hard paste shadows remain in the designer; mic button
+1. Residue: some hard paste shadows remain in the designer; mic button
    and editor palette icons still use emoji glyphs (icon slots); the
    7-goal emoji labels survive on owner-mode cards only.
-3. Pile placement uses an activity's FIRST recognized goal tag; reorder
+2. Pile placement uses an activity's FIRST recognized goal tag; reorder
    tags in a config to move its home pile.
-4. When Totem proves out: merge `totem` into master (that deploys).
+3. When Totem proves out: merge `totem` into master (that deploys).
    Re-check drift against master before merging.
 
 Resolved 2026-08-20: the plank popup follows the customize-first funnel

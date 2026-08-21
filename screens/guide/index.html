@@ -5,108 +5,89 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teacher Guide - Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
+  <link rel="stylesheet" href="/shared/totem.css">
   <style>
-    /* Paste-up system (docs/paper-layout-test/): paper sheets on a
-       grained gesso ground, ink text, one vermillion for links. */
-    :root { --focus-ring: 3px solid #221E1C; }
+    /* Totem system (docs/design/totem/): paper sheets on a flat gesso
+       ground, ink text, signal red for links. Body text never rotates. */
+    :root { --focus-ring: 3px solid #2A2620; }
     body {
-      background: #EFE9DC;
-      color: #221E1C;
-      font-family: 'Nunito', Arial, sans-serif;
-      font-weight: 600;
+      background: var(--t-gesso);
+      color: var(--t-ink);
+      font-family: var(--t-body);
+      font-weight: 500;
       margin: 0;
       padding: 24px 20px 80px;
     }
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      pointer-events: none;
-      opacity: 0.5;
-      background-image:
-        radial-gradient(rgba(120,105,80,0.35) 0.5px, transparent 0.6px),
-        radial-gradient(rgba(80,70,55,0.22) 0.5px, transparent 0.6px);
-      background-size: 4px 4px, 7px 7px;
-      background-position: 0 0, 2px 3px;
-    }
     .wrap { max-width: 780px; margin: 0 auto; }
     h1 {
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-weight: 400;
-      font-size: 2rem;
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 2.1rem;
       margin: 18px 0 6px;
     }
     h2 {
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-weight: 400;
-      font-size: 1rem;
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 0.95rem;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       margin: 34px 0 10px;
     }
     p, li { font-size: 1.02rem; line-height: 1.55; }
-    .subtitle { color: #55503F; font-weight: 700; font-size: 0.95rem; }
+    strong { font-weight: 700; }
+    .subtitle { color: var(--t-muted); font-weight: 500; font-size: 0.95rem; }
     .card {
-      background: #FBF7EC;
-      border: none;
-      border-radius: 2px;
-      box-shadow: 4px 5px 0 rgba(34,30,28,0.10);
+      background: var(--t-paper);
+      box-shadow: var(--t-shadow-free);
       padding: 18px 22px;
       margin: 18px 0;
     }
-    .card:nth-of-type(odd) { transform: rotate(-0.2deg); }
-    .card:nth-of-type(even) { transform: rotate(0.2deg); }
-    .card li { margin: 8px 0; font-weight: 600; }
+    .card li { margin: 8px 0; }
     ol.steps li { margin: 10px 0; }
     .table-scroll { overflow-x: auto; }
     table {
       border-collapse: collapse;
       width: 100%;
       min-width: 560px;
-      background: #FBF7EC;
-      box-shadow: 4px 5px 0 rgba(34,30,28,0.10);
+      background: var(--t-paper);
+      box-shadow: var(--t-shadow-free);
       font-size: 0.95rem;
     }
     th, td {
-      border: 1px solid rgba(34,30,28,0.18);
+      border: 1px solid rgba(50,35,15,0.18);
       padding: 10px 12px;
       text-align: left;
       vertical-align: top;
     }
     th {
-      background: #221E1C;
-      color: #FBF7EC;
-      border-color: #221E1C;
-      font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-      font-weight: 400;
-      font-size: 0.8rem;
+      background: var(--t-ink);
+      color: var(--t-paper);
+      border-color: var(--t-ink);
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 0.78rem;
       letter-spacing: 0.08em;
       text-transform: uppercase;
     }
-    /* Privacy in one breath: the ink panel */
+    /* Privacy in one breath: the ink panel, yellow links */
     .reassure {
-      background: #221E1C;
-      color: #FBF7EC;
-      border: none;
-      border-radius: 2px;
-      transform: rotate(0.25deg);
-      box-shadow: 4px 5px 0 rgba(34,30,28,0.18);
+      background: var(--t-ink);
+      color: var(--t-paper);
+      box-shadow: var(--t-shadow-free);
       padding: 14px 18px;
-      font-weight: 600;
     }
-    .reassure a { color: #FFC3DC; }
-    .reassure a:hover { color: #FFF6EA; }
-    a { color: #AE3A16; font-weight: 800; }
-    a:hover { color: #221E1C; }
-    .back { display: inline-block; margin-bottom: 8px; color: #6E6353; font-weight: 700; }
-    .back:hover { color: #221E1C; }
+    .reassure a { color: var(--t-yellow); }
+    .reassure a:hover { color: var(--t-paper); }
+    a { color: var(--t-red); font-weight: 700; }
+    a:hover { color: var(--t-ink); }
+    .back { display: inline-block; margin-bottom: 8px; color: var(--t-muted); font-weight: 700; }
+    .back:hover { color: var(--t-ink); }
   </style>
 </head>
 <body>
   <div class="wrap">
     <a class="back" href="/library">Back to the library</a>
-    <h1>Teacher guide</h1>
+    <h1>Teacher <span class="t-painted-word">guide</span></h1>
     <p class="subtitle">One page: what you need, the first five minutes, what you control during a live activity, and quick fixes.</p>
 
     <h2>What you need</h2>

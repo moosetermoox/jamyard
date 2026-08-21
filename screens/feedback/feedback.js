@@ -8,12 +8,14 @@
   var listEl = document.getElementById('list');
   var tabsEl = document.getElementById('tabs');
 
+  // Plain words, no emoji (Totem never-list); the chip styling in
+  // index.html carries the category color coding.
   var CATEGORY_LABELS = {
-    problem: "🐛 Something's broken",
-    idea: '💡 Idea',
-    praise: '💛 Praise',
-    'builder-request': '🛠 Wants to build',
-    other: '💬 Other'
+    problem: "Something's broken",
+    idea: 'Idea',
+    praise: 'Praise',
+    'builder-request': 'Wants to build',
+    other: 'Other'
   };
 
   var entries = [];
