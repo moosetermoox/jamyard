@@ -334,9 +334,13 @@ function buildPlank(game, index) {
   return plank;
 }
 
-// The plank popup: what it is, then every door the old card offered.
+// The plank popup: what it is, then the doors the old card offered.
 // One red action per screen: Customize while an activity is untouched
-// (the customize-first funnel), Host once it has been tried.
+// (the customize-first funnel), Host once it has been tried. Untouched
+// activities show ONLY Customize (owner call 2026-08-20) — Preview,
+// Host, and the heart appear once it has been used; Delete is already
+// yours/owner-only. The heart also shows when already hearted, so a
+// favorited-but-untried activity can still be un-hearted.
 function openActivityDialog(game) {
   var overlay = document.createElement('div');
   overlay.className = 'template-picker-overlay';
@@ -420,23 +424,25 @@ function openActivityDialog(game) {
     actions.appendChild(hostBtn);
   }
 
-  var favBtn = document.createElement('button');
   var isFav = Favorites.has(game.id);
-  favBtn.type = 'button';
-  favBtn.className = 'game-card-fav' + (isFav ? ' is-fav' : '');
-  favBtn.textContent = isFav ? '♥' : '♡';
-  favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
-  favBtn.setAttribute('aria-label', (isFav ? 'Remove "' : 'Favorite "') + game.name + '"');
-  favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
-  favBtn.addEventListener('click', function () {
-    Favorites.toggle(game.id);
-    var nowFav = Favorites.has(game.id);
-    favBtn.textContent = nowFav ? '♥' : '♡';
-    favBtn.className = 'game-card-fav' + (nowFav ? ' is-fav' : '');
-    favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
-    refreshLibrary(); // the plank moves piles behind the popup
-  });
-  actions.appendChild(favBtn);
+  if (touched || isFav) {
+    var favBtn = document.createElement('button');
+    favBtn.type = 'button';
+    favBtn.className = 'game-card-fav' + (isFav ? ' is-fav' : '');
+    favBtn.textContent = isFav ? '♥' : '♡';
+    favBtn.title = isFav ? 'Remove from favorites' : 'Add to favorites';
+    favBtn.setAttribute('aria-label', (isFav ? 'Remove "' : 'Favorite "') + game.name + '"');
+    favBtn.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+    favBtn.addEventListener('click', function () {
+      Favorites.toggle(game.id);
+      var nowFav = Favorites.has(game.id);
+      favBtn.textContent = nowFav ? '♥' : '♡';
+      favBtn.className = 'game-card-fav' + (nowFav ? ' is-fav' : '');
+      favBtn.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
+      refreshLibrary(); // the plank moves piles behind the popup
+    });
+    actions.appendChild(favBtn);
+  }
 
   var canDelete = (window.MyGames && MyGames.has(game.id)) ||
     (window.OwnerMode && OwnerMode.isOn());

@@ -28,13 +28,16 @@ teacher copy updated to match ("Copy teacher link").
 1. **Unmigrated surfaces** (still Paste-up): `/teacher`, `/guide`,
    `/prototype` chrome, `/privacy`, `/feedback`, and
    `shared/feedback-widget.js`.
-2. **Open product question**: the plank popup shipped with full actions
-   (Customize red when untouched, Host + Preview once tried, heart,
-   delete). Confirm or pare back to Customize-only.
-3. Residue: some hard paste shadows remain in the designer; mic button
+2. Residue: some hard paste shadows remain in the designer; mic button
    and editor palette icons still use emoji glyphs (icon slots); the
    7-goal emoji labels survive on owner-mode cards only.
-4. Pile placement uses an activity's FIRST recognized goal tag; reorder
+3. Pile placement uses an activity's FIRST recognized goal tag; reorder
    tags in a config to move its home pile.
-5. When Totem proves out: merge `totem` into master (that deploys).
+4. When Totem proves out: merge `totem` into master (that deploys).
    Re-check drift against master before merging.
+
+Resolved 2026-08-20: the plank popup follows the customize-first funnel
+(owner call). Untouched = Customize only; Preview, Host, and the heart
+appear once the activity has been used (the heart also shows when
+already hearted, so a favorited-but-untried plank can be un-hearted);
+Delete stays yours/owner-only.
