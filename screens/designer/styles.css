@@ -1317,7 +1317,7 @@ a { color: #AE3A16; }
   border: none;
   border-radius: 2px;
   transform: rotate(-0.25deg);
-  box-shadow: 5px 6px 0 rgba(50,35,15,0.10);
+  box-shadow: 0 4px 6px rgba(50,35,15,0.10);
 }
 
 .idea-hero-title {
@@ -1347,7 +1347,7 @@ a { color: #AE3A16; }
   font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
   font-weight: 800;
   transform: rotate(-0.8deg);
-  box-shadow: 3px 3px 0 rgba(50,35,15,0.18);
+  box-shadow: 0 3px 4px rgba(50,35,15,0.18);
   transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1363,7 +1363,7 @@ a { color: #AE3A16; }
   border: none;
   border-radius: 2px;
   background: #FDF9F0;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.14);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.14);
   font-weight: 700;
   transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -1393,7 +1393,7 @@ a { color: #AE3A16; }
   background: #FDF9F0;
   border: none;
   border-radius: 2px;
-  box-shadow: 6px 7px 0 rgba(50,35,15,0.25);
+  box-shadow: 0 4px 6px rgba(50,35,15,0.25);
 }
 
 .recipe-picker-modal { background: #FDF9F0; }
@@ -1402,7 +1402,7 @@ a { color: #AE3A16; }
   border: none;
   border-radius: 2px;
   background: #FDF9F0;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.18);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.18);
   font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 800;
   transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -1429,7 +1429,7 @@ a { color: #AE3A16; }
   border: none;
   border-radius: 2px;
   background: #FDF9F0 !important;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.14);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.14);
   transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1463,7 +1463,7 @@ a { color: #AE3A16; }
 .recipe-card-delete {
   border: none;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.16);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.16);
 }
 
 .recipe-card-delete:hover { background: #2A2620; color: #FDF9F0; }
@@ -1471,7 +1471,7 @@ a { color: #AE3A16; }
 .recipe-card-broken {
   background: #FDF9F0 !important;
   border: none !important;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.14), 0 0 0 2px #AE3A16;
+  box-shadow: 0 2px 3px rgba(50,35,15,0.14), 0 0 0 2px #AE3A16;
 }
 
 .recipe-card-broken-badge { background: #AE3A16; border-radius: 2px; }
@@ -1483,7 +1483,7 @@ a { color: #AE3A16; }
   border: none;
   border-radius: 2px;
   background: #FDF9F0;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.16);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.16);
   font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 800;
   text-transform: none;
@@ -1539,7 +1539,7 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
   border: none;
   border-radius: 2px;
   background: #FDF9F0;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.12), 0 0 0 1px rgba(50,35,15,0.08);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.12), 0 0 0 1px rgba(50,35,15,0.08);
 }
 
 .recipe-object-field-label { color: #6E6353; }
@@ -1552,7 +1552,7 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
   border: none;
   border-radius: 2px;
   background: #FDF9F0;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.14);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.14);
 }
 
 .recipe-field-array-remove:hover { background: #FDF9F0; color: #AE3A16; }
@@ -1561,7 +1561,7 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
   border: none;
   border-radius: 2px;
   background: #FDF9F0;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.14);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.14);
   font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 800;
   text-transform: none;
@@ -1579,7 +1579,7 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
   background: #FDF9F0;
   border: none;
   border-radius: 2px;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.14), 0 0 0 2px #AE3A16;
+  box-shadow: 0 2px 3px rgba(50,35,15,0.14), 0 0 0 2px #AE3A16;
   font-weight: 600;
 }
 
@@ -1589,7 +1589,7 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
   border: none;
   border-radius: 2px;
   background: #FDF9F0;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.16);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.16);
   font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 800;
   text-transform: none;
@@ -1612,7 +1612,7 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
   font-weight: 800;
   text-transform: uppercase;
   transform: rotate(-0.8deg);
-  box-shadow: 3px 3px 0 rgba(50,35,15,0.18);
+  box-shadow: 0 3px 4px rgba(50,35,15,0.18);
   transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1635,7 +1635,7 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
   border-radius: 2px;
   background: #FDF9F0;
   color: #2A2620;
-  box-shadow: 3px 3px 0 rgba(50,35,15,0.18);
+  box-shadow: 0 3px 4px rgba(50,35,15,0.18);
   transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1650,7 +1650,7 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
   border: none;
   border-radius: 2px;
   background: #FDF9F0;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.14);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.14);
   transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1673,11 +1673,11 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
   border: none;
   border-radius: 2px;
   background: #FDF9F0;
-  box-shadow: 2px 2px 0 rgba(50,35,15,0.12), 0 0 0 1px rgba(50,35,15,0.08);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.12), 0 0 0 1px rgba(50,35,15,0.08);
   font-weight: 600;
 }
 
-.deck-prompt:hover { background: #FDF9F0; box-shadow: 1px 1px 0 rgba(50,35,15,0.12), 0 0 0 2px #2A2620; }
+.deck-prompt:hover { background: #FDF9F0; box-shadow: 0 1px 2px rgba(50,35,15,0.12), 0 0 0 2px #2A2620; }
 .deck-prompt-meta { color: #857A66; }
 
 /* Blue focus rings go ink on this surface */

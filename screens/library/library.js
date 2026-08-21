@@ -19,15 +19,16 @@ var Favorites = ActivityPrefs.Favorites;
 var Recents = ActivityPrefs.Recents;
 
 // Connect leads — the library is about doing things together.
-// Fine-grained goal labels: owner-mode cards only (teachers see piles).
+// Fine-grained goal labels (plain words, Totem never-list): owner-mode
+// cards and the activity popup; teachers see piles.
 var GOAL_LABELS = {
-  connect: '🤝 Connect',
-  discuss: '💬 Discuss',
-  decide: '🗳️ Decide',
-  reflect: '🪞 Reflect',
-  create: '🎨 Create',
-  review: '📚 Review',
-  energize: '⚡ Energize'
+  connect: 'Connect',
+  discuss: 'Discuss',
+  decide: 'Decide',
+  reflect: 'Reflect',
+  create: 'Create',
+  review: 'Review',
+  energize: 'Energize'
 };
 
 // Six piles (Totem: 10d + popup): three personal shelves, then the three
@@ -49,12 +50,9 @@ var GOAL_TO_GROUP = {
   create: 'play', energize: 'play'
 };
 
-// Plain goal words for the activity popup (the emoji labels stay on the
-// owner-mode cards only).
-var GOAL_WORDS = {
-  connect: 'Connect', discuss: 'Discuss', decide: 'Decide', reflect: 'Reflect',
-  create: 'Create', review: 'Review', energize: 'Energize'
-};
+// The popup reads the same plain words (kept as an alias since the emoji
+// labels retired, 2026-08-20).
+var GOAL_WORDS = GOAL_LABELS;
 
 function goalGroupOf(game) {
   var tags = Array.isArray(game.tags) ? game.tags : [];
@@ -175,7 +173,7 @@ function renderLibrary(games, rescueQuery) {
     ownerBar.appendChild(ownerLabel);
     var inboxLink = document.createElement('a');
     inboxLink.href = '/feedback';
-    inboxLink.textContent = '📬 Feedback inbox';
+    inboxLink.textContent = 'Feedback inbox';
     ownerBar.appendChild(inboxLink);
     var exitBtn = document.createElement('button');
     exitBtn.className = 'owner-bar-exit';
@@ -534,7 +532,7 @@ function buildCard(game) {
 
   var meta = document.createElement('div');
   meta.className = 'game-card-meta';
-  if (game.playTime) meta.appendChild(metaBadge('⏱ ' + game.playTime));
+  if (game.playTime) meta.appendChild(metaBadge(game.playTime));
   card.appendChild(meta);
 
   if (Array.isArray(game.tags)) {

@@ -30,13 +30,17 @@ teacher copy updated to match ("Copy teacher link").
 
 ## Still to do
 
-1. Residue: some hard paste shadows remain in the designer; mic button
-   and editor palette icons still use emoji glyphs (icon slots); the
-   7-goal emoji labels survive on owner-mode cards only.
-2. Pile placement uses an activity's FIRST recognized goal tag; reorder
+1. Pile placement uses an activity's FIRST recognized goal tag; reorder
    tags in a config to move its home pile.
-3. When Totem proves out: merge `totem` into master (that deploys).
+2. When Totem proves out: merge `totem` into master (that deploys).
    Re-check drift against master before merging.
+
+Residue resolved 2026-08-20: designer hard paste shadows softened to
+Totem values (dead pre-skin #000 rules left in place, they never
+render); mic button is a MIC text label; editor phase-catalog icons,
+theme-picker icons, review-panel robots/sparkles, and preview-mock
+crown retired; goal labels are plain words everywhere (GOAL_WORDS is
+now an alias of GOAL_LABELS).
 
 Resolved 2026-08-20: the plank popup follows the customize-first funnel
 (owner call). Untouched = Customize only; Preview, Host, and the heart

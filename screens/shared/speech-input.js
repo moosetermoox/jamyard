@@ -60,7 +60,9 @@
     if (!Ctor || !inputEl || inputEl.dataset.micAttached) return null;
     inputEl.dataset.micAttached = '1';
 
-    var IDLE_LABEL = '🎤';
+    // Text, not the mic emoji (Totem never-list): the design.css .mic-btn
+    // rules size the caps label to fit the 40px corner target.
+    var IDLE_LABEL = 'Mic';
     var LIVE_LABEL = '■';
 
     // Corner-overlay wrapper. If the input sat in a flex row, the wrapper

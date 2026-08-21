@@ -253,7 +253,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'buzz': {
-    icon: '🔔',
+    icon: '',
     friendlyName: 'Buzzer Round',
     description: 'Ask questions out loud, first to buzz answers, you judge Right/Wrong',
     color: '#C62828',
@@ -264,7 +264,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'estimate': {
-    icon: '🔢',
+    icon: '',
     friendlyName: 'Guess the Number',
     description: 'Everyone guesses a number, closest to the answer earns points',
     color: '#00838F',
@@ -275,7 +275,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'sort': {
-    icon: '🗂️',
+    icon: '',
     friendlyName: 'Sort into Buckets',
     description: 'Students place each item into a category (metaphor vs simile), scored, or a consensus poll',
     color: '#00695C',
@@ -286,7 +286,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'match': {
-    icon: '🔗',
+    icon: '',
     friendlyName: 'Match Pairs',
     description: 'Students match items from two lists (vocab ↔ definitions), auto-scored',
     color: '#5E35B1',
@@ -330,7 +330,7 @@ var PHASE_CATALOG = {
     ai: null
   },
   'checklist': {
-    icon: '✅',
+    icon: '',
     friendlyName: 'To-Do Checklist',
     description: 'Every group works through the same to-do list; the projector shows live progress',
     color: '#33691E',
@@ -629,7 +629,7 @@ async function init() {
     for (var key in themes) {
       var opt = document.createElement('option');
       opt.value = key;
-      opt.textContent = themes[key].icon + ' ' + themes[key].name;
+      opt.textContent = themes[key].name;
       settingsTheme.appendChild(opt);
     }
     // Add custom option
@@ -5012,7 +5012,7 @@ function addAskAiStepButton(phaseId) {
   var btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'ask-step-btn';
-  btn.textContent = '✨ Ask AI about this step';
+  btn.textContent = 'Ask AI about this step';
   btn.addEventListener('click', function () {
     // Jumps to the Simple view with this step as the chat's context.
     if (window.openDesignChat) openDesignChat(phaseId);
@@ -6029,15 +6029,15 @@ function showReviewPanel(result) {
     var steps = (sim.phaseLog || []).length;
     if (sim.completed && simErrors.length === 0) {
       simDiv.className = 'review-summary review-playtest review-playtest-ok';
-      simDiv.textContent = '🤖 Robot playtest: 4 bots played your activity start to finish in ' +
+      simDiv.textContent = 'Robot playtest: 4 bots played your activity start to finish in ' +
         seconds + 's (' + steps + ' steps). No runtime problems.';
     } else if (sim.completed) {
       simDiv.className = 'review-summary review-playtest review-playtest-warn';
-      simDiv.textContent = '🤖 Robot playtest: 4 bots reached the end in ' + seconds +
+      simDiv.textContent = 'Robot playtest: 4 bots reached the end in ' + seconds +
         's, but hit ' + simErrors.length + ' problem' + (simErrors.length === 1 ? '' : 's') + ' along the way, see below.';
     } else {
       simDiv.className = 'review-summary review-playtest review-playtest-bad';
-      simDiv.textContent = '🤖 Robot playtest: 4 bots could NOT finish your activity, see below for where it got stuck.';
+      simDiv.textContent = 'Robot playtest: 4 bots could NOT finish your activity, see below for where it got stuck.';
     }
     reviewContent.appendChild(simDiv);
   }
@@ -6068,7 +6068,7 @@ function showReviewPanel(result) {
       var f = sim.findings[s];
       allIssues.push({
         severity: f.severity,
-        message: '🤖 ' + f.message,
+        message: 'Robot playtest: ' + f.message,
         phaseId: f.phaseId || null,
         suggestion: null
       });
@@ -6130,7 +6130,7 @@ function showReviewPanel(result) {
     if (issue.phaseId && gameConfig.phases[issue.phaseId] && issue.severity !== 'error') {
       var fixBtn = document.createElement('button');
       fixBtn.className = 'review-fix-btn';
-      fixBtn.textContent = '✨ Apply Fix';
+      fixBtn.textContent = 'Apply Fix';
       fixBtn.setAttribute('data-phase-id', issue.phaseId);
       fixBtn.setAttribute('data-issue-idx', String(i));
       fixBtn.addEventListener('click', function () {
@@ -6167,7 +6167,7 @@ async function requestFix(phaseId, issue, btn) {
     showToast('Fix request failed: ' + error.message);
   } finally {
     btn.disabled = false;
-    btn.textContent = '✨ Apply Fix';
+    btn.textContent = 'Apply Fix';
   }
 }
 
@@ -6445,12 +6445,12 @@ function buildPreviewHTML(phase, screen) {
 
   if (type === 'winner') {
     if (screen === 'host') {
-      html += previewEl('name', 'Winner', '👑 Player1 wins!', showList);
+      html += previewEl('name', 'Winner', 'Player1 wins!', showList);
       html += previewEl('entry', 'Winning entry', '“Their winning answer”', showList);
       html += previewEl('standings', 'Standings', '1st: Player1, 2nd: Player2...', showList);
       html += previewBtn('endButton', 'End Session', showList);
     } else {
-      html += previewEl('name', 'Winner', '👑 Player1 wins!', showList);
+      html += previewEl('name', 'Winner', 'Player1 wins!', showList);
       html += previewEl('entry', 'Winning entry', '“Their winning answer”', showList);
       html += previewEl('details', 'Details', 'Congratulations!', showList);
       html += previewEl('standings', 'Standings', '1st: Player1, 2nd: Player2...', showList);

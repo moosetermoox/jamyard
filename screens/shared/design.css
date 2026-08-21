@@ -145,11 +145,15 @@ select:focus-visible,
   top: 2px;
   right: 2px;
   /* 40px hit area: touchscreen Chromebooks fat-finger anything smaller
-     (2026-08-08 field test) — the glyph stays small, the target doesn't. */
+     (2026-08-08 field test) — the label stays small, the target doesn't. */
   width: 40px;
   height: 40px;
   padding: 0;
-  font-size: 1.05rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6B6250;
   line-height: 40px;
   text-align: center;
   background: transparent;
@@ -174,6 +178,7 @@ select:focus-visible,
 
 .mic-btn.mic-live {
   opacity: 1;
+  font-size: 0.9rem;
   background: var(--theme-danger, var(--red, #d9534f));
   color: #fff;
   animation: micPulse 1.2s ease-in-out infinite;

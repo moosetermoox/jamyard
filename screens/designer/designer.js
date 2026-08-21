@@ -120,14 +120,15 @@ function applyVisibility(games) {
 // same no-accounts model as MyGames.
 // =======================================================================
 
+// Plain words, no emoji (Totem never-list).
 var GOAL_LABELS = {
-  connect: '🤝 Connect',
-  create: '🎨 Create',
-  discuss: '💬 Discuss',
-  decide: '🗳️ Decide',
-  reflect: '🪞 Reflect',
-  energize: '⚡ Energize',
-  review: '📚 Review'
+  connect: 'Connect',
+  create: 'Create',
+  discuss: 'Discuss',
+  decide: 'Decide',
+  reflect: 'Reflect',
+  energize: 'Energize',
+  review: 'Review'
 };
 
 var libraryQuery = '';
@@ -259,7 +260,7 @@ function renderGames(games) {
     ownerBar.appendChild(ownerLabel);
     var inboxLink = document.createElement('a');
     inboxLink.href = '/feedback';
-    inboxLink.textContent = '📬 Feedback inbox';
+    inboxLink.textContent = 'Feedback inbox';
     ownerBar.appendChild(inboxLink);
     var exitBtn = document.createElement('button');
     exitBtn.className = 'owner-bar-exit';
@@ -369,7 +370,7 @@ function buildGameCard(game) {
   meta.className = 'game-card-meta';
 
   if (game.playTime) {
-    meta.appendChild(buildMetaBadge('⏱', String(game.playTime)));
+    meta.appendChild(buildMetaBadge('', String(game.playTime)));
   }
   card.appendChild(meta);
 
@@ -491,7 +492,7 @@ function buildGameCard(game) {
 function buildMetaBadge(icon, text) {
   var badge = document.createElement('span');
   badge.className = 'game-card-meta-badge';
-  badge.textContent = icon + ' ' + text;
+  badge.textContent = (icon ? icon + ' ' : '') + text;
   return badge;
 }
 
@@ -971,7 +972,7 @@ function buildPromptDeckInput(name, spec) {
   var pickBtn = document.createElement('button');
   pickBtn.type = 'button';
   pickBtn.className = 'prompt-deck-btn';
-  pickBtn.textContent = '🎴 Pick from the deck';
+  pickBtn.textContent = 'Pick from the deck';
   if (spec.deckHelper) pickBtn.title = spec.deckHelper;
   pickBtn.addEventListener('click', function () {
     openDeckPicker(spec, input);
