@@ -1,9 +1,9 @@
 {
   "name": "Closer",
-  "description": "Escalating pair conversations, playful to reflective. No winners; every tier is a stopping point.",
-  "playTime": "~30–40 min",
-  "classSize": "4–35 players",
-  "featured": false,
+  "description": "Guided pair conversations, playful to reflective. Nothing to type: the screen asks, you talk. No winners; every tier is a stopping point.",
+  "playTime": "~25–35 min",
+  "classSize": "4–40 players",
+  "featured": true,
   "family": "connection",
   "phases": {
     "lobby": {
@@ -12,195 +12,90 @@
     },
     "welcome": {
       "type": "announce",
-      "message": "This isn't a quiz. There are no points and no winners.\n\nYou'll be paired up and answer the same question as your partner, privately. When everyone's done, you'll see each other's answers at the same moment.\n\nYou can pass on any question, anytime. Nobody will know.",
+      "message": "This isn't a quiz. No points, no winners, and nothing to type.\n\nEvery question goes to the whole class at once. You and a partner answer out loud, to each other. The screen says who talks first.\n\nIf a question doesn't fit, say 'pass' and let your partner take it. No explanation needed.",
       "next": "tier1-intro"
     },
     "tier1-intro": {
       "type": "announce",
-      "message": "Tier 1. Warm-up.\n\nYou have a partner, their name will appear on your screen. Answer from where you're sitting now; you'll go sit next to them when the answers appear.\n\nThree quick questions, just for fun.",
+      "message": "Tier 1. Warm-up.\n\nTurn to the person next to you. That's your partner for this tier. If you're left over, join the nearest pair and make a three.\n\nThree quick questions, just for fun. Both of you answer, then keep talking until the screen changes.",
       "next": "t1q1"
     },
     "t1q1": {
-      "type": "collect",
-      "prompt": "Window seat or aisle seat, and why?",
-      "assign": "pairwise",
-      "oddHandling": "triple",
-      "passAllowed": true,
-      "simultaneousReveal": true,
-      "timer": 60,
-      "next": "t1q1-share"
-    },
-    "t1q1-share": {
-      "type": "reveal",
-      "scope": "pair",
-      "pairsFrom": "t1q1",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nStand up and go sit next to your partner. Then take a minute and tell them what stood out.",
+      "type": "announce",
+      "message": "Window seat or aisle seat, and why?\n\nWhoever woke up earlier today goes first. Both answer, then ask each other one follow-up question.",
       "next": "t1q2"
     },
     "t1q2": {
-      "type": "collect",
-      "prompt": "If our class had a mascot, what should it be?",
-      "assign": "pairwise",
-      "reusePairsFrom": "t1q1",
-      "passAllowed": true,
-      "simultaneousReveal": true,
-      "timer": 120,
-      "next": "t1q2-share"
-    },
-    "t1q2-share": {
-      "type": "reveal",
-      "scope": "pair",
-      "pairsFrom": "t1q2",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
+      "type": "announce",
+      "message": "If our class had a mascot, what should it be?\n\nWhoever is sitting closer to the door goes first. Both answer, then try to agree on one.",
       "next": "t1q3"
     },
     "t1q3": {
-      "type": "collect",
-      "prompt": "If you could teleport to any place for just one hour, where would you go?",
-      "assign": "pairwise",
-      "reusePairsFrom": "t1q1",
-      "passAllowed": true,
-      "simultaneousReveal": true,
-      "timer": 120,
-      "next": "t1q3-share"
-    },
-    "t1q3-share": {
-      "type": "reveal",
-      "scope": "pair",
-      "pairsFrom": "t1q3",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
+      "type": "announce",
+      "message": "If you could teleport to any place for just one hour, where would you go?\n\nWhoever has the next birthday goes first. Both answer, then find out why your partner picked theirs.",
       "next": "tier2-intro"
     },
     "tier2-intro": {
       "type": "announce",
-      "message": "Tier 2. A little deeper.\n\nNew partner, check your screen for who. Answer from your seat first; you'll go sit with them when the answers appear.\n\nThree questions about what matters to you.",
+      "message": "Tier 2. A little deeper.\n\nTime for a new partner. Whoever went first on the last question: stand up, walk somewhere new, and sit next to someone who stayed seated. New pairs, say hi.\n\nThree questions about what matters to you. Slow down a little.",
       "next": "t2q1"
     },
     "t2q1": {
-      "type": "collect",
-      "prompt": "What's something you've changed your mind about in the last year?",
-      "assign": "pairwise",
-      "oddHandling": "triple",
-      "rotatePairsFrom": "t1q1",
-      "passAllowed": true,
-      "simultaneousReveal": true,
-      "timer": 150,
-      "next": "t2q1-share"
-    },
-    "t2q1-share": {
-      "type": "reveal",
-      "scope": "pair",
-      "pairsFrom": "t2q1",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nStand up and go sit next to your new partner. Then take a minute and tell them what stood out.",
+      "type": "announce",
+      "message": "What's something you've changed your mind about in the last year?\n\nWhoever's first name comes first in the alphabet goes first. Both answer, then ask what changed it.",
       "next": "t2q2"
     },
     "t2q2": {
-      "type": "collect",
-      "prompt": "What do you think makes someone a good friend?",
-      "assign": "pairwise",
-      "reusePairsFrom": "t2q1",
-      "passAllowed": true,
-      "simultaneousReveal": true,
-      "timer": 150,
-      "next": "t2q2-share"
-    },
-    "t2q2-share": {
-      "type": "reveal",
-      "scope": "pair",
-      "pairsFrom": "t2q2",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
+      "type": "announce",
+      "message": "What do you think makes someone a good friend?\n\nWhoever went to bed later last night goes first. Both answer, then see where your answers overlap.",
       "next": "t2q3"
     },
     "t2q3": {
-      "type": "collect",
-      "prompt": "What's a compliment you received that you still remember?",
-      "assign": "pairwise",
-      "reusePairsFrom": "t2q1",
-      "passAllowed": true,
-      "simultaneousReveal": true,
-      "timer": 150,
-      "next": "t2q3-share"
-    },
-    "t2q3-share": {
-      "type": "reveal",
-      "scope": "pair",
-      "pairsFrom": "t2q3",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
+      "type": "announce",
+      "message": "What's a compliment you received that you still remember?\n\nWhoever is wearing more blue goes first. Both answer, then tell your partner why it stuck with you.",
       "next": "tier3-intro"
     },
     "tier3-intro": {
       "type": "announce",
-      "message": "Tier 3. Reflective.\n\nOne more new partner, same routine: answer from your seat, then go sit together. These questions are slower, take your time, and remember you can always pass.",
+      "message": "Tier 3. Reflective.\n\nOne more swap. If you moved last time, stand up again and sit with someone you haven't talked to yet.\n\nThese questions are slower. It's fine to think before you speak, and it's always fine to pass.",
       "next": "t3q1"
     },
     "t3q1": {
-      "type": "collect",
-      "prompt": "What's something you're proud of that you rarely get to talk about?",
-      "assign": "pairwise",
-      "oddHandling": "triple",
-      "rotatePairsFrom": "t2q1",
-      "passAllowed": true,
-      "simultaneousReveal": true,
-      "timer": 180,
-      "next": "t3q1-share"
-    },
-    "t3q1-share": {
-      "type": "reveal",
-      "scope": "pair",
-      "pairsFrom": "t3q1",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nStand up and go sit next to your new partner. Then take a minute and tell them what stood out.",
+      "type": "announce",
+      "message": "What's something you're proud of that you rarely get to talk about?\n\nWhoever's first name is shorter goes first. Take your time. When you're both done, ask one follow-up question.",
       "next": "t3q2"
     },
     "t3q2": {
-      "type": "collect",
-      "prompt": "If you could thank one person right now, who would it be and for what?",
-      "assign": "pairwise",
-      "reusePairsFrom": "t3q1",
-      "passAllowed": true,
-      "simultaneousReveal": true,
-      "timer": 180,
-      "next": "t3q2-share"
-    },
-    "t3q2-share": {
-      "type": "reveal",
-      "scope": "pair",
-      "pairsFrom": "t3q2",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
+      "type": "announce",
+      "message": "If you could thank one person right now, who would it be and for what?\n\nSwap the order this time: whoever went second last question goes first. Both answer, and really listen.",
       "next": "t3q3"
     },
     "t3q3": {
-      "type": "collect",
-      "prompt": "What's a moment from this year you want to remember in ten years?",
-      "assign": "pairwise",
-      "reusePairsFrom": "t3q1",
-      "passAllowed": true,
-      "simultaneousReveal": true,
-      "timer": 180,
-      "next": "t3q3-share"
-    },
-    "t3q3-share": {
-      "type": "reveal",
-      "scope": "pair",
-      "pairsFrom": "t3q3",
-      "template": "{{_pair.prompt}}\n\n{{_pair.answers}}\n\nNow turn to your partner, take a minute and tell them what stood out.",
+      "type": "announce",
+      "message": "What's a moment from this year you want to remember in ten years?\n\nDecide together who goes first. Both answer, then thank your partner for the conversation.",
       "next": "checkout"
     },
     "checkout": {
-      "type": "collect",
-      "prompt": "Last one, for the whole class: one word for how that felt.",
-      "passAllowed": true,
-      "simultaneousReveal": true,
-      "timer": 60,
-      "next": "checkout-share"
-    },
-    "checkout-share": {
-      "type": "reveal",
-      "template": "How that felt, in our words:\n\n{{checkout.responses.list}}",
+      "type": "rate",
+      "prompt": "Last one, and it's one tap: how did that feel?",
+      "scales": [
+        {
+          "id": "felt",
+          "label": "How that felt",
+          "min": 1,
+          "max": 5,
+          "labels": {
+            "min": "Awkward",
+            "max": "Worth it"
+          }
+        }
+      ],
+      "visibility": "all",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "You just had nine real conversations."
+      "message": "You just had nine real conversations. The screen only carried the questions; you did the rest."
     }
   },
   "tags": [
@@ -213,6 +108,8 @@
     "icebreaker",
     "getting to know you",
     "sel",
-    "community"
+    "community",
+    "no typing",
+    "talk"
   ]
 }

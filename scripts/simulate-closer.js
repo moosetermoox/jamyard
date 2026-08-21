@@ -1,17 +1,17 @@
 /**
- * Closer — full-game simulation (Connection Pack Phase 2).
+ * Closer — talk-only walkthrough (Connection Pack Phase 2, revised).
  *
- * Drives games/closer (compiled from recipes/closer.json defaults) with
- * 1 host + 5 players — an ODD class, so the triple path is exercised —
- * and asserts the spec's pairing guarantees (docs/connection-pack-spec.md §2):
+ * Closer no longer collects typed answers: every question is a host-paced
+ * announce screen (question + who speaks first + partner-swap instructions),
+ * and the only device interaction is the one-tap rate checkout.
  *
- *   1. Triple: with 5 players nobody sits out — one pair + one group of 3.
- *   2. Reuse: prompts 2-3 of a tier keep the same partner as prompt 1.
- *   3. Rotation: tier 2's pair (the 2-person group) is never a repeat of a
- *      tier-1 partnership.
- *   4. Pass: a tier-3 pass renders as the neutral listen-card for the
- *      partner; the projected ticker stays nameless.
- *   5. Checkout: the one-word reveal lists words without names.
+ * Drives games/closer with 1 host + 5 players and asserts:
+ *   1. All 13 talk screens reach every player, in order, with the right copy.
+ *   2. The checkout is a single 1-5 scale; everyone can tap it.
+ *   3. Results are visible to the class (visibility: all), then the end
+ *      screen's closing copy arrives.
+ *   4. No collect prompt ("game-started") ever reached a player — the
+ *      no-typing guarantee.
  *
  * Usage: node scripts/simulate-closer.js   (server must be running)
  */
@@ -20,148 +20,63 @@ import {
   wait, log, setupRoom, teardown,
   waitForEvent, waitForEventOnAll, makeReporter
 } from './sim-harness.js';
-import { pairKey } from '../engine/phases/pairing.js';
 
 const GAME_ID = 'closer';
 const NUM_PLAYERS = 5;
 
 const r = makeReporter();
 
-// Identify groups from a reveal: pair members receive identical content.
-function groupsFromReveals(reveals) {
-  const byContent = new Map();
-  reveals.forEach((ev, i) => {
-    const key = String(ev.content || '');
-    if (!byContent.has(key)) byContent.set(key, []);
-    byContent.get(key).push(i);
-  });
-  return [...byContent.values()];
-}
-
-function partnerKeysOf(groups) {
-  const keys = new Set();
-  for (const g of groups) {
-    for (let i = 0; i < g.length; i++) {
-      for (let j = i + 1; j < g.length; j++) keys.add(pairKey(String(g[i]), String(g[j])));
-    }
-  }
-  return keys;
-}
-
-async function advancePastAnnounce(host, players, code, label) {
-  await waitForEventOnAll(players, 'announce', 8000);
-  log('SIM', `announce: ${label}`);
-  await wait(200);
-  host.emit('advance-phase', { code });
-}
+// [phaseId, copy marker every player must see]
+const TALK_SCREENS = [
+  ['welcome', 'nothing to type'],
+  ['tier1-intro', 'person next to you'],
+  ['t1q1', 'Window seat'],
+  ['t1q2', 'mascot'],
+  ['t1q3', 'teleport'],
+  ['tier2-intro', 'new partner'],
+  ['t2q1', 'changed your mind'],
+  ['t2q2', 'good friend'],
+  ['t2q3', 'compliment'],
+  ['tier3-intro', 'One more swap'],
+  ['t3q1', 'proud of'],
+  ['t3q2', 'thank one person'],
+  ['t3q3', 'remember in ten years']
+];
 
 async function run() {
-  console.log('\n=== CLOSER SIMULATION (5 players — triple class) ===\n');
+  console.log('\n=== CLOSER SIMULATION (talk-only, 5 players) ===\n');
   const { host, players, names, code } = await setupRoom(GAME_ID, NUM_PLAYERS);
 
   try {
     host.emit('start-game', { code });
-    await advancePastAnnounce(host, players, code, 'welcome');
 
-    const tierGroups = {}; // roundId -> groups (arrays of player indices)
-
-    // One pair round: everyone answers (or passerIdx passes), close, read
-    // the pair reveal, advance. Returns the group partition.
-    async function pairRound(roundId, expectedPromptPart, passerIdx = -1) {
-      const started = await waitForEventOnAll(players, 'game-started', 10000);
-      console.log(`\n--- ${roundId} ---`);
-      r.check(started.length === NUM_PLAYERS, `${roundId}: all ${NUM_PLAYERS} players got a prompt (nobody benched)`);
-      if (expectedPromptPart) {
-        r.check(started.every(s => (s.prompt || '').includes(expectedPromptPart)),
-          `${roundId}: prompt is "${expectedPromptPart}..."`);
-      }
-      r.check(started.every(s => s.passAllowed === true), `${roundId}: passAllowed on`);
-
-      players.forEach((p, i) => {
-        if (i === passerIdx) {
-          p.emit('submit-response', { code, response: '', pass: true });
-          log(names[i], 'PASSED');
-        } else {
-          p.emit('submit-response', { code, response: `My honest answer for ${roundId} from ${names[i]}.` });
-        }
-      });
-      await wait(500);
-      host.emit('close-submissions', { code });
-
-      const reveals = await waitForEventOnAll(players, 'show-results', 10000);
-      await waitForEvent(host, 'show-results', 10000);
-      const groups = groupsFromReveals(reveals);
-      tierGroups[roundId] = groups;
-
-      await wait(200);
+    // ---- The 13 talk screens, host-paced ----
+    for (const [id, marker] of TALK_SCREENS) {
+      const msgs = await waitForEventOnAll(players, 'announce', 8000);
+      r.check(
+        msgs.every(m => String(m.message || '').includes(marker)),
+        `${id}: every player sees "${marker}..."`
+      );
+      await wait(150);
       host.emit('advance-phase', { code });
-      return { started, reveals, groups };
     }
 
-    // ---- Tier 1 ----
-    await advancePastAnnounce(host, players, code, 'tier 1 intro');
-    const t1q1 = await pairRound('t1q1', 'Window seat');
-    {
-      const sizes = t1q1.groups.map(g => g.length).sort();
-      r.check(JSON.stringify(sizes) === JSON.stringify([2, 3]),
-        `t1q1: one pair + one triple (got sizes ${sizes.join(',')})`);
-    }
-    const t1q2 = await pairRound('t1q2', 'class had a mascot');
-    r.check(
-      JSON.stringify(t1q1.groups.map(g => [...g].sort()).sort()) ===
-      JSON.stringify(t1q2.groups.map(g => [...g].sort()).sort()),
-      't1q2: same partners as t1q1 (reusePairsFrom)'
-    );
-    await pairRound('t1q3', 'teleport');
-
-    // ---- Tier 2 ----
-    await advancePastAnnounce(host, players, code, 'tier 2 intro');
-    const t2q1 = await pairRound('t2q1', 'changed your mind');
-    {
-      const t1Keys = partnerKeysOf(t1q1.groups);
-      const t2Pairs = t2q1.groups.filter(g => g.length === 2);
-      const repeated = t2Pairs.filter(g => t1Keys.has(pairKey(String(g[0]), String(g[1]))));
-      r.check(repeated.length === 0,
-        't2q1: no tier-2 pair repeats a tier-1 partnership (rotatePairsFrom)');
-    }
-    await pairRound('t2q2', 'good friend');
-    await pairRound('t2q3', 'compliment');
-
-    // ---- Tier 3 (player 5 passes the first prompt) ----
-    await advancePastAnnounce(host, players, code, 'tier 3 intro');
-    const PASSER = 4; // Eve
-    const t3q1 = await pairRound('t3q1', 'proud of', PASSER);
-    {
-      const passerName = names[PASSER];
-      const passerGroup = t3q1.groups.find(g => g.includes(PASSER));
-      const partnerIdx = passerGroup.find(i => i !== PASSER);
-      const partnerContent = String(t3q1.reveals[partnerIdx].content || '');
-      r.check(partnerContent.includes(`${passerName} chose to listen this round`),
-        `t3q1: ${passerName}'s pass renders as the neutral listen-card`);
-      // No other group sees the passer at all
-      t3q1.groups.filter(g => !g.includes(PASSER)).forEach(g => {
-        g.forEach(i => {
-          r.check(!String(t3q1.reveals[i].content || '').includes(passerName),
-            `t3q1: ${names[i]} (other group) sees nothing about ${passerName}`);
-        });
-      });
-    }
-    await pairRound('t3q2', 'thank one person');
-    await pairRound('t3q3', 'remember in ten years');
-
-    // ---- Checkout (whole class, anonymous list) ----
-    const checkout = await waitForEventOnAll(players, 'game-started', 10000);
+    // ---- Checkout: one-tap rate ----
     console.log('\n--- checkout ---');
-    r.check(checkout.every(s => (s.prompt || '').includes('one word')), 'checkout: prompt delivered');
-    const words = ['connected', 'seen', 'calm', 'curious', 'lighter'];
-    players.forEach((p, i) => p.emit('submit-response', { code, response: words[i] }));
+    const rateStarts = await waitForEventOnAll(players, 'rate-start', 8000);
+    r.check(
+      rateStarts.every(ev => Array.isArray(ev.scales) && ev.scales.length === 1 && ev.scales[0].id === 'felt'),
+      'checkout: single one-tap scale delivered to every player'
+    );
+    players.forEach((p, i) => {
+      p.emit('rate-submit', { code, ratings: { felt: (i % 5) + 1 } });
+    });
+    log('SIM', `All ${NUM_PLAYERS} players tapped a rating`);
     await wait(500);
-    host.emit('close-submissions', { code });
+    host.emit('close-rating', { code });
 
-    const checkoutReveals = await waitForEventOnAll(players, 'show-results', 10000);
-    const checkoutContent = String(checkoutReveals[0].content || '');
-    r.check(words.every(w => checkoutContent.includes(w)), 'checkout: all words shown');
-    r.check(names.every(n => !checkoutContent.includes(n)), 'checkout: list is anonymous (no names)');
+    const results = await waitForEvent(players[0], 'rate-results', 8000);
+    r.check(!!results, 'checkout: results shown to the class (visibility: all)');
     await wait(200);
     host.emit('advance-phase', { code });
 
@@ -173,6 +88,12 @@ async function run() {
     } catch {
       r.warn('game-ended not observed');
     }
+
+    // ---- The no-typing guarantee ----
+    r.check(
+      players.every(p => !(p._buffer['game-started'] || []).length),
+      'no collect prompt ever reached a player (nothing to type)'
+    );
   } catch (err) {
     console.error(`\x1b[31mSimulation error: ${err.message}\x1b[0m`);
     r.errors++;

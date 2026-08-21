@@ -10,13 +10,19 @@ const GAMES = [
   { id: 'corn-story', source: 'built-in', featured: false },
   { id: 'legacy-no-source', featured: false },           // pre-change payloads have no source
   { id: 'my-poll', source: 'user', featured: false },
-  { id: 'someone-elses', source: 'user', featured: false }
+  { id: 'someone-elses', source: 'user', featured: false },
+  { id: 'featured-user-game', source: 'user', featured: true }
 ];
 
 describe('GameVisibility.visibleGames', () => {
-  it('public view: featured built-ins plus this device\'s user games only', () => {
+  it('public view: featured activities plus this device\'s user games', () => {
     const visible = visibleGames(GAMES, { owner: false, myIds: ['my-poll'] });
-    expect(visible.map(g => g.id)).toEqual(['speed-quiz', 'my-poll']);
+    expect(visible.map(g => g.id)).toEqual(['speed-quiz', 'my-poll', 'featured-user-game']);
+  });
+
+  it('a featured user game is visible even on a device that did not make it', () => {
+    const visible = visibleGames(GAMES, { owner: false, myIds: [] });
+    expect(visible.map(g => g.id)).toEqual(['speed-quiz', 'featured-user-game']);
   });
 
   it('owner view: everything, untouched order', () => {
@@ -30,7 +36,7 @@ describe('GameVisibility.visibleGames', () => {
   });
 
   it('tolerates missing opts fields', () => {
-    expect(visibleGames(GAMES, {}).map(g => g.id)).toEqual(['speed-quiz']);
+    expect(visibleGames(GAMES, {}).map(g => g.id)).toEqual(['speed-quiz', 'featured-user-game']);
   });
 
   it('never mutates the input array', () => {
