@@ -19,7 +19,12 @@
       </select>
 
       <label for="player-count">Players:</label>
+      <!-- The range input stays as the value holder (all the relaunch
+           logic hangs on its change event); the seat blocks are the
+           visible control: filled blocks are players, dashed are empty
+           seats (Totem: preview-prototype.png). -->
       <input type="range" id="player-count" min="1" max="8" value="2">
+      <div id="seat-blocks" role="group" aria-label="How many pretend students"></div>
       <span id="player-count-display">2</span>
 
       <button id="launch-btn" disabled title="Open a practice room right here, the projected teacher screen next to pretend student screens">Launch</button>
@@ -37,7 +42,24 @@
     <button id="host-btn" disabled title="Done previewing? Start a live room your class can join right now">▶ Host this</button>
   </div>
 
-  <div id="iframe-container"><p id="prelaunch-hint">Pick an activity and press Launch, you get the teacher screen and pretend students, side by side.</p></div>
+  <!-- The test bench, empty: a teacher board on its stand beside dashed
+       pretend-student seats (Totem: preview-prototype.png 11a). Launch
+       replaces all of this with the live pieces; Reset restores it. -->
+  <div id="iframe-container">
+    <div id="prelaunch-stage">
+      <div class="stage-pieces">
+        <div class="stage-board-group">
+          <div class="stage-board">Teacher screen</div>
+          <div class="stage-plinth"></div>
+          <div class="stage-base"></div>
+        </div>
+        <div class="stage-slot">Pretend student</div>
+        <div class="stage-slot"></div>
+        <div class="stage-slot"></div>
+      </div>
+      <p id="prelaunch-hint">Pick an activity and press <strong class="hint-launch">Launch</strong>, you get the teacher screen and pretend students, side by side.</p>
+    </div>
+  </div>
 
   <!-- Carousel overlays, fixed position so they sit above iframes -->
   <button id="carousel-prev" class="carousel-arrow carousel-arrow-left" hidden title="Previous player screen">&larr;</button>

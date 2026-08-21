@@ -25,6 +25,47 @@ const carouselDots = document.getElementById('carousel-dots');
 let viewMode = 'grid';
 let carouselIndex = 0; // 0-based index into player panels
 
+// Live-session state for the add-a-player slot (late join is a supported
+// path, so a new pretend student can join the running room directly).
+let currentCode = null;
+let livePlayers = 0;
+
+// The empty test bench (stands + hint). Launch clears the container but we
+// keep the detached node and put it back on Reset, so the stage is never
+// silently blank.
+const prelaunchStage = document.getElementById('prelaunch-stage');
+
+// --- Seat blocks: the visible player-count control ---
+// Filled painted blocks are players, dashed blocks are empty seats
+// (preview-prototype.png). The hidden range input stays the value holder:
+// every existing relaunch path listens to its change event.
+const seatBlocks = document.getElementById('seat-blocks');
+
+function renderSeats() {
+  if (!seatBlocks) return;
+  const count = parseInt(playerCount.value, 10);
+  seatBlocks.textContent = '';
+  for (let i = 1; i <= 8; i++) {
+    const seat = document.createElement('button');
+    seat.type = 'button';
+    const filled = i <= count;
+    seat.className = 'seat-block ' + (filled ? 'seat-c' + ((i - 1) % 5) : 'seat-empty');
+    seat.style.setProperty('--rot', (((i % 2) ? -1 : 1) * (0.8 + (i % 3) * 0.4)).toFixed(1) + 'deg');
+    seat.title = i === 1 ? '1 player' : i + ' players';
+    seat.setAttribute('aria-label', i === 1 ? '1 pretend student' : i + ' pretend students');
+    seat.setAttribute('aria-pressed', filled ? 'true' : 'false');
+    seat.addEventListener('click', () => {
+      playerCount.value = i;
+      playerCountDisplay.textContent = String(i);
+      renderSeats();
+      playerCount.dispatchEvent(new Event('change'));
+    });
+    seatBlocks.appendChild(seat);
+  }
+}
+
+renderSeats();
+
 // Arrived from the editor's Preview button? "Back" should return to the
 // editor, not the library — you preview, spot something to change, and need
 // the way back to change it. Preview opens in a new tab, so if the original
@@ -120,8 +161,10 @@ launchBtn.addEventListener('click', () => {
   const count = parseInt(playerCount.value, 10);
 
   // Disable Launch while a session runs. The activity select and player
-  // slider stay enabled — changing either relaunches with the new value.
+  // seats stay enabled — changing either relaunches with the new value.
   launchBtn.disabled = true;
+  // Bench running: Launch steps aside, the red moves to ▶ Host this.
+  document.body.classList.add('pt-running');
 
   // Clear previous iframes
   iframeContainer.innerHTML = '';
@@ -130,7 +173,10 @@ launchBtn.addEventListener('click', () => {
   // Create host iframe
   const hostWrapper = document.createElement('div');
   hostWrapper.className = 'iframe-panel host-panel';
-  hostWrapper.innerHTML = '<div class="panel-label">Host</div>';
+  const hostLabel = document.createElement('div');
+  hostLabel.className = 'panel-label';
+  hostLabel.textContent = 'Teacher screen';
+  hostWrapper.appendChild(hostLabel);
 
   const hostIframe = document.createElement('iframe');
   hostIframe.src = '/host?game=' + encodeURIComponent(gameId) + '&prototype=true';
@@ -141,6 +187,8 @@ launchBtn.addEventListener('click', () => {
   window.addEventListener('message', function onMessage(e) {
     if (e.data && e.data.type === 'room-created') {
       window.removeEventListener('message', onMessage);
+      currentCode = e.data.code;
+      hostLabel.textContent = 'Teacher screen · Room ' + e.data.code;
       createPlayerIframes(e.data.code, count);
       botFillBtn.hidden = false;
       skipBtn.hidden = false;
@@ -150,19 +198,59 @@ launchBtn.addEventListener('click', () => {
   });
 });
 
-function createPlayerIframes(code, count) {
-  for (let i = 1; i <= count; i++) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'iframe-panel player-panel';
-    wrapper.innerHTML = '<div class="panel-label">Player ' + i + '</div>';
+function addPlayerPanel(code, i) {
+  const wrapper = document.createElement('div');
+  wrapper.className = 'iframe-panel player-panel';
+  const label = document.createElement('div');
+  label.className = 'panel-label plabel-' + ((i - 1) % 5);
+  label.textContent = 'Player ' + i;
+  wrapper.appendChild(label);
 
-    const iframe = document.createElement('iframe');
-    iframe.src = '/player?prototype=true&code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent('Player ' + i);
-    // Same-origin embed; lets the mic button work during teacher previews.
-    iframe.allow = 'microphone';
-    wrapper.appendChild(iframe);
-    iframeContainer.appendChild(wrapper);
+  const iframe = document.createElement('iframe');
+  iframe.src = '/player?prototype=true&code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent('Player ' + i);
+  // Same-origin embed; lets the mic button work during teacher previews.
+  iframe.allow = 'microphone';
+  wrapper.appendChild(iframe);
+  // The dashed add-a-player slot stays the last cell.
+  const slot = iframeContainer.querySelector('.add-player-slot');
+  iframeContainer.insertBefore(wrapper, slot || null);
+}
+
+function createPlayerIframes(code, count) {
+  for (let i = 1; i <= count; i++) addPlayerPanel(code, i);
+  livePlayers = count;
+  refreshAddSlot();
+}
+
+// The dashed "+ Add a player" seat at the end of the running grid — one
+// click drops one more pretend student into the live room (no relaunch;
+// they late-join into the current step, same as a real Chromebook would).
+function refreshAddSlot() {
+  const old = iframeContainer.querySelector('.add-player-slot');
+  if (old) old.remove();
+  if (!currentCode || livePlayers >= 8) {
+    iframeContainer.dataset.players = Math.min(livePlayers, 8);
+    return;
   }
+  // The slot occupies a grid seat of its own, so the row count includes it.
+  iframeContainer.dataset.players = Math.min(livePlayers + 1, 8);
+  const slot = document.createElement('button');
+  slot.type = 'button';
+  slot.className = 'add-player-slot';
+  slot.textContent = '+ Add a player';
+  slot.title = 'Add one more pretend student to the running room';
+  slot.addEventListener('click', () => {
+    if (!currentCode || livePlayers >= 8) return;
+    livePlayers += 1;
+    addPlayerPanel(currentCode, livePlayers);
+    // Keep the seat blocks honest without firing a relaunch (setting
+    // .value programmatically never emits a change event).
+    playerCount.value = livePlayers;
+    playerCountDisplay.textContent = String(livePlayers);
+    renderSeats();
+    refreshAddSlot();
+  });
+  iframeContainer.appendChild(slot);
 }
 
 // Bot Fill — send auto-fill to all player iframes. Single shot is enough for
@@ -209,9 +297,14 @@ skipBtn.addEventListener('click', () => {
   if (hostIframe) hostIframe.contentWindow.postMessage({ type: 'prototype-skip' }, '*');
 });
 
-// Reset
+// Reset — tear down the pieces and put the empty bench back on the stage
 resetBtn.addEventListener('click', () => {
   iframeContainer.innerHTML = '';
+  iframeContainer.removeAttribute('data-players');
+  if (prelaunchStage) iframeContainer.appendChild(prelaunchStage);
+  currentCode = null;
+  livePlayers = 0;
+  document.body.classList.remove('pt-running');
   launchBtn.disabled = false;
   gameSelect.disabled = false;
   playerCount.disabled = false;

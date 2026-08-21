@@ -83,10 +83,33 @@ body {
   cursor: pointer;
 }
 
-#player-count {
-  width: 80px;
-  accent-color: var(--t-red);
+/* The range input holds the value; the seat blocks are the control */
+#player-count { display: none; }
+
+#seat-blocks { display: flex; gap: 3px; align-items: center; }
+
+.seat-block {
+  width: 17px;
+  height: 17px;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform var(--t-quick) var(--t-ease);
 }
+
+.seat-block:hover { transform: rotate(var(--rot, 0deg)) translateY(-3px); }
+
+.seat-block.seat-empty {
+  background: var(--t-gesso);
+  border: 2px dashed rgba(110, 75, 40, 0.4);
+}
+
+.seat-block.seat-c0 { background: var(--t-cyan); }
+.seat-block.seat-c1 { background: var(--t-yellow); background-image: var(--t-grain); }
+.seat-block.seat-c2 { background: var(--t-magenta); }
+.seat-block.seat-c3 { background: var(--t-orange); }
+.seat-block.seat-c4 { background: var(--t-green); }
 
 #player-count-display {
   font-weight: 700;
@@ -133,13 +156,16 @@ body {
   cursor: not-allowed;
 }
 
+/* Running controls wear their jobs: Bot Fill cyan (think), Skip yellow
+   (timer), Reset quiet paper (preview-prototype.png 11b) */
 #bot-fill-btn {
-  background: var(--t-ink);
+  background: var(--t-cyan);
   color: var(--t-paper);
 }
 
 #skip-btn {
-  background: var(--t-paper);
+  background: var(--t-yellow);
+  background-image: var(--t-grain);
   color: var(--t-ink);
 }
 
@@ -148,16 +174,17 @@ body {
   color: var(--t-ink);
 }
 
-/* The real-class payoff: preview it here, then host it for real. Sits at
-   the far edge, apart from the practice controls, so it reads as the next
-   step rather than another knob. Ink, not red — Launch is THE red here. */
+/* The real-class payoff: preview it here, then host it for real. One red
+   per state (preview-prototype.png): before launch the red is LAUNCH and
+   Host this waits in faded paper; once the bench is running, Launch goes
+   away and the red moves here — "done previewing" is now the action. */
 #host-btn {
   margin-left: auto;
   padding: 7px 16px;
   border: none;
-  background: var(--t-ink);
-  color: var(--t-paper);
-  box-shadow: 0 2px 3px rgba(50,35,15,0.25);
+  background: var(--t-paper);
+  color: var(--t-muted-caps);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.18);
   font-family: var(--t-display);
   font-weight: 800;
   font-size: 0.85em;
@@ -179,6 +206,14 @@ body {
   box-shadow: none;
   transform: none;
   cursor: not-allowed;
+}
+
+body.pt-running #launch-btn { display: none; }
+
+body.pt-running #host-btn {
+  background: var(--t-red);
+  color: var(--t-paper);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.25);
 }
 
 /* View toggle: a scrap holding two chips, yellow = the one you're on */
@@ -206,9 +241,8 @@ body {
 }
 
 .view-btn.active {
-  background: var(--t-yellow);
-  background-image: var(--t-grain);
-  color: var(--t-ink);
+  background: var(--t-ink);
+  color: var(--t-paper);
 }
 
 .view-btn:hover:not(.active) {
@@ -291,12 +325,13 @@ body {
   background: rgba(253,249,240,0.5);
 }
 
-/* Iframe container */
+/* Iframe container — extra row gap and bottom padding so every piece's
+   stand has floor to sit on */
 #iframe-container {
   flex: 1;
   display: grid;
-  gap: 6px;
-  padding: 6px;
+  gap: 24px 10px;
+  padding: 10px 10px 34px;
   min-height: 0;
   position: relative;
 }
@@ -335,20 +370,52 @@ body {
   grid-template-rows: 2fr repeat(2, 1fr);
 }
 
-/* Panels are paper pieces with a hairline ring; the host panel's label
-   wears yellow (the one to watch) instead of a second red */
+/* Every screen is a piece on its own stand (preview-prototype.png):
+   plinth (::after) + base board (::before) hang below each panel into
+   the row gap. Overflow must stay visible for the stand to show. */
 .iframe-panel {
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   border: none;
+  background: var(--t-paper);
   box-shadow: 0 2px 4px rgba(50,35,15,0.20), 0 0 0 1px rgba(50,35,15,0.25);
   display: flex;
   flex-direction: column;
+  transform: rotate(var(--piece-rot, 0deg));
+}
+
+.iframe-panel::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  transform: translateX(-50%);
+  width: 32%;
+  height: 12px;
+  background: var(--t-walnut);
+  background-image: var(--t-grain);
+}
+
+.iframe-panel::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  transform: translateX(-50%);
+  width: 50%;
+  height: 7px;
+  background: var(--t-base);
+  background-image: var(--t-grain);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.25);
 }
 
 .host-panel {
+  --piece-rot: -0.3deg;
   box-shadow: 0 2px 4px rgba(50,35,15,0.20), 0 0 0 2px var(--t-ink);
 }
+
+.player-panel:nth-of-type(odd) { --piece-rot: 0.5deg; }
+.player-panel:nth-of-type(even) { --piece-rot: -0.5deg; }
 
 /* 1-4 players: host spans all rows on left */
 #iframe-container[data-players="1"] .host-panel { grid-row: 1 / -1; }
@@ -402,15 +469,40 @@ body {
 }
 
 .host-panel .panel-label {
-  background: var(--t-yellow);
-  background-image: var(--t-grain);
-  color: var(--t-ink);
-}
-
-.player-panel .panel-label {
   background: var(--t-ink);
   color: var(--t-paper);
 }
+
+/* Player pieces wear painted top bars, cycled by seat color */
+.player-panel .panel-label { background: var(--t-ink); color: var(--t-paper); }
+.player-panel .plabel-0 { background: var(--t-cyan); color: var(--t-paper); }
+.player-panel .plabel-1 { background: var(--t-magenta); color: var(--t-paper); }
+.player-panel .plabel-2 { background: var(--t-orange); color: var(--t-paper); }
+.player-panel .plabel-3 { background: var(--t-green); color: var(--t-paper); }
+.player-panel .plabel-4 { background: var(--t-yellow); background-image: var(--t-grain); color: var(--t-ink); }
+
+/* The last seat in the running grid: a dashed drop slot that adds a
+   pretend student to the live room (late join is a supported path) */
+.add-player-slot {
+  border: 3px dashed rgba(110, 75, 40, 0.4);
+  background: var(--t-gesso);
+  color: #A08A68;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--t-quick) var(--t-ease), color var(--t-quick) var(--t-ease);
+}
+
+.add-player-slot:hover { border-color: var(--t-muted-wood); color: var(--t-muted-wood); }
+
+/* Carousel rotates player pieces one at a time; the slot sits out */
+#iframe-container[data-view="carousel"] .add-player-slot { display: none; }
 
 .iframe-panel iframe {
   flex: 1;
@@ -419,12 +511,96 @@ body {
   background: var(--t-gesso);
 }
 
-/* Pre-launch hint — the stage is never silently blank */
+/* Pre-launch: the empty bench — a teacher board on its stand beside
+   dashed pretend-student seats (preview-prototype.png 11a) */
+#prelaunch-stage {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+  padding: 40px 20px;
+}
+
+.stage-pieces {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.stage-board-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(5px 8px 0 rgba(80, 60, 30, 0.14));
+}
+
+.stage-board {
+  width: 230px;
+  height: 150px;
+  background: var(--t-birch);
+  background-image: var(--t-grain);
+  transform: rotate(-1.2deg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t-muted-wood);
+}
+
+.stage-plinth {
+  width: 70px;
+  height: 34px;
+  background: var(--t-walnut);
+  background-image: var(--t-grain);
+  margin-top: -3px;
+}
+
+.stage-base {
+  width: 130px;
+  height: 12px;
+  background: var(--t-base);
+  background-image: var(--t-grain);
+}
+
+.stage-slot {
+  width: 100px;
+  height: 128px;
+  border: 3px dashed rgba(110, 75, 40, 0.4);
+  background: var(--t-gesso);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8px;
+  font-family: var(--t-body);
+  font-weight: 700;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #A08A68;
+}
+
 #prelaunch-hint {
   text-align: center;
   color: var(--t-muted);
   font-size: 1rem;
+  font-weight: 500;
+  max-width: 440px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+#prelaunch-hint .hint-launch {
+  color: var(--t-red);
   font-weight: 700;
-  padding: 60px 20px;
-  grid-column: 1 / -1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
