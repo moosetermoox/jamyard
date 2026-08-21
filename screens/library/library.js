@@ -217,8 +217,10 @@ function renderLibrary(games, rescueQuery) {
     return;
   }
 
-  // Teacher view: six piles, each activity stands in exactly one.
-  // Placement precedence: yours → hearted → recently used → home goal pile.
+  // Teacher view (Totem 9g): a compact personal shelf up top, then the
+  // three yard piles with their painted labels below. Each activity
+  // stands in exactly one place; placement precedence: yours → hearted →
+  // recently used → home goal pile.
   var piles = { recent: [], favorites: [], customized: [], connect: [], think: [], play: [] };
   var placed = {};
 
@@ -248,58 +250,156 @@ function renderLibrary(games, rescueQuery) {
     if (!placed[g.id]) piles[goalGroupOf(g)].push(g);
   });
 
+  var mine = piles.recent.concat(piles.favorites, piles.customized);
+  if (mine.length > 0) libraryGrid.appendChild(buildMyYardShelf(mine));
+
   var shelf = document.createElement('div');
   shelf.className = 'pile-shelf';
-  PILE_GROUPS.forEach(function (group) {
-    if (piles[group.key].length === 0) return;
-    shelf.appendChild(buildPileGroup(group.label, piles[group.key]));
+  ['connect', 'think', 'play'].forEach(function (key) {
+    if (piles[key].length === 0) return;
+    var group = null;
+    for (var i = 0; i < PILE_GROUPS.length; i++) {
+      if (PILE_GROUPS[i].key === key) { group = PILE_GROUPS[i]; break; }
+    }
+    shelf.appendChild(buildPileGroup(key, group.label, piles[key]));
   });
   libraryGrid.appendChild(shelf);
 }
 
-// A pile group: a spaced-caps label over one or more pile columns. Stacks
-// cap at 6 blocks (Totem rule); a seventh plank starts the next column.
-var PILE_COLUMN_MAX = 6;
+// A yard pile (Totem 9g): up to 6 chunky planks on a single plinth with
+// the painted label BELOW. Bigger piles collapse behind a "+ N MORE"
+// plank so the yard keeps its three-totem silhouette.
+var PILE_MAX = 6;
+var expandedPiles = {};
 
-function buildPileGroup(label, games) {
+// Each pile starts its paint cycle somewhere else, so the three piles
+// never share the same top color.
+var PILE_TONE_OFFSET = { connect: 0, think: 3, play: 6 };
+
+function buildPileGroup(key, label, games) {
   var group = document.createElement('div');
   group.className = 'pile-group';
 
-  var lab = document.createElement('div');
-  lab.className = 'pile-label';
-  lab.textContent = label;
-  group.appendChild(lab);
+  var pile = document.createElement('div');
+  pile.className = 'pile';
 
-  var cols = document.createElement('div');
-  cols.className = 'pile-columns';
-  // Balance columns: 7 planks read as 4 + 3, never 6 + 1.
-  var colCount = Math.ceil(games.length / PILE_COLUMN_MAX);
-  var perCol = Math.ceil(games.length / colCount);
-  for (var start = 0; start < games.length; start += perCol) {
-    var pile = document.createElement('div');
-    pile.className = 'pile';
-    var chunk = games.slice(start, start + perCol);
-    for (var i = 0; i < chunk.length; i++) {
-      pile.appendChild(buildPlank(chunk[i], start + i));
-    }
-    var plinth = document.createElement('div');
-    plinth.className = 't-plinth pile-plinth';
-    pile.appendChild(plinth);
-    var base = document.createElement('div');
-    base.className = 't-baseboard pile-baseboard';
-    pile.appendChild(base);
-    cols.appendChild(pile);
+  var collapsed = games.length > PILE_MAX && !expandedPiles[key];
+  var list = collapsed ? games.slice(0, PILE_MAX) : games;
+  for (var i = 0; i < list.length; i++) {
+    // The row wrapper, not the plank, takes the hover: it never moves
+    // or clips, so the pulled-out plank cannot jitter at the seams.
+    var row = document.createElement('div');
+    row.className = 'plank-row';
+    row.appendChild(buildPlank(list[i], i + (PILE_TONE_OFFSET[key] || 0)));
+    pile.appendChild(row);
   }
-  group.appendChild(cols);
+
+  if (games.length > PILE_MAX) {
+    var moreRow = document.createElement('div');
+    moreRow.className = 'plank-row';
+    var more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'plank plank-more';
+    var hiddenCount = games.length - PILE_MAX;
+    more.textContent = collapsed ? '+ ' + hiddenCount + ' more' : 'show fewer';
+    more.setAttribute('aria-label', collapsed
+      ? 'Show ' + hiddenCount + ' more ' + label + ' activities'
+      : 'Show fewer ' + label + ' activities');
+    more.addEventListener('click', function () {
+      expandedPiles[key] = collapsed;
+      refreshLibrary();
+    });
+    moreRow.appendChild(more);
+    pile.appendChild(moreRow);
+  }
+
+  var plinth = document.createElement('div');
+  plinth.className = 't-plinth pile-plinth';
+  pile.appendChild(plinth);
+  group.appendChild(pile);
+
+  var tag = document.createElement('div');
+  tag.className = 'pile-tag pile-tag-' + key;
+  tag.textContent = label;
+  group.appendChild(tag);
   return group;
 }
 
-// One plank per activity: name + minutes, painted by position. Clicking
-// opens the activity popup; every card action lives there.
+// One plank per activity (9g): CAPS name over a small meta line, painted
+// by position. Clicking opens the activity popup; every card action
+// lives there.
 function buildPlank(game, index) {
   var plank = document.createElement('button');
   plank.type = 'button';
   plank.className = 'plank plank-tone-' + (index % 8);
+  plank.setAttribute('data-game-id', game.id);
+  plank.setAttribute('aria-haspopup', 'dialog');
+  plank.setAttribute('aria-label', game.name + ', see what it is and customize it');
+  plank.title = 'See what "' + game.name + '" is';
+
+  var top = document.createElement('span');
+  top.className = 'plank-top';
+  if (Favorites.has(game.id)) {
+    var fav = document.createElement('span');
+    fav.className = 'plank-fav';
+    fav.textContent = '♥';
+    fav.setAttribute('aria-hidden', 'true');
+    top.appendChild(fav);
+  }
+  var name = document.createElement('span');
+  name.className = 'plank-name';
+  name.textContent = game.name;
+  top.appendChild(name);
+  plank.appendChild(top);
+
+  var metaBits = [];
+  if (game.playTime) {
+    // Planks carry the short time only; parentheticals live in the popup.
+    metaBits.push(String(game.playTime).split('(')[0].trim());
+  }
+  if (game.family === 'connection') metaBits.push('no winners');
+  if (metaBits.length > 0) {
+    var meta = document.createElement('span');
+    meta.className = 'plank-meta';
+    meta.textContent = metaBits.join(' · ');
+    plank.appendChild(meta);
+  }
+
+  plank.addEventListener('click', function () {
+    openActivityDialog(game);
+  });
+  return plank;
+}
+
+// The personal shelf: recents, hearts, and your copies as small planks
+// resting on one long board, "MY YARD" painted underneath. Hidden until
+// there's something on it (renderLibrary only calls with 1+).
+function buildMyYardShelf(games) {
+  var wrap = document.createElement('div');
+  wrap.className = 'myyard';
+
+  var row = document.createElement('div');
+  row.className = 'myyard-row';
+  for (var i = 0; i < games.length; i++) {
+    row.appendChild(buildMiniPlank(games[i], i));
+  }
+  wrap.appendChild(row);
+
+  var board = document.createElement('div');
+  board.className = 'myyard-board';
+  wrap.appendChild(board);
+
+  var tag = document.createElement('div');
+  tag.className = 'pile-tag pile-tag-mine';
+  tag.textContent = 'My yard';
+  wrap.appendChild(tag);
+  return wrap;
+}
+
+function buildMiniPlank(game, index) {
+  var plank = document.createElement('button');
+  plank.type = 'button';
+  plank.className = 'plank-mini plank-tone-' + (index % 8);
   plank.setAttribute('data-game-id', game.id);
   plank.setAttribute('aria-haspopup', 'dialog');
   plank.setAttribute('aria-label', game.name + ', see what it is and customize it');
@@ -312,19 +412,10 @@ function buildPlank(game, index) {
     fav.setAttribute('aria-hidden', 'true');
     plank.appendChild(fav);
   }
-
   var name = document.createElement('span');
   name.className = 'plank-name';
   name.textContent = game.name;
   plank.appendChild(name);
-
-  if (game.playTime) {
-    var time = document.createElement('span');
-    time.className = 'plank-time';
-    // Planks carry the short time only; parentheticals live in the popup.
-    time.textContent = String(game.playTime).split('(')[0].trim();
-    plank.appendChild(time);
-  }
 
   plank.addEventListener('click', function () {
     openActivityDialog(game);
@@ -769,8 +860,8 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
     return k.kind !== 'count'; // the visible list IS the count
   });
 
-  var LABEL_CSS = 'display:block; font-weight:700; margin:10px 0 4px; font-family:"Nunito", Arial, sans-serif;';
-  var INPUT_CSS = 'padding:8px 10px; border:none; background:#FFFDF6; border-radius:2px; box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; font-weight:600; box-sizing:border-box;';
+  var LABEL_CSS = 'display:block; font-weight:700; margin:12px 0 6px; font-family:"DM Sans", Arial, sans-serif; color:#2A2620;';
+  var INPUT_CSS = 'padding:9px 12px 7px; border:none; background:#EAD9BA; background-image:repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0 1px, transparent 1px 6px); border-bottom:3px dashed rgba(110,75,40,0.45); font-family:"DM Sans", Arial, sans-serif; font-size:0.95rem; font-weight:500; color:#2A2620; box-sizing:border-box;';
 
   var overlay = document.createElement('div');
   overlay.className = 'template-picker-overlay';
@@ -805,7 +896,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
   topicRow.appendChild(topicInput);
 
   var countLabel = document.createElement('label');
-  countLabel.style.cssText = 'font-weight:700; font-family:"Nunito", Arial, sans-serif; white-space:nowrap;';
+  countLabel.style.cssText = 'font-weight:700; font-family:"DM Sans", Arial, sans-serif; white-space:nowrap;';
   countLabel.textContent = 'How many:';
   topicRow.appendChild(countLabel);
   var countInput = document.createElement('input');
@@ -865,12 +956,12 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
     addBtn.disabled = questions.length >= 20;
     questions.forEach(function (q, qi) {
       var card = document.createElement('div');
-      card.style.cssText = 'background:#FFFDF6; box-shadow: 0 0 0 1px rgba(34,30,28,0.16); border-radius:2px; padding:10px; margin-bottom:10px;';
+      card.style.cssText = 'background:#FDF9F0; box-shadow: 0 2px 3px rgba(50,35,15,0.16); padding:10px 12px; margin-bottom:10px;';
 
       var head = document.createElement('div');
       head.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:6px;';
       var headText = document.createElement('strong');
-      headText.style.cssText = 'font-family:"Nunito", Arial, sans-serif; flex:1;';
+      headText.style.cssText = 'font-family:"DM Sans", Arial, sans-serif; flex:1;';
       headText.textContent = 'Question ' + (qi + 1);
       head.appendChild(headText);
       var qRemove = document.createElement('button');
@@ -948,7 +1039,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
         var addChoice = document.createElement('button');
         addChoice.type = 'button';
         addChoice.textContent = '+ choice';
-        addChoice.style.cssText = 'border:none; background:none; cursor:pointer; font-family:"Nunito", Arial, sans-serif; font-weight:700; color:#221E1C; opacity:0.6; padding:2px 0 0 32px;';
+        addChoice.style.cssText = 'border:none; background:none; cursor:pointer; font-family:"DM Sans", Arial, sans-serif; font-weight:700; color:#221E1C; opacity:0.6; padding:2px 0 0 32px;';
         addChoice.addEventListener('click', function () {
           q.choices.push('');
           renderQuestions();
@@ -1125,8 +1216,8 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
     if (k.name === 'lieTimer') lieTimerKnob = k;
   });
 
-  var LABEL_CSS = 'display:block; font-weight:700; margin:10px 0 4px; font-family:"Nunito", Arial, sans-serif;';
-  var INPUT_CSS = 'padding:8px 10px; border:none; background:#FFFDF6; border-radius:2px; box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; font-weight:600; box-sizing:border-box;';
+  var LABEL_CSS = 'display:block; font-weight:700; margin:12px 0 6px; font-family:"DM Sans", Arial, sans-serif; color:#2A2620;';
+  var INPUT_CSS = 'padding:9px 12px 7px; border:none; background:#EAD9BA; background-image:repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0 1px, transparent 1px 6px); border-bottom:3px dashed rgba(110,75,40,0.45); font-family:"DM Sans", Arial, sans-serif; font-size:0.95rem; font-weight:500; color:#2A2620; box-sizing:border-box;';
 
   var overlay = document.createElement('div');
   overlay.className = 'template-picker-overlay';
@@ -1176,7 +1267,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
     var card = document.createElement('button');
     card.type = 'button';
     card.setAttribute('role', 'radio');
-    card.style.cssText = 'text-align:left; cursor:pointer; border:none; background:#FFFDF6; border-radius:2px; padding:10px 12px; font-family:"Nunito", Arial, sans-serif;';
+    card.style.cssText = 'text-align:left; cursor:pointer; border:none; background:#FDF9F0; box-shadow: 0 2px 3px rgba(50,35,15,0.18); padding:10px 12px; font-family:"DM Sans", Arial, sans-serif;';
     var cardTitle = document.createElement('strong');
     cardTitle.textContent = src.title;
     card.appendChild(cardTitle);
@@ -1224,7 +1315,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
   topicInput.style.cssText = 'flex:1; min-width:200px; ' + INPUT_CSS;
   topicRow.appendChild(topicInput);
   var countLabel = document.createElement('label');
-  countLabel.style.cssText = 'font-weight:700; font-family:"Nunito", Arial, sans-serif; white-space:nowrap;';
+  countLabel.style.cssText = 'font-weight:700; font-family:"DM Sans", Arial, sans-serif; white-space:nowrap;';
   countLabel.textContent = 'How many:';
   topicRow.appendChild(countLabel);
   var countInput = document.createElement('input');
@@ -1283,12 +1374,12 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
     addBtn.disabled = questions.length >= 10;
     questions.forEach(function (q, qi) {
       var card = document.createElement('div');
-      card.style.cssText = 'background:#FFFDF6; box-shadow: 0 0 0 1px rgba(34,30,28,0.16); border-radius:2px; padding:10px; margin-bottom:10px;';
+      card.style.cssText = 'background:#FDF9F0; box-shadow: 0 2px 3px rgba(50,35,15,0.16); padding:10px 12px; margin-bottom:10px;';
 
       var head = document.createElement('div');
       head.style.cssText = 'display:flex; align-items:center; gap:8px; margin-bottom:6px;';
       var headText = document.createElement('strong');
-      headText.style.cssText = 'font-family:"Nunito", Arial, sans-serif; flex:1;';
+      headText.style.cssText = 'font-family:"DM Sans", Arial, sans-serif; flex:1;';
       headText.textContent = 'Fact ' + (qi + 1);
       head.appendChild(headText);
       var qRemove = document.createElement('button');
@@ -1317,7 +1408,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
       var answerRow = document.createElement('div');
       answerRow.style.cssText = 'display:flex; gap:8px; flex-wrap:wrap;';
       var truthWrap = document.createElement('label');
-      truthWrap.style.cssText = 'flex:1; min-width:140px; font-weight:700; font-size:0.85rem; font-family:"Nunito", Arial, sans-serif;';
+      truthWrap.style.cssText = 'flex:1; min-width:140px; font-weight:700; font-size:0.85rem; font-family:"DM Sans", Arial, sans-serif;';
       truthWrap.appendChild(document.createTextNode('The real answer'));
       var truthInput = document.createElement('input');
       truthInput.type = 'text';
@@ -1329,7 +1420,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
       truthWrap.appendChild(truthInput);
       answerRow.appendChild(truthWrap);
       var lieWrap = document.createElement('label');
-      lieWrap.style.cssText = 'flex:1; min-width:140px; font-weight:700; font-size:0.85rem; font-family:"Nunito", Arial, sans-serif;';
+      lieWrap.style.cssText = 'flex:1; min-width:140px; font-weight:700; font-size:0.85rem; font-family:"DM Sans", Arial, sans-serif;';
       lieWrap.appendChild(document.createTextNode('Decoy (optional)'));
       var lieInput = document.createElement('input');
       lieInput.type = 'text';
@@ -1367,10 +1458,11 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
       var card = sourceButtons[src.id];
       var on = selectedSource === src.id;
       card.setAttribute('aria-checked', on ? 'true' : 'false');
+      // Totem selection: the inset ink ring, never a color change
       card.style.boxShadow = on
-        ? '0 0 0 2px #221E1C'
-        : '0 0 0 1px rgba(34,30,28,0.16)';
-      card.style.opacity = on ? '1' : '0.8';
+        ? '0 2px 3px rgba(50,35,15,0.18), inset 0 0 0 3px #2A2620'
+        : '0 2px 3px rgba(50,35,15,0.18)';
+      card.style.opacity = on ? '1' : '0.85';
     });
     liveSection.hidden = selectedSource !== 'live';
     topicSection.hidden = selectedSource !== 'ai-now';
@@ -1596,8 +1688,8 @@ function showCustomizeDialog(game, config, questions, knobs) {
   title.textContent = 'Make it yours';
   modal.appendChild(title);
 
-  var LABEL_CSS = 'display:block; font-weight:700; margin:10px 0 4px; font-family:"Nunito", Arial, sans-serif;';
-  var INPUT_CSS = 'padding:10px 12px; border:none; background:#FFFDF6; border-radius:2px; box-shadow: inset 2px 2px 0 rgba(34,30,28,0.10), 0 0 0 1px rgba(34,30,28,0.16); font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; font-weight:600; box-sizing:border-box;';
+  var LABEL_CSS = 'display:block; font-weight:700; margin:12px 0 6px; font-family:"DM Sans", Arial, sans-serif; color:#2A2620;';
+  var INPUT_CSS = 'padding:11px 14px 9px; border:none; background:#EAD9BA; background-image:repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0 1px, transparent 1px 6px); border-bottom:3px dashed rgba(110,75,40,0.45); font-family:"DM Sans", Arial, sans-serif; font-size:0.95rem; font-weight:500; color:#2A2620; box-sizing:border-box;';
 
   // --- Setup knobs (recipe-born games only) ---
   var knobInputs = [];
@@ -2098,6 +2190,7 @@ function handleHighlightParam() {
       (params.toString() ? '?' + params.toString() : ''));
   } catch (e) { return; }
   var piece = document.querySelector('.plank[data-game-id="' + CSS.escape(wantedId) + '"]') ||
+    document.querySelector('.plank-mini[data-game-id="' + CSS.escape(wantedId) + '"]') ||
     document.querySelector('.library-card[data-game-id="' + CSS.escape(wantedId) + '"]');
   if (!piece) return; // filtered out or unknown — the library itself is the fallback
   piece.scrollIntoView({ block: 'center' });

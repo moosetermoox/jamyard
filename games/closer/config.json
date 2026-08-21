@@ -3,7 +3,7 @@
   "description": "Escalating pair conversations, playful to reflective. No winners; every tier is a stopping point.",
   "playTime": "~30–40 min",
   "classSize": "4–35 players",
-  "featured": true,
+  "featured": false,
   "family": "connection",
   "phases": {
     "lobby": {
