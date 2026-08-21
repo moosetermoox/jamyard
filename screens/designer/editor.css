@@ -3879,3 +3879,272 @@ body::before { content: none; }
   border-left: 6px solid var(--t-cyan);
   box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.18);
 }
+
+/* ================================================================
+   TOTEM PASS 3 (docs/design/totem/screens/simple-designer.png, 12A):
+   the Simple view becomes steps mounted on a wooden spine. Painted
+   number blocks (family = paint job), paper sentence cards, sanded
+   plank inputs with the pencil line, cyan Ask AI, dashed add slot,
+   base board footer. The editor header flips ink -> paper to match.
+   ================================================================ */
+
+/* --- Header: paper bar, name underlined in red --- */
+#editor-header {
+  background: #FDF9F0;
+  border-bottom: 1px solid rgba(50, 35, 15, 0.18);
+  box-shadow: 0 2px 4px rgba(50, 35, 15, 0.10);
+}
+
+.header-left h1 {
+  color: #2A2620;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  border-bottom: 3px solid #E5482B;
+  padding-bottom: 1px;
+}
+
+#editor-header .back-link { color: #6B6250; }
+#editor-header .back-link:hover { color: #2A2620; text-decoration: none; }
+
+.view-toggle { box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.22); }
+
+.btn-ghost {
+  background: #FDF9F0;
+  color: #2A2620;
+  border: none;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+}
+
+.btn-ghost:hover {
+  background: #FDF9F0;
+  border: none;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+  transform: translateY(-2px);
+}
+
+.save-status-clean { color: #22A05A; font-weight: 700; }
+.save-status-dirty { color: #B0197E; font-weight: 700; }
+.save-status-failed { color: #AE3A16; font-weight: 700; }
+
+#save-status.save-status-dirty ~ #save-btn {
+  background: #2A2620;
+  color: #FDF9F0;
+}
+
+#save-status.save-status-dirty ~ #save-btn:hover { background: #2A2620; }
+
+#save-status.save-status-failed ~ #save-btn {
+  background: #FDF9F0;
+  color: #AE3A16;
+  box-shadow: 0 0 0 2px #AE3A16;
+}
+
+/* --- The spine: a walnut rail every step is mounted on --- */
+.sv-column {
+  position: relative;
+  padding-left: 76px;
+}
+
+.sv-column::before {
+  content: '';
+  position: absolute;
+  left: 24px;
+  top: 34px;
+  bottom: 56px;
+  width: 9px;
+  background: #B08350;
+  background-image: var(--t-grain);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+}
+
+/* --- Cards: paper sheets, number blocks riding the spine --- */
+.sv-card {
+  position: relative;
+  border: none;
+  background: #FDF9F0;
+  box-shadow: 0 2px 5px rgba(50, 35, 15, 0.18);
+  padding: 20px 24px;
+  margin-bottom: 28px;
+}
+
+.sv-card.sv-muted {
+  background: #F7F2E7;
+  border: none;
+  opacity: 1;
+  padding: 14px 24px;
+}
+
+.sv-num {
+  position: absolute;
+  left: -66px;
+  top: 14px;
+  width: 44px;
+  height: 44px;
+  border: none;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 1.25rem;
+  box-shadow: 0 2px 4px rgba(50, 35, 15, 0.30);
+  transform: rotate(-2deg);
+  z-index: 1;
+}
+
+.sv-card:nth-child(even) .sv-num { transform: rotate(2deg); }
+
+.sv-card.sv-muted .sv-num { width: 38px; height: 38px; top: 8px; left: -63px; font-size: 1.05rem; }
+
+/* Family paint on the number marks (wood for the bookends) */
+.sv-num.sv-fam-lobby  { background: #EAD9BA; background-image: var(--t-grain); color: #6B4E2A; }
+.sv-num.sv-fam-ask    { background: #FFC800; background-image: var(--t-grain); color: #2A2620; }
+.sv-num.sv-fam-show   { background: #22A05A; background-image: none; color: #FDF9F0; }
+.sv-num.sv-fam-decide { background: #B0197E; background-image: none; color: #FDF9F0; }
+.sv-num.sv-fam-team   { background: #F08C1E; background-image: none; color: #FDF9F0; }
+.sv-num.sv-fam-ai     { background: #1BA9C4; background-image: none; color: #FDF9F0; }
+.sv-num.sv-fam-end    { background: #8F6438; background-image: var(--t-grain); color: #FDF9F0; }
+
+.sv-sentence {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 10px;
+}
+
+/* --- Inputs: sanded planks with the pencil line --- */
+.sv-text, .sv-token-box {
+  border: none;
+  background: #EAD9BA;
+  background-image: var(--t-grain);
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.35);
+  box-shadow: 0 2px 4px rgba(50, 35, 15, 0.22);
+  padding: 14px 16px 10px;
+  font-size: 1rem;
+}
+
+.sv-text:focus {
+  border: none;
+  border-bottom: 3px dashed #2A2620;
+  box-shadow: 0 2px 4px rgba(50, 35, 15, 0.22), inset 0 0 0 2px #2A2620;
+}
+
+.sv-token-box:focus-within {
+  border: none;
+  border-bottom: 3px dashed #2A2620;
+  box-shadow: 0 2px 4px rgba(50, 35, 15, 0.22), inset 0 0 0 2px #2A2620;
+}
+
+/* --- Token chips: little birch offcuts --- */
+.sv-chip {
+  background: #E3C8A0;
+  background-image: var(--t-grain);
+  border: none;
+  box-shadow: 0 1px 2px rgba(50, 35, 15, 0.30);
+  color: #2A2620;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.72rem;
+}
+
+.sv-chip-delete { color: #6B4E2A; }
+.sv-chip-delete:hover { color: #AE3A16; }
+
+/* --- Facts: the timer wears the yellow chip --- */
+.sv-facts { color: #6B6250; font-weight: 600; font-size: 0.85rem; }
+.sv-fact-sep { color: rgba(50, 35, 15, 0.3); }
+
+.sv-timer {
+  border: none;
+  background: #FFC800;
+  background-image: var(--t-grain);
+  box-shadow: 0 1px 2px rgba(50, 35, 15, 0.30);
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  color: #2A2620;
+}
+
+/* --- Actions: Ask AI is a cyan block, All settings a quiet link --- */
+.sv-action {
+  background: #1BA9C4;
+  color: #FDF9F0;
+  border: none;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+  cursor: pointer;
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sv-action:hover { text-decoration: none; transform: translateY(-3px); }
+
+.sv-action-quiet {
+  background: transparent;
+  color: #2A2620;
+  box-shadow: none;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.sv-action-quiet:hover { color: #E5482B; transform: none; }
+
+/* --- Add a step: the dashed drop slot --- */
+#simple-add-step {
+  background: #F2EEE5;
+  color: #A08A68;
+  border: 3px dashed rgba(110, 75, 40, 0.4);
+  border-radius: 0;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 16px 44px;
+  margin: 4px 0 0;
+  box-shadow: none;
+  cursor: pointer;
+  transition: border-color 120ms cubic-bezier(0.4, 0, 0.2, 1), color 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#simple-add-step:hover { background: #F2EEE5; border-color: #6B4E2A; color: #6B4E2A; }
+
+.sv-add-hint {
+  margin-left: 16px;
+  color: #A99B82;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+/* --- Footer: the stack's base board + step count --- */
+#sv-footer {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin: 48px 0 30px -76px;
+}
+
+.sv-footer-board {
+  width: 420px;
+  max-width: 55%;
+  height: 18px;
+  background: #8F6438;
+  background-image: var(--t-grain);
+  box-shadow: 0 3px 5px rgba(50, 35, 15, 0.30);
+}
+
+.sv-footer-caps {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8A7B62;
+}

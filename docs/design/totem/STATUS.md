@@ -17,6 +17,8 @@ Last updated: 2026-08-20.
 | Player join + collect | 10c | Done. Letters fill slot blocks, sanded planks, red Join/Submit. |
 | Library | 10d | Done, including the interaction change: six piles (RECENT / FAVORITES / CUSTOMIZED / CONNECT / THINK / PLAY), balanced columns capped at 6, plank popup with full card actions. Owner mode keeps the card grid on purpose. |
 | Designer create + editor chrome | 9d (partial) | Skin only: palette, type, motion, square cuts. |
+| Create front door | jamyard-designer.png (12B) | Done (2026-08-20). Paper header bar, painted-word headline, sanded plank idea box + red MAKE IT, painted example planks. |
+| Editor Simple view | simple-designer.png (12A) | Done (2026-08-20). Steps on a walnut spine with painted family number blocks, plank inputs, birch token chips, yellow timer chip, cyan Ask AI, dashed add slot, base-board footer. Editor header went paper (all views). |
 | Prototype test bench | preview-prototype.png (round 11) | Done (2026-08-20). Seat blocks for player count, empty-stands prelaunch scene, pieces on stands with painted player bars, red swaps LAUNCH → ▶ HOST THIS on launch, live "+ Add a player" late-join slot. |
 | Guide, privacy, feedback inbox, prototype chrome, feedback widget | system grammar | Done (2026-08-20). Paper sheets on flat gesso, ink table bands, painted-word on the guide h1, yellow active tabs/toggles, prototype's host panel marked yellow (Launch keeps THE red; Host this goes ink), widget self-contained with literal Totem values. Inbox category emoji retired. |
 | Teacher console `/teacher` | system grammar | Done. Sanded-plank join inputs, yellow attention chip (pulse retired: nothing moves at rest), paper entry/preview pieces, green checklist done-bar, one red go-action per state. |

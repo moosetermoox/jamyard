@@ -828,6 +828,23 @@
 
   // --- Render ---
 
+  // Totem 12A: number blocks are marks, so they wear paint — ask yellow,
+  // show green, decide magenta, team orange, AI cyan; the waiting room
+  // stays sanded wood and the wrap-up base wood. CSS maps sv-fam-* to
+  // the colors (simple-designer.png).
+  function svFamily(type) {
+    if (type === 'ai-process' || type === 'ai-eliminate') return 'ai';
+    if (type === 'lobby') return 'lobby';
+    if (type === 'end') return 'end';
+    if (type === 'collect' || type === 'collect-choice' || type === 'estimate' ||
+        type === 'collect-two' || type === 'match' || type === 'sort' || type === 'buzz') return 'ask';
+    if (type === 'announce' || type === 'reveal' || type === 'reveal-one' ||
+        type === 'leaderboard' || type === 'winner' || type === 'preview') return 'show';
+    if (type === 'vote' || type === 'rank' || type === 'rate' ||
+        type === 'wager' || type === 'eliminate') return 'decide';
+    return 'team';
+  }
+
   function renderSimpleView() {
     if (!gameConfig || !gameConfig.phases) return;
     simpleList.innerHTML = '';
@@ -845,8 +862,7 @@
       var card = el('div', 'sv-card' + (d.muted ? ' sv-muted' : ''));
       card.setAttribute('data-phase-id', phaseId);
 
-      var num = el('div', 'sv-num', String(stepNum));
-      num.style.background = cat.bg || '#eee';
+      var num = el('div', 'sv-num sv-fam-' + svFamily(phase.type), String(stepNum));
       card.appendChild(num);
 
       var body = el('div', 'sv-body');
@@ -867,7 +883,7 @@
 
       // Actions: AI for structural change, Advanced for everything else
       var actions = el('div', 'sv-actions');
-      var askBtn = el('button', 'sv-action', '✨ Ask AI to change this step');
+      var askBtn = el('button', 'sv-action', 'Ask AI to change this');
       askBtn.type = 'button';
       askBtn.setAttribute('data-phase-id', phaseId);
       askBtn.addEventListener('click', function () {
@@ -905,6 +921,23 @@
       card.appendChild(body);
       simpleList.appendChild(card);
     }
+
+    // Footer: the stack's base board + step count (simple-designer.png).
+    // Lives after the add button, outside the re-rendered list, so it is
+    // created once and its caption refreshed on every render.
+    var footer = document.getElementById('sv-footer');
+    if (!footer) {
+      footer = el('div', null, '');
+      footer.id = 'sv-footer';
+      footer.appendChild(el('div', 'sv-footer-board', ''));
+      footer.appendChild(el('span', 'sv-footer-caps', ''));
+      var addBtn = document.getElementById('simple-add-step');
+      if (addBtn && addBtn.parentNode) addBtn.parentNode.appendChild(footer);
+    }
+    var caption = stepNum + (stepNum === 1 ? ' step' : ' steps');
+    if (gameConfig.playTime) caption += ' · ' + gameConfig.playTime;
+    var capsEl = footer.querySelector('.sv-footer-caps');
+    if (capsEl) capsEl.textContent = caption;
   }
 
   // --- Init: apply the saved (or default) view once the game has loaded.

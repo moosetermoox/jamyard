@@ -1697,3 +1697,163 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
 * { border-radius: 0 !important; }
 
 body::before { content: none; }
+
+/* ================================================================
+   TOTEM PASS 3 (docs/design/totem/screens/jamyard-designer.png, 12B):
+   the Create front door on the bare gesso. Slim paper header bar,
+   centered headline with the painted word, the idea box as a sanded
+   plank beside the red MAKE IT block, painted example planks.
+   ================================================================ */
+
+body {
+  max-width: none;
+  padding: 0;
+}
+
+header {
+  background: #FDF9F0;
+  padding: 14px 28px;
+  justify-content: flex-start;
+  gap: 22px;
+  margin-bottom: 0;
+  box-shadow: 0 2px 4px rgba(50, 35, 15, 0.14);
+}
+
+h1 {
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* The mock reads back-link first, title second */
+header .back-link { order: -1; }
+
+.back-link::before { content: '\2190\00A0'; }
+
+main {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 64px 20px 80px;
+}
+
+#idea-hero {
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  padding: 0;
+  text-align: center;
+}
+
+.idea-hero-title {
+  font-size: 2.5rem;
+  line-height: 1.14;
+  max-width: 640px;
+  margin: 0 auto 34px;
+}
+
+.idea-input-row {
+  max-width: 860px;
+  margin: 0 auto;
+  align-items: center;
+  gap: 24px;
+}
+
+/* The idea box is a sanded plank with the pencil line */
+#idea-input {
+  min-height: 108px;
+  padding: 24px 26px 20px;
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+  border: none;
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.35);
+  box-shadow: var(--t-shadow-free);
+  transform: rotate(-0.5deg);
+  font-weight: 500;
+  font-size: 1.05rem;
+  color: #2A2620;
+  text-align: left;
+}
+
+#idea-input::placeholder { color: rgba(110, 75, 40, 0.55); }
+
+#idea-input:focus {
+  border: none;
+  border-bottom: 3px dashed #2A2620;
+  box-shadow: var(--t-shadow-free), inset 0 0 0 2px #2A2620;
+}
+
+#idea-go-btn {
+  padding: 18px 32px;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  transform: rotate(1deg);
+  box-shadow: var(--t-shadow-free);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#idea-go-btn:hover {
+  transform: rotate(1deg) translateY(-5px);
+  box-shadow: var(--t-shadow-free);
+}
+
+.idea-examples {
+  justify-content: center;
+  gap: 14px;
+  margin-top: 40px;
+}
+
+.idea-examples-label {
+  flex-basis: 100%;
+  text-align: center;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: #8A7B62;
+  margin-bottom: 4px;
+}
+
+/* Example ideas are painted planks */
+.idea-example-chip {
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 12px 18px;
+  box-shadow: var(--t-shadow-free);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.idea-example-chip:nth-of-type(1) { background: var(--t-yellow); background-image: var(--t-grain); color: #2A2620; }
+.idea-example-chip:nth-of-type(2) { background: var(--t-birch); background-image: var(--t-grain); color: #2A2620; }
+.idea-example-chip:nth-of-type(3) { background: var(--t-cyan); color: #FDF9F0; }
+.idea-example-chip:nth-of-type(4) { background: var(--t-magenta); color: #FDF9F0; }
+
+.idea-example-chip:nth-of-type(odd):hover { transform: rotate(-0.7deg) translateY(-5px); box-shadow: var(--t-shadow-free); background-image: var(--t-grain); }
+.idea-example-chip:nth-of-type(even):hover { transform: rotate(0.6deg) translateY(-5px); box-shadow: var(--t-shadow-free); }
+.idea-example-chip:nth-of-type(3):hover, .idea-example-chip:nth-of-type(4):hover { background-image: none; }
+
+.idea-advanced-links {
+  text-align: center;
+  font-size: 0.98rem;
+  margin-top: 34px;
+}
+
+.idea-advanced-links + .idea-advanced-links { margin-top: 16px; }
+
+.idea-advanced-links a { color: #2A2620; }
+.idea-advanced-links a:hover { color: #E5482B; }
+
+#not-sure-link {
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding-bottom: 3px;
+  border-bottom: 2px dashed rgba(110, 75, 40, 0.4);
+}
+
+.idea-library-link {
+  text-align: center;
+  margin-top: 80px;
+  color: #6B6250;
+}
+
+.idea-library-link a { color: #2A2620; font-weight: 700; }
+.idea-library-link a:hover { color: #E5482B; }

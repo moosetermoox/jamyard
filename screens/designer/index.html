@@ -11,7 +11,7 @@
 <body>
   <header>
     <h1>Create an Activity</h1>
-    <a href="/library" class="back-link">Back to Library</a>
+    <a href="/library" class="back-link">Library</a>
   </header>
 
   <main>
@@ -19,14 +19,14 @@
          Routes through /api/games/from-description (recipe match) with
          the no-match view offering the picker + legacy generator. -->
     <section id="idea-hero">
-      <h2 class="idea-hero-title">What do you want to do with your class?</h2>
+      <h2 class="idea-hero-title">What do you want to do with your <span class="t-painted-word">class?</span></h2>
       <div class="idea-input-row">
         <textarea id="idea-input" rows="2"
           placeholder="Describe it in plain words. 'a quick poll about our field trip', 'something to help my class feel more connected', 'students write funny excuses and vote on the best'..."></textarea>
         <button id="idea-go-btn" title="AI builds a first draft of your activity, you can edit everything after">Make it</button>
       </div>
       <div class="idea-examples">
-        <span class="idea-examples-label">Try:</span>
+        <span class="idea-examples-label">Try one of these</span>
         <button class="idea-example-chip" type="button">I want my class to laugh together</button>
         <button class="idea-example-chip" type="button">A quick poll before lunch</button>
         <button class="idea-example-chip" type="button">Turn everyone's ideas into one class answer</button>
