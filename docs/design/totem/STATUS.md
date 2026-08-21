@@ -17,6 +17,7 @@ Last updated: 2026-08-20.
 | Player join + collect | 10c | Done. Letters fill slot blocks, sanded planks, red Join/Submit. |
 | Library | 10d | Done, including the interaction change: six piles (RECENT / FAVORITES / CUSTOMIZED / CONNECT / THINK / PLAY), balanced columns capped at 6, plank popup with full card actions. Owner mode keeps the card grid on purpose. |
 | Designer create + editor chrome | 9d (partial) | Skin only: palette, type, motion, square cuts. |
+| Teacher console `/teacher` | system grammar | Done. Sanded-plank join inputs, yellow attention chip (pulse retired: nothing moves at rest), paper entry/preview pieces, green checklist done-bar, one red go-action per state. |
 | Editor Builder view | 9d | Done. Steps are painted blocks in one stack (family colors = data coding), plinth + base, selected = yellow + inset ink ring, dashed "+ ADD A STEP" frontier slot, scrap-bin palette, gesso rail with paper detail board. Drag markers became inset ink bars (outset shadows die under clip-path). Simple view untouched by design (it is the sentences face, not the blocks face). |
 
 Also done: `totem` theme preset (host+player default; per-game themes
@@ -25,7 +26,7 @@ teacher copy updated to match ("Copy teacher link").
 
 ## Still to do
 
-1. **Unmigrated surfaces** (still Paste-up): `/teacher`, `/guide`,
+1. **Unmigrated surfaces** (still Paste-up): `/guide`,
    `/prototype` chrome, `/privacy`, `/feedback`, and
    `shared/feedback-widget.js`.
 2. Residue: some hard paste shadows remain in the designer; mic button
