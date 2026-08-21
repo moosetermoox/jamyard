@@ -10,19 +10,29 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-14, setup-mode day)
+### START HERE next session (updated 2026-08-20, Totem merge day)
 
-Three waves shipped and DEPLOYED 2026-08-14 (commits 0e33bd8 + 9d75931,
-both CI-green; see the three CHANGELOG 2026-08-14 entries): per-game
-setup mode in the Customize dialog (recipe provenance stamps, knobs,
-multi-phase $repeat, Speed Quiz recipe-born + drift-guarded, land on
-/library?highlight=), the quiz Customize panel (editable question list,
-topic box → AI-written questions with the fact-check gate, generic AI
-interview skipped for quiz games), and the teams knob (Speed Quiz
-copies become team competitions from Customize; team leaderboard
-browser eyeball DONE, "Team Team 1" player headline fixed). 1119 tests.
+**The Totem redesign is MERGED AND LIVE** (2026-08-20, master c469b10,
+CI green, verified on jamyard.xyz): every surface wears the scrap-wood
+system, the library is the 9g yard (three goal piles + My yard shelf,
+"+ N MORE" overflow), and the editor collapsed to ONE face — the 9D
+stack + detail card + Design-with-AI chat. Structure changes (add,
+reorder, remove steps) go through the chat's proposal flow. Full detail:
+CHANGELOG slices 1-14 + docs/design/totem/STATUS.md. 1194 tests.
 
-Remaining, in priority order:
+Fresh follow-ups from merge day (before the older list below):
+
+- **Closer needs revision** (owner's call; unfeatured until then). What
+  changes it needs is the owner's to define next session.
+- **Watch the live one-editor with real users**: the chat is now the
+  only path for structural edits — if that pinches, the parked pieces
+  (scrap bin, add-step slot, All-settings expander via
+  SV_ALL_SETTINGS_ENABLED, hidden Simple|Builder toggle) are one-flag
+  re-enables.
+- **Host a real activity on jamyard.xyz** end to end (only local
+  verification happened on merge day).
+
+Remaining from the setup-mode era, in priority order:
 
 1. **Accessibility audit** (blind + colorblind users) — NOW THE TOP
    ITEM and overdue: field tests are live this August. Screen-reader
