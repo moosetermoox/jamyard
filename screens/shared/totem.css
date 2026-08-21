@@ -192,6 +192,20 @@ select:focus-visible,
   transform: rotate(var(--rot, 0deg)) translateX(var(--slide, 10px));
 }
 
+/* Stable hover for stacked blocks: wrap each block in a .t-row and the
+   row (unclipped, never moving) carries the hover. Without this, the
+   block's own :hover moves its clip-path hit area out from under the
+   cursor at the seams, so two neighboring blocks jitter "together". */
+.t-row {
+  display: flex;
+  justify-content: center;
+}
+
+.t-row:hover > .t-block-btn,
+.t-row:focus-within > .t-block-btn {
+  transform: rotate(var(--rot, 0deg)) translateX(var(--slide, 10px));
+}
+
 /* A free-standing piece that acts: hover lifts, press settles. */
 .t-lift {
   border: none;

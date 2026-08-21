@@ -1478,6 +1478,41 @@ a { color: #AE3A16; }
 
 .recipe-loading { color: #6E6353; }
 
+/* ---- Totem pass: the picker is paper pieces on a gesso board ----
+   Cards sit slightly off-square and lift on hover (the system's free-
+   piece motion), instead of the old press-flat effect. */
+.template-picker-modal {
+  background: #F2EEE5;
+  box-shadow: 0 12px 24px rgba(42, 38, 32, 0.30);
+}
+
+.template-picker-title {
+  font-size: 1.85rem;
+  text-align: left;
+}
+
+.template-picker-subtitle { text-align: left; color: #6B6250; margin-bottom: 18px; }
+
+.template-card,
+.recipe-card {
+  background: #FDF9F0 !important;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.template-picker-grid .template-card:nth-child(odd),
+.recipe-picker-grid .recipe-card:nth-child(odd) { transform: rotate(-0.5deg); }
+.template-picker-grid .template-card:nth-child(even),
+.recipe-picker-grid .recipe-card:nth-child(even) { transform: rotate(0.4deg); }
+
+.template-picker-grid .template-card:nth-child(odd):hover,
+.recipe-picker-grid .recipe-card:nth-child(odd):hover { background: #FDF9F0 !important; transform: rotate(-0.5deg) translateY(-4px); }
+.template-picker-grid .template-card:nth-child(even):hover,
+.recipe-picker-grid .recipe-card:nth-child(even):hover { background: #FDF9F0 !important; transform: rotate(0.4deg) translateY(-4px); }
+
+.dialog-close-btn { background: #F2EEE5; }
+.dialog-close-btn:hover { background: #F2EEE5; transform: translateY(-2px); box-shadow: 0 2px 3px rgba(50, 35, 15, 0.18); }
+
 /* ---- Recipe form ---- */
 .recipe-back-btn {
   border: none;

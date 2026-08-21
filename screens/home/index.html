@@ -51,19 +51,30 @@
       text-decoration: none;
     }
 
+    /* One logo everywhere: two painted blocks, JAM on birch, YARD on red
+       (same mark as the library and host screens, front-door sized). */
     .wordmark span {
       font-family: var(--t-display);
       font-weight: 800;
       font-size: 26px;
-      padding: 6px 12px 8px;
+      padding: 6px 14px 8px;
       display: inline-block;
       transform: rotate(var(--rot, 0deg));
       box-shadow: 0 3px 5px rgba(50,35,15,0.30);
     }
 
-    /* Two letters carry a saw cut */
-    .wm-notch { clip-path: polygon(0 0, 100% 0, 100% 30%, 88% 30%, 88% 48%, 100% 48%, 100% 100%, 0 100%); }
-    .wm-corner { clip-path: polygon(0 0, 78% 0, 100% 22%, 100% 100%, 0 100%); }
+    .wm-jam {
+      background: var(--t-birch);
+      background-image: var(--t-grain);
+      color: var(--t-ink);
+      --rot: -2deg;
+    }
+
+    .wm-yard {
+      background: var(--t-red);
+      color: var(--t-paper);
+      --rot: 1.5deg;
+    }
 
     .tagline {
       font-size: 13px;
@@ -445,13 +456,8 @@
 
     <header>
       <span class="wordmark" aria-label="Jamyard">
-        <span class="t-birch" style="--rot: -2deg">J</span>
-        <span class="t-yellow" style="--rot: 1.5deg">A</span>
-        <span class="t-oak wm-notch" style="--rot: -1deg">M</span>
-        <span class="t-cyan" style="--rot: 2deg">Y</span>
-        <span class="t-pine" style="--rot: -1.5deg">A</span>
-        <span class="t-red" style="--rot: 1deg">R</span>
-        <span class="t-walnut wm-corner" style="--rot: -2deg">D</span>
+        <span class="wm-jam">JAM</span>
+        <span class="wm-yard">YARD</span>
       </span>
       <span class="tagline">INTERACTIVE WHOLE-CLASS ACTIVITIES</span>
     </header>
@@ -463,14 +469,14 @@
       <nav class="totem-col" aria-label="Main actions">
         <div class="t-stack">
           <div class="t-yellow act-offcut" style="--rot: -2deg" aria-hidden="true"></div>
-          <a class="t-block-btn t-label t-red act act-find" style="--rot: 1.4deg; --slide: -10px"
-             href="/library" title="Browse the library and host an activity in one click">Find</a>
-          <a class="t-block-btn t-label t-birch act act-create" style="--rot: -1.2deg; --slide: 10px"
-             href="/designer" title="Build your own activity, describe it in plain words, use a recipe, or start from scratch">Create</a>
-          <a class="t-block-btn t-label t-oak act act-join" style="--rot: 0.8deg; --slide: -10px"
-             href="#join" onclick="document.getElementById('room-code').focus()" title="Joining as a student? Enter your room code">Join</a>
-          <a class="t-block-btn t-label t-cyan act act-guide" style="--rot: -1deg; --slide: 10px"
-             href="/guide" title="One page: setup, live controls, and what to do when something goes wrong">Guide</a>
+          <div class="t-row"><a class="t-block-btn t-label t-red act act-find" style="--rot: 1.4deg; --slide: -10px"
+             href="/library" title="Browse the library and host an activity in one click">Find</a></div>
+          <div class="t-row"><a class="t-block-btn t-label t-birch act act-create" style="--rot: -1.2deg; --slide: 10px"
+             href="/designer" title="Build your own activity, describe it in plain words, use a recipe, or start from scratch">Create</a></div>
+          <div class="t-row"><a class="t-block-btn t-label t-oak act act-join" style="--rot: 0.8deg; --slide: -10px"
+             href="/player" title="Joining as a student? Enter your room code">Join</a></div>
+          <div class="t-row"><a class="t-block-btn t-label t-cyan act act-guide" style="--rot: -1deg; --slide: 10px"
+             href="/guide" title="One page: setup, live controls, and what to do when something goes wrong">Guide</a></div>
           <div class="t-plinth" aria-hidden="true"></div>
           <div class="t-baseboard" aria-hidden="true"></div>
         </div>

@@ -2359,6 +2359,17 @@ function renderPlayerList(players) {
     li.appendChild(kickBtn);
     playerList.appendChild(li);
   }
+
+  // Big classes wrap into side-by-side piles; the plinth and base board
+  // widen so every pile still stands on the footing (stacks never float).
+  const footing = document.querySelector('.roster-footing');
+  if (footing) {
+    const width = playerList.offsetWidth;
+    const plinth = footing.querySelector('.t-plinth');
+    const base = footing.querySelector('.t-baseboard');
+    if (plinth) plinth.style.width = Math.max(130, Math.round(width * 0.45)) + 'px';
+    if (base) base.style.width = Math.max(250, width + 36) + 'px';
+  }
 }
 
 function updateStartButton(playerCount) {
