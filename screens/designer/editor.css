@@ -4148,3 +4148,269 @@ body::before { content: none; }
   text-transform: uppercase;
   color: #8A7B62;
 }
+
+/* ================================================================
+   TOTEM PASS 4: the flanks. The Activity settings sidebar and the
+   Design-with-AI chat column join the system: gesso grounds, spaced-
+   caps panel titles, sanded plank inputs with the pencil line, and
+   cyan for everything AI (red stays reserved for HOST in the header).
+   ================================================================ */
+
+/* --- Left sidebar: Activity settings on gesso --- */
+#settings-panel {
+  background: #F2EEE5;
+  border-right: 1px solid rgba(50, 35, 15, 0.14);
+}
+
+#settings-panel h2 {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8A7B62;
+  border: none;
+}
+
+#settings-panel label {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  color: #2A2620;
+}
+
+#settings-panel input,
+#settings-panel textarea,
+#settings-panel select {
+  background: #EAD9BA;
+  background-image: var(--t-grain);
+  border: none;
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.35);
+  border-radius: 0;
+  box-shadow: none;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 500;
+  color: #2A2620;
+}
+
+#settings-panel input:focus,
+#settings-panel textarea:focus,
+#settings-panel select:focus {
+  border-bottom: 3px dashed #2A2620;
+  box-shadow: inset 0 0 0 2px #2A2620;
+}
+
+/* --- Right column: the design chat joins the system --- */
+#chat-panel {
+  background: #F2EEE5;
+  border-left: 1px solid rgba(50, 35, 15, 0.14);
+}
+
+.chat-header { border-bottom: 1px solid rgba(50, 35, 15, 0.14); }
+
+/* The panel title is a small cyan block: AI wears cyan, never red */
+.chat-header h2 {
+  background: #1BA9C4;
+  color: #FDF9F0;
+  padding: 4px 10px 6px;
+  letter-spacing: 0.06em;
+  transform: rotate(-1deg);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+}
+
+/* Teacher messages are ink pieces (red belongs to HOST alone) */
+.chat-msg-user {
+  background: #2A2620;
+  color: #FDF9F0;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.30);
+  transform: rotate(0.4deg);
+}
+
+.chat-msg-ai {
+  background: #FDF9F0;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.16);
+  transform: rotate(-0.3deg);
+}
+
+/* Proposal cards: paper pieces; Apply is the cyan AI action */
+.chat-proposal {
+  background: #FDF9F0;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.20);
+}
+
+.chat-proposal-errors { background: #F2EEE5; }
+
+.chat-apply-btn {
+  background: #1BA9C4;
+  color: #FDF9F0;
+}
+
+.chat-apply-btn:hover { background: #1BA9C4; }
+
+/* The ask box is a sanded plank with the pencil line */
+.chat-input-row { border-top: 1px solid rgba(50, 35, 15, 0.14); }
+
+.chat-input-row textarea {
+  background: #EAD9BA;
+  background-image: var(--t-grain);
+  border-radius: 0;
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.35);
+  box-shadow: none;
+  font-weight: 500;
+}
+
+.chat-input-row textarea:focus {
+  border-bottom: 3px dashed #2A2620;
+  box-shadow: inset 0 0 0 2px #2A2620;
+}
+
+#chat-send {
+  background: #1BA9C4;
+  color: #FDF9F0;
+}
+
+#chat-send:hover { background: #1BA9C4; }
+
+#chat-context-chip { background: #FDF9F0; box-shadow: 0 2px 3px rgba(50, 35, 15, 0.16); }
+
+/* ================================================================
+   TOTEM PASS 5: one editor (9D). The activity is a stack of painted
+   blocks on the left; the picked-up block's plain-language settings
+   show on the detail card; Design with AI is the right column. The
+   scrap bin, drop slots, and view toggle are parked.
+   ================================================================ */
+
+.sv-wrap {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+  max-width: 1020px;
+  margin: 0 auto;
+  padding: 28px 30px 40px;
+}
+
+/* --- The stack column --- */
+#sv-stack {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 16px;
+}
+
+.svb-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(5px 8px 0 rgba(80, 60, 30, 0.14));
+}
+
+.svb-row { width: 100%; margin-top: -4px; }
+.svb-row:first-child { margin-top: 0; }
+
+.svb-block {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 12px 16px 14px;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  min-width: 0;
+}
+
+.svb-num { opacity: 0.6; font-size: 12px; flex-shrink: 0; }
+
+.svb-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Family paint = what kind of step (same coding as the number marks) */
+.svb-fam-lobby  { background: #EAD9BA; background-image: var(--t-grain); color: #6B4E2A; }
+.svb-fam-ask    { background: #FFC800; background-image: var(--t-grain); color: #2A2620; }
+.svb-fam-show   { background: #22A05A; color: #FDF9F0; }
+.svb-fam-decide { background: #B0197E; color: #FDF9F0; }
+.svb-fam-team   { background: #F08C1E; color: #FDF9F0; }
+.svb-fam-ai     { background: #1BA9C4; color: #FDF9F0; }
+.svb-fam-end    { background: #8F6438; background-image: var(--t-grain); color: #FDF9F0; }
+
+/* Picked up = the inset ink ring; the block keeps its family paint */
+.svb-block.svb-selected { box-shadow: inset 0 0 0 3px #2A2620; }
+
+.svb-plinth {
+  width: 120px;
+  height: 40px;
+  background: #B08350;
+  background-image: var(--t-grain);
+  margin-top: -2px;
+}
+
+.svb-caption {
+  text-align: center;
+  margin-top: 12px;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8A7B62;
+}
+
+/* --- The detail card --- */
+#sv-detail { flex: 1; min-width: 0; }
+
+/* display:block overrides the legacy .sv-card flex row (num + body) */
+.sv-detail-card { display: block; padding: 24px 28px 26px; }
+
+.svd-chip {
+  display: inline-block;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 6px 14px 8px;
+  margin-bottom: 16px;
+  transform: rotate(-1deg);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.28);
+}
+
+/* --- All settings: the adopted step form inside the card --- */
+.svd-allsettings {
+  margin-top: 20px;
+  border-top: 1px solid rgba(50, 35, 15, 0.16);
+  padding-top: 16px;
+}
+
+.svd-allsettings label {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  color: #2A2620;
+}
+
+.svd-allsettings input:not([type="checkbox"]):not([type="radio"]),
+.svd-allsettings textarea,
+.svd-allsettings select {
+  border: none;
+  border-radius: 0;
+  background: #EAD9BA;
+  background-image: var(--t-grain);
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.35);
+  box-shadow: none;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 500;
+  color: #2A2620;
+}
+
+.svd-allsettings input:not([type="checkbox"]):not([type="radio"]):focus,
+.svd-allsettings textarea:focus,
+.svd-allsettings select:focus {
+  border-bottom: 3px dashed #2A2620;
+  box-shadow: inset 0 0 0 2px #2A2620;
+  outline: none;
+}

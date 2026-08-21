@@ -1061,8 +1061,11 @@
 
   // Restore Builder on load if it was the last-used view. gameConfig
   // isn't fetched at script time — hook the first canvas render.
+  // One-editor pass (2026-08-20): the header toggle is hidden, so a
+  // restored Builder would strand the teacher on a face nothing names.
+  // Never auto-restore; clear the stale flag. enterBuilder stays callable.
+  try { localStorage.removeItem('lanyardEditorBuilder'); } catch (e) { /* ignore */ }
   var wantBuilder = false;
-  try { wantBuilder = localStorage.getItem('lanyardEditorBuilder') === '1'; } catch (e) { /* ignore */ }
   if (wantBuilder) {
     var restored = false;
     var _renderForRestore = renderCanvas;

@@ -22,7 +22,8 @@ Last updated: 2026-08-20.
 | Prototype test bench | preview-prototype.png (round 11) | Done (2026-08-20). Seat blocks for player count, empty-stands prelaunch scene, pieces on stands with painted player bars, red swaps LAUNCH → ▶ HOST THIS on launch, live "+ Add a player" late-join slot. |
 | Guide, privacy, feedback inbox, prototype chrome, feedback widget | system grammar | Done (2026-08-20). Paper sheets on flat gesso, ink table bands, painted-word on the guide h1, yellow active tabs/toggles, prototype's host panel marked yellow (Launch keeps THE red; Host this goes ink), widget self-contained with literal Totem values. Inbox category emoji retired. |
 | Teacher console `/teacher` | system grammar | Done. Sanded-plank join inputs, yellow attention chip (pulse retired: nothing moves at rest), paper entry/preview pieces, green checklist done-bar, one red go-action per state. |
-| Editor Builder view | 9d | Done. Steps are painted blocks in one stack (family colors = data coding), plinth + base, selected = yellow + inset ink ring, dashed "+ ADD A STEP" frontier slot, scrap-bin palette, gesso rail with paper detail board. Drag markers became inset ink bars (outset shadows die under clip-path). Simple view untouched by design (it is the sentences face, not the blocks face). |
+| Editor Builder view | 9d | Superseded 2026-08-20: the editor collapsed to ONE face (below). Builder code parked (toggle hidden, no auto-restore, enterBuilder still callable). |
+| ONE editor (9D stack) | 9d, owner's cut | Done (2026-08-20). Stack of painted family-color blocks left (click to pick up), detail card = the step's sentence form + "All settings" expander (adopts #phase-config-form), Design-with-AI chat right. Scrap bin, drop slots, and drag-reorder parked; structure changes go through the chat. |
 
 Also done: `totem` theme preset (host+player default; per-game themes
 still win), emoji glyphs retired from migrated button labels, guide and

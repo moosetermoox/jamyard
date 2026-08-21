@@ -13,7 +13,10 @@
     <div class="header-left">
       <a href="/library" class="back-link">&larr; Back to Library</a>
       <h1 id="header-game-name">Loading...</h1>
-      <div id="view-toggle" class="view-toggle">
+      <!-- One editor now (2026-08-20): the stack view. The toggle is
+           hidden, not removed: the Builder parks state through these
+           buttons and both stay programmatically reachable. -->
+      <div id="view-toggle" class="view-toggle" hidden>
         <button id="view-simple-btn" class="view-toggle-btn" type="button" title="Plain-English view, every step as an editable sentence">Simple</button>
         <button id="view-builder-btn" class="view-toggle-btn" type="button" title="Build with blocks, a palette of steps, suggested next steps, and settings beside the activity">Builder</button>
       </div>
@@ -90,12 +93,19 @@
       </div>
     </aside>
 
-    <!-- Simple view: each step as a sentence with its editable text inline.
-         The default for most teachers; the canvas below is "Advanced". -->
+    <!-- The editor (Totem 9d, one face): the activity is a stack of
+         blocks on the left; click a block and its plain-language settings
+         open in the detail card. Structural changes (new steps, reorder)
+         go through Design with AI for now; the scrap bin and drop slots
+         are parked until drag-building is ready. -->
     <main id="simple-view" hidden>
-      <!-- Inner column: capped for readable line lengths, centered so wide
-           screens get balanced gutters instead of a dead right half. -->
-      <div class="sv-column">
+      <div class="sv-wrap">
+        <nav id="sv-stack" aria-label="The activity's steps"></nav>
+        <section id="sv-detail" aria-label="Selected step's settings"></section>
+      </div>
+      <!-- Parked (2026-08-20, one-editor pass): the add-step slot waits
+           for the scrap bin; kept for an easy re-enable. -->
+      <div hidden>
         <div id="simple-list"></div>
         <button id="simple-add-step" class="btn btn-add" type="button">+ Add a step</button>
         <span class="sv-add-hint">a new block joins the stack</span>

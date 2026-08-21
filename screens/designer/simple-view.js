@@ -20,6 +20,18 @@
   var viewSimpleBtn = document.getElementById('view-simple-btn');
   var viewAdvancedBtn = document.getElementById('view-advanced-btn');
 
+  // One-editor pass (Totem 9d): the stack column + the detail card.
+  var svStack = document.getElementById('sv-stack');
+  var svDetail = document.getElementById('sv-detail');
+  var svSelectedId = null;   // which block is picked up
+  var svSettingsOpen = false; // "All settings" expander state
+  var svFormPhaseId = null;  // which step #phase-config-form is filled for
+  var svRendering = false;   // re-entrancy guard (see renderCanvas wrapper)
+  // Parked (owner's call 2026-08-20): the raw-field expander is hidden —
+  // small things live on the card, everything else goes through the AI
+  // chat. Flip to true to bring "All settings" back.
+  var SV_ALL_SETTINGS_ENABLED = false;
+
   var currentView = 'simple';
   try {
     currentView = localStorage.getItem('lanyardEditorView') || 'simple';
@@ -70,20 +82,27 @@
   var _origRenderCanvas = renderCanvas;
   renderCanvas = function () {
     _origRenderCanvas.apply(this, arguments);
-    if (currentView === 'simple') renderSimpleView();
+    // svRendering: renderSimpleView itself calls _origSelectPhase (which
+    // calls renderCanvas) while adopting the step form — don't re-enter.
+    // An outside render (Apply proposal, review fix) invalidates the
+    // adopted form so it re-fills with the fresh config.
+    if (currentView === 'simple' && !svRendering) {
+      svFormPhaseId = null;
+      renderSimpleView();
+    }
   };
 
   var _origSelectPhase = selectPhase;
   selectPhase = function (phaseId) {
-    // Deep links (review panel, validation) need a surface that can show
-    // one step's settings — the Builder now; the technical canvas only as
-    // fallback if the Builder failed to load.
+    // Deep links (review panel, validation) land on the stack itself now:
+    // select the block and show its detail card (one-editor pass). The
+    // technical canvas stays the fallback for the programmatic paths.
     if (currentView === 'simple') {
-      if (window.__enterBuilder) {
-        window.__enterBuilder(phaseId);
-        return;
-      }
-      setEditorView('advanced');
+      svSelectedId = phaseId;
+      renderSimpleView();
+      var blk = svStack && svStack.querySelector('.svb-block[data-phase-id="' + phaseId + '"]');
+      if (blk) blk.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
     }
     _origSelectPhase.apply(this, arguments);
   };
@@ -845,99 +864,172 @@
     return 'team';
   }
 
+  // The canonical step name for a block label (one vocabulary with the
+  // Builder and the review panel: shared/phase-names.js).
+  function blockName(type) {
+    return (window.PHASE_NAMES && window.PHASE_NAMES[type]) || type;
+  }
+
+  // Send #phase-config-form (and the live preview) back to their home
+  // panel and flush the open edit — the reverse of adopting them into
+  // the detail card.
+  function returnPhaseForm() {
+    var phasePanelEl = document.getElementById('phase-panel');
+    var form = document.getElementById('phase-config-form');
+    var preview = document.getElementById('live-preview-section');
+    if (form && phasePanelEl) phasePanelEl.appendChild(form);
+    if (preview && phasePanelEl) phasePanelEl.appendChild(preview);
+    if (typeof deselectPhase === 'function') deselectPhase();
+    svFormPhaseId = null;
+  }
+
+  // The one-editor render (Totem 9d): the activity is a stack of painted
+  // blocks; the picked-up block's plain-language settings show on the
+  // detail card beside it. Adding, removing, and reordering steps go
+  // through Design with AI for now (the scrap bin is parked).
   function renderSimpleView() {
     if (!gameConfig || !gameConfig.phases) return;
-    simpleList.innerHTML = '';
+    if (!svStack || !svDetail) return;
+    if (svRendering) return;
+    svRendering = true;
+    try {
+      renderSimpleViewInner();
+    } finally {
+      svRendering = false;
+    }
+  }
 
+  function renderSimpleViewInner() {
     var order = buildPhaseOrder();
+
+    // Keep the selection valid: default to the first real step (the
+    // waiting room is rarely what a teacher wants to edit first).
+    if (!svSelectedId || !gameConfig.phases[svSelectedId]) {
+      svSelectedId = null;
+      svSettingsOpen = false;
+      for (var i = 0; i < order.length; i++) {
+        var p0 = gameConfig.phases[order[i]];
+        if (p0 && p0.type !== 'lobby' && p0.type !== 'end') { svSelectedId = order[i]; break; }
+      }
+      if (!svSelectedId && order.length > 0) svSelectedId = order[0];
+    }
+
+    // --- The stack ---
+    svStack.innerHTML = '';
+    var stack = el('div', 'svb-stack');
     var stepNum = 0;
-    for (var i = 0; i < order.length; i++) {
-      var phaseId = order[i];
+    var selectedNum = 0;
+    var widths = ['96%', '88%', '100%', '92%'];
+    var cuts = [
+      'polygon(0 6%, 100% 0, 98% 100%, 2% 94%)',
+      'polygon(2% 0, 100% 4%, 100% 96%, 0 100%)',
+      'polygon(0 0, 98% 6%, 100% 100%, 1% 96%)'
+    ];
+    for (var s = 0; s < order.length; s++) {
+      var phaseId = order[s];
       var phase = gameConfig.phases[phaseId];
       if (!phase) continue;
-      var cat = PHASE_CATALOG[phase.type] || {};
-      var d = describeStep(phaseId, phase);
-
       stepNum++;
-      var card = el('div', 'sv-card' + (d.muted ? ' sv-muted' : ''));
-      card.setAttribute('data-phase-id', phaseId);
+      if (phaseId === svSelectedId) selectedNum = stepNum;
 
-      var num = el('div', 'sv-num sv-fam-' + svFamily(phase.type), String(stepNum));
-      card.appendChild(num);
-
-      var body = el('div', 'sv-body');
-
-      var sentenceRow = el('div', 'sv-sentence', d.sentence);
-      body.appendChild(sentenceRow);
-      if (d.field) body.appendChild(d.field);
-      if (d.extra) body.appendChild(d.extra);
-
-      if (d.facts.length) {
-        var factsRow = el('div', 'sv-facts');
-        for (var f = 0; f < d.facts.length; f++) {
-          if (f > 0) factsRow.appendChild(el('span', 'sv-fact-sep', '·'));
-          factsRow.appendChild(d.facts[f]);
-        }
-        body.appendChild(factsRow);
-      }
-
-      // Actions: AI for structural change, Advanced for everything else
-      var actions = el('div', 'sv-actions');
-      var askBtn = el('button', 'sv-action', 'Ask AI to change this');
-      askBtn.type = 'button';
-      askBtn.setAttribute('data-phase-id', phaseId);
-      askBtn.addEventListener('click', function () {
-        // chat-panel.js loads after this file — resolve at click time.
-        if (window.openDesignChat) openDesignChat(this.getAttribute('data-phase-id'));
-      });
-      actions.appendChild(askBtn);
-
-      var advBtn = el('button', 'sv-action sv-action-quiet', 'All settings →');
-      advBtn.type = 'button';
-      advBtn.setAttribute('data-phase-id', phaseId);
-      advBtn.addEventListener('click', function (e) {
-        // Don't let this click reach the canvas' outside-click-collapse
-        // handler — it would instantly deselect the step we just opened.
-        e.stopPropagation();
+      var row = el('div', 't-row svb-row');
+      var blk = el('button', 't-block-btn svb-block svb-fam-' + svFamily(phase.type) +
+        (phaseId === svSelectedId ? ' svb-selected' : ''));
+      blk.type = 'button';
+      blk.setAttribute('data-phase-id', phaseId);
+      blk.style.setProperty('--rot', (stepNum % 2 ? -1.2 : 1.1) + 'deg');
+      blk.style.setProperty('--slide', (stepNum % 2 ? 10 : -10) + 'px');
+      blk.style.width = widths[stepNum % widths.length];
+      blk.style.clipPath = cuts[stepNum % cuts.length];
+      blk.appendChild(el('span', 'svb-num', String(stepNum)));
+      blk.appendChild(el('span', 'svb-name', blockName(phase.type)));
+      blk.addEventListener('click', function () {
         var pid = this.getAttribute('data-phase-id');
-        // The Builder shows a step's settings in a rail beside the
-        // activity — the technical canvas would strand the teacher on a
-        // surface the pill no longer names. Fall back only if the Builder
-        // failed to load.
-        if (window.__enterBuilder) {
-          window.__enterBuilder(pid);
-          return;
-        }
-        setEditorView('advanced');
-        _origSelectPhase(pid);
-        // Bring the expanded step into view — the canvas otherwise opens
-        // scrolled to the top and the teacher has to hunt for it.
-        var box = document.querySelector('.phase-box[data-phase-id="' + pid + '"]');
-        if (box) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (pid === svSelectedId) return;
+        if (typeof autoSaveIfDirty === 'function') autoSaveIfDirty();
+        if (svSettingsOpen) returnPhaseForm();
+        svSelectedId = pid;
+        renderSimpleView();
       });
-      actions.appendChild(advBtn);
-
-      body.appendChild(actions);
-      card.appendChild(body);
-      simpleList.appendChild(card);
+      row.appendChild(blk);
+      stack.appendChild(row);
     }
+    stack.appendChild(el('div', 'svb-plinth'));
+    svStack.appendChild(stack);
 
-    // Footer: the stack's base board + step count (simple-designer.png).
-    // Lives after the add button, outside the re-rendered list, so it is
-    // created once and its caption refreshed on every render.
-    var footer = document.getElementById('sv-footer');
-    if (!footer) {
-      footer = el('div', null, '');
-      footer.id = 'sv-footer';
-      footer.appendChild(el('div', 'sv-footer-board', ''));
-      footer.appendChild(el('span', 'sv-footer-caps', ''));
-      var addBtn = document.getElementById('simple-add-step');
-      if (addBtn && addBtn.parentNode) addBtn.parentNode.appendChild(footer);
-    }
     var caption = stepNum + (stepNum === 1 ? ' step' : ' steps');
     if (gameConfig.playTime) caption += ' · ' + gameConfig.playTime;
-    var capsEl = footer.querySelector('.sv-footer-caps');
-    if (capsEl) capsEl.textContent = caption;
+    svStack.appendChild(el('div', 'svb-caption', caption));
+
+    // --- The detail card ---
+    svDetail.innerHTML = '';
+    var selPhase = svSelectedId && gameConfig.phases[svSelectedId];
+    if (!selPhase) return;
+    var d = describeStep(svSelectedId, selPhase);
+
+    var card = el('div', 'sv-card sv-detail-card' + (d.muted ? ' sv-muted' : ''));
+    card.setAttribute('data-phase-id', svSelectedId);
+
+    card.appendChild(el('span', 'svd-chip svb-fam-' + svFamily(selPhase.type),
+      'Step ' + selectedNum + ' · ' + blockName(selPhase.type)));
+
+    card.appendChild(el('div', 'sv-sentence', d.sentence));
+    if (d.field) card.appendChild(d.field);
+    if (d.extra) card.appendChild(d.extra);
+
+    if (d.facts.length) {
+      var factsRow = el('div', 'sv-facts');
+      for (var f = 0; f < d.facts.length; f++) {
+        if (f > 0) factsRow.appendChild(el('span', 'sv-fact-sep', '·'));
+        factsRow.appendChild(d.facts[f]);
+      }
+      card.appendChild(factsRow);
+    }
+
+    // Actions: the card's simple fields for small things, the AI chat for
+    // everything else (owner's call 2026-08-20: no raw-field escape hatch;
+    // the All-settings expander below stays wired for an easy re-enable).
+    var actions = el('div', 'sv-actions');
+    var askBtn = el('button', 'sv-action', 'Ask AI to change this');
+    askBtn.type = 'button';
+    askBtn.addEventListener('click', function () {
+      // chat-panel.js loads after this file — resolve at click time.
+      if (window.openDesignChat) openDesignChat(svSelectedId);
+    });
+    actions.appendChild(askBtn);
+
+    if (SV_ALL_SETTINGS_ENABLED) {
+      var advBtn = el('button', 'sv-action sv-action-quiet',
+        svSettingsOpen ? 'Hide all settings' : 'All settings →');
+      advBtn.type = 'button';
+      advBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        svSettingsOpen = !svSettingsOpen;
+        if (!svSettingsOpen) returnPhaseForm();
+        renderSimpleView();
+      });
+      actions.appendChild(advBtn);
+    }
+    card.appendChild(actions);
+
+    // All settings: adopt the real step form (the Builder-rail relocation
+    // pattern — #phase-config-form is a portable node). Only re-fill it
+    // when the step changed; re-filling on every render would drop focus
+    // mid-typing.
+    if (svSettingsOpen) {
+      var host = el('div', 'svd-allsettings');
+      card.appendChild(host);
+      if (svFormPhaseId !== svSelectedId) {
+        _origSelectPhase(svSelectedId);
+        svFormPhaseId = svSelectedId;
+      }
+      var form = document.getElementById('phase-config-form');
+      if (form && form.parentNode !== host) host.appendChild(form);
+      var preview = document.getElementById('live-preview-section');
+      if (preview && preview.parentNode !== host) host.appendChild(preview);
+    }
+
+    svDetail.appendChild(card);
   }
 
   // --- Init: apply the saved (or default) view once the game has loaded.
