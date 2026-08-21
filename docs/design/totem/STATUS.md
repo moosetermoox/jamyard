@@ -1,10 +1,11 @@
 # Totem migration status
 
-Living checklist for the `totem` branch. The handoff spec is `README.md`
-in this folder; reference screens in `screens/`. Master still wears
-Paste-up; nothing here deploys until totem merges.
+**MERGED TO MASTER AND LIVE 2026-08-20** (fast-forward, no drift; CI
+green, Render deploy verified on jamyard.xyz). The handoff spec is
+`README.md` in this folder; reference screens in `screens/`. Totem is
+the site's design system now; this file is the migration's record.
 
-Last updated: 2026-08-20.
+Last updated: 2026-08-20 (merge day).
 
 ## Migrated (verified with headless screenshots, tests green)
 
@@ -33,8 +34,13 @@ teacher copy updated to match ("Copy teacher link").
 
 1. Pile placement uses an activity's FIRST recognized goal tag; reorder
    tags in a config to move its home pile.
-2. When Totem proves out: merge `totem` into master (that deploys).
-   Re-check drift against master before merging.
+2. ~~Merge `totem` into master~~ DONE 2026-08-20: fast-forward (master
+   had zero commits totem lacked), CI green, deploy verified live.
+3. Parked for later (owner's calls, all behind easy re-enables): the
+   editor's scrap bin / add-step slot / drag-reorder (structure changes
+   go through Design with AI), the All-settings expander
+   (SV_ALL_SETTINGS_ENABLED in simple-view.js), the hidden
+   Simple|Builder toggle. Closer is unfeatured pending revision.
 
 Residue resolved 2026-08-20: designer hard paste shadows softened to
 Totem values (dead pre-skin #000 rules left in place, they never
