@@ -105,6 +105,10 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'extend-timer': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
   'wager-submit': {
     code: 'string:required',
     option: 'string:required',

@@ -64,4 +64,14 @@ describe('validatePayload', () => {
     expect(result.ok).toBe(false);
     expect(result.reason).toMatch(/amount/);
   });
+
+  it('accepts extend-timer with just a code', () => {
+    expect(validatePayload('extend-timer', { code: 'ABCD' })).toEqual({ ok: true });
+  });
+
+  it('rejects extend-timer missing code', () => {
+    const result = validatePayload('extend-timer', { phaseInstanceId: 3 });
+    expect(result.ok).toBe(false);
+    expect(result.reason).toMatch(/code/);
+  });
 });

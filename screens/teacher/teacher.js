@@ -29,6 +29,7 @@ var previewRespList = document.getElementById('preview-resp-list');
 var approveBtn = document.getElementById('approve-btn');
 var rejectBtn = document.getElementById('reject-btn');
 var closeStepBtn = document.getElementById('close-step-btn');
+var moreTimeBtn = document.getElementById('more-time-btn');
 var revealNextBtn = document.getElementById('reveal-next-btn');
 var nextStepBtn = document.getElementById('next-step-btn');
 var controlsBlock = document.getElementById('controls-block');
@@ -213,6 +214,13 @@ function setPhase(data) {
   closeStepBtn.hidden = !isCollect;
   closeStepBtn.disabled = false;
 
+  // "A bit more time": only while a stretchable input step is open AND it
+  // actually has a countdown (mirrors the server's extend-timer guard).
+  var canExtend = (isCollect || phaseType === 'vote' || phaseType === 'estimate') &&
+    !!data.timer && !data.closed;
+  moreTimeBtn.hidden = !canExtend;
+  moreTimeBtn.textContent = MORE_TIME_LABEL;
+
   // Reveal-one is paced from here too: same button the host screen has.
   revealNextBtn.hidden = phaseType !== 'reveal-one';
   revealNextBtn.disabled = false;
@@ -229,7 +237,7 @@ function setPhase(data) {
   var label = (!data.closed && data.closeLabel) ? data.closeLabel : (data.continueLabel || 'Next step');
   nextStepBtn.textContent = label + ' ▸';
   // No visible buttons → no floating dashed divider.
-  controlsBlock.hidden = closeStepBtn.hidden && nextStepBtn.hidden && revealNextBtn.hidden;
+  controlsBlock.hidden = closeStepBtn.hidden && nextStepBtn.hidden && revealNextBtn.hidden && moreTimeBtn.hidden;
 
   consoleNote.textContent = phaseType === 'end'
     ? 'All done, nice work.'
@@ -454,6 +462,24 @@ rejectBtn.addEventListener('click', function () {
 closeStepBtn.addEventListener('click', function () {
   closeStepBtn.disabled = true;
   socket.emit('close-submissions', { code: currentCode, phaseInstanceId: currentPhaseInstanceId });
+});
+
+// "A bit more time": +30s per press, presses stack. The console has no
+// countdown of its own, so the server's timer-extended broadcast is the
+// confirmation (it reaches every console, whichever device asked).
+var MORE_TIME_LABEL = 'A bit more time +30s';
+var moreTimeFlashTimer = null;
+moreTimeBtn.addEventListener('click', function () {
+  socket.emit('extend-timer', { code: currentCode, phaseInstanceId: currentPhaseInstanceId });
+});
+socket.on('timer-extended', function () {
+  if (moreTimeBtn.hidden) return;
+  moreTimeBtn.textContent = 'Added 30 seconds';
+  if (moreTimeFlashTimer) clearTimeout(moreTimeFlashTimer);
+  moreTimeFlashTimer = setTimeout(function () {
+    moreTimeBtn.textContent = MORE_TIME_LABEL;
+    moreTimeFlashTimer = null;
+  }, 1500);
 });
 
 revealNextBtn.addEventListener('click', function () {

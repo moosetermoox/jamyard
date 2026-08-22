@@ -737,7 +737,30 @@ socket.on('player-reconnected', ({ players }) => {
 
 // --- Timer ---
 let timerInterval = null;
+let timerRemaining = 0;
+let timerTotal = 0;
+let timerContainerEl = null;
 const RING_CIRCUMFERENCE = 2 * Math.PI * 52; // ~326.73
+
+// "A bit more time" — sits under the countdown on the input phases the
+// teacher can stretch (collect, choices, vote, estimate). One press asks
+// the server for more time; the server broadcasts timer-extended so the
+// projector and every student clock jump together (student timers do real
+// work at 0: they auto-submit, so a projector-only stretch would be a lie).
+const moreTimeBtn = document.createElement('button');
+moreTimeBtn.type = 'button';
+moreTimeBtn.id = 'more-time-btn';
+moreTimeBtn.textContent = 'A bit more time';
+moreTimeBtn.title = 'Add 30 seconds';
+moreTimeBtn.hidden = true;
+moreTimeBtn.addEventListener('click', () => {
+  socket.emit('extend-timer', { code: currentRoomCode });
+});
+
+function showMoreTimeBtn(containerEl) {
+  containerEl.insertAdjacentElement('afterend', moreTimeBtn);
+  moreTimeBtn.hidden = false;
+}
 
 // The Totem timer is a chip that reads like a clock, not a ring
 function formatTimerText(seconds) {
@@ -749,26 +772,27 @@ function formatTimerText(seconds) {
 
 function startTimer(seconds, containerEl, onExpire) {
   clearTimer();
-  let remaining = seconds;
-  const total = seconds;
+  timerRemaining = seconds;
+  timerTotal = seconds;
+  timerContainerEl = containerEl;
   const textEl = containerEl.querySelector('.timer-ring-text');
   const fillEl = containerEl.querySelector('.timer-ring-fill');
 
   containerEl.hidden = false;
   containerEl.classList.remove('timer-warning');
-  textEl.textContent = formatTimerText(remaining);
+  textEl.textContent = formatTimerText(timerRemaining);
   fillEl.style.strokeDashoffset = '0';
 
   timerInterval = setInterval(() => {
-    remaining--;
-    textEl.textContent = formatTimerText(remaining);
-    const offset = RING_CIRCUMFERENCE * (1 - remaining / total);
+    timerRemaining--;
+    textEl.textContent = formatTimerText(timerRemaining);
+    const offset = RING_CIRCUMFERENCE * (1 - timerRemaining / timerTotal);
     fillEl.style.strokeDashoffset = offset;
-    if (remaining <= 5) {
+    if (timerRemaining <= 5) {
       containerEl.classList.add('timer-warning');
-      if (remaining > 0 && J) J.sound('tick');
+      if (timerRemaining > 0 && J) J.sound('tick');
     }
-    if (remaining <= 0) {
+    if (timerRemaining <= 0) {
       clearTimer();
       containerEl.hidden = true;
       if (onExpire) onExpire();
@@ -781,6 +805,8 @@ function clearTimer() {
     clearInterval(timerInterval);
     timerInterval = null;
   }
+  timerContainerEl = null;
+  moreTimeBtn.hidden = true;
   collectTimer.hidden = true;
   collectTimer.classList.remove('timer-warning');
   voteTimer.hidden = true;
@@ -788,6 +814,21 @@ function clearTimer() {
   announceTimer.hidden = true;
   announceTimer.classList.remove('timer-warning');
 }
+
+// The server said yes (any teacher device may have asked): shift the
+// running countdown and let the ring breathe again.
+socket.on('timer-extended', ({ addSeconds }) => {
+  const add = Number(addSeconds) || 0;
+  if (!timerInterval || !timerContainerEl || add <= 0) return;
+  timerRemaining += add;
+  timerTotal += add;
+  const textEl = timerContainerEl.querySelector('.timer-ring-text');
+  const fillEl = timerContainerEl.querySelector('.timer-ring-fill');
+  textEl.textContent = formatTimerText(timerRemaining);
+  fillEl.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - timerRemaining / timerTotal);
+  if (timerRemaining > 5) timerContainerEl.classList.remove('timer-warning');
+  if (J) J.sound('blip');
+});
 
 // --- Socket events - Game phases ---
 
@@ -830,6 +871,7 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
     startTimer(timer, collectTimer, () => {
       closeSubmissionsBtn.click();
     });
+    showMoreTimeBtn(collectTimer);
   }
 });
 
@@ -1783,6 +1825,7 @@ socket.on('estimate-start', ({ prompt, unit, image, count, total, timer, hostTem
     startTimer(timer, estimateTimer, () => {
       estimateCloseBtn.click();
     });
+    showMoreTimeBtn(estimateTimer);
   }
 });
 
@@ -2197,6 +2240,7 @@ socket.on('vote-start', ({ mode, totalVoters, timer, hostTemplate, show }) => {
     startTimer(timer, voteTimer, () => {
       closeVotingBtn.click();
     });
+    showMoreTimeBtn(voteTimer);
   }
 });
 

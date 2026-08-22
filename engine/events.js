@@ -30,6 +30,10 @@ export const EVENTS = {
   END_GAME:             'end-game',
   ADVANCE_PHASE:        'advance-phase',
 
+  // --- Timer extension (teacher: "a bit more time") ---
+  EXTEND_TIMER:         'extend-timer',        // host/console -> server: add seconds to the running input timer
+  TIMER_EXTENDED:       'timer-extended',      // server -> room: every screen shifts its countdown by addSeconds
+
   // --- Collect Phase ---
   SUBMIT_RESPONSE:      'submit-response',
   RESPONSE_RECEIVED:    'response-received',

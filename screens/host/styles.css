@@ -2082,6 +2082,22 @@ select,
   color: var(--t-paper);
 }
 
+/* "A bit more time": quiet paper chip beside the countdown (input phases
+   only; host.js relocates one shared button next to the live timer) */
+#more-time-btn {
+  display: inline-block;
+  margin-left: 14px;
+  vertical-align: middle;
+  transform: rotate(1deg);
+  background: var(--t-paper);
+  color: var(--t-ink);
+  font-size: 15px;
+  padding: 10px 18px;
+}
+
+/* display value beats the hidden attribute — keep the override local */
+#more-time-btn[hidden] { display: none; }
+
 /* Projector message voices: reading text is DM Sans, subheads Bricolage */
 .msg-body,
 .msg-rich-para,

@@ -46,6 +46,9 @@ let isEliminated = false;
 
 // Timer state
 let timerInterval = null;
+let timerRemaining = 0;
+let timerTotal = 0;
+let timerWrapperEl = null;
 const collectTimerDisplay = document.getElementById('collect-timer');
 const voteTimerDisplay = document.getElementById('vote-timer');
 
@@ -679,24 +682,25 @@ function formatTimerText(seconds) {
 
 function startTimer(seconds, wrapperEl, onExpire) {
   clearTimer();
-  let remaining = seconds;
-  const total = seconds;
+  timerRemaining = seconds;
+  timerTotal = seconds;
+  timerWrapperEl = wrapperEl;
   const textEl = wrapperEl.querySelector('.timer-bar-text');
   const fillEl = wrapperEl.querySelector('.timer-bar-fill');
 
   wrapperEl.hidden = false;
   wrapperEl.classList.remove('timer-warning');
-  textEl.textContent = formatTimerText(remaining);
+  textEl.textContent = formatTimerText(timerRemaining);
   fillEl.style.width = '100%';
 
   timerInterval = setInterval(() => {
-    remaining--;
-    textEl.textContent = formatTimerText(remaining);
-    fillEl.style.width = ((remaining / total) * 100) + '%';
-    if (remaining <= 5) {
+    timerRemaining--;
+    textEl.textContent = formatTimerText(timerRemaining);
+    fillEl.style.width = ((timerRemaining / timerTotal) * 100) + '%';
+    if (timerRemaining <= 5) {
       wrapperEl.classList.add('timer-warning');
     }
-    if (remaining <= 0) {
+    if (timerRemaining <= 0) {
       clearTimer();
       wrapperEl.hidden = true;
       if (onExpire) onExpire();
@@ -704,11 +708,27 @@ function startTimer(seconds, wrapperEl, onExpire) {
   }, 1000);
 }
 
+// The teacher added time ("a bit more time"): shift the running countdown.
+// Matters here more than anywhere — this clock does real work at 0 (it
+// auto-submits), so an unshifted player would get cut off early.
+socket.on('timer-extended', function ({ addSeconds }) {
+  var add = Number(addSeconds) || 0;
+  if (!timerInterval || !timerWrapperEl || add <= 0) return;
+  timerRemaining += add;
+  timerTotal += add;
+  var textEl = timerWrapperEl.querySelector('.timer-bar-text');
+  var fillEl = timerWrapperEl.querySelector('.timer-bar-fill');
+  textEl.textContent = formatTimerText(timerRemaining);
+  fillEl.style.width = ((timerRemaining / timerTotal) * 100) + '%';
+  if (timerRemaining > 5) timerWrapperEl.classList.remove('timer-warning');
+});
+
 function clearTimer() {
   if (timerInterval) {
     clearInterval(timerInterval);
     timerInterval = null;
   }
+  timerWrapperEl = null;
   collectTimerDisplay.hidden = true;
   collectTimerDisplay.classList.remove('timer-warning');
   voteTimerDisplay.hidden = true;

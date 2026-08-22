@@ -1293,6 +1293,11 @@ function isTeacherSocket(code, room, socketId) {
   return !!(room && room.teacherSocketIds && room.teacherSocketIds.has(socketId));
 }
 
+// "A bit more time": how much one press adds, and which phase types accept
+// it (the input phases whose timer authority is the host screen's countdown).
+const EXTEND_TIMER_SECONDS = 30;
+const EXTENDABLE_TIMER_PHASES = new Set(['collect', 'collect-choice', 'vote', 'estimate']);
+
 // A two-stage phase just closed (host click, console click, all-in
 // auto-close, or timer expiry): results are on the projector, so every
 // console must relabel its button from the close action to the advance
@@ -1343,6 +1348,7 @@ function buildTeacherSnapshot(code, room) {
     snap.closeLabel = closeLabelFor(phase.type);
     snap.closed = !!(ps && ps.closed);
     snap.players = engine.players.listPublic();
+    snap.timer = phase.timer || null;
   }
   return snap;
 }
@@ -1508,7 +1514,9 @@ async function handlePhase(code, room) {
     continueLabel: continueLabelForPhase(phase, engine.config.phases),
     // Two-stage phases: while open, the console button CLOSES (results
     // show on the projector first), so it must say the close action.
-    closeLabel: closeLabelFor(phase.type)
+    closeLabel: closeLabelFor(phase.type),
+    // Lets the console decide whether "A bit more time" applies.
+    timer: phase.timer || null
   });
 
   // Dispatch to registered handler
@@ -3065,6 +3073,34 @@ io.on('connection', (socket) => {
     }
     emitTeacherRoster(code, room);
     emitSubmissionsUpdate(code, room);
+  });
+
+  // --- "A bit more time": teacher adds seconds to a running input timer ---
+  // v1 covers the phases whose countdown authority is the host screen (the
+  // projector clicks its own close button at 0): collect, collect-choice,
+  // vote, estimate. Phases with a server-armed setTimeout (announce, merge,
+  // rank, ...) would still fire at the original deadline, so they stay out
+  // until those handlers move to a re-armable shared timer.
+  socket.on(EVENTS.EXTEND_TIMER, (payload = {}) => {
+    if (!checkEventPayload(socket, 'extend-timer', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    try {
+      const room = roomManager.find(code);
+      if (!room) return;
+      if (isStalePhaseEvent(room, phaseInstanceId, 'extend-timer')) return;
+      if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
+      const phase = room.engine && room.engine.getCurrentPhase();
+      if (!phase || !EXTENDABLE_TIMER_PHASES.has(phase.type) || !phase.timer) return;
+      // Two-stage phases stay current after closing; more time only makes
+      // sense while inputs are still open.
+      if (room.phaseState && room.phaseState.closed) return;
+      recordEvent(room, 'extend-timer');
+      const message = { addSeconds: EXTEND_TIMER_SECONDS };
+      io.to(code).emit(EVENTS.TIMER_EXTENDED, message);
+      io.to(teachersChannel(code)).emit(EVENTS.TIMER_EXTENDED, message);
+    } catch (error) {
+      console.log(`[extend-timer] Error: ${error.message}`);
+    }
   });
 
   socket.on(EVENTS.CLOSE_SUBMISSIONS, async (payload = {}) => {
