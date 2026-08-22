@@ -1581,6 +1581,10 @@ app.get('/', (req, res) => {
 });
 
 app.use('/host', express.static(join(__dirname, 'screens/host')));
+// Carousel activity shots (screens/home/shots/, made by
+// scripts/regen-carousel-shots.js). A missing shot 404s and the carousel
+// falls back to its text-only card.
+app.use('/home-shots', express.static(join(__dirname, 'screens/home/shots')));
 app.use('/teacher', express.static(join(__dirname, 'screens/teacher')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
 app.use('/shared', express.static(join(__dirname, 'screens/shared')));
