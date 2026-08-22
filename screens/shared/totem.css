@@ -177,19 +177,23 @@ select:focus-visible,
 }
 
 /* A block that acts (stacked): hover slides sideways, away from
-   its rotation. Set --rot and --slide (sign opposite to --rot). */
+   its rotation. Set --rot and --slide (sign opposite to --rot).
+   The transition rides ONLY on the hovered state: the arriving block
+   glides out, the departing one snaps home. With a transition on the
+   base state too, crossing a seam animated both neighbors at once (one
+   returning, one sliding) and they appeared to drift together. */
 .t-block-btn {
   border: none;
   cursor: pointer;
   text-decoration: none;
   text-align: center;
   transform: rotate(var(--rot, 0deg));
-  transition: transform var(--t-quick) var(--t-ease);
 }
 
 .t-block-btn:hover,
 .t-block-btn:focus-visible {
   transform: rotate(var(--rot, 0deg)) translateX(var(--slide, 10px));
+  transition: transform var(--t-quick) var(--t-ease);
 }
 
 /* Stable hover for stacked blocks: wrap each block in a .t-row and the
@@ -199,11 +203,19 @@ select:focus-visible,
 .t-row {
   display: flex;
   justify-content: center;
+  /* Each row is its own hit-test layer: a rotated block's corner pokes
+     past its row into the neighbor's strip and used to steal the pointer
+     there, so the hover handoff wandered mid-seam. With per-row stacking
+     contexts the later row wins its strip outright. Hit-testing only:
+     paint order between neighboring blocks stays DOM order either way. */
+  position: relative;
+  z-index: 0;
 }
 
 .t-row:hover > .t-block-btn,
 .t-row:focus-within > .t-block-btn {
   transform: rotate(var(--rot, 0deg)) translateX(var(--slide, 10px));
+  transition: transform var(--t-quick) var(--t-ease);
 }
 
 /* A free-standing piece that acts: hover lifts, press settles. */
