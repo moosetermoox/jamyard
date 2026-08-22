@@ -2545,10 +2545,19 @@ app.post('/api/games/from-description', async (req, res) => {
       })
       .filter(Boolean);
 
+    // Human labels for the preview's param list — the recipe's own
+    // parameter labels, so the teacher never reads raw ids like
+    // "tier1Prompts".
+    const paramLabels = {};
+    for (const [pname, spec] of Object.entries(recipe.parameters || {})) {
+      if (spec && spec.label) paramLabels[pname] = spec.label;
+    }
+
     res.json({
       config,
       recipe: { id: recipe.id, name: recipe.name, icon: recipe.icon },
       params: match.params,
+      paramLabels,
       explanation: match.explanation || '',
       alternates
     });

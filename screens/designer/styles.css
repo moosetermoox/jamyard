@@ -1164,8 +1164,16 @@ select.recipe-field-input {
   letter-spacing: 0.5px;
   font-size: 0.8rem;
   flex-shrink: 0;
-  width: 120px;
+  width: 160px;
   color: #555;
+}
+
+.ai-match-param-item {
+  padding: 2px 0;
+}
+
+.ai-match-param-item + .ai-match-param-item {
+  border-top: 1px dashed #ddd;
 }
 
 .ai-match-param-value {

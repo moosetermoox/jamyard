@@ -1628,14 +1628,26 @@ function renderMatchPreview(modal, data, overlay, description) {
 
     var label = document.createElement('div');
     label.className = 'ai-match-param-label';
-    label.textContent = key;
+    // The recipe's own label ("Tier 1, light & playful"), never the raw
+    // param id; humanize as a fallback for labels the server didn't send.
+    label.textContent = (data.paramLabels && data.paramLabels[key]) || humanizeParamName(key);
     row.appendChild(label);
 
     var value = document.createElement('div');
     value.className = 'ai-match-param-value';
     var v = data.params[key];
     if (Array.isArray(v)) {
-      value.textContent = v.join(', ');
+      // One line per item — prompt lists joined with commas read as one
+      // run-on sentence ("...why?, If our class had a mascot...").
+      for (var vi = 0; vi < v.length; vi++) {
+        var line = document.createElement('div');
+        line.className = 'ai-match-param-item';
+        var item = v[vi];
+        line.textContent = (item && typeof item === 'object')
+          ? (item.text || JSON.stringify(item))
+          : String(item);
+        value.appendChild(line);
+      }
     } else {
       value.textContent = String(v);
     }
@@ -1705,6 +1717,16 @@ function renderMatchPreview(modal, data, overlay, description) {
   btnRow.appendChild(createBtn);
 
   modal.appendChild(btnRow);
+}
+
+// "tier1Prompts" -> "Tier 1 prompts": fallback when a param has no label.
+function humanizeParamName(name) {
+  var words = String(name)
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([a-zA-Z])(\d)/g, '$1 $2')
+    .replace(/(\d)([a-zA-Z])/g, '$1 $2')
+    .toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 async function saveMatchedConfig(data, status, createBtn, overlay) {
