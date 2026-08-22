@@ -2481,18 +2481,28 @@ app.post('/api/games/storyboard', async (req, res) => {
 app.post('/api/games/from-description', async (req, res) => {
   try {
     if (!requireRealAI(res)) return;
-    const { description } = req.body || {};
+    const { description, recipeId } = req.body || {};
     if (!description || typeof description !== 'string' || description.trim().length < 10) {
       return res.status(400).json({ error: 'Please provide a description (at least 10 characters).' });
     }
 
-    const recipes = listRecipes().map(summarizeRecipe);
+    // recipeId narrows the matcher to one recipe — the "or maybe this
+    // one instead" alternate cards re-run the same idea against a chosen
+    // recipe so AI only fills its parameters.
+    let candidates = listRecipes();
+    if (recipeId) {
+      candidates = candidates.filter(r => r.id === recipeId);
+      if (candidates.length === 0) {
+        return res.status(404).json({ error: `Recipe "${recipeId}" not found.` });
+      }
+    }
+    const recipes = candidates.map(summarizeRecipe);
     if (recipes.length === 0) {
       return res.status(503).json({ error: 'No recipes are loaded. Restart the server or check recipes/.' });
     }
 
     console.log(`[api/games/from-description] Matching: "${description.substring(0, 80)}..."`);
-    const match = await aiService.matchRecipe(description, recipes);
+    const match = await aiService.matchRecipe(description, recipes, { forced: !!recipeId });
 
     if (match.noMatch) {
       return res.json({
@@ -2524,11 +2534,23 @@ app.post('/api/games/from-description', async (req, res) => {
       });
     }
 
+    // Resolve the matcher's alternate ids to real recipes; anything
+    // unknown (or echoing the main pick) drops silently so an invented
+    // id never renders as a card.
+    const alternates = (match.alternates || [])
+      .map(a => {
+        const alt = getRecipe(a.recipe);
+        if (!alt || alt.id === recipe.id) return null;
+        return { id: alt.id, name: alt.name, icon: alt.icon, description: alt.description, why: a.why || '' };
+      })
+      .filter(Boolean);
+
     res.json({
       config,
       recipe: { id: recipe.id, name: recipe.name, icon: recipe.icon },
       params: match.params,
-      explanation: match.explanation || ''
+      explanation: match.explanation || '',
+      alternates
     });
   } catch (error) {
     console.log(`[api/games/from-description] Error: ${error.message}`);

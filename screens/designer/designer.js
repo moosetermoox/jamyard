@@ -56,12 +56,14 @@ if (ideaInput) {
   });
 }
 
-// Example chips fill the box — blank-page paralysis is real.
+// Example chips launch straight into matching — clicking one IS the
+// decision, no second "Make it" press. The sentence still lands in the
+// box so the teacher sees exactly what was submitted.
 var ideaChips = document.querySelectorAll('.idea-example-chip');
 for (var ci = 0; ci < ideaChips.length; ci++) {
   ideaChips[ci].addEventListener('click', function (e) {
     ideaInput.value = e.currentTarget.textContent;
-    ideaInput.focus();
+    launchIdea();
   });
 }
 
@@ -72,7 +74,8 @@ if (useRecipeLink) {
   });
 }
 // (The template picker is gone — templates consolidated into recipes
-// 2026-08-07. "Start from scratch" links straight to the blank editor.)
+// 2026-08-07. The "Start from scratch" blank-editor link is gone too,
+// 2026-08-22: every creation path now starts from an idea or a recipe.)
 
 // Deep link: /designer?idea=... launches the flow immediately (lets the
 // home screen or anything else hand an idea straight to the front door).
@@ -1572,7 +1575,7 @@ async function submitAIDescription(modal, description, status, generateBtn, over
     }
 
     if (data.config) {
-      renderMatchPreview(modal, data, overlay);
+      renderMatchPreview(modal, data, overlay, description);
       return;
     }
 
@@ -1586,7 +1589,7 @@ async function submitAIDescription(modal, description, status, generateBtn, over
   }
 }
 
-function renderMatchPreview(modal, data, overlay) {
+function renderMatchPreview(modal, data, overlay, description) {
   clearModal(modal);
 
   // Header — "Sounds like {recipe.name}"
@@ -1641,6 +1644,39 @@ function renderMatchPreview(modal, data, overlay) {
     paramsList.appendChild(row);
   }
   modal.appendChild(paramsList);
+
+  // "Or maybe": the matcher's runner-up recipes. A goal-shaped idea
+  // ("laugh together") genuinely fits several recipes, so the top pick
+  // is one answer, not the only one. Clicking a card re-matches the same
+  // idea against that recipe.
+  if (Array.isArray(data.alternates) && data.alternates.length > 0 && description) {
+    var altHeader = document.createElement('p');
+    altHeader.style.cssText = 'margin:16px 0 8px 0; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; font-size:0.85rem;';
+    altHeader.textContent = 'Or maybe one of these instead:';
+    modal.appendChild(altHeader);
+
+    data.alternates.forEach(function (alt) {
+      var altBtn = document.createElement('button');
+      altBtn.type = 'button';
+      altBtn.className = 'ai-match-alternate';
+      altBtn.style.cssText = 'display:block; width:100%; text-align:left; border:2px solid #000; border-radius:12px; background:#fff; padding:10px 12px; margin-bottom:8px; cursor:pointer; font-family:"Nunito", Arial, sans-serif;';
+
+      var altName = document.createElement('div');
+      altName.style.cssText = 'font-weight:900;';
+      altName.textContent = alt.name;
+      altBtn.appendChild(altName);
+
+      var altWhy = document.createElement('div');
+      altWhy.style.cssText = 'font-size:0.85rem; color:#444;';
+      altWhy.textContent = alt.why || alt.description || '';
+      altBtn.appendChild(altWhy);
+
+      altBtn.addEventListener('click', function () {
+        refitToAlternate(modal, data, alt, overlay, description);
+      });
+      modal.appendChild(altBtn);
+    });
+  }
 
   var status = document.createElement('div');
   status.className = 'recipe-form-status';
@@ -1701,6 +1737,58 @@ async function saveMatchedConfig(data, status, createBtn, overlay) {
     showFormError(status, 'Network error: ' + err.message);
     createBtn.disabled = false;
     createBtn.textContent = 'Create Activity';
+  }
+}
+
+// Re-run the same idea forced onto one alternate recipe (the server's
+// recipeId narrows the matcher, so AI only fills that recipe's params).
+// The outgoing pick and the unchosen alternates carry over as the next
+// view's alternates, so flipping between candidates never dead-ends.
+async function refitToAlternate(modal, data, alt, overlay, description) {
+  var buttons = modal.querySelectorAll('button');
+  function setButtonsDisabled(disabled) {
+    for (var i = 0; i < buttons.length; i++) buttons[i].disabled = disabled;
+  }
+  setButtonsDisabled(true);
+
+  var status = document.getElementById('ai-match-preview-status');
+  if (status) {
+    status.className = 'recipe-form-status';
+    status.style.cssText = 'background:#E1BEE7; border:3px solid #000; border-radius:8px; padding:12px; text-align:center; font-weight:bold;';
+    status.textContent = 'Setting your idea up as ' + alt.name + '…';
+  }
+
+  try {
+    var resp = await fetch('/api/games/from-description', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: description, recipeId: alt.id })
+    });
+    var next = await resp.json();
+    if (!resp.ok || next.noMatch || !next.config) {
+      throw new Error(next.error || next.reason || 'that recipe could not take this idea');
+    }
+    if (!Array.isArray(next.alternates) || next.alternates.length === 0) {
+      var carried = [{
+        id: data.recipe.id,
+        name: data.recipe.name,
+        icon: data.recipe.icon,
+        why: 'The first suggestion for this idea.'
+      }];
+      (data.alternates || []).forEach(function (a) {
+        if (a.id !== alt.id) carried.push(a);
+      });
+      next.alternates = carried;
+    }
+    setButtonsDisabled(false);
+    renderMatchPreview(modal, next, overlay, description);
+  } catch (err) {
+    setButtonsDisabled(false);
+    if (status) {
+      status.style.cssText = '';
+      var reason = String(err.message || 'something went wrong').replace(/\.+\s*$/, '');
+      showFormError(status, 'Could not set that up: ' + reason + '. The current match still works.');
+    }
   }
 }
 

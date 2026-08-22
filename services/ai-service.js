@@ -1704,11 +1704,13 @@ ${responseList}`;
   // ~4096-token Sonnet generateGame() call.
   // =====================================================================
 
-  async matchRecipe(description, recipes) {
+  // options.forced: the teacher already chose the recipe (an alternate
+  // card click) — the AI only fills parameters and may not refuse.
+  async matchRecipe(description, recipes, options = {}) {
     if (this.mode === 'mock') {
       return this._matchRecipeMock(description, recipes);
     }
-    return this._matchRecipeReal(description, recipes);
+    return this._matchRecipeReal(description, recipes, options);
   }
 
   _matchRecipeMock(description, recipes) {
@@ -1730,22 +1732,23 @@ ${responseList}`;
     return {
       recipe: recipe.id,
       params,
-      explanation: `[MOCK] Matched to ${recipe.name}.`
+      explanation: `[MOCK] Matched to ${recipe.name}.`,
+      alternates: []
     };
   }
 
-  async _matchRecipeReal(description, recipes) {
+  async _matchRecipeReal(description, recipes, options = {}) {
     if (!recipes || recipes.length === 0) {
       return { noMatch: true, reason: 'No recipes are available yet.', suggestion: '' };
     }
 
-    const systemPrompt = this._buildMatchRecipePrompt(recipes);
+    const systemPrompt = this._buildMatchRecipePrompt(recipes, options);
 
     try {
       const start = Date.now();
       const message = await this._callClaude({
         model: MODELS.haiku,
-        max_tokens: 800,
+        max_tokens: 1000,
         system: systemPrompt,
         messages: [
           {
@@ -1786,10 +1789,23 @@ ${responseList}`;
       }
 
       if (typeof parsed.recipe === 'string' && parsed.params && typeof parsed.params === 'object') {
+        // Alternates: up to two OTHER recipes that also fit the idea.
+        // Sanitize hard — the ids get resolved against real recipes by
+        // the caller, but shape problems stop here.
+        const alternates = Array.isArray(parsed.alternates)
+          ? parsed.alternates
+              .filter(a => a && typeof a.recipe === 'string' && a.recipe !== parsed.recipe)
+              .slice(0, 2)
+              .map(a => ({
+                recipe: a.recipe,
+                why: typeof a.why === 'string' ? a.why : ''
+              }))
+          : [];
         return {
           recipe: parsed.recipe,
           params: parsed.params,
-          explanation: typeof parsed.explanation === 'string' ? parsed.explanation : ''
+          explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
+          alternates
         };
       }
 
@@ -1808,7 +1824,7 @@ ${responseList}`;
     }
   }
 
-  _buildMatchRecipePrompt(recipes) {
+  _buildMatchRecipePrompt(recipes, { forced = false } = {}) {
     const recipeBlocks = recipes.map(r => {
       const params = Object.entries(r.parameters || {}).map(([name, spec]) => {
         const bits = [`type: ${spec.type}`];
@@ -1833,13 +1849,20 @@ Parameters:
 ${params || '    (none)'}`;
     }).join('\n\n---\n\n');
 
-    return `You match a teacher's natural-language game idea to one of these pre-built classroom game recipes. Each recipe is a working game; you only need to fill in a few parameters.
+    // Forced mode (an alternate-card click): the recipe is already
+    // chosen, so refusal is not on the menu — a refit that "declines"
+    // is a dead end for the teacher. The AI's whole job is parameters.
+    const jobSection = forced
+      ? `# Your job
 
-# Available recipes
-
-${recipeBlocks}
-
-# Your job
+The teacher has already chosen the recipe above for their idea. Do not judge whether it fits; that decision is made. Fill in its parameters so the recipe serves the spirit of their idea, and return JSON:
+{
+  "recipe": "the-recipe-id-above",
+  "params": { /* filled in based on the description */ },
+  "explanation": "One short sentence about how you set it up."
+}
+When the description gives you nothing for a parameter, use the recipe's default, or invent something classroom-safe that fits the idea.`
+      : `# Your job
 
 Read the teacher's description and decide:
 
@@ -1848,8 +1871,12 @@ Read the teacher's description and decide:
    {
      "recipe": "id-of-best-fit-recipe",
      "params": { /* filled in based on the description */ },
-     "explanation": "One short sentence about why this recipe fits."
+     "explanation": "One short sentence about why this recipe fits.",
+     "alternates": [ { "recipe": "id-of-another-fitting-recipe", "why": "One short sentence on what this one would feel like instead." } ]
    }
+   "alternates" lists up to 2 OTHER recipes that also fit the idea well. A broad, goal-shaped idea (laugh together, get to know each other, review a unit) usually deserves alternates; a specific idea that clearly names one mechanic deserves an empty list. Never repeat the main recipe, and fill "params" only for the main recipe.
+
+   Tie-breaker for laughter/fun-shaped ideas: prefer the recipe whose comedy comes from things the students themselves create and react to (bad drawings, invented bluffs). For "make my class laugh" that means Doodle Bluff first, with quieter cooperative games as alternates rather than the top pick.
 
 2. If NONE of the recipes fit (the teacher wants something the seed library can't do, like a quiz with multiple different questions, or a mechanic not represented):
    Return JSON:
@@ -1857,7 +1884,17 @@ Read the teacher's description and decide:
      "noMatch": true,
      "reason": "One sentence explaining why no recipe fits.",
      "suggestion": "One sentence suggesting a recipe that's CLOSE, name the recipe and what they'd give up."
-   }
+   }`;
+
+    return `${forced
+      ? "You fill in the parameters of a pre-built classroom game recipe that a teacher has already chosen for their idea. The recipe is a working game; you only supply a few parameter values."
+      : "You match a teacher's natural-language game idea to one of these pre-built classroom game recipes. Each recipe is a working game; you only need to fill in a few parameters."}
+
+# Available recipes
+
+${recipeBlocks}
+
+${jobSection}
 
 # Parameter-filling rules
 
