@@ -129,6 +129,8 @@ export const EVENTS = {
   MERGE_START:          'merge-start',         // server -> player: your group's seeds + shared draft
   MERGE_DRAFT:          'merge-draft',         // player -> server: shared draft text (debounced client-side)
   MERGE_DRAFT_UPDATE:   'merge-draft-update',  // server -> other group members: draft changed (last-write-wins)
+  MERGE_TAKE_PEN:       'merge-take-pen',      // player -> server: request the group's pen (granted once the holder idles)
+  MERGE_PEN:            'merge-pen',           // server -> group members: who holds the pen ({held, mine, holderName})
   MERGE_AGREE:          'merge-agree',         // player -> server: I agree with the current draft
   MERGE_STATUS:         'merge-status',        // server -> group: agreed count / reset notice
   MERGE_PROGRESS:       'merge-progress',      // server -> host: groups submitted / total

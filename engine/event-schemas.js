@@ -138,6 +138,10 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'merge-take-pen': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
   'close-merge': {
     code: 'string:required',
     phaseInstanceId: 'number:optional'

@@ -3534,6 +3534,33 @@ io.on('connection', (socket) => {
 
   // --- Merge events (Connection Pack, think-pair-share) ---
 
+  // --- The merge pen: one writer at a time (2026-08-21) ---
+  // The shared box used to be whole-text last-write-wins, so two people
+  // typing within a debounce+RTT of each other silently destroyed each
+  // other's sentences. Now the group has one pen: writing claims it,
+  // agreeing releases it, and it goes stale after this much idle so a
+  // distracted partner can't hold the box hostage. Checked lazily; no
+  // per-group timers.
+  const MERGE_PEN_IDLE_MS = 2500;
+
+  function penBlocks(group, playerId) {
+    return group.penHolder && group.penHolder !== playerId &&
+      (Date.now() - group.penAt) < MERGE_PEN_IDLE_MS;
+  }
+
+  function broadcastMergePen(room, group) {
+    const engine = room.engine;
+    const nameOf = engine ? new Map(engine.players.list().map(p => [p.id, p.name])) : new Map();
+    const holderName = group.penHolder ? (nameOf.get(group.penHolder) || 'Someone') : null;
+    for (const id of group.members) {
+      io.to(id).emit(EVENTS.MERGE_PEN, {
+        held: !!group.penHolder,
+        mine: group.penHolder === id,
+        holderName
+      });
+    }
+  }
+
   socket.on(EVENTS.MERGE_DRAFT, (payload = {}) => {
     if (!checkEventPayload(socket, 'merge-draft', payload)) return;
     const { code, text, phaseInstanceId } = payload;
@@ -3543,6 +3570,15 @@ io.on('connection', (socket) => {
     const ms = room.phaseState;
     const group = ms.byPlayer[socket.id];
     if (!group || group.submitted) return;
+
+    // Someone else is actively writing: snap the sender's box back to the
+    // shared truth instead of letting the two versions leapfrog.
+    if (penBlocks(group, socket.id)) {
+      socket.emit(EVENTS.MERGE_DRAFT_UPDATE, { draft: group.draft, agreedCount: group.agreed.size });
+      const holderName = (room.engine.players.list().find(p => p.id === group.penHolder) || {}).name || 'Someone';
+      socket.emit(EVENTS.MERGE_PEN, { held: true, mine: false, holderName });
+      return;
+    }
 
     // Live drafts broadcast to the rest of the group, so they pass the
     // blocklist (word-boundary only — no mash/min-length checks, which
@@ -3557,15 +3593,44 @@ io.on('connection', (socket) => {
       return;
     }
 
-    // Last write wins; any edit invalidates earlier Agrees (the agreement
-    // was for a different text).
+    const claimed = group.penHolder !== socket.id;
+    group.penHolder = socket.id;
+    group.penAt = Date.now();
+
+    // Any edit invalidates earlier Agrees (the agreement was for a
+    // different text).
     group.draft = String(text).slice(0, 2000);
     group.agreed.clear();
 
     for (const id of group.members) {
-      if (id === socket.id) continue; // sender's textarea is authoritative for them
+      if (id === socket.id) continue; // the writer's textarea is authoritative for them
       io.to(id).emit(EVENTS.MERGE_DRAFT_UPDATE, { draft: group.draft, agreedCount: 0 });
     }
+    if (claimed) broadcastMergePen(room, group);
+  });
+
+  // Take the pen: granted once the current holder has idled (or the pen is
+  // free). The button only enables client-side after the same idle window,
+  // so a denial here is just clock skew; the requester gets the truth back.
+  socket.on(EVENTS.MERGE_TAKE_PEN, (payload = {}) => {
+    if (!checkEventPayload(socket, 'merge-take-pen', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'merge') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'merge-take-pen')) return;
+    const ms = room.phaseState;
+    const group = ms.byPlayer[socket.id];
+    if (!group || group.submitted) return;
+
+    if (penBlocks(group, socket.id)) {
+      const holderName = (room.engine.players.list().find(p => p.id === group.penHolder) || {}).name || 'Someone';
+      socket.emit(EVENTS.MERGE_PEN, { held: true, mine: false, holderName });
+      return;
+    }
+    group.penHolder = socket.id;
+    group.penAt = Date.now();
+    recordEvent(room, 'merge-take-pen', { groupId: group.groupId });
+    broadcastMergePen(room, group);
   });
 
   socket.on(EVENTS.MERGE_AGREE, async (payload = {}) => {
@@ -3581,6 +3646,14 @@ io.on('connection', (socket) => {
 
     group.agreed.add(socket.id);
     recordEvent(room, 'merge-agree', { groupId: group.groupId });
+
+    // Agreeing means "I'm done writing": release the pen so a partner can
+    // refine without waiting out the idle window.
+    if (group.penHolder === socket.id) {
+      group.penHolder = null;
+      group.penAt = 0;
+      broadcastMergePen(room, group);
+    }
 
     const needed = agreesNeeded(ms.agreeMode, group.members.length);
     if (group.agreed.size >= needed) {

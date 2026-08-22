@@ -1883,6 +1883,60 @@ socket.on('checklist-results', function (payload) {
 
 var mergeDraftDebounce = null;
 
+// The pen: one group member writes at a time. Writing claims it, agreeing
+// releases it, and after the holder idles this long the "Take the pen"
+// button lights up (the server enforces the same window, so an early tap
+// just gets the truth back).
+var MERGE_PEN_IDLE_MS = 2500;
+var mergePenBtn = document.getElementById('merge-pen-btn');
+var mergePenHeld = false;
+var mergePenMine = false;
+var mergePenHolderName = '';
+var mergePenIdleTimer = null;
+
+function applyMergePen() {
+  if (mergePenIdleTimer) {
+    clearTimeout(mergePenIdleTimer);
+    mergePenIdleTimer = null;
+  }
+  if (mergePenHeld && !mergePenMine) {
+    mergeDraftInput.readOnly = true;
+    mergeDraftInput.classList.add('merge-locked');
+    mergePenBtn.hidden = false;
+    mergePenBtn.disabled = true;
+    mergePenBtn.textContent = (mergePenHolderName || 'Your partner') + ' is writing…';
+    mergePenIdleTimer = setTimeout(function () {
+      mergePenBtn.disabled = false;
+      mergePenBtn.textContent = 'Take the pen';
+    }, MERGE_PEN_IDLE_MS);
+  } else {
+    mergeDraftInput.readOnly = false;
+    mergeDraftInput.classList.remove('merge-locked');
+    mergePenBtn.hidden = true;
+  }
+}
+
+mergePenBtn.addEventListener('click', function () {
+  mergePenBtn.disabled = true;
+  socket.emit('merge-take-pen', { code: currentRoomCode });
+});
+
+socket.on('merge-pen', function ({ held, mine, holderName }) {
+  var gained = held && mine && !mergePenMine;
+  mergePenHeld = !!held;
+  mergePenMine = !!mine;
+  mergePenHolderName = holderName || '';
+  applyMergePen();
+  if (gained) {
+    mergeDraftInput.focus();
+    setMergeStatus('');
+  } else if (mergePenHeld && !mergePenMine) {
+    setMergeStatus(mergePenHolderName + ' has the pen. Talk it out, or take it when they pause.');
+  } else if (!mergePenHeld) {
+    setMergeStatus('');
+  }
+});
+
 function setMergeStatus(text) {
   if (!text) {
     mergeStatus.hidden = true;
@@ -1893,12 +1947,16 @@ function setMergeStatus(text) {
   }
 }
 
-socket.on('merge-start', ({ instruction, seeds, draft, memberNames, agreeMode, agreedCount, agreesNeeded, timer, playerTemplate, show }) => {
+socket.on('merge-start', ({ instruction, seeds, draft, memberNames, agreeMode, agreedCount, agreesNeeded, penHeld, penMine, penHolderName, timer, playerTemplate, show }) => {
   showSection(mergeSection);
   mergeInstruction.textContent = instruction || 'Combine your answers into one stronger answer.';
   mergeDraftInput.value = draft || '';
   mergeAgreeBtn.disabled = false;
   setMergeStatus(agreedCount > 0 ? agreedCount + ' of ' + agreesNeeded + ' agreed' : '');
+  mergePenHeld = !!penHeld;
+  mergePenMine = !!penMine;
+  mergePenHolderName = penHolderName || '';
+  applyMergePen();
   applyTemplate(mergeSection, playerTemplate);
 
   // Agree button label/visibility per mode
@@ -1947,19 +2005,32 @@ socket.on('merge-start', ({ instruction, seeds, draft, memberNames, agreeMode, a
   }
 });
 
-// Shared draft: debounce sends while typing (last write wins server-side).
+// Shared draft: debounce sends while typing (the first send claims the
+// pen server-side; a lost claim race gets this box snapped back).
 mergeDraftInput.addEventListener('input', function() {
   // Local edit invalidates earlier agreements — reflect that immediately.
   mergeAgreeBtn.disabled = false;
   setMergeStatus('');
   if (mergeDraftDebounce) clearTimeout(mergeDraftDebounce);
   mergeDraftDebounce = setTimeout(function() {
+    mergeDraftDebounce = null;
     socket.emit('merge-draft', { code: currentRoomCode, text: mergeDraftInput.value });
   }, 300);
 });
 
-// A group-mate changed the shared draft (last write wins — v1 has no
-// merge cursors; the latest text simply replaces the box).
+// Leaving the box flushes the last few keystrokes, so a quick tap on
+// Agree (or a partner taking over) never loses the final word.
+mergeDraftInput.addEventListener('blur', function() {
+  if (mergeDraftDebounce) {
+    clearTimeout(mergeDraftDebounce);
+    mergeDraftDebounce = null;
+    socket.emit('merge-draft', { code: currentRoomCode, text: mergeDraftInput.value });
+  }
+});
+
+// A group-mate changed the shared draft (they hold the pen; the latest
+// text replaces the box). Also how the server snaps this box back if a
+// local edit raced the pen.
 socket.on('merge-draft-update', ({ draft }) => {
   if (mergeDraftInput.value !== draft) {
     mergeDraftInput.value = draft;
@@ -1968,6 +2039,8 @@ socket.on('merge-draft-update', ({ draft }) => {
     void mergeDraftInput.offsetWidth; // restart the animation
     mergeDraftInput.classList.add('merge-remote-flash');
   }
+  // The writer is clearly still at it: restart the take-the-pen countdown.
+  if (mergePenHeld && !mergePenMine) applyMergePen();
   mergeAgreeBtn.disabled = false;
   setMergeStatus('The shared answer changed, agree again when it looks right.');
 });

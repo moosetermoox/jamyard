@@ -164,8 +164,13 @@ This is the one genuinely new handler in the pack. Spec:
 - **Config:** `{ groupSize: 2|4, seedFrom: "<phaseId>.responses" | "<phaseId>.merged", instruction, agreeMode: "both" | "any" | "timer" }`
 - **phaseState shape:** `{ groups: [{ members:[playerId], seeds:[{author?, text}], draft: string, agreed: Set<playerId> }] }`
   (JSDoc-typed per the typed-bag convention.)
-- **Behavior:** group members share a live text draft (last-write-wins on a
-  single field is acceptable v1 — no OT/CRDT; debounce broadcast within group).
+- **Behavior:** group members share a live text draft with ONE PEN (v2,
+  2026-08-21; the v1 last-write-wins field let simultaneous typers silently
+  destroy each other's sentences). Writing claims the pen, agreeing releases
+  it, and it goes stale after 2.5s idle so "Take the pen" lights up for a
+  partner (server enforces the same window lazily — no per-group timers; a
+  raced write gets the shared truth snapped back into its box). Still no
+  OT/CRDT — deliberate: the pedagogy wants one scribe and a conversation.
   Submit requires `agreeMode` satisfied. Late/disconnected partner → existing
   reconnect machinery; if a member never returns, host can force-close (group's
   current draft submits).

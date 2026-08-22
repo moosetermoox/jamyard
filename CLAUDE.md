@@ -101,7 +101,7 @@ Framework for quickly building classroom games where:
 18. `foreach` — sub-phases per item; `limit` sample (a round per response kills the room ~round 12), `pairMode:"human-vs-ai"`, scoring `correct`/`tally`/`scores` (scores = adopt the sub-phase's own graded map; the bluff-rounds mode, keeps foolPoints), `_current`/`_foreach`/`_candidates` vars; choicePool/excludeAuthored refs to sibling sub-phases remap automatically
 19. `rate` — 1-N custom scales; bar + pie results; `visibility: all|host-only`
 20. `turn` — charades; server timer, team rotation, `poolLimit`
-21. `merge` — shared live draft (think-pair-share); `agreeMode both|any|timer`, `groupSize` 2/3/4; output `merged`
+21. `merge` — shared live draft (think-pair-share) with ONE PEN: writing claims it, agreeing releases it, 2.5s idle lets a partner take it; `agreeMode both|any|timer`, `groupSize` 2/3/4; output `merged`
 22. `one-voice` — cooperative counting; server-authoritative collision window
 23. `end` — game over
 24. `buzz` — first-tap-wins buzzer; outputs `scores`

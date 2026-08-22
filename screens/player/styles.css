@@ -360,6 +360,26 @@ button[hidden] {
   background: var(--theme-success, #5cb85c);
 }
 
+/* The pen: a partner is writing, so the box is read-along-only */
+#merge-draft-input.merge-locked {
+  opacity: 0.75;
+  background: var(--theme-card, #f6f3ec);
+}
+
+.merge-pen-btn {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.9rem;
+  padding: 8px 14px;
+}
+
+.merge-pen-btn:disabled {
+  opacity: 0.6;
+}
+
+/* display value beats the hidden attribute; keep the override local */
+.merge-pen-btn[hidden] { display: none; }
+
 /* Error message */
 #error-message {
   color: var(--theme-danger, #d9534f);

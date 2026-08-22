@@ -27,7 +27,12 @@ import { buildGroups } from '../phases/pairing.js';
  * @property {string} groupId
  * @property {string[]} members   Player ids (socket ids)
  * @property {Array<{author: string|null, text: string}>} seeds
- * @property {string} draft       The shared text (last write wins)
+ * @property {string} draft       The shared text (one writer at a time)
+ * @property {string|null} penHolder  Who may edit right now; null = pen is free.
+ *                                    The pen is claimed by writing, released by
+ *                                    agreeing, and goes stale after idle (the
+ *                                    server checks lazily against penAt).
+ * @property {number} penAt       Last accepted edit/claim (Date.now())
  * @property {Set<string>} agreed Player ids who tapped Agree on the current draft
  * @property {boolean} submitted
  *
@@ -159,6 +164,8 @@ registerHandler('merge', {
         members: g.members,
         seeds: g.seeds,
         draft: '',
+        penHolder: null,
+        penAt: 0,
         agreed: new Set(),
         submitted: false
       })),
@@ -225,6 +232,7 @@ registerHandler('merge', {
       return;
     }
     const nameOf = new Map(ctx.engine.players.list().map(p => [p.id, p.name]));
+    const penHeld = !!group.penHolder;
     socket.emit(EVENTS.MERGE_START, {
       instruction: ctx.resolveTemplate(ctx.phase.instruction || 'Combine your answers into one stronger answer.'),
       seeds: group.seeds,
@@ -233,6 +241,9 @@ registerHandler('merge', {
       agreeMode: state.agreeMode,
       agreedCount: group.agreed.size,
       agreesNeeded: state.agreeMode === 'timer' ? null : agreesNeeded(state.agreeMode, group.members.length),
+      penHeld,
+      penMine: group.penHolder === socket.id,
+      penHolderName: penHeld ? (nameOf.get(group.penHolder) || 'Someone') : null,
       timer: null,
       playerTemplate: sc.playerTemplate, show: sc.playerShow
     });
