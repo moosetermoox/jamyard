@@ -10,27 +10,40 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-20, Totem merge day)
+### START HERE next session (updated 2026-08-21, five-ship day)
 
-**The Totem redesign is MERGED AND LIVE** (2026-08-20, master c469b10,
-CI green, verified on jamyard.xyz): every surface wears the scrap-wood
-system, the library is the 9g yard (three goal piles + My yard shelf,
-"+ N MORE" overflow), and the editor collapsed to ONE face — the 9D
-stack + detail card + Design-with-AI chat. Structure changes (add,
-reorder, remove steps) go through the chat's proposal flow. Full detail:
-CHANGELOG slices 1-14 + docs/design/totem/STATUS.md. 1194 tests.
+**Five ships, all pushed and deployed** (2026-08-21, master 7012379,
+CI green, 1197 tests): (1) Closer rebuilt TALK-ONLY and refeatured
+under Connect (announce-driven conversations, physical partners,
+one-tap rate checkout; the recipe deliberately keeps the typed
+simultaneous-reveal version, both live on). (2) "A bit more time"
++30s button on running input timers (projector + teacher console;
+collect/choice/vote/estimate; server-armed phases parked for a v2
+re-armable timer). (3) Totem hover fix (one slab at a time). (4)
+Carousel projector shots (regen-carousel-shots.js; STANDING CHORE:
+rerun + commit PNGs after any redesign or featured change). (5) Merge
+pen: the shared draft is one-writer-at-a-time (claim by writing,
+release on agree, 2.5s idle steal). Details: CHANGELOG 2026-08-21
+entries + the five memory files.
 
-Fresh follow-ups from merge day (before the older list below):
+Fresh follow-ups (before the older list below):
 
-- **Closer needs revision** (owner's call; unfeatured until then). What
-  changes it needs is the owner's to define next session.
-- **Watch the live one-editor with real users**: the chat is now the
-  only path for structural edits — if that pinches, the parked pieces
+- **"Questions for Michael" was never saved** — the owner's Snowball
+  revision exists only in their browser tab (if still open: save from
+  there; watch for "Save failed" in the header). Once saved, owner-★
+  works now: featured USER games show publicly (game-visibility fix).
+  Heads-up: user creation "Rose, Bud, Thorn" carries featured:true in
+  the DB and is now publicly visible; un-star it if unwanted.
+- **Classroom-feel checks on the new mechanics**: the merge pen's 2.5s
+  idle window (MERGE_PEN_IDLE_MS, one constant) and the +30s button,
+  both built on sims, neither felt in a real room yet.
+- **Watch the live one-editor with real users**: the chat is the only
+  path for structural edits — if that pinches, the parked pieces
   (scrap bin, add-step slot, All-settings expander via
   SV_ALL_SETTINGS_ENABLED, hidden Simple|Builder toggle) are one-flag
   re-enables.
-- **Host a real activity on jamyard.xyz** end to end (only local
-  verification happened on merge day).
+- **Host a real activity on jamyard.xyz** end to end (still only
+  locally verified since the Totem merge).
 
 Remaining from the setup-mode era, in priority order:
 
