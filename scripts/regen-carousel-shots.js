@@ -84,7 +84,7 @@ function driverJs(clicks) {
     }
     await sleep(700);
     document.documentElement.style.overflow = 'hidden';
-    ['sfx-toggle', 'teacher-link-copy', 'close-submissions-btn', 'more-time-btn']
+    ['sfx-toggle', 'fullscreen-toggle', 'teacher-link-copy', 'close-submissions-btn', 'more-time-btn']
       .forEach(id => { const e = document.getElementById(id); if (e) e.style.display = 'none'; });
     await sleep(300);
   })()`;

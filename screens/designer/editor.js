@@ -382,6 +382,7 @@ var settingsName = document.getElementById('game-name');
 var settingsDescription = document.getElementById('game-description');
 var settingsMinPlayers = document.getElementById('game-min-players');
 var settingsMaxPlayers = document.getElementById('game-max-players');
+var settingsNamesMode = document.getElementById('game-names-mode');
 var settingsTheme = document.getElementById('game-theme');
 var customThemeSection = document.getElementById('custom-theme-section');
 var customThemeDesc = document.getElementById('custom-theme-desc');
@@ -622,6 +623,7 @@ async function init() {
   settingsDescription.addEventListener('input', readSettings);
   settingsMinPlayers.addEventListener('input', readSettings);
   settingsMaxPlayers.addEventListener('input', readSettings);
+  if (settingsNamesMode) settingsNamesMode.addEventListener('change', readSettings);
 
   // Populate theme select
   if (settingsTheme && window.GAME_THEMES) {
@@ -694,6 +696,7 @@ function renderSettings() {
   settingsDescription.value = gameConfig.description || '';
   settingsMinPlayers.value = gameConfig.minPlayers || '';
   settingsMaxPlayers.value = gameConfig.maxPlayers || '';
+  if (settingsNamesMode) settingsNamesMode.value = gameConfig.anonymous ? 'anonymous' : 'collect';
   headerGameName.textContent = gameConfig.name || 'Untitled Activity';
 
   // Theme
@@ -726,6 +729,12 @@ function readSettings() {
   gameConfig.description = settingsDescription.value.trim();
   gameConfig.minPlayers = settingsMinPlayers.value ? parseInt(settingsMinPlayers.value) : null;
   gameConfig.maxPlayers = settingsMaxPlayers.value ? parseInt(settingsMaxPlayers.value) : null;
+  // Anonymous mode: store only the true flag; absent means collect names.
+  if (settingsNamesMode && settingsNamesMode.value === 'anonymous') {
+    gameConfig.anonymous = true;
+  } else {
+    delete gameConfig.anonymous;
+  }
   headerGameName.textContent = gameConfig.name;
 }
 

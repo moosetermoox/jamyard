@@ -4297,3 +4297,60 @@ body::before { content: none; }
   box-shadow: inset 0 0 0 2px #2A2620;
   outline: none;
 }
+
+/* ── Phone gate: the editor only works on a real screen ──
+   Under 700px the three-column layout is unusable, so a full-cover card
+   asks for a computer instead. The editor stays loaded underneath;
+   widening the window (or rotating a tablet) uncovers it again. */
+#mobile-gate { display: none; }
+
+@media (max-width: 700px) {
+  #mobile-gate {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background: var(--t-gesso, #F2EEE5);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .mobile-gate-card {
+    background: var(--t-paper, #FDF9F0);
+    color: var(--t-ink, #2A2620);
+    box-shadow: var(--t-shadow-free, 0 4px 6px rgba(50, 35, 15, 0.25));
+    clip-path: polygon(0 3%, 100% 0, 99% 100%, 1% 97%);
+    padding: 36px 28px;
+    max-width: 420px;
+    text-align: center;
+    font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  }
+  .mobile-gate-card h1 {
+    font-family: var(--t-display, 'Bricolage Grotesque', Arial, sans-serif);
+    font-weight: 800;
+    font-size: 24px;
+    margin: 0 0 14px;
+  }
+  .mobile-gate-card p {
+    font-size: 16px;
+    line-height: 1.45;
+    margin: 0 0 10px;
+  }
+  .mobile-gate-sub {
+    color: var(--t-muted, #6B6250);
+    font-size: 14px;
+  }
+  .mobile-gate-btn {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 12px 22px;
+    background: var(--t-red, #E5482B);
+    color: var(--t-paper, #FDF9F0);
+    font-family: var(--t-display, 'Bricolage Grotesque', Arial, sans-serif);
+    font-weight: 800;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+}

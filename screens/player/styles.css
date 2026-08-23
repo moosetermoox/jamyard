@@ -212,6 +212,13 @@ textarea::placeholder {
   margin: 6px 0 14px;
 }
 
+/* Anonymous rooms hide the whole name block (styled-display children would
+   otherwise override the hidden attribute). */
+#name-field[hidden],
+#anon-hint[hidden] {
+  display: none;
+}
+
 textarea {
   text-align: left;
   resize: vertical;

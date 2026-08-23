@@ -320,6 +320,15 @@ button:disabled {
   color: var(--theme-text, #222);
 }
 
+/* Full-screen chip stands under the sound chip in the same corner
+   (fixed display value beats the hidden attribute — keep the override). */
+.fullscreen-toggle {
+  top: 64px;
+  font-size: 0.95rem;
+}
+
+.fullscreen-toggle[hidden] { display: none; }
+
 /* Standings rows pop in one after another (delay set inline per row) */
 .juice-stagger {
   opacity: 0;

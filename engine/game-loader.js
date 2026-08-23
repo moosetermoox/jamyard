@@ -167,6 +167,13 @@ export function validate(config, gameId, options) {
     errors.push(`Game "${gameId}" is missing required field: name`);
   }
 
+  // Anonymous mode: rooms for this game never collect student names (the
+  // join handler assigns play names). Anything but a boolean fails loudly,
+  // a mistyped value must not silently fall back to collecting names.
+  if (config.anonymous !== undefined && typeof config.anonymous !== 'boolean') {
+    errors.push(`Game "${gameId}": "anonymous" must be true or false`);
+  }
+
   if (!config.phases || typeof config.phases !== 'object') {
     errors.push(`Game "${gameId}" is missing required field: phases`);
     if (returnResults) {

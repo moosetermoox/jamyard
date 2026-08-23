@@ -86,6 +86,7 @@ import { contentLog } from './engine/content-log.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
+import { pickAnonymousName } from './engine/anonymous-names.js';
 import { scoreResponses } from './engine/speed-scoring.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -1420,6 +1421,7 @@ const phaseServices = {
 const SNAPSHOT_DEBOUNCE_MS = 300;
 const ROOM_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000; // stale rooms aren't worth resurrecting
 const HOST_GRACE_MS = 5 * 60 * 1000;             // host F5/crash: hold the room, don't kill it
+const PLAYER_GRACE_MS = 3 * 60 * 1000;           // dropped student: keep identity (scores, team, answers) for rejoin — school wifi blips outlast 30s
 
 const pendingSnapshots = new Map(); // code → debounce timer
 
@@ -1713,6 +1715,21 @@ app.get('/api/rooms/:code/journal', (req, res) => {
     currentPhaseId: room.engine ? room.engine.getCurrentPhase().id : null,
     phaseInstanceId: room.phaseInstanceId || 0,
     journal: room.journal || []
+  });
+});
+
+// Public pre-join lookup: the player screen asks whether a room collects
+// names before showing the "Your name" box (anonymous mode). Only facts
+// already projected on the wall leave here: the room exists, the activity's
+// name, and the anonymous flag. No roster, no PINs, no phase state.
+app.get('/api/rooms/:code/info', (req, res) => {
+  const code = String(req.params.code || '').toUpperCase();
+  const room = roomManager.find(code);
+  if (!room || !room.engine) return res.status(404).json({ error: 'Room not found' });
+  res.json({
+    code,
+    game: room.engine.config.name || null,
+    anonymous: !!room.engine.config.anonymous
   });
 });
 
@@ -2302,6 +2319,7 @@ app.post('/api/games/revise', async (req, res) => {
     // The AI rebuilds the whole config and loses the provenance stamp;
     // restore it so recipe-born copies keep their Customize knobs.
     carryRecipeStamp(config, result.updatedConfig);
+    carryAnonymousFlag(config, result.updatedConfig);
     // Validate the AI's revised config; surface errors so the client can show them
     const structural = validate(result.updatedConfig, 'revise', { returnResults: true });
     res.json({ ...result, structural });
@@ -2316,6 +2334,15 @@ app.post('/api/games/revise', async (req, res) => {
 // server-side and come back as { kind: 'proposal', reply, proposal:
 // { updatedConfig, summary, structural } }. History is client-held (and
 // re-trimmed in the service); this endpoint is stateless.
+// The revise/chat AI rebuilds the whole config and doesn't know about the
+// top-level anonymous flag; a teacher's "play anonymously" choice must
+// survive an unrelated AI edit. (Same reasoning as carryRecipeStamp.)
+function carryAnonymousFlag(original, updated) {
+  if (original && original.anonymous === true && updated && updated.anonymous === undefined) {
+    updated.anonymous = true;
+  }
+}
+
 app.post('/api/games/chat', async (req, res) => {
   try {
     if (!requireRealAI(res)) return;
@@ -2342,6 +2369,7 @@ app.post('/api/games/chat', async (req, res) => {
     // Same treatment as /api/games/revise: restore the provenance stamp
     // the AI drops, then validate so the client can gate Apply on errors.
     carryRecipeStamp(config, result.updatedConfig);
+    carryAnonymousFlag(config, result.updatedConfig);
     const structural = validate(result.updatedConfig, 'chat', { returnResults: true });
     res.json({
       kind: 'proposal',
@@ -2781,6 +2809,10 @@ io.on('connection', (socket) => {
     }
 
     const players = room.engine ? room.engine.players : room.playerRegistry;
+    // Anonymous mode: the config says this room never collects names — the
+    // server assigns a play name and whatever the client typed is discarded
+    // unread (privacy holds even against a modified client that sends one).
+    const anonymousRoom = !!(room.engine && room.engine.config && room.engine.config.anonymous);
 
     try {
       // Check for reconnection: token match first, then name fallback
@@ -2803,7 +2835,7 @@ io.on('connection', (socket) => {
 
         const player = players.find(socket.id);
         const theme = room.engine ? (room.engine.config.theme || null) : null;
-        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme });
+        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom });
 
         const hostSocketId = roomToHost.get(code);
         if (hostSocketId) {
@@ -2826,14 +2858,17 @@ io.on('connection', (socket) => {
       }
 
       const playerToken = randomUUID();
-      players.add(socket.id, name, playerToken);
+      const joinName = anonymousRoom
+        ? pickAnonymousName(players.list().map(p => p.name))
+        : name;
+      players.add(socket.id, joinName, playerToken);
       const player = players.find(socket.id);
       socketToRoom.set(socket.id, code);
       socket.join(code);
 
       console.log(`[join-room] Player ${socket.id} joined room ${code}`);
       const theme = room.engine ? (room.engine.config.theme || null) : null;
-      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme });
+      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom });
 
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {
@@ -4383,7 +4418,9 @@ io.on('connection', (socket) => {
           }
           emitRoomRoster(code, room);
 
-          // Set grace period — remove after 30s if still disconnected
+          // Grace period — remove only if still disconnected when it expires.
+          // Kept generous (PLAYER_GRACE_MS): a student who comes back inside
+          // the window keeps their identity via token/name reconnect.
           const timerId = setTimeout(() => {
             disconnectTimers.delete(socket.id);
             const p = players.find(socket.id);
@@ -4400,7 +4437,7 @@ io.on('connection', (socket) => {
               emitTeacherRoster(code, room);
               emitRoomRoster(code, room);
             }
-          }, 30000);
+          }, PLAYER_GRACE_MS);
           disconnectTimers.set(socket.id, timerId);
         }
       }

@@ -40,15 +40,20 @@
     </div>
     <p class="join-hint">Each letter you type fills a block.</p>
 
-    <label class="join-label" for="name-input">Your name</label>
-    <input
-      type="text"
-      id="name-input"
-      placeholder="First name"
-      maxlength="20"
-      autocomplete="off"
-    >
-    <p class="join-hint">Leave blank to join as Anonymous.</p>
+    <!-- Hidden when the room's activity plays anonymously (the server
+         assigns a play name and ignores any typed one). -->
+    <div id="name-field">
+      <label class="join-label" for="name-input">Your name</label>
+      <input
+        type="text"
+        id="name-input"
+        placeholder="First name"
+        maxlength="20"
+        autocomplete="off"
+      >
+      <p class="join-hint">Leave blank to join as Anonymous.</p>
+    </div>
+    <p id="anon-hint" class="join-hint" hidden>No name needed for this one. You'll get a play name when you join.</p>
 
     <button id="join-btn">Join</button>
     <p id="error-message" hidden></p>

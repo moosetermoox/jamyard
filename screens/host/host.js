@@ -38,6 +38,34 @@ if (sfxToggle && J) {
   sfxToggle.hidden = true;
 }
 
+// --- Full screen: the projector wants the whole screen, no browser chrome ---
+const fullscreenToggle = document.getElementById('fullscreen-toggle');
+function labelFullscreenToggle() {
+  const on = !!document.fullscreenElement;
+  fullscreenToggle.textContent = on ? 'Exit full screen' : 'Full screen';
+  fullscreenToggle.title = on
+    ? 'Back to the normal window (Esc works too)'
+    : 'Show this screen full screen (Esc leaves)';
+  fullscreenToggle.setAttribute('aria-label', fullscreenToggle.title);
+}
+if (fullscreenToggle && document.documentElement.requestFullscreen) {
+  labelFullscreenToggle();
+  fullscreenToggle.addEventListener('click', () => {
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      // Denied (rare: iframe sandbox, browser policy) = nothing happens;
+      // the button is a convenience, F11 still exists.
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  });
+  // Esc / F11 / OS gestures change fullscreen without the button: keep the
+  // label truthful wherever the change came from.
+  document.addEventListener('fullscreenchange', labelFullscreenToggle);
+} else if (fullscreenToggle) {
+  fullscreenToggle.hidden = true;
+}
+
 // --- Stale-event guard: echo the last seen phaseInstanceId on every outgoing event ---
 let latestPhaseInstanceId = null;
 socket.onAny(function (_eventName, payload) {

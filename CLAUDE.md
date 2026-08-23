@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1214 tests passing** (`npm test`, ~4s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1223 tests passing** (`npm test`, ~4s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **28 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -137,7 +137,8 @@ AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `
 - Host moderation (hide/kick); PIN brute-force lockout (`engine/pin-throttle.js`)
 - AI: SAFETY_RULES in every game-run prompt; name-stripping + PII scrub (see Standing Rules); cost guards (per-minute throttle + Neon-persisted daily cap, 429s)
 - XSS output encoding enforced by test
-- Not yet: anonymous mode, rate limiting on non-AI socket events, PII redaction
+- Anonymous mode: top-level `anonymous: true` (editor "Student names" setting) — server assigns "Color Animal" play names (`engine/anonymous-names.js`), typed names discarded unread; player join form hides the name box via `GET /api/rooms/:code/info`
+- Not yet: rate limiting on non-AI socket events, PII redaction
 
 ## Environment
 - `.env`: `ANTHROPIC_API_KEY` (real AI; absent = mock mode), `DATABASE_URL` (Neon; absent = filesystem), `SITE_PASSWORD` (site OWNER: feedback inbox, owner mode, built-in edits, teacher-console credential — the site itself is public), `AI_CALLS_PER_MINUTE` (default 20), `AI_DAILY_CAP` (default 500; 0 disables)

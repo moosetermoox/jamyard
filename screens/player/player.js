@@ -112,6 +112,8 @@ function escapeHtml(str) {
 const joinSection = document.getElementById('join-section');
 const roomCodeInput = document.getElementById('room-code-input');
 const nameInput = document.getElementById('name-input');
+const nameField = document.getElementById('name-field');
+const anonHint = document.getElementById('anon-hint');
 const joinBtn = document.getElementById('join-btn');
 const errorMessage = document.getElementById('error-message');
 
@@ -309,7 +311,39 @@ function renderCodeSlots() {
 roomCodeInput.addEventListener('input', function () {
   this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
   renderCodeSlots();
+  checkRoomInfo();
 });
+
+// --- Anonymous rooms: no name box ---
+// Once four letters are in, ask the server whether this room collects names.
+// The lookup is a courtesy for the UI only: if it fails (room not created
+// yet, flaky wifi), the name box stays and the server still ignores typed
+// names for anonymous rooms.
+let roomIsAnonymous = false;
+let roomInfoSeq = 0; // ignore out-of-order fetch responses while typing
+
+function setAnonymousJoinUI(on) {
+  roomIsAnonymous = on;
+  if (nameField) nameField.hidden = on;
+  if (anonHint) anonHint.hidden = !on;
+}
+
+function checkRoomInfo() {
+  const code = roomCodeInput.value.toUpperCase().trim();
+  if (code.length !== 4) {
+    setAnonymousJoinUI(false);
+    return;
+  }
+  const seq = ++roomInfoSeq;
+  fetch('/api/rooms/' + encodeURIComponent(code) + '/info')
+    .then(r => (r.ok ? r.json() : null))
+    .then(info => {
+      if (seq === roomInfoSeq) setAnonymousJoinUI(!!(info && info.anonymous));
+    })
+    .catch(() => {
+      if (seq === roomInfoSeq) setAnonymousJoinUI(false);
+    });
+}
 
 // Prototype mode: auto-fill and auto-join
 (function() {
@@ -337,6 +371,7 @@ roomCodeInput.addEventListener('input', function () {
   if (code) {
     roomCodeInput.value = code.toUpperCase().trim().slice(0, 4);
     renderCodeSlots();
+    checkRoomInfo();
     if (nameInput) setTimeout(() => nameInput.focus(), 100);
   }
 })();
@@ -500,7 +535,9 @@ window.addEventListener('message', function(e) {
 
 joinBtn.addEventListener('click', () => {
   const code = roomCodeInput.value.toUpperCase().trim();
-  const name = nameInput.value.trim();
+  // Anonymous rooms: never send a typed name (the server would ignore it,
+  // but it shouldn't even leave the device).
+  const name = roomIsAnonymous ? '' : nameInput.value.trim();
 
   if (code.length !== 4) {
     showError('Please enter a 4-letter room code');
