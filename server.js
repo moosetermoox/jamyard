@@ -2224,27 +2224,9 @@ app.post('/api/games/review', async (req, res) => {
   }
 });
 
-app.post('/api/games/fix-issue', async (req, res) => {
-  try {
-    const { config, phaseId, issue } = req.body;
-    if (!config || !config.phases) {
-      return res.status(400).json({ error: 'Missing config or phases' });
-    }
-    if (!phaseId || !config.phases[phaseId]) {
-      return res.status(400).json({ error: 'Invalid phaseId' });
-    }
-    if (!issue || !issue.message) {
-      return res.status(400).json({ error: 'Missing issue' });
-    }
-    const phase = config.phases[phaseId];
-    const otherPhaseIds = Object.keys(config.phases).filter(id => id !== phaseId);
-    const result = await aiService.fixIssue({ phase, phaseId, issue, otherPhaseIds });
-    res.json(result);
-  } catch (error) {
-    console.log(`[api/games/fix-issue] Error: ${error.message}`);
-    res.status(error.statusCode || 500).json({ error: error.message });
-  }
-});
+// POST /api/games/fix-issue was REMOVED 2026-08-22: the per-issue fix
+// pipeline is gone from the editor. Review findings flow into the design
+// chat (/api/games/chat), which proposes one validated change to approve.
 
 // Library Customize: short tailoring questions for a built-in's copy.
 // Works in mock mode too (canned questions) so the flow is always testable.
@@ -2467,6 +2449,11 @@ app.post('/api/games/storyboard', async (req, res) => {
     if (storyboard.error) {
       return res.status(500).json({ error: storyboard.error });
     }
+    // Honest refusal, not an error: the idea's core needs a mechanic no
+    // brick provides, and a hollow lookalike would be worse than saying so.
+    if (storyboard.cantBuild) {
+      return res.json({ cantBuild: true, reason: storyboard.reason || '' });
+    }
     res.json({ storyboard });
   } catch (error) {
     console.log(`[api/games/storyboard] Error: ${error.message}`);
@@ -2501,8 +2488,52 @@ app.post('/api/games/from-description', async (req, res) => {
       return res.status(503).json({ error: 'No recipes are loaded. Restart the server or check recipes/.' });
     }
 
+    // Ready-made built-ins ride along on unforced matches so an idea that
+    // already exists as a finished activity ("Human or AI") gets pointed
+    // at it instead of falling through to the storyboard (2026-08-22).
+    let matchGames = [];
+    if (!recipeId) {
+      const loaded = await listGames();
+      matchGames = loaded
+        .filter(g => g.source === 'built-in')
+        .map(({ id, config }) => ({
+          id,
+          name: config.name,
+          description: config.description || '',
+          playTime: config.playTime || null
+        }));
+    }
+
     console.log(`[api/games/from-description] Matching: "${description.substring(0, 80)}..."`);
-    const match = await aiService.matchRecipe(description, recipes, { forced: !!recipeId });
+    const match = await aiService.matchRecipe(description, recipes, { forced: !!recipeId, games: matchGames });
+
+    // Resolve alternate ids to real recipes; anything unknown (or echoing
+    // the main pick) drops silently so an invented id never renders.
+    const resolveAlternates = (list, excludeRecipeId) => (list || [])
+      .map(a => {
+        const alt = getRecipe(a.recipe);
+        if (!alt || alt.id === excludeRecipeId) return null;
+        return { id: alt.id, name: alt.name, icon: alt.icon, description: alt.description, why: a.why || '' };
+      })
+      .filter(Boolean);
+
+    // The matcher pointed at a finished activity instead of a recipe.
+    if (match.game) {
+      const existing = matchGames.find(g => g.id === match.game);
+      if (existing) {
+        return res.json({
+          existingGame: existing,
+          explanation: match.explanation || '',
+          alternates: resolveAlternates(match.alternates, null)
+        });
+      }
+      // AI invented an activity id — fall through to no-match.
+      return res.json({
+        noMatch: true,
+        reason: `AI pointed at an unknown activity "${match.game}".`,
+        suggestion: 'Try the recipe picker directly.'
+      });
+    }
 
     if (match.noMatch) {
       return res.json({
@@ -2534,16 +2565,7 @@ app.post('/api/games/from-description', async (req, res) => {
       });
     }
 
-    // Resolve the matcher's alternate ids to real recipes; anything
-    // unknown (or echoing the main pick) drops silently so an invented
-    // id never renders as a card.
-    const alternates = (match.alternates || [])
-      .map(a => {
-        const alt = getRecipe(a.recipe);
-        if (!alt || alt.id === recipe.id) return null;
-        return { id: alt.id, name: alt.name, icon: alt.icon, description: alt.description, why: a.why || '' };
-      })
-      .filter(Boolean);
+    const alternates = resolveAlternates(match.alternates, recipe.id);
 
     // Human labels for the preview's param list — the recipe's own
     // parameter labels, so the teacher never reads raw ids like

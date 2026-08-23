@@ -359,15 +359,11 @@ CHECK FOR:
 Return ONLY valid JSON:
 {"issues":[{"phaseId":"...","severity":"error|warning","message":"plain English problem description","suggestion":"what to do, in simple terms"}],"summary":"one friendly sentence overview"}`;
 
-const DEEP_REVIEW_EXTRA = `
-Also check (still in plain, friendly language):
-- Would the AI instructions actually produce good results? Suggest better wording.
-- Is this game fun? Good pacing? Enough variety?
-- Would timers help keep things moving? Suggest specific times.
-- Are there steps that would be confusing for students?
-- Could any messages shown to students be more engaging or clearer?
-
-Be encouraging! Start the summary with something positive about the game concept.`;
+// DEEP_REVIEW_EXTRA (fun/pacing/engagement coaching) was CUT 2026-08-22:
+// it flooded the error-check panel with opinion essays that buried the
+// actual breakage (field feedback: "overwhelming"). Coaching lives in the
+// Ask AI chat, which proposes changes as applyable cards instead of prose.
+// Deep review = the error checklist below on Sonnet, plus the robot playtest.
 
 const GAME_GENERATOR_PROMPT = `You are a classroom game designer. Given a description, generate a complete game config JSON.
 
@@ -814,9 +810,7 @@ export class AIService {
   async _reviewReal(config, depth) {
     try {
       const model = depth === 'deep' ? MODELS.sonnet : MODELS.haiku;
-      const systemPrompt = depth === 'deep'
-        ? LIGHT_REVIEW_PROMPT + DEEP_REVIEW_EXTRA
-        : LIGHT_REVIEW_PROMPT;
+      const systemPrompt = LIGHT_REVIEW_PROMPT;
 
       const configJson = JSON.stringify(config, null, 0);
       const start = Date.now();
@@ -858,80 +852,9 @@ export class AIService {
     }
   }
 
-  async fixIssue({ phase, phaseId, issue, otherPhaseIds }) {
-    if (this.mode === 'mock') {
-      return this._fixIssueMock(phase, issue);
-    }
-    return this._fixIssueReal({ phase, phaseId, issue, otherPhaseIds });
-  }
-
-  _fixIssueMock(phase, issue) {
-    const updated = JSON.parse(JSON.stringify(phase));
-    const msg = (issue.message || '').toLowerCase();
-    if (msg.includes('instruction') && (phase.type === 'ai-process' || phase.type === 'ai-eliminate')) {
-      updated.instruction = (phase.instruction || '') + ' [MOCK: more detailed instructions]';
-    } else if (msg.includes('timer') && !phase.timer) {
-      updated.timer = 60;
-    } else {
-      updated._mockFix = true;
-    }
-    return { updatedPhase: updated, explanation: '[MOCK] Applied a placeholder fix.' };
-  }
-
-  async _fixIssueReal({ phase, phaseId, issue, otherPhaseIds }) {
-    try {
-      const systemPrompt = `You are fixing one phase of a classroom game config. You will be given the current phase JSON, an issue to address, and the IDs of other phases in the game (for reference only, do NOT modify them).
-
-Rules:
-- Return ONLY valid JSON matching this schema: {"updatedPhase": {...}, "explanation": "one-sentence summary"}
-- Keep the phase's "type" and "next" fields unchanged unless the issue is specifically about them
-- Do NOT rename the phase ID (it's referenced elsewhere)
-- Do NOT invent new phase references in "next"/"loopBack" etc., only use IDs from the provided list
-- Make the smallest change that addresses the issue
-- Preserve all other fields unless they conflict with the fix`;
-
-      const userContent = `Phase ID: ${phaseId}
-Other phase IDs in this game: ${JSON.stringify(otherPhaseIds)}
-
-Current phase JSON:
-${JSON.stringify(phase, null, 0)}
-
-Issue: ${issue.message}
-${issue.suggestion ? 'Suggestion: ' + issue.suggestion : ''}
-
-Return the updated phase JSON.`;
-
-      const start = Date.now();
-      const message = await this._callClaude({
-        model: MODELS.haiku,
-        max_tokens: 1024,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: userContent }]
-      });
-      const elapsed = ((Date.now() - start) / 1000).toFixed(1);
-      console.log(`[AIService] fixIssue completed in ${elapsed}s (model: ${MODELS.haiku})`);
-
-      const text = extractText(message);
-      let parsed;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        const match = text.match(/\{[\s\S]*\}/);
-        if (!match) throw new Error('AI response was not valid JSON');
-        parsed = JSON.parse(match[0]);
-      }
-      if (!parsed.updatedPhase || typeof parsed.updatedPhase !== 'object') {
-        throw new Error('AI response missing updatedPhase');
-      }
-      if (parsed.updatedPhase.type !== phase.type) {
-        throw new Error('AI changed phase type, refusing to apply');
-      }
-      return { updatedPhase: parsed.updatedPhase, explanation: parsed.explanation || 'Fix applied.' };
-    } catch (error) {
-      console.error('[AIService] fixIssue error:', error.message);
-      throw error;
-    }
-  }
+  // fixIssue (single-phase fix for the old per-issue Apply Fix buttons)
+  // was REMOVED 2026-08-22 along with POST /api/games/fix-issue: review
+  // findings now flow through the design chat's proposal cards.
 
   async reviseGame({ config, request }) {
     if (this.mode === 'mock') {
@@ -1474,6 +1397,8 @@ RULES:
 - 3 to 8 steps. Start with an announce that explains the activity in a warm teacher voice.
 - If players guess each other's submissions, use collect-two followed by guessing-rounds.
 - BE HONEST IN THE WORDS: mechanics exist only where a brick provides them. Points, scoring, winners, and leaderboards come ONLY from the quiz brick; if there is no quiz step, no text may mention points or winning. Team scores exist ONLY when a teams step comes before a quiz step. Never promise prizes or eliminations.
+- THE BRICKS ARE ALL THERE IS. No brick can generate AI-written answers or rival responses during play, show two specific answers side by side as a matched pair, pair students up, hide one student's answer from the others outside collect-two's secret box, eliminate players, or branch the flow. Step text must never promise any of those. For example, never tell students that one of the responses was written by AI: no step can make that true, and a promise the activity cannot keep is worse than no activity.
+- If the HEART of the teacher's idea needs a mechanic no brick provides (such as AI writing rival answers for students to compare), do not build a hollow lookalike. Instead return ONLY: {"cantBuild": true, "reason": "one plain sentence naming what the builder cannot do yet, in a warm teacher voice"}
 - Quiz questions must be factually correct and unambiguous, only write what you are certain of. For a quiz, 5 to 8 questions is the sweet spot unless the teacher asked for a number. The teacher reviews and can edit every question before anything is built.
 - Write engaging, classroom-ready text for every step that takes text. Never include student names. Do not decorate text with emojis unless the activity itself is about emojis.
 - Output ONLY a JSON object, no other prose: {"name": "...", "description": "one library-card sentence", "steps": [{"brick": "...", "text": "...", ...}]}
@@ -1491,6 +1416,16 @@ ${description}`
         const match = raw.match(/\{[\s\S]*\}/);
         if (!match) return { error: 'The AI reply was not a storyboard. Try describing the activity again.' };
         parsed = JSON.parse(match[0]);
+      }
+      if (parsed && parsed.cantBuild === true) {
+        // The honest refusal: the idea's core needs a mechanic no brick
+        // provides. Surfaced to the teacher as-is, never as an error.
+        return {
+          cantBuild: true,
+          reason: (typeof parsed.reason === 'string' && parsed.reason.trim())
+            ? parsed.reason.trim()
+            : 'The step-by-step builder cannot deliver the heart of this idea yet.'
+        };
       }
       if (!parsed || !Array.isArray(parsed.steps) || parsed.steps.length === 0) {
         return { error: 'The AI storyboard came back empty. Try describing the activity again.' };
@@ -1779,7 +1714,20 @@ ${responseList}`;
         };
       }
 
-      // Two valid shapes — pass through with light sanitation.
+      // Three valid shapes — pass through with light sanitation.
+      // Alternates: up to two OTHER recipes that also fit the idea.
+      // Sanitize hard — the ids get resolved against real recipes by
+      // the caller, but shape problems stop here.
+      const sanitizeAlternates = (list, mainRecipeId) => Array.isArray(list)
+        ? list
+            .filter(a => a && typeof a.recipe === 'string' && a.recipe !== mainRecipeId)
+            .slice(0, 2)
+            .map(a => ({
+              recipe: a.recipe,
+              why: typeof a.why === 'string' ? a.why : ''
+            }))
+        : [];
+
       if (parsed.noMatch === true) {
         return {
           noMatch: true,
@@ -1788,24 +1736,22 @@ ${responseList}`;
         };
       }
 
+      // A ready-made activity already IS the idea — no params to fill,
+      // the caller resolves the id against the real activity catalog.
+      if (typeof parsed.game === 'string') {
+        return {
+          game: parsed.game,
+          explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
+          alternates: sanitizeAlternates(parsed.alternates, null)
+        };
+      }
+
       if (typeof parsed.recipe === 'string' && parsed.params && typeof parsed.params === 'object') {
-        // Alternates: up to two OTHER recipes that also fit the idea.
-        // Sanitize hard — the ids get resolved against real recipes by
-        // the caller, but shape problems stop here.
-        const alternates = Array.isArray(parsed.alternates)
-          ? parsed.alternates
-              .filter(a => a && typeof a.recipe === 'string' && a.recipe !== parsed.recipe)
-              .slice(0, 2)
-              .map(a => ({
-                recipe: a.recipe,
-                why: typeof a.why === 'string' ? a.why : ''
-              }))
-          : [];
         return {
           recipe: parsed.recipe,
           params: parsed.params,
           explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
-          alternates
+          alternates: sanitizeAlternates(parsed.alternates, parsed.recipe)
         };
       }
 
@@ -1824,7 +1770,7 @@ ${responseList}`;
     }
   }
 
-  _buildMatchRecipePrompt(recipes, { forced = false } = {}) {
+  _buildMatchRecipePrompt(recipes, { forced = false, games = [] } = {}) {
     const recipeBlocks = recipes.map(r => {
       const params = Object.entries(r.parameters || {}).map(([name, spec]) => {
         const bits = [`type: ${spec.type}`];
@@ -1849,6 +1795,29 @@ Parameters:
 ${params || '    (none)'}`;
     }).join('\n\n---\n\n');
 
+    // Ready-made activities ride along on unforced matches only: a forced
+    // refit already has its recipe chosen, so offering a detour would be
+    // a dead end for the teacher.
+    const gameLines = (!forced && games.length)
+      ? games.map(g =>
+          `- ${g.id}: ${g.name}. ${String(g.description || '').slice(0, 160)}${g.playTime ? ' (' + g.playTime + ')' : ''}`)
+      : [];
+    const gamesSection = gameLines.length
+      ? `\n# Ready-made activities\n\nFinished activities that already exist on the platform, referenced by option 0 below:\n${gameLines.join('\n')}\n`
+      : '';
+    const gameOption = gameLines.length
+      ? `0. If one of the ready-made activities above already IS the teacher's idea (same core mechanic, not merely the same topic):
+   Return JSON pointing at it, there is nothing to fill in:
+   {
+     "game": "id-of-the-ready-made-activity",
+     "explanation": "One short sentence: this finished activity already does what they described.",
+     "alternates": [ up to 2 recipes that could also take the idea, same shape as in option 1 ]
+   }
+   Prefer this over forcing the idea into a recipe that only half fits, and over refusing. Only the mechanic matters for this call: a ready-made activity about a different topic but the exact same play pattern is a better answer than a topical recipe with the wrong mechanic.
+
+`
+      : '';
+
     // Forced mode (an alternate-card click): the recipe is already
     // chosen, so refusal is not on the menu — a refit that "declines"
     // is a dead end for the teacher. The AI's whole job is parameters.
@@ -1866,7 +1835,7 @@ When the description gives you nothing for a parameter, use the recipe's default
 
 Read the teacher's description and decide:
 
-1. If ONE of the recipes above is a good fit:
+${gameOption}1. If ONE of the recipes above is a good fit:
    Return JSON with the recipe's id and filled parameters:
    {
      "recipe": "id-of-best-fit-recipe",
@@ -1893,7 +1862,7 @@ Read the teacher's description and decide:
 # Available recipes
 
 ${recipeBlocks}
-
+${gamesSection}
 ${jobSection}
 
 # Parameter-filling rules

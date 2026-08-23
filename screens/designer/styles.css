@@ -1900,3 +1900,79 @@ main {
 
 .idea-library-link a { color: #2A2620; font-weight: 700; }
 .idea-library-link a:hover { color: #E5482B; }
+
+/* ---- Storyboard ("Plan it step by step") ----
+   Steps are paper pieces on the gesso modal, same idiom as the picker
+   cards; inputs reuse the recipe-field plank styles. */
+.sb-status { color: #6B6250; font-weight: 600; margin: 4px 0 14px; }
+
+.sb-name-row { margin-bottom: 14px; }
+
+.sb-step {
+  background: #FDF9F0;
+  border-radius: 2px;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.16);
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.sb-step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #2A2620;
+}
+
+.sb-step-num { color: #6E6353; }
+
+.sb-remove {
+  margin-left: auto;
+  border: none;
+  border-radius: 2px;
+  background: #FDF9F0;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.16);
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 2px 8px;
+}
+
+.sb-remove:hover { background: #2A2620; color: #FDF9F0; }
+
+.sb-step-text { margin-top: 8px; }
+
+.sb-questions {
+  margin-top: 8px;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 0.88rem;
+}
+
+.sb-question-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 0;
+  border-top: 1px dashed rgba(50, 35, 15, 0.25);
+}
+
+.sb-question-text { flex: 1; }
+
+.sb-remove-small {
+  margin-left: 0;
+  font-size: 0.8rem;
+  padding: 0 6px;
+  box-shadow: 0 1px 2px rgba(50, 35, 15, 0.16);
+}
+
+.sb-hint { color: #6E6353; padding-top: 6px; font-size: 0.8rem; }
+
+.sb-problems {
+  color: #AE3A16;
+  font-weight: 700;
+  font-family: 'DM Sans', Arial, sans-serif;
+}

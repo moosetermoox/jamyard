@@ -788,7 +788,7 @@ Teacher edits, clicks Save (or auto-save)
        └─ Write to DB (user_games) or games/{id}/config.json
   └─ Editor shows "saved" pip
 
-Teacher clicks "Check for Errors" (deep review)
+Teacher clicks "Test with Robots" (deep review)
   └─ POST /api/games/review (depth: deep)
        └─ Sonnet review  ─┐ run in parallel
        └─ Robot playtest ─┘ services/simulator.js self-connects 1 host + 4

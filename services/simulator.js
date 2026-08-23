@@ -1,6 +1,6 @@
 /**
  * Robot playtest — a headless multi-client simulation the server runs
- * against ITSELF during a deep review ("Check for Errors").
+ * against ITSELF during a deep review ("Test with Robots").
  *
  * Why self-connection instead of an in-process engine walk: the bugs that
  * embarrass a teacher mid-class live in the full stack — socket handlers,

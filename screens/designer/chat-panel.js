@@ -349,6 +349,19 @@
   }
   global.openDesignChat = openDesignChat;
 
+  // Programmatic entry: the robot playtest hands its findings here so
+  // fixing flows through the one pipeline teachers already know
+  // (proposal card, Apply, Revert). The text lands as a normal user
+  // message, visible in the thread. Returns false when the chat is busy.
+  function sendDesignChat(text) {
+    if (inFlight || !text || !gameConfig) return false;
+    openDesignChat();
+    inputEl.value = String(text);
+    sendMessage();
+    return true;
+  }
+  global.sendDesignChat = sendDesignChat;
+
   // ---- Wiring ----
 
   sendBtn.addEventListener('click', sendMessage);

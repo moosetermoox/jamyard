@@ -1574,6 +1574,11 @@ async function submitAIDescription(modal, description, status, generateBtn, over
       return;
     }
 
+    if (data.existingGame) {
+      renderExistingGameView(modal, data, overlay, description);
+      return;
+    }
+
     if (data.config) {
       renderMatchPreview(modal, data, overlay, description);
       return;
@@ -1719,6 +1724,127 @@ function renderMatchPreview(modal, data, overlay, description) {
   modal.appendChild(btnRow);
 }
 
+// The matcher pointed at a finished built-in activity: nothing to build,
+// the doors are Host / Preview / find it in the Library to customize.
+// ("Human or AI" 2026-08-22: the idea already existed as a built-in, but
+// the matcher only knew recipes, so it fell to the storyboard and faked it.)
+function renderExistingGameView(modal, data, overlay, description) {
+  clearModal(modal);
+
+  var game = data.existingGame;
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = 'Good news: this already exists';
+  modal.appendChild(title);
+
+  var card = document.createElement('div');
+  card.style.cssText = 'border:3px solid #000; border-radius:12px; padding:14px 16px; margin:0 0 12px 0; background:#fff;';
+  var cardName = document.createElement('div');
+  cardName.style.cssText = 'font-weight:900; font-size:1.1rem;';
+  cardName.textContent = game.name + (game.playTime ? ' (' + game.playTime + ')' : '');
+  card.appendChild(cardName);
+  if (game.description) {
+    var cardDesc = document.createElement('div');
+    cardDesc.style.cssText = 'font-size:0.9rem; color:#444; margin-top:4px;';
+    cardDesc.textContent = game.description;
+    card.appendChild(cardDesc);
+  }
+  modal.appendChild(card);
+
+  if (data.explanation) {
+    var explain = document.createElement('p');
+    explain.className = 'recipe-form-description';
+    explain.textContent = data.explanation;
+    modal.appendChild(explain);
+  }
+
+  var customizeNote = document.createElement('p');
+  customizeNote.className = 'recipe-form-description';
+  customizeNote.textContent = 'Want it with your own twist? Find it in the Library and click Customize for an editable copy.';
+  modal.appendChild(customizeNote);
+
+  // Runner-up recipes still render: "already exists" is one answer, and
+  // building an own version from a recipe is the other.
+  if (Array.isArray(data.alternates) && data.alternates.length > 0 && description) {
+    var altHeader = document.createElement('p');
+    altHeader.style.cssText = 'margin:16px 0 8px 0; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; font-size:0.85rem;';
+    altHeader.textContent = 'Or build your own version:';
+    modal.appendChild(altHeader);
+
+    data.alternates.forEach(function (alt) {
+      var altBtn = document.createElement('button');
+      altBtn.type = 'button';
+      altBtn.className = 'ai-match-alternate';
+      altBtn.style.cssText = 'display:block; width:100%; text-align:left; border:2px solid #000; border-radius:12px; background:#fff; padding:10px 12px; margin-bottom:8px; cursor:pointer; font-family:"Nunito", Arial, sans-serif;';
+
+      var altName = document.createElement('div');
+      altName.style.cssText = 'font-weight:900;';
+      altName.textContent = alt.name;
+      altBtn.appendChild(altName);
+
+      var altWhy = document.createElement('div');
+      altWhy.style.cssText = 'font-size:0.85rem; color:#444;';
+      altWhy.textContent = alt.why || alt.description || '';
+      altBtn.appendChild(altWhy);
+
+      altBtn.addEventListener('click', function () {
+        refitToAlternate(modal, data, alt, overlay, description);
+      });
+      modal.appendChild(altBtn);
+    });
+  }
+
+  var status = document.createElement('div');
+  status.className = 'recipe-form-status';
+  status.id = 'ai-match-preview-status';
+  modal.appendChild(status);
+
+  var btnRow = document.createElement('div');
+  btnRow.className = 'recipe-form-buttons';
+  btnRow.style.flexWrap = 'wrap';
+
+  var backBtn = document.createElement('button');
+  backBtn.type = 'button';
+  backBtn.className = 'recipe-cancel-btn';
+  backBtn.textContent = '← Try a different idea';
+  backBtn.addEventListener('click', function () {
+    renderAIDescriptionStep(modal, overlay);
+  });
+  btnRow.appendChild(backBtn);
+
+  var libraryBtn = document.createElement('button');
+  libraryBtn.type = 'button';
+  libraryBtn.className = 'recipe-cancel-btn';
+  libraryBtn.textContent = 'See it in the Library';
+  libraryBtn.addEventListener('click', function () {
+    window.location.href = '/library?highlight=' + encodeURIComponent(game.id);
+  });
+  btnRow.appendChild(libraryBtn);
+
+  var previewBtn = document.createElement('button');
+  previewBtn.type = 'button';
+  previewBtn.className = 'recipe-cancel-btn';
+  previewBtn.textContent = 'Preview';
+  previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
+  previewBtn.addEventListener('click', function () {
+    window.location.href = '/prototype?game=' + encodeURIComponent(game.id);
+  });
+  btnRow.appendChild(previewBtn);
+
+  var hostBtn = document.createElement('button');
+  hostBtn.type = 'button';
+  hostBtn.className = 'recipe-create-btn';
+  hostBtn.textContent = '▶ Host this';
+  hostBtn.title = 'Start a live room your class can join right now';
+  hostBtn.addEventListener('click', function () {
+    window.location.href = '/host?game=' + encodeURIComponent(game.id);
+  });
+  btnRow.appendChild(hostBtn);
+
+  modal.appendChild(btnRow);
+}
+
 // "tier1Prompts" -> "Tier 1 prompts": fallback when a param has no label.
 function humanizeParamName(name) {
   var words = String(name)
@@ -1791,16 +1917,22 @@ async function refitToAlternate(modal, data, alt, overlay, description) {
       throw new Error(next.error || next.reason || 'that recipe could not take this idea');
     }
     if (!Array.isArray(next.alternates) || next.alternates.length === 0) {
-      var carried = [{
-        id: data.recipe.id,
-        name: data.recipe.name,
-        icon: data.recipe.icon,
-        why: 'The first suggestion for this idea.'
-      }];
+      // The outgoing pick carries over only when it WAS a recipe; from the
+      // "already exists" view there is no recipe to carry, just the other
+      // unchosen alternates.
+      var carried = [];
+      if (data.recipe) {
+        carried.push({
+          id: data.recipe.id,
+          name: data.recipe.name,
+          icon: data.recipe.icon,
+          why: 'The first suggestion for this idea.'
+        });
+      }
       (data.alternates || []).forEach(function (a) {
         if (a.id !== alt.id) carried.push(a);
       });
-      next.alternates = carried;
+      if (carried.length) next.alternates = carried;
     }
     setButtonsDisabled(false);
     renderMatchPreview(modal, next, overlay, description);
@@ -1901,10 +2033,14 @@ function renderNoMatchView(modal, description, data, overlay) {
 var SB_BRICK_LABELS = window.PHASE_NAMES || {};
 
 async function showStoryboardFlow(description, seededStoryboard) {
+  // template-picker-overlay/-modal: the page's centered, Totem-skinned
+  // dialog pair. (The old picker-overlay classes live in editor.css,
+  // which this page does not load — the modal rendered unpositioned,
+  // jammed against the left edge.)
   var overlay = document.createElement('div');
-  overlay.className = 'picker-overlay';
+  overlay.className = 'template-picker-overlay';
   var modal = document.createElement('div');
-  modal.className = 'picker-modal';
+  modal.className = 'template-picker-modal';
   modal.style.maxWidth = '640px';
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -1917,10 +2053,9 @@ async function showStoryboardFlow(description, seededStoryboard) {
     return n;
   }
 
-  var title = sbEl('h2', 'Here’s the plan');
+  var title = sbEl('h2', 'Here’s the plan', 'template-picker-title');
   modal.appendChild(title);
-  var status = sbEl('p', 'Sketching the steps…');
-  status.style.cssText = 'font-family:"Nunito", Arial, sans-serif; color:#666; margin:8px 0 12px;';
+  var status = sbEl('p', 'Sketching the steps…', 'sb-status');
   modal.appendChild(status);
 
   var storyboard;
@@ -1936,6 +2071,29 @@ async function showStoryboardFlow(description, seededStoryboard) {
         body: JSON.stringify({ description: description })
       });
       resp = await r.json();
+      if (resp && resp.cantBuild) {
+        // Honest refusal: the idea's heart needs a mechanic the bricks
+        // can't deliver. Better a straight answer here than a built
+        // activity that fakes its own premise with words.
+        title.textContent = 'This one needs a trick we don\'t have yet';
+        status.textContent = resp.reason || 'The step-by-step builder cannot deliver the heart of this idea yet.';
+        var cbHint = sbEl('p', 'A recipe or a ready-made activity from the Library may get close. Or reshape the idea around what students type and see, and try again.', 'sb-hint');
+        modal.appendChild(cbHint);
+        var cbRow = sbEl('div', null, 'recipe-form-buttons');
+        var cbClose = sbEl('button', 'Close', 'recipe-cancel-btn');
+        cbClose.type = 'button';
+        cbClose.addEventListener('click', function () { closeOverlay(overlay); });
+        cbRow.appendChild(cbClose);
+        var cbPick = sbEl('button', 'Pick from Recipes', 'recipe-create-btn');
+        cbPick.type = 'button';
+        cbPick.addEventListener('click', function () {
+          closeOverlay(overlay);
+          showRecipePicker();
+        });
+        cbRow.appendChild(cbPick);
+        modal.appendChild(cbRow);
+        return;
+      }
       if (!r.ok || !resp.storyboard) throw new Error(resp.error || 'No storyboard came back.');
     } catch (err) {
       status.textContent = 'Could not sketch the plan: ' + err.message;
@@ -1945,12 +2103,11 @@ async function showStoryboardFlow(description, seededStoryboard) {
   }
   status.textContent = 'Change any words you like, drop steps you don’t, then build it. Nothing exists until you do.';
 
-  var nameRow = sbEl('div');
-  nameRow.style.marginBottom = '12px';
-  nameRow.appendChild(sbEl('label', 'Activity name'));
+  var nameRow = sbEl('div', null, 'sb-name-row');
+  nameRow.appendChild(sbEl('label', 'Activity name', 'recipe-field-label'));
   var nameInput = document.createElement('input');
+  nameInput.className = 'recipe-field-input';
   nameInput.value = storyboard.name || 'New Activity';
-  nameInput.style.cssText = 'width:100%; padding:8px 10px; border:2px solid #000; border-radius:8px; font-family:"Nunito", Arial, sans-serif;';
   nameRow.appendChild(nameInput);
   modal.appendChild(nameRow);
 
@@ -1961,16 +2118,13 @@ async function showStoryboardFlow(description, seededStoryboard) {
   function renderSteps() {
     list.textContent = '';
     steps.forEach(function (step, i) {
-      var row = sbEl('div');
-      row.style.cssText = 'border:2px solid #000; border-radius:12px; padding:10px 12px; margin-bottom:8px; background:#fff;';
-      var head = sbEl('div');
-      head.style.cssText = 'display:flex; align-items:center; gap:8px; font-weight:800; font-family:"Nunito", Arial, sans-serif;';
-      head.appendChild(sbEl('span', String(i + 1) + '.'));
+      var row = sbEl('div', null, 'sb-step');
+      var head = sbEl('div', null, 'sb-step-head');
+      head.appendChild(sbEl('span', String(i + 1) + '.', 'sb-step-num'));
       head.appendChild(sbEl('span', SB_BRICK_LABELS[step.brick] || step.brick));
-      var rm = sbEl('button', '✕');
+      var rm = sbEl('button', '✕', 'sb-remove');
       rm.type = 'button';
       rm.title = 'Drop this step';
-      rm.style.cssText = 'margin-left:auto; border:2px solid #000; border-radius:8px; background:#fff; cursor:pointer; font-weight:800;';
       rm.addEventListener('click', function () {
         steps.splice(i, 1);
         renderSteps();
@@ -1980,9 +2134,9 @@ async function showStoryboardFlow(description, seededStoryboard) {
       if (step.text != null || SB_BRICK_LABELS[step.brick]) {
         if (typeof step.text === 'string') {
           var box = document.createElement('textarea');
+          box.className = 'recipe-field-input sb-step-text';
           box.value = step.text;
           box.rows = 2;
-          box.style.cssText = 'width:100%; margin-top:6px; padding:8px 10px; border:2px solid #000; border-radius:8px; font-family:"Nunito", Arial, sans-serif; font-size:0.9rem;';
           box.addEventListener('input', function () { step.text = box.value; });
           row.appendChild(box);
         }
@@ -1991,18 +2145,14 @@ async function showStoryboardFlow(description, seededStoryboard) {
       // and its correct answer is visible BEFORE anything is built. ✕ drops
       // a single wrong question; deeper edits happen in the editor after.
       if (step.brick === 'quiz' && Array.isArray(step.questions)) {
-        var qList = sbEl('div');
-        qList.style.cssText = 'margin-top:6px; font-family:"Nunito", Arial, sans-serif; font-size:0.88rem;';
+        var qList = sbEl('div', null, 'sb-questions');
         step.questions.forEach(function (q, qi) {
-          var qRow = sbEl('div');
-          qRow.style.cssText = 'display:flex; align-items:baseline; gap:6px; padding:3px 0; border-top:1px solid #ddd;';
-          var qText = sbEl('span', (qi + 1) + '. ' + (q.text || '') + '  ✓ ' + (q.correct || ''));
-          qText.style.flex = '1';
+          var qRow = sbEl('div', null, 'sb-question-row');
+          var qText = sbEl('span', (qi + 1) + '. ' + (q.text || '') + '  ✓ ' + (q.correct || ''), 'sb-question-text');
           qRow.appendChild(qText);
-          var qRm = sbEl('button', '✕');
+          var qRm = sbEl('button', '✕', 'sb-remove sb-remove-small');
           qRm.type = 'button';
           qRm.title = 'Drop this question';
-          qRm.style.cssText = 'border:1px solid #000; border-radius:6px; background:#fff; cursor:pointer; font-size:0.8rem;';
           qRm.addEventListener('click', function () {
             step.questions.splice(qi, 1);
             renderSteps();
@@ -2010,8 +2160,7 @@ async function showStoryboardFlow(description, seededStoryboard) {
           qRow.appendChild(qRm);
           qList.appendChild(qRow);
         });
-        var qHint = sbEl('div', 'Check every answer, drop any question that is wrong. You can rewrite them after building.');
-        qHint.style.cssText = 'color:#666; padding-top:4px; font-size:0.8rem;';
+        var qHint = sbEl('div', 'Check every answer, drop any question that is wrong. You can rewrite them after building.', 'sb-hint');
         qList.appendChild(qHint);
         row.appendChild(qList);
       }
@@ -2020,8 +2169,7 @@ async function showStoryboardFlow(description, seededStoryboard) {
   }
   renderSteps();
 
-  var problems = sbEl('p');
-  problems.style.cssText = 'color:#B71C1C; font-family:"Nunito", Arial, sans-serif; font-weight:700;';
+  var problems = sbEl('p', null, 'sb-problems');
   modal.appendChild(problems);
 
   var btnRow = sbEl('div', null, 'recipe-form-buttons');

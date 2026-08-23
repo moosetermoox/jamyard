@@ -97,7 +97,7 @@ body {
       = "you have unsaved changes" → Save while dirty (CSS-only via
       the save-status sibling selector below)
    3. QUIET (everything else): white outline on the cobalt → More,
-      Check for Errors, Preview, Save-when-clean (.btn-ghost)
+      Test with Robots, Preview, Save-when-clean (.btn-ghost)
    ------------------------------------------------------------ */
 #editor-header .btn {
   white-space: nowrap;
@@ -1402,66 +1402,24 @@ textarea.sar-input {
   font-weight: normal;
 }
 
-/* Robot playtest banner (deep review) */
+/* Robot playtest verdict (the panel is verdict + one door, never a list) */
 .review-playtest { font-weight: bold; }
 .review-playtest-ok   { background: #C8E6C9; }
 .review-playtest-warn { background: #FFF9C4; }
 .review-playtest-bad  { background: #FFCDD2; }
 
-.review-issues {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.review-fix-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.review-issue {
-  padding: 10px 12px;
-  margin-bottom: 8px;
-  border-radius: 10px;
-  border-left: 4px solid;
-  border: 3px solid #000;
-  background: white;
-  font-size: 0.85rem;
-  line-height: 1.4;
+.review-fix-hint {
+  font-size: 0.8rem;
+  color: #555;
   font-family: 'DM Sans', Arial, sans-serif;
   font-weight: normal;
-}
-
-.review-issue-error {
-  border-left: 6px solid #FF2D2D;
-}
-
-.review-issue-warning {
-  border-left: 6px solid #FF6D00;
-}
-
-.review-issue-suggestion {
-  border-left: 6px solid #0057FF;
-}
-
-.review-issue-phase {
-  font-weight: 900;
-  color: #AA00FF;
-  cursor: pointer;
-  font-size: 0.8rem;
-  margin-bottom: 4px;
-  text-transform: uppercase;
-  font-family: inherit;
-}
-
-.review-issue-phase:hover {
-  text-decoration: underline;
-}
-
-.review-issue-message {
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.review-issue-suggestion-text {
-  color: #666;
-  font-size: 0.8rem;
-  font-style: italic;
 }
 
 /* "Looks good" chip shown when a step has no AI suggestions */
@@ -1820,83 +1778,8 @@ textarea.sar-input {
   font-weight: normal;
 }
 
-/* --- Apply Fix button + diff preview modal --- */
-.review-fix-btn {
-  margin-top: 8px;
-  padding: 6px 12px;
-  background: #C8E6C9;
-  border: 2px solid #000;
-  cursor: pointer;
-  font-weight: bold;
-  font-family: inherit;
-  font-size: 0.85rem;
-}
-.review-fix-btn:hover:not(:disabled) { background: #A5D6A7; }
-.review-fix-btn:disabled { background: #eee; cursor: wait; }
-
-.fix-preview-modal { max-width: 640px; background: #FFF; }
-
-.fix-btn-row {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 12px;
-}
-
-.fix-explanation {
-  padding: 10px 12px;
-  margin-bottom: 12px;
-  background: #FFF9C4;
-  border: 2px solid #FFD600;
-  border-radius: 6px;
-  font-size: 0.95rem;
-}
-
-.fix-diff {
-  background: #fafafa;
-  border: 2px solid #000;
-  padding: 8px;
-  margin-bottom: 12px;
-  max-height: 340px;
-  overflow-y: auto;
-  font-family: monospace;
-  font-size: 0.85rem;
-}
-
-.fix-diff-row {
-  margin-bottom: 10px;
-  padding-bottom: 8px;
-  border-bottom: 1px dashed #ccc;
-}
-.fix-diff-row:last-child { border-bottom: none; margin-bottom: 0; }
-
-.fix-diff-key {
-  font-weight: bold;
-  margin-bottom: 4px;
-  font-family: inherit;
-}
-
-.fix-diff-old {
-  background: #FFCDD2;
-  padding: 4px 6px;
-  margin-bottom: 2px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.fix-diff-new {
-  background: #C8E6C9;
-  padding: 4px 6px;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-
-.fix-diff-no-change {
-  padding: 12px;
-  text-align: center;
-  color: #666;
-  font-style: italic;
-}
+/* (The Apply Fix button + diff preview modal styles were removed
+   2026-08-22 with the per-issue fix pipeline.) */
 
 
 /* ===== Simple view (plain-English editor) ===== */
@@ -2849,7 +2732,7 @@ body {
 /* Modals: pasted sheets */
 .picker-overlay, .sar-overlay { background: rgba(34, 30, 28, 0.5); }
 
-.picker-modal, .sar-modal, .fix-preview-modal, .review-panel {
+.picker-modal, .sar-modal, .review-panel {
   background: #FDF9F0;
   border: none;
   border-radius: 2px;

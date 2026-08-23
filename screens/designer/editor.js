@@ -1744,15 +1744,8 @@ function renderAISuggestions(phaseId) {
         item.appendChild(fix);
       }
 
-      if (issue.severity !== 'error') {
-        var fixBtn = document.createElement('button');
-        fixBtn.className = 'review-fix-btn';
-        fixBtn.textContent = '\u2728 Apply Fix';
-        fixBtn.addEventListener('click', function () {
-          requestFix(phaseId, issue, fixBtn);
-        });
-        item.appendChild(fixBtn);
-      }
+      // No per-issue fix button (2026-08-22): changes go through the
+      // design chat's proposal cards, the step's Ask-AI door is right there.
 
       phaseConfigForm.appendChild(item);
     })(issues[i]);
@@ -5956,7 +5949,7 @@ async function runLightReview() {
 
 async function runDeepReview() {
   reviewBtn.disabled = true;
-  reviewBtn.textContent = 'Checking...';
+  reviewBtn.textContent = 'Robots playing...';
 
   try {
     var response = await fetch('/api/games/review', {
@@ -5977,7 +5970,7 @@ async function runDeepReview() {
     showToast('Review failed: ' + error.message);
   } finally {
     reviewBtn.disabled = false;
-    reviewBtn.textContent = 'Check for Errors';
+    reviewBtn.textContent = 'Test with Robots';
   }
 }
 
@@ -6013,6 +6006,11 @@ function humanizeReviewText(text) {
   return out;
 }
 
+// Verdict, not report (owner call 2026-08-22): the teacher sees one line
+// about what the robots found and ONE door — hand the findings to the
+// design chat, which proposes a single fix to approve. The per-issue
+// list with its own Apply Fix pipeline is gone; a teacher should never
+// work through a punch list.
 function showReviewPanel(result) {
   reviewPanel.hidden = false;
   reviewContent.innerHTML = '';
@@ -6021,270 +6019,113 @@ function showReviewPanel(result) {
   var structural = result.structural || {};
   var sim = result.simulation || null;
 
-  // Robot playtest banner — what actually happened when bots played it
+  // Every real problem (errors + warnings) in one pile. It feeds the
+  // verdict count and the chat hand-off; it is never rendered as a list.
+  // Suggestion-grade notes stay off entirely (they badge the step cards
+  // via applyReviewResults).
+  var problems = [];
+  (structural.errors || []).forEach(function (m) {
+    problems.push({ severity: 'error', message: m, phaseId: null });
+  });
+  (structural.warnings || []).forEach(function (m) {
+    problems.push({ severity: 'warning', message: m, phaseId: null });
+  });
+  if (sim && sim.findings) {
+    sim.findings.forEach(function (f) {
+      if (f.severity !== 'error' && f.severity !== 'warning') return;
+      problems.push({ severity: f.severity, message: 'While playing: ' + f.message, phaseId: f.phaseId || null });
+    });
+  }
+  (ai.issues || []).forEach(function (iss) {
+    if (iss.severity !== 'error' && iss.severity !== 'warning') return;
+    problems.push({ severity: iss.severity, message: iss.message, phaseId: iss.phaseId || null });
+  });
+  var severityOrder = { error: 0, warning: 1 };
+  problems.sort(function (a, b) {
+    return (severityOrder[a.severity] || 1) - (severityOrder[b.severity] || 1);
+  });
+
+  var count = problems.length;
+  var countLine = count + ' thing' + (count === 1 ? '' : 's') + ' need' + (count === 1 ? 's' : '') + ' fixing';
+
+  var verdict = document.createElement('div');
   if (sim && !sim.failed) {
-    var simDiv = document.createElement('div');
-    var simErrors = (sim.findings || []).filter(function (f) { return f.severity === 'error'; });
     var seconds = Math.round((sim.durationMs || 0) / 1000);
     var steps = (sim.phaseLog || []).length;
-    if (sim.completed && simErrors.length === 0) {
-      simDiv.className = 'review-summary review-playtest review-playtest-ok';
-      simDiv.textContent = 'Robot playtest: 4 bots played your activity start to finish in ' +
-        seconds + 's (' + steps + ' steps). No runtime problems.';
+    if (sim.completed && count === 0) {
+      verdict.className = 'review-summary review-playtest review-playtest-ok';
+      verdict.textContent = '4 robot players played your activity start to finish in ' +
+        seconds + 's (' + steps + ' steps). Nothing broken!';
     } else if (sim.completed) {
-      simDiv.className = 'review-summary review-playtest review-playtest-warn';
-      simDiv.textContent = 'Robot playtest: 4 bots reached the end in ' + seconds +
-        's, but hit ' + simErrors.length + ' problem' + (simErrors.length === 1 ? '' : 's') + ' along the way, see below.';
+      verdict.className = 'review-summary review-playtest review-playtest-warn';
+      verdict.textContent = '4 robot players reached the end, but ' + countLine + '.';
     } else {
-      simDiv.className = 'review-summary review-playtest review-playtest-bad';
-      simDiv.textContent = 'Robot playtest: 4 bots could NOT finish your activity, see below for where it got stuck.';
+      verdict.className = 'review-summary review-playtest review-playtest-bad';
+      verdict.textContent = '4 robot players could not finish your activity. ' +
+        (count > 0 ? countLine.charAt(0).toUpperCase() + countLine.slice(1) + '.' : '');
     }
-    reviewContent.appendChild(simDiv);
+  } else if (count === 0) {
+    verdict.className = 'review-summary review-playtest review-playtest-ok';
+    verdict.textContent = 'Nothing broken. Your activity looks good!';
+  } else {
+    verdict.className = 'review-summary review-playtest review-playtest-bad';
+    verdict.textContent = 'Some steps have problems that would stop the activity, ' + countLine + '.';
   }
+  reviewContent.appendChild(verdict);
 
-  // Summary
-  if (ai.summary) {
-    var summaryDiv = document.createElement('div');
-    summaryDiv.className = 'review-summary';
-    summaryDiv.textContent = humanizeReviewText(ai.summary);
-    reviewContent.appendChild(summaryDiv);
-  }
+  if (count === 0) return;
 
-  // Collect all issues: structural errors + AI issues + playtest findings
-  var allIssues = [];
+  var cta = document.createElement('div');
+  cta.className = 'review-fix-cta';
 
-  if (structural.errors) {
-    for (var e = 0; e < structural.errors.length; e++) {
-      allIssues.push({ severity: 'error', message: structural.errors[e], phaseId: null, suggestion: null });
+  var fixBtn = document.createElement('button');
+  fixBtn.type = 'button';
+  fixBtn.className = 'btn btn-primary';
+  fixBtn.textContent = 'Have AI fix this';
+  fixBtn.title = 'Sends what the robots found to the design assistant, which proposes one change for you to approve';
+  fixBtn.addEventListener('click', function () {
+    var message = buildFixRequest(problems);
+    if (typeof sendDesignChat === 'function' && sendDesignChat(message)) {
+      reviewPanel.hidden = true;
+    } else {
+      showToast('The design assistant is busy. Give it a moment and try again.');
     }
-  }
-  if (structural.warnings) {
-    for (var w = 0; w < structural.warnings.length; w++) {
-      allIssues.push({ severity: 'warning', message: structural.warnings[w], phaseId: null, suggestion: null });
-    }
-  }
-  if (sim && sim.findings) {
-    for (var s = 0; s < sim.findings.length; s++) {
-      var f = sim.findings[s];
-      allIssues.push({
-        severity: f.severity,
-        message: 'Robot playtest: ' + f.message,
-        phaseId: f.phaseId || null,
-        suggestion: null
-      });
-    }
-  }
-  if (ai.issues) {
-    for (var a = 0; a < ai.issues.length; a++) {
-      allIssues.push(ai.issues[a]);
-    }
-  }
-
-  if (allIssues.length === 0) {
-    var noIssues = document.createElement('div');
-    noIssues.className = 'review-summary';
-    noIssues.textContent = 'No issues found. Your activity looks good!';
-    reviewContent.appendChild(noIssues);
-    return;
-  }
-
-  // Sort: errors first, then warnings, then suggestions
-  var severityOrder = { error: 0, warning: 1, suggestion: 2 };
-  allIssues.sort(function (a, b) {
-    return (severityOrder[a.severity] || 2) - (severityOrder[b.severity] || 2);
   });
+  cta.appendChild(fixBtn);
 
-  var list = document.createElement('div');
-  list.className = 'review-issues';
+  var hint = document.createElement('div');
+  hint.className = 'review-fix-hint';
+  hint.textContent = 'The assistant will propose a fix. Nothing changes until you approve it.';
+  cta.appendChild(hint);
 
-  for (var i = 0; i < allIssues.length; i++) {
-    var issue = allIssues[i];
-    var item = document.createElement('div');
-    item.className = 'review-issue review-issue-' + (issue.severity || 'warning');
-
-    if (issue.phaseId && gameConfig.phases[issue.phaseId]) {
-      var phaseLink = document.createElement('div');
-      phaseLink.className = 'review-issue-phase';
-      phaseLink.textContent = getFriendlyPhaseName(issue.phaseId);
-      phaseLink.setAttribute('data-phase-id', issue.phaseId);
-      phaseLink.addEventListener('click', function () {
-        var pid = this.getAttribute('data-phase-id');
-        selectPhase(pid);
-      });
-      item.appendChild(phaseLink);
-    }
-
-    var msgDiv = document.createElement('div');
-    msgDiv.className = 'review-issue-message';
-    msgDiv.textContent = humanizeReviewText(issue.message);
-    item.appendChild(msgDiv);
-
-    if (issue.suggestion) {
-      var sugDiv = document.createElement('div');
-      sugDiv.className = 'review-issue-suggestion-text';
-      sugDiv.textContent = humanizeReviewText(issue.suggestion);
-      item.appendChild(sugDiv);
-    }
-
-    // Apply Fix button — only for issues scoped to a specific phase
-    if (issue.phaseId && gameConfig.phases[issue.phaseId] && issue.severity !== 'error') {
-      var fixBtn = document.createElement('button');
-      fixBtn.className = 'review-fix-btn';
-      fixBtn.textContent = 'Apply Fix';
-      fixBtn.setAttribute('data-phase-id', issue.phaseId);
-      fixBtn.setAttribute('data-issue-idx', String(i));
-      fixBtn.addEventListener('click', function () {
-        var pid = this.getAttribute('data-phase-id');
-        var idx = parseInt(this.getAttribute('data-issue-idx'));
-        requestFix(pid, allIssues[idx], this);
-      });
-      item.appendChild(fixBtn);
-    }
-
-    list.appendChild(item);
-  }
-
-  reviewContent.appendChild(list);
+  reviewContent.appendChild(cta);
 }
 
-async function requestFix(phaseId, issue, btn) {
-  btn.disabled = true;
-  btn.textContent = 'Thinking...';
-  try {
-    var response = await fetch('/api/games/fix-issue', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ config: gameConfig, phaseId: phaseId, issue: issue })
-    });
-    if (!response.ok) {
-      var err = await response.json();
-      showToast('Could not generate fix: ' + (err.error || 'Unknown error'));
-      return;
-    }
-    var result = await response.json();
-    showFixPreview(phaseId, gameConfig.phases[phaseId], result.updatedPhase, result.explanation, issue);
-  } catch (error) {
-    showToast('Fix request failed: ' + error.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Apply Fix';
+// The chat hand-off: the robots' findings become one plain request in the
+// teacher's voice. Capped so the chat prompt stays digestible.
+function buildFixRequest(problems) {
+  var MAX_IN_MESSAGE = 6;
+  var n = problems.length;
+  var lines = ['Robot players test-played my activity and hit ' + n + ' problem' +
+    (n === 1 ? '' : 's') + '. Please fix ' + (n === 1 ? 'it' : 'them') + ':'];
+  var shown = Math.min(n, MAX_IN_MESSAGE);
+  for (var i = 0; i < shown; i++) {
+    var p = problems[i];
+    var where = p.phaseId && gameConfig && gameConfig.phases && gameConfig.phases[p.phaseId]
+      ? ' (in the "' + getFriendlyPhaseName(p.phaseId) + '" step)'
+      : '';
+    lines.push((i + 1) + '. ' + humanizeReviewText(p.message) + where);
   }
+  if (n > MAX_IN_MESSAGE) {
+    lines.push('...and ' + (n - MAX_IN_MESSAGE) + ' more like these.');
+  }
+  return lines.join('\n');
 }
 
-function showFixPreview(phaseId, oldPhase, newPhase, explanation, appliedIssue) {
-  var existing = document.getElementById('fix-preview-overlay');
-  if (existing) existing.remove();
-
-  var overlay = document.createElement('div');
-  overlay.id = 'fix-preview-overlay';
-  overlay.className = 'picker-overlay';
-
-  var modal = document.createElement('div');
-  modal.className = 'picker-modal fix-preview-modal';
-
-  var title = document.createElement('h2');
-  title.textContent = 'Review Fix for ' + getFriendlyPhaseName(phaseId);
-  modal.appendChild(title);
-
-  if (explanation) {
-    var explDiv = document.createElement('div');
-    explDiv.className = 'fix-explanation';
-    explDiv.textContent = explanation;
-    modal.appendChild(explDiv);
-  }
-
-  var diffContainer = document.createElement('div');
-  diffContainer.className = 'fix-diff';
-  renderFieldDiff(diffContainer, oldPhase, newPhase);
-  modal.appendChild(diffContainer);
-
-  var btnRow = document.createElement('div');
-  btnRow.className = 'fix-btn-row';
-
-  var cancelBtn = document.createElement('button');
-  cancelBtn.textContent = 'Cancel';
-  cancelBtn.className = 'btn-secondary';
-  cancelBtn.addEventListener('click', function () { overlay.remove(); });
-
-  var applyBtn = document.createElement('button');
-  applyBtn.textContent = 'Apply Fix';
-  applyBtn.className = 'btn-primary';
-  applyBtn.addEventListener('click', function () {
-    gameConfig.phases[phaseId] = newPhase;
-    isDirty = true;
-    dismissIssue(phaseId, appliedIssue);
-    overlay.remove();
-  });
-
-  btnRow.appendChild(cancelBtn);
-  btnRow.appendChild(applyBtn);
-  modal.appendChild(btnRow);
-
-  overlay.appendChild(modal);
-  document.body.appendChild(overlay);
-}
-
-function dismissIssue(phaseId, issue) {
-  if (!issue) return;
-  // Remove from aiIssues sidebar store
-  if (aiIssues[phaseId]) {
-    aiIssues[phaseId] = aiIssues[phaseId].filter(function (x) {
-      return x.message !== issue.message;
-    });
-    if (aiIssues[phaseId].length === 0) delete aiIssues[phaseId];
-  }
-  // Remove from cached review result so panel re-render drops it
-  if (lastReviewResult && lastReviewResult.ai && lastReviewResult.ai.issues) {
-    lastReviewResult.ai.issues = lastReviewResult.ai.issues.filter(function (x) {
-      return !(x.phaseId === phaseId && x.message === issue.message);
-    });
-  }
-  // Re-render review panel if open
-  if (lastReviewResult && !reviewPanel.hidden) {
-    showReviewPanel(lastReviewResult);
-  }
-  // Re-render canvas + current phase sidebar
-  renderCanvas();
-  if (selectedPhaseId) renderPhaseConfig(selectedPhaseId);
-}
-
-function renderFieldDiff(container, oldObj, newObj) {
-  var allKeys = {};
-  for (var k in oldObj) allKeys[k] = true;
-  for (var k2 in newObj) allKeys[k2] = true;
-  var keys = Object.keys(allKeys);
-  var hasChanges = false;
-  for (var i = 0; i < keys.length; i++) {
-    var key = keys[i];
-    var oldVal = oldObj[key];
-    var newVal = newObj[key];
-    var oldStr = oldVal === undefined ? '(not set)' : (typeof oldVal === 'string' ? oldVal : JSON.stringify(oldVal));
-    var newStr = newVal === undefined ? '(not set)' : (typeof newVal === 'string' ? newVal : JSON.stringify(newVal));
-    if (oldStr === newStr) continue;
-    hasChanges = true;
-    var row = document.createElement('div');
-    row.className = 'fix-diff-row';
-    var label = document.createElement('div');
-    label.className = 'fix-diff-key';
-    label.textContent = key;
-    row.appendChild(label);
-    var oldDiv = document.createElement('div');
-    oldDiv.className = 'fix-diff-old';
-    oldDiv.textContent = '- ' + oldStr;
-    row.appendChild(oldDiv);
-    var newDiv = document.createElement('div');
-    newDiv.className = 'fix-diff-new';
-    newDiv.textContent = '+ ' + newStr;
-    row.appendChild(newDiv);
-    container.appendChild(row);
-  }
-  if (!hasChanges) {
-    var noChange = document.createElement('div');
-    noChange.className = 'fix-diff-no-change';
-    noChange.textContent = 'No changes detected.';
-    container.appendChild(noChange);
-  }
-}
+// (The old per-issue fix pipeline — requestFix / showFixPreview /
+// dismissIssue / renderFieldDiff and POST /api/games/fix-issue — was
+// removed 2026-08-22. All fixing flows through the design chat's
+// proposal cards now.)
 
 // --- Live Preview ---
 
