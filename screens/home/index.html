@@ -215,7 +215,12 @@
       flex-direction: column;
       gap: 8px;
       text-decoration: none;
+      /* Reserve the height of a slide with a shot so the card (and the
+         whole page under it) never jumps as slides rotate */
+      min-height: 204px;
+      transition: opacity 160ms ease;
     }
+    .board-slide.is-swapping { opacity: 0; }
 
     .board-slide-text {
       display: flex;
@@ -287,6 +292,8 @@
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
       overflow: hidden;
+      /* Always hold three lines so short descriptions don't shrink the card */
+      min-height: 4.5em;
     }
 
     .board-bottom {
@@ -480,8 +487,10 @@
       .message-col { padding-top: 0; }
       .totem-col { order: 2; width: 100%; }
       .board { max-width: 100%; margin-top: 4px; }
-      /* Narrow screens: the text IS the card; the print would crowd it */
+      /* Narrow screens: the text IS the card; the print would crowd it.
+         Drop the shot-height reservation; the 3-line desc keeps it steady. */
       .board-shot { display: none; }
+      .board-slide { min-height: 0; }
       .board-slide.has-shot { flex-direction: column; }
       .board-slide.has-shot .board-name { font-size: 28px; padding: 2px 14px 6px; }
       .how-strip { grid-template-columns: 1fr; }
@@ -627,7 +636,6 @@
       var reducedMotion = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      // Totem motion rule: slides hard-cut, no fade.
       function render() {
         var g = games[idx];
         var customizeHref = '/library?customize=' + encodeURIComponent(g.id);
@@ -644,6 +652,7 @@
         metaEl.textContent = meta.join(' · ');
         countEl.textContent = (idx + 1) + ' of ' + games.length;
         applyShot(g);
+        probeShot(games[(idx + 1) % games.length]);
       }
 
       // Show the activity's projector print when a shot exists; otherwise
@@ -671,9 +680,27 @@
         shotImg.src = '/home-shots/' + encodeURIComponent(g.id) + '.png';
       }
 
+      // Warm the NEXT slide's shot during the dwell, so it's cached (and
+      // its existence known) before that slide shows: no mid-view pop.
+      function probeShot(g) {
+        if (!g || (g.source || 'built-in') === 'user' || shotState[g.id]) return;
+        var img = new Image();
+        img.onload = function () { shotState[g.id] = 'ok'; };
+        img.onerror = function () { shotState[g.id] = 'missing'; };
+        img.src = '/home-shots/' + encodeURIComponent(g.id) + '.png';
+      }
+
+      // Slides crossfade: dip to blank for one beat, swap, fade back in.
+      var swapTimer = null;
       function step(delta) {
         idx = (idx + delta + games.length) % games.length;
-        render();
+        if (reducedMotion) { render(); return; }
+        clearTimeout(swapTimer);
+        slideEl.classList.add('is-swapping');
+        swapTimer = setTimeout(function () {
+          render();
+          slideEl.classList.remove('is-swapping');
+        }, 170);
       }
 
       function startRotation() {
