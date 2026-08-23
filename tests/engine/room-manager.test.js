@@ -30,6 +30,15 @@ describe('RoomManager', () => {
       }
       expect(codes.size).toBe(10);
     });
+
+    // Field report 2026-08-22: a Q on the projector was read as an O by
+    // students typing the join code. Q is banned from the alphabet.
+    it('never puts a Q in a room code', () => {
+      const manager = new RoomManager(testGameConfig);
+      for (let i = 0; i < 200; i++) {
+        expect(manager.create()).not.toMatch(/Q/);
+      }
+    });
   });
 
   describe('finding rooms', () => {

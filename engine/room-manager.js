@@ -69,7 +69,10 @@ export class RoomManager {
   }
 
   generateCode() {
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    // No Q: on the projector font students read it as an O and mistype
+    // the join code (field report 2026-08-22). Codes are letters-only,
+    // so O itself is unambiguous.
+    const letters = 'ABCDEFGHIJKLMNOPRSTUVWXYZ';
     let code = '';
     for (let i = 0; i < 4; i++) {
       code += letters.charAt(Math.floor(Math.random() * letters.length));
