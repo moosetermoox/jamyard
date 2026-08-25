@@ -100,12 +100,15 @@ async function run() {
     r.check(playerExts2.every(e => e.addSeconds === 30), 'console press: every player received +30s');
     r.check(teacherExt.addSeconds === 30, 'console press: console received its confirmation');
 
-    // --- 5. After close (snowball advances to merge, not extendable) ---
+    // --- 5. After close, snowball advances to MERGE. Server-timed phases
+    // are extendable since v2 (2026-08-24): the server re-arms its own
+    // deadline and broadcasts the same +30s shift to every screen. ---
     for (const s of [host, ...players, teacher]) s._buffer['timer-extended'] = [];
     host.emit('close-submissions', { code });
     await wait(600);
     host.emit('extend-timer', { code });
-    await expectNoExtension([host, ...players, teacher], 'after close: extend-timer is ignored (merge is server-timed)');
+    const mergeExts = await waitForEventOnAll(players, 'timer-extended', 5000);
+    r.check(mergeExts.every(e => e.addSeconds === 30), 'merge (server-timed): every player received +30s');
   } catch (err) {
     console.error(`\x1b[31mSimulation error: ${err.message}\x1b[0m`);
     r.errors++;

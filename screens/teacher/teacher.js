@@ -214,9 +214,15 @@ function setPhase(data) {
   closeStepBtn.hidden = !isCollect;
   closeStepBtn.disabled = false;
 
-  // "A bit more time": only while a stretchable input step is open AND it
-  // actually has a countdown (mirrors the server's extend-timer guard).
-  var canExtend = (isCollect || phaseType === 'vote' || phaseType === 'estimate') &&
+  // "A bit more time": only while a stretchable step is open AND it
+  // actually has a countdown (mirrors the server's extend-timer guard:
+  // EXTENDABLE_TIMER_PHASES + SERVER_TIMED_EXTENDABLE in server.js — keep
+  // this list in sync). The rule: any step where the whole class works
+  // against one shared countdown; per-turn clocks (relay, turn) and pacing
+  // beats (announce, leaderboard) stay out.
+  var EXTENDABLE_TYPES = ['collect', 'collect-choice', 'vote', 'estimate',
+    'merge', 'rank', 'match', 'sort', 'rate', 'checklist', 'wager'];
+  var canExtend = EXTENDABLE_TYPES.indexOf(phaseType) !== -1 &&
     !!data.timer && !data.closed;
   moreTimeBtn.hidden = !canExtend;
   moreTimeBtn.textContent = MORE_TIME_LABEL;

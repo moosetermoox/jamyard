@@ -708,6 +708,20 @@ socket.on('kicked', ({ message } = {}) => {
   showError(message || 'You have been removed from this session.');
 });
 
+// This student joined again from another tab (duplicated tab shares the
+// token): the seat moved there, this tab bows out. Null the room state so
+// the auto-rejoin on reconnect can't steal the seat back, but KEEP the
+// token — it's still this student's identity in the room.
+socket.on('session-replaced', ({ message } = {}) => {
+  eliminatedBanner.hidden = true;
+  isEliminated = false;
+  currentRoomCode = null;
+  currentPlayerName = null;
+  showSection(joinSection);
+  joinBtn.disabled = false;
+  showError(message || 'You joined again on another screen, so this one signed off.');
+});
+
 // --- Timer ---
 // The Totem timer is a chip that reads like a clock, not a bar
 function formatTimerText(seconds) {

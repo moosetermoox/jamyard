@@ -1,5 +1,6 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { armPhaseTimer } from '../phase-timer.js';
 import { buildGroups } from '../phases/pairing.js';
 
 /**
@@ -210,11 +211,7 @@ registerHandler('merge', {
     }
 
     if (phase.timer) {
-      state.timer = setTimeout(async () => {
-        if (room.phaseState && room.phaseState.phaseId === phase.id) {
-          await ctx.services.closeMerge(room.code || code, room);
-        }
-      }, phase.timer * 1000);
+      armPhaseTimer(room, phase.timer, () => ctx.services.closeMerge(room.code || code, room));
     }
   },
 

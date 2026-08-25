@@ -63,6 +63,8 @@ import { validateFeedback } from './engine/feedback-validate.js';
 import { createRateLimiter } from './engine/simple-rate-limit.js';
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
+import { classifyJoin } from './engine/join-policy.js';
+import { extendPhaseTimer } from './engine/phase-timer.js';
 import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
 import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
@@ -1295,9 +1297,21 @@ function isTeacherSocket(code, room, socketId) {
 }
 
 // "A bit more time": how much one press adds, and which phase types accept
-// it (the input phases whose timer authority is the host screen's countdown).
+// it. Two regimes:
+//  - host-clock phases (EXTENDABLE_TIMER_PHASES): no server timeout exists,
+//    the projector countdown closes the phase, so the timer-extended
+//    broadcast alone stretches everything.
+//  - server-timed phases (SERVER_TIMED_EXTENDABLE): a server setTimeout
+//    closes the phase, so the deadline must ALSO be re-armed via
+//    engine/phase-timer.js or the server would close at the original time.
+// Deliberately out: relay and turn (per-turn clocks — more time there
+// stretches ONE student's turn, and turn's clock is a fairness mechanic),
+// announce and leaderboard (pacing beats, not student work time).
+// The rule teachers see: the button appears whenever the whole class is
+// working against one shared countdown.
 const EXTEND_TIMER_SECONDS = 30;
 const EXTENDABLE_TIMER_PHASES = new Set(['collect', 'collect-choice', 'vote', 'estimate']);
+const SERVER_TIMED_EXTENDABLE = new Set(['merge', 'rank', 'match', 'sort', 'rate', 'checklist', 'wager']);
 
 // A two-stage phase just closed (host click, console click, all-in
 // auto-close, or timer expiry): results are on the projector, so every
@@ -2815,13 +2829,37 @@ io.on('connection', (socket) => {
     const anonymousRoom = !!(room.engine && room.engine.config && room.engine.config.anonymous);
 
     try {
-      // Check for reconnection: token match first, then name fallback
-      const existing = (token && players.findByToken(token))
-        || (() => { const processedName = name || 'Anonymous'; const p = players.findByName(processedName); return p && !p.connected ? p : null; })();
-      if (existing && !existing.connected) {
-        console.log(`[join-room] Reconnecting player via ${token ? 'token' : 'name'} (old: ${existing.id} -> new: ${socket.id})`);
+      // What does this attempt MEAN? Reconnect, duplicated-tab takeover,
+      // name collision with a connected student, or a genuinely new player.
+      const verdict = classifyJoin(players, { token, name, anonymousRoom });
+
+      // A typed name that a still-connected student is using: refuse
+      // instead of silently seating "Alex2" (field feedback 2026-08-24:
+      // students were joining twice). A real classmate with the same name
+      // adds an initial; a ghost tab clears itself within the ping timeout.
+      if (verdict.kind === 'name-taken') {
+        console.log(`[join-room] Name "${verdict.player.name}" already connected in ${code} — refusing duplicate`);
+        socket.emit(EVENTS.JOIN_ERROR, {
+          message: `Someone here is already playing as "${verdict.player.name}". If that's you on another screen, keep using that one (or wait a moment and try again). If a classmate got the name first, add your last initial.`
+        });
+        return;
+      }
+
+      if (verdict.kind === 'reconnect' || verdict.kind === 'takeover') {
+        const existing = verdict.player;
         const oldId = existing.id;
+        // Takeover: the same student (same token) opened the room in a
+        // second tab while the first is still connected. Their seat moves
+        // to the new socket; the old tab is told and cut loose so it can't
+        // auto-rejoin and ping-pong the seat back.
+        const oldSocket = verdict.kind === 'takeover' ? io.sockets.sockets.get(oldId) : null;
+        console.log(`[join-room] ${verdict.kind === 'takeover' ? 'Taking over session' : 'Reconnecting player'} via ${token ? 'token' : 'name'} (old: ${oldId} -> new: ${socket.id})`);
         players.reconnect(oldId, socket.id);
+        if (oldSocket) {
+          socketToRoom.delete(oldId);
+          oldSocket.emit(EVENTS.SESSION_REPLACED, { message: 'You joined again on another screen, so this one signed off.' });
+          oldSocket.disconnect(true);
+        }
         // Follow the player across the rebind: phase state (turn describer,
         // relay turn order, vote eligibility, merge groups…) and completed-
         // phase data (score maps feeding leaderboards) all hold the old id.
@@ -3168,11 +3206,10 @@ io.on('connection', (socket) => {
   });
 
   // --- "A bit more time": teacher adds seconds to a running input timer ---
-  // v1 covers the phases whose countdown authority is the host screen (the
-  // projector clicks its own close button at 0): collect, collect-choice,
-  // vote, estimate. Phases with a server-armed setTimeout (announce, merge,
-  // rank, ...) would still fire at the original deadline, so they stay out
-  // until those handlers move to a re-armable shared timer.
+  // Covers every phase where the whole class works against one shared
+  // countdown. Host-clock phases only need the broadcast; server-timed
+  // phases also re-arm their setTimeout (see the sets' comment, v2
+  // 2026-08-24). Clients shift their countdowns via timer-extended.
   socket.on(EVENTS.EXTEND_TIMER, (payload = {}) => {
     if (!checkEventPayload(socket, 'extend-timer', payload)) return;
     const { code, phaseInstanceId } = payload;
@@ -3182,10 +3219,16 @@ io.on('connection', (socket) => {
       if (isStalePhaseEvent(room, phaseInstanceId, 'extend-timer')) return;
       if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
       const phase = room.engine && room.engine.getCurrentPhase();
-      if (!phase || !EXTENDABLE_TIMER_PHASES.has(phase.type) || !phase.timer) return;
+      if (!phase || !phase.timer) return;
+      const serverTimed = SERVER_TIMED_EXTENDABLE.has(phase.type);
+      if (!serverTimed && !EXTENDABLE_TIMER_PHASES.has(phase.type)) return;
       // Two-stage phases stay current after closing; more time only makes
       // sense while inputs are still open.
       if (room.phaseState && room.phaseState.closed) return;
+      // Server-timed: push the server's own deadline back too, or it would
+      // still close at the original time. No armed timer left (it already
+      // fired, or a manual close cleared it) = nothing to extend.
+      if (serverTimed && !extendPhaseTimer(room, EXTEND_TIMER_SECONDS)) return;
       recordEvent(room, 'extend-timer');
       const message = { addSeconds: EXTEND_TIMER_SECONDS };
       io.to(code).emit(EVENTS.TIMER_EXTENDED, message);

@@ -791,12 +791,19 @@ button[hidden] {
 }
 
 .rank-handle {
-  font-size: 1.2rem;
-  color: #aaa;
+  /* The grip must READ as a grip: pale gray at 1.2rem was invisible, so
+     drag-and-drop went undiscovered (field feedback 2026-08-24). Shared
+     by rank and match rows. */
+  font-size: 1.45rem;
+  color: var(--t-muted, #6B6250);
   cursor: grab;
-  padding: 0 4px;
+  padding: 2px 8px;
   flex-shrink: 0;
+  border-right: 2px dashed rgba(107, 98, 80, 0.35);
+  line-height: 1;
 }
+
+.rank-item:active .rank-handle { cursor: grabbing; }
 
 .rank-item-label {
   flex: 1;

@@ -225,7 +225,11 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
     const code = roomData.code;
 
     for (let i = 0; i < players.length; i++) {
-      const botName = BOT_NAMES[i % BOT_NAMES.length];
+      // Names must be unique across the roster: the server refuses a name
+      // that's already connected (double-join guard, 2026-08-24), so big
+      // bot fleets can't reuse the pool bare.
+      const botName = BOT_NAMES[i % BOT_NAMES.length] +
+        (i >= BOT_NAMES.length ? '-' + (Math.floor(i / BOT_NAMES.length) + 1) : '');
       players[i]._name = botName;
       players[i].emit('join-room', { code, name: botName });
       await new Promise((resolve) => {

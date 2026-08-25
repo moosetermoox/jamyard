@@ -696,7 +696,15 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored 
   // code (usability test 2026-08-01: "my kids would ask what do I type?").
   var joinInstructions = document.getElementById('join-instructions');
   if (joinInstructions) {
-    joinInstructions.textContent = 'Go to ' + window.location.host + '/player and enter this code';
+    // The address itself gets its own big span: 16px body text was
+    // unreadable from the back row (field feedback 2026-08-24).
+    joinInstructions.textContent = '';
+    joinInstructions.append('Go to ');
+    var hostSpan = document.createElement('strong');
+    hostSpan.className = 'join-host';
+    hostSpan.textContent = window.location.host + '/player';
+    joinInstructions.append(hostSpan);
+    joinInstructions.append(' and enter this code');
     joinInstructions.hidden = false;
   }
 
@@ -1370,6 +1378,7 @@ socket.on('rank-start', ({ prompt, totalRankers, timer, hostTemplate, show }) =>
     startTimer(timer, rankTimer, () => {
       socket.emit('close-ranking', { code: currentRoomCode });
     });
+    showMoreTimeBtn(rankTimer);
   }
 });
 
@@ -1409,6 +1418,7 @@ socket.on('match-start', ({ prompt, totalMatchers, timer, hostTemplate, show }) 
     startTimer(timer, matchTimer, () => {
       matchCloseBtn.click();
     });
+    showMoreTimeBtn(matchTimer);
   }
 });
 
@@ -1488,6 +1498,7 @@ socket.on('sort-start', ({ prompt, totalSorters, timer, hostTemplate, show }) =>
     startTimer(timer, sortTimer, () => {
       sortCloseBtn.click();
     });
+    showMoreTimeBtn(sortTimer);
   }
 });
 
@@ -1616,6 +1627,7 @@ socket.on('checklist-start', ({ prompt, progress, solo, timer, hostTemplate, sho
     startTimer(timer, checklistTimer, () => {
       checklistCloseBtn.click();
     });
+    showMoreTimeBtn(checklistTimer);
   }
 });
 
@@ -1920,6 +1932,7 @@ socket.on('merge-progress', ({ instruction, totalGroups, submittedGroups, timer,
       startTimer(timer, mergeHostTimer, () => {
         socket.emit('close-merge', { code: currentRoomCode });
       });
+      showMoreTimeBtn(mergeHostTimer);
     }
   }
   mergeCounter.textContent = (submittedGroups || 0) + ' of ' + totalGroups + ' groups merged';
@@ -1952,6 +1965,7 @@ socket.on('rate-start', ({ prompt, scales, visibility, totalRaters, timer, hostT
     startTimer(timer, rateTimer, () => {
       socket.emit('close-rating', { code: currentRoomCode });
     });
+    showMoreTimeBtn(rateTimer);
   }
 });
 
@@ -2083,6 +2097,7 @@ socket.on('wager-start', ({ prompt, options, totalWagerers, timer, hostTemplate,
     startTimer(timer, wagerTimer, () => {
       socket.emit('close-wager', { code: currentRoomCode });
     });
+    showMoreTimeBtn(wagerTimer);
   }
 });
 

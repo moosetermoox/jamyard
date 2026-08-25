@@ -822,6 +822,23 @@ function saveCopyAndReturn(config) {
   });
 }
 
+// Open the editor on a copy WITHOUT saving it: the config rides over in
+// sessionStorage and the editor persists it on the first real edit. Used
+// by the zero-interaction Customize path, where the teacher hasn't chosen
+// anything yet; the dialog paths (answers, knobs, quiz/bluff panels) keep
+// saving eagerly because filling those in IS editing.
+function openDraftCopy(config) {
+  delete config.featured; // the copy is yours, not the public front door's
+  try {
+    sessionStorage.setItem('lanyard-pending-copy', JSON.stringify(config));
+  } catch (e) {
+    // Storage unavailable (private mode quota): fall back to the old
+    // save-first flow rather than losing the Customize click.
+    return saveCopyAndReturn(config);
+  }
+  window.location.href = '/designer/edit?draft=copy&from=library';
+}
+
 // Recompile a recipe-born config with new params. The source config's
 // card metadata (name, description, tags...) always wins; phases, the
 // provenance stamp, and family come from the fresh compile. Rejects with
@@ -1590,9 +1607,10 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
 }
 
 function customizeCopy(game, btn) {
-  // Customizing counts as trying the original: it enters recents, so its
-  // card gains Preview/Host next render (the untouched-card unlock rule).
-  Recents.add(game.id);
+  // Deliberately NOT Recents.add(game.id) here: clicking Customize is
+  // opening-to-look, and looking must leave no trace in the yard (field
+  // feedback 2026-08-24). The original enters recents only via Preview/
+  // Host clicks; a copy enters the yard only once it's actually saved.
   btn.disabled = true;
   btn.textContent = 'Loading…';
   var configPromise = fetch('/api/games/' + encodeURIComponent(game.id))
@@ -1659,8 +1677,11 @@ function customizeCopy(game, btn) {
       var knobs = (window.SetupKnobs && summary)
         ? SetupKnobs.knobsFor(summary, config.recipe) : [];
       if (questions.length === 0 && knobs.length === 0) {
+        // Nothing to ask: the teacher hasn't chosen anything yet, so hand
+        // the editor an UNSAVED draft. The copy is only created (and only
+        // then joins the yard) on their first real edit over there.
         config.name = game.name + ' (my version)';
-        return saveCopyAndReturn(config);
+        return openDraftCopy(config);
       }
       showCustomizeDialog(game, config, questions, knobs);
     })
@@ -1861,6 +1882,15 @@ function showCustomizeDialog(game, config, questions, knobs) {
   function plainCopy() {
     skipBtn.disabled = true;
     goBtn.disabled = true;
+    // Nothing chosen at all (no knob touched, no question answered): the
+    // teacher is opening to look, so hand the editor an UNSAVED draft,
+    // same rule as the no-dialog path. Touched knobs are deliberate input
+    // and keep the eager save.
+    if (!anyKnobTouched()) {
+      var draft = JSON.parse(JSON.stringify(config));
+      draft.name = game.name + ' (my version)';
+      return openDraftCopy(draft);
+    }
     buildWorkingConfig()
       .then(saveWorking)
       .catch(function (err) {

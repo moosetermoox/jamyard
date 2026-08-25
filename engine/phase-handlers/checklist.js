@@ -1,5 +1,6 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { armPhaseTimer } from '../phase-timer.js';
 import {
   normalizeChecklistItems,
   buildChecklistGroups,
@@ -113,11 +114,7 @@ registerHandler('checklist', {
     }
 
     if (phase.timer) {
-      state.timer = setTimeout(async () => {
-        if (room.phaseState && room.phaseState.phaseId === phase.id) {
-          await ctx.services.closeChecklist(room.code || code, room);
-        }
-      }, phase.timer * 1000);
+      armPhaseTimer(room, phase.timer, () => ctx.services.closeChecklist(room.code || code, room));
     }
   },
 

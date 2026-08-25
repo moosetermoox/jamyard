@@ -10,7 +10,28 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-21, five-ship day)
+### START HERE next session (updated 2026-08-24, feedback wave)
+
+**Six field-test fixes shipped 2026-08-24** (CHANGELOG entry has full
+detail): plan-intro dialog now spotlights the Design with AI chat;
+opening an activity without editing no longer puts a copy in the yard
+(draft-copy flow, first edit creates it); projected join URL enlarged;
+rank/match drag grip made visible + rank hint line; double-join
+prevention (token takeover + connected-name refusal, new
+engine/join-policy.js + session-replaced event); "A bit more time" v2
+(engine/phase-timer.js re-armable server timer — merge/rank/match/sort/
+rate/checklist/wager now extendable; rule: any step with one shared
+class countdown). 1241 tests.
+
+Follow-ups from this wave:
+- **Feel-check the six fixes in a real room**, especially the
+  name-refusal copy (is the message clear to a 12-year-old?) and the
+  draft-copy flow (does "my yard" now match teacher expectations?).
+- The takeover/name-refusal paths have unit tests via classifyJoin but
+  no socket-level integration test (none exist in the repo yet); the
+  chaos suite covers reconnects only.
+
+### Previous session block (2026-08-21, five-ship day)
 
 **Five ships, all pushed and deployed** (2026-08-21, master 7012379,
 CI green, 1197 tests): (1) Closer rebuilt TALK-ONLY and refeatured

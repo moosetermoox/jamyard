@@ -1,5 +1,6 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { armPhaseTimer } from '../phase-timer.js';
 import { normalizePairs } from '../phases/match-scoring.js';
 
 /**
@@ -97,11 +98,7 @@ registerHandler('match', {
     }
 
     if (phase.timer) {
-      room.phaseState.timer = setTimeout(async () => {
-        if (room.phaseState && room.phaseState.phaseId === phase.id) {
-          await ctx.services.closeMatching(room.code || code, room);
-        }
-      }, phase.timer * 1000);
+      armPhaseTimer(room, phase.timer, () => ctx.services.closeMatching(room.code || code, room));
     }
   },
 

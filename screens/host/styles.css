@@ -1726,10 +1726,21 @@ button:disabled,
 }
 
 .join-instructions {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--t-muted, #6B6250);
+  /* Read from the back of the room: the address is the payload, the
+     words around it are the frame (field feedback 2026-08-24). */
+  font-size: clamp(18px, 2vw, 24px);
+  font-weight: 600;
+  color: var(--t-ink, #2A2620);
   margin: 0 0 16px;
+  line-height: 1.35;
+}
+
+.join-instructions .join-host {
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: clamp(26px, 3vw, 36px);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
 }
 
 /* Room code: four painted letter blocks on one shadow */

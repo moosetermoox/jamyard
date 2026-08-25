@@ -5,6 +5,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { armPhaseTimer } from '../phase-timer.js';
 
 registerHandler('wager', {
   async onEnter(ctx) {
@@ -64,11 +65,7 @@ registerHandler('wager', {
     }
 
     if (phase.timer) {
-      room.phaseState.timer = setTimeout(async () => {
-        if (room.phaseState && room.phaseState.phaseId === phase.id) {
-          await ctx.services.closeWager(room.code || code, room);
-        }
-      }, phase.timer * 1000);
+      armPhaseTimer(room, phase.timer, () => ctx.services.closeWager(room.code || code, room));
     }
   },
 

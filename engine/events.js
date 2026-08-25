@@ -52,6 +52,7 @@ export const EVENTS = {
   MODERATE_HIDE:        'moderate-hide',
   MODERATE_KICK:        'moderate-kick',
   KICKED:               'kicked',
+  SESSION_REPLACED:     'session-replaced',   // server -> old tab: same student joined again elsewhere
 
   // --- Teacher Console (private second-device view; host screen is projected) ---
   JOIN_TEACHER:         'join-teacher',        // console -> server: code + pin

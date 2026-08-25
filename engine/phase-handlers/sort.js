@@ -1,5 +1,6 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { armPhaseTimer } from '../phase-timer.js';
 import { normalizeSortItems, isGradedSort } from '../phases/sort-scoring.js';
 
 /**
@@ -90,11 +91,7 @@ registerHandler('sort', {
     }
 
     if (phase.timer) {
-      room.phaseState.timer = setTimeout(async () => {
-        if (room.phaseState && room.phaseState.phaseId === phase.id) {
-          await ctx.services.closeSorting(room.code || code, room);
-        }
-      }, phase.timer * 1000);
+      armPhaseTimer(room, phase.timer, () => ctx.services.closeSorting(room.code || code, room));
     }
   },
 

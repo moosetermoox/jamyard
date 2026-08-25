@@ -23,6 +23,12 @@ var isDirty = false;
 // (built-in edits 401 without the owner password; the teacher edited for
 // minutes and previewed the server's stale copy, 2026-08-16).
 var lastSaveError = null;
+// Library draft copy (?draft=copy): the Customize click hands the editor a
+// config via sessionStorage WITHOUT saving it. The copy is only created,
+// and only then joins the teacher's yard, on the first real edit (or an
+// explicit Save / Preview / Host). Opening to look leaves no trace.
+var isDraftCopy = false;
+var DRAFT_COPY_KEY = 'lanyard-pending-copy';
 var foreachAdvancedOpen = false;
 var aiIssues = {};
 var lastReviewResult = null;
@@ -426,7 +432,9 @@ async function fetchSchemas() {
 // the product itself (field feedback 2026-08-16). One-time explainer:
 // this is the activity's plan, edit the cards, Preview plays it for real.
 function maybeShowPlanIntro() {
-  var KEY = 'lanyardPlanIntroSeen';
+  // Key bumped (v2) when the chat callout was added (2026-08-24), so
+  // teachers who dismissed the old version see the new line once.
+  var KEY = 'lanyardPlanIntroSeen2';
   try { if (localStorage.getItem(KEY)) return; } catch (e) { return; }
   if (!window.Dialog) return;
 
@@ -442,11 +450,15 @@ function maybeShowPlanIntro() {
   var lines = [
     'You\'re looking at the plan, not the activity itself. Each numbered card is one step: what goes up on the projector and what students do on their devices.',
     'Read it top to bottom, and change any wording right on the cards. Edits save on their own.',
+    'The fastest way to reshape it: tell the Design with AI chat on the right what you want ("make it 5 rounds", "swap the drawing for writing") and it makes the change for you.',
     'Then click Preview up top to play it for real with a pretend class, so you can see exactly what you and your students will see.'
   ];
   for (var i = 0; i < lines.length; i++) {
     var p = document.createElement('p');
     p.textContent = lines[i];
+    // The chat is the part first-time teachers miss (field feedback
+    // 2026-08-24): give its line the same visual weight as a heading.
+    if (i === 2) p.className = 'plan-intro-chat-line';
     modal.appendChild(p);
   }
 
@@ -467,10 +479,25 @@ function maybeShowPlanIntro() {
     onClose: function () {
       // Every dismissal path (button, x, Escape, backdrop) funnels here.
       try { localStorage.setItem(KEY, '1'); } catch (e) { /* private mode */ }
+      spotlightChatPanel();
     }
   });
   okBtn.addEventListener('click', dlg.close);
   okBtn.focus();
+}
+
+// After the intro dialog closes, pulse the Design with AI panel so the
+// teacher's eye lands on the thing the dialog just described. Skipped
+// when the panel isn't on screen (Builder/Advanced view, narrow layout).
+function spotlightChatPanel() {
+  var panel = document.getElementById('chat-panel');
+  if (!panel || panel.hidden || !panel.offsetParent) return;
+  panel.classList.add('chat-spotlight');
+  var input = document.getElementById('chat-input');
+  if (input) {
+    try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+  }
+  setTimeout(function () { panel.classList.remove('chat-spotlight'); }, 3200);
 }
 
 async function init() {
@@ -500,6 +527,24 @@ async function init() {
 
   if (gameId) {
     loadGame(gameId);
+  } else if (params.get('draft') === 'copy') {
+    // A library copy that hasn't been saved yet — see isDraftCopy above.
+    var rawDraft = null;
+    try { rawDraft = sessionStorage.getItem(DRAFT_COPY_KEY); } catch (e) { /* storage unavailable */ }
+    if (rawDraft) {
+      try {
+        gameConfig = JSON.parse(rawDraft);
+        isDraftCopy = true;
+      } catch (e) {
+        console.warn('[editor] Draft copy unreadable:', e.message);
+      }
+    }
+    if (!gameConfig) {
+      // The draft evaporated (new tab, cleared storage, stale link):
+      // a blank canvas beats an error page.
+      gameConfig = createBlankConfig();
+    }
+    onConfigLoaded();
   } else {
     gameConfig = createBlankConfig();
     onConfigLoaded();
@@ -1678,18 +1723,24 @@ async function deselectPhase() {
 // - Surfaces validation errors via the validation panel but does NOT block
 //   the deselect — the panel stays visible so the user can fix.
 async function autoSaveIfDirty() {
-  if (!isDirty || !gameId) return;
+  if (!isDirty) return;
+  // No id yet: a library draft copy persists on its FIRST real edit (that
+  // edit is what makes it "yours"); a plain brand-new game still waits
+  // for the explicit Save button.
+  if (!gameId && !isDraftCopy) return;
   var validation = validateConfig();
   if (validation.errors.length > 0) {
     showValidationPanel(validation.errors, validation.warnings);
     return; // leave isDirty=true; manual Save or next deselect will retry
   }
   try {
-    var resp = await fetch('/api/games/' + encodeURIComponent(gameId), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(gameConfig)
-    });
+    var resp = gameId
+      ? await fetch('/api/games/' + encodeURIComponent(gameId), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(gameConfig)
+        })
+      : await createNewGame();
     if (!resp.ok) {
       var err = await resp.json().catch(function () { return {}; });
       var msg = err.error || resp.statusText;
@@ -5878,25 +5929,7 @@ async function saveGame() {
         body: JSON.stringify(gameConfig)
       });
     } else {
-      // Create new game — derive ID from the game name
-      var newId = (gameConfig.name || 'my-game')
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '')
-        .substring(0, 40) || 'my-game';
-
-      response = await fetch('/api/games', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: newId, config: gameConfig })
-      });
-
-      if (response.ok) {
-        gameId = newId;
-        if (window.MyGames) MyGames.add(newId);
-        var newUrl = window.location.pathname + '?game=' + encodeURIComponent(newId);
-        window.history.replaceState(null, '', newUrl);
-      }
+      response = await createNewGame();
     }
 
     var result = await response.json();
@@ -5920,6 +5953,41 @@ async function saveGame() {
   setTimeout(function () {
     saveBtn.textContent = originalText;
   }, 2000);
+}
+
+// First save of a game with no id yet (a library draft copy, or a blank
+// creation saved by the button): POST as a new user game, deriving a
+// pretty id from the name and stepping past ids that already exist (two
+// draft copies of the same activity would otherwise 409 on the second).
+// On success the game gets its id, joins the yard, and the URL flips to
+// ?game= so refreshes load the saved copy.
+async function createNewGame() {
+  var base = (gameConfig.name || 'my-game')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .substring(0, 40) || 'my-game';
+  var tryId = base;
+  var response;
+  for (var attempt = 2; attempt < 30; attempt++) {
+    response = await fetch('/api/games', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: tryId, config: gameConfig })
+    });
+    if (response.status === 409) { tryId = base + '-' + attempt; continue; }
+    break;
+  }
+  if (response.ok) {
+    gameId = tryId;
+    isDraftCopy = false;
+    try { sessionStorage.removeItem(DRAFT_COPY_KEY); } catch (e) { /* storage unavailable */ }
+    if (window.MyGames) MyGames.add(tryId);
+    if (window.Recents) Recents.add(tryId);
+    var newUrl = window.location.pathname + '?game=' + encodeURIComponent(tryId);
+    window.history.replaceState(null, '', newUrl);
+  }
+  return response;
 }
 
 async function testGame() {

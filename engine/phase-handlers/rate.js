@@ -1,5 +1,6 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { armPhaseTimer } from '../phase-timer.js';
 
 /**
  * Rate phase — class rates a target (a presentation, an idea, a pitch
@@ -81,12 +82,7 @@ registerHandler('rate', {
     }
 
     if (phase.timer) {
-      const capturedSeq = room.phaseInstanceId;
-      room.phaseState.timer = setTimeout(async () => {
-        if (room.phaseInstanceId === capturedSeq && room.phaseState && room.phaseState.phaseId === phase.id) {
-          await ctx.services.closeRating(ctx.code, room);
-        }
-      }, phase.timer * 1000);
+      armPhaseTimer(room, phase.timer, () => ctx.services.closeRating(ctx.code, room));
     }
   },
 
