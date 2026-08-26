@@ -1,0 +1,200 @@
+{
+  "name": "Good Question, Bad Question",
+  "phases": {
+    "quiz": {
+      "next": "answer",
+      "type": "collect-choice",
+      "timer": 20,
+      "prompt": "Do you think it’s a good idea?",
+      "choices": [
+        "Good question",
+        "Bad question"
+      ],
+      "speedBonus": false,
+      "correctAnswer": "Bad question",
+      "pointsCorrect": 1000
+    },
+    "wrap": {
+      "type": "end",
+      "message": "That is all 10. The pattern to keep: opinions and hypotheticals are cheap, past behavior is evidence. Ask about what people actually did, and you will learn what they will actually do."
+    },
+    "lobby": {
+      "next": "announce",
+      "type": "lobby"
+    },
+    "answer": {
+      "next": "quiz-2",
+      "type": "announce",
+      "message": "The answer was: Bad question!\n\nClass picks:\n{{quiz.barChart}}"
+    },
+    "quiz-2": {
+      "next": "answer-2",
+      "type": "collect-choice",
+      "timer": 20,
+      "prompt": "Talk me through the last time that happened.",
+      "choices": [
+        "Good question",
+        "Bad question"
+      ],
+      "speedBonus": false,
+      "correctAnswer": "Good question",
+      "pointsCorrect": 1000
+    },
+    "quiz-3": {
+      "next": "answer-3",
+      "type": "collect-choice",
+      "timer": 20,
+      "prompt": "How much would you pay for X?",
+      "choices": [
+        "Good question",
+        "Bad question"
+      ],
+      "speedBonus": false,
+      "correctAnswer": "Bad question",
+      "pointsCorrect": 1000
+    },
+    "quiz-4": {
+      "next": "answer-4",
+      "type": "collect-choice",
+      "timer": 20,
+      "prompt": "What else have you tried to solve this?",
+      "choices": [
+        "Good question",
+        "Bad question"
+      ],
+      "speedBonus": false,
+      "correctAnswer": "Good question",
+      "pointsCorrect": 1000
+    },
+    "quiz-5": {
+      "next": "answer-5",
+      "type": "collect-choice",
+      "timer": 20,
+      "prompt": "How are you dealing with it now?",
+      "choices": [
+        "Good question",
+        "Bad question"
+      ],
+      "speedBonus": false,
+      "correctAnswer": "Good question",
+      "pointsCorrect": 1000
+    },
+    "quiz-6": {
+      "next": "answer-6",
+      "type": "collect-choice",
+      "timer": 20,
+      "prompt": "What would your dream product do?",
+      "choices": [
+        "Good question",
+        "Bad question"
+      ],
+      "speedBonus": false,
+      "correctAnswer": "Bad question",
+      "pointsCorrect": 1000
+    },
+    "quiz-7": {
+      "next": "answer-7",
+      "type": "collect-choice",
+      "timer": 20,
+      "prompt": "Why do you bother?",
+      "choices": [
+        "Good question",
+        "Bad question"
+      ],
+      "speedBonus": false,
+      "correctAnswer": "Good question",
+      "pointsCorrect": 1000
+    },
+    "quiz-8": {
+      "next": "answer-8",
+      "type": "collect-choice",
+      "timer": 20,
+      "prompt": "Would you buy a product that did X?",
+      "choices": [
+        "Good question",
+        "Bad question"
+      ],
+      "speedBonus": false,
+      "correctAnswer": "Bad question",
+      "pointsCorrect": 1000
+    },
+    "quiz-9": {
+      "next": "answer-9",
+      "type": "collect-choice",
+      "timer": 20,
+      "prompt": "Who else should I talk to about this?",
+      "choices": [
+        "Good question",
+        "Bad question"
+      ],
+      "speedBonus": false,
+      "correctAnswer": "Good question",
+      "pointsCorrect": 1000
+    },
+    "quiz-10": {
+      "next": "answer-10",
+      "type": "collect-choice",
+      "timer": 20,
+      "prompt": "If we built this, would you use it?",
+      "choices": [
+        "Good question",
+        "Bad question"
+      ],
+      "speedBonus": false,
+      "correctAnswer": "Bad question",
+      "pointsCorrect": 1000
+    },
+    "announce": {
+      "next": "quiz",
+      "type": "announce",
+      "message": "GOOD QUESTION, BAD QUESTION\n\nYou are about to see 10 customer interview questions, one at a time.\n\nA good question digs into what someone has actually done: their real past behavior. A bad question fishes for opinions, compliments, or imaginary futures.\n\nFor each one, decide: good question or bad question? After everyone answers, we will see how the class voted and the real answer. No points, no winners, just sharper instincts."
+    },
+    "answer-2": {
+      "next": "quiz-3",
+      "type": "announce",
+      "message": "The answer was: Good question!\n\nClass picks:\n{{quiz-2.barChart}}"
+    },
+    "answer-3": {
+      "next": "quiz-4",
+      "type": "announce",
+      "message": "The answer was: Bad question!\n\nClass picks:\n{{quiz-3.barChart}}"
+    },
+    "answer-4": {
+      "next": "quiz-5",
+      "type": "announce",
+      "message": "The answer was: Good question!\n\nClass picks:\n{{quiz-4.barChart}}"
+    },
+    "answer-5": {
+      "next": "quiz-6",
+      "type": "announce",
+      "message": "The answer was: Good question!\n\nClass picks:\n{{quiz-5.barChart}}"
+    },
+    "answer-6": {
+      "next": "quiz-7",
+      "type": "announce",
+      "message": "The answer was: Bad question!\n\nClass picks:\n{{quiz-6.barChart}}"
+    },
+    "answer-7": {
+      "next": "quiz-8",
+      "type": "announce",
+      "message": "The answer was: Good question!\n\nClass picks:\n{{quiz-7.barChart}}"
+    },
+    "answer-8": {
+      "next": "quiz-9",
+      "type": "announce",
+      "message": "The answer was: Bad question!\n\nClass picks:\n{{quiz-8.barChart}}"
+    },
+    "answer-9": {
+      "next": "quiz-10",
+      "type": "announce",
+      "message": "The answer was: Good question!\n\nClass picks:\n{{quiz-9.barChart}}"
+    },
+    "answer-10": {
+      "next": "wrap",
+      "type": "announce",
+      "message": "The answer was: Bad question!\n\nClass picks:\n{{quiz-10.barChart}}"
+    }
+  },
+  "minPlayers": 2,
+  "description": "Students judge real customer interview questions: does each one dig into real behavior, or fish for opinions and hypotheticals?"
+}

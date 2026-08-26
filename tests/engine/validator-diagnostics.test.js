@@ -300,6 +300,10 @@ describe('validator diagnostics — game snapshot', () => {
       'elimination-game': [],
       'finish-my-drawing': [],
       'fix-one-thing': [],
+      // 2026-08-25: Mom Test interview-question judging, born as a user game
+      // via the no-winners quiz brick, promoted to built-in (prod runs
+      // DB-less, so repo files are the only durable store on the live site).
+      'good-question-bad-question': [],
       'last-one-standing': [],
       'excuse-machine': [],
       // 2026-08-02 coherence sweep: feedback-academy's judge-result leaderboards

@@ -29,5 +29,12 @@ services:
       # teacher console via Basic Auth. Leave unset only for local dev.
       - key: SITE_PASSWORD
         sync: false
+      # Neon Postgres connection string. WITHOUT IT the server silently runs
+      # on the filesystem fallback: teacher-created activities, room
+      # snapshots, feedback, featured overrides, and the AI daily cap all
+      # live on Render's EPHEMERAL disk and are wiped on every deploy.
+      # Set the value in the dashboard (same string as local .env).
+      - key: DATABASE_URL
+        sync: false
       - key: NODE_VERSION
         value: "22"
