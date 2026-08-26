@@ -407,6 +407,7 @@
   //     clueLabel?: string,
   //     questions?: [{ text, choices, correct }],  // quiz only
   //     speedBonus?: boolean,   // quiz only (default true)
+  //     leaderboard?: boolean,  // quiz only (default true; false = no standings, no winners)
   //     teamCount?: number,     // teams only (2-20)
   //     groupSize?: number,     // teams only (2-12, wins over teamCount)
   //     timer?: number } ] }
@@ -473,6 +474,10 @@
       }
       return null;
     }
+
+    // leaderboard: false = a no-winners quiz. Every question still grades
+    // and reveals the answer with the class split; nothing ranks anyone.
+    if (step.leaderboard === false) return lastId;
 
     var lbId = freshId(phases, 'standings');
     phases[lastId].next = lbId;

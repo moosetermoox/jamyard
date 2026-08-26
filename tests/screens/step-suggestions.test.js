@@ -293,6 +293,45 @@ describe('storyboard compiler', () => {
     validateGame(config.phases, 'no-speed-bonus quiz');
   });
 
+  // leaderboard: false — the no-winners quiz (2026-08-25: a teacher's
+  // "classify these, reveal results, no winners" idea couldn't one-shot
+  // because the quiz brick always crowned somebody). Every question still
+  // grades and reveals the class split + answer; nothing ranks anyone.
+  it('quiz: leaderboard false keeps graded reveals but crowns no one', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Good Question or Bad Question',
+      steps: [
+        { brick: 'announce', text: 'Judge each question.' },
+        {
+          brick: 'quiz',
+          leaderboard: false,
+          speedBonus: false,
+          questions: [
+            { text: 'Do you think it is a good idea?', choices: ['Good question', 'Bad question'], correct: 'Bad question' },
+            { text: 'What else have you tried?', choices: ['Good question', 'Bad question'], correct: 'Good question' }
+          ]
+        },
+        { brick: 'end', text: 'No winners, just sharper questions.' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const phases = config.phases;
+    expect(Object.values(phases).find(p => p.type === 'leaderboard')).toBeUndefined();
+    const graded = Object.entries(phases).filter(([, p]) => p.type === 'collect-choice' && p.correctAnswer);
+    expect(graded.length).toBe(2);
+    for (const [id, p] of graded) {
+      const reveal = phases[p.next];
+      expect(reveal.type).toBe('announce');
+      expect(reveal.message).toContain('{{' + id + '.barChart}}');
+    }
+    // The last answer announce flows straight on to the end step.
+    const endId = Object.keys(phases).find(id => phases[id].type === 'end');
+    const intoEnd = Object.values(phases).filter(p => p.next === endId);
+    expect(intoEnd.length).toBe(1);
+    expect(intoEnd[0].type).toBe('announce');
+    validateGame(phases, 'no-winners quiz storyboard');
+  });
+
   it('quiz: a correct answer that is not among the choices is a plain-sentence problem', () => {
     const { config, problems } = S.compileStoryboard({
       name: 'Broken Quiz',

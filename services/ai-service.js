@@ -1374,7 +1374,9 @@ Return ONLY JSON: {"suggestions":[...], "note": null or "one honest sentence abo
     try {
       const message = await this._callClaude({
         model: MODELS.sonnet,
-        max_tokens: 1500,
+        // Room for a full 15-question quiz storyboard; 1500 truncated
+        // teacher-supplied question lists mid-JSON.
+        max_tokens: 3000,
         messages: [{
           role: 'user',
           content: `You plan classroom activities by arranging BRICKS in sequence. You never write configuration, you pick bricks and write the words teachers and students will read.
@@ -1389,14 +1391,15 @@ BRICKS (each step is one):
 - reveal-one: answers revealed one at a time. text = the message above.
 - vote: the class votes on the collected answers.
 - guessing-rounds: cycles through every prior submission one at a time, the clue goes on the projector, everyone types a guess, then the secret and author are revealed. REQUIRES an earlier collect or collect-two step. No text needed.
-- quiz: scored quiz rounds with automatic grading and a leaderboard at the end. questions = an array of {"text": the question, "choices": 2-8 strings, "correct": one string that EXACTLY matches one of the choices}. Faster correct answers earn more points; set speedBonus: false to score correctness only. timer = seconds per question (optional, default 15). No text needed. Use this whenever the teacher wants review, trivia, competition, or anything with right answers; never fake a quiz out of plain collect steps.
+- quiz: question rounds with automatic grading, one at a time: students answer, then the projector shows the class's picks and the correct answer before the next question. questions = an array of {"text": the question, "choices": 2-8 strings, "correct": one string that EXACTLY matches one of the choices}. Ends with a leaderboard by default; faster correct answers earn more points, set speedBonus: false to score correctness only. Set leaderboard: false when the teacher wants no winners, points, or rankings: every question still reveals the class split and the right answer, but nothing is ranked. timer = seconds per question (optional, default 15). No text needed. Use this whenever the teacher wants review, trivia, competition, or ANY sequence of questions with right answers (even with no winners); never fake a quiz out of plain collect or collect-choice steps.
 - teams: splits the class into random teams. teamCount (2-8) OR groupSize (2-6). Put a teams step BEFORE a quiz step and the quiz becomes a real team competition: every student answers individually, and the leaderboard shows ranked team totals with each player's contribution. Without a quiz step there are no scores of any kind.
 - end: the wrap-up. text = the goodbye message.
 
 RULES:
 - 3 to 8 steps. Start with an announce that explains the activity in a warm teacher voice.
 - If players guess each other's submissions, use collect-two followed by guessing-rounds.
-- BE HONEST IN THE WORDS: mechanics exist only where a brick provides them. Points, scoring, winners, and leaderboards come ONLY from the quiz brick; if there is no quiz step, no text may mention points or winning. Team scores exist ONLY when a teams step comes before a quiz step. Never promise prizes or eliminations.
+- BE HONEST IN THE WORDS: mechanics exist only where a brick provides them. Points, scoring, winners, and leaderboards come ONLY from the quiz brick with its leaderboard on; if there is no quiz step, or the quiz has leaderboard: false, no text may mention points or winning. Team scores exist ONLY when a teams step comes before a quiz step. Never promise prizes or eliminations.
+- When the teacher supplies their own questions, statements, or items for students to judge or classify, put ALL of them into ONE quiz step's questions array with the classification options as the choices; never build a chain of separate collect-choice and reveal steps for a question list. If the teacher asks for a shuffled or mixed order, write the questions array in that shuffled order (never grouped by category).
 - THE BRICKS ARE ALL THERE IS. No brick can generate AI-written answers or rival responses during play, show two specific answers side by side as a matched pair, pair students up, hide one student's answer from the others outside collect-two's secret box, eliminate players, or branch the flow. Step text must never promise any of those. For example, never tell students that one of the responses was written by AI: no step can make that true, and a promise the activity cannot keep is worse than no activity.
 - If the HEART of the teacher's idea needs a mechanic no brick provides (such as AI writing rival answers for students to compare), do not build a hollow lookalike. Instead return ONLY: {"cantBuild": true, "reason": "one plain sentence naming what the builder cannot do yet, in a warm teacher voice"}
 - Quiz questions must be factually correct and unambiguous, only write what you are certain of. For a quiz, 5 to 8 questions is the sweet spot unless the teacher asked for a number. The teacher reviews and can edit every question before anything is built.

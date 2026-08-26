@@ -25,6 +25,23 @@ describe('generateStoryboard honesty', () => {
     expect(prompt.toLowerCase()).toContain('written by ai');
   });
 
+  // 2026-08-25: "judge these questions, no winners" couldn't one-shot. The
+  // prompt must offer the quiz brick's no-winners mode and forbid hand-rolled
+  // collect-choice chains for teacher-supplied question lists.
+  it('carries the no-winners quiz mode and the one-quiz-step rule in the prompt', async () => {
+    const service = new AIService({ mode: 'real' });
+    let prompt = '';
+    service._callClaude = async (params) => {
+      prompt = params.messages[0].content;
+      return textResponse({ name: 'X', description: 'y', steps: [{ brick: 'end', text: 'Bye' }] });
+    };
+    await service.generateStoryboard('students judge each question, no winners');
+    expect(prompt).toContain('leaderboard: false');
+    expect(prompt).toContain('even with no winners');
+    expect(prompt).toContain('never build a chain of separate collect-choice');
+    expect(prompt).toContain('shuffled order');
+  });
+
   it('returns the cantBuild shape when the AI declines', async () => {
     const service = new AIService({ mode: 'real' });
     service._callClaude = async () => textResponse({
