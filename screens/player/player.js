@@ -44,6 +44,12 @@ let currentPlayerName = null;
 let currentToken = null;
 let isEliminated = false;
 
+// Prototype mode: pretend students live in same-origin iframes that SHARE
+// one sessionStorage, so a stored playerToken makes every new player "take
+// over" the previous one's seat (join-policy takeover, meant for a
+// duplicated tab). Prototype players keep their token in memory only.
+const IS_PROTOTYPE = new URLSearchParams(window.location.search).get('prototype') === 'true';
+
 // Timer state
 let timerInterval = null;
 let timerRemaining = 0;
@@ -552,7 +558,7 @@ joinBtn.addEventListener('click', () => {
   // host kicked this token from the room). Tokens are per-room, so passing a
   // stale token from another room is harmless.
   var savedToken = currentToken;
-  if (!savedToken) {
+  if (!savedToken && !IS_PROTOTYPE) {
     try { savedToken = sessionStorage.getItem('playerToken'); } catch (e) { /* storage unavailable */ }
   }
   socket.emit('join-room', { code, name, token: savedToken || undefined });
@@ -614,7 +620,9 @@ socket.on('join-success', ({ name, reconnected, token, theme }) => {
   currentPlayerName = name;
   if (token) {
     currentToken = token;
-    try { sessionStorage.setItem('playerToken', token); } catch (e) { /* storage unavailable */ }
+    if (!IS_PROTOTYPE) {
+      try { sessionStorage.setItem('playerToken', token); } catch (e) { /* storage unavailable */ }
+    }
   }
 
   // Apply game theme
@@ -670,7 +678,7 @@ function resetHoldingProgress() {
 socket.on('connect', () => {
   if (currentRoomCode && currentPlayerName) {
     var savedToken = currentToken;
-    if (!savedToken) {
+    if (!savedToken && !IS_PROTOTYPE) {
       try { savedToken = sessionStorage.getItem('playerToken'); } catch (e) { /* storage unavailable */ }
     }
     console.log('[reconnect] Attempting to rejoin room ' + currentRoomCode + (savedToken ? ' (with token)' : ''));

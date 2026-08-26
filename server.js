@@ -1627,6 +1627,31 @@ app.get('/designer/edit', (req, res) => {
 
 app.use('/designer', express.static(join(__dirname, 'screens/designer')));
 
+// --- Vanity URLs (vanity-urls.json) ---
+// A memorable path per activity: jamyard.xyz/good-question opens the host
+// screen for that activity. Config, not code: add a "slug": "game-id" pair
+// to vanity-urls.json to mint one. Slugs that collide with a real surface
+// are refused loudly at startup.
+const VANITY_RESERVED = new Set([
+  'api', 'host', 'player', 'teacher', 'library', 'designer', 'prototype',
+  'guide', 'owner', 'feedback', 'privacy', 'shared', 'home-shots', 'socket.io'
+]);
+try {
+  const vanityUrls = JSON.parse(await readFile(join(__dirname, 'vanity-urls.json'), 'utf8'));
+  for (const [slug, gameId] of Object.entries(vanityUrls)) {
+    if (!/^[a-z0-9][a-z0-9-]*$/.test(slug) || VANITY_RESERVED.has(slug) || typeof gameId !== 'string') {
+      console.error(`[vanity-urls] Refusing invalid or reserved slug "${slug}"`);
+      continue;
+    }
+    app.get('/' + slug, (req, res) => {
+      res.redirect('/host?game=' + encodeURIComponent(gameId));
+    });
+    console.log(`[vanity-urls] /${slug} -> ${gameId}`);
+  }
+} catch (error) {
+  console.error('[vanity-urls] Could not load vanity-urls.json:', error.message);
+}
+
 // Per-game uploaded assets — served as /games/<id>/assets/<filename>.
 // Matches the path stored in config (`"assets/photo.jpg"` becomes
 // `/games/<id>/assets/photo.jpg` at runtime).
