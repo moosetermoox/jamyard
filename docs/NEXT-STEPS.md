@@ -10,7 +10,20 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-24, feedback wave)
+### START HERE next session (updated 2026-08-25)
+
+**FIRST ACTION, owner task, promised reminder: set `DATABASE_URL` on
+Render.** Discovered 2026-08-25: the live site runs DB-less (Render never
+had the env var), so teacher-created activities, feedback, room
+snapshots, featured overrides, and the AI daily cap all sit on ephemeral
+disk and are WIPED on every deploy. Steps: Render dashboard → lanyard →
+Environment → add `DATABASE_URL` with the same value as local `.env` →
+redeploy → confirm `https://jamyard.xyz/api/games` lists user-source
+games. Then also: delete the duplicate `good-question-bad-question` USER
+row from Neon (it became a repo built-in on 2026-08-25; the delete was
+permission-blocked in-session).
+
+### Previous START HERE (2026-08-24, feedback wave)
 
 **Six field-test fixes shipped 2026-08-24** (CHANGELOG entry has full
 detail): plan-intro dialog now spotlights the Design with AI chat;
