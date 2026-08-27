@@ -111,6 +111,14 @@ lobby
   Unlocks: share-your-why-with-someone-who-disagreed, debate pairings,
   find-a-matching-partner. Proven by `scripts/simulate-pairby.js` over
   `games/_sim-pairby`.
+- **Pairs/teams bridges** *(added 2026-08-26, interop wave 3)*. One
+  normalizer, `groupsFromSource()` (pairing.js), reads either grouping
+  producer (`pairs` from a pairwise collect, `teams` from a team-split)
+  into plain id groups. Consumers bridged: collect `reusePairsFrom`
+  accepts a team-split (teacher-arranged / student-chosen pairs feed
+  pair reveals and matchups), and merge's new `groupsFrom` adopts either
+  producer's groups (same partners write together). Proven by
+  `scripts/simulate-groups-bridge.js` over `games/_sim-groups-bridge`.
 
 ### 2.5 Host controls & safety
 

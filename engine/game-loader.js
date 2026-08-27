@@ -366,13 +366,17 @@ export function validate(config, gameId, options) {
           continue;
         }
         const pairingSrc = config.phases[phase[pairingField]];
+        // reusePairsFrom also accepts a team-split (the 2026-08-26 bridge:
+        // teacher-arranged pairs adopted as this step's pairing).
+        // rotatePairsFrom stays pairwise-only (its avoid-set reads pairs).
+        const reuseOk = pairingField === 'reusePairsFrom' && pairingSrc && pairingSrc.type === 'team-split';
         if (!pairingSrc) {
           errors.push(
             `Game "${gameId}": phase "${name}" has ${pairingField} "${phase[pairingField]}" which does not exist`
           );
-        } else if (!(pairingSrc.type === 'collect' && pairingSrc.assign === 'pairwise')) {
+        } else if (!reuseOk && !(pairingSrc.type === 'collect' && pairingSrc.assign === 'pairwise')) {
           errors.push(
-            `Game "${gameId}": phase "${name}" ${pairingField} "${phase[pairingField]}" must point to a collect step with assign:"pairwise" (got ${pairingSrc.type})`
+            `Game "${gameId}": phase "${name}" ${pairingField} "${phase[pairingField]}" must point to a collect step with assign:"pairwise"${pairingField === 'reusePairsFrom' ? ' or a team-split step' : ''} (got ${pairingSrc.type})`
           );
         }
       }
@@ -1077,6 +1081,29 @@ export function validate(config, gameId, options) {
           `Game "${gameId}": phase "${name}" (merge) uses agreeMode "timer" but has no timer, only the teacher's Close Merging button will end the step. Add a timer or switch agreeMode.`
         );
       }
+      // groupsFrom: adopt an earlier step's grouping (pairwise collect or
+      // team-split) — "same partners now write together" (2026-08-26 bridge).
+      if (phase.groupsFrom !== undefined) {
+        if (phase.groupSize != null) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (merge) sets both "groupsFrom" and "groupSize", but adopting groups from an earlier step decides the sizes. Remove one.`
+          );
+        }
+        const groupsSrc = config.phases[phase.groupsFrom];
+        if (!groupsSrc) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" has groupsFrom "${phase.groupsFrom}" which does not exist`
+          );
+        } else if (!((groupsSrc.type === 'collect' && groupsSrc.assign === 'pairwise') || groupsSrc.type === 'team-split')) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" groupsFrom "${phase.groupsFrom}" must point to a collect step with assign:"pairwise" or a team-split step (got ${groupsSrc.type})`
+          );
+        } else if (!phaseAlwaysPrecedes(config, phase.groupsFrom, name)) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (merge) can be reached without going through "${phase.groupsFrom}" first, every path from the lobby to "${name}" must pass through it so the groups exist.`
+          );
+        }
+      }
     }
 
     // Pair-scoped reveal: needs a pairwise collect, and that collect must run
@@ -1207,8 +1234,9 @@ function inferDiagnosticCode(msg, severity) {
   if (/not allowed in a connection-family game/.test(msg)) return DIAGNOSTIC_CODES.CONNECTION_FAMILY_VIOLATION;
   if (/has invalid family value/.test(msg)) return DIAGNOSTIC_CODES.INVALID_ENUM_VALUE;
   if (/can be reached without going through/.test(msg)) return DIAGNOSTIC_CODES.PAIR_SOURCE_NOT_ON_ALL_PATHS;
-  if (/has (pairsFrom|rotatePairsFrom|reusePairsFrom|pairBy\.from) ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
-  if (/(pairsFrom|rotatePairsFrom|reusePairsFrom|pairBy\.from) ".+" must point to/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
+  if (/has (pairsFrom|rotatePairsFrom|reusePairsFrom|pairBy\.from|groupsFrom) ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
+  if (/(pairsFrom|rotatePairsFrom|reusePairsFrom|pairBy\.from|groupsFrom) ".+" must point to/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
+  if (/sets both "groupsFrom" and "groupSize"/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
   if (/sets both "rotatePairsFrom" and "reusePairsFrom"/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
   if (/sets both "reusePairsFrom" and "pairBy"/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
   if (/pairBy (must be an object|mode must be)/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;

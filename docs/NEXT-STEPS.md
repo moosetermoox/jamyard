@@ -42,14 +42,14 @@ Remaining, in priority order:
    Proven by scripts/simulate-pairby.js. Follow-up idea: let a recipe
    showcase it (a "Would You Rather, and Why" recipe is now one-shot
    buildable).
-2. **Pairs/teams unification.** Three grouping systems, zero bridges:
-   pairwise `pairs`, team-split `teams`, merge's internal groups.
-   Concrete losses: teacher-arranged pairs (team-split method:"teacher"
-   groupSize:2) can't feed a pair reveal or matchups — the one grouping
-   a teacher deliberately curates is the one nothing consumes; merge
-   can't reuse an earlier pairing; checklist takes teams but not pairs.
-   Unify under one groups capability with size guards where a consumer
-   needs exactly 2.
+2. ~~**Pairs/teams unification.**~~ **SHIPPED 2026-08-26 (wave 3):**
+   two bridges via shared `groupsFromSource()` — collect
+   `reusePairsFrom` accepts a team-split (teacher-arranged pairs feed
+   the pair pipeline), and merge gained `groupsFrom` (pairwise collect
+   or team-split; same partners write together). Proven by
+   scripts/simulate-groups-bridge.js. Still unbridged, low value:
+   checklist takes teams but not pairs; rotatePairsFrom's avoid-set
+   stays pairwise-only.
 3. **Reveal inside foreach.** Sub-phases are announce/collect/
    collect-choice/ai-process only, so every per-round payoff beat must
    be a broadcast announce; pair-private sharing inside rounds is

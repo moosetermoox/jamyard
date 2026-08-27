@@ -1,0 +1,43 @@
+{
+  "name": "SIM Groups Bridge",
+  "description": "Test fixture for the pairs/teams bridges: a team-split's groups reused as a pairwise collect's pairs (reusePairsFrom), then a pair-scoped reveal, then a merge adopting the same groups (groupsFrom). Underscore-prefixed so it never appears in game lists. Driven by scripts/simulate-groups-bridge.js.",
+  "family": "connection",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "teams"
+    },
+    "teams": {
+      "type": "team-split",
+      "method": "random",
+      "groupSize": 2,
+      "next": "share"
+    },
+    "share": {
+      "type": "collect",
+      "prompt": "Tell your partner one thing you are looking forward to this week.",
+      "assign": "pairwise",
+      "reusePairsFrom": "teams",
+      "next": "swap"
+    },
+    "swap": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "share",
+      "template": "{{_pair.answers}}",
+      "next": "write"
+    },
+    "write": {
+      "type": "merge",
+      "seedFrom": "share.responses",
+      "groupsFrom": "share",
+      "agreeMode": "any",
+      "instruction": "Combine your two answers into one shared sentence.",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Same partners the whole way through."
+    }
+  }
+}

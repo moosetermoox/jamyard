@@ -678,8 +678,9 @@
         break;
 
       case 'merge':
-        d.sentence = (phase.groupSize === 4 ? 'Groups of four' : 'Pairs') + ' combine their answers into one:';
+        d.sentence = (phase.groupsFrom ? 'Groups' : (phase.groupSize === 4 ? 'Groups of four' : 'Pairs')) + ' combine their answers into one:';
         d.field = textBox(phase.instruction, 'Combine your answers into one stronger answer.', function (v) { phase.instruction = v; });
+        if (phase.groupsFrom) d.facts.push(fact('same groups as ' + stepName(phase.groupsFrom)));
         if (phase.seedFrom) d.facts.push(fact('starting from ' + humanizeRef(phase.seedFrom)));
         d.facts.push(timerFact(phase));
         break;

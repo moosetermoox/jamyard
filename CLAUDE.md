@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1279 tests passing** (`npm test`, ~4s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1291 tests passing** (`npm test`, ~4s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **28 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -83,7 +83,7 @@ Framework for quickly building classroom games where:
 ## 28 Phase Types
 `engine/phase-schemas.js` is the single source of truth (validator + AI prompts + editor fields + `{{...}}` grammar). Quick reference:
 1. `lobby` — wait for players
-2. `collect` — text/drawing input; `rotateFrom` (rotation chains + `assignedFrom` links), `prefillFromAssigned`, `appendOnly`, `maxLength`, `assign:"pairwise"` (+`oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom`, `pairBy:{from,mode}` answer-keyed pairing from a collect-choice — opposite/same, best-effort), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"`
+2. `collect` — text/drawing input; `rotateFrom` (rotation chains + `assignedFrom` links), `prefillFromAssigned`, `appendOnly`, `maxLength`, `assign:"pairwise"` (+`oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom` — accepts a pairwise collect OR team-split, `pairBy:{from,mode}` answer-keyed pairing from a collect-choice — opposite/same, best-effort), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"`
 3. `ai-process` — AI processes data; `perPlayer:true` for one item per student
 4. `vote` — head-to-head or pick-one; `matchupsFromPairs`/`excludeAuthors`, literal `candidates`, `nextByWinner` branch routing
 5. `eliminate` — remove players by percent or hook
@@ -102,7 +102,7 @@ Framework for quickly building classroom games where:
 18. `foreach` — sub-phases per item; `limit` sample (a round per response kills the room ~round 12), `pairMode:"human-vs-ai"`, scoring `correct`/`tally`/`scores` (scores = adopt the sub-phase's own graded map; the bluff-rounds mode, keeps foolPoints), `_current`/`_foreach`/`_candidates` vars; sibling-sub-phase refs remap automatically in message/prompt/instruction/correctAnswer/input/content/choices/choicePool.from/excludeAuthored ONLY — collect's rotation/pairing fields (rotateFrom, assign, pairsFrom, ...) are schema-banned inside foreach (`contexts: ['topLevel']`)
 19. `rate` — 1-N custom scales; bar + pie results; `visibility: all|host-only`
 20. `turn` — charades; server timer, team rotation, `poolLimit`
-21. `merge` — shared live draft (think-pair-share) with ONE PEN: writing claims it, agreeing releases it, 2.5s idle lets a partner take it; `agreeMode both|any|timer`, `groupSize` 2/3/4; output `merged`
+21. `merge` — shared live draft (think-pair-share) with ONE PEN: writing claims it, agreeing releases it, 2.5s idle lets a partner take it; `agreeMode both|any|timer`, `groupSize` 2/3/4 OR `groupsFrom` (adopt a pairwise collect's pairs or a team-split's teams); output `merged`
 22. `one-voice` — cooperative counting; server-authoritative collision window
 23. `end` — game over
 24. `buzz` — first-tap-wins buzzer; outputs `scores`

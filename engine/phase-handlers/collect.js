@@ -9,7 +9,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { buildGroups, buildAvoidSet } from '../phases/pairing.js';
+import { buildGroups, buildAvoidSet, groupsFromSource } from '../phases/pairing.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 
 /**
@@ -158,15 +158,17 @@ function buildPairwiseAssignment(ctx) {
   let leftover = null;
 
   if (phase.reusePairsFrom) {
-    const reuseData = engine.phaseData[phase.reusePairsFrom];
-    if (reuseData && Array.isArray(reuseData.pairs) && reuseData.pairs.length > 0) {
-      // Keep the same groups, dropping anyone no longer eligible (left/kicked)
+    // Source is a pairwise collect (pairs) OR a team-split (teams) — the
+    // 2026-08-26 bridge that lets teacher-arranged pairs feed the pair
+    // pipeline. Keep the same groups, dropping anyone no longer eligible.
+    const sourceGroups = groupsFromSource(engine.phaseData[phase.reusePairsFrom]);
+    if (sourceGroups && sourceGroups.length > 0) {
       const eligibleIds = new Set(eligible.map(p => p.id));
-      groups = reuseData.pairs
-        .map(p => (p.playerIds || []).filter(id => eligibleIds.has(id)))
+      groups = sourceGroups
+        .map(g => g.filter(id => eligibleIds.has(id)))
         .filter(g => g.length > 0);
     } else {
-      console.warn(`[collect:${phase.id}] reusePairsFrom "${phase.reusePairsFrom}" has no pairs, building a fresh pairing instead`);
+      console.warn(`[collect:${phase.id}] reusePairsFrom "${phase.reusePairsFrom}" has no pairs or teams, building a fresh pairing instead`);
     }
   }
 

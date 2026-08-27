@@ -49,6 +49,31 @@ export function buildAvoidSet(priorPairs) {
 }
 
 /**
+ * Normalize a grouping producer's stored phase data into plain id groups.
+ * Two producers exist (2026-08-26 pairs/teams bridge):
+ *   - a pairwise collect: `pairs: [{promptText, playerIds}]`
+ *   - a team-split:       `teams: {teamName: [{playerId, name}]}`
+ * Returns string[][] in source order, or null when the data has neither
+ * shape (caller decides the fallback).
+ *
+ * @param {{ pairs?: Array<{playerIds?: string[]}>,
+ *           teams?: Object<string, Array<{playerId: string}>> }} sourceData
+ * @returns {string[][]|null}
+ */
+export function groupsFromSource(sourceData) {
+  if (!sourceData) return null;
+  if (Array.isArray(sourceData.pairs)) {
+    return sourceData.pairs.map(p => [...(p.playerIds || [])]);
+  }
+  if (sourceData.teams && typeof sourceData.teams === 'object') {
+    return Object.values(sourceData.teams).map(members =>
+      (members || []).map(m => m && m.playerId).filter(Boolean)
+    );
+  }
+  return null;
+}
+
+/**
  * Group a list of player ids into pairs (and possibly one triple).
  *
  * Matching is greedy: take the first unmatched player, pick the best

@@ -102,6 +102,10 @@ const PHASE_EXTRA_GUIDANCE = {
 
     DRAWING INPUT: set "inputType": "drawing" to replace the text box with a drawing pad. Use for pictionary/gallery games. Drawings work with reveal-one (animated gallery) and rotation (a drawing source preloads onto the recipient's pad to continue it, or displays above a text box to caption it). AI steps CANNOT read drawings, never send a drawing collect's responses to ai-process/ai-eliminate. Put a teacher "preview" phase between a drawing collect and its class-wide reveal.`,
 
+  merge:
+    `GROUP SOURCES: by default merge shuffles players into fresh pairs (groupSize 2, or 3 for trios). Set "groupsFrom": "<phaseId>" to ADOPT an earlier grouping instead, either a collect with assign:"pairwise" (same partners now write together, think-pair-share continuity) or a team-split (teacher-arranged or student-chosen groups co-write). Do not set groupSize together with groupsFrom. "seedFrom" still names where each member's starting answer comes from (usually that same collect's .responses).
+    Related bridge on collect: a pairwise collect's "reusePairsFrom" also accepts a team-split step, so teacher-arranged pairs (team-split method "teacher", groupSize 2) can feed pair reveals and head-to-head matchups.`,
+
   'team-split':
     `TEAM SIZING: set "teamCount" (exactly N teams) OR "groupSize" (groups of that size, the count is computed from class size, no singletons), NEVER both. Method "teacher" shows the roster on the host screen for the teacher to arrange; "choice" lets students tap the group they want (open spots only, stragglers auto-filled), use "choice" when the user says students pick their own teams/partners. Both interactive methods pause until the teacher confirms. Add "capacity": "open" with method "choice" when the class ALREADY has real teams and students should join their own (removes the even-split spot caps so uneven sizes/absences never lock anyone out); omit it for a fair free pick.`,
 

@@ -251,7 +251,7 @@ export const PHASE_SCHEMAS = {
       reusePairsFrom: {
         type: 'phaseRef', optional: true, contexts: ['topLevel'],
         label: 'Same partners as',
-        helper: 'Optional with assign:"pairwise". Names an earlier pairwise step; this step keeps exactly the same pairs/groups (same partner, next prompt).'
+        helper: 'Optional with assign:"pairwise". Names an earlier pairwise step OR a Split into Teams step; this step keeps exactly those pairs/groups (same partner, next prompt). Pointing it at a teacher-arranged team split with group size 2 turns hand-picked pairs into real pairs.'
       },
       passAllowed: {
         type: 'boolean', optional: true,
@@ -685,6 +685,11 @@ export const PHASE_SCHEMAS = {
         type: 'enum', values: ['both', 'any', 'timer'], optional: true, default: 'both',
         label: 'How a group submits',
         helper: '"both": every member taps Agree (editing resets agreement). "any": one member can submit for the group. "timer": only the timer or the teacher closes the step.'
+      },
+      groupsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Groups from',
+        helper: 'Optional. An earlier pairwise collect or Split into Teams step; this merge adopts exactly those pairs/groups (same partners now write together). Leave empty to build fresh groups by "Group size". Cannot combine with an explicit group size.'
       }
     },
     transitions: {

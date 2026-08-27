@@ -1,7 +1,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
-import { buildGroups } from '../phases/pairing.js';
+import { buildGroups, groupsFromSource } from '../phases/pairing.js';
 
 /**
  * merge — the Connection Pack's cooperation primitive
@@ -63,9 +63,32 @@ export function agreesNeeded(agreeMode, memberCount) {
  * @param {Array<{id: string, name: string}>} eligible
  * @param {2|4} groupSize
  * @param {string[]} shuffledIds   Pre-shuffled eligible ids (for groupSize 2)
+ * @param {{ idGroups?: string[][] }} [opts]  Prebuilt groups (groupsFrom —
+ *                                 a pairwise collect's pairs or a team-split's
+ *                                 teams); members no longer eligible are
+ *                                 dropped, emptied groups vanish.
  * @returns {{ groups: Array<{members: string[], seeds: Array<{author: string|null, text: string}>}> }}
  */
-export function buildMergeGroups(seedItems, eligible, groupSize, shuffledIds) {
+export function buildMergeGroups(seedItems, eligible, groupSize, shuffledIds, opts = {}) {
+  if (Array.isArray(opts.idGroups)) {
+    const byPlayer = {};
+    for (const it of seedItems || []) {
+      if (it && it.playerId) byPlayer[it.playerId] = it;
+    }
+    const nameOf = new Map(eligible.map(p => [p.id, p.name]));
+    const eligibleIds = new Set(eligible.map(p => p.id));
+    const groups = opts.idGroups
+      .map(members => (members || []).filter(id => eligibleIds.has(id)))
+      .filter(members => members.length > 0)
+      .map(members => ({
+        members,
+        seeds: members
+          .filter(id => byPlayer[id] && typeof byPlayer[id].text === 'string' && byPlayer[id].text.length > 0)
+          .map(id => ({ author: nameOf.get(id) || null, text: byPlayer[id].text }))
+      }));
+    return { groups };
+  }
+
   if (groupSize === 4) {
     // Quads join adjacent prior groups. Seed items must carry `members`
     // (a prior merge's output does).
@@ -150,7 +173,19 @@ registerHandler('merge', {
       [shuffledIds[i], shuffledIds[j]] = [shuffledIds[j], shuffledIds[i]];
     }
 
-    const { groups: rawGroups } = buildMergeGroups(seedItems, eligible, groupSize, shuffledIds);
+    // groupsFrom: adopt an earlier step's grouping (a pairwise collect's
+    // pairs or a team-split's teams) instead of building fresh groups —
+    // "same partners now write together". Missing data degrades to the
+    // normal grouping with a loud warn (same policy as collect's pairsFrom).
+    let idGroups = null;
+    if (phase.groupsFrom) {
+      idGroups = groupsFromSource(engine.phaseData[phase.groupsFrom]);
+      if (!idGroups) {
+        console.warn(`[merge:${phase.id}] groupsFrom "${phase.groupsFrom}" has no pairs/teams yet, grouping normally instead`);
+      }
+    }
+
+    const { groups: rawGroups } = buildMergeGroups(seedItems, eligible, groupSize, shuffledIds, { idGroups: idGroups || undefined });
     if (rawGroups.length === 0) {
       throw new Error(`Merge "${phase.id}": no groups could be formed (no eligible players?).`);
     }

@@ -1948,6 +1948,10 @@ function renderPhaseConfig(phaseId) {
         var poLabel = phaseRefLabel(collectOrder[poi], false);
         pairingOptions.push({ value: 'reuse:' + collectOrder[poi], label: 'Same partners as "' + poLabel + '"' });
         pairingOptions.push({ value: 'rotate:' + collectOrder[poi], label: 'New partners (different from "' + poLabel + '")' });
+      } else if (poPhase && poPhase.type === 'team-split') {
+        // Bridge: adopt an earlier team split's groups as this step's pairs
+        // (teacher-arranged pairs, student-chosen partners).
+        pairingOptions.push({ value: 'reuse:' + collectOrder[poi], label: 'Use the groups from "' + phaseRefLabel(collectOrder[poi], false) + '"' });
       }
     }
 
@@ -5827,6 +5831,19 @@ function validateConfig() {
         if (phase.reusePairsFrom) {
           errors.push(label + ': "Same partners as" and "Pair by earlier answer" cannot combine, reusing partners decides the groups. Pick one.');
         }
+      }
+    }
+
+    // merge groupsFrom validation (mirrors engine/game-loader.js)
+    if (phase.type === 'merge' && phase.groupsFrom !== undefined) {
+      if (phase.groupSize != null) {
+        errors.push(label + ': "Groups from" and "Group size" cannot combine, the earlier step decides the sizes. Remove one.');
+      }
+      var groupsSrc = phases[phase.groupsFrom];
+      if (!groupsSrc) {
+        errors.push(label + ': "Groups from" points to "' + phase.groupsFrom + '" which does not exist.');
+      } else if (!((groupsSrc.type === 'collect' && groupsSrc.assign === 'pairwise') || groupsSrc.type === 'team-split')) {
+        errors.push(label + ': "Groups from" must point to a paired-up Ask step or a Split into Teams step.');
       }
     }
 
