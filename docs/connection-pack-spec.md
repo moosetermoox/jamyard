@@ -99,6 +99,18 @@ lobby
 - **Odd class size.** One group of three. Pairwise machinery must support a
   single triple; reveal template iterates over group members rather than
   assuming exactly two.
+- **Answer-keyed pairing** *(added 2026-08-26, interop wave 2)*.
+  `pairBy: {from: "<collect-choice id>", mode: "opposite" | "same"}` on a
+  pairwise collect prefers partners by what they answered in that step
+  (the source's `byPlayer` map is the answer key). Preference tiers:
+  preferred answer beats repeat-avoidance beats anything; best-effort by
+  design, so a lopsided split pairs leftover students with each other and
+  nobody is benched for lack of an opposite. Composes with
+  `rotatePairsFrom` (avoid-set) and `oddHandling`; conflicts with
+  `reusePairsFrom` (validator-rejected — reuse dictates the groups).
+  Unlocks: share-your-why-with-someone-who-disagreed, debate pairings,
+  find-a-matching-partner. Proven by `scripts/simulate-pairby.js` over
+  `games/_sim-pairby`.
 
 ### 2.5 Host controls & safety
 

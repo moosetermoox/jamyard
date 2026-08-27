@@ -108,6 +108,9 @@ function buildRotationAssignment(ctx) {
  *       partners from the named pairwise step (greedy non-repeat)
  *     - `reusePairsFrom: "<phaseId>"` — exactly the same groups as the
  *       named pairwise step (same partner, next prompt)
+ *     - `pairBy: {from: "<collect-choice id>", mode: "opposite"|"same"}` —
+ *       prefer partners by their answer in that step (best-effort; a
+ *       lopsided split pairs leftovers with each other, nobody benched)
  *     - `oddHandling: "triple"` — odd class forms one group of three
  *       instead of benching the leftover player (default "sit-out")
  *
@@ -185,7 +188,25 @@ function buildPairwiseAssignment(ctx) {
       }
     }
 
-    const built = buildGroups(playerIds, { oddHandling: phase.oddHandling, avoid });
+    // pairBy: prefer partners by what they answered in an earlier
+    // collect-choice ({from, mode: "opposite"|"same"}). The source's
+    // byPlayer map (playerId -> chosen text) is the answer key; missing
+    // data degrades to the plain shuffle with a loud warn (same policy
+    // as pairsFrom above).
+    let answerOf = null;
+    let answerMode = null;
+    if (phase.pairBy && phase.pairBy.from) {
+      const pairBySrc = engine.phaseData[phase.pairBy.from];
+      const byPlayer = pairBySrc && pairBySrc.byPlayer;
+      if (byPlayer && Object.keys(byPlayer).length > 0) {
+        answerOf = byPlayer;
+        answerMode = phase.pairBy.mode === 'same' ? 'same' : 'opposite';
+      } else {
+        console.warn(`[collect:${phase.id}] pairBy source "${phase.pairBy.from}" has no answers yet, pairing randomly instead`);
+      }
+    }
+
+    const built = buildGroups(playerIds, { oddHandling: phase.oddHandling, avoid, answerOf, answerMode });
     groups = built.groups;
     leftover = built.leftover;
   }

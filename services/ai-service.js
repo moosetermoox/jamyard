@@ -95,6 +95,11 @@ const PHASE_EXTRA_GUIDANCE = {
     "round2":      { "type": "collect", "prompt": "Previous: {{round1.assigned}}\\n\\nKeep the sentence going.", "rotateFrom": "round1", "next": "reveal" }
     Each rotateFrom MUST point to a real earlier collect/collect-choice/per-player ai-process step. You CANNOT rotate from inside a loop, chain explicit phases instead.
 
+    ANSWER-KEYED PAIRING: a pairwise collect can pick partners by an earlier Multiple Choice answer. Set "assign": "pairwise" plus "pairBy": {"from": "<collect-choice id>", "mode": "opposite"} to prefer partners who answered DIFFERENTLY (debate, share-your-why-with-someone-who-disagreed), or "mode": "same" for matching answers. Best-effort: a lopsided split pairs leftover students with each other, nobody sits out because of it. Follow with a reveal using "scope": "pair" + "pairsFrom": "<this collect's id>" so each pair sees only their own two answers. Example:
+    "pick":  { "type": "collect-choice", "prompt": "Would you rather explore space or the deep sea?", "choices": ["Space", "Deep sea"], "timer": 20, "next": "why" },
+    "why":   { "type": "collect", "prompt": "You and your partner chose differently. Tell them why you picked yours.", "assign": "pairwise", "pairBy": {"from": "pick", "mode": "opposite"}, "timer": 60, "next": "swap" },
+    "swap":  { "type": "reveal", "scope": "pair", "pairsFrom": "why", "template": "{{_pair.answers}}", "next": "end" }
+
     DRAWING INPUT: set "inputType": "drawing" to replace the text box with a drawing pad. Use for pictionary/gallery games. Drawings work with reveal-one (animated gallery) and rotation (a drawing source preloads onto the recipient's pad to continue it, or displays above a text box to caption it). AI steps CANNOT read drawings, never send a drawing collect's responses to ai-process/ai-eliminate. Put a teacher "preview" phase between a drawing collect and its class-wide reveal.`,
 
   'team-split':

@@ -51,10 +51,19 @@ export function buildAvoidSet(priorPairs) {
 /**
  * Group a list of player ids into pairs (and possibly one triple).
  *
- * Matching is greedy: take the first unmatched player, prefer the first
- * remaining candidate that isn't in the avoid-set; if every candidate is
- * a repeat partner, fall back to the first one (a repeat beats sitting
- * out — spec: greedy non-repeat is fine, perfect round-robin unnecessary).
+ * Matching is greedy: take the first unmatched player, pick the best
+ * remaining candidate by a two-term score; if every candidate scores 0,
+ * fall back to the first one (a repeat beats sitting out — spec: greedy
+ * is fine, perfect round-robin unnecessary).
+ *
+ * Score terms, answer preference outranking repeat-avoidance:
+ *   +2  answer preference satisfied (only when answerOf/answerMode set:
+ *       "opposite" wants differing answers, "same" wants matching ones;
+ *       a player with no recorded answer never satisfies the preference)
+ *   +1  not a repeat partner (avoid-set miss)
+ * Without answerOf this reduces to the original first-non-repeat greedy.
+ * The preference is best-effort by construction: a lopsided answer split
+ * leaves leftover students pairing with each other, never benched.
  *
  * Odd counts:
  *   - oddHandling "triple": when exactly 3 players remain they form one
@@ -64,15 +73,27 @@ export function buildAvoidSet(priorPairs) {
  *     returned in `leftover` and excluded from groups (legacy behavior).
  *
  * @param {string[]} ids                 Player ids, pre-shuffled by caller
- * @param {{ oddHandling?: 'sit-out'|'triple', avoid?: Set<string> }} [opts]
+ * @param {{ oddHandling?: 'sit-out'|'triple', avoid?: Set<string>,
+ *           answerOf?: Object<string,string>, answerMode?: 'opposite'|'same' }} [opts]
  * @returns {{ groups: string[][], leftover: string|null }}
  */
 export function buildGroups(ids, opts = {}) {
   const oddHandling = opts.oddHandling === 'triple' ? 'triple' : 'sit-out';
   const avoid = opts.avoid || new Set();
+  const answerOf = opts.answerOf || null;
+  const answerMode = opts.answerMode === 'same' ? 'same' : 'opposite';
   const remaining = [...ids];
   const groups = [];
   let leftover = null;
+
+  const norm = (v) => (typeof v === 'string' ? v.trim().toLowerCase() : null);
+  const prefers = (x, y) => {
+    if (!answerOf) return false;
+    const ax = norm(answerOf[x]);
+    const ay = norm(answerOf[y]);
+    if (ax == null || ay == null) return false;
+    return answerMode === 'same' ? ax === ay : ax !== ay;
+  };
 
   while (remaining.length > 0) {
     if (remaining.length === 1) {
@@ -91,8 +112,13 @@ export function buildGroups(ids, opts = {}) {
     }
 
     const a = remaining.shift();
-    let partnerIdx = remaining.findIndex(b => !avoid.has(pairKey(a, b)));
-    if (partnerIdx === -1) partnerIdx = 0; // every option is a repeat — allow it
+    let partnerIdx = 0;
+    let bestScore = -1;
+    for (let i = 0; i < remaining.length; i++) {
+      const b = remaining[i];
+      const score = (prefers(a, b) ? 2 : 0) + (avoid.has(pairKey(a, b)) ? 0 : 1);
+      if (score > bestScore) { bestScore = score; partnerIdx = i; }
+    }
     const b = remaining.splice(partnerIdx, 1)[0];
     groups.push([a, b]);
   }

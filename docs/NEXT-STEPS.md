@@ -34,15 +34,14 @@ are now schema-restricted to top level (loud validator error both sides)
 and the remap layer covers instruction/correctAnswer/choices.
 
 Remaining, in priority order:
-1. **Answer-keyed grouping — the missing brick.** Nothing anywhere
-   builds groups from what students answered. Natural shape: `pairBy:
-   {from: "<choice step>", mode: "opposite" | "same"}` as a new grouping
-   axis on pairwise collect, feeding the existing `pairs` output so
-   reveal scope:"pair", vote matchupsFromPairs, and reusePairsFrom work
-   downstream for free. Needs a declared odd-split policy (a 20/3 vote
-   split leaves 17 without an opposite partner: pair leftovers
-   same-vs-same, or sit out). Unlocks the would-you-rather family,
-   debate pairings, find-someone-who-disagrees.
+1. ~~**Answer-keyed grouping — the missing brick.**~~ **SHIPPED
+   2026-08-26 (wave 2):** `pairBy: {from: "<collect-choice id>", mode:
+   "opposite" | "same"}` on pairwise collect; best-effort preference
+   (lopsided splits pair leftovers with each other, nobody benched),
+   composes with rotatePairsFrom/oddHandling and all pairs consumers.
+   Proven by scripts/simulate-pairby.js. Follow-up idea: let a recipe
+   showcase it (a "Would You Rather, and Why" recipe is now one-shot
+   buildable).
 2. **Pairs/teams unification.** Three grouping systems, zero bridges:
    pairwise `pairs`, team-split `teams`, merge's internal groups.
    Concrete losses: teacher-arranged pairs (team-split method:"teacher"

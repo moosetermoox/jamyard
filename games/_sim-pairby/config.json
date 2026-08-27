@@ -1,0 +1,35 @@
+{
+  "name": "SIM PairBy",
+  "description": "Test fixture for answer-keyed pairing: a collect-choice split, a pairwise collect with pairBy mode opposite, then a pair-scoped reveal. Underscore-prefixed so it never appears in game lists. Driven by scripts/simulate-pairby.js.",
+  "family": "connection",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "pick"
+    },
+    "pick": {
+      "type": "collect-choice",
+      "prompt": "Would you rather have a cat or a dog?",
+      "choices": ["Cats", "Dogs"],
+      "next": "why"
+    },
+    "why": {
+      "type": "collect",
+      "prompt": "You and your partner may have chosen differently. Tell them why you picked yours.",
+      "assign": "pairwise",
+      "pairBy": { "from": "pick", "mode": "opposite" },
+      "next": "swap"
+    },
+    "swap": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "why",
+      "template": "{{_pair.answers}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "You heard the other side."
+    }
+  }
+}

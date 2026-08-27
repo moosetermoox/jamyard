@@ -5808,6 +5808,28 @@ function validateConfig() {
       }
     }
 
+    // pairBy validation (answer-keyed pairing; mirrors engine/game-loader.js)
+    if (phase.pairBy !== undefined) {
+      if (phase.assign !== 'pairwise') {
+        errors.push(label + ': "Pair by earlier answer" only works when students are paired up (assign "pairwise").');
+      } else if (typeof phase.pairBy !== 'object' || phase.pairBy === null || !phase.pairBy.from) {
+        errors.push(label + ': "Pair by earlier answer" needs a step to read answers from.');
+      } else {
+        var pairBySrc = phases[phase.pairBy.from];
+        if (!pairBySrc) {
+          errors.push(label + ': "Pair by earlier answer" points to "' + phase.pairBy.from + '" which does not exist.');
+        } else if (pairBySrc.type !== 'collect-choice') {
+          errors.push(label + ': "Pair by earlier answer" must point to a Multiple Choice step.');
+        }
+        if (phase.pairBy.mode !== undefined && phase.pairBy.mode !== 'opposite' && phase.pairBy.mode !== 'same') {
+          errors.push(label + ': "Pair by earlier answer" mode must be "opposite" or "same".');
+        }
+        if (phase.reusePairsFrom) {
+          errors.push(label + ': "Same partners as" and "Pair by earlier answer" cannot combine, reusing partners decides the groups. Pick one.');
+        }
+      }
+    }
+
     // pairMode validation
     if (phase.pairMode) {
       if (phase.pairMode !== 'human-vs-ai') {

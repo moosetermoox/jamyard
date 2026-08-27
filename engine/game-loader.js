@@ -376,6 +376,41 @@ export function validate(config, gameId, options) {
           );
         }
       }
+
+      // pairBy: answer-keyed pairing. Preference source must be a
+      // collect-choice (fixed answers partition cleanly; free text doesn't).
+      if (phase.pairBy !== undefined) {
+        if (phase.assign !== 'pairwise') {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (collect) sets "pairBy" but assign is not "pairwise", the field only applies to paired steps.`
+          );
+        } else if (typeof phase.pairBy !== 'object' || phase.pairBy === null || Array.isArray(phase.pairBy) || typeof phase.pairBy.from !== 'string' || !phase.pairBy.from) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" pairBy must be an object like {"from": "<step id>", "mode": "opposite"}`
+          );
+        } else {
+          if (phase.pairBy.mode !== undefined && !['opposite', 'same'].includes(phase.pairBy.mode)) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" pairBy mode must be "opposite" or "same" (got "${phase.pairBy.mode}")`
+            );
+          }
+          const pairBySrc = config.phases[phase.pairBy.from];
+          if (!pairBySrc) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" has pairBy.from "${phase.pairBy.from}" which does not exist`
+            );
+          } else if (pairBySrc.type !== 'collect-choice') {
+            errors.push(
+              `Game "${gameId}": phase "${name}" pairBy.from "${phase.pairBy.from}" must point to a Multiple Choice step (got ${pairBySrc.type})`
+            );
+          }
+          if (phase.reusePairsFrom) {
+            errors.push(
+              `Game "${gameId}": phase "${name}" (collect) sets both "reusePairsFrom" and "pairBy", but reusing partners dictates the groups, so pairBy would be ignored. Pick one.`
+            );
+          }
+        }
+      }
     }
 
     // vote.matchupsFromPairs over a triple-capable source: head-to-head
@@ -1172,9 +1207,11 @@ function inferDiagnosticCode(msg, severity) {
   if (/not allowed in a connection-family game/.test(msg)) return DIAGNOSTIC_CODES.CONNECTION_FAMILY_VIOLATION;
   if (/has invalid family value/.test(msg)) return DIAGNOSTIC_CODES.INVALID_ENUM_VALUE;
   if (/can be reached without going through/.test(msg)) return DIAGNOSTIC_CODES.PAIR_SOURCE_NOT_ON_ALL_PATHS;
-  if (/has (pairsFrom|rotatePairsFrom|reusePairsFrom) ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
-  if (/(pairsFrom|rotatePairsFrom|reusePairsFrom) ".+" must point to/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
+  if (/has (pairsFrom|rotatePairsFrom|reusePairsFrom|pairBy\.from) ".+" which does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_PHASE_REF;
+  if (/(pairsFrom|rotatePairsFrom|reusePairsFrom|pairBy\.from) ".+" must point to/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
   if (/sets both "rotatePairsFrom" and "reusePairsFrom"/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
+  if (/sets both "reusePairsFrom" and "pairBy"/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
+  if (/pairBy (must be an object|mode must be)/.test(msg)) return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;
   if (/must point to an earlier merge step/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
   if (/agreeMode "timer" but has no timer/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
   if (/collisionWindowMs/.test(msg)) return DIAGNOSTIC_CODES.INVALID_INTEGER_RANGE;

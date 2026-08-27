@@ -233,6 +233,11 @@ export const PHASE_SCHEMAS = {
         label: 'Pair items from',
         helper: 'Optional with assign:"pairwise". The step whose responses provide the per-pair prompts (one prompt per pair, drawn from sourceId.responses). Leave empty to give every pair this step\'s own prompt.'
       },
+      pairBy: {
+        type: 'object', optional: true, contexts: ['topLevel'],
+        label: 'Pair by earlier answer',
+        helper: 'Optional with assign:"pairwise". {from: "<Multiple Choice step>", mode: "opposite" | "same"}. Pairs students by what they answered in that step: "opposite" prefers partners who answered differently (share a why with someone who disagreed), "same" prefers matching answers. Best-effort: when the split is lopsided, leftover students still pair with each other, nobody sits out because of it.'
+      },
       oddHandling: {
         type: 'enum', values: ['sit-out', 'triple'], optional: true, default: 'sit-out', contexts: ['topLevel'],
         label: 'Odd player count',

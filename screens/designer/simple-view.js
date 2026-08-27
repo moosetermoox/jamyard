@@ -537,6 +537,7 @@
           : (phase.assign === 'pairwise' ? 'Students answer (in pairs):' : 'Students answer:');
         d.field = textBox(phase.prompt, isDrawing ? 'What students should draw…' : 'The question students see…', function (v) { phase.prompt = v; });
         if (phase.reusePairsFrom) d.facts.push(fact('same partners as ' + stepName(phase.reusePairsFrom)));
+        else if (phase.pairBy && phase.pairBy.from) d.facts.push(fact((phase.pairBy.mode === 'same' ? 'partners who answered the same in ' : 'partners who answered differently in ') + stepName(phase.pairBy.from)));
         else if (phase.rotatePairsFrom) d.facts.push(fact('new partners since ' + stepName(phase.rotatePairsFrom)));
         else if (phase.assign === 'pairwise') d.facts.push(fact('random pairs'));
         if (phase.assign === 'pairwise' && phase.oddHandling === 'triple') d.facts.push(fact('odd class → group of 3'));
