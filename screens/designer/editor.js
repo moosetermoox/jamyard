@@ -421,6 +421,7 @@ async function fetchSchemas() {
       VALID_HOST_TOGGLES[type] = data[type].hostToggles;
       VALID_PLAYER_TOGGLES[type] = data[type].playerToggles;
       _schemaEnums[type] = data[type].enumFields;
+      if (data[type].topLevelOnlyFields) _topLevelOnlyFields[type] = data[type].topLevelOnlyFields;
     }
   } catch (e) {
     console.warn('[editor] Failed to load phase schemas from server:', e);
@@ -5573,6 +5574,15 @@ var _schemaEnums = {
 
 var DATA_REF_FIELDS = ['input', 'candidates', 'content'];
 
+// Fields that only work on a top-level step, never inside a For Each round
+// (rotation/pairing on collect). Populated from /api/phase-schemas at init;
+// hardcoded values are fallback. Mirrors the server's sub-phase guard in
+// engine/game-loader.js.
+var _topLevelOnlyFields = {
+  collect: ['rotateFrom', 'rotateOffset', 'assign', 'pairsFrom', 'oddHandling',
+    'rotatePairsFrom', 'reusePairsFrom', 'prefillFromAssigned', 'appendOnly']
+};
+
 var VALID_HOST_TOGGLES = {
   collect: ['prompt', 'counter', 'timer', 'closeButton'],
   'collect-choice': ['prompt', 'counter', 'timer', 'closeButton'],
@@ -5779,6 +5789,22 @@ function validateConfig() {
       }
       if (!phase.next) {
         errors.push(label + ': Has "Loop back to" but is missing "Next step" (needed as loop exit).');
+      }
+    }
+
+    // For Each round steps: rotation/pairing fields only work on a
+    // top-level step (mirrors the server guard in engine/game-loader.js).
+    if (phase.type === 'foreach' && phase.subPhases && typeof phase.subPhases === 'object') {
+      for (var subName in phase.subPhases) {
+        var subStep = phase.subPhases[subName];
+        if (!subStep || !subStep.type) continue;
+        var restricted = _topLevelOnlyFields[subStep.type];
+        if (!restricted) continue;
+        for (var rf = 0; rf < restricted.length; rf++) {
+          if (subStep[restricted[rf]] !== undefined) {
+            errors.push(label + ': Round step "' + subName + '" uses "' + restricted[rf] + '", which only works as a full step outside the rounds. Move it out of the For Each.');
+          }
+        }
       }
     }
 

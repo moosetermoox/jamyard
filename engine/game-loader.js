@@ -23,6 +23,7 @@ import {
   getFields as schemaGetFields,
   getTransitions as schemaGetTransitions,
   getAllowedFieldNames as schemaGetAllowedFieldNames,
+  getTopLevelOnlyFieldNames as schemaGetTopLevelOnlyFieldNames,
   getHostToggles as schemaGetHostToggles,
   getPlayerToggles as schemaGetPlayerToggles
 } from './phase-schemas.js';
@@ -818,12 +819,22 @@ export function validate(config, gameId, options) {
                 );
               }
             }
-            // Allow-list check
+            // Allow-list check. A field that exists at top level but not
+            // inside foreach (rotation/pairing) gets a specific message —
+            // the runtime never remaps those refs, so it would silently
+            // read no data at game time.
+            const topLevelOnly = schemaGetTopLevelOnlyFieldNames(sub.type);
             for (const field of Object.keys(sub)) {
               if (!subAllowed.has(field)) {
-                errors.push(
-                  `Game "${gameId}": phase "${name}" subPhase "${subName}" (${sub.type}) has unknown field "${field}". Remove it or use a valid field.`
-                );
+                if (topLevelOnly.includes(field)) {
+                  errors.push(
+                    `Game "${gameId}": phase "${name}" subPhase "${subName}" (${sub.type}) uses "${field}", which only works on a top-level step, not inside a For Each round. Move that step out of the round loop.`
+                  );
+                } else {
+                  errors.push(
+                    `Game "${gameId}": phase "${name}" subPhase "${subName}" (${sub.type}) has unknown field "${field}". Remove it or use a valid field.`
+                  );
+                }
               }
             }
           }
@@ -1191,6 +1202,7 @@ function inferDiagnosticCode(msg, severity) {
   if (/references ".+" but phase ".+" does not exist/.test(msg)) return DIAGNOSTIC_CODES.MISSING_DATA_REF;
 
   // Field-shape problems
+  if (/only works on a top-level step/.test(msg)) return DIAGNOSTIC_CODES.UNKNOWN_FIELD;
   if (/has unknown field/.test(msg)) return DIAGNOSTIC_CODES.UNKNOWN_FIELD;
   if (/(must be a string|must be an array|must be an object|aiInject must be an object)/.test(msg)) {
     return DIAGNOSTIC_CODES.INVALID_FIELD_TYPE;

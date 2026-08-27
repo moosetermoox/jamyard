@@ -419,6 +419,7 @@ DESIGN TIPS:
 CRITICAL RULES:
 - ONLY use fields documented above. Do NOT invent custom fields.
 - foreach sub-phases can ONLY be announce, collect, collect-choice. NOT reveal, vote, or ai-process.
+- A collect sub-phase inside foreach can NEVER use rotation or pairing fields (rotateFrom, rotateOffset, assign, pairsFrom, oddHandling, rotatePairsFrom, reusePairsFrom, prefillFromAssigned, appendOnly). Those only work on top-level steps; the validator rejects them inside rounds.
 - "correct" scoring REQUIRES collect-choice with choices: "_candidates" (for guessing the author)
 - "tally" scoring REQUIRES collect-choice with literal string choices + a pointMap matching those choices
 - If a game doesn't involve guessing authorship OR rating items, don't add scoring to foreach

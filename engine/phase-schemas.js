@@ -209,38 +209,42 @@ export const PHASE_SCHEMAS = {
         label: 'Multi-field response',
         helper: 'Optional. List of field names if students should fill in more than one box.'
       },
+      // Rotation/pairing fields are top-level only: inside a foreach round
+      // the remap layer never rewrites their refs and their outputs land
+      // under virtual `_fe:` ids nothing can consume, so they'd silently
+      // read no data at game time (2026-08-26 interop review).
       rotateFrom: {
-        type: 'phaseRef', optional: true,
+        type: 'phaseRef', optional: true, contexts: ['topLevel'],
         label: 'Rotate items from',
         helper: 'Optional. Each player receives a different player\'s item from the named step. Use {{stepId.assigned}} in the prompt to show it.'
       },
       rotateOffset: {
-        type: 'integer', min: 1, max: 100, optional: true, default: 1,
+        type: 'integer', min: 1, max: 100, optional: true, default: 1, contexts: ['topLevel'],
         label: 'Rotation offset',
         helper: 'How many positions to shift. Default 1 = each player gets the previous player\'s item.'
       },
       assign: {
-        type: 'enum', values: ['pairwise'], optional: true,
+        type: 'enum', values: ['pairwise'], optional: true, contexts: ['topLevel'],
         label: 'Pair players up',
         helper: 'Set to "pairwise" to split players into pairs of 2. With "Pair items from" set, each pair shares one prompt drawn from that step ({{sourceId.assigned}} shows it); without it, every pair gets this step\'s own prompt.'
       },
       pairsFrom: {
-        type: 'phaseRef', optional: true,
+        type: 'phaseRef', optional: true, contexts: ['topLevel'],
         label: 'Pair items from',
         helper: 'Optional with assign:"pairwise". The step whose responses provide the per-pair prompts (one prompt per pair, drawn from sourceId.responses). Leave empty to give every pair this step\'s own prompt.'
       },
       oddHandling: {
-        type: 'enum', values: ['sit-out', 'triple'], optional: true, default: 'sit-out',
+        type: 'enum', values: ['sit-out', 'triple'], optional: true, default: 'sit-out', contexts: ['topLevel'],
         label: 'Odd player count',
         helper: '"sit-out" (default): the leftover player waits this round. "triple": the last three players form one group of three, use for connection games where nobody should sit out. Avoid "triple" when a later vote uses matchupsFromPairs (head-to-head needs exactly 2).'
       },
       rotatePairsFrom: {
-        type: 'phaseRef', optional: true,
+        type: 'phaseRef', optional: true, contexts: ['topLevel'],
         label: 'New partners (avoid repeats from)',
         helper: 'Optional with assign:"pairwise". Names an earlier pairwise step; this step builds a NEW pairing that avoids re-matching partners from that step (greedy, best-effort).'
       },
       reusePairsFrom: {
-        type: 'phaseRef', optional: true,
+        type: 'phaseRef', optional: true, contexts: ['topLevel'],
         label: 'Same partners as',
         helper: 'Optional with assign:"pairwise". Names an earlier pairwise step; this step keeps exactly the same pairs/groups (same partner, next prompt).'
       },
@@ -250,12 +254,12 @@ export const PHASE_SCHEMAS = {
         helper: 'Adds a Pass button. A pass counts the same as a submission (the step can close), is excluded from results and AI input, and is never shown to the class.'
       },
       prefillFromAssigned: {
-        type: 'boolean', optional: true,
+        type: 'boolean', optional: true, contexts: ['topLevel'],
         label: 'Start the box with the passed item',
         helper: 'With "Rotate items from" set: the classmate\'s item lands IN the text box so this student adds to it (accumulating lists, write, pass, add one). Text answers only.'
       },
       appendOnly: {
-        type: 'boolean', optional: true,
+        type: 'boolean', optional: true, contexts: ['topLevel'],
         label: 'Protect the passed item (add-only)',
         helper: 'With "Rotate items from" + prefill: the classmate\'s lines render read-only and this student can only ADD below them, nobody can delete or rewrite a classmate\'s work. The server enforces it.'
       },
@@ -1564,7 +1568,13 @@ export function getFields(phaseType, opts = {}) {
   const context = opts.context || 'topLevel';
   if (!schema.allowedIn.includes(context)) return {};
 
-  let fields = { ...(schema.fields || {}) };
+  // Per-field context restriction: a field with `contexts: ['topLevel']`
+  // doesn't exist inside foreach sub-phases (rotation/pairing fields).
+  let fields = {};
+  for (const [fname, fdef] of Object.entries(schema.fields || {})) {
+    if (fdef.contexts && !fdef.contexts.includes(context)) continue;
+    fields[fname] = fdef;
+  }
 
   for (const mixinSpec of (schema.mixins || [])) {
     const [mixinName, alias] = mixinSpec.split(':');
@@ -1631,6 +1641,21 @@ export function getAllowedFieldNames(phaseType, opts = {}) {
     for (const k of Object.keys(getTransitions(phaseType))) names.add(k);
   }
   return names;
+}
+
+/**
+ * Field names that exist on a phase type at top level but NOT inside
+ * foreach sub-phases (fields with `contexts: ['topLevel']`). Used by the
+ * validator and the editor to explain "known field, wrong place" instead
+ * of a generic unknown-field error. Empty array for types not allowed in
+ * foreach at all.
+ */
+export function getTopLevelOnlyFieldNames(phaseType) {
+  const schema = PHASE_SCHEMAS[phaseType];
+  if (!schema || !schema.allowedIn.includes('foreach')) return [];
+  const topFields = getFields(phaseType, { context: 'topLevel' });
+  const subFields = getFields(phaseType, { context: 'foreach' });
+  return Object.keys(topFields).filter(f => !(f in subFields));
 }
 
 /**

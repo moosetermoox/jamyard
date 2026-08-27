@@ -23,6 +23,43 @@ games. Then also: delete the duplicate `good-question-bad-question` USER
 row from Neon (it became a repo built-in on 2026-08-25; the delete was
 permission-blocked in-session).
 
+### Phase interop workstream (review done 2026-08-26, wave 1 shipped)
+
+Full producer/consumer review of how phases compose (stress case: rounds
+of student-written would-you-rather questions, answer each other's, then
+pair by OPPOSITE answer and share a why). Verdict: the typed-ref lanes
+are solid; the weak seam is grouping. Wave 1 (shipped, see CHANGELOG
+2026-08-26) made the foreach container honest: rotation/pairing fields
+are now schema-restricted to top level (loud validator error both sides)
+and the remap layer covers instruction/correctAnswer/choices.
+
+Remaining, in priority order:
+1. **Answer-keyed grouping — the missing brick.** Nothing anywhere
+   builds groups from what students answered. Natural shape: `pairBy:
+   {from: "<choice step>", mode: "opposite" | "same"}` as a new grouping
+   axis on pairwise collect, feeding the existing `pairs` output so
+   reveal scope:"pair", vote matchupsFromPairs, and reusePairsFrom work
+   downstream for free. Needs a declared odd-split policy (a 20/3 vote
+   split leaves 17 without an opposite partner: pair leftovers
+   same-vs-same, or sit out). Unlocks the would-you-rather family,
+   debate pairings, find-someone-who-disagrees.
+2. **Pairs/teams unification.** Three grouping systems, zero bridges:
+   pairwise `pairs`, team-split `teams`, merge's internal groups.
+   Concrete losses: teacher-arranged pairs (team-split method:"teacher"
+   groupSize:2) can't feed a pair reveal or matchups — the one grouping
+   a teacher deliberately curates is the one nothing consumes; merge
+   can't reuse an earlier pairing; checklist takes teams but not pairs.
+   Unify under one groups capability with size guards where a consumer
+   needs exactly 2.
+3. **Reveal inside foreach.** Sub-phases are announce/collect/
+   collect-choice/ai-process only, so every per-round payoff beat must
+   be a broadcast announce; pair-private sharing inside rounds is
+   impossible. Also noted: cross-round pair memory can't be expressed
+   (each iteration's pairs land under `_fe:` ids no author can write).
+4. Small: `pairsFrom` prompt distribution (`items[gi % items.length]`)
+   has no author exclusion — a pair can be handed the question one of
+   its own members wrote.
+
 ### Previous START HERE (2026-08-24, feedback wave)
 
 **Six field-test fixes shipped 2026-08-24** (CHANGELOG entry has full

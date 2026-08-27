@@ -11,7 +11,7 @@ import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
 import { loadGame, validate, getAllowedFields, listGames, resolveGamePath } from './engine/game-loader.js';
 import { normalizeConfig } from './engine/normalizer.js';
-import { PHASE_SCHEMAS, getFields } from './engine/phase-schemas.js';
+import { PHASE_SCHEMAS, getFields, getTopLevelOnlyFieldNames } from './engine/phase-schemas.js';
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
 import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
@@ -1789,7 +1789,10 @@ app.get('/api/phase-schemas', (req, res) => {
       requiredFields,
       enumFields,
       hostToggles: (schema.ui && schema.ui.hostToggles) || [],
-      playerToggles: (schema.ui && schema.ui.playerToggles) || []
+      playerToggles: (schema.ui && schema.ui.playerToggles) || [],
+      // Fields that exist at top level but not inside a For Each round
+      // (rotation/pairing) — the editor mirrors the server's sub-phase guard.
+      topLevelOnlyFields: getTopLevelOnlyFieldNames(type)
     };
   }
   res.json(summary);

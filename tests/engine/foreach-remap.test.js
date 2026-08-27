@@ -32,6 +32,32 @@ describe('remapForeachSubConfig', () => {
     expect(sub.content).toBe('_fe:rounds:guess');
   });
 
+  it('rewrites template refs in instruction and correctAnswer (2026-08-26 interop review)', () => {
+    const sub = {
+      instruction: 'Summarize {{titles.responses}} but not {{outside.responses}}',
+      correctAnswer: '{{guess.correctAnswer}}'
+    };
+    remapForeachSubConfig(sub, SUBS, FE);
+    expect(sub.instruction).toBe('Summarize {{_fe:rounds:titles.responses}} but not {{outside.responses}}');
+    expect(sub.correctAnswer).toBe('{{_fe:rounds:guess.correctAnswer}}');
+  });
+
+  it('rewrites a string-valued choices dataRef naming a sibling', () => {
+    const sub = { choices: 'titles.responses' };
+    remapForeachSubConfig(sub, SUBS, FE);
+    expect(sub.choices).toBe('_fe:rounds:titles.responses');
+  });
+
+  it('leaves a literal choices array and an outside choices ref untouched', () => {
+    const literal = { choices: ['A', 'B'] };
+    remapForeachSubConfig(literal, SUBS, FE);
+    expect(literal.choices).toEqual(['A', 'B']);
+
+    const outside = { choices: 'earlier-step.responses' };
+    remapForeachSubConfig(outside, SUBS, FE);
+    expect(outside.choices).toBe('earlier-step.responses');
+  });
+
   it('rewrites choicePool "from" sources naming a sibling sub-phase', () => {
     const sub = {
       choicePool: [

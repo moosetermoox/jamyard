@@ -7,8 +7,9 @@
  * in the same round) must be rewritten to the virtual id or it would read
  * the ORIGINAL (nonexistent) phase id. Covered fields:
  *
- *   - message / prompt: `{{titles.responses}}`-style template tokens
- *   - input / content: bare dataRef strings
+ *   - message / prompt / instruction / correctAnswer:
+ *     `{{titles.responses}}`-style template tokens
+ *   - input / content / choices: bare dataRef strings
  *   - choicePool[].from + excludeAuthored: the bluff-vote pattern, a
  *     collect-choice pooling a sibling collect's fakes (Doodle Bluff)
  *
@@ -63,6 +64,11 @@ export function remapForeachSubConfig(subConfig, subNames, foreachPhaseId) {
 
   if (subConfig.message) subConfig.message = remapTemplates(subConfig.message);
   if (subConfig.prompt) subConfig.prompt = remapTemplates(subConfig.prompt);
+  // instruction (ai-process) and correctAnswer (collect-choice) are template
+  // fields too — a sibling ref in them read the ORIGINAL phase id and
+  // silently resolved to nothing (2026-08-26 interop review).
+  if (subConfig.instruction) subConfig.instruction = remapTemplates(subConfig.instruction);
+  if (typeof subConfig.correctAnswer === 'string') subConfig.correctAnswer = remapTemplates(subConfig.correctAnswer);
 
   if (typeof subConfig.input === 'string') {
     const mapped = virtualize(subConfig.input);
@@ -71,6 +77,11 @@ export function remapForeachSubConfig(subConfig, subNames, foreachPhaseId) {
   if (typeof subConfig.content === 'string') {
     const mapped = virtualize(subConfig.content);
     if (mapped) subConfig.content = mapped;
+  }
+  // choices can be a bare dataRef string (collect-choice), same rule as input.
+  if (typeof subConfig.choices === 'string') {
+    const mapped = virtualize(subConfig.choices);
+    if (mapped) subConfig.choices = mapped;
   }
 
   if (Array.isArray(subConfig.choicePool)) {

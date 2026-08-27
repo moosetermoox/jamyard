@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1246 tests passing** (`npm test`, ~4s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1261 tests passing** (`npm test`, ~4s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **28 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -99,7 +99,7 @@ Framework for quickly building classroom games where:
 15. `rank` — reorder a list; earlier-step ref OR literal item list
 16. `wager` — bet points, auto or host-resolved
 17. `relay` — turn-by-turn collaborative input
-18. `foreach` — sub-phases per item; `limit` sample (a round per response kills the room ~round 12), `pairMode:"human-vs-ai"`, scoring `correct`/`tally`/`scores` (scores = adopt the sub-phase's own graded map; the bluff-rounds mode, keeps foolPoints), `_current`/`_foreach`/`_candidates` vars; choicePool/excludeAuthored refs to sibling sub-phases remap automatically
+18. `foreach` — sub-phases per item; `limit` sample (a round per response kills the room ~round 12), `pairMode:"human-vs-ai"`, scoring `correct`/`tally`/`scores` (scores = adopt the sub-phase's own graded map; the bluff-rounds mode, keeps foolPoints), `_current`/`_foreach`/`_candidates` vars; sibling-sub-phase refs remap automatically in message/prompt/instruction/correctAnswer/input/content/choices/choicePool.from/excludeAuthored ONLY — collect's rotation/pairing fields (rotateFrom, assign, pairsFrom, ...) are schema-banned inside foreach (`contexts: ['topLevel']`)
 19. `rate` — 1-N custom scales; bar + pie results; `visibility: all|host-only`
 20. `turn` — charades; server timer, team rotation, `poolLimit`
 21. `merge` — shared live draft (think-pair-share) with ONE PEN: writing claims it, agreeing releases it, 2.5s idle lets a partner take it; `agreeMode both|any|timer`, `groupSize` 2/3/4; output `merged`
