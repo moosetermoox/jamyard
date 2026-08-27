@@ -9,7 +9,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { buildGroups, buildAvoidSet, groupsFromSource } from '../phases/pairing.js';
+import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups } from '../phases/pairing.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 
 /**
@@ -147,9 +147,13 @@ function buildPairwiseAssignment(ctx) {
       console.warn(`[collect:${phase.id}] pairsFrom "${phase.pairsFrom}" has no array of items (.responses or .result), skipping pairing`);
       return null;
     }
+    // Keep authorship so no pair is handed its own member's item
+    // (assignPromptsToGroups, interop review item #4).
     items = rawItems
-      .map(r => (typeof r === 'string' ? r : r && (r.text || r.prompt || r.question)))
-      .filter(t => typeof t === 'string' && t.length > 0);
+      .map(r => (typeof r === 'string'
+        ? { text: r, authorId: null }
+        : r && { text: r.text || r.prompt || r.question, authorId: r.playerId || null }))
+      .filter(it => it && typeof it.text === 'string' && it.text.length > 0);
     if (items.length === 0) return null;
   }
 
@@ -222,10 +226,11 @@ function buildPairwiseAssignment(ctx) {
   // No pairsFrom → every pair shares this step's own resolved prompt
   // (becomes {{_pair.prompt}} in a downstream pair reveal).
   const ownPrompt = items ? null : ctx.resolveTemplate(phase.prompt || '');
+  const groupPrompts = items ? assignPromptsToGroups(items, groups) : null;
   const pairs = [];
   const assignment = {};
   groups.forEach((memberIds, gi) => {
-    const promptText = items ? items[gi % items.length] : ownPrompt;
+    const promptText = items ? groupPrompts[gi] : ownPrompt;
     pairs.push({ promptText, playerIds: memberIds });
     if (items) {
       for (const id of memberIds) assignment[id] = promptText;

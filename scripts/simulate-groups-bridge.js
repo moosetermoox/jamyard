@@ -8,10 +8,12 @@
  *     → pairwise collect reusePairsFrom:"teams"   (bridge A)
  *     → reveal scope:"pair"                       (existing pair consumer)
  *     → merge groupsFrom:"share"                  (bridge B)
+ *     → checklist teamsFrom:"share"               (bridge C: pairs share a list)
  *
  * Checks: every player's pair-reveal partner IS their team-split teammate,
- * and every player's merge group IS that same pair (member names + each
- * member's own answer as a named seed).
+ * every player's merge group IS that same pair (member names + each
+ * member's own answer as a named seed), and the pair shares one checklist
+ * labeled by both names.
  *
  * Usage: node scripts/simulate-groups-bridge.js   (server must be running)
  */
@@ -98,14 +100,25 @@ async function run() {
       log(names[i], 'drafted + agreed for their pair');
     });
 
-    // --- End ---
+    // --- Phase: tasks (checklist shared per pair — bridge C) ---
+    console.log('\n--- Phase: tasks ---');
+    const checklists = await waitForEventOnAll(players, 'checklist-start', 8000);
+    checklists.forEach((ev, i) => {
+      const lbl = String((ev.group && ev.group.label) || '');
+      r.check(lbl.includes(names[i]) && (!teammateOf[i] || lbl.includes(teammateOf[i])),
+        `${names[i]}'s checklist is shared with ${teammateOf[i]} (bridge C): "${lbl}"`);
+    });
+
+    // --- End --- (first advance closes the checklist into its summary,
+    // the second moves on — same host-paced pattern as sort/match)
+    host.emit('advance-phase', { code });
     try {
-      await waitForEvent(players[0], 'game-ended', 8000);
-      r.check(true, 'all groups submitted, game reached end phase');
+      await waitForEvent(players[0], 'game-ended', 5000);
+      r.check(true, 'game reached end phase');
     } catch {
       host.emit('advance-phase', { code });
       await waitForEvent(players[0], 'game-ended', 8000);
-      r.warn('merge did not auto-advance, host advance used');
+      r.check(true, 'game reached end phase (after checklist summary)');
     }
   } catch (err) {
     console.error(`\x1b[31mSimulation error: ${err.message}\x1b[0m`);

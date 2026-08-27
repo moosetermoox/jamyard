@@ -29,6 +29,33 @@ export function normalizeChecklistItems(items) {
 }
 
 /**
+ * Adapt a pairwise collect's pairs into the teams shape checklist groups
+ * are built from (2026-08-26 pairs/teams bridge: partner task lists).
+ * Groups are labeled by member names ("Maya & Sam"); colliding labels get
+ * a numeric suffix so group keys stay unique.
+ *
+ * @param {Array<{playerIds?: string[]}>|null} pairs
+ * @param {(id: string) => string|undefined} nameOf
+ * @returns {{teams: Record<string, {playerId:string,name:string}[]>}|null}
+ */
+export function pairsAsTeams(pairs, nameOf) {
+  const teams = {};
+  for (const pair of pairs || []) {
+    const members = (pair.playerIds || []).map(id => ({
+      playerId: id,
+      name: nameOf(id) || 'Someone'
+    }));
+    if (members.length === 0) continue;
+    const label = members.map(m => m.name).join(' & ');
+    let key = label;
+    let n = 2;
+    while (teams[key]) key = `${label} (${n++})`;
+    teams[key] = members;
+  }
+  return Object.keys(teams).length > 0 ? { teams } : null;
+}
+
+/**
  * Build the per-group checklist state.
  *
  * @param {string[]} items

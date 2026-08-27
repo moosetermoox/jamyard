@@ -117,7 +117,12 @@ lobby
   into plain id groups. Consumers bridged: collect `reusePairsFrom`
   accepts a team-split (teacher-arranged / student-chosen pairs feed
   pair reveals and matchups), and merge's new `groupsFrom` adopts either
-  producer's groups (same partners write together). Proven by
+  producer's groups (same partners write together), and checklist's
+  `teamsFrom` accepts a pairwise collect (pairs share a to-do list
+  labeled by member names — `pairsAsTeams` in checklist-state.js).
+  Per-pair prompt distribution also excludes authors now
+  (`assignPromptsToGroups`: a pair is never handed its own member's item
+  when an alternative exists). Proven by
   `scripts/simulate-groups-bridge.js` over `games/_sim-groups-bridge`.
 
 ### 2.5 Host controls & safety

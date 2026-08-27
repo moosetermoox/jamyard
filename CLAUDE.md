@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1291 tests passing** (`npm test`, ~4s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1303 tests passing** (`npm test`, ~4s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **28 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -109,7 +109,7 @@ Framework for quickly building classroom games where:
 25. `estimate` — numeric guessing; `scoring: closest|graduated`; no answer = poll mode
 26. `match` — pair two lists; `pairs` + `pointsPerMatch`
 27. `sort` — items into buckets; all-or-none correct buckets = graded vs consensus
-28. `checklist` — group to-do list with live progress; `items` + optional `teamsFrom`; no scores
+28. `checklist` — group to-do list with live progress; `items` + optional `teamsFrom` (team-split OR pairwise collect, pairs share a list); no scores
 
 AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `rank`, `judge` (Sonnet).
 

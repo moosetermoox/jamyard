@@ -33,6 +33,13 @@
       "groupsFrom": "share",
       "agreeMode": "any",
       "instruction": "Combine your two answers into one shared sentence.",
+      "next": "tasks"
+    },
+    "tasks": {
+      "type": "checklist",
+      "prompt": "Wrap up with your partner.",
+      "items": ["Read your shared sentence out loud", "High five"],
+      "teamsFrom": "share",
       "next": "end"
     },
     "end": {

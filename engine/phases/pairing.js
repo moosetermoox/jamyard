@@ -74,6 +74,39 @@ export function groupsFromSource(sourceData) {
 }
 
 /**
+ * Distribute per-pair prompt items across groups (collect pairsFrom).
+ * A group is never handed an item one of its OWN members wrote when any
+ * alternative exists (2026-08-26 interop review item #4). Preference
+ * order per group: an unused non-member item, then any non-member item
+ * (reuse — more groups than items), then the plain rotation fallback
+ * (only reachable when every item is member-authored).
+ *
+ * @param {Array<{text: string, authorId?: string|null}>} items
+ * @param {string[][]} groups
+ * @returns {string[]} one prompt text per group, parallel to `groups`
+ */
+export function assignPromptsToGroups(items, groups) {
+  const n = items.length;
+  const used = new Set();
+  return groups.map((memberIds, gi) => {
+    const members = new Set(memberIds);
+    const notMine = (it) => !it.authorId || !members.has(it.authorId);
+    let pick = null;
+    for (let k = 0; k < n && pick === null; k++) {
+      const idx = (gi + k) % n;
+      if (!used.has(idx) && notMine(items[idx])) pick = idx;
+    }
+    for (let k = 0; k < n && pick === null; k++) {
+      const idx = (gi + k) % n;
+      if (notMine(items[idx])) pick = idx;
+    }
+    if (pick === null) pick = gi % n;
+    used.add(pick);
+    return items[pick].text;
+  });
+}
+
+/**
  * Group a list of player ids into pairs (and possibly one triple).
  *
  * Matching is greedy: take the first unmatched player, pick the best

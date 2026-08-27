@@ -4,6 +4,7 @@ import { armPhaseTimer } from '../phase-timer.js';
 import {
   normalizeChecklistItems,
   buildChecklistGroups,
+  pairsAsTeams,
   groupProgress
 } from '../phases/checklist-state.js';
 
@@ -60,12 +61,17 @@ registerHandler('checklist', {
     }
 
     // teamsFrom pointing at missing data (skipped split, bad ref) falls
-    // back to solo checklists — the activity still works.
+    // back to solo checklists — the activity still works. A pairwise
+    // collect works too (pairs/teams bridge): its pairs become groups
+    // labeled by member names.
     const teamData = phase.teamsFrom ? engine.phaseData[phase.teamsFrom] : null;
-    if (phase.teamsFrom && (!teamData || !teamData.teams)) {
-      console.warn(`[checklist:${phase.id}] teamsFrom "${phase.teamsFrom}" has no teams data, falling back to solo checklists`);
+    let usableTeams = teamData && teamData.teams ? teamData : null;
+    if (!usableTeams && teamData && Array.isArray(teamData.pairs)) {
+      usableTeams = pairsAsTeams(teamData.pairs, id => (engine.players.find(id) || {}).name);
     }
-    const usableTeams = teamData && teamData.teams ? teamData : null;
+    if (phase.teamsFrom && !usableTeams) {
+      console.warn(`[checklist:${phase.id}] teamsFrom "${phase.teamsFrom}" has no teams or pairs data, falling back to solo checklists`);
+    }
 
     const { groups, playerGroup } = buildChecklistGroups(items, usableTeams, eligible);
     room.phaseState = {

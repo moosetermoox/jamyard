@@ -3109,14 +3109,16 @@ function renderPhaseConfig(phaseId) {
     });
     phaseConfigForm.appendChild(addTaskBtn);
 
-    // Groups: any earlier team-split step, or solo checklists
+    // Groups: any earlier team-split OR paired-up collect, or solo checklists
     var teamSplitOpts = [{ value: '', label: 'No groups, one checklist per student' }];
     for (var pid in gameConfig.phases) {
       if (gameConfig.phases[pid].type === 'team-split') {
         teamSplitOpts.push({ value: pid, label: 'Teams from "' + phaseContentLabel(pid) + '"' });
+      } else if (gameConfig.phases[pid].type === 'collect' && gameConfig.phases[pid].assign === 'pairwise') {
+        teamSplitOpts.push({ value: pid, label: 'Pairs from "' + phaseContentLabel(pid) + '"' });
       }
     }
-    addSelectWithHelp('Who shares a checklist', 'Point at a Split into Teams step for group checklists, or give every student their own.', 'phase-teamsFrom',
+    addSelectWithHelp('Who shares a checklist', 'Point at a Split into Teams step or a paired-up Ask step for group checklists, or give every student their own.', 'phase-teamsFrom',
       teamSplitOpts, phase.teamsFrom || '', function (value) {
         if (value) { phase.teamsFrom = value; } else { delete phase.teamsFrom; }
       });
@@ -5831,6 +5833,16 @@ function validateConfig() {
         if (phase.reusePairsFrom) {
           errors.push(label + ': "Same partners as" and "Pair by earlier answer" cannot combine, reusing partners decides the groups. Pick one.');
         }
+      }
+    }
+
+    // checklist teamsFrom validation (mirrors engine/game-loader.js)
+    if (phase.type === 'checklist' && phase.teamsFrom) {
+      var clSrc = phases[phase.teamsFrom];
+      if (!clSrc) {
+        errors.push(label + ': "Who shares a checklist" points to "' + phase.teamsFrom + '" which does not exist.');
+      } else if (clSrc.type !== 'team-split' && !(clSrc.type === 'collect' && clSrc.assign === 'pairwise')) {
+        errors.push(label + ': "Who shares a checklist" must point to a Split into Teams step or a paired-up Ask step.');
       }
     }
 

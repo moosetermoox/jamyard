@@ -979,7 +979,7 @@ export const PHASE_SCHEMAS = {
       teamsFrom: {
         type: 'phaseRef', optional: true,
         label: 'Groups from',
-        helper: 'An earlier Split into Teams step. Leave empty for one checklist per student.'
+        helper: 'An earlier Split into Teams step, or a paired-up collect step (each pair shares a checklist labeled by their names). Leave empty for one checklist per student.'
       }
     },
     transitions: {

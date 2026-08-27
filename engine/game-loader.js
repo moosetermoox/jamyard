@@ -618,13 +618,18 @@ export function validate(config, gameId, options) {
       }
       if (phase.teamsFrom != null) {
         const src = config.phases[phase.teamsFrom];
+        const isPairwise = src && src.type === 'collect' && src.assign === 'pairwise';
         if (!src) {
           errors.push(
             `Game "${gameId}": phase "${name}" (checklist) takes groups from "${phase.teamsFrom}", which doesn't exist.`
           );
-        } else if (src.type !== 'team-split') {
+        } else if (src.type !== 'team-split' && !isPairwise) {
           errors.push(
-            `Game "${gameId}": phase "${name}" (checklist) takes groups from "${phase.teamsFrom}", which is a ${src.type} step, it must be a Split into Teams step.`
+            `Game "${gameId}": phase "${name}" (checklist) takes groups from "${phase.teamsFrom}", which is a ${src.type} step, it must be a Split into Teams step or a paired-up collect step.`
+          );
+        } else if (isPairwise && src.oddHandling !== 'triple') {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" (checklist) takes groups from "${phase.teamsFrom}", whose odd-class handling is sit-out, the benched player would get no checklist. Set oddHandling:"triple" on that step so nobody sits out.`
           );
         }
       }

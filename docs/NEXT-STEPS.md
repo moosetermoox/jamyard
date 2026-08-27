@@ -47,17 +47,21 @@ Remaining, in priority order:
    `reusePairsFrom` accepts a team-split (teacher-arranged pairs feed
    the pair pipeline), and merge gained `groupsFrom` (pairwise collect
    or team-split; same partners write together). Proven by
-   scripts/simulate-groups-bridge.js. Still unbridged, low value:
-   checklist takes teams but not pairs; rotatePairsFrom's avoid-set
-   stays pairwise-only.
-3. **Reveal inside foreach.** Sub-phases are announce/collect/
-   collect-choice/ai-process only, so every per-round payoff beat must
-   be a broadcast announce; pair-private sharing inside rounds is
-   impossible. Also noted: cross-round pair memory can't be expressed
-   (each iteration's pairs land under `_fe:` ids no author can write).
-4. Small: `pairsFrom` prompt distribution (`items[gi % items.length]`)
-   has no author exclusion — a pair can be handed the question one of
-   its own members wrote.
+   scripts/simulate-groups-bridge.js. **Wave 4 added bridge C:**
+   checklist `teamsFrom` accepts a pairwise collect (pairs share a list
+   labeled "Maya & Sam"). Still unbridged, low value: rotatePairsFrom's
+   avoid-set stays pairwise-only.
+3. **Reveal inside foreach — PARKED, owner call needed (2026-08-26).**
+   A broadcast reveal inside a round duplicates what announce already
+   does; the valuable version is pair-private sharing per round, which
+   requires the in-round pairing wave 1 deliberately banned (pairs land
+   under `_fe:` ids, cross-round pair memory inexpressible). Building it
+   properly = remap pairing fields into rounds + pair reveal in foreach
+   + cross-round pair addressing. Substantial; decide whether classroom
+   demand justifies it before starting.
+4. ~~Small: `pairsFrom` author exclusion.~~ **SHIPPED 2026-08-26
+   (wave 4):** `assignPromptsToGroups` — a pair is never handed its own
+   member's item when any alternative exists.
 
 ### Previous START HERE (2026-08-24, feedback wave)
 
