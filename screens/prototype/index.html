@@ -23,18 +23,16 @@
            logic hangs on its change event); the seat blocks are the
            visible control: filled blocks are players, dashed are empty
            seats (Totem: preview-prototype.png). -->
-      <input type="range" id="player-count" min="1" max="8" value="2">
+      <input type="range" id="player-count" min="1" max="8" value="4">
       <div id="seat-blocks" role="group" aria-label="How many pretend students"></div>
-      <span id="player-count-display">2</span>
+      <span id="player-count-display">4</span>
 
       <button id="launch-btn" disabled title="Open a practice room right here, the projected teacher screen next to pretend student screens">Launch</button>
-      <button id="bot-fill-btn" hidden title="Auto-fill an answer for every practice player so you can move through the steps quickly">Bot Fill</button>
-      <button id="skip-btn" hidden title="Skip the current step's timer / close submissions / continue">Skip timer</button>
       <button id="reset-btn" hidden title="Close this practice room and start fresh">Reset</button>
 
       <div id="view-toggle" hidden>
-        <button id="view-grid-btn" class="view-btn active" title="Show all players at once">Grid</button>
-        <button id="view-carousel-btn" class="view-btn" title="Step through one player at a time">One at a time</button>
+        <button id="view-grid-btn" class="view-btn" title="Show all players at once">Grid</button>
+        <button id="view-carousel-btn" class="view-btn active" title="Step through one player at a time">One at a time</button>
       </div>
 
     </div>
@@ -59,6 +57,15 @@
       </div>
       <p id="prelaunch-hint">Pick an activity and press <strong class="hint-launch">Launch</strong>, you get the teacher screen and pretend students, side by side.</p>
     </div>
+  </div>
+
+  <!-- The bench bar: the two controls you actually use while testing,
+       big and at the bottom where the eyes are (observation 2026-08-27:
+       nobody found Bot Fill / Skip timer in the crowded top bar). -->
+  <div id="bench-bar" hidden>
+    <span class="bench-hint">You play all the students. Stuck or done typing?</span>
+    <button id="bot-fill-btn" title="Auto-fill an answer for every practice player so you can move through the steps quickly">Bot Fill<span class="bench-sub">answers for everyone</span></button>
+    <button id="skip-btn" title="Skip the current step's timer / close submissions / continue">Skip timer<span class="bench-sub">move things along</span></button>
   </div>
 
   <!-- Carousel overlays, fixed position so they sit above iframes -->

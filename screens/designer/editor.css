@@ -3407,12 +3407,92 @@ body.chat-open #feedback-widget-panel { right: 358px; }
 
 .plan-intro-modal .dialog-close-btn:hover { color: #2A2620; }
 
-/* The chat callout inside the intro dialog: AI wears cyan */
-.plan-intro-modal p.plan-intro-chat-line {
-  border-left: 4px solid #1BA9C4;
-  padding: 6px 10px;
-  background: rgba(27, 169, 196, 0.10);
+/* Icon rows (v3, 2026-08-27): one drawn mark + one short line each.
+   Marks are painted CSS shapes, not emojis (decorative-emoji rule). */
+.plan-intro-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 14px;
+}
+
+.plan-intro-row p {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  font-weight: 600;
   color: #2A2620;
+}
+
+.pi-mark {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 3px rgba(50,35,15,0.24);
+}
+
+/* The plan: three little step planks on a birch block */
+.pi-mark-steps {
+  flex-direction: column;
+  gap: 4px;
+  background: var(--t-birch, #E3C8A0);
+  transform: rotate(-1.4deg);
+}
+
+.pi-mark-steps i {
+  display: block;
+  height: 6px;
+  background: #2A2620;
+}
+
+.pi-mark-steps i:nth-child(1) { width: 22px; transform: rotate(-2deg); }
+.pi-mark-steps i:nth-child(2) { width: 26px; transform: rotate(1.5deg); }
+.pi-mark-steps i:nth-child(3) { width: 20px; transform: rotate(-1deg); }
+
+/* The chat: AI wears cyan, a speech-bubble tail drawn on */
+.pi-mark-chat {
+  position: relative;
+  background: #1BA9C4;
+  transform: rotate(1.2deg);
+}
+
+.pi-mark-chat::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  bottom: -7px;
+  width: 0;
+  height: 0;
+  border-left: 9px solid #1BA9C4;
+  border-bottom: 8px solid transparent;
+}
+
+.pi-mark-chat::after {
+  content: '';
+  width: 18px;
+  height: 4px;
+  background: #FDF9F0;
+  box-shadow: 0 7px 0 #FDF9F0;
+  transform: translateY(-4px);
+}
+
+/* Preview: a play wedge on the next-step yellow */
+.pi-mark-play {
+  background: var(--t-yellow, #FFC800);
+  transform: rotate(-1deg);
+}
+
+.pi-mark-play::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border-left: 15px solid #2A2620;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  margin-left: 4px;
 }
 
 /* After the intro closes, the chat panel pulses so the eye lands on it.
@@ -4261,6 +4341,47 @@ body::before { content: none; }
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #8A7B62;
+}
+
+/* The big Preview block under the stack: yellow = your next step now.
+   (Red stays reserved for ▶ Host in the header.) */
+.svb-preview-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 86%;
+  margin: 26px auto 0;
+  padding: 16px 12px 18px;
+  border: none;
+  background: var(--t-yellow, #FFC800);
+  background-image: var(--t-grain);
+  color: var(--t-ink, #2A2620);
+  clip-path: polygon(1% 6%, 99% 0, 100% 94%, 0 100%);
+  transform: rotate(-0.8deg);
+  cursor: pointer;
+  /* drop-shadow, not box-shadow: outset box-shadows die under clip-path */
+  filter: drop-shadow(0 3px 4px rgba(50,35,15,0.28));
+  transition: transform 0.12s ease;
+}
+
+.svb-preview-btn:hover { transform: rotate(-0.8deg) translateY(-4px); }
+
+.svb-preview-main {
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 21px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.svb-preview-sub {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(42, 38, 32, 0.75);
 }
 
 /* --- The detail card --- */

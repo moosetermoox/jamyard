@@ -616,7 +616,8 @@ socket.on('join-success', ({ name, reconnected, token, theme }) => {
     showSection(waitingSection);
   }
   // If reconnected, sendCurrentState on the server will push the right section
-  playerNameDisplay.textContent = (J ? J.avatarFor(name) + ' ' : '') + name;
+  // Plain name, no emoji avatar (owner call 2026-08-27).
+  playerNameDisplay.textContent = name;
   currentPlayerName = name;
   if (token) {
     currentToken = token;
@@ -650,7 +651,7 @@ socket.on('room-roster', ({ count, names } = {}) => {
   for (const n of names) {
     const chip = document.createElement('span');
     chip.className = 'holding-avatar-chip';
-    chip.textContent = (J ? J.avatarFor(n) + ' ' : '') + n;
+    chip.textContent = n;
     lobbyAvatars.appendChild(chip);
   }
   lobbyAvatars.hidden = names.length === 0;

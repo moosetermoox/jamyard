@@ -1141,7 +1141,7 @@ socket.on('leaderboard', ({ standings, teamStandings, style, timer, hostTemplate
       members.className = 'team-standing-members juice-stagger';
       members.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
       members.textContent = t.members
-        .map(m => (J ? J.avatarFor(m.name) + ' ' : '') + m.name + ' ' + m.score)
+        .map(m => m.name + ' ' + m.score)
         .join('  ·  ');
       leaderboardStandings.appendChild(members);
     }
@@ -1151,8 +1151,7 @@ socket.on('leaderboard', ({ standings, teamStandings, style, timer, hostTemplate
       const p = document.createElement('p');
       // Medal based on rank, not array index, so tied players share medals
       // (e.g. two players tied for 1st both get gold; no silver awarded).
-      const avatar = J ? J.avatarFor(s.name) + ' ' : '';
-      p.textContent = '#' + s.rank + ' ' + avatar + s.name + ': ' + s.score + ' pts';
+      p.textContent = '#' + s.rank + ' ' + s.name + ': ' + s.score + ' pts';
       // Rows pop in one after another, top rank first.
       p.classList.add('juice-stagger');
       p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
@@ -1244,7 +1243,7 @@ socket.on('team-split-setup', ({ rosters, unassigned }) => {
   for (const u of (unassigned || [])) {
     const chip = document.createElement('button');
     chip.className = 'team-chip' + (u.playerId === teamArrangeSelected ? ' team-chip-selected' : '');
-    chip.textContent = (J ? J.avatarFor(u.name) + ' ' : '') + u.name;
+    chip.textContent = u.name;
     chip.addEventListener('click', () => {
       teamArrangeSelected = teamArrangeSelected === u.playerId ? null : u.playerId;
       document.querySelectorAll('#team-arrange-unassigned .team-chip').forEach(c => c.classList.remove('team-chip-selected'));
@@ -1271,7 +1270,7 @@ socket.on('team-split-setup', ({ rosters, unassigned }) => {
     for (const m of r.members) {
       const p = document.createElement('p');
       p.className = 'team-chip-assigned';
-      p.textContent = (J ? J.avatarFor(m.name) + ' ' : '') + m.name;
+      p.textContent = m.name;
       p.title = 'Tap to send back';
       p.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -1313,7 +1312,7 @@ function renderTeamChoiceHost(rosters, placed, total) {
     card.appendChild(h3);
     for (const m of r.members) {
       const p = document.createElement('p');
-      p.textContent = (J ? J.avatarFor(m.name) + ' ' : '') + m.name;
+      p.textContent = m.name;
       card.appendChild(p);
     }
     teamChoiceTeams.appendChild(card);
@@ -1354,7 +1353,7 @@ socket.on('team-split', ({ teams, hostTemplate, show }) => {
     card.appendChild(h3);
     for (const m of members) {
       const p = document.createElement('p');
-      p.textContent = (J ? J.avatarFor(m.name) + ' ' : '') + m.name;
+      p.textContent = m.name;
       card.appendChild(p);
     }
     teamSplitTeams.appendChild(card);
@@ -1448,8 +1447,7 @@ socket.on('match-results', ({ results, players }) => {
   if ((players || []).length > 0) {
     html += '<div class="match-player-list">';
     for (const p of players) {
-      const avatar = J ? J.avatarFor(p.name) + ' ' : '';
-      html += '<p>' + avatar + escapeHtml(p.name) + '. ' + p.correct + ' correct' +
+      html += '<p>' + escapeHtml(p.name) + '. ' + p.correct + ' correct' +
         (p.score > 0 ? ' (+' + p.score + ')' : '') + '</p>';
     }
     html += '</div>';
@@ -1537,8 +1535,7 @@ socket.on('sort-results', ({ graded, results, players }) => {
   if (graded && (players || []).length > 0) {
     html += '<div class="match-player-list">';
     for (const p of players) {
-      const avatar = J ? J.avatarFor(p.name) + ' ' : '';
-      html += '<p>' + avatar + escapeHtml(p.name) + '. ' + p.correct + ' correct' +
+      html += '<p>' + escapeHtml(p.name) + '. ' + p.correct + ' correct' +
         (p.score > 0 ? ' (+' + p.score + ')' : '') + '</p>';
     }
     html += '</div>';
@@ -1580,8 +1577,7 @@ function renderChecklistDashboard(progress, solo) {
     card.className = 'checklist-group' + (p.complete ? ' checklist-group-done' : '');
     const label = document.createElement('p');
     label.className = 'checklist-group-label';
-    label.textContent = (J ? J.avatarFor(p.label) + ' ' : '') + p.label +
-      (p.complete ? ' ✓' : '');
+    label.textContent = p.label + (p.complete ? ' ✓' : '');
     card.appendChild(label);
     const bar = document.createElement('div');
     bar.className = 'checklist-bar';
@@ -1766,7 +1762,7 @@ function renderBuzzScores(scores) {
   for (const [pid, pts] of entries) {
     const p = document.createElement('p');
     const name = buzzNames[pid] || '…';
-    p.textContent = (J ? J.avatarFor(name) + ' ' : '') + name + '. ' + pts + ' pts';
+    p.textContent = name + '. ' + pts + ' pts';
     buzzScores.appendChild(p);
   }
 }
@@ -1791,7 +1787,7 @@ socket.on('buzz-start', ({ prompt, question, scores, hostTemplate, show }) => {
 
 socket.on('buzz-locked', ({ playerId, playerName }) => {
   buzzNames[playerId] = playerName;
-  buzzStatus.textContent = (J ? J.avatarFor(playerName) + ' ' : '') + playerName + ' buzzed in!';
+  buzzStatus.textContent = playerName + ' buzzed in!';
   buzzStatus.classList.add('buzz-status-locked');
   buzzJudgeRow.hidden = false;
   if (J) J.sound('reveal');
@@ -1894,9 +1890,8 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
   html += '<div class="estimate-guess-list">';
   for (let i = 0; i < (guesses || []).length; i++) {
     const g = guesses[i];
-    const avatar = J ? J.avatarFor(g.name) + ' ' : '';
     html += '<p class="' + (g.score > 0 ? 'estimate-winner' : '') + '">' +
-            avatar + escapeHtml(g.name) + '. ' + escapeHtml(g.value) +
+            escapeHtml(g.name) + '. ' + escapeHtml(g.value) +
             (g.score > 0 ? ' (+' + g.score + ')' : '') + '</p>';
   }
   html += '</div>';
@@ -2345,8 +2340,7 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, st
     if (isTie && winnerNames && winnerNames.length > 1) {
       winnerNameDisplay.textContent = '\ud83d\udc51 ' + formatTieNames(winnerNames) + ' tie!';
     } else {
-      const avatar = J ? J.avatarFor(winnerName) + ' ' : '';
-      winnerNameDisplay.textContent = '\ud83d\udc51 ' + avatar + winnerName + ' wins!';
+      winnerNameDisplay.textContent = '\ud83d\udc51 ' + winnerName + ' wins!';
     }
 
     // What they won FOR \u2014 the winning entry itself, big on the projector.
@@ -2371,8 +2365,7 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, st
     if (standings && standings.length > 0) {
       for (var i = 0; i < standings.length; i++) {
         var p = document.createElement('p');
-        var rowAvatar = J ? J.avatarFor(standings[i].name) + ' ' : '';
-        p.textContent = (i + 1) + '. ' + rowAvatar + standings[i].name + ': ' + standings[i].score;
+        p.textContent = (i + 1) + '. ' + standings[i].name + ': ' + standings[i].score;
         p.classList.add('juice-stagger');
         p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
         standingsList.appendChild(p);
@@ -2417,14 +2410,12 @@ function renderPlayerList(players) {
       li.classList.add('player-disconnected');
     }
 
+    // No emoji avatars in the joining roster (owner call 2026-08-27:
+    // they showed at the start, then most phases never show them again).
+    // The painted initial keeps each plank's color mark.
     const avatar = document.createElement('span');
     avatar.className = 'player-avatar';
-    if (J) {
-      avatar.classList.add('juice-emoji');
-      avatar.textContent = J.avatarFor(player.name);
-    } else {
-      avatar.textContent = player.name.charAt(0).toUpperCase();
-    }
+    avatar.textContent = player.name.charAt(0).toUpperCase();
     avatar.style.background = nameToColor(player.name);
 
     const nameSpan = document.createElement('span');

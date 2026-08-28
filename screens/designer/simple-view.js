@@ -963,6 +963,21 @@
     if (gameConfig.playTime) caption += ' · ' + gameConfig.playTime;
     svStack.appendChild(el('div', 'svb-caption', caption));
 
+    // The plan ends, so play it: a big Preview block on the floor under
+    // the stack. The header Preview button goes unseen (observation
+    // 2026-08-27, eyes stay mid-page), and this is the natural next act
+    // after reading the plan top to bottom.
+    var previewBtn = el('button', 't-block-btn svb-preview-btn');
+    previewBtn.type = 'button';
+    previewBtn.title = 'Try the activity yourself with pretend players, no class needed';
+    previewBtn.appendChild(el('span', 'svb-preview-main', '▶ Preview'));
+    previewBtn.appendChild(el('span', 'svb-preview-sub', 'play it with pretend students'));
+    previewBtn.addEventListener('click', function () {
+      // testGame lives in editor.js: saves first, then opens /prototype.
+      if (typeof testGame === 'function') testGame();
+    });
+    svStack.appendChild(previewBtn);
+
     // --- The detail card ---
     svDetail.innerHTML = '';
     var selPhase = svSelectedId && gameConfig.phases[svSelectedId];

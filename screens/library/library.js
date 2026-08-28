@@ -126,6 +126,8 @@ function buildGoalChips(games) {
 }
 
 function refreshLibrary() {
+  // Rebuilding the planks orphans whatever the mouse was resting on.
+  if (typeof hideHoverCard === 'function') hideHoverCard();
   var visible = applyVisibility(allGames);
   document.getElementById('library-controls').hidden = visible.length === 0;
   buildGoalChips(visible);
@@ -325,6 +327,64 @@ function buildPileGroup(key, label, games) {
   return group;
 }
 
+// ── Hover card: what the activity is, without the click ──
+// Planks carry only a name; teachers were opening popup after popup just
+// to read descriptions (observation 2026-08-27). Rest the mouse on a
+// plank and one shared floating card shows the description. Pointer-only
+// on purpose: keyboard and touch users get the same words in the popup.
+var hoverCard = null;
+var hoverCardTimer = null;
+
+function ensureHoverCard() {
+  if (hoverCard) return hoverCard;
+  hoverCard = document.createElement('div');
+  hoverCard.id = 'plank-hovercard';
+  hoverCard.setAttribute('aria-hidden', 'true');
+  hoverCard.hidden = true;
+  hoverCard.appendChild(document.createElement('div')).className = 'hovercard-name';
+  hoverCard.appendChild(document.createElement('div')).className = 'hovercard-meta';
+  hoverCard.appendChild(document.createElement('div')).className = 'hovercard-desc';
+  document.body.appendChild(hoverCard);
+  return hoverCard;
+}
+
+function hideHoverCard() {
+  clearTimeout(hoverCardTimer);
+  if (hoverCard) hoverCard.hidden = true;
+}
+
+function attachHoverCard(plank, game) {
+  plank.addEventListener('mouseenter', function () {
+    clearTimeout(hoverCardTimer);
+    // A beat of delay so sweeping the mouse across the yard doesn't
+    // flash a card per plank.
+    hoverCardTimer = setTimeout(function () {
+      var card = ensureHoverCard();
+      card.querySelector('.hovercard-name').textContent = game.name;
+      var metaBits = [];
+      if (game.playTime) metaBits.push(game.playTime);
+      if (game.family === 'connection') metaBits.push('no scores, no winners');
+      var metaEl = card.querySelector('.hovercard-meta');
+      metaEl.textContent = metaBits.join(' · ');
+      metaEl.hidden = metaBits.length === 0;
+      card.querySelector('.hovercard-desc').textContent = game.description || '';
+      card.hidden = false;
+      // Below the plank, clamped to the window; flip above when the
+      // plank sits near the bottom edge.
+      var r = plank.getBoundingClientRect();
+      var cw = card.offsetWidth;
+      var ch = card.offsetHeight;
+      var left = Math.max(8, Math.min(r.left, window.innerWidth - cw - 8));
+      var top = r.bottom + 8;
+      if (top + ch > window.innerHeight - 8) top = Math.max(8, r.top - ch - 8);
+      card.style.left = left + 'px';
+      card.style.top = top + 'px';
+    }, 220);
+  });
+  plank.addEventListener('mouseleave', hideHoverCard);
+  plank.addEventListener('click', hideHoverCard);
+}
+
 // One plank per activity (9g): CAPS name over a small meta line, painted
 // by position. Clicking opens the activity popup; every card action
 // lives there.
@@ -335,7 +395,9 @@ function buildPlank(game, index) {
   plank.setAttribute('data-game-id', game.id);
   plank.setAttribute('aria-haspopup', 'dialog');
   plank.setAttribute('aria-label', game.name + ', see what it is and customize it');
-  plank.title = 'See what "' + game.name + '" is';
+  // No native title: the hover card carries the description instead (a
+  // browser tooltip on top of it would double up).
+  attachHoverCard(plank, game);
 
   var top = document.createElement('span');
   top.className = 'plank-top';
@@ -403,7 +465,7 @@ function buildMiniPlank(game, index) {
   plank.setAttribute('data-game-id', game.id);
   plank.setAttribute('aria-haspopup', 'dialog');
   plank.setAttribute('aria-label', game.name + ', see what it is and customize it');
-  plank.title = 'See what "' + game.name + '" is';
+  attachHoverCard(plank, game);
 
   if (Favorites.has(game.id)) {
     var fav = document.createElement('span');
@@ -2014,18 +2076,26 @@ function renderSetupCard() {
   title.textContent = 'New here? Start with this';
   card.appendChild(title);
 
-  var intro = document.createElement('ul');
-  intro.className = 'teacher-setup-intro';
-  [
-    'You project the host screen; students join on Chromebooks or tablets with a room code. No student accounts.',
-    'Setup takes about 3 minutes the first time.',
-    'Not sure yet? Preview any activity to see your screen and practice students side by side, no class needed.'
-  ].forEach(function (lineText) {
-    var li = document.createElement('li');
-    li.textContent = lineText;
-    intro.appendChild(li);
+  // Three icon rows, one short line each (owner call 2026-08-27, same
+  // treatment as the designer's plan-intro: nobody reads the bullet wall).
+  // Marks are drawn CSS shapes, not emojis.
+  var introRows = [
+    { icon: 'board', text: 'You project it up front.' },
+    { icon: 'code', text: 'Students join with a room code. No accounts.' },
+    { icon: 'play', text: 'Not sure? Preview one first, no class needed.' }
+  ];
+  introRows.forEach(function (r) {
+    var row = document.createElement('div');
+    row.className = 'setup-intro-row';
+    var mark = document.createElement('span');
+    mark.className = 'su-mark su-mark-' + r.icon;
+    mark.setAttribute('aria-hidden', 'true');
+    row.appendChild(mark);
+    var p = document.createElement('p');
+    p.textContent = r.text;
+    row.appendChild(p);
+    card.appendChild(row);
   });
-  card.appendChild(intro);
 
   var guideLink = document.createElement('a');
   guideLink.className = 'teacher-setup-guide-link';
@@ -2205,6 +2275,29 @@ function handleCustomizeDeepLink() {
   customizeCopy(game, btn);
 }
 
+// ?about= deep link (the home carousel points here): open the activity
+// popup, exactly as if its plank had been clicked, once the library knows
+// its games. The param is stripped first so a refresh lands on the plain
+// library. Landing straight in Customize skipped the "what is this?" step
+// (observation 2026-08-27).
+function handleAboutDeepLink() {
+  var wantedId;
+  try {
+    var params = new URLSearchParams(window.location.search);
+    wantedId = params.get('about');
+    if (!wantedId) return;
+    params.delete('about');
+    window.history.replaceState(null, '', window.location.pathname +
+      (params.toString() ? '?' + params.toString() : ''));
+  } catch (e) { return; }
+  for (var i = 0; i < allGames.length; i++) {
+    if (allGames[i].id === wantedId) {
+      openActivityDialog(allGames[i]);
+      return; // unknown id falls through to the full library
+    }
+  }
+}
+
 // ?highlight= (where the editor's Back-to-Library link lands): scroll the
 // activity's card into view and flash it so the teacher sees where their
 // activity lives — Preview and Host are right on it. Param stripped so a
@@ -2237,6 +2330,7 @@ fetch('/api/games')
     loadingMessage.hidden = true;
     refreshLibrary();
     handleCustomizeDeepLink();
+    handleAboutDeepLink();
     handleHighlightParam();
   })
   .catch(function (err) {

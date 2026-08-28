@@ -23,6 +23,41 @@ games. Then also: delete the duplicate `good-question-bad-question` USER
 row from Neon (it became a repo built-in on 2026-08-25; the delete was
 permission-blocked in-session).
 
+### Observation wave 2026-08-27 (small fixes shipped; design projects queued)
+
+Owner watched real people use the site. Shipped same day: home carousel
+click opens the activity popup instead of Customize (`/library?about=`),
+home FIND block now reads "Pick an activity", yard planks grew hover
+cards (description without a click), plan-intro dialog cut to three
+icon rows, big yellow Preview block under the editor's step stack,
+preview mode defaults to one-at-a-time + 4 players with Bot Fill/Skip
+timer moved to a bottom bench bar.
+
+Queued design projects from the same observations, in rough order:
+1. **Activity map / path view.** The big one. When a teacher asks "what
+   is this activity?", show the shape of it: the steps as a path (write
+   → vote → reveal → winner), before any customization. Today you fill
+   a Customize form and open Preview before you understand the flow.
+   Natural homes: the activity popup (a mini step-path built from
+   phase-names.js, needs the phase list exposed on `/api/games` or a
+   per-game fetch) and later the guide. Design it as a drawn map, not a
+   config dump.
+2. **Guide needs visuals.** /guide is a wall of words; observed teachers
+   won't read it. Rework around pictures: annotated screenshots or the
+   same drawn-map language as (1), with the text as captions. The
+   carousel screenshot pipeline (regen-carousel-shots.js) may help.
+3. **"Yard" vs "library" naming.** Both words are live in copy and
+   confuse people; owner likes "yard" but it isn't self-explanatory.
+   Decide ONE user-facing word (or an explicit pairing like "the Yard,
+   our activity library") and sweep copy. Internals/routes stay
+   `/library`.
+4. **Preview default player count.** Now 4 (was 2). Owner's instinct
+   said 8; went with 4 because one-at-a-time is now the default view
+   (8 unseen screens add weight, not picture), pairs/teams still work,
+   and 9 live iframes strain school Chromebooks. Revisit after feeling
+   out a real preview run; it is one number in
+   `screens/prototype/index.html`.
+
 ### Phase interop workstream (review done 2026-08-26, wave 1 shipped)
 
 Full producer/consumer review of how phases compose (stress case: rounds

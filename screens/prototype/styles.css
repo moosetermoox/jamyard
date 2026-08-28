@@ -249,6 +249,60 @@ body.pt-running #host-btn {
   color: var(--t-ink);
 }
 
+/* ── The bench bar: Bot Fill + Skip timer, bottom center ──
+   The eyes rest on the screens mid-page, never on the top bar
+   (observation 2026-08-27), so the two controls a test run actually
+   needs sit under the screens, big enough to be found. In flow, not
+   fixed: the iframes shrink a little instead of getting covered. */
+#bench-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 10px 20px 14px;
+  background: var(--t-paper);
+  box-shadow: 0 -2px 4px rgba(50,35,15,0.14);
+  position: relative;
+  z-index: 1;
+}
+
+/* display:flex above would override the hidden attribute */
+#bench-bar[hidden] { display: none; }
+
+.bench-hint {
+  font-size: 0.85em;
+  font-weight: 700;
+  color: var(--t-muted);
+}
+
+/* The two blocks outrank their old top-bar sizing */
+#bench-bar #bot-fill-btn,
+#bench-bar #skip-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 10px 26px 12px;
+  font-size: 1em;
+}
+
+#bench-bar #bot-fill-btn { transform: rotate(-0.8deg); }
+#bench-bar #skip-btn { transform: rotate(0.7deg); }
+
+#bench-bar #bot-fill-btn:hover { transform: rotate(-0.8deg) translateY(-3px); }
+#bench-bar #skip-btn:hover { transform: rotate(0.7deg) translateY(-3px); }
+
+.bench-sub {
+  font-family: var(--t-body);
+  font-size: 0.62em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+
 /* Carousel fixed overlays — sit above iframes */
 .carousel-arrow {
   position: fixed;
@@ -288,7 +342,8 @@ body.pt-running #host-btn {
 
 #carousel-dots {
   position: fixed;
-  bottom: 14px;
+  /* Clears the bench bar (both only exist while a room runs) */
+  bottom: 86px;
   /* Carousel layout is host on the left half, player on the right half —
      center the dots over the PLAYER panel (75% = middle of the right half) */
   left: 75%;

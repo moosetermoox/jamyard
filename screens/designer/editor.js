@@ -433,9 +433,9 @@ async function fetchSchemas() {
 // the product itself (field feedback 2026-08-16). One-time explainer:
 // this is the activity's plan, edit the cards, Preview plays it for real.
 function maybeShowPlanIntro() {
-  // Key bumped (v2) when the chat callout was added (2026-08-24), so
-  // teachers who dismissed the old version see the new line once.
-  var KEY = 'lanyardPlanIntroSeen2';
+  // Key bumped (v3) with the short icon-row version (2026-08-27): the
+  // four-paragraph v2 read as a skippable wall of words, nobody read it.
+  var KEY = 'lanyardPlanIntroSeen3';
   try { if (localStorage.getItem(KEY)) return; } catch (e) { return; }
   if (!window.Dialog) return;
 
@@ -448,19 +448,27 @@ function maybeShowPlanIntro() {
   heading.textContent = 'This is your activity\'s plan';
   modal.appendChild(heading);
 
-  var lines = [
-    'You\'re looking at the plan, not the activity itself. Each numbered card is one step: what goes up on the projector and what students do on their devices.',
-    'Read it top to bottom, and change any wording right on the cards. Edits save on their own.',
-    'The fastest way to reshape it: tell the Design with AI chat on the right what you want ("make it 5 rounds", "swap the drawing for writing") and it makes the change for you.',
-    'Then click Preview up top to play it for real with a pretend class, so you can see exactly what you and your students will see.'
+  // Three rows, one short line each, a drawn mark per row (CSS shapes,
+  // not emojis). Anyone who wants the long version has the chat.
+  var rows = [
+    { icon: 'steps', text: 'Each card is one step. Click it, change the words.' },
+    { icon: 'chat', text: 'Want bigger changes? Tell the chat on the right.' },
+    { icon: 'play', text: 'Then press Preview and play it yourself.' }
   ];
-  for (var i = 0; i < lines.length; i++) {
+  for (var i = 0; i < rows.length; i++) {
+    var row = document.createElement('div');
+    row.className = 'plan-intro-row';
+    var mark = document.createElement('span');
+    mark.className = 'pi-mark pi-mark-' + rows[i].icon;
+    mark.setAttribute('aria-hidden', 'true');
+    if (rows[i].icon === 'steps') {
+      for (var b = 0; b < 3; b++) mark.appendChild(document.createElement('i'));
+    }
+    row.appendChild(mark);
     var p = document.createElement('p');
-    p.textContent = lines[i];
-    // The chat is the part first-time teachers miss (field feedback
-    // 2026-08-24): give its line the same visual weight as a heading.
-    if (i === 2) p.className = 'plan-intro-chat-line';
-    modal.appendChild(p);
+    p.textContent = rows[i].text;
+    row.appendChild(p);
+    modal.appendChild(row);
   }
 
   var row = document.createElement('div');

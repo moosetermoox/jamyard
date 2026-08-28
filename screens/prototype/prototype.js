@@ -13,6 +13,7 @@ const launchBtn = document.getElementById('launch-btn');
 const hostBtn = document.getElementById('host-btn');
 const botFillBtn = document.getElementById('bot-fill-btn');
 const skipBtn = document.getElementById('skip-btn');
+const benchBar = document.getElementById('bench-bar');
 const resetBtn = document.getElementById('reset-btn');
 const iframeContainer = document.getElementById('iframe-container');
 const viewToggle = document.getElementById('view-toggle');
@@ -22,7 +23,10 @@ const carouselPrev = document.getElementById('carousel-prev');
 const carouselNext = document.getElementById('carousel-next');
 const carouselDots = document.getElementById('carousel-dots');
 
-let viewMode = 'grid';
+// One-at-a-time is the default (observation 2026-08-27): the grid of
+// eight tiny screens read as noise; one teacher board plus one student
+// screen is the picture a first-timer can actually follow.
+let viewMode = 'carousel';
 let carouselIndex = 0; // 0-based index into player panels
 
 // Live-session state for the add-a-player slot (late join is a supported
@@ -190,10 +194,12 @@ launchBtn.addEventListener('click', () => {
       currentCode = e.data.code;
       hostLabel.textContent = 'Teacher screen · Room ' + e.data.code;
       createPlayerIframes(e.data.code, count);
-      botFillBtn.hidden = false;
-      skipBtn.hidden = false;
+      benchBar.hidden = false;
       resetBtn.hidden = false;
       viewToggle.hidden = false;
+      // Apply the current view to the fresh panels (carousel by default;
+      // without this the new grid always starts as a grid).
+      setViewMode(viewMode);
     }
   });
 });
@@ -308,11 +314,12 @@ resetBtn.addEventListener('click', () => {
   launchBtn.disabled = false;
   gameSelect.disabled = false;
   playerCount.disabled = false;
-  botFillBtn.hidden = true;
-  skipBtn.hidden = true;
+  benchBar.hidden = true;
   resetBtn.hidden = true;
   viewToggle.hidden = true;
-  setViewMode('grid');
+  // Keep the chosen view for the next launch (a mid-preview relaunch
+  // goes through Reset; snapping back to grid lost the teacher's pick).
+  setViewMode(viewMode);
 });
 
 // Moving the players slider mid-preview relaunches with the new count —
