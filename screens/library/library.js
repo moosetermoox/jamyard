@@ -525,6 +525,13 @@ function openActivityDialog(game) {
   desc.textContent = game.description || '';
   modal.appendChild(desc);
 
+  // The treasure map: what happens, stop by stop, without reading the
+  // plan or opening preview. Arrives async into this holder so the
+  // actions row below never jumps out from under the mouse.
+  var mapHolder = document.createElement('div');
+  modal.appendChild(mapHolder);
+  if (window.ActivityMap) ActivityMap.attach(game.id, mapHolder);
+
   var actions = document.createElement('div');
   actions.className = 'game-card-actions activity-dialog-actions';
 

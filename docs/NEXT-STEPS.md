@@ -37,14 +37,17 @@ preview mode defaults to one-at-a-time + 4 players with Bot Fill/Skip
 timer moved to a bottom bench bar.
 
 Queued design projects from the same observations, in rough order:
-1. **Activity map / path view.** The big one. When a teacher asks "what
-   is this activity?", show the shape of it: the steps as a path (write
-   → vote → reveal → winner), before any customization. Today you fill
-   a Customize form and open Preview before you understand the flow.
-   Natural homes: the activity popup (a mini step-path built from
-   phase-names.js, needs the phase list exposed on `/api/games` or a
-   per-game fetch) and later the guide. Design it as a drawn map, not a
-   config dump.
+1. ~~**Activity map / path view.**~~ **SHIPPED v1 2026-08-27** (owner:
+   "inspired by a treasure map, but stick with the theme"): both
+   activity popups (library plank + home carousel) now draw a
+   pencil-dashed trail from an "Everyone joins" chip through painted
+   family-colored stops to a red X at the wrap-up. Engine:
+   `engine/activity-map.js` (pure; primary-path walk, foreach and
+   repeated runs fold into "N rounds" stops, short quoted excerpts of
+   each step's own words) served by `GET /api/games/:id/map`; renderer
+   `screens/shared/activity-map.js` + `.css`. Possible v2 homes: the
+   guide, the Customize dialog, richer branch drawing (today a
+   branching vote shows "the class's pick decides the path").
 2. **Guide needs visuals.** /guide is a wall of words; observed teachers
    won't read it. Rework around pictures: annotated screenshots or the
    same drawn-map language as (1), with the text as captions. The

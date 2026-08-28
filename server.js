@@ -17,6 +17,7 @@ import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
+import { buildActivityMap } from './engine/activity-map.js';
 import { gamePhases } from './config/game-phases.js';
 import { AIService } from './services/ai-service.js';
 import {
@@ -1730,6 +1731,19 @@ app.get('/api/games/:gameId', async (req, res) => {
     res.json(config);
   } catch (error) {
     console.log(`[api/games/:gameId] Error: ${error.message}`);
+    res.status(404).json({ error: error.message });
+  }
+});
+
+// The activity's treasure map: an ordered summary of what happens, drawn in
+// the activity popups (engine/activity-map.js). Public like the config
+// itself: activity structure only, never student data.
+app.get('/api/games/:gameId/map', async (req, res) => {
+  try {
+    const config = await loadGameById(req.params.gameId);
+    res.json(buildActivityMap(config));
+  } catch (error) {
+    console.log(`[api/games/:gameId/map] Error: ${error.message}`);
     res.status(404).json({ error: error.message });
   }
 });

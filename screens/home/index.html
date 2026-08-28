@@ -6,6 +6,7 @@
   <title>Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="/shared/totem.css">
+  <link rel="stylesheet" href="/shared/activity-map.css">
   <style>
     /* ══ Totem system (docs/design/totem/) ══
        Painted scrap-wood offcuts stacked into totems on a gesso
@@ -483,6 +484,9 @@
       box-shadow: 0 4px 8px rgba(50,35,15,0.3);
       transform: rotate(-0.3deg);
       padding: 24px 26px 22px;
+      /* The treasure map can make this tall; scroll inside the paper */
+      max-height: 88vh;
+      overflow-y: auto;
     }
 
     .home-dialog .dialog-close-btn {
@@ -717,6 +721,8 @@
   <script src="/shared/game-visibility.js"></script>
   <script src="/shared/my-games.js"></script>
   <script src="/shared/dialog.js"></script>
+  <script src="/shared/phase-names.js"></script>
+  <script src="/shared/activity-map.js"></script>
   <script>
     // ── Library carousel: rotate through the same activities the library
     //    shows (featured built-ins + this device's own creations). ──
@@ -844,6 +850,12 @@
         desc.className = 'home-dialog-desc';
         desc.textContent = g.description || '';
         modal.appendChild(desc);
+
+        // The treasure map: what happens, stop by stop (arrives async
+        // into this holder; the actions row below never jumps).
+        var mapHolder = document.createElement('div');
+        modal.appendChild(mapHolder);
+        if (window.ActivityMap) ActivityMap.attach(g.id, mapHolder);
 
         var actions = document.createElement('div');
         actions.className = 'home-dialog-actions';
