@@ -392,6 +392,17 @@ header {
 
 .game-card-delete:hover { color: var(--t-ink, #2A2620); }
 
+/* Put in the shed: quiet like Delete, but it isn't destructive */
+.game-card-actions .game-card-shed {
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif) !important;
+  font-weight: 700;
+  font-size: 12px !important;
+  color: var(--t-muted, #6B6250);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.16);
+}
+
+.game-card-shed:hover { color: var(--t-ink, #2A2620); }
+
 /* Owner curation star */
 .game-card-star {
   align-self: flex-start;
@@ -919,11 +930,18 @@ header {
 .pile-tag-mine { background: var(--t-birch, #E3C8A0); background-image: var(--t-grain); color: var(--t-ink, #2A2620); transform: rotate(0.8deg); }
 
 /* ── My yard: recents, hearts, and your copies on one long board ── */
-.myyard {
+.myyard-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
   margin-bottom: 14px;
+}
+
+.myyard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
   filter: drop-shadow(5px 8px 0 rgba(80, 60, 30, 0.14));
 }
 
@@ -975,6 +993,27 @@ header {
   height: 14px;
   background: var(--t-base, #8F6438);
   background-image: var(--t-grain);
+}
+
+/* ── The shed: put-away activities behind one quiet line ── */
+.shed-toggle {
+  border: none;
+  background: none;
+  cursor: pointer;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t-muted, #6B6250);
+}
+
+.shed-toggle:hover,
+.shed-toggle:focus-visible { color: var(--t-ink, #2A2620); }
+
+.shed-row {
+  margin-top: 6px;
+  opacity: 0.7;
 }
 
 /* ── The plank popup ── */

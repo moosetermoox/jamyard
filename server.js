@@ -591,12 +591,14 @@ async function closeBuzz(code, room) {
 }
 
 function emitEstimateProgress(code, room, state) {
+  const count = Object.keys(state.guesses).length;
+  const total = room.engine.players.list().length;
+  // Everyone sees the room fill up — counts only, never names. (Estimate
+  // players stay on their own screen, but eliminated/late viewers wait.)
+  io.to(code).emit(EVENTS.ROOM_PROGRESS, { count, total });
   const hostId = roomToHost.get(code);
   if (!hostId) return;
-  io.to(hostId).emit(EVENTS.ESTIMATE_PROGRESS, {
-    count: Object.keys(state.guesses).length,
-    total: room.engine.players.list().length
-  });
+  io.to(hostId).emit(EVENTS.ESTIMATE_PROGRESS, { count, total });
 }
 
 // Close estimating: score by closeness, reveal answer + distribution.
@@ -3691,6 +3693,8 @@ io.on('connection', (socket) => {
 
     const hostId = roomToHost.get(code);
     if (hostId) io.to(hostId).emit(EVENTS.RANK_RECEIVED, { count: rs.completed.size, total: rs.eligibleIds.size });
+    // Everyone waiting sees the room fill up — counts only, never names.
+    io.to(code).emit(EVENTS.ROOM_PROGRESS, { count: rs.completed.size, total: rs.eligibleIds.size });
 
     if (rs.completed.size >= rs.eligibleIds.size) {
       await closeRanking(code, room);
@@ -4058,6 +4062,7 @@ io.on('connection', (socket) => {
 
     const hostId = roomToHost.get(code);
     if (hostId) io.to(hostId).emit(EVENTS.SORT_RECEIVED, { count: state.completed.size, total: state.eligibleIds.size });
+    io.to(code).emit(EVENTS.ROOM_PROGRESS, { count: state.completed.size, total: state.eligibleIds.size });
 
     if (state.completed.size >= state.eligibleIds.size) {
       await closeSorting(code, room);
@@ -4208,6 +4213,7 @@ io.on('connection', (socket) => {
 
     const hostId = roomToHost.get(code);
     if (hostId) io.to(hostId).emit(EVENTS.MATCH_RECEIVED, { count: state.completed.size, total: state.eligibleIds.size });
+    io.to(code).emit(EVENTS.ROOM_PROGRESS, { count: state.completed.size, total: state.eligibleIds.size });
 
     if (state.completed.size >= state.eligibleIds.size) {
       await closeMatching(code, room);
@@ -4252,6 +4258,7 @@ io.on('connection', (socket) => {
 
     const hostId = roomToHost.get(code);
     if (hostId) io.to(hostId).emit(EVENTS.RATE_RECEIVED, { count: rs.completed.size, total: rs.eligibleIds.size });
+    io.to(code).emit(EVENTS.ROOM_PROGRESS, { count: rs.completed.size, total: rs.eligibleIds.size });
 
     if (rs.completed.size >= rs.eligibleIds.size) {
       await closeRating(code, room);
@@ -4288,6 +4295,7 @@ io.on('connection', (socket) => {
 
     const hostId = roomToHost.get(code);
     if (hostId) io.to(hostId).emit(EVENTS.WAGER_RECEIVED, { count: ws.completed.size, total: ws.eligibleIds.size });
+    io.to(code).emit(EVENTS.ROOM_PROGRESS, { count: ws.completed.size, total: ws.eligibleIds.size });
 
     if (ws.completed.size >= ws.eligibleIds.size) {
       await closeWager(code, room);

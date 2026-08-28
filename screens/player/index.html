@@ -6,6 +6,7 @@
   <title>Join. Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="/shared/totem.css">
+  <link rel="stylesheet" href="/shared/meadow.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -104,6 +105,7 @@
   <section id="submitted-section" hidden>
     <h1>Answer submitted!</h1>
     <p id="submitted-progress" class="holding-progress" hidden></p>
+    <div id="submitted-meadow" class="meadow-field" hidden aria-hidden="true"></div>
     <div class="holding-dots" aria-hidden="true"><span></span><span></span><span></span></div>
     <p class="holding-next">When everyone's in, your teacher shows what's next.</p>
   </section>
@@ -123,9 +125,13 @@
     <div id="ai-result" class="ai-result"></div>
   </section>
 
-  <!-- GAME WAITING SECTION (for non-eligible players) -->
+  <!-- GAME WAITING SECTION (submitted rank/match/sort/rate/wager players
+       land here too; its meadow is watch-only because non-eligible players
+       share the screen and we can't be sure "you" are one of the counted) -->
   <section id="game-waiting-section" hidden>
     <p id="game-waiting-message">Waiting...</p>
+    <p id="game-waiting-progress" class="holding-progress" hidden></p>
+    <div id="game-waiting-meadow" class="meadow-field" hidden aria-hidden="true"></div>
     <div class="holding-dots" aria-hidden="true"><span></span><span></span><span></span></div>
   </section>
 
@@ -145,6 +151,7 @@
   <section id="vote-submitted-section" hidden>
     <h1>Vote submitted!</h1>
     <p id="vote-submitted-progress" class="holding-progress" hidden></p>
+    <div id="vote-submitted-meadow" class="meadow-field" hidden aria-hidden="true"></div>
     <div class="holding-dots" aria-hidden="true"><span></span><span></span><span></span></div>
     <p class="holding-next">Results as soon as the votes are in.</p>
   </section>
@@ -387,6 +394,7 @@
   <script src="/shared/bot-brain.js"></script>
   <script src="/shared/drawing.js"></script>
   <script src="/shared/speech-input.js"></script>
+  <script src="/shared/meadow.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script src="player.js"></script>
 </body>

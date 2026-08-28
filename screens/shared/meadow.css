@@ -1,0 +1,122 @@
+/* The meadow: anonymous painted blocks with legs on the player's wait
+   screens (pairs with /shared/meadow.js). Same nine-tone paint language as
+   the host's submission pile. Kept deliberately calm: tiny idle sway, a
+   short waddle while walking, a wobble on bumps, nothing else. */
+
+.meadow-field {
+  position: relative;
+  width: min(100%, 420px);
+  height: 150px;
+  margin: 14px auto 4px;
+  overflow: hidden;
+  cursor: pointer;
+  background:
+    linear-gradient(to top, rgba(80, 60, 30, 0.10) 0, rgba(80, 60, 30, 0.10) 14px, transparent 14px);
+  border-bottom: 3px solid var(--t-base, #8F6438);
+  border-radius: 6px;
+}
+
+/* CSS display beats the hidden attribute — the standing override. */
+.meadow-field[hidden] { display: none; }
+
+.meadow-block {
+  position: absolute;
+  width: 26px;
+  height: 27px; /* 20px painted body + 7px legs */
+  margin-left: -13px;
+  margin-top: -23px; /* legs stand ON the y spot */
+  transition: left 900ms ease-in-out, top 900ms ease-in-out;
+  animation: meadow-idle 3.4s ease-in-out infinite;
+  animation-delay: var(--meadow-sway-delay, 0s);
+  transform-origin: 50% 90%;
+}
+
+/* The painted body rides on ::before so its clip-path can't eat the legs. */
+.meadow-block::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 7px 0;
+  clip-path: polygon(2% 8%, 98% 0, 100% 94%, 0 100%);
+}
+
+/* Legs: two ink stubs under the painted body. */
+.meadow-block::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 6px;
+  width: 5px;
+  height: 7px;
+  background: var(--t-ink, #2A2620);
+  box-shadow: 9px 0 0 var(--t-ink, #2A2620);
+}
+
+/* The nine paint tones, matching the host pile's palette. */
+.meadow-tone-0::before { background: var(--t-birch, #E3C8A0); background-image: var(--t-grain); }
+.meadow-tone-1::before { background: var(--t-cyan, #3EB8B3); }
+.meadow-tone-2::before { background: var(--t-pine, #A8763E); background-image: var(--t-grain); }
+.meadow-tone-3::before { background: var(--t-yellow, #FFC800); background-image: var(--t-grain); }
+.meadow-tone-4::before { background: var(--t-oak, #C89B62); background-image: var(--t-grain); }
+.meadow-tone-5::before { background: var(--t-green, #22A05A); }
+.meadow-tone-6::before { background: var(--t-magenta, #C4408F); }
+.meadow-tone-7::before { background: var(--t-orange, #E8762C); }
+.meadow-tone-8::before { background: var(--t-sanded, #EAD9BA); background-image: var(--t-grain); }
+
+/* Your block: same body, a painted marker so you can find yourself. */
+.meadow-you::before {
+  background: var(--t-yellow, #FFC800);
+  background-image: var(--t-grain);
+  outline: 2px solid var(--t-ink, #2A2620);
+  outline-offset: -2px;
+}
+.meadow-you-tag {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 3px;
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-ink, #2A2620);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.meadow-walk {
+  animation: meadow-waddle 300ms linear infinite;
+  animation-delay: 0s;
+}
+
+.meadow-bump {
+  animation: meadow-wobble 600ms ease-out;
+  animation-delay: 0s;
+}
+
+@keyframes meadow-idle {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1.2deg); }
+}
+
+@keyframes meadow-waddle {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
+}
+
+@keyframes meadow-wobble {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-9deg); }
+  55% { transform: rotate(7deg); }
+  80% { transform: rotate(-3deg); }
+  100% { transform: rotate(0deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meadow-block {
+    transition: none;
+    animation: none;
+  }
+  .meadow-walk, .meadow-bump { animation: none; }
+}

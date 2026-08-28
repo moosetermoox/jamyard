@@ -7,6 +7,9 @@
  *     classmates join — and the roster stops broadcasting once the game starts
  *  2. Collect: a submission broadcasts room-progress {count, total} to the
  *     whole room — counts only, NEVER names (no who's-slow pressure)
+ *  3. Rank (standing in for the 2026-08-27 meadow wave: rank/sort/match/
+ *     rate/wager/estimate now broadcast too): same counts-only payload
+ *     reaches every player, so the meadow fills on those waits as well
  *
  * Requires the server running: node scripts/simulate-holding.js
  */
@@ -60,6 +63,29 @@ async function run() {
     r.check(!midGameRosters, 'no roster broadcasts once the game is running (lobby-only)');
   } finally {
     await teardown(host, players);
+  }
+
+  // --- Rank progress (meadow wave): host-clock phases broadcast too ---
+  const rankRoom = await setupRoom('_sim-rank-own', 3);
+  try {
+    rankRoom.host.emit('start-game', { code: rankRoom.code });
+    const rankData = await waitForEvent(rankRoom.players[0], 'rank-start', 10000);
+    for (const p of rankRoom.players) p._buffer['room-progress'] = [];
+
+    rankRoom.players[0].emit('rank-submit', {
+      code: rankRoom.code, ranking: [...rankData.candidates]
+    });
+    const rp = await waitForEvent(rankRoom.players[1], 'room-progress', 4000).catch(() => null);
+    r.check(!!rp, 'a rank submission broadcasts room-progress to waiting classmates');
+    if (rp) {
+      r.check(rp.count === 1 && rp.total === 3,
+        `rank progress counts are right (${rp.count} of ${rp.total})`);
+      const rankKeys = Object.keys(rp).sort().join(',');
+      r.check(rankKeys === 'count,total',
+        `rank progress carries counts ONLY, no names (keys: ${rankKeys})`);
+    }
+  } finally {
+    await teardown(rankRoom.host, rankRoom.players);
   }
 
   r.summary('HOLDING-SCREEN SIMULATION');

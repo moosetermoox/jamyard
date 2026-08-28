@@ -41,6 +41,7 @@ const FILES = [
   'screens/shared/teacher-profile.js',
   'screens/shared/rich-text.js',
   'screens/shared/speech-input.js',
+  'screens/shared/meadow.js',
   'screens/library/library.js'
 ];
 

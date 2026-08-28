@@ -657,6 +657,17 @@ socket.on('room-roster', ({ count, names } = {}) => {
   lobbyAvatars.hidden = names.length === 0;
 });
 
+// The meadow: submitted classmates as anonymous blocks on the wait screens.
+// Your own block is nudgeable on the two screens you can only reach by
+// submitting; the generic waiting screen is watch-only (non-eligible
+// players share it, so "you" might not be one of the counted).
+const gameWaitingProgress = document.getElementById('game-waiting-progress');
+const meadows = window.Meadow ? [
+  Meadow.attach(document.getElementById('submitted-meadow')),
+  Meadow.attach(document.getElementById('vote-submitted-meadow')),
+  Meadow.attach(document.getElementById('game-waiting-meadow'), { you: false })
+].filter(Boolean) : [];
+
 // Submission/vote progress: counts only, never names.
 socket.on('room-progress', ({ count, total } = {}) => {
   if (typeof count !== 'number' || typeof total !== 'number') return;
@@ -665,6 +676,9 @@ socket.on('room-progress', ({ count, total } = {}) => {
   submittedProgress.hidden = false;
   voteSubmittedProgress.textContent = text;
   voteSubmittedProgress.hidden = false;
+  gameWaitingProgress.textContent = text;
+  gameWaitingProgress.hidden = false;
+  for (const m of meadows) m.update(count);
 });
 
 // A new phase starts fresh — hide stale counts until this phase's first tick.
@@ -673,6 +687,9 @@ function resetHoldingProgress() {
   submittedProgress.textContent = '';
   voteSubmittedProgress.hidden = true;
   voteSubmittedProgress.textContent = '';
+  gameWaitingProgress.hidden = true;
+  gameWaitingProgress.textContent = '';
+  for (const m of meadows) m.reset();
 }
 
 // Auto-rejoin on socket reconnect
@@ -3051,6 +3068,13 @@ function showSection(el) {
   clearTimer();
   // Leaving a screen always ends any live dictation.
   if (window.Speech) Speech.stopAll();
+  // Entering a wait screen fresh clears its stale meadow/count; the phase's
+  // own first room-progress tick repopulates it within a beat.
+  const wasActive = document.querySelector('section.active');
+  if (el !== wasActive &&
+      (el === submittedSection || el === voteSubmittedSection || el === gameWaitingSection)) {
+    resetHoldingProgress();
+  }
   for (const s of allPlayerSections) {
     s.classList.remove('active');
     s.hidden = true;

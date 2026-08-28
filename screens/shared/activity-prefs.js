@@ -53,5 +53,54 @@
     }
   };
 
-  globalThis.ActivityPrefs = { Favorites: Favorites, Recents: Recents };
+  // The shed: activities put away without deleting them. They leave the
+  // yard row and the piles but stay searchable, and come back with one
+  // click. Same this-browser-only model as MyGames.
+  var Archived = {
+    KEY: 'lanyard-archived',
+    list: function () { return readIdList(this.KEY); },
+    has: function (id) { return this.list().indexOf(id) !== -1; },
+    toggle: function (id) {
+      var ids = this.list();
+      var at = ids.indexOf(id);
+      if (at === -1) ids.push(id); else ids.splice(at, 1);
+      writeIdList(this.KEY, ids);
+    }
+  };
+
+  // Yard row order: hearted first (the ♥ doubles as "keep this up front"),
+  // then recently used (most recent first), then the rest newest-saved
+  // first (MyGames records save order; reversing it needs no timestamps,
+  // so it works in DB and filesystem modes alike). Pure — takes id lists,
+  // returns a new array — so it stays testable.
+  function orderYard(games, opts) {
+    var hearts = (opts && opts.hearts) || [];
+    var recents = (opts && opts.recents) || [];
+    var created = (opts && opts.created) || [];
+    var out = [];
+    var placed = {};
+    var take = function (id) {
+      for (var i = 0; i < games.length; i++) {
+        if (games[i].id === id && !placed[id]) {
+          out.push(games[i]);
+          placed[id] = true;
+        }
+      }
+    };
+    hearts.forEach(take);
+    recents.forEach(take);
+    var rest = games.filter(function (g) { return !placed[g.id]; });
+    rest.sort(function (a, b) {
+      // Higher save index = newer = earlier; unknowns keep input order last.
+      return created.indexOf(b.id) - created.indexOf(a.id);
+    });
+    return out.concat(rest);
+  }
+
+  globalThis.ActivityPrefs = {
+    Favorites: Favorites,
+    Recents: Recents,
+    Archived: Archived,
+    orderYard: orderYard
+  };
 })();

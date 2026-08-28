@@ -17,6 +17,7 @@ var errorMessage = document.getElementById('error-message');
 
 var Favorites = ActivityPrefs.Favorites;
 var Recents = ActivityPrefs.Recents;
+var Archived = ActivityPrefs.Archived;
 
 // Connect leads — the library is about doing things together.
 // Fine-grained goal labels (plain words, Totem never-list): owner-mode
@@ -225,10 +226,18 @@ function renderLibrary(games, rescueQuery) {
   // recently used → home goal pile.
   var piles = { recent: [], favorites: [], customized: [], connect: [], think: [], play: [] };
   var placed = {};
+  var shedGames = [];
 
   games.forEach(function (g) {
+    if (placed[g.id]) return; // duplicate rows render once (disk + DB copies)
     if (window.MyGames && MyGames.has(g.id)) {
-      piles.customized.push(g);
+      // Activities in the shed leave the row but stay searchable: a live
+      // search puts them back on the board so nothing is ever lost.
+      if (Archived.has(g.id) && !libraryQuery) {
+        shedGames.push(g);
+      } else {
+        piles.customized.push(g);
+      }
       placed[g.id] = true;
     }
   });
@@ -252,8 +261,19 @@ function renderLibrary(games, rescueQuery) {
     if (!placed[g.id]) piles[goalGroupOf(g)].push(g);
   });
 
-  var mine = piles.recent.concat(piles.favorites, piles.customized);
-  if (mine.length > 0) libraryGrid.appendChild(buildMyYardShelf(mine));
+  // One ordering rule for the whole row: hearted keeps a plank up front,
+  // then recently used, then the rest newest-saved first.
+  var mine = ActivityPrefs.orderYard(
+    piles.recent.concat(piles.favorites, piles.customized),
+    {
+      hearts: Favorites.list(),
+      recents: Recents.list(),
+      created: window.MyGames ? MyGames.list() : []
+    }
+  );
+  if (mine.length > 0 || shedGames.length > 0) {
+    libraryGrid.appendChild(buildMyYardShelf(mine, shedGames));
+  }
 
   var shelf = document.createElement('div');
   shelf.className = 'pile-shelf';
@@ -435,10 +455,19 @@ function buildPlank(game, index) {
 
 // The personal shelf: recents, hearts, and your copies as small planks
 // resting on one long board, "MY YARD" painted underneath. Hidden until
-// there's something on it (renderLibrary only calls with 1+).
-function buildMyYardShelf(games) {
+// there's something on it (renderLibrary only calls with 1+). Activities
+// put away live behind the collapsed "In the shed" line beneath the board.
+var shedOpen = false;
+
+function buildMyYardShelf(games, shedGames) {
+  // Outer wrap so the shed line sits OUTSIDE .myyard: the board's hard
+  // drop-shadow filter would ghost the toggle's text (misprint effect).
+  var outer = document.createElement('div');
+  outer.className = 'myyard-wrap';
+
   var wrap = document.createElement('div');
   wrap.className = 'myyard';
+  outer.appendChild(wrap);
 
   var row = document.createElement('div');
   row.className = 'myyard-row';
@@ -455,7 +484,29 @@ function buildMyYardShelf(games) {
   tag.className = 'pile-tag pile-tag-mine';
   tag.textContent = 'My yard';
   wrap.appendChild(tag);
-  return wrap;
+
+  if (shedGames && shedGames.length > 0) {
+    var shedToggle = document.createElement('button');
+    shedToggle.type = 'button';
+    shedToggle.className = 'shed-toggle';
+    shedToggle.textContent = (shedOpen ? '▾' : '▸') + ' In the shed (' + shedGames.length + ')';
+    shedToggle.setAttribute('aria-expanded', shedOpen ? 'true' : 'false');
+    shedToggle.addEventListener('click', function () {
+      shedOpen = !shedOpen;
+      refreshLibrary();
+    });
+    outer.appendChild(shedToggle);
+
+    if (shedOpen) {
+      var shedRow = document.createElement('div');
+      shedRow.className = 'myyard-row shed-row';
+      for (var s = 0; s < shedGames.length; s++) {
+        shedRow.appendChild(buildMiniPlank(shedGames[s], s));
+      }
+      outer.appendChild(shedRow);
+    }
+  }
+  return outer;
 }
 
 function buildMiniPlank(game, index) {
@@ -600,6 +651,28 @@ function openActivityDialog(game) {
       refreshLibrary(); // the plank moves piles behind the popup
     });
     actions.appendChild(favBtn);
+  }
+
+  // The shed is the safe cousin of Delete: put an activity away, get it
+  // back any time. Only your own copies (built-ins live in the piles, and
+  // shedding one would silently do nothing).
+  if (window.MyGames && MyGames.has(game.id)) {
+    var inShed = Archived.has(game.id);
+    var shedBtn = document.createElement('button');
+    shedBtn.type = 'button';
+    shedBtn.className = 'game-card-shed';
+    shedBtn.textContent = inShed ? 'Take out of the shed' : 'Put in the shed';
+    shedBtn.title = inShed
+      ? 'Bring this back onto your yard board'
+      : 'Tuck this away without deleting it, it moves under "In the shed"';
+    shedBtn.setAttribute('aria-label',
+      (inShed ? 'Take "' : 'Put "') + game.name + (inShed ? '" out of the shed' : '" in the shed'));
+    shedBtn.addEventListener('click', function () {
+      Archived.toggle(game.id);
+      refreshLibrary();
+      dlg.close();
+    });
+    actions.appendChild(shedBtn);
   }
 
   var canDelete = (window.MyGames && MyGames.has(game.id)) ||

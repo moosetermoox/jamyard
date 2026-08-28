@@ -15,6 +15,36 @@ everything below is polish, testing, and ops.
 Ops are clean; the next work is the observation-wave design queue below
 (activity map first).
 
+### Waiting meadow + yard shed (shipped 2026-08-27; follow-ups)
+
+Shipped from the owner's brainstorm (CHANGELOG entry has full detail):
+the meadow (submitted classmates as anonymous walk-in blocks on the
+player wait screens, one nudge with a 3s cooldown, counts-only) and the
+yard pass (hearted-first/recents/newest ordering + the shed archive).
+Open follow-ups:
+
+1. **Feel-check the meadow in a real room.** The design bet is that it's
+   calm enough not to teach rushing. If kids fiddle anyway, the fallback
+   dial is one flag: pass `{you:false}` at the two nudgeable mounts in
+   player.js and it becomes watch-only.
+2. **The generic waiting screen's meadow is watch-only on purpose**
+   (non-eligible players share #game-waiting-section, so "you" might not
+   be one of the counted). If rank/match/sort/rate/wager students deserve
+   the nudge, the fix is a per-phase submitted flag in player.js.
+3. **Naming**: the field is unnamed in copy today. "Recess" was floated
+   (your block goes out to recess) and fits the yard theme; decide when
+   the yard-vs-library naming question (below) gets settled.
+4. **DATA CLEANUP, owner decision**: /api/games serves
+   `elimination-tournament` TWICE — a filesystem-era copy in
+   `games/user/elimination-tournament/` AND a Neon user row share the id.
+   The library now dedupes visually, but the API still double-serves;
+   delete one copy (the disk one is presumably stale since prod went
+   Neon-backed 2026-08-27, but verify which is newer first).
+5. **Stale sim noticed in passing**: scripts/simulate-dream-vacation.js
+   times out waiting for rank-start because the config gained a
+   host-paced reveal (show-suggestions) it never advances past —
+   pre-existing, unrelated to the meadow wave; fix the sim when touched.
+
 **DONE 2026-08-27, the DB-less era is over:** owner set `DATABASE_URL`
 on the "Classroom Games" Render service (classroom-games-58vg, the one
 that owns jamyard.xyz) — verified live: /api/games serves 41 built-ins
