@@ -10,18 +10,21 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-25)
+### START HERE next session (updated 2026-08-27)
 
-**FIRST ACTION, owner task, promised reminder: set `DATABASE_URL` on
-Render.** Discovered 2026-08-25: the live site runs DB-less (Render never
-had the env var), so teacher-created activities, feedback, room
-snapshots, featured overrides, and the AI daily cap all sit on ephemeral
-disk and are WIPED on every deploy. Steps: Render dashboard → lanyard →
-Environment → add `DATABASE_URL` with the same value as local `.env` →
-redeploy → confirm `https://jamyard.xyz/api/games` lists user-source
-games. Then also: delete the duplicate `good-question-bad-question` USER
-row from Neon (it became a repo built-in on 2026-08-25; the delete was
-permission-blocked in-session).
+Ops are clean; the next work is the observation-wave design queue below
+(activity map first).
+
+**DONE 2026-08-27, the DB-less era is over:** owner set `DATABASE_URL`
+on the "Classroom Games" Render service (classroom-games-58vg, the one
+that owns jamyard.xyz) — verified live: /api/games serves 41 built-ins
+plus 45 Neon user games, and feedback/snapshots/featured/AI-cap are
+durable now. Same sweep: duplicate `good-question-bad-question` USER row
+deleted from Neon (built-in remains), SITE_PASSWORD + ANTHROPIC_API_KEY
+confirmed on the live service, UptimeRobot repointed to jamyard.xyz,
+GitHub `RENDER_DEPLOY_HOOK` secret updated to the live service's hook,
+and the stray duplicate service "LANYARD" (classroom-games-szi5, born
+from the render.yaml blueprint, redeploying on every push) suspended.
 
 ### Observation wave 2026-08-27 (small fixes shipped; design projects queued)
 
