@@ -1,6 +1,6 @@
 {
   "name": "Group Work Day",
-  "description": "Teams check off a shared to-do list, live progress on the projector. Swap in your own tasks for any work day.",
+  "description": "Teams pick roles, then check off a shared to-do list, live progress on the projector. Swap in your own tasks for any work day.",
   "featured": true,
   "phases": {
     "lobby": {
@@ -9,37 +9,48 @@
     },
     "intro": {
       "type": "announce",
-      "message": "GROUP WORK DAY!\n\nYou're about to be split into groups. Every group has the same checklist on their devices, check tasks off as your group finishes them, and watch the progress board up here.",
-      "timer": 10,
+      "message": "GROUP WORK DAY!\n\nYou're about to be split into groups, and everyone picks a job: Facilitator keeps the talk moving, Recorder writes things down, Timekeeper watches the clock.\n\nEvery group has the same checklist on their devices, check tasks off as your group finishes them, and watch the progress board up here.",
+      "timer": 12,
       "next": "make-groups"
     },
     "make-groups": {
       "type": "team-split",
       "method": "random",
       "groupSize": 3,
+      "next": "pick-roles"
+    },
+    "pick-roles": {
+      "type": "team-roles",
+      "teamsFrom": "make-groups",
+      "roles": ["Facilitator", "Recorder", "Timekeeper"],
+      "method": "choice",
       "next": "worktime"
     },
     "worktime": {
       "type": "checklist",
-      "prompt": "Work through today's tasks with your group.",
+      "prompt": "Work through today's tasks with your group. Tagged tasks belong to a role, but the whole group backs each other up.",
       "items": [
         "Introduce yourselves and agree on a team name",
+        { "text": "Facilitator: make sure everyone has said their name and one interest", "role": "Facilitator" },
         "Find three things everyone in your group has in common (going to this school doesn't count)",
+        { "text": "Recorder: write your group's three common things where everyone can see them", "role": "Recorder" },
         "Agree on one dream field trip, a destination and the reason",
+        { "text": "Timekeeper: give a two-minutes-left warning before the pitch planning ends", "role": "Timekeeper" },
         "Plan a 30-second pitch for your field trip and pick who delivers it",
         "Final check: mark this when every member has spoken at least twice"
       ],
       "teamsFrom": "make-groups",
+      "rolesFrom": "pick-roles",
       "next": "wrap"
     },
     "wrap": {
       "type": "announce",
-      "message": "Great work today!\n\nGroups, tell the class one thing that slowed you down, and one thing that worked.\n\n{{worktime.resultsList}}",
+      "message": "Great work today!\n\nGroups, tell the class one thing that slowed you down, and one thing that worked. Recorders, you have the notes.\n\n{{worktime.resultsList}}",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "That's Group Work Day! Swap in your own tasks for any lab, stations, or project session."
+      "message": "That's Group Work Day! Swap in your own tasks and roles for any lab, stations, or project session."
     }
   },
   "playTime": "20–45 min",
@@ -50,7 +61,9 @@
     "lab day",
     "projects",
     "checklist",
-    "to-do list"
+    "to-do list",
+    "roles",
+    "jobs"
   ],
   "tags": [
     "group work",

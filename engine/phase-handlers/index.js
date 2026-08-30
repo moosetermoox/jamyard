@@ -14,6 +14,7 @@ import './eliminate.js';
 import './winner.js';
 import './leaderboard.js';
 import './team-split.js';
+import './team-roles.js';
 import './ai-process.js';
 import './collect.js';
 import './collect-choice.js';

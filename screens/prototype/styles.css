@@ -178,6 +178,29 @@ body {
    per state (preview-prototype.png): before launch the red is LAUNCH and
    Host this waits in faded paper; once the bench is running, Launch goes
    away and the red moves here — "done previewing" is now the action. */
+/* The way back to the designer, always in reach while previewing */
+#edit-link {
+  margin-left: auto;
+  padding: 7px 16px;
+  background: var(--t-paper);
+  color: var(--t-muted-caps);
+  box-shadow: 0 2px 3px rgba(50,35,15,0.18);
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 0.85em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  transform: rotate(-0.5deg);
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+#edit-link:hover { transform: rotate(-0.5deg) translateY(-2px); color: var(--t-ink); }
+
+/* When the edit link is showing, IT carries the push-right margin */
+#edit-link:not([hidden]) ~ #host-btn { margin-left: 10px; }
+
 #host-btn {
   margin-left: auto;
   padding: 7px 16px;
@@ -305,7 +328,7 @@ body.pt-running #host-btn {
 
 /* Carousel fixed overlays — sit above iframes */
 .carousel-arrow {
-  position: fixed;
+  position: absolute;
   top: 50%;
   transform: translateY(-50%);
   z-index: 9999;
@@ -327,7 +350,10 @@ body.pt-running #host-btn {
 /* Carousel layout is host on the left half, player on the right half —
    the arrows flank the PLAYER panel (the thing being rotated), so the
    left arrow sits at the 50% seam, not over the host screen. */
-.carousel-arrow-left  { left: calc(50% + 6px); }
+/* The player panel is the right half of the screens area (which starts
+   after the rail): the left arrow sits at ITS left edge, never over the
+   teacher screen. */
+.carousel-arrow-left  { left: calc(var(--rail-w) + (100% - var(--rail-w)) / 2 + 6px); }
 .carousel-arrow-right { right: 6px; }
 
 /* display:flex above would override the hidden attribute — restore it so
@@ -341,12 +367,12 @@ body.pt-running #host-btn {
 .carousel-arrow:disabled { opacity: 0.2; cursor: default; }
 
 #carousel-dots {
-  position: fixed;
-  /* Clears the bench bar (both only exist while a room runs) */
-  bottom: 86px;
-  /* Carousel layout is host on the left half, player on the right half —
-     center the dots over the PLAYER panel (75% = middle of the right half) */
-  left: 75%;
+  position: absolute;
+  /* Sits just above the stage row's bottom edge (the bench bar is below the row) */
+  bottom: 12px;
+  /* Carousel layout is host on the left half, player on the right half of
+     the screens area (after the rail) — center the dots over the PLAYER panel */
+  left: calc(var(--rail-w) + (100% - var(--rail-w)) * 0.75);
   transform: translateX(-50%);
   z-index: 9999;
   display: flex;
@@ -380,12 +406,18 @@ body.pt-running #host-btn {
   background: rgba(253,249,240,0.5);
 }
 
-/* Stage row: the map rail on the left, the screens beside it */
+/* Stage row: the map rail on the left, the screens beside it. It is the
+   positioning context for the carousel overlays, and --rail-w keeps
+   their player-half math honest whether or not the rail is open. */
 #stage-row {
   flex: 1;
   display: flex;
   min-height: 0;
+  position: relative;
+  --rail-w: 0px;
 }
+
+#stage-row:has(#map-rail:not([hidden])) { --rail-w: 224px; }
 
 /* The map rail: the activity's trail with a "you are here" mark that
    follows the live room. Same drawn map as the library popups. */

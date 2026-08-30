@@ -50,22 +50,23 @@ deal). Queued, with investigation findings baked in:
    The host's "Teacher device connected" chip is suppressed in
    prototype mode so the rail's pairing doesn't ghost-announce.
    Follow-on idea: same rail on the /teacher console.
-3. **Recipe maps (parity with activities).** Nearly free:
-   `buildActivityMap` is pure config-in/map-out and
-   `POST /api/recipes/:id/compile` already returns a compiled config
-   without saving — add `map` to that response (and to
-   /api/games/from-description) and call `ActivityMap.render(map)` in
-   the recipe picker + match preview. Fill params with each knob's
-   `default` (the sampleParams loop at server.js:1915 already does this).
-4. **Group Work Day roles.** Design sketched (2026-08-30 investigation):
-   (a) new `team-roles` step — `teamsFrom` + `roles: [...]` +
-   `method: random|choice`, output `playerRole`/`roleMembers` mirroring
-   team-split's shapes; "choice" reuses team-split's claim-a-spot UI.
-   (b) checklist gains optional `rolesFrom` + role-tagged items
-   (`{text, role}` string-or-object, like rank candidates). Minimal v1
-   is (a) alone + "you are the Timekeeper" via `{{roles.mine}}`.
-   Also retires the NEXT-STEPS "secret-role" wishlist entry's
-   assignment half (rotateShuffle covers the deal half).
+3. ~~**Recipe maps (parity with activities).**~~ **SHIPPED 2026-08-30:**
+   the compile endpoint and /api/games/from-description now return
+   `map`, `GET /api/recipes/:id/map` draws a defaults-compiled map
+   (400 for recipes without defaults, clients quietly skip), and the
+   recipe picker form + AI match preview render a "What happens" trail
+   via the shared `appendRecipeMap` in designer.js.
+4. ~~**Group Work Day roles.**~~ **SHIPPED 2026-08-30:** phase type #29
+   `team-roles` (teamsFrom + roles + method random|choice; choice =
+   claim-a-role with per-group capacity, re-picks, auto-fill sweep via
+   the team-split confirm button; output byPlayer so {{X.mine}} = your
+   role) + checklist `rolesFrom` with `{text, role}` role-tagged items
+   (label + your-job highlight, trust model unchanged). Group Work Day
+   now runs split → pick roles → role-tagged checklist; proven by
+   scripts/simulate-team-roles.js (collision bounce included) and a
+   clean robot playtest. Follow-ons parked: role-aware turn rotation,
+   secret roles (the projector-discipline half of the old wishlist
+   entry).
 5. **Sharing what you made.** Big; blocked on the no-accounts model
    (user games are localStorage-claimed per device). Cheapest real
    version: a share code/link that imports a copy of the config into
@@ -140,11 +141,13 @@ Queued design projects from the same observations, in rough order:
    won't read it. Rework around pictures: annotated screenshots or the
    same drawn-map language as (1), with the text as captions. The
    carousel screenshot pipeline (regen-carousel-shots.js) may help.
-3. **"Yard" vs "library" naming.** Both words are live in copy and
-   confuse people; owner likes "yard" but it isn't self-explanatory.
-   Decide ONE user-facing word (or an explicit pairing like "the Yard,
-   our activity library") and sweep copy. Internals/routes stay
-   `/library`.
+3. **"Yard" vs "library" naming.** PARTIAL CALL 2026-08-30: the owner
+   asked for "back to yard" on the designer, so the back links on the
+   editor, create page, and preview now say "the yard". Remaining: the
+   library page's own heading/copy, the home carousel's "From the
+   library" label, and the guide — sweep them to match (or an explicit
+   pairing like "the Yard, our activity library") in one pass.
+   Internals/routes stay `/library`.
 4. **Preview default player count.** Now 4 (was 2). Owner's instinct
    said 8; went with 4 because one-at-a-time is now the default view
    (8 unseen screens add weight, not picture), pairs/teams still work,

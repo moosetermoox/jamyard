@@ -79,6 +79,8 @@ import { scoreMatching, matchStats, buildResultsList } from './engine/phases/mat
 import { autoFill } from './engine/phases/team-grouping.js';
 import { scoreSorting, sortStats, buildSortResultsList } from './engine/phases/sort-scoring.js';
 import { buildTeamRosters } from './engine/phase-handlers/team-split.js';
+import { buildRoleMenu, buildRoleBoard } from './engine/phase-handlers/team-roles.js';
+import { claimRole, autoFillRoles, buildRoleOutput } from './engine/phases/role-deal.js';
 import { applyCheck, groupProgress, checklistResults } from './engine/phases/checklist-state.js';
 import { playerChecklistView, teacherDetail } from './engine/phase-handlers/checklist.js';
 import { continueLabelForPhase, closeLabelFor } from './engine/phases/continue-labels.js';
@@ -866,6 +868,68 @@ async function closeTeamSplit(code, room) {
       phaseInstanceId: room.phaseInstanceId
     });
   }
+}
+
+// --- Team-roles helpers (choice mode) ---
+
+// Live role claims: the projector/consoles get the per-group board, each
+// player gets their own group's menu with open-spot counts.
+function emitTeamRolesUpdate(code, room, state) {
+  const engine = room.engine;
+  const board = buildRoleBoard(state, engine.players);
+  const base = { ...board, roles: state.roles, phaseInstanceId: room.phaseInstanceId };
+  const hostId = roomToHost.get(code);
+  if (hostId) io.to(hostId).emit(EVENTS.TEAM_ROLES_UPDATE, base);
+  io.to(teachersChannel(code)).emit(EVENTS.TEAM_ROLES_UPDATE, base);
+  for (const player of engine.players.list()) {
+    const menu = buildRoleMenu(state, player.id, engine.players);
+    if (menu) {
+      io.to(player.id).emit(EVENTS.TEAM_ROLES_UPDATE, {
+        ...menu, phaseInstanceId: room.phaseInstanceId
+      });
+    }
+  }
+}
+
+// Finalize a choice-mode team-roles: auto-fill unpicked members with the
+// least-taken role in their group, store the SAME output shape as random
+// mode, and run the standard TEAM_ROLES reveal. Does not advance — the
+// host's Continue does, exactly like team-split.
+async function closeTeamRoles(code, room) {
+  const state = room.phaseState;
+  // kind guard + idempotence (see closeRanking)
+  if (!state || state.kind !== 'team-roles' || state.closed) return;
+  state.closed = true;
+
+  const engine = room.engine;
+  const phase = engine.config.phases[state.phaseId] || {};
+  const unpicked = Object.values(state.groups)
+    .flatMap(g => g.memberIds).filter(id => !state.picks[id]).length;
+  autoFillRoles(state);
+
+  const output = buildRoleOutput(state, id => (engine.players.find(id) || {}).name);
+  engine.storePhaseData(state.phaseId, output);
+  console.log(`[closeTeamRoles] ${Object.keys(output.playerRole).length} players given ${state.roles.length} roles (${unpicked} auto-filled)`);
+
+  const sc = resolveScreenControl(phase, engine);
+  const hostId = roomToHost.get(code);
+  if (hostId) {
+    io.to(hostId).emit(EVENTS.TEAM_ROLES, {
+      board: buildRoleBoard(state, engine.players),
+      rolesList: output.rolesList,
+      hostTemplate: sc.hostTemplate, show: sc.hostShow,
+      phaseInstanceId: room.phaseInstanceId
+    });
+  }
+  for (const player of engine.players.list()) {
+    io.to(player.id).emit(EVENTS.TEAM_ROLES, {
+      myRole: output.playerRole[player.id] || null,
+      groupLabel: (state.groups[state.playerGroup[player.id]] || {}).label || null,
+      playerTemplate: sc.playerTemplate, show: sc.playerShow,
+      phaseInstanceId: room.phaseInstanceId
+    });
+  }
+  notifyTeachersClosed(code, room);
 }
 
 // --- Rate helpers ---
@@ -1852,7 +1916,26 @@ app.post('/api/recipes/:id/compile', (req, res) => {
     });
   }
 
-  res.json({ config, diagnostics });
+  // The treasure map rides along so recipe surfaces can draw the same
+  // what-happens trail the library's activity popups show.
+  res.json({ config, diagnostics, map: buildActivityMap(config) });
+});
+
+// The recipe's map with its parameters at their defaults: what this
+// recipe builds, drawn before the teacher fills anything in. Garnish
+// endpoint — clients ignore any non-OK response.
+app.get('/api/recipes/:id/map', (req, res) => {
+  const recipe = getRecipe(req.params.id);
+  if (!recipe) return res.status(404).json({ error: `Recipe "${req.params.id}" not found` });
+  const defaults = {};
+  for (const [name, spec] of Object.entries(recipe.parameters || {})) {
+    if (spec && spec.default !== undefined) defaults[name] = spec.default;
+  }
+  const { config } = compileRecipe(recipe, defaults);
+  if (!config) {
+    return res.status(400).json({ error: 'Recipe needs parameters before it can be drawn.' });
+  }
+  res.json(buildActivityMap(config));
 });
 
 // Save-as-recipe (R5) — turn a built game into a reusable recipe.
@@ -2667,7 +2750,8 @@ app.post('/api/games/from-description', async (req, res) => {
       params: match.params,
       paramLabels,
       explanation: match.explanation || '',
-      alternates
+      alternates,
+      map: buildActivityMap(config)
     });
   } catch (error) {
     console.log(`[api/games/from-description] Error: ${error.message}`);
@@ -3583,6 +3667,11 @@ io.on('connection', (socket) => {
             // consumers have data, then move on
             await closeTeamSplit(code, room);
             break;
+          case 'team-roles':
+            // finalize roles (auto-fill unpicked) so downstream consumers
+            // ({{X.mine}}, checklist rolesFrom) have data, then move on
+            await closeTeamRoles(code, room);
+            break;
           case 'sort':
             // closeSorting shows results without advancing — store, then move on
             await closeSorting(code, room);
@@ -4183,15 +4272,50 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on(EVENTS.ROLE_PICK, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'role-pick', payload)) return;
+    const { code, role, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'team-roles') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'role-pick')) return;
+    const state = room.phaseState;
+    if (state.closed) return;
+
+    const res = claimRole(state, socket.id, String(role || ''));
+    if (!res.ok) {
+      // Full role (or a race): re-send truth to the tapper only.
+      const menu = buildRoleMenu(state, socket.id, room.engine.players);
+      if (menu) {
+        socket.emit(EVENTS.TEAM_ROLES_UPDATE, {
+          ...menu, full: res.reason === 'full' ? role : null,
+          phaseInstanceId: room.phaseInstanceId
+        });
+      }
+      return;
+    }
+    recordEvent(room, 'role-pick', { playerId: socket.id, role });
+    emitTeamRolesUpdate(code, room, state);
+
+    const total = Object.values(state.groups).reduce((n, g) => n + g.memberIds.length, 0);
+    if (Object.keys(state.picks).length >= total) {
+      await closeTeamRoles(code, room);
+    }
+  });
+
   socket.on(EVENTS.TEAM_SPLIT_CONFIRM, async (payload = {}) => {
     if (!checkEventPayload(socket, 'team-split-confirm', payload)) return;
     const { code, phaseInstanceId } = payload;
     const room = roomManager.find(code);
-    if (!room || !room.phaseState || room.phaseState.kind !== 'team-split') return;
+    // The host's confirm button doubles for team-roles choice mode (the
+    // projector reuses the same board): close-only either way, the
+    // reveal shows, and Continue advances.
+    const confirmKind = room && room.phaseState && room.phaseState.kind;
+    if (!room || (confirmKind !== 'team-split' && confirmKind !== 'team-roles')) return;
     if (isStalePhaseEvent(room, phaseInstanceId, 'team-split-confirm')) return;
     if (!isTeacherSocket(code, room, socket.id)) return;
     recordEvent(room, 'team-split-confirm');
-    await closeTeamSplit(code, room);
+    if (confirmKind === 'team-roles') await closeTeamRoles(code, room);
+    else await closeTeamSplit(code, room);
   });
 
   // --- Match events (pair two lists: vocab ↔ definitions) ---

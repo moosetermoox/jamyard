@@ -123,7 +123,14 @@ const PHASE_EXTRA_GUIDANCE = {
 
   checklist:
     `CHECKLIST PHASE: a shared to-do list for classwork (lab steps, station tasks, project milestones). NOT a quiz. "items" is a literal array of task strings. Set "teamsFrom" to an earlier team-split phase id for one shared checklist per group (any member checks items off, everyone in the group sees it live, the projector shows per-group progress bars); a collect with assign:"pairwise" also works as teamsFrom (each pair shares a checklist, use oddHandling:"triple" on that collect so nobody sits out); omit it for one checklist per student. No scores, completion tracking only. Use when the user says "to-do list", "task list", "lab checklist", "stations", or "track group progress". Example:
-    "worktime": { "type": "checklist", "prompt": "Finish these with your lab group", "items": ["Set up the scale", "Weigh all five samples", "Record results in your notebook", "Clean your station"], "teamsFrom": "make-groups", "timer": 600, "next": "wrap-up" }`,
+    "worktime": { "type": "checklist", "prompt": "Finish these with your lab group", "items": ["Set up the scale", "Weigh all five samples", "Record results in your notebook", "Clean your station"], "teamsFrom": "make-groups", "timer": 600, "next": "wrap-up" }
+    ROLE-TAGGED ITEMS: with "rolesFrom" set to an earlier team-roles phase id, an item may be an object {"text": "...", "role": "<role name>"} to mark it as that role's job. Tagged items show the role and each student sees their own jobs highlighted; anyone in the group can still check anything. Mix tagged and plain items freely.`,
+
+  'team-roles':
+    `TEAM-ROLES PHASE: gives every member of an existing group a job (Facilitator, Recorder, Timekeeper, ...). "teamsFrom" MUST name an earlier team-split (or pairwise collect); "roles" is a literal array of 2-8 role names. Method "random" deals instantly and evenly inside each group; "choice" lets students tap the role they want (one of each per group until the group outgrows the list; re-picks allowed; stragglers auto-filled when the teacher continues), use "choice" when the user says students pick their jobs. Reference a student's role later with {{<phaseId>.mine}} ("You are the {{pick-roles.mine}}") and the full lineup with {{<phaseId>.rolesList}}. Pair it with a checklist's "rolesFrom" for role-tagged task lists. Example:
+    "make-groups": { "type": "team-split", "method": "random", "groupSize": 3, "next": "pick-roles" },
+    "pick-roles":  { "type": "team-roles", "teamsFrom": "make-groups", "roles": ["Facilitator", "Recorder", "Timekeeper"], "method": "choice", "next": "worktime" },
+    "worktime":    { "type": "checklist", "prompt": "Finish these with your group", "items": ["Plan the poster", {"text": "Write the notes", "role": "Recorder"}, {"text": "Watch the clock", "role": "Timekeeper"}], "teamsFrom": "make-groups", "rolesFrom": "pick-roles", "timer": 600, "next": "wrap-up" }`,
 
   match:
     `MATCH PHASE: students pair items from two lists (vocab ↔ definitions, quotes ↔ authors, dates ↔ events). "pairs" is a literal array of { "left": "...", "right": "..." } objects, write the CORRECT pairings; the game shuffles the right column for play. 3-6 pairs is the sweet spot (8 max, it's a phone screen). Every correct pair earns pointsPerMatch (default 10). Left and right texts must each be unique. Consume the scores with a leaderboard: "from": ["<phaseId>.scores"]. Example:
@@ -417,6 +424,7 @@ Common data fields per phase:
 - foreach: .scores (cumulative), .itemCount
 - relay: .text (combined), .result (array)
 - team-split: .teams, .playerTeam
+- team-roles: .playerRole, .rolesList (per-group lineup text), .mine (the recipient's own role, usable in collect prompts, announce messages, reveal templates)
 - checklist: .resultsList (per-group progress text), .doneCount, .groupCount
 - ai-process: .result, .mine (only if perPlayer:true, usable inside collect/collect-choice prompts, announce messages, and reveal templates; renders the recipient's own item), .list (when result is a JSON array, renders as a numbered text list "1. item\n2. item\n...", use this in templates instead of .result for arrays)
 

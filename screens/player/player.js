@@ -1361,6 +1361,66 @@ socket.on('team-choice-update', function (payload) {
   if (teamSplitSection) renderTeamPick(payload);
 });
 
+// --- Socket events - Team roles (reuses the team-split section) ---
+
+// Choice mode: tap the role you want in your group; switching allowed
+// until close. Payload: { groupLabel, yourRole, roles: [{name, takenBy, open}] }
+function renderRolePick(payload) {
+  var roles = payload.roles || [];
+  var yourRole = payload.yourRole || null;
+  showSection(teamSplitSection);
+  teamPick.hidden = false;
+  teamSplitAllTeams.innerHTML = '';
+  teamSplitMyTeam.textContent = yourRole
+    ? 'You are the ' + yourRole + '!'
+    : 'Pick your role' + (payload.groupLabel ? ' (' + payload.groupLabel + ')' : '') + '!';
+
+  teamPickOptions.innerHTML = '';
+  for (var i = 0; i < roles.length; i++) {
+    (function (r) {
+      var card = document.createElement('button');
+      card.className = 'team-pick-option' + (r.name === yourRole ? ' team-pick-mine' : '');
+      var full = r.open === 0 && r.name !== yourRole;
+      card.disabled = full;
+
+      var title = document.createElement('span');
+      title.className = 'team-pick-title';
+      title.textContent = full ? r.name + '. taken' : r.name;
+      card.appendChild(title);
+
+      if (r.takenBy && r.takenBy.length > 0) {
+        var names = document.createElement('span');
+        names.className = 'team-pick-names';
+        names.textContent = r.takenBy.join(', ');
+        card.appendChild(names);
+      }
+
+      card.addEventListener('click', function () {
+        if (r.name === yourRole) return;
+        socket.emit('role-pick', { code: currentRoomCode, role: r.name });
+        if (J) J.sound('blip');
+      });
+      teamPickOptions.appendChild(card);
+    })(roles[i]);
+  }
+}
+
+socket.on('team-roles-start', renderRolePick);
+socket.on('team-roles-update', function (payload) {
+  if (teamSplitSection) renderRolePick(payload);
+});
+
+// Final deal (either method): the "You are the ..." card.
+socket.on('team-roles-final', function (payload) {
+  showSection(teamSplitSection);
+  teamPick.hidden = true;
+  applyTemplate(teamSplitSection, payload.playerTemplate);
+  teamSplitAllTeams.innerHTML = '';
+  teamSplitMyTeam.textContent = payload.myRole
+    ? 'You are the ' + payload.myRole + '!' + (payload.groupLabel ? ' (' + payload.groupLabel + ')' : '')
+    : 'The roles are set!';
+});
+
 socket.on('team-split', ({ myTeam, teams, playerTemplate, show }) => {
   showSection(teamSplitSection);
   teamPick.hidden = true;
@@ -1846,14 +1906,19 @@ socket.on('sort-results', function (payload) {
 
 var checklistItemTexts = [];
 var checklistChecked = []; // per item: null or {playerId, name}
+var checklistItemRoles = []; // per item: null or role name (rolesFrom)
+var checklistYourRole = null;
 
 function renderChecklistItems() {
   checklistItemsEl.innerHTML = '';
   for (var i = 0; i < checklistItemTexts.length; i++) {
     (function (index) {
       var done = !!checklistChecked[index];
+      var itemRole = checklistItemRoles[index] || null;
+      var yours = itemRole && checklistYourRole && itemRole === checklistYourRole;
       var row = document.createElement('button');
-      row.className = 'checklist-item' + (done ? ' checklist-item-done' : '');
+      row.className = 'checklist-item' + (done ? ' checklist-item-done' : '') +
+        (yours ? ' checklist-item-yours' : '');
 
       var box = document.createElement('span');
       box.className = 'checklist-box';
@@ -1864,6 +1929,14 @@ function renderChecklistItems() {
       text.className = 'checklist-item-text';
       text.textContent = checklistItemTexts[index];
       row.appendChild(text);
+
+      // Role tag: whose job this is; "your job" when it's the viewer's role.
+      if (itemRole) {
+        var roleTag = document.createElement('span');
+        roleTag.className = 'checklist-item-role' + (yours ? ' checklist-item-role-yours' : '');
+        roleTag.textContent = yours ? itemRole + ' · your job' : itemRole;
+        row.appendChild(roleTag);
+      }
 
       if (done && checklistChecked[index].name) {
         var by = document.createElement('span');
@@ -1881,7 +1954,7 @@ function renderChecklistItems() {
   }
 }
 
-socket.on('checklist-start', ({ prompt, items, group, timer, playerTemplate, show }) => {
+socket.on('checklist-start', ({ prompt, items, itemRoles, yourRole, group, timer, playerTemplate, show }) => {
   showSection(checklistSection);
   checklistPromptDisplay.textContent = prompt || 'Work through today\'s tasks!';
   checklistItemsEl.hidden = false;
@@ -1895,6 +1968,8 @@ socket.on('checklist-start', ({ prompt, items, group, timer, playerTemplate, sho
   });
 
   checklistItemTexts = Array.isArray(items) ? items.slice() : [];
+  checklistItemRoles = Array.isArray(itemRoles) ? itemRoles.slice() : [];
+  checklistYourRole = yourRole || null;
   checklistChecked = (group && Array.isArray(group.checked))
     ? group.checked.slice()
     : checklistItemTexts.map(function () { return null; });

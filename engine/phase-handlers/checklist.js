@@ -2,7 +2,7 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
 import {
-  normalizeChecklistItems,
+  normalizeChecklistItemsWithRoles,
   buildChecklistGroups,
   pairsAsTeams,
   groupProgress
@@ -44,7 +44,16 @@ registerHandler('checklist', {
   async onEnter(ctx) {
     const { phase, engine, room, code } = ctx;
     const eligible = ctx.getEligibleVoters(phase.from || 'all');
-    const items = normalizeChecklistItems(phase.items);
+    const { texts: items, roles: itemRoles } = normalizeChecklistItemsWithRoles(phase.items);
+
+    // rolesFrom: an earlier team-roles step whose playerRole map labels
+    // items as "the Recorder's job" and highlights each student's own.
+    // Missing data degrades to an untagged list — the activity still works.
+    const roleData = phase.rolesFrom ? engine.phaseData[phase.rolesFrom] : null;
+    const playerRole = (roleData && roleData.playerRole) || {};
+    if (phase.rolesFrom && !roleData) {
+      console.warn(`[checklist:${phase.id}] rolesFrom "${phase.rolesFrom}" has no role data, items render untagged`);
+    }
 
     // An unplayable list (blank editor rows, bad AI output) — skip rather
     // than strand students on an empty screen.
@@ -78,6 +87,8 @@ registerHandler('checklist', {
       kind: 'checklist',
       phaseId: phase.id,
       items,
+      itemRoles,
+      playerRole,
       groups,
       playerGroup,
       solo: !usableTeams,
@@ -101,7 +112,7 @@ registerHandler('checklist', {
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
     ctx.emitToTeachers(EVENTS.CHECKLIST_START, {
-      prompt, items, groups: teacherDetail(state), solo: state.solo
+      prompt, items, itemRoles, groups: teacherDetail(state), solo: state.solo
     });
 
     for (const player of engine.players.list()) {
@@ -110,6 +121,8 @@ registerHandler('checklist', {
         ctx.emitToPlayer(player.id, EVENTS.CHECKLIST_START, {
           prompt,
           items,
+          itemRoles,
+          yourRole: playerRole[player.id] || null,
           group: view,
           timer: phase.timer || null,
           playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -148,6 +161,8 @@ registerHandler('checklist', {
       socket.emit(EVENTS.CHECKLIST_START, {
         prompt: state.prompt || '',
         items: state.items,
+        itemRoles: state.itemRoles || [],
+        yourRole: (state.playerRole || {})[socket.id] || null,
         group: view,
         timer: null, // reconnectors don't restart the countdown
         playerTemplate: sc.playerTemplate, show: sc.playerShow

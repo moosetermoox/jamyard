@@ -212,6 +212,7 @@ fetch('/api/games')
     }
     launchBtn.disabled = false;
     hostBtn.disabled = false;
+    updateEditLink();
 
     // Auto-select game from URL param (e.g. from editor's Test Game button)
     const params = new URLSearchParams(window.location.search);
@@ -220,6 +221,7 @@ fetch('/api/games')
       const match = Array.from(gameSelect.options).find(o => o.value === autoGame);
       if (match) {
         gameSelect.value = autoGame;
+        updateEditLink();
         // Arrived via a Preview button with the activity chosen — launch
         // right away instead of showing a blank stage (usability test
         // 2026-08-01: the empty page read as broken).
@@ -238,6 +240,17 @@ hostBtn.addEventListener('click', () => {
   if (!gameId) return;
   window.location.href = '/host?game=' + encodeURIComponent(gameId);
 });
+
+// Spot something to change mid-preview? The designer is one click away,
+// whatever door you came in through.
+const editLink = document.getElementById('edit-link');
+function updateEditLink() {
+  if (!editLink) return;
+  const id = gameSelect.value;
+  editLink.hidden = !id;
+  if (id) editLink.href = '/designer/edit?game=' + encodeURIComponent(id);
+}
+gameSelect.addEventListener('change', updateEditLink);
 
 // Launch prototype
 launchBtn.addEventListener('click', () => {

@@ -11,7 +11,7 @@
 </head>
 <body>
   <div id="control-bar">
-    <a href="/library" id="back-link">&larr; Library</a>
+    <a href="/library" id="back-link">&larr; The yard</a>
     <h1>Preview</h1>
     <div class="controls">
       <label for="game-select">Activity:</label>
@@ -38,6 +38,7 @@
 
     </div>
 
+    <a id="edit-link" hidden title="Spot something to change? Open this activity in the designer">✎ Edit</a>
     <button id="host-btn" disabled title="Done previewing? Start a live room your class can join right now">▶ Host this</button>
   </div>
 
@@ -68,6 +69,13 @@
         <p id="prelaunch-hint">Pick an activity and press <strong class="hint-launch">Launch</strong>, you get the teacher screen and pretend students, side by side.</p>
       </div>
     </div>
+
+    <!-- Carousel overlays: anchored to the stage row (not the viewport)
+         so they sit over the PLAYER panel even with the map rail open.
+         Outside #iframe-container because Launch clears its contents. -->
+    <button id="carousel-prev" class="carousel-arrow carousel-arrow-left" hidden title="Previous player screen">&larr;</button>
+    <button id="carousel-next" class="carousel-arrow carousel-arrow-right" hidden title="Next player screen">&rarr;</button>
+    <div id="carousel-dots" hidden></div>
   </div>
 
   <!-- The bench bar: the two controls you actually use while testing,
@@ -78,11 +86,6 @@
     <button id="bot-fill-btn" title="Auto-fill an answer for every practice player so you can move through the steps quickly">Bot Fill<span class="bench-sub">answers for everyone</span></button>
     <button id="skip-btn" title="Skip the current step's timer / close submissions / continue">Skip timer<span class="bench-sub">move things along</span></button>
   </div>
-
-  <!-- Carousel overlays, fixed position so they sit above iframes -->
-  <button id="carousel-prev" class="carousel-arrow carousel-arrow-left" hidden title="Previous player screen">&larr;</button>
-  <button id="carousel-next" class="carousel-arrow carousel-arrow-right" hidden title="Next player screen">&rarr;</button>
-  <div id="carousel-dots" hidden></div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/shared/game-visibility.js"></script>

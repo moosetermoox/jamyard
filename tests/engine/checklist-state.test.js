@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   normalizeChecklistItems,
+  normalizeChecklistItemsWithRoles,
   buildChecklistGroups,
   applyCheck,
   groupProgress,
@@ -47,6 +48,37 @@ describe('normalizeChecklistItems', () => {
   it('returns [] for junk', () => {
     expect(normalizeChecklistItems(null)).toEqual([]);
     expect(normalizeChecklistItems(42)).toEqual([]);
+  });
+
+  it('accepts {text, role} object items, keeping just the text', () => {
+    expect(normalizeChecklistItems(['a', { text: 'take notes', role: 'Recorder' }]))
+      .toEqual(['a', 'take notes']);
+  });
+});
+
+describe('normalizeChecklistItemsWithRoles', () => {
+  it('returns parallel texts and roles, null for untagged items', () => {
+    const { texts, roles } = normalizeChecklistItemsWithRoles([
+      'Read the intro',
+      { text: 'Take notes', role: 'Recorder' },
+      { text: 'Watch the clock', role: 'Timekeeper' }
+    ]);
+    expect(texts).toEqual(['Read the intro', 'Take notes', 'Watch the clock']);
+    expect(roles).toEqual([null, 'Recorder', 'Timekeeper']);
+  });
+
+  it('keeps alignment when blanks are dropped', () => {
+    const { texts, roles } = normalizeChecklistItemsWithRoles([
+      '', { text: '  Take notes  ', role: ' Recorder ' }, '  ', 'Clean up'
+    ]);
+    expect(texts).toEqual(['Take notes', 'Clean up']);
+    expect(roles).toEqual(['Recorder', null]);
+  });
+
+  it('string input (newline list) yields all-null roles', () => {
+    const { texts, roles } = normalizeChecklistItemsWithRoles('a\nb');
+    expect(texts).toEqual(['a', 'b']);
+    expect(roles).toEqual([null, null]);
   });
 });
 

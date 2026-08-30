@@ -16,16 +16,38 @@
  * Normalize the teacher's item list. Arrays are trimmed and de-blanked;
  * strings split on newlines (or commas when it's a single line — AI
  * generators emit comma-separated lists, same lesson as rank candidates).
+ * An array item may be an object {text, role} — role-tagged for a
+ * rolesFrom checklist; this function keeps just the text.
  * @returns {string[]}
  */
 export function normalizeChecklistItems(items) {
+  return normalizeChecklistItemsWithRoles(items).texts;
+}
+
+/**
+ * Same normalization, but keeping each item's role tag (null when the
+ * item is untagged or the input was a plain string list). texts and
+ * roles stay index-aligned through trimming and blank-dropping.
+ * @returns {{texts: string[], roles: (string|null)[]}}
+ */
+export function normalizeChecklistItemsWithRoles(items) {
   let list = items;
   if (typeof items === 'string') {
     list = items.split(/\r?\n/);
     if (list.length === 1) list = items.split(',');
   }
-  if (!Array.isArray(list)) return [];
-  return list.map(s => String(s).trim()).filter(Boolean);
+  if (!Array.isArray(list)) return { texts: [], roles: [] };
+  const texts = [];
+  const roles = [];
+  for (const raw of list) {
+    const isObj = raw && typeof raw === 'object';
+    const text = String(isObj ? (raw.text || '') : raw).trim();
+    if (!text) continue;
+    const role = isObj && raw.role ? String(raw.role).trim() || null : null;
+    texts.push(text);
+    roles.push(role);
+  }
+  return { texts, roles };
 }
 
 /**

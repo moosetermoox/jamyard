@@ -1368,6 +1368,80 @@ socket.on('team-split', ({ teams, hostTemplate, show }) => {
   }
 });
 
+// --- Socket events - Team roles (reuses the team-split boards) ---
+
+// Choice mode: the projector shows each group's members claiming jobs.
+function renderRoleBoardHost(groups, placed, total, headline) {
+  showSection(teamSplitSection);
+  teamSplitHeading.textContent = headline || 'Pick your role!';
+  teamChoice.hidden = false;
+  teamArrange.hidden = true;
+  teamSplitTeams.innerHTML = '';
+  teamSplitContinueBtn.hidden = true;
+  teamChoiceCounter.textContent = placed + ' of ' + total + ' picked a role';
+
+  teamChoiceTeams.innerHTML = '';
+  for (const g of (groups || [])) {
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    const h3 = document.createElement('h3');
+    h3.textContent = g.label;
+    card.appendChild(h3);
+    for (const m of (g.picks || [])) {
+      const p = document.createElement('p');
+      p.textContent = m.role ? m.name + ' · ' + m.role : m.name + ' ...';
+      card.appendChild(p);
+    }
+    teamChoiceTeams.appendChild(card);
+  }
+}
+
+socket.on('team-roles-start', (d) => {
+  renderRoleBoardHost(d.groups, d.placed || 0, d.total || 0, d.prompt);
+});
+
+socket.on('team-roles-update', (d) => {
+  renderRoleBoardHost(d.groups, d.placed, d.total, 'Pick your role!');
+  if (J) J.sound('blip');
+});
+
+// Final deal (either method): the role lineup per group, host-paced.
+socket.on('team-roles-final', (payload) => {
+  showSection(teamSplitSection);
+  teamSplitHeading.textContent = 'The roles';
+  teamArrange.hidden = true;
+  teamChoice.hidden = true;
+  teamSplitContinueBtn.hidden = false;
+  applyTemplate(teamSplitSection, payload.hostTemplate);
+
+  teamSplitTeams.innerHTML = '';
+  const groups = (payload.board && payload.board.groups) || [];
+  for (const g of groups) {
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    const h3 = document.createElement('h3');
+    h3.textContent = g.label;
+    card.appendChild(h3);
+    for (const m of (g.picks || [])) {
+      const p = document.createElement('p');
+      p.textContent = m.role ? m.name + ' · ' + m.role : m.name;
+      card.appendChild(p);
+    }
+    teamSplitTeams.appendChild(card);
+  }
+  // Reconnect replays carry only the text lineup — show it as one card.
+  if (groups.length === 0 && payload.rolesList) {
+    const card = document.createElement('div');
+    card.className = 'team-card';
+    for (const line of String(payload.rolesList).split('\n')) {
+      const p = document.createElement('p');
+      p.textContent = line;
+      card.appendChild(p);
+    }
+    teamSplitTeams.appendChild(card);
+  }
+});
+
 // --- Socket events - Rank ---
 
 socket.on('rank-start', ({ prompt, totalRankers, timer, hostTemplate, show }) => {
@@ -2390,15 +2464,6 @@ function formatTieNames(names) {
 
 // --- Render functions ---
 
-function nameToColor(name) {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-  return 'hsl(' + hue + ', 55%, 50%)';
-}
-
 let selectedGameMinPlayers = null;
 
 function renderPlayerList(players) {
@@ -2418,14 +2483,8 @@ function renderPlayerList(players) {
       li.classList.add('player-disconnected');
     }
 
-    // No emoji avatars in the joining roster (owner call 2026-08-27:
-    // they showed at the start, then most phases never show them again).
-    // The painted initial keeps each plank's color mark.
-    const avatar = document.createElement('span');
-    avatar.className = 'player-avatar';
-    avatar.textContent = player.name.charAt(0).toUpperCase();
-    avatar.style.background = nameToColor(player.name);
-
+    // No avatar mark on the roster planks (owner call 2026-08-30: the
+    // painted initial read as clutter) — the name alone is the block.
     const nameSpan = document.createElement('span');
     nameSpan.textContent = player.name;
 
@@ -2440,7 +2499,6 @@ function renderPlayerList(players) {
       }
     });
 
-    li.appendChild(avatar);
     li.appendChild(nameSpan);
     li.appendChild(kickBtn);
     playerList.appendChild(li);

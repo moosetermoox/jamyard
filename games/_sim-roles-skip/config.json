@@ -1,0 +1,18 @@
+{
+  "name": "Roles Skip Fixture",
+  "description": "Hidden test fixture: a team-roles step with no roles must self-skip into the checklist.",
+  "phases": {
+    "lobby": { "type": "lobby", "next": "split" },
+    "split": { "type": "team-split", "method": "random", "groupSize": 2, "next": "roles" },
+    "roles": { "type": "team-roles", "teamsFrom": "split", "roles": [], "method": "choice", "next": "work" },
+    "work": {
+      "type": "checklist",
+      "prompt": "Get it done.",
+      "items": ["Plain task", { "text": "Tagged task", "role": "Recorder" }],
+      "teamsFrom": "split",
+      "rolesFrom": "roles",
+      "next": "end"
+    },
+    "end": { "type": "end" }
+  }
+}

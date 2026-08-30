@@ -346,6 +346,17 @@ var PHASE_CATALOG = {
     player: 'The to-do list, tap items to check them off for your group',
     ai: null
   },
+  'team-roles': {
+    icon: '',
+    friendlyName: 'Assign Roles',
+    description: 'Give every group member a job (Facilitator, Recorder, ...), dealt randomly or picked by students',
+    color: '#6D4C41',
+    bg: '#D7CCC8',
+    detailField: null,
+    host: 'Live per-group role board, Continue button',
+    player: 'Role picker (choice) or "You are the ..." card',
+    ai: null
+  },
   'end': {
     icon: '',
     friendlyName: 'Wrap Up',
@@ -1142,6 +1153,10 @@ function getPrimaryFieldDef(type) {
     case 'checklist': return { type: 'summary', summarize: function (p) {
       var n = (p.items || []).length;
       return n + ' task' + (n === 1 ? '' : 's') + (p.teamsFrom ? ' per group' : ' per student');
+    }};
+    case 'team-roles': return { type: 'summary', summarize: function (p) {
+      var names = (p.roles || []).join(', ');
+      return (p.method === 'choice' ? 'Students pick: ' : 'Dealt: ') + (names || 'roles');
     }};
     case 'rate': return { type: 'summary', summarize: function (p) {
       var scaleCount = (p.scales || []).length;
@@ -5458,6 +5473,16 @@ function addPhaseOfType(type) {
   } else if (type === 'checklist') {
     newPhase.prompt = 'Work through today\'s tasks with your group.';
     newPhase.items = ['First task', 'Second task', 'Third task'];
+  } else if (type === 'team-roles') {
+    newPhase.roles = ['Facilitator', 'Recorder', 'Timekeeper'];
+    newPhase.method = 'choice';
+    // Wire to the last team-split already in the plan, if there is one
+    // (the validator demands a groups source either way).
+    var trSplitId;
+    for (var trId in gameConfig.phases) {
+      if (gameConfig.phases[trId] && gameConfig.phases[trId].type === 'team-split') trSplitId = trId;
+    }
+    if (trSplitId) newPhase.teamsFrom = trSplitId;
   }
 
   // Set next (preview uses approveNext instead)
@@ -5565,6 +5590,7 @@ var REQUIRED_FIELDS = {
   leaderboard: ['from'],
   'reveal-one': ['from'],
   'team-split': ['method'],
+  'team-roles': ['teamsFrom', 'roles'],
   rank: ['prompt', 'candidates'],
   wager: ['prompt', 'options'],
   relay: ['prompt'],

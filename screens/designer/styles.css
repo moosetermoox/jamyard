@@ -1978,3 +1978,17 @@ main {
   font-weight: 700;
   font-family: 'DM Sans', Arial, sans-serif;
 }
+
+/* The recipe map: the what-happens trail inside the picker form and the
+   AI match preview (same drawn map as the library popups). */
+.recipe-map-mount { margin: 6px 0 14px; }
+
+.recipe-map-label {
+  margin: 0 0 8px;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+}

@@ -105,6 +105,12 @@ export const EVENTS = {
   TEAM_PICK:            'team-pick',          // player -> server: I want this team (re-pick allowed until close)
   TEAM_CHOICE_UPDATE:   'team-choice-update', // server -> all: live rosters/open-spot counts
 
+  // --- Team Roles ---
+  TEAM_ROLES:           'team-roles-final',   // server -> all: everyone's role (both methods end here)
+  TEAM_ROLES_START:     'team-roles-start',   // server -> player: pick your role (choice mode)
+  ROLE_PICK:            'role-pick',          // player -> server: I want this role (re-pick allowed until close)
+  TEAM_ROLES_UPDATE:    'team-roles-update',  // server -> all: live per-group role claims
+
   // --- Rank Phase ---
   RANK_START:           'rank-start',
   RANK_SUBMIT:          'rank-submit',

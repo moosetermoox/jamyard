@@ -36,8 +36,8 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1364 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
-- **28 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
+- **1393 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **29 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
 
@@ -80,7 +80,7 @@ Framework for quickly building classroom games where:
 - **Recipe-born configs carry a provenance stamp** (`config.recipe = {id, version, params}`, written by `compileRecipe`) that powers the library Customize setup knobs. `games/speed-quiz` AND `games/trivia-bluff` are drift-guarded: their phases must deep-equal a fresh compile of their stamp — change the recipe or the stamped params, never hand-edit their phases.
 - **`$repeat`/`$map` count mode**: `forEach`/`$map` over an INTEGER recipe param iterates 1..N (`${item}` = round number) — for "how many rounds" knobs where round content is generated at game time (trivia-bluff). Customize's AI interview receives the dialog's knob labels (`knownSettings`) and must never re-ask them.
 
-## 28 Phase Types
+## 29 Phase Types
 `engine/phase-schemas.js` is the single source of truth (validator + AI prompts + editor fields + `{{...}}` grammar). Quick reference:
 1. `lobby` — wait for players
 2. `collect` — text/drawing input; `rotateFrom` (rotation chains + `assignedFrom` links; `rotateShuffle:true` = random no-self deal instead of fixed shift, chain per-pool for multi-pool deals), `prefillFromAssigned`, `appendOnly`, `maxLength`, `assign:"pairwise"` (+`oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom` — accepts a pairwise collect OR team-split, `pairBy:{from,mode}` answer-keyed pairing from a collect-choice — opposite/same, best-effort), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"`
@@ -109,7 +109,8 @@ Framework for quickly building classroom games where:
 25. `estimate` — numeric guessing; `scoring: closest|graduated`; no answer = poll mode
 26. `match` — pair two lists; `pairs` + `pointsPerMatch`
 27. `sort` — items into buckets; all-or-none correct buckets = graded vs consensus
-28. `checklist` — group to-do list with live progress; `items` + optional `teamsFrom` (team-split OR pairwise collect, pairs share a list); no scores
+28. `checklist` — group to-do list with live progress; `items` (strings or `{text, role}` role-tagged) + optional `teamsFrom` (team-split OR pairwise collect, pairs share a list) + `rolesFrom` (team-roles; tags items as a role's job, viewer's own highlighted); no scores
+29. `team-roles` — job per group member (Facilitator/Recorder/...); `teamsFrom` (team-split OR pairwise collect) + `roles` + `method: random|choice` (choice = claim-a-role with per-group capacity ceil(members/roles), stragglers auto-filled at close); output `byPlayer` so `{{X.mine}}` = your role, `rolesList` = the lineup
 
 AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `rank`, `judge` (Sonnet).
 

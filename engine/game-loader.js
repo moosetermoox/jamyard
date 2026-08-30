@@ -604,9 +604,10 @@ export function validate(config, gameId, options) {
     }
 
     // Checklist: at least one real item; teamsFrom must point at a team-split.
+    // Items may be strings or {text, role} objects (role-tagged jobs).
     if (phase.type === 'checklist') {
       const items = (Array.isArray(phase.items) ? phase.items : [])
-        .map(it => String(it ?? '').trim()).filter(Boolean);
+        .map(it => String((it && typeof it === 'object' ? it.text : it) ?? '').trim()).filter(Boolean);
       if (items.length === 0) {
         errors.push(
           `Game "${gameId}": phase "${name}" (checklist) needs at least one to-do item.`
@@ -632,6 +633,48 @@ export function validate(config, gameId, options) {
             `Game "${gameId}": phase "${name}" (checklist) takes groups from "${phase.teamsFrom}", whose odd-class handling is sit-out, the benched player would get no checklist. Set oddHandling:"triple" on that step so nobody sits out.`
           );
         }
+      }
+      if (phase.rolesFrom != null) {
+        const roleSrc = config.phases[phase.rolesFrom];
+        if (!roleSrc) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (checklist) takes roles from "${phase.rolesFrom}", which doesn't exist.`
+          );
+        } else if (roleSrc.type !== 'team-roles') {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (checklist) takes roles from "${phase.rolesFrom}", which is a ${roleSrc.type} step, it must be an Assign Roles step.`
+          );
+        }
+      }
+    }
+
+    // Team-roles: groups must come from a real team-split or paired-up
+    // collect. An EMPTY role list is legal on purpose: the editor has no
+    // delete-a-step affordance (structure changes go through the AI
+    // chat), so clearing the roles is how a teacher says "no roles",
+    // and the handler skips the step at game time.
+    if (phase.type === 'team-roles') {
+      const roleNames = (Array.isArray(phase.roles) ? phase.roles : [])
+        .map(r => String(r ?? '').trim()).filter(Boolean);
+      if (roleNames.length === 0) {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (team-roles) has no roles, the step will be skipped at game time. Add roles to use it, or ask the AI to remove the step.`
+        );
+      } else if (roleNames.length > 8) {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (team-roles) has ${roleNames.length} roles, more roles than most groups have members. Consider 8 or fewer.`
+        );
+      }
+      const rolesSrc = phase.teamsFrom != null ? config.phases[phase.teamsFrom] : null;
+      const rolesPairwise = rolesSrc && rolesSrc.type === 'collect' && rolesSrc.assign === 'pairwise';
+      if (phase.teamsFrom == null || !rolesSrc) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (team-roles) takes groups from "${phase.teamsFrom}", which doesn't exist.`
+        );
+      } else if (rolesSrc.type !== 'team-split' && !rolesPairwise) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (team-roles) takes groups from "${phase.teamsFrom}", which is a ${rolesSrc.type} step, it must be a Split into Teams step or a paired-up collect step.`
+        );
       }
     }
 

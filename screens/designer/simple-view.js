@@ -516,6 +516,174 @@
     return wrap;
   }
 
+  // --- Small labeled controls for step cards (selects + numbers) ---
+  // A change re-renders the card so the sentence and facts keep telling
+  // the truth about the new setting.
+
+  function svSelect(options, value, onChange) {
+    var sel = document.createElement('select');
+    sel.className = 'sv-select';
+    for (var i = 0; i < options.length; i++) {
+      var opt = document.createElement('option');
+      opt.value = options[i].value;
+      opt.textContent = options[i].label;
+      if (options[i].value === value) opt.selected = true;
+      sel.appendChild(opt);
+    }
+    sel.addEventListener('change', function () {
+      markEdited();
+      onChange(sel.value);
+      autoSaveIfDirty();
+      renderSimpleView();
+    });
+    return sel;
+  }
+
+  function svControlRow(labelText, control) {
+    var row = el('div', 'sv-ctrl-row');
+    row.appendChild(el('span', 'sv-ctrl-label', labelText));
+    row.appendChild(control);
+    return row;
+  }
+
+  // The Split into Teams card's knobs: sizing (groups of N, or exactly
+  // N teams) and how the teams are made. Balanced stays visible only
+  // when already set (it needs a score reference, structural, AI chat).
+  function teamSplitControls(phase) {
+    var box = el('div', 'sv-ctrls');
+
+    var sizingWrap = el('span', 'sv-ctrl-pair');
+    var sizeMode = (phase.teamCount != null && phase.groupSize == null) ? 'count' : 'size';
+    var num = document.createElement('input');
+    num.type = 'number';
+    num.className = 'sv-timer sv-ctrl-num';
+    num.min = 2;
+    num.max = sizeMode === 'size' ? 12 : 20;
+    num.value = sizeMode === 'size' ? (phase.groupSize || 3) : (phase.teamCount || 2);
+    function writeSizing(mode) {
+      var v = parseInt(num.value, 10);
+      if (!v || v < 2) v = mode === 'size' ? 3 : 4;
+      if (mode === 'size') { phase.groupSize = Math.min(v, 12); delete phase.teamCount; }
+      else { phase.teamCount = Math.min(v, 20); delete phase.groupSize; }
+    }
+    var sizeModeSel = svSelect([
+      { value: 'size', label: 'groups of' },
+      { value: 'count', label: 'this many teams:' }
+    ], sizeMode, function (mode) { writeSizing(mode); });
+    num.addEventListener('input', function () {
+      markEdited();
+      writeSizing(sizeModeSel.value);
+    });
+    num.addEventListener('blur', function () { autoSaveIfDirty(); renderSimpleView(); });
+    num.addEventListener('wheel', function () { num.blur(); }, { passive: true });
+    sizingWrap.appendChild(sizeModeSel);
+    sizingWrap.appendChild(num);
+    box.appendChild(svControlRow('Sizing', sizingWrap));
+
+    var methodOpts = [
+      { value: 'random', label: 'at random' },
+      { value: 'choice', label: 'students pick their spots' },
+      { value: 'teacher', label: 'you arrange them on the host screen' }
+    ];
+    if (phase.method === 'balanced') methodOpts.push({ value: 'balanced', label: 'balanced by score' });
+    box.appendChild(svControlRow('How', svSelect(methodOpts, phase.method || 'random', function (v) {
+      phase.method = v;
+    })));
+    return box;
+  }
+
+  // Checklist items with an optional per-item role tag: each task can be
+  // everyone's or one role's job. Untagged items stay plain strings so a
+  // no-roles list round-trips exactly as before; tagging one writes the
+  // {text, role} object form and wires rolesFrom to the roles step.
+  function roleTaggedListEditor(phase, roleNames, rolesStepId) {
+    var wrap = el('div', 'sv-list');
+    function itemText(it) { return (it && typeof it === 'object') ? (it.text || '') : String(it == null ? '' : it); }
+    function itemRole(it) { return (it && typeof it === 'object' && it.role) ? it.role : ''; }
+    function writeItem(index, text, role) {
+      phase.items[index] = role ? { text: text, role: role } : text;
+    }
+    function syncRolesFrom() {
+      var any = phase.items.some(function (it) { return it && typeof it === 'object' && it.role; });
+      if (any) { if (!phase.rolesFrom) phase.rolesFrom = rolesStepId; }
+      else delete phase.rolesFrom;
+    }
+    function render() {
+      wrap.innerHTML = '';
+      if (!Array.isArray(phase.items)) phase.items = [];
+      for (var i = 0; i < phase.items.length; i++) {
+        (function (index) {
+          // Two lines per task: the text (full width, the card is
+          // narrow), then a slim "job:" dropdown beneath it.
+          var block = el('div', 'sv-list-item-block');
+          var row = el('div', 'sv-list-row');
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'sv-list-input';
+          input.value = itemText(phase.items[index]);
+          input.placeholder = 'task ' + (index + 1);
+          input.addEventListener('input', function () {
+            markEdited();
+            writeItem(index, input.value, itemRole(phase.items[index]));
+          });
+          input.addEventListener('blur', function () { autoSaveIfDirty(); });
+          row.appendChild(input);
+
+          var rm = el('button', 'sv-list-remove', '✕');
+          rm.type = 'button';
+          rm.title = 'Remove';
+          rm.addEventListener('click', function () {
+            markEdited();
+            phase.items.splice(index, 1);
+            syncRolesFrom();
+            render();
+          });
+          row.appendChild(rm);
+          block.appendChild(row);
+
+          // No roles step in the plan = no job line (plain task list).
+          if (roleNames.length === 0) {
+            wrap.appendChild(block);
+            return;
+          }
+          var jobRow = el('div', 'sv-list-job-row');
+          jobRow.appendChild(el('span', 'sv-list-job-label', 'job:'));
+          var roleSel = document.createElement('select');
+          roleSel.className = 'sv-select sv-role-select';
+          roleSel.title = 'Whose job is this? "everyone" means the whole group\'s';
+          var opts = [''].concat(roleNames);
+          for (var oi = 0; oi < opts.length; oi++) {
+            var opt = document.createElement('option');
+            opt.value = opts[oi];
+            opt.textContent = opts[oi] || 'everyone';
+            if (opts[oi] === itemRole(phase.items[index])) opt.selected = true;
+            roleSel.appendChild(opt);
+          }
+          roleSel.addEventListener('change', function () {
+            markEdited();
+            writeItem(index, input.value, roleSel.value);
+            syncRolesFrom();
+            autoSaveIfDirty();
+          });
+          jobRow.appendChild(roleSel);
+          block.appendChild(jobRow);
+          wrap.appendChild(block);
+        })(i);
+      }
+      var add = el('button', 'sv-list-add', '+ Add task');
+      add.type = 'button';
+      add.addEventListener('click', function () {
+        markEdited();
+        if (!Array.isArray(phase.items)) phase.items = [];
+        phase.items.push('');
+        render();
+      });
+      wrap.appendChild(add);
+    }
+    render();
+    return wrap;
+  }
+
   // --- Picture / YouTube on a step ---
   // The media-capable steps (announce, collect, collect-choice, reveal;
   // estimate is picture-only) can show an image above the prompt and a
@@ -801,13 +969,66 @@
       case 'checklist': {
         d.sentence = 'Every ' + (phase.teamsFrom ? 'group' : 'student') + ' works through the to-do list:';
         d.field = textBox(phase.prompt, 'e.g. Finish these five things with your lab group…', function (v) { phase.prompt = v; });
-        d.extra = stringListEditor(
-          function () { if (!Array.isArray(phase.items)) phase.items = []; return phase.items; },
-          function (a) { phase.items = a; },
-          'task'
-        );
+        // When the plan has an Assign Roles step, every task gets a
+        // "whose job" dropdown: leave them all on "everyone" for one
+        // shared list, tag a few for role jobs, or tag them all so each
+        // role works its own list. No roles step = the plain editor.
+        var clRolesStepId = null;
+        if (phase.rolesFrom && gameConfig.phases[phase.rolesFrom] &&
+            gameConfig.phases[phase.rolesFrom].type === 'team-roles') {
+          clRolesStepId = phase.rolesFrom;
+        } else {
+          for (var clK in gameConfig.phases) {
+            if (gameConfig.phases[clK] && gameConfig.phases[clK].type === 'team-roles') clRolesStepId = clK;
+          }
+        }
+        var clRoleNames = clRolesStepId && Array.isArray(gameConfig.phases[clRolesStepId].roles)
+          ? gameConfig.phases[clRolesStepId].roles.map(function (r) { return String(r || '').trim(); }).filter(Boolean)
+          : [];
+        // Always the role-aware editor: it renders object items ({text,
+        // role}) as their text either way (the plain string editor showed
+        // them as [object Object]). With no roles step the job dropdowns
+        // stay hidden; existing tags survive unseen, so adding an Assign
+        // Roles step later revives them.
+        d.extra = roleTaggedListEditor(phase, clRoleNames, clRolesStepId);
+        if (clRoleNames.length > 0) {
+          d.facts.push(fact("each task can be everyone's, or one role's job"));
+        } else if (Array.isArray(phase.items) &&
+                   phase.items.some(function (it) { return it && typeof it === 'object' && it.role; })) {
+          d.facts.push(fact('some tasks have role tags, add an Assign Roles step earlier to use them'));
+        }
         d.facts.push(fact(phase.teamsFrom ? 'shared per group, live dashboard on the projector' : 'one list per student'));
         d.facts.push(timerFact(phase));
+        break;
+      }
+
+      case 'team-roles': {
+        var trEmpty = !Array.isArray(phase.roles) ||
+          phase.roles.filter(function (r) { return String(r || '').trim(); }).length === 0;
+        d.sentence = trEmpty
+          ? 'No roles yet, so this step is skipped when the activity runs:'
+          : (phase.method === 'choice'
+            ? 'Everyone picks a role in their group:'
+            : 'Everyone is dealt a role in their group:');
+        var trWrap = el('div');
+        trWrap.appendChild(stringListEditor(
+          function () { if (!Array.isArray(phase.roles)) phase.roles = []; return phase.roles; },
+          function (a) { phase.roles = a; },
+          'role'
+        ));
+        var trCtrls = el('div', 'sv-ctrls');
+        trCtrls.appendChild(svControlRow('How', svSelect([
+          { value: 'choice', label: 'students pick their role' },
+          { value: 'random', label: 'dealt at random' }
+        ], phase.method || 'random', function (v) { phase.method = v; })));
+        trWrap.appendChild(trCtrls);
+        d.extra = trWrap;
+        if (trEmpty) {
+          d.facts.push(fact('add roles to use this step, or ask the AI to remove it'));
+        } else {
+          if (phase.teamsFrom) d.facts.push(fact('groups from ' + stepName(phase.teamsFrom)));
+          if (phase.method === 'choice') d.facts.push(fact('open roles only, stragglers auto-filled'));
+        }
         break;
       }
 
@@ -870,13 +1091,10 @@
         break;
 
       case 'team-split': {
-        var sizing = phase.groupSize != null ? 'groups of ' + phase.groupSize : (phase.teamCount || 2) + ' teams';
-        var how = phase.method === 'teacher' ? 'you arrange them on the screen'
-          : phase.method === 'choice' ? (phase.capacity === 'open' ? 'students join their own team (no size caps)' : 'students pick their own spots')
-          : phase.method === 'balanced' ? 'balanced by score'
-          : 'at random';
-        d.sentence = 'The class splits into ' + sizing + '. ' + how + '.';
-        d.muted = true;
+        d.sentence = 'The class splits into groups:';
+        d.extra = teamSplitControls(phase);
+        if (phase.method === 'teacher') d.facts.push(fact('the roster appears up front, Confirm finalizes'));
+        else if (phase.method === 'choice') d.facts.push(fact(phase.capacity === 'open' ? 'no size caps, students join their real team' : 'open spots only, stragglers auto-filled'));
         break;
       }
 

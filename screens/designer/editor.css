@@ -1977,6 +1977,41 @@ textarea.sar-input {
 
 .sv-list-input:focus { outline: none; border-color: #0057FF; }
 
+/* Labeled setting rows on step cards (team sizing, methods, roles) */
+.sv-ctrls { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.sv-ctrl-row { display: flex; align-items: center; gap: 8px; }
+.sv-ctrl-label {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  width: 64px;
+  flex-shrink: 0;
+}
+.sv-ctrl-pair { display: flex; align-items: center; gap: 8px; }
+.sv-ctrl-num { width: 58px; }
+.sv-select {
+  border: 2px solid #bbb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 0.9rem;
+  background: white;
+}
+.sv-select:focus { outline: none; border-color: #0057FF; }
+.sv-role-select { flex: 0 0 auto; font-size: 0.82rem; padding: 4px 8px; }
+
+/* Role-tagged checklist items: task line, then the job line under it */
+.sv-list-item-block { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.sv-list-job-row { display: flex; align-items: center; gap: 6px; padding-left: 2px; }
+.sv-list-job-label {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #888;
+}
+
 /* Picture / YouTube rows on media-capable steps */
 .sv-media { margin-top: 10px; }
 .sv-media-rows { display: flex; flex-direction: column; gap: 6px; }
@@ -2648,7 +2683,7 @@ body {
 /* Inputs sit square with an inset shadow */
 #settings-panel input, #settings-panel textarea, #settings-panel select,
 #phase-panel input, #phase-panel textarea, #phase-panel select,
-.sv-text, .sv-list-input, .sv-timer, .sar-input,
+.sv-text, .sv-list-input, .sv-timer, .sar-input, .sv-select,
 .picker-modal input, .picker-modal textarea {
   border: none;
   border-radius: 2px;
@@ -4104,6 +4139,16 @@ body::before { content: none; }
 }
 
 .sv-action-quiet:hover { color: #E5482B; transform: none; }
+
+/* --- Setting rows: muted-caps labels, paper selects --- */
+.sv-ctrl-label {
+  color: #8A7B62;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+}
+.sv-list-job-label { color: #8A7B62; }
+.sv-select:focus { outline: none; box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 2px #2A2620; }
 
 /* --- Picture / YouTube rows: paper-framed print, muted-caps labels --- */
 .sv-media-add { color: #8A7B62; padding-left: 0; }

@@ -763,6 +763,40 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
           }
           break;
         }
+        case 'team-roles-start': {
+          // Bots spread across roles by index; a full role just means the
+          // server re-sends truth and the confirm auto-fills them.
+          if (role === 'player') {
+            const menu = Array.isArray(data.roles) ? data.roles : [];
+            if (menu.length > 0 && menu[0] && menu[0].name) {
+              const pick = menu[players.indexOf(who) % menu.length];
+              who.emit('role-pick', { code, role: pick.name, phaseInstanceId: seq(data) });
+            }
+          } else {
+            lastScreen = 'a pick-your-role screen';
+            if (!onceKeys.has(`logged:team-roles:${seq(data)}`)) {
+              onceKeys.add(`logged:team-roles:${seq(data)}`);
+              phaseLog.push({ type: 'team-roles' });
+            }
+            // Confirm sweeps up stragglers if the all-picked auto-close didn't fire
+            once(`confirm:roles:${seq(data)}`, () => host.emit('team-split-confirm', { code, phaseInstanceId: seq(data) }), 1200);
+          }
+          break;
+        }
+        case 'team-roles-update': {
+          // A bot whose pick was rejected (role full) grabs the first open one.
+          if (role === 'player' && data.full && !data.yourRole) {
+            const open = (data.roles || []).find(r => r && r.open > 0);
+            if (open) who.emit('role-pick', { code, role: open.name, phaseInstanceId: seq(data) });
+          }
+          break;
+        }
+        case 'team-roles-final': {
+          if (role === 'host') {
+            once(`adv:team-roles:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 600);
+          }
+          break;
+        }
         case 'team-split-setup': {
           // Teacher-assign mode: the robot teacher just confirms — the
           // auto-fill places everyone, which is the path we need to prove.

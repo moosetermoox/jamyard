@@ -779,6 +779,19 @@ async function handleRecipeDelete(recipe, overlay) {
 // Recipe parameter form
 // =======================================================================
 
+// The treasure map: what this recipe builds, the same drawn trail the
+// library's activity popups show. Renders into `mount` when the map is
+// available; quietly does nothing otherwise (the map is garnish).
+function appendRecipeMap(mount, map) {
+  if (!map || !Array.isArray(map.stops) || map.stops.length === 0) return;
+  if (!window.ActivityMap) return;
+  var label = document.createElement('p');
+  label.className = 'recipe-map-label';
+  label.textContent = 'What happens';
+  mount.appendChild(label);
+  mount.appendChild(ActivityMap.render(map));
+}
+
 function renderRecipeFormView(modal, recipe, allRecipes, overlay) {
   clearModal(modal);
 
@@ -809,6 +822,18 @@ function renderRecipeFormView(modal, recipe, allRecipes, overlay) {
   desc.className = 'recipe-form-description';
   desc.textContent = recipe.description;
   modal.appendChild(desc);
+
+  // The recipe's map at its default settings, drawn while the teacher
+  // reads the form (arrives async into this mount, the form never jumps).
+  var mapMount = document.createElement('div');
+  mapMount.className = 'recipe-map-mount';
+  modal.appendChild(mapMount);
+  fetch('/api/recipes/' + encodeURIComponent(recipe.id) + '/map')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (map) {
+      if (map && mapMount.isConnected) appendRecipeMap(mapMount, map);
+    })
+    .catch(function () { /* no map, no problem */ });
 
   // Form
   var form = document.createElement('form');
@@ -1661,6 +1686,12 @@ function renderMatchPreview(modal, data, overlay, description) {
     paramsList.appendChild(row);
   }
   modal.appendChild(paramsList);
+
+  // The matched activity's map: what those settings actually build.
+  var matchMapMount = document.createElement('div');
+  matchMapMount.className = 'recipe-map-mount';
+  modal.appendChild(matchMapMount);
+  appendRecipeMap(matchMapMount, data.map);
 
   // "Or maybe": the matcher's runner-up recipes. A goal-shaped idea
   // ("laugh together") genuinely fits several recipes, so the top pick

@@ -979,12 +979,17 @@ export const PHASE_SCHEMAS = {
       items: {
         type: 'array', item: { type: 'string' }, required: true,
         label: 'The to-do items',
-        helper: 'The tasks every group must finish. Any group member can check an item off; the whole group sees it instantly.'
+        helper: 'The tasks every group must finish. Any group member can check an item off; the whole group sees it instantly. With "Roles from" set, an item may be {"text": "...", "role": "Recorder"} to label it as that role\'s job.'
       },
       teamsFrom: {
         type: 'phaseRef', optional: true,
         label: 'Groups from',
         helper: 'An earlier Split into Teams step, or a paired-up collect step (each pair shares a checklist labeled by their names). Leave empty for one checklist per student.'
+      },
+      rolesFrom: {
+        type: 'phaseRef', optional: true, contexts: ['topLevel'],
+        label: 'Roles from',
+        helper: 'An earlier Assign Roles step. Items tagged with a role show whose job they are, and each student sees their own jobs highlighted. Anyone in the group can still check anything, the group polices itself.'
       }
     },
     transitions: {
@@ -1252,6 +1257,50 @@ export const PHASE_SCHEMAS = {
     },    ui: {
       hostToggles: ['teams', 'continueButton'],
       playerToggles: ['team', 'allTeams']
+    }
+  },
+
+  // -------------------------------------------------------------------
+  'team-roles': {
+    label: 'Assign Roles',
+    icon: '🎩',
+    description: 'Give every member of an existing group a job (Facilitator, Recorder, Timekeeper, ...). Random assignment, or students pick their own role, one of each per group until the group is bigger than the role list. Reference a student\'s role later with {{stepId.mine}}.',
+    role: 'compute',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'participantSelector', 'loops'],
+    fields: {
+      teamsFrom: {
+        type: 'phaseRef', required: true, contexts: ['topLevel'],
+        label: 'Groups from',
+        helper: 'The earlier Split into Teams step (or paired-up collect step) whose groups get the roles.'
+      },
+      roles: {
+        type: 'array', item: { type: 'string' }, required: true,
+        label: 'The roles',
+        helper: '2-8 job names, e.g. Facilitator, Recorder, Timekeeper. Groups bigger than the list repeat roles as evenly as possible; smaller groups fill the first roles.'
+      },
+      method: {
+        type: 'enum', values: ['random', 'choice'], optional: true, default: 'random',
+        label: 'How roles are given',
+        helper: '"random" deals them instantly. "choice" lets students tap the role they want (open roles only, re-pick allowed); stragglers are auto-filled when you continue.'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        playerRole:  { type: 'object' },
+        byPlayer:    { type: 'object' },
+        roleMembers: { type: 'object' },
+        rolesList:   { type: 'string', capability: 'renderable' },
+        roles:       { type: 'array' }
+      }
+    },
+    ui: {
+      hostToggles: ['roles', 'continueButton'],
+      playerToggles: ['role', 'picker']
     }
   },
 
