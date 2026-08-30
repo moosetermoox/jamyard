@@ -116,21 +116,22 @@
       margin-bottom: -2px;
     }
 
+    /* The three sentence-length labels drop a size so each still sits
+       on one block face; GUIDE keeps the big single-word type. */
+    .act-find, .act-create, .act-join { font-size: 16px; }
+
     .act-find {
       width: 238px;
-      /* Three words instead of one ("Pick an activity"): drop a size so
-         the label still sits on one block face */
-      font-size: 16px;
       clip-path: polygon(2% 0, 98% 4%, 100% 96%, 0 100%, 0 62%, 5% 62%, 5% 38%, 0 38%);
     }
 
     .act-create {
-      width: 210px;
+      width: 226px;
       clip-path: polygon(0 6%, 100% 0, 98% 100%, 2% 94%);
     }
 
     .act-join {
-      width: 196px;
+      width: 214px;
       clip-path: polygon(0 0, 100% 8%, 96% 92%, 4% 100%);
     }
 
@@ -624,9 +625,9 @@
           <div class="t-row"><a class="t-block-btn t-label t-red act act-find" style="--rot: 1.4deg; --slide: -10px"
              href="/library" title="Browse the ready-made activities and pick one for your class">Pick an activity</a></div>
           <div class="t-row"><a class="t-block-btn t-label t-birch act act-create" style="--rot: -1.2deg; --slide: 10px"
-             href="/designer" title="Build your own activity, describe it in plain words or use a recipe">Create</a></div>
+             href="/designer" title="Build your own activity, describe it in plain words or use a recipe">Create an activity</a></div>
           <div class="t-row"><a class="t-block-btn t-label t-oak act act-join" style="--rot: 0.8deg; --slide: -10px"
-             href="/player" title="Joining as a student? Enter your room code">Join</a></div>
+             href="/player" title="Joining as a student? This is your door">Enter a room code</a></div>
           <div class="t-row"><a class="t-block-btn t-label t-cyan act act-guide" style="--rot: -1deg; --slide: 10px"
              href="/guide" title="One page: setup, live controls, and what to do when something goes wrong">Guide</a></div>
           <div class="t-plinth" aria-hidden="true"></div>
