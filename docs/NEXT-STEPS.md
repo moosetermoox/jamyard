@@ -10,12 +10,35 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-30)
+### START HERE next session (updated 2026-08-30, end of day)
 
-Ops are clean. The current queue is the owner feedback batch below
-(2026-08-30): image/video editor resurfacing and the preview map rail
-are the front-runners; the guide-visuals and naming items from the
-observation wave are still open behind them.
+Ops are clean and the 2026-08-30 feedback batch is fully shipped except
+one item: **THE SHARING SYSTEM is next** (owner's call, context cleared
+right before starting it). Design notes gathered so far:
+
+- Today's reality: user games live in Neon `user_games` and are served
+  publicly by id via /api/games; "ownership" is only that YOUR device's
+  localStorage (screens/shared/my-games.js, MyGames.add) knows the id.
+  So any activity is already reachable if you know its id — sharing is
+  a UX + copy-semantics problem, not a transport problem.
+- Cheapest honest version: share link/code → recipient imports a COPY
+  (new id, MyGames.add on their device). Never share the same row:
+  both devices editing one id collides, and revoking is impossible.
+  A `POST /api/games/:id/copy` + a share URL (`/share/<id>` or a short
+  code) + a "Save to my activities" landing page covers it.
+- Safe to share by construction: teacher-save purity (§49073.1) means
+  saved configs never contain student data. Shared content is
+  teacher-authored; recipient previews before saving (the activity
+  popup + treasure map are reusable here).
+- Decide: short share codes (mint like room codes? vanity-urls.json
+  precedent) vs raw ids in links; whether built-ins share the same way
+  (they already have library links — probably just user games need it).
+- Overlaps with the accounts/owner-model thread in "Later" — build the
+  copy-import version so it survives an eventual accounts migration.
+
+Behind it: guide visuals + the rest of the yard/library naming sweep
+(observation wave), and the parked follow-ons (teacher-console map
+rail, role-aware turn rotation, secret roles, team-split capacity knob).
 
 ### Owner feedback batch 2026-08-30 (bugs shipped same day; features queued)
 
