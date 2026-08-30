@@ -27,17 +27,18 @@ primitive + Story Ingredients** (the creative-writing activity the
 creator couldn't build; scripts/simulate-story-ingredients.js proves the
 deal). Queued, with investigation findings baked in:
 
-1. **Image/video settings in the editor.** The widgets still exist
-   (`addImageUploadWidget` editor.js:4234, `addVideoUrlField` :4222,
-   wired for announce/collect/collect-choice/reveal + estimate image)
-   and `POST /api/games/:gameId/assets` works — they've just been
-   invisible since the Technical view was retired and "All settings"
-   was parked (SV_ALL_SETTINGS_ENABLED=false, simple-view.js:33).
-   Smallest fix: render media controls directly on the Simple-view
-   detail card for the five media-capable phase types. CAVEAT before
-   shipping: uploaded assets land on Render's ephemeral disk
-   (server.js:1704) and die on every deploy — either move uploads to
-   Neon (bytea/base64 like drawings) or ship URL+YouTube only at first.
+1. ~~**Image/video settings in the editor.**~~ **SHIPPED 2026-08-30
+   (same day, owner's call: URL + YouTube only, no uploads):**
+   `mediaEditor()` in simple-view.js renders a collapsed "+ Add a
+   picture or video" on the Simple-view card for
+   announce/collect/collect-choice/reveal (estimate: picture only),
+   expanding to a Picture URL row (live thumbnail proves the address
+   loads) and a YouTube row (soft warning on non-YouTube links,
+   "plays on the projector" note). No upload path on purpose: uploaded
+   assets land on Render's ephemeral disk (server.js:1704) and die on
+   every deploy; the old `addImageUploadWidget`/`POST assets` code
+   still exists behind the parked All-settings surface if a durable
+   store (Neon bytea) ever justifies reviving it.
 2. **Preview mode map rail.** Put the activity map (already built,
    `ActivityMap.render`) in a left rail on /prototype with a "you are
    here" highlight that follows the live phase; the prototype owns the

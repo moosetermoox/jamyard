@@ -516,13 +516,97 @@
     return wrap;
   }
 
+  // --- Picture / YouTube on a step ---
+  // The media-capable steps (announce, collect, collect-choice, reveal;
+  // estimate is picture-only) can show an image above the prompt and a
+  // YouTube video on the projector. Addresses only, on purpose: uploaded
+  // files would land on the deploy-ephemeral disk and vanish on the next
+  // deploy (NEXT-STEPS 2026-08-30), a pasted URL survives everything.
+  function mediaEditor(phase, opts) {
+    var imageOnly = opts && opts.imageOnly;
+    var wrap = el('div', 'sv-media');
+    var rows = el('div', 'sv-media-rows');
+
+    function mediaRow(labelText, placeholder, key, onDone) {
+      var row = el('label', 'sv-media-row');
+      row.appendChild(el('span', 'sv-media-label', labelText));
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'sv-list-input sv-media-input';
+      input.placeholder = placeholder;
+      input.value = phase[key] || '';
+      input.addEventListener('input', function () {
+        markEdited();
+        var v = input.value.trim();
+        if (v) phase[key] = v;
+        else delete phase[key];
+      });
+      input.addEventListener('blur', function () {
+        if (onDone) onDone((phase[key] || '').trim());
+        autoSaveIfDirty();
+      });
+      row.appendChild(input);
+      return row;
+    }
+
+    // Live thumbnail: proof the picture address actually loads.
+    var thumb = document.createElement('img');
+    thumb.className = 'sv-media-thumb';
+    thumb.alt = '';
+    thumb.hidden = true;
+    thumb.addEventListener('load', function () { thumb.hidden = false; });
+    thumb.addEventListener('error', function () { thumb.hidden = true; });
+    function refreshThumb() {
+      var v = phase.image || '';
+      if (/^https?:\/\//.test(v)) { thumb.src = v; }
+      else { thumb.hidden = true; }
+    }
+    rows.appendChild(mediaRow('Picture', 'Paste an image address (https://…)', 'image', refreshThumb));
+    rows.appendChild(thumb);
+
+    if (!imageOnly) {
+      var hint = el('div', 'sv-media-hint');
+      hint.hidden = true;
+      function updateVideoHint(v) {
+        var looksRight = !v || /youtu\.?be/.test(v);
+        hint.textContent = looksRight
+          ? 'The video plays on the projector screen, not on student devices.'
+          : "That doesn't look like a YouTube link. Only YouTube plays on the projector.";
+        hint.classList.toggle('sv-media-hint-warn', !looksRight);
+        hint.hidden = !v;
+      }
+      rows.appendChild(mediaRow('YouTube', 'Paste a YouTube link', 'video', updateVideoHint));
+      rows.appendChild(hint);
+      updateVideoHint(phase.video || '');
+    }
+
+    refreshThumb();
+
+    if (phase.image || phase.video) {
+      wrap.appendChild(rows);
+    } else {
+      // Collapsed until asked for: most steps never need media, so the
+      // card stays clean and the door stays visible.
+      var add = el('button', 'sv-action sv-action-quiet sv-media-add',
+        imageOnly ? '+ Add a picture' : '+ Add a picture or video');
+      add.type = 'button';
+      add.addEventListener('click', function () {
+        wrap.replaceChild(rows, add);
+        var firstInput = rows.querySelector('input');
+        if (firstInput) firstInput.focus();
+      });
+      wrap.appendChild(add);
+    }
+    return wrap;
+  }
+
   // --- Per-type sentence builders ---
   // Each returns { sentence, field?, facts: [], extra? } — field is the
   // inline-editable primary text, facts are short trailing notes.
 
   function describeStep(phaseId, phase) {
     var type = phase.type;
-    var d = { sentence: '', field: null, facts: [], extra: null, muted: false };
+    var d = { sentence: '', field: null, facts: [], extra: null, media: null, muted: false };
 
     switch (type) {
       case 'lobby':
@@ -547,6 +631,7 @@
           d.facts.push(fact(phase.fields.length + ' answer boxes: ' + phase.fields.map(function (f) { return f.label; }).join(', ')));
         }
         d.facts.push(timerFact(phase));
+        d.media = mediaEditor(phase);
         break;
       }
 
@@ -580,6 +665,7 @@
         else if (Array.isArray(phase.choices)) d.facts.push(fact('a poll, tap ○ on a choice to make it a graded question'));
         if (phase.shuffle) d.facts.push(fact('choices shuffled for each student'));
         d.facts.push(timerFact(phase));
+        d.media = mediaEditor(phase);
         break;
       }
 
@@ -587,6 +673,7 @@
         d.sentence = 'Everyone sees the message:';
         d.field = textBox(phase.message, 'What the class sees…', function (v) { phase.message = v; });
         d.facts.push(timerFact(phase));
+        d.media = mediaEditor(phase);
         break;
 
       case 'reveal':
@@ -601,6 +688,7 @@
         } else {
           d.sentence = 'The class sees:';
           d.field = textBox(phase.template, 'What to show, open All settings to insert answers from earlier steps…', function (v) { phase.template = v; });
+          d.media = mediaEditor(phase);
         }
         break;
 
@@ -744,6 +832,7 @@
           d.facts.push(fact('no answer set, shows the class distribution only'));
         }
         d.facts.push(timerFact(phase));
+        d.media = mediaEditor(phase, { imageOnly: true });
         break;
 
       case 'foreach': {
@@ -1002,6 +1091,8 @@
       }
       card.appendChild(factsRow);
     }
+
+    if (d.media) card.appendChild(d.media);
 
     // Actions: the card's simple fields for small things, the AI chat for
     // everything else (owner's call 2026-08-20: no raw-field escape hatch;
