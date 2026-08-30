@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>An activity shared with you - Jamyard</title>
+  <link rel="stylesheet" href="/shared/design.css">
+  <link rel="stylesheet" href="/shared/totem.css">
+  <link rel="stylesheet" href="/shared/activity-map.css">
+  <style>
+    /* Totem system: paper sheet on the gesso ground, ink text, red accents.
+       This page is a gift being unwrapped, so it stays quiet: one sheet,
+       one big button. */
+    :root { --focus-ring: 3px solid #2A2620; }
+    body {
+      background: var(--t-gesso);
+      color: var(--t-ink);
+      font-family: var(--t-body);
+      font-weight: 500;
+      margin: 0;
+      padding: 24px 20px 80px;
+    }
+    .wrap { max-width: 680px; margin: 0 auto; }
+    .brand {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--t-ink);
+      text-decoration: none;
+    }
+    .brand:hover { color: var(--t-red); }
+    .sheet {
+      background: var(--t-paper);
+      box-shadow: var(--t-shadow-free);
+      padding: 26px 28px 30px;
+      margin-top: 22px;
+    }
+    .eyebrow {
+      color: var(--t-muted);
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 0.82rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+    }
+    h1 {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 2rem;
+      margin: 0 0 10px;
+      overflow-wrap: break-word;
+    }
+    .desc { font-size: 1.05rem; line-height: 1.55; margin: 0 0 6px; }
+    .note { color: var(--t-muted); font-size: 0.92rem; line-height: 1.5; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 22px; }
+    .btn {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 1.02rem;
+      border: 2px solid var(--t-ink);
+      padding: 12px 22px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      color: var(--t-ink);
+      background: var(--t-paper);
+    }
+    .btn-primary { background: var(--t-red); border-color: var(--t-red); color: var(--t-paper); }
+    .btn-primary:hover { filter: brightness(1.06); }
+    .btn:disabled { opacity: 0.6; cursor: default; }
+    .saved-line {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 1.1rem;
+      margin: 0 0 4px;
+    }
+    .error-line { color: var(--t-red); font-weight: 700; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a class="brand" href="/">Jamyard</a>
+    <div class="sheet">
+      <p class="eyebrow" id="eyebrow">A teacher shared an activity with you</p>
+      <h1 id="activity-name">Opening the parcel...</h1>
+      <p class="desc" id="activity-desc"></p>
+      <div id="map-holder"></div>
+      <div class="actions" id="actions"></div>
+      <p class="note" id="save-note" hidden>
+        Saving puts your own copy in your yard. You can change anything about
+        it, and the original teacher's version stays untouched.
+      </p>
+    </div>
+  </div>
+
+  <script src="/shared/phase-names.js"></script>
+  <script src="/shared/activity-map.js"></script>
+  <script src="/shared/my-games.js"></script>
+  <script>
+    // Share landing page: someone followed a /share/<id> link. Show what the
+    // activity is (name, description, treasure map), then one button imports
+    // a copy via POST /api/games/:id/copy and claims the new id on this
+    // device (MyGames.add). Activity name and description are teacher
+    // content, untrusted: everything renders through textContent.
+    (function () {
+      'use strict';
+
+      var IMPORTED_KEY = 'lanyard-share-imported';
+      var sourceId = decodeURIComponent(location.pathname.replace(/^\/share\//, '').replace(/\/$/, ''));
+
+      var nameEl = document.getElementById('activity-name');
+      var descEl = document.getElementById('activity-desc');
+      var actionsEl = document.getElementById('actions');
+      var noteEl = document.getElementById('save-note');
+
+      function importedMap() {
+        try {
+          return JSON.parse(localStorage.getItem(IMPORTED_KEY)) || {};
+        } catch (e) { return {}; }
+      }
+
+      function rememberImport(copyId) {
+        try {
+          var map = importedMap();
+          map[sourceId] = copyId;
+          localStorage.setItem(IMPORTED_KEY, JSON.stringify(map));
+        } catch (e) { /* private mode: the yard link still works this visit */ }
+      }
+
+      function link(href, text, primary) {
+        var a = document.createElement('a');
+        a.className = 'btn' + (primary ? ' btn-primary' : '');
+        a.href = href;
+        a.textContent = text;
+        return a;
+      }
+
+      function showGone() {
+        nameEl.textContent = 'This activity isn\'t here anymore';
+        descEl.textContent = 'The share link is real, but the activity behind it seems to have been deleted. Ask whoever sent it to share again, or browse the yard instead.';
+        actionsEl.appendChild(link('/library', 'Browse the yard', true));
+      }
+
+      function showSaved(copyId, name) {
+        actionsEl.textContent = '';
+        var line = document.createElement('p');
+        line.className = 'saved-line';
+        line.textContent = '"' + name + '" is in your yard now.';
+        actionsEl.appendChild(line);
+        actionsEl.appendChild(link('/library', 'Open the yard', true));
+        actionsEl.appendChild(link('/prototype?game=' + encodeURIComponent(copyId), 'Preview it'));
+        noteEl.hidden = true;
+      }
+
+      function saveCopy(saveBtn, name) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+        fetch('/api/games/' + encodeURIComponent(sourceId) + '/copy', { method: 'POST' })
+          .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+          .then(function (result) {
+            if (!result.ok) throw new Error(result.data.error || 'Save failed');
+            if (window.MyGames) MyGames.add(result.data.id);
+            rememberImport(result.data.id);
+            showSaved(result.data.id, result.data.name || name);
+          })
+          .catch(function (err) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save to my activities';
+            var msg = document.createElement('p');
+            msg.className = 'note error-line';
+            msg.textContent = 'Saving didn\'t work: ' + err.message;
+            actionsEl.appendChild(msg);
+          });
+      }
+
+      function showActivity(config) {
+        nameEl.textContent = config.name || sourceId;
+        descEl.textContent = config.description || '';
+        if (window.ActivityMap) {
+          ActivityMap.attach(sourceId, document.getElementById('map-holder'));
+        }
+
+        var alreadyCopy = importedMap()[sourceId];
+        var alreadyMine = alreadyCopy && window.MyGames && MyGames.has(alreadyCopy);
+
+        var saveBtn = document.createElement('button');
+        saveBtn.type = 'button';
+        saveBtn.className = 'btn btn-primary';
+        saveBtn.textContent = alreadyMine ? 'Save another copy' : 'Save to my activities';
+        saveBtn.addEventListener('click', function () {
+          saveCopy(saveBtn, config.name || sourceId);
+        });
+
+        if (alreadyMine) {
+          var have = document.createElement('p');
+          have.className = 'saved-line';
+          have.textContent = 'You already saved this one.';
+          actionsEl.appendChild(have);
+          actionsEl.appendChild(link('/library', 'Open the yard', true));
+          actionsEl.appendChild(saveBtn);
+        } else {
+          actionsEl.appendChild(saveBtn);
+          actionsEl.appendChild(link('/prototype?game=' + encodeURIComponent(sourceId), 'Try a preview first'));
+        }
+        noteEl.hidden = false;
+      }
+
+      if (!sourceId) {
+        showGone();
+        return;
+      }
+      fetch('/api/games/' + encodeURIComponent(sourceId))
+        .then(function (r) {
+          if (!r.ok) throw new Error('not found');
+          return r.json();
+        })
+        .then(showActivity)
+        .catch(showGone);
+    })();
+  </script>
+</body>
+</html>

@@ -393,6 +393,7 @@ header {
 .game-card-delete:hover { color: var(--t-ink, #2A2620); }
 
 /* Put in the shed: quiet like Delete, but it isn't destructive */
+.game-card-actions .game-card-share,
 .game-card-actions .game-card-shed {
   font-family: var(--t-body, 'DM Sans', Arial, sans-serif) !important;
   font-weight: 700;
@@ -401,6 +402,7 @@ header {
   box-shadow: 0 2px 3px rgba(50, 35, 15, 0.16);
 }
 
+.game-card-share:hover,
 .game-card-shed:hover { color: var(--t-ink, #2A2620); }
 
 /* Owner curation star */

@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1393 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1402 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **29 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -49,6 +49,7 @@ Framework for quickly building classroom games where:
 - `/prototype` host + player iframes side-by-side for playtesting
 - `/guide` one-page teacher guide (setup, live controls, quick fixes) · `/owner` owner-mode doorway (redirects to the library unlock; no in-page owner links)
 - `/feedback` owner inbox (SITE_PASSWORD-gated)
+- `/share/<id>` — share link landing page: "Save to my activities" imports a COPY via `POST /api/games/:id/copy` (engine/share-copy.js; featured stripped, new deduped id, never the same row); built-in ids redirect to `/library?about=`; Share button lives in the yard popup (own activities)
 - Vanity URLs: `vanity-urls.json` (slug → game id) mints memorable paths like `/good-question` that redirect to `/host?game=<id>`; server refuses reserved/malformed slugs at startup
 - Teacher profile (grade band + subjects, localStorage via `screens/shared/teacher-profile.js`) personalizes prompt-deck picks ("for your class") and Customize; set from the library's first-visit card
 - Surfaces model: **find it in the Library, start it in Create, shape it in the Editor** (docs/SURFACES-PLAN.md)

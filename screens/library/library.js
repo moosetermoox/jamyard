@@ -653,6 +653,22 @@ function openActivityDialog(game) {
     actions.appendChild(favBtn);
   }
 
+  // Share: copy a link a colleague opens to save THEIR OWN copy of this
+  // activity (never this row — the import page calls /api/games/:id/copy).
+  // Only your own activities; built-ins already have library links.
+  if (window.MyGames && MyGames.has(game.id)) {
+    var shareBtn = document.createElement('button');
+    shareBtn.type = 'button';
+    shareBtn.className = 'game-card-share';
+    shareBtn.textContent = 'Share';
+    shareBtn.title = 'Copy a link another teacher can open to save their own copy';
+    shareBtn.setAttribute('aria-label', 'Copy a share link for "' + game.name + '"');
+    shareBtn.addEventListener('click', function () {
+      copyShareLink(game.id, shareBtn);
+    });
+    actions.appendChild(shareBtn);
+  }
+
   // The shed is the safe cousin of Delete: put an activity away, get it
   // back any time. Only your own copies (built-ins live in the piles, and
   // shedding one would silently do nothing).
@@ -692,6 +708,41 @@ function openActivityDialog(game) {
   }
 
   modal.appendChild(actions);
+}
+
+// Copies the share link to the clipboard; the button itself reports
+// success. Same clipboard fallback ladder as the host screen's join link.
+function copyShareLink(id, btn) {
+  var link = location.origin + '/share/' + encodeURIComponent(id);
+  var flash = function () {
+    var old = btn.textContent;
+    btn.textContent = 'Link copied!';
+    setTimeout(function () { btn.textContent = old; }, 1800);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(flash).catch(function () {
+      fallbackShareCopy(link, flash);
+    });
+  } else {
+    fallbackShareCopy(link, flash);
+  }
+}
+
+function fallbackShareCopy(text, done) {
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    ta.remove();
+    done();
+  } catch (e) {
+    // Clipboard fully blocked: show the link so it can be copied by hand.
+    window.prompt('Copy this share link:', text);
+  }
 }
 
 async function enterOwnerMode() {

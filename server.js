@@ -62,6 +62,7 @@ import { validateSuggestions } from './engine/suggest-validate.js';
 import { createFeedbackStore } from './services/feedback-store.js';
 import { validateFeedback } from './engine/feedback-validate.js';
 import { createRateLimiter } from './engine/simple-rate-limit.js';
+import { mintCopyId, prepareSharedCopy } from './engine/share-copy.js';
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
@@ -1694,6 +1695,24 @@ app.get('/designer/edit', (req, res) => {
 
 app.use('/designer', express.static(join(__dirname, 'screens/designer')));
 
+// --- Share links (the sharing system, docs/NEXT-STEPS) ---
+// jamyard.xyz/share/<id> is what a teacher hands a colleague: it lands on
+// an import page whose one button saves a COPY into the visitor's own
+// activities (POST /api/games/:id/copy below). Built-ins already have a
+// public home, so their share links go straight to the library popup.
+// A dead link (deleted activity) still gets the page, which fetches the
+// config itself and says honestly that the activity is gone.
+app.get('/share/:gameId', async (req, res) => {
+  try {
+    const { source } = await resolveGamePath(req.params.gameId);
+    if (source === 'built-in') {
+      return res.redirect('/library?about=' + encodeURIComponent(req.params.gameId));
+    }
+  } catch {} // DB-backed user games and dead links both fall through to the page
+  res.sendFile('index.html', { root: join(__dirname, 'screens', 'share') });
+});
+app.get('/share', (req, res) => res.redirect('/library'));
+
 // --- Vanity URLs (vanity-urls.json) ---
 // A memorable path per activity: jamyard.xyz/good-question opens the host
 // screen for that activity. Config, not code: add a "slug": "game-id" pair
@@ -1701,7 +1720,8 @@ app.use('/designer', express.static(join(__dirname, 'screens/designer')));
 // are refused loudly at startup.
 const VANITY_RESERVED = new Set([
   'api', 'host', 'player', 'teacher', 'library', 'designer', 'prototype',
-  'guide', 'owner', 'feedback', 'privacy', 'shared', 'home-shots', 'socket.io'
+  'guide', 'owner', 'feedback', 'privacy', 'shared', 'home-shots', 'socket.io',
+  'share'
 ]);
 try {
   const vanityUrls = JSON.parse(await readFile(join(__dirname, 'vanity-urls.json'), 'utf8'));
@@ -2335,6 +2355,50 @@ app.post('/api/games', async (req, res) => {
   } catch (error) {
     console.log(`[api/games POST] Error: ${error.message}`);
     res.status(400).json({ error: error.message });
+  }
+});
+
+// Import-a-copy, the receiving half of a share link (engine/share-copy.js
+// has the why). Public like config reads: shared content is teacher-authored
+// by construction (teacher-save purity), and the recipient's browser adds
+// the new id to its own My Activities list. Rate-limited per IP because
+// every call writes a row.
+const copyLimiter = createRateLimiter({ max: 10, windowMs: 60_000 });
+setInterval(() => copyLimiter.sweep(), 10 * 60_000).unref();
+
+// True when a candidate id is already a built-in, a filesystem user game,
+// or a DB user game — the same three stores POST /api/games collides on.
+async function gameIdTaken(id) {
+  try { await access(join(GAMES_DIR, id, 'config.json')); return true; } catch {}
+  try { await access(join(USER_GAMES_DIR, id, 'config.json')); return true; } catch {}
+  if (DB_ENABLED && await userGameExists(id)) return true;
+  return false;
+}
+
+app.post('/api/games/:gameId/copy', async (req, res) => {
+  try {
+    const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const ip = forwarded || req.socket?.remoteAddress || 'unknown';
+    if (!copyLimiter.allow(ip)) {
+      return res.status(429).json({ error: 'That\'s a lot of copies at once! Try again in a minute.' });
+    }
+    const source = await loadGameById(req.params.gameId);
+    const config = prepareSharedCopy(source);
+    const newId = await mintCopyId(req.params.gameId, gameIdTaken);
+    validate(config, newId);
+    if (DB_ENABLED) {
+      await saveUserGame(newId, config);
+    } else {
+      const userGameDir = join(USER_GAMES_DIR, newId);
+      await mkdir(userGameDir, { recursive: true });
+      await writeFile(join(userGameDir, 'config.json'), JSON.stringify(config, null, 2));
+    }
+    console.log(`[api/games copy] ${req.params.gameId} -> ${newId}`);
+    res.json({ success: true, id: newId, name: config.name });
+  } catch (error) {
+    console.log(`[api/games copy] Error: ${error.message}`);
+    const status = error.message.startsWith('Game not found') ? 404 : 400;
+    res.status(status).json({ error: error.message });
   }
 });
 

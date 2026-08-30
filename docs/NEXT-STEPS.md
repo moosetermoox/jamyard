@@ -10,33 +10,26 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-30, end of day)
+### START HERE next session (updated 2026-08-30, sharing shipped)
 
-Ops are clean and the 2026-08-30 feedback batch is fully shipped except
-one item: **THE SHARING SYSTEM is next** (owner's call, context cleared
-right before starting it). Design notes gathered so far:
+**THE SHARING SYSTEM SHIPPED 2026-08-30** (see CHANGELOG): share links,
+copy-import semantics. `/share/<id>` lands a colleague on an import page
+(name + description + treasure map) whose one button calls
+`POST /api/games/:id/copy` (featured stripped, deduped new id, per-IP
+rate limit) and MyGames.adds the copy; a Share button in the yard popup
+(own activities) copies the link. Built-ins redirect to
+`/library?about=`; dead links get an honest page. Decisions made: raw
+ids in links, no minted short codes (user ids are already readable
+slugs; a code table adds nothing until ids stop being guessable-fine),
+and only user games get the import page. Follow-ons if wanted:
+- Share from the editor too (header More menu) — today it's only the
+  yard popup.
+- A "shared with me" mark in the yard (imported copies are currently
+  indistinguishable from own creations — probably fine).
+- Real-device check: the clipboard fallback ladder + the landing page
+  on a school Chromebook.
 
-- Today's reality: user games live in Neon `user_games` and are served
-  publicly by id via /api/games; "ownership" is only that YOUR device's
-  localStorage (screens/shared/my-games.js, MyGames.add) knows the id.
-  So any activity is already reachable if you know its id — sharing is
-  a UX + copy-semantics problem, not a transport problem.
-- Cheapest honest version: share link/code → recipient imports a COPY
-  (new id, MyGames.add on their device). Never share the same row:
-  both devices editing one id collides, and revoking is impossible.
-  A `POST /api/games/:id/copy` + a share URL (`/share/<id>` or a short
-  code) + a "Save to my activities" landing page covers it.
-- Safe to share by construction: teacher-save purity (§49073.1) means
-  saved configs never contain student data. Shared content is
-  teacher-authored; recipient previews before saving (the activity
-  popup + treasure map are reusable here).
-- Decide: short share codes (mint like room codes? vanity-urls.json
-  precedent) vs raw ids in links; whether built-ins share the same way
-  (they already have library links — probably just user games need it).
-- Overlaps with the accounts/owner-model thread in "Later" — build the
-  copy-import version so it survives an eventual accounts migration.
-
-Behind it: guide visuals + the rest of the yard/library naming sweep
+Next in line: guide visuals + the rest of the yard/library naming sweep
 (observation wave), and the parked follow-ons (teacher-console map
 rail, role-aware turn rotation, secret roles, team-split capacity knob).
 
@@ -90,12 +83,10 @@ deal). Queued, with investigation findings baked in:
    clean robot playtest. Follow-ons parked: role-aware turn rotation,
    secret roles (the projector-discipline half of the old wishlist
    entry).
-5. **Sharing what you made.** Big; blocked on the no-accounts model
-   (user games are localStorage-claimed per device). Cheapest real
-   version: a share code/link that imports a copy of the config into
-   the recipient's My Activities (no live co-ownership). Decide scope
-   before building; overlaps with the Postgres-first accounts thread
-   in "Later".
+5. ~~**Sharing what you made.**~~ **SHIPPED 2026-08-30** (see the
+   START HERE block above and CHANGELOG): share links + copy-import,
+   no live co-ownership; ordinary user-game copies, so it survives the
+   Postgres-first accounts thread in "Later".
 
 ### Waiting meadow + yard shed (shipped 2026-08-27; follow-ups)
 
