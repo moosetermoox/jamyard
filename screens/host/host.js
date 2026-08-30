@@ -156,8 +156,11 @@ teacherLinkCopyBtn.addEventListener('click', () => {
 });
 
 // Pairing visibility: announce every console join on the projector chip.
+// Not in preview mode: the map rail pairs as a console on every launch,
+// and "Teacher device connected" on the practice board reads as a ghost.
 const teacherDeviceNotice = document.getElementById('teacher-device-notice');
 socket.on('teacher-console-joined', ({ deviceCount }) => {
+  if (new URLSearchParams(window.location.search).get('prototype') === 'true') return;
   teacherConsolePaired = true;
   if (teacherDeviceNotice) {
     teacherDeviceNotice.hidden = false;
@@ -745,10 +748,15 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored 
     updateStartButton(0);
   }
 
-  // Prototype mode: notify parent window of room code
+  // Prototype mode: notify parent window of room code. The PIN rides
+  // along (same-origin only) so the preview page can pair its map rail
+  // as a console and follow the live phase.
   const params = new URLSearchParams(window.location.search);
   if (params.get('prototype') === 'true' && window.parent !== window) {
-    window.parent.postMessage({ type: 'room-created', code: code }, '*');
+    window.parent.postMessage(
+      { type: 'room-created', code: code, teacherPin: teacherPin || null },
+      window.location.origin
+    );
   }
 });
 

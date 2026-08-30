@@ -39,11 +39,17 @@ deal). Queued, with investigation findings baked in:
    every deploy; the old `addImageUploadWidget`/`POST assets` code
    still exists behind the parked All-settings surface if a durable
    store (Neon bytea) ever justifies reviving it.
-2. **Preview mode map rail.** Put the activity map (already built,
-   `ActivityMap.render`) in a left rail on /prototype with a "you are
-   here" highlight that follows the live phase; the prototype owns the
-   room it launches, so it can track phase changes. Turns preview into
-   "watch the plan play out", which is what first-contact teachers need.
+2. ~~**Preview mode map rail.**~~ **SHIPPED 2026-08-30:** /prototype
+   grew a left rail drawing the treasure map with a yellow "you are
+   here" that follows the live room. Wiring: map stops now carry the
+   phase ids they cover (`ids` on every stop, engine/activity-map.js);
+   the host iframe's room-created postMessage hands the parent the
+   teacher PIN (same-origin), and the preview page pairs a silent
+   teacher-console socket (join-teacher) to receive teacher-phase
+   events; unmatched ids (a round's inner steps) keep the last mark.
+   The host's "Teacher device connected" chip is suppressed in
+   prototype mode so the rail's pairing doesn't ghost-announce.
+   Follow-on idea: same rail on the /teacher console.
 3. **Recipe maps (parity with activities).** Nearly free:
    `buildActivityMap` is pure config-in/map-out and
    `POST /api/recipes/:id/compile` already returns a compiled config

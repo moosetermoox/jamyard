@@ -240,7 +240,10 @@ function collapseRepeats(entries) {
       const folded = {
         kind: 'rounds',
         rounds: here.repeats,
-        sub: entries.slice(i, i + here.period).map(e => e.stop.type)
+        sub: entries.slice(i, i + here.period).map(e => e.stop.type),
+        // Every phase id the fold covers, so a live view can match the
+        // room's current phase to this stop ("you are here").
+        ids: entries.slice(i, i + here.coverage).map(e => e.id)
       };
       // Sample excerpts from ACROSS the run (first, middle, last, then any
       // others), not just the opener: for content-carrying runs (Closer's
@@ -268,7 +271,7 @@ function collapseRepeats(entries) {
       out.push(folded);
       i += here.coverage;
     } else {
-      out.push(entries[i].stop);
+      out.push({ ...entries[i].stop, ids: [entries[i].id] });
       i++;
     }
   }

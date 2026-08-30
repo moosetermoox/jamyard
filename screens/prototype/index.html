@@ -6,6 +6,7 @@
   <title>Preview - Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="/shared/totem.css">
+  <link rel="stylesheet" href="/shared/activity-map.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -40,22 +41,32 @@
     <button id="host-btn" disabled title="Done previewing? Start a live room your class can join right now">▶ Host this</button>
   </div>
 
-  <!-- The test bench, empty: a teacher board on its stand beside dashed
-       pretend-student seats (Totem: preview-prototype.png 11a). Launch
-       replaces all of this with the live pieces; Reset restores it. -->
-  <div id="iframe-container">
-    <div id="prelaunch-stage">
-      <div class="stage-pieces">
-        <div class="stage-board-group">
-          <div class="stage-board">Teacher screen</div>
-          <div class="stage-plinth"></div>
-          <div class="stage-base"></div>
+  <!-- The stage row: the treasure-map rail on the left (what happens,
+       with a "you are here" that follows the live room), the screens
+       beside it. The rail appears on Launch and hides on Reset. -->
+  <div id="stage-row">
+    <aside id="map-rail" hidden aria-label="The activity's plan, current step marked">
+      <div class="map-rail-label">The plan</div>
+      <div id="map-rail-holder"></div>
+    </aside>
+
+    <!-- The test bench, empty: a teacher board on its stand beside dashed
+         pretend-student seats (Totem: preview-prototype.png 11a). Launch
+         replaces all of this with the live pieces; Reset restores it. -->
+    <div id="iframe-container">
+      <div id="prelaunch-stage">
+        <div class="stage-pieces">
+          <div class="stage-board-group">
+            <div class="stage-board">Teacher screen</div>
+            <div class="stage-plinth"></div>
+            <div class="stage-base"></div>
+          </div>
+          <div class="stage-slot">Pretend student</div>
+          <div class="stage-slot"></div>
+          <div class="stage-slot"></div>
         </div>
-        <div class="stage-slot">Pretend student</div>
-        <div class="stage-slot"></div>
-        <div class="stage-slot"></div>
+        <p id="prelaunch-hint">Pick an activity and press <strong class="hint-launch">Launch</strong>, you get the teacher screen and pretend students, side by side.</p>
       </div>
-      <p id="prelaunch-hint">Pick an activity and press <strong class="hint-launch">Launch</strong>, you get the teacher screen and pretend students, side by side.</p>
     </div>
   </div>
 
@@ -73,9 +84,12 @@
   <button id="carousel-next" class="carousel-arrow carousel-arrow-right" hidden title="Next player screen">&rarr;</button>
   <div id="carousel-dots" hidden></div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/shared/game-visibility.js"></script>
   <script src="/shared/my-games.js"></script>
   <script src="/shared/owner-mode.js"></script>
+  <script src="/shared/phase-names.js"></script>
+  <script src="/shared/activity-map.js"></script>
   <script src="/shared/feedback-widget.js"></script>
   <script src="prototype.js"></script>
 </body>

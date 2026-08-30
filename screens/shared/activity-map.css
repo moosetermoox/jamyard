@@ -169,3 +169,20 @@
   text-transform: uppercase;
   color: var(--t-muted-caps, #8A7B62);
 }
+
+/* "You are here": the live mark the preview map rail pins on the stop
+   the room is playing right now. Yellow means NOW everywhere in Totem. */
+.amap-row.amap-here .amap-num {
+  background: var(--t-yellow, #FFC800);
+  color: var(--t-ink, #2A2620);
+  box-shadow: 0 0 0 3px var(--t-ink, #2A2620), 0 2px 3px rgba(50, 35, 15, 0.26);
+}
+
+.amap-row.amap-here .amap-name { font-weight: 800; }
+
+.amap-startrow.amap-here .amap-start-chip,
+.amap-endrow.amap-here .amap-end-label {
+  background: var(--t-yellow, #FFC800);
+  color: var(--t-ink, #2A2620);
+  box-shadow: 0 0 0 3px var(--t-ink, #2A2620), 0 2px 3px rgba(50, 35, 15, 0.26);
+}

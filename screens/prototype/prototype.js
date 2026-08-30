@@ -34,6 +34,88 @@ let carouselIndex = 0; // 0-based index into player panels
 let currentCode = null;
 let livePlayers = 0;
 
+// --- The map rail: the activity's treasure map beside the screens, with
+// a "you are here" mark that follows the live room. The map comes from
+// the same endpoint the library popups use; the live position comes from
+// pairing a silent teacher-console socket (the host iframe hands over
+// the room PIN on launch, same-origin postMessage).
+const mapRail = document.getElementById('map-rail');
+const mapRailHolder = document.getElementById('map-rail-holder');
+let railMap = null;
+let railSocket = null;
+let railPhaseId = null;
+let railPhaseType = null;
+
+function showMapRail(gameId) {
+  railMap = null;
+  railPhaseId = null;
+  railPhaseType = null;
+  if (!mapRail || !window.ActivityMap) return;
+  mapRailHolder.textContent = '';
+  fetch('/api/games/' + encodeURIComponent(gameId) + '/map')
+    .then(r => (r.ok ? r.json() : null))
+    .then(map => {
+      if (!map || !Array.isArray(map.stops) || map.stops.length === 0) return;
+      railMap = map;
+      mapRailHolder.textContent = '';
+      mapRailHolder.appendChild(ActivityMap.render(map));
+      mapRail.hidden = false;
+      updateRailHighlight();
+    })
+    .catch(() => { /* the rail is garnish, never block the preview */ });
+}
+
+function hideMapRail() {
+  if (railSocket) { railSocket.disconnect(); railSocket = null; }
+  railMap = null;
+  railPhaseId = null;
+  railPhaseType = null;
+  if (mapRail) {
+    mapRail.hidden = true;
+    mapRailHolder.textContent = '';
+  }
+}
+
+function connectRail(code, pin) {
+  if (railSocket) { railSocket.disconnect(); railSocket = null; }
+  if (!window.io || !pin) return;
+  railSocket = io();
+  railSocket.on('connect', () => railSocket.emit('join-teacher', { code, pin }));
+  railSocket.on('teacher-joined', snap => {
+    railPhaseId = snap.phaseId;
+    railPhaseType = snap.phaseType;
+    updateRailHighlight();
+  });
+  railSocket.on('teacher-phase', p => {
+    railPhaseId = p.phaseId;
+    railPhaseType = p.phaseType;
+    updateRailHighlight();
+  });
+}
+
+function updateRailHighlight() {
+  if (!railMap || !mapRail || mapRail.hidden) return;
+  let target = null;
+  if (!railPhaseId || railPhaseType === 'lobby') {
+    target = mapRailHolder.querySelector('.amap-startrow');
+  } else if (railPhaseType === 'end') {
+    target = mapRailHolder.querySelector('.amap-endrow');
+  } else {
+    const stopRows = mapRailHolder.querySelectorAll(
+      '.amap-row:not(.amap-startrow):not(.amap-endrow)');
+    for (let i = 0; i < railMap.stops.length && i < stopRows.length; i++) {
+      const ids = railMap.stops[i].ids || [];
+      if (ids.indexOf(railPhaseId) !== -1) { target = stopRows[i]; break; }
+    }
+  }
+  // No match (a round's inner step, a side branch): keep the last mark
+  // rather than leaving the trail unmarked.
+  if (!target) return;
+  mapRailHolder.querySelectorAll('.amap-here').forEach(r => r.classList.remove('amap-here'));
+  target.classList.add('amap-here');
+  target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
 // The empty test bench (stands + hint). Launch clears the container but we
 // keep the detached node and put it back on Reset, so the stage is never
 // silently blank.
@@ -200,6 +282,9 @@ launchBtn.addEventListener('click', () => {
       // Apply the current view to the fresh panels (carousel by default;
       // without this the new grid always starts as a grid).
       setViewMode(viewMode);
+      // The map rail: draw the plan, then follow the live room.
+      showMapRail(gameId);
+      connectRail(e.data.code, e.data.teacherPin);
     }
   });
 });
@@ -308,6 +393,7 @@ resetBtn.addEventListener('click', () => {
   iframeContainer.innerHTML = '';
   iframeContainer.removeAttribute('data-players');
   if (prelaunchStage) iframeContainer.appendChild(prelaunchStage);
+  hideMapRail();
   currentCode = null;
   livePlayers = 0;
   document.body.classList.remove('pt-running');

@@ -305,4 +305,41 @@ describe('buildActivityMap', () => {
     }));
     expect(map.stops[1].carries).toBe('round-per-answer');
   });
+
+  // Each stop names the phase ids it covers, so a live view (the preview
+  // map rail) can point "you are here" at the stop matching the room's
+  // current phase.
+  it('plain stops carry their phase id', () => {
+    const map = buildActivityMap(cfg({
+      lobby: { type: 'lobby', next: 'write' },
+      write: { type: 'collect', prompt: 'Write', next: 'vote' },
+      vote: { type: 'vote', next: 'done' },
+      done: { type: 'end' }
+    }));
+    expect(map.stops.map(s => s.ids)).toEqual([['write'], ['vote']]);
+  });
+
+  it('a folded rounds stop carries every phase id it covers', () => {
+    const phases = { lobby: { type: 'lobby', next: 'q1' } };
+    for (let i = 1; i <= 3; i++) {
+      phases['q' + i] = { type: 'collect-choice', question: 'Question ' + i, next: 'a' + i };
+      phases['a' + i] = { type: 'announce', message: 'Answer ' + i, next: i < 3 ? 'q' + (i + 1) : 'done' };
+    }
+    phases.done = { type: 'end' };
+    const map = buildActivityMap(cfg(phases));
+    expect(map.stops[0].ids).toEqual(['q1', 'a1', 'q2', 'a2', 'q3', 'a3']);
+  });
+
+  it('a foreach rounds stop carries the foreach phase id', () => {
+    const map = buildActivityMap(cfg({
+      lobby: { type: 'lobby', next: 'rounds' },
+      rounds: {
+        type: 'foreach', data: 'x.responses',
+        subPhases: { show: { type: 'announce', message: 'Look' } },
+        next: 'done'
+      },
+      done: { type: 'end' }
+    }));
+    expect(map.stops[0].ids).toEqual(['rounds']);
+  });
 });

@@ -380,6 +380,38 @@ body.pt-running #host-btn {
   background: rgba(253,249,240,0.5);
 }
 
+/* Stage row: the map rail on the left, the screens beside it */
+#stage-row {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* The map rail: the activity's trail with a "you are here" mark that
+   follows the live room. Same drawn map as the library popups. */
+#map-rail {
+  width: 224px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 14px 14px 24px 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(110, 75, 40, 0.5) transparent;
+}
+
+.map-rail-label {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  margin-bottom: 10px;
+}
+
+@media (max-width: 900px) {
+  #map-rail { display: none; }
+}
+
 /* Iframe container — extra row gap and bottom padding so every piece's
    stand has floor to sit on */
 #iframe-container {
