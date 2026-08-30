@@ -95,6 +95,14 @@ const PHASE_EXTRA_GUIDANCE = {
     "round2":      { "type": "collect", "prompt": "Previous: {{round1.assigned}}\\n\\nKeep the sentence going.", "rotateFrom": "round1", "next": "reveal" }
     Each rotateFrom MUST point to a real earlier collect/collect-choice/per-player ai-process step. You CANNOT rotate from inside a loop, chain explicit phases instead.
 
+    SHUFFLED DEAL (random, not neighbor-order): add "rotateShuffle": true beside rotateFrom to deal the source items in a random circle. Each player still receives exactly one classmate's item, never their own, but who got whose is unpredictable. Whenever the request says students get a RANDOM classmate's submission (shuffle, mix up, redistribute, swap randomly), use rotateShuffle, plain rotation always maps to the same join-order neighbor.
+    DEALING SEVERAL POOLS: one rotating step deals ONE earlier pool. To hand each student a random item from EACH of several pools (a character AND a setting AND a twist), chain the collect steps so each step's rotateFrom points at the PREVIOUS pool, then the final step shows all dealt items together:
+    "characters": { "type": "collect", "prompt": "Describe an interesting character in a sentence or two.", "timer": 90, "next": "settings" },
+    "settings":   { "type": "collect", "prompt": "Describe a setting.", "rotateFrom": "characters", "rotateShuffle": true, "timer": 90, "next": "twists" },
+    "twists":     { "type": "collect", "prompt": "Describe a surprising event.", "rotateFrom": "settings", "rotateShuffle": true, "timer": 90, "next": "write" },
+    "write":      { "type": "collect", "prompt": "Your character: {{characters.assigned}}\\nYour setting: {{settings.assigned}}\\nYour twist: {{twists.assigned}}\\n\\nWrite the story.", "rotateFrom": "twists", "rotateShuffle": true, "timer": 480, "maxLength": 2000, "next": "share" }
+    (Each deal happens when the step AFTER the pool opens, so the writing prompt can reference every earlier pool's .assigned.)
+
     ANSWER-KEYED PAIRING: a pairwise collect can pick partners by an earlier Multiple Choice answer. Set "assign": "pairwise" plus "pairBy": {"from": "<collect-choice id>", "mode": "opposite"} to prefer partners who answered DIFFERENTLY (debate, share-your-why-with-someone-who-disagreed), or "mode": "same" for matching answers. Best-effort: a lopsided split pairs leftover students with each other, nobody sits out because of it. Follow with a reveal using "scope": "pair" + "pairsFrom": "<this collect's id>" so each pair sees only their own two answers. Example:
     "pick":  { "type": "collect-choice", "prompt": "Would you rather explore space or the deep sea?", "choices": ["Space", "Deep sea"], "timer": 20, "next": "why" },
     "why":   { "type": "collect", "prompt": "You and your partner chose differently. Tell them why you picked yours.", "assign": "pairwise", "pairBy": {"from": "pick", "mode": "opposite"}, "timer": 60, "next": "swap" },

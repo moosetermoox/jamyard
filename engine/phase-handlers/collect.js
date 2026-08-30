@@ -11,6 +11,7 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups } from '../phases/pairing.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
+import { shuffleDeal } from '../phases/deal.js';
 
 /**
  * Build the rotation assignment map for a collect phase that has
@@ -60,18 +61,25 @@ function buildRotationAssignment(ctx) {
   // recipient can see — or continue — the actual picture, not "[drawing]".
   const sourceDrawings = sourceData.byPlayerDrawing || null;
 
+  // rotateShuffle: deal the pool in a random circle instead of the fixed
+  // join-order shift (still exactly one classmate's item each, never your
+  // own; who-got-whose is unpredictable).
+  const shuffledSenderOf = phase.rotateShuffle ? shuffleDeal(orderedIds) : null;
+
   const assignment = {};
   const assignedFrom = {};
   const drawingAssignment = {};
   for (let i = 0; i < N; i++) {
-    const senderIdx = ((i - offset) % N + N) % N;
-    const senderId = orderedIds[senderIdx];
+    const receiverId = orderedIds[i];
+    const senderId = shuffledSenderOf
+      ? shuffledSenderOf[receiverId]
+      : orderedIds[((i - offset) % N + N) % N];
     const item = sourceByPlayer[senderId];
     if (item !== undefined) {
-      assignment[orderedIds[i]] = item;
-      assignedFrom[orderedIds[i]] = senderId;
+      assignment[receiverId] = item;
+      assignedFrom[receiverId] = senderId;
       if (sourceDrawings && sourceDrawings[senderId]) {
-        drawingAssignment[orderedIds[i]] = sourceDrawings[senderId];
+        drawingAssignment[receiverId] = sourceDrawings[senderId];
       }
     }
   }

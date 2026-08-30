@@ -46,6 +46,14 @@ export const KNOWN_SUFFIXES = new Set([
 ]);
 
 /**
+ * A token that must resolve differently for each recipient: the player's
+ * own item ({{X.mine}}) or the classmate item dealt to them by a rotation
+ * ({{X.assigned}}). announce/reveal gate their per-recipient rendering
+ * path on this; collect prompts always resolve per-player.
+ */
+export const PER_PLAYER_TOKEN = /\{\{\s*[a-zA-Z0-9_-]+\.(mine|assigned)\s*\}\}/;
+
+/**
  * Built-in scope identifiers — refs starting with these don't point at
  * phase data; they point at engine/orchestration state.
  */

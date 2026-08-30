@@ -9,8 +9,10 @@ import { EVENTS } from '../events.js';
 import { buildPairViews, buildPairContent } from '../phases/pair-reveal.js';
 import { buildChainViews, formatChainContent } from '../phases/chain-reveal.js';
 import { continueLabelForPhase } from '../phases/continue-labels.js';
+import { PER_PLAYER_TOKEN } from '../resolver-grammar.js';
 
-const PER_PLAYER_REF = /\{\{\s*[a-zA-Z0-9_-]+\.mine\s*\}\}/;
+// {{x.mine}} or {{x.assigned}}: each player gets their own resolved copy.
+const PER_PLAYER_REF = PER_PLAYER_TOKEN;
 
 // Default copy for pair-scoped reveals. The host screen is projected to the
 // class, so it NEVER shows pair-private answers — only a neutral status line.

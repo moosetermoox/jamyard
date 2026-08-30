@@ -223,6 +223,11 @@ export const PHASE_SCHEMAS = {
         label: 'Rotation offset',
         helper: 'How many positions to shift. Default 1 = each player gets the previous player\'s item.'
       },
+      rotateShuffle: {
+        type: 'boolean', optional: true, contexts: ['topLevel'],
+        label: 'Shuffle the deal',
+        helper: 'With "Rotate items from": deal the items in a random circle instead of a fixed shift. Each player still gets exactly one classmate\'s item, never their own, but who got whose is unpredictable. Ignores the rotation offset.'
+      },
       assign: {
         type: 'enum', values: ['pairwise'], optional: true, contexts: ['topLevel'],
         label: 'Pair players up',

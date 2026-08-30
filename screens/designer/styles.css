@@ -1801,7 +1801,10 @@ main {
   gap: 24px;
 }
 
-/* The idea box is a sanded plank with the pencil line */
+/* The idea box is a sanded plank with the pencil line. No rotation:
+   a rotated textarea antialiases the 1px caret into the grain and the
+   cursor disappears (body text never rotates, and you type body text
+   here). The Make-it button keeps the tilt for the composition. */
 #idea-input {
   min-height: 108px;
   padding: 24px 26px 20px;
@@ -1810,7 +1813,6 @@ main {
   border: none;
   border-bottom: 3px dashed rgba(110, 75, 40, 0.35);
   box-shadow: var(--t-shadow-free);
-  transform: rotate(-0.5deg);
   font-weight: 500;
   font-size: 1.05rem;
   color: #2A2620;

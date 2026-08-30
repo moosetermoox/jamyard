@@ -96,6 +96,20 @@ select:focus-visible,
   outline-offset: 2px;
 }
 
+/* The text caret gets an explicit ink color everywhere: the wood-grain
+   input planks eat the default 1px caret (a deliberate transparent
+   caret, like the room-code boxes, out-specifies this). */
+input, textarea, [contenteditable] { caret-color: var(--t-ink); }
+
+/* Overflowing text boxes: the raw OS scrollbar (gray chrome, arrow
+   buttons) breaks the material. The standard properties repaint it as
+   a thin pencil stroke on the plank, and Chromium drops the arrow
+   buttons entirely when they are set. */
+textarea {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(110, 75, 40, 0.5) transparent;
+}
+
 /* ------------------------------------------------------------
    Blocks: a piece of wood or paint that holds a word.
    Compose rotation via --rot so hover transforms can stack.

@@ -10,10 +10,61 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
-### START HERE next session (updated 2026-08-27)
+### START HERE next session (updated 2026-08-30)
 
-Ops are clean; the next work is the observation-wave design queue below
-(activity map first).
+Ops are clean. The current queue is the owner feedback batch below
+(2026-08-30): image/video editor resurfacing and the preview map rail
+are the front-runners; the guide-visuals and naming items from the
+observation wave are still open behind them.
+
+### Owner feedback batch 2026-08-30 (bugs shipped same day; features queued)
+
+Owner used the site and filed eight items. Shipped same day (see
+CHANGELOG): invisible caret fixed (caret-color + un-rotated idea box),
+textarea scrollbars themed, homepage totem labels spelled out, /privacy
+operator facts filled, and the big one: **`rotateShuffle` shuffled-deal
+primitive + Story Ingredients** (the creative-writing activity the
+creator couldn't build; scripts/simulate-story-ingredients.js proves the
+deal). Queued, with investigation findings baked in:
+
+1. **Image/video settings in the editor.** The widgets still exist
+   (`addImageUploadWidget` editor.js:4234, `addVideoUrlField` :4222,
+   wired for announce/collect/collect-choice/reveal + estimate image)
+   and `POST /api/games/:gameId/assets` works — they've just been
+   invisible since the Technical view was retired and "All settings"
+   was parked (SV_ALL_SETTINGS_ENABLED=false, simple-view.js:33).
+   Smallest fix: render media controls directly on the Simple-view
+   detail card for the five media-capable phase types. CAVEAT before
+   shipping: uploaded assets land on Render's ephemeral disk
+   (server.js:1704) and die on every deploy — either move uploads to
+   Neon (bytea/base64 like drawings) or ship URL+YouTube only at first.
+2. **Preview mode map rail.** Put the activity map (already built,
+   `ActivityMap.render`) in a left rail on /prototype with a "you are
+   here" highlight that follows the live phase; the prototype owns the
+   room it launches, so it can track phase changes. Turns preview into
+   "watch the plan play out", which is what first-contact teachers need.
+3. **Recipe maps (parity with activities).** Nearly free:
+   `buildActivityMap` is pure config-in/map-out and
+   `POST /api/recipes/:id/compile` already returns a compiled config
+   without saving — add `map` to that response (and to
+   /api/games/from-description) and call `ActivityMap.render(map)` in
+   the recipe picker + match preview. Fill params with each knob's
+   `default` (the sampleParams loop at server.js:1915 already does this).
+4. **Group Work Day roles.** Design sketched (2026-08-30 investigation):
+   (a) new `team-roles` step — `teamsFrom` + `roles: [...]` +
+   `method: random|choice`, output `playerRole`/`roleMembers` mirroring
+   team-split's shapes; "choice" reuses team-split's claim-a-spot UI.
+   (b) checklist gains optional `rolesFrom` + role-tagged items
+   (`{text, role}` string-or-object, like rank candidates). Minimal v1
+   is (a) alone + "you are the Timekeeper" via `{{roles.mine}}`.
+   Also retires the NEXT-STEPS "secret-role" wishlist entry's
+   assignment half (rotateShuffle covers the deal half).
+5. **Sharing what you made.** Big; blocked on the no-accounts model
+   (user games are localStorage-claimed per device). Cheapest real
+   version: a share code/link that imports a copy of the config into
+   the recipient's My Activities (no live co-ownership). Decide scope
+   before building; overlaps with the Postgres-first accounts thread
+   in "Later".
 
 ### Waiting meadow + yard shed (shipped 2026-08-27; follow-ups)
 

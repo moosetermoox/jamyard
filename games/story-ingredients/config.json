@@ -1,0 +1,77 @@
+{
+  "name": "Story Ingredients",
+  "description": "Everyone contributes a character, a setting, and a twist. The piles get shuffled and dealt back out, and each student writes a story from the random hand they were dealt.",
+  "featured": false,
+  "playTime": "~20–25 min (most of it quiet writing time)",
+  "classSize": "3–35 players",
+  "tags": [
+    "creative writing",
+    "create",
+    "laugh"
+  ],
+  "minPlayers": 3,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "STORY INGREDIENTS\n\nFirst we cook up the ingredients: everyone invents a character, a setting, and a twist.\n\nThen the piles get shuffled and dealt back out. You'll write a story from the hand you're dealt, three ingredients invented by three different classmates.",
+      "next": "characters"
+    },
+    "characters": {
+      "type": "collect",
+      "prompt": "Invent a CHARACTER in a sentence or two. Give us someone worth writing about: a retired pirate ship cook, a squirrel with a five-year plan, a kid who can only tell the truth on Tuesdays...",
+      "timer": 90,
+      "next": "settings"
+    },
+    "settings": {
+      "type": "collect",
+      "prompt": "Now invent a SETTING. Where could a story happen? The last gas station before the desert, a school gym during a blackout, the inside of a vending machine...",
+      "rotateFrom": "characters",
+      "rotateShuffle": true,
+      "timer": 90,
+      "next": "twists"
+    },
+    "twists": {
+      "type": "collect",
+      "prompt": "Last ingredient: invent a TWIST, something that suddenly happens or turns out to be true. It starts raining frogs. The map was upside down the whole time. The narrator is the villain...",
+      "rotateFrom": "settings",
+      "rotateShuffle": true,
+      "timer": 90,
+      "next": "write"
+    },
+    "write": {
+      "type": "collect",
+      "prompt": "Your hand has been dealt.\n\nYOUR CHARACTER: {{characters.assigned}}\n\nYOUR SETTING: {{settings.assigned}}\n\nYOUR TWIST: {{twists.assigned}}\n\nWrite the story that uses all three. Any genre, any tone, make it yours.",
+      "rotateFrom": "twists",
+      "rotateShuffle": true,
+      "timer": 480,
+      "maxLength": 2000,
+      "simultaneousReveal": true,
+      "next": "share"
+    },
+    "share": {
+      "type": "reveal-one",
+      "message": "Story time. One dealt hand at a time.",
+      "from": "write.responses",
+      "itemTemplate": "{{_current.playerName}} wrote:\n\n{{_current.text}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Same class, same piles, completely different stories. Run it again tomorrow and the deal will be different."
+    }
+  },
+  "keywords": [
+    "creative writing",
+    "story starters",
+    "writing prompts",
+    "narrative",
+    "language arts",
+    "english",
+    "fiction",
+    "random prompt generator"
+  ]
+}

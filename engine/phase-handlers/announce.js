@@ -9,8 +9,10 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { continueLabelForPhase } from '../phases/continue-labels.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
+import { PER_PLAYER_TOKEN } from '../resolver-grammar.js';
 
-const PER_PLAYER_REF = /\{\{\s*[a-zA-Z0-9_-]+\.mine\s*\}\}/;
+// {{x.mine}} or {{x.assigned}}: each player gets their own resolved copy.
+const PER_PLAYER_REF = PER_PLAYER_TOKEN;
 
 registerHandler('announce', {
   async onEnter(ctx) {

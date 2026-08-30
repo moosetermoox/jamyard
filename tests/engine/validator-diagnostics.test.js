@@ -320,6 +320,9 @@ describe('validator diagnostics — game snapshot', () => {
       'scamper': [],
       'snowball': [],
       'story-builder': [],
+      // 2026-08-30: shuffled-deal creative writing (rotateShuffle primitive
+      // showcase, born from the owner's failed creator attempt).
+      'story-ingredients': [],
       'story-quest': [],
       'two-truths-a-lie': [],
       'vocab-match': [],
