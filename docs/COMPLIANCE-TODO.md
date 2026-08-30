@@ -96,8 +96,13 @@ the owner deletes it; the widget instructs "don't include names or
 personal info").
 
 All documents — draftable by Claude, published by the teacher.
-Blocked on three facts: operating name (person or LLC?), a dedicated
-privacy-contact email, confirmation of the named security coordinator.
+Two of the three blocking facts landed 2026-08-30: operating name is
+**Max Cady** (person, not an LLC), privacy-contact email is
+**mccady@gmail.com** (rendered obfuscated as "mccady at gmail dot com"
+on /privacy — owner doesn't want scrapers; keep the obfuscation in any
+public-facing document, use the real address in district paperwork).
+Still needed: confirmation of the named security coordinator
+(presumably also Max Cady; confirm before drafting the infosec program).
 The privacy policy's retention table must name everything a room
 snapshot contains: responses, drawings, player names, reconnect tokens,
 teacher PIN.
@@ -111,9 +116,9 @@ teacher PIN.
       contents named: responses, drawings, player names, reconnect tokens,
       teacher PIN), AI data-flow section with the defensible pii-scrub
       claim, feedback-channel retention, linked from home + library.
-      Still needed before it counts as the formal policy: the two
-      yellow-highlighted placeholders (operator name, privacy contact
-      email) + rubric pass (§ 3).
+      **Placeholders filled 2026-08-30** (operator name + obfuscated
+      privacy contact email; yellow marker style removed). Still needed
+      before it counts as the formal policy: rubric pass (§ 3).
 - [ ] **§ 49073.1 provisions in the Terms of Service** — all nine, the
       California student-data terms districts look for.
 - [ ] **Written information-security program** — named coordinator, current

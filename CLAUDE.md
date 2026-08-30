@@ -143,7 +143,7 @@ AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `
 
 ## Environment
 - `.env`: `ANTHROPIC_API_KEY` (real AI; absent = mock mode), `DATABASE_URL` (Neon; absent = filesystem), `SITE_PASSWORD` (site OWNER: feedback inbox, owner mode, built-in edits, teacher-console credential — the site itself is public), `AI_CALLS_PER_MINUTE` (default 20), `AI_DAILY_CAP` (default 500; 0 disables)
-- Local dev shares the prod DATABASE_URL — owner ★ flips affect the live site
+- Local `.env` points at a Neon **dev branch** (since 2026-08-30), isolated from prod: local DB writes never reach the live site, and owner ★ flips / built-in edits must be done on jamyard.xyz itself. Refresh dev data via the branch's "Reset from parent" in the Neon console.
 
 ## Testing
 - `npm test` — all Vitest tests (~4s; count in Current Snapshot)
