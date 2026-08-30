@@ -74,6 +74,10 @@ export function buildSubmissionList(players) {
       // Strokes ride along so the moderation panel / teacher console can
       // render a thumbnail — a text placeholder is unmoderatable.
       ...(isDrawingResponseValue(p.response) ? { drawing: p.response.strokes } : {}),
+      // Moderation-ladder "the AI wasn't sure" mark. This list reaches
+      // TEACHER surfaces only (console snapshot + submissions-update) —
+      // a flag must never render on the projected host screen.
+      ...(p.responseFlagged ? { flagged: true } : {}),
       hidden: !!p.responseHidden
     }));
 }

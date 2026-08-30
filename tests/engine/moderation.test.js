@@ -71,4 +71,13 @@ describe('buildSubmissionList', () => {
   it('returns empty list when nobody has submitted', () => {
     expect(buildSubmissionList([{ id: 'p1', name: 'Alex' }])).toEqual([]);
   });
+
+  it('carries the moderation-ladder flag so the console can mark it', () => {
+    const list = buildSubmissionList([
+      { id: 'p1', name: 'Alex', response: 'borderline thing', responseFlagged: 'harassment' },
+      { id: 'p2', name: 'Sam', response: 'fine thing' }
+    ]);
+    expect(list[0].flagged).toBe(true);
+    expect(list[1].flagged).toBeUndefined();
+  });
 });

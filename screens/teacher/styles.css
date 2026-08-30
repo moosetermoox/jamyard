@@ -205,6 +205,20 @@ h1, h2 {
 .entry-empty { color: var(--t-muted-caps); padding: 8px 0; }
 
 .entry-name { font-weight: 700; font-size: 0.85rem; }
+
+/* Moderation-ladder flag: the auto-checks punted, the teacher decides.
+   Yellow paint chip, same language as the "you" tag elsewhere. */
+.entry-flag {
+  margin-left: 8px;
+  padding: 2px 8px 3px;
+  background: var(--t-yellow);
+  color: var(--t-ink);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  box-shadow: 0 1px 2px rgba(50, 35, 15, 0.25);
+}
 .entry-text { font-size: 0.95rem; margin: 4px 0 8px; line-height: 1.35; word-wrap: break-word; }
 .entry-drawing {
   display: block;

@@ -89,7 +89,8 @@ import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
 import { contentLog } from './engine/content-log.js';
-import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE } from './engine/moderation.js';
+import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText } from './engine/moderation.js';
+import { createModerationLadder } from './services/moderation-ladder.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
 import { pickAnonymousName } from './engine/anonymous-names.js';
@@ -151,6 +152,17 @@ const aiService = new AIService({
   mode: aiMode,
   budgetStore: DB_ENABLED ? { load: getAiUsage, save: saveAiUsage } : null
 });
+// Moderation ladder: OpenAI scores block the obvious, Haiku judges the
+// uncertain band, the teacher console gets what neither could settle.
+// Off without OPENAI_API_KEY (exactly the blocklist-only behavior);
+// simulated rooms always skip it. See services/moderation-ladder.js.
+const moderationLadder = createModerationLadder({
+  apiKey: process.env.OPENAI_API_KEY,
+  aiService,
+  blockAt: Number(process.env.MODERATION_BLOCK_AT) || undefined,
+  reviewAt: Number(process.env.MODERATION_REVIEW_AT) || undefined
+});
+console.log(`[init] Moderation ladder: ${moderationLadder.enabled ? 'on (OpenAI scores + Haiku review)' : 'off — no OPENAI_API_KEY, blocklist only'}`);
 const socketToRoom = new Map();
 const roomToHost = new Map();
 
@@ -3211,7 +3223,7 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.SUBMIT_RESPONSE, (payload = {}) => {
+  socket.on(EVENTS.SUBMIT_RESPONSE, async (payload = {}) => {
     if (!checkEventPayload(socket, 'submit-response', payload)) return;
     const { code, response, pass, phaseInstanceId } = payload;
     console.log(`[submit-response] Response from ${socket.id} in room ${code}`);
@@ -3241,7 +3253,7 @@ io.on('connection', (socket) => {
         console.log(`[submit-response] Pass ignored — current phase doesn't allow passing`);
         return;
       }
-      players.update(socket.id, { response: PASS_RESPONSE, responseAt: Date.now() });
+      players.update(socket.id, { response: PASS_RESPONSE, responseAt: Date.now(), responseFlagged: null });
       recordEvent(room, 'submit-response', { player: player.name });
     } else if (currentPhase && currentPhase.type === 'collect' && currentPhase.inputType === 'drawing') {
       // Drawing submissions: structural validation only (the blocklist
@@ -3254,7 +3266,7 @@ io.on('connection', (socket) => {
         socket.emit(EVENTS.RESPONSE_REJECTED, { reason: check.reason, message: check.message });
         return;
       }
-      players.update(socket.id, { response: { strokes: check.strokes }, responseAt: Date.now() });
+      players.update(socket.id, { response: { strokes: check.strokes }, responseAt: Date.now(), responseFlagged: null });
       console.log(`[submit-response] Stored drawing (${check.strokes.length} strokes) from ${socket.id}`);
       recordEvent(room, 'submit-response', { player: player.name });
     } else {
@@ -3278,6 +3290,36 @@ io.on('connection', (socket) => {
         }
       }
 
+      // Moderation ladder (owner design 2026-08-30): the blocklist above
+      // caught words; this catches meaning (unkind messages to classmates,
+      // threats, clean-language cruelty). Only the student's OWN typed text
+      // is checked — for appendOnly, the inherited part was checked when
+      // its author submitted it. The await opens a gap, so the staleness
+      // guard and player lookup run AGAIN after it (the phase may have
+      // closed, or the student reconnected, while we waited).
+      let flaggedCategory = null;
+      const modText = responseToText(response);
+      if (moderationLadder.enabled && !room.simulated &&
+          currentPhase && currentPhase.type === 'collect' && modText.trim()) {
+        const rosterNames = players.list().map(p => p.name);
+        const verdict = await moderationLadder.check(modText, { rosterNames });
+        if (isStalePhaseEvent(room, phaseInstanceId, 'submit-response')) return;
+        if (!players.find(socket.id)) return;
+        if (verdict.action === 'reject') {
+          console.log(`[submit-response] Rejected by moderation ladder (${verdict.rung}: ${verdict.category || '?'}) from ${socket.id}`);
+          recordEvent(room, 'submit-rejected', { player: player.name, reason: 'moderation' });
+          socket.emit(EVENTS.RESPONSE_REJECTED, {
+            reason: 'moderation',
+            message: 'That message can\'t go to the class. Reword it and try again.'
+          });
+          return;
+        }
+        if (verdict.action === 'flag') {
+          flaggedCategory = verdict.category || 'uncertain';
+          recordEvent(room, 'moderation-flag', { player: player.name, category: flaggedCategory });
+        }
+      }
+
       // appendOnly: rebuild the stored response from the server's own copy of
       // the inherited text + the (filtered) addition — the client only ever
       // submits the addition, so a vandal can't gut a classmate's list.
@@ -3290,7 +3332,9 @@ io.on('connection', (socket) => {
         }
       }
 
-      players.update(socket.id, { response: storedResponse, responseAt: Date.now() });
+      // responseFlagged always written so a re-submission that comes back
+      // clean clears an earlier flag (and vice versa).
+      players.update(socket.id, { response: storedResponse, responseAt: Date.now(), responseFlagged: flaggedCategory });
       console.log(`[submit-response] Stored response from ${socket.id}`);
       recordEvent(room, 'submit-response', { player: player.name });
     }
@@ -4528,6 +4572,31 @@ io.on('connection', (socket) => {
         message: 'That language isn\'t allowed here — try rephrasing.'
       });
       return;
+    }
+
+    // Moderation ladder on the line's meaning (relay lines hit the
+    // projector directly). The await races the turn timer, so every
+    // guard re-runs after it: still a relay, not stale, still this
+    // player's turn. A ladder "flag" is journal-only here — relay has no
+    // per-entry hide surface, and blocking on uncertainty would strand a
+    // turn-based phase.
+    if (moderationLadder.enabled && !room.simulated && String(text || '').trim()) {
+      const rosterNames = room.engine.players.list().map(p => p.name);
+      const verdict = await moderationLadder.check(String(text || ''), { rosterNames });
+      if (!room.phaseState || room.phaseState.kind !== 'relay') return;
+      if (isStalePhaseEvent(room, phaseInstanceId, 'relay-submit')) return;
+      if (rs.turnOrder[rs.currentTurnIndex] !== socket.id) return;
+      if (verdict.action === 'reject') {
+        recordEvent(room, 'relay-rejected', { playerId: socket.id, reason: 'moderation' });
+        socket.emit(EVENTS.RESPONSE_REJECTED, {
+          reason: 'moderation',
+          message: 'That message can\'t go to the class. Reword it and try again.'
+        });
+        return;
+      }
+      if (verdict.action === 'flag') {
+        recordEvent(room, 'moderation-flag', { playerId: socket.id, category: verdict.category || 'uncertain' });
+      }
     }
 
     if (rs.turnTimer) { clearTimeout(rs.turnTimer); rs.turnTimer = null; }

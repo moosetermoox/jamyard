@@ -36,5 +36,13 @@ services:
       # Set the value in the dashboard (same string as local .env).
       - key: DATABASE_URL
         sync: false
+      # Moderation ladder (services/moderation-ladder.js): OpenAI's free
+      # moderation endpoint scores student text, Haiku reviews the uncertain
+      # band, the teacher console gets what neither could settle. WITHOUT
+      # this key the ladder is off and only the word blocklist runs. Set
+      # the value in the dashboard; startup log should read
+      # "[init] Moderation ladder: on".
+      - key: OPENAI_API_KEY
+        sync: false
       - key: NODE_VERSION
         value: "22"

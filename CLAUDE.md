@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1402 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1423 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **29 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -135,6 +135,7 @@ AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `
 
 ## Safety (implemented)
 - Content filter (`engine/content-filter.js` + blocklist) on submit-response, merge-draft, relay-submit
+- **Moderation ladder** (`services/moderation-ladder.js`, needs `OPENAI_API_KEY`): OpenAI moderation scores block the obvious (≥ blockAt rejects), the uncertain band goes to Haiku (`AIService.moderateText`), Haiku's "unsure" flags the entry on the teacher console ("Needs a look" chip via `responseFlagged` → `buildSubmissionList.flagged`; teacher surfaces only, never the projector). On collect submits + relay lines; NOT merge drafts (per-keystroke) or drawings (owner's call). Fail-open on OpenAI errors, fail-to-teacher on Haiku errors; sim rooms and PII-scrubbed text only
 - Drawing safety = attribution + teacher-console thumbnails + preview gate (filter can't read pictures)
 - Crash isolation: try/catch on every socket handler; unhandledRejection logs, never crashes
 - Host moderation (hide/kick); PIN brute-force lockout (`engine/pin-throttle.js`)
@@ -144,7 +145,7 @@ AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `
 - Not yet: rate limiting on non-AI socket events, PII redaction
 
 ## Environment
-- `.env`: `ANTHROPIC_API_KEY` (real AI; absent = mock mode), `DATABASE_URL` (Neon; absent = filesystem), `SITE_PASSWORD` (site OWNER: feedback inbox, owner mode, built-in edits, teacher-console credential — the site itself is public), `AI_CALLS_PER_MINUTE` (default 20), `AI_DAILY_CAP` (default 500; 0 disables)
+- `.env`: `ANTHROPIC_API_KEY` (real AI; absent = mock mode), `DATABASE_URL` (Neon; absent = filesystem), `SITE_PASSWORD` (site OWNER: feedback inbox, owner mode, built-in edits, teacher-console credential — the site itself is public), `AI_CALLS_PER_MINUTE` (default 20), `AI_DAILY_CAP` (default 500; 0 disables), `OPENAI_API_KEY` (moderation ladder; absent = blocklist only), `MODERATION_BLOCK_AT`/`MODERATION_REVIEW_AT` (ladder thresholds, defaults 0.85/0.4), `OPENAI_MODERATION_URL` (test stub override)
 - Local `.env` points at a Neon **dev branch** (since 2026-08-30), isolated from prod: local DB writes never reach the live site, and owner ★ flips / built-in edits must be done on jamyard.xyz itself. Refresh dev data via the branch's "Reset from parent" in the Neon console.
 
 ## Testing

@@ -311,6 +311,15 @@ function renderEntries(submissions) {
       name.className = 'entry-name';
       name.textContent = sub.name;
       top.appendChild(name);
+      if (sub.flagged) {
+        // Moderation ladder rung 3: the auto-checks couldn't settle this
+        // one, so the teacher is the verdict. Console-only, never projected.
+        var flag = document.createElement('span');
+        flag.className = 'entry-flag';
+        flag.textContent = 'Needs a look';
+        flag.title = 'The auto-filter wasn\'t sure about this one. Read it, and Hide it if the class shouldn\'t see it.';
+        top.appendChild(flag);
+      }
       li.appendChild(top);
 
       if (sub.drawing && window.Draw) {
