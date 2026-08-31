@@ -9,6 +9,7 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { fillPlayerNames } from '../ai-name-fill.js';
 import { contentLog } from '../content-log.js';
+import { varietySpin } from '../phases/variety-spin.js';
 
 registerHandler('ai-process', {
   async onEnter(ctx) {
@@ -25,6 +26,16 @@ registerHandler('ai-process', {
       responses = [{ text: String(input) }];
     } else {
       responses = [];
+    }
+
+    // Generate tasks synthesize content from a byte-identical instruction
+    // every session, and identical requests make the model converge on its
+    // favorite answers (Trivia Bluff served the same "obscure" facts every
+    // preview). A per-call variety spin breaks the convergence; tasks that
+    // transform student input (summarize/compare/judge) vary naturally and
+    // don't need it.
+    if (phase.task === 'generate') {
+      instruction = `${instruction}${varietySpin()}`;
     }
 
     // perPlayer mode: ask AI to generate one item per eligible player and map them

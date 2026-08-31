@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1447 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1454 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **29 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -74,6 +74,7 @@ Framework for quickly building classroom games where:
 - **New transition-bearing fields wire in SIX places**: state-machine graph, validator ref-existence, BFS+cycle (server AND client), recipe drop-rewiring, editor delete-relink.
 - **Multi-field collect responses nest under `fields.*`** — reveal templates reading top-level keys render silently blank.
 - **AI responses wrap JSON in preamble** — always regex-fallback extraction.
+- **Identical generate instructions = identical output across sessions** — ai-process appends a variety spin (random seed + inspiration word + chestnut ban, `engine/phases/variety-spin.js`) to every `generate` task at call time; never bake session randomness into recipes/configs (drift guards).
 - Phase handlers self-register in `engine/phase-handlers/` via `registerHandler(type, {onEnter, onReconnect})`; use `EVENTS` constants (`engine/events.js`) and `players.listPublic()` (strips tokens).
 - Review prompts in `services/ai-service.js` (PHASE_EXTRA_GUIDANCE) must be updated when adding phase types.
 - Client validation in `screens/designer/editor.js` mirrors server validation in `engine/game-loader.js` — change both.
