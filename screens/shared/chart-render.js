@@ -13,8 +13,10 @@
 (function () {
   'use strict';
 
-  // One chart line: label, block-character bar, count, percent.
-  var CHART_LINE = /^(.*?)\s*([█░]+)\s*(\d+)\s*\((\d+)%\)\s*$/;
+  // One chart line: label, block-character bar, count, percent, and an
+  // optional trailing ✓ (the engine marks the correct answer's row on
+  // graded charts — see formatBarChart).
+  var CHART_LINE = /^(.*?)\s*([█░]+)\s*(\d+)\s*\((\d+)%\)\s*(✓)?\s*$/;
 
   function containsChart(text) {
     return /[█░]/.test(String(text == null ? '' : text));
@@ -38,7 +40,7 @@
       var m = lines[i].match(CHART_LINE);
       if (m) {
         flushText();
-        var row = { label: m[1], count: parseInt(m[3], 10), pct: parseInt(m[4], 10) };
+        var row = { label: m[1], count: parseInt(m[3], 10), pct: parseInt(m[4], 10), correct: !!m[5] };
         var last = segments[segments.length - 1];
         if (last && last.type === 'chart') last.rows.push(row);
         else segments.push({ type: 'chart', rows: [row] });
@@ -51,23 +53,37 @@
   }
 
   // Build the chart element: a 3-column grid (label | bar | count).
-  // Bar widths are relative to the biggest count; every row that ties for
-  // the lead gets the accent color.
+  // Bar widths are relative to the biggest count. Color logic: on a GRADED
+  // chart (a ✓-marked row exists) only the correct answer's bar is green —
+  // coloring the biggest bar there read as "the popular pick was right"
+  // whenever the class guessed wrong. Ungraded charts (polls, votes) keep
+  // the accent on every row that ties for the lead.
   function buildChart(rows) {
     var wrap = document.createElement('div');
     wrap.className = 'msg-chart';
     var max = 0;
-    rows.forEach(function (r) { if (r.count > max) max = r.count; });
+    var hasCorrect = false;
+    rows.forEach(function (r) {
+      if (r.count > max) max = r.count;
+      if (r.correct) hasCorrect = true;
+    });
     rows.forEach(function (r) {
       var label = document.createElement('span');
-      label.className = 'msg-chart-label';
+      label.className = 'msg-chart-label' + (r.correct ? ' correct' : '');
       label.textContent = r.label;
+      if (r.correct) {
+        var check = document.createElement('span');
+        check.className = 'msg-chart-check';
+        check.textContent = '✓';
+        label.appendChild(check);
+      }
       wrap.appendChild(label);
 
       var track = document.createElement('div');
       track.className = 'msg-chart-track';
       var fill = document.createElement('div');
-      fill.className = 'msg-chart-fill' + (max > 0 && r.count === max ? ' top' : '');
+      fill.className = 'msg-chart-fill' + (r.correct ? ' correct'
+        : (!hasCorrect && max > 0 && r.count === max ? ' top' : ''));
       // Zero stays zero; anything above zero gets at least a sliver.
       var w = max > 0 ? Math.round((r.count / max) * 100) : 0;
       fill.style.width = (r.count > 0 ? Math.max(w, 4) : 0) + '%';

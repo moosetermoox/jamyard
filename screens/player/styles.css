@@ -464,6 +464,11 @@ button[hidden] {
 /* Leading bar pops. --theme-success, not accent: paste-up's accent slot
    is ink; its loud vermillion lives in success. */
 .msg-chart-fill.top { background: var(--theme-success, #D9481C); }
+/* Graded charts: only the CORRECT answer's bar goes green (a green
+   most-picked bar read as "the popular pick was right"). */
+.msg-chart-fill.correct { background: var(--theme-success, #22A05A); }
+.msg-chart-label.correct { font-weight: 800; }
+.msg-chart-check { color: var(--theme-success, #22A05A); font-weight: 800; margin-left: 6px; }
 .msg-chart-value {
   font-weight: 700;
   font-variant-numeric: tabular-nums;

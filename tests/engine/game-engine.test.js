@@ -532,5 +532,46 @@ describe('GameEngine', () => {
       engine.storePhaseData('lobby', { tally: {} });
       expect(engine.resolve('lobby.barChart')).toBe('(no responses)');
     });
+
+    // Graded charts: the stored resolved correctAnswer marks its row with a
+    // trailing ✓ so the screens can color THAT bar green (not the biggest —
+    // a green most-popular bar read as "right" when the class guessed wrong).
+    it('marks the correct answer row with a trailing check on graded charts', () => {
+      const engine = new GameEngine({
+        phases: { lobby: { type: 'lobby', next: 'end' }, end: { type: 'end' } }
+      });
+      engine.storePhaseData('quiz', { tally: { Paris: 2, London: 5 }, correctAnswer: 'Paris' });
+      const lines = engine.resolve('quiz.barChart').split('\n');
+      expect(lines[0]).toContain('London');
+      expect(lines[0]).not.toContain('✓');
+      expect(lines[1]).toContain('Paris');
+      expect(lines[1]).toMatch(/✓\s*$/);
+    });
+
+    it('matches the correct answer like scoring does (trim + case-insensitive)', () => {
+      const engine = new GameEngine({
+        phases: { lobby: { type: 'lobby', next: 'end' }, end: { type: 'end' } }
+      });
+      engine.storePhaseData('quiz', { tally: { Paris: 3 }, correctAnswer: '  paris ' });
+      expect(engine.resolve('quiz.barChart')).toMatch(/Paris.*✓\s*$/);
+    });
+
+    it('adds a zero row when nobody picked the correct answer', () => {
+      const engine = new GameEngine({
+        phases: { lobby: { type: 'lobby', next: 'end' }, end: { type: 'end' } }
+      });
+      engine.storePhaseData('quiz', { tally: { London: 5, Rome: 1 }, correctAnswer: 'Paris' });
+      const chart = engine.resolve('quiz.barChart');
+      expect(chart).toContain('Paris');
+      expect(chart).toMatch(/Paris\s+░+\s+0 \(0%\) ✓/);
+    });
+
+    it('never marks ungraded charts (polls and votes keep no check)', () => {
+      const engine = new GameEngine({
+        phases: { lobby: { type: 'lobby', next: 'end' }, end: { type: 'end' } }
+      });
+      engine.storePhaseData('poll', { tally: { Yes: 4, No: 2 } });
+      expect(engine.resolve('poll.barChart')).not.toContain('✓');
+    });
   });
 });

@@ -195,7 +195,11 @@ export class GameEngine {
       // bare {{X.barChart}} reads X.tally (backward compat).
       // Deeper paths (e.g. {{X.tally.barChart}}) use the resolved value directly.
       const tally = (segments.length === 1) ? (data && data.tally) : value;
-      return formatBarChart(tally);
+      // Graded collect-choice stores its RESOLVED correctAnswer in phase
+      // data at close (server close-submissions) — bare charts of such a
+      // phase mark that row. Deeper paths chart arbitrary data; no marking.
+      const markCorrect = (segments.length === 1) ? (data && data.correctAnswer) : undefined;
+      return formatBarChart(tally, markCorrect);
     }
 
     // Suffix not handled by engine (.count/.json/.mine) or no suffix —
@@ -363,13 +367,25 @@ function formatList(value) {
   }).join('\n');
 }
 
-function formatBarChart(tally) {
+function formatBarChart(tally, correctAnswer) {
   if (!tally || typeof tally !== 'object') return '';
-  const entries = Object.entries(tally);
+  let entries = Object.entries(tally);
   if (entries.length === 0) return '(no responses)';
 
   const max = Math.max(...entries.map(([, n]) => Number(n) || 0));
   if (max === 0) return '(no responses)';
+
+  // Graded charts mark the correct answer's row with a trailing ✓ (same
+  // trim+lowercase match as speed-scoring). The screens color THAT row
+  // green — without the mark they colored the most-picked row, which read
+  // as "this was right" whenever the class guessed wrong. If nobody picked
+  // the correct answer it gets a zero row, the most confusing case of all.
+  const norm = (s) => String(s).trim().toLowerCase();
+  const normAnswer = correctAnswer == null || String(correctAnswer).trim() === ''
+    ? null : norm(correctAnswer);
+  if (normAnswer && !entries.some(([label]) => norm(label) === normAnswer)) {
+    entries = entries.concat([[String(correctAnswer), 0]]);
+  }
 
   const maxBar = 20;
   const maxLabelLen = Math.max(...entries.map(([label]) => String(label).length));
@@ -383,7 +399,8 @@ function formatBarChart(tally) {
       const bar = '█'.repeat(barLen) + '░'.repeat(maxBar - barLen);
       const pct = total > 0 ? Math.round((n / total) * 100) : 0;
       const paddedLabel = String(label).padEnd(maxLabelLen);
-      return `${paddedLabel}  ${bar}  ${n} (${pct}%)`;
+      const mark = normAnswer && norm(label) === normAnswer ? ' ✓' : '';
+      return `${paddedLabel}  ${bar}  ${n} (${pct}%)${mark}`;
     })
     .join('\n');
 }
