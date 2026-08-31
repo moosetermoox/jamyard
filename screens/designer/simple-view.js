@@ -27,6 +27,7 @@
   var svSettingsOpen = false; // "All settings" expander state
   var svFormPhaseId = null;  // which step #phase-config-form is filled for
   var svRendering = false;   // re-entrancy guard (see renderCanvas wrapper)
+  var svOpenSub = null;      // 'phaseId:subName' — the one expanded round screen
   // Parked (owner's call 2026-08-20): the raw-field expander is hidden —
   // small things live on the card, everything else goes through the AI
   // chat. Flip to true to bring "All settings" back.
@@ -252,7 +253,9 @@
     }
     segments.push(value.slice(last));
 
-    var box = el('div', 'sv-text sv-token-box');
+    // no-mic: one mic badge per text segment turned a chip-bearing prompt
+    // into a wall of controls; the plain text boxes keep their mics.
+    var box = el('div', 'sv-text sv-token-box no-mic');
 
     function rebuild() {
       var out = segments[0];
@@ -338,6 +341,24 @@
 
   function fact(text) {
     return el('span', 'sv-fact', text);
+  }
+
+  // A fact built from arbitrary-length content (field labels, item lists)
+  // must be allowed to wrap — nowrap facts fly out of the card and drag a
+  // horizontal scrollbar across the whole page (Rose, Bud, Thorn 2026-08-31).
+  function wrapFact(text) {
+    return el('span', 'sv-fact sv-fact-wrap', text);
+  }
+
+  // One-line gist of a round screen's text for the folded summary row:
+  // tokens become their friendly labels, whitespace collapses, CSS
+  // ellipsizes the rest.
+  function subPreviewText(value) {
+    var text = String(value || '');
+    TOKEN_RE.lastIndex = 0;
+    text = text.replace(TOKEN_RE, function (tok) { return '⟨' + svTokenLabel(tok) + '⟩'; });
+    text = text.replace(/\s+/g, ' ').trim();
+    return text === '' ? '(empty)' : text;
   }
 
   // "reads [8] of them at random" — empty means every answer gets a round
@@ -796,7 +817,7 @@
         if (phase.passAllowed) d.facts.push(fact('passing allowed'));
         if (phase.simultaneousReveal) d.facts.push(fact('answers hidden until everyone is done'));
         if (Array.isArray(phase.fields) && phase.fields.length) {
-          d.facts.push(fact(phase.fields.length + ' answer boxes: ' + phase.fields.map(function (f) { return f.label; }).join(', ')));
+          d.facts.push(wrapFact(phase.fields.length + ' answer boxes: ' + phase.fields.map(function (f) { return f.label; }).join(', ')));
         }
         d.facts.push(timerFact(phase));
         d.media = mediaEditor(phase);
@@ -1058,19 +1079,39 @@
 
       case 'foreach': {
         d.sentence = 'For each item from ' + (phase.data ? humanizeRef(phase.data).toLowerCase() : '…') + ', the class:';
+        // Round screens fold to one-line summaries; tapping one opens just
+        // that screen's editor. All three at once was a wall of boxes
+        // (owner report 2026-08-31: "the for each block is overwhelming").
         var subWrap = el('div', 'sv-subs');
         var subNames = phase.subPhases ? Object.keys(phase.subPhases) : [];
         for (var si = 0; si < subNames.length; si++) {
-          (function (sub) {
-            var row = el('div', 'sv-sub');
+          (function (sub, subName) {
             var key = sub.type === 'announce' ? 'message' : 'prompt';
             var lead = sub.type === 'announce' ? 'sees:'
               : sub.type === 'collect-choice' ? 'picks one:'
               : 'writes:';
-            row.appendChild(el('span', 'sv-sub-lead', '· ' + lead));
-            row.appendChild(textBox(sub[key], '…', function (v) { sub[key] = v; }));
+            var openKey = phaseId + ':' + subName;
+            var isOpen = svOpenSub === openKey;
+
+            var row = el('div', 'sv-sub' + (isOpen ? ' sv-sub-open' : ''));
+            var head = el('button', 'sv-sub-head');
+            head.type = 'button';
+            head.title = isOpen ? 'Close this screen' : 'Open this screen to edit it';
+            head.appendChild(el('span', 'sv-sub-lead', (isOpen ? '▾ ' : '▸ ') + lead));
+            if (!isOpen) {
+              head.appendChild(el('span', 'sv-sub-preview', subPreviewText(sub[key])));
+            }
+            head.addEventListener('click', function () {
+              if (typeof autoSaveIfDirty === 'function') autoSaveIfDirty();
+              svOpenSub = isOpen ? null : openKey;
+              renderSimpleView();
+            });
+            row.appendChild(head);
+            if (isOpen) {
+              row.appendChild(textBox(sub[key], '…', function (v) { sub[key] = v; }));
+            }
             subWrap.appendChild(row);
-          })(phase.subPhases[subNames[si]]);
+          })(phase.subPhases[subNames[si]], subNames[si]);
         }
         d.extra = subWrap;
         d.facts.push(limitFact(phase));
@@ -1323,6 +1364,21 @@
       if (window.openDesignChat) openDesignChat(svSelectedId);
     });
     actions.appendChild(askBtn);
+
+    // Walk down the totem without reaching back to the stack: a Next
+    // button on every card but the last (owner ask 2026-08-31).
+    var selIdx = order.indexOf(svSelectedId);
+    if (selIdx !== -1 && selIdx < order.length - 1) {
+      var nextBtn = el('button', 'sv-action sv-action-quiet sv-next-btn', 'Next step ↓');
+      nextBtn.type = 'button';
+      nextBtn.addEventListener('click', function () {
+        if (typeof autoSaveIfDirty === 'function') autoSaveIfDirty();
+        if (svSettingsOpen) returnPhaseForm();
+        svSelectedId = order[selIdx + 1];
+        renderSimpleView();
+      });
+      actions.appendChild(nextBtn);
+    }
 
     if (SV_ALL_SETTINGS_ENABLED) {
       var advBtn = el('button', 'sv-action sv-action-quiet',

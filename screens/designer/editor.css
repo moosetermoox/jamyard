@@ -1946,6 +1946,9 @@ textarea.sar-input {
 }
 
 .sv-fact { white-space: nowrap; }
+/* Facts carrying arbitrary-length content (answer-box labels) must wrap
+   instead of dragging a horizontal scrollbar across the page. */
+.sv-fact-wrap { white-space: normal; overflow-wrap: anywhere; }
 .sv-fact-sep { color: #ccc; }
 
 .sv-timer {
@@ -2085,12 +2088,40 @@ textarea.sar-input {
 
 .sv-subs { margin-top: 6px; }
 
+/* Round screens fold to one-line summary rows; the tapped one opens its
+   editor below the row (all three editors at once was a wall of boxes). */
 .sv-sub {
   display: flex;
-  gap: 8px;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 4px;
+  align-items: stretch;
   margin-bottom: 6px;
   padding-left: 8px;
+}
+
+.sv-sub-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sv-sub-head:hover .sv-sub-lead { text-decoration: underline; }
+
+.sv-sub-preview {
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 0.85rem;
+  color: #888;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sv-sub-lead {
@@ -2122,6 +2153,9 @@ textarea.sar-input {
 .sv-action:hover { text-decoration: underline; }
 
 .sv-action-quiet { color: #888; }
+
+/* Walk down the totem from the card itself. */
+.sv-next-btn { margin-left: auto; }
 
 #simple-add-step { margin: 4px 0 40px; }
 
@@ -4137,6 +4171,21 @@ body::before { content: none; }
   text-transform: none;
   letter-spacing: 0;
 }
+
+/* The Next button is a second block in a wood tone, pushed to the card's
+   right edge so Ask AI keeps the lead position. */
+.sv-next-btn {
+  background: #6B6250;
+  color: #FDF9F0;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.sv-sub-preview { color: #857A66; }
 
 .sv-action-quiet:hover { color: #E5482B; transform: none; }
 

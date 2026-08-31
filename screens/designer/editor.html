@@ -94,24 +94,10 @@
         </select>
         <span class="field-help">Anonymous: students join without giving a name and get a random play name like Amber Fox.</span>
       </div>
-      <div class="config-section-header">Style</div>
-      <div class="form-group">
-        <label for="game-theme">Theme</label>
-        <select id="game-theme">
-          <option value="">(Default)</option>
-        </select>
-      </div>
-      <div id="custom-theme-section" hidden>
-        <div class="form-group">
-          <label for="custom-theme-desc">Describe your theme</label>
-          <textarea id="custom-theme-desc" rows="3" placeholder="e.g. underwater ocean with coral accents, space theme with stars..."></textarea>
-          <span class="field-help">AI will generate a color palette from your description</span>
-        </div>
-        <button id="generate-theme-btn" class="btn btn-secondary" style="margin-bottom:12px;" title="AI creates a custom color theme from your description">Generate Colors</button>
-      </div>
-      <div id="theme-preview" hidden>
-        <div id="theme-preview-swatches" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;"></div>
-      </div>
+      <!-- Theme picker removed from the sidebar 2026-08-31 (owner's call:
+           not needed right now). The engine still honors config.theme on
+           existing games; the guarded wiring in editor.js stays for an
+           easy re-enable. -->
     </aside>
 
     <!-- The editor (Totem 9d, one face): the activity is a stack of
