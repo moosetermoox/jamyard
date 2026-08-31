@@ -1124,7 +1124,7 @@ socket.on('announce', ({ message, image, video, displayDrawing, timer, continueL
   }
 });
 
-socket.on('leaderboard', ({ standings, teamStandings, style, timer, hostTemplate, show }) => {
+socket.on('leaderboard', ({ standings, teamStandings, style, final, timer, hostTemplate, show }) => {
   showSection(leaderboardSection);
   applyTemplate(leaderboardSection, hostTemplate);
   applyShow(show, {
@@ -1133,7 +1133,13 @@ socket.on('leaderboard', ({ standings, teamStandings, style, timer, hostTemplate
     timer: leaderboardTimer
   });
 
-  if (J) J.sound('tada');
+  if (J) {
+    J.sound('tada');
+    // The finale board (server says the end screen is next) is the winning
+    // moment for leaderboard-ended activities like Speed Quiz — the meadow
+    // blocks cheer on the projector. Mid-game boards stay quiet.
+    if (final && J.cheer) J.cheer();
+  }
   leaderboardStandings.innerHTML = '';
   if (teamStandings && teamStandings.length > 0) {
     // Team competition: teams lead the projector, each with its members'

@@ -99,12 +99,20 @@ registerHandler('leaderboard', {
     engine.storePhaseData(phase.id, { standings, teamStandings, style });
     const sc = ctx.resolveScreenControl();
 
+    // Is this the FINALE board? True when the next stop is the end screen
+    // (or there is none). The host screen gives that one the full winner
+    // celebration; mid-game boards stay quiet so it can't wear out.
+    const nextId = ctx.getNextPhaseId();
+    const nextPhase = nextId ? engine.config.phases[nextId] : null;
+    const final = !nextId || !!(nextPhase && nextPhase.type === 'end');
+
     console.log(`[handlePhase] Leaderboard: ${standings.length} players` +
-      (teamStandings ? `, ${teamStandings.length} teams` : '') + `, style=${style}`);
+      (teamStandings ? `, ${teamStandings.length} teams` : '') + `, style=${style}` +
+      (final ? ', final' : ''));
 
     // Send to host
     ctx.emitToHost(EVENTS.LEADERBOARD, {
-      standings: display, allStandings: standings, teamStandings, style,
+      standings: display, allStandings: standings, teamStandings, style, final,
       timer: phase.timer || null,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
@@ -121,14 +129,11 @@ registerHandler('leaderboard', {
     }
 
     // Auto-advance with timer
-    if (phase.timer) {
-      const nextId = ctx.getNextPhaseId();
-      if (nextId) {
-        setTimeout(async () => {
-          if (ctx.isStale()) return;
-          await ctx.advanceTo(nextId);
-        }, phase.timer * 1000);
-      }
+    if (phase.timer && nextId) {
+      setTimeout(async () => {
+        if (ctx.isStale()) return;
+        await ctx.advanceTo(nextId);
+      }, phase.timer * 1000);
     }
   },
 
