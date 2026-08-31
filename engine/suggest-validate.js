@@ -10,8 +10,19 @@
 // (screens/shared/step-suggestions.js).
 export const STORYBOARD_BRICKS = [
   'announce', 'collect', 'collect-two', 'collect-choice', 'estimate',
-  'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'quiz', 'teams', 'end'
+  'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'quiz', 'teams',
+  'chain', 'end'
 ];
+
+const MAX_CHAIN_HOPS = 6;
+
+// Chain fields ride through the concierge only in this trimmed shape;
+// compileStoryboard re-validates (start/hops required, sentence needs
+// blind, template tokens stripped from blind prompts, etc.).
+function cleanHops(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.slice(0, MAX_CHAIN_HOPS).filter(h => typeof h === 'string').map(h => h.slice(0, 500));
+}
 
 const MAX_QUIZ_QUESTIONS = 15;
 
@@ -110,6 +121,10 @@ export function validateSuggestions(raw, ctx) {
             speedBonus: typeof s.speedBonus === 'boolean' ? s.speedBonus : undefined,
             teamCount: typeof s.teamCount === 'number' ? s.teamCount : undefined,
             groupSize: typeof s.groupSize === 'number' ? s.groupSize : undefined,
+            start: typeof s.start === 'string' ? s.start.slice(0, 500) : undefined,
+            hops: cleanHops(s.hops),
+            visibility: ['all', 'tail', 'blind'].includes(s.visibility) ? s.visibility : undefined,
+            sentence: typeof s.sentence === 'string' ? s.sentence.slice(0, 300) : undefined,
             timer: typeof s.timer === 'number' ? s.timer : undefined
           }))
         },

@@ -17,7 +17,7 @@
     {
       "id": "exquisite-corpse-blind-sentence",
       "prompt": "Students build sentences together, but each student adds only ONE word and cannot see any of the words written before theirs. At the end everyone sees the surprise sentence they started, finished by classmates.",
-      "expect": { "kind": "recipe", "recipe": "exquisite-corpse" }
+      "expect": { "kind": "recipe", "recipe": "exquisite-corpse", "acceptAlso": ["host:exquisite-corpse"] }
     },
     {
       "id": "folded-story-tail",
@@ -58,7 +58,7 @@
     {
       "id": "drawing-bluff",
       "prompt": "Students draw a picture of a phrase, then everyone writes fake captions for each other's drawings and tries to spot the real one.",
-      "expect": { "kind": "host", "game": "doodle-bluff" }
+      "expect": { "kind": "host", "game": "doodle-bluff", "acceptAlso": ["recipe:doodle-bluff"] }
     },
     {
       "id": "vocab-riddles",
@@ -79,9 +79,27 @@
       "note": "KNOWN MISS 2026-08-30 baseline: the matcher picked recipe:creative-vote instead of handing off (noMatch) — it fakes a weak fit rather than letting the storyboard generator build the guessing-rounds shape. Matcher-prompt finding, parked."
     },
     {
+      "id": "hypothesis-relay",
+      "prompt": "Each student writes a hypothesis about tomorrow's egg drop experiment. It passes to a classmate who adds one piece of supporting evidence or reasoning, then to another classmate who adds a counterargument. At the end everyone sees what happened to the hypothesis they wrote.",
+      "expect": {
+        "kind": "storyboard",
+        "acceptAlso": ["recipe:idea-chain"],
+        "storyboard": {
+          "name": "Hypothesis Relay",
+          "description": "A hypothesis travels: one classmate argues for it, another argues against, then it comes home.",
+          "steps": [
+            { "brick": "announce", "text": "Science court is in session. You will write a hypothesis about tomorrow's egg drop, and two classmates will put it on trial." },
+            { "brick": "chain", "start": "Write one hypothesis about tomorrow's egg drop experiment. What will happen, and to which design?", "hops": ["Read the hypothesis above. Add ONE piece of supporting evidence or reasoning below it.", "Read the hypothesis and the evidence above. Add ONE counterargument or complication below them."], "visibility": "all", "timer": 120 },
+            { "brick": "end", "text": "Every hypothesis got a defender and a skeptic. Tomorrow, the eggs decide." }
+          ]
+        }
+      },
+      "note": "The chain-brick case: per-hop instructions differ, so no fixed recipe covers it. idea-chain is a defensible near-match."
+    },
+    {
       "id": "quick-class-poll",
       "prompt": "I just want to ask the class one question and see everyone's answers on the board.",
-      "expect": { "kind": "recipe", "recipe": "question-share", "params": { "question": "What is one thing you learned today?" } }
+      "expect": { "kind": "recipe", "recipe": "question-share", "params": { "question": "What is one thing you learned today?" }, "acceptAlso": ["host:question-share"] }
     },
     {
       "id": "podcast-segment",

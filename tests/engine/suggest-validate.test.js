@@ -79,7 +79,33 @@ describe('validateSuggestions', () => {
   it('exports the storyboard brick vocabulary', () => {
     expect(STORYBOARD_BRICKS).toContain('collect-two');
     expect(STORYBOARD_BRICKS).toContain('guessing-rounds');
+    expect(STORYBOARD_BRICKS).toContain('chain');
     expect(STORYBOARD_BRICKS).not.toContain('foreach');
+  });
+
+  it('carries chain fields through in trimmed shape', () => {
+    const sb = { name: 'Pass It On', steps: [
+      { brick: 'chain', start: 'Write a line.', hops: ['Add a line.', 'Add another.', 42],
+        visibility: 'tail', sentence: 'The {1} {2}.', timer: 60 },
+      { brick: 'end', text: 'Done.' }
+    ] };
+    const out = validateSuggestions([{ kind: 'storyboard', storyboard: sb, why: 'w' }], ctx);
+    expect(out.suggestions.length).toBe(1);
+    const step = out.suggestions[0].storyboard.steps[0];
+    expect(step.start).toBe('Write a line.');
+    expect(step.hops).toEqual(['Add a line.', 'Add another.']); // non-strings dropped
+    expect(step.visibility).toBe('tail');
+    expect(step.sentence).toBe('The {1} {2}.');
+    expect(step.timer).toBe(60);
+  });
+
+  it('drops an illegal chain visibility rather than passing it through', () => {
+    const sb = { name: 'X', steps: [
+      { brick: 'chain', start: 's', hops: ['h'], visibility: 'x-ray' },
+      { brick: 'end' }
+    ] };
+    const out = validateSuggestions([{ kind: 'storyboard', storyboard: sb, why: 'w' }], ctx);
+    expect(out.suggestions[0].storyboard.steps[0].visibility).toBeUndefined();
   });
 });
 

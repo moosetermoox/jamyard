@@ -16,12 +16,23 @@
  * "storyboard" or "cantBuild" count as matched when the matcher says
  * noMatch (handing off is the right behavior).
  *
- * Requires ANTHROPIC_API_KEY (~12 Haiku calls per run):
+ * SECOND LEG: for entries expecting "storyboard" or "cantBuild", the LIVE
+ * storyboard generator also runs (one Sonnet call each): a storyboard
+ * entry passes when the generated storyboard compiles through
+ * compileStoryboard with zero problems and validates clean; a cantBuild
+ * entry passes when the generator honestly refuses. This is the gate for
+ * storyboard-prompt edits (e.g. teaching it a new brick).
+ *
+ * Requires ANTHROPIC_API_KEY (~12 Haiku + ~3 Sonnet calls per run):
  *   node scripts/eval-designer-prompts.js
  */
 import 'dotenv/config';
 import { readFile, readdir } from 'node:fs/promises';
 import { AIService } from '../services/ai-service.js';
+import { validate } from '../engine/game-loader.js';
+import '../screens/shared/step-suggestions.js';
+
+const StepSuggestions = globalThis.StepSuggestions;
 
 const ROOT = new URL('..', import.meta.url);
 
@@ -93,10 +104,54 @@ for (const entry of corpus.prompts) {
   console.log(`${hit ? '✓' : '✗'} ${entry.id}\n    expected ${expectedLabel(entry.expect)}\n    got      ${gotLabel(result)}`);
 }
 
-console.log(`\n${hits}/${corpus.prompts.length} prompts resolved as expected.`);
+console.log(`\n${hits}/${corpus.prompts.length} prompts resolved as expected (matcher leg).`);
 const misses = rows.filter(r => !r.hit);
 if (misses.length) {
   console.log('Misses:', misses.map(m => m.id).join(', '));
   console.log('A single flip is Haiku wobble; a cluster after a prompt edit is a regression.');
 }
-process.exit(misses.length > 0 ? 1 : 0);
+
+// ---- Second leg: the live storyboard generator ----
+const sbEntries = corpus.prompts.filter(e =>
+  e.expect.kind === 'storyboard' || e.expect.kind === 'cantBuild');
+let sbHits = 0;
+const sbMisses = [];
+console.log(`\n--- storyboard generator leg (${sbEntries.length} Sonnet calls) ---`);
+for (const entry of sbEntries) {
+  let verdict;
+  let ok = false;
+  try {
+    const result = await service.generateStoryboard(entry.prompt);
+    if (entry.expect.kind === 'cantBuild') {
+      ok = result.cantBuild === true;
+      verdict = result.cantBuild ? `cantBuild: "${result.reason}"`
+        : result.error ? `error: ${result.error}`
+        : `built a storyboard anyway (${(result.steps || []).map(s => s.brick).join(' → ')})`;
+    } else if (result.cantBuild) {
+      verdict = `cantBuild: "${result.reason}"`;
+    } else if (result.error) {
+      verdict = `error: ${result.error}`;
+    } else {
+      const { config, problems } = StepSuggestions.compileStoryboard(result);
+      const bricks = (result.steps || []).map(s => s.brick).join(' → ');
+      if (!config || problems.length) {
+        verdict = `compiled with problems [${bricks}]: ${problems.join(' | ')}`;
+      } else {
+        const { errors } = validate(
+          { name: result.name || entry.id, description: result.description || '', phases: config.phases },
+          entry.id, { returnResults: true }
+        );
+        ok = errors.length === 0;
+        verdict = ok ? `hostable storyboard [${bricks}]`
+          : `validator errors [${bricks}]: ${errors.join(' | ')}`;
+      }
+    }
+  } catch (e) {
+    verdict = `ERROR: ${e.message}`;
+  }
+  if (ok) sbHits++; else sbMisses.push(entry.id);
+  console.log(`${ok ? '✓' : '✗'} ${entry.id}\n    ${verdict}`);
+}
+console.log(`\n${sbHits}/${sbEntries.length} storyboard-leg entries as expected.`);
+
+process.exit(misses.length + sbMisses.length > 0 ? 1 : 0);

@@ -493,3 +493,162 @@ describe('insertAfter rewires the chain', () => {
     expect(S.orderedPhaseIds(phases)).toEqual(['lobby', 'ask', 'mid', 'end']);
   });
 });
+
+// The chain brick — pass-around mechanics (telephone, consequences,
+// exquisite corpse) compiled deterministically: the AI supplies only the
+// per-hop instructions and a visibility choice; every rotateFrom link,
+// accumulate flag, and the return-to-author reveal is emitted here.
+// Bricks are mechanics, not phases: the AI never wires a chain itself.
+describe('chain brick', () => {
+  function compile(step, extra) {
+    return S.compileStoryboard({
+      name: 'Chain Test',
+      steps: [step].concat(extra || [{ brick: 'end', text: 'Done!' }])
+    });
+  }
+
+  it('visibility "all" compiles an accumulating add-only chain + final reveal, hostable as-is', () => {
+    const { config, problems } = compile({
+      brick: 'chain',
+      start: 'Write the opening line of a story.',
+      hops: ['Add the next line.', 'Add one more line.'],
+      visibility: 'all',
+      timer: 90
+    });
+    expect(problems).toEqual([]);
+    const phases = config.phases;
+    const collects = S.orderedPhaseIds(phases).filter(id => phases[id].type === 'collect');
+    expect(collects.length).toBe(3);
+    const [startId, hop1, hop2] = collects;
+    expect(phases[startId].prompt).toContain('opening line');
+    expect(phases[startId].rotateFrom).toBeUndefined();
+    expect(phases[hop1].rotateFrom).toBe(startId);
+    expect(phases[hop2].rotateFrom).toBe(hop1);
+    for (const id of [hop1, hop2]) {
+      expect(phases[id].prefillFromAssigned).toBe(true);
+      expect(phases[id].appendOnly).toBe(true);
+      expect(phases[id].showTail).toBeUndefined();
+      expect(phases[id].timer).toBe(90);
+    }
+    const reveal = Object.values(phases).find(p => p.type === 'reveal');
+    expect(reveal.scope).toBe('own');
+    expect(reveal.chainFrom).toEqual(collects);
+    expect(reveal.chainDisplay).toBe('final');
+    validateGame(phases, 'chain all');
+  });
+
+  it('visibility "tail" adds the fold (showTail on every hop)', () => {
+    const { config, problems } = compile({
+      brick: 'chain',
+      start: 'Start a story.',
+      hops: ['Continue from the last words you can see.'],
+      visibility: 'tail'
+    });
+    expect(problems).toEqual([]);
+    const phases = config.phases;
+    const hop = Object.values(phases).find(p => p.type === 'collect' && p.rotateFrom);
+    expect(hop.appendOnly).toBe(true);
+    expect(hop.showTail).toBe(3);
+    validateGame(phases, 'chain tail');
+  });
+
+  it('visibility "blind" with a sentence assembles via the template reveal', () => {
+    const { config, problems } = compile({
+      brick: 'chain',
+      start: 'Write one adjective.',
+      hops: ['Write one noun.', 'Write one verb ending in s.'],
+      visibility: 'blind',
+      sentence: 'The {1} {2} {3}.'
+    });
+    expect(problems).toEqual([]);
+    const phases = config.phases;
+    const collects = S.orderedPhaseIds(phases).filter(id => phases[id].type === 'collect');
+    for (const id of collects) {
+      expect(phases[id].prefillFromAssigned, id).toBeUndefined();
+      expect(phases[id].appendOnly, id).toBeUndefined();
+      expect(phases[id].prompt, id).not.toContain('{{');
+      expect(phases[id].maxLength, id).toBe(40);
+    }
+    const reveal = Object.values(phases).find(p => p.type === 'reveal');
+    expect(reveal.chainDisplay).toBe('template');
+    expect(reveal.chainTemplate).toBe('The {1} {2} {3}.');
+    validateGame(phases, 'chain blind + sentence');
+  });
+
+  it('visibility "blind" without a sentence lists the hops instead', () => {
+    const { config, problems } = compile({
+      brick: 'chain',
+      start: 'Write a prediction.',
+      hops: ['Write a consequence of the prediction you cannot see.'],
+      visibility: 'blind'
+    });
+    expect(problems).toEqual([]);
+    const reveal = Object.values(config.phases).find(p => p.type === 'reveal');
+    expect(reveal.chainDisplay).toBe('steps');
+    expect(reveal.chainTemplate).toBeUndefined();
+    validateGame(config.phases, 'chain blind steps');
+  });
+
+  it('strips template tokens from blind prompts and says so (the fold must hold)', () => {
+    const { config, problems } = compile({
+      brick: 'chain',
+      start: 'Write a word.',
+      hops: ['You got: {{chain-start.assigned}}. Add a word.'],
+      visibility: 'blind'
+    });
+    expect(problems.some(p => p.includes('blind'))).toBe(true);
+    const hop = Object.values(config.phases).find(p => p.type === 'collect' && p.rotateFrom);
+    expect(hop.prompt).not.toContain('{{');
+    validateGame(config.phases, 'chain blind sanitized');
+  });
+
+  it('a sentence on a non-blind chain is refused, not silently mis-assembled', () => {
+    const { config, problems } = compile({
+      brick: 'chain',
+      start: 'Start.',
+      hops: ['Add.'],
+      visibility: 'all',
+      sentence: 'The {1} {2}.'
+    });
+    expect(problems.some(p => p.includes('sentence'))).toBe(true);
+    const reveal = Object.values(config.phases).find(p => p.type === 'reveal');
+    expect(reveal.chainDisplay).toBe('final');
+    validateGame(config.phases, 'chain sentence refused');
+  });
+
+  it('rejects a chain with no start or no hops', () => {
+    const noStart = compile({ brick: 'chain', hops: ['Add.'] });
+    expect(noStart.problems.some(p => p.includes('start'))).toBe(true);
+    const noHops = compile({ brick: 'chain', start: 'Start.', hops: [] });
+    expect(noHops.problems.some(p => p.includes('hand-off'))).toBe(true);
+  });
+
+  it('caps hops at 6 and reports the trim', () => {
+    const { config, problems } = compile({
+      brick: 'chain',
+      start: 'Start.',
+      hops: ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(x => 'Add ' + x + '.'),
+      visibility: 'all'
+    });
+    expect(problems.some(p => p.includes('6'))).toBe(true);
+    const collects = Object.values(config.phases).filter(p => p.type === 'collect');
+    expect(collects.length).toBe(7); // start + 6 hops
+    validateGame(config.phases, 'chain trimmed');
+  });
+
+  it('composes with other bricks and gets the auto-end', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Warm-up Chain',
+      steps: [
+        { brick: 'announce', text: 'We are writing together, one hand at a time.' },
+        { brick: 'chain', start: 'Write a line.', hops: ['Add a line.'], visibility: 'all' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const order = S.orderedPhaseIds(config.phases).map(id => config.phases[id].type);
+    expect(order[0]).toBe('lobby');
+    expect(order[1]).toBe('announce');
+    expect(order[order.length - 1]).toBe('end');
+    validateGame(config.phases, 'chain composed');
+  });
+});

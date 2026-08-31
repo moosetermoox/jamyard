@@ -19,14 +19,14 @@ exquisite-corpse (blind chains were already free — {{X.assigned}} is
 opt-in), collect.showTail (the fold, appendOnly-only, server-side
 masking), and the golden-prompt harness (CI test for deliverability +
 scripts/eval-designer-prompts.js for real-matcher before/after diffs,
-baseline 9/12). Queued, in order:
-- **`chain` storyboard brick** — the AI fills per-hop instructions +
-  visibility (blind | tail | all) + payoff (return-to-author | gallery);
-  compileStoryboard emits the collect chain, rotateFrom links, chainFrom
-  and the reveal deterministically. THE RULE: bricks are mechanics, not
-  phases — the AI never wires multi-phase mechanics. This edits the
-  matcher/storyboard prompts, so run eval-designer-prompts.js before AND
-  after, and diff.
+baseline 9/12). **`chain` brick SHIPPED 2026-08-31** (see CHANGELOG):
+start + per-hop hops + visibility (all | tail | blind) + blind-only
+sentence template; compiler owns all wiring; both prompts taught it;
+eval's new storyboard-generator leg went refused → hostable on
+hypothesis-relay, 3/3. THE RULE it establishes: bricks are mechanics,
+not phases — the AI never wires multi-phase mechanics. Next brick
+candidates when wanted: pairs (pairwise collect + pair reveal),
+bluff-rounds. Still queued:
 - **Matcher finding (baseline, parked)**: on vocab-riddles the matcher
   faked a weak recipe fit (creative-vote) instead of noMatch → storyboard
   handoff. Same prompt-edit rules apply.

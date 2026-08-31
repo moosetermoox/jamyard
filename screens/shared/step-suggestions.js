@@ -400,7 +400,7 @@
   // storyboard: { name, description, steps: [
   //   { brick: 'announce'|'collect'|'collect-two'|'collect-choice'|
   //            'estimate'|'reveal'|'reveal-one'|'vote'|'guessing-rounds'|
-  //            'quiz'|'teams'|'end',
+  //            'quiz'|'teams'|'chain'|'end',
   //     text?: string,          // the brick's primary field (prompt/message)
   //     choices?: string[],     // collect-choice only
   //     secretLabel?: string,   // collect-two field labels
@@ -410,7 +410,11 @@
   //     leaderboard?: boolean,  // quiz only (default true; false = no standings, no winners)
   //     teamCount?: number,     // teams only (2-20)
   //     groupSize?: number,     // teams only (2-12, wins over teamCount)
-  //     timer?: number } ] }
+  //     start?: string,         // chain only: the first writer's instruction
+  //     hops?: string[],        // chain only: one instruction per hand-off (1-6)
+  //     visibility?: string,    // chain only: 'all'|'tail'|'blind' (default 'all')
+  //     sentence?: string,      // chain only, blind: "The {1} {2}." slot template
+  //     timer? } ] }
 
   var STORYBOARD_PRIMARY = {
     'announce': 'message', 'collect': 'prompt', 'collect-two': 'prompt',
@@ -492,6 +496,98 @@
     return lbId;
   }
 
+  // ---- Chain brick ----
+  // Pass-around mechanics (telephone, consequences, exquisite corpse)
+  // compiled deterministically: the AI supplies only per-hop instructions
+  // and a visibility choice; every rotateFrom link, accumulate flag, and
+  // the return-to-author reveal is emitted here. Bricks are mechanics,
+  // not phases — the AI never wires a chain itself. Visibility:
+  //   'all'   — each writer sees the whole text so far (add-only)
+  //   'tail'  — the fold: only the last 3 inherited words show (showTail)
+  //   'blind' — writers see nothing of what they received
+  // A 'sentence' with {N} slots (blind only) assembles one-word chains
+  // into the classic surrealist payoff.
+  var MAX_CHAIN_HOPS = 6;
+  var CHAIN_TAIL_WORDS = 3;
+
+  function appendPassChain(step, stepNo, phases, lastId, problems) {
+    var start = (step && typeof step.start === 'string') ? step.start.trim() : '';
+    var hops = (step && Array.isArray(step.hops) ? step.hops : [])
+      .map(function (h) { return typeof h === 'string' ? h.trim() : ''; })
+      .filter(function (h) { return h !== ''; });
+    if (!start) {
+      problems.push('Step ' + stepNo + ': the chain needs a "start" instruction for the first writer.');
+      return null;
+    }
+    if (hops.length === 0) {
+      problems.push('Step ' + stepNo + ': the chain needs at least one hand-off instruction in "hops".');
+      return null;
+    }
+    if (hops.length > MAX_CHAIN_HOPS) {
+      problems.push('Step ' + stepNo + ': chains cap at ' + MAX_CHAIN_HOPS + ' hand-offs, the extras were dropped.');
+      hops = hops.slice(0, MAX_CHAIN_HOPS);
+    }
+    var visibility = (step.visibility === 'tail' || step.visibility === 'blind') ? step.visibility : 'all';
+    var blind = visibility === 'blind';
+    var sentence = (typeof step.sentence === 'string' && /\{\d+\}/.test(step.sentence)) ? step.sentence : null;
+    if (sentence && !blind) {
+      problems.push('Step ' + stepNo + ': a sentence template only works on a blind chain (with "all" or "tail" every hop already contains the earlier text); the sentence was ignored.');
+      sentence = null;
+    }
+    var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
+      ? Math.round(step.timer) : null;
+
+    // Blindness is structural: a {{...}} token in a blind prompt would
+    // hand the writer the very text the fold hides.
+    function cleanPrompt(text) {
+      if (blind && text.indexOf('{{') !== -1) {
+        problems.push('Step ' + stepNo + ': removed a template token from a blind chain prompt, writers must not see the passed text.');
+        return text.replace(/\{\{[^}]*\}\}/g, '').replace(/[ \t]{2,}/g, ' ').trim();
+      }
+      return text;
+    }
+
+    var chainIds = [];
+    var startId = freshId(phases, 'chain-start');
+    var startPhase = { type: 'collect', prompt: cleanPrompt(start) };
+    if (timer) startPhase.timer = timer;
+    if (sentence) startPhase.maxLength = 40;
+    phases[lastId].next = startId;
+    phases[startId] = startPhase;
+    chainIds.push(startId);
+    lastId = startId;
+
+    hops.forEach(function (hop) {
+      var hopId = freshId(phases, 'pass');
+      var hopPhase = { type: 'collect', prompt: cleanPrompt(hop), rotateFrom: lastId };
+      if (!blind) {
+        hopPhase.prefillFromAssigned = true;
+        hopPhase.appendOnly = true;
+        if (visibility === 'tail') hopPhase.showTail = CHAIN_TAIL_WORDS;
+      }
+      if (timer) hopPhase.timer = timer;
+      if (sentence) hopPhase.maxLength = 40;
+      phases[lastId].next = hopId;
+      phases[hopId] = hopPhase;
+      chainIds.push(hopId);
+      lastId = hopId;
+    });
+
+    var revealId = freshId(phases, 'unfold');
+    var reveal = { type: 'reveal', scope: 'own', chainFrom: chainIds };
+    if (sentence) {
+      reveal.chainDisplay = 'template';
+      reveal.chainTemplate = sentence;
+    } else if (blind) {
+      reveal.chainDisplay = 'steps';
+    } else {
+      reveal.chainDisplay = 'final';
+    }
+    phases[lastId].next = revealId;
+    phases[revealId] = reveal;
+    return revealId;
+  }
+
   // ---- Teams brick ----
   // Random split only in storyboards (the editor offers the other methods).
   // groupSize wins over teamCount; out-of-range values fall back to 4 teams.
@@ -535,6 +631,12 @@
         phases[lastId].next = id;
         phases[id] = buildTeamSplit(step);
         lastId = id;
+        return;
+      }
+
+      if (brick === 'chain') {
+        var chainLast = appendPassChain(step, i + 1, phases, lastId, problems);
+        if (chainLast) lastId = chainLast;
         return;
       }
 
