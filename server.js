@@ -63,6 +63,7 @@ import { createFeedbackStore } from './services/feedback-store.js';
 import { validateFeedback } from './engine/feedback-validate.js';
 import { createRateLimiter } from './engine/simple-rate-limit.js';
 import { mintCopyId, prepareSharedCopy } from './engine/share-copy.js';
+import { ensureMeadowState, meadowIndexFor, allowNudge, clampFrac } from './engine/meadow-sync.js';
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
@@ -3071,6 +3072,8 @@ io.on('connection', (socket) => {
           migrateIdsInPlace(room.phaseState, oldId, socket.id);
           migrateIdsInPlace(room.engine.phaseData, oldId, socket.id);
           migrateIdsInPlace(room.engine.foreachState, oldId, socket.id);
+          // Shared-meadow order/cooldowns are keyed by player id too.
+          migrateIdsInPlace(room.meadowState, oldId, socket.id);
         }
         socketToRoom.set(socket.id, code);
         socket.join(code);
@@ -3362,6 +3365,12 @@ io.on('connection', (socket) => {
     }
     const submitted = eligible.filter(p => p.response).length;
     const total = eligible.length;
+
+    // Shared meadow: this submitter's canonical block index (assigned once
+    // per phase, submission order), told only to THEM — the room broadcast
+    // below stays counts-only, and moves relay as anonymous indexes.
+    room.meadowState = ensureMeadowState(room.meadowState, room.phaseInstanceId || 0);
+    socket.emit(EVENTS.MEADOW_YOU, { index: meadowIndexFor(room.meadowState, socket.id) });
 
     const hostSocketId = roomToHost.get(code);
     if (hostSocketId) {
@@ -3698,6 +3707,11 @@ io.on('connection', (socket) => {
     vs.votersCompleted.add(socket.id);
     console.log(`[submit-vote] ${socket.id} voted (${vs.votersCompleted.size}/${vs.eligibleVoterIds.length})`);
 
+    // Shared meadow on the vote wait screen: same canonical-index deal as
+    // the collect path (see submit-response).
+    room.meadowState = ensureMeadowState(room.meadowState, room.phaseInstanceId || 0);
+    socket.emit(EVENTS.MEADOW_YOU, { index: meadowIndexFor(room.meadowState, socket.id) });
+
     const hostSocketId = roomToHost.get(code);
     if (hostSocketId) {
       io.to(hostSocketId).emit(EVENTS.VOTE_RECEIVED, {
@@ -3715,6 +3729,29 @@ io.on('connection', (socket) => {
     if (vs.votersCompleted.size >= vs.eligibleVoterIds.length) {
       await tallyAndAdvance(code, room);
     }
+  });
+
+  // Shared meadow: relay a player's block nudge to the whole room as an
+  // anonymous { index, fx, fy } (normalized field fractions — screens of
+  // different widths agree). Only players the meadow knows (they submitted
+  // this phase) may move, on the server-enforced 3s cooldown. Deliberately
+  // NOT recordEvent'd: nudges are high-frequency cosmetic garnish and would
+  // flush real gameplay events out of the capped journal.
+  socket.on(EVENTS.MEADOW_NUDGE, (payload = {}) => {
+    if (!checkEventPayload(socket, 'meadow-nudge', payload)) return;
+    const { code, fx, fy, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'meadow-nudge')) return;
+    const state = room.meadowState;
+    if (!state || state.phaseInstanceId !== (room.phaseInstanceId || 0)) return;
+    if (state.order[socket.id] === undefined) return;
+    if (!allowNudge(state, socket.id, Date.now())) return;
+    io.to(code).emit(EVENTS.MEADOW_MOVED, {
+      index: state.order[socket.id],
+      fx: clampFrac(fx),
+      fy: clampFrac(fy)
+    });
   });
 
   socket.on(EVENTS.CLOSE_VOTING, async ({ code, phaseInstanceId } = {}) => {

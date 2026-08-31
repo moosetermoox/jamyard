@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1434 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1447 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **29 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -121,7 +121,7 @@ AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `
 - `engine/phase-schemas.js` + `engine/resolver-grammar.js` — single sources of truth (phase fields; `{{...}}` syntax)
 - `services/ai-service.js` — all AI calls via `_callClaude` (budget-gated by `services/ai-budget.js`); game review; mock mode
 - `services/simulator.js` — robot playtest + chaos mode
-- `screens/` — host, player, teacher, designer (editor.js/simple-view.js/builder), shared (design.css, juice.js, bot-brain.js, drawing.js, speech-input.js, feedback-widget.js, meadow.js — the post-submit waiting field)
+- `screens/` — host, player, teacher, designer (editor.js/simple-view.js/builder), shared (design.css, juice.js, bot-brain.js, drawing.js, speech-input.js, feedback-widget.js, meadow.js — the post-submit waiting field, a SHARED space since 2026-08-30: server-assigned canonical block indexes + relayed nudges via `engine/meadow-sync.js`, payloads are anonymous {index, fx, fy} only)
 - `games/*/config.json` — game configs; `recipes/*.json` — recipes; `recipes/prompt-banks/` — prompt banks (per-prompt attribution is load-bearing)
 - `db.js` — Neon Postgres; `engine/room-snapshot.js` — restart survival
 - `scripts/` — sim-harness.js + simulate-*.js playtest scripts, screenshot.js, demo-room.js

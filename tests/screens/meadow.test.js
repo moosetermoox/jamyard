@@ -5,7 +5,37 @@
 import { describe, it, expect } from 'vitest';
 import '../../screens/shared/meadow.js';
 
-const { toneFor, spotFor, stepToward, canNudge, bumpIndex } = globalThis.Meadow;
+const { toneFor, spotFor, stepToward, canNudge, bumpIndex, normFrac, denormFrac } = globalThis.Meadow;
+
+// Shared-meadow coordinates travel between devices as normalized fractions
+// so different field widths agree about where a block stands.
+describe('Meadow.normFrac / denormFrac', () => {
+  it('round-trips a position through fractions on the same field', () => {
+    const f = normFrac({ x: 150, y: 75 }, 300, 150);
+    expect(f).toEqual({ fx: 0.5, fy: 0.5 });
+    expect(denormFrac(f, 300, 150)).toEqual({ x: 150, y: 75 });
+  });
+
+  it('maps the same fraction onto fields of different sizes', () => {
+    const f = normFrac({ x: 300, y: 100 }, 400, 200);
+    const narrow = denormFrac(f, 200, 100);
+    expect(narrow.x).toBe(150);
+    expect(narrow.y).toBe(50);
+  });
+
+  it('clamps fractions into 0..1 and positions inside the field padding', () => {
+    expect(normFrac({ x: -50, y: 999 }, 300, 150)).toEqual({ fx: 0, fy: 1 });
+    const p = denormFrac({ fx: 0, fy: 1 }, 300, 150);
+    expect(p.x).toBe(10);
+    expect(p.y).toBe(140);
+  });
+
+  it('survives a zero-size field (hidden mount) without NaN', () => {
+    const f = normFrac({ x: 40, y: 40 }, 0, 0);
+    expect(Number.isFinite(f.fx)).toBe(true);
+    expect(Number.isFinite(f.fy)).toBe(true);
+  });
+});
 
 describe('Meadow.toneFor', () => {
   it('cycles through the nine painted tones', () => {

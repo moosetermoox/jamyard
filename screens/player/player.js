@@ -658,15 +658,34 @@ socket.on('room-roster', ({ count, names } = {}) => {
 });
 
 // The meadow: submitted classmates as anonymous blocks on the wait screens.
-// Your own block is nudgeable on the two screens you can only reach by
-// submitting; the generic waiting screen is watch-only (non-eligible
-// players share it, so "you" might not be one of the counted).
+// SHARED SPACE (2026-08-30): the server assigns every submitter a canonical
+// block index and relays nudges as anonymous {index, fx, fy}, so the whole
+// class stands in ONE field — your nudge walks your block on everyone's
+// screen. Your own block is nudgeable on the two screens you can only reach
+// by submitting; the generic waiting screen is watch-only (non-eligible
+// players share it, so "you" might not be one of the counted) but still
+// shows the shared moves.
 const gameWaitingProgress = document.getElementById('game-waiting-progress');
+function relayNudge(fx, fy) {
+  socket.emit('meadow-nudge', { code: currentRoomCode, fx: fx, fy: fy });
+}
 const meadows = window.Meadow ? [
-  Meadow.attach(document.getElementById('submitted-meadow')),
-  Meadow.attach(document.getElementById('vote-submitted-meadow')),
+  Meadow.attach(document.getElementById('submitted-meadow'), { onNudge: relayNudge }),
+  Meadow.attach(document.getElementById('vote-submitted-meadow'), { onNudge: relayNudge }),
   Meadow.attach(document.getElementById('game-waiting-meadow'), { you: false })
 ].filter(Boolean) : [];
+
+// The server tells only THIS student which block is theirs.
+socket.on('meadow-you', ({ index } = {}) => {
+  if (typeof index !== 'number') return;
+  for (const m of meadows) m.setOwnIndex(index);
+});
+
+// A classmate's block (or our own echo) walked somewhere — anonymous index.
+socket.on('meadow-moved', ({ index, fx, fy } = {}) => {
+  if (typeof index !== 'number' || typeof fx !== 'number' || typeof fy !== 'number') return;
+  for (const m of meadows) m.applyMove(index, fx, fy);
+});
 
 // Submission/vote progress: counts only, never names.
 socket.on('room-progress', ({ count, total } = {}) => {

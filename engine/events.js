@@ -44,6 +44,9 @@ export const EVENTS = {
   // Counts only, never names — mid-phase submission status on a student
   // device must not create who's-slow pressure (names stay on host/console).
   ROOM_PROGRESS:        'room-progress',
+  MEADOW_NUDGE:         'meadow-nudge',        // player -> server: move my block (normalized fx/fy)
+  MEADOW_MOVED:         'meadow-moved',        // server -> room: block {index} moved (anonymous, no ids)
+  MEADOW_YOU:           'meadow-you',          // server -> submitting player only: your block's index
   // Lobby only — the projected host roster is already public to the class.
   ROOM_ROSTER:          'room-roster',
 

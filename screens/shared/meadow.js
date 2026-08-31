@@ -97,18 +97,42 @@
     return el;
   }
 
-  // attach(field, { you }) -> { update(count), reset() }
-  //   field: the .meadow-field container (stays hidden until the first tick)
-  //   you: false for watch-only mounts, where we can't be sure this student
-  //        is one of the counted (the generic waiting screen). Default true.
+  // Normalized field fractions: nudges travel between devices as {fx, fy}
+  // in 0..1 so a narrow Chromebook and a wide screen agree about where a
+  // block stands. Pure; exported for tests.
+  function normFrac(pos, w, h) {
+    var f = function (v, span) { return Math.max(0, Math.min(1, span > 0 ? v / span : 0.5)); };
+    return { fx: f(pos.x, w), fy: f(pos.y, h) };
+  }
+
+  function denormFrac(frac, w, h) {
+    return {
+      x: Math.max(10, Math.min(w - 10, frac.fx * w)),
+      y: Math.max(10, Math.min(h - 10, frac.fy * h))
+    };
+  }
+
+  // attach(field, { you, onNudge }) ->
+  //   { update(count), setOwnIndex(i), applyMove(index, fx, fy), reset() }
+  //
+  // SHARED SPACE (2026-08-30): block i is the i-th SUBMITTER on every
+  // screen — the server assigns canonical indexes (meadow-you tells each
+  // player theirs) and relays nudges as anonymous {index, fx, fy}
+  // (meadow-moved). The deterministic scatter + index tones were already
+  // identical everywhere; identity and movement now are too.
+  //   you: false for watch-only mounts (the generic waiting screen) — they
+  //        render and follow moves but never claim a block or nudge.
+  //   onNudge(fx, fy): called when this student nudges their own block
+  //        (the caller relays it to the server).
   function attach(field, opts) {
     if (!hasDOM || !field) return null;
     var withYou = !opts || opts.you !== false;
+    var onNudge = (opts && opts.onNudge) || null;
     var inst = {
       field: field,
-      others: [],          // classmate block elements, index -> spot index
-      you: null,
-      youPos: null,
+      blocks: [],          // canonical index -> { el, pos }
+      ownIndex: null,
+      moved: {},           // canonical index -> {fx, fy} (survives re-renders)
       lastNudge: 0
     };
 
@@ -118,41 +142,39 @@
       return { w: w, h: h };
     }
 
-    function ensureYou() {
-      if (!withYou || inst.you) return;
-      var size = fieldSize();
-      var el = makeBlock(0, 0);
+    function styleAsYou(el) {
       el.classList.add('meadow-you');
       var tag = document.createElement('span');
       tag.className = 'meadow-you-tag';
       tag.textContent = 'you';
       el.appendChild(tag);
-      inst.youPos = spotFor(0, size.w, size.h);
-      placeBlock(el, inst.youPos);
-      field.appendChild(el);
-      inst.you = el;
+    }
+
+    function positionFor(i, size) {
+      return inst.moved[i]
+        ? denormFrac(inst.moved[i], size.w, size.h)
+        : spotFor(i, size.w, size.h);
     }
 
     function update(count) {
       if (typeof count !== 'number' || count <= 0) return;
       var size = fieldSize();
       field.hidden = false;
-      ensureYou();
-      // Classmates: everyone counted except you (all of them when watch-only).
-      var wantOthers = Math.min(withYou ? Math.max(0, count - 1) : count, MAX_BLOCKS);
-      while (inst.others.length > wantOthers) {
-        var gone = inst.others.pop();
+      var want = Math.min(count, MAX_BLOCKS);
+      while (inst.blocks.length > want) {
+        var gone = inst.blocks.pop();
         if (gone.el.parentNode) gone.el.parentNode.removeChild(gone.el);
       }
-      while (inst.others.length < wantOthers) {
-        var idx = inst.others.length + 1; // spot 0 belongs to "you"
-        var spot = spotFor(idx, size.w, size.h);
+      while (inst.blocks.length < want) {
+        var idx = inst.blocks.length;
+        var spot = positionFor(idx, size);
         var el = makeBlock(toneFor(idx), idx);
+        if (withYou && idx === inst.ownIndex) styleAsYou(el);
         // Walk in from the nearer side edge, at the spot's own height.
         var fromLeft = spot.x < size.w / 2;
         placeBlock(el, { x: fromLeft ? -40 : size.w + 40, y: spot.y });
         field.appendChild(el);
-        inst.others.push({ el: el, spot: spot });
+        inst.blocks.push({ el: el, pos: spot });
         (function (blockEl, dest) {
           requestAnimationFrame(function () {
             requestAnimationFrame(function () { walkTo(blockEl, dest); });
@@ -161,17 +183,49 @@
       }
     }
 
+    // The server told this student which block is theirs (meadow-you).
+    function setOwnIndex(i) {
+      if (!withYou || typeof i !== 'number' || i < 0) return;
+      if (inst.ownIndex === i) return;
+      inst.ownIndex = i;
+      var b = inst.blocks[i];
+      if (b && !b.el.classList.contains('meadow-you')) styleAsYou(b.el);
+    }
+
+    // A block moved somewhere in the room (meadow-moved) — or our own
+    // optimistic nudge. Remembered by index so re-renders keep it.
+    function applyMove(index, fx, fy) {
+      if (typeof index !== 'number' || index < 0) return;
+      inst.moved[index] = { fx: fx, fy: fy };
+      var b = inst.blocks[index];
+      if (!b) return;
+      var size = fieldSize();
+      var next = denormFrac(inst.moved[index], size.w, size.h);
+      b.pos = next;
+      walkTo(b.el, next);
+      var hit = bumpIndex(next, inst.blocks.map(function (o, i) {
+        return i === index ? { x: -9999, y: -9999 } : o.pos;
+      }), BUMP_RADIUS);
+      if (hit !== -1) {
+        // A hello, not a mechanic: both wobble, nobody moves.
+        wobble(b.el);
+        wobble(inst.blocks[hit].el);
+      }
+    }
+
     function reset() {
-      inst.others = [];
-      inst.you = null;
-      inst.youPos = null;
+      inst.blocks = [];
+      inst.ownIndex = null;
+      inst.moved = {};
       inst.lastNudge = 0;
       field.textContent = '';
       field.hidden = true;
     }
 
     field.addEventListener('click', function (ev) {
-      if (!inst.you || !inst.youPos) return;
+      if (inst.ownIndex === null) return;
+      var own = inst.blocks[inst.ownIndex];
+      if (!own) return;
       var now = Date.now();
       if (!canNudge(inst.lastNudge, now, NUDGE_COOLDOWN_MS)) return;
       inst.lastNudge = now;
@@ -181,18 +235,15 @@
         x: Math.max(10, Math.min(size.w - 10, ev.clientX - rect.left)),
         y: Math.max(10, Math.min(size.h - 10, ev.clientY - rect.top))
       };
-      var next = stepToward(inst.youPos, target, NUDGE_MAX_STEP);
-      inst.youPos = next;
-      walkTo(inst.you, next);
-      var hit = bumpIndex(next, inst.others.map(function (o) { return o.spot; }), BUMP_RADIUS);
-      if (hit !== -1) {
-        // A hello, not a mechanic: both wobble, nobody moves.
-        wobble(inst.you);
-        wobble(inst.others[hit].el);
-      }
+      var next = stepToward(own.pos, target, NUDGE_MAX_STEP);
+      var frac = normFrac(next, size.w, size.h);
+      // Optimistic: move locally now; the server's echo lands on the same
+      // coordinates, and classmates' screens follow from the broadcast.
+      applyMove(inst.ownIndex, frac.fx, frac.fy);
+      if (onNudge) onNudge(frac.fx, frac.fy);
     });
 
-    return { update: update, reset: reset };
+    return { update: update, setOwnIndex: setOwnIndex, applyMove: applyMove, reset: reset };
   }
 
   globalThis.Meadow = {
@@ -202,6 +253,8 @@
     stepToward: stepToward,
     canNudge: canNudge,
     bumpIndex: bumpIndex,
+    normFrac: normFrac,
+    denormFrac: denormFrac,
     NUDGE_COOLDOWN_MS: NUDGE_COOLDOWN_MS,
     MAX_BLOCKS: MAX_BLOCKS
   };

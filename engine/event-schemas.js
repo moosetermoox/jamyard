@@ -46,6 +46,12 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     playerId: 'string:required'
   },
+  'meadow-nudge': {
+    code: 'string:required',
+    fx: 'number:required',
+    fy: 'number:required',
+    phaseInstanceId: 'number:optional'
+  },
   'submit-vote': {
     code: 'string:required',
     choice: 'any:optional',
