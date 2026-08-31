@@ -2417,7 +2417,9 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, st
     winnerNameDisplay.classList.add('winner-reveal');
     if (J) {
       J.sound('fanfare');
-      J.confetti();
+      // The winner's signature moment: the meadow blocks run in and cheer
+      // (torn-paper confetti stays the garnish everywhere else).
+      if (J.cheer) J.cheer(); else J.confetti();
     }
     if (isTie && winnerNames && winnerNames.length > 1) {
       winnerNameDisplay.textContent = '\ud83d\udc51 ' + formatTieNames(winnerNames) + ' tie!';

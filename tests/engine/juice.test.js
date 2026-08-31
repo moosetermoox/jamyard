@@ -54,10 +54,12 @@ describe('Juice sound cues', () => {
     }
   });
 
-  it('sound() and confetti() never throw without a DOM/AudioContext', () => {
+  it('sound(), confetti(), and cheer() never throw without a DOM/AudioContext', () => {
     expect(() => Juice.sound('fanfare')).not.toThrow();
     expect(() => Juice.sound('nonexistent-cue')).not.toThrow();
     expect(() => Juice.confetti()).not.toThrow();
+    expect(() => Juice.cheer()).not.toThrow();
+    expect(() => Juice.cheer({ count: 999 })).not.toThrow();
   });
 });
 
@@ -77,5 +79,43 @@ describe('Juice confetti colors', () => {
     expect(Array.isArray(colors)).toBe(true);
     expect(colors.length).toBeGreaterThanOrEqual(3);
     for (const c of colors) expect(typeof c).toBe('string');
+  });
+
+  it('default palette is Totem paints, not winter party colors', () => {
+    const colors = Juice.confettiColors();
+    expect(colors).toContain('#E5482B'); // vermillion
+    expect(colors).toContain('#FFC800'); // paint yellow
+    expect(colors).toContain('#FDF9F0'); // paper cream (the torn-worksheet scraps)
+    expect(colors).not.toContain('#0057FF'); // the old snowfall-adjacent blue
+  });
+});
+
+describe('Juice.scrapPolygon (torn paper pieces)', () => {
+  // A cycling deterministic rand so shapes are reproducible in tests.
+  function seededRand(values) {
+    let i = 0;
+    return () => values[i++ % values.length];
+  }
+
+  it('tears 5 to 7 corners', () => {
+    for (const seed of [0, 0.3, 0.6, 0.99]) {
+      const pts = Juice.scrapPolygon(10, 12, seededRand([seed, 0.5, 0.2]));
+      expect(pts.length).toBeGreaterThanOrEqual(5);
+      expect(pts.length).toBeLessThanOrEqual(7);
+    }
+  });
+
+  it('keeps every corner within the scrap bounds', () => {
+    const pts = Juice.scrapPolygon(10, 14, seededRand([0.2, 0.9, 0.5, 0.7]));
+    for (const [x, y] of pts) {
+      expect(Math.abs(x)).toBeLessThanOrEqual(10 / 2 * 1.1 + 0.001);
+      expect(Math.abs(y)).toBeLessThanOrEqual(14 / 2 * 1.1 + 0.001);
+    }
+  });
+
+  it('is deterministic for the same rand sequence', () => {
+    const a = Juice.scrapPolygon(10, 12, seededRand([0.4, 0.1, 0.8]));
+    const b = Juice.scrapPolygon(10, 12, seededRand([0.4, 0.1, 0.8]));
+    expect(a).toEqual(b);
   });
 });
