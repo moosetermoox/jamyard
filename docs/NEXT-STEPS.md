@@ -10,6 +10,31 @@ The June feature freeze was consciously lifted in July: match, sort, teams
 upgrade, and drawing input v1 all shipped 2026-07-06. Freeze back ON —
 everything below is polish, testing, and ops.
 
+### Designer expressiveness track (opened 2026-08-30, exquisite corpse shipped)
+
+The owner's exquisite-corpse prompt exposed the gap: the engine can express
+far more than the Create storyboard's 12 bricks. Shipped same day (see
+CHANGELOG): chainDisplay:"template" sentence assembly, recipe #23
+exquisite-corpse (blind chains were already free — {{X.assigned}} is
+opt-in), collect.showTail (the fold, appendOnly-only, server-side
+masking), and the golden-prompt harness (CI test for deliverability +
+scripts/eval-designer-prompts.js for real-matcher before/after diffs,
+baseline 9/12). Queued, in order:
+- **`chain` storyboard brick** — the AI fills per-hop instructions +
+  visibility (blind | tail | all) + payoff (return-to-author | gallery);
+  compileStoryboard emits the collect chain, rotateFrom links, chainFrom
+  and the reveal deterministically. THE RULE: bricks are mechanics, not
+  phases — the AI never wires multi-phase mechanics. This edits the
+  matcher/storyboard prompts, so run eval-designer-prompts.js before AND
+  after, and diff.
+- **Matcher finding (baseline, parked)**: on vocab-riddles the matcher
+  faked a weak recipe fit (creative-vote) instead of noMatch → storyboard
+  handoff. Same prompt-edit rules apply.
+- **Folded-story recipe** on collect.showTail (the corpus's
+  folded-story-tail entry currently settles for a near-match).
+- Grow the corpus as new famous-game prompts come in; a prompt that fails
+  in the wild becomes a corpus entry first, then a fix.
+
 ### START HERE next session (updated 2026-08-30, sharing shipped)
 
 **THE SHARING SYSTEM SHIPPED 2026-08-30** (see CHANGELOG): share links,

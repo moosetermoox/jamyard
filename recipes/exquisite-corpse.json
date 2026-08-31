@@ -1,0 +1,124 @@
+{
+  "id": "exquisite-corpse",
+  "name": "Exquisite Corpse",
+  "icon": "📜",
+  "description": "The surrealists' folded-paper game (also called Consequences), built for a classroom. Six students each add ONE word to a sentence without seeing what came before: adjective, noun, adverb, verb, adjective, noun. Every sentence returns to the student who started it, assembled. Nobody authored it, nobody could have predicted it, and the room finds out together. No points, no winners, no wrong answers.",
+  "tagline": "Perfect for vocabulary practice, parts of speech, creative writing warm-ups, or pure play.",
+  "family": "connection",
+  "feel": [
+    "every-voice",
+    "laughs",
+    "creative"
+  ],
+  "version": "1",
+  "parameters": {
+    "theme": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 80,
+      "label": "Theme",
+      "helper": "A nudge for word choices: 'the ocean', 'ancient Rome', 'our vocabulary list'. Leave the default for pure surrealism.",
+      "default": "anything at all"
+    },
+    "wordTimer": {
+      "type": "integer",
+      "min": 10,
+      "max": 90,
+      "label": "Seconds per word",
+      "helper": "How long each word round stays open. Short keeps the folds moving; 25 is plenty for one word.",
+      "default": 25
+    }
+  },
+  "template": {
+    "name": "Exquisite Corpse",
+    "description": "A blind pass-and-write sentence built with the Exquisite Corpse recipe, six hands and nobody saw the whole thing coming.",
+    "tags": [
+      "creative",
+      "language",
+      "collaborative"
+    ],
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "EXQUISITE CORPSE\n\nThe surrealists' folded-paper game. We build sentences together, but here's the fold: each of you adds ONE word without seeing any of the words before yours.\n\nSix words, six hands. At the end, the sentence you started comes back to you, finished by five classmates. Nobody knows what any sentence says yet. Not even the people writing it.",
+        "timer": 16,
+        "next": "word-1"
+      },
+      "word-1": {
+        "type": "collect",
+        "prompt": "Word 1 of 6. Write one ADJECTIVE, a describing word (sleepy, ancient, sparkling, suspicious).\n\nTheme: ${theme}",
+        "timer": "${wordTimer}",
+        "maxLength": 30,
+        "next": "word-2"
+      },
+      "word-2": {
+        "type": "collect",
+        "rotateFrom": "word-1",
+        "prompt": "The paper folds and passes. You can't see what's on it.\n\nWord 2 of 6. Write one NOUN, a person, animal, or thing (walrus, librarian, volcano).\n\nTheme: ${theme}",
+        "timer": "${wordTimer}",
+        "maxLength": 30,
+        "next": "word-3"
+      },
+      "word-3": {
+        "type": "collect",
+        "rotateFrom": "word-2",
+        "prompt": "Fold, pass. Still a secret.\n\nWord 3 of 6. Write one ADVERB, a how-word ending in -ly (slowly, rudely, magnificently).\n\nTheme: ${theme}",
+        "timer": "${wordTimer}",
+        "maxLength": 30,
+        "next": "word-4"
+      },
+      "word-4": {
+        "type": "collect",
+        "rotateFrom": "word-3",
+        "prompt": "Fold, pass.\n\nWord 4 of 6. Write one VERB that ends in -s, an action (devours, serenades, interrogates).\n\nTheme: ${theme}",
+        "timer": "${wordTimer}",
+        "maxLength": 30,
+        "next": "word-5"
+      },
+      "word-5": {
+        "type": "collect",
+        "rotateFrom": "word-4",
+        "prompt": "Fold, pass. Almost there.\n\nWord 5 of 6. Write one more ADJECTIVE (furious, invisible, chocolate-covered).\n\nTheme: ${theme}",
+        "timer": "${wordTimer}",
+        "maxLength": 30,
+        "next": "word-6"
+      },
+      "word-6": {
+        "type": "collect",
+        "rotateFrom": "word-5",
+        "prompt": "Last fold.\n\nWord 6 of 6. Write one final NOUN (sandwich, principal, thunderstorm).\n\nTheme: ${theme}",
+        "timer": "${wordTimer}",
+        "maxLength": 30,
+        "next": "unfold"
+      },
+      "unfold": {
+        "type": "announce",
+        "message": "Pencils down. Every paper unfolds at once.\n\nThe sentence each of you started is about to come back, finished by five classmates who never saw it. Read yours quietly first. Then we'll hear some out loud.",
+        "next": "poem"
+      },
+      "poem": {
+        "type": "reveal",
+        "scope": "own",
+        "chainFrom": [
+          "word-1",
+          "word-2",
+          "word-3",
+          "word-4",
+          "word-5",
+          "word-6"
+        ],
+        "chainDisplay": "template",
+        "chainTemplate": "The {1} {2} {3} {4} the {5} {6}.",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "Six hands, no plan, and somehow it's poetry. The surrealists would be proud."
+      }
+    }
+  }
+}

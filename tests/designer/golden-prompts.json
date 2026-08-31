@@ -1,0 +1,92 @@
+{
+  "_readme": [
+    "Golden-prompt corpus: real teacher asks and what the Create flow should",
+    "resolve each one to. Two consumers:",
+    "  1. tests/designer/golden-prompts.test.js (CI, deterministic): proves the",
+    "     EXPECTED DELIVERABLE is deliverable today — the game validates, the",
+    "     recipe compiles clean, the reference storyboard compiles from real",
+    "     bricks. It does NOT call any AI.",
+    "  2. scripts/eval-designer-prompts.js (manual, real AI): runs each prompt",
+    "     through the live matcher and diffs what it chose against 'expect'.",
+    "     Run it before AND after touching a matcher/storyboard prompt.",
+    "Kinds: host (a built-in game), recipe (id + params merged over defaults),",
+    "storyboard (a reference brick realization), cantBuild (documented honest",
+    "gap — the platform should say no, not fake it)."
+  ],
+  "prompts": [
+    {
+      "id": "exquisite-corpse-blind-sentence",
+      "prompt": "Students build sentences together, but each student adds only ONE word and cannot see any of the words written before theirs. At the end everyone sees the surprise sentence they started, finished by classmates.",
+      "expect": { "kind": "recipe", "recipe": "exquisite-corpse" }
+    },
+    {
+      "id": "folded-story-tail",
+      "prompt": "Each student starts a story and passes it on. The next writer can only see the last few words of what came before, adds a line, and passes again. At the end the whole stories are revealed.",
+      "expect": { "kind": "recipe", "recipe": "exquisite-corpse", "acceptAlso": ["recipe:story-builder"] },
+      "note": "Nearest current match; a dedicated folded-story recipe on collect.showTail is the natural follow-on. story-builder is a defensible pick (same chain, no fold)."
+    },
+    {
+      "id": "kahoot-style-quiz",
+      "prompt": "A fast-paced quiz with points for speed and a leaderboard at the end. I have my own multiple choice questions.",
+      "expect": { "kind": "recipe", "recipe": "quiz-show" }
+    },
+    {
+      "id": "two-truths-icebreaker",
+      "prompt": "An icebreaker where each student writes two true statements and one lie about themselves and the class guesses which one is the lie.",
+      "expect": { "kind": "host", "game": "two-truths-a-lie" }
+    },
+    {
+      "id": "think-pair-share",
+      "prompt": "Everyone answers one big question alone first, then pairs combine their answers into one stronger answer that the whole class sees.",
+      "expect": { "kind": "recipe", "recipe": "snowball" }
+    },
+    {
+      "id": "pass-along-story",
+      "prompt": "A story that grows as it passes from student to student, each one adding to it, and at the end every story returns to the student who started it.",
+      "expect": { "kind": "recipe", "recipe": "story-builder", "acceptAlso": ["recipe:idea-chain"] }
+    },
+    {
+      "id": "exit-ticket-grown",
+      "prompt": "For review: students list what they remember from today's lesson from memory, then classmates add things the list missed, and it comes back to its author.",
+      "expect": { "kind": "recipe", "recipe": "one-more-thing" }
+    },
+    {
+      "id": "estimation-warmup",
+      "prompt": "Students guess a number, like how many jelly beans are in the jar or how long the Amazon river is, and we see whose guess was closest.",
+      "expect": { "kind": "recipe", "recipe": "estimation-station" }
+    },
+    {
+      "id": "drawing-bluff",
+      "prompt": "Students draw a picture of a phrase, then everyone writes fake captions for each other's drawings and tries to spot the real one.",
+      "expect": { "kind": "host", "game": "doodle-bluff" }
+    },
+    {
+      "id": "vocab-riddles",
+      "prompt": "Each student writes a riddle about one of our vocabulary words, then the class sees each riddle and guesses the word.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Vocab Riddles",
+          "description": "Write a riddle for a vocabulary word, then guess everyone else's.",
+          "steps": [
+            { "brick": "announce", "text": "Pick one of our vocabulary words and keep it secret. You are going to write a riddle about it!" },
+            { "brick": "collect-two", "text": "Your word and your riddle.", "secretLabel": "Your vocabulary word (secret)", "clueLabel": "Your riddle (no fair using the word!)", "timer": 180 },
+            { "brick": "guessing-rounds" },
+            { "brick": "end", "text": "Every word earned, every riddle solved. Nice work, wordsmiths." }
+          ]
+        }
+      },
+      "note": "KNOWN MISS 2026-08-30 baseline: the matcher picked recipe:creative-vote instead of handing off (noMatch) — it fakes a weak fit rather than letting the storyboard generator build the guessing-rounds shape. Matcher-prompt finding, parked."
+    },
+    {
+      "id": "quick-class-poll",
+      "prompt": "I just want to ask the class one question and see everyone's answers on the board.",
+      "expect": { "kind": "recipe", "recipe": "question-share", "params": { "question": "What is one thing you learned today?" } }
+    },
+    {
+      "id": "podcast-segment",
+      "prompt": "Students record a two minute podcast segment about the chapter and we listen to them together.",
+      "expect": { "kind": "cantBuild", "reason": "No audio or video recording; the platform is text and simple taps." }
+    }
+  ]
+}

@@ -381,6 +381,22 @@ export function validate(config, gameId, options) {
         }
       }
 
+      // showTail (the exquisite-corpse fold) only means anything on an
+      // add-only chain: without appendOnly the editable box would submit
+      // the visible tail as the whole response and amputate the artifact.
+      if (phase.showTail !== undefined) {
+        if (phase.appendOnly !== true) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (collect) sets "showTail" but not "appendOnly": true, the fold only works on an add-only chain (otherwise the hidden text would be lost on submit).`
+          );
+        } else if (phase.rotateFrom && typeof phase.prompt === 'string' &&
+          phase.prompt.includes(`${phase.rotateFrom}.assigned`)) {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" sets "showTail" but its prompt shows {{${phase.rotateFrom}.assigned}}, which reveals the FULL inherited text and defeats the fold. Drop the token; the tail already appears above the answer box.`
+          );
+        }
+      }
+
       // pairBy: answer-keyed pairing. Preference source must be a
       // collect-choice (fixed answers partition cleanly; free text doesn't).
       if (phase.pairBy !== undefined) {
@@ -1179,6 +1195,17 @@ export function validate(config, gameId, options) {
         }
       }
     }
+
+    // Template chain display: the sentence must exist and actually have
+    // numbered slots, otherwise the reveal would show raw config text.
+    if (phase.type === 'reveal' && phase.chainDisplay === 'template') {
+      const tpl = typeof phase.chainTemplate === 'string' ? phase.chainTemplate : '';
+      if (!/\{\d+\}/.test(tpl)) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (reveal) uses chainDisplay:"template" but "chainTemplate" is missing or has no {1}-style slots to fill.`
+        );
+      }
+    }
   }
 
   // Connection-family enforcement — a connection game promises no winners,
@@ -1327,6 +1354,11 @@ function inferDiagnosticCode(msg, severity) {
   if (/has invalid (hostShow|playerShow) toggle/.test(msg)) return DIAGNOSTIC_CODES.INVALID_ENUM_VALUE;
   if (/has invalid \w+ value/.test(msg)) return DIAGNOSTIC_CODES.INVALID_ENUM_VALUE;
   if (/pairMode must be/.test(msg)) return DIAGNOSTIC_CODES.INVALID_ENUM_VALUE;
+
+  // Cross-field rules (showTail fold, template chain display)
+  if (/sets "showTail" but not "appendOnly"/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
+  if (/defeats the fold/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
+  if (/"chainTemplate" is missing or has no \{1\}-style slots/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;
 
   // Required-field family (broadest — keep last among the missing-X group)
   if (/missing required field/.test(msg)) return DIAGNOSTIC_CODES.MISSING_REQUIRED_FIELD;

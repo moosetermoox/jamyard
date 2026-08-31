@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildChainViews, formatChainContent, normalizeByPlayer } from '../../engine/phases/chain-reveal.js';
+import { validate } from '../../engine/game-loader.js';
 
 // 3 players, 2 hops: p1's item went to p2 then p3, etc. (offset-1 ring).
 function ringChain() {
@@ -83,8 +84,91 @@ describe('formatChainContent', () => {
     expect(formatChainContent(undefined)).toContain('didn\'t start one');
   });
 
+  describe('template mode (blind grammar chains)', () => {
+    // 1 original + 2 hops, template with 3 slots: {1} = original,
+    // {2}.. = hops in chain order.
+    const blindView = { original: 'sleepy', steps: ['walrus', 'sings'], complete: true };
+
+    it('fills numbered slots into the sentence template', () => {
+      const out = formatChainContent(blindView, {
+        display: 'template', template: 'The {1} {2} {3} tonight.'
+      });
+      expect(out).toContain('The sleepy walrus sings tonight.');
+      // The original still gets its attribution line.
+      expect(out).toContain('“sleepy”');
+      // Hops are NOT listed as numbered steps in this mode.
+      expect(out).not.toContain('1. walrus');
+    });
+
+    it('renders missing slots as blanks instead of leaving raw tokens', () => {
+      const out = formatChainContent(
+        { original: 'sleepy', steps: ['walrus'], complete: false },
+        { display: 'template', template: 'The {1} {2} {3} tonight.' }
+      );
+      expect(out).toContain('The sleepy walrus ____ tonight.');
+      expect(out).not.toContain('{3}');
+      expect(out).toContain('wifi happens');
+    });
+
+    it('ignores extra hops beyond the template\'s slots', () => {
+      const out = formatChainContent(
+        { original: 'a', steps: ['b', 'c', 'd'], complete: true },
+        { display: 'template', template: '{1} {2}' }
+      );
+      expect(out).toContain('“a b”');
+      expect(out).not.toContain(' d');
+    });
+
+    it('falls back to steps mode when no template string is given', () => {
+      const out = formatChainContent(blindView, { display: 'template' });
+      expect(out).toContain('1. walrus');
+    });
+
+    it('trims whitespace in submitted slot words', () => {
+      const out = formatChainContent(
+        { original: '  sleepy ', steps: [' walrus  '], complete: true },
+        { display: 'template', template: 'The {1} {2}.' }
+      );
+      expect(out).toContain('The sleepy walrus.');
+    });
+  });
+
   it('incomplete chains admit it', () => {
     const out = formatChainContent({ original: 'x', steps: [], complete: false });
     expect(out).toContain('wifi happens');
+  });
+});
+
+describe('validator: chainDisplay "template"', () => {
+  function blindChainConfig(revealOverrides = {}) {
+    return {
+      name: 'Test',
+      phases: {
+        lobby: { type: 'lobby', next: 'word1' },
+        word1: { type: 'collect', prompt: 'Write an adjective.', next: 'word2' },
+        word2: { type: 'collect', prompt: 'Write a noun.', rotateFrom: 'word1', next: 'poem' },
+        poem: {
+          type: 'reveal', scope: 'own', chainFrom: ['word1', 'word2'],
+          chainDisplay: 'template', chainTemplate: 'The {1} {2}.',
+          next: 'end', ...revealOverrides
+        },
+        end: { type: 'end' }
+      }
+    };
+  }
+
+  it('accepts a template display with a slotted sentence', () => {
+    const { errors } = validate(blindChainConfig(), 'test', { returnResults: true });
+    expect(errors).toEqual([]);
+  });
+
+  it('rejects template display with no chainTemplate', () => {
+    const { errors } = validate(blindChainConfig({ chainTemplate: undefined }), 'test', { returnResults: true });
+    expect(errors.some(e => e.includes('chainTemplate'))).toBe(true);
+  });
+
+  it('rejects a chainTemplate with no {N} slots to fill', () => {
+    const { errors } = validate(blindChainConfig({ chainTemplate: 'No slots here.' }), 'test', { returnResults: true });
+    expect(errors.some(e => e.includes('no {1}-style slots'))).toBe(true);
   });
 });

@@ -273,6 +273,11 @@ export const PHASE_SCHEMAS = {
         label: 'Protect the passed item (add-only)',
         helper: 'With "Rotate items from" + prefill: the classmate\'s lines render read-only and this student can only ADD below them, nobody can delete or rewrite a classmate\'s work. The server enforces it.'
       },
+      showTail: {
+        type: 'integer', min: 1, max: 50, optional: true, contexts: ['topLevel'],
+        label: 'Show only the last N words',
+        helper: 'The fold: with add-only on, the student sees just the last N words of the inherited text (the rest is hidden behind an ellipsis) and continues from there. The full text still accumulates for reveals. Exquisite corpse, folded stories.'
+      },
       maxLength: {
         type: 'integer', min: 40, max: 2000, optional: true,
         label: 'Answer length limit',
@@ -1042,9 +1047,14 @@ export const PHASE_SCHEMAS = {
         helper: 'Required when scope:"own". The rotation chain\'s collect steps in order, starting with the original (e.g. ["recall", "add-one", "add-again"]). Each later step must rotateFrom the one before it.'
       },
       chainDisplay: {
-        type: 'enum', values: ['steps', 'final'], optional: true, default: 'steps',
+        type: 'enum', values: ['steps', 'final', 'template'], optional: true, default: 'steps',
         label: 'Chain display',
-        helper: '"steps" lists every hop (chain poems, stories). "final" shows only the last version (accumulating lists where each hop already contains the earlier ones).'
+        helper: '"steps" lists every hop (chain poems, stories). "final" shows only the last version (accumulating lists where each hop already contains the earlier ones). "template" assembles the contributions into the sentence in "Chain sentence" (blind fill-a-slot chains).'
+      },
+      chainTemplate: {
+        type: 'string', optional: true,
+        label: 'Chain sentence',
+        helper: 'Used with chain display "template". A sentence with numbered slots: {1} is the chain\'s first contribution, {2} the second, and so on (e.g. "The {1} {2} {3} the {4} {5}."). Empty slots show as a blank.'
       },
       image: {
         type: 'string', optional: true,

@@ -5620,7 +5620,7 @@ var DATA_REF_FIELDS = ['input', 'candidates', 'content'];
 // engine/game-loader.js.
 var _topLevelOnlyFields = {
   collect: ['rotateFrom', 'rotateOffset', 'assign', 'pairsFrom', 'oddHandling',
-    'rotatePairsFrom', 'reusePairsFrom', 'prefillFromAssigned', 'appendOnly']
+    'rotatePairsFrom', 'reusePairsFrom', 'prefillFromAssigned', 'appendOnly', 'showTail']
 };
 
 var VALID_HOST_TOGGLES = {
@@ -5848,6 +5848,11 @@ function validateConfig() {
       }
     }
 
+    // showTail fold validation (mirrors engine/game-loader.js)
+    if (phase.type === 'collect' && phase.showTail !== undefined && phase.appendOnly !== true) {
+      errors.push(label + ': "Show only the last N words" needs "Protect the passed item (add-only)" turned on, otherwise the hidden text would be lost on submit.');
+    }
+
     // pairBy validation (answer-keyed pairing; mirrors engine/game-loader.js)
     if (phase.pairBy !== undefined) {
       if (phase.assign !== 'pairwise') {
@@ -5867,6 +5872,14 @@ function validateConfig() {
         if (phase.reusePairsFrom) {
           errors.push(label + ': "Same partners as" and "Pair by earlier answer" cannot combine, reusing partners decides the groups. Pick one.');
         }
+      }
+    }
+
+    // Template chain display validation (mirrors engine/game-loader.js)
+    if (phase.type === 'reveal' && phase.chainDisplay === 'template') {
+      var chainTpl = typeof phase.chainTemplate === 'string' ? phase.chainTemplate : '';
+      if (!/\{\d+\}/.test(chainTpl)) {
+        errors.push(label + ': Chain display "template" needs a "Chain sentence" with {1}-style slots to fill.');
       }
     }
 

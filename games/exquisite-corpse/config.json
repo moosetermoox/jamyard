@@ -1,0 +1,116 @@
+{
+  "name": "Exquisite Corpse",
+  "description": "The surrealists' folded-paper game. Six students each add one word to a sentence without seeing the words before theirs, and every sentence comes back to its starter, assembled. Nobody wrote it, everybody wrote it.",
+  "featured": false,
+  "recipe": {
+    "id": "exquisite-corpse",
+    "version": "1",
+    "params": {
+      "theme": "anything at all",
+      "wordTimer": 25
+    }
+  },
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "EXQUISITE CORPSE\n\nThe surrealists' folded-paper game. We build sentences together, but here's the fold: each of you adds ONE word without seeing any of the words before yours.\n\nSix words, six hands. At the end, the sentence you started comes back to you, finished by five classmates. Nobody knows what any sentence says yet. Not even the people writing it.",
+      "timer": 16,
+      "next": "word-1"
+    },
+    "word-1": {
+      "type": "collect",
+      "prompt": "Word 1 of 6. Write one ADJECTIVE, a describing word (sleepy, ancient, sparkling, suspicious).\n\nTheme: anything at all",
+      "timer": 25,
+      "maxLength": 30,
+      "next": "word-2"
+    },
+    "word-2": {
+      "type": "collect",
+      "rotateFrom": "word-1",
+      "prompt": "The paper folds and passes. You can't see what's on it.\n\nWord 2 of 6. Write one NOUN, a person, animal, or thing (walrus, librarian, volcano).\n\nTheme: anything at all",
+      "timer": 25,
+      "maxLength": 30,
+      "next": "word-3"
+    },
+    "word-3": {
+      "type": "collect",
+      "rotateFrom": "word-2",
+      "prompt": "Fold, pass. Still a secret.\n\nWord 3 of 6. Write one ADVERB, a how-word ending in -ly (slowly, rudely, magnificently).\n\nTheme: anything at all",
+      "timer": 25,
+      "maxLength": 30,
+      "next": "word-4"
+    },
+    "word-4": {
+      "type": "collect",
+      "rotateFrom": "word-3",
+      "prompt": "Fold, pass.\n\nWord 4 of 6. Write one VERB that ends in -s, an action (devours, serenades, interrogates).\n\nTheme: anything at all",
+      "timer": 25,
+      "maxLength": 30,
+      "next": "word-5"
+    },
+    "word-5": {
+      "type": "collect",
+      "rotateFrom": "word-4",
+      "prompt": "Fold, pass. Almost there.\n\nWord 5 of 6. Write one more ADJECTIVE (furious, invisible, chocolate-covered).\n\nTheme: anything at all",
+      "timer": 25,
+      "maxLength": 30,
+      "next": "word-6"
+    },
+    "word-6": {
+      "type": "collect",
+      "rotateFrom": "word-5",
+      "prompt": "Last fold.\n\nWord 6 of 6. Write one final NOUN (sandwich, principal, thunderstorm).\n\nTheme: anything at all",
+      "timer": 25,
+      "maxLength": 30,
+      "next": "unfold"
+    },
+    "unfold": {
+      "type": "announce",
+      "message": "Pencils down. Every paper unfolds at once.\n\nThe sentence each of you started is about to come back, finished by five classmates who never saw it. Read yours quietly first. Then we'll hear some out loud.",
+      "next": "poem"
+    },
+    "poem": {
+      "type": "reveal",
+      "scope": "own",
+      "chainFrom": [
+        "word-1",
+        "word-2",
+        "word-3",
+        "word-4",
+        "word-5",
+        "word-6"
+      ],
+      "chainDisplay": "template",
+      "chainTemplate": "The {1} {2} {3} {4} the {5} {6}.",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Six hands, no plan, and somehow it's poetry. The surrealists would be proud."
+    }
+  },
+  "playTime": "~10 min",
+  "classSize": "6-30 players",
+  "minPlayers": 2,
+  "tags": [
+    "creative",
+    "language",
+    "collaborative"
+  ],
+  "recommendedFor": "ELA parts-of-speech practice, creative writing warm-ups, art class, or any day that needs surrealism.",
+  "keywords": [
+    "exquisite corpse",
+    "consequences",
+    "folded paper",
+    "surrealist",
+    "mad lib",
+    "blind",
+    "sentence",
+    "poem",
+    "parts of speech"
+  ]
+}

@@ -12,6 +12,7 @@ import { EVENTS } from '../events.js';
 import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups } from '../phases/pairing.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { shuffleDeal } from '../phases/deal.js';
+import { tailOfWords } from '../phases/append-only.js';
 
 /**
  * Build the rotation assignment map for a collect phase that has
@@ -339,9 +340,16 @@ registerHandler('collect', {
       // prefillFromAssigned: the passed item lands IN the text box so the
       // recipient adds to it (accumulating lists — the +1-routine move).
       // Text only; drawings already preload via assignedDrawing.
-      const prefill = phase.prefillFromAssigned && rotation && typeof rotation[player.id] === 'string'
+      // showTail (the exquisite-corpse fold): with appendOnly on, the player
+      // sees only the tail of the inherited text — the full copy stays
+      // server-side, so the artifact still accumulates whole. Server-side
+      // masking on purpose: nothing hidden ever reaches the client.
+      let prefill = phase.prefillFromAssigned && rotation && typeof rotation[player.id] === 'string'
         ? rotation[player.id]
         : null;
+      if (prefill !== null && phase.appendOnly && phase.showTail) {
+        prefill = tailOfWords(prefill, phase.showTail);
+      }
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, displayDrawing, timer: phase.timer || null, fields: phase.fields || null,
         inputType,
@@ -379,10 +387,14 @@ registerHandler('collect', {
         ? (ctx.engine.phaseData[ctx.phase.rotateFrom] || {})
         : {};
       const reconRotated = reconSource.assignedDrawing || null;
-      const reconPrefill = ctx.phase.prefillFromAssigned && player && reconSource.assigned &&
+      let reconPrefill = ctx.phase.prefillFromAssigned && player && reconSource.assigned &&
         typeof reconSource.assigned[player.id] === 'string'
         ? reconSource.assigned[player.id]
         : null;
+      // Same fold as onEnter: a reconnect must not leak the hidden head.
+      if (reconPrefill !== null && ctx.phase.appendOnly && ctx.phase.showTail) {
+        reconPrefill = tailOfWords(reconPrefill, ctx.phase.showTail);
+      }
       socket.emit(EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, timer: null,
         displayDrawing: resolveDisplayDrawing(ctx.phase, ctx.engine),

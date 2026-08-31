@@ -36,8 +36,8 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1454 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
-- **29 phase types**, **22 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
+- **1487 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **29 phase types**, **23 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
 
@@ -79,17 +79,17 @@ Framework for quickly building classroom games where:
 - Review prompts in `services/ai-service.js` (PHASE_EXTRA_GUIDANCE) must be updated when adding phase types.
 - Client validation in `screens/designer/editor.js` mirrors server validation in `engine/game-loader.js` — change both.
 - **Step display names live in `screens/shared/phase-names.js`** (one canonical name per phase type; palette, Builder cards, refs, pickers, and the storyboard all read it). New phase types must be added there; never hardcode a step name in a screen.
-- **Recipe-born configs carry a provenance stamp** (`config.recipe = {id, version, params}`, written by `compileRecipe`) that powers the library Customize setup knobs. `games/speed-quiz` AND `games/trivia-bluff` are drift-guarded: their phases must deep-equal a fresh compile of their stamp — change the recipe or the stamped params, never hand-edit their phases.
+- **Recipe-born configs carry a provenance stamp** (`config.recipe = {id, version, params}`, written by `compileRecipe`) that powers the library Customize setup knobs. `games/speed-quiz`, `games/trivia-bluff` AND `games/exquisite-corpse` are drift-guarded: their phases must deep-equal a fresh compile of their stamp — change the recipe or the stamped params, never hand-edit their phases.
 - **`$repeat`/`$map` count mode**: `forEach`/`$map` over an INTEGER recipe param iterates 1..N (`${item}` = round number) — for "how many rounds" knobs where round content is generated at game time (trivia-bluff). Customize's AI interview receives the dialog's knob labels (`knownSettings`) and must never re-ask them.
 
 ## 29 Phase Types
 `engine/phase-schemas.js` is the single source of truth (validator + AI prompts + editor fields + `{{...}}` grammar). Quick reference:
 1. `lobby` — wait for players
-2. `collect` — text/drawing input; `rotateFrom` (rotation chains + `assignedFrom` links; `rotateShuffle:true` = random no-self deal instead of fixed shift, chain per-pool for multi-pool deals), `prefillFromAssigned`, `appendOnly`, `maxLength`, `assign:"pairwise"` (+`oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom` — accepts a pairwise collect OR team-split, `pairBy:{from,mode}` answer-keyed pairing from a collect-choice — opposite/same, best-effort), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"`
+2. `collect` — text/drawing input; `rotateFrom` (rotation chains + `assignedFrom` links; `rotateShuffle:true` = random no-self deal instead of fixed shift, chain per-pool for multi-pool deals; leave `{{X.assigned}}` out of the prompt = a BLIND hand-off), `prefillFromAssigned`, `appendOnly`, `showTail:N` (the exquisite-corpse fold: player sees only the last N words of the inherited text, full text still accumulates; requires appendOnly), `maxLength`, `assign:"pairwise"` (+`oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom` — accepts a pairwise collect OR team-split, `pairBy:{from,mode}` answer-keyed pairing from a collect-choice — opposite/same, best-effort), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"`
 3. `ai-process` — AI processes data; `perPlayer:true` for one item per student
 4. `vote` — head-to-head or pick-one; `matchupsFromPairs`/`excludeAuthors`, literal `candidates`, `nextByWinner` branch routing
 5. `eliminate` — remove players by percent or hook
-6. `reveal` — show content; `scope:"pair"`+`pairsFrom` (pair-private), `scope:"own"`+`chainFrom` (return-to-author chains)
+6. `reveal` — show content; `scope:"pair"`+`pairsFrom` (pair-private), `scope:"own"`+`chainFrom` (return-to-author chains; `chainDisplay:"template"`+`chainTemplate:"The {1} {2}..."` assembles blind one-word chains into a sentence)
 7. `preview` — teacher-only gate before reveal (requires `content`, `approveNext`, `rejectNext`)
 8. `winner` — crown with drumroll; `winnerEntry` shows WHAT they won for
 9. `announce` — message to everyone; `video:` YouTube embed (host-only), `image` field; `drawingFrom` shows a drawing (announce/collect/collect-choice all have it; `_current.drawing` in foreach = Doodle Bluff rounds)

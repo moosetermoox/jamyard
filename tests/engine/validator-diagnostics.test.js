@@ -298,6 +298,9 @@ describe('validator diagnostics — game snapshot', () => {
       'whose-eyes': [],
       'emoji-movies': [],
       'elimination-game': [],
+      // 2026-08-30: blind six-hand rotation chain assembled by the
+      // template chain display (recipe-born, exquisite-corpse recipe).
+      'exquisite-corpse': [],
       'finish-my-drawing': [],
       'fix-one-thing': [],
       // 2026-08-25: Mom Test interview-question judging, born as a user game

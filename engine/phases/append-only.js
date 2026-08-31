@@ -22,3 +22,28 @@ export function combineAppendOnly(assigned, typed) {
   if (!add) return base;
   return base + '\n' + add;
 }
+
+/**
+ * The fold (`collect.showTail`): mask an inherited text down to its last N
+ * words for DISPLAY, exquisite-corpse style. The full text stays server-side
+ * (combineAppendOnly always works from the authoritative copy), so the final
+ * assembly is whole; only what the student sees is folded away. Whitespace
+ * inside the visible tail is preserved; a leading ellipsis marks that
+ * something is hidden.
+ *
+ * @param {string} text the full inherited text
+ * @param {number} n how many trailing words stay visible
+ * @returns {string} the visible tail, or the text unchanged when nothing
+ *   needs hiding (short text, or an invalid n)
+ */
+export function tailOfWords(text, n) {
+  if (typeof text !== 'string' || text === '') return text;
+  const count = Number(n);
+  if (!Number.isInteger(count) || count < 1) return text;
+  const starts = [];
+  const re = /\S+/g;
+  let m;
+  while ((m = re.exec(text)) !== null) starts.push(m.index);
+  if (starts.length <= count) return text;
+  return '… ' + text.slice(starts[starts.length - count]);
+}

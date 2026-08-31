@@ -1,0 +1,51 @@
+{
+  "name": "Sim Fold",
+  "description": "Hidden test fixture: folded-story chain. Each pass shows only the last three words of the inherited text (showTail) while the full story accumulates server-side.",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "start"
+    },
+    "start": {
+      "type": "collect",
+      "prompt": "Write the opening line of a story.",
+      "maxLength": 300,
+      "next": "pass-1"
+    },
+    "pass-1": {
+      "type": "collect",
+      "rotateFrom": "start",
+      "prefillFromAssigned": true,
+      "appendOnly": true,
+      "showTail": 3,
+      "prompt": "A story reaches you folded: you can only see its last three words. Continue it with one line.",
+      "maxLength": 500,
+      "next": "pass-2"
+    },
+    "pass-2": {
+      "type": "collect",
+      "rotateFrom": "pass-1",
+      "prefillFromAssigned": true,
+      "appendOnly": true,
+      "showTail": 3,
+      "prompt": "Another folded story, another three visible words. Add one more line.",
+      "maxLength": 700,
+      "next": "share"
+    },
+    "share": {
+      "type": "reveal",
+      "scope": "own",
+      "chainFrom": [
+        "start",
+        "pass-1",
+        "pass-2"
+      ],
+      "chainDisplay": "final",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Unfolded."
+    }
+  }
+}

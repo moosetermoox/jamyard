@@ -35,7 +35,9 @@ function getChainViews(ctx) {
 }
 
 function ownContentFor(ctx, views, playerId) {
-  return formatChainContent(views.get(playerId), { display: ctx.phase.chainDisplay });
+  return formatChainContent(views.get(playerId), {
+    display: ctx.phase.chainDisplay, template: ctx.phase.chainTemplate
+  });
 }
 
 // Build the per-pair views for a scope:"pair" reveal, or throw a clear error

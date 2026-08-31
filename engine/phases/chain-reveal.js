@@ -70,21 +70,46 @@ export function buildChainViews(chainDatas) {
 }
 
 /**
+ * Fill a slot template ("The {1} {2} {3}.") from a chain view: {1} is the
+ * origin contribution, {2}.. are the hops in chain order. Slots with no
+ * contribution (absent player, broken link, short chain) render as a
+ * blank so the sentence still reads aloud. Exquisite-corpse assembly.
+ */
+const BLANK_SLOT = '____';
+function fillSlotTemplate(template, view) {
+  const slots = [view.original, ...view.steps];
+  return template.replace(/\{(\d+)\}/g, (_, n) => {
+    const word = slots[Number(n) - 1];
+    const trimmed = typeof word === 'string' ? word.trim() : '';
+    return trimmed !== '' ? trimmed : BLANK_SLOT;
+  });
+}
+
+/**
  * Default player-facing rendering of one chain view.
  * @param {{original: string, steps: string[], complete: boolean}|undefined} view
- * @param {{ display?: 'steps'|'final' }} [opts]
- *   'steps'  — original + every hop, numbered (chain poems, relays)
- *   'final'  — original + the last hop only (accumulating lists, where
- *              each hop already contains everything before it)
+ * @param {{ display?: 'steps'|'final'|'template', template?: string }} [opts]
+ *   'steps'    — original + every hop, numbered (chain poems, relays)
+ *   'final'    — original + the last hop only (accumulating lists, where
+ *                each hop already contains everything before it)
+ *   'template' — the contributions assembled into opts.template's {N}
+ *                slots (blind grammar chains, exquisite corpse). Falls
+ *                back to 'steps' when no template string is set; the
+ *                validator flags that config before a game can run.
  */
 export function formatChainContent(view, opts = {}) {
   if (!view || view.original === undefined) {
     return 'You didn\'t start one this round, lean over and see what a neighbor got back!';
   }
-  const display = opts.display === 'final' ? 'final' : 'steps';
+  const hasTemplate = typeof opts.template === 'string' && opts.template.trim() !== '';
+  const display = opts.display === 'final' ? 'final'
+    : (opts.display === 'template' && hasTemplate) ? 'template'
+    : 'steps';
   const lines = ['🌱 You started with:', `“${view.original}”`];
 
-  if (view.steps.length === 0) {
+  if (display === 'template') {
+    lines.push('', 'Hand by hand, it became:', `“${fillSlotTemplate(opts.template, view)}”`);
+  } else if (view.steps.length === 0) {
     lines.push('', 'No one got to add to it this time.');
   } else if (display === 'final') {
     const grew = view.steps.length === 1
