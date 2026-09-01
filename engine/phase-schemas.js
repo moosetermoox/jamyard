@@ -52,7 +52,11 @@ export const MIXINS = {
       hostShow: { type: 'array', item: { type: 'string' }, optional: true, label: 'Host UI elements to show' },
       playerShow: { type: 'array', item: { type: 'string' }, optional: true, label: 'Player UI elements to show' },
       hostTemplate: { type: 'templateString', optional: true, label: 'Custom host text' },
-      playerTemplate: { type: 'templateString', optional: true, label: 'Custom player text' }
+      playerTemplate: { type: 'templateString', optional: true, label: 'Custom player text' },
+      // Overrides the generated advance-button wording ("Start the voting")
+      // for the button shown DURING this phase — resolved in
+      // engine/phases/continue-labels.js continueLabelForPhase.
+      continueLabel: { type: 'string', optional: true, label: 'Next button label' }
     }
   },
 

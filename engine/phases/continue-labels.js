@@ -92,10 +92,18 @@ function questionRanBefore(phase, phases) {
  * Convenience: resolve the label for a phase's `next` reference from a
  * config's phase map (virtual foreach sub-phases are injected into the same
  * map at runtime, so this covers them too).
- * @param {{ next?: string }} phase
+ *
+ * A phase's own `continueLabel` config field (Simple-view "Next button"
+ * setting) wins over the generated wording — every surface that shows an
+ * advance label (announce/reveal projector buttons, the teacher console's
+ * next-step button) resolves through here, so the override covers them all.
+ * @param {{ next?: string, continueLabel?: string }} phase
  * @param {Record<string, { type?: string }>} phases
  */
 export function continueLabelForPhase(phase, phases) {
+  if (phase && typeof phase.continueLabel === 'string' && phase.continueLabel.trim()) {
+    return phase.continueLabel.trim();
+  }
   const nextId = phase && phase.next;
   const next = nextId && phases ? phases[nextId] : null;
   if (next && next.type === 'collect-choice' && !questionRanBefore(phase, phases)) {

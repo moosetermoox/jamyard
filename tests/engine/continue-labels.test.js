@@ -30,6 +30,18 @@ describe('continueLabelForPhase', () => {
     expect(continueLabelForPhase(phases.results, phases)).toBe('Finish up');
   });
 
+  it("the phase's own continueLabel field wins over the generated wording", () => {
+    const custom = { type: 'announce', next: 'q1', continueLabel: "Let's discuss!" };
+    expect(continueLabelForPhase(custom, phases)).toBe("Let's discuss!");
+  });
+
+  it('a blank or non-string continueLabel falls back to the generated label', () => {
+    expect(continueLabelForPhase({ type: 'announce', next: 'q1', continueLabel: '   ' }, phases))
+      .toBe('Send the question to students');
+    expect(continueLabelForPhase({ type: 'announce', next: 'q1', continueLabel: 42 }, phases))
+      .toBe('Send the question to students');
+  });
+
   it('is safe on dangling refs and missing next', () => {
     expect(continueLabelForPhase({ next: 'nope' }, phases)).toBe('Continue');
     expect(continueLabelForPhase({}, phases)).toBe('Continue');

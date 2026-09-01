@@ -711,6 +711,50 @@
   // YouTube video on the projector. Addresses only, on purpose: uploaded
   // files would land on the deploy-ephemeral disk and vanish on the next
   // deploy (NEXT-STEPS 2026-08-30), a pasted URL survives everything.
+  // The red advance button's wording ("Start the voting") is generated from
+  // the NEXT step's type; this lets a teacher say it their way ("Let's
+  // discuss!") without the AI. Blank = back to automatic. Collapsed until
+  // asked for, like mediaEditor: most steps never need it.
+  function buttonLabelEditor(phase) {
+    var wrap = el('div', 'sv-media');
+    var rows = el('div', 'sv-media-rows');
+
+    var row = el('label', 'sv-media-row');
+    row.appendChild(el('span', 'sv-media-label', 'Next button'));
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'sv-list-input sv-media-input';
+    input.maxLength = 40;
+    input.placeholder = 'Leave blank for automatic wording';
+    input.value = phase.continueLabel || '';
+    input.addEventListener('input', function () {
+      markEdited();
+      var v = input.value.trim();
+      if (v) phase.continueLabel = v;
+      else delete phase.continueLabel;
+    });
+    input.addEventListener('blur', function () { autoSaveIfDirty(); });
+    row.appendChild(input);
+    rows.appendChild(row);
+
+    var hint = el('div', 'sv-media-hint',
+      'The button that moves the class to the next step, on the projector and your teacher view.');
+    rows.appendChild(hint);
+
+    if (phase.continueLabel) {
+      wrap.appendChild(rows);
+    } else {
+      var add = el('button', 'sv-action sv-action-quiet sv-media-add', '+ Change the next button');
+      add.type = 'button';
+      add.addEventListener('click', function () {
+        wrap.replaceChild(rows, add);
+        input.focus();
+      });
+      wrap.appendChild(add);
+    }
+    return wrap;
+  }
+
   function mediaEditor(phase, opts) {
     var imageOnly = opts && opts.imageOnly;
     var wrap = el('div', 'sv-media');
@@ -795,7 +839,7 @@
 
   function describeStep(phaseId, phase) {
     var type = phase.type;
-    var d = { sentence: '', field: null, facts: [], extra: null, media: null, muted: false };
+    var d = { sentence: '', field: null, facts: [], extra: null, media: null, buttonLabel: null, muted: false };
 
     switch (type) {
       case 'lobby':
@@ -863,6 +907,7 @@
         d.field = textBox(phase.message, 'What the class sees…', function (v) { phase.message = v; });
         d.facts.push(timerFact(phase));
         d.media = mediaEditor(phase);
+        d.buttonLabel = buttonLabelEditor(phase);
         break;
 
       case 'reveal':
@@ -878,6 +923,7 @@
           d.sentence = 'The class sees:';
           d.field = textBox(phase.template, 'What to show, open All settings to insert answers from earlier steps…', function (v) { phase.template = v; });
           d.media = mediaEditor(phase);
+          d.buttonLabel = buttonLabelEditor(phase);
         }
         break;
 
@@ -1352,6 +1398,7 @@
     }
 
     if (d.media) card.appendChild(d.media);
+    if (d.buttonLabel) card.appendChild(d.buttonLabel);
 
     // Actions: the card's simple fields for small things, the AI chat for
     // everything else (owner's call 2026-08-20: no raw-field escape hatch;
