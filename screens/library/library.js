@@ -2195,9 +2195,58 @@ function renderClassLine(profile) {
   setupEl.appendChild(line);
 }
 
+// "Something else" is a blank to fill: a small popup asks what it actually
+// is, so personalization can say "Robotics" instead of "Something else".
+// Closing without typing is fine, the chip stays picked with no text.
+function askOtherSubject(picked) {
+  var overlay = document.createElement('div');
+  overlay.className = 'template-picker-overlay';
+  var modal = document.createElement('div');
+  modal.className = 'template-picker-modal subject-other-modal';
+
+  var title = document.createElement('h2');
+  title.textContent = 'What do you teach?';
+  modal.appendChild(title);
+
+  var hint = document.createElement('p');
+  hint.className = 'subject-other-hint';
+  hint.textContent = 'A word or two is plenty. It helps suggest questions that fit your class.';
+  modal.appendChild(hint);
+
+  var input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'subject-other-input';
+  input.maxLength = 60;
+  input.placeholder = 'Health, music, robotics...';
+  input.value = picked.otherText || '';
+  modal.appendChild(input);
+
+  var saveRow = document.createElement('div');
+  saveRow.className = 'subject-other-save-row';
+  var saveBtn = document.createElement('button');
+  saveBtn.type = 'button';
+  saveBtn.className = 'teacher-setup-save';
+  saveBtn.textContent = 'Save';
+  saveRow.appendChild(saveBtn);
+  modal.appendChild(saveRow);
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+  var dlg = Dialog.enhance(overlay, modal, { title: 'What do you teach?' });
+
+  saveBtn.addEventListener('click', function () {
+    picked.otherText = input.value.trim();
+    dlg.close();
+  });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') saveBtn.click();
+  });
+  input.focus();
+}
+
 function renderSetupCard() {
-  var existing = TeacherProfile.get() || { gradeBand: null, subjects: [] };
-  var picked = { gradeBand: existing.gradeBand, subjects: existing.subjects.slice() };
+  var existing = TeacherProfile.get() || { gradeBand: null, subjects: [], otherText: '' };
+  var picked = { gradeBand: existing.gradeBand, subjects: existing.subjects.slice(), otherText: existing.otherText || '' };
 
   var card = document.createElement('div');
   card.className = 'teacher-setup-card';
@@ -2207,13 +2256,14 @@ function renderSetupCard() {
   title.textContent = 'New here? Start with this';
   card.appendChild(title);
 
-  // Three icon rows, one short line each (owner call 2026-08-27, same
-  // treatment as the designer's plan-intro: nobody reads the bullet wall).
-  // Marks are drawn CSS shapes, not emojis.
+  // Icon rows in WORKFLOW ORDER (owner call 2026-08-31: choosing and
+  // customizing come before projecting), one short line each (2026-08-27:
+  // nobody reads the bullet wall). Marks are drawn CSS shapes, not emojis.
   var introRows = [
-    { icon: 'board', text: 'You project it up front.' },
-    { icon: 'code', text: 'Students join with a room code. No accounts.' },
-    { icon: 'play', text: 'Not sure? Preview one first, no class needed.' }
+    { icon: 'pick', text: 'Pick an activity and make it yours.' },
+    { icon: 'play', text: 'Preview it first, no class needed.' },
+    { icon: 'board', text: 'Then host it, projected up front.' },
+    { icon: 'code', text: 'Students join with a room code. No accounts.' }
   ];
   introRows.forEach(function (r) {
     var row = document.createElement('div');
@@ -2285,7 +2335,13 @@ function renderSetupCard() {
     function (id) { return picked.subjects.indexOf(id) !== -1; },
     function (id) {
       var at = picked.subjects.indexOf(id);
-      if (at === -1) picked.subjects.push(id); else picked.subjects.splice(at, 1);
+      if (at === -1) {
+        picked.subjects.push(id);
+        if (id === 'other') askOtherSubject(picked);
+      } else {
+        picked.subjects.splice(at, 1);
+        if (id === 'other') picked.otherText = '';
+      }
     }
   ));
 

@@ -21,7 +21,7 @@ describe('TeacherProfile', () => {
 
   it('round-trips a saved profile and stops offering the card', () => {
     TP.save({ gradeBand: 'middle', subjects: ['social-studies', 'science'] });
-    expect(TP.get()).toEqual({ gradeBand: 'middle', subjects: ['social-studies', 'science'] });
+    expect(TP.get()).toEqual({ gradeBand: 'middle', subjects: ['social-studies', 'science'], otherText: '' });
     expect(TP.shouldOffer()).toBe(false);
   });
 
@@ -33,7 +33,32 @@ describe('TeacherProfile', () => {
 
   it('drops unknown grade bands and subjects instead of storing junk', () => {
     TP.save({ gradeBand: 'bogus', subjects: ['social-studies', 'nope'] });
-    expect(TP.get()).toEqual({ gradeBand: null, subjects: ['social-studies'] });
+    expect(TP.get()).toEqual({ gradeBand: null, subjects: ['social-studies'], otherText: '' });
+  });
+
+  it('keeps the typed "something else" subject alongside the other chip', () => {
+    TP.save({ gradeBand: 'middle', subjects: ['other'], otherText: '  Culinary arts  ' });
+    expect(TP.get()).toEqual({ gradeBand: 'middle', subjects: ['other'], otherText: 'Culinary arts' });
+  });
+
+  it('drops stale otherText when "other" is no longer among the subjects', () => {
+    TP.save({ gradeBand: 'middle', subjects: ['science'], otherText: 'Culinary arts' });
+    expect(TP.get().otherText).toBe('');
+  });
+
+  it('caps otherText at 60 characters', () => {
+    TP.save({ gradeBand: null, subjects: ['other'], otherText: 'x'.repeat(200) });
+    expect(TP.get().otherText).toHaveLength(60);
+  });
+
+  it('describe speaks the typed subject instead of "Something else"', () => {
+    TP.save({ gradeBand: 'high', subjects: ['science', 'other'], otherText: 'Robotics' });
+    expect(TP.describe()).toBe('High school (9-12), Science and Robotics');
+  });
+
+  it('describe falls back to the chip label when nothing was typed', () => {
+    TP.save({ gradeBand: null, subjects: ['other'] });
+    expect(TP.describe()).toBe('Something else');
   });
 
   it('an entirely-empty save behaves like a skip', () => {

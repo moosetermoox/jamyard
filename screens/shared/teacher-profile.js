@@ -68,13 +68,24 @@
         ? p.subjects.filter(function (s) { return labelFor(SUBJECTS, s); })
         : [];
       if (!gradeBand && subjects.length === 0) return null;
-      return { gradeBand: gradeBand, subjects: subjects };
+      // otherText only means anything while "other" is actually picked;
+      // dropping it here keeps a stale answer from resurfacing later.
+      var otherText = subjects.indexOf('other') !== -1 && typeof p.otherText === 'string'
+        ? p.otherText
+        : '';
+      return { gradeBand: gradeBand, subjects: subjects, otherText: otherText };
     },
 
     save: function (profile) {
       write(KEY, {
         gradeBand: profile.gradeBand || null,
-        subjects: Array.isArray(profile.subjects) ? profile.subjects : []
+        subjects: Array.isArray(profile.subjects) ? profile.subjects : [],
+        // "Something else" in the teacher's own words ("Robotics") — asked
+        // for by the library's popup so personalization can use the real
+        // subject instead of the placeholder label.
+        otherText: typeof profile.otherText === 'string'
+          ? profile.otherText.trim().slice(0, 60)
+          : ''
       });
       write(DISMISS_KEY, true);
     },
@@ -107,6 +118,7 @@
       var bits = [];
       if (p.gradeBand) bits.push(labelFor(GRADE_BANDS, p.gradeBand));
       var subjectLabels = p.subjects.map(function (s) {
+        if (s === 'other' && p.otherText) return p.otherText;
         return labelFor(SUBJECTS, s);
       }).filter(Boolean);
       if (subjectLabels.length > 0) {

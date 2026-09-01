@@ -531,6 +531,22 @@ header {
   background: var(--t-paper, #FDF9F0);
 }
 
+/* Pick & customize: a paper card with pencil lines, on magenta */
+.su-mark-pick {
+  background: var(--t-magenta, #B0197E);
+  transform: rotate(1.2deg);
+}
+
+.su-mark-pick::after {
+  content: '';
+  width: 22px;
+  height: 15px;
+  background:
+    linear-gradient(var(--t-ink, #2A2620), var(--t-ink, #2A2620)) 4px 4px / 14px 2px no-repeat,
+    linear-gradient(var(--t-ink, #2A2620), var(--t-ink, #2A2620)) 4px 9px / 9px 2px no-repeat,
+    var(--t-paper, #FDF9F0);
+}
+
 /* The room code: four little letter blocks on yellow */
 .su-mark-code {
   background: var(--t-yellow, #FFC800);
@@ -563,6 +579,32 @@ header {
   border-top: 9px solid transparent;
   border-bottom: 9px solid transparent;
   margin-left: 3px;
+}
+
+/* "Something else" popup: one question, one box */
+.subject-other-modal { max-width: 400px; }
+
+.subject-other-modal h2 { margin: 0 0 6px; }
+
+.subject-other-hint {
+  color: #6B6250;
+  margin: 0 0 14px;
+}
+
+.subject-other-input {
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 16px;
+  border: 2px solid var(--t-ink, #2A2620);
+  background: #fff;
+  caret-color: var(--t-ink, #2A2620);
+}
+
+.subject-other-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
 }
 
 .teacher-setup-guide-link {
