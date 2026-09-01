@@ -12,6 +12,8 @@
 
   <header>
     <span class="logo">Teacher view</span>
+    <a id="header-report" class="header-report" target="_blank" rel="noopener" hidden
+       title="A printable record of everything the class has made so far">Activity report</a>
     <span id="header-room" class="header-room" hidden></span>
   </header>
 
@@ -76,6 +78,18 @@
       <button id="more-time-btn" hidden title="Give the class 30 more seconds on this step">A bit more time +30s</button>
       <button id="reveal-next-btn" class="btn-go" hidden title="Show the next submission on the projector">Reveal the next one ▸</button>
       <button id="next-step-btn" title="Move the whole class to the next step">Next step ▸</button>
+    </div>
+
+    <!-- End of activity: the report reminder. The report only exists while
+         the room is open, so this has to catch the teacher before they go. -->
+    <div id="report-card" class="report-card" hidden>
+      <h2>Save a record of this activity</h2>
+      <p class="block-hint">The activity report shows everything the class made, ready to print or save as a PDF. It isn't stored anywhere, once the room closes it's gone.</p>
+      <div class="btn-row">
+        <a id="report-open-btn" class="btn-go report-open-btn" target="_blank" rel="noopener"
+           title="Opens the printable report in a new tab">Open the report ▸</a>
+        <button id="report-dismiss-btn" class="report-dismiss-btn">Not now</button>
+      </div>
     </div>
 
     <p id="device-notice" class="console-note" hidden></p>

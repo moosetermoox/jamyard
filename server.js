@@ -88,6 +88,7 @@ import { playerChecklistView, teacherDetail } from './engine/phase-handlers/chec
 import { continueLabelForPhase, closeLabelFor } from './engine/phases/continue-labels.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
+import { buildActivityReport } from './engine/report.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
 import { contentLog } from './engine/content-log.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText } from './engine/moderation.js';
@@ -1682,6 +1683,11 @@ app.use('/host', express.static(join(__dirname, 'screens/host')));
 // scripts/regen-carousel-shots.js). A missing shot 404s and the carousel
 // falls back to its text-only card.
 app.use('/home-shots', express.static(join(__dirname, 'screens/home/shots')));
+// The printable activity report (registered before the static mount so the
+// extensionless path resolves to the page, not a directory miss).
+app.get('/teacher/report', (req, res) => {
+  res.sendFile('report.html', { root: join(__dirname, 'screens', 'teacher') });
+});
 app.use('/teacher', express.static(join(__dirname, 'screens/teacher')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
 app.use('/shared', express.static(join(__dirname, 'screens/shared')));
@@ -1868,6 +1874,23 @@ app.get('/api/rooms/:code/journal', (req, res) => {
     phaseInstanceId: room.phaseInstanceId || 0,
     journal: room.journal || []
   });
+});
+
+// Teacher-only: the printable activity report — student names and work,
+// built on demand from live room state (engine/report.js). Deliberately
+// never stored server-side: it goes straight to the teacher's device, and
+// when the room expires the data is gone. Same auth as the journal.
+app.get('/api/rooms/:code/report', (req, res) => {
+  const room = roomManager.find(req.params.code.toUpperCase());
+  if (!room || !room.engine) return res.status(404).json({ error: 'Room not found. Reports are only available while the room is open.' });
+  const allowed = checkTeacherAccess(
+    { pin: typeof req.query.pin === 'string' ? req.query.pin : '', authHeader: req.headers.authorization },
+    { teacherPin: room.teacherPin, sitePassword: process.env.SITE_PASSWORD }
+  );
+  if (!allowed) {
+    return res.status(403).json({ error: 'Teacher access required. Open the report from your teacher console.' });
+  }
+  res.json(buildActivityReport(room.engine, { code: room.code }));
 });
 
 // Public pre-join lookup: the player screen asks whether a room collects

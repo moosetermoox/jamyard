@@ -24,6 +24,7 @@ const FILES = [
   'screens/host/host.js',
   'screens/player/player.js',
   'screens/teacher/teacher.js',
+  'screens/teacher/report.js',
   'screens/prototype/prototype.js',
   'screens/designer/designer.js',
   'screens/designer/editor.js',

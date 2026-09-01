@@ -1,0 +1,202 @@
+/* Activity report — a printable document, not an app screen.
+   Deliberately standalone (no design.css): print output wants plain white,
+   real black text, and predictable page breaks. */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 24px;
+  background: #f4f2ec;
+  color: #1c1a17;
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1.5;
+}
+
+/* Elements toggled from JS keep display:none even with styled display values */
+[hidden] { display: none !important; }
+
+/* --- Screen-only controls --- */
+
+.rp-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  max-width: 760px;
+  margin: 0 auto 20px;
+  padding: 12px 16px;
+  background: #ffffff;
+  border: 1px solid #d8d3c6;
+  border-radius: 8px;
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+}
+
+.rp-btn {
+  font: inherit;
+  padding: 8px 14px;
+  border: 1px solid #b9b2a2;
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.rp-btn-primary {
+  background: #2f6f4f;
+  border-color: #2f6f4f;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.rp-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+
+.rp-keep-note { color: #6b6557; }
+
+.rp-error { color: #a33327; font-family: system-ui, sans-serif; }
+
+/* --- Connect fallback --- */
+
+#connect-section {
+  max-width: 420px;
+  margin: 48px auto;
+  padding: 24px;
+  background: #ffffff;
+  border: 1px solid #d8d3c6;
+  border-radius: 8px;
+  font-family: system-ui, sans-serif;
+}
+
+#connect-section label { display: block; margin: 12px 0 4px; font-weight: 600; }
+
+#connect-section input {
+  width: 100%;
+  padding: 8px 10px;
+  font: inherit;
+  border: 1px solid #b9b2a2;
+  border-radius: 6px;
+}
+
+#connect-section button { margin-top: 16px; }
+
+/* --- The document --- */
+
+#report {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 48px;
+  background: #ffffff;
+  border: 1px solid #d8d3c6;
+  border-radius: 8px;
+}
+
+.rp-title { margin: 0 0 4px; font-size: 28px; }
+
+.rp-meta { margin: 0 0 6px; color: #6b6557; font-size: 14px; }
+
+.rp-roster { margin: 0 0 8px; font-size: 14px; }
+
+.rp-rule { border: none; border-top: 2px solid #1c1a17; margin: 18px 0 0; }
+
+.rp-section {
+  padding: 18px 0;
+  border-bottom: 1px solid #d8d3c6;
+  break-inside: avoid;
+}
+
+.rp-section:last-child { border-bottom: none; }
+
+.rp-step-kind {
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b6557;
+  margin: 0 0 2px;
+}
+
+.rp-heading { margin: 0 0 10px; font-size: 19px; }
+
+.rp-text { margin: 8px 0; white-space: pre-wrap; }
+
+.rp-pre {
+  margin: 8px 0;
+  padding: 10px 12px;
+  background: #f7f5f0;
+  border: 1px solid #e3ded2;
+  border-radius: 6px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.rp-fact { margin: 4px 0; }
+.rp-fact-label { font-weight: 700; }
+
+.rp-entries { list-style: none; margin: 8px 0; padding: 0; }
+
+.rp-entry { margin: 0 0 10px; break-inside: avoid; }
+
+.rp-entry-name {
+  font-family: system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4c4638;
+}
+
+.rp-entry-text { margin: 1px 0 0; white-space: pre-wrap; }
+
+.rp-entry-drawing {
+  display: block;
+  margin-top: 4px;
+  border: 1px solid #d8d3c6;
+  border-radius: 4px;
+  width: 240px;
+  height: 180px;
+}
+
+.rp-table {
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 14px;
+  min-width: 50%;
+}
+
+.rp-table th, .rp-table td {
+  text-align: left;
+  padding: 4px 14px 4px 0;
+  border-bottom: 1px solid #e3ded2;
+  vertical-align: top;
+}
+
+.rp-table th {
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b6557;
+}
+
+.rp-empty { color: #6b6557; font-style: italic; }
+
+.rp-footer {
+  margin-top: 18px;
+  font-family: system-ui, sans-serif;
+  font-size: 11px;
+  color: #6b6557;
+}
+
+/* --- Print --- */
+
+@media print {
+  body { padding: 0; background: #ffffff; }
+  .rp-controls { display: none !important; }
+  #report {
+    max-width: none;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+  }
+  .rp-pre { background: #ffffff; }
+}

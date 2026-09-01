@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Activity report. Jamyard</title>
+  <link rel="stylesheet" href="report.css">
+</head>
+<body>
+
+  <!-- Screen-only controls: never printed -->
+  <div id="controls" class="rp-controls" hidden>
+    <button id="print-btn" class="rp-btn rp-btn-primary" title="Opens your browser's print dialog, choose 'Save as PDF' to keep a copy">Print / Save as PDF</button>
+    <label class="rp-toggle" title="Turn off to print a copy without student names, for sharing">
+      <input type="checkbox" id="names-toggle" checked>
+      Show student names
+    </label>
+    <span class="rp-keep-note">This report isn't saved anywhere. Print it or save it as a PDF before you close the room.</span>
+  </div>
+
+  <!-- Connect fallback: shown when the page is opened without a valid link -->
+  <section id="connect-section" hidden>
+    <h1>Activity report</h1>
+    <p>The easiest way here is the report button on your teacher console. Or enter the room code and teacher PIN:</p>
+    <label for="code-input">Room code</label>
+    <input type="text" id="code-input" maxlength="4" autocomplete="off" spellcheck="false" placeholder="ABCD">
+    <label for="pin-input">Teacher PIN</label>
+    <input type="text" id="pin-input" maxlength="4" inputmode="numeric" autocomplete="off" placeholder="1234">
+    <button id="connect-btn" class="rp-btn rp-btn-primary">Open report</button>
+    <p id="connect-error" class="rp-error" hidden></p>
+  </section>
+
+  <!-- The report itself -->
+  <main id="report" hidden></main>
+
+  <script src="/shared/phase-names.js"></script>
+  <script src="/shared/drawing.js"></script>
+  <script src="report.js"></script>
+</body>
+</html>

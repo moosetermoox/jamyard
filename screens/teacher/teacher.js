@@ -38,6 +38,11 @@ var consoleNote = document.getElementById('console-note');
 var checklistBlock = document.getElementById('checklist-block');
 var checklistGroups = document.getElementById('checklist-groups');
 
+var reportCard = document.getElementById('report-card');
+var reportOpenBtn = document.getElementById('report-open-btn');
+var reportDismissBtn = document.getElementById('report-dismiss-btn');
+var headerReport = document.getElementById('header-report');
+
 var lobbyBlock = document.getElementById('lobby-block');
 var lobbyCount = document.getElementById('lobby-count');
 var lobbyRoster = document.getElementById('lobby-roster');
@@ -46,6 +51,7 @@ var deviceNotice = document.getElementById('device-notice');
 
 var currentCode = null;
 var currentPin = null;
+var reportDismissed = false;
 var currentPhaseType = null;
 var currentPhaseInstanceId = 0;
 var checklistItemTexts = [];
@@ -142,6 +148,12 @@ socket.on('teacher-joined', function (snap) {
   consoleSection.hidden = false;
   headerRoom.hidden = false;
   headerRoom.textContent = (snap.gameName ? snap.gameName + ' · ' : '') + 'Room ' + snap.code;
+
+  // The report link is live from the moment we're in: mid-activity it shows
+  // what's finished so far, and at the end it's the full record. Code + PIN
+  // ride in the hash (never the query string) like this page's own deep link.
+  headerReport.href = reportUrl();
+  headerReport.hidden = false;
 
   latestRoster = { count: snap.playerCount || 0, players: snap.players || [] };
   setPhase(snap);
@@ -248,6 +260,18 @@ function setPhase(data) {
   consoleNote.textContent = phaseType === 'end'
     ? 'All done, nice work.'
     : (data.closed ? 'Results are on the projector.' : '');
+
+  // End of activity: surface the report reminder. The report is built from
+  // live room state and never stored, so this is the teacher's window to
+  // print it or save it as a PDF.
+  var atEnd = phaseType === 'end';
+  if (atEnd) reportOpenBtn.href = reportUrl();
+  reportCard.hidden = !atEnd || reportDismissed;
+}
+
+function reportUrl() {
+  return '/teacher/report#code=' + encodeURIComponent(currentCode || '') +
+    '&pin=' + encodeURIComponent(currentPin || '');
 }
 
 socket.on('teacher-phase', function (data) {
@@ -515,4 +539,11 @@ socket.on('reveal-one-complete', function () {
 
 nextStepBtn.addEventListener('click', function () {
   socket.emit('advance-phase', { code: currentCode, phaseInstanceId: currentPhaseInstanceId });
+});
+
+// --- Activity report reminder ---
+
+reportDismissBtn.addEventListener('click', function () {
+  reportDismissed = true;
+  reportCard.hidden = true;
 });

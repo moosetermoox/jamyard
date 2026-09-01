@@ -107,6 +107,14 @@ The privacy policy's retention table must name everything a room
 snapshot contains: responses, drawings, player names, reconnect tokens,
 teacher PIN.
 
+Activity report (added 2026-08-31): the teacher can download a printable
+report of an activity (student names + work) from the PIN-gated teacher
+console while the room is open. By design it is generated on demand and
+NEVER stored server-side — no new retention surface for Jamyard. Once
+downloaded it is a school record on the teacher's device (FERPA
+school-official territory, same as a stack of exit tickets). The privacy
+policy should say this in one line when it gets its rubric pass.
+
 - [ ] **Privacy policy with embedded retention policy** — verbatim: what is
       kept, why, exactly when destroyed. Mandatory under the amended COPPA
       rule ("we don't plan to keep it" does not count). Substance is already
