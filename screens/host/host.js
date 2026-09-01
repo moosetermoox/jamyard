@@ -2313,6 +2313,32 @@ socket.on('turn-complete', ({ teamScores }) => {
   turnTimerEl.hidden = true;
 });
 
+// End-screen report link: the door for teachers who never opened the
+// console. Copies the PIN-carrying /teacher/report deep link WITHOUT ever
+// displaying it (same projector rule as Copy teacher link; the fallback is
+// a hidden textarea, so nothing appears on the wall). The report only
+// exists while the room does, which is why this sits on the wrap-up screen.
+const copyReportBtn = document.getElementById('copy-report-btn');
+let reportCopyTimer = null;
+copyReportBtn.addEventListener('click', () => {
+  if (!currentRoomCode) return;
+  let link = window.location.origin + '/teacher/report#code=' + currentRoomCode;
+  if (currentTeacherPin) link += '&pin=' + currentTeacherPin;
+  const done = () => {
+    copyReportBtn.textContent = '✓ Copied, open it in a private window';
+    if (reportCopyTimer) clearTimeout(reportCopyTimer);
+    reportCopyTimer = setTimeout(() => {
+      copyReportBtn.textContent = 'Copy report link';
+      reportCopyTimer = null;
+    }, 2500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(done).catch(() => fallbackCopy(link, done));
+  } else {
+    fallbackCopy(link, done);
+  }
+});
+
 socket.on('game-ended', ({ message, hostTemplate, hostShow } = {}) => {
   showSection(endSection);
   if (J) J.sound('tada');
