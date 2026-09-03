@@ -1090,6 +1090,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
   subtitle.className = 'template-picker-subtitle';
   subtitle.textContent = 'Your copy of “' + game.name + '”. Keep these questions, adjust them, or have new ones written for your topic.';
   modal.appendChild(subtitle);
+  renderClassPicker(modal);
 
   // --- Topic row: AI writes fresh questions ---
   var topicLabel = document.createElement('label');
@@ -1446,6 +1447,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
   subtitle.className = 'template-picker-subtitle';
   subtitle.textContent = 'Your copy of “' + game.name + '”. Choose where the fill-in-the-blank facts come from.';
   modal.appendChild(subtitle);
+  renderClassPicker(modal);
 
   // --- The three source doors ---
   var SOURCES = [
@@ -1843,7 +1845,9 @@ function customizeCopy(game, btn) {
         // The saved class profile rides along so the questions build on it
         // instead of re-asking grade and subject.
         classDescription: window.TeacherProfile ? TeacherProfile.describe() : '',
-        knownSettings: (knobs || []).map(function (k) { return k.label; })
+        // The class picker sits in the dialog itself, so grade and subject
+        // are settings with a visible control: never re-asked.
+        knownSettings: ['Grade band', 'Subjects'].concat((knobs || []).map(function (k) { return k.label; }))
       })
     }).then(function (r) { return r.ok ? r.json() : { questions: [] }; })
       .catch(function () { return { questions: [] }; });
@@ -1985,37 +1989,107 @@ function showCustomizeDialog(game, config, questions, knobs) {
     subtitle.textContent = 'Answer what you like and we’ll word your copy of “' + game.name + '” for your class. Anything you skip stays as-is.';
     modal.appendChild(subtitle);
 
-    // Show what we already know so the teacher never wonders whether to
-    // repeat their grade and subject in the answers.
-    var knownClass = window.TeacherProfile ? TeacherProfile.describe() : '';
-    if (knownClass) {
-      var knownLine = document.createElement('p');
-      knownLine.className = 'template-picker-subtitle';
-      knownLine.style.fontWeight = '800';
-      knownLine.textContent = 'Writing for your class: ' + knownClass + '.';
-      modal.appendChild(knownLine);
-    }
+    // Who it's for: the saved grade and subjects, changeable right here,
+    // so the teacher never wonders whether to repeat them in the answers.
+    // Changing them re-asks the AI for questions that fit the new class
+    // (a moment after the last pick, or at once on Done).
+    renderClassPicker(modal, {
+      hint: 'The questions below update to fit your class.',
+      onChange: function () {
+        clearTimeout(questionsTimer);
+        questionsTimer = setTimeout(refreshQuestions, 1500);
+      },
+      onDone: function () {
+        clearTimeout(questionsTimer);
+        refreshQuestions();
+      }
+    });
   }
 
+  var questionsBox = document.createElement('div');
+  questionsBox.className = 'customize-questions';
+  modal.appendChild(questionsBox);
+
   var inputs = [];
-  questions.forEach(function (q) {
-    var label = document.createElement('label');
-    label.style.cssText = LABEL_CSS;
-    label.textContent = q.question;
-    modal.appendChild(label);
-    var input = document.createElement('input');
-    input.type = 'text';
-    input.placeholder = q.placeholder || '';
-    input.style.cssText = 'width:100%; ' + INPUT_CSS;
-    modal.appendChild(input);
-    inputs.push({ question: q.question, input: input });
-  });
+  // (Re)build the question inputs. Answers already typed survive when the
+  // same question comes back, the rest start blank.
+  function renderQuestions(list) {
+    var typed = {};
+    inputs.forEach(function (pair) {
+      if (pair.input.value.trim()) typed[pair.question] = pair.input.value;
+    });
+    questionsBox.textContent = '';
+    inputs = [];
+    list.forEach(function (q) {
+      var label = document.createElement('label');
+      label.style.cssText = LABEL_CSS;
+      label.textContent = q.question;
+      questionsBox.appendChild(label);
+      var input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = q.placeholder || '';
+      input.style.cssText = 'width:100%; ' + INPUT_CSS;
+      if (typed[q.question]) input.value = typed[q.question];
+      questionsBox.appendChild(input);
+      inputs.push({ question: q.question, input: input });
+    });
+  }
+  renderQuestions(questions);
 
   var status = document.createElement('p');
   status.className = 'template-picker-subtitle';
   status.style.marginTop = '12px';
   status.hidden = true;
   modal.appendChild(status);
+
+  // The class the current questions were written for; a refresh is a
+  // no-op while it matches, so Done after a debounced fetch never
+  // double-asks.
+  var questionsClass = window.TeacherProfile ? TeacherProfile.describe() : '';
+  var questionsTimer = null;
+  var questionsInFlight = false;
+  function refreshQuestions() {
+    if (questions.length === 0) return;
+    var classDesc = window.TeacherProfile ? TeacherProfile.describe() : '';
+    if (classDesc === questionsClass) return;
+    if (questionsInFlight) {
+      // Picks changed mid-fetch: go again once this one lands.
+      clearTimeout(questionsTimer);
+      questionsTimer = setTimeout(refreshQuestions, 800);
+      return;
+    }
+    questionsInFlight = true;
+    questionsBox.classList.add('customize-questions-stale');
+    status.hidden = false;
+    status.textContent = classDesc
+      ? 'Updating the questions for ' + classDesc + '...'
+      : 'Updating the questions...';
+    fetch('/api/games/customize-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        config: config,
+        classDescription: classDesc,
+        knownSettings: ['Grade band', 'Subjects'].concat(knobs.map(function (k) { return k.label; }))
+      })
+    })
+      .then(function (r) { return r.ok ? r.json() : { questions: [] }; })
+      .then(function (d) {
+        if (Array.isArray(d.questions) && d.questions.length > 0) renderQuestions(d.questions);
+        questionsClass = classDesc;
+        status.hidden = true;
+      })
+      .catch(function () {
+        status.textContent = 'Could not update the questions, the ones below still work.';
+      })
+      .finally(function () {
+        questionsInFlight = false;
+        questionsBox.classList.remove('customize-questions-stale');
+        // The class moved on while we were fetching? Catch up.
+        var now = window.TeacherProfile ? TeacherProfile.describe() : '';
+        if (now !== questionsClass) refreshQuestions();
+      });
+  }
 
   var btnRow = document.createElement('div');
   btnRow.className = 'recipe-form-buttons';
@@ -2171,34 +2245,149 @@ var setupEl = document.getElementById('teacher-setup');
 function renderTeacherSetup() {
   if (!setupEl || !window.TeacherProfile) return;
   setupEl.innerHTML = '';
-  if (TeacherProfile.shouldOffer()) return renderSetupCard();
-  renderClassLine(TeacherProfile.get());
+  if (TeacherProfile.shouldOffer()) renderSetupCard();
 }
 
-function renderClassLine(profile) {
-  var line = document.createElement('p');
-  line.className = 'class-line';
-  var text = document.createElement('span');
-  text.textContent = profile
-    ? 'Your class: ' + TeacherProfile.describe()
-    : 'Tell us your grade and subjects, and Customize will suggest ready-made questions that fit your class.';
-  line.appendChild(text);
-  var change = document.createElement('button');
-  change.type = 'button';
-  change.className = 'class-line-change';
-  change.textContent = profile ? 'Change' : 'Set up';
-  change.addEventListener('click', function () {
-    setupEl.innerHTML = '';
-    renderSetupCard();
+// A row of toggle chips. Single-select rows repaint their siblings so
+// only one stays lit; multi-select rows just flip the clicked chip.
+function buildChipRow(options, isPicked, onPick) {
+  var row = document.createElement('div');
+  row.className = 'teacher-setup-chips';
+  options.forEach(function (opt) {
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'setup-chip' + (isPicked(opt.id) ? ' active' : '');
+    chip.textContent = opt.label;
+    chip.setAttribute('aria-pressed', isPicked(opt.id) ? 'true' : 'false');
+    chip.addEventListener('click', function () {
+      onPick(opt.id);
+      var siblings = row.querySelectorAll('.setup-chip');
+      for (var i = 0; i < siblings.length; i++) {
+        var lit = isPicked(options[i].id);
+        siblings[i].classList.toggle('active', lit);
+        siblings[i].setAttribute('aria-pressed', lit ? 'true' : 'false');
+      }
+    });
+    row.appendChild(chip);
   });
-  line.appendChild(change);
-  setupEl.appendChild(line);
+  return row;
+}
+
+// --- Your class, inside Make it yours ----------------------------------
+// The grade band + subjects picker lives in the Customize dialogs (owner
+// call 2026-09-02; it used to be a first-visit card in the yard). Every
+// pick saves to TeacherProfile at once, so the next Customize opens
+// already set, and the submit paths read TeacherProfile.describe() at
+// send time and see the current picks with no plumbing. Opens folded to
+// one line when a class is already saved; open when nothing is yet.
+// opts.onChange fires after every saved pick, opts.onDone when the
+// teacher folds the picker with Done; opts.hint is a line under the head
+// while it is open (the generic dialog says the questions will update).
+function renderClassPicker(container, opts) {
+  opts = opts || {};
+  if (!window.TeacherProfile) return;
+  var existing = TeacherProfile.get() || { gradeBand: null, subjects: [], otherText: '' };
+  var picked = { gradeBand: existing.gradeBand, subjects: existing.subjects.slice(), otherText: existing.otherText || '' };
+
+  var box = document.createElement('div');
+  box.className = 'class-picker';
+
+  var head = document.createElement('div');
+  head.className = 'class-picker-head';
+  var label = document.createElement('span');
+  label.className = 'class-picker-label';
+  label.textContent = 'Your class';
+  head.appendChild(label);
+  var summary = document.createElement('span');
+  summary.className = 'class-picker-summary';
+  head.appendChild(summary);
+  var toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'class-line-change';
+  head.appendChild(toggle);
+  box.appendChild(head);
+
+  var body = document.createElement('div');
+  body.className = 'class-picker-body';
+  box.appendChild(body);
+
+  if (opts.hint) {
+    var hint = document.createElement('p');
+    hint.className = 'class-picker-hint';
+    hint.textContent = opts.hint;
+    body.appendChild(hint);
+  }
+
+  function refreshHead() {
+    var desc = TeacherProfile.describe();
+    summary.textContent = desc || 'Pick a grade and subjects and the wording fits your class. Optional.';
+    summary.classList.toggle('class-picker-empty', !desc);
+  }
+
+  function persist() {
+    if (!picked.gradeBand && picked.subjects.length === 0) {
+      TeacherProfile.clear();
+      TeacherProfile.dismiss();
+    } else {
+      TeacherProfile.save(picked);
+    }
+    refreshHead();
+    if (opts.onChange) opts.onChange();
+  }
+
+  function setOpen(open) {
+    body.hidden = !open;
+    toggle.textContent = open ? 'Done' : 'Change';
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  toggle.addEventListener('click', function () {
+    var closing = !body.hidden;
+    setOpen(body.hidden);
+    if (closing && opts.onDone) opts.onDone();
+  });
+
+  var gradeLabel = document.createElement('p');
+  gradeLabel.className = 'teacher-setup-label';
+  gradeLabel.textContent = 'Grade band';
+  body.appendChild(gradeLabel);
+  body.appendChild(buildChipRow(
+    TeacherProfile.GRADE_BANDS,
+    function (id) { return picked.gradeBand === id; },
+    function (id) {
+      picked.gradeBand = (picked.gradeBand === id) ? null : id;
+      persist();
+    }
+  ));
+
+  var subjectLabel = document.createElement('p');
+  subjectLabel.className = 'teacher-setup-label';
+  subjectLabel.textContent = 'Subjects, pick any';
+  body.appendChild(subjectLabel);
+  body.appendChild(buildChipRow(
+    TeacherProfile.SUBJECTS,
+    function (id) { return picked.subjects.indexOf(id) !== -1; },
+    function (id) {
+      var at = picked.subjects.indexOf(id);
+      if (at === -1) {
+        picked.subjects.push(id);
+        if (id === 'other') askOtherSubject(picked, persist);
+      } else {
+        picked.subjects.splice(at, 1);
+        if (id === 'other') picked.otherText = '';
+      }
+      persist();
+    }
+  ));
+
+  refreshHead();
+  setOpen(!TeacherProfile.get());
+  container.appendChild(box);
 }
 
 // "Something else" is a blank to fill: a small popup asks what it actually
 // is, so personalization can say "Robotics" instead of "Something else".
 // Closing without typing is fine, the chip stays picked with no text.
-function askOtherSubject(picked) {
+function askOtherSubject(picked, onDone) {
   var overlay = document.createElement('div');
   overlay.className = 'template-picker-overlay';
   var modal = document.createElement('div');
@@ -2237,6 +2426,7 @@ function askOtherSubject(picked) {
   saveBtn.addEventListener('click', function () {
     picked.otherText = input.value.trim();
     dlg.close();
+    if (onDone) onDone();
   });
   input.addEventListener('keydown', function (e) {
     if (e.key === 'Enter') saveBtn.click();
@@ -2244,16 +2434,17 @@ function askOtherSubject(picked) {
   input.focus();
 }
 
+// The first-visit strip: one line of what happens here, in workflow
+// order, and a way out. Slim on purpose (owner call 2026-09-02: the old
+// card also asked grade and subjects; that question moved into Make it
+// yours, where the answer is actually used).
 function renderSetupCard() {
-  var existing = TeacherProfile.get() || { gradeBand: null, subjects: [], otherText: '' };
-  var picked = { gradeBand: existing.gradeBand, subjects: existing.subjects.slice(), otherText: existing.otherText || '' };
-
   var card = document.createElement('div');
   card.className = 'teacher-setup-card';
 
   var title = document.createElement('h2');
   title.className = 'teacher-setup-title';
-  title.textContent = 'New here? Start with this';
+  title.textContent = 'New here?';
   card.appendChild(title);
 
   // Icon rows in WORKFLOW ORDER (owner call 2026-08-31: choosing and
@@ -2278,101 +2469,27 @@ function renderSetupCard() {
     card.appendChild(row);
   });
 
+  var tail = document.createElement('div');
+  tail.className = 'teacher-setup-tail';
+
   var guideLink = document.createElement('a');
   guideLink.className = 'teacher-setup-guide-link';
   guideLink.href = '/guide';
-  guideLink.textContent = 'Read the one-page teacher guide';
-  card.appendChild(guideLink);
+  guideLink.textContent = 'Teacher guide';
+  tail.appendChild(guideLink);
 
-  var ask = document.createElement('p');
-  ask.className = 'teacher-setup-ask';
-  ask.textContent = 'What do you teach? When you customize an activity, we\'ll suggest ready-made questions that fit your class.';
-  card.appendChild(ask);
-
-  function chipRow(options, isPicked, onPick) {
-    var row = document.createElement('div');
-    row.className = 'teacher-setup-chips';
-    options.forEach(function (opt) {
-      var chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'setup-chip' + (isPicked(opt.id) ? ' active' : '');
-      chip.textContent = opt.label;
-      chip.setAttribute('aria-pressed', isPicked(opt.id) ? 'true' : 'false');
-      chip.addEventListener('click', function () {
-        onPick(opt.id);
-        var active = isPicked(opt.id);
-        chip.classList.toggle('active', active);
-        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
-        // Single-select rows: repaint siblings so only one stays lit.
-        var siblings = row.querySelectorAll('.setup-chip');
-        for (var i = 0; i < siblings.length; i++) {
-          var lit = isPicked(options[i].id);
-          siblings[i].classList.toggle('active', lit);
-          siblings[i].setAttribute('aria-pressed', lit ? 'true' : 'false');
-        }
-      });
-      row.appendChild(chip);
-    });
-    return row;
-  }
-
-  var gradeLabel = document.createElement('p');
-  gradeLabel.className = 'teacher-setup-label';
-  gradeLabel.textContent = 'Grade band';
-  card.appendChild(gradeLabel);
-  card.appendChild(chipRow(
-    TeacherProfile.GRADE_BANDS,
-    function (id) { return picked.gradeBand === id; },
-    function (id) { picked.gradeBand = (picked.gradeBand === id) ? null : id; }
-  ));
-
-  var subjectLabel = document.createElement('p');
-  subjectLabel.className = 'teacher-setup-label';
-  subjectLabel.textContent = 'Subjects, pick any';
-  card.appendChild(subjectLabel);
-  card.appendChild(chipRow(
-    TeacherProfile.SUBJECTS,
-    function (id) { return picked.subjects.indexOf(id) !== -1; },
-    function (id) {
-      var at = picked.subjects.indexOf(id);
-      if (at === -1) {
-        picked.subjects.push(id);
-        if (id === 'other') askOtherSubject(picked);
-      } else {
-        picked.subjects.splice(at, 1);
-        if (id === 'other') picked.otherText = '';
-      }
-    }
-  ));
-
-  var btnRow = document.createElement('div');
-  btnRow.className = 'teacher-setup-buttons';
-
-  var skipBtn = document.createElement('button');
-  skipBtn.type = 'button';
-  skipBtn.className = 'teacher-setup-skip';
-  skipBtn.textContent = 'Skip for now';
-  skipBtn.addEventListener('click', function () {
+  var gotIt = document.createElement('button');
+  gotIt.type = 'button';
+  gotIt.className = 'teacher-setup-skip';
+  gotIt.textContent = 'Got it';
+  gotIt.title = 'Hide this';
+  gotIt.addEventListener('click', function () {
     TeacherProfile.dismiss();
     renderTeacherSetup();
   });
-  btnRow.appendChild(skipBtn);
+  tail.appendChild(gotIt);
 
-  var saveBtn = document.createElement('button');
-  saveBtn.type = 'button';
-  saveBtn.className = 'teacher-setup-save';
-  saveBtn.textContent = 'Save';
-  saveBtn.addEventListener('click', function () {
-    if (!picked.gradeBand && picked.subjects.length === 0) {
-      TeacherProfile.dismiss();
-    } else {
-      TeacherProfile.save(picked);
-    }
-    renderTeacherSetup();
-  });
-  btnRow.appendChild(saveBtn);
-
-  card.appendChild(btnRow);
+  card.appendChild(tail);
   setupEl.appendChild(card);
 }
 

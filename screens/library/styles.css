@@ -472,12 +472,20 @@ header {
 .search-rescue-link { font-weight: 700; }
 
 /* ── Teacher setup card + class line ── */
+/* The first-visit strip (2026-09-02, slimmed from a tall card): one paper
+   ribbon, the four workflow marks reading left to right, the guide link
+   and a Got it at the far end. Wraps to two or three lines on narrow
+   screens and stays short either way. */
 .teacher-setup-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 22px;
   background: var(--t-paper, #FDF9F0);
   transform: rotate(-0.25deg);
   box-shadow: 0 4px 6px rgba(50, 35, 15, 0.20);
-  padding: 24px 30px 22px;
-  margin-bottom: 24px;
+  padding: 10px 18px 10px 20px;
+  margin-bottom: 22px;
 }
 
 .teacher-setup-title {
@@ -487,7 +495,8 @@ header {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--t-muted-caps, #8A7B62);
-  margin-bottom: 12px;
+  margin: 0;
+  white-space: nowrap;
 }
 
 /* Icon rows (2026-08-27, replaces the bullet list): one drawn mark + one
@@ -495,17 +504,83 @@ header {
 .setup-intro-row {
   display: flex;
   align-items: center;
-  gap: 13px;
-  margin: 0 0 11px;
+  gap: 9px;
+  margin: 0;
 }
 
 .setup-intro-row p {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.86rem;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.3;
   color: var(--t-ink, #2A2620);
 }
+
+.teacher-setup-card .su-mark {
+  width: 28px;
+  height: 28px;
+  transform: scale(0.8);
+  transform-origin: center;
+}
+
+.teacher-setup-tail {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+/* The class picker inside Make it yours: one folded line when a class is
+   saved ("Your class  Middle school, Science  Change"), the chip rows
+   when open. */
+.class-picker {
+  margin: 6px 0 4px;
+  padding: 10px 12px;
+  background: rgba(50, 35, 15, 0.04);
+  box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.12);
+}
+
+.class-picker-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.class-picker-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps, #8A7B62);
+}
+
+.class-picker-summary {
+  flex: 1;
+  min-width: 160px;
+  font-weight: 700;
+  color: var(--t-ink, #2A2620);
+}
+
+.class-picker-summary.class-picker-empty {
+  font-weight: 500;
+  color: var(--t-muted, #6B6250);
+}
+
+.class-picker-body[hidden] { display: none; }
+
+.class-picker-hint {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--t-muted, #6B6250);
+}
+
+/* While fresh questions are on their way the old ones fade, so nobody
+   answers a question that is about to change. */
+.customize-questions-stale { opacity: 0.45; pointer-events: none; }
+
+.class-picker-body .teacher-setup-label:first-child { margin-top: 8px; }
 
 .su-mark {
   position: relative;
@@ -609,8 +684,7 @@ header {
 
 .teacher-setup-guide-link {
   font-weight: 700;
-  display: inline-block;
-  margin-bottom: 6px;
+  white-space: nowrap;
 }
 
 .teacher-setup-ask {

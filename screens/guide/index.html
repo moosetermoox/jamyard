@@ -83,21 +83,49 @@
     .back { display: inline-block; margin-bottom: 8px; color: var(--t-muted); font-weight: 700; }
     .back:hover { color: var(--t-ink); }
     .credit { margin-top: 28px; color: var(--t-muted); font-size: 0.9rem; }
+    /* Folded sections: the summary wears the h2 look, a small mark shows it opens */
+    .fold { margin: 26px 0 0; }
+    .fold summary {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      list-style: none;
+      padding: 6px 0;
+    }
+    .fold summary::-webkit-details-marker { display: none; }
+    .fold summary::before { content: '+'; display: inline-block; width: 1.2em; color: var(--t-red); }
+    .fold[open] summary::before { content: '\2013'; }
+    .fold summary:hover { color: var(--t-red); }
+    .fold summary:focus-visible { outline: var(--focus-ring); outline-offset: 4px; }
+    /* The one-minute video, 16:9 on a paper sheet */
+    .guide-video {
+      background: var(--t-paper);
+      box-shadow: var(--t-shadow-free);
+      padding: 10px;
+      margin: 18px 0 6px;
+    }
+    .guide-video iframe {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 0;
+      background: #2A2620;
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <a class="back" href="/library">Back to the yard</a>
     <h1>Teacher <span class="t-painted-word">guide</span></h1>
-    <p class="subtitle">One page: what you need, the first five minutes, what you control during a live activity, and quick fixes.</p>
+    <p class="subtitle">The short version first. Open a section only when you need it.</p>
 
-    <h2>What you need</h2>
-    <div class="card">
-      <ul>
-        <li>A projector or shared screen for the host view. The whole class watches this together.</li>
-        <li>A device per student. Chromebooks or tablets are perfect. Students install nothing and never make accounts.</li>
-        <li>Any device for you. A second device for the private teacher console is optional but handy for moderation.</li>
-      </ul>
+    <!-- The one-minute walkthrough. Set GUIDE_VIDEO_ID in the script at
+         the bottom of this page and the player appears here. -->
+    <div id="guide-video" class="guide-video" hidden>
+      <iframe id="guide-video-frame" title="One-minute Jamyard walkthrough" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
 
     <h2>The first five minutes</h2>
@@ -109,7 +137,20 @@
     </ol>
     <p><strong>Trying it without a class?</strong> Every activity has a <strong>Preview</strong> button that shows your screen and simulated students side by side. Run one activity in Preview before your first real class; it is the fastest way to know what your students will see.</p>
 
-    <h2>What you control during a live activity</h2>
+    <details class="fold">
+    <summary>What you need</summary>
+    <div class="card">
+      <ul>
+        <li>A projector or shared screen for the host view. The whole class watches this together.</li>
+        <li>A device per student. Chromebooks or tablets are perfect. Students install nothing and never make accounts.</li>
+        <li>Any device for you. A second device for the private teacher console is optional but handy for moderation.</li>
+      </ul>
+    </div>
+
+    </details>
+
+    <details class="fold">
+    <summary>What you control during a live activity</summary>
     <div class="card">
       <ul>
         <li><strong>Pacing.</strong> Payoff moments (reveals, results, winners) never auto-advance. The class moves when you press the button.</li>
@@ -122,7 +163,10 @@
       </ul>
     </div>
 
-    <h2>Quick fixes</h2>
+    </details>
+
+    <details class="fold">
+    <summary>Quick fixes</summary>
     <div class="table-scroll">
       <table>
         <tr><th>If this happens</th><th>Do this</th></tr>
@@ -157,13 +201,32 @@
       </table>
     </div>
 
-    <h2>Privacy in one breath</h2>
+    </details>
+
+    <details class="fold">
+    <summary>Privacy in one breath</summary>
     <p class="reassure">
       No student accounts. First names only. Student work is deleted when the activity ends. When AI summarizes class answers, student names are stripped first and never sent. Full details on the <a href="/privacy">privacy page</a>.
     </p>
 
+    </details>
+
     <p><a href="/library">Back to the yard</a></p>
     <p class="credit">Jamyard is made with support from <a href="https://assemblycode.org" target="_blank" rel="noopener">assemblycode.org</a>.</p>
   </div>
+  <script>
+    // The one-minute walkthrough: paste a YouTube video id here (the part
+    // after v= in its address) and the player appears at the top of the
+    // page. Empty means no player.
+    (function () {
+      var GUIDE_VIDEO_ID = '';
+      if (!GUIDE_VIDEO_ID) return;
+      var box = document.getElementById('guide-video');
+      var frame = document.getElementById('guide-video-frame');
+      if (!box || !frame) return;
+      frame.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(GUIDE_VIDEO_ID) + '?rel=0';
+      box.hidden = false;
+    })();
+  </script>
 </body>
 </html>

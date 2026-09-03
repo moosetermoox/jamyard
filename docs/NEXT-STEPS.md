@@ -40,6 +40,7 @@ bluff-rounds. Still queued:
 **2026-09-02 owner batch shipped** (CHANGELOG): chat panel bigger + Just do it, skip-ahead by clicking the preview's map rail (owner moved it out of the editor), activity language (engine/i18n, auto-detect + Settings select), assemblycode.org credit, guide says yard. Follow-ons:
 - Language coverage: dynamic status prose ("You matched 3 of 5"), the projector join instructions, and the teacher console are still English-only; add rows to every table in engine/i18n/index.js.
 - Yard-vs-library naming in the Create page copy (designer.js: "See it in the Library", "Open the Library", "Browse the whole library") still says Library.
+- Record the one-minute guide video (script: docs/GUIDE-VIDEO-SCRIPT.md), upload, paste the id into GUIDE_VIDEO_ID in screens/guide/index.html. The written guide is folded behind "The first five minutes" meanwhile.
 - Skip-ahead can only follow the main next-chain; a step behind a vote branch may not be reachable (it gives up after ~2.7 min and hands over). No going back: an earlier stop tells you to Reset.
 
 **THE SHARING SYSTEM SHIPPED 2026-08-30** (see CHANGELOG): share links,

@@ -305,28 +305,9 @@
       margin-top: 6px;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: flex-end;
       gap: 12px;
       flex-wrap: wrap;
-    }
-
-    .board-actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    /* Paper secondary pieces on the board */
-    .board-cta {
-      background: var(--t-paper);
-      color: var(--t-ink);
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 13px;
-      letter-spacing: 0.06em;
-      padding: 9px 16px 10px;
-      box-shadow: 0 3px 4px rgba(50,35,15,0.24);
     }
 
     .board-nav {
@@ -641,7 +622,6 @@
 
       <div class="message-col">
         <h1>What are we going to <span class="t-painted-word">do</span> together?</h1>
-        <p class="sub">First time? <a href="/guide">Read the one-page teacher guide</a>: setup, live controls, quick fixes.</p>
 
         <!-- Rotating peek at the library: one activity card at a time,
              click to host it now. Hidden until the list loads. -->
@@ -665,15 +645,9 @@
               <img id="carousel-shot" alt="">
             </span>
           </a>
-          <!-- Two doors only: make it yours, or see the whole shelf. The
-               SEE ALL count sits right where the attention is: visitors were
-               browsing the carousel one card at a time and never realizing
-               the full shelf exists (field feedback 2026-08-16). -->
+          <!-- No doors on the board (owner call 2026-09-02): the card
+               itself is the link, the arrows just turn the page. -->
           <div class="board-bottom">
-            <div class="board-actions">
-              <a class="t-lift board-cta" id="carousel-customize" style="--rot: -0.5deg" href="/library" title="Make your own editable copy of this activity">CUSTOMIZE</a>
-              <a class="t-lift board-cta" id="carousel-seeall" style="--rot: 0.5deg" href="/library" title="Browse the full library">SEE ALL →</a>
-            </div>
             <div class="board-nav">
               <button type="button" class="t-lift" id="carousel-prev" aria-label="Previous activity">‹</button>
               <button type="button" class="t-lift" id="carousel-next" aria-label="Next activity">›</button>
@@ -702,6 +676,7 @@
       </div>
     </div>
     <p class="how-try">Curious? <a href="/prototype?game=art-gallery" title="See the teacher screen and practice students side by side">Test one in preview mode</a> with practice students, no class needed.</p>
+    <p class="how-try">First time? <a href="/guide">Read the teacher guide</a>: setup, live controls, quick fixes.</p>
 
     <section class="join" id="join">
       <label for="room-code">Joining as a student? Enter your room code</label>
@@ -735,7 +710,6 @@
     (function () {
       var carouselEl = document.getElementById('activity-carousel');
       var slideEl = document.getElementById('carousel-slide');
-      var customizeEl = document.getElementById('carousel-customize');
       var nameEl = document.getElementById('carousel-name');
       var descEl = document.getElementById('carousel-desc');
       var metaEl = document.getElementById('carousel-meta');
@@ -754,11 +728,9 @@
         // Clicking the card opens the activity popup in the library (what
         // it is, then Customize/Host from there): landing straight in the
         // Customize flow skipped the "what is this?" step (observation
-        // 2026-08-27). The CUSTOMIZE button below keeps the direct door.
+        // 2026-08-27).
         slideEl.href = '/library?about=' + encodeURIComponent(g.id);
         slideEl.title = 'See what "' + g.name + '" is';
-        customizeEl.href = '/library?customize=' + encodeURIComponent(g.id);
-        customizeEl.title = 'Make your own editable copy of "' + g.name + '"';
         nameEl.textContent = g.name;
         descEl.textContent = g.description || '';
         var meta = [];
@@ -902,9 +874,6 @@
               })
             : all.filter(function (g) { return g.featured; });
           if (games.length === 0) return;
-          // The count turns "is this all there is?" into an invitation.
-          document.getElementById('carousel-seeall').textContent =
-            'SEE ALL ' + games.length + ' →';
           carouselEl.hidden = false;
           render();
           startRotation();
