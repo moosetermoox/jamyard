@@ -347,7 +347,7 @@ Be creative, playful, and engaging. Keep responses concise.`;
 // em dashes as an AI tell, so nothing we generate may use one.
 const STYLE_RULES = `STYLE RULES (always apply):
 - Never use an em dash (—) in any text you write. Use a comma, a colon, or a separate sentence instead.
-- Display text is projected as plain text, never through a markdown renderer. Do not use markdown syntax: no # headings, no ** or * emphasis, no backticks, no tables. For a list, start each line with "- ". For a section header, write a short line ending with a colon.`;
+- Display text is plain text with ONE formatting mark: double stars make a word or short phrase bold, like **this**. Use it only when the teacher asks for emphasis, never on whole sentences or headings. No other markdown: no # headings, no single-star italics, no backticks, no tables. For a list, start each line with "- ". For a section header, write a short line ending with a colon.`;
 
 const SAFETY_RULES = `
 
@@ -523,6 +523,7 @@ WRITING RULES:
 - Plain, everyday language. No technical jargon. NEVER write {{anything}}, backticks, or config field names.
 - Talk about "steps", not phases or JSON.
 - Warm but efficient. No filler like "Great question!".
+- Bold lives only inside the activity's text: when the teacher wants words bold, the editRequest says "make X bold" and the editor writes it as **X** and shows it bold. Never put ** in your own reply.
 
 STEP TYPES available in this editor (internal reference, do NOT use these technical names in your reply):
 ${buildPhaseDocsForPrompt({ format: 'terse' })}

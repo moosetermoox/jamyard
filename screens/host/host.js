@@ -985,7 +985,7 @@ socket.on('live-tally', ({ rows }) => {
 socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count, total, hostTemplate, show, liveResults, choices }) => {
   document.body.classList.add('in-activity');
   showSection(collectSection);
-  promptDisplay.textContent = prompt;
+  setRichText(promptDisplay, prompt);
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
   liveTallyOn = !!liveResults;
   if (liveTallyEl) liveTallyEl.hidden = !liveTallyOn;
@@ -1119,6 +1119,15 @@ socket.on('show-results', ({ content, aiResult, responses, image, video, continu
 // line, when short, is the HEADLINE; everything after renders left-aligned
 // with its line breaks kept — no more centered paragraph blobs.
 // createElement/textContent only (student/teacher text is untrusted).
+
+// Teacher-authored prompts and instructions show **bold** as bold
+// (shared/rich-text.js applyInline: createElement/textContent only, so the
+// text stays untrusted-safe). Falls back to plain text without the module.
+function setRichText(el, text) {
+  if (window.RichText && RichText.applyInline) RichText.applyInline(el, text);
+  else el.textContent = text;
+}
+
 function renderProjectorMessage(el, message) {
   el.textContent = '';
   var text = String(message == null ? '' : message);
@@ -1546,7 +1555,7 @@ socket.on('team-roles-final', (payload) => {
 
 socket.on('rank-start', ({ prompt, totalRankers, timer, hostTemplate, show }) => {
   showSection(rankSection);
-  rankPrompt.textContent = prompt || 'Rank the items';
+  setRichText(rankPrompt, prompt || 'Rank the items');
   rankCounter.textContent = '0 of ' + totalRankers + ' ranked';
   applyTemplate(rankSection, hostTemplate);
   applyShow(show, {
@@ -1580,7 +1589,7 @@ const matchContinueBtn = document.getElementById('match-continue-btn');
 
 socket.on('match-start', ({ prompt, totalMatchers, timer, hostTemplate, show }) => {
   showSection(matchSection);
-  matchPrompt.textContent = prompt || 'Match the pairs!';
+  setRichText(matchPrompt, prompt || 'Match the pairs!');
   matchCounter.textContent = '0 of ' + totalMatchers + ' matched';
   matchCloseBtn.hidden = false;
   matchCloseBtn.disabled = false;
@@ -1659,7 +1668,7 @@ const sortContinueBtn = document.getElementById('sort-continue-btn');
 
 socket.on('sort-start', ({ prompt, totalSorters, timer, hostTemplate, show }) => {
   showSection(sortSection);
-  sortPrompt.textContent = prompt || 'Sort the items!';
+  setRichText(sortPrompt, prompt || 'Sort the items!');
   sortCounter.textContent = '0 of ' + totalSorters + ' sorted';
   sortCloseBtn.hidden = false;
   sortCloseBtn.disabled = false;
@@ -1784,7 +1793,7 @@ function renderChecklistDashboard(progress, solo) {
 
 socket.on('checklist-start', ({ prompt, progress, solo, timer, hostTemplate, show }) => {
   showSection(checklistSection);
-  checklistPrompt.textContent = prompt || 'Work through today\'s tasks!';
+  setRichText(checklistPrompt, prompt || 'Work through today\'s tasks!');
   checklistDoneKeys = new Set((progress || []).filter(p => p.complete).map(p => p.key));
   checklistCloseBtn.hidden = false;
   checklistCloseBtn.disabled = false;
@@ -1952,7 +1961,7 @@ const buzzNames = {}; // playerId → name, learned from buzz events
 
 socket.on('buzz-start', ({ prompt, question, scores, hostTemplate, show }) => {
   showSection(buzzSection);
-  buzzPrompt.textContent = prompt || 'Listen for the question!';
+  setRichText(buzzPrompt, prompt || 'Listen for the question!');
   buzzQuestionNum.textContent = 'Question ' + (question || 1);
   buzzStatus.textContent = 'Buzzer is OPEN, ask away!';
   buzzStatus.classList.remove('buzz-status-locked');
@@ -2023,7 +2032,7 @@ const estimateContinueBtn = document.getElementById('estimate-continue-btn');
 
 socket.on('estimate-start', ({ prompt, unit, image, count, total, timer, hostTemplate, show }) => {
   showSection(estimateSection);
-  estimatePrompt.textContent = prompt + (unit ? ' (' + unit + ')' : '');
+  setRichText(estimatePrompt, prompt + (unit ? ' (' + unit + ')' : ''));
   applyImage(estimateImage, image, show);
   estimateCounter.textContent = (count || 0) + ' of ' + total + ' guessed';
   estimateCloseBtn.hidden = false;
@@ -2097,7 +2106,7 @@ socket.on('merge-progress', ({ instruction, totalGroups, submittedGroups, timer,
   // Later emits only update the progress counter.
   if (instruction !== undefined) {
     showSection(mergeSection);
-    mergeHostInstruction.textContent = instruction || 'Groups are merging their answers';
+    setRichText(mergeHostInstruction, instruction || 'Groups are merging their answers');
     applyTemplate(mergeSection, hostTemplate);
     applyShow(show, {
       instruction: mergeHostInstruction,
@@ -2123,7 +2132,7 @@ mergeCloseBtn.addEventListener('click', () => {
 
 socket.on('rate-start', ({ prompt, scales, visibility, totalRaters, timer, hostTemplate, show }) => {
   showSection(rateSection);
-  ratePrompt.textContent = prompt || (visibility === 'host-only' ? 'Rate (results private to you)' : 'Rate');
+  setRichText(ratePrompt, prompt || (visibility === 'host-only' ? 'Rate (results private to you)' : 'Rate'));
   rateCounter.textContent = '0 of ' + totalRaters + ' rated';
   rateResults.hidden = true;
   rateResults.innerHTML = '';
@@ -2251,7 +2260,7 @@ function hostRenderPieLegend(scale, dist) {
 
 socket.on('wager-start', ({ prompt, options, totalWagerers, timer, hostTemplate, show }) => {
   showSection(wagerSection);
-  wagerPrompt.textContent = prompt || 'Place your bets!';
+  setRichText(wagerPrompt, prompt || 'Place your bets!');
   wagerCounter.textContent = '0 of ' + totalWagerers + ' wagered';
   wagerResolveSection.hidden = true;
   applyTemplate(wagerSection, hostTemplate);
@@ -2381,7 +2390,7 @@ socket.on('turn-item', ({ role, item, teamName, describerName, instruction, team
   turnDescriberLine.textContent = describerName ? describerName + ' is describing' : '';
   turnItemCard.textContent = item || '';
   turnItemCard.hidden = !item;
-  turnInstructionLine.textContent = instruction || '';
+  setRichText(turnInstructionLine, instruction || '');
   turnInstructionLine.hidden = !instruction;
   turnRemainingLine.textContent = (typeof remaining === 'number') ? (remaining + ' items left') : '';
   renderTurnScoreboard(teamScores);
@@ -2510,7 +2519,7 @@ socket.on('game-ended', ({ message, hostTemplate, hostShow } = {}) => {
   showSection(endSection);
   if (J) J.sound('tada');
   const endMsg = endSection.querySelector('.game-over');
-  if (message && endMsg) endMsg.textContent = message;
+  if (message && endMsg) setRichText(endMsg, message);
   applyTemplate(endSection, hostTemplate);
   applyShow(hostShow, {
     message: endMsg,

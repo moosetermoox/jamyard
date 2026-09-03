@@ -113,15 +113,31 @@
       .trim();
   }
 
-  function runsInto(el, runs) {
+  function runsInto(el, runs, boldClass) {
     for (var i = 0; i < runs.length; i++) {
       if (runs[i].bold) {
         var b = document.createElement('strong');
+        if (boldClass) b.className = boldClass;
         b.textContent = runs[i].text;
         el.appendChild(b);
       } else {
         el.appendChild(document.createTextNode(runs[i].text));
       }
+    }
+  }
+
+  // Teacher-authored prompts and instructions: **bold** runs become
+  // <strong>, line breaks become <br>, nothing else is interpreted (a
+  // prompt is one short text, not an AI essay; headings and bullets would
+  // be a surprise there). createElement/textContent only.
+  function applyInline(el, text) {
+    el.textContent = '';
+    var lines = String(text == null ? '' : text).split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      if (i > 0) el.appendChild(document.createElement('br'));
+      // Prompts are already set heavy, so a bare <strong> would vanish:
+      // .prompt-bold paints the words instead (host/player styles.css).
+      runsInto(el, inlineRuns(lines[i]), 'prompt-bold');
     }
   }
 
@@ -173,6 +189,7 @@
     parse: parse,
     inlineRuns: inlineRuns,
     plainLine: plainLine,
+    applyInline: applyInline,
     buildBody: buildBody
   };
 })();

@@ -130,6 +130,16 @@
       return tokenTextBox(value, onInput);
     }
     TOKEN_RE.lastIndex = 0;
+    // Bold shows as bold (shared/bold-box.js); the config keeps **word**.
+    if (window.BoldBox) {
+      var bb = BoldBox.create({ className: 'sv-text', value: value || '', placeholder: placeholder || '' });
+      bb.addEventListener('input', function () {
+        markEdited();
+        onInput(bb.value);
+      });
+      bb.addEventListener('focusout', function () { autoSaveIfDirty(); });
+      return bb;
+    }
     var ta = document.createElement('textarea');
     ta.className = 'sv-text';
     ta.value = value || '';
@@ -268,6 +278,16 @@
       box.innerHTML = '';
       for (var i = 0; i < segments.length; i++) {
         (function (index) {
+          if (window.BoldBox) {
+            var bb = BoldBox.create({ className: 'sv-seg', value: segments[index] });
+            bb.addEventListener('input', function () {
+              segments[index] = bb.value;
+              rebuild();
+            });
+            bb.addEventListener('focusout', function () { autoSaveIfDirty(); });
+            box.appendChild(bb);
+            return;
+          }
           var ta = document.createElement('textarea');
           ta.className = 'sv-seg';
           ta.value = segments[index];
@@ -357,6 +377,7 @@
     var text = String(value || '');
     TOKEN_RE.lastIndex = 0;
     text = text.replace(TOKEN_RE, function (tok) { return '⟨' + svTokenLabel(tok) + '⟩'; });
+    text = text.replace(/\*\*/g, ''); // bold markers read as bold, not as stars
     text = text.replace(/\s+/g, ' ').trim();
     return text === '' ? '(empty)' : text;
   }

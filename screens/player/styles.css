@@ -2034,3 +2034,15 @@ input::placeholder, textarea::placeholder {
 .choice-btn.picked { outline: 3px solid var(--t-ink, #2A2620); outline-offset: 2px; }
 .sq-done { text-align: center; }
 .sq-done[hidden] { display: none; }
+
+
+/* Teacher-marked bold inside a prompt or instruction (**word** in the
+   config, shared/rich-text.js applyInline). Prompts are already heavy, so
+   bold shows as the yellow paint band instead of a weight change. */
+.prompt-bold {
+  font-weight: inherit;
+  background: linear-gradient(180deg, transparent 10%, var(--t-yellow, #FFC800) 10%, var(--t-yellow, #FFC800) 90%, transparent 90%);
+  padding: 0 0.18em;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}

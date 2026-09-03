@@ -1904,6 +1904,49 @@ textarea.sar-input {
 
 .sv-seg:focus { outline: none; }
 
+/* Bold box (shared/bold-box.js): the Simple-view text field that shows
+   bold as bold. Same paper look as .sv-text / .sv-seg; the B chip sits in
+   the bottom-right corner and appears while the field has focus. */
+.bold-box-wrap { position: relative; }
+.sv-text[contenteditable],
+.sv-seg[contenteditable] {
+  /* 400 on purpose: the card around it is 600, and a box that already
+     reads as bold makes the browser's bold command toggle OFF. */
+  font-weight: 400;
+  min-height: 2.5em;
+  height: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+.sv-seg[contenteditable] { min-height: 1.6em; }
+[data-bold-box]:empty::before {
+  content: attr(data-placeholder);
+  color: #8A7B62;
+  pointer-events: none;
+}
+[data-bold-box] b, [data-bold-box] strong { font-weight: 800; }
+.bold-box-tool {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  display: none;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  background: #2A2620;
+  color: #FDF9F0;
+  font-family: 'Bricolage Grotesque', 'DM Sans', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 24px;
+  cursor: pointer;
+}
+.bold-box-wrap:focus-within .bold-box-tool { display: inline-block; }
+.bold-box-tool:hover { background: #0057FF; }
+
 .sv-chip-row { margin: 4px 0; }
 
 .sv-chip {

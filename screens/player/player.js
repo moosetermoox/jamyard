@@ -902,7 +902,7 @@ function initDrawPad() {
 socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength }) => {
   resetHoldingProgress();
   showSection(collectSection);
-  promptDisplay.textContent = prompt;
+  setRichText(promptDisplay, prompt);
   responseMax = Number(maxLength) || RESPONSE_MAX;
   responseInput.maxLength = responseMax;
   // appendOnly: the inherited text renders read-only ABOVE the box — the
@@ -1167,6 +1167,15 @@ function renderPlayerMessage(el, message) {
     return;
   }
   appendPlayerParts(el, text);
+}
+
+
+// Teacher-authored prompts and instructions show **bold** as bold
+// (shared/rich-text.js applyInline: createElement/textContent only, so the
+// text stays untrusted-safe). Falls back to plain text without the module.
+function setRichText(el, text) {
+  if (window.RichText && RichText.applyInline) RichText.applyInline(el, text);
+  else el.textContent = text;
 }
 
 function appendPlayerParts(el, text) {
@@ -1493,7 +1502,7 @@ var rankCurrentOrder = [];
 
 socket.on('rank-start', ({ prompt, candidates, timer, playerTemplate, show }) => {
   showSection(rankSection);
-  rankPromptDisplay.textContent = prompt || 'Rank the items';
+  setRichText(rankPromptDisplay, prompt || 'Rank the items');
   rankSubmitBtn.disabled = false;
   applyTemplate(rankSection, playerTemplate);
   applyShow(show, {
@@ -1598,7 +1607,7 @@ const buzzPlayerStatus = document.getElementById('buzz-player-status');
 
 socket.on('buzz-start', ({ prompt, playerTemplate, show }) => {
   showSection(buzzSection);
-  buzzPlayerPrompt.textContent = prompt || 'Listen for the question!';
+  setRichText(buzzPlayerPrompt, prompt || 'Listen for the question!');
   buzzTapBtn.disabled = false;
   buzzPlayerStatus.textContent = '';
   applyTemplate(buzzSection, playerTemplate);
@@ -1691,7 +1700,7 @@ function submitEstimate() {
 
 socket.on('estimate-start', ({ prompt, unit, image, min, max, timer, playerTemplate, show }) => {
   showSection(estimateSection);
-  estimatePlayerPrompt.textContent = prompt || 'Guess the number!';
+  setRichText(estimatePlayerPrompt, prompt || 'Guess the number!');
   applyImage(estimateImage, image, show);
   estimateUnit.textContent = unit || '';
   estimateInput.value = '';
@@ -1755,7 +1764,7 @@ var matchRightOrder = [];
 
 socket.on('match-start', ({ prompt, leftItems, rightItems, timer, playerTemplate, show }) => {
   showSection(matchSection);
-  matchPromptDisplay.textContent = prompt || 'Match the pairs!';
+  setRichText(matchPromptDisplay, prompt || 'Match the pairs!');
   matchSubmitBtn.disabled = false;
   matchSubmitBtn.hidden = false;
   matchHint.hidden = false;
@@ -1868,7 +1877,7 @@ function submitSorting() {
 
 socket.on('sort-start', ({ prompt, buckets, items, timer, playerTemplate, show }) => {
   showSection(sortSection);
-  sortPromptDisplay.textContent = prompt || 'Sort the items!';
+  setRichText(sortPromptDisplay, prompt || 'Sort the items!');
   sortSubmitBtn.hidden = false;
   sortHint.hidden = false;
   sortItemsEl.hidden = false;
@@ -1992,7 +2001,7 @@ function renderChecklistItems() {
 
 socket.on('checklist-start', ({ prompt, items, itemRoles, yourRole, group, timer, playerTemplate, show }) => {
   showSection(checklistSection);
-  checklistPromptDisplay.textContent = prompt || 'Work through today\'s tasks!';
+  setRichText(checklistPromptDisplay, prompt || 'Work through today\'s tasks!');
   checklistItemsEl.hidden = false;
   checklistPlayerResults.hidden = true;
   checklistPlayerResults.innerHTML = '';
@@ -2137,7 +2146,7 @@ function setMergeStatus(text) {
 
 socket.on('merge-start', ({ instruction, seeds, draft, memberNames, agreeMode, agreedCount, agreesNeeded, penHeld, penMine, penHolderName, timer, playerTemplate, show }) => {
   showSection(mergeSection);
-  mergeInstruction.textContent = instruction || 'Combine your answers into one stronger answer.';
+  setRichText(mergeInstruction, instruction || 'Combine your answers into one stronger answer.');
   mergeDraftInput.value = draft || '';
   mergeAgreeBtn.disabled = false;
   setMergeStatus(agreedCount > 0 ? agreedCount + ' of ' + agreesNeeded + ' agreed' : '');
@@ -2510,7 +2519,7 @@ socket.on('rate-start', function(payload) {
   var prompt = payload.prompt, scales = payload.scales, timer = payload.timer;
   var playerTemplate = payload.playerTemplate, show = payload.show;
   showSection(rateSection);
-  ratePromptDisplay.textContent = prompt || 'Rate on each scale';
+  setRichText(ratePromptDisplay, prompt || 'Rate on each scale');
   rateCurrentScales = scales || [];
   rateCurrentRatings = {};
   rateResults.hidden = true;
@@ -2697,7 +2706,7 @@ var wagerAvailablePoints = 0;
 
 socket.on('wager-start', ({ prompt, options, availablePoints, timer, minBet, maxBetPercent, playerTemplate, show }) => {
   showSection(wagerSection);
-  wagerPromptDisplay.textContent = prompt || 'Place your bet!';
+  setRichText(wagerPromptDisplay, prompt || 'Place your bet!');
   wagerAvailablePoints = availablePoints || 0;
   wagerPointsDisplay.textContent = 'You have ' + wagerAvailablePoints + ' points';
   wagerSelectedOption = null;
@@ -2765,7 +2774,7 @@ wagerSubmitBtn.addEventListener('click', function() {
 socket.on('relay-turn', ({ prompt, sharedResult, timer, progress, playerTemplate, show }) => {
   showSection(relaySection);
   relayStatus.textContent = "It's your turn!";
-  relayPromptDisplay.textContent = prompt || '';
+  setRichText(relayPromptDisplay, prompt || '');
   relayPromptDisplay.hidden = !prompt;
   relayInputSection.hidden = false;
   relayInput.value = '';
@@ -2794,7 +2803,7 @@ socket.on('relay-turn', ({ prompt, sharedResult, timer, progress, playerTemplate
 socket.on('relay-waiting', ({ activePlayerName, prompt, sharedResult, progress, playerTemplate, show }) => {
   showSection(relaySection);
   relayStatus.textContent = "Waiting for " + activePlayerName + "...";
-  relayPromptDisplay.textContent = prompt || '';
+  setRichText(relayPromptDisplay, prompt || '');
   relayPromptDisplay.hidden = !prompt;
   relayInputSection.hidden = true;
   applyTemplate(relaySection, playerTemplate);
@@ -2856,7 +2865,7 @@ socket.on('turn-item', (data = {}) => {
   turnCurrentInstanceId = phaseInstanceId;
   showSection(turnSection);
 
-  turnInstruction.textContent = instruction || '';
+  setRichText(turnInstruction, instruction || '');
   turnInstruction.hidden = !instruction;
 
   if (role === 'describer') {
@@ -2944,7 +2953,7 @@ function renderSoloQuestion(data) {
   sqFeedback.hidden = true;
   sqNextBtn.hidden = true;
   sqCounter.textContent = UiLang.t('Question') + ' ' + (data.index + 1) + ' ' + UiLang.t('of') + ' ' + data.total;
-  sqQuestion.textContent = data.question || '';
+  setRichText(sqQuestion, data.question || '');
   sqChoices.textContent = '';
   (data.choices || []).forEach(function (choiceText) {
     var btn = document.createElement('button');
@@ -3021,7 +3030,7 @@ socket.on('solo-quiz-done', function (data) {
 // them. Their own screen, not the shared wait screen.
 socket.on('player-done', ({ message } = {}) => {
   showSection(doneSection);
-  if (doneMessageEl) doneMessageEl.textContent = message || '';
+  if (doneMessageEl) setRichText(doneMessageEl, message || '');
   if (J) J.sound('tada');
 });
 

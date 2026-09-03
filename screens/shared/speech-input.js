@@ -169,14 +169,15 @@
   function eligible(el) {
     if (!el || !el.tagName || !el.dataset || el.dataset.micAttached) return false;
     var tag = el.tagName.toLowerCase();
-    var isText = tag === 'textarea' || (tag === 'input' && (el.type === 'text' || el.type === 'search'));
+    var isText = tag === 'textarea' || (tag === 'input' && (el.type === 'text' || el.type === 'search')) ||
+      !!el.dataset.boldBox; // shared/bold-box.js: a .value accessor makes it dictate like a textarea
     if (!isText || el.readOnly || el.disabled) return false;
     if (el.closest && el.closest('.no-mic')) return false;
     return true;
   }
 
   function sweep(root) {
-    var nodes = root.querySelectorAll('textarea, input[type="text"], input[type="search"]');
+    var nodes = root.querySelectorAll('textarea, input[type="text"], input[type="search"], [data-bold-box]');
     for (var i = 0; i < nodes.length; i++) {
       if (eligible(nodes[i])) attachMic(nodes[i]);
     }

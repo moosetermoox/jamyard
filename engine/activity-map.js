@@ -40,7 +40,9 @@ function excerpt(phase) {
   for (const field of EXCERPT_FIELDS) {
     const value = phase[field];
     if (typeof value !== 'string') continue;
-    const text = value.replace(/\s+/g, ' ').trim();
+    // **bold** markers read as bold on the screens; in a one-line excerpt
+    // they would read as stray stars.
+    const text = value.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
     if (text.length === 0) continue;
     if (text.includes('{{')) return undefined; // unresolved refs read as noise
     if (text.length <= EXCERPT_MAX) return text;
