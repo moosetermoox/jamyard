@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1570 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1579 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **30 phase types**, **26 built-in recipes**, ~33 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -47,17 +47,18 @@ Framework for quickly building classroom games where:
 - `/host` projector screen · `/player` student screen · `/teacher` private console (room code + PIN, or SITE_PASSWORD basic auth)
 - `/teacher/report` printable activity report (engine/report.js via PIN-gated `GET /api/rooms/:code/report`) — built on demand from live room state, NEVER stored server-side, gone when the room expires; the step that is still OPEN is read live from the players (`liveDataFor`, marked "Still open"), which is how a rolling exit ticket gets read mid-step; browser print dialog = the PDF; names toggle defaults on; console links it (header + end-phase reminder card)
 - `/designer` Create page (idea box → recipe match or storyboard) · `/designer/edit` editor (Simple | Builder | Advanced views; Simple is default; Ask AI = the design chat panel beside the Simple view, `screens/designer/chat-panel.js` + `POST /api/games/chat` — proposes changes as cards, Apply gated on validation, one-step Revert; "Just do it" = `forceEdit:true` turn that folds the whole conversation into one proposal)
-- `/prototype` host + player iframes side-by-side for playtesting; the map rail is clickable: a stop row asks "Skip ahead?" then plays the room forward with bots until the live rail reaches that step (`?goto=<phaseId>` deep link does the same on launch)
+- `/prototype` ("the simulator", button label Simulate) host + player iframes side-by-side for playtesting; the map rail is clickable: a stop row asks "Skip ahead?" then plays the room forward with bots until the live rail reaches that step (`?goto=<phaseId>` deep link does the same on launch)
 - `/guide` one-page teacher guide (setup, live controls, quick fixes) · `/owner` owner-mode doorway (redirects to the library unlock; no in-page owner links)
 - `/feedback` owner inbox (SITE_PASSWORD-gated)
 - `/share/<id>` — share link landing page: "Save to my activities" imports a COPY via `POST /api/games/:id/copy` (engine/share-copy.js; featured stripped, new deduped id, never the same row); built-in ids redirect to `/library?about=`; Share button lives in the yard popup (own activities)
 - Vanity URLs: `vanity-urls.json` (slug → game id) mints memorable paths like `/good-question` that redirect to `/host?game=<id>`; server refuses reserved/malformed slugs at startup
 - Teacher profile (grade band + subjects, localStorage via `screens/shared/teacher-profile.js`) personalizes prompt-deck picks ("for your class") and Customize; set from the library's first-visit card
-- Surfaces model: **find it in the Library, start it in Create, shape it in the Editor** (docs/SURFACES-PLAN.md)
+- Surfaces model: **find it in the yard, start it in Create, shape it in the Editor** (docs/SURFACES-PLAN.md). Every Make it yours dialog ends in three doors: Continue setup in the designer / See it in the simulator / Host it now (untouched = the original runs, no copy saved)
 
 ## Standing Rules (active doctrine — check before writing code or copy)
 - **No em dashes in user-facing text** (students read them as an AI tell); comma, colon, or new sentence instead. En dashes in numeric ranges fine; Along bank verbatim; code comments/docs exempt. Enforced by `tests/style/no-em-dash.test.js` + `STYLE_RULES` in `AIService._callClaude`.
 - **No decorative emojis** in descriptions/messages/prompts; icons only in icon slots (functional marks like ♥, goal chips, avatars, medals are fine).
+- **Teacher-facing vocabulary (owner's calls, 2026-09-02):** the /library page is **the yard**; the copy-and-tailor action is **Make it yours** (never "Customize"); the /prototype page is **the simulator** and its button is **Simulate** (never "Preview", except the "Teacher preview" step type and the editor's live-mockup toggle, which are different things). "library", "customize", "preview" survive only in routes, ids, class names, file names, function names, and code comments. Same split as activity/game.
 - **"Activity" vocabulary** in user-facing copy ("game" only when it truly is one). Internals keep "game" (`games/`, `gameId`, socket events, API routes) — never rename them.
 - **The host screen is a projector** — never put teacher-private info there; that's what `/teacher` is for.
 - **Payoff beats are host-paced, never timed** (reveals, winners, galleries).

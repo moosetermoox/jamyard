@@ -466,7 +466,7 @@ function maybeShowPlanIntro() {
   var rows = [
     { icon: 'steps', text: 'Each card is one step. Click it, change the words.' },
     { icon: 'chat', text: 'Want bigger changes? Tell the chat on the right.' },
-    { icon: 'play', text: 'Then press Preview and play it yourself.' }
+    { icon: 'play', text: 'Then press Simulate and play it yourself.' }
   ];
   for (var i = 0; i < rows.length; i++) {
     var row = document.createElement('div');
@@ -542,7 +542,7 @@ async function init() {
       backLink.href = gameId
         ? '/library?highlight=' + encodeURIComponent(gameId)
         : '/library';
-      backLink.textContent = '← Back to Library';
+      backLink.textContent = '← Back to the yard';
     }
     maybeShowPlanIntro();
   }

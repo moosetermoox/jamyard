@@ -39,7 +39,7 @@ var GOAL_LABELS = {
 var PILE_GROUPS = [
   { key: 'recent', label: 'Recent' },
   { key: 'favorites', label: 'Favorites' },
-  { key: 'customized', label: 'Customized' },
+  { key: 'customized', label: 'Yours' },
   { key: 'connect', label: 'Connect', goals: ['connect'] },
   { key: 'think', label: 'Think', goals: ['discuss', 'decide', 'reflect', 'review'] },
   { key: 'play', label: 'Play', goals: ['create', 'energize'] }
@@ -157,7 +157,7 @@ function renderLibrary(games, rescueQuery) {
     rescue.appendChild(rescueHead);
     var rescueBody = document.createElement('p');
     rescueBody.className = 'search-rescue-body';
-    rescueBody.textContent = 'These activities work with any subject. Pick one and your topic goes in when you host or customize it.';
+    rescueBody.textContent = 'These activities work with any subject. Pick one and your topic goes in when you host it or make it yours.';
     rescue.appendChild(rescueBody);
     var rescueLink = document.createElement('a');
     rescueLink.className = 'search-rescue-link';
@@ -414,7 +414,7 @@ function buildPlank(game, index) {
   plank.className = 'plank plank-tone-' + (index % 8);
   plank.setAttribute('data-game-id', game.id);
   plank.setAttribute('aria-haspopup', 'dialog');
-  plank.setAttribute('aria-label', game.name + ', see what it is and customize it');
+  plank.setAttribute('aria-label', game.name + ', see what it is and make it yours');
   // No native title: the hover card carries the description instead (a
   // browser tooltip on top of it would double up).
   attachHoverCard(plank, game);
@@ -515,7 +515,7 @@ function buildMiniPlank(game, index) {
   plank.className = 'plank-mini plank-tone-' + (index % 8);
   plank.setAttribute('data-game-id', game.id);
   plank.setAttribute('aria-haspopup', 'dialog');
-  plank.setAttribute('aria-label', game.name + ', see what it is and customize it');
+  plank.setAttribute('aria-label', game.name + ', see what it is and make it yours');
   attachHoverCard(plank, game);
 
   if (Favorites.has(game.id)) {
@@ -603,9 +603,9 @@ function openActivityDialog(game) {
     var customizeBtn = document.createElement('button');
     customizeBtn.type = 'button';
     customizeBtn.className = 'game-card-edit' + (touched ? '' : ' game-card-customize-only');
-    customizeBtn.textContent = 'Customize';
+    customizeBtn.textContent = 'Make it yours';
     customizeBtn.title = 'Make your own editable copy of this activity';
-    customizeBtn.setAttribute('aria-label', 'Customize a copy of "' + game.name + '"');
+    customizeBtn.setAttribute('aria-label', 'Make a copy of "' + game.name + '" yours');
     customizeBtn.setAttribute('data-game-id', game.id);
     customizeBtn.addEventListener('click', function () {
       customizeCopy(game, customizeBtn);
@@ -617,9 +617,9 @@ function openActivityDialog(game) {
     var previewBtn = document.createElement('a');
     previewBtn.className = 'game-card-preview';
     previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
-    previewBtn.textContent = 'Preview';
+    previewBtn.textContent = 'Simulate';
     previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
-    previewBtn.setAttribute('aria-label', 'Preview "' + game.name + '" with practice players');
+    previewBtn.setAttribute('aria-label', 'Simulate "' + game.name + '" with practice players');
     previewBtn.addEventListener('click', rememberRecent);
     actions.appendChild(previewBtn);
 
@@ -871,9 +871,9 @@ function buildCard(game) {
     var customizeBtn = document.createElement('button');
     customizeBtn.type = 'button';
     customizeBtn.className = 'game-card-edit' + (touched ? '' : ' game-card-customize-only');
-    customizeBtn.textContent = 'Customize';
+    customizeBtn.textContent = 'Make it yours';
     customizeBtn.title = 'Make your own editable copy of this activity';
-    customizeBtn.setAttribute('aria-label', 'Customize a copy of "' + game.name + '"');
+    customizeBtn.setAttribute('aria-label', 'Make a copy of "' + game.name + '" yours');
     customizeBtn.setAttribute('data-game-id', game.id);
     customizeBtn.addEventListener('click', function () {
       customizeCopy(game, customizeBtn);
@@ -888,9 +888,9 @@ function buildCard(game) {
     var previewBtn = document.createElement('a');
     previewBtn.className = 'game-card-preview';
     previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
-    previewBtn.textContent = 'Preview';
+    previewBtn.textContent = 'Simulate';
     previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
-    previewBtn.setAttribute('aria-label', 'Preview "' + game.name + '" with practice players');
+    previewBtn.setAttribute('aria-label', 'Simulate "' + game.name + '" with practice players');
     previewBtn.addEventListener('click', rememberRecent);
     actions.appendChild(previewBtn);
 
@@ -988,10 +988,9 @@ function metaBadge(text) {
 // Clone a built-in into this teacher's own editable copy, then open the
 // editor on it. The copy is device-scoped like any user creation.
 // Save a finished copy config as this device's activity and open the editor.
-// Save the teacher's copy, then open it in the editor (Simple view):
-// "Make my copy" is an editing intent, so land where the editing
-// happens. The library card (Preview / Host) is one click back.
-function saveCopyAndReturn(config) {
+// Save the teacher's copy, then go where they said: the designer (Simple
+// view), the simulator, or a live host room (`dest`, see COPY_DOORS).
+function saveCopyAndReturn(config, dest) {
   delete config.featured; // the copy is yours, not the public front door's
   var base = (config.name || 'my-activity').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40) || 'my-activity';
@@ -1011,8 +1010,52 @@ function saveCopyAndReturn(config) {
     }
     if (window.MyGames) MyGames.add(copyId);
     Recents.add(copyId);
-    window.location.href = '/designer/edit?game=' + encodeURIComponent(copyId) + '&from=library';
+    window.location.href = copyDestinationUrl(dest, copyId);
   });
+}
+
+// The three doors at the bottom of every Make it yours dialog (owner's
+// call 2026-09-02): once the copy is shaped, keep shaping it in the
+// designer, watch it run in the simulator, or host it right now. Equal
+// weight, three paints (owner's call): the row's CSS colors each door by
+// its door-<dest> class. One pick handler receives the destination.
+var COPY_DOORS = [
+  { dest: 'designer', label: 'Continue setup in the designer',
+    title: 'Save your copy and open it in the editor' },
+  { dest: 'simulate', label: 'See it in the simulator',
+    title: 'Save your copy and watch it run with practice players, no class needed' },
+  { dest: 'host', label: 'Host it now',
+    title: 'Save your copy and start a live room your class can join right now' }
+];
+
+function makeItYoursDoors(onPick) {
+  var row = document.createElement('div');
+  row.className = 'recipe-form-buttons make-it-yours-doors';
+  row.style.marginTop = '14px';
+  var buttons = COPY_DOORS.map(function (door) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'recipe-create-btn door-' + door.dest;
+    btn.textContent = door.label;
+    btn.title = door.title;
+    btn.addEventListener('click', function () { onPick(door.dest); });
+    row.appendChild(btn);
+    return btn;
+  });
+  return {
+    row: row,
+    setDisabled: function (flag) {
+      buttons.forEach(function (b) { b.disabled = !!flag; });
+    }
+  };
+}
+
+// Where a finished copy (or, untouched, the original) goes next.
+function copyDestinationUrl(dest, id) {
+  var q = encodeURIComponent(id);
+  if (dest === 'simulate') return '/prototype?game=' + q;
+  if (dest === 'host') return '/host?game=' + q;
+  return '/designer/edit?game=' + q + '&from=library';
 }
 
 // Open the editor on a copy WITHOUT saving it: the config rides over in
@@ -1100,10 +1143,10 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
 
   var topicRow = document.createElement('div');
   topicRow.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap;';
-  var topicInput = document.createElement('input');
-  topicInput.type = 'text';
-  topicInput.placeholder = 'e.g. fractions, the water cycle, Spanish past tense';
-  topicInput.style.cssText = 'flex:1; min-width:200px; ' + INPUT_CSS;
+  var topicInput = GrowingText.create({
+    css: 'flex:1; min-width:200px; ' + INPUT_CSS,
+    placeholder: 'e.g. fractions, the water cycle, Spanish past tense'
+  });
   topicRow.appendChild(topicInput);
 
   var countLabel = document.createElement('label');
@@ -1156,7 +1199,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
     if (questions.length >= 20) return;
     questions.push({ question: '', choices: ['', '', '', ''], correct: '' });
     renderQuestions();
-    var inputs = listWrap.querySelectorAll('input[data-role="question"]');
+    var inputs = listWrap.querySelectorAll('[data-role="question"]');
     if (inputs.length > 0) inputs[inputs.length - 1].focus();
   });
   modal.appendChild(addBtn);
@@ -1188,13 +1231,13 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
       head.appendChild(qRemove);
       card.appendChild(head);
 
-      var qInput = document.createElement('input');
-      qInput.type = 'text';
-      qInput.value = q.question || '';
-      qInput.placeholder = 'The question';
-      qInput.maxLength = 300;
+      var qInput = GrowingText.create({
+        css: 'width:100%; margin-bottom:6px; ' + INPUT_CSS,
+        value: q.question || '',
+        placeholder: 'The question',
+        maxLength: 300
+      });
       qInput.setAttribute('data-role', 'question');
-      qInput.style.cssText = 'width:100%; margin-bottom:6px; ' + INPUT_CSS;
       qInput.addEventListener('input', function () { q.question = qInput.value; });
       card.appendChild(qInput);
 
@@ -1215,12 +1258,12 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
         });
         row.appendChild(mark);
 
-        var cInput = document.createElement('input');
-        cInput.type = 'text';
-        cInput.value = choice;
-        cInput.placeholder = 'Choice ' + (ci + 1);
-        cInput.maxLength = 200;
-        cInput.style.cssText = 'flex:1; ' + INPUT_CSS;
+        var cInput = GrowingText.create({
+          css: 'flex:1; ' + INPUT_CSS,
+          value: choice,
+          placeholder: 'Choice ' + (ci + 1),
+          maxLength: 200
+        });
         cInput.addEventListener('input', function () {
           // Editing the marked choice keeps the ✓ on it (blank rows are
           // never silently marked: '' matches every other blank).
@@ -1306,16 +1349,9 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
     }
   });
 
-  // --- Actions ---
-  var btnRow = document.createElement('div');
-  btnRow.className = 'recipe-form-buttons';
-  btnRow.style.marginTop = '14px';
-  var makeBtn = document.createElement('button');
-  makeBtn.type = 'button';
-  makeBtn.className = 'recipe-create-btn';
-  makeBtn.textContent = 'Make my copy';
-  btnRow.appendChild(makeBtn);
-  modal.appendChild(btnRow);
+  // --- Actions: the three doors (makeCopy below gets the pick) ---
+  var doors = makeItYoursDoors(makeCopy);
+  modal.appendChild(doors.row);
 
   function showStatus(text) {
     status.hidden = false;
@@ -1347,7 +1383,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
     if (isNaN(n) || n < 1) n = 5;
     if (n > 20) n = 20;
     writeBtn.disabled = true;
-    makeBtn.disabled = true;
+    doors.setDisabled(true);
     writeBtn.textContent = 'Writing…';
     showStatus('Writing ' + n + ' questions about "' + topic + '", this can take ~20 seconds.');
     fetch('/api/games/quiz-questions', {
@@ -1374,19 +1410,19 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
       })
       .then(function () {
         writeBtn.disabled = false;
-        makeBtn.disabled = false;
+        doors.setDisabled(false);
         writeBtn.textContent = 'Write my questions';
       });
   });
 
-  makeBtn.addEventListener('click', function () {
+  function makeCopy(dest) {
     var cleaned = cleanedList();
     var problems = SetupKnobs.validateQuizList(cleaned);
     if (problems.length > 0) {
       showStatus(problems.slice(0, 2).join(' '));
       return;
     }
-    makeBtn.disabled = true;
+    doors.setDisabled(true);
     writeBtn.disabled = true;
     showStatus('Building your copy…');
     var params = JSON.parse(JSON.stringify(stamp.params));
@@ -1395,14 +1431,14 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
     compileWorkingConfig(config, params)
       .then(function (working) {
         working.name = game.name + ' (my version)';
-        return saveCopyAndReturn(working);
+        return saveCopyAndReturn(working, dest);
       })
       .catch(function (err) {
-        makeBtn.disabled = false;
+        doors.setDisabled(false);
         writeBtn.disabled = false;
         showStatus('Could not make your copy: ' + err.message);
       });
-  });
+  }
 
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -1521,10 +1557,10 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
   topicSection.appendChild(topicLabel);
   var topicRow = document.createElement('div');
   topicRow.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap;';
-  var topicInput = document.createElement('input');
-  topicInput.type = 'text';
-  topicInput.placeholder = 'e.g. ocean animals, ancient Rome, anything surprising';
-  topicInput.style.cssText = 'flex:1; min-width:200px; ' + INPUT_CSS;
+  var topicInput = GrowingText.create({
+    css: 'flex:1; min-width:200px; ' + INPUT_CSS,
+    placeholder: 'e.g. ocean animals, ancient Rome, anything surprising'
+  });
   topicRow.appendChild(topicInput);
   var countLabel = document.createElement('label');
   countLabel.style.cssText = 'font-weight:700; font-family:"DM Sans", Arial, sans-serif; white-space:nowrap;';
@@ -1574,7 +1610,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
     if (questions.length >= 10) return;
     questions.push({ question: '', truth: '', houseLie: '' });
     renderQuestions();
-    var inputs = listWrap.querySelectorAll('input[data-role="question"]');
+    var inputs = listWrap.querySelectorAll('[data-role="question"]');
     if (inputs.length > 0) inputs[inputs.length - 1].focus();
   });
   listSection.appendChild(addBtn);
@@ -1607,13 +1643,13 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
       head.appendChild(qRemove);
       card.appendChild(head);
 
-      var qInput = document.createElement('input');
-      qInput.type = 'text';
-      qInput.value = q.question || '';
-      qInput.placeholder = 'A sentence with a blank shown as ___';
-      qInput.maxLength = 300;
+      var qInput = GrowingText.create({
+        css: 'width:100%; margin-bottom:6px; ' + INPUT_CSS,
+        value: q.question || '',
+        placeholder: 'A sentence with a blank shown as ___',
+        maxLength: 300
+      });
       qInput.setAttribute('data-role', 'question');
-      qInput.style.cssText = 'width:100%; margin-bottom:6px; ' + INPUT_CSS;
       qInput.addEventListener('input', function () { q.question = qInput.value; });
       card.appendChild(qInput);
 
@@ -1622,24 +1658,24 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
       var truthWrap = document.createElement('label');
       truthWrap.style.cssText = 'flex:1; min-width:140px; font-weight:700; font-size:0.85rem; font-family:"DM Sans", Arial, sans-serif;';
       truthWrap.appendChild(document.createTextNode('The real answer'));
-      var truthInput = document.createElement('input');
-      truthInput.type = 'text';
-      truthInput.value = q.truth || '';
-      truthInput.placeholder = 'e.g. dog';
-      truthInput.maxLength = 100;
-      truthInput.style.cssText = 'width:100%; margin-top:2px; ' + INPUT_CSS;
+      var truthInput = GrowingText.create({
+        css: 'width:100%; margin-top:2px; ' + INPUT_CSS,
+        value: q.truth || '',
+        placeholder: 'e.g. dog',
+        maxLength: 100
+      });
       truthInput.addEventListener('input', function () { q.truth = truthInput.value; });
       truthWrap.appendChild(truthInput);
       answerRow.appendChild(truthWrap);
       var lieWrap = document.createElement('label');
       lieWrap.style.cssText = 'flex:1; min-width:140px; font-weight:700; font-size:0.85rem; font-family:"DM Sans", Arial, sans-serif;';
       lieWrap.appendChild(document.createTextNode('Decoy (optional)'));
-      var lieInput = document.createElement('input');
-      lieInput.type = 'text';
-      lieInput.value = q.houseLie || '';
-      lieInput.placeholder = 'e.g. chicken';
-      lieInput.maxLength = 100;
-      lieInput.style.cssText = 'width:100%; margin-top:2px; ' + INPUT_CSS;
+      var lieInput = GrowingText.create({
+        css: 'width:100%; margin-top:2px; ' + INPUT_CSS,
+        value: q.houseLie || '',
+        placeholder: 'e.g. chicken',
+        maxLength: 100
+      });
       lieInput.addEventListener('input', function () { q.houseLie = lieInput.value; });
       lieWrap.appendChild(lieInput);
       answerRow.appendChild(lieWrap);
@@ -1682,16 +1718,9 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
   }
   renderSourceState();
 
-  // --- Actions ---
-  var btnRow = document.createElement('div');
-  btnRow.className = 'recipe-form-buttons';
-  btnRow.style.marginTop = '14px';
-  var makeBtn = document.createElement('button');
-  makeBtn.type = 'button';
-  makeBtn.className = 'recipe-create-btn';
-  makeBtn.textContent = 'Make my copy';
-  btnRow.appendChild(makeBtn);
-  modal.appendChild(btnRow);
+  // --- Actions: the three doors (makeCopy below gets the pick) ---
+  var doors = makeItYoursDoors(makeCopy);
+  modal.appendChild(doors.row);
 
   function showStatus(text) {
     status.hidden = false;
@@ -1727,7 +1756,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
     }
     var n = clampedInt(countInput, 1, 10, 3);
     writeBtn.disabled = true;
-    makeBtn.disabled = true;
+    doors.setDisabled(true);
     writeBtn.textContent = 'Writing…';
     showStatus('Writing ' + n + ' facts about "' + topic + '", this can take ~20 seconds.');
     fetch('/api/games/bluff-facts', {
@@ -1754,12 +1783,12 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
       })
       .then(function () {
         writeBtn.disabled = false;
-        makeBtn.disabled = false;
+        doors.setDisabled(false);
         writeBtn.textContent = 'Write my facts';
       });
   });
 
-  makeBtn.addEventListener('click', function () {
+  function makeCopy(dest) {
     var params = JSON.parse(JSON.stringify(stamp.params));
     if (selectedSource === 'live') {
       params.questionSource = 'live';
@@ -1781,20 +1810,20 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
       lieTimerKnob && lieTimerKnob.min != null ? lieTimerKnob.min : 15,
       lieTimerKnob && lieTimerKnob.max != null ? lieTimerKnob.max : 180,
       lieTimerKnob ? lieTimerKnob.value : 45);
-    makeBtn.disabled = true;
+    doors.setDisabled(true);
     writeBtn.disabled = true;
     showStatus('Building your copy…');
     compileWorkingConfig(config, params)
       .then(function (working) {
         working.name = game.name + ' (my version)';
-        return saveCopyAndReturn(working);
+        return saveCopyAndReturn(working, dest);
       })
       .catch(function (err) {
-        makeBtn.disabled = false;
+        doors.setDisabled(false);
         writeBtn.disabled = false;
         showStatus('Could not make your copy: ' + err.message);
       });
-  });
+  }
 
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -1855,7 +1884,7 @@ function customizeCopy(game, btn) {
   Promise.all([configPromise, questionsPromise, recipePromise])
     .then(function (parts) {
       btn.disabled = false;
-      btn.textContent = 'Customize';
+      btn.textContent = 'Make it yours';
       var config = parts[0];
       var summary = parts[2];
       // A recipe with a dedicated panel (quiz) owns the whole dialog: the
@@ -1884,7 +1913,7 @@ function customizeCopy(game, btn) {
     })
     .catch(function (err) {
       btn.disabled = false;
-      btn.textContent = 'Customize';
+      btn.textContent = 'Make it yours';
       alert('Could not make your copy: ' + err.message);
     });
 }
@@ -1977,8 +2006,6 @@ function showCustomizeDialog(game, config, questions, knobs) {
           };
         }(input, knob) });
       }
-      input.addEventListener('input', updateSkipLabel);
-      input.addEventListener('change', updateSkipLabel);
     });
   }
 
@@ -2025,11 +2052,11 @@ function showCustomizeDialog(game, config, questions, knobs) {
       label.style.cssText = LABEL_CSS;
       label.textContent = q.question;
       questionsBox.appendChild(label);
-      var input = document.createElement('input');
-      input.type = 'text';
-      input.placeholder = q.placeholder || '';
-      input.style.cssText = 'width:100%; ' + INPUT_CSS;
-      if (typed[q.question]) input.value = typed[q.question];
+      var input = GrowingText.create({
+        css: 'width:100%; ' + INPUT_CSS,
+        placeholder: q.placeholder || '',
+        value: typed[q.question] || ''
+      });
       questionsBox.appendChild(input);
       inputs.push({ question: q.question, input: input });
     });
@@ -2091,25 +2118,8 @@ function showCustomizeDialog(game, config, questions, knobs) {
       });
   }
 
-  var btnRow = document.createElement('div');
-  btnRow.className = 'recipe-form-buttons';
-  btnRow.style.marginTop = '14px';
-
-  var skipBtn = document.createElement('button');
-  skipBtn.type = 'button';
-  // Knobs-only dialog (no AI questions): one primary button, nothing to skip.
-  var knobsOnly = questions.length === 0;
-  skipBtn.className = knobsOnly ? 'recipe-create-btn' : 'recipe-cancel-btn';
-  skipBtn.textContent = knobsOnly ? 'Make my copy' : 'Skip, just copy it';
-  btnRow.appendChild(skipBtn);
-
-  var goBtn = document.createElement('button');
-  goBtn.type = 'button';
-  goBtn.className = 'recipe-create-btn';
-  goBtn.textContent = 'Set it up for my class';
-  goBtn.hidden = knobsOnly;
-  btnRow.appendChild(goBtn);
-  modal.appendChild(btnRow);
+  var doors = makeItYoursDoors(pickDoor);
+  modal.appendChild(doors.row);
 
   function currentKnobValues() {
     return knobInputs.map(function (ki) {
@@ -2124,13 +2134,6 @@ function showCustomizeDialog(game, config, questions, knobs) {
     });
   }
 
-  // "Skip" refers to the AI questions; touched knobs are deliberate input
-  // and always apply. Say so on the button.
-  function updateSkipLabel() {
-    if (knobsOnly) return;
-    skipBtn.textContent = anyKnobTouched() ? 'Copy with these settings' : 'Skip, just copy it';
-  }
-
   // The config the save/revise steps work from: the source config, with
   // phases rebuilt by the recipe compiler when any knob was touched.
   // Untouched knobs never recompile, so a hand-edited copy of a stamped
@@ -2141,41 +2144,47 @@ function showCustomizeDialog(game, config, questions, knobs) {
     return compileWorkingConfig(config, params);
   }
 
-  function saveWorking(working) {
+  function saveWorking(working, dest) {
     working.name = game.name + ' (my version)';
-    return saveCopyAndReturn(working);
+    return saveCopyAndReturn(working, dest);
   }
 
-  function plainCopy() {
-    skipBtn.disabled = true;
-    goBtn.disabled = true;
-    // Nothing chosen at all (no knob touched, no question answered): the
-    // teacher is opening to look, so hand the editor an UNSAVED draft,
-    // same rule as the no-dialog path. Touched knobs are deliberate input
-    // and keep the eager save.
+  function fail(text) {
+    doors.setDisabled(false);
+    status.hidden = false;
+    status.textContent = text;
+  }
+
+  // No question answered: the copy is the original, with the knobs
+  // applied when any was touched.
+  function plainCopy(dest) {
+    doors.setDisabled(true);
     if (!anyKnobTouched()) {
-      var draft = JSON.parse(JSON.stringify(config));
-      draft.name = game.name + ' (my version)';
-      return openDraftCopy(draft);
+      // Nothing chosen at all. The designer gets an UNSAVED draft, same
+      // rule as the no-dialog path: opening to look leaves no trace in
+      // the yard. The simulator and the host screen run the original
+      // itself, an untouched copy would be the same activity under a
+      // second name.
+      if (dest === 'designer') {
+        var draft = JSON.parse(JSON.stringify(config));
+        draft.name = game.name + ' (my version)';
+        return openDraftCopy(draft);
+      }
+      Recents.add(game.id);
+      window.location.href = copyDestinationUrl(dest, game.id);
+      return;
     }
     buildWorkingConfig()
-      .then(saveWorking)
-      .catch(function (err) {
-        skipBtn.disabled = false;
-        goBtn.disabled = false;
-        status.hidden = false;
-        status.textContent = 'Could not make your copy: ' + err.message;
-      });
+      .then(function (working) { return saveWorking(working, dest); })
+      .catch(function (err) { fail('Could not make your copy: ' + err.message); });
   }
 
-  skipBtn.addEventListener('click', plainCopy);
-
-  goBtn.addEventListener('click', function () {
+  // Any door: answers typed = the AI rewords the copy first, then it is
+  // saved and the teacher lands at the door they picked.
+  function pickDoor(dest) {
     var answered = inputs.filter(function (pair) { return pair.input.value.trim(); });
-    if (answered.length === 0) return plainCopy();
-    skipBtn.disabled = true;
-    goBtn.disabled = true;
-    goBtn.textContent = 'Setting it up…';
+    if (answered.length === 0) return plainCopy(dest);
+    doors.setDisabled(true);
     status.hidden = false;
     status.textContent = 'Rewording the activity for your class, this can take ~20 seconds.';
     buildWorkingConfig()
@@ -2204,18 +2213,15 @@ function showCustomizeDialog(game, config, questions, knobs) {
             if (!revised.name || revised.name === game.name) {
               revised.name = game.name + ' (my version)';
             }
-            return saveCopyAndReturn(revised);
+            return saveCopyAndReturn(revised, dest);
           })
           .catch(function (err) {
             // The tailoring is a bonus — never strand the teacher without a
             // copy, and never lose their knob settings with it.
             status.textContent = 'The AI setup didn’t work (' + err.message + '), making your copy without the rewording.';
             setTimeout(function () {
-              saveWorking(working).catch(function (saveErr) {
-                skipBtn.disabled = false;
-                goBtn.disabled = false;
-                goBtn.textContent = 'Set it up for my class';
-                status.textContent = 'Could not make your copy: ' + saveErr.message;
+              saveWorking(working, dest).catch(function (saveErr) {
+                fail('Could not make your copy: ' + saveErr.message);
               });
             }, 1400);
           });
@@ -2223,12 +2229,9 @@ function showCustomizeDialog(game, config, questions, knobs) {
       .catch(function (err) {
         // The knob recompile failed (bad settings, recipe drift): let the
         // teacher adjust instead of quietly saving something else.
-        skipBtn.disabled = false;
-        goBtn.disabled = false;
-        goBtn.textContent = 'Set it up for my class';
-        status.textContent = 'Could not apply your settings: ' + err.message;
+        fail('Could not apply your settings: ' + err.message);
       });
-  });
+  }
 
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -2452,7 +2455,7 @@ function renderSetupCard() {
   // nobody reads the bullet wall). Marks are drawn CSS shapes, not emojis.
   var introRows = [
     { icon: 'pick', text: 'Pick an activity and make it yours.' },
-    { icon: 'play', text: 'Preview it first, no class needed.' },
+    { icon: 'play', text: 'Simulate it first, no class needed.' },
     { icon: 'board', text: 'Then host it, projected up front.' },
     { icon: 'code', text: 'Students join with a room code. No accounts.' }
   ];
@@ -2509,7 +2512,7 @@ document.getElementById('build-your-own-btn').addEventListener('click', function
     body: JSON.stringify({
       page: '/library',
       category: 'builder-request',
-      message: 'Opened the designer from the library.'
+      message: 'Opened the designer from the yard.'
     })
   }).catch(function () {}).finally(function () {
     window.location.href = '/designer';
@@ -2639,7 +2642,7 @@ fetch('/api/games')
   })
   .catch(function (err) {
     loadingMessage.hidden = true;
-    errorMessage.textContent = 'Could not load the library: ' + err.message;
+    errorMessage.textContent = 'Could not load the yard: ' + err.message;
     errorMessage.hidden = false;
   });
 

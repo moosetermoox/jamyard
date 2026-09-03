@@ -437,9 +437,9 @@ function buildGameCard(game) {
   var previewBtn = document.createElement('a');
   previewBtn.className = 'game-card-preview';
   previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
-  previewBtn.textContent = 'Preview';
+  previewBtn.textContent = 'Simulate';
   previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
-  previewBtn.setAttribute('aria-label', 'Preview "' + game.name + '" with practice players');
+  previewBtn.setAttribute('aria-label', 'Simulate "' + game.name + '" with practice players');
   previewBtn.addEventListener('click', rememberRecent);
   actions.appendChild(previewBtn);
 
@@ -1792,7 +1792,7 @@ function renderExistingGameView(modal, data, overlay, description) {
 
   var customizeNote = document.createElement('p');
   customizeNote.className = 'recipe-form-description';
-  customizeNote.textContent = 'Want it with your own twist? Find it in the Library and click Customize for an editable copy.';
+  customizeNote.textContent = 'Want it with your own twist? Find it in the yard and click Make it yours for an editable copy.';
   modal.appendChild(customizeNote);
 
   // Runner-up recipes still render: "already exists" is one answer, and
@@ -1847,7 +1847,7 @@ function renderExistingGameView(modal, data, overlay, description) {
   var libraryBtn = document.createElement('button');
   libraryBtn.type = 'button';
   libraryBtn.className = 'recipe-cancel-btn';
-  libraryBtn.textContent = 'See it in the Library';
+  libraryBtn.textContent = 'See it in the yard';
   libraryBtn.addEventListener('click', function () {
     window.location.href = '/library?highlight=' + encodeURIComponent(game.id);
   });
@@ -1856,7 +1856,7 @@ function renderExistingGameView(modal, data, overlay, description) {
   var previewBtn = document.createElement('button');
   previewBtn.type = 'button';
   previewBtn.className = 'recipe-cancel-btn';
-  previewBtn.textContent = 'Preview';
+  previewBtn.textContent = 'Simulate';
   previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
   previewBtn.addEventListener('click', function () {
     window.location.href = '/prototype?game=' + encodeURIComponent(game.id);
@@ -2108,7 +2108,7 @@ async function showStoryboardFlow(description, seededStoryboard) {
         // activity that fakes its own premise with words.
         title.textContent = 'This one needs a trick we don\'t have yet';
         status.textContent = resp.reason || 'The step-by-step builder cannot deliver the heart of this idea yet.';
-        var cbHint = sbEl('p', 'A recipe or a ready-made activity from the Library may get close. Or reshape the idea around what students type and see, and try again.', 'sb-hint');
+        var cbHint = sbEl('p', 'A recipe or a ready-made activity from the yard may get close. Or reshape the idea around what students type and see, and try again.', 'sb-hint');
         modal.appendChild(cbHint);
         var cbRow = sbEl('div', null, 'recipe-form-buttons');
         var cbClose = sbEl('button', 'Close', 'recipe-cancel-btn');
@@ -2370,7 +2370,7 @@ function showConciergeDialog() {
       .catch(function (err) {
         goBtn.disabled = false;
         goBtn.textContent = 'Try again';
-        status.textContent = 'That didn’t work (' + err.message + '). Browsing the library by goal is a good plan B.';
+        status.textContent = 'That didn’t work (' + err.message + '). Browsing the yard by goal is a good plan B.';
       });
   });
 }
@@ -2379,10 +2379,10 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
   resultsEl.textContent = '';
   var suggestions = data.suggestions || [];
   if (suggestions.length === 0) {
-    status.textContent = 'Nothing clicked for that combination. The library sorted by goal is the best next stop.';
+    status.textContent = 'Nothing clicked for that combination. The yard sorted by goal is the best next stop.';
     var libLink = document.createElement('a');
     libLink.href = '/library';
-    libLink.textContent = 'Open the Library';
+    libLink.textContent = 'Open the yard';
     libLink.style.cssText = 'font-weight:800;';
     resultsEl.appendChild(libLink);
     return;
@@ -2436,7 +2436,7 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       var previewBtn = document.createElement('button');
       previewBtn.type = 'button';
       previewBtn.className = 'recipe-cancel-btn';
-      previewBtn.textContent = 'Preview';
+      previewBtn.textContent = 'Simulate';
       previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
       previewBtn.addEventListener('click', function () {
         window.location.href = '/prototype?game=' + encodeURIComponent(s.id);
@@ -2446,7 +2446,7 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       var customizeBtn = document.createElement('button');
       customizeBtn.type = 'button';
       customizeBtn.className = 'recipe-cancel-btn';
-      customizeBtn.textContent = 'Customize';
+      customizeBtn.textContent = 'Make it yours';
       customizeBtn.title = 'Make your own editable copy of this activity';
       customizeBtn.addEventListener('click', function () {
         window.location.href = '/library?customize=' + encodeURIComponent(s.id);
@@ -2484,7 +2484,7 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
   footer.style.marginTop = '10px';
   var libLink2 = document.createElement('a');
   libLink2.href = '/library';
-  libLink2.textContent = 'None of these? Browse the whole library';
+  libLink2.textContent = 'None of these? Browse the whole yard';
   footer.appendChild(libLink2);
   resultsEl.appendChild(footer);
 }

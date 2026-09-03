@@ -35,11 +35,20 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-08-30, sharing shipped)
+### START HERE next session (updated 2026-09-02, rolling start shipped)
+
+**2026-09-02 in three commits** (all pushed, CI deploys on green): `9929635` chat bigger + Just do it, preview map-rail skip-ahead, activity language (engine/i18n), assemblycode.org credit, guide says yard; `c55c945` class picker inside Make it yours (questions refresh on picks), slim yard strip, home declutter, guide folded + video slot; `b08bbb8` rolling start primitive + Exit Ticket / Live Poll / Solo Quiz (phase #30), live report for the open step, doorway card. 1574 tests.
+
+**Open from today, in priority order:**
+1. Owner is field-testing Exit Ticket on a real projector. Watch for: doorway card size/placement on a real 1080p screen (only seen headless at 1600 wide), the console during a rolling step (should show entries live; the solo-quiz progress board is NOT on the console yet), the report's "Still open" section.
+2. Record the one-minute guide video (script: docs/GUIDE-VIDEO-SCRIPT.md), paste the id into GUIDE_VIDEO_ID in screens/guide/index.html.
+3. Yard placement: the three rolling activities land on the Think shelf by default; a quick-checks spot or goal tag would suit them.
+4. Create page: matcher phrases ("exit ticket", "quick poll", "quiz they do on their own") should route to the new recipes; add golden-prompt corpus entries and run scripts/eval-designer-prompts.js before/after.
+5. Language coverage: dynamic status prose, projector join instructions, and the teacher console are still English-only (rows go in every table in engine/i18n/index.js).
+6. Skip-ahead in preview follows the main next-chain only; a step behind a vote branch is unreachable (gives up after ~2.7 min).
 
 **2026-09-02 owner batch shipped** (CHANGELOG): chat panel bigger + Just do it, skip-ahead by clicking the preview's map rail (owner moved it out of the editor), activity language (engine/i18n, auto-detect + Settings select), assemblycode.org credit, guide says yard. Follow-ons:
 - Language coverage: dynamic status prose ("You matched 3 of 5"), the projector join instructions, and the teacher console are still English-only; add rows to every table in engine/i18n/index.js.
-- Yard-vs-library naming in the Create page copy (designer.js: "See it in the Library", "Open the Library", "Browse the whole library") still says Library.
 - Record the one-minute guide video (script: docs/GUIDE-VIDEO-SCRIPT.md), upload, paste the id into GUIDE_VIDEO_ID in screens/guide/index.html. The written guide is folded behind "The first five minutes" meanwhile.
 - Rolling start shipped (Exit Ticket, Live Poll, Solo Quiz; CHANGELOG 2026-09-02). Follow-ons: a `goal`/pile tag so the three land in a "quick checks" spot instead of Think by default; Create-page matcher phrases ("exit ticket", "quick poll", "quiz they do on their own") should route to these recipes (golden-prompt corpus entries); teacher console could show the solo-quiz progress board; rolling doorway card on a real projector still unseen.
 - Skip-ahead can only follow the main next-chain; a step behind a vote branch may not be reachable (it gives up after ~2.7 min and hands over). No going back: an earlier stop tells you to Reset.
