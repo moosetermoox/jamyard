@@ -21,7 +21,8 @@
   function familyOf(type) {
     if (type === 'ai-process' || type === 'ai-eliminate') return 'ai';
     if (type === 'collect' || type === 'collect-choice' || type === 'estimate' ||
-        type === 'collect-two' || type === 'match' || type === 'sort' || type === 'buzz') return 'ask';
+        type === 'collect-two' || type === 'match' || type === 'sort' || type === 'buzz' ||
+        type === 'solo-quiz') return 'ask';
     if (type === 'announce' || type === 'reveal' || type === 'reveal-one' ||
         type === 'leaderboard' || type === 'winner' || type === 'preview') return 'show';
     if (type === 'vote' || type === 'rank' || type === 'rate' ||

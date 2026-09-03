@@ -27,6 +27,7 @@ export const EVENTS = {
   START_GAME:           'start-game',
   GAME_STARTED:         'game-started',
   GAME_ENDED:           'game-ended',
+  PLAYER_DONE:          'player-done',         // server -> one player: rolling start, your last input landed
   END_GAME:             'end-game',
   ADVANCE_PHASE:        'advance-phase',
 
@@ -37,6 +38,7 @@ export const EVENTS = {
   // --- Collect Phase ---
   SUBMIT_RESPONSE:      'submit-response',
   RESPONSE_RECEIVED:    'response-received',
+  LIVE_TALLY:           'live-tally',          // server -> host: live poll chart rows (counts only)
   RESPONSE_REJECTED:    'response-rejected',
   CLOSE_SUBMISSIONS:    'close-submissions',
 
@@ -172,6 +174,15 @@ export const EVENTS = {
   BUZZ_FINISH:          'buzz-finish',         // host -> server: store scores + move on
 
   // --- Estimate Phase (numeric guessing) ---
+  SOLO_QUIZ_START:      'solo-quiz-start',      // server -> host: title + progress board (never a question)
+  SOLO_QUIZ_QUESTION:   'solo-quiz-question',   // server -> one player: your current question (or done)
+  SOLO_QUIZ_ANSWER:     'solo-quiz-answer',     // player -> server: my pick for question N
+  SOLO_QUIZ_FEEDBACK:   'solo-quiz-feedback',   // server -> one player: right/wrong + the next question
+  SOLO_QUIZ_PROGRESS:   'solo-quiz-progress',   // server -> host/consoles: started/finished + per-question rates
+  SOLO_QUIZ_DONE:       'solo-quiz-done',       // server -> one player: your finish line (or the close caught you)
+  SOLO_QUIZ_RESULTS:    'solo-quiz-results',    // server -> host/consoles: final board
+  CLOSE_SOLO_QUIZ:      'close-solo-quiz',      // host/console -> server: grade everyone, show the board
+
   ESTIMATE_START:       'estimate-start',      // server -> all: prompt, unit, bounds, timer
   ESTIMATE_SUBMIT:      'estimate-submit',     // player -> server: my number
   ESTIMATE_PROGRESS:    'estimate-progress',   // server -> host: x of y guessed

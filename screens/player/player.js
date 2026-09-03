@@ -171,6 +171,8 @@ const processSection = document.getElementById('process-section');
 const revealSection = document.getElementById('reveal-section');
 const aiResultDisplay = document.getElementById('ai-result');
 const endSection = document.getElementById('end-section');
+const doneSection = document.getElementById('done-section');
+const doneMessageEl = document.getElementById('done-message');
 
 // Elements - New sections
 const eliminatedBanner = document.getElementById('eliminated-banner');
@@ -437,6 +439,13 @@ window.addEventListener('message', function(e) {
         }
       }
     }
+  } else if (id === 'solo-quiz-section') {
+    // Play the whole quiz through: a random pick per question, Next after
+    // each feedback, until the finish line.
+    sqBotAuto = true;
+    var sqOpen = active.querySelectorAll('#sq-choices .choice-btn:not(:disabled)');
+    if (sqOpen.length > 0) sqOpen[Math.floor(Math.random() * sqOpen.length)].click();
+    else if (!sqNextBtn.hidden) sqNextBtn.click();
   } else if (id === 'vote-section') {
     // Click a random vote button
     var voteBtns = active.querySelectorAll('.vote-btn');
@@ -2916,6 +2925,106 @@ turnSkipBtn.addEventListener('click', () => {
   socket.emit('turn-skip', { code: currentRoomCode, phaseInstanceId: turnCurrentInstanceId });
 });
 
+// --- Solo quiz (self-paced): one question at a time, at your own speed ---
+const soloQuizSection = document.getElementById('solo-quiz-section');
+const sqCounter = document.getElementById('sq-counter');
+const sqQuestion = document.getElementById('sq-question');
+const sqChoices = document.getElementById('sq-choices');
+const sqFeedback = document.getElementById('sq-feedback');
+const sqNextBtn = document.getElementById('sq-next-btn');
+const sqDone = document.getElementById('sq-done');
+const sqDoneScore = document.getElementById('sq-done-score');
+let sqPending = null;     // the payload behind the Next button
+let sqInstanceId = null;
+let sqBotAuto = false;    // prototype Bot Fill: play the whole quiz through
+
+function renderSoloQuestion(data) {
+  showSection(soloQuizSection);
+  sqDone.hidden = true;
+  sqFeedback.hidden = true;
+  sqNextBtn.hidden = true;
+  sqCounter.textContent = UiLang.t('Question') + ' ' + (data.index + 1) + ' ' + UiLang.t('of') + ' ' + data.total;
+  sqQuestion.textContent = data.question || '';
+  sqChoices.textContent = '';
+  (data.choices || []).forEach(function (choiceText) {
+    var btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = choiceText;
+    btn.addEventListener('click', function () {
+      var all = sqChoices.querySelectorAll('.choice-btn');
+      for (var i = 0; i < all.length; i++) all[i].disabled = true;
+      btn.classList.add('picked');
+      socket.emit('solo-quiz-answer', { code: currentRoomCode, index: data.index, choice: choiceText, phaseInstanceId: sqInstanceId });
+    });
+    sqChoices.appendChild(btn);
+  });
+  if (sqBotAuto) {
+    setTimeout(function () {
+      var open = sqChoices.querySelectorAll('.choice-btn:not(:disabled)');
+      if (open.length) open[Math.floor(Math.random() * open.length)].click();
+    }, 300);
+  }
+}
+
+function renderSoloDone(data) {
+  showSection(soloQuizSection);
+  sqBotAuto = false;
+  sqCounter.textContent = '';
+  sqQuestion.textContent = '';
+  sqChoices.textContent = '';
+  sqFeedback.hidden = true;
+  sqNextBtn.hidden = true;
+  sqDone.hidden = false;
+  sqDoneScore.textContent = UiLang.t('Your score') + ': ' + (data.correct || 0) + ' ' + UiLang.t('of') + ' ' + (data.total || 0);
+  if (J) J.sound('tada');
+}
+
+socket.on('solo-quiz-question', function (data) {
+  sqInstanceId = data.phaseInstanceId;
+  sqPending = null;
+  applyTemplate(soloQuizSection, data.playerTemplate);
+  if (data.done) renderSoloDone(data); else renderSoloQuestion(data);
+});
+
+socket.on('solo-quiz-feedback', function (data) {
+  // Stale guard only when both sides know the instance (a student who
+  // joined mid-step got their question without one).
+  if (sqInstanceId != null && data.phaseInstanceId != null && data.phaseInstanceId !== sqInstanceId) return;
+  if (data.phaseInstanceId != null) sqInstanceId = data.phaseInstanceId;
+  sqFeedback.hidden = false;
+  sqFeedback.className = 'sq-feedback ' + (data.correct ? 'sq-right' : 'sq-wrong');
+  sqFeedback.textContent = data.correct
+    ? UiLang.t('Correct!')
+    : (data.correctAnswer
+      ? UiLang.t('Not quite.') + ' ' + UiLang.t('The answer was') + ' ' + data.correctAnswer
+      : UiLang.t('Not quite.'));
+  if (J) J.sound(data.correct ? 'blip' : 'womp');
+  sqPending = data;
+  sqNextBtn.hidden = false;
+  sqNextBtn.textContent = data.done ? UiLang.t('See my score') : UiLang.t('Next question');
+  if (sqBotAuto) setTimeout(function () { sqNextBtn.click(); }, 350);
+});
+
+sqNextBtn.addEventListener('click', function () {
+  if (!sqPending) return;
+  var data = sqPending;
+  sqPending = null;
+  if (data.done) renderSoloDone(data); else renderSoloQuestion(data);
+});
+
+socket.on('solo-quiz-done', function (data) {
+  sqPending = null;
+  renderSoloDone(data);
+});
+
+// Rolling start: this student's last input landed, nothing else needs
+// them. Their own screen, not the shared wait screen.
+socket.on('player-done', ({ message } = {}) => {
+  showSection(doneSection);
+  if (doneMessageEl) doneMessageEl.textContent = message || '';
+  if (J) J.sound('tada');
+});
+
 socket.on('game-ended', ({ message, playerTemplate, playerShow } = {}) => {
   eliminatedBanner.hidden = true;
   isEliminated = false;
@@ -3163,7 +3272,8 @@ const allPlayerSections = [
   voteSection, voteSubmittedSection, eliminationResultsSection,
   announceSection, winnerSection, leaderboardSection, revealOneSection,
   teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
-  turnSection, buzzSection, estimateSection, matchSection, sortSection, checklistSection
+  turnSection, buzzSection, estimateSection, matchSection, sortSection, checklistSection,
+  doneSection, soloQuizSection
 ];
 
 function showSection(el) {

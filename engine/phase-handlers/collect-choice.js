@@ -10,6 +10,8 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { sampleItems } from '../phases/sampling.js';
+import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
+import { translate } from '../i18n/index.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 
 /**
@@ -131,6 +133,8 @@ registerHandler('collect-choice', {
     const eligible = ctx.getEligibleVoters(from);
     const eligibleIds = new Set(eligible.map(p => p.id));
     const sc = ctx.resolveScreenControl();
+    // Rolling start: no shared countdown (see collect.js).
+    const timer = isRolling(engine.config) ? null : (phase.timer || null);
 
     // Self-exclusion: if inside foreach and author is set, exclude them
     const authorId = phase._foreachAuthorId || null;
@@ -169,8 +173,10 @@ registerHandler('collect-choice', {
       image,
       video,
       displayDrawing,
-      timer: phase.timer || null,
+      timer,
       isChoice: true,
+      // Live Poll: the projector draws the tally as answers land
+      liveResults: !!phase.liveResults,
       count: 0, total: countTotal,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
@@ -218,7 +224,11 @@ registerHandler('collect-choice', {
     const sc = ctx.resolveScreenControl();
     const choicePlayer = ctx.engine.players.find(socket.id);
     if (choicePlayer && choicePlayer.response) {
-      socket.emit(EVENTS.WAITING, { message: 'Answer submitted. Waiting for others...' });
+      if (isRolling(ctx.engine.config) && !moreInputAhead(ctx.engine.config, ctx.phase.id)) {
+        socket.emit(EVENTS.PLAYER_DONE, { message: translate(ctx.engine.language, doneMessageFor(ctx.phase)) });
+      } else {
+        socket.emit(EVENTS.WAITING, { message: 'Answer submitted. Waiting for others...' });
+      }
     } else {
       const baseChoices = buildChoicePool(ctx.phase, ctx);
       const authorMap = buildAuthorMap(ctx.phase, ctx.engine);

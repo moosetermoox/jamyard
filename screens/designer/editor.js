@@ -401,6 +401,7 @@ var settingsMinPlayers = document.getElementById('game-min-players');
 var settingsMaxPlayers = document.getElementById('game-max-players');
 var settingsNamesMode = document.getElementById('game-names-mode');
 var settingsLanguage = document.getElementById('game-language');
+var settingsStart = document.getElementById('game-start');
 var settingsTheme = document.getElementById('game-theme');
 var customThemeSection = document.getElementById('custom-theme-section');
 var customThemeDesc = document.getElementById('custom-theme-desc');
@@ -691,6 +692,7 @@ async function init() {
   settingsMaxPlayers.addEventListener('input', readSettings);
   if (settingsNamesMode) settingsNamesMode.addEventListener('change', readSettings);
   if (settingsLanguage) settingsLanguage.addEventListener('change', readSettings);
+  if (settingsStart) settingsStart.addEventListener('change', readSettings);
 
   // Populate theme select
   if (settingsTheme && window.GAME_THEMES) {
@@ -765,6 +767,7 @@ function renderSettings() {
   settingsMaxPlayers.value = gameConfig.maxPlayers || '';
   if (settingsNamesMode) settingsNamesMode.value = gameConfig.anonymous ? 'anonymous' : 'collect';
   if (settingsLanguage) settingsLanguage.value = gameConfig.language || 'auto';
+  if (settingsStart) settingsStart.value = gameConfig.start === 'rolling' ? 'rolling' : 'together';
   headerGameName.textContent = gameConfig.name || 'Untitled Activity';
 
   // Theme
@@ -809,6 +812,12 @@ function readSettings() {
     gameConfig.language = settingsLanguage.value;
   } else {
     delete gameConfig.language;
+  }
+  // Start mode: store only the rolling choice; absent means together.
+  if (settingsStart && settingsStart.value === 'rolling') {
+    gameConfig.start = 'rolling';
+  } else {
+    delete gameConfig.start;
   }
   headerGameName.textContent = gameConfig.name;
 }

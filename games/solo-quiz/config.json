@@ -1,0 +1,135 @@
+{
+  "name": "Solo Quiz",
+  "description": "Five quick questions each student answers at their own pace. No race, and the projector shows progress only. Swap in your own questions.",
+  "playTime": "~10 min",
+  "start": "rolling",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "quiz"
+    },
+    "quiz": {
+      "type": "solo-quiz",
+      "title": "Warm-up quiz",
+      "questions": [
+        {
+          "question": "What is the capital of Australia?",
+          "choices": [
+            "Canberra",
+            "Sydney",
+            "Melbourne",
+            "Perth"
+          ],
+          "correct": "Canberra"
+        },
+        {
+          "question": "Which planet is closest to the Sun?",
+          "choices": [
+            "Venus",
+            "Mars",
+            "Mercury",
+            "Jupiter"
+          ],
+          "correct": "Mercury"
+        },
+        {
+          "question": "How many sides does a hexagon have?",
+          "choices": [
+            "Five",
+            "Six",
+            "Seven",
+            "Eight"
+          ],
+          "correct": "Six"
+        },
+        {
+          "question": "What gas do plants take in from the air?",
+          "choices": [
+            "Oxygen",
+            "Nitrogen",
+            "Carbon dioxide",
+            "Helium"
+          ],
+          "correct": "Carbon dioxide"
+        },
+        {
+          "question": "Which ocean is the largest?",
+          "choices": [
+            "Atlantic",
+            "Indian",
+            "Arctic",
+            "Pacific"
+          ],
+          "correct": "Pacific"
+        }
+      ],
+      "showAnswers": true,
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "That is the quiz. Nice work, everyone."
+    }
+  },
+  "recipe": {
+    "id": "solo-quiz",
+    "version": "1",
+    "params": {
+      "title": "Warm-up quiz",
+      "showAnswers": true,
+      "questions": [
+        {
+          "question": "What is the capital of Australia?",
+          "choices": [
+            "Canberra",
+            "Sydney",
+            "Melbourne",
+            "Perth"
+          ],
+          "correct": "Canberra"
+        },
+        {
+          "question": "Which planet is closest to the Sun?",
+          "choices": [
+            "Venus",
+            "Mars",
+            "Mercury",
+            "Jupiter"
+          ],
+          "correct": "Mercury"
+        },
+        {
+          "question": "How many sides does a hexagon have?",
+          "choices": [
+            "Five",
+            "Six",
+            "Seven",
+            "Eight"
+          ],
+          "correct": "Six"
+        },
+        {
+          "question": "What gas do plants take in from the air?",
+          "choices": [
+            "Oxygen",
+            "Nitrogen",
+            "Carbon dioxide",
+            "Helium"
+          ],
+          "correct": "Carbon dioxide"
+        },
+        {
+          "question": "Which ocean is the largest?",
+          "choices": [
+            "Atlantic",
+            "Indian",
+            "Arctic",
+            "Pacific"
+          ],
+          "correct": "Pacific"
+        }
+      ]
+    }
+  },
+  "featured": true
+}

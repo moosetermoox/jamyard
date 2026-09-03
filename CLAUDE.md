@@ -36,8 +36,8 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1545 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
-- **29 phase types**, **23 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
+- **1570 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **30 phase types**, **26 built-in recipes**, ~33 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
 
@@ -45,7 +45,7 @@ Framework for quickly building classroom games where:
 - `/` home (one primary "Find an Activity" card + student room-code join)
 - `/library` — teacher front door: search, goal chips, ▶ Host cards, ♥/recents, Customize dialog
 - `/host` projector screen · `/player` student screen · `/teacher` private console (room code + PIN, or SITE_PASSWORD basic auth)
-- `/teacher/report` printable activity report (engine/report.js via PIN-gated `GET /api/rooms/:code/report`) — built on demand from live room state, NEVER stored server-side, gone when the room expires; browser print dialog = the PDF; names toggle defaults on; console links it (header + end-phase reminder card)
+- `/teacher/report` printable activity report (engine/report.js via PIN-gated `GET /api/rooms/:code/report`) — built on demand from live room state, NEVER stored server-side, gone when the room expires; the step that is still OPEN is read live from the players (`liveDataFor`, marked "Still open"), which is how a rolling exit ticket gets read mid-step; browser print dialog = the PDF; names toggle defaults on; console links it (header + end-phase reminder card)
 - `/designer` Create page (idea box → recipe match or storyboard) · `/designer/edit` editor (Simple | Builder | Advanced views; Simple is default; Ask AI = the design chat panel beside the Simple view, `screens/designer/chat-panel.js` + `POST /api/games/chat` — proposes changes as cards, Apply gated on validation, one-step Revert; "Just do it" = `forceEdit:true` turn that folds the whole conversation into one proposal)
 - `/prototype` host + player iframes side-by-side for playtesting; the map rail is clickable: a stop row asks "Skip ahead?" then plays the room forward with bots until the live rail reaches that step (`?goto=<phaseId>` deep link does the same on launch)
 - `/guide` one-page teacher guide (setup, live controls, quick fixes) · `/owner` owner-mode doorway (redirects to the library unlock; no in-page owner links)
@@ -61,6 +61,7 @@ Framework for quickly building classroom games where:
 - **"Activity" vocabulary** in user-facing copy ("game" only when it truly is one). Internals keep "game" (`games/`, `gameId`, socket events, API routes) — never rename them.
 - **The host screen is a projector** — never put teacher-private info there; that's what `/teacher` is for.
 - **Payoff beats are host-paced, never timed** (reveals, winners, galleries).
+- **Rolling start is a family, not a knob** (`start: "rolling"`, engine/phases/rolling.js): the room opens straight into the first step, the doorway card stays on the projector, timers are ignored, and each student gets their own done screen. Only for activities without roster-bound steps (pairs, teams, chains, rounds; the validator warns). Exit Ticket, Live Poll, Solo Quiz are the three shapes.
 - **Fixed UI labels go through `engine/i18n/`** (server labels via `continueLabelForPhase(phase, phases, lang)`, screens via `UiLang.t('Submit')` + `UiLang.apply()`); a new student- or projector-facing label needs a row in every language table (drift-guarded). Top-level `language` (auto | en | es | fr | de | pt | it) resolves once in the GameEngine constructor; auto = stopword detection over the activity's own text.
 - **Nothing student-drawn reaches the projector without a teacher gate** (preview phase or moderation).
 - **No student name in any outbound AI payload** (pseudonymous playerIds + `engine/ai-name-fill.js` re-fill; `engine/pii-scrub.js` on free text — pass `rosterNames` on game-time calls).
@@ -74,6 +75,7 @@ Framework for quickly building classroom games where:
 - **New gameplay socket handlers**: `checkEventPayload` + `isStalePhaseEvent` + `recordEvent`; every handler runs in a try/catch wrapper.
 - **New phaseState containing player ids** gets reconnect id-migration free via the deep walker (`engine/id-migration.js`); **new closers** must be reachable from the `advance-phase` routing switch.
 - **New transition-bearing fields wire in SIX places**: state-machine graph, validator ref-existence, BFS+cycle (server AND client), recipe drop-rewiring, editor delete-relink.
+- **Player-facing payloads sent from a handler's `onReconnect` must carry `phaseInstanceId: ctx.phaseInstanceId`** (direct `socket.emit` skips the `withPhaseSeq` wrapper); late joiners are the normal case in rolling activities, and a missing id makes the client's stale guard drop every follow-up (solo-quiz feedback, 2026-09-02).
 - **Multi-field collect responses nest under `fields.*`** — reveal templates reading top-level keys render silently blank.
 - **AI responses wrap JSON in preamble** — always regex-fallback extraction.
 - **Identical generate instructions = identical output across sessions** — ai-process appends a variety spin (random seed + inspiration word + chestnut ban, `engine/phases/variety-spin.js`) to every `generate` task at call time; never bake session randomness into recipes/configs (drift guards).
@@ -84,7 +86,7 @@ Framework for quickly building classroom games where:
 - **Recipe-born configs carry a provenance stamp** (`config.recipe = {id, version, params}`, written by `compileRecipe`) that powers the library Customize setup knobs. `games/speed-quiz`, `games/trivia-bluff` AND `games/exquisite-corpse` are drift-guarded: their phases must deep-equal a fresh compile of their stamp — change the recipe or the stamped params, never hand-edit their phases.
 - **`$repeat`/`$map` count mode**: `forEach`/`$map` over an INTEGER recipe param iterates 1..N (`${item}` = round number) — for "how many rounds" knobs where round content is generated at game time (trivia-bluff). Customize's AI interview receives the dialog's knob labels (`knownSettings`) and must never re-ask them.
 
-## 29 Phase Types
+## 30 Phase Types
 `engine/phase-schemas.js` is the single source of truth (validator + AI prompts + editor fields + `{{...}}` grammar). Quick reference:
 1. `lobby` — wait for players
 2. `collect` — text/drawing input; `rotateFrom` (rotation chains + `assignedFrom` links; `rotateShuffle:true` = random no-self deal instead of fixed shift, chain per-pool for multi-pool deals; leave `{{X.assigned}}` out of the prompt = a BLIND hand-off), `prefillFromAssigned`, `appendOnly`, `showTail:N` (the exquisite-corpse fold: player sees only the last N words of the inherited text, full text still accumulates; requires appendOnly), `maxLength`, `assign:"pairwise"` (+`oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom` — accepts a pairwise collect OR team-split, `pairBy:{from,mode}` answer-keyed pairing from a collect-choice — opposite/same, best-effort), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"`
@@ -95,7 +97,7 @@ Framework for quickly building classroom games where:
 7. `preview` — teacher-only gate before reveal (requires `content`, `approveNext`, `rejectNext`)
 8. `winner` — crown with drumroll; `winnerEntry` shows WHAT they won for
 9. `announce` — message to everyone; `video:` YouTube embed (host-only), `image` field; `drawingFrom` shows a drawing (announce/collect/collect-choice all have it; `_current.drawing` in foreach = Doodle Bluff rounds)
-10. `collect-choice` — pick from choices; `correctAnswer`+`speedBonus` (Kahoot scoring), `choicePool`/`excludeAuthored`/`shuffle`/`foolPoints`/`poolLimit` (bluffing)
+10. `collect-choice` — pick from choices; `correctAnswer`+`speedBonus` (Kahoot scoring), `choicePool`/`excludeAuthored`/`shuffle`/`foolPoints`/`poolLimit` (bluffing), `liveResults` (Live Poll: projector tally grows as answers land)
 11. `ai-eliminate` — AI judges and eliminates
 12. `leaderboard` — rankings; `from` accepts array of refs to sum rounds
 13. `reveal-one` — one-by-one reveal; `itemTemplate` for objects, `limit` random sample
@@ -114,6 +116,7 @@ Framework for quickly building classroom games where:
 26. `match` — pair two lists; `pairs` + `pointsPerMatch`
 27. `sort` — items into buckets; all-or-none correct buckets = graded vs consensus
 28. `checklist` — group to-do list with live progress; `items` (strings or `{text, role}` role-tagged) + optional `teamsFrom` (team-split OR pairwise collect, pairs share a list) + `rolesFrom` (team-roles; tags items as a role's job, viewer's own highlighted); no scores
+30. `solo-quiz` — self-paced multiple-choice quiz (`questions` [{question, choices, correct}], `showAnswers`, `pointsPerQuestion`); per-student progress, projector shows a progress board only, two-stage close, output `scores`; built for rolling start
 29. `team-roles` — job per group member (Facilitator/Recorder/...); `teamsFrom` (team-split OR pairwise collect) + `roles` + `method: random|choice` (choice = claim-a-role with per-group capacity ceil(members/roles), stragglers auto-filled at close); output `byPlayer` so `{{X.mine}}` = your role, `rolesList` = the lineup
 
 AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `rank`, `judge` (Sonnet).

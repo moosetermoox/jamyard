@@ -284,3 +284,67 @@ describe('buildActivityReport', () => {
     expect(facts.some(f => f.label === 'Attempts' && f.value === '2')).toBe(true);
   });
 });
+
+// Rolling start: the report is read while the step is still open (an
+// exit ticket has no close moment the teacher waits for), so the current
+// step's live answers must show up, marked as still open.
+describe('live sections for the step that is still open', () => {
+  function liveEngine(phaseType, extra = {}) {
+    const engine = stubEngine({
+      phases: {
+        lobby: { type: 'lobby', next: 'q' },
+        q: { type: phaseType, prompt: 'One thing you learned?', next: 'end', ...extra },
+        end: { type: 'end' }
+      },
+      players: TWO_PLAYERS
+    });
+    engine.getCurrentPhase = () => ({ id: 'q', ...engine.config.phases.q });
+    return engine;
+  }
+
+  it('reads an open collect step from the players, skipping hidden and passed', () => {
+    const engine = liveEngine('collect', { fields: [{ label: 'Learned', key: 'q1' }, { label: 'Question', key: 'q2' }] });
+    engine.players.update('p1', { response: { q1: 'Fractions', q2: 'Why decimals?' } });
+    engine.players.update('p2', { response: { q1: 'Nothing', q2: 'None' }, responseHidden: true });
+    const section = sectionFor(buildActivityReport(engine), 'q');
+    expect(section).toBeDefined();
+    expect(section.live).toBe(true);
+    expect(section.blocks[0]).toMatchObject({ kind: 'fact', label: 'Status' });
+    const entries = blocksOfKind(section, 'entries')[0];
+    expect(entries.items).toHaveLength(1);
+    // Two questions, two labeled lines (not the stored "a | b" join)
+    expect(entries.items[0]).toMatchObject({ name: 'Ada', text: 'Learned: Fractions\nQuestion: Why decimals?' });
+  });
+
+  it('tallies an open multiple-choice step', () => {
+    const engine = liveEngine('collect-choice', { choices: ['Got it', 'Lost'] });
+    engine.players.update('p1', { response: 'Got it' });
+    engine.players.update('p2', { response: 'Got it' });
+    const section = sectionFor(buildActivityReport(engine), 'q');
+    const table = blocksOfKind(section, 'table')[0];
+    expect(table.rows[0]).toEqual(['Got it', 2]);
+  });
+
+  it('grades an unfinished solo quiz from its mirrored progress', () => {
+    const questions = [
+      { question: 'A?', choices: ['x', 'y'], correct: 'x' },
+      { question: 'B?', choices: ['x', 'y'], correct: 'y' }
+    ];
+    const engine = liveEngine('solo-quiz', { questions });
+    engine.phaseData.q = { progress: { p1: { index: 2, answers: [{ choice: 'x', correct: true }, { choice: 'x', correct: false }] } } };
+    const section = sectionFor(buildActivityReport(engine), 'q');
+    expect(section.live).toBe(true);
+    const tables = blocksOfKind(section, 'table');
+    expect(tables[1].rows[0][0]).toBe('Ada');
+    expect(tables[1].rows[0][1]).toBe(1);
+  });
+
+  it('leaves a closed step alone (stored data wins, no live mark)', () => {
+    const engine = liveEngine('collect');
+    engine.phaseData.q = { responses: [{ playerId: 'p1', name: 'Ada', text: 'Stored' }] };
+    engine.players.update('p1', { response: 'Newer' });
+    const section = sectionFor(buildActivityReport(engine), 'q');
+    expect(section.live).toBeUndefined();
+    expect(blocksOfKind(section, 'entries')[0].items[0].text).toBe('Stored');
+  });
+});

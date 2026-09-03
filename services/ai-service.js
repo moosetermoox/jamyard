@@ -85,6 +85,9 @@ function fieldEntry(fname, fdef) {
 // Per-phase prose that the schema can't model. Keep concise; the field
 // listings come from the schema.
 const PHASE_EXTRA_GUIDANCE = {
+  'solo-quiz':
+    `SELF-PACED QUIZ: each student answers a question list on their own device at their own pace; the projector shows progress only. Use it for rolling-start activities (top-level "start": "rolling") where students arrive at different times and speed should not matter. Fields: "questions" is an array of {"question", "choices" (2-6 strings), "correct" (must equal one choice exactly)}; optional "title", "pointsPerQuestion" (default 1), "showAnswers" (default true). Output: scores (a score map, so a leaderboard can read it). Do NOT wrap it in a foreach and do NOT add a timer.`,
+
   vote:
     `BRANCHING VOTES (choose-your-own-adventure): a pick-one vote on a FIXED option list can route the game by outcome. Set "candidates" to a literal array of option strings and "nextByWinner" to a map from each option's exact text to a phase id. A winner not in the map falls back to "next". Branches must go FORWARD (use loopBack to repeat sections). Paths may converge on a later shared phase. Example:
     "chapter1": { "type": "announce", "message": "The cave mouth yawns ahead; the mountain path climbs to the right.", "timer": 8, "next": "choose1" },
@@ -1539,6 +1542,7 @@ ${description}`
     var requiredFields = {
       collect: ['prompt'],
       'collect-choice': ['prompt', 'choices'],
+      'solo-quiz': ['questions'],
       'ai-process': ['instruction', 'input'],
       'ai-eliminate': ['instruction', 'input'],
       vote: ['mode', 'candidates'],

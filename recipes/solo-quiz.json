@@ -1,0 +1,97 @@
+{
+  "id": "solo-quiz",
+  "name": "Solo Quiz",
+  "icon": "📝",
+  "description": "A multiple-choice quiz each student takes on their own device at their own pace. No race, no questions on the projector: the board shows only who has started, who has finished, and how the class did on each question. Students can begin the moment they join.",
+  "tagline": "Perfect for a warm-up check, a low-pressure review, or the first five minutes while people arrive.",
+  "version": "1",
+  "setupPanel": "quiz",
+  "parameters": {
+    "questions": {
+      "type": "array",
+      "required": true,
+      "minItems": 1,
+      "maxItems": 20,
+      "label": "Questions",
+      "helper": "Mark the right answer, it must match one of the choices exactly.",
+      "setup": {
+        "mode": "count",
+        "label": "How many questions"
+      },
+      "item": {
+        "type": "object",
+        "fields": {
+          "question": {
+            "type": "string",
+            "required": true,
+            "label": "Question",
+            "placeholder": "What is the capital of Australia?"
+          },
+          "choices": {
+            "type": "array",
+            "item": {
+              "type": "string"
+            },
+            "minItems": 2,
+            "maxItems": 6,
+            "label": "Choices",
+            "placeholder": "Canberra, Sydney, Melbourne, Perth"
+          },
+          "correct": {
+            "type": "string",
+            "required": true,
+            "label": "Correct answer",
+            "placeholder": "Canberra"
+          }
+        }
+      },
+      "default": [
+        {
+          "question": "What is the capital of Australia?",
+          "choices": [
+            "Canberra",
+            "Sydney",
+            "Melbourne",
+            "Perth"
+          ],
+          "correct": "Canberra"
+        }
+      ]
+    },
+    "showAnswers": {
+      "type": "boolean",
+      "default": true,
+      "label": "Show the right answer after each question",
+      "helper": "Off: students only learn whether they were right, which keeps the answers fresh for a later class.",
+      "setup": true
+    },
+    "title": {
+      "type": "templateString",
+      "label": "Title on the projector",
+      "default": "Quiz",
+      "maxLength": 80
+    }
+  },
+  "template": {
+    "name": "Solo Quiz",
+    "description": "A quiz students take at their own pace. The projector shows progress, never the questions.",
+    "start": "rolling",
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "quiz"
+      },
+      "quiz": {
+        "type": "solo-quiz",
+        "title": "${title}",
+        "questions": "${questions}",
+        "showAnswers": "${showAnswers}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "That is the quiz. Nice work, everyone."
+      }
+    }
+  }
+}

@@ -37,6 +37,7 @@ const LABELS = {
   'ai-eliminate': 'Run the elimination',
   'ai-process': 'Let the AI work',
   foreach: 'Start the first round',
+  'solo-quiz': 'Start the quiz',
   end: 'Finish up'
 };
 
@@ -60,7 +61,8 @@ const CLOSE_LABELS = {
   estimate: 'Lock in the guesses',
   match: 'Reveal the answers',
   sort: 'Reveal the answers',
-  checklist: 'End work time'
+  checklist: 'End work time',
+  'solo-quiz': 'End the quiz'
 };
 
 /**

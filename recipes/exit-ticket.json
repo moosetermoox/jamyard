@@ -1,0 +1,67 @@
+{
+  "id": "exit-ticket",
+  "name": "Exit Ticket",
+  "icon": "🎟️",
+  "description": "One to three quick questions students answer as they arrive or before they leave. No waiting for the whole class: the room opens straight into the questions, the join code stays on the projector, and you read the answers privately on the console or the activity report.",
+  "tagline": "Perfect for the last five minutes, a warm-up check, or a quick vibe check.",
+  "version": "1",
+  "parameters": {
+    "questions": {
+      "type": "array",
+      "item": {
+        "type": "string"
+      },
+      "label": "Questions",
+      "helper": "One to three short questions. Each gets its own answer box on the student's screen.",
+      "required": true,
+      "minItems": 1,
+      "maxItems": 3,
+      "default": [
+        "One thing you learned today",
+        "One question you still have"
+      ]
+    },
+    "anonymous": {
+      "type": "boolean",
+      "label": "Anonymous answers",
+      "helper": "On: students join without a name and get a play name like Amber Fox, so you see the answers without knowing who wrote them.",
+      "default": false
+    },
+    "thanks": {
+      "type": "templateString",
+      "label": "What students see when they are done",
+      "helper": "One short line.",
+      "default": "Thanks, that is all we need from you. You can put your device away.",
+      "maxLength": 200
+    }
+  },
+  "template": {
+    "name": "Exit Ticket",
+    "description": "Quick questions students answer on their own time. Answers stay private to you.",
+    "start": "rolling",
+    "anonymous": "${anonymous}",
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "ticket"
+      },
+      "ticket": {
+        "type": "collect",
+        "prompt": "Answer in a sentence or two.",
+        "fields": {
+          "$map": "questions",
+          "value": {
+            "label": "${item}",
+            "key": "q${i}"
+          }
+        },
+        "doneMessage": "${thanks}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "That is everyone. Thanks for the honest answers."
+      }
+    }
+  }
+}

@@ -13,6 +13,8 @@ import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups } f
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { shuffleDeal } from '../phases/deal.js';
 import { tailOfWords } from '../phases/append-only.js';
+import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
+import { translate } from '../i18n/index.js';
 
 /**
  * Build the rotation assignment map for a collect phase that has
@@ -267,6 +269,9 @@ registerHandler('collect', {
     const eligible = ctx.getEligibleVoters(from);
     const eligibleIds = new Set(eligible.map(p => p.id));
     const sc = ctx.resolveScreenControl();
+    // Rolling start: students begin at different moments, so a shared
+    // countdown means nothing; the teacher ends the step.
+    const timer = isRolling(engine.config) ? null : (phase.timer || null);
 
     // Clear previous responses for multi-round games
     for (const p of engine.players.list()) {
@@ -316,7 +321,7 @@ registerHandler('collect', {
     // landed (2026-07-26 UI review; the console got this fix in June, the
     // host screen never did).
     ctx.emitToHost(EVENTS.GAME_STARTED, {
-      prompt: hostPrompt, image, video, displayDrawing, timer: phase.timer || null, fields: phase.fields || null,
+      prompt: hostPrompt, image, video, displayDrawing, timer, fields: phase.fields || null,
       inputType,
       count: 0, total: countEligible.length,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
@@ -351,7 +356,7 @@ registerHandler('collect', {
         prefill = tailOfWords(prefill, phase.showTail);
       }
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
-        prompt: playerPrompt, image, video, displayDrawing, timer: phase.timer || null, fields: phase.fields || null,
+        prompt: playerPrompt, image, video, displayDrawing, timer, fields: phase.fields || null,
         inputType,
         assignedDrawing: (rotatedDrawings && rotatedDrawings[player.id]) || null,
         prefill,
@@ -376,7 +381,11 @@ registerHandler('collect', {
     if (player && ctx.phase._foreachAuthorId && player.id === ctx.phase._foreachAuthorId) {
       socket.emit(EVENTS.WAITING, { message: 'This one is yours! Waiting for the others...' });
     } else if (player && player.response) {
-      socket.emit(EVENTS.WAITING, { message: 'Answer submitted. Waiting for others...' });
+      if (isRolling(ctx.engine.config) && !moreInputAhead(ctx.engine.config, ctx.phase.id)) {
+        socket.emit(EVENTS.PLAYER_DONE, { message: translate(ctx.engine.language, doneMessageFor(ctx.phase)) });
+      } else {
+        socket.emit(EVENTS.WAITING, { message: 'Answer submitted. Waiting for others...' });
+      }
     } else {
       const playerPrompt = player
         ? ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, player.id)

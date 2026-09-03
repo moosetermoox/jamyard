@@ -61,6 +61,7 @@ var PHASE_LABELS = {
   lobby: 'Lobby, players joining',
   collect: 'Students are writing',
   'collect-choice': 'Students are choosing',
+  'solo-quiz': 'Students are taking the quiz',
   'ai-process': 'AI is working…',
   vote: 'Students are voting',
   rank: 'Students are ranking',

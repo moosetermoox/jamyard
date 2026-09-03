@@ -21,10 +21,53 @@
 // OTHER phases' data, which gets its own section) — they'd be noise rows.
 const SKIP_TYPES = new Set(['lobby', 'end', 'announce', 'reveal', 'reveal-one', 'preview']);
 
+// The step that is still OPEN has stored nothing yet: collect stores its
+// responses at close, the solo quiz mirrors progress but grades at close.
+// A rolling exit ticket is read exactly then (the teacher opens the report
+// while answers are still coming in), so the report reads the live room
+// for the current step and says so.
+function liveDataFor(engine, id, phase, stored) {
+  const current = typeof engine.getCurrentPhase === 'function' ? engine.getCurrentPhase() : null;
+  if (!current || current.id !== id) return stored;
+
+  if ((phase.type === 'collect' || phase.type === 'collect-choice') && !(stored && Array.isArray(stored.responses))) {
+    const players = engine.players && typeof engine.players.list === 'function' ? engine.players.list() : [];
+    const responses = players
+      .filter(p => hasSubmitted(p) && !isPassResponse(p.response) && !p.responseHidden)
+      .map(p => {
+        const r = p.response;
+        if (isDrawingResponseValue(r)) return { playerId: p.id, name: p.name, text: '[drawing]', drawing: r.strokes };
+        if (r && typeof r === 'object' && !Array.isArray(r)) {
+          return { playerId: p.id, name: p.name, text: Object.values(r).join(' | '), fields: r };
+        }
+        return { playerId: p.id, name: p.name, text: r, choice: phase.type === 'collect-choice' ? r : undefined };
+      });
+    const data = { ...(stored || {}), responses, live: true };
+    if (phase.type === 'collect-choice') {
+      const tally = {};
+      for (const r of responses) tally[r.text] = (tally[r.text] || 0) + 1;
+      data.tally = tally;
+    }
+    return data;
+  }
+
+  if (phase.type === 'solo-quiz' && stored && stored.progress && !Array.isArray(stored.results)) {
+    const questions = playableQuestions(phase.questions);
+    const nameOf = (pid) => { const p = engine.players.find(pid); return p ? p.name : null; };
+    const graded = scoreSoloQuiz(stored.progress, questions, phase.pointsPerQuestion, nameOf);
+    return { ...stored, scores: graded.scores, results: graded.results, perQuestion: graded.perQuestion, averagePct: graded.averagePct, live: true };
+  }
+
+  return stored;
+}
+
 /**
  * @param {object} engine  GameEngine-shaped: { config, phaseData, players }
  * @param {{ code?: string }} [meta]
  */
+import { hasSubmitted, isPassResponse, isDrawingResponseValue } from './moderation.js';
+import { playableQuestions, scoreSoloQuiz } from './phases/solo-quiz-scoring.js';
+
 export function buildActivityReport(engine, meta = {}) {
   const config = engine.config || {};
   const phases = config.phases || {};
@@ -54,9 +97,18 @@ export function buildActivityReport(engine, meta = {}) {
           sections.push(section);
         }
       }
-    } else if (phaseData[id] !== undefined) {
-      const section = buildSection(id, phase, phaseData[id], nameOf);
-      if (section) sections.push(section);
+    } else {
+      const data = liveDataFor(engine, id, phase, phaseData[id]);
+      if (data !== undefined) {
+        const section = buildSection(id, phase, data, nameOf);
+        if (section) {
+          if (data.live) {
+            section.live = true;
+            section.blocks.unshift(fact('Status', 'Still open, this is what has come in so far'));
+          }
+          sections.push(section);
+        }
+      }
     }
   }
 
@@ -123,11 +175,35 @@ function scoresTable(scores, nameOf, columns = ['Student', 'Points']) {
   return { kind: 'table', columns, rows, nameCol: 0 };
 }
 
-function responseEntries(responses) {
+// Multi-field answers (exit tickets: two questions, two boxes) print one
+// labeled line per question instead of the stored "a | b" join, so the
+// teacher can tell which answer belongs to which question.
+function fieldsText(fields, fieldDefs) {
+  const defs = Array.isArray(fieldDefs) ? fieldDefs : [];
+  const lines = [];
+  for (const def of defs) {
+    if (!def || !def.key) continue;
+    const value = fields[def.key];
+    if (value == null || value === '') continue;
+    lines.push((def.label || def.key) + ': ' + cellText(value));
+  }
+  // Keys the definitions don't cover still print, unlabeled.
+  for (const [key, value] of Object.entries(fields)) {
+    if (defs.some(d => d && d.key === key)) continue;
+    if (value == null || value === '') continue;
+    lines.push(key + ': ' + cellText(value));
+  }
+  return lines.join('\n');
+}
+
+function responseEntries(responses, fieldDefs) {
   const items = (responses || [])
-    .filter(r => r && (r.text != null || r.drawing))
+    .filter(r => r && (r.text != null || r.drawing || (r.fields && typeof r.fields === 'object')))
     .map(r => {
-      const item = { name: r.name || null, text: cellText(r.text) };
+      const text = r.fields && typeof r.fields === 'object' && !Array.isArray(r.fields)
+        ? fieldsText(r.fields, fieldDefs)
+        : cellText(r.text);
+      const item = { name: r.name || null, text };
       if (r.drawing) item.drawing = r.drawing;
       return item;
     });
@@ -142,7 +218,7 @@ function responseEntries(responses) {
 const SECTION_BUILDERS = {
   collect(phase, data) {
     const blocks = [];
-    const entries = responseEntries(data.responses);
+    const entries = responseEntries(data.responses, phase.fields);
     if (entries) blocks.push(entries);
     if (Array.isArray(data.passedIds) && data.passedIds.length > 0) {
       blocks.push(fact('Passes', data.passedIds.length + ' passed'));
@@ -173,6 +249,29 @@ const SECTION_BUILDERS = {
         return row;
       });
       blocks.push({ kind: 'table', columns, rows, nameCol: 0 });
+    }
+    return blocks;
+  },
+
+  'solo-quiz'(phase, data, nameOf) {
+    const blocks = [];
+    const results = Array.isArray(data.results) ? data.results : [];
+    if (typeof data.averagePct === 'number' && results.length > 0) {
+      blocks.push(fact('Class average', data.averagePct + '% correct'));
+    }
+    if (Array.isArray(data.perQuestion) && data.perQuestion.length > 0) {
+      const rows = data.perQuestion.map(q => [q.question || ('Q' + (q.index + 1)), Number(q.correct) || 0, Number(q.answered) || 0]);
+      blocks.push({ kind: 'table', columns: ['Question', 'Right', 'Answered'], rows, nameCol: null });
+    }
+    if (results.length > 0) {
+      const scores = data.scores || {};
+      const rows = results.map(r => [
+        r.name || nameOf(r.playerId) || '',
+        Number(r.correct) || 0,
+        (Number(r.answered) || 0) + ' of ' + (Number(r.total) || 0),
+        Number(scores[r.playerId]) || 0
+      ]);
+      blocks.push({ kind: 'table', columns: ['Student', 'Right', 'Answered', 'Points'], rows, nameCol: 0 });
     }
     return blocks;
   },

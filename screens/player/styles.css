@@ -1992,3 +1992,45 @@ input::placeholder, textarea::placeholder {
 @media (prefers-reduced-motion: reduce) {
   button { transition: none; }
 }
+
+/* Rolling start: this student's last input landed. Their own screen. */
+#done-section { text-align: center; }
+.done-mark {
+  width: 84px;
+  height: 84px;
+  margin: 8px auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 46px;
+  font-weight: 800;
+  color: var(--t-paper, #FDF9F0);
+  background: var(--t-green, #2E9E5B);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.25);
+  transform: rotate(-3deg);
+}
+#done-message { font-size: 1.05rem; font-weight: 500; }
+
+/* Solo quiz (self-paced) */
+.sq-counter {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps, #8A7B62);
+  margin: 0 0 6px;
+}
+.sq-feedback {
+  margin: 14px auto 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  max-width: 420px;
+  background: var(--t-paper, #FDF9F0);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.22);
+}
+.sq-feedback[hidden] { display: none; }
+.sq-right { color: var(--t-green, #2E9E5B); }
+.sq-wrong { color: #AE3A16; }
+.choice-btn.picked { outline: 3px solid var(--t-ink, #2A2620); outline-offset: 2px; }
+.sq-done { text-align: center; }
+.sq-done[hidden] { display: none; }

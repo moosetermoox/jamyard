@@ -445,6 +445,35 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
           break;
         }
 
+        // --- Solo quiz (self-paced) ---
+        case 'solo-quiz-question': {
+          if (role !== 'player') break;
+          lastScreen = 'a self-paced quiz';
+          if (!onceKeys.has(`logged:solo:${seq(data)}`)) {
+            onceKeys.add(`logged:solo:${seq(data)}`);
+            phaseLog.push({ type: 'solo-quiz', questions: data.total });
+          }
+          if (!data.done && Array.isArray(data.choices) && data.choices.length) {
+            const pick = data.choices[(players.indexOf(who) + data.index) % data.choices.length];
+            who.emit('solo-quiz-answer', { code, index: data.index, choice: pick, phaseInstanceId: seq(data) });
+          }
+          once(`close:solo:${seq(data)}`, () => host.emit('close-solo-quiz', { code, phaseInstanceId: seq(data) }), 1800);
+          break;
+        }
+        case 'solo-quiz-feedback': {
+          if (role !== 'player' || data.done) break;
+          if (Array.isArray(data.choices) && data.choices.length) {
+            const pick = data.choices[(players.indexOf(who) + data.index) % data.choices.length];
+            who.emit('solo-quiz-answer', { code, index: data.index, choice: pick, phaseInstanceId: seq(data) });
+          }
+          break;
+        }
+        case 'solo-quiz-results': {
+          if (role !== 'host') break;
+          once(`solor:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 400);
+          break;
+        }
+
         // --- Vote ---
         case 'vote-start': {
           lastScreen = 'a voting step';

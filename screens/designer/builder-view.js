@@ -75,7 +75,8 @@
     ], more: [
       { type: 'match', title: N('match') },
       { type: 'sort', title: N('sort') },
-      { type: 'buzz', title: N('buzz') }
+      { type: 'buzz', title: N('buzz') },
+      { type: 'solo-quiz', title: N('solo-quiz') }
     ] },
     { title: 'Show the class', cls: 'show', tiles: [
       { type: 'announce', title: N('announce') },

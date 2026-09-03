@@ -1689,6 +1689,100 @@ button:disabled,
 
 #close-submissions-btn { background: var(--t-paper); color: var(--t-ink); }
 
+/* ── Live Poll: the tally on the projector, big enough for the back row ── */
+.live-tally {
+  max-width: 760px;
+  margin: 8px auto 18px;
+  text-align: left;
+}
+
+.live-tally[hidden] { display: none; }
+
+.live-tally .msg-chart-label { font-size: 1.35rem; }
+.live-tally .msg-chart-value { font-size: 1.2rem; }
+
+/* ── Rolling start doorway: a paper card pinned at the right edge, above
+   every section, for the whole activity (students arrive as they arrive) ── */
+#rolling-door {
+  position: fixed;
+  top: 128px;
+  right: 20px;
+  width: 328px;
+  padding: 16px 20px 18px;
+  background: var(--t-paper, #FDF9F0);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22), 0 0 0 1px rgba(50, 35, 15, 0.10);
+  transform: rotate(0.6deg);
+  text-align: left;
+  z-index: 20;
+}
+
+#rolling-door[hidden] { display: none; }
+
+.rolling-door-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps, #8A7B62);
+}
+
+.rolling-door-code {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 10px;
+  filter: drop-shadow(3px 4px 0 rgba(80, 60, 30, 0.14));
+}
+
+/* Sized to the card: four blocks across 200px, same paints and tilts */
+.rolling-door-code .code-block { width: 64px; height: 76px; font-size: 40px; }
+.rolling-door-code .code-block-1 { height: 80px; }
+.rolling-door-code .code-block-2 { height: 74px; }
+.rolling-door-code .code-block-3 { height: 78px; }
+
+.rolling-door-instructions {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--t-ink, #2A2620);
+}
+
+.rolling-door-instructions strong {
+  display: block;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.01em;
+  overflow-wrap: normal;
+  word-break: keep-all;
+}
+
+.rolling-door-qr {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  margin: 0 auto 8px;
+  image-rendering: pixelated;
+}
+
+.rolling-door-qr[hidden] { display: none; }
+
+.rolling-door-count {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--t-ink, #2A2620);
+}
+
+/* Give the doorway room: the active section steps in from the right */
+body.rolling section.active { padding-right: 370px; }
+
+@media (max-width: 900px) {
+  #rolling-door { position: static; width: auto; transform: none; margin: 0 auto 16px; }
+  body.rolling section.active { padding-right: 0; }
+}
+
 /* ── Lobby: code blocks left, roster pile right ── */
 #lobby-section.active:has(#room-code-section:not([hidden])) {
   display: grid;
@@ -1759,7 +1853,10 @@ button:disabled,
   filter: drop-shadow(5px 8px 0 rgba(80, 60, 30, 0.14));
 }
 
-#room-code .code-block {
+/* The same painted letter blocks serve the lobby and the rolling-start
+   doorway card (one look for the join code, whatever the activity). */
+#room-code .code-block,
+.rolling-door-code .code-block {
   width: 92px;
   height: 108px;
   display: flex;
@@ -1770,7 +1867,8 @@ button:disabled,
   font-size: 56px;
 }
 
-#room-code .code-block-0 {
+#room-code .code-block-0,
+.rolling-door-code .code-block-0 {
   background: var(--t-yellow);
   background-image: var(--t-grain);
   color: var(--t-ink);
@@ -1778,7 +1876,8 @@ button:disabled,
   transform: rotate(-1.5deg);
 }
 
-#room-code .code-block-1 {
+#room-code .code-block-1,
+.rolling-door-code .code-block-1 {
   background: var(--t-cyan);
   color: var(--t-paper);
   height: 114px;
@@ -1786,7 +1885,8 @@ button:disabled,
   transform: rotate(1deg);
 }
 
-#room-code .code-block-2 {
+#room-code .code-block-2,
+.rolling-door-code .code-block-2 {
   background: var(--t-red);
   color: var(--t-paper);
   height: 106px;
@@ -1794,7 +1894,8 @@ button:disabled,
   transform: rotate(-0.8deg);
 }
 
-#room-code .code-block-3 {
+#room-code .code-block-3,
+.rolling-door-code .code-block-3 {
   background: var(--t-magenta);
   color: var(--t-paper);
   height: 112px;
@@ -2297,3 +2398,48 @@ select,
   #room-code .code-block-2 { height: 76px; }
   #room-code .code-block-3 { height: 80px; }
 }
+
+/* ── Solo quiz (self-paced): a progress board, never a question ── */
+.solo-quiz-board {
+  max-width: 720px;
+  margin: 14px auto 22px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px 14px;
+  text-align: left;
+}
+
+.sq-row { display: contents; }
+
+.sq-label {
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--t-ink, #2A2620);
+}
+
+.sq-track {
+  height: 22px;
+  background: rgba(50, 35, 15, 0.10);
+  box-shadow: inset 0 0 0 1px rgba(50, 35, 15, 0.12);
+}
+
+.sq-fill {
+  height: 100%;
+  background: var(--t-green, #2E9E5B);
+  transition: width 300ms ease;
+}
+
+.sq-value {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--t-ink, #2A2620);
+  min-width: 4.5em;
+  text-align: right;
+}
+
+#solo-quiz-close-btn { background: var(--t-paper); color: var(--t-ink); }
+
+/* The quiz status line is a caption, not a headline */
+#solo-quiz-status { font-size: clamp(22px, 2.6vw, 34px); margin: 6px 0 4px; }

@@ -107,6 +107,14 @@
         </select>
         <span class="field-help">The fixed buttons students and the projector see (Submit, Show the message...) speak this language. Auto reads the activity's own text.</span>
       </div>
+      <div class="form-group">
+        <label for="game-start">Start</label>
+        <select id="game-start">
+          <option value="together">Everyone together (wait, then press Start)</option>
+          <option value="rolling">Rolling (students start as they arrive)</option>
+        </select>
+        <span class="field-help">Rolling suits exit tickets, quick polls, and self-paced quizzes: hosting opens the first step right away, the join code stays on the projector, and timers are ignored. Steps that pair or group students need everyone together.</span>
+      </div>
       <!-- Theme picker removed from the sidebar 2026-08-31 (owner's call:
            not needed right now). The engine still honors config.theme on
            existing games; the guarded wiring in editor.js stays for an

@@ -868,6 +868,16 @@
         break;
       }
 
+      case 'solo-quiz': {
+        var sqQs = Array.isArray(phase.questions) ? phase.questions : [];
+        d.sentence = 'Students take a quiz at their own pace:';
+        d.field = textBox(phase.title || '', 'Quiz title students see…', function (v) { phase.title = v; });
+        d.facts.push(fact(sqQs.length + (sqQs.length === 1 ? ' question' : ' questions')));
+        if (phase.showAnswers === false) d.facts.push(fact('right answers stay hidden'));
+        d.facts.push(fact('projector shows progress only'));
+        break;
+      }
+
       case 'collect-choice': {
         d.sentence = 'Students pick one:';
         d.field = textBox(phase.prompt, 'The question students see…', function (v) { phase.prompt = v; });
@@ -1252,7 +1262,8 @@
     if (type === 'lobby') return 'lobby';
     if (type === 'end') return 'end';
     if (type === 'collect' || type === 'collect-choice' || type === 'estimate' ||
-        type === 'collect-two' || type === 'match' || type === 'sort' || type === 'buzz') return 'ask';
+        type === 'collect-two' || type === 'match' || type === 'sort' || type === 'buzz' ||
+        type === 'solo-quiz') return 'ask';
     if (type === 'announce' || type === 'reveal' || type === 'reveal-one' ||
         type === 'leaderboard' || type === 'winner' || type === 'preview') return 'show';
     if (type === 'vote' || type === 'rank' || type === 'rate' ||

@@ -33,6 +33,16 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'solo-quiz-answer': {
+    code: 'string:required',
+    index: 'number:required',
+    choice: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
+  'close-solo-quiz': {
+    code: 'string:required',
+    phaseInstanceId: 'number:optional'
+  },
   'join-teacher': {
     code: 'string:required',
     pin: 'string:optional'

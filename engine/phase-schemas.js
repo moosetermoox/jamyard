@@ -56,7 +56,14 @@ export const MIXINS = {
       // Overrides the generated advance-button wording ("Start the voting")
       // for the button shown DURING this phase — resolved in
       // engine/phases/continue-labels.js continueLabelForPhase.
-      continueLabel: { type: 'string', optional: true, label: 'Next button label' }
+      continueLabel: { type: 'string', optional: true, label: 'Next button label' },
+      // Rolling-start activities (top-level start:"rolling"): what a
+      // student sees the moment their last input lands. Read by
+      // engine/phases/rolling.js doneMessageFor.
+      doneMessage: {
+        type: 'string', optional: true, label: 'Done message (rolling start)',
+        helper: 'Rolling-start activities only: the line a student sees once they have finished this step and nothing else needs them.'
+      }
     }
   },
 
@@ -361,6 +368,11 @@ export const PHASE_SCHEMAS = {
         label: 'Shuffle choices per player',
         helper: 'When true, each player sees a different randomization of the choices.'
       },
+      liveResults: {
+        type: 'boolean', optional: true,
+        label: 'Show the tally live on the projector',
+        helper: 'The bar chart grows on the projector as answers come in (counts only, never names). The Live Poll. Leave off for quizzes, where seeing the class lean would give the answer away.'
+      },
       correctAnswer: {
         type: 'templateString', optional: true,
         label: 'Correct answer',
@@ -423,6 +435,56 @@ export const PHASE_SCHEMAS = {
     ui: {
       hostToggles: ['prompt', 'image', 'video', 'counter', 'timer', 'closeButton'],
       playerToggles: ['prompt', 'image', 'choices', 'timer']
+    }
+  },
+
+  // -------------------------------------------------------------------
+  'solo-quiz': {
+    label: 'Self-paced Quiz',
+    icon: '📝',
+    description: 'Students work through a question list on their own devices at their own pace. The projector shows progress only, never a question. Speed does not count.',
+    role: 'input',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl'],
+    fields: {
+      title: { type: 'templateString', optional: true, label: 'Title shown on the projector' },
+      questions: {
+        type: 'array', required: true,
+        item: { type: 'object', allowAnyKeys: true },
+        label: 'Questions',
+        helper: 'Each item: {"question": "...", "choices": ["A", "B", "C"], "correct": "B"}. The correct answer must match one choice exactly. Questions with fewer than 2 choices are skipped.'
+      },
+      pointsPerQuestion: {
+        type: 'integer', min: 1, max: 1000, optional: true, default: 1,
+        label: 'Points per correct answer'
+      },
+      showAnswers: {
+        type: 'boolean', optional: true, default: true,
+        label: 'Show the right answer after each question',
+        helper: 'Off: students only learn whether they were right.'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true, allowedIn: ['topLevel'] }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        scores: {
+          type: 'scoreMap',
+          capability: 'scoreMap',
+          renderers: { json: 'jsonPretty' }
+        },
+        results: {
+          type: 'array',
+          renderers: { json: 'jsonPretty' }
+        },
+        averagePct: { type: 'number' }
+      }
+    },
+    ui: {
+      hostToggles: ['title', 'counter', 'closeButton'],
+      playerToggles: ['question', 'choices']
     }
   },
 

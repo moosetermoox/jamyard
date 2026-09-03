@@ -380,6 +380,28 @@
     <div id="rate-results" hidden></div>
   </section>
 
+  <!-- SOLO QUIZ SECTION (self-paced) -->
+  <section id="solo-quiz-section" hidden>
+    <div class="screen-template" hidden></div>
+    <p id="sq-counter" class="sq-counter"></p>
+    <h1 id="sq-question"></h1>
+    <div id="sq-choices" class="choice-buttons"></div>
+    <div id="sq-feedback" class="sq-feedback" hidden></div>
+    <button id="sq-next-btn" hidden>Next question</button>
+    <div id="sq-done" class="sq-done" hidden>
+      <div class="done-mark" aria-hidden="true">✓</div>
+      <h2>You're done!</h2>
+      <p id="sq-done-score"></p>
+    </div>
+  </section>
+
+  <!-- DONE SECTION: rolling start, this student's last input landed -->
+  <section id="done-section" hidden>
+    <div class="done-mark" aria-hidden="true">✓</div>
+    <h1>You're done!</h1>
+    <p id="done-message"></p>
+  </section>
+
   <!-- END SECTION -->
   <section id="end-section" hidden>
     <div class="screen-template" hidden></div>

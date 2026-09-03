@@ -1,0 +1,77 @@
+{
+  "id": "live-poll",
+  "name": "Live Poll",
+  "icon": "📈",
+  "description": "One multiple-choice question whose bar chart grows on the projector as answers come in. No waiting for the class: the room opens straight into the question, students answer as they arrive, and you end it whenever you like.",
+  "tagline": "Perfect for a vibe check, a quick vote, or a warm-up while people settle in.",
+  "version": "1",
+  "parameters": {
+    "question": {
+      "type": "promptDeck",
+      "label": "Question to ask the class",
+      "helper": "What students will see on their screens.",
+      "placeholder": "How are you feeling about today's lesson?",
+      "required": true,
+      "minLength": 3,
+      "maxLength": 300,
+      "bank": "along",
+      "decks": [
+        "fun-favorites",
+        "gratitude",
+        "day-in-life",
+        "imagine-if",
+        "belonging",
+        "relevance-motivation",
+        "agency-choice",
+        "building-blocks"
+      ],
+      "choicesParam": "choices",
+      "deckHelper": "Pick a ready-made question, ones marked with answer choices fill the choices for you.",
+      "default": "How are you feeling about today's lesson?"
+    },
+    "choices": {
+      "type": "array",
+      "item": {
+        "type": "string"
+      },
+      "label": "Answer choices",
+      "helper": "Give students 2-8 options to choose from.",
+      "minItems": 2,
+      "maxItems": 8,
+      "default": [
+        "Got it!",
+        "Mostly got it",
+        "A little confused",
+        "Lost"
+      ]
+    }
+  },
+  "template": {
+    "name": "Live Poll: ${question}",
+    "description": "A live poll built with the Live Poll recipe. The chart grows as answers arrive.",
+    "start": "rolling",
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "ask"
+      },
+      "ask": {
+        "type": "collect-choice",
+        "prompt": "${question}",
+        "choices": "${choices}",
+        "liveResults": true,
+        "doneMessage": "Thanks, your answer is on the board.",
+        "next": "results"
+      },
+      "results": {
+        "type": "reveal",
+        "template": "## Final results\n\n${question}\n\n{{ask.barChart}}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "Thanks for voting!"
+      }
+    }
+  }
+}

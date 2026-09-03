@@ -41,6 +41,7 @@ bluff-rounds. Still queued:
 - Language coverage: dynamic status prose ("You matched 3 of 5"), the projector join instructions, and the teacher console are still English-only; add rows to every table in engine/i18n/index.js.
 - Yard-vs-library naming in the Create page copy (designer.js: "See it in the Library", "Open the Library", "Browse the whole library") still says Library.
 - Record the one-minute guide video (script: docs/GUIDE-VIDEO-SCRIPT.md), upload, paste the id into GUIDE_VIDEO_ID in screens/guide/index.html. The written guide is folded behind "The first five minutes" meanwhile.
+- Rolling start shipped (Exit Ticket, Live Poll, Solo Quiz; CHANGELOG 2026-09-02). Follow-ons: a `goal`/pile tag so the three land in a "quick checks" spot instead of Think by default; Create-page matcher phrases ("exit ticket", "quick poll", "quiz they do on their own") should route to these recipes (golden-prompt corpus entries); teacher console could show the solo-quiz progress board; rolling doorway card on a real projector still unseen.
 - Skip-ahead can only follow the main next-chain; a step behind a vote branch may not be reachable (it gives up after ~2.7 min and hands over). No going back: an earlier stop tells you to Reset.
 
 **THE SHARING SYSTEM SHIPPED 2026-08-30** (see CHANGELOG): share links,

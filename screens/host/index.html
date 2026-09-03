@@ -59,6 +59,17 @@
     <p id="start-hint" class="start-hint" hidden></p>
   </section>
 
+  <!-- Rolling start: the doorway stays open. Pinned outside every section
+       while a rolling room runs, so the join code and QR are on the
+       projector for the whole activity (students arrive as they arrive). -->
+  <aside id="rolling-door" hidden aria-label="How to join">
+    <p class="rolling-door-label">Join in</p>
+    <div id="rolling-door-code" class="rolling-door-code"></div>
+    <p id="rolling-door-instructions" class="rolling-door-instructions"></p>
+    <img id="rolling-door-qr" class="rolling-door-qr" alt="Scan to join" hidden>
+    <p id="rolling-door-count" class="rolling-door-count"></p>
+  </aside>
+
   <!-- COLLECT SECTION -->
   <section id="collect-section" hidden>
     <div class="screen-template" hidden></div>
@@ -74,6 +85,8 @@
       </svg>
       <span class="timer-ring-text"></span>
     </div>
+    <!-- Live Poll: the tally grows as answers land (counts only) -->
+    <div id="live-tally" class="live-tally" hidden></div>
     <!-- The pile IS the count: one block per submission, newest on top -->
     <div id="submission-pile-wrap" class="submission-pile-wrap" aria-hidden="true" hidden>
       <div id="submission-pile" class="submission-pile"></div>
@@ -438,6 +451,16 @@
       <button id="phase-error-skip-btn">Skip This Step</button>
       <button id="phase-error-end-btn" class="btn-danger">End Session</button>
     </div>
+  </section>
+
+  <!-- SOLO QUIZ SECTION (self-paced): progress only, never a question -->
+  <section id="solo-quiz-section" hidden>
+    <div class="screen-template" hidden></div>
+    <h2 id="solo-quiz-title">Quiz</h2>
+    <p id="solo-quiz-status" class="big-text"></p>
+    <div id="solo-quiz-board" class="solo-quiz-board"></div>
+    <button id="solo-quiz-close-btn">End the quiz</button>
+    <button id="solo-quiz-continue-btn" hidden>Continue</button>
   </section>
 
   <!-- END SECTION -->

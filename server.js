@@ -86,7 +86,11 @@ import { claimRole, autoFillRoles, buildRoleOutput } from './engine/phases/role-
 import { applyCheck, groupProgress, checklistResults } from './engine/phases/checklist-state.js';
 import { playerChecklistView, teacherDetail } from './engine/phase-handlers/checklist.js';
 import { continueLabelForPhase, closeLabelFor } from './engine/phases/continue-labels.js';
-import { stringsFor } from './engine/i18n/index.js';
+import { stringsFor, translate } from './engine/i18n/index.js';
+import { isRolling, moreInputAhead, doneMessageFor } from './engine/phases/rolling.js';
+import { buildLiveTally } from './engine/phases/live-tally.js';
+import { isCorrectAnswer, scoreSoloQuiz } from './engine/phases/solo-quiz-scoring.js';
+import { hostProgressPayload as soloQuizHostPayload, playerQuestionPayload as soloQuizPlayerPayload, pointsFor as soloQuizPoints } from './engine/phase-handlers/solo-quiz.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { buildActivityReport } from './engine/report.js';
@@ -660,6 +664,66 @@ async function closeEstimates(code, room) {
     phaseInstanceId: room.phaseInstanceId
   };
   io.to(code).emit(EVENTS.ESTIMATE_RESULTS, state.resultsPayload);
+  notifyTeachersClosed(code, room);
+}
+
+// --- Solo quiz (self-paced) helpers ---
+
+// The projector and consoles follow every answer: counts and per-question
+// rates only. A question never reaches the projector, nor does a name.
+function emitSoloQuizProgress(code, room) {
+  const state = room.phaseState;
+  if (!state || state.kind !== 'solo-quiz') return;
+  const payload = { ...soloQuizHostPayload(state, room.engine), phaseInstanceId: room.phaseInstanceId };
+  const hostId = roomToHost.get(code);
+  if (hostId) io.to(hostId).emit(EVENTS.SOLO_QUIZ_PROGRESS, payload);
+  io.to(teachersChannel(code)).emit(EVENTS.SOLO_QUIZ_PROGRESS, payload);
+}
+
+// Close the quiz: grade everyone (a student mid-quiz keeps what they have),
+// store scores/results, show the class board on the projector and each
+// student their own line. Two-stage like rate/estimate: the next click
+// advances.
+async function closeSoloQuiz(code, room) {
+  const state = room.phaseState;
+  if (!state || state.kind !== 'solo-quiz' || state.closed) return;
+  state.closed = true;
+
+  const engine = room.engine;
+  const phase = engine.config.phases[state.phaseId] || {};
+  const points = soloQuizPoints(phase);
+  const nameOf = (id) => { const p = engine.players.find(id); return p ? p.name : null; };
+  const graded = scoreSoloQuiz(state.progress, state.questions, points, nameOf);
+  const existing = engine.phaseData[state.phaseId] || {};
+  engine.storePhaseData(state.phaseId, {
+    ...existing,
+    progress: state.progress,
+    scores: graded.scores,
+    results: graded.results,
+    perQuestion: graded.perQuestion,
+    averagePct: graded.averagePct,
+    questionCount: state.questions.length
+  });
+  state.resultsPayload = {
+    perQuestion: graded.perQuestion,
+    started: graded.started,
+    finished: graded.finished,
+    total: engine.players.list().length,
+    averagePct: graded.averagePct,
+    questionCount: state.questions.length,
+    phaseInstanceId: room.phaseInstanceId
+  };
+  const hostId = roomToHost.get(code);
+  if (hostId) io.to(hostId).emit(EVENTS.SOLO_QUIZ_RESULTS, state.resultsPayload);
+  io.to(teachersChannel(code)).emit(EVENTS.SOLO_QUIZ_RESULTS, state.resultsPayload);
+  for (const player of engine.players.list()) {
+    io.to(player.id).emit(EVENTS.SOLO_QUIZ_DONE, {
+      ...soloQuizPlayerPayload(state, player.id, points),
+      closed: true,
+      phaseInstanceId: room.phaseInstanceId
+    });
+  }
+  console.log(`[closeSoloQuiz] ${graded.finished}/${engine.players.list().length} finished, class average ${graded.averagePct}%`);
   notifyTeachersClosed(code, room);
 }
 
@@ -1487,6 +1551,20 @@ function emitSubmissionsUpdate(code, room) {
   const eligible = getEligibleVoters(room.engine.players, phase.from || 'all');
   const payload = { submissions: buildSubmissionList(eligible) };
   io.to(teachersChannel(code)).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
+}
+
+// Live Poll (collect-choice with liveResults): the projector's chart
+// follows every answer and every hide. Counts only, host screen only.
+function emitLiveTally(code, room) {
+  if (!room || !room.engine) return;
+  const phase = room.engine.getCurrentPhase();
+  if (!phase || phase.type !== 'collect-choice' || !phase.liveResults) return;
+  const hostSocketId = roomToHost.get(code);
+  if (!hostSocketId) return;
+  const eligible = getEligibleVoters(room.engine.players, phase.from || 'all');
+  const choices = Array.isArray(phase.choices) ? phase.choices : [];
+  const { rows, answered } = buildLiveTally(eligible, choices);
+  io.to(hostSocketId).emit(EVENTS.LIVE_TALLY, { rows, answered, total: eligible.length, phaseInstanceId: room.phaseInstanceId });
 }
 
 // Services bundle passed to phase handler context
@@ -2566,6 +2644,7 @@ app.post('/api/games/revise', async (req, res) => {
     carryRecipeStamp(config, result.updatedConfig);
     carryAnonymousFlag(config, result.updatedConfig);
     carryLanguage(config, result.updatedConfig);
+    carryStart(config, result.updatedConfig);
     // Validate the AI's revised config; surface errors so the client can show them
     const structural = validate(result.updatedConfig, 'revise', { returnResults: true });
     res.json({ ...result, structural });
@@ -2593,6 +2672,13 @@ function carryAnonymousFlag(original, updated) {
 function carryLanguage(original, updated) {
   if (original && typeof original.language === 'string' && updated && updated.language === undefined) {
     updated.language = original.language;
+  }
+}
+
+// And the start mode (rolling start is a teacher choice the AI never sees).
+function carryStart(original, updated) {
+  if (original && typeof original.start === 'string' && updated && updated.start === undefined) {
+    updated.start = original.start;
   }
 }
 
@@ -2625,6 +2711,7 @@ app.post('/api/games/chat', async (req, res) => {
     carryRecipeStamp(config, result.updatedConfig);
     carryAnonymousFlag(config, result.updatedConfig);
     carryLanguage(config, result.updatedConfig);
+    carryStart(config, result.updatedConfig);
     const structural = validate(result.updatedConfig, 'chat', { returnResults: true });
     res.json({
       kind: 'proposal',
@@ -2982,7 +3069,19 @@ io.on('connection', (socket) => {
       roomToHost.set(code, socket.id);
       socket.join(code);
       console.log(`[create-room] Room ${code} created by ${socket.id} (game: ${selectedGame})`);
-      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin, hostToken: room.hostToken, language: room.engine.language, strings: stringsFor(room.engine.language) });
+      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin, hostToken: room.hostToken, start: config.start || 'together', language: room.engine.language, strings: stringsFor(room.engine.language) });
+
+      // Rolling start: no lobby wait. The room opens straight into the
+      // first step; students land in it as they arrive (join-room already
+      // sends late joiners the current step).
+      if (isRolling(config)) {
+        const lobby = room.engine.getCurrentPhase();
+        if (lobby && lobby.type === 'lobby' && lobby.next) {
+          room.engine.transition(lobby.next);
+          console.log(`[create-room] Rolling start: room ${code} opened straight into '${lobby.next}'`);
+          await handlePhase(code, room);
+        }
+      }
     } catch (error) {
       console.log(`[create-room] Error loading game "${selectedGame}": ${error.message}`);
       socket.emit(EVENTS.CREATE_ROOM_ERROR, { message: error.message });
@@ -3180,6 +3279,14 @@ io.on('connection', (socket) => {
         console.warn(`[join-room] Late-join state send failed for ${socket.id}: ${stateError.message}`);
       }
 
+      // Rolling rooms never pass through Start, so the activity-run metric
+      // fires on the first join instead (same fire-and-forget rule).
+      if (DB_ENABLED && !room.simulated && !room.runRecorded && room.engine && isRolling(room.engine.config)) {
+        room.runRecorded = true;
+        recordActivityRun(room.gameId, room.engine.players.list().length)
+          .catch(err => console.log(`[activity-runs] record failed: ${err.message}`));
+      }
+
       persistRoom(code, room);
     } catch (error) {
       console.log(`[join-room] Error: ${error.message}`);
@@ -3214,6 +3321,7 @@ io.on('connection', (socket) => {
       theme: config.theme || null,
       teacherPin: room.teacherPin,
       hostToken: room.hostToken,
+      start: config.start || 'together',
       language: room.engine.language,
       strings: stringsFor(room.engine.language),
       restored: true
@@ -3245,6 +3353,12 @@ io.on('connection', (socket) => {
     try {
       if (room.engine) {
         const lobby = room.engine.getCurrentPhase();
+        // A rolling room started itself at creation; a stray Start (a sim
+        // harness, a double click) must never blow past the first step.
+        if (lobby.type !== 'lobby') {
+          console.log(`[start-game] Room ${code} is already past the lobby ('${lobby.id}'), ignoring`);
+          return;
+        }
         room.engine.transition(lobby.next);
         console.log(`[start-game] Room ${code} now in '${room.engine.getCurrentPhase().id}' phase`);
         // Library-first metric: count activities RUN (once per room; never
@@ -3436,6 +3550,16 @@ io.on('connection', (socket) => {
 
     // Push the live moderation list so the host can hide/kick before closing.
     emitSubmissionsUpdate(code, room);
+    emitLiveTally(code, room);
+
+    // Rolling start: a student whose last input just landed is done with
+    // the activity; say so instead of "waiting for everyone".
+    if (room.engine && isRolling(room.engine.config) && currentPhase && !moreInputAhead(room.engine.config, currentPhase.id)) {
+      socket.emit(EVENTS.PLAYER_DONE, {
+        message: translate(room.engine.language, doneMessageFor(currentPhase)),
+        phaseInstanceId: room.phaseInstanceId
+      });
+    }
   });
 
   // Host hides/unhides a submitted response. Hidden responses are excluded from
@@ -3454,6 +3578,7 @@ io.on('connection', (socket) => {
     players.update(playerId, { responseHidden: newHidden });
     recordEvent(room, 'moderate-hide', { player: target.name, hidden: newHidden });
     emitSubmissionsUpdate(code, room);
+    emitLiveTally(code, room);
   });
 
   // Host kicks a player: remove from the game and block rejoin this session.
@@ -3829,7 +3954,7 @@ io.on('connection', (socket) => {
       // the results the class never saw. The host's generic advance keeps
       // close-and-move-on semantics (team-split Continue depends on it).
       const fromConsole = socket.id !== roomToHost.get(code);
-      const TWO_STAGE = { rate: 1, estimate: 1, match: 1, sort: 1, checklist: 1 };
+      const TWO_STAGE = { rate: 1, estimate: 1, match: 1, sort: 1, checklist: 1, 'solo-quiz': 1 };
       if (vs && !vs.closed) {
         switch (vs.kind) {
           case 'vote':      await tallyAndAdvance(code, room); return;
@@ -3865,6 +3990,10 @@ io.on('connection', (socket) => {
           case 'checklist':
             // closeChecklist shows the summary without advancing — store, then move on
             await closeChecklist(code, room);
+            break;
+          case 'solo-quiz':
+            // closeSoloQuiz grades and shows the board without advancing
+            await closeSoloQuiz(code, room);
             break;
           default:
             break;
@@ -4282,6 +4411,52 @@ io.on('connection', (socket) => {
   });
 
   // --- Estimate events (numeric guessing) ---
+
+  // --- Solo quiz (self-paced) ---
+  socket.on(EVENTS.SOLO_QUIZ_ANSWER, (payload = {}) => {
+    if (!checkEventPayload(socket, 'solo-quiz-answer', payload)) return;
+    const { code, index, choice, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.engine || !room.phaseState || room.phaseState.kind !== 'solo-quiz') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'solo-quiz-answer')) return;
+    const state = room.phaseState;
+    if (state.closed) return;
+    const player = room.engine.players.find(socket.id);
+    if (!player) return;
+    const phase = room.engine.config.phases[state.phaseId] || {};
+    const p = state.progress[socket.id] || (state.progress[socket.id] = { index: 0, answers: [] });
+    // Only the question they are on, once (a stale double tap is ignored)
+    if (!Number.isInteger(index) || index !== p.index || p.index >= state.questions.length) return;
+    const q = state.questions[p.index];
+    if (typeof choice !== 'string' || !q.choices.includes(choice)) return;
+    const correct = isCorrectAnswer(choice, q.correct);
+    p.answers.push({ choice, correct });
+    p.index += 1;
+    recordEvent(room, 'solo-quiz-answer', { playerId: socket.id, index });
+    // Mirror progress for restart survival (the snapshot keeps phaseData)
+    const existing = room.engine.phaseData[state.phaseId] || {};
+    room.engine.storePhaseData(state.phaseId, { ...existing, progress: state.progress });
+    const next = soloQuizPlayerPayload(state, socket.id, soloQuizPoints(phase));
+    socket.emit(EVENTS.SOLO_QUIZ_FEEDBACK, {
+      answeredIndex: index,
+      correct,
+      correctAnswer: phase.showAnswers === false ? null : q.correct,
+      ...next,
+      phaseInstanceId: room.phaseInstanceId
+    });
+    emitSoloQuizProgress(code, room);
+  });
+
+  socket.on(EVENTS.CLOSE_SOLO_QUIZ, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'close-solo-quiz', payload)) return;
+    const { code, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'solo-quiz') return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-solo-quiz')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return;
+    recordEvent(room, 'close-solo-quiz');
+    await closeSoloQuiz(code, room);
+  });
 
   socket.on(EVENTS.ESTIMATE_SUBMIT, (payload = {}) => {
     if (!checkEventPayload(socket, 'estimate-submit', payload)) return;

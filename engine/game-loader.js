@@ -16,6 +16,8 @@
  */
 import { readFile, readdir, access } from 'fs/promises';
 import { LANGUAGE_CODES, AUTO as LANGUAGE_AUTO } from './i18n/index.js';
+import { START_MODES, isRolling, isRosterBound } from './phases/rolling.js';
+import { playableQuestions } from './phases/solo-quiz-scoring.js';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { mkDiagnostic, DIAGNOSTIC_CODES } from './diagnostics.js';
@@ -184,6 +186,12 @@ export function validate(config, gameId, options) {
     errors.push(`Game "${gameId}": "language" must be one of: ${[LANGUAGE_AUTO, ...LANGUAGE_CODES].join(', ')}`);
   }
 
+  // Start mode (engine/phases/rolling.js): "rolling" opens the room straight
+  // into the first step and lets students arrive on their own time.
+  if (config.start !== undefined && !START_MODES.includes(config.start)) {
+    errors.push(`Game "${gameId}": "start" must be one of: ${START_MODES.join(', ')}`);
+  }
+
   if (!config.phases || typeof config.phases !== 'object') {
     errors.push(`Game "${gameId}" is missing required field: phases`);
     if (returnResults) {
@@ -212,6 +220,33 @@ export function validate(config, gameId, options) {
   const hasEnd = phaseNames.some(name => config.phases[name].type === 'end');
   if (!hasEnd) {
     errors.push(`Game "${gameId}" is missing an end phase`);
+  }
+
+  // Rolling start: students arrive mid-activity, so steps that group
+  // whoever is present when they begin will leave late arrivals out, and
+  // countdowns are ignored (the teacher ends each step). Warnings, not
+  // errors: the activity still runs.
+  if (isRolling(config)) {
+    for (const name of phaseNames) {
+      const phase = config.phases[name];
+      if (!phase || typeof phase !== 'object') continue;
+      if (isRosterBound(phase)) {
+        warnings.push(`Game "${gameId}": phase "${name}" (${phase.type}) groups or pairs the students present when it starts; in a rolling-start activity students who arrive later are left out of it. Use "start": "together" for activities built on pairs, teams, chains, or rounds.`);
+      }
+      if (phase.timer) {
+        warnings.push(`Game "${gameId}": phase "${name}" has a timer, but a rolling-start activity ignores timers (students start at different times); the teacher ends the step instead.`);
+      }
+    }
+  }
+
+  // Self-paced quiz: a question list that grades to nothing would strand
+  // every student on an instant finish line.
+  for (const name of phaseNames) {
+    const phase = config.phases[name];
+    if (!phase || phase.type !== 'solo-quiz') continue;
+    if (playableQuestions(phase.questions).length === 0) {
+      errors.push(`Game "${gameId}": phase "${name}" (solo-quiz) needs at least one question with two or more choices and a correct answer that matches one of them.`);
+    }
   }
 
   for (const [name, phase] of Object.entries(config.phases)) {

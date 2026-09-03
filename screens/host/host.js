@@ -96,6 +96,7 @@ const qrPanel = document.getElementById('qr-panel');
 const qrImage = document.getElementById('qr-image');
 const joinUrlDisplay = document.getElementById('join-url');
 let currentJoinUrl = null;
+let isRollingRoom = false; // start:"rolling": the doorway card stays up all activity
 let qrRendered = false;
 const createRoomBtn = document.getElementById('create-room-btn');
 const playerList = document.getElementById('player-list');
@@ -557,6 +558,53 @@ if (showQrBtn) {
   });
 }
 
+// --- Rolling start doorway --------------------------------------------
+// The code, the address, the QR and a live head count, pinned beside
+// every section. Student-facing, so fine on the projector.
+const rollingDoor = document.getElementById('rolling-door');
+
+function renderRollingDoor(code) {
+  if (!rollingDoor) return;
+  const codeEl = document.getElementById('rolling-door-code');
+  codeEl.textContent = '';
+  for (let i = 0; i < String(code).length; i++) {
+    const block = document.createElement('span');
+    block.className = 'code-block code-block-' + (i % 4);
+    block.textContent = String(code)[i];
+    codeEl.appendChild(block);
+  }
+  const instr = document.getElementById('rolling-door-instructions');
+  instr.textContent = '';
+  instr.append('Go to ');
+  const hostSpan = document.createElement('strong');
+  hostSpan.textContent = window.location.host + '/player';
+  instr.append(hostSpan);
+  instr.append(' and enter this code');
+  const qrEl = document.getElementById('rolling-door-qr');
+  qrEl.hidden = true;
+  if (currentJoinUrl && typeof qrcode === 'function') {
+    try {
+      const qr = qrcode(0, 'M');
+      qr.addData(currentJoinUrl);
+      qr.make();
+      qrEl.src = qr.createDataURL(5, 8);
+      qrEl.hidden = false;
+    } catch (e) { /* the code and address still work */ }
+  }
+  updateRollingDoorCount(playerList ? playerList.children.length : 0);
+  rollingDoor.hidden = false;
+}
+
+function hideRollingDoor() {
+  if (rollingDoor) rollingDoor.hidden = true;
+}
+
+function updateRollingDoorCount(n) {
+  const el = document.getElementById('rolling-door-count');
+  if (!el) return;
+  el.textContent = n === 1 ? '1 in the room' : n + ' in the room';
+}
+
 function renderJoinQr() {
   if (!currentJoinUrl || !qrImage || typeof qrcode !== 'function') return;
   try {
@@ -666,6 +714,7 @@ window.addEventListener('message', (e) => {
     'match-close-btn', 'match-continue-btn',
     'sort-close-btn', 'sort-continue-btn',
     'checklist-close-btn', 'checklist-continue-btn',
+    'solo-quiz-close-btn', 'solo-quiz-continue-btn',
     'continue-btn',
     'announce-continue-btn',
     'leaderboard-continue-btn',
@@ -689,7 +738,7 @@ window.addEventListener('message', (e) => {
   if (currentRoomCode) socket.emit('advance-phase', { code: currentRoomCode });
 });
 
-socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored, language, strings }) => {
+socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored, language, strings, start }) => {
   currentRoomCode = code;
   currentTeacherPin = teacherPin || null;
   // The projector's fixed labels (Start!, Close Voting...) in the
@@ -731,6 +780,14 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
   if (qrPanel) qrPanel.hidden = true;
   if (showQrBtn) showQrBtn.textContent = 'Show QR code';
   teacherViewChip.hidden = false; // room exists, pairing is possible from any phase
+
+  // Rolling start: the room opens straight into the first step (the
+  // server sends it right after this), so the join code lives in a
+  // pinned doorway card instead of the lobby.
+  isRollingRoom = start === 'rolling';
+  document.body.classList.toggle('rolling', isRollingRoom);
+  if (isRollingRoom) renderRollingDoor(code);
+  else hideRollingDoor();
 
   // Remember this room so an F5 (or a server restart) can rebind instead of
   // killing the game for the whole class.
@@ -774,12 +831,14 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
 socket.on('player-joined', ({ players }) => {
   renderPlayerList(players);
   updateStartButton(players.length);
+  if (isRollingRoom) updateRollingDoorCount(players.length);
   if (J) J.sound('pop');
 });
 
 socket.on('player-left', ({ players }) => {
   renderPlayerList(players);
   updateStartButton(players.length);
+  if (isRollingRoom) updateRollingDoorCount(players.length);
 });
 
 socket.on('player-disconnected', ({ players }) => {
@@ -896,7 +955,8 @@ function renderSubmissionPile(count) {
   const wrap = document.getElementById('submission-pile-wrap');
   const pile = document.getElementById('submission-pile');
   if (!wrap || !pile) return;
-  wrap.hidden = false;
+  // Live Poll: the tally is the picture, the pile stays down.
+  wrap.hidden = liveTallyOn;
   const want = Math.min(count || 0, SUBMISSION_PILE_MAX);
   while (pile.children.length > want) pile.removeChild(pile.firstChild);
   while (pile.children.length < want) {
@@ -906,11 +966,34 @@ function renderSubmissionPile(count) {
   }
 }
 
-socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count, total, hostTemplate, show }) => {
+// Live Poll: the tally is the picture. Rows come from the server
+// (counts only); the first draw is every choice at zero.
+const liveTallyEl = document.getElementById('live-tally');
+let liveTallyOn = false;
+
+function renderLiveTally(rows) {
+  if (!liveTallyEl || !window.ChartRender) return;
+  liveTallyEl.textContent = '';
+  liveTallyEl.appendChild(ChartRender.buildChart(rows || []));
+}
+
+socket.on('live-tally', ({ rows }) => {
+  if (!liveTallyOn) return;
+  renderLiveTally(rows);
+});
+
+socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count, total, hostTemplate, show, liveResults, choices }) => {
   document.body.classList.add('in-activity');
   showSection(collectSection);
   promptDisplay.textContent = prompt;
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
+  liveTallyOn = !!liveResults;
+  if (liveTallyEl) liveTallyEl.hidden = !liveTallyOn;
+  if (liveTallyOn) {
+    renderLiveTally((Array.isArray(choices) ? choices : []).map(c => ({ label: String(c), count: 0, pct: 0 })));
+  }
+  const pileWrap = document.getElementById('submission-pile-wrap');
+  if (pileWrap && liveTallyOn) pileWrap.hidden = true;
   renderSubmissionPile(count || 0);
   applyTemplate(collectSection, hostTemplate);
   applyImage(collectImage, image, show);
@@ -2350,7 +2433,80 @@ copyReportBtn.addEventListener('click', () => {
   }
 });
 
+// --- Solo quiz (self-paced): the projector shows progress, never a question ---
+const soloQuizSection = document.getElementById('solo-quiz-section');
+const soloQuizTitle = document.getElementById('solo-quiz-title');
+const soloQuizStatus = document.getElementById('solo-quiz-status');
+const soloQuizBoard = document.getElementById('solo-quiz-board');
+const soloQuizCloseBtn = document.getElementById('solo-quiz-close-btn');
+const soloQuizContinueBtn = document.getElementById('solo-quiz-continue-btn');
+let soloQuizInstanceId = null;
+
+function renderSoloQuizBoard(data, final) {
+  const total = data.total || 0;
+  const finished = data.finished || 0;
+  const working = Math.max(0, (data.started || 0) - finished);
+  soloQuizStatus.textContent = final
+    ? finished + ' ' + UiLang.t('finished') + (typeof data.averagePct === 'number' ? ' · ' + UiLang.t('class average') + ' ' + data.averagePct + '%' : '')
+    : finished + ' ' + UiLang.t('finished') + ' · ' + working + ' ' + UiLang.t('working') + ' · ' + total + ' ' + UiLang.t('in the room');
+  soloQuizBoard.textContent = '';
+  (data.perQuestion || []).forEach((q) => {
+    const row = document.createElement('div');
+    row.className = 'sq-row';
+    const label = document.createElement('span');
+    label.className = 'sq-label';
+    label.textContent = 'Q' + (q.index + 1);
+    const track = document.createElement('div');
+    track.className = 'sq-track';
+    const fill = document.createElement('div');
+    fill.className = 'sq-fill';
+    fill.style.width = (q.answered > 0 ? Math.max(q.pct, 3) : 0) + '%';
+    track.appendChild(fill);
+    const value = document.createElement('span');
+    value.className = 'sq-value';
+    value.textContent = q.answered > 0 ? q.correct + ' / ' + q.answered : '\u2013';
+    row.append(label, track, value);
+    soloQuizBoard.appendChild(row);
+  });
+}
+
+socket.on('solo-quiz-start', (data) => {
+  showSection(soloQuizSection);
+  soloQuizInstanceId = data.phaseInstanceId;
+  soloQuizTitle.textContent = data.title || 'Quiz';
+  soloQuizCloseBtn.hidden = false;
+  soloQuizCloseBtn.disabled = false;
+  soloQuizContinueBtn.hidden = true;
+  applyTemplate(soloQuizSection, data.hostTemplate);
+  renderSoloQuizBoard(data, false);
+});
+
+socket.on('solo-quiz-progress', (data) => {
+  if (data.phaseInstanceId !== soloQuizInstanceId) return;
+  renderSoloQuizBoard(data, false);
+});
+
+socket.on('solo-quiz-results', (data) => {
+  if (data.phaseInstanceId !== soloQuizInstanceId) return;
+  renderSoloQuizBoard(data, true);
+  soloQuizCloseBtn.hidden = true;
+  soloQuizContinueBtn.hidden = false;
+  if (J) J.sound('reveal');
+});
+
+soloQuizCloseBtn.addEventListener('click', () => {
+  soloQuizCloseBtn.disabled = true;
+  socket.emit('close-solo-quiz', { code: currentRoomCode, phaseInstanceId: soloQuizInstanceId });
+});
+
+soloQuizContinueBtn.addEventListener('click', () => {
+  socket.emit('advance-phase', { code: currentRoomCode, phaseInstanceId: soloQuizInstanceId });
+});
+
 socket.on('game-ended', ({ message, hostTemplate, hostShow } = {}) => {
+  // The doorway closes with the activity.
+  hideRollingDoor();
+  document.body.classList.remove('rolling');
   showSection(endSection);
   if (J) J.sound('tada');
   const endMsg = endSection.querySelector('.game-over');
@@ -2594,6 +2750,7 @@ const allSections = [
   announceSection, leaderboardSection, revealOneSection,
   teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
   turnSection, buzzSection, estimateSection, matchSection, sortSection, checklistSection,
+  soloQuizSection,
   phaseErrorSection, endSection
 ];
 

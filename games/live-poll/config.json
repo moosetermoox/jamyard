@@ -1,0 +1,48 @@
+{
+  "name": "Live Poll",
+  "description": "One question, and the bar chart grows on the projector as answers come in. Students answer as they arrive; you end it when you like.",
+  "playTime": "~5 min",
+  "start": "rolling",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "ask"
+    },
+    "ask": {
+      "type": "collect-choice",
+      "prompt": "How are you feeling about today's lesson?",
+      "choices": [
+        "Got it!",
+        "Mostly got it",
+        "A little confused",
+        "Lost"
+      ],
+      "liveResults": true,
+      "doneMessage": "Thanks, your answer is on the board.",
+      "next": "results"
+    },
+    "results": {
+      "type": "reveal",
+      "template": "## Final results\n\nHow are you feeling about today's lesson?\n\n{{ask.barChart}}",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Thanks for voting!"
+    }
+  },
+  "recipe": {
+    "id": "live-poll",
+    "version": "1",
+    "params": {
+      "question": "How are you feeling about today's lesson?",
+      "choices": [
+        "Got it!",
+        "Mostly got it",
+        "A little confused",
+        "Lost"
+      ]
+    }
+  },
+  "featured": true
+}

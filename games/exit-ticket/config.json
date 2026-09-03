@@ -1,0 +1,46 @@
+{
+  "name": "Exit Ticket",
+  "description": "Two quick questions students answer as they arrive or before they leave. No waiting for the class, and the answers stay private to you.",
+  "playTime": "~5 min",
+  "start": "rolling",
+  "anonymous": false,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "ticket"
+    },
+    "ticket": {
+      "type": "collect",
+      "prompt": "Answer in a sentence or two.",
+      "fields": [
+        {
+          "label": "One thing you learned today",
+          "key": "q1"
+        },
+        {
+          "label": "One question you still have",
+          "key": "q2"
+        }
+      ],
+      "doneMessage": "Thanks, that is all we need from you. You can put your device away.",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "That is everyone. Thanks for the honest answers."
+    }
+  },
+  "recipe": {
+    "id": "exit-ticket",
+    "version": "1",
+    "params": {
+      "questions": [
+        "One thing you learned today",
+        "One question you still have"
+      ],
+      "anonymous": false,
+      "thanks": "Thanks, that is all we need from you. You can put your device away."
+    }
+  },
+  "featured": true
+}
