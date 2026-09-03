@@ -227,3 +227,45 @@ describe('trimChatHistory', () => {
     expect(trimmed[0].content).toBe('good');
   });
 });
+
+describe('designChat "Just do it" (forceEdit)', () => {
+  it('appends the just-do-it instruction to the triage turn and chains into a proposal', async () => {
+    const service = new AIService({ mode: 'real' });
+    const calls = [];
+    service._callClaude = async (params) => {
+      calls.push(params);
+      if (calls.length === 1) {
+        return textResponse(JSON.stringify({
+          action: 'edit',
+          reply: 'Making those changes now.',
+          editRequest: 'Make the vote head-to-head and add a leaderboard after it.'
+        }));
+      }
+      return textResponse(JSON.stringify({ updatedConfig: config, summary: 'Head-to-head vote plus leaderboard.' }));
+    };
+    const result = await service.designChat({
+      config,
+      forceEdit: true,
+      messages: [
+        { role: 'user', content: 'Could the vote be head-to-head?' },
+        { role: 'assistant', content: 'Yes, and a leaderboard after it would show the standings.' },
+        { role: 'user', content: 'Just do it.' }
+      ]
+    });
+    expect(calls[0].messages[0].content).toContain('pressed the "Just do it" button');
+    expect(calls[0].messages[0].content).toContain('You MUST choose "edit"');
+    expect(result.kind).toBe('proposal');
+    expect(result.summary).toBe('Head-to-head vote plus leaderboard.');
+  });
+
+  it('an ordinary turn never carries the instruction', async () => {
+    const service = new AIService({ mode: 'real' });
+    const calls = [];
+    service._callClaude = async (params) => {
+      calls.push(params);
+      return textResponse(JSON.stringify({ action: 'answer', reply: 'Sure.' }));
+    };
+    await service.designChat({ config, messages: [{ role: 'user', content: 'Ideas?' }] });
+    expect(calls[0].messages[0].content).not.toContain('Just do it');
+  });
+});

@@ -60,3 +60,29 @@ describe('ChatPanel history entries for proposals', () => {
     expect(ChatPanel.setProposalStatus('just a reply', 'applied')).toBe('just a reply');
   });
 });
+
+describe('ChatPanel.canJustDoIt', () => {
+  const talked = [
+    { role: 'user', content: 'Could the vote be head-to-head?' },
+    { role: 'assistant', content: 'Yes, and a leaderboard after it would show the standings.' }
+  ];
+
+  it('offers the button once the AI has replied at least once', () => {
+    expect(ChatPanel.canJustDoIt({ history: talked })).toBe(true);
+  });
+
+  it('stays hidden before any AI reply (nothing to just do yet)', () => {
+    expect(ChatPanel.canJustDoIt({ history: [] })).toBe(false);
+    expect(ChatPanel.canJustDoIt({ history: [{ role: 'user', content: 'hi' }] })).toBe(false);
+    expect(ChatPanel.canJustDoIt()).toBe(false);
+  });
+
+  it('hides while a reply is in flight or a proposal card is waiting', () => {
+    expect(ChatPanel.canJustDoIt({ history: talked, inFlight: true })).toBe(false);
+    expect(ChatPanel.canJustDoIt({ history: talked, hasPendingProposal: true })).toBe(false);
+  });
+
+  it('sends a fixed, plain message so the transcript stays honest', () => {
+    expect(ChatPanel.JUST_DO_IT_TEXT).toBe('Just do it.');
+  });
+});

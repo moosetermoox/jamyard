@@ -345,6 +345,12 @@ function checkRoomInfo() {
     .then(r => (r.ok ? r.json() : null))
     .then(info => {
       if (seq === roomInfoSeq) setAnonymousJoinUI(!!(info && info.anonymous));
+      // The join form itself switches language as soon as the code is
+      // known (and back to English if the next code is an English room).
+      if (seq === roomInfoSeq && info && window.UiLang) {
+        UiLang.set(info.language, info.strings);
+        UiLang.apply();
+      }
     })
     .catch(() => {
       if (seq === roomInfoSeq) setAnonymousJoinUI(false);
@@ -611,7 +617,9 @@ socket.on('response-rejected', ({ message }) => {
 
 // --- Socket events - Join ---
 
-socket.on('join-success', ({ name, reconnected, token, theme }) => {
+socket.on('join-success', ({ name, reconnected, token, theme, language, strings }) => {
+  // Fixed labels (Submit, Skip, You're in!) in the activity's language.
+  if (window.UiLang && strings) { UiLang.set(language, strings); UiLang.apply(); }
   if (!reconnected) {
     showSection(waitingSection);
   }
@@ -936,7 +944,7 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
   if (passAllowed) {
     var passBtn = document.createElement('button');
     passBtn.className = 'pass-btn';
-    passBtn.textContent = 'Pass this one';
+    passBtn.textContent = UiLang.t('Pass this one');
     passBtn.addEventListener('click', function() {
       socket.emit('submit-response', { code: currentRoomCode, response: '', pass: true });
       showSection(submittedSection);
@@ -2078,7 +2086,7 @@ function applyMergePen() {
     mergePenBtn.textContent = (mergePenHolderName || 'Your partner') + ' is writing…';
     mergePenIdleTimer = setTimeout(function () {
       mergePenBtn.disabled = false;
-      mergePenBtn.textContent = 'Take the pen';
+      mergePenBtn.textContent = UiLang.t('Take the pen');
     }, MERGE_PEN_IDLE_MS);
   } else {
     mergeDraftInput.readOnly = false;
@@ -2769,7 +2777,7 @@ socket.on('relay-turn', ({ prompt, sharedResult, timer, progress, playerTemplate
       socket.emit('relay-submit', { code: currentRoomCode, text: relayInput.value || '' });
       relaySubmitBtn.disabled = true;
       relayInputSection.hidden = true;
-      relayStatus.textContent = 'Submitted! Waiting...';
+      relayStatus.textContent = UiLang.t('Submitted! Waiting...');
     });
   }
 });
@@ -2795,7 +2803,7 @@ relaySubmitBtn.addEventListener('click', function() {
   socket.emit('relay-submit', { code: currentRoomCode, text: relayInput.value || '' });
   relaySubmitBtn.disabled = true;
   relayInputSection.hidden = true;
-  relayStatus.textContent = 'Submitted! Waiting...';
+  relayStatus.textContent = UiLang.t('Submitted! Waiting...');
 });
 
 function renderRelayShared(sharedResult) {
@@ -2944,7 +2952,7 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, sh
   });
 
   if (mode === 'pick-one') {
-    voteTitle.textContent = 'Pick your favorite!';
+    voteTitle.textContent = UiLang.t('Pick your favorite!');
     voteProgress.hidden = true;
     currentCandidates = candidates || [];
     showPickOneVote(candidates);
@@ -3011,7 +3019,7 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerIds, winnerNames
   // Same build-up beat as the projector, quietly \u2014 sound stays reserved for
   // the winner's own device at the reveal.
   const entryAllowed = !playerShow || playerShow.indexOf('entry') !== -1;
-  winnerTitle.textContent = 'And the winner is\u2026';
+  winnerTitle.textContent = UiLang.t('And the winner is\u2026');
   winnerDetails.textContent = '';
   winnerEntryDisplay.hidden = true;
   winnerEntryDisplay.innerHTML = '';
@@ -3108,7 +3116,7 @@ function showNextMatchup() {
 
   const matchup = currentMatchups[currentMatchupIndex];
 
-  voteTitle.textContent = 'Which is better?';
+  voteTitle.textContent = UiLang.t('Which is better?');
   voteProgress.hidden = false;
   voteProgress.textContent =
     'Match ' + (currentMatchupIndex + 1) + ' of ' + currentMatchups.length;

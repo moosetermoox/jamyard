@@ -8,6 +8,8 @@
  * so a new phase type can never break a button.
  */
 
+import { translate } from '../i18n/index.js';
+
 const LABELS = {
   announce: 'Show the message',
   collect: 'Send the question to students',
@@ -40,10 +42,11 @@ const LABELS = {
 
 /**
  * @param {string|null|undefined} nextType — the phase type the game moves to
+ * @param {string} [lang] — activity language (engine/i18n); English by default
  * @returns {string} a teacher-facing button label
  */
-export function continueLabelFor(nextType) {
-  return LABELS[nextType] || 'Continue';
+export function continueLabelFor(nextType, lang) {
+  return translate(lang, LABELS[nextType] || 'Continue');
 }
 
 /**
@@ -64,8 +67,9 @@ const CLOSE_LABELS = {
  * @param {string|null|undefined} phaseType — the phase currently running
  * @returns {string|null} close-action label, or null when one click advances
  */
-export function closeLabelFor(phaseType) {
-  return CLOSE_LABELS[phaseType] || null;
+export function closeLabelFor(phaseType, lang) {
+  const label = CLOSE_LABELS[phaseType] || null;
+  return label ? translate(lang, label) : null;
 }
 
 /**
@@ -97,17 +101,21 @@ function questionRanBefore(phase, phases) {
  * setting) wins over the generated wording — every surface that shows an
  * advance label (announce/reveal projector buttons, the teacher console's
  * next-step button) resolves through here, so the override covers them all.
+ * A teacher-typed continueLabel is returned verbatim (it is already in
+ * whatever language the teacher wrote it in); generated wording is
+ * translated into the activity's language.
  * @param {{ next?: string, continueLabel?: string }} phase
  * @param {Record<string, { type?: string }>} phases
+ * @param {string} [lang] activity language code (engine/i18n)
  */
-export function continueLabelForPhase(phase, phases) {
+export function continueLabelForPhase(phase, phases, lang) {
   if (phase && typeof phase.continueLabel === 'string' && phase.continueLabel.trim()) {
     return phase.continueLabel.trim();
   }
   const nextId = phase && phase.next;
   const next = nextId && phases ? phases[nextId] : null;
   if (next && next.type === 'collect-choice' && !questionRanBefore(phase, phases)) {
-    return 'Start the first question';
+    return translate(lang, 'Start the first question');
   }
-  return continueLabelFor(next && next.type);
+  return continueLabelFor(next && next.type, lang);
 }

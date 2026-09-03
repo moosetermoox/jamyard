@@ -46,8 +46,26 @@
     return String(entry).replace(/\| status: [a-z]+\]$/, '| status: ' + status + ']');
   }
 
+  // "Just do it" is the way out of a conversation that has said enough:
+  // offered once the AI has replied at least once, never while a reply is
+  // in flight or a proposal card is still waiting for a decision (that
+  // card IS the change; a second ask would only expire it).
+  function canJustDoIt(state) {
+    state = state || {};
+    if (state.inFlight || state.hasPendingProposal) return false;
+    var history = state.history || [];
+    for (var i = 0; i < history.length; i++) {
+      if (history[i] && history[i].role === 'assistant') return true;
+    }
+    return false;
+  }
+
+  var JUST_DO_IT_TEXT = 'Just do it.';
+
   global.ChatPanel = {
     canApply: canApply,
+    canJustDoIt: canJustDoIt,
+    JUST_DO_IT_TEXT: JUST_DO_IT_TEXT,
     historyEntryForProposal: historyEntryForProposal,
     setProposalStatus: setProposalStatus
   };
@@ -64,6 +82,8 @@
   var chipEl = document.getElementById('chat-context-chip');
   var chipLabelEl = document.getElementById('chat-context-label');
   var chipClearBtn = document.getElementById('chat-context-clear');
+  var quickRow = document.getElementById('chat-quick-row');
+  var justDoItBtn = document.getElementById('chat-just-do-it');
 
   var chatHistory = [];        // {role, content} — what the server sees
   var chatFocusPhaseId = null; // rides the next send, then clears
@@ -183,12 +203,14 @@
       if (liveCard === card) liveCard = null;
       setCardState(card, 'Discarded');
       updateHistoryStatus(historyIndex, 'discarded');
+      syncQuickRow();
     });
     actions.appendChild(discardBtn);
 
     card.appendChild(actions);
     messagesEl.appendChild(card);
     liveCard = card;
+    syncQuickRow();
     scrollToEnd();
   }
 
@@ -233,6 +255,7 @@
     });
     card.appendChild(revertBtn);
     revertCard = card;
+    syncQuickRow();
     if (typeof showToast === 'function') showToast('Change applied');
   }
 
@@ -241,16 +264,31 @@
   function updateSendState() {
     sendBtn.disabled = inFlight;
     inputEl.disabled = inFlight;
+    syncQuickRow();
   }
 
-  function sendMessage() {
-    var text = inputEl.value.trim();
+  function syncQuickRow() {
+    if (!quickRow) return;
+    quickRow.hidden = !canJustDoIt({
+      history: chatHistory,
+      inFlight: inFlight,
+      hasPendingProposal: !!liveCard
+    });
+  }
+
+  // opts.text sends that instead of the box (the box is left alone);
+  // opts.forceEdit tells the server this turn must come back as a
+  // proposal, not more conversation (the Just do it button).
+  function sendMessage(opts) {
+    opts = opts || {};
+    var fromButton = typeof opts.text === 'string';
+    var text = fromButton ? opts.text.trim() : inputEl.value.trim();
     if (!text || inFlight || !gameConfig) return;
 
     expirePending();
     chatHistory.push({ role: 'user', content: text });
     addBubble('user', text);
-    inputEl.value = '';
+    if (!fromButton) inputEl.value = '';
 
     var focusId = chatFocusPhaseId;
     clearContextChip();
@@ -272,6 +310,7 @@
         config: gameConfig,
         messages: chatHistory.slice(-12),
         focusPhaseId: focusId,
+        forceEdit: !!opts.forceEdit,
         classDescription: global.TeacherProfile ? TeacherProfile.describe() : ''
       }),
       signal: controller.signal
@@ -364,7 +403,12 @@
 
   // ---- Wiring ----
 
-  sendBtn.addEventListener('click', sendMessage);
+  sendBtn.addEventListener('click', function () { sendMessage(); });
+  if (justDoItBtn) {
+    justDoItBtn.addEventListener('click', function () {
+      sendMessage({ text: JUST_DO_IT_TEXT, forceEdit: true });
+    });
+  }
   inputEl.addEventListener('keydown', function (e) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -378,12 +422,13 @@
     messagesEl.textContent = '';
     clearContextChip();
     liveCard = null;
+    syncQuickRow();
     addHint();
   });
 
   function addHint() {
     addLine('chat-hint',
-      'Ask about your activity, brainstorm ideas, or describe a change. Nothing is changed until you approve it.');
+      'Ask about your activity, brainstorm ideas, or describe a change. Nothing is changed until you approve it. Done talking? Press Just do it and the AI drafts the change.');
   }
   addHint();
 

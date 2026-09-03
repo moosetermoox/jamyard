@@ -528,6 +528,10 @@ Return ONLY valid JSON, one of:
 {"action": "answer", "reply": "your reply to the teacher"}
 {"action": "edit", "reply": "one short lead-in sentence", "editRequest": "self-contained change instruction"}`;
 
+// Appended to the triage turn when the teacher presses "Just do it" in the
+// design chat: stop discussing, fold everything agreed so far into ONE edit.
+export const JUST_DO_IT_INSTRUCTION = `The teacher pressed the "Just do it" button. They are done discussing and want the changes MADE now. You MUST choose "edit". Write ONE self-contained editRequest that covers every change discussed, suggested, or agreed to in this conversation that has not already been applied (turns marked "status: applied" are done; "discarded" or "reverted" ones are not wanted unless the teacher asked for them again). Only if the conversation contains no concrete change at all may you choose "answer", and then ask for one sentence describing what to change.`;
+
 function truncateForSummary(text, max) {
   if (typeof text !== 'string') return '';
   const flat = text.replace(/\s+/g, ' ').trim();
@@ -1019,14 +1023,14 @@ Return the revised config.`;
    * The caller (server.js) stamps + validates proposal turns, exactly
    * like /api/games/revise.
    */
-  async designChat({ config, messages, focusPhaseId, classDescription } = {}) {
+  async designChat({ config, messages, focusPhaseId, classDescription, forceEdit } = {}) {
     if (this.mode === 'mock') {
       return { kind: 'chat', reply: '[MOCK] AI chat is offline on this server. Set ANTHROPIC_API_KEY for real replies.' };
     }
-    return this._designChatReal({ config, messages, focusPhaseId, classDescription });
+    return this._designChatReal({ config, messages, focusPhaseId, classDescription, forceEdit: forceEdit === true });
   }
 
-  async _designChatReal({ config, messages, focusPhaseId, classDescription }) {
+  async _designChatReal({ config, messages, focusPhaseId, classDescription, forceEdit }) {
     try {
       const history = trimChatHistory(messages);
       const transcript = history
@@ -1040,7 +1044,14 @@ Return the revised config.`;
       if (classDescription && typeof classDescription === 'string' && classDescription.trim()) {
         userContent += `\nThe teacher's class: ${truncateForSummary(classDescription, 200)}\n`;
       }
-      userContent += `\nConversation so far:\n${transcript}\n\nReply to the teacher's last message. Return ONLY the JSON.`;
+      userContent += `\nConversation so far:\n${transcript}\n`;
+      if (forceEdit) {
+        // The editor's "Just do it" button: the teacher is done talking
+        // and wants the change MADE. Overrides the cautious default
+        // ("only choose edit for a clear, concrete request").
+        userContent += `\n${JUST_DO_IT_INSTRUCTION}\n`;
+      }
+      userContent += `\nReply to the teacher's last message. Return ONLY the JSON.`;
 
       const start = Date.now();
       const message = await this._callClaude({

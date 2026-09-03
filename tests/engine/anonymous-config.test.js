@@ -38,3 +38,16 @@ describe('config.anonymous validation', () => {
       .toThrow(/anonymous/);
   });
 });
+
+describe('config.language validation', () => {
+  it('accepts a supported code and "auto"', () => {
+    expect(() => validate(minimalConfig({ language: 'es' }), 'test')).not.toThrow();
+    expect(() => validate(minimalConfig({ language: 'auto' }), 'test')).not.toThrow();
+    expect(() => validate(minimalConfig(), 'test')).not.toThrow();
+  });
+
+  it('rejects an unsupported or non-string language so a typo never silently means English', () => {
+    expect(() => validate(minimalConfig({ language: 'klingon' }), 'test')).toThrow(/language/);
+    expect(() => validate(minimalConfig({ language: 7 }), 'test')).toThrow(/language/);
+  });
+});

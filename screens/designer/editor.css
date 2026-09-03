@@ -3217,7 +3217,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
    ======================================================================= */
 
 #chat-panel {
-  width: 340px;
+  width: 380px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -3272,7 +3272,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
 }
 
 .chat-hint {
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   color: #857A66;
   font-style: italic;
   padding: 4px 2px;
@@ -3282,8 +3282,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
   max-width: 90%;
   padding: 8px 10px;
   border-radius: 2px;
-  font-size: 0.85rem;
-  line-height: 1.4;
+  font-size: 1rem;
+  line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: break-word;
 }
@@ -3303,13 +3303,13 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
 }
 
 .chat-system {
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   color: #AE3A16;
   padding: 4px 2px;
 }
 
 .chat-thinking {
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   color: #55503F;
   font-style: italic;
   padding: 4px 2px;
@@ -3321,8 +3321,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
   border-radius: 2px;
   box-shadow: 0 2px 3px rgba(50,35,15,0.30);
   transform: rotate(-0.4deg);
-  padding: 10px 12px;
-  font-size: 0.85rem;
+  padding: 12px 14px;
+  font-size: 1rem;
 }
 
 .chat-proposal-status {
@@ -3344,7 +3344,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
 .chat-proposal-errors-head {
   margin-top: 8px;
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
   color: #AE3A16;
 }
 
@@ -3355,7 +3355,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
   border-radius: 2px;
   box-shadow: 0 0 0 1px #AE3A16;
   color: #AE3A16;
-  font-size: 0.78rem;
+  font-size: 0.9rem;
 }
 
 .chat-proposal-actions {
@@ -3366,8 +3366,8 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
 
 .chat-proposal-actions .btn,
 .chat-revert-btn {
-  font-size: 0.72rem;
-  padding: 6px 14px;
+  font-size: 0.85rem;
+  padding: 8px 16px;
 }
 
 .chat-apply-btn:disabled {
@@ -3392,7 +3392,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
   background: #FDF9F0;
   border-radius: 2px;
   box-shadow: 0 0 0 1px rgba(50,35,15,0.18);
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: #55503F;
 }
 
@@ -3425,8 +3425,10 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
   box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 1px rgba(50,35,15,0.16);
   font-family: 'DM Sans', Arial, sans-serif;
   font-weight: 600;
-  font-size: 0.85rem;
-  padding: 8px 10px;
+  font-size: 1rem;
+  line-height: 1.4;
+  min-height: 125px;
+  padding: 10px 12px;
   box-sizing: border-box;
 }
 
@@ -3435,12 +3437,36 @@ input[type="checkbox"], input[type="radio"] { accent-color: #2A2620; }
   box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 2px #2A2620;
 }
 
-.chat-input-row .btn { font-size: 0.72rem; padding: 8px 14px; }
+.chat-input-row .btn { font-size: 0.85rem; padding: 10px 16px; }
+
+/* "Just do it": the way out of a chat that has said enough. Sits above
+   the ask box once the AI has replied at least once and no proposal is
+   waiting; pressing it asks for one change covering the whole talk. */
+#chat-quick-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 12px 8px;
+}
+
+#chat-quick-row[hidden] { display: none; }
+
+#chat-just-do-it {
+  font-size: 0.85rem;
+  padding: 8px 16px;
+  white-space: nowrap;
+}
+
+.chat-quick-hint {
+  font-size: 0.85rem;
+  color: #857A66;
+  font-style: italic;
+}
 
 /* While the chat is open, the fixed feedback corner button moves left of
    the 340px panel so it never covers the chat input. */
-body.chat-open #feedback-widget-btn { right: 358px; }
-body.chat-open #feedback-widget-panel { right: 358px; }
+body.chat-open #feedback-widget-btn { right: 398px; }
+body.chat-open #feedback-widget-panel { right: 398px; }
 
 /* =======================================================================
    PLAN INTRO — one-time explainer on the library Customize landing
@@ -4184,6 +4210,7 @@ body::before { content: none; }
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
 
 .sv-sub-preview { color: #857A66; }
 

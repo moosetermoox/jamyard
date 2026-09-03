@@ -23,7 +23,7 @@ registerHandler('announce', {
     const video = ctx.services.resolveVideoEmbed(ctx.phase.video);
     const displayDrawing = resolveDisplayDrawing(ctx.phase, ctx.engine);
     // The host button says what happens next ("Start the voting"), not "Continue".
-    const continueLabel = continueLabelForPhase(ctx.phase, ctx.engine.config.phases);
+    const continueLabel = continueLabelForPhase(ctx.phase, ctx.engine.config.phases, ctx.engine.language);
 
     if (PER_PLAYER_REF.test(rawMessage)) {
       // Per-recipient: host gets the generic resolved version, each player gets their own
@@ -56,7 +56,7 @@ registerHandler('announce', {
     const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
     const video = ctx.services.resolveVideoEmbed(ctx.phase.video);
     const displayDrawing = resolveDisplayDrawing(ctx.phase, ctx.engine);
-    const continueLabel = continueLabelForPhase(ctx.phase, ctx.engine.config.phases);
+    const continueLabel = continueLabelForPhase(ctx.phase, ctx.engine.config.phases, ctx.engine.language);
     if (PER_PLAYER_REF.test(rawMessage)) {
       const player = ctx.engine.players.find(socket.id);
       const msg = player

@@ -19,10 +19,14 @@ import { runEliminate } from './phases/eliminate-handler.js';
 import { generateMatchups, getEligibleVoters } from './phases/vote-handler.js';
 import { determineWinner, traceEntryRef, findWinnerEntries } from './phases/winner-handler.js';
 import { parseRef } from './resolver-grammar.js';
+import { resolveLanguage } from './i18n/index.js';
 
 export class GameEngine {
   constructor(config) {
     this.config = config;
+    // The language the room's fixed labels speak (engine/i18n): an
+    // explicit config.language, else detected from the activity's text.
+    this.language = resolveLanguage(config);
     this.players = new PlayerRegistry();
     this.phaseData = {};
     this.hooks = {};

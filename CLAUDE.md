@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1517 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1545 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **29 phase types**, **23 built-in recipes**, ~30 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -46,8 +46,8 @@ Framework for quickly building classroom games where:
 - `/library` — teacher front door: search, goal chips, ▶ Host cards, ♥/recents, Customize dialog
 - `/host` projector screen · `/player` student screen · `/teacher` private console (room code + PIN, or SITE_PASSWORD basic auth)
 - `/teacher/report` printable activity report (engine/report.js via PIN-gated `GET /api/rooms/:code/report`) — built on demand from live room state, NEVER stored server-side, gone when the room expires; browser print dialog = the PDF; names toggle defaults on; console links it (header + end-phase reminder card)
-- `/designer` Create page (idea box → recipe match or storyboard) · `/designer/edit` editor (Simple | Builder | Advanced views; Simple is default; Ask AI = the design chat panel beside the Simple view, `screens/designer/chat-panel.js` + `POST /api/games/chat` — proposes changes as cards, Apply gated on validation, one-step Revert)
-- `/prototype` host + player iframes side-by-side for playtesting
+- `/designer` Create page (idea box → recipe match or storyboard) · `/designer/edit` editor (Simple | Builder | Advanced views; Simple is default; Ask AI = the design chat panel beside the Simple view, `screens/designer/chat-panel.js` + `POST /api/games/chat` — proposes changes as cards, Apply gated on validation, one-step Revert; "Just do it" = `forceEdit:true` turn that folds the whole conversation into one proposal)
+- `/prototype` host + player iframes side-by-side for playtesting; the map rail is clickable: a stop row asks "Skip ahead?" then plays the room forward with bots until the live rail reaches that step (`?goto=<phaseId>` deep link does the same on launch)
 - `/guide` one-page teacher guide (setup, live controls, quick fixes) · `/owner` owner-mode doorway (redirects to the library unlock; no in-page owner links)
 - `/feedback` owner inbox (SITE_PASSWORD-gated)
 - `/share/<id>` — share link landing page: "Save to my activities" imports a COPY via `POST /api/games/:id/copy` (engine/share-copy.js; featured stripped, new deduped id, never the same row); built-in ids redirect to `/library?about=`; Share button lives in the yard popup (own activities)
@@ -61,6 +61,7 @@ Framework for quickly building classroom games where:
 - **"Activity" vocabulary** in user-facing copy ("game" only when it truly is one). Internals keep "game" (`games/`, `gameId`, socket events, API routes) — never rename them.
 - **The host screen is a projector** — never put teacher-private info there; that's what `/teacher` is for.
 - **Payoff beats are host-paced, never timed** (reveals, winners, galleries).
+- **Fixed UI labels go through `engine/i18n/`** (server labels via `continueLabelForPhase(phase, phases, lang)`, screens via `UiLang.t('Submit')` + `UiLang.apply()`); a new student- or projector-facing label needs a row in every language table (drift-guarded). Top-level `language` (auto | en | es | fr | de | pt | it) resolves once in the GameEngine constructor; auto = stopword detection over the activity's own text.
 - **Nothing student-drawn reaches the projector without a teacher gate** (preview phase or moderation).
 - **No student name in any outbound AI payload** (pseudonymous playerIds + `engine/ai-name-fill.js` re-fill; `engine/pii-scrub.js` on free text — pass `rosterNames` on game-time calls).
 - **Student text, teacher config, and AI output are all untrusted for rendering** — prefer `textContent`; HTML interpolation must escape (`escapeHtml`/`escapeHtmlText`; enforced by `tests/screens/xss-sinks.test.js`).

@@ -15,6 +15,7 @@
  * rule in one place.
  */
 import { readFile, readdir, access } from 'fs/promises';
+import { LANGUAGE_CODES, AUTO as LANGUAGE_AUTO } from './i18n/index.js';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { mkDiagnostic, DIAGNOSTIC_CODES } from './diagnostics.js';
@@ -173,6 +174,14 @@ export function validate(config, gameId, options) {
   // a mistyped value must not silently fall back to collecting names.
   if (config.anonymous !== undefined && typeof config.anonymous !== 'boolean') {
     errors.push(`Game "${gameId}": "anonymous" must be true or false`);
+  }
+
+  // Activity language (engine/i18n): the fixed button labels students see.
+  // "auto" (or absent) detects from the activity's text; anything else
+  // must be a supported code so a typo never silently means English.
+  if (config.language !== undefined &&
+      !(config.language === LANGUAGE_AUTO || (typeof config.language === 'string' && LANGUAGE_CODES.includes(config.language)))) {
+    errors.push(`Game "${gameId}": "language" must be one of: ${[LANGUAGE_AUTO, ...LANGUAGE_CODES].join(', ')}`);
   }
 
   if (!config.phases || typeof config.phases !== 'object') {

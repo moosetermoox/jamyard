@@ -400,6 +400,7 @@ var settingsDescription = document.getElementById('game-description');
 var settingsMinPlayers = document.getElementById('game-min-players');
 var settingsMaxPlayers = document.getElementById('game-max-players');
 var settingsNamesMode = document.getElementById('game-names-mode');
+var settingsLanguage = document.getElementById('game-language');
 var settingsTheme = document.getElementById('game-theme');
 var customThemeSection = document.getElementById('custom-theme-section');
 var customThemeDesc = document.getElementById('custom-theme-desc');
@@ -689,6 +690,7 @@ async function init() {
   settingsMinPlayers.addEventListener('input', readSettings);
   settingsMaxPlayers.addEventListener('input', readSettings);
   if (settingsNamesMode) settingsNamesMode.addEventListener('change', readSettings);
+  if (settingsLanguage) settingsLanguage.addEventListener('change', readSettings);
 
   // Populate theme select
   if (settingsTheme && window.GAME_THEMES) {
@@ -762,6 +764,7 @@ function renderSettings() {
   settingsMinPlayers.value = gameConfig.minPlayers || '';
   settingsMaxPlayers.value = gameConfig.maxPlayers || '';
   if (settingsNamesMode) settingsNamesMode.value = gameConfig.anonymous ? 'anonymous' : 'collect';
+  if (settingsLanguage) settingsLanguage.value = gameConfig.language || 'auto';
   headerGameName.textContent = gameConfig.name || 'Untitled Activity';
 
   // Theme
@@ -799,6 +802,13 @@ function readSettings() {
     gameConfig.anonymous = true;
   } else {
     delete gameConfig.anonymous;
+  }
+  // Language: store only an explicit pick; absent means auto-detect from
+  // the activity's own text (engine/i18n).
+  if (settingsLanguage && settingsLanguage.value && settingsLanguage.value !== 'auto') {
+    gameConfig.language = settingsLanguage.value;
+  } else {
+    delete gameConfig.language;
   }
   headerGameName.textContent = gameConfig.name;
 }

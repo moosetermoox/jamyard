@@ -86,6 +86,7 @@ import { claimRole, autoFillRoles, buildRoleOutput } from './engine/phases/role-
 import { applyCheck, groupProgress, checklistResults } from './engine/phases/checklist-state.js';
 import { playerChecklistView, teacherDetail } from './engine/phase-handlers/checklist.js';
 import { continueLabelForPhase, closeLabelFor } from './engine/phases/continue-labels.js';
+import { stringsFor } from './engine/i18n/index.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { buildActivityReport } from './engine/report.js';
@@ -1408,7 +1409,7 @@ function notifyTeachersClosed(code, room) {
     phaseId: phase.id,
     phaseType: phase.type,
     phaseInstanceId: room.phaseInstanceId,
-    continueLabel: continueLabelForPhase(phase, engine.config.phases),
+    continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language),
     closeLabel: null,
     closed: true
   });
@@ -1441,8 +1442,8 @@ function buildTeacherSnapshot(code, room) {
     snap.checklist = { items: ps.items, groups: teacherDetail(ps), solo: ps.solo };
   }
   if (engine && phase) {
-    snap.continueLabel = continueLabelForPhase(phase, engine.config.phases);
-    snap.closeLabel = closeLabelFor(phase.type);
+    snap.continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language);
+    snap.closeLabel = closeLabelFor(phase.type, engine.language);
     snap.closed = !!(ps && ps.closed);
     snap.players = engine.players.listPublic();
     snap.timer = phase.timer || null;
@@ -1609,10 +1610,10 @@ async function handlePhase(code, room) {
     phaseInstanceId: room.phaseInstanceId,
     // Lets the console's next-step button say what advancing DOES
     // ("Start the voting"), not a generic "Next step".
-    continueLabel: continueLabelForPhase(phase, engine.config.phases),
+    continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language),
     // Two-stage phases: while open, the console button CLOSES (results
     // show on the projector first), so it must say the close action.
-    closeLabel: closeLabelFor(phase.type),
+    closeLabel: closeLabelFor(phase.type, engine.language),
     // Lets the console decide whether "A bit more time" applies.
     timer: phase.timer || null
   });
@@ -1904,7 +1905,10 @@ app.get('/api/rooms/:code/info', (req, res) => {
   res.json({
     code,
     game: room.engine.config.name || null,
-    anonymous: !!room.engine.config.anonymous
+    anonymous: !!room.engine.config.anonymous,
+    // The join form's fixed labels speak the activity's language
+    language: room.engine.language,
+    strings: stringsFor(room.engine.language)
   });
 });
 
@@ -2561,6 +2565,7 @@ app.post('/api/games/revise', async (req, res) => {
     // restore it so recipe-born copies keep their Customize knobs.
     carryRecipeStamp(config, result.updatedConfig);
     carryAnonymousFlag(config, result.updatedConfig);
+    carryLanguage(config, result.updatedConfig);
     // Validate the AI's revised config; surface errors so the client can show them
     const structural = validate(result.updatedConfig, 'revise', { returnResults: true });
     res.json({ ...result, structural });
@@ -2584,10 +2589,17 @@ function carryAnonymousFlag(original, updated) {
   }
 }
 
+// Same again for the teacher's explicit language pick (editor Settings).
+function carryLanguage(original, updated) {
+  if (original && typeof original.language === 'string' && updated && updated.language === undefined) {
+    updated.language = original.language;
+  }
+}
+
 app.post('/api/games/chat', async (req, res) => {
   try {
     if (!requireRealAI(res)) return;
-    const { config, messages, focusPhaseId, classDescription } = req.body;
+    const { config, messages, focusPhaseId, classDescription, forceEdit } = req.body;
     if (!config || !config.phases) {
       return res.status(400).json({ error: 'Missing config or phases' });
     }
@@ -2602,7 +2614,8 @@ app.post('/api/games/chat', async (req, res) => {
       config,
       messages,
       focusPhaseId: typeof focusPhaseId === 'string' ? focusPhaseId : null,
-      classDescription: typeof classDescription === 'string' ? classDescription : ''
+      classDescription: typeof classDescription === 'string' ? classDescription : '',
+      forceEdit: forceEdit === true
     });
     if (result.kind !== 'proposal') {
       return res.json({ kind: 'chat', reply: result.reply });
@@ -2611,6 +2624,7 @@ app.post('/api/games/chat', async (req, res) => {
     // the AI drops, then validate so the client can gate Apply on errors.
     carryRecipeStamp(config, result.updatedConfig);
     carryAnonymousFlag(config, result.updatedConfig);
+    carryLanguage(config, result.updatedConfig);
     const structural = validate(result.updatedConfig, 'chat', { returnResults: true });
     res.json({
       kind: 'proposal',
@@ -2968,7 +2982,7 @@ io.on('connection', (socket) => {
       roomToHost.set(code, socket.id);
       socket.join(code);
       console.log(`[create-room] Room ${code} created by ${socket.id} (game: ${selectedGame})`);
-      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin, hostToken: room.hostToken });
+      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin, hostToken: room.hostToken, language: room.engine.language, strings: stringsFor(room.engine.language) });
     } catch (error) {
       console.log(`[create-room] Error loading game "${selectedGame}": ${error.message}`);
       socket.emit(EVENTS.CREATE_ROOM_ERROR, { message: error.message });
@@ -3103,7 +3117,8 @@ io.on('connection', (socket) => {
 
         const player = players.find(socket.id);
         const theme = room.engine ? (room.engine.config.theme || null) : null;
-        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom });
+        const language = room.engine ? room.engine.language : 'en';
+        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language) });
 
         const hostSocketId = roomToHost.get(code);
         if (hostSocketId) {
@@ -3136,7 +3151,8 @@ io.on('connection', (socket) => {
 
       console.log(`[join-room] Player ${socket.id} joined room ${code}`);
       const theme = room.engine ? (room.engine.config.theme || null) : null;
-      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom });
+      const language = room.engine ? room.engine.language : 'en';
+      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language) });
 
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {
@@ -3198,6 +3214,8 @@ io.on('connection', (socket) => {
       theme: config.theme || null,
       teacherPin: room.teacherPin,
       hostToken: room.hostToken,
+      language: room.engine.language,
+      strings: stringsFor(room.engine.language),
       restored: true
     });
     socket.emit(EVENTS.PLAYER_JOINED, { players: room.engine.players.listPublic() });

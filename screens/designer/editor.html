@@ -94,6 +94,19 @@
         </select>
         <span class="field-help">Anonymous: students join without giving a name and get a random play name like Amber Fox.</span>
       </div>
+      <div class="form-group">
+        <label for="game-language">Language</label>
+        <select id="game-language">
+          <option value="auto">Auto (match the activity's text)</option>
+          <option value="en">English</option>
+          <option value="es">Spanish (Español)</option>
+          <option value="fr">French (Français)</option>
+          <option value="de">German (Deutsch)</option>
+          <option value="pt">Portuguese (Português)</option>
+          <option value="it">Italian (Italiano)</option>
+        </select>
+        <span class="field-help">The fixed buttons students and the projector see (Submit, Show the message...) speak this language. Auto reads the activity's own text.</span>
+      </div>
       <!-- Theme picker removed from the sidebar 2026-08-31 (owner's call:
            not needed right now). The engine still honors config.theme on
            existing games; the guarded wiring in editor.js stays for an
@@ -132,8 +145,12 @@
         <span id="chat-context-label"></span>
         <button id="chat-context-clear" class="btn-icon" type="button" title="Stop talking about this step">&times;</button>
       </div>
+      <div id="chat-quick-row" hidden>
+        <button id="chat-just-do-it" class="btn btn-secondary" type="button" title="Done talking? Ask the AI to make every change you discussed, in one go">Just do it</button>
+        <span class="chat-quick-hint">make the changes we talked about</span>
+      </div>
       <div class="chat-input-row">
-        <textarea id="chat-input" rows="2" placeholder="Ask anything, or describe a change..."></textarea>
+        <textarea id="chat-input" rows="5" placeholder="Ask anything, or describe a change..."></textarea>
         <button id="chat-send" class="btn btn-primary" type="button">Send</button>
       </div>
     </aside>

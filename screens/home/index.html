@@ -584,6 +584,10 @@
 
     footer a:hover { color: var(--t-ink); }
 
+    /* The credit sits at the far end of the footer row, quieter than the doors */
+    .footer-credit { margin-left: auto; font-weight: 600; }
+    .footer-credit a { text-decoration: underline; text-underline-offset: 3px; }
+
     @media (max-width: 860px) {
       .page { padding: 20px 18px 16px; }
       .tagline { display: none; }
@@ -714,6 +718,7 @@
       <a href="/player">player screen</a>
       <a href="/teacher" title="Private controls for a running activity, join with the room code + PIN from the host screen">teacher console</a>
       <a href="/privacy" title="What we keep, why, and when it is deleted">privacy</a>
+      <span class="footer-credit">supported by <a href="https://assemblycode.org" target="_blank" rel="noopener" title="assemblycode.org supports this project">assemblycode.org</a></span>
     </footer>
 
   </div>

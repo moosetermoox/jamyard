@@ -663,9 +663,13 @@ window.addEventListener('message', (e) => {
     'wager-close-btn',
     'reveal-one-next-btn', 'reveal-one-continue-btn',
     'preview-approve-btn',
+    'match-close-btn', 'match-continue-btn',
+    'sort-close-btn', 'sort-continue-btn',
+    'checklist-close-btn', 'checklist-continue-btn',
     'continue-btn',
     'announce-continue-btn',
     'leaderboard-continue-btn',
+    'team-arrange-confirm-btn', 'team-choice-confirm-btn',
     'team-split-continue-btn',
     'elimination-continue-btn',
     'winner-end-btn',
@@ -678,13 +682,20 @@ window.addEventListener('message', (e) => {
       return;
     }
   }
-  // No visible button — fall back to a generic advance
+  // No visible button — fall back to a generic advance. The preview's
+  // fast-forward loop opts out (noFallback): it retries on its own tick
+  // and must never blow past an AI step that is still working.
+  if (e.data.noFallback) return;
   if (currentRoomCode) socket.emit('advance-phase', { code: currentRoomCode });
 });
 
-socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored }) => {
+socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored, language, strings }) => {
   currentRoomCode = code;
   currentTeacherPin = teacherPin || null;
+  // The projector's fixed labels (Start!, Close Voting...) in the
+  // activity's language; server-generated continue labels arrive already
+  // translated.
+  if (window.UiLang) { UiLang.set(language, strings); UiLang.apply(); }
   // Each code letter is its own painted block (Totem: 10a)
   roomCodeDisplay.textContent = '';
   for (let i = 0; i < String(code).length; i++) {
@@ -1000,7 +1011,7 @@ socket.on('show-results', ({ content, aiResult, responses, image, video, continu
   showSection(revealSection);
   if (J) J.sound('reveal');
   // The button says what happens next ("Start the voting"), not "Continue".
-  continueBtn.textContent = continueLabel || 'Continue';
+  continueBtn.textContent = continueLabel || UiLang.t('Continue');
   renderProjectorMessage(aiResultDisplay, content || aiResult);
   applyTemplate(revealSection, hostTemplate);
   applyImage(revealImage, image, hostShow);
@@ -1099,7 +1110,7 @@ function buildMessageBody(text, className) {
 
 socket.on('announce', ({ message, image, video, displayDrawing, timer, continueLabel, hostTemplate, hostShow }) => {
   showSection(announceSection);
-  announceContinueBtn.textContent = continueLabel || 'Continue';
+  announceContinueBtn.textContent = continueLabel || UiLang.t('Continue');
   renderProjectorMessage(announceMessage, message);
   applyTemplate(announceSection, hostTemplate);
   applyImage(announceImage, image, hostShow);

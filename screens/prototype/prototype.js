@@ -45,6 +45,7 @@ let railMap = null;
 let railSocket = null;
 let railPhaseId = null;
 let railPhaseType = null;
+let railInstance = 0; // phaseInstanceId: tells a repeat of the same step apart
 
 function showMapRail(gameId) {
   railMap = null;
@@ -60,12 +61,14 @@ function showMapRail(gameId) {
       mapRailHolder.textContent = '';
       mapRailHolder.appendChild(ActivityMap.render(map));
       mapRail.hidden = false;
+      wireRailClicks();
       updateRailHighlight();
     })
     .catch(() => { /* the rail is garnish, never block the preview */ });
 }
 
 function hideMapRail() {
+  hideSkipAsk();
   if (railSocket) { railSocket.disconnect(); railSocket = null; }
   railMap = null;
   railPhaseId = null;
@@ -84,13 +87,237 @@ function connectRail(code, pin) {
   railSocket.on('teacher-joined', snap => {
     railPhaseId = snap.phaseId;
     railPhaseType = snap.phaseType;
+    railInstance = snap.phaseInstanceId || 0;
     updateRailHighlight();
+    fastForwardCheck();
   });
   railSocket.on('teacher-phase', p => {
     railPhaseId = p.phaseId;
     railPhaseType = p.phaseType;
+    railInstance = p.phaseInstanceId || 0;
     updateRailHighlight();
+    fastForwardCheck();
   });
+}
+
+// --- Skip ahead: click a step on the map rail (or arrive with
+// ?goto=<phaseId>) and the room is played forward with the two moves a
+// teacher makes by hand (Bot Fill, then Skip) until the live "you are
+// here" reaches that step, then the teacher takes over. Skip only fires
+// when the step did NOT move on its own after the fill (all answers in
+// auto-advances many steps; skipping on top would jump PAST the target),
+// and it never uses the host's generic-advance fallback unless the room
+// has sat still for a while on a step that is not the AI's.
+let pendingGoto = null;
+let ff = null; // { targets, ticks, still, timer, skipTimer }
+const FF_TICK_MS = 1800;
+const FF_MAX_TICKS = 90;    // ~2.7 minutes, then hand back
+// Submits are async server-side (moderation ladder); give every bot answer
+// time to land before the close button is pressed on top of it.
+const FF_SKIP_DELAY_MS = 1400;
+const FF_STILL_TICKS = 6;   // ~11s without movement: allow the generic advance
+const benchHint = document.querySelector('#bench-bar .bench-hint');
+const benchHintDefault = benchHint ? benchHint.textContent : '';
+
+function setBenchHint(text, state) {
+  if (!benchHint) return;
+  benchHint.textContent = text;
+  benchHint.classList.toggle('bench-hint-busy', state === 'busy');
+  benchHint.classList.toggle('bench-hint-done', state === 'done');
+}
+
+// Is the live room on any of these phase ids? A round's inner step wears
+// a virtual id (_fe:<parent>:<sub>); the map names the parent, so
+// arriving inside the round counts.
+function phaseMatches(targets) {
+  if (!railPhaseId || !targets || !targets.length) return false;
+  for (const target of targets) {
+    if (railPhaseId === target) return true;
+    if (typeof railPhaseId === 'string' && railPhaseId.indexOf('_fe:' + target + ':') === 0) return true;
+  }
+  return false;
+}
+
+// Which map stop the live room is on: -1 before the first stop (lobby),
+// stops.length past the last (wrap up), or -2 when the map can't tell
+// (a side branch).
+function currentStopIndex() {
+  const stops = (railMap && Array.isArray(railMap.stops)) ? railMap.stops : [];
+  if (!railPhaseId || railPhaseType === 'lobby') return -1;
+  if (railPhaseType === 'end') return stops.length;
+  for (let i = 0; i < stops.length; i++) {
+    if (phaseMatches(stops[i].ids || [])) return i;
+  }
+  return -2;
+}
+
+// "Rounds" or the step's plain name, plus its excerpt when the map has one.
+function stepNameFor(phaseId) {
+  const stops = (railMap && Array.isArray(railMap.stops)) ? railMap.stops : [];
+  for (const stop of stops) {
+    if ((stop.ids || []).indexOf(phaseId) === -1) continue;
+    const names = window.PHASE_NAMES || {};
+    const base = stop.kind === 'rounds' ? 'Rounds' : (names[stop.type] || stop.type || phaseId);
+    return stop.detail ? base + ' (' + stop.detail + ')' : base;
+  }
+  return phaseId;
+}
+
+// --- The rail is clickable: a stop row asks before skipping ahead ---
+
+function railStopRows() {
+  return Array.from(mapRailHolder.querySelectorAll('.amap-row:not(.amap-startrow):not(.amap-endrow)'));
+}
+
+function wireRailClicks() {
+  const rows = railStopRows();
+  const stops = railMap.stops;
+  for (let i = 0; i < rows.length && i < stops.length; i++) {
+    const row = rows[i];
+    row.classList.add('amap-clickable');
+    row.title = 'Skip ahead to this step';
+    row.setAttribute('role', 'button');
+    row.tabIndex = 0;
+    row.addEventListener('click', () => askSkipTo(i));
+    row.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); askSkipTo(i); }
+    });
+  }
+}
+
+let skipAsk = null; // the one open "Skip ahead?" card
+
+function hideSkipAsk() {
+  if (skipAsk) { skipAsk.remove(); skipAsk = null; }
+}
+
+// A small card right under the clicked row: what will happen, and the
+// choice. Built with textContent (the excerpt is teacher content).
+function askSkipTo(index) {
+  hideSkipAsk();
+  const rows = railStopRows();
+  const stop = railMap && railMap.stops[index];
+  const row = rows[index];
+  if (!stop || !row) return;
+  const targets = stop.ids || [];
+  const here = currentStopIndex();
+  const name = 'step ' + (index + 1) + ', ' + stepNameFor(targets[0]);
+
+  const card = document.createElement('div');
+  card.className = 'rail-skip-ask';
+  const text = document.createElement('p');
+  text.className = 'rail-skip-text';
+  card.appendChild(text);
+  const btns = document.createElement('div');
+  btns.className = 'rail-skip-btns';
+  card.appendChild(btns);
+
+  const closeBtn = (label) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'rail-skip-cancel';
+    b.textContent = label;
+    b.addEventListener('click', (e) => { e.stopPropagation(); hideSkipAsk(); });
+    return b;
+  };
+
+  if (index === here) {
+    text.textContent = 'You are on this step now.';
+    btns.appendChild(closeBtn('OK'));
+  } else if (here !== -2 && index < here) {
+    text.textContent = 'That step already happened. Press Reset and preview again to see it.';
+    btns.appendChild(closeBtn('OK'));
+  } else {
+    text.textContent = 'Skip ahead to ' + name + '? Pretend students play through the steps in between.';
+    const go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'rail-skip-go';
+    go.textContent = 'Skip ahead';
+    go.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hideSkipAsk();
+      startFastForward(targets);
+    });
+    btns.appendChild(go);
+    btns.appendChild(closeBtn('Not now'));
+  }
+  card.addEventListener('click', (e) => e.stopPropagation());
+  row.insertAdjacentElement('afterend', card);
+  skipAsk = card;
+  const first = btns.querySelector('button');
+  if (first) first.focus();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && skipAsk) hideSkipAsk();
+});
+
+function fireBotFill() {
+  const playerIframes = iframeContainer.querySelectorAll('.player-panel iframe');
+  for (const iframe of playerIframes) {
+    iframe.contentWindow.postMessage({ type: 'bot-fill' }, '*');
+  }
+}
+
+function fireSkip(noFallback) {
+  const hostIframe = iframeContainer.querySelector('.host-panel iframe');
+  if (hostIframe) hostIframe.contentWindow.postMessage({ type: 'prototype-skip', noFallback: !!noFallback }, '*');
+}
+
+function startFastForward(targets) {
+  stopFastForward();
+  if (typeof targets === 'string') targets = [targets];
+  if (!targets || !targets.length) return;
+  ff = { targets, ticks: 0, still: 0, lastPos: null, timer: null, skipTimer: null };
+  document.body.classList.add('pt-fastforward');
+  setBenchHint('Skipping ahead to ' + stepNameFor(targets[0]) + ' with pretend students...', 'busy');
+  fastForwardTick();
+  ff.timer = setInterval(fastForwardTick, FF_TICK_MS);
+}
+
+function stopFastForward() {
+  if (!ff) return;
+  clearInterval(ff.timer);
+  clearTimeout(ff.skipTimer);
+  ff = null;
+  document.body.classList.remove('pt-fastforward');
+}
+
+// Called on every live phase change: arriving mid-tick must cancel a
+// queued Skip before it fires.
+function fastForwardCheck() {
+  if (!ff) return;
+  if (phaseMatches(ff.targets)) fastForwardArrive();
+}
+
+function fastForwardArrive() {
+  const name = stepNameFor(ff.targets[0]);
+  stopFastForward();
+  setBenchHint('Here it is: ' + name + '. You play the students from here.', 'done');
+}
+
+function fastForwardGiveUp(reason) {
+  stopFastForward();
+  setBenchHint(reason + ' Use Bot Fill and Skip to walk there.', 'done');
+}
+
+function fastForwardTick() {
+  if (!ff) return;
+  if (phaseMatches(ff.targets)) { fastForwardArrive(); return; }
+  if (railPhaseType === 'end') { fastForwardGiveUp('The activity ended before reaching that step.'); return; }
+  if (++ff.ticks > FF_MAX_TICKS) { fastForwardGiveUp('Could not reach that step automatically.'); return; }
+  const pos = railPhaseId + '|' + railInstance;
+  ff.still = pos === ff.lastPos ? ff.still + 1 : 0;
+  ff.lastPos = pos;
+  // The AI's own step is never pushed; it finishes when it finishes.
+  const allowFallback = ff.still >= FF_STILL_TICKS && railPhaseType !== 'ai-process' && railPhaseType !== 'ai-eliminate';
+  fireBotFill();
+  ff.skipTimer = setTimeout(() => {
+    if (!ff) return;
+    if (phaseMatches(ff.targets)) { fastForwardArrive(); return; }
+    if (railPhaseId + '|' + railInstance !== pos) return; // it moved on its own
+    fireSkip(!allowFallback);
+  }, FF_SKIP_DELAY_MS);
 }
 
 function updateRailHighlight() {
@@ -222,6 +449,10 @@ fetch('/api/games')
       if (match) {
         gameSelect.value = autoGame;
         updateEditLink();
+        // ?goto=<phaseId> deep link: play forward to that step once the
+        // room is up (only for this first, automatic launch).
+        const gotoStep = params.get('goto');
+        if (gotoStep) pendingGoto = gotoStep;
         // Arrived via a Preview button with the activity chosen — launch
         // right away instead of showing a blank stage (usability test
         // 2026-08-01: the empty page read as broken).
@@ -298,6 +529,10 @@ launchBtn.addEventListener('click', () => {
       // The map rail: draw the plan, then follow the live room.
       showMapRail(gameId);
       connectRail(e.data.code, e.data.teacherPin);
+      if (pendingGoto) {
+        startFastForward(pendingGoto);
+        pendingGoto = null;
+      }
     }
   });
 });
@@ -363,12 +598,7 @@ function refreshAddSlot() {
 // section, so bot-fill never bleeds into the next phase (which would auto-skip
 // e.g. the vote phase before the user can see it).
 botFillBtn.addEventListener('click', () => {
-  const fire = () => {
-    const playerIframes = iframeContainer.querySelectorAll('.player-panel iframe');
-    for (const iframe of playerIframes) {
-      iframe.contentWindow.postMessage({ type: 'bot-fill' }, '*');
-    }
-  };
+  const fire = fireBotFill;
   const isHostInRelay = () => {
     const hostIframe = iframeContainer.querySelector('.host-panel iframe');
     if (!hostIframe) return false;
@@ -397,12 +627,15 @@ botFillBtn.addEventListener('click', () => {
 
 // Skip — tell host iframe to advance the current phase / close submissions / continue
 skipBtn.addEventListener('click', () => {
-  const hostIframe = iframeContainer.querySelector('.host-panel iframe');
-  if (hostIframe) hostIframe.contentWindow.postMessage({ type: 'prototype-skip' }, '*');
+  // A hand on the controls ends the fast-forward; the teacher is driving.
+  if (ff) { stopFastForward(); setBenchHint(benchHintDefault); }
+  fireSkip(false);
 });
 
 // Reset — tear down the pieces and put the empty bench back on the stage
 resetBtn.addEventListener('click', () => {
+  stopFastForward();
+  setBenchHint(benchHintDefault);
   iframeContainer.innerHTML = '';
   iframeContainer.removeAttribute('data-players');
   if (prelaunchStage) iframeContainer.appendChild(prelaunchStage);
