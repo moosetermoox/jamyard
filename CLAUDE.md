@@ -31,7 +31,7 @@ Framework for quickly building classroom games where:
 - Socket.io for real-time communication
 - Vanilla HTML/CSS/JS for screens (no React); editor code uses `var` — match that style
 - Vitest for testing
-- Claude API for AI (Haiku for simple tasks, Sonnet for judgment); mock mode without API key
+- Claude API for AI (Haiku 4.5 for simple tasks, Sonnet 5 at medium effort for judgment; the per-model policy lives in AIService._callClaude, and Sonnet 5 rejects sampling params and prefills); mock mode without API key
 - Neon Postgres for persistence (user games/recipes, snapshots, feedback, featured overrides, AI usage); filesystem fallback when `DATABASE_URL` unset
 - Deployed on Render; CI deploys on green only
 

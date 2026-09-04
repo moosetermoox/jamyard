@@ -27,12 +27,12 @@ The AI should never directly decide eliminations or scores via unstructured text
 
 | Task Type | Recommended Model | Reasoning |
 |-----------|------------------|-----------|
-| `summarize` | claude-3-haiku-20240307 | Simple aggregation, speed matters |
-| `generate` | claude-3-haiku-20240307 | Creative but straightforward |
-| `generate-choices` | claude-sonnet-4-20250514 | Needs accuracy for correct answers |
-| `compare` | claude-sonnet-4-20250514 | Semantic understanding is critical |
-| `rank` | claude-sonnet-4-20250514 | Fair judgment requires nuance |
-| `judge` | claude-sonnet-4-20250514 | Final decision needs best reasoning |
+| `summarize` | claude-haiku-4-5 | Simple aggregation, speed matters |
+| `generate` | claude-haiku-4-5 | Creative but straightforward |
+| `generate-choices` | claude-sonnet-5 | Needs accuracy for correct answers |
+| `compare` | claude-sonnet-5 | Semantic understanding is critical |
+| `rank` | claude-sonnet-5 | Fair judgment requires nuance |
+| `judge` | claude-sonnet-5 | Final decision needs best reasoning |
 
 **Notes:**
 1. **Override in config**: Model can be specified per `ai-process` phase in game config if needed (e.g., use Sonnet for a particularly important poem)
@@ -634,12 +634,12 @@ The AIService should select the model based on task type:
 
 ```javascript
 const TASK_MODELS = {
-  summarize: 'claude-3-haiku-20240307',
-  generate: 'claude-3-haiku-20240307',
-  'generate-choices': 'claude-sonnet-4-20250514',
-  compare: 'claude-sonnet-4-20250514',
-  rank: 'claude-sonnet-4-20250514',
-  judge: 'claude-sonnet-4-20250514'
+  summarize: 'claude-haiku-4-5',
+  generate: 'claude-haiku-4-5',
+  'generate-choices': 'claude-sonnet-5',
+  compare: 'claude-sonnet-5',
+  rank: 'claude-sonnet-5',
+  judge: 'claude-sonnet-5'
 };
 
 function getModelForTask(taskType, configOverride = null) {
@@ -648,7 +648,7 @@ function getModelForTask(taskType, configOverride = null) {
     return configOverride;
   }
   // Fall back to recommended model for task type
-  return TASK_MODELS[taskType] || 'claude-3-haiku-20240307';
+  return TASK_MODELS[taskType] || 'claude-haiku-4-5';
 }
 ```
 
@@ -658,7 +658,7 @@ In the `ai-process` phase config, model can be overridden:
 {
   "type": "ai-process",
   "task": "generate",
-  "model": "claude-sonnet-4-20250514",
+  "model": "claude-sonnet-5",
   "instruction": "Write an epic poem worthy of Homer",
   "input": "collect.responses",
   "next": "reveal"
