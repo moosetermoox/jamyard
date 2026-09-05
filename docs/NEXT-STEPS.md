@@ -35,7 +35,23 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-09-02, rolling start shipped)
+### START HERE next session (updated 2026-09-04 evening, small-fixes list shipped, video rig paused)
+
+**2026-09-04 evening, commit `d83e85f` (pushed, CI deploys on green; CHANGELOG entry "owner's list of smaller fixes").** Doodle Bluff's one-title ballot was a submit/close RACE (moderation-ladder await), fixed by `engine/pending-submits.js`; Trivia Bluff got one shared ballot per step, a no-numbers rule for bluff facts (recipe + prepared-facts prompt, config recompiled), and a design chat that writes questions when asked; the Next button reads the announce it will show; the simulator has a three-line first-run card. 1605 tests. Follow-ups to watch:
+1. Play Trivia Bluff live for a few rounds: are the AI facts now word-shaped and obscure? If numbers still slip through, tighten the recipe instruction (drift guard: recompile `games/trivia-bluff/config.json` after).
+2. Ask the design chat for new questions on a Trivia Bluff copy: it should propose an edit, not offer to brainstorm. If the Sonnet revise mangles the live-round steps, the fix is a recipe-aware path (switch `questionSource` to prepared and recompile) instead of free-form phase edits.
+3. The first-run card is only seen headless; check it on a laptop screen once, then decide whether the yard's "See it in the simulator" door needs anything more.
+4. The Next-button context labels are heuristics on the announce text (`announceLabel` in engine/phases/continue-labels.js); collect wrong ones from real activities and add cases.
+
+**The one-minute video (2026-09-03, CHANGELOG entry "the one-minute video rig").** First cut `jamyard-one-minute-v3.mp4` (69s) is in the owner's Videos folder; the rig is `scripts/video/` (README there), UNCOMMITTED at pause. Owner's verdict: keep going, but **music is required and the voice must be better** than OpenAI `gpt-4o-mini-tts` "coral". Resume order:
+1. Voice: try OpenAI's other voices (`ash`, `ballad`, `sage`, `verse`) with stronger `instructions` in `script.json`, or an ElevenLabs account (needs a key; add a provider switch in `narrate.js`). Render each candidate's hook line only and let the owner pick by ear before doing all beats.
+2. Music: owner picks a track (YouTube Audio Library), pass it as the 4th arg to `assemble.js` (mixed at 0.14, faded). Consider ducking under the voice (sidechaincompress) once a track exists.
+3. Trim toward 60s (drop the "two clicks" beat or shorten lines; `VOICE_LEAD`/`TAIL` in assemble.js).
+4. Wording pass on `script.json` with the owner; `narrate.js --reuse` re-speaks only changed beats, no re-recording needed.
+5. Then upload unlisted to YouTube and set GUIDE_VIDEO_ID (screens/guide/index.html); this also closes item 2 of the 2026-09-02 list below.
+Recording recipe: `PORT=3005 node server.js`, flip `featured` on games/exquisite-corpse/config.json for the take only, `SIM_SERVER=http://localhost:3005 node scripts/video/record.js <freshDir>`, revert the flag. Whether to feature Exquisite Corpse for real is still the owner's call (the video implies it is in the yard).
+
+### Previous START HERE (2026-09-02, rolling start shipped)
 
 **2026-09-02 in three commits** (all pushed, CI deploys on green): `9929635` chat bigger + Just do it, preview map-rail skip-ahead, activity language (engine/i18n), assemblycode.org credit, guide says yard; `c55c945` class picker inside Make it yours (questions refresh on picks), slim yard strip, home declutter, guide folded + video slot; `b08bbb8` rolling start primitive + Exit Ticket / Live Poll / Solo Quiz (phase #30), live report for the open step, doorway card. 1574 tests.
 
