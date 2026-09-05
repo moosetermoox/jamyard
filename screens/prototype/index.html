@@ -13,6 +13,7 @@
   <div id="control-bar">
     <a href="/library" id="back-link">&larr; The yard</a>
     <h1>Simulator</h1>
+    <button id="sim-help-btn" class="sim-help" type="button" title="What the simulator is and how to use it" aria-label="How the simulator works">?</button>
     <div class="controls">
       <label for="game-select">Activity:</label>
       <select id="game-select">
@@ -86,6 +87,21 @@
     <span class="bench-hint">You play all the students. Stuck or done typing?</span>
     <button id="bot-fill-btn" title="Auto-fill an answer for every practice player so you can move through the steps quickly">Bot Fill<span class="bench-sub">answers for everyone</span></button>
     <button id="skip-btn" title="Skip the current step's timer / close submissions / continue">Skip timer<span class="bench-sub">move things along</span></button>
+  </div>
+
+  <!-- First-run card: what the simulator is, in three lines. Shown once,
+       right after the first Launch (so Bot Fill and Skip timer are on
+       screen when it names them); the ? in the top bar brings it back. -->
+  <div id="sim-intro" hidden>
+    <div class="sim-intro-card" role="dialog" aria-modal="true" aria-labelledby="sim-intro-title" aria-describedby="sim-intro-list">
+      <h2 id="sim-intro-title">You play the whole class</h2>
+      <ul id="sim-intro-list">
+        <li><strong>Teacher screen</strong> on the left, pretend students on the right.</li>
+        <li><strong>Bot Fill</strong> answers for every student.</li>
+        <li><strong>Skip timer</strong> moves to the next step.</li>
+      </ul>
+      <button id="sim-intro-ok" type="button">Got it</button>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

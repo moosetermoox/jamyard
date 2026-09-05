@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1579 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1605 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **30 phase types**, **26 built-in recipes**, ~33 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -73,6 +73,8 @@ Framework for quickly building classroom games where:
 ## Gotchas & Patterns
 - **CSS display value overrides the `hidden` attribute** — any styled-display element toggled via `.hidden` needs a `[hidden]{display:none}` override in the same stylesheet (bitten 3+ times).
 - **Close/* handlers must kind-guard `room.phaseState` AND be idempotent** — all-inputs-in auto-advance races a late host click.
+- **A Close must wait for in-flight submissions** (`engine/pending-submits.js`, 2026-09-04): submit-response awaits the moderation ladder, so a teacher's Close can land while the last answers are mid-flight; close-submissions settles the holds first, then re-checks the phase. Any new async gap in a submit handler takes a hold; any new gather-and-advance path settles them. (Doodle Bluff's "only one title to pick" was a rotation dealt from a short list.)
+- **Multiple-choice ballots are ONE list per step** (`buildSharedBallot` in collect-choice.js): sample + shuffle once, stored on `room.phaseState.ballot`; a student's own fake is removed from their copy only. Never shuffle per player.
 - **New gameplay socket handlers**: `checkEventPayload` + `isStalePhaseEvent` + `recordEvent`; every handler runs in a try/catch wrapper.
 - **New phaseState containing player ids** gets reconnect id-migration free via the deep walker (`engine/id-migration.js`); **new closers** must be reachable from the `advance-phase` routing switch.
 - **New transition-bearing fields wire in SIX places**: state-machine graph, validator ref-existence, BFS+cycle (server AND client), recipe drop-rewiring, editor delete-relink.

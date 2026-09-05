@@ -252,6 +252,42 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && skipAsk) hideSkipAsk();
 });
 
+// --- First-run card: what the simulator is, in three lines. Shown once
+// (remembered in localStorage), after the first Launch so Bot Fill and
+// Skip timer are on screen when the card names them. The ? button in the
+// top bar brings it back any time.
+const SIM_INTRO_KEY = 'jamyard-sim-intro-seen';
+const simIntro = document.getElementById('sim-intro');
+const simIntroOk = document.getElementById('sim-intro-ok');
+const simHelpBtn = document.getElementById('sim-help-btn');
+
+function simIntroSeen() {
+  try { return localStorage.getItem(SIM_INTRO_KEY) === '1'; } catch (err) { return true; }
+}
+
+function showSimIntro() {
+  if (!simIntro) return;
+  simIntro.hidden = false;
+  if (simIntroOk) simIntroOk.focus();
+}
+
+function hideSimIntro() {
+  if (!simIntro || simIntro.hidden) return;
+  simIntro.hidden = true;
+  try { localStorage.setItem(SIM_INTRO_KEY, '1'); } catch (err) { /* private mode: it shows again next time */ }
+}
+
+function maybeShowSimIntro() {
+  if (!simIntroSeen()) showSimIntro();
+}
+
+if (simIntroOk) simIntroOk.addEventListener('click', hideSimIntro);
+if (simIntro) simIntro.addEventListener('click', (e) => { if (e.target === simIntro) hideSimIntro(); });
+if (simHelpBtn) simHelpBtn.addEventListener('click', showSimIntro);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && simIntro && !simIntro.hidden) hideSimIntro();
+});
+
 function fireBotFill() {
   const playerIframes = iframeContainer.querySelectorAll('.player-panel iframe');
   for (const iframe of playerIframes) {
@@ -523,6 +559,9 @@ launchBtn.addEventListener('click', () => {
       benchBar.hidden = false;
       resetBtn.hidden = false;
       viewToggle.hidden = false;
+      // First visit: the three-line card, now that the pieces it names
+      // (teacher screen, Bot Fill, Skip timer) are on screen.
+      maybeShowSimIntro();
       // Apply the current view to the fresh panels (carousel by default;
       // without this the new grid always starts as a grid).
       setViewMode(viewMode);

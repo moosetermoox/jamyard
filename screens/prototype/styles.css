@@ -503,6 +503,77 @@ body.pt-running #host-btn {
 .rail-skip-go { background: #1BA9C4; color: var(--t-paper); }
 .rail-skip-cancel { background: var(--t-paper); color: var(--t-ink); box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25), 0 0 0 1px rgba(50, 35, 15, 0.18); }
 
+/* The ? in the top bar: brings the first-run card back */
+.sim-help {
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  background: var(--t-paper);
+  color: var(--t-ink);
+  box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.25);
+}
+.sim-help:hover { background: #1BA9C4; color: var(--t-paper); }
+
+/* First-run card: the simulator in three lines (shown once, ? brings it back) */
+#sim-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 10000; /* above the carousel arrows and dots (9999) */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(50, 35, 15, 0.28);
+}
+#sim-intro[hidden] { display: none; }
+
+.sim-intro-card {
+  width: min(380px, calc(100vw - 32px));
+  padding: 20px 22px 18px;
+  background: var(--t-paper);
+  color: var(--t-ink);
+  box-shadow: 0 6px 18px rgba(50, 35, 15, 0.3), 0 0 0 1px rgba(50, 35, 15, 0.14);
+  transform: rotate(-0.6deg);
+}
+
+.sim-intro-card h2 {
+  margin: 0 0 12px;
+  font-family: var(--t-display);
+  font-size: 1.25rem;
+  letter-spacing: 0.02em;
+}
+
+.sim-intro-card ul {
+  margin: 0 0 16px;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.sim-intro-card li strong { font-weight: 800; }
+
+#sim-intro-ok {
+  border: none;
+  padding: 9px 16px;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: #1BA9C4;
+  color: var(--t-paper);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+}
+
 @media (max-width: 900px) {
   #map-rail { display: none; }
 }

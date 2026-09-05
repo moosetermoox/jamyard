@@ -80,4 +80,54 @@ describe('continueLabelForPhase', () => {
       expect(continueLabelForPhase(backToBack.q1, backToBack)).toBe('Next question');
     });
   });
+
+  // An announce step is often a reveal or a round intro; the button reads
+  // the message it is about to show instead of a flat "Show the message"
+  // (Trivia Bluff field test, 2026-09-04).
+  describe('announce context labels', () => {
+    const bluff = {
+      lobby: { type: 'lobby', next: 'intro' },
+      intro: { type: 'announce', message: 'TRIVIA BLUFF!\n\nWrite believable lies.', next: 'show1' },
+      show1: { type: 'announce', message: 'Round 1 of 3\n\nCategory: Food\n\nThe ___ is banned in Singapore.', next: 'lies1' },
+      lies1: { type: 'collect', prompt: 'Lie', next: 'vote1' },
+      vote1: { type: 'collect-choice', choices: ['a', 'b'], next: 'reveal1' },
+      reveal1: { type: 'announce', message: 'The truth was: {{fact1.result.truth}}!\n\n{{vote1.barChart}}', next: 'show2' },
+      show2: { type: 'announce', message: 'Round 2 of 3\n\nCategory: Animals', next: 'lies2' },
+      lies2: { type: 'collect', prompt: 'Lie', next: 'doodle' },
+      doodle: { type: 'announce', message: 'The real title:\n{{_current.assigned}}\n\nDrawn by {{_current.playerName}}.', drawingFrom: '_current.drawing', next: 'clip' },
+      clip: { type: 'announce', message: 'Watch this.', video: 'https://youtu.be/x', next: 'pic' },
+      pic: { type: 'announce', message: 'Look closely.', image: 'photo.png', next: 'bye' },
+      bye: { type: 'announce', message: 'Thanks for playing!', next: 'end' },
+      end: { type: 'end' }
+    };
+
+    it('a plain message keeps Show the message', () => {
+      expect(continueLabelForPhase(bluff.pic, bluff)).toBe('Show the message');
+    });
+
+    it('a round intro says Start the first round, then Start the next round', () => {
+      expect(continueLabelForPhase(bluff.intro, bluff)).toBe('Start the first round');
+      expect(continueLabelForPhase(bluff.reveal1, bluff)).toBe('Start the next round');
+    });
+
+    it('a truth or bar-chart reveal says Reveal the answer', () => {
+      expect(continueLabelForPhase(bluff.vote1, bluff)).toBe('Reveal the answer');
+      expect(continueLabelForPhase(bluff.lies2, bluff)).toBe('Reveal the answer');
+    });
+
+    it('a video says Play the video and a picture says Show the picture', () => {
+      expect(continueLabelForPhase(bluff.doodle, bluff)).toBe('Play the video');
+      expect(continueLabelForPhase(bluff.clip, bluff)).toBe('Show the picture');
+    });
+
+    it('translates the context labels into the activity language', () => {
+      expect(continueLabelForPhase(bluff.vote1, bluff, 'es')).toBe('Revelar la respuesta');
+      expect(continueLabelForPhase(bluff.reveal1, bluff, 'fr')).toBe('Lancer la manche suivante');
+    });
+
+    it('the teacher-typed label still wins', () => {
+      const custom = { type: 'collect-choice', next: 'reveal1', continueLabel: 'Drumroll' };
+      expect(continueLabelForPhase(custom, bluff)).toBe('Drumroll');
+    });
+  });
 });

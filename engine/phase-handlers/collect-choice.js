@@ -126,6 +126,27 @@ function shuffled(arr) {
   return a;
 }
 
+/**
+ * ONE ballot for the whole room. The poolLimit sample and the shuffle
+ * happen once per phase, not once per student, so everyone sees the same
+ * options in the same order (students compare screens; per-player shuffles
+ * read as "we got different questions", Trivia Bluff field report
+ * 2026-09-04). A student's own fake is removed from THEIR copy only
+ * (`ballotFor`), which keeps the shared order intact. The ballot is kept
+ * on room.phaseState so a reconnecting student gets the same one.
+ */
+export function buildSharedBallot(baseChoices, phase) {
+  const capped = capBallot(baseChoices, phase.poolLimit, baseChoices._literalKeys);
+  const wantShuffle = !!phase.shuffle || Array.isArray(phase.choicePool);
+  return wantShuffle ? shuffled(capped) : [...capped];
+}
+
+export function ballotFor(ballot, playerId, authorMap) {
+  if (!authorMap || !authorMap[playerId]) return ballot;
+  const own = authorMap[playerId];
+  return ballot.filter(c => c.toLowerCase() !== own);
+}
+
 registerHandler('collect-choice', {
   async onEnter(ctx) {
     const { phase, engine } = ctx;
@@ -142,10 +163,11 @@ registerHandler('collect-choice', {
     // Build the choice pool. choicePool/choices are unified through one helper.
     const baseChoices = buildChoicePool(phase, ctx);
     const authorMap = buildAuthorMap(phase, engine);
-    const wantShuffle = !!phase.shuffle || Array.isArray(phase.choicePool);
+    // The room's one ballot (sampled + shuffled once, see buildSharedBallot).
+    const ballot = buildSharedBallot(baseChoices, phase);
 
-    // Choices sent to host: full pool (host sees everything, deterministic order)
-    const hostChoices = baseChoices;
+    // Choices sent to host: the same ballot, same order, as the students.
+    const hostChoices = ballot;
 
     // Clear previous responses (and any prior timing)
     for (const p of engine.players.list()) {
@@ -154,9 +176,11 @@ registerHandler('collect-choice', {
 
     // Record phase-start timestamp on the room's phaseState so the
     // submit-response handler can compute per-player elapsed time when
-    // this is a graded (speed-bonus) question.
+    // this is a graded (speed-bonus) question. The ballot rides along so
+    // a reconnect hands back the same options in the same order.
     ctx.room.phaseState = ctx.room.phaseState || {};
     ctx.room.phaseState.phaseStartAt = Date.now();
+    ctx.room.phaseState.ballot = ballot;
 
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
     const video = ctx.services.resolveVideoEmbed(phase.video);
@@ -181,16 +205,9 @@ registerHandler('collect-choice', {
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 
-    // Per-player choices: filter out their authored entry, cap the ballot
-    // if poolLimit is set, then shuffle if requested.
+    // Per-player choices: the shared ballot minus their own authored entry.
     function choicesFor(playerId) {
-      let list = baseChoices;
-      if (authorMap && authorMap[playerId]) {
-        const own = authorMap[playerId];
-        list = list.filter(c => c.toLowerCase() !== own);
-      }
-      list = capBallot(list, phase.poolLimit, baseChoices._literalKeys);
-      return wantShuffle ? shuffled(list) : list;
+      return ballotFor(ballot, playerId, authorMap);
     }
 
     // Send to eligible players (excluding author if self-exclude)
@@ -230,17 +247,13 @@ registerHandler('collect-choice', {
         socket.emit(EVENTS.WAITING, { message: 'Answer submitted. Waiting for others...' });
       }
     } else {
-      const baseChoices = buildChoicePool(ctx.phase, ctx);
+      // The room's shared ballot (same options, same order as everyone
+      // else). A room restored from a snapshot without one rebuilds it.
+      const stored = ctx.room && ctx.room.phaseState && Array.isArray(ctx.room.phaseState.ballot)
+        ? ctx.room.phaseState.ballot : null;
+      const ballot = stored || buildSharedBallot(buildChoicePool(ctx.phase, ctx), ctx.phase);
       const authorMap = buildAuthorMap(ctx.phase, ctx.engine);
-      let choices = baseChoices;
-      if (authorMap && authorMap[socket.id]) {
-        const own = authorMap[socket.id];
-        choices = choices.filter(c => c.toLowerCase() !== own);
-      }
-      // Re-shuffle (and re-sample under poolLimit) on reconnect — same player
-      // same ballot would be nice, but a fresh draw is acceptable here.
-      choices = capBallot(choices, ctx.phase.poolLimit, baseChoices._literalKeys);
-      if (ctx.phase.shuffle || Array.isArray(ctx.phase.choicePool)) choices = shuffled(choices);
+      const choices = ballotFor(ballot, socket.id, authorMap);
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, socket.id);
       const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
       const video = ctx.services.resolveVideoEmbed(ctx.phase.video);

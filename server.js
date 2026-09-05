@@ -14,6 +14,7 @@ import { normalizeConfig } from './engine/normalizer.js';
 import { PHASE_SCHEMAS, getFields, getTopLevelOnlyFieldNames } from './engine/phase-schemas.js';
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
 import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
+import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submits.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
@@ -3456,13 +3457,24 @@ io.on('connection', (socket) => {
       // guard and player lookup run AGAIN after it (the phase may have
       // closed, or the student reconnected, while we waited).
       let flaggedCategory = null;
+      // Held for the length of the moderation await so a Close that lands
+      // in the gap waits for this answer (engine/pending-submits.js).
+      // Released after the store, or on every early exit.
+      let releaseHold = null;
       const modText = responseToText(response);
       if (moderationLadder.enabled && !room.simulated &&
           currentPhase && currentPhase.type === 'collect' && modText.trim()) {
         const rosterNames = players.list().map(p => p.name);
-        const verdict = await moderationLadder.check(modText, { rosterNames });
-        if (isStalePhaseEvent(room, phaseInstanceId, 'submit-response')) return;
-        if (!players.find(socket.id)) return;
+        releaseHold = holdPendingSubmit(room);
+        let verdict;
+        try {
+          verdict = await moderationLadder.check(modText, { rosterNames });
+        } catch (err) {
+          releaseHold();
+          throw err;
+        }
+        if (isStalePhaseEvent(room, phaseInstanceId, 'submit-response')) { releaseHold(); return; }
+        if (!players.find(socket.id)) { releaseHold(); return; }
         if (verdict.action === 'reject') {
           console.log(`[submit-response] Rejected by moderation ladder (${verdict.rung}: ${verdict.category || '?'}) from ${socket.id}`);
           recordEvent(room, 'submit-rejected', { player: player.name, reason: 'moderation' });
@@ -3470,6 +3482,7 @@ io.on('connection', (socket) => {
             reason: 'moderation',
             message: 'That message can\'t go to the class. Reword it and try again.'
           });
+          releaseHold();
           return;
         }
         if (verdict.action === 'flag') {
@@ -3495,6 +3508,7 @@ io.on('connection', (socket) => {
       players.update(socket.id, { response: storedResponse, responseAt: Date.now(), responseFlagged: flaggedCategory });
       console.log(`[submit-response] Stored response from ${socket.id}`);
       recordEvent(room, 'submit-response', { player: player.name });
+      if (releaseHold) releaseHold();
     }
 
     // Count based on eligible players for current collect phase
@@ -3669,6 +3683,20 @@ io.on('connection', (socket) => {
     if (!currentPhase || (currentPhase.type !== 'collect' && currentPhase.type !== 'collect-choice')) {
       console.log(`[close-submissions] Ignored — current phase is ${currentPhase ? currentPhase.type : 'unknown'}`);
       return;
+    }
+    // Answers still inside the moderation ladder land first, so the gather
+    // below sees every student who pressed Submit before the teacher
+    // pressed Close (engine/pending-submits.js). The step is re-checked
+    // after the wait: a second Close or a timer may have moved the room on.
+    const instanceBefore = room.phaseInstanceId;
+    const waited = await settlePendingSubmits(room);
+    if (waited > 0) {
+      const still = room.engine && room.engine.getCurrentPhase();
+      if (!still || still.id !== currentPhase.id || room.phaseInstanceId !== instanceBefore) {
+        console.log(`[close-submissions] Ignored — room moved on while ${waited} submission(s) settled`);
+        return;
+      }
+      console.log(`[close-submissions] Waited for ${waited} in-flight submission(s) in room ${code}`);
     }
     recordEvent(room, 'close-submissions');
 

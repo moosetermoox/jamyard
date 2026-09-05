@@ -534,6 +534,8 @@ Decide ONE of two actions:
 
 Only choose "edit" for a clear, concrete request. Questions and "what if" talk are "answer". Never choose "edit" just because a change was mentioned as a possibility.
 
+YOU CAN CHANGE THE ACTIVITY, and writing content for it counts as a change: new questions, trivia facts, prompts, answer choices, item lists, a different intro or closing message. When the teacher asks you to write, add, replace, or generate any of these, choose "edit" and put the finished content in the editRequest yourself (the full questions with their answers, the exact prompt wording), so the editing AI only has to place it. Match the content to the teacher's class when they described one. Never tell the teacher you can only brainstorm or suggest, and never send them somewhere else to make the change. If the activity currently has the AI invent that content live during the game (a step that generates a fact or question each round), a request for specific questions means: replace that live generation with the teacher's list, and say so in the editRequest.
+
 WRITING RULES:
 - Plain, everyday language. No technical jargon. NEVER write {{anything}}, backticks, or config field names.
 - Talk about "steps", not phases or JSON.
@@ -620,7 +622,24 @@ export function summarizeConfigForChat(config) {
   if (config.minPlayers || config.maxPlayers) {
     lines.push(`Players: ${config.minPlayers || '?'}-${config.maxPlayers || '?'}`);
   }
-  if (config.recipe && config.recipe.id) lines.push(`Built from the "${config.recipe.id}" recipe.`);
+  if (config.recipe && config.recipe.id) {
+    lines.push(`Built from the "${config.recipe.id}" recipe.`);
+    // The recipe's settings, in plain words, so the chat knows how the
+    // activity is currently configured (a trivia game whose facts the AI
+    // finds live has no question list to edit until it is switched).
+    const params = config.recipe.params;
+    if (params && typeof params === 'object') {
+      for (const [key, value] of Object.entries(params)) {
+        if (Array.isArray(value)) {
+          lines.push(`Recipe setting ${key}: ${value.length === 0 ? 'none' : value.length + ' item(s)'}`);
+        } else if (value !== null && typeof value === 'object') {
+          continue;
+        } else {
+          lines.push(`Recipe setting ${key}: ${truncateForSummary(String(value), 80)}`);
+        }
+      }
+    }
+  }
   lines.push('Steps in order:');
 
   const phases = config.phases || {};
@@ -1357,7 +1376,8 @@ Rules:
 - Facts must be REAL and verifiable, only write what you are certain of. The teacher reviews and can edit every fact before anything is built.
 - Each fact is one sentence with the blank shown as ___ (e.g. "The mayor of Rabbit Hash, Kentucky is a ___."). Keep it specific.
 - "truth" is the real word or short phrase that fills the blank. Pick facts where the truth is genuinely surprising, so student lies can compete with it.
-- "houseLie" is one believable but wrong alternative to mix in with student lies. It must NOT equal the truth.
+- The blank is a WORD or SHORT PHRASE (a thing, a creature, a job, a place, a food, the name of something), never a number, year, date, age, count, or measurement. Numbers make dull bluffs, and a sentence that mentions two dates has already handed over the answer ("performed the role for ___ years from 1955 until 1990" is arithmetic, not trivia). No clues in the sentence that let a student work out the answer, and nothing so famous that the room already knows it.
+- "houseLie" is one believable but wrong alternative of the same kind as the truth, to mix in with student lies. It must NOT equal the truth.
 - Vary the angle from fact to fact so no two feel alike.
 - Keep everything short enough to read off a projector in seconds.
 - No politics, no sensitive topics. Never include student names. Do not use emojis.

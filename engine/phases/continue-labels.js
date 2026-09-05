@@ -119,5 +119,26 @@ export function continueLabelForPhase(phase, phases, lang) {
   if (next && next.type === 'collect-choice' && !questionRanBefore(phase, phases)) {
     return translate(lang, 'Start the first question');
   }
+  if (next && next.type === 'announce') {
+    return translate(lang, announceLabel(next));
+  }
   return continueLabelFor(next && next.type, lang);
+}
+
+// An announce step is a reveal, a round intro, a video, or a picture as
+// often as it is a plain message. "Show the message" before "The truth
+// was: ..." read wrong in the Trivia Bluff field test (2026-09-04), so
+// the button reads the message it is about to show.
+const ANSWER_MESSAGE = /\.barChart\s*\}\}|\b(truth|real title|real answer|correct answer|right answer|the answer)\b[^.\n]{0,20}\b(was|is)\b|^\s*the real title\b/i;
+const ROUND_INTRO = /^\s*round\s+(\d+)\b/i;
+
+export function announceLabel(next) {
+  if (!next || typeof next !== 'object') return 'Show the message';
+  const message = typeof next.message === 'string' ? next.message : '';
+  if (next.video) return 'Play the video';
+  if (ANSWER_MESSAGE.test(message)) return 'Reveal the answer';
+  const round = message.match(ROUND_INTRO);
+  if (round) return round[1] === '1' ? 'Start the first round' : 'Start the next round';
+  if (next.image || next.drawingFrom) return 'Show the picture';
+  return 'Show the message';
 }
