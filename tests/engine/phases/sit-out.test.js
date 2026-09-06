@@ -10,15 +10,28 @@ const players = [{ id: 'ada' }, { id: 'ben' }, { id: 'cal' }, { id: 'dee' }];
 describe('foreachSitOut', () => {
   it('names the author and the source of a rotated item', () => {
     const out = foreachSitOut({ playerId: 'ada', assignedFromId: 'ben' }, {});
-    expect(out).toEqual({ authorId: 'ada', sourceId: 'ben', ids: ['ada', 'ben'] });
+    expect(out).toEqual({ authorId: 'ada', sourceId: 'ben', sameItemIds: [], ids: ['ada', 'ben'] });
   });
 
   it('is just the author when the item was not rotated from anyone', () => {
-    expect(foreachSitOut({ playerId: 'ada' }, {})).toEqual({ authorId: 'ada', sourceId: null, ids: ['ada'] });
+    expect(foreachSitOut({ playerId: 'ada' }, {})).toEqual({ authorId: 'ada', sourceId: null, sameItemIds: [], ids: ['ada'] });
   });
 
   it('does not list the same person twice', () => {
     expect(foreachSitOut({ playerId: 'ada', assignedFromId: 'ada' }, {}).ids).toEqual(['ada']);
+  });
+
+  it('also sits out anyone who was handed the same phrase (a short teacher list repeats)', () => {
+    const all = [
+      { playerId: 'ada', assigned: 'A shark at the dentist' },
+      { playerId: 'ben', assigned: 'a shark at the dentist ' },
+      { playerId: 'cal', assigned: 'The moon ordering takeout' },
+      { playerId: 'dee', assigned: 'A shark at the dentist' }
+    ];
+    const out = foreachSitOut(all[0], {}, all);
+    expect(out.sameItemIds).toEqual(['ben', 'dee']);
+    expect(out.ids).toEqual(['ada', 'ben', 'dee']);
+    expect(foreachSitOut(all[2], {}, all).ids).toEqual(['cal']);
   });
 
   it('is nobody when the foreach turns self-exclusion off', () => {
@@ -47,5 +60,7 @@ describe('reading the stamped sub-phase', () => {
     expect(sitOutMessage(phase, 'ada')).toMatch(/yours/);
     expect(sitOutMessage(phase, 'ben')).toMatch(/You wrote this one/);
     expect(sitOutMessage(phase, 'cal')).toBeNull();
+    const same = { _foreachAuthorId: 'ada', _foreachSourceId: null, _foreachSitOutIds: ['ada', 'dee'] };
+    expect(sitOutMessage(same, 'dee')).toMatch(/same phrase/);
   });
 });

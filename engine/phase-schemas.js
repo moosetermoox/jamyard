@@ -1686,7 +1686,11 @@ export const PHASE_SCHEMAS = {
       kind: 'static',
       fields: {
         scores:    { type: 'scoreMap', capability: 'scoreMap', optional: true },
-        itemCount: { type: 'integer', optional: true }
+        itemCount: { type: 'integer', optional: true },
+        // The items the `limit` sample left out, in the data's own shape
+        // (collect responses keep their drawings): feed a reveal-one to
+        // show what never got a round.
+        skipped:   { type: 'array', capability: 'responseArray', optional: true }
       }
     },    ui: {
       hostToggles: [],

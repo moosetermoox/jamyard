@@ -62,12 +62,24 @@ registerHandler('reveal-one', {
     items = items.map(item => {
       const text = formatRevealItem(item, phase.itemTemplate);
       if (item && typeof item === 'object' && Array.isArray(item.drawing)) {
-        return { text: item.name ? `✏️ ${item.name}` : text, drawing: item.drawing };
+        // A drawing's caption: the itemTemplate when the author gave one
+        // ("{{_current.name}}: {{_current.assigned}}"), else the artist.
+        const caption = phase.itemTemplate ? text : (item.name ? `✏️ ${item.name}` : text);
+        return { text: caption, drawing: item.drawing };
       }
       return text;
     });
 
     const roMessage = phase.message ? ctx.resolveTemplate(phase.message) : 'Reveal Time!';
+
+    // Nothing to reveal (a closing gallery when every drawing already got
+    // a round): skip the step rather than project an empty stage.
+    if (items.length === 0 && phase.next) {
+      console.log(`[handlePhase] Reveal-one '${phase.id}': nothing to reveal, moving on`);
+      engine.storePhaseData(phase.id, { items: [], revealed: 0 });
+      await ctx.advanceToNext();
+      return;
+    }
 
     room.phaseState = { kind: 'reveal-one', phaseId: phase.id, items, revealed: 0, message: roMessage };
     engine.storePhaseData(phase.id, { items, revealed: 0 });

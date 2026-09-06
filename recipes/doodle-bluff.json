@@ -26,7 +26,7 @@
     "phrases": {
       "type": "array",
       "label": "Your phrases, one per line",
-      "helper": "Each student is handed one at random. Fewer phrases than students is fine, they repeat. Vocabulary, concepts from the unit, or anything silly.",
+      "helper": "Each student is handed one at random. Bring at least as many phrases as students: a shorter list repeats, and anyone handed the same phrase as the drawing on screen sits that round out. Vocabulary, concepts from the unit, or anything silly.",
       "item": { "type": "string" },
       "setup": { "mode": "lines", "showWhen": "phraseSource=teacher" },
       "default": [
@@ -218,6 +218,13 @@
         "type": "leaderboard",
         "from": "rounds.scores",
         "style": "full",
+        "next": "gallery"
+      },
+      "gallery": {
+        "type": "reveal-one",
+        "message": "The drawings that didn't get a round. One at a time: shout your guess, then the artist tells you the phrase.",
+        "from": "rounds.skipped",
+        "itemTemplate": "{{_current.name}}: {{_current.assigned}}",
         "next": "end"
       },
       "end": {

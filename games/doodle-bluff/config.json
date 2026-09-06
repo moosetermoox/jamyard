@@ -138,6 +138,13 @@
       "type": "leaderboard",
       "from": "rounds.scores",
       "style": "full",
+      "next": "gallery"
+    },
+    "gallery": {
+      "type": "reveal-one",
+      "message": "The drawings that didn't get a round. One at a time: shout your guess, then the artist tells you the phrase.",
+      "from": "rounds.skipped",
+      "itemTemplate": "{{_current.name}}: {{_current.assigned}}",
       "next": "end"
     },
     "end": {

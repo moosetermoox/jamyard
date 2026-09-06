@@ -17,17 +17,34 @@
  *   _foreachSitOutIds  both, deduped: the one list the filters use
  */
 
-/** The ids stamped for this round's item. */
-export function foreachSitOut(item, feConfig) {
+const key = (text) => String(text == null ? '' : text).trim().toLocaleLowerCase();
+
+/**
+ * The ids stamped for this round's item. `allItems` is every item the
+ * foreach walks over (sampled or not): anyone who was HANDED the same
+ * phrase as this item's author also knows the answer (a teacher list
+ * shorter than the class repeats, a slow classmate's phrase gets
+ * backfilled with a duplicate), so they sit out too.
+ */
+export function foreachSitOut(item, feConfig, allItems) {
   if (!item || (feConfig && feConfig.selfExclude === false)) {
-    return { authorId: null, sourceId: null, ids: [] };
+    return { authorId: null, sourceId: null, sameItemIds: [], ids: [] };
   }
   const authorId = item.playerId || null;
   const sourceId = item.assignedFromId || null;
+  const sameItemIds = [];
+  if (item.assigned != null && key(item.assigned) !== '' && Array.isArray(allItems)) {
+    const mine = key(item.assigned);
+    for (const other of allItems) {
+      if (!other || !other.playerId || other.playerId === authorId) continue;
+      if (key(other.assigned) === mine && !sameItemIds.includes(other.playerId)) sameItemIds.push(other.playerId);
+    }
+  }
   const ids = [];
   if (authorId) ids.push(authorId);
-  if (sourceId && sourceId !== authorId) ids.push(sourceId);
-  return { authorId, sourceId, ids };
+  if (sourceId && !ids.includes(sourceId)) ids.push(sourceId);
+  for (const id of sameItemIds) if (!ids.includes(id)) ids.push(id);
+  return { authorId, sourceId, sameItemIds, ids };
 }
 
 /** @returns {Set<string>} player ids that sit this phase out */
@@ -59,8 +76,9 @@ export function withoutSitOut(players, phase) {
  */
 export function sitOutMessage(phase, playerId) {
   if (!sitsOut(phase, playerId)) return null;
-  if (phase._foreachSourceId && playerId === phase._foreachSourceId && playerId !== phase._foreachAuthorId) {
+  if (playerId === phase._foreachAuthorId) return 'This one is yours! Waiting for the others...';
+  if (phase._foreachSourceId && playerId === phase._foreachSourceId) {
     return 'You wrote this one! Waiting for the others...';
   }
-  return 'This one is yours! Waiting for the others...';
+  return 'You were handed the same phrase, so you know this one! Waiting for the others...';
 }

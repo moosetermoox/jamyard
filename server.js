@@ -1298,7 +1298,7 @@ function setupForeachIteration(engine, foreachPhaseId, feConfig, index) {
     // the item was made from (Doodle Bluff: the drawer AND the classmate
     // whose phrase was drawn, both know the answer). engine/phases/sit-out.js
     if ((subConfig.type === 'collect-choice' || subConfig.type === 'collect') && feConfig.selfExclude !== false) {
-      const out = foreachSitOut(item, feConfig);
+      const out = foreachSitOut(item, feConfig, state.items.concat(state.skipped || []));
       subConfig._foreachAuthorId = out.authorId;
       subConfig._foreachSourceId = out.sourceId;
       subConfig._foreachSitOutIds = out.ids;
@@ -1386,7 +1386,10 @@ async function advanceForeach(code, room, foreachPhaseId) {
     // Foreach complete — store final data
     engine.storePhaseData(foreachPhaseId, {
       scores: state.scores,
-      itemCount: state.items.length
+      itemCount: state.items.length,
+      // The items the round sample left out ({{X.skipped}}): a closing
+      // gallery shows the drawings that never got a round.
+      skipped: state.skipped || []
     });
     engine._currentForeachItem = null;
     engine._foreachCandidates = null;
