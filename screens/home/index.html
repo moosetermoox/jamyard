@@ -588,12 +588,56 @@
 
     .mini-door .caps { font-size: 7px; letter-spacing: 0.16em; }
 
+    /* The doorway's painted letter blocks (host styles.css .code-block),
+       pocket size: same paints, tilts and cuts, in the same order */
     .mini-code {
+      display: flex;
+      gap: 2px;
+      filter: drop-shadow(1px 1.5px 0 rgba(80,60,30,0.14));
+    }
+
+    .mini-code span {
+      width: 17px;
+      height: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
       font-family: var(--t-display);
       font-weight: 800;
-      font-size: 15px;
-      letter-spacing: 5px;
+      font-size: 11px;
+      line-height: 1;
+    }
+
+    .mini-code .cb-0 {
+      background: var(--t-yellow);
+      background-image: var(--t-grain);
       color: var(--t-ink);
+      clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
+      transform: rotate(-1.5deg);
+    }
+
+    .mini-code .cb-1 {
+      background: var(--t-cyan);
+      color: var(--t-paper);
+      height: 21px;
+      clip-path: polygon(0 0, 100% 6%, 97% 100%, 3% 96%);
+      transform: rotate(1deg);
+    }
+
+    .mini-code .cb-2 {
+      background: var(--t-red);
+      color: var(--t-paper);
+      height: 19.5px;
+      clip-path: polygon(3% 4%, 97% 0, 100% 96%, 0 92%);
+      transform: rotate(-0.8deg);
+    }
+
+    .mini-code .cb-3 {
+      background: var(--t-magenta);
+      color: var(--t-paper);
+      height: 20.5px;
+      clip-path: polygon(0 6%, 100% 0, 98% 92%, 2% 100%);
+      transform: rotate(1.4deg);
     }
 
     .mini-door-row { display: flex; gap: 8px; align-items: flex-start; }
@@ -1289,7 +1333,13 @@
           door.appendChild(joinIn);
           var code = document.createElement('div');
           code.className = 'mini-code';
-          code.textContent = pic.code;
+          code.setAttribute('aria-hidden', 'true');
+          for (var c = 0; c < 4; c++) {
+            var block = document.createElement('span');
+            block.className = 'cb-' + c;
+            block.textContent = pic.code.charAt(c);
+            code.appendChild(block);
+          }
           door.appendChild(code);
           var row = document.createElement('div');
           row.className = 'mini-door-row';
