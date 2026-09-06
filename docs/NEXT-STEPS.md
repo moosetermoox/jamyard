@@ -35,7 +35,19 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-09-04 evening, small-fixes list shipped, video rig paused)
+### START HERE next session (updated 2026-09-06, three workstreams; Doodle Bluff branch OPEN)
+
+**Merged to master and deployed (2026-09-06):** PR #1 the 13a home (owner's design handoff, then five feedback rounds: yard board carousel on the right, headline + one red PICK A TEMPLATE on the left, 1-2-3 three across under the board, teacher lines, notched block; PR #2 painted code blocks on join-first shelf cards); PR #3 **word help** (tap a word in a prompt, spend a token, see it translated; ledger + lookup are separate systems, `engine/word-help.js`; editor Settings "Word help" + "Translate into"; console + report list the tapped words). Tests 1616 -> 1637 there.
+
+**OPEN: PR #4 `doodle-bluff-two-ways` (branch, NOT merged, owner reviews).** Everything in CHANGELOG 2026-09-06 under "Doodle Bluff, two ways". Summary: one recipe (v3) with `phraseSource` students | teacher | ai (Make it yours knob; teacher shows a one-per-line phrase box, ai a topic box, via new setup-knob kinds `lines`/`text` + `showWhen`); the sit-out primitive (`engine/phases/sit-out.js`: drawer, the phrase's writer, and anyone handed the same phrase all sit the round out); `collect.dealItems`; the deal covers non-submitters and late joiners; a closing `gallery` of the drawings the round sample skipped (`{{rounds.skipped}}`); the teacher console shows the round's drawing; **the root cause of "only one option": user_games.config was JSONB, which sorts keys, and foreach sub-phases run in key order** (columns are JSON now, old rows repaired on read from the recipe stamp, AI edits carry the order, validator warns). 1664 tests. When merging, note: the JSON column ALTER runs on prod's Neon on first boot (idempotent); prod copies of Doodle Bluff are repaired on read.
+Follow-ups after merge, in order:
+1. Owner plays Doodle Bluff in the simulator with 8 practice students (students mode) and with the teacher list; then a real class. Watch the same-phrase holding line and the gallery captions ("Name: phrase").
+2. AI-written phrases ran long (10-12 words vs the 4-9 asked); tighten the `ai-phrases` instruction in recipes/doodle-bluff.json and recompile the built-in (drift guard).
+3. Word help: multiple-choice OPTIONS and button labels are not tappable, only prompt sinks (`setRichText`); the Spanish teacher may want choices too. The answer-box placeholder is untranslated (pre-existing).
+4. Other recipes with `subPhases`: any user copy saved before 2026-09-06 that is NOT recipe-born keeps jsonb's key order (the validator only warns). Grep user_games for foreach phases whose sub-phase order looks length-sorted if a teacher reports a round running backwards.
+5. The old "Design review setup*.zip" files and `scripts/video/` are still untracked in the repo root.
+
+### Previous START HERE (2026-09-04 evening, small-fixes list shipped, video rig paused)
 
 **2026-09-04 evening, commit `d83e85f` (pushed, CI deploys on green; CHANGELOG entry "owner's list of smaller fixes").** Doodle Bluff's one-title ballot was a submit/close RACE (moderation-ladder await), fixed by `engine/pending-submits.js`; Trivia Bluff got one shared ballot per step, a no-numbers rule for bluff facts (recipe + prepared-facts prompt, config recompiled), and a design chat that writes questions when asked; the Next button reads the announce it will show; the simulator has a three-line first-run card. 1605 tests. Follow-ups to watch:
 1. Play Trivia Bluff live for a few rounds: are the AI facts now word-shaped and obscure? If numbers still slip through, tighten the recipe instruction (drift guard: recompile `games/trivia-bluff/config.json` after).
