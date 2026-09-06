@@ -48,7 +48,7 @@ async function getUserGameRepaired(id) {
   return row;
 }
 async function listUserGamesRepaired() {
-  const rows = await listUserGamesRepaired();
+  const rows = await listUserGames();
   for (const row of rows) if (row && row.config) repairSavedConfig(row.config);
   return rows;
 }
