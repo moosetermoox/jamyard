@@ -58,6 +58,15 @@
       <div id="checklist-groups"></div>
     </div>
 
+    <!-- Word help (engine/word-help.js): which words the class tapped for a
+         translation. Counts only, never who; the projector never sees it. -->
+    <div id="word-help-block" hidden>
+      <h2>Words the class looked up</h2>
+      <p class="block-hint">Each student has a small budget of word translations. This is what they spent it on, most tapped first.</p>
+      <ul id="word-help-list" class="entries-list"></ul>
+      <p id="word-help-empty" class="block-hint">No words tapped yet.</p>
+    </div>
+
     <!-- Preview approval -->
     <div id="preview-block" hidden>
       <h2>Review before the class sees it</h2>

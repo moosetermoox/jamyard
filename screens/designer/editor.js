@@ -402,6 +402,9 @@ var settingsMaxPlayers = document.getElementById('game-max-players');
 var settingsNamesMode = document.getElementById('game-names-mode');
 var settingsLanguage = document.getElementById('game-language');
 var settingsStart = document.getElementById('game-start');
+var settingsWordHelp = document.getElementById('game-word-help');
+var settingsWordHelpTo = document.getElementById('game-word-help-to');
+var settingsWordHelpToGroup = document.getElementById('game-word-help-to-group');
 var settingsTheme = document.getElementById('game-theme');
 var customThemeSection = document.getElementById('custom-theme-section');
 var customThemeDesc = document.getElementById('custom-theme-desc');
@@ -693,6 +696,8 @@ async function init() {
   if (settingsNamesMode) settingsNamesMode.addEventListener('change', readSettings);
   if (settingsLanguage) settingsLanguage.addEventListener('change', readSettings);
   if (settingsStart) settingsStart.addEventListener('change', readSettings);
+  if (settingsWordHelp) settingsWordHelp.addEventListener('change', readSettings);
+  if (settingsWordHelpTo) settingsWordHelpTo.addEventListener('change', readSettings);
 
   // Populate theme select
   if (settingsTheme && window.GAME_THEMES) {
@@ -768,6 +773,21 @@ function renderSettings() {
   if (settingsNamesMode) settingsNamesMode.value = gameConfig.anonymous ? 'anonymous' : 'collect';
   if (settingsLanguage) settingsLanguage.value = gameConfig.language || 'auto';
   if (settingsStart) settingsStart.value = gameConfig.start === 'rolling' ? 'rolling' : 'together';
+  // Word help (engine/word-help.js): the select lists the common budgets;
+  // an unlisted number from a hand-edited config still shows as itself.
+  if (settingsWordHelp) {
+    var wh = gameConfig.wordHelp;
+    var tokens = wh && typeof wh === 'object' && wh.tokens ? String(wh.tokens) : '';
+    if (tokens && !settingsWordHelp.querySelector('option[value="' + tokens + '"]')) {
+      var extra = document.createElement('option');
+      extra.value = tokens;
+      extra.textContent = tokens + ' translations per student';
+      settingsWordHelp.appendChild(extra);
+    }
+    settingsWordHelp.value = tokens;
+    if (settingsWordHelpTo) settingsWordHelpTo.value = (wh && wh.to) || 'en';
+    if (settingsWordHelpToGroup) settingsWordHelpToGroup.hidden = !tokens;
+  }
   headerGameName.textContent = gameConfig.name || 'Untitled Activity';
 
   // Theme
@@ -814,6 +834,19 @@ function readSettings() {
     delete gameConfig.language;
   }
   // Start mode: store only the rolling choice; absent means together.
+  // Word help: store only when on; absent means off.
+  if (settingsWordHelp) {
+    var whTokens = parseInt(settingsWordHelp.value, 10);
+    if (whTokens > 0) {
+      gameConfig.wordHelp = { tokens: whTokens };
+      if (settingsWordHelpTo && settingsWordHelpTo.value && settingsWordHelpTo.value !== 'en') {
+        gameConfig.wordHelp.to = settingsWordHelpTo.value;
+      }
+    } else {
+      delete gameConfig.wordHelp;
+    }
+    if (settingsWordHelpToGroup) settingsWordHelpToGroup.hidden = !(whTokens > 0);
+  }
   if (settingsStart && settingsStart.value === 'rolling') {
     gameConfig.start = 'rolling';
   } else {
@@ -5731,6 +5764,21 @@ function validateConfig() {
   // Top-level checks
   if (!gameConfig.name || !gameConfig.name.trim()) {
     errors.push('Your activity is missing a name.');
+  }
+
+  // Word help (mirrors validateWordHelp in engine/word-help.js)
+  if (gameConfig.wordHelp !== undefined) {
+    var whCfg = gameConfig.wordHelp;
+    if (!whCfg || typeof whCfg !== 'object' || Array.isArray(whCfg)) {
+      errors.push('Word help must be an object like { "tokens": 3, "to": "en" }.');
+    } else {
+      if (!(Number.isInteger(whCfg.tokens) && whCfg.tokens >= 1 && whCfg.tokens <= 20)) {
+        errors.push('Word help: "tokens" must be a whole number from 1 to 20.');
+      }
+      if (whCfg.to !== undefined && ['en', 'es', 'fr', 'de', 'pt', 'it'].indexOf(whCfg.to) === -1) {
+        errors.push('Word help: "to" must be one of en, es, fr, de, pt, it.');
+      }
+    }
   }
 
   var hasLobby = phaseIds.some(function (id) { return phases[id].type === 'lobby'; });

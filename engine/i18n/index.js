@@ -145,6 +145,13 @@ export function stringsFor(lang) {
 
 export const STRINGS = {
   es: {
+    // Word help (engine/word-help.js): the student's translation budget
+    'Word help': 'Ayuda con palabras',
+    'Tap a word you do not know': 'Toca una palabra que no conozcas',
+    'translations left': 'traducciones restantes',
+    'No translations left': 'No quedan traducciones',
+    'Translating…': 'Traduciendo…',
+    'Could not translate that word': 'No se pudo traducir esa palabra',
     // Continue / close labels
     'Show the message': 'Mostrar el mensaje',
     'Send the question to students': 'Enviar la pregunta a los estudiantes',
@@ -266,6 +273,13 @@ export const STRINGS = {
     'class average': 'promedio de la clase'
   },
   fr: {
+    // Word help (engine/word-help.js): the student's translation budget
+    'Word help': 'Aide sur les mots',
+    'Tap a word you do not know': 'Touche un mot que tu ne connais pas',
+    'translations left': 'traductions restantes',
+    'No translations left': 'Plus de traductions',
+    'Translating…': 'Traduction en cours…',
+    'Could not translate that word': 'Impossible de traduire ce mot',
     'Show the message': 'Afficher le message',
     'Send the question to students': 'Envoyer la question aux élèves',
     'Next question': 'Question suivante',
@@ -384,6 +398,13 @@ export const STRINGS = {
     'class average': 'moyenne de la classe'
   },
   de: {
+    // Word help (engine/word-help.js): the student's translation budget
+    'Word help': 'Worthilfe',
+    'Tap a word you do not know': 'Tippe auf ein Wort, das du nicht kennst',
+    'translations left': 'Übersetzungen übrig',
+    'No translations left': 'Keine Übersetzungen mehr',
+    'Translating…': 'Wird übersetzt…',
+    'Could not translate that word': 'Dieses Wort konnte nicht übersetzt werden',
     'Show the message': 'Nachricht anzeigen',
     'Send the question to students': 'Frage an die Schüler senden',
     'Next question': 'Nächste Frage',
@@ -502,6 +523,13 @@ export const STRINGS = {
     'class average': 'Klassendurchschnitt'
   },
   pt: {
+    // Word help (engine/word-help.js): the student's translation budget
+    'Word help': 'Ajuda com palavras',
+    'Tap a word you do not know': 'Toque numa palavra que não conhece',
+    'translations left': 'traduções restantes',
+    'No translations left': 'Não restam traduções',
+    'Translating…': 'Traduzindo…',
+    'Could not translate that word': 'Não foi possível traduzir essa palavra',
     'Show the message': 'Mostrar a mensagem',
     'Send the question to students': 'Enviar a pergunta aos alunos',
     'Next question': 'Próxima pergunta',
@@ -620,6 +648,13 @@ export const STRINGS = {
     'class average': 'média da turma'
   },
   it: {
+    // Word help (engine/word-help.js): the student's translation budget
+    'Word help': 'Aiuto con le parole',
+    'Tap a word you do not know': 'Tocca una parola che non conosci',
+    'translations left': 'traduzioni rimaste',
+    'No translations left': 'Nessuna traduzione rimasta',
+    'Translating…': 'Traduzione in corso…',
+    'Could not translate that word': 'Impossibile tradurre questa parola',
     'Show the message': 'Mostra il messaggio',
     'Send the question to students': 'Invia la domanda agli studenti',
     'Next question': 'Prossima domanda',

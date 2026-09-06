@@ -347,4 +347,24 @@ describe('live sections for the step that is still open', () => {
     expect(section.live).toBeUndefined();
     expect(blocksOfKind(section, 'entries')[0].items[0].text).toBe('Stored');
   });
+
+  it('adds a words-looked-up table from word-help meta, counts only', () => {
+    const engine = stubEngine({ phases: {}, players: TWO_PLAYERS });
+    const report = buildActivityReport(engine, {
+      code: 'ABCD',
+      wordHelp: [{ word: 'escuela', count: 3 }, { word: 'libro', count: 1 }]
+    });
+    const section = sectionFor(report, 'word-help');
+    expect(section.heading).toBe('Words the class looked up');
+    const table = blocksOfKind(section, 'table')[0];
+    expect(table.columns).toEqual(['Word', 'Times tapped']);
+    expect(table.rows).toEqual([['escuela', 3], ['libro', 1]]);
+    expect(JSON.stringify(section)).not.toContain('Ada'); // counts, never who
+  });
+
+  it('has no words section when nothing was tapped', () => {
+    const engine = stubEngine({ phases: {}, players: TWO_PLAYERS });
+    expect(sectionFor(buildActivityReport(engine, { wordHelp: [] }), 'word-help')).toBeUndefined();
+    expect(sectionFor(buildActivityReport(engine, {}), 'word-help')).toBeUndefined();
+  });
 });

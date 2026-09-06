@@ -48,6 +48,9 @@ export function serializeRoom(room) {
     phaseData: engine.phaseData || {},
     loopState: engine.loopState || {},
     foreachState: engine.foreachState || {},
+    // Word help (engine/word-help.js): spends, cache and the tapped-word
+    // log survive a restart with the room; a restart must not refill purses.
+    wordHelp: room.wordHelp || null,
     players: engine.players.list().map(p => ({
       id: p.id,
       name: p.name,
@@ -113,6 +116,7 @@ export function restoreRoom(snapshot, config, hooks) {
     hostToken: snapshot.hostToken || null,
     kickedTokens: new Set(snapshot.kickedTokens || []),
     phaseInstanceId: snapshot.phaseInstanceId || 0,
+    wordHelp: snapshot.wordHelp || null,
     teacherSocketIds: new Set(),
     createdAt: Date.now(),
     journal: [],

@@ -626,9 +626,16 @@ socket.on('response-rejected', ({ message }) => {
 
 // --- Socket events - Join ---
 
-socket.on('join-success', ({ name, reconnected, token, theme, language, strings }) => {
+socket.on('join-success', ({ name, reconnected, token, theme, language, strings, wordHelp }) => {
   // Fixed labels (Submit, Skip, You're in!) in the activity's language.
   if (window.UiLang && strings) { UiLang.set(language, strings); UiLang.apply(); }
+  // Word help (shared/word-help.js): tappable prompt words, a translation
+  // budget per student. The server owns the count; this only shows it.
+  if (window.WordHelp) {
+    WordHelp.configure(wordHelp || null, function (req) {
+      socket.emit('word-lookup', { code: currentRoomCode, word: req.word, sentence: req.sentence });
+    });
+  }
   if (!reconnected) {
     showSection(waitingSection);
   }
@@ -705,6 +712,11 @@ socket.on('meadow-moved', ({ index, fx, fy } = {}) => {
 });
 
 // Submission/vote progress: counts only, never names.
+// Word help: the server's answer to a tapped word (and the new count)
+socket.on('word-lookup-result', (data) => {
+  if (window.WordHelp) WordHelp.result(data);
+});
+
 socket.on('room-progress', ({ count, total } = {}) => {
   if (typeof count !== 'number' || typeof total !== 'number') return;
   const text = count + ' of ' + total + ' in';
@@ -1175,6 +1187,8 @@ function renderPlayerMessage(el, message) {
 // text stays untrusted-safe). Falls back to plain text without the module.
 function setRichText(el, text) {
   if (window.RichText && RichText.applyInline) RichText.applyInline(el, text);
+  // Word help on: every word in a prompt is a tap away from its meaning
+  if (window.WordHelp && WordHelp.isEnabled()) WordHelp.wrap(el);
   else el.textContent = text;
 }
 
