@@ -58,8 +58,18 @@ function buildRotationAssignment(ctx) {
   const from = phase.from || 'all';
   const eligible = ctx.getEligibleVoters(from);
   const orderedIds = eligible.map(p => p.id);
-  const N = orderedIds.length;
-  if (N === 0) return {};
+  if (orderedIds.length === 0) return {};
+
+  // Only classmates who actually submitted can send. The circle is dealt
+  // among THEM; a receiver who submitted nothing still gets an item (a
+  // random submitter's), so nobody is left drawing a placeholder because
+  // a classmate was slow (Doodle Bluff's blank-truth round, 2026-09-06).
+  const senders = orderedIds.filter(id => sourceByPlayer[id] !== undefined);
+  const N = senders.length;
+  if (N === 0) {
+    console.warn(`[collect:${phase.id}] rotateFrom "${phase.rotateFrom}" has no items to deal`);
+    return {};
+  }
 
   // Drawing sources also rotate their strokes (byPlayerDrawing) so the
   // recipient can see — or continue — the actual picture, not "[drawing]".
@@ -68,24 +78,28 @@ function buildRotationAssignment(ctx) {
   // rotateShuffle: deal the pool in a random circle instead of the fixed
   // join-order shift (still exactly one classmate's item each, never your
   // own; who-got-whose is unpredictable).
-  const shuffledSenderOf = phase.rotateShuffle ? shuffleDeal(orderedIds) : null;
+  const shuffledSenderOf = phase.rotateShuffle ? shuffleDeal(senders) : null;
 
   const assignment = {};
   const assignedFrom = {};
   const drawingAssignment = {};
+  const give = (receiverId, senderId) => {
+    assignment[receiverId] = sourceByPlayer[senderId];
+    assignedFrom[receiverId] = senderId;
+    if (sourceDrawings && sourceDrawings[senderId]) {
+      drawingAssignment[receiverId] = sourceDrawings[senderId];
+    }
+  };
   for (let i = 0; i < N; i++) {
-    const receiverId = orderedIds[i];
+    const receiverId = senders[i];
     const senderId = shuffledSenderOf
       ? shuffledSenderOf[receiverId]
-      : orderedIds[((i - offset) % N + N) % N];
-    const item = sourceByPlayer[senderId];
-    if (item !== undefined) {
-      assignment[receiverId] = item;
-      assignedFrom[receiverId] = senderId;
-      if (sourceDrawings && sourceDrawings[senderId]) {
-        drawingAssignment[receiverId] = sourceDrawings[senderId];
-      }
-    }
+      : senders[((i - offset) % N + N) % N];
+    give(receiverId, senderId);
+  }
+  for (const receiverId of orderedIds) {
+    if (assignment[receiverId] !== undefined) continue;
+    give(receiverId, senders[Math.floor(Math.random() * N)]);
   }
 
   // Persist assignment under the SOURCE phase so {{<source>.assigned}}
@@ -107,6 +121,40 @@ function buildRotationAssignment(ctx) {
     ...(sourceDrawings ? { assignedDrawing: drawingAssignment } : {})
   });
   return assignment;
+}
+
+/**
+ * A student who arrives (or comes back under a new id) AFTER the deal was
+ * made has no item; hand them one now, in place, so their prompt and their
+ * later round have a truth. Rotation: a random submitter's item, never
+ * their own. dealItems: a random entry from the list.
+ */
+function ensureLateAssignment(ctx, playerId) {
+  const { phase, engine } = ctx;
+  if (!playerId) return;
+  if (phase.rotateFrom) {
+    const src = engine.phaseData[phase.rotateFrom];
+    if (!src || !src.assigned || src.assigned[playerId] !== undefined) return;
+    let byPlayer = src.byPlayer;
+    if (!byPlayer && Array.isArray(src.responses)) {
+      byPlayer = {};
+      for (const r of src.responses) if (r && r.playerId) byPlayer[r.playerId] = r.text;
+    }
+    const senders = Object.keys(byPlayer || {}).filter(id => id !== playerId && byPlayer[id] !== undefined);
+    if (senders.length === 0) return;
+    const senderId = senders[Math.floor(Math.random() * senders.length)];
+    src.assigned[playerId] = byPlayer[senderId];
+    src.assignedFrom = src.assignedFrom || {};
+    src.assignedFrom[playerId] = senderId;
+    if (src.byPlayerDrawing && src.byPlayerDrawing[senderId]) {
+      src.assignedDrawing = src.assignedDrawing || {};
+      src.assignedDrawing[playerId] = src.byPlayerDrawing[senderId];
+    }
+  } else if (Array.isArray(phase.dealItems) && phase.dealItems.length > 0) {
+    const own = engine.phaseData[phase.id];
+    if (!own || !own.assigned || own.assigned[playerId] !== undefined) return;
+    own.assigned[playerId] = phase.dealItems[Math.floor(Math.random() * phase.dealItems.length)];
+  }
 }
 
 /**
@@ -403,6 +451,8 @@ registerHandler('collect', {
   onReconnect(ctx, socket) {
     const sc = ctx.resolveScreenControl();
     const player = ctx.engine.players.find(socket.id);
+    // Late joiners are the normal case: deal them an item before the prompt
+    if (player) ensureLateAssignment(ctx, player.id);
     const sitOut = player ? sitOutMessage(ctx.phase, player.id) : null;
     if (sitOut) {
       socket.emit(EVENTS.WAITING, { message: sitOut });

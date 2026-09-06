@@ -21,6 +21,7 @@ import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
 import { homeGlimpse } from './engine/home-glimpse.js';
 import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
+import { resolveDisplayDrawing } from './engine/phases/display-drawing.js';
 import {
   createWordHelpState, normalizeWord, remaining as wordHelpRemaining, spend as wordHelpSpend,
   refund as wordHelpRefund, recordLookup, summarize as summarizeWordHelp,
@@ -1520,6 +1521,7 @@ function buildTeacherSnapshot(code, room) {
   }
   // Word help: which words the class has tapped so far (counts, no names)
   snap.wordHelp = room.wordHelp ? summarizeWordHelp(room.wordHelp) : null;
+  snap.displayDrawing = phase ? resolveDisplayDrawing(phase, engine) : null;
   if (engine && phase) {
     snap.continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language);
     snap.closeLabel = closeLabelFor(phase.type, engine.language);
@@ -1708,7 +1710,10 @@ async function handlePhase(code, room) {
     // show on the projector first), so it must say the close action.
     closeLabel: closeLabelFor(phase.type, engine.language),
     // Lets the console decide whether "A bit more time" applies.
-    timer: phase.timer || null
+    timer: phase.timer || null,
+    // The drawing the class is looking at (Doodle Bluff rounds): the
+    // teacher moderates titles better seeing the picture they are for.
+    displayDrawing: resolveDisplayDrawing(phase, engine)
   });
 
   // Dispatch to registered handler
