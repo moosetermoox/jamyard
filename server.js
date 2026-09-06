@@ -21,6 +21,37 @@ import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
 import { homeGlimpse } from './engine/home-glimpse.js';
 import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
+import { restoreSubPhaseOrder } from './engine/subphase-order.js';
+
+// Saved copies that went through the old jsonb column came back with a
+// foreach's sub-phases sorted by key length (the vote before the fakes).
+// A recipe-born copy carries its stamp, so a fresh compile of it is the
+// written order: restore it on every read. Never throws; a config whose
+// recipe is gone is returned as-is.
+function repairSavedConfig(config) {
+  try {
+    const stamp = config && config.recipe;
+    if (!stamp || !stamp.id) return config;
+    const recipe = getRecipe(stamp.id);
+    if (!recipe) return config;
+    const { config: compiled } = compileRecipe(recipe, stamp.params || {});
+    const fixed = restoreSubPhaseOrder(config, compiled);
+    if (fixed.length) console.log(`[repair] "${config.name}": sub-phase order restored on ${fixed.join(', ')}`);
+  } catch (err) {
+    console.log(`[repair] skipped for "${config && config.name}": ${err.message}`);
+  }
+  return config;
+}
+async function getUserGameRepaired(id) {
+  const row = await getUserGame(id);
+  if (row && row.config) repairSavedConfig(row.config);
+  return row;
+}
+async function listUserGamesRepaired() {
+  const rows = await listUserGamesRepaired();
+  for (const row of rows) if (row && row.config) repairSavedConfig(row.config);
+  return rows;
+}
 import { resolveDisplayDrawing } from './engine/phases/display-drawing.js';
 import {
   createWordHelpState, normalizeWord, remaining as wordHelpRemaining, spend as wordHelpSpend,
@@ -269,7 +300,7 @@ async function loadGameById(gameId) {
     if (!err.message.startsWith('Game not found')) throw err;
   }
   if (DB_ENABLED) {
-    const row = await getUserGame(gameId);
+    const row = await getUserGameRepaired(gameId);
     if (row) {
       const config = row.config;
       validate(config, gameId);
@@ -2254,7 +2285,7 @@ app.get('/api/games', async (req, res) => {
     }));
 
     if (DB_ENABLED) {
-      const userRows = await listUserGames();
+      const userRows = await listUserGamesRepaired();
       for (const row of userRows) {
         const config = row.config;
         games.push({
@@ -2386,7 +2417,7 @@ app.post('/api/games/:gameId/featured', async (req, res) => {
     const featured = req.body.featured;
 
     if (DB_ENABLED && await userGameExists(gameId)) {
-      const row = await getUserGame(gameId);
+      const row = await getUserGameRepaired(gameId);
       const config = { ...row.config, featured };
       await saveUserGame(gameId, config);
       return res.json({ success: true, featured, storage: 'user-config' });
@@ -2671,6 +2702,7 @@ app.post('/api/games/revise', async (req, res) => {
     carryAnonymousFlag(config, result.updatedConfig);
     carryLanguage(config, result.updatedConfig);
     carryWordHelp(config, result.updatedConfig);
+    carrySubPhaseOrder(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
     // Validate the AI's revised config; surface errors so the client can show them
     const structural = validate(result.updatedConfig, 'revise', { returnResults: true });
@@ -2692,6 +2724,28 @@ app.post('/api/games/revise', async (req, res) => {
 function carryAnonymousFlag(original, updated) {
   if (original && original.anonymous === true && updated && updated.anonymous === undefined) {
     updated.anonymous = true;
+  }
+}
+
+// Sub-phase ORDER inside a foreach is the key order of `subPhases`, and a
+// model rewriting the whole config can hand the keys back shuffled
+// (Doodle Bluff's copy came back guess, titles, reveal: the vote ran
+// before anyone wrote a fake, 2026-09-06). When the set of sub-phases is
+// unchanged, keep the original order; a real restructure (added or
+// removed sub-phase) is left as the model wrote it.
+function carrySubPhaseOrder(original, updated) {
+  if (!original || !updated || !original.phases || !updated.phases) return;
+  for (const [id, phase] of Object.entries(updated.phases)) {
+    const src = original.phases[id];
+    if (!phase || !src || phase.type !== 'foreach' || src.type !== 'foreach') continue;
+    if (!phase.subPhases || !src.subPhases || typeof phase.subPhases !== 'object' || typeof src.subPhases !== 'object') continue;
+    const before = Object.keys(src.subPhases);
+    const after = Object.keys(phase.subPhases);
+    if (before.length !== after.length || before.some(k => !after.includes(k))) continue;
+    if (before.every((k, i) => after[i] === k)) continue;
+    const ordered = {};
+    for (const k of before) ordered[k] = phase.subPhases[k];
+    phase.subPhases = ordered;
   }
 }
 
@@ -2746,6 +2800,7 @@ app.post('/api/games/chat', async (req, res) => {
     carryAnonymousFlag(config, result.updatedConfig);
     carryLanguage(config, result.updatedConfig);
     carryWordHelp(config, result.updatedConfig);
+    carrySubPhaseOrder(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
     const structural = validate(result.updatedConfig, 'chat', { returnResults: true });
     res.json({
@@ -3056,7 +3111,7 @@ io.on('connection', (socket) => {
         minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null
       }));
       if (DB_ENABLED) {
-        const userRows = await listUserGames();
+        const userRows = await listUserGamesRepaired();
         for (const row of userRows) {
           games.push({
             id: row.id,

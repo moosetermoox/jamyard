@@ -950,6 +950,32 @@ export function validate(config, gameId, options) {
         const allowedSubTypes = Object.keys(PHASE_SCHEMAS).filter(
           t => PHASE_SCHEMAS[t].allowedIn.includes('foreach')
         );
+        // Sub-phases run in key order, so a step that reads a sibling's
+        // output must come AFTER it. A rewrite that shuffles the keys
+        // (a model handing the config back) would otherwise run the vote
+        // before the fakes were written and ballot only the truth.
+        for (const [subName, sub] of Object.entries(phase.subPhases)) {
+          if (!sub || typeof sub !== 'object') continue;
+          const refs = [];
+          if (Array.isArray(sub.choicePool)) {
+            for (const src of sub.choicePool) if (src && typeof src.from === 'string') refs.push(src.from);
+          }
+          for (const f of ['excludeAuthored', 'choices', 'input', 'content', 'from']) {
+            if (typeof sub[f] === 'string') refs.push(sub[f]);
+          }
+          for (const ref of refs) {
+            const head = ref.split('.')[0];
+            if (!subNames.includes(head) || head === subName) continue;
+            if (subNames.indexOf(head) > subNames.indexOf(subName)) {
+              // A warning, not an error: saved copies scrambled by an old
+              // jsonb round trip must still load (the load path repairs
+              // recipe-born ones from their stamp, engine/subphase-order.js).
+              warnings.push(
+                `Game "${gameId}": phase "${name}" subPhase "${subName}" reads from "${head}", which runs after it. Sub-phases run in the order listed; move "${head}" before "${subName}".`
+              );
+            }
+          }
+        }
         for (const [subName, sub] of Object.entries(phase.subPhases)) {
           if (!sub.type) {
             errors.push(

@@ -71,6 +71,7 @@ Framework for quickly building classroom games where:
 - **Projector style** (docs/PROJECTOR-STYLE.md) — content owns the projector; brand shrinks to a corner mark via `body.in-activity`.
 
 ## Gotchas & Patterns
+- **Foreach sub-phases run in key order, and JSONB scrambles key order** (2026-09-06): `user_games.config` and `user_recipes.recipe` are JSON (never JSONB; jsonb sorts keys by length so Doodle Bluff copies voted before the fakes). Old rows are repaired on read from their recipe stamp (`repairSavedConfig` → `engine/subphase-order.js`); AI edits carry the order (`carrySubPhaseOrder`); the validator warns on a sub-phase reading a later sibling. Any new JSON column that holds a config must be JSON.
 - **CSS display value overrides the `hidden` attribute** — any styled-display element toggled via `.hidden` needs a `[hidden]{display:none}` override in the same stylesheet (bitten 3+ times).
 - **Close/* handlers must kind-guard `room.phaseState` AND be idempotent** — all-inputs-in auto-advance races a late host click.
 - **A Close must wait for in-flight submissions** (`engine/pending-submits.js`, 2026-09-04): submit-response awaits the moderation ladder, so a teacher's Close can land while the last answers are mid-flight; close-submissions settles the holds first, then re-checks the phase. Any new async gap in a submit handler takes a hold; any new gather-and-advance path settles them. (Doodle Bluff's "only one title to pick" was a rotation dealt from a short list.)
