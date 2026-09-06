@@ -36,13 +36,13 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1605 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1616 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **30 phase types**, **26 built-in recipes**, ~33 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
 
 ## Surfaces & Routes
-- `/` home (one primary "Find an Activity" card + student room-code join)
+- `/` home (13a, 2026-09-06: ONE red action "Pick a template" + Paper Create door on the left; the yard's board carousel with projector prints on the right, 1-2-3 cards beneath it; a shelf of five templates with Connect/Think/Play chips drawn from `glimpse` on `/api/games` via `engine/home-glimpse.js`; student join in the header strip and the join board; `screens/home/shots/` are load-bearing, rerun regen-carousel-shots.js after a redesign)
 - `/library` — teacher front door: search, goal chips, ▶ Host cards, ♥/recents, Customize dialog
 - `/host` projector screen · `/player` student screen · `/teacher` private console (room code + PIN, or SITE_PASSWORD basic auth)
 - `/teacher/report` printable activity report (engine/report.js via PIN-gated `GET /api/rooms/:code/report`) — built on demand from live room state, NEVER stored server-side, gone when the room expires; the step that is still OPEN is read live from the players (`liveDataFor`, marked "Still open"), which is how a rolling exit ticket gets read mid-step; browser print dialog = the PDF; names toggle defaults on; console links it (header + end-phase reminder card)
