@@ -9,9 +9,9 @@
   <link rel="stylesheet" href="/shared/activity-map.css">
   <style>
     /* ══ Totem system (docs/design/totem/), home 13a (2026-09-05) ══
-       Teacher-first front door: the projector carousel on the left shows
-       what the class will actually see, one template at a time; the right
-       side holds the ONE red action. The student door is a small plank in
+       Teacher-first front door: the headline and the ONE red action on the
+       left; the yard's own board carousel on the right (the projector
+       print, name and description of one template at a time). The student door is a small plank in
        the header (and the join board lower down), never the star. */
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -142,7 +142,7 @@
       padding: 9px 14px 10px;
     }
 
-    /* ── Hero: projector carousel | headline + the one red action ── */
+    /* ── Hero: headline + the one red action | the featured board ── */
     .hero {
       display: flex;
       gap: 48px;
@@ -150,57 +150,168 @@
       margin-top: 10px;
     }
 
-    .projector-col {
-      position: relative;
-      width: 560px;
+    /* ── Featured board: a pine offcut with jigsaw edges, the yard's own
+       carousel (owner's call 2026-09-06: this one, on the right) ── */
+    .board-col {
+      width: 520px;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
     }
 
-    .projector-label {
-      position: absolute;
-      top: -16px;
-      left: 22px;
-      z-index: 2;
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 12px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--t-ink);
-      background: var(--t-yellow);
+    .board {
+      width: 100%;
+      background: var(--t-pine);
       background-image: var(--t-grain);
-      padding: 7px 14px 8px;
-      transform: rotate(-2deg);
-      box-shadow: 0 3px 4px rgba(50,35,15,0.26);
-    }
-
-    /* The Paper frame is the link: click to read what this one is */
-    .projector-frame {
-      display: block;
-      background: var(--t-paper);
-      padding: 16px;
-      box-shadow: 0 4px 8px rgba(50,35,15,0.26);
-      transform: rotate(-0.6deg);
-      text-decoration: none;
-      color: var(--t-ink);
-      transition: opacity 170ms var(--t-ease);
-    }
-
-    .projector-frame.is-swapping { opacity: 0; }
-
-    /* The projector itself: gesso, the same pieces the host screen draws */
-    .projector {
-      position: relative;
-      background: var(--t-gesso);
-      padding: 26px 28px 24px;
+      clip-path: polygon(0 3%, 30% 0, 62% 2%, 100% 0, 99% 55%, 100% 97%, 66% 100%, 30% 96%, 0 100%, 1% 50%);
+      padding: 26px 30px 28px;
+      filter: drop-shadow(6px 8px 0 rgba(80,60,30,0.16));
+      transform: rotate(0.6deg);
       display: flex;
       flex-direction: column;
-      gap: 22px;
-      min-height: 300px;
+      gap: 10px;
     }
 
+    .board-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .board-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--t-muted-wood);
+      text-decoration: none;
+    }
+
+    a.board-label:hover { color: var(--t-ink); }
+
+    .board-count {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--t-muted-wood);
+    }
+
+    .board-slide {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      text-decoration: none;
+      /* Reserve the height of a slide with a shot so the card (and the
+         whole page under it) never jumps as slides rotate */
+      min-height: 204px;
+      transition: opacity 160ms ease;
+    }
+    .board-slide.is-swapping { opacity: 0; }
+
+    .board-slide-text {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    /* When the activity has a shot, text pushes left and the print pins
+       right; the name chip drops a size to make room. */
+    .board-slide.has-shot {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 18px;
+    }
+    .board-slide.has-shot .board-slide-text { flex: 1; }
+    .board-slide.has-shot .board-name { font-size: 21px; padding: 2px 11px 5px; }
+
+    .board-shot {
+      display: inline-block;
+      flex-shrink: 0;
+      background: var(--t-paper);
+      padding: 6px 6px 8px;
+      box-shadow: 0 3px 5px rgba(50,35,15,0.3);
+      transform: rotate(0.8deg);
+      margin-top: 4px;
+    }
+    /* display value beats the hidden attribute; keep the override local */
+    .board-shot[hidden] { display: none; }
+    .board-shot img {
+      width: 246px;
+      height: 185px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .board-titlerow {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* The activity's name: a magenta painted piece glued on */
+    .board-name {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 28px;
+      color: var(--t-paper);
+      background: var(--t-magenta);
+      padding: 2px 14px 6px;
+      transform: rotate(-1.2deg);
+      display: inline-block;
+      box-shadow: 0 3px 4px rgba(50,35,15,0.28);
+    }
+
+    .board-meta {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--t-muted-wood);
+    }
+
+    .board-desc {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.5;
+      color: #4A3A22;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      /* Always hold three lines so short descriptions don't shrink the card */
+      min-height: 4.5em;
+    }
+
+    .board-bottom {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .board-nav {
+      display: flex;
+      gap: 8px;
+    }
+
+    .board-nav button {
+      width: 34px;
+      height: 34px;
+      background: var(--t-paper);
+      color: var(--t-ink);
+      font-family: var(--t-body);
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1;
+      box-shadow: 0 3px 4px rgba(50,35,15,0.24);
+    }
+
+    .board-nav button:first-child { --rot: -1deg; }
+    .board-nav button:last-child { --rot: 0.8deg; }
+
+    /* The projector's corner mark, used by the shelf's mini projectors */
     .projector-mark {
       position: absolute;
       top: 12px;
@@ -212,93 +323,8 @@
       color: #C9BBA0;
     }
 
-    .proj-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-end;
-      gap: 12px;
-    }
-
-    .proj-code {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .code-blocks {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
-
-    .code-blocks span {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 30px;
-      width: 46px;
-      height: 54px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transform: rotate(var(--rot, 0deg));
-      box-shadow: 0 3px 4px rgba(50,35,15,0.26);
-      clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
-    }
-
-    .proj-inroom {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--t-muted-caps);
-      white-space: nowrap;
-    }
-
-    .proj-body {
-      display: flex;
-      gap: 24px;
-      align-items: flex-end;
-    }
-
-    .proj-ask {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .proj-prompt {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 30px;
-      line-height: 1.12;
-      color: var(--t-ink);
-      text-wrap: balance;
-      overflow-wrap: anywhere;
-    }
-
-    .proj-timer {
-      align-self: flex-start;
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 18px;
-      background: var(--t-yellow);
-      background-image: var(--t-grain);
-      color: var(--t-ink);
-      padding: 4px 12px 6px;
-      white-space: nowrap;
-      transform: rotate(-1deg);
-    }
-
     /* The answer pile: one block per submission on plinth + base, the
        host screen's own pile in miniature. */
-    .proj-pile-col {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-      flex-shrink: 0;
-    }
-
     .pile {
       display: flex;
       flex-direction: column;
@@ -343,28 +369,6 @@
       white-space: nowrap;
     }
 
-    /* Join-first templates (rolling start): the projector's lasting
-       picture is the doorway, code + QR. */
-    .proj-doorway {
-      display: flex;
-      gap: 28px;
-      align-items: center;
-      justify-content: center;
-      padding: 8px 0;
-    }
-
-    .proj-doorway-text {
-      font-size: 15px;
-      font-weight: 700;
-      line-height: 1.5;
-      color: var(--t-ink);
-    }
-
-    .proj-doorway-text .quiet {
-      font-weight: 500;
-      color: var(--t-muted);
-    }
-
     /* A stand-in for the real QR the host screen shows */
     .qr {
       width: 96px;
@@ -375,67 +379,6 @@
         repeating-linear-gradient(0deg, var(--t-paper) 0 3px, transparent 3px 7px),
         repeating-linear-gradient(90deg, var(--t-paper) 0 3px, transparent 3px 8px);
       opacity: 0.85;
-    }
-
-    /* Under the frame: name chip, meta, page count, ‹ › */
-    .carousel-bar {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      margin-top: 18px;
-      padding: 0 4px;
-      min-width: 0;
-    }
-
-    .board-name {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 20px;
-      color: var(--t-paper);
-      background: var(--t-magenta);
-      padding: 2px 12px 5px;
-      transform: rotate(-1.2deg);
-      display: inline-block;
-      box-shadow: 0 3px 4px rgba(50,35,15,0.28);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 260px;
-    }
-
-    .board-meta {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--t-muted-caps);
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .board-count {
-      margin-left: auto;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      color: var(--t-muted-caps);
-      white-space: nowrap;
-    }
-
-    .board-nav { display: flex; gap: 8px; flex-shrink: 0; }
-
-    .board-nav button {
-      width: 36px;
-      height: 36px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      background: var(--t-paper);
-      color: var(--t-ink);
-      font-family: var(--t-body);
-      font-size: 18px;
-      font-weight: 700;
-      box-shadow: 0 3px 4px rgba(50,35,15,0.24);
     }
 
     /* Right column: headline, sub-line, the one red action, paper door */
@@ -905,9 +848,12 @@
       .join-strip { transform: none; }
       .join-strip label { display: none; }
       .hero { flex-direction: column; gap: 40px; }
-      .projector-col { width: 100%; }
-      .projector { padding: 22px 18px 20px; }
-      .proj-prompt { font-size: 24px; }
+      .board-col { width: 100%; }
+      /* Narrow screens: the text IS the card; the print would crowd it. */
+      .board-shot { display: none; }
+      .board-slide { min-height: 0; }
+      .board-slide.has-shot { flex-direction: column; }
+      .board-slide.has-shot .board-name { font-size: 28px; padding: 2px 14px 6px; }
       .message-col { padding-top: 0; }
       /* Five cards do not fit a Chromebook half-screen: the shelf scrolls */
       .shelf-row { overflow-x: auto; padding-bottom: 10px; }
@@ -935,49 +881,6 @@
 
     <div class="hero">
 
-      <!-- The projector carousel: the screen the teacher will actually
-           project, one template at a time. Same list as the yard
-           (featured built-ins + this device's own). Hidden until loaded. -->
-      <div class="projector-col" id="activity-carousel" hidden>
-        <span class="projector-label" aria-hidden="true">Your projector, mid-activity</span>
-        <a class="projector-frame" id="carousel-slide" href="/library">
-          <div class="projector">
-            <span class="projector-mark" aria-hidden="true">Jam yard</span>
-            <div class="proj-top">
-              <div class="proj-code">
-                <span class="caps">Class code · go to <span id="proj-host">jamyard.xyz</span>/player</span>
-                <div class="code-blocks" id="proj-code" aria-hidden="true"></div>
-              </div>
-              <span class="proj-inroom" id="proj-inroom"></span>
-            </div>
-            <div class="proj-body" id="proj-body">
-              <div class="proj-ask">
-                <span class="caps" id="proj-status">Players are answering…</span>
-                <div class="proj-prompt" id="proj-prompt"></div>
-                <span class="proj-timer" id="proj-timer"></span>
-              </div>
-              <div class="proj-pile-col" id="proj-pile-col">
-                <div class="pile" id="proj-pile"></div>
-                <span class="proj-in" id="proj-in"></span>
-              </div>
-            </div>
-            <div class="proj-doorway" id="proj-doorway" hidden>
-              <div class="proj-doorway-text">Go to <span id="proj-host-2">jamyard.xyz</span>/player<br><span class="quiet">and enter this code</span></div>
-              <span class="qr" aria-hidden="true"></span>
-            </div>
-          </div>
-        </a>
-        <div class="carousel-bar">
-          <span class="board-name" id="carousel-name"></span>
-          <span class="board-meta" id="carousel-meta"></span>
-          <span class="board-count" id="carousel-count"></span>
-          <div class="board-nav">
-            <button type="button" class="t-lift" id="carousel-prev" style="--rot: -1deg" aria-label="Previous activity">‹</button>
-            <button type="button" class="t-lift" id="carousel-next" style="--rot: 0.8deg" aria-label="Next activity">›</button>
-          </div>
-        </div>
-      </div>
-
       <div class="message-col">
         <h1>Put the whole class on <span class="t-painted-word">one</span> screen.</h1>
         <p class="sub">Templates ready to be made yours, or describe an activity and the AI builds it. You project, students join with a code. Nothing to install.</p>
@@ -991,6 +894,41 @@
             <div class="t-baseboard" aria-hidden="true"></div>
           </nav>
           <a class="create-door t-lift" href="/designer" title="Describe an activity in plain words and the AI builds it">Or create your own with AI</a>
+        </div>
+      </div>
+
+      <!-- The featured board: the yard's own carousel, one activity at a
+           time with its projector print. Same list as the yard (featured
+           built-ins + this device's own). Hidden until the list loads. -->
+      <div class="board-col">
+        <div class="board" id="activity-carousel" hidden>
+          <div class="board-top">
+            <a class="board-label" href="/library" title="Browse the whole yard">From the yard</a>
+            <span class="board-count" id="carousel-count"></span>
+          </div>
+          <a class="board-slide" id="carousel-slide" href="/library">
+            <div class="board-slide-text">
+              <div class="board-titlerow">
+                <span class="board-name" id="carousel-name"></span>
+                <span class="board-meta" id="carousel-meta"></span>
+              </div>
+              <div class="board-desc" id="carousel-desc"></div>
+            </div>
+            <!-- A shot of the projector mid-activity, pinned on like a paper
+                 print (regenerated by scripts/regen-carousel-shots.js).
+                 Missing shot = the frame stays hidden, text takes the card. -->
+            <span class="board-shot" id="carousel-shot-frame" hidden>
+              <img id="carousel-shot" alt="">
+            </span>
+          </a>
+          <!-- No doors on the board (owner call 2026-09-02): the card
+               itself is the link, the arrows just turn the page. -->
+          <div class="board-bottom">
+            <div class="board-nav">
+              <button type="button" class="t-lift" id="carousel-prev" aria-label="Previous activity">‹</button>
+              <button type="button" class="t-lift" id="carousel-next" aria-label="Next activity">›</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1062,16 +1000,10 @@
       var nameEl = document.getElementById('carousel-name');
       var metaEl = document.getElementById('carousel-meta');
       var countEl = document.getElementById('carousel-count');
-      var codeEl = document.getElementById('proj-code');
-      var inRoomEl = document.getElementById('proj-inroom');
-      var bodyEl = document.getElementById('proj-body');
-      var statusEl = document.getElementById('proj-status');
-      var promptEl = document.getElementById('proj-prompt');
-      var timerEl = document.getElementById('proj-timer');
-      var pileColEl = document.getElementById('proj-pile-col');
-      var pileEl = document.getElementById('proj-pile');
-      var inEl = document.getElementById('proj-in');
-      var doorwayEl = document.getElementById('proj-doorway');
+      var descEl = document.getElementById('carousel-desc');
+      var shotFrame = document.getElementById('carousel-shot-frame');
+      var shotImg = document.getElementById('carousel-shot');
+      var shotState = {}; // gameId -> 'ok' | 'missing' (remembered across rotations)
       var shelfEl = document.getElementById('shelf');
       var shelfRowEl = document.getElementById('shelf-row');
       var shelfChipsEl = document.getElementById('shelf-chips');
@@ -1082,10 +1014,8 @@
       var reducedMotion = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      // The projector shows the real address students type
+      // The shelf's mini projectors show the real address students type
       var host = window.location.host || 'jamyard.xyz';
-      document.getElementById('proj-host').textContent = host;
-      document.getElementById('proj-host-2').textContent = host;
 
       // ── Decoration that must look alive but never lie about a live room:
       //    the code letters, the head count, the timer, and the pile are
@@ -1110,7 +1040,6 @@
       var LETTERS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
       var PAINTS = ['t-yellow', 't-cyan', 't-magenta', 't-green'];
       var WOODS = ['t-birch', 't-pine', 't-oak'];
-      var ROTS = ['-2deg', '1.5deg', '-1deg', '2deg'];
       function picture(g) {
         var deal = dealer(seedOf(g.id));
         var code = '';
@@ -1167,54 +1096,56 @@
         return { mode: gl.mode || 'answer', prompt: gl.prompt || g.description || '' };
       }
 
-      // ── The big frame ──
+      // ── The board ──
       function render() {
         var g = games[idx];
-        var pic = picture(g);
-        var gl = glimpseOf(g);
-        // Clicking the frame opens the activity popup here (what it is,
+        // Clicking the card opens the activity popup here (what it is,
         // then Host / Make it yours); the href keeps modified clicks and
         // new tabs landing on the same popup in the yard.
         slideEl.href = '/library?about=' + encodeURIComponent(g.id);
         slideEl.title = 'See what "' + g.name + '" is';
         nameEl.textContent = g.name;
+        descEl.textContent = g.description || '';
         metaEl.textContent = metaOf(g);
         countEl.textContent = (idx + 1) + ' of ' + games.length;
-
-        codeEl.textContent = '';
-        for (var i = 0; i < 4; i++) {
-          var letter = document.createElement('span');
-          letter.className = PAINTS[i];
-          letter.style.setProperty('--rot', ROTS[i]);
-          letter.textContent = pic.code.charAt(i);
-          codeEl.appendChild(letter);
-        }
-        inRoomEl.textContent = pic.inRoom + ' in the room';
-
-        if (gl.mode === 'join') {
-          bodyEl.hidden = true;
-          doorwayEl.hidden = false;
-          inRoomEl.textContent = 'Students join as they arrive';
+        applyShot(g);
+        probeShot(games[(idx + 1) % games.length]);
+      }
+      // Show the activity's projector print when a shot exists; otherwise
+      // the text-only card. Results are remembered so rotation never
+      // re-probes a missing file, and late loads only apply if the
+      // carousel is still on the same activity.
+      function showShot(on) {
+        shotFrame.hidden = !on;
+        slideEl.classList.toggle('has-shot', on);
+      }
+      function applyShot(g) {
+        if ((g.source || 'built-in') === 'user' || shotState[g.id] === 'missing') {
+          showShot(false);
           return;
         }
-        bodyEl.hidden = false;
-        doorwayEl.hidden = true;
-        promptEl.textContent = gl.prompt;
-        if (gl.mode === 'talk') {
-          statusEl.textContent = 'Nothing to type, the class talks';
-          timerEl.hidden = true;
-          pileColEl.hidden = true;
-          return;
-        }
-        statusEl.textContent = 'Players are answering…';
-        timerEl.hidden = false;
-        timerEl.textContent = pic.timer;
-        pileColEl.hidden = false;
-        buildPile(pileEl, pic.blocks, 1);
-        inEl.textContent = pic.arrived + ' of ' + pic.inRoom + ' in';
+        showShot(shotState[g.id] === 'ok');
+        shotImg.onload = function () {
+          shotState[g.id] = 'ok';
+          if (games[idx] && games[idx].id === g.id) showShot(true);
+        };
+        shotImg.onerror = function () {
+          shotState[g.id] = 'missing';
+          if (games[idx] && games[idx].id === g.id) showShot(false);
+        };
+        shotImg.src = '/home-shots/' + encodeURIComponent(g.id) + '.png';
+      }
+      // Warm the NEXT slide's shot during the dwell, so it's cached (and
+      // its existence known) before that slide shows: no mid-view pop.
+      function probeShot(g) {
+        if (!g || (g.source || 'built-in') === 'user' || shotState[g.id]) return;
+        var img = new Image();
+        img.onload = function () { shotState[g.id] = 'ok'; };
+        img.onerror = function () { shotState[g.id] = 'missing'; };
+        img.src = '/home-shots/' + encodeURIComponent(g.id) + '.png';
       }
 
-      // Slides crossfade: dip to blank for one beat, swap, fade back in.
+            // Slides crossfade: dip to blank for one beat, swap, fade back in.
       var swapTimer = null;
       function step(delta) {
         idx = (idx + delta + games.length) % games.length;
