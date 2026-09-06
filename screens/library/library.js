@@ -1033,14 +1033,23 @@ function makeItYoursDoors(onPick) {
     btn.className = 'recipe-create-btn door-' + door.dest;
     btn.textContent = door.label;
     btn.title = door.title;
-    btn.addEventListener('click', function () { onPick(door.dest); });
+    // The picked door says so while the copy is made: the AI rewording
+    // can take half a minute and the status line below is easy to miss
+    // (owner clicked "See it in the simulator" and saw nothing, 2026-09-06).
+    btn.addEventListener('click', function () {
+      btn.textContent = 'Making your copy…';
+      onPick(door.dest);
+    });
     row.appendChild(btn);
     return btn;
   });
   return {
     row: row,
     setDisabled: function (flag) {
-      buttons.forEach(function (b) { b.disabled = !!flag; });
+      buttons.forEach(function (b, i) {
+        b.disabled = !!flag;
+        if (!flag) b.textContent = COPY_DOORS[i].label;
+      });
     }
   };
 }
