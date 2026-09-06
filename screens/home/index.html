@@ -627,37 +627,40 @@
       margin-top: -7px;
     }
 
-    /* ── How it works: three Paper cards with painted numbers ── */
+    /* ── How it works: three small Paper cards with painted numbers,
+       stacked under the board (owner's call 2026-09-06) ── */
     .how-strip {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 22px;
+      padding: 0 6px;
     }
 
     .how-step {
       background: var(--t-paper);
-      box-shadow: 0 4px 6px rgba(50,35,15,0.22);
-      padding: 16px 18px;
+      box-shadow: 0 3px 4px rgba(50,35,15,0.2);
+      padding: 9px 14px 10px;
       display: flex;
-      gap: 12px;
-      align-items: flex-start;
+      gap: 10px;
+      align-items: center;
     }
 
     .how-num {
       font-family: var(--t-display);
       font-weight: 800;
-      font-size: 19px;
+      font-size: 14px;
       line-height: 1;
-      padding: 6px 10px 8px;
+      padding: 4px 8px 5px;
       transform: rotate(var(--rot, -1.2deg));
       flex-shrink: 0;
       box-shadow: 0 2px 3px rgba(50,35,15,0.24);
     }
 
     .how-step p {
-      font-size: 15px;
+      font-size: 13px;
       font-weight: 500;
-      line-height: 1.5;
+      line-height: 1.45;
       color: var(--t-muted);
     }
 
@@ -857,7 +860,6 @@
       .message-col { padding-top: 0; }
       /* Five cards do not fit a Chromebook half-screen: the shelf scrolls */
       .shelf-row { overflow-x: auto; padding-bottom: 10px; }
-      .how-strip { grid-template-columns: 1fr; }
       footer { justify-content: center; }
       .footer-credit { margin-left: 0; }
     }
@@ -930,6 +932,22 @@
             </div>
           </div>
         </div>
+
+        <!-- How it works: the whole concept in three small cards, under the board. -->
+        <div class="how-strip" aria-label="How it works">
+          <div class="how-step">
+            <span class="how-num t-yellow" style="--rot: -1.2deg" aria-hidden="true">1</span>
+            <p><strong>Pick an activity and make it yours</strong> from the yard, or create your own with AI.</p>
+          </div>
+          <div class="how-step">
+            <span class="how-num t-cyan" style="--rot: 1deg" aria-hidden="true">2</span>
+            <p><strong>Project your screen.</strong> The activity plays out up front for the whole class.</p>
+          </div>
+          <div class="how-step">
+            <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
+            <p><strong>Students join with a 4-letter code</strong> on their devices. No accounts, nothing to install.</p>
+          </div>
+        </div>
       </div>
 
     </div>
@@ -946,22 +964,6 @@
       </div>
       <div class="shelf-row" id="shelf-row"></div>
     </section>
-
-    <!-- How it works: the whole concept in three cards. -->
-    <div class="how-strip" aria-label="How it works">
-      <div class="how-step">
-        <span class="how-num t-yellow" style="--rot: -1.2deg" aria-hidden="true">1</span>
-        <p><strong>Pick an activity and make it yours</strong> from the yard, or create your own with AI.</p>
-      </div>
-      <div class="how-step">
-        <span class="how-num t-cyan" style="--rot: 1deg" aria-hidden="true">2</span>
-        <p><strong>Project your screen.</strong> The activity plays out up front for the whole class.</p>
-      </div>
-      <div class="how-step">
-        <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
-        <p><strong>Students join with a 4-letter code</strong> on their devices. No accounts, nothing to install.</p>
-      </div>
-    </div>
 
     <section class="join" id="join">
       <label class="caps" for="room-code">Joining as a student? Enter your room code</label>
