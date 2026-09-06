@@ -21,6 +21,16 @@ describe('botAnswerFor', () => {
     }
   });
 
+  it('keeps Doodle Bluff phrases and fake titles in separate banks, so a fake never equals the truth', () => {
+    const phrasePrompt = 'Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous octopus';
+    const fakePrompt = 'What is the REAL title of this drawing? Make up a fake so convincing your classmates pick it.';
+    const phrases = new Set(answers(phrasePrompt));
+    const fakes = new Set(answers(fakePrompt));
+    expect(phrases.size).toBeGreaterThan(1);
+    expect(fakes.size).toBeGreaterThan(1);
+    for (const f of fakes) expect(phrases.has(f)).toBe(false);
+  });
+
   it('answers mood questions with feelings', () => {
     for (const a of answers('How are you feeling today? (one word or short phrase)')) {
       // "one word" rule wins here — single word, no spaces

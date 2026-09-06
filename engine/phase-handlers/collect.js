@@ -12,6 +12,7 @@ import { EVENTS } from '../events.js';
 import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups } from '../phases/pairing.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { shuffleDeal } from '../phases/deal.js';
+import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
 import { tailOfWords } from '../phases/append-only.js';
 import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
 import { translate } from '../i18n/index.js';
@@ -30,7 +31,7 @@ import { translate } from '../i18n/index.js';
  */
 function buildRotationAssignment(ctx) {
   const { phase, engine } = ctx;
-  if (!phase.rotateFrom) return null;
+  if (!phase.rotateFrom) return buildDealAssignment(ctx);
 
   const sourceData = engine.phaseData[phase.rotateFrom];
   if (!sourceData) {
@@ -105,6 +106,31 @@ function buildRotationAssignment(ctx) {
     assignedFrom,
     ...(sourceDrawings ? { assignedDrawing: drawingAssignment } : {})
   });
+  return assignment;
+}
+
+/**
+ * dealItems: hand each player one item from a TEACHER list (no student
+ * author), so `{{thisStep.assigned}}` works without an earlier collect.
+ * Doodle Bluff's teacher-phrases mode. Items go out in a random order and
+ * wrap when the class outnumbers the list; the deal is stored under THIS
+ * phase (the list has no source step to store it under).
+ */
+function buildDealAssignment(ctx) {
+  const { phase, engine } = ctx;
+  if (!Array.isArray(phase.dealItems) || phase.dealItems.length === 0) return null;
+  const items = phase.dealItems.map(s => String(s)).filter(s => s.trim() !== '');
+  if (items.length === 0) return null;
+  const eligible = ctx.getEligibleVoters(phase.from || 'all');
+  const order = items.slice();
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  const assignment = {};
+  eligible.forEach((p, i) => { assignment[p.id] = order[i % order.length]; });
+  const existing = engine.phaseData[phase.id] || {};
+  engine.storePhaseData(phase.id, { ...existing, assigned: assignment });
   return assignment;
 }
 
@@ -308,10 +334,7 @@ registerHandler('collect', {
     // Who counts toward "X of Y submitted" — must mirror the submit
     // handler's math (foreach author self-exclusion, unpaired players)
     // or the seeded total would disagree with the first live update.
-    let countEligible = eligible;
-    if (phase._foreachAuthorId) {
-      countEligible = countEligible.filter(p => p.id !== phase._foreachAuthorId);
-    }
+    let countEligible = withoutSitOut(eligible, phase);
     if (pairedIds) {
       countEligible = countEligible.filter(p => pairedIds.has(p.id));
     }
@@ -330,11 +353,13 @@ registerHandler('collect', {
     // Send prompt to eligible players — resolve `{{X.mine}}` and `{{X.assigned}}` per-recipient.
     // For pairwise, players who weren't paired (odd count) skip the prompt and wait.
     for (const player of eligible) {
-      // Foreach self-exclusion: the current item's author sits this one out
-      // (mirrors collect-choice; without it the Doodle Bluff artist could
-      // write a decoy title for their own drawing and farm fool points).
-      if (phase._foreachAuthorId && player.id === phase._foreachAuthorId) {
-        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'This one is yours! Waiting for the others...' });
+      // Foreach sit-out: the round's author and source sit this one out
+      // (mirrors collect-choice; without it the Doodle Bluff artist, or the
+      // classmate whose phrase it was, could write a decoy title for their
+      // own round and farm fool points). engine/phases/sit-out.js
+      const sitOut = sitOutMessage(phase, player.id);
+      if (sitOut) {
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: sitOut });
         continue;
       }
       if (pairedIds && !pairedIds.has(player.id)) {
@@ -378,8 +403,9 @@ registerHandler('collect', {
   onReconnect(ctx, socket) {
     const sc = ctx.resolveScreenControl();
     const player = ctx.engine.players.find(socket.id);
-    if (player && ctx.phase._foreachAuthorId && player.id === ctx.phase._foreachAuthorId) {
-      socket.emit(EVENTS.WAITING, { message: 'This one is yours! Waiting for the others...' });
+    const sitOut = player ? sitOutMessage(ctx.phase, player.id) : null;
+    if (sitOut) {
+      socket.emit(EVENTS.WAITING, { message: sitOut });
     } else if (player && player.response) {
       if (isRolling(ctx.engine.config) && !moreInputAhead(ctx.engine.config, ctx.phase.id)) {
         socket.emit(EVENTS.PLAYER_DONE, { message: translate(ctx.engine.language, doneMessageFor(ctx.phase)) });

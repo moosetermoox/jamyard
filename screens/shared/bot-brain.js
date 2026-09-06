@@ -97,6 +97,26 @@
       'I once met a famous athlete', 'I can name every country in South America',
       'I\'ve been to four countries'
     ],
+    // Doodle Bluff: a strange phrase worth drawing, and a fake title for
+    // someone else's drawing. Two banks, so a bot's fake never equals a
+    // phrase (a match deduped the truth out of the ballot and read as
+    // "only one option" in the simulator).
+    phrases: [
+      'A nervous octopus at a job interview', 'A snowman on a beach holiday',
+      'A giraffe learning to skateboard', 'Grandma\'s cat running for mayor',
+      'A volcano that only erupts confetti', 'Two clouds arguing about the weather',
+      'A sandwich with a secret identity', 'Ducks holding a very serious meeting',
+      'The moon ordering takeout', 'A dragon afraid of birthday candles',
+      'A penguin who lost its umbrella', 'The world\'s smallest marching band'
+    ],
+    fakes: [
+      'A hedgehog stuck in a hammock', 'The last slice of pizza escaping',
+      'A robot learning to whistle', 'Three sheep planning a heist',
+      'A very tired lighthouse', 'A cactus hugging a balloon',
+      'An owl who forgot its glasses', 'A submarine full of hamsters',
+      'The teacher\'s desk on vacation', 'A ghost doing laundry',
+      'A frog conducting an orchestra', 'A bicycle made of noodles'
+    ],
     generic: [
       'Pizza is the best food', 'I love recess', 'Homework should be banned',
       'Cats are better than dogs', 'Summer vacation rocks', 'Math is actually fun',
@@ -148,6 +168,11 @@
 
     var option = pickEmbeddedOption(p);
     if (option) return option;
+
+    // Bluff rounds first: "the REAL title", "a fake", "a lie" are about
+    // someone else's work, whatever other words the prompt carries.
+    if (containsAny(p, ['real title', 'fake title', 'a fake', 'a lie', 'bluff', 'caption', 'title of this'])) return pick(BANKS.fakes);
+    if (containsAny(p, ['phrase', 'fun to draw', 'to watch someone draw', 'something to draw'])) return pick(BANKS.phrases);
 
     if (containsAny(p, ['snack', 'food', 'eat', 'lunch', 'dinner', 'breakfast', 'meal', 'dessert', 'pizza'])) return pick(BANKS.food);
     if (containsAny(p, ['feel', 'mood', 'emotion', 'how are you'])) return pick(BANKS.feelings);

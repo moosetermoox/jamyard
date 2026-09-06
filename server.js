@@ -20,6 +20,7 @@ import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
 import { homeGlimpse } from './engine/home-glimpse.js';
+import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
 import {
   createWordHelpState, normalizeWord, remaining as wordHelpRemaining, spend as wordHelpSpend,
   refund as wordHelpRefund, recordLookup, summarize as summarizeWordHelp,
@@ -1261,9 +1262,14 @@ function setupForeachIteration(engine, foreachPhaseId, feConfig, index) {
       }
     }
 
-    // Mark collect-choice sub-phases with self-exclusion info
+    // Who sits this round out: the item's author, and the author of what
+    // the item was made from (Doodle Bluff: the drawer AND the classmate
+    // whose phrase was drawn, both know the answer). engine/phases/sit-out.js
     if ((subConfig.type === 'collect-choice' || subConfig.type === 'collect') && feConfig.selfExclude !== false) {
-      subConfig._foreachAuthorId = item.playerId || null;
+      const out = foreachSitOut(item, feConfig);
+      subConfig._foreachAuthorId = out.authorId;
+      subConfig._foreachSourceId = out.sourceId;
+      subConfig._foreachSitOutIds = out.ids;
     }
 
     // Resolve _current references eagerly (message, prompt, correctAnswer,
@@ -1501,7 +1507,7 @@ function buildTeacherSnapshot(code, room) {
     preview: null
   };
   if (phase && (phase.type === 'collect' || phase.type === 'collect-choice')) {
-    const eligible = getEligibleVoters(engine.players, phase.from || 'all');
+    const eligible = withoutSitOut(getEligibleVoters(engine.players, phase.from || 'all'), phase);
     snap.submissions = buildSubmissionList(eligible);
   }
   if (phase && phase.type === 'preview') {
@@ -1557,7 +1563,7 @@ function emitSubmissionsUpdate(code, room) {
   if (!room || !room.engine) return;
   const phase = room.engine.getCurrentPhase();
   if (!phase || (phase.type !== 'collect' && phase.type !== 'collect-choice')) return;
-  const eligible = getEligibleVoters(room.engine.players, phase.from || 'all');
+  const eligible = withoutSitOut(getEligibleVoters(room.engine.players, phase.from || 'all'), phase);
   const payload = { submissions: buildSubmissionList(eligible) };
   io.to(teachersChannel(code)).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
 }
@@ -3544,10 +3550,8 @@ io.on('connection', (socket) => {
       const phase = room.engine.getCurrentPhase();
       const from = phase.from || 'all';
       eligible = getEligibleVoters(room.engine.players, from);
-      // Exclude self-excluded author in foreach
-      if (phase._foreachAuthorId) {
-        eligible = eligible.filter(p => p.id !== phase._foreachAuthorId);
-      }
+      // Foreach: the round's author and source sit out (engine/phases/sit-out.js)
+      eligible = withoutSitOut(eligible, phase);
       // Exclude unpaired players when this collect uses pairwise distribution
       if (phase.assign === 'pairwise') {
         const phaseData = room.engine.phaseData[phase.id];
@@ -3736,12 +3740,10 @@ io.on('connection', (socket) => {
         // Gather responses from eligible players and store as phase data.
         // Host-hidden responses are excluded (kept off AI input + reveal).
         let eligible = getEligibleVoters(players, from);
-        // Foreach self-exclusion: the current item's author never counts as
-        // a submitter (they get a waiting screen, but a crafted socket
+        // Foreach sit-out: the round's author and source never count as
+        // submitters (they get a waiting screen, but a crafted socket
         // event could still try to plant a response).
-        if (collectPhase._foreachAuthorId) {
-          eligible = eligible.filter(p => p.id !== collectPhase._foreachAuthorId);
-        }
+        eligible = withoutSitOut(eligible, collectPhase);
         // Pairwise: only paired players are real submitters
         if (collectPhase.assign === 'pairwise') {
           const cpData = room.engine.phaseData[collectPhase.id];
@@ -3771,13 +3773,30 @@ io.on('connection', (socket) => {
         // record, so downstream reveals can show it ({{_current.assigned}} in
         // a reveal-one itemTemplate) instead of asking students to re-type the
         // thing they were handed (whose-eyes shipped that busywork field).
+        // The LINK rides along too (assignedFromId/Name): a foreach round
+        // over these responses can then keep the classmate who wrote the
+        // phrase out of the bluffing (engine/phases/sit-out.js) and name
+        // them in the reveal.
         if (collectPhase.rotateFrom) {
           const srcData = room.engine.phaseData[collectPhase.rotateFrom];
           const assignedMap = (srcData && srcData.assigned) || {};
+          const fromMap = (srcData && srcData.assignedFrom) || {};
           for (const r of responses) {
             if (r && r.playerId && assignedMap[r.playerId] !== undefined) {
               r.assigned = assignedMap[r.playerId];
+              const fromId = fromMap[r.playerId];
+              if (fromId) {
+                r.assignedFromId = fromId;
+                const fromPlayer = players.find(fromId);
+                if (fromPlayer) r.assignedFromName = fromPlayer.name;
+              }
             }
+          }
+        } else if (Array.isArray(collectPhase.dealItems)) {
+          // Dealt from a teacher list: the item has no author, only text.
+          const dealt = (room.engine.phaseData[collectPhase.id] || {}).assigned || {};
+          for (const r of responses) {
+            if (r && r.playerId && dealt[r.playerId] !== undefined) r.assigned = dealt[r.playerId];
           }
         }
 

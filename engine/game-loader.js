@@ -1147,6 +1147,19 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // dealItems: a teacher list handed out one per player (collect only),
+    // never alongside a rotation, which is the other way of dealing.
+    if (phase.dealItems !== undefined) {
+      if (phase.type !== 'collect') {
+        errors.push(`Game "${gameId}": phase "${name}" has dealItems, which only a collect step can use`);
+      } else if (!Array.isArray(phase.dealItems) || phase.dealItems.length === 0 ||
+                 phase.dealItems.some(s => typeof s !== 'string' || s.trim() === '')) {
+        errors.push(`Game "${gameId}": phase "${name}" dealItems must be a list of one or more non-empty strings`);
+      } else if (phase.rotateFrom) {
+        errors.push(`Game "${gameId}": phase "${name}" cannot use both dealItems and rotateFrom`);
+      }
+    }
+
     // One Voice rules (Connection Pack §4.6).
     if (phase.type === 'one-voice') {
       if (phase.collisionWindowMs !== undefined && phase.collisionWindowMs !== null) {
