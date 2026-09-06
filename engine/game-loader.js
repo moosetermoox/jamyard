@@ -16,6 +16,7 @@
  */
 import { readFile, readdir, access } from 'fs/promises';
 import { LANGUAGE_CODES, AUTO as LANGUAGE_AUTO } from './i18n/index.js';
+import { validateWordHelp } from './word-help.js';
 import { START_MODES, isRolling, isRosterBound } from './phases/rolling.js';
 import { playableQuestions } from './phases/solo-quiz-scoring.js';
 import { join, dirname } from 'path';
@@ -191,6 +192,10 @@ export function validate(config, gameId, options) {
   if (config.start !== undefined && !START_MODES.includes(config.start)) {
     errors.push(`Game "${gameId}": "start" must be one of: ${START_MODES.join(', ')}`);
   }
+
+  // Word help (engine/word-help.js): a per-student budget of word
+  // translations. Mirrored in the editor's client validation.
+  errors.push(...validateWordHelp(config, gameId));
 
   if (!config.phases || typeof config.phases !== 'object') {
     errors.push(`Game "${gameId}" is missing required field: phases`);

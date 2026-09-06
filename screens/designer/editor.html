@@ -115,6 +115,29 @@
         </select>
         <span class="field-help">Rolling suits exit tickets, quick polls, and self-paced quizzes: hosting opens the first step right away, the join code stays on the projector, and timers are ignored. Steps that pair or group students need everyone together.</span>
       </div>
+      <div class="form-group">
+        <label for="game-word-help">Word help</label>
+        <select id="game-word-help">
+          <option value="">Off</option>
+          <option value="1">1 translation per student</option>
+          <option value="3">3 translations per student</option>
+          <option value="5">5 translations per student</option>
+          <option value="10">10 translations per student</option>
+        </select>
+        <span class="field-help">Students tap a word in a prompt they do not know and see it translated, a limited number of times each, so the help is a budget they manage. You see which words the class tapped; the projector never does.</span>
+      </div>
+      <div class="form-group" id="game-word-help-to-group" hidden>
+        <label for="game-word-help-to">Translate into</label>
+        <select id="game-word-help-to">
+          <option value="en">English</option>
+          <option value="es">Spanish (Español)</option>
+          <option value="fr">French (Français)</option>
+          <option value="de">German (Deutsch)</option>
+          <option value="pt">Portuguese (Português)</option>
+          <option value="it">Italian (Italiano)</option>
+        </select>
+        <span class="field-help">The words are read in the activity's language (the Language setting above) and translated into this one.</span>
+      </div>
       <!-- Theme picker removed from the sidebar 2026-08-31 (owner's call:
            not needed right now). The engine still honors config.theme on
            existing games; the guarded wiring in editor.js stays for an

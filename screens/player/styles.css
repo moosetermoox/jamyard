@@ -2046,3 +2046,79 @@ input::placeholder, textarea::placeholder {
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
 }
+
+/* ── Word help (shared/word-help.js): tap a word, spend a token ──
+   Prompt words get a pencil underline; the chip (top right) shows the
+   server's count; the note is a paper slip under the tapped word. */
+.wh-word {
+  cursor: pointer;
+  border-bottom: 2px dotted rgba(42, 38, 32, 0.4);
+  border-radius: 2px;
+}
+
+.wh-word:hover,
+.wh-word:focus-visible {
+  background: rgba(255, 200, 0, 0.35);
+  outline: none;
+}
+
+.wh-word.wh-hit { background: var(--t-yellow, #FFC800); }
+
+/* Budget spent: the underlines go, the words are plain text again */
+body.wh-empty .wh-word { cursor: default; border-bottom: none; }
+body.wh-empty .wh-word:hover { background: none; }
+
+#word-help-chip {
+  position: fixed;
+  top: 8px;
+  right: 8px;
+  z-index: 900;
+  font-family: var(--t-display, 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  background: var(--t-yellow, #FFC800);
+  background-image: var(--t-grain);
+  color: var(--t-ink, #2A2620);
+  padding: 6px 10px 7px;
+  box-shadow: 0 3px 5px rgba(50, 35, 15, 0.25);
+  transform: rotate(-1deg);
+}
+
+#word-help-chip.is-empty {
+  background: var(--t-paper, #FDF9F0);
+  background-image: none;
+  color: var(--t-muted, #6B6250);
+}
+
+.wh-pop {
+  position: absolute;
+  z-index: 950;
+  max-width: 260px;
+  background: var(--t-paper, #FDF9F0);
+  color: var(--t-ink, #2A2620);
+  padding: 10px 14px 11px;
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.25);
+  transform: rotate(0.6deg);
+  font-size: 15px;
+  line-height: 1.35;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wh-pop strong {
+  font-family: var(--t-display, 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--t-muted, #6B6250);
+}
+
+.wh-pop-meaning {
+  font-family: var(--t-display, 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif);
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.wh-pop-note { color: var(--t-muted, #6B6250); }

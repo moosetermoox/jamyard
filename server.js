@@ -20,6 +20,11 @@ import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
 import { homeGlimpse } from './engine/home-glimpse.js';
+import {
+  createWordHelpState, normalizeWord, remaining as wordHelpRemaining, spend as wordHelpSpend,
+  refund as wordHelpRefund, recordLookup, summarize as summarizeWordHelp,
+  cachedTranslation, cacheTranslation, publicSettings as wordHelpSettings
+} from './engine/word-help.js';
 import { gamePhases } from './config/game-phases.js';
 import { AIService } from './services/ai-service.js';
 import {
@@ -1507,6 +1512,8 @@ function buildTeacherSnapshot(code, room) {
   if (ps && ps.kind === 'checklist' && !ps.closed) {
     snap.checklist = { items: ps.items, groups: teacherDetail(ps), solo: ps.solo };
   }
+  // Word help: which words the class has tapped so far (counts, no names)
+  snap.wordHelp = room.wordHelp ? summarizeWordHelp(room.wordHelp) : null;
   if (engine && phase) {
     snap.continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language);
     snap.closeLabel = closeLabelFor(phase.type, engine.language);
@@ -1971,7 +1978,10 @@ app.get('/api/rooms/:code/report', (req, res) => {
   if (!allowed) {
     return res.status(403).json({ error: 'Teacher access required. Open the report from your teacher console.' });
   }
-  res.json(buildActivityReport(room.engine, { code: room.code }));
+  res.json(buildActivityReport(room.engine, {
+    code: room.code,
+    wordHelp: room.wordHelp ? summarizeWordHelp(room.wordHelp) : null
+  }));
 });
 
 // Public pre-join lookup: the player screen asks whether a room collects
@@ -2649,6 +2659,7 @@ app.post('/api/games/revise', async (req, res) => {
     carryRecipeStamp(config, result.updatedConfig);
     carryAnonymousFlag(config, result.updatedConfig);
     carryLanguage(config, result.updatedConfig);
+    carryWordHelp(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
     // Validate the AI's revised config; surface errors so the client can show them
     const structural = validate(result.updatedConfig, 'revise', { returnResults: true });
@@ -2670,6 +2681,13 @@ app.post('/api/games/revise', async (req, res) => {
 function carryAnonymousFlag(original, updated) {
   if (original && original.anonymous === true && updated && updated.anonymous === undefined) {
     updated.anonymous = true;
+  }
+}
+
+// And for the word-help budget (editor Settings, engine/word-help.js).
+function carryWordHelp(original, updated) {
+  if (original && original.wordHelp && typeof original.wordHelp === 'object' && updated && updated.wordHelp === undefined) {
+    updated.wordHelp = { ...original.wordHelp };
   }
 }
 
@@ -2716,6 +2734,7 @@ app.post('/api/games/chat', async (req, res) => {
     carryRecipeStamp(config, result.updatedConfig);
     carryAnonymousFlag(config, result.updatedConfig);
     carryLanguage(config, result.updatedConfig);
+    carryWordHelp(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
     const structural = validate(result.updatedConfig, 'chat', { returnResults: true });
     res.json({
@@ -3070,6 +3089,9 @@ io.on('connection', (socket) => {
       // Host rebind credential: lets the host screen recover from an F5 or
       // a server restart (stored in the host page's sessionStorage).
       room.hostToken = randomUUID();
+      // Word help (engine/word-help.js): the per-student translation
+      // budget, null when the activity has none.
+      room.wordHelp = createWordHelpState(config, room.engine.language);
 
       roomToHost.set(code, socket.id);
       socket.join(code);
@@ -3215,6 +3237,7 @@ io.on('connection', (socket) => {
           migrateIdsInPlace(room.engine.foreachState, oldId, socket.id);
           // Shared-meadow order/cooldowns are keyed by player id too.
           migrateIdsInPlace(room.meadowState, oldId, socket.id);
+          migrateIdsInPlace(room.wordHelp, oldId, socket.id);
         }
         socketToRoom.set(socket.id, code);
         socket.join(code);
@@ -3222,7 +3245,7 @@ io.on('connection', (socket) => {
         const player = players.find(socket.id);
         const theme = room.engine ? (room.engine.config.theme || null) : null;
         const language = room.engine ? room.engine.language : 'en';
-        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language) });
+        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null });
 
         const hostSocketId = roomToHost.get(code);
         if (hostSocketId) {
@@ -3256,7 +3279,7 @@ io.on('connection', (socket) => {
       console.log(`[join-room] Player ${socket.id} joined room ${code}`);
       const theme = room.engine ? (room.engine.config.theme || null) : null;
       const language = room.engine ? room.engine.language : 'en';
-      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language) });
+      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null });
 
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {
@@ -3950,6 +3973,56 @@ io.on('connection', (socket) => {
       fx: clampFrac(fx),
       fy: clampFrac(fy)
     });
+  });
+
+  // --- Word help: tap a word, spend a token, see it translated (engine/word-help.js) ---
+  // No stale-phase guard on purpose: a lookup is not tied to a step, and
+  // the answer must reach the student whichever step they are on. The
+  // ledger is the rate limit. The word is teacher-authored activity text.
+  socket.on(EVENTS.WORD_LOOKUP, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'word-lookup', payload)) return;
+    const { code, word, sentence } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.engine || !room.wordHelp) return;
+    if (!room.engine.players.find(socket.id)) return;
+    const state = room.wordHelp;
+    const reply = (extra) => socket.emit(EVENTS.WORD_LOOKUP_RESULT, { phaseInstanceId: room.phaseInstanceId || 0, ...extra });
+    const normalized = normalizeWord(word);
+    if (!normalized) {
+      reply({ ok: false, reason: 'not-a-word', left: wordHelpRemaining(state, socket.id) });
+      return;
+    }
+    const purse = wordHelpSpend(state, socket.id);
+    if (!purse.ok) {
+      reply({ ok: false, reason: 'no-tokens', word: normalized.word, left: 0 });
+      return;
+    }
+    recordEvent(room, 'word-lookup');
+    try {
+      let translation = cachedTranslation(state, normalized.key);
+      if (translation === undefined) {
+        const ai = room.simulated ? mockAiService : aiService;
+        const result = await ai.translateWord({
+          word: normalized.word,
+          sentence: String(sentence || '').slice(0, 300),
+          from: state.from,
+          to: state.to
+        });
+        if (!result) {
+          reply({ ok: false, reason: 'failed', word: normalized.word, left: wordHelpRefund(state, socket.id) });
+          return;
+        }
+        translation = result.translation;
+        cacheTranslation(state, normalized.key, translation);
+      }
+      recordLookup(state, normalized);
+      reply({ ok: true, word: normalized.word, translation, left: wordHelpRemaining(state, socket.id) });
+      // The consoles see which words the class tapped: counts, no names.
+      io.to(teachersChannel(code)).emit(EVENTS.TEACHER_WORD_HELP, { words: summarizeWordHelp(state) });
+    } catch (error) {
+      console.log(`[word-lookup] Error: ${error.message}`);
+      reply({ ok: false, reason: 'failed', word: normalized.word, left: wordHelpRefund(state, socket.id) });
+    }
   });
 
   socket.on(EVENTS.CLOSE_VOTING, async ({ code, phaseInstanceId } = {}) => {

@@ -37,6 +37,28 @@ var consoleNote = document.getElementById('console-note');
 
 var checklistBlock = document.getElementById('checklist-block');
 var checklistGroups = document.getElementById('checklist-groups');
+var wordHelpBlock = document.getElementById('word-help-block');
+var wordHelpList = document.getElementById('word-help-list');
+var wordHelpEmpty = document.getElementById('word-help-empty');
+
+// Word help: the words the class tapped, most tapped first. The block
+// shows whenever the activity has word help on (an array, even empty);
+// null means the activity has none.
+function renderWordHelp(words) {
+  if (!wordHelpBlock) return;
+  if (!Array.isArray(words)) { wordHelpBlock.hidden = true; return; }
+  wordHelpBlock.hidden = false;
+  wordHelpList.textContent = '';
+  wordHelpEmpty.hidden = words.length > 0;
+  words.forEach(function (entry) {
+    var li = document.createElement('li');
+    var word = document.createElement('strong');
+    word.textContent = entry.word;
+    li.appendChild(word);
+    li.appendChild(document.createTextNode(' · ' + entry.count + (entry.count === 1 ? ' tap' : ' taps')));
+    wordHelpList.appendChild(li);
+  });
+}
 
 var reportCard = document.getElementById('report-card');
 var reportOpenBtn = document.getElementById('report-open-btn');
@@ -165,6 +187,7 @@ socket.on('teacher-joined', function (snap) {
     countLabel.textContent = (snap.submissions || []).length + ' of ' + snap.playerCount + ' in';
   }
   if (snap.preview) renderPreview(snap.preview.content, snap.preview.responses);
+  renderWordHelp(snap.wordHelp === undefined ? null : snap.wordHelp);
   if (snap.checklist) {
     checklistItemTexts = snap.checklist.items || [];
     checklistBlock.hidden = false;
@@ -391,6 +414,10 @@ function renderEntries(submissions) {
     })(submissions[i]);
   }
 }
+
+socket.on('teacher-word-help', function (data) {
+  renderWordHelp((data && data.words) || []);
+});
 
 socket.on('submissions-update', function (data) {
   renderEntries((data && data.submissions) || []);

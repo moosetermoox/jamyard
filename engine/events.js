@@ -49,6 +49,11 @@ export const EVENTS = {
   MEADOW_NUDGE:         'meadow-nudge',        // player -> server: move my block (normalized fx/fy)
   MEADOW_MOVED:         'meadow-moved',        // server -> room: block {index} moved (anonymous, no ids)
   MEADOW_YOU:           'meadow-you',          // server -> submitting player only: your block's index
+
+  // --- Word help (engine/word-help.js): tap a word, spend a token, see it translated ---
+  WORD_LOOKUP:          'word-lookup',         // player -> server: {word, sentence}
+  WORD_LOOKUP_RESULT:   'word-lookup-result',  // server -> that player only: {ok, word, translation, left}
+  TEACHER_WORD_HELP:    'teacher-word-help',   // server -> consoles: which words the class tapped (counts, no names)
   // Lobby only — the projected host roster is already public to the class.
   ROOM_ROSTER:          'room-roster',
 

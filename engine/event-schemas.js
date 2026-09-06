@@ -62,6 +62,12 @@ export const EVENT_SCHEMAS = {
     fy: 'number:required',
     phaseInstanceId: 'number:optional'
   },
+  'word-lookup': {
+    code: 'string:required',
+    word: 'string:required',
+    sentence: 'string:optional',
+    phaseInstanceId: 'number:optional'
+  },
   'submit-vote': {
     code: 'string:required',
     choice: 'any:optional',

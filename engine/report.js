@@ -112,6 +112,22 @@ export function buildActivityReport(engine, meta = {}) {
     }
   }
 
+  // Word help (engine/word-help.js): which words the class tapped for a
+  // translation, most-tapped first. Counts only, never who tapped what;
+  // the point is "these five words tripped up the room".
+  if (Array.isArray(meta.wordHelp) && meta.wordHelp.length > 0) {
+    sections.push({
+      id: 'word-help',
+      type: 'word-help',
+      heading: 'Words the class looked up',
+      blocks: [{
+        kind: 'table',
+        columns: ['Word', 'Times tapped'],
+        rows: meta.wordHelp.map(e => [cellText(e.word), Number(e.count) || 0])
+      }]
+    });
+  }
+
   return {
     game: config.name || null,
     code: meta.code || null,

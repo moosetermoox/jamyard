@@ -91,6 +91,17 @@ describe('restoreRoom', () => {
     expect(() => room.engine.transition('loop')).not.toThrow();
   });
 
+  it('carries the word-help ledger through a restart, so purses are not refilled', () => {
+    const live = liveRoom();
+    live.wordHelp = { tokens: 3, from: 'es', to: 'en', spent: { 'p-maya': 2 }, cache: { escuela: 'school' }, looked: { escuela: { word: 'escuela', count: 2 } } };
+    const snap = JSON.parse(JSON.stringify(serializeRoom(live)));
+    expect(snap.wordHelp.spent['p-maya']).toBe(2);
+    const room = restoreRoom(snap, CONFIG, {});
+    expect(room.wordHelp.spent['p-maya']).toBe(2);
+    expect(room.wordHelp.cache.escuela).toBe('school');
+    expect(restoreRoom(JSON.parse(JSON.stringify(serializeRoom(liveRoom()))), CONFIG, {}).wordHelp).toBeNull();
+  });
+
   it('maps a mid-foreach virtual phase back to the foreach parent (fresh re-entry)', () => {
     const room = liveRoom();
     room.engine.foreachState.loop = { items: [{ text: 'hi' }], currentIndex: 0, scores: {}, subPhaseIds: [] };
