@@ -8,10 +8,11 @@
   <link rel="stylesheet" href="/shared/totem.css">
   <link rel="stylesheet" href="/shared/activity-map.css">
   <style>
-    /* ══ Totem system (docs/design/totem/) ══
-       Painted scrap-wood offcuts stacked into totems on a gesso
-       ground. Wood holds content, paint means something, and the
-       one signal-red action on this screen is FIND. */
+    /* ══ Totem system (docs/design/totem/), home 13a (2026-09-05) ══
+       Teacher-first front door: the headline and the ONE red action on the
+       left; the yard's own board carousel on the right (the projector
+       print, name and description of one template at a time). The student door is a small plank in
+       the header (and the join board lower down), never the star. */
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -33,13 +34,21 @@
       max-width: 1100px;
       margin: 0 auto;
       padding: 30px 40px 24px;
-      gap: 26px;
+      gap: 40px;
     }
 
-    /* ── Header: wordmark letter blocks + spaced-caps tagline ── */
+    .caps {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--t-muted-caps);
+    }
+
+    /* ── Header: wordmark letter blocks + the student plank ── */
     header {
       display: flex;
-      align-items: flex-end;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 16px;
       flex-wrap: wrap;
@@ -77,109 +86,81 @@
       --rot: 1.5deg;
     }
 
-    .tagline {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      color: var(--t-muted-caps);
-      padding-bottom: 8px;
+    /* The existing join form, moved up onto a Paper strip. Same handler
+       as the join board below; ids differ (#room-code-top). */
+    .join-strip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--t-paper);
+      box-shadow: 0 4px 6px rgba(50,35,15,0.22);
+      padding: 10px 12px 10px 16px;
+      transform: rotate(0.4deg);
     }
 
-    /* ── Main: actions totem on the left, message on the right ── */
+    .join-strip label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--t-muted);
+    }
+
+    .code-input {
+      border: none;
+      background: var(--t-sanded);
+      background-image: var(--t-grain);
+      border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+      font-family: var(--t-display);
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 6px;
+      text-align: center;
+      color: var(--t-ink);
+    }
+
+    .code-input::placeholder {
+      color: rgba(110, 75, 40, 0.45);
+      letter-spacing: 6px;
+    }
+
+    .code-input:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 3px var(--t-ink);
+    }
+
+    /* A wrong code: the ring goes red for a beat, no popup */
+    .code-input.is-wrong { box-shadow: inset 0 0 0 3px var(--t-red); }
+
+    .join-strip .code-input {
+      width: 96px;
+      height: 36px;
+      font-size: 15px;
+      padding: 0 0 0 6px;
+    }
+
+    .join-strip button {
+      font-size: 13px;
+      padding: 9px 14px 10px;
+    }
+
+    /* ── Hero: headline + the one red action | the featured board ── */
     .hero {
       display: flex;
-      gap: 56px;
-      align-items: stretch;
+      gap: 48px;
+      align-items: flex-start;
+      margin-top: 10px;
     }
 
-    .totem-col {
-      width: 280px;
+    /* ── Featured board: a pine offcut with jigsaw edges, the yard's own
+       carousel (owner's call 2026-09-06: this one, on the right) ── */
+    .board-col {
+      width: 520px;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
-      align-items: center;
     }
 
-    /* The action blocks (widths vary 10-20%, rotation alternates sign,
-       hover slides away from the tilt). Labels ride Bricolage CAPS. */
-    .act {
-      font-size: 21px;
-      padding: 18px 0 20px;
-      display: block;
-    }
-
-    .act-offcut {
-      width: 96px;
-      height: 44px;
-      clip-path: polygon(0 100%, 8% 0, 92% 12%, 100% 100%);
-      margin-bottom: -2px;
-    }
-
-    /* The three sentence-length labels drop a size so each still sits
-       on one block face; GUIDE keeps the big single-word type. */
-    .act-find, .act-create, .act-join { font-size: 16px; }
-
-    .act-find {
-      width: 238px;
-      clip-path: polygon(2% 0, 98% 4%, 100% 96%, 0 100%, 0 62%, 5% 62%, 5% 38%, 0 38%);
-    }
-
-    .act-create {
-      width: 226px;
-      clip-path: polygon(0 6%, 100% 0, 98% 100%, 2% 94%);
-    }
-
-    .act-join {
-      width: 214px;
-      clip-path: polygon(0 0, 100% 8%, 96% 92%, 4% 100%);
-    }
-
-    .act-guide {
-      width: 224px;
-      clip-path: polygon(0 4%, 100% 0, 100% 100%, 74% 92%, 52% 100%, 28% 92%, 0 100%);
-    }
-
-    .message-col {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 22px;
-      padding-top: 8px;
-    }
-
-    h1 {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: clamp(34px, 4.6vw, 46px);
-      line-height: 1.1;
-      letter-spacing: -0.01em;
-      color: var(--t-ink);
-      max-width: 560px;
-      text-wrap: balance;
-    }
-
-    .sub {
-      font-size: 19px;
-      font-weight: 500;
-      line-height: 1.55;
-      color: var(--t-muted);
-      max-width: 500px;
-    }
-
-    .sub a, .how-try a {
-      color: var(--t-ink);
-      font-weight: 700;
-    }
-
-    .sub a:hover, .how-try a:hover { color: var(--t-red); }
-
-    /* ── Featured board: a pine offcut with jigsaw edges ── */
     .board {
-      margin-top: auto;
       width: 100%;
-      max-width: 520px;
       background: var(--t-pine);
       background-image: var(--t-grain);
       clip-path: polygon(0 3%, 30% 0, 62% 2%, 100% 0, 99% 55%, 100% 97%, 66% 100%, 30% 96%, 0 100%, 1% 50%);
@@ -330,113 +311,414 @@
     .board-nav button:first-child { --rot: -1deg; }
     .board-nav button:last-child { --rot: 0.8deg; }
 
-    /* ── How it works: three paper cards, numbers painted on ── */
+    /* The projector's corner mark, used by the shelf's mini projectors */
+    .projector-mark {
+      position: absolute;
+      top: 12px;
+      right: 16px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #C9BBA0;
+    }
+
+    /* The answer pile: one block per submission on plinth + base, the
+       host screen's own pile in miniature. */
+    .pile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      filter: drop-shadow(5px 7px 0 rgba(80,60,30,0.14));
+    }
+
+    .pile > * { margin-top: -3px; }
+    .pile > :first-child { margin-top: 0; }
+
+    .pile-block {
+      height: 20px;
+      clip-path: polygon(0 8%, 100% 0, 98% 100%, 2% 94%);
+      transform: rotate(var(--rot, 0deg));
+    }
+
+    .pile-plinth {
+      width: 54px;
+      height: 22px;
+      background: var(--t-walnut);
+      background-image: var(--t-grain);
+      margin-top: -1px;
+    }
+
+    .pile-base {
+      width: 119px;
+      height: 10px;
+      background: var(--t-base);
+      background-image: var(--t-grain);
+      margin-top: 0;
+    }
+
+    .proj-in {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      background: var(--t-green);
+      color: var(--t-paper);
+      padding: 5px 10px 6px;
+      white-space: nowrap;
+    }
+
+    /* A stand-in for the real QR the host screen shows */
+    .qr {
+      width: 96px;
+      height: 96px;
+      flex-shrink: 0;
+      background: var(--t-ink);
+      background-image:
+        repeating-linear-gradient(0deg, var(--t-paper) 0 3px, transparent 3px 7px),
+        repeating-linear-gradient(90deg, var(--t-paper) 0 3px, transparent 3px 8px);
+      opacity: 0.85;
+    }
+
+    /* Right column: headline, sub-line, the one red action, paper door */
+    .message-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding-top: 8px;
+    }
+
+    h1 {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: clamp(34px, 4.4vw, 44px);
+      line-height: 1.1;
+      letter-spacing: -0.01em;
+      color: var(--t-ink);
+      text-wrap: balance;
+    }
+
+    .sub {
+      font-size: 17px;
+      font-weight: 500;
+      line-height: 1.55;
+      color: var(--t-muted);
+    }
+
+    .action-col {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .act-offcut {
+      width: 84px;
+      height: 38px;
+      background: var(--t-yellow);
+      background-image: var(--t-grain);
+      clip-path: polygon(0 100%, 8% 0, 92% 12%, 100% 100%);
+      transform: rotate(-2deg);
+      margin-bottom: -8px;
+    }
+
+    /* The screen's one red: PICK A TEMPLATE */
+    /* The notch on the left edge is the original Pick an activity block's */
+    .act-find {
+      width: 300px;
+      font-size: 24px;
+      padding: 22px 0 24px 8px;
+      display: block;
+      clip-path: polygon(2% 0, 98% 4%, 100% 96%, 0 100%, 0 62%, 5% 62%, 5% 38%, 0 38%);
+    }
+
+    .signpost .t-plinth { width: 138px; height: 56px; }
+    .signpost .t-baseboard { width: 240px; height: 22px; }
+
+    .create-door {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--t-ink);
+      background: var(--t-paper);
+      padding: 12px 20px 13px;
+      display: inline-block;
+      white-space: nowrap;
+      --rot: 0.8deg;
+    }
+
+    /* ── Shelf: five templates from the yard, goal chips filter in place ── */
+    .shelf {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      border-top: 2px dashed rgba(110,75,40,0.2);
+      padding-top: 22px;
+    }
+
+    .shelf-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .shelf-left {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .goal-chips { display: flex; gap: 8px; }
+
+    .goal-chip {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 7px 14px 8px;
+      background: var(--t-paper);
+      color: var(--t-ink);
+      box-shadow: 0 3px 4px rgba(50,35,15,0.22);
+    }
+
+    .goal-chip.active {
+      background: var(--t-yellow);
+      background-image: var(--t-grain);
+    }
+
+    .shelf-more { text-decoration: none; white-space: nowrap; }
+    .shelf-more:hover { color: var(--t-ink); }
+
+    .shelf-row {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+      min-height: 232px;
+    }
+
+    .shelf-empty {
+      font-size: 15px;
+      color: var(--t-muted);
+      align-self: center;
+    }
+
+    .shelf-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 168px;
+      flex-shrink: 0;
+      text-decoration: none;
+      color: var(--t-ink);
+      transform: rotate(var(--rot, 0deg));
+      transition: transform var(--t-quick) var(--t-ease);
+    }
+
+    .shelf-card:hover,
+    .shelf-card:focus-visible { transform: rotate(var(--rot, 0deg)) translateY(-5px); }
+
+    .shelf-print {
+      background: var(--t-paper);
+      padding: 8px 8px 10px;
+      box-shadow: 0 4px 6px rgba(50,35,15,0.24);
+    }
+
+    /* The mini projector: the frame above at pocket size */
+    .mini {
+      background: var(--t-gesso);
+      height: 164px;
+      padding: 20px 8px 10px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .mini .projector-mark { top: 6px; left: 8px; right: auto; font-size: 6px; }
+
+    .mini-ask {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      text-align: center;
+    }
+
+    .mini-status { font-size: 6.5px; letter-spacing: 0.16em; }
+
+    .mini-prompt {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 10.5px;
+      line-height: 1.2;
+      color: var(--t-ink);
+      max-width: 124px;
+      text-wrap: balance;
+      overflow-wrap: anywhere;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .mini .pile { filter: drop-shadow(2px 2px 0 rgba(80,60,30,0.14)); }
+    .mini .pile > * { margin-top: -1px; }
+    .mini .pile > :first-child { margin-top: 0; }
+    .mini .pile-block { height: 7px; }
+    .mini .pile-plinth { width: 19px; height: 8px; }
+    .mini .pile-base { width: 42px; height: 4px; }
+    .mini .proj-in { font-size: 6.5px; padding: 2px 5px; }
+
+    .mini-door {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .mini-door .caps { font-size: 7px; letter-spacing: 0.16em; }
+
+    .mini-code {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 5px;
+      color: var(--t-ink);
+    }
+
+    .mini-door-row { display: flex; gap: 8px; align-items: flex-start; }
+
+    .mini-door-text {
+      font-size: 7px;
+      font-weight: 700;
+      line-height: 1.5;
+      color: var(--t-ink);
+    }
+
+    .mini-door-text .quiet { font-weight: 500; color: var(--t-muted); }
+
+    .mini .qr { width: 40px; height: 40px; }
+
+    .shelf-name {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 16px;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 2px;
+    }
+
+    .shelf-meta {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--t-muted-caps);
+      padding: 0 2px;
+      margin-top: -7px;
+    }
+
+    /* ── How it works: three small Paper cards with painted numbers,
+       stacked under the board (owner's call 2026-09-06) ── */
     .how-strip {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 22px;
+      padding: 0 6px;
     }
 
     .how-step {
       background: var(--t-paper);
-      box-shadow: var(--t-shadow-free);
-      padding: 16px 18px;
+      box-shadow: 0 3px 4px rgba(50,35,15,0.2);
+      padding: 10px 12px 11px;
       display: flex;
-      gap: 12px;
+      flex-direction: column;
+      gap: 8px;
       align-items: flex-start;
     }
 
     .how-num {
       font-family: var(--t-display);
       font-weight: 800;
-      font-size: 19px;
+      font-size: 14px;
       line-height: 1;
-      padding: 6px 10px 8px;
+      padding: 4px 8px 5px;
       transform: rotate(var(--rot, -1.2deg));
       flex-shrink: 0;
       box-shadow: 0 2px 3px rgba(50,35,15,0.24);
     }
 
     .how-step p {
-      font-size: 15px;
+      font-size: 12.5px;
       font-weight: 500;
-      line-height: 1.5;
+      line-height: 1.4;
       color: var(--t-muted);
     }
 
-    .how-step strong {
-      color: var(--t-ink);
-      font-weight: 700;
-    }
+    .how-step strong { color: var(--t-ink); }
 
+    /* ── Two quiet teacher lines: try it without a class, read the guide ── */
     .how-try {
       font-size: 15px;
       font-weight: 500;
       color: var(--t-muted);
-      margin-top: -8px;
+      text-align: center;
     }
 
-    /* ── Student join: a paper board with a sanded input plank ── */
+    .how-try + .how-try { margin-top: -26px; }
+
+    .how-try a {
+      color: var(--t-ink);
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .how-try a:hover { color: var(--t-red); }
+
+    /* ── Student join board (the existing form, lower down) ── */
     .join {
       background: var(--t-paper);
       box-shadow: var(--t-shadow-free);
       align-self: center;
       width: 100%;
       max-width: 480px;
-      padding: 24px 30px 22px;
+      padding: 22px 30px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 14px;
     }
 
-    .join label {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--t-muted-caps);
-    }
-
     .join-row {
       display: flex;
       gap: 12px;
       width: 100%;
+      align-items: stretch;
     }
 
-    /* The input is a sanded plank with a dashed pencil line */
-    .join-row input {
+    .join-row .code-input {
       flex: 1;
       min-width: 0;
-      border: none;
-      background: var(--t-sanded);
-      background-image: var(--t-grain);
-      border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
-      padding: 12px 14px 9px;
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 1.15rem;
-      text-transform: uppercase;
-      letter-spacing: 6px;
-      text-align: center;
-      color: var(--t-ink);
+      height: 48px;
+      font-size: 19px;
+      padding: 0 0 0 6px;
     }
 
-    .join-row input::placeholder {
-      color: rgba(110, 75, 40, 0.45);
-      letter-spacing: 6px;
-    }
-
-    .join-row input:focus {
-      outline: none;
-      box-shadow: inset 0 0 0 3px var(--t-ink);
-    }
-
-    /* Yellow = now: the student's own next step */
     .join-row button {
       font-size: 15px;
       padding: 12px 26px 14px;
-      white-space: nowrap;
     }
 
     .join-error {
@@ -446,8 +728,8 @@
       display: none;
     }
 
-    /* ── Activity popup (carousel click): what it is, right here,
-       no detour through the yard just to read a description ── */
+    /* ── Activity popup (frame or shelf click): what it is, right here,
+       then HOST THIS / Make it yours, no detour through the yard ── */
     .home-dialog-overlay {
       position: fixed;
       inset: 0;
@@ -516,13 +798,13 @@
       margin-top: 18px;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
+      flex-wrap: wrap;
     }
 
+    .home-dialog-host,
     .home-dialog-customize {
       display: inline-block;
-      background: var(--t-red);
-      color: var(--t-paper);
       font-family: var(--t-display);
       font-weight: 800;
       font-size: 14px;
@@ -530,12 +812,26 @@
       text-transform: uppercase;
       text-decoration: none;
       padding: 11px 20px 13px;
-      transform: rotate(-0.8deg);
       box-shadow: 0 3px 4px rgba(50,35,15,0.26);
       transition: transform 0.12s ease;
     }
 
-    .home-dialog-customize:hover { transform: rotate(-0.8deg) translateY(-3px); }
+    /* The popup is its own layer, so its HOST THIS may be red */
+    .home-dialog-host {
+      background: var(--t-red);
+      color: var(--t-paper);
+      transform: rotate(-0.8deg);
+    }
+
+    .home-dialog-host:hover { transform: rotate(-0.8deg) translateY(-3px); }
+
+    .home-dialog-customize {
+      background: var(--t-paper);
+      color: var(--t-ink);
+      transform: rotate(0.6deg);
+    }
+
+    .home-dialog-customize:hover { transform: rotate(0.6deg) translateY(-3px); }
 
     .home-dialog-seeall {
       font-size: 14px;
@@ -552,7 +848,8 @@
       align-items: center;
       gap: 26px;
       flex-wrap: wrap;
-      padding: 6px 2px 8px;
+      padding: 16px 2px 8px;
+      border-top: 2px dashed rgba(110,75,40,0.2);
       font-size: 14px;
       font-weight: 700;
       color: var(--t-muted-caps);
@@ -569,22 +866,26 @@
     .footer-credit { margin-left: auto; font-weight: 600; }
     .footer-credit a { text-decoration: underline; text-underline-offset: 3px; }
 
-    @media (max-width: 860px) {
-      .page { padding: 20px 18px 16px; }
-      .tagline { display: none; }
+    @media (max-width: 960px) {
+      .page { padding: 20px 18px 16px; gap: 30px; }
       .wordmark span { font-size: 19px; padding: 4px 8px 6px; }
-      .hero { flex-direction: column; gap: 34px; }
-      .message-col { padding-top: 0; }
-      .totem-col { order: 2; width: 100%; }
-      .board { max-width: 100%; margin-top: 4px; }
-      /* Narrow screens: the text IS the card; the print would crowd it.
-         Drop the shot-height reservation; the 3-line desc keeps it steady. */
+      .join-strip { transform: none; }
+      .join-strip label { display: none; }
+      .hero { flex-direction: column; gap: 40px; }
+      .board-col { width: 100%; }
+      /* Narrow screens: the text IS the card; the print would crowd it. */
       .board-shot { display: none; }
       .board-slide { min-height: 0; }
       .board-slide.has-shot { flex-direction: column; }
       .board-slide.has-shot .board-name { font-size: 28px; padding: 2px 14px 6px; }
+      .message-col { padding-top: 0; }
+      /* Three across is too tight under 480px; stack the steps */
       .how-strip { grid-template-columns: 1fr; }
+      .how-step { flex-direction: row; align-items: center; }
+      /* Five cards do not fit a Chromebook half-screen: the shelf scrolls */
+      .shelf-row { overflow-x: auto; padding-bottom: 10px; }
       footer { justify-content: center; }
+      .footer-credit { margin-left: 0; }
     }
   </style>
 </head>
@@ -593,38 +894,39 @@
   <div class="page">
 
     <header>
-      <span class="wordmark" aria-label="Jamyard">
+      <a class="wordmark" href="/" aria-label="Jamyard">
         <span class="wm-jam">JAM</span>
         <span class="wm-yard">YARD</span>
-      </span>
-      <span class="tagline">INTERACTIVE WHOLE-CLASS ACTIVITIES</span>
+      </a>
+      <form class="join-strip" id="join-top" autocomplete="off">
+        <label for="room-code-top">Student? Enter your room code</label>
+        <input type="text" class="code-input" id="room-code-top" placeholder="ABCD" maxlength="4" autocomplete="off" spellcheck="false" aria-label="Room code">
+        <button type="submit" class="t-lift t-label t-yellow" style="--rot: -1deg">Join</button>
+      </form>
     </header>
 
     <div class="hero">
 
-      <!-- The actions ARE a totem: four labeled blocks on a plinth.
-           FIND is the screen's one signal-red action. -->
-      <nav class="totem-col" aria-label="Main actions">
-        <div class="t-stack">
-          <div class="t-yellow act-offcut" style="--rot: -2deg" aria-hidden="true"></div>
-          <div class="t-row"><a class="t-block-btn t-label t-red act act-find" style="--rot: 1.4deg; --slide: -10px"
-             href="/library" title="Browse the ready-made activities and pick one for your class">Pick an activity</a></div>
-          <div class="t-row"><a class="t-block-btn t-label t-birch act act-create" style="--rot: -1.2deg; --slide: 10px"
-             href="/designer" title="Build your own activity, describe it in plain words or use a recipe">Create an activity</a></div>
-          <div class="t-row"><a class="t-block-btn t-label t-oak act act-join" style="--rot: 0.8deg; --slide: -10px"
-             href="/player" title="Joining as a student? This is your door">Enter a room code</a></div>
-          <div class="t-row"><a class="t-block-btn t-label t-cyan act act-guide" style="--rot: -1deg; --slide: 10px"
-             href="/guide" title="One page: setup, live controls, and what to do when something goes wrong">Guide</a></div>
-          <div class="t-plinth" aria-hidden="true"></div>
-          <div class="t-baseboard" aria-hidden="true"></div>
-        </div>
-      </nav>
-
       <div class="message-col">
-        <h1>What are we going to <span class="t-painted-word">do</span> together?</h1>
+        <h1>Put the whole class on <span class="t-painted-word">one</span> screen.</h1>
+        <p class="sub">Templates ready to be made yours, or describe an activity and the AI builds it. You project, students join with a code. Nothing to install.</p>
+        <div class="action-col">
+          <!-- The one red action, a single block on a plinth -->
+          <nav class="t-stack signpost" aria-label="Main action">
+            <div class="act-offcut" aria-hidden="true"></div>
+            <div class="t-row"><a class="t-block-btn t-label t-red act-find" style="--rot: -1.2deg; --slide: 10px"
+               href="/library" title="Browse the ready-made templates and pick one for your class">Pick a template</a></div>
+            <div class="t-plinth" aria-hidden="true"></div>
+            <div class="t-baseboard" aria-hidden="true"></div>
+          </nav>
+          <a class="create-door t-lift" href="/designer" title="Describe an activity in plain words and the AI builds it">Or create your own with AI</a>
+        </div>
+      </div>
 
-        <!-- Rotating peek at the library: one activity card at a time,
-             click to host it now. Hidden until the list loads. -->
+      <!-- The featured board: the yard's own carousel, one activity at a
+           time with its projector print. Same list as the yard (featured
+           built-ins + this device's own). Hidden until the list loads. -->
+      <div class="board-col">
         <div class="board" id="activity-carousel" hidden>
           <div class="board-top">
             <a class="board-label" href="/library" title="Browse the whole yard">From the yard</a>
@@ -654,34 +956,46 @@
             </div>
           </div>
         </div>
+
+        <!-- How it works: the whole concept in three small cards, under the board. -->
+        <div class="how-strip" aria-label="How it works">
+          <div class="how-step">
+            <span class="how-num t-yellow" style="--rot: -1.2deg" aria-hidden="true">1</span>
+            <p><strong>Pick an activity and make it yours</strong> from the yard, or create your own with AI.</p>
+          </div>
+          <div class="how-step">
+            <span class="how-num t-cyan" style="--rot: 1deg" aria-hidden="true">2</span>
+            <p><strong>Project your screen.</strong> The activity plays out up front for the whole class.</p>
+          </div>
+          <div class="how-step">
+            <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
+            <p><strong>Students join with a 4-letter code</strong> on their devices. No accounts, nothing to install.</p>
+          </div>
+        </div>
       </div>
 
     </div>
 
-    <!-- How it works: the whole concept in three cards, then a way to
-         see it run without a class. A new teacher should get the picture
-         without already knowing the genre. -->
-    <div class="how-strip" aria-label="How it works">
-      <div class="how-step">
-        <span class="how-num t-yellow" style="--rot: -1.2deg" aria-hidden="true">1</span>
-        <p><strong>Find an activity and make it yours</strong> in the yard, or create your own with AI.</p>
+    <!-- The shelf: five templates from the yard, shortest first, goal chips
+         filter in place. Clicking a card opens the same popup as the frame. -->
+    <section class="shelf" id="shelf" hidden aria-label="Templates from the yard">
+      <div class="shelf-top">
+        <div class="shelf-left">
+          <span class="caps">Templates from the yard, shortest first</span>
+          <div class="goal-chips" id="shelf-chips" role="group" aria-label="Filter by goal"></div>
+        </div>
+        <a class="caps shelf-more" id="shelf-more" href="/library"></a>
       </div>
-      <div class="how-step">
-        <span class="how-num t-cyan" style="--rot: 1deg" aria-hidden="true">2</span>
-        <p><strong>Project your screen.</strong> The activity plays out up front for the whole class.</p>
-      </div>
-      <div class="how-step">
-        <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
-        <p><strong>Students join with a 4-letter code</strong> on their devices. No accounts, nothing to install.</p>
-      </div>
-    </div>
-    <p class="how-try">Curious? <a href="/prototype?game=art-gallery" title="See the teacher screen and practice students side by side">Test one in preview mode</a> with practice students, no class needed.</p>
+      <div class="shelf-row" id="shelf-row"></div>
+    </section>
+
+    <p class="how-try">Curious? <a href="/prototype?game=art-gallery" title="See the teacher screen and practice students side by side">Test one in the simulator</a> with practice students, no class needed.</p>
     <p class="how-try">First time? <a href="/guide">Read the teacher guide</a>: setup, live controls, quick fixes.</p>
 
     <section class="join" id="join">
-      <label for="room-code">Joining as a student? Enter your room code</label>
+      <label class="caps" for="room-code">Joining as a student? Enter your room code</label>
       <div class="join-row">
-        <input type="text" id="room-code" placeholder="ABCD" maxlength="4" autocomplete="off" spellcheck="false">
+        <input type="text" class="code-input" id="room-code" placeholder="ABCD" maxlength="4" autocomplete="off" spellcheck="false">
         <button type="button" class="t-lift t-label t-yellow" style="--rot: -0.6deg" onclick="joinRoom()">Join</button>
       </div>
       <div class="join-error" id="join-error">Please enter a 4-letter room code.</div>
@@ -689,9 +1003,10 @@
 
     <footer>
       <a href="/designer" title="Build your own activity, describe it in plain words or use a recipe">create an activity</a>
-      <a href="/prototype">preview</a>
+      <a href="/prototype?game=art-gallery" title="See the teacher screen and practice students side by side">preview</a>
       <a href="/player">player screen</a>
       <a href="/teacher" title="Private controls for a running activity, join with the room code + PIN from the host screen">teacher console</a>
+      <a href="/guide" title="One page: setup, live controls, and what to do when something goes wrong">guide</a>
       <a href="/privacy" title="What we keep, why, and when it is deleted">privacy</a>
       <span class="footer-credit">supported by <a href="https://assemblycode.org" target="_blank" rel="noopener" title="assemblycode.org supports this project">assemblycode.org</a></span>
     </footer>
@@ -700,48 +1015,131 @@
 
   <script src="/shared/feedback-widget.js"></script>
   <script src="/shared/game-visibility.js"></script>
+  <script src="/shared/goal-groups.js"></script>
   <script src="/shared/my-games.js"></script>
   <script src="/shared/dialog.js"></script>
   <script src="/shared/phase-names.js"></script>
   <script src="/shared/activity-map.js"></script>
   <script>
-    // ── Library carousel: rotate through the same activities the library
-    //    shows (featured built-ins + this device's own creations). ──
+    // ── The projector carousel + the shelf: both read the same list the
+    //    yard shows (featured built-ins + this device's own creations). ──
     (function () {
       var carouselEl = document.getElementById('activity-carousel');
       var slideEl = document.getElementById('carousel-slide');
       var nameEl = document.getElementById('carousel-name');
-      var descEl = document.getElementById('carousel-desc');
       var metaEl = document.getElementById('carousel-meta');
       var countEl = document.getElementById('carousel-count');
+      var descEl = document.getElementById('carousel-desc');
       var shotFrame = document.getElementById('carousel-shot-frame');
       var shotImg = document.getElementById('carousel-shot');
       var shotState = {}; // gameId -> 'ok' | 'missing' (remembered across rotations)
+      var shelfEl = document.getElementById('shelf');
+      var shelfRowEl = document.getElementById('shelf-row');
+      var shelfChipsEl = document.getElementById('shelf-chips');
+      var shelfMoreEl = document.getElementById('shelf-more');
       var games = [];
       var idx = 0;
       var timer = null;
       var reducedMotion = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+      // The shelf's mini projectors show the real address students type
+      var host = window.location.host || 'jamyard.xyz';
+
+      // ── Decoration that must look alive but never lie about a live room:
+      //    the code letters, the head count, the timer, and the pile are
+      //    dealt from the activity's id, so each template keeps the same
+      //    picture across visits and no two neighbors match. ──
+      function seedOf(str) {
+        var h = 2166136261;
+        for (var i = 0; i < str.length; i++) {
+          h ^= str.charCodeAt(i);
+          h = Math.imul(h, 16777619) >>> 0;
+        }
+        return h;
+      }
+      function dealer(seed) {
+        var s = seed || 1;
+        return function (n) {
+          s = (Math.imul(s, 1103515245) + 12345) >>> 0;
+          return (s >>> 8) % n;
+        };
+      }
+      // No I, O, or Q: they read as 1, 0, and an underlined O at pocket size
+      var LETTERS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
+      var PAINTS = ['t-yellow', 't-cyan', 't-magenta', 't-green'];
+      var WOODS = ['t-birch', 't-pine', 't-oak'];
+      function picture(g) {
+        var deal = dealer(seedOf(g.id));
+        var code = '';
+        for (var i = 0; i < 4; i++) code += LETTERS.charAt(deal(LETTERS.length));
+        var inRoom = 12 + deal(17);            // 12..28
+        var arrived = 3 + deal(Math.max(1, inRoom - 4)); // fewer than the room
+        var blocks = [];
+        var n = 5 + deal(5);                   // 5..9 blocks on the pile
+        for (var b = 0; b < n; b++) {
+          var wood = b % 2 === 0;
+          blocks.push({
+            tone: wood ? WOODS[deal(WOODS.length)] : PAINTS[deal(PAINTS.length)],
+            width: 54 + deal(66),              // 54..119px, mini scales it
+            rot: wood ? '-1.4deg' : '1.4deg'
+          });
+        }
+        var mins = deal(3);
+        var secs = deal(60);
+        return {
+          code: code,
+          inRoom: inRoom,
+          arrived: Math.min(arrived, inRoom),
+          blocks: blocks,
+          timer: mins + ':' + (secs < 10 ? '0' : '') + secs + ' left'
+        };
+      }
+
+      function buildPile(target, blocks, scale) {
+        target.textContent = '';
+        for (var i = 0; i < blocks.length; i++) {
+          var block = document.createElement('div');
+          block.className = 'pile-block ' + blocks[i].tone;
+          block.style.width = Math.round(blocks[i].width * scale) + 'px';
+          block.style.setProperty('--rot', blocks[i].rot);
+          target.appendChild(block);
+        }
+        var plinth = document.createElement('div');
+        plinth.className = 'pile-plinth';
+        target.appendChild(plinth);
+        var base = document.createElement('div');
+        base.className = 'pile-base';
+        target.appendChild(base);
+      }
+
+      function metaOf(g) {
+        var meta = [];
+        if (g.playTime) meta.push(g.playTime);
+        if (g.family === 'connection') meta.push('no scores, no winners');
+        return meta.join(' · ');
+      }
+
+      function glimpseOf(g) {
+        var gl = g.glimpse || {};
+        return { mode: gl.mode || 'answer', prompt: gl.prompt || g.description || '' };
+      }
+
+      // ── The board ──
       function render() {
         var g = games[idx];
-        // Clicking the card opens the activity popup in the library (what
-        // it is, then Customize/Host from there): landing straight in the
-        // Customize flow skipped the "what is this?" step (observation
-        // 2026-08-27).
+        // Clicking the card opens the activity popup here (what it is,
+        // then Host / Make it yours); the href keeps modified clicks and
+        // new tabs landing on the same popup in the yard.
         slideEl.href = '/library?about=' + encodeURIComponent(g.id);
         slideEl.title = 'See what "' + g.name + '" is';
         nameEl.textContent = g.name;
         descEl.textContent = g.description || '';
-        var meta = [];
-        if (g.playTime) meta.push(g.playTime);
-        if (g.family === 'connection') meta.push('no scores, no winners');
-        metaEl.textContent = meta.join(' · ');
+        metaEl.textContent = metaOf(g);
         countEl.textContent = (idx + 1) + ' of ' + games.length;
         applyShot(g);
         probeShot(games[(idx + 1) % games.length]);
       }
-
       // Show the activity's projector print when a shot exists; otherwise
       // the text-only card. Results are remembered so rotation never
       // re-probes a missing file, and late loads only apply if the
@@ -766,7 +1164,6 @@
         };
         shotImg.src = '/home-shots/' + encodeURIComponent(g.id) + '.png';
       }
-
       // Warm the NEXT slide's shot during the dwell, so it's cached (and
       // its existence known) before that slide shows: no mid-view pop.
       function probeShot(g) {
@@ -777,7 +1174,7 @@
         img.src = '/home-shots/' + encodeURIComponent(g.id) + '.png';
       }
 
-      // Slides crossfade: dip to blank for one beat, swap, fade back in.
+            // Slides crossfade: dip to blank for one beat, swap, fade back in.
       var swapTimer = null;
       function step(delta) {
         idx = (idx + delta + games.length) % games.length;
@@ -789,17 +1186,15 @@
           slideEl.classList.remove('is-swapping');
         }, 170);
       }
-
       function startRotation() {
         if (reducedMotion) return;
         clearInterval(timer);
         timer = setInterval(function () { step(1); }, 4500);
       }
 
-      // The activity popup, right on the home page: what it is, then the
-      // Customize door. Returns false when it opened (the caller stops the
-      // navigation); the slide keeps its /library?about= href so modified
-      // clicks and new tabs still land on the same popup in the library.
+      // ── The activity popup, right on the home page: what it is, the
+      //    treasure map, then HOST THIS / Make it yours. Returns false when
+      //    it opened (the caller stops the navigation). ──
       function showActivityPopup(g) {
         if (!window.Dialog) return true;
         clearInterval(timer); // hold the carousel while reading
@@ -808,35 +1203,34 @@
         var modal = document.createElement('div');
         modal.className = 'home-dialog';
         overlay.appendChild(modal);
-
         var name = document.createElement('div');
         name.className = 'home-dialog-name';
         name.textContent = g.name;
         modal.appendChild(name);
-
-        var metaBits = [];
-        if (g.playTime) metaBits.push(g.playTime);
-        if (g.family === 'connection') metaBits.push('no scores, no winners');
-        if (metaBits.length > 0) {
+        var metaText = metaOf(g);
+        if (metaText) {
           var meta = document.createElement('p');
           meta.className = 'home-dialog-meta';
-          meta.textContent = metaBits.join(' · ');
+          meta.textContent = metaText;
           modal.appendChild(meta);
         }
-
         var desc = document.createElement('p');
         desc.className = 'home-dialog-desc';
         desc.textContent = g.description || '';
         modal.appendChild(desc);
-
         // The treasure map: what happens, stop by stop (arrives async
         // into this holder; the actions row below never jumps).
         var mapHolder = document.createElement('div');
         modal.appendChild(mapHolder);
         if (window.ActivityMap) ActivityMap.attach(g.id, mapHolder);
-
         var actions = document.createElement('div');
         actions.className = 'home-dialog-actions';
+        var hostBtn = document.createElement('a');
+        hostBtn.className = 'home-dialog-host';
+        hostBtn.href = '/host?game=' + encodeURIComponent(g.id);
+        hostBtn.textContent = 'Host this';
+        hostBtn.title = 'Open a room for "' + g.name + '" right now';
+        actions.appendChild(hostBtn);
         var customize = document.createElement('a');
         customize.className = 'home-dialog-customize';
         customize.href = '/library?customize=' + encodeURIComponent(g.id);
@@ -846,22 +1240,163 @@
         var seeall = document.createElement('a');
         seeall.className = 'home-dialog-seeall';
         seeall.href = '/library';
-        seeall.textContent = 'See all activities →';
+        seeall.textContent = 'See all →';
         actions.appendChild(seeall);
         modal.appendChild(actions);
-
         document.body.appendChild(overlay);
         Dialog.enhance(overlay, modal, { title: g.name, onClose: startRotation });
         return false;
       }
 
-      slideEl.addEventListener('click', function (e) {
-        // Modified clicks (new tab, etc.) follow the href as usual.
-        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
-        var g = games[idx];
-        if (!g) return;
-        if (showActivityPopup(g) === false) e.preventDefault();
-      });
+      function popupClick(getGame) {
+        return function (e) {
+          // Modified clicks (new tab, etc.) follow the href as usual.
+          if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          var g = getGame();
+          if (!g) return;
+          if (showActivityPopup(g) === false) e.preventDefault();
+        };
+      }
+
+      slideEl.addEventListener('click', popupClick(function () { return games[idx]; }));
+
+      // ── The shelf: five cards, shortest first, goal chips filter in place ──
+      var SHELF_SIZE = 5;
+      var activeGoal = null; // null = all
+      var CARD_ROTS = ['-0.8deg', '0.6deg', '-0.5deg', '0.9deg', '-0.7deg'];
+
+      function minutesOf(g) {
+        var m = /(\d+)/.exec(g.playTime || '');
+        return m ? parseInt(m[1], 10) : 999;
+      }
+
+      function buildMini(g) {
+        var mini = document.createElement('div');
+        mini.className = 'mini';
+        var mark = document.createElement('span');
+        mark.className = 'projector-mark';
+        mark.setAttribute('aria-hidden', 'true');
+        mark.textContent = 'Jam yard';
+        mini.appendChild(mark);
+        var pic = picture(g);
+        var gl = glimpseOf(g);
+        if (gl.mode === 'join') {
+          var door = document.createElement('div');
+          door.className = 'mini-door';
+          var joinIn = document.createElement('span');
+          joinIn.className = 'caps';
+          joinIn.textContent = 'Join in';
+          door.appendChild(joinIn);
+          var code = document.createElement('div');
+          code.className = 'mini-code';
+          code.textContent = pic.code;
+          door.appendChild(code);
+          var row = document.createElement('div');
+          row.className = 'mini-door-row';
+          var text = document.createElement('div');
+          text.className = 'mini-door-text';
+          text.appendChild(document.createTextNode('Go to'));
+          text.appendChild(document.createElement('br'));
+          text.appendChild(document.createTextNode(host + '/player'));
+          text.appendChild(document.createElement('br'));
+          var quiet = document.createElement('span');
+          quiet.className = 'quiet';
+          quiet.textContent = 'and enter this code';
+          text.appendChild(quiet);
+          row.appendChild(text);
+          var qr = document.createElement('span');
+          qr.className = 'qr';
+          qr.setAttribute('aria-hidden', 'true');
+          row.appendChild(qr);
+          door.appendChild(row);
+          mini.appendChild(door);
+          return mini;
+        }
+        var ask = document.createElement('div');
+        ask.className = 'mini-ask';
+        var status = document.createElement('span');
+        status.className = 'caps mini-status';
+        status.textContent = gl.mode === 'talk' ? 'Nothing to type' : 'Players are answering…';
+        ask.appendChild(status);
+        var prompt = document.createElement('div');
+        prompt.className = 'mini-prompt';
+        prompt.textContent = gl.prompt;
+        ask.appendChild(prompt);
+        if (gl.mode !== 'talk') {
+          var pile = document.createElement('div');
+          pile.className = 'pile';
+          buildPile(pile, pic.blocks, 0.35);
+          ask.appendChild(pile);
+          var chip = document.createElement('span');
+          chip.className = 'proj-in';
+          chip.textContent = pic.arrived + ' of ' + pic.inRoom + ' in';
+          ask.appendChild(chip);
+        }
+        mini.appendChild(ask);
+        return mini;
+      }
+
+      function buildCard(g, i) {
+        var card = document.createElement('a');
+        card.className = 'shelf-card';
+        card.href = '/library?about=' + encodeURIComponent(g.id);
+        card.title = 'See what "' + g.name + '" is';
+        card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
+        var print = document.createElement('div');
+        print.className = 'shelf-print';
+        print.appendChild(buildMini(g));
+        card.appendChild(print);
+        var name = document.createElement('span');
+        name.className = 'shelf-name';
+        name.textContent = g.name;
+        card.appendChild(name);
+        var meta = document.createElement('span');
+        meta.className = 'shelf-meta';
+        var bits = [];
+        if (g.playTime) bits.push(g.playTime);
+        bits.push(window.GoalGroups ? GoalGroups.groupOf(g) : 'think');
+        meta.textContent = bits.join(' · ');
+        card.appendChild(meta);
+        card.addEventListener('click', popupClick(function () { return g; }));
+        return card;
+      }
+
+      function renderShelf() {
+        var pool = games.filter(function (g) {
+          return !activeGoal || !window.GoalGroups || GoalGroups.groupOf(g) === activeGoal;
+        });
+        pool.sort(function (a, b) { return minutesOf(a) - minutesOf(b) || a.name.localeCompare(b.name); });
+        var shown = pool.slice(0, SHELF_SIZE);
+        shelfRowEl.textContent = '';
+        if (shown.length === 0) {
+          var empty = document.createElement('p');
+          empty.className = 'shelf-empty';
+          empty.textContent = 'Nothing on this shelf yet. The yard has the rest.';
+          shelfRowEl.appendChild(empty);
+        }
+        for (var i = 0; i < shown.length; i++) shelfRowEl.appendChild(buildCard(shown[i], i));
+        var more = pool.length - shown.length;
+        shelfMoreEl.textContent = more > 0 ? more + ' more in the yard →' : 'See the whole yard →';
+      }
+
+      function renderChips() {
+        var groups = [{ key: null, label: 'All' }].concat(window.GoalGroups ? GoalGroups.GROUPS : []);
+        shelfChipsEl.textContent = '';
+        groups.forEach(function (group) {
+          var chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'goal-chip t-lift' + (group.key === activeGoal ? ' active' : '');
+          chip.style.setProperty('--rot', group.key === null || group.key === 'think' ? '-0.8deg' : '0.8deg');
+          chip.textContent = group.label;
+          chip.setAttribute('aria-pressed', group.key === activeGoal ? 'true' : 'false');
+          chip.addEventListener('click', function () {
+            activeGoal = group.key;
+            renderChips();
+            renderShelf();
+          });
+          shelfChipsEl.appendChild(chip);
+        });
+      }
 
       fetch('/api/games')
         .then(function (r) { return r.json(); })
@@ -882,32 +1417,44 @@
           // Reading it? Hold still.
           carouselEl.addEventListener('mouseenter', function () { clearInterval(timer); });
           carouselEl.addEventListener('mouseleave', startRotation);
+          shelfEl.hidden = false;
+          renderChips();
+          renderShelf();
         })
         .catch(function () { /* the carousel is decoration, never block the page */ });
     })();
   </script>
   <script>
+    // ── The student door: one handler, two forms (header strip + join board) ──
     var codeInput = document.getElementById('room-code');
-
-    codeInput.addEventListener('input', function () {
-      this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
+    var codeInputTop = document.getElementById('room-code-top');
+    [codeInput, codeInputTop].forEach(function (input) {
+      input.addEventListener('input', function () {
+        this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
+        this.classList.remove('is-wrong');
+      });
     });
-
     codeInput.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') joinRoom();
     });
-
-    function joinRoom() {
-      var code = codeInput.value.trim();
+    document.getElementById('join-top').addEventListener('submit', function (e) {
+      e.preventDefault();
+      joinFrom(codeInputTop);
+    });
+    function joinFrom(input) {
+      var code = input.value.trim();
+      var errorEl = document.getElementById('join-error');
       if (code.length !== 4) {
-        document.getElementById('join-error').style.display = 'block';
-        codeInput.focus();
+        // The board has room for the words; the strip just shows the ring
+        errorEl.style.display = input === codeInput ? 'block' : 'none';
+        input.classList.add('is-wrong');
+        input.focus();
         return;
       }
-      document.getElementById('join-error').style.display = 'none';
+      errorEl.style.display = 'none';
       window.location.href = '/player?code=' + code;
     }
+    function joinRoom() { joinFrom(codeInput); }
   </script>
-
 </body>
 </html>

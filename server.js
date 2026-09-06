@@ -19,6 +19,7 @@ import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
+import { homeGlimpse } from './engine/home-glimpse.js';
 import { gamePhases } from './config/game-phases.js';
 import { AIService } from './services/ai-service.js';
 import {
@@ -2226,6 +2227,8 @@ app.get('/api/games', async (req, res) => {
       // top-level — the host lobby's start hint needs either.
       minPlayers: config.minPlayers || (config.phases.lobby && config.phases.lobby.minPlayers) || null,
       maxPlayers: config.maxPlayers || null,
+      // The home page's drawn projector frame (engine/home-glimpse.js)
+      glimpse: homeGlimpse(config),
       ...pickCardMeta(config)
     }));
 
@@ -2241,6 +2244,7 @@ app.get('/api/games', async (req, res) => {
           phaseCount: Object.keys(config.phases || {}).length,
           minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null,
           maxPlayers: config.maxPlayers || null,
+          glimpse: homeGlimpse(config),
           ...pickCardMeta(config)
         });
       }

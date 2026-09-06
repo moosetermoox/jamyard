@@ -40,27 +40,22 @@ var PILE_GROUPS = [
   { key: 'recent', label: 'Recent' },
   { key: 'favorites', label: 'Favorites' },
   { key: 'customized', label: 'Yours' },
-  { key: 'connect', label: 'Connect', goals: ['connect'] },
-  { key: 'think', label: 'Think', goals: ['discuss', 'decide', 'reflect', 'review'] },
-  { key: 'play', label: 'Play', goals: ['create', 'energize'] }
+  // The goal piles and their tag membership come from the shared
+  // GoalGroups (screens/shared/goal-groups.js), which the home page's
+  // shelf filter reads too.
+  { key: 'connect', label: 'Connect', goals: GoalGroups.goalsIn('connect') },
+  { key: 'think', label: 'Think', goals: GoalGroups.goalsIn('think') },
+  { key: 'play', label: 'Play', goals: GoalGroups.goalsIn('play') }
 ];
 
-var GOAL_TO_GROUP = {
-  connect: 'connect',
-  discuss: 'think', decide: 'think', reflect: 'think', review: 'think',
-  create: 'play', energize: 'play'
-};
+var GOAL_TO_GROUP = GoalGroups.GOAL_TO_GROUP;
 
 // The popup reads the same plain words (kept as an alias since the emoji
 // labels retired, 2026-08-20).
 var GOAL_WORDS = GOAL_LABELS;
 
 function goalGroupOf(game) {
-  var tags = Array.isArray(game.tags) ? game.tags : [];
-  for (var i = 0; i < tags.length; i++) {
-    if (GOAL_TO_GROUP[tags[i]]) return GOAL_TO_GROUP[tags[i]];
-  }
-  return 'think';
+  return GoalGroups.groupOf(game);
 }
 
 var allGames = [];
