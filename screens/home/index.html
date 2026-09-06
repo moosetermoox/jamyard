@@ -667,6 +667,25 @@
 
     .how-step strong { color: var(--t-ink); }
 
+    /* ── Two quiet teacher lines: try it without a class, read the guide ── */
+    .how-try {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--t-muted);
+      text-align: center;
+    }
+
+    .how-try + .how-try { margin-top: -26px; }
+
+    .how-try a {
+      color: var(--t-ink);
+      font-weight: 700;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    .how-try a:hover { color: var(--t-red); }
+
     /* ── Student join board (the existing form, lower down) ── */
     .join {
       background: var(--t-paper);
@@ -968,6 +987,9 @@
       </div>
       <div class="shelf-row" id="shelf-row"></div>
     </section>
+
+    <p class="how-try">Curious? <a href="/prototype?game=art-gallery" title="See the teacher screen and practice students side by side">Test one in the simulator</a> with practice students, no class needed.</p>
+    <p class="how-try">First time? <a href="/guide">Read the teacher guide</a>: setup, live controls, quick fixes.</p>
 
     <section class="join" id="join">
       <label class="caps" for="room-code">Joining as a student? Enter your room code</label>
