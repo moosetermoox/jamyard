@@ -211,3 +211,49 @@ describe('applyKnobs', () => {
     expect(params.questions).toBe('oops');
   });
 });
+
+describe('knobsFor — lines and text knobs behind another knob (Doodle Bluff)', () => {
+  const SUMMARY_DB = {
+    id: 'doodle-bluff', version: '3',
+    parameters: {
+      phraseSource: { type: 'enum', values: ['students', 'teacher', 'ai'], default: 'students', setup: true },
+      phrases: { type: 'array', item: { type: 'string' }, default: ['a', 'b'], setup: { mode: 'lines', showWhen: 'phraseSource=teacher' } },
+      aiTopic: { type: 'string', default: 'silly scenes', setup: { mode: 'text', showWhen: 'phraseSource=ai' } },
+      rounds: { type: 'integer', default: 8, min: 1, max: 20 }
+    }
+  };
+  const STAMP_DB = { id: 'doodle-bluff', version: '3', params: { phraseSource: 'students', phrases: ['x', 'y', 'z'], aiTopic: 'silly scenes', rounds: 8 } };
+
+  it('renders a lines knob (stamped list) and a text knob, each tied to the source knob', () => {
+    const knobs = K.knobsFor(SUMMARY_DB, STAMP_DB);
+    const lines = knobs.find(k => k.name === 'phrases');
+    const text = knobs.find(k => k.name === 'aiTopic');
+    expect(lines.kind).toBe('lines');
+    expect(lines.value).toEqual(['x', 'y', 'z']);
+    expect(lines.showWhen).toEqual({ name: 'phraseSource', value: 'teacher' });
+    expect(text.kind).toBe('text');
+    expect(text.value).toBe('silly scenes');
+    expect(text.showWhen).toEqual({ name: 'phraseSource', value: 'ai' });
+  });
+
+  it('knobVisible follows the other knob\'s current value', () => {
+    const [source, lines, text] = K.knobsFor(SUMMARY_DB, STAMP_DB);
+    expect(K.knobVisible(source, { phraseSource: 'ai' })).toBe(true);
+    expect(K.knobVisible(lines, { phraseSource: 'students' })).toBe(false);
+    expect(K.knobVisible(lines, { phraseSource: 'teacher' })).toBe(true);
+    expect(K.knobVisible(text, { phraseSource: 'ai' })).toBe(true);
+    expect(K.knobVisible(text, { phraseSource: 'teacher' })).toBe(false);
+  });
+
+  it('applyKnobs turns lines text into a trimmed list and keeps text as-is', () => {
+    const params = K.applyKnobs(STAMP_DB.params, [
+      { name: 'phraseSource', kind: 'enum', value: 'teacher' },
+      { name: 'phrases', kind: 'lines', value: ' mitosis \n\nthe water cycle\n' },
+      { name: 'aiTopic', kind: 'text', value: 'Rome' }
+    ]);
+    expect(params.phraseSource).toBe('teacher');
+    expect(params.phrases).toEqual(['mitosis', 'the water cycle']);
+    expect(params.aiTopic).toBe('Rome');
+    expect(STAMP_DB.params.phrases).toEqual(['x', 'y', 'z']); // stamp untouched
+  });
+});

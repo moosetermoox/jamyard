@@ -746,6 +746,17 @@ export class AIService {
 
   _processMock(instruction, responses) {
     const count = responses.length;
+    // perPlayer generate (ai-process.js appends "Generate exactly N distinct
+    // items ... Return a JSON array"): the handler needs an array of N, so
+    // the mock hands one back instead of prose that fails to parse (Doodle
+    // Bluff's AI-written phrases in a robot playtest).
+    const perPlayer = /Generate exactly (\d+) distinct items/.exec(instruction || '');
+    if (perPlayer) {
+      const n = parseInt(perPlayer[1], 10) || 1;
+      const items = [];
+      for (let i = 0; i < n; i++) items.push(`Mock item ${i + 1} of ${n}`);
+      return { text: JSON.stringify(items) };
+    }
     const truncatedInstruction = instruction.length > 50
       ? instruction.substring(0, 50) + '...'
       : instruction;

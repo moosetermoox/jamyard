@@ -3840,7 +3840,11 @@ io.on('connection', (socket) => {
         if (collectPhase.rotateFrom) {
           const srcData = room.engine.phaseData[collectPhase.rotateFrom];
           const assignedMap = (srcData && srcData.assigned) || {};
-          const fromMap = (srcData && srcData.assignedFrom) || {};
+          // Only a STUDENT-made source has a writer to name (and to sit
+          // out); an AI-written per-player deal has none.
+          const srcPhase = room.engine.config.phases[collectPhase.rotateFrom];
+          const studentSource = !!srcPhase && (srcPhase.type === 'collect' || srcPhase.type === 'collect-choice');
+          const fromMap = (studentSource && srcData && srcData.assignedFrom) || {};
           for (const r of responses) {
             if (r && r.playerId && assignedMap[r.playerId] !== undefined) {
               r.assigned = assignedMap[r.playerId];

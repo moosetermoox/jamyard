@@ -364,19 +364,31 @@ function validateSetupFlag(paramName, spec, where) {
   }
 
   if (typeof spec.setup === 'object' && !Array.isArray(spec.setup)) {
-    if (spec.type !== 'array') {
-      return bad(`Parameter "${paramName}": a setup object is only allowed on array params.`);
-    }
-    if (spec.setup.mode !== 'count') {
-      return bad(`Parameter "${paramName}": setup.mode must be "count".`);
+    const mode = spec.setup.mode;
+    // count: slice a stamped array to N; lines: edit an array of strings
+    // one per line; text: a short free-text string. lines/text usually
+    // hide behind another knob's value (showWhen: "name=value").
+    if (mode === 'count' || mode === 'lines') {
+      if (spec.type !== 'array') {
+        return bad(`Parameter "${paramName}": setup.mode "${mode}" is only allowed on array params.`);
+      }
+    } else if (mode === 'text') {
+      if (spec.type !== 'string' && spec.type !== 'templateString') {
+        return bad(`Parameter "${paramName}": setup.mode "text" is only allowed on string params.`);
+      }
+    } else {
+      return bad(`Parameter "${paramName}": setup.mode must be "count", "lines", or "text".`);
     }
     if (spec.setup.label != null && typeof spec.setup.label !== 'string') {
       return bad(`Parameter "${paramName}": setup.label must be a string.`);
     }
+    if (spec.setup.showWhen != null && !/^\s*[A-Za-z_][\w-]*\s*=\s*.+$/.test(String(spec.setup.showWhen))) {
+      return bad(`Parameter "${paramName}": setup.showWhen must look like "otherParam=value".`);
+    }
     return [];
   }
 
-  return bad(`Parameter "${paramName}": "setup" must be true or {"mode": "count"}.`);
+  return bad(`Parameter "${paramName}": "setup" must be true or {"mode": "count" | "lines" | "text"}.`);
 }
 
 // =======================================================================

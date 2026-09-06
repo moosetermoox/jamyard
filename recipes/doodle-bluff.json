@@ -3,14 +3,14 @@
   "name": "Doodle Bluff",
   "icon": "🎨",
   "description": "Everyone draws a secret phrase. Then round by round: one drawing goes up, everyone invents a fake title for it, and the class votes for the real one. Points for spotting the truth, points for fooling classmates.",
-  "tagline": "The draw-and-bluff party format. Students write the phrases for each other, or you bring the list: silly phrases for fun, or vocabulary and concepts from your unit for sneaky review.",
-  "version": "2",
+  "tagline": "The draw-and-bluff party format. Students write the phrases for each other, you bring the list, or the AI writes them: silly phrases for fun, or vocabulary and concepts from your unit for sneaky review.",
+  "version": "3",
   "parameters": {
     "phraseSource": {
       "type": "enum",
       "label": "Who writes the phrases?",
-      "helper": "Students: each writes one and draws a classmate's; the writer and the drawer both sit out that drawing's round, so it wants 8 or more players. Teacher: you bring the list, only the drawer sits out, works with any class size.",
-      "values": ["students", "teacher"],
+      "helper": "students: each writes one and draws a classmate's; the writer and the drawer both sit out that drawing's round, so it wants 8 or more players. teacher: you type the list below. ai: the AI writes one per student on a topic you give. With teacher or ai, only the drawer sits out, any class size works.",
+      "values": ["students", "teacher", "ai"],
       "default": "students",
       "setup": true
     },
@@ -25,9 +25,10 @@
     },
     "phrases": {
       "type": "array",
-      "label": "The phrases to draw (when you bring the list)",
-      "helper": "Only when the teacher writes the phrases. One per line; each student is handed one at random. Fewer phrases than students is fine, they repeat.",
+      "label": "Your phrases, one per line",
+      "helper": "Each student is handed one at random. Fewer phrases than students is fine, they repeat. Vocabulary, concepts from the unit, or anything silly.",
       "item": { "type": "string" },
+      "setup": { "mode": "lines", "showWhen": "phraseSource=teacher" },
       "default": [
         "A nervous volcano on its first day of school",
         "A giraffe learning to skateboard",
@@ -54,6 +55,14 @@
         "The last slice of pizza escaping",
         "A shark at the dentist"
       ]
+    },
+    "aiTopic": {
+      "type": "string",
+      "label": "What should the AI's phrases be about?",
+      "helper": "A topic or a mood: \"the water cycle\", \"Ancient Rome, but silly\", \"things that happen in a cafeteria\". One phrase per student, all different, all drawable.",
+      "setup": { "mode": "text", "showWhen": "phraseSource=ai" },
+      "default": "strange, funny, drawable scenes, like a nervous volcano on its first day of school",
+      "maxLength": 200
     },
     "rounds": {
       "type": "integer",
@@ -96,7 +105,11 @@
         "next": {
           "$if": "phraseSource=students",
           "$value": "phrases",
-          "$else": "draw"
+          "$else": {
+            "$if": "phraseSource=ai",
+            "$value": "ai-phrases",
+            "$else": "draw"
+          }
         }
       },
       "phrases": {
@@ -106,12 +119,24 @@
         "timer": 60,
         "next": "draw"
       },
+      "ai-phrases": {
+        "$if": "phraseSource=ai",
+        "type": "ai-process",
+        "task": "generate",
+        "perPlayer": true,
+        "instruction": "Write short, strange, drawable phrases for a classroom drawing game, about: ${aiTopic}. Each phrase is 4 to 9 words, a concrete scene someone could sketch in two minutes, classroom-appropriate, and each one different from the others. Example shape: 'a nervous volcano on its first day of school'.",
+        "next": "draw"
+      },
       "draw": {
         "type": "collect",
         "inputType": "drawing",
         "rotateFrom": {
           "$if": "phraseSource=students",
-          "$value": "phrases"
+          "$value": "phrases",
+          "$else": {
+            "$if": "phraseSource=ai",
+            "$value": "ai-phrases"
+          }
         },
         "rotateShuffle": {
           "$if": "phraseSource=students",
@@ -124,7 +149,11 @@
         "prompt": {
           "$if": "phraseSource=students",
           "$value": "Draw this: {{phrases.assigned}}\n\nNo letters or numbers in your drawing!",
-          "$else": "Draw this: {{draw.assigned}}\n\nNo letters or numbers in your drawing!"
+          "$else": {
+            "$if": "phraseSource=ai",
+            "$value": "Draw this: {{ai-phrases.assigned}}\n\nNo letters or numbers in your drawing!",
+            "$else": "Draw this: {{draw.assigned}}\n\nNo letters or numbers in your drawing!"
+          }
         },
         "timer": "${drawTimer}",
         "next": "check"

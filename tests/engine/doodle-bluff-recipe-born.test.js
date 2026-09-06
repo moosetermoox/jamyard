@@ -58,6 +58,27 @@ describe('the two phrase sources', () => {
     expect(validate(config, 'db-teacher', { returnResults: true }).errors).toEqual([]);
   });
 
+  it('ai: the AI writes one phrase per student, rotated like the students\' own, nobody but the drawer named', async () => {
+    const recipe = await loadJson('recipes/doodle-bluff.json');
+    const { config } = compileRecipe(recipe, { phraseSource: 'ai', aiTopic: 'the water cycle' });
+    expect(config.phases.phrases).toBeUndefined();
+    expect(config.phases.intro.next).toBe('ai-phrases');
+    expect(config.phases['ai-phrases'].type).toBe('ai-process');
+    expect(config.phases['ai-phrases'].perPlayer).toBe(true);
+    expect(config.phases['ai-phrases'].instruction).toContain('the water cycle');
+    expect(config.phases.draw.rotateFrom).toBe('ai-phrases');
+    expect(config.phases.draw.prompt).toContain('{{ai-phrases.assigned}}');
+    expect(config.phases.rounds.subPhases['reveal-truth'].message).not.toContain('assignedFromName');
+    expect(validate(config, 'db-ai', { returnResults: true }).errors).toEqual([]);
+  });
+
+  it('the phrase list and the AI topic are Make-it-yours knobs that hide behind the source knob', async () => {
+    const recipe = await loadJson('recipes/doodle-bluff.json');
+    expect(recipe.parameters.phraseSource.values).toEqual(['students', 'teacher', 'ai']);
+    expect(recipe.parameters.phrases.setup).toEqual({ mode: 'lines', showWhen: 'phraseSource=teacher' });
+    expect(recipe.parameters.aiTopic.setup).toEqual({ mode: 'text', showWhen: 'phraseSource=ai' });
+  });
+
   it('a teacher list of their own replaces the default', async () => {
     const recipe = await loadJson('recipes/doodle-bluff.json');
     const { config } = compileRecipe(recipe, { phraseSource: 'teacher', phrases: ['mitosis', 'the water cycle', 'photosynthesis'] });

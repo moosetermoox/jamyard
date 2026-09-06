@@ -21,7 +21,7 @@
   "minPlayers": 4,
   "recipe": {
     "id": "doodle-bluff",
-    "version": "2",
+    "version": "3",
     "params": {
       "phraseSource": "students",
       "phrasePrompt": "Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous volcano on its first day of school.",
@@ -51,6 +51,7 @@
         "The last slice of pizza escaping",
         "A shark at the dentist"
       ],
+      "aiTopic": "strange, funny, drawable scenes, like a nervous volcano on its first day of school",
       "rounds": 8,
       "drawTimer": 120
     }

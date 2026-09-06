@@ -1951,8 +1951,14 @@ function showCustomizeDialog(game, config, questions, knobs) {
     knobsHeading.textContent = 'Set it up:';
     modal.appendChild(knobsHeading);
 
+    // Each knob is one row so a knob can hide behind another's value
+    // (setup.showWhen: the teacher's phrase list only when "teacher" is
+    // picked). knobInputs entries carry the row and a value reader.
     knobs.forEach(function (knob) {
       var input;
+      var row = document.createElement('div');
+      row.className = 'knob-row';
+      modal.appendChild(row);
       if (knob.kind === 'boolean') {
         var boolLabel = document.createElement('label');
         boolLabel.style.cssText = LABEL_CSS + ' cursor:pointer;';
@@ -1963,15 +1969,16 @@ function showCustomizeDialog(game, config, questions, knobs) {
         boolLabel.appendChild(input);
         boolLabel.appendChild(document.createTextNode(knob.label));
         if (knob.helper) boolLabel.title = knob.helper;
-        modal.appendChild(boolLabel);
-        knobInputs.push({ knob: knob, getValue: function (el) {
+        row.appendChild(boolLabel);
+        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
           return function () { return el.checked; };
         }(input) });
       } else if (knob.kind === 'enum') {
         var enumLabel = document.createElement('label');
         enumLabel.style.cssText = LABEL_CSS;
         enumLabel.textContent = knob.label;
-        modal.appendChild(enumLabel);
+        if (knob.helper) enumLabel.title = knob.helper;
+        row.appendChild(enumLabel);
         input = document.createElement('select');
         input.style.cssText = 'width:100%; ' + INPUT_CSS;
         (knob.values || []).forEach(function (v) {
@@ -1981,9 +1988,58 @@ function showCustomizeDialog(game, config, questions, knobs) {
           if (String(v) === String(knob.value)) opt.selected = true;
           input.appendChild(opt);
         });
-        modal.appendChild(input);
-        knobInputs.push({ knob: knob, getValue: function (el) {
+        row.appendChild(input);
+        if (knob.helper) {
+          var enumHelp = document.createElement('p');
+          enumHelp.className = 'field-help';
+          enumHelp.style.cssText = 'margin:6px 0 0; font-size:0.85rem; color:#6B6250;';
+          enumHelp.textContent = knob.helper;
+          row.appendChild(enumHelp);
+        }
+        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
           return function () { return el.value; };
+        }(input) });
+      } else if (knob.kind === 'lines') {
+        var linesLabel = document.createElement('label');
+        linesLabel.style.cssText = LABEL_CSS;
+        linesLabel.textContent = knob.label;
+        row.appendChild(linesLabel);
+        input = document.createElement('textarea');
+        input.rows = 8;
+        input.value = (knob.value || []).join('\n');
+        input.style.cssText = 'width:100%; resize:vertical; ' + INPUT_CSS;
+        row.appendChild(input);
+        if (knob.helper) {
+          var linesHelp = document.createElement('p');
+          linesHelp.style.cssText = 'margin:6px 0 0; font-size:0.85rem; color:#6B6250;';
+          linesHelp.textContent = knob.helper;
+          row.appendChild(linesHelp);
+        }
+        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
+          return function () {
+            return el.value.split('\n').map(function (s) { return s.trim(); })
+              .filter(function (s) { return s.length > 0; });
+          };
+        }(input) });
+      } else if (knob.kind === 'text') {
+        var textLabel = document.createElement('label');
+        textLabel.style.cssText = LABEL_CSS;
+        textLabel.textContent = knob.label;
+        row.appendChild(textLabel);
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = knob.value || '';
+        input.maxLength = 200;
+        input.style.cssText = 'width:100%; ' + INPUT_CSS;
+        row.appendChild(input);
+        if (knob.helper) {
+          var textHelp = document.createElement('p');
+          textHelp.style.cssText = 'margin:6px 0 0; font-size:0.85rem; color:#6B6250;';
+          textHelp.textContent = knob.helper;
+          row.appendChild(textHelp);
+        }
+        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
+          return function () { return el.value.trim(); };
         }(input) });
       } else {
         // count + integer share a number input
@@ -1992,15 +2048,15 @@ function showCustomizeDialog(game, config, questions, knobs) {
         numLabel.textContent = knob.label +
           (knob.min != null && knob.max != null ? ' (' + knob.min + '–' + knob.max + ')' : '');
         if (knob.helper) numLabel.title = knob.helper;
-        modal.appendChild(numLabel);
+        row.appendChild(numLabel);
         input = document.createElement('input');
         input.type = 'number';
         if (knob.min != null) input.min = knob.min;
         if (knob.max != null) input.max = knob.max;
         input.value = knob.value;
         input.style.cssText = 'width:120px; ' + INPUT_CSS;
-        modal.appendChild(input);
-        knobInputs.push({ knob: knob, getValue: function (el, k) {
+        row.appendChild(input);
+        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el, k) {
           return function () {
             var n = parseInt(el.value, 10);
             if (isNaN(n)) return k.value; // blank/garbage = leave it alone
@@ -2011,6 +2067,20 @@ function showCustomizeDialog(game, config, questions, knobs) {
         }(input, knob) });
       }
     });
+
+    // showWhen: re-check which rows show whenever any knob changes
+    function refreshKnobRows() {
+      var values = {};
+      knobInputs.forEach(function (ki) { values[ki.knob.name] = ki.getValue(); });
+      knobInputs.forEach(function (ki) {
+        ki.row.hidden = !SetupKnobs.knobVisible(ki.knob, values);
+      });
+    }
+    knobInputs.forEach(function (ki) {
+      ki.input.addEventListener('change', refreshKnobRows);
+      ki.input.addEventListener('input', refreshKnobRows);
+    });
+    refreshKnobRows();
   }
 
   // Only introduce the AI questions when there are any to answer.
@@ -2134,7 +2204,9 @@ function showCustomizeDialog(game, config, questions, knobs) {
   function anyKnobTouched() {
     return knobInputs.some(function (ki) {
       var now = ki.getValue();
-      return ki.knob.kind === 'boolean' ? now !== ki.knob.value : String(now) !== String(ki.knob.value);
+      if (ki.knob.kind === 'boolean') return now !== ki.knob.value;
+      if (ki.knob.kind === 'lines') return JSON.stringify(now) !== JSON.stringify(ki.knob.value);
+      return String(now) !== String(ki.knob.value);
     });
   }
 
