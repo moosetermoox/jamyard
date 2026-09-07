@@ -10,9 +10,11 @@
 // (screens/shared/step-suggestions.js).
 export const STORYBOARD_BRICKS = [
   'announce', 'collect', 'collect-two', 'collect-choice', 'estimate',
-  'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'quiz', 'teams',
+  'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'rank', 'quiz', 'teams',
   'chain', 'end'
 ];
+
+const MAX_RANK_ITEMS = 12;
 
 const MAX_CHAIN_HOPS = 6;
 
@@ -115,6 +117,8 @@ export function validateSuggestions(raw, ctx) {
             brick: s.brick,
             text: typeof s.text === 'string' ? s.text.slice(0, 500) : undefined,
             choices: Array.isArray(s.choices) ? s.choices.slice(0, 8).map(String) : undefined,
+            guess: s.guess === 'who' ? 'who' : undefined,
+            items: Array.isArray(s.items) ? s.items.slice(0, MAX_RANK_ITEMS).map(String) : undefined,
             secretLabel: typeof s.secretLabel === 'string' ? s.secretLabel.slice(0, 80) : undefined,
             clueLabel: typeof s.clueLabel === 'string' ? s.clueLabel.slice(0, 80) : undefined,
             questions: cleanQuestions(s.questions),

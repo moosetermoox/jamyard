@@ -97,6 +97,26 @@
       "note": "The chain-brick case: per-hop instructions differ, so no fixed recipe covers it. idea-chain is a defensible near-match."
     },
     {
+      "id": "fear-factor-rank",
+      "prompt": "An activity where everyone shares what they're most afraid of and then you have to guess who shared what. And then afterwards you see everyone's answer and you collectively rank them in order of how scary you think they are.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Fear Factor",
+          "description": "Share a fear, guess whose it is, then rank them together from scariest down.",
+          "steps": [
+            { "brick": "announce", "text": "Everyone shares one thing they are afraid of. Then we find out how well we know each other: each fear goes up, and the class guesses whose it is." },
+            { "brick": "collect", "text": "What are you most afraid of? One honest line.", "timer": 60 },
+            { "brick": "guessing-rounds", "guess": "who" },
+            { "brick": "reveal", "text": "Every fear the class shared:" },
+            { "brick": "rank", "text": "Put these in order, scariest at the top.", "timer": 90 },
+            { "brick": "end", "text": "Brave room. Everyone is afraid of something, and now we know a little more about each other." }
+          ]
+        }
+      },
+      "note": "The prompt that found the dead storyboard door (2026-09-07). Needs guess:who on guessing-rounds (the typed-guess default guesses the secret) and the rank brick (a vote is not a ranking). Who Said It? covers the first half only."
+    },
+    {
       "id": "quick-class-poll",
       "prompt": "I just want to ask the class one question and see everyone's answers on the board.",
       "expect": { "kind": "recipe", "recipe": "question-share", "params": { "question": "What is one thing you learned today?" }, "acceptAlso": ["host:question-share"] }

@@ -190,6 +190,53 @@ describe('guessing-rounds brick', () => {
     const phases = { lobby: { type: 'lobby', next: 'end' }, end: { type: 'end' } };
     expect(S.buildGuessingRounds({ phases })).toBeNull();
   });
+
+  // 2026-09-07: "share a fear, guess who shared what" had no brick. The
+  // typed-guess rounds guess the SECRET; guess:'who' compiles the Who Said
+  // It? shape (roster choices + decoys, author revealed), no points.
+  it('guess "who": roster choices with decoys, the author revealed, no scores', () => {
+    const phases = baseGame();
+    const rounds = S.buildGuessingRounds({ phases, afterId: 'ask', guess: 'who' });
+    expect(rounds.phase.type).toBe('foreach');
+    expect(rounds.phase.candidateSource).toBe('players');
+    expect(rounds.phase.decoyCount).toBeGreaterThanOrEqual(2);
+    expect(rounds.phase.subPhases.guess.type).toBe('collect-choice');
+    expect(rounds.phase.subPhases.guess.choices).toBe('_candidates');
+    expect(rounds.phase.subPhases.guess.prompt).toContain('{{_current.text}}');
+    expect(rounds.phase.subPhases.reveal.message).toContain('{{_current.playerName}}');
+    expect(rounds.phase.scoring).toBeUndefined();
+    S.insertAfter(phases, 'ask', rounds.id, rounds.phase);
+    validateGame(phases, 'guessing rounds (guess who)');
+  });
+
+  it('guess "who" after a secret+clue collect shows the clue and reveals both', () => {
+    const phases = baseGame();
+    phases.ask = S.defaultPhaseFor('collect-two', { phases });
+    phases.ask.next = 'end';
+    const rounds = S.buildGuessingRounds({ phases, afterId: 'ask', guess: 'who' });
+    expect(rounds.phase.subPhases.guess.prompt).toContain('{{_current.fields.clue}}');
+    expect(rounds.phase.subPhases.reveal.message).toContain('{{_current.fields.secret}}');
+    expect(rounds.phase.subPhases.reveal.message).toContain('{{_current.playerName}}');
+    S.insertAfter(phases, 'ask', rounds.id, rounds.phase);
+    validateGame(phases, 'guessing rounds (guess who, secret+clue)');
+  });
+});
+
+describe('rank brick', () => {
+  it('after a collect: the class orders the answers, the order goes on the projector', () => {
+    const phases = baseGame();
+    const rank = S.defaultPhaseFor('rank', { phases, afterId: 'ask' });
+    expect(rank.type).toBe('rank');
+    expect(rank.candidates).toBe('ask.responses');
+    expect(rank.prompt).toBeTruthy();
+    S.insertAfter(phases, 'ask', 'order', rank);
+    validateGame(phases, 'rank (from a collect)');
+  });
+
+  it('without a collect: no certified default', () => {
+    const phases = { lobby: { type: 'lobby', next: 'end' }, end: { type: 'end' } };
+    expect(S.defaultPhaseFor('rank', { phases, afterId: 'lobby' })).toBeNull();
+  });
 });
 
 describe('storyboard compiler', () => {
@@ -224,6 +271,60 @@ describe('storyboard compiler', () => {
     const types = Object.values(config.phases).map(p => p.type);
     expect(types).toContain('end');
     validateGame(config.phases, 'auto-end storyboard');
+  });
+
+  // 2026-09-07: the fear activity, brick by brick: share, guess who, then
+  // rank them together. Rank compiles to the rank step PLUS a host-paced
+  // reveal of the class order (a payoff beat, never timed).
+  it('compiles share, guess who, rank to a hostable config', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Fear Factor',
+      description: 'Share a fear, guess whose it is, rank them together.',
+      steps: [
+        { brick: 'announce', text: 'Everyone shares one fear. Then we guess who shared what.' },
+        { brick: 'collect', text: 'What are you most afraid of?', timer: 60 },
+        { brick: 'guessing-rounds', guess: 'who' },
+        { brick: 'reveal', text: 'Every fear the class shared:' },
+        { brick: 'rank', text: 'Put these in order, scariest first.', timer: 90 },
+        { brick: 'end', text: 'Brave room.' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const order = S.orderedPhaseIds(config.phases).map(id => config.phases[id].type);
+    expect(order).toEqual(['lobby', 'announce', 'collect', 'foreach', 'reveal', 'rank', 'reveal', 'end']);
+    const fe = Object.values(config.phases).find(p => p.type === 'foreach');
+    expect(fe.candidateSource).toBe('players');
+    const rank = Object.values(config.phases).find(p => p.type === 'rank');
+    expect(rank.prompt).toBe('Put these in order, scariest first.');
+    expect(rank.timer).toBe(90);
+    expect(rank.candidates).toBe('ask.responses');
+    const orderReveal = config.phases[rank.next];
+    expect(orderReveal.type).toBe('reveal');
+    expect(orderReveal.template).toContain('{{' + Object.keys(config.phases).find(id => config.phases[id] === rank) + '.rankedList}}');
+    expect(orderReveal.timer).toBeUndefined();
+    validateGame(config.phases, 'fear factor storyboard');
+  });
+
+  it('rank takes a literal items list when nothing was collected', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Trip Vote',
+      steps: [
+        { brick: 'rank', text: 'Favorite first.', items: ['Museum', 'Aquarium', 'Zoo'] },
+        { brick: 'end', text: 'Decided.' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const rank = Object.values(config.phases).find(p => p.type === 'rank');
+    expect(rank.candidates).toEqual(['Museum', 'Aquarium', 'Zoo']);
+    validateGame(config.phases, 'rank literal items');
+  });
+
+  it('rank with nothing to rank is a plain-sentence problem', () => {
+    const { problems } = S.compileStoryboard({
+      name: 'X',
+      steps: [{ brick: 'rank', text: 'Order these.' }, { brick: 'end', text: 'Bye' }]
+    });
+    expect(problems.some(p => /rank/i.test(p) && /question step|items/i.test(p))).toBe(true);
   });
 
   it('reports problems in plain sentences', () => {

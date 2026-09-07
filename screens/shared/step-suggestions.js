@@ -59,6 +59,22 @@
     return null;
   }
 
+  // The nearest collect whose answers are single lines; falls back to any
+  // collect (a secret+clue step ranks by its text field) so the Builder
+  // never leaves a rank step with nothing behind it.
+  function lastPlainCollect(phases, beforeId) {
+    var order = orderedPhaseIds(phases);
+    if (beforeId) {
+      var cut = order.indexOf(beforeId);
+      if (cut !== -1) order = order.slice(0, cut + 1);
+    }
+    for (var i = order.length - 1; i >= 0; i--) {
+      var ph = phases[order[i]];
+      if (ph && ph.type === 'collect' && !Array.isArray(ph.fields)) return order[i];
+    }
+    return lastOfType(phases, ['collect'], beforeId);
+  }
+
   // ---- Unique ids ----
 
   function freshId(phases, base) {
@@ -164,6 +180,21 @@
       return {
         type: 'end',
         message: 'That is a wrap! Nice work today, everyone.'
+      };
+    },
+    // Rank (2026-09-07): the class drags the collected answers into an
+    // order; the aggregate order is read back by a reveal of
+    // {{X.rankedList}} (compileStoryboard adds that reveal, the Builder's
+    // + button adds just the step). A plain collect is preferred over a
+    // secret+clue one (two-field answers rank as their text only).
+    'rank': function (ctx) {
+      var src = lastPlainCollect(ctx.phases, ctx.afterId);
+      if (!src) return null;
+      return {
+        type: 'rank',
+        prompt: 'Put these in order, your favorite at the top.',
+        candidates: src + '.responses',
+        timer: 90
       };
     },
     // "Secret + clue" — collect two things at once, the first kept hidden
@@ -366,6 +397,44 @@
     var secretRef = hasPair ? '{{_current.fields.' + keys[0] + '}}' : null;
 
     var id = freshId(phases, 'rounds');
+
+    // guess: 'who' (2026-09-07) = the Who Said It? shape: the answer (or
+    // the clue) goes up, everyone picks WHO wrote it from a roster of the
+    // author plus decoys, then the author is revealed with the class's
+    // guesses. No points: nothing here promises a score.
+    if (ctx && ctx.guess === 'who') {
+      var whoId = freshId(phases, 'who-rounds');
+      return {
+        id: whoId,
+        phase: {
+          type: 'foreach',
+          data: src + '.responses',
+          shuffle: true,
+          candidateSource: 'players',
+          decoyCount: 3,
+          subPhases: {
+            'show': {
+              type: 'announce',
+              message: 'Round {{_foreach.' + whoId + '.index}} of {{_foreach.' + whoId + '.total}}:\n\n' + clueRef + '\n\nWho said it?'
+            },
+            'guess': {
+              type: 'collect-choice',
+              prompt: 'Who do you think said: "' + clueRef + '"?',
+              choices: '_candidates',
+              timer: 20
+            },
+            'reveal': {
+              type: 'announce',
+              message: 'How the class guessed:\n{{guess.barChart}}\n\n' +
+                (hasPair
+                  ? 'It was ' + secretRef + ', from {{_current.playerName}}!'
+                  : 'It was {{_current.playerName}}!')
+            }
+          }
+        }
+      };
+    }
+
     var phase = {
       type: 'foreach',
       data: src + '.responses',
@@ -400,9 +469,11 @@
   // storyboard: { name, description, steps: [
   //   { brick: 'announce'|'collect'|'collect-two'|'collect-choice'|
   //            'estimate'|'reveal'|'reveal-one'|'vote'|'guessing-rounds'|
-  //            'quiz'|'teams'|'chain'|'end',
+  //            'rank'|'quiz'|'teams'|'chain'|'end',
   //     text?: string,          // the brick's primary field (prompt/message)
   //     choices?: string[],     // collect-choice only
+  //     guess?: 'who',          // guessing-rounds only: pick the author from a roster
+  //     items?: string[],       // rank only: a teacher-written list (else the last collect's answers)
   //     secretLabel?: string,   // collect-two field labels
   //     clueLabel?: string,
   //     questions?: [{ text, choices, correct }],  // quiz only
@@ -419,7 +490,7 @@
   var STORYBOARD_PRIMARY = {
     'announce': 'message', 'collect': 'prompt', 'collect-two': 'prompt',
     'collect-choice': 'prompt', 'estimate': 'prompt', 'reveal': 'template',
-    'reveal-one': 'message', 'end': 'message'
+    'reveal-one': 'message', 'rank': 'prompt', 'end': 'message'
   };
 
   // ---- Quiz brick ----
@@ -641,13 +712,32 @@
       }
 
       if (brick === 'guessing-rounds') {
-        var rounds = buildGuessingRounds({ phases: phases, afterId: lastId });
+        var rounds = buildGuessingRounds({
+          phases: phases, afterId: lastId,
+          guess: step.guess === 'who' ? 'who' : undefined
+        });
         if (!rounds) {
           problems.push('Step ' + (i + 1) + ': guessing rounds need a question step before them.');
           return;
         }
         id = rounds.id;
         built = rounds.phase;
+      } else if (brick === 'rank') {
+        // A teacher-written items list beats the collected answers; with
+        // neither there is nothing to put in order.
+        var items = Array.isArray(step.items)
+          ? step.items.map(String).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 12)
+          : [];
+        if (items.length >= 2) {
+          built = { type: 'rank', prompt: 'Put these in order, your favorite at the top.', candidates: items, timer: 90 };
+        } else {
+          built = defaultPhaseFor('rank', { phases: phases, afterId: lastId });
+        }
+        if (!built) {
+          problems.push('Step ' + (i + 1) + ': rank needs a question step before it, or an items list to put in order.');
+          return;
+        }
+        id = freshId(phases, BASE_ID_FOR.rank);
       } else if (BUILDERS[brick]) {
         built = defaultPhaseFor(brick, { phases: phases, afterId: lastId });
         id = freshId(phases, BASE_ID_FOR[brick] || brick);
@@ -669,13 +759,26 @@
         if (step.clueLabel) built.fields[1].label = String(step.clueLabel);
       }
       if (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600 &&
-          (brick === 'collect' || brick === 'collect-two' || brick === 'collect-choice' || brick === 'estimate')) {
+          (brick === 'collect' || brick === 'collect-two' || brick === 'collect-choice' ||
+           brick === 'estimate' || brick === 'rank')) {
         built.timer = Math.round(step.timer);
       }
 
       phases[lastId].next = id;
       phases[id] = built;
       lastId = id;
+
+      // The class order is the rank brick's payoff: a host-paced reveal
+      // reads it back (never timed, PROJECTOR-STYLE rule).
+      if (brick === 'rank') {
+        var orderId = freshId(phases, 'order-show');
+        phases[lastId].next = orderId;
+        phases[orderId] = {
+          type: 'reveal',
+          template: 'The class ranking:\n\n{{' + id + '.rankedList}}'
+        };
+        lastId = orderId;
+      }
     });
 
     if (Object.keys(phases).length === 1) {
@@ -701,7 +804,7 @@
   var BASE_ID_FOR = {
     'collect': 'ask', 'collect-two': 'share', 'collect-choice': 'poll',
     'estimate': 'guess', 'announce': 'announce', 'reveal': 'show',
-    'reveal-one': 'show-one', 'vote': 'vote', 'end': 'wrap'
+    'reveal-one': 'show-one', 'vote': 'vote', 'rank': 'order', 'end': 'wrap'
   };
 
   // ---- Reorder: move a step one slot up/down the next-chain ----

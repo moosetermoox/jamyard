@@ -80,7 +80,27 @@ describe('validateSuggestions', () => {
     expect(STORYBOARD_BRICKS).toContain('collect-two');
     expect(STORYBOARD_BRICKS).toContain('guessing-rounds');
     expect(STORYBOARD_BRICKS).toContain('chain');
+    expect(STORYBOARD_BRICKS).toContain('rank');
     expect(STORYBOARD_BRICKS).not.toContain('foreach');
+  });
+
+  // 2026-09-07: guess "who" on guessing rounds, items on rank.
+  it('carries the guess mode and rank items through in trimmed shape', () => {
+    const sb = { name: 'Fears', steps: [
+      { brick: 'collect', text: 'A fear?' },
+      { brick: 'guessing-rounds', guess: 'who' },
+      { brick: 'rank', text: 'Scariest first.', items: ['Spiders', 'Heights', 42] },
+      { brick: 'end', text: 'Done.' }
+    ] };
+    const out = validateSuggestions([{ kind: 'storyboard', storyboard: sb, why: 'w' }], ctx);
+    const steps = out.suggestions[0].storyboard.steps;
+    expect(steps[1].guess).toBe('who');
+    expect(steps[2].items).toEqual(['Spiders', 'Heights', '42']);
+    const odd = { name: 'X', steps: [
+      { brick: 'guessing-rounds', guess: 'everything' }, { brick: 'end' }
+    ] };
+    const out2 = validateSuggestions([{ kind: 'storyboard', storyboard: odd, why: 'w' }], ctx);
+    expect(out2.suggestions[0].storyboard.steps[0].guess).toBeUndefined();
   });
 
   it('carries chain fields through in trimmed shape', () => {

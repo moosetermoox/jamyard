@@ -104,7 +104,8 @@
       { type: 'one-voice', title: N('one-voice') }
     ] },
     { title: 'Rounds', cls: 'team', tiles: [
-      { type: 'guessing-rounds', title: N('guessing-rounds') }
+      { type: 'guessing-rounds', title: N('guessing-rounds') },
+      { type: 'who-rounds', title: N('who-rounds') }
     ], more: [
       { type: 'foreach', title: N('foreach') }
     ] },
@@ -322,7 +323,8 @@
       return;
     }
 
-    if (type === 'guessing-rounds') {
+    if (type === 'guessing-rounds' || type === 'who-rounds') {
+      if (type === 'who-rounds') ctx.guess = 'who';
       var rounds = S.buildGuessingRounds(ctx);
       if (!rounds) {
         alert('Guessing rounds cycle through answers, add a question step (like Open answer or Secret + clue) first.');
@@ -544,7 +546,7 @@
   }
 
   function tileClass(type) {
-    if (type === 'guessing-rounds') return 'team';
+    if (type === 'guessing-rounds' || type === 'who-rounds') return 'team';
     if (type === 'collect' || type === 'collect-choice' || type === 'estimate' || type === 'collect-two') return 'ask';
     if (type === 'announce' || type === 'reveal' || type === 'reveal-one' || type === 'leaderboard') return 'show';
     if (type === 'vote' || type === 'rank' || type === 'rate') return 'decide';

@@ -42,6 +42,22 @@ describe('generateStoryboard honesty', () => {
     expect(prompt).toContain('shuffled order');
   });
 
+  // 2026-09-07: "share a fear, guess who shared what, rank them" one-shot
+  // fell to a secret+clue guess and a vote. The prompt must offer the
+  // guess-who mode and the rank brick, and steer guess-WHO ideas to it.
+  it('offers guess "who" rounds and the rank brick', async () => {
+    const service = new AIService({ mode: 'real' });
+    let prompt = '';
+    service._callClaude = async (params) => {
+      prompt = params.messages[0].content;
+      return textResponse({ name: 'X', description: 'y', steps: [{ brick: 'end', text: 'Bye' }] });
+    };
+    await service.generateStoryboard('share a fear, guess who, rank them');
+    expect(prompt).toContain('- rank:');
+    expect(prompt).toContain('guess: "who"');
+    expect(prompt).toContain('rankings come ONLY from the rank brick');
+  });
+
   // 2026-09-07: Sonnet 5 replies open with a thinking block, so reading
   // content[0].text threw on every real storyboard call for four days
   // ("Cannot read properties of undefined (reading 'match')"). The text

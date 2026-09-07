@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1720 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1731 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **30 phase types**, **26 built-in recipes**, ~33 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -84,6 +84,8 @@ Framework for quickly building classroom games where:
 - **Bold is `**word**` and nothing else** (2026-09-03): the one inline format in teacher text. Simple view edits it as real bold (`screens/shared/bold-box.js`, contenteditable with a `.value` accessor; base weight pinned to 400 or the browser's bold command toggles off); every prompt/instruction sink on host and player goes through `setRichText` (`RichText.applyInline`), where bold paints yellow (`.prompt-bold`) because prompts are already heavy. New text sinks must use it, never bare textContent; excerpts strip the markers.
 - **Multi-field collect responses nest under `fields.*`** — reveal templates reading top-level keys render silently blank.
 - **AI responses wrap JSON in preamble** — always regex-fallback extraction.
+- **Every Claude reply is read through `extractText(message)`, never `content[0].text`** (2026-09-07): Sonnet 5 replies open with a thinking block, so the old shape is undefined; the storyboard door was dead for four days that way. Mock replies in tests should lead with a thinking block when they guard a Sonnet caller.
+- **Storyboard bricks** (`screens/shared/step-suggestions.js` + `engine/suggest-validate.js` + the storyboard and concierge prompts in ai-service.js, all four must agree): announce, collect, collect-two, collect-choice, estimate, reveal, reveal-one, vote, guessing-rounds (`guess:"who"` = the Who Said It? roster shape), rank (rank step + host-paced reveal of the order; `items` for a teacher list), quiz, teams, chain, end. A new brick needs a golden prompt in `tests/designer/golden-prompts.json`.
 - **Timing claims come from `engine/duration-estimate.js`, never the AI** (2026-09-06): the matcher is told not to claim a fit; the route computes the estimate from timers plus named allowances and attaches a trimmed copy when it runs over the minutes the teacher named. New allowances or floors go in that module's tables.
 - **A student screen says "submitted" only after `response-accepted`** (2026-09-06): every submit path in player.js goes through `awaitSubmitAck`; new collect-style inputs must too, and any new server store path must emit the ack.
 - **Identical generate instructions = identical output across sessions** — ai-process appends a variety spin (random seed + inspiration word + chestnut ban, `engine/phases/variety-spin.js`) to every `generate` task at call time; never bake session randomness into recipes/configs (drift guards).
