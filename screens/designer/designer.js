@@ -1763,16 +1763,57 @@ function renderMatchPreview(modal, data, overlay, description) {
   });
   btnRow.appendChild(backBtn);
 
+  // The yard's word for "set this up as mine": the match is already
+  // filled in, one click saves it and opens the three doors.
   var createBtn = document.createElement('button');
   createBtn.type = 'button';
   createBtn.className = 'recipe-create-btn';
-  createBtn.textContent = 'Create Activity';
+  createBtn.textContent = 'Make it yours';
   createBtn.addEventListener('click', function () {
-    saveMatchedConfig(data, status, createBtn, overlay);
+    saveMatchedConfig(data, status, createBtn, overlay, modal);
   });
   btnRow.appendChild(createBtn);
 
   modal.appendChild(btnRow);
+}
+
+// The three doors every Make it yours ends in (same trio as the yard's
+// dialog): continue in the designer, try it out with pretend students,
+// host it now. The copy is saved either way.
+function renderMatchedDoors(modal, newId, name) {
+  clearModal(modal);
+
+  var title = document.createElement('h2');
+  title.className = 'template-picker-title';
+  title.textContent = 'It\'s yours: ' + name;
+  modal.appendChild(title);
+
+  var note = document.createElement('p');
+  note.className = 'recipe-form-description';
+  note.textContent = 'Saved to My yard. Shape it in the designer, see it with pretend students, or host it right now.';
+  modal.appendChild(note);
+
+  var doors = [
+    { label: 'Continue setup in the designer', href: '/designer/edit?game=' + encodeURIComponent(newId),
+      title: 'Open it in the editor to change prompts, timers, and steps', cls: 'recipe-create-btn' },
+    { label: 'Try it out with pretend students', href: '/prototype?game=' + encodeURIComponent(newId),
+      title: 'See the teacher and student screens side by side, no class needed', cls: 'recipe-cancel-btn' },
+    { label: 'Host it now', href: '/host?game=' + encodeURIComponent(newId),
+      title: 'Start a live room your class can join right now', cls: 'recipe-cancel-btn' }
+  ];
+  var row = document.createElement('div');
+  row.className = 'recipe-form-buttons';
+  row.style.flexWrap = 'wrap';
+  doors.forEach(function (door) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = door.cls;
+    btn.textContent = door.label;
+    btn.title = door.title;
+    btn.addEventListener('click', function () { window.location.href = door.href; });
+    row.appendChild(btn);
+  });
+  modal.appendChild(row);
 }
 
 // The matcher pointed at a finished built-in activity: nothing to build.
@@ -1949,11 +1990,11 @@ function humanizeParamName(name) {
   return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-async function saveMatchedConfig(data, status, createBtn, overlay) {
+async function saveMatchedConfig(data, status, createBtn, overlay, modal) {
   status.textContent = '';
   status.className = 'recipe-form-status';
   createBtn.disabled = true;
-  createBtn.textContent = 'Creating…';
+  createBtn.textContent = 'Saving…';
 
   var newId = generateGameId(data.recipe.id);
 
@@ -1966,19 +2007,25 @@ async function saveMatchedConfig(data, status, createBtn, overlay) {
 
     if (resp.ok) {
       rememberMine(newId);
-      overlay.remove();
-      window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
+      // Saved: the three doors, same as the yard (owner's ask 2026-09-07;
+      // this used to jump straight into the editor).
+      if (modal) {
+        renderMatchedDoors(modal, newId, (data.config && data.config.name) || 'your activity');
+      } else {
+        overlay.remove();
+        window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
+      }
     } else {
       var saveData;
       try { saveData = await resp.json(); } catch (e) { saveData = {}; }
       showFormError(status, 'Save failed: ' + (saveData.error || 'Unknown error'));
       createBtn.disabled = false;
-      createBtn.textContent = 'Create Activity';
+      createBtn.textContent = 'Make it yours';
     }
   } catch (err) {
     showFormError(status, 'Network error: ' + err.message);
     createBtn.disabled = false;
-    createBtn.textContent = 'Create Activity';
+    createBtn.textContent = 'Make it yours';
   }
 }
 

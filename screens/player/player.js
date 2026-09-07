@@ -94,7 +94,8 @@ function applyTemplate(section, templateText) {
   var tmplDiv = section.querySelector('.screen-template');
   if (!tmplDiv) return;
   if (templateText) {
-    tmplDiv.textContent = templateText;
+    // Teacher text: **bold** paints, markers never show
+    setRichText(tmplDiv, templateText);
     tmplDiv.hidden = false;
   } else {
     tmplDiv.textContent = '';
@@ -1267,9 +1268,11 @@ function renderPlayerMessage(el, message) {
 // text stays untrusted-safe). Falls back to plain text without the module.
 function setRichText(el, text) {
   if (window.RichText && RichText.applyInline) RichText.applyInline(el, text);
-  // Word help on: every word in a prompt is a tap away from its meaning
-  if (window.WordHelp && WordHelp.isEnabled()) WordHelp.wrap(el);
   else el.textContent = text;
+  // Word help on: every word in a prompt is a tap away from its meaning.
+  // (This used to be the else-branch's partner: with word help OFF the
+  // raw "**word**" text overwrote the bold, 2026-09-06 to 2026-09-07.)
+  if (window.WordHelp && WordHelp.isEnabled()) WordHelp.wrap(el);
 }
 
 function appendPlayerParts(el, text) {
@@ -1410,7 +1413,7 @@ socket.on('reveal-one-start', ({ message, total, revealed, timer, playerTemplate
     message: revealOneMessage,
     items: revealOneItems
   });
-  revealOneMessage.textContent = message || 'Revealing...';
+  setRichText(revealOneMessage, message || 'Revealing...');
   revealOneItems.innerHTML = '';
 
   // If reconnecting, revealed items come as array

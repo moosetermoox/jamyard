@@ -402,7 +402,8 @@ function applyTemplate(section, templateText) {
   const tmplDiv = section.querySelector('.screen-template');
   if (!tmplDiv) return;
   if (templateText) {
-    tmplDiv.textContent = templateText;
+    // Teacher text: **bold** paints, markers never show
+    setRichText(tmplDiv, templateText);
     tmplDiv.hidden = false;
   } else {
     tmplDiv.textContent = '';
@@ -1290,7 +1291,7 @@ socket.on('leaderboard', ({ standings, teamStandings, style, final, timer, hostT
 
 socket.on('reveal-one-start', ({ message, total, revealed, timer, hostTemplate, show }) => {
   showSection(revealOneSection);
-  revealOneMessage.textContent = message || 'Reveal Time!';
+  setRichText(revealOneMessage, message || 'Reveal Time!');
   revealOneCounter.textContent = revealed + ' of ' + total + ' revealed';
   revealOneItems.innerHTML = '';
   revealOneNextBtn.hidden = revealed >= total;
