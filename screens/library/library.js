@@ -162,7 +162,7 @@ function buildGoalChips(games) {
 
 function refreshLibrary() {
   // Rebuilding the planks orphans whatever the mouse was resting on.
-  if (typeof hideHoverCard === 'function') hideHoverCard();
+  if (window.HoverCard) HoverCard.hide();
   var visible = applyVisibility(allGames);
   document.getElementById('library-controls').hidden = visible.length === 0;
   buildGoalChips(visible);
@@ -384,63 +384,8 @@ function buildPileGroup(key, label, games) {
   return group;
 }
 
-// ── Hover card: what the activity is, without the click ──
-// Planks carry only a name; teachers were opening popup after popup just
-// to read descriptions (observation 2026-08-27). Rest the mouse on a
-// plank and one shared floating card shows the description. Pointer-only
-// on purpose: keyboard and touch users get the same words in the popup.
-var hoverCard = null;
-var hoverCardTimer = null;
-
-function ensureHoverCard() {
-  if (hoverCard) return hoverCard;
-  hoverCard = document.createElement('div');
-  hoverCard.id = 'plank-hovercard';
-  hoverCard.setAttribute('aria-hidden', 'true');
-  hoverCard.hidden = true;
-  hoverCard.appendChild(document.createElement('div')).className = 'hovercard-name';
-  hoverCard.appendChild(document.createElement('div')).className = 'hovercard-meta';
-  hoverCard.appendChild(document.createElement('div')).className = 'hovercard-desc';
-  document.body.appendChild(hoverCard);
-  return hoverCard;
-}
-
-function hideHoverCard() {
-  clearTimeout(hoverCardTimer);
-  if (hoverCard) hoverCard.hidden = true;
-}
-
-function attachHoverCard(plank, game) {
-  plank.addEventListener('mouseenter', function () {
-    clearTimeout(hoverCardTimer);
-    // A beat of delay so sweeping the mouse across the yard doesn't
-    // flash a card per plank.
-    hoverCardTimer = setTimeout(function () {
-      var card = ensureHoverCard();
-      card.querySelector('.hovercard-name').textContent = game.name;
-      var metaBits = [];
-      if (game.playTime) metaBits.push(game.playTime);
-      if (game.family === 'connection') metaBits.push('no scores, no winners');
-      var metaEl = card.querySelector('.hovercard-meta');
-      metaEl.textContent = metaBits.join(' · ');
-      metaEl.hidden = metaBits.length === 0;
-      card.querySelector('.hovercard-desc').textContent = game.description || '';
-      card.hidden = false;
-      // Below the plank, clamped to the window; flip above when the
-      // plank sits near the bottom edge.
-      var r = plank.getBoundingClientRect();
-      var cw = card.offsetWidth;
-      var ch = card.offsetHeight;
-      var left = Math.max(8, Math.min(r.left, window.innerWidth - cw - 8));
-      var top = r.bottom + 8;
-      if (top + ch > window.innerHeight - 8) top = Math.max(8, r.top - ch - 8);
-      card.style.left = left + 'px';
-      card.style.top = top + 'px';
-    }, 220);
-  });
-  plank.addEventListener('mouseleave', hideHoverCard);
-  plank.addEventListener('click', hideHoverCard);
-}
+// The hover card (description without the click) is shared with the
+// home shelf: /shared/hover-card.js.
 
 // One plank per activity (9g): CAPS name over a small meta line, painted
 // by position. Clicking opens the activity popup; every card action
@@ -454,7 +399,7 @@ function buildPlank(game, index) {
   plank.setAttribute('aria-label', game.name + ', see what it is and make it yours');
   // No native title: the hover card carries the description instead (a
   // browser tooltip on top of it would double up).
-  attachHoverCard(plank, game);
+  HoverCard.attach(plank, game);
 
   var top = document.createElement('span');
   top.className = 'plank-top';
@@ -477,6 +422,9 @@ function buildPlank(game, index) {
     metaBits.push(String(game.playTime).split('(')[0].trim());
   }
   if (game.family === 'connection') metaBits.push('no winners');
+  // Rolling start: students begin the moment they arrive (Exit Ticket,
+  // Live Poll, Solo Quiz), so the plank says so up front.
+  if (game.start === 'rolling') metaBits.push('rolling start');
   if (metaBits.length > 0) {
     var meta = document.createElement('span');
     meta.className = 'plank-meta';
@@ -570,7 +518,7 @@ function buildMiniPlank(game, index) {
   plank.setAttribute('data-game-id', game.id);
   plank.setAttribute('aria-haspopup', 'dialog');
   plank.setAttribute('aria-label', game.name + ', see what it is and make it yours');
-  attachHoverCard(plank, game);
+  HoverCard.attach(plank, game);
 
   if (Favorites.has(game.id)) {
     var fav = document.createElement('span');
@@ -614,6 +562,7 @@ function openActivityDialog(game) {
   var metaBits = [];
   if (game.playTime) metaBits.push(game.playTime);
   if (game.family === 'connection') metaBits.push('no scores, no winners');
+  if (game.start === 'rolling') metaBits.push('rolling start, students begin as they arrive');
   var goals = (Array.isArray(game.tags) ? game.tags : [])
     .filter(function (t) { return GOAL_WORDS[t]; })
     .map(function (t) { return GOAL_WORDS[t]; });

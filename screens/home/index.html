@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="/shared/totem.css">
   <link rel="stylesheet" href="/shared/activity-map.css">
+  <link rel="stylesheet" href="/shared/hover-card.css">
   <style>
     /* ══ Totem system (docs/design/totem/), home 13a (2026-09-05) ══
        Teacher-first front door: the headline and the ONE red action on the
@@ -201,9 +202,10 @@
       flex-direction: column;
       gap: 8px;
       text-decoration: none;
-      /* Reserve the height of a slide with a shot so the card (and the
-         whole page under it) never jumps as slides rotate */
-      min-height: 204px;
+      /* Reserve the height of a slide with a shot AND a full-length
+         description so the card (and the whole page under it) never
+         jumps as slides rotate */
+      min-height: 244px;
       transition: opacity 160ms ease;
     }
     .board-slide.is-swapping { opacity: 0; }
@@ -275,7 +277,11 @@
       line-height: 1.5;
       color: #4A3A22;
       display: -webkit-box;
-      -webkit-line-clamp: 3;
+      /* Seven lines beside the print holds every featured description in
+         full (the longest is ~140 characters at this column width); the
+         board has the room below, so the text is no longer cut at three
+         (owner's call 2026-09-07). */
+      -webkit-line-clamp: 7;
       -webkit-box-orient: vertical;
       overflow: hidden;
       /* Always hold three lines so short descriptions don't shrink the card */
@@ -499,9 +505,12 @@
     .shelf-more { text-decoration: none; white-space: nowrap; }
     .shelf-more:hover { color: var(--t-ink); }
 
+    /* Three rows of five (owner's call 2026-09-07): the row wraps, so a
+       narrower window simply shows fewer cards per row. */
     .shelf-row {
       display: flex;
-      gap: 20px;
+      flex-wrap: wrap;
+      gap: 28px 20px;
       align-items: flex-start;
       min-height: 232px;
     }
@@ -926,8 +935,9 @@
       /* Three across is too tight under 480px; stack the steps */
       .how-strip { grid-template-columns: 1fr; }
       .how-step { flex-direction: row; align-items: center; }
-      /* Five cards do not fit a Chromebook half-screen: the shelf scrolls */
-      .shelf-row { overflow-x: auto; padding-bottom: 10px; }
+      /* Fifteen cards on a Chromebook half-screen: the row wraps to
+         however many fit, centered */
+      .shelf-row { justify-content: center; }
       footer { justify-content: center; }
       .footer-credit { margin-left: 0; }
     }
@@ -1020,8 +1030,9 @@
 
     </div>
 
-    <!-- The shelf: five templates from the yard, shortest first, goal chips
-         filter in place. Clicking a card opens the same popup as the frame. -->
+    <!-- The shelf: three rows of five templates from the yard, shortest
+         first, goal chips filter in place. Resting the mouse on a card shows
+         the yard's hover card; clicking opens the same popup as the frame. -->
     <section class="shelf" id="shelf" hidden aria-label="Templates from the yard">
       <div class="shelf-top">
         <div class="shelf-left">
@@ -1064,6 +1075,7 @@
   <script src="/shared/dialog.js"></script>
   <script src="/shared/phase-names.js"></script>
   <script src="/shared/activity-map.js"></script>
+  <script src="/shared/hover-card.js"></script>
   <script>
     // ── The projector carousel + the shelf: both read the same list the
     //    yard shows (featured built-ins + this device's own creations). ──
@@ -1157,10 +1169,14 @@
         target.appendChild(base);
       }
 
+      // Play time, the no-winners note, the rolling-start tag: the same
+      // line the yard's planks and hover cards carry.
       function metaOf(g) {
+        if (window.HoverCard) return HoverCard.metaLine(g);
         var meta = [];
         if (g.playTime) meta.push(g.playTime);
         if (g.family === 'connection') meta.push('no scores, no winners');
+        if (g.start === 'rolling') meta.push('rolling start');
         return meta.join(' · ');
       }
 
@@ -1233,7 +1249,9 @@
       function startRotation() {
         if (reducedMotion) return;
         clearInterval(timer);
-        timer = setInterval(function () { step(1); }, 4500);
+        // Long enough to read a full description (owner's call 2026-09-07:
+        // ten seconds slower than the original 4.5s).
+        timer = setInterval(function () { step(1); }, 14500);
       }
 
       // ── The activity popup, right on the home page: what it is, the
@@ -1304,8 +1322,8 @@
 
       slideEl.addEventListener('click', popupClick(function () { return games[idx]; }));
 
-      // ── The shelf: five cards, shortest first, goal chips filter in place ──
-      var SHELF_SIZE = 5;
+      // ── The shelf: three rows of five, shortest first, goal chips filter in place ──
+      var SHELF_SIZE = 15;
       var activeGoal = null; // null = all
       var CARD_ROTS = ['-0.8deg', '0.6deg', '-0.5deg', '0.9deg', '-0.7deg'];
 
@@ -1390,7 +1408,10 @@
         var card = document.createElement('a');
         card.className = 'shelf-card';
         card.href = '/library?about=' + encodeURIComponent(g.id);
-        card.title = 'See what "' + g.name + '" is';
+        card.setAttribute('aria-label', g.name + ', see what it is');
+        // No native title: the yard's hover card carries the description
+        // (a browser tooltip on top of it would double up).
+        if (window.HoverCard) HoverCard.attach(card, g);
         card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
         var print = document.createElement('div');
         print.className = 'shelf-print';
@@ -1403,8 +1424,11 @@
         var meta = document.createElement('span');
         meta.className = 'shelf-meta';
         var bits = [];
-        if (g.playTime) bits.push(g.playTime);
+        // Tiles carry the short time only (parentheticals live in the
+        // popup and the hover card), same as the yard's planks.
+        if (g.playTime) bits.push(String(g.playTime).split('(')[0].trim());
         bits.push(window.GoalGroups ? GoalGroups.groupOf(g) : 'think');
+        if (g.start === 'rolling') bits.push('rolling start');
         meta.textContent = bits.join(' · ');
         card.appendChild(meta);
         card.addEventListener('click', popupClick(function () { return g; }));

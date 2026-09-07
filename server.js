@@ -260,7 +260,9 @@ const USER_GAMES_DIR = join(GAMES_DIR, 'user');
 // keywords: searchable subject/topic terms (2026-08-08 field test: a teacher's
 // first search is her subject — "history" matched nothing because the shells
 // are topic-agnostic and nothing said so).
-const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor', 'featured', 'family', 'keywords'];
+// `start` rides along so the yard, the home shelf, and the hover cards can
+// tag rolling-start activities (students begin as they arrive).
+const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor', 'featured', 'family', 'keywords', 'start'];
 
 // Owner curation of built-ins lives in Neon (featured_overrides) because the
 // deployed filesystem resets on every push. A read failure must never take

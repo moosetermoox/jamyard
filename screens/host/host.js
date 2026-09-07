@@ -2423,6 +2423,13 @@ socket.on('turn-complete', ({ teamScores }) => {
 // exists while the room does, which is why this sits on the wrap-up screen.
 const copyReportBtn = document.getElementById('copy-report-btn');
 let reportCopyTimer = null;
+
+// Back to the yard: the wrap-up screen's way out. Hidden in the simulator,
+// where this screen sits in an iframe and the yard would open inside it.
+const backToYardRow = document.querySelector('.end-yard-row');
+if (backToYardRow && new URLSearchParams(window.location.search).get('prototype') === 'true') {
+  backToYardRow.hidden = true;
+}
 copyReportBtn.addEventListener('click', () => {
   if (!currentRoomCode) return;
   let link = window.location.origin + '/teacher/report#code=' + currentRoomCode;

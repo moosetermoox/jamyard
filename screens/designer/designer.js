@@ -1775,8 +1775,10 @@ function renderMatchPreview(modal, data, overlay, description) {
   modal.appendChild(btnRow);
 }
 
-// The matcher pointed at a finished built-in activity: nothing to build,
-// the doors are Host / Preview / find it in the Library to customize.
+// The matcher pointed at a finished built-in activity: nothing to build.
+// The card shows the yard popup's map and ends in the yard's doors: Make
+// it yours (the yard's dialog, then designer / try it out / host), Try it
+// out, Host this.
 // ("Human or AI" 2026-08-22: the idea already existed as a built-in, but
 // the matcher only knew recipes, so it fell to the storyboard and faked it.)
 function renderExistingGameView(modal, data, overlay, description) {
@@ -1814,10 +1816,19 @@ function renderExistingGameView(modal, data, overlay, description) {
   // the copy is made from the yard, so there is no config to trim here).
   appendTimingNote(modal, data, null);
 
-  var customizeNote = document.createElement('p');
-  customizeNote.className = 'recipe-form-description';
-  customizeNote.textContent = 'Want it with your own twist? Find it in the yard and click Make it yours for an editable copy.';
-  modal.appendChild(customizeNote);
+  // The activity's map, same as the yard's popup: what happens, stop by
+  // stop, so the teacher can judge the match without leaving this page
+  // (owner's ask 2026-09-07). Arrives async into its own mount so the
+  // buttons below never jump.
+  var existingMapMount = document.createElement('div');
+  existingMapMount.className = 'recipe-map-mount';
+  modal.appendChild(existingMapMount);
+  fetch('/api/games/' + encodeURIComponent(game.id) + '/map')
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (map) {
+      if (existingMapMount.isConnected) appendRecipeMap(existingMapMount, map);
+    })
+    .catch(function () { /* the map is garnish, the doors below still work */ });
 
   // Runner-up recipes still render: "already exists" is one answer, and
   // building an own version from a recipe is the other.
@@ -1868,14 +1879,18 @@ function renderExistingGameView(modal, data, overlay, description) {
   });
   btnRow.appendChild(backBtn);
 
-  var libraryBtn = document.createElement('button');
-  libraryBtn.type = 'button';
-  libraryBtn.className = 'recipe-cancel-btn';
-  libraryBtn.textContent = 'See it in the yard';
-  libraryBtn.addEventListener('click', function () {
-    window.location.href = '/library?highlight=' + encodeURIComponent(game.id);
+  // Make it yours opens the yard's own dialog for this activity (the class
+  // picker, the setup knobs, then the three doors: continue in the
+  // designer, try it out, host it now). Same door as a yard plank.
+  var customizeBtn = document.createElement('button');
+  customizeBtn.type = 'button';
+  customizeBtn.className = 'recipe-cancel-btn';
+  customizeBtn.textContent = 'Make it yours';
+  customizeBtn.title = 'Make your own editable copy of "' + game.name + '"';
+  customizeBtn.addEventListener('click', function () {
+    window.location.href = '/library?customize=' + encodeURIComponent(game.id);
   });
-  btnRow.appendChild(libraryBtn);
+  btnRow.appendChild(customizeBtn);
 
   var previewBtn = document.createElement('button');
   previewBtn.type = 'button';
