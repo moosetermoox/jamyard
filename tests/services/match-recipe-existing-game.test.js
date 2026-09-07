@@ -56,6 +56,36 @@ describe('matchRecipe with a ready-made activity catalog', () => {
     expect(result.recipe).toBeUndefined();
   });
 
+  // 2026-09-07: "everyone lists people and circumstances, shuffled, each
+  // gets one of each" came back as {"recipe": "story-ingredients"}: the
+  // right activity in the wrong slot. The route saw an unknown recipe and
+  // the teacher got "This one needs a trick we don't have yet". An id
+  // that names a ready-made activity is a game pick whichever slot it sits in.
+  it('reads a ready-made activity id out of the recipe slot as a game pick', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => textResponse({
+      recipe: 'snowball',
+      params: {},
+      explanation: 'Snowball already does this.',
+      alternates: [{ recipe: 'question-share', why: 'The quieter version.' }]
+    });
+    const result = await service.matchRecipe('anonymous answers fly around', recipes, { games });
+    expect(result.game).toBe('snowball');
+    expect(result.recipe).toBeUndefined();
+    expect(result.explanation).toBe('Snowball already does this.');
+    expect(result.alternates).toEqual([{ recipe: 'question-share', why: 'The quieter version.' }]);
+  });
+
+  it('leaves a real recipe id in the recipe slot alone, even with a same-named game', async () => {
+    const service = new AIService({ mode: 'real' });
+    const twinGames = games.concat([{ id: 'doodle-bluff', name: 'Doodle Bluff', description: 'Built-in twin.', playTime: '~15 min' }]);
+    service._callClaude = async () => textResponse({ recipe: 'doodle-bluff', params: { rounds: 3 } });
+    const result = await service.matchRecipe('draw and bluff', recipes, { games: twinGames });
+    expect(result.recipe).toBe('doodle-bluff');
+    expect(result.params).toEqual({ rounds: 3 });
+    expect(result.game).toBeUndefined();
+  });
+
   it('treats a malformed game pick as no match', async () => {
     const service = new AIService({ mode: 'real' });
     service._callClaude = async () => textResponse({ game: 42 });

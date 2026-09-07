@@ -1952,6 +1952,23 @@ ${responseList}`;
         };
       }
 
+      // The right activity in the wrong slot (2026-09-07): the model put a
+      // ready-made activity's id under "recipe" (Story Ingredients for a
+      // shuffle-and-deal idea). An id that is not an offered recipe but IS
+      // a listed activity is a game pick; the route would otherwise call it
+      // an unknown recipe and the teacher would fall through to a refusal.
+      const offeredRecipeIds = new Set((recipes || []).map(r => r.id));
+      const listedGameIds = new Set(((options && options.games) || []).map(g => g.id));
+      if (typeof parsed.recipe === 'string' && !offeredRecipeIds.has(parsed.recipe) &&
+          listedGameIds.has(parsed.recipe)) {
+        return {
+          game: parsed.recipe,
+          explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
+          alternates: sanitizeAlternates(parsed.alternates, null),
+          ...(title ? { title } : {})
+        };
+      }
+
       if (typeof parsed.recipe === 'string' && parsed.params && typeof parsed.params === 'object') {
         return {
           recipe: parsed.recipe,
