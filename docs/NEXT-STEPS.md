@@ -35,9 +35,16 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-09-07, PR #4 MERGED and LIVE; everything below is on jamyard.xyz)
+### START HERE next session (updated 2026-09-07 evening; everything below is on jamyard.xyz)
 
-**State on 2026-09-07:** PR #4 (`doodle-bluff-two-ways`) merged to master as `b2cf696`, CI green, deployed and verified live (credit line, Review chips, time chips, Rose, Bud, Thorn under Connect, "Try it out"). Local checkout is on master. 1686 tests. The JSON column ALTER ran on prod's Neon at that boot. Nothing is open from the outside review except the usability study.
+**State on 2026-09-07 evening (commits c5403a3 through cc42d7b, all pushed, CI deploys on green, 1720 tests):** the owner's six home/Create/host asks shipped (fuller board, 14.5s slides, three rows of five tiles with the shared hover card, Make it yours + map on the Create page's existing-activity match, Back to the yard after hosting, rolling-start tag); then outside review #2 in three batches, all shipped (see "Outside review #2" below and CHANGELOG 2026-09-07): small fixes + waiting copy, sample answers + audience line + "Someone wrote this for you", Teacher controls tab in Try it out + discussion prompts + quiz explanations. Three owner catches fixed the same evening: the bold painter on the student screen (a real regression from word help), the recipe match's doors, and a stale dev server (restart after pulling; an old validator drops activities that carry new fields). Fish Audio skills installed and committed for the video rig (`FISH_API_KEY` in .env when used).
+
+**Suggested order next time:**
+1. Look at the new pieces on a real screen once: the home shelf hover cards, the audience line under a prompt, Someone's Got You end to end in Try it out (the "Someone wrote this for you" moment and the Teacher controls tab), Speed Quiz's results step with the explanation and the console's "Something to ask".
+2. Open items from review #2 (in the Batch notes below): sample answers for the robot playtest (`services/simulator.js`), sample sets inherited by recipe-born copies, `explanation` on Trivia Bluff / Solo Quiz, the parked "thank you" reply.
+3. Then the list that was already queued: the five-teacher usability study, Doodle Bluff follow-ups, duration-estimate calibration, the one-minute video (voice via Fish Audio now an option, music track "Happy Tails" is in the repo root untracked, move it to scripts/video).
+
+**Previous state on 2026-09-07 (morning):** PR #4 (`doodle-bluff-two-ways`) merged to master as `b2cf696`, CI green, deployed and verified live (credit line, Review chips, time chips, Rose, Bud, Thorn under Connect, "Try it out"). Local checkout is on master. 1686 tests. The JSON column ALTER ran on prod's Neon at that boot. Nothing is open from the outside review except the usability study.
 
 **Suggested order for the next session:**
 1. The five-teacher usability study (one task: "You have ten minutes tomorrow to help your class discuss a topic. Find an activity and get ready to run it."). Nothing else on this list is worth more than what it will show.
