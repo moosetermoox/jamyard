@@ -32,7 +32,7 @@ var GOAL_LABELS = {
   energize: 'Energize'
 };
 
-// Six piles (Totem: 10d + popup): three personal shelves, then the three
+// Seven piles (Totem: 10d + popup): three personal shelves, then the four
 // broad goal piles. Placement precedence differs from display order: your
 // own copies always live in CUSTOMIZED, hearts beat recency, and each
 // activity stands in exactly one pile.
@@ -45,6 +45,7 @@ var PILE_GROUPS = [
   // shelf filter reads too.
   { key: 'connect', label: 'Connect', goals: GoalGroups.goalsIn('connect') },
   { key: 'think', label: 'Think', goals: GoalGroups.goalsIn('think') },
+  { key: 'review', label: 'Review', goals: GoalGroups.goalsIn('review') },
   { key: 'play', label: 'Play', goals: GoalGroups.goalsIn('play') }
 ];
 
@@ -60,7 +61,7 @@ function goalGroupOf(game) {
 
 var allGames = [];
 var libraryQuery = '';
-var activeGoal = null; // a PILE_GROUPS goal key: connect | think | play
+var activeGoal = null; // a PILE_GROUPS goal key: connect | think | review | play
 
 function applyVisibility(games) {
   if (!window.GameVisibility) return games;
@@ -216,10 +217,11 @@ function renderLibrary(games, rescueQuery) {
   }
 
   // Teacher view (Totem 9g): a compact personal shelf up top, then the
-  // three yard piles with their painted labels below. Each activity
+  // yard piles with their painted labels below. Each activity
   // stands in exactly one place; placement precedence: yours → hearted →
   // recently used → home goal pile.
-  var piles = { recent: [], favorites: [], customized: [], connect: [], think: [], play: [] };
+  var piles = { recent: [], favorites: [], customized: [] };
+  GoalGroups.GROUPS.forEach(function (group) { piles[group.key] = []; });
   var placed = {};
   var shedGames = [];
 
@@ -272,7 +274,8 @@ function renderLibrary(games, rescueQuery) {
 
   var shelf = document.createElement('div');
   shelf.className = 'pile-shelf';
-  ['connect', 'think', 'play'].forEach(function (key) {
+  GoalGroups.GROUPS.forEach(function (group) {
+    var key = group.key;
     if (piles[key].length === 0) return;
     var group = null;
     for (var i = 0; i < PILE_GROUPS.length; i++) {
@@ -289,9 +292,9 @@ function renderLibrary(games, rescueQuery) {
 var PILE_MAX = 6;
 var expandedPiles = {};
 
-// Each pile starts its paint cycle somewhere else, so the three piles
-// never share the same top color.
-var PILE_TONE_OFFSET = { connect: 0, think: 3, play: 6 };
+// Each pile starts its paint cycle somewhere else, so no two piles
+// share the same top color.
+var PILE_TONE_OFFSET = { connect: 0, think: 2, review: 4, play: 6 };
 
 function buildPileGroup(key, label, games) {
   var group = document.createElement('div');

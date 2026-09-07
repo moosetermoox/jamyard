@@ -1432,11 +1432,11 @@
       function renderChips() {
         var groups = [{ key: null, label: 'All' }].concat(window.GoalGroups ? GoalGroups.GROUPS : []);
         shelfChipsEl.textContent = '';
-        groups.forEach(function (group) {
+        groups.forEach(function (group, i) {
           var chip = document.createElement('button');
           chip.type = 'button';
           chip.className = 'goal-chip t-lift' + (group.key === activeGoal ? ' active' : '');
-          chip.style.setProperty('--rot', group.key === null || group.key === 'think' ? '-0.8deg' : '0.8deg');
+          chip.style.setProperty('--rot', i % 2 === 0 ? '-0.8deg' : '0.8deg');
           chip.textContent = group.label;
           chip.setAttribute('aria-pressed', group.key === activeGoal ? 'true' : 'false');
           chip.addEventListener('click', function () {

@@ -1,5 +1,5 @@
 /**
- * goal-groups.js — the three goal piles (Connect / Think / Play) and how
+ * goal-groups.js — the four goal piles (Connect / Think / Review / Play) and how
  * an activity's goal tags land in one of them. One source for the yard's
  * chips and the home page's shelf filter, so an activity never sits in
  * one pile on the yard and another on the front door.
@@ -10,13 +10,15 @@
 (function () {
   var GOAL_TO_GROUP = {
     connect: 'connect',
-    discuss: 'think', decide: 'think', reflect: 'think', review: 'think',
+    discuss: 'think', decide: 'think', reflect: 'think',
+    review: 'review',
     create: 'play', energize: 'play'
   };
 
   var GROUPS = [
     { key: 'connect', label: 'Connect' },
     { key: 'think', label: 'Think' },
+    { key: 'review', label: 'Review' },
     { key: 'play', label: 'Play' }
   ];
 
