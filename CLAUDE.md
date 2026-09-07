@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1740 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1745 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **30 phase types**, **26 built-in recipes**, ~33 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -53,7 +53,7 @@ Framework for quickly building classroom games where:
 - `/share/<id>` — share link landing page: "Save to my activities" imports a COPY via `POST /api/games/:id/copy` (engine/share-copy.js; featured stripped, new deduped id, never the same row); built-in ids redirect to `/library?about=`; Share button lives in the yard popup (own activities)
 - Vanity URLs: `vanity-urls.json` (slug → game id) mints memorable paths like `/good-question` that redirect to `/host?game=<id>`; server refuses reserved/malformed slugs at startup
 - Teacher profile (grade band + subjects, localStorage via `screens/shared/teacher-profile.js`) personalizes prompt-deck picks ("for your class") and Customize; set from the library's first-visit card
-- Surfaces model: **find it in the yard, start it in Create, shape it in the Editor** (docs/SURFACES-PLAN.md). Every Make it yours dialog ends in three doors: Continue setup in the designer / See it in the simulator / Host it now (untouched = the original runs, no copy saved)
+- Surfaces model: **find it in the yard, start it in Create, shape it in the Editor** (docs/SURFACES-PLAN.md). Every Make it yours dialog ends in the shared doors (`screens/shared/make-it-yours-doors.js`, 2026-09-07): a smaller Continue setup in the designer beside a bigger Launch, which opens Try it out with pretend students / Host it now (untouched = the original runs, no copy saved)
 
 ## Standing Rules (active doctrine — check before writing code or copy)
 - **No em dashes in user-facing text** (students read them as an AI tell); comma, colon, or new sentence instead. En dashes in numeric ranges fine; Along bank verbatim; code comments/docs exempt. Enforced by `tests/style/no-em-dash.test.js` + `STYLE_RULES` in `AIService._callClaude`.

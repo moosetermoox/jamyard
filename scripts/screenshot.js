@@ -20,6 +20,7 @@ import { writeFileSync, existsSync } from 'node:fs';
 const url = process.argv[2];
 const outfile = process.argv[3];
 const waitMs = parseInt(process.argv[4], 10) || 2500;
+// SHOT_CLICK (env) clicks a selector before the capture, see below.
 const [w, h] = (process.argv[5] || '900x1300').split('x').map(Number);
 
 if (!url || !outfile) {
@@ -88,6 +89,13 @@ try {
   await send('Page.enable');
   await send('Page.navigate', { url });
   await new Promise(r => setTimeout(r, waitMs));
+  // SHOT_CLICK=<css selector>: click it (and wait a beat) before the capture,
+  // for states a URL cannot reach (an opened Launch row, a tab).
+  if (process.env.SHOT_CLICK) {
+    const sel = JSON.stringify(process.env.SHOT_CLICK);
+    await send('Runtime.evaluate', { expression: `(function(){var el=document.querySelector(${sel});if(el)el.click();return !!el;})()` });
+    await new Promise(r => setTimeout(r, 400));
+  }
   const shot = await send('Page.captureScreenshot', { format: 'png' });
   writeFileSync(outfile, Buffer.from(shot.data, 'base64'));
   console.log(`saved ${outfile} (${w}x${h}, waited ${waitMs}ms)`);

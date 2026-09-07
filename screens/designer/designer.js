@@ -1790,30 +1790,19 @@ function renderMatchedDoors(modal, newId, name) {
 
   var note = document.createElement('p');
   note.className = 'recipe-form-description';
-  note.textContent = 'Saved to My yard. Shape it in the designer, see it with pretend students, or host it right now.';
+  note.textContent = 'Saved to My yard. Launch it, or keep shaping it in the designer first.';
   modal.appendChild(note);
 
-  var doors = [
-    { label: 'Continue setup in the designer', href: '/designer/edit?game=' + encodeURIComponent(newId),
-      title: 'Open it in the editor to change prompts, timers, and steps', cls: 'recipe-create-btn' },
-    { label: 'Try it out with pretend students', href: '/prototype?game=' + encodeURIComponent(newId),
-      title: 'See the teacher and student screens side by side, no class needed', cls: 'recipe-cancel-btn' },
-    { label: 'Host it now', href: '/host?game=' + encodeURIComponent(newId),
-      title: 'Start a live room your class can join right now', cls: 'recipe-cancel-btn' }
-  ];
-  var row = document.createElement('div');
-  row.className = 'recipe-form-buttons';
-  row.style.flexWrap = 'wrap';
-  doors.forEach(function (door) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = door.cls;
-    btn.textContent = door.label;
-    btn.title = door.title;
-    btn.addEventListener('click', function () { window.location.href = door.href; });
-    row.appendChild(btn);
+  // The same doors as the yard's dialogs (/shared/make-it-yours-doors.js):
+  // a bigger Launch that opens Try it out / Host it now, beside a smaller
+  // Continue setup. The copy is already saved, so no busy label.
+  var q = encodeURIComponent(newId);
+  var doors = MakeItYoursDoors.build(function (dest) {
+    if (dest === 'simulate') window.location.href = '/prototype?game=' + q;
+    else if (dest === 'host') window.location.href = '/host?game=' + q;
+    else window.location.href = '/designer/edit?game=' + q;
   });
-  modal.appendChild(row);
+  modal.appendChild(doors.row);
 }
 
 // The matcher pointed at a finished built-in activity: nothing to build.

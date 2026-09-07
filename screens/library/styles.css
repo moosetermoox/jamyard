@@ -906,34 +906,8 @@ header {
   cursor: not-allowed;
 }
 
-/* The three doors that close a Make it yours dialog: same size and style,
-   one paint each (owner's call 2026-09-02, equal weight). They share the
-   row and keep sharing it when the dialog is narrow enough to wrap. */
-.make-it-yours-doors {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px 12px;
-}
-.make-it-yours-doors .recipe-create-btn {
-  text-align: center;
-  white-space: normal;
-  line-height: 1.25;
-  padding: 11px 12px 12px;
-}
-.make-it-yours-doors .door-designer {
-  background: var(--t-cyan, #1BA9C4);
-  --rot: 0.6deg;
-  clip-path: polygon(0 4%, 98% 0, 100% 96%, 2% 100%);
-}
-.make-it-yours-doors .door-simulate {
-  background: var(--t-magenta, #B0197E);
-  --rot: -0.5deg;
-  clip-path: polygon(2% 0, 100% 6%, 98% 100%, 0 94%);
-}
-.make-it-yours-doors .door-host {
-  background: var(--t-red, #E5482B);
-  --rot: 0.8deg;
-}
+/* The doors that close a Make it yours dialog live in
+   /shared/make-it-yours-doors.css (a preferred path since 2026-09-07). */
 
 /* ── The yard (Totem 9g): three goal piles, painted labels below ──
    Chunky planks (CAPS name over a small meta line) on one plinth, no

@@ -1037,49 +1037,13 @@ function saveCopyAndReturn(config, dest) {
   });
 }
 
-// The three doors at the bottom of every Make it yours dialog (owner's
-// call 2026-09-02): once the copy is shaped, keep shaping it in the
-// designer, watch it run in the simulator, or host it right now. Equal
-// weight, three paints (owner's call): the row's CSS colors each door by
-// its door-<dest> class. One pick handler receives the destination.
-var COPY_DOORS = [
-  { dest: 'designer', label: 'Continue setup in the designer',
-    title: 'Save your copy and open it in the editor' },
-  { dest: 'simulate', label: 'Try it out with pretend students',
-    title: 'Save your copy and watch it run with pretend students, no class needed' },
-  { dest: 'host', label: 'Host it now',
-    title: 'Save your copy and start a live room your class can join right now' }
-];
-
+// The doors at the bottom of every Make it yours dialog: since 2026-09-07
+// a preferred path (a bigger Launch that opens Try it out / Host it now,
+// beside a smaller Continue setup in the designer), one shared module for
+// this page and the Create page (/shared/make-it-yours-doors.js). One
+// pick handler receives the destination: designer | simulate | host.
 function makeItYoursDoors(onPick) {
-  var row = document.createElement('div');
-  row.className = 'recipe-form-buttons make-it-yours-doors';
-  row.style.marginTop = '14px';
-  var buttons = COPY_DOORS.map(function (door) {
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'recipe-create-btn door-' + door.dest;
-    btn.textContent = door.label;
-    btn.title = door.title;
-    // The picked door says so while the copy is made: the AI rewording
-    // can take half a minute and the status line below is easy to miss
-    // (owner clicked "See it in the simulator" and saw nothing, 2026-09-06).
-    btn.addEventListener('click', function () {
-      btn.textContent = 'Making your copy…';
-      onPick(door.dest);
-    });
-    row.appendChild(btn);
-    return btn;
-  });
-  return {
-    row: row,
-    setDisabled: function (flag) {
-      buttons.forEach(function (b, i) {
-        b.disabled = !!flag;
-        if (!flag) b.textContent = COPY_DOORS[i].label;
-      });
-    }
-  };
+  return MakeItYoursDoors.build(onPick, { busyLabel: 'Making your copy…' });
 }
 
 // Where a finished copy (or, untouched, the original) goes next.

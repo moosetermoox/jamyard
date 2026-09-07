@@ -1,0 +1,95 @@
+/* The doors that close a Make it yours dialog (owner's call 2026-09-07):
+   a preferred path. Front row: a smaller cyan "Continue setup in the
+   designer" beside a bigger red "Launch". Launch opens a second row with
+   the two ways to run it, magenta "Try it out with pretend students" and
+   red "Host it now". Paints ride the door-<dest> classes; the buttons
+   themselves are the page's .recipe-create-btn. Built by
+   /shared/make-it-yours-doors.js. */
+
+.make-it-yours-doors {
+  margin-top: 14px;
+}
+
+.make-it-yours-doors .doors-front {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.make-it-yours-doors .recipe-create-btn {
+  text-align: center;
+  white-space: normal;
+  line-height: 1.25;
+  padding: 11px 12px 12px;
+}
+
+/* The smaller door: still a paint, half a step down in size. */
+.make-it-yours-doors .door-designer {
+  flex: 1 1 38%;
+  font-size: 0.86rem;
+  padding: 9px 12px 10px;
+  background: var(--t-cyan, #1BA9C4);
+  --rot: 0.6deg;
+  clip-path: polygon(0 4%, 98% 0, 100% 96%, 2% 100%);
+}
+
+/* The preferred path: bigger, red, and it opens rather than picks. */
+.make-it-yours-doors .door-launch {
+  flex: 1.6 1 62%;
+  font-size: 1.22rem;
+  padding: 14px 20px 15px;
+  background: var(--t-red, #E5482B);
+  --rot: -0.7deg;
+  clip-path: polygon(1% 0, 100% 3%, 99% 100%, 0 97%);
+}
+
+.make-it-yours-doors .door-launch.is-open {
+  box-shadow: 0 0 0 rgba(50, 35, 15, 0.18);
+  transform: rotate(-0.7deg) translate(2px, 2px);
+}
+
+/* The two ways to run, revealed by Launch. */
+.make-it-yours-doors .doors-launch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 2px dashed rgba(50, 35, 15, 0.25);
+}
+
+/* A styled display value beats the hidden attribute (standing gotcha). */
+.make-it-yours-doors .doors-launch[hidden] {
+  display: none;
+}
+
+.make-it-yours-doors .doors-launch-ask {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.make-it-yours-doors .door-simulate {
+  background: var(--t-magenta, #B0197E);
+  --rot: -0.5deg;
+  clip-path: polygon(2% 0, 100% 6%, 98% 100%, 0 94%);
+}
+
+.make-it-yours-doors .door-host {
+  background: var(--t-red, #E5482B);
+  --rot: 0.8deg;
+}
+
+@media (max-width: 560px) {
+  .make-it-yours-doors .doors-front {
+    flex-wrap: wrap;
+  }
+  .make-it-yours-doors .door-designer,
+  .make-it-yours-doors .door-launch {
+    flex-basis: 100%;
+  }
+  .make-it-yours-doors .doors-launch {
+    grid-template-columns: 1fr;
+  }
+}
