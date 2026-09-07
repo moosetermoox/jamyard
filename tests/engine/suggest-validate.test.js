@@ -81,7 +81,25 @@ describe('validateSuggestions', () => {
     expect(STORYBOARD_BRICKS).toContain('guessing-rounds');
     expect(STORYBOARD_BRICKS).toContain('chain');
     expect(STORYBOARD_BRICKS).toContain('rank');
+    expect(STORYBOARD_BRICKS).toContain('deal');
     expect(STORYBOARD_BRICKS).not.toContain('foreach');
+  });
+
+  // 2026-09-07: the deal brick's piles ride through trimmed.
+  it('carries deal piles and the writing timer through in trimmed shape', () => {
+    const sb = { name: 'Deal', steps: [
+      { brick: 'deal', text: 'Write.', writeTimer: 300, timer: 60,
+        piles: [{ label: 'A person', prompt: 'p' }, { label: 'A place', prompt: 'q' }, 'junk', { label: 7 }, { label: 'e', prompt: 'e' }, { label: 'f', prompt: 'f' }] },
+      { brick: 'end', text: 'Done.' }
+    ] };
+    const out = validateSuggestions([{ kind: 'storyboard', storyboard: sb, why: 'w' }], ctx);
+    const step = out.suggestions[0].storyboard.steps[0];
+    expect(step.piles).toEqual([
+      { label: 'A person', prompt: 'p' }, { label: 'A place', prompt: 'q' },
+      { label: '', prompt: '' }, { label: 'e', prompt: 'e' }
+    ]);
+    expect(step.writeTimer).toBe(300);
+    expect(step.timer).toBe(60);
   });
 
   // 2026-09-07: guess "who" on guessing rounds, items on rank.

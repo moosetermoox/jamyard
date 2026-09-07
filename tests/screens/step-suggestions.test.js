@@ -222,6 +222,94 @@ describe('guessing-rounds brick', () => {
   });
 });
 
+// The deal brick (2026-09-07): Story Ingredients' shape as a mechanic.
+// Everyone contributes one item per pile, the piles are shuffle-dealt so
+// each student holds one item per pile from (usually) different
+// classmates, then writes from that hand; the share-out is built in.
+describe('deal brick', () => {
+  const dealStep = {
+    brick: 'deal',
+    piles: [
+      { label: 'A person', prompt: 'Name a person a story could be about: a lighthouse keeper, your dentist, a retired spy...' },
+      { label: 'A circumstance', prompt: 'Name a circumstance: stuck in an elevator, the last day of summer, a power cut mid-exam...' }
+    ],
+    text: 'Write the opening paragraph of a story that puts your person in your circumstance.',
+    timer: 60,
+    writeTimer: 300
+  };
+
+  it('compiles piles, a shuffle-dealt hand, a writing step, and a share-out, hostable as-is', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Prompt Generator',
+      description: 'People and circumstances, shuffled and dealt.',
+      steps: [
+        { brick: 'announce', text: 'We are building writing prompts together.' },
+        dealStep,
+        { brick: 'end', text: 'Every prompt was built by three people.' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const ids = S.orderedPhaseIds(config.phases);
+    const types = ids.map(id => config.phases[id].type);
+    expect(types).toEqual(['lobby', 'announce', 'collect', 'collect', 'collect', 'reveal-one', 'end']);
+    const [, , p1, p2, write, share] = ids;
+    expect(config.phases[p1].prompt).toContain('lighthouse keeper');
+    expect(config.phases[p1].rotateFrom).toBeUndefined();
+    expect(config.phases[p1].timer).toBe(60);
+    // Each later step deals the previous pile, shuffled, without showing it (a blind hand-off).
+    expect(config.phases[p2].rotateFrom).toBe(p1);
+    expect(config.phases[p2].rotateShuffle).toBe(true);
+    expect(config.phases[p2].prompt).not.toContain('{{');
+    expect(config.phases[write].rotateFrom).toBe(p2);
+    expect(config.phases[write].rotateShuffle).toBe(true);
+    expect(config.phases[write].prompt).toContain('opening paragraph');
+    expect(config.phases[write].prompt).toContain('YOUR PERSON: {{' + p1 + '.assigned}}');
+    expect(config.phases[write].prompt).toContain('YOUR CIRCUMSTANCE: {{' + p2 + '.assigned}}');
+    expect(config.phases[write].prompt).not.toContain('YOUR A ');
+    expect(config.phases[write].timer).toBe(300);
+    expect(config.phases[write].simultaneousReveal).toBe(true);
+    expect(config.phases[share].from).toBe(write + '.responses');
+    expect(config.phases[share].timer).toBeUndefined();
+    validateGame(config.phases, 'deal storyboard');
+  });
+
+  it('names the pile steps after their labels, uniquely', () => {
+    const { config } = S.compileStoryboard({
+      name: 'X',
+      steps: [
+        { brick: 'deal', piles: [{ label: 'A person', prompt: 'p' }, { label: 'A person', prompt: 'q' }, { label: '!!!', prompt: 'r' }], text: 'Write.' },
+        { brick: 'end', text: 'Bye' }
+      ]
+    });
+    const ids = S.orderedPhaseIds(config.phases);
+    expect(ids.slice(1, 4)).toEqual(['person', 'person-2', 'pile-3']);
+    validateGame(config.phases, 'deal ids');
+  });
+
+  it('defaults the writing instruction and timers when the AI leaves them out', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'X',
+      steps: [{ brick: 'deal', piles: [{ label: 'Hero', prompt: 'p' }, { label: 'Villain', prompt: 'q' }] }, { brick: 'end', text: 'Bye' }]
+    });
+    expect(problems).toEqual([]);
+    const write = Object.values(config.phases).find(p => p.simultaneousReveal);
+    expect(write.prompt).toContain('HERO: {{');
+    expect(write.timer).toBeGreaterThanOrEqual(120);
+    validateGame(config.phases, 'deal defaults');
+  });
+
+  it('refuses fewer than two piles and trims past four, in plain sentences', () => {
+    const one = S.compileStoryboard({ name: 'X', steps: [{ brick: 'deal', piles: [{ label: 'A', prompt: 'p' }] }, { brick: 'end' }] });
+    expect(one.problems.some(p => /deal/.test(p) && /two piles/.test(p))).toBe(true);
+    const six = S.compileStoryboard({ name: 'X', steps: [
+      { brick: 'deal', piles: ['a', 'b', 'c', 'd', 'e', 'f'].map(l => ({ label: l, prompt: l })) }, { brick: 'end' }
+    ] });
+    expect(six.problems.some(p => /deal/.test(p) && /four/.test(p))).toBe(true);
+    expect(S.orderedPhaseIds(six.config.phases).filter(id => six.config.phases[id].type === 'collect').length).toBe(5);
+    validateGame(six.config.phases, 'deal trimmed to four piles');
+  });
+});
+
 describe('rank brick', () => {
   it('after a collect: the class orders the answers, the order goes on the projector', () => {
     const phases = baseGame();

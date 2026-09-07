@@ -11,10 +11,23 @@
 export const STORYBOARD_BRICKS = [
   'announce', 'collect', 'collect-two', 'collect-choice', 'estimate',
   'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'rank', 'quiz', 'teams',
-  'chain', 'end'
+  'chain', 'deal', 'end'
 ];
 
 const MAX_RANK_ITEMS = 12;
+const MAX_DEAL_PILES = 4;
+
+// Deal piles ride through in trimmed shape; compileStoryboard re-validates
+// (at least two piles, labels defaulted, prompts scrubbed of tokens).
+function cleanPiles(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(p => p && typeof p === 'object')
+    .slice(0, MAX_DEAL_PILES)
+    .map(p => ({
+      label: typeof p.label === 'string' ? p.label.slice(0, 80) : '',
+      prompt: typeof p.prompt === 'string' ? p.prompt.slice(0, 300) : ''
+    }));
+}
 
 const MAX_CHAIN_HOPS = 6;
 
@@ -129,6 +142,8 @@ export function validateSuggestions(raw, ctx) {
             hops: cleanHops(s.hops),
             visibility: ['all', 'tail', 'blind'].includes(s.visibility) ? s.visibility : undefined,
             sentence: typeof s.sentence === 'string' ? s.sentence.slice(0, 300) : undefined,
+            piles: cleanPiles(s.piles),
+            writeTimer: typeof s.writeTimer === 'number' ? s.writeTimer : undefined,
             timer: typeof s.timer === 'number' ? s.timer : undefined
           }))
         },

@@ -1,0 +1,50 @@
+{
+  "name": "SIM Deal Brick",
+  "description": "Test fixture: the deal brick compiled from the prompt-generator-deal golden prompt (two piles, shuffle-dealt, a writing step, a share-out). Underscore-prefixed so it never appears in game lists.",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "announce"
+    },
+    "announce": {
+      "type": "announce",
+      "message": "We are building writing prompts together. You will add a person and a circumstance to the piles. Then the piles get shuffled and you will be dealt one of each, invented by classmates, to write from.",
+      "next": "person"
+    },
+    "person": {
+      "type": "collect",
+      "prompt": "Name a person a story could be about. A lighthouse keeper, a substitute teacher on their first day, a retired spy who misses the work...",
+      "timer": 60,
+      "next": "circumstance"
+    },
+    "circumstance": {
+      "type": "collect",
+      "prompt": "Name a circumstance, something happening or about to happen. Stuck in an elevator, the last day of summer, a power cut in the middle of an exam...",
+      "timer": 60,
+      "rotateFrom": "person",
+      "rotateShuffle": true,
+      "next": "write"
+    },
+    "write": {
+      "type": "collect",
+      "prompt": "Your hand has been dealt.\n\nYOUR PERSON: {{person.assigned}}\n\nYOUR CIRCUMSTANCE: {{circumstance.assigned}}\n\nWrite the opening paragraph of a story that puts your person in your circumstance.",
+      "rotateFrom": "circumstance",
+      "rotateShuffle": true,
+      "timer": 300,
+      "maxLength": 2000,
+      "simultaneousReveal": true,
+      "next": "share"
+    },
+    "share": {
+      "type": "reveal-one",
+      "message": "One dealt hand at a time.",
+      "from": "write.responses",
+      "itemTemplate": "{{_current.playerName}} wrote:\n\n{{_current.text}}",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Every prompt in this room was built by three people. Keep yours, it is the start of something."
+    }
+  }
+}

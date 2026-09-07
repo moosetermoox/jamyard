@@ -469,7 +469,7 @@
   // storyboard: { name, description, steps: [
   //   { brick: 'announce'|'collect'|'collect-two'|'collect-choice'|
   //            'estimate'|'reveal'|'reveal-one'|'vote'|'guessing-rounds'|
-  //            'rank'|'quiz'|'teams'|'chain'|'end',
+  //            'rank'|'quiz'|'teams'|'chain'|'deal'|'end',
   //     text?: string,          // the brick's primary field (prompt/message)
   //     choices?: string[],     // collect-choice only
   //     guess?: 'who',          // guessing-rounds only: pick the author from a roster
@@ -485,7 +485,9 @@
   //     hops?: string[],        // chain only: one instruction per hand-off (1-6)
   //     visibility?: string,    // chain only: 'all'|'tail'|'blind' (default 'all')
   //     sentence?: string,      // chain only, blind: "The {1} {2}." slot template
-  //     timer? } ] }
+  //     piles?: [{label, prompt}], // deal only: 2-4 piles everyone adds one item to
+  //     writeTimer?: number,    // deal only: seconds for the writing step (default 480)
+  //     timer? } ] }            // deal: seconds per pile step
 
   var STORYBOARD_PRIMARY = {
     'announce': 'message', 'collect': 'prompt', 'collect-two': 'prompt',
@@ -659,6 +661,105 @@
     return revealId;
   }
 
+  // ---- Deal brick ----
+  // Story Ingredients' shape as a mechanic (2026-09-07): one collect per
+  // pile, each later step rotating from the pile before it with a shuffled
+  // deal and no {{...}} in its prompt (a blind hand-off, the hand is shown
+  // only at the writing step), then the writing step over the whole hand
+  // and a one-at-a-time share-out. The piles' authors stay anonymous.
+  // Wires phases in place, returns the new lastId, or null.
+  var MAX_DEAL_PILES = 4;
+  var MIN_DEAL_PILES = 2;
+  var DEAL_PILE_TIMER = 90;
+  var DEAL_WRITE_TIMER = 480;
+
+  function pileId(phases, label, index) {
+    var slug = String(label || '').toLowerCase()
+      .replace(/^(a|an|the)\s+/, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 24);
+    if (!slug || !/^[a-z]/.test(slug)) slug = 'pile-' + index;
+    return freshId(phases, slug);
+  }
+
+  function appendDeal(step, stepNo, phases, lastId, problems) {
+    var piles = (step && Array.isArray(step.piles) ? step.piles : [])
+      .filter(function (p) { return p && typeof p === 'object'; })
+      .map(function (p) {
+        return {
+          label: typeof p.label === 'string' ? p.label.trim() : '',
+          prompt: typeof p.prompt === 'string' ? p.prompt.trim() : ''
+        };
+      });
+    if (piles.length < MIN_DEAL_PILES) {
+      problems.push('Step ' + stepNo + ': a deal needs at least two piles (each one a label and a prompt).');
+      return null;
+    }
+    if (piles.length > MAX_DEAL_PILES) {
+      problems.push('Step ' + stepNo + ': a deal caps at four piles, the extras were dropped.');
+      piles = piles.slice(0, MAX_DEAL_PILES);
+    }
+    var pileTimer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
+      ? Math.round(step.timer) : DEAL_PILE_TIMER;
+    var writeTimer = (typeof step.writeTimer === 'number' && step.writeTimer >= 60 && step.writeTimer <= 900)
+      ? Math.round(step.writeTimer) : DEAL_WRITE_TIMER;
+    var writeText = (typeof step.text === 'string' && step.text.trim())
+      ? step.text.trim()
+      : 'Write something that uses everything in your hand.';
+
+    var pileIds = [];
+    piles.forEach(function (pile, i) {
+      var id = pileId(phases, pile.label, i + 1);
+      var label = pile.label || ('Pile ' + (i + 1));
+      var phase = {
+        type: 'collect',
+        // A token here would show the writer what the deal hides.
+        prompt: (pile.prompt || ('Add one thing to the pile: ' + label + '.')).replace(/\{\{[^}]*\}\}/g, '').trim() ||
+          ('Add one thing to the pile: ' + label + '.'),
+        timer: pileTimer
+      };
+      if (i > 0) {
+        phase.rotateFrom = pileIds[i - 1];
+        phase.rotateShuffle = true;
+      }
+      phases[lastId].next = id;
+      phases[id] = phase;
+      pileIds.push(id);
+      lastId = id;
+      pile.id = id;
+      pile.label = label;
+    });
+
+    // "A person" reads as "YOUR PERSON" in the hand, never "YOUR A PERSON".
+    var handLines = piles.map(function (pile) {
+      var noun = pile.label.replace(/^(a|an|the)\s+/i, '').toUpperCase();
+      return 'YOUR ' + noun + ': {{' + pile.id + '.assigned}}';
+    });
+    var writeId = freshId(phases, 'write');
+    phases[lastId].next = writeId;
+    phases[writeId] = {
+      type: 'collect',
+      prompt: 'Your hand has been dealt.\n\n' + handLines.join('\n\n') + '\n\n' + writeText,
+      rotateFrom: pileIds[pileIds.length - 1],
+      rotateShuffle: true,
+      timer: writeTimer,
+      maxLength: 2000,
+      simultaneousReveal: true
+    };
+    lastId = writeId;
+
+    var shareId = freshId(phases, 'share');
+    phases[lastId].next = shareId;
+    phases[shareId] = {
+      type: 'reveal-one',
+      message: 'One dealt hand at a time.',
+      from: writeId + '.responses',
+      itemTemplate: '{{_current.playerName}} wrote:\n\n{{_current.text}}'
+    };
+    return shareId;
+  }
+
   // ---- Teams brick ----
   // Random split only in storyboards (the editor offers the other methods).
   // groupSize wins over teamCount; out-of-range values fall back to 4 teams.
@@ -708,6 +809,12 @@
       if (brick === 'chain') {
         var chainLast = appendPassChain(step, i + 1, phases, lastId, problems);
         if (chainLast) lastId = chainLast;
+        return;
+      }
+
+      if (brick === 'deal') {
+        var dealLast = appendDeal(step, i + 1, phases, lastId, problems);
+        if (dealLast) lastId = dealLast;
         return;
       }
 

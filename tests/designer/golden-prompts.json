@@ -117,6 +117,27 @@
       "note": "The prompt that found the dead storyboard door (2026-09-07). Needs guess:who on guessing-rounds (the typed-guess default guesses the secret) and the rank brick (a vote is not a ranking). Who Said It? covers the first half only."
     },
     {
+      "id": "prompt-generator-deal",
+      "prompt": "writing prompt generator, the class everyone lists 4 people and 4 circumstances then they are shuffled and everyone gets one person and one circumstance.",
+      "expect": {
+        "kind": "storyboard",
+        "acceptAlso": ["host:story-ingredients"],
+        "storyboard": {
+          "name": "Prompt Generator",
+          "description": "Everyone adds a person and a circumstance, the piles are shuffled and dealt, and each student writes from the pair they drew.",
+          "steps": [
+            { "brick": "announce", "text": "We are building writing prompts together. You will add a person and a circumstance to the piles. Then the piles get shuffled and you will be dealt one of each, invented by classmates, to write from." },
+            { "brick": "deal", "piles": [
+              { "label": "A person", "prompt": "Name a person a story could be about. A lighthouse keeper, a substitute teacher on their first day, a retired spy who misses the work..." },
+              { "label": "A circumstance", "prompt": "Name a circumstance, something happening or about to happen. Stuck in an elevator, the last day of summer, a power cut in the middle of an exam..." }
+            ], "text": "Write the opening paragraph of a story that puts your person in your circumstance.", "timer": 60, "writeTimer": 300 },
+            { "brick": "end", "text": "Every prompt in this room was built by three people. Keep yours, it is the start of something." }
+          ]
+        }
+      },
+      "note": "The shuffle-and-deal prompt (2026-09-07). Story Ingredients is the same mechanic with three fixed piles, a fine host answer; the deal brick lets the storyboard build it with the teacher's own piles."
+    },
+    {
       "id": "quick-class-poll",
       "prompt": "I just want to ask the class one question and see everyone's answers on the board.",
       "expect": { "kind": "recipe", "recipe": "question-share", "params": { "question": "What is one thing you learned today?" }, "acceptAlso": ["host:question-share"] }

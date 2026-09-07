@@ -58,6 +58,24 @@ describe('generateStoryboard honesty', () => {
     expect(prompt).toContain('rankings come ONLY from the rank brick');
   });
 
+  // 2026-09-07: "everyone lists people and circumstances, shuffled, each
+  // gets one of each" was refused as a trick we don't have. The deal brick
+  // is that trick; the prompt must offer it and route shuffle-and-deal
+  // ideas to it instead of a row of collects.
+  it('offers the deal brick and routes shuffle-and-deal ideas to it', async () => {
+    const service = new AIService({ mode: 'real' });
+    let prompt = '';
+    service._callClaude = async (params) => {
+      prompt = params.messages[0].content;
+      return textResponse({ name: 'X', description: 'y', steps: [{ brick: 'end', text: 'Bye' }] });
+    };
+    await service.generateStoryboard('shuffle and deal');
+    expect(prompt).toContain('- deal:');
+    expect(prompt).toContain('piles');
+    expect(prompt).toContain('use ONE deal step');
+    expect(prompt).toContain("a deal's hand");
+  });
+
   // 2026-09-07: Sonnet 5 replies open with a thinking block, so reading
   // content[0].text threw on every real storyboard call for four days
   // ("Cannot read properties of undefined (reading 'match')"). The text
