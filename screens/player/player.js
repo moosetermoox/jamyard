@@ -133,6 +133,8 @@ const promptDisplay = document.getElementById('prompt-display');
 const responseInput = document.getElementById('response-input');
 const submitBtn = document.getElementById('submit-btn');
 const responseCounter = document.getElementById('response-counter');
+const audienceLine = document.getElementById('audience-line');
+const nextHintEl = document.getElementById('next-hint');
 const responseNotice = document.getElementById('response-notice');
 
 const RESPONSE_MAX = 280;
@@ -399,8 +401,21 @@ function botFillAnswer(promptText) {
   return 'Pizza is the best food';
 }
 
+// The step on screen (from game-started). The template's hand-authored
+// sample answers (config.sampleAnswers, dealt by the simulator page per
+// seat) are keyed by it; a `respondsTo` set is matched to the classmate's
+// text on screen, prompt and inherited block alike.
+var currentCollectPhaseId = null;
+function sampleFor(samples, seat) {
+  if (typeof pickSampleAnswer !== 'function' || !samples) return null;
+  var inherited = collectSection.querySelector('.inherited-block');
+  var onScreen = promptDisplay.textContent + '\n' + (inherited ? inherited.textContent : '');
+  return pickSampleAnswer(samples, currentCollectPhaseId, onScreen, seat);
+}
+
 window.addEventListener('message', function(e) {
   if (!e.data || e.data.type !== 'bot-fill') return;
+  var sample = sampleFor(e.data.samples, e.data.seat);
 
   // Find the currently visible section
   var active = document.querySelector('section.active');
@@ -424,17 +439,24 @@ window.addEventListener('message', function(e) {
       var fieldInputs = active.querySelectorAll('.field-input');
       if (fieldInputs.length > 0) {
         for (var fi = 0; fi < fieldInputs.length; fi++) {
-          // Each field gets an answer matched to its own label/placeholder
-          fieldInputs[fi].value = botFillAnswer(fieldInputs[fi].placeholder || promptDisplay.textContent);
+          // The template's sample (one per field) first; otherwise each
+          // field gets an answer matched to its own label/placeholder
+          var fieldSample = Array.isArray(sample) ? sample[fi] : null;
+          fieldInputs[fi].value = typeof fieldSample === 'string'
+            ? fieldSample
+            : botFillAnswer(fieldInputs[fi].placeholder || promptDisplay.textContent);
         }
         var btn = active.querySelector('button#submit-btn');
         if (btn && !btn.disabled) btn.click();
       } else {
-        // Free text mode — answer the actual question on screen
+        // Free text mode: the template's sample answer, else the keyword
+        // rules answer the actual question on screen
         var textarea = active.querySelector('textarea');
         var btn = active.querySelector('button#submit-btn');
         if (textarea && btn && !btn.disabled) {
-          textarea.value = botFillAnswer(promptDisplay.textContent);
+          var line = typeof sample === 'string' ? sample : botFillAnswer(promptDisplay.textContent);
+          // appendOnly boxes may already hold inherited text; add, never replace
+          textarea.value = textarea.value ? textarea.value.replace(/\s*$/, '\n') + line : line;
           btn.click();
         }
       }
@@ -950,10 +972,18 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint }) => {
   resetHoldingProgress();
+  // Which step this is (Try it out deals the template's sample answers by it)
+  currentCollectPhaseId = phaseId || null;
   showSection(collectSection);
   setRichText(promptDisplay, prompt);
+  // Who will see this answer (server-computed, engine/audience.js), and
+  // the waiting-screen hint when a classmate gets it next
+  audienceLine.textContent = audience || '';
+  audienceLine.hidden = !audience;
+  nextHintEl.textContent = nextHint || '';
+  nextHintEl.hidden = !nextHint;
   responseMax = Number(maxLength) || RESPONSE_MAX;
   responseInput.maxLength = responseMax;
   // appendOnly: the inherited text renders read-only ABOVE the box — the
@@ -1195,8 +1225,12 @@ socket.on('processing-started', ({ task, playerTemplate, playerShow } = {}) => {
   applyShow(playerShow, { message: processTitle });
 });
 
-socket.on('show-results', ({ content, aiResult, image, playerTemplate, playerShow }) => {
+socket.on('show-results', ({ content, aiResult, image, playerTemplate, playerShow, ownReveal }) => {
   showSection(revealSection);
+  // A returned chain carries its own headings ("Someone wrote this for
+  // you:"); the generic "The Result:" would sit on top of them.
+  var revealHeading = revealSection.querySelector('h1');
+  if (revealHeading) revealHeading.hidden = !!ownReveal;
   renderPlayerMessage(aiResultDisplay, content || aiResult);
   applyTemplate(revealSection, playerTemplate);
   applyImage(revealImage, image, playerShow);

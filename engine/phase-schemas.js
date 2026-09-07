@@ -1127,6 +1127,16 @@ export const PHASE_SCHEMAS = {
         label: 'Chain sentence',
         helper: 'Used with chain display "template". A sentence with numbered slots: {1} is the chain\'s first contribution, {2} the second, and so on (e.g. "The {1} {2} {3} the {4} {5}."). Empty slots show as a blank.'
       },
+      chainHeading: {
+        type: 'string', optional: true,
+        label: 'Heading over the student\'s own item',
+        helper: 'With scope "own". The line above what the student started with (default "You started with:"). For a personal payoff: "You wrote:".'
+      },
+      chainGrewHeading: {
+        type: 'string', optional: true,
+        label: 'Heading over what came back',
+        helper: 'With scope "own" and chain display "final". The line above the classmate\'s reply (default "A classmate took it from there:"). For a personal payoff: "Someone wrote this for you:".'
+      },
       image: {
         type: 'string', optional: true,
         label: 'Image (optional)',

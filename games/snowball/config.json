@@ -3,6 +3,18 @@
   "description": "Alone, then pairs, then all of us: one question distilled by everyone. A natural day-one activity.",
   "featured": true,
   "family": "connection",
+  "sampleAnswers": {
+    "solo": [
+      "One person talks at a time, and the rest of us actually listen.",
+      "It is okay to say \"I do not get it yet\" without anyone laughing.",
+      "Ask before you borrow something, and give it back.",
+      "Wrong answers are allowed. That is how we find the right one.",
+      "Clean up your own space before you leave, even if you did not make the mess.",
+      "Start on time. If the teacher is late, start anyway.",
+      "If you finish early, help someone or read. No wandering.",
+      "Phones stay away unless the teacher says otherwise."
+    ]
+  },
   "phases": {
     "lobby": {
       "type": "lobby",

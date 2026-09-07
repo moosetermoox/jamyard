@@ -11,6 +11,63 @@
     "empathy"
   ],
   "minPlayers": 3,
+  "sampleAnswers": {
+    "viewpoints": [
+      "A parent working two jobs who gets home at eight",
+      "The substitute teacher who has to collect it",
+      "A student who plays two sports and gets home at seven",
+      "A younger sibling who wants to play but has to be quiet",
+      "The teacher who grades it all on Sunday",
+      "A student who does not have wifi at home",
+      "The family dog waiting for a walk",
+      "A college admissions officer reading transcripts"
+    ],
+    "step-inside": {
+      "respondsTo": "viewpoints",
+      "lines": [
+        [
+          "Homework is the one thing I cannot help with. I am asleep when it gets done.",
+          "I worry my kid thinks I do not care. I hope the school knows I do.",
+          "Does anyone at school know what time I get home?"
+        ],
+        [
+          "I hand out the worksheet and half the room did not do it. I have no idea who is struggling.",
+          "I worry about wasting a whole period on something the real teacher will redo.",
+          "Is there a version of this that works without me knowing the class?"
+        ],
+        [
+          "I start homework at nine after practice and dinner. Everything takes twice as long when you are tired.",
+          "I worry that I will have to quit a sport to keep my grades. I hope there is another way.",
+          "Why does every class assume they are the only one giving homework?"
+        ],
+        [
+          "My big sister used to build forts with me. Now she says \"later\" and later never comes.",
+          "I worry she is always stressed. I hope she gets a break soon.",
+          "Why do they need her all evening when they already had her all day?"
+        ],
+        [
+          "I assign it because I want to know who is lost before the test. Then I lose my Sunday to it.",
+          "I worry the kids who copied learned nothing and the kids who struggled gave up.",
+          "Is there a faster way to find out who needs help?"
+        ],
+        [
+          "I do the reading on my phone in the parking lot of the library. Online homework is the worst.",
+          "I worry the teacher thinks I am lazy. I hope someone asks why it is late.",
+          "Could there be a version that works on paper?"
+        ],
+        [
+          "Nobody has time for the park anymore. The leash has not moved since Tuesday.",
+          "I worry my person is always at the desk. I hope the weekend is different.",
+          "Does the homework get done faster if you take a walk first?"
+        ],
+        [
+          "I see a transcript, not the evenings behind it. Grades from homework blur what a student actually knows.",
+          "I worry we reward compliance over learning. I hope the grade means something.",
+          "Which of these grades came from understanding, and which from just turning it in?"
+        ]
+      ]
+    }
+  },
   "phases": {
     "lobby": {
       "type": "lobby",

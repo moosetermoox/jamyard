@@ -16,6 +16,7 @@ import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
 import { tailOfWords } from '../phases/append-only.js';
 import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
 import { translate } from '../i18n/index.js';
+import { audienceLine } from '../phases/audience-line.js';
 
 /**
  * Build the rotation assignment map for a collect phase that has
@@ -431,6 +432,11 @@ registerHandler('collect', {
       ctx.emitToPlayer(player.id, EVENTS.GAME_STARTED, {
         prompt: playerPrompt, image, video, displayDrawing, timer, fields: phase.fields || null,
         inputType,
+        // The step id lets Try it out deal the template's sample answers
+        // (screens/shared/bot-brain.js); structure only, never a secret.
+        phaseId: phase.id,
+        // Who will see the answer, read off the graph (engine/audience.js)
+        ...audienceLine(engine.config, phase.id, engine.language),
         assignedDrawing: (rotatedDrawings && rotatedDrawings[player.id]) || null,
         prefill,
         appendOnly: !!phase.appendOnly,
@@ -484,6 +490,8 @@ registerHandler('collect', {
         prompt: playerPrompt, image, video, timer: null,
         displayDrawing: resolveDisplayDrawing(ctx.phase, ctx.engine),
         fields: ctx.phase.fields || null,
+        phaseId: ctx.phase.id,
+        ...audienceLine(ctx.engine.config, ctx.phase.id, ctx.engine.language),
         inputType: ctx.phase.inputType === 'drawing' ? 'drawing' : 'text',
         assignedDrawing: (player && reconRotated && reconRotated[player.id]) || null,
         prefill: reconPrefill,

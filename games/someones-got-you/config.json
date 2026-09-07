@@ -15,6 +15,31 @@
     "warmth"
   ],
   "minPlayers": 3,
+  "sampleAnswers": {
+    "notes": [
+      "I want to speak up at least once in science this week.",
+      "I am learning a hard song on guitar and my fingers hurt.",
+      "Trying to get more sleep instead of scrolling until midnight.",
+      "I have a math test Friday and I am behind on the practice.",
+      "I finally started the art project I kept putting off.",
+      "Working on not saying sorry for everything.",
+      "Tryouts are next week and I am nervous.",
+      "I am trying to read a whole book this month, not just the first chapter."
+    ],
+    "boost": {
+      "respondsTo": "notes",
+      "lines": [
+        "Your questions help the rest of us understand too. Ask the first one and the room gets easier.",
+        "Getting one tricky part right still counts as progress. Sore fingers mean you are actually doing it.",
+        "Choosing sleep over the scroll is hard. One early night this week is a real win.",
+        "Behind is not the same as lost. Two practice problems a night and Friday looks different.",
+        "Starting was the hardest part, and you already did it.",
+        "You do not owe anyone an apology for taking up space. Keep going.",
+        "Nervous means you care. Show up and do the thing you have practiced.",
+        "Chapter two is waiting. Ten pages tonight and you are past the part where most people stop."
+      ]
+    }
+  },
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -43,8 +68,18 @@
     "check": {
       "type": "preview",
       "template": "Read every line below before the wall goes up. Hide anything that isn't kind. When it's clean, open the wall.",
-      "approveNext": "wall",
+      "approveNext": "foryou",
       "rejectNext": "boost"
+    },
+    "foryou": {
+      "type": "reveal",
+      "scope": "own",
+      "chainFrom": ["notes", "boost"],
+      "chainDisplay": "final",
+      "chainHeading": "You wrote:",
+      "chainGrewHeading": "Someone wrote this for you:",
+      "content": "Everyone is reading the line a classmate wrote for them. Give it a quiet minute, then open the wall.",
+      "next": "wall"
     },
     "wall": {
       "type": "reveal-one",

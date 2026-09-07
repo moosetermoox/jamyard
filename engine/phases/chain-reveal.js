@@ -105,16 +105,23 @@ export function formatChainContent(view, opts = {}) {
   const display = opts.display === 'final' ? 'final'
     : (opts.display === 'template' && hasTemplate) ? 'template'
     : 'steps';
-  const lines = ['🌱 You started with:', `“${view.original}”`];
+  // Optional headings from the reveal (chainHeading / chainGrewHeading):
+  // "You wrote:" / "Someone wrote this for you:" turns a returned chain
+  // into a personal payoff (Someone's Got You, outside review #2).
+  const heading = (typeof opts.heading === 'string' && opts.heading.trim() !== '')
+    ? opts.heading.trim() : '🌱 You started with:';
+  const lines = [heading, `“${view.original}”`];
 
   if (display === 'template') {
     lines.push('', 'Hand by hand, it became:', `“${fillSlotTemplate(opts.template, view)}”`);
   } else if (view.steps.length === 0) {
     lines.push('', 'No one got to add to it this time.');
   } else if (display === 'final') {
-    const grew = view.steps.length === 1
-      ? 'A classmate took it from there:'
-      : `${view.steps.length} classmates took it from there:`;
+    const grew = (typeof opts.grewHeading === 'string' && opts.grewHeading.trim() !== '')
+      ? opts.grewHeading.trim()
+      : view.steps.length === 1
+        ? 'A classmate took it from there:'
+        : `${view.steps.length} classmates took it from there:`;
     lines.push('', grew, `“${view.steps[view.steps.length - 1]}”`);
   } else {
     lines.push('', 'And then, hand to hand:');

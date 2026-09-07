@@ -1501,6 +1501,15 @@ button[hidden] {
   color: var(--theme-heading, #222);
   margin: 14px 0 4px;
 }
+/* Who will see the answer: one quiet line under the prompt (server-set) */
+.audience-line {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #8A7455;
+  margin: -6px 0 14px;
+}
+.audience-line[hidden] { display: none; }
+
 .holding-next {
   font-family: 'Nunito', Arial, sans-serif;
   font-weight: 700;

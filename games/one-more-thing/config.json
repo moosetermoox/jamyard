@@ -10,6 +10,44 @@
     "collaborative"
   ],
   "minPlayers": 3,
+  "sampleAnswers": {
+    "recall": [
+      "Plants make their own food from sunlight\nIt happens in the leaves\nThey need water and carbon dioxide",
+      "Photosynthesis happens in chloroplasts\nChlorophyll makes leaves green\nOxygen comes out as a waste product",
+      "Sunlight plus water plus carbon dioxide makes sugar and oxygen\nThe sugar is glucose\nPlants store extra as starch",
+      "Carbon dioxide comes in through tiny holes in the leaves\nThe holes are called stomata\nWater comes up from the roots",
+      "The equation has to balance\nIt is the opposite of respiration\nAnimals depend on it for oxygen",
+      "It only happens when there is light\nThe leaf is like a solar panel\nWithout it there is no food chain",
+      "Glucose is the plant's energy\nChlorophyll absorbs red and blue light, not green\nThat is why leaves look green",
+      "Roots bring water, leaves catch light\nCarbon dioxide comes from the air\nOxygen goes back into the air"
+    ],
+    "add-one": {
+      "respondsTo": "recall",
+      "lines": [
+        "Also: the food it makes is a sugar called glucose",
+        "Missing: it needs water from the roots too",
+        "Add: all of this happens inside the chloroplasts",
+        "Also: sunlight is the energy that powers the whole thing",
+        "Missing: the outputs are glucose and oxygen",
+        "Add: the green pigment that catches the light is chlorophyll",
+        "Missing: carbon dioxide gets in through the stomata",
+        "Also: extra glucose gets stored as starch"
+      ]
+    },
+    "add-again": {
+      "respondsTo": "recall",
+      "lines": [
+        "Connection: this is why cutting down forests matters for the air we breathe",
+        "Add: photosynthesis and respiration are opposites of each other",
+        "Missing: the whole food chain starts here",
+        "Add: less light means less photosynthesis, which is why plants lean toward windows",
+        "Connection: the oxygen in this room came out of a leaf",
+        "Add: the glucose also builds the plant's body, not just its energy",
+        "Missing: chlorophyll absorbs red and blue light and reflects green",
+        "Add: the equation balances, six of each on both sides"
+      ]
+    }
+  },
   "phases": {
     "lobby": {
       "type": "lobby",

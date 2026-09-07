@@ -67,8 +67,18 @@
       "check": {
         "type": "preview",
         "template": "Read every line below before the wall goes up. Hide anything that isn't kind. When it's clean, open the wall.",
-        "approveNext": "wall",
+        "approveNext": "foryou",
         "rejectNext": "boost"
+      },
+      "foryou": {
+        "type": "reveal",
+        "scope": "own",
+        "chainFrom": ["notes", "boost"],
+        "chainDisplay": "final",
+        "chainHeading": "You wrote:",
+        "chainGrewHeading": "Someone wrote this for you:",
+        "content": "Everyone is reading the line a classmate wrote for them. Give it a quiet minute, then open the wall.",
+        "next": "wall"
       },
       "wall": {
         "type": "reveal-one",

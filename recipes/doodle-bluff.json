@@ -89,6 +89,19 @@
       "$else": "Draw the phrase you are handed, write fake titles, hunt for the real one. Built with the Doodle Bluff recipe."
     },
     "minPlayers": 4,
+    "sampleAnswers": {
+      "$if": "phraseSource=students",
+      "phrases": [
+        "a nervous volcano on its first day of school",
+        "a giraffe trying to hide behind a lamppost",
+        "a snowman on a beach holiday",
+        "an octopus learning to knit",
+        "a very small dragon guarding a very large sandwich",
+        "a robot who is afraid of the toaster",
+        "a cat running for mayor",
+        "a cloud that forgot how to rain"
+      ]
+    },
     "phases": {
       "lobby": {
         "type": "lobby",

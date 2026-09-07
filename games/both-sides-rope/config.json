@@ -11,6 +11,52 @@
     "evidence"
   ],
   "minPlayers": 3,
+  "sampleAnswers": {
+    "evidence": [
+      [
+        "Students who choose to do homework would actually learn from it instead of copying.",
+        "Practice is how math sticks. Skip it and the test is the first time you try."
+      ],
+      [
+        "Some kids have jobs or watch siblings after school. Optional homework is fairer.",
+        "The kids who skip it are the ones who need it most, so the gap gets bigger."
+      ],
+      [
+        "Finland gives very little homework and scores near the top of the world.",
+        "Reading at home is where most vocabulary growth happens, not in class."
+      ],
+      [
+        "Sleep matters for memory, and homework is the main thing keeping teenagers up.",
+        "Deadlines are a skill. College and jobs do not make them optional."
+      ],
+      [
+        "Teachers spend hours grading work that was rushed or copied. That time could go to teaching.",
+        "Homework shows the teacher who is lost BEFORE the test, when there is still time to help."
+      ],
+      [
+        "Family time and sports get squeezed out. Kids need a life outside school.",
+        "Twenty minutes of practice a night adds up to more than a hundred extra hours a year."
+      ],
+      [
+        "Optional does not mean banned. Motivated students would still do it.",
+        "When it is optional, the people who most need the push will not choose it."
+      ],
+      [
+        "Stress and burnout are real, and homework is the top thing students name.",
+        "Learning to do something you do not feel like doing is part of growing up."
+      ]
+    ],
+    "whatif": [
+      "What if homework took ten minutes and never more?",
+      "What if grades did not exist, only feedback?",
+      "What if homework was optional but the test counted double?",
+      "What if you could choose between homework and a ten-minute check-in with the teacher?",
+      "What if every class gave homework only twice a week?",
+      "What if homework was done at school in a last period, with help available?",
+      "What if you could earn a homework pass by showing you already know it?",
+      "What if parents got to see how long it really took?"
+    ]
+  },
   "phases": {
     "lobby": {
       "type": "lobby",

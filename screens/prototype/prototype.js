@@ -33,6 +33,9 @@ let carouselIndex = 0; // 0-based index into player panels
 // path, so a new pretend student can join the running room directly).
 let currentCode = null;
 let livePlayers = 0;
+// The activity's hand-authored sample answers (config.sampleAnswers),
+// fetched at launch and dealt to each seat by Add sample answers.
+let currentSamples = null;
 
 // --- The map rail: the activity's treasure map beside the screens, with
 // a "you are here" mark that follows the live room. The map comes from
@@ -290,8 +293,10 @@ document.addEventListener('keydown', (e) => {
 
 function fireBotFill() {
   const playerIframes = iframeContainer.querySelectorAll('.player-panel iframe');
+  let seat = 0;
   for (const iframe of playerIframes) {
-    iframe.contentWindow.postMessage({ type: 'bot-fill' }, '*');
+    // Seat order deals sample line i to student i (see bot-brain.js)
+    iframe.contentWindow.postMessage({ type: 'bot-fill', samples: currentSamples, seat: seat++ }, '*');
   }
 }
 
@@ -558,6 +563,19 @@ launchBtn.addEventListener('click', () => {
   launchBtn.disabled = true;
   // Bench running: Launch steps aside, the red moves to ▶ Host this.
   document.body.classList.add('pt-running');
+
+  // The template's sample answers ride along with Add sample answers.
+  // Fetched fresh per launch (the activity select may have changed);
+  // a miss just means the keyword bot answers, as before.
+  currentSamples = null;
+  fetch('/api/games/' + encodeURIComponent(gameId))
+    .then((r) => (r.ok ? r.json() : null))
+    .then((config) => {
+      if (config && config.sampleAnswers && typeof config.sampleAnswers === 'object') {
+        currentSamples = config.sampleAnswers;
+      }
+    })
+    .catch(() => { /* keyword bot fallback */ });
 
   // Clear previous iframes
   iframeContainer.innerHTML = '';

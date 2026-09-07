@@ -198,7 +198,39 @@
     return pick(BANKS.generic);
   }
 
+  /**
+   * Hand-authored sample answers first (engine/sample-answers.js documents
+   * the shape): the template's own coherent practice responses, dealt by
+   * seat. A `respondsTo` entry is matched to whatever line of the earlier
+   * step is on screen (the rotated note, the inherited list), so the
+   * encouragement answers THAT goal. Returns null when the template has
+   * nothing for this step, and the keyword rules take over.
+   *
+   * @param {object|null} samples   config.sampleAnswers
+   * @param {string} phaseId        the collect step on screen
+   * @param {string} onScreen       prompt + inherited text, as displayed
+   * @param {number} seat           this pretend student's index (0-based)
+   * @returns {string|string[]|null} a line, an array for multi-field steps, or null
+   */
+  function pickSampleAnswer(samples, phaseId, onScreen, seat) {
+    if (!samples || typeof samples !== 'object' || !phaseId) return null;
+    var entry = samples[phaseId];
+    if (!entry) return null;
+    var at = Math.max(0, seat | 0);
+    if (Array.isArray(entry)) return entry.length ? entry[at % entry.length] : null;
+    var lines = Array.isArray(entry.lines) ? entry.lines : [];
+    if (!lines.length) return null;
+    var source = Array.isArray(samples[entry.respondsTo]) ? samples[entry.respondsTo] : [];
+    var hay = String(onScreen || '').toLowerCase();
+    for (var j = 0; j < source.length && j < lines.length; j++) {
+      var needle = Array.isArray(source[j]) ? source[j][0] : source[j];
+      if (needle && hay.indexOf(String(needle).toLowerCase()) !== -1) return lines[j];
+    }
+    return lines[at % lines.length];
+  }
+
   // Browser global + testable side-effect export
   var root = typeof globalThis !== 'undefined' ? globalThis : window;
   root.botAnswerFor = botAnswerFor;
+  root.pickSampleAnswer = pickSampleAnswer;
 })();

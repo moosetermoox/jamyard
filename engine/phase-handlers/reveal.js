@@ -36,7 +36,8 @@ function getChainViews(ctx) {
 
 function ownContentFor(ctx, views, playerId) {
   return formatChainContent(views.get(playerId), {
-    display: ctx.phase.chainDisplay, template: ctx.phase.chainTemplate
+    display: ctx.phase.chainDisplay, template: ctx.phase.chainTemplate,
+    heading: ctx.phase.chainHeading, grewHeading: ctx.phase.chainGrewHeading
   });
 }
 
@@ -95,13 +96,19 @@ registerHandler('reveal', {
       // Return-to-author: each player sees what became of THEIR item after
       // the rotation chain in chainFrom. Private per player, neutral host.
       const views = getChainViews(ctx);
+      // The projector line is neutral by default; a reveal may name its
+      // own ("Everyone is reading the line a classmate wrote for them").
+      const hostLine = (typeof phase.content === 'string' && phase.content.trim() !== '')
+        ? phase.content.trim() : OWN_HOST_CONTENT;
       ctx.emitToHost(EVENTS.SHOW_RESULTS, {
-        content: OWN_HOST_CONTENT, aiResult: OWN_HOST_CONTENT, responses: [], continueLabel, ...sc
+        content: hostLine, aiResult: hostLine, responses: [], continueLabel, ...sc
       });
       for (const player of engine.players.list()) {
         const content = ownContentFor(ctx, views, player.id);
         ctx.emitToPlayer(player.id, EVENTS.SHOW_RESULTS, {
-          content, aiResult: content, responses: [], ...sc
+          // ownReveal: the student screen drops its generic "The Result:"
+          // heading; the chain's own headings carry the moment.
+          content, aiResult: content, responses: [], ownReveal: true, ...sc
         });
       }
       return;
@@ -171,7 +178,7 @@ registerHandler('reveal', {
       const player = engine.players.find(socket.id);
       const ownContent = player ? ownContentFor(ctx, views, player.id) : OWN_HOST_CONTENT;
       socket.emit(EVENTS.SHOW_RESULTS, {
-        content: ownContent, aiResult: ownContent, ...sc
+        content: ownContent, aiResult: ownContent, ownReveal: !!player, ...sc
       });
       return;
     }

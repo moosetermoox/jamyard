@@ -12,6 +12,7 @@ import { EVENTS } from '../events.js';
 import { sampleItems } from '../phases/sampling.js';
 import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
 import { translate } from '../i18n/index.js';
+import { audienceLine } from '../phases/audience-line.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
 
@@ -227,6 +228,8 @@ registerHandler('collect-choice', {
         displayDrawing,
         timer: phase.timer || null,
         isChoice: true,
+        phaseId: phase.id,
+        ...audienceLine(engine.config, phase.id, engine.language),
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }
@@ -271,6 +274,8 @@ registerHandler('collect-choice', {
         displayDrawing: resolveDisplayDrawing(ctx.phase, ctx.engine),
         timer: null,
         isChoice: true,
+        phaseId: ctx.phase.id,
+        ...audienceLine(ctx.engine.config, ctx.phase.id, ctx.engine.language),
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }

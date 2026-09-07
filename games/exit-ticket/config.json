@@ -7,6 +7,42 @@
   "playTime": "~5 min",
   "start": "rolling",
   "anonymous": false,
+  "sampleAnswers": {
+    "ticket": [
+      [
+        "Plants make their own food from sunlight, water, and carbon dioxide.",
+        "Where does the oxygen actually come out of the leaf?"
+      ],
+      [
+        "Photosynthesis happens in the chloroplasts, and chlorophyll is what makes leaves green.",
+        "Do plants do it at night too, or only in daylight?"
+      ],
+      [
+        "The outputs are glucose and oxygen. The plant keeps the sugar and lets the oxygen go.",
+        "Is the glucose the same sugar that is in candy?"
+      ],
+      [
+        "Water comes up from the roots and carbon dioxide comes in through tiny holes in the leaves.",
+        "What are the tiny holes called again?"
+      ],
+      [
+        "It is basically the opposite of breathing: we take in oxygen, plants take in carbon dioxide.",
+        "Why do leaves look green if chlorophyll absorbs light?"
+      ],
+      [
+        "Without photosynthesis there is no food chain, because everything eats plants or eats things that ate plants.",
+        "What happens to a plant in a dark closet for a week?"
+      ],
+      [
+        "The equation has to balance: six carbon dioxide and six water make one glucose and six oxygen.",
+        "Where does the energy in the sugar come from, exactly?"
+      ],
+      [
+        "Plants store extra glucose as starch, which is why potatoes are starchy.",
+        "Do mushrooms do photosynthesis? They are not green."
+      ]
+    ]
+  },
   "phases": {
     "lobby": {
       "type": "lobby",
