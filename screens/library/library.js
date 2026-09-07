@@ -671,9 +671,9 @@ function openActivityDialog(game) {
     var previewBtn = document.createElement('a');
     previewBtn.className = 'game-card-preview';
     previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
-    previewBtn.textContent = 'Simulate';
-    previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
-    previewBtn.setAttribute('aria-label', 'Simulate "' + game.name + '" with practice players');
+    previewBtn.textContent = 'Try it out';
+    previewBtn.title = 'See the teacher and student screens side by side, with pretend students, no class needed';
+    previewBtn.setAttribute('aria-label', 'Try out "' + game.name + '" with pretend students');
     previewBtn.addEventListener('click', rememberRecent);
     actions.appendChild(previewBtn);
 
@@ -942,9 +942,9 @@ function buildCard(game) {
     var previewBtn = document.createElement('a');
     previewBtn.className = 'game-card-preview';
     previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
-    previewBtn.textContent = 'Simulate';
-    previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
-    previewBtn.setAttribute('aria-label', 'Simulate "' + game.name + '" with practice players');
+    previewBtn.textContent = 'Try it out';
+    previewBtn.title = 'See the teacher and student screens side by side, with pretend students, no class needed';
+    previewBtn.setAttribute('aria-label', 'Try out "' + game.name + '" with pretend students');
     previewBtn.addEventListener('click', rememberRecent);
     actions.appendChild(previewBtn);
 
@@ -1076,8 +1076,8 @@ function saveCopyAndReturn(config, dest) {
 var COPY_DOORS = [
   { dest: 'designer', label: 'Continue setup in the designer',
     title: 'Save your copy and open it in the editor' },
-  { dest: 'simulate', label: 'See it in the simulator',
-    title: 'Save your copy and watch it run with practice players, no class needed' },
+  { dest: 'simulate', label: 'Try it out with pretend students',
+    title: 'Save your copy and watch it run with pretend students, no class needed' },
   { dest: 'host', label: 'Host it now',
     title: 'Save your copy and start a live room your class can join right now' }
 ];
@@ -2590,7 +2590,7 @@ function renderSetupCard() {
   // nobody reads the bullet wall). Marks are drawn CSS shapes, not emojis.
   var introRows = [
     { icon: 'pick', text: 'Pick an activity and make it yours.' },
-    { icon: 'play', text: 'Simulate it first, no class needed.' },
+    { icon: 'play', text: 'Try it out first, no class needed.' },
     { icon: 'board', text: 'Then host it, projected up front.' },
     { icon: 'code', text: 'Students join with a room code. No accounts.' }
   ];

@@ -469,7 +469,7 @@ function maybeShowPlanIntro() {
   var rows = [
     { icon: 'steps', text: 'Each card is one step. Click it, change the words.' },
     { icon: 'chat', text: 'Want bigger changes? Tell the chat on the right.' },
-    { icon: 'play', text: 'Then press Simulate and play it yourself.' }
+    { icon: 'play', text: 'Then press Try it out and play it yourself.' }
   ];
   for (var i = 0; i < rows.length; i++) {
     var row = document.createElement('div');

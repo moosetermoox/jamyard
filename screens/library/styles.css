@@ -1272,3 +1272,13 @@ header {
   .games-section-grid { grid-template-columns: 1fr; }
   .pile-shelf { gap: 30px 24px; justify-content: center; }
 }
+
+/* Small text on the bright paints reads in ink (contrast 5.4, 4.5 and 6.1
+   to 1 on cyan, green, orange); magenta keeps paper at full opacity (6.1).
+   Names stay paper: at their size the lower large-text bar applies. */
+.plank-tone-2 .plank-meta, .plank-tone-4 .plank-meta, .plank-tone-7 .plank-meta,
+.plank-tone-2 .plank-hook, .plank-tone-4 .plank-hook, .plank-tone-7 .plank-hook {
+  color: #1A1612;
+  opacity: 1;
+}
+.plank-tone-6 .plank-meta, .plank-tone-6 .plank-hook { opacity: 1; }

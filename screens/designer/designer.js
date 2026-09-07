@@ -437,9 +437,9 @@ function buildGameCard(game) {
   var previewBtn = document.createElement('a');
   previewBtn.className = 'game-card-preview';
   previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
-  previewBtn.textContent = 'Simulate';
-  previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
-  previewBtn.setAttribute('aria-label', 'Simulate "' + game.name + '" with practice players');
+  previewBtn.textContent = 'Try it out';
+  previewBtn.title = 'See the teacher and student screens side by side, with pretend students, no class needed';
+  previewBtn.setAttribute('aria-label', 'Try out "' + game.name + '" with pretend students');
   previewBtn.addEventListener('click', rememberRecent);
   actions.appendChild(previewBtn);
 
@@ -1880,8 +1880,8 @@ function renderExistingGameView(modal, data, overlay, description) {
   var previewBtn = document.createElement('button');
   previewBtn.type = 'button';
   previewBtn.className = 'recipe-cancel-btn';
-  previewBtn.textContent = 'Simulate';
-  previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
+  previewBtn.textContent = 'Try it out';
+  previewBtn.title = 'See the teacher and student screens side by side, with pretend students, no class needed';
   previewBtn.addEventListener('click', function () {
     window.location.href = '/prototype?game=' + encodeURIComponent(game.id);
   });
@@ -2484,8 +2484,8 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       var previewBtn = document.createElement('button');
       previewBtn.type = 'button';
       previewBtn.className = 'recipe-cancel-btn';
-      previewBtn.textContent = 'Simulate';
-      previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
+      previewBtn.textContent = 'Try it out';
+      previewBtn.title = 'See the teacher and student screens side by side, with pretend students, no class needed';
       previewBtn.addEventListener('click', function () {
         window.location.href = '/prototype?game=' + encodeURIComponent(s.id);
       });

@@ -225,7 +225,7 @@ function askSkipTo(index) {
     text.textContent = 'You are on this step now.';
     btns.appendChild(closeBtn('OK'));
   } else if (here !== -2 && index < here) {
-    text.textContent = 'That step already happened. Press Reset and simulate again to see it.';
+    text.textContent = 'That step already happened. Press Reset and try again to see it.';
     btns.appendChild(closeBtn('OK'));
   } else {
     text.textContent = 'Skip ahead to ' + name + '? Pretend students play through the steps in between.';
