@@ -13,6 +13,7 @@ import { sampleItems } from '../phases/sampling.js';
 import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
 import { translate } from '../i18n/index.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
+import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
 
 /**
  * Resolve the base choice array for a collect-choice phase.
@@ -157,8 +158,8 @@ registerHandler('collect-choice', {
     // Rolling start: no shared countdown (see collect.js).
     const timer = isRolling(engine.config) ? null : (phase.timer || null);
 
-    // Self-exclusion: if inside foreach and author is set, exclude them
-    const authorId = phase._foreachAuthorId || null;
+    // Foreach sit-out: the round's author and source never vote
+    // (engine/phases/sit-out.js): they know the answer.
 
     // Build the choice pool. choicePool/choices are unified through one helper.
     const baseChoices = buildChoicePool(phase, ctx);
@@ -190,7 +191,7 @@ registerHandler('collect-choice', {
     // progress counter — mirrors the submit handler's eligibility math
     // (author self-exclusion) so the projector never reads "0 of 0".
     const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
-    const countTotal = authorId ? eligible.filter(p => p.id !== authorId).length : eligible.length;
+    const countTotal = withoutSitOut(eligible, phase).length;
     ctx.emitToHost(EVENTS.GAME_STARTED, {
       prompt: hostPrompt,
       choices: hostChoices,
@@ -210,10 +211,11 @@ registerHandler('collect-choice', {
       return ballotFor(ballot, playerId, authorMap);
     }
 
-    // Send to eligible players (excluding author if self-exclude)
+    // Send to eligible players (the round's author and source sit out)
     for (const player of eligible) {
-      if (authorId && player.id === authorId) {
-        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'This one is yours! Waiting for others to guess...' });
+      const sitOut = sitOutMessage(phase, player.id);
+      if (sitOut) {
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: sitOut });
         continue;
       }
       const playerPrompt = ctx.services.resolvePerPlayerTemplate(phase.prompt || '', engine, player.id);
@@ -240,7 +242,11 @@ registerHandler('collect-choice', {
   onReconnect(ctx, socket) {
     const sc = ctx.resolveScreenControl();
     const choicePlayer = ctx.engine.players.find(socket.id);
-    if (choicePlayer && choicePlayer.response) {
+    // A reconnecting sitter-out gets their waiting screen back, not a ballot
+    const sitOut = choicePlayer ? sitOutMessage(ctx.phase, choicePlayer.id) : null;
+    if (sitOut) {
+      socket.emit(EVENTS.WAITING, { message: sitOut });
+    } else if (choicePlayer && choicePlayer.response) {
       if (isRolling(ctx.engine.config) && !moreInputAhead(ctx.engine.config, ctx.phase.id)) {
         socket.emit(EVENTS.PLAYER_DONE, { message: translate(ctx.engine.language, doneMessageFor(ctx.phase)) });
       } else {

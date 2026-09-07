@@ -426,3 +426,14 @@ h1, h2 {
   box-shadow: var(--t-shadow-free), inset 0 0 0 1px var(--t-ink);
   cursor: pointer;
 }
+
+/* This round's drawing (Doodle Bluff titles and vote): a paper print */
+.phase-drawing {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  background: #FDF9F0;
+  padding: 6px;
+  box-shadow: 0 3px 5px rgba(50, 35, 15, 0.3);
+}

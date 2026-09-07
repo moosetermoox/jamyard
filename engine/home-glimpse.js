@@ -71,6 +71,21 @@ function promptFromStops(config, stops) {
   return '';
 }
 
+/**
+ * The one line under an activity's name on a yard plank: what it is for,
+ * without opening it (outside review, 2026-09-06). A recipe-born activity
+ * borrows its recipe's tagline ("Perfect for 'most important cause of
+ * WWI'..."); anything else gets the first sentence of its description.
+ * @param {object} config
+ * @param {{tagline?: string}|null} [recipe]  the recipe the config was compiled from, if any
+ * @returns {string}
+ */
+export function activityHook(config, recipe) {
+  const tagline = recipe && typeof recipe.tagline === 'string' ? recipe.tagline.trim() : '';
+  const line = tagline || firstSentence(config && config.description);
+  return line.length > 110 ? line.slice(0, 107).replace(/\s+\S*$/, '') + '...' : line;
+}
+
 export function homeGlimpse(config) {
   const empty = { mode: 'answer', prompt: '' };
   if (!config || typeof config !== 'object') return empty;

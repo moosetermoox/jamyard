@@ -15,11 +15,45 @@ import { PHASE_SCHEMAS, getFields, getTopLevelOnlyFieldNames } from './engine/ph
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
 import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
 import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submits.js';
+import { parseRequestedMinutes, timingReport, paramsForTrim, estimateDuration } from './engine/duration-estimate.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
-import { homeGlimpse } from './engine/home-glimpse.js';
+import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
+import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
+import { restoreSubPhaseOrder } from './engine/subphase-order.js';
+
+// Saved copies that went through the old jsonb column came back with a
+// foreach's sub-phases sorted by key length (the vote before the fakes).
+// A recipe-born copy carries its stamp, so a fresh compile of it is the
+// written order: restore it on every read. Never throws; a config whose
+// recipe is gone is returned as-is.
+function repairSavedConfig(config) {
+  try {
+    const stamp = config && config.recipe;
+    if (!stamp || !stamp.id) return config;
+    const recipe = getRecipe(stamp.id);
+    if (!recipe) return config;
+    const { config: compiled } = compileRecipe(recipe, stamp.params || {});
+    const fixed = restoreSubPhaseOrder(config, compiled);
+    if (fixed.length) console.log(`[repair] "${config.name}": sub-phase order restored on ${fixed.join(', ')}`);
+  } catch (err) {
+    console.log(`[repair] skipped for "${config && config.name}": ${err.message}`);
+  }
+  return config;
+}
+async function getUserGameRepaired(id) {
+  const row = await getUserGame(id);
+  if (row && row.config) repairSavedConfig(row.config);
+  return row;
+}
+async function listUserGamesRepaired() {
+  const rows = await listUserGames();
+  for (const row of rows) if (row && row.config) repairSavedConfig(row.config);
+  return rows;
+}
+import { resolveDisplayDrawing } from './engine/phases/display-drawing.js';
 import {
   createWordHelpState, normalizeWord, remaining as wordHelpRemaining, spend as wordHelpSpend,
   refund as wordHelpRefund, recordLookup, summarize as summarizeWordHelp,
@@ -241,6 +275,21 @@ async function featuredOverridesSafe() {
   }
 }
 
+// The yard plank's hook line and computed minutes (outside review,
+// 2026-09-06): the hook is the recipe's tagline for recipe-born activities
+// or the description's first sentence; the minutes come from the timers
+// (engine/duration-estimate.js), never from the hand-written playTime.
+function yardCardExtras(config) {
+  const stamp = config && config.recipe && config.recipe.id ? getRecipe(config.recipe.id) : null;
+  // The chip must agree with the number printed on the plank: a hand-written
+  // playTime ("~15–20 min" reads as 20) wins; the estimate covers the rest.
+  let minutes = parseRequestedMinutes(config && config.playTime);
+  if (minutes === null) {
+    try { minutes = estimateDuration(config).minutes; } catch { minutes = null; }
+  }
+  return { hook: activityHook(config, stamp), minutes };
+}
+
 function pickCardMeta(config) {
   const out = {};
   for (const f of GAME_CARD_META_FIELDS) {
@@ -267,7 +316,7 @@ async function loadGameById(gameId) {
     if (!err.message.startsWith('Game not found')) throw err;
   }
   if (DB_ENABLED) {
-    const row = await getUserGame(gameId);
+    const row = await getUserGameRepaired(gameId);
     if (row) {
       const config = row.config;
       validate(config, gameId);
@@ -1261,9 +1310,14 @@ function setupForeachIteration(engine, foreachPhaseId, feConfig, index) {
       }
     }
 
-    // Mark collect-choice sub-phases with self-exclusion info
+    // Who sits this round out: the item's author, and the author of what
+    // the item was made from (Doodle Bluff: the drawer AND the classmate
+    // whose phrase was drawn, both know the answer). engine/phases/sit-out.js
     if ((subConfig.type === 'collect-choice' || subConfig.type === 'collect') && feConfig.selfExclude !== false) {
-      subConfig._foreachAuthorId = item.playerId || null;
+      const out = foreachSitOut(item, feConfig, state.items.concat(state.skipped || []));
+      subConfig._foreachAuthorId = out.authorId;
+      subConfig._foreachSourceId = out.sourceId;
+      subConfig._foreachSitOutIds = out.ids;
     }
 
     // Resolve _current references eagerly (message, prompt, correctAnswer,
@@ -1348,7 +1402,10 @@ async function advanceForeach(code, room, foreachPhaseId) {
     // Foreach complete — store final data
     engine.storePhaseData(foreachPhaseId, {
       scores: state.scores,
-      itemCount: state.items.length
+      itemCount: state.items.length,
+      // The items the round sample left out ({{X.skipped}}): a closing
+      // gallery shows the drawings that never got a round.
+      skipped: state.skipped || []
     });
     engine._currentForeachItem = null;
     engine._foreachCandidates = null;
@@ -1501,7 +1558,7 @@ function buildTeacherSnapshot(code, room) {
     preview: null
   };
   if (phase && (phase.type === 'collect' || phase.type === 'collect-choice')) {
-    const eligible = getEligibleVoters(engine.players, phase.from || 'all');
+    const eligible = withoutSitOut(getEligibleVoters(engine.players, phase.from || 'all'), phase);
     snap.submissions = buildSubmissionList(eligible);
   }
   if (phase && phase.type === 'preview') {
@@ -1514,6 +1571,7 @@ function buildTeacherSnapshot(code, room) {
   }
   // Word help: which words the class has tapped so far (counts, no names)
   snap.wordHelp = room.wordHelp ? summarizeWordHelp(room.wordHelp) : null;
+  snap.displayDrawing = phase ? resolveDisplayDrawing(phase, engine) : null;
   if (engine && phase) {
     snap.continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language);
     snap.closeLabel = closeLabelFor(phase.type, engine.language);
@@ -1557,7 +1615,7 @@ function emitSubmissionsUpdate(code, room) {
   if (!room || !room.engine) return;
   const phase = room.engine.getCurrentPhase();
   if (!phase || (phase.type !== 'collect' && phase.type !== 'collect-choice')) return;
-  const eligible = getEligibleVoters(room.engine.players, phase.from || 'all');
+  const eligible = withoutSitOut(getEligibleVoters(room.engine.players, phase.from || 'all'), phase);
   const payload = { submissions: buildSubmissionList(eligible) };
   io.to(teachersChannel(code)).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
 }
@@ -1702,7 +1760,10 @@ async function handlePhase(code, room) {
     // show on the projector first), so it must say the close action.
     closeLabel: closeLabelFor(phase.type, engine.language),
     // Lets the console decide whether "A bit more time" applies.
-    timer: phase.timer || null
+    timer: phase.timer || null,
+    // The drawing the class is looking at (Doodle Bluff rounds): the
+    // teacher moderates titles better seeing the picture they are for.
+    displayDrawing: resolveDisplayDrawing(phase, engine)
   });
 
   // Dispatch to registered handler
@@ -2239,11 +2300,12 @@ app.get('/api/games', async (req, res) => {
       maxPlayers: config.maxPlayers || null,
       // The home page's drawn projector frame (engine/home-glimpse.js)
       glimpse: homeGlimpse(config),
+      ...yardCardExtras(config),
       ...pickCardMeta(config)
     }));
 
     if (DB_ENABLED) {
-      const userRows = await listUserGames();
+      const userRows = await listUserGamesRepaired();
       for (const row of userRows) {
         const config = row.config;
         games.push({
@@ -2255,6 +2317,7 @@ app.get('/api/games', async (req, res) => {
           minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null,
           maxPlayers: config.maxPlayers || null,
           glimpse: homeGlimpse(config),
+          ...yardCardExtras(config),
           ...pickCardMeta(config)
         });
       }
@@ -2375,7 +2438,7 @@ app.post('/api/games/:gameId/featured', async (req, res) => {
     const featured = req.body.featured;
 
     if (DB_ENABLED && await userGameExists(gameId)) {
-      const row = await getUserGame(gameId);
+      const row = await getUserGameRepaired(gameId);
       const config = { ...row.config, featured };
       await saveUserGame(gameId, config);
       return res.json({ success: true, featured, storage: 'user-config' });
@@ -2660,6 +2723,7 @@ app.post('/api/games/revise', async (req, res) => {
     carryAnonymousFlag(config, result.updatedConfig);
     carryLanguage(config, result.updatedConfig);
     carryWordHelp(config, result.updatedConfig);
+    carrySubPhaseOrder(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
     // Validate the AI's revised config; surface errors so the client can show them
     const structural = validate(result.updatedConfig, 'revise', { returnResults: true });
@@ -2681,6 +2745,28 @@ app.post('/api/games/revise', async (req, res) => {
 function carryAnonymousFlag(original, updated) {
   if (original && original.anonymous === true && updated && updated.anonymous === undefined) {
     updated.anonymous = true;
+  }
+}
+
+// Sub-phase ORDER inside a foreach is the key order of `subPhases`, and a
+// model rewriting the whole config can hand the keys back shuffled
+// (Doodle Bluff's copy came back guess, titles, reveal: the vote ran
+// before anyone wrote a fake, 2026-09-06). When the set of sub-phases is
+// unchanged, keep the original order; a real restructure (added or
+// removed sub-phase) is left as the model wrote it.
+function carrySubPhaseOrder(original, updated) {
+  if (!original || !updated || !original.phases || !updated.phases) return;
+  for (const [id, phase] of Object.entries(updated.phases)) {
+    const src = original.phases[id];
+    if (!phase || !src || phase.type !== 'foreach' || src.type !== 'foreach') continue;
+    if (!phase.subPhases || !src.subPhases || typeof phase.subPhases !== 'object' || typeof src.subPhases !== 'object') continue;
+    const before = Object.keys(src.subPhases);
+    const after = Object.keys(phase.subPhases);
+    if (before.length !== after.length || before.some(k => !after.includes(k))) continue;
+    if (before.every((k, i) => after[i] === k)) continue;
+    const ordered = {};
+    for (const k of before) ordered[k] = phase.subPhases[k];
+    phase.subPhases = ordered;
   }
 }
 
@@ -2735,6 +2821,7 @@ app.post('/api/games/chat', async (req, res) => {
     carryAnonymousFlag(config, result.updatedConfig);
     carryLanguage(config, result.updatedConfig);
     carryWordHelp(config, result.updatedConfig);
+    carrySubPhaseOrder(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
     const structural = validate(result.updatedConfig, 'chat', { returnResults: true });
     res.json({
@@ -2886,9 +2973,10 @@ app.post('/api/games/from-description', async (req, res) => {
     // already exists as a finished activity ("Human or AI") gets pointed
     // at it instead of falling through to the storyboard (2026-08-22).
     let matchGames = [];
+    let loadedGames = [];
     if (!recipeId) {
-      const loaded = await listGames();
-      matchGames = loaded
+      loadedGames = await listGames();
+      matchGames = loadedGames
         .filter(g => g.source === 'built-in')
         .map(({ id, config }) => ({
           id,
@@ -2897,6 +2985,11 @@ app.post('/api/games/from-description', async (req, res) => {
           playTime: config.playTime || null
         }));
     }
+
+    // The time budget the teacher named ("a five-minute warm up"), checked
+    // by the server against the real configuration below. The AI is told
+    // never to claim a timing fit (engine/duration-estimate.js).
+    const requestedMinutes = parseRequestedMinutes(description);
 
     console.log(`[api/games/from-description] Matching: "${description.substring(0, 80)}..."`);
     const match = await aiService.matchRecipe(description, recipes, { forced: !!recipeId, games: matchGames });
@@ -2915,10 +3008,14 @@ app.post('/api/games/from-description', async (req, res) => {
     if (match.game) {
       const existing = matchGames.find(g => g.id === match.game);
       if (existing) {
+        const existingConfig = (loadedGames.find(g => g.id === match.game) || {}).config;
         return res.json({
           existingGame: existing,
           explanation: match.explanation || '',
-          alternates: resolveAlternates(match.alternates, null)
+          alternates: resolveAlternates(match.alternates, null),
+          // Report only: the teacher copies this one from the yard, so a
+          // trimmed config has nowhere to go here.
+          timing: existingConfig ? timingReport(existingConfig, requestedMinutes, { trim: false }) : null
         });
       }
       // AI invented an activity id — fall through to no-match.
@@ -2961,12 +3058,31 @@ app.post('/api/games/from-description', async (req, res) => {
 
     const alternates = resolveAlternates(match.alternates, recipe.id);
 
+    // A contextual name ("Snowball: Causes of WWI") beats the recipe's
+    // generic one on a saved copy; the recipe name alone is left as is.
+    if (match.title && match.title.toLowerCase() !== String(recipe.name || '').toLowerCase()) {
+      config.name = match.title;
+    }
+
     // Human labels for the preview's param list — the recipe's own
     // parameter labels, so the teacher never reads raw ids like
     // "tier1Prompts".
     const paramLabels = {};
     for (const [pname, spec] of Object.entries(recipe.parameters || {})) {
       if (spec && spec.label) paramLabels[pname] = spec.label;
+    }
+
+    // Computed from the timers, never from the AI: the estimate, the
+    // teacher's requested minutes, and a trimmed copy when it runs over.
+    // A trimmed timer that came from a recipe parameter moves the
+    // parameter too (settings list, provenance stamp) so nothing lies.
+    const timing = timingReport(config, requestedMinutes);
+    if (timing.trim) {
+      const mapped = paramsForTrim((recipe.template || {}).phases, match.params || {}, timing.trim.changes);
+      timing.trim.params = mapped.params;
+      if (mapped.changed.length && timing.trim.config.recipe && timing.trim.config.recipe.params) {
+        timing.trim.config.recipe.params = { ...timing.trim.config.recipe.params, ...mapped.params };
+      }
     }
 
     res.json({
@@ -2976,7 +3092,8 @@ app.post('/api/games/from-description', async (req, res) => {
       paramLabels,
       explanation: match.explanation || '',
       alternates,
-      map: buildActivityMap(config)
+      map: buildActivityMap(config),
+      timing
     });
   } catch (error) {
     console.log(`[api/games/from-description] Error: ${error.message}`);
@@ -3045,7 +3162,7 @@ io.on('connection', (socket) => {
         minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null
       }));
       if (DB_ENABLED) {
-        const userRows = await listUserGames();
+        const userRows = await listUserGamesRepaired();
         for (const row of userRows) {
           games.push({
             id: row.id,
@@ -3538,16 +3655,19 @@ io.on('connection', (socket) => {
       if (releaseHold) releaseHold();
     }
 
+    // The student's screen says "Answer submitted" only now: the server has
+    // stored it. Until this lands the student sees "Sending..." (a filtered
+    // or lost answer must never look submitted; reviewer finding 2026-09-06).
+    socket.emit(EVENTS.RESPONSE_ACCEPTED, { phaseInstanceId: room.phaseInstanceId });
+
     // Count based on eligible players for current collect phase
     let eligible;
     if (room.engine) {
       const phase = room.engine.getCurrentPhase();
       const from = phase.from || 'all';
       eligible = getEligibleVoters(room.engine.players, from);
-      // Exclude self-excluded author in foreach
-      if (phase._foreachAuthorId) {
-        eligible = eligible.filter(p => p.id !== phase._foreachAuthorId);
-      }
+      // Foreach: the round's author and source sit out (engine/phases/sit-out.js)
+      eligible = withoutSitOut(eligible, phase);
       // Exclude unpaired players when this collect uses pairwise distribution
       if (phase.assign === 'pairwise') {
         const phaseData = room.engine.phaseData[phase.id];
@@ -3736,12 +3856,10 @@ io.on('connection', (socket) => {
         // Gather responses from eligible players and store as phase data.
         // Host-hidden responses are excluded (kept off AI input + reveal).
         let eligible = getEligibleVoters(players, from);
-        // Foreach self-exclusion: the current item's author never counts as
-        // a submitter (they get a waiting screen, but a crafted socket
+        // Foreach sit-out: the round's author and source never count as
+        // submitters (they get a waiting screen, but a crafted socket
         // event could still try to plant a response).
-        if (collectPhase._foreachAuthorId) {
-          eligible = eligible.filter(p => p.id !== collectPhase._foreachAuthorId);
-        }
+        eligible = withoutSitOut(eligible, collectPhase);
         // Pairwise: only paired players are real submitters
         if (collectPhase.assign === 'pairwise') {
           const cpData = room.engine.phaseData[collectPhase.id];
@@ -3771,13 +3889,34 @@ io.on('connection', (socket) => {
         // record, so downstream reveals can show it ({{_current.assigned}} in
         // a reveal-one itemTemplate) instead of asking students to re-type the
         // thing they were handed (whose-eyes shipped that busywork field).
+        // The LINK rides along too (assignedFromId/Name): a foreach round
+        // over these responses can then keep the classmate who wrote the
+        // phrase out of the bluffing (engine/phases/sit-out.js) and name
+        // them in the reveal.
         if (collectPhase.rotateFrom) {
           const srcData = room.engine.phaseData[collectPhase.rotateFrom];
           const assignedMap = (srcData && srcData.assigned) || {};
+          // Only a STUDENT-made source has a writer to name (and to sit
+          // out); an AI-written per-player deal has none.
+          const srcPhase = room.engine.config.phases[collectPhase.rotateFrom];
+          const studentSource = !!srcPhase && (srcPhase.type === 'collect' || srcPhase.type === 'collect-choice');
+          const fromMap = (studentSource && srcData && srcData.assignedFrom) || {};
           for (const r of responses) {
             if (r && r.playerId && assignedMap[r.playerId] !== undefined) {
               r.assigned = assignedMap[r.playerId];
+              const fromId = fromMap[r.playerId];
+              if (fromId) {
+                r.assignedFromId = fromId;
+                const fromPlayer = players.find(fromId);
+                if (fromPlayer) r.assignedFromName = fromPlayer.name;
+              }
             }
+          }
+        } else if (Array.isArray(collectPhase.dealItems)) {
+          // Dealt from a teacher list: the item has no author, only text.
+          const dealt = (room.engine.phaseData[collectPhase.id] || {}).assigned || {};
+          for (const r of responses) {
+            if (r && r.playerId && dealt[r.playerId] !== undefined) r.assigned = dealt[r.playerId];
           }
         }
 

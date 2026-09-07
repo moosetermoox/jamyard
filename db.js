@@ -17,11 +17,19 @@ export async function initDb() {
     CREATE TABLE IF NOT EXISTS user_games (
       id          TEXT        PRIMARY KEY,
       name        TEXT        NOT NULL,
-      config      JSONB       NOT NULL,
+      config      JSON        NOT NULL,
       created_at  TIMESTAMPTZ DEFAULT now(),
       updated_at  TIMESTAMPTZ DEFAULT now()
     )
   `;
+  // Configs and recipes are JSON, not JSONB: a foreach's sub-phases run in
+  // the key order of `subPhases`, and jsonb re-sorts keys (by length, then
+  // bytes), so every saved Doodle Bluff copy came back guess, titles,
+  // reveal and voted before anyone wrote a fake (2026-09-06). JSON keeps
+  // the text as written. Idempotent: re-running the ALTER on a JSON column
+  // is a no-op cast. Rows saved while the column was jsonb stay sorted;
+  // the server repairs recipe-born ones from their stamp on load.
+  await getSql()`ALTER TABLE user_games ALTER COLUMN config TYPE JSON USING config::text::json`;
   await getSql()`
     CREATE TABLE IF NOT EXISTS ai_usage (
       day    TEXT    PRIMARY KEY,
@@ -39,11 +47,12 @@ export async function initDb() {
   await getSql()`
     CREATE TABLE IF NOT EXISTS user_recipes (
       id          TEXT        PRIMARY KEY,
-      recipe      JSONB       NOT NULL,
+      recipe      JSON        NOT NULL,
       created_at  TIMESTAMPTZ DEFAULT now(),
       updated_at  TIMESTAMPTZ DEFAULT now()
     )
   `;
+  await getSql()`ALTER TABLE user_recipes ALTER COLUMN recipe TYPE JSON USING recipe::text::json`;
   await getSql()`
     CREATE TABLE IF NOT EXISTS activity_runs (
       id           SERIAL      PRIMARY KEY,
@@ -128,7 +137,7 @@ export async function saveUserGame(id, config) {
   const json = JSON.stringify(config);
   await getSql()`
     INSERT INTO user_games (id, name, config, updated_at)
-    VALUES (${id}, ${config.name}, ${json}::jsonb, now())
+    VALUES (${id}, ${config.name}, ${json}::json, now())
     ON CONFLICT (id) DO UPDATE SET
       name       = EXCLUDED.name,
       config     = EXCLUDED.config,
@@ -158,7 +167,7 @@ export async function saveUserRecipe(id, recipe) {
   const json = JSON.stringify(recipe);
   await getSql()`
     INSERT INTO user_recipes (id, recipe, updated_at)
-    VALUES (${id}, ${json}::jsonb, now())
+    VALUES (${id}, ${json}::json, now())
     ON CONFLICT (id) DO UPDATE SET
       recipe     = EXCLUDED.recipe,
       updated_at = now()
@@ -170,7 +179,7 @@ export async function insertUserRecipeIfAbsent(id, recipe) {
   const json = JSON.stringify(recipe);
   const rows = await getSql()`
     INSERT INTO user_recipes (id, recipe)
-    VALUES (${id}, ${json}::jsonb)
+    VALUES (${id}, ${json}::json)
     ON CONFLICT (id) DO NOTHING
     RETURNING id
   `;

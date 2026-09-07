@@ -1396,7 +1396,7 @@
     var previewBtn = el('button', 't-block-btn svb-preview-btn');
     previewBtn.type = 'button';
     previewBtn.title = 'Try the activity yourself with pretend players, no class needed';
-    previewBtn.appendChild(el('span', 'svb-preview-main', '▶ Simulate'));
+    previewBtn.appendChild(el('span', 'svb-preview-main', '▶ Try it out'));
     previewBtn.appendChild(el('span', 'svb-preview-sub', 'play it with pretend students'));
     previewBtn.addEventListener('click', function () {
       // testGame lives in editor.js: saves first, then opens /prototype.

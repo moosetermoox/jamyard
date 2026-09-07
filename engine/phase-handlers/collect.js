@@ -12,6 +12,7 @@ import { EVENTS } from '../events.js';
 import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups } from '../phases/pairing.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { shuffleDeal } from '../phases/deal.js';
+import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
 import { tailOfWords } from '../phases/append-only.js';
 import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
 import { translate } from '../i18n/index.js';
@@ -30,7 +31,7 @@ import { translate } from '../i18n/index.js';
  */
 function buildRotationAssignment(ctx) {
   const { phase, engine } = ctx;
-  if (!phase.rotateFrom) return null;
+  if (!phase.rotateFrom) return buildDealAssignment(ctx);
 
   const sourceData = engine.phaseData[phase.rotateFrom];
   if (!sourceData) {
@@ -57,8 +58,18 @@ function buildRotationAssignment(ctx) {
   const from = phase.from || 'all';
   const eligible = ctx.getEligibleVoters(from);
   const orderedIds = eligible.map(p => p.id);
-  const N = orderedIds.length;
-  if (N === 0) return {};
+  if (orderedIds.length === 0) return {};
+
+  // Only classmates who actually submitted can send. The circle is dealt
+  // among THEM; a receiver who submitted nothing still gets an item (a
+  // random submitter's), so nobody is left drawing a placeholder because
+  // a classmate was slow (Doodle Bluff's blank-truth round, 2026-09-06).
+  const senders = orderedIds.filter(id => sourceByPlayer[id] !== undefined);
+  const N = senders.length;
+  if (N === 0) {
+    console.warn(`[collect:${phase.id}] rotateFrom "${phase.rotateFrom}" has no items to deal`);
+    return {};
+  }
 
   // Drawing sources also rotate their strokes (byPlayerDrawing) so the
   // recipient can see — or continue — the actual picture, not "[drawing]".
@@ -67,24 +78,28 @@ function buildRotationAssignment(ctx) {
   // rotateShuffle: deal the pool in a random circle instead of the fixed
   // join-order shift (still exactly one classmate's item each, never your
   // own; who-got-whose is unpredictable).
-  const shuffledSenderOf = phase.rotateShuffle ? shuffleDeal(orderedIds) : null;
+  const shuffledSenderOf = phase.rotateShuffle ? shuffleDeal(senders) : null;
 
   const assignment = {};
   const assignedFrom = {};
   const drawingAssignment = {};
+  const give = (receiverId, senderId) => {
+    assignment[receiverId] = sourceByPlayer[senderId];
+    assignedFrom[receiverId] = senderId;
+    if (sourceDrawings && sourceDrawings[senderId]) {
+      drawingAssignment[receiverId] = sourceDrawings[senderId];
+    }
+  };
   for (let i = 0; i < N; i++) {
-    const receiverId = orderedIds[i];
+    const receiverId = senders[i];
     const senderId = shuffledSenderOf
       ? shuffledSenderOf[receiverId]
-      : orderedIds[((i - offset) % N + N) % N];
-    const item = sourceByPlayer[senderId];
-    if (item !== undefined) {
-      assignment[receiverId] = item;
-      assignedFrom[receiverId] = senderId;
-      if (sourceDrawings && sourceDrawings[senderId]) {
-        drawingAssignment[receiverId] = sourceDrawings[senderId];
-      }
-    }
+      : senders[((i - offset) % N + N) % N];
+    give(receiverId, senderId);
+  }
+  for (const receiverId of orderedIds) {
+    if (assignment[receiverId] !== undefined) continue;
+    give(receiverId, senders[Math.floor(Math.random() * N)]);
   }
 
   // Persist assignment under the SOURCE phase so {{<source>.assigned}}
@@ -105,6 +120,65 @@ function buildRotationAssignment(ctx) {
     assignedFrom,
     ...(sourceDrawings ? { assignedDrawing: drawingAssignment } : {})
   });
+  return assignment;
+}
+
+/**
+ * A student who arrives (or comes back under a new id) AFTER the deal was
+ * made has no item; hand them one now, in place, so their prompt and their
+ * later round have a truth. Rotation: a random submitter's item, never
+ * their own. dealItems: a random entry from the list.
+ */
+function ensureLateAssignment(ctx, playerId) {
+  const { phase, engine } = ctx;
+  if (!playerId) return;
+  if (phase.rotateFrom) {
+    const src = engine.phaseData[phase.rotateFrom];
+    if (!src || !src.assigned || src.assigned[playerId] !== undefined) return;
+    let byPlayer = src.byPlayer;
+    if (!byPlayer && Array.isArray(src.responses)) {
+      byPlayer = {};
+      for (const r of src.responses) if (r && r.playerId) byPlayer[r.playerId] = r.text;
+    }
+    const senders = Object.keys(byPlayer || {}).filter(id => id !== playerId && byPlayer[id] !== undefined);
+    if (senders.length === 0) return;
+    const senderId = senders[Math.floor(Math.random() * senders.length)];
+    src.assigned[playerId] = byPlayer[senderId];
+    src.assignedFrom = src.assignedFrom || {};
+    src.assignedFrom[playerId] = senderId;
+    if (src.byPlayerDrawing && src.byPlayerDrawing[senderId]) {
+      src.assignedDrawing = src.assignedDrawing || {};
+      src.assignedDrawing[playerId] = src.byPlayerDrawing[senderId];
+    }
+  } else if (Array.isArray(phase.dealItems) && phase.dealItems.length > 0) {
+    const own = engine.phaseData[phase.id];
+    if (!own || !own.assigned || own.assigned[playerId] !== undefined) return;
+    own.assigned[playerId] = phase.dealItems[Math.floor(Math.random() * phase.dealItems.length)];
+  }
+}
+
+/**
+ * dealItems: hand each player one item from a TEACHER list (no student
+ * author), so `{{thisStep.assigned}}` works without an earlier collect.
+ * Doodle Bluff's teacher-phrases mode. Items go out in a random order and
+ * wrap when the class outnumbers the list; the deal is stored under THIS
+ * phase (the list has no source step to store it under).
+ */
+function buildDealAssignment(ctx) {
+  const { phase, engine } = ctx;
+  if (!Array.isArray(phase.dealItems) || phase.dealItems.length === 0) return null;
+  const items = phase.dealItems.map(s => String(s)).filter(s => s.trim() !== '');
+  if (items.length === 0) return null;
+  const eligible = ctx.getEligibleVoters(phase.from || 'all');
+  const order = items.slice();
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  const assignment = {};
+  eligible.forEach((p, i) => { assignment[p.id] = order[i % order.length]; });
+  const existing = engine.phaseData[phase.id] || {};
+  engine.storePhaseData(phase.id, { ...existing, assigned: assignment });
   return assignment;
 }
 
@@ -308,10 +382,7 @@ registerHandler('collect', {
     // Who counts toward "X of Y submitted" — must mirror the submit
     // handler's math (foreach author self-exclusion, unpaired players)
     // or the seeded total would disagree with the first live update.
-    let countEligible = eligible;
-    if (phase._foreachAuthorId) {
-      countEligible = countEligible.filter(p => p.id !== phase._foreachAuthorId);
-    }
+    let countEligible = withoutSitOut(eligible, phase);
     if (pairedIds) {
       countEligible = countEligible.filter(p => pairedIds.has(p.id));
     }
@@ -330,11 +401,13 @@ registerHandler('collect', {
     // Send prompt to eligible players — resolve `{{X.mine}}` and `{{X.assigned}}` per-recipient.
     // For pairwise, players who weren't paired (odd count) skip the prompt and wait.
     for (const player of eligible) {
-      // Foreach self-exclusion: the current item's author sits this one out
-      // (mirrors collect-choice; without it the Doodle Bluff artist could
-      // write a decoy title for their own drawing and farm fool points).
-      if (phase._foreachAuthorId && player.id === phase._foreachAuthorId) {
-        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'This one is yours! Waiting for the others...' });
+      // Foreach sit-out: the round's author and source sit this one out
+      // (mirrors collect-choice; without it the Doodle Bluff artist, or the
+      // classmate whose phrase it was, could write a decoy title for their
+      // own round and farm fool points). engine/phases/sit-out.js
+      const sitOut = sitOutMessage(phase, player.id);
+      if (sitOut) {
+        ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: sitOut });
         continue;
       }
       if (pairedIds && !pairedIds.has(player.id)) {
@@ -378,8 +451,11 @@ registerHandler('collect', {
   onReconnect(ctx, socket) {
     const sc = ctx.resolveScreenControl();
     const player = ctx.engine.players.find(socket.id);
-    if (player && ctx.phase._foreachAuthorId && player.id === ctx.phase._foreachAuthorId) {
-      socket.emit(EVENTS.WAITING, { message: 'This one is yours! Waiting for the others...' });
+    // Late joiners are the normal case: deal them an item before the prompt
+    if (player) ensureLateAssignment(ctx, player.id);
+    const sitOut = player ? sitOutMessage(ctx.phase, player.id) : null;
+    if (sitOut) {
+      socket.emit(EVENTS.WAITING, { message: sitOut });
     } else if (player && player.response) {
       if (isRolling(ctx.engine.config) && !moreInputAhead(ctx.engine.config, ctx.phase.id)) {
         socket.emit(EVENTS.PLAYER_DONE, { message: translate(ctx.engine.language, doneMessageFor(ctx.phase)) });

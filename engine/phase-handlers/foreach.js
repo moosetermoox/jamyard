@@ -93,16 +93,24 @@ registerHandler('foreach', {
 
     // limit: cap how many iterations actually run (random sample — with 25
     // students, a round per response kills the room around round 12)
+    // The items the sample leaves out are kept too: a closing gallery can
+    // show the drawings that never got a round ({{X.skipped}}), and the
+    // sit-out rule can see every drawer's phrase, not just the sampled ones.
+    let skipped = [];
     if (finalItems.length > 0 && phase.limit) {
       const before = finalItems.length;
+      const all = finalItems;
       finalItems = sampleItems(finalItems, phase.limit);
       if (finalItems.length < before) {
+        const chosen = new Set(finalItems);
+        skipped = all.filter(it => !chosen.has(it));
         console.log(`[foreach] '${phase.id}' limit ${phase.limit}: sampled ${finalItems.length} of ${before} items`);
       }
     }
 
     engine.foreachState[phase.id] = {
       items: finalItems,
+      skipped,
       currentIndex: 0,
       scores: {}
     };

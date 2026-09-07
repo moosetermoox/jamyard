@@ -239,6 +239,11 @@ export const PHASE_SCHEMAS = {
         label: 'Shuffle the deal',
         helper: 'With "Rotate items from": deal the items in a random circle instead of a fixed shift. Each player still gets exactly one classmate\'s item, never their own, but who got whose is unpredictable. Ignores the rotation offset.'
       },
+      dealItems: {
+        type: 'array', item: { type: 'string' }, optional: true, contexts: ['topLevel'],
+        label: 'Deal these items out',
+        helper: 'Optional. Your own list: each player is handed one item from it, in a random order (wrapping around if the class is bigger than the list). Use {{thisStepId.assigned}} in the prompt to show it. An alternative to "Rotate items from" when the items come from you, not the students.'
+      },
       assign: {
         type: 'enum', values: ['pairwise'], optional: true, contexts: ['topLevel'],
         label: 'Pair players up',
@@ -1670,7 +1675,8 @@ export const PHASE_SCHEMAS = {
       },
       selfExclude: {
         type: 'boolean', default: true, optional: true,
-        label: 'Skip the author on collect-choice sub-phases'
+        label: 'Sit out your own round',
+        helper: 'On collect and collect-choice steps inside the rounds: the student whose item is up sits that round out, and so does the classmate whose item it was made from (a rotated phrase that got drawn). Both already know the answer.'
       }
     },
     transitions: {
@@ -1680,7 +1686,11 @@ export const PHASE_SCHEMAS = {
       kind: 'static',
       fields: {
         scores:    { type: 'scoreMap', capability: 'scoreMap', optional: true },
-        itemCount: { type: 'integer', optional: true }
+        itemCount: { type: 'integer', optional: true },
+        // The items the `limit` sample left out, in the data's own shape
+        // (collect responses keep their drawings): feed a reveal-one to
+        // show what never got a round.
+        skipped:   { type: 'array', capability: 'responseArray', optional: true }
       }
     },    ui: {
       hostToggles: [],

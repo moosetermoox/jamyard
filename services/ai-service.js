@@ -746,6 +746,17 @@ export class AIService {
 
   _processMock(instruction, responses) {
     const count = responses.length;
+    // perPlayer generate (ai-process.js appends "Generate exactly N distinct
+    // items ... Return a JSON array"): the handler needs an array of N, so
+    // the mock hands one back instead of prose that fails to parse (Doodle
+    // Bluff's AI-written phrases in a robot playtest).
+    const perPlayer = /Generate exactly (\d+) distinct items/.exec(instruction || '');
+    if (perPlayer) {
+      const n = parseInt(perPlayer[1], 10) || 1;
+      const items = [];
+      for (let i = 0; i < n; i++) items.push(`Mock item ${i + 1} of ${n}`);
+      return { text: JSON.stringify(items) };
+    }
     const truncatedInstruction = instruction.length > 50
       ? instruction.substring(0, 50) + '...'
       : instruction;
@@ -1922,11 +1933,21 @@ ${responseList}`;
 
       // A ready-made activity already IS the idea — no params to fill,
       // the caller resolves the id against the real activity catalog.
+      // A contextual name ("Snowball: Causes of WWI") so a saved copy is
+      // recognizable; the caller decides whether to adopt it. One short
+      // line, em dashes folded to a colon (STYLE_RULES), or dropped.
+      const cleanTitle = (t) => {
+        if (typeof t !== 'string') return '';
+        const s = t.replace(/\s*[—–]\s*/g, ': ').replace(/\s+/g, ' ').trim();
+        return s.length > 60 ? '' : s;
+      };
+      const title = cleanTitle(parsed.title);
       if (typeof parsed.game === 'string') {
         return {
           game: parsed.game,
           explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
-          alternates: sanitizeAlternates(parsed.alternates, null)
+          alternates: sanitizeAlternates(parsed.alternates, null),
+          ...(title ? { title } : {})
         };
       }
 
@@ -1935,7 +1956,8 @@ ${responseList}`;
           recipe: parsed.recipe,
           params: parsed.params,
           explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
-          alternates: sanitizeAlternates(parsed.alternates, parsed.recipe)
+          alternates: sanitizeAlternates(parsed.alternates, parsed.recipe),
+          ...(title ? { title } : {})
         };
       }
 
@@ -2012,7 +2034,8 @@ The teacher has already chosen the recipe above for their idea. Do not judge whe
 {
   "recipe": "the-recipe-id-above",
   "params": { /* filled in based on the description */ },
-  "explanation": "One short sentence about how you set it up."
+  "explanation": "One short sentence about how you set it up.",
+  "title": "A short name for THIS activity: the recipe name plus the teacher's topic, like 'Snowball: Causes of WWI'. Omit when the idea names no topic."
 }
 When the description gives you nothing for a parameter, use the recipe's default, or invent something classroom-safe that fits the idea.`
       : `# Your job
@@ -2025,6 +2048,7 @@ ${gameOption}1. If ONE of the recipes above is a good fit:
      "recipe": "id-of-best-fit-recipe",
      "params": { /* filled in based on the description */ },
      "explanation": "One short sentence about why this recipe fits.",
+     "title": "A short name for THIS activity: the recipe name plus the teacher's topic, like 'Snowball: Causes of WWI'. Omit when the idea names no topic.",
      "alternates": [ { "recipe": "id-of-another-fitting-recipe", "why": "One short sentence on what this one would feel like instead." } ]
    }
    "alternates" lists up to 2 OTHER recipes that also fit the idea well. A broad, goal-shaped idea (laugh together, get to know each other, review a unit) usually deserves alternates; a specific idea that clearly names one mechanic deserves an empty list. Never repeat the main recipe, and fill "params" only for the main recipe.
@@ -2054,6 +2078,7 @@ ${jobSection}
 - Use the teacher's exact wording for prompts/questions when possible, don't paraphrase their pedagogical intent.
 - For "choices" arrays, generate 3-5 sensible options based on the teacher's description.
 - For timer values, default to the recipe's default unless the teacher specifies a duration.
+- Never claim the activity fits a time limit or timeline. The server computes the real running time from the timers and tells the teacher itself; your explanation is about fit of mechanic, not minutes.
 - For enum parameters, pick the value that best matches the teacher's tone.
 - DO NOT invent parameter names that aren't in the recipe spec.
 - DO NOT skip required parameters, every required field must be present.

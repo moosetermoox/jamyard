@@ -2,6 +2,60 @@
   "name": "Doodle Bluff",
   "description": "Draw a classmate's strange phrase, then write fake titles for each drawing and hunt for the real one. Fool the class to score.",
   "featured": true,
+  "playTime": "~20 min",
+  "classSize": "4–25 players",
+  "tags": [
+    "bluffing",
+    "drawing",
+    "creative",
+    "energize"
+  ],
+  "keywords": [
+    "bluff",
+    "fake titles",
+    "doodle",
+    "drawing game",
+    "party"
+  ],
+  "recommendedFor": "Icebreakers, reward days, and any class that loved Draw Gallery. The artist sits out their own round, so nobody can rig their own drawing.",
+  "minPlayers": 4,
+  "recipe": {
+    "id": "doodle-bluff",
+    "version": "3",
+    "params": {
+      "phraseSource": "students",
+      "phrasePrompt": "Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous volcano on its first day of school.",
+      "phrases": [
+        "A nervous volcano on its first day of school",
+        "A giraffe learning to skateboard",
+        "Grandma's cat running for mayor",
+        "A snowman on a beach holiday",
+        "Two clouds arguing about the weather",
+        "The world's smallest marching band",
+        "A sandwich with a secret identity",
+        "Ducks holding a very serious meeting",
+        "The moon ordering takeout",
+        "A dragon afraid of birthday candles",
+        "A penguin who lost its umbrella",
+        "A robot learning to whistle",
+        "Three sheep planning a heist",
+        "A very tired lighthouse",
+        "A cactus hugging a balloon",
+        "An owl who forgot its glasses",
+        "A submarine full of hamsters",
+        "The teacher's desk on vacation",
+        "A ghost doing laundry",
+        "A frog conducting an orchestra",
+        "A bicycle made of noodles",
+        "A hedgehog stuck in a hammock",
+        "The last slice of pizza escaping",
+        "A shark at the dentist"
+      ],
+      "aiTopic": "strange, funny, drawable scenes, like a nervous volcano on its first day of school",
+      "rounds": 8,
+      "drawTimer": 120
+    }
+  },
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -9,7 +63,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "DOODLE BLUFF!\n\nFirst, write a strange phrase. Next, draw the phrase you get handed. Then, round by round: invent a fake title for each drawing and vote for the real one.\n\n100 points for spotting the truth. 50 for every classmate your fake fools.",
+      "message": "DOODLE BLUFF!\n\nFirst, write a secret phrase. Next, draw the phrase you get handed. Then, round by round: invent a fake title for each drawing and vote for the real one.\n\n100 points for spotting the truth. 50 for every classmate your fake fools.",
       "timer": 15,
       "next": "phrases"
     },
@@ -23,6 +77,7 @@
       "type": "collect",
       "inputType": "drawing",
       "rotateFrom": "phrases",
+      "rotateShuffle": true,
       "prompt": "Draw this: {{phrases.assigned}}\n\nNo letters or numbers in your drawing!",
       "timer": 120,
       "next": "check"
@@ -69,7 +124,7 @@
         },
         "reveal-truth": {
           "type": "announce",
-          "message": "The real title:\n{{_current.assigned}}\n\nDrawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\nTitle authors, own up! Whose fake pulled the votes?",
+          "message": "The real title:\n{{_current.assigned}}\n\nWritten by {{_current.assignedFromName}}, drawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\nTitle authors, own up! Whose fake pulled the votes?",
           "drawingFrom": "_current.drawing"
         }
       },
@@ -83,27 +138,18 @@
       "type": "leaderboard",
       "from": "rounds.scores",
       "style": "full",
+      "next": "gallery"
+    },
+    "gallery": {
+      "type": "reveal-one",
+      "message": "The drawings that didn't get a round. One at a time: shout your guess, then the artist tells you the phrase.",
+      "from": "rounds.skipped",
+      "itemTemplate": "{{_current.name}}: {{_current.assigned}}",
       "next": "end"
     },
     "end": {
       "type": "end",
       "message": "That's Doodle Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again, the phrases only get weirder."
     }
-  },
-  "playTime": "~20 min",
-  "classSize": "4–25 players",
-  "tags": [
-    "bluffing",
-    "drawing",
-    "creative",
-    "energize"
-  ],
-  "keywords": [
-    "bluff",
-    "fake titles",
-    "doodle",
-    "drawing game",
-    "party"
-  ],
-  "recommendedFor": "Icebreakers, reward days, and any class that loved Draw Gallery. The artist sits out their own round, so nobody can rig their own drawing."
+  }
 }

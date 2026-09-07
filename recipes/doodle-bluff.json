@@ -2,18 +2,67 @@
   "id": "doodle-bluff",
   "name": "Doodle Bluff",
   "icon": "🎨",
-  "description": "Everyone draws a secret phrase written by a classmate. Then round by round: one drawing goes up, everyone invents a fake title for it, and the class votes for the real one. Points for spotting the truth, points for fooling classmates.",
-  "tagline": "The draw-and-bluff party format. Works as an icebreaker with silly phrases, or as sneaky review with vocabulary and concepts from your unit.",
-  "version": "1",
+  "description": "Everyone draws a secret phrase. Then round by round: one drawing goes up, everyone invents a fake title for it, and the class votes for the real one. Points for spotting the truth, points for fooling classmates.",
+  "tagline": "The draw-and-bluff party format. Students write the phrases for each other, you bring the list, or the AI writes them: silly phrases for fun, or vocabulary and concepts from your unit for sneaky review.",
+  "version": "3",
   "parameters": {
+    "phraseSource": {
+      "type": "enum",
+      "label": "Who writes the phrases?",
+      "helper": "students: each writes one and draws a classmate's; the writer and the drawer both sit out that drawing's round, so it wants 8 or more players. teacher: you type the list below. ai: the AI writes one per student on a topic you give. With teacher or ai, only the drawer sits out, any class size works.",
+      "values": ["students", "teacher", "ai"],
+      "default": "students",
+      "setup": true
+    },
     "phrasePrompt": {
       "type": "templateString",
       "label": "What should students write as secret phrases?",
-      "helper": "Each student writes one, and someone else draws it. Silly phrases for fun, or terms from your unit for review.",
+      "helper": "Only when students write the phrases. Silly phrases for fun, or terms from your unit for review.",
       "placeholder": "Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous volcano on its first day of school.",
-      "required": true,
+      "default": "Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous volcano on its first day of school.",
       "minLength": 3,
       "maxLength": 300
+    },
+    "phrases": {
+      "type": "array",
+      "label": "Your phrases, one per line",
+      "helper": "Each student is handed one at random. Bring at least as many phrases as students: a shorter list repeats, and anyone handed the same phrase as the drawing on screen sits that round out. Vocabulary, concepts from the unit, or anything silly.",
+      "item": { "type": "string" },
+      "setup": { "mode": "lines", "showWhen": "phraseSource=teacher" },
+      "default": [
+        "A nervous volcano on its first day of school",
+        "A giraffe learning to skateboard",
+        "Grandma's cat running for mayor",
+        "A snowman on a beach holiday",
+        "Two clouds arguing about the weather",
+        "The world's smallest marching band",
+        "A sandwich with a secret identity",
+        "Ducks holding a very serious meeting",
+        "The moon ordering takeout",
+        "A dragon afraid of birthday candles",
+        "A penguin who lost its umbrella",
+        "A robot learning to whistle",
+        "Three sheep planning a heist",
+        "A very tired lighthouse",
+        "A cactus hugging a balloon",
+        "An owl who forgot its glasses",
+        "A submarine full of hamsters",
+        "The teacher's desk on vacation",
+        "A ghost doing laundry",
+        "A frog conducting an orchestra",
+        "A bicycle made of noodles",
+        "A hedgehog stuck in a hammock",
+        "The last slice of pizza escaping",
+        "A shark at the dentist"
+      ]
+    },
+    "aiTopic": {
+      "type": "string",
+      "label": "What should the AI's phrases be about?",
+      "helper": "A topic or a mood: \"the water cycle\", \"Ancient Rome, but silly\", \"things that happen in a cafeteria\". One phrase per student, all different, all drawable.",
+      "setup": { "mode": "text", "showWhen": "phraseSource=ai" },
+      "default": "strange, funny, drawable scenes, like a nervous volcano on its first day of school",
+      "maxLength": 200
     },
     "rounds": {
       "type": "integer",
@@ -34,7 +83,11 @@
   },
   "template": {
     "name": "Doodle Bluff",
-    "description": "Draw a classmate's phrase, write fake titles, hunt for the real one. Built with the Doodle Bluff recipe.",
+    "description": {
+      "$if": "phraseSource=students",
+      "$value": "Draw a classmate's phrase, write fake titles, hunt for the real one. Built with the Doodle Bluff recipe.",
+      "$else": "Draw the phrase you are handed, write fake titles, hunt for the real one. Built with the Doodle Bluff recipe."
+    },
     "minPlayers": 4,
     "phases": {
       "lobby": {
@@ -43,21 +96,65 @@
       },
       "intro": {
         "type": "announce",
-        "message": "DOODLE BLUFF!\n\nFirst, write a secret phrase. Next, draw the phrase you get handed. Then, round by round: invent a fake title for each drawing and vote for the real one.\n\n100 points for spotting the truth. 50 for every classmate your fake fools.",
+        "message": {
+          "$if": "phraseSource=students",
+          "$value": "DOODLE BLUFF!\n\nFirst, write a secret phrase. Next, draw the phrase you get handed. Then, round by round: invent a fake title for each drawing and vote for the real one.\n\n100 points for spotting the truth. 50 for every classmate your fake fools.",
+          "$else": "DOODLE BLUFF!\n\nYou each get a secret phrase. Draw it. Then, round by round: invent a fake title for each drawing and vote for the real one.\n\n100 points for spotting the truth. 50 for every classmate your fake fools."
+        },
         "timer": 15,
-        "next": "phrases"
+        "next": {
+          "$if": "phraseSource=students",
+          "$value": "phrases",
+          "$else": {
+            "$if": "phraseSource=ai",
+            "$value": "ai-phrases",
+            "$else": "draw"
+          }
+        }
       },
       "phrases": {
+        "$if": "phraseSource=students",
         "type": "collect",
         "prompt": "${phrasePrompt}",
         "timer": 60,
         "next": "draw"
       },
+      "ai-phrases": {
+        "$if": "phraseSource=ai",
+        "type": "ai-process",
+        "task": "generate",
+        "perPlayer": true,
+        "instruction": "Write short, strange, drawable phrases for a classroom drawing game, about: ${aiTopic}. Each phrase is 4 to 9 words, a concrete scene someone could sketch in two minutes, classroom-appropriate, and each one different from the others. Example shape: 'a nervous volcano on its first day of school'.",
+        "next": "draw"
+      },
       "draw": {
         "type": "collect",
         "inputType": "drawing",
-        "rotateFrom": "phrases",
-        "prompt": "Draw this: {{phrases.assigned}}\n\nNo letters or numbers in your drawing!",
+        "rotateFrom": {
+          "$if": "phraseSource=students",
+          "$value": "phrases",
+          "$else": {
+            "$if": "phraseSource=ai",
+            "$value": "ai-phrases"
+          }
+        },
+        "rotateShuffle": {
+          "$if": "phraseSource=students",
+          "$value": true
+        },
+        "dealItems": {
+          "$if": "phraseSource=teacher",
+          "$value": "${phrases}"
+        },
+        "prompt": {
+          "$if": "phraseSource=students",
+          "$value": "Draw this: {{phrases.assigned}}\n\nNo letters or numbers in your drawing!",
+          "$else": {
+            "$if": "phraseSource=ai",
+            "$value": "Draw this: {{ai-phrases.assigned}}\n\nNo letters or numbers in your drawing!",
+            "$else": "Draw this: {{draw.assigned}}\n\nNo letters or numbers in your drawing!"
+          }
+        },
         "timer": "${drawTimer}",
         "next": "check"
       },
@@ -103,7 +200,11 @@
           },
           "reveal-truth": {
             "type": "announce",
-            "message": "The real title:\n{{_current.assigned}}\n\nDrawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\nTitle authors, own up! Whose fake pulled the votes?",
+            "message": {
+              "$if": "phraseSource=students",
+              "$value": "The real title:\n{{_current.assigned}}\n\nWritten by {{_current.assignedFromName}}, drawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\nTitle authors, own up! Whose fake pulled the votes?",
+              "$else": "The real title:\n{{_current.assigned}}\n\nDrawn by {{_current.playerName}}.\n\n{{guess.barChart}}\n\nTitle authors, own up! Whose fake pulled the votes?"
+            },
             "drawingFrom": "_current.drawing"
           }
         },
@@ -117,6 +218,13 @@
         "type": "leaderboard",
         "from": "rounds.scores",
         "style": "full",
+        "next": "gallery"
+      },
+      "gallery": {
+        "type": "reveal-one",
+        "message": "The drawings that didn't get a round. One at a time: shout your guess, then the artist tells you the phrase.",
+        "from": "rounds.skipped",
+        "itemTemplate": "{{_current.name}}: {{_current.assigned}}",
         "next": "end"
       },
       "end": {

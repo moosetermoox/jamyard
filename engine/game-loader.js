@@ -950,6 +950,32 @@ export function validate(config, gameId, options) {
         const allowedSubTypes = Object.keys(PHASE_SCHEMAS).filter(
           t => PHASE_SCHEMAS[t].allowedIn.includes('foreach')
         );
+        // Sub-phases run in key order, so a step that reads a sibling's
+        // output must come AFTER it. A rewrite that shuffles the keys
+        // (a model handing the config back) would otherwise run the vote
+        // before the fakes were written and ballot only the truth.
+        for (const [subName, sub] of Object.entries(phase.subPhases)) {
+          if (!sub || typeof sub !== 'object') continue;
+          const refs = [];
+          if (Array.isArray(sub.choicePool)) {
+            for (const src of sub.choicePool) if (src && typeof src.from === 'string') refs.push(src.from);
+          }
+          for (const f of ['excludeAuthored', 'choices', 'input', 'content', 'from']) {
+            if (typeof sub[f] === 'string') refs.push(sub[f]);
+          }
+          for (const ref of refs) {
+            const head = ref.split('.')[0];
+            if (!subNames.includes(head) || head === subName) continue;
+            if (subNames.indexOf(head) > subNames.indexOf(subName)) {
+              // A warning, not an error: saved copies scrambled by an old
+              // jsonb round trip must still load (the load path repairs
+              // recipe-born ones from their stamp, engine/subphase-order.js).
+              warnings.push(
+                `Game "${gameId}": phase "${name}" subPhase "${subName}" reads from "${head}", which runs after it. Sub-phases run in the order listed; move "${head}" before "${subName}".`
+              );
+            }
+          }
+        }
         for (const [subName, sub] of Object.entries(phase.subPhases)) {
           if (!sub.type) {
             errors.push(
@@ -1144,6 +1170,19 @@ export function validate(config, gameId, options) {
             `Game "${gameId}": phase "${name}" rotateFrom "${phase.rotateFrom}" must point to a collect, collect-choice, or per-player ai-process step (got ${src.type})`
           );
         }
+      }
+    }
+
+    // dealItems: a teacher list handed out one per player (collect only),
+    // never alongside a rotation, which is the other way of dealing.
+    if (phase.dealItems !== undefined) {
+      if (phase.type !== 'collect') {
+        errors.push(`Game "${gameId}": phase "${name}" has dealItems, which only a collect step can use`);
+      } else if (!Array.isArray(phase.dealItems) || phase.dealItems.length === 0 ||
+                 phase.dealItems.some(s => typeof s !== 'string' || s.trim() === '')) {
+        errors.push(`Game "${gameId}": phase "${name}" dealItems must be a list of one or more non-empty strings`);
+      } else if (phase.rotateFrom) {
+        errors.push(`Game "${gameId}": phase "${name}" cannot use both dealItems and rotateFrom`);
       }
     }
 

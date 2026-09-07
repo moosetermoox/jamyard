@@ -46,7 +46,7 @@
         <button id="save-as-recipe-btn" hidden title="Turn this activity into a reusable template with fill-in-the-blank questions">Save as Recipe</button>
       </div>
       <button id="review-btn" class="btn btn-ghost" title="Robot players test-play your activity start to finish and report anything broken">Test with Robots</button>
-      <button id="test-game-btn" class="btn btn-ghost" title="Try the activity yourself with pretend players, no class needed">Simulate</button>
+      <button id="test-game-btn" class="btn btn-ghost" title="Try the activity yourself with pretend students, no class needed">Try it out</button>
       <button id="host-btn" class="btn btn-host" title="Save and open a live room with this activity, your class joins with the code on screen">▶ Host</button>
       <button id="save-btn" class="btn btn-ghost" title="Save your changes (the editor also auto-saves when you click away from a step)">Save</button>
     </div>
@@ -69,7 +69,11 @@
   <div id="editor-body">
     <!-- Left Sidebar: Activity Settings -->
     <aside id="settings-panel">
-      <h2>Activity Settings</h2>
+      <button id="settings-expand" class="panel-rail" type="button" title="Show the activity settings">Settings</button>
+      <div class="panel-head">
+        <h2>Activity Settings</h2>
+        <button id="settings-collapse" class="panel-collapse" type="button" title="Hide the settings, give the steps the room" aria-label="Hide settings" aria-expanded="true">&lsaquo;</button>
+      </div>
       <div class="form-group">
         <label for="game-name">Name</label>
         <input type="text" id="game-name" placeholder="Activity name">
@@ -167,9 +171,11 @@
          visibility). The bot proposes changes as cards; nothing touches
          the config until the teacher clicks Apply. -->
     <aside id="chat-panel" hidden>
+      <button id="chat-expand" class="panel-rail" type="button" title="Show Ask AI">Ask AI</button>
       <div class="chat-header">
         <h2>Design with AI</h2>
         <button id="chat-clear" class="btn-icon" type="button" title="Clear this conversation">Start over</button>
+        <button id="chat-collapse" class="panel-collapse" type="button" title="Hide Ask AI, give the steps the room" aria-label="Hide Ask AI" aria-expanded="true">&rsaquo;</button>
       </div>
       <div id="chat-messages"></div>
       <div id="chat-context-chip" hidden>
@@ -254,5 +260,6 @@
   <script src="builder-view.js"></script>
   <!-- Loads last: wraps renderCanvas (visibility sync must be outermost). -->
   <script src="chat-panel.js"></script>
+  <script src="panel-toggles.js"></script>
 </body>
 </html>

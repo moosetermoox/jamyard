@@ -1,6 +1,10 @@
 {
   "name": "Feedback Academy",
   "description": "Practice giving high-quality formative feedback on AI scenarios, then apply skills to real classmate work",
+  "tags": [
+    "reflect",
+    "discuss"
+  ],
   "phases": {
     "lobby": {
       "type": "lobby",
@@ -101,8 +105,5 @@
       "type": "end",
       "message": "You've completed Feedback Academy! Use these skills to help your classmates grow."
     }
-  },
-  "tags": [
-    "review"
-  ]
+  }
 }

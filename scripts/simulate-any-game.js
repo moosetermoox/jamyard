@@ -45,6 +45,24 @@ function generateResponse(prompt, playerName, index) {
     'A robot that only speaks in riddles and jokes',
     'Flying tacos raining from the sky during recess'
   ];
+  // Bluff rounds ask for a fake title / lie for someone else's work: a
+  // second list, so a bot's fake never equals its own earlier phrase (which
+  // deduped the truth out of the ballot and read as "only one option").
+  var fakes = [
+    'The last slice of pizza escaping the box',
+    'A giraffe learning to skateboard',
+    'Grandma\'s cat running for mayor',
+    'A volcano that only erupts confetti',
+    'Two clouds arguing about the weather',
+    'The world\'s smallest marching band',
+    'A sandwich with a secret identity',
+    'Ducks holding a very serious meeting',
+    'A snowman on a beach holiday',
+    'The moon ordering takeout'
+  ];
+  if (/\b(title|fake|lie|bluff|caption)\b/i.test(prompt || '')) {
+    return fakes[index % fakes.length] + ` - from ${playerName}`;
+  }
   return responses[index % responses.length] + ` - from ${playerName}`;
 }
 

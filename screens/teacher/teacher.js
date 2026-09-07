@@ -216,8 +216,20 @@ socket.on('connect', function () {
 
 // --- Phase tracking: decides which controls show ---
 
+// The drawing the class is looking at this round (Doodle Bluff's title
+// and vote steps): strokes only, drawn on the console's own canvas.
+var phaseDrawingBlock = document.getElementById('phase-drawing-block');
+var phaseDrawingCanvas = document.getElementById('phase-drawing');
+function renderPhaseDrawing(strokes) {
+  if (!phaseDrawingBlock) return;
+  var has = Array.isArray(strokes) && strokes.length > 0 && window.Draw;
+  phaseDrawingBlock.hidden = !has;
+  if (has) Draw.renderStrokes(phaseDrawingCanvas, strokes);
+}
+
 function setPhase(data) {
   var phaseType = data.phaseType;
+  renderPhaseDrawing(data.displayDrawing);
   currentPhaseType = phaseType;
   if (data.phaseInstanceId !== undefined && data.phaseInstanceId !== null) {
     currentPhaseInstanceId = data.phaseInstanceId;

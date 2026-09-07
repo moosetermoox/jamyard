@@ -27,6 +27,11 @@
   function set(code, strings) {
     lang = typeof code === 'string' && code ? code : 'en';
     table = strings && typeof strings === 'object' ? strings : {};
+    // The document's lang follows the activity's, so screen readers pick
+    // the right voice for the fixed labels.
+    if (typeof document !== 'undefined' && document.documentElement) {
+      document.documentElement.lang = lang;
+    }
   }
 
   function current() { return lang; }

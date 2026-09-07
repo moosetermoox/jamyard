@@ -1,6 +1,9 @@
 {
   "name": "Exit Ticket",
   "description": "Two quick questions students answer as they arrive or before they leave. No waiting for the class, and the answers stay private to you.",
+  "tags": [
+    "review"
+  ],
   "playTime": "~5 min",
   "start": "rolling",
   "anonymous": false,

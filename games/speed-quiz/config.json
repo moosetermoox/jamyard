@@ -1,6 +1,13 @@
 {
   "name": "Speed Quiz",
   "description": "Trivia questions, faster correct answers earn more points. Swap in your own questions.",
+  "tags": [
+    "review",
+    "quiz",
+    "trivia",
+    "kahoot-style",
+    "energize"
+  ],
   "featured": true,
   "recipe": {
     "id": "quiz-show",
@@ -188,13 +195,6 @@
   },
   "playTime": "~5 min",
   "classSize": "1-30 players",
-  "tags": [
-    "quiz",
-    "trivia",
-    "kahoot-style",
-    "energize",
-    "review"
-  ],
   "recommendedFor": "Quick warm-up or unit review. Swap the five questions in the editor for any topic, the speed scoring does the rest.",
   "keywords": [
     "test prep",

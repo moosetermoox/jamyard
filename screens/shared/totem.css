@@ -66,7 +66,7 @@
 
   /* Muted text */
   --t-muted: #6B6250;        /* on gesso */
-  --t-muted-caps: #8A7B62;   /* small spaced-caps labels only */
+  --t-muted-caps: #766A52;   /* small spaced-caps labels only; 4.5:1 on gesso (a11y audit 2026-09-06, was #8A7B62) */
   --t-muted-wood: #6B4E2A;   /* meta on wood */
 
   /* Material */

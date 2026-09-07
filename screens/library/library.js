@@ -32,7 +32,7 @@ var GOAL_LABELS = {
   energize: 'Energize'
 };
 
-// Six piles (Totem: 10d + popup): three personal shelves, then the three
+// Seven piles (Totem: 10d + popup): three personal shelves, then the four
 // broad goal piles. Placement precedence differs from display order: your
 // own copies always live in CUSTOMIZED, hearts beat recency, and each
 // activity stands in exactly one pile.
@@ -45,6 +45,7 @@ var PILE_GROUPS = [
   // shelf filter reads too.
   { key: 'connect', label: 'Connect', goals: GoalGroups.goalsIn('connect') },
   { key: 'think', label: 'Think', goals: GoalGroups.goalsIn('think') },
+  { key: 'review', label: 'Review', goals: GoalGroups.goalsIn('review') },
   { key: 'play', label: 'Play', goals: GoalGroups.goalsIn('play') }
 ];
 
@@ -60,7 +61,16 @@ function goalGroupOf(game) {
 
 var allGames = [];
 var libraryQuery = '';
-var activeGoal = null; // a PILE_GROUPS goal key: connect | think | play
+var activeGoal = null; // a PILE_GROUPS goal key: connect | think | review | play
+
+// Time chips: the minutes a teacher has, against the server's estimate
+// (`minutes` on /api/games, computed from the timers).
+var TIME_GROUPS = [
+  { key: 5, label: 'Under 5 min' },
+  { key: 10, label: 'Under 10 min' },
+  { key: 20, label: 'Under 20 min' }
+];
+var activeMinutes = null; // a TIME_GROUPS key, or null for any length
 
 function applyVisibility(games) {
   if (!window.GameVisibility) return games;
@@ -84,8 +94,37 @@ function matchesGoal(game) {
   return false;
 }
 
+function matchesMinutes(game) {
+  if (!activeMinutes) return true;
+  return typeof game.minutes === 'number' && game.minutes <= activeMinutes;
+}
+
+function buildTimeChips(games) {
+  var chipsEl = document.getElementById('time-chips');
+  if (!chipsEl) return;
+  chipsEl.innerHTML = '';
+  TIME_GROUPS.forEach(function (group) {
+    var count = 0;
+    for (var i = 0; i < games.length; i++) {
+      if (typeof games[i].minutes === 'number' && games[i].minutes <= group.key) count++;
+    }
+    if (count === 0 && group.key !== activeMinutes) return;
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'goal-chip time-chip' + (group.key === activeMinutes ? ' active' : '');
+    chip.textContent = group.label + ' ' + count;
+    chip.setAttribute('aria-pressed', group.key === activeMinutes ? 'true' : 'false');
+    chip.addEventListener('click', function () {
+      activeMinutes = (activeMinutes === group.key) ? null : group.key;
+      refreshLibrary();
+    });
+    chipsEl.appendChild(chip);
+  });
+}
+
 function matchesFilters(game) {
   if (!matchesGoal(game)) return false;
+  if (!matchesMinutes(game)) return false;
   if (libraryQuery) {
     var hay = (game.name + ' ' + (game.description || '') + ' ' +
       (Array.isArray(game.tags) ? game.tags.join(' ') : '') + ' ' +
@@ -127,6 +166,7 @@ function refreshLibrary() {
   var visible = applyVisibility(allGames);
   document.getElementById('library-controls').hidden = visible.length === 0;
   buildGoalChips(visible);
+  buildTimeChips(visible);
   var filtered = visible.filter(matchesFilters);
   // Subject-search rescue (2026-08-08 field test): the activities are
   // topic-agnostic shells, so "history" matching nothing is our failure to
@@ -216,10 +256,11 @@ function renderLibrary(games, rescueQuery) {
   }
 
   // Teacher view (Totem 9g): a compact personal shelf up top, then the
-  // three yard piles with their painted labels below. Each activity
+  // yard piles with their painted labels below. Each activity
   // stands in exactly one place; placement precedence: yours → hearted →
   // recently used → home goal pile.
-  var piles = { recent: [], favorites: [], customized: [], connect: [], think: [], play: [] };
+  var piles = { recent: [], favorites: [], customized: [] };
+  GoalGroups.GROUPS.forEach(function (group) { piles[group.key] = []; });
   var placed = {};
   var shedGames = [];
 
@@ -272,7 +313,8 @@ function renderLibrary(games, rescueQuery) {
 
   var shelf = document.createElement('div');
   shelf.className = 'pile-shelf';
-  ['connect', 'think', 'play'].forEach(function (key) {
+  GoalGroups.GROUPS.forEach(function (group) {
+    var key = group.key;
     if (piles[key].length === 0) return;
     var group = null;
     for (var i = 0; i < PILE_GROUPS.length; i++) {
@@ -289,9 +331,9 @@ function renderLibrary(games, rescueQuery) {
 var PILE_MAX = 6;
 var expandedPiles = {};
 
-// Each pile starts its paint cycle somewhere else, so the three piles
-// never share the same top color.
-var PILE_TONE_OFFSET = { connect: 0, think: 3, play: 6 };
+// Each pile starts its paint cycle somewhere else, so no two piles
+// share the same top color.
+var PILE_TONE_OFFSET = { connect: 0, think: 2, review: 4, play: 6 };
 
 function buildPileGroup(key, label, games) {
   var group = document.createElement('div');
@@ -441,6 +483,15 @@ function buildPlank(game, index) {
     meta.textContent = metaBits.join(' · ');
     plank.appendChild(meta);
   }
+  // One line on what it is for, so the plank can be understood without
+  // opening it (outside review, 2026-09-06). Server-derived: the recipe's
+  // tagline or the description's first sentence.
+  if (game.hook) {
+    var hook = document.createElement('span');
+    hook.className = 'plank-hook';
+    hook.textContent = game.hook;
+    plank.appendChild(hook);
+  }
 
   plank.addEventListener('click', function () {
     openActivityDialog(game);
@@ -479,6 +530,14 @@ function buildMyYardShelf(games, shedGames) {
   tag.className = 'pile-tag pile-tag-mine';
   tag.textContent = 'My yard';
   wrap.appendChild(tag);
+  // Where these live, and how to carry one somewhere else (outside review,
+  // 2026-09-06: teachers could not tell that copies are per-browser).
+  if (games.length > 0) {
+    var note = document.createElement('p');
+    note.className = 'myyard-note';
+    note.textContent = 'Your copies live in this browser. Open one and use Share for a link that works on any device.';
+    outer.appendChild(note);
+  }
 
   if (shedGames && shedGames.length > 0) {
     var shedToggle = document.createElement('button');
@@ -612,9 +671,9 @@ function openActivityDialog(game) {
     var previewBtn = document.createElement('a');
     previewBtn.className = 'game-card-preview';
     previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
-    previewBtn.textContent = 'Simulate';
-    previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
-    previewBtn.setAttribute('aria-label', 'Simulate "' + game.name + '" with practice players');
+    previewBtn.textContent = 'Try it out';
+    previewBtn.title = 'See the teacher and student screens side by side, with pretend students, no class needed';
+    previewBtn.setAttribute('aria-label', 'Try out "' + game.name + '" with pretend students');
     previewBtn.addEventListener('click', rememberRecent);
     actions.appendChild(previewBtn);
 
@@ -883,9 +942,9 @@ function buildCard(game) {
     var previewBtn = document.createElement('a');
     previewBtn.className = 'game-card-preview';
     previewBtn.href = '/prototype?game=' + encodeURIComponent(game.id);
-    previewBtn.textContent = 'Simulate';
-    previewBtn.title = 'See the teacher and student screens side by side, with practice players, no class needed';
-    previewBtn.setAttribute('aria-label', 'Simulate "' + game.name + '" with practice players');
+    previewBtn.textContent = 'Try it out';
+    previewBtn.title = 'See the teacher and student screens side by side, with pretend students, no class needed';
+    previewBtn.setAttribute('aria-label', 'Try out "' + game.name + '" with pretend students');
     previewBtn.addEventListener('click', rememberRecent);
     actions.appendChild(previewBtn);
 
@@ -1017,8 +1076,8 @@ function saveCopyAndReturn(config, dest) {
 var COPY_DOORS = [
   { dest: 'designer', label: 'Continue setup in the designer',
     title: 'Save your copy and open it in the editor' },
-  { dest: 'simulate', label: 'See it in the simulator',
-    title: 'Save your copy and watch it run with practice players, no class needed' },
+  { dest: 'simulate', label: 'Try it out with pretend students',
+    title: 'Save your copy and watch it run with pretend students, no class needed' },
   { dest: 'host', label: 'Host it now',
     title: 'Save your copy and start a live room your class can join right now' }
 ];
@@ -1033,14 +1092,23 @@ function makeItYoursDoors(onPick) {
     btn.className = 'recipe-create-btn door-' + door.dest;
     btn.textContent = door.label;
     btn.title = door.title;
-    btn.addEventListener('click', function () { onPick(door.dest); });
+    // The picked door says so while the copy is made: the AI rewording
+    // can take half a minute and the status line below is easy to miss
+    // (owner clicked "See it in the simulator" and saw nothing, 2026-09-06).
+    btn.addEventListener('click', function () {
+      btn.textContent = 'Making your copy…';
+      onPick(door.dest);
+    });
     row.appendChild(btn);
     return btn;
   });
   return {
     row: row,
     setDisabled: function (flag) {
-      buttons.forEach(function (b) { b.disabled = !!flag; });
+      buttons.forEach(function (b, i) {
+        b.disabled = !!flag;
+        if (!flag) b.textContent = COPY_DOORS[i].label;
+      });
     }
   };
 }
@@ -1942,8 +2010,14 @@ function showCustomizeDialog(game, config, questions, knobs) {
     knobsHeading.textContent = 'Set it up:';
     modal.appendChild(knobsHeading);
 
+    // Each knob is one row so a knob can hide behind another's value
+    // (setup.showWhen: the teacher's phrase list only when "teacher" is
+    // picked). knobInputs entries carry the row and a value reader.
     knobs.forEach(function (knob) {
       var input;
+      var row = document.createElement('div');
+      row.className = 'knob-row';
+      modal.appendChild(row);
       if (knob.kind === 'boolean') {
         var boolLabel = document.createElement('label');
         boolLabel.style.cssText = LABEL_CSS + ' cursor:pointer;';
@@ -1954,15 +2028,16 @@ function showCustomizeDialog(game, config, questions, knobs) {
         boolLabel.appendChild(input);
         boolLabel.appendChild(document.createTextNode(knob.label));
         if (knob.helper) boolLabel.title = knob.helper;
-        modal.appendChild(boolLabel);
-        knobInputs.push({ knob: knob, getValue: function (el) {
+        row.appendChild(boolLabel);
+        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
           return function () { return el.checked; };
         }(input) });
       } else if (knob.kind === 'enum') {
         var enumLabel = document.createElement('label');
         enumLabel.style.cssText = LABEL_CSS;
         enumLabel.textContent = knob.label;
-        modal.appendChild(enumLabel);
+        if (knob.helper) enumLabel.title = knob.helper;
+        row.appendChild(enumLabel);
         input = document.createElement('select');
         input.style.cssText = 'width:100%; ' + INPUT_CSS;
         (knob.values || []).forEach(function (v) {
@@ -1972,9 +2047,58 @@ function showCustomizeDialog(game, config, questions, knobs) {
           if (String(v) === String(knob.value)) opt.selected = true;
           input.appendChild(opt);
         });
-        modal.appendChild(input);
-        knobInputs.push({ knob: knob, getValue: function (el) {
+        row.appendChild(input);
+        if (knob.helper) {
+          var enumHelp = document.createElement('p');
+          enumHelp.className = 'field-help';
+          enumHelp.style.cssText = 'margin:6px 0 0; font-size:0.85rem; color:#6B6250;';
+          enumHelp.textContent = knob.helper;
+          row.appendChild(enumHelp);
+        }
+        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
           return function () { return el.value; };
+        }(input) });
+      } else if (knob.kind === 'lines') {
+        var linesLabel = document.createElement('label');
+        linesLabel.style.cssText = LABEL_CSS;
+        linesLabel.textContent = knob.label;
+        row.appendChild(linesLabel);
+        input = document.createElement('textarea');
+        input.rows = 8;
+        input.value = (knob.value || []).join('\n');
+        input.style.cssText = 'width:100%; resize:vertical; ' + INPUT_CSS;
+        row.appendChild(input);
+        if (knob.helper) {
+          var linesHelp = document.createElement('p');
+          linesHelp.style.cssText = 'margin:6px 0 0; font-size:0.85rem; color:#6B6250;';
+          linesHelp.textContent = knob.helper;
+          row.appendChild(linesHelp);
+        }
+        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
+          return function () {
+            return el.value.split('\n').map(function (s) { return s.trim(); })
+              .filter(function (s) { return s.length > 0; });
+          };
+        }(input) });
+      } else if (knob.kind === 'text') {
+        var textLabel = document.createElement('label');
+        textLabel.style.cssText = LABEL_CSS;
+        textLabel.textContent = knob.label;
+        row.appendChild(textLabel);
+        input = document.createElement('input');
+        input.type = 'text';
+        input.value = knob.value || '';
+        input.maxLength = 200;
+        input.style.cssText = 'width:100%; ' + INPUT_CSS;
+        row.appendChild(input);
+        if (knob.helper) {
+          var textHelp = document.createElement('p');
+          textHelp.style.cssText = 'margin:6px 0 0; font-size:0.85rem; color:#6B6250;';
+          textHelp.textContent = knob.helper;
+          row.appendChild(textHelp);
+        }
+        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
+          return function () { return el.value.trim(); };
         }(input) });
       } else {
         // count + integer share a number input
@@ -1983,15 +2107,15 @@ function showCustomizeDialog(game, config, questions, knobs) {
         numLabel.textContent = knob.label +
           (knob.min != null && knob.max != null ? ' (' + knob.min + '–' + knob.max + ')' : '');
         if (knob.helper) numLabel.title = knob.helper;
-        modal.appendChild(numLabel);
+        row.appendChild(numLabel);
         input = document.createElement('input');
         input.type = 'number';
         if (knob.min != null) input.min = knob.min;
         if (knob.max != null) input.max = knob.max;
         input.value = knob.value;
         input.style.cssText = 'width:120px; ' + INPUT_CSS;
-        modal.appendChild(input);
-        knobInputs.push({ knob: knob, getValue: function (el, k) {
+        row.appendChild(input);
+        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el, k) {
           return function () {
             var n = parseInt(el.value, 10);
             if (isNaN(n)) return k.value; // blank/garbage = leave it alone
@@ -2002,6 +2126,20 @@ function showCustomizeDialog(game, config, questions, knobs) {
         }(input, knob) });
       }
     });
+
+    // showWhen: re-check which rows show whenever any knob changes
+    function refreshKnobRows() {
+      var values = {};
+      knobInputs.forEach(function (ki) { values[ki.knob.name] = ki.getValue(); });
+      knobInputs.forEach(function (ki) {
+        ki.row.hidden = !SetupKnobs.knobVisible(ki.knob, values);
+      });
+    }
+    knobInputs.forEach(function (ki) {
+      ki.input.addEventListener('change', refreshKnobRows);
+      ki.input.addEventListener('input', refreshKnobRows);
+    });
+    refreshKnobRows();
   }
 
   // Only introduce the AI questions when there are any to answer.
@@ -2125,7 +2263,9 @@ function showCustomizeDialog(game, config, questions, knobs) {
   function anyKnobTouched() {
     return knobInputs.some(function (ki) {
       var now = ki.getValue();
-      return ki.knob.kind === 'boolean' ? now !== ki.knob.value : String(now) !== String(ki.knob.value);
+      if (ki.knob.kind === 'boolean') return now !== ki.knob.value;
+      if (ki.knob.kind === 'lines') return JSON.stringify(now) !== JSON.stringify(ki.knob.value);
+      return String(now) !== String(ki.knob.value);
     });
   }
 
@@ -2450,7 +2590,7 @@ function renderSetupCard() {
   // nobody reads the bullet wall). Marks are drawn CSS shapes, not emojis.
   var introRows = [
     { icon: 'pick', text: 'Pick an activity and make it yours.' },
-    { icon: 'play', text: 'Simulate it first, no class needed.' },
+    { icon: 'play', text: 'Try it out first, no class needed.' },
     { icon: 'board', text: 'Then host it, projected up front.' },
     { icon: 'code', text: 'Students join with a room code. No accounts.' }
   ];

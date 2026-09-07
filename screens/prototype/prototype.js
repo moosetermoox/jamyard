@@ -225,7 +225,7 @@ function askSkipTo(index) {
     text.textContent = 'You are on this step now.';
     btns.appendChild(closeBtn('OK'));
   } else if (here !== -2 && index < here) {
-    text.textContent = 'That step already happened. Press Reset and simulate again to see it.';
+    text.textContent = 'That step already happened. Press Reset and try again to see it.';
     btns.appendChild(closeBtn('OK'));
   } else {
     text.textContent = 'Skip ahead to ' + name + '? Pretend students play through the steps in between.';
@@ -390,24 +390,51 @@ const prelaunchStage = document.getElementById('prelaunch-stage');
 // every existing relaunch path listens to its change event.
 const seatBlocks = document.getElementById('seat-blocks');
 
+// One radio group, not eight toggle buttons: the filled blocks are a
+// picture of the count, so only the SELECTED seat is "checked" (a screen
+// reader hearing "1 pressed, 2 pressed, 3 pressed, 4 pressed" for a count
+// of four was the accessibility review's complaint). Roving tabindex: the
+// selected seat is the one Tab lands on, arrow keys move the selection.
+const SEAT_MAX = 8;
+
+function selectSeatCount(n, focusSeat) {
+  const next = Math.min(SEAT_MAX, Math.max(1, n));
+  playerCount.value = next;
+  playerCountDisplay.textContent = String(next);
+  renderSeats();
+  if (focusSeat) {
+    const target = seatBlocks.querySelector('.seat-block[aria-checked="true"]');
+    if (target) target.focus();
+  }
+  playerCount.dispatchEvent(new Event('change'));
+}
+
 function renderSeats() {
   if (!seatBlocks) return;
   const count = parseInt(playerCount.value, 10);
   seatBlocks.textContent = '';
-  for (let i = 1; i <= 8; i++) {
+  for (let i = 1; i <= SEAT_MAX; i++) {
     const seat = document.createElement('button');
     seat.type = 'button';
     const filled = i <= count;
+    const selected = i === count;
     seat.className = 'seat-block ' + (filled ? 'seat-c' + ((i - 1) % 5) : 'seat-empty');
     seat.style.setProperty('--rot', (((i % 2) ? -1 : 1) * (0.8 + (i % 3) * 0.4)).toFixed(1) + 'deg');
     seat.title = i === 1 ? '1 player' : i + ' players';
+    seat.setAttribute('role', 'radio');
     seat.setAttribute('aria-label', i === 1 ? '1 pretend student' : i + ' pretend students');
-    seat.setAttribute('aria-pressed', filled ? 'true' : 'false');
-    seat.addEventListener('click', () => {
-      playerCount.value = i;
-      playerCountDisplay.textContent = String(i);
-      renderSeats();
-      playerCount.dispatchEvent(new Event('change'));
+    seat.setAttribute('aria-checked', selected ? 'true' : 'false');
+    seat.tabIndex = selected ? 0 : -1;
+    seat.addEventListener('click', () => selectSeatCount(i, false));
+    seat.addEventListener('keydown', (e) => {
+      let next = null;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = i + 1;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = i - 1;
+      else if (e.key === 'Home') next = 1;
+      else if (e.key === 'End') next = SEAT_MAX;
+      if (next === null) return;
+      e.preventDefault();
+      selectSeatCount(next, true);
     });
     seatBlocks.appendChild(seat);
   }
@@ -545,6 +572,7 @@ launchBtn.addEventListener('click', () => {
   hostWrapper.appendChild(hostLabel);
 
   const hostIframe = document.createElement('iframe');
+  hostIframe.title = 'Teacher screen';
   hostIframe.src = '/host?game=' + encodeURIComponent(gameId) + '&prototype=true';
   hostWrapper.appendChild(hostIframe);
   iframeContainer.appendChild(hostWrapper);
@@ -585,6 +613,7 @@ function addPlayerPanel(code, i) {
   wrapper.appendChild(label);
 
   const iframe = document.createElement('iframe');
+  iframe.title = 'Player ' + i + ' screen';
   iframe.src = '/player?prototype=true&code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent('Player ' + i);
   // Same-origin embed; lets the mic button work during teacher previews.
   iframe.allow = 'microphone';
@@ -638,25 +667,32 @@ function refreshAddSlot() {
 // e.g. the vote phase before the user can see it).
 botFillBtn.addEventListener('click', () => {
   const fire = fireBotFill;
-  const isHostInRelay = () => {
+  // Steps where one shot cannot finish the job: relay (turns rotate, only
+  // the active player can submit) and merge (one pen per pair: the writer
+  // agrees first and the partner only after the draft settles, so a single
+  // shot left every pair at "1 of 2 agreed"; reviewer 2026-09-06).
+  const isHostInLoopStep = () => {
     const hostIframe = iframeContainer.querySelector('.host-panel iframe');
     if (!hostIframe) return false;
     try {
-      const sec = hostIframe.contentDocument && hostIframe.contentDocument.getElementById('relay-section');
-      return !!(sec && !sec.hidden);
+      const doc = hostIframe.contentDocument;
+      return ['relay-section', 'merge-section'].some((id) => {
+        const sec = doc && doc.getElementById(id);
+        return !!(sec && !sec.hidden && sec.classList.contains('active'));
+      });
     } catch (_) {
       return false; // cross-origin fallback — single shot is the safe default
     }
   };
 
   fire();
-  if (!isHostInRelay()) return;
+  if (!isHostInLoopStep()) return;
 
-  // Relay loop: keep firing while the host stays in relay-section. Hard cap of
-  // ~15s keeps it from running forever if something goes wrong.
+  // Keep firing while the host stays in that step. Hard cap of ~15s keeps
+  // it from running forever if something goes wrong.
   let shots = 25;
   const id = setInterval(() => {
-    if (--shots <= 0 || !isHostInRelay()) {
+    if (--shots <= 0 || !isHostInLoopStep()) {
       clearInterval(id);
       return;
     }

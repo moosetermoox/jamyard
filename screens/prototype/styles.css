@@ -739,7 +739,7 @@ body.pt-running #host-btn {
 .add-player-slot {
   border: 3px dashed rgba(110, 75, 40, 0.4);
   background: var(--t-gesso);
-  color: #A08A68;
+  color: var(--t-muted-caps, #766A52);
   font-family: var(--t-display);
   font-weight: 800;
   font-size: 0.8rem;
@@ -838,7 +838,7 @@ body.pt-running #host-btn {
   font-size: 0.68rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #A08A68;
+  color: var(--t-muted-caps, #766A52);
 }
 
 #prelaunch-hint {

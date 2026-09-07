@@ -1,6 +1,9 @@
 {
   "name": "Solo Quiz",
   "description": "Five quick questions each student answers at their own pace. No race, and the projector shows progress only. Swap in your own questions.",
+  "tags": [
+    "review"
+  ],
   "playTime": "~10 min",
   "start": "rolling",
   "phases": {
