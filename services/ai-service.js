@@ -1602,7 +1602,7 @@ Teacher's description of the activity they want:
 ${description}`
         }]
       });
-      const raw = message.content[0].text;
+      const raw = extractText(message);
       let parsed;
       try {
         parsed = JSON.parse(raw);

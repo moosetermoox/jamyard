@@ -42,6 +42,23 @@ describe('generateStoryboard honesty', () => {
     expect(prompt).toContain('shuffled order');
   });
 
+  // 2026-09-07: Sonnet 5 replies open with a thinking block, so reading
+  // content[0].text threw on every real storyboard call for four days
+  // ("Cannot read properties of undefined (reading 'match')"). The text
+  // block must be found wherever it sits.
+  it('reads the text block behind a leading thinking block', async () => {
+    const service = new AIService({ mode: 'real' });
+    service._callClaude = async () => ({
+      content: [
+        { type: 'thinking', thinking: 'weighing the bricks' },
+        { type: 'text', text: JSON.stringify({ name: 'X', description: 'y', steps: [{ brick: 'end', text: 'Bye' }] }) }
+      ]
+    });
+    const result = await service.generateStoryboard('anything');
+    expect(result.error).toBeUndefined();
+    expect(result.steps).toHaveLength(1);
+  });
+
   it('returns the cantBuild shape when the AI declines', async () => {
     const service = new AIService({ mode: 'real' });
     service._callClaude = async () => textResponse({
