@@ -89,12 +89,16 @@ try {
   await send('Page.enable');
   await send('Page.navigate', { url });
   await new Promise(r => setTimeout(r, waitMs));
-  // SHOT_CLICK=<css selector>: click it (and wait a beat) before the capture,
-  // for states a URL cannot reach (an opened Launch row, a tab).
+  // SHOT_CLICK=<css selector[ ; selector ...]>: click each in order, a
+  // beat apart (SHOT_CLICK_WAIT ms, default 600), before the capture, for
+  // states a URL cannot reach (an opened Launch row, a popup's button).
   if (process.env.SHOT_CLICK) {
-    const sel = JSON.stringify(process.env.SHOT_CLICK);
-    await send('Runtime.evaluate', { expression: `(function(){var el=document.querySelector(${sel});if(el)el.click();return !!el;})()` });
-    await new Promise(r => setTimeout(r, 400));
+    const pause = parseInt(process.env.SHOT_CLICK_WAIT || '600', 10);
+    for (const one of process.env.SHOT_CLICK.split(' ; ')) {
+      const sel = JSON.stringify(one.trim());
+      await send('Runtime.evaluate', { expression: `(function(){var el=document.querySelector(${sel});if(el)el.click();return !!el;})()` });
+      await new Promise(r => setTimeout(r, pause));
+    }
   }
   const shot = await send('Page.captureScreenshot', { format: 'png' });
   writeFileSync(outfile, Buffer.from(shot.data, 'base64'));

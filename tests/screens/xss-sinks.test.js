@@ -32,6 +32,8 @@ const FILES = [
   'screens/designer/builder-view.js',
   'screens/designer/chat-panel.js',
   'screens/shared/step-suggestions.js',
+  'screens/shared/make-it-yours.js',
+  'screens/shared/make-it-yours-doors.js',
   'screens/feedback/feedback.js',
   'screens/shared/feedback-widget.js',
   'screens/shared/game-visibility.js',

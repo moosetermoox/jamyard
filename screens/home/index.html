@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="/shared/totem.css">
   <link rel="stylesheet" href="/shared/activity-map.css">
   <link rel="stylesheet" href="/shared/hover-card.css">
+  <link rel="stylesheet" href="/shared/make-it-yours-doors.css">
+  <link rel="stylesheet" href="/shared/make-it-yours.css">
   <style>
     /* ══ Totem system (docs/design/totem/), home 13a (2026-09-05) ══
        Teacher-first front door: the headline and the ONE red action on the
@@ -858,6 +860,8 @@
     .home-dialog-host,
     .home-dialog-customize {
       display: inline-block;
+      border: none;
+      cursor: pointer;
       font-family: var(--t-display);
       font-weight: 800;
       font-size: 14px;
@@ -1076,6 +1080,13 @@
   <script src="/shared/phase-names.js"></script>
   <script src="/shared/activity-map.js"></script>
   <script src="/shared/hover-card.js"></script>
+  <script src="/shared/activity-prefs.js"></script>
+  <script src="/shared/teacher-profile.js"></script>
+  <script src="/shared/speech-input.js"></script>
+  <script src="/shared/setup-knobs.js"></script>
+  <script src="/shared/growing-text.js"></script>
+  <script src="/shared/make-it-yours-doors.js"></script>
+  <script src="/shared/make-it-yours.js"></script>
   <script>
     // ── The projector carousel + the shelf: both read the same list the
     //    yard shows (featured built-ins + this device's own creations). ──
@@ -1293,11 +1304,21 @@
         hostBtn.textContent = 'Host this';
         hostBtn.title = 'Open a room for "' + g.name + '" right now';
         actions.appendChild(hostBtn);
-        var customize = document.createElement('a');
+        // Make it yours opens right here (owner's call 2026-09-07: no jump
+        // to the yard); the shared flow stacks its dialog over this one.
+        var customize = document.createElement('button');
+        customize.type = 'button';
         customize.className = 'home-dialog-customize';
-        customize.href = '/library?customize=' + encodeURIComponent(g.id);
         customize.textContent = 'Make it yours';
         customize.title = 'Make your own editable copy of "' + g.name + '"';
+        customize.addEventListener('click', function () {
+          if (!window.MakeItYours) {
+            window.location.href = '/library?customize=' + encodeURIComponent(g.id);
+            return;
+          }
+          MakeItYours.seedIds(games.map(function (x) { return x.id; }));
+          MakeItYours.open(g, customize);
+        });
         actions.appendChild(customize);
         var seeall = document.createElement('a');
         seeall.className = 'home-dialog-seeall';
