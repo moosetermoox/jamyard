@@ -40,6 +40,7 @@ export const EVENTS = {
   RESPONSE_RECEIVED:    'response-received',
   LIVE_TALLY:           'live-tally',          // server -> host: live poll chart rows (counts only)
   RESPONSE_REJECTED:    'response-rejected',
+  RESPONSE_ACCEPTED:    'response-accepted',    // server -> submitting player only: stored, safe to show "submitted"
   CLOSE_SUBMISSIONS:    'close-submissions',
 
   // --- Holding screens (2026-08-08 field test: waits had zero content) ---

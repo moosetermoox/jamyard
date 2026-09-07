@@ -15,6 +15,7 @@ import { PHASE_SCHEMAS, getFields, getTopLevelOnlyFieldNames } from './engine/ph
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
 import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
 import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submits.js';
+import { parseRequestedMinutes, timingReport, paramsForTrim } from './engine/duration-estimate.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
@@ -2955,9 +2956,10 @@ app.post('/api/games/from-description', async (req, res) => {
     // already exists as a finished activity ("Human or AI") gets pointed
     // at it instead of falling through to the storyboard (2026-08-22).
     let matchGames = [];
+    let loadedGames = [];
     if (!recipeId) {
-      const loaded = await listGames();
-      matchGames = loaded
+      loadedGames = await listGames();
+      matchGames = loadedGames
         .filter(g => g.source === 'built-in')
         .map(({ id, config }) => ({
           id,
@@ -2966,6 +2968,11 @@ app.post('/api/games/from-description', async (req, res) => {
           playTime: config.playTime || null
         }));
     }
+
+    // The time budget the teacher named ("a five-minute warm up"), checked
+    // by the server against the real configuration below. The AI is told
+    // never to claim a timing fit (engine/duration-estimate.js).
+    const requestedMinutes = parseRequestedMinutes(description);
 
     console.log(`[api/games/from-description] Matching: "${description.substring(0, 80)}..."`);
     const match = await aiService.matchRecipe(description, recipes, { forced: !!recipeId, games: matchGames });
@@ -2984,10 +2991,14 @@ app.post('/api/games/from-description', async (req, res) => {
     if (match.game) {
       const existing = matchGames.find(g => g.id === match.game);
       if (existing) {
+        const existingConfig = (loadedGames.find(g => g.id === match.game) || {}).config;
         return res.json({
           existingGame: existing,
           explanation: match.explanation || '',
-          alternates: resolveAlternates(match.alternates, null)
+          alternates: resolveAlternates(match.alternates, null),
+          // Report only: the teacher copies this one from the yard, so a
+          // trimmed config has nowhere to go here.
+          timing: existingConfig ? timingReport(existingConfig, requestedMinutes, { trim: false }) : null
         });
       }
       // AI invented an activity id — fall through to no-match.
@@ -3030,12 +3041,31 @@ app.post('/api/games/from-description', async (req, res) => {
 
     const alternates = resolveAlternates(match.alternates, recipe.id);
 
+    // A contextual name ("Snowball: Causes of WWI") beats the recipe's
+    // generic one on a saved copy; the recipe name alone is left as is.
+    if (match.title && match.title.toLowerCase() !== String(recipe.name || '').toLowerCase()) {
+      config.name = match.title;
+    }
+
     // Human labels for the preview's param list — the recipe's own
     // parameter labels, so the teacher never reads raw ids like
     // "tier1Prompts".
     const paramLabels = {};
     for (const [pname, spec] of Object.entries(recipe.parameters || {})) {
       if (spec && spec.label) paramLabels[pname] = spec.label;
+    }
+
+    // Computed from the timers, never from the AI: the estimate, the
+    // teacher's requested minutes, and a trimmed copy when it runs over.
+    // A trimmed timer that came from a recipe parameter moves the
+    // parameter too (settings list, provenance stamp) so nothing lies.
+    const timing = timingReport(config, requestedMinutes);
+    if (timing.trim) {
+      const mapped = paramsForTrim((recipe.template || {}).phases, match.params || {}, timing.trim.changes);
+      timing.trim.params = mapped.params;
+      if (mapped.changed.length && timing.trim.config.recipe && timing.trim.config.recipe.params) {
+        timing.trim.config.recipe.params = { ...timing.trim.config.recipe.params, ...mapped.params };
+      }
     }
 
     res.json({
@@ -3045,7 +3075,8 @@ app.post('/api/games/from-description', async (req, res) => {
       paramLabels,
       explanation: match.explanation || '',
       alternates,
-      map: buildActivityMap(config)
+      map: buildActivityMap(config),
+      timing
     });
   } catch (error) {
     console.log(`[api/games/from-description] Error: ${error.message}`);
@@ -3606,6 +3637,11 @@ io.on('connection', (socket) => {
       recordEvent(room, 'submit-response', { player: player.name });
       if (releaseHold) releaseHold();
     }
+
+    // The student's screen says "Answer submitted" only now: the server has
+    // stored it. Until this lands the student sees "Sending..." (a filtered
+    // or lost answer must never look submitted; reviewer finding 2026-09-06).
+    socket.emit(EVENTS.RESPONSE_ACCEPTED, { phaseInstanceId: room.phaseInstanceId });
 
     // Count based on eligible players for current collect phase
     let eligible;

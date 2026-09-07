@@ -35,7 +35,13 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-09-06, three workstreams; Doodle Bluff branch OPEN)
+### START HERE next session (updated 2026-09-06 evening, outside review triaged; Doodle Bluff branch OPEN)
+
+**Outside review (2026-09-06, on branch `doodle-bluff-two-ways`, CHANGELOG "outside review, items 1 and 2").** A reviewer walked the homepage, yard, Make it yours, simulator, guide, privacy page, and editor. Shipped from their list: (1) the student screen says "submitted" only after the server's `response-accepted` ack (the "2 of 4 vs four submitted" contradiction), Bot Fill finishes merge steps in one click, regression `scripts/simulate-submit-race.js`; (2) `engine/duration-estimate.js` computes minutes from the timers, the matcher never claims a timing fit, over-budget matches get a "Trim the timers" button, matched copies get a contextual name ("Snowball: Causes of WWI"). Same day: Review became the fourth goal pile, Rose, Bud, Thorn moved to Connect (tag set on prod), the footer credit reads "This project is supported by Assembly Code". Queued from the review, in the order agreed with the owner:
+3. One sentence and a classroom use case on every yard plank (activities understandable without opening them); a guided chooser in the yard (goal, minutes, topic) built from the Create page's pieces.
+4. Iframe titles in the simulator; the seat picker's `aria-pressed` semantics (a numeric control or radio group); the overdue accessibility audit.
+5. Editor: give the selected step the width, fold settings and Ask AI into expandable panels; a hosting checklist, console entry point, and "save the report before closing" reminder in the main flow; a visible line about where created activities live (this browser) plus the share link.
+Owner's open calls: "Simulate" vs the reviewer's "Try it out (with pretend students)"; the hero subline saying what the arrangement is FOR (everyone contributes, a shared result appears). The usability study stands: five teachers, one task, ten minutes tomorrow.
 
 **Merged to master and deployed (2026-09-06):** PR #1 the 13a home (owner's design handoff, then five feedback rounds: yard board carousel on the right, headline + one red PICK A TEMPLATE on the left, 1-2-3 three across under the board, teacher lines, notched block; PR #2 painted code blocks on join-first shelf cards); PR #3 **word help** (tap a word in a prompt, spend a token, see it translated; ledger + lookup are separate systems, `engine/word-help.js`; editor Settings "Word help" + "Translate into"; console + report list the tapped words). Tests 1616 -> 1637 there.
 

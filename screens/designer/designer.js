@@ -1644,6 +1644,26 @@ function renderMatchPreview(modal, data, overlay, description) {
     modal.appendChild(explain);
   }
 
+  // Running time, computed by the server from the timers (never the AI's
+  // word). When it runs over the minutes the teacher asked for, the server
+  // sends a trimmed copy and the note names the exact timer changes.
+  appendTimingNote(modal, data, function (trimmed) {
+    var next = {};
+    for (var k in data) next[k] = data[k];
+    next.config = trimmed.config;
+    if (trimmed.params) next.params = trimmed.params; // the settings list follows the timers
+    var stillOver = data.timing.requestedMinutes && trimmed.estimatedMinutes > data.timing.requestedMinutes;
+    next.timing = {
+      estimatedMinutes: trimmed.estimatedMinutes,
+      requestedMinutes: data.timing.requestedMinutes,
+      over: !!stillOver,
+      trim: null,
+      note: 'Timers trimmed: about ' + trimmed.estimatedMinutes + ' minutes now.' +
+        (stillOver ? ' Still over your ' + data.timing.requestedMinutes + '. Drop a step in the editor to get under.' : '')
+    };
+    renderMatchPreview(modal, next, overlay, description);
+  });
+
   // Show the params that AI filled in (read-only display)
   var paramsHeader = document.createElement('p');
   paramsHeader.style.cssText = 'margin:0 0 8px 0; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; font-size:0.85rem;';
@@ -1790,6 +1810,10 @@ function renderExistingGameView(modal, data, overlay, description) {
     modal.appendChild(explain);
   }
 
+  // Running time against the minutes the teacher asked for (report only:
+  // the copy is made from the yard, so there is no config to trim here).
+  appendTimingNote(modal, data, null);
+
   var customizeNote = document.createElement('p');
   customizeNote.className = 'recipe-form-description';
   customizeNote.textContent = 'Want it with your own twist? Find it in the yard and click Make it yours for an editable copy.';
@@ -1877,6 +1901,30 @@ function renderExistingGameView(modal, data, overlay, description) {
 }
 
 // "tier1Prompts" -> "Tier 1 prompts": fallback when a param has no label.
+// The server's timing report under a match: one sentence, and when the
+// activity runs over the minutes the teacher asked for, a button that swaps
+// in the server's trimmed copy (onTrim receives {config, changes,
+// estimatedMinutes}). Report-only views pass no onTrim.
+function appendTimingNote(modal, data, onTrim) {
+  var timing = data && data.timing;
+  if (!timing || !timing.note) return;
+  var wrap = document.createElement('div');
+  wrap.className = 'ai-match-timing' + (timing.over ? ' is-over' : '');
+  var note = document.createElement('p');
+  note.className = 'ai-match-timing-note';
+  note.textContent = timing.note;
+  wrap.appendChild(note);
+  if (onTrim && timing.trim && timing.trim.config) {
+    var trimBtn = document.createElement('button');
+    trimBtn.type = 'button';
+    trimBtn.className = 'recipe-cancel-btn ai-match-trim-btn';
+    trimBtn.textContent = 'Trim the timers (about ' + timing.trim.estimatedMinutes + ' min)';
+    trimBtn.addEventListener('click', function () { onTrim(timing.trim); });
+    wrap.appendChild(trimBtn);
+  }
+  modal.appendChild(wrap);
+}
+
 function humanizeParamName(name) {
   var words = String(name)
     .replace(/([a-z])([A-Z])/g, '$1 $2')

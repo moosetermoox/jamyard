@@ -638,25 +638,32 @@ function refreshAddSlot() {
 // e.g. the vote phase before the user can see it).
 botFillBtn.addEventListener('click', () => {
   const fire = fireBotFill;
-  const isHostInRelay = () => {
+  // Steps where one shot cannot finish the job: relay (turns rotate, only
+  // the active player can submit) and merge (one pen per pair: the writer
+  // agrees first and the partner only after the draft settles, so a single
+  // shot left every pair at "1 of 2 agreed"; reviewer 2026-09-06).
+  const isHostInLoopStep = () => {
     const hostIframe = iframeContainer.querySelector('.host-panel iframe');
     if (!hostIframe) return false;
     try {
-      const sec = hostIframe.contentDocument && hostIframe.contentDocument.getElementById('relay-section');
-      return !!(sec && !sec.hidden);
+      const doc = hostIframe.contentDocument;
+      return ['relay-section', 'merge-section'].some((id) => {
+        const sec = doc && doc.getElementById(id);
+        return !!(sec && !sec.hidden && sec.classList.contains('active'));
+      });
     } catch (_) {
       return false; // cross-origin fallback — single shot is the safe default
     }
   };
 
   fire();
-  if (!isHostInRelay()) return;
+  if (!isHostInLoopStep()) return;
 
-  // Relay loop: keep firing while the host stays in relay-section. Hard cap of
-  // ~15s keeps it from running forever if something goes wrong.
+  // Keep firing while the host stays in that step. Hard cap of ~15s keeps
+  // it from running forever if something goes wrong.
   let shots = 25;
   const id = setInterval(() => {
-    if (--shots <= 0 || !isHostInRelay()) {
+    if (--shots <= 0 || !isHostInLoopStep()) {
       clearInterval(id);
       return;
     }

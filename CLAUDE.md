@@ -84,6 +84,8 @@ Framework for quickly building classroom games where:
 - **Bold is `**word**` and nothing else** (2026-09-03): the one inline format in teacher text. Simple view edits it as real bold (`screens/shared/bold-box.js`, contenteditable with a `.value` accessor; base weight pinned to 400 or the browser's bold command toggles off); every prompt/instruction sink on host and player goes through `setRichText` (`RichText.applyInline`), where bold paints yellow (`.prompt-bold`) because prompts are already heavy. New text sinks must use it, never bare textContent; excerpts strip the markers.
 - **Multi-field collect responses nest under `fields.*`** — reveal templates reading top-level keys render silently blank.
 - **AI responses wrap JSON in preamble** — always regex-fallback extraction.
+- **Timing claims come from `engine/duration-estimate.js`, never the AI** (2026-09-06): the matcher is told not to claim a fit; the route computes the estimate from timers plus named allowances and attaches a trimmed copy when it runs over the minutes the teacher named. New allowances or floors go in that module's tables.
+- **A student screen says "submitted" only after `response-accepted`** (2026-09-06): every submit path in player.js goes through `awaitSubmitAck`; new collect-style inputs must too, and any new server store path must emit the ack.
 - **Identical generate instructions = identical output across sessions** — ai-process appends a variety spin (random seed + inspiration word + chestnut ban, `engine/phases/variety-spin.js`) to every `generate` task at call time; never bake session randomness into recipes/configs (drift guards).
 - Phase handlers self-register in `engine/phase-handlers/` via `registerHandler(type, {onEnter, onReconnect})`; use `EVENTS` constants (`engine/events.js`) and `players.listPublic()` (strips tokens).
 - Review prompts in `services/ai-service.js` (PHASE_EXTRA_GUIDANCE) must be updated when adding phase types.
@@ -167,7 +169,7 @@ AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `
 - `node scripts/simulate-any-game.js <game-id>` — universal playthrough (server running)
 - `node scripts/simulate-chaos.js [gameId] [--players N]` — school-wifi chaos suite
 - `node scripts/simulate-restart.js` — restart-survival proof (needs DATABASE_URL)
-- Named sims: simulate-closer/snowball/one-voice/team-modes/teacher-console/append-only/late-join/holding and others in `scripts/`
+- Named sims: simulate-closer/snowball/one-voice/team-modes/teacher-console/append-only/late-join/holding and others in `scripts/`; `simulate-submit-race.js` spawns its own server + slow moderation stub (four students, immediate Close)
 - CI: `.github/workflows/test.yml` on every push/PR; deploys only on green via `RENDER_DEPLOY_HOOK`
 
 ## Design Documents (docs/)

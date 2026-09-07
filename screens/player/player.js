@@ -579,6 +579,45 @@ joinBtn.addEventListener('click', () => {
   socket.emit('join-room', { code, name, token: savedToken || undefined });
 });
 
+// --- Submit acknowledgment ---
+// A collect answer shows the "submitted" screen only after the server says
+// it stored it ('response-accepted'). Until then the button reads
+// "Sending..." and the student stays on the question, so a filtered, lost,
+// or late answer never looks submitted (reviewer finding 2026-09-06). If no
+// word comes back in SUBMIT_ACK_TIMEOUT_MS the button comes back with a
+// notice rather than a false "submitted".
+var SUBMIT_ACK_TIMEOUT_MS = 12000;
+var submitPending = null; // { btn, label, timer }
+
+function awaitSubmitAck(btn) {
+  clearSubmitPending();
+  submitPending = { btn: btn || null, label: btn ? btn.textContent : null, timer: null };
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = UiLang.t('Sending...');
+  }
+  submitPending.timer = setTimeout(function () {
+    if (!submitPending) return;
+    clearSubmitPending();
+    if (btn) btn.disabled = false;
+    showResponseNotice(UiLang.t('Not sent yet. Please try again.'));
+  }, SUBMIT_ACK_TIMEOUT_MS);
+}
+
+function clearSubmitPending() {
+  if (!submitPending) return;
+  clearTimeout(submitPending.timer);
+  if (submitPending.btn && submitPending.label !== null) submitPending.btn.textContent = submitPending.label;
+  submitPending = null;
+}
+
+socket.on('response-accepted', function () {
+  var wasPending = !!submitPending;
+  clearSubmitPending();
+  var active = document.querySelector('section.active');
+  if (wasPending && active && active.id === 'collect-section') showSection(submittedSection);
+});
+
 submitBtn.addEventListener('click', () => {
   // Multi-field and choice modes hide the textarea and drive submission via
   // their own handlers; this listener only governs single-text mode.
@@ -592,9 +631,8 @@ submitBtn.addEventListener('click', () => {
   }
 
   if (responseNotice) responseNotice.hidden = true;
-  submitBtn.disabled = true;
   socket.emit('submit-response', { code: currentRoomCode, response });
-  showSection(submittedSection);
+  awaitSubmitAck(submitBtn);
 });
 
 // Server rejected a submission (filtered or invalid). The notice lands on
@@ -603,6 +641,7 @@ submitBtn.addEventListener('click', () => {
 socket.on('response-rejected', ({ message }) => {
   var notice = message || 'That response wasn’t accepted. Please try again.';
   var active = document.querySelector('section.active');
+  clearSubmitPending();
 
   if (active && active.id === 'merge-section') {
     // Stay in the shared-draft editor; the offending text is still local
@@ -968,7 +1007,7 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     passBtn.textContent = UiLang.t('Pass this one');
     passBtn.addEventListener('click', function() {
       socket.emit('submit-response', { code: currentRoomCode, response: '', pass: true });
-      showSection(submittedSection);
+      awaitSubmitAck(passBtn);
     });
     collectSection.appendChild(passBtn);
   }
@@ -991,8 +1030,11 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
         btn.className = 'choice-btn';
         btn.textContent = choiceText;
         btn.addEventListener('click', function() {
+          // One tap only: every choice locks until the server answers.
+          var all = choiceContainer.querySelectorAll('.choice-btn');
+          for (var bi = 0; bi < all.length; bi++) all[bi].disabled = true;
           socket.emit('submit-response', { code: currentRoomCode, response: choiceText });
-          showSection(submittedSection);
+          awaitSubmitAck(btn);
         });
         choiceContainer.appendChild(btn);
       })(typeof choices[ci] === 'string' ? choices[ci] : (choices[ci].text || choices[ci].name || String(choices[ci])));
@@ -1043,9 +1085,8 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
         result[inputs[k].getAttribute('data-key')] = val;
       }
       if (!allFilled) return;
-      submitBtn.disabled = true;
       socket.emit('submit-response', { code: currentRoomCode, response: result });
-      showSection(submittedSection);
+      awaitSubmitAck(submitBtn);
     };
     submitBtn.onclick = fieldsSubmitHandler;
 
@@ -1076,9 +1117,8 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
         showResponseNotice('Draw something first!');
         return;
       }
-      submitBtn.disabled = true;
       socket.emit('submit-response', { code: currentRoomCode, response: { strokes: drawPadApi.getStrokes() } });
-      showSection(submittedSection);
+      awaitSubmitAck(submitBtn);
       if (J) J.sound('blip');
     };
     applyShow(show, {
