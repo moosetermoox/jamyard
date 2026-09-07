@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -40,6 +40,15 @@
         <img id="qr-image" class="qr-image" alt="Scan this code to join">
         <p id="join-url" class="join-url"></p>
       </div>
+      <!-- The hosting checklist, at the moment it matters (outside review,
+           2026-09-06). Nothing private: the console link itself rides in
+           the corner chip, never on this projected screen. -->
+      <ol class="host-checklist" aria-label="Before you start">
+        <li><span class="host-check-num">1</span><span>Project this screen.</span></li>
+        <li><span class="host-check-num">2</span><span>Students join with the code.</span></li>
+        <li><span class="host-check-num">3</span><span>Open your teacher console on your own device: Copy teacher link, bottom corner.</span></li>
+        <li><span class="host-check-num">4</span><span>At the end, Copy report link keeps what the class made.</span></li>
+      </ol>
     </div>
 
     <!-- Hidden until a room exists, an empty roster and a dead Start

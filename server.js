@@ -15,12 +15,12 @@ import { PHASE_SCHEMAS, getFields, getTopLevelOnlyFieldNames } from './engine/ph
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
 import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
 import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submits.js';
-import { parseRequestedMinutes, timingReport, paramsForTrim } from './engine/duration-estimate.js';
+import { parseRequestedMinutes, timingReport, paramsForTrim, estimateDuration } from './engine/duration-estimate.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
-import { homeGlimpse } from './engine/home-glimpse.js';
+import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
 import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
 import { restoreSubPhaseOrder } from './engine/subphase-order.js';
 
@@ -273,6 +273,21 @@ async function featuredOverridesSafe() {
     console.log(`[featured] Override read failed (using repo defaults): ${err.message}`);
     return {};
   }
+}
+
+// The yard plank's hook line and computed minutes (outside review,
+// 2026-09-06): the hook is the recipe's tagline for recipe-born activities
+// or the description's first sentence; the minutes come from the timers
+// (engine/duration-estimate.js), never from the hand-written playTime.
+function yardCardExtras(config) {
+  const stamp = config && config.recipe && config.recipe.id ? getRecipe(config.recipe.id) : null;
+  // The chip must agree with the number printed on the plank: a hand-written
+  // playTime ("~15–20 min" reads as 20) wins; the estimate covers the rest.
+  let minutes = parseRequestedMinutes(config && config.playTime);
+  if (minutes === null) {
+    try { minutes = estimateDuration(config).minutes; } catch { minutes = null; }
+  }
+  return { hook: activityHook(config, stamp), minutes };
 }
 
 function pickCardMeta(config) {
@@ -2285,6 +2300,7 @@ app.get('/api/games', async (req, res) => {
       maxPlayers: config.maxPlayers || null,
       // The home page's drawn projector frame (engine/home-glimpse.js)
       glimpse: homeGlimpse(config),
+      ...yardCardExtras(config),
       ...pickCardMeta(config)
     }));
 
@@ -2301,6 +2317,7 @@ app.get('/api/games', async (req, res) => {
           minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null,
           maxPlayers: config.maxPlayers || null,
           glimpse: homeGlimpse(config),
+          ...yardCardExtras(config),
           ...pickCardMeta(config)
         });
       }

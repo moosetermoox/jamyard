@@ -63,6 +63,15 @@ var allGames = [];
 var libraryQuery = '';
 var activeGoal = null; // a PILE_GROUPS goal key: connect | think | review | play
 
+// Time chips: the minutes a teacher has, against the server's estimate
+// (`minutes` on /api/games, computed from the timers).
+var TIME_GROUPS = [
+  { key: 5, label: 'Under 5 min' },
+  { key: 10, label: 'Under 10 min' },
+  { key: 20, label: 'Under 20 min' }
+];
+var activeMinutes = null; // a TIME_GROUPS key, or null for any length
+
 function applyVisibility(games) {
   if (!window.GameVisibility) return games;
   return GameVisibility.visibleGames(games, {
@@ -85,8 +94,37 @@ function matchesGoal(game) {
   return false;
 }
 
+function matchesMinutes(game) {
+  if (!activeMinutes) return true;
+  return typeof game.minutes === 'number' && game.minutes <= activeMinutes;
+}
+
+function buildTimeChips(games) {
+  var chipsEl = document.getElementById('time-chips');
+  if (!chipsEl) return;
+  chipsEl.innerHTML = '';
+  TIME_GROUPS.forEach(function (group) {
+    var count = 0;
+    for (var i = 0; i < games.length; i++) {
+      if (typeof games[i].minutes === 'number' && games[i].minutes <= group.key) count++;
+    }
+    if (count === 0 && group.key !== activeMinutes) return;
+    var chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'goal-chip time-chip' + (group.key === activeMinutes ? ' active' : '');
+    chip.textContent = group.label + ' ' + count;
+    chip.setAttribute('aria-pressed', group.key === activeMinutes ? 'true' : 'false');
+    chip.addEventListener('click', function () {
+      activeMinutes = (activeMinutes === group.key) ? null : group.key;
+      refreshLibrary();
+    });
+    chipsEl.appendChild(chip);
+  });
+}
+
 function matchesFilters(game) {
   if (!matchesGoal(game)) return false;
+  if (!matchesMinutes(game)) return false;
   if (libraryQuery) {
     var hay = (game.name + ' ' + (game.description || '') + ' ' +
       (Array.isArray(game.tags) ? game.tags.join(' ') : '') + ' ' +
@@ -128,6 +166,7 @@ function refreshLibrary() {
   var visible = applyVisibility(allGames);
   document.getElementById('library-controls').hidden = visible.length === 0;
   buildGoalChips(visible);
+  buildTimeChips(visible);
   var filtered = visible.filter(matchesFilters);
   // Subject-search rescue (2026-08-08 field test): the activities are
   // topic-agnostic shells, so "history" matching nothing is our failure to
@@ -444,6 +483,15 @@ function buildPlank(game, index) {
     meta.textContent = metaBits.join(' · ');
     plank.appendChild(meta);
   }
+  // One line on what it is for, so the plank can be understood without
+  // opening it (outside review, 2026-09-06). Server-derived: the recipe's
+  // tagline or the description's first sentence.
+  if (game.hook) {
+    var hook = document.createElement('span');
+    hook.className = 'plank-hook';
+    hook.textContent = game.hook;
+    plank.appendChild(hook);
+  }
 
   plank.addEventListener('click', function () {
     openActivityDialog(game);
@@ -482,6 +530,14 @@ function buildMyYardShelf(games, shedGames) {
   tag.className = 'pile-tag pile-tag-mine';
   tag.textContent = 'My yard';
   wrap.appendChild(tag);
+  // Where these live, and how to carry one somewhere else (outside review,
+  // 2026-09-06: teachers could not tell that copies are per-browser).
+  if (games.length > 0) {
+    var note = document.createElement('p');
+    note.className = 'myyard-note';
+    note.textContent = 'Your copies live in this browser. Open one and use Share for a link that works on any device.';
+    outer.appendChild(note);
+  }
 
   if (shedGames && shedGames.length > 0) {
     var shedToggle = document.createElement('button');

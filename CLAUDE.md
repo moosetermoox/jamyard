@@ -43,10 +43,10 @@ Framework for quickly building classroom games where:
 
 ## Surfaces & Routes
 - `/` home (13a, 2026-09-06: ONE red action "Pick a template" + Paper Create door on the left; the yard's board carousel with projector prints on the right, 1-2-3 cards beneath it; a shelf of five templates with Connect/Think/Review/Play chips drawn from `glimpse` on `/api/games` via `engine/home-glimpse.js`; student join in the header strip and the join board; `screens/home/shots/` are load-bearing, rerun regen-carousel-shots.js after a redesign)
-- `/library` — teacher front door: search, goal chips, ▶ Host cards, ♥/recents, Customize dialog
+- `/library` — teacher front door: search, goal chips (Connect/Think/Review/Play) + time chips (Under 5/10/20 min, from `minutes` on `/api/games`: playTime's top number else the estimator), planks carry a `hook` line (recipe tagline or first sentence, `activityHook` in engine/home-glimpse.js), ▶ Host cards, ♥/recents, Customize dialog
 - `/host` projector screen · `/player` student screen · `/teacher` private console (room code + PIN, or SITE_PASSWORD basic auth)
 - `/teacher/report` printable activity report (engine/report.js via PIN-gated `GET /api/rooms/:code/report`) — built on demand from live room state, NEVER stored server-side, gone when the room expires; the step that is still OPEN is read live from the players (`liveDataFor`, marked "Still open"), which is how a rolling exit ticket gets read mid-step; browser print dialog = the PDF; names toggle defaults on; console links it (header + end-phase reminder card)
-- `/designer` Create page (idea box → recipe match or storyboard) · `/designer/edit` editor (Simple | Builder | Advanced views; Simple is default; Ask AI = the design chat panel beside the Simple view, `screens/designer/chat-panel.js` + `POST /api/games/chat` — proposes changes as cards, Apply gated on validation, one-step Revert; "Just do it" = `forceEdit:true` turn that folds the whole conversation into one proposal)
+- `/designer` Create page (idea box → recipe match or storyboard; a match shows the server's timing note + "Trim the timers" when it runs over the minutes asked for) · `/designer/edit` editor (Simple | Builder | Advanced views; Simple is default; the Settings and Ask AI side panels fold to a rail via `panel-toggles.js`, remembered per browser; Ask AI = the design chat panel beside the Simple view, `screens/designer/chat-panel.js` + `POST /api/games/chat` — proposes changes as cards, Apply gated on validation, one-step Revert; "Just do it" = `forceEdit:true` turn that folds the whole conversation into one proposal)
 - `/prototype` ("the simulator", button label Simulate) host + player iframes side-by-side for playtesting; the map rail is clickable: a stop row asks "Skip ahead?" then plays the room forward with bots until the live rail reaches that step (`?goto=<phaseId>` deep link does the same on launch)
 - `/guide` one-page teacher guide (setup, live controls, quick fixes) · `/owner` owner-mode doorway (redirects to the library unlock; no in-page owner links)
 - `/feedback` owner inbox (SITE_PASSWORD-gated)
@@ -169,6 +169,7 @@ AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `
 - `node scripts/simulate-any-game.js <game-id>` — universal playthrough (server running)
 - `node scripts/simulate-chaos.js [gameId] [--players N]` — school-wifi chaos suite
 - `node scripts/simulate-restart.js` — restart-survival proof (needs DATABASE_URL)
+- `node scripts/a11y-audit.js [baseUrl] [--detail]` — axe-core over headless Edge on the eight main pages, violations by page (server running; exits 1 on serious/critical)
 - Named sims: simulate-closer/snowball/one-voice/team-modes/teacher-console/append-only/late-join/holding and others in `scripts/`; `simulate-submit-race.js` spawns its own server + slow moderation stub (four students, immediate Close)
 - CI: `.github/workflows/test.yml` on every push/PR; deploys only on green via `RENDER_DEPLOY_HOOK`
 

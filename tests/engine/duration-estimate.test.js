@@ -27,6 +27,10 @@ describe('parseRequestedMinutes', () => {
   });
   it('takes the top of a range and understands hours', () => {
     expect(parseRequestedMinutes('5-10 minutes to discuss')).toBe(10);
+    // The yard's hand-written playTime strings go through the same reader.
+    expect(parseRequestedMinutes('~15–20 min')).toBe(20);
+    expect(parseRequestedMinutes('~25–30 min (bowl capped at 30 phrases)')).toBe(30);
+    expect(parseRequestedMinutes('~5 min')).toBe(5);
     expect(parseRequestedMinutes('five to ten minutes')).toBe(10);
     expect(parseRequestedMinutes('half an hour of review')).toBe(30);
     expect(parseRequestedMinutes('an hour long lesson')).toBe(60);

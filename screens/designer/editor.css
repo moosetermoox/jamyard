@@ -4704,3 +4704,68 @@ body::before { content: none; }
     text-decoration: none;
   }
 }
+
+/* =======================================================================
+   COLLAPSIBLE SIDE PANELS (outside review, 2026-09-06): the selected
+   step gets the width. Settings and Ask AI fold to a slim rail with a
+   vertical tab; panel-toggles.js flips the body classes and remembers.
+   Rails are shown by class, never the hidden attribute (display gotcha).
+   ======================================================================= */
+.panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.panel-collapse {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #000;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 900;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.panel-collapse:hover { background: #FFC800; }
+
+.panel-rail {
+  display: none;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  margin: 4px auto;
+  padding: 14px 6px;
+  border: 2px solid #000;
+  border-radius: 8px;
+  background: #FFC800;
+  font-family: inherit;
+  font-weight: 900;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+body.settings-collapsed #settings-panel {
+  width: 44px;
+  padding: 10px 6px;
+  overflow: hidden;
+}
+
+body.settings-collapsed #settings-panel > :not(.panel-rail) { display: none; }
+body.settings-collapsed #settings-expand { display: block; }
+
+body.chat-collapsed #chat-panel { width: 44px; }
+body.chat-collapsed #chat-panel > :not(.panel-rail) { display: none; }
+body.chat-collapsed #chat-expand { display: block; }
+
+/* The feedback widget hugs a collapsed chat rail instead of a phantom panel */
+body.chat-open.chat-collapsed #feedback-widget-btn,
+body.chat-open.chat-collapsed #feedback-widget-panel { right: 62px; }
+
+/* The step column may use the room a folded panel frees up */
+.sv-column { max-width: 980px; }
