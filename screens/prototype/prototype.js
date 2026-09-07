@@ -334,7 +334,7 @@ function fastForwardArrive() {
 
 function fastForwardGiveUp(reason) {
   stopFastForward();
-  setBenchHint(reason + ' Use Bot Fill and Skip to walk there.', 'done');
+  setBenchHint(reason + ' Use Add sample answers and Skip to walk there.', 'done');
 }
 
 function fastForwardTick() {

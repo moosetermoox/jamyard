@@ -6,6 +6,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { translate } from '../i18n/index.js';
 
 registerHandler('preview', {
   async onEnter(ctx) {
@@ -54,9 +55,11 @@ registerHandler('preview', {
     ctx.emitToHost(EVENTS.PREVIEW_CONTENT, previewPayload);
     ctx.emitToTeachers(EVENTS.PREVIEW_CONTENT, previewPayload);
 
-    // Tell players to wait
+    // Tell players what is happening: the teacher is reading before the
+    // class sees anything (not a bare "waiting", outside review 2026-09-07).
+    const checking = translate(engine.language, 'Your teacher is checking the answers before sharing them.');
     for (const player of engine.players.list()) {
-      ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Waiting for teacher...' });
+      ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: checking });
     }
   },
 
@@ -85,6 +88,6 @@ registerHandler('preview', {
   },
 
   onReconnect(ctx, socket) {
-    socket.emit(EVENTS.WAITING, { message: 'Waiting for teacher...' });
+    socket.emit(EVENTS.WAITING, { message: translate(ctx.engine.language, 'Your teacher is checking the answers before sharing them.') });
   }
 });

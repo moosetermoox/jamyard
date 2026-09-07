@@ -1014,12 +1014,17 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
 
   // Track current collect mode for timer auto-submit
   var collectMode = 'text';
+  // The character counter belongs to text entry only; choice, multi-field
+  // and drawing steps hide it (a stray "0 / 280" under a multiple-choice
+  // question, outside review 2026-09-07).
+  if (responseCounter) responseCounter.hidden = false;
 
   if (isChoice && Array.isArray(choices) && choices.length > 0) {
     // --- Multiple choice mode ---
     collectMode = 'choice';
     responseInput.hidden = true;
     responseInput.style.display = 'none';
+    if (responseCounter) responseCounter.hidden = true;
     submitBtn.hidden = true;
     submitBtn.style.display = 'none';
     var choiceContainer = document.createElement('div');
@@ -1052,6 +1057,7 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     collectMode = 'fields';
     responseInput.hidden = true;
     responseInput.style.display = 'none';
+    if (responseCounter) responseCounter.hidden = true;
     var fieldsContainer = document.createElement('div');
     fieldsContainer.className = 'multi-fields';
     for (var fi = 0; fi < fields.length; fi++) {
@@ -1102,7 +1108,7 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     collectMode = 'drawing';
     responseInput.hidden = true;
     responseInput.style.display = 'none';
-    if (responseCounter) responseCounter.textContent = '';
+    if (responseCounter) { responseCounter.textContent = ''; responseCounter.hidden = true; }
     submitBtn.hidden = false;
     submitBtn.style.display = '';
     drawArea.hidden = false;

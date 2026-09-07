@@ -22,7 +22,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "SOMEONE'S GOT YOU\n\nNo points, no winners. You'll write one small real thing, then a classmate you don't get to pick writes something FOR you.\n\nWrite like someone's day depends on it. It might.",
+      "message": "SOMEONE'S GOT YOU\n\nNo points, no winners. You'll write one small real thing, then a classmate you don't get to pick writes something FOR you.\n\nWrite one kind, specific sentence. Small encouragement counts.",
       "timer": 12,
       "next": "notes"
     },
@@ -36,7 +36,7 @@
     "boost": {
       "type": "collect",
       "rotateFrom": "notes",
-      "prompt": "A classmate wrote:\n\n“{{notes.assigned}}”\n\nWrite them ONE line of genuine encouragement. Specific beats generic, talk to the thing they actually said.\n\n(Stuck? “Someone in this room is rooting for you” always counts.)",
+      "prompt": "A classmate wrote:\n\n“{{notes.assigned}}”\n\nWrite them ONE kind, specific sentence. Talk to the thing they actually said: a skill they're learning, a project they're finishing, something new they're trying.\n\n(Stuck? “Someone in this room is rooting for you” always counts.)",
       "timer": 120,
       "next": "check"
     },

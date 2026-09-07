@@ -172,23 +172,43 @@ function refreshLibrary() {
   // topic-agnostic shells, so "history" matching nothing is our failure to
   // explain, not a real empty result. Show the shelf anyway (goal filter
   // still respected) with an honest note instead of a dead end.
+  // The chips stay honored in the rescue: goal AND time first, then goal
+  // only (saying so), then everything. A search miss under "Under 5 min"
+  // used to re-show 30-minute activities with the chip still lit
+  // (outside review, 2026-09-07).
   if (filtered.length === 0 && libraryQuery && visible.length > 0) {
+    var chipsOnly = visible.filter(function (g) { return matchesGoal(g) && matchesMinutes(g); });
+    if (chipsOnly.length > 0) {
+      renderLibrary(chipsOnly, { query: libraryQuery });
+      return;
+    }
     var goalOnly = visible.filter(matchesGoal);
-    renderLibrary(goalOnly.length ? goalOnly : visible, libraryQuery);
+    renderLibrary(goalOnly.length ? goalOnly : visible, { query: libraryQuery, droppedMinutes: activeMinutes });
     return;
   }
   renderLibrary(filtered);
 }
 
-function renderLibrary(games, rescueQuery) {
+// Search does read names, descriptions, and keywords, so the rescue copy
+// says "mentions", never "is named". When the time chip had to be let go
+// to show anything, the head says that too.
+function rescueHeadline(rescue) {
+  if (rescue.droppedMinutes) {
+    return 'Nothing under ' + rescue.droppedMinutes + ' minutes mentions "' + rescue.query +
+      '". These take longer, and that\'s okay:';
+  }
+  return 'Nothing mentions "' + rescue.query + '", and that\'s okay:';
+}
+
+function renderLibrary(games, rescueInfo) {
   libraryGrid.innerHTML = '';
 
-  if (rescueQuery) {
+  if (rescueInfo) {
     var rescue = document.createElement('div');
     rescue.className = 'search-rescue';
     var rescueHead = document.createElement('p');
     rescueHead.className = 'search-rescue-head';
-    rescueHead.textContent = 'Nothing is named "' + rescueQuery + '", and that\'s okay:';
+    rescueHead.textContent = rescueHeadline(rescueInfo);
     rescue.appendChild(rescueHead);
     var rescueBody = document.createElement('p');
     rescueBody.className = 'search-rescue-body';

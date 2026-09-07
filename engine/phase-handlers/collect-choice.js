@@ -250,7 +250,7 @@ registerHandler('collect-choice', {
       if (isRolling(ctx.engine.config) && !moreInputAhead(ctx.engine.config, ctx.phase.id)) {
         socket.emit(EVENTS.PLAYER_DONE, { message: translate(ctx.engine.language, doneMessageFor(ctx.phase)) });
       } else {
-        socket.emit(EVENTS.WAITING, { message: 'Answer submitted. Waiting for others...' });
+        socket.emit(EVENTS.WAITING, { message: translate(ctx.engine.language, "You're done for now. Look up at the class screen.") });
       }
     } else {
       // The room's shared ballot (same options, same order as everyone

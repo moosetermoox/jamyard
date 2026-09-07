@@ -112,7 +112,7 @@ var PHASE_CATALOG = {
     bg: '#FFF9C4',
     detailField: 'template',
     host: 'Content preview, Approve / Reject buttons',
-    player: '"Waiting for teacher\u2026" message',
+    player: '"Your teacher is checking the answers" message',
     ai: null
   },
   'winner': {
@@ -6548,7 +6548,7 @@ function buildPreviewHTML(phase, screen) {
       html += previewBtn('approveButton', 'Approve', showList);
       html += previewBtn('rejectButton', 'Reject', showList);
     } else {
-      html += previewEl('message', 'Status', 'Waiting for teacher to review...', null);
+      html += previewEl('message', 'Status', 'Your teacher is checking the answers before sharing them.', null);
     }
   }
 
