@@ -667,6 +667,35 @@ body.pt-running #host-btn {
   box-shadow: 0 2px 4px rgba(50,35,15,0.20), 0 0 0 2px var(--t-ink);
 }
 
+/* Class screen | Teacher controls: two tabs in the host panel's label.
+   The hidden iframe must really hide (iframes are display:inline). */
+.host-panel iframe[hidden] { display: none; }
+.host-panel .panel-label { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.panel-tabs { display: inline-flex; gap: 6px; margin-left: auto; }
+.panel-tab {
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 10px 5px;
+  background: var(--t-paper, #FDF9F0);
+  color: var(--t-ink, #2A2620);
+  border: none;
+  box-shadow: 0 0 0 1px rgba(50,35,15,0.35);
+  cursor: pointer;
+  clip-path: none;
+  filter: none;
+  transform: none;
+}
+.panel-tab.active {
+  background: var(--t-yellow, #F5C518);
+  background-image: var(--t-grain);
+}
+.host-panel.showing-teacher {
+  box-shadow: 0 2px 4px rgba(50,35,15,0.20), 0 0 0 2px var(--t-magenta, #C2185B);
+}
+
 .player-panel:nth-of-type(odd) { --piece-rot: 0.5deg; }
 .player-panel:nth-of-type(even) { --piece-rot: -0.5deg; }
 

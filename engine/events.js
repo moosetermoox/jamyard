@@ -72,6 +72,8 @@ export const EVENTS = {
   TEACHER_PHASE:        'teacher-phase',       // server -> consoles: phase changed (id/type/seq)
   TEACHER_ROSTER:       'teacher-roster',      // server -> consoles: live joined-player roster
   TEACHER_CONSOLE_JOINED: 'teacher-console-joined', // server -> host: a console paired (pairing visibility)
+  SHOW_DISCUSSION:      'show-discussion',      // console -> server: put this step's discussion prompt on the projector
+  DISCUSSION_PROMPT:    'discussion-prompt',    // server -> host: the prompt text to show (from the config, never the client)
 
   // --- AI Processing ---
   PROCESSING_STARTED:   'processing-started',

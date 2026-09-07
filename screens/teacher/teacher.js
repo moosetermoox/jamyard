@@ -34,6 +34,21 @@ var revealNextBtn = document.getElementById('reveal-next-btn');
 var nextStepBtn = document.getElementById('next-step-btn');
 var controlsBlock = document.getElementById('controls-block');
 var consoleNote = document.getElementById('console-note');
+// Discussion prompt (screenControl.discussionPrompt on the step)
+var discussionBlock = document.getElementById('discussion-block');
+var discussionText = document.getElementById('discussion-text');
+var showDiscussionBtn = document.getElementById('show-discussion-btn');
+var discussionShown = document.getElementById('discussion-shown');
+var discussionForPhase = null;
+if (showDiscussionBtn) {
+  showDiscussionBtn.addEventListener('click', function () {
+    if (!currentCode) return;
+    // The server reads the text off the step itself; the console only asks.
+    socket.emit('show-discussion', { code: currentCode });
+    discussionShown.hidden = false;
+    showDiscussionBtn.disabled = true;
+  });
+}
 
 var checklistBlock = document.getElementById('checklist-block');
 var checklistGroups = document.getElementById('checklist-groups');
@@ -296,6 +311,19 @@ function setPhase(data) {
   consoleNote.textContent = phaseType === 'end'
     ? 'All done, nice work.'
     : (data.closed ? 'Results are on the projector.' : '');
+
+  // The step's discussion prompt: shown here, put on the projector only
+  // when the teacher taps the button. A fresh step resets the "shown" note.
+  var prompt = (typeof data.discussionPrompt === 'string') ? data.discussionPrompt.trim() : '';
+  if (discussionBlock) {
+    discussionBlock.hidden = !prompt;
+    discussionText.textContent = prompt;
+    if (prompt && (data.phaseId !== discussionForPhase)) {
+      discussionForPhase = data.phaseId;
+      discussionShown.hidden = true;
+      showDiscussionBtn.disabled = false;
+    }
+  }
 
   // End of activity: surface the report reminder. The report is built from
   // live room state and never stored, so this is the teacher's window to

@@ -106,6 +106,7 @@
       "next": "class-memory"
     },
     "class-memory": {
+      "discussionPrompt": "Which line came from someone else? What did the class remember together that nobody had alone?",
       "type": "reveal",
       "template": "WHAT WE REMEMBER. TOGETHER\n\n{{cluster.result}}",
       "next": "end"

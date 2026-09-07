@@ -22,7 +22,9 @@
             "Melbourne",
             "Perth"
           ],
-          "correct": "Canberra"
+          "correct": "Canberra",
+          "explanation": "Sydney and Melbourne both wanted the title, so Canberra was purpose-built between them in 1913.",
+          "discussionPrompt": "What made Sydney the tempting answer? What does \"biggest city\" have to do with \"capital\"?"
         },
         {
           "question": "Which planet is closest to the Sun?",
@@ -32,7 +34,9 @@
             "Mercury",
             "Jupiter"
           ],
-          "correct": "Mercury"
+          "correct": "Mercury",
+          "explanation": "Mercury orbits closest, about 58 million km out. Venus is hotter, but second in line.",
+          "discussionPrompt": "Why might someone answer Venus? What is the difference between closest and hottest?"
         },
         {
           "question": "How many sides does a hexagon have?",
@@ -42,7 +46,9 @@
             "Seven",
             "Eight"
           ],
-          "correct": "Six"
+          "correct": "Six",
+          "explanation": "Hex means six, the same root as in hexadecimal. A honeycomb cell is a hexagon.",
+          "discussionPrompt": "Name another word that hides a number in it. How did you know?"
         },
         {
           "question": "Which is the largest ocean on Earth?",
@@ -52,7 +58,9 @@
             "Arctic",
             "Pacific"
           ],
-          "correct": "Pacific"
+          "correct": "Pacific",
+          "explanation": "The Pacific covers about a third of the planet, bigger than all the land put together.",
+          "discussionPrompt": "What did the wrong answers have in common? Where on a map do people guess big?"
         },
         {
           "question": "In what year did World War II end?",
@@ -62,7 +70,9 @@
             "1945",
             "1946"
           ],
-          "correct": "1945"
+          "correct": "1945",
+          "explanation": "Germany surrendered in May 1945 and Japan in August, so 1945 ends the war on both fronts.",
+          "discussionPrompt": "What other dates were tempting, and what happened in those years?"
         }
       ],
       "questionTimer": 15,
@@ -97,7 +107,8 @@
     },
     "r1": {
       "type": "announce",
-      "message": "The answer was: Canberra!\n\nClass picks:\n{{q1.barChart}}",
+      "message": "The answer was: Canberra!\n\nSydney and Melbourne both wanted the title, so Canberra was purpose-built between them in 1913.\n\nClass picks:\n{{q1.barChart}}",
+      "discussionPrompt": "What made Sydney the tempting answer? What does \"biggest city\" have to do with \"capital\"?",
       "next": "q2"
     },
     "q2": {
@@ -116,7 +127,8 @@
     },
     "r2": {
       "type": "announce",
-      "message": "The answer was: Mercury!\n\nClass picks:\n{{q2.barChart}}",
+      "message": "The answer was: Mercury!\n\nMercury orbits closest, about 58 million km out. Venus is hotter, but second in line.\n\nClass picks:\n{{q2.barChart}}",
+      "discussionPrompt": "Why might someone answer Venus? What is the difference between closest and hottest?",
       "next": "q3"
     },
     "q3": {
@@ -135,7 +147,8 @@
     },
     "r3": {
       "type": "announce",
-      "message": "The answer was: Six!\n\nClass picks:\n{{q3.barChart}}",
+      "message": "The answer was: Six!\n\nHex means six, the same root as in hexadecimal. A honeycomb cell is a hexagon.\n\nClass picks:\n{{q3.barChart}}",
+      "discussionPrompt": "Name another word that hides a number in it. How did you know?",
       "next": "q4"
     },
     "q4": {
@@ -154,7 +167,8 @@
     },
     "r4": {
       "type": "announce",
-      "message": "The answer was: Pacific!\n\nClass picks:\n{{q4.barChart}}",
+      "message": "The answer was: Pacific!\n\nThe Pacific covers about a third of the planet, bigger than all the land put together.\n\nClass picks:\n{{q4.barChart}}",
+      "discussionPrompt": "What did the wrong answers have in common? Where on a map do people guess big?",
       "next": "q5"
     },
     "q5": {
@@ -173,7 +187,8 @@
     },
     "r5": {
       "type": "announce",
-      "message": "The answer was: 1945!\n\nClass picks:\n{{q5.barChart}}",
+      "message": "The answer was: 1945!\n\nGermany surrendered in May 1945 and Japan in August, so 1945 ends the war on both fronts.\n\nClass picks:\n{{q5.barChart}}",
+      "discussionPrompt": "What other dates were tempting, and what happened in those years?",
       "next": "scoreboard"
     },
     "scoreboard": {

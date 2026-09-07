@@ -41,6 +41,7 @@
       "next": "share"
     },
     "share": {
+      "discussionPrompt": "What changed when you combined your two ideas? Which line would not exist without the other person?",
       "type": "reveal",
       "template": "What should our class norms be?\n\nWe each answered alone. Here's what the pairs built together:\n\n{{pairs.merged.list}}",
       "next": "end"

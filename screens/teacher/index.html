@@ -87,6 +87,17 @@
       </div>
     </div>
 
+    <!-- Discussion prompt: a question to ask during this step. Console
+         only until the teacher puts it on the class screen. -->
+    <div id="discussion-block" hidden>
+      <h2>Something to ask</h2>
+      <p id="discussion-text" class="preview-text"></p>
+      <div class="btn-row">
+        <button id="show-discussion-btn" class="btn-go" title="Put this question on the class screen for everyone to see">Show on the class screen</button>
+      </div>
+      <p id="discussion-shown" class="block-hint" hidden>On the class screen.</p>
+    </div>
+
     <!-- Controls -->
     <div id="controls-block" class="controls-block">
       <button id="close-step-btn" hidden title="Stop accepting answers for this step and move on">Close submissions</button>

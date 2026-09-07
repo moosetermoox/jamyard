@@ -82,6 +82,7 @@
       "next": "wall"
     },
     "wall": {
+      "discussionPrompt": "What did the good lines have in common? What makes encouragement land instead of bounce off?",
       "type": "reveal-one",
       "message": "The encouragement wall, one line at a time.",
       "from": "boost.responses",

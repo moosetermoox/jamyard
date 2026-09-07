@@ -63,6 +63,13 @@ export const MIXINS = {
       doneMessage: {
         type: 'string', optional: true, label: 'Done message (rolling start)',
         helper: 'Rolling-start activities only: the line a student sees once they have finished this step and nothing else needs them.'
+      },
+      // A question for the teacher to ask during this step. Lives on the
+      // private console; "Show on the class screen" puts it on the
+      // projector when the teacher wants it (outside review #2, 2026-09-07).
+      discussionPrompt: {
+        type: 'string', optional: true, label: 'Discussion prompt (teacher console)',
+        helper: 'A question to ask the class during this step, e.g. "What made the other answers tempting?" Shows on your teacher console with a button to put it on the class screen; students never see it unless you do.'
       }
     }
   },

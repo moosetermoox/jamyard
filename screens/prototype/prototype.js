@@ -601,6 +601,11 @@ launchBtn.addEventListener('click', () => {
       window.removeEventListener('message', onMessage);
       currentCode = e.data.code;
       hostLabel.textContent = 'Teacher screen · Room ' + e.data.code;
+      // Teacher controls: the real /teacher console in the same panel,
+      // behind a tab (outside review #2: rehearsal should include the
+      // private console, not a "copy a link" detour). The console auto-
+      // joins from the hash; the host iframe stays first so Skip finds it.
+      if (e.data.teacherPin) addTeacherTab(hostWrapper, hostLabel, hostIframe, e.data.code, e.data.teacherPin);
       createPlayerIframes(e.data.code, count);
       benchBar.hidden = false;
       resetBtn.hidden = false;
@@ -621,6 +626,49 @@ launchBtn.addEventListener('click', () => {
     }
   });
 });
+
+// Two tabs on the host panel: Class screen (the projector) and Teacher
+// controls (the private console, joined with the room's PIN). Only the
+// chosen one shows; the tabs sit in the panel label.
+function addTeacherTab(hostWrapper, hostLabel, hostIframe, code, pin) {
+  const teacherIframe = document.createElement('iframe');
+  teacherIframe.className = 'teacher-frame';
+  teacherIframe.title = 'Teacher controls';
+  teacherIframe.src = '/teacher#code=' + encodeURIComponent(code) + '&pin=' + encodeURIComponent(pin);
+  teacherIframe.hidden = true;
+  hostWrapper.appendChild(teacherIframe);
+
+  const tabs = document.createElement('div');
+  tabs.className = 'panel-tabs';
+  tabs.setAttribute('role', 'tablist');
+  const make = (label, title, active) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'panel-tab' + (active ? ' active' : '');
+    b.setAttribute('role', 'tab');
+    b.setAttribute('aria-selected', active ? 'true' : 'false');
+    b.textContent = label;
+    b.title = title;
+    return b;
+  };
+  const classTab = make('Class screen', 'The projected screen the class sees', true);
+  const teacherTab = make('Teacher controls', 'Your private console: live entries, hide, approve, pacing', false);
+  const select = (which) => {
+    const teacher = which === 'teacher';
+    hostIframe.hidden = teacher;
+    teacherIframe.hidden = !teacher;
+    classTab.classList.toggle('active', !teacher);
+    teacherTab.classList.toggle('active', teacher);
+    classTab.setAttribute('aria-selected', teacher ? 'false' : 'true');
+    teacherTab.setAttribute('aria-selected', teacher ? 'true' : 'false');
+    hostWrapper.classList.toggle('showing-teacher', teacher);
+  };
+  classTab.addEventListener('click', () => select('class'));
+  teacherTab.addEventListener('click', () => select('teacher'));
+  tabs.appendChild(classTab);
+  tabs.appendChild(teacherTab);
+  hostLabel.appendChild(tabs);
+}
 
 function addPlayerPanel(code, i) {
   const wrapper = document.createElement('div');

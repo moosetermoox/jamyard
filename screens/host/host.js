@@ -160,6 +160,17 @@ teacherLinkCopyBtn.addEventListener('click', () => {
 // Not in preview mode: the map rail pairs as a console on every launch,
 // and "Teacher device connected" on the practice board reads as a ghost.
 const teacherDeviceNotice = document.getElementById('teacher-device-notice');
+// The console put this step's discussion prompt on the class screen. The
+// text is the step's own field (server-read, never client text); the card
+// clears itself on the next step (showSection).
+const discussionCard = document.getElementById('discussion-card');
+const discussionCardText = document.getElementById('discussion-card-text');
+socket.on('discussion-prompt', ({ text } = {}) => {
+  if (!discussionCard || !text) return;
+  setRichText(discussionCardText, text);
+  discussionCard.hidden = false;
+});
+
 socket.on('teacher-console-joined', ({ deviceCount }) => {
   if (new URLSearchParams(window.location.search).get('prototype') === 'true') return;
   teacherConsolePaired = true;
@@ -2774,6 +2785,10 @@ const allSections = [
 function showSection(el) {
   clearTimer();
   stopAllVideos();
+  // A discussion prompt belongs to the step it was shown on (looked up
+  // here, not via the const below: showSection can run before it exists)
+  var shownPrompt = document.getElementById('discussion-card');
+  if (shownPrompt) shownPrompt.hidden = true;
   // Content owns the projector: outside the lobby the brand shrinks to a
   // corner mark (docs/PROJECTOR-STYLE.md rule 1).
   document.body.classList.toggle('in-activity', el !== lobbySection);

@@ -1399,6 +1399,43 @@ select {
    Fixed corner chip, present in every phase once a room exists, so the
    teacher can pair a console mid-activity. Bottom-right: the sound toggle
    owns top-right, the brand mark owns top-left. */
+/* The discussion prompt the teacher put up from the console: a paper
+   card pinned low on the projector, out of the content's way, gone on
+   the next step. */
+.discussion-card {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%) rotate(-0.4deg);
+  z-index: 90;
+  max-width: min(900px, 86vw);
+  background: var(--t-paper, #FDF9F0);
+  box-shadow: 0 4px 8px rgba(50, 35, 15, 0.30), 0 0 0 2px var(--t-ink, #2A2620);
+  padding: 14px 26px 16px;
+  text-align: left;
+}
+.discussion-card[hidden] { display: none; }
+.discussion-card-label {
+  display: inline-block;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t-paper, #FDF9F0);
+  background: var(--t-magenta, #C2185B);
+  padding: 3px 10px 5px;
+  transform: rotate(-1deg);
+  margin-bottom: 6px;
+}
+.discussion-card-text {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--t-ink, #2A2620);
+  margin: 0;
+}
+
 .teacher-view-chip {
   position: fixed;
   bottom: 14px;

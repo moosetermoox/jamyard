@@ -56,6 +56,9 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     playerId: 'string:required'
   },
+  'show-discussion': {
+    code: 'string:required'
+  },
   'meadow-nudge': {
     code: 'string:required',
     fx: 'number:required',

@@ -260,6 +260,24 @@ export function applyDefaults(recipe, params) {
       // Deep-clone defaults so callers can't mutate the recipe spec
       out[key] = deepClone(spec.default);
     }
+    // Object items in a list (quiz questions) fill their optional fields
+    // from the item spec's defaults, so a template may reference
+    // "${item.explanation}" whether or not a question carries one
+    // (lookupParam throws on a missing field). Copied, never mutated in
+    // place: the params may be a saved stamp.
+    const itemFields = spec.item && spec.item.type === 'object' && spec.item.fields;
+    if (itemFields && Array.isArray(out[key])) {
+      out[key] = out[key].map(item => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) return item;
+        const filled = { ...item };
+        for (const [field, fspec] of Object.entries(itemFields)) {
+          if (filled[field] == null && fspec && fspec.default !== undefined) {
+            filled[field] = deepClone(fspec.default);
+          }
+        }
+        return filled;
+      });
+    }
   }
   return out;
 }

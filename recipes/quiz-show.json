@@ -42,6 +42,18 @@
             "required": true,
             "label": "Correct answer",
             "placeholder": "Canberra"
+          },
+          "explanation": {
+            "type": "string",
+            "default": "",
+            "label": "Why (shown with the answer)",
+            "placeholder": "Sydney is bigger, but the capital was purpose-built between the rivals."
+          },
+          "discussionPrompt": {
+            "type": "string",
+            "default": "",
+            "label": "Discussion prompt (your console only)",
+            "placeholder": "What made the other answers tempting?"
           }
         }
       },
@@ -124,7 +136,8 @@
           },
           "r${i}": {
             "type": "announce",
-            "message": "The answer was: ${item.correct}!\n\nClass picks:\n{{q${i}.barChart}}",
+            "message": "The answer was: ${item.correct}!\n\n${item.explanation}\n\nClass picks:\n{{q${i}.barChart}}",
+            "discussionPrompt": "${item.discussionPrompt}",
             "next": "${nextKey}"
           }
         },

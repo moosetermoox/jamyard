@@ -1541,8 +1541,16 @@ function notifyTeachersClosed(code, room) {
     phaseInstanceId: room.phaseInstanceId,
     continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language),
     closeLabel: null,
-    closed: true
+    closed: true,
+    discussionPrompt: discussionPromptFor(phase)
   });
+}
+
+// The step's discussion prompt for the console (a teacher-authored
+// question; the projector only sees it on the teacher's say-so).
+function discussionPromptFor(phase) {
+  const text = phase && phase.discussionPrompt;
+  return (typeof text === 'string' && text.trim() !== '') ? text.trim() : null;
 }
 
 // Everything a console needs to render when it joins mid-game.
@@ -1580,6 +1588,7 @@ function buildTeacherSnapshot(code, room) {
     snap.closed = !!(ps && ps.closed);
     snap.players = engine.players.listPublic();
     snap.timer = phase.timer || null;
+    snap.discussionPrompt = discussionPromptFor(phase);
   }
   return snap;
 }
@@ -1765,7 +1774,9 @@ async function handlePhase(code, room) {
     timer: phase.timer || null,
     // The drawing the class is looking at (Doodle Bluff rounds): the
     // teacher moderates titles better seeing the picture they are for.
-    displayDrawing: resolveDisplayDrawing(phase, engine)
+    displayDrawing: resolveDisplayDrawing(phase, engine),
+    // A question to ask during this step (console only until shown)
+    discussionPrompt: discussionPromptFor(phase)
   });
 
   // Dispatch to registered handler
@@ -3742,6 +3753,28 @@ io.on('connection', (socket) => {
     recordEvent(room, 'moderate-hide', { player: target.name, hidden: newHidden });
     emitSubmissionsUpdate(code, room);
     emitLiveTally(code, room);
+  });
+
+  // Teacher console puts the current step's discussion prompt on the
+  // projector. The text comes from the CONFIG (the step's own field),
+  // never from the client, so a console can only show what the activity
+  // carries; a step without one shows nothing.
+  socket.on(EVENTS.SHOW_DISCUSSION, (payload = {}) => {
+    try {
+      if (!checkEventPayload(socket, 'show-discussion', payload)) return;
+      const { code } = payload;
+      const room = roomManager.find(code);
+      if (!room || !room.engine) return;
+      if (!isTeacherSocket(code, room, socket.id)) return;
+      const phase = room.engine.getCurrentPhase();
+      const text = discussionPromptFor(phase);
+      if (!text) return;
+      recordEvent(room, 'show-discussion', { phaseId: phase.id });
+      const hostSocketId = roomToHost.get(code);
+      if (hostSocketId) io.to(hostSocketId).emit(EVENTS.DISCUSSION_PROMPT, { text, phaseId: phase.id });
+    } catch (err) {
+      console.error('[show-discussion] error:', err.message);
+    }
   });
 
   // Host kicks a player: remove from the game and block rejoin this session.
