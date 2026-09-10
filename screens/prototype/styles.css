@@ -520,6 +520,27 @@ body.pt-running #host-btn { display: inline-block; }
   background: var(--t-gesso);
 }
 
+/* While the console shows: a note above it, the bar swaps to say whose screen this is */
+.teacher-note {
+  display: none;
+  margin: 0 0 10px;
+  padding: 8px 12px 9px;
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--t-ink);
+  transform: rotate(-0.4deg);
+}
+
+.teacher-note strong { font-weight: 800; }
+
+#host-mat.showing-teacher .teacher-note { display: block; }
+#host-mat.empty .teacher-note { display: none; }
+
+#host-mat.showing-teacher { box-shadow: 0 4px 8px rgba(50, 35, 15, 0.26), 0 0 0 2px var(--t-magenta); }
+.host-bar.showing-teacher { background: var(--t-magenta); }
+
 /* The teacher mat: host iframe first, teacher console behind the tab.
    The hidden one must really hide (iframes are display:inline). */
 #host-mat iframe[hidden] { display: none; }
@@ -630,8 +651,9 @@ body.pt-running #host-btn { display: inline-block; }
 #next-banner[hidden] { display: none; }
 
 .next-card {
+  position: relative;
   background: var(--t-yellow);
-  padding: 12px 16px 13px;
+  padding: 12px 34px 13px 16px;
   max-width: 300px;
   display: flex;
   flex-direction: column;
@@ -641,6 +663,25 @@ body.pt-running #host-btn { display: inline-block; }
 }
 
 #next-banner.tilt-right .next-card { transform: rotate(1.2deg); }
+
+/* The × in the card's corner: hides it for this browser, ? brings it back */
+.next-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--t-ink);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.next-close:hover { opacity: 1; }
+.next-close:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 1px; }
 
 .next-label {
   font-family: var(--t-display);

@@ -515,6 +515,9 @@ function dismissBanner() {
   updateBanner();
 }
 
+const nextClose = document.getElementById('next-close');
+if (nextClose) nextClose.addEventListener('click', (e) => { e.stopPropagation(); dismissBanner(); });
+
 function onPointedClick() {
   pressedPointedSincePhase = true;
   nextStreak += 1;
@@ -873,7 +876,17 @@ function addTeacherTab(hostIframe, code, pin) {
     return b;
   };
   const classTab = make('Class screen', 'The projected screen the class sees', true, 'class-tab-btn');
-  const teacherTab = make('Teacher controls', 'Your private console: live entries, hide, approve, pacing', false, 'teacher-tab-btn');
+  const teacherTab = make('Teacher controls', 'Your private console: live entries, hide, approve, pacing. In class it opens on your own laptop or phone, never the projector.', false, 'teacher-tab-btn');
+  const hostBar = document.querySelector('.host-bar');
+  const hostBarTitle = document.getElementById('host-bar-title');
+  const setBarTitle = (teacher) => {
+    hostBarTitle.textContent = '';
+    hostBarTitle.appendChild(document.createTextNode(teacher ? 'Teacher controls ' : 'Teacher screen '));
+    const sub = document.createElement('span');
+    sub.className = 'screen-bar-sub';
+    sub.textContent = teacher ? '· on your own device' : '· what the class sees';
+    hostBarTitle.appendChild(sub);
+  };
   const select = (which) => {
     const teacher = which === 'teacher';
     hostIframe.hidden = teacher;
@@ -883,6 +896,8 @@ function addTeacherTab(hostIframe, code, pin) {
     classTab.setAttribute('aria-selected', teacher ? 'false' : 'true');
     teacherTab.setAttribute('aria-selected', teacher ? 'true' : 'false');
     hostMat.classList.toggle('showing-teacher', teacher);
+    if (hostBar) hostBar.classList.toggle('showing-teacher', teacher);
+    setBarTitle(teacher);
     updateBanner();
   };
   classTab.addEventListener('click', () => select('class'));
@@ -987,6 +1002,16 @@ skipBtn.addEventListener('click', () => {
 function clearMats() {
   hostMat.querySelectorAll('iframe').forEach(f => f.remove());
   hostMat.classList.remove('showing-teacher');
+  const bar = document.querySelector('.host-bar');
+  if (bar) bar.classList.remove('showing-teacher');
+  const title = document.getElementById('host-bar-title');
+  if (title) {
+    title.textContent = 'Teacher screen ';
+    const sub = document.createElement('span');
+    sub.className = 'screen-bar-sub';
+    sub.textContent = '· what the class sees';
+    title.appendChild(sub);
+  }
   hostTabs.textContent = '';
   hostTabs.hidden = true;
   playerHolder.textContent = '';

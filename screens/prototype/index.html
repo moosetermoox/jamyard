@@ -52,11 +52,14 @@
   <div id="iframe-container" role="main">
     <div id="host-column">
       <div class="screen-bar host-bar">
-        <span class="screen-bar-title">Teacher screen <span class="screen-bar-sub">&middot; what the class sees</span></span>
+        <span class="screen-bar-title" id="host-bar-title">Teacher screen <span class="screen-bar-sub">&middot; what the class sees</span></span>
         <div class="panel-tabs" id="host-tabs" role="tablist" hidden></div>
       </div>
       <div id="host-mat" class="screen-mat host-panel empty">
         <span class="mat-empty-label">Teacher screen</span>
+        <!-- Shown while the Teacher controls tab is up: this console is a
+             second screen in class, never the projector -->
+        <p class="teacher-note" id="teacher-note">In class this opens on <strong>your own laptop or phone</strong> (Copy teacher link on the projector). Students never see it.</p>
       </div>
     </div>
 
@@ -90,6 +93,7 @@
          a row on the pointed-at control; the ? brings it back. -->
     <div id="next-banner" hidden role="status" aria-live="polite">
       <div class="next-card">
+        <button type="button" class="next-close" id="next-close" title="Hide this card (the ? brings it back)" aria-label="Hide this card. The help button brings it back.">&times;</button>
         <span class="next-label">Next</span>
         <span class="next-text" id="next-text"></span>
       </div>
@@ -103,9 +107,9 @@
     <div class="sim-intro-card" role="dialog" aria-modal="true" aria-labelledby="sim-intro-title" aria-describedby="sim-intro-list">
       <h2 id="sim-intro-title">You play the whole class</h2>
       <ul id="sim-intro-list">
-        <li><strong>Teacher screen</strong> on the left, one <strong>student screen</strong> on the right. The yellow NEXT card points at the thing to press.</li>
+        <li><strong>Teacher screen</strong> on the left, one <strong>student screen</strong> on the right. The yellow NEXT card points at the thing to press; its &times; hides it, and this ? brings it back.</li>
         <li><strong>Add sample answers</strong> fills one in for every student; <strong>Skip timer</strong> moves to the next step.</li>
-        <li><strong>Teacher controls</strong>, the tab on the teacher screen, is your private console: hide an entry, approve a preview, put a discussion prompt up.</li>
+        <li><strong>Teacher controls</strong>, the tab on the teacher screen, is your private console: hide an entry, approve a preview, put a discussion prompt up. In class it opens on your own laptop or phone, never the projector.</li>
         <li><strong>+ Add another student</strong> brings one more into the room; the arrows step through them. Click a step in the plan to skip ahead.</li>
       </ul>
       <button id="sim-intro-ok" type="button">Got it</button>
