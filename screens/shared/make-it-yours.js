@@ -125,6 +125,11 @@ function compileWorkingConfig(config, params) {
       working.phases = d.config.phases;
       working.recipe = d.config.recipe;
       if (d.config.family != null) working.family = d.config.family;
+      // Sample answers are bound to steps: a recompile can drop the step
+      // they answer (Doodle Bluff in teacher mode has no phrases step), so
+      // they follow the fresh compile, never the source card.
+      if (d.config.sampleAnswers != null) working.sampleAnswers = d.config.sampleAnswers;
+      else delete working.sampleAnswers;
       return working;
     });
   });
@@ -136,7 +141,7 @@ function compileWorkingConfig(config, params) {
 // editable in place, plus a topic box that has the AI write fresh ones.
 // Every question shows its ✓ answer; nothing is saved until the teacher
 // has the list in front of them (the wrong-facts review gate).
-function showQuizCustomizeDialog(game, config, recipeSummary) {
+function showQuizCustomizeDialog(game, config, recipeSummary, mount) {
   var stamp = config.recipe;
   var questions = JSON.parse(JSON.stringify(stamp.params.questions || []));
   var paceKnobs = SetupKnobs.knobsFor(recipeSummary, stamp).filter(function (k) {
@@ -163,7 +168,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
   subtitle.className = 'template-picker-subtitle';
   subtitle.textContent = 'Your copy of “' + game.name + '”. Keep these questions, adjust them, or have new ones written for your topic.';
   modal.appendChild(subtitle);
-  renderClassPicker(modal);
+  if (!mount) renderClassPicker(modal);
 
   // --- Topic row: AI writes fresh questions ---
   var topicLabel = document.createElement('label');
@@ -380,8 +385,8 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
   });
 
   // --- Actions: the three doors (makeCopy below gets the pick) ---
-  var doors = makeItYoursDoors(makeCopy);
-  modal.appendChild(doors.row);
+  var doors = mount ? { setDisabled: function () {} } : makeItYoursDoors(makeCopy);
+  if (!mount) modal.appendChild(doors.row);
 
   function showStatus(text) {
     status.hidden = false;
@@ -445,12 +450,12 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
       });
   });
 
-  function makeCopy(dest) {
+  function makeCopy(dest, extras) {
     var cleaned = cleanedList();
     var problems = SetupKnobs.validateQuizList(cleaned);
     if (problems.length > 0) {
       showStatus(problems.slice(0, 2).join(' '));
-      return;
+      return false;
     }
     doors.setDisabled(true);
     writeBtn.disabled = true;
@@ -458,9 +463,10 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
     var params = JSON.parse(JSON.stringify(stamp.params));
     params.questions = cleaned;
     knobInputs.forEach(function (ki) { params[ki.knob.name] = ki.getValue(); });
-    compileWorkingConfig(config, params)
+    return compileWorkingConfig(config, params)
       .then(function (working) {
         working.name = game.name + ' (my version)';
+        if (extras && typeof extras.anonymous === 'boolean') working.anonymous = extras.anonymous;
         return saveCopyAndReturn(working, dest);
       })
       .catch(function (err) {
@@ -470,6 +476,17 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
       });
   }
 
+  if (mount) {
+    title.remove();
+    subtitle.remove();
+    modal.className = 'template-picker-modal make-panel';
+    modal.style.maxWidth = '';
+    modal.style.maxHeight = '';
+    modal.style.overflowY = '';
+    mount.appendChild(modal);
+    micsIn(modal);
+    return { makeCopy: makeCopy };
+  }
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   Dialog.enhance(overlay, modal, { title: 'Make it yours' });
@@ -483,7 +500,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary) {
 // now, or the teacher writes their own. The two prepared doors share one
 // editable fact list; nothing is saved until the teacher has the list in
 // front of them (the wrong-facts review gate, same as the quiz panel).
-function showBluffCustomizeDialog(game, config, recipeSummary) {
+function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
   var stamp = config.recipe;
   var questions = JSON.parse(JSON.stringify(stamp.params.questions || []));
   var knobs = SetupKnobs.knobsFor(recipeSummary, stamp);
@@ -514,7 +531,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
   subtitle.className = 'template-picker-subtitle';
   subtitle.textContent = 'Your copy of “' + game.name + '”. Choose where the fill-in-the-blank facts come from.';
   modal.appendChild(subtitle);
-  renderClassPicker(modal);
+  if (!mount) renderClassPicker(modal);
 
   // --- The three source doors ---
   var SOURCES = [
@@ -750,8 +767,8 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
   renderSourceState();
 
   // --- Actions: the three doors (makeCopy below gets the pick) ---
-  var doors = makeItYoursDoors(makeCopy);
-  modal.appendChild(doors.row);
+  var doors = mount ? { setDisabled: function () {} } : makeItYoursDoors(makeCopy);
+  if (!mount) modal.appendChild(doors.row);
 
   function showStatus(text) {
     status.hidden = false;
@@ -819,7 +836,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
       });
   });
 
-  function makeCopy(dest) {
+  function makeCopy(dest, extras) {
     var params = JSON.parse(JSON.stringify(stamp.params));
     if (selectedSource === 'live') {
       params.questionSource = 'live';
@@ -832,7 +849,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
       var problems = SetupKnobs.validateBluffList(cleaned);
       if (problems.length > 0) {
         showStatus(problems.slice(0, 2).join(' '));
-        return;
+        return false;
       }
       params.questionSource = 'prepared';
       params.questions = cleaned;
@@ -844,9 +861,10 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
     doors.setDisabled(true);
     writeBtn.disabled = true;
     showStatus('Building your copy…');
-    compileWorkingConfig(config, params)
+    return compileWorkingConfig(config, params)
       .then(function (working) {
         working.name = game.name + ' (my version)';
+        if (extras && typeof extras.anonymous === 'boolean') working.anonymous = extras.anonymous;
         return saveCopyAndReturn(working, dest);
       })
       .catch(function (err) {
@@ -856,6 +874,17 @@ function showBluffCustomizeDialog(game, config, recipeSummary) {
       });
   }
 
+  if (mount) {
+    title.remove();
+    subtitle.remove();
+    modal.className = 'template-picker-modal make-panel';
+    modal.style.maxWidth = '';
+    modal.style.maxHeight = '';
+    modal.style.overflowY = '';
+    mount.appendChild(modal);
+    micsIn(modal);
+    return { makeCopy: makeCopy };
+  }
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
   Dialog.enhance(overlay, modal, { title: 'Make it yours' });
@@ -924,6 +953,16 @@ function customizeCopy(game, btn) {
       // questions ARE the content, so the generic words-tailoring flow
       // (which can rewrite choices out from under a correct answer) is
       // skipped entirely for these games.
+      // The page (2026-09-09): what your class will see, the question
+      // editable in place, one red TRY IT; a recipe's setup panel (quiz,
+      // bluff) mounts under the doors. The dialogs stay behind a flag.
+      if (!window.MAKE_IT_YOURS_DIALOG) {
+        var fromPage = /^\/(library|designer)?/.exec(window.location.pathname);
+        var from = window.location.pathname === '/' || window.location.pathname === '' ? 'home'
+          : (fromPage && fromPage[1] === 'designer') ? 'designer' : 'library';
+        window.location.href = '/make?game=' + encodeURIComponent(game.id) + '&from=' + from;
+        return;
+      }
       var panel = (window.SetupKnobs && summary)
         ? SetupKnobs.panelFor(summary, config.recipe) : null;
       if (panel === 'quiz') {
@@ -931,16 +970,6 @@ function customizeCopy(game, btn) {
       }
       if (panel === 'bluff') {
         return showBluffCustomizeDialog(game, config, summary);
-      }
-      // Everything else: the page (2026-09-09). What your class will see,
-      // the question editable in place, one red TRY IT. The dialog below
-      // stays for the two panel recipes until they move over too.
-      if (!window.MAKE_IT_YOURS_DIALOG) {
-        var fromPage = /^\/(library|designer)?/.exec(window.location.pathname);
-        var from = window.location.pathname === '/' || window.location.pathname === '' ? 'home'
-          : (fromPage && fromPage[1] === 'designer') ? 'designer' : 'library';
-        window.location.href = '/make?game=' + encodeURIComponent(game.id) + '&from=' + from;
-        return;
       }
       var questions = (parts[1] && parts[1].questions) || [];
       var knobs = (window.SetupKnobs && summary)
@@ -965,7 +994,7 @@ function customizeCopy(game, btn) {
 // timers), then the AI questions. Answer what you like (or skip); the AI
 // rewrites the copy's WORDS — structure only changes through the knobs'
 // recipe recompile (the revise endpoint validates).
-function showCustomizeDialog(game, config, questions, knobs) {
+function showCustomizeDialog(game, config, questions, knobs, mount) {
   knobs = knobs || [];
   var overlay = document.createElement('div');
   overlay.className = 'template-picker-overlay';
@@ -983,8 +1012,9 @@ function showCustomizeDialog(game, config, questions, knobs) {
 
   // --- Setup knobs (recipe-born games only) ---
   var knobInputs = [];
+  var knobsHeading = null;
   if (knobs.length > 0) {
-    var knobsHeading = document.createElement('p');
+    knobsHeading = document.createElement('p');
     knobsHeading.className = 'template-picker-subtitle';
     knobsHeading.style.fontWeight = '800';
     knobsHeading.textContent = 'Set it up:';
@@ -1120,6 +1150,18 @@ function showCustomizeDialog(game, config, questions, knobs) {
       ki.input.addEventListener('input', refreshKnobRows);
     });
     refreshKnobRows();
+  }
+
+  // Mounted on the page: only the knobs, handed back as a builder. The
+  // page owns the class picker, the questions, and the doors.
+  if (mount) {
+    title.remove();
+    if (knobsHeading) knobsHeading.remove();
+    modal.className = 'template-picker-modal make-panel';
+    modal.style.maxWidth = '';
+    mount.appendChild(modal);
+    micsIn(modal);
+    return { touched: anyKnobTouched, build: buildWorkingConfig };
   }
 
   // Only introduce the AI questions when there are any to answer.
@@ -1550,6 +1592,18 @@ function askOtherSubject(picked, onDone) {
     buildChipRow: buildChipRow,
     askOtherSubject: askOtherSubject,
     saveCopyAndReturn: saveCopyAndReturn,
-    openDraftCopy: openDraftCopy
+    openDraftCopy: openDraftCopy,
+    // A recipe's setup panel rendered into a page element (the Make it
+    // yours page); returns { makeCopy(dest, extras) }.
+    mountPanel: function (panel, game, config, summary, mount) {
+      if (panel === 'quiz') return showQuizCustomizeDialog(game, config, summary, mount);
+      if (panel === 'bluff') return showBluffCustomizeDialog(game, config, summary, mount);
+      if (panel === 'knobs') {
+        var knobs = (window.SetupKnobs && summary) ? SetupKnobs.knobsFor(summary, config.recipe) : [];
+        if (!knobs.length) return null;
+        return showCustomizeDialog(game, config, [], knobs, mount);
+      }
+      return null;
+    }
   };
 })();

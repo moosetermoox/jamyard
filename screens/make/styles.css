@@ -426,6 +426,31 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
   color: var(--t-ink);
 }
 
+/* ── A recipe's setup panel, on the page ────────────────────────────── */
+
+.panel-section { display: flex; flex-direction: column; gap: 12px; padding-top: 18px; border-top: 2px dashed rgba(110, 75, 40, 0.2); }
+.panel-section[hidden] { display: none; }
+
+.panel-heading {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+}
+
+/* The dialog's modal, as a paper card in the flow */
+.make-panel.template-picker-modal {
+  position: static;
+  width: auto;
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  padding: 22px 26px 24px;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.2);
+}
+
 /* ── More ───────────────────────────────────────────────────────────── */
 
 .more {

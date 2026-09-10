@@ -23,7 +23,7 @@ beforeEach(async () => {
 describe('MakeItYours module', () => {
   it('exposes the flow and its helpers', () => {
     const M = globalThis.MakeItYours;
-    ['open', 'seedIds', 'renderClassPicker', 'buildChipRow', 'askOtherSubject', 'saveCopyAndReturn', 'openDraftCopy']
+    ['open', 'seedIds', 'renderClassPicker', 'buildChipRow', 'askOtherSubject', 'saveCopyAndReturn', 'openDraftCopy', 'mountPanel']
       .forEach((name) => expect(typeof M[name], name).toBe('function'));
   });
 

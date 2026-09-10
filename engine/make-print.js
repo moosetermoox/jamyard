@@ -72,13 +72,23 @@ export function printFor(config) {
   const fields = Array.isArray(phase.fields)
     ? phase.fields.map((f) => ({ key: f.key, label: String(f.label || ''), editable: isPlainText(f.label) }))
     : [];
-  const choices = Array.isArray(phase.choices) ? phase.choices.map((c) => (typeof c === 'string' ? c : String(c && c.text || ''))) : [];
+  let choices = Array.isArray(phase.choices) ? phase.choices.map((c) => (typeof c === 'string' ? c : String(c && c.text || ''))) : [];
+  let promptText = typeof phase.prompt === 'string' ? phase.prompt : '';
+  let promptEditable = isPlainText(phase.prompt);
+  // A self-paced quiz has no prompt of its own: show its first question
+  if (phase.type === 'solo-quiz' && Array.isArray(phase.questions) && phase.questions[0] && typeof phase.questions[0].question === 'string') {
+    promptText = phase.questions[0].question;
+    promptEditable = false;
+    if (Array.isArray(phase.questions[0].choices)) choices = phase.questions[0].choices.map(String);
+  }
   return {
     name: config.name || '',
     phaseId: step.id,
     type: phase.type,
     inputType: phase.inputType || (phase.type === 'collect-choice' ? 'choice' : 'text'),
-    prompt: { text: typeof phase.prompt === 'string' ? phase.prompt : '', editable: isPlainText(phase.prompt) },
+    // `display` is what the page draws: a {{token}} (a fact the AI writes
+    // at game time, a classmate's answer) reads as a blank, never raw
+    prompt: { text: promptText, display: promptText.replace(/\{\{[^}]*\}\}/g, '…').replace(/[ \t]+/g, ' ').trim(), editable: promptEditable },
     instruction: typeof phase.instruction === 'string' ? phase.instruction : null,
     fields,
     choices,

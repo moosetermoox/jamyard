@@ -66,7 +66,9 @@
     questions: [],         // the AI's tailoring questions, once fetched
     answers: {},           // question -> input element
     questionsLoaded: false,
-    busy: false
+    busy: false,
+    panel: null,           // 'quiz' | 'bluff' when the recipe brings its own editor
+    panelApi: null         // { makeCopy } from MakeItYours.mountPanel
   };
 
   function fail(text) {
@@ -109,6 +111,20 @@
   ]).then(function (parts) {
     state.config = parts[0];
     state.print = parts[1];
+    var stamp = state.config && state.config.recipe;
+    if (!stamp || typeof stamp.id !== 'string' || !window.SetupKnobs) return parts;
+    // A recipe-born template may bring its own setup panel
+    return fetch('/api/recipes/' + encodeURIComponent(stamp.id))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (summary) {
+        state.summary = summary;
+        state.panel = summary ? SetupKnobs.panelFor(summary, stamp) : null;
+        // No dedicated panel but setup knobs (Doodle Bluff): those mount too
+        if (!state.panel && summary && SetupKnobs.knobsFor(summary, stamp).length) state.panel = 'knobs';
+        return parts;
+      });
+  }).then(function (parts) {
     if (window.MakeItYours && parts[2] && Array.isArray(parts[2].games)) {
       MakeItYours.seedIds(parts[2].games.map(function (g) { return g.id; }));
     }
@@ -148,6 +164,14 @@
     }
 
     el.name.textContent = print.name || config.name || '';
+    // A recipe with its own panel owns the words: the print is a preview
+    // and the questions or facts are edited in the panel below
+    if (state.panel) {
+      print.prompt.editable = false;
+      print.fields.forEach(function (f) { f.editable = false; });
+      print.timerEditable = false;
+      mountPanel();
+    }
     var editable = print.prompt.editable || print.fields.some(function (f) { return f.editable; });
     el.label.textContent = editable ? 'What your class will see · tap the question to change it' : 'What your class will see';
 
@@ -161,7 +185,7 @@
       } else {
         var fixed = document.createElement('div');
         fixed.className = 'print-prompt print-prompt-fixed';
-        setRich(fixed, print.prompt.text);
+        setRich(fixed, print.prompt.display || print.prompt.text);
         el.prompt.appendChild(fixed);
       }
     }
@@ -223,6 +247,23 @@
     }
 
     if (config.anonymous) el.namesHidden.checked = true;
+  }
+
+  // The recipe's own editor, under the doors: the dialog's panel, mounted
+  function mountPanel() {
+    var section = document.getElementById('panel-section');
+    var holder = document.getElementById('panel-holder');
+    var heading = document.getElementById('panel-heading');
+    if (!section || !window.MakeItYours || !MakeItYours.mountPanel) return;
+    heading.textContent = state.panel === 'bluff' ? 'The facts' : state.panel === 'knobs' ? 'Set it up' : 'The questions';
+    state.panelApi = MakeItYours.mountPanel(state.panel, { id: gameId, name: state.config.name || 'Activity' }, state.config, state.summary, holder);
+    if (!state.panelApi) return;
+    section.hidden = false;
+    if (state.panel === 'knobs') return; // the AI questions still apply
+    // The AI's word-tailoring questions would rewrite choices out from
+    // under a correct answer: not for these (the dialog skipped them too)
+    el.moreQuestions.hidden = true;
+    el.moreHint.textContent = 'Your class, student names on or off.';
   }
 
   // The timer chip turns into a small box (2:00 or 120), Enter or blur sets it
@@ -386,9 +427,33 @@
   function go(dest) {
     if (state.busy || !state.config) return;
     el.error.hidden = true;
+    // A recipe panel builds and saves the copy itself (filling it in IS
+    // editing, so these always save, as the dialog did)
+    if (state.panelApi && state.panelApi.makeCopy) {
+      setOpening(dest, false);
+      var result = state.panelApi.makeCopy(dest, { anonymous: !!el.namesHidden.checked });
+      if (result === false) { clearOpening(); return; }
+      if (result && result.then) result.then(function () { clearOpening(); });
+      return;
+    }
     var edits = currentEdits();
     var answered = answeredQuestions();
     var withAi = answered.length > 0;
+    // Setup knobs (a recipe recompile) come first; the rest rides on top
+    if (state.panelApi && state.panelApi.touched && state.panelApi.touched()) {
+      setOpening(dest, withAi);
+      state.panelApi.build()
+        .then(function (working) {
+          working = JSON.parse(JSON.stringify(working));
+          delete working.featured;
+          working.name = (state.config.name || 'Activity') + ' (my version)';
+          if (typeof edits.anonymous === 'boolean') working.anonymous = edits.anonymous;
+          if (!withAi) return MakeItYours.saveCopyAndReturn(working, dest);
+          return reword(working, answered).then(function (revised) { return MakeItYours.saveCopyAndReturn(revised, dest); });
+        })
+        .catch(function (err) { clearOpening(); fail('Could not make your copy: ' + (err.message || err)); });
+      return;
+    }
 
     fetch('/api/games/' + encodeURIComponent(gameId) + '/make', {
       method: 'POST',

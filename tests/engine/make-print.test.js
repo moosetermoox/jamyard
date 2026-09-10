@@ -35,7 +35,7 @@ describe('printFor', () => {
     expect(print.name).toBe('Snowball');
     expect(print.phaseId).toBe('write');
     expect(print.type).toBe('collect');
-    expect(print.prompt).toEqual({ text: 'What should our class norms be?', editable: true });
+    expect(print.prompt).toEqual({ text: 'What should our class norms be?', display: 'What should our class norms be?', editable: true });
     expect(print.instruction).toBe('One sentence.');
     expect(print.timer).toBe(120);
     expect(print.timerEditable).toBe(true);
@@ -54,10 +54,21 @@ describe('printFor', () => {
     ]);
   });
 
-  it('marks a templated prompt as not editable, and shows it as-is', () => {
+  it('marks a templated prompt as not editable, and draws its token as a blank', () => {
     const cfg = snowballish();
-    cfg.phases.write.prompt = 'Build on this: {{write.assigned}}';
-    expect(printFor(cfg).prompt.editable).toBe(false);
+    cfg.phases.write.prompt = '{{fact.result.question}}\n\nWrite a lie that could fool the class.';
+    const print = printFor(cfg);
+    expect(print.prompt.editable).toBe(false);
+    expect(print.prompt.text).toBe('{{fact.result.question}}\n\nWrite a lie that could fool the class.');
+    expect(print.prompt.display).toBe('…\n\nWrite a lie that could fool the class.');
+  });
+
+  it('shows a self-paced quiz by its first question, read-only', () => {
+    const cfg = snowballish();
+    cfg.phases.write = { id: 'write', type: 'solo-quiz', questions: [{ question: 'Capital of Peru?', choices: ['Lima', 'Quito'], correct: 0 }], next: 'merge' };
+    const print = printFor(cfg);
+    expect(print.prompt).toEqual({ text: 'Capital of Peru?', display: 'Capital of Peru?', editable: false });
+    expect(print.choices).toEqual(['Lima', 'Quito']);
   });
 
   it('keeps the timer read-only on a recipe-born copy (the recipe owns it)', () => {
