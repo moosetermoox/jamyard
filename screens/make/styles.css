@@ -339,6 +339,8 @@ body.is-opening .print-screen { opacity: 0.55; }
   flex-wrap: wrap;
 }
 
+.try-col { display: flex; flex-direction: column; align-items: center; }
+
 .try-stack {
   display: flex;
   flex-direction: column;
@@ -369,9 +371,9 @@ body.is-opening .print-screen { opacity: 0.55; }
 
 .try-word { font-family: var(--t-display); font-weight: 800; font-size: 28px; letter-spacing: 0.06em; text-transform: uppercase; }
 /* Under the base, on gesso: paper on red is too faint at this size (axe) */
-/* Solid ground: a transparent element inside the stack's drop-shadow
-   wrapper renders a ghost twin (Totem gotcha) */
-.try-sub { margin-top: 8px; padding: 2px 8px; background: var(--t-gesso); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--t-muted-caps); }
+/* Outside the stack's drop-shadow wrapper on purpose: a transparent
+   element inside it renders a ghost twin (Totem gotcha) */
+.try-sub { margin-top: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--t-muted-caps); }
 
 .try-plinth { display: block; width: 100px; height: 26px; background: var(--t-walnut); background-image: var(--t-grain); margin-top: -4px; }
 .try-base { display: block; width: 250px; height: 12px; background: var(--t-base); background-image: var(--t-grain); }
@@ -495,7 +497,7 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
   .print-screen { padding: 22px 20px 18px; }
   .print-prompt { font-size: 26px; }
   .try-btn { width: 100%; }
-  .try-stack { width: 100%; }
+  .try-stack, .try-col { width: 100%; }
 }
 
 /* ── The bold box on the plank (shared/bold-box.js; its base styles live
