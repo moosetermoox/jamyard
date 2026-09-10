@@ -462,30 +462,82 @@
     }
 
     /* ── Shelf: five templates from the yard, goal chips filter in place ── */
-    .shelf {
+    /* ── Eight to start with: two boards per goal, rows named by the job ── */
+    .picks {
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 18px;
       border-top: 2px dashed rgba(110,75,40,0.2);
       padding-top: 22px;
     }
 
-    .shelf-top {
+    .picks-top {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       justify-content: space-between;
       gap: 16px;
       flex-wrap: wrap;
     }
 
-    .shelf-left {
+    .picks-more { text-decoration: none; white-space: nowrap; color: var(--t-ink); }
+    .picks-more:hover { color: var(--t-red); }
+
+    .picks-row-head {
       display: flex;
-      align-items: center;
-      gap: 18px;
-      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 14px;
+      margin: 10px 0 4px;
     }
 
-    .goal-chips { display: flex; gap: 8px; }
+    .picks-job {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 20px;
+      color: var(--t-ink);
+    }
+
+    .picks-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px 28px;
+    }
+
+    /* One board per activity: the carousel's pine offcut, a size down */
+    .pick-board {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--t-pine);
+      background-image: var(--t-grain);
+      clip-path: polygon(0 3%, 30% 0, 62% 2%, 100% 0, 99% 55%, 100% 97%, 66% 100%, 30% 96%, 0 100%, 1% 50%);
+      padding: 22px 26px 24px;
+      filter: drop-shadow(6px 8px 0 rgba(80,60,30,0.16));
+      transform: rotate(var(--rot, 0deg));
+      text-decoration: none;
+      color: var(--t-ink);
+      transition: transform var(--t-quick) var(--t-ease);
+    }
+
+    .pick-board:hover,
+    .pick-board:focus-visible { transform: rotate(var(--rot, 0deg)) translateY(-5px); }
+
+    .pick-slide { display: flex; align-items: flex-start; gap: 18px; }
+    .pick-board .board-name { font-size: 21px; padding: 2px 11px 5px; }
+    .pick-board .board-desc { font-size: 15px; -webkit-line-clamp: 8; }
+    .pick-board .board-shot img { width: 210px; height: 158px; }
+
+    /* The goal chips wear the yard's pile paints */
+    /* Two classes on purpose: the shared .goal-chip rule below is one, so
+       the pile paints must outrank it */
+    .goal-chip.pick-chip { transform: rotate(-1deg); }
+    .goal-chip.pick-chip-connect { background: var(--t-yellow); background-image: var(--t-grain); }
+    .goal-chip.pick-chip-think { background: var(--t-green); color: var(--t-paper); }
+    .goal-chip.pick-chip-review { background: var(--t-paper); }
+    .goal-chip.pick-chip-play { background: var(--t-birch); background-image: var(--t-grain); }
+
+    @media (max-width: 760px) {
+      .picks-grid { grid-template-columns: 1fr; }
+    }
 
     .goal-chip {
       font-family: var(--t-display);
@@ -504,47 +556,6 @@
       background-image: var(--t-grain);
     }
 
-    .shelf-more { text-decoration: none; white-space: nowrap; }
-    .shelf-more:hover { color: var(--t-ink); }
-
-    /* Three rows of five (owner's call 2026-09-07): the row wraps, so a
-       narrower window simply shows fewer cards per row. */
-    .shelf-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 28px 20px;
-      align-items: flex-start;
-      min-height: 232px;
-    }
-
-    .shelf-empty {
-      font-size: 15px;
-      color: var(--t-muted);
-      align-self: center;
-    }
-
-    .shelf-card {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      width: 168px;
-      flex-shrink: 0;
-      text-decoration: none;
-      color: var(--t-ink);
-      transform: rotate(var(--rot, 0deg));
-      transition: transform var(--t-quick) var(--t-ease);
-    }
-
-    .shelf-card:hover,
-    .shelf-card:focus-visible { transform: rotate(var(--rot, 0deg)) translateY(-5px); }
-
-    .shelf-print {
-      background: var(--t-paper);
-      padding: 8px 8px 10px;
-      box-shadow: 0 4px 6px rgba(50,35,15,0.24);
-    }
-
-    /* The mini projector: the frame above at pocket size */
     .mini {
       background: var(--t-gesso);
       height: 164px;
@@ -664,43 +675,20 @@
 
     .mini .qr { width: 40px; height: 40px; }
 
-    .shelf-name {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 16px;
-      line-height: 1.15;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      padding: 0 2px;
-    }
-
-    .shelf-meta {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--t-muted-caps);
-      padding: 0 2px;
-      margin-top: -7px;
-    }
-
-    /* ── How it works: three small Paper cards with painted numbers,
-       stacked under the board (owner's call 2026-09-06) ── */
     .how-strip {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-      margin-top: 22px;
-      padding: 0 6px;
+      gap: 16px;
+      margin-top: 36px;
     }
 
     .how-step {
       background: var(--t-paper);
       box-shadow: 0 3px 4px rgba(50,35,15,0.2);
-      padding: 10px 12px 11px;
+      padding: 12px 14px 13px;
       display: flex;
-      flex-direction: column;
-      gap: 8px;
-      align-items: flex-start;
+      gap: 12px;
+      align-items: center;
     }
 
     .how-num {
@@ -715,7 +703,7 @@
     }
 
     .how-step p {
-      font-size: 12.5px;
+      font-size: 15px;
       font-weight: 500;
       line-height: 1.4;
       color: var(--t-muted);
@@ -957,7 +945,7 @@
         <span class="wm-yard">YARD</span>
       </a>
       <form class="join-strip" id="join-top" autocomplete="off">
-        <label for="room-code-top">Student? Enter your room code</label>
+        <label for="room-code-top">In a class right now? Enter the code on the board</label>
         <input type="text" class="code-input" id="room-code-top" placeholder="ABCD" maxlength="4" autocomplete="off" spellcheck="false" aria-label="Room code">
         <button type="submit" class="t-lift t-label t-yellow" style="--rot: -1deg">Join</button>
       </form>
@@ -966,18 +954,18 @@
     <div class="hero" role="main">
 
       <div class="message-col">
-        <h1>Put the whole class on <span class="t-painted-word">one</span> screen.</h1>
-        <p class="sub">Everyone answers, classmates build on each other's ideas, and the class result lands on the projector. Pick a template or describe an activity and the AI builds it. Students join with a code, nothing to install.</p>
+        <h1>Get <span class="t-painted-word">every</span> student participating, in an activity made for your class.</h1>
+        <p class="sub">Pick one, put your question in, project it. Students join with a code, nothing to install.</p>
         <div class="action-col">
           <!-- The one red action, a single block on a plinth -->
           <nav class="t-stack signpost" aria-label="Main action">
             <div class="act-offcut" aria-hidden="true"></div>
             <div class="t-row"><a class="t-block-btn t-label t-red act-find" style="--rot: -1.2deg; --slide: 10px"
-               href="/library" title="Browse the ready-made templates and pick one for your class">Pick a template</a></div>
+               href="/library" title="Browse the ready-made activities and pick one for your class">Find one for today</a></div>
             <div class="t-plinth" aria-hidden="true"></div>
             <div class="t-baseboard" aria-hidden="true"></div>
           </nav>
-          <a class="create-door t-lift" href="/designer" title="Describe an activity in plain words and the AI builds it">Or create your own with AI</a>
+          <a class="create-door t-lift" href="/designer" title="Describe an activity in plain words and the AI builds it">Or say what you need and the AI builds it</a>
         </div>
       </div>
 
@@ -1015,38 +1003,38 @@
           </div>
         </div>
 
-        <!-- How it works: the whole concept in three small cards, under the board. -->
-        <div class="how-strip" aria-label="How it works">
-          <div class="how-step">
-            <span class="how-num t-yellow" style="--rot: -1.2deg" aria-hidden="true">1</span>
-            <p><strong>Pick an activity and make it yours</strong> from the yard, or create your own with AI.</p>
-          </div>
-          <div class="how-step">
-            <span class="how-num t-cyan" style="--rot: 1deg" aria-hidden="true">2</span>
-            <p><strong>Project your screen.</strong> The activity plays out up front for the whole class.</p>
-          </div>
-          <div class="how-step">
-            <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
-            <p><strong>Students join with a 4-letter code</strong> on their devices. No accounts, nothing to install.</p>
-          </div>
-        </div>
       </div>
 
     </div>
 
-    <!-- The shelf: three rows of five templates from the yard, shortest
-         first, goal chips filter in place. Resting the mouse on a card shows
-         the yard's hover card; clicking opens the same popup as the frame. -->
-    <section class="shelf" id="shelf" hidden aria-label="Templates from the yard">
-      <div class="shelf-top">
-        <div class="shelf-left">
-          <span class="caps">Templates from the yard, shortest first</span>
-          <div class="goal-chips" id="shelf-chips" role="group" aria-label="Filter by goal"></div>
-        </div>
-        <a class="caps shelf-more" id="shelf-more" href="/library"></a>
+    <!-- Eight to start with (owner's call 2026-09-10): two activities per
+         goal, each drawn like the carousel board (name, minutes, the full
+         description, the projector print) on a pine offcut, the rows named
+         by the job they do. Resting the mouse on a board shows the yard's
+         hover card; clicking opens the same popup as the frame. -->
+    <section class="picks" id="picks" hidden aria-label="Eight to start with">
+      <div class="picks-top">
+        <span class="caps">Eight to start with, two for each kind of class period</span>
+        <a class="caps picks-more" id="picks-more" href="/library">All in the yard →</a>
       </div>
-      <div class="shelf-row" id="shelf-row"></div>
+      <div id="picks-rows"></div>
     </section>
+
+    <!-- How it works: the three bold lines, under the boards. -->
+    <div class="how-strip" aria-label="How it works">
+      <div class="how-step">
+        <span class="how-num t-yellow" style="--rot: -1.2deg" aria-hidden="true">1</span>
+        <p><strong>Pick an activity and make it yours.</strong></p>
+      </div>
+      <div class="how-step">
+        <span class="how-num t-cyan" style="--rot: 1deg" aria-hidden="true">2</span>
+        <p><strong>Project your screen.</strong></p>
+      </div>
+      <div class="how-step">
+        <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
+        <p><strong>Students join with a 4-letter code.</strong></p>
+      </div>
+    </div>
 
     <p class="how-try">Curious? <a href="/prototype?game=art-gallery" title="See the teacher screen and pretend students side by side">Try one out</a> with pretend students, no class needed.</p>
     <p class="how-try">First time? <a href="/guide">Read the teacher guide</a>: setup, live controls, quick fixes.</p>
@@ -1100,10 +1088,9 @@
       var shotFrame = document.getElementById('carousel-shot-frame');
       var shotImg = document.getElementById('carousel-shot');
       var shotState = {}; // gameId -> 'ok' | 'missing' (remembered across rotations)
-      var shelfEl = document.getElementById('shelf');
-      var shelfRowEl = document.getElementById('shelf-row');
-      var shelfChipsEl = document.getElementById('shelf-chips');
-      var shelfMoreEl = document.getElementById('shelf-more');
+      var picksEl = document.getElementById('picks');
+      var picksRowsEl = document.getElementById('picks-rows');
+      var picksMoreEl = document.getElementById('picks-more');
       var games = [];
       var idx = 0;
       var timer = null;
@@ -1343,154 +1330,119 @@
 
       slideEl.addEventListener('click', popupClick(function () { return games[idx]; }));
 
-      // ── The shelf: three rows of five, shortest first, goal chips filter in place ──
-      var SHELF_SIZE = 15;
-      var activeGoal = null; // null = all
-      var CARD_ROTS = ['-0.8deg', '0.6deg', '-0.5deg', '0.9deg', '-0.7deg'];
+      // ── Eight to start with: two boards per goal, rows named by the job ──
+      // The owner's picks first; a missing pick (unfeatured, renamed) is
+      // filled with the shortest other activity in that group.
+      var HOME_PICKS = {
+        connect: ['someones-got-you', 'whose-eyes'],
+        think: ['snowball', 'both-sides-rope'],
+        review: ['exit-ticket', 'speed-quiz'],
+        play: ['art-gallery', 'doodle-bluff']
+      };
+      var ROW_JOBS = {
+        connect: 'Get to know each other',
+        think: 'Think it through together',
+        review: 'Check what stuck',
+        play: 'Play, and learn anyway'
+      };
+      var PER_ROW = 2;
+      var BOARD_ROTS = ['-0.5deg', '0.6deg', '0.4deg', '-0.6deg'];
 
       function minutesOf(g) {
         var m = /(\d+)/.exec(g.playTime || '');
         return m ? parseInt(m[1], 10) : 999;
       }
 
-      function buildMini(g) {
-        var mini = document.createElement('div');
-        mini.className = 'mini';
-        var mark = document.createElement('span');
-        mark.className = 'projector-mark';
-        mark.setAttribute('aria-hidden', 'true');
-        mark.textContent = 'Jam yard';
-        mini.appendChild(mark);
-        var pic = picture(g);
-        var gl = glimpseOf(g);
-        if (gl.mode === 'join') {
-          var door = document.createElement('div');
-          door.className = 'mini-door';
-          var joinIn = document.createElement('span');
-          joinIn.className = 'caps';
-          joinIn.textContent = 'Join in';
-          door.appendChild(joinIn);
-          var code = document.createElement('div');
-          code.className = 'mini-code';
-          code.setAttribute('aria-hidden', 'true');
-          for (var c = 0; c < 4; c++) {
-            var block = document.createElement('span');
-            block.className = 'cb-' + c;
-            block.textContent = pic.code.charAt(c);
-            code.appendChild(block);
-          }
-          door.appendChild(code);
-          var row = document.createElement('div');
-          row.className = 'mini-door-row';
-          var text = document.createElement('div');
-          text.className = 'mini-door-text';
-          text.appendChild(document.createTextNode('Go to'));
-          text.appendChild(document.createElement('br'));
-          text.appendChild(document.createTextNode(host + '/player'));
-          text.appendChild(document.createElement('br'));
-          var quiet = document.createElement('span');
-          quiet.className = 'quiet';
-          quiet.textContent = 'and enter this code';
-          text.appendChild(quiet);
-          row.appendChild(text);
-          var qr = document.createElement('span');
-          qr.className = 'qr';
-          qr.setAttribute('aria-hidden', 'true');
-          row.appendChild(qr);
-          door.appendChild(row);
-          mini.appendChild(door);
-          return mini;
-        }
-        var ask = document.createElement('div');
-        ask.className = 'mini-ask';
-        var status = document.createElement('span');
-        status.className = 'caps mini-status';
-        status.textContent = gl.mode === 'talk' ? 'Nothing to type' : 'Players are answering…';
-        ask.appendChild(status);
-        var prompt = document.createElement('div');
-        prompt.className = 'mini-prompt';
-        prompt.textContent = gl.prompt;
-        ask.appendChild(prompt);
-        if (gl.mode !== 'talk') {
-          var pile = document.createElement('div');
-          pile.className = 'pile';
-          buildPile(pile, pic.blocks, 0.35);
-          ask.appendChild(pile);
-          var chip = document.createElement('span');
-          chip.className = 'proj-in';
-          chip.textContent = pic.arrived + ' of ' + pic.inRoom + ' in';
-          ask.appendChild(chip);
-        }
-        mini.appendChild(ask);
-        return mini;
-      }
+      function buildBoard(g, i) {
+        var board = document.createElement('a');
+        board.className = 'pick-board';
+        board.href = '/library?about=' + encodeURIComponent(g.id);
+        board.setAttribute('aria-label', g.name + ', see what it is');
+        if (window.HoverCard) HoverCard.attach(board, g);
+        board.style.setProperty('--rot', BOARD_ROTS[i % BOARD_ROTS.length]);
 
-      function buildCard(g, i) {
-        var card = document.createElement('a');
-        card.className = 'shelf-card';
-        card.href = '/library?about=' + encodeURIComponent(g.id);
-        card.setAttribute('aria-label', g.name + ', see what it is');
-        // No native title: the yard's hover card carries the description
-        // (a browser tooltip on top of it would double up).
-        if (window.HoverCard) HoverCard.attach(card, g);
-        card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
-        var print = document.createElement('div');
-        print.className = 'shelf-print';
-        print.appendChild(buildMini(g));
-        card.appendChild(print);
+        var slide = document.createElement('div');
+        slide.className = 'pick-slide';
+        var text = document.createElement('div');
+        text.className = 'board-slide-text';
+        var titlerow = document.createElement('div');
+        titlerow.className = 'board-titlerow';
         var name = document.createElement('span');
-        name.className = 'shelf-name';
+        name.className = 'board-name';
         name.textContent = g.name;
-        card.appendChild(name);
+        titlerow.appendChild(name);
         var meta = document.createElement('span');
-        meta.className = 'shelf-meta';
+        meta.className = 'board-meta';
         var bits = [];
-        // Tiles carry the short time only (parentheticals live in the
-        // popup and the hover card), same as the yard's planks.
         if (g.playTime) bits.push(String(g.playTime).split('(')[0].trim());
-        bits.push(window.GoalGroups ? GoalGroups.groupOf(g) : 'think');
         if (g.start === 'rolling') bits.push('rolling start');
         meta.textContent = bits.join(' · ');
-        card.appendChild(meta);
-        card.addEventListener('click', popupClick(function () { return g; }));
-        return card;
-      }
+        titlerow.appendChild(meta);
+        text.appendChild(titlerow);
+        var desc = document.createElement('div');
+        desc.className = 'board-desc';
+        desc.textContent = g.description || '';
+        text.appendChild(desc);
+        slide.appendChild(text);
 
-      function renderShelf() {
-        var pool = games.filter(function (g) {
-          return !activeGoal || !window.GoalGroups || GoalGroups.groupOf(g) === activeGoal;
-        });
-        pool.sort(function (a, b) { return minutesOf(a) - minutesOf(b) || a.name.localeCompare(b.name); });
-        var shown = pool.slice(0, SHELF_SIZE);
-        shelfRowEl.textContent = '';
-        if (shown.length === 0) {
-          var empty = document.createElement('p');
-          empty.className = 'shelf-empty';
-          empty.textContent = 'Nothing on this shelf yet. The yard has the rest.';
-          shelfRowEl.appendChild(empty);
+        // The projector print, when the activity has one (user games do
+        // not): a missing file just leaves the text the whole board.
+        if ((g.source || 'built-in') !== 'user') {
+          var frame = document.createElement('span');
+          frame.className = 'board-shot';
+          var img = document.createElement('img');
+          img.alt = '';
+          img.onerror = function () { frame.hidden = true; };
+          img.src = '/home-shots/' + encodeURIComponent(g.id) + '.png';
+          frame.appendChild(img);
+          slide.appendChild(frame);
         }
-        for (var i = 0; i < shown.length; i++) shelfRowEl.appendChild(buildCard(shown[i], i));
-        var more = pool.length - shown.length;
-        shelfMoreEl.textContent = more > 0 ? more + ' more in the yard →' : 'See the whole yard →';
+        board.appendChild(slide);
+        board.addEventListener('click', popupClick(function () { return g; }));
+        return board;
       }
 
-      function renderChips() {
-        var groups = [{ key: null, label: 'All' }].concat(window.GoalGroups ? GoalGroups.GROUPS : []);
-        shelfChipsEl.textContent = '';
-        groups.forEach(function (group, i) {
-          var chip = document.createElement('button');
-          chip.type = 'button';
-          chip.className = 'goal-chip t-lift' + (group.key === activeGoal ? ' active' : '');
-          chip.style.setProperty('--rot', i % 2 === 0 ? '-0.8deg' : '0.8deg');
-          chip.textContent = group.label;
-          chip.setAttribute('aria-pressed', group.key === activeGoal ? 'true' : 'false');
-          chip.addEventListener('click', function () {
-            activeGoal = group.key;
-            renderChips();
-            renderShelf();
-          });
-          shelfChipsEl.appendChild(chip);
+      function picksFor(key) {
+        var inGroup = games.filter(function (g) {
+          return window.GoalGroups ? GoalGroups.groupOf(g) === key : true;
         });
+        var chosen = [];
+        (HOME_PICKS[key] || []).forEach(function (id) {
+          for (var i = 0; i < inGroup.length; i++) {
+            if (inGroup[i].id === id && chosen.indexOf(inGroup[i]) === -1) chosen.push(inGroup[i]);
+          }
+        });
+        var rest = inGroup.filter(function (g) { return chosen.indexOf(g) === -1; });
+        rest.sort(function (a, b) { return minutesOf(a) - minutesOf(b) || a.name.localeCompare(b.name); });
+        return chosen.concat(rest).slice(0, PER_ROW);
+      }
+
+      function renderPicks() {
+        picksRowsEl.textContent = '';
+        var shown = 0;
+        var groups = window.GoalGroups ? GoalGroups.GROUPS : [];
+        groups.forEach(function (group, gi) {
+          var picks = picksFor(group.key);
+          if (!picks.length) return;
+          var head = document.createElement('div');
+          head.className = 'picks-row-head';
+          var chip = document.createElement('span');
+          chip.className = 'goal-chip pick-chip pick-chip-' + group.key;
+          chip.textContent = group.label;
+          head.appendChild(chip);
+          var job = document.createElement('span');
+          job.className = 'picks-job';
+          job.textContent = ROW_JOBS[group.key] || '';
+          head.appendChild(job);
+          picksRowsEl.appendChild(head);
+          var grid = document.createElement('div');
+          grid.className = 'picks-grid';
+          picks.forEach(function (g, i) { grid.appendChild(buildBoard(g, gi * PER_ROW + i)); });
+          picksRowsEl.appendChild(grid);
+          shown += picks.length;
+        });
+        var more = games.length - shown;
+        picksMoreEl.textContent = more > 0 ? more + ' more in the yard →' : 'See the whole yard →';
       }
 
       fetch('/api/games')
@@ -1512,9 +1464,8 @@
           // Reading it? Hold still.
           carouselEl.addEventListener('mouseenter', function () { clearInterval(timer); });
           carouselEl.addEventListener('mouseleave', startRotation);
-          shelfEl.hidden = false;
-          renderChips();
-          renderShelf();
+          picksEl.hidden = false;
+          renderPicks();
         })
         .catch(function () { /* the carousel is decoration, never block the page */ });
     })();
