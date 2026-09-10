@@ -404,6 +404,27 @@ function hideSimIntro() {
 if (simIntroOk) simIntroOk.addEventListener('click', hideSimIntro);
 if (simIntro) simIntro.addEventListener('click', (e) => { if (e.target === simIntro) hideSimIntro(); });
 if (simHelpBtn) simHelpBtn.addEventListener('click', () => { restoreBanner(); showSimIntro(); });
+
+// --- The first-visit tour: names every piece once the room is up (the
+// first launch in this browser), and again from the help card's button.
+const simTourBtn = document.getElementById('sim-tour-btn');
+let tourTimer = null;
+
+function startTour() {
+  if (!window.BenchTour || !window.BenchLogic) return;
+  hideSimIntro();
+  hideSkipAsk();
+  BenchTour.start(BenchLogic.TOUR_STOPS, () => updateBanner());
+}
+
+// A beat after the pieces land, so the plan row (fetched) is on screen too
+function maybeStartTour() {
+  if (!window.BenchTour || BenchTour.seen()) return;
+  clearTimeout(tourTimer);
+  tourTimer = setTimeout(() => { if (currentCode && !BenchTour.running()) startTour(); }, 1400);
+}
+
+if (simTourBtn) simTourBtn.addEventListener('click', startTour);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && simIntro && !simIntro.hidden) hideSimIntro();
 });
@@ -843,6 +864,7 @@ launchBtn.addEventListener('click', () => {
       updateBench();
       startBannerPoll();
       updateBanner();
+      maybeStartTour();
       if (pendingGoto) {
         startFastForward(pendingGoto);
         pendingGoto = null;
@@ -1019,6 +1041,8 @@ function clearMats() {
 
 // Reset — tear down the pieces and put the empty bench back
 resetBtn.addEventListener('click', () => {
+  clearTimeout(tourTimer);
+  if (window.BenchTour) BenchTour.stop();
   stopFastForward();
   setStatus('');
   stopBannerPoll();

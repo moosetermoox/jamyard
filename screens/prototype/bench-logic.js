@@ -140,9 +140,35 @@
     return { at: null, text: 'Watch the teacher screen. This step moves on by itself.' };
   }
 
+  // The first-visit tour: one stop per piece, in the order a teacher's
+  // eyes travel (screens first, then the header). `fallback` is pointed at
+  // when the piece is not on screen yet (the shortcuts strip only shows
+  // on a step students answer). Copy is teacher-facing: no em dashes.
+  var TOUR_STOPS = [
+    { target: '#host-column', title: 'Teacher screen',
+      text: 'What your class sees on the projector. This is a real room, just a private one, so everything here works the way it will in class.' },
+    { target: '#host-tabs', title: 'Teacher controls',
+      text: 'Your private console, behind this tab. In class it opens on your own laptop or phone, never the projector: hide an entry, approve a preview, pace the room.' },
+    { target: '#student-column', title: 'Student screen',
+      text: "One pretend student's Chromebook. You play them: type an answer here the way a student would." },
+    { target: '#pager', title: 'More than one student',
+      text: 'The arrows step through your pretend students. The left and right arrow keys work too.' },
+    { target: '#add-student-btn', title: 'Add another student',
+      text: 'Brings one more pretend student into the room, mid-activity is fine. Pairs and teams need at least two.' },
+    { target: '#bench-bar', fallback: '#student-mat', title: 'Shortcuts',
+      text: 'When a step asks students for answers, two shortcuts appear under the student screen: Add sample answers fills one in for everyone, Skip timer moves the room on.' },
+    { target: '#map-rail', title: 'The plan',
+      text: 'Every step of the activity; the yellow block is where the room is now. Click a later step to skip ahead, pretend students play the steps in between.' },
+    { target: '#toolbar', title: 'Reset, sound, full screen, help',
+      text: 'Reset starts the room over. Host this opens a real room for your class when you are ready. The ? brings back this tour any time.' },
+    { target: '#next-banner', title: 'The NEXT card',
+      text: 'From here on, this card points at the one thing to press. Close it with its × when you know your way around.' }
+  ];
+
   globalThis.BenchLogic = {
     STUDENT_STEPS: STUDENT_STEPS,
     HOST_ADVANCE_BUTTONS: HOST_ADVANCE_BUTTONS,
+    TOUR_STOPS: TOUR_STOPS,
     isStudentStep: isStudentStep,
     planBlocks: planBlocks,
     nextStep: nextStep

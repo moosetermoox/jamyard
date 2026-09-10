@@ -168,6 +168,41 @@ describe('nextStep: the one thing to press', () => {
   });
 });
 
+describe('TOUR_STOPS: the first-visit tour names every piece', () => {
+  const { TOUR_STOPS } = globalThis.BenchLogic;
+  const html = readFileSync(new URL('../../screens/prototype/index.html', import.meta.url), 'utf8');
+  const ids = new Set(Array.from(html.matchAll(/\bid="([^"]+)"/g)).map(m => m[1]));
+
+  it('has a stop for each piece a teacher meets, in walking order', () => {
+    const targets = TOUR_STOPS.map(s => s.target);
+    expect(targets).toEqual([
+      '#host-column', '#host-tabs', '#student-column', '#pager', '#add-student-btn',
+      '#bench-bar', '#map-rail', '#toolbar', '#next-banner'
+    ]);
+  });
+
+  it('points only at elements that exist on the page (fallbacks too)', () => {
+    for (const stop of TOUR_STOPS) {
+      expect(stop.target.startsWith('#')).toBe(true);
+      expect(ids.has(stop.target.slice(1))).toBe(true);
+      if (stop.fallback) expect(ids.has(stop.fallback.slice(1))).toBe(true);
+    }
+  });
+
+  it('keeps every stop to a title and a short plain sentence or two', () => {
+    for (const stop of TOUR_STOPS) {
+      expect(stop.title.length).toBeGreaterThan(2);
+      expect(stop.text.split(/\s+/).length).toBeLessThanOrEqual(45);
+      expect(stop.title + stop.text).not.toMatch(/—/);
+    }
+  });
+
+  it('gives the shortcuts stop a fallback, since the strip is hidden in the lobby', () => {
+    const shortcuts = TOUR_STOPS.find(s => s.target === '#bench-bar');
+    expect(shortcuts.fallback).toBe('#student-mat');
+  });
+});
+
 describe('HOST_ADVANCE_BUTTONS mirrors the host\'s prototype-skip list', () => {
   it('names every button id host.js clicks on a skip, in the same order', () => {
     const src = readFileSync(new URL('../../screens/host/host.js', import.meta.url), 'utf8');

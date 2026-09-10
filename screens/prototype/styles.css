@@ -775,6 +775,22 @@ body.pt-running #host-btn { display: inline-block; }
 
 .sim-intro-card li strong { font-weight: 800; }
 
+.sim-intro-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+#sim-tour-btn {
+  border: none;
+  padding: 9px 16px;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: var(--t-yellow);
+  color: var(--t-ink);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+}
+
 #sim-intro-ok {
   border: none;
   padding: 9px 16px;
@@ -787,6 +803,118 @@ body.pt-running #host-btn { display: inline-block; }
   background: var(--t-cyan);
   color: var(--t-paper);
   box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+}
+
+/* ── The first-visit tour: a spotlight and a yellow card per piece ────── */
+
+.tour-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+}
+
+/* The cutout: a box with a giant shadow, so the piece it frames stays bright */
+.tour-spot {
+  position: fixed;
+  z-index: 9001;
+  box-shadow: 0 0 0 9999px rgba(50, 35, 15, 0.45);
+  outline: 3px solid var(--t-yellow);
+  outline-offset: 2px;
+  pointer-events: none;
+  transition: top var(--t-quick) var(--t-ease), left var(--t-quick) var(--t-ease), width var(--t-quick) var(--t-ease), height var(--t-quick) var(--t-ease);
+}
+
+.tour-card {
+  position: fixed;
+  z-index: 9002;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 320px;
+  filter: drop-shadow(4px 5px 0 rgba(80, 60, 30, 0.22));
+}
+
+.tour-card.flip { flex-direction: column-reverse; }
+
+.tour-card-inner {
+  background: var(--t-yellow);
+  padding: 12px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transform: rotate(-0.8deg);
+  width: 100%;
+}
+
+.tour-label {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-ink);
+  opacity: 0.7;
+}
+
+.tour-title {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1.15;
+  color: var(--t-ink);
+}
+
+.tour-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--t-ink);
+  margin-top: 2px;
+}
+
+.tour-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.tour-btns button {
+  border: none;
+  cursor: pointer;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 14px 9px;
+}
+
+.tour-next { background: var(--t-ink); color: var(--t-paper); box-shadow: 0 3px 4px rgba(50, 35, 15, 0.24); }
+.tour-back { background: var(--t-paper); color: var(--t-ink); box-shadow: 0 3px 4px rgba(50, 35, 15, 0.2); }
+.tour-back[hidden] { display: none; }
+.tour-skip { background: transparent; color: var(--t-ink); opacity: 0.75; margin-left: auto; padding-right: 0; }
+.tour-skip:hover { opacity: 1; text-decoration: underline; }
+.tour-btns button:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+
+.tour-notch {
+  width: 26px;
+  height: 18px;
+  background: var(--t-yellow);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  margin-top: -4px;
+  margin-left: var(--notch-left, 40px);
+}
+
+.tour-card.flip .tour-notch {
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  margin-top: 0;
+  margin-bottom: -4px;
+}
+
+.tour-card.no-notch .tour-notch { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spot { transition: none; }
 }
 
 /* ── Narrow screens: the plan folds away, the columns stack ─────────── */
