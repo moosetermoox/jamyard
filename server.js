@@ -21,6 +21,7 @@ import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
 import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
+import { printFor, applyEdits, nameFor } from './engine/make-print.js';
 import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
 import { restoreSubPhaseOrder } from './engine/subphase-order.js';
 
@@ -1854,6 +1855,9 @@ app.use('/teacher', express.static(join(__dirname, 'screens/teacher')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
 app.use('/shared', express.static(join(__dirname, 'screens/shared')));
 app.use('/prototype', express.static(join(__dirname, 'screens/prototype')));
+// Make it yours as a page (2026-09-09): the first student step as the
+// class will see it, the question editable in place, one red TRY IT.
+app.use('/make', express.static(join(__dirname, 'screens/make')));
 // The teacher-facing front door (library-first, 2026-07-28): browse + host.
 app.use('/library', express.static(join(__dirname, 'screens/library')));
 // Owner doorway: replaces the old in-page "Show full library (site owner)"
@@ -1902,7 +1906,7 @@ app.get('/share', (req, res) => res.redirect('/library'));
 const VANITY_RESERVED = new Set([
   'api', 'host', 'player', 'teacher', 'library', 'designer', 'prototype',
   'guide', 'owner', 'feedback', 'privacy', 'shared', 'home-shots', 'socket.io',
-  'share'
+  'share', 'make'
 ]);
 try {
   const vanityUrls = JSON.parse(await readFile(join(__dirname, 'vanity-urls.json'), 'utf8'));
@@ -2011,6 +2015,53 @@ app.get('/api/games/:gameId/map', async (req, res) => {
     res.json(buildActivityMap(config));
   } catch (error) {
     console.log(`[api/games/:gameId/map] Error: ${error.message}`);
+    res.status(404).json({ error: error.message });
+  }
+});
+
+// The Make it yours page's print: the first student step's words, timer,
+// and audience line, from the same modules the host uses at game time.
+app.get('/api/games/:gameId/print', async (req, res) => {
+  try {
+    const config = await loadGameById(req.params.gameId);
+    const print = printFor(config);
+    if (!print) return res.status(404).json({ error: 'This activity has no step students answer, nothing to draw.' });
+    res.json(print);
+  } catch (error) {
+    console.log(`[api/games/:gameId/print] Error: ${error.message}`);
+    res.status(404).json({ error: error.message });
+  }
+});
+
+// The teacher's edits from that page, applied to a working copy of the
+// config (never saved here: the page saves through POST /api/games like
+// every other Make it yours door). Edits are teacher text: bounded,
+// applied by engine/make-print.js, untrusted for rendering downstream.
+app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req, res) => {
+  try {
+    const config = await loadGameById(req.params.gameId);
+    const body = req.body || {};
+    const edits = {};
+    if (typeof body.prompt === 'string') edits.prompt = body.prompt.slice(0, 500);
+    if (body.fields && typeof body.fields === 'object' && !Array.isArray(body.fields)) {
+      edits.fields = {};
+      for (const [key, label] of Object.entries(body.fields)) {
+        if (typeof key === 'string' && typeof label === 'string') edits.fields[key.slice(0, 64)] = label.slice(0, 300);
+      }
+    }
+    if (typeof body.timer === 'number') edits.timer = body.timer;
+    const out = applyEdits(config, edits);
+    const working = out.config;
+    let changed = out.changed;
+    if (typeof body.anonymous === 'boolean' && body.anonymous !== !!config.anonymous) {
+      working.anonymous = body.anonymous;
+      changed = true;
+    }
+    working.name = nameFor(config.name || 'Activity', changed && typeof edits.prompt === 'string' && edits.prompt.trim() !== String(config.phases?.[out.phaseId || '']?.prompt || '').trim() ? edits.prompt : '');
+    delete working.featured;
+    res.json({ config: working, changed });
+  } catch (error) {
+    console.log(`[api/games/:gameId/make] Error: ${error.message}`);
     res.status(404).json({ error: error.message });
   }
 });
