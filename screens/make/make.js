@@ -125,17 +125,14 @@
     el.chip.textContent = 'Your ' + (config.name || 'activity');
     el.designer.href = '/designer/edit?game=' + encodeURIComponent(gameId) + '&from=library';
 
-    // Who it is for: the saved profile as one line, Change opens the chips
+    // Who it is for: the shared class picker, inside More next to the
+    // questions it shapes (a pick reloads them, so it visibly does something)
     if (window.MakeItYours && MakeItYours.renderClassPicker) {
       MakeItYours.renderClassPicker(el.classHolder, {
+        hint: 'The questions below update to fit your class.',
         onChange: function () { scheduleQuestions(); },
         onDone: function () { scheduleQuestions(true); }
       });
-      // The shared picker opens itself for a first visit; on this page it
-      // is one line until Change is pressed, so the print stays in view.
-      var body = el.classHolder.querySelector('.class-picker-body');
-      var toggle = el.classHolder.querySelector('.class-line-change');
-      if (body && !body.hidden && toggle) toggle.click();
     }
 
     if (!print) {
@@ -269,10 +266,13 @@
     el.moreBtn.textContent = open ? '− Less' : '+ More';
     el.moreHint.hidden = open;
     if (open && !state.questionsLoaded) loadQuestions();
+    // More opens below the fold on a Chromebook: bring it up
+    if (open) {
+      try { el.moreBtn.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (err) { /* ignore */ }
+    }
   });
 
   function scheduleQuestions(now) {
-    if (el.moreBody.hidden) { state.questionsLoaded = false; return; }
     clearTimeout(questionsTimer);
     questionsTimer = setTimeout(loadQuestions, now ? 0 : 1500);
   }

@@ -23,7 +23,6 @@
   <main class="make-page" id="make-page">
     <div class="make-top">
       <h1 class="name-chip" id="name-chip">Your activity</h1>
-      <div class="class-holder" id="class-holder"></div>
     </div>
 
     <!-- The print: the first step students answer, drawn from the same
@@ -81,9 +80,12 @@
     <!-- Everything else, folded: the AI's tailoring questions and names -->
     <div class="more">
       <button type="button" class="more-btn" id="more-btn" aria-expanded="false" aria-controls="more-body">+ More</button>
-      <span class="more-hint" id="more-hint">The kind of answers you hope for, student names on or off.</span>
+      <span class="more-hint" id="more-hint">Your class, the kind of answers you hope for, student names on or off.</span>
     </div>
     <div class="more-body" id="more-body" hidden>
+      <!-- Your class: it shapes the questions below and the AI's rewording,
+           so it lives next to them, where a pick visibly changes something -->
+      <div class="class-holder" id="class-holder"></div>
       <div class="more-questions" id="more-questions">
         <p class="more-status" id="more-status">Loading a question or two for your class…</p>
       </div>

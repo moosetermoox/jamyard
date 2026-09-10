@@ -83,14 +83,9 @@ body {
   white-space: nowrap;
 }
 
-/* The class picker from the shared sheet, as a line: no box, no heading */
-.class-holder { flex: 1; min-width: 280px; display: flex; justify-content: flex-end; }
-.class-holder .class-picker { background: transparent; box-shadow: none; padding: 0; margin: 0; width: 100%; }
-.class-holder .class-picker-label { display: none; }
-.class-holder .class-picker-head { justify-content: flex-end; gap: 10px; }
-.class-holder .class-picker-summary { font-size: 15px; font-weight: 700; color: var(--t-ink); }
-.class-holder .class-picker-summary.class-picker-empty { font-weight: 500; color: var(--t-muted); font-size: 13px; }
-.class-holder .class-picker-body { text-align: left; }
+/* The class picker keeps the shared sheet's look (a paper box with its
+   chips); it sits inside More, above the questions it shapes */
+.class-holder .class-picker { margin: 0; }
 
 /* ── The print ──────────────────────────────────────────────────────── */
 
