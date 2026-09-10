@@ -406,15 +406,18 @@ body.is-opening .print-screen { opacity: 0.55; }
 .designer-link:hover, .cancel-link:hover { color: var(--t-ink); }
 body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
 
+/* On its own line under the doors, never wrapped to the far right */
 .doors-note {
-  margin-left: auto;
-  margin-top: 14px;
-  max-width: 190px;
+  flex-basis: 100%;
+  margin-top: 2px;
+  max-width: 440px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   line-height: 1.45;
-  color: var(--t-muted);
+  color: var(--t-ink);
 }
+
+.doors-note[hidden] { display: none; }
 
 .make-error {
   margin: 0;
@@ -492,8 +495,26 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
 .more-status { margin: 0; font-size: 13px; font-weight: 500; color: var(--t-muted); }
 .more-status[hidden] { display: none; }
 
-.more-q { display: flex; flex-direction: column; gap: 6px; }
+.more-questions { display: flex; flex-direction: column; gap: 28px; }
+.more-q { display: flex; flex-direction: column; gap: 8px; }
+.more-q-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .more-q-label { font-size: 15px; font-weight: 700; color: var(--t-ink); }
+
+/* The moment a question has an answer, it says so: a green painted mark */
+.more-q-noted {
+  display: none;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-paper);
+  background: var(--t-green);
+  padding: 3px 9px 4px;
+  transform: rotate(-1deg);
+}
+.more-q.answered .more-q-noted { display: inline-block; }
+.more-q.answered .more-q-input { box-shadow: 0 0 0 2px var(--t-green); }
 
 .more-q-input {
   width: 100%;

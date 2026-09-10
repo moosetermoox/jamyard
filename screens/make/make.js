@@ -304,7 +304,8 @@
     var open = el.moreBody.hidden;
     el.moreBody.hidden = !open;
     el.moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    el.moreBtn.textContent = open ? '− Less' : '+ More';
+    var answered = answeredQuestions().length;
+    el.moreBtn.textContent = open ? '− Less' : (answered ? '+ More · ' + answered + ' answered' : '+ More');
     el.moreHint.hidden = open;
     if (open && !state.questionsLoaded) loadQuestions();
     // More opens below the fold on a Chromebook: bring it up
@@ -353,23 +354,44 @@
     list.forEach(function (q, i) {
       var wrap = document.createElement('div');
       wrap.className = 'more-q';
+      var head = document.createElement('div');
+      head.className = 'more-q-head';
       var label = document.createElement('label');
       label.className = 'more-q-label';
       label.textContent = q.question;
       label.htmlFor = 'more-q-' + i;
+      var noted = document.createElement('span');
+      noted.className = 'more-q-noted';
+      noted.textContent = 'Noted';
+      head.appendChild(label);
+      head.appendChild(noted);
       var input = document.createElement('textarea');
       input.id = 'more-q-' + i;
       input.className = 'more-q-input';
       input.rows = 2;
       input.placeholder = q.placeholder || '';
       input.value = kept[q.question] || '';
-      wrap.appendChild(label);
+      input.addEventListener('input', function () { noteAnswer(wrap, input); });
+      wrap.appendChild(head);
       wrap.appendChild(input);
+      noteAnswer(wrap, input);
       el.moreQuestions.appendChild(wrap);
       state.answers[q.question] = input;
       if (window.GrowingText && GrowingText.fit) GrowingText.fit(input);
       if (window.Speech && Speech.isSupported && Speech.isSupported() && Speech.attachMic) Speech.attachMic(input);
     });
+  }
+
+  // An answered question says so at once, and TRY IT says what the
+  // answers will do (the AI reword, and the twenty seconds it costs)
+  function noteAnswer(wrap, input) {
+    wrap.classList.toggle('answered', input.value.trim().length > 0);
+    var n = answeredQuestions().length;
+    el.note.hidden = n === 0;
+    el.note.textContent = n === 1
+      ? 'Your answer is in. TRY IT fits the wording to it, about twenty seconds.'
+      : 'Your ' + n + ' answers are in. TRY IT fits the wording to them, about twenty seconds.';
+    el.moreBtn.textContent = el.moreBody.hidden ? (n ? '+ More · ' + n + ' answered' : '+ More') : '− Less';
   }
 
   // --- The edits, read off the page
