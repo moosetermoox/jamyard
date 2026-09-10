@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Make it yours - Jamyard</title>
+  <link rel="stylesheet" href="/shared/design.css">
+  <link rel="stylesheet" href="/shared/totem.css">
+  <link rel="stylesheet" href="/shared/make-it-yours.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Make it yours as a page (2026-09-09): what your class will see, the
+       question editable in place, one red TRY IT. Untouched = the original
+       runs and no copy is saved, same as the dialog before it. -->
+  <header class="make-header">
+    <a href="/" class="wordmark" aria-label="Jamyard home">
+      <span class="wordmark-jam">JAM</span><span class="wordmark-yard">YARD</span>
+    </a>
+    <a id="back-link" href="/library" class="back-link">Back to the yard</a>
+  </header>
+
+  <main class="make-page" id="make-page">
+    <div class="make-top">
+      <h1 class="name-chip" id="name-chip">Your activity</h1>
+      <div class="class-holder" id="class-holder"></div>
+    </div>
+
+    <!-- The print: the first step students answer, drawn from the same
+         words the host will show. The question plank (and any field
+         planks) are the things to touch; the rest is the template's. -->
+    <div class="print-wrap">
+      <span class="print-label" id="print-label">What your class will see</span>
+      <div class="print-paper">
+        <div class="print-screen" id="print-screen">
+          <span class="print-mark" aria-hidden="true">Jam yard</span>
+          <span class="print-name" id="print-name"></span>
+          <div class="print-prompt-holder" id="print-prompt"></div>
+          <div class="print-fields" id="print-fields"></div>
+          <p class="print-instruction" id="print-instruction" hidden></p>
+          <div class="print-choices" id="print-choices" hidden></div>
+          <p class="print-audience" id="print-audience" hidden></p>
+          <div class="print-timer" id="print-timer" hidden>
+            <button type="button" class="timer-chip" id="timer-chip" title="Tap to change the timer"></button>
+            <span class="timer-note" id="timer-note">Timer · tap to change</span>
+          </div>
+        </div>
+        <!-- The seconds after a door: the print dims and this says what is happening -->
+        <div class="opening" id="opening" hidden>
+          <div class="opening-pile" aria-hidden="true">
+            <span class="opening-block b1"></span><span class="opening-block b2"></span><span class="opening-block b3"></span><span class="opening-block b4"></span>
+          </div>
+          <div class="opening-card">
+            <span class="opening-title" id="opening-title">Opening with pretend students…</span>
+            <span class="opening-text" id="opening-text"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- The one red, and the two quieter ways out -->
+    <div class="doors" id="doors">
+      <div class="try-stack">
+        <button type="button" class="try-btn" id="try-btn" aria-describedby="try-sub">
+          <span class="try-word">Try it</span>
+        </button>
+        <span class="try-plinth" aria-hidden="true"></span>
+        <span class="try-base" aria-hidden="true"></span>
+        <span class="try-sub" id="try-sub">With pretend students</span>
+      </div>
+      <button type="button" class="host-btn" id="host-btn">Host it now</button>
+      <a href="#" class="designer-link" id="designer-link">Open in the designer</a>
+      <span class="doors-note" id="doors-note" hidden></span>
+      <a href="#" class="cancel-link" id="cancel-link" hidden>Cancel</a>
+    </div>
+
+    <p class="make-error" id="make-error" hidden></p>
+
+    <!-- Everything else, folded: the AI's tailoring questions and names -->
+    <div class="more">
+      <button type="button" class="more-btn" id="more-btn" aria-expanded="false" aria-controls="more-body">+ More</button>
+      <span class="more-hint" id="more-hint">The kind of answers you hope for, student names on or off.</span>
+    </div>
+    <div class="more-body" id="more-body" hidden>
+      <div class="more-questions" id="more-questions">
+        <p class="more-status" id="more-status">Loading a question or two for your class…</p>
+      </div>
+      <label class="names-row">
+        <input type="checkbox" id="names-hidden">
+        <span>Hide student names (the room assigns play names)</span>
+      </label>
+    </div>
+  </main>
+
+  <script src="/shared/my-games.js"></script>
+  <script src="/shared/owner-mode.js"></script>
+  <script src="/shared/game-visibility.js"></script>
+  <script src="/shared/dialog.js"></script>
+  <script src="/shared/activity-prefs.js"></script>
+  <script src="/shared/teacher-profile.js"></script>
+  <script src="/shared/setup-knobs.js"></script>
+  <script src="/shared/growing-text.js"></script>
+  <script src="/shared/speech-input.js"></script>
+  <script src="/shared/rich-text.js"></script>
+  <script src="/shared/bold-box.js"></script>
+  <script src="/shared/make-it-yours-doors.js"></script>
+  <script src="/shared/make-it-yours.js"></script>
+  <script src="/shared/feedback-widget.js"></script>
+  <script src="make.js"></script>
+</body>
+</html>

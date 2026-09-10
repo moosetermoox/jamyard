@@ -932,6 +932,16 @@ function customizeCopy(game, btn) {
       if (panel === 'bluff') {
         return showBluffCustomizeDialog(game, config, summary);
       }
+      // Everything else: the page (2026-09-09). What your class will see,
+      // the question editable in place, one red TRY IT. The dialog below
+      // stays for the two panel recipes until they move over too.
+      if (!window.MAKE_IT_YOURS_DIALOG) {
+        var fromPage = /^\/(library|designer)?/.exec(window.location.pathname);
+        var from = window.location.pathname === '/' || window.location.pathname === '' ? 'home'
+          : (fromPage && fromPage[1] === 'designer') ? 'designer' : 'library';
+        window.location.href = '/make?game=' + encodeURIComponent(game.id) + '&from=' + from;
+        return;
+      }
       var questions = (parts[1] && parts[1].questions) || [];
       var knobs = (window.SetupKnobs && summary)
         ? SetupKnobs.knobsFor(summary, config.recipe) : [];

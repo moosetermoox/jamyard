@@ -1,0 +1,526 @@
+/* ══ Make it yours, the page (2026-09-09) ══
+   One column, straight down: who it is for, the print (what your class
+   will see, the question on a sanded plank you can change), one red
+   TRY IT with the two quieter doors beside it, and More folded under a
+   dashed rule. Chromebook-first: the whole path to TRY IT fits in 768px. */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--t-body);
+  font-weight: 500;
+  background: var(--t-gesso);
+  color: var(--t-ink);
+  min-height: 100vh;
+}
+
+.make-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 40px 0;
+}
+
+.wordmark { display: flex; gap: 6px; align-items: center; text-decoration: none; }
+
+.wordmark-jam,
+.wordmark-yard {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  padding: 5px 11px 6px;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.24);
+  display: inline-block;
+}
+
+.wordmark-jam { color: var(--t-ink); background: var(--t-birch); background-image: var(--t-grain); transform: rotate(-1.2deg); }
+.wordmark-yard { color: var(--t-paper); background: var(--t-red); transform: rotate(1deg); }
+
+.back-link {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  text-decoration: none;
+}
+
+.back-link:hover { color: var(--t-ink); }
+
+/* ── The column ─────────────────────────────────────────────────────── */
+
+.make-page {
+  width: min(780px, calc(100vw - 48px));
+  margin: 24px auto 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.make-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.name-chip {
+  margin: 0;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--t-paper);
+  background: var(--t-magenta);
+  padding: 4px 14px 6px;
+  transform: rotate(-1.2deg);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.28);
+  max-width: 420px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The class picker from the shared sheet, as a line: no box, no heading */
+.class-holder { flex: 1; min-width: 280px; display: flex; justify-content: flex-end; }
+.class-holder .class-picker { background: transparent; box-shadow: none; padding: 0; margin: 0; width: 100%; }
+.class-holder .class-picker-label { display: none; }
+.class-holder .class-picker-head { justify-content: flex-end; gap: 10px; }
+.class-holder .class-picker-summary { font-size: 15px; font-weight: 700; color: var(--t-ink); }
+.class-holder .class-picker-summary.class-picker-empty { font-weight: 500; color: var(--t-muted); font-size: 13px; }
+.class-holder .class-picker-body { text-align: left; }
+
+/* ── The print ──────────────────────────────────────────────────────── */
+
+.print-wrap { position: relative; }
+
+.print-label {
+  position: absolute;
+  top: -15px;
+  left: 20px;
+  z-index: 2;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--t-ink);
+  background: var(--t-yellow);
+  padding: 6px 11px 7px;
+  transform: rotate(-1.4deg);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.22);
+}
+
+.print-paper {
+  background: var(--t-paper);
+  padding: 14px;
+  box-shadow: 0 4px 8px rgba(50, 35, 15, 0.26);
+  transform: rotate(-0.3deg);
+  position: relative;
+}
+
+.print-screen {
+  background: var(--t-gesso);
+  min-height: 290px;
+  padding: 30px 34px 24px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+body.is-opening .print-screen { opacity: 0.55; }
+
+.print-mark {
+  position: absolute;
+  top: 11px;
+  right: 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #C9BBA0;
+}
+
+.print-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+}
+
+/* The question: a sanded plank with a pencil line, the bold box inside */
+.plank {
+  align-self: flex-start;
+  max-width: 600px;
+}
+
+.print-prompt,
+.print-field-label {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1.1;
+  color: var(--t-ink);
+  text-wrap: balance;
+}
+
+.print-field-label { font-size: 22px; }
+
+.bold-box.print-prompt,
+.bold-box.print-field-label {
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+  padding: 8px 12px 10px;
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+  transform: rotate(0.4deg);
+  outline: none;
+  min-width: 240px;
+  cursor: text;
+}
+
+.bold-box.print-prompt:focus,
+.bold-box.print-field-label:focus { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+
+/* The template's own words, when they are not the teacher's to change */
+.print-prompt-fixed { align-self: flex-start; max-width: 600px; }
+
+.print-prompt .prompt-bold,
+.print-field-label .prompt-bold,
+.print-instruction .prompt-bold { background: var(--t-yellow); padding: 0 4px; }
+
+.print-fields { display: flex; flex-direction: column; gap: 12px; }
+.print-field { display: flex; flex-direction: column; gap: 6px; }
+.print-field-line { width: 260px; height: 0; border-bottom: 2px dashed rgba(110, 75, 40, 0.3); margin-left: 4px; }
+
+.print-instruction {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--t-muted);
+  max-width: 460px;
+}
+
+.print-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 560px; }
+
+.print-choice {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--t-paper);
+  padding: 11px 14px 12px;
+  clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
+}
+
+.choice-0 { background: var(--t-cyan); transform: rotate(-0.6deg); }
+.choice-1 { background: var(--t-magenta); transform: rotate(0.5deg); }
+.choice-2 { background: var(--t-orange); transform: rotate(0.6deg); }
+.choice-3 { background: var(--t-green); transform: rotate(-0.5deg); }
+
+.print-audience {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t-muted);
+}
+
+.print-description { font-size: 17px; line-height: 1.5; color: var(--t-muted); max-width: 520px; margin: 0; }
+
+.print-timer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 8px;
+}
+
+.timer-chip {
+  border: none;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 19px;
+  color: var(--t-ink);
+  background: var(--t-yellow);
+  background-image: var(--t-grain);
+  padding: 8px 16px;
+  transform: rotate(-1.5deg);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.25);
+  cursor: pointer;
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+.timer-chip:hover:not(:disabled) { transform: rotate(-1.5deg) translateY(-3px); }
+.timer-chip:disabled { cursor: default; }
+.timer-chip:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+.timer-chip[hidden] { display: none; }
+
+.timer-input {
+  width: 84px;
+  padding: 8px 10px;
+  border: none;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 19px;
+  color: var(--t-ink);
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+}
+
+.timer-note {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+}
+
+/* The seconds after a door */
+.opening {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  filter: drop-shadow(4px 5px 0 rgba(80, 60, 30, 0.18));
+  z-index: 3;
+}
+
+.opening[hidden] { display: none; }
+
+.opening-pile { display: flex; align-items: flex-end; gap: 4px; height: 40px; }
+
+.opening-block {
+  display: block;
+  width: 28px;
+  background-image: var(--t-grain);
+  animation: land 180ms var(--t-ease) both;
+}
+
+.opening-block.b1 { height: 24px; background-color: var(--t-cyan); --r: -2deg; }
+.opening-block.b2 { height: 32px; background-color: var(--t-yellow); --r: 1.5deg; animation-delay: 120ms; }
+.opening-block.b3 { height: 38px; background-color: var(--t-magenta); --r: -1deg; animation-delay: 240ms; }
+.opening-block.b4 { height: 28px; background-color: var(--t-green); --r: 2deg; animation-delay: 360ms; }
+
+@keyframes land {
+  from { transform: translateY(-16px) rotate(var(--r)); opacity: 0; }
+  to { transform: translateY(0) rotate(var(--r)); opacity: 1; }
+}
+
+.opening-card {
+  background: var(--t-yellow);
+  padding: 14px 20px 15px;
+  transform: rotate(-1.2deg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 360px;
+  text-align: center;
+}
+
+.opening-title { font-family: var(--t-display); font-weight: 800; font-size: 19px; line-height: 1.2; color: var(--t-ink); }
+.opening-text { font-size: 14px; font-weight: 500; line-height: 1.4; color: var(--t-ink); }
+
+@media (prefers-reduced-motion: reduce) { .opening-block { animation: none; } }
+
+/* ── The doors ──────────────────────────────────────────────────────── */
+
+.doors {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.try-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(6px 8px 0 rgba(80, 60, 30, 0.14));
+}
+
+.try-btn {
+  width: 280px;
+  padding: 17px 0 19px;
+  border: none;
+  background: var(--t-red);
+  color: var(--t-paper);
+  text-align: center;
+  clip-path: polygon(0 4%, 100% 0, 99% 96%, 1% 100%);
+  transform: rotate(-1.2deg);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+.try-btn:hover:not(:disabled) { transform: rotate(-1.2deg) translateY(-5px); }
+.try-btn:active:not(:disabled) { transform: rotate(-1.2deg); }
+.try-btn:disabled { opacity: 0.55; cursor: default; transform: rotate(-1.2deg) translate(2px, 2px); }
+.try-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 3px; }
+
+.try-word { font-family: var(--t-display); font-weight: 800; font-size: 28px; letter-spacing: 0.06em; text-transform: uppercase; }
+/* Under the base, on gesso: paper on red is too faint at this size (axe) */
+/* Solid ground: a transparent element inside the stack's drop-shadow
+   wrapper renders a ghost twin (Totem gotcha) */
+.try-sub { margin-top: 8px; padding: 2px 8px; background: var(--t-gesso); font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--t-muted-caps); }
+
+.try-plinth { display: block; width: 100px; height: 26px; background: var(--t-walnut); background-image: var(--t-grain); margin-top: -4px; }
+.try-base { display: block; width: 250px; height: 12px; background: var(--t-base); background-image: var(--t-grain); }
+
+.host-btn {
+  margin-top: 14px;
+  border: none;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-ink);
+  background: var(--t-paper);
+  padding: 9px 14px 10px;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.22);
+  white-space: nowrap;
+  transform: rotate(0.6deg);
+  cursor: pointer;
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+.host-btn:hover:not(:disabled) { transform: rotate(0.6deg) translateY(-4px); }
+.host-btn:disabled { opacity: 0.5; cursor: default; }
+.host-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+
+.designer-link,
+.cancel-link {
+  margin-top: 24px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t-muted);
+}
+
+.designer-link:hover, .cancel-link:hover { color: var(--t-ink); }
+body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
+
+.doors-note {
+  margin-left: auto;
+  margin-top: 14px;
+  max-width: 190px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--t-muted);
+}
+
+.make-error {
+  margin: 0;
+  padding: 10px 14px;
+  background: var(--t-paper);
+  box-shadow: 0 0 0 2px var(--t-red);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t-ink);
+}
+
+/* ── More ───────────────────────────────────────────────────────────── */
+
+.more {
+  padding-top: 14px;
+  border-top: 2px dashed rgba(110, 75, 40, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.more-btn {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-muted);
+  background: var(--t-gesso);
+  border: 3px dashed rgba(110, 75, 40, 0.35);
+  padding: 7px 12px 8px;
+  cursor: pointer;
+}
+
+.more-btn:hover { color: var(--t-ink); border-color: var(--t-muted-wood); }
+.more-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+
+.more-hint { font-size: 13px; font-weight: 500; color: var(--t-muted); }
+.more-hint[hidden] { display: none; }
+
+.more-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 0 0;
+}
+
+.more-body[hidden] { display: none; }
+
+.more-status { margin: 0; font-size: 13px; font-weight: 500; color: var(--t-muted); }
+.more-status[hidden] { display: none; }
+
+.more-q { display: flex; flex-direction: column; gap: 6px; }
+.more-q-label { font-size: 15px; font-weight: 700; color: var(--t-ink); }
+
+.more-q-input {
+  width: 100%;
+  padding: 11px 14px 9px;
+  border: none;
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+  font-family: var(--t-body);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--t-ink);
+  resize: vertical;
+}
+
+.names-row { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--t-ink); cursor: pointer; }
+.names-row input { width: 18px; height: 18px; }
+
+@media (max-width: 700px) {
+  .make-header { padding: 14px 20px 0; }
+  .print-screen { padding: 22px 20px 18px; }
+  .print-prompt { font-size: 26px; }
+  .try-btn { width: 100%; }
+  .try-stack { width: 100%; }
+}
+
+/* ── The bold box on the plank (shared/bold-box.js; its base styles live
+   in the editor's sheet, so the page carries the few it needs) ─────── */
+.bold-box-wrap { position: relative; }
+/* Under 700 on purpose: at 700 the browser reads the box as already bold
+   and its bold command toggles OFF (standing gotcha, bold-box 2026-09-03). */
+.bold-box.print-prompt, .bold-box.print-field-label { font-weight: 600; white-space: pre-wrap; overflow-wrap: anywhere; }
+[data-bold-box]:empty::before { content: attr(data-placeholder); color: #8A7B62; pointer-events: none; }
+[data-bold-box] b, [data-bold-box] strong { font-weight: 800; }
+.bold-box-tool {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  display: none;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  background: var(--t-ink);
+  color: var(--t-paper);
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 24px;
+  cursor: pointer;
+}
+.bold-box-wrap:focus-within .bold-box-tool { display: inline-block; }
