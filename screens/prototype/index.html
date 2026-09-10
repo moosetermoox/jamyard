@@ -6,102 +6,116 @@
   <title>Try it out - Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="/shared/totem.css">
-  <link rel="stylesheet" href="/shared/activity-map.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="control-bar">
+  <!-- The header is one row (Totem 14a): the way back, the page name, the
+       activity (a select before launch, a magenta name chip once running),
+       the plan as a row of blocks, and a paper icon toolbar at the right. -->
+  <header id="control-bar">
     <a href="/library" id="back-link">&larr; The yard</a>
     <h1>Try it out</h1>
-    <button id="sim-help-btn" class="sim-help" type="button" title="What this page is and how to use it" aria-label="How trying it out works">?</button>
-    <div class="controls">
-      <label for="game-select">Activity:</label>
-      <select id="game-select">
-        <option value="">Loading...</option>
-      </select>
 
-      <label for="player-count">Players:</label>
-      <!-- The range input stays as the value holder (all the relaunch
-           logic hangs on its change event); the seat blocks are the
-           visible control: filled blocks are players, dashed are empty
-           seats (Totem: preview-prototype.png). -->
-      <input type="range" id="player-count" min="1" max="8" value="4">
-      <div id="seat-blocks" role="radiogroup" aria-label="Number of pretend students"></div>
-      <span id="player-count-display">4</span>
+    <label for="game-select" class="visually-hidden">Activity</label>
+    <select id="game-select" title="The activity to try">
+      <option value="">Loading...</option>
+    </select>
+    <span id="activity-chip" hidden></span>
+    <a id="edit-link" hidden title="Spot something to change? Open this activity in the designer" aria-label="Edit this activity">&#9998;</a>
 
-      <button id="launch-btn" disabled title="Open a practice room right here, the projected teacher screen next to pretend student screens">Launch</button>
-      <button id="reset-btn" hidden title="Close this practice room and start fresh">Reset</button>
+    <!-- The range input stays as the value holder (the relaunch logic
+         hangs on its change event); players start at 1 and grow through
+         the + Add another student slot under the student screen. -->
+    <input type="range" id="player-count" min="1" max="8" value="1" hidden aria-hidden="true" tabindex="-1">
 
-      <div id="view-toggle" hidden>
-        <button id="view-grid-btn" class="view-btn" title="Show all players at once">Grid</button>
-        <button id="view-carousel-btn" class="view-btn active" title="Step through one player at a time">One at a time</button>
-      </div>
-
+    <!-- The plan: Join, one block per step, Wrap up. Done = faded with a
+         check, the live step = yellow with NOW. Click a step to skip ahead. -->
+    <div id="map-rail" hidden aria-label="The activity's plan, current step marked. Click a step to skip ahead to it.">
+      <span class="plan-label">Skip ahead</span>
+      <div id="map-rail-holder" role="list"></div>
     </div>
 
-    <a id="edit-link" hidden title="Spot something to change? Open this activity in the designer">✎ Edit</a>
-    <button id="host-btn" disabled title="Done trying it out? Start a live room your class can join right now">▶ Host this</button>
-  </div>
+    <button id="launch-btn" disabled title="Open a practice room right here, the projected teacher screen next to a pretend student screen">Launch</button>
 
-  <!-- The stage row: the treasure-map rail on the left (what happens,
-       with a "you are here" that follows the live room), the screens
-       beside it. The rail appears on Launch and hides on Reset. -->
-  <div id="stage-row" role="main">
-    <aside id="map-rail" hidden aria-label="The activity's plan, current step marked. Click a step to skip ahead to it.">
-      <div class="map-rail-label">The plan</div>
-      <p class="map-rail-hint">Click a step to skip ahead to it.</p>
-      <div id="map-rail-holder"></div>
-    </aside>
+    <div id="toolbar">
+      <button id="host-btn" disabled title="Done trying it out? Start a live room your class can join right now">&#9654; Host this</button>
+      <button id="reset-btn" class="tool-btn" type="button" disabled title="Reset: close this practice room and start fresh" aria-label="Reset">&#8634;</button>
+      <button id="sound-btn" class="tool-btn" type="button" title="Sound effects on or off" aria-label="Sound effects" aria-pressed="false">&#9834;</button>
+      <button id="fullscreen-btn" class="tool-btn" type="button" title="Show this page full screen (Esc leaves)" aria-label="Full screen">&#9974;</button>
+      <button id="sim-help-btn" class="tool-btn sim-help" type="button" title="What this page is and how to use it" aria-label="How trying it out works">?</button>
+    </div>
+  </header>
 
-    <!-- The test bench, empty: a teacher board on its stand beside dashed
-         pretend-student seats (Totem: preview-prototype.png 11a). Launch
-         replaces all of this with the live pieces; Reset restores it. -->
-    <div id="iframe-container">
-      <div id="prelaunch-stage">
-        <div class="stage-pieces">
-          <div class="stage-board-group">
-            <div class="stage-board">Teacher screen</div>
-            <div class="stage-plinth"></div>
-            <div class="stage-base"></div>
+  <!-- The bench: teacher screen on the left, one student screen on the
+       right. Before launch both mats are empty dashed outlines; Launch
+       fills them with the live pieces and Reset empties them again. -->
+  <div id="iframe-container" role="main">
+    <div id="host-column">
+      <div class="screen-bar host-bar">
+        <span class="screen-bar-title" id="host-bar-title">Teacher screen <span class="screen-bar-sub">&middot; what the class sees</span></span>
+        <div class="panel-tabs" id="host-tabs" role="tablist" hidden></div>
+      </div>
+      <div id="host-mat" class="screen-mat host-panel empty">
+        <span class="mat-empty-label">Teacher screen</span>
+        <!-- Shown while the Teacher controls tab is up: this console is a
+             second screen in class, never the projector -->
+        <p class="teacher-note" id="teacher-note">In class this opens on <strong>your own laptop or phone</strong> (Copy teacher link on the projector). Students never see it.</p>
+      </div>
+    </div>
+
+    <div id="student-column">
+      <div class="screen-bar student-bar">
+        <span class="screen-bar-title" id="student-bar-title">Student screen</span>
+        <span class="pager" id="pager" hidden>
+          <button id="carousel-prev" type="button" title="Previous student screen" aria-label="Previous student">&lsaquo;</button>
+          <span id="carousel-count" aria-live="polite">1 of 1</span>
+          <button id="carousel-next" type="button" title="Next student screen" aria-label="Next student">&rsaquo;</button>
+        </span>
+      </div>
+      <div id="student-mat" class="screen-mat empty">
+        <span class="mat-empty-label">Student screen</span>
+        <div id="player-holder"></div>
+        <!-- The shortcuts strip: pinned under the student screen, only
+             while a step students answer is open. -->
+        <div id="bench-bar" hidden>
+          <span class="bench-hint">You play the students. Shortcuts:</span>
+          <div class="bench-btns">
+            <button id="bot-fill-btn" type="button" title="Fill in an answer for every pretend student so you can move through the steps quickly">Add sample answers</button>
+            <button id="skip-btn" type="button" title="Skip the current step's timer / close submissions / continue">Skip timer</button>
           </div>
-          <div class="stage-slot">Pretend student</div>
-          <div class="stage-slot"></div>
-          <div class="stage-slot"></div>
         </div>
-        <p id="prelaunch-hint">Pick an activity and press <strong class="hint-launch">Launch</strong>, you get the teacher screen and pretend students, side by side.</p>
       </div>
+      <button id="add-student-btn" class="add-player-slot" type="button" hidden title="Add one more pretend student to the running room">+ Add another student</button>
     </div>
 
-    <!-- Carousel overlays: anchored to the stage row (not the viewport)
-         so they sit over the PLAYER panel even with the map rail open.
-         Outside #iframe-container because Launch clears its contents. -->
-    <button id="carousel-prev" class="carousel-arrow carousel-arrow-left" hidden title="Previous player screen">&larr;</button>
-    <button id="carousel-next" class="carousel-arrow carousel-arrow-right" hidden title="Next player screen">&rarr;</button>
-    <div id="carousel-dots" hidden></div>
+    <!-- The NEXT banner: one yellow card with a notch, moved over whichever
+         control to press now. Hides for the session after three presses in
+         a row on the pointed-at control; the ? brings it back. -->
+    <div id="next-banner" hidden role="status" aria-live="polite">
+      <div class="next-card">
+        <button type="button" class="next-close" id="next-close" title="Hide this card (the ? brings it back)" aria-label="Hide this card. The help button brings it back.">&times;</button>
+        <span class="next-label">Next</span>
+        <span class="next-text" id="next-text"></span>
+      </div>
+      <div class="next-notch" aria-hidden="true"></div>
+    </div>
   </div>
 
-  <!-- The bench bar: the two controls you actually use while testing,
-       big and at the bottom where the eyes are (observation 2026-08-27:
-       nobody found Bot Fill / Skip timer in the crowded top bar). -->
-  <div id="bench-bar" hidden>
-    <span class="bench-hint">You play all the students. Stuck or done typing?</span>
-    <button id="bot-fill-btn" title="Fill in an answer for every pretend student so you can move through the steps quickly">Add sample answers<span class="bench-sub">one for every student</span></button>
-    <button id="skip-btn" title="Skip the current step's timer / close submissions / continue">Skip timer<span class="bench-sub">move things along</span></button>
-  </div>
-
-  <!-- First-run card: what the simulator is, in three lines. Shown once,
-       right after the first Launch (so Bot Fill and Skip timer are on
-       screen when it names them); the ? in the top bar brings it back. -->
+  <!-- The help card: what this page is, in four lines. The ? in the
+       toolbar opens it (and brings the NEXT banner back). -->
   <div id="sim-intro" hidden>
     <div class="sim-intro-card" role="dialog" aria-modal="true" aria-labelledby="sim-intro-title" aria-describedby="sim-intro-list">
       <h2 id="sim-intro-title">You play the whole class</h2>
       <ul id="sim-intro-list">
-        <li><strong>Teacher screen</strong> on the left, pretend students on the right.</li>
-        <li><strong>Add sample answers</strong> fills one in for every student.</li>
-        <li><strong>Teacher controls</strong>, the tab on the teacher screen, is your private console: hide an entry, approve a preview, put a discussion prompt up.</li>
-        <li><strong>Skip timer</strong> moves to the next step.</li>
+        <li><strong>Teacher screen</strong> on the left, one <strong>student screen</strong> on the right. The yellow NEXT card points at the thing to press; its &times; hides it, and this ? brings it back.</li>
+        <li><strong>Add sample answers</strong> fills one in for every student; <strong>Skip timer</strong> moves to the next step.</li>
+        <li><strong>Teacher controls</strong>, the tab on the teacher screen, is your private console: hide an entry, approve a preview, put a discussion prompt up. In class it opens on your own laptop or phone, never the projector.</li>
+        <li><strong>+ Add another student</strong> brings one more into the room; the arrows step through them. Click a step in the plan to skip ahead.</li>
       </ul>
-      <button id="sim-intro-ok" type="button">Got it</button>
+      <div class="sim-intro-btns">
+        <button id="sim-tour-btn" type="button" title="Walk through the page piece by piece">Take the tour</button>
+        <button id="sim-intro-ok" type="button">Got it</button>
+      </div>
     </div>
   </div>
 
@@ -110,8 +124,10 @@
   <script src="/shared/my-games.js"></script>
   <script src="/shared/owner-mode.js"></script>
   <script src="/shared/phase-names.js"></script>
-  <script src="/shared/activity-map.js"></script>
+  <script src="/shared/juice.js"></script>
   <script src="/shared/feedback-widget.js"></script>
+  <script src="bench-logic.js"></script>
+  <script src="tour.js"></script>
   <script src="prototype.js"></script>
 </body>
 </html>

@@ -329,6 +329,11 @@ button:disabled {
 
 .fullscreen-toggle[hidden] { display: none; }
 
+/* Inside Try it out the bench's toolbar carries sound and full screen;
+   the projector's own chips would be a second copy on the screen */
+body.in-bench .sfx-toggle,
+body.in-bench .fullscreen-toggle { display: none; }
+
 /* Standings rows pop in one after another (delay set inline per row) */
 .juice-stagger {
   opacity: 0;
@@ -1841,7 +1846,11 @@ button:disabled,
 body.rolling section.active { padding-right: 370px; }
 
 @media (max-width: 900px) {
-  #rolling-door { position: static; width: auto; transform: none; margin: 0 auto 16px; }
+  /* Flat on the gesso, not a paper card over it: at this width the card
+     read as an extra layer (owner, Exit Ticket in Try it out, 2026-09-09) */
+  #rolling-door { position: static; width: auto; transform: none; margin: 0 auto 16px; padding: 0 0 12px; background: transparent; box-shadow: none; }
+  .rolling-door-code { justify-content: center; }
+  .rolling-door-instructions, .rolling-door-count, .rolling-door-label { text-align: center; }
   body.rolling section.active { padding-right: 0; }
 }
 

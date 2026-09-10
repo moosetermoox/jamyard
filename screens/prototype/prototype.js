@@ -1,35 +1,44 @@
 /**
- * prototype.js — the prototype / playtest harness (/prototype).
+ * prototype.js — Try it out (/prototype), the playtest bench.
  *
- * Launches a game with the host screen plus N player iframes side by side
- * (grid or one-at-a-time carousel) so a teacher can play through a game solo
- * before class. Adds bot-fill, skip, reset, and a relay auto-advance loop that
- * reads the host iframe. Dev/preview tooling — not part of a real class run.
+ * Launches an activity with the host screen (plus the teacher console behind
+ * a tab) on the left and ONE pretend-student screen on the right, so a
+ * teacher can play through an activity solo before class. The header
+ * carries the plan as a row of blocks (click a step to skip ahead) and a
+ * yellow NEXT card points at the one control to press now (Totem 14a/15a,
+ * 2026-09-09). Adds sample answers, skip, reset, more students, and a relay
+ * auto-advance loop that reads the host iframe. Dev/preview tooling — not
+ * part of a real class run.
  */
 const gameSelect = document.getElementById('game-select');
+const activityChip = document.getElementById('activity-chip');
 const playerCount = document.getElementById('player-count');
-const playerCountDisplay = document.getElementById('player-count-display');
 const launchBtn = document.getElementById('launch-btn');
 const hostBtn = document.getElementById('host-btn');
+const resetBtn = document.getElementById('reset-btn');
+const soundBtn = document.getElementById('sound-btn');
+const fullscreenBtn = document.getElementById('fullscreen-btn');
 const botFillBtn = document.getElementById('bot-fill-btn');
 const skipBtn = document.getElementById('skip-btn');
 const benchBar = document.getElementById('bench-bar');
-const resetBtn = document.getElementById('reset-btn');
 const iframeContainer = document.getElementById('iframe-container');
-const viewToggle = document.getElementById('view-toggle');
-const viewGridBtn = document.getElementById('view-grid-btn');
-const viewCarouselBtn = document.getElementById('view-carousel-btn');
+const hostMat = document.getElementById('host-mat');
+const hostTabs = document.getElementById('host-tabs');
+const studentMat = document.getElementById('student-mat');
+const studentBarTitle = document.getElementById('student-bar-title');
+const playerHolder = document.getElementById('player-holder');
+const pager = document.getElementById('pager');
 const carouselPrev = document.getElementById('carousel-prev');
 const carouselNext = document.getElementById('carousel-next');
-const carouselDots = document.getElementById('carousel-dots');
+const carouselCount = document.getElementById('carousel-count');
+const addStudentBtn = document.getElementById('add-student-btn');
+const nextBanner = document.getElementById('next-banner');
+const nextText = document.getElementById('next-text');
 
-// One-at-a-time is the default (observation 2026-08-27): the grid of
-// eight tiny screens read as noise; one teacher board plus one student
-// screen is the picture a first-timer can actually follow.
-let viewMode = 'carousel';
+const MAX_PLAYERS = 8;
 let carouselIndex = 0; // 0-based index into player panels
 
-// Live-session state for the add-a-player slot (late join is a supported
+// Live-session state for the add-a-student slot (late join is a supported
 // path, so a new pretend student can join the running room directly).
 let currentCode = null;
 let livePlayers = 0;
@@ -37,11 +46,11 @@ let livePlayers = 0;
 // fetched at launch and dealt to each seat by Add sample answers.
 let currentSamples = null;
 
-// --- The map rail: the activity's treasure map beside the screens, with
-// a "you are here" mark that follows the live room. The map comes from
-// the same endpoint the library popups use; the live position comes from
-// pairing a silent teacher-console socket (the host iframe hands over
-// the room PIN on launch, same-origin postMessage).
+// --- The plan row: the activity's steps as blocks in the header, with a
+// "you are here" mark that follows the live room. The map comes from the
+// same endpoint the library popups use; the live position comes from
+// pairing a silent teacher-console socket (the host iframe hands over the
+// room PIN on launch, same-origin postMessage).
 const mapRail = document.getElementById('map-rail');
 const mapRailHolder = document.getElementById('map-rail-holder');
 let railMap = null;
@@ -49,25 +58,26 @@ let railSocket = null;
 let railPhaseId = null;
 let railPhaseType = null;
 let railInstance = 0; // phaseInstanceId: tells a repeat of the same step apart
+let lastStop = -1;    // last map position the row could place (a round's inner step keeps it)
+let planExpanded = false;
 
 function showMapRail(gameId) {
   railMap = null;
   railPhaseId = null;
   railPhaseType = null;
-  if (!mapRail || !window.ActivityMap) return;
+  lastStop = -1;
+  planExpanded = false;
+  if (!mapRail || !window.BenchLogic) return;
   mapRailHolder.textContent = '';
   fetch('/api/games/' + encodeURIComponent(gameId) + '/map')
     .then(r => (r.ok ? r.json() : null))
     .then(map => {
       if (!map || !Array.isArray(map.stops) || map.stops.length === 0) return;
       railMap = map;
-      mapRailHolder.textContent = '';
-      mapRailHolder.appendChild(ActivityMap.render(map));
       mapRail.hidden = false;
-      wireRailClicks();
-      updateRailHighlight();
+      renderPlan();
     })
-    .catch(() => { /* the rail is garnish, never block the preview */ });
+    .catch(() => { /* the plan row is garnish, never block the bench */ });
 }
 
 function hideMapRail() {
@@ -76,8 +86,10 @@ function hideMapRail() {
   railMap = null;
   railPhaseId = null;
   railPhaseType = null;
+  lastStop = -1;
   if (mapRail) {
     mapRail.hidden = true;
+    mapRail.classList.remove('expanded');
     mapRailHolder.textContent = '';
   }
 }
@@ -91,26 +103,50 @@ function connectRail(code, pin) {
     railPhaseId = snap.phaseId;
     railPhaseType = snap.phaseType;
     railInstance = snap.phaseInstanceId || 0;
-    updateRailHighlight();
-    fastForwardCheck();
+    // Joining mid-step: seed the "N of M in" count from the snapshot.
+    liveCounts = { count: (snap.submissions || []).length, total: snap.playerCount || 0, pos: livePos() };
+    onPhaseMoved();
   });
   railSocket.on('teacher-phase', p => {
     railPhaseId = p.phaseId;
     railPhaseType = p.phaseType;
     railInstance = p.phaseInstanceId || 0;
-    updateRailHighlight();
-    fastForwardCheck();
+    liveCounts = null;
+    onPhaseMoved();
+  });
+  // The teacher channel gets every submit as a count: the banner moves
+  // from the student screen to the teacher screen once everyone is in.
+  railSocket.on('response-received', d => {
+    if (d && typeof d.count === 'number') {
+      liveCounts = { count: d.count, total: d.total, pos: livePos() };
+      updateBanner();
+    }
   });
 }
 
-// --- Skip ahead: click a step on the map rail (or arrive with
+function livePos() {
+  return railPhaseId + '|' + railInstance;
+}
+
+function onPhaseMoved() {
+  renderPlan();
+  fastForwardCheck();
+  updateBench();
+  // The teacher moved on without pressing the pointed-at control: the
+  // "three in a row" streak starts over.
+  if (!pressedPointedSincePhase) nextStreak = 0;
+  pressedPointedSincePhase = false;
+  updateBanner();
+}
+
+// --- Skip ahead: click a step on the plan row (or arrive with
 // ?goto=<phaseId>) and the room is played forward with the two moves a
-// teacher makes by hand (Bot Fill, then Skip) until the live "you are
-// here" reaches that step, then the teacher takes over. Skip only fires
-// when the step did NOT move on its own after the fill (all answers in
-// auto-advances many steps; skipping on top would jump PAST the target),
-// and it never uses the host's generic-advance fallback unless the room
-// has sat still for a while on a step that is not the AI's.
+// teacher makes by hand (Add sample answers, then Skip) until the live
+// "you are here" reaches that step, then the teacher takes over. Skip only
+// fires when the step did NOT move on its own after the fill (all answers
+// in auto-advances many steps; skipping on top would jump PAST the
+// target), and it never uses the host's generic-advance fallback unless
+// the room has sat still for a while on a step that is not the AI's.
 let pendingGoto = null;
 let ff = null; // { targets, ticks, still, timer, skipTimer }
 const FF_TICK_MS = 1800;
@@ -119,14 +155,24 @@ const FF_MAX_TICKS = 90;    // ~2.7 minutes, then hand back
 // time to land before the close button is pressed on top of it.
 const FF_SKIP_DELAY_MS = 1400;
 const FF_STILL_TICKS = 6;   // ~11s without movement: allow the generic advance
-const benchHint = document.querySelector('#bench-bar .bench-hint');
-const benchHintDefault = benchHint ? benchHint.textContent : '';
 
-function setBenchHint(text, state) {
-  if (!benchHint) return;
-  benchHint.textContent = text;
-  benchHint.classList.toggle('bench-hint-busy', state === 'busy');
-  benchHint.classList.toggle('bench-hint-done', state === 'done');
+// The NEXT card carries the skip-ahead news while it runs (busy) and the
+// hand-over for a few seconds after (done), then goes back to pointing.
+let statusText = '';
+let statusUntil = 0;
+const STATUS_DONE_MS = 5000;
+
+function setStatus(text, state) {
+  statusText = text || '';
+  statusUntil = state === 'done' ? Date.now() + STATUS_DONE_MS : 0;
+  nextBanner.classList.toggle('is-busy', state === 'busy');
+  updateBanner();
+}
+
+function currentStatus() {
+  if (!statusText) return '';
+  if (statusUntil && Date.now() > statusUntil) { statusText = ''; return ''; }
+  return statusText;
 }
 
 // Is the live room on any of these phase ids? A round's inner step wears
@@ -154,39 +200,119 @@ function currentStopIndex() {
   return -2;
 }
 
+function nameOf(type) {
+  return (window.PHASE_NAMES && window.PHASE_NAMES[type]) || type;
+}
+
 // "Rounds" or the step's plain name, plus its excerpt when the map has one.
 function stepNameFor(phaseId) {
   const stops = (railMap && Array.isArray(railMap.stops)) ? railMap.stops : [];
   for (const stop of stops) {
     if ((stop.ids || []).indexOf(phaseId) === -1) continue;
-    const names = window.PHASE_NAMES || {};
-    const base = stop.kind === 'rounds' ? 'Rounds' : (names[stop.type] || stop.type || phaseId);
+    const base = stop.kind === 'rounds' ? 'Rounds' : nameOf(stop.type);
     return stop.detail ? base + ' (' + stop.detail + ')' : base;
   }
   return phaseId;
 }
 
-// --- The rail is clickable: a stop row asks before skipping ahead ---
-
-function railStopRows() {
-  return Array.from(mapRailHolder.querySelectorAll('.amap-row:not(.amap-startrow):not(.amap-endrow)'));
-}
-
-function wireRailClicks() {
-  const rows = railStopRows();
-  const stops = railMap.stops;
-  for (let i = 0; i < rows.length && i < stops.length; i++) {
-    const row = rows[i];
-    row.classList.add('amap-clickable');
-    row.title = 'Skip ahead to this step';
-    row.setAttribute('role', 'button');
-    row.tabIndex = 0;
-    row.addEventListener('click', () => askSkipTo(i));
-    row.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); askSkipTo(i); }
+// --- The row itself: Join, one block per stop, Wrap up. Done blocks fade
+// with a check, the live one is yellow with NOW; a long plan folds the
+// stops between the first, the live one, and the last into a "…" block,
+// folding harder when the header has less room. The "…" opens the full
+// list on a paper card under the row.
+function makeBlock(block, i) {
+  const clickable = block.kind === 'stop' || block.kind === 'fold';
+  const el = document.createElement(clickable ? 'button' : 'span');
+  if (clickable) el.type = 'button';
+  el.className = 'plan-block ' + (i % 2 ? 'cut-b' : 'cut-a');
+  if (block.kind === 'end') el.classList.add('tone-oak');
+  else if (block.kind === 'stop' && block.index % 2) el.classList.add('tone-pine');
+  if (block.state === 'now') el.classList.add('is-now');
+  if (block.state === 'done') el.classList.add('is-done');
+  el.style.setProperty('--rot', (((i % 2) ? 1 : -1) * (0.8 + (i % 3) * 0.2)).toFixed(1) + 'deg');
+  el.setAttribute('role', 'listitem');
+  if (block.kind === 'stop') {
+    el.dataset.index = String(block.index);
+    const num = document.createElement('span');
+    num.className = 'plan-num';
+    num.textContent = String(block.number);
+    el.appendChild(num);
+  }
+  let text = block.label;
+  if (block.state === 'now') text += ' · NOW';
+  else if (block.state === 'done') text += ' ✓';
+  el.appendChild(document.createTextNode(text));
+  if (block.kind === 'fold') {
+    el.classList.add('plan-fold', 'clickable');
+    el.title = 'Show all ' + block.count + ' folded steps';
+    el.setAttribute('aria-label', el.title);
+    el.addEventListener('click', () => { planExpanded = true; renderPlan(); });
+  } else if (block.kind === 'stop') {
+    el.classList.add('clickable');
+    el.title = 'Skip ahead to this step';
+    el.addEventListener('click', () => {
+      // From the full list: close it and ask under the row's own block
+      if (planExpanded) {
+        planExpanded = false;
+        renderPlan();
+      }
+      const inRow = mapRailHolder.querySelector('.plan-block[data-index="' + block.index + '"]') ||
+        mapRailHolder.querySelector('.plan-fold') || el;
+      askSkipTo(block.index, inRow);
     });
   }
+  return el;
 }
+
+function paintRow(blocks) {
+  mapRailHolder.textContent = '';
+  blocks.forEach((block, i) => mapRailHolder.appendChild(makeBlock(block, i)));
+}
+
+function removePlanPopover() {
+  const old = mapRail.querySelector('.plan-popover');
+  if (old) old.remove();
+}
+
+function renderPlan() {
+  if (!railMap || !mapRail || mapRail.hidden) return;
+  const here = currentStopIndex();
+  // No match (a round's inner step, a side branch): keep the last mark
+  // rather than leaving the row unmarked.
+  if (here !== -2) lastStop = here;
+  const stops = railMap.stops;
+  // Seven blocks when they fit, five (Join, first, now, last, Wrap up) when not
+  for (const cap of [7, 5]) {
+    paintRow(BenchLogic.planBlocks(stops, lastStop, { nameOf, cap }));
+    if (mapRailHolder.scrollWidth <= mapRailHolder.clientWidth + 1) break;
+  }
+  removePlanPopover();
+  if (!planExpanded) return;
+  const pop = document.createElement('div');
+  pop.className = 'plan-popover';
+  pop.setAttribute('role', 'list');
+  BenchLogic.planBlocks(stops, lastStop, { nameOf, expanded: true }).forEach((block, i) => pop.appendChild(makeBlock(block, i)));
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'plan-block plan-fold plan-close clickable cut-a';
+  close.textContent = 'Fold';
+  close.title = 'Back to the short row';
+  close.addEventListener('click', () => { planExpanded = false; renderPlan(); });
+  pop.appendChild(close);
+  mapRail.appendChild(pop);
+}
+
+// The full list closes on Escape or a click anywhere else
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && planExpanded) { planExpanded = false; renderPlan(); }
+});
+document.addEventListener('click', (e) => {
+  // The fold block that opened the list is re-rendered away by the time
+  // this runs: a click whose target left the page never counts as outside.
+  if (!(e.target instanceof Element) || !e.target.isConnected) return;
+  if (planExpanded && mapRail && !mapRail.contains(e.target)) { planExpanded = false; renderPlan(); }
+});
+window.addEventListener('resize', () => { if (!planExpanded) renderPlan(); });
 
 let skipAsk = null; // the one open "Skip ahead?" card
 
@@ -194,16 +320,14 @@ function hideSkipAsk() {
   if (skipAsk) { skipAsk.remove(); skipAsk = null; }
 }
 
-// A small card right under the clicked row: what will happen, and the
+// A small card right under the clicked block: what will happen, and the
 // choice. Built with textContent (the excerpt is teacher content).
-function askSkipTo(index) {
+function askSkipTo(index, blockEl) {
   hideSkipAsk();
-  const rows = railStopRows();
   const stop = railMap && railMap.stops[index];
-  const row = rows[index];
-  if (!stop || !row) return;
+  if (!stop) return;
   const targets = stop.ids || [];
-  const here = currentStopIndex();
+  const here = lastStop;
   const name = 'step ' + (index + 1) + ', ' + stepNameFor(targets[0]);
 
   const card = document.createElement('div');
@@ -227,7 +351,7 @@ function askSkipTo(index) {
   if (index === here) {
     text.textContent = 'You are on this step now.';
     btns.appendChild(closeBtn('OK'));
-  } else if (here !== -2 && index < here) {
+  } else if (here >= 0 && index < here) {
     text.textContent = 'That step already happened. Press Reset and try again to see it.';
     btns.appendChild(closeBtn('OK'));
   } else {
@@ -245,7 +369,12 @@ function askSkipTo(index) {
     btns.appendChild(closeBtn('Not now'));
   }
   card.addEventListener('click', (e) => e.stopPropagation());
-  row.insertAdjacentElement('afterend', card);
+  // Under the clicked block, kept inside the window
+  const railRect = mapRail.getBoundingClientRect();
+  const blockRect = blockEl.getBoundingClientRect();
+  const maxLeft = window.innerWidth - railRect.left - 280;
+  card.style.setProperty('--ask-left', Math.max(0, Math.min(blockRect.left - railRect.left, maxLeft)) + 'px');
+  mapRail.appendChild(card);
   skipAsk = card;
   const first = btns.querySelector('button');
   if (first) first.focus();
@@ -255,18 +384,11 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && skipAsk) hideSkipAsk();
 });
 
-// --- First-run card: what the simulator is, in three lines. Shown once
-// (remembered in localStorage), after the first Launch so Bot Fill and
-// Skip timer are on screen when the card names them. The ? button in the
-// top bar brings it back any time.
-const SIM_INTRO_KEY = 'jamyard-sim-intro-seen';
+// --- The help card: the bench in four lines. The ? in the toolbar opens
+// it and brings the NEXT card back if it was dismissed.
 const simIntro = document.getElementById('sim-intro');
 const simIntroOk = document.getElementById('sim-intro-ok');
 const simHelpBtn = document.getElementById('sim-help-btn');
-
-function simIntroSeen() {
-  try { return localStorage.getItem(SIM_INTRO_KEY) === '1'; } catch (err) { return true; }
-}
 
 function showSimIntro() {
   if (!simIntro) return;
@@ -277,22 +399,42 @@ function showSimIntro() {
 function hideSimIntro() {
   if (!simIntro || simIntro.hidden) return;
   simIntro.hidden = true;
-  try { localStorage.setItem(SIM_INTRO_KEY, '1'); } catch (err) { /* private mode: it shows again next time */ }
-}
-
-function maybeShowSimIntro() {
-  if (!simIntroSeen()) showSimIntro();
 }
 
 if (simIntroOk) simIntroOk.addEventListener('click', hideSimIntro);
 if (simIntro) simIntro.addEventListener('click', (e) => { if (e.target === simIntro) hideSimIntro(); });
-if (simHelpBtn) simHelpBtn.addEventListener('click', showSimIntro);
+if (simHelpBtn) simHelpBtn.addEventListener('click', () => { restoreBanner(); showSimIntro(); });
+
+// --- The first-visit tour: names every piece once the room is up (the
+// first launch in this browser), and again from the help card's button.
+const simTourBtn = document.getElementById('sim-tour-btn');
+let tourTimer = null;
+
+function startTour() {
+  if (!window.BenchTour || !window.BenchLogic) return;
+  hideSimIntro();
+  hideSkipAsk();
+  BenchTour.start(BenchLogic.TOUR_STOPS, () => updateBanner());
+}
+
+// A beat after the pieces land, so the plan row (fetched) is on screen too
+function maybeStartTour() {
+  if (!window.BenchTour || BenchTour.seen()) return;
+  clearTimeout(tourTimer);
+  tourTimer = setTimeout(() => { if (currentCode && !BenchTour.running()) startTour(); }, 1400);
+}
+
+if (simTourBtn) simTourBtn.addEventListener('click', startTour);
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && simIntro && !simIntro.hidden) hideSimIntro();
 });
 
+function hostFrame() {
+  return hostMat.querySelector('iframe.host-frame');
+}
+
 function fireBotFill() {
-  const playerIframes = iframeContainer.querySelectorAll('.player-panel iframe');
+  const playerIframes = playerHolder.querySelectorAll('.player-panel iframe');
   let seat = 0;
   for (const iframe of playerIframes) {
     // Seat order deals sample line i to student i (see bot-brain.js)
@@ -301,8 +443,8 @@ function fireBotFill() {
 }
 
 function fireSkip(noFallback) {
-  const hostIframe = iframeContainer.querySelector('.host-panel iframe');
-  if (hostIframe) hostIframe.contentWindow.postMessage({ type: 'prototype-skip', noFallback: !!noFallback }, '*');
+  const host = hostFrame();
+  if (host) host.contentWindow.postMessage({ type: 'prototype-skip', noFallback: !!noFallback }, '*');
 }
 
 function startFastForward(targets) {
@@ -311,7 +453,7 @@ function startFastForward(targets) {
   if (!targets || !targets.length) return;
   ff = { targets, ticks: 0, still: 0, lastPos: null, timer: null, skipTimer: null };
   document.body.classList.add('pt-fastforward');
-  setBenchHint('Skipping ahead to ' + stepNameFor(targets[0]) + ' with pretend students...', 'busy');
+  setStatus('Skipping ahead to ' + stepNameFor(targets[0]) + ' with pretend students...', 'busy');
   fastForwardTick();
   ff.timer = setInterval(fastForwardTick, FF_TICK_MS);
 }
@@ -334,12 +476,12 @@ function fastForwardCheck() {
 function fastForwardArrive() {
   const name = stepNameFor(ff.targets[0]);
   stopFastForward();
-  setBenchHint('Here it is: ' + name + '. You play the students from here.', 'done');
+  setStatus('Here it is: ' + name + '. You play the students from here.', 'done');
 }
 
 function fastForwardGiveUp(reason) {
   stopFastForward();
-  setBenchHint(reason + ' Use Add sample answers and Skip to walk there.', 'done');
+  setStatus(reason + ' Use Add sample answers and Skip timer to walk there.', 'done');
 }
 
 function fastForwardTick() {
@@ -347,7 +489,7 @@ function fastForwardTick() {
   if (phaseMatches(ff.targets)) { fastForwardArrive(); return; }
   if (railPhaseType === 'end') { fastForwardGiveUp('The activity ended before reaching that step.'); return; }
   if (++ff.ticks > FF_MAX_TICKS) { fastForwardGiveUp('Could not reach that step automatically.'); return; }
-  const pos = railPhaseId + '|' + railInstance;
+  const pos = livePos();
   ff.still = pos === ff.lastPos ? ff.still + 1 : 0;
   ff.lastPos = pos;
   // The AI's own step is never pushed; it finishes when it finishes.
@@ -356,96 +498,205 @@ function fastForwardTick() {
   ff.skipTimer = setTimeout(() => {
     if (!ff) return;
     if (phaseMatches(ff.targets)) { fastForwardArrive(); return; }
-    if (railPhaseId + '|' + railInstance !== pos) return; // it moved on its own
+    if (livePos() !== pos) return; // it moved on its own
     fireSkip(!allowFallback);
   }, FF_SKIP_DELAY_MS);
 }
 
-function updateRailHighlight() {
-  if (!railMap || !mapRail || mapRail.hidden) return;
-  let target = null;
-  if (!railPhaseId || railPhaseType === 'lobby') {
-    target = mapRailHolder.querySelector('.amap-startrow');
-  } else if (railPhaseType === 'end') {
-    target = mapRailHolder.querySelector('.amap-endrow');
-  } else {
-    const stopRows = mapRailHolder.querySelectorAll(
-      '.amap-row:not(.amap-startrow):not(.amap-endrow)');
-    for (let i = 0; i < railMap.stops.length && i < stopRows.length; i++) {
-      const ids = railMap.stops[i].ids || [];
-      if (ids.indexOf(railPhaseId) !== -1) { target = stopRows[i]; break; }
+// --- The shortcuts strip: only while a step students answer is open.
+function updateBench() {
+  const open = !!currentCode && BenchLogic.isStudentStep(railPhaseType);
+  benchBar.hidden = !open;
+}
+
+// --- The NEXT card: one sentence, over the control to press now. Hides
+// for the session after the pointed-at control is pressed three times in
+// a row (a teacher who knows the page); the ? brings it back.
+const NEXT_OFF_KEY = 'jamyard-next-banner-off';
+let bannerOff = false;
+try { bannerOff = localStorage.getItem(NEXT_OFF_KEY) === '1'; } catch (err) { /* private mode: always on */ }
+let nextStreak = 0;
+let pressedPointedSincePhase = false;
+let pointedEl = null;       // the element the card points at (page or iframe)
+let liveCounts = null;      // { count, total, pos } from the teacher channel
+let samplesPressedAt = null; // { pos, time } the last Add sample answers press
+const SAMPLES_SETTLE_MS = 2500;
+let bannerTimer = null;
+
+function restoreBanner() {
+  bannerOff = false;
+  nextStreak = 0;
+  try { localStorage.removeItem(NEXT_OFF_KEY); } catch (err) { /* ignore */ }
+  updateBanner();
+}
+
+function dismissBanner() {
+  bannerOff = true;
+  try { localStorage.setItem(NEXT_OFF_KEY, '1'); } catch (err) { /* shows again next visit */ }
+  updateBanner();
+}
+
+const nextClose = document.getElementById('next-close');
+if (nextClose) nextClose.addEventListener('click', (e) => { e.stopPropagation(); dismissBanner(); });
+
+function onPointedClick() {
+  pressedPointedSincePhase = true;
+  nextStreak += 1;
+  if (nextStreak >= 3) dismissBanner();
+}
+
+function bindPointed(el) {
+  if (el === pointedEl) return;
+  if (pointedEl) pointedEl.removeEventListener('click', onPointedClick);
+  pointedEl = el;
+  if (!pointedEl) return;
+  pointedEl.addEventListener('click', onPointedClick);
+  // A control below the fold of its own screen (the host lobby's START
+  // sits under the join instructions) is scrolled into view once, so the
+  // card has something to point at.
+  try { pointedEl.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (err) { /* ignore */ }
+}
+
+// Any other button on the page breaks the streak
+document.addEventListener('click', (e) => {
+  if (!pointedEl || !(e.target instanceof Element)) return;
+  if (pointedEl.contains(e.target)) return;
+  if (e.target.closest('button, a')) nextStreak = 0;
+}, true);
+
+// The host's own document, when the class screen is showing (same origin)
+function hostDoc() {
+  const host = hostFrame();
+  if (!host || host.hidden) return null;
+  try { return host.contentDocument; } catch (err) { return null; }
+}
+
+function visible(el) {
+  return !!(el && !el.hidden && !el.disabled && el.offsetParent !== null);
+}
+
+// The visible advance/close button on the host, in the order the host's
+// own skip tries them (the list is guarded against host.js by a test).
+function findHostButton() {
+  const doc = hostDoc();
+  if (!doc) return null;
+  for (const id of BenchLogic.HOST_ADVANCE_BUTTONS) {
+    const btn = doc.getElementById(id);
+    if (visible(btn)) return { el: btn, label: (btn.textContent || '').trim() };
+  }
+  return null;
+}
+
+function bannerState() {
+  const state = { launched: !!currentCode, phaseType: railPhaseType, busy: currentStatus() };
+  const doc = hostDoc();
+  if (doc && (!railPhaseType || railPhaseType === 'lobby')) {
+    const start = doc.getElementById('start-game-btn');
+    const hint = doc.getElementById('start-hint');
+    if (start) state.startEnabled = !start.disabled;
+    if (hint && !hint.hidden) state.startHint = (hint.textContent || '').trim();
+  }
+  const found = findHostButton();
+  state.hostButtonLabel = found ? found.label : null;
+  if (liveCounts && liveCounts.pos === livePos() && liveCounts.total > 0) {
+    state.allIn = liveCounts.count >= liveCounts.total;
+  }
+  if (samplesPressedAt && samplesPressedAt.pos === livePos() && Date.now() - samplesPressedAt.time > SAMPLES_SETTLE_MS) {
+    state.samplesPressed = true;
+  }
+  return state;
+}
+
+// The element a slot points at: on the page, or inside the host iframe
+function resolveTarget(at) {
+  switch (at) {
+    case 'launch': return { el: launchBtn };
+    case 'reset': return { el: resetBtn };
+    case 'add-student': return { el: addStudentBtn };
+    case 'samples': return benchBar.hidden ? null : { el: botFillBtn };
+    case 'skip': return benchBar.hidden ? null : { el: skipBtn };
+    case 'teacher-controls': {
+      const tab = document.getElementById('teacher-tab-btn');
+      return visible(tab) && !tab.classList.contains('active') ? { el: tab } : null;
     }
-  }
-  // No match (a round's inner step, a side branch): keep the last mark
-  // rather than leaving the trail unmarked.
-  if (!target) return;
-  mapRailHolder.querySelectorAll('.amap-here').forEach(r => r.classList.remove('amap-here'));
-  target.classList.add('amap-here');
-  target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-}
-
-// The empty test bench (stands + hint). Launch clears the container but we
-// keep the detached node and put it back on Reset, so the stage is never
-// silently blank.
-const prelaunchStage = document.getElementById('prelaunch-stage');
-
-// --- Seat blocks: the visible player-count control ---
-// Filled painted blocks are players, dashed blocks are empty seats
-// (preview-prototype.png). The hidden range input stays the value holder:
-// every existing relaunch path listens to its change event.
-const seatBlocks = document.getElementById('seat-blocks');
-
-// One radio group, not eight toggle buttons: the filled blocks are a
-// picture of the count, so only the SELECTED seat is "checked" (a screen
-// reader hearing "1 pressed, 2 pressed, 3 pressed, 4 pressed" for a count
-// of four was the accessibility review's complaint). Roving tabindex: the
-// selected seat is the one Tab lands on, arrow keys move the selection.
-const SEAT_MAX = 8;
-
-function selectSeatCount(n, focusSeat) {
-  const next = Math.min(SEAT_MAX, Math.max(1, n));
-  playerCount.value = next;
-  playerCountDisplay.textContent = String(next);
-  renderSeats();
-  if (focusSeat) {
-    const target = seatBlocks.querySelector('.seat-block[aria-checked="true"]');
-    if (target) target.focus();
-  }
-  playerCount.dispatchEvent(new Event('change'));
-}
-
-function renderSeats() {
-  if (!seatBlocks) return;
-  const count = parseInt(playerCount.value, 10);
-  seatBlocks.textContent = '';
-  for (let i = 1; i <= SEAT_MAX; i++) {
-    const seat = document.createElement('button');
-    seat.type = 'button';
-    const filled = i <= count;
-    const selected = i === count;
-    seat.className = 'seat-block ' + (filled ? 'seat-c' + ((i - 1) % 5) : 'seat-empty');
-    seat.style.setProperty('--rot', (((i % 2) ? -1 : 1) * (0.8 + (i % 3) * 0.4)).toFixed(1) + 'deg');
-    seat.title = i === 1 ? '1 player' : i + ' players';
-    seat.setAttribute('role', 'radio');
-    seat.setAttribute('aria-label', i === 1 ? '1 pretend student' : i + ' pretend students');
-    seat.setAttribute('aria-checked', selected ? 'true' : 'false');
-    seat.tabIndex = selected ? 0 : -1;
-    seat.addEventListener('click', () => selectSeatCount(i, false));
-    seat.addEventListener('keydown', (e) => {
-      let next = null;
-      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = i + 1;
-      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = i - 1;
-      else if (e.key === 'Home') next = 1;
-      else if (e.key === 'End') next = SEAT_MAX;
-      if (next === null) return;
-      e.preventDefault();
-      selectSeatCount(next, true);
-    });
-    seatBlocks.appendChild(seat);
+    case 'start': {
+      const doc = hostDoc();
+      const start = doc && doc.getElementById('start-game-btn');
+      return visible(start) ? { el: start, frame: hostFrame() } : null;
+    }
+    case 'close':
+    case 'continue': {
+      const found = findHostButton();
+      return found ? { el: found.el, frame: hostFrame() } : null;
+    }
+    default: return null;
   }
 }
 
-renderSeats();
+function targetRect(target) {
+  const r = target.el.getBoundingClientRect();
+  if (!target.frame) return r;
+  const f = target.frame.getBoundingClientRect();
+  return { left: f.left + r.left, right: f.left + r.right, top: f.top + r.top, bottom: f.top + r.bottom, width: r.width, height: r.height };
+}
+
+function updateBanner() {
+  if (!window.BenchLogic) return;
+  if (bannerOff) { nextBanner.hidden = true; bindPointed(null); return; }
+  const step = BenchLogic.nextStep(bannerState());
+  const target = step.at ? resolveTarget(step.at) : null;
+  nextText.textContent = step.text;
+  nextBanner.hidden = false;
+  nextBanner.classList.toggle('no-notch', !target);
+  bindPointed(target ? target.el : null);
+
+  const box = iframeContainer.getBoundingClientRect();
+  const w = nextBanner.offsetWidth;
+  const h = nextBanner.offsetHeight;
+  let left;
+  let top;
+  let flip = false;
+  if (target) {
+    const r = targetRect(target);
+    const cx = r.left + r.width / 2;
+    // The card hangs away from the middle of the bench: leftward over a
+    // right-hand control, rightward over a left-hand one.
+    const rightHalf = cx > box.left + box.width / 2;
+    left = rightHalf ? cx - w + Math.min(60, w / 2) : cx - Math.min(60, w / 2);
+    left = Math.max(box.left + 8, Math.min(left, box.right - w - 8));
+    top = r.top - h - 6;
+    if (top < box.top - 40 || target.el === launchBtn || target.el === resetBtn) {
+      flip = true;
+      top = r.bottom + 6;
+    }
+    top = Math.min(top, box.bottom - h - 4);
+    const notchLeft = Math.max(12, Math.min(cx - left - 13, w - 40));
+    nextBanner.style.setProperty('--notch-left', notchLeft + 'px');
+    nextBanner.classList.toggle('tilt-right', rightHalf);
+  } else {
+    // Nothing to point at: the card rests over the teacher screen's top right
+    const hostBox = document.getElementById('host-column').getBoundingClientRect();
+    left = hostBox.right - w - 24;
+    top = hostBox.top + 56;
+    nextBanner.classList.remove('tilt-right');
+  }
+  nextBanner.classList.toggle('flip', flip);
+  nextBanner.style.left = (left - box.left) + 'px';
+  nextBanner.style.top = (top - box.top) + 'px';
+}
+
+// The host's screen changes with no word to this page (a button appears,
+// a hint hides): a slow poll keeps the card honest while a room is open.
+function startBannerPoll() {
+  stopBannerPoll();
+  bannerTimer = setInterval(updateBanner, 700);
+}
+
+function stopBannerPoll() {
+  if (bannerTimer) { clearInterval(bannerTimer); bannerTimer = null; }
+}
+
+window.addEventListener('resize', updateBanner);
 
 // Arrived from the editor's Preview button? "Back" should return to the
 // editor, not the library — you preview, spot something to change, and need
@@ -469,10 +720,6 @@ renderSeats();
     } catch (err) { /* opener gone or blocked — the href navigation covers it */ }
   });
 })();
-
-playerCount.addEventListener('input', () => {
-  playerCountDisplay.textContent = playerCount.value;
-});
 
 // Fetch available games
 fetch('/api/games')
@@ -508,6 +755,7 @@ fetch('/api/games')
     launchBtn.disabled = false;
     hostBtn.disabled = false;
     updateEditLink();
+    updateBanner();
 
     // Auto-select game from URL param (e.g. from editor's Test Game button)
     const params = new URLSearchParams(window.location.search);
@@ -551,18 +799,26 @@ function updateEditLink() {
 }
 gameSelect.addEventListener('change', updateEditLink);
 
+function selectedName() {
+  const opt = gameSelect.options[gameSelect.selectedIndex];
+  return opt ? opt.textContent : '';
+}
+
 // Launch prototype
 launchBtn.addEventListener('click', () => {
   const gameId = gameSelect.value;
   if (!gameId) return;
 
-  const count = parseInt(playerCount.value, 10);
+  const count = Math.min(MAX_PLAYERS, Math.max(1, parseInt(playerCount.value, 10) || 1));
 
-  // Disable Launch while a session runs. The activity select and player
-  // seats stay enabled — changing either relaunches with the new value.
+  // Disable Launch while a session runs. The activity select stays live
+  // behind the chip: Reset brings it back, changing it relaunches.
   launchBtn.disabled = true;
-  // Bench running: Launch steps aside, the red moves to ▶ Host this.
+  // Bench running: Launch steps aside, Host this joins the toolbar, the
+  // select gives way to the activity's name chip.
   document.body.classList.add('pt-running');
+  activityChip.textContent = selectedName();
+  activityChip.hidden = false;
 
   // The template's sample answers ride along with Add sample answers.
   // Fetched fresh per launch (the activity select may have changed);
@@ -577,73 +833,63 @@ launchBtn.addEventListener('click', () => {
     })
     .catch(() => { /* keyword bot fallback */ });
 
-  // Clear previous iframes
-  iframeContainer.innerHTML = '';
-  iframeContainer.dataset.players = count;
-
-  // Create host iframe
-  const hostWrapper = document.createElement('div');
-  hostWrapper.className = 'iframe-panel host-panel';
-  const hostLabel = document.createElement('div');
-  hostLabel.className = 'panel-label';
-  hostLabel.textContent = 'Teacher screen';
-  hostWrapper.appendChild(hostLabel);
-
+  // The teacher mat: the host iframe first (Skip finds it by class)
+  clearMats();
+  hostMat.classList.remove('empty');
   const hostIframe = document.createElement('iframe');
+  hostIframe.className = 'host-frame';
   hostIframe.title = 'Teacher screen';
   hostIframe.src = '/host?game=' + encodeURIComponent(gameId) + '&prototype=true';
-  hostWrapper.appendChild(hostIframe);
-  iframeContainer.appendChild(hostWrapper);
+  hostMat.appendChild(hostIframe);
 
   // Listen for room code from host iframe
   window.addEventListener('message', function onMessage(e) {
     if (e.data && e.data.type === 'room-created') {
       window.removeEventListener('message', onMessage);
       currentCode = e.data.code;
-      hostLabel.textContent = 'Teacher screen · Room ' + e.data.code;
-      // Teacher controls: the real /teacher console in the same panel,
+      // Teacher controls: the real /teacher console in the same mat,
       // behind a tab (outside review #2: rehearsal should include the
       // private console, not a "copy a link" detour). The console auto-
       // joins from the hash; the host iframe stays first so Skip finds it.
-      if (e.data.teacherPin) addTeacherTab(hostWrapper, hostLabel, hostIframe, e.data.code, e.data.teacherPin);
+      if (e.data.teacherPin) addTeacherTab(hostIframe, e.data.code, e.data.teacherPin);
+      studentMat.classList.remove('empty');
       createPlayerIframes(e.data.code, count);
-      benchBar.hidden = false;
-      resetBtn.hidden = false;
-      viewToggle.hidden = false;
-      // First visit: the three-line card, now that the pieces it names
-      // (teacher screen, Bot Fill, Skip timer) are on screen.
-      maybeShowSimIntro();
-      // Apply the current view to the fresh panels (carousel by default;
-      // without this the new grid always starts as a grid).
-      setViewMode(viewMode);
-      // The map rail: draw the plan, then follow the live room.
+      pager.hidden = false;
+      addStudentBtn.hidden = false;
+      resetBtn.disabled = false;
+      labelSound(readMuted());
+      // The plan row: draw the steps, then follow the live room.
       showMapRail(gameId);
       connectRail(e.data.code, e.data.teacherPin);
+      updateBench();
+      startBannerPoll();
+      updateBanner();
+      maybeStartTour();
       if (pendingGoto) {
         startFastForward(pendingGoto);
         pendingGoto = null;
       }
     }
   });
+  updateBanner();
 });
 
-// Two tabs on the host panel: Class screen (the projector) and Teacher
-// controls (the private console, joined with the room's PIN). Only the
-// chosen one shows; the tabs sit in the panel label.
-function addTeacherTab(hostWrapper, hostLabel, hostIframe, code, pin) {
+// Two tabs on the teacher screen's bar: Class screen (the projector) and
+// Teacher controls (the private console, joined with the room's PIN).
+// Only the chosen one shows.
+function addTeacherTab(hostIframe, code, pin) {
   const teacherIframe = document.createElement('iframe');
   teacherIframe.className = 'teacher-frame';
   teacherIframe.title = 'Teacher controls';
   teacherIframe.src = '/teacher#code=' + encodeURIComponent(code) + '&pin=' + encodeURIComponent(pin);
   teacherIframe.hidden = true;
-  hostWrapper.appendChild(teacherIframe);
+  hostMat.appendChild(teacherIframe);
 
-  const tabs = document.createElement('div');
-  tabs.className = 'panel-tabs';
-  tabs.setAttribute('role', 'tablist');
-  const make = (label, title, active) => {
+  hostTabs.textContent = '';
+  const make = (label, title, active, id) => {
     const b = document.createElement('button');
     b.type = 'button';
+    b.id = id;
     b.className = 'panel-tab' + (active ? ' active' : '');
     b.setAttribute('role', 'tab');
     b.setAttribute('aria-selected', active ? 'true' : 'false');
@@ -651,8 +897,18 @@ function addTeacherTab(hostWrapper, hostLabel, hostIframe, code, pin) {
     b.title = title;
     return b;
   };
-  const classTab = make('Class screen', 'The projected screen the class sees', true);
-  const teacherTab = make('Teacher controls', 'Your private console: live entries, hide, approve, pacing', false);
+  const classTab = make('Class screen', 'The projected screen the class sees', true, 'class-tab-btn');
+  const teacherTab = make('Teacher controls', 'Your private console: live entries, hide, approve, pacing. In class it opens on your own laptop or phone, never the projector.', false, 'teacher-tab-btn');
+  const hostBar = document.querySelector('.host-bar');
+  const hostBarTitle = document.getElementById('host-bar-title');
+  const setBarTitle = (teacher) => {
+    hostBarTitle.textContent = '';
+    hostBarTitle.appendChild(document.createTextNode(teacher ? 'Teacher controls ' : 'Teacher screen '));
+    const sub = document.createElement('span');
+    sub.className = 'screen-bar-sub';
+    sub.textContent = teacher ? '· on your own device' : '· what the class sees';
+    hostBarTitle.appendChild(sub);
+  };
   const select = (which) => {
     const teacher = which === 'teacher';
     hostIframe.hidden = teacher;
@@ -661,87 +917,78 @@ function addTeacherTab(hostWrapper, hostLabel, hostIframe, code, pin) {
     teacherTab.classList.toggle('active', teacher);
     classTab.setAttribute('aria-selected', teacher ? 'false' : 'true');
     teacherTab.setAttribute('aria-selected', teacher ? 'true' : 'false');
-    hostWrapper.classList.toggle('showing-teacher', teacher);
+    hostMat.classList.toggle('showing-teacher', teacher);
+    if (hostBar) hostBar.classList.toggle('showing-teacher', teacher);
+    setBarTitle(teacher);
+    updateBanner();
   };
   classTab.addEventListener('click', () => select('class'));
   teacherTab.addEventListener('click', () => select('teacher'));
-  tabs.appendChild(classTab);
-  tabs.appendChild(teacherTab);
-  hostLabel.appendChild(tabs);
+  hostTabs.appendChild(classTab);
+  hostTabs.appendChild(teacherTab);
+  hostTabs.hidden = false;
 }
 
 function addPlayerPanel(code, i) {
   const wrapper = document.createElement('div');
-  wrapper.className = 'iframe-panel player-panel';
-  const label = document.createElement('div');
-  label.className = 'panel-label plabel-' + ((i - 1) % 5);
-  label.textContent = 'Player ' + i;
-  wrapper.appendChild(label);
-
+  wrapper.className = 'player-panel';
+  wrapper.hidden = true;
   const iframe = document.createElement('iframe');
   iframe.title = 'Player ' + i + ' screen';
   iframe.src = '/player?prototype=true&code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent('Player ' + i);
   // Same-origin embed; lets the mic button work during teacher previews.
   iframe.allow = 'microphone';
   wrapper.appendChild(iframe);
-  // The dashed add-a-player slot stays the last cell.
-  const slot = iframeContainer.querySelector('.add-player-slot');
-  iframeContainer.insertBefore(wrapper, slot || null);
+  playerHolder.appendChild(wrapper);
 }
 
 function createPlayerIframes(code, count) {
   for (let i = 1; i <= count; i++) addPlayerPanel(code, i);
   livePlayers = count;
+  carouselIndex = 0;
+  showCarouselPlayer(0);
   refreshAddSlot();
 }
 
-// The dashed "+ Add a player" seat at the end of the running grid — one
-// click drops one more pretend student into the live room (no relaunch;
-// they late-join into the current step, same as a real Chromebook would).
+// + Add another student: one click drops one more pretend student into
+// the live room (no relaunch; they late-join into the current step, same
+// as a real Chromebook would). The pager jumps to the newcomer.
 function refreshAddSlot() {
-  const old = iframeContainer.querySelector('.add-player-slot');
-  if (old) old.remove();
-  if (!currentCode || livePlayers >= 8) {
-    iframeContainer.dataset.players = Math.min(livePlayers, 8);
-    return;
-  }
-  // The slot occupies a grid seat of its own, so the row count includes it.
-  iframeContainer.dataset.players = Math.min(livePlayers + 1, 8);
-  const slot = document.createElement('button');
-  slot.type = 'button';
-  slot.className = 'add-player-slot';
-  slot.textContent = '+ Add a player';
-  slot.title = 'Add one more pretend student to the running room';
-  slot.addEventListener('click', () => {
-    if (!currentCode || livePlayers >= 8) return;
-    livePlayers += 1;
-    addPlayerPanel(currentCode, livePlayers);
-    // Keep the seat blocks honest without firing a relaunch (setting
-    // .value programmatically never emits a change event).
-    playerCount.value = livePlayers;
-    playerCountDisplay.textContent = String(livePlayers);
-    renderSeats();
-    refreshAddSlot();
-  });
-  iframeContainer.appendChild(slot);
+  addStudentBtn.disabled = !currentCode || livePlayers >= MAX_PLAYERS;
+  addStudentBtn.title = livePlayers >= MAX_PLAYERS
+    ? 'Eight pretend students is the most this bench holds'
+    : 'Add one more pretend student to the running room';
 }
 
-// Bot Fill — send auto-fill to all player iframes. Single shot is enough for
-// most phases; relay needs follow-up shots because turns rotate and only the
-// active player can submit. We loop only while the host is in the relay
-// section, so bot-fill never bleeds into the next phase (which would auto-skip
-// e.g. the vote phase before the user can see it).
+addStudentBtn.addEventListener('click', () => {
+  if (!currentCode || livePlayers >= MAX_PLAYERS) return;
+  livePlayers += 1;
+  addPlayerPanel(currentCode, livePlayers);
+  // Keep the value holder honest without firing a relaunch (setting
+  // .value programmatically never emits a change event).
+  playerCount.value = livePlayers;
+  showCarouselPlayer(livePlayers - 1);
+  refreshAddSlot();
+  updateBanner();
+});
+
+// Add sample answers — send auto-fill to all player iframes. Single shot is
+// enough for most phases; relay needs follow-up shots because turns rotate
+// and only the active player can submit. We loop only while the host is in
+// the relay section, so bot-fill never bleeds into the next phase (which
+// would auto-skip e.g. the vote phase before the user can see it).
 botFillBtn.addEventListener('click', () => {
+  samplesPressedAt = { pos: livePos(), time: Date.now() };
   const fire = fireBotFill;
   // Steps where one shot cannot finish the job: relay (turns rotate, only
   // the active player can submit) and merge (one pen per pair: the writer
   // agrees first and the partner only after the draft settles, so a single
   // shot left every pair at "1 of 2 agreed"; reviewer 2026-09-06).
   const isHostInLoopStep = () => {
-    const hostIframe = iframeContainer.querySelector('.host-panel iframe');
-    if (!hostIframe) return false;
+    const host = hostFrame();
+    if (!host) return false;
     try {
-      const doc = hostIframe.contentDocument;
+      const doc = host.contentDocument;
       return ['relay-section', 'merge-section'].some((id) => {
         const sec = doc && doc.getElementById(id);
         return !!(sec && !sec.hidden && sec.classList.contains('active'));
@@ -769,40 +1016,60 @@ botFillBtn.addEventListener('click', () => {
 // Skip — tell host iframe to advance the current phase / close submissions / continue
 skipBtn.addEventListener('click', () => {
   // A hand on the controls ends the fast-forward; the teacher is driving.
-  if (ff) { stopFastForward(); setBenchHint(benchHintDefault); }
+  if (ff) { stopFastForward(); setStatus(''); }
   fireSkip(false);
 });
 
-// Reset — tear down the pieces and put the empty bench back on the stage
+// Empty both mats: every iframe goes, the dashed outlines come back
+function clearMats() {
+  hostMat.querySelectorAll('iframe').forEach(f => f.remove());
+  hostMat.classList.remove('showing-teacher');
+  const bar = document.querySelector('.host-bar');
+  if (bar) bar.classList.remove('showing-teacher');
+  const title = document.getElementById('host-bar-title');
+  if (title) {
+    title.textContent = 'Teacher screen ';
+    const sub = document.createElement('span');
+    sub.className = 'screen-bar-sub';
+    sub.textContent = '· what the class sees';
+    title.appendChild(sub);
+  }
+  hostTabs.textContent = '';
+  hostTabs.hidden = true;
+  playerHolder.textContent = '';
+}
+
+// Reset — tear down the pieces and put the empty bench back
 resetBtn.addEventListener('click', () => {
+  clearTimeout(tourTimer);
+  if (window.BenchTour) BenchTour.stop();
   stopFastForward();
-  setBenchHint(benchHintDefault);
-  iframeContainer.innerHTML = '';
-  iframeContainer.removeAttribute('data-players');
-  if (prelaunchStage) iframeContainer.appendChild(prelaunchStage);
+  setStatus('');
+  stopBannerPoll();
+  clearMats();
+  hostMat.classList.add('empty');
+  studentMat.classList.add('empty');
   hideMapRail();
   currentCode = null;
   livePlayers = 0;
+  liveCounts = null;
+  samplesPressedAt = null;
+  carouselIndex = 0;
   document.body.classList.remove('pt-running');
+  activityChip.hidden = true;
   launchBtn.disabled = false;
+  resetBtn.disabled = true;
   gameSelect.disabled = false;
   playerCount.disabled = false;
   benchBar.hidden = true;
-  resetBtn.hidden = true;
-  viewToggle.hidden = true;
-  // Keep the chosen view for the next launch (a mid-preview relaunch
-  // goes through Reset; snapping back to grid lost the teacher's pick).
-  setViewMode(viewMode);
+  pager.hidden = true;
+  addStudentBtn.hidden = true;
+  studentBarTitle.textContent = 'Student screen';
+  updateBanner();
 });
 
-// Moving the players slider mid-preview relaunches with the new count —
-// auto-launch (arriving via a Preview button) had left the slider
-// disabled, which read as broken (teacher report 2026-08-02).
-playerCount.addEventListener('input', () => {
-  if (playerCount.disabled) return;
-  const display = document.getElementById('player-count-display');
-  if (display) display.textContent = playerCount.value;
-});
+// A programmatic change to the value holder mid-preview relaunches with
+// the new count (the old players slider's contract, kept for deep links).
 playerCount.addEventListener('change', () => {
   if (!launchBtn.disabled) return; // not launched yet — Launch will use it
   playerCount.disabled = false;
@@ -810,75 +1077,87 @@ playerCount.addEventListener('change', () => {
   launchBtn.click();
 });
 
-// Picking a different activity mid-preview relaunches with it (same
-// pattern as the players slider; the select used to be disabled after
-// launch, which read as a broken dropdown).
+// Picking a different activity mid-preview relaunches with it (the select
+// is behind the chip while running, but a deep link or script can still
+// change it).
 gameSelect.addEventListener('change', () => {
   if (!launchBtn.disabled) return; // not launched yet — Launch will use it
   resetBtn.click();
   launchBtn.click();
 });
 
-// --- View toggle ---
-
-viewGridBtn.addEventListener('click', () => setViewMode('grid'));
-viewCarouselBtn.addEventListener('click', () => setViewMode('carousel'));
-
-function setViewMode(mode) {
-  viewMode = mode;
-  viewGridBtn.classList.toggle('active', mode === 'grid');
-  viewCarouselBtn.classList.toggle('active', mode === 'carousel');
-
-  const count = parseInt(iframeContainer.dataset.players || '0', 10);
-  // Carousel chrome only exists when there are player panels to rotate —
-  // never before Launch, never in grid mode.
-  const hasPanels = getPlayerPanels().length > 0;
-
-  if (mode === 'grid' || !hasPanels) {
-    iframeContainer.removeAttribute('data-view');
-    carouselPrev.hidden = true;
-    carouselNext.hidden = true;
-    carouselDots.hidden = true;
-    getPlayerPanels().forEach(p => p.style.display = '');
-  } else {
-    iframeContainer.dataset.view = 'carousel';
-    carouselIndex = Math.min(carouselIndex, Math.max(0, count - 1));
-    carouselPrev.hidden = false;
-    carouselNext.hidden = false;
-    carouselDots.hidden = false;
-    showCarouselPlayer(carouselIndex);
-  }
-}
+// --- The pager: one student screen at a time, ‹ N of M › in the bar ---
 
 function getPlayerPanels() {
-  return Array.from(iframeContainer.querySelectorAll('.player-panel'));
+  return Array.from(playerHolder.querySelectorAll('.player-panel'));
 }
 
 function showCarouselPlayer(index) {
   const panels = getPlayerPanels();
   if (!panels.length) return;
   carouselIndex = ((index % panels.length) + panels.length) % panels.length;
-  panels.forEach((p, i) => { p.style.display = i === carouselIndex ? '' : 'none'; });
-  carouselPrev.disabled = false;
-  carouselNext.disabled = false;
-  // Update dots
-  carouselDots.innerHTML = '';
-  panels.forEach((_, i) => {
-    const dot = document.createElement('button');
-    dot.className = 'carousel-dot' + (i === carouselIndex ? ' active' : '');
-    dot.title = 'Player ' + (i + 1);
-    dot.addEventListener('click', () => showCarouselPlayer(i));
-    carouselDots.appendChild(dot);
-  });
+  panels.forEach((p, i) => { p.hidden = i !== carouselIndex; });
+  studentBarTitle.textContent = 'Student screen · Player ' + (carouselIndex + 1);
+  carouselCount.textContent = (carouselIndex + 1) + ' of ' + panels.length;
+  carouselPrev.disabled = panels.length < 2;
+  carouselNext.disabled = panels.length < 2;
 }
 
 carouselPrev.addEventListener('click', () => showCarouselPlayer(carouselIndex - 1));
 carouselNext.addEventListener('click', () => showCarouselPlayer(carouselIndex + 1));
 
-// Keyboard ← → to navigate carousel
+// Keyboard ← → to step through students
 document.addEventListener('keydown', (e) => {
-  if (viewMode !== 'carousel') return;
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
   if (e.key === 'ArrowLeft') showCarouselPlayer(carouselIndex - 1);
   if (e.key === 'ArrowRight') showCarouselPlayer(carouselIndex + 1);
 });
+
+// --- Sound: the host's own toggle, driven from here. The sounds play
+// inside the host iframe, so its switch is the one that counts; before a
+// room exists the shared setting (localStorage) is flipped for the next
+// launch to read.
+function readMuted() {
+  const host = hostFrame();
+  try {
+    if (host && host.contentWindow && host.contentWindow.Juice) return host.contentWindow.Juice.muted();
+  } catch (err) { /* not ready yet */ }
+  return window.Juice ? Juice.muted() : false;
+}
+
+function labelSound(muted) {
+  soundBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
+  soundBtn.title = muted ? 'Sound effects are off. Turn them on' : 'Sound effects are on. Turn them off';
+}
+
+soundBtn.addEventListener('click', () => {
+  const host = hostFrame();
+  let muted;
+  try {
+    const win = host && host.contentWindow;
+    const toggle = win && win.document.getElementById('sfx-toggle');
+    if (toggle && win.Juice) { toggle.click(); muted = win.Juice.muted(); }
+  } catch (err) { /* fall through to the shared setting */ }
+  if (muted === undefined && window.Juice) muted = Juice.toggleMuted();
+  labelSound(!!muted);
+});
+labelSound(readMuted());
+
+// --- Full screen: the whole bench, Esc leaves ---
+if (!document.fullscreenEnabled) {
+  fullscreenBtn.hidden = true;
+} else {
+  fullscreenBtn.addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen().catch(() => { /* blocked: nothing to do */ });
+  });
+  document.addEventListener('fullscreenchange', () => {
+    const on = !!document.fullscreenElement;
+    fullscreenBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    fullscreenBtn.title = on ? 'Leave full screen' : 'Show this page full screen (Esc leaves)';
+    updateBanner();
+  });
+}
+
+updateBench();
+updateBanner();

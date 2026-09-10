@@ -699,6 +699,12 @@ playAgainBtn.addEventListener('click', () => {
 
 // --- Socket events - Room setup ---
 
+// Inside the bench (Try it out) the page wears in-bench: its own sound and
+// full-screen chips hide, the bench toolbar drives them instead.
+if (new URLSearchParams(window.location.search).get('prototype') === 'true') {
+  document.body.classList.add('in-bench');
+}
+
 // Prototype skip — clicks whichever advance/close button is currently visible.
 // Special-cases relay (no host button — auto-skips remaining turns server-side).
 window.addEventListener('message', (e) => {

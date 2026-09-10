@@ -67,10 +67,43 @@ Interaction-only; nothing moves at rest. **120ms `cubic-bezier(0.4, 0, 0.2, 1)`*
 
 ## Screens / Views
 
+**2026-09-09**: Try it out (`/prototype`) is now 14a, with 15a as its collect-phase state (see below). Home stays 13a.
+**2026-09-05**: Home is now 13a (see below); 8a is superseded.
+
+> **Branching (required):** implement 13a on a separate branch (e.g. `home-13a`) off `main`. Do not commit to `main`. Open a PR when the screen matches `screens/13a-home.html`; the owner reviews and merges.
+
 Screens map to real files in classroom-games. Keep existing element IDs and JS behavior; restyle.
 
-### 8a — Home (`screens/home/index.html`)
-Wordmark: one painted block per letter-group, ±2° rotation. Actions (FIND / HOST / JOIN / GUIDE) are a totem — four labeled blocks stacked on plinth + base, hover slides each sideways. Right side: headline with painted-word highlight, sub-line, featured-activity board (Pine, jigsaw clip-path, title as a glued-on magenta painted piece). Footer: plain spaced links.
+### 13a — Home (`screens/home/index.html`) — replaces 8a
+Teacher-first front door. Goal: a first-time visitor understands what Jamyard does from the fold, and reaches an open room in three clicks (template card → popup → HOST THIS). Build on a separate branch before merging.
+
+Layout, top to bottom (all in `.page`, max-width ~1100px, gesso ground):
+- **Header**: JAM / YARD wordmark blocks (unchanged). Right: a Paper strip `Student? Enter your room code` + sanded plank input (`#room-code`, dashed pencil line, letter-spacing 6px) + yellow JOIN. This is the existing `.join` form moved up; keep its IDs and `joinRoom()`. The same form also repeats below the how-it-works strip (both places; one `#room-code` id can't repeat — give the header copy `#room-code-top` and share the handler).
+- **Hero, left (560px)**: the **projector carousel** — a Paper frame holding a gesso "projector" showing the current template mid-activity: faint `JAM YARD` corner mark (`#C9BBA0`), spaced-caps `CLASS CODE · GO TO <host>/player`, four painted letter blocks (46×54, Bricolage 30, one paint each), `N IN THE ROOM`, `PLAYERS ARE ANSWERING…`, the prompt (Bricolage 800 30px, balanced), yellow timer chip `1:24 LEFT`, and the answer pile (one block per submission on plinth + base) with a green `9 OF 12 IN` chip. A yellow painted label `YOUR PROJECTOR, MID-ACTIVITY` is pinned over the top-left edge. Under the frame: magenta name chip (the template's name), meta (`~10 min · no scores, no winners`), page count `3 OF 15`, Paper ‹ › buttons.
+  - This IS the existing `#activity-carousel` (same data: `/api/games` featured + this device's own; same `step()`, dwell 4500ms, pause on hover, crossfade 170ms, reduced-motion respected). Replace the board markup with the projector frame; the prompt, pile count, and code letters may be static per template (use each game's `home-shots` prompt text if available; otherwise the recipe's example prompt). Clicking the frame or name opens the same on-home popup as today (`showActivityPopup`).
+- **Hero, right**: headline `Put the whole class on **one** screen.` (painted-word on "one"), sub-line `Templates ready to be made yours, or describe an activity and the AI builds it. You project, students join with a code. Nothing to install.`, then the **one red action**: `PICK A TEMPLATE` block (300px, Bricolage 24) on plinth + base with a yellow offcut on top → `/library`. Directly beneath, a Paper secondary `OR CREATE YOUR OWN WITH AI` → `/designer`.
+- **Shelf**: dashed rule, spaced-caps `TEMPLATES FROM THE YARD, SHORTEST FIRST`, goal chips `ALL · CONNECT · THINK · PLAY` (selected = yellow, others Paper; filters the row in place, no navigation), right-aligned `10 MORE IN THE YARD →` (→ `/library`). Five cards in one row (168px each, gap 20): a Paper print with a 164px-tall gesso mini-projector shot (prompt + mini pile + green count chip, or code + QR for join-first templates), name (Bricolage 16, nowrap), meta `~5 min · think`. Cards alternate ±0.5–0.9° rotation; hover lifts −5px. Click → the same on-home popup (name chip, meta, description, "WHAT HAPPENS" step blocks from `ActivityMap`, red `HOST THIS`, Paper `MAKE IT MINE`). Sort by `playTime` ascending.
+- **How it works**: the existing three Paper cards with painted numbers, copy unchanged except step 1: `Pick an activity and make it yours from the yard, or create your own with AI.`
+- **Student join board** (existing `.join`), then **footer** (existing links + credit, dashed rule above).
+
+Removed from the old home: the four-block actions totem (its doors now live in the red CTA, the paper Create door, the header join, and the footer), the tagline, and the "Curious? / First time?" lines (Guide stays in the footer).
+
+Red budget: PICK A TEMPLATE is the screen's only red until the popup opens; the popup's HOST THIS is red because the popup is its own layer.
+
+### 14a — Try it out (`screens/prototype/index.html` + `prototype.js`)
+Goal: a teacher who has never seen the page knows the one thing to press. Same room, same iframes, same JS; fewer visible controls. Build on a separate branch (e.g. `try-it-out-14a`) off `main`; PR when it matches `screens/14a-try-it-out.html` (join phase) and `screens/15a-try-it-out-collect.html` (collect phase).
+
+Layout (gesso ground, one row):
+- **Header** (`#control-bar`), left to right: `#back-link` "← The yard" · `TRY IT OUT` (Bricolage 800 20px caps) · the activity as a **magenta name chip** (replaces the visible `#game-select` once launched; before launch the select stays, styled as a sanded plank) · **the plan as a row of blocks** (`#map-rail` moves here; drop the aside, its label and hint) · a **paper icon toolbar** at the right: ↺ Reset (`#reset-btn`), ♪ sound, ⛶ full screen, ? help (`#sim-help-btn`). 36×36 Paper squares, ±1° alternating, hover −4px, `title` on each.
+  - Plan blocks: Bricolage 800 12px caps, padding 8/9, clip-path cut, alternate ±1°; done = 55% + ✓, current = yellow with "· NOW", not-yet = birch/pine alternating. Step numbers at 60% opacity. Keep `ActivityMap` as the data source and the existing click-to-skip handler; only the container changes from a vertical totem to a horizontal row. Spaced-caps "SKIP AHEAD" sits before the row. Cap 7 blocks; longer plans fold middle steps into one "…" block that opens the full list.
+- **Teacher screen** (700px column): an Ink title bar "TEACHER SCREEN · WHAT THE CLASS SEES" with the two tabs at its right: yellow `CLASS SCREEN` (active) and Paper `TEACHER CONTROLS` (the existing `addTeacherTab` iframe). Below it the host iframe on a Paper mat (14px), rotated −0.3°.
+- **The NEXT banner**: one yellow painted card with a downward notch, absolutely positioned over whichever screen holds the control to press now (teacher screen in 14a, student screen in 15a). Copy is one sentence, max two lines; it never covers the pointed-at control or the student's own submit button. Spaced-caps "NEXT" + one Bricolage 17px sentence. It moves per phase: join → "Press START to begin. You'll play the students too." (over `#start-game-btn`); collect → points at the student screen's ADD SAMPLE ANSWERS; teacher-paced steps → points at the host's Continue; preview gate → "Open Teacher controls to approve." Shown by default; hides for the session after the teacher presses the pointed-at control three times in a row (localStorage); the ? brings it back. Replaces the first-run card `#sim-intro` (keep its markup for the ? path).
+- **Student screen** (right column, flexible): a cyan title bar "STUDENT SCREEN · PLAYER 1" with "‹ 1 of N ›" at its right (`#carousel-prev`/`#carousel-next` become these two glyphs; `#carousel-dots` retires). One player iframe on a Paper mat, rotated +0.4°, **no phone bezel**. Pinned under the iframe inside the mat: dashed rule, spaced-caps "YOU PLAY THE STUDENTS. SHORTCUTS:", then Paper `ADD SAMPLE ANSWERS` (`#bot-fill-btn`) and `SKIP TIMER` (`#skip-btn`). They render only while a collect/vote/timed step is open; otherwise the strip collapses. `#bench-bar` is gone.
+- **+ ADD ANOTHER STUDENT**: a 44px dashed slot under the student screen (the existing late-join slot). Players start at **1**; `#player-count`, `#seat-blocks` and `#player-count-display` leave the header (keep the range input hidden as the value holder). `#view-toggle` is removed; one at a time is the only view.
+- **Collect phase (15a)**: the plan row marks passed steps 55% + ✓ and the current one yellow "· NOW" (`ActivityMap` state you already track). Teacher iframe shows the host's collect screen as in 10b (timer chip, prompt, pile, green "N OF M IN", Paper CLOSE SUBMISSIONS). Student iframe shows the player's collect screen as in 10c minus the phone (meta row + timer chip, prompt, sanded plank textarea with counter, red ADD MY BLOCK). The shortcuts strip is visible under the iframe; the banner sits in the gap between ADD MY BLOCK and the strip and reads "Press ADD SAMPLE ANSWERS to fill one in for everyone." The "‹ 2 of 4 ›" pager steps through students. Once every student has answered, the banner moves back to the teacher screen: "Press CLOSE SUBMISSIONS."
+- **Prelaunch**: same frame with both mats empty (dashed outlines on solid gesso), the select in the header, and the banner over the header reading "Pick an activity, then press LAUNCH." with red LAUNCH (`#launch-btn`) where START sits. Once running, red belongs to whatever the host iframe shows; `#host-btn` "▶ HOST THIS" becomes an Ink block in the toolbar row (no second red).
+
+Removed from the old page: seat blocks, grid/one-at-a-time toggle, the bench bar, the left map rail, the four-line intro card, player color swatches. Kept: skip ahead, multiple students, sample answers, skip timer, reset, teacher controls, edit link (`#edit-link` sits beside the name chip as a small Paper ✎).
 
 ### 10a — Host lobby (`screens/host/index.html`, lobby section)
 - Headline "The room is **open.**" (highlight on "open.").
@@ -119,7 +152,10 @@ Serifs · torn or curved edges · border-radius · gradients except the grain ·
 
 ## Files
 - `spec/Jamyard Totem System.dc.html` — the design system spec page (palette, type, material, stack grammar, components with live hovers, motion, never-list). Open in a browser.
-- `screens/8a-home.html` — Home
+- `screens/13a-home.html` — Home (current)
+- `screens/14a-try-it-out.html` — Try it out, join phase (current)
+- `screens/15a-try-it-out-collect.html` — Try it out, collect phase (current)
+- `screens/8a-home.html` — Home, superseded (kept for the wordmark + actions-totem recipe)
 - `screens/10a-host-lobby.html` — Host lobby
 - `screens/10b-host-projector-collect.html` — Host projector, collect
 - `screens/10c-player-phone.html` — Player join + collect (two phones)

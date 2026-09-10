@@ -1,8 +1,11 @@
-/* ══ Preview (prototype) in the Totem system (docs/design/totem/) ══
-   Painted scrap wood on a flat gesso ground: square cuts, soft free
-   shadows, ink for chrome, ONE signal red (Launch, the action this
-   surface exists for; Host this goes ink until you're done here).
-   Layout rules (grids, carousel) unchanged. */
+/* ══ Try it out (/prototype) in the Totem system, screens 14a + 15a ══
+   One header row: the way back, TRY IT OUT, the activity (a sanded-plank
+   select before launch, a magenta name chip once running), the plan as a
+   row of painted blocks, a paper icon toolbar. Below it, two screens on
+   paper mats: the teacher screen (Ink title bar, Class screen | Teacher
+   controls tabs) and ONE student screen (cyan title bar, a pager). The
+   yellow NEXT card sits over whichever control to press now. ONE red per
+   state: LAUNCH before the room exists, then whatever the host shows. */
 
 * {
   margin: 0;
@@ -21,468 +24,219 @@ body {
   overflow: hidden;
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+
 #control-bar {
-  background: var(--t-paper);
-  padding: 12px 20px;
   display: flex;
   align-items: center;
-  gap: 20px;
-  box-shadow: 0 2px 4px rgba(50,35,15,0.18);
+  gap: 16px;
+  padding: 14px 24px 12px;
+  border-bottom: 2px dashed rgba(110, 75, 40, 0.2);
   flex-shrink: 0;
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 #back-link {
   color: var(--t-muted);
   text-decoration: none;
-  font-size: 0.9em;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
 }
 
-#back-link:hover {
-  color: var(--t-ink);
-}
+#back-link:hover { color: var(--t-ink); }
 
 #control-bar h1 {
   font-family: var(--t-display);
   font-weight: 800;
-  font-size: 0.95em;
-  white-space: nowrap;
+  font-size: 20px;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
   color: var(--t-ink);
+  white-space: nowrap;
 }
 
-.controls {
+/* The activity: a sanded plank to pick from before launch... */
+#game-select {
+  max-width: 220px;
+  padding: 7px 10px 8px;
+  border: none;
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.22);
+  color: var(--t-ink);
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  transform: rotate(-0.6deg);
+}
+
+/* ...and a magenta name chip once it is running */
+#activity-chip {
+  display: inline-block;
+  flex-shrink: 0;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--t-paper);
+  background: var(--t-magenta);
+  padding: 3px 12px 5px;
+  transform: rotate(-1.2deg);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.28);
+}
+
+body.pt-running #game-select { display: none; }
+body:not(.pt-running) #activity-chip { display: none; }
+
+/* The way back to the designer: a small paper pencil beside the name */
+#edit-link {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -6px;
+  background: var(--t-paper);
+  color: var(--t-ink);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.22);
+  font-size: 15px;
+  text-decoration: none;
+  transform: rotate(1deg);
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+#edit-link:hover { transform: rotate(1deg) translateY(-3px); }
+
+/* The plan: a spaced-caps label and a row of blocks under one stack shadow */
+#map-rail {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
 }
 
-.controls label {
-  font-size: 0.75em;
+.plan-label {
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--t-muted-caps);
+  white-space: nowrap;
 }
 
-/* Inputs sit square with an inset shadow */
-#game-select {
-  padding: 7px 10px;
-  border: none;
-  background: #fff;
-  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 1px rgba(50,35,15,0.16);
+#map-rail-holder {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  filter: drop-shadow(3px 4px 0 rgba(80, 60, 30, 0.14));
+  min-width: 0;
+  /* The row scrolls sideways when the plan is wider than the room left
+     for it; the padding keeps the stack shadow inside the scroll box */
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 4px 8px 8px 2px;
+}
+
+#map-rail-holder::-webkit-scrollbar { display: none; }
+
+/* The full list (the "…" click): a paper card under the row, every
+   block on it, wrapping as it likes */
+.plan-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 5;
+  width: min(640px, calc(100vw - 48px));
+  padding: 12px 14px 14px;
+  background: var(--t-paper);
+  box-shadow: 0 4px 8px rgba(50, 35, 15, 0.26), 0 0 0 1px rgba(50, 35, 15, 0.14);
+  transform: rotate(-0.3deg);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 4px;
+}
+
+.plan-popover .plan-block { --rot: 0deg; }
+.plan-popover .plan-close { margin-left: auto; }
+
+.plan-block {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--t-ink);
-  font-family: inherit;
-  font-weight: 700;
-  font-size: 0.9em;
-  cursor: pointer;
-}
-
-/* The range input holds the value; the seat blocks are the control */
-#player-count { display: none; }
-
-#seat-blocks { display: flex; gap: 3px; align-items: center; }
-
-.seat-block {
-  width: 17px;
-  height: 17px;
+  padding: 8px 9px 9px;
   border: none;
-  padding: 0;
-  cursor: pointer;
+  white-space: nowrap;
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  background: var(--t-birch);
+  background-image: var(--t-grain);
   transform: rotate(var(--rot, 0deg));
   transition: transform var(--t-quick) var(--t-ease);
+  cursor: default;
 }
 
-.seat-block:hover { transform: rotate(var(--rot, 0deg)) translateY(-3px); }
+/* Every cut is sawed: two polygons, alternating with the rotation sign */
+.plan-block.cut-a { clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%); }
+.plan-block.cut-b { clip-path: polygon(0 0, 100% 6%, 98% 100%, 2% 94%); }
 
-.seat-block.seat-empty {
-  background: var(--t-gesso);
-  border: 2px dashed rgba(110, 75, 40, 0.4);
-}
+.plan-block.tone-pine { background-color: var(--t-pine); }
+.plan-block.tone-oak { background-color: var(--t-oak); }
 
-.seat-block.seat-c0 { background: var(--t-cyan); }
-.seat-block.seat-c1 { background: var(--t-yellow); background-image: var(--t-grain); }
-.seat-block.seat-c2 { background: var(--t-magenta); }
-.seat-block.seat-c3 { background: var(--t-orange); }
-.seat-block.seat-c4 { background: var(--t-green); }
+.plan-block .plan-num { opacity: 0.6; margin-right: 3px; }
 
-#player-count-display {
-  font-weight: 700;
-  min-width: 1em;
-  text-align: center;
-}
-
-/* Painted block buttons: hover lifts, press settles */
-#launch-btn, #reset-btn, #bot-fill-btn, #skip-btn {
-  padding: 7px 16px;
-  border: none;
-  box-shadow: 0 2px 3px rgba(50,35,15,0.25);
-  font-family: var(--t-display);
-  font-weight: 800;
-  font-size: 0.85em;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: transform var(--t-quick) var(--t-ease);
-}
-
-#launch-btn:hover:not(:disabled),
-#reset-btn:hover,
-#bot-fill-btn:hover,
-#skip-btn:hover {
-  transform: translateY(-3px);
-}
-
-#launch-btn {
-  background: var(--t-red);
-  color: var(--t-paper);
-  transform: rotate(-0.8deg);
-}
-
-#launch-btn:hover:not(:disabled) {
-  transform: rotate(-0.8deg) translateY(-3px);
-}
-
-#launch-btn:disabled {
-  background: #E0D8C6;
-  color: var(--t-muted-caps);
-  box-shadow: none;
-  transform: none;
-  cursor: not-allowed;
-}
-
-/* Running controls wear their jobs: Bot Fill cyan (think), Skip yellow
-   (timer), Reset quiet paper (preview-prototype.png 11b) */
-#bot-fill-btn {
-  background: var(--t-cyan);
-  color: var(--t-paper);
-}
-
-#skip-btn {
+.plan-block.is-now {
   background: var(--t-yellow);
-  background-image: var(--t-grain);
-  color: var(--t-ink);
+  background-image: none;
 }
 
-#reset-btn {
-  background: var(--t-paper);
-  color: var(--t-ink);
-}
+.plan-block.is-done { opacity: 0.55; }
 
-/* The real-class payoff: preview it here, then host it for real. One red
-   per state (preview-prototype.png): before launch the red is LAUNCH and
-   Host this waits in faded paper; once the bench is running, Launch goes
-   away and the red moves here — "done previewing" is now the action. */
-/* The way back to the designer, always in reach while previewing */
-#edit-link {
-  margin-left: auto;
-  padding: 7px 16px;
-  background: var(--t-paper);
-  color: var(--t-muted-caps);
-  box-shadow: 0 2px 3px rgba(50,35,15,0.18);
-  font-family: var(--t-display);
-  font-weight: 800;
-  font-size: 0.85em;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  text-decoration: none;
-  white-space: nowrap;
-  transform: rotate(-0.5deg);
-  transition: transform var(--t-quick) var(--t-ease);
-}
+.plan-block.clickable { cursor: pointer; }
+.plan-block.clickable:hover { transform: rotate(var(--rot, 0deg)) translateY(-4px); }
+.plan-block.clickable:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
 
-#edit-link:hover { transform: rotate(-0.5deg) translateY(-2px); color: var(--t-ink); }
+.plan-block.plan-fold { background-color: var(--t-paper); background-image: none; letter-spacing: 0.02em; }
 
-/* When the edit link is showing, IT carries the push-right margin */
-#edit-link:not([hidden]) ~ #host-btn { margin-left: 10px; }
-
-#host-btn {
-  margin-left: auto;
-  padding: 7px 16px;
-  border: none;
-  background: var(--t-paper);
-  color: var(--t-muted-caps);
-  box-shadow: 0 2px 3px rgba(50,35,15,0.18);
-  font-family: var(--t-display);
-  font-weight: 800;
-  font-size: 0.85em;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  cursor: pointer;
-  transform: rotate(0.6deg);
-  transition: transform var(--t-quick) var(--t-ease);
-}
-
-#host-btn:hover:not(:disabled) {
-  transform: rotate(0.6deg) translateY(-3px);
-}
-
-#host-btn:disabled {
-  background: #E0D8C6;
-  color: var(--t-muted-caps);
-  box-shadow: none;
-  transform: none;
-  cursor: not-allowed;
-}
-
-body.pt-running #launch-btn { display: none; }
-
-body.pt-running #host-btn {
-  background: var(--t-red);
-  color: var(--t-paper);
-  box-shadow: 0 2px 3px rgba(50,35,15,0.25);
-}
-
-/* View toggle: a scrap holding two chips, yellow = the one you're on */
-#view-toggle {
-  display: flex;
-  gap: 2px;
-  background: var(--t-paper);
-  border: none;
-  box-shadow: 0 2px 3px rgba(50,35,15,0.25);
-  padding: 3px;
-}
-
-/* display:flex above would override the hidden attribute */
-#view-toggle[hidden] { display: none; }
-
-.view-btn {
-  padding: 5px 12px;
-  border: none;
-  font-family: inherit;
-  font-size: 0.85em;
-  font-weight: 700;
-  cursor: pointer;
-  background: transparent;
-  color: var(--t-muted);
-}
-
-.view-btn.active {
-  background: var(--t-ink);
-  color: var(--t-paper);
-}
-
-.view-btn:hover:not(.active) {
-  color: var(--t-ink);
-}
-
-/* ── The bench bar: Bot Fill + Skip timer, bottom center ──
-   The eyes rest on the screens mid-page, never on the top bar
-   (observation 2026-08-27), so the two controls a test run actually
-   needs sit under the screens, big enough to be found. In flow, not
-   fixed: the iframes shrink a little instead of getting covered. */
-#bench-bar {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 10px 20px 14px;
-  background: var(--t-paper);
-  box-shadow: 0 -2px 4px rgba(50,35,15,0.14);
-  position: relative;
-  z-index: 1;
-}
-
-/* display:flex above would override the hidden attribute */
-#bench-bar[hidden] { display: none; }
-
-.bench-hint {
-  font-size: 0.85em;
-  font-weight: 700;
-  color: var(--t-muted);
-}
-
-/* Fast-forward (See this step): the hint carries the status. Busy pulses
-   in the AI cyan; arrived reads in ink so the hand-over is unmissable. */
-.bench-hint-busy {
-  color: #1BA9C4;
-  animation: bench-hint-pulse 1.1s ease-in-out infinite;
-}
-
-.bench-hint-done { color: var(--t-ink); }
-
-@keyframes bench-hint-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bench-hint-busy { animation: none; }
-}
-
-/* The two blocks outrank their old top-bar sizing */
-#bench-bar #bot-fill-btn,
-#bench-bar #skip-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  padding: 10px 26px 12px;
-  font-size: 1em;
-}
-
-#bench-bar #bot-fill-btn { transform: rotate(-0.8deg); }
-#bench-bar #skip-btn { transform: rotate(0.7deg); }
-
-#bench-bar #bot-fill-btn:hover { transform: rotate(-0.8deg) translateY(-3px); }
-#bench-bar #skip-btn:hover { transform: rotate(0.7deg) translateY(-3px); }
-
-.bench-sub {
-  font-family: var(--t-body);
-  font-size: 0.62em;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  opacity: 0.82;
-}
-
-/* Carousel fixed overlays — sit above iframes */
-.carousel-arrow {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 9999;
-  width: 52px;
-  height: 80px;
-  border: none;
-  background: rgba(42, 38, 32, 0.85);
-  color: #FDF9F0;
-  font-size: 1.6rem;
-  font-weight: bold;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.15s, opacity 0.15s;
-  backdrop-filter: blur(2px);
-}
-
-/* Carousel layout is host on the left half, player on the right half —
-   the arrows flank the PLAYER panel (the thing being rotated), so the
-   left arrow sits at the 50% seam, not over the host screen. */
-/* The player panel is the right half of the screens area (which starts
-   after the rail): the left arrow sits at ITS left edge, never over the
-   teacher screen. */
-.carousel-arrow-left  { left: calc(var(--rail-w) + (100% - var(--rail-w)) / 2 + 6px); }
-.carousel-arrow-right { right: 6px; }
-
-/* display:flex above would override the hidden attribute — restore it so
-   the carousel chrome only exists in "one at a time" mode. */
-.carousel-arrow[hidden],
-#carousel-dots[hidden] {
-  display: none;
-}
-
-.carousel-arrow:hover:not(:disabled) { background: rgba(42, 38, 32, 1); }
-.carousel-arrow:disabled { opacity: 0.2; cursor: default; }
-
-#carousel-dots {
-  position: absolute;
-  /* Sits just above the stage row's bottom edge (the bench bar is below the row) */
-  bottom: 12px;
-  /* Carousel layout is host on the left half, player on the right half of
-     the screens area (after the rail) — center the dots over the PLAYER panel */
-  left: calc(var(--rail-w) + (100% - var(--rail-w)) * 0.75);
-  transform: translateX(-50%);
-  z-index: 9999;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  /* Dark strip so the dots read against gesso game screens in the iframe */
-  background: rgba(42, 38, 32, 0.85);
-  border: none;
-  padding: 8px 14px;
-  backdrop-filter: blur(2px);
-}
-
-.carousel-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid rgba(253,249,240,0.6);
-  background: rgba(253,249,240,0.25);
-  cursor: pointer;
-  padding: 0;
-  transition: background 0.15s, transform 0.15s;
-}
-
-.carousel-dot.active {
-  background: #FDF9F0;
-  border-color: #FDF9F0;
-  transform: scale(1.3);
-}
-
-.carousel-dot:hover:not(.active) {
-  background: rgba(253,249,240,0.5);
-}
-
-/* Stage row: the map rail on the left, the screens beside it. It is the
-   positioning context for the carousel overlays, and --rail-w keeps
-   their player-half math honest whether or not the rail is open. */
-#stage-row {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-  position: relative;
-  --rail-w: 0px;
-}
-
-#stage-row:has(#map-rail:not([hidden])) { --rail-w: 224px; }
-
-/* The map rail: the activity's trail with a "you are here" mark that
-   follows the live room. Same drawn map as the library popups. */
-#map-rail {
-  width: 224px;
-  flex-shrink: 0;
-  overflow-y: auto;
-  padding: 14px 14px 24px 18px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(110, 75, 40, 0.5) transparent;
-}
-
-.map-rail-label {
-  font-family: var(--t-display);
-  font-weight: 800;
-  font-size: 0.72rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--t-muted-caps);
-  margin-bottom: 10px;
-}
-
-.map-rail-hint {
-  margin: -4px 0 12px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--t-muted);
-}
-
-/* Stops are buttons: hover lifts the row, focus rings it */
-#map-rail .amap-clickable { cursor: pointer; border-radius: 3px; }
-#map-rail .amap-clickable:hover .amap-name { text-decoration: underline; text-underline-offset: 3px; }
-#map-rail .amap-clickable:focus-visible { outline: 2px solid var(--t-ink); outline-offset: 3px; }
-
-/* The "Skip ahead?" card, tucked under the clicked row */
+/* The "Skip ahead?" card, dropped under the clicked block */
 .rail-skip-ask {
-  margin: -6px 0 14px 2px;
+  position: absolute;
+  top: calc(100% + 12px);
+  left: var(--ask-left, 0);
+  z-index: 5;
+  width: 260px;
   padding: 10px 12px;
   background: var(--t-paper);
-  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.22), 0 0 0 1px rgba(50, 35, 15, 0.14);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.26), 0 0 0 1px rgba(50, 35, 15, 0.14);
   transform: rotate(-0.4deg);
 }
 
 .rail-skip-text {
   margin: 0 0 8px;
-  font-size: 0.82rem;
-  line-height: 1.35;
+  font-size: 13px;
+  line-height: 1.4;
   color: var(--t-ink);
 }
 
@@ -493,38 +247,499 @@ body.pt-running #host-btn {
   padding: 7px 12px;
   font-family: var(--t-display);
   font-weight: 800;
-  font-size: 0.72rem;
+  font-size: 12px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
   box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
 }
 
-.rail-skip-go { background: #1BA9C4; color: var(--t-paper); }
+.rail-skip-go { background: var(--t-cyan); color: var(--t-paper); }
 .rail-skip-cancel { background: var(--t-paper); color: var(--t-ink); box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25), 0 0 0 1px rgba(50, 35, 15, 0.18); }
 
-/* The ? in the top bar: brings the first-run card back */
-.sim-help {
-  width: 26px;
-  height: 26px;
+/* LAUNCH: the screen's one red before the room exists */
+#launch-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 9px 18px 10px;
   border: none;
-  border-radius: 50%;
+  background: var(--t-red);
+  color: var(--t-paper);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.26);
   font-family: var(--t-display);
   font-weight: 800;
-  font-size: 0.85rem;
-  line-height: 1;
+  font-size: 19px; /* large text: paper on red clears 3:1 (axe) */
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   cursor: pointer;
+  clip-path: polygon(0 4%, 100% 0, 99% 96%, 1% 100%);
+  transform: rotate(-1.2deg);
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+#launch-btn:hover:not(:disabled) { transform: rotate(-1.2deg) translateY(-5px); }
+#launch-btn:active:not(:disabled) { transform: rotate(-1.2deg); }
+
+#launch-btn:disabled {
+  background: #E0D8C6;
+  color: var(--t-muted-caps);
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+body.pt-running #launch-btn { display: none; }
+
+/* The toolbar: paper squares, alternating tilt, hover lifts */
+#toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+body.pt-running #toolbar { margin-left: auto; }
+
+.tool-btn {
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
   background: var(--t-paper);
   color: var(--t-ink);
+  font-family: var(--t-body);
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.24);
+  cursor: pointer;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+#reset-btn { --rot: -1deg; font-size: 19px; }
+#sound-btn { --rot: 0.8deg; }
+#fullscreen-btn { --rot: -0.6deg; }
+#sim-help-btn { --rot: 1deg; font-family: var(--t-display); font-weight: 800; }
+
+.tool-btn:hover:not(:disabled) { transform: rotate(var(--rot, 0deg)) translateY(-4px); }
+.tool-btn:active:not(:disabled) { transform: rotate(var(--rot, 0deg)); }
+.tool-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+
+.tool-btn:disabled {
+  color: var(--t-muted-caps);
+  box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.14);
+  cursor: not-allowed;
+}
+
+/* Sound off: the note goes quiet on gesso */
+#sound-btn[aria-pressed="true"] {
+  background: var(--t-gesso);
+  color: var(--t-muted-caps);
+  text-decoration: line-through;
   box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.25);
 }
-.sim-help:hover { background: #1BA9C4; color: var(--t-paper); }
 
-/* First-run card: the simulator in three lines (shown once, ? brings it back) */
+/* Host this: an Ink block in the toolbar row once the bench is running
+   (the red belongs to whatever the host iframe shows) */
+#host-btn {
+  display: none;
+  padding: 9px 14px 10px;
+  border: none;
+  background: var(--t-ink);
+  color: var(--t-paper);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.24);
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  transform: rotate(0.6deg);
+  transition: transform var(--t-quick) var(--t-ease);
+  margin-right: 6px;
+}
+
+body.pt-running #host-btn { display: inline-block; }
+#host-btn:hover:not(:disabled) { transform: rotate(0.6deg) translateY(-4px); }
+#host-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+
+/* ── The bench: two screens on paper mats ───────────────────────────── */
+
+#iframe-container {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  gap: 36px;
+  padding: 26px 40px 28px;
+  min-height: 0;
+  position: relative;
+}
+
+#host-column,
+#student-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+#student-column { gap: 14px; }
+
+/* Title bars: Ink for the teacher screen, cyan for the student screen */
+.screen-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px 8px 18px;
+  flex-shrink: 0;
+  min-height: 42px;
+}
+
+.screen-bar-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-paper);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.screen-bar-sub { opacity: 0.75; }
+
+.host-bar { background: var(--t-ink); transform: rotate(-0.3deg); }
+.student-bar { background: var(--t-cyan); transform: rotate(0.4deg); padding: 10px 16px; }
+
+/* Class screen | Teacher controls: two chips at the bar's right */
+.panel-tabs { display: inline-flex; gap: 8px; margin-left: auto; }
+
+.panel-tab {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 12px 7px;
+  background: var(--t-paper);
+  color: var(--t-ink);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transform: rotate(0.8deg);
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+.panel-tab:first-child { transform: rotate(-1deg); }
+.panel-tab:hover { transform: rotate(0.8deg) translateY(-3px); }
+.panel-tab:first-child:hover { transform: rotate(-1deg) translateY(-3px); }
+.panel-tab:focus-visible { outline: 3px solid var(--t-paper); outline-offset: 2px; }
+
+.panel-tab.active {
+  background: var(--t-yellow);
+  cursor: default;
+}
+
+/* The pager: ‹ 1 of 4 › in the student bar */
+.pager {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-paper);
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+.pager button {
+  border: none;
+  background: transparent;
+  color: var(--t-paper);
+  font-size: 22px;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  padding: 0 0 3px;
+}
+
+.pager button:hover { background: rgba(253, 249, 240, 0.18); }
+.pager button:focus-visible { outline: 3px solid var(--t-paper); outline-offset: 1px; }
+.pager button:disabled { opacity: 0.35; cursor: default; }
+
+/* The mats: paper, 14px, a soft free shadow, a whisper of tilt */
+.screen-mat {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--t-paper);
+  padding: 14px;
+  box-shadow: 0 4px 8px rgba(50, 35, 15, 0.26);
+  position: relative;
+}
+
+#host-mat { transform: rotate(-0.3deg); }
+#student-mat { transform: rotate(0.4deg); }
+
+/* Empty (before launch, after reset): a dashed outline on solid gesso */
+.screen-mat.empty {
+  background: var(--t-gesso);
+  box-shadow: none;
+  border: 3px dashed rgba(110, 75, 40, 0.35);
+  align-items: center;
+  justify-content: center;
+}
+
+.mat-empty-label {
+  display: none;
+  font-family: var(--t-body);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+}
+
+.screen-mat.empty .mat-empty-label { display: block; }
+.screen-mat.empty #player-holder,
+.screen-mat.empty #bench-bar { display: none; }
+
+.screen-mat iframe {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  border: none;
+  background: var(--t-gesso);
+}
+
+/* While the console shows: a note above it, the bar swaps to say whose screen this is */
+.teacher-note {
+  display: none;
+  margin: 0 0 10px;
+  padding: 8px 12px 9px;
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--t-ink);
+  transform: rotate(-0.4deg);
+}
+
+.teacher-note strong { font-weight: 800; }
+
+#host-mat.showing-teacher .teacher-note { display: block; }
+#host-mat.empty .teacher-note { display: none; }
+
+#host-mat.showing-teacher { box-shadow: 0 4px 8px rgba(50, 35, 15, 0.26), 0 0 0 2px var(--t-magenta); }
+.host-bar.showing-teacher { background: var(--t-magenta); }
+
+/* The teacher mat: host iframe first, teacher console behind the tab.
+   The hidden one must really hide (iframes are display:inline). */
+#host-mat iframe[hidden] { display: none; }
+
+/* The student mat holds every player panel; the pager shows one */
+#player-holder {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.player-panel[hidden] { display: none; }
+
+/* ── The shortcuts strip, pinned under the student screen ───────────── */
+
+#bench-bar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 10px 6px;
+  margin-top: 4px;
+  border-top: 2px dashed rgba(110, 75, 40, 0.2);
+}
+
+/* display:flex above would override the hidden attribute */
+#bench-bar[hidden] { display: none; }
+
+.bench-hint {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  text-align: center;
+}
+
+.bench-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+#bot-fill-btn,
+#skip-btn {
+  border: none;
+  padding: 9px 12px 10px;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-ink);
+  background: var(--t-paper);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.22);
+  white-space: nowrap;
+  cursor: pointer;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+#bot-fill-btn { --rot: -0.8deg; }
+#skip-btn { --rot: 0.8deg; }
+
+#bot-fill-btn:hover,
+#skip-btn:hover { transform: rotate(var(--rot, 0deg)) translateY(-4px); }
+#bot-fill-btn:focus-visible,
+#skip-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+
+/* + Add another student: a 44px dashed slot under the student screen */
+.add-player-slot {
+  flex-shrink: 0;
+  height: 44px;
+  border: 3px dashed rgba(110, 75, 40, 0.35);
+  background: var(--t-gesso);
+  color: var(--t-muted);
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform var(--t-quick) var(--t-ease), border-color var(--t-quick) var(--t-ease), color var(--t-quick) var(--t-ease);
+}
+
+.add-player-slot:hover:not(:disabled) { transform: translateY(-3px); border-color: var(--t-muted-wood); color: var(--t-ink); }
+.add-player-slot:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+.add-player-slot:disabled { cursor: default; opacity: 0.5; }
+
+/* ── The NEXT banner ────────────────────────────────────────────────── */
+
+#next-banner {
+  position: absolute;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  filter: drop-shadow(4px 5px 0 rgba(80, 60, 30, 0.18));
+  pointer-events: none;
+  transition: top var(--t-quick) var(--t-ease), left var(--t-quick) var(--t-ease);
+}
+
+#next-banner[hidden] { display: none; }
+
+.next-card {
+  position: relative;
+  background: var(--t-yellow);
+  padding: 12px 34px 13px 16px;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transform: rotate(-1.5deg);
+  pointer-events: auto;
+}
+
+#next-banner.tilt-right .next-card { transform: rotate(1.2deg); }
+
+/* The × in the card's corner: hides it for this browser, ? brings it back */
+.next-close {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--t-ink);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.next-close:hover { opacity: 1; }
+.next-close:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 1px; }
+
+.next-label {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-ink);
+  opacity: 0.7;
+}
+
+.next-text {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1.2;
+  color: var(--t-ink);
+}
+
+/* The notch: points down at the control (or up, when the card sits below it) */
+.next-notch {
+  width: 26px;
+  height: 18px;
+  background: var(--t-yellow);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  margin-top: -4px;
+  margin-left: var(--notch-left, 40px);
+}
+
+#next-banner.no-notch .next-notch { display: none; }
+
+#next-banner.flip { flex-direction: column-reverse; }
+#next-banner.flip .next-notch {
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  margin-top: 0;
+  margin-bottom: -4px;
+}
+
+/* Status mode (skipping ahead): the card carries the news, no pointer */
+#next-banner.is-busy .next-text { color: var(--t-ink); }
+#next-banner.is-busy .next-label { animation: next-busy 1.1s ease-in-out infinite; }
+
+@keyframes next-busy {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #next-banner { transition: none; }
+  #next-banner.is-busy .next-label { animation: none; }
+}
+
+/* ── The help card ──────────────────────────────────────────────────── */
+
 #sim-intro {
   position: fixed;
   inset: 0;
-  z-index: 10000; /* above the carousel arrows and dots (9999) */
+  z-index: 10000;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,7 +748,7 @@ body.pt-running #host-btn {
 #sim-intro[hidden] { display: none; }
 
 .sim-intro-card {
-  width: min(380px, calc(100vw - 32px));
+  width: min(400px, calc(100vw - 32px));
   padding: 20px 22px 18px;
   background: var(--t-paper);
   color: var(--t-ink);
@@ -560,6 +775,22 @@ body.pt-running #host-btn {
 
 .sim-intro-card li strong { font-weight: 800; }
 
+.sim-intro-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+
+#sim-tour-btn {
+  border: none;
+  padding: 9px 16px;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: var(--t-yellow);
+  color: var(--t-ink);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+}
+
 #sim-intro-ok {
   border: none;
   padding: 9px 16px;
@@ -569,320 +800,137 @@ body.pt-running #host-btn {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   cursor: pointer;
-  background: #1BA9C4;
+  background: var(--t-cyan);
   color: var(--t-paper);
   box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
 }
 
-@media (max-width: 900px) {
-  #map-rail { display: none; }
+/* ── The first-visit tour: a spotlight and a yellow card per piece ────── */
+
+.tour-shade {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
 }
 
-/* Iframe container — extra row gap and bottom padding so every piece's
-   stand has floor to sit on */
-#iframe-container {
-  flex: 1;
-  display: grid;
-  gap: 24px 10px;
-  padding: 10px 10px 34px;
-  min-height: 0;
-  position: relative;
+/* The cutout: a box with a giant shadow, so the piece it frames stays bright */
+.tour-spot {
+  position: fixed;
+  z-index: 9001;
+  box-shadow: 0 0 0 9999px rgba(50, 35, 15, 0.45);
+  outline: 3px solid var(--t-yellow);
+  outline-offset: 2px;
+  pointer-events: none;
+  transition: top var(--t-quick) var(--t-ease), left var(--t-quick) var(--t-ease), width var(--t-quick) var(--t-ease), height var(--t-quick) var(--t-ease);
 }
 
-/* Layout: host on left, players stacked on right (1-4 players) */
-#iframe-container[data-players="1"] {
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr;
-}
-
-#iframe-container[data-players="2"] {
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-}
-
-#iframe-container[data-players="3"] {
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr 1fr;
-}
-
-#iframe-container[data-players="4"] {
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr 1fr 1fr;
-}
-
-/* 5+ players: host on top, players in grid below */
-#iframe-container[data-players="5"],
-#iframe-container[data-players="6"] {
-  grid-template-columns: repeat(3, 1fr);
-  grid-template-rows: 2fr repeat(2, 1fr);
-}
-
-#iframe-container[data-players="7"],
-#iframe-container[data-players="8"] {
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: 2fr repeat(2, 1fr);
-}
-
-/* Every screen is a piece on its own stand (preview-prototype.png):
-   plinth (::after) + base board (::before) hang below each panel into
-   the row gap. Overflow must stay visible for the stand to show. */
-.iframe-panel {
-  position: relative;
-  overflow: visible;
-  border: none;
-  background: var(--t-paper);
-  box-shadow: 0 2px 4px rgba(50,35,15,0.20), 0 0 0 1px rgba(50,35,15,0.25);
+.tour-card {
+  position: fixed;
+  z-index: 9002;
   display: flex;
   flex-direction: column;
-  transform: rotate(var(--piece-rot, 0deg));
+  align-items: flex-start;
+  width: 320px;
+  filter: drop-shadow(4px 5px 0 rgba(80, 60, 30, 0.22));
 }
 
-.iframe-panel::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -12px;
-  transform: translateX(-50%);
-  width: 32%;
-  height: 12px;
-  background: var(--t-walnut);
-  background-image: var(--t-grain);
-}
+.tour-card.flip { flex-direction: column-reverse; }
 
-.iframe-panel::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -18px;
-  transform: translateX(-50%);
-  width: 50%;
-  height: 7px;
-  background: var(--t-base);
-  background-image: var(--t-grain);
-  box-shadow: 0 2px 3px rgba(50,35,15,0.25);
-}
-
-.host-panel {
-  --piece-rot: -0.3deg;
-  box-shadow: 0 2px 4px rgba(50,35,15,0.20), 0 0 0 2px var(--t-ink);
-}
-
-/* Class screen | Teacher controls: two tabs in the host panel's label.
-   The hidden iframe must really hide (iframes are display:inline). */
-.host-panel iframe[hidden] { display: none; }
-.host-panel .panel-label { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.panel-tabs { display: inline-flex; gap: 6px; margin-left: auto; }
-.panel-tab {
-  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
-  font-weight: 800;
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 4px 10px 5px;
-  background: var(--t-paper, #FDF9F0);
-  color: var(--t-ink, #2A2620);
-  border: none;
-  box-shadow: 0 0 0 1px rgba(50,35,15,0.35);
-  cursor: pointer;
-  clip-path: none;
-  filter: none;
-  transform: none;
-}
-.panel-tab.active {
-  background: var(--t-yellow, #F5C518);
-  background-image: var(--t-grain);
-}
-.host-panel.showing-teacher {
-  box-shadow: 0 2px 4px rgba(50,35,15,0.20), 0 0 0 2px var(--t-magenta, #C2185B);
-}
-
-.player-panel:nth-of-type(odd) { --piece-rot: 0.5deg; }
-.player-panel:nth-of-type(even) { --piece-rot: -0.5deg; }
-
-/* 1-4 players: host spans all rows on left */
-#iframe-container[data-players="1"] .host-panel { grid-row: 1 / -1; }
-#iframe-container[data-players="2"] .host-panel { grid-row: 1 / -1; }
-#iframe-container[data-players="3"] .host-panel { grid-row: 1 / -1; }
-#iframe-container[data-players="4"] .host-panel { grid-row: 1 / -1; }
-
-/* 5-6 players: host spans full width on top row */
-#iframe-container[data-players="5"] .host-panel,
-#iframe-container[data-players="6"] .host-panel {
-  grid-column: 1 / -1;
-  grid-row: 1;
-}
-
-/* 7-8 players: host spans full width on top row */
-#iframe-container[data-players="7"] .host-panel,
-#iframe-container[data-players="8"] .host-panel {
-  grid-column: 1 / -1;
-  grid-row: 1;
-}
-
-/* One-at-a-time: whatever the player count, the layout collapses to
-   host left + the single visible player right, both full height.
-   Without this the grid keeps its N stacked rows and the visible
-   player fills only the first one (half height at 2 players). */
-#iframe-container[data-view="carousel"] {
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr;
-}
-
-#iframe-container[data-view="carousel"] .host-panel {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-#iframe-container[data-view="carousel"] .player-panel {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.panel-label {
-  background: var(--t-ink);
-  color: var(--t-paper);
-  padding: 4px 10px;
-  font-size: 0.72em;
-  font-weight: 700;
-  font-family: var(--t-body);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  flex-shrink: 0;
-}
-
-.host-panel .panel-label {
-  background: var(--t-ink);
-  color: var(--t-paper);
-}
-
-/* Player pieces wear painted top bars, cycled by seat color */
-.player-panel .panel-label { background: var(--t-ink); color: var(--t-paper); }
-.player-panel .plabel-0 { background: var(--t-cyan); color: var(--t-paper); }
-.player-panel .plabel-1 { background: var(--t-magenta); color: var(--t-paper); }
-.player-panel .plabel-2 { background: var(--t-orange); color: var(--t-paper); }
-.player-panel .plabel-3 { background: var(--t-green); color: var(--t-paper); }
-.player-panel .plabel-4 { background: var(--t-yellow); background-image: var(--t-grain); color: var(--t-ink); }
-
-/* The last seat in the running grid: a dashed drop slot that adds a
-   pretend student to the live room (late join is a supported path) */
-.add-player-slot {
-  border: 3px dashed rgba(110, 75, 40, 0.4);
-  background: var(--t-gesso);
-  color: var(--t-muted-caps, #766A52);
-  font-family: var(--t-display);
-  font-weight: 800;
-  font-size: 0.8rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
+.tour-card-inner {
+  background: var(--t-yellow);
+  padding: 12px 16px 14px;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color var(--t-quick) var(--t-ease), color var(--t-quick) var(--t-ease);
-}
-
-.add-player-slot:hover { border-color: var(--t-muted-wood); color: var(--t-muted-wood); }
-
-/* Carousel rotates player pieces one at a time; the slot sits out */
-#iframe-container[data-view="carousel"] .add-player-slot { display: none; }
-
-.iframe-panel iframe {
-  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  transform: rotate(-0.8deg);
   width: 100%;
-  border: none;
-  background: var(--t-gesso);
 }
 
-/* Pre-launch: the empty bench — a teacher board on its stand beside
-   dashed pretend-student seats (preview-prototype.png 11a) */
-#prelaunch-stage {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 34px;
-  padding: 40px 20px;
-}
-
-.stage-pieces {
-  display: flex;
-  align-items: center;
-  gap: 40px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.stage-board-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  filter: drop-shadow(5px 8px 0 rgba(80, 60, 30, 0.14));
-}
-
-.stage-board {
-  width: 230px;
-  height: 150px;
-  background: var(--t-birch);
-  background-image: var(--t-grain);
-  transform: rotate(-1.2deg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.tour-label {
   font-family: var(--t-display);
   font-weight: 800;
-  font-size: 0.85rem;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--t-muted-wood);
+  color: var(--t-ink);
+  opacity: 0.7;
 }
 
-.stage-plinth {
-  width: 70px;
-  height: 34px;
-  background: var(--t-walnut);
-  background-image: var(--t-grain);
-  margin-top: -3px;
+.tour-title {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1.15;
+  color: var(--t-ink);
 }
 
-.stage-base {
-  width: 130px;
-  height: 12px;
-  background: var(--t-base);
-  background-image: var(--t-grain);
+.tour-text {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--t-ink);
+  margin-top: 2px;
 }
 
-.stage-slot {
-  width: 100px;
-  height: 128px;
-  border: 3px dashed rgba(110, 75, 40, 0.4);
-  background: var(--t-gesso);
+.tour-btns {
   display: flex;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 8px;
-  font-family: var(--t-body);
-  font-weight: 700;
-  font-size: 0.68rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--t-muted-caps, #766A52);
+  gap: 8px;
+  margin-top: 10px;
 }
 
-#prelaunch-hint {
-  text-align: center;
-  color: var(--t-muted);
-  font-size: 1rem;
-  font-weight: 500;
-  max-width: 440px;
-  line-height: 1.5;
-  margin: 0;
+.tour-btns button {
+  border: none;
+  cursor: pointer;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 8px 14px 9px;
 }
 
-#prelaunch-hint .hint-launch {
-  color: var(--t-red);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.tour-next { background: var(--t-ink); color: var(--t-paper); box-shadow: 0 3px 4px rgba(50, 35, 15, 0.24); }
+.tour-back { background: var(--t-paper); color: var(--t-ink); box-shadow: 0 3px 4px rgba(50, 35, 15, 0.2); }
+.tour-back[hidden] { display: none; }
+.tour-skip { background: transparent; color: var(--t-ink); opacity: 0.75; margin-left: auto; padding-right: 0; }
+.tour-skip:hover { opacity: 1; text-decoration: underline; }
+.tour-btns button:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+
+.tour-notch {
+  width: 26px;
+  height: 18px;
+  background: var(--t-yellow);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  margin-top: -4px;
+  margin-left: var(--notch-left, 40px);
+}
+
+.tour-card.flip .tour-notch {
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  margin-top: 0;
+  margin-bottom: -4px;
+}
+
+.tour-card.no-notch .tour-notch { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spot { transition: none; }
+}
+
+/* ── Narrow screens: the plan folds away, the columns stack ─────────── */
+
+@media (max-width: 1400px) {
+  .plan-label { display: none; }
+}
+
+@media (max-width: 1100px) {
+  #map-rail { display: none; }
+  #iframe-container { gap: 24px; padding: 20px 24px 24px; }
+}
+
+@media (max-width: 860px) {
+  body { height: auto; min-height: 100vh; overflow: auto; }
+  #control-bar { flex-wrap: wrap; }
+  #iframe-container { grid-template-columns: 1fr; }
+  #host-column, #student-column { min-height: 60vh; }
 }
