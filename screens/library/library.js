@@ -65,14 +65,9 @@ var allGames = [];
 var libraryQuery = '';
 var activeGoal = null; // a PILE_GROUPS goal key: connect | think | review | play
 
-// Time chips: the minutes a teacher has, against the server's estimate
-// (`minutes` on /api/games, computed from the timers).
-var TIME_GROUPS = [
-  { key: 5, label: 'Under 5 min' },
-  { key: 10, label: 'Under 10 min' },
-  { key: 20, label: 'Under 20 min' }
-];
-var activeMinutes = null; // a TIME_GROUPS key, or null for any length
+// The time chips (Under 5 / 10 / 20 min) came out on 2026-09-10 (owner's
+// call): the minutes still show on every plank, the shelf is not filtered
+// by them.
 
 function applyVisibility(games) {
   if (!window.GameVisibility) return games;
@@ -94,34 +89,6 @@ function matchesGoal(game) {
     if (group.goals.indexOf(tags[t]) !== -1) return true;
   }
   return false;
-}
-
-function matchesMinutes(game) {
-  if (!activeMinutes) return true;
-  return typeof game.minutes === 'number' && game.minutes <= activeMinutes;
-}
-
-function buildTimeChips(games) {
-  var chipsEl = document.getElementById('time-chips');
-  if (!chipsEl) return;
-  chipsEl.innerHTML = '';
-  TIME_GROUPS.forEach(function (group) {
-    var count = 0;
-    for (var i = 0; i < games.length; i++) {
-      if (typeof games[i].minutes === 'number' && games[i].minutes <= group.key) count++;
-    }
-    if (count === 0 && group.key !== activeMinutes) return;
-    var chip = document.createElement('button');
-    chip.type = 'button';
-    chip.className = 'goal-chip time-chip' + (group.key === activeMinutes ? ' active' : '');
-    chip.textContent = group.label + ' ' + count;
-    chip.setAttribute('aria-pressed', group.key === activeMinutes ? 'true' : 'false');
-    chip.addEventListener('click', function () {
-      activeMinutes = (activeMinutes === group.key) ? null : group.key;
-      refreshLibrary();
-    });
-    chipsEl.appendChild(chip);
-  });
 }
 
 function matchesFilters(game) {
@@ -174,31 +141,19 @@ function refreshLibrary() {
   // topic-agnostic shells, so "history" matching nothing is our failure to
   // explain, not a real empty result. Show the shelf anyway (goal filter
   // still respected) with an honest note instead of a dead end.
-  // The chips stay honored in the rescue: goal AND time first, then goal
-  // only (saying so), then everything. A search miss under "Under 5 min"
-  // used to re-show 30-minute activities with the chip still lit
-  // (outside review, 2026-09-07).
+  // The goal chip stays honored in the rescue: goal first (saying so),
+  // then everything.
   if (filtered.length === 0 && libraryQuery && visible.length > 0) {
-    var chipsOnly = visible.filter(function (g) { return matchesGoal(g) && matchesMinutes(g); });
-    if (chipsOnly.length > 0) {
-      renderLibrary(chipsOnly, { query: libraryQuery });
-      return;
-    }
     var goalOnly = visible.filter(matchesGoal);
-    renderLibrary(goalOnly.length ? goalOnly : visible, { query: libraryQuery, droppedMinutes: activeMinutes });
+    renderLibrary(goalOnly.length ? goalOnly : visible, { query: libraryQuery });
     return;
   }
   renderLibrary(filtered);
 }
 
 // Search does read names, descriptions, and keywords, so the rescue copy
-// says "mentions", never "is named". When the time chip had to be let go
-// to show anything, the head says that too.
+// says "mentions", never "is named".
 function rescueHeadline(rescue) {
-  if (rescue.droppedMinutes) {
-    return 'Nothing under ' + rescue.droppedMinutes + ' minutes mentions "' + rescue.query +
-      '". These take longer, and that\'s okay:';
-  }
   return 'Nothing mentions "' + rescue.query + '", and that\'s okay:';
 }
 
