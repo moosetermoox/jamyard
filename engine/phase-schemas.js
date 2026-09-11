@@ -620,8 +620,8 @@ export const PHASE_SCHEMAS = {
       },
       excludeAuthors: {
         type: 'boolean', optional: true,
-        label: 'Authors do not vote on their own matchup',
-        helper: 'Per matchup, the two players who wrote the candidates are excluded from voting on it (used in head-to-head punchline games).'
+        label: 'Students cannot vote for their own answer',
+        helper: 'Pick-one: each ballot leaves out the voter\'s own answer. Head-to-head: the two players who wrote a matchup do not vote on it (punchline games).'
       },
       question: {
         type: 'templateString', optional: true,
@@ -693,6 +693,12 @@ export const PHASE_SCHEMAS = {
       pause: {
         type: 'integer', min: 0, max: 60, optional: true, default: 3,
         label: 'Pause before advancing (seconds)'
+      },
+      // With loopBack: the rounds end early once this few players remain,
+      // so the round count follows the class size (loopCount is the cap).
+      untilRemaining: {
+        type: 'integer', min: 1, max: 50, optional: true,
+        label: 'End the rounds when this many players remain'
       }
     },
     transitions: {

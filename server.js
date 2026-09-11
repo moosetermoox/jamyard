@@ -23,6 +23,7 @@ import { buildActivityMap } from './engine/activity-map.js';
 import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
 import { printFor, applyEdits, nameFor } from './engine/make-print.js';
 import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
+import { shouldStopLooping } from './engine/phases/eliminate-handler.js';
 import { restoreSubPhaseOrder } from './engine/subphase-order.js';
 
 // Saved copies that went through the old jsonb column came back with a
@@ -67,7 +68,8 @@ import {
   getEligibleVoters,
   tallyPickOne,
   tallyHeadToHead,
-  resolveBranchTarget
+  resolveBranchTarget,
+  isOwnCandidate
 } from './engine/phases/vote-handler.js';
 import { getHandler, hasHandler, createPhaseContext } from './engine/phase-handlers/index.js';
 import { EVENTS } from './engine/events.js';
@@ -397,6 +399,14 @@ function getNextPhaseId(engine, phase) {
       engine.loopState[loopKey] = { iteration: 1, total: phase.loopCount };
     }
     const state = engine.loopState[loopKey];
+    // An elimination loop ends as soon as few enough players remain
+    // (eliminate.untilRemaining): the round count follows the class size.
+    if (phase.type === 'eliminate' && shouldStopLooping({
+      untilRemaining: phase.untilRemaining,
+      remaining: engine.players.getRemaining().length
+    })) {
+      return phase.next;
+    }
     if (state.iteration < state.total) {
       state.iteration++;
       return phase.loopBack;
@@ -1565,6 +1575,7 @@ function buildTeacherSnapshot(code, room) {
     phaseType: phase ? phase.type : null,
     phaseInstanceId: room.phaseInstanceId || 0,
     playerCount: engine ? engine.players.list().length : 0,
+    hostConnected: roomToHost.has(code),
     submissions: [],
     preview: null
   };
@@ -1575,7 +1586,6 @@ function buildTeacherSnapshot(code, room) {
   if (phase && phase.type === 'preview') {
     const data = engine.getPhaseData(phase.id);
     if (data) snap.preview = { content: data.content, responses: data.responses || [] };
-    hostConnected: roomToHost.has(code),
   }
   const ps = room.phaseState;
   if (ps && ps.kind === 'checklist' && !ps.closed) {
@@ -3528,6 +3538,8 @@ io.on('connection', (socket) => {
     roomToHost.set(code, socket.id);
     socket.join(code);
     recordEvent(room, 'host-rejoined');
+    // The consoles drop their "projector not connected" line.
+    emitTeacherRoster(code, room);
 
     const config = room.engine.config;
     socket.emit(EVENTS.ROOM_CREATED, {
@@ -3538,8 +3550,6 @@ io.on('connection', (socket) => {
       hostToken: room.hostToken,
       start: config.start || 'together',
       language: room.engine.language,
-    // The consoles drop their "projector not connected" line.
-    emitTeacherRoster(code, room);
       strings: stringsFor(room.engine.language),
       restored: true
     });
@@ -4151,6 +4161,12 @@ io.on('connection', (socket) => {
     if (vs.votersCompleted.has(socket.id)) return;
 
     if (vs.mode === 'pick-one') {
+      // The ballot already left the voter's own answer off; a stale or
+      // hand-crafted client can still send it, so the server refuses too.
+      if (vs.excludeAuthors && isOwnCandidate(vs.candidates, socket.id, choice)) {
+        console.log(`[submit-vote] ${socket.id} tried to vote for their own answer, refused`);
+        return;
+      }
       vs.votes.push({ voterId: socket.id, choice });
     } else if (vs.mode === 'head-to-head' && Array.isArray(votesList)) {
       for (const vote of votesList) {
@@ -5403,6 +5419,9 @@ io.on('connection', (socket) => {
         // Only if nobody comes back within the grace window does the room close.
         console.log(`[disconnect] Host left ${roomCode} — holding the room ${HOST_GRACE_MS / 60000} min for rejoin`);
         room.hostDisconnectedAt = Date.now();
+        // Tell the consoles now: the teacher may be looking at one while
+        // the projector tab sleeps behind it.
+        emitTeacherRoster(roomCode, room);
         room.hostGraceTimer = setTimeout(() => {
           const still = roomManager.find(roomCode);
           if (!still || roomToHost.has(roomCode)) return; // host came back
@@ -5419,9 +5438,6 @@ io.on('connection', (socket) => {
 
 // Init DB (so durable user recipes are available), then load recipes.
 async function startup() {
-        // Tell the consoles now: the teacher may be looking at one while
-        // the projector tab sleeps behind it.
-        emitTeacherRoster(roomCode, room);
   if (DB_ENABLED) {
     await initDb();
     console.log('[init] Database ready.');

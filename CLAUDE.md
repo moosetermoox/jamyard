@@ -109,8 +109,8 @@ Framework for quickly building classroom games where:
 1. `lobby` — wait for players
 2. `collect` — text/drawing input; `rotateFrom` (rotation chains + `assignedFrom` links; `rotateShuffle:true` = random no-self deal instead of fixed shift, chain per-pool for multi-pool deals; leave `{{X.assigned}}` out of the prompt = a BLIND hand-off), `prefillFromAssigned`, `appendOnly`, `showTail:N` (the exquisite-corpse fold: player sees only the last N words of the inherited text, full text still accumulates; requires appendOnly), `maxLength`, `assign:"pairwise"` (+`oddHandling:"triple"`, `rotatePairsFrom`, `reusePairsFrom` — accepts a pairwise collect OR team-split, `pairBy:{from,mode}` answer-keyed pairing from a collect-choice — opposite/same, best-effort), `passAllowed`, `simultaneousReveal`, `inputType:"drawing"`
 3. `ai-process` — AI processes data; `perPlayer:true` for one item per student
-4. `vote` — head-to-head or pick-one; `matchupsFromPairs`/`excludeAuthors`, literal `candidates`, `nextByWinner` branch routing
-5. `eliminate` — remove players by percent or hook
+4. `vote` — head-to-head or pick-one; `matchupsFromPairs`/`excludeAuthors` (pick-one too since 2026-09-10: own answer off the ballot, server refuses a self-vote), literal `candidates`, `nextByWinner` branch routing
+5. `eliminate` — remove players by percent or hook; `untilRemaining` (with loopBack) ends the rounds once that few remain, so rounds follow class size; a full tie eliminates nobody
 6. `reveal` — show content; `scope:"pair"`+`pairsFrom` (pair-private), `scope:"own"`+`chainFrom` (return-to-author chains; `chainDisplay:"template"`+`chainTemplate:"The {1} {2}..."` assembles blind one-word chains into a sentence)
 7. `preview` — teacher-only gate before reveal (requires `content`, `approveNext`, `rejectNext`)
 8. `winner` — crown with drumroll; `winnerEntry` shows WHAT they won for

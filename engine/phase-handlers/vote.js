@@ -6,6 +6,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { ballotFor } from '../phases/vote-handler.js';
 
 registerHandler('vote', {
   async onEnter(ctx) {
@@ -75,6 +76,8 @@ registerHandler('vote', {
       candidates,
       candidateIds,
       eligibleVoterIds: eligible.map(p => p.id),
+      // Pick-one: the server refuses a self-vote when this is on.
+      excludeAuthors: !!phase.excludeAuthors,
       votes: [],
       votersCompleted: new Set()
     };
@@ -121,10 +124,19 @@ registerHandler('vote', {
         });
       }
     } else if (phase.mode === 'pick-one') {
+      const excludeAuthors = !!phase.excludeAuthors;
       for (const voter of eligible) {
+        const ballot = ballotFor(candidates, voter.id, excludeAuthors);
+        if (ballot.length === 0) {
+          // Only their own answer to pick from: nothing to vote on, so
+          // pre-mark them complete rather than block the room on them.
+          room.phaseState.votersCompleted.add(voter.id);
+          ctx.emitToPlayer(voter.id, EVENTS.WAITING, { message: 'Nothing for you to vote on this round, waiting for others...' });
+          continue;
+        }
         ctx.emitToPlayer(voter.id, EVENTS.VOTE_START, {
           mode: 'pick-one',
-          candidates,
+          candidates: ballot,
           timer: phase.timer || null,
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
@@ -177,7 +189,7 @@ registerHandler('vote', {
       } else {
         socket.emit(EVENTS.VOTE_START, {
           mode: 'pick-one',
-          candidates: vs.candidates,
+          candidates: ballotFor(vs.candidates, socket.id, !!vs.excludeAuthors),
           timer: null,
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });

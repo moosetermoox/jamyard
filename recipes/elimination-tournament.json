@@ -2,9 +2,9 @@
   "id": "elimination-tournament",
   "name": "Elimination Tournament",
   "icon": "⚔️",
-  "description": "Multi-round survival game: respond, vote, eliminate the lowest-scoring players, repeat. Last one standing wins.",
+  "description": "Multi-round survival game: respond, everyone votes, the lowest-scoring players are out, repeat until one is left. Students who are out keep voting.",
   "tagline": "Perfect for high-energy competitions and 'last one standing' classroom games.",
-  "version": "1",
+  "version": "2",
   "parameters": {
     "prompt": {
       "type": "templateString",
@@ -17,16 +17,16 @@
     },
     "rounds": {
       "type": "integer",
-      "label": "Number of rounds",
-      "helper": "Each round eliminates the bottom-scoring players. Final round crowns the winner.",
-      "default": 3,
+      "label": "Most rounds",
+      "helper": "The game ends as soon as one student is left standing, however many rounds that takes. This only caps how long it can run.",
+      "default": 8,
       "min": 2,
-      "max": 8
+      "max": 12
     },
     "elimPercent": {
       "type": "integer",
       "label": "Percent eliminated each round",
-      "helper": "Bottom percent (by votes received) gets eliminated.",
+      "helper": "Bottom percent (by votes received) is out each round. Students who are out still vote.",
       "default": 30,
       "min": 10,
       "max": 60
@@ -57,7 +57,7 @@
       },
       "round-intro": {
         "type": "announce",
-        "message": "Round {{_loop.eliminate.iteration}} of {{_loop.eliminate.total}}, answer the prompt and survive the vote!",
+        "message": "Round {{_loop.eliminate.iteration}}. {{remaining.length}} still in: answer the prompt and survive the vote!",
         "timer": 5,
         "next": "answer"
       },
@@ -77,8 +77,9 @@
         "type": "vote",
         "mode": "pick-one",
         "candidates": "answer.responses",
-        "voters": "remaining",
-        "question": "Pick your favorite!",
+        "voters": "all",
+        "excludeAuthors": true,
+        "question": "Pick your favorite (not your own). Everyone votes, in or out.",
         "timer": "${voteTimer}",
         "next": "eliminate"
       },
@@ -88,6 +89,7 @@
         "percent": "${elimPercent}",
         "input": "vote.scores",
         "pause": 4,
+        "untilRemaining": 1,
         "loopBack": "round-intro",
         "loopCount": "${rounds}",
         "next": "winner"

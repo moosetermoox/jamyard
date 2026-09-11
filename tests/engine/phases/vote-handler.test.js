@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  tallyPickOne,
-  tallyHeadToHead,
-  getEligibleVoters,
-  generateMatchups
-} from '../../../engine/phases/vote-handler.js';
+import { tallyPickOne, tallyHeadToHead, getEligibleVoters, generateMatchups, ballotFor, isOwnCandidate } from '../../../engine/phases/vote-handler.js';
 import { PlayerRegistry } from '../../../engine/player-registry.js';
 
 function makeRegistry(ids) {
@@ -239,5 +234,30 @@ describe('VoteHandler', () => {
         expect(['c1', 'c2']).toContain(b);
       }
     });
+  });
+});
+
+// 2026-09-10 (Elimination Tournament): with excludeAuthors on, a pick-one
+// ballot leaves the voter's own answer off, and the server refuses a
+// self-vote that slips past the ballot.
+describe('ballotFor / isOwnCandidate (pick-one self-votes)', () => {
+  const candidates = [
+    { playerId: 'p1', text: 'A' },
+    { playerId: 'p2', text: 'B' },
+    { playerId: 'p3', text: 'C' }
+  ];
+  it('leaves the voter\'s own answer off when excludeAuthors is on', () => {
+    expect(ballotFor(candidates, 'p2', true).map(c => c.playerId)).toEqual(['p1', 'p3']);
+  });
+  it('keeps the full ballot when it is off', () => {
+    expect(ballotFor(candidates, 'p2', false)).toBe(candidates);
+  });
+  it('leaves literal string options alone (nobody wrote them)', () => {
+    expect(ballotFor(['Cave', 'Bridge'], 'p1', true)).toEqual(['Cave', 'Bridge']);
+  });
+  it('spots a self-vote by candidate id', () => {
+    expect(isOwnCandidate(candidates, 'p2', 'p2')).toBe(true);
+    expect(isOwnCandidate(candidates, 'p2', 'p1')).toBe(false);
+    expect(isOwnCandidate(['Cave'], 'p2', 'Cave')).toBe(false);
   });
 });

@@ -170,3 +170,49 @@ describe('EliminateHandler', () => {
     });
   });
 });
+
+// 2026-09-10 (Elimination Tournament asks): a round where everyone ties
+// at the cutoff must not empty the room, and an elimination loop ends
+// early once few enough players remain (eliminate.untilRemaining).
+import { shouldStopLooping } from '../../../engine/phases/eliminate-handler.js';
+
+describe('bottom-percent with everyone tied', () => {
+  it('eliminates nobody instead of everybody', () => {
+    const players = makeRegistry(['p1', 'p2', 'p3', 'p4']);
+    const result = runEliminate({
+      method: 'bottom-percent',
+      input: { scores: { p1: 0, p2: 0, p3: 0, p4: 0 }, percent: 50 },
+      players
+    });
+    expect(result.eliminated).toEqual([]);
+    expect(result.remaining).toBe(4);
+  });
+
+  it('still eliminates a genuine bottom group', () => {
+    const players = makeRegistry(['p1', 'p2', 'p3', 'p4']);
+    const result = runEliminate({
+      method: 'bottom-percent',
+      input: { scores: { p1: 0, p2: 0, p3: 3, p4: 5 }, percent: 25 },
+      players
+    });
+    expect(result.eliminated.sort()).toEqual(['p1', 'p2']);
+    expect(result.remaining).toBe(2);
+  });
+});
+
+describe('shouldStopLooping', () => {
+  it('stops once the remaining count reaches the floor', () => {
+    expect(shouldStopLooping({ untilRemaining: 1, remaining: 1 })).toBe(true);
+    expect(shouldStopLooping({ untilRemaining: 1, remaining: 0 })).toBe(true);
+    expect(shouldStopLooping({ untilRemaining: 2, remaining: 2 })).toBe(true);
+  });
+  it('keeps going while more remain', () => {
+    expect(shouldStopLooping({ untilRemaining: 1, remaining: 2 })).toBe(false);
+    expect(shouldStopLooping({ untilRemaining: 3, remaining: 9 })).toBe(false);
+  });
+  it('is off when the field is missing or nonsense', () => {
+    expect(shouldStopLooping({ remaining: 1 })).toBe(false);
+    expect(shouldStopLooping({ untilRemaining: 0, remaining: 0 })).toBe(false);
+    expect(shouldStopLooping({ untilRemaining: '1', remaining: 1 })).toBe(false);
+  });
+});

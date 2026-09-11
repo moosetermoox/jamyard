@@ -2630,7 +2630,11 @@ socket.on('vote-received', ({ count, total }) => {
 socket.on('elimination-results', ({ eliminatedNames, remaining, hostTemplate, hostShow }) => {
   showSection(eliminationSection);
   if (J) J.sound('womp');
-  eliminatedNamesDisplay.textContent = eliminatedNames.join(', ') + ' eliminated!';
+  // A full tie eliminates nobody (engine/phases/eliminate-handler.js); say
+  // so instead of an empty " eliminated!".
+  eliminatedNamesDisplay.textContent = eliminatedNames.length
+    ? eliminatedNames.join(', ') + ' eliminated!'
+    : UiLang.t('Everyone tied, nobody is out this round.');
   remainingCount.textContent = remaining + ' players remaining';
   applyTemplate(eliminationSection, hostTemplate);
   applyShow(hostShow, {

@@ -474,7 +474,9 @@ async function run() {
         } else {
           var candidates = myVote.candidates || [];
           if (candidates.length > 0) {
-            var pick = candidates[i % candidates.length];
+            // Random, not positional: a fixed pick order made every bot
+            // vote in a ring and tied every elimination round.
+            var pick = candidates[Math.floor(Math.random() * candidates.length)];
             // Literal option lists (branching votes) are strings — the string IS the choice
             var choice = (pick && pick.playerId) ? pick.playerId : pick;
             players[i].emit('submit-vote', { code, choice: choice });

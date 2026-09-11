@@ -48,7 +48,24 @@ function runBottomPercent({ scores, percent }) {
   const cutoffScore = entries[countToEliminate - 1][1];
 
   // Eliminate all players at or below the cutoff score (handles ties)
-  return entries
+  const out = entries
     .filter(([, score]) => score <= cutoffScore)
     .map(([id]) => id);
+  // Everyone tied at the cutoff (a round where nobody got a vote, say)
+  // would empty the room: nobody goes, the round just repeats.
+  if (out.length === entries.length) return [];
+  return out;
+}
+
+/**
+ * An elimination loop ends early once few enough players remain
+ * (eliminate.untilRemaining), so the number of rounds follows the size
+ * of the class instead of a fixed count: 30 students take more rounds
+ * to whittle down than 8. loopCount stays as the ceiling.
+ * @param {{ untilRemaining?: number, remaining: number }} opts
+ * @returns {boolean}
+ */
+export function shouldStopLooping({ untilRemaining, remaining }) {
+  if (!Number.isInteger(untilRemaining) || untilRemaining < 1) return false;
+  return remaining <= untilRemaining;
 }

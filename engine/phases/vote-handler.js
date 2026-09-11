@@ -19,6 +19,33 @@ export function getEligibleVoters(players, votersField) {
 }
 
 /**
+ * A pick-one ballot for one voter. With excludeAuthors on, the voter's own
+ * candidate is left off (2026-09-10: an elimination round where everyone
+ * voted for themselves tied the whole room). Literal string candidates
+ * have no author and always stay.
+ * @param {any[]} candidates - {playerId, text, ...} objects or strings
+ * @param {string} voterId
+ * @param {boolean} excludeAuthors
+ * @returns {any[]}
+ */
+export function ballotFor(candidates, voterId, excludeAuthors) {
+  if (!excludeAuthors) return candidates;
+  return candidates.filter(c => !(c && typeof c === 'object' && c.playerId === voterId));
+}
+
+/**
+ * Did this voter pick their own candidate? Used by the server to refuse a
+ * self-vote that a stale or hand-crafted client sends past the ballot.
+ * @param {any[]} candidates
+ * @param {string} voterId
+ * @param {any} choice - candidate id (playerId for response candidates)
+ * @returns {boolean}
+ */
+export function isOwnCandidate(candidates, voterId, choice) {
+  return candidates.some(c => c && typeof c === 'object' && c.playerId === voterId && c.playerId === choice);
+}
+
+/**
  * Generate head-to-head matchups so each candidate appears roughly equal times.
  * @param {string[]} candidateIds
  * @param {number} [appearancesPerCandidate=3] - target appearances per candidate

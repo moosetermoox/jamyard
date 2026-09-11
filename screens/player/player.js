@@ -3219,8 +3219,9 @@ socket.on('elimination-results', ({ eliminated, eliminatedNames, remaining, play
     eliminationDetails.textContent =
       'You were eliminated! ' + remaining + ' players remain.';
   } else {
-    eliminationDetails.textContent =
-      eliminatedNames.join(', ') + ' eliminated! ' + remaining + ' players remain.';
+    eliminationDetails.textContent = eliminatedNames.length
+      ? eliminatedNames.join(', ') + ' eliminated! ' + remaining + ' players remain.'
+      : UiLang.t('Everyone tied, nobody is out this round.');
   }
 });
 
