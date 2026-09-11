@@ -676,16 +676,17 @@
     .mini .qr { width: 40px; height: 40px; }
 
     .how-strip {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-      margin-top: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 18px;
+      padding: 0 6px;
     }
 
     .how-step {
       background: var(--t-paper);
       box-shadow: 0 3px 4px rgba(50,35,15,0.2);
-      padding: 12px 14px 13px;
+      padding: 8px 12px 9px;
       display: flex;
       gap: 12px;
       align-items: center;
@@ -703,7 +704,7 @@
     }
 
     .how-step p {
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 500;
       line-height: 1.4;
       color: var(--t-muted);
@@ -1003,6 +1004,22 @@
           </div>
         </div>
 
+        <!-- How it works: the three bold lines, under the board (owner's call 2026-09-10). -->
+        <div class="how-strip" aria-label="How it works">
+          <div class="how-step">
+            <span class="how-num t-yellow" style="--rot: -1.2deg" aria-hidden="true">1</span>
+            <p><strong>Pick an activity and make it yours.</strong></p>
+          </div>
+          <div class="how-step">
+            <span class="how-num t-cyan" style="--rot: 1deg" aria-hidden="true">2</span>
+            <p><strong>Project your screen.</strong></p>
+          </div>
+          <div class="how-step">
+            <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
+            <p><strong>Students join with a 4-letter code.</strong></p>
+          </div>
+        </div>
+
       </div>
 
     </div>
@@ -1019,22 +1036,6 @@
       </div>
       <div id="picks-rows"></div>
     </section>
-
-    <!-- How it works: the three bold lines, under the boards. -->
-    <div class="how-strip" aria-label="How it works">
-      <div class="how-step">
-        <span class="how-num t-yellow" style="--rot: -1.2deg" aria-hidden="true">1</span>
-        <p><strong>Pick an activity and make it yours.</strong></p>
-      </div>
-      <div class="how-step">
-        <span class="how-num t-cyan" style="--rot: 1deg" aria-hidden="true">2</span>
-        <p><strong>Project your screen.</strong></p>
-      </div>
-      <div class="how-step">
-        <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
-        <p><strong>Students join with a 4-letter code.</strong></p>
-      </div>
-    </div>
 
     <p class="how-try">Curious? <a href="/prototype?game=art-gallery" title="See the teacher screen and pretend students side by side">Try one out</a> with pretend students, no class needed.</p>
     <p class="how-try">First time? <a href="/guide">Read the teacher guide</a>: setup, live controls, quick fixes.</p>
