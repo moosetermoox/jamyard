@@ -510,11 +510,12 @@
       background: var(--t-pine);
       background-image: var(--t-grain);
       clip-path: polygon(0 3%, 30% 0, 62% 2%, 100% 0, 99% 55%, 100% 97%, 66% 100%, 30% 96%, 0 100%, 1% 50%);
-      padding: 22px 26px 24px;
+      padding: 22px 26px 24px 34px;
       filter: drop-shadow(6px 8px 0 rgba(80,60,30,0.16));
       transform: rotate(var(--rot, 0deg));
       text-decoration: none;
       color: var(--t-ink);
+      position: relative;
       transition: transform var(--t-quick) var(--t-ease);
     }
 
@@ -522,18 +523,48 @@
     .pick-board:focus-visible { transform: rotate(var(--rot, 0deg)) translateY(-5px); }
 
     .pick-slide { display: flex; align-items: flex-start; gap: 18px; }
-    .pick-board .board-name { font-size: 21px; padding: 2px 11px 5px; }
+
+    /* The spine: the category's paint down the board's left edge, inside
+       the cut, so the row reads by color before you read a word. */
+    .pick-board::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 4%;
+      bottom: 4%;
+      width: 12px;
+      background: var(--pile);
+    }
+
+    .pick-board .board-name {
+      font-size: 21px;
+      padding: 2px 11px 5px;
+      background: var(--pile);
+      color: var(--pile-ink);
+    }
     .pick-board .board-desc { font-size: 15px; -webkit-line-clamp: 8; }
     .pick-board .board-shot img { width: 210px; height: 158px; }
 
     /* The goal chips wear the yard's pile paints */
+/* ── The four categories, one paint each (2026-09-10). Cyan thinks and
+       magenta plays (their own jobs in the palette); yellow is the warm
+       one for Connect and orange the one left for Review. The paint rides
+       the row chip, the board's spine, and the activity's name.
+       Ink on the three light paints, paper on magenta: paper on cyan is
+       2.65:1 and on green 3.2:1, which is why green sits this one out
+       (axe, 2026-09-10). ── */
+    .pick-connect { --pile: var(--t-yellow); --pile-ink: var(--t-ink); }
+    .pick-think { --pile: var(--t-cyan); --pile-ink: var(--t-ink); }
+    .pick-review { --pile: var(--t-orange); --pile-ink: var(--t-ink); }
+    .pick-play { --pile: var(--t-magenta); --pile-ink: var(--t-paper); }
+
     /* Two classes on purpose: the shared .goal-chip rule below is one, so
-       the pile paints must outrank it */
-    .goal-chip.pick-chip { transform: rotate(-1deg); }
-    .goal-chip.pick-chip-connect { background: var(--t-yellow); background-image: var(--t-grain); }
-    .goal-chip.pick-chip-think { background: var(--t-green); color: var(--t-paper); }
-    .goal-chip.pick-chip-review { background: var(--t-paper); }
-    .goal-chip.pick-chip-play { background: var(--t-birch); background-image: var(--t-grain); }
+       the pile paint must outrank it */
+    .goal-chip.pick-chip {
+      transform: rotate(-1deg);
+      background: var(--pile);
+      color: var(--pile-ink);
+    }
 
     @media (max-width: 760px) {
       .picks-grid { grid-template-columns: 1fr; }
@@ -1355,12 +1386,14 @@
         return m ? parseInt(m[1], 10) : 999;
       }
 
-      function buildBoard(g, i) {
+      function buildBoard(g, key, i) {
         var board = document.createElement('a');
-        board.className = 'pick-board';
+        // The category's paint rides on the board (spine + name chip).
+        board.className = 'pick-board pick-' + key;
         board.href = '/library?about=' + encodeURIComponent(g.id);
         board.setAttribute('aria-label', g.name + ', see what it is');
-        if (window.HoverCard) HoverCard.attach(board, g);
+        // No hover card here (owner, 2026-09-10): the board already shows
+        // the name, the minutes, and the whole description.
         board.style.setProperty('--rot', BOARD_ROTS[i % BOARD_ROTS.length]);
 
         var slide = document.createElement('div');
@@ -1427,9 +1460,9 @@
           var picks = picksFor(group.key);
           if (!picks.length) return;
           var head = document.createElement('div');
-          head.className = 'picks-row-head';
+          head.className = 'picks-row-head pick-' + group.key;
           var chip = document.createElement('span');
-          chip.className = 'goal-chip pick-chip pick-chip-' + group.key;
+          chip.className = 'goal-chip pick-chip';
           chip.textContent = group.label;
           head.appendChild(chip);
           var job = document.createElement('span');
@@ -1439,7 +1472,7 @@
           picksRowsEl.appendChild(head);
           var grid = document.createElement('div');
           grid.className = 'picks-grid';
-          picks.forEach(function (g, i) { grid.appendChild(buildBoard(g, gi * PER_ROW + i)); });
+          picks.forEach(function (g, i) { grid.appendChild(buildBoard(g, group.key, gi * PER_ROW + i)); });
           picksRowsEl.appendChild(grid);
           shown += picks.length;
         });
