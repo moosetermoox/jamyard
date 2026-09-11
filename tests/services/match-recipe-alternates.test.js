@@ -89,7 +89,11 @@ describe('matchRecipe alternates', () => {
     );
     expect(result.recipe).toBe('doodle-bluff');
     expect(system).toContain('already chosen');
-    expect(system).not.toContain('noMatch');
+    // No fit-based refusal when the teacher already chose. (The one
+    // noMatch the forced prompt keeps is the fresh-facts honesty escape,
+    // 2026-09-10: a quiz about this week's news is refused, not faked.)
+    expect(system).not.toContain('If NONE of the recipes fit');
+    expect(system).toContain('training data ends');
   });
 
   it('unforced mode still offers the noMatch shape', async () => {

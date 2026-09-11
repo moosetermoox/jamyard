@@ -346,6 +346,15 @@ Be creative, playful, and engaging. Keep responses concise.`;
 // must treat student text as data — not instructions.
 // Appended to EVERY outbound system prompt in _callClaude. Students read
 // em dashes as an AI tell, so nothing we generate may use one.
+// Fresh-facts honesty (2026-09-10): a teacher asked for a current-events
+// quiz and got confident questions about news the model has never seen.
+// Every prompt that writes facts carries this rule plus an escape hatch
+// (needsTeacherFacts / cantBuild / noMatch, whichever shape the caller
+// already reads), so the answer is "I do not know this" and never a fake.
+const FRESH_FACTS_RULE = 'You only know what was true when your training data ends, and nothing since. If the topic depends on recent or changing facts (current events, this week\'s or this month\'s news, "the latest", "this year\'s", live scores or standings, a new release, prices, who currently holds an office), do NOT write from guesses or make up names, dates, and numbers.';
+const MATCH_FRESH_FACTS = 'Quiz and bluff recipes need questions or facts. ' + FRESH_FACTS_RULE + ' If the teacher did not supply the questions and the topic needs facts like that, do not invent them: return the noMatch shape with a reason that says you do not know recent events, and a suggestion to paste the facts or the questions themselves into the description (the recipe\'s questions box takes them too).';
+const NEEDS_TEACHER_FACTS_ESCAPE = 'Instead return ONLY: {"needsTeacherFacts": true, "reason": "one warm sentence saying what you cannot know, and that pasting the facts or writing the questions themselves will work"}';
+
 const STYLE_RULES = `STYLE RULES (always apply):
 - Never use an em dash (—) in any text you write. Use a comma, a colon, or a separate sentence instead.
 - Display text is plain text with ONE formatting mark: double stars make a word or short phrase bold, like **this**. Use it only when the teacher asks for emphasis, never on whole sentences or headings. No other markdown: no # headings, no single-star italics, no backticks, no tables. For a list, start each line with "- ". For a section header, write a short line ending with a colon.`;
@@ -1361,6 +1370,7 @@ ${classLine}Write exactly ${n} questions.
 
 Rules:
 - Questions must be factually correct and unambiguous, only write what you are certain of. The teacher reviews and can edit every question before anything is built.
+- ${FRESH_FACTS_RULE} ${NEEDS_TEACHER_FACTS_ESCAPE}
 - Each question has 2 to ${QUIZ_LIMITS.maxChoices} answer choices with exactly ONE correct answer; "correct" must EXACTLY match one of the choices.
 - Wrong choices should be plausible (common mistakes beat nonsense), but never ambiguous.
 - Keep every question and choice short enough to read off a projector in seconds.
@@ -1378,6 +1388,15 @@ Return ONLY JSON, no other prose:
         const match = text.match(/\{[\s\S]*\}/);
         if (!match) throw new Error('AI response was not valid JSON');
         parsed = JSON.parse(match[0]);
+      }
+      if (parsed && parsed.needsTeacherFacts === true) {
+        // The honest answer: recent or changing facts the model cannot know.
+        // Surfaced to the teacher as-is, with the flag so callers can tell
+        // it from a broken reply.
+        const reason = (typeof parsed.reason === 'string' && parsed.reason.trim())
+          ? parsed.reason.trim()
+          : 'The AI only knows facts up to when its training ended, so it cannot write about recent events. Paste the facts or write the questions yourself and it will build the rest.';
+        return { error: reason, needsTeacherFacts: true };
       }
       const questions = cleanQuizQuestions(parsed.questions, n);
       if (questions.length === 0) {
@@ -1429,6 +1448,7 @@ ${classLine}Write exactly ${n} facts.
 
 Rules:
 - Facts must be REAL and verifiable, only write what you are certain of. The teacher reviews and can edit every fact before anything is built.
+- ${FRESH_FACTS_RULE} ${NEEDS_TEACHER_FACTS_ESCAPE}
 - Each fact is one sentence with the blank shown as ___ (e.g. "The mayor of Rabbit Hash, Kentucky is a ___."). Keep it specific.
 - "truth" is the real word or short phrase that fills the blank. Pick facts where the truth is genuinely surprising, so student lies can compete with it.
 - The blank is a WORD or SHORT PHRASE (a thing, a creature, a job, a place, a food, the name of something), never a number, year, date, age, count, or measurement. Numbers make dull bluffs, and a sentence that mentions two dates has already handed over the answer ("performed the role for ___ years from 1955 until 1990" is arithmetic, not trivia). No clues in the sentence that let a student work out the answer, and nothing so famous that the room already knows it.
@@ -1449,6 +1469,15 @@ Return ONLY JSON, no other prose:
         const match = text.match(/\{[\s\S]*\}/);
         if (!match) throw new Error('AI response was not valid JSON');
         parsed = JSON.parse(match[0]);
+      }
+      if (parsed && parsed.needsTeacherFacts === true) {
+        // The honest answer: recent or changing facts the model cannot know.
+        // Surfaced to the teacher as-is, with the flag so callers can tell
+        // it from a broken reply.
+        const reason = (typeof parsed.reason === 'string' && parsed.reason.trim())
+          ? parsed.reason.trim()
+          : 'The AI only knows facts up to when its training ended, so it cannot write about recent events. Paste the facts or write the questions yourself and it will build the rest.';
+        return { error: reason, needsTeacherFacts: true };
       }
       const questions = cleanBluffQuestions(parsed.questions, n);
       if (questions.length === 0) {
@@ -1597,6 +1626,7 @@ RULES:
 - If the idea pools what everyone contributes and hands each student a random private combination (a person and a circumstance, a character and a setting, ingredients for a story), use ONE deal step with one pile per kind of thing; a plain collect keeps every answer with its author and cannot deal anything out. Each student adds one item per pile; when the teacher says "everyone lists four", the piles still fill at class size, one per student.
 - If the HEART of the teacher's idea needs a mechanic no brick provides (such as AI writing rival answers for students to compare), do not build a hollow lookalike. Instead return ONLY: {"cantBuild": true, "reason": "one plain sentence naming what the builder cannot do yet, in a warm teacher voice"}
 - Quiz questions must be factually correct and unambiguous, only write what you are certain of. For a quiz, 5 to 8 questions is the sweet spot unless the teacher asked for a number. The teacher reviews and can edit every question before anything is built.
+- ${FRESH_FACTS_RULE} When a quiz would need such facts and the teacher did not supply the questions, return the cantBuild object instead, with a reason that says you do not know recent events and that pasting the facts or the questions themselves into the description will work.
 - Write engaging, classroom-ready text for every step that takes text. Never include student names. Do not decorate text with emojis unless the activity itself is about emojis.
 - Output ONLY a JSON object, no other prose: {"name": "...", "description": "one library-card sentence", "steps": [{"brick": "...", "text": "...", ...}]}
 
@@ -2057,7 +2087,8 @@ The teacher has already chosen the recipe above for their idea. Do not judge whe
   "explanation": "One short sentence about how you set it up.",
   "title": "A short name for THIS activity: the recipe name plus the teacher's topic, like 'Snowball: Causes of WWI'. Omit when the idea names no topic."
 }
-When the description gives you nothing for a parameter, use the recipe's default, or invent something classroom-safe that fits the idea.`
+When the description gives you nothing for a parameter, use the recipe's default, or invent something classroom-safe that fits the idea.
+${MATCH_FRESH_FACTS}`
       : `# Your job
 
 Read the teacher's description and decide:
@@ -2081,7 +2112,8 @@ ${gameOption}1. If ONE of the recipes above is a good fit:
      "noMatch": true,
      "reason": "One sentence explaining why no recipe fits.",
      "suggestion": "One sentence suggesting a recipe that's CLOSE, name the recipe and what they'd give up."
-   }`;
+   }
+3. ${MATCH_FRESH_FACTS}`;
 
     return `${forced
       ? "You fill in the parameters of a pre-built classroom game recipe that a teacher has already chosen for their idea. The recipe is a working game; you only supply a few parameter values."
