@@ -63,7 +63,16 @@ describe('home page 15b', () => {
   it('every activity door goes to the make page, and nothing opens a room straight from home', () => {
     expect(html).toContain("'/make?game=' + encodeURIComponent(g.id) + '&from=home'");
     expect(html).not.toContain('/host?game=');
-    expect(html).not.toContain('showActivityPopup');
+  });
+
+  it('a print opens the popup with the map first, so a name like Snowball explains itself on the page', () => {
+    expect(html).toContain('function showActivityPopup');
+    expect(html).toContain('ActivityMap.attach(g.id, mapHolder)');
+    expect(html).toContain('onClick: showActivityPopup');
+    expect(html).toContain('href: makeHref');
+    for (const dep of ['/shared/dialog.js', '/shared/phase-names.js', '/shared/activity-map.js', '/shared/activity-map.css']) {
+      expect(html, dep).toContain(dep);
+    }
   });
 
   it('the student join is one tab that reveals the code field', () => {

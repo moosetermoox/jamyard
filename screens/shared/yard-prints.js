@@ -127,20 +127,29 @@
     return mini;
   }
 
-  // opts.href(g) gives the link; opts.onClick(g, card) makes the print a
-  // button instead (the yard page opens its popup with the doors). The
-  // hover card carries the description either way when it is loaded.
+  // opts.href(g) gives the link; opts.onClick(g, card) opens a popup on
+  // a plain click (with a link too, modified clicks and new tabs still
+  // follow the href; without one the print is a button). The hover card
+  // carries the description either way when it is loaded.
   function buildCard(g, i, opts) {
     opts = opts || {};
     var card;
-    if (opts.onClick) {
+    if (opts.href) {
+      card = el('a', 'yard-card');
+      card.href = opts.href(g);
+      if (opts.onClick) {
+        card.setAttribute('aria-haspopup', 'dialog');
+        card.addEventListener('click', function (e) {
+          if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+          e.preventDefault();
+          opts.onClick(g, card);
+        });
+      }
+    } else {
       card = el('button', 'yard-card');
       card.type = 'button';
       card.setAttribute('aria-haspopup', 'dialog');
-      card.addEventListener('click', function () { opts.onClick(g, card); });
-    } else {
-      card = el('a', 'yard-card');
-      card.href = opts.href ? opts.href(g) : '#';
+      card.addEventListener('click', function () { if (opts.onClick) opts.onClick(g, card); });
     }
     card.setAttribute('data-game-id', g.id);
     card.setAttribute('aria-label', g.name + ', see what it is');

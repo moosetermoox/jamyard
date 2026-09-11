@@ -6,6 +6,7 @@
   <title>Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="/shared/totem.css">
+  <link rel="stylesheet" href="/shared/activity-map.css">
   <link rel="stylesheet" href="/shared/hover-card.css">
   <link rel="stylesheet" href="/shared/yard-prints.css">
   <style>
@@ -20,7 +21,10 @@
        page draws the same grid without the fold and the carousel. Every
        activity door on this page lands on the make page (the print, then
        Try it out or Host it now): nothing opens a room straight from home
-       (owner's call, 2026-09-10). The student door is one yellow tab. */
+       (owner's call, 2026-09-10). A print opens the activity popup first:
+       what it is and what happens, stop by stop, without leaving the page
+       ("nobody knows what Snowball means", owner 2026-09-10). The student
+       door is one yellow tab. */
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -661,6 +665,95 @@
       margin-left: 8px;
     }
 
+    /* ── The activity popup (a print's click): what it is, the map, then
+       the one red door to the make page ── */
+    .home-dialog-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(50,35,15,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1200;
+      padding: 20px;
+    }
+
+    .home-dialog {
+      position: relative;
+      width: min(460px, 94vw);
+      background: var(--t-paper);
+      box-shadow: 0 4px 8px rgba(50,35,15,0.3);
+      transform: rotate(-0.3deg);
+      padding: 24px 26px 22px;
+      max-height: 88vh;
+      overflow-y: auto;
+    }
+
+    .home-dialog .dialog-close-btn {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      border: none;
+      background: none;
+      font-size: 1rem;
+      cursor: pointer;
+      color: var(--t-muted-caps);
+      box-shadow: none;
+    }
+
+    .home-dialog .dialog-close-btn:hover { color: var(--t-ink); }
+
+    .home-dialog-name {
+      display: inline-block;
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 24px;
+      color: var(--t-paper);
+      background: var(--t-magenta);
+      padding: 3px 14px 7px;
+      transform: rotate(-1.2deg);
+      box-shadow: 0 3px 4px rgba(50,35,15,0.28);
+      margin-bottom: 10px;
+    }
+
+    .home-dialog-meta {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--t-muted-caps);
+      margin-bottom: 10px;
+    }
+
+    .home-dialog-desc {
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.55;
+      color: var(--t-ink);
+    }
+
+    .home-dialog-actions {
+      margin-top: 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* The popup is its own layer, so its door may be red */
+    .home-dialog-start {
+      font-size: 19px;
+      color: var(--t-paper);
+      background: var(--t-red);
+      padding: 12px 22px 14px;
+      --rot: -0.8deg;
+      display: inline-block;
+    }
+
+    .home-dialog-sub {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--t-muted);
+    }
+
     /* ── Footer: plain spaced links ── */
     footer {
       margin-top: 64px;
@@ -802,6 +895,9 @@
   <script src="/shared/game-visibility.js"></script>
   <script src="/shared/goal-groups.js"></script>
   <script src="/shared/my-games.js"></script>
+  <script src="/shared/dialog.js"></script>
+  <script src="/shared/phase-names.js"></script>
+  <script src="/shared/activity-map.js"></script>
   <script src="/shared/hover-card.js"></script>
   <script src="/shared/yard-prints.js"></script>
   <script>
@@ -890,11 +986,41 @@
         });
       }
 
+      // ── The activity popup: what it is, what happens (the map), then
+      //    the one red door to the make page. Opens on a plain click on a
+      //    print; the hover card already gave the description, the map is
+      //    what needs the click. ──
+      function showActivityPopup(g) {
+        if (!window.Dialog) { window.location.href = makeHref(g); return; }
+        clearInterval(timer); // hold the carousel while reading
+        var overlay = el('div', 'home-dialog-overlay');
+        var modal = el('div', 'home-dialog');
+        overlay.appendChild(modal);
+        modal.appendChild(el('div', 'home-dialog-name', g.name));
+        modal.appendChild(el('p', 'home-dialog-meta', YardPrints.metaOf(g)));
+        modal.appendChild(el('p', 'home-dialog-desc', g.description || ''));
+        // What happens, stop by stop (arrives async into this holder; the
+        // door below never jumps out from under the mouse)
+        var mapHolder = el('div');
+        modal.appendChild(mapHolder);
+        if (window.ActivityMap) ActivityMap.attach(g.id, mapHolder);
+        var actions = el('div', 'home-dialog-actions');
+        var start = el('a', 'home-dialog-start t-lift t-label', 'Start the room');
+        start.href = makeHref(g);
+        start.title = 'Open "' + g.name + '" as your class will see it, then start the room';
+        actions.appendChild(start);
+        actions.appendChild(el('span', 'home-dialog-sub', 'Change the question first, or try it with pretend students.'));
+        modal.appendChild(actions);
+        document.body.appendChild(overlay);
+        Dialog.enhance(overlay, modal, { title: g.name, onClose: startRotation });
+      }
+
       // ── The yard grid: the shared prints, filtered by the picked job ──
       function renderGrid() {
         var pool = games.filter(function (g) { return activeGoal === null || groupOf(g) === activeGoal; });
         YardPrints.buildGrid(gridEl, pool, {
           href: makeHref,
+          onClick: showActivityPopup,
           empty: 'Nothing on this shelf yet. The AI can make one.'
         });
       }
