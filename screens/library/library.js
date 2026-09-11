@@ -93,7 +93,6 @@ function matchesGoal(game) {
 
 function matchesFilters(game) {
   if (!matchesGoal(game)) return false;
-  if (!matchesMinutes(game)) return false;
   if (libraryQuery) {
     var hay = (game.name + ' ' + (game.description || '') + ' ' +
       (Array.isArray(game.tags) ? game.tags.join(' ') : '') + ' ' +
@@ -135,7 +134,6 @@ function refreshLibrary() {
   var visible = applyVisibility(allGames);
   document.getElementById('library-controls').hidden = visible.length === 0;
   buildGoalChips(visible);
-  buildTimeChips(visible);
   var filtered = visible.filter(matchesFilters);
   // Subject-search rescue (2026-08-08 field test): the activities are
   // topic-agnostic shells, so "history" matching nothing is our failure to
