@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// vanity-urls.json maps memorable paths to activities (jamyard.xyz/good-question).
+// vanity-urls.json maps memorable paths to activities (jamyard.org/good-question).
 // The server refuses bad slugs loudly at startup; this test catches them
 // before they ever ship.
 

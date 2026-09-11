@@ -100,7 +100,67 @@ describe('homeGlimpse', () => {
   });
 
   it('never crashes on a broken config', () => {
-    expect(homeGlimpse({})).toEqual({ mode: 'answer', prompt: '' });
-    expect(homeGlimpse(null)).toEqual({ mode: 'answer', prompt: '' });
+    expect(homeGlimpse({})).toEqual({ mode: 'answer', prompt: '', samples: [] });
+    expect(homeGlimpse(null)).toEqual({ mode: 'answer', prompt: '', samples: [] });
+  });
+});
+
+// 15b home (2026-09-10): the projector frame and the "on their screens"
+// cards show a few of the template's own sample answers, so the drawn
+// room reads as that activity and never as a student's words.
+describe('homeGlimpse samples', () => {
+  it('carries up to three sample answers for the first student step', () => {
+    const g = homeGlimpse(load('snowball'));
+    expect(g.samples).toHaveLength(3);
+    expect(g.samples[0]).toBe('One person talks at a time, and the rest of us actually listen.');
+  });
+
+  it('takes the first field of a multi-field sample line', () => {
+    const g = homeGlimpse(load('exit-ticket'));
+    expect(g.samples[0]).toBe('Plants make their own food from sunlight, water, and carbon dioxide.');
+  });
+
+  it('is empty when the template carries no sample answers', () => {
+    const g = homeGlimpse(load('trivia-bluff'));
+    expect(g.samples).toEqual([]);
+    expect(homeGlimpse({ name: 'X', description: 'Hi.', phases: {} }).samples).toEqual([]);
+  });
+
+  it('finds the sample set inside a chain the map folds into one stop', () => {
+    const g = homeGlimpse(load('one-more-thing'));
+    expect(g.samples.length).toBeGreaterThan(0);
+  });
+
+  it('shows nothing when the first student step has no set, even if a later one does', () => {
+    const g = homeGlimpse({
+      name: 'X',
+      description: '',
+      phases: {
+        lobby: { type: 'lobby', next: 'pick' },
+        pick: { type: 'collect-choice', prompt: 'Pick a side', choices: ['A', 'B'], next: 'why' },
+        why: { type: 'collect', prompt: 'Why?', next: 'end' },
+        end: { type: 'end' }
+      },
+      sampleAnswers: { why: ['Because.'] }
+    });
+    expect(g.samples).toEqual([]);
+  });
+
+  it('reads a respondsTo block and cuts a long line for the frame', () => {
+    const long = 'A very long sample answer that keeps going well past the width the projector frame can hold at once.';
+    const g = homeGlimpse({
+      name: 'X',
+      description: '',
+      phases: {
+        lobby: { type: 'lobby', next: 'ask' },
+        ask: { type: 'collect', prompt: 'Say it', next: 'end' },
+        end: { type: 'end' }
+      },
+      sampleAnswers: { ask: { respondsTo: 'other', lines: [long, 'short'] } }
+    });
+    expect(g.samples).toHaveLength(2);
+    expect(g.samples[0].length).toBeLessThanOrEqual(72);
+    expect(g.samples[0].endsWith('…')).toBe(true);
+    expect(g.samples[1]).toBe('short');
   });
 });

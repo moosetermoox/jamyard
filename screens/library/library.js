@@ -43,10 +43,12 @@ var PILE_GROUPS = [
   // The goal piles and their tag membership come from the shared
   // GoalGroups (screens/shared/goal-groups.js), which the home page's
   // shelf filter reads too.
-  { key: 'connect', label: 'Connect', goals: GoalGroups.goalsIn('connect') },
-  { key: 'think', label: 'Think', goals: GoalGroups.goalsIn('think') },
-  { key: 'review', label: 'Review', goals: GoalGroups.goalsIn('review') },
-  { key: 'play', label: 'Play', goals: GoalGroups.goalsIn('play') }
+  // Their labels are the four jobs the home page's planks say (15b home,
+  // 2026-09-10): "To connect", "To think", "To review", "To just have fun".
+  { key: 'connect', label: GoalGroups.GROUPS[0].job, goals: GoalGroups.goalsIn('connect') },
+  { key: 'think', label: GoalGroups.GROUPS[1].job, goals: GoalGroups.goalsIn('think') },
+  { key: 'review', label: GoalGroups.GROUPS[2].job, goals: GoalGroups.goalsIn('review') },
+  { key: 'play', label: GoalGroups.GROUPS[3].job, goals: GoalGroups.goalsIn('play') }
 ];
 
 var GOAL_TO_GROUP = GoalGroups.GOAL_TO_GROUP;
