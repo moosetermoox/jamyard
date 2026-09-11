@@ -1575,6 +1575,7 @@ function buildTeacherSnapshot(code, room) {
   if (phase && phase.type === 'preview') {
     const data = engine.getPhaseData(phase.id);
     if (data) snap.preview = { content: data.content, responses: data.responses || [] };
+    hostConnected: roomToHost.has(code),
   }
   const ps = room.phaseState;
   if (ps && ps.kind === 'checklist' && !ps.closed) {
@@ -1601,7 +1602,12 @@ function emitTeacherRoster(code, room) {
   const players = room.engine.players.listPublic();
   io.to(teachersChannel(code)).emit(EVENTS.TEACHER_ROSTER, {
     count: players.length,
-    players
+    players,
+    // The projector's socket is the only thing that paints the class's
+    // screen: when it has dropped (a wifi blip, a tab the browser put to
+    // sleep behind the console), the console says so instead of letting
+    // the teacher wonder why students land here and nowhere else.
+    hostConnected: roomToHost.has(code)
   });
 }
 
@@ -3532,6 +3538,8 @@ io.on('connection', (socket) => {
       hostToken: room.hostToken,
       start: config.start || 'together',
       language: room.engine.language,
+    // The consoles drop their "projector not connected" line.
+    emitTeacherRoster(code, room);
       strings: stringsFor(room.engine.language),
       restored: true
     });
@@ -5411,6 +5419,9 @@ io.on('connection', (socket) => {
 
 // Init DB (so durable user recipes are available), then load recipes.
 async function startup() {
+        // Tell the consoles now: the teacher may be looking at one while
+        // the projector tab sleeps behind it.
+        emitTeacherRoster(roomCode, room);
   if (DB_ENABLED) {
     await initDb();
     console.log('[init] Database ready.');

@@ -85,6 +85,7 @@ var lobbyCount = document.getElementById('lobby-count');
 var lobbyRoster = document.getElementById('lobby-roster');
 var startActivityBtn = document.getElementById('start-activity-btn');
 var deviceNotice = document.getElementById('device-notice');
+var projectorNotice = document.getElementById('projector-notice');
 
 var currentCode = null;
 var currentPin = null;
@@ -174,7 +175,17 @@ socket.on('teacher-join-error', function (data) {
   showJoinError((data && data.message) || 'Could not connect.');
 });
 
+// The server says on every roster and snapshot whether the projector's
+// socket is bound to the room. A dropped projector is the one failure a
+// teacher cannot see from here otherwise: students keep landing on this
+// console and the class's screen stays empty.
+function renderProjectorNotice(hostConnected) {
+  if (!projectorNotice) return;
+  projectorNotice.hidden = hostConnected !== false;
+}
+
 socket.on('teacher-joined', function (snap) {
+  renderProjectorNotice(snap && snap.hostConnected);
   currentCode = codeInput.value.trim();
   currentPin = pinInput.value.trim();
   try {
@@ -354,6 +365,7 @@ function renderLobbyRoster() {
 
 socket.on('teacher-roster', function (data) {
   latestRoster = { count: (data && data.count) || 0, players: (data && data.players) || [] };
+  renderProjectorNotice(data && data.hostConnected);
   if (currentPhaseType === 'lobby') renderLobbyRoster();
 });
 

@@ -126,6 +126,12 @@ const previewPrivacyHint = document.getElementById('preview-privacy-hint');
 // Elements - Teacher view chip (copy-link pairing)
 const teacherViewChip = document.getElementById('teacher-view-chip');
 let currentTeacherPin = null;
+// The rebind credential for THIS room, kept in memory so a socket
+// reconnect can rejoin even when sessionStorage is unavailable.
+let currentHostToken = null;
+// Where this tab was opened from (a ?game= launch keeps its game here
+// after the address is tidied), so Play again relaunches the same thing.
+const LAUNCH_URL = window.location.href;
 let teacherConsolePaired = false;
 
 // The host screen is projected, so pairing never shows the PIN on the wall:
@@ -429,25 +435,31 @@ socket.emit('get-games');
 // If this tab (session) was hosting a room, rebind to it instead of showing
 // the create-room screen. The server holds rooms through a host-disconnect
 // grace window and can resurrect them from snapshots after a restart.
+// The decision itself lives in host-session.js (pure, tested). The one
+// rule that matters in a classroom: a tab that is ALREADY hosting a room
+// rebinds on every reconnect, whatever its URL says. The 2026-09-10 bug:
+// the projector tab sat behind the teacher console, its socket blipped,
+// and the old ?game= guard skipped the rejoin, so every student who joined
+// afterwards showed on the console and never on the projector.
 socket.on('connect', () => {
-  try {
-    const params = new URLSearchParams(window.location.search);
+  let saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem('lanyardHostSession') || 'null'); } catch (e) { /* storage unavailable */ }
+  const action = HostSession.connectAction({
+    search: window.location.search,
+    live: currentRoomCode && currentHostToken ? { code: currentRoomCode, hostToken: currentHostToken } : null,
+    saved
+  });
+  if (action.kind === 'rejoin') {
+    socket.emit('host-rejoin', { code: action.code, hostToken: action.hostToken });
+  } else if (action.kind === 'forget') {
     // "Host a Game" from home appends ?new=1 to mean "start fresh": forget any
     // stale host session left in this tab from a prior game and show the picker.
     // We strip the param so a later F5 on this new game still recovers normally.
-    if (params.get('new')) {
-      try { sessionStorage.removeItem('lanyardHostSession'); } catch (e) { /* ignore */ }
-      history.replaceState(null, '', '/host');
-      return;
-    }
-    // ?game= / prototype launches always want a FRESH room (the editor's
-    // Prototype button, sim harnesses) — never rebind those to an old one.
-    if (params.get('game') || params.get('prototype')) return;
-    const saved = JSON.parse(sessionStorage.getItem('lanyardHostSession') || 'null');
-    if (saved && saved.code && saved.hostToken) {
-      socket.emit('host-rejoin', { code: saved.code, hostToken: saved.hostToken });
-    }
-  } catch (e) { /* storage unavailable */ }
+    try { sessionStorage.removeItem('lanyardHostSession'); } catch (e) { /* ignore */ }
+    history.replaceState(null, '', '/host');
+  }
+  // 'fresh' (?game= / prototype page load) and 'none' fall through to the
+  // picker; the games-list handler auto-creates the ?game= room.
 });
 
 socket.on('host-rejoin-error', () => {
@@ -692,9 +704,12 @@ wagerCloseBtn.addEventListener('click', () => {
 });
 
 playAgainBtn.addEventListener('click', () => {
-  // Don't rebind to the finished room after the reload — start fresh.
+  // Don't rebind to the finished room after the reload — start fresh. A
+  // ?game= launch had its address tidied to /host once the room existed,
+  // so go back to the launch address: the same activity, a new room.
   try { sessionStorage.removeItem('lanyardHostSession'); } catch (e) { /* ignore */ }
-  location.reload();
+  if (LAUNCH_URL !== location.href) location.href = LAUNCH_URL;
+  else location.reload();
 });
 
 // --- Socket events - Room setup ---
@@ -810,9 +825,17 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
   // Remember this room so an F5 (or a server restart) can rebind instead of
   // killing the game for the whole class.
   if (hostToken) {
+    currentHostToken = hostToken;
     try {
       sessionStorage.setItem('lanyardHostSession', JSON.stringify({ code, hostToken }));
     } catch (e) { /* storage unavailable */ }
+  }
+  // A ?game= launch drops the param now that the room exists: an F5, or the
+  // browser discarding this tab while the teacher console sat in front of
+  // it, then rebinds to THIS room instead of minting a new one.
+  const tidyPath = HostSession.urlAfterCreate(window.location.search);
+  if (tidyPath && !restored) {
+    try { history.replaceState(null, '', tidyPath); } catch (e) { /* ignore */ }
   }
   if (restored) {
     console.log('[host] Rebound to room ' + code);

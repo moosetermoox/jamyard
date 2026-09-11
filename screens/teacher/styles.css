@@ -138,6 +138,17 @@ h1, h2 {
 }
 
 /* --- Console --- */
+/* The projector dropped: a loud line under the status row. */
+.projector-notice {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border: 2px solid var(--t-red, #E5482B);
+  background: var(--t-gesso, #fff);
+  color: var(--t-red, #E5482B);
+  font-weight: 700;
+}
+.projector-notice[hidden] { display: none; }
+
 .status-row {
   display: flex;
   align-items: center;

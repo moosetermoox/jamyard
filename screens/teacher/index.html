@@ -35,6 +35,9 @@
       <span id="phase-label" class="phase-label">Waiting…</span>
       <span id="count-label" class="count-label"></span>
     </div>
+    <!-- The projector's socket dropped: students who join now reach this
+         console and nothing else until the host tab rebinds. -->
+    <p id="projector-notice" class="projector-notice" hidden>The projector screen is not connected. Reload the host tab on the projector and it will pick this room back up.</p>
 
     <!-- Lobby: who's in + the start control -->
     <div id="lobby-block" hidden>
