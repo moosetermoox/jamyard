@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="/shared/totem.css">
   <link rel="stylesheet" href="/shared/make-it-yours.css">
+  <link rel="stylesheet" href="/shared/activity-map.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -77,6 +78,13 @@
 
     <p class="make-error" id="make-error" hidden></p>
 
+    <!-- What happens, stop by stop: the treasure map the popups carried
+         (the home's doors land here now, 2026-09-10) -->
+    <section class="map-section" id="map-section">
+      <h2 class="panel-heading">What happens</h2>
+      <div id="map-holder"></div>
+    </section>
+
     <!-- A recipe's own setup panel (the quiz's questions, the bluff's facts):
          the same editor the dialog had, mounted here under the doors -->
     <section class="panel-section" id="panel-section" hidden>
@@ -103,6 +111,8 @@
     </div>
   </main>
 
+  <script src="/shared/phase-names.js"></script>
+  <script src="/shared/activity-map.js"></script>
   <script src="/shared/my-games.js"></script>
   <script src="/shared/owner-mode.js"></script>
   <script src="/shared/game-visibility.js"></script>

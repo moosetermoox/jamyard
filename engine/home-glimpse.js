@@ -7,13 +7,19 @@
  * frame needs from a config, reusing the activity map's primary-path walk
  * so the prompt shown is the first real student step, not the intro.
  *
- * Shape: { mode: 'answer' | 'join' | 'talk', prompt: string }
+ * Shape: { mode: 'answer' | 'join' | 'talk', prompt: string, samples: string[] }
  *   answer — students are typing/choosing; `prompt` is what they see
  *   join   — rolling start: the room opens straight into the first step,
  *            so the projector's lasting picture is the doorway (code + QR)
  *   talk   — announce-driven, nothing typed; `prompt` is the first screen
  *
- * `prompt` is teacher config, untrusted for rendering: textContent only.
+ * `samples` (15b home, 2026-09-10): up to three of the template's own
+ * sample answers for that first step (engine/sample-answers.js shape), the
+ * lines the drawn frame and the "on their screens" cards show. Template
+ * content, never a student's words.
+ *
+ * `prompt` and `samples` are teacher config, untrusted for rendering:
+ * textContent only.
  * Never throws — a glimpse is decoration, and a broken config must not
  * take the games list down with it.
  */
@@ -61,14 +67,63 @@ function ownWords(config, stop) {
   return undefined;
 }
 
-function promptFromStops(config, stops) {
+function firstInputStop(stops) {
   for (const stop of stops) {
     const input = (stop.kind === 'step' && INPUT_TYPES.has(stop.type)) ||
       (stop.kind === 'rounds' && Array.isArray(stop.sub) && stop.sub.some((t) => INPUT_TYPES.has(t)));
-    if (!input || !stop.detail) continue;
-    return ownWords(config, stop) || stop.detail;
+    if (input && stop.detail) return stop;
   }
-  return '';
+  return undefined;
+}
+
+function promptFromStops(config, stops) {
+  const stop = firstInputStop(stops);
+  return stop ? (ownWords(config, stop) || stop.detail) : '';
+}
+
+const SAMPLE_MAX = 3;
+const SAMPLE_LEN = 70;
+
+function cutSample(text) {
+  const clean = String(text || '').replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+  if (clean.length <= SAMPLE_LEN) return clean;
+  let out = clean.slice(0, SAMPLE_LEN);
+  const lastSpace = out.lastIndexOf(' ');
+  if (lastSpace > 30) out = out.slice(0, lastSpace);
+  return out.trim() + '…';
+}
+
+// The template's sample answers for the first student step: a plain list
+// deals line i to seat i, a respondsTo block keeps its lines, a
+// multi-field line shows its first field.
+// A chain (One More Thing's recall, add-one, add-again) folds into one
+// stop the map does not call a step, so with no first input stop the first
+// stop that owns a sample set is taken; with one, only its own ids count
+// (a later step's answers under the first step's prompt would mislead).
+function sampleSetFor(config, stops) {
+  const sets = config && config.sampleAnswers;
+  if (!sets || typeof sets !== 'object') return undefined;
+  const first = firstInputStop(stops);
+  const candidates = first ? [first] : stops;
+  for (const stop of candidates) {
+    for (const id of (Array.isArray(stop.ids) ? stop.ids : [])) {
+      if (sets[id]) return sets[id];
+    }
+  }
+  return undefined;
+}
+
+function samplesFor(config, stops) {
+  const set = sampleSetFor(config, stops);
+  const lines = Array.isArray(set) ? set : (set && Array.isArray(set.lines) ? set.lines : []);
+  const out = [];
+  for (const line of lines) {
+    const text = Array.isArray(line) ? line[0] : line;
+    if (typeof text !== 'string' || !text.trim()) continue;
+    out.push(cutSample(text));
+    if (out.length === SAMPLE_MAX) break;
+  }
+  return out;
 }
 
 /**
@@ -87,17 +142,19 @@ export function activityHook(config, recipe) {
 }
 
 export function homeGlimpse(config) {
-  const empty = { mode: 'answer', prompt: '' };
+  const empty = { mode: 'answer', prompt: '', samples: [] };
   if (!config || typeof config !== 'object') return empty;
   let map;
   try {
     map = buildActivityMap(config);
   } catch {
-    return { mode: 'answer', prompt: firstSentence(config.description) };
+    return { mode: 'answer', prompt: firstSentence(config.description), samples: [] };
   }
   const stops = (map && Array.isArray(map.stops)) ? map.stops : [];
+  let samples = [];
+  try { samples = samplesFor(config, stops); } catch { samples = []; }
   if (config.start === 'rolling') {
-    return { mode: 'join', prompt: promptFromStops(config, stops) || cut(firstSentence(config.description)) };
+    return { mode: 'join', prompt: promptFromStops(config, stops) || cut(firstSentence(config.description)), samples };
   }
   const prompt = promptFromStops(config, stops);
   // The map calls an announce-heavy activity talk-driven. For the frame,
@@ -118,7 +175,7 @@ export function homeGlimpse(config) {
   if (map && map.talk && mostlyTalk) {
     const first = stops.find((s) => s.detail || (s.samples && s.samples.length));
     const line = first ? (first.detail || first.samples[0]) : '';
-    return { mode: 'talk', prompt: line || cut(firstSentence(config.description)) };
+    return { mode: 'talk', prompt: line || cut(firstSentence(config.description)), samples };
   }
-  return { mode: 'answer', prompt: prompt || cut(firstSentence(config.description)) };
+  return { mode: 'answer', prompt: prompt || cut(firstSentence(config.description)), samples };
 }

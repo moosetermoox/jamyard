@@ -1897,7 +1897,7 @@ app.get('/designer/edit', (req, res) => {
 app.use('/designer', express.static(join(__dirname, 'screens/designer')));
 
 // --- Share links (the sharing system, docs/NEXT-STEPS) ---
-// jamyard.xyz/share/<id> is what a teacher hands a colleague: it lands on
+// jamyard.org/share/<id> is what a teacher hands a colleague: it lands on
 // an import page whose one button saves a COPY into the visitor's own
 // activities (POST /api/games/:id/copy below). Built-ins already have a
 // public home, so their share links go straight to the library popup.
@@ -1915,7 +1915,7 @@ app.get('/share/:gameId', async (req, res) => {
 app.get('/share', (req, res) => res.redirect('/library'));
 
 // --- Vanity URLs (vanity-urls.json) ---
-// A memorable path per activity: jamyard.xyz/good-question opens the host
+// A memorable path per activity: jamyard.org/good-question opens the host
 // screen for that activity. Config, not code: add a "slug": "game-id" pair
 // to vanity-urls.json to mint one. Slugs that collide with a real surface
 // are refused loudly at startup.

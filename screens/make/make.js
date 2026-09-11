@@ -57,6 +57,11 @@
   else if (from === 'designer') el.back.href = '/designer';
   el.back.textContent = from === 'home' ? 'Back to home' : from === 'designer' ? 'Back to Create' : 'Back to the yard';
 
+  // What happens, stop by stop (the map the popups used to carry)
+  if (gameId && window.ActivityMap) {
+    ActivityMap.attach(gameId, document.getElementById('map-holder'));
+  }
+
   var state = {
     config: null,
     print: null,

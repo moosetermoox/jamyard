@@ -15,11 +15,14 @@
     create: 'play', energize: 'play'
   };
 
+  // `label` is the one-word pile name; `job` is how the front door and
+  // the yard's chips say it since the 15b home (2026-09-10): the four jobs
+  // a class needs done. Keys never change (internals keep them).
   var GROUPS = [
-    { key: 'connect', label: 'Connect' },
-    { key: 'think', label: 'Think' },
-    { key: 'review', label: 'Review' },
-    { key: 'play', label: 'Play' }
+    { key: 'connect', label: 'Connect', job: 'To connect' },
+    { key: 'think', label: 'Think', job: 'To think' },
+    { key: 'review', label: 'Review', job: 'To review' },
+    { key: 'play', label: 'Play', job: 'To just have fun' }
   ];
 
   function groupOf(game) {
@@ -28,6 +31,15 @@
       if (GOAL_TO_GROUP[tags[i]]) return GOAL_TO_GROUP[tags[i]];
     }
     return 'think';
+  }
+
+  // The job line an activity's meta carries ("To think · ~10 min")
+  function jobOf(game) {
+    var key = groupOf(game);
+    for (var i = 0; i < GROUPS.length; i++) {
+      if (GROUPS[i].key === key) return GROUPS[i].job;
+    }
+    return GROUPS[1].job;
   }
 
   // Goal tags that belong to a group (the yard's chip filter reads these).
@@ -39,5 +51,5 @@
     return out;
   }
 
-  window.GoalGroups = { GOAL_TO_GROUP: GOAL_TO_GROUP, GROUPS: GROUPS, groupOf: groupOf, goalsIn: goalsIn };
+  window.GoalGroups = { GOAL_TO_GROUP: GOAL_TO_GROUP, GROUPS: GROUPS, groupOf: groupOf, jobOf: jobOf, goalsIn: goalsIn };
 })();

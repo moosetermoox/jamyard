@@ -43,10 +43,12 @@ var PILE_GROUPS = [
   // The goal piles and their tag membership come from the shared
   // GoalGroups (screens/shared/goal-groups.js), which the home page's
   // shelf filter reads too.
-  { key: 'connect', label: 'Connect', goals: GoalGroups.goalsIn('connect') },
-  { key: 'think', label: 'Think', goals: GoalGroups.goalsIn('think') },
-  { key: 'review', label: 'Review', goals: GoalGroups.goalsIn('review') },
-  { key: 'play', label: 'Play', goals: GoalGroups.goalsIn('play') }
+  // Their labels are the four jobs the home page's planks say (15b home,
+  // 2026-09-10): "To connect", "To think", "To review", "To just have fun".
+  { key: 'connect', label: GoalGroups.GROUPS[0].job, goals: GoalGroups.goalsIn('connect') },
+  { key: 'think', label: GoalGroups.GROUPS[1].job, goals: GoalGroups.goalsIn('think') },
+  { key: 'review', label: GoalGroups.GROUPS[2].job, goals: GoalGroups.goalsIn('review') },
+  { key: 'play', label: GoalGroups.GROUPS[3].job, goals: GoalGroups.goalsIn('play') }
 ];
 
 var GOAL_TO_GROUP = GoalGroups.GOAL_TO_GROUP;
@@ -331,141 +333,22 @@ function renderLibrary(games, rescueInfo) {
     libraryGrid.appendChild(buildMyYardShelf(mine, shedGames));
   }
 
-  var shelf = document.createElement('div');
-  shelf.className = 'pile-shelf';
-  GoalGroups.GROUPS.forEach(function (group) {
-    var key = group.key;
-    if (piles[key].length === 0) return;
-    var group = null;
-    for (var i = 0; i < PILE_GROUPS.length; i++) {
-      if (PILE_GROUPS[i].key === key) { group = PILE_GROUPS[i]; break; }
-    }
-    shelf.appendChild(buildPileGroup(key, group.label, piles[key]));
-  });
-  libraryGrid.appendChild(shelf);
+  // The rest of the yard: the home page's grid of prints, shortest first
+  // (the shared /shared/yard-prints.js, owner's call 2026-09-10: the yard
+  // is the home's "The whole yard" without the fold and the carousel).
+  // The chips above already narrowed the list; clicking a print opens
+  // the activity popup with its doors.
+  var rest = [];
+  GoalGroups.GROUPS.forEach(function (group) { rest = rest.concat(piles[group.key]); });
+  var grid = document.createElement('div');
+  grid.className = 'yard-grid';
+  YardPrints.buildGrid(grid, rest, { onClick: openActivityDialog, aiHref: '/designer' });
+  libraryGrid.appendChild(grid);
 }
 
-// A yard pile (Totem 9g): up to 6 chunky planks on a single plinth with
-// the painted label BELOW. Bigger piles collapse behind a "+ N MORE"
-// plank so the yard keeps its three-totem silhouette.
-var PILE_MAX = 6;
-var expandedPiles = {};
-
-// Each pile starts its paint cycle somewhere else, so no two piles
-// share the same top color.
-var PILE_TONE_OFFSET = { connect: 0, think: 2, review: 4, play: 6 };
-
-function buildPileGroup(key, label, games) {
-  var group = document.createElement('div');
-  group.className = 'pile-group';
-
-  var pile = document.createElement('div');
-  pile.className = 'pile';
-
-  var collapsed = games.length > PILE_MAX && !expandedPiles[key];
-  var list = collapsed ? games.slice(0, PILE_MAX) : games;
-  for (var i = 0; i < list.length; i++) {
-    // The row wrapper, not the plank, takes the hover: it never moves
-    // or clips, so the pulled-out plank cannot jitter at the seams.
-    var row = document.createElement('div');
-    row.className = 'plank-row';
-    row.appendChild(buildPlank(list[i], i + (PILE_TONE_OFFSET[key] || 0)));
-    pile.appendChild(row);
-  }
-
-  if (games.length > PILE_MAX) {
-    var moreRow = document.createElement('div');
-    moreRow.className = 'plank-row';
-    var more = document.createElement('button');
-    more.type = 'button';
-    more.className = 'plank plank-more';
-    var hiddenCount = games.length - PILE_MAX;
-    more.textContent = collapsed ? '+ ' + hiddenCount + ' more' : 'show fewer';
-    more.setAttribute('aria-label', collapsed
-      ? 'Show ' + hiddenCount + ' more ' + label + ' activities'
-      : 'Show fewer ' + label + ' activities');
-    more.addEventListener('click', function () {
-      expandedPiles[key] = collapsed;
-      refreshLibrary();
-    });
-    moreRow.appendChild(more);
-    pile.appendChild(moreRow);
-  }
-
-  var plinth = document.createElement('div');
-  plinth.className = 't-plinth pile-plinth';
-  pile.appendChild(plinth);
-  group.appendChild(pile);
-
-  var tag = document.createElement('div');
-  tag.className = 'pile-tag pile-tag-' + key;
-  tag.textContent = label;
-  group.appendChild(tag);
-  return group;
-}
-
-// The hover card (description without the click) is shared with the
-// home shelf: /shared/hover-card.js.
-
-// One plank per activity (9g): CAPS name over a small meta line, painted
-// by position. Clicking opens the activity popup; every card action
-// lives there.
-function buildPlank(game, index) {
-  var plank = document.createElement('button');
-  plank.type = 'button';
-  plank.className = 'plank plank-tone-' + (index % 8);
-  plank.setAttribute('data-game-id', game.id);
-  plank.setAttribute('aria-haspopup', 'dialog');
-  plank.setAttribute('aria-label', game.name + ', see what it is and make it yours');
-  // No native title: the hover card carries the description instead (a
-  // browser tooltip on top of it would double up).
-  HoverCard.attach(plank, game);
-
-  var top = document.createElement('span');
-  top.className = 'plank-top';
-  if (Favorites.has(game.id)) {
-    var fav = document.createElement('span');
-    fav.className = 'plank-fav';
-    fav.textContent = '♥';
-    fav.setAttribute('aria-hidden', 'true');
-    top.appendChild(fav);
-  }
-  var name = document.createElement('span');
-  name.className = 'plank-name';
-  name.textContent = game.name;
-  top.appendChild(name);
-  plank.appendChild(top);
-
-  var metaBits = [];
-  if (game.playTime) {
-    // Planks carry the short time only; parentheticals live in the popup.
-    metaBits.push(String(game.playTime).split('(')[0].trim());
-  }
-  if (game.family === 'connection') metaBits.push('no winners');
-  // Rolling start: students begin the moment they arrive (Exit Ticket,
-  // Live Poll, Solo Quiz), so the plank says so up front.
-  if (game.start === 'rolling') metaBits.push('rolling start');
-  if (metaBits.length > 0) {
-    var meta = document.createElement('span');
-    meta.className = 'plank-meta';
-    meta.textContent = metaBits.join(' · ');
-    plank.appendChild(meta);
-  }
-  // One line on what it is for, so the plank can be understood without
-  // opening it (outside review, 2026-09-06). Server-derived: the recipe's
-  // tagline or the description's first sentence.
-  if (game.hook) {
-    var hook = document.createElement('span');
-    hook.className = 'plank-hook';
-    hook.textContent = game.hook;
-    plank.appendChild(hook);
-  }
-
-  plank.addEventListener('click', function () {
-    openActivityDialog(game);
-  });
-  return plank;
-}
+// The goal piles of planks (Totem 9g) retired on 2026-09-10: the yard
+// draws the home's grid of prints instead (/shared/yard-prints.js). The
+// personal shelf below keeps its mini planks.
 
 // The personal shelf: recents, hearts, and your copies as small planks
 // resting on one long board, "MY YARD" painted underneath. Hidden until
@@ -1211,7 +1094,8 @@ function handleHighlightParam() {
     window.history.replaceState(null, '', window.location.pathname +
       (params.toString() ? '?' + params.toString() : ''));
   } catch (e) { return; }
-  var piece = document.querySelector('.plank[data-game-id="' + CSS.escape(wantedId) + '"]') ||
+  var piece = document.querySelector('.yard-card[data-game-id="' + CSS.escape(wantedId) + '"]') ||
+    document.querySelector('.plank[data-game-id="' + CSS.escape(wantedId) + '"]') ||
     document.querySelector('.plank-mini[data-game-id="' + CSS.escape(wantedId) + '"]') ||
     document.querySelector('.library-card[data-game-id="' + CSS.escape(wantedId) + '"]');
   if (!piece) return; // filtered out or unknown — the library itself is the fallback

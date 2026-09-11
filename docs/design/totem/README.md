@@ -67,6 +67,13 @@ Interaction-only; nothing moves at rest. **120ms `cubic-bezier(0.4, 0, 0.2, 1)`*
 
 ## Screens / Views
 
+**2026-09-10**: Home direction in review is **15b** (`screens/15b-home.html`; canvas source `Lanyard Home.dc.html`). Not yet for implementation. Notes to carry into the build when it lands:
+- **Plank → shelf is a filtered jump, not a plain anchor.** Clicking TO CONNECT / TO THINK / TO REVIEW / TO JUST HAVE FUN scrolls to the catalogue *and* selects the matching chip, so the shelf arrives already narrowed. ALL is the default only on a cold load.
+- Plank labels are the verb alone; no job line, no activity counts.
+- Vocabulary: the four categories replace `together / thinking / proof / energy` everywhere (chips, card meta, data attributes). "Try it out" is retired for "Practice run"; red is START THE ROOM on activity and carousel, PICK AN ACTIVITY nowhere (planks are the only fold action).
+- Carousel START THE ROOM is a real start (opens a room directly from home). Intentional.
+- Student join is a single yellow STUDENT? JOIN A ROOM tab; the code field appears on click.
+
 **2026-09-09**: Try it out (`/prototype`) is now 14a, with 15a as its collect-phase state (see below). Home stays 13a.
 **2026-09-05**: Home is now 13a (see below); 8a is superseded.
 
@@ -152,6 +159,7 @@ Serifs · torn or curved edges · border-radius · gradients except the grain ·
 
 ## Files
 - `spec/Jamyard Totem System.dc.html` — the design system spec page (palette, type, material, stack grammar, components with live hovers, motion, never-list). Open in a browser.
+- `screens/15b-home.html` — Home, in review (full scroll, 1366 wide)
 - `screens/13a-home.html` — Home (current)
 - `screens/14a-try-it-out.html` — Try it out, join phase (current)
 - `screens/15a-try-it-out-collect.html` — Try it out, collect phase (current)

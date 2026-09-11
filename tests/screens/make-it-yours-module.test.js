@@ -44,7 +44,9 @@ describe('MakeItYours module', () => {
       '/shared/teacher-profile.js', '/shared/setup-knobs.js', '/shared/growing-text.js',
       '/shared/speech-input.js', '/shared/make-it-yours-doors.js'
     ];
-    for (const page of ['screens/home/index.html', 'screens/library/index.html']) {
+    // The 15b home (2026-09-10) has no dialog of its own: every activity
+    // door on it lands on the make page, so only the yard loads the module.
+    for (const page of ['screens/library/index.html']) {
       const html = await read(page);
       const at = html.indexOf('/shared/make-it-yours.js');
       expect(at, page + ' loads the module').toBeGreaterThan(-1);
@@ -58,10 +60,10 @@ describe('MakeItYours module', () => {
     }
   });
 
-  it('the home popup opens Make it yours in place, with the yard as the fallback', async () => {
+  it('the home page sends every activity to the make page instead of a popup', async () => {
     const home = await read('screens/home/index.html');
-    expect(home).toContain('MakeItYours.open(g, customize)');
-    expect(home).toContain("'/library?customize=' + encodeURIComponent(g.id)");
-    expect(home).not.toContain("customize.href = '/library?customize=");
+    expect(home).toContain("'/make?game=' + encodeURIComponent(g.id) + '&from=home'");
+    expect(home).not.toContain('MakeItYours.open(');
+    expect(home).not.toContain('/shared/make-it-yours.js');
   });
 });
