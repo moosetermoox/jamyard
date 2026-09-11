@@ -178,12 +178,18 @@
     .join-form.is-wrong .join-error { display: inline; }
 
     /* ── The fold: the question, the four planks, the mechanic line ── */
+    /* The fold owns the first screen (owner's call 2026-09-10): the
+       question, the planks, and the mechanic line, nothing else until the
+       teacher scrolls. */
     .fold {
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: center;
       text-align: center;
-      margin-top: 40px;
+      /* One screen on a Chromebook; a tall monitor does not get a void */
+      min-height: min(calc(100vh - 118px), 760px);
+      padding: 24px 0 36px;
     }
 
     h1 {
@@ -262,7 +268,7 @@
     .plank[data-goal="review"]  { background: var(--t-oak);   background-image: var(--t-grain); --rot: -1deg; }
     .plank[data-goal="play"]    { background: var(--t-pine);  background-image: var(--t-grain); --rot: 1.4deg; }
 
-    /* Lit = this job is what the yard is showing (all four when ALL is) */
+    /* Lit = the job the yard is narrowed to; at rest (ALL) the planks are wood */
     .plank.is-lit {
       background: var(--t-yellow);
       background-image: var(--t-grain);
@@ -289,7 +295,7 @@
 
     /* ── The whole yard: sticky head with the chips, the grid of prints ── */
     .yard {
-      margin-top: 56px;
+      margin-top: 64px;
       display: flex;
       flex-direction: column;
       gap: 22px;
@@ -477,7 +483,7 @@
 
     /* ── See one on the projector: the frame, the side, the pager ── */
     .stage {
-      margin-top: 64px;
+      margin-top: 8px;
       display: flex;
       flex-direction: column;
       gap: 22px;
@@ -491,7 +497,7 @@
       flex-wrap: wrap;
     }
 
-    .stage-head > div { display: flex; flex-direction: column; gap: 6px; }
+    .stage-title { display: flex; flex-direction: column; gap: 6px; }
 
     .stage-nav { display: flex; gap: 10px; }
 
@@ -859,22 +865,11 @@
       <p class="mechanic"><strong>You project one screen. Students play from their devices.</strong> They join with a code. Nothing to install.</p>
     </section>
 
-    <!-- The whole yard: every ready-made activity, shortest first; the chip
-         row is the planks at pocket size and sticks to the top. The last
-         tile is the AI door. Hidden until the list loads. -->
-    <section class="yard" id="yard" hidden aria-label="The whole yard">
-      <div class="yard-head">
-        <h2>The whole yard</h2>
-        <div class="yard-chips" id="yard-chips" role="group" aria-label="Show activities for"></div>
-      </div>
-      <div class="yard-grid" id="yard-grid"></div>
-    </section>
-
     <!-- See one on the projector: one activity at a time, the drawn frame
          and the students' screens, the page's one red. -->
     <section class="stage" id="stage" hidden aria-label="See one on the projector">
       <div class="stage-head">
-        <div>
+        <div class="stage-title">
           <span class="caps">See one on the projector</span>
           <h2>Your projector, mid-activity. Their screens beside it.</h2>
         </div>
@@ -903,6 +898,17 @@
         <span class="pager-bars" id="pager-bars" aria-hidden="true"></span>
         <span class="pager-names" id="pager-names"></span>
       </div>
+    </section>
+
+    <!-- The whole yard: every ready-made activity, shortest first; the chip
+         row is the planks at pocket size and sticks to the top. The last
+         tile is the AI door. Hidden until the list loads. -->
+    <section class="yard" id="yard" hidden aria-label="The whole yard">
+      <div class="yard-head">
+        <h2>The whole yard</h2>
+        <div class="yard-chips" id="yard-chips" role="group" aria-label="Show activities for"></div>
+      </div>
+      <div class="yard-grid" id="yard-grid"></div>
     </section>
 
     <footer>
@@ -1059,9 +1065,9 @@
       function lightPlanks() {
         var planks = planksEl.querySelectorAll('.plank');
         for (var i = 0; i < planks.length; i++) {
-          var lit = activeGoal === null || planks[i].getAttribute('data-goal') === activeGoal;
+          var lit = activeGoal !== null && planks[i].getAttribute('data-goal') === activeGoal;
           planks[i].classList.toggle('is-lit', lit);
-          planks[i].setAttribute('aria-current', lit && activeGoal !== null ? 'true' : 'false');
+          planks[i].setAttribute('aria-current', lit ? 'true' : 'false');
         }
       }
 
