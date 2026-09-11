@@ -6,17 +6,21 @@
   <title>Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="/shared/totem.css">
+  <link rel="stylesheet" href="/shared/hover-card.css">
+  <link rel="stylesheet" href="/shared/yard-prints.css">
   <style>
     /* ══ Totem system (docs/design/totem/), home 15b (2026-09-10) ══
        The fold asks what the class needs and answers with four planks, one
        per job (connect, think, review, just have fun). A plank is a filtered
        jump into the yard below; the yard's chip row is the same control at
        pocket size and sticks to the top of the screen, so the two are never
-       both in view. Under the yard, the projector section shows one activity
-       mid-activity with the students' screens beside it. Every activity
-       door on this page lands on the make page (the print, then Try it out
-       or Host it now): nothing opens a room straight from home (owner's
-       call, 2026-09-10). The student door is one yellow tab in the header. */
+       both in view. Between them, the projector section shows one activity
+       mid-activity with the students' screens beside it. The yard's grid
+       of prints is the shared module (/shared/yard-prints.js): the yard
+       page draws the same grid without the fold and the carousel. Every
+       activity door on this page lands on the make page (the print, then
+       Try it out or Host it now): nothing opens a room straight from home
+       (owner's call, 2026-09-10). The student door is one yellow tab. */
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -180,14 +184,13 @@
     /* ── The fold: the question, the four planks, the mechanic line ── */
     /* The fold owns the first screen (owner's call 2026-09-10): the
        question, the planks, and the mechanic line, nothing else until the
-       teacher scrolls. */
+       teacher scrolls. One screen on a Chromebook; a tall monitor gets no void. */
     .fold {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       text-align: center;
-      /* One screen on a Chromebook; a tall monitor does not get a void */
       min-height: min(calc(100vh - 118px), 760px);
       padding: 24px 0 36px;
     }
@@ -201,8 +204,6 @@
       color: var(--t-ink);
       text-wrap: balance;
     }
-
-    h1 .t-painted-word { padding: 0 10px; }
 
     .sub {
       margin-top: 14px;
@@ -293,13 +294,13 @@
 
     .mechanic strong { color: var(--t-ink); font-weight: 700; }
 
-    /* ── The whole yard: sticky head with the chips, the grid of prints ── */
+    /* ── The whole yard: sticky head with the chips, the grid of prints
+       (the grid itself is /shared/yard-prints.css) ── */
     .yard {
       margin-top: 64px;
       display: flex;
       flex-direction: column;
       gap: 22px;
-      /* Room for the sticky head to sit against the top edge */
       scroll-margin-top: 0;
     }
 
@@ -345,141 +346,7 @@
       background-image: var(--t-grain);
     }
 
-    .yard-grid {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-      gap: 22px 16px;
-      align-items: start;
-      min-height: 220px;
-    }
-
-    .yard-empty {
-      grid-column: 1 / -1;
-      font-size: 15px;
-      color: var(--t-muted);
-    }
-
-    .yard-card {
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      text-decoration: none;
-      color: var(--t-ink);
-      transform: rotate(var(--rot, 0deg));
-      transition: transform var(--t-quick) var(--t-ease);
-    }
-
-    .yard-card:hover,
-    .yard-card:focus-visible { transform: rotate(var(--rot, 0deg)) translateY(-5px); }
-
-    .yard-print {
-      background: var(--t-paper);
-      padding: 7px 7px 9px;
-      box-shadow: 0 4px 6px rgba(50,35,15,0.24);
-      margin-bottom: 9px;
-    }
-
-    /* The mini projector: the frame below at pocket size */
-    .mini {
-      background: var(--t-gesso);
-      height: 128px;
-      padding: 12px;
-      position: relative;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      text-align: center;
-      overflow: hidden;
-    }
-
-    .mini .caps { font-size: 7px; letter-spacing: 0.16em; }
-
-    .mini-prompt {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 13px;
-      line-height: 1.2;
-      color: var(--t-ink);
-      text-wrap: balance;
-      overflow-wrap: anywhere;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    /* The answer pile: one block per submission, the host's pile in miniature */
-    .pile {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .pile-block {
-      height: 8px;
-      margin-top: -1px;
-      transform: rotate(var(--rot, 0deg));
-    }
-
-    .pile-block:first-child { margin-top: 0; }
-
-    .mini-code {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 19px;
-      letter-spacing: 6px;
-      color: var(--t-ink);
-    }
-
-    /* A stand-in for the real QR the host screen shows */
-    .qr {
-      width: 44px;
-      height: 44px;
-      flex-shrink: 0;
-      background: var(--t-ink);
-      background-image:
-        repeating-linear-gradient(0deg, var(--t-paper) 0 3px, transparent 3px 7px),
-        repeating-linear-gradient(90deg, var(--t-paper) 0 3px, transparent 3px 8px);
-      opacity: 0.85;
-    }
-
-    .mini-slot {
-      width: 110px;
-      height: 34px;
-      background: #EAD9BA;
-      border-bottom: 3px dashed rgba(110,75,40,0.45);
-    }
-
-    .mini-chip {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 9px;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--t-ink);
-      background: var(--t-yellow);
-      padding: 5px 10px 6px;
-      transform: rotate(-1deg);
-    }
-
-    .yard-name {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 16px;
-      line-height: 1.15;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .yard-meta {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--t-muted-caps);
-    }
+    .yard-grid { min-height: 220px; }
 
     /* ── See one on the projector: the frame, the side, the pager ── */
     .stage {
@@ -641,7 +508,7 @@
       align-items: center;
     }
 
-    .frame-door .qr { width: 96px; height: 96px; }
+    .frame-door .yp-qr { width: 96px; height: 96px; }
 
     .frame-door-text {
       font-size: 15px;
@@ -653,9 +520,22 @@
     .frame-door-text .quiet { font-weight: 500; color: var(--t-muted); }
 
     /* The pile at full size, on plinth + base */
-    .frame .pile { filter: drop-shadow(5px 7px 0 rgba(80,60,30,0.14)); flex-shrink: 0; }
-    .frame .pile-block { height: 21px; margin-top: -3px; clip-path: polygon(0 8%, 100% 0, 98% 100%, 2% 94%); }
-    .frame .pile-block:first-child { margin-top: 0; }
+    .pile {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      filter: drop-shadow(5px 7px 0 rgba(80,60,30,0.14));
+      flex-shrink: 0;
+    }
+
+    .pile-block {
+      height: 21px;
+      margin-top: -3px;
+      clip-path: polygon(0 8%, 100% 0, 98% 100%, 2% 94%);
+      transform: rotate(var(--rot, 0deg));
+    }
+
+    .pile-block:first-child { margin-top: 0; }
 
     .pile-plinth {
       width: 140px;
@@ -731,7 +611,8 @@
 
     .screen-text {
       flex: 1;
-      background: #EAD9BA;
+      background: var(--t-sanded);
+      background-image: var(--t-grain);
       padding: 5px;
       font-size: 9px;
       font-weight: 700;
@@ -742,8 +623,8 @@
 
     .screen-bar { height: 12px; }
 
-    /* The page's one red: START THE ROOM (the make page opens first) */
-    /* 19px bold: large text for the contrast rule on red */
+    /* The page's one red: START THE ROOM (the make page opens first).
+       19px bold: large text for the contrast rule on red. */
     .stage-start {
       margin-top: 10px;
       font-size: 19px;
@@ -780,7 +661,7 @@
       margin-left: 8px;
     }
 
-    /* ── Footer: small wordmark, plain spaced links ── */
+    /* ── Footer: plain spaced links ── */
     footer {
       margin-top: 64px;
       display: flex;
@@ -806,9 +687,7 @@
 
     @media (max-width: 960px) {
       .page { padding: 18px 18px 16px; }
-      .fold { margin-top: 28px; }
       .plank { height: 120px; padding: 14px; font-size: 16px; }
-      .yard-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .stage-row { flex-direction: column; }
       .frame-mat { width: 100%; }
       .frame { min-height: 0; }
@@ -819,12 +698,11 @@
     @media (max-width: 600px) {
       .planks { flex-wrap: wrap; }
       .plank { flex: 1 1 45%; margin-left: 0; height: 90px; }
-      .yard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .join-form label { display: none; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .plank, .yard-card, .frame, .stage-side { transition: none; }
+      .plank, .frame, .stage-side { transition: none; }
     }
   </style>
 </head>
@@ -849,7 +727,7 @@
     </header>
 
     <section class="fold" role="main" aria-label="What your class needs">
-      <h1>What does your <span class="t-painted-word">class</span> need?</h1>
+      <h1>What does your class need?</h1>
       <p class="sub">When your class needs to connect, think, review, or just have fun, Jamyard has a way to make it happen.</p>
       <!-- The four jobs, one plank each, on a base board. Clicking one
            scrolls to the yard with that job's chip already selected. -->
@@ -924,8 +802,10 @@
   <script src="/shared/game-visibility.js"></script>
   <script src="/shared/goal-groups.js"></script>
   <script src="/shared/my-games.js"></script>
+  <script src="/shared/hover-card.js"></script>
+  <script src="/shared/yard-prints.js"></script>
   <script>
-    // ── The planks, the yard, and the projector: all three read the same
+    // ── The planks, the projector, and the yard: all three read the same
     //    list the yard page shows (featured built-ins + this device's own). ──
     (function () {
       var planksEl = document.getElementById('planks');
@@ -949,61 +829,13 @@
       var reducedMotion = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      // The frames show the real address students type
+      // The frame shows the real address students type
       var host = window.location.host || 'jamyard.org';
 
       // Every activity door on this page: the make page (the print, then
       // Try it out or Host it now). Never a room straight from home.
       function makeHref(g) {
         return '/make?game=' + encodeURIComponent(g.id) + '&from=home';
-      }
-
-      // ── Decoration that must look alive but never lie about a live room:
-      //    the code letters, the head count, the timer, and the pile are
-      //    dealt from the activity's id, so each template keeps the same
-      //    picture across visits and no two neighbors match. ──
-      function seedOf(str) {
-        var h = 2166136261;
-        for (var i = 0; i < str.length; i++) {
-          h ^= str.charCodeAt(i);
-          h = Math.imul(h, 16777619) >>> 0;
-        }
-        return h;
-      }
-      function dealer(seed) {
-        var s = seed || 1;
-        return function (n) {
-          s = (Math.imul(s, 1103515245) + 12345) >>> 0;
-          return (s >>> 8) % n;
-        };
-      }
-      // No I, O, or Q: they read as 1, 0, and an underlined O at pocket size
-      var LETTERS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
-      var PAINTS = ['t-yellow', 't-cyan', 't-magenta', 't-green'];
-      var WOODS = ['t-birch', 't-pine', 't-oak'];
-      function picture(g) {
-        var deal = dealer(seedOf(g.id));
-        var code = '';
-        for (var i = 0; i < 4; i++) code += LETTERS.charAt(deal(LETTERS.length));
-        var inRoom = 12 + deal(17);            // 12..28
-        var blocks = [];
-        var n = 5 + deal(4);                   // 5..8 blocks on the pile
-        for (var b = 0; b < n; b++) {
-          var wood = b % 2 === 0;
-          blocks.push({
-            tone: wood ? WOODS[deal(WOODS.length)] : PAINTS[deal(PAINTS.length)],
-            width: 70 + deal(50),              // 70..119px, the mini scales it
-            rot: b % 2 === 0 ? '-1.4deg' : '1.4deg'
-          });
-        }
-        var mins = deal(3);
-        var secs = deal(60);
-        return {
-          code: code,
-          inRoom: inRoom,
-          blocks: blocks,
-          timer: mins + ':' + (secs < 10 ? '0' : '') + secs + ' left'
-        };
       }
 
       function el(tag, className, text) {
@@ -1013,50 +845,8 @@
         return node;
       }
 
-      function buildPile(target, blocks, scale, withStand) {
-        for (var i = 0; i < blocks.length; i++) {
-          var block = el('div', 'pile-block ' + blocks[i].tone);
-          block.style.width = Math.round(blocks[i].width * scale) + 'px';
-          block.style.setProperty('--rot', blocks[i].rot);
-          target.appendChild(block);
-        }
-        if (withStand) {
-          target.appendChild(el('div', 'pile-plinth'));
-          target.appendChild(el('div', 'pile-base'));
-        }
-      }
-
-      function glimpseOf(g) {
-        var gl = g.glimpse || {};
-        return {
-          mode: gl.mode || 'answer',
-          prompt: gl.prompt || g.description || '',
-          samples: Array.isArray(gl.samples) ? gl.samples : []
-        };
-      }
-
-      // "to think · ~10 min": the job in lower case, the short time
-      function jobLine(g) {
-        var job = window.GoalGroups ? GoalGroups.jobOf(g) : 'To think';
-        return job.charAt(0).toLowerCase() + job.slice(1);
-      }
-      function shortTime(g) {
-        return g.playTime ? String(g.playTime).split('(')[0].trim() : '';
-      }
-      function metaOf(g) {
-        var bits = [jobLine(g)];
-        var t = shortTime(g);
-        if (t) bits.push(t);
-        if (g.start === 'rolling') bits.push('rolling start');
-        return bits.join(' · ');
-      }
-      function minutesOf(g) {
-        var m = /(\d+)/.exec(g.playTime || '');
-        return m ? parseInt(m[1], 10) : 999;
-      }
-
       // ── The planks and the chips: one control at two sizes ──
-      var activeGoal = null; // null = all four lit
+      var activeGoal = null; // null = all
 
       function groupOf(g) {
         return window.GoalGroups ? GoalGroups.groupOf(g) : 'think';
@@ -1100,77 +890,20 @@
         });
       }
 
-      // ── The yard grid: a print per activity, the AI door last ──
-      var CARD_ROTS = ['-0.8deg', '0.6deg', '-0.7deg', '0.9deg', '-0.5deg', '0.8deg', '-0.9deg', '0.5deg', '-0.6deg', '1deg'];
-
-      function buildMini(g) {
-        var mini = el('div', 'mini');
-        var pic = picture(g);
-        var gl = glimpseOf(g);
-        if (gl.mode === 'join') {
-          mini.appendChild(el('span', 'caps', 'Join in'));
-          mini.appendChild(el('div', 'mini-code', pic.code));
-          var qr = el('span', 'qr');
-          qr.setAttribute('aria-hidden', 'true');
-          mini.appendChild(qr);
-          return mini;
-        }
-        mini.appendChild(el('span', 'caps', gl.mode === 'talk' ? 'Nothing to type' : 'Everyone is writing…'));
-        mini.appendChild(el('div', 'mini-prompt', gl.prompt));
-        if (gl.mode !== 'talk') {
-          var pile = el('div', 'pile');
-          buildPile(pile, pic.blocks.slice(0, 3), 0.4, false);
-          mini.appendChild(pile);
-        }
-        return mini;
-      }
-
-      function buildCard(g, i) {
-        var card = el('a', 'yard-card');
-        card.href = makeHref(g);
-        card.title = g.hook || g.description || '';
-        card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
-        var print = el('div', 'yard-print');
-        print.appendChild(buildMini(g));
-        card.appendChild(print);
-        card.appendChild(el('span', 'yard-name', g.name));
-        card.appendChild(el('span', 'yard-meta', metaOf(g)));
-        return card;
-      }
-
-      function buildAiTile(i) {
-        var card = el('a', 'yard-card');
-        card.href = '/designer';
-        card.title = 'Describe an activity in plain words and the AI builds it';
-        card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
-        var print = el('div', 'yard-print');
-        var mini = el('div', 'mini');
-        mini.appendChild(el('span', 'caps', 'Describe an activity'));
-        mini.appendChild(el('div', 'mini-slot'));
-        mini.appendChild(el('span', 'mini-chip', 'Build it'));
-        print.appendChild(mini);
-        card.appendChild(print);
-        card.appendChild(el('span', 'yard-name', 'Make one with AI'));
-        card.appendChild(el('span', 'yard-meta', 'your prompt, your class'));
-        return card;
-      }
-
+      // ── The yard grid: the shared prints, filtered by the picked job ──
       function renderGrid() {
         var pool = games.filter(function (g) { return activeGoal === null || groupOf(g) === activeGoal; });
-        pool.sort(function (a, b) { return minutesOf(a) - minutesOf(b) || a.name.localeCompare(b.name); });
-        gridEl.textContent = '';
-        if (pool.length === 0) {
-          gridEl.appendChild(el('p', 'yard-empty', 'Nothing on this shelf yet. The AI can make one.'));
-        }
-        for (var i = 0; i < pool.length; i++) gridEl.appendChild(buildCard(pool[i], i));
-        gridEl.appendChild(buildAiTile(pool.length));
+        YardPrints.buildGrid(gridEl, pool, {
+          href: makeHref,
+          empty: 'Nothing on this shelf yet. The AI can make one.'
+        });
       }
 
       // ── The projector: the drawn frame, the side, the pager ──
       function buildFrame(g) {
         frameEl.textContent = '';
-        var pic = picture(g);
-        var gl = glimpseOf(g);
+        var pic = YardPrints.picture(g);
+        var gl = YardPrints.glimpseOf(g);
         var top = el('div', 'frame-top');
         var left = el('div');
         left.appendChild(el('span', 'caps frame-caps', 'Class code · go to ' + host + '/player'));
@@ -1189,8 +922,7 @@
         if (gl.mode === 'join') {
           ask.appendChild(el('span', 'caps frame-caps', 'Join in'));
           var door = el('div', 'frame-door');
-          var qr = el('span', 'qr');
-          door.appendChild(qr);
+          door.appendChild(el('span', 'yp-qr'));
           var text = el('div', 'frame-door-text');
           text.appendChild(document.createTextNode('Go to ' + host + '/player'));
           text.appendChild(document.createElement('br'));
@@ -1215,7 +947,14 @@
         body.appendChild(ask);
         if (gl.mode === 'answer') {
           var pile = el('div', 'pile');
-          buildPile(pile, pic.blocks, 1, true);
+          for (var i = 0; i < pic.blocks.length; i++) {
+            var block = el('div', 'pile-block ' + pic.blocks[i].tone);
+            block.style.width = pic.blocks[i].width + 'px';
+            block.style.setProperty('--rot', pic.blocks[i].rot);
+            pile.appendChild(block);
+          }
+          pile.appendChild(el('div', 'pile-plinth'));
+          pile.appendChild(el('div', 'pile-base'));
           body.appendChild(pile);
         }
         frameEl.appendChild(body);
@@ -1225,7 +964,7 @@
       // The words are the template's own sample answers, never a student's.
       function buildScreens(g) {
         screensEl.textContent = '';
-        var gl = glimpseOf(g);
+        var gl = YardPrints.glimpseOf(g);
         var s0 = gl.samples[0] || '';
         var s1 = gl.samples[1] || gl.samples[0] || '';
         var half = s1 ? s1.slice(0, Math.max(6, Math.ceil(s1.length * 0.6))) : '';
@@ -1252,7 +991,7 @@
         var g = games[idx];
         buildFrame(g);
         nameEl.textContent = g.name;
-        metaEl.textContent = metaOf(g);
+        metaEl.textContent = YardPrints.metaOf(g);
         descEl.textContent = g.description || '';
         buildScreens(g);
         startEl.href = makeHref(g);

@@ -74,10 +74,31 @@ describe('home page 15b', () => {
     expect(html).toContain("'/player?code=' + code");
   });
 
-  it('the fold carries the mechanic line under the planks and the AI door is a yard tile', () => {
+  it('the fold carries the mechanic line under the planks, plain headline, no painted word', () => {
     expect(html).toContain('You project one screen. Students play from their devices.');
-    expect(html).toContain('Make one with AI');
-    expect(html).toContain("card.href = '/designer'");
+    expect(html).toContain('<h1>What does your class need?</h1>');
+    expect(html).not.toContain('t-painted-word');
+  });
+
+  it('the grid of prints is the shared module, on the home AND the yard page, with the hover card', async () => {
+    const mod = await read('screens/shared/yard-prints.js');
+    expect(mod).toContain('Make one with AI');
+    expect(mod).toContain("href || '/designer'");
+    expect(mod).toContain('HoverCard.attach(card, g)');
+    expect(mod).not.toMatch(/card.titles*=s*g./);
+    for (const page of ['screens/home/index.html', 'screens/library/index.html']) {
+      const page_html = await read(page);
+      expect(page_html, page).toContain('/shared/yard-prints.js');
+      expect(page_html, page).toContain('/shared/yard-prints.css');
+      expect(page_html, page).toContain('/shared/hover-card.js');
+      // Script tags, not the comments that mention the modules
+      expect(page_html.indexOf('<script src="/shared/goal-groups.js"'), page + ': goal groups first').toBeLessThan(page_html.indexOf('<script src="/shared/yard-prints.js"'));
+    }
+    expect(html).toContain('YardPrints.buildGrid(');
+    const lib = await read('screens/library/library.js');
+    expect(lib).toContain('YardPrints.buildGrid(');
+    expect(lib).not.toContain('function buildPileGroup');
+    expect(lib).not.toContain('function buildPlank(');
   });
 
   it('uses the teacher vocabulary the owner fixed', () => {
