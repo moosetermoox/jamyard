@@ -61,6 +61,13 @@ import {
   refund as wordHelpRefund, recordLookup, summarize as summarizeWordHelp,
   cachedTranslation, cacheTranslation, publicSettings as wordHelpSettings
 } from './engine/word-help.js';
+import { createEarlyJokeState, dealJoke, jokeFor, splitJoke, isEarlyJokeOn } from './engine/early-joke.js';
+
+// The joke as the student screen tells it: setup first, punchline held
+// back (engine/early-joke.js splitJoke); null when this seat got none.
+function jokePayload(text) {
+  return typeof text === 'string' ? splitJoke(text) : null;
+}
 import { gamePhases } from './config/game-phases.js';
 import { AIService } from './services/ai-service.js';
 import {
@@ -2073,6 +2080,13 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
       working.anonymous = body.anonymous;
       changed = true;
     }
+    // Early-bird joke: the page's checkbox is on/off. It is on by default,
+    // so turning it on again just drops the `false`; off writes `false`.
+    if (typeof body.earlyJoke === 'boolean' && body.earlyJoke !== isEarlyJokeOn(config)) {
+      if (body.earlyJoke) delete working.earlyJoke;
+      else working.earlyJoke = false;
+      changed = true;
+    }
     working.name = nameFor(config.name || 'Activity', changed && typeof edits.prompt === 'string' && edits.prompt.trim() !== String(config.phases?.[out.phaseId || '']?.prompt || '').trim() ? edits.prompt : '');
     delete working.featured;
     res.json({ config: working, changed });
@@ -2803,6 +2817,7 @@ app.post('/api/games/revise', async (req, res) => {
     carryAnonymousFlag(config, result.updatedConfig);
     carryLanguage(config, result.updatedConfig);
     carryWordHelp(config, result.updatedConfig);
+    carryEarlyJoke(config, result.updatedConfig);
     carrySubPhaseOrder(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
     // Validate the AI's revised config; surface errors so the client can show them
@@ -2851,6 +2866,14 @@ function carrySubPhaseOrder(original, updated) {
 }
 
 // And for the word-help budget (editor Settings, engine/word-help.js).
+// Same for the early-bird joke (engine/early-joke.js): a top-level
+// teacher choice the model rebuilding the config knows nothing about.
+function carryEarlyJoke(original, updated) {
+  if (!original || !updated || original.earlyJoke === undefined || updated.earlyJoke !== undefined) return;
+  // `false` (turned off) matters as much as a count: absent means on.
+  updated.earlyJoke = original.earlyJoke && typeof original.earlyJoke === 'object' ? { ...original.earlyJoke } : original.earlyJoke;
+}
+
 function carryWordHelp(original, updated) {
   if (original && original.wordHelp && typeof original.wordHelp === 'object' && updated && updated.wordHelp === undefined) {
     updated.wordHelp = { ...original.wordHelp };
@@ -2901,6 +2924,7 @@ app.post('/api/games/chat', async (req, res) => {
     carryAnonymousFlag(config, result.updatedConfig);
     carryLanguage(config, result.updatedConfig);
     carryWordHelp(config, result.updatedConfig);
+    carryEarlyJoke(config, result.updatedConfig);
     carrySubPhaseOrder(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
     const structural = validate(result.updatedConfig, 'chat', { returnResults: true });
@@ -3289,6 +3313,9 @@ io.on('connection', (socket) => {
       // Word help (engine/word-help.js): the per-student translation
       // budget, null when the activity has none.
       room.wordHelp = createWordHelpState(config, room.engine.language);
+      // Early-bird joke (engine/early-joke.js): who among the first N
+      // joiners got which joke, null when the activity has none.
+      room.earlyJoke = createEarlyJokeState(config);
 
       roomToHost.set(code, socket.id);
       socket.join(code);
@@ -3435,6 +3462,7 @@ io.on('connection', (socket) => {
           // Shared-meadow order/cooldowns are keyed by player id too.
           migrateIdsInPlace(room.meadowState, oldId, socket.id);
           migrateIdsInPlace(room.wordHelp, oldId, socket.id);
+          migrateIdsInPlace(room.earlyJoke, oldId, socket.id);
         }
         socketToRoom.set(socket.id, code);
         socket.join(code);
@@ -3442,7 +3470,9 @@ io.on('connection', (socket) => {
         const player = players.find(socket.id);
         const theme = room.engine ? (room.engine.config.theme || null) : null;
         const language = room.engine ? room.engine.language : 'en';
-        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null });
+        // The same joke as before, never a fresh roll (a refresh must not
+        // re-deal, and a late reconnect must not steal an eleventh seat).
+        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(jokeFor(room.earlyJoke, socket.id)) });
 
         const hostSocketId = roomToHost.get(code);
         if (hostSocketId) {
@@ -3476,7 +3506,9 @@ io.on('connection', (socket) => {
       console.log(`[join-room] Player ${socket.id} joined room ${code}`);
       const theme = room.engine ? (room.engine.config.theme || null) : null;
       const language = room.engine ? room.engine.language : 'en';
-      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null });
+      // Early-bird joke: a new seat among the first N draws one (engine/
+      // early-joke.js keeps the count and the deal; past N this is null).
+      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(dealJoke(room.earlyJoke, socket.id)) });
 
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {

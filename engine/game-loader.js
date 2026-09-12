@@ -17,6 +17,7 @@
 import { readFile, readdir, access } from 'fs/promises';
 import { LANGUAGE_CODES, AUTO as LANGUAGE_AUTO } from './i18n/index.js';
 import { validateWordHelp } from './word-help.js';
+import { validateEarlyJoke } from './early-joke.js';
 import { validateSampleAnswers } from './sample-answers.js';
 import { START_MODES, isRolling, isRosterBound } from './phases/rolling.js';
 import { playableQuestions } from './phases/solo-quiz-scoring.js';
@@ -197,6 +198,10 @@ export function validate(config, gameId, options) {
   // Word help (engine/word-help.js): a per-student budget of word
   // translations. Mirrored in the editor's client validation.
   errors.push(...validateWordHelp(config, gameId));
+
+  // Early-bird joke (engine/early-joke.js): the first N students to join
+  // each see a dad joke. Mirrored in the editor's client validation.
+  errors.push(...validateEarlyJoke(config, gameId));
 
   // Sample answers (engine/sample-answers.js): hand-authored practice
   // responses for Try it out. Author content, dealt by seat.

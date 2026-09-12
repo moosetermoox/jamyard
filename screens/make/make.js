@@ -49,7 +49,8 @@
     moreBody: document.getElementById('more-body'),
     moreQuestions: document.getElementById('more-questions'),
     moreStatus: document.getElementById('more-status'),
-    namesHidden: document.getElementById('names-hidden')
+    namesHidden: document.getElementById('names-hidden'),
+    earlyJoke: document.getElementById('early-joke')
   };
 
   // Where "back" goes: the door the teacher came through
@@ -252,6 +253,8 @@
     }
 
     if (config.anonymous) el.namesHidden.checked = true;
+    // On by default; only an explicit false unchecks it.
+    el.earlyJoke.checked = config.earlyJoke !== false;
   }
 
   // The recipe's own editor, under the doors: the dialog's panel, mounted
@@ -409,6 +412,7 @@
     if (any) edits.fields = fields;
     if (state.print && state.print.timerEditable && typeof state.timer === 'number') edits.timer = state.timer;
     edits.anonymous = !!el.namesHidden.checked;
+    edits.earlyJoke = !!el.earlyJoke.checked;
     return edits;
   }
 
@@ -458,7 +462,7 @@
     // editing, so these always save, as the dialog did)
     if (state.panelApi && state.panelApi.makeCopy) {
       setOpening(dest, false);
-      var result = state.panelApi.makeCopy(dest, { anonymous: !!el.namesHidden.checked });
+      var result = state.panelApi.makeCopy(dest, { anonymous: !!el.namesHidden.checked, earlyJoke: !!el.earlyJoke.checked });
       if (result === false) { clearOpening(); return; }
       if (result && result.then) result.then(function () { clearOpening(); });
       return;
@@ -475,6 +479,9 @@
           delete working.featured;
           working.name = (state.config.name || 'Activity') + ' (my version)';
           if (typeof edits.anonymous === 'boolean') working.anonymous = edits.anonymous;
+          // Early-bird joke is on by default: on drops a `false`, off writes one.
+          if (edits.earlyJoke) { if (working.earlyJoke === false) delete working.earlyJoke; }
+          else working.earlyJoke = false;
           if (!withAi) return MakeItYours.saveCopyAndReturn(working, dest);
           return reword(working, answered).then(function (revised) { return MakeItYours.saveCopyAndReturn(revised, dest); });
         })

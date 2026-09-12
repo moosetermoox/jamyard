@@ -102,6 +102,16 @@ describe('restoreRoom', () => {
     expect(restoreRoom(JSON.parse(JSON.stringify(serializeRoom(liveRoom()))), CONFIG, {}).wordHelp).toBeNull();
   });
 
+  it('carries the early-bird joke deal through a restart, so the first seats are not reopened', () => {
+    const live = liveRoom();
+    live.earlyJoke = { first: 10, dealt: { 'p-maya': 42, 'p-jordan': 7 } };
+    const snap = JSON.parse(JSON.stringify(serializeRoom(live)));
+    expect(snap.earlyJoke.dealt['p-maya']).toBe(42);
+    const room = restoreRoom(snap, CONFIG, {});
+    expect(room.earlyJoke).toEqual({ first: 10, dealt: { 'p-maya': 42, 'p-jordan': 7 } });
+    expect(restoreRoom(JSON.parse(JSON.stringify(serializeRoom(liveRoom()))), CONFIG, {}).earlyJoke).toBeNull();
+  });
+
   it('maps a mid-foreach virtual phase back to the foreach parent (fresh re-entry)', () => {
     const room = liveRoom();
     room.engine.foreachState.loop = { items: [{ text: 'hi' }], currentIndex: 0, scores: {}, subPhaseIds: [] };

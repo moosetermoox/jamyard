@@ -405,6 +405,7 @@ var settingsStart = document.getElementById('game-start');
 var settingsWordHelp = document.getElementById('game-word-help');
 var settingsWordHelpTo = document.getElementById('game-word-help-to');
 var settingsWordHelpToGroup = document.getElementById('game-word-help-to-group');
+var settingsEarlyJoke = document.getElementById('game-early-joke');
 var settingsTheme = document.getElementById('game-theme');
 var customThemeSection = document.getElementById('custom-theme-section');
 var customThemeDesc = document.getElementById('custom-theme-desc');
@@ -698,6 +699,7 @@ async function init() {
   if (settingsStart) settingsStart.addEventListener('change', readSettings);
   if (settingsWordHelp) settingsWordHelp.addEventListener('change', readSettings);
   if (settingsWordHelpTo) settingsWordHelpTo.addEventListener('change', readSettings);
+  if (settingsEarlyJoke) settingsEarlyJoke.addEventListener('change', readSettings);
 
   // Populate theme select
   if (settingsTheme && window.GAME_THEMES) {
@@ -788,6 +790,20 @@ function renderSettings() {
     if (settingsWordHelpTo) settingsWordHelpTo.value = (wh && wh.to) || 'en';
     if (settingsWordHelpToGroup) settingsWordHelpToGroup.hidden = !tokens;
   }
+  // Early-bird joke (engine/early-joke.js): ON by default (absent = the
+  // first 10), `false` = off. The select lists the common counts; an
+  // unlisted number from a hand-edited config still shows.
+  if (settingsEarlyJoke) {
+    var ej = gameConfig.earlyJoke;
+    var first = ej === false ? '' : (ej && typeof ej === 'object' && ej.first ? String(ej.first) : '10');
+    if (first && !settingsEarlyJoke.querySelector('option[value="' + first + '"]')) {
+      var extraEj = document.createElement('option');
+      extraEj.value = first;
+      extraEj.textContent = 'The first ' + first + ' students to join';
+      settingsEarlyJoke.appendChild(extraEj);
+    }
+    settingsEarlyJoke.value = first;
+  }
   headerGameName.textContent = gameConfig.name || 'Untitled Activity';
 
   // Theme
@@ -846,6 +862,18 @@ function readSettings() {
       delete gameConfig.wordHelp;
     }
     if (settingsWordHelpToGroup) settingsWordHelpToGroup.hidden = !(whTokens > 0);
+  }
+  // Early-bird joke: on by default, so the default count stores nothing,
+  // another count stores { first }, and Off stores false.
+  if (settingsEarlyJoke) {
+    var ejFirst = parseInt(settingsEarlyJoke.value, 10);
+    if (!(ejFirst > 0)) {
+      gameConfig.earlyJoke = false;
+    } else if (ejFirst === 10) {
+      delete gameConfig.earlyJoke;
+    } else {
+      gameConfig.earlyJoke = { first: ejFirst };
+    }
   }
   if (settingsStart && settingsStart.value === 'rolling') {
     gameConfig.start = 'rolling';
@@ -5778,6 +5806,16 @@ function validateConfig() {
       if (whCfg.to !== undefined && ['en', 'es', 'fr', 'de', 'pt', 'it'].indexOf(whCfg.to) === -1) {
         errors.push('Word help: "to" must be one of en, es, fr, de, pt, it.');
       }
+    }
+  }
+
+  // Early-bird joke (mirrors validateEarlyJoke in engine/early-joke.js)
+  if (gameConfig.earlyJoke !== undefined && gameConfig.earlyJoke !== false && gameConfig.earlyJoke !== true) {
+    var ejCfg = gameConfig.earlyJoke;
+    if (!ejCfg || typeof ejCfg !== 'object' || Array.isArray(ejCfg)) {
+      errors.push('Early-bird joke must be false (off) or an object like { "first": 10 }.');
+    } else if (!(Number.isInteger(ejCfg.first) && ejCfg.first >= 1 && ejCfg.first <= 100)) {
+      errors.push('Early-bird joke: "first" must be a whole number from 1 to 100.');
     }
   }
 

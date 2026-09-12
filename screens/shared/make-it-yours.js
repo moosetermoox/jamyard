@@ -467,6 +467,11 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount) {
       .then(function (working) {
         working.name = game.name + ' (my version)';
         if (extras && typeof extras.anonymous === 'boolean') working.anonymous = extras.anonymous;
+        // Early-bird joke is on by default: on drops a `false`, off writes one.
+        if (extras && typeof extras.earlyJoke === 'boolean') {
+          if (extras.earlyJoke) { if (working.earlyJoke === false) delete working.earlyJoke; }
+          else working.earlyJoke = false;
+        }
         return saveCopyAndReturn(working, dest);
       })
       .catch(function (err) {
@@ -865,6 +870,11 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
       .then(function (working) {
         working.name = game.name + ' (my version)';
         if (extras && typeof extras.anonymous === 'boolean') working.anonymous = extras.anonymous;
+        // Early-bird joke is on by default: on drops a `false`, off writes one.
+        if (extras && typeof extras.earlyJoke === 'boolean') {
+          if (extras.earlyJoke) { if (working.earlyJoke === false) delete working.earlyJoke; }
+          else working.earlyJoke = false;
+        }
         return saveCopyAndReturn(working, dest);
       })
       .catch(function (err) {
