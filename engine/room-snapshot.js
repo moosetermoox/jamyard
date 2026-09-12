@@ -51,6 +51,9 @@ export function serializeRoom(room) {
     // Word help (engine/word-help.js): spends, cache and the tapped-word
     // log survive a restart with the room; a restart must not refill purses.
     wordHelp: room.wordHelp || null,
+    // Early-bird joke (engine/early-joke.js): who got which joke, so a
+    // restart neither re-deals nor opens the first seats again.
+    earlyJoke: room.earlyJoke || null,
     players: engine.players.list().map(p => ({
       id: p.id,
       name: p.name,
@@ -117,6 +120,7 @@ export function restoreRoom(snapshot, config, hooks) {
     kickedTokens: new Set(snapshot.kickedTokens || []),
     phaseInstanceId: snapshot.phaseInstanceId || 0,
     wordHelp: snapshot.wordHelp || null,
+    earlyJoke: snapshot.earlyJoke || null,
     teacherSocketIds: new Set(),
     createdAt: Date.now(),
     journal: [],

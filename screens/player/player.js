@@ -688,9 +688,57 @@ socket.on('response-rejected', ({ message }) => {
 
 // --- Socket events - Join ---
 
-socket.on('join-success', ({ name, reconnected, token, theme, language, strings, wordHelp }) => {
+// Early-bird joke (engine/early-joke.js): the server deals one to the
+// first N joiners and re-sends the same one on a reconnect. The card sits
+// above every section (a rolling-start room never shows the lobby) until
+// the student taps Got it; a reconnect after that does not bring it back.
+const earlyJokeCard = document.getElementById('early-joke');
+const earlyJokeText = document.getElementById('early-joke-text');
+let earlyJokeDismissed = false;
+document.getElementById('early-joke-dismiss').addEventListener('click', () => {
+  earlyJokeDismissed = true;
+  earlyJokeCard.hidden = true;
+});
+const earlyJokeBlock = document.getElementById('early-joke-block');
+const earlyJokeDots = document.getElementById('early-joke-dots');
+const earlyJokePunchline = document.getElementById('early-joke-punchline');
+const earlyJokeDismiss = document.getElementById('early-joke-dismiss');
+let earlyJokeTimer = null;
+// joke = { setup, punchline, pauseMs } from the server (engine/early-joke.js
+// splitJoke): the setup shows at once, the punchline lands after the pause
+// (a one-breath joke has no punchline and no pause). A reconnect while the
+// pause is running restarts it rather than stacking a second reveal.
+function showEarlyJoke(joke) {
+  if (!joke || typeof joke !== 'object' || typeof joke.setup !== 'string' || !joke.setup.trim() || earlyJokeDismissed) return;
+  // The teller is one of the meadow's nine painted tones, picked once.
+  if (earlyJokeBlock && !earlyJokeBlock.dataset.tone) {
+    const tone = Math.floor(Math.random() * 9);
+    earlyJokeBlock.className = 'meadow-block meadow-tone-' + tone;
+    earlyJokeBlock.dataset.tone = String(tone);
+  }
+  if (earlyJokeTimer) { clearTimeout(earlyJokeTimer); earlyJokeTimer = null; }
+  earlyJokeText.textContent = joke.setup;
+  earlyJokePunchline.textContent = typeof joke.punchline === 'string' ? joke.punchline : '';
+  const waiting = !!earlyJokePunchline.textContent;
+  earlyJokePunchline.hidden = true;
+  earlyJokeDots.hidden = !waiting;
+  earlyJokeDismiss.hidden = waiting;
+  earlyJokeCard.hidden = false;
+  if (waiting) {
+    const pause = Number.isFinite(joke.pauseMs) && joke.pauseMs >= 0 ? joke.pauseMs : 5000;
+    earlyJokeTimer = setTimeout(() => {
+      earlyJokeTimer = null;
+      earlyJokeDots.hidden = true;
+      earlyJokePunchline.hidden = false;
+      earlyJokeDismiss.hidden = false;
+    }, pause);
+  }
+}
+
+socket.on('join-success', ({ name, reconnected, token, theme, language, strings, wordHelp, joke }) => {
   // Fixed labels (Submit, Skip, You're in!) in the activity's language.
   if (window.UiLang && strings) { UiLang.set(language, strings); UiLang.apply(); }
+  showEarlyJoke(joke);
   // Word help (shared/word-help.js): tappable prompt words, a translation
   // budget per student. The server owns the count; this only shows it.
   if (window.WordHelp) {

@@ -2131,3 +2131,99 @@ body.wh-empty .wh-word:hover { background: none; }
 }
 
 .wh-pop-note { color: var(--t-muted, #6B6250); }
+
+/* Early-bird joke (engine/early-joke.js): one of the meadow's painted
+   blocks (shared/meadow.css) stands beside a speech bubble, above whatever
+   section is showing, for the first students in. Gone on Got it. */
+.early-joke {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 0 auto 16px;
+  max-width: 520px;
+  text-align: left;
+}
+.early-joke[hidden] { display: none; }
+/* The teller stands on a strip of ground; the block's own absolute
+   offsets place its feet on the bottom edge. */
+.early-joke-teller {
+  position: relative;
+  flex: 0 0 76px;
+  height: 60px;
+  border-bottom: 3px solid var(--t-base, #8F6438);
+}
+.early-joke-teller .meadow-block {
+  /* Bigger than in the meadow: a character, not a crowd member. zoom
+     scales the block, its legs and its offsets together (Chrome). */
+  zoom: 1.8;
+  left: 21px;
+  top: 29px;
+}
+.early-joke-bubble {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 12px 14px 12px;
+  background: var(--t-paper, #FFFDF6);
+  color: var(--t-ink, #2A2418);
+  border: 3px solid var(--t-ink, #2A2418);
+  border-radius: 10px;
+  box-shadow: 4px 4px 0 var(--t-yellow, #F5C518);
+}
+/* The tail: an ink triangle with a paper one inside, pointing at the block. */
+.early-joke-bubble::before,
+.early-joke-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: 14px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+.early-joke-bubble::before {
+  left: -15px;
+  border-width: 9px 15px 9px 0;
+  border-color: transparent var(--t-ink, #2A2418) transparent transparent;
+}
+.early-joke-bubble::after {
+  left: -9px;
+  border-width: 6px 10px 6px 0;
+  border-color: transparent var(--t-paper, #FFFDF6) transparent transparent;
+}
+.early-joke-label {
+  margin: 0 0 6px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--t-muted, #6B6250);
+}
+.early-joke-text {
+  margin: 0 0 10px;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 1.15rem;
+  line-height: 1.35;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+/* The pause before the punchline: the page's own thinking dots, left-aligned
+   in the bubble; the punchline paints yellow-marked when it lands. */
+.early-joke-dots { justify-content: flex-start; margin: 0 0 10px 2px; }
+.early-joke-dots[hidden] { display: none; }
+.early-joke-punchline { color: var(--t-ink, #2A2418); }
+.early-joke-punchline[hidden] { display: none; }
+.early-joke-dismiss[hidden] { display: none; }
+.early-joke-dismiss {
+  width: auto;
+  font-family: 'Nunito', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 6px 14px;
+  background: var(--t-yellow, #F5C518);
+  color: var(--t-ink, #2A2418);
+  border: 2px solid var(--t-ink, #2A2418);
+  border-radius: 4px;
+  cursor: pointer;
+}

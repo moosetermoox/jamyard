@@ -15,6 +15,25 @@
     You've been eliminated! You can still vote.
   </div>
 
+  <!-- EARLY-BIRD JOKE (engine/early-joke.js): the first N to join see one.
+       Persistent across sections (a rolling-start room skips the lobby)
+       until the student taps Got it. Text set via textContent only. -->
+  <div id="early-joke" class="early-joke" hidden>
+    <!-- The teller: one of the meadow's painted blocks with ink legs
+         (shared/meadow.css), standing beside its speech bubble. -->
+    <div class="early-joke-teller" aria-hidden="true">
+      <div id="early-joke-block" class="meadow-block meadow-tone-3"></div>
+    </div>
+    <div class="early-joke-bubble">
+      <p class="early-joke-label">You got here fast. Here is a joke for you:</p>
+      <p id="early-joke-text" class="early-joke-text"></p>
+      <!-- The punchline waits a beat (the server says how long) behind
+           three thinking dots; the button appears with it. -->
+      <div id="early-joke-dots" class="holding-dots early-joke-dots" aria-hidden="true" hidden><span></span><span></span><span></span></div>
+      <p id="early-joke-punchline" class="early-joke-text early-joke-punchline" hidden></p>
+      <button id="early-joke-dismiss" class="early-joke-dismiss" type="button">Got it</button>
+    </div>
+  </div>
   <!-- JOIN SECTION -->
   <section id="join-section" class="active">
     <h1>Join In</h1>
