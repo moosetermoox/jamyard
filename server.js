@@ -22,6 +22,7 @@ import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
 import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
 import { printFor, applyEdits, nameFor } from './engine/make-print.js';
+import { resolvePerPlayerTemplate } from './engine/per-player-template.js';
 import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
 import { shouldStopLooping } from './engine/phases/eliminate-handler.js';
 import { restoreSubPhaseOrder } from './engine/subphase-order.js';
@@ -490,30 +491,6 @@ function resolveTemplate(template, engine) {
 //   .mine     — looks up phaseData[X].byPlayer[playerId] (ai-process perPlayer / collect)
 //   .assigned — looks up phaseData[X].assigned[playerId] (collect with rotateFrom)
 // Other refs resolve normally.
-function resolvePerPlayerTemplate(template, engine, playerId) {
-  if (!template) return '';
-  return template
-    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.assigned\s*\}\}/g, (match, phaseId) => {
-      const data = engine.phaseData[phaseId];
-      if (data && data.assigned && data.assigned[playerId] !== undefined) {
-        return String(data.assigned[playerId]);
-      }
-      return match;
-    })
-    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.mine\s*\}\}/g, (match, phaseId) => {
-      const data = engine.phaseData[phaseId];
-      if (data && data.byPlayer && data.byPlayer[playerId] !== undefined) {
-        return String(data.byPlayer[playerId]);
-      }
-      return match;
-    })
-    .replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
-      if (/\.(mine|assigned)\s*$/.test(ref)) return match;
-      const value = engine.resolve(ref.trim());
-      return value !== undefined ? String(value) : match;
-    });
-}
-
 function resolveScreenControl(phase, engine) {
   const sc = {};
   sc.hostTemplate = phase.hostTemplate ? resolveTemplate(phase.hostTemplate, engine) : null;
