@@ -82,6 +82,28 @@
     el.error.textContent = text;
   }
 
+  // The AI fit failed: say so, and offer the copy as written (the words on
+  // the page, without the More answers) rather than opening it silently
+  // as if the answers had been applied (outside review, 2026-09-12).
+  function rewordFailure(reason, working, dest) {
+    clearOpening();
+    fail('Could not fit the wording to your answers (' + reason + '). Try again, or open it as written: your answers under More will not be applied.');
+    var plain = document.createElement('button');
+    plain.type = 'button';
+    plain.className = 'error-action';
+    plain.textContent = 'Use it as written';
+    plain.addEventListener('click', function () {
+      el.error.hidden = true;
+      setOpening(dest, false);
+      MakeItYours.saveCopyAndReturn(working, dest).catch(function (err) {
+        clearOpening();
+        fail('Could not make your copy: ' + (err.message || err));
+      });
+    });
+    el.error.appendChild(document.createTextNode(' '));
+    el.error.appendChild(plain);
+  }
+
   function setRich(node, text) {
     if (window.RichText && RichText.applyInline) RichText.applyInline(node, text || '');
     else node.textContent = String(text || '').replace(/\*\*/g, '');
@@ -483,7 +505,10 @@
           if (edits.earlyJoke) { if (working.earlyJoke === false) delete working.earlyJoke; }
           else working.earlyJoke = false;
           if (!withAi) return MakeItYours.saveCopyAndReturn(working, dest);
-          return reword(working, answered).then(function (revised) { return MakeItYours.saveCopyAndReturn(revised, dest); });
+          return reword(working, answered).then(
+            function (revised) { return MakeItYours.saveCopyAndReturn(revised, dest); },
+            function (err) { rewordFailure(err.message || String(err), working, dest); }
+          );
         })
         .catch(function (err) { clearOpening(); fail('Could not make your copy: ' + (err.message || err)); });
       return;
@@ -508,9 +533,10 @@
         }
         setOpening(dest, withAi);
         if (!withAi) return MakeItYours.saveCopyAndReturn(working, dest);
-        return reword(working, answered).then(function (revised) {
-          return MakeItYours.saveCopyAndReturn(revised, dest);
-        });
+        return reword(working, answered).then(
+          function (revised) { return MakeItYours.saveCopyAndReturn(revised, dest); },
+          function (err) { rewordFailure(err.message || String(err), working, dest); }
+        );
       })
       .catch(function (err) {
         clearOpening();
@@ -519,7 +545,8 @@
   }
 
   // The AI rewords the surrounding copy to the More answers (the dialog's
-  // request, word for word); a failed reword falls back to the plain copy.
+  // request, word for word). Rejects with a short reason when the fit
+  // fails; the caller tells the teacher (never a silent fallback).
   function reword(working, answered) {
     var classDesc = window.TeacherProfile ? TeacherProfile.describe() : '';
     var request = 'A teacher is adapting this ready-made activity for their own class. ' +
@@ -534,13 +561,17 @@
     }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
       .then(function (result) {
         var d = result.data;
-        var structuralErrors = d && d.structural && d.structural.errors ? d.structural.errors.length : 0;
-        if (!result.ok || !d || d.error || !d.updatedConfig || structuralErrors > 0) return working;
+        var structural = d && d.structural && d.structural.errors ? d.structural.errors : [];
+        if (!result.ok || !d || d.error) throw new Error((d && d.error) || 'the AI did not answer');
+        if (!d.updatedConfig) throw new Error('the AI sent nothing back');
+        if (structural.length > 0) {
+          var first = structural[0];
+          throw new Error('the rewrite broke a step: ' + (first && first.message ? first.message : String(first)));
+        }
         var revised = d.updatedConfig;
         if (!revised.name || revised.name === state.config.name) revised.name = working.name;
         return revised;
-      })
-      .catch(function () { return working; });
+      }, function () { throw new Error('no connection'); });
   }
 
   el.tryBtn.addEventListener('click', function () { go('simulate'); });

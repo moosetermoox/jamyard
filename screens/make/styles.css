@@ -571,3 +571,16 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
   cursor: pointer;
 }
 .bold-box-wrap:focus-within .bold-box-tool { display: inline-block; }
+
+/* The one action inside an error: open the copy without the AI fit */
+.make-error .error-action {
+  margin-left: 8px;
+  padding: 4px 10px;
+  font: inherit;
+  font-weight: 800;
+  color: var(--t-ink);
+  background: var(--t-cream, #FFF9C4);
+  border: 2px solid var(--t-ink);
+  cursor: pointer;
+}
+.make-error .error-action:hover { background: var(--t-yellow, #FFD600); }

@@ -1001,7 +1001,11 @@ function applyDisplayDrawing(canvasEl, strokes) {
 
 function initDrawPad() {
   if (drawPadApi || !window.Draw) return;
-  drawPadApi = Draw.attachPad(drawPadCanvas);
+  // A stroke clears the "Draw something first!" notice the same way typing
+  // clears it for text (it used to sit there over a finished drawing).
+  drawPadApi = Draw.attachPad(drawPadCanvas, {
+    onChange: function () { if (responseNotice && !responseNotice.hidden) responseNotice.hidden = true; }
+  });
   // Color swatches (skip white — the canvas is white)
   for (var ci = 0; ci < Draw.PALETTE.length - 1; ci++) {
     (function (color) {
@@ -1151,6 +1155,8 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
       fieldInput.className = 'field-input';
       fieldInput.setAttribute('data-key', fieldDef.key);
       fieldInput.placeholder = fieldDef.placeholder || fieldDef.label;
+      // Same cap as the single answer box (the server checks each field too)
+      fieldInput.maxLength = responseMax;
       fieldsContainer.appendChild(fieldInput);
       // Per-field mic — dictate into whichever field it sits in.
       if (window.Speech) Speech.attachMic(fieldInput);
