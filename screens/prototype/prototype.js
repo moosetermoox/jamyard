@@ -1086,6 +1086,19 @@ gameSelect.addEventListener('change', () => {
   launchBtn.click();
 });
 
+// Play Again on the projector inside the bench (owner, 2026-09-12): the
+// host frame used to reload into a new room that the pretend students,
+// the console tab and the plan rail never heard about. The host hands
+// the click here instead; the bench resets and relaunches the same
+// activity with the same number of students.
+window.addEventListener('message', (e) => {
+  if (!e.data || e.data.type !== 'prototype-play-again') return;
+  if (e.origin !== window.location.origin) return;
+  if (!launchBtn.disabled) return; // nothing running
+  resetBtn.click();
+  launchBtn.click();
+});
+
 // --- The pager: one student screen at a time, ‹ N of M › in the bar ---
 
 function getPlayerPanels() {
