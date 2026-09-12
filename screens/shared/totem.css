@@ -57,6 +57,7 @@
 
   /* Paint (meaning: a color is a job, not a decoration) */
   --t-red: #E5482B;      /* THE primary action, one per screen */
+  --t-red-text: #B02D12; /* red as SMALL text only (errors, links): 4.5:1 on gesso, paper, sanded, cream. Buttons keep --t-red */
   --t-yellow: #FFC800;   /* now / selected / highlight / timer */
   --t-cyan: #1BA9C4;     /* think / info */
   --t-green: #22A05A;    /* done / progress counts */

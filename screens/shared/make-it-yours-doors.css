@@ -48,6 +48,19 @@
   transform: rotate(-0.7deg) translate(2px, 2px);
 }
 
+/* What Launch opens, said under the front row until it is open. */
+.make-it-yours-doors .doors-launch-hint {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--t-muted, #6B6250);
+  text-align: center;
+}
+
+.make-it-yours-doors .doors-launch-hint[hidden] {
+  display: none;
+}
+
 /* The two ways to run, revealed by Launch. */
 .make-it-yours-doors .doors-launch {
   display: grid;

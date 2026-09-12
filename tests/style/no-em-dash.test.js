@@ -64,8 +64,9 @@ describe('no em dashes in user-facing text', () => {
     expect(dirty).toEqual([]);
   });
 
-  it('JS string literals in screens/engine/services are clean', () => {
+  it('JS string literals in screens/engine/services and server.js are clean', () => {
     const files = [
+      'server.js',
       ...listFiles('screens', '.js'),
       ...listFiles('engine', '.js'),
       ...listFiles('services', '.js')

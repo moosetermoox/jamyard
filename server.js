@@ -168,7 +168,7 @@ const PORT = Number(process.env.PORT) || 3000;
 const aiMode = process.env.ANTHROPIC_API_KEY ? 'real' : 'mock';
 console.log(`[init] AI Service mode: ${aiMode}`);
 if (aiMode === 'mock') {
-  console.log('[init] No ANTHROPIC_API_KEY found — AI generation endpoints are disabled (set the key to enable them).');
+  console.log('[init] No ANTHROPIC_API_KEY found, AI generation endpoints are disabled (set the key to enable them).');
 }
 
 // --- Robot playtest support (deep review) -----------------------------
@@ -221,7 +221,7 @@ const moderationLadder = createModerationLadder({
   blockAt: Number(process.env.MODERATION_BLOCK_AT) || undefined,
   reviewAt: Number(process.env.MODERATION_REVIEW_AT) || undefined
 });
-console.log(`[init] Moderation ladder: ${moderationLadder.enabled ? 'on (OpenAI scores + Haiku review)' : 'off — no OPENAI_API_KEY, blocklist only'}`);
+console.log(`[init] Moderation ladder: ${moderationLadder.enabled ? 'on (OpenAI scores + Haiku review)' : 'off, no OPENAI_API_KEY, blocklist only'}`);
 const socketToRoom = new Map();
 const roomToHost = new Map();
 
@@ -469,7 +469,7 @@ function isStalePhaseEvent(room, clientPhaseInstanceId, eventName) {
   // click was dropped (snapshot said 0, room said undefined; 2026-07-27).
   if (current === undefined || current === null) return false;
   if (clientPhaseInstanceId !== current) {
-    console.log(`[stale-event] Dropping "${eventName}" — client saw phase ${clientPhaseInstanceId}, current ${current}`);
+    console.log(`[stale-event] Dropping "${eventName}", client saw phase ${clientPhaseInstanceId}, current ${current}`);
     recordEvent(room, 'stale-dropped', { event: eventName, clientSeq: clientPhaseInstanceId });
     return true;
   }
@@ -2426,7 +2426,7 @@ app.post('/api/feedback', async (req, res) => {
     const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
     const ip = forwarded || req.socket?.remoteAddress || 'unknown';
     if (!feedbackLimiter.allow(ip)) {
-      return res.status(429).json({ error: 'Thanks — that\'s a lot of feedback at once! Try again in a minute.' });
+      return res.status(429).json({ error: 'Thanks, that\'s a lot of feedback at once! Try again in a minute.' });
     }
     const checked = validateFeedback(req.body);
     if (!checked.ok) {
@@ -3132,7 +3132,7 @@ app.post('/api/games/from-description', async (req, res) => {
       return res.json({
         noMatch: true,
         reason: 'AI matched a recipe but its parameters did not validate.',
-        suggestion: 'Try the recipe picker — fill in the parameters manually.',
+        suggestion: 'Try the recipe picker, fill in the parameters manually.',
         diagnostics
       });
     }
@@ -3335,7 +3335,7 @@ io.on('connection', (socket) => {
       const mins = Math.max(1, Math.ceil(gate.retryAfterMs / 60000));
       console.log(`[join-teacher] Room ${code} console locked (brute-force throttle, ${mins} min left)`);
       socket.emit(EVENTS.TEACHER_JOIN_ERROR, {
-        message: `Too many wrong PINs — the teacher view is locked for about ${mins} minute${mins === 1 ? '' : 's'}. The projected host screen still works.`
+        message: `Too many wrong PINs. The teacher view is locked for about ${mins} minute${mins === 1 ? '' : 's'}. The projected host screen still works.`
       });
       return;
     }
@@ -3345,10 +3345,10 @@ io.on('connection', (socket) => {
     );
     if (!allowed) {
       const fail = pinThrottle.recordFailure(code, Date.now());
-      console.log(`[join-teacher] Rejected console for room ${code} (bad PIN${fail.locked ? ' — room now locked' : ''})`);
+      console.log(`[join-teacher] Rejected console for room ${code} (bad PIN${fail.locked ? ', room now locked' : ''})`);
       socket.emit(EVENTS.TEACHER_JOIN_ERROR, {
         message: fail.locked
-          ? 'Too many wrong PINs — the teacher view is locked for a few minutes.'
+          ? 'Too many wrong PINs. The teacher view is locked for a few minutes.'
           : 'Wrong PIN. Use "🔗 Copy teacher link" on the host screen to get a working link.'
       });
       return;
@@ -3407,7 +3407,7 @@ io.on('connection', (socket) => {
       // students were joining twice). A real classmate with the same name
       // adds an initial; a ghost tab clears itself within the ping timeout.
       if (verdict.kind === 'name-taken') {
-        console.log(`[join-room] Name "${verdict.player.name}" already connected in ${code} — refusing duplicate`);
+        console.log(`[join-room] Name "${verdict.player.name}" already connected in ${code}, refusing duplicate`);
         socket.emit(EVENTS.JOIN_ERROR, {
           message: `Someone here is already playing as "${verdict.player.name}". If that's you on another screen, keep using that one (or wait a moment and try again). If a classmate got the name first, add your last initial.`
         });
@@ -3465,7 +3465,7 @@ io.on('connection', (socket) => {
         sendCurrentState(socket, code, room);
         emitRoomRoster(code, room);
         if (room.restored && !roomToHost.get(code)) {
-          socket.emit(EVENTS.WAITING, { message: 'Reconnecting — waiting for your teacher\'s screen…' });
+          socket.emit(EVENTS.WAITING, { message: 'Reconnecting, waiting for your teacher\'s screen…' });
         }
         persistRoom(code, room);
         return;
@@ -3644,7 +3644,7 @@ io.on('connection', (socket) => {
     // plain submit-response: a pass must never be attributable, anywhere.
     if (pass === true) {
       if (!currentPhase || currentPhase.type !== 'collect' || !currentPhase.passAllowed) {
-        console.log(`[submit-response] Pass ignored — current phase doesn't allow passing`);
+        console.log(`[submit-response] Pass ignored, current phase doesn't allow passing`);
         return;
       }
       players.update(socket.id, { response: PASS_RESPONSE, responseAt: Date.now(), responseFlagged: null });
@@ -3941,7 +3941,7 @@ io.on('connection', (socket) => {
     // happened to be current (found by the chaos simulator).
     const currentPhase = room.engine && room.engine.getCurrentPhase();
     if (!currentPhase || (currentPhase.type !== 'collect' && currentPhase.type !== 'collect-choice')) {
-      console.log(`[close-submissions] Ignored — current phase is ${currentPhase ? currentPhase.type : 'unknown'}`);
+      console.log(`[close-submissions] Ignored, current phase is ${currentPhase ? currentPhase.type : 'unknown'}`);
       return;
     }
     // Answers still inside the moderation ladder land first, so the gather
@@ -3953,7 +3953,7 @@ io.on('connection', (socket) => {
     if (waited > 0) {
       const still = room.engine && room.engine.getCurrentPhase();
       if (!still || still.id !== currentPhase.id || room.phaseInstanceId !== instanceBefore) {
-        console.log(`[close-submissions] Ignored — room moved on while ${waited} submission(s) settled`);
+        console.log(`[close-submissions] Ignored, room moved on while ${waited} submission(s) settled`);
         return;
       }
       console.log(`[close-submissions] Waited for ${waited} in-flight submission(s) in room ${code}`);
@@ -4075,7 +4075,7 @@ io.on('connection', (socket) => {
             });
             stored.scores = scores;
             stored.correctAnswer = correctAnswer;
-            console.log(`[close-submissions] Graded ${choiceResponses.length} responses against "${correctAnswer}" — scores: ${JSON.stringify(scores)}`);
+            console.log(`[close-submissions] Graded ${choiceResponses.length} responses against "${correctAnswer}", scores: ${JSON.stringify(scores)}`);
           }
 
           // Bluffing payoff: `foolPoints` pays the AUTHOR of a fake for every
@@ -4532,7 +4532,7 @@ io.on('connection', (socket) => {
       recordEvent(room, 'merge-draft-rejected', { groupId: group.groupId });
       socket.emit(EVENTS.RESPONSE_REJECTED, {
         reason: 'blocked',
-        message: 'That language isn\'t allowed here — try rephrasing.'
+        message: 'That language isn\'t allowed here. Try rephrasing.'
       });
       return;
     }
@@ -5185,7 +5185,7 @@ io.on('connection', (socket) => {
       recordEvent(room, 'relay-rejected', { playerId: socket.id });
       socket.emit(EVENTS.RESPONSE_REJECTED, {
         reason: 'blocked',
-        message: 'That language isn\'t allowed here — try rephrasing.'
+        message: 'That language isn\'t allowed here. Try rephrasing.'
       });
       return;
     }
@@ -5426,7 +5426,7 @@ io.on('connection', (socket) => {
         // A real host disconnect is usually an F5, a flaky projector laptop,
         // or a server hiccup — hold the room so host-rejoin can rebind.
         // Only if nobody comes back within the grace window does the room close.
-        console.log(`[disconnect] Host left ${roomCode} — holding the room ${HOST_GRACE_MS / 60000} min for rejoin`);
+        console.log(`[disconnect] Host left ${roomCode}, holding the room ${HOST_GRACE_MS / 60000} min for rejoin`);
         room.hostDisconnectedAt = Date.now();
         // Tell the consoles now: the teacher may be looking at one while
         // the projector tab sleeps behind it.
@@ -5434,7 +5434,7 @@ io.on('connection', (socket) => {
         room.hostGraceTimer = setTimeout(() => {
           const still = roomManager.find(roomCode);
           if (!still || roomToHost.has(roomCode)) return; // host came back
-          console.log(`[disconnect] Host never returned to ${roomCode} — closing room`);
+          console.log(`[disconnect] Host never returned to ${roomCode}, closing room`);
           roomManager.delete(roomCode);
           io.to(roomCode).emit(EVENTS.ROOM_CLOSED);
           // The snapshot stays (until its TTL): a teacher whose laptop died

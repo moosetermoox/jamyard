@@ -178,7 +178,7 @@
     .join-error {
       font-size: 13px;
       font-weight: 700;
-      color: var(--t-red);
+      color: var(--t-red-text);
       display: none;
       white-space: nowrap;
     }
@@ -779,6 +779,11 @@
     .footer-credit a { text-decoration: underline; text-underline-offset: 3px; }
 
     @media (max-width: 960px) {
+      /* Tilted planks and the rotated frame mat poke a few pixels past the
+         edge on a phone and drew a sideways scrollbar. clip, not hidden:
+         hidden would make body a scroll container and break the sticky
+         chip row. */
+      body { overflow-x: clip; }
       .page { padding: 18px 18px 16px; }
       .plank { height: 120px; padding: 14px; font-size: 16px; }
       .stage-row { flex-direction: column; }
@@ -792,6 +797,18 @@
       .planks { flex-wrap: wrap; }
       .plank { flex: 1 1 45%; margin-left: 0; height: 90px; }
       .join-form label { display: none; }
+      /* The projector mock scales its layout, not just its box: the pile
+         drops under the prompt and the type comes down to phone size,
+         instead of a 36px prompt wrapping three letters to a line in a
+         column the pile left it (outside review 2026-09-12). */
+      .frame { padding: 18px 16px; min-height: 0; gap: 14px; }
+      .frame-top { flex-wrap: wrap; }
+      .code-row span { width: 36px; height: 42px; font-size: 24px; }
+      .frame-body { flex-direction: column; align-items: stretch; gap: 14px; }
+      .frame-prompt { font-size: 22px; }
+      .pile { align-self: flex-end; transform: scale(0.8); transform-origin: bottom right; }
+      .frame-door { gap: 14px; }
+      .frame-door .yp-qr { width: 72px; height: 72px; }
     }
 
     @media (prefers-reduced-motion: reduce) {

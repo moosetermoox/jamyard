@@ -3,7 +3,7 @@
 }
 
 body {
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
   max-width: 900px;
   margin: 0 auto;
   padding: 40px;
@@ -1555,7 +1555,7 @@ body.in-activity h1 {
 .msg-subhead {
   display: block;
   text-align: left;
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
   font-size: 0.95em;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1598,7 +1598,7 @@ body.in-activity h1 {
   border-radius: 12px; padding: 10px 14px;
   font-family: 'Nunito', Arial, sans-serif; font-weight: 700; font-size: 0.55em; line-height: 1.4;
 }
-.msg-card-num { font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif; font-size: 0.85em; opacity: 0.5; flex-shrink: 0; }
+.msg-card-num { font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif; font-size: 0.85em; opacity: 0.5; flex-shrink: 0; }
 
 /* ════════════════════════════════════════════════════════════════
    TOTEM SKIN (docs/design/totem/) — structural re-theme.
@@ -1755,6 +1755,21 @@ button:disabled,
 }
 
 #close-submissions-btn { background: var(--t-paper); color: var(--t-ink); }
+
+/* ── The button that moves the room stays in view ──
+   A full roster in the lobby or a long reveal used to push Start or
+   Reveal Next below the fold, and a projector should never need
+   scrolling (outside review 2026-09-12). Sticky, not fixed: the button
+   sits where it always did until its section runs past the screen, then
+   rides the bottom edge until the section ends. Direct children only,
+   plus the preview gate's pair; grouped controls (buzz, one-voice) lay
+   out their own row. */
+section.active > button:not([hidden]),
+section.active > .preview-actions {
+  position: sticky;
+  bottom: 14px;
+  z-index: 5;
+}
 
 /* ── Live Poll: the tally on the projector, big enough for the back row ── */
 .live-tally {

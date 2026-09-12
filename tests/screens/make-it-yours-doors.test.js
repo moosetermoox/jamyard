@@ -61,6 +61,10 @@ describe('MakeItYoursDoors.build', () => {
     expect(launch.type).toBe('button');
     const launchRow = row.find('doors-launch');
     expect(launchRow.hidden).toBe(true);
+    // Try it out is not a secret behind Launch: the front row says what opens
+    const hint = row.find('doors-launch-hint');
+    expect(hint.hidden).toBe(false);
+    expect(hint.textContent).toContain('pretend students');
     expect(row.find('door-simulate').textContent).toBe('Try it out with pretend students');
     expect(row.find('door-host').textContent).toBe('Host it now');
     // No HTML sinks: every label lands through textContent.
@@ -74,6 +78,7 @@ describe('MakeItYoursDoors.build', () => {
     launch.fire('click');
     expect(picks).toEqual([]);
     expect(row.find('doors-launch').hidden).toBe(false);
+    expect(row.find('doors-launch-hint').hidden).toBe(true);
     expect(launch.getAttribute('aria-expanded')).toBe('true');
     expect(launch.className).toContain('is-open');
     expect(row.find('door-simulate').focused).toBe(true);

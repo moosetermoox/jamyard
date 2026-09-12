@@ -47,6 +47,11 @@
       '  border: none; padding: 8px; font-family: "DM Sans", Arial, sans-serif; font-weight: 500;',
       '  font-size: 0.9rem; background: #fff; color: #2A2620; margin-bottom: 8px; box-sizing: border-box;',
       '  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 1px rgba(50,35,15,0.16); }',
+      // The category picker painted like the rest (the OS default select
+      // was the one undesigned thing on the site, outside review 2026-09-12)
+      '#feedback-widget-panel select { appearance: none; -webkit-appearance: none; padding-right: 32px; cursor: pointer;',
+      '  background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2714%27 height=%279%27%3E%3Cpath d=%27M1 1l6 6 6-6%27 fill=%27none%27 stroke=%27%232A2620%27 stroke-width=%272.4%27/%3E%3C/svg%3E");',
+      '  background-repeat: no-repeat; background-position: right 10px center; }',
       '#feedback-widget-panel select:focus, #feedback-widget-panel textarea:focus { outline: none;',
       '  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 2px #2A2620; }',
       '#feedback-widget-panel textarea { min-height: 90px; resize: vertical; }',
