@@ -77,18 +77,13 @@ function applyVisibility(games) {
   });
 }
 
+// An activity stands in exactly ONE job (its first goal tag, the same
+// rule the print's meta line and the home page use): a chip shows what
+// its label promises. Snowball (discuss, connect) is a thinking activity
+// and no longer turns up under "To connect" (owner's call, 2026-09-12).
 function matchesGoal(game) {
   if (!activeGoal) return true;
-  var group = null;
-  for (var i = 0; i < PILE_GROUPS.length; i++) {
-    if (PILE_GROUPS[i].key === activeGoal) { group = PILE_GROUPS[i]; break; }
-  }
-  if (!group || !group.goals) return true;
-  var tags = Array.isArray(game.tags) ? game.tags : [];
-  for (var t = 0; t < tags.length; t++) {
-    if (group.goals.indexOf(tags[t]) !== -1) return true;
-  }
-  return false;
+  return goalGroupOf(game) === activeGoal;
 }
 
 function matchesFilters(game) {
@@ -109,10 +104,7 @@ function buildGoalChips(games) {
     if (!group.goals) return; // personal piles are shelves, not filters
     var count = 0;
     for (var i = 0; i < games.length; i++) {
-      var tags = Array.isArray(games[i].tags) ? games[i].tags : [];
-      for (var t = 0; t < tags.length; t++) {
-        if (group.goals.indexOf(tags[t]) !== -1) { count++; break; }
-      }
+      if (goalGroupOf(games[i]) === group.key) count++;
     }
     if (count === 0 && group.key !== activeGoal) return;
     var chip = document.createElement('button');

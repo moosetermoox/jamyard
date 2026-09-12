@@ -110,6 +110,15 @@ describe('home page 15b', () => {
     expect(lib).not.toContain('function buildPlank(');
   });
 
+  it('the yard page filters by the same one-job rule the prints show (first goal tag wins)', async () => {
+    const lib = await read('screens/library/library.js');
+    const body = lib.slice(lib.indexOf('function matchesGoal('), lib.indexOf('function matchesFilters('));
+    expect(body).toContain('goalGroupOf(game) === activeGoal');
+    expect(body).not.toContain('group.goals.indexOf');
+    const chips = lib.slice(lib.indexOf('function buildGoalChips('), lib.indexOf('function refreshLibrary('));
+    expect(chips).toContain('goalGroupOf(games[i]) === group.key');
+  });
+
   it('uses the teacher vocabulary the owner fixed', () => {
     expect(html).not.toMatch(/Practice run/i);
     expect(html).not.toMatch(/Pick an activity/i);
