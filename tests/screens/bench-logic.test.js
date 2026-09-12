@@ -214,3 +214,27 @@ describe('HOST_ADVANCE_BUTTONS mirrors the host\'s prototype-skip list', () => {
     expect(HOST_ADVANCE_BUTTONS).toEqual(ids);
   });
 });
+
+describe('Play Again inside the bench', () => {
+  // The projector's Play Again reloads the page into a new room. Inside
+  // Try it out that new room was one nothing else on the bench knew about:
+  // the pretend students, the console tab and the plan rail stayed on the
+  // old one (owner, 2026-09-12). The host hands the click to the bench,
+  // which resets and relaunches the same activity with the same count.
+  it('the host hands the click to the bench instead of reloading', () => {
+    const src = readFileSync(new URL('../../screens/host/host.js', import.meta.url), 'utf8');
+    const start = src.indexOf("playAgainBtn.addEventListener('click'");
+    const handler = src.slice(start, src.indexOf('});', start));
+    expect(handler).toContain("type: 'prototype-play-again'");
+    expect(handler.indexOf('prototype-play-again')).toBeLessThan(handler.indexOf('location.reload'));
+  });
+
+  it('the bench resets and relaunches on that message', () => {
+    const src = readFileSync(new URL('../../screens/prototype/prototype.js', import.meta.url), 'utf8');
+    const start = src.indexOf("e.data.type !== 'prototype-play-again'");
+    expect(start).toBeGreaterThan(-1);
+    const handler = src.slice(start, src.indexOf('});', start));
+    expect(handler).toContain('resetBtn.click()');
+    expect(handler).toContain('launchBtn.click()');
+  });
+});

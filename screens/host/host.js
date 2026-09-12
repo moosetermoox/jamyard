@@ -704,6 +704,14 @@ wagerCloseBtn.addEventListener('click', () => {
 });
 
 playAgainBtn.addEventListener('click', () => {
+  // Inside Try it out the bench owns the room: a reload here would open a
+  // new room the pretend students, the console tab and the plan rail
+  // never hear about (owner, 2026-09-12). Hand the click to the bench,
+  // which resets and relaunches the same activity with the same count.
+  if (new URLSearchParams(window.location.search).get('prototype') === 'true' && window.parent !== window) {
+    window.parent.postMessage({ type: 'prototype-play-again' }, window.location.origin);
+    return;
+  }
   // Don't rebind to the finished room after the reload — start fresh. A
   // ?game= launch had its address tidied to /host once the room existed,
   // so go back to the launch address: the same activity, a new room.
