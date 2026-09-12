@@ -159,7 +159,7 @@ body {
 }
 
 .btn-icon:hover {
-  color: #FF2D2D;
+  color: var(--t-red-text, #B02D12);
 }
 
 .btn-danger {
@@ -278,7 +278,7 @@ body {
 }
 
 #canvas-error {
-  color: #FF2D2D;
+  color: var(--t-red-text, #B02D12);
 }
 
 /* ---- Phase boxes ---- */
@@ -663,13 +663,13 @@ body {
 .phase-type-collect     { background: #C8E6C9; border-color: #00C853; }
 .phase-type-ai-process  { background: #E1BEE7; border-color: #AA00FF; }
 .phase-type-vote        { background: #FFE0B2; border-color: #FF6D00; }
-.phase-type-eliminate   { background: #FFCDD2; border-color: #FF2D2D; }
+.phase-type-eliminate   { background: #FFCDD2; border-color: var(--t-red-text, #B02D12); }
 .phase-type-reveal      { background: #B2EBF2; border-color: #0057FF; }
 .phase-type-preview     { background: #FFF9C4; border-color: #FFD600; }
 .phase-type-winner      { background: #FFE0B2; border-color: #FF6D00; }
 .phase-type-announce    { background: #B2EBF2; border-color: #0057FF; }
 .phase-type-collect-choice { background: #C8E6C9; border-color: #00C853; }
-.phase-type-ai-eliminate { background: #FFCDD2; border-color: #FF2D2D; }
+.phase-type-ai-eliminate { background: #FFCDD2; border-color: var(--t-red-text, #B02D12); }
 .phase-type-end         { background: #E0E0E0; border-color: #555; }
 
 /* ---- Right sidebar ---- */
@@ -948,7 +948,7 @@ body {
 
 #validation-panel.has-errors {
   background: #FFCDD2;
-  border-color: #FF2D2D;
+  border-color: var(--t-red-text, #B02D12);
 }
 
 #validation-panel.warnings-only {
@@ -971,7 +971,7 @@ body {
 }
 
 .has-errors #validation-title {
-  color: #FF2D2D;
+  color: var(--t-red-text, #B02D12);
 }
 
 .warnings-only #validation-title {
@@ -994,7 +994,7 @@ body {
 
 #validation-list .validation-error::before {
   content: '\2716 ';
-  color: #FF2D2D;
+  color: var(--t-red-text, #B02D12);
 }
 
 #validation-list .validation-warning::before {
@@ -1565,7 +1565,7 @@ textarea.sar-input {
 
 /* ---- Inline data ref warnings ---- */
 .data-ref-warning {
-  color: #FF2D2D;
+  color: var(--t-red-text, #B02D12);
   font-size: 0.8rem;
   font-weight: 900;
   margin-top: 3px;
@@ -2607,7 +2607,7 @@ textarea.sar-input {
 }
 
 .builder-step-tool:hover { background: #FFF9C4; }
-.builder-step-del { color: #FF2D2D; border-color: #FF2D2D; }
+.builder-step-del { color: var(--t-red-text, #B02D12); border-color: var(--t-red-text, #B02D12); }
 .builder-step-del:hover { background: #FF2D2D; color: #fff; }
 
 /* Header Host button — the customize-to-classroom shortcut */

@@ -6806,7 +6806,7 @@ async function openSaveAsRecipeModal() {
   } catch (err) {
     modal.innerHTML = '';
     var errEl = document.createElement('p');
-    errEl.style.cssText = 'color:#FF2D2D; padding:20px; text-align:center;';
+    errEl.style.cssText = 'color:var(--t-red-text, #B02D12); padding:20px; text-align:center;';
     errEl.textContent = 'Could not analyze activity: ' + err.message;
     modal.appendChild(errEl);
     return;

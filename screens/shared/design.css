@@ -1,104 +1,25 @@
 /* ============================================================
-   Lanyard shared design system
+   Shared base styles
    ------------------------------------------------------------
    Loaded by every screen (link BEFORE the screen's own styles).
-   Provides: self-hosted fonts + the design tokens all screens
-   share. Screens may still declare literal font stacks that
-   include the fallbacks — the @font-face rules here are what
-   make 'Archivo Black' and 'Nunito' resolve.
-
-   Type system:
-   - Display (headings, buttons, big moments): Archivo Black —
-     a better-drawn drop-in for Arial Black, same weight/energy.
-   - Body (paragraphs, inputs, descriptions): Nunito — rounded,
-     friendly, very readable on Chromebook screens.
+   The design system itself is shared/totem.css (tokens, fonts,
+   the wood and paint). What lives here is what every page needs
+   regardless of its look: the keyboard focus ring, the mic
+   button on text boxes, and two legacy text tokens the editor
+   still reads. The paste-up era's palette (its own display font,
+   electric blue, hard black shadows) was retired by the Totem
+   redesign in 2026-08 and removed here on 2026-09-12.
    ============================================================ */
 
-@font-face {
-  font-family: 'Archivo Black';
-  src: url('fonts/archivo-black-v23-latin-regular.woff2') format('woff2');
-  /* Single-weight face mapped across the bold range so
-     font-weight: 700/900 never triggers faux-bold doubling. */
-  font-weight: 400 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Nunito';
-  src: url('fonts/nunito-v32-latin-regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Nunito';
-  src: url('fonts/nunito-v32-latin-700.woff2') format('woff2');
-  font-weight: 500 700;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Nunito';
-  src: url('fonts/nunito-v32-latin-800.woff2') format('woff2');
-  font-weight: 800 900;
-  font-style: normal;
-  font-display: swap;
-}
-
-/* Serif voice for the paste-up system's "spoken line"
-   (one big EB Garamond sentence per screen). */
-@font-face {
-  font-family: 'EB Garamond';
-  src: url('fonts/eb-garamond-v33-latin-regular.woff2') format('woff2');
-  font-weight: 400 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'EB Garamond';
-  src: url('fonts/eb-garamond-v33-latin-italic.woff2') format('woff2');
-  font-weight: 400;
-  font-style: italic;
-  font-display: swap;
-}
-
 :root {
-  /* Type */
-  --font-display: 'Archivo Black', 'Arial Black', Arial, sans-serif;
-  --font-body: 'Nunito', Arial, sans-serif;
-
-  /* Ink + canvas */
-  --ink: #000000;
+  /* Legacy text tokens (designer editor.css still reads them) */
   --text: #222222;
   --text-soft: #555555;
-  --canvas: #FFFDE7;      /* page background for teacher chrome */
-  --card: #FFFFFF;        /* card / surface */
-  --cream: #FFF9C4;       /* warm accent fill (buttons, bands) */
 
-  /* Brand colors */
-  --blue: #0057FF;
-  --blue-dark: #0041CC;
-  --yellow: #FFD600;
-  --pink: #FF4081;
-  --green: #00C853;
-  --red: #FF2D2D;
-  --red-soft: #FFCDD2;
-  --green-soft: #C8E6C9;
-  --blue-soft: #E3F2FD;
-
-  /* Structure */
-  --border: 3px solid var(--ink);
-  --border-thin: 2px solid var(--ink);
-  --radius: 14px;
-  --radius-lg: 20px;
-  --radius-pill: 999px;
-  --shadow-pop: 6px 6px 0 var(--ink);
-  --shadow-pop-sm: 3px 3px 0 var(--ink);
-  --focus-ring: 3px solid var(--blue);
+  /* Keyboard focus: one strong ring on every page. Blue on purpose:
+     it is the one color no paint on the site uses, so it never reads
+     as a state of the thing it circles. */
+  --focus-ring: 3px solid #0057FF;
 }
 
 /* ------------------------------------------------------------
@@ -179,7 +100,7 @@ select:focus-visible,
 .mic-btn.mic-live {
   opacity: 1;
   font-size: 0.9rem;
-  background: var(--theme-danger, var(--red, #d9534f));
+  background: var(--theme-danger, var(--t-red, #d9534f));
   color: #fff;
   animation: micPulse 1.2s ease-in-out infinite;
 }

@@ -3,7 +3,7 @@
 }
 
 body {
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
   max-width: 400px;
   margin: 0 auto;
   padding: 30px 20px;
@@ -1449,7 +1449,7 @@ button[hidden] {
 .msg-subhead {
   display: block;
   text-align: left;
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
   font-size: 0.9em;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1491,11 +1491,11 @@ button[hidden] {
   border-radius: 10px; padding: 8px 12px;
   font-family: 'Nunito', Arial, sans-serif; font-weight: 700; font-size: 0.65em; line-height: 1.4;
 }
-.msg-card-num { font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif; font-size: 0.85em; opacity: 0.5; flex-shrink: 0; }
+.msg-card-num { font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif; font-size: 0.85em; opacity: 0.5; flex-shrink: 0; }
 
 /* --- Holding screens (2026-08-08): waits show the room, not a void --- */
 .holding-progress {
-  font-family: 'Archivo Black', 'Arial Black', Arial, sans-serif;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
   font-size: 1.5rem;
   font-variant-numeric: tabular-nums;
   color: var(--theme-heading, #222);
@@ -2226,4 +2226,15 @@ body.wh-empty .wh-word:hover { background: none; }
   border: 2px solid var(--t-ink, #2A2418);
   border-radius: 4px;
   cursor: pointer;
+}
+
+/* ── The Submit button stays in view (outside review 2026-09-12) ──
+   A notice above it ("Draw something first!") or a tall drawing pad used
+   to push it below the fold on a short Chromebook. Sticky, not fixed: it
+   sits where it always did until the section runs past the screen, then
+   rides the bottom edge. */
+#submit-btn:not([hidden]) {
+  position: sticky;
+  bottom: 12px;
+  z-index: 5;
 }

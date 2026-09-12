@@ -36,6 +36,9 @@
   };
 
   var ASK = 'With pretend students first, or with your class?';
+  // Under the front row, so Try it out is not a secret behind Launch
+  // (an outside reviewer never found it, 2026-09-12)
+  var HINT = 'Launch opens two ways to run it: with pretend students, or with your class.';
 
   function el(tag, cls, text) {
     var node = document.createElement(tag);
@@ -71,7 +74,10 @@
     launchRow.appendChild(simulateBtn);
     launchRow.appendChild(hostBtn);
 
+    var hint = el('p', 'doors-launch-hint', HINT);
+
     row.appendChild(front);
+    row.appendChild(hint);
     row.appendChild(launchRow);
 
     var real = [
@@ -82,6 +88,7 @@
 
     function setOpen(open) {
       launchRow.hidden = !open;
+      hint.hidden = open; // the open row asks the question itself
       launchBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
       launchBtn.className = 'recipe-create-btn door-launch' + (open ? ' is-open' : '');
       if (open && simulateBtn.focus) simulateBtn.focus();
