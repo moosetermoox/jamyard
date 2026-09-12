@@ -1777,34 +1777,6 @@ function renderMatchPreview(modal, data, overlay, description) {
   modal.appendChild(btnRow);
 }
 
-// The three doors every Make it yours ends in (same trio as the yard's
-// dialog): continue in the designer, try it out with pretend students,
-// host it now. The copy is saved either way.
-function renderMatchedDoors(modal, newId, name) {
-  clearModal(modal);
-
-  var title = document.createElement('h2');
-  title.className = 'template-picker-title';
-  title.textContent = 'It\'s yours: ' + name;
-  modal.appendChild(title);
-
-  var note = document.createElement('p');
-  note.className = 'recipe-form-description';
-  note.textContent = 'Saved to My yard. Launch it, or keep shaping it in the designer first.';
-  modal.appendChild(note);
-
-  // The same doors as the yard's dialogs (/shared/make-it-yours-doors.js):
-  // a bigger Launch that opens Try it out / Host it now, beside a smaller
-  // Continue setup. The copy is already saved, so no busy label.
-  var q = encodeURIComponent(newId);
-  var doors = MakeItYoursDoors.build(function (dest) {
-    if (dest === 'simulate') window.location.href = '/prototype?game=' + q;
-    else if (dest === 'host') window.location.href = '/host?game=' + q;
-    else window.location.href = '/designer/edit?game=' + q;
-  });
-  modal.appendChild(doors.row);
-}
-
 // The matcher pointed at a finished built-in activity: nothing to build.
 // The card shows the yard popup's map and ends in the yard's doors: Make
 // it yours (the yard's dialog, then designer / try it out / host), Try it
@@ -1909,16 +1881,16 @@ function renderExistingGameView(modal, data, overlay, description) {
   });
   btnRow.appendChild(backBtn);
 
-  // Make it yours opens the yard's own dialog for this activity (the class
-  // picker, the setup knobs, then the three doors: continue in the
-  // designer, try it out, host it now). Same door as a yard plank.
+  // Make it yours opens the make page for this activity, the same door as
+  // a yard plank or a home tile (never the yard's ?customize= detour,
+  // which sends an owner-mode browser to the editor instead).
   var customizeBtn = document.createElement('button');
   customizeBtn.type = 'button';
   customizeBtn.className = 'recipe-cancel-btn';
   customizeBtn.textContent = 'Make it yours';
   customizeBtn.title = 'Make your own editable copy of "' + game.name + '"';
   customizeBtn.addEventListener('click', function () {
-    window.location.href = '/library?customize=' + encodeURIComponent(game.id);
+    window.location.href = '/make?game=' + encodeURIComponent(game.id) + '&from=designer';
   });
   btnRow.appendChild(customizeBtn);
 
@@ -1996,14 +1968,11 @@ async function saveMatchedConfig(data, status, createBtn, overlay, modal) {
 
     if (resp.ok) {
       rememberMine(newId);
-      // Saved: the three doors, same as the yard (owner's ask 2026-09-07;
-      // this used to jump straight into the editor).
-      if (modal) {
-        renderMatchedDoors(modal, newId, (data.config && data.config.name) || 'your activity');
-      } else {
-        overlay.remove();
-        window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
-      }
+      // Saved: the make page, the same door every Make it yours ends in
+      // since 2026-09-09 (this used to show its own doors dialog, and
+      // before that jump straight into the editor). The copy is the
+      // teacher's, so the page saves edits back to it.
+      window.location.href = '/make?game=' + encodeURIComponent(newId) + '&from=designer';
     } else {
       var saveData;
       try { saveData = await resp.json(); } catch (e) { saveData = {}; }
@@ -2548,7 +2517,7 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       customizeBtn.textContent = 'Make it yours';
       customizeBtn.title = 'Make your own editable copy of this activity';
       customizeBtn.addEventListener('click', function () {
-        window.location.href = '/library?customize=' + encodeURIComponent(s.id);
+        window.location.href = '/make?game=' + encodeURIComponent(s.id) + '&from=designer';
       });
       row.appendChild(customizeBtn);
 
