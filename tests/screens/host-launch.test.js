@@ -165,3 +165,31 @@ describe('every Host door goes through it', () => {
     }
   });
 });
+
+describe('the projector chrome (owner, 2026-09-13)', () => {
+  it('the brand mark links home, and the corner tools wear the bench toolbar marks, small', async () => {
+    const html = await read('screens/host/index.html');
+    expect(html).toContain('<a class="brand-link" href="/"');
+    expect(html).toMatch(/id="sfx-toggle" class="corner-tool"[^>]*>&#9834;</);
+    expect(html).toMatch(/id="fullscreen-toggle" class="corner-tool"[^>]*>&#9974;</);
+    // the same two marks the bench toolbar uses
+    const bench = await read('screens/prototype/index.html');
+    expect(bench).toMatch(/id="sound-btn"[^>]*>&#9834;</);
+    expect(bench).toMatch(/id="fullscreen-btn"[^>]*>&#9974;</);
+    const css = await read('screens/host/styles.css');
+    expect(css).toMatch(/\.corner-tool \{[^}]*width: 26px/);
+    expect(css).toContain('.corner-tool[hidden] { display: none; }');
+    expect(css).toContain('body.in-bench .corner-tools { display: none; }');
+    expect(css).not.toContain('.sfx-toggle');
+    const js = await read('screens/host/host.js');
+    expect(js).not.toContain("'Sound on'");
+    expect(js).not.toContain("'Full screen'");
+    // with a room open, the mark asks before leaving; inside the bench it is inert
+    expect(js).toContain("querySelector('.brand-link')");
+    expect(js).toContain("classList.contains('in-bench')) { e.preventDefault(); return; }");
+  });
+  it('the teacher view has a way back to the yard', async () => {
+    const html = await read('screens/teacher/index.html');
+    expect(html).toContain('class="header-home" href="/library"');
+  });
+});

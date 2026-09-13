@@ -305,34 +305,62 @@ button:disabled {
   font-size: 1.4rem;
 }
 
-/* --- Juice: sound toggle + celebration flair --- */
-
-.sfx-toggle {
+/* --- Corner tools: sound and full screen --- */
+/* Two small quiet chips in the top-right, the same marks the bench toolbar
+   uses (Try it out): a note and a frame. Faint until the mouse finds them;
+   the projector belongs to the content (owner: much smaller, more subtle). */
+.corner-tools {
   position: fixed;
-  top: 14px;
-  right: 14px;
+  top: 10px;
+  right: 12px;
   z-index: 100;
-  font-size: 1.2rem;
-  padding: 8px 12px;
+  display: flex;
+  gap: 6px;
+}
+
+.corner-tool {
+  width: 26px;
+  height: 26px;
+  padding: 0;
   margin: 0;
-  border-radius: 50%;
-  background: var(--theme-surface, white);
-  color: var(--theme-text, #222);
+  border: none;
+  border-radius: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--t-paper);
+  color: var(--t-ink);
+  font-family: var(--t-body);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  text-transform: none;
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.22);
+  clip-path: none;
+  filter: none;
+  transform: none;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 120ms ease, transform 120ms ease;
 }
 
-/* Full-screen chip stands under the sound chip in the same corner
-   (fixed display value beats the hidden attribute — keep the override). */
-.fullscreen-toggle {
-  top: 64px;
-  font-size: 0.95rem;
+.corner-tool:hover,
+.corner-tool:focus-visible { opacity: 1; transform: translateY(-2px); }
+
+/* Sound off: the note goes quiet on gesso, struck through */
+#sfx-toggle[aria-pressed="true"] {
+  background: var(--t-gesso);
+  color: var(--t-muted-caps);
+  text-decoration: line-through;
 }
 
-.fullscreen-toggle[hidden] { display: none; }
+/* Fixed display value beats the hidden attribute: keep the override */
+.corner-tool[hidden] { display: none; }
 
 /* Inside Try it out the bench's toolbar carries sound and full screen;
    the projector's own chips would be a second copy on the screen */
-body.in-bench .sfx-toggle,
-body.in-bench .fullscreen-toggle { display: none; }
+body.in-bench .corner-tools { display: none; }
 
 /* Standings rows pop in one after another (delay set inline per row) */
 .juice-stagger {
@@ -1652,6 +1680,18 @@ h1 span {
   box-shadow: 0 2px 4px rgba(50, 35, 15, 0.30);
 }
 
+/* The mark is a link home; it wears the two blocks, nothing of a link */
+h1 .brand-link {
+  display: flex;
+  gap: 5px;
+  align-items: flex-end;
+  color: inherit;
+  text-decoration: none;
+}
+
+body.in-activity h1 .brand-link:hover span,
+body.in-activity h1 .brand-link:focus-visible span { color: var(--t-ink); }
+
 h1 .brand-jam {
   background: var(--t-birch);
   background-image: var(--t-grain);
@@ -2389,17 +2429,8 @@ select,
   box-shadow: 0 0 0 1px rgba(42, 38, 32, 0.14);
 }
 
-/* Corner chrome: sound toggle + teacher chip as small pieces */
-.sfx-toggle {
-  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.24);
-  transform: rotate(1deg);
-  background: var(--t-paper);
-  clip-path: none;
-  filter: none;
-}
-
-.sfx-toggle:hover { transform: rotate(1deg) translateY(-3px); }
-
+/* Corner chrome: the teacher chip as a small piece (the sound and full
+   screen chips are .corner-tool, styled with the juice block above) */
 #teacher-link-copy,
 #preview-reveal-btn,
 .player-kick-btn {
@@ -2472,7 +2503,7 @@ select,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  button, .sfx-toggle { transition: none; }
+  button, .corner-tool { transition: none; }
 }
 
 @media (max-width: 900px) {

@@ -9,9 +9,14 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1 aria-label="Jamyard"><span class="brand-jam">JAM</span><span class="brand-yard">YARD</span></h1>
-  <button id="sfx-toggle" class="sfx-toggle" type="button" title="Sounds on/off">Sound on</button>
-  <button id="fullscreen-toggle" class="sfx-toggle fullscreen-toggle" type="button" title="Show this screen full screen (Esc leaves)">Full screen</button>
+  <!-- The brand mark is the way back to Jamyard (with a room open, host.js
+       asks before leaving). The corner tools are the bench toolbar's marks
+       (Try it out): a note for sound, a frame for full screen. -->
+  <h1><a class="brand-link" href="/" aria-label="Jamyard, back to the home page" title="Back to Jamyard"><span class="brand-jam">JAM</span><span class="brand-yard">YARD</span></a></h1>
+  <div class="corner-tools">
+    <button id="sfx-toggle" class="corner-tool" type="button" aria-pressed="false" title="Sound effects on or off">&#9834;</button>
+    <button id="fullscreen-toggle" class="corner-tool" type="button" title="Show this screen full screen (Esc leaves)">&#9974;</button>
+  </div>
 
   <!-- LOBBY SECTION -->
   <section id="lobby-section" class="active">
