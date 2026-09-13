@@ -24,10 +24,12 @@ const socket = io();
 const J = window.Juice || null;
 const sfxToggle = document.getElementById('sfx-toggle');
 function labelSfxToggle(isMuted) {
-  sfxToggle.textContent = isMuted ? 'Sound off' : 'Sound on';
-  // Screen readers announce the action, not just an emoji.
+  // The bench toolbar's mark: a note, struck through (CSS) when off.
+  // Screen readers announce the action, not the symbol.
+  sfxToggle.textContent = '♪';
+  sfxToggle.setAttribute('aria-pressed', isMuted ? 'true' : 'false');
   sfxToggle.setAttribute('aria-label', isMuted ? 'Turn sound effects on' : 'Turn sound effects off');
-  sfxToggle.title = isMuted ? 'Turn sound effects on' : 'Turn sound effects off';
+  sfxToggle.title = isMuted ? 'Sound effects are off. Turn them on' : 'Sound effects are on. Turn them off';
 }
 if (sfxToggle && J) {
   labelSfxToggle(J.muted());
@@ -42,7 +44,7 @@ if (sfxToggle && J) {
 const fullscreenToggle = document.getElementById('fullscreen-toggle');
 function labelFullscreenToggle() {
   const on = !!document.fullscreenElement;
-  fullscreenToggle.textContent = on ? 'Exit full screen' : 'Full screen';
+  fullscreenToggle.textContent = '⛶';
   fullscreenToggle.title = on
     ? 'Back to the normal window (Esc works too)'
     : 'Show this screen full screen (Esc leaves)';
@@ -64,6 +66,19 @@ if (fullscreenToggle && document.documentElement.requestFullscreen) {
   document.addEventListener('fullscreenchange', labelFullscreenToggle);
 } else if (fullscreenToggle) {
   fullscreenToggle.hidden = true;
+}
+
+// --- The brand mark is the way back to Jamyard ---
+// With a room open, leaving this tab closes the class screen, so ask
+// first. Inside Try it out the mark is inert: the frame is not a page to
+// leave, the bench around it has its own way back.
+const brandLink = document.querySelector('.brand-link');
+if (brandLink) {
+  brandLink.addEventListener('click', (e) => {
+    if (document.body.classList.contains('in-bench')) { e.preventDefault(); return; }
+    const live = currentRoomCode && !document.body.classList.contains('room-ended');
+    if (live && !window.confirm('Leave this room? The class screen closes for everyone in it.')) e.preventDefault();
+  });
 }
 
 // --- Stale-event guard: echo the last seen phaseInstanceId on every outgoing event ---

@@ -25,6 +25,25 @@ header {
   gap: 10px;
 }
 
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  min-width: 0;
+}
+
+/* The way back: quiet, before the mark */
+.header-home {
+  color: #CFC5B4;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.header-home:hover { color: var(--t-paper); text-decoration: underline; text-underline-offset: 3px; }
+
 .logo {
   color: var(--t-paper);
   font-family: var(--t-display);
