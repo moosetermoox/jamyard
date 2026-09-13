@@ -467,7 +467,7 @@
   function destUrl(dest, id) {
     var q = encodeURIComponent(id);
     if (dest === 'simulate') return '/prototype?game=' + q;
-    if (dest === 'host') return '/host?game=' + q;
+    if (dest === 'host') return window.HostLaunch ? HostLaunch.hostUrl(id) : '/host?game=' + q;
     return '/designer/edit?game=' + q + '&from=library';
   }
 
@@ -486,6 +486,9 @@
   }
 
   function clearOpening() {
+    // Nothing opened after all (a failure, or Cancel): the console tab
+    // that Host may have opened is closed rather than left waiting
+    if (window.HostLaunch) HostLaunch.abandon();
     state.busy = false;
     document.body.classList.remove('is-opening');
     el.opening.hidden = true;
@@ -501,6 +504,9 @@
   function go(dest) {
     if (state.busy || !state.config) return;
     el.error.hidden = true;
+    // Host it now opens the teacher console in a new tab, inside the click
+    // (shared/host-launch.js); the projector address picks the nonce up
+    if (dest === 'host' && window.HostLaunch) HostLaunch.begin();
     // A recipe panel builds and saves the copy itself (filling it in IS
     // editing, so these always save, as the dialog did)
     if (state.panelApi && state.panelApi.makeCopy) {

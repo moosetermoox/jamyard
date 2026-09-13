@@ -84,7 +84,9 @@ function makeItYoursDoors(onPick) {
 function copyDestinationUrl(dest, id) {
   var q = encodeURIComponent(id);
   if (dest === 'simulate') return '/prototype?game=' + q;
-  if (dest === 'host') return '/host?game=' + q;
+  // The projector address carries the console tab's nonce when Host
+  // opened one (shared/host-launch.js)
+  if (dest === 'host') return window.HostLaunch ? HostLaunch.hostUrl(id) : '/host?game=' + q;
   return '/designer/edit?game=' + q + '&from=library';
 }
 

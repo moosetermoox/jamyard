@@ -419,6 +419,10 @@ function buildGameCard(game) {
   var hostBtn = document.createElement('a');
   hostBtn.className = 'game-card-host';
   hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
+  // The console opens in a new tab alongside (shared/host-launch.js)
+  hostBtn.addEventListener('click', function (e) {
+    if (window.HostLaunch) { e.preventDefault(); HostLaunch.launch(game.id); }
+  });
   hostBtn.textContent = '▶ Host';
   hostBtn.title = 'Start a live room your class can join right now';
   hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');
@@ -1910,7 +1914,8 @@ function renderExistingGameView(modal, data, overlay, description) {
   hostBtn.textContent = '▶ Host this';
   hostBtn.title = 'Start a live room your class can join right now';
   hostBtn.addEventListener('click', function () {
-    window.location.href = '/host?game=' + encodeURIComponent(game.id);
+    if (window.HostLaunch) HostLaunch.launch(game.id);
+    else window.location.href = '/host?game=' + encodeURIComponent(game.id);
   });
   btnRow.appendChild(hostBtn);
 
@@ -2497,7 +2502,8 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       hostBtn.textContent = '▶ Host this' + (s.playTime ? ' (' + s.playTime + ')' : '');
       hostBtn.title = 'Start a live room your class can join right now';
       hostBtn.addEventListener('click', function () {
-        window.location.href = '/host?game=' + encodeURIComponent(s.id);
+        if (window.HostLaunch) HostLaunch.launch(s.id);
+        else window.location.href = '/host?game=' + encodeURIComponent(s.id);
       });
       row.appendChild(hostBtn);
 

@@ -785,7 +785,10 @@ fetch('/api/games')
 hostBtn.addEventListener('click', () => {
   const gameId = gameSelect.value;
   if (!gameId) return;
-  window.location.href = '/host?game=' + encodeURIComponent(gameId);
+  // Host this: the projector here, the teacher console in a new tab
+  // (shared/host-launch.js)
+  if (window.HostLaunch) HostLaunch.launch(gameId);
+  else window.location.href = '/host?game=' + encodeURIComponent(gameId);
 });
 
 // Spot something to change mid-preview? The designer is one click away,

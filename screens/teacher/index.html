@@ -20,7 +20,7 @@
   <!-- JOIN -->
   <section id="join-section">
     <h1>Your private view</h1>
-    <p class="join-hint">This screen is just for you, open it on your laptop or a spare Chromebook to moderate entries and approve previews without showing the class. The easy way in: tap <strong>Copy teacher link</strong> on the host screen and paste the link here, it fills everything in for you.</p>
+    <p class="join-hint">This screen is just for you, open it on your laptop or a spare Chromebook to moderate entries and approve previews without showing the class. Press <strong>Host</strong> anywhere on the site: the projector opens in a new tab in front, and this console stays behind it, signed in by itself. For a second device: tap <strong>Copy teacher link</strong> on the host screen and paste the link there, it fills everything in for you.</p>
     <label for="code-input">Room code</label>
     <input type="text" id="code-input" maxlength="4" autocomplete="off" spellcheck="false" placeholder="ABCD">
     <label for="pin-input">Teacher PIN</label>
@@ -127,6 +127,7 @@
 
   <script src="/shared/drawing.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/shared/host-launch.js"></script>
   <script src="teacher.js"></script>
 </body>
 </html>

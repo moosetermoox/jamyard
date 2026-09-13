@@ -105,6 +105,9 @@
         // rewording can take half a minute and a status line below is
         // easy to miss (owner clicked and saw nothing, 2026-09-06).
         if (busyLabel) door.btn.textContent = busyLabel;
+        // Host opens the teacher console in a new tab; that has to happen
+        // inside the click, before the copy is saved (shared/host-launch.js)
+        if (door.dest === 'host' && window.HostLaunch) HostLaunch.begin();
         onPick(door.dest);
       });
     });

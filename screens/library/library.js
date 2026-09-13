@@ -477,6 +477,10 @@ function openActivityDialog(game) {
     var hostBtn = document.createElement('a');
     hostBtn.className = 'game-card-host library-host';
     hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
+    // The console opens in a new tab alongside (shared/host-launch.js)
+    hostBtn.addEventListener('click', function (e) {
+      if (window.HostLaunch) { e.preventDefault(); HostLaunch.launch(game.id); }
+    });
     hostBtn.textContent = '▶ Host this';
     hostBtn.title = 'Start a live room your class can join right now';
     hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');
@@ -748,6 +752,10 @@ function buildCard(game) {
     var hostBtn = document.createElement('a');
     hostBtn.className = 'game-card-host library-host';
     hostBtn.href = '/host?game=' + encodeURIComponent(game.id);
+    // The console opens in a new tab alongside (shared/host-launch.js)
+    hostBtn.addEventListener('click', function (e) {
+      if (window.HostLaunch) { e.preventDefault(); HostLaunch.launch(game.id); }
+    });
     hostBtn.textContent = '▶ Host this';
     hostBtn.title = 'Start a live room your class can join right now';
     hostBtn.setAttribute('aria-label', 'Host "' + game.name + '" now');

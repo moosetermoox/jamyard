@@ -164,6 +164,36 @@ var autoJoinFromLink = false;
   try { history.replaceState(null, '', window.location.pathname); } catch (e) { /* old browser */ }
 })();
 
+// Opened by a Host button in a new tab before the room existed
+// (/teacher#await=<nonce>, shared/host-launch.js): wait for the projector
+// tab to publish the room, then join by itself. A minute with nothing
+// heard hands the form back, with Copy teacher link as the way in.
+(function () {
+  if (!window.HostLaunch) return;
+  var nonce = HostLaunch.pairFromHash(window.location.hash);
+  if (!nonce) return;
+  try { history.replaceState(null, '', window.location.pathname); } catch (e) { /* old browser */ }
+  var hint = document.querySelector('.join-hint');
+  var hintWas = hint ? hint.textContent : '';
+  if (hint) hint.textContent = 'Your projector is opening the room in the other tab. This console joins it by itself in a moment.';
+  joinBtn.disabled = true;
+  joinBtn.textContent = 'Waiting for the projector…';
+  var timer = setTimeout(function () {
+    stop();
+    if (hint) hint.textContent = 'The projector did not report a room. ' + hintWas;
+    joinBtn.disabled = false;
+    joinBtn.textContent = 'Connect';
+  }, 60 * 1000);
+  var stop = HostLaunch.listen(nonce, function (rec) {
+    clearTimeout(timer);
+    codeInput.value = rec.code;
+    pinInput.value = rec.pin || '';
+    if (hint) hint.textContent = hintWas;
+    autoJoinFromLink = false;
+    tryJoin();
+  });
+})();
+
 function showJoinError(message) {
   joinError.textContent = message;
   joinError.hidden = false;

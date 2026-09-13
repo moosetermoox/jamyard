@@ -573,9 +573,14 @@
     var hostBtn = el('button', 'builder-done-btn secondary', 'Host it live now');
     hostBtn.type = 'button';
     hostBtn.addEventListener('click', function () {
+      // The teacher console opens in a new tab, inside the click
+      // (shared/host-launch.js); the save below may take a moment
+      if (window.HostLaunch) HostLaunch.begin();
       var go = function () {
         if (typeof gameId !== 'undefined' && gameId) {
-          window.location.href = '/host?game=' + encodeURIComponent(gameId);
+          window.location.href = window.HostLaunch ? HostLaunch.hostUrl(gameId) : '/host?game=' + encodeURIComponent(gameId);
+        } else if (window.HostLaunch) {
+          HostLaunch.abandon();
         }
       };
       if (typeof autoSaveIfDirty === 'function') {

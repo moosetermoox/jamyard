@@ -592,11 +592,16 @@ async function init() {
   var hostBtn = document.getElementById('host-btn');
   if (hostBtn) {
     hostBtn.addEventListener('click', async function () {
+      // The teacher console opens in a new tab, inside the click (a popup
+      // after the await would be blocked); shared/host-launch.js
+      if (window.HostLaunch) HostLaunch.begin();
       // Save first (validating — a rejected save keeps you here), then
       // straight to a live room with this activity.
       await saveGame();
       if (gameId && !isDirty) {
-        window.location.href = '/host?game=' + encodeURIComponent(gameId);
+        window.location.href = window.HostLaunch ? HostLaunch.hostUrl(gameId) : '/host?game=' + encodeURIComponent(gameId);
+      } else if (window.HostLaunch) {
+        HostLaunch.abandon();
       }
     });
   }
