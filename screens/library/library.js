@@ -293,12 +293,13 @@ function renderLibrary(games, rescueInfo) {
 
 // The goal piles of planks (Totem 9g) retired on 2026-09-10: the yard
 // draws the home's grid of prints instead (/shared/yard-prints.js). The
-// personal shelf below keeps its mini planks.
+// personal shelf's mini planks followed on 2026-09-13 (owner: one visual).
 
-// The personal shelf: recents, hearts, and your copies as small planks
-// resting on one long board, "MY YARD" painted underneath. Hidden until
-// there's something on it (renderLibrary only calls with 1+). Activities
-// put away live behind the collapsed "In the shed" line beneath the board.
+// The personal shelf: recents, hearts, and your copies as the same prints
+// the grid below draws, in the shelf's own order, resting on one long
+// board with "MY YARD" painted underneath. Hidden until there's something
+// on it (renderLibrary only calls with 1+). Activities put away live
+// behind the collapsed "In the shed" line beneath the board.
 var shedOpen = false;
 
 function buildMyYardShelf(games, shedGames) {
@@ -312,9 +313,9 @@ function buildMyYardShelf(games, shedGames) {
   outer.appendChild(wrap);
 
   var row = document.createElement('div');
-  row.className = 'myyard-row';
+  row.className = 'myyard-row yard-grid';
   for (var i = 0; i < games.length; i++) {
-    row.appendChild(buildMiniPlank(games[i], i));
+    row.appendChild(buildShelfPrint(games[i], i));
   }
   wrap.appendChild(row);
 
@@ -349,9 +350,9 @@ function buildMyYardShelf(games, shedGames) {
 
     if (shedOpen) {
       var shedRow = document.createElement('div');
-      shedRow.className = 'myyard-row shed-row';
+      shedRow.className = 'myyard-row shed-row yard-grid';
       for (var s = 0; s < shedGames.length; s++) {
-        shedRow.appendChild(buildMiniPlank(shedGames[s], s));
+        shedRow.appendChild(buildShelfPrint(shedGames[s], s));
       }
       outer.appendChild(shedRow);
     }
@@ -359,31 +360,21 @@ function buildMyYardShelf(games, shedGames) {
   return outer;
 }
 
-function buildMiniPlank(game, index) {
-  var plank = document.createElement('button');
-  plank.type = 'button';
-  plank.className = 'plank-mini plank-tone-' + (index % 8);
-  plank.setAttribute('data-game-id', game.id);
-  plank.setAttribute('aria-haspopup', 'dialog');
-  plank.setAttribute('aria-label', game.name + ', see what it is and make it yours');
-  HoverCard.attach(plank, game);
-
+// One print on the shelf: the grid's own print (shared/yard-prints.js,
+// the hover card and the popup come with it), plus a heart pinned to the
+// paper's corner when the activity is hearted.
+function buildShelfPrint(game, index) {
+  var card = YardPrints.buildCard(game, index, { onClick: openActivityDialog });
+  card.setAttribute('aria-label', game.name + ', see what it is and make it yours');
   if (Favorites.has(game.id)) {
     var fav = document.createElement('span');
-    fav.className = 'plank-fav';
+    fav.className = 'yard-heart';
     fav.textContent = '♥';
     fav.setAttribute('aria-hidden', 'true');
-    plank.appendChild(fav);
+    var print = card.querySelector('.yard-print');
+    (print || card).appendChild(fav);
   }
-  var name = document.createElement('span');
-  name.className = 'plank-name';
-  name.textContent = game.name;
-  plank.appendChild(name);
-
-  plank.addEventListener('click', function () {
-    openActivityDialog(game);
-  });
-  return plank;
+  return card;
 }
 
 // The plank popup: what it is, then the doors the old card offered.
@@ -1049,7 +1040,6 @@ function handleHighlightParam() {
   } catch (e) { return; }
   var piece = document.querySelector('.yard-card[data-game-id="' + CSS.escape(wantedId) + '"]') ||
     document.querySelector('.plank[data-game-id="' + CSS.escape(wantedId) + '"]') ||
-    document.querySelector('.plank-mini[data-game-id="' + CSS.escape(wantedId) + '"]') ||
     document.querySelector('.library-card[data-game-id="' + CSS.escape(wantedId) + '"]');
   if (!piece) return; // filtered out or unknown — the library itself is the fallback
   piece.scrollIntoView({ block: 'center' });
