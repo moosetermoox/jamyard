@@ -70,11 +70,34 @@
         </div>
         <span class="try-sub" id="try-sub">With pretend students</span>
       </div>
-      <button type="button" class="host-btn" id="host-btn">Host it now</button>
-      <a href="#" class="designer-link" id="designer-link">Open in the designer</a>
+      <div class="doors-mid">
+        <button type="button" class="host-btn" id="host-btn">Host it now</button>
+        <a href="#" class="designer-link" id="designer-link">Open in the designer</a>
+        <a href="#" class="cancel-link" id="cancel-link" hidden>Cancel</a>
+      </div>
+      <!-- The setup card (2026-09-13): the settings beside the doors, at the
+           moment of deciding, each line with its value as a chip (yellow =
+           set, dashed = not). Your class, the AI's one or two questions,
+           then the two switches. Tap a line: its control opens in the panel
+           under the doors, never in a fold. -->
+      <div class="setup-card" id="setup-card" aria-label="Make it fit your class">
+        <span class="setup-tally" id="setup-tally"></span>
+        <span class="setup-heading">Make it fit your class</span>
+        <div class="setup-lines" id="setup-lines"></div>
+        <span class="setup-hint" id="setup-hint">Tap a line to change it. All optional.</span>
+      </div>
       <span class="doors-note" id="doors-note" hidden></span>
-      <a href="#" class="cancel-link" id="cancel-link" hidden>Cancel</a>
     </div>
+
+    <!-- The tapped line's control: the class picker (it shapes the
+         questions and the AI's rewording), the questions themselves (a row
+         of choices, or a plank when the answer is a specific thing) -->
+    <section class="setup-panel" id="setup-panel" hidden>
+      <div class="class-holder" id="class-holder" hidden></div>
+      <div class="setup-questions" id="setup-questions"></div>
+      <p class="setup-status" id="setup-status" hidden></p>
+      <button type="button" class="setup-done" id="setup-done">Done</button>
+    </section>
 
     <p class="make-error" id="make-error" hidden></p>
 
@@ -92,27 +115,6 @@
       <div id="panel-holder"></div>
     </section>
 
-    <!-- Everything else, folded: the AI's tailoring questions and names -->
-    <div class="more">
-      <button type="button" class="more-btn" id="more-btn" aria-expanded="false" aria-controls="more-body">+ More</button>
-      <span class="more-hint" id="more-hint">Your class, the kind of answers you hope for, student names on or off.</span>
-    </div>
-    <div class="more-body" id="more-body" hidden>
-      <!-- Your class: it shapes the questions below and the AI's rewording,
-           so it lives next to them, where a pick visibly changes something -->
-      <div class="class-holder" id="class-holder"></div>
-      <div class="more-questions" id="more-questions">
-        <p class="more-status" id="more-status">Loading a question or two for your class…</p>
-      </div>
-      <label class="names-row">
-        <input type="checkbox" id="names-hidden">
-        <span>Hide student names (the room assigns play names)</span>
-      </label>
-      <label class="names-row">
-        <input type="checkbox" id="early-joke">
-        <span>Early-bird joke (the first 10 students to join each see a dad joke)</span>
-      </label>
-    </div>
   </main>
 
   <script src="/shared/phase-names.js"></script>

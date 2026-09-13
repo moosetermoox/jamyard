@@ -458,69 +458,163 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
   box-shadow: 0 3px 4px rgba(50, 35, 15, 0.2);
 }
 
-/* ── More ───────────────────────────────────────────────────────────── */
+/* ── The setup card: beside the doors, one line per setting ─────────── */
 
-.more {
-  padding-top: 14px;
-  border-top: 2px dashed rgba(110, 75, 40, 0.2);
+/* Host it now and the designer link stack in a narrow column so the
+   card fits beside the red on a 780px page */
+.doors-mid { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+
+.setup-card {
+  position: relative;
+  margin-left: auto;
+  width: 250px;
+  padding: 16px 16px 14px;
+  background: var(--t-paper);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22);
+  transform: rotate(0.6deg);
   display: flex;
-  align-items: center;
-  gap: 14px;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.more-btn {
+/* The tally: a yellow painted label on the card's top corner */
+.setup-tally {
+  position: absolute;
+  top: -13px;
+  right: 14px;
   font-family: var(--t-display);
   font-weight: 800;
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 11px;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--t-muted);
-  background: var(--t-gesso);
-  border: 3px dashed rgba(110, 75, 40, 0.35);
-  padding: 7px 12px 8px;
+  color: var(--t-ink);
+  background: var(--t-yellow);
+  background-image: var(--t-grain);
+  padding: 5px 10px 6px;
+  transform: rotate(1.5deg);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.22);
+  white-space: nowrap;
+}
+
+.setup-tally:empty { display: none; }
+
+.setup-heading {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+}
+
+.setup-lines { display: flex; flex-direction: column; gap: 4px; }
+
+/* A line: the setting's name, its value as a chip. A button, so the
+   keyboard reaches it; the open one is painted yellow */
+.setup-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: calc(100% + 16px);
+  margin: 0 -8px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  font-family: var(--t-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t-ink);
+  text-align: left;
   cursor: pointer;
 }
 
-.more-btn:hover { color: var(--t-ink); border-color: var(--t-muted-wood); }
-.more-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+.setup-line:hover { background: var(--t-gesso); }
+.setup-line.is-open { background: var(--t-yellow); background-image: var(--t-grain); }
+.setup-line:focus-visible { outline: 3px solid var(--t-ink); outline-offset: -2px; }
+.setup-line.is-loading { color: var(--t-muted); font-weight: 500; cursor: default; }
 
-.more-hint { font-size: 13px; font-weight: 500; color: var(--t-muted); }
-.more-hint[hidden] { display: none; }
-
-.more-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 4px 0 0;
-}
-
-.more-body[hidden] { display: none; }
-
-.more-status { margin: 0; font-size: 13px; font-weight: 500; color: var(--t-muted); }
-.more-status[hidden] { display: none; }
-
-.more-questions { display: flex; flex-direction: column; gap: 28px; }
-.more-q { display: flex; flex-direction: column; gap: 8px; }
-.more-q-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.more-q-label { font-size: 15px; font-weight: 700; color: var(--t-ink); }
-
-/* The moment a question has an answer, it says so: a green painted mark */
-.more-q-noted {
-  display: none;
+/* The value chip: yellow when set, dashed gesso when not */
+.vchip {
   font-family: var(--t-display);
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--t-paper);
-  background: var(--t-green);
-  padding: 3px 9px 4px;
-  transform: rotate(-1deg);
+  padding: 6px 10px 7px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--t-muted);
+  background: var(--t-gesso);
+  border: 2px dashed rgba(110, 75, 40, 0.35);
 }
-.more-q.answered .more-q-noted { display: inline-block; }
-.more-q.answered .more-q-input { box-shadow: 0 0 0 2px var(--t-green); }
 
-.more-q-input {
+.vchip.is-set {
+  color: var(--t-ink);
+  background: var(--t-yellow);
+  background-image: var(--t-grain);
+  border: none;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.22);
+}
+
+.setup-line.is-open .vchip.is-set { box-shadow: 0 0 0 2px var(--t-ink); }
+
+.setup-hint { font-size: 12px; font-weight: 500; color: var(--t-muted); }
+
+/* ── The panel: the tapped line's control, under the doors ──────────── */
+
+.setup-panel {
+  padding: 18px 22px 20px;
+  background: var(--t-paper);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22);
+  transform: rotate(-0.3deg);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.setup-panel[hidden] { display: none; }
+.class-holder[hidden] { display: none; }
+
+.setup-status { margin: 0; font-size: 13px; font-weight: 500; color: var(--t-muted); }
+.setup-status[hidden] { display: none; }
+
+.setup-questions { display: flex; flex-direction: column; gap: 18px; }
+.setup-questions:empty { display: none; }
+.setup-q { display: flex; flex-direction: column; gap: 10px; }
+.setup-q + .setup-q { padding-top: 14px; border-top: 2px dashed rgba(110, 75, 40, 0.2); }
+.setup-q-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.setup-q-label { font-size: 16px; font-weight: 700; color: var(--t-ink); }
+.setup-q-sub { font-size: 13px; font-weight: 500; color: var(--t-muted); }
+
+/* A choice question: a row of paper chips, one tap. The picked one is
+   yellow; "Something else…" is the dashed one and opens a plank */
+.setup-choices { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.setup-choice {
+  border: none;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-ink);
+  background: var(--t-paper);
+  padding: 8px 12px 9px;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.22);
+  cursor: pointer;
+  transition: transform var(--t-quick) var(--t-ease);
+}
+
+.setup-choice:hover { transform: translateY(-3px); }
+.setup-choice[aria-pressed="true"] { background: var(--t-yellow); background-image: var(--t-grain); }
+.setup-choice:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+.setup-choice-other { background: var(--t-gesso); box-shadow: none; border: 2px dashed rgba(110, 75, 40, 0.35); }
+.setup-choice-other[aria-pressed="true"] { border-color: transparent; }
+
+.setup-q-input {
   width: 100%;
   padding: 11px 14px 9px;
   border: none;
@@ -534,8 +628,25 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
   resize: vertical;
 }
 
-.names-row { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--t-ink); cursor: pointer; }
-.names-row input { width: 18px; height: 18px; }
+.setup-q-input[hidden] { display: none; }
+.setup-q.answered .setup-q-input { box-shadow: 0 0 0 2px var(--t-green); }
+
+.setup-done {
+  align-self: flex-start;
+  border: none;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-ink);
+  background: var(--t-paper);
+  padding: 9px 14px 10px;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.22);
+  cursor: pointer;
+}
+
+.setup-done:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
 
 @media (max-width: 700px) {
   .make-header { padding: 14px 20px 0; }
@@ -543,6 +654,7 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
   .print-prompt { font-size: 26px; }
   .try-btn { width: 100%; }
   .try-stack, .try-col { width: 100%; }
+  .setup-card { width: 100%; margin-left: 0; }
 }
 
 /* ── The bold box on the plank (shared/bold-box.js; its base styles live

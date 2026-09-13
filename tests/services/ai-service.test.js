@@ -262,15 +262,59 @@ describe('generateCustomizeQuestions', () => {
     }
   });
 
-  it('real mode parses JSON wrapped in preamble and caps at 3', async () => {
+  // The setup card (2026-09-13): one question the wording hangs on, a
+  // second only when the content depends on it, never a third.
+  it('real mode parses JSON wrapped in preamble and caps at 2', async () => {
     const service = new AIService({ mode: 'real' });
     service._callClaude = async () => ({
-      content: [{ type: 'text', text: 'Sure! Here you go:\n{"questions":[{"question":"What subject?","placeholder":"e.g. biology"},{"question":"Grade?"},{"question":"Tone?"},{"question":"Extra one"}]}' }]
+      content: [{ type: 'text', text: 'Sure! Here you go:\n{"questions":[{"question":"What subject?","placeholder":"e.g. biology"},{"question":"Grade?"},{"question":"Tone?"}]}' }]
     });
     const result = await service.generateCustomizeQuestions(config);
-    expect(result.questions.length).toBe(3);
-    expect(result.questions[0]).toEqual({ question: 'What subject?', placeholder: 'e.g. biology' });
+    expect(result.questions.length).toBe(2);
+    expect(result.questions[0]).toEqual({ question: 'What subject?', label: 'What subject', kind: 'text', choices: [], placeholder: 'e.g. biology' });
     expect(result.questions[1].placeholder).toBe('');
+  });
+
+  it('a choice question keeps its choices, tidied; too few choices makes it a text question', () => {
+    const q = AIService.shapeCustomizeQuestion({
+      question: 'How long should answers be?', label: 'Answers you expect', kind: 'choice',
+      choices: [' A word or two ', 'One sentence', 'one sentence', '', 42, 'A list', 'A paragraph', 'A page', 'An essay']
+    });
+    expect(q).toEqual({
+      question: 'How long should answers be?', label: 'Answers you expect', kind: 'choice',
+      choices: ['A word or two', 'One sentence', 'A list', 'A paragraph', 'A page', 'An essay'], placeholder: ''
+    });
+    const lone = AIService.shapeCustomizeQuestion({ question: 'Which book?', kind: 'choice', choices: ['Only one'], placeholder: 'e.g. Holes' });
+    expect(lone.kind).toBe('text');
+    expect(lone.choices).toEqual([]);
+    expect(lone.label).toBe('Which book');
+  });
+
+  it('the prompt asks for one question, a second only if needed, and names the two kinds', async () => {
+    const service = new AIService({ mode: 'real' });
+    let sentPrompt = '';
+    service._callClaude = async (req) => {
+      sentPrompt = req.messages[0].content;
+      return { content: [{ type: 'text', text: '{"questions":[]}' }] };
+    };
+    await service.generateCustomizeQuestions(config);
+    expect(sentPrompt).toContain('Ask ONE short question');
+    expect(sentPrompt).toContain('Never a third');
+    expect(sentPrompt).toContain('"choice" when the answer is a SHAPE');
+    expect(sentPrompt).toContain('"text" when the answer is a specific THING');
+    expect(sentPrompt).toContain('Never guess facts');
+    // Timers, rounds, grade, subject have controls on the page (a real run
+    // asked "how long should students spend writing alone", 2026-09-13)
+    expect(sentPrompt).toContain('NEVER ask about timing, timers, minutes, how many rounds, group sizes, grade, or subject');
+  });
+
+  it('mock mode leads with a choice question so the page can be exercised', async () => {
+    const service = new AIService();
+    const result = await service.generateCustomizeQuestions(config);
+    expect(result.questions[0].kind).toBe('choice');
+    expect(result.questions[0].choices.length).toBeGreaterThanOrEqual(3);
+    expect(result.questions[0].label).toBeTruthy();
+    expect(result.questions[1].kind).toBe('text');
   });
 
   it('real-mode failure degrades to an empty list, never throws', async () => {
