@@ -130,11 +130,19 @@ describe('make page: make it fit your class', () => {
     const server = await read('server.js');
     expect(html).toContain('id="pairs-section"');
     expect(html).toContain('<h2 class="panel-heading">The pairs</h2>');
-    expect(html.indexOf('id="pairs-section"')).toBeLessThan(html.indexOf('id="fit-section"'));
+    // Under the fit rows, above What happens (owner 2026-09-13)
+    expect(html.indexOf('id="fit-section"')).toBeLessThan(html.indexOf('id="pairs-section"'));
+    expect(html.indexOf('id="pairs-section"')).toBeLessThan(html.indexOf('id="map-section"'));
     expect(js).toContain('if (!state.panel) mountPairs(print.pairs);');
     expect(js).toContain("x.setAttribute('aria-label', 'Drop this pair');");
     expect(js).toContain("add.textContent = '+ pair';");
     expect(js).toContain('if (pairs) edits.pairs = pairs;');
+    // "+ round": a new round the teacher can drop, read into the edits, kept by the fit
+    expect(js).toContain("more.textContent = '+ round';");
+    expect(js).toContain("drop.setAttribute('aria-label', 'Drop this round');");
+    expect(js).toContain('if (newRounds.length) edits.newRounds = newRounds;');
+    expect(js).toContain('The teacher added \' + added.length + \' more round');
+    expect(server).toContain('edits.newRounds = body.newRounds.slice(0, 8)');
     expect(js).toContain('The teacher wrote the pairs in step "\' + r.id + \'" themselves: ');
     expect(server).toContain('edits.pairs[id.slice(0, 64)] = list.slice(0, 40)');
     // The designer link says why you would go there

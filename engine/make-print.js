@@ -128,6 +128,39 @@ export function pairsFor(config) {
 }
 
 /**
+ * One more round: a clone of the LAST match step (its timer, points,
+ * prompt) with the given pairs, chained right after it. A leaderboard
+ * summing `<id>.scores` gains the new round. Mutates `config`.
+ * @param {object} config
+ * @param {Array<{left: string, right: string}>} pairs
+ * @returns {string|null} the new step's id
+ */
+export function addRound(config, pairs) {
+  const phases = config.phases || {};
+  const matchIds = Object.keys(phases).filter((id) => phases[id] && phases[id].type === 'match' && Array.isArray(phases[id].pairs));
+  if (matchIds.length === 0) return null;
+  // The last round: the match step whose next is not another match step
+  // (the last in key order when rounds branch)
+  const lastId = matchIds.slice().reverse().find((id) => !matchIds.includes(phases[id].next)) || matchIds[matchIds.length - 1];
+  const last = phases[lastId];
+  let n = matchIds.length + 1;
+  let newId = 'round' + n;
+  while (phases[newId]) { n++; newId = 'round' + n; }
+  const clone = JSON.parse(JSON.stringify(last));
+  delete clone.name;
+  clone.pairs = pairs;
+  clone.next = last.next;
+  last.next = newId;
+  phases[newId] = clone;
+  for (const phase of Object.values(phases)) {
+    if (!phase || !Array.isArray(phase.from)) continue;
+    const i = phase.from.indexOf(lastId + '.scores');
+    if (i !== -1 && !phase.from.includes(newId + '.scores')) phase.from.splice(i + 1, 0, newId + '.scores');
+  }
+  return newId;
+}
+
+/**
  * The teacher's edits, applied to a deep copy of the config.
  * @param {object} config
  * @param {{prompt?: string, fields?: Object<string, string>, timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>}} edits
@@ -154,6 +187,20 @@ export function applyEdits(config, edits) {
         phase.pairs = next;
         changed = true;
       }
+    }
+  }
+
+  // New rounds (Vocab Match's "+ round"): each is a clone of the last
+  // match step with the new pairs, chained right after it; a leaderboard
+  // that sums the rounds picks the new one up
+  if (Array.isArray(edits.newRounds)) {
+    for (const round of edits.newRounds) {
+      const pairs = (Array.isArray(round && round.pairs) ? round.pairs : [])
+        .filter((p) => p && typeof p.left === 'string' && typeof p.right === 'string')
+        .map((p) => ({ left: clean(p.left), right: clean(p.right) }))
+        .filter((p) => p.left && p.right);
+      if (pairs.length === 0) continue;
+      if (addRound(copy, pairs)) changed = true;
     }
   }
 

@@ -474,7 +474,11 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
 
 .pair-round { display: flex; flex-direction: column; gap: 8px; }
 .pair-round + .pair-round { padding-top: 14px; border-top: 2px dashed rgba(110, 75, 40, 0.2); }
+.pair-round-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .pair-round-label { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--t-muted-caps); }
+/* A round the teacher added: a yellow label, a "drop this round" x */
+.pair-round-new .pair-round-label { color: var(--t-ink); background: var(--t-yellow); background-image: var(--t-grain); padding: 4px 8px 5px; transform: rotate(-1deg); }
+.pair-add-round { padding-top: 6px; border-top: 2px dashed rgba(110, 75, 40, 0.2); width: 100%; text-align: left; }
 
 /* One pair: the two halves on planks, an equals mark, a small x */
 .pair-row {

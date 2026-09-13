@@ -2096,6 +2096,15 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
         }));
       }
     }
+    // New rounds ("+ round"), each a list of pairs, capped
+    if (Array.isArray(body.newRounds)) {
+      edits.newRounds = body.newRounds.slice(0, 8).map((r) => ({
+        pairs: (Array.isArray(r?.pairs) ? r.pairs : []).slice(0, 40).map((p) => ({
+          left: typeof p?.left === 'string' ? p.left.slice(0, 120) : '',
+          right: typeof p?.right === 'string' ? p.right.slice(0, 120) : ''
+        }))
+      }));
+    }
     const out = applyEdits(config, edits);
     const working = out.config;
     let changed = out.changed;
