@@ -48,7 +48,9 @@
     fitFoot: document.getElementById('fit-foot'),
     fitSee: document.getElementById('fit-see'),
     fitNote: document.getElementById('fit-note'),
-    mapHolder: document.getElementById('map-holder')
+    mapHolder: document.getElementById('map-holder'),
+    pairsSection: document.getElementById('pairs-section'),
+    pairsHolder: document.getElementById('pairs-holder')
   };
 
   // Where "back" goes: the door the teacher came through
@@ -66,6 +68,7 @@
     print: null,
     promptBox: null,       // BoldBox wrapper, or null when the prompt is not editable
     fieldBoxes: {},        // key -> BoldBox wrapper
+    pairBoxes: {},         // match step id -> [{ left: input, right: input }] (the pairs panel)
     timer: null,           // seconds, as edited
     questions: [],         // the AI's tailoring questions, once fetched
     answers: {},           // question -> { value } (a picked choice or typed text)
@@ -274,6 +277,9 @@
       el.audience.hidden = false;
       el.audience.textContent = print.audience;
     }
+
+    // A matching activity's pairs, editable (a recipe panel owns its own)
+    if (!state.panel) mountPairs(print.pairs);
 
     if (typeof print.timer === 'number') {
       el.timerRow.hidden = false;
@@ -721,6 +727,115 @@
     });
     el.audience.hidden = !print.audience;
     if (print.audience) el.audience.textContent = print.audience;
+    // The pairs the teacher left alone take the fitted ones
+    if (Array.isArray(print.pairs) && print.pairs.length && !state.panel) {
+      var changedIds = changedPairRounds().map(function (r) { return r.id; });
+      var merged = print.pairs.map(function (round) {
+        if (changedIds.indexOf(round.id) === -1) return round;
+        return { id: round.id, label: round.label, pairs: (pairsValue() || {})[round.id] || round.pairs };
+      });
+      mountPairs(merged);
+    }
+  }
+
+  // --- The pairs panel (2026-09-13): a matching activity's rounds, each
+  // pair on two planks with an x, a "+ pair" per round. Read back into the
+  // edits by step id; the fit keeps rounds the teacher edited.
+  function mountPairs(rounds) {
+    if (!el.pairsSection) return;
+    state.pairBoxes = {};
+    el.pairsHolder.textContent = '';
+    if (!Array.isArray(rounds) || !rounds.length) { el.pairsSection.hidden = true; return; }
+    el.pairsSection.hidden = false;
+    rounds.forEach(function (round) {
+      var block = document.createElement('div');
+      block.className = 'pair-round';
+      block.setAttribute('data-round', round.id);
+      var label = document.createElement('span');
+      label.className = 'pair-round-label';
+      label.textContent = rounds.length > 1 ? round.label : 'Pairs';
+      block.appendChild(label);
+      var list = document.createElement('div');
+      list.className = 'pair-list';
+      block.appendChild(list);
+      state.pairBoxes[round.id] = [];
+      round.pairs.forEach(function (p) { addPairRow(round.id, list, p.left, p.right); });
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'pair-add';
+      add.textContent = '+ pair';
+      add.addEventListener('click', function () {
+        var row = addPairRow(round.id, list, '', '');
+        row.left.focus();
+      });
+      block.appendChild(add);
+      el.pairsHolder.appendChild(block);
+    });
+  }
+
+  function addPairRow(roundId, list, left, right) {
+    var row = document.createElement('div');
+    row.className = 'pair-row';
+    var l = document.createElement('input');
+    l.type = 'text';
+    l.className = 'pair-input';
+    l.value = left;
+    l.setAttribute('aria-label', 'Left half of the pair');
+    l.maxLength = 120;
+    var eq = document.createElement('span');
+    eq.className = 'pair-eq';
+    eq.textContent = '=';
+    eq.setAttribute('aria-hidden', 'true');
+    var r = document.createElement('input');
+    r.type = 'text';
+    r.className = 'pair-input';
+    r.value = right;
+    r.setAttribute('aria-label', 'Right half of the pair');
+    r.maxLength = 120;
+    var x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'pair-x';
+    x.textContent = '×';
+    x.setAttribute('aria-label', 'Drop this pair');
+    var entry = { left: l, right: r };
+    x.addEventListener('click', function () {
+      var boxes = state.pairBoxes[roundId] || [];
+      var i = boxes.indexOf(entry);
+      if (i !== -1) boxes.splice(i, 1);
+      row.remove();
+      scheduleMap();
+    });
+    l.addEventListener('input', scheduleMap);
+    r.addEventListener('input', scheduleMap);
+    row.appendChild(l);
+    row.appendChild(eq);
+    row.appendChild(r);
+    row.appendChild(x);
+    list.appendChild(row);
+    state.pairBoxes[roundId].push(entry);
+    return entry;
+  }
+
+  // The pairs as typed, by step id (null when the panel is not up)
+  function pairsValue() {
+    var ids = Object.keys(state.pairBoxes);
+    if (!ids.length) return null;
+    var out = {};
+    ids.forEach(function (id) {
+      out[id] = state.pairBoxes[id]
+        .map(function (b) { return { left: b.left.value.trim(), right: b.right.value.trim() }; })
+        .filter(function (p) { return p.left && p.right; });
+    });
+    return out;
+  }
+
+  // Rounds whose pairs differ from the template's
+  function changedPairRounds() {
+    var now = pairsValue();
+    if (!now || !state.print || !Array.isArray(state.print.pairs)) return [];
+    return state.print.pairs.filter(function (round) {
+      return JSON.stringify(now[round.id] || null) !== JSON.stringify(round.pairs);
+    }).map(function (round) { return { id: round.id, pairs: now[round.id] || [] }; });
   }
 
   // Back from the simulator or the projector: the browser restores this
@@ -739,6 +854,8 @@
     Object.keys(state.fieldBoxes).forEach(function (k) { fields[k] = state.fieldBoxes[k].value; any = true; });
     if (any) edits.fields = fields;
     if (state.print && state.print.timerEditable && typeof state.timer === 'number') edits.timer = state.timer;
+    var pairs = pairsValue();
+    if (pairs) edits.pairs = pairs;
     edits.anonymous = !!state.anonymous;
     edits.earlyJoke = !!state.earlyJoke;
     return edits;
@@ -906,6 +1023,10 @@
     if (labels.length && stepId) {
       fixed.push('They also wrote these field labels in step "' + stepId + '" themselves: ' + labels.join(', ') + '. Keep them word for word.');
     }
+    // Pairs the teacher edited are theirs too (untouched rounds are the AI's to fit)
+    changedPairRounds().forEach(function (r) {
+      fixed.push('The teacher wrote the pairs in step "' + r.id + '" themselves: ' + r.pairs.map(function (p) { return p.left + ' = ' + p.right; }).join('; ') + '. Keep them word for word.');
+    });
     var request = 'A teacher is adapting this ready-made activity for their own class. ' +
       (fixed.length ? fixed.join(' ') + ' ' : '') +
       'Rewrite ONLY the other teacher- and student-facing words (name, description, the other prompts, messages, choices, reveal templates) so they fit ' +

@@ -2085,6 +2085,17 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
       }
     }
     if (typeof body.timer === 'number') edits.timer = body.timer;
+    // The pairs of match steps (Vocab Match), by step id, capped
+    if (body.pairs && typeof body.pairs === 'object' && !Array.isArray(body.pairs)) {
+      edits.pairs = {};
+      for (const [id, list] of Object.entries(body.pairs).slice(0, 12)) {
+        if (typeof id !== 'string' || !Array.isArray(list)) continue;
+        edits.pairs[id.slice(0, 64)] = list.slice(0, 40).map((p) => ({
+          left: typeof p?.left === 'string' ? p.left.slice(0, 120) : '',
+          right: typeof p?.right === 'string' ? p.right.slice(0, 120) : ''
+        }));
+      }
+    }
     const out = applyEdits(config, edits);
     const working = out.config;
     let changed = out.changed;

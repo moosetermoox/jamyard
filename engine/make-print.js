@@ -96,23 +96,69 @@ export function printFor(config) {
     // A recipe-born copy recompiles from its stamp; its timer belongs to
     // the recipe (a knob when the recipe offers one), not to this page.
     timerEditable: typeof phase.timer === 'number' && !config.recipe,
-    audience
+    audience,
+    // Every match step's pairs (Vocab Match), for the page's pairs panel
+    pairs: pairsFor(config)
   };
+}
+
+/**
+ * The pairs of every top-level match step (Vocab Match's two rounds), so
+ * the make page can show and edit them the way the quiz shows its
+ * questions (owner, 2026-09-13). Plain-text pairs only; a step whose
+ * pairs carry {{tokens}} is left to the designer.
+ * @param {object} config
+ * @returns {Array<{id: string, label: string, pairs: Array<{left: string, right: string}>}>}
+ */
+export function pairsFor(config) {
+  const phases = (config && config.phases) || {};
+  const out = [];
+  let n = 0;
+  for (const [id, phase] of Object.entries(phases)) {
+    if (!phase || phase.type !== 'match' || !Array.isArray(phase.pairs)) continue;
+    n++;
+    const pairs = phase.pairs
+      .map((p) => Array.isArray(p) ? { left: p[0], right: p[1] } : p)
+      .filter((p) => p && isPlainText(String(p.left || '')) && isPlainText(String(p.right || '')))
+      .map((p) => ({ left: clean(p.left), right: clean(p.right) }));
+    if (pairs.length !== phase.pairs.length) continue;
+    out.push({ id, label: isPlainText(phase.name) ? clean(phase.name) : 'Round ' + n, pairs });
+  }
+  return out;
 }
 
 /**
  * The teacher's edits, applied to a deep copy of the config.
  * @param {object} config
- * @param {{prompt?: string, fields?: Object<string, string>, timer?: number}} edits
+ * @param {{prompt?: string, fields?: Object<string, string>, timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>}} edits
  * @returns {{config: object, changed: boolean}}
  */
 export function applyEdits(config, edits) {
   const copy = JSON.parse(JSON.stringify(config));
   const step = firstStudentStep(copy);
   let changed = false;
+  edits = edits || {};
+
+  // The pairs of any match step, by step id: every pair needs both halves,
+  // and a step keeps its old pairs when the edit would leave it with none
+  if (edits.pairs && typeof edits.pairs === 'object' && !Array.isArray(edits.pairs)) {
+    for (const [id, list] of Object.entries(edits.pairs)) {
+      const phase = copy.phases && copy.phases[id];
+      if (!phase || phase.type !== 'match' || !Array.isArray(phase.pairs) || !Array.isArray(list)) continue;
+      const next = list
+        .filter((p) => p && typeof p.left === 'string' && typeof p.right === 'string')
+        .map((p) => ({ left: clean(p.left), right: clean(p.right) }))
+        .filter((p) => p.left && p.right);
+      if (next.length === 0) continue;
+      if (JSON.stringify(next) !== JSON.stringify(pairsFor({ phases: { [id]: phase } })[0]?.pairs || null)) {
+        phase.pairs = next;
+        changed = true;
+      }
+    }
+  }
+
   if (!step) return { config: copy, changed };
   const phase = step.phase;
-  edits = edits || {};
 
   if (typeof edits.prompt === 'string' && isPlainText(phase.prompt)) {
     const next = clean(edits.prompt);

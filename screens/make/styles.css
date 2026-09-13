@@ -458,6 +458,74 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
   box-shadow: 0 3px 4px rgba(50, 35, 15, 0.2);
 }
 
+/* ── The pairs: a matching activity's rounds, editable ──────────────── */
+
+.pairs-section { display: flex; flex-direction: column; gap: 12px; padding-top: 18px; border-top: 2px dashed rgba(110, 75, 40, 0.2); }
+.pairs-section[hidden] { display: none; }
+
+.pairs-card {
+  padding: 18px 22px 20px;
+  background: var(--t-paper);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.pair-round { display: flex; flex-direction: column; gap: 8px; }
+.pair-round + .pair-round { padding-top: 14px; border-top: 2px dashed rgba(110, 75, 40, 0.2); }
+.pair-round-label { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--t-muted-caps); }
+
+/* One pair: the two halves on planks, an equals mark, a small x */
+.pair-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.pair-eq { font-family: var(--t-display); font-weight: 800; font-size: 16px; color: var(--t-muted); }
+
+.pair-input {
+  width: 100%;
+  min-width: 0;
+  padding: 9px 12px 8px;
+  border: none;
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+  font-family: var(--t-body);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--t-ink);
+}
+
+.pair-x {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--t-muted);
+  padding: 6px;
+  cursor: pointer;
+}
+
+.pair-x:hover { color: var(--t-red-text); }
+.pair-x:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+
+.pair-add {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--t-muted);
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.pair-add:hover { color: var(--t-ink); }
+
 /* ── Make it fit your class: rows of chips ──────────────────────────── */
 
 .fit-section {

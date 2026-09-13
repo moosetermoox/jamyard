@@ -121,6 +121,26 @@ describe('make page: make it fit your class', () => {
     expect(js).toContain('if (e.persisted && state.busy) clearOpening();');
   });
 
+  // "With vocab match there should be a way to preview the pairs, similar
+  // to the quiz ones" (owner 2026-09-13): a pairs panel under the doors,
+  // editable, read into the edits by step id, kept by the fit when edited
+  it('a matching activity gets a pairs panel: two planks and an x per pair, a + pair per round, read into the edits', async () => {
+    const html = await read('screens/make/index.html');
+    const js = await read('screens/make/make.js');
+    const server = await read('server.js');
+    expect(html).toContain('id="pairs-section"');
+    expect(html).toContain('<h2 class="panel-heading">The pairs</h2>');
+    expect(html.indexOf('id="pairs-section"')).toBeLessThan(html.indexOf('id="fit-section"'));
+    expect(js).toContain('if (!state.panel) mountPairs(print.pairs);');
+    expect(js).toContain("x.setAttribute('aria-label', 'Drop this pair');");
+    expect(js).toContain("add.textContent = '+ pair';");
+    expect(js).toContain('if (pairs) edits.pairs = pairs;');
+    expect(js).toContain('The teacher wrote the pairs in step "\' + r.id + \'" themselves: ');
+    expect(server).toContain('edits.pairs[id.slice(0, 64)] = list.slice(0, 40)');
+    // The designer link says why you would go there
+    expect(html).toContain('>Make it even more yours in the designer</a>');
+  });
+
   it('every sink is textContent (teacher text and AI output are untrusted)', async () => {
     const js = await read('screens/make/make.js');
     expect(js).not.toMatch(/\.innerHTML\s*\+?=/);
