@@ -1260,6 +1260,39 @@ Return the revised config.`;
   // in, questions out — no student data, Haiku-cheap. classDescription is
   // the teacher's saved profile ("Middle school (6-8), Science"): when
   // present, the questions must BUILD on it, never re-ask it.
+  // One tailoring question, tidied: kind defaults to text; a choice question
+  // needs 2-6 short distinct choices or it becomes a text one; the label
+  // falls back to the question's first words. Pure, so the page can trust
+  // every field it renders.
+  static shapeCustomizeQuestion(q) {
+    let question = String(q.question || '').trim().slice(0, 200);
+    const seen = new Set();
+    const choices = (Array.isArray(q.choices) ? q.choices : [])
+      .filter(c => typeof c === 'string' && c.trim())
+      .map(c => c.trim().slice(0, 40))
+      .filter(c => { const k = c.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
+      .slice(0, 6);
+    const kind = q.kind === 'choice' && choices.length >= 2 ? 'choice' : 'text';
+    // A choice question that lists its choices asks twice ("...: short
+    // phrases, full sentences, or a mix?" over the same three chips): the
+    // clause after the colon goes
+    if (kind === 'choice' && /:\s/.test(question)) {
+      question = question.replace(/:\s[^:]*$/, '').trim();
+      if (!/[?.!]$/.test(question)) question += '?';
+    }
+    let label = typeof q.label === 'string' ? q.label.trim().slice(0, 40) : '';
+    if (!label) label = question.replace(/[?.!:]+$/, '').split(/\s+/).slice(0, 4).join(' ');
+    return {
+      question,
+      label,
+      kind,
+      choices: kind === 'choice' ? choices : [],
+      // Short: the plank is one line, a long example clips (Vocab Match's
+      // "e.g. French food words and English meanings, or a different..." did)
+      placeholder: typeof q.placeholder === 'string' ? q.placeholder.trim().slice(0, 70) : ''
+    };
+  }
+
   async generateCustomizeQuestions(config, classDescription = '', knownSettings = []) {
     const classDesc = String(classDescription || '').trim().slice(0, 160);
     // Setup knobs the Customize dialog already renders (round count,
@@ -1269,16 +1302,24 @@ Return the revised config.`;
       .filter(s => typeof s === 'string' && s.trim())
       .map(s => s.trim().slice(0, 60))
       .slice(0, 8);
+    // The shape (2026-09-13, the make page's setup card): one question the
+    // wording hangs on, a second only when the content truly depends on it,
+    // never a third. `kind: "choice"` when the answer is a SHAPE the model
+    // can name in advance (answer length, tone, which way round, keep it
+    // open or focus), with 3-5 short `choices`; `kind: "text"` when the
+    // answer is a specific THING only the teacher knows (the words, the
+    // book, the unit, the facts). `label` names the setting in 2-4 words
+    // for the card line ("Answers you expect", "The words").
     if (this.mode === 'mock') {
       if (classDesc) {
         return { questions: [
-          { question: 'What topic or unit is your class working on?', placeholder: 'e.g. cells, the water cycle, World War I' },
-          { question: 'Anything the wording should fit or avoid?', placeholder: 'e.g. they love space, keep it silly' }
+          { question: 'What kind of answers are you expecting?', label: 'Answers you expect', kind: 'choice', choices: ['A word or two', 'One sentence', 'A few sentences', 'A list'], placeholder: '' },
+          { question: 'What topic or unit is your class working on?', label: 'Topic', kind: 'text', choices: [], placeholder: 'e.g. cells, the water cycle, World War I' }
         ] };
       }
       return { questions: [
-        { question: 'What topic or subject should this be about?', placeholder: 'e.g. photosynthesis, To Kill a Mockingbird, fractions' },
-        { question: 'Who is it for?', placeholder: 'e.g. 7th grade science, my homeroom' }
+        { question: 'What kind of answers are you expecting?', label: 'Answers you expect', kind: 'choice', choices: ['A word or two', 'One sentence', 'A few sentences', 'A list'], placeholder: '' },
+        { question: 'What topic or subject should this be about?', label: 'Topic', kind: 'text', choices: [], placeholder: 'e.g. photosynthesis, To Kill a Mockingbird, fractions' }
       ] };
     }
     try {
@@ -1298,14 +1339,22 @@ Return the revised config.`;
         max_tokens: 400,
         messages: [{
           role: 'user',
-          content: `A teacher is about to make their own copy of this ready-made classroom activity. Ask 2-3 SHORT questions whose answers would let us rewrite its text (topic, examples, tone) for THEIR class. Plain everyday language, no jargon. Only ask what the activity's content actually depends on, e.g. a vocabulary activity needs the word list's subject, an icebreaker might only need the group. Every question must be answerable in a few words.
+          content: `A teacher is about to make their own copy of this ready-made classroom activity. Ask ONE short question whose answer the activity's wording hangs on, and a SECOND only if the content truly depends on another answer. Never a third. Plain everyday language, no jargon. Only ask what the activity's content actually depends on, e.g. a vocabulary activity needs the word list's subject, an icebreaker might only need how long the answers should be. Every question must be answerable in a few words.
+
+One question covers the WHOLE activity: never one per round or per step (two rounds share one answer). Keep each question under ten words.
+
+Each question is one of two kinds:
+- "choice" when the answer is a SHAPE you can name in advance (how long the answers are, the tone, which way round, keep it open or focus on something): give 3-5 short "choices" (2-4 words each), most likely first. The question itself must NOT list the choices (ask "How long should answers be?", not "...: short, long, or a mix?"). The teacher can always type something else instead, so never add an "other" choice.
+- "text" when the answer is a specific THING only the teacher knows (the words, the book, the unit, the era, the facts): give a "placeholder" with one short example (under eight words). Never guess facts.
+Also give a "label": the setting's name in 2-4 words, for a card line (e.g. "Answers you expect", "The words", "Topic").
+Ask about the WORDS only: what the answers should look like, the topic, the tone, the examples. NEVER ask about timing, timers, minutes, how many rounds, group sizes, grade, or subject: the page has its own controls for all of those.
 ${knownClass}${knownKnobs}
 Activity: ${String(config.name || '').slice(0, 80)}
 Description: ${String(config.description || '').slice(0, 200)}
 Steps:
 ${phaseTexts.slice(0, 10).join('\n')}
 
-Return ONLY JSON: {"questions":[{"question":"...","placeholder":"e.g. ..."}]}`
+Return ONLY JSON: {"questions":[{"question":"...","label":"...","kind":"choice","choices":["...","..."],"placeholder":""},{"question":"...","label":"...","kind":"text","choices":[],"placeholder":"e.g. ..."}]}`
         }]
       });
       const text = extractText(message);
@@ -1319,11 +1368,8 @@ Return ONLY JSON: {"questions":[{"question":"...","placeholder":"e.g. ..."}]}`
       }
       const questions = (Array.isArray(parsed.questions) ? parsed.questions : [])
         .filter(q => q && typeof q.question === 'string' && q.question.trim())
-        .slice(0, 3)
-        .map(q => ({
-          question: q.question.trim().slice(0, 200),
-          placeholder: typeof q.placeholder === 'string' ? q.placeholder.trim().slice(0, 120) : ''
-        }));
+        .slice(0, 2)
+        .map(q => AIService.shapeCustomizeQuestion(q));
       return { questions };
     } catch (error) {
       if (error && error.name === 'AiBudgetError') throw error;

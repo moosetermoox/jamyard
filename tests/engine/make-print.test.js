@@ -2,7 +2,7 @@
 // class will see" (the first student step, its words, timer, audience line)
 // and how the teacher's edits go back into a copy. Pure functions.
 import { describe, it, expect } from 'vitest';
-import { firstStudentStep, printFor, applyEdits, nameFor } from '../../engine/make-print.js';
+import { firstStudentStep, printFor, applyEdits, nameFor, pairsFor, addRound } from '../../engine/make-print.js';
 
 function snowballish() {
   return {
@@ -124,6 +124,78 @@ describe('applyEdits', () => {
   it('never accepts an em dash into the activity', () => {
     const out = applyEdits(snowballish(), { prompt: 'Norms — what are they?' });
     expect(out.config.phases.write.prompt).not.toMatch(/—/);
+  });
+});
+
+// The pairs panel (owner 2026-09-13: "there should be a way to preview
+// the pairs, similar to the quiz ones")
+describe('pairsFor + applyEdits.pairs', () => {
+  const vocab = {
+    name: 'Vocab Match',
+    phases: {
+      lobby: { type: 'lobby', next: 'round1' },
+      round1: { type: 'match', prompt: 'Match', pairs: [{ left: 'chat', right: 'cat' }, { left: 'chien', right: 'dog' }], next: 'round2' },
+      round2: { type: 'match', name: 'Food', prompt: 'Match', pairs: [['pain', 'bread']], next: 'end' },
+      end: { type: 'end' }
+    }
+  };
+
+  it('lists every match step\'s pairs, tuples included, labelled by name or round number', () => {
+    expect(pairsFor(vocab)).toEqual([
+      { id: 'round1', label: 'Round 1', pairs: [{ left: 'chat', right: 'cat' }, { left: 'chien', right: 'dog' }] },
+      { id: 'round2', label: 'Food', pairs: [{ left: 'pain', right: 'bread' }] }
+    ]);
+    expect(printFor(vocab).pairs.length).toBe(2);
+  });
+
+  it('leaves a step whose pairs carry a token to the designer', () => {
+    const templated = { phases: { m: { type: 'match', prompt: 'x', pairs: [{ left: '{{ai.word}}', right: 'cat' }], next: 'end' }, end: { type: 'end' } } };
+    expect(pairsFor(templated)).toEqual([]);
+  });
+
+  it('applies edited pairs by step id, drops half-empty pairs, keeps a round the edit would empty, and reports the change', () => {
+    const out = applyEdits(vocab, { pairs: {
+      round1: [{ left: ' le chat ', right: 'the cat' }, { left: '', right: 'dog' }],
+      round2: [{ left: '', right: '' }],
+      nope: [{ left: 'a', right: 'b' }]
+    } });
+    expect(out.changed).toBe(true);
+    expect(out.config.phases.round1.pairs).toEqual([{ left: 'le chat', right: 'the cat' }]);
+    expect(out.config.phases.round2.pairs).toEqual([['pain', 'bread']]);
+    expect(out.config.phases.nope).toBeUndefined();
+    expect(vocab.phases.round1.pairs.length).toBe(2);
+    // The same pairs again: nothing changed
+    expect(applyEdits(vocab, { pairs: { round1: [{ left: 'chat', right: 'cat' }, { left: 'chien', right: 'dog' }] } }).changed).toBe(false);
+  });
+
+  // "+ round" (owner 2026-09-13): a clone of the last round with the new
+  // pairs, chained after it; the leaderboard sums it too
+  it('adds a round after the last match step, wired into the chain and the leaderboard', () => {
+    const withBoard = JSON.parse(JSON.stringify(vocab));
+    withBoard.phases.round2.next = 'board';
+    withBoard.phases.board = { type: 'leaderboard', from: ['round1.scores', 'round2.scores'], next: 'end' };
+    const out = applyEdits(withBoard, { newRounds: [
+      { pairs: [{ left: 'rouge', right: 'red' }, { left: '', right: 'x' }] },
+      { pairs: [] },
+      { pairs: [{ left: 'bleu', right: 'blue' }] }
+    ] });
+    expect(out.changed).toBe(true);
+    const p = out.config.phases;
+    expect(p.round2.next).toBe('round3');
+    expect(p.round3).toEqual({ type: 'match', prompt: 'Match', pairs: [{ left: 'rouge', right: 'red' }], next: 'round4' });
+    expect(p.round4.pairs).toEqual([{ left: 'bleu', right: 'blue' }]);
+    expect(p.round4.next).toBe('board');
+    expect(p.board.from).toEqual(['round1.scores', 'round2.scores', 'round3.scores', 'round4.scores']);
+    expect(withBoard.phases.round3).toBeUndefined();
+    expect(pairsFor(out.config).map((r) => r.label)).toEqual(['Round 1', 'Food', 'Round 3', 'Round 4']);
+  });
+
+  it('addRound is null with no match step, and never reuses an id', () => {
+    expect(addRound({ phases: { end: { type: 'end' } } }, [{ left: 'a', right: 'b' }])).toBeNull();
+    const taken = { phases: { round1: { type: 'match', pairs: [['a', 'b']], next: 'round3' }, round3: { type: 'announce', next: 'end' }, end: { type: 'end' } } };
+    expect(addRound(taken, [{ left: 'c', right: 'd' }])).toBe('round2');
+    expect(taken.phases.round1.next).toBe('round2');
+    expect(taken.phases.round2.next).toBe('round3');
   });
 });
 

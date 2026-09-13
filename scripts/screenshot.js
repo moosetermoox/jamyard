@@ -100,6 +100,12 @@ try {
       await new Promise(r => setTimeout(r, pause));
     }
   }
+  // SHOT_EVAL=<js>: run a snippet in the page after the clicks (typing
+  // into a box, flipping a state), then wait SHOT_EVAL_WAIT ms (default 800).
+  if (process.env.SHOT_EVAL) {
+    await send('Runtime.evaluate', { expression: process.env.SHOT_EVAL, awaitPromise: true });
+    await new Promise(r => setTimeout(r, parseInt(process.env.SHOT_EVAL_WAIT || '800', 10)));
+  }
   // SHOT_HOVER=<css selector>: park the mouse over an element before the
   // capture (real CDP mouse move, so :hover styles apply).
   if (process.env.SHOT_HOVER) {

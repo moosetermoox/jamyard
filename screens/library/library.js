@@ -454,9 +454,9 @@ function openActivityDialog(game) {
     var customizeBtn = document.createElement('button');
     customizeBtn.type = 'button';
     customizeBtn.className = 'game-card-edit' + (touched ? '' : ' game-card-customize-only');
-    customizeBtn.textContent = 'Make it yours';
-    customizeBtn.title = 'Make your own editable copy of this activity';
-    customizeBtn.setAttribute('aria-label', 'Make a copy of "' + game.name + '" yours');
+    customizeBtn.textContent = 'Pick this one';
+    customizeBtn.title = 'Open it as your class will see it, change the question, then host it';
+    customizeBtn.setAttribute('aria-label', 'Pick "' + game.name + '"');
     customizeBtn.setAttribute('data-game-id', game.id);
     customizeBtn.addEventListener('click', function () {
       customizeCopy(game, customizeBtn);
@@ -726,9 +726,9 @@ function buildCard(game) {
     var customizeBtn = document.createElement('button');
     customizeBtn.type = 'button';
     customizeBtn.className = 'game-card-edit' + (touched ? '' : ' game-card-customize-only');
-    customizeBtn.textContent = 'Make it yours';
-    customizeBtn.title = 'Make your own editable copy of this activity';
-    customizeBtn.setAttribute('aria-label', 'Make a copy of "' + game.name + '" yours');
+    customizeBtn.textContent = 'Pick this one';
+    customizeBtn.title = 'Open it as your class will see it, change the question, then host it';
+    customizeBtn.setAttribute('aria-label', 'Pick "' + game.name + '"');
     customizeBtn.setAttribute('data-game-id', game.id);
     customizeBtn.addEventListener('click', function () {
       customizeCopy(game, customizeBtn);

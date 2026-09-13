@@ -89,7 +89,7 @@ describe('home page 15b', () => {
     expect(html).not.toContain('t-painted-word');
   });
 
-  it('each plank carries the ways Jamyard does that job, shown on hover, and the red door says Pick this one (owner 2026-09-12)', () => {
+  it('each plank carries the ways Jamyard does that job, shown on hover, and the red door says Pick this one (owner 2026-09-12)', async () => {
     for (const goal of ['connect', 'think', 'review', 'play']) {
       const plank = html.match(new RegExp('<a class="plank" data-goal="' + goal + '"[^]*?</a>'));
       expect(plank, goal).not.toBeNull();
@@ -101,6 +101,12 @@ describe('home page 15b', () => {
     expect(html).toContain("'Pick this one'");
     expect(html).not.toMatch(/Start the room/i);
     expect(html).not.toContain('mid-activity.');
+    // The yard's door says the same thing (owner 2026-09-13: the home said
+    // Pick this one, the yard said Make it yours, "we're going with pick
+    // this one"); Make it yours stays the flow's name, never the button
+    const lib = await read('screens/library/library.js');
+    expect(lib).toContain("customizeBtn.textContent = 'Pick this one';");
+    expect(lib).not.toContain("customizeBtn.textContent = 'Make it yours';");
   });
 
   it('the grid of prints is the shared module, on the home AND the yard page, with the hover card', async () => {
