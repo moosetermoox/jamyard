@@ -293,12 +293,13 @@ function renderLibrary(games, rescueInfo) {
 
 // The goal piles of planks (Totem 9g) retired on 2026-09-10: the yard
 // draws the home's grid of prints instead (/shared/yard-prints.js). The
-// personal shelf below keeps its mini planks.
+// personal shelf's mini planks followed on 2026-09-13 (owner: one visual).
 
-// The personal shelf: recents, hearts, and your copies as small planks
-// resting on one long board, "MY YARD" painted underneath. Hidden until
-// there's something on it (renderLibrary only calls with 1+). Activities
-// put away live behind the collapsed "In the shed" line beneath the board.
+// The personal shelf: recents, hearts, and your copies as the same prints
+// the grid below draws, in the shelf's own order, resting on one long
+// board with "MY YARD" painted underneath. Hidden until there's something
+// on it (renderLibrary only calls with 1+). Activities put away live
+// behind the collapsed "In the shed" line beneath the board.
 var shedOpen = false;
 
 function buildMyYardShelf(games, shedGames) {
@@ -312,9 +313,9 @@ function buildMyYardShelf(games, shedGames) {
   outer.appendChild(wrap);
 
   var row = document.createElement('div');
-  row.className = 'myyard-row';
+  row.className = 'myyard-row yard-grid';
   for (var i = 0; i < games.length; i++) {
-    row.appendChild(buildMiniPlank(games[i], i));
+    row.appendChild(buildShelfPrint(games[i], i));
   }
   wrap.appendChild(row);
 
@@ -349,9 +350,9 @@ function buildMyYardShelf(games, shedGames) {
 
     if (shedOpen) {
       var shedRow = document.createElement('div');
-      shedRow.className = 'myyard-row shed-row';
+      shedRow.className = 'myyard-row shed-row yard-grid';
       for (var s = 0; s < shedGames.length; s++) {
-        shedRow.appendChild(buildMiniPlank(shedGames[s], s));
+        shedRow.appendChild(buildShelfPrint(shedGames[s], s));
       }
       outer.appendChild(shedRow);
     }
@@ -359,31 +360,102 @@ function buildMyYardShelf(games, shedGames) {
   return outer;
 }
 
-function buildMiniPlank(game, index) {
-  var plank = document.createElement('button');
-  plank.type = 'button';
-  plank.className = 'plank-mini plank-tone-' + (index % 8);
-  plank.setAttribute('data-game-id', game.id);
-  plank.setAttribute('aria-haspopup', 'dialog');
-  plank.setAttribute('aria-label', game.name + ', see what it is and make it yours');
-  HoverCard.attach(plank, game);
+// One print on the shelf: the grid's own print (shared/yard-prints.js,
+// the hover card and the popup come with it) with a row of tiny tools
+// under it (owner's ask 2026-09-13): play hosts it, the pen opens it in
+// the designer (your own copies) or on the make page (a template you
+// hearted or used), the heart hearts it, the bin deletes it (your own
+// copies, or anything in owner mode). The tools sit ON the print, along
+// the paper's bottom margin under the picture, but beside the card in the
+// DOM, not inside it: the card is itself a button. The wrapper takes the
+// card's tilt so the tools turn with the paper.
+function buildShelfPrint(game, index) {
+  var item = document.createElement('div');
+  item.className = 'shelf-item';
+  var card = YardPrints.buildCard(game, index, { onClick: openActivityDialog });
+  card.setAttribute('aria-label', game.name + ', see what it is and make it yours');
+  item.style.setProperty('--rot', card.style.getPropertyValue('--rot') || '0deg');
+  card.style.setProperty('--rot', '0deg');
+  item.appendChild(card);
 
-  if (Favorites.has(game.id)) {
-    var fav = document.createElement('span');
-    fav.className = 'plank-fav';
-    fav.textContent = '♥';
-    fav.setAttribute('aria-hidden', 'true');
-    plank.appendChild(fav);
-  }
-  var name = document.createElement('span');
-  name.className = 'plank-name';
-  name.textContent = game.name;
-  plank.appendChild(name);
+  var tools = document.createElement('div');
+  tools.className = 'shelf-tools';
+  var own = window.MyGames && MyGames.has(game.id);
+  var ownerOn = window.OwnerMode && OwnerMode.isOn();
 
-  plank.addEventListener('click', function () {
-    openActivityDialog(game);
+  var play = shelfTool('a', 'play', 'Host "' + game.name + '" now');
+  play.href = '/host?game=' + encodeURIComponent(game.id);
+  play.title = 'Host it: start a live room your class can join right now';
+  // The console opens in a new tab alongside (shared/host-launch.js)
+  play.addEventListener('click', function (e) {
+    Recents.add(game.id);
+    if (window.HostLaunch) { e.preventDefault(); HostLaunch.launch(game.id); }
   });
-  return plank;
+  tools.appendChild(play);
+
+  var pen = shelfTool('a', 'pen', (own || ownerOn ? 'Edit "' : 'Make "') + game.name + '" yours');
+  if (own || ownerOn) {
+    pen.href = '/designer/edit?game=' + encodeURIComponent(game.id) + '&from=library';
+    pen.title = 'Open it in the designer';
+  } else {
+    pen.href = '/make?game=' + encodeURIComponent(game.id) + '&from=library';
+    pen.title = 'Make it yours: change the question, then host it';
+  }
+  pen.addEventListener('click', function () { Recents.add(game.id); });
+  tools.appendChild(pen);
+
+  var isFav = Favorites.has(game.id);
+  var heart = shelfTool('button', 'heart', (isFav ? 'Remove "' : 'Heart "') + game.name + '"');
+  heart.type = 'button';
+  heart.title = isFav ? 'Hearted: keeps it up front. Click to remove' : 'Heart it: keeps it up front';
+  heart.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+  heart.addEventListener('click', function () {
+    Favorites.toggle(game.id);
+    refreshLibrary(); // the shelf reorders: hearted first
+  });
+  tools.appendChild(heart);
+
+  if (own || ownerOn) {
+    var bin = shelfTool('button', 'bin', 'Delete "' + game.name + '"');
+    bin.type = 'button';
+    bin.title = 'Delete it, this cannot be undone';
+    bin.addEventListener('click', function () { deleteOwnGame(game); });
+    tools.appendChild(bin);
+  }
+
+  item.appendChild(tools);
+  return item;
+}
+
+// A 26px paper square holding one drawn mark (ink strokes, no emoji).
+var SHELF_ICONS = {
+  play: { d: 'M4.5 2.5 L13 8 L4.5 13.5 Z', fill: true },
+  pen: { d: 'M2.5 13.5 L3.3 10.2 L10.6 2.9 L13.1 5.4 L5.8 12.7 Z M9.4 4.1 L11.9 6.6', fill: false },
+  heart: { d: 'M8 13.6 L2.9 8.6 C1.5 7.2 1.6 4.9 3.2 3.8 C4.6 2.8 6.6 3.2 8 4.9 C9.4 3.2 11.4 2.8 12.8 3.8 C14.4 4.9 14.5 7.2 13.1 8.6 Z', fill: false },
+  bin: { d: 'M2.8 4.3 H13.2 M6 4.3 V2.6 H10 V4.3 M4.3 4.3 L5 13.4 H11 L11.7 4.3 M6.9 6.8 V11.2 M9.1 6.8 V11.2', fill: false }
+};
+
+function shelfTool(tag, icon, label) {
+  var tool = document.createElement(tag);
+  tool.className = 'shelf-tool shelf-tool-' + icon;
+  tool.setAttribute('aria-label', label);
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  var path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', SHELF_ICONS[icon].d);
+  path.setAttribute('fill', SHELF_ICONS[icon].fill ? 'currentColor' : 'none');
+  path.setAttribute('stroke', 'currentColor');
+  path.setAttribute('stroke-width', '1.6');
+  path.setAttribute('stroke-linejoin', 'round');
+  path.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(path);
+  tool.appendChild(svg);
+  return tool;
 }
 
 // The plank popup: what it is, then the doors the old card offered.
@@ -1049,7 +1121,6 @@ function handleHighlightParam() {
   } catch (e) { return; }
   var piece = document.querySelector('.yard-card[data-game-id="' + CSS.escape(wantedId) + '"]') ||
     document.querySelector('.plank[data-game-id="' + CSS.escape(wantedId) + '"]') ||
-    document.querySelector('.plank-mini[data-game-id="' + CSS.escape(wantedId) + '"]') ||
     document.querySelector('.library-card[data-game-id="' + CSS.escape(wantedId) + '"]');
   if (!piece) return; // filtered out or unknown — the library itself is the fallback
   piece.scrollIntoView({ block: 'center' });
