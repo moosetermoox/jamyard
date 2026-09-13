@@ -2452,7 +2452,7 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
   if (suggestions.length === 0) {
     status.textContent = 'Nothing clicked for that combination. The yard sorted by goal is the best next stop.';
     var libLink = document.createElement('a');
-    libLink.href = '/library';
+    libLink.href = '/#yard';
     libLink.textContent = 'Open the yard';
     libLink.style.cssText = 'font-weight:800;';
     resultsEl.appendChild(libLink);
@@ -2555,7 +2555,7 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
   footer.className = 'template-picker-subtitle';
   footer.style.marginTop = '10px';
   var libLink2 = document.createElement('a');
-  libLink2.href = '/library';
+  libLink2.href = '/#yard';
   libLink2.textContent = 'None of these? Browse the whole yard';
   footer.appendChild(libLink2);
   resultsEl.appendChild(footer);

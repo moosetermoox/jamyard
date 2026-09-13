@@ -27,12 +27,12 @@ describe('MakeItYours module', () => {
       .forEach((name) => expect(typeof M[name], name).toBe('function'));
   });
 
-  it('is the only home of the dialog: library.js just hands it the button', async () => {
+  it('is the only home of the dialog (the yard page no longer opens it: Pick this one is the make page)', async () => {
     const lib = await read('screens/library/library.js');
     expect(lib).not.toContain('function showCustomizeDialog');
     expect(lib).not.toContain('function saveCopyAndReturn');
     expect(lib).not.toContain('function renderClassPicker');
-    expect(lib).toContain('MakeItYours.open(game, btn)');
+    expect(lib).not.toContain('MakeItYours');
     const mod = await read('screens/shared/make-it-yours.js');
     expect(mod).toContain('function showCustomizeDialog');
     expect(mod).not.toMatch(/\ballGames\b/);
@@ -45,8 +45,9 @@ describe('MakeItYours module', () => {
       '/shared/speech-input.js', '/shared/make-it-yours-doors.js'
     ];
     // The 15b home (2026-09-10) has no dialog of its own: every activity
-    // door on it lands on the make page, so only the yard loads the module.
-    for (const page of ['screens/library/index.html']) {
+    // door on it lands on the make page, and since the yard folded into
+    // the home (2026-09-13) only the make page loads the module.
+    for (const page of ['screens/make/index.html']) {
       const html = await read(page);
       const at = html.indexOf('/shared/make-it-yours.js');
       expect(at, page + ' loads the module').toBeGreaterThan(-1);
@@ -56,7 +57,6 @@ describe('MakeItYours module', () => {
         expect(d, page + ': ' + dep + ' before the module').toBeLessThan(at);
       });
       expect(html).toContain('/shared/make-it-yours.css');
-      expect(html).toContain('/shared/make-it-yours-doors.css');
     }
   });
 

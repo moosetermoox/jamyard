@@ -154,7 +154,7 @@ describe('every Host door goes through it', () => {
     expect(await read('screens/teacher/teacher.js')).toContain('HostLaunch.listen(');
   });
   it('every page with a door, plus host and teacher, loads the module before its own script', async () => {
-    const pages = ['library', 'designer', 'designer/editor', 'make', 'host', 'teacher', 'prototype'];
+    const pages = ['home', 'library', 'designer', 'designer/editor', 'make', 'host', 'teacher', 'prototype'];
     for (const p of pages) {
       const file = p === 'designer/editor' ? 'screens/designer/editor.html' : 'screens/' + p + '/index.html';
       const html = await read(file);
@@ -190,6 +190,6 @@ describe('the projector chrome (owner, 2026-09-13)', () => {
   });
   it('the teacher view has a way back to the yard', async () => {
     const html = await read('screens/teacher/index.html');
-    expect(html).toContain('class="header-home" href="/library"');
+    expect(html).toContain('class="header-home" href="/#yard"');
   });
 });

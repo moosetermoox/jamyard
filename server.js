@@ -1859,7 +1859,25 @@ app.use('/prototype', express.static(join(__dirname, 'screens/prototype')));
 // Make it yours as a page (2026-09-09): the first student step as the
 // class will see it, the question editable in place, one red TRY IT.
 app.use('/make', express.static(join(__dirname, 'screens/make')));
-// The teacher-facing front door (library-first, 2026-07-28): browse + host.
+// The yard page folded into the home (one yard, 2026-09-13: "it's
+// confusing when there's a different yard"). /library is the owner's
+// curation console now, reached through /owner (?owner=1); every other
+// visit lands on the home's yard with its deep links carried over:
+// ?about= (a popup), ?highlight= (the editor's way back), ?q= (a search);
+// ?customize= goes straight to the make page.
+app.get(['/library', '/library/'], (req, res, next) => {
+  const params = new URL(req.originalUrl, 'http://localhost').searchParams;
+  if (params.get('owner') === '1') return next();
+  if (params.get('customize')) {
+    return res.redirect('/make?game=' + encodeURIComponent(params.get('customize')) + '&from=yard');
+  }
+  const carried = new URLSearchParams();
+  for (const key of ['about', 'highlight', 'q']) {
+    if (params.get(key)) carried.set(key, params.get(key));
+  }
+  const qs = carried.toString();
+  res.redirect('/' + (qs ? '?' + qs : '') + '#yard');
+});
 app.use('/library', express.static(join(__dirname, 'screens/library')));
 // Owner doorway: replaces the old in-page "Show full library (site owner)"
 // link, which read to teachers as content being withheld from them.
@@ -1892,12 +1910,12 @@ app.get('/share/:gameId', async (req, res) => {
   try {
     const { source } = await resolveGamePath(req.params.gameId);
     if (source === 'built-in') {
-      return res.redirect('/library?about=' + encodeURIComponent(req.params.gameId));
+      return res.redirect('/?about=' + encodeURIComponent(req.params.gameId) + '#yard');
     }
   } catch {} // DB-backed user games and dead links both fall through to the page
   res.sendFile('index.html', { root: join(__dirname, 'screens', 'share') });
 });
-app.get('/share', (req, res) => res.redirect('/library'));
+app.get('/share', (req, res) => res.redirect('/#yard'));
 
 // --- Vanity URLs (vanity-urls.json) ---
 // A memorable path per activity: jamyard.org/good-question opens the host

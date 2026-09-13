@@ -142,7 +142,7 @@
       function showGone() {
         nameEl.textContent = 'This activity isn\'t here anymore';
         descEl.textContent = 'The share link is real, but the activity behind it seems to have been deleted. Ask whoever sent it to share again, or browse the yard instead.';
-        actionsEl.appendChild(link('/library', 'Browse the yard', true));
+        actionsEl.appendChild(link('/#yard', 'Browse the yard', true));
       }
 
       function showSaved(copyId, name) {
@@ -151,7 +151,7 @@
         line.className = 'saved-line';
         line.textContent = '"' + name + '" is in your yard now.';
         actionsEl.appendChild(line);
-        actionsEl.appendChild(link('/library', 'Open the yard', true));
+        actionsEl.appendChild(link('/#yard', 'Open the yard', true));
         actionsEl.appendChild(link('/prototype?game=' + encodeURIComponent(copyId), 'Try it out'));
         noteEl.hidden = true;
       }
@@ -200,7 +200,7 @@
           have.className = 'saved-line';
           have.textContent = 'You already saved this one.';
           actionsEl.appendChild(have);
-          actionsEl.appendChild(link('/library', 'Open the yard', true));
+          actionsEl.appendChild(link('/#yard', 'Open the yard', true));
           actionsEl.appendChild(saveBtn);
         } else {
           actionsEl.appendChild(saveBtn);

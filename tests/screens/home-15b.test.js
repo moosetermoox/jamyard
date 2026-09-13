@@ -101,21 +101,20 @@ describe('home page 15b', () => {
     expect(html).toContain("'Pick this one'");
     expect(html).not.toMatch(/Start the room/i);
     expect(html).not.toContain('mid-activity.');
-    // The yard's door says the same thing (owner 2026-09-13: the home said
-    // Pick this one, the yard said Make it yours, "we're going with pick
-    // this one"); Make it yours stays the flow's name, never the button
-    const lib = await read('screens/library/library.js');
-    expect(lib).toContain("customizeBtn.textContent = 'Pick this one';");
-    expect(lib).not.toContain("customizeBtn.textContent = 'Make it yours';");
+    // The shelf popup's door says the same thing (owner 2026-09-13: "we're
+    // going with pick this one"); Make it yours stays the flow's name
+    const shelf = await read('screens/shared/my-yard.js');
+    expect(shelf).toContain("'Pick this one'");
+    expect(shelf).not.toContain("'Make it yours'");
   });
 
-  it('the grid of prints is the shared module, on the home AND the yard page, with the hover card', async () => {
+  it('the grid of prints is the shared module on the home (the one yard), with the hover card', async () => {
     const mod = await read('screens/shared/yard-prints.js');
     expect(mod).toContain('Make one with AI');
     expect(mod).toContain("href || '/designer'");
     expect(mod).toContain('HoverCard.attach(card, g)');
     expect(mod).not.toMatch(/card.titles*=s*g./);
-    for (const page of ['screens/home/index.html', 'screens/library/index.html']) {
+    for (const page of ['screens/home/index.html']) {
       const page_html = await read(page);
       expect(page_html, page).toContain('/shared/yard-prints.js');
       expect(page_html, page).toContain('/shared/yard-prints.css');
@@ -125,12 +124,11 @@ describe('home page 15b', () => {
     }
     expect(html).toContain('YardPrints.buildGrid(');
     const lib = await read('screens/library/library.js');
-    expect(lib).toContain('YardPrints.buildGrid(');
     expect(lib).not.toContain('function buildPileGroup');
     expect(lib).not.toContain('function buildPlank(');
   });
 
-  it('the yard page filters by the same one-job rule the prints show (first goal tag wins)', async () => {
+  it('the owner console filters by the same one-job rule the prints show (first goal tag wins)', async () => {
     const lib = await read('screens/library/library.js');
     const body = lib.slice(lib.indexOf('function matchesGoal('), lib.indexOf('function matchesFilters('));
     expect(body).toContain('goalGroupOf(game) === activeGoal');
