@@ -1,24 +1,27 @@
-// Host opens two tabs (owner's ask, 2026-09-12): the projector in THIS tab
-// and the private teacher console in a NEW one, already signed in. The
-// console tab has to open inside the click (browsers block window.open
-// after an await), but the room, its code and its PIN only exist once the
-// projector page has created it. So the click mints a nonce, opens
-// /teacher#await=<nonce>, and sends this tab to /host?game=..&pair=<nonce>;
-// the projector publishes {code, pin} under that nonce when the room is
-// up, and the console tab, listening for it, joins by itself.
+// Host opens two tabs (owner's ask, 2026-09-12): the projector in a NEW
+// tab, in front, and the private teacher console in THIS tab, behind it,
+// already signed in. A new tab always takes focus, so sending the
+// projector there is what keeps the teacher looking at the host view
+// (the first cut opened the console in the new tab and the owner landed
+// on the console instead: "I don't want to have to tab back").
 //
-//   HostLaunch.begin()          // in the click: opens the console tab
-//   HostLaunch.hostUrl(gameId)  // the projector address, carrying the nonce
+// The new tab has to open inside the click (browsers block window.open
+// after an await), but the room, its code and its PIN only exist once
+// the projector page creates it, and some doors save first. So:
+//   HostLaunch.begin()          // in the click: opens a blank new tab
+//   HostLaunch.hostUrl(gameId)  // sends that tab to the projector with a
+//                               // pairing nonce and returns where THIS
+//                               // tab goes: the console, waiting on it
 //   HostLaunch.launch(gameId)   // both, for a plain Host button
-//   HostLaunch.abandon()        // the save failed: close the waiting tab
+//   HostLaunch.abandon()        // the save failed: close the blank tab
 //   HostLaunch.publish(nonce, code, pin)    // the projector, on room-created
 //   HostLaunch.listen(nonce, cb)            // the console, on load
 //
 // The hand-off is same-origin, on the teacher's own machine: localStorage
-// (so a console tab that loads AFTER the room is up still finds it) plus
-// a BroadcastChannel for the live case. Nothing goes through the server.
-// A blocked popup is not an error: the projector opens as before and
-// Copy teacher link still works.
+// (so a console that reads it late still finds it) plus a BroadcastChannel
+// for the live case. Nothing goes through the server. A blocked popup is
+// not an error: hostUrl returns the projector address for this tab, the
+// flow before today, and Copy teacher link still works.
 (function () {
   'use strict';
 
@@ -33,21 +36,32 @@
 
   function begin() {
     if (typeof window.open !== 'function') return null;
-    var nonce = mintNonce();
     var win = null;
-    try { win = window.open('/teacher#await=' + nonce, '_blank'); } catch (e) { win = null; }
+    try { win = window.open('about:blank', '_blank'); } catch (e) { win = null; }
     if (!win) return null;
-    pending = { nonce: nonce, win: win };
+    pending = { nonce: mintNonce(), win: win };
     return pending;
   }
 
-  function hostUrl(gameId) {
+  function projectorUrl(gameId, nonce) {
     var url = '/host?game=' + encodeURIComponent(gameId);
-    if (pending) {
-      url += '&pair=' + encodeURIComponent(pending.nonce);
-      pending = null;
-    }
+    if (nonce) url += '&pair=' + encodeURIComponent(nonce);
     return url;
+  }
+
+  // Where THIS tab goes for Host. With a tab from begin(): that tab gets
+  // the projector, this one gets the console. Without one: the projector.
+  function hostUrl(gameId) {
+    if (!pending) return projectorUrl(gameId, null);
+    var p = pending;
+    pending = null;
+    try {
+      p.win.location.href = projectorUrl(gameId, p.nonce);
+    } catch (e) {
+      // The tab is gone or refuses navigation: this tab hosts, as before
+      return projectorUrl(gameId, null);
+    }
+    return '/teacher#await=' + p.nonce;
   }
 
   function abandon() {

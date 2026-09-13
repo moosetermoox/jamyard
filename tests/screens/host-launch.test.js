@@ -31,7 +31,7 @@ beforeEach(async () => {
   globalThis.window = globalThis;
   globalThis.localStorage = fakeStorage();
   globalThis.location = { href: '' };
-  globalThis.open = (url) => { opened.push(url); const w = { close: () => closed.push(url) }; return w; };
+  globalThis.open = (url) => { opened.push(url); const w = { location: { href: url }, close: () => closed.push(url) }; opened.wins = opened.wins || []; opened.wins.push(w); return w; };
   globalThis.addEventListener = (name, fn) => { (listeners[name] = listeners[name] || []).push(fn); };
   globalThis.removeEventListener = (name, fn) => { listeners[name] = (listeners[name] || []).filter(f => f !== fn); };
   globalThis.BroadcastChannel = class {
@@ -47,22 +47,31 @@ beforeEach(async () => {
 const H = () => globalThis.HostLaunch;
 
 describe('the click side', () => {
-  it('begin opens the console tab on an await nonce; hostUrl carries the same nonce once', () => {
+  it('begin opens a blank tab in the click; hostUrl sends it the projector with the nonce and keeps the console here', () => {
     const p = H().begin();
     expect(opened).toHaveLength(1);
-    expect(opened[0]).toBe('/teacher#await=' + p.nonce);
-    expect(H().hostUrl('snowball')).toBe('/host?game=snowball&pair=' + p.nonce);
-    // consumed: a second projector address pairs nothing
+    expect(opened[0]).toBe('about:blank');
+    // The projector goes to the NEW tab (it takes focus, so the teacher
+    // keeps looking at the host view); this tab becomes the console
+    expect(H().hostUrl('snowball')).toBe('/teacher#await=' + p.nonce);
+    expect(opened.wins[0].location.href).toBe('/host?game=snowball&pair=' + p.nonce);
+    // consumed: a second call is a plain projector address for this tab
     expect(H().hostUrl('snowball')).toBe('/host?game=snowball');
   });
 
-  it('a blocked popup is not an error: the projector address is plain', () => {
+  it('a blocked popup is not an error: this tab hosts, as before', () => {
     globalThis.open = () => null;
     expect(H().begin()).toBeNull();
     expect(H().hostUrl('snowball')).toBe('/host?game=snowball');
   });
 
-  it('abandon closes the waiting tab when the save that preceded Host fails', () => {
+  it('a tab that refuses navigation falls back the same way', () => {
+    globalThis.open = () => ({ get location() { throw new Error('gone'); }, close() {} });
+    H().begin();
+    expect(H().hostUrl('snowball')).toBe('/host?game=snowball');
+  });
+
+  it('abandon closes the blank tab when the save that preceded Host fails', () => {
     H().begin();
     H().abandon();
     expect(closed).toHaveLength(1);
@@ -72,7 +81,8 @@ describe('the click side', () => {
   it('launch does both for a plain Host button', () => {
     H().launch('mood-check');
     expect(opened).toHaveLength(1);
-    expect(globalThis.location.href).toMatch(/^\/host\?game=mood-check&pair=[a-z0-9]+$/);
+    expect(opened.wins[0].location.href).toMatch(/^\/host\?game=mood-check&pair=[a-z0-9]+$/);
+    expect(globalThis.location.href).toMatch(/^\/teacher#await=[a-z0-9]+$/);
   });
 });
 
