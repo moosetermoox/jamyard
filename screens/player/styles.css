@@ -416,7 +416,7 @@ button[hidden] {
 }
 
 #end-section h1 {
-  color: var(--theme-success, #5cb85c);
+  color: var(--t-ink, #2A2620);
 }
 
 /* AI result */

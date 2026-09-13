@@ -244,7 +244,8 @@
       margin-left: -5px;
       padding: 22px 22px;
       display: flex;
-      align-items: flex-end;
+      flex-direction: column;
+      justify-content: flex-end;
       text-decoration: none;
       font-family: var(--t-display);
       font-weight: 800;
@@ -266,6 +267,31 @@
     .plank:focus-visible { transform: rotate(var(--rot, 0deg)) translateY(-5px); }
 
     .plank:focus-visible { outline: 3px solid var(--t-ink); outline-offset: -6px; }
+
+    /* Hold the mouse on a plank and the label floats to the top, the ways
+       Jamyard does that job written underneath (owner's ask 2026-09-12).
+       The ways block takes the free space (flex-grow 0 -> 1, the one
+       animatable way to lift the label without knowing its height). */
+    .plank-ways {
+      flex: 0 1 0px;
+      min-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      margin-top: 10px;
+      font-family: var(--t-body);
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: 0;
+      text-transform: none;
+      line-height: 1.4;
+      color: var(--t-ink);
+      transition: flex-grow var(--t-quick) var(--t-ease), opacity var(--t-quick) var(--t-ease);
+    }
+
+    .plank-ways span { display: block; }
+
+    .plank:hover .plank-ways,
+    .plank:focus-visible .plank-ways { flex-grow: 1; opacity: 1; }
 
     /* Rest tones: three woods, no two neighbors the same */
     .plank[data-goal="connect"] { background: var(--t-birch); background-image: var(--t-grain); --rot: -1.4deg; }
@@ -627,7 +653,7 @@
 
     .screen-bar { height: 12px; }
 
-    /* The page's one red: START THE ROOM (the make page opens first).
+    /* The page's one red: PICK THIS ONE (the make page opens first).
        19px bold: large text for the contrast rule on red. */
     .stage-start {
       margin-top: 10px;
@@ -786,6 +812,8 @@
       body { overflow-x: clip; }
       .page { padding: 18px 18px 16px; }
       .plank { height: 120px; padding: 14px; font-size: 16px; }
+      /* No room under the label for the ways on a short plank */
+      .plank-ways { display: none; }
       .stage-row { flex-direction: column; }
       .frame-mat { width: 100%; }
       .frame { min-height: 0; }
@@ -843,23 +871,22 @@
            scrolls to the yard with that job's chip already selected. -->
       <nav class="planks-stack" aria-label="Pick what your class needs">
         <div class="planks" id="planks">
-          <a class="plank" data-goal="connect" href="#yard">To connect</a>
-          <a class="plank" data-goal="think" href="#yard">To think</a>
-          <a class="plank" data-goal="review" href="#yard">To review</a>
-          <a class="plank" data-goal="play" href="#yard">To just have fun</a>
+          <a class="plank" data-goal="connect" href="#yard"><span class="plank-label">To connect</span><span class="plank-ways"><span>Support each other</span><span>Give feedback</span><span>Discuss to understand your class</span></span></a>
+          <a class="plank" data-goal="think" href="#yard"><span class="plank-label">To think</span><span class="plank-ways"><span>Combine answers</span><span>Rank ideas</span><span>Debate</span></span></a>
+          <a class="plank" data-goal="review" href="#yard"><span class="plank-label">To review</span><span class="plank-ways"><span>Quizzes</span><span>Polls</span><span>Matching pairs</span></span></a>
+          <a class="plank" data-goal="play" href="#yard"><span class="plank-label">To just have fun</span><span class="plank-ways"><span>Draw</span><span>Bluff</span><span>Guess</span></span></a>
         </div>
         <div class="planks-base" aria-hidden="true"></div>
       </nav>
-      <p class="mechanic"><strong>You project one screen. Students play from their devices.</strong> They join with a code. Nothing to install.</p>
+      <p class="mechanic"><strong>You project your screen,</strong> and students enter a four letter code to join from their devices.</p>
     </section>
 
-    <!-- See one on the projector: one activity at a time, the drawn frame
-         and the students' screens, the page's one red. -->
-    <section class="stage" id="stage" hidden aria-label="See one on the projector">
+    <!-- Activities: one at a time, the drawn projector frame and the
+         students' screens, the page's one red. -->
+    <section class="stage" id="stage" hidden aria-label="Activities">
       <div class="stage-head">
         <div class="stage-title">
-          <span class="caps">See one on the projector</span>
-          <h2>Your projector, mid-activity. Their screens beside it.</h2>
+          <h2>Activities</h2>
         </div>
         <div class="stage-nav">
           <button type="button" class="t-lift" id="carousel-prev" aria-label="Previous activity">←</button>
@@ -878,7 +905,7 @@
             <span class="caps">On their screens</span>
             <div class="screens-row" id="screens-row"></div>
           </div>
-          <a class="stage-start t-lift t-label" id="carousel-start" href="/library">Start the room</a>
+          <a class="stage-start t-lift t-label" id="carousel-start" href="/library">Pick this one</a>
         </div>
       </div>
       <div class="stage-pager">
@@ -1022,9 +1049,9 @@
         modal.appendChild(mapHolder);
         if (window.ActivityMap) ActivityMap.attach(g.id, mapHolder);
         var actions = el('div', 'home-dialog-actions');
-        var start = el('a', 'home-dialog-start t-lift t-label', 'Start the room');
+        var start = el('a', 'home-dialog-start t-lift t-label', 'Pick this one');
         start.href = makeHref(g);
-        start.title = 'Open "' + g.name + '" as your class will see it, then start the room';
+        start.title = 'Open "' + g.name + '" as your class will see it, then host it';
         actions.appendChild(start);
         actions.appendChild(el('span', 'home-dialog-sub', 'Change the question first, or try it with pretend students.'));
         modal.appendChild(actions);
@@ -1138,7 +1165,7 @@
         descEl.textContent = g.description || '';
         buildScreens(g);
         startEl.href = makeHref(g);
-        startEl.title = 'Open "' + g.name + '" as your class will see it, then start the room';
+        startEl.title = 'Open "' + g.name + '" as your class will see it, then host it';
         countEl.textContent = (idx + 1) + ' of ' + games.length;
         barsEl.textContent = '';
         for (var i = 0; i < games.length; i++) barsEl.appendChild(el('span', i === idx ? 'active' : ''));

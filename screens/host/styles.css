@@ -866,7 +866,8 @@ body.in-bench .fullscreen-toggle { display: none; }
 /* End section */
 .game-over {
   font-size: 4rem;
-  color: var(--theme-success, #5cb85c);
+  /* Ink, not green: the palette keeps green for progress counts (owner 2026-09-12) */
+  color: var(--t-ink, #2A2620);
   margin: 50px 0;
 }
 
@@ -1453,6 +1454,8 @@ select {
 }
 /* display:flex beats the hidden attribute; without this the chip never hides */
 .teacher-view-chip[hidden] { display: none; }
+/* Off the end screen: it overlapped Copy report link in a short window */
+body.room-ended .teacher-view-chip { display: none; }
 #teacher-link-copy {
   font-size: 0.85em;
   padding: 6px 14px;

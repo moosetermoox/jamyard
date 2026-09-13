@@ -2854,6 +2854,9 @@ function showSection(el) {
   // Content owns the projector: outside the lobby the brand shrinks to a
   // corner mark (docs/PROJECTOR-STYLE.md rule 1).
   document.body.classList.toggle('in-activity', el !== lobbySection);
+  // The room is done: the teacher-link chip comes off, it sat on top of
+  // Copy report link in a short window (owner 2026-09-12)
+  document.body.classList.toggle('room-ended', el === endSection);
   for (const s of allSections) {
     s.classList.remove('active');
     s.hidden = true;

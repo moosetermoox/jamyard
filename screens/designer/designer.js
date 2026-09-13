@@ -1577,8 +1577,7 @@ function renderAIDescriptionStep(modal, overlay, initialDescription) {
 
 async function submitAIDescription(modal, description, status, generateBtn, overlay) {
   status.textContent = '';
-  status.className = 'recipe-form-status';
-  status.style.cssText = 'background:#E1BEE7; border:3px solid #000; border-radius:8px; padding:12px; text-align:center; font-weight:bold;';
+  status.className = 'recipe-form-status recipe-form-status-working';
   status.textContent = 'AI is matching your idea to a recipe…';
   generateBtn.disabled = true;
   generateBtn.textContent = 'Thinking…';
@@ -2005,8 +2004,7 @@ async function refitToAlternate(modal, data, alt, overlay, description) {
 
   var status = document.getElementById('ai-match-preview-status');
   if (status) {
-    status.className = 'recipe-form-status';
-    status.style.cssText = 'background:#E1BEE7; border:3px solid #000; border-radius:8px; padding:12px; text-align:center; font-weight:bold;';
+    status.className = 'recipe-form-status recipe-form-status-working';
     status.textContent = 'Setting your idea up as ' + alt.name + '…';
   }
 

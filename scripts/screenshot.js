@@ -100,6 +100,17 @@ try {
       await new Promise(r => setTimeout(r, pause));
     }
   }
+  // SHOT_HOVER=<css selector>: park the mouse over an element before the
+  // capture (real CDP mouse move, so :hover styles apply).
+  if (process.env.SHOT_HOVER) {
+    const sel = JSON.stringify(process.env.SHOT_HOVER.trim());
+    const box = await send('Runtime.evaluate', { returnByValue: true, expression: `(function(){var el=document.querySelector(${sel});if(!el)return null;var r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()` });
+    const pt = box.result && box.result.value;
+    if (pt) {
+      await send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: pt.x, y: pt.y });
+      await new Promise(r => setTimeout(r, 400));
+    }
+  }
   const shot = await send('Page.captureScreenshot', { format: 'png' });
   writeFileSync(outfile, Buffer.from(shot.data, 'base64'));
   console.log(`saved ${outfile} (${w}x${h}, waited ${waitMs}ms)`);
