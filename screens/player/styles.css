@@ -2252,8 +2252,14 @@ body.wh-empty .wh-word:hover { background: none; }
 
 .estimate-scale[hidden] { display: none; }
 
-.scale-pick {
-  min-width: 56px;
+/* The page's buttons are full width (one action per screen); a scale is a
+   ROW, so each pick is a short block that wraps to a second line only on
+   the narrowest screens. */
+.estimate-scale .scale-pick {
+  width: auto;
+  flex: 0 1 60px;
+  min-width: 48px;
+  max-width: 88px;
   padding: 12px 0 14px;
   font-size: 1.25rem;
   margin: 0;
