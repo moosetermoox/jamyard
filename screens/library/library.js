@@ -365,13 +365,17 @@ function buildMyYardShelf(games, shedGames) {
 // under it (owner's ask 2026-09-13): play hosts it, the pen opens it in
 // the designer (your own copies) or on the make page (a template you
 // hearted or used), the heart hearts it, the bin deletes it (your own
-// copies, or anything in owner mode). The tools sit beside the card, not
-// inside it: the card is itself a button.
+// copies, or anything in owner mode). The tools sit ON the print, along
+// the paper's bottom margin under the picture, but beside the card in the
+// DOM, not inside it: the card is itself a button. The wrapper takes the
+// card's tilt so the tools turn with the paper.
 function buildShelfPrint(game, index) {
   var item = document.createElement('div');
   item.className = 'shelf-item';
   var card = YardPrints.buildCard(game, index, { onClick: openActivityDialog });
   card.setAttribute('aria-label', game.name + ', see what it is and make it yours');
+  item.style.setProperty('--rot', card.style.getPropertyValue('--rot') || '0deg');
+  card.style.setProperty('--rot', '0deg');
   item.appendChild(card);
 
   var tools = document.createElement('div');

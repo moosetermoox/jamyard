@@ -51,7 +51,10 @@ describe('the My yard shelf is prints', () => {
   it('the stylesheet lost the planks and gained the tools and a full-width board', async () => {
     const css = await read('screens/library/styles.css');
     expect(css).not.toContain('.plank-mini');
-    expect(css).toMatch(/\.shelf-tool \{[^}]*width: 26px/);
+    expect(css).toMatch(/\.shelf-tool \{[^}]*width: 24px/);
+    // the tools sit on the paper: a taller bottom margin, the row placed in it
+    expect(css).toContain('.shelf-item .yard-print { padding-bottom: 40px; }');
+    expect(css).toMatch(/\.shelf-tools \{[^}]*position: absolute/);
     expect(css).toContain('.shelf-tool-heart[aria-pressed="true"] path { fill: currentColor; }');
     expect(css).toMatch(/\.myyard-board \{[^}]*width: 100%/);
     // the row must not fight .yard-grid's display: grid

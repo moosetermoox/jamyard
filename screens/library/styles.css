@@ -906,25 +906,34 @@ header {
   padding: 6px 0 12px;
 }
 
-/* One shelf item: the print, then a row of tiny tools under it (play,
-   pen, heart, bin), 26px paper squares with drawn marks, the same shape
-   as the projector's corner tools. The heart fills red when hearted. */
+/* One shelf item: the print with a row of tiny tools ON it (play, pen,
+   heart, bin), sitting in a taller bottom margin of the paper under the
+   picture: 24px paper squares with drawn marks, the same shape as the
+   projector's corner tools. The heart fills red when hearted. The wrapper
+   carries the card's tilt (the card's own --rot is zeroed) so the tools
+   turn with the paper and lift with it on hover. */
 .shelf-item {
+  position: relative;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  transform: rotate(var(--rot, 0deg));
 }
+
+.shelf-item .yard-print { padding-bottom: 40px; }
 
 .shelf-tools {
+  position: absolute;
+  top: 143px; /* 7px paper + 128px picture + 8px */
+  left: 14px;
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 5px;
+  transition: transform var(--t-quick, 120ms) var(--t-ease, ease);
 }
 
+.shelf-item:has(.yard-card:hover) .shelf-tools { transform: translateY(-5px); }
+
 .shelf-tool {
-  width: 26px;
-  height: 26px;
+  width: 24px;
+  height: 24px;
   padding: 0;
   margin: 0;
   border: none;
