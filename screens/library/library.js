@@ -361,20 +361,97 @@ function buildMyYardShelf(games, shedGames) {
 }
 
 // One print on the shelf: the grid's own print (shared/yard-prints.js,
-// the hover card and the popup come with it), plus a heart pinned to the
-// paper's corner when the activity is hearted.
+// the hover card and the popup come with it) with a row of tiny tools
+// under it (owner's ask 2026-09-13): play hosts it, the pen opens it in
+// the designer (your own copies) or on the make page (a template you
+// hearted or used), the heart hearts it, the bin deletes it (your own
+// copies, or anything in owner mode). The tools sit beside the card, not
+// inside it: the card is itself a button.
 function buildShelfPrint(game, index) {
+  var item = document.createElement('div');
+  item.className = 'shelf-item';
   var card = YardPrints.buildCard(game, index, { onClick: openActivityDialog });
   card.setAttribute('aria-label', game.name + ', see what it is and make it yours');
-  if (Favorites.has(game.id)) {
-    var fav = document.createElement('span');
-    fav.className = 'yard-heart';
-    fav.textContent = '♥';
-    fav.setAttribute('aria-hidden', 'true');
-    var print = card.querySelector('.yard-print');
-    (print || card).appendChild(fav);
+  item.appendChild(card);
+
+  var tools = document.createElement('div');
+  tools.className = 'shelf-tools';
+  var own = window.MyGames && MyGames.has(game.id);
+  var ownerOn = window.OwnerMode && OwnerMode.isOn();
+
+  var play = shelfTool('a', 'play', 'Host "' + game.name + '" now');
+  play.href = '/host?game=' + encodeURIComponent(game.id);
+  play.title = 'Host it: start a live room your class can join right now';
+  // The console opens in a new tab alongside (shared/host-launch.js)
+  play.addEventListener('click', function (e) {
+    Recents.add(game.id);
+    if (window.HostLaunch) { e.preventDefault(); HostLaunch.launch(game.id); }
+  });
+  tools.appendChild(play);
+
+  var pen = shelfTool('a', 'pen', (own || ownerOn ? 'Edit "' : 'Make "') + game.name + '" yours');
+  if (own || ownerOn) {
+    pen.href = '/designer/edit?game=' + encodeURIComponent(game.id) + '&from=library';
+    pen.title = 'Open it in the designer';
+  } else {
+    pen.href = '/make?game=' + encodeURIComponent(game.id) + '&from=library';
+    pen.title = 'Make it yours: change the question, then host it';
   }
-  return card;
+  pen.addEventListener('click', function () { Recents.add(game.id); });
+  tools.appendChild(pen);
+
+  var isFav = Favorites.has(game.id);
+  var heart = shelfTool('button', 'heart', (isFav ? 'Remove "' : 'Heart "') + game.name + '"');
+  heart.type = 'button';
+  heart.title = isFav ? 'Hearted: keeps it up front. Click to remove' : 'Heart it: keeps it up front';
+  heart.setAttribute('aria-pressed', isFav ? 'true' : 'false');
+  heart.addEventListener('click', function () {
+    Favorites.toggle(game.id);
+    refreshLibrary(); // the shelf reorders: hearted first
+  });
+  tools.appendChild(heart);
+
+  if (own || ownerOn) {
+    var bin = shelfTool('button', 'bin', 'Delete "' + game.name + '"');
+    bin.type = 'button';
+    bin.title = 'Delete it, this cannot be undone';
+    bin.addEventListener('click', function () { deleteOwnGame(game); });
+    tools.appendChild(bin);
+  }
+
+  item.appendChild(tools);
+  return item;
+}
+
+// A 26px paper square holding one drawn mark (ink strokes, no emoji).
+var SHELF_ICONS = {
+  play: { d: 'M4.5 2.5 L13 8 L4.5 13.5 Z', fill: true },
+  pen: { d: 'M2.5 13.5 L3.3 10.2 L10.6 2.9 L13.1 5.4 L5.8 12.7 Z M9.4 4.1 L11.9 6.6', fill: false },
+  heart: { d: 'M8 13.6 L2.9 8.6 C1.5 7.2 1.6 4.9 3.2 3.8 C4.6 2.8 6.6 3.2 8 4.9 C9.4 3.2 11.4 2.8 12.8 3.8 C14.4 4.9 14.5 7.2 13.1 8.6 Z', fill: false },
+  bin: { d: 'M2.8 4.3 H13.2 M6 4.3 V2.6 H10 V4.3 M4.3 4.3 L5 13.4 H11 L11.7 4.3 M6.9 6.8 V11.2 M9.1 6.8 V11.2', fill: false }
+};
+
+function shelfTool(tag, icon, label) {
+  var tool = document.createElement(tag);
+  tool.className = 'shelf-tool shelf-tool-' + icon;
+  tool.setAttribute('aria-label', label);
+  var NS = 'http://www.w3.org/2000/svg';
+  var svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('width', '14');
+  svg.setAttribute('height', '14');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.setAttribute('focusable', 'false');
+  var path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', SHELF_ICONS[icon].d);
+  path.setAttribute('fill', SHELF_ICONS[icon].fill ? 'currentColor' : 'none');
+  path.setAttribute('stroke', 'currentColor');
+  path.setAttribute('stroke-width', '1.6');
+  path.setAttribute('stroke-linejoin', 'round');
+  path.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(path);
+  tool.appendChild(svg);
+  return tool;
 }
 
 // The plank popup: what it is, then the doors the old card offered.

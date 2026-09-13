@@ -906,21 +906,52 @@ header {
   padding: 6px 0 12px;
 }
 
-/* The heart pinned to a hearted print's corner */
-.myyard-wrap .yard-print { position: relative; }
-
-.yard-heart {
-  position: absolute;
-  top: -7px;
-  right: -7px;
-  font-size: 14px;
-  line-height: 1;
-  color: var(--t-red, #D8321C);
-  background: var(--t-paper, #FDF9F0);
-  padding: 3px 5px 4px;
-  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.24);
-  transform: rotate(6deg);
+/* One shelf item: the print, then a row of tiny tools under it (play,
+   pen, heart, bin), 26px paper squares with drawn marks, the same shape
+   as the projector's corner tools. The heart fills red when hearted. */
+.shelf-item {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
+
+.shelf-tools {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.shelf-tool {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--t-paper, #FDF9F0);
+  color: var(--t-ink, #2A2620);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.22);
+  cursor: pointer;
+  text-decoration: none;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shelf-tool-play { --rot: -1deg; }
+.shelf-tool-pen { --rot: 0.8deg; }
+.shelf-tool-heart { --rot: -0.6deg; }
+.shelf-tool-bin { --rot: 1deg; }
+
+.shelf-tool:hover,
+.shelf-tool:focus-visible { transform: rotate(var(--rot, 0deg)) translateY(-3px); }
+.shelf-tool:focus-visible { outline: 3px solid var(--t-ink, #2A2620); outline-offset: 2px; }
+
+.shelf-tool-heart[aria-pressed="true"] { color: var(--t-red, #D8321C); }
+.shelf-tool-heart[aria-pressed="true"] path { fill: currentColor; }
+.shelf-tool-bin:hover { color: var(--t-red-text, #B02D12); }
 
 .myyard-board {
   width: 100%;

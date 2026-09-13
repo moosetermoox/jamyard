@@ -24,13 +24,35 @@ describe('the My yard shelf is prints', () => {
     expect(shelf).not.toContain('buildGrid(');
     const print = js.slice(js.indexOf('function buildShelfPrint'), js.indexOf('function openActivityDialog'));
     expect(print).toContain('YardPrints.buildCard(game, index, { onClick: openActivityDialog })');
-    expect(print).toContain("fav.className = 'yard-heart'");
   });
 
-  it('the stylesheet lost the planks and gained the heart and a full-width board', async () => {
+  it('every shelf print carries tiny tools: play hosts through HostLaunch, pen, heart; the bin only where delete is allowed', async () => {
+    const js = await read('screens/library/library.js');
+    const print = js.slice(js.indexOf('function buildShelfPrint'), js.indexOf('function openActivityDialog'));
+    // the tools sit beside the card (a button), never nested inside it
+    expect(print).toContain("item.className = 'shelf-item'");
+    expect(print).toContain('item.appendChild(card)');
+    expect(print).toContain('item.appendChild(tools)');
+    expect(print).toContain("shelfTool('a', 'play'");
+    expect(print).toContain('HostLaunch.launch(game.id)');
+    expect(print).toContain("shelfTool('a', 'pen'");
+    expect(print).toContain("'/designer/edit?game=' + encodeURIComponent(game.id)");
+    expect(print).toContain("'/make?game=' + encodeURIComponent(game.id)");
+    expect(print).toContain("shelfTool('button', 'heart'");
+    expect(print).toContain('Favorites.toggle(game.id)');
+    expect(print).toMatch(/if \(own \|\| ownerOn\) \{\s*var bin = shelfTool\('button', 'bin'/);
+    expect(print).toContain('deleteOwnGame(game)');
+    // drawn marks, no emoji, built with the DOM (no innerHTML)
+    expect(print).not.toContain('innerHTML');
+    expect(print).toContain("document.createElementNS(NS, 'svg')");
+    for (const k of ['play', 'pen', 'heart', 'bin']) expect(print).toContain(k + ': { d:');
+  });
+
+  it('the stylesheet lost the planks and gained the tools and a full-width board', async () => {
     const css = await read('screens/library/styles.css');
     expect(css).not.toContain('.plank-mini');
-    expect(css).toMatch(/\.yard-heart \{[^}]*position: absolute/);
+    expect(css).toMatch(/\.shelf-tool \{[^}]*width: 26px/);
+    expect(css).toContain('.shelf-tool-heart[aria-pressed="true"] path { fill: currentColor; }');
     expect(css).toMatch(/\.myyard-board \{[^}]*width: 100%/);
     // the row must not fight .yard-grid's display: grid
     const row = /\.myyard-row \{([^}]*)\}/.exec(css);
