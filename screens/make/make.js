@@ -44,7 +44,11 @@
     note: document.getElementById('doors-note'),
     cancel: document.getElementById('cancel-link'),
     error: document.getElementById('make-error'),
-    fitRows: document.getElementById('fit-rows')
+    fitRows: document.getElementById('fit-rows'),
+    fitFoot: document.getElementById('fit-foot'),
+    fitSee: document.getElementById('fit-see'),
+    fitNote: document.getElementById('fit-note'),
+    mapHolder: document.getElementById('map-holder')
   };
 
   // Where "back" goes: the door the teacher came through
@@ -69,6 +73,8 @@
     noQuestions: false,    // a recipe panel owns the words: nothing to ask
     anonymous: false,      // the two switch rows
     earlyJoke: true,
+    fitted: null,          // { key, config }: the AI-fitted copy "See how it reads" made, reused by the doors while nothing changed
+    fitting: false,        // "See how it reads" is running
     busy: false,
     panel: null,           // 'quiz' | 'bluff' when the recipe brings its own editor
     panelApi: null         // { makeCopy } from MakeItYours.mountPanel
@@ -215,6 +221,7 @@
         state.promptBox = BoldBox.create({ value: print.prompt.text, className: 'print-prompt' });
         state.promptBox.classList.add('plank');
         state.promptBox.box.setAttribute('aria-label', 'The question your class will see. Change it here.');
+        state.promptBox.box.addEventListener('input', scheduleMap);
         el.prompt.appendChild(state.promptBox);
       } else {
         var fixed = document.createElement('div');
@@ -233,6 +240,7 @@
         box.classList.add('plank');
         box.box.setAttribute('aria-label', 'Question ' + (print.fields.indexOf(f) + 1) + ' your class will see. Change it here.');
         state.fieldBoxes[f.key] = box;
+        box.box.addEventListener('input', scheduleMap);
         row.appendChild(box);
       } else {
         var lab = document.createElement('div');
@@ -316,6 +324,7 @@
       el.timerChip.textContent = mmss(state.timer);
       input.remove();
       el.timerChip.hidden = false;
+      scheduleMap();
     };
     input.addEventListener('blur', done);
     input.addEventListener('keydown', function (e) {
@@ -433,6 +442,8 @@
     joke.a.appendChild(on);
     joke.a.appendChild(off);
     fixedHolder.appendChild(joke);
+    // A switch is an edit too: the fitted copy (if any) is stale now
+    updateFitFoot();
   }
 
   function scheduleQuestions(now) {
@@ -554,7 +565,107 @@
     el.note.textContent = n === 1
       ? 'Your answer is in. TRY IT fits the wording to it, about twenty seconds.'
       : 'Your ' + n + ' answers are in. TRY IT fits the wording to them, about twenty seconds.';
+    updateFitFoot();
   }
+
+  // --- What happens follows the edits (2026-09-13). Two tiers: the map
+  // redraws from the edited copy as the question, labels, or timer change
+  // (the server applies the edits and sends the map back, no AI); and
+  // "See how it reads" runs the AI fit ONCE on demand, redraws the map
+  // from the fitted copy, and hands that copy to the doors so they never
+  // pay twice. A change to any answer or edit puts the button back.
+  var mapTimer = null;
+
+  function redrawMap(map) {
+    if (!el.mapHolder || !window.ActivityMap || !ActivityMap.render) return;
+    if (!map || !Array.isArray(map.stops) || map.stops.length === 0) return;
+    el.mapHolder.textContent = '';
+    el.mapHolder.appendChild(ActivityMap.render(map));
+  }
+
+  function scheduleMap() {
+    clearTimeout(mapTimer);
+    mapTimer = setTimeout(refreshMap, 400);
+    updateFitFoot();
+  }
+
+  var mapRequest = 0;
+  function refreshMap() {
+    if (!state.config || state.busy || state.panelApi) return;
+    var request = ++mapRequest;
+    fetch('/api/games/' + encodeURIComponent(gameId) + '/make', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentEdits())
+    }).then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (d) {
+        if (request !== mapRequest || !d) return;
+        redrawMap(d.map);
+      });
+  }
+
+  // What the fitted copy was made from: the edits and the answers
+  function fitKey() {
+    return JSON.stringify({ edits: currentEdits(), answers: answeredQuestions() });
+  }
+
+  function updateFitFoot() {
+    if (!el.fitFoot) return;
+    var n = answeredQuestions().length;
+    el.fitFoot.hidden = n === 0 || !!state.panelApi;
+    if (state.fitting) return;
+    var current = !!(state.fitted && state.fitted.key === fitKey());
+    el.fitSee.disabled = current;
+    el.fitSee.textContent = current ? 'Fitted' : (state.fitted ? 'See how it reads now' : 'See how it reads');
+    el.fitNote.textContent = current
+      ? 'What happens below is the fitted copy. TRY IT opens it.'
+      : 'Runs the AI fit once, about twenty seconds, and shows the result below.';
+  }
+
+  function seeHowItReads() {
+    if (state.busy || state.fitting || !state.config) return;
+    var answered = answeredQuestions();
+    if (!answered.length) return;
+    var key = fitKey();
+    state.fitting = true;
+    el.fitSee.disabled = true;
+    el.fitSee.textContent = 'Fitting…';
+    el.fitNote.textContent = 'About twenty seconds.';
+    el.error.hidden = true;
+    fetch('/api/games/' + encodeURIComponent(gameId) + '/make', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(currentEdits())
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (result) {
+        if (!result.ok || !result.data || !result.data.config) throw new Error((result.data && result.data.error) || 'could not apply your words');
+        var working = result.data.config;
+        if (isOwn) working.name = state.config.name || working.name;
+        return reword(working, answered);
+      })
+      .then(function (revised) {
+        state.fitted = { key: key, config: revised };
+        return fetch('/api/games/map', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config: revised })
+        }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+      })
+      .then(function (map) {
+        state.fitting = false;
+        redrawMap(map);
+        updateFitFoot();
+        try { el.mapHolder.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (err) { /* ignore */ }
+      })
+      .catch(function (err) {
+        state.fitting = false;
+        updateFitFoot();
+        fail('Could not fit the wording (' + (err.message || err) + '). Try again.');
+      });
+  }
+
+  if (el.fitSee) el.fitSee.addEventListener('click', seeHowItReads);
 
   // --- The edits, read off the page
   function currentEdits() {
@@ -692,6 +803,11 @@
           }
           window.location.href = destUrl(dest, gameId);
           return;
+        }
+        // "See how it reads" already fitted this exact copy: open that one
+        if (withAi && state.fitted && state.fitted.key === fitKey()) {
+          setOpening(dest, false);
+          return saveAndGo(state.fitted.config, dest);
         }
         setOpening(dest, withAi);
         if (!withAi) return saveAndGo(working, dest);

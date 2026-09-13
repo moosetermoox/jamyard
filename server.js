@@ -2038,6 +2038,22 @@ app.get('/api/games/:gameId/print', async (req, res) => {
 // config (never saved here: the page saves through POST /api/games like
 // every other Make it yours door). Edits are teacher text: bounded,
 // applied by engine/make-print.js, untrusted for rendering downstream.
+// The What happens map of a config the page already holds (the make
+// page's AI-fitted copy, before it is saved): the same pure builder the
+// per-game route uses. Nothing is stored.
+app.post('/api/games/map', express.json({ limit: '256kb' }), (req, res) => {
+  const config = req.body && req.body.config;
+  if (!config || typeof config !== 'object' || !config.phases || typeof config.phases !== 'object') {
+    return res.status(400).json({ error: 'Missing config or phases' });
+  }
+  try {
+    res.json(buildActivityMap(config));
+  } catch (error) {
+    console.log(`[api/games/map] Error: ${error.message}`);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req, res) => {
   try {
     const config = await loadGameById(req.params.gameId);
@@ -2067,7 +2083,9 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
     }
     working.name = nameFor(config.name || 'Activity', changed && typeof edits.prompt === 'string' && edits.prompt.trim() !== String(config.phases?.[out.phaseId || '']?.prompt || '').trim() ? edits.prompt : '');
     delete working.featured;
-    res.json({ config: working, changed });
+    // The What happens map of the edited copy rides along, so the make
+    // page can redraw it the moment the question changes (2026-09-13)
+    res.json({ config: working, changed, map: buildActivityMap(working) });
   } catch (error) {
     console.log(`[api/games/:gameId/make] Error: ${error.message}`);
     res.status(404).json({ error: error.message });

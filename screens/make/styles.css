@@ -569,6 +569,14 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
 
 .class-holder[hidden] { display: none; }
 
+/* "See how it reads": one AI fit on demand, the note beside it says
+   what happened */
+.fit-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-top: 4px; }
+.fit-foot[hidden] { display: none; }
+.fit-see:disabled { opacity: 0.6; cursor: default; }
+.fit-see:disabled:hover { transform: none; }
+.fit-note { font-size: 13px; font-weight: 500; color: var(--t-muted); }
+
 @media (max-width: 700px) {
   .make-header { padding: 14px 20px 0; }
   .print-screen { padding: 22px 20px 18px; }

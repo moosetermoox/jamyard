@@ -88,6 +88,12 @@
       <h2 class="panel-heading">Make it fit your class</h2>
       <div class="fit-card">
         <div class="fit-rows" id="fit-rows"></div>
+        <!-- With an answer in: one button runs the AI fit once and redraws
+             What happens from the result; the doors reuse that copy -->
+        <div class="fit-foot" id="fit-foot" hidden>
+          <button type="button" class="fit-chip fit-see" id="fit-see">See how it reads</button>
+          <span class="fit-note" id="fit-note"></span>
+        </div>
         <div class="class-holder" id="class-holder" hidden></div>
       </div>
     </section>

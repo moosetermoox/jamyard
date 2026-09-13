@@ -79,6 +79,31 @@ describe('make page: make it fit your class', () => {
     expect(js).toContain("(fixed.length ? 'that question and ' : '') + 'their answers below. '");
   });
 
+  // "Is there a way that What happens can populate a preview based on your
+  // responses?" (owner, 2026-09-13): the map follows the edits at once,
+  // and one button runs the AI fit on demand; the doors reuse that copy
+  it('What happens redraws from the edited copy, and See how it reads fits once and hands the copy to the doors', async () => {
+    const html = await read('screens/make/index.html');
+    const js = await read('screens/make/make.js');
+    const server = await read('server.js');
+    expect(html).toContain('id="fit-see"');
+    expect(html).toContain('>See how it reads</button>');
+    // Tier one: the question, labels, and timer redraw the map without AI
+    expect(js).toContain("state.promptBox.box.addEventListener('input', scheduleMap);");
+    expect(js).toContain("box.box.addEventListener('input', scheduleMap);");
+    expect(js).toContain('scheduleMap();\n    };');
+    expect(js).toContain('redrawMap(d.map);');
+    expect(server).toContain('res.json({ config: working, changed, map: buildActivityMap(working) });');
+    // Tier two: the fitted copy's map, and the doors reuse the copy
+    expect(server).toContain("app.post('/api/games/map'");
+    expect(js).toContain("state.fitted = { key: key, config: revised };");
+    expect(js).toContain('if (withAi && state.fitted && state.fitted.key === fitKey()) {');
+    expect(js).toContain('return saveAndGo(state.fitted.config, dest);');
+    // No AI call fires on its own: only the button runs the fit
+    expect(js).toContain("el.fitSee.addEventListener('click', seeHowItReads)");
+    expect(js).not.toContain('scheduleFit');
+  });
+
   it('every sink is textContent (teacher text and AI output are untrusted)', async () => {
     const js = await read('screens/make/make.js');
     expect(js).not.toMatch(/\.innerHTML\s*\+?=/);
