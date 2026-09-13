@@ -619,7 +619,7 @@
     el.fitSee.disabled = current;
     el.fitSee.textContent = current ? 'Fitted' : (state.fitted ? 'See how it reads now' : 'See how it reads');
     el.fitNote.textContent = current
-      ? 'What happens below is the fitted copy. TRY IT opens it.'
+      ? 'The screen above and What happens below show the fitted copy. TRY IT opens it.'
       : 'Runs the AI fit once, about twenty seconds, and shows the result below.';
   }
 
@@ -646,17 +646,24 @@
       })
       .then(function (revised) {
         state.fitted = { key: key, config: revised };
-        return fetch('/api/games/map', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ config: revised })
-        }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+        var post = function (path) {
+          return fetch(path, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config: revised })
+          }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+        };
+        return Promise.all([post('/api/games/map'), post('/api/games/print')]);
       })
-      .then(function (map) {
+      .then(function (parts) {
         state.fitting = false;
-        redrawMap(map);
+        redrawMap(parts[0]);
+        applyFittedPrint(parts[1]);
+        // The print may have taken the fitted question into the box: the
+        // key is read after that, so the doors still know this copy
+        state.fitted.key = fitKey();
         updateFitFoot();
-        try { el.mapHolder.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (err) { /* ignore */ }
+        try { el.screen.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (err) { /* ignore */ }
       })
       .catch(function (err) {
         state.fitting = false;
@@ -666,6 +673,59 @@
   }
 
   if (el.fitSee) el.fitSee.addEventListener('click', seeHowItReads);
+
+  // Did the teacher change the print's words? (The template's own words
+  // are the AI's to fit; the teacher's are fixed.)
+  function promptChanged() {
+    return !!(state.promptBox && state.print && state.promptBox.value.trim() !== String(state.print.prompt.text || '').trim());
+  }
+
+  function changedFieldLabels() {
+    var out = [];
+    Object.keys(state.fieldBoxes).forEach(function (k) {
+      var orig = (state.print.fields.filter(function (f) { return f.key === k; })[0] || {}).label || '';
+      var now = state.fieldBoxes[k].value.trim();
+      if (now !== String(orig).trim()) out.push(now);
+    });
+    return out;
+  }
+
+  // The print redrawn from the fitted copy: the choices, the instruction,
+  // the audience line, and the question and labels where the teacher had
+  // not written their own (those stay as typed, and stay editable)
+  function applyFittedPrint(print) {
+    if (!print || !state.print) return;
+    if (state.promptBox && !promptChanged() && print.prompt && print.prompt.text) {
+      state.promptBox.value = print.prompt.text;
+    } else if (!state.promptBox && print.prompt && print.prompt.text) {
+      var fixedEl = el.prompt.querySelector('.print-prompt-fixed');
+      if (fixedEl) setRich(fixedEl, print.prompt.display || print.prompt.text);
+    }
+    var changedLabels = changedFieldLabels();
+    (print.fields || []).forEach(function (f) {
+      var box = state.fieldBoxes[f.key];
+      if (box && changedLabels.indexOf(box.value.trim()) === -1) box.value = f.label;
+    });
+    el.instruction.hidden = !print.instruction;
+    if (print.instruction) setRich(el.instruction, print.instruction);
+    el.choices.textContent = '';
+    el.choices.hidden = !(print.choices && print.choices.length);
+    (print.choices || []).forEach(function (c, i) {
+      var chip = document.createElement('span');
+      chip.className = 'print-choice choice-' + (i % 4);
+      chip.textContent = c;
+      el.choices.appendChild(chip);
+    });
+    el.audience.hidden = !print.audience;
+    if (print.audience) el.audience.textContent = print.audience;
+  }
+
+  // Back from the simulator or the projector: the browser restores this
+  // page from its cache with the "Opening…" card still up (a Live Poll
+  // run got stuck on "Your words are in", 2026-09-13). Clear it.
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted && state.busy) clearOpening();
+  });
 
   // --- The edits, read off the page
   function currentEdits() {
@@ -830,14 +890,18 @@
     // The words the teacher typed on the print are theirs, word for word:
     // the AI fits everything else to them AND to the answers (a Snowball
     // run rewrote the new question to match the answers, 2026-09-13)
+    // Only the words the teacher actually CHANGED are fixed: an untouched
+    // question is the template's, and the fit may reword it to the answers
+    // (a Live Poll run answered the choices question with a new question
+    // and expected it at the top, 2026-09-13)
     var fixed = [];
     var stepId = state.print && state.print.phaseId;
-    if (state.promptBox && stepId) {
+    if (state.promptBox && stepId && promptChanged()) {
       fixed.push('The teacher wrote the question in step "' + stepId + '" themselves: "' + state.promptBox.value.trim() + '". Keep it word for word.');
     }
-    var labels = Object.keys(state.fieldBoxes).map(function (k) { return '"' + state.fieldBoxes[k].value.trim() + '"'; });
+    var labels = changedFieldLabels().map(function (t) { return '"' + t + '"'; });
     if (labels.length && stepId) {
-      fixed.push('They also wrote the field labels in step "' + stepId + '" themselves: ' + labels.join(', ') + '. Keep them word for word.');
+      fixed.push('They also wrote these field labels in step "' + stepId + '" themselves: ' + labels.join(', ') + '. Keep them word for word.');
     }
     var request = 'A teacher is adapting this ready-made activity for their own class. ' +
       (fixed.length ? fixed.join(' ') + ' ' : '') +

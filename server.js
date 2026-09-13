@@ -2054,6 +2054,24 @@ app.post('/api/games/map', express.json({ limit: '256kb' }), (req, res) => {
   }
 });
 
+// The print (what the class will see on the first student step) of a
+// config the page already holds: the make page redraws the top of the
+// page from the AI-fitted copy. Nothing is stored.
+app.post('/api/games/print', express.json({ limit: '256kb' }), (req, res) => {
+  const config = req.body && req.body.config;
+  if (!config || typeof config !== 'object' || !config.phases || typeof config.phases !== 'object') {
+    return res.status(400).json({ error: 'Missing config or phases' });
+  }
+  try {
+    const print = printFor(config);
+    if (!print) return res.status(404).json({ error: 'Nothing students answer in this activity' });
+    res.json(print);
+  } catch (error) {
+    console.log(`[api/games/print] Error: ${error.message}`);
+    res.status(400).json({ error: error.message });
+  }
+});
+
 app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req, res) => {
   try {
     const config = await loadGameById(req.params.gameId);

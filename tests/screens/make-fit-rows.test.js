@@ -74,7 +74,7 @@ describe('make page: make it fit your class', () => {
   it('the reword names the teacher\'s own question and field labels as fixed, word for word', async () => {
     const js = await read('screens/make/make.js');
     expect(js).toContain('The teacher wrote the question in step "\' + stepId + \'" themselves: "\' + state.promptBox.value.trim() + \'". Keep it word for word.');
-    expect(js).toContain('They also wrote the field labels in step "\' + stepId + \'" themselves: \' + labels.join(\', \') + \'. Keep them word for word.');
+    expect(js).toContain('They also wrote these field labels in step "\' + stepId + \'" themselves: \' + labels.join(\', \') + \'. Keep them word for word.');
     expect(js).toContain("Rewrite ONLY the other teacher- and student-facing words");
     expect(js).toContain("(fixed.length ? 'that question and ' : '') + 'their answers below. '");
   });
@@ -102,6 +102,19 @@ describe('make page: make it fit your class', () => {
     // No AI call fires on its own: only the button runs the fit
     expect(js).toContain("el.fitSee.addEventListener('click', seeHowItReads)");
     expect(js).not.toContain('scheduleFit');
+    // The fit shows at the TOP too: the print redraws from the fitted copy
+    // (a Live Poll run saw no change at the top, 2026-09-13), and the
+    // key is read after the boxes take the fitted words
+    expect(server).toContain("app.post('/api/games/print'");
+    expect(js).toContain("Promise.all([post('/api/games/map'), post('/api/games/print')])");
+    expect(js).toContain('applyFittedPrint(parts[1]);');
+    expect(js).toContain('state.fitted.key = fitKey();');
+    // Only words the teacher CHANGED are fixed; an untouched question is the AI's to fit
+    expect(js).toContain('if (state.promptBox && stepId && promptChanged()) {');
+    expect(js).toContain('if (state.promptBox && !promptChanged() && print.prompt && print.prompt.text) {');
+    // Back from the simulator: the cached page drops its "Opening…" card
+    expect(js).toContain("window.addEventListener('pageshow', function (e) {");
+    expect(js).toContain('if (e.persisted && state.busy) clearOpening();');
   });
 
   it('every sink is textContent (teacher text and AI output are untrusted)', async () => {
