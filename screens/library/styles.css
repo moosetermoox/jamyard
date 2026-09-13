@@ -918,6 +918,11 @@ header {
   transform: rotate(var(--rot, 0deg));
 }
 
+/* The card is a button, and a button's auto width is its content, not its
+   parent (the main grid stretches it, this wrapper must say so): a long
+   name once made a print 1978px wide and the shelf overlapped itself. */
+.shelf-item .yard-card { width: 100%; }
+
 .shelf-item .yard-print { padding-bottom: 40px; }
 
 .shelf-tools {

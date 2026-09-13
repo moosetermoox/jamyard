@@ -54,6 +54,9 @@ describe('the My yard shelf is prints', () => {
     expect(css).toMatch(/\.shelf-tool \{[^}]*width: 24px/);
     // the tools sit on the paper: a taller bottom margin, the row placed in it
     expect(css).toContain('.shelf-item .yard-print { padding-bottom: 40px; }');
+    // the card is a button: its auto width is its content, so a long name
+    // made a 1978px print until the wrapper told it to fill the column
+    expect(css).toContain('.shelf-item .yard-card { width: 100%; }');
     expect(css).toMatch(/\.shelf-tools \{[^}]*position: absolute/);
     expect(css).toContain('.shelf-tool-heart[aria-pressed="true"] path { fill: currentColor; }');
     expect(css).toMatch(/\.myyard-board \{[^}]*width: 100%/);
