@@ -21,7 +21,11 @@ describe('make page: make it fit your class', () => {
     expect(html).toContain('id="fit-rows"');
     expect(html).toContain('id="class-holder"');
     expect(html).toContain('<h2 class="panel-heading">Make it fit your class</h2>');
-    // Above What happens: the settings before the map
+    // Above What happens: the settings before the map; and a recipe's own
+    // panel (the quiz's questions) right under the doors, above both
+    // ("on speed quiz it's really important to be able to customize
+    // questions", owner 2026-09-13)
+    expect(html.indexOf('id="panel-section"')).toBeLessThan(html.indexOf('id="fit-section"'));
     expect(html.indexOf('id="fit-section"')).toBeLessThan(html.indexOf('id="map-section"'));
     for (const gone of ['more-btn', 'more-body', 'names-hidden', 'early-joke', 'setup-card', 'setup-panel', 'setup-tally', 'Tap a line']) {
       expect(html, gone).not.toContain(gone);

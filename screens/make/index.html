@@ -78,6 +78,14 @@
 
     <p class="make-error" id="make-error" hidden></p>
 
+    <!-- A recipe's own setup panel (the quiz's questions, the bluff's facts):
+         the same editor the dialog had, mounted right under the doors: on a
+         quiz the questions are the thing to change (owner 2026-09-13) -->
+    <section class="panel-section" id="panel-section" hidden>
+      <h2 class="panel-heading" id="panel-heading">The questions</h2>
+      <div id="panel-holder"></div>
+    </section>
+
     <!-- Make it fit your class (2026-09-13): rows of chips, nothing folded.
          Every setting is ONE row, the question on the left and the answer
          as chips on the right, tapped in place; a typed answer is a plank
@@ -103,13 +111,6 @@
     <section class="map-section" id="map-section">
       <h2 class="panel-heading">What happens</h2>
       <div id="map-holder"></div>
-    </section>
-
-    <!-- A recipe's own setup panel (the quiz's questions, the bluff's facts):
-         the same editor the dialog had, mounted here under the doors -->
-    <section class="panel-section" id="panel-section" hidden>
-      <h2 class="panel-heading" id="panel-heading">The questions</h2>
-      <div id="panel-holder"></div>
     </section>
 
   </main>
