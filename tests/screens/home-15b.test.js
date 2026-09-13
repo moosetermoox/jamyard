@@ -84,9 +84,23 @@ describe('home page 15b', () => {
   });
 
   it('the fold carries the mechanic line under the planks, plain headline, no painted word', () => {
-    expect(html).toContain('You project one screen. Students play from their devices.');
+    expect(html).toContain('and students enter a four letter code to join from their devices.');
     expect(html).toContain('<h1>What does your class need?</h1>');
     expect(html).not.toContain('t-painted-word');
+  });
+
+  it('each plank carries the ways Jamyard does that job, shown on hover, and the red door says Pick this one (owner 2026-09-12)', () => {
+    for (const goal of ['connect', 'think', 'review', 'play']) {
+      const plank = html.match(new RegExp('<a class="plank" data-goal="' + goal + '"[^]*?</a>'));
+      expect(plank, goal).not.toBeNull();
+      expect(plank[0]).toContain('class="plank-ways"');
+      expect(plank[0]).toContain('class="plank-label"');
+    }
+    expect(html).toContain('.plank:hover .plank-ways');
+    expect(html).toContain('>Pick this one</a>');
+    expect(html).toContain("'Pick this one'");
+    expect(html).not.toMatch(/Start the room/i);
+    expect(html).not.toContain('mid-activity.');
   });
 
   it('the grid of prints is the shared module, on the home AND the yard page, with the hover card', async () => {

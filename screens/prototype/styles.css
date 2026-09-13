@@ -132,15 +132,6 @@ body:not(.pt-running) #activity-chip { display: none; }
   position: relative;
 }
 
-.plan-label {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--t-muted-caps);
-  white-space: nowrap;
-}
-
 #map-rail-holder {
   display: flex;
   align-items: center;
@@ -918,10 +909,6 @@ body.pt-running #host-btn { display: inline-block; }
 }
 
 /* ── Narrow screens: the plan folds away, the columns stack ─────────── */
-
-@media (max-width: 1400px) {
-  .plan-label { display: none; }
-}
 
 @media (max-width: 1100px) {
   #map-rail { display: none; }

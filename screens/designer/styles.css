@@ -1651,6 +1651,22 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
   font-weight: 600;
 }
 
+/* "AI is matching your idea": a paper scrap while the AI works, the same
+   piece the error note is cut from (the purple box was off the palette,
+   owner 2026-09-12) */
+.recipe-form-status-working {
+  background: #FDF9F0;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 2px 3px rgba(50,35,15,0.16);
+  padding: 12px 14px;
+  text-align: center;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  color: #2A2620;
+  transform: rotate(-0.4deg);
+}
+
 .recipe-form-diagnostic-list { color: #AE3A16; }
 
 .recipe-cancel-btn {
