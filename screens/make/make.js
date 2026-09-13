@@ -711,8 +711,22 @@
   // fails; the caller tells the teacher (never a silent fallback).
   function reword(working, answered) {
     var classDesc = window.TeacherProfile ? TeacherProfile.describe() : '';
+    // The words the teacher typed on the print are theirs, word for word:
+    // the AI fits everything else to them AND to the answers (a Snowball
+    // run rewrote the new question to match the answers, 2026-09-13)
+    var fixed = [];
+    var stepId = state.print && state.print.phaseId;
+    if (state.promptBox && stepId) {
+      fixed.push('The teacher wrote the question in step "' + stepId + '" themselves: "' + state.promptBox.value.trim() + '". Keep it word for word.');
+    }
+    var labels = Object.keys(state.fieldBoxes).map(function (k) { return '"' + state.fieldBoxes[k].value.trim() + '"'; });
+    if (labels.length && stepId) {
+      fixed.push('They also wrote the field labels in step "' + stepId + '" themselves: ' + labels.join(', ') + '. Keep them word for word.');
+    }
     var request = 'A teacher is adapting this ready-made activity for their own class. ' +
-      'Rewrite ONLY the teacher- and student-facing words (name, description, prompts, messages, choices, reveal templates) to fit their answers below. ' +
+      (fixed.length ? fixed.join(' ') + ' ' : '') +
+      'Rewrite ONLY the other teacher- and student-facing words (name, description, the other prompts, messages, choices, reveal templates) so they fit ' +
+      (fixed.length ? 'that question and ' : '') + 'their answers below. ' +
       'Keep every step, the structure, timers, data references, and {{tokens}} exactly as they are.\n\n' +
       (classDesc ? 'Their class: ' + classDesc + '.\n' : '') +
       answered.map(function (a) { return 'Q: ' + a.question + '\nA: ' + a.answer; }).join('\n');

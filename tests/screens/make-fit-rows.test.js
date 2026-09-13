@@ -68,6 +68,17 @@ describe('make page: make it fit your class', () => {
     expect(js).toContain("state.noQuestions = !!(state.panel && state.panel !== 'knobs');");
   });
 
+  // The owner changed Snowball's question, answered a row, and the copy
+  // came back with the AI's version of the question ("it seems to use
+  // make it fit your class more"): the reword must keep the print's words
+  it('the reword names the teacher\'s own question and field labels as fixed, word for word', async () => {
+    const js = await read('screens/make/make.js');
+    expect(js).toContain('The teacher wrote the question in step "\' + stepId + \'" themselves: "\' + state.promptBox.value.trim() + \'". Keep it word for word.');
+    expect(js).toContain('They also wrote the field labels in step "\' + stepId + \'" themselves: \' + labels.join(\', \') + \'. Keep them word for word.');
+    expect(js).toContain("Rewrite ONLY the other teacher- and student-facing words");
+    expect(js).toContain("(fixed.length ? 'that question and ' : '') + 'their answers below. '");
+  });
+
   it('every sink is textContent (teacher text and AI output are untrusted)', async () => {
     const js = await read('screens/make/make.js');
     expect(js).not.toMatch(/\.innerHTML\s*\+?=/);
