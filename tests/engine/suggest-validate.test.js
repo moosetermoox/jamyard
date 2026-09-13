@@ -190,3 +190,22 @@ describe('validateSuggestions — numeric params clamp to recipe min/max', () =>
     expect(out.suggestions[0].params).toEqual({ claim: 'Cats rule.' });
   });
 });
+
+describe('estimate bricks carry a scale', () => {
+  const ctx = { gameIds: [], recipes: {} };
+  const sb = (step) => ({ kind: 'storyboard', storyboard: { name: 'S', description: '', steps: [step, { brick: 'end' }] }, why: 'w' });
+
+  it('min and max ride through as numbers', () => {
+    const out = validateSuggestions([sb({ brick: 'estimate', text: 'On a scale of 1 to 10?', min: 1, max: 10 })], ctx);
+    const step = out.suggestions[0].storyboard.steps[0];
+    expect(step.min).toBe(1);
+    expect(step.max).toBe(10);
+  });
+
+  it('anything that is not a finite number is dropped, not coerced', () => {
+    const out = validateSuggestions([sb({ brick: 'estimate', text: 'q', min: '1', max: Infinity })], ctx);
+    const step = out.suggestions[0].storyboard.steps[0];
+    expect(step.min).toBeUndefined();
+    expect(step.max).toBeUndefined();
+  });
+});

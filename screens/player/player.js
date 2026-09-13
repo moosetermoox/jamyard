@@ -519,7 +519,15 @@ window.addEventListener('message', function(e) {
     if (!buzzTapBtn.disabled) buzzTapBtn.click();
   } else if (id === 'estimate-section') {
     if (!estimateInput.disabled && !estimateInput.value) {
-      estimateInput.value = String(Math.floor(Math.random() * 200) + 1);
+      var picks = estimateScale.hidden ? [] : estimateScale.querySelectorAll('.scale-pick');
+      if (picks.length) {
+        picks[Math.floor(Math.random() * picks.length)].click();
+      } else if (!estimateSlider.hidden) {
+        var lo = parseFloat(estimateSlider.min), hi = parseFloat(estimateSlider.max);
+        estimateInput.value = String(Math.round(lo + Math.random() * (hi - lo)));
+      } else {
+        estimateInput.value = String(Math.floor(Math.random() * 200) + 1);
+      }
     }
     if (!estimateSubmitBtn.disabled) estimateSubmitBtn.click();
   } else if (id === 'merge-section') {
@@ -1835,6 +1843,76 @@ const estimateUnit = document.getElementById('estimate-unit');
 const estimateSubmitBtn = document.getElementById('estimate-submit-btn');
 const estimatePlayerStatus = document.getElementById('estimate-player-status');
 const estimatePlayerResults = document.getElementById('estimate-player-results');
+const estimateScale = document.getElementById('estimate-scale');
+const estimateSlider = document.getElementById('estimate-slider');
+const estimateInputRow = document.getElementById('estimate-input-row');
+
+// A known range gets a picker instead of a bare number box ("On a scale
+// of 1 to 10" showed a typed number with no bounds, owner 2026-09-12):
+// up to twelve whole numbers are a row to tap, a longer range is a
+// slider with the number as its readout, anything open stays typed. The
+// range comes from the server (the step's min/max, or its own wording).
+var ESTIMATE_SCALE_MAX_STEPS = 12;
+
+function markScalePick(val) {
+  var picks = estimateScale.querySelectorAll('.scale-pick');
+  for (var i = 0; i < picks.length; i++) {
+    picks[i].classList.toggle('is-picked', picks[i].textContent === String(val));
+  }
+}
+
+function renderEstimatePicker(min, max) {
+  estimateScale.innerHTML = '';
+  estimateScale.hidden = true;
+  estimateSlider.hidden = true;
+  estimateSlider.disabled = false;
+  estimateInputRow.hidden = false;
+  var hasRange = typeof min === 'number' && typeof max === 'number' && max > min;
+  if (!hasRange) return;
+  var span = max - min;
+  var whole = Number.isInteger(min) && Number.isInteger(max);
+  if (whole && span < ESTIMATE_SCALE_MAX_STEPS) {
+    for (var v = min; v <= max; v++) {
+      (function (val) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'scale-pick';
+        b.textContent = String(val);
+        b.setAttribute('aria-pressed', 'false');
+        b.addEventListener('click', function () {
+          estimateInput.value = String(val);
+          markScalePick(val);
+          var picks = estimateScale.querySelectorAll('.scale-pick');
+          for (var i = 0; i < picks.length; i++) picks[i].setAttribute('aria-pressed', picks[i] === b ? 'true' : 'false');
+        });
+        estimateScale.appendChild(b);
+      })(v);
+    }
+    estimateScale.hidden = false;
+    estimateInputRow.hidden = true;
+    return;
+  }
+  if (span <= 1000) {
+    estimateSlider.min = String(min);
+    estimateSlider.max = String(max);
+    estimateSlider.step = whole ? '1' : 'any';
+    estimateSlider.value = String(whole ? min + Math.round(span / 2) : min + span / 2);
+    estimateInput.value = estimateSlider.value;
+    estimateSlider.hidden = false;
+  }
+}
+
+function setEstimatePickerDisabled(flag) {
+  var picks = estimateScale.querySelectorAll('.scale-pick');
+  for (var i = 0; i < picks.length; i++) picks[i].disabled = flag;
+  estimateSlider.disabled = flag;
+}
+
+// The slider moves the number; typing moves the slider
+estimateSlider.addEventListener('input', function () { estimateInput.value = estimateSlider.value; });
+estimateInput.addEventListener('input', function () {
+  if (!estimateSlider.hidden && estimateInput.value !== '') estimateSlider.value = estimateInput.value;
+});
 
 function submitEstimate() {
   var v = parseFloat(estimateInput.value);
@@ -1842,6 +1920,12 @@ function submitEstimate() {
     estimatePlayerStatus.textContent = 'Type a number first.';
     return false;
   }
+  // Inside the range, when there is one (the server clamps too)
+  var lo = estimateInput.min !== '' ? parseFloat(estimateInput.min) : NaN;
+  var hi = estimateInput.max !== '' ? parseFloat(estimateInput.max) : NaN;
+  if (isFinite(lo) && v < lo) v = lo;
+  if (isFinite(hi) && v > hi) v = hi;
+  estimateInput.value = String(v);
   socket.emit('estimate-submit', { code: currentRoomCode, value: v });
   estimatePlayerStatus.textContent =
     'Got it, you guessed ' + v + '. You can change it until the teacher reveals.';
@@ -1858,6 +1942,7 @@ socket.on('estimate-start', ({ prompt, unit, image, min, max, timer, playerTempl
   estimateInput.disabled = false;
   if (min != null) estimateInput.min = min; else estimateInput.removeAttribute('min');
   if (max != null) estimateInput.max = max; else estimateInput.removeAttribute('max');
+  renderEstimatePicker(min, max);
   estimateSubmitBtn.disabled = false;
   estimatePlayerStatus.textContent = '';
   estimatePlayerResults.hidden = true;
@@ -1875,6 +1960,7 @@ socket.on('estimate-start', ({ prompt, unit, image, min, max, timer, playerTempl
       submitEstimate();
       estimateInput.disabled = true;
       estimateSubmitBtn.disabled = true;
+      setEstimatePickerDisabled(true);
     });
   }
 });
@@ -1887,6 +1973,7 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
   estimateTimerDisplay.hidden = true;
   estimateInput.disabled = true;
   estimateSubmitBtn.disabled = true;
+  setEstimatePickerDisabled(true);
   estimatePlayerStatus.textContent = '';
 
   var mine = (guesses || []).find(function (g) { return g.playerId === socket.id; });

@@ -2238,3 +2238,46 @@ body.wh-empty .wh-word:hover { background: none; }
   bottom: 12px;
   z-index: 5;
 }
+
+/* ── Estimate with a known range: a row of numbers to tap, or a slider ──
+   "On a scale of 1 to 10" used to be a bare number box (owner 2026-09-12).
+   The picks are the page's painted buttons; the chosen one goes yellow. */
+.estimate-scale {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin: 20px 0 10px;
+}
+
+.estimate-scale[hidden] { display: none; }
+
+/* The page's buttons are full width (one action per screen); a scale is a
+   ROW, so each pick is a short block that wraps to a second line only on
+   the narrowest screens. */
+.estimate-scale .scale-pick {
+  width: auto;
+  flex: 0 1 60px;
+  min-width: 48px;
+  max-width: 88px;
+  padding: 12px 0 14px;
+  font-size: 1.25rem;
+  margin: 0;
+}
+
+.scale-pick.is-picked {
+  background: var(--t-yellow, #FFC800);
+  color: var(--t-ink, #2A2620);
+}
+
+.estimate-slider {
+  display: block;
+  width: 100%;
+  margin: 22px 0 6px;
+  accent-color: var(--t-red, #E5482B);
+  cursor: pointer;
+}
+
+.estimate-slider[hidden] { display: none; }
+
+.estimate-input-row[hidden] { display: none; }

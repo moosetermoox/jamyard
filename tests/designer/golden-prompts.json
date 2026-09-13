@@ -79,6 +79,24 @@
       "note": "KNOWN MISS 2026-08-30 baseline: the matcher picked recipe:creative-vote instead of handing off (noMatch) — it fakes a weak fit rather than letting the storyboard generator build the guessing-rounds shape. Matcher-prompt finding, parked."
     },
     {
+      "id": "guess-the-class-scale",
+      "prompt": "Everyone rates their stress on a scale of 1 to 10, then predicts what the class average will be, and we see how close the predictions were.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Guess the Class",
+          "description": "Rate yourself on a scale, then predict the class average.",
+          "steps": [
+            { "brick": "announce", "text": "Two numbers coming up: first how YOU feel, then a prediction about the whole class." },
+            { "brick": "estimate", "text": "On a scale of 1 to 10, how stressed are you feeling right now?", "min": 1, "max": 10, "timer": 45 },
+            { "brick": "estimate", "text": "Now predict: what do you think the class average stress level will be, from 1 to 10?", "min": 1, "max": 10, "timer": 45 },
+            { "brick": "end", "text": "That is the class, and that is how well you read it." }
+          ]
+        }
+      },
+      "note": "Owner built this on the live site 2026-09-12 and got a bare number box with no bounds; the estimate brick now carries min and max for a scale question, and the runtime reads the wording when it is missing (engine/phases/estimate-range.js)."
+    },
+    {
       "id": "hypothesis-relay",
       "prompt": "Each student writes a hypothesis about tomorrow's egg drop experiment. It passes to a classmate who adds one piece of supporting evidence or reasoning, then to another classmate who adds a counterargument. At the end everyone sees what happened to the hypothesis they wrote.",
       "expect": {

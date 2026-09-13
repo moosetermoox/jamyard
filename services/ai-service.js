@@ -1540,7 +1540,7 @@ YOU MAY ONLY SUGGEST THESE THREE KINDS:
 ${gameLines.join('\n')}
 2. {"kind":"recipe","id":"<recipe id>","params":{...},"why":"one sentence"} to fill a recipe (params optional, only the listed names, values short strings or numbers):
 ${recipeLines.join('\n')}
-3. {"kind":"storyboard","storyboard":{"name":"...","description":"...","steps":[{"brick":"...","text":"..."}]},"why":"one sentence"} ONLY when nothing above fits. Bricks allowed: announce, collect (open answer), collect-two (secret + clue), collect-choice (needs "choices" array), estimate (guess a number), reveal, reveal-one, vote, guessing-rounds (must come after a collect; add "guess": "who" when the class guesses who wrote each answer), rank (the class puts the collected answers in order; text = the ranking instruction), chain (pass-and-add writing that travels between students and returns to its author: needs "start" plus a "hops" array of 1-6 hand-off instructions; optional "visibility": "all"|"tail"|"blind"), deal (everyone adds one item to each of 2-4 "piles" [{"label","prompt"}], shuffled and dealt so each student writes from a private hand of classmates' items; text = the writing instruction), end. 3 to 8 steps, always finish with end.
+3. {"kind":"storyboard","storyboard":{"name":"...","description":"...","steps":[{"brick":"...","text":"..."}]},"why":"one sentence"} ONLY when nothing above fits. Bricks allowed: announce, collect (open answer), collect-two (secret + clue), collect-choice (needs "choices" array), estimate (guess a number; a scale question such as "on a scale of 1 to 10" MUST carry "min" and "max", e.g. 1 and 10, so students tap a number on that scale), reveal, reveal-one, vote, guessing-rounds (must come after a collect; add "guess": "who" when the class guesses who wrote each answer), rank (the class puts the collected answers in order; text = the ranking instruction), chain (pass-and-add writing that travels between students and returns to its author: needs "start" plus a "hops" array of 1-6 hand-off instructions; optional "visibility": "all"|"tail"|"blind"), deal (everyone adds one item to each of 2-4 "piles" [{"label","prompt"}], shuffled and dealt so each student writes from a private hand of classmates' items; text = the writing instruction), end. 3 to 8 steps, always finish with end.
 
 HARD RULES:
 - Never invent an activity id, recipe id, param name, or brick that is not listed.
@@ -1604,7 +1604,7 @@ BRICKS (each step is one):
 - collect: students type an answer. text = the question. timer (seconds, optional).
 - collect-two: students type TWO things, a hidden "secret" and a visible "clue" (e.g. a movie title kept secret + emoji clues). text = the prompt; secretLabel + clueLabel name the two boxes; timer optional.
 - collect-choice: students pick from options. text = the question; choices = 2-8 strings.
-- estimate: students guess a number. text = the question.
+- estimate: students guess a number. text = the question. A scale or rating question ("on a scale of 1 to 10", "from 1 to 5") MUST set min and max (numbers): students then tap a number on that scale instead of typing one. An open guess ("how many liters") sets neither.
 - reveal: everyone's collected answers appear on the projector. text = the line above them.
 - reveal-one: answers revealed one at a time. text = the message above.
 - vote: the class votes on the collected answers.
