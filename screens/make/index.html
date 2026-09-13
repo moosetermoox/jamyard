@@ -70,36 +70,27 @@
         </div>
         <span class="try-sub" id="try-sub">With pretend students</span>
       </div>
-      <div class="doors-mid">
-        <button type="button" class="host-btn" id="host-btn">Host it now</button>
-        <a href="#" class="designer-link" id="designer-link">Open in the designer</a>
-        <a href="#" class="cancel-link" id="cancel-link" hidden>Cancel</a>
-      </div>
-      <!-- The setup card (2026-09-13): the settings beside the doors, at the
-           moment of deciding, each line with its value as a chip (yellow =
-           set, dashed = not). Your class, the AI's one or two questions,
-           then the two switches. Tap a line: its control opens in the panel
-           under the doors, never in a fold. -->
-      <div class="setup-card" id="setup-card" aria-label="Make it fit your class">
-        <span class="setup-tally" id="setup-tally"></span>
-        <span class="setup-heading">Make it fit your class</span>
-        <div class="setup-lines" id="setup-lines"></div>
-        <span class="setup-hint" id="setup-hint">Tap a line to change it. All optional.</span>
-      </div>
+      <button type="button" class="host-btn" id="host-btn">Host it now</button>
+      <a href="#" class="designer-link" id="designer-link">Open in the designer</a>
       <span class="doors-note" id="doors-note" hidden></span>
+      <a href="#" class="cancel-link" id="cancel-link" hidden>Cancel</a>
     </div>
 
-    <!-- The tapped line's control: the class picker (it shapes the
-         questions and the AI's rewording), the questions themselves (a row
-         of choices, or a plank when the answer is a specific thing) -->
-    <section class="setup-panel" id="setup-panel" hidden>
-      <div class="class-holder" id="class-holder" hidden></div>
-      <div class="setup-questions" id="setup-questions"></div>
-      <p class="setup-status" id="setup-status" hidden></p>
-      <button type="button" class="setup-done" id="setup-done">Done</button>
-    </section>
-
     <p class="make-error" id="make-error" hidden></p>
+
+    <!-- Make it fit your class (2026-09-13): rows of chips, nothing folded.
+         Every setting is ONE row, the question on the left and the answer
+         as chips on the right, tapped in place; a typed answer is a plank
+         in its row. The AI's one or two questions come first, then Your
+         class (a chip and a "change" link that shows the picker), Student
+         names, Early-bird joke. The question is the only text on a row. -->
+    <section class="fit-section" id="fit-section">
+      <h2 class="panel-heading">Make it fit your class</h2>
+      <div class="fit-card">
+        <div class="fit-rows" id="fit-rows"></div>
+        <div class="class-holder" id="class-holder" hidden></div>
+      </div>
+    </section>
 
     <!-- What happens, stop by stop: the treasure map the popups carried
          (the home's doors land here now, 2026-09-10) -->

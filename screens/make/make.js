@@ -6,7 +6,7 @@
 // red TRY IT. Host it now and Open in the designer are the quieter doors.
 // Untouched = the original runs and no copy is saved (the dialog's rule).
 // Edits go through POST /api/games/:id/make (engine/make-print.js applies
-// them), an answered More question through the AI reword, and every door
+// them), an answered question below through the AI reword, and every door
 // saves through MakeItYours.saveCopyAndReturn like the dialog did.
 //
 // Teacher text is untrusted for rendering: every sink here is textContent
@@ -44,13 +44,7 @@
     note: document.getElementById('doors-note'),
     cancel: document.getElementById('cancel-link'),
     error: document.getElementById('make-error'),
-    setupCard: document.getElementById('setup-card'),
-    setupTally: document.getElementById('setup-tally'),
-    setupLines: document.getElementById('setup-lines'),
-    setupPanel: document.getElementById('setup-panel'),
-    setupQuestions: document.getElementById('setup-questions'),
-    setupStatus: document.getElementById('setup-status'),
-    setupDone: document.getElementById('setup-done')
+    fitRows: document.getElementById('fit-rows')
   };
 
   // Where "back" goes: the door the teacher came through
@@ -71,11 +65,9 @@
     timer: null,           // seconds, as edited
     questions: [],         // the AI's tailoring questions, once fetched
     answers: {},           // question -> { value } (a picked choice or typed text)
-    questionsLoading: false,
     questionsRequest: 0,   // the fetch that is allowed to land (the class can change mid-flight)
     noQuestions: false,    // a recipe panel owns the words: nothing to ask
-    openLine: null,        // the setup card line whose control is open
-    anonymous: false,      // the two switches on the card
+    anonymous: false,      // the two switch rows
     earlyJoke: true,
     busy: false,
     panel: null,           // 'quiz' | 'bluff' when the recipe brings its own editor
@@ -92,7 +84,7 @@
   // as if the answers had been applied (outside review, 2026-09-12).
   function rewordFailure(reason, working, dest) {
     clearOpening();
-    fail('Could not fit the wording to your answers (' + reason + '). Try again, or open it as written: your answers on the setup card will not be applied.');
+    fail('Could not fit the wording to your answers (' + reason + '). Try again, or open it as written: your answers below will not be applied.');
     var plain = document.createElement('button');
     plain.type = 'button';
     plain.className = 'error-action';
@@ -174,13 +166,14 @@
     el.chip.textContent = 'Your ' + (config.name || 'activity');
     el.designer.href = '/designer/edit?game=' + encodeURIComponent(gameId) + '&from=library';
 
-    // Who it is for: the shared class picker, in the panel next to the
-    // questions it shapes (a pick reloads them, so it visibly does something)
+    // Who it is for: the shared class picker, under the rows, shown by the
+    // class row's "change" link (a pick reloads the questions, so it
+    // visibly does something)
     if (window.MakeItYours && MakeItYours.renderClassPicker) {
       MakeItYours.renderClassPicker(el.classHolder, {
-        hint: 'The questions below update to fit your class.',
-        onChange: function () { buildLines(); scheduleQuestions(); },
-        onDone: function () { buildLines(); scheduleQuestions(true); openLine(null); }
+        hint: 'The questions above update to fit your class.',
+        onChange: function () { buildRows(); scheduleQuestions(); },
+        onDone: function () { buildRows(); scheduleQuestions(true); toggleClassPicker(false); }
       });
     }
     state.anonymous = !!config.anonymous;
@@ -189,7 +182,7 @@
     // A quiz or bluff panel owns the words: the AI's word-tailoring
     // questions would rewrite choices out from under a correct answer
     state.noQuestions = !!(state.panel && state.panel !== 'knobs');
-    buildLines();
+    buildRows();
     loadQuestions();
 
     if (!print) {
@@ -331,13 +324,19 @@
     });
   }
 
-  // --- The setup card (2026-09-13): one line per setting, its value as a
-  // chip (yellow = set, dashed = not). Your class, the AI's one or two
-  // questions, then the two switches. Tap a line: its control opens in the
-  // panel under the doors; the switches flip on the spot. The questions
-  // load with the page (they are lines now, not a fold) and again when
-  // the class changes.
+  // --- Make it fit your class (2026-09-13): rows of chips, nothing folded.
+  // Every setting is ONE row: the question on the left, the answer as
+  // chips on the right, tapped in place; a typed answer is a plank in its
+  // row. The AI's one or two questions come first (they load with the
+  // page and again when the class changes), then Your class, Student
+  // names, Early-bird joke. The question is the only text on a row.
   var questionsTimer = null;
+  var qHolder = document.createElement('div');
+  var fixedHolder = document.createElement('div');
+  if (el.fitRows) {
+    el.fitRows.appendChild(qHolder);
+    el.fitRows.appendChild(fixedHolder);
+  }
 
   // "9-12 · English / ELA +1": the saved profile, short enough for a chip
   function classValue() {
@@ -360,86 +359,81 @@
     return bits.filter(Boolean).join(' · ');
   }
 
-  function shortValue(text) {
-    var t = String(text || '').trim().replace(/\s+/g, ' ');
-    return t.length > 26 ? t.slice(0, 24) + '…' : t;
-  }
-
-  function lineButton(key, name, value, unsetText) {
+  function chipButton(text, pressed, dashed) {
     var b = document.createElement('button');
     b.type = 'button';
-    b.className = 'setup-line' + (state.openLine === key ? ' is-open' : '');
-    b.setAttribute('data-line', key);
-    var n = document.createElement('span');
-    n.textContent = name;
-    var chip = document.createElement('span');
-    chip.className = 'vchip' + (value ? ' is-set' : '');
-    chip.textContent = value ? shortValue(value) : unsetText;
-    if (value && value.length > 26) chip.title = value;
-    b.appendChild(n);
-    b.appendChild(chip);
+    b.className = 'fit-chip' + (dashed ? ' is-dashed' : '');
+    b.textContent = text;
+    b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
     return b;
   }
 
-  // The card, rebuilt from state every time something changes: cheap,
-  // and the tally can never drift from the chips
-  function buildLines() {
-    if (!el.setupLines) return;
-    el.setupLines.textContent = '';
-    var set = 0;
-    var total = 1;
+  function rowEl(question) {
+    var row = document.createElement('div');
+    row.className = 'fit-row';
+    var q = document.createElement('span');
+    q.className = 'fit-q';
+    q.textContent = question;
+    row.appendChild(q);
+    // The answer side: chips, a link, or the plank, wrapping in their own column
+    var a = document.createElement('div');
+    a.className = 'fit-a';
+    row.appendChild(a);
+    row.a = a;
+    return row;
+  }
+
+  // The class picker, under the rows: the class row's link shows it, its
+  // own Done hides it again
+  function toggleClassPicker(show) {
+    var open = typeof show === 'boolean' ? show : el.classHolder.hidden;
+    el.classHolder.hidden = !open;
+    if (!open) return;
+    var f = el.classHolder.querySelector('button, input');
+    if (f) { try { f.focus({ preventScroll: true }); } catch (err) { /* ignore */ } }
+    try { el.classHolder.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (err) { /* ignore */ }
+  }
+
+  // The rows under the questions, rebuilt from state whenever a chip is
+  // tapped (cheap; the question rows keep their own nodes so typing is
+  // never interrupted)
+  function buildRows() {
+    if (!el.fitRows) return;
+    fixedHolder.textContent = '';
+
     var cls = classValue();
-    if (cls) set++;
-    el.setupLines.appendChild(lineButton('class', 'Your class', cls, 'not set'));
-    if (state.questionsLoading) {
-      var loading = document.createElement('span');
-      loading.className = 'setup-line is-loading';
-      loading.textContent = 'Finding what to ask…';
-      el.setupLines.appendChild(loading);
-    }
-    state.questions.forEach(function (q, i) {
-      total++;
-      var a = state.answers[q.question];
-      var v = a ? a.value.trim() : '';
-      if (v) set++;
-      el.setupLines.appendChild(lineButton('q' + i, q.label || q.question, v, 'not set'));
-    });
-    // The switches: yellow when something is happening (names hidden,
-    // the joke on), dashed for the quiet state
-    el.setupLines.appendChild(lineButton('names', 'Student names', state.anonymous ? 'hidden' : '', 'shown'));
-    el.setupLines.appendChild(lineButton('joke', 'Early-bird joke', state.earlyJoke ? 'on' : '', 'off'));
-    el.setupTally.textContent = set + ' of ' + total + ' set';
+    var classRow = rowEl('Your class');
+    var classChip = chipButton(cls || 'Not set', !!cls, !cls);
+    classChip.addEventListener('click', function () { toggleClassPicker(); });
+    classRow.a.appendChild(classChip);
+    var link = document.createElement('a');
+    link.href = '#';
+    link.className = 'fit-link';
+    link.textContent = cls ? 'change' : 'set it';
+    link.addEventListener('click', function (e) { e.preventDefault(); toggleClassPicker(); });
+    classRow.a.appendChild(link);
+    fixedHolder.appendChild(classRow);
+
+    var names = rowEl('Student names');
+    var shown = chipButton('Shown', !state.anonymous);
+    shown.addEventListener('click', function () { state.anonymous = false; buildRows(); });
+    var hidden = chipButton('Hidden', state.anonymous);
+    hidden.title = 'The room assigns play names';
+    hidden.addEventListener('click', function () { state.anonymous = true; buildRows(); });
+    names.a.appendChild(shown);
+    names.a.appendChild(hidden);
+    fixedHolder.appendChild(names);
+
+    var joke = rowEl('Early-bird joke');
+    var on = chipButton('On', state.earlyJoke);
+    on.title = 'The first 10 students to join each see a dad joke';
+    on.addEventListener('click', function () { state.earlyJoke = true; buildRows(); });
+    var off = chipButton('Off', !state.earlyJoke);
+    off.addEventListener('click', function () { state.earlyJoke = false; buildRows(); });
+    joke.a.appendChild(on);
+    joke.a.appendChild(off);
+    fixedHolder.appendChild(joke);
   }
-
-  el.setupLines.addEventListener('click', function (e) {
-    var b = e.target.closest('.setup-line[data-line]');
-    if (!b) return;
-    var key = b.getAttribute('data-line');
-    if (key === 'names') { state.anonymous = !state.anonymous; buildLines(); return; }
-    if (key === 'joke') { state.earlyJoke = !state.earlyJoke; buildLines(); return; }
-    openLine(key === state.openLine ? null : key);
-  });
-
-  // Open a line's control in the panel (null closes it). The questions
-  // show under the class picker whichever line was tapped, since the class
-  // shapes them; a question line hides the picker and focuses its control.
-  function openLine(key) {
-    state.openLine = key;
-    buildLines();
-    if (!key) { el.setupPanel.hidden = true; return; }
-    el.setupPanel.hidden = false;
-    el.classHolder.hidden = key !== 'class';
-    // The class picker brings its own Done; one is enough
-    el.setupDone.hidden = key === 'class';
-    if (key.charAt(0) === 'q') {
-      var wrap = el.setupQuestions.children[parseInt(key.slice(1), 10)];
-      var first = wrap && wrap.querySelector('.setup-choice[aria-pressed="true"], .setup-choice, .setup-q-input:not([hidden])');
-      if (first) { try { first.focus({ preventScroll: true }); } catch (err) { /* ignore */ } }
-    }
-    try { el.setupPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (err) { /* ignore */ }
-  }
-
-  el.setupDone.addEventListener('click', function () { openLine(null); });
 
   function scheduleQuestions(now) {
     clearTimeout(questionsTimer);
@@ -447,12 +441,12 @@
   }
 
   function loadQuestions() {
-    if (!state.config || state.noQuestions) return;
+    if (!state.config || state.noQuestions || !el.fitRows) return;
     var request = ++state.questionsRequest;
-    state.questionsLoading = true;
-    buildLines();
-    el.setupStatus.hidden = false;
-    el.setupStatus.textContent = 'Finding a question or two for your class…';
+    qHolder.textContent = '';
+    var loading = rowEl('Finding a question or two for your class…');
+    loading.classList.add('is-loading');
+    qHolder.appendChild(loading);
     var classDesc = window.TeacherProfile ? TeacherProfile.describe() : '';
     fetch('/api/games/customize-questions', {
       method: 'POST',
@@ -467,50 +461,33 @@
       .then(function (d) {
         // The class changed mid-flight: a newer request is on its way
         if (request !== state.questionsRequest) return;
-        state.questionsLoading = false;
         renderQuestions((d && d.questions) || []);
       });
   }
 
-  // The questions in the panel: a choice question is a row of chips with
-  // "Something else…" opening a plank; a text question is the plank with
-  // the mic. Every answer is a { value } the card and the doors read.
+  // The question rows: a choice question is chips with "Type your own…"
+  // opening a plank; a text question is the plank in the row, the mic on
+  // it. Every answer is a { value } the doors read.
   function renderQuestions(list) {
     // Answers already given survive when the same question comes back
     var kept = {};
     Object.keys(state.answers).forEach(function (q) { kept[q] = state.answers[q].value; });
     state.answers = {};
-    el.setupQuestions.textContent = '';
+    qHolder.textContent = '';
     state.questions = list;
-    el.setupStatus.hidden = list.length > 0;
-    if (!list.length) el.setupStatus.textContent = 'Nothing more to ask for this one. Change the question above, or open it in the designer.';
     list.forEach(function (q, i) {
       var answer = { value: kept[q.question] || '' };
       state.answers[q.question] = answer;
       var isChoice = q.kind === 'choice' && Array.isArray(q.choices) && q.choices.length >= 2;
-
-      var wrap = document.createElement('div');
-      wrap.className = 'setup-q';
-      var head = document.createElement('div');
-      head.className = 'setup-q-head';
-      var label = document.createElement('label');
-      label.className = 'setup-q-label';
-      label.textContent = q.question;
-      label.htmlFor = 'setup-q-' + i;
-      head.appendChild(label);
-      if (isChoice) {
-        var sub = document.createElement('span');
-        sub.className = 'setup-q-sub';
-        sub.textContent = 'One tap, or type your own.';
-        head.appendChild(sub);
-      }
-      wrap.appendChild(head);
+      var row = rowEl(q.question);
+      row.setAttribute('data-q', String(i));
 
       var input = document.createElement('textarea');
-      input.id = 'setup-q-' + i;
-      input.className = 'setup-q-input';
-      input.rows = 2;
-      input.placeholder = q.placeholder || (isChoice ? 'Your own answer, a few words' : '');
+      input.id = 'fit-q-' + i;
+      input.className = 'fit-plank';
+      input.rows = 1;
+      input.setAttribute('aria-label', q.question);
+      input.placeholder = q.placeholder || (isChoice ? 'A few words' : '');
       input.value = answer.value;
 
       // The mic wraps the plank (speech-input.js), so hiding the plank
@@ -522,41 +499,32 @@
       };
 
       if (isChoice) {
-        var row = document.createElement('div');
-        row.className = 'setup-choices';
         var chips = [];
         var paint = function () {
           var typed = !input.hidden;
           chips.forEach(function (c) { c.setAttribute('aria-pressed', !typed && answer.value === c.textContent ? 'true' : 'false'); });
-          other.setAttribute('aria-pressed', typed ? 'true' : 'false');
+          own.setAttribute('aria-pressed', typed ? 'true' : 'false');
         };
         q.choices.forEach(function (text) {
-          var c = document.createElement('button');
-          c.type = 'button';
-          c.className = 'setup-choice';
-          c.textContent = text;
+          var c = chipButton(text, false);
           c.addEventListener('click', function () {
             answer.value = text;
             showInput(false);
             paint();
-            noteAnswer(wrap, answer);
+            noteAnswer(row, answer);
           });
           chips.push(c);
-          row.appendChild(c);
+          row.a.appendChild(c);
         });
-        var other = document.createElement('button');
-        other.type = 'button';
-        other.className = 'setup-choice setup-choice-other';
-        other.textContent = 'Something else…';
-        other.addEventListener('click', function () {
+        var own = chipButton('Type your own…', false, true);
+        own.addEventListener('click', function () {
           showInput(true);
           answer.value = input.value;
           paint();
-          noteAnswer(wrap, answer);
+          noteAnswer(row, answer);
           input.focus();
         });
-        row.appendChild(other);
-        wrap.appendChild(row);
+        row.a.appendChild(own);
         // A kept answer that is not one of the choices was typed
         input.hidden = !(answer.value && q.choices.indexOf(answer.value) === -1);
         paint();
@@ -564,30 +532,28 @@
 
       input.addEventListener('input', function () {
         answer.value = input.value;
-        noteAnswer(wrap, answer);
+        noteAnswer(row, answer);
       });
-      wrap.appendChild(input);
-      el.setupQuestions.appendChild(wrap);
-      noteAnswer(wrap, answer);
+      row.a.appendChild(input);
+      qHolder.appendChild(row);
+      noteAnswer(row, answer);
       if (window.GrowingText && GrowingText.fit) GrowingText.fit(input);
       if (window.Speech && Speech.isSupported && Speech.isSupported() && Speech.attachMic) Speech.attachMic(input);
       // The mic wrapper arrived after the plank was hidden: keep them in step
       showInput(!input.hidden);
     });
-    buildLines();
   }
 
-  // An answered question says so at once (the card's chip goes yellow),
-  // and TRY IT says what the answers will do (the AI reword, and the
-  // twenty seconds it costs)
-  function noteAnswer(wrap, answer) {
-    wrap.classList.toggle('answered', answer.value.trim().length > 0);
+  // An answered question says so (the plank's green ring), and TRY IT
+  // says what the answers will do (the AI reword, and the twenty seconds
+  // it costs)
+  function noteAnswer(row, answer) {
+    row.classList.toggle('answered', answer.value.trim().length > 0);
     var n = answeredQuestions().length;
     el.note.hidden = n === 0;
     el.note.textContent = n === 1
       ? 'Your answer is in. TRY IT fits the wording to it, about twenty seconds.'
       : 'Your ' + n + ' answers are in. TRY IT fits the wording to them, about twenty seconds.';
-    buildLines();
   }
 
   // --- The edits, read off the page

@@ -1265,7 +1265,7 @@ Return the revised config.`;
   // falls back to the question's first words. Pure, so the page can trust
   // every field it renders.
   static shapeCustomizeQuestion(q) {
-    const question = String(q.question || '').trim().slice(0, 200);
+    let question = String(q.question || '').trim().slice(0, 200);
     const seen = new Set();
     const choices = (Array.isArray(q.choices) ? q.choices : [])
       .filter(c => typeof c === 'string' && c.trim())
@@ -1273,6 +1273,13 @@ Return the revised config.`;
       .filter(c => { const k = c.toLowerCase(); if (seen.has(k)) return false; seen.add(k); return true; })
       .slice(0, 6);
     const kind = q.kind === 'choice' && choices.length >= 2 ? 'choice' : 'text';
+    // A choice question that lists its choices asks twice ("...: short
+    // phrases, full sentences, or a mix?" over the same three chips): the
+    // clause after the colon goes
+    if (kind === 'choice' && /:\s/.test(question)) {
+      question = question.replace(/:\s[^:]*$/, '').trim();
+      if (!/[?.!]$/.test(question)) question += '?';
+    }
     let label = typeof q.label === 'string' ? q.label.trim().slice(0, 40) : '';
     if (!label) label = question.replace(/[?.!:]+$/, '').split(/\s+/).slice(0, 4).join(' ');
     return {
@@ -1280,7 +1287,9 @@ Return the revised config.`;
       label,
       kind,
       choices: kind === 'choice' ? choices : [],
-      placeholder: typeof q.placeholder === 'string' ? q.placeholder.trim().slice(0, 120) : ''
+      // Short: the plank is one line, a long example clips (Vocab Match's
+      // "e.g. French food words and English meanings, or a different..." did)
+      placeholder: typeof q.placeholder === 'string' ? q.placeholder.trim().slice(0, 70) : ''
     };
   }
 
@@ -1332,9 +1341,11 @@ Return the revised config.`;
           role: 'user',
           content: `A teacher is about to make their own copy of this ready-made classroom activity. Ask ONE short question whose answer the activity's wording hangs on, and a SECOND only if the content truly depends on another answer. Never a third. Plain everyday language, no jargon. Only ask what the activity's content actually depends on, e.g. a vocabulary activity needs the word list's subject, an icebreaker might only need how long the answers should be. Every question must be answerable in a few words.
 
+One question covers the WHOLE activity: never one per round or per step (two rounds share one answer). Keep each question under ten words.
+
 Each question is one of two kinds:
-- "choice" when the answer is a SHAPE you can name in advance (how long the answers are, the tone, which way round, keep it open or focus on something): give 3-5 short "choices" (2-4 words each), most likely first. The teacher can always type something else instead, so never add an "other" choice.
-- "text" when the answer is a specific THING only the teacher knows (the words, the book, the unit, the era, the facts): give a "placeholder" with an example. Never guess facts.
+- "choice" when the answer is a SHAPE you can name in advance (how long the answers are, the tone, which way round, keep it open or focus on something): give 3-5 short "choices" (2-4 words each), most likely first. The question itself must NOT list the choices (ask "How long should answers be?", not "...: short, long, or a mix?"). The teacher can always type something else instead, so never add an "other" choice.
+- "text" when the answer is a specific THING only the teacher knows (the words, the book, the unit, the era, the facts): give a "placeholder" with one short example (under eight words). Never guess facts.
 Also give a "label": the setting's name in 2-4 words, for a card line (e.g. "Answers you expect", "The words", "Topic").
 Ask about the WORDS only: what the answers should look like, the topic, the tone, the examples. NEVER ask about timing, timers, minutes, how many rounds, group sizes, grade, or subject: the page has its own controls for all of those.
 ${knownClass}${knownKnobs}

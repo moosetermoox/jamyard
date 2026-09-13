@@ -290,6 +290,33 @@ describe('generateCustomizeQuestions', () => {
     expect(lone.label).toBe('Which book');
   });
 
+  // A real run asked "What kind of answers do you want students to give:
+  // short phrases, full sentences, or a mix?" over the same three chips
+  // (owner: "it's asking the same question twice", 2026-09-13)
+  it('a choice question that lists its choices loses the list; a text question keeps its colon', () => {
+    const listed = AIService.shapeCustomizeQuestion({
+      question: 'What kind of answers do you want students to give: short phrases, full sentences, or a mix?',
+      kind: 'choice', choices: ['Short phrases', 'Full sentences', 'A mix']
+    });
+    expect(listed.question).toBe('What kind of answers do you want students to give?');
+    const typed = AIService.shapeCustomizeQuestion({ question: 'Paste the facts: one per line', kind: 'text', placeholder: 'x'.repeat(100) });
+    expect(typed.question).toBe('Paste the facts: one per line');
+    expect(typed.placeholder.length).toBe(70);
+  });
+
+  it('the prompt asks one question for the whole activity, never one per round, and short ones', async () => {
+    const service = new AIService({ mode: 'real' });
+    let sentPrompt = '';
+    service._callClaude = async (req) => {
+      sentPrompt = req.messages[0].content;
+      return { content: [{ type: 'text', text: '{"questions":[]}' }] };
+    };
+    await service.generateCustomizeQuestions(config);
+    expect(sentPrompt).toContain('never one per round or per step');
+    expect(sentPrompt).toContain('must NOT list the choices');
+    expect(sentPrompt).toContain('under ten words');
+  });
+
   it('the prompt asks for one question, a second only if needed, and names the two kinds', async () => {
     const service = new AIService({ mode: 'real' });
     let sentPrompt = '';
