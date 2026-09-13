@@ -95,7 +95,7 @@
     plain.addEventListener('click', function () {
       el.error.hidden = true;
       setOpening(dest, false);
-      MakeItYours.saveCopyAndReturn(working, dest).catch(function (err) {
+      saveAndGo(working, dest).catch(function (err) {
         clearOpening();
         fail('Could not make your copy: ' + (err.message || err));
       });
@@ -443,6 +443,27 @@
       .map(function (q) { return { question: q, answer: state.answers[q].value.trim() }; });
   }
 
+  // A copy that is already the teacher's (the Create page's match lands
+  // here after saving; a yard copy) saves edits back to itself. Anything
+  // else, a built-in, becomes a new copy in My yard.
+  var isOwn = !!(window.MyGames && MyGames.has && MyGames.has(gameId));
+  function saveAndGo(config, dest) {
+    if (!isOwn) return MakeItYours.saveCopyAndReturn(config, dest);
+    delete config.featured;
+    return fetch('/api/games/' + encodeURIComponent(gameId), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    }).then(function (resp) {
+      if (!resp.ok) {
+        return resp.json().catch(function () { return {}; }).then(function (d) {
+          throw new Error(d.error || 'save failed');
+        });
+      }
+      window.location.href = destUrl(dest, gameId);
+    });
+  }
+
   function destUrl(dest, id) {
     var q = encodeURIComponent(id);
     if (dest === 'simulate') return '/prototype?game=' + q;
@@ -499,14 +520,14 @@
         .then(function (working) {
           working = JSON.parse(JSON.stringify(working));
           delete working.featured;
-          working.name = (state.config.name || 'Activity') + ' (my version)';
+          working.name = isOwn ? (state.config.name || 'Activity') : (state.config.name || 'Activity') + ' (my version)';
           if (typeof edits.anonymous === 'boolean') working.anonymous = edits.anonymous;
           // Early-bird joke is on by default: on drops a `false`, off writes one.
           if (edits.earlyJoke) { if (working.earlyJoke === false) delete working.earlyJoke; }
           else working.earlyJoke = false;
-          if (!withAi) return MakeItYours.saveCopyAndReturn(working, dest);
+          if (!withAi) return saveAndGo(working, dest);
           return reword(working, answered).then(
-            function (revised) { return MakeItYours.saveCopyAndReturn(revised, dest); },
+            function (revised) { return saveAndGo(revised, dest); },
             function (err) { rewordFailure(err.message || String(err), working, dest); }
           );
         })
@@ -523,8 +544,11 @@
         if (!result.ok || !result.data || !result.data.config) throw new Error((result.data && result.data.error) || 'could not apply your words');
         var working = result.data.config;
         var changed = result.data.changed;
+        // The server names a copy after its new question; a copy that is
+        // already the teacher's keeps its name.
+        if (isOwn) working.name = state.config.name || working.name;
         if (!changed && !withAi) {
-          if (dest === 'designer') {
+          if (dest === 'designer' && !isOwn) {
             working.name = (state.config.name || 'Activity') + ' (my version)';
             return MakeItYours.openDraftCopy(working);
           }
@@ -532,9 +556,9 @@
           return;
         }
         setOpening(dest, withAi);
-        if (!withAi) return MakeItYours.saveCopyAndReturn(working, dest);
+        if (!withAi) return saveAndGo(working, dest);
         return reword(working, answered).then(
-          function (revised) { return MakeItYours.saveCopyAndReturn(revised, dest); },
+          function (revised) { return saveAndGo(revised, dest); },
           function (err) { rewordFailure(err.message || String(err), working, dest); }
         );
       })
