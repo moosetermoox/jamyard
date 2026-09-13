@@ -659,6 +659,9 @@
         state.fitting = false;
         redrawMap(parts[0]);
         applyFittedPrint(parts[1]);
+        // A quiet miss here looked like "nothing happened" (the print
+        // route is newer than a running server): say so instead
+        if (!parts[1] || !parts[0]) fail('The fitted copy is in and TRY IT opens it, but the page could not redraw ' + (!parts[1] ? 'the screen above' : 'What happens') + '. If the server was updated, restart it.');
         // The print may have taken the fitted question into the box: the
         // key is read after that, so the doors still know this copy
         state.fitted.key = fitKey();
