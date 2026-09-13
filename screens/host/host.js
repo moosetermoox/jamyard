@@ -131,7 +131,18 @@ let currentTeacherPin = null;
 let currentHostToken = null;
 // Where this tab was opened from (a ?game= launch keeps its game here
 // after the address is tidied), so Play again relaunches the same thing.
-const LAUNCH_URL = window.location.href;
+// A Host button that opened the teacher console in a new tab put its
+// pairing nonce here (shared/host-launch.js); read at load, because the
+// address is tidied to /host as soon as the room exists. Play again gets
+// the launch address WITHOUT it: a fresh room pairs a fresh tab or none.
+const PAIR_NONCE = new URLSearchParams(window.location.search).get('pair') || null;
+const LAUNCH_URL = (function () {
+  try {
+    const u = new URL(window.location.href);
+    u.searchParams.delete('pair');
+    return u.href;
+  } catch (e) { return window.location.href; }
+})();
 let teacherConsolePaired = false;
 
 // The host screen is projected, so pairing never shows the PIN on the wall:
@@ -874,6 +885,16 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
       { type: 'room-created', code: code, teacherPin: teacherPin || null },
       window.location.origin
     );
+  }
+
+  // Launched from a Host button that opened the teacher console in a new
+  // tab (shared/host-launch.js): hand that tab the room. Same origin, the
+  // teacher's own browser; nothing about it lands on this projected
+  // screen beyond the checklist line.
+  if (PAIR_NONCE && window.HostLaunch) {
+    HostLaunch.publish(PAIR_NONCE, code, teacherPin || null);
+    const stepConsole = document.getElementById('host-step-console');
+    if (stepConsole) stepConsole.textContent = 'Your teacher console is open in another tab. For a second device: Copy teacher link, bottom corner.';
   }
 });
 

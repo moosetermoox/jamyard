@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1889 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1902 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **30 phase types**, **26 built-in recipes**, ~33 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -61,6 +61,7 @@ Framework for quickly building classroom games where:
 - **No decorative emojis** in descriptions/messages/prompts; icons only in icon slots (functional marks like ♥, goal chips, avatars, medals are fine).
 - **Teacher-facing vocabulary (owner's calls, 2026-09-02, revised 2026-09-07):** the /library page is **the yard**; the copy-and-tailor action is **Make it yours** (never "Customize"); the /prototype page and its button are **Try it out**, qualified "with pretend students" where there is room (never "Simulate" or "Preview" in teacher copy; "Teacher preview" the step type and the editor's live-mockup toggle are different things; "practice players" is out too, they are pretend students). "library", "customize", "preview", "simulator", "sim" survive only in routes, ids, class names, file names, function names, script names, and code comments. Same split as activity/game.
 - **"Activity" vocabulary** in user-facing copy ("game" only when it truly is one). Internals keep "game" (`games/`, `gameId`, socket events, API routes) — never rename them.
+- **Host opens two tabs** (2026-09-12, `screens/shared/host-launch.js`): the projector in this tab, the teacher console in a new one, paired by a nonce (console tab opened INSIDE the click, room published to it on `room-created` via localStorage + BroadcastChannel). Every Host door calls `HostLaunch.begin()` in the click (or `launch()`), gets its address from `HostLaunch.hostUrl()`, and `abandon()`s on a failed save; a new Host button must do the same, and its page must load the module (guarded by `tests/screens/host-launch.test.js`).
 - **The host screen is a projector** — never put teacher-private info there; that's what `/teacher` is for.
 - **Payoff beats are host-paced, never timed** (reveals, winners, galleries).
 - **Rolling start is a family, not a knob** (`start: "rolling"`, engine/phases/rolling.js): the room opens straight into the first step, the doorway card stays on the projector, timers are ignored, and each student gets their own done screen. Only for activities without roster-bound steps (pairs, teams, chains, rounds; the validator warns). Exit Ticket, Live Poll, Solo Quiz are the three shapes.
