@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1902 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1917 tests passing** (`npm test`, ~5s) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **30 phase types**, **26 built-in recipes**, ~33 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -133,7 +133,7 @@ Framework for quickly building classroom games where:
 22. `one-voice` — cooperative counting; server-authoritative collision window
 23. `end` — game over
 24. `buzz` — first-tap-wins buzzer; outputs `scores`
-25. `estimate` — numeric guessing; `scoring: closest|graduated`; no answer = poll mode
+25. `estimate` — numeric guessing; `scoring: closest|graduated`; no answer = poll mode; `min`+`max` (or "on a scale of 1 to 10" in the prompt, read by `engine/phases/estimate-range.js`) = a row of numbers to tap (up to 12) or a slider, never a bare number box
 26. `match` — pair two lists; `pairs` + `pointsPerMatch`
 27. `sort` — items into buckets; all-or-none correct buckets = graded vs consensus
 28. `checklist` — group to-do list with live progress; `items` (strings or `{text, role}` role-tagged) + optional `teamsFrom` (team-split OR pairwise collect, pairs share a list) + `rolesFrom` (team-roles; tags items as a role's job, viewer's own highlighted); no scores

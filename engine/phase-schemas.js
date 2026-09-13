@@ -900,7 +900,7 @@ export const PHASE_SCHEMAS = {
   estimate: {
     label: 'Guess the Number',
     icon: '🎯',
-    description: 'Students each guess a number; close submissions to reveal the answer, the class distribution, and closeness-ranked scores. Without an answer it becomes poll-the-room (stats only, no scores).',
+    description: 'Students each guess a number; close submissions to reveal the answer, the class distribution, and closeness-ranked scores. Without an answer it becomes poll-the-room (stats only, no scores). With min and max set (or "on a scale of 1 to 10" in the question) students tap a number on that scale, or move a slider for a longer range, instead of typing.',
     role: 'input',
     allowedIn: ['topLevel'],
     mixins: ['screenControl', 'timer', 'loops'],

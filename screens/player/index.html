@@ -330,7 +330,12 @@
       <span class="timer-bar-text"></span>
       <div class="timer-bar"><div class="timer-bar-fill"></div></div>
     </div>
-    <div class="estimate-input-row">
+    <!-- A known range (the step's min/max, or "on a scale of 1 to 10" in
+         the question) is a row of tappable numbers, or a slider for a
+         longer range; the typed box is for an open guess. -->
+    <div id="estimate-scale" class="estimate-scale" hidden></div>
+    <input id="estimate-slider" class="estimate-slider" type="range" hidden aria-label="Your guess">
+    <div id="estimate-input-row" class="estimate-input-row">
       <input id="estimate-input" type="number" step="any" inputmode="decimal" placeholder="Your guess">
       <span id="estimate-unit" class="estimate-unit"></span>
     </div>

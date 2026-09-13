@@ -23,6 +23,7 @@ import { buildActivityMap } from './engine/activity-map.js';
 import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
 import { printFor, applyEdits, nameFor } from './engine/make-print.js';
 import { resolvePerPlayerTemplate } from './engine/per-player-template.js';
+import { effectiveRange, clampGuess } from './engine/phases/estimate-range.js';
 import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
 import { shouldStopLooping } from './engine/phases/eliminate-handler.js';
 import { restoreSubPhaseOrder } from './engine/subphase-order.js';
@@ -4833,11 +4834,10 @@ io.on('connection', (socket) => {
     if (!player) return;
     if (typeof value !== 'number' || !Number.isFinite(value)) return;
 
-    // Server-side bounds clamp (the client input also enforces min/max)
+    // Server-side bounds clamp (the client also enforces the range): the
+    // step's min/max, or the question's own "scale of 1 to 10"
     const phase = room.engine.config.phases[state.phaseId] || {};
-    let v = value;
-    if (typeof phase.min === 'number') v = Math.max(phase.min, v);
-    if (typeof phase.max === 'number') v = Math.min(phase.max, v);
+    const v = clampGuess(value, effectiveRange(phase));
 
     // Resubmission allowed until close — estimating invites second thoughts
     state.guesses[socket.id] = v;

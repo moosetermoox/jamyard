@@ -144,7 +144,10 @@ export function validateSuggestions(raw, ctx) {
             sentence: typeof s.sentence === 'string' ? s.sentence.slice(0, 300) : undefined,
             piles: cleanPiles(s.piles),
             writeTimer: typeof s.writeTimer === 'number' ? s.writeTimer : undefined,
-            timer: typeof s.timer === 'number' ? s.timer : undefined
+            timer: typeof s.timer === 'number' ? s.timer : undefined,
+            // estimate: the scale's ends ("on a scale of 1 to 10")
+            min: typeof s.min === 'number' && Number.isFinite(s.min) ? s.min : undefined,
+            max: typeof s.max === 'number' && Number.isFinite(s.max) ? s.max : undefined
           }))
         },
         why: cleanWhy(item.why)

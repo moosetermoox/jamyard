@@ -1,5 +1,6 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
+import { effectiveRange } from '../phases/estimate-range.js';
 
 /**
  * estimate — numeric guessing with closeness scoring.
@@ -46,12 +47,15 @@ registerHandler('estimate', {
     const image = ctx.services.resolveImageUrl(phase.image, room.gameId, room.gameSource);
 
     const total = ctx.engine.players.list().length;
+    // The step's min/max, or the question's own "scale of 1 to 10": the
+    // student screen turns a known range into a tappable scale or slider
+    const range = effectiveRange(phase);
     const payload = {
       prompt,
       unit: phase.unit || '',
       image,
-      min: typeof phase.min === 'number' ? phase.min : null,
-      max: typeof phase.max === 'number' ? phase.max : null,
+      min: range.min,
+      max: range.max,
       timer: phase.timer || null,
       count: 0,
       total,
@@ -74,12 +78,13 @@ registerHandler('estimate', {
     }
     const phase = ctx.engine.config.phases[state.phaseId] || {};
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
+    const range = effectiveRange(phase);
     socket.emit(EVENTS.ESTIMATE_START, {
       prompt: state.prompt || '',
       unit: phase.unit || '',
       image,
-      min: typeof phase.min === 'number' ? phase.min : null,
-      max: typeof phase.max === 'number' ? phase.max : null,
+      min: range.min,
+      max: range.max,
       timer: null, // reconnectors don't restart the countdown
       count: Object.keys(state.guesses).length,
       total: ctx.engine.players.list().length

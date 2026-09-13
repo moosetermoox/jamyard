@@ -870,6 +870,14 @@
            brick === 'estimate' || brick === 'rank')) {
         built.timer = Math.round(step.timer);
       }
+      // A scale question ("on a scale of 1 to 10") carries its range; the
+      // student screen turns it into a row of numbers to tap. Left open,
+      // the server still reads the wording (engine/phases/estimate-range.js).
+      if (brick === 'estimate' && typeof step.min === 'number' && typeof step.max === 'number' &&
+          isFinite(step.min) && isFinite(step.max) && step.max > step.min) {
+        built.min = step.min;
+        built.max = step.max;
+      }
 
       phases[lastId].next = id;
       phases[id] = built;
