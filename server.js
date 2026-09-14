@@ -2540,7 +2540,9 @@ app.post('/api/track', express.json({ limit: '2kb' }), (req, res) => {
       const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
       const ip = forwarded || req.socket?.remoteAddress || 'unknown';
       const parsed = trackLimiter.allow(ip) ? parseClientEvent(req.body) : null;
-      if (parsed) analytics.track(parsed.event, parsed.props, parsed.distinctId);
+      // The teacher's address rides along for country and region only
+      // (PostHog discards it after the lookup); never on server events.
+      if (parsed) analytics.track(parsed.event, parsed.props, parsed.distinctId, { ip });
     }
   } catch (err) {
     console.log(`[api/track] ${err.message}`);

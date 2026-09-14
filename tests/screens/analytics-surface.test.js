@@ -92,8 +92,8 @@ describe('screens/shared/analytics.js', () => {
     // Node exposes navigator, crypto, and localStorage as getters: define over them.
     const def = (name, value) => Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
     def('window', globalThis);
-    def('document', { addEventListener() {}, visibilityState: 'visible' });
-    def('location', { pathname, search: extra.search || '' });
+    def('document', { addEventListener() {}, visibilityState: 'visible', referrer: extra.referrer || '' });
+    def('location', { pathname, search: extra.search || '', hostname: 'jamyard.org' });
     def('navigator', {
       doNotTrack: extra.dnt || null,
       globalPrivacyControl: extra.gpc || false,
@@ -132,9 +132,30 @@ describe('screens/shared/analytics.js', () => {
     expect(sent[0].url).toBe('/api/track');
     const body = await bodyOf(sent[0]);
     expect(body.event).toBe('page_viewed');
-    expect(body.props).toEqual({ path: '/make', from: 'home' });
+    expect(body.props).toEqual({ path: '/make', from: 'home', referrer: 'direct' });
     expect(body.aid).toMatch(/^[a-f0-9]{16,32}$/);
     expect(JSON.stringify(body)).not.toContain('exit-ticket');
+  });
+
+  it('says where the visit came from: the referring hostname only, and our own campaign tags', async () => {
+    await boot('/', { referrer: 'https://www.google.com/search?q=jamyard+exit+ticket' });
+    expect((await bodyOf(sent[0])).props.referrer).toBe('www.google.com');
+    expect(JSON.stringify(await bodyOf(sent[0]))).not.toContain('search');
+
+    await boot('/guide', { referrer: 'https://jamyard.org/make?game=exit-ticket' });
+    expect((await bodyOf(sent[0])).props.referrer).toBe('internal');
+
+    await boot('/', { referrer: 'https://user:token@mail.district.k12.ca.us:8443/inbox/42' });
+    expect((await bodyOf(sent[0])).props.referrer).toBe('mail.district.k12.ca.us');
+
+    await boot('/', { search: '?utm_source=Newsletter&utm_medium=email&utm_campaign=pd%20day&utm_term=rivera&gclid=abc' });
+    const props = (await bodyOf(sent[0])).props;
+    expect(props.utm_source).toBe('newsletter');
+    expect(props.utm_medium).toBe('email');
+    expect(props.utm_campaign).toBeUndefined();
+    expect(props.utm_term).toBeUndefined();
+    expect(JSON.stringify(props)).not.toContain('rivera');
+    expect(JSON.stringify(props)).not.toContain('gclid');
   });
 
   it('keeps one browser id across loads and never mints one from anything personal', async () => {

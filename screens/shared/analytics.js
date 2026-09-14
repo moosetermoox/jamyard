@@ -83,16 +83,41 @@
     } catch (e) { /* analytics never breaks a page */ }
   }
 
-  // The route without its query (a query can carry an activity id), and
-  // the entry point when the page was reached through one of ours.
+  // The route without its query (a query can carry an activity id), the
+  // entry point when the page was reached through one of ours, where the
+  // visit came from (the referring site's hostname only, never its path:
+  // 'internal' for our own pages, 'direct' for none), and the campaign
+  // tags from one of our own links (utm_source / utm_medium /
+  // utm_campaign, lowercase slugs; anything else is left out).
+  var TAG_KEYS = ['utm_source', 'utm_medium', 'utm_campaign'];
+  var TAG_SHAPE = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+
+  function referrerHost() {
+    try {
+      var ref = document.referrer;
+      if (!ref) return 'direct';
+      var host = String(ref).replace(/^[a-z]+:\/\//i, '').split(/[/?#]/)[0].split('@').pop().split(':')[0].toLowerCase();
+      if (!host) return 'direct';
+      if (host === String(location.hostname || '').toLowerCase()) return 'internal';
+      return host;
+    } catch (e) { return 'direct'; }
+  }
+
   function pageProps() {
     var path = String(location.pathname || '/').replace(/\/index\.html$/, '').replace(/\/+$/, '') || '/';
-    var from = 'none';
+    var props = { path: path, from: 'none', referrer: referrerHost() };
     try {
-      var m = /[?&]from=([a-z]+)/.exec(location.search || '');
-      if (m && ENTRY_POINTS.indexOf(m[1]) !== -1) from = m[1];
+      var search = String(location.search || '');
+      var m = /[?&]from=([a-z]+)/.exec(search);
+      if (m && ENTRY_POINTS.indexOf(m[1]) !== -1) props.from = m[1];
+      TAG_KEYS.forEach(function (key) {
+        var t = new RegExp('[?&]' + key + '=([^&#]*)').exec(search);
+        if (!t) return;
+        var value = decodeURIComponent(t[1].replace(/\+/g, ' ')).trim().toLowerCase();
+        if (TAG_SHAPE.test(value)) props[key] = value;
+      });
     } catch (e) { /* none */ }
-    return { path: path, from: from };
+    return props;
   }
 
   window.Analytics = {

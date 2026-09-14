@@ -40,14 +40,22 @@ const STARTS = ['together', 'rolling'];
 /**
  * Event → property → shape. Kinds: path (one of TRACKED_PATHS), enum
  * (one of values), int (0..100000), bool, game (a built-in slug or
- * "custom"). Adding a kind means teaching sanitizeEvent about it; adding
- * a free-text kind is the one thing this file must never do.
+ * "custom"), host (a referring site's hostname, or direct / internal),
+ * tag (a campaign tag from one of our own links: utm_source and friends,
+ * lowercase slug, 40 chars). Host and tag come from the URL bar, which
+ * is where the teacher came FROM, never something typed into Jamyard.
+ * Adding a kind means teaching sanitizeEvent about it; adding a
+ * free-text kind is the one thing this file must never do.
  */
 export const ANALYTICS_EVENTS = {
   // Browser (teacher pages only)
   page_viewed: {
     path: { kind: 'path' },
-    from: { kind: 'enum', values: ENTRY_POINTS }
+    from: { kind: 'enum', values: ENTRY_POINTS },
+    referrer: { kind: 'host' },
+    utm_source: { kind: 'tag' },
+    utm_medium: { kind: 'tag' },
+    utm_campaign: { kind: 'tag' }
   },
   activity_opened: {
     dest: { kind: 'enum', values: DOORS },
@@ -81,6 +89,42 @@ const GAME_SLUG = /^[a-z0-9][a-z0-9-]{0,47}$/;
 const BROWSER_ID = /^[a-f0-9]{16,32}$/;
 const DISTINCT_ID = /^[a-z0-9:-]{8,64}$/;
 const MAX_INT = 100_000;
+// A hostname: labels of letters, digits, hyphens, joined by dots (no port,
+// no path, no userinfo, so nothing a tracking link could smuggle).
+const HOSTNAME = /^(?=.{1,80}$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
+const REFERRER_LITERALS = ['direct', 'internal'];
+const TAG = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+const IPV4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+const IPV6 = /^[0-9a-f:]{3,45}$/i;
+
+/**
+ * True for an address PostHog could place on a map: a well-formed public
+ * IPv4 or IPv6. Loopback, private ranges, and link-local are not (a dev
+ * server, a proxy hop), and neither is anything else.
+ * @param {unknown} ip
+ */
+export function isPublicIp(ip) {
+  if (typeof ip !== 'string') return false;
+  // An IPv4 address carried inside IPv6 (what Node reports on a dual-stack socket)
+  if (/^::ffff:/i.test(ip)) return isPublicIp(ip.slice(7));
+  const v4 = IPV4.exec(ip);
+  if (v4) {
+    const [a, b] = [Number(v4[1]), Number(v4[2])];
+    if ([a, b, Number(v4[3]), Number(v4[4])].some((n) => n > 255)) return false;
+    if (a === 10 || a === 127 || a === 0) return false;
+    if (a === 172 && b >= 16 && b <= 31) return false;
+    if (a === 192 && b === 168) return false;
+    if (a === 169 && b === 254) return false;
+    if (a === 100 && b >= 64 && b <= 127) return false;
+    return true;
+  }
+  if (IPV6.test(ip) && ip.includes(':')) {
+    const low = ip.toLowerCase();
+    if (low === '::1' || low === '::' || low.startsWith('fe80:') || low.startsWith('fc') || low.startsWith('fd')) return false;
+    return true;
+  }
+  return false;
+}
 
 function coerce(spec, value) {
   switch (spec.kind) {
@@ -96,6 +140,13 @@ function coerce(spec, value) {
       return typeof value === 'boolean' ? value : undefined;
     case 'game':
       return typeof value === 'string' && GAME_SLUG.test(value) ? value : undefined;
+    case 'host': {
+      if (typeof value !== 'string') return undefined;
+      const low = value.toLowerCase();
+      return REFERRER_LITERALS.includes(low) || HOSTNAME.test(low) ? low : undefined;
+    }
+    case 'tag':
+      return typeof value === 'string' && TAG.test(value.toLowerCase()) ? value.toLowerCase() : undefined;
     default:
       return undefined;
   }
@@ -183,15 +234,22 @@ export function createAnalytics(opts = {}) {
     /**
      * Queue one event. Returns false when it was refused (off, unknown
      * event, bad id), so callers can stay fire-and-forget.
+     *
+     * `extra.ip`: the visitor's public address, passed ONLY for events a
+     * teacher page posted. PostHog reads it for country and region, then
+     * (with "Discard client IP data" on in the project) drops it; without
+     * it the event is geo-free and PostHog sees nothing but our server.
      * @param {string} event
      * @param {object} [props]
      * @param {string} distinctId
+     * @param {{ ip?: string }} [extra]
      */
-    track(event, props, distinctId) {
+    track(event, props, distinctId, extra = {}) {
       if (!enabled) return false;
       const sane = sanitizeEvent(event, props);
       if (!sane) return false;
       if (typeof distinctId !== 'string' || !DISTINCT_ID.test(distinctId)) return false;
+      const geo = isPublicIp(extra.ip) ? { $ip: extra.ip } : { $geoip_disable: true };
       queue.push({
         event: sane.event,
         distinct_id: distinctId,
@@ -199,7 +257,7 @@ export function createAnalytics(opts = {}) {
         properties: {
           ...sane.properties,
           $process_person_profile: false,
-          $geoip_disable: true,
+          ...geo,
           $lib: 'jamyard-relay'
         }
       });

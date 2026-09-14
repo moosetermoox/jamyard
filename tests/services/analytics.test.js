@@ -14,6 +14,7 @@ import {
   sanitizeEvent,
   parseClientEvent,
   createAnalytics,
+  isPublicIp,
   DEFAULT_POSTHOG_HOST
 } from '../../services/analytics.js';
 
@@ -70,8 +71,32 @@ describe('sanitizeEvent', () => {
     expect(sanitizeEvent('room_created', { game: 'x'.repeat(80) }).properties.game).toBeUndefined();
   });
 
+  it('where the visit came from: a referring hostname, never a path; campaign tags as slugs', () => {
+    const p = (props) => sanitizeEvent('page_viewed', props).properties;
+    expect(p({ referrer: 'www.google.com' })).toEqual({ referrer: 'www.google.com' });
+    expect(p({ referrer: 'District.K12.CA.US' })).toEqual({ referrer: 'district.k12.ca.us' });
+    expect(p({ referrer: 'direct' })).toEqual({ referrer: 'direct' });
+    expect(p({ referrer: 'internal' })).toEqual({ referrer: 'internal' });
+    expect(p({ referrer: 'https://www.google.com/search?q=jamyard' })).toEqual({});
+    expect(p({ referrer: 'mail.example.com/u/0/?token=abc' })).toEqual({});
+    expect(p({ referrer: 'user@host.com' })).toEqual({});
+    expect(p({ referrer: 'localhost' })).toEqual({});
+    expect(p({ referrer: 'a'.repeat(90) + '.com' })).toEqual({});
+    expect(p({ utm_source: 'newsletter', utm_medium: 'Email', utm_campaign: 'pd-day_2026' }))
+      .toEqual({ utm_source: 'newsletter', utm_medium: 'email', utm_campaign: 'pd-day_2026' });
+    expect(p({ utm_source: 'Ms. Rivera <rivera@school.org>' })).toEqual({});
+    expect(p({ utm_campaign: 'x'.repeat(41) })).toEqual({});
+    expect(p({ utm_term: 'anything' })).toEqual({});
+  });
+
+  it('isPublicIp keeps only addresses that can be placed on a map', () => {
+    ['203.0.113.9', '8.8.8.8', '2001:db8::1', '::ffff:203.0.113.9'].forEach((ip) => expect(isPublicIp(ip), ip).toBe(true));
+    ['127.0.0.1', '10.1.2.3', '172.16.0.1', '172.31.255.255', '192.168.1.1', '169.254.1.1', '100.64.0.1', '0.0.0.0',
+      '::1', 'fe80::1', 'fd00::1', '::ffff:10.0.0.1', '999.1.1.1', 'unknown', '', null, 42].forEach((ip) => expect(isPublicIp(ip), String(ip)).toBe(false));
+  });
+
   it('every declared property has a shape the sanitizer understands', () => {
-    const kinds = new Set(['path', 'enum', 'int', 'bool', 'game']);
+    const kinds = new Set(['path', 'enum', 'int', 'bool', 'game', 'host', 'tag']);
     Object.entries(ANALYTICS_EVENTS).forEach(([event, props]) => {
       expect(event).toMatch(/^[a-z_]+$/);
       Object.entries(props).forEach(([key, spec]) => {
@@ -203,6 +228,26 @@ describe('createAnalytics', () => {
     b.track('page_viewed', { path: '/' }, AID);
     await expect(b.flush()).resolves.toBeUndefined();
     expect(log).toHaveBeenCalledWith(expect.stringContaining('503'));
+  });
+
+  it('a teacher-page event carries the visitor address for geo; a server event stays geo-free', async () => {
+    const { fetch, calls } = fakeFetch();
+    const a = createAnalytics({ key: 'k', fetch });
+    a.track('page_viewed', { path: '/' }, AID, { ip: '203.0.113.9' });
+    a.track('page_viewed', { path: '/' }, AID, { ip: '2001:db8::1' });
+    a.track('room_created', { game: 'exit-ticket' }, 'room:9f3c2a1b-0000-4000-8000-000000000001');
+    a.track('page_viewed', { path: '/' }, AID, { ip: '127.0.0.1' });
+    a.track('page_viewed', { path: '/' }, AID, { ip: '10.0.0.5' });
+    a.track('page_viewed', { path: '/' }, AID, { ip: 'not an address' });
+    await a.flush();
+    const [pub4, pub6, room, loop, priv, junk] = calls[0].body.batch.map((e) => e.properties);
+    expect(pub4.$ip).toBe('203.0.113.9');
+    expect(pub4.$geoip_disable).toBeUndefined();
+    expect(pub6.$ip).toBe('2001:db8::1');
+    for (const p of [room, loop, priv, junk]) {
+      expect(p.$ip).toBeUndefined();
+      expect(p.$geoip_disable).toBe(true);
+    }
   });
 
   it('the batch never carries an IP, a name, or a room code', async () => {

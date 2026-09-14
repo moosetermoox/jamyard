@@ -156,8 +156,12 @@ PostHog can ever see is Render's. Off when `POSTHOG_KEY` is unset.
 
 Owner to-do in the PostHog project itself (none of this is in code):
 
-- [ ] **Project settings → "Discard client IP data"** on (belt and braces;
-      the relay already hides visitor IPs, this hides the server's).
+- [ ] **Project settings → "Discard client IP data"** on. LOAD-BEARING
+      since the origin piece (2026-09-13, same day): events a teacher page
+      posted carry the teacher's public address as `$ip` so PostHog can
+      derive country and region; this setting is what makes PostHog drop
+      the address after the lookup. The privacy page promises exactly
+      that. Room events and the feedback event carry no address.
 - [ ] **Session replay OFF**, **autocapture / heatmaps / surveys OFF**,
       **web analytics domains** empty (no snippet exists, but leave the
       project unable to accept one by accident).
