@@ -142,6 +142,12 @@
           <td>Until the teacher or the site owner deletes them. A structural rule keeps student work out of saved activities: nothing students submit is ever folded into a saved object.</td>
         </tr>
         <tr>
+          <td>Site usage events from teacher pages: which page was opened, which door was pressed, how an idea landed on the Create page, plus one line when a room opens, starts, and ends (activity name for built-in activities, "custom" for anything a teacher made, headcount, minutes)</td>
+          <td>Tells us which parts of Jamyard teachers actually use, so we can improve them</td>
+          <td>PostHog (US), an analytics service, reached only through our own server</td>
+          <td>Kept as usage statistics. Contains no names, no student work, no room codes, and no IP addresses (PostHog only ever sees our server). Nothing is sent from the student screen or the projector. A random id minted in the teacher's browser counts repeat visits; it holds nothing about the person. Browsers sending Do Not Track or Global Privacy Control send nothing.</td>
+        </tr>
+        <tr>
           <td>Site feedback from the feedback widget</td>
           <td>Suggestions and bug reports from visitors</td>
           <td>Database</td>
@@ -162,7 +168,7 @@
     </div>
 
     <h2>What stays on your device</h2>
-    <p>Favorites, recently used activities, and the list of activities created on a device are stored in that browser's local storage. They never leave the device and we cannot see them.</p>
+    <p>Favorites, recently used activities, and the list of activities created on a device are stored in that browser's local storage. They never leave the device and we cannot see them. The one exception is a random analytics id (a string of letters and digits, nothing about the person) that teacher pages send with the usage events described above; clearing site data resets it.</p>
 
     <h2>Classroom safety</h2>
     <ul>
@@ -180,5 +186,6 @@
   </div>
 
   <script src="/shared/feedback-widget.js"></script>
+  <script src="/shared/analytics.js"></script>
 </body>
 </html>

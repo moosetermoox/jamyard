@@ -137,6 +137,45 @@ policy should say this in one line when it gets its rubric pass.
       on a deletion request or incident, with district notification
       commitments (§ 49073.1 requires describing exactly this).
 
+## 1b. Site analytics (PostHog, added 2026-09-13)
+
+Design, in code (`services/analytics.js`, `screens/shared/analytics.js`,
+`tests/screens/analytics-surface.test.js`, `tests/services/analytics.test.js`):
+PostHog is a **sink behind our own relay**. No browser loads a PostHog
+script; teacher pages post a named event to `POST /api/track`, the
+server keeps an allowlist (event names, property keys, property shapes:
+route / enum / small integer / boolean / built-in slug, no free-text
+kind exists) and batches to PostHog with `$process_person_profile:
+false` and `$geoip_disable: true`. The student screen, the projector,
+and the teacher console load nothing. Server-side events (room created,
+activity started, activity ended) carry a random per-room id, never the
+room code, a headcount, and the activity's slug (built-ins) or "custom".
+The browser id is a random hex string in the teacher's localStorage.
+Do Not Track and Global Privacy Control are honored. The only IP
+PostHog can ever see is Render's. Off when `POSTHOG_KEY` is unset.
+
+Owner to-do in the PostHog project itself (none of this is in code):
+
+- [ ] **Project settings → "Discard client IP data"** on (belt and braces;
+      the relay already hides visitor IPs, this hides the server's).
+- [ ] **Session replay OFF**, **autocapture / heatmaps / surveys OFF**,
+      **web analytics domains** empty (no snippet exists, but leave the
+      project unable to accept one by accident).
+- [ ] **Data retention** set to the shortest tier the plan allows; note
+      it in the privacy page's row.
+- [ ] **Team access**: owner only. No public dashboards, no shared links.
+- [ ] **DPA**: accept PostHog's Data Processing Agreement in the org
+      settings (PostHog offers a DPA self-serve; a BAA is not needed, no
+      health data). Record the date here.
+- [ ] **Region**: US cloud (`POSTHOG_HOST` default). If a district asks
+      for EU residency, a second project + `POSTHOG_HOST=https://eu.i.posthog.com`.
+- [ ] **Notice to Schools** (§ 2): add PostHog to the subprocessor list
+      as "usage analytics of teacher pages; no student data", next to
+      Anthropic, Neon, Render.
+- [ ] Re-read `ANALYTICS_EVENTS` whenever an event is added: a new event
+      is a privacy-policy edit (the usage-events row) as well as a code
+      change.
+
 ## 2. Before marketing to schools or districts
 
 - [ ] **Notice to Schools** — discloses AI use, names Anthropic as

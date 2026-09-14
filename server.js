@@ -115,6 +115,7 @@ import { validateSuggestions } from './engine/suggest-validate.js';
 import { createFeedbackStore } from './services/feedback-store.js';
 import { validateFeedback } from './engine/feedback-validate.js';
 import { createRateLimiter } from './engine/simple-rate-limit.js';
+import { createAnalytics, parseClientEvent } from './services/analytics.js';
 import { mintCopyId, prepareSharedCopy } from './engine/share-copy.js';
 import { ensureMeadowState, meadowIndexFor, allowNudge, clampFrac } from './engine/meadow-sync.js';
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
@@ -223,6 +224,32 @@ const moderationLadder = createModerationLadder({
   reviewAt: Number(process.env.MODERATION_REVIEW_AT) || undefined
 });
 console.log(`[init] Moderation ladder: ${moderationLadder.enabled ? 'on (OpenAI scores + Haiku review)' : 'off, no OPENAI_API_KEY, blocklist only'}`);
+// Site analytics (services/analytics.js): PostHog as a sink behind our own
+// relay. Off without POSTHOG_KEY. No browser ever talks to PostHog; the
+// student screen and the projector send nothing at all.
+const analytics = createAnalytics({
+  key: process.env.POSTHOG_KEY,
+  host: process.env.POSTHOG_HOST
+});
+console.log(`[init] Analytics: ${analytics.enabled ? 'on (relay to PostHog)' : 'off, no POSTHOG_KEY'}`);
+
+// The label an activity gets in analytics: a built-in's slug, or "custom"
+// for anything a teacher made or copied (its id and name are theirs).
+function analyticsGameLabel(room) {
+  return room && room.gameSource !== 'user' && !room.simulated ? room.gameId : 'custom';
+}
+
+// Once per room, whichever way it starts (Start pressed, or the first
+// join of a rolling room). A headcount and the activity label, no more.
+function trackActivityStarted(room) {
+  if (!room || room.simulated || room.analyticsStarted || !room.analyticsId) return;
+  room.analyticsStarted = true;
+  analytics.track('activity_started', {
+    game: analyticsGameLabel(room),
+    players: room.engine ? room.engine.players.list().length : 0
+  }, room.analyticsId);
+}
+
 const socketToRoom = new Map();
 const roomToHost = new Map();
 
@@ -1756,6 +1783,15 @@ async function handlePhase(code, room) {
   // at the START of the current phase). A finished game has nothing to restore.
   if (phase.type === 'end') {
     discardRoomSnapshot(code);
+    // A room restored from a snapshot has no analytics id: it sends
+    // nothing rather than a made-up one.
+    if (room.analyticsId && !room.simulated) {
+      analytics.track('activity_ended', {
+        game: analyticsGameLabel(room),
+        players: engine.players.list().length,
+        minutes: Math.max(0, Math.round((Date.now() - (room.createdAt || Date.now())) / 60_000))
+      }, room.analyticsId);
+    }
   } else {
     persistRoom(code, room);
   }
@@ -2491,6 +2527,26 @@ const feedbackStore = createFeedbackStore(
     : { filePath: join(__dirname, 'data', 'feedback.ndjson') }
 );
 const feedbackLimiter = createRateLimiter({ max: 5, windowMs: 60_000 });
+
+// Site analytics relay: teacher pages post {event, props, aid} here
+// (screens/shared/analytics.js). Always 204, whether or not analytics is
+// on and whether or not the event passed the allowlist: the page has
+// nothing to do with the answer, and a refused event is not an error a
+// visitor needs to hear about. Rate-limited per IP like feedback.
+const trackLimiter = createRateLimiter({ max: 120, windowMs: 60_000 });
+app.post('/api/track', express.json({ limit: '2kb' }), (req, res) => {
+  try {
+    if (analytics.enabled) {
+      const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+      const ip = forwarded || req.socket?.remoteAddress || 'unknown';
+      const parsed = trackLimiter.allow(ip) ? parseClientEvent(req.body) : null;
+      if (parsed) analytics.track(parsed.event, parsed.props, parsed.distinctId);
+    }
+  } catch (err) {
+    console.log(`[api/track] ${err.message}`);
+  }
+  res.status(204).end();
+});
 setInterval(() => feedbackLimiter.sweep(), 10 * 60_000);
 
 // Open to everyone — visitors are exactly who we want feedback from.
@@ -2508,6 +2564,8 @@ app.post('/api/feedback', async (req, res) => {
       return res.status(400).json({ error: checked.error });
     }
     const id = await feedbackStore.add(checked.cleaned);
+    // The category only; the message never leaves the inbox.
+    analytics.track('feedback_sent', { category: checked.cleaned.category }, 'site:feedback');
     res.json({ success: true, id });
   } catch (err) {
     console.log(`[api/feedback POST] Error: ${err.message}`);
@@ -3393,6 +3451,17 @@ io.on('connection', (socket) => {
       roomToHost.set(code, socket.id);
       socket.join(code);
       console.log(`[create-room] Room ${code} created by ${socket.id} (game: ${selectedGame})`);
+      // Analytics identity for this room: a random id, never the code, so
+      // the room's three events (created, started, ended) line up in
+      // PostHog without naming the room. Robot playtests send nothing.
+      if (!room.simulated) {
+        room.analyticsId = 'room:' + randomUUID();
+        analytics.track('room_created', {
+          game: analyticsGameLabel(room),
+          source: room.gameSource === 'user' ? 'custom' : 'built-in',
+          start: isRolling(config) ? 'rolling' : 'together'
+        }, room.analyticsId);
+      }
       socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin, hostToken: room.hostToken, start: config.start || 'together', language: room.engine.language, strings: stringsFor(room.engine.language) });
 
       // Rolling start: no lobby wait. The room opens straight into the
@@ -3611,6 +3680,7 @@ io.on('connection', (socket) => {
 
       // Rolling rooms never pass through Start, so the activity-run metric
       // fires on the first join instead (same fire-and-forget rule).
+      if (room.engine && isRolling(room.engine.config)) trackActivityStarted(room);
       if (DB_ENABLED && !room.simulated && !room.runRecorded && room.engine && isRolling(room.engine.config)) {
         room.runRecorded = true;
         recordActivityRun(room.gameId, room.engine.players.list().length)
@@ -3696,6 +3766,7 @@ io.on('connection', (socket) => {
         // Library-first metric: count activities RUN (once per room; never
         // simulated rooms; a game id + headcount + timestamp, nothing else).
         // Fire-and-forget — the class never waits on analytics.
+        trackActivityStarted(room);
         if (DB_ENABLED && !room.simulated && !room.runRecorded) {
           room.runRecorded = true;
           recordActivityRun(room.gameId, room.engine.players.list().length)

@@ -1,0 +1,176 @@
+/**
+ * Where analytics may and may not run (2026-09-13). Minors use the student
+ * screen and see the projector, so those pages load no analytics module at
+ * all, no page under screens/ ever names PostHog (the browser never talks
+ * to it; the server relays), and every event a page sends is one the
+ * server's allowlist names. The client module itself refuses to run on a
+ * student or projector path even if someone links it there.
+ */
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { readFile, readdir } from 'node:fs/promises';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ANALYTICS_EVENTS } from '../../services/analytics.js';
+
+const ROOT = new URL('../..', import.meta.url);
+const read = (p) => readFile(new URL(p, ROOT), 'utf8');
+
+const STUDENT_OR_PROJECTOR = [
+  'screens/player/index.html',
+  'screens/host/index.html',
+  'screens/teacher/index.html',
+  'screens/teacher/report.html'
+];
+
+const TEACHER_PAGES = [
+  'screens/home/index.html',
+  'screens/library/index.html',
+  'screens/make/index.html',
+  'screens/designer/index.html',
+  'screens/designer/editor.html',
+  'screens/prototype/index.html',
+  'screens/guide/index.html',
+  'screens/privacy/index.html'
+];
+
+async function walk(dir) {
+  const out = [];
+  for (const entry of await readdir(dir, { withFileTypes: true })) {
+    const p = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...await walk(p));
+    else if (/\.(js|html|css)$/.test(entry.name)) out.push(p);
+  }
+  return out;
+}
+
+describe('analytics surface', () => {
+  it('student, projector, and console pages load no analytics', async () => {
+    for (const page of STUDENT_OR_PROJECTOR) {
+      const html = await read(page);
+      expect(html, page).not.toContain('analytics.js');
+      expect(html.toLowerCase(), page).not.toContain('posthog');
+    }
+  });
+
+  it('teacher pages load the module', async () => {
+    for (const page of TEACHER_PAGES) {
+      const html = await read(page);
+      expect(html, page).toContain('/shared/analytics.js');
+    }
+  });
+
+  it('no screen file loads or addresses PostHog: the browser never talks to it', async () => {
+    const files = await walk(fileURLToPath(new URL('screens', ROOT)));
+    const vendor = /posthog\.(com|init|capture)|posthog-js|i\.posthog|posthog\.js/i;
+    for (const file of files) {
+      const text = await readFile(file, 'utf8');
+      expect(text, file).not.toMatch(vendor);
+    }
+  });
+
+  it('every event a screen sends is on the server allowlist', async () => {
+    const files = await walk(fileURLToPath(new URL('screens', ROOT)));
+    let seen = 0;
+    for (const file of files) {
+      const text = await readFile(file, 'utf8');
+      for (const m of text.matchAll(/Analytics\.track\(\s*['"]([^'"]+)['"]/g)) {
+        seen++;
+        expect(Object.keys(ANALYTICS_EVENTS), `${file}: ${m[1]}`).toContain(m[1]);
+      }
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+});
+
+describe('screens/shared/analytics.js', () => {
+  let sent;
+  let mints = 0;
+  function boot(pathname, extra = {}) {
+    sent = [];
+    const store = extra.store || {};
+    // Node exposes navigator, crypto, and localStorage as getters: define over them.
+    const def = (name, value) => Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
+    def('window', globalThis);
+    def('document', { addEventListener() {}, visibilityState: 'visible' });
+    def('location', { pathname, search: extra.search || '' });
+    def('navigator', {
+      doNotTrack: extra.dnt || null,
+      globalPrivacyControl: extra.gpc || false,
+      sendBeacon: (url, blob) => { sent.push({ url, blob }); return true; }
+    });
+    def('localStorage', {
+      getItem: (k) => (k in store ? store[k] : null),
+      setItem: (k, v) => { store[k] = String(v); }
+    });
+    // Deterministic but different on every mint, so a kept id is provably the stored one
+    def('crypto', { getRandomValues: (a) => { mints++; for (let i = 0; i < a.length; i++) a[i] = (i * 37 + mints) & 255; return a; } });
+    delete globalThis.Analytics;
+    vi.resetModules();
+    return import('../../screens/shared/analytics.js');
+  }
+
+  async function bodyOf(entry) {
+    return JSON.parse(await entry.blob.text());
+  }
+
+  beforeEach(() => { sent = []; });
+
+  it('refuses to run on the student, projector, or console paths', async () => {
+    for (const path of ['/player', '/player/', '/host', '/host/index.html', '/teacher', '/teacher/report']) {
+      await boot(path);
+      expect(globalThis.Analytics.enabled, path).toBe(false);
+      globalThis.Analytics.track('page_viewed', { path });
+      expect(sent, path).toHaveLength(0);
+    }
+  });
+
+  it('sends one page view on a teacher page with only the path and the entry point', async () => {
+    await boot('/make', { search: '?game=exit-ticket&from=home' });
+    expect(globalThis.Analytics.enabled).toBe(true);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].url).toBe('/api/track');
+    const body = await bodyOf(sent[0]);
+    expect(body.event).toBe('page_viewed');
+    expect(body.props).toEqual({ path: '/make', from: 'home' });
+    expect(body.aid).toMatch(/^[a-f0-9]{16,32}$/);
+    expect(JSON.stringify(body)).not.toContain('exit-ticket');
+  });
+
+  it('keeps one browser id across loads and never mints one from anything personal', async () => {
+    const store = {};
+    await boot('/guide', { store });
+    const first = (await bodyOf(sent[0])).aid;
+    expect(store['jamyard.aid']).toBe(first);
+    await boot('/privacy', { store });
+    expect((await bodyOf(sent[0])).aid).toBe(first);
+    // A stored value that is not one of ours (someone edited storage) is replaced, never sent
+    store['jamyard.aid'] = 'rivera@school.org';
+    await boot('/privacy', { store });
+    const replaced = (await bodyOf(sent[0])).aid;
+    expect(replaced).toMatch(/^[a-f0-9]{16,32}$/);
+    expect(replaced).not.toBe(first);
+    // And a fresh browser gets its own
+    await boot('/privacy', { store: {} });
+    expect((await bodyOf(sent[0])).aid).not.toBe(replaced);
+  });
+
+  it('honors Do Not Track and Global Privacy Control', async () => {
+    await boot('/', { dnt: '1' });
+    expect(globalThis.Analytics.enabled).toBe(false);
+    expect(sent).toHaveLength(0);
+    await boot('/', { gpc: true });
+    expect(globalThis.Analytics.enabled).toBe(false);
+    expect(sent).toHaveLength(0);
+  });
+
+  it('track() posts a named event and never throws when the browser cannot send', async () => {
+    await boot('/make');
+    globalThis.Analytics.track('activity_opened', { dest: 'host', page: 'make', edited: false });
+    expect(sent).toHaveLength(2);
+    expect((await bodyOf(sent[1])).event).toBe('activity_opened');
+    globalThis.navigator.sendBeacon = () => { throw new Error('blocked'); };
+    globalThis.fetch = undefined;
+    expect(() => globalThis.Analytics.track('activity_opened', { dest: 'try' })).not.toThrow();
+  });
+});
