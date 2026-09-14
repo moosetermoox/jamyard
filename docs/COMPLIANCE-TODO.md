@@ -162,9 +162,28 @@ Owner to-do in the PostHog project itself (none of this is in code):
       derive country and region; this setting is what makes PostHog drop
       the address after the lookup. The privacy page promises exactly
       that. Room events and the feedback event carry no address.
-- [ ] **Session replay OFF**, **autocapture / heatmaps / surveys OFF**,
-      **web analytics domains** empty (no snippet exists, but leave the
-      project unable to accept one by accident).
+- [ ] **Session replay ON, fenced** (owner's call 2026-09-13, same day):
+      `screens/shared/replay.js` is the ONE PostHog script in a browser,
+      on six teacher authoring pages (home, library console, make,
+      Create, editor, guide), never the student screen, the projector,
+      the console or its report, Try it out, or inside a frame
+      (`tests/screens/replay-surface.test.js`). In the SDK: autocapture,
+      page views, heatmaps, dead clicks, exceptions, performance,
+      surveys, experiments all off; localStorage persistence (no cookie);
+      `respect_dnt`; every input masked, contenteditable boxes, the Ask AI
+      log, and the teacher's shelf masked, every iframe blocked, URLs
+      recorded without their query. Defensible because those pages carry
+      no student content (teacher-save purity, § 49073.1). In the project:
+      **Settings → Session replay → "Record user sessions" ON** (nothing
+      records until then), **"Mask all input fields" ON** and "Mask all
+      text" left as the SDK's selectors, **"Capture console logs" OFF**,
+      **"Record network performance" OFF**, **canvas recording OFF**,
+      **replay retention** at the shortest tier (the privacy page promises
+      "the shortest period the service allows"). `POSTHOG_REPLAY=0` on
+      Render switches recording off without touching events.
+- [ ] **Autocapture / heatmaps / surveys OFF** in the project too, and
+      **web analytics domains** empty (the SDK config already refuses
+      them; the project should not offer them either).
 - [ ] **Data retention** set to the shortest tier the plan allows; note
       it in the privacy page's row.
 - [ ] **Team access**: owner only. No public dashboards, no shared links.

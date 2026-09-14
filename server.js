@@ -115,7 +115,7 @@ import { validateSuggestions } from './engine/suggest-validate.js';
 import { createFeedbackStore } from './services/feedback-store.js';
 import { validateFeedback } from './engine/feedback-validate.js';
 import { createRateLimiter } from './engine/simple-rate-limit.js';
-import { createAnalytics, parseClientEvent } from './services/analytics.js';
+import { createAnalytics, parseClientEvent, replayConfig } from './services/analytics.js';
 import { mintCopyId, prepareSharedCopy } from './engine/share-copy.js';
 import { ensureMeadowState, meadowIndexFor, allowNudge, clampFrac } from './engine/meadow-sync.js';
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
@@ -2533,6 +2533,17 @@ const feedbackLimiter = createRateLimiter({ max: 5, windowMs: 60_000 });
 // on and whether or not the event passed the allowlist: the page has
 // nothing to do with the answer, and a refused event is not an error a
 // visitor needs to hear about. Rate-limited per IP like feedback.
+// Session replay config for the six teacher authoring pages
+// (screens/shared/replay.js): the project token and hosts, or null when
+// replay is off (no POSTHOG_KEY, or POSTHOG_REPLAY=0). The token is
+// public by design; nothing else about the project leaves the server.
+const REPLAY = replayConfig({ key: process.env.POSTHOG_KEY, host: process.env.POSTHOG_HOST, replay: process.env.POSTHOG_REPLAY });
+console.log(`[init] Session replay: ${REPLAY ? 'on (teacher authoring pages only)' : 'off'}`);
+app.get('/api/analytics-config', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ replay: REPLAY });
+});
+
 const trackLimiter = createRateLimiter({ max: 120, windowMs: 60_000 });
 app.post('/api/track', express.json({ limit: '2kb' }), (req, res) => {
   try {

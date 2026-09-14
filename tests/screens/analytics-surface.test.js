@@ -60,13 +60,18 @@ describe('analytics surface', () => {
     }
   });
 
-  it('no screen file loads or addresses PostHog: the browser never talks to it', async () => {
+  it('no screen file but replay.js loads or addresses PostHog: events never come from a browser', async () => {
     const files = await walk(fileURLToPath(new URL('screens', ROOT)));
     const vendor = /posthog\.(com|init|capture)|posthog-js|i\.posthog|posthog\.js/i;
+    let exempt = 0;
     for (const file of files) {
       const text = await readFile(file, 'utf8');
+      // Session replay (2026-09-13) is the one script that talks to
+      // PostHog, fenced by tests/screens/replay-surface.test.js
+      if (/[\\/]shared[\\/]replay\.js$/.test(file)) { exempt++; continue; }
       expect(text, file).not.toMatch(vendor);
     }
+    expect(exempt).toBe(1);
   });
 
   it('every event a screen sends is on the server allowlist', async () => {
