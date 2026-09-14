@@ -544,8 +544,8 @@ async function init() {
     var backLink = document.querySelector('.back-link');
     if (backLink) {
       backLink.href = gameId
-        ? '/library?highlight=' + encodeURIComponent(gameId)
-        : '/library';
+        ? '/?highlight=' + encodeURIComponent(gameId) + '#yard'
+        : '/#yard';
       backLink.textContent = '← Back to the yard';
     }
     maybeShowPlanIntro();

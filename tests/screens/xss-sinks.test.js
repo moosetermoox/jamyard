@@ -46,7 +46,8 @@ const FILES = [
   'screens/shared/rich-text.js',
   'screens/shared/speech-input.js',
   'screens/shared/meadow.js',
-  'screens/library/library.js'
+  'screens/library/library.js',
+  'screens/shared/my-yard.js'
 ];
 
 // Escapers, and helpers verified (2026-07-19) to escape their args internally.

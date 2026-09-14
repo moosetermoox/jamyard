@@ -1,0 +1,277 @@
+/* my-yard.css — the teacher's own shelf on the yard, and its popup.
+   Pair with /shared/my-yard.js; needs /shared/yard-prints.css first (the
+   shelf row IS a .yard-grid: same columns, same paper, one visual). */
+
+.myyard-section { margin-top: 64px; }
+.myyard-section[hidden] { display: none; }
+/* When the shelf shows, the yard under it sits closer */
+.myyard-section:not([hidden]) + .yard { margin-top: 30px; }
+
+/* ── The shelf: prints on one long board, MY YARD painted under it ── */
+.myyard-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+
+.myyard {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+}
+
+.myyard-row {
+  width: 100%;
+  padding: 6px 0 12px;
+}
+
+.myyard-board {
+  width: 100%;
+  height: 14px;
+  background: var(--t-base, #8F6438);
+  background-image: var(--t-grain);
+  box-shadow: 5px 8px 0 rgba(80, 60, 30, 0.14);
+}
+
+/* The heading row: "My yard" like "The yard" under it (the page's own h2
+   rule), the copies note beside it */
+.myyard-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 12px 0;
+}
+
+.myyard-note {
+  margin: 0;
+  max-width: 520px;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  font-size: 12px;
+  color: var(--t-muted-caps, #8A7B62);
+}
+
+.myyard-wrap .shed-toggle { align-self: flex-start; }
+
+/* ── The shed: put-away activities behind one quiet line ── */
+.shed-toggle {
+  border: none;
+  background: none;
+  cursor: pointer;
+  margin-top: 8px;
+  padding: 4px 10px;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t-muted, #6B6250);
+  box-shadow: none;
+}
+
+.shed-toggle:hover,
+.shed-toggle:focus-visible { color: var(--t-ink, #2A2620); }
+
+.shed-row {
+  margin-top: 6px;
+  opacity: 0.7;
+}
+
+/* ── One shelf item: the print with a row of tiny tools ON it (play,
+   pen, heart, bin) in a taller bottom margin of the paper under the
+   picture: 24px paper squares with drawn marks, the same shape as the
+   projector's corner tools. The wrapper carries the card's tilt (the
+   card's own --rot is zeroed) so the tools turn and lift with the paper. */
+.shelf-item {
+  position: relative;
+  min-width: 0;
+  transform: rotate(var(--rot, 0deg));
+}
+
+/* The card is a button, and a button's auto width is its content, not its
+   parent (the main grid stretches it, this wrapper must say so): a long
+   name once made a print 1978px wide and the shelf overlapped itself. */
+.shelf-item .yard-card { width: 100%; }
+
+.shelf-item .yard-print { padding-bottom: 40px; }
+
+.shelf-tools {
+  position: absolute;
+  top: 143px; /* 7px paper + 128px picture + 8px */
+  left: 14px;
+  display: flex;
+  gap: 5px;
+  transition: transform var(--t-quick, 120ms) var(--t-ease, ease);
+}
+
+.shelf-item:has(.yard-card:hover) .shelf-tools { transform: translateY(-5px); }
+
+.shelf-tool {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--t-paper, #FDF9F0);
+  color: var(--t-ink, #2A2620);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.22);
+  cursor: pointer;
+  text-decoration: none;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shelf-tool-play { --rot: -1deg; }
+.shelf-tool-pen { --rot: 0.8deg; }
+.shelf-tool-heart { --rot: -0.6deg; }
+.shelf-tool-bin { --rot: 1deg; }
+
+.shelf-tool:hover,
+.shelf-tool:focus-visible { transform: rotate(var(--rot, 0deg)) translateY(-3px); }
+.shelf-tool:focus-visible { outline: 3px solid var(--t-ink, #2A2620); outline-offset: 2px; }
+
+.shelf-tool-heart[aria-pressed="true"] { color: var(--t-red, #D8321C); }
+.shelf-tool-heart[aria-pressed="true"] path { fill: currentColor; }
+.shelf-tool-bin:hover { color: var(--t-red-text, #B02D12); }
+
+/* ── The popup: what it is, the map, then the doors ── */
+.myyard-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(50, 35, 15, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 20px;
+}
+
+.myyard-dialog {
+  position: relative;
+  width: min(460px, 94vw);
+  background: var(--t-paper, #FDF9F0);
+  box-shadow: 0 4px 8px rgba(50, 35, 15, 0.3);
+  transform: rotate(-0.3deg);
+  padding: 24px 26px 22px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+.myyard-dialog .dialog-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: none;
+  background: none;
+  font-size: 1rem;
+  cursor: pointer;
+  color: var(--t-muted-caps, #8A7B62);
+  box-shadow: none;
+}
+
+.myyard-dialog .dialog-close-btn:hover { color: var(--t-ink, #2A2620); }
+
+.myyard-dialog-name {
+  display: inline-block;
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 24px;
+  line-height: 1.1;
+  color: var(--t-paper, #FDF9F0);
+  background: var(--t-magenta, #B0197E);
+  padding: 3px 14px 7px;
+  transform: rotate(-1.2deg);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.28);
+  margin: 0 44px 12px 0;
+}
+
+.myyard-dialog-meta {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--t-muted-caps, #8A7B62);
+  margin-bottom: 10px;
+}
+
+.myyard-dialog-desc {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.55;
+  color: var(--t-ink, #2A2620);
+}
+
+/* The doors: painted pieces, one red */
+.myyard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 18px;
+  align-items: center;
+}
+
+.myyard-act {
+  border: none;
+  text-decoration: none;
+  background: var(--t-paper, #FDF9F0);
+  color: var(--t-ink, #2A2620);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20);
+  padding: 8px 14px 9px;
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transform: rotate(var(--rot, 0deg));
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.myyard-act:hover {
+  transform: rotate(var(--rot, 0deg)) translateY(-4px);
+  color: var(--t-ink, #2A2620);
+}
+
+.myyard-act-red {
+  background: var(--t-red, #E5482B);
+  color: var(--t-paper, #FDF9F0);
+  --rot: -0.8deg;
+  clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
+  font-size: 14px;
+  padding: 10px 18px 12px;
+}
+
+.myyard-act-red:hover { color: var(--t-paper, #FDF9F0); }
+
+.myyard-act-fav {
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  font-size: 15px;
+  line-height: 1;
+  padding: 7px 11px;
+}
+
+.myyard-act-fav.is-fav {
+  background: var(--t-yellow, #FFC800);
+  background-image: var(--t-grain);
+  color: var(--t-ink, #2A2620);
+}
+
+.myyard-act-quiet {
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--t-muted, #6B6250);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.16);
+}
+
+.myyard-act-quiet:hover { color: var(--t-ink, #2A2620); }
+
+.myyard-act-delete { margin-left: auto; }
+
+@media (prefers-reduced-motion: reduce) {
+  .shelf-tool, .shelf-tools, .myyard-act { transition: none; }
+}

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>The Yard - Jamyard</title>
+  <title>Owner curation - Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <!-- Totem system (docs/design/totem/): this stylesheet is
        standalone, the library no longer borrows the designer's look. -->
@@ -11,8 +11,6 @@
   <link rel="stylesheet" href="/shared/activity-map.css">
   <link rel="stylesheet" href="/shared/hover-card.css">
   <link rel="stylesheet" href="/shared/yard-prints.css">
-  <link rel="stylesheet" href="/shared/make-it-yours-doors.css">
-  <link rel="stylesheet" href="/shared/make-it-yours.css">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -28,13 +26,12 @@
     <main>
       <section id="library-section">
         <h1 class="spoken">What do you want to do <span class="t-painted-word">together</span>?</h1>
-        <div id="teacher-setup"></div>
         <div id="library-controls" hidden>
-          <input type="search" id="library-search" placeholder="Search the yard…"
-                 aria-label="Search the yard">
+          <input type="search" id="library-search" placeholder="Search every activity…"
+                 aria-label="Search every activity">
           <div id="goal-chips" role="group" aria-label="Filter by goal"></div>
         </div>
-        <p id="loading-message">Loading the yard…</p>
+        <p id="loading-message">Loading…</p>
         <p id="error-message" hidden></p>
         <div id="library-grid"></div>
 
@@ -52,19 +49,14 @@
   <script src="/shared/phase-names.js"></script>
   <script src="/shared/activity-map.js"></script>
   <script src="/shared/hover-card.js"></script>
-  <script src="/shared/make-it-yours-doors.js"></script>
   <script src="/shared/game-visibility.js"></script>
   <script src="/shared/goal-groups.js"></script>
   <script src="/shared/yard-prints.js"></script>
   <script src="/shared/activity-prefs.js"></script>
   <script src="/shared/my-games.js"></script>
   <script src="/shared/owner-mode.js"></script>
-  <script src="/shared/teacher-profile.js"></script>
   <script src="/shared/feedback-widget.js"></script>
   <script src="/shared/speech-input.js"></script>
-  <script src="/shared/setup-knobs.js"></script>
-  <script src="/shared/growing-text.js"></script>
-  <script src="/shared/make-it-yours.js"></script>
   <script src="/shared/host-launch.js"></script>
   <script src="library.js"></script>
 </body>

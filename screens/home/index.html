@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="/shared/activity-map.css">
   <link rel="stylesheet" href="/shared/hover-card.css">
   <link rel="stylesheet" href="/shared/yard-prints.css">
+  <link rel="stylesheet" href="/shared/my-yard.css">
   <style>
     /* ══ Totem system (docs/design/totem/), home 15b (2026-09-10) ══
        The fold asks what the class needs and answers with four planks, one
@@ -377,6 +378,48 @@
     }
 
     .yard-grid { min-height: 220px; }
+
+    /* The search beside the chips: a sanded plank with a pencil line */
+    .yard-tools {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .yard-search {
+      width: 200px;
+      border: none;
+      background: var(--t-sanded);
+      background-image: var(--t-grain);
+      border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+      padding: 8px 12px 7px;
+      font-family: var(--t-body);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--t-ink);
+      transform: rotate(0.4deg);
+    }
+
+    .yard-search::placeholder { color: #8A7455; font-weight: 500; }
+    .yard-search:focus { outline: none; box-shadow: inset 0 0 0 3px var(--t-ink); }
+
+    /* A search that matches nothing shows everything, and says so */
+    .yard-note {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--t-muted);
+    }
+    .yard-note[hidden] { display: none; }
+
+    /* Where a deep link lands (the editor's way back): flash, then hold */
+    .yard-card-highlight {
+      outline: 3px solid var(--t-ink);
+      outline-offset: 4px;
+      animation: yard-flash 1.1s steps(2, end) 2;
+    }
+    @keyframes yard-flash { 50% { outline-color: rgba(42, 38, 32, 0.15); } }
+    @media (prefers-reduced-motion: reduce) { .yard-card-highlight { animation: none; } }
 
     /* ── See one on the projector: the frame, the side, the pager ── */
     .stage {
@@ -905,7 +948,7 @@
             <span class="caps">On their screens</span>
             <div class="screens-row" id="screens-row"></div>
           </div>
-          <a class="stage-start t-lift t-label" id="carousel-start" href="/library">Pick this one</a>
+          <a class="stage-start t-lift t-label" id="carousel-start" href="#yard">Pick this one</a>
         </div>
       </div>
       <div class="stage-pager">
@@ -915,14 +958,25 @@
       </div>
     </section>
 
-    <!-- The whole yard: every ready-made activity, shortest first; the chip
-         row is the planks at pocket size and sticks to the top. The last
-         tile is the AI door. Hidden until the list loads. -->
-    <section class="yard" id="yard" hidden aria-label="The whole yard">
+    <!-- My yard: your copies, hearts, and recently used activities as
+         prints on a board, tools on each (shared/my-yard.js). Hidden until
+         there is something on it. -->
+    <section class="myyard-section" id="my-yard" hidden aria-label="My yard"></section>
+
+    <!-- The yard: every ready-made activity, shortest first; the chip row
+         is the planks at pocket size and sticks to the top, the search
+         sits beside it. The last tile is the AI door. Hidden until the
+         list loads. This is THE yard (one yard, 2026-09-13): the old yard
+         page is the owner's curation console now. -->
+    <section class="yard" id="yard" hidden aria-label="The yard">
       <div class="yard-head">
-        <h2>The whole yard</h2>
-        <div class="yard-chips" id="yard-chips" role="group" aria-label="Show activities for"></div>
+        <h2>The yard</h2>
+        <div class="yard-tools">
+          <input type="search" id="yard-search" class="yard-search" placeholder="Search the yard…" aria-label="Search the yard" autocomplete="off" spellcheck="false">
+          <div class="yard-chips" id="yard-chips" role="group" aria-label="Show activities for"></div>
+        </div>
       </div>
+      <p class="yard-note" id="yard-note" hidden></p>
       <div class="yard-grid" id="yard-grid"></div>
     </section>
 
@@ -944,6 +998,10 @@
   <script src="/shared/activity-map.js"></script>
   <script src="/shared/hover-card.js"></script>
   <script src="/shared/yard-prints.js"></script>
+  <script src="/shared/activity-prefs.js"></script>
+  <script src="/shared/owner-mode.js"></script>
+  <script src="/shared/host-launch.js"></script>
+  <script src="/shared/my-yard.js"></script>
   <script>
     // ── The planks, the projector, and the yard: all three read the same
     //    list the yard page shows (featured built-ins + this device's own). ──
@@ -952,6 +1010,9 @@
       var yardEl = document.getElementById('yard');
       var chipsEl = document.getElementById('yard-chips');
       var gridEl = document.getElementById('yard-grid');
+      var myYardEl = document.getElementById('my-yard');
+      var searchEl = document.getElementById('yard-search');
+      var noteEl = document.getElementById('yard-note');
       var stageEl = document.getElementById('stage');
       var frameEl = document.getElementById('frame');
       var sideEl = document.getElementById('stage-side');
@@ -1059,14 +1120,119 @@
         Dialog.enhance(overlay, modal, { title: g.name, onClose: startRotation });
       }
 
-      // ── The yard grid: the shared prints, filtered by the picked job ──
+      // ── The search: names, descriptions, hooks, and tags, typed in the
+      //    yard's head. Nothing matching is our failure to explain (every
+      //    activity takes any topic), so the grid shows everything with an
+      //    honest line instead of a dead end. ──
+      var query = '';
+      function matchesQuery(g) {
+        if (!query) return true;
+        var hay = (g.name + ' ' + (g.description || '') + ' ' + (g.hook || '') + ' ' +
+          (Array.isArray(g.tags) ? g.tags.join(' ') : '') + ' ' +
+          (Array.isArray(g.keywords) ? g.keywords.join(' ') : '')).toLowerCase();
+        return hay.indexOf(query) !== -1;
+      }
+      searchEl.addEventListener('input', function () {
+        query = searchEl.value.trim().toLowerCase();
+        renderGrid();
+      });
+
+      // ── My yard, then the yard: your copies, hearts, and recently used
+      //    on the shelf above (shared/my-yard.js), the rest in the grid
+      //    below, each activity in exactly one place, both narrowed by
+      //    the picked job and the search. ──
+      function byGoal(g) { return activeGoal === null || groupOf(g) === activeGoal; }
+
       function renderGrid() {
-        var pool = games.filter(function (g) { return activeGoal === null || groupOf(g) === activeGoal; });
+        if (window.HoverCard) HoverCard.hide();
+        var parts = window.MyYard ? MyYard.split(games, { query: query }) : { mine: [], shed: [], rest: games };
+        var mine = parts.mine.filter(byGoal).filter(matchesQuery);
+        var shed = parts.shed.filter(byGoal).filter(matchesQuery);
+        myYardEl.textContent = '';
+        var shelf = window.MyYard ? MyYard.buildShelf(mine, shed, { onOpen: openShelfPopup, onChange: onShelfChange }) : null;
+        if (shelf) myYardEl.appendChild(shelf);
+        myYardEl.hidden = !shelf;
+
+        // The rescue only when NOTHING matched, shelf included: a search
+        // that found the teacher's own activity must not say "nothing
+        // mentions" under it (owner, 2026-09-13)
+        var pool = parts.rest.filter(byGoal).filter(matchesQuery);
+        var shelfHit = mine.length + shed.length > 0;
+        var rescued = false;
+        if (pool.length === 0 && query && !shelfHit) {
+          pool = parts.rest.filter(byGoal);
+          rescued = pool.length > 0;
+        }
+        noteEl.hidden = !rescued;
+        noteEl.textContent = rescued
+          ? 'Nothing mentions "' + query + '", and that is okay: every activity takes any topic. Here is the whole yard.'
+          : '';
         YardPrints.buildGrid(gridEl, pool, {
           href: makeHref,
           onClick: showActivityPopup,
-          empty: 'Nothing on this shelf yet. The AI can make one.'
+          empty: query
+            ? 'Nothing else mentions "' + query + '".'
+            : 'Nothing on this shelf yet. The AI can make one.'
         });
+      }
+
+      // Every "back to the yard" link lands on /#yard, but the section is
+      // hidden until the list loads, so the browser's own anchor jump
+      // finds nothing and the page sits at the top (owner, 2026-09-13).
+      // Jump once the list is in: to the shelf when there is one (your
+      // things first), else the yard.
+      function settleHash() {
+        var hash = window.location.hash;
+        if (hash !== '#yard' && hash !== '#my-yard') return;
+        var target = (hash === '#yard' && !myYardEl.hidden) ? myYardEl : document.getElementById(hash.slice(1));
+        if (target) target.scrollIntoView({ block: 'start' });
+      }
+
+      function openShelfPopup(g) {
+        clearInterval(timer); // hold the carousel while reading
+        MyYard.openDialog(g, { onChange: onShelfChange, onClose: startRotation });
+      }
+
+      function onShelfChange(change) {
+        if (change && change.removedId) {
+          games = games.filter(function (g) { return g.id !== change.removedId; });
+        }
+        renderGrid();
+      }
+
+      // ── Deep links: ?about=<id> opens the popup (a built-in's share link
+      //    lands here), ?highlight=<id> scrolls to the print and flashes it
+      //    (the editor's way back), ?q= starts a search. Stripped, so a
+      //    refresh lands on the plain page. ──
+      function handleDeepLinks() {
+        var params;
+        try { params = new URLSearchParams(window.location.search); } catch (e) { return; }
+        var about = params.get('about');
+        var highlight = params.get('highlight');
+        var q = params.get('q');
+        if (!about && !highlight && !q) return;
+        ['about', 'highlight', 'q'].forEach(function (k) { params.delete(k); });
+        try {
+          window.history.replaceState(null, '', window.location.pathname +
+            (params.toString() ? '?' + params.toString() : '') + '#yard');
+        } catch (e) { /* old browser */ }
+        if (q) {
+          searchEl.value = q;
+          query = q.trim().toLowerCase();
+          renderGrid();
+        }
+        var found = null;
+        for (var i = 0; i < games.length; i++) if (games[i].id === about) found = games[i];
+        yardEl.scrollIntoView({ block: 'start' });
+        if (found) {
+          if (window.MyYard && MyYard.onShelf(found)) openShelfPopup(found); else showActivityPopup(found);
+          return;
+        }
+        var target = highlight && document.querySelector('.yard-card[data-game-id="' + CSS.escape(highlight) + '"]');
+        if (target) {
+          target.scrollIntoView({ block: 'center' });
+          target.classList.add('yard-card-highlight');
+        }
       }
 
       // ── The projector: the drawn frame, the side, the pager ──
@@ -1216,6 +1382,8 @@
           // Reading it? Hold still.
           stageEl.addEventListener('mouseenter', function () { clearInterval(timer); });
           stageEl.addEventListener('mouseleave', startRotation);
+          settleHash();
+          handleDeepLinks();
         })
         .catch(function () { /* the yard is the page; a failed list leaves the fold and the AI door */ });
     })();
