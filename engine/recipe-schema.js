@@ -90,11 +90,20 @@ export const RECIPE_PARAM_TYPES = new Set([
  * @property {string} [placeholder]
  * @property {boolean} [required]
  * @property {*} [default]
- * @property {boolean|{mode:'count', label?:string}} [setup]
- *   Marks the param as a Customize-dialog knob (library setup mode).
+ * @property {boolean|{mode:'count'|'lines'|'text', label?:string, showWhen?:string, writes?:object}} [setup]
+ *   Marks the param as a Make it yours knob (setup mode).
  *   `true` on integer/boolean/enum shows the param's normal widget;
  *   `{mode:"count"}` on an array shows a how-many stepper that slices
- *   the stamped array to the first N at recompile time.
+ *   the stamped array to the first N at recompile time; `lines` edits an
+ *   array one item per line; `text` is a short free-text box. `showWhen:
+ *   "other=value"` (or "other=a|b") hides the knob until the other knob
+ *   holds one of those values. `writes: {list, count?, button?, then?}` on
+ *   a text knob adds a button that asks the AI to write `count` items on
+ *   that topic into the `list` knob (Doodle Bluff's phrases), and `then`
+ *   is the params to set at compile time once that list has content
+ *   (the list becomes the teacher's).
+ * @property {Object<string,string>} [valueHelp]  enum: one helper line per
+ *   value; the knob shows the line for the value picked, not all at once.
  *
  * Type-specific:
  * @property {number} [min]               integer
@@ -300,6 +309,24 @@ function validateParamSpec(paramName, spec) {
         source: 'validator'
       }));
     }
+    // valueHelp: a helper line per value, keys drawn from values only
+    if (spec.valueHelp != null) {
+      const vh = spec.valueHelp;
+      const values = Array.isArray(spec.values) ? spec.values.map(String) : [];
+      const problem = (vh && typeof vh === 'object' && !Array.isArray(vh))
+        ? Object.keys(vh).find((k) => !values.includes(k) || typeof vh[k] !== 'string')
+        : '(not an object)';
+      if (problem !== undefined) {
+        diags.push(mkDiagnostic({
+          severity: 'error',
+          code: RECIPE_DIAGNOSTIC_CODES.RECIPE_INVALID_PARAM_SPEC,
+          path: path(where, 'valueHelp'),
+          field: paramName,
+          message: `Enum parameter "${paramName}": valueHelp must map each of its values to a string (problem at "${problem}").`,
+          source: 'validator'
+        }));
+      }
+    }
   }
 
   if (spec.type === 'array') {
@@ -383,7 +410,19 @@ function validateSetupFlag(paramName, spec, where) {
       return bad(`Parameter "${paramName}": setup.label must be a string.`);
     }
     if (spec.setup.showWhen != null && !/^\s*[A-Za-z_][\w-]*\s*=\s*.+$/.test(String(spec.setup.showWhen))) {
-      return bad(`Parameter "${paramName}": setup.showWhen must look like "otherParam=value".`);
+      return bad(`Parameter "${paramName}": setup.showWhen must look like "otherParam=value" (or "otherParam=a|b").`);
+    }
+    // writes: a text knob's "ask the AI to write the list" button
+    if (spec.setup.writes != null) {
+      const w = spec.setup.writes;
+      const ok = mode === 'text' && w && typeof w === 'object' && !Array.isArray(w) &&
+        typeof w.list === 'string' && w.list.trim() !== '' &&
+        (w.count == null || (Number.isInteger(w.count) && w.count >= 1 && w.count <= 100)) &&
+        (w.button == null || typeof w.button === 'string') &&
+        (w.then == null || (typeof w.then === 'object' && !Array.isArray(w.then)));
+      if (!ok) {
+        return bad(`Parameter "${paramName}": setup.writes must be {"list": "<array param>", "count"?: 1-100, "button"?: string, "then"?: {param: value}} on a text knob.`);
+      }
     }
     return [];
   }

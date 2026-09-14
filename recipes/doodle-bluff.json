@@ -9,10 +9,19 @@
     "phraseSource": {
       "type": "enum",
       "label": "Who writes the phrases?",
-      "helper": "students: each writes one and draws a classmate's; the writer and the drawer both sit out that drawing's round, so it wants 8 or more players. teacher: you type the list below. ai: the AI writes one per student on a topic you give. With teacher or ai, only the drawer sits out, any class size works.",
-      "values": ["students", "teacher", "ai"],
+      "helper": "Pick one; the line under it says what happens.",
+      "values": [
+        "students",
+        "teacher",
+        "ai"
+      ],
       "default": "students",
-      "setup": true
+      "setup": true,
+      "valueHelp": {
+        "students": "Each student writes one phrase and draws a classmate's. The writer and the drawer both sit out that drawing's round, so it wants 8 or more players.",
+        "teacher": "You type the list below, one per line. Each student is handed one at random; only the drawer sits out, so any class size works.",
+        "ai": "The AI writes 36 phrases about your topic right here, so you can read and change them before class. Only the drawer sits out, so any class size works. Leave the list empty and the AI writes one per student when the room opens instead."
+      }
     },
     "phrasePrompt": {
       "type": "templateString",
@@ -26,9 +35,14 @@
     "phrases": {
       "type": "array",
       "label": "Your phrases, one per line",
-      "helper": "Each student is handed one at random. Bring at least as many phrases as students: a shorter list repeats, and anyone handed the same phrase as the drawing on screen sits that round out. Vocabulary, concepts from the unit, or anything silly.",
-      "item": { "type": "string" },
-      "setup": { "mode": "lines", "showWhen": "phraseSource=teacher" },
+      "helper": "Each student is handed one at random. Bring at least as many phrases as students, 36 covers most classes: a shorter list repeats, and anyone handed the same phrase as the drawing on screen sits that round out. Vocabulary, concepts from the unit, or anything silly.",
+      "item": {
+        "type": "string"
+      },
+      "setup": {
+        "mode": "lines",
+        "showWhen": "phraseSource=teacher|ai"
+      },
       "default": [
         "A nervous volcano on its first day of school",
         "A giraffe learning to skateboard",
@@ -53,14 +67,37 @@
         "A bicycle made of noodles",
         "A hedgehog stuck in a hammock",
         "The last slice of pizza escaping",
-        "A shark at the dentist"
+        "A shark at the dentist",
+        "A snail late for the bus",
+        "A knight afraid of butterflies",
+        "An astronaut walking a goldfish",
+        "A pirate at a tea party",
+        "A tornado trying to knit",
+        "Bees running a bakery",
+        "A very polite bear at the library",
+        "A whale learning to ride a bicycle",
+        "A wizard whose hat blew away",
+        "A pumpkin lifting weights at the gym",
+        "Penguins building a sandcastle",
+        "A robot afraid of a toaster"
       ]
     },
     "aiTopic": {
       "type": "string",
       "label": "What should the AI's phrases be about?",
-      "helper": "A topic or a mood: \"the water cycle\", \"Ancient Rome, but silly\", \"things that happen in a cafeteria\". One phrase per student, all different, all drawable.",
-      "setup": { "mode": "text", "showWhen": "phraseSource=ai" },
+      "helper": "A topic or a mood: \"the water cycle\", \"Ancient Rome, but silly\", \"things that happen in a cafeteria\". The AI writes the phrases into the list above; change any of them.",
+      "setup": {
+        "mode": "text",
+        "showWhen": "phraseSource=ai",
+        "writes": {
+          "list": "phrases",
+          "count": 36,
+          "button": "Write the phrases",
+          "then": {
+            "phraseSource": "teacher"
+          }
+        }
+      },
       "default": "strange, funny, drawable scenes, like a nervous volcano on its first day of school",
       "maxLength": 200
     },

@@ -50,7 +50,9 @@
     fitNote: document.getElementById('fit-note'),
     mapHolder: document.getElementById('map-holder'),
     pairsSection: document.getElementById('pairs-section'),
-    pairsHolder: document.getElementById('pairs-holder')
+    pairsHolder: document.getElementById('pairs-holder'),
+    talkSection: document.getElementById('talk-section'),
+    talkHolder: document.getElementById('talk-holder')
   };
 
   // Where "back" goes: the door the teacher came through
@@ -281,6 +283,8 @@
 
     // A matching activity's pairs, editable (a recipe panel owns its own)
     if (!state.panel) mountPairs(print.pairs);
+    // A talk-only activity's questions, tier by tier, folded
+    mountTalk(print.talk);
 
     if (typeof print.timer === 'number') {
       el.timerRow.hidden = false;
@@ -741,6 +745,32 @@
       var extra = print.pairs.slice(known).map(function (round) { return round.pairs; });
       mountPairs(merged, extra.length ? extra : newRoundsValue().map(function (r) { return r.pairs; }));
     }
+  }
+
+  // --- The questions of a talk-only activity (Closer), tier by tier,
+  // inside one fold: read only, the steps stay the designer's.
+  function mountTalk(tiers) {
+    if (!el.talkSection) return;
+    el.talkHolder.textContent = '';
+    if (!Array.isArray(tiers) || !tiers.length) { el.talkSection.hidden = true; return; }
+    el.talkSection.hidden = false;
+    tiers.forEach(function (tier) {
+      var block = document.createElement('div');
+      block.className = 'talk-tier';
+      if (tier.name) {
+        var head = document.createElement('h3');
+        head.textContent = tier.name;
+        block.appendChild(head);
+      }
+      var list = document.createElement('ol');
+      (tier.questions || []).forEach(function (q) {
+        var item = document.createElement('li');
+        item.textContent = q;
+        list.appendChild(item);
+      });
+      block.appendChild(list);
+      el.talkHolder.appendChild(block);
+    });
   }
 
   // --- The pairs panel (2026-09-13): a matching activity's rounds, each

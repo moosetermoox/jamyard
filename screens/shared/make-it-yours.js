@@ -1070,11 +1070,16 @@ function showCustomizeDialog(game, config, questions, knobs, mount) {
           input.appendChild(opt);
         });
         row.appendChild(input);
-        if (knob.helper) {
+        // The helper line is for the value picked (valueHelp), never all
+        // three at once (owner, 2026-09-13: "the description should only
+        // be for the answer in that box")
+        if (knob.helper || knob.valueHelp) {
           var enumHelp = document.createElement('p');
           enumHelp.className = 'field-help';
           enumHelp.style.cssText = 'margin:6px 0 0; font-size:0.85rem; color:#6B6250;';
-          enumHelp.textContent = knob.helper;
+          var enumHelpFor = function (v) { return (knob.valueHelp && knob.valueHelp[v]) || knob.helper || ''; };
+          enumHelp.textContent = enumHelpFor(input.value);
+          input.addEventListener('change', function () { enumHelp.textContent = enumHelpFor(input.value); });
           row.appendChild(enumHelp);
         }
         knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
@@ -1119,9 +1124,58 @@ function showCustomizeDialog(game, config, questions, knobs, mount) {
           textHelp.textContent = knob.helper;
           row.appendChild(textHelp);
         }
-        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
+        var textEntry = { knob: knob, row: row, input: input, getValue: function (el) {
           return function () { return el.value.trim(); };
-        }(input) });
+        }(input) };
+        // writes: the AI writes a list on this topic into another knob
+        // (Doodle Bluff: pick "ai" and the phrases appear, editable). Runs
+        // by itself the first time the list is empty and this knob shows;
+        // the button runs it again.
+        if (knob.writes) {
+          var writeRow = document.createElement('div');
+          writeRow.style.cssText = 'display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;';
+          var writeBtn = document.createElement('button');
+          writeBtn.type = 'button';
+          writeBtn.className = 'recipe-cancel-btn';
+          writeBtn.textContent = knob.writes.button || 'Write them';
+          writeRow.appendChild(writeBtn);
+          var writeNote = document.createElement('span');
+          writeNote.style.cssText = 'font-size:0.85rem; color:#6B6250;';
+          writeRow.appendChild(writeNote);
+          row.appendChild(writeRow);
+          textEntry.writeBtn = writeBtn;
+          textEntry.writeNote = writeNote;
+          textEntry.run = function () {
+            var target = null;
+            knobInputs.forEach(function (t) { if (t.knob.name === knob.writes.list) target = t; });
+            if (!target || textEntry.writing) return;
+            var topic = input.value.trim();
+            if (topic.length < 3) { writeNote.textContent = 'Give a topic first, a few words is plenty.'; input.focus(); return; }
+            var n = knob.writes.count || 20;
+            textEntry.writing = true;
+            textEntry.ran = true;
+            writeBtn.disabled = true;
+            writeNote.textContent = 'Writing ' + n + ' about "' + topic + '"…';
+            fetch('/api/games/phrase-list', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ topic: topic, count: n, classDescription: window.TeacherProfile ? TeacherProfile.describe() : '' })
+            })
+              .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+              .then(function (result) {
+                if (!result.ok || result.data.error || !Array.isArray(result.data.phrases)) {
+                  throw new Error(result.data.error || 'nothing came back');
+                }
+                target.input.value = result.data.phrases.join('\n');
+                target.input.dispatchEvent(new Event('input', { bubbles: true }));
+                writeNote.textContent = 'Read them over and change any you like.';
+              })
+              .catch(function (err) { writeNote.textContent = 'Could not write them: ' + err.message; })
+              .then(function () { textEntry.writing = false; writeBtn.disabled = false; });
+          };
+          writeBtn.addEventListener('click', textEntry.run);
+        }
+        knobInputs.push(textEntry);
       } else {
         // count + integer share a number input
         var numLabel = document.createElement('label');
@@ -1155,6 +1209,19 @@ function showCustomizeDialog(game, config, questions, knobs, mount) {
       knobInputs.forEach(function (ki) { values[ki.knob.name] = ki.getValue(); });
       knobInputs.forEach(function (ki) {
         ki.row.hidden = !SetupKnobs.knobVisible(ki.knob, values);
+      });
+      // A writer knob that just came into view writes the list once by
+      // itself (the teacher picked "ai": the phrases appear) when the list
+      // is empty or still the template's own; a list the teacher typed is
+      // theirs, the button rewrites it on request
+      knobInputs.forEach(function (ki) {
+        if (!ki.run || ki.row.hidden || ki.ran) return;
+        var target = null;
+        knobInputs.forEach(function (t) { if (t.knob.name === ki.knob.writes.list) target = t; });
+        if (!target) return;
+        var list = values[ki.knob.writes.list];
+        var untouched = JSON.stringify(list) === JSON.stringify(target.knob.value);
+        if (Array.isArray(list) && (list.length === 0 || untouched)) ki.run();
       });
     }
     knobInputs.forEach(function (ki) {
@@ -1310,6 +1377,20 @@ function showCustomizeDialog(game, config, questions, knobs, mount) {
   function buildWorkingConfig() {
     if (knobInputs.length === 0 || !anyKnobTouched()) return Promise.resolve(config);
     var params = SetupKnobs.applyKnobs(config.recipe.params, currentKnobValues());
+    // A written list is the teacher's now: the writer knob's `then` sets
+    // the params that make the game deal that list (Doodle Bluff: the AI
+    // wrote the phrases on this page, so the room runs them as a teacher
+    // list; an empty list keeps the AI writing them when the room opens)
+    knobInputs.forEach(function (ki) {
+      var w = ki.knob.writes;
+      if (!w || !w.then || ki.row.hidden) return;
+      var target = null;
+      knobInputs.forEach(function (t) { if (t.knob.name === w.list) target = t; });
+      var list = target ? target.getValue() : [];
+      if (Array.isArray(list) && list.length > 0) {
+        Object.keys(w.then).forEach(function (k) { params[k] = w.then[k]; });
+      }
+    });
     return compileWorkingConfig(config, params);
   }
 

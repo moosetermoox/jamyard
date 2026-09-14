@@ -458,6 +458,53 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
   box-shadow: 0 3px 4px rgba(50, 35, 15, 0.2);
 }
 
+/* ── The questions of a talk-only activity, tier by tier, in one fold ── */
+.talk-section { padding-top: 18px; border-top: 2px dashed rgba(110, 75, 40, 0.2); }
+.talk-section[hidden] { display: none; }
+
+.fold summary {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  cursor: pointer;
+  list-style: none;
+  padding: 4px 0;
+}
+.fold summary::-webkit-details-marker { display: none; }
+.fold summary::before { content: '+'; display: inline-block; width: 1.2em; color: var(--t-red-text); }
+.fold[open] summary::before { content: '\2013'; }
+.fold summary:hover { color: var(--t-ink); }
+.fold summary:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 4px; }
+
+.talk-card {
+  margin-top: 12px;
+  padding: 18px 22px 20px;
+  background: var(--t-paper);
+  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.talk-tier h3 {
+  margin: 0 0 6px;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.talk-tier ol {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.talk-tier li { margin: 4px 0; }
+
 /* ── The pairs: a matching activity's rounds, editable ──────────────── */
 
 .pairs-section { display: flex; flex-direction: column; gap: 12px; padding-top: 18px; border-top: 2px dashed rgba(110, 75, 40, 0.2); }

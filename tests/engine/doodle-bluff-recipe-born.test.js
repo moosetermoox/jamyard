@@ -75,8 +75,25 @@ describe('the two phrase sources', () => {
   it('the phrase list and the AI topic are Make-it-yours knobs that hide behind the source knob', async () => {
     const recipe = await loadJson('recipes/doodle-bluff.json');
     expect(recipe.parameters.phraseSource.values).toEqual(['students', 'teacher', 'ai']);
-    expect(recipe.parameters.phrases.setup).toEqual({ mode: 'lines', showWhen: 'phraseSource=teacher' });
-    expect(recipe.parameters.aiTopic.setup).toEqual({ mode: 'text', showWhen: 'phraseSource=ai' });
+    // one helper line per answer (owner 2026-09-13: "the description
+    // should only be for the answer in that box")
+    expect(Object.keys(recipe.parameters.phraseSource.valueHelp)).toEqual(['students', 'teacher', 'ai']);
+    // the list shows for the teacher AND for the AI (the AI writes it on
+    // the page, editable); the topic knob writes it, 36 at a time, and the
+    // room then deals that list as the teacher's
+    expect(recipe.parameters.phrases.setup).toEqual({ mode: 'lines', showWhen: 'phraseSource=teacher|ai' });
+    expect(recipe.parameters.aiTopic.setup).toEqual({
+      mode: 'text', showWhen: 'phraseSource=ai',
+      writes: { list: 'phrases', count: 36, button: 'Write the phrases', then: { phraseSource: 'teacher' } }
+    });
+  });
+
+  it('the premade list holds at least 36 phrases, in the recipe and in the built-in stamp (owner 2026-09-13)', async () => {
+    const recipe = await loadJson('recipes/doodle-bluff.json');
+    const config = await loadJson('games/doodle-bluff/config.json');
+    expect(recipe.parameters.phrases.default.length).toBeGreaterThanOrEqual(36);
+    expect(config.recipe.params.phrases.length).toBeGreaterThanOrEqual(36);
+    expect(new Set(recipe.parameters.phrases.default).size).toBe(recipe.parameters.phrases.default.length);
   });
 
   it('a teacher list of their own replaces the default', async () => {
