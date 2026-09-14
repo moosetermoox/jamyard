@@ -1,0 +1,118 @@
+{
+  "id": "group-work-day",
+  "name": "Group Work Day",
+  "icon": "✅",
+  "description": "Teams pick jobs, then check off a shared to-do list while the projector shows every group's live progress. For lab days, station rotations, project work: any 'here is what your group must finish today'. No points, no winners: completion tracking with a job for everyone.",
+  "tagline": "Perfect for labs, stations, and project sessions where every group works the same task list and everyone has a job.",
+  "version": "1",
+  "parameters": {
+    "groupSize": {
+      "type": "integer",
+      "min": 2,
+      "max": 8,
+      "default": 3,
+      "label": "Students per group",
+      "helper": "Groups of this size. A class that does not divide evenly gets a few groups one smaller; nobody works alone.",
+      "setup": true
+    },
+    "method": {
+      "type": "enum",
+      "values": ["random", "choice", "teacher"],
+      "default": "random",
+      "label": "How groups form",
+      "helper": "Pick one; the line under it says what happens.",
+      "valueHelp": {
+        "random": "Instant: the room deals the groups when you press Start, no choosing.",
+        "choice": "Students tap the group they want to join, first come first served, each group filling to the size above.",
+        "teacher": "You arrange the names into groups on the projector before the work starts."
+      },
+      "setup": true
+    },
+    "roles": {
+      "type": "array",
+      "item": { "type": "string" },
+      "maxItems": 8,
+      "default": ["Facilitator", "Recorder", "Timekeeper"],
+      "label": "The jobs, one per line",
+      "helper": "One job per group member, up to 8. A group bigger than the list repeats jobs. Leave the list empty for no jobs.",
+      "setup": { "mode": "lines" }
+    },
+    "roleMethod": {
+      "type": "enum",
+      "values": ["choice", "random"],
+      "default": "choice",
+      "label": "How jobs are given",
+      "helper": "Pick one; the line under it says what happens.",
+      "valueHelp": {
+        "choice": "Students claim a job inside their group, one each; a job a group-mate took is greyed out, and anyone who has not picked when you close the step gets what is left.",
+        "random": "The room hands out the jobs when the step opens, no picking."
+      },
+      "setup": true
+    },
+    "tasks": {
+      "type": "array",
+      "item": { "type": "string" },
+      "minItems": 1,
+      "maxItems": 15,
+      "default": [
+        "Introduce yourselves and agree on a team name",
+        "Facilitator: make sure everyone has said their name and one interest",
+        "Find three things everyone in your group has in common (going to this school doesn't count)",
+        "Recorder: write your group's three common things where everyone can see them",
+        "Agree on one dream field trip, a destination and the reason",
+        "Timekeeper: give a two-minutes-left warning before the pitch planning ends",
+        "Plan a 30-second pitch for your field trip and pick who delivers it",
+        "Final check: mark this when every member has spoken at least twice"
+      ],
+      "label": "The tasks, one per line",
+      "helper": "Every group gets the same list; any member can check a task off and the whole group sees it. Start a line with a job and a colon (Recorder: write it down) and it becomes that job's task, highlighted on that student's screen.",
+      "setup": { "mode": "lines" }
+    }
+  },
+  "template": {
+    "name": "Group Work Day",
+    "description": "Teams pick jobs, then check off a shared to-do list, live progress on the projector. Built with the Group Work Day recipe.",
+    "phases": {
+      "lobby": {
+        "type": "lobby",
+        "next": "intro"
+      },
+      "intro": {
+        "type": "announce",
+        "message": "GROUP WORK DAY!\n\nYou're about to be split into groups, and everyone gets a job.\n\nEvery group has the same checklist on their devices, check tasks off as your group finishes them, and watch the progress board up here.",
+        "timer": 12,
+        "next": "make-groups"
+      },
+      "make-groups": {
+        "type": "team-split",
+        "method": "${method}",
+        "groupSize": "${groupSize}",
+        "next": "pick-roles"
+      },
+      "pick-roles": {
+        "type": "team-roles",
+        "teamsFrom": "make-groups",
+        "roles": "${roles}",
+        "method": "${roleMethod}",
+        "next": "worktime"
+      },
+      "worktime": {
+        "type": "checklist",
+        "prompt": "Work through today's tasks with your group. Tagged tasks belong to a job, but the whole group backs each other up.",
+        "items": "${tasks}",
+        "teamsFrom": "make-groups",
+        "rolesFrom": "pick-roles",
+        "next": "wrap"
+      },
+      "wrap": {
+        "type": "announce",
+        "message": "Great work today!\n\nGroups, tell the class one thing that slowed you down, and one thing that worked.\n\n{{worktime.resultsList}}",
+        "next": "end"
+      },
+      "end": {
+        "type": "end",
+        "message": "That's Group Work Day! Swap in your own tasks and jobs for any lab, stations, or project session."
+      }
+    }
+  }
+}

@@ -98,8 +98,43 @@ export function printFor(config) {
     timerEditable: typeof phase.timer === 'number' && !config.recipe,
     audience,
     // Every match step's pairs (Vocab Match), for the page's pairs panel
-    pairs: pairsFor(config)
+    pairs: pairsFor(config),
+    // A talk-only activity's questions, tier by tier (Closer)
+    talk: talkQuestionsFor(config)
   };
+}
+
+/**
+ * The questions of a talk-only activity, tier by tier (Closer), read off
+ * its announce steps in order so the make page can show them (owner,
+ * 2026-09-13: "an expandable section where they just see the questions
+ * that are asked at each tier"). A step whose first line is not a
+ * question opens a tier and names it; the steps after it whose first
+ * line ends in a question mark are its questions. Fewer than two
+ * questions in the whole activity = nothing (a welcome message is not a
+ * tier). Read only: the steps stay the designer's.
+ * @param {object} config
+ * @returns {Array<{name: string, questions: string[]}>}
+ */
+export function talkQuestionsFor(config) {
+  const phases = (config && config.phases) || {};
+  const tiers = [];
+  let current = null;
+  let count = 0;
+  for (const phase of Object.values(phases)) {
+    if (!phase || phase.type !== 'announce' || typeof phase.message !== 'string') continue;
+    const first = clean(phase.message.split(/\n/)[0]);
+    if (!first) continue;
+    if (/\?$/.test(first)) {
+      if (!current) { current = { name: '', questions: [] }; tiers.push(current); }
+      current.questions.push(first);
+      count++;
+    } else {
+      current = { name: first.replace(/[.:]\s*$/, ''), questions: [] };
+      tiers.push(current);
+    }
+  }
+  return count >= 2 ? tiers.filter((t) => t.questions.length > 0) : [];
 }
 
 /**

@@ -2,7 +2,7 @@
 // class will see" (the first student step, its words, timer, audience line)
 // and how the teacher's edits go back into a copy. Pure functions.
 import { describe, it, expect } from 'vitest';
-import { firstStudentStep, printFor, applyEdits, nameFor, pairsFor, addRound } from '../../engine/make-print.js';
+import { firstStudentStep, printFor, applyEdits, nameFor, pairsFor, addRound, talkQuestionsFor } from '../../engine/make-print.js';
 
 function snowballish() {
   return {
@@ -204,5 +204,49 @@ describe('nameFor', () => {
     expect(nameFor('Snowball', 'What makes an experiment fair?')).toBe('Snowball: What makes an experiment fair?');
     expect(nameFor('Snowball', 'A very long question that goes on and on about the water cycle and more')).toBe('Snowball: A very long question that goes on and on about…');
     expect(nameFor('Snowball', '')).toBe('Snowball (my version)');
+  });
+});
+
+describe('talkQuestionsFor: a talk-only activity\'s questions, tier by tier (Closer)', () => {
+  const closerish = () => ({
+    name: 'Closer',
+    phases: {
+      lobby: { type: 'lobby', next: 'welcome' },
+      welcome: { type: 'announce', message: 'Welcome.\n\nNothing to type today.', next: 't1' },
+      t1: { type: 'announce', message: 'Tier 1. Warm-up.\n\nTurn to the person next to you.', next: 't1q1' },
+      t1q1: { type: 'announce', message: 'Window seat or aisle seat, and why?\n\nWhoever woke up earlier goes first.', next: 't1q2' },
+      t1q2: { type: 'announce', message: 'If our class had a mascot, what should it be?\n\nBoth answer.', next: 't2' },
+      t2: { type: 'announce', message: 'Tier 2. A little deeper.\n\nNew partner.', next: 't2q1' },
+      t2q1: { type: 'announce', message: 'What makes someone a good friend?\n\nBoth answer.', next: 'checkout' },
+      checkout: { type: 'rate', prompt: 'How did that feel?', scales: [{ id: 'felt', label: 'How that felt', min: 1, max: 5 }], next: 'end' },
+      end: { type: 'end' }
+    }
+  });
+
+  it('groups the question steps under the tier that opened them, first lines only, tier names without the trailing period', () => {
+    const tiers = talkQuestionsFor(closerish());
+    expect(tiers).toEqual([
+      { name: 'Tier 1. Warm-up', questions: ['Window seat or aisle seat, and why?', 'If our class had a mascot, what should it be?'] },
+      { name: 'Tier 2. A little deeper', questions: ['What makes someone a good friend?'] }
+    ]);
+    // the welcome opened a tier with no questions: dropped
+    expect(tiers.some((t) => t.name === 'Welcome')).toBe(false);
+  });
+
+  it('an activity with fewer than two question steps has no tiers, and printFor carries the list', () => {
+    expect(talkQuestionsFor(snowballish())).toEqual([]);
+    const print = printFor(closerish());
+    expect(print.phaseId).toBe('checkout');
+    expect(print.talk.length).toBe(2);
+    expect(printFor(snowballish()).talk).toEqual([]);
+  });
+
+  it('reads the real Closer: three tiers of three', async () => {
+    const { readFile } = await import('node:fs/promises');
+    const config = JSON.parse(await readFile(new URL('../../games/closer/config.json', import.meta.url), 'utf8'));
+    const tiers = talkQuestionsFor(config);
+    expect(tiers.map((t) => t.questions.length)).toEqual([3, 3, 3]);
+    expect(tiers[0].name).toMatch(/^Tier 1/);
+    expect(tiers[2].questions[2]).toContain('remember in ten years');
   });
 });

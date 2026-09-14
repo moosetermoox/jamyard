@@ -2852,6 +2852,27 @@ app.post('/api/games/bluff-facts', async (req, res) => {
   }
 });
 
+// A list of short phrases on a topic, written on the make page so the
+// teacher reads and changes them before class (Doodle Bluff's "the AI
+// writes the phrases": setup.writes in the recipe).
+app.post('/api/games/phrase-list', async (req, res) => {
+  try {
+    const { topic, count, classDescription } = req.body || {};
+    if (!topic || typeof topic !== 'string' || topic.trim().length < 3) {
+      return res.status(400).json({ error: 'Give a topic of at least a few characters.' });
+    }
+    const result = await aiService.generatePhraseList({
+      topic,
+      count: Number.isInteger(count) ? count : parseInt(count, 10) || undefined,
+      classDescription: typeof classDescription === 'string' ? classDescription : ''
+    });
+    res.json(result);
+  } catch (error) {
+    console.log(`[api/games/phrase-list] Error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+});
+
 app.post('/api/games/revise', async (req, res) => {
   try {
     if (!requireRealAI(res)) return;

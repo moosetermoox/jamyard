@@ -257,3 +257,36 @@ describe('knobsFor — lines and text knobs behind another knob (Doodle Bluff)',
     expect(STAMP_DB.params.phrases).toEqual(['x', 'y', 'z']); // stamp untouched
   });
 });
+
+describe('knobsFor — a helper line per enum value, alternatives in showWhen, a writer knob (2026-09-13)', () => {
+  const SUMMARY_W = {
+    id: 'doodle-bluff', version: '3',
+    parameters: {
+      phraseSource: { type: 'enum', values: ['students', 'teacher', 'ai'], default: 'students', setup: true,
+        helper: 'Pick one.', valueHelp: { students: 'S', teacher: 'T', ai: 'A' } },
+      phrases: { type: 'array', item: { type: 'string' }, default: ['a'], setup: { mode: 'lines', showWhen: 'phraseSource=teacher|ai' } },
+      aiTopic: { type: 'string', default: 'silly', setup: { mode: 'text', showWhen: 'phraseSource=ai',
+        writes: { list: 'phrases', count: 36, button: 'Write the phrases', then: { phraseSource: 'teacher' } } } }
+    }
+  };
+  const STAMP_W = { id: 'doodle-bluff', version: '3', params: { phraseSource: 'students', phrases: ['x'], aiTopic: 'silly' } };
+
+  it('passes valueHelp through on the enum and writes through on the text knob, and nothing else grows a field', () => {
+    const [source, lines, text] = K.knobsFor(SUMMARY_W, STAMP_W);
+    expect(source.valueHelp).toEqual({ students: 'S', teacher: 'T', ai: 'A' });
+    expect(text.writes).toEqual({ list: 'phrases', count: 36, button: 'Write the phrases', then: { phraseSource: 'teacher' } });
+    expect(lines).not.toHaveProperty('writes');
+    expect(lines).not.toHaveProperty('valueHelp');
+    // showWhen keeps the raw alternatives
+    expect(lines.showWhen).toEqual({ name: 'phraseSource', value: 'teacher|ai' });
+  });
+
+  it('knobVisible accepts any of the alternatives', () => {
+    const [, lines, text] = K.knobsFor(SUMMARY_W, STAMP_W);
+    expect(K.knobVisible(lines, { phraseSource: 'teacher' })).toBe(true);
+    expect(K.knobVisible(lines, { phraseSource: 'ai' })).toBe(true);
+    expect(K.knobVisible(lines, { phraseSource: 'students' })).toBe(false);
+    expect(K.knobVisible(text, { phraseSource: 'ai' })).toBe(true);
+    expect(K.knobVisible(text, { phraseSource: 'teacher' })).toBe(false);
+  });
+});

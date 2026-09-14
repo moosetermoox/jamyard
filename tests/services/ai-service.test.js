@@ -617,3 +617,16 @@ describe('generateBluffFacts (bluff Customize panel)', () => {
     await expect(service.generateBluffFacts({ topic: 'anything here' })).rejects.toThrow('cap');
   });
 });
+
+describe('generatePhraseList (Doodle Bluff\'s "Write the phrases", 2026-09-13)', () => {
+  it('mock mode writes 36 by default, or the count asked for', async () => {
+    const service = new AIService();
+    const a = await service.generatePhraseList({ topic: 'the water cycle' });
+    expect(a.phrases).toHaveLength(36);
+    expect(a.phrases[0]).toContain('the water cycle');
+    const b = await service.generatePhraseList({ topic: 'Rome', count: 5 });
+    expect(b.phrases).toHaveLength(5);
+    const c = await service.generatePhraseList({ topic: 'Rome', count: 500 });
+    expect(c.phrases).toHaveLength(36);
+  });
+});

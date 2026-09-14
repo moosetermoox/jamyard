@@ -48,11 +48,14 @@
   }
 
   // Whether a knob shows, given the current values of the others
-  // (values: {name: value}). A knob with no showWhen always shows.
+  // (values: {name: value}). A knob with no showWhen always shows; the
+  // value may list alternatives, "teacher|ai" (the phrase list shows for
+  // either writer).
   function knobVisible(knob, values) {
     if (!knob || !knob.showWhen) return true;
     var v = values ? values[knob.showWhen.name] : undefined;
-    return String(v) === String(knob.showWhen.value);
+    var wanted = String(knob.showWhen.value).split('|').map(function (s) { return s.trim(); });
+    return wanted.indexOf(String(v)) !== -1;
   }
 
   function knobsFor(recipeSummary, stamp) {
@@ -68,7 +71,7 @@
       var showWhen = parseShowWhen(setup.showWhen);
 
       if (spec.setup === true && SCALAR_KINDS[spec.type]) {
-        knobs.push({
+        var scalar = {
           name: name,
           kind: spec.type,
           label: spec.label || name,
@@ -78,7 +81,10 @@
           values: spec.type === 'enum' ? (spec.values || []) : null,
           value: stamped !== undefined ? stamped : spec.default,
           showWhen: null
-        });
+        };
+        // enum: a helper line per value, shown for the value picked
+        if (spec.type === 'enum' && spec.valueHelp && typeof spec.valueHelp === 'object') scalar.valueHelp = spec.valueHelp;
+        knobs.push(scalar);
         return;
       }
 
@@ -117,7 +123,7 @@
       }
 
       if ((spec.type === 'string' || spec.type === 'templateString') && setup.mode === 'text') {
-        knobs.push({
+        var text = {
           name: name,
           kind: 'text',
           label: setup.label || spec.label || name,
@@ -125,7 +131,11 @@
           min: null, max: null, values: null,
           value: stamped !== undefined ? String(stamped) : String(spec.default || ''),
           showWhen: showWhen
-        });
+        };
+        // writes: a button that asks the AI to write a list on this topic
+        // ({list, count, button, then}: see engine/recipe-schema.js)
+        if (setup.writes && typeof setup.writes === 'object' && typeof setup.writes.list === 'string') text.writes = setup.writes;
+        knobs.push(text);
       }
     });
     return knobs;

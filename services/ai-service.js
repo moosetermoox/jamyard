@@ -1456,6 +1456,67 @@ Return ONLY JSON, no other prose:
     }
   }
 
+  // The make page's "Write the phrases" button (Doodle Bluff, setup.writes
+  // in the recipe): a topic in, a list of short drawable phrases out, so
+  // the teacher can read and change them before class. Scenes, not facts,
+  // so there is no needsTeacherFacts escape; the fresh-facts rule still
+  // keeps it from claiming anything recent.
+  async generatePhraseList({ topic, count, classDescription = '' } = {}) {
+    const cleanTopic = String(topic || '').trim().slice(0, 400);
+    const classDesc = String(classDescription || '').trim().slice(0, 160);
+    const n = Number.isInteger(count) && count >= 1 && count <= 100 ? count : 36;
+    if (this.mode === 'mock') {
+      const phrases = [];
+      for (let i = 1; i <= n; i++) phrases.push(`Practice phrase ${i} about ${cleanTopic || 'your topic'} (mock mode)`);
+      return { phrases };
+    }
+    try {
+      const classLine = classDesc ? `Their class: ${classDesc}. Match the vocabulary to them.\n` : '';
+      const message = await this._callClaude({
+        model: MODELS.haiku,
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: `A teacher runs a classroom drawing game: each student is handed a secret phrase, sketches it in two minutes, and the class guesses the real title among fakes.
+
+Topic: ${cleanTopic}
+${classLine}Write exactly ${n} phrases.
+
+Rules:
+- Each phrase is 4 to 9 words: one concrete, drawable scene, classroom-appropriate, each different from the others. Example shape: "a nervous volcano on its first day of school".
+- Stay on the topic; vocabulary or concepts from it are welcome when they can be drawn.
+- ${FRESH_FACTS_RULE}
+- Never include student names. No emojis, no numbering, no quotation marks.
+
+Return ONLY JSON, no other prose:
+{"phrases": ["...", "..."]}`
+        }]
+      });
+      const text = extractText(message);
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI response was not valid JSON');
+        parsed = JSON.parse(match[0]);
+      }
+      const seen = new Set();
+      const phrases = (Array.isArray(parsed && parsed.phrases) ? parsed.phrases : [])
+        .map((p) => String(p || '').replace(/\u2014/g, ', ').replace(/\s+/g, ' ').trim().replace(/^["'\d.\-\s]+/, '').slice(0, 120))
+        .filter((p) => p.length >= 3 && !seen.has(p.toLowerCase()) && seen.add(p.toLowerCase()))
+        .slice(0, n);
+      if (phrases.length === 0) {
+        return { error: 'The AI could not write usable phrases for that topic. Try wording the topic differently.' };
+      }
+      return { phrases };
+    } catch (error) {
+      if (error && error.name === 'AiBudgetError') throw error;
+      console.error('[AIService] generatePhraseList error:', error.message);
+      return { error: error.message };
+    }
+  }
+
   // Library bluff Customize panel (Trivia Bluff prepared mode): teacher
   // topic in, ready-to-review fill-in-the-blank facts out (trivia-bluff
   // recipe `questions` param shape). Sonnet, because wrong facts on a

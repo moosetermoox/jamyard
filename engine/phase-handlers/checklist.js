@@ -44,12 +44,14 @@ registerHandler('checklist', {
   async onEnter(ctx) {
     const { phase, engine, room, code } = ctx;
     const eligible = ctx.getEligibleVoters(phase.from || 'all');
-    const { texts: items, roles: itemRoles } = normalizeChecklistItemsWithRoles(phase.items);
 
     // rolesFrom: an earlier team-roles step whose playerRole map labels
     // items as "the Recorder's job" and highlights each student's own.
     // Missing data degrades to an untagged list — the activity still works.
+    // Its lineup also tags plain "Job: ..." lines (the make page's tasks).
     const roleData = phase.rolesFrom ? engine.phaseData[phase.rolesFrom] : null;
+    const { texts: items, roles: itemRoles } = normalizeChecklistItemsWithRoles(
+      phase.items, roleData && Array.isArray(roleData.roles) ? roleData.roles : (phase.rolesFrom ? [] : undefined));
     const playerRole = (roleData && roleData.playerRole) || {};
     if (phase.rolesFrom && !roleData) {
       console.warn(`[checklist:${phase.id}] rolesFrom "${phase.rolesFrom}" has no role data, items render untagged`);

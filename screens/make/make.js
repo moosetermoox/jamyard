@@ -50,7 +50,9 @@
     fitNote: document.getElementById('fit-note'),
     mapHolder: document.getElementById('map-holder'),
     pairsSection: document.getElementById('pairs-section'),
-    pairsHolder: document.getElementById('pairs-holder')
+    pairsHolder: document.getElementById('pairs-holder'),
+    talkSection: document.getElementById('talk-section'),
+    talkHolder: document.getElementById('talk-holder')
   };
 
   // Where "back" goes: the door the teacher came through
@@ -75,6 +77,7 @@
     answers: {},           // question -> { value } (a picked choice or typed text)
     questionsRequest: 0,   // the fetch that is allowed to land (the class can change mid-flight)
     noQuestions: false,    // a recipe panel owns the words: nothing to ask
+    contentKnobs: false,   // the knobs panel holds a list or a topic to type
     anonymous: false,      // the two switch rows
     earlyJoke: true,
     fitted: null,          // { key, config }: the AI-fitted copy "See how it reads" made, reused by the doors while nothing changed
@@ -155,8 +158,12 @@
       .then(function (summary) {
         state.summary = summary;
         state.panel = summary ? SetupKnobs.panelFor(summary, stamp) : null;
-        // No dedicated panel but setup knobs (Doodle Bluff): those mount too
-        if (!state.panel && summary && SetupKnobs.knobsFor(summary, stamp).length) state.panel = 'knobs';
+        // No dedicated panel but setup knobs (Doodle Bluff, Group Work
+        // Day): those mount too; a list or a topic among them means the
+        // panel holds the words
+        var knobs = summary ? SetupKnobs.knobsFor(summary, stamp) : [];
+        if (!state.panel && knobs.length) state.panel = 'knobs';
+        state.contentKnobs = knobs.some(function (k) { return k.kind === 'lines' || k.kind === 'text'; });
         return parts;
       });
   }).then(function (parts) {
@@ -191,7 +198,12 @@
     state.earlyJoke = config.earlyJoke !== false;
     // A quiz or bluff panel owns the words: the AI's word-tailoring
     // questions would rewrite choices out from under a correct answer
-    state.noQuestions = !!(state.panel && state.panel !== 'knobs');
+    // A recipe panel that holds the words (the quiz's questions, the
+    // bluff's facts, a knobs panel with a list or a topic to type: Group
+    // Work Day's jobs and tasks, Doodle Bluff's phrases) owns them; the
+    // AI's fit questions would ask about the same words twice (owner,
+    // 2026-09-13: "the make it fit your class questions seem redundant")
+    state.noQuestions = !!(state.panel && (state.panel !== 'knobs' || state.contentKnobs));
     buildRows();
     loadQuestions();
 
@@ -281,6 +293,8 @@
 
     // A matching activity's pairs, editable (a recipe panel owns its own)
     if (!state.panel) mountPairs(print.pairs);
+    // A talk-only activity's questions, tier by tier, folded
+    mountTalk(print.talk);
 
     if (typeof print.timer === 'number') {
       el.timerRow.hidden = false;
@@ -741,6 +755,32 @@
       var extra = print.pairs.slice(known).map(function (round) { return round.pairs; });
       mountPairs(merged, extra.length ? extra : newRoundsValue().map(function (r) { return r.pairs; }));
     }
+  }
+
+  // --- The questions of a talk-only activity (Closer), tier by tier,
+  // inside one fold: read only, the steps stay the designer's.
+  function mountTalk(tiers) {
+    if (!el.talkSection) return;
+    el.talkHolder.textContent = '';
+    if (!Array.isArray(tiers) || !tiers.length) { el.talkSection.hidden = true; return; }
+    el.talkSection.hidden = false;
+    tiers.forEach(function (tier) {
+      var block = document.createElement('div');
+      block.className = 'talk-tier';
+      if (tier.name) {
+        var head = document.createElement('h3');
+        head.textContent = tier.name;
+        block.appendChild(head);
+      }
+      var list = document.createElement('ol');
+      (tier.questions || []).forEach(function (q) {
+        var item = document.createElement('li');
+        item.textContent = q;
+        list.appendChild(item);
+      });
+      block.appendChild(list);
+      el.talkHolder.appendChild(block);
+    });
   }
 
   // --- The pairs panel (2026-09-13): a matching activity's rounds, each

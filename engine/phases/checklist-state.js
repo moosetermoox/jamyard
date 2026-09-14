@@ -28,22 +28,41 @@ export function normalizeChecklistItems(items) {
  * Same normalization, but keeping each item's role tag (null when the
  * item is untagged or the input was a plain string list). texts and
  * roles stay index-aligned through trimming and blank-dropping.
+ *
+ * With `knownRoles` (the team-roles step's lineup), a plain line that
+ * starts with one of those jobs and a colon ("Recorder: write it down")
+ * is that job's task (2026-09-13: the make page edits tasks as plain
+ * lines, so the tag has to come from the words). Case-insensitive; a
+ * colon after anything else ("Final check: ...") tags nothing.
+ * @param {Array|string} items
+ * @param {string[]} [knownRoles]
  * @returns {{texts: string[], roles: (string|null)[]}}
  */
-export function normalizeChecklistItemsWithRoles(items) {
+export function normalizeChecklistItemsWithRoles(items, knownRoles) {
   let list = items;
   if (typeof items === 'string') {
     list = items.split(/\r?\n/);
     if (list.length === 1) list = items.split(',');
   }
   if (!Array.isArray(list)) return { texts: [], roles: [] };
+  const known = Array.isArray(knownRoles)
+    ? knownRoles.map((r) => String(r || '').trim()).filter(Boolean)
+    : [];
   const texts = [];
   const roles = [];
   for (const raw of list) {
     const isObj = raw && typeof raw === 'object';
     const text = String(isObj ? (raw.text || '') : raw).trim();
     if (!text) continue;
-    const role = isObj && raw.role ? String(raw.role).trim() || null : null;
+    let role = isObj && raw.role ? String(raw.role).trim() || null : null;
+    if (!role && known.length > 0) {
+      const colon = text.indexOf(':');
+      if (colon > 0) {
+        const head = text.slice(0, colon).trim().toLowerCase();
+        const hit = known.find((r) => r.toLowerCase() === head);
+        if (hit) role = hit;
+      }
+    }
     texts.push(text);
     roles.push(role);
   }

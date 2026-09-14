@@ -9,7 +9,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "GROUP WORK DAY!\n\nYou're about to be split into groups, and everyone picks a job: Facilitator keeps the talk moving, Recorder writes things down, Timekeeper watches the clock.\n\nEvery group has the same checklist on their devices, check tasks off as your group finishes them, and watch the progress board up here.",
+      "message": "GROUP WORK DAY!\n\nYou're about to be split into groups, and everyone gets a job.\n\nEvery group has the same checklist on their devices, check tasks off as your group finishes them, and watch the progress board up here.",
       "timer": 12,
       "next": "make-groups"
     },
@@ -22,20 +22,24 @@
     "pick-roles": {
       "type": "team-roles",
       "teamsFrom": "make-groups",
-      "roles": ["Facilitator", "Recorder", "Timekeeper"],
+      "roles": [
+        "Facilitator",
+        "Recorder",
+        "Timekeeper"
+      ],
       "method": "choice",
       "next": "worktime"
     },
     "worktime": {
       "type": "checklist",
-      "prompt": "Work through today's tasks with your group. Tagged tasks belong to a role, but the whole group backs each other up.",
+      "prompt": "Work through today's tasks with your group. Tagged tasks belong to a job, but the whole group backs each other up.",
       "items": [
         "Introduce yourselves and agree on a team name",
-        { "text": "Facilitator: make sure everyone has said their name and one interest", "role": "Facilitator" },
+        "Facilitator: make sure everyone has said their name and one interest",
         "Find three things everyone in your group has in common (going to this school doesn't count)",
-        { "text": "Recorder: write your group's three common things where everyone can see them", "role": "Recorder" },
+        "Recorder: write your group's three common things where everyone can see them",
         "Agree on one dream field trip, a destination and the reason",
-        { "text": "Timekeeper: give a two-minutes-left warning before the pitch planning ends", "role": "Timekeeper" },
+        "Timekeeper: give a two-minutes-left warning before the pitch planning ends",
         "Plan a 30-second pitch for your field trip and pick who delivers it",
         "Final check: mark this when every member has spoken at least twice"
       ],
@@ -45,12 +49,12 @@
     },
     "wrap": {
       "type": "announce",
-      "message": "Great work today!\n\nGroups, tell the class one thing that slowed you down, and one thing that worked. Recorders, you have the notes.\n\n{{worktime.resultsList}}",
+      "message": "Great work today!\n\nGroups, tell the class one thing that slowed you down, and one thing that worked.\n\n{{worktime.resultsList}}",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "That's Group Work Day! Swap in your own tasks and roles for any lab, stations, or project session."
+      "message": "That's Group Work Day! Swap in your own tasks and jobs for any lab, stations, or project session."
     }
   },
   "playTime": "20–45 min",
@@ -69,5 +73,29 @@
     "group work",
     "stations",
     "projects"
-  ]
+  ],
+  "recipe": {
+    "id": "group-work-day",
+    "version": "1",
+    "params": {
+      "groupSize": 3,
+      "method": "random",
+      "roles": [
+        "Facilitator",
+        "Recorder",
+        "Timekeeper"
+      ],
+      "roleMethod": "choice",
+      "tasks": [
+        "Introduce yourselves and agree on a team name",
+        "Facilitator: make sure everyone has said their name and one interest",
+        "Find three things everyone in your group has in common (going to this school doesn't count)",
+        "Recorder: write your group's three common things where everyone can see them",
+        "Agree on one dream field trip, a destination and the reason",
+        "Timekeeper: give a two-minutes-left warning before the pitch planning ends",
+        "Plan a 30-second pitch for your field trip and pick who delivers it",
+        "Final check: mark this when every member has spoken at least twice"
+      ]
+    }
+  }
 }

@@ -321,3 +321,34 @@ describe('validateParams — non-object input', () => {
     expect(codeSet(validateParams(sampleRecipe, []))).toContain(codes.PARAM_INVALID_TYPE);
   });
 });
+
+describe('validateRecipe — valueHelp on enums and setup.writes on text knobs (2026-09-13)', () => {
+  const mk = (parameters) => ({ id: 'x', name: 'x', description: 'x', parameters, template: {} });
+  it('accepts a helper line per enum value and a writer on a text knob', () => {
+    const diags = validateRecipe(mk({
+      who: { type: 'enum', values: ['a', 'b'], setup: true, valueHelp: { a: 'A does this', b: 'B does that' } },
+      list: { type: 'array', item: { type: 'string' }, setup: { mode: 'lines', showWhen: 'who=a|b' } },
+      topic: { type: 'string', setup: { mode: 'text', showWhen: 'who=b', writes: { list: 'list', count: 36, button: 'Write them', then: { who: 'a' } } } }
+    }));
+    expect(diags).toEqual([]);
+  });
+
+  it('rejects valueHelp keys that are not values, non-string lines, and a malformed writes', () => {
+    expect(codeSet(validateRecipe(mk({
+      who: { type: 'enum', values: ['a', 'b'], valueHelp: { a: 'fine', c: 'not a value' } }
+    })))).toContain(codes.RECIPE_INVALID_PARAM_SPEC);
+    expect(codeSet(validateRecipe(mk({
+      who: { type: 'enum', values: ['a', 'b'], valueHelp: { a: 42 } }
+    })))).toContain(codes.RECIPE_INVALID_PARAM_SPEC);
+    for (const writes of [{}, { list: 'list', count: 0 }, { list: 'list', then: [] }, 'list']) {
+      const diags = validateRecipe(mk({
+        topic: { type: 'string', setup: { mode: 'text', writes } }
+      }));
+      expect(codeSet(diags), JSON.stringify(writes)).toContain(codes.RECIPE_INVALID_SETUP_FLAG);
+    }
+    // writes belongs to text knobs only
+    expect(codeSet(validateRecipe(mk({
+      list: { type: 'array', item: { type: 'string' }, setup: { mode: 'lines', writes: { list: 'x' } } }
+    })))).toContain(codes.RECIPE_INVALID_SETUP_FLAG);
+  });
+});
