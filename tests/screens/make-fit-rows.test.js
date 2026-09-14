@@ -146,7 +146,7 @@ describe('make page: make it fit your class', () => {
     expect(js).toContain('The teacher wrote the pairs in step "\' + r.id + \'" themselves: ');
     expect(server).toContain('edits.pairs[id.slice(0, 64)] = list.slice(0, 40)');
     // The designer link says why you would go there
-    expect(html).toContain('>Make it even more yours in the designer</a>');
+    expect(html).toContain('>Customize it more in the designer</a>');
   });
 
   it('every sink is textContent (teacher text and AI output are untrusted)', async () => {
