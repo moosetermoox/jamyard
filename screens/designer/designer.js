@@ -1597,6 +1597,14 @@ async function submitAIDescription(modal, description, status, generateBtn, over
       return;
     }
 
+    // How the idea landed (a recipe, an existing activity, or nothing);
+    // never the idea itself
+    if (window.Analytics) {
+      Analytics.track('create_result', {
+        result: data.noMatch ? 'none' : data.existingGame ? 'existing' : data.config ? 'match' : 'error'
+      });
+    }
+
     if (data.noMatch) {
       renderNoMatchView(modal, description, data, overlay);
       return;
@@ -2173,6 +2181,8 @@ async function showStoryboardFlow(description, seededStoryboard) {
         body: JSON.stringify({ description: description })
       });
       resp = await r.json();
+      // Built or honestly refused; never the idea itself
+      if (window.Analytics) Analytics.track('create_result', { result: resp && resp.cantBuild ? 'none' : 'storyboard' });
       if (resp && resp.cantBuild) {
         // Honest refusal: the idea's heart needs a mechanic the bricks
         // can't deliver. Better a straight answer here than a built

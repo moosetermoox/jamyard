@@ -36,7 +36,7 @@ Framework for quickly building classroom games where:
 - Deployed on Render; CI deploys on green only
 
 ## Current Snapshot
-- **1948 tests passing** (`npm test`, ~5s; one assertion fails on Windows checkouts only, CRLF) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **1991 tests passing** (`npm test`, ~5s; one assertion fails on Windows checkouts only, CRLF) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 - **30 phase types**, **27 built-in recipes**, ~33 games in `games/` (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
@@ -73,6 +73,7 @@ Framework for quickly building classroom games where:
 - **Student text, teacher config, and AI output are all untrusted for rendering** — prefer `textContent`; HTML interpolation must escape (`escapeHtml`/`escapeHtmlText`; enforced by `tests/screens/xss-sinks.test.js`).
 - **Teacher-save purity (§49073.1)** — saved objects (configs, recipes, templates) never contain student-generated content; anything that would needs full student-data treatment — prefer never taking it.
 - **Projector style** (docs/PROJECTOR-STYLE.md) — content owns the projector; brand shrinks to a corner mark via `body.in-activity`.
+- **Analytics is a relay with an allowlist, never a vendor script** (2026-09-13, `services/analytics.js` + `screens/shared/analytics.js`): no page loads PostHog; teacher pages post named events to `POST /api/track`, the server sanitizes against `ANALYTICS_EVENTS` and batches to PostHog with no person profiles and no geo. The student screen, the projector, and the console load nothing (guarded by `tests/screens/analytics-surface.test.js`). A new event = a row in `ANALYTICS_EVENTS` (route / enum / int / bool / slug kinds only, never free text) + a line in the privacy page's usage-events row; `Analytics.track('name', {...})` in a screen must name a listed event (the test checks). Server events ride a random per-room id, never the code; robot playtests send nothing.
 
 ## Gotchas & Patterns
 - **Foreach sub-phases run in key order, and JSONB scrambles key order** (2026-09-06): `user_games.config` and `user_recipes.recipe` are JSON (never JSONB; jsonb sorts keys by length so Doodle Bluff copies voted before the fakes). Old rows are repaired on read from their recipe stamp (`repairSavedConfig` → `engine/subphase-order.js`); AI edits carry the order (`carrySubPhaseOrder`); the validator warns on a sub-phase reading a later sibling. Any new JSON column that holds a config must be JSON.
@@ -173,7 +174,7 @@ AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `
 - Not yet: rate limiting on non-AI socket events, PII redaction
 
 ## Environment
-- `.env`: `ANTHROPIC_API_KEY` (real AI; absent = mock mode), `DATABASE_URL` (Neon; absent = filesystem), `SITE_PASSWORD` (site OWNER: feedback inbox, owner mode, built-in edits, teacher-console credential — the site itself is public), `AI_CALLS_PER_MINUTE` (default 20), `AI_DAILY_CAP` (default 500; 0 disables), `OPENAI_API_KEY` (moderation ladder; absent = blocklist only), `MODERATION_BLOCK_AT`/`MODERATION_REVIEW_AT` (ladder thresholds, defaults 0.85/0.4), `OPENAI_MODERATION_URL` (test stub override)
+- `.env`: `ANTHROPIC_API_KEY` (real AI; absent = mock mode), `DATABASE_URL` (Neon; absent = filesystem), `SITE_PASSWORD` (site OWNER: feedback inbox, owner mode, built-in edits, teacher-console credential — the site itself is public), `AI_CALLS_PER_MINUTE` (default 20), `AI_DAILY_CAP` (default 500; 0 disables), `OPENAI_API_KEY` (moderation ladder; absent = blocklist only), `MODERATION_BLOCK_AT`/`MODERATION_REVIEW_AT` (ladder thresholds, defaults 0.85/0.4), `OPENAI_MODERATION_URL` (test stub override), `POSTHOG_KEY` (site analytics relay; absent = off) + `POSTHOG_HOST` (default `https://us.i.posthog.com`)
 - Local `.env` points at a Neon **dev branch** (since 2026-08-30), isolated from prod: local DB writes never reach the live site, and owner ★ flips / built-in edits must be done on jamyard.org itself (the live domain since 2026-09-10; jamyard.xyz was the first). Refresh dev data via the branch's "Reset from parent" in the Neon console.
 
 ## Testing

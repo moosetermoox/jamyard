@@ -1041,6 +1041,16 @@
   function go(dest) {
     if (state.busy || !state.config) return;
     el.error.hidden = true;
+    // Which door, and whether the class fit was used first (a fit question
+    // answered, or a recipe's own settings touched); never which activity
+    if (window.Analytics) {
+      Analytics.track('activity_opened', {
+        dest: dest === 'simulate' ? 'try' : dest === 'host' ? 'host' : 'designer',
+        page: 'make',
+        edited: answeredQuestions().length > 0 ||
+          !!(state.panelApi && ((state.panelApi.touched && state.panelApi.touched()) || state.panelApi.makeCopy))
+      });
+    }
     // Host it now opens the teacher console in a new tab, inside the click
     // (shared/host-launch.js); the projector address picks the nonce up
     if (dest === 'host' && window.HostLaunch) HostLaunch.begin();
