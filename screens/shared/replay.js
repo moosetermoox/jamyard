@@ -93,7 +93,27 @@
     return props;
   }
 
+  // The relay's visit id (analytics.js keeps it in sessionStorage as
+  // "uuid|lastUsed"): seeding the recorder with it lines a recording up
+  // with that visit's page views on PostHog's side.
+  var SID_KEY = 'jamyard.sid';
+  var UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+  function sessionId() {
+    try {
+      if (window.Analytics && typeof Analytics.sessionId === 'function') {
+        var live = Analytics.sessionId();
+        if (UUID_V7.test(live)) return live;
+      }
+      var stored = String(sessionStorage.getItem(SID_KEY) || '').split('|')[0];
+      if (UUID_V7.test(stored)) return stored;
+    } catch (e) { /* none */ }
+    return undefined;
+  }
+
   function options(cfg) {
+    var bootstrap = { distinctID: browserId(), isIdentifiedID: false };
+    var sid = sessionId();
+    if (sid) bootstrap.sessionID = sid;
     return {
       api_host: cfg.host,
       autocapture: false,
@@ -108,7 +128,7 @@
       persistence: 'localStorage',
       respect_dnt: true,
       person_profiles: 'identified_only',
-      bootstrap: { distinctID: browserId(), isIdentifiedID: false },
+      bootstrap: bootstrap,
       sanitize_properties: sanitize,
       session_recording: {
         maskAllInputs: true,

@@ -88,6 +88,8 @@ describe('analytics surface', () => {
   });
 });
 
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
 describe('screens/shared/analytics.js', () => {
   let sent;
   let mints = 0;
@@ -97,7 +99,10 @@ describe('screens/shared/analytics.js', () => {
     // Node exposes navigator, crypto, and localStorage as getters: define over them.
     const def = (name, value) => Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
     def('window', globalThis);
-    def('document', { addEventListener() {}, visibilityState: 'visible', referrer: extra.referrer || '' });
+    const listeners = extra.listeners || {};
+    const listen = (name, fn) => { listeners[name] = fn; };
+    def('addEventListener', listen);
+    def('document', { addEventListener: listen, visibilityState: 'visible', referrer: extra.referrer || '' });
     def('location', { pathname, search: extra.search || '', hostname: 'jamyard.org' });
     def('navigator', {
       doNotTrack: extra.dnt || null,
@@ -107,6 +112,11 @@ describe('screens/shared/analytics.js', () => {
     def('localStorage', {
       getItem: (k) => (k in store ? store[k] : null),
       setItem: (k, v) => { store[k] = String(v); }
+    });
+    const session = extra.session || {};
+    def('sessionStorage', {
+      getItem: (k) => (k in session ? session[k] : null),
+      setItem: (k, v) => { session[k] = String(v); }
     });
     // Deterministic but different on every mint, so a kept id is provably the stored one
     def('crypto', { getRandomValues: (a) => { mints++; for (let i = 0; i < a.length; i++) a[i] = (i * 37 + mints) & 255; return a; } });
@@ -137,9 +147,58 @@ describe('screens/shared/analytics.js', () => {
     expect(sent[0].url).toBe('/api/track');
     const body = await bodyOf(sent[0]);
     expect(body.event).toBe('page_viewed');
-    expect(body.props).toEqual({ path: '/make', from: 'home', referrer: 'direct' });
+    expect(body.props).toEqual({ path: '/make', from: 'home', referrer: 'direct', session: expect.stringMatching(UUID_V7) });
     expect(body.aid).toMatch(/^[a-f0-9]{16,32}$/);
     expect(JSON.stringify(body)).not.toContain('exit-ticket');
+  });
+
+  it('one visit id per tab, a UUIDv7 kept in sessionStorage, fresh after 30 minutes idle, on every event', async () => {
+    const session = {};
+    await boot('/make', { session });
+    const first = (await bodyOf(sent[0])).props.session;
+    expect(first).toMatch(UUID_V7);
+    expect(session['jamyard.sid']).toMatch(new RegExp('^' + first + '\\|\\d+$'));
+    // The timestamp half of the id is now, give or take
+    const ms = parseInt(first.replace(/-/g, '').slice(0, 12), 16);
+    expect(Math.abs(Date.now() - ms)).toBeLessThan(60_000);
+
+    globalThis.Analytics.track('activity_opened', { dest: 'host' });
+    expect((await bodyOf(sent[1])).props.session).toBe(first);
+
+    await boot('/guide', { session });
+    expect((await bodyOf(sent[0])).props.session).toBe(first);
+
+    session['jamyard.sid'] = first + '|' + (Date.now() - 31 * 60 * 1000);
+    await boot('/guide', { session });
+    const later = (await bodyOf(sent[0])).props.session;
+    expect(later).toMatch(UUID_V7);
+    expect(later).not.toBe(first);
+
+    session['jamyard.sid'] = 'rivera@school.org|' + Date.now();
+    await boot('/guide', { session });
+    expect((await bodyOf(sent[0])).props.session).toMatch(UUID_V7);
+    expect(globalThis.Analytics.sessionId()).toBe((await bodyOf(sent[0])).props.session);
+  });
+
+  it('sends page_left with the route only when the page goes away, once', async () => {
+    const listeners = {};
+    await boot('/make', { search: '?game=exit-ticket', listeners });
+    expect(typeof listeners.pagehide).toBe('function');
+    expect(typeof listeners.visibilitychange).toBe('function');
+    listeners.pagehide();
+    listeners.pagehide();
+    expect(sent).toHaveLength(2);
+    const body = await bodyOf(sent[1]);
+    expect(body.event).toBe('page_left');
+    expect(Object.keys(body.props).sort()).toEqual(['path', 'session']);
+    expect(body.props.path).toBe('/make');
+    expect(JSON.stringify(body)).not.toContain('exit-ticket');
+    // Coming back and leaving again counts as another leave
+    globalThis.document.visibilityState = 'visible';
+    listeners.visibilitychange();
+    globalThis.document.visibilityState = 'hidden';
+    listeners.visibilitychange();
+    expect(sent).toHaveLength(3);
   });
 
   it('says where the visit came from: the referring hostname only, and our own campaign tags', async () => {
