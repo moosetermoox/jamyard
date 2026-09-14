@@ -148,6 +148,12 @@
           <td>Kept as usage statistics. Contains no names, no student work, and no room codes. Nothing is sent from the student screen or the projector. For events from teacher pages, our server passes the connection's address to PostHog for a country and region lookup and PostHog discards the address after the lookup; room events carry no address at all. A random id minted in the teacher's browser counts repeat visits; it holds nothing about the person. Browsers sending Do Not Track or Global Privacy Control send nothing.</td>
         </tr>
         <tr>
+          <td>Session recordings of six teacher pages: the home page, the activity library console, the make page, the Create page, the editor, and the guide</td>
+          <td>Watching how teachers move through the pages where they set up an activity shows us where they get stuck</td>
+          <td>PostHog (US). This is the one place a PostHog script runs in a browser. It never runs on the student screen, the projector, the teacher's live console or its report, Try it out, or inside any frame.</td>
+          <td>Kept for the shortest period the service allows. Everything typed is masked in the recording (every text box, the question and field boxes on the make page, the Ask AI conversation, the names on your own shelf), every embedded frame is blocked, and the address of the page is recorded without its query. These pages carry no student content by design: nothing students submit is ever folded into a saved activity. The recording runs under the same random browser id as the usage events. Browsers sending Do Not Track or Global Privacy Control are not recorded.</td>
+        </tr>
+        <tr>
           <td>Site feedback from the feedback widget</td>
           <td>Suggestions and bug reports from visitors</td>
           <td>Database</td>
