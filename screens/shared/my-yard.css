@@ -35,36 +35,26 @@
   box-shadow: 5px 8px 0 rgba(80, 60, 30, 0.14);
 }
 
-.pile-tag {
-  margin-top: 14px;
-  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
-  font-weight: 800;
-  font-size: 15px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 5px 14px 7px;
-  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
+/* The heading row: "My yard" like "The yard" under it (the page's own h2
+   rule), the copies note beside it */
+.myyard-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 12px 0;
 }
-
-.pile-tag-mine {
-  background: var(--t-birch, #E3C8A0);
-  background-image: var(--t-grain);
-  color: var(--t-ink, #2A2620);
-  transform: rotate(0.8deg);
-}
-
-.myyard .pile-tag-mine { align-self: center; }
-.myyard-wrap .myyard-note,
-.myyard-wrap .shed-toggle { align-self: center; }
 
 .myyard-note {
-  margin: 8px 0 0;
+  margin: 0;
   max-width: 520px;
-  text-align: center;
   font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
   font-size: 12px;
   color: var(--t-muted-caps, #8A7B62);
 }
+
+.myyard-wrap .shed-toggle { align-self: flex-start; }
 
 /* ── The shed: put-away activities behind one quiet line ── */
 .shed-toggle {

@@ -76,16 +76,27 @@
     return { mine: mine, shed: shed, rest: rest };
   }
 
-  // The shelf: prints on a board, MY YARD under it, the note on where
-  // copies live, and the shed line. Returns null when there is nothing
-  // to show. opts.onOpen(game) opens the popup; opts.onChange(change)
-  // is called after a heart, a shed move, or a delete ({removedId}).
+  // The shelf: "My yard" as a heading ABOVE the prints, the same weight
+  // as "The yard" under it (the painted tag under the board read as a
+  // label for what came next: owner, 2026-09-13), the note on where
+  // copies live beside it, the prints on a board, and the shed line.
+  // Returns null when there is nothing to show. opts.onOpen(game) opens
+  // the popup; opts.onChange(change) is called after a heart, a shed
+  // move, or a delete ({removedId}).
   function buildShelf(mine, shed, opts) {
     opts = opts || {};
     if ((!mine || mine.length === 0) && (!shed || shed.length === 0)) return null;
-    // Outer wrap so the shed line sits OUTSIDE .myyard: the board's hard
-    // drop-shadow would ghost the toggle's text (misprint effect).
     var outer = el('div', 'myyard-wrap');
+    var head = el('div', 'myyard-head');
+    head.appendChild(el('h2', null, 'My yard'));
+    // Where these live, and how to carry one somewhere else (outside review,
+    // 2026-09-06: teachers could not tell that copies are per-browser).
+    if (mine.length > 0) {
+      head.appendChild(el('p', 'myyard-note', 'Your copies live in this browser. Open one and use Share for a link that works on any device.'));
+    }
+    outer.appendChild(head);
+    // The board's hard shadow would ghost the shed toggle's text, so the
+    // shed line sits outside .myyard
     var wrap = el('div', 'myyard');
     outer.appendChild(wrap);
 
@@ -93,12 +104,6 @@
     for (var i = 0; i < mine.length; i++) row.appendChild(buildShelfPrint(mine[i], i, opts));
     wrap.appendChild(row);
     wrap.appendChild(el('div', 'myyard-board'));
-    wrap.appendChild(el('div', 'pile-tag pile-tag-mine', 'My yard'));
-    // Where these live, and how to carry one somewhere else (outside review,
-    // 2026-09-06: teachers could not tell that copies are per-browser).
-    if (mine.length > 0) {
-      outer.appendChild(el('p', 'myyard-note', 'Your copies live in this browser. Open one and use Share for a link that works on any device.'));
-    }
 
     if (shed && shed.length > 0) {
       var shedToggle = el('button', 'shed-toggle', (shedOpen ? '▾' : '▸') + ' In the shed (' + shed.length + ')');

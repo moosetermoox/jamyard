@@ -47,10 +47,29 @@ describe('the home is the yard', () => {
     }
   });
 
-  it('a search that matches nothing shows everything with an honest line', async () => {
+  it('a search that matches nothing anywhere shows everything with an honest line; a shelf hit is never called nothing', async () => {
     const html = await read('screens/home/index.html');
-    expect(html).toContain('if (pool.length === 0 && query) {');
+    expect(html).toContain('var shelfHit = mine.length + shed.length > 0;');
+    expect(html).toContain('if (pool.length === 0 && query && !shelfHit) {');
     expect(html).toContain('Nothing mentions "');
+    expect(html).toContain('Nothing else mentions "');
+  });
+
+  it('landing on /#yard jumps to the activities once the list is in (the section is hidden before that)', async () => {
+    const html = await read('screens/home/index.html');
+    expect(html).toContain('function settleHash()');
+    expect(html).toMatch(/settleHash\(\);\s*handleDeepLinks\(\);/);
+    // your things first: the shelf when there is one
+    expect(html).toContain("(hash === '#yard' && !myYardEl.hidden) ? myYardEl");
+  });
+
+  it('the shelf is headed "My yard" above its prints, never labelled under them', async () => {
+    const js = await read('screens/shared/my-yard.js');
+    expect(js).toContain("head.appendChild(el('h2', null, 'My yard'))");
+    expect(js.indexOf("'myyard-head'")).toBeLessThan(js.indexOf("'myyard-row yard-grid'"));
+    expect(js).not.toContain('pile-tag');
+    const css = await read('screens/shared/my-yard.css');
+    expect(css).not.toContain('.pile-tag');
   });
 });
 

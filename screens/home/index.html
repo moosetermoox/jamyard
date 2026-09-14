@@ -1153,9 +1153,13 @@
         if (shelf) myYardEl.appendChild(shelf);
         myYardEl.hidden = !shelf;
 
+        // The rescue only when NOTHING matched, shelf included: a search
+        // that found the teacher's own activity must not say "nothing
+        // mentions" under it (owner, 2026-09-13)
         var pool = parts.rest.filter(byGoal).filter(matchesQuery);
+        var shelfHit = mine.length + shed.length > 0;
         var rescued = false;
-        if (pool.length === 0 && query) {
+        if (pool.length === 0 && query && !shelfHit) {
           pool = parts.rest.filter(byGoal);
           rescued = pool.length > 0;
         }
@@ -1166,8 +1170,22 @@
         YardPrints.buildGrid(gridEl, pool, {
           href: makeHref,
           onClick: showActivityPopup,
-          empty: 'Nothing on this shelf yet. The AI can make one.'
+          empty: query
+            ? 'Nothing else mentions "' + query + '".'
+            : 'Nothing on this shelf yet. The AI can make one.'
         });
+      }
+
+      // Every "back to the yard" link lands on /#yard, but the section is
+      // hidden until the list loads, so the browser's own anchor jump
+      // finds nothing and the page sits at the top (owner, 2026-09-13).
+      // Jump once the list is in: to the shelf when there is one (your
+      // things first), else the yard.
+      function settleHash() {
+        var hash = window.location.hash;
+        if (hash !== '#yard' && hash !== '#my-yard') return;
+        var target = (hash === '#yard' && !myYardEl.hidden) ? myYardEl : document.getElementById(hash.slice(1));
+        if (target) target.scrollIntoView({ block: 'start' });
       }
 
       function openShelfPopup(g) {
@@ -1364,6 +1382,7 @@
           // Reading it? Hold still.
           stageEl.addEventListener('mouseenter', function () { clearInterval(timer); });
           stageEl.addEventListener('mouseleave', startRotation);
+          settleHash();
           handleDeepLinks();
         })
         .catch(function () { /* the yard is the page; a failed list leaves the fold and the AI door */ });
