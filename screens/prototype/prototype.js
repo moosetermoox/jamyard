@@ -843,6 +843,7 @@ launchBtn.addEventListener('click', () => {
   hostIframe.className = 'host-frame';
   hostIframe.title = 'Teacher screen';
   hostIframe.src = '/host?game=' + encodeURIComponent(gameId) + '&prototype=true';
+  forwardArrowKeys(hostIframe);
   hostMat.appendChild(hostIframe);
 
   // Listen for room code from host iframe
@@ -886,6 +887,7 @@ function addTeacherTab(hostIframe, code, pin) {
   teacherIframe.title = 'Teacher controls';
   teacherIframe.src = '/teacher#code=' + encodeURIComponent(code) + '&pin=' + encodeURIComponent(pin);
   teacherIframe.hidden = true;
+  forwardArrowKeys(teacherIframe);
   hostMat.appendChild(teacherIframe);
 
   hostTabs.textContent = '';
@@ -941,6 +943,7 @@ function addPlayerPanel(code, i) {
   iframe.src = '/player?prototype=true&code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent('Player ' + i);
   // Same-origin embed; lets the mic button work during teacher previews.
   iframe.allow = 'microphone';
+  forwardArrowKeys(iframe);
   wrapper.appendChild(iframe);
   playerHolder.appendChild(wrapper);
 }
@@ -1122,12 +1125,28 @@ function showCarouselPlayer(index) {
 carouselPrev.addEventListener('click', () => showCarouselPlayer(carouselIndex - 1));
 carouselNext.addEventListener('click', () => showCarouselPlayer(carouselIndex + 1));
 
-// Keyboard ← → to step through students
-document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+// Keyboard ← → to step through students. A key pressed inside a frame
+// (the class screen, the teacher controls, a student screen) never
+// reaches this document, so once the teacher had clicked into a frame the
+// arrows went dead until they clicked out (owner, 2026-09-13): every
+// frame forwards the same keys on load (same origin). Typing in a text
+// box keeps its arrows: they move the caret.
+function isTyping(target) {
+  if (!target) return false;
+  const tag = target.tagName;
+  return tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || target.isContentEditable === true;
+}
+function onArrowKey(e) {
+  if (isTyping(e.target)) return;
   if (e.key === 'ArrowLeft') showCarouselPlayer(carouselIndex - 1);
   if (e.key === 'ArrowRight') showCarouselPlayer(carouselIndex + 1);
-});
+}
+document.addEventListener('keydown', onArrowKey);
+function forwardArrowKeys(iframe) {
+  iframe.addEventListener('load', () => {
+    try { iframe.contentDocument.addEventListener('keydown', onArrowKey); } catch (err) { /* cross-origin or gone */ }
+  });
+}
 
 // --- Sound: the host's own toggle, driven from here. The sounds play
 // inside the host iframe, so its switch is the one that counts; before a

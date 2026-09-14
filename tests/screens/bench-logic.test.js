@@ -238,3 +238,19 @@ describe('Play Again inside the bench', () => {
     expect(handler).toContain('launchBtn.click()');
   });
 });
+
+describe('arrow keys step through students from inside any frame (owner, 2026-09-13)', () => {
+  it('every frame forwards keydown on load, and typing keeps its arrows', () => {
+    const src = readFileSync(new URL('../../screens/prototype/prototype.js', import.meta.url), 'utf8');
+    expect(src).toContain('function forwardArrowKeys(iframe)');
+    expect(src).toContain("iframe.contentDocument.addEventListener('keydown', onArrowKey)");
+    // the class screen, the teacher controls, and each student screen
+    expect(src).toContain('forwardArrowKeys(hostIframe);');
+    expect(src).toContain('forwardArrowKeys(teacherIframe);');
+    expect(src).toContain('forwardArrowKeys(iframe);');
+    expect(src).toContain("document.addEventListener('keydown', onArrowKey);");
+    const guard = src.slice(src.indexOf('function isTyping('), src.indexOf('function onArrowKey('));
+    expect(guard).toContain("'TEXTAREA'");
+    expect(guard).toContain('isContentEditable');
+  });
+});
