@@ -2553,7 +2553,9 @@ app.post('/api/track', express.json({ limit: '2kb' }), (req, res) => {
       const parsed = trackLimiter.allow(ip) ? parseClientEvent(req.body) : null;
       // The teacher's address rides along for country and region only
       // (PostHog discards it after the lookup); never on server events.
-      if (parsed) analytics.track(parsed.event, parsed.props, parsed.distinctId, { ip });
+      // The host the page was served on (jamyard.org) names the page for
+      // PostHog's own dashboards; validated inside track.
+      if (parsed) analytics.track(parsed.event, parsed.props, parsed.distinctId, { ip, host: req.hostname });
     }
   } catch (err) {
     console.log(`[api/track] ${err.message}`);

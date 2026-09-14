@@ -16,6 +16,7 @@ import {
   createAnalytics,
   isPublicIp,
   replayConfig,
+  toPostHog,
   DEFAULT_POSTHOG_HOST
 } from '../../services/analytics.js';
 
@@ -96,8 +97,17 @@ describe('sanitizeEvent', () => {
       '::1', 'fe80::1', 'fd00::1', '::ffff:10.0.0.1', '999.1.1.1', 'unknown', '', null, 42].forEach((ip) => expect(isPublicIp(ip), String(ip)).toBe(false));
   });
 
+  it('a visit id is a UUIDv7 and nothing else', () => {
+    const p = (props) => sanitizeEvent('page_viewed', props).properties;
+    expect(p({ session: '019928A0-1B2C-7D3E-8F40-0123456789AB' })).toEqual({ session: '019928a0-1b2c-7d3e-8f40-0123456789ab' });
+    expect(p({ session: '019928a0-1b2c-4d3e-8f40-0123456789ab' })).toEqual({});
+    expect(p({ session: 'rivera' })).toEqual({});
+    expect(sanitizeEvent('page_left', { path: '/make', session: '019928a0-1b2c-7d3e-8f40-0123456789ab', name: 'x' }).properties)
+      .toEqual({ path: '/make', session: '019928a0-1b2c-7d3e-8f40-0123456789ab' });
+  });
+
   it('every declared property has a shape the sanitizer understands', () => {
-    const kinds = new Set(['path', 'enum', 'int', 'bool', 'game', 'host', 'tag']);
+    const kinds = new Set(['path', 'enum', 'int', 'bool', 'game', 'host', 'tag', 'uuid']);
     Object.entries(ANALYTICS_EVENTS).forEach(([event, props]) => {
       expect(event).toMatch(/^[a-z_]+$/);
       Object.entries(props).forEach(([key, spec]) => {
@@ -134,6 +144,61 @@ describe('parseClientEvent (POST /api/track body)', () => {
     expect(parseClientEvent('page_viewed')).toBeNull();
     expect(parseClientEvent({ event: 'page_viewed', props: 'x', aid: AID })).toBeNull();
     expect(parseClientEvent({ event: ['page_viewed'], props: {}, aid: AID })).toBeNull();
+  });
+});
+
+describe('toPostHog (the wire shape PostHog\'s dashboards read)', () => {
+  const SID = '019928a0-1b2c-7d3e-8f40-0123456789ab';
+
+  it('a page view goes out as $pageview with the page, the source, and the visit', () => {
+    const out = toPostHog('page_viewed', { path: '/make', from: 'home', referrer: 'www.google.com', utm_source: 'newsletter', session: SID }, { host: 'jamyard.org' });
+    expect(out.event).toBe('$pageview');
+    expect(out.properties).toEqual({
+      $pathname: '/make',
+      $host: 'jamyard.org',
+      $current_url: 'https://jamyard.org/make',
+      $referrer: 'https://www.google.com',
+      $referring_domain: 'www.google.com',
+      utm_source: 'newsletter',
+      from: 'home',
+      $session_id: SID
+    });
+  });
+
+  it('direct and internal referrers, the root path, and a page leave', () => {
+    expect(toPostHog('page_viewed', { path: '/', referrer: 'direct' }, { host: 'jamyard.org' }).properties)
+      .toEqual({ $pathname: '/', $host: 'jamyard.org', $current_url: 'https://jamyard.org/', $referrer: '$direct', $referring_domain: '$direct' });
+    expect(toPostHog('page_viewed', { path: '/guide', referrer: 'internal' }, { host: 'jamyard.org' }).properties)
+      .toEqual({ $pathname: '/guide', $host: 'jamyard.org', $current_url: 'https://jamyard.org/guide', $referrer: 'https://jamyard.org', $referring_domain: 'jamyard.org' });
+    const left = toPostHog('page_left', { path: '/guide', session: SID }, { host: 'jamyard.org' });
+    expect(left.event).toBe('$pageleave');
+    expect(left.properties).toEqual({ $pathname: '/guide', $host: 'jamyard.org', $current_url: 'https://jamyard.org/guide', $session_id: SID });
+  });
+
+  it('a bad or missing host leaves the URL out rather than inventing one', () => {
+    expect(toPostHog('page_viewed', { path: '/make', referrer: 'internal' }, {}).properties).toEqual({ $pathname: '/make' });
+    expect(toPostHog('page_viewed', { path: '/make' }, { host: 'evil host/../x' }).properties).toEqual({ $pathname: '/make' });
+  });
+
+  it('every other event keeps its name; only the visit id is renamed', () => {
+    expect(toPostHog('activity_opened', { dest: 'host', session: SID }, { host: 'jamyard.org' }))
+      .toEqual({ event: 'activity_opened', properties: { dest: 'host', $session_id: SID } });
+    expect(toPostHog('room_created', { game: 'exit-ticket' }, {})).toEqual({ event: 'room_created', properties: { game: 'exit-ticket' } });
+  });
+
+  it('the batch carries the mapped shape', async () => {
+    const { fetch, calls } = fakeFetch();
+    const a = createAnalytics({ key: 'k', fetch });
+    a.track('page_viewed', { path: '/guide', referrer: 'direct', session: SID }, AID, { ip: '203.0.113.9', host: 'jamyard.org' });
+    await a.flush();
+    const e = calls[0].body.batch[0];
+    expect(e.event).toBe('$pageview');
+    expect(e.properties.$current_url).toBe('https://jamyard.org/guide');
+    expect(e.properties.$session_id).toBe(SID);
+    expect(e.properties.$ip).toBe('203.0.113.9');
+    expect(e.properties.$process_person_profile).toBe(false);
+    expect(e.properties.path).toBeUndefined();
+    expect(e.properties.session).toBeUndefined();
   });
 });
 
@@ -190,11 +255,11 @@ describe('createAnalytics', () => {
     expect(body.api_key).toBe('phc_test');
     expect(body.batch).toHaveLength(2);
     const [first, second] = body.batch;
-    expect(first.event).toBe('page_viewed');
+    expect(first.event).toBe('$pageview');
     expect(first.distinct_id).toBe(AID);
     expect(first.timestamp).toBe(new Date(1_700_000_000_000).toISOString());
     expect(first.properties).toEqual({
-      path: '/make',
+      $pathname: '/make',
       from: 'home',
       $process_person_profile: false,
       $geoip_disable: true,

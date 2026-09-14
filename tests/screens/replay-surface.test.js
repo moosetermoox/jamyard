@@ -126,6 +126,7 @@ describe('screens/shared/replay.js', () => {
     expect(opts.persistence).toBe('localStorage');
     expect(opts.respect_dnt).toBe(true);
     expect(opts.person_profiles).toBe('identified_only');
+    // No relay visit id around in this boot: no sessionID is invented
     expect(opts.bootstrap).toEqual({ distinctID: 'a1b2c3d4e5f60718', isIdentifiedID: false });
     expect(opts.disable_session_recording).toBeUndefined();
     const rec = opts.session_recording;
@@ -135,6 +136,19 @@ describe('screens/shared/replay.js', () => {
     expect(rec.recordBody).toBe(false);
     expect(rec.blockSelector).toContain('iframe');
     for (const sel of ['[contenteditable]', '#chat-messages', '#my-yard', '.sv-text']) expect(rec.maskTextSelector).toContain(sel);
+  });
+
+  it('seeds the recorder with the relay\'s visit id, so a recording lines up with its page views', async () => {
+    const SID = '019928a0-1b2c-7d3e-8f40-0123456789ab';
+    await boot('/make');
+    Object.defineProperty(globalThis, 'Analytics', { value: { sessionId: () => SID }, configurable: true, writable: true });
+    expect(globalThis.Replay.options({ host: 'h', key: 'k', assets: 'a' }).bootstrap.sessionID).toBe(SID);
+    // Without the relay module, the stored id still counts; a non-UUIDv7 does not
+    Object.defineProperty(globalThis, 'Analytics', { value: undefined, configurable: true, writable: true });
+    Object.defineProperty(globalThis, 'sessionStorage', { value: { getItem: () => SID + '|123' }, configurable: true, writable: true });
+    expect(globalThis.Replay.options({ host: 'h', key: 'k', assets: 'a' }).bootstrap.sessionID).toBe(SID);
+    Object.defineProperty(globalThis, 'sessionStorage', { value: { getItem: () => 'rivera|123' }, configurable: true, writable: true });
+    expect(globalThis.Replay.options({ host: 'h', key: 'k', assets: 'a' }).bootstrap.sessionID).toBeUndefined();
   });
 
   it('trims the SDK\'s own URL and referrer properties', async () => {

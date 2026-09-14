@@ -48,22 +48,31 @@ const STARTS = ['together', 'rolling'];
  * free-text kind is the one thing this file must never do.
  */
 export const ANALYTICS_EVENTS = {
-  // Browser (teacher pages only)
+  // Browser (teacher pages only). `session` is a UUIDv7 the browser mints
+  // per visit (30 minutes idle starts a new one), so PostHog can group a
+  // teacher's page views into one visit and line a replay up with them.
   page_viewed: {
     path: { kind: 'path' },
     from: { kind: 'enum', values: ENTRY_POINTS },
     referrer: { kind: 'host' },
     utm_source: { kind: 'tag' },
     utm_medium: { kind: 'tag' },
-    utm_campaign: { kind: 'tag' }
+    utm_campaign: { kind: 'tag' },
+    session: { kind: 'uuid' }
+  },
+  page_left: {
+    path: { kind: 'path' },
+    session: { kind: 'uuid' }
   },
   activity_opened: {
     dest: { kind: 'enum', values: DOORS },
     page: { kind: 'enum', values: ['make', 'yard', 'create'] },
-    edited: { kind: 'bool' }
+    edited: { kind: 'bool' },
+    session: { kind: 'uuid' }
   },
   create_result: {
-    result: { kind: 'enum', values: CREATE_RESULTS }
+    result: { kind: 'enum', values: CREATE_RESULTS },
+    session: { kind: 'uuid' }
   },
   // Server
   room_created: {
@@ -94,6 +103,8 @@ const MAX_INT = 100_000;
 const HOSTNAME = /^(?=.{1,80}$)[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
 const REFERRER_LITERALS = ['direct', 'internal'];
 const TAG = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+// A UUIDv7 (PostHog's required shape for a session id): time-ordered, version nibble 7
+const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const IPV4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
 const IPV6 = /^[0-9a-f:]{3,45}$/i;
 
@@ -147,6 +158,8 @@ function coerce(spec, value) {
     }
     case 'tag':
       return typeof value === 'string' && TAG.test(value.toLowerCase()) ? value.toLowerCase() : undefined;
+    case 'uuid':
+      return typeof value === 'string' && UUID_V7.test(value) ? value.toLowerCase() : undefined;
     default:
       return undefined;
   }
@@ -185,6 +198,51 @@ export function parseClientEvent(body) {
   if (props !== undefined && (props === null || typeof props !== 'object' || Array.isArray(props))) return null;
   if (typeof aid !== 'string' || !BROWSER_ID.test(aid)) return null;
   return { event, props: props || {}, distinctId: aid };
+}
+
+/**
+ * The wire shape. PostHog's own dashboards (Web analytics, "active users")
+ * count visitors from its native `$pageview` and `$pageleave` events and
+ * read the page from `$current_url` / `$pathname` / `$host`, the source
+ * from `$referrer` / `$referring_domain` / `utm_*`, and the visit from
+ * `$session_id`. So the two page events go out under those names with
+ * those properties; the allowlist upstream is unchanged, this is only a
+ * renaming of what already passed it. Every other event keeps its name.
+ * @param {string} event a sanitized event name
+ * @param {Record<string, string|number|boolean>} properties its sanitized properties
+ * @param {{ host?: string }} [extra] the site host the page was served on
+ * @returns {{ event: string, properties: Record<string, string|number|boolean> }}
+ */
+export function toPostHog(event, properties, extra = {}) {
+  const out = { ...properties };
+  if (typeof out.session === 'string') {
+    out.$session_id = out.session;
+    delete out.session;
+  }
+  if (event !== 'page_viewed' && event !== 'page_left') return { event, properties: out };
+  const host = typeof extra.host === 'string' && HOSTNAME.test(extra.host.toLowerCase()) ? extra.host.toLowerCase() : undefined;
+  if (typeof out.path === 'string') {
+    out.$pathname = out.path;
+    if (host) {
+      out.$host = host;
+      out.$current_url = 'https://' + host + (out.path === '/' ? '/' : out.path);
+    }
+    delete out.path;
+  }
+  if (typeof out.referrer === 'string') {
+    if (out.referrer === 'direct') {
+      out.$referrer = '$direct';
+      out.$referring_domain = '$direct';
+    } else {
+      const domain = out.referrer === 'internal' ? host : out.referrer;
+      if (domain) {
+        out.$referrer = 'https://' + domain;
+        out.$referring_domain = domain;
+      }
+    }
+    delete out.referrer;
+  }
+  return { event: event === 'page_viewed' ? '$pageview' : '$pageleave', properties: out };
 }
 
 /**
@@ -262,7 +320,9 @@ export function createAnalytics(opts = {}) {
      * @param {string} event
      * @param {object} [props]
      * @param {string} distinctId
-     * @param {{ ip?: string }} [extra]
+     * `extra.host`: the site host the page was served on (jamyard.org),
+     * which the page events need for PostHog's `$current_url` / `$host`.
+     * @param {{ ip?: string, host?: string }} [extra]
      */
     track(event, props, distinctId, extra = {}) {
       if (!enabled) return false;
@@ -270,12 +330,13 @@ export function createAnalytics(opts = {}) {
       if (!sane) return false;
       if (typeof distinctId !== 'string' || !DISTINCT_ID.test(distinctId)) return false;
       const geo = isPublicIp(extra.ip) ? { $ip: extra.ip } : { $geoip_disable: true };
+      const wire = toPostHog(sane.event, sane.properties, extra);
       queue.push({
-        event: sane.event,
+        event: wire.event,
         distinct_id: distinctId,
         timestamp: new Date(now()).toISOString(),
         properties: {
-          ...sane.properties,
+          ...wire.properties,
           $process_person_profile: false,
           ...geo,
           $lib: 'jamyard-relay'
