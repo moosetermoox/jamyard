@@ -15,6 +15,7 @@ import {
   parseClientEvent,
   createAnalytics,
   isPublicIp,
+  replayConfig,
   DEFAULT_POSTHOG_HOST
 } from '../../services/analytics.js';
 
@@ -133,6 +134,22 @@ describe('parseClientEvent (POST /api/track body)', () => {
     expect(parseClientEvent('page_viewed')).toBeNull();
     expect(parseClientEvent({ event: 'page_viewed', props: 'x', aid: AID })).toBeNull();
     expect(parseClientEvent({ event: ['page_viewed'], props: {}, aid: AID })).toBeNull();
+  });
+});
+
+describe('replayConfig (GET /api/analytics-config)', () => {
+  it('is null without a key or when switched off', () => {
+    expect(replayConfig({})).toBeNull();
+    expect(replayConfig({ key: '' })).toBeNull();
+    expect(replayConfig({ key: 'phc_x', replay: '0' })).toBeNull();
+    expect(replayConfig({ key: 'phc_x', replay: 'false' })).toBeNull();
+    expect(replayConfig({ key: 'phc_x', replay: 'off' })).toBeNull();
+  });
+
+  it('derives the assets host from the ingest host', () => {
+    expect(replayConfig({ key: 'phc_x' })).toEqual({ key: 'phc_x', host: 'https://us.i.posthog.com', assets: 'https://us-assets.i.posthog.com' });
+    expect(replayConfig({ key: 'phc_x', host: 'https://eu.i.posthog.com/', replay: '1' }).assets).toBe('https://eu-assets.i.posthog.com');
+    expect(replayConfig({ key: 'phc_x', host: 'https://ph.example.org' }).assets).toBe('https://ph.example.org');
   });
 });
 

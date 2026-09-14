@@ -188,6 +188,26 @@ export function parseClientEvent(body) {
 }
 
 /**
+ * Session replay is the ONE place a PostHog script runs in a browser
+ * (screens/shared/replay.js, six teacher authoring pages, 2026-09-13).
+ * The page asks GET /api/analytics-config for this; null keeps every
+ * page script-free. The project token is public by design (it sits in
+ * every PostHog snippet on the web); the assets host is where the SDK
+ * and its recorder are served from, derived from the ingest host.
+ * @param {{ key?: string, host?: string, replay?: string }} env
+ * @returns {{ key: string, host: string, assets: string } | null}
+ */
+export function replayConfig(env = {}) {
+  const key = typeof env.key === 'string' ? env.key.trim() : '';
+  if (!key) return null;
+  const flag = String(env.replay ?? '1').trim().toLowerCase();
+  if (['0', 'false', 'off', 'no'].includes(flag)) return null;
+  const host = String(env.host || DEFAULT_POSTHOG_HOST).replace(/\/+$/, '');
+  const assets = host.replace(/^(https?:\/\/)(us|eu)\.i\.posthog\.com$/, '$1$2-assets.i.posthog.com');
+  return { key, host, assets };
+}
+
+/**
  * @param {{ key?: string, host?: string, fetch?: typeof fetch, now?: () => number,
  *           flushMs?: number, maxBatch?: number, log?: (line: string) => void }} [opts]
  */
