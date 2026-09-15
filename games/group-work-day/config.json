@@ -35,11 +35,11 @@
       "prompt": "Work through today's tasks with your group. Tagged tasks belong to a job, but the whole group backs each other up.",
       "items": [
         "Introduce yourselves and agree on a team name",
-        "Facilitator: make sure everyone has said their name and one interest",
+        "Facilitator: Make sure everyone has said their name and one interest",
         "Find three things everyone in your group has in common (going to this school doesn't count)",
-        "Recorder: write your group's three common things where everyone can see them",
+        "Recorder: Write your group's three common things where everyone can see them",
         "Agree on one dream field trip, a destination and the reason",
-        "Timekeeper: give a two-minutes-left warning before the pitch planning ends",
+        "Timekeeper: Give a two-minutes-left warning before the pitch planning ends",
         "Plan a 30-second pitch for your field trip and pick who delivers it",
         "Final check: mark this when every member has spoken at least twice"
       ],
@@ -88,14 +88,15 @@
       "roleMethod": "choice",
       "tasks": [
         "Introduce yourselves and agree on a team name",
-        "Facilitator: make sure everyone has said their name and one interest",
+        "Facilitator: Make sure everyone has said their name and one interest",
         "Find three things everyone in your group has in common (going to this school doesn't count)",
-        "Recorder: write your group's three common things where everyone can see them",
+        "Recorder: Write your group's three common things where everyone can see them",
         "Agree on one dream field trip, a destination and the reason",
-        "Timekeeper: give a two-minutes-left warning before the pitch planning ends",
+        "Timekeeper: Give a two-minutes-left warning before the pitch planning ends",
         "Plan a 30-second pitch for your field trip and pick who delivers it",
         "Final check: mark this when every member has spoken at least twice"
-      ]
+      ],
+      "withRoles": true
     }
   }
 }

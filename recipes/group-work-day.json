@@ -12,7 +12,7 @@
       "max": 8,
       "default": 3,
       "label": "Students per group",
-      "helper": "Groups of this size. A class that does not divide evenly gets a few groups one smaller; nobody works alone.",
+      "helper": "A class that does not divide evenly gets a few groups one smaller; nobody works alone.",
       "setup": true
     },
     "method": {
@@ -20,11 +20,29 @@
       "values": ["random", "choice", "teacher"],
       "default": "random",
       "label": "How groups form",
-      "helper": "Pick one; the line under it says what happens.",
+      "valueLabels": {
+        "random": "Random",
+        "choice": "Students choose",
+        "teacher": "I arrange them"
+      },
       "valueHelp": {
         "random": "Instant: the room deals the groups when you press Start, no choosing.",
         "choice": "Students tap the group they want to join, first come first served, each group filling to the size above.",
         "teacher": "You arrange the names into groups on the projector before the work starts."
+      },
+      "setup": true
+    },
+    "withRoles": {
+      "type": "boolean",
+      "default": true,
+      "label": "Jobs",
+      "valueLabels": {
+        "true": "Everyone gets a job",
+        "false": "No jobs"
+      },
+      "valueHelp": {
+        "true": "One job per group member. A task given to a job is highlighted on that student's screen.",
+        "false": "The group shares every task, nobody is assigned anything."
       },
       "setup": true
     },
@@ -33,21 +51,28 @@
       "item": { "type": "string" },
       "maxItems": 8,
       "default": ["Facilitator", "Recorder", "Timekeeper"],
-      "label": "The jobs, one per line",
-      "helper": "One job per group member, up to 8. A group bigger than the list repeats jobs. Leave the list empty for no jobs.",
-      "setup": { "mode": "lines" }
+      "label": "The jobs",
+      "helper": "Tap the jobs your groups need, or type your own. A group bigger than the list repeats jobs; a smaller group fills the first ones.",
+      "setup": {
+        "mode": "tags",
+        "suggestions": ["Facilitator", "Recorder", "Timekeeper", "Materials manager", "Reporter", "Checker", "Encourager", "Questioner"],
+        "showWhen": "withRoles=true"
+      }
     },
     "roleMethod": {
       "type": "enum",
       "values": ["choice", "random"],
       "default": "choice",
       "label": "How jobs are given",
-      "helper": "Pick one; the line under it says what happens.",
+      "valueLabels": {
+        "choice": "Students choose",
+        "random": "Random"
+      },
       "valueHelp": {
         "choice": "Students claim a job inside their group, one each; a job a group-mate took is greyed out, and anyone who has not picked when you close the step gets what is left.",
         "random": "The room hands out the jobs when the step opens, no picking."
       },
-      "setup": true
+      "setup": { "showWhen": "withRoles=true" }
     },
     "tasks": {
       "type": "array",
@@ -56,17 +81,21 @@
       "maxItems": 15,
       "default": [
         "Introduce yourselves and agree on a team name",
-        "Facilitator: make sure everyone has said their name and one interest",
+        "Facilitator: Make sure everyone has said their name and one interest",
         "Find three things everyone in your group has in common (going to this school doesn't count)",
-        "Recorder: write your group's three common things where everyone can see them",
+        "Recorder: Write your group's three common things where everyone can see them",
         "Agree on one dream field trip, a destination and the reason",
-        "Timekeeper: give a two-minutes-left warning before the pitch planning ends",
+        "Timekeeper: Give a two-minutes-left warning before the pitch planning ends",
         "Plan a 30-second pitch for your field trip and pick who delivers it",
         "Final check: mark this when every member has spoken at least twice"
       ],
-      "label": "The tasks, one per line",
-      "helper": "Every group gets the same list; any member can check a task off and the whole group sees it. Start a line with a job and a colon (Recorder: write it down) and it becomes that job's task, highlighted on that student's screen.",
-      "setup": { "mode": "lines" }
+      "label": "The tasks",
+      "helper": "Every group gets the same list, in this order; any member can check a task off and the whole group sees it.",
+      "setup": {
+        "mode": "list",
+        "tagFrom": "roles",
+        "tagLabel": "Anyone"
+      }
     }
   },
   "template": {
@@ -79,7 +108,11 @@
       },
       "intro": {
         "type": "announce",
-        "message": "GROUP WORK DAY!\n\nYou're about to be split into groups, and everyone gets a job.\n\nEvery group has the same checklist on their devices, check tasks off as your group finishes them, and watch the progress board up here.",
+        "message": {
+          "$if": "withRoles",
+          "$value": "GROUP WORK DAY!\n\nYou're about to be split into groups, and everyone gets a job.\n\nEvery group has the same checklist on their devices, check tasks off as your group finishes them, and watch the progress board up here.",
+          "$else": "GROUP WORK DAY!\n\nYou're about to be split into groups.\n\nEvery group has the same checklist on their devices, check tasks off as your group finishes them, and watch the progress board up here."
+        },
         "timer": 12,
         "next": "make-groups"
       },
@@ -90,6 +123,7 @@
         "next": "pick-roles"
       },
       "pick-roles": {
+        "$if": "withRoles",
         "type": "team-roles",
         "teamsFrom": "make-groups",
         "roles": "${roles}",
@@ -98,10 +132,14 @@
       },
       "worktime": {
         "type": "checklist",
-        "prompt": "Work through today's tasks with your group. Tagged tasks belong to a job, but the whole group backs each other up.",
+        "prompt": {
+          "$if": "withRoles",
+          "$value": "Work through today's tasks with your group. Tagged tasks belong to a job, but the whole group backs each other up.",
+          "$else": "Work through today's tasks with your group. Any of you can check a task off, and the whole group sees it."
+        },
         "items": "${tasks}",
         "teamsFrom": "make-groups",
-        "rolesFrom": "pick-roles",
+        "rolesFrom": { "$if": "withRoles", "$value": "pick-roles" },
         "next": "wrap"
       },
       "wrap": {

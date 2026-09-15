@@ -90,20 +90,31 @@ export const RECIPE_PARAM_TYPES = new Set([
  * @property {string} [placeholder]
  * @property {boolean} [required]
  * @property {*} [default]
- * @property {boolean|{mode:'count'|'lines'|'text', label?:string, showWhen?:string, writes?:object}} [setup]
+ * @property {boolean|{mode:'count'|'lines'|'text'|'tags'|'list', label?:string, showWhen?:string, writes?:object, suggestions?:string[], tagFrom?:string, tagLabel?:string}} [setup]
  *   Marks the param as a Make it yours knob (setup mode).
- *   `true` on integer/boolean/enum shows the param's normal widget;
+ *   `true` on integer/boolean/enum shows the param as a row of chips
+ *   (an integer with more than ten values gets a number box);
  *   `{mode:"count"}` on an array shows a how-many stepper that slices
  *   the stamped array to the first N at recompile time; `lines` edits an
- *   array one item per line; `text` is a short free-text box. `showWhen:
+ *   array one item per line; `tags` picks an array of short names as
+ *   chips (`suggestions` are offered, "Type your own" adds one: Group
+ *   Work Day's jobs); `list` edits an array one box per item, and with
+ *   `tagFrom: "<tags or lines param>"` each box gets a picker that tags
+ *   the item with one of that knob's names as a "Name: " prefix (a task
+ *   that belongs to a job; `tagLabel` is the untagged choice, default
+ *   "Anyone"); `text` is a short free-text box. `showWhen:
  *   "other=value"` (or "other=a|b") hides the knob until the other knob
  *   holds one of those values. `writes: {list, count?, button?, then?}` on
  *   a text knob adds a button that asks the AI to write `count` items on
  *   that topic into the `list` knob (Doodle Bluff's phrases), and `then`
  *   is the params to set at compile time once that list has content
  *   (the list becomes the teacher's).
- * @property {Object<string,string>} [valueHelp]  enum: one helper line per
- *   value; the knob shows the line for the value picked, not all at once.
+ * @property {Object<string,string>} [valueHelp]  enum or boolean: one helper
+ *   line per value (a boolean's keys are "true" and "false"); the knob
+ *   shows the line for the value picked, not all at once.
+ * @property {Object<string,string>} [valueLabels]  enum or boolean: the
+ *   chip text per value ("Students choose" for "choice"); a value without
+ *   one shows as itself.
  *
  * Type-specific:
  * @property {number} [min]               integer
@@ -309,20 +320,26 @@ function validateParamSpec(paramName, spec) {
         source: 'validator'
       }));
     }
-    // valueHelp: a helper line per value, keys drawn from values only
-    if (spec.valueHelp != null) {
-      const vh = spec.valueHelp;
-      const values = Array.isArray(spec.values) ? spec.values.map(String) : [];
-      const problem = (vh && typeof vh === 'object' && !Array.isArray(vh))
-        ? Object.keys(vh).find((k) => !values.includes(k) || typeof vh[k] !== 'string')
+  }
+
+  // valueHelp / valueLabels: a helper line and a chip label per value,
+  // keys drawn from the values only (a boolean's are "true" / "false")
+  if (spec.type === 'enum' || spec.type === 'boolean') {
+    const values = spec.type === 'boolean' ? ['true', 'false']
+      : (Array.isArray(spec.values) ? spec.values.map(String) : []);
+    for (const key of ['valueHelp', 'valueLabels']) {
+      if (spec[key] == null) continue;
+      const map = spec[key];
+      const problem = (map && typeof map === 'object' && !Array.isArray(map))
+        ? Object.keys(map).find((k) => !values.includes(k) || typeof map[k] !== 'string')
         : '(not an object)';
       if (problem !== undefined) {
         diags.push(mkDiagnostic({
           severity: 'error',
           code: RECIPE_DIAGNOSTIC_CODES.RECIPE_INVALID_PARAM_SPEC,
-          path: path(where, 'valueHelp'),
+          path: path(where, key),
           field: paramName,
-          message: `Enum parameter "${paramName}": valueHelp must map each of its values to a string (problem at "${problem}").`,
+          message: `${spec.type === 'boolean' ? 'Boolean' : 'Enum'} parameter "${paramName}": ${key} must map each of its values to a string (problem at "${problem}").`,
           source: 'validator'
         }));
       }
@@ -395,7 +412,14 @@ function validateSetupFlag(paramName, spec, where) {
     // count: slice a stamped array to N; lines: edit an array of strings
     // one per line; text: a short free-text string. lines/text usually
     // hide behind another knob's value (showWhen: "name=value").
-    if (mode === 'count' || mode === 'lines') {
+    // tags: pick short names as chips (suggestions offered); list: one
+    // box per item, each tagged with a name from another array knob.
+    // No mode: a scalar's plain knob (setup: true) that needs showWhen.
+    if (mode == null) {
+      if (!SETUP_SCALAR_TYPES.has(spec.type)) {
+        return bad(`Parameter "${paramName}": a setup object without "mode" is only allowed on ${[...SETUP_SCALAR_TYPES].join('/')} params.`);
+      }
+    } else if (mode === 'count' || mode === 'lines' || mode === 'tags' || mode === 'list') {
       if (spec.type !== 'array') {
         return bad(`Parameter "${paramName}": setup.mode "${mode}" is only allowed on array params.`);
       }
@@ -404,7 +428,19 @@ function validateSetupFlag(paramName, spec, where) {
         return bad(`Parameter "${paramName}": setup.mode "text" is only allowed on string params.`);
       }
     } else {
-      return bad(`Parameter "${paramName}": setup.mode must be "count", "lines", or "text".`);
+      return bad(`Parameter "${paramName}": setup.mode must be "count", "lines", "tags", "list", or "text".`);
+    }
+    if (spec.setup.suggestions != null) {
+      const s = spec.setup.suggestions;
+      if (mode !== 'tags' || !Array.isArray(s) || s.some((x) => typeof x !== 'string' || x.trim() === '')) {
+        return bad(`Parameter "${paramName}": setup.suggestions must be an array of names on a "tags" knob.`);
+      }
+    }
+    if (spec.setup.tagFrom != null && (mode !== 'list' || typeof spec.setup.tagFrom !== 'string' || spec.setup.tagFrom.trim() === '')) {
+      return bad(`Parameter "${paramName}": setup.tagFrom must name an array param, on a "list" knob.`);
+    }
+    if (spec.setup.tagLabel != null && (mode !== 'list' || typeof spec.setup.tagLabel !== 'string')) {
+      return bad(`Parameter "${paramName}": setup.tagLabel must be a string, on a "list" knob.`);
     }
     if (spec.setup.label != null && typeof spec.setup.label !== 'string') {
       return bad(`Parameter "${paramName}": setup.label must be a string.`);
@@ -427,7 +463,7 @@ function validateSetupFlag(paramName, spec, where) {
     return [];
   }
 
-  return bad(`Parameter "${paramName}": "setup" must be true or {"mode": "count" | "lines" | "text"}.`);
+  return bad(`Parameter "${paramName}": "setup" must be true or {"mode": "count" | "lines" | "tags" | "list" | "text"}.`);
 }
 
 // =======================================================================
