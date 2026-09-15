@@ -1061,3 +1061,20 @@ header {
   opacity: 1;
 }
 .plank-tone-6 .plank-meta, .plank-tone-6 .plank-hook { opacity: 1; }
+
+/* The job's paint as a small block on its chip, the same paint every
+   print of that job carries (shared/yard-prints.js paintOf) */
+.goal-chip[data-goal]::before {
+  content: '';
+  display: inline-block;
+  width: 11px;
+  height: 9px;
+  margin-right: 8px;
+  vertical-align: 0;
+  transform: rotate(-4deg);
+  clip-path: polygon(0 8%, 100% 0, 98% 100%, 2% 94%);
+}
+.goal-chip[data-goal="connect"]::before { background: var(--t-magenta); }
+.goal-chip[data-goal="think"]::before   { background: var(--t-cyan); }
+.goal-chip[data-goal="review"]::before  { background: var(--t-green); }
+.goal-chip[data-goal="play"]::before    { background: var(--t-orange); }

@@ -37,6 +37,17 @@
   var LETTERS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
   var PAINTS = ['t-yellow', 't-cyan', 't-magenta', 't-green'];
   var WOODS = ['t-birch', 't-pine', 't-oak'];
+  // A print's paint is its job (2026-09-15, owner: "make the different
+  // categories more visually distinct"): magenta = to connect (social),
+  // cyan = to think, green = to review (checking), orange = to just have
+  // fun. The chips over the yard wear the same swatch, so the row is the
+  // legend. Woods stay woods; the dealt paints in picture() are for the
+  // full-size frame.
+  var PAINT_OF_GROUP = { connect: 't-magenta', think: 't-cyan', review: 't-green', play: 't-orange' };
+  function paintOf(g) {
+    var key = window.GoalGroups && GoalGroups.groupOf ? GoalGroups.groupOf(g) : 'think';
+    return PAINT_OF_GROUP[key] || 't-cyan';
+  }
 
   function picture(g) {
     var deal = dealer(seedOf(String(g.id || g.name || '')));
@@ -105,10 +116,22 @@
     var mini = el('div', 'yp-mini');
     var pic = picture(g);
     var gl = glimpseOf(g);
+    var paint = paintOf(g);
+    // Every print carries exactly one paint, its job: the painted block in
+    // the pile, or a single painted block where a pile would sit
+    var stamp = function () {
+      var one = el('div', 'yp-pile');
+      var block = el('div', 'yp-block yp-stamp ' + paint);
+      block.style.width = '36px';
+      block.style.setProperty('--rot', '1.4deg');
+      one.appendChild(block);
+      return one;
+    };
     if (gl.mode === 'join') {
       mini.appendChild(el('span', 'yp-caps', 'Join in'));
       mini.appendChild(el('div', 'yp-code', pic.code));
       mini.appendChild(el('span', 'yp-qr'));
+      mini.appendChild(stamp());
       return mini;
     }
     mini.appendChild(el('span', 'yp-caps', gl.mode === 'talk' ? 'Nothing to type' : 'Everyone is writing…'));
@@ -117,12 +140,15 @@
       var pile = el('div', 'yp-pile');
       var blocks = pic.blocks.slice(0, 3);
       for (var i = 0; i < blocks.length; i++) {
-        var block = el('div', 'yp-block ' + blocks[i].tone);
+        var tone = WOODS.indexOf(blocks[i].tone) === -1 ? paint : blocks[i].tone;
+        var block = el('div', 'yp-block ' + tone);
         block.style.width = Math.round(blocks[i].width * 0.4) + 'px';
         block.style.setProperty('--rot', blocks[i].rot);
         pile.appendChild(block);
       }
       mini.appendChild(pile);
+    } else {
+      mini.appendChild(stamp());
     }
     return mini;
   }
@@ -197,6 +223,8 @@
 
   window.YardPrints = {
     picture: picture,
+    paintOf: paintOf,
+    WOODS: WOODS,
     glimpseOf: glimpseOf,
     metaOf: metaOf,
     minutesOf: minutesOf,

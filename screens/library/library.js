@@ -111,6 +111,7 @@ function buildGoalChips(games) {
     var chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'goal-chip' + (group.key === activeGoal ? ' active' : '');
+    chip.setAttribute('data-goal', group.key);
     chip.textContent = group.label + ' ' + count;
     chip.setAttribute('aria-pressed', group.key === activeGoal ? 'true' : 'false');
     chip.addEventListener('click', function () {

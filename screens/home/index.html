@@ -377,6 +377,24 @@
       background-image: var(--t-grain);
     }
 
+    /* The job's paint as a small block on its chip: the same paint every
+       print of that job carries (yard-prints.js paintOf), so the chip row
+       is the legend */
+    .goal-chip[data-goal]::before {
+      content: '';
+      display: inline-block;
+      width: 11px;
+      height: 9px;
+      margin-right: 8px;
+      vertical-align: 0;
+      transform: rotate(-4deg);
+      clip-path: polygon(0 8%, 100% 0, 98% 100%, 2% 94%);
+    }
+    .goal-chip[data-goal="connect"]::before { background: var(--t-magenta); }
+    .goal-chip[data-goal="think"]::before   { background: var(--t-cyan); }
+    .goal-chip[data-goal="review"]::before  { background: var(--t-green); }
+    .goal-chip[data-goal="play"]::before    { background: var(--t-orange); }
+
     .yard-grid { min-height: 220px; }
 
     /* The search beside the chips: a sanded plank with a pencil line */
@@ -1085,6 +1103,7 @@
         chipsEl.textContent = '';
         groups.forEach(function (group, i) {
           var chip = el('button', 'goal-chip t-lift' + (group.key === activeGoal ? ' active' : ''), group.job);
+          chip.setAttribute('data-goal', group.key);
           chip.type = 'button';
           chip.style.setProperty('--rot', i % 2 === 0 ? '-0.8deg' : '0.8deg');
           chip.setAttribute('aria-pressed', group.key === activeGoal ? 'true' : 'false');
@@ -1285,8 +1304,11 @@
         body.appendChild(ask);
         if (gl.mode === 'answer') {
           var pile = el('div', 'pile');
+          // The painted blocks wear the job's paint, like the yard's prints
+          var paint = YardPrints.paintOf(g);
           for (var i = 0; i < pic.blocks.length; i++) {
-            var block = el('div', 'pile-block ' + pic.blocks[i].tone);
+            var tone = YardPrints.WOODS.indexOf(pic.blocks[i].tone) === -1 ? paint : pic.blocks[i].tone;
+            var block = el('div', 'pile-block ' + tone);
             block.style.width = pic.blocks[i].width + 'px';
             block.style.setProperty('--rot', pic.blocks[i].rot);
             pile.appendChild(block);
