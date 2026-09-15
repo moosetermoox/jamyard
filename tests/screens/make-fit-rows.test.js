@@ -69,9 +69,9 @@ describe('make page: make it fit your class', () => {
     expect(js).toContain('var request = ++state.questionsRequest;');
     expect(js).toContain('if (request !== state.questionsRequest) return;');
     // A quiz or bluff panel owns the words: nothing to ask
-    // a knobs panel that holds the words (a lines or text knob) owns them too
+    // a knobs panel that holds the words (a lines, text, tags, or list knob) owns them too
     expect(js).toContain("state.noQuestions = !!(state.panel && (state.panel !== 'knobs' || state.contentKnobs));");
-    expect(js).toContain("state.contentKnobs = knobs.some(function (k) { return k.kind === 'lines' || k.kind === 'text'; });");
+    expect(js).toContain("state.contentKnobs = knobs.some(function (k) { return k.kind === 'lines' || k.kind === 'text' || k.kind === 'tags' || k.kind === 'list'; });");
   });
 
   // The owner changed Snowball's question, answered a row, and the copy

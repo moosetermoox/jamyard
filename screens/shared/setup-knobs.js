@@ -3,12 +3,15 @@
 //
 // A recipe-born game carries a provenance stamp (config.recipe =
 // {id, version, params}, written by engine/recipe-compiler.js). Recipe
-// parameters flagged with "setup" become instant, no-AI knobs in the
-// Customize dialog: scalars (integer/boolean/enum) show their normal
-// widget, arrays with setup {mode:"count"} show a how-many stepper that
-// slices the stamped array to the first N. Touched knobs recompile the
-// recipe server-side (POST /api/recipes/:id/compile) into the teacher's
-// copy; untouched flows never recompile.
+// parameters flagged with "setup" become instant, no-AI knobs on the
+// make page, every one a row of chips: scalars (integer/boolean/enum)
+// as a chip per value, arrays with setup {mode:"count"} as a how-many
+// that slices the stamped array to the first N, {mode:"lines"} as a
+// textarea, {mode:"tags"} as names to tap (suggestions + type your own),
+// {mode:"list"} as one box per item (tagFrom: a picker per box that tags
+// the item "Name: text"), strings {mode:"text"} as a box. Touched knobs
+// recompile the recipe server-side (POST /api/recipes/:id/compile) into
+// the teacher's copy; untouched flows never recompile.
 //
 // Browser global + side-effect-importable for tests (bot-brain pattern).
 
@@ -70,21 +73,63 @@
       var setup = typeof spec.setup === 'object' && spec.setup ? spec.setup : {};
       var showWhen = parseShowWhen(setup.showWhen);
 
-      if (spec.setup === true && SCALAR_KINDS[spec.type]) {
+      // A scalar knob: setup true, or a setup object without a mode
+      // (the object form carries showWhen)
+      if ((spec.setup === true || (spec.setup && typeof spec.setup === 'object' && setup.mode == null)) && SCALAR_KINDS[spec.type]) {
         var scalar = {
           name: name,
           kind: spec.type,
-          label: spec.label || name,
+          label: setup.label || spec.label || name,
           helper: spec.helper || null,
           min: typeof spec.min === 'number' ? spec.min : null,
           max: typeof spec.max === 'number' ? spec.max : null,
           values: spec.type === 'enum' ? (spec.values || []) : null,
           value: stamped !== undefined ? stamped : spec.default,
-          showWhen: null
+          showWhen: showWhen
         };
-        // enum: a helper line per value, shown for the value picked
-        if (spec.type === 'enum' && spec.valueHelp && typeof spec.valueHelp === 'object') scalar.valueHelp = spec.valueHelp;
+        // enum / boolean: a helper line per value, shown for the value
+        // picked, and the chip text per value (a boolean's keys are
+        // "true" / "false")
+        if (spec.type === 'enum' || spec.type === 'boolean') {
+          if (spec.valueHelp && typeof spec.valueHelp === 'object') scalar.valueHelp = spec.valueHelp;
+          if (spec.valueLabels && typeof spec.valueLabels === 'object') scalar.valueLabels = spec.valueLabels;
+        }
         knobs.push(scalar);
+        return;
+      }
+
+      // tags: short names picked as chips (the suggestions offered, the
+      // stamped names among them; "Type your own" adds one)
+      if (spec.type === 'array' && setup.mode === 'tags') {
+        var tagged = Array.isArray(stamped) ? stamped : (Array.isArray(spec.default) ? spec.default : []);
+        knobs.push({
+          name: name,
+          kind: 'tags',
+          label: setup.label || spec.label || name,
+          helper: spec.helper || null,
+          min: null, max: typeof spec.maxItems === 'number' ? spec.maxItems : null, values: null,
+          value: tagged.map(function (s) { return String(s); }),
+          suggestions: (Array.isArray(setup.suggestions) ? setup.suggestions : []).map(function (s) { return String(s); }),
+          showWhen: showWhen
+        });
+        return;
+      }
+
+      // list: one box per item; tagFrom names the tags/lines knob whose
+      // names tag an item as a "Name: " prefix (a job's task)
+      if (spec.type === 'array' && setup.mode === 'list') {
+        var items = Array.isArray(stamped) ? stamped : (Array.isArray(spec.default) ? spec.default : []);
+        knobs.push({
+          name: name,
+          kind: 'list',
+          label: setup.label || spec.label || name,
+          helper: spec.helper || null,
+          min: null, max: typeof spec.maxItems === 'number' ? spec.maxItems : null, values: null,
+          value: items.map(function (s) { return String(s); }),
+          tagFrom: typeof setup.tagFrom === 'string' ? setup.tagFrom : null,
+          tagLabel: typeof setup.tagLabel === 'string' ? setup.tagLabel : 'Anyone',
+          showWhen: showWhen
+        });
         return;
       }
 
@@ -151,7 +196,7 @@
         if (Array.isArray(params[kv.name])) {
           params[kv.name] = params[kv.name].slice(0, kv.value);
         }
-      } else if (kv.kind === 'lines') {
+      } else if (kv.kind === 'lines' || kv.kind === 'tags' || kv.kind === 'list') {
         // Textarea text or an array: one item per non-empty line
         var raw = Array.isArray(kv.value) ? kv.value : String(kv.value || '').split('\n');
         params[kv.name] = raw.map(function (s) { return String(s).trim(); })
@@ -161,6 +206,33 @@
       }
     });
     return params;
+  }
+
+  // A list item's tag and text, read off a "Name: text" prefix against the
+  // known names (case-insensitive), the same rule the checklist applies at
+  // game time (engine/phases/checklist-state.js). A colon after anything
+  // else ("Final check: ...") is text. {tag: null, text} when untagged.
+  function splitTag(item, names) {
+    var text = String(item == null ? '' : item).trim();
+    var known = (names || []).map(function (n) { return String(n).trim(); }).filter(Boolean);
+    var colon = text.indexOf(':');
+    if (colon > 0 && known.length) {
+      var head = text.slice(0, colon).trim().toLowerCase();
+      for (var i = 0; i < known.length; i++) {
+        if (known[i].toLowerCase() === head) {
+          return { tag: known[i], text: text.slice(colon + 1).trim() };
+        }
+      }
+    }
+    return { tag: null, text: text };
+  }
+
+  // The item back as one line: "Name: text", or the text alone
+  function joinTag(tag, text) {
+    var t = String(text == null ? '' : text).trim();
+    var name = String(tag == null ? '' : tag).trim();
+    if (!t) return '';
+    return name ? name + ': ' + t : t;
   }
 
   // Friendly pre-save check for the quiz panel's editable question list.
@@ -226,6 +298,8 @@
     knobVisible: knobVisible,
     panelFor: panelFor,
     applyKnobs: applyKnobs,
+    splitTag: splitTag,
+    joinTag: joinTag,
     validateQuizList: validateQuizList,
     validateBluffList: validateBluffList
   };

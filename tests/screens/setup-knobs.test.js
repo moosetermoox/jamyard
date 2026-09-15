@@ -290,3 +290,73 @@ describe('knobsFor — a helper line per enum value, alternatives in showWhen, a
     expect(K.knobVisible(text, { phraseSource: 'teacher' })).toBe(false);
   });
 });
+
+describe('knobsFor — chips: labels per value, names as tags, a list with a picker (Group Work Day, 2026-09-14)', () => {
+  const SUMMARY_GWD = {
+    id: 'group-work-day', version: '1',
+    parameters: {
+      method: { type: 'enum', values: ['random', 'choice'], default: 'random', setup: true, valueLabels: { choice: 'Students choose' }, valueHelp: { random: 'Instant.' } },
+      withRoles: { type: 'boolean', default: true, setup: true, valueLabels: { true: 'Everyone gets a job', false: 'No jobs' }, valueHelp: { false: 'Shared.' } },
+      roles: { type: 'array', item: { type: 'string' }, maxItems: 8, default: ['Facilitator'], label: 'The jobs', setup: { mode: 'tags', suggestions: ['Facilitator', 'Recorder'], showWhen: 'withRoles=true' } },
+      roleMethod: { type: 'enum', values: ['choice', 'random'], default: 'choice', setup: { showWhen: 'withRoles=true' } },
+      tasks: { type: 'array', item: { type: 'string' }, default: ['a'], setup: { mode: 'list', tagFrom: 'roles', tagLabel: 'Anyone' } }
+    }
+  };
+  const STAMP_GWD = { id: 'group-work-day', version: '1', params: { method: 'random', withRoles: true, roles: ['Recorder', 'Captain'], roleMethod: 'choice', tasks: ['Recorder: write it', 'Clean up'] } };
+
+  it('enum and boolean knobs carry the chip labels and the help per value', () => {
+    const knobs = K.knobsFor(SUMMARY_GWD, STAMP_GWD);
+    const method = knobs.find(k => k.name === 'method');
+    expect(method.valueLabels).toEqual({ choice: 'Students choose' });
+    expect(method.valueHelp).toEqual({ random: 'Instant.' });
+    const jobs = knobs.find(k => k.name === 'withRoles');
+    expect(jobs).toMatchObject({ kind: 'boolean', value: true, valueLabels: { true: 'Everyone gets a job', false: 'No jobs' }, valueHelp: { false: 'Shared.' } });
+  });
+
+  it('a scalar behind another knob: a setup object without a mode carries showWhen', () => {
+    const roleMethod = K.knobsFor(SUMMARY_GWD, STAMP_GWD).find(k => k.name === 'roleMethod');
+    expect(roleMethod).toMatchObject({ kind: 'enum', value: 'choice', showWhen: { name: 'withRoles', value: 'true' } });
+    expect(K.knobVisible(roleMethod, { withRoles: true })).toBe(true);
+    expect(K.knobVisible(roleMethod, { withRoles: false })).toBe(false);
+  });
+
+  it('a tags knob: the stamped names, the suggestions, the cap, hidden when jobs are off', () => {
+    const roles = K.knobsFor(SUMMARY_GWD, STAMP_GWD).find(k => k.name === 'roles');
+    expect(roles).toMatchObject({ kind: 'tags', label: 'The jobs', value: ['Recorder', 'Captain'], suggestions: ['Facilitator', 'Recorder'], max: 8 });
+    expect(K.knobVisible(roles, { withRoles: false })).toBe(false);
+  });
+
+  it('a list knob: the stamped items and the knob whose names tag them', () => {
+    const tasks = K.knobsFor(SUMMARY_GWD, STAMP_GWD).find(k => k.name === 'tasks');
+    expect(tasks).toMatchObject({ kind: 'list', value: ['Recorder: write it', 'Clean up'], tagFrom: 'roles', tagLabel: 'Anyone', showWhen: null });
+  });
+
+  it('applyKnobs treats tags and list values as trimmed string lists', () => {
+    const params = K.applyKnobs(STAMP_GWD.params, [
+      { name: 'withRoles', kind: 'boolean', value: false },
+      { name: 'roles', kind: 'tags', value: ['Captain', ' Scribe '] },
+      { name: 'tasks', kind: 'list', value: ['Read the sheet', '', ' Clean up '] }
+    ]);
+    expect(params.withRoles).toBe(false);
+    expect(params.roles).toEqual(['Captain', 'Scribe']);
+    expect(params.tasks).toEqual(['Read the sheet', 'Clean up']);
+  });
+});
+
+describe('splitTag / joinTag — the "Name: text" prefix a list item carries', () => {
+  it('reads a known name off the front, case-insensitively, and leaves other colons alone', () => {
+    const names = ['Facilitator', 'Recorder'];
+    expect(K.splitTag('Recorder: write it down', names)).toEqual({ tag: 'Recorder', text: 'write it down' });
+    expect(K.splitTag('recorder:   lower case', names)).toEqual({ tag: 'Recorder', text: 'lower case' });
+    expect(K.splitTag('Final check: everyone spoke', names)).toEqual({ tag: null, text: 'Final check: everyone spoke' });
+    expect(K.splitTag('Recorder: write it down', [])).toEqual({ tag: null, text: 'Recorder: write it down' });
+    expect(K.splitTag('', names)).toEqual({ tag: null, text: '' });
+  });
+
+  it('joins back to one line, or the text alone; an empty text is nothing', () => {
+    expect(K.joinTag('Recorder', ' write it down ')).toBe('Recorder: write it down');
+    expect(K.joinTag(null, 'Clean up')).toBe('Clean up');
+    expect(K.joinTag('', 'Clean up')).toBe('Clean up');
+    expect(K.joinTag('Recorder', '   ')).toBe('');
+  });
+});

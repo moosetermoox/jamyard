@@ -27,7 +27,8 @@ describe('group-work-day is a faithful group-work-day compile', () => {
     const recipe = await loadJson('recipes/group-work-day.json');
     expect(config.recipe.id).toBe('group-work-day');
     expect(config.recipe.version).toBe(recipe.version);
-    expect(Object.keys(config.recipe.params).sort()).toEqual(['groupSize', 'method', 'roleMethod', 'roles', 'tasks']);
+    expect(Object.keys(config.recipe.params).sort()).toEqual(['groupSize', 'method', 'roleMethod', 'roles', 'tasks', 'withRoles']);
+    expect(config.recipe.params.withRoles).toBe(true);
   });
 
   it('phases deep-equal a fresh compile of the stamped params (no drift)', async () => {
@@ -39,17 +40,47 @@ describe('group-work-day is a faithful group-work-day compile', () => {
     expect(validate(config, 'group-work-day', { returnResults: true }).errors).toEqual([]);
   });
 
-  it('every setting the owner asked for is a make-page knob, the enums with a line per answer', async () => {
+  // 2026-09-14 (owner: "how groups form, the bar doesn't need to take up
+  // the whole width, it could also be multiple choice; whether or not
+  // there are specific roles should be something you switch on or off,
+  // then it can suggest roles or you can type your own; tasks shouldn't
+  // just be one text box, an individual box per task, and if you have
+  // roles then next to each task you could assign a role"): every setting
+  // is a row of chips, jobs are a switch, the jobs are suggested names,
+  // the tasks are one box each with a job picker
+  it('every setting is a make-page knob: chips with a label and a line per answer, jobs as a switch, names, a list with a picker', async () => {
     const recipe = await loadJson('recipes/group-work-day.json');
     const p = recipe.parameters;
     expect(p.groupSize.setup).toBe(true);
     expect(p.method.setup).toBe(true);
+    expect(Object.keys(p.method.valueLabels)).toEqual(['random', 'choice', 'teacher']);
     expect(Object.keys(p.method.valueHelp)).toEqual(['random', 'choice', 'teacher']);
-    expect(p.roles.setup).toEqual({ mode: 'lines' });
-    expect(p.roleMethod.setup).toBe(true);
+    expect(p.withRoles).toMatchObject({ type: 'boolean', default: true, setup: true });
+    expect(Object.keys(p.withRoles.valueLabels)).toEqual(['true', 'false']);
+    expect(Object.keys(p.withRoles.valueHelp)).toEqual(['true', 'false']);
+    expect(p.roles.setup).toMatchObject({ mode: 'tags', showWhen: 'withRoles=true' });
+    expect(p.roles.setup.suggestions).toEqual(expect.arrayContaining(['Facilitator', 'Recorder', 'Timekeeper']));
+    expect(p.roles.setup.suggestions.length).toBeGreaterThanOrEqual(6);
+    expect(p.roleMethod.setup).toEqual({ showWhen: 'withRoles=true' });
+    expect(Object.keys(p.roleMethod.valueLabels)).toEqual(['choice', 'random']);
     expect(Object.keys(p.roleMethod.valueHelp)).toEqual(['choice', 'random']);
-    expect(p.tasks.setup).toEqual({ mode: 'lines' });
+    expect(p.tasks.setup).toEqual({ mode: 'list', tagFrom: 'roles', tagLabel: 'Anyone' });
     expect(p.tasks.default).toHaveLength(8);
+    // The default tasks still speak the "Job: task" prefix the picker reads
+    expect(p.tasks.default.filter((t) => /^(Facilitator|Recorder|Timekeeper): /.test(t))).toHaveLength(3);
+  });
+
+  it('jobs off: the roles step is gone, the split goes straight to the checklist, nothing tags, the intro drops the job line', async () => {
+    const recipe = await loadJson('recipes/group-work-day.json');
+    const shipped = await loadJson('games/group-work-day/config.json');
+    const { config, diagnostics } = compileRecipe(recipe, { ...shipped.recipe.params, withRoles: false, roles: [] });
+    expect(diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
+    expect(config.phases['pick-roles']).toBeUndefined();
+    expect(config.phases['make-groups'].next).toBe('worktime');
+    expect(config.phases.worktime.rolesFrom).toBeUndefined();
+    expect(config.phases.worktime.prompt).not.toContain('job');
+    expect(config.phases.intro.message).not.toContain('job');
+    expect(validate(config, 'gwd-no-jobs', { returnResults: true }).errors).toEqual([]);
   });
 
   it('a teacher\'s own jobs and tasks land on the split, the roles step, and the checklist', async () => {

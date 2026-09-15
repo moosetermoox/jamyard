@@ -1022,7 +1022,15 @@ function showCustomizeDialog(game, config, questions, knobs, mount) {
   var LABEL_CSS = 'display:block; font-weight:700; margin:12px 0 6px; font-family:"DM Sans", Arial, sans-serif; color:#2A2620;';
   var INPUT_CSS = 'padding:11px 14px 9px; border:none; background:#EAD9BA; background-image:repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0 1px, transparent 1px 6px); border-bottom:3px dashed rgba(110,75,40,0.45); font-family:"DM Sans", Arial, sans-serif; font-size:0.95rem; font-weight:500; color:#2A2620; box-sizing:border-box;';
 
-  // --- Setup knobs (recipe-born games only) ---
+  // --- Setup knobs (recipe-born games only): rows of chips ---
+  // Every knob is ONE row, the question then the answer (2026-09-14,
+  // owner: "the bar doesn't need to take up the whole width, it could
+  // also be multiple choice"): a switch or a pick is a row of chips, a
+  // small count is a row of numbers, names are chips with "Type your
+  // own", a list is one box per item (each with a picker for the name it
+  // belongs to when the recipe says so), and the old textarea / topic box
+  // stay for lines and text. A knob can hide behind another's value
+  // (setup.showWhen). knobInputs entries carry the row and a value reader.
   var knobInputs = [];
   var knobsHeading = null;
   if (knobs.length > 0) {
@@ -1032,128 +1040,338 @@ function showCustomizeDialog(game, config, questions, knobs, mount) {
     knobsHeading.textContent = 'Set it up:';
     modal.appendChild(knobsHeading);
 
-    // Each knob is one row so a knob can hide behind another's value
-    // (setup.showWhen: the teacher's phrase list only when "teacher" is
-    // picked). knobInputs entries carry the row and a value reader.
+    var knobRows = document.createElement('div');
+    knobRows.className = 'knob-rows';
+    modal.appendChild(knobRows);
+
+    var CHIP_MAX = 10; // more values than this = a number box, not chips
+
+    function knobChip(text, pressed, dashed) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'knob-chip' + (dashed ? ' is-dashed' : '');
+      b.textContent = text;
+      b.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+      return b;
+    }
+
+    function knobRowEl(knob) {
+      var row = document.createElement('div');
+      row.className = 'knob-row knob-row-' + knob.kind;
+      var q = document.createElement('span');
+      q.className = 'knob-q';
+      q.textContent = knob.label;
+      row.appendChild(q);
+      var a = document.createElement('div');
+      a.className = 'knob-a';
+      row.appendChild(a);
+      row.a = a;
+      return row;
+    }
+
+    function helpLine(text) {
+      var p = document.createElement('p');
+      p.className = 'knob-help';
+      p.textContent = text || '';
+      p.hidden = !text;
+      return p;
+    }
+
+    // A chip row over fixed values (a switch, a pick, a small count): the
+    // pressed chip is the value; the help line is the picked value's
+    // (valueHelp), never all of them at once (owner, 2026-09-13)
+    function chipPick(entry, values, labelFor, helpFor) {
+      var current = entry.knob.value;
+      var chips = [];
+      var help = helpLine(helpFor(current));
+      values.forEach(function (v) {
+        var chip = knobChip(labelFor(v), String(v) === String(current));
+        chip.addEventListener('click', function () {
+          current = v;
+          chips.forEach(function (c) { c.el.setAttribute('aria-pressed', String(c.v) === String(current) ? 'true' : 'false'); });
+          help.textContent = helpFor(current) || '';
+          help.hidden = !help.textContent;
+          refreshKnobRows();
+        });
+        chips.push({ v: v, el: chip });
+        entry.row.a.appendChild(chip);
+      });
+      entry.row.a.appendChild(help);
+      entry.getValue = function () { return current; };
+    }
+
     knobs.forEach(function (knob) {
       var input;
-      var row = document.createElement('div');
-      row.className = 'knob-row';
-      modal.appendChild(row);
+      var row = knobRowEl(knob);
+      knobRows.appendChild(row);
+      var entry = { knob: knob, row: row, input: null, getValue: null };
+      knobInputs.push(entry);
+      var labels = knob.valueLabels || {};
+      var helpFor = function (v) { return (knob.valueHelp && knob.valueHelp[String(v)]) || knob.helper || ''; };
+
       if (knob.kind === 'boolean') {
-        var boolLabel = document.createElement('label');
-        boolLabel.style.cssText = LABEL_CSS + ' cursor:pointer;';
-        input = document.createElement('input');
-        input.type = 'checkbox';
-        input.checked = knob.value === true;
-        input.style.cssText = 'margin-right:8px; width:18px; height:18px; vertical-align:middle;';
-        boolLabel.appendChild(input);
-        boolLabel.appendChild(document.createTextNode(knob.label));
-        if (knob.helper) boolLabel.title = knob.helper;
-        row.appendChild(boolLabel);
-        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
-          return function () { return el.checked; };
-        }(input) });
+        chipPick(entry, [true, false], function (v) {
+          return labels[String(v)] || (v ? 'On' : 'Off');
+        }, helpFor);
       } else if (knob.kind === 'enum') {
-        var enumLabel = document.createElement('label');
-        enumLabel.style.cssText = LABEL_CSS;
-        enumLabel.textContent = knob.label;
-        if (knob.helper) enumLabel.title = knob.helper;
-        row.appendChild(enumLabel);
-        input = document.createElement('select');
-        input.style.cssText = 'width:100%; ' + INPUT_CSS;
-        (knob.values || []).forEach(function (v) {
-          var opt = document.createElement('option');
-          opt.value = String(v);
-          opt.textContent = String(v);
-          if (String(v) === String(knob.value)) opt.selected = true;
-          input.appendChild(opt);
+        chipPick(entry, knob.values || [], function (v) {
+          return labels[String(v)] || String(v);
+        }, helpFor);
+      } else if ((knob.kind === 'integer' || knob.kind === 'count') &&
+                 knob.min != null && knob.max != null && knob.max - knob.min + 1 <= CHIP_MAX) {
+        var nums = [];
+        for (var n = knob.min; n <= knob.max; n++) nums.push(n);
+        chipPick(entry, nums, function (v) { return String(v); }, function () { return knob.helper || ''; });
+      } else if (knob.kind === 'tags') {
+        // Names as chips: the suggestions, the stamped names among them,
+        // any other stamped name after; "Type your own" adds one. The
+        // value is the pressed chips in row order (the first names fill
+        // the smallest groups, so the order is the one on the page).
+        var names = knob.suggestions.slice();
+        knob.value.forEach(function (v) { if (names.indexOf(v) === -1) names.push(v); });
+        var tagChips = [];
+        var tagHelp = helpLine(knob.helper);
+        var tagNote = helpLine('');
+        var addChip = knobChip('Type your own…', false, true);
+        var addBox = document.createElement('input');
+        addBox.type = 'text';
+        addBox.className = 'knob-plank knob-plank-short';
+        addBox.maxLength = 40;
+        addBox.placeholder = 'A job, then Enter';
+        addBox.setAttribute('aria-label', 'Type your own');
+        addBox.dataset.micAttached = 'skip'; // a short name, no mic
+        addBox.hidden = true;
+        var pressedCount = function () {
+          return tagChips.filter(function (c) { return c.el.getAttribute('aria-pressed') === 'true'; }).length;
+        };
+        var addTag = function (name, pressed) {
+          var chip = knobChip(name, pressed);
+          chip.addEventListener('click', function () {
+            var on = chip.getAttribute('aria-pressed') === 'true';
+            if (!on && knob.max != null && pressedCount() >= knob.max) {
+              tagNote.textContent = 'That is the most, ' + knob.max + '. Take one off to add another.';
+              tagNote.hidden = false;
+              return;
+            }
+            tagNote.hidden = true;
+            chip.setAttribute('aria-pressed', on ? 'false' : 'true');
+            refreshKnobRows();
+          });
+          tagChips.push({ name: name, el: chip });
+          row.a.insertBefore(chip, addChip);
+        };
+        row.a.appendChild(addChip);
+        names.forEach(function (name) { addTag(name, knob.value.indexOf(name) !== -1); });
+        row.a.appendChild(addBox);
+        row.a.appendChild(tagHelp);
+        row.a.appendChild(tagNote);
+        addChip.addEventListener('click', function () {
+          addBox.hidden = false;
+          addBox.focus();
         });
-        row.appendChild(input);
-        // The helper line is for the value picked (valueHelp), never all
-        // three at once (owner, 2026-09-13: "the description should only
-        // be for the answer in that box")
-        if (knob.helper || knob.valueHelp) {
-          var enumHelp = document.createElement('p');
-          enumHelp.className = 'field-help';
-          enumHelp.style.cssText = 'margin:6px 0 0; font-size:0.85rem; color:#6B6250;';
-          var enumHelpFor = function (v) { return (knob.valueHelp && knob.valueHelp[v]) || knob.helper || ''; };
-          enumHelp.textContent = enumHelpFor(input.value);
-          input.addEventListener('change', function () { enumHelp.textContent = enumHelpFor(input.value); });
-          row.appendChild(enumHelp);
-        }
-        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
-          return function () { return el.value; };
-        }(input) });
+        var commitTag = function () {
+          var name = addBox.value.trim().replace(/:+$/, '').trim();
+          if (!name) return;
+          var have = null;
+          tagChips.forEach(function (c) { if (c.name.toLowerCase() === name.toLowerCase()) have = c; });
+          if (have) {
+            have.el.setAttribute('aria-pressed', 'true');
+          } else if (knob.max != null && pressedCount() >= knob.max) {
+            tagNote.textContent = 'That is the most, ' + knob.max + '. Take one off to add another.';
+            tagNote.hidden = false;
+            return;
+          } else {
+            addTag(name, true);
+          }
+          addBox.value = '';
+          refreshKnobRows();
+        };
+        addBox.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); commitTag(); }
+          if (e.key === 'Escape') { addBox.value = ''; addBox.hidden = true; addChip.focus(); }
+        });
+        addBox.addEventListener('blur', function () {
+          commitTag();
+          if (!addBox.value) addBox.hidden = true;
+        });
+        entry.getValue = function () {
+          return tagChips.filter(function (c) { return c.el.getAttribute('aria-pressed') === 'true'; })
+            .map(function (c) { return c.name; });
+        };
+      } else if (knob.kind === 'list') {
+        // One box per item, an × on each, "+ Add" under them; with
+        // tagFrom, a picker beside each box tags the item with one of that
+        // knob's names ("Recorder: write it down" on the wire, the name
+        // shown in the picker, never typed twice)
+        var listHolder = document.createElement('div');
+        listHolder.className = 'knob-list';
+        row.a.appendChild(listHolder);
+        var addItem = document.createElement('button');
+        addItem.type = 'button';
+        addItem.className = 'knob-chip is-dashed knob-add';
+        addItem.textContent = '+ Add one';
+        row.a.appendChild(addItem);
+        row.a.appendChild(helpLine(knob.helper));
+        var tagNames = [];
+        var tagsOn = false;
+        var itemRows = [];
+        var sourceKnob = null;
+        knobs.forEach(function (k) { if (knob.tagFrom && k.name === knob.tagFrom) sourceKnob = k; });
+        if (sourceKnob) tagNames = sourceKnob.value.slice();
+
+        var fillPicker = function (sel, keep) {
+          sel.textContent = '';
+          var none = document.createElement('option');
+          none.value = '';
+          none.textContent = knob.tagLabel;
+          sel.appendChild(none);
+          tagNames.forEach(function (name) {
+            var opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            sel.appendChild(opt);
+          });
+          sel.value = keep && tagNames.indexOf(keep) !== -1 ? keep : '';
+        };
+        var addRow = function (text, tag, focus) {
+          var line = document.createElement('div');
+          line.className = 'knob-item';
+          // A box that grows with its line (a long task wraps, never
+          // clips); Enter never breaks the line, it adds the next box
+          var box;
+          if (window.GrowingText) {
+            box = GrowingText.create({ value: text || '', maxLength: 200, placeholder: 'A task' });
+          } else {
+            box = document.createElement('input');
+            box.type = 'text';
+            box.value = text || '';
+            box.maxLength = 200;
+            box.placeholder = 'A task';
+          }
+          box.className = 'knob-plank';
+          box.setAttribute('aria-label', 'Task');
+          box.dataset.micAttached = 'skip'; // one line each, no mic per row
+          line.appendChild(box);
+          var sel = null;
+          if (knob.tagFrom) {
+            sel = document.createElement('select');
+            sel.className = 'knob-tag';
+            sel.setAttribute('aria-label', 'Whose task');
+            fillPicker(sel, tag);
+            sel.hidden = !tagsOn;
+            sel.addEventListener('change', refreshKnobRows);
+            line.appendChild(sel);
+          }
+          var x = document.createElement('button');
+          x.type = 'button';
+          x.className = 'knob-x';
+          x.textContent = '×';
+          x.setAttribute('aria-label', 'Remove this one');
+          line.appendChild(x);
+          var item = { line: line, box: box, sel: sel };
+          if (focus && focus.after) {
+            var at = itemRows.indexOf(focus.after);
+            itemRows.splice(at + 1, 0, item);
+            listHolder.insertBefore(line, focus.after.line.nextSibling);
+          } else {
+            itemRows.push(item);
+            listHolder.appendChild(line);
+          }
+          box.addEventListener('input', refreshKnobRows);
+          box.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') { e.preventDefault(); addRow('', null, { after: item }).box.focus(); }
+          });
+          x.addEventListener('click', function () {
+            itemRows.splice(itemRows.indexOf(item), 1);
+            line.remove();
+            if (itemRows.length === 0) addRow('', null);
+            refreshKnobRows();
+          });
+          return item;
+        };
+        knob.value.forEach(function (v) {
+          var parts = SetupKnobs.splitTag(v, tagNames);
+          addRow(parts.text, parts.tag);
+        });
+        if (itemRows.length === 0) addRow('', null);
+        addItem.addEventListener('click', function () { addRow('', null).box.focus(); });
+        // The boxes measured themselves before the page's font arrived
+        // (a wider fallback wraps a one-line task onto two): fit them
+        // again once it has, and whenever the column changes width
+        var refit = function () {
+          if (!window.GrowingText) return;
+          itemRows.forEach(function (it) { if (it.box.tagName === 'TEXTAREA') GrowingText.fit(it.box); });
+        };
+        if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+        window.addEventListener('resize', refit);
+
+        // The names to tag with, or null when the source knob is hidden
+        // (no jobs = no pickers, and the items save untagged)
+        entry.setTags = function (names) {
+          tagsOn = Array.isArray(names);
+          var next = tagsOn ? names.slice() : tagNames;
+          var changed = JSON.stringify(next) !== JSON.stringify(tagNames);
+          tagNames = next;
+          itemRows.forEach(function (it) {
+            if (!it.sel) return;
+            if (changed) fillPicker(it.sel, it.sel.value);
+            it.sel.hidden = !tagsOn;
+          });
+          row.classList.toggle('tags-off', !tagsOn);
+        };
+        entry.getValue = function () {
+          return itemRows.map(function (it) {
+            return SetupKnobs.joinTag(tagsOn && it.sel ? it.sel.value : null, it.box.value);
+          }).filter(function (s) { return s.length > 0; });
+        };
       } else if (knob.kind === 'lines') {
-        var linesLabel = document.createElement('label');
-        linesLabel.style.cssText = LABEL_CSS;
-        linesLabel.textContent = knob.label;
-        row.appendChild(linesLabel);
         input = document.createElement('textarea');
         input.rows = 8;
+        input.className = 'knob-plank';
         input.value = (knob.value || []).join('\n');
-        input.style.cssText = 'width:100%; resize:vertical; ' + INPUT_CSS;
-        row.appendChild(input);
-        if (knob.helper) {
-          var linesHelp = document.createElement('p');
-          linesHelp.style.cssText = 'margin:6px 0 0; font-size:0.85rem; color:#6B6250;';
-          linesHelp.textContent = knob.helper;
-          row.appendChild(linesHelp);
-        }
-        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el) {
-          return function () {
-            return el.value.split('\n').map(function (s) { return s.trim(); })
-              .filter(function (s) { return s.length > 0; });
-          };
-        }(input) });
+        row.a.appendChild(input);
+        row.a.appendChild(helpLine(knob.helper));
+        entry.input = input;
+        entry.getValue = function () {
+          return input.value.split('\n').map(function (s) { return s.trim(); })
+            .filter(function (s) { return s.length > 0; });
+        };
       } else if (knob.kind === 'text') {
-        var textLabel = document.createElement('label');
-        textLabel.style.cssText = LABEL_CSS;
-        textLabel.textContent = knob.label;
-        row.appendChild(textLabel);
         input = document.createElement('input');
         input.type = 'text';
+        input.className = 'knob-plank';
         input.value = knob.value || '';
         input.maxLength = 200;
-        input.style.cssText = 'width:100%; ' + INPUT_CSS;
-        row.appendChild(input);
-        if (knob.helper) {
-          var textHelp = document.createElement('p');
-          textHelp.style.cssText = 'margin:6px 0 0; font-size:0.85rem; color:#6B6250;';
-          textHelp.textContent = knob.helper;
-          row.appendChild(textHelp);
-        }
-        var textEntry = { knob: knob, row: row, input: input, getValue: function (el) {
-          return function () { return el.value.trim(); };
-        }(input) };
+        row.a.appendChild(input);
+        entry.input = input;
+        entry.getValue = function () { return input.value.trim(); };
         // writes: the AI writes a list on this topic into another knob
         // (Doodle Bluff: pick "ai" and the phrases appear, editable). Runs
         // by itself the first time the list is empty and this knob shows;
         // the button runs it again.
         if (knob.writes) {
           var writeRow = document.createElement('div');
-          writeRow.style.cssText = 'display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:8px;';
+          writeRow.className = 'knob-write';
           var writeBtn = document.createElement('button');
           writeBtn.type = 'button';
           writeBtn.className = 'recipe-cancel-btn';
           writeBtn.textContent = knob.writes.button || 'Write them';
           writeRow.appendChild(writeBtn);
           var writeNote = document.createElement('span');
-          writeNote.style.cssText = 'font-size:0.85rem; color:#6B6250;';
+          writeNote.className = 'knob-help';
           writeRow.appendChild(writeNote);
-          row.appendChild(writeRow);
-          textEntry.writeBtn = writeBtn;
-          textEntry.writeNote = writeNote;
-          textEntry.run = function () {
+          row.a.appendChild(writeRow);
+          entry.writeBtn = writeBtn;
+          entry.writeNote = writeNote;
+          entry.run = function () {
             var target = null;
             knobInputs.forEach(function (t) { if (t.knob.name === knob.writes.list) target = t; });
-            if (!target || textEntry.writing) return;
+            if (!target || !target.input || entry.writing) return;
             var topic = input.value.trim();
             if (topic.length < 3) { writeNote.textContent = 'Give a topic first, a few words is plenty.'; input.focus(); return; }
             var n = knob.writes.count || 20;
-            textEntry.writing = true;
-            textEntry.ran = true;
+            entry.writing = true;
+            entry.ran = true;
             writeBtn.disabled = true;
             writeNote.textContent = 'Writing ' + n + ' about "' + topic + '"…';
             fetch('/api/games/phrase-list', {
@@ -1171,44 +1389,51 @@ function showCustomizeDialog(game, config, questions, knobs, mount) {
                 writeNote.textContent = 'Read them over and change any you like.';
               })
               .catch(function (err) { writeNote.textContent = 'Could not write them: ' + err.message; })
-              .then(function () { textEntry.writing = false; writeBtn.disabled = false; });
+              .then(function () { entry.writing = false; writeBtn.disabled = false; });
           };
-          writeBtn.addEventListener('click', textEntry.run);
+          writeBtn.addEventListener('click', entry.run);
         }
-        knobInputs.push(textEntry);
+        row.a.appendChild(helpLine(knob.helper));
       } else {
-        // count + integer share a number input
-        var numLabel = document.createElement('label');
-        numLabel.style.cssText = LABEL_CSS;
-        numLabel.textContent = knob.label +
-          (knob.min != null && knob.max != null ? ' (' + knob.min + '–' + knob.max + ')' : '');
-        if (knob.helper) numLabel.title = knob.helper;
-        row.appendChild(numLabel);
+        // count + integer over a long range share a number box
         input = document.createElement('input');
         input.type = 'number';
+        input.className = 'knob-plank knob-plank-short';
         if (knob.min != null) input.min = knob.min;
         if (knob.max != null) input.max = knob.max;
         input.value = knob.value;
-        input.style.cssText = 'width:120px; ' + INPUT_CSS;
-        row.appendChild(input);
-        knobInputs.push({ knob: knob, row: row, input: input, getValue: function (el, k) {
-          return function () {
-            var n = parseInt(el.value, 10);
-            if (isNaN(n)) return k.value; // blank/garbage = leave it alone
-            if (k.min != null && n < k.min) n = k.min;
-            if (k.max != null && n > k.max) n = k.max;
-            return n;
-          };
-        }(input, knob) });
+        input.setAttribute('aria-label', knob.label);
+        row.a.appendChild(input);
+        if (knob.min != null && knob.max != null) {
+          row.a.appendChild(helpLine(knob.min + ' to ' + knob.max + (knob.helper ? '. ' + knob.helper : '')));
+        } else {
+          row.a.appendChild(helpLine(knob.helper));
+        }
+        entry.input = input;
+        entry.getValue = function () {
+          var v = parseInt(input.value, 10);
+          if (isNaN(v)) return knob.value; // blank/garbage = leave it alone
+          if (knob.min != null && v < knob.min) v = knob.min;
+          if (knob.max != null && v > knob.max) v = knob.max;
+          return v;
+        };
       }
     });
 
-    // showWhen: re-check which rows show whenever any knob changes
+    // showWhen: re-check which rows show whenever any knob changes; a list
+    // knob's pickers follow its source knob (the names, or none while it
+    // is hidden)
     function refreshKnobRows() {
       var values = {};
       knobInputs.forEach(function (ki) { values[ki.knob.name] = ki.getValue(); });
       knobInputs.forEach(function (ki) {
         ki.row.hidden = !SetupKnobs.knobVisible(ki.knob, values);
+      });
+      knobInputs.forEach(function (ki) {
+        if (!ki.setTags) return;
+        var src = null;
+        knobInputs.forEach(function (t) { if (t.knob.name === ki.knob.tagFrom) src = t; });
+        ki.setTags(src && !src.row.hidden ? values[src.knob.name] : null);
       });
       // A writer knob that just came into view writes the list once by
       // itself (the teacher picked "ai": the phrases appear) when the list
@@ -1225,6 +1450,7 @@ function showCustomizeDialog(game, config, questions, knobs, mount) {
       });
     }
     knobInputs.forEach(function (ki) {
+      if (!ki.input) return;
       ki.input.addEventListener('change', refreshKnobRows);
       ki.input.addEventListener('input', refreshKnobRows);
     });
@@ -1365,7 +1591,7 @@ function showCustomizeDialog(game, config, questions, knobs, mount) {
     return knobInputs.some(function (ki) {
       var now = ki.getValue();
       if (ki.knob.kind === 'boolean') return now !== ki.knob.value;
-      if (ki.knob.kind === 'lines') return JSON.stringify(now) !== JSON.stringify(ki.knob.value);
+      if (ki.knob.kind === 'lines' || ki.knob.kind === 'tags' || ki.knob.kind === 'list') return JSON.stringify(now) !== JSON.stringify(ki.knob.value);
       return String(now) !== String(ki.knob.value);
     });
   }

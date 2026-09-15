@@ -163,7 +163,7 @@
         // panel holds the words
         var knobs = summary ? SetupKnobs.knobsFor(summary, stamp) : [];
         if (!state.panel && knobs.length) state.panel = 'knobs';
-        state.contentKnobs = knobs.some(function (k) { return k.kind === 'lines' || k.kind === 'text'; });
+        state.contentKnobs = knobs.some(function (k) { return k.kind === 'lines' || k.kind === 'text' || k.kind === 'tags' || k.kind === 'list'; });
         return parts;
       });
   }).then(function (parts) {

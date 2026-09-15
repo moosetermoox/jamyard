@@ -352,3 +352,41 @@ describe('validateRecipe — valueHelp on enums and setup.writes on text knobs (
     })))).toContain(codes.RECIPE_INVALID_SETUP_FLAG);
   });
 });
+
+describe('validateRecipe — chips per value, tags and list knobs, a scalar behind another knob (2026-09-14)', () => {
+  const mk = (parameters) => ({ id: 'x', name: 'x', description: 'x', parameters, template: {} });
+
+  it('accepts valueLabels and valueHelp on enums and booleans, tags with suggestions, a list with tagFrom, and a mode-less scalar setup', () => {
+    const diags = validateRecipe(mk({
+      how: { type: 'enum', values: ['a', 'b'], setup: true, valueLabels: { a: 'Random', b: 'Students choose' } },
+      jobs: { type: 'boolean', setup: true, valueLabels: { true: 'Yes', false: 'No' }, valueHelp: { true: 'One each.' } },
+      roles: { type: 'array', item: { type: 'string' }, setup: { mode: 'tags', suggestions: ['Recorder', 'Timekeeper'], showWhen: 'jobs=true' } },
+      given: { type: 'enum', values: ['choice', 'random'], setup: { showWhen: 'jobs=true' } },
+      tasks: { type: 'array', item: { type: 'string' }, setup: { mode: 'list', tagFrom: 'roles', tagLabel: 'Anyone' } }
+    }));
+    expect(diags).toEqual([]);
+  });
+
+  it('rejects a boolean valueHelp keyed off true/false, and labels that are not strings', () => {
+    expect(codeSet(validateRecipe(mk({
+      jobs: { type: 'boolean', valueHelp: { yes: 'nope' } }
+    })))).toContain(codes.RECIPE_INVALID_PARAM_SPEC);
+    expect(codeSet(validateRecipe(mk({
+      how: { type: 'enum', values: ['a'], valueLabels: { a: 1 } }
+    })))).toContain(codes.RECIPE_INVALID_PARAM_SPEC);
+  });
+
+  it('rejects suggestions off a tags knob, tagFrom off a list knob, and a mode-less setup on an array', () => {
+    for (const spec of [
+      { type: 'array', item: { type: 'string' }, setup: { mode: 'lines', suggestions: ['a'] } },
+      { type: 'array', item: { type: 'string' }, setup: { mode: 'tags', suggestions: ['a', 3] } },
+      { type: 'array', item: { type: 'string' }, setup: { mode: 'tags', tagFrom: 'x' } },
+      { type: 'array', item: { type: 'string' }, setup: { mode: 'list', tagFrom: '' } },
+      { type: 'array', item: { type: 'string' }, setup: { mode: 'list', tagLabel: 4 } },
+      { type: 'array', item: { type: 'string' }, setup: { showWhen: 'a=b' } },
+      { type: 'string', setup: { mode: 'tags' } }
+    ]) {
+      expect(codeSet(validateRecipe(mk({ q: spec }))), JSON.stringify(spec)).toContain(codes.RECIPE_INVALID_SETUP_FLAG);
+    }
+  });
+});
