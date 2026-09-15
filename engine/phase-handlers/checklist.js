@@ -7,6 +7,7 @@ import {
   pairsAsTeams,
   groupProgress
 } from '../phases/checklist-state.js';
+import { seatInTeamData, seatInRoleOutput, seatInChecklistState } from '../phases/late-seating.js';
 
 /**
  * checklist — every group works through the same teacher-written to-do
@@ -137,6 +138,39 @@ registerHandler('checklist', {
     if (phase.timer) {
       armPhaseTimer(room, phase.timer, () => ctx.services.closeChecklist(room.code || code, room));
     }
+  },
+
+  // A student who joins mid-checklist (engine/phases/late-seating.js):
+  // a seat on the smallest team in the split's stored data (or a fresh
+  // solo list), the group's least-held role when the step has roles, and
+  // their team's list, which onReconnect sends them next. Progress on the
+  // projector and the console's group detail refresh.
+  onLateJoin(ctx, playerId) {
+    const { phase, engine, room } = ctx;
+    const state = room.phaseState;
+    if (!state || state.kind !== 'checklist' || state.closed) return null;
+    const name = (engine.players.find(playerId) || {}).name || '?';
+    let team = null;
+    if (!state.solo) {
+      const teamData = phase.teamsFrom ? engine.phaseData[phase.teamsFrom] : null;
+      team = seatInTeamData(teamData, playerId, name);
+      // Pair-born groups (a pairwise collect) have no seat to give
+      if (!team) return null;
+    }
+    const key = seatInChecklistState(state, playerId, name, team);
+    if (key == null) return null;
+    let role = null;
+    const roleData = phase.rolesFrom ? engine.phaseData[phase.rolesFrom] : null;
+    if (team && roleData && Array.isArray(roleData.roles) && roleData.roles.length > 0) {
+      role = seatInRoleOutput(roleData, playerId, name, team, state.groups[key].memberIds);
+      if (role) {
+        if (!state.playerRole) state.playerRole = {};
+        state.playerRole[playerId] = role;
+      }
+    }
+    ctx.emitToHost(EVENTS.CHECKLIST_UPDATE, { progress: groupProgress(state) });
+    ctx.emitToTeachers(EVENTS.CHECKLIST_UPDATE, { groups: teacherDetail(state) });
+    return { team, role, picking: false };
   },
 
   onReconnect(ctx, socket) {

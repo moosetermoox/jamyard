@@ -19,6 +19,19 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { dealRoles, roleCapacity, buildRoleOutput } from '../phases/role-deal.js';
 import { pairsAsTeams } from '../phases/checklist-state.js';
+import { seatInTeamData, seatInRoleState, seatInRoleOutput, boardFromTeams } from '../phases/late-seating.js';
+
+// Live claims to the projector, the consoles, and every member's menu
+// (the server's emitTeamRolesUpdate, through the handler context)
+function emitRolesLive(ctx, state) {
+  const board = buildRoleBoard(state, ctx.engine.players);
+  ctx.emitToHost(EVENTS.TEAM_ROLES_UPDATE, { ...board, roles: state.roles });
+  ctx.emitToTeachers(EVENTS.TEAM_ROLES_UPDATE, { ...board, roles: state.roles });
+  for (const player of ctx.engine.players.list()) {
+    const menu = buildRoleMenu(state, player.id, ctx.engine.players);
+    if (menu) ctx.emitToPlayer(player.id, EVENTS.TEAM_ROLES_UPDATE, menu);
+  }
+}
 
 /**
  * Resolve teamsFrom into the {groups, playerGroup} shape role-deal
@@ -159,6 +172,45 @@ registerHandler('team-roles', {
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }
+  },
+
+  // A student who joins after the roles step opened (engine/phases/
+  // late-seating.js): they take a seat on the smallest team in the split's
+  // stored data, then pick from that group's menu while the step is open,
+  // or get the group's least-held role once the roles are set (the
+  // projector's lineup refreshes). Their own screen follows from
+  // onReconnect, which the join path sends next.
+  onLateJoin(ctx, playerId) {
+    const { phase, engine, room } = ctx;
+    const nameOf = id => (engine.players.find(id) || {}).name || '?';
+    const name = nameOf(playerId);
+    const teamData = phase.teamsFrom ? engine.phaseData[phase.teamsFrom] : null;
+    const team = teamData && teamData.teams ? seatInTeamData(teamData, playerId, name) : null;
+    const state = room.phaseState;
+    if (state && state.kind === 'team-roles' && !state.closed) {
+      // No teams behind the step = the whole-class fallback group
+      const key = team || (state.groups['The class'] ? 'The class' : null);
+      if (!key) return null;
+      seatInRoleState(state, playerId, key, key);
+      emitRolesLive(ctx, state);
+      return { team, role: null, picking: true };
+    }
+    const output = engine.phaseData[phase.id];
+    if (!output || !Array.isArray(output.roles) || output.roles.length === 0) return null;
+    const label = team || 'The class';
+    const memberIds = team && teamData.teams[team]
+      ? teamData.teams[team].map(m => m.playerId)
+      : Object.keys(output.playerRole || {}).concat([playerId]);
+    const role = seatInRoleOutput(output, playerId, name, label, memberIds);
+    if (!role) return null;
+    const teamsForBoard = team ? teamData : { teams: { [label]: memberIds.map(id => ({ playerId: id, name: nameOf(id) })) } };
+    const sc = ctx.resolveScreenControl();
+    ctx.emitToHost(EVENTS.TEAM_ROLES, {
+      board: boardFromTeams(teamsForBoard, output.playerRole),
+      rolesList: output.rolesList,
+      hostTemplate: sc.hostTemplate, show: sc.hostShow
+    });
+    return { team, role, picking: false };
   },
 
   onReconnect(ctx, socket) {

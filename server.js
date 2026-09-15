@@ -1849,6 +1849,30 @@ async function handlePhase(code, room) {
   console.warn(`[handlePhase] No handler registered for phase type: ${phase.type}`);
 }
 
+// --- Late seating: a FRESH join that lands in a team step already open ---
+// The handler's onLateJoin (team-split, team-roles, checklist; engine/
+// phases/late-seating.js) gives the newcomer a seat wherever the class is
+// and refreshes the projector; the consoles get one line saying where
+// they landed. Runs before sendCurrentState so the newcomer's first
+// screen is their seat, not the waiting screen. Reconnects never come
+// here (they follow their old seat).
+function seatLateJoiner(socket, code, room) {
+  if (!room.engine) return null;
+  const phase = room.engine.getCurrentPhase();
+  if (!phase || phase.type === 'lobby') return null;
+  const handler = getHandler(phase.type);
+  if (!handler || !handler.onLateJoin) return null;
+  const ctx = createPhaseContext(code, room, phaseServices);
+  const seat = handler.onLateJoin(ctx, socket.id);
+  if (!seat) return null;
+  const name = (room.engine.players.find(socket.id) || {}).name || '?';
+  console.log(`[join-room] Late seat for ${name} in '${phase.id}': team ${seat.team || '(picking)'}, role ${seat.role || (seat.picking ? '(picking)' : 'none')}`);
+  io.to(teachersChannel(code)).emit(EVENTS.TEACHER_LATE_SEAT, {
+    name, team: seat.team || null, role: seat.role || null, picking: !!seat.picking, phaseId: phase.id
+  });
+  return seat;
+}
+
 // --- Reconnection: send current state to a reconnecting player ---
 
 function sendCurrentState(socket, code, room) {
@@ -3678,13 +3702,21 @@ io.on('connection', (socket) => {
       emitTeacherRoster(code, room);
       emitRoomRoster(code, room);
 
-      // Late join: the game may already be running. Drop the new player into
-      // the current phase — the onReconnect handlers tolerate a player they've
-      // never seen (collect offers the input box, merge/vote/team-split fall
-      // back to a contextual waiting message). Without this, a student joining
-      // two minutes late stares at lobby copy while the class is mid-activity,
-      // AND blocks every "all submitted" auto-advance (the eligible count
-      // includes them the moment they join). No-op in the lobby phase.
+      // Late join: the game may already be running. A team step that has
+      // opened seats the newcomer first (a team, a role, a list), then
+      // the current phase is sent — the onReconnect handlers tolerate a
+      // player they've never seen (collect offers the input box, merge/vote
+      // fall back to a contextual waiting message). Without this, a student
+      // joining two minutes late stares at lobby copy while the class is
+      // mid-activity, AND blocks every "all submitted" auto-advance (the
+      // eligible count includes them the moment they join). No-op in the
+      // lobby phase.
+      try {
+        seatLateJoiner(socket, code, room);
+      } catch (seatError) {
+        // A seat that can't be given is a waiting screen, never a failed join.
+        console.warn(`[join-room] Late seating failed for ${socket.id}: ${seatError.message}`);
+      }
       try {
         sendCurrentState(socket, code, room);
       } catch (stateError) {

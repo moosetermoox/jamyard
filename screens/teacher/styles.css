@@ -467,3 +467,14 @@ h1, h2 {
   padding: 6px;
   box-shadow: 0 3px 5px rgba(50, 35, 15, 0.3);
 }
+
+/* Late seating: one line per student seated after a team step opened */
+.late-seats {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  font-size: 13px;
+  color: var(--t-muted, #6B6250);
+}
+.late-seats[hidden] { display: none; }
+.late-seats li { margin: 2px 0; }

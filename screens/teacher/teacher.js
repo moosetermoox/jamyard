@@ -85,6 +85,7 @@ var lobbyCount = document.getElementById('lobby-count');
 var lobbyRoster = document.getElementById('lobby-roster');
 var startActivityBtn = document.getElementById('start-activity-btn');
 var deviceNotice = document.getElementById('device-notice');
+var lateSeats = document.getElementById('late-seats');
 var projectorNotice = document.getElementById('projector-notice');
 
 var currentCode = null;
@@ -411,6 +412,25 @@ socket.on('teacher-console-joined', function (data) {
   deviceNotice.hidden = false;
   deviceNotice.textContent = 'Another teacher device just connected (' + n +
     ' total). If that wasn\'t you, a student may have the PIN, end the session or change rooms.';
+});
+
+// Late seating: a student who joined after a team step opened was given
+// a seat (engine/phases/late-seating.js); one line each says where they
+// landed, so the teacher never wonders why a name is missing from a team.
+socket.on('teacher-late-seat', function (data) {
+  if (!data || !data.name || !lateSeats) return;
+  var where;
+  if (data.picking) {
+    where = data.team ? 'on ' + data.team + ', picking a job' : 'picking a team';
+  } else if (data.team) {
+    where = 'on ' + data.team + (data.role ? ' as ' + data.role : '');
+  } else {
+    where = data.role ? 'as ' + data.role : 'seated';
+  }
+  var li = document.createElement('li');
+  li.textContent = data.name + ' joined late: ' + where + '.';
+  lateSeats.appendChild(li);
+  lateSeats.hidden = false;
 });
 
 socket.on('response-received', function (data) {
