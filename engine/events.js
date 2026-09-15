@@ -72,6 +72,7 @@ export const EVENTS = {
   TEACHER_PHASE:        'teacher-phase',       // server -> consoles: phase changed (id/type/seq)
   TEACHER_ROSTER:       'teacher-roster',      // server -> consoles: live joined-player roster
   TEACHER_CONSOLE_JOINED: 'teacher-console-joined', // server -> host: a console paired (pairing visibility)
+  TEACHER_LATE_SEAT:    'teacher-late-seat',   // server -> consoles: a late joiner was seated (team / role, or still picking)
   SHOW_DISCUSSION:      'show-discussion',      // console -> server: put this step's discussion prompt on the projector
   DISCUSSION_PROMPT:    'discussion-prompt',    // server -> host: the prompt text to show (from the config, never the client)
 

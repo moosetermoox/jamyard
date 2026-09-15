@@ -25,7 +25,9 @@ export function isRolling(config) {
  * Phase types whose behavior needs a fixed roster at the moment they run
  * (pairs, teams, chains, turn order). A rolling activity can still contain
  * them, but the validator warns: students arriving late will be left out
- * of the grouping.
+ * of the grouping. (team-split, team-roles and checklist seat a late
+ * joiner on their own since 2026-09-14, engine/phases/late-seating.js,
+ * in every start mode; the warning stays for the rest.)
  */
 export const ROSTER_BOUND_TYPES = Object.freeze([
   'team-split', 'team-roles', 'merge', 'relay', 'turn', 'one-voice', 'checklist', 'foreach', 'eliminate', 'ai-eliminate', 'buzz'

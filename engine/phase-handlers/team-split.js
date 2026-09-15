@@ -20,6 +20,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { groupCountFor, teamCapacities, defaultTeamNames } from '../phases/team-grouping.js';
+import { openTeamSpot, seatInTeamData } from '../phases/late-seating.js';
 
 /**
  * Resolve sizing + names + spot caps for a class of n. `capacity: "open"`
@@ -175,6 +176,31 @@ registerHandler('team-split', {
         playerTemplate: sc.playerTemplate, show: sc.playerShow
       });
     }
+  },
+
+  // A student who joins after the split opened (engine/phases/late-seating.js):
+  // still choosing or being arranged, they become eligible (a spot opens
+  // for them); teams set, they join the smallest one and the projector's
+  // team cards refresh. The newcomer's own screen follows from
+  // onReconnect, which the join path sends next.
+  onLateJoin(ctx, playerId) {
+    const { phase, engine, room } = ctx;
+    const state = room.phaseState;
+    const name = (engine.players.find(playerId) || {}).name || '?';
+    if (state && state.kind === 'team-split' && !state.closed) {
+      openTeamSpot(state, playerId);
+      if (state.mode === 'teacher') emitTeamSplitSetup(ctx, state);
+      else emitTeamChoiceState(ctx, state);
+      return { team: null, role: null, picking: true };
+    }
+    const data = engine.phaseData[phase.id];
+    const team = seatInTeamData(data, playerId, name);
+    if (!team) return null;
+    const sc = ctx.resolveScreenControl();
+    ctx.emitToHost(EVENTS.TEAM_SPLIT, {
+      teams: data.teams, hostTemplate: sc.hostTemplate, show: sc.hostShow
+    });
+    return { team, role: null, picking: false };
   },
 
   onReconnect(ctx, socket) {
