@@ -203,12 +203,20 @@
   color: var(--t-ink, #2A2620);
 }
 
-/* The doors: painted pieces, one red */
+/* The doors: painted pieces, one red. The row sticks to the bottom of
+   the popup so the red door is in view while the map scrolls under it
+   (the negative margins let its paper reach the popup's edges) */
 .myyard-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  margin: 18px -26px -22px;
+  padding: 14px 26px 22px;
+  background: var(--t-paper, #FDF9F0);
+  box-shadow: 0 -6px 8px -6px rgba(50, 35, 15, 0.25);
   display: flex;
   flex-wrap: wrap;
   gap: 9px;
-  margin-top: 18px;
   align-items: center;
 }
 
