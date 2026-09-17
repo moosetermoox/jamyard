@@ -27,7 +27,8 @@ describe('choice-draft is a faithful choice-draft compile', () => {
     expect(Object.keys(config.recipe.params).sort()).toEqual(['choices', 'groupCount', 'groupSize', 'groups', 'joinMethod', 'method', 'question']);
     expect(config.recipe.params.choices).toEqual(['Self and identity', 'Working with others', 'Thinking and problem solving', 'Execution and adaptation']);
     expect(config.recipe.params.groups).toBe('size');
-    expect(config.featured).toBe(true);
+    // Not a default activity (owner, 2026-09-17): in the yard only by name, the recipe still matches
+    expect(config.featured).toBe(false);
   });
 
   it('phases deep-equal a fresh compile of the stamped params (no drift)', async () => {

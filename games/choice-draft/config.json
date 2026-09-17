@@ -1,7 +1,7 @@
 {
   "name": "Choice Draft",
   "description": "Groups rank a short list of choices, then the draft hands each group one: first choices first, spread evenly. Swap in your own choices for any topic split.",
-  "featured": true,
+  "featured": false,
   "phases": {
     "lobby": {
       "type": "lobby",
