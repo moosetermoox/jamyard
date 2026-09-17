@@ -14,7 +14,7 @@
     },
     "show-suggestions": {
       "type": "reveal",
-      "template": "Suggestions are in!\n\n{{submit-destinations.responses.list}}\n\nThe AI will merge the duplicates into a shortlist, then you rank it.",
+      "template": "Suggestions are in!\n\n{{submit-destinations.responses.list}}\n\nThe duplicates get merged into a shortlist, then you rank it.",
       "next": "shortlist"
     },
     "shortlist": {

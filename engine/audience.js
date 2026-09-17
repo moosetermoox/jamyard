@@ -42,7 +42,7 @@ export const AUDIENCE_LABELS = Object.freeze({
   [AUDIENCE.CLASS_AFTER_REVIEW]: 'Shown to the class after your teacher reviews it.',
   [AUDIENCE.CLASSMATE_THEN_CLASS]: 'One classmate will read this, then the class sees it.',
   [AUDIENCE.CLASSMATE_THEN_CLASS_AFTER_REVIEW]: 'One classmate will read this, then the class sees it after your teacher reviews it.',
-  [AUDIENCE.AI]: 'The AI reads these and sums them up for the class.',
+  [AUDIENCE.AI]: 'These get summed up for the class.',
   [AUDIENCE.TEACHER]: 'Only your teacher sees this.'
 });
 

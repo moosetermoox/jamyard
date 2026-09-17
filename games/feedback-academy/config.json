@@ -12,13 +12,13 @@
     },
     "intro": {
       "type": "announce",
-      "message": "Welcome to Feedback Academy! You'll practice giving effective formative feedback.\n\nFirst: Practice on AI scenarios\nThen: Give feedback to real classmates\n\nRemember: Great feedback is specific, actionable, timely, and focused on improvement!",
+      "message": "Welcome to Feedback Academy! You'll practice giving effective formative feedback.\n\nFirst: Practice on a made-up scenario\nThen: Give feedback to real classmates\n\nRemember: Great feedback is specific, actionable, timely, and focused on improvement!",
       "timer": 12,
       "next": "practice-intro"
     },
     "practice-intro": {
       "type": "announce",
-      "message": "PRACTICE ROUND\n\nYou'll see an AI-generated scenario. Your job: Give high-quality formative feedback.\n\nFocus on being:\n✓ Specific (point to exact details)\n✓ Actionable (suggest concrete next steps)\n✓ Growth-oriented (help them improve)\n✓ Balanced (strengths + areas to develop)",
+      "message": "PRACTICE ROUND\n\nYou'll see a made-up scenario. Your job: Give high-quality formative feedback.\n\nFocus on being:\n✓ Specific (point to exact details)\n✓ Actionable (suggest concrete next steps)\n✓ Growth-oriented (help them improve)\n✓ Balanced (strengths + areas to develop)",
       "timer": 10,
       "next": "generate-scenarios"
     },
