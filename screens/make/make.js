@@ -587,9 +587,8 @@
     row.classList.toggle('answered', answer.value.trim().length > 0);
     var n = answeredQuestions().length;
     el.note.hidden = n === 0;
-    el.note.textContent = n === 1
-      ? 'Your answer is in. Host it or try it, and the wording gets fitted to your class first. About twenty seconds.'
-      : 'Your ' + n + ' answers are in. Host it or try it, and the wording gets fitted to your class first. About twenty seconds.';
+    // One line, whatever the count (owner's wording, 2026-09-16)
+    el.note.textContent = 'Host it or try it, and the wording gets fitted to your class.';
     updateFitFoot();
   }
 
