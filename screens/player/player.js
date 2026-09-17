@@ -1272,17 +1272,21 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
 
 const processTitle = document.getElementById('process-title');
 
-const AI_TASK_MESSAGES = {
-  'summarize': 'AI is summarizing answers...',
-  'generate': 'AI is creating something...',
-  'generate-choices': 'AI is generating choices...',
-  'compare': 'AI is comparing answers...',
-  'rank': 'AI is ranking answers...',
-  'judge': 'AI is judging answers...'
+// What the room reads while an ai-process step runs. Never the word AI
+// (owner, 2026-09-16: students should be reminded as little as possible
+// that the activity was made with AI); the work is described, not the
+// worker. Every line has a row in each language table (engine/i18n).
+const TASK_MESSAGES = {
+  'summarize': 'Putting the answers together...',
+  'generate': 'Making something from your answers...',
+  'generate-choices': 'Setting up the choices...',
+  'compare': 'Comparing the answers...',
+  'rank': 'Ranking the answers...',
+  'judge': 'Judging the answers...'
 };
 
 socket.on('processing-started', ({ task, playerTemplate, playerShow } = {}) => {
-  processTitle.textContent = AI_TASK_MESSAGES[task] || 'Reading everyone\'s answers...';
+  processTitle.textContent = UiLang.t(TASK_MESSAGES[task] || 'Reading everyone\'s answers...');
   showSection(processSection);
   applyTemplate(processSection, playerTemplate);
   applyShow(playerShow, { message: processTitle });

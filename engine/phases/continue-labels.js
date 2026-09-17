@@ -35,7 +35,7 @@ const LABELS = {
   checklist: 'Start the checklist',
   eliminate: 'Run the elimination',
   'ai-eliminate': 'Run the elimination',
-  'ai-process': 'Let the AI work',
+  'ai-process': 'Put it together',
   foreach: 'Start the first round',
   'solo-quiz': 'Start the quiz',
   end: 'Finish up'
