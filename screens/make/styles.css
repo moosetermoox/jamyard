@@ -700,8 +700,10 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 .class-holder[hidden] { display: none; }
 
 /* "See how it reads": one AI fit on demand, the note beside it says
-   what happened */
-.fit-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-top: 4px; }
+   what happened. It sits under the question's box, in the answer
+   column (the label column's width plus the row gap), before the other
+   rows; `.fit-rows > div` would stack it, so the row rule is restated */
+.fit-rows > .fit-foot, .fit-foot { display: flex; flex-direction: row; align-items: center; gap: 14px; flex-wrap: wrap; margin-left: 204px; }
 .fit-foot[hidden] { display: none; }
 .fit-see:disabled { opacity: 0.6; cursor: default; }
 .fit-see:disabled:hover { transform: none; }
@@ -714,6 +716,7 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
   .big-btn { width: 100%; }
   .big-stack, .big-col { width: 100%; }
   .doors { grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
+  .fit-rows > .fit-foot { margin-left: 0; }
   .designer-link, .cancel-link { white-space: normal; margin-top: 4px; }
   .fit-row { grid-template-columns: minmax(0, 1fr); }
 }

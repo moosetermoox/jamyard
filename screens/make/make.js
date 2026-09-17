@@ -366,6 +366,9 @@
   var fixedHolder = document.createElement('div');
   if (el.fitRows) {
     el.fitRows.appendChild(qHolder);
+    // "See how it reads" sits right under the question's own box, before
+    // Your class and the other rows (owner, 2026-09-16)
+    if (el.fitFoot) el.fitRows.insertBefore(el.fitFoot, qHolder.nextSibling);
     el.fitRows.appendChild(fixedHolder);
   }
 
@@ -641,8 +644,8 @@
     el.fitSee.disabled = current;
     el.fitSee.textContent = current ? 'Fitted' : (state.fitted ? 'See how it reads now' : 'See how it reads');
     el.fitNote.textContent = current
-      ? 'The screen above and What happens below show the fitted copy. TRY IT opens it.'
-      : 'Runs the AI fit once, about twenty seconds, and shows the result below.';
+      ? 'The screen above and What happens below now show the reworded copy. Host it or try it to use it.'
+      : 'Rewords the screen above and What happens below for your class. About twenty seconds.';
   }
 
   function seeHowItReads() {
