@@ -328,11 +328,16 @@ body.is-opening .print-screen { opacity: 0.55; }
 /* ── The doors: the big red hosts (owner's call, 2026-09-16), the side
    door tries it out with pretend students ─────────────────────────── */
 
+/* One line: the big door, the side door, the designer link (owner,
+   2026-09-16: the link sat on its own row under the doors), and the
+   note or the error on a full-width row of their own beneath. A grid,
+   so the row count never depends on the text widths; under 700px it
+   stacks (media rule below). */
 .doors {
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  column-gap: 18px;
+  align-items: start;
 }
 
 .big-col { display: flex; flex-direction: column; align-items: center; }
@@ -345,7 +350,7 @@ body.is-opening .print-screen { opacity: 0.55; }
 }
 
 .big-btn {
-  width: 280px;
+  width: 264px;
   padding: 17px 0 19px;
   border: none;
   background: var(--t-red);
@@ -396,11 +401,16 @@ body.is-opening .print-screen { opacity: 0.55; }
 .side-btn:disabled { opacity: 0.5; cursor: default; }
 .side-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
 
+/* Level with the side door's text: same top margin, the button's own
+   vertical padding */
 .designer-link,
 .cancel-link {
-  margin-top: 24px;
+  margin-top: 14px;
+  padding: 10px 0 10px;
   font-size: 14px;
   font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
   color: var(--t-muted);
 }
 
@@ -409,8 +419,8 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 
 /* On its own line under the doors, never wrapped to the far right */
 .doors-note {
-  flex-basis: 100%;
-  margin-top: 2px;
+  grid-column: 1 / -1;
+  margin-top: 12px;
   max-width: 440px;
   font-size: 12px;
   font-weight: 700;
@@ -690,8 +700,10 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 .class-holder[hidden] { display: none; }
 
 /* "See how it reads": one AI fit on demand, the note beside it says
-   what happened */
-.fit-foot { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; padding-top: 4px; }
+   what happened. It sits under the question's box, in the answer
+   column (the label column's width plus the row gap), before the other
+   rows; `.fit-rows > div` would stack it, so the row rule is restated */
+.fit-rows > .fit-foot, .fit-foot { display: flex; flex-direction: row; align-items: center; gap: 14px; flex-wrap: wrap; margin-left: 204px; }
 .fit-foot[hidden] { display: none; }
 .fit-see:disabled { opacity: 0.6; cursor: default; }
 .fit-see:disabled:hover { transform: none; }
@@ -703,6 +715,9 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
   .print-prompt { font-size: 26px; }
   .big-btn { width: 100%; }
   .big-stack, .big-col { width: 100%; }
+  .doors { grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
+  .fit-rows > .fit-foot { margin-left: 0; }
+  .designer-link, .cancel-link { white-space: normal; margin-top: 4px; }
   .fit-row { grid-template-columns: minmax(0, 1fr); }
 }
 
