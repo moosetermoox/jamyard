@@ -125,6 +125,9 @@ export const EVENTS = {
   ROLE_PICK:            'role-pick',          // player -> server: I want this role (re-pick allowed until close)
   TEAM_ROLES_UPDATE:    'team-roles-update',  // server -> all: live per-group role claims
 
+  // --- Assign (hand out choices) ---
+  ASSIGN_FINAL:         'assign-final',       // server -> all: every group's (or student's) choice, host-paced
+
   // --- Rank Phase ---
   RANK_START:           'rank-start',
   RANK_SUBMIT:          'rank-submit',

@@ -1079,6 +1079,21 @@ body.in-bench .corner-tools { display: none; }
   max-width: 900px;
 }
 
+/* Hand out choices: the choice big, which pick it was small */
+.team-card.assign-card .assign-choice {
+  font-size: 1.35em;
+  font-weight: 700;
+  margin: 0.2em 0 0.1em;
+}
+.team-card.assign-card .assign-rank {
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+.team-card.assign-card .assign-members {
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
 .team-card-tappable {
   cursor: pointer;
 }

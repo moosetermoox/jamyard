@@ -26,6 +26,8 @@ import { resolvePerPlayerTemplate } from './engine/per-player-template.js';
 import { effectiveRange, clampGuess } from './engine/phases/estimate-range.js';
 import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
 import { shouldStopLooping } from './engine/phases/eliminate-handler.js';
+import { aggregateRankings, groupOrders } from './engine/phases/choice-draft.js';
+import { groupsFromTeamSource } from './engine/phases/groups-from.js';
 import { restoreSubPhaseOrder } from './engine/subphase-order.js';
 
 // Saved copies that went through the old jsonb column came back with a
@@ -541,37 +543,27 @@ async function closeRanking(code, room) {
   const engine = room.engine;
   const phase = engine.config.phases[rs.phaseId];
 
-  // Aggregate rankings by average position
-  const positionSums = {};
-  const positionCounts = {};
-  for (const item of rs.candidates) {
-    positionSums[item] = 0;
-    positionCounts[item] = 0;
-  }
-
-  for (const [, ranking] of Object.entries(rs.submissions)) {
-    for (let i = 0; i < ranking.length; i++) {
-      const item = typeof ranking[i] === 'string' ? ranking[i] : JSON.stringify(ranking[i]);
-      if (positionSums[item] !== undefined) {
-        positionSums[item] += i + 1; // 1-based position
-        positionCounts[item]++;
-      }
-    }
-  }
-
-  const rankings = rs.candidates.map(item => ({
-    item,
-    avgRank: positionCounts[item] > 0 ? positionSums[item] / positionCounts[item] : rs.candidates.length,
-    score: positionCounts[item] > 0 ? Math.round((rs.candidates.length - positionSums[item] / positionCounts[item] + 1) * 100) / 100 : 0
-  }));
-  rankings.sort((a, b) => a.avgRank - b.avgRank);
+  // Aggregate rankings by average position (engine/phases/choice-draft.js)
+  const rankings = aggregateRankings(Object.values(rs.submissions), rs.candidates);
 
   // Also store a human-readable ranked list for templates
   const rankedList = rankings.map((r, i) => `${i + 1}. ${r.item}`).join('\n');
 
-  engine.storePhaseData(rs.phaseId, { rankings, rankedList, responses: rs.submissions });
+  const output = { rankings, rankedList, responses: rs.submissions, candidates: rs.candidates.slice() };
 
-  console.log(`[closeRanking] Aggregated ${Object.keys(rs.submissions).length} rankings for ${rs.candidates.length} items`);
+  // "Rank as groups" (teamsFrom): each group's order is its members'
+  // average, stored beside the class order for a Hand out choices step.
+  if (phase && phase.teamsFrom) {
+    const { groups, playerGroup } = groupsFromTeamSource(engine, phase, engine.players.list());
+    const { byGroup, groupRankings } = groupOrders(rs.submissions, playerGroup, groups, rs.candidates);
+    output.byGroup = byGroup;
+    output.groupRankings = groupRankings;
+    output.groupRankedList = Object.entries(byGroup).map(([label, items]) => `${label}: ${items.join(', ')}`).join('\n');
+  }
+
+  engine.storePhaseData(rs.phaseId, output);
+
+  console.log(`[closeRanking] Aggregated ${Object.keys(rs.submissions).length} rankings for ${rs.candidates.length} items${output.byGroup ? ` in ${Object.keys(output.byGroup).length} group(s)` : ''}`);
 
   const nextId = getNextPhaseId(engine, phase);
   if (nextId) {

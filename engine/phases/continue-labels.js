@@ -31,6 +31,7 @@ const LABELS = {
   turn: 'Start the round',
   relay: 'Start the relay',
   'team-split': 'Split into teams',
+  assign: 'Hand out the choices',
   wager: 'Open the bets',
   checklist: 'Start the checklist',
   eliminate: 'Run the elimination',

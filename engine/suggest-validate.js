@@ -11,7 +11,7 @@
 export const STORYBOARD_BRICKS = [
   'announce', 'collect', 'collect-two', 'collect-choice', 'estimate',
   'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'rank', 'quiz', 'teams',
-  'chain', 'deal', 'end'
+  'chain', 'deal', 'assign', 'end'
 ];
 
 const MAX_RANK_ITEMS = 12;
@@ -132,6 +132,9 @@ export function validateSuggestions(raw, ctx) {
             choices: Array.isArray(s.choices) ? s.choices.slice(0, 8).map(String) : undefined,
             guess: s.guess === 'who' ? 'who' : undefined,
             items: Array.isArray(s.items) ? s.items.slice(0, MAX_RANK_ITEMS).map(String) : undefined,
+            // rank: each group decides one order; assign: spots per item
+            byGroup: s.byGroup === true ? true : undefined,
+            perChoice: typeof s.perChoice === 'number' && Number.isFinite(s.perChoice) ? s.perChoice : undefined,
             secretLabel: typeof s.secretLabel === 'string' ? s.secretLabel.slice(0, 80) : undefined,
             clueLabel: typeof s.clueLabel === 'string' ? s.clueLabel.slice(0, 80) : undefined,
             questions: cleanQuestions(s.questions),
