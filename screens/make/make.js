@@ -585,8 +585,8 @@
     var n = answeredQuestions().length;
     el.note.hidden = n === 0;
     el.note.textContent = n === 1
-      ? 'Your answer is in. TRY IT fits the wording to it, about twenty seconds.'
-      : 'Your ' + n + ' answers are in. TRY IT fits the wording to them, about twenty seconds.';
+      ? 'Your answer is in. Either door fits the wording to it first, about twenty seconds.'
+      : 'Your ' + n + ' answers are in. Either door fits the wording to them first, about twenty seconds.';
     updateFitFoot();
   }
 

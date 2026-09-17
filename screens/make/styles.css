@@ -329,17 +329,18 @@ body.is-opening .print-screen { opacity: 0.55; }
    door tries it out with pretend students ─────────────────────────── */
 
 /* One line: the big door, the side door, the designer link (owner,
-   2026-09-16: the link sat on its own row under the doors). The doors
-   keep their width and the link's text wraps if the row is tight;
-   under 700px the row stacks (media rule below). */
+   2026-09-16: the link sat on its own row under the doors), and the
+   note or the error on a full-width row of their own beneath. A grid,
+   so the row count never depends on the text widths; under 700px it
+   stacks (media rule below). */
 .doors {
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  column-gap: 18px;
+  align-items: start;
 }
 
-.big-col { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+.big-col { display: flex; flex-direction: column; align-items: center; }
 
 .big-stack {
   display: flex;
@@ -380,7 +381,6 @@ body.is-opening .print-screen { opacity: 0.55; }
 
 .side-btn {
   margin-top: 14px;
-  flex-shrink: 0;
   border: none;
   font-family: var(--t-display);
   font-weight: 800;
@@ -419,8 +419,8 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 
 /* On its own line under the doors, never wrapped to the far right */
 .doors-note {
-  flex-basis: 100%;
-  margin-top: 2px;
+  grid-column: 1 / -1;
+  margin-top: 12px;
   max-width: 440px;
   font-size: 12px;
   font-weight: 700;
@@ -713,8 +713,8 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
   .print-prompt { font-size: 26px; }
   .big-btn { width: 100%; }
   .big-stack, .big-col { width: 100%; }
-  .doors { flex-wrap: wrap; }
-  .designer-link, .cancel-link { white-space: normal; }
+  .doors { grid-template-columns: minmax(0, 1fr); row-gap: 6px; }
+  .designer-link, .cancel-link { white-space: normal; margin-top: 4px; }
   .fit-row { grid-template-columns: minmax(0, 1fr); }
 }
 
