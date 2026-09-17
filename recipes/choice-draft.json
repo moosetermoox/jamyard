@@ -93,11 +93,31 @@
       },
       "valueHelp": {
         "random": "Instant: the room deals the groups when you press Start, no choosing.",
-        "choice": "Students tap the group they want to join. With groups of a size, each group fills to that size; with the groups you already have, there are no limits, so students join their own group.",
+        "choice": "Students tap the group they want to join, first come first served, each group filling to the size above.",
         "teacher": "You arrange the names into groups on the projector before the ranking starts."
       },
       "setup": {
-        "showWhen": "groups=size|count"
+        "showWhen": "groups=size"
+      }
+    },
+    "joinMethod": {
+      "type": "enum",
+      "values": [
+        "choice",
+        "teacher"
+      ],
+      "default": "choice",
+      "label": "How students find their group",
+      "valueLabels": {
+        "choice": "Students choose",
+        "teacher": "I arrange them"
+      },
+      "valueHelp": {
+        "choice": "Students tap their own group's name. No limits, so the sizes come out however they really are.",
+        "teacher": "You place the names into the groups on the projector before the ranking starts."
+      },
+      "setup": {
+        "showWhen": "groups=count"
       }
     }
   },
@@ -126,7 +146,11 @@
       "make-groups": {
         "$if": "groups!=none",
         "type": "team-split",
-        "method": "${method}",
+        "method": {
+          "$if": "groups=size",
+          "$value": "${method}",
+          "$else": "${joinMethod}"
+        },
         "groupSize": {
           "$if": "groups=size",
           "$value": "${groupSize}"

@@ -81,7 +81,8 @@
       "groups": "size",
       "groupSize": 3,
       "groupCount": 7,
-      "method": "random"
+      "method": "random",
+      "joinMethod": "choice"
     }
   }
 }

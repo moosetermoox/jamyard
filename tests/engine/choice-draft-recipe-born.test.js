@@ -24,7 +24,7 @@ describe('choice-draft is a faithful choice-draft compile', () => {
     const recipe = await loadJson('recipes/choice-draft.json');
     expect(config.recipe.id).toBe('choice-draft');
     expect(config.recipe.version).toBe(recipe.version);
-    expect(Object.keys(config.recipe.params).sort()).toEqual(['choices', 'groupCount', 'groupSize', 'groups', 'method', 'question']);
+    expect(Object.keys(config.recipe.params).sort()).toEqual(['choices', 'groupCount', 'groupSize', 'groups', 'joinMethod', 'method', 'question']);
     expect(config.recipe.params.choices).toEqual(['Self and identity', 'Working with others', 'Thinking and problem solving', 'Execution and adaptation']);
     expect(config.recipe.params.groups).toBe('size');
     expect(config.featured).toBe(true);
@@ -60,7 +60,10 @@ describe('choice-draft is a faithful choice-draft compile', () => {
     expect(Object.keys(p.groups.valueHelp)).toEqual(['size', 'count', 'none']);
     expect(p.groupSize.setup).toEqual({ showWhen: 'groups=size' });
     expect(p.groupCount.setup).toEqual({ showWhen: 'groups=count' });
-    expect(p.method.setup).toEqual({ showWhen: 'groups=size|count' });
+    expect(p.method.setup).toEqual({ showWhen: 'groups=size' });
+    // Groups that already exist cannot form randomly (owner, 2026-09-17)
+    expect(p.joinMethod).toMatchObject({ type: 'enum', values: ['choice', 'teacher'], default: 'choice' });
+    expect(p.joinMethod.setup).toEqual({ showWhen: 'groups=count' });
     expect(Object.keys(p.method.valueLabels)).toEqual(['random', 'choice', 'teacher']);
   });
 
@@ -85,7 +88,7 @@ describe('choice-draft is a faithful choice-draft compile', () => {
     const recipe = await loadJson('recipes/choice-draft.json');
     const shipped = await loadJson('games/choice-draft/config.json');
     for (const method of ['teacher', 'choice']) {
-      const { config, diagnostics } = compileRecipe(recipe, { ...shipped.recipe.params, groups: 'count', groupCount: 7, method });
+      const { config, diagnostics } = compileRecipe(recipe, { ...shipped.recipe.params, groups: 'count', groupCount: 7, joinMethod: method });
       expect(diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
       expect(config.phases['make-groups']).toEqual({ type: 'team-split', method, teamCount: 7, capacity: 'open', next: 'pick' });
       expect(config.phases.pick.teamsFrom).toBe('make-groups');
