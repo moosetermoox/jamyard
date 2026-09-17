@@ -455,7 +455,9 @@
       flex-wrap: wrap;
     }
 
-    .stage-title { display: flex; flex-direction: column; gap: 6px; }
+    /* The head and its subline share one line, the subline smaller
+       (owner: saying Activities twice was redundant) */
+    .stage-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 
     .stage-sub {
       margin: 0;
@@ -964,7 +966,7 @@
       <div class="stage-head">
         <div class="stage-title">
           <h2>Activities</h2>
-          <p class="stage-sub">Activities ready to be made to fit your class</p>
+          <span class="stage-sub">ready to be made to fit your class</span>
         </div>
         <div class="stage-nav">
           <button type="button" class="t-lift" id="carousel-prev" aria-label="Previous activity">←</button>
