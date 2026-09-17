@@ -8,7 +8,9 @@
   "parameters": {
     "choices": {
       "type": "array",
-      "item": { "type": "string" },
+      "item": {
+        "type": "string"
+      },
       "minItems": 2,
       "maxItems": 8,
       "default": [
@@ -19,26 +21,37 @@
       ],
       "label": "The choices",
       "helper": "Two to eight things to hand out, one per group. Fewer choices than groups is fine: the spots spread as evenly as they can.",
-      "setup": { "mode": "list" }
+      "setup": {
+        "mode": "list"
+      }
     },
     "question": {
       "type": "string",
       "default": "Which area do you want to take on?",
       "label": "The question",
       "helper": "What the class is choosing between. The ranking instruction is added for you.",
-      "setup": { "mode": "text" }
+      "setup": {
+        "mode": "text"
+      }
     },
-    "byGroup": {
-      "type": "boolean",
-      "default": true,
+    "groups": {
+      "type": "enum",
+      "values": [
+        "size",
+        "count",
+        "none"
+      ],
+      "default": "size",
       "label": "Who chooses",
       "valueLabels": {
-        "true": "Each group",
-        "false": "Each student"
+        "size": "Groups of a size",
+        "count": "The groups we already have",
+        "none": "Each student"
       },
       "valueHelp": {
-        "true": "The class is split into groups first. Everyone ranks on their own screen, and a group's order is its members' average, so a quick talk before ranking pays off.",
-        "false": "No groups: everyone ranks alone and the draft hands each student a choice."
+        "size": "The room splits the class into groups of the size below. Everyone ranks on their own screen, and a group's order is its members' average, so a quick talk before ranking pays off.",
+        "count": "Your class already has groups, even if the sizes are uneven: set how many, then arrange the names yourself or let students join their own group. Everyone ranks on their own screen, and a group's order is its members' average.",
+        "none": "No groups: everyone ranks alone and the draft hands each student a choice."
       },
       "setup": true
     },
@@ -49,11 +62,28 @@
       "default": 3,
       "label": "Students per group",
       "helper": "A class that does not divide evenly gets a few groups one smaller; nobody works alone.",
-      "setup": { "showWhen": "byGroup=true" }
+      "setup": {
+        "showWhen": "groups=size"
+      }
+    },
+    "groupCount": {
+      "type": "integer",
+      "min": 2,
+      "max": 20,
+      "default": 7,
+      "label": "Number of groups",
+      "helper": "How many groups your class has. Sizes can differ, three here and four there.",
+      "setup": {
+        "showWhen": "groups=count"
+      }
     },
     "method": {
       "type": "enum",
-      "values": ["random", "choice", "teacher"],
+      "values": [
+        "random",
+        "choice",
+        "teacher"
+      ],
       "default": "random",
       "label": "How groups form",
       "valueLabels": {
@@ -63,10 +93,12 @@
       },
       "valueHelp": {
         "random": "Instant: the room deals the groups when you press Start, no choosing.",
-        "choice": "Students tap the group they want to join, first come first served, each group filling to the size above.",
+        "choice": "Students tap the group they want to join. With groups of a size, each group fills to that size; with the groups you already have, there are no limits, so students join their own group.",
         "teacher": "You arrange the names into groups on the projector before the ranking starts."
       },
-      "setup": { "showWhen": "byGroup=true" }
+      "setup": {
+        "showWhen": "groups=size|count"
+      }
     }
   },
   "template": {
@@ -80,33 +112,47 @@
       "intro": {
         "type": "announce",
         "message": {
-          "$if": "byGroup",
+          "$if": "groups!=none",
           "$value": "CHOICE DRAFT!\n\nYou're about to be split into groups. Each group ranks the choices, first choice at the top. Talk it over first: everyone ranks on their own screen, and your group's order is the average.\n\nThen the draft hands each group one choice, first choices first. When two groups want the same one, the spots go to some and the others get their second choice.",
           "$else": "CHOICE DRAFT!\n\nRank the choices, first choice at the top.\n\nThen the draft hands everyone one choice, first choices first. When too many of you want the same one, the spots go to some and the others get their second choice."
         },
         "timer": 15,
         "next": {
-          "$if": "byGroup",
+          "$if": "groups!=none",
           "$value": "make-groups",
           "$else": "pick"
         }
       },
       "make-groups": {
-        "$if": "byGroup",
+        "$if": "groups!=none",
         "type": "team-split",
         "method": "${method}",
-        "groupSize": "${groupSize}",
+        "groupSize": {
+          "$if": "groups=size",
+          "$value": "${groupSize}"
+        },
+        "teamCount": {
+          "$if": "groups=count",
+          "$value": "${groupCount}"
+        },
+        "capacity": {
+          "$if": "groups=count",
+          "$value": "open"
+        },
         "next": "pick"
       },
       "pick": {
         "type": "rank",
         "prompt": {
-          "$if": "byGroup",
+          "$if": "groups!=none",
           "$value": "${question}\n\nDrag the choices into order, your group's first choice at the top. Everyone in the group ranks; your group's order is the average.",
           "$else": "${question}\n\nDrag the choices into order, your first choice at the top."
         },
         "candidates": "${choices}",
-        "teamsFrom": { "$if": "byGroup", "$value": "make-groups" },
+        "teamsFrom": {
+          "$if": "groups!=none",
+          "$value": "make-groups"
+        },
         "timer": 120,
         "next": "draft"
       },
@@ -114,7 +160,7 @@
         "type": "assign",
         "from": "pick",
         "message": {
-          "$if": "byGroup",
+          "$if": "groups!=none",
           "$value": "Here is what each group got.",
           "$else": "Here is what everyone got."
         },
@@ -123,7 +169,7 @@
       "wrap": {
         "type": "announce",
         "message": {
-          "$if": "byGroup",
+          "$if": "groups!=none",
           "$value": "Your group got: **{{draft.mine}}**\n\nA second choice means another group wanted your first one just as much. Your teacher takes it from here.",
           "$else": "You got: **{{draft.mine}}**\n\nA second choice means someone else wanted your first one just as much. Your teacher takes it from here."
         },

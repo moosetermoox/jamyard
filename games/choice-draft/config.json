@@ -78,8 +78,9 @@
         "Execution and adaptation"
       ],
       "question": "Which area do you want to take on?",
-      "byGroup": true,
+      "groups": "size",
       "groupSize": 3,
+      "groupCount": 7,
       "method": "random"
     }
   }

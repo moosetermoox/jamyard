@@ -24,9 +24,9 @@ describe('choice-draft is a faithful choice-draft compile', () => {
     const recipe = await loadJson('recipes/choice-draft.json');
     expect(config.recipe.id).toBe('choice-draft');
     expect(config.recipe.version).toBe(recipe.version);
-    expect(Object.keys(config.recipe.params).sort()).toEqual(['byGroup', 'choices', 'groupSize', 'method', 'question']);
+    expect(Object.keys(config.recipe.params).sort()).toEqual(['choices', 'groupCount', 'groupSize', 'groups', 'method', 'question']);
     expect(config.recipe.params.choices).toEqual(['Self and identity', 'Working with others', 'Thinking and problem solving', 'Execution and adaptation']);
-    expect(config.recipe.params.byGroup).toBe(true);
+    expect(config.recipe.params.groups).toBe('size');
     expect(config.featured).toBe(true);
   });
 
@@ -49,24 +49,25 @@ describe('choice-draft is a faithful choice-draft compile', () => {
     expect(p.wrap.message).toContain('{{draft.mine}}');
   });
 
-  it('every setting is a make-page knob: the choices one box each, the question a plank, who chooses a switch, the group rows behind it', async () => {
+  it('every setting is a make-page knob: the choices one box each, the question a plank, who chooses three ways, the group rows behind it', async () => {
     const recipe = await loadJson('recipes/choice-draft.json');
     const p = recipe.parameters;
     expect(p.choices.setup).toEqual({ mode: 'list' });
     expect(p.choices.maxItems).toBe(8);
     expect(p.question.setup).toEqual({ mode: 'text' });
-    expect(p.byGroup).toMatchObject({ type: 'boolean', default: true, setup: true });
-    expect(Object.keys(p.byGroup.valueLabels)).toEqual(['true', 'false']);
-    expect(Object.keys(p.byGroup.valueHelp)).toEqual(['true', 'false']);
-    expect(p.groupSize.setup).toEqual({ showWhen: 'byGroup=true' });
-    expect(p.method.setup).toEqual({ showWhen: 'byGroup=true' });
+    expect(p.groups).toMatchObject({ type: 'enum', values: ['size', 'count', 'none'], default: 'size', setup: true });
+    expect(Object.keys(p.groups.valueLabels)).toEqual(['size', 'count', 'none']);
+    expect(Object.keys(p.groups.valueHelp)).toEqual(['size', 'count', 'none']);
+    expect(p.groupSize.setup).toEqual({ showWhen: 'groups=size' });
+    expect(p.groupCount.setup).toEqual({ showWhen: 'groups=count' });
+    expect(p.method.setup).toEqual({ showWhen: 'groups=size|count' });
     expect(Object.keys(p.method.valueLabels)).toEqual(['random', 'choice', 'teacher']);
   });
 
   it('each student: no split, the intro goes straight to the rank, no groups on it, everyone gets their own item', async () => {
     const recipe = await loadJson('recipes/choice-draft.json');
     const shipped = await loadJson('games/choice-draft/config.json');
-    const { config, diagnostics } = compileRecipe(recipe, { ...shipped.recipe.params, byGroup: false });
+    const { config, diagnostics } = compileRecipe(recipe, { ...shipped.recipe.params, groups: 'none' });
     expect(diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
     expect(config.phases['make-groups']).toBeUndefined();
     expect(config.phases.intro.next).toBe('pick');
@@ -74,6 +75,22 @@ describe('choice-draft is a faithful choice-draft compile', () => {
     expect(config.phases.draft.message).toBe('Here is what everyone got.');
     expect(config.phases.wrap.message).toMatch(/^You got:/);
     expect(validate(config, 'choice-draft-solo', { returnResults: true }).errors).toEqual([]);
+  });
+
+  // 2026-09-17 (owner: "I have mostly groups of three but a couple groups
+  // of four; students per group of three makes groups of two, four makes
+  // too few groups"): the groups a class already has are a COUNT with no
+  // spot caps, arranged by the teacher or joined by the students
+  it('the groups we already have: a fixed count, no spot caps, uneven sizes welcome', async () => {
+    const recipe = await loadJson('recipes/choice-draft.json');
+    const shipped = await loadJson('games/choice-draft/config.json');
+    for (const method of ['teacher', 'choice']) {
+      const { config, diagnostics } = compileRecipe(recipe, { ...shipped.recipe.params, groups: 'count', groupCount: 7, method });
+      expect(diagnostics.filter((d) => d.severity === 'error')).toEqual([]);
+      expect(config.phases['make-groups']).toEqual({ type: 'team-split', method, teamCount: 7, capacity: 'open', next: 'pick' });
+      expect(config.phases.pick.teamsFrom).toBe('make-groups');
+      expect(validate(config, 'choice-draft-count', { returnResults: true }).errors).toEqual([]);
+    }
   });
 
   it('a teacher\'s own choices and question land in the rank step', async () => {
