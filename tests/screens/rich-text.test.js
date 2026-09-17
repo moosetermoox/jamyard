@@ -104,3 +104,32 @@ describe('plainLine', () => {
     expect(RT.plainLine('plain already')).toBe('plain already');
   });
 });
+
+// The scrub on the AI result path (2026-09-16): the tells the STYLE
+// RULES ask the model to avoid, fixed anyway on the way to the wall.
+describe('scrub', () => {
+  it('turns em and en dashes into commas, keeps a numeric range', () => {
+    expect(RT.scrub('Sleep matters — a lot')).toBe('Sleep matters, a lot');
+    expect(RT.scrub('Practice—daily—helps')).toBe('Practice, daily, helps');
+    expect(RT.scrub('Rest – then work')).toBe('Rest, then work');
+    expect(RT.scrub('Grades 3–5 read 10–20 pages')).toBe('Grades 3–5 read 10–20 pages');
+  });
+
+  it('drops announcing and summarizing openers and re-opens the sentence', () => {
+    expect(RT.scrub("It's worth noting that rest helps. Overall, the class agreed.")).toBe('Rest helps. The class agreed.');
+    expect(RT.scrub('In summary, both sides want less stress.')).toBe('Both sides want less stress.');
+    expect(RT.scrub("Let's dive in. the first idea is sleep.")).toBe('The first idea is sleep.');
+  });
+
+  it('leaves ordinary text alone and a dash-led line clean', () => {
+    expect(RT.scrub('Two ideas: rest, and practice.')).toBe('Two ideas: rest, and practice.');
+    expect(RT.scrub('Wins:\n— rest\n— practice')).toBe('Wins:\nrest\npractice');
+    expect(RT.scrub(null)).toBe('');
+  });
+
+  it('parse reads through the scrub', () => {
+    const segs = RT.parse('- Sleep — it matters\n- Practice');
+    expect(segs[0].type).toBe('bullets');
+    expect(segs[0].items[0][0].text).toBe('Sleep, it matters');
+  });
+});

@@ -3,7 +3,8 @@
 // What your class will see, drawn from GET /api/games/:id/print (the first
 // student step's words, timer, audience line: the same modules the host
 // uses), with the question and any field labels editable in place and one
-// red TRY IT. Host it now and Open in the designer are the quieter doors.
+// red HOST IT NOW (the owner's call, 2026-09-16; it was TRY IT). Try it
+// with pretend students and Open in the designer are the quieter doors.
 // Untouched = the original runs and no copy is saved (the dialog's rule).
 // Edits go through POST /api/games/:id/make (engine/make-print.js applies
 // them), an answered question below through the AI reword, and every door

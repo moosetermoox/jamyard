@@ -325,7 +325,8 @@ body.is-opening .print-screen { opacity: 0.55; }
 
 @media (prefers-reduced-motion: reduce) { .opening-block { animation: none; } }
 
-/* ── The doors ──────────────────────────────────────────────────────── */
+/* ── The doors: the big red hosts (owner's call, 2026-09-16), the side
+   door tries it out with pretend students ─────────────────────────── */
 
 .doors {
   display: flex;
@@ -334,16 +335,16 @@ body.is-opening .print-screen { opacity: 0.55; }
   flex-wrap: wrap;
 }
 
-.try-col { display: flex; flex-direction: column; align-items: center; }
+.big-col { display: flex; flex-direction: column; align-items: center; }
 
-.try-stack {
+.big-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
   filter: drop-shadow(6px 8px 0 rgba(80, 60, 30, 0.14));
 }
 
-.try-btn {
+.big-btn {
   width: 280px;
   padding: 17px 0 19px;
   border: none;
@@ -359,21 +360,21 @@ body.is-opening .print-screen { opacity: 0.55; }
   transition: transform var(--t-quick) var(--t-ease);
 }
 
-.try-btn:hover:not(:disabled) { transform: rotate(-1.2deg) translateY(-5px); }
-.try-btn:active:not(:disabled) { transform: rotate(-1.2deg); }
-.try-btn:disabled { opacity: 0.55; cursor: default; transform: rotate(-1.2deg) translate(2px, 2px); }
-.try-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 3px; }
+.big-btn:hover:not(:disabled) { transform: rotate(-1.2deg) translateY(-5px); }
+.big-btn:active:not(:disabled) { transform: rotate(-1.2deg); }
+.big-btn:disabled { opacity: 0.55; cursor: default; transform: rotate(-1.2deg) translate(2px, 2px); }
+.big-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 3px; }
 
-.try-word { font-family: var(--t-display); font-weight: 800; font-size: 28px; letter-spacing: 0.06em; text-transform: uppercase; }
+.big-word { font-family: var(--t-display); font-weight: 800; font-size: 28px; letter-spacing: 0.06em; text-transform: uppercase; }
 /* Under the base, on gesso: paper on red is too faint at this size (axe) */
 /* Outside the stack's drop-shadow wrapper on purpose: a transparent
    element inside it renders a ghost twin (Totem gotcha) */
-.try-sub { margin-top: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--t-muted-caps); }
+.big-sub { margin-top: 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--t-muted-caps); }
 
-.try-plinth { display: block; width: 100px; height: 26px; background: var(--t-walnut); background-image: var(--t-grain); margin-top: -4px; }
-.try-base { display: block; width: 250px; height: 12px; background: var(--t-base); background-image: var(--t-grain); }
+.big-plinth { display: block; width: 100px; height: 26px; background: var(--t-walnut); background-image: var(--t-grain); margin-top: -4px; }
+.big-base { display: block; width: 250px; height: 12px; background: var(--t-base); background-image: var(--t-grain); }
 
-.host-btn {
+.side-btn {
   margin-top: 14px;
   border: none;
   font-family: var(--t-display);
@@ -391,9 +392,9 @@ body.is-opening .print-screen { opacity: 0.55; }
   transition: transform var(--t-quick) var(--t-ease);
 }
 
-.host-btn:hover:not(:disabled) { transform: rotate(0.6deg) translateY(-4px); }
-.host-btn:disabled { opacity: 0.5; cursor: default; }
-.host-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+.side-btn:hover:not(:disabled) { transform: rotate(0.6deg) translateY(-4px); }
+.side-btn:disabled { opacity: 0.5; cursor: default; }
+.side-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
 
 .designer-link,
 .cancel-link {
@@ -404,7 +405,7 @@ body.is-opening .print-screen { opacity: 0.55; }
 }
 
 .designer-link:hover, .cancel-link:hover { color: var(--t-ink); }
-body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
+body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 
 /* On its own line under the doors, never wrapped to the far right */
 .doors-note {
@@ -700,8 +701,8 @@ body.is-opening .designer-link, body.is-opening .host-btn { display: none; }
   .make-header { padding: 14px 20px 0; }
   .print-screen { padding: 22px 20px 18px; }
   .print-prompt { font-size: 26px; }
-  .try-btn { width: 100%; }
-  .try-stack, .try-col { width: 100%; }
+  .big-btn { width: 100%; }
+  .big-stack, .big-col { width: 100%; }
   .fit-row { grid-template-columns: minmax(0, 1fr); }
 }
 

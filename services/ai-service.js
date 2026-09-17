@@ -356,7 +356,11 @@ const MATCH_FRESH_FACTS = 'Quiz and bluff recipes need questions or facts. ' + F
 const NEEDS_TEACHER_FACTS_ESCAPE = 'Instead return ONLY: {"needsTeacherFacts": true, "reason": "one warm sentence saying what you cannot know, and that pasting the facts or writing the questions themselves will work"}';
 
 const STYLE_RULES = `STYLE RULES (always apply):
-- Never use an em dash (—) in any text you write. Use a comma, a colon, or a separate sentence instead.
+- Never use an em dash (—) or an en dash (–) in any text you write. Use a comma, a colon, a period, or parentheses instead.
+- Write the way a good teacher talks, not the way a press release reads. Use contractions (it's, don't, you're). Vary sentence length; a short fragment is fine. A sentence may start with And, But, or So.
+- Do not: frame a point as "it's not X, it's Y"; stack exactly three items or three adjectives out of habit; announce a point before making it ("It's worth noting", "Let's dive in"); restate at the end ("Overall", "In summary"); close on an inspirational send-off; call anything a testament, a journey, a tapestry, or a game-changer.
+- Never use these words: delve, leverage, utilize, harness, foster, streamline, underscore, seamless, robust, tapestry, realm, landscape, moreover, furthermore, additionally, pivotal, crucial, vibrant, elevate, unleash, embark.
+- Say the thing. No hedging, no meta-commentary, no flattery of the class or the topic.
 - Display text is plain text with ONE formatting mark: double stars make a word or short phrase bold, like **this**. Use it only when the teacher asks for emphasis, never on whole sentences or headings. No other markdown: no # headings, no single-star italics, no backticks, no tables. For a list, start each line with "- ". For a section header, write a short line ending with a colon.`;
 
 const SAFETY_RULES = `
@@ -771,7 +775,7 @@ export class AIService {
       : instruction;
 
     return {
-      text: `[MOCK AI] Would process ${count} responses with instruction: ${truncatedInstruction}`
+      text: `(Mock) Would process ${count} responses with instruction: ${truncatedInstruction}`
     };
   }
 
@@ -808,8 +812,12 @@ export class AIService {
       // not dissolve into reveal text students would read.
       if (error instanceof AiBudgetError) throw error;
       console.error('[AIService] Error calling Anthropic API:', error.message);
+      // The text lands on the wall and every student screen: plain words,
+      // no error dump, and nothing that names the tool (the console log
+      // above keeps the detail)
       return {
-        text: `[AI Error] Something went wrong: ${error.message}`
+        text: 'Something went wrong putting the answers together. Your teacher can try this step again.',
+        error: error.message
       };
     }
   }

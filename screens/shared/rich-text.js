@@ -18,6 +18,25 @@
   var BOLD_LINE_RE = /^\*\*([^*]+)\*\*(:?)$/;
   var INLINE_BOLD_RE = /\*\*([^*\n]+)\*\*/g;
 
+  // The scrub: the tells a model still lets through the STYLE RULES,
+  // fixed on the way to the wall (2026-09-16, owner: students should be
+  // reminded as little as possible that this was made with AI). Safe
+  // substitutions only: dashes become commas (an en dash between digits
+  // is a range and stays), a short list of announcing and summarizing
+  // openers goes. Applied to AI results (parse/buildBody), never to a
+  // prompt (applyInline): a teacher's or the Along bank's own words are
+  // shown as written.
+  var FILLER_RE = /(^|[.!?]\s+|\n)(?:It(?:'s| is) worth noting that|At its core,|In today's fast-paced world,|Let's dive in[.!:]?|Overall,|In summary,|In conclusion,|To sum up,)\s*([a-z])?/gi;
+  function scrub(text) {
+    var s = String(text == null ? '' : text);
+    s = s.replace(/(\d)[ \t]*–[ \t]*(\d)/g, '$1\u0001$2');
+    s = s.replace(/[ \t]*[—–][ \t]*/g, ', ');
+    s = s.replace(/\u0001/g, '–');
+    s = s.replace(/(^|\n), /g, '$1');
+    s = s.replace(FILLER_RE, function (m, lead, ch) { return lead + (ch ? ch.toUpperCase() : ''); });
+    return s;
+  }
+
   // Anything worth structuring: a heading, a bullet, or inline bold.
   function hasRich(text) {
     var lines = String(text == null ? '' : text).split('\n');
@@ -49,7 +68,7 @@
   // Segments: {type:'subhead', text} | {type:'bullets', items:[runs]} |
   // {type:'text', lines:[runs]} (blank interior lines survive as empty runs).
   function parse(text) {
-    var lines = String(text == null ? '' : text).split('\n');
+    var lines = scrub(text).split('\n');
     var segments = [];
     var textBuf = [];
 
@@ -186,6 +205,7 @@
 
   globalThis.RichText = {
     hasRich: hasRich,
+    scrub: scrub,
     parse: parse,
     inlineRuns: inlineRuns,
     plainLine: plainLine,
