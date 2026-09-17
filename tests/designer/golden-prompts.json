@@ -164,6 +164,32 @@
       "id": "podcast-segment",
       "prompt": "Students record a two minute podcast segment about the chapter and we listen to them together.",
       "expect": { "kind": "cantBuild", "reason": "No audio or video recording; the platform is text and simple taps." }
+    },
+    {
+      "id": "choice-draft-categories",
+      "prompt": "My students are in teams. Each team picks a first and second choice among four categories (self and identity, working with others, thinking and problem solving, execution and adaptation). Each group decides on its top choices, and then the categories are assigned to the groups.",
+      "expect": { "kind": "recipe", "recipe": "choice-draft", "params": { "choices": ["Self and identity", "Working with others", "Thinking and problem solving", "Execution and adaptation"] }, "acceptAlso": ["host:choice-draft"] },
+      "note": "The owner's prompt (2026-09-16), which the storyboard could not build before the assign brick and the Choice Draft recipe existed."
+    },
+    {
+      "id": "assign-topics-storyboard",
+      "prompt": "Split the class into groups of three. Each group ranks the six chapter topics they would rather present, then give every group one topic so no more than two groups share a chapter. Finish by showing who got what.",
+      "expect": {
+        "kind": "storyboard",
+        "acceptAlso": ["recipe:choice-draft"],
+        "storyboard": {
+          "name": "Chapter Draft",
+          "description": "Groups rank the chapters, then each is handed one.",
+          "steps": [
+            { "brick": "announce", "text": "Time to divide up the chapters. Your group ranks the six chapters, favorite on top, and the draft hands each group one." },
+            { "brick": "teams", "groupSize": 3 },
+            { "brick": "rank", "text": "Which chapter would your group rather present? First choice at the top.", "items": ["Chapter 1: Beginnings", "Chapter 2: The river", "Chapter 3: The storm", "Chapter 4: Allies", "Chapter 5: The turn", "Chapter 6: Home"], "byGroup": true, "timer": 120 },
+            { "brick": "assign", "text": "Here is who presents what.", "perChoice": 2 },
+            { "brick": "end", "text": "Chapters are set. Start planning with your group." }
+          ]
+        }
+      },
+      "note": "The same shape with a teacher's own list and a cap per item: teams, rank as groups, assign (2026-09-16)."
     }
   ]
 }

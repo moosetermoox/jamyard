@@ -1642,6 +1642,52 @@ socket.on('team-roles-final', (payload) => {
 
 // --- Socket events - Rank ---
 
+// --- Socket events - Hand out choices (assign, 2026-09-16) ---
+// One card per group (or student): the choice they got, and which of
+// their picks it was. Host-paced like the roles deal.
+function choiceRankLabel(n) {
+  if (n === 1) return UiLang.t('1st choice');
+  if (n === 2) return UiLang.t('2nd choice');
+  if (n === 3) return UiLang.t('3rd choice');
+  if (typeof n === 'number' && n >= 4) return UiLang.t('Choice number') + ' ' + n;
+  return UiLang.t('Not one of their picks');
+}
+
+socket.on('assign-final', (payload) => {
+  showSection(teamSplitSection);
+  teamSplitHeading.textContent = payload.message || UiLang.t('The choices');
+  teamArrange.hidden = true;
+  teamChoice.hidden = true;
+  teamSplitContinueBtn.hidden = false;
+  applyTemplate(teamSplitSection, payload.hostTemplate);
+
+  teamSplitTeams.innerHTML = '';
+  const rows = Array.isArray(payload.board) ? payload.board : [];
+  for (const row of rows) {
+    const card = document.createElement('div');
+    card.className = 'team-card assign-card';
+    const h3 = document.createElement('h3');
+    h3.textContent = row.label;
+    card.appendChild(h3);
+    const choice = document.createElement('p');
+    choice.className = 'assign-choice';
+    choice.textContent = row.choice;
+    card.appendChild(choice);
+    const rank = document.createElement('p');
+    rank.className = 'assign-rank';
+    rank.textContent = choiceRankLabel(row.choiceRank);
+    card.appendChild(rank);
+    if (payload.perGroup !== false && Array.isArray(row.members) && row.members.length > 0) {
+      const who = document.createElement('p');
+      who.className = 'assign-members';
+      who.textContent = row.members.join(', ');
+      card.appendChild(who);
+    }
+    teamSplitTeams.appendChild(card);
+  }
+  if (J) J.sound('reveal');
+});
+
 socket.on('rank-start', ({ prompt, totalRankers, timer, hostTemplate, show }) => {
   showSection(rankSection);
   setRichText(rankPrompt, prompt || 'Rank the items');

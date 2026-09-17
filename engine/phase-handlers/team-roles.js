@@ -18,7 +18,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { dealRoles, roleCapacity, buildRoleOutput } from '../phases/role-deal.js';
-import { pairsAsTeams } from '../phases/checklist-state.js';
+import { groupsFromTeamSource } from '../phases/groups-from.js';
 import { seatInTeamData, seatInRoleState, seatInRoleOutput, boardFromTeams } from '../phases/late-seating.js';
 
 // Live claims to the projector, the consoles, and every member's menu
@@ -35,27 +35,11 @@ function emitRolesLive(ctx, state) {
 
 /**
  * Resolve teamsFrom into the {groups, playerGroup} shape role-deal
- * works on. Falls back to one whole-class group (with a warn) when the
- * source has no team or pair data — the activity still works.
+ * works on (engine/phases/groups-from.js, shared with rank-as-groups and
+ * hand-out-choices since 2026-09-16).
  */
 export function rolesGroupsFrom(engine, phase, eligible) {
-  const data = phase.teamsFrom ? engine.phaseData[phase.teamsFrom] : null;
-  let teamData = data && data.teams ? data : null;
-  if (!teamData && data && Array.isArray(data.pairs)) {
-    teamData = pairsAsTeams(data.pairs, id => (engine.players.find(id) || {}).name);
-  }
-  const groups = {};
-  const playerGroup = {};
-  if (teamData) {
-    for (const [name, members] of Object.entries(teamData.teams)) {
-      groups[name] = { label: name, memberIds: members.map(m => m.playerId) };
-      for (const m of members) playerGroup[m.playerId] = name;
-    }
-  } else {
-    console.warn(`[team-roles:${phase.id}] teamsFrom "${phase.teamsFrom}" has no teams or pairs data, treating the class as one group`);
-    groups['The class'] = { label: 'The class', memberIds: eligible.map(p => p.id) };
-    for (const p of eligible) playerGroup[p.id] = 'The class';
-  }
+  const { groups, playerGroup } = groupsFromTeamSource(engine, phase, eligible);
   return { groups, playerGroup };
 }
 

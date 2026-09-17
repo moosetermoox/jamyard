@@ -314,6 +314,7 @@ describe('validator diagnostics — game snapshot', () => {
       // return-to-author reveal — clean now.
       'feedback-academy': [],
       'group-work-day': [],
+      'choice-draft': [],
       'human-vs-ai-birthday-party-battle': [],
       'lightning-round': [],
       'mad-lib-mashup': ['DATA_REF_TYPE_MISMATCH'],

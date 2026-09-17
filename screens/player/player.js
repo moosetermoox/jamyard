@@ -1629,6 +1629,31 @@ socket.on('team-roles-final', function (payload) {
     : 'The roles are set!';
 });
 
+// Hand out choices (assign, 2026-09-16): the choice your group (or you) got.
+socket.on('assign-final', function (payload) {
+  showSection(teamSplitSection);
+  teamPick.hidden = true;
+  applyTemplate(teamSplitSection, payload.playerTemplate);
+  teamSplitAllTeams.innerHTML = '';
+  if (payload.mine) {
+    var lead = payload.perGroup === false ? UiLang.t('You got:') : UiLang.t('Your group got:');
+    teamSplitMyTeam.textContent = lead + ' ' + payload.mine;
+    var sub = null;
+    if (payload.choiceRank === 1) sub = UiLang.t('1st choice');
+    else if (payload.choiceRank === 2) sub = UiLang.t('2nd choice');
+    else if (payload.choiceRank === 3) sub = UiLang.t('3rd choice');
+    else if (typeof payload.choiceRank === 'number' && payload.choiceRank >= 4) sub = UiLang.t('Choice number') + ' ' + payload.choiceRank;
+    if (sub || payload.groupLabel) {
+      var p = document.createElement('p');
+      p.className = 'assign-sub';
+      p.textContent = [payload.groupLabel, sub].filter(Boolean).join(' · ');
+      teamSplitAllTeams.appendChild(p);
+    }
+  } else {
+    teamSplitMyTeam.textContent = UiLang.t('The choices are handed out.');
+  }
+});
+
 socket.on('team-split', ({ myTeam, teams, playerTemplate, show }) => {
   showSection(teamSplitSection);
   teamPick.hidden = true;

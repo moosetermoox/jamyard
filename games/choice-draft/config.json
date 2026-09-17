@@ -1,0 +1,86 @@
+{
+  "name": "Choice Draft",
+  "description": "Groups rank a short list of choices, then the draft hands each group one: first choices first, spread evenly. Swap in your own choices for any topic split.",
+  "featured": true,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "CHOICE DRAFT!\n\nYou're about to be split into groups. Each group ranks the choices, first choice at the top. Talk it over first: everyone ranks on their own screen, and your group's order is the average.\n\nThen the draft hands each group one choice, first choices first. When two groups want the same one, the spots go to some and the others get their second choice.",
+      "timer": 15,
+      "next": "make-groups"
+    },
+    "make-groups": {
+      "type": "team-split",
+      "method": "random",
+      "groupSize": 3,
+      "next": "pick"
+    },
+    "pick": {
+      "type": "rank",
+      "prompt": "Which area do you want to take on?\n\nDrag the choices into order, your group's first choice at the top. Everyone in the group ranks; your group's order is the average.",
+      "candidates": [
+        "Self and identity",
+        "Working with others",
+        "Thinking and problem solving",
+        "Execution and adaptation"
+      ],
+      "teamsFrom": "make-groups",
+      "timer": 120,
+      "next": "draft"
+    },
+    "draft": {
+      "type": "assign",
+      "from": "pick",
+      "message": "Here is what each group got.",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "announce",
+      "message": "Your group got: **{{draft.mine}}**\n\nA second choice means another group wanted your first one just as much. Your teacher takes it from here.",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "That's the draft. Swap in your own choices for any topic split, station rotation, or debate."
+    }
+  },
+  "playTime": "5–10 min",
+  "classSize": "4–35 players",
+  "keywords": [
+    "choices",
+    "draft",
+    "topics",
+    "categories",
+    "assign",
+    "hand out",
+    "divide up",
+    "groups pick",
+    "decision",
+    "stations",
+    "chapters"
+  ],
+  "tags": [
+    "decide",
+    "group work"
+  ],
+  "recipe": {
+    "id": "choice-draft",
+    "version": "1",
+    "params": {
+      "choices": [
+        "Self and identity",
+        "Working with others",
+        "Thinking and problem solving",
+        "Execution and adaptation"
+      ],
+      "question": "Which area do you want to take on?",
+      "byGroup": true,
+      "groupSize": 3,
+      "method": "random"
+    }
+  }
+}

@@ -841,3 +841,83 @@ describe('chain brick', () => {
     validateGame(config.phases, 'chain composed');
   });
 });
+
+// Hand out choices (2026-09-16, owner: "students in teams pick a first and
+// second choice for one of four categories, then choices are assigned")
+describe('assign brick', () => {
+  const CATS = ['Self and identity', 'Working with others', 'Thinking and problem solving', 'Execution and adaptation'];
+
+  it('teams → rank → assign: the rank ranks as groups, the hand-out reads it, no class-order reveal in between', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Category Draft',
+      steps: [
+        { brick: 'announce', text: 'Each group ranks the four areas, then the draft hands each group one.' },
+        { brick: 'teams', groupSize: 3 },
+        { brick: 'rank', text: 'Which area does your group want? First choice at the top.', items: CATS, timer: 120 },
+        { brick: 'assign', text: 'Here is who got what.' },
+        { brick: 'end', text: 'Areas are set.' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const order = S.orderedPhaseIds(config.phases).map(id => config.phases[id].type);
+    expect(order).toEqual(['lobby', 'announce', 'team-split', 'rank', 'assign', 'end']);
+    const rank = config.phases[S.orderedPhaseIds(config.phases)[3]];
+    const assign = config.phases[S.orderedPhaseIds(config.phases)[4]];
+    expect(rank.teamsFrom).toBe(S.orderedPhaseIds(config.phases)[2]);
+    expect(rank.candidates).toEqual(CATS);
+    expect(assign.from).toBe(S.orderedPhaseIds(config.phases)[3]);
+    expect(assign.message).toBe('Here is who got what.');
+    expect(assign.perChoice).toBeUndefined();
+    validateGame(config.phases, 'assign composed');
+  });
+
+  it('without a teams step the rank stays a class order and the hand-out is per student; perChoice rides through', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Topic Draft',
+      steps: [
+        { brick: 'rank', text: 'Which topic do you want?', items: ['Rivers', 'Deserts', 'Forests'] },
+        { brick: 'assign', perChoice: 6 }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const ids = S.orderedPhaseIds(config.phases);
+    expect(config.phases[ids[1]].teamsFrom).toBeUndefined();
+    expect(config.phases[ids[2]]).toMatchObject({ type: 'assign', from: ids[1], perChoice: 6, message: 'Here is who got what.' });
+    validateGame(config.phases, 'assign solo');
+  });
+
+  it('byGroup on the rank needs a teams step, and assign needs the rank right before it', () => {
+    const a = S.compileStoryboard({
+      name: 'x',
+      steps: [
+        { brick: 'rank', text: 'Pick', items: ['A', 'B'], byGroup: true },
+        { brick: 'end', text: 'Bye' }
+      ]
+    });
+    expect(a.problems.some(p => /teams step/.test(p))).toBe(true);
+    const b = S.compileStoryboard({
+      name: 'y',
+      steps: [
+        { brick: 'collect', text: 'What?' },
+        { brick: 'assign' },
+        { brick: 'end', text: 'Bye' }
+      ]
+    });
+    expect(b.problems.some(p => /rank step right before/.test(p))).toBe(true);
+    expect(Object.values(b.config.phases).some(p => p.type === 'assign')).toBe(false);
+  });
+
+  it('a rank with byGroup and no hand-out keeps its class-order reveal, ranked as groups', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'z',
+      steps: [
+        { brick: 'teams', teamCount: 4 },
+        { brick: 'rank', text: 'Order these', items: ['A', 'B', 'C'], byGroup: true }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const order = S.orderedPhaseIds(config.phases).map(id => config.phases[id].type);
+    expect(order).toEqual(['lobby', 'team-split', 'rank', 'reveal', 'end']);
+    validateGame(config.phases, 'byGroup reveal');
+  });
+});

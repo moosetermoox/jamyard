@@ -91,6 +91,7 @@
       { type: 'vote', title: N('vote') }
     ], more: [
       { type: 'rank', title: N('rank') },
+      { type: 'assign', title: N('assign') },
       { type: 'rate', title: N('rate') },
       { type: 'wager', title: N('wager') },
       { type: 'eliminate', title: N('eliminate') }

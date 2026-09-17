@@ -403,6 +403,18 @@ const SECTION_BUILDERS = {
     return [{ kind: 'table', columns: ['Role', 'Students'], rows, nameCol: 1 }];
   },
 
+  assign(phase, data) {
+    const board = Array.isArray(data.board) ? data.board : [];
+    if (board.length === 0) return [];
+    const perGroup = data.perGroup !== false;
+    const rows = board.map(b => [
+      b.label,
+      b.choice,
+      b.choiceRank == null ? '' : String(b.choiceRank)
+    ]);
+    return [{ kind: 'table', columns: [perGroup ? 'Group' : 'Student', 'Choice', 'Their pick (1 = first choice)'], rows, nameCol: perGroup ? -1 : 0 }];
+  },
+
   merge(phase, data, nameOf) {
     const items = (data.merged || []).map(g => ({
       name: (g.members || []).map(nameOf).filter(Boolean).join(' + ') || null,

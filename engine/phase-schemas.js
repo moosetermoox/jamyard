@@ -1431,6 +1431,11 @@ export const PHASE_SCHEMAS = {
         ],
         required: true, label: 'Items to rank',
         helper: 'Either a reference to an earlier step (e.g. "ask.responses") OR a fixed list you write yourself, a JSON array of strings like ["Pizza", "Tacos", "Sushi"] (at least 2 items).'
+      },
+      teamsFrom: {
+        type: 'phaseRef', optional: true, contexts: ['topLevel'],
+        label: 'Rank as groups',
+        helper: 'An earlier Split into Teams step (or paired-up collect step). Every student still ranks on their own screen; each group\'s order is its members\' average, stored per group beside the class order. Pair it with a Hand out choices step to give every group one of the items.'
       }
     },
     transitions: {
@@ -1441,12 +1446,60 @@ export const PHASE_SCHEMAS = {
       fields: {
         rankings:   { type: 'array', capability: 'rankingArray', renderers: { list: 'rankingList' } },
         rankedList: { type: 'string', capability: 'renderable' },
-        responses:  { type: 'object' }
+        responses:  { type: 'object' },
+        candidates: { type: 'array' },
+        byGroup:    { type: 'object' },
+        groupRankedList: { type: 'string', capability: 'renderable' }
       }
     },
     ui: {
       hostToggles: ['prompt', 'counter', 'timer', 'closeButton'],
       playerToggles: ['prompt', 'items', 'timer', 'submitButton']
+    }
+  },
+
+  // -------------------------------------------------------------------
+  assign: {
+    label: 'Hand Out Choices',
+    icon: '🎟️',
+    description: 'After a Rank a list step, give every group (or every student, when the rank step has no groups) ONE of the ranked items: first choices first, the spots per item spread as evenly as they can, so a contested favorite goes to some and the rest get their second choice. Reference a student\'s choice later with {{stepId.mine}}.',
+    role: 'compute',
+    allowedIn: ['topLevel'],
+    mixins: ['screenControl', 'loops'],
+    fields: {
+      from: {
+        type: 'phaseRef', required: true, contexts: ['topLevel'],
+        label: 'Choices ranked in',
+        helper: 'The earlier Rank a list step. With "Rank as groups" set on it, each group gets one item; otherwise each student does.'
+      },
+      perChoice: {
+        type: 'integer', min: 1, max: 50, optional: true,
+        label: 'Spots per item',
+        helper: 'How many groups (or students) may land on the same item. Leave empty for an even spread: the items fill as evenly as they can. Too few spots for everyone still hands everyone something.'
+      },
+      message: {
+        type: 'templateString', optional: true,
+        label: 'Projector line',
+        helper: 'A line above the hand-out on the projector, e.g. "Here is who got what."'
+      }
+    },
+    transitions: {
+      next: { type: 'phaseRef', optional: true }
+    },
+    output: {
+      kind: 'static',
+      fields: {
+        assignments:  { type: 'object' },
+        byPlayer:     { type: 'object' },
+        byChoice:     { type: 'object' },
+        choiceRank:   { type: 'object' },
+        assignedList: { type: 'string', capability: 'renderable' },
+        choices:      { type: 'array' }
+      }
+    },
+    ui: {
+      hostToggles: ['board', 'continueButton'],
+      playerToggles: ['choice']
     }
   },
 

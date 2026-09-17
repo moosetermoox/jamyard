@@ -826,6 +826,22 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
           }
           break;
         }
+        case 'assign-final': {
+          // Hand out choices: a host-paced payoff, every row must carry a choice
+          if (role === 'host') {
+            lastScreen = 'the hand-out of choices';
+            const board = Array.isArray(data.board) ? data.board : [];
+            if (board.length === 0 || board.some(b => !b || typeof b.choice !== 'string' || !b.choice)) {
+              add('error', 'The hand-out step showed a group with no choice.', JSON.stringify(board).slice(0, 200));
+            }
+            if (!onceKeys.has(`logged:assign:${seq(data)}`)) {
+              onceKeys.add(`logged:assign:${seq(data)}`);
+              phaseLog.push({ type: 'assign' });
+            }
+            once(`adv:assign:${seq(data)}`, () => host.emit('advance-phase', { code, phaseInstanceId: seq(data) }), 600);
+          }
+          break;
+        }
         case 'team-split-setup': {
           // Teacher-assign mode: the robot teacher just confirms — the
           // auto-fill places everyone, which is the path we need to prove.

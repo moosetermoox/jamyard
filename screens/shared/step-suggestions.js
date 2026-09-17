@@ -474,6 +474,8 @@
   //     choices?: string[],     // collect-choice only
   //     guess?: 'who',          // guessing-rounds only: pick the author from a roster
   //     items?: string[],       // rank only: a teacher-written list (else the last collect's answers)
+  //     byGroup?: boolean,      // rank only: each group (a teams step earlier) decides one order
+  //     perChoice?: number,     // assign only: how many groups may share one item (else an even spread)
   //     secretLabel?: string,   // collect-two field labels
   //     clueLabel?: string,
   //     questions?: [{ text, choices, correct }],  // quiz only
@@ -492,7 +494,7 @@
   var STORYBOARD_PRIMARY = {
     'announce': 'message', 'collect': 'prompt', 'collect-two': 'prompt',
     'collect-choice': 'prompt', 'estimate': 'prompt', 'reveal': 'template',
-    'reveal-one': 'message', 'rank': 'prompt', 'end': 'message'
+    'reveal-one': 'message', 'rank': 'prompt', 'assign': 'message', 'end': 'message'
   };
 
   // ---- Quiz brick ----
@@ -829,6 +831,20 @@
         }
         id = rounds.id;
         built = rounds.phase;
+      } else if (brick === 'assign') {
+        // Hand out choices: needs the rank step right before it (the
+        // storyboard prompt says so); every group, or every student when
+        // that rank step has no groups, gets one of its items.
+        var rankSrc = phases[lastId] && phases[lastId].type === 'rank' ? lastId : null;
+        if (!rankSrc) {
+          problems.push('Step ' + (i + 1) + ': hand out choices needs a rank step right before it.');
+          return;
+        }
+        built = { type: 'assign', from: rankSrc, message: 'Here is who got what.' };
+        if (typeof step.perChoice === 'number' && step.perChoice >= 1 && step.perChoice <= 50) {
+          built.perChoice = Math.round(step.perChoice);
+        }
+        id = freshId(phases, BASE_ID_FOR.assign);
       } else if (brick === 'rank') {
         // A teacher-written items list beats the collected answers; with
         // neither there is nothing to put in order.
@@ -843,6 +859,18 @@
         if (!built) {
           problems.push('Step ' + (i + 1) + ': rank needs a question step before it, or an items list to put in order.');
           return;
+        }
+        // Rank as groups: each group's order is its members' average
+        // (byGroup, or an assign brick next with a teams step earlier,
+        // since a hand-out to groups is what the teams were for).
+        var nextBrick = steps[i + 1] && steps[i + 1].brick;
+        if (step.byGroup === true || nextBrick === 'assign') {
+          var teamsId = lastOfType(phases, ['team-split'], lastId);
+          if (teamsId) {
+            built.teamsFrom = teamsId;
+          } else if (step.byGroup === true) {
+            problems.push('Step ' + (i + 1) + ': ranking as groups needs a teams step before it, so the class ranks as one.');
+          }
         }
         id = freshId(phases, BASE_ID_FOR.rank);
       } else if (BUILDERS[brick]) {
@@ -884,8 +912,11 @@
       lastId = id;
 
       // The class order is the rank brick's payoff: a host-paced reveal
-      // reads it back (never timed, PROJECTOR-STYLE rule).
-      if (brick === 'rank') {
+      // reads it back (never timed, PROJECTOR-STYLE rule). With a hand-out
+      // next, the hand-out is the payoff and the assign brick needs the
+      // rank step right behind it.
+      var handOutNext = steps[i + 1] && steps[i + 1].brick === 'assign';
+      if (brick === 'rank' && !handOutNext) {
         var orderId = freshId(phases, 'order-show');
         phases[lastId].next = orderId;
         phases[orderId] = {
@@ -919,7 +950,7 @@
   var BASE_ID_FOR = {
     'collect': 'ask', 'collect-two': 'share', 'collect-choice': 'poll',
     'estimate': 'guess', 'announce': 'announce', 'reveal': 'show',
-    'reveal-one': 'show-one', 'vote': 'vote', 'rank': 'order', 'end': 'wrap'
+    'reveal-one': 'show-one', 'vote': 'vote', 'rank': 'order', 'assign': 'hand-out', 'end': 'wrap'
   };
 
   // ---- Reorder: move a step one slot up/down the next-chain ----

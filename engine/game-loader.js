@@ -753,6 +753,43 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Rank as groups: teamsFrom must point at a team-split or a paired-up
+    // collect (same sources as team-roles), or the per-group order the
+    // hand-out reads would silently be missing at game time.
+    if (phase.type === 'rank' && phase.teamsFrom != null) {
+      const rankSrc = config.phases[phase.teamsFrom];
+      const rankPairwise = rankSrc && rankSrc.type === 'collect' && rankSrc.assign === 'pairwise';
+      if (!rankSrc) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (rank) ranks as groups from "${phase.teamsFrom}", which doesn't exist.`
+        );
+      } else if (rankSrc.type !== 'team-split' && !rankPairwise) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (rank) ranks as groups from "${phase.teamsFrom}", which is a ${rankSrc.type} step, it must be a Split into Teams step or a paired-up collect step.`
+        );
+      }
+    }
+
+    // Hand out choices: from must name a rank step, the only step whose
+    // output carries an ordered preference per group or student.
+    if (phase.type === 'assign') {
+      const assignSrc = phase.from != null ? config.phases[phase.from] : null;
+      if (phase.from == null || !assignSrc) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (assign) hands out the choices ranked in "${phase.from}", which doesn't exist.`
+        );
+      } else if (assignSrc.type !== 'rank') {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (assign) hands out the choices ranked in "${phase.from}", which is a ${assignSrc.type} step, it must be a Rank a list step.`
+        );
+      }
+      if (phase.perChoice != null && (!Number.isInteger(phase.perChoice) || phase.perChoice < 1)) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (assign) has "perChoice" ${JSON.stringify(phase.perChoice)}, it must be a whole number of 1 or more (or left out for an even spread).`
+        );
+      }
+    }
+
     // Leaderboard team mode: teamsFrom must point at a real team-split
     // (same rule as checklist — a dangling ref would silently fall back
     // to the individual board at runtime, so fail loudly here instead).

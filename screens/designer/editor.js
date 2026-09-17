@@ -357,6 +357,17 @@ var PHASE_CATALOG = {
     player: 'Role picker (choice) or "You are the ..." card',
     ai: null
   },
+  'assign': {
+    icon: '',
+    friendlyName: 'Hand Out Choices',
+    description: 'After a Rank a list step, give every group (or student) one of the ranked items: first choices first, spread evenly',
+    color: '#4527A0',
+    bg: '#D1C4E9',
+    detailField: 'message',
+    host: 'One card per group: the item they got and which of their picks it was, Continue button',
+    player: '"Your group got: ..." card',
+    ai: null
+  },
   'end': {
     icon: '',
     friendlyName: 'Wrap Up',
@@ -1238,6 +1249,10 @@ function getPrimaryFieldDef(type) {
     case 'checklist': return { type: 'summary', summarize: function (p) {
       var n = (p.items || []).length;
       return n + ' task' + (n === 1 ? '' : 's') + (p.teamsFrom ? ' per group' : ' per student');
+    }};
+    case 'assign': return { type: 'summary', summarize: function (p) {
+      var src = p.from ? humanizeRef(p.from) : '?';
+      return 'One item each from ' + src + (p.perChoice ? ', up to ' + p.perChoice + ' per item' : ', spread evenly');
     }};
     case 'team-roles': return { type: 'summary', summarize: function (p) {
       var names = (p.roles || []).join(', ');
@@ -2930,6 +2945,21 @@ function renderPhaseConfig(phaseId) {
       renderCanvas();
     });
 
+    // Rank as groups: each group's order is its members' average, for a
+    // Hand out choices step after it.
+    var rankGroupOpts = [{ value: '', label: 'No groups, one class order' }];
+    for (var rgId in gameConfig.phases) {
+      if (gameConfig.phases[rgId].type === 'team-split') {
+        rankGroupOpts.push({ value: rgId, label: 'Teams from "' + phaseContentLabel(rgId) + '"' });
+      } else if (gameConfig.phases[rgId].type === 'collect' && gameConfig.phases[rgId].assign === 'pairwise') {
+        rankGroupOpts.push({ value: rgId, label: 'Pairs from "' + phaseContentLabel(rgId) + '"' });
+      }
+    }
+    addSelectWithHelp('Rank as groups', 'Every student still ranks on their own screen; with groups, the order of a group is the average of its members, ready for a Hand out choices step.', 'phase-teamsFrom',
+      rankGroupOpts, phase.teamsFrom || '', function (value) {
+        if (value) { phase.teamsFrom = value; } else { delete phase.teamsFrom; }
+      });
+
     // Items can come from an earlier step (student answers, AI output) OR be
     // a fixed list the teacher types right here (stored as an array — the
     // engine accepts both).
@@ -3234,6 +3264,29 @@ function renderPhaseConfig(phaseId) {
     addFieldWithHelp('Work time (seconds)', 'Leave empty for no limit, you end work time from the host screen.', 'number', 'phase-timer', phase.timer, false, function (value) {
       if (value == null || value === '') delete phase.timer;
       else phase.timer = value;
+    });
+  }
+
+  if (type === 'assign') {
+    // Choices ranked in: any rank step in the plan
+    var asRankOpts = [{ value: '', label: 'Pick a Rank a list step' }];
+    for (var arId in gameConfig.phases) {
+      if (gameConfig.phases[arId] && gameConfig.phases[arId].type === 'rank') {
+        asRankOpts.push({ value: arId, label: 'Ranked in "' + phaseContentLabel(arId) + '"' });
+      }
+    }
+    addSelectWithHelp('Choices ranked in', 'The Rank a list step whose items get handed out. With "Rank as groups" set on it, each group gets one item; otherwise each student does.', 'phase-from',
+      asRankOpts, phase.from || '', function (value) {
+        if (value) { phase.from = value; } else { delete phase.from; }
+        renderCanvas();
+      });
+    addFieldWithHelp('Spots per item', 'How many groups (or students) may land on the same item. Leave empty for an even spread.', 'number', 'phase-perChoice', phase.perChoice, false, function (value) {
+      if (value == null || value === '') delete phase.perChoice;
+      else phase.perChoice = value;
+    });
+    addTextAreaWithHelp('Projector line', 'A line above the hand-out on the projector.', 'phase-message', phase.message, 'e.g. Here is who got what.', function (value) {
+      if (value) { phase.message = value; } else { delete phase.message; }
+      renderCanvas();
     });
   }
 
@@ -5558,6 +5611,15 @@ function addPhaseOfType(type) {
   } else if (type === 'checklist') {
     newPhase.prompt = 'Work through today\'s tasks with your group.';
     newPhase.items = ['First task', 'Second task', 'Third task'];
+  } else if (type === 'assign') {
+    newPhase.message = 'Here is who got what.';
+    // Wire to the last rank step already in the plan (the validator
+    // demands a rank source either way).
+    var asRankId;
+    for (var asId in gameConfig.phases) {
+      if (gameConfig.phases[asId] && gameConfig.phases[asId].type === 'rank') asRankId = asId;
+    }
+    if (asRankId) newPhase.from = asRankId;
   } else if (type === 'team-roles') {
     newPhase.roles = ['Facilitator', 'Recorder', 'Timekeeper'];
     newPhase.method = 'choice';
@@ -5677,6 +5739,7 @@ var REQUIRED_FIELDS = {
   'team-split': ['method'],
   'team-roles': ['teamsFrom', 'roles'],
   rank: ['prompt', 'candidates'],
+  assign: ['from'],
   wager: ['prompt', 'options'],
   relay: ['prompt'],
   checklist: ['items'],
@@ -6000,6 +6063,27 @@ function validateConfig() {
         errors.push(label + ': "Who shares a checklist" points to "' + phase.teamsFrom + '" which does not exist.');
       } else if (clSrc.type !== 'team-split' && !(clSrc.type === 'collect' && clSrc.assign === 'pairwise')) {
         errors.push(label + ': "Who shares a checklist" must point to a Split into Teams step or a paired-up Ask step.');
+      }
+    }
+
+    // rank teamsFrom + assign from validation (mirrors engine/game-loader.js)
+    if (phase.type === 'rank' && phase.teamsFrom) {
+      var rkSrc = phases[phase.teamsFrom];
+      if (!rkSrc) {
+        errors.push(label + ': "Rank as groups" points to "' + phase.teamsFrom + '" which does not exist.');
+      } else if (rkSrc.type !== 'team-split' && !(rkSrc.type === 'collect' && rkSrc.assign === 'pairwise')) {
+        errors.push(label + ': "Rank as groups" must point to a Split into Teams step or a paired-up Ask step.');
+      }
+    }
+    if (phase.type === 'assign') {
+      var asSrc = phase.from ? phases[phase.from] : null;
+      if (!phase.from || !asSrc) {
+        errors.push(label + ': "Choices ranked in" points to "' + (phase.from || '') + '" which does not exist.');
+      } else if (asSrc.type !== 'rank') {
+        errors.push(label + ': "Choices ranked in" must point to a Rank a list step.');
+      }
+      if (phase.perChoice != null && (typeof phase.perChoice !== 'number' || phase.perChoice < 1 || Math.floor(phase.perChoice) !== phase.perChoice)) {
+        errors.push(label + ': "Spots per item" must be a whole number of 1 or more, or left empty.');
       }
     }
 
