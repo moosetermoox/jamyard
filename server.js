@@ -1438,6 +1438,247 @@ async function advanceForeach(code, room, foreachPhaseId) {
   }
 }
 
+// Close an open answer step (collect / collect-choice): wait for answers
+// still inside the moderation ladder, gather every visible response into
+// the step's data, then move the room on. One routine for the host's
+// Close button, the console's, the timer, AND a generic "next step" that
+// lands on an open answer step (advance-phase). Before 2026-09-18 that
+// last path skipped the gather: the console showed "Next step" beside
+// "Close submissions", the second one blew past the answers, and Doodle
+// Bluff's rounds ran on zero drawings, straight to the end.
+async function closeCollect(code, room) {
+  // Idempotent: a second Close (or Close + Next step) while the first is
+  // still waiting on in-flight answers must not gather twice.
+  if (room.phaseState && room.phaseState.closingCollect) {
+    console.log(`[close-submissions] Ignored, a close is already in flight in room ${code}`);
+    return;
+  }
+  if (room.phaseState) room.phaseState.closingCollect = true;
+  try {
+    // Only meaningful while a collect-style phase is actually running — a
+    // late/stray close used to store empty "responses" under whatever phase
+    // happened to be current (found by the chaos simulator).
+    const currentPhase = room.engine && room.engine.getCurrentPhase();
+    if (!currentPhase || (currentPhase.type !== 'collect' && currentPhase.type !== 'collect-choice')) {
+      console.log(`[close-submissions] Ignored, current phase is ${currentPhase ? currentPhase.type : 'unknown'}`);
+      return;
+    }
+    // Answers still inside the moderation ladder land first, so the gather
+    // below sees every student who pressed Submit before the teacher
+    // pressed Close (engine/pending-submits.js). The step is re-checked
+    // after the wait: a second Close or a timer may have moved the room on.
+    const instanceBefore = room.phaseInstanceId;
+    const waited = await settlePendingSubmits(room);
+    if (waited > 0) {
+      const still = room.engine && room.engine.getCurrentPhase();
+      if (!still || still.id !== currentPhase.id || room.phaseInstanceId !== instanceBefore) {
+        console.log(`[close-submissions] Ignored, room moved on while ${waited} submission(s) settled`);
+        return;
+      }
+      console.log(`[close-submissions] Waited for ${waited} in-flight submission(s) in room ${code}`);
+    }
+    recordEvent(room, 'close-submissions');
+
+    try {
+      if (room.engine) {
+        const collectPhase = room.engine.getCurrentPhase();
+        const players = room.engine.players;
+        const from = collectPhase.from || 'all';
+
+        // Gather responses from eligible players and store as phase data.
+        // Host-hidden responses are excluded (kept off AI input + reveal).
+        let eligible = getEligibleVoters(players, from);
+        // Foreach sit-out: the round's author and source never count as
+        // submitters (they get a waiting screen, but a crafted socket
+        // event could still try to plant a response).
+        eligible = withoutSitOut(eligible, collectPhase);
+        // Pairwise: only paired players are real submitters
+        if (collectPhase.assign === 'pairwise') {
+          const cpData = room.engine.phaseData[collectPhase.id];
+          const pairedIds = cpData && Array.isArray(cpData.pairs)
+            ? new Set(cpData.pairs.flatMap(p => p.playerIds))
+            : null;
+          if (pairedIds) eligible = eligible.filter(p => pairedIds.has(p.id));
+        }
+        const responses = eligible
+          .filter(isVisibleSubmission)
+          .map(p => {
+            const r = p.response;
+            // Drawings: strokes ride alongside a placeholder text (text
+            // consumers show "[drawing]"; galleries/rotation use strokes)
+            if (isDrawingResponse(r)) {
+              return { playerId: p.id, name: p.name, text: '[drawing]', drawing: r.strokes, responseAt: p.responseAt };
+            }
+            // Multi-field responses come as objects with field keys
+            if (r && typeof r === 'object' && !Array.isArray(r)) {
+              const textParts = Object.values(r);
+              return { playerId: p.id, name: p.name, text: textParts.join(' | '), fields: r, responseAt: p.responseAt };
+            }
+            return { playerId: p.id, name: p.name, text: r, responseAt: p.responseAt };
+          });
+
+        // Rotation: stamp what each responder was assigned onto their response
+        // record, so downstream reveals can show it ({{_current.assigned}} in
+        // a reveal-one itemTemplate) instead of asking students to re-type the
+        // thing they were handed (whose-eyes shipped that busywork field).
+        // The LINK rides along too (assignedFromId/Name): a foreach round
+        // over these responses can then keep the classmate who wrote the
+        // phrase out of the bluffing (engine/phases/sit-out.js) and name
+        // them in the reveal.
+        if (collectPhase.rotateFrom) {
+          const srcData = room.engine.phaseData[collectPhase.rotateFrom];
+          const assignedMap = (srcData && srcData.assigned) || {};
+          // Only a STUDENT-made source has a writer to name (and to sit
+          // out); an AI-written per-player deal has none.
+          const srcPhase = room.engine.config.phases[collectPhase.rotateFrom];
+          const studentSource = !!srcPhase && (srcPhase.type === 'collect' || srcPhase.type === 'collect-choice');
+          const fromMap = (studentSource && srcData && srcData.assignedFrom) || {};
+          for (const r of responses) {
+            if (r && r.playerId && assignedMap[r.playerId] !== undefined) {
+              r.assigned = assignedMap[r.playerId];
+              const fromId = fromMap[r.playerId];
+              if (fromId) {
+                r.assignedFromId = fromId;
+                const fromPlayer = players.find(fromId);
+                if (fromPlayer) r.assignedFromName = fromPlayer.name;
+              }
+            }
+          }
+        } else if (Array.isArray(collectPhase.dealItems)) {
+          // Dealt from a teacher list: the item has no author, only text.
+          const dealt = (room.engine.phaseData[collectPhase.id] || {}).assigned || {};
+          for (const r of responses) {
+            if (r && r.playerId && dealt[r.playerId] !== undefined) r.assigned = dealt[r.playerId];
+          }
+        }
+
+        // Build byPlayer map alongside responses array — used by .mine and
+        // by downstream rotateFrom phases. Multi-field responses store the
+        // joined text; rotation users wanting the structured fields can
+        // dataRef into responses directly. Drawings keep a parallel
+        // byPlayerDrawing map so rotation can pass the actual strokes.
+        const byPlayer = {};
+        const byPlayerDrawing = {};
+        for (const r of responses) {
+          if (r && r.playerId) {
+            byPlayer[r.playerId] = r.text;
+            if (r.drawing) byPlayerDrawing[r.playerId] = r.drawing;
+          }
+        }
+
+        // Preserve any data the phase handler wrote on enter (e.g. assigned)
+        const existing = room.engine.phaseData[collectPhase.id] || {};
+
+        // For collect-choice, also compute tally
+        if (collectPhase.type === 'collect-choice') {
+          const tally = {};
+          for (const r of responses) {
+            tally[r.text] = (tally[r.text] || 0) + 1;
+          }
+          // Store with choice field for clarity (preserve responseAt for grading)
+          const choiceResponses = responses.map(r => ({ playerId: r.playerId, name: r.name, choice: r.text, text: r.text, responseAt: r.responseAt }));
+          const stored = { ...existing, responses: choiceResponses, tally, byPlayer };
+
+          // Speed-bonus scoring: when correctAnswer is set, grade each response.
+          // The correct answer can be a literal or a {{ref}} resolved at phase close.
+          if (collectPhase.correctAnswer) {
+            const correctAnswer = resolveTemplate(collectPhase.correctAnswer, room.engine);
+            const phaseStartAt = (room.phaseState && room.phaseState.phaseStartAt) || null;
+            const scores = scoreResponses({
+              responses: choiceResponses,
+              correctAnswer,
+              phaseStartAt,
+              timerSeconds: collectPhase.timer,
+              pointsCorrect: collectPhase.pointsCorrect != null ? collectPhase.pointsCorrect : 1000,
+              speedBonus: collectPhase.speedBonus !== false
+            });
+            stored.scores = scores;
+            stored.correctAnswer = correctAnswer;
+            console.log(`[close-submissions] Graded ${choiceResponses.length} responses against "${correctAnswer}", scores: ${JSON.stringify(scores)}`);
+          }
+
+          // Bluffing payoff: `foolPoints` pays the AUTHOR of a fake for every
+          // classmate who picked it (needs excludeAuthored so authorship is
+          // known). Merged into .scores alongside any truth-picking points.
+          if (collectPhase.foolPoints && collectPhase.excludeAuthored) {
+            const bluffSrc = (room.engine.phaseData[collectPhase.excludeAuthored] || {}).responses || [];
+            const authorsByText = {};
+            for (const br of bluffSrc) {
+              if (br && br.playerId && br.text != null) {
+                authorsByText[String(br.text).trim().toLowerCase()] = br.playerId;
+              }
+            }
+            const fooled = foolPoints({
+              responses: choiceResponses,
+              authorsByText,
+              correctAnswer: stored.correctAnswer != null ? stored.correctAnswer : null,
+              pointsPerFool: collectPhase.foolPoints
+            });
+            stored.scores = mergeScores(stored.scores, fooled);
+            stored.foolScores = fooled;
+            console.log(`[close-submissions] Fool points: ${JSON.stringify(fooled)}`);
+          }
+
+          room.engine.storePhaseData(collectPhase.id, stored);
+          console.log(`[close-submissions] Stored ${choiceResponses.length} choices for phase '${collectPhase.id}'`);
+        } else {
+          // passedIds: who used the Pass button (collect + passAllowed only).
+          // Internal phase data for the pair-scoped reveal's neutral card —
+          // excluded from responses/byPlayer so it never reaches AI or lists.
+          const passedIds = collectPhase.passAllowed ? collectPassedIds(eligible) : [];
+          room.engine.storePhaseData(collectPhase.id, {
+            ...existing, responses, byPlayer, passedIds,
+            ...(Object.keys(byPlayerDrawing).length > 0 ? { byPlayerDrawing } : {})
+          });
+          console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}' (${passedIds.length} passed)`);
+        }
+
+        // Clear responses (and hidden flags) for next collect phase
+        for (const p of players.list()) {
+          if (p.response || p.responseHidden) players.update(p.id, { response: undefined, responseHidden: false });
+        }
+
+        // Advance to next phase and let handlePhase take over
+        const collectNextId = getNextPhaseId(room.engine, collectPhase);
+        if (collectNextId) {
+          room.engine.transition(collectNextId);
+          await handlePhase(code, room);
+        }
+      } else {
+        // Legacy path (no engine)
+        room.stateMachine.transition('process');
+        console.log(`[close-submissions] Room ${code} now in 'process' state`);
+        io.to(code).emit(EVENTS.PROCESSING_STARTED);
+
+        const players = room.playerRegistry.list();
+        const responses = players
+          .filter(p => p.response)
+          .map(p => ({ name: p.name, text: p.response }));
+        console.log(`[close-submissions] Gathered ${responses.length} responses`);
+
+        const aiResult = await aiService.process({
+          instruction: 'Write a short, funny poem combining all these weekend activities',
+          responses,
+          rosterNames: players.map(p => p.name)
+        });
+        contentLog(`[close-submissions] AI returned: ${aiResult.text}`);
+
+        room.stateMachine.transition('reveal');
+        console.log(`[close-submissions] Room ${code} now in 'reveal' state`);
+
+        io.to(code).emit(EVENTS.SHOW_RESULTS, {
+          aiResult: aiResult.text,
+          responses: responses.map(r => ({ name: r.name, response: r.text }))
+        });
+      }
+    } catch (error) {
+      console.log(`[close-submissions] Error: ${error.message}`);
+    }
+  } finally {
+    if (room.phaseState && room.phaseState.closingCollect) room.phaseState.closingCollect = false;
+  }
+}
+
 async function tallyAndAdvance(code, room) {
   const engine = room.engine;
   const vs = room.phaseState;
@@ -4142,225 +4383,7 @@ io.on('connection', (socket) => {
     if (isStalePhaseEvent(room, phaseInstanceId, 'close-submissions')) return;
     if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
 
-    // Only meaningful while a collect-style phase is actually running — a
-    // late/stray close used to store empty "responses" under whatever phase
-    // happened to be current (found by the chaos simulator).
-    const currentPhase = room.engine && room.engine.getCurrentPhase();
-    if (!currentPhase || (currentPhase.type !== 'collect' && currentPhase.type !== 'collect-choice')) {
-      console.log(`[close-submissions] Ignored, current phase is ${currentPhase ? currentPhase.type : 'unknown'}`);
-      return;
-    }
-    // Answers still inside the moderation ladder land first, so the gather
-    // below sees every student who pressed Submit before the teacher
-    // pressed Close (engine/pending-submits.js). The step is re-checked
-    // after the wait: a second Close or a timer may have moved the room on.
-    const instanceBefore = room.phaseInstanceId;
-    const waited = await settlePendingSubmits(room);
-    if (waited > 0) {
-      const still = room.engine && room.engine.getCurrentPhase();
-      if (!still || still.id !== currentPhase.id || room.phaseInstanceId !== instanceBefore) {
-        console.log(`[close-submissions] Ignored, room moved on while ${waited} submission(s) settled`);
-        return;
-      }
-      console.log(`[close-submissions] Waited for ${waited} in-flight submission(s) in room ${code}`);
-    }
-    recordEvent(room, 'close-submissions');
-
-    try {
-      if (room.engine) {
-        const collectPhase = room.engine.getCurrentPhase();
-        const players = room.engine.players;
-        const from = collectPhase.from || 'all';
-
-        // Gather responses from eligible players and store as phase data.
-        // Host-hidden responses are excluded (kept off AI input + reveal).
-        let eligible = getEligibleVoters(players, from);
-        // Foreach sit-out: the round's author and source never count as
-        // submitters (they get a waiting screen, but a crafted socket
-        // event could still try to plant a response).
-        eligible = withoutSitOut(eligible, collectPhase);
-        // Pairwise: only paired players are real submitters
-        if (collectPhase.assign === 'pairwise') {
-          const cpData = room.engine.phaseData[collectPhase.id];
-          const pairedIds = cpData && Array.isArray(cpData.pairs)
-            ? new Set(cpData.pairs.flatMap(p => p.playerIds))
-            : null;
-          if (pairedIds) eligible = eligible.filter(p => pairedIds.has(p.id));
-        }
-        const responses = eligible
-          .filter(isVisibleSubmission)
-          .map(p => {
-            const r = p.response;
-            // Drawings: strokes ride alongside a placeholder text (text
-            // consumers show "[drawing]"; galleries/rotation use strokes)
-            if (isDrawingResponse(r)) {
-              return { playerId: p.id, name: p.name, text: '[drawing]', drawing: r.strokes, responseAt: p.responseAt };
-            }
-            // Multi-field responses come as objects with field keys
-            if (r && typeof r === 'object' && !Array.isArray(r)) {
-              const textParts = Object.values(r);
-              return { playerId: p.id, name: p.name, text: textParts.join(' | '), fields: r, responseAt: p.responseAt };
-            }
-            return { playerId: p.id, name: p.name, text: r, responseAt: p.responseAt };
-          });
-
-        // Rotation: stamp what each responder was assigned onto their response
-        // record, so downstream reveals can show it ({{_current.assigned}} in
-        // a reveal-one itemTemplate) instead of asking students to re-type the
-        // thing they were handed (whose-eyes shipped that busywork field).
-        // The LINK rides along too (assignedFromId/Name): a foreach round
-        // over these responses can then keep the classmate who wrote the
-        // phrase out of the bluffing (engine/phases/sit-out.js) and name
-        // them in the reveal.
-        if (collectPhase.rotateFrom) {
-          const srcData = room.engine.phaseData[collectPhase.rotateFrom];
-          const assignedMap = (srcData && srcData.assigned) || {};
-          // Only a STUDENT-made source has a writer to name (and to sit
-          // out); an AI-written per-player deal has none.
-          const srcPhase = room.engine.config.phases[collectPhase.rotateFrom];
-          const studentSource = !!srcPhase && (srcPhase.type === 'collect' || srcPhase.type === 'collect-choice');
-          const fromMap = (studentSource && srcData && srcData.assignedFrom) || {};
-          for (const r of responses) {
-            if (r && r.playerId && assignedMap[r.playerId] !== undefined) {
-              r.assigned = assignedMap[r.playerId];
-              const fromId = fromMap[r.playerId];
-              if (fromId) {
-                r.assignedFromId = fromId;
-                const fromPlayer = players.find(fromId);
-                if (fromPlayer) r.assignedFromName = fromPlayer.name;
-              }
-            }
-          }
-        } else if (Array.isArray(collectPhase.dealItems)) {
-          // Dealt from a teacher list: the item has no author, only text.
-          const dealt = (room.engine.phaseData[collectPhase.id] || {}).assigned || {};
-          for (const r of responses) {
-            if (r && r.playerId && dealt[r.playerId] !== undefined) r.assigned = dealt[r.playerId];
-          }
-        }
-
-        // Build byPlayer map alongside responses array — used by .mine and
-        // by downstream rotateFrom phases. Multi-field responses store the
-        // joined text; rotation users wanting the structured fields can
-        // dataRef into responses directly. Drawings keep a parallel
-        // byPlayerDrawing map so rotation can pass the actual strokes.
-        const byPlayer = {};
-        const byPlayerDrawing = {};
-        for (const r of responses) {
-          if (r && r.playerId) {
-            byPlayer[r.playerId] = r.text;
-            if (r.drawing) byPlayerDrawing[r.playerId] = r.drawing;
-          }
-        }
-
-        // Preserve any data the phase handler wrote on enter (e.g. assigned)
-        const existing = room.engine.phaseData[collectPhase.id] || {};
-
-        // For collect-choice, also compute tally
-        if (collectPhase.type === 'collect-choice') {
-          const tally = {};
-          for (const r of responses) {
-            tally[r.text] = (tally[r.text] || 0) + 1;
-          }
-          // Store with choice field for clarity (preserve responseAt for grading)
-          const choiceResponses = responses.map(r => ({ playerId: r.playerId, name: r.name, choice: r.text, text: r.text, responseAt: r.responseAt }));
-          const stored = { ...existing, responses: choiceResponses, tally, byPlayer };
-
-          // Speed-bonus scoring: when correctAnswer is set, grade each response.
-          // The correct answer can be a literal or a {{ref}} resolved at phase close.
-          if (collectPhase.correctAnswer) {
-            const correctAnswer = resolveTemplate(collectPhase.correctAnswer, room.engine);
-            const phaseStartAt = (room.phaseState && room.phaseState.phaseStartAt) || null;
-            const scores = scoreResponses({
-              responses: choiceResponses,
-              correctAnswer,
-              phaseStartAt,
-              timerSeconds: collectPhase.timer,
-              pointsCorrect: collectPhase.pointsCorrect != null ? collectPhase.pointsCorrect : 1000,
-              speedBonus: collectPhase.speedBonus !== false
-            });
-            stored.scores = scores;
-            stored.correctAnswer = correctAnswer;
-            console.log(`[close-submissions] Graded ${choiceResponses.length} responses against "${correctAnswer}", scores: ${JSON.stringify(scores)}`);
-          }
-
-          // Bluffing payoff: `foolPoints` pays the AUTHOR of a fake for every
-          // classmate who picked it (needs excludeAuthored so authorship is
-          // known). Merged into .scores alongside any truth-picking points.
-          if (collectPhase.foolPoints && collectPhase.excludeAuthored) {
-            const bluffSrc = (room.engine.phaseData[collectPhase.excludeAuthored] || {}).responses || [];
-            const authorsByText = {};
-            for (const br of bluffSrc) {
-              if (br && br.playerId && br.text != null) {
-                authorsByText[String(br.text).trim().toLowerCase()] = br.playerId;
-              }
-            }
-            const fooled = foolPoints({
-              responses: choiceResponses,
-              authorsByText,
-              correctAnswer: stored.correctAnswer != null ? stored.correctAnswer : null,
-              pointsPerFool: collectPhase.foolPoints
-            });
-            stored.scores = mergeScores(stored.scores, fooled);
-            stored.foolScores = fooled;
-            console.log(`[close-submissions] Fool points: ${JSON.stringify(fooled)}`);
-          }
-
-          room.engine.storePhaseData(collectPhase.id, stored);
-          console.log(`[close-submissions] Stored ${choiceResponses.length} choices for phase '${collectPhase.id}'`);
-        } else {
-          // passedIds: who used the Pass button (collect + passAllowed only).
-          // Internal phase data for the pair-scoped reveal's neutral card —
-          // excluded from responses/byPlayer so it never reaches AI or lists.
-          const passedIds = collectPhase.passAllowed ? collectPassedIds(eligible) : [];
-          room.engine.storePhaseData(collectPhase.id, {
-            ...existing, responses, byPlayer, passedIds,
-            ...(Object.keys(byPlayerDrawing).length > 0 ? { byPlayerDrawing } : {})
-          });
-          console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}' (${passedIds.length} passed)`);
-        }
-
-        // Clear responses (and hidden flags) for next collect phase
-        for (const p of players.list()) {
-          if (p.response || p.responseHidden) players.update(p.id, { response: undefined, responseHidden: false });
-        }
-
-        // Advance to next phase and let handlePhase take over
-        const collectNextId = getNextPhaseId(room.engine, collectPhase);
-        if (collectNextId) {
-          room.engine.transition(collectNextId);
-          await handlePhase(code, room);
-        }
-      } else {
-        // Legacy path (no engine)
-        room.stateMachine.transition('process');
-        console.log(`[close-submissions] Room ${code} now in 'process' state`);
-        io.to(code).emit(EVENTS.PROCESSING_STARTED);
-
-        const players = room.playerRegistry.list();
-        const responses = players
-          .filter(p => p.response)
-          .map(p => ({ name: p.name, text: p.response }));
-        console.log(`[close-submissions] Gathered ${responses.length} responses`);
-
-        const aiResult = await aiService.process({
-          instruction: 'Write a short, funny poem combining all these weekend activities',
-          responses,
-          rosterNames: players.map(p => p.name)
-        });
-        contentLog(`[close-submissions] AI returned: ${aiResult.text}`);
-
-        room.stateMachine.transition('reveal');
-        console.log(`[close-submissions] Room ${code} now in 'reveal' state`);
-
-        io.to(code).emit(EVENTS.SHOW_RESULTS, {
-          aiResult: aiResult.text,
-          responses: responses.map(r => ({ name: r.name, response: r.text }))
-        });
-      }
-    } catch (error) {
-      console.log(`[close-submissions] Error: ${error.message}`);
-    }
+    await closeCollect(code, room);
   });
 
   socket.on(EVENTS.SUBMIT_VOTE, async (payload = {}) => {
@@ -4516,6 +4539,16 @@ io.on('connection', (socket) => {
       // otherwise downstream templates show raw {{tokens}} and scores are
       // lost. Found by the chaos simulator (one-voice advanced before
       // closeOneVoice stored its stats).
+      // A generic "next step" on an OPEN answer step is a Close: the
+      // answers get gathered and the room moves on (closeCollect). Skipping
+      // the gather lost every answer (Doodle Bluff ended after the drawing
+      // step: zero drawings, zero rounds; 2026-09-18).
+      const openPhase = room.engine.getCurrentPhase();
+      if (openPhase && (openPhase.type === 'collect' || openPhase.type === 'collect-choice')) {
+        await closeCollect(code, room);
+        return;
+      }
+
       const vs = room.phaseState;
       // A CONSOLE click (second device, not the host screen) on an open
       // two-stage phase closes it and STOPS, mirroring the host's own

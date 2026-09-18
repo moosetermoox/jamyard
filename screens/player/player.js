@@ -3571,8 +3571,24 @@ function showSection(el) {
   el.hidden = false;
   void el.offsetWidth;
   el.classList.add('active');
+  // The screen that is up fits the lid (shared/fit-screen.js): sized now,
+  // before it paints.
+  if (window.FitScreen) FitScreen.fitNow();
   // Personal confirmation blip — only on the student's own submit.
   if (J && (el === submittedSection || el === voteSubmittedSection)) {
     J.sound('blip');
   }
+}
+
+// A Chromebook lid is 1366x768: the screen that is up fits it without a
+// scroll (owner 2026-09-18). shared/fit-screen.js shrinks the active
+// section (and the early-bird joke above it) with CSS zoom, down to 60%
+// so the words stay readable, then lets the page scroll.
+if (window.FitScreen) {
+  FitScreen.install({
+    floor: 0.6,
+    targets: function () {
+      return [document.querySelector('section.active'), document.getElementById('early-joke')];
+    }
+  });
 }

@@ -340,7 +340,13 @@ function setPhase(data) {
   // next-step would skip the review entirely. In the lobby the only forward
   // path is the explicit Start activity button (an accidental generic
   // advance shouldn't be able to start the class).
-  nextStepBtn.hidden = phaseType === 'preview' || isLobby;
+  // While an answer step is open, Close submissions is the one way
+  // forward (it stores the answers and moves on). A second forward button
+  // beside it was the trap: a teacher pressed it, the answers were never
+  // gathered, and Doodle Bluff ran its rounds on nothing (2026-09-18). The
+  // server closes on a stray advance too; hiding the button keeps one
+  // control per moment.
+  nextStepBtn.hidden = phaseType === 'preview' || isLobby || isCollect;
   nextStepBtn.disabled = false;
   // The button says what clicking DOES right now: while a two-stage step
   // is open that's the CLOSE action ("End the ratings"); once closed (or
