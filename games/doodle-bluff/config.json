@@ -65,7 +65,7 @@
       ],
       "aiTopic": "strange, funny, drawable scenes, like a nervous volcano on its first day of school",
       "rounds": 8,
-      "drawTimer": 120
+      "drawTimer": 90
     }
   },
   "sampleAnswers": {
@@ -103,7 +103,7 @@
       "rotateFrom": "phrases",
       "rotateShuffle": true,
       "prompt": "Draw this: {{phrases.assigned}}\n\nNo letters or numbers in your drawing!",
-      "timer": 120,
+      "timer": 90,
       "next": "check"
     },
     "check": {

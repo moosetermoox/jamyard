@@ -100,10 +100,25 @@ try {
       await new Promise(r => setTimeout(r, pause));
     }
   }
+  // SHOT_FOCUS=<css selector>: tap an element with a real mouse press so it
+  // takes focus (el.click() never focuses a box), with focus emulation on
+  // so :focus and :focus-within styles paint in a headless page.
+  if (process.env.SHOT_FOCUS) {
+    const sel = JSON.stringify(process.env.SHOT_FOCUS.trim());
+    await send('Emulation.setFocusEmulationEnabled', { enabled: true });
+    const box = await send('Runtime.evaluate', { returnByValue: true, expression: `(function(){var el=document.querySelector(${sel});if(!el)return null;var r=el.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};})()` });
+    const pt = box.result && box.result.value;
+    if (pt) {
+      await send('Input.dispatchMouseEvent', { type: 'mousePressed', x: pt.x, y: pt.y, button: 'left', clickCount: 1 });
+      await send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: pt.x, y: pt.y, button: 'left', clickCount: 1 });
+      await new Promise(r => setTimeout(r, 500));
+    }
+  }
   // SHOT_EVAL=<js>: run a snippet in the page after the clicks (typing
   // into a box, flipping a state), then wait SHOT_EVAL_WAIT ms (default 800).
   if (process.env.SHOT_EVAL) {
-    await send('Runtime.evaluate', { expression: process.env.SHOT_EVAL, awaitPromise: true });
+    const evalRes = await send('Runtime.evaluate', { expression: process.env.SHOT_EVAL, awaitPromise: true, returnByValue: true });
+    if (evalRes.result && evalRes.result.value !== undefined) console.log('eval: ' + JSON.stringify(evalRes.result.value));
     await new Promise(r => setTimeout(r, parseInt(process.env.SHOT_EVAL_WAIT || '800', 10)));
   }
   // SHOT_HOVER=<css selector>: park the mouse over an element before the

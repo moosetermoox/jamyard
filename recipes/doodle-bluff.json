@@ -113,7 +113,7 @@
       "type": "integer",
       "label": "Drawing time (seconds)",
       "helper": "How long students get to draw their phrase.",
-      "default": 120,
+      "default": 90,
       "min": 30,
       "max": 600
     }
@@ -174,7 +174,7 @@
         "type": "ai-process",
         "task": "generate",
         "perPlayer": true,
-        "instruction": "Write short, strange, drawable phrases for a classroom drawing game, about: ${aiTopic}. Each phrase is 4 to 9 words, a concrete scene someone could sketch in two minutes, classroom-appropriate, and each one different from the others. Example shape: 'a nervous volcano on its first day of school'.",
+        "instruction": "Write short, strange, drawable phrases for a classroom drawing game, about: ${aiTopic}. Each phrase is 4 to 9 words, a concrete scene someone could sketch in ninety seconds, classroom-appropriate, and each one different from the others. Example shape: 'a nervous volcano on its first day of school'.",
         "next": "draw"
       },
       "draw": {
