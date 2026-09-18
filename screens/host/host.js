@@ -1071,6 +1071,9 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
   document.body.classList.add('in-activity');
   showSection(collectSection);
   setRichText(promptDisplay, prompt);
+  // A long prompt (a classmate's words plus the ask) opens the column
+  // and drops a size, so fewer lines stack before fit-screen has to shrink.
+  promptDisplay.classList.toggle('prompt-long', String(prompt || '').length > 160);
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
   liveTallyOn = !!liveResults;
   if (liveTallyEl) liveTallyEl.hidden = !liveTallyOn;
@@ -2930,4 +2933,12 @@ function showSection(el) {
   // Force reflow so transition triggers
   void el.offsetWidth;
   el.classList.add('active');
+  // The step that is up fits the projector (shared/fit-screen.js): sized
+  // now, before it paints, never a frame at the wrong size.
+  if (window.FitScreen) FitScreen.fitNow();
 }
+
+// The projector is a 16:9 wall: whatever step is up fits it without a
+// scroll (owner 2026-09-18). shared/fit-screen.js shrinks the active
+// section with CSS zoom as far as half size, then lets the page scroll.
+if (window.FitScreen) FitScreen.install({ floor: 0.5 });

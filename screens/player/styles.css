@@ -2281,3 +2281,13 @@ body.wh-empty .wh-word:hover { background: none; }
 .estimate-slider[hidden] { display: none; }
 
 .estimate-input-row[hidden] { display: none; }
+
+/* ── A Chromebook is wide: the phone column wrapped a prompt into six
+   lines and pushed the answer box off the lid (owner 2026-09-18, "the
+   entire screen should fit"). On a wide lid the column opens up. ── */
+@media (min-width: 900px) {
+  body {
+    max-width: 560px;
+    padding: 22px 24px 24px;
+  }
+}

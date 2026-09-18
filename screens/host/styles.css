@@ -2629,3 +2629,12 @@ select,
   font-size: 0.85rem;
   background: #fff;
 }
+
+/* A long collect prompt (Someone's Got You: the classmate's line plus the
+   ask) ran fourteen lines at 58px, 678px past a 1080p wall (fit audit,
+   2026-09-18). It opens to the pile's edge and drops a size; the generic
+   fit (shared/fit-screen.js) handles what is left. */
+#collect-section .prompt.prompt-long {
+  max-width: 740px;
+  font-size: clamp(28px, 3.6vw, 44px);
+}
