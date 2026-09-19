@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Privacy - Jamyard</title>
+  <title>Privacy and terms - Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
   <link rel="stylesheet" href="/shared/totem.css">
   <style>
@@ -77,6 +77,9 @@
     }
     .honest a { color: var(--t-yellow); }
     .honest a:hover { color: var(--t-paper); }
+    ol.promises { padding-left: 1.3em; }
+    ol.promises li { margin: 10px 0; }
+    hr.split { border: 0; border-top: 3px solid var(--t-ink); margin: 56px 0 10px; }
     a { color: var(--t-red-text); font-weight: 700; }
     a:hover { color: var(--t-ink); }
     .back { display: inline-block; margin-bottom: 8px; color: var(--t-muted); font-weight: 700; }
@@ -86,8 +89,8 @@
 <body>
   <div class="wrap" role="main">
     <a class="back" href="/">Back to home</a>
-    <h1>Privacy</h1>
-    <p class="updated">Plain-language summary of current practice. Last updated August 30, 2026.</p>
+    <h1 id="privacy">Privacy and terms</h1>
+    <p class="updated">Plain language, current practice. Last updated September 19, 2026. <a href="#privacy">Privacy</a> says what we keep and when it is deleted; <a href="#terms">Terms</a> says what you and we agree to.</p>
 
     <div class="shortlist">
       <ul>
@@ -193,8 +196,60 @@
     <h2>Security</h2>
     <p>Connections use TLS. Stored data is encrypted at rest by our database provider (Neon). Production logs contain no student names and no student content. Our hosting provider (Render) may keep standard connection logs, which can include IP addresses, for a short period.</p>
 
+    <hr class="split" id="terms">
+    <h1>Terms</h1>
+    <p class="updated">What you and we agree to when you use Jamyard.</p>
+
+    <div class="shortlist">
+      <ul>
+        <li>These terms are for teachers and other adults who open a room or make an activity. Students never agree to anything: they join a room their teacher opened, and the teacher is responsible for how it is used.</li>
+        <li>What students make in a room belongs to them and their school. We hold it only while the activity runs, use it for nothing else, and never sell it, advertise with it, or train AI models on it.</li>
+      </ul>
+    </div>
+
+    <h2>1. Who these terms are for</h2>
+    <p>By opening a room, making an activity, or otherwise using Jamyard, you agree to these terms. You must be an adult. If you use Jamyard with a class, you confirm that your school or district allows you to use classroom tools like this one, and you agree to follow its rules as well as ours. Students do not create accounts and do not accept these terms; the teacher who opens a room is the one who agreed, and the one who decides what happens in it.</p>
+
+    <h2>2. Your activities</h2>
+    <p>The questions, prompts, and activities you write are yours. You give us permission to store them and run them for you, which is all we need to make the site work. The built-in activities, the prompt banks, and the site's design are ours or their credited sources', and you may run them in your classroom freely. A copy you make of a built-in activity is your copy to edit. Do not upload material you do not have the right to use.</p>
+
+    <h2>3. What we promise about student information</h2>
+    <p>These promises are written to line up with California Education Code section 49073.1 and the federal student privacy law (FERPA), because that is what schools ask about. They apply whenever a teacher uses Jamyard with students. The table above says exactly what we keep and for how long.</p>
+    <ol class="promises">
+      <li><strong>Student records stay the school's.</strong> Anything students produce in a room (answers, drawings, votes) remains the property of the student and their school, under the school's control. We hold it only while the activity runs and claim no rights to it.</li>
+      <li><strong>Students can keep their own work.</strong> While a room is open, the teacher can print or save the activity report, which holds everything the class made, and give it to students. Nothing else about student work survives the room, so there is nothing for us to hand over later.</li>
+      <li><strong>One purpose only.</strong> We use student information for exactly one thing: running the activity the teacher opened. Not for marketing, not for building profiles, not for anything else.</li>
+      <li><strong>Seeing and correcting information.</strong> A parent, guardian, or eligible student who wants to review or correct information should ask the teacher, since student work exists only during the activity and only the teacher can see it then. For anything that reaches us, email the address below and we will respond within ten days.</li>
+      <li><strong>How we protect it.</strong> Connections are encrypted (TLS). Stored data is encrypted at rest. Student names never appear in server logs and are never sent to the AI services described above. Teacher controls need a room PIN with a lockout against guessing. The person responsible for security is the site's operator, named below; there is no one else with access.</li>
+      <li><strong>If something goes wrong.</strong> If student information were ever disclosed without authorization, we will notify the affected teacher and their school as soon as we know, and in any case within 72 hours of confirming it, saying what happened, what information was involved, and what we did about it, so the school can notify parents and guardians.</li>
+      <li><strong>Nothing kept afterward.</strong> Student work is deleted when the activity ends, with a six-hour sweep as a backstop. When a teacher or school stops using Jamyard, there is no student data to return or destroy, because none was kept. A teacher's own saved activities are deleted on request.</li>
+      <li><strong>FERPA.</strong> When a teacher uses Jamyard, we act as a school official with a legitimate educational interest, under the school's direct control for the use of student information, and we use it for no other purpose. The teacher's school and we share the job of keeping this true; if your district needs a signed agreement (for California, the student data privacy agreement districts use), email us and we will work through it with you.</li>
+      <li><strong>No advertising.</strong> There is no advertising on Jamyard. Student information is never used to target advertising, here or anywhere else.</li>
+    </ol>
+
+    <h2>4. Rules in the room</h2>
+    <ul>
+      <li>You are the moderator of your room. Content filters catch the obvious, and you decide what the class sees.</li>
+      <li>Do not use Jamyard to collect personal information from students beyond a first name or nickname, and do not ask students to type contact details, addresses, or anything private.</li>
+      <li>Do not use Jamyard to harass, bully, or single anyone out. Activities are built so that no one is chosen last; keep it that way.</li>
+      <li>Do not try to break, overload, or get around the site's protections, and do not open rooms as a way to reach students you do not teach.</li>
+    </ul>
+    <p>We can close a room or remove content that breaks these rules.</p>
+
+    <h2>5. AI output</h2>
+    <p>The section above says what the AI receives. What it gives back can be wrong or odd. Read it before you show it, and treat it as a first draft that the class and you get to argue with.</p>
+
+    <h2>6. Availability</h2>
+    <p>Jamyard is provided as it is, without warranties of any kind. We work to keep it available and cannot promise it will always be, or that it will be free of mistakes. We are not responsible for a lesson that did not go as planned because the site was down or an activity behaved unexpectedly. To the extent the law allows, our liability to you is limited to what you paid us.</p>
+
+    <h2>7. Stopping</h2>
+    <p>You can stop using Jamyard at any time. Email us to have your saved activities deleted. We may stop offering Jamyard, or parts of it, and if we do we will say so on the home page ahead of time.</p>
+
+    <h2>8. Changes</h2>
+    <p>When this page changes, the date at the top changes, and a meaningful change is announced on the home page for thirty days. Using Jamyard after that means you agree to the new terms.</p>
+
     <h2>Who runs Jamyard</h2>
-    <p>Jamyard is operated by Max Cady. For privacy questions or deletion requests, email <strong>mccady at gmail dot com</strong>. The <a href="/terms">terms of service</a> say what you and we agree to, including the student-information promises schools ask about; district agreement documents are available on request. This page describes current practice. The project is made with support from <a href="https://assemblycode.org" target="_blank" rel="noopener">assemblycode.org</a>.</p>
+    <p>Jamyard is operated by Max Cady. For privacy questions or deletion requests, email <strong>mccady at gmail dot com</strong>. Jamyard is operated in California, United States, and these terms are governed by California law. If your district needs a signed data privacy agreement, email the same address. The project is made with support from <a href="https://assemblycode.org" target="_blank" rel="noopener">assemblycode.org</a>.</p>
   </div>
 
   <script src="/shared/feedback-widget.js"></script>

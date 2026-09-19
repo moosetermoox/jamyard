@@ -2260,9 +2260,10 @@ app.use('/guide', express.static(join(__dirname, 'screens/guide')));
 // Public privacy page (2026-08-08 field test: admins need practice they can
 // cite; the careful engineering was invisible).
 app.use('/privacy', express.static(join(__dirname, 'screens/privacy')));
-// Public terms page (2026-09-19, the pilot: a principal who asks for terms
-// stops a teacher cold; plain language, the nine § 49073.1 promises).
-app.use('/terms', express.static(join(__dirname, 'screens/terms')));
+// The terms are the second half of the privacy page (owner: one page,
+// 2026-09-19). /terms stays a real address for a district form that asks
+// for one, and lands on that half.
+app.get('/terms', (req, res) => res.redirect('/privacy#terms'));
 // Owner-only feedback inbox (ownerAreaGate runs first and demands the password).
 app.use('/feedback', express.static(join(__dirname, 'screens/feedback')));
 // Owner-only rooms log (ownerAreaGate runs first and demands the password).

@@ -65,7 +65,7 @@ people who know you first; use cold reach to top up.
 
 ## Before the cold wave
 
-- Terms page live (`/terms`).
+- Terms live as the second half of `/privacy` (`/terms` lands there). No agree step anywhere, the owner's call.
 - Render paid tier (a cold start must not eat a class period).
 - Project Zero email sent (`pzlearn@gse.harvard.edu`; see COMPARATIVE-ADVANTAGE § 4).
 - Anonymous mode as the default for new rooms (still open; say so in the

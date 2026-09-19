@@ -129,9 +129,11 @@ policy should say this in one line when it gets its rubric pass.
       before it counts as the formal policy: rubric pass (§ 3).
 - [~] **§ 49073.1 provisions in the Terms of Service** — all nine, the
       California student-data terms districts look for. **Plain-language
-      version LIVE at `/terms` (2026-09-19, `screens/terms/index.html`,
+      version LIVE as the second half of the privacy page (2026-09-19,
+      `screens/privacy/index.html#terms`; `/terms` redirects there;
       guarded by `tests/screens/terms-page.test.js`, one phrase per
-      provision):** records stay the school's; students keep their work via
+      provision; owner's calls the same day: one page, no agree step
+      anywhere, no pilot or uptime language):** records stay the school's; students keep their work via
       the printable report; one purpose; review/correction via the teacher
       or email within ten days; TLS + at-rest encryption + no names in
       logs + PIN lockout + the operator as the responsible person; breach
