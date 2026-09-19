@@ -14,7 +14,7 @@ const FILE = join(__dirname, '..', '..', 'vanity-urls.json');
 // surface would hijack that page for every visitor.
 const RESERVED = new Set([
   'api', 'host', 'player', 'teacher', 'library', 'designer', 'prototype',
-  'guide', 'owner', 'feedback', 'privacy', 'shared', 'home-shots', 'socket.io'
+  'guide', 'owner', 'feedback', 'privacy', 'shared', 'socket.io'
 ]);
 
 describe('vanity-urls.json', () => {

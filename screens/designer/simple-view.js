@@ -1277,7 +1277,7 @@
   // Totem 12A: number blocks are marks, so they wear paint — ask yellow,
   // show green, decide magenta, team orange, AI cyan; the waiting room
   // stays sanded wood and the wrap-up base wood. CSS maps sv-fam-* to
-  // the colors (simple-designer.png).
+  // the colors (Totem mockup 12A).
   function svFamily(type) {
     if (type === 'ai-process' || type === 'ai-eliminate') return 'ai';
     if (type === 'lobby') return 'lobby';

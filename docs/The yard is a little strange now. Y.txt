@@ -1,0 +1,43 @@
+The yard is a little strange now. You still have the old blocks in the My Yard part but the pictures and everything else, we have to think about that. 
+
+
+There should be a way to click back to JAMYARD from the host screen. Right now it looks like clicking on the logo doesn't do anything. 
+
+In the host screen use the same full screen and sound logos/symbols and try it out and have it be much smaller and more subtle. Than it currently is on the host screen 
+
+I think the teacher view should also take you back to the yard. Or have a button that allows you to do that. 
+
+Right now when you click "Host this," it brings you to a new tab at the host. Is there a way that the teacher view can be the new tab and your current tab stays the host and you aren't brought to the teacher view tab? It just opens for you. 
+
+Can we change the name of Rosebud Thorn to Guess Who Rosebud Thorn? Also either find unique art for rose bud thorn or remove the emojis. 
+
+
+
+Doodle Bluff needs real work. so does group work
+trivia bluff could use a little work too. 
+closer too
+
+
+
+- Question quality varies run to run. Watch real runs and tighten the prompt with examples if a bad one recurs.
+- The edited question gives no sign it took hold until a door is pressed.
+- Live Poll's choices are read only on the print, while the pairs are editable.
+- Template rounds cannot be dropped, only added ones.
+- A copy with added rounds keeps the yard's old time estimate.
+
+
+
+In the "Make It Yours" closer can we have an expandable section where they just see the questions that are asked at each tier? 
+
+In the "Try it out" the arrow keys don't work unless you've clicked out of the frame. If I'm entering information and then press the arrow key, it doesn't work unless I click out. 
+
+
+For Doodle Bluff under "Make it Yours," if you choose "AI writes the phrases," can it prepopulate and allow you to edit what phrases the AI generates? Also, for the premade phrases that the teacher makes, there should be at least 36. What happens if there are more students playing than phrases? Also with the question "Who writes the phrases?", the description should only be for the answer in that box. For example:
+- If you write "students" it should only say what happens for students.
+- If you pick "teacher" it says what happens when you pick "teacher".
+- If you pick "AI" it says what happens when you pick "AI".
+
+The Make It Yours for group work day needs a lot of help because right now it's not functional as is. From the Make It Yours thing you need to work on the team size setting, how the teams are made, what roles there are and what the tasks are
+
+
+Robot play test report is not on the theme. 
