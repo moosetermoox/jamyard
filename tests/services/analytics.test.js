@@ -341,3 +341,16 @@ describe('createAnalytics', () => {
     expect(Object.keys(props).sort()).toEqual(['$geoip_disable', '$lib', '$process_person_profile', 'game', 'start']);
   });
 });
+
+describe('room events for the pilot (2026-09-18)', () => {
+  it('carries the room kind, class or pretend, and nothing else new', () => {
+    expect(sanitizeEvent('room_created', { game: 'snowball', source: 'built-in', start: 'together', kind: 'pretend', code: 'ABCD' }))
+      .toEqual({ event: 'room_created', properties: { game: 'snowball', source: 'built-in', start: 'together', kind: 'pretend' } });
+    expect(sanitizeEvent('activity_started', { game: 'snowball', players: 24, kind: 'robot' }).properties).toEqual({ game: 'snowball', players: 24 });
+  });
+
+  it('room_abandoned says where a room stalled: step out of steps, headcount, minutes', () => {
+    const out = sanitizeEvent('room_abandoned', { game: 'doodle-bluff', players: 22, minutes: 9, step: 3, steps: 7, kind: 'class', hostKey: 'abcdef0123456789', name: 'Maya' });
+    expect(out).toEqual({ event: 'room_abandoned', properties: { game: 'doodle-bluff', players: 22, minutes: 9, step: 3, steps: 7, kind: 'class' } });
+  });
+});

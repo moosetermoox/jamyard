@@ -78,6 +78,28 @@ export async function initDb() {
       status      TEXT        NOT NULL DEFAULT 'new'
     )
   `;
+  // Rooms log (services/room-log.js, 2026-09-18): one row per real room,
+  // the owner's per-room truth for the pilot. No names, no student text;
+  // host_key is a random id the host's browser minted for itself.
+  await getSql()`
+    CREATE TABLE IF NOT EXISTS room_log (
+      id          SERIAL      PRIMARY KEY,
+      created_at  TIMESTAMPTZ DEFAULT now(),
+      updated_at  TIMESTAMPTZ DEFAULT now(),
+      code        TEXT        NOT NULL,
+      game_id     TEXT        NOT NULL,
+      game_label  TEXT        NOT NULL DEFAULT '',
+      source      TEXT        NOT NULL DEFAULT 'built-in',
+      kind        TEXT        NOT NULL DEFAULT 'class',
+      host_key    TEXT,
+      steps       INTEGER     NOT NULL DEFAULT 0,
+      step        INTEGER     NOT NULL DEFAULT 0,
+      step_id     TEXT        NOT NULL DEFAULT '',
+      players     INTEGER     NOT NULL DEFAULT 0,
+      status      TEXT        NOT NULL DEFAULT 'open',
+      minutes     INTEGER     NOT NULL DEFAULT 0
+    )
+  `;
 }
 
 // --- Room snapshots (survive restarts mid-game; see engine/room-snapshot.js) ---
@@ -267,4 +289,39 @@ export async function setFeedbackStatus(id, status) {
     UPDATE feedback SET status = ${status} WHERE id = ${id} RETURNING id
   `;
   return rows.length > 0;
+}
+
+// --- Rooms log (services/room-log.js; owner-only /rooms page). One row per
+// --- real room: activity, headcount, step reached, status. No names, no
+// --- student text. host_key is a random id the host's browser minted. ---
+
+export async function addRoomLog({ code, gameId, gameLabel, source, kind, hostKey, steps }) {
+  const rows = await getSql()`
+    INSERT INTO room_log (code, game_id, game_label, source, kind, host_key, steps)
+    VALUES (${code}, ${gameId}, ${gameLabel || ''}, ${source || 'built-in'}, ${kind || 'class'}, ${hostKey || null}, ${steps || 0})
+    RETURNING id
+  `;
+  return rows[0].id;
+}
+
+export async function updateRoomLog(id, { players, step, stepId, status, minutes }) {
+  const rows = await getSql()`
+    UPDATE room_log SET
+      players    = GREATEST(players, ${players || 0}),
+      step       = ${step || 0},
+      step_id    = ${stepId || ''},
+      status     = ${status || 'open'},
+      minutes    = ${minutes || 0},
+      updated_at = now()
+    WHERE id = ${id} RETURNING id
+  `;
+  return rows.length > 0;
+}
+
+export async function listRoomLog(limit) {
+  return await getSql()`
+    SELECT id, created_at, updated_at, code, game_id, game_label, source, kind, host_key,
+           steps, step, step_id, players, status, minutes
+    FROM room_log ORDER BY created_at DESC LIMIT ${limit || 50}
+  `;
 }

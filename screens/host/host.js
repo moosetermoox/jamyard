@@ -553,10 +553,35 @@ socket.on('games-list', ({ games }) => {
 
 // --- Button handlers ---
 
+// Rooms log key: a random hex string this browser minted for itself, so
+// the owner's rooms log can tell one teacher's rooms from another's. It
+// holds nothing about the person; clearing site data resets it. Not
+// analytics (this page loads no analytics module): it rides inside the
+// create-room event to our own server and is stored only in the log.
+function hostKey() {
+  try {
+    let key = localStorage.getItem('jamyard.hostKey');
+    if (!key || !/^[a-f0-9]{16,32}$/.test(key)) {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      key = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('jamyard.hostKey', key);
+    }
+    return key;
+  } catch {
+    return null;
+  }
+}
+
 createRoomBtn.addEventListener('click', () => {
   const gameId = gameSelect.value;
   if (!gameId) return;
-  socket.emit('create-room', { gameId });
+  const payload = { gameId };
+  const key = hostKey();
+  if (key) payload.hostKey = key;
+  // Try it out's pretend students are never a class: the log keeps them apart.
+  if (new URLSearchParams(window.location.search).get('prototype') === 'true') payload.pretend = true;
+  socket.emit('create-room', payload);
   createRoomBtn.disabled = true;
 });
 

@@ -478,3 +478,16 @@ h1, h2 {
 }
 .late-seats[hidden] { display: none; }
 .late-seats li { margin: 2px 0; }
+
+/* End of activity: send a colleague the link (same paper as the report card) */
+.share-card {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--t-paper);
+  box-shadow: var(--t-shadow-free), inset 0 0 0 2px var(--t-ink);
+  transform: rotate(0.3deg);
+}
+.share-card[hidden] { display: none; }
+.share-card h2 { margin-bottom: 6px; }
+.share-card .btn-row { align-items: center; }
+.share-card #share-copied { overflow-wrap: anywhere; }

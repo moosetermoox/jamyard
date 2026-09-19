@@ -78,6 +78,9 @@ function renderWordHelp(words) {
 var reportCard = document.getElementById('report-card');
 var reportOpenBtn = document.getElementById('report-open-btn');
 var reportDismissBtn = document.getElementById('report-dismiss-btn');
+var shareCard = document.getElementById('share-card');
+var shareCopyBtn = document.getElementById('share-copy-btn');
+var shareCopied = document.getElementById('share-copied');
 var headerReport = document.getElementById('header-report');
 
 var lobbyBlock = document.getElementById('lobby-block');
@@ -379,6 +382,7 @@ function setPhase(data) {
   var atEnd = phaseType === 'end';
   if (atEnd) reportOpenBtn.href = reportUrl();
   reportCard.hidden = !atEnd || reportDismissed;
+  shareCard.hidden = !atEnd;
 }
 
 function reportUrl() {
@@ -682,4 +686,30 @@ nextStepBtn.addEventListener('click', function () {
 reportDismissBtn.addEventListener('click', function () {
   reportDismissed = true;
   reportCard.hidden = true;
+});
+
+// --- Send a colleague the link ---
+// The tag on the link is one of our own campaign tags (the analytics
+// allowlist reads utm_source / utm_medium from the URL bar on the home
+// page), so a visit that came from a colleague's copy shows up as one.
+function shareLink() {
+  return window.location.origin + '/?utm_source=colleague&utm_medium=console';
+}
+
+shareCopyBtn.addEventListener('click', function () {
+  var link = shareLink();
+  var done = function () {
+    shareCopied.hidden = false;
+    setTimeout(function () { shareCopied.hidden = true; }, 2500);
+  };
+  var fallback = function () {
+    // No clipboard (an http dev server, an old browser): show the link to select.
+    shareCopied.textContent = link;
+    shareCopied.hidden = false;
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(done, fallback);
+  } else {
+    fallback();
+  }
 });
