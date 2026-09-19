@@ -31,7 +31,8 @@ const TEACHER_PAGES = [
   'screens/designer/editor.html',
   'screens/prototype/index.html',
   'screens/guide/index.html',
-  'screens/privacy/index.html'
+  'screens/privacy/index.html',
+  'screens/terms/index.html'
 ];
 
 async function walk(dir) {

@@ -29,6 +29,7 @@ const NEVER_PAGES = [
   'screens/teacher/report.html',
   'screens/prototype/index.html',
   'screens/privacy/index.html',
+  'screens/terms/index.html',
   'screens/feedback/index.html',
   'screens/share/index.html'
 ];

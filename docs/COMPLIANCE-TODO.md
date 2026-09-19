@@ -127,8 +127,19 @@ policy should say this in one line when it gets its rubric pass.
       **Placeholders filled 2026-08-30** (operator name + obfuscated
       privacy contact email; yellow marker style removed). Still needed
       before it counts as the formal policy: rubric pass (§ 3).
-- [ ] **§ 49073.1 provisions in the Terms of Service** — all nine, the
-      California student-data terms districts look for.
+- [~] **§ 49073.1 provisions in the Terms of Service** — all nine, the
+      California student-data terms districts look for. **Plain-language
+      version LIVE at `/terms` (2026-09-19, `screens/terms/index.html`,
+      guarded by `tests/screens/terms-page.test.js`, one phrase per
+      provision):** records stay the school's; students keep their work via
+      the printable report; one purpose; review/correction via the teacher
+      or email within ten days; TLS + at-rest encryption + no names in
+      logs + PIN lockout + the operator as the responsible person; breach
+      notice to the school within 72 hours of confirmation; nothing
+      retained (six-hour sweep); FERPA school-official posture; no
+      targeted advertising. Owner should read the two numbers (ten days,
+      72 hours) and change them if they cannot keep them. Still needed:
+      attorney pass (§ 3) before it is called a contract.
 - [ ] **Written information-security program** — named coordinator, current
       measures cited (TLS, Neon AES-256 at rest, env-var secrets, PIN
       lockout, crash-isolated handlers), annual documented risk assessment
