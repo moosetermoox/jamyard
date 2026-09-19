@@ -1,5 +1,7 @@
 # Authoring Design
 
+> **Status (2026-09-19):** the command-line tools this document specifies (`npm run validate`, `test:players`, `preview:ai`, `test:e2e`) were never built and their placeholder scripts are gone. What they promised exists elsewhere: config validation in `engine/game-loader.js` and the test suite, automatic playthroughs in `scripts/simulate-any-game.js` and the robot playtest (`services/simulator.js`), AI previews through the designer's Ask AI panel. The design thinking below still holds; read the commands as history.
+
 How teachers and game designers create, validate, debug, and test new games.
 
 ---

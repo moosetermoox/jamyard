@@ -6,11 +6,7 @@
   "scripts": {
     "start": "node server.js",
     "test": "vitest",
-    "typecheck": "tsc --noEmit -p jsconfig.json",
-    "validate": "node scripts/validate.js",
-    "test:players": "node scripts/mock-players.js",
-    "preview:ai": "node scripts/preview-ai.js",
-    "test:e2e": "node scripts/e2e-test.js"
+    "typecheck": "tsc --noEmit -p jsconfig.json"
   },
   "keywords": [],
   "author": "",

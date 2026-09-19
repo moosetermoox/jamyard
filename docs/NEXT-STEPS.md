@@ -262,7 +262,7 @@ Open follow-ups:
    The library now dedupes visually, but the API still double-serves;
    delete one copy (the disk one is presumably stale since prod went
    Neon-backed 2026-08-27, but verify which is newer first).
-5. **Stale sim noticed in passing**: scripts/simulate-dream-vacation.js
+5. **Stale sim noticed in passing**: scripts/simulate-dream-vacation.js (removed 2026-09-19)
    times out waiting for rank-start because the config gained a
    host-paced reveal (show-suggestions) it never advances past —
    pre-existing, unrelated to the meadow wave; fix the sim when touched.

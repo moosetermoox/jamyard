@@ -378,6 +378,6 @@ Suggested build order: 3 → 2 → Closer ships → 1 → Snowball ships →
 - Snowball: every student's solo answer demonstrably exists before any pair
   output (enforced by phase order, verifiable in phaseState).
 - One Voice: collision adjudication is deterministic under the existing
-  headless multi-client simulation harness (extend `simulate-corn-story.js`
+  headless multi-client simulation harness (extend the universal sim, `simulate-any-game.js`; the old `simulate-corn-story.js` is gone
   pattern with scripted tap timings).
 - None of the three makes a single AI call in default configuration.
