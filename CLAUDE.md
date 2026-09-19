@@ -34,6 +34,7 @@ Framework for quickly building classroom games where:
 - Claude API for AI (Haiku 4.5 for simple tasks, Sonnet 5 at medium effort for judgment; the per-model policy lives in AIService._callClaude, and Sonnet 5 rejects sampling params and prefills); mock mode without API key
 - Neon Postgres for persistence (user games/recipes, snapshots, feedback, featured overrides, AI usage); filesystem fallback when `DATABASE_URL` unset
 - Deployed on Render; CI deploys on green only
+- **License: AGPL-3.0-only** (2026-09-19, `LICENSE` + `README.md` License section; `package.json.license`). The code only: prompt banks carry their own per-prompt credits and no AGPL grant, the Jamyard name and look are the live site's, student work is never in the repo. The home footer links the repository ("source"). A new third-party text or asset gets a credit line in the README's License section, never a silent drop into the tree
 
 ## Current Snapshot
 - **2091 tests passing** (`npm test`, ~5s; one assertion fails on Windows checkouts only, CRLF) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)

@@ -14,7 +14,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "engines": {
     "node": ">=18.0.0"
@@ -33,5 +33,10 @@
     "axe-core": "^4.13.0",
     "typescript": "^6.0.3",
     "vitest": "^4.0.18"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/moosetermoox/jamyard.git"
+  },
+  "homepage": "https://jamyard.org"
 }
