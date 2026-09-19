@@ -1,8 +1,8 @@
 # Library-First: the plan
 
 *Written 2026-07-28. Plan only — no changes shipped with this document.*
-*Sources: [WEEK-REFINEMENT.md](WEEK-REFINEMENT.md) (the strategy argument),
-[Along Reflection Questions.pdf](Along%20Reflection%20Questions.pdf) (the prompt corpus),
+*Sources: the week-of-July-27 refinement memo (the strategy argument; not in the repository),
+the "Along Reflection Questions" handout (the prompt corpus, transcribed into recipes/prompt-banks/along.json with each prompt's author; the PDF itself is not in the repository),
 [COMPARATIVE-ADVANTAGE.md](COMPARATIVE-ADVANTAGE.md) (the positioning evidence).*
 
 ---
@@ -18,7 +18,7 @@ not the front door. Success stops meaning "activities built" and starts meaning
 **activities run** — and prompts become engineering work with a schedule, not
 copywriting to be done later.
 
-Why (compressed from WEEK-REFINEMENT):
+Why (compressed from the refinement memo):
 - Nearly all evidence says teachers don't want to author (DeKoven's New Games
   post-mortem, Kahoot's search-not-editor reality, Curipod's AI-writes-it pitch,
   Along dying of workflow cost). Our sample of teachers who love building is one,
@@ -160,7 +160,7 @@ important experiment available and it needs zero code.
 ## 9. Risks and kill-tests
 
 - **"I'm describing my own preferences as market research."** (Named in
-  WEEK-REFINEMENT.) Kill-test: if the only returning users are ones who built
+  the refinement memo.) Kill-test: if the only returning users are ones who built
   something, the builder belongs in front — invert back. The `activity_runs`
   table plus builder-request counts make this measurable.
 - **Prompt quality is subjective.** Mitigation: start from a research-aligned,

@@ -21,3 +21,9 @@ data/
 
 # Word/Office lock files
 ~$*
+
+# Claude Code session files: personal permission allowlists and installed skills, never the product
+.claude/settings.local.json
+.claude/skills/
+.agents/
+skills-lock.json

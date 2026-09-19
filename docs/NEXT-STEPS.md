@@ -79,7 +79,7 @@ bluff-rounds. Still queued:
 
 **2026-09-12: Early-bird joke shipped on branch `early-bird-joke` (fbf5882), PR #11 OPEN, 1867 tests (CHANGELOG 2026-09-12 "owner's ask").** The first 10 students to join see a dad joke, told by one of the meadow's painted blocks in a speech bubble, punchline 5s behind thinking dots; ON BY DEFAULT (absent = 10, `earlyJoke: false` = off, `{first: N}` = count) with an editor Settings select and a /make More checkbox. The list is `engine/dad-jokes.json` (480) built from `docs/500-all-ages-dad-jokes.md` by `scripts/build-dad-jokes.js` after two owner passes (bar, innuendo, condition jokes out; religion puns and bathroom humor kept by choice); a test fails when the JSON is stale. NEXT: merge PR #11 (deploys on green), then watch a real class join: does the 5s pause read as a beat or a stall, and should the joke also greet late joiners in a rolling room (it does not today, seats are by join order only)? The top-level-setting wiring checklist is in CLAUDE.md Gotchas.
 
-**2026-09-10, night: the 15b home is built on `home-15b` off master (CHANGELOG "design handoff 15b").** Decisions fixed with the owner before code: mechanic line under the planks (jobs-to-be-done order), planks + sticky chips are one control, every home door goes to the make page (no real start from the carousel), "Try it out" and "To just have fun" stay, labels changed but goal keys did not, jamyard.org everywhere. Not yet seen on a real screen. OPEN: (1) the `yard-home-tries` PR (#7) carries the old eight-boards home and the yard's time-chip removal; when it merges after this, the home file conflicts and 15b wins, the yard changes should be kept. (2) The home's "N in the room" and timer are dealt decoration; the sample-answer chips are real template content. (3) Templates without `sampleAnswers` (Speed Quiz, Vocab Match, Both Sides of the Rope, Rose Bud Thorn, Group Work Day) show an empty answer pile and blank student screens on their slide; a set per template would fill them. (4) `screens/home/shots/` + regen-carousel-shots.js are unused by the home now; delete or repurpose.
+**2026-09-10, night: the 15b home is built on `home-15b` off master (CHANGELOG "design handoff 15b").** Decisions fixed with the owner before code: mechanic line under the planks (jobs-to-be-done order), planks + sticky chips are one control, every home door goes to the make page (no real start from the carousel), "Try it out" and "To just have fun" stay, labels changed but goal keys did not, jamyard.org everywhere. Not yet seen on a real screen. OPEN: (1) the `yard-home-tries` PR (#7) carries the old eight-boards home and the yard's time-chip removal; when it merges after this, the home file conflicts and 15b wins, the yard changes should be kept. (2) The home's "N in the room" and timer are dealt decoration; the sample-answer chips are real template content. (3) Templates without `sampleAnswers` (Speed Quiz, Vocab Match, Both Sides of the Rope, Rose Bud Thorn, Group Work Day) show an empty answer pile and blank student screens on their slide; a set per template would fill them. (4) `the old carousel shots folder (removed 2026-09-19) ` + the old carousel shot script (retired 2026-09-19) are unused by the home now; delete or repurpose.
 
 
 **2026-09-10, late: three fixes cherry-picked straight to master (e890edf, 501e3f8, 1373db9; CHANGELOG 2026-09-10 "classroom bug", "owner's first two asks", "owner's third ask"; 1822 tests).** (1) The projector rebinds to its room on every socket reconnect (`screens/host/host-session.js`); the old ?game= guard skipped the rejoin after a wifi blip or a tab put to sleep behind the teacher console, so students landed on the console and never on the projector. The console now shows a red "projector not connected" line (`hostConnected` on `teacher-roster`). (2) Elimination Tournament: the eliminated keep voting, `excludeAuthors` now works on pick-one (own answer off the ballot, server refuses self-votes), new eliminate field `untilRemaining` ends the rounds once one student is left (rounds knob = cap), a full tie eliminates nobody. (3) Fresh-facts honesty: `FRESH_FACTS_RULE` in every fact-writing prompt; a current-events quiz gets a refusal (needsTeacherFacts / cantBuild / noMatch) instead of invented questions. The `yard-home-tries` branch also carries copies of these three commits on top of its own work (PR still open). Not yet seen on a real screen: the console notice, the tie copy, the tournament with a real class. The owner is starting a UI change next (fresh context).
@@ -262,7 +262,7 @@ Open follow-ups:
    The library now dedupes visually, but the API still double-serves;
    delete one copy (the disk one is presumably stale since prod went
    Neon-backed 2026-08-27, but verify which is newer first).
-5. **Stale sim noticed in passing**: scripts/simulate-dream-vacation.js
+5. **Stale sim noticed in passing**: scripts/simulate-dream-vacation.js (removed 2026-09-19)
    times out waiting for rank-start because the config gained a
    host-paced reveal (show-suggestions) it never advances past —
    pre-existing, unrelated to the meadow wave; fix the sim when touched.
@@ -303,7 +303,7 @@ Queued design projects from the same observations, in rough order:
 2. **Guide needs visuals.** /guide is a wall of words; observed teachers
    won't read it. Rework around pictures: annotated screenshots or the
    same drawn-map language as (1), with the text as captions. The
-   carousel screenshot pipeline (regen-carousel-shots.js) may help.
+   carousel screenshot pipeline (the old carousel shot script (retired 2026-09-19)) may help.
 3. **"Yard" vs "library" naming.** PARTIAL CALL 2026-08-30: the owner
    asked for "back to yard" on the designer, so the back links on the
    editor, create page, and preview now say "the yard". Remaining: the
@@ -389,7 +389,7 @@ simultaneous-reveal version, both live on). (2) "A bit more time"
 +30s button on running input timers (projector + teacher console;
 collect/choice/vote/estimate; server-armed phases parked for a v2
 re-armable timer). (3) Totem hover fix (one slab at a time). (4)
-Carousel projector shots (regen-carousel-shots.js; STANDING CHORE:
+Carousel projector shots (the old carousel shot script (retired 2026-09-19); STANDING CHORE:
 rerun + commit PNGs after any redesign or featured change). (5) Merge
 pen: the shared draft is one-writer-at-a-time (claim by writing,
 release on agree, 2.5s idle steal). Details: CHANGELOG 2026-08-21
@@ -603,7 +603,7 @@ NEXT PRIORITIES (August field tests are NOW):
    decisions.**
 0. **STRATEGY SHIFT: library-first** — plan in
    [LIBRARY-FIRST-PLAN.md](LIBRARY-FIRST-PLAN.md), argument in
-   [WEEK-REFINEMENT.md](WEEK-REFINEMENT.md). **Phase 1 SHIPPED
+   the week-of-July-27 refinement memo (a working document removed from the repository on 2026-09-19; the history is in CHANGELOG.md). **Phase 1 SHIPPED
    2026-07-28**: `/library` front door (run-focused cards, goal chips,
    builder doorway → `builder-request` signal), home = one primary card,
    `activity_runs` metric live (owner-gated /api/activity-runs).
@@ -637,7 +637,7 @@ NEXT PRIORITIES (August field tests are NOW):
    (c) consider Render Starter (~$7/mo) right before August field tests.
    ~~RENDER_DEPLOY_HOOK + UptimeRobot~~ DONE 2026-07-27.
 3. **Day-one kit (C)** — POLISH SHIPPED 2026-08-02 against the coherence
-   review (docs/GAME-COHERENCE-REVIEW-2026-08-02.md — the review's 7
+   review (the 2026-08-02 game coherence review (a working document removed from the repository on 2026-09-19; the history is in CHANGELOG.md) — the review's 7
    feature-worthy games ARE the kit shortlist): both-sides-rope got its
    what-ifs reveal before the re-vote, whose-eyes lost the
    retype-the-viewpoint field (rotation collects now stamp `assigned` onto
@@ -667,7 +667,7 @@ NEXT PRIORITIES (August field tests are NOW):
    (coherence action wave). Remaining coherence-review backlog (missing
    loop reveal beats, oversized bluffing ballots, two-truths fake scoring,
    mood-check passAllowed) is itemized in
-   GAME-COHERENCE-REVIEW-2026-08-02.md.
+   the 2026-08-02 game coherence review (a working document removed from the repository on 2026-09-19; the history is in CHANGELOG.md).
 
 ### The plan itself
 

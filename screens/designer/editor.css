@@ -2652,7 +2652,7 @@ textarea.sar-input {
 .builder-plusline { margin: -6px 0 6px; }
 
 /* ════════════════════════════════════════════════════════════════
-   PASTE-UP SKIN (docs/paper-layout-test/) — editor chrome re-theme.
+   PASTE-UP SKIN (the August 2026 paste-up mockups, retired by Totem) — editor chrome re-theme.
    Ink header band, cut-paper buttons, gesso canvas, paper panels,
    square inset inputs, 2px radii. Phase-type and builder-tile
    category colors are kept: they are data coding, not decoration.
@@ -4029,7 +4029,7 @@ body::before { content: none; }
 }
 
 /* ================================================================
-   TOTEM PASS 3 (docs/design/totem/screens/simple-designer.png, 12A):
+   TOTEM PASS 3 (mockup 12A, the Simple view on a spine):
    the Simple view becomes steps mounted on a wooden spine. Painted
    number blocks (family = paint job), paper sentence cards, sanded
    plank inputs with the pencil line, cyan Ask AI, dashed add slot,

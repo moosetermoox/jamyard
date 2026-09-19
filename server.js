@@ -2136,10 +2136,6 @@ app.get('/', (req, res) => {
 });
 
 app.use('/host', express.static(join(__dirname, 'screens/host')));
-// Carousel activity shots (screens/home/shots/, made by
-// scripts/regen-carousel-shots.js). A missing shot 404s and the carousel
-// falls back to its text-only card.
-app.use('/home-shots', express.static(join(__dirname, 'screens/home/shots')));
 // The printable activity report (registered before the static mount so the
 // extensionless path resolves to the page, not a directory miss).
 app.get('/teacher/report', (req, res) => {
@@ -2217,7 +2213,7 @@ app.get('/share', (req, res) => res.redirect('/#yard'));
 // are refused loudly at startup.
 const VANITY_RESERVED = new Set([
   'api', 'host', 'player', 'teacher', 'library', 'designer', 'prototype',
-  'guide', 'owner', 'feedback', 'privacy', 'shared', 'home-shots', 'socket.io',
+  'guide', 'owner', 'feedback', 'privacy', 'shared', 'socket.io',
   'share', 'make'
 ]);
 try {

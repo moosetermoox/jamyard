@@ -1294,7 +1294,7 @@ select.recipe-field-input {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   PASTE-UP SKIN (docs/paper-layout-test/) — Create page re-theme.
+   PASTE-UP SKIN (the August 2026 paste-up mockups, retired by Totem) — Create page re-theme.
    Cut paper on a grained gesso ground, ink text, one vermillion for
    primary actions, 2px radii, hard paste shadows, 90ms snaps.
    Appended last so it wins every earlier rule it repeats.
@@ -1783,7 +1783,7 @@ select.recipe-field-input { font-family: 'DM Sans', Arial, sans-serif; font-weig
 body::before { content: none; }
 
 /* ================================================================
-   TOTEM PASS 3 (docs/design/totem/screens/jamyard-designer.png, 12B):
+   TOTEM PASS 3 (mockup 12B, the Create front door):
    the Create front door on the bare gesso. Slim paper header bar,
    centered headline with the painted word, the idea box as a sanded
    plank beside the red MAKE IT block, painted example planks.

@@ -24,7 +24,7 @@ The teacher never sees `{{ask.barChart}}` or has to wonder which
 **The phase graph is still the runtime.** Recipes don't replace it;
 they sit on top.
 
-The reviewer in `docs/feedback.txt` made the case directly: *"make the
+An outside reviewer of the architecture (July 2026) made the case directly: *"make the
 system more like a game compiler than a blank visual programming
 tool."* This is that compiler.
 

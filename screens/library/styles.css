@@ -102,8 +102,7 @@ header {
 #build-your-own-btn,
 .owner-bar-exit,
 .class-line-change,
-.teacher-setup-save,
-.teacher-setup-skip {
+.teacher-setup-save {
   border: none;
   text-decoration: none;
   background: var(--t-paper, #FDF9F0);
@@ -127,8 +126,7 @@ header {
 #build-your-own-btn:hover,
 .owner-bar-exit:hover,
 .class-line-change:hover,
-.teacher-setup-save:hover,
-.teacher-setup-skip:hover {
+.teacher-setup-save:hover {
   transform: rotate(var(--rot, 0deg)) translateY(-4px);
   color: var(--t-ink, #2A2620);
 }
@@ -255,18 +253,11 @@ header {
   background-image: var(--t-grain);
 }
 
-/* Fresh-copy highlight: where ?highlight= lands after Customize saves a
-   copy. A brief flash draws the eye, then the outline stays put. */
-.game-card-highlight {
-  outline: 3px solid var(--t-ink, #2A2620);
-  outline-offset: 3px;
-  animation: card-highlight-flash 1.1s steps(2, end) 2;
-}
 @keyframes card-highlight-flash {
   50% { outline-color: rgba(42, 38, 32, 0.15); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .game-card-highlight { animation: none; }
+  
 }
 
 .game-card-name {
@@ -392,19 +383,6 @@ header {
 
 .game-card-delete:hover { color: var(--t-ink, #2A2620); }
 
-/* Put in the shed: quiet like Delete, but it isn't destructive */
-.game-card-actions .game-card-share,
-.game-card-actions .game-card-shed {
-  font-family: var(--t-body, 'DM Sans', Arial, sans-serif) !important;
-  font-weight: 700;
-  font-size: 12px !important;
-  color: var(--t-muted, #6B6250);
-  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.16);
-}
-
-.game-card-share:hover,
-.game-card-shed:hover { color: var(--t-ink, #2A2620); }
-
 /* Owner curation star */
 .game-card-star {
   align-self: flex-start;
@@ -471,141 +449,6 @@ header {
 
 .search-rescue-link { font-weight: 700; }
 
-/* ── Teacher setup card + class line ── */
-/* The first-visit strip (2026-09-02, slimmed from a tall card): one paper
-   ribbon, the four workflow marks reading left to right, the guide link
-   and a Got it at the far end. Wraps to two or three lines on narrow
-   screens and stays short either way. */
-.teacher-setup-card {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 22px;
-  background: var(--t-paper, #FDF9F0);
-  transform: rotate(-0.25deg);
-  box-shadow: 0 4px 6px rgba(50, 35, 15, 0.20);
-  padding: 10px 18px 10px 20px;
-  margin-bottom: 22px;
-}
-
-.teacher-setup-title {
-  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--t-muted-caps, #8A7B62);
-  margin: 0;
-  white-space: nowrap;
-}
-
-/* Icon rows (2026-08-27, replaces the bullet list): one drawn mark + one
-   short line each, same idiom as the designer's plan-intro dialog. */
-.setup-intro-row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin: 0;
-}
-
-.setup-intro-row p {
-  margin: 0;
-  font-size: 0.86rem;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--t-ink, #2A2620);
-}
-
-.teacher-setup-card .su-mark {
-  width: 28px;
-  height: 28px;
-  transform: scale(0.8);
-  transform-origin: center;
-}
-
-.teacher-setup-tail {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-left: auto;
-}
-
-/* (moved to /shared/make-it-yours.css on 2026-09-07) */
-
-.su-mark {
-  position: relative;
-  flex-shrink: 0;
-  width: 38px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 3px rgba(50,35,15,0.22);
-}
-
-/* The projector: a paper screen on a green board */
-.su-mark-board {
-  background: var(--t-green, #2E9E44);
-  transform: rotate(-1.3deg);
-}
-
-.su-mark-board::after {
-  content: '';
-  width: 22px;
-  height: 15px;
-  background: var(--t-paper, #FDF9F0);
-}
-
-/* Pick & customize: a paper card with pencil lines, on magenta */
-.su-mark-pick {
-  background: var(--t-magenta, #B0197E);
-  transform: rotate(1.2deg);
-}
-
-.su-mark-pick::after {
-  content: '';
-  width: 22px;
-  height: 15px;
-  background:
-    linear-gradient(var(--t-ink, #2A2620), var(--t-ink, #2A2620)) 4px 4px / 14px 2px no-repeat,
-    linear-gradient(var(--t-ink, #2A2620), var(--t-ink, #2A2620)) 4px 9px / 9px 2px no-repeat,
-    var(--t-paper, #FDF9F0);
-}
-
-/* The room code: four little letter blocks on yellow */
-.su-mark-code {
-  background: var(--t-yellow, #FFC800);
-  background-image: var(--t-grain);
-  transform: rotate(1.1deg);
-}
-
-.su-mark-code::after {
-  content: '';
-  width: 9px;
-  height: 9px;
-  background: var(--t-ink, #2A2620);
-  transform: translate(-6px, -6px);
-  box-shadow: 12px 0 0 var(--t-ink, #2A2620),
-              0 12px 0 var(--t-ink, #2A2620),
-              12px 12px 0 var(--t-ink, #2A2620);
-}
-
-/* Preview: a play wedge on cyan */
-.su-mark-play {
-  background: var(--t-cyan, #1BA9C4);
-  transform: rotate(-0.9deg);
-}
-
-.su-mark-play::after {
-  content: '';
-  width: 0;
-  height: 0;
-  border-left: 13px solid var(--t-paper, #FDF9F0);
-  border-top: 9px solid transparent;
-  border-bottom: 9px solid transparent;
-  margin-left: 3px;
-}
-
 /* "Something else" popup: one question, one box */
 .subject-other-modal { max-width: 400px; }
 
@@ -632,17 +475,6 @@ header {
   margin-top: 14px;
 }
 
-.teacher-setup-guide-link {
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.teacher-setup-ask {
-  font-weight: 500;
-  color: var(--t-ink, #2A2620);
-  margin: 12px 0 4px;
-}
-
 /* (moved to /shared/make-it-yours.css on 2026-09-07) */
 
 .teacher-setup-save {
@@ -654,13 +486,6 @@ header {
 }
 
 .teacher-setup-save:hover { color: var(--t-paper, #FDF9F0); }
-
-.teacher-setup-skip {
-  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
-  font-weight: 700;
-  text-transform: none;
-  letter-spacing: 0;
-}
 
 .class-line {
   display: flex;
@@ -718,30 +543,6 @@ header {
 .privacy-footnote a { color: var(--t-muted-caps, #8A7B62); font-weight: 700; }
 .privacy-footnote a:hover { color: var(--t-ink, #2A2620); }
 
-/* (moved to /shared/make-it-yours.css on 2026-09-07) */
-
-/* The doors that close a Make it yours dialog live in
-   /shared/make-it-yours-doors.css (a preferred path since 2026-09-07). */
-
-/* ── The yard (Totem 9g): three goal piles, painted labels below ──
-   Chunky planks (CAPS name over a small meta line) on one plinth, no
-   base board; the pile's label is a painted box underneath. Long names
-   wrap to two lines at most, then cut off. */
-.pile-shelf {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-around;
-  gap: 44px 40px;
-  padding: 24px 0 8px;
-}
-
-.pile-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 /* One flat shadow per pile; pieces inside cast none */
 .pile {
   width: 214px;
@@ -750,17 +551,6 @@ header {
   align-items: center;
   filter: drop-shadow(5px 8px 0 rgba(80, 60, 30, 0.14));
 }
-
-/* The row wrapper carries the hover: it never moves or clips, so the
-   pulled-out plank cannot jitter at the seam between two planks. */
-.plank-row {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  margin-top: -4px;
-}
-
-.plank-row:first-child { margin-top: 0; }
 
 .plank {
   border: none;
@@ -775,112 +565,6 @@ header {
   text-align: left;
   transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
 }
-
-.plank-top {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  min-width: 0;
-  max-width: 100%;
-}
-
-/* Long titles get two lines at most, then cut off */
-.plank-name {
-  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
-  font-weight: 800;
-  font-size: 15px;
-  line-height: 1.2;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  min-width: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* The hook line: what the activity is for, readable without opening it */
-.plank-hook {
-  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
-  font-size: 11.5px;
-  font-weight: 500;
-  line-height: 1.3;
-  letter-spacing: 0;
-  text-transform: none;
-  opacity: 0.82;
-  margin-top: 3px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.plank-meta {
-  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  opacity: 0.65;
-}
-
-/* Widths vary a touch (scrap wood is never uniform), tilt alternates;
-   hover pulls the plank out of the pile. */
-.plank-row:nth-child(even) .plank { width: 91%; }
-.plank-row:nth-child(3n) .plank { width: 96%; }
-.plank-row:nth-child(odd) .plank { transform: rotate(-1.2deg); }
-.plank-row:nth-child(even) .plank { transform: rotate(1.1deg); }
-.plank-row:nth-child(odd):hover .plank,
-.plank-row:nth-child(odd):focus-within .plank { transform: rotate(-1.2deg) translateX(12px); }
-.plank-row:nth-child(even):hover .plank,
-.plank-row:nth-child(even):focus-within .plank { transform: rotate(1.1deg) translateX(12px); }
-
-/* The overflow plank: quiet sanded wood, part of the pile */
-.plank.plank-more {
-  align-items: center;
-  background: var(--t-sanded, #EAD9BA);
-  background-image: var(--t-grain);
-  color: var(--t-muted-wood, #6B4E2A);
-  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
-  font-weight: 800;
-  font-size: 12px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 9px 16px 11px;
-}
-
-/* Painted by position: a wood/paint mix, no signal red (that is the
-   popup's Customize/Host block) */
-.plank-tone-0 { background: var(--t-yellow, #FFC800); background-image: var(--t-grain); color: var(--t-ink, #2A2620); }
-.plank-tone-1 { background: var(--t-birch, #E3C8A0); background-image: var(--t-grain); color: var(--t-ink, #2A2620); }
-.plank-tone-2 { background: var(--t-cyan, #1BA9C4); color: var(--t-paper, #FDF9F0); }
-.plank-tone-3 { background: var(--t-pine, #D2B285); background-image: var(--t-grain); color: var(--t-ink, #2A2620); }
-.plank-tone-4 { background: var(--t-green, #22A05A); color: var(--t-paper, #FDF9F0); }
-.plank-tone-5 { background: var(--t-oak, #C29A67); background-image: var(--t-grain); color: var(--t-paper, #FDF9F0); }
-.plank-tone-6 { background: var(--t-magenta, #B0197E); color: var(--t-paper, #FDF9F0); }
-.plank-tone-7 { background: var(--t-orange, #F08C1E); color: var(--t-paper, #FDF9F0); }
-
-.plank-fav { font-size: 12px; }
-
-/* The single plinth is the whole footing (no base board, owner's call) */
-.pile-plinth { width: 60%; height: 34px; margin-top: -2px; }
-
-/* Painted label boxes below the piles (9g): a color per mood */
-.pile-tag {
-  margin-top: 14px;
-  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
-  font-weight: 800;
-  font-size: 15px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 5px 14px 7px;
-  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.25);
-}
-
-.pile-tag-connect { background: var(--t-yellow, #FFC800); background-image: var(--t-grain); color: var(--t-ink, #2A2620); transform: rotate(-1deg); }
-.pile-tag-think { background: var(--t-green, #22A05A); color: var(--t-paper, #FDF9F0); transform: rotate(1deg); }
-.pile-tag-play { background: var(--t-sanded, #EAD9BA); background-image: var(--t-grain); color: var(--t-ink, #2A2620); transform: rotate(-1deg); }
-.pile-tag-mine { background: var(--t-birch, #E3C8A0); background-image: var(--t-grain); color: var(--t-ink, #2A2620); transform: rotate(0.8deg); }
 
 /* ── My yard: recents, hearts, and your copies on one long board ──
    The shelf draws the grid's own prints (/shared/yard-prints.css: the row
@@ -975,7 +659,6 @@ header {
   box-shadow: 5px 8px 0 rgba(80, 60, 30, 0.14);
 }
 
-.myyard .pile-tag-mine { align-self: center; }
 .myyard-wrap .myyard-note,
 .myyard-wrap .shed-toggle { align-self: center; }
 
@@ -1009,39 +692,6 @@ header {
   opacity: 0.7;
 }
 
-/* ── The plank popup ── */
-.activity-dialog { max-width: 460px; }
-
-.activity-dialog-name {
-  display: inline-block;
-  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
-  font-weight: 800;
-  font-size: 24px;
-  line-height: 1.1;
-  color: var(--t-paper, #FDF9F0);
-  background: var(--t-magenta, #B0197E);
-  padding: 3px 14px 7px;
-  transform: rotate(-1.2deg);
-  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.28);
-  margin: 0 44px 12px 0;
-}
-
-.activity-dialog-meta {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--t-muted-caps, #8A7B62);
-  margin-bottom: 10px;
-}
-
-.activity-dialog-desc {
-  font-size: 15px;
-  font-weight: 500;
-  line-height: 1.55;
-  color: var(--t-ink, #2A2620);
-}
-
-.activity-dialog-actions { margin-top: 18px; }
-
 /* The plank hover card lives in /shared/hover-card.css (shared with the
    home shelf). */
 
@@ -1049,18 +699,8 @@ header {
   .page { padding: 20px 16px 32px; }
   .wordmark span { font-size: 14px; padding: 3px 6px 5px; }
   .games-section-grid { grid-template-columns: 1fr; }
-  .pile-shelf { gap: 30px 24px; justify-content: center; }
+  
 }
-
-/* Small text on the bright paints reads in ink (contrast 5.4, 4.5 and 6.1
-   to 1 on cyan, green, orange); magenta keeps paper at full opacity (6.1).
-   Names stay paper: at their size the lower large-text bar applies. */
-.plank-tone-2 .plank-meta, .plank-tone-4 .plank-meta, .plank-tone-7 .plank-meta,
-.plank-tone-2 .plank-hook, .plank-tone-4 .plank-hook, .plank-tone-7 .plank-hook {
-  color: #1A1612;
-  opacity: 1;
-}
-.plank-tone-6 .plank-meta, .plank-tone-6 .plank-hook { opacity: 1; }
 
 /* The job's paint as a small block on its chip, the same paint every
    print of that job carries (shared/yard-prints.js paintOf) */

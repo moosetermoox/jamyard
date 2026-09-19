@@ -17,7 +17,7 @@
 > Those stay where they are.
 >
 > **Revision note:** rev. 2 incorporates senior-engineer review
-> feedback (`docs/feedback schema.txt`). Major changes from rev. 1:
+> feedback (an outside review of rev. 1, applied in section 14; the review text itself is not in the repository). Major changes from rev. 1:
 > declarative schema split from executable behavior; structured
 > diagnostic objects from day one; transitions as their own schema
 > section; shared resolver grammar; normalizer pipeline step;
@@ -765,7 +765,7 @@ the editor UI.
 
 ---
 
-## 14. Applied Review Feedback (from `feedback schema.txt`)
+## 14. Applied Review Feedback (from the outside review of rev. 1)
 
 What was incorporated into rev. 2:
 
