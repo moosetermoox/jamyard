@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ideas log. Jamyard</title>
+  <link rel="stylesheet" href="/shared/design.css">
+  <link rel="stylesheet" href="/shared/totem.css">
+  <style>
+    /* Totem system: paper entries on a flat gesso ground, ink band header.
+       Owner-only page (the server demands the owner password first). */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root { --focus-ring: 3px solid #2A2620; }
+
+    body {
+      font-family: var(--t-body);
+      font-weight: 500;
+      background: var(--t-gesso);
+      color: var(--t-ink);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--t-ink);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    header a.logo {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--t-paper);
+      text-decoration: none;
+    }
+
+    header .title {
+      font-family: var(--t-body);
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #CFC5B4;
+    }
+
+    header nav { margin-left: auto; display: flex; gap: 16px; }
+    header nav a { color: #CFC5B4; font-size: 0.8rem; font-weight: 700; }
+
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    .funnel {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .funnel .tile {
+      background: var(--t-paper);
+      box-shadow: 0 2px 4px rgba(50,35,15,0.22);
+      padding: 10px 14px;
+      min-width: 110px;
+    }
+
+    .funnel .tile.is-loud {
+      background: var(--t-yellow);
+      background-image: var(--t-grain);
+      box-shadow: var(--t-shadow-free), inset 0 0 0 2px var(--t-ink);
+    }
+
+    .funnel .tile b {
+      display: block;
+      font-family: var(--t-display);
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    .funnel .tile span {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--t-muted);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .tabs button {
+      padding: 8px 18px;
+      border: none;
+      background: var(--t-paper);
+      box-shadow: 0 2px 3px rgba(50,35,15,0.25);
+      font-family: var(--t-body);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--t-ink);
+      cursor: pointer;
+    }
+
+    .tabs button.active {
+      background: var(--t-yellow);
+      background-image: var(--t-grain);
+    }
+
+    .empty, .loading, .error {
+      color: var(--t-muted);
+      font-weight: 700;
+      padding: 30px 0;
+      text-align: center;
+    }
+
+    .error { color: #AE3A16; }
+
+    .entry {
+      background: var(--t-paper);
+      box-shadow: 0 2px 4px rgba(50,35,15,0.22);
+      padding: 14px 16px;
+      margin-bottom: 14px;
+    }
+
+    .entry.is-alternate { opacity: 0.7; margin-left: 24px; }
+
+    .entry-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+      font-size: 0.78rem;
+      color: var(--t-muted);
+    }
+
+    .chip {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      background: var(--t-gesso);
+      box-shadow: 0 0 0 1px rgba(50,35,15,0.18);
+      color: var(--t-ink);
+    }
+
+    .chip.r-match { background: #DDEFD6; }
+    .chip.r-existing { background: #D9E8F3; }
+    .chip.r-storyboard { background: #F3D9EA; }
+    .chip.r-none, .chip.r-cant-build { box-shadow: 0 0 0 2px #AE3A16; color: #AE3A16; }
+    .chip.r-error { background: var(--t-ink); color: var(--t-paper); }
+    .chip.saved { background: var(--t-yellow); background-image: var(--t-grain); }
+
+    .entry-idea {
+      white-space: pre-wrap;
+      line-height: 1.5;
+      font-size: 1rem;
+      margin-bottom: 8px;
+      overflow-wrap: anywhere;
+    }
+
+    .entry-became, .entry-why {
+      font-size: 0.86rem;
+      line-height: 1.5;
+      color: var(--t-ink);
+    }
+
+    .entry-why { color: #AE3A16; }
+    .entry-became b { font-weight: 700; }
+
+    code.key {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.74rem;
+      background: var(--t-gesso);
+      padding: 1px 5px;
+    }
+
+    .note {
+      margin-top: 14px;
+      font-size: 0.8rem;
+      color: var(--t-muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="/">Jamyard</a>
+    <span class="title">Ideas log</span>
+    <nav>
+      <a href="/rooms">Rooms log</a>
+      <a href="/feedback">Feedback inbox</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="funnel" id="funnel" hidden></div>
+
+    <div class="tabs" id="tabs">
+      <button data-tab="all" class="active">All tries</button>
+      <button data-tab="unique">Built from steps</button>
+      <button data-tab="could-not">Could not build</button>
+      <button data-tab="saved">Saved</button>
+    </div>
+
+    <div id="list"><p class="loading">Loading the ideas log...</p></div>
+
+    <p class="note">One entry per try on the Create page. "Built from steps" is an idea no recipe fit, so the step-by-step builder made a plan: that is what is new. "Could not build" is the matcher finding nothing, the builder refusing, or an error, with the reason. An indented entry is the same idea re-run against an alternate recipe. Saved means the teacher kept what came out. Ideas are teacher text with email addresses, phone numbers, and links removed.</p>
+  </main>
+
+  <script src="ideas.js"></script>
+</body>
+</html>

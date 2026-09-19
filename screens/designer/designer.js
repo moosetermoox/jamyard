@@ -1575,6 +1575,18 @@ function renderAIDescriptionStep(modal, overlay, initialDescription) {
   }
 }
 
+// The browser's random analytics id (screens/shared/analytics.js mints it),
+// sent with a Create-page try so the owner's ideas log can line up one
+// teacher's tries. Nothing about the person; absent when storage is off.
+function createBrowserId() {
+  try {
+    var id = localStorage.getItem('jamyard.aid');
+    return id && /^[a-f0-9]{16,32}$/.test(id) ? id : undefined;
+  } catch (e) {
+    return undefined;
+  }
+}
+
 async function submitAIDescription(modal, description, status, generateBtn, overlay) {
   status.textContent = '';
   status.className = 'recipe-form-status recipe-form-status-working';
@@ -1586,7 +1598,7 @@ async function submitAIDescription(modal, description, status, generateBtn, over
     var resp = await fetch('/api/games/from-description', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: description })
+      body: JSON.stringify({ description: description, aid: createBrowserId() })
     });
     var data = await resp.json();
 
@@ -1975,7 +1987,9 @@ async function saveMatchedConfig(data, status, createBtn, overlay, modal) {
     var resp = await fetch('/api/games', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: newId, config: data.config })
+      // ideaId: the Create-page try this came from, so the owner's ideas
+      // log can see it was saved
+      body: JSON.stringify({ id: newId, config: data.config, ideaId: data.ideaId })
     });
 
     if (resp.ok) {
@@ -2020,7 +2034,7 @@ async function refitToAlternate(modal, data, alt, overlay, description) {
     var resp = await fetch('/api/games/from-description', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: description, recipeId: alt.id })
+      body: JSON.stringify({ description: description, recipeId: alt.id, aid: createBrowserId() })
     });
     var next = await resp.json();
     if (!resp.ok || next.noMatch || !next.config) {
@@ -2178,7 +2192,7 @@ async function showStoryboardFlow(description, seededStoryboard) {
       var r = await fetch('/api/games/storyboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: description })
+        body: JSON.stringify({ description: description, aid: createBrowserId() })
       });
       resp = await r.json();
       // Built or honestly refused; never the idea itself
@@ -2307,7 +2321,7 @@ async function showStoryboardFlow(description, seededStoryboard) {
       var save = await fetch('/api/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: newId, config: result.config })
+        body: JSON.stringify({ id: newId, config: result.config, ideaId: resp && resp.ideaId })
       });
       var saved = await save.json();
       if (!save.ok) throw new Error(saved.error || 'save failed');
