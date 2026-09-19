@@ -136,13 +136,19 @@
           <td>Kept as usage statistics. Contains no names and no student work.</td>
         </tr>
         <tr>
+          <td>Rooms log: one line per room with the activity (a built-in's name, or the teacher's own name for an activity they made), the room code, the headcount, which step the room reached, whether it ended, how long it ran, whether the students were real or pretend, and a random id the teacher's browser minted for itself</td>
+          <td>Lets the site owner see which rooms ran, how far they got, and how many different teachers hosted one, so problems in a room we were not in can be found and fixed</td>
+          <td>Database, read only by the site owner</td>
+          <td>Kept as usage statistics. Contains no names and no student work. The random id holds nothing about the person; clearing site data in the browser resets it.</td>
+        </tr>
+        <tr>
           <td>Teacher-created activities and recipes</td>
           <td>Teacher-authored content, so it survives redeploys</td>
           <td>Database</td>
           <td>Until the teacher or the site owner deletes them. A structural rule keeps student work out of saved activities: nothing students submit is ever folded into a saved object.</td>
         </tr>
         <tr>
-          <td>Site usage events from teacher pages: which page was opened and when it was left, grouped into a visit by a random per-tab id, which door was pressed, how an idea landed on the Create page, where the visit came from (the referring site's name, and the campaign tag when the link was one of ours), the country and region of the connection, plus one line when a room opens, starts, and ends (activity name for built-in activities, "custom" for anything a teacher made, headcount, minutes)</td>
+          <td>Site usage events from teacher pages: which page was opened and when it was left, grouped into a visit by a random per-tab id, which door was pressed, how an idea landed on the Create page, where the visit came from (the referring site's name, and the campaign tag when the link was one of ours), the country and region of the connection, plus one line when a room opens, starts, ends, or closes without ending (activity name for built-in activities, "custom" for anything a teacher made, headcount, minutes, which step of how many the room was on, and whether the students were real or pretend)</td>
           <td>Tells us which parts of Jamyard teachers actually use and how they found it, so we can improve them</td>
           <td>PostHog (US), an analytics service, reached only through our own server</td>
           <td>Kept as usage statistics. Contains no names, no student work, and no room codes. Nothing is sent from the student screen or the projector. For events from teacher pages, our server passes the connection's address to PostHog for a country and region lookup and PostHog discards the address after the lookup; room events carry no address at all. A random id minted in the teacher's browser counts repeat visits; it holds nothing about the person. Browsers sending Do Not Track or Global Privacy Control send nothing.</td>
@@ -174,7 +180,7 @@
     </div>
 
     <h2>What stays on your device</h2>
-    <p>Favorites, recently used activities, and the list of activities created on a device are stored in that browser's local storage. They never leave the device and we cannot see them. The one exception is a random analytics id (a string of letters and digits, nothing about the person) that teacher pages send with the usage events described above; clearing site data resets it.</p>
+    <p>Favorites, recently used activities, and the list of activities created on a device are stored in that browser's local storage. They never leave the device and we cannot see them. The exceptions are two random ids (strings of letters and digits, nothing about the person): one that teacher pages send with the usage events described above, and one the projector page sends when it opens a room, so the rooms log can tell one teacher's rooms from another's; clearing site data resets both.</p>
 
     <h2>Classroom safety</h2>
     <ul>

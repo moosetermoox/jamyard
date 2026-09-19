@@ -18,7 +18,11 @@ export const EVENT_SCHEMAS = {
     token: 'string:optional'
   },
   'create-room': {
-    gameId: 'string:optional'
+    gameId: 'string:optional',
+    // Rooms log (services/room-log.js): a random key the host page minted
+    // in its own storage, and whether the room is Try it out's pretend class.
+    hostKey: 'string:optional',
+    pretend: 'boolean:optional'
   },
   'start-game': {
     code: 'string:required'

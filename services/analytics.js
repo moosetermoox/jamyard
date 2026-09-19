@@ -36,6 +36,9 @@ const FEEDBACK_KINDS = ['problem', 'idea', 'praise', 'builder-request', 'other']
 const CREATE_RESULTS = ['match', 'existing', 'none', 'storyboard', 'error'];
 const GAME_SOURCES = ['built-in', 'custom'];
 const STARTS = ['together', 'rolling'];
+// A real class, or Try it out's pretend students (the pilot count needs
+// the two apart: a teacher rehearsing is not a teacher hosting).
+const ROOM_KINDS = ['class', 'pretend'];
 
 /**
  * Event → property → shape. Kinds: path (one of TRACKED_PATHS), enum
@@ -78,16 +81,29 @@ export const ANALYTICS_EVENTS = {
   room_created: {
     game: { kind: 'game' },
     source: { kind: 'enum', values: GAME_SOURCES },
-    start: { kind: 'enum', values: STARTS }
+    start: { kind: 'enum', values: STARTS },
+    kind: { kind: 'enum', values: ROOM_KINDS }
   },
   activity_started: {
     game: { kind: 'game' },
-    players: { kind: 'int' }
+    players: { kind: 'int' },
+    kind: { kind: 'enum', values: ROOM_KINDS }
   },
   activity_ended: {
     game: { kind: 'game' },
     players: { kind: 'int' },
-    minutes: { kind: 'int' }
+    minutes: { kind: 'int' },
+    kind: { kind: 'enum', values: ROOM_KINDS }
+  },
+  // A room that closed without reaching its end (the host never came back):
+  // which step it was on out of how many, so a stall shows where it stalled.
+  room_abandoned: {
+    game: { kind: 'game' },
+    players: { kind: 'int' },
+    minutes: { kind: 'int' },
+    step: { kind: 'int' },
+    steps: { kind: 'int' },
+    kind: { kind: 'enum', values: ROOM_KINDS }
   },
   feedback_sent: {
     category: { kind: 'enum', values: FEEDBACK_KINDS }

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rooms log. Jamyard</title>
+  <link rel="stylesheet" href="/shared/design.css">
+  <link rel="stylesheet" href="/shared/totem.css">
+  <style>
+    /* Totem system: paper on a flat gesso ground, ink band header. Owner-only
+       page (the server demands the owner password before serving it). */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root { --focus-ring: 3px solid #2A2620; }
+
+    body {
+      font-family: var(--t-body);
+      font-weight: 500;
+      background: var(--t-gesso);
+      color: var(--t-ink);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--t-ink);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    header a.logo {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 1.2rem;
+      color: var(--t-paper);
+      text-decoration: none;
+    }
+
+    header .title {
+      font-family: var(--t-body);
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #CFC5B4;
+    }
+
+    header a.other {
+      margin-left: auto;
+      color: #CFC5B4;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 28px 20px 60px;
+    }
+
+    .headline {
+      background: var(--t-yellow);
+      background-image: var(--t-grain);
+      box-shadow: var(--t-shadow-free), inset 0 0 0 2px var(--t-ink);
+      padding: 18px 22px;
+      transform: rotate(-0.3deg);
+      margin-bottom: 22px;
+      display: flex;
+      align-items: baseline;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    .headline .big {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 3.2rem;
+      line-height: 1;
+    }
+
+    .headline .what {
+      font-weight: 700;
+      font-size: 1.05rem;
+      max-width: 34rem;
+    }
+
+    .headline .sub {
+      flex-basis: 100%;
+      font-size: 0.82rem;
+      color: rgba(42,38,32,0.8);
+    }
+
+    .funnel {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .funnel .tile {
+      background: var(--t-paper);
+      box-shadow: 0 2px 4px rgba(50,35,15,0.22);
+      padding: 10px 14px;
+      min-width: 120px;
+    }
+
+    .funnel .tile b {
+      display: block;
+      font-family: var(--t-display);
+      font-size: 1.5rem;
+      font-weight: 800;
+    }
+
+    .funnel .tile span {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--t-muted);
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--t-paper);
+      box-shadow: 0 2px 4px rgba(50,35,15,0.22);
+      font-size: 0.88rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(50,35,15,0.12);
+      white-space: nowrap;
+      vertical-align: top;
+    }
+
+    th {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--t-muted);
+      background: var(--t-gesso);
+    }
+
+    td.label { white-space: normal; max-width: 18rem; overflow-wrap: anywhere; }
+
+    tr.is-pretend td { color: var(--t-muted); }
+    tr.is-class td.players { font-weight: 700; }
+
+    .status {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 8px;
+      box-shadow: 0 0 0 1px rgba(50,35,15,0.18);
+    }
+
+    .status.st-ended { background: #DDEFD6; }
+    .status.st-open { background: var(--t-yellow); }
+    .status.st-closed { box-shadow: 0 0 0 2px #AE3A16; color: #AE3A16; }
+
+    code.key {
+      font-family: ui-monospace, Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+      background: var(--t-gesso);
+      padding: 1px 5px;
+    }
+
+    .empty, .loading, .error {
+      color: var(--t-muted);
+      font-weight: 700;
+      padding: 30px 0;
+      text-align: center;
+    }
+
+    .error { color: #AE3A16; }
+
+    .note {
+      margin-top: 14px;
+      font-size: 0.8rem;
+      color: var(--t-muted);
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="/">Jamyard</a>
+    <span class="title">Rooms log</span>
+    <a class="other" href="/feedback">Feedback inbox</a>
+  </header>
+
+  <main>
+    <div class="headline" id="headline" hidden>
+      <span class="big" id="hosts">0</span>
+      <span class="what">teachers have hosted a class room</span>
+      <span class="sub" id="since"></span>
+    </div>
+
+    <div class="funnel" id="funnel" hidden></div>
+
+    <div id="list"><p class="loading">Loading the rooms log...</p></div>
+
+    <p class="note">A class room is a real room (not pretend students) with three or more students. Teachers are counted by a random key the host browser mints for itself, so one teacher on two devices counts twice and two teachers sharing a laptop count once. Step is the step the room was last on, out of the activity's steps, lobby included. Closed means the host left and never came back.</p>
+  </main>
+
+  <script src="rooms.js"></script>
+</body>
+</html>

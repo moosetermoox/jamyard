@@ -108,6 +108,9 @@ import {
   setFeedbackStatus,
   recordActivityRun,
   activityRunSummary,
+  addRoomLog,
+  updateRoomLog,
+  listRoomLog,
   getFeaturedOverrides,
   setFeaturedOverride,
   clearFeaturedOverride
@@ -115,6 +118,7 @@ import {
 import { applyFeaturedOverrides } from './engine/featured-merge.js';
 import { validateSuggestions } from './engine/suggest-validate.js';
 import { createFeedbackStore } from './services/feedback-store.js';
+import { createRoomLog, summarizeRoomLog, isHostKey } from './services/room-log.js';
 import { validateFeedback } from './engine/feedback-validate.js';
 import { createRateLimiter } from './engine/simple-rate-limit.js';
 import { createAnalytics, parseClientEvent, replayConfig } from './services/analytics.js';
@@ -248,8 +252,80 @@ function trackActivityStarted(room) {
   room.analyticsStarted = true;
   analytics.track('activity_started', {
     game: analyticsGameLabel(room),
-    players: room.engine ? room.engine.players.list().length : 0
+    players: room.engine ? room.engine.players.list().length : 0,
+    kind: roomKind(room)
   }, room.analyticsId);
+}
+
+// --- Rooms log (services/room-log.js, 2026-09-18) ---
+// The owner's per-room record for the pilot, read on the owner-only /rooms
+// page: which activity, how many students, which step it reached, whether
+// it ended or was left behind. Neon when the DB is on, data/room-log.ndjson
+// in local dev. Never robot playtests; Try it out's pretend rooms are
+// logged and kept apart. Every write is fire-and-forget: the class never
+// waits on the log, and a failed write is one log line.
+const roomLog = createRoomLog(
+  DB_ENABLED
+    ? { db: { addRoomLog, updateRoomLog, listRoomLog } }
+    : { filePath: join(__dirname, 'data', 'room-log.ndjson') }
+);
+
+// A real class, or Try it out's pretend students.
+function roomKind(room) {
+  return room && room.pretend ? 'pretend' : 'class';
+}
+
+// Where the room is among the activity's top-level steps (lobby included),
+// out of how many. Inside a foreach the current phase is a sub-phase, so
+// the last top-level position seen is kept.
+function roomStepPosition(room) {
+  const engine = room && room.engine;
+  const ids = engine ? Object.keys(engine.config.phases || {}) : [];
+  const current = engine ? engine.getCurrentPhase() : null;
+  const index = current ? ids.indexOf(current.id) : -1;
+  if (index >= 0) room.logStep = { step: index + 1, stepId: current.id };
+  const last = room.logStep || { step: 0, stepId: current ? current.id : '' };
+  return { step: last.step, stepId: last.stepId, steps: ids.length };
+}
+
+function roomMinutes(room) {
+  return Math.max(0, Math.round((Date.now() - (room.createdAt || Date.now())) / 60_000));
+}
+
+function logRoomOpen(room, hostKey) {
+  if (!room || room.simulated || !room.engine) return;
+  const config = room.engine.config;
+  room.logReady = roomLog.open({
+    code: room.code,
+    gameId: room.gameId,
+    // A built-in's slug, or the teacher's own name for a custom activity
+    // (teacher text, never student text).
+    gameLabel: room.gameSource === 'user' ? String(config.name || 'custom') : room.gameId,
+    source: room.gameSource === 'user' ? 'custom' : 'built-in',
+    kind: roomKind(room),
+    hostKey: isHostKey(hostKey) ? hostKey : null,
+    steps: roomStepPosition(room).steps
+  }).then(id => { room.logId = id; return id; })
+    .catch(err => { console.log(`[room-log] open failed: ${err.message}`); return null; });
+}
+
+// `status` forces 'closed' when the host never came back; otherwise the
+// room's own phase says open or ended. A room restored from a snapshot
+// carries its logId and keeps writing to the same row.
+function logRoomProgress(room, status) {
+  if (!room || room.simulated || !room.engine) return;
+  const ready = room.logReady || Promise.resolve(room.logId || null);
+  ready.then(id => {
+    if (!id) return;
+    const pos = roomStepPosition(room);
+    return roomLog.update(id, {
+      players: room.engine.players.list().length,
+      step: pos.step,
+      stepId: pos.stepId,
+      status: status || (room.engine.getCurrentPhase().type === 'end' ? 'ended' : 'open'),
+      minutes: roomMinutes(room)
+    });
+  }).catch(err => console.log(`[room-log] update failed: ${err.message}`));
 }
 
 const socketToRoom = new Map();
@@ -280,6 +356,8 @@ function ownerAreaGate(req, res, next) {
   const needsOwner =
     path === '/api/owner-check' ||
     path === '/api/activity-runs' ||                                 // runs-not-builds gauge
+    path === '/api/room-log' ||                                      // rooms log data
+    path.startsWith('/rooms') ||                                     // rooms log UI
     path.startsWith('/feedback') ||                                  // inbox UI
     (path.startsWith('/api/feedback') && req.method !== 'POST');     // list/status; submitting stays open
   if (!needsOwner) return next();
@@ -2022,12 +2100,15 @@ async function handlePhase(code, room) {
       analytics.track('activity_ended', {
         game: analyticsGameLabel(room),
         players: engine.players.list().length,
-        minutes: Math.max(0, Math.round((Date.now() - (room.createdAt || Date.now())) / 60_000))
+        minutes: roomMinutes(room),
+        kind: roomKind(room)
       }, room.analyticsId);
     }
   } else {
     persistRoom(code, room);
   }
+  // Rooms log: the step the room reached, and ended once it is the end.
+  logRoomProgress(room);
 
   // Keep teacher consoles oriented: which step is running decides which
   // controls the console shows (close submissions vs next step vs approve).
@@ -2181,6 +2262,8 @@ app.use('/guide', express.static(join(__dirname, 'screens/guide')));
 app.use('/privacy', express.static(join(__dirname, 'screens/privacy')));
 // Owner-only feedback inbox (ownerAreaGate runs first and demands the password).
 app.use('/feedback', express.static(join(__dirname, 'screens/feedback')));
+// Owner-only rooms log (ownerAreaGate runs first and demands the password).
+app.use('/rooms', express.static(join(__dirname, 'screens/rooms')));
 
 app.get('/designer/edit', (req, res) => {
   res.sendFile('editor.html', { root: join(__dirname, 'screens', 'designer') });
@@ -2214,7 +2297,7 @@ app.get('/share', (req, res) => res.redirect('/#yard'));
 const VANITY_RESERVED = new Set([
   'api', 'host', 'player', 'teacher', 'library', 'designer', 'prototype',
   'guide', 'owner', 'feedback', 'privacy', 'shared', 'socket.io',
-  'share', 'make'
+  'share', 'make', 'rooms'
 ]);
 try {
   const vanityUrls = JSON.parse(await readFile(join(__dirname, 'vanity-urls.json'), 'utf8'));
@@ -2882,6 +2965,20 @@ app.get('/api/prompt-banks/:id', async (req, res) => {
     res.type('application/json').send(raw);
   } catch (err) {
     res.status(404).json({ error: `No prompt bank named "${id}".` });
+  }
+});
+
+// Owner-gated (ownerAreaGate): the rooms log behind /rooms. The last 50
+// rooms, plus the pilot summary over a longer window (?since=YYYY-MM-DD
+// moves the count's start; the default is the pilot's first day).
+app.get('/api/room-log', async (req, res) => {
+  try {
+    const rows = await roomLog.list(1000);
+    const since = typeof req.query.since === 'string' ? req.query.since : undefined;
+    res.json({ rooms: rows.slice(0, 50), summary: summarizeRoomLog(rows, { since }) });
+  } catch (err) {
+    console.log(`[api/room-log] Error: ${err.message}`);
+    res.status(500).json({ error: 'Could not load the rooms log.' });
   }
 });
 
@@ -3715,6 +3812,8 @@ io.on('connection', (socket) => {
       // Early-bird joke (engine/early-joke.js): who among the first N
       // joiners got which joke, null when the activity has none.
       room.earlyJoke = createEarlyJokeState(config);
+      // Try it out's pretend students: logged and counted apart from a class.
+      room.pretend = payload.pretend === true;
 
       roomToHost.set(code, socket.id);
       socket.join(code);
@@ -3727,8 +3826,12 @@ io.on('connection', (socket) => {
         analytics.track('room_created', {
           game: analyticsGameLabel(room),
           source: room.gameSource === 'user' ? 'custom' : 'built-in',
-          start: isRolling(config) ? 'rolling' : 'together'
+          start: isRolling(config) ? 'rolling' : 'together',
+          kind: roomKind(room)
         }, room.analyticsId);
+        // Rooms log: the host page's own random key, refused unless it is
+        // the hex shape it mints (a modified client cannot smuggle a name).
+        logRoomOpen(room, payload.hostKey);
       }
       socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin, hostToken: room.hostToken, start: config.start || 'together', language: room.engine.language, strings: stringsFor(room.engine.language) });
 
@@ -3957,6 +4060,8 @@ io.on('connection', (socket) => {
       // Rolling rooms never pass through Start, so the activity-run metric
       // fires on the first join instead (same fire-and-forget rule).
       if (room.engine && isRolling(room.engine.config)) trackActivityStarted(room);
+      // Rooms log: the headcount grows with every join (it never shrinks).
+      logRoomProgress(room);
       if (DB_ENABLED && !room.simulated && !room.runRecorded && room.engine && isRolling(room.engine.config)) {
         room.runRecorded = true;
         recordActivityRun(room.gameId, room.engine.players.list().length)
@@ -5669,6 +5774,23 @@ io.on('connection', (socket) => {
           const still = roomManager.find(roomCode);
           if (!still || roomToHost.has(roomCode)) return; // host came back
           console.log(`[disconnect] Host never returned to ${roomCode}, closing room`);
+          // A room that never reached its end was left behind: the rooms
+          // log marks it closed and analytics gets where it stalled.
+          const endedAlready = !!(still.engine && still.engine.getCurrentPhase().type === 'end');
+          if (!endedAlready && !still.simulated) {
+            logRoomProgress(still, 'closed');
+            if (still.analyticsId && still.engine) {
+              const pos = roomStepPosition(still);
+              analytics.track('room_abandoned', {
+                game: analyticsGameLabel(still),
+                players: still.engine.players.list().length,
+                minutes: roomMinutes(still),
+                step: pos.step,
+                steps: pos.steps,
+                kind: roomKind(still)
+              }, still.analyticsId);
+            }
+          }
           roomManager.delete(roomCode);
           io.to(roomCode).emit(EVENTS.ROOM_CLOSED);
           // The snapshot stays (until its TTL): a teacher whose laptop died
