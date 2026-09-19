@@ -2260,6 +2260,10 @@ app.use('/guide', express.static(join(__dirname, 'screens/guide')));
 // Public privacy page (2026-08-08 field test: admins need practice they can
 // cite; the careful engineering was invisible).
 app.use('/privacy', express.static(join(__dirname, 'screens/privacy')));
+// The terms are the second half of the privacy page (owner: one page,
+// 2026-09-19). /terms stays a real address for a district form that asks
+// for one, and lands on that half.
+app.get('/terms', (req, res) => res.redirect('/privacy#terms'));
 // Owner-only feedback inbox (ownerAreaGate runs first and demands the password).
 app.use('/feedback', express.static(join(__dirname, 'screens/feedback')));
 // Owner-only rooms log (ownerAreaGate runs first and demands the password).
@@ -2297,7 +2301,7 @@ app.get('/share', (req, res) => res.redirect('/#yard'));
 const VANITY_RESERVED = new Set([
   'api', 'host', 'player', 'teacher', 'library', 'designer', 'prototype',
   'guide', 'owner', 'feedback', 'privacy', 'shared', 'socket.io',
-  'share', 'make', 'rooms'
+  'share', 'make', 'rooms', 'terms'
 ]);
 try {
   const vanityUrls = JSON.parse(await readFile(join(__dirname, 'vanity-urls.json'), 'utf8'));
