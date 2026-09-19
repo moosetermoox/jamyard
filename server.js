@@ -111,6 +111,9 @@ import {
   addRoomLog,
   updateRoomLog,
   listRoomLog,
+  addIdeaLog,
+  markIdeaLogSaved,
+  listIdeaLog,
   getFeaturedOverrides,
   setFeaturedOverride,
   clearFeaturedOverride
@@ -119,6 +122,7 @@ import { applyFeaturedOverrides } from './engine/featured-merge.js';
 import { validateSuggestions } from './engine/suggest-validate.js';
 import { createFeedbackStore } from './services/feedback-store.js';
 import { createRoomLog, summarizeRoomLog, isHostKey } from './services/room-log.js';
+import { createIdeaLog, summarizeIdeaLog, isIdeaId } from './services/idea-log.js';
 import { validateFeedback } from './engine/feedback-validate.js';
 import { createRateLimiter } from './engine/simple-rate-limit.js';
 import { createAnalytics, parseClientEvent, replayConfig } from './services/analytics.js';
@@ -358,6 +362,8 @@ function ownerAreaGate(req, res, next) {
     path === '/api/activity-runs' ||                                 // runs-not-builds gauge
     path === '/api/room-log' ||                                      // rooms log data
     path.startsWith('/rooms') ||                                     // rooms log UI
+    path === '/api/idea-log' ||                                      // ideas log data
+    path.startsWith('/ideas') ||                                     // ideas log UI
     path.startsWith('/feedback') ||                                  // inbox UI
     (path.startsWith('/api/feedback') && req.method !== 'POST');     // list/status; submitting stays open
   if (!needsOwner) return next();
@@ -2268,6 +2274,8 @@ app.get('/terms', (req, res) => res.redirect('/privacy#terms'));
 app.use('/feedback', express.static(join(__dirname, 'screens/feedback')));
 // Owner-only rooms log (ownerAreaGate runs first and demands the password).
 app.use('/rooms', express.static(join(__dirname, 'screens/rooms')));
+// Owner-only ideas log: what teachers tried to make on the Create page.
+app.use('/ideas', express.static(join(__dirname, 'screens/ideas')));
 
 app.get('/designer/edit', (req, res) => {
   res.sendFile('editor.html', { root: join(__dirname, 'screens', 'designer') });
@@ -2301,7 +2309,7 @@ app.get('/share', (req, res) => res.redirect('/#yard'));
 const VANITY_RESERVED = new Set([
   'api', 'host', 'player', 'teacher', 'library', 'designer', 'prototype',
   'guide', 'owner', 'feedback', 'privacy', 'shared', 'socket.io',
-  'share', 'make', 'rooms', 'terms'
+  'share', 'make', 'rooms', 'terms', 'ideas'
 ]);
 try {
   const vanityUrls = JSON.parse(await readFile(join(__dirname, 'vanity-urls.json'), 'utf8'));
@@ -2868,6 +2876,48 @@ const feedbackStore = createFeedbackStore(
 );
 const feedbackLimiter = createRateLimiter({ max: 5, windowMs: 60_000 });
 
+// --- Ideas log (services/idea-log.js, 2026-09-19) ---
+// Every try on the Create page: the idea as typed (contact patterns
+// scrubbed), how it landed, what it pointed at, why not, and whether the
+// teacher went on to save it. Owner-only at /ideas. Neon when the DB is
+// on, data/idea-log.ndjson in local dev. The row id rides back to the
+// client so a later save can mark the row; a failed write is one log
+// line and a null id, never a failed request.
+const ideaLog = createIdeaLog(
+  DB_ENABLED
+    ? { db: { addIdeaLog, markIdeaLogSaved, listIdeaLog } }
+    : { filePath: join(__dirname, 'data', 'idea-log.ndjson') }
+);
+
+/**
+ * @param {object} body the request body (idea text under `description`, the browser's analytics id under `aid`)
+ * @param {{ stage: string, result: string, target?: string, targetName?: string, reason?: string, steps?: string[], minutes?: number|null }} how
+ * @returns {Promise<number|string|null>}
+ */
+async function logIdea(body, how) {
+  try {
+    return await ideaLog.open({
+      idea: body && body.description,
+      browser: body && body.aid,
+      ...how
+    });
+  } catch (err) {
+    console.log(`[idea-log] write failed: ${err.message}`);
+    return null;
+  }
+}
+
+// Owner-gated (ownerAreaGate): the ideas log behind /ideas.
+app.get('/api/idea-log', async (req, res) => {
+  try {
+    const rows = await ideaLog.list(500);
+    res.json({ ideas: rows.slice(0, 200), summary: summarizeIdeaLog(rows) });
+  } catch (err) {
+    console.log(`[api/idea-log] Error: ${err.message}`);
+    res.status(500).json({ error: 'Could not load the ideas log.' });
+  }
+});
+
 // Site analytics relay: teacher pages post {event, props, aid} here
 // (screens/shared/analytics.js). Always 204, whether or not analytics is
 // on and whether or not the event passed the allowlist: the page has
@@ -3119,6 +3169,12 @@ app.post('/api/games', async (req, res) => {
       const userGameDir = join(USER_GAMES_DIR, id);
       await mkdir(userGameDir, { recursive: true });
       await writeFile(join(userGameDir, 'config.json'), JSON.stringify(config, null, 2));
+    }
+    // Ideas log: a save that came out of a Create-page try marks its row
+    // (the id the try handed back). Fire-and-forget; an unknown id is a no-op.
+    if (isIdeaId(req.body.ideaId)) {
+      ideaLog.markSaved(req.body.ideaId, { gameId: id, name: config && config.name })
+        .catch(err => console.log(`[idea-log] mark failed: ${err.message}`));
     }
     res.json({ success: true, id, source: 'user' });
   } catch (error) {
@@ -3532,16 +3588,22 @@ app.post('/api/games/storyboard', async (req, res) => {
     console.log(`[api/games/storyboard] Planning: "${description.substring(0, 80)}..."`);
     const storyboard = await aiService.generateStoryboard(description);
     if (storyboard.error) {
+      await logIdea(req.body, { stage: 'storyboard', result: 'error', reason: storyboard.error });
       return res.status(500).json({ error: storyboard.error });
     }
     // Honest refusal, not an error: the idea's core needs a mechanic no
     // brick provides, and a hollow lookalike would be worse than saying so.
     if (storyboard.cantBuild) {
-      return res.json({ cantBuild: true, reason: storyboard.reason || '' });
+      const ideaId = await logIdea(req.body, { stage: 'storyboard', result: 'cant-build', reason: storyboard.reason || '' });
+      return res.json({ cantBuild: true, reason: storyboard.reason || '', ideaId });
     }
-    res.json({ storyboard });
+    // What was unique: the bricks the plan is made of.
+    const steps = Array.isArray(storyboard.steps) ? storyboard.steps.map(s => s && s.brick).filter(Boolean) : [];
+    const ideaId = await logIdea(req.body, { stage: 'storyboard', result: 'storyboard', targetName: storyboard.name || '', steps });
+    res.json({ storyboard, ideaId });
   } catch (error) {
     console.log(`[api/games/storyboard] Error: ${error.message}`);
+    await logIdea(req.body, { stage: 'storyboard', result: 'error', reason: error.message });
     res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
@@ -3594,6 +3656,8 @@ app.post('/api/games/from-description', async (req, res) => {
     // by the server against the real configuration below. The AI is told
     // never to claim a timing fit (engine/duration-estimate.js).
     const requestedMinutes = parseRequestedMinutes(description);
+    // Ideas log: a fresh try, or an alternate card re-running the same idea.
+    const stage = recipeId ? 'alternate' : 'match';
 
     console.log(`[api/games/from-description] Matching: "${description.substring(0, 80)}..."`);
     const match = await aiService.matchRecipe(description, recipes, { forced: !!recipeId, games: matchGames });
@@ -3619,32 +3683,39 @@ app.post('/api/games/from-description', async (req, res) => {
           alternates: resolveAlternates(match.alternates, null),
           // Report only: the teacher copies this one from the yard, so a
           // trimmed config has nowhere to go here.
-          timing: existingConfig ? timingReport(existingConfig, requestedMinutes, { trim: false }) : null
+          timing: existingConfig ? timingReport(existingConfig, requestedMinutes, { trim: false }) : null,
+          ideaId: await logIdea(req.body, { stage, result: 'existing', target: existing.id, targetName: existing.name, minutes: requestedMinutes })
         });
       }
       // AI invented an activity id — fall through to no-match.
+      const unknownGame = `AI pointed at an unknown activity "${match.game}".`;
       return res.json({
         noMatch: true,
-        reason: `AI pointed at an unknown activity "${match.game}".`,
-        suggestion: 'Try the recipe picker directly.'
+        reason: unknownGame,
+        suggestion: 'Try the recipe picker directly.',
+        ideaId: await logIdea(req.body, { stage, result: 'none', reason: unknownGame, minutes: requestedMinutes })
       });
     }
 
     if (match.noMatch) {
+      const reason = match.reason || 'No recipe fits this description.';
       return res.json({
         noMatch: true,
-        reason: match.reason || 'No recipe fits this description.',
-        suggestion: match.suggestion || ''
+        reason,
+        suggestion: match.suggestion || '',
+        ideaId: await logIdea(req.body, { stage, result: 'none', reason, minutes: requestedMinutes })
       });
     }
 
     const recipe = getRecipe(match.recipe);
     if (!recipe) {
       // AI invented a recipe id — fall through to no-match.
+      const unknownRecipe = `AI suggested an unknown recipe "${match.recipe}".`;
       return res.json({
         noMatch: true,
-        reason: `AI suggested an unknown recipe "${match.recipe}".`,
-        suggestion: 'Try the recipe picker directly.'
+        reason: unknownRecipe,
+        suggestion: 'Try the recipe picker directly.',
+        ideaId: await logIdea(req.body, { stage, result: 'none', reason: unknownRecipe, minutes: requestedMinutes })
       });
     }
 
@@ -3656,7 +3727,8 @@ app.post('/api/games/from-description', async (req, res) => {
         noMatch: true,
         reason: 'AI matched a recipe but its parameters did not validate.',
         suggestion: 'Try the recipe picker, fill in the parameters manually.',
-        diagnostics
+        diagnostics,
+        ideaId: await logIdea(req.body, { stage, result: 'none', target: recipe.id, targetName: recipe.name, reason: 'Matched ' + recipe.name + ' but the parameters did not validate: ' + errors.join('; '), minutes: requestedMinutes })
       });
     }
 
@@ -3697,10 +3769,12 @@ app.post('/api/games/from-description', async (req, res) => {
       explanation: match.explanation || '',
       alternates,
       map: buildActivityMap(config),
-      timing
+      timing,
+      ideaId: await logIdea(req.body, { stage, result: 'match', target: recipe.id, targetName: config.name || recipe.name, minutes: requestedMinutes })
     });
   } catch (error) {
     console.log(`[api/games/from-description] Error: ${error.message}`);
+    await logIdea(req.body, { stage: req.body && req.body.recipeId ? 'alternate' : 'match', result: 'error', reason: error.message });
     res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
