@@ -319,14 +319,6 @@ export async function addRoomLog({ code, gameId, gameLabel, source, kind, hostKe
   const rows = await getSql()`
     INSERT INTO room_log (code, game_id, game_label, source, kind, host_key, steps)
     VALUES (${code}, ${gameId}, ${gameLabel || ''}, ${source || 'built-in'}, ${kind || 'class'}, ${hostKey || null}, ${steps || 0})
-// --- Ideas log (services/idea-log.js; owner-only /ideas page). What
-// --- teachers try to make on the Create page: teacher text, contact
-// --- patterns scrubbed, never student text. ---
-
-export async function addIdeaLog({ idea, stage, result, target, targetName, reason, steps, minutes, browser }) {
-  const rows = await getSql()`
-    INSERT INTO idea_log (idea, stage, result, target, target_name, reason, steps, minutes, browser)
-    VALUES (${idea}, ${stage}, ${result}, ${target || ''}, ${targetName || ''}, ${reason || ''}, ${steps || ''}, ${minutes ?? null}, ${browser || null})
     RETURNING id
   `;
   return rows[0].id;
@@ -341,9 +333,6 @@ export async function updateRoomLog(id, { players, step, stepId, status, minutes
       status     = ${status || 'open'},
       minutes    = ${minutes || 0},
       updated_at = now()
-export async function markIdeaLogSaved(id, { gameId, name }) {
-  const rows = await getSql()`
-    UPDATE idea_log SET saved_game_id = ${gameId}, saved_name = ${name || ''}
     WHERE id = ${id} RETURNING id
   `;
   return rows.length > 0;
@@ -354,6 +343,30 @@ export async function listRoomLog(limit) {
     SELECT id, created_at, updated_at, code, game_id, game_label, source, kind, host_key,
            steps, step, step_id, players, status, minutes
     FROM room_log ORDER BY created_at DESC LIMIT ${limit || 50}
+  `;
+}
+
+// --- Ideas log (services/idea-log.js; owner-only /ideas page). What
+// --- teachers try to make on the Create page: teacher text, contact
+// --- patterns scrubbed, never student text. ---
+
+export async function addIdeaLog({ idea, stage, result, target, targetName, reason, steps, minutes, browser }) {
+  const rows = await getSql()`
+    INSERT INTO idea_log (idea, stage, result, target, target_name, reason, steps, minutes, browser)
+    VALUES (${idea}, ${stage}, ${result}, ${target || ''}, ${targetName || ''}, ${reason || ''}, ${steps || ''}, ${minutes ?? null}, ${browser || null})
+    RETURNING id
+  `;
+  return rows[0].id;
+}
+
+export async function markIdeaLogSaved(id, { gameId, name }) {
+  const rows = await getSql()`
+    UPDATE idea_log SET saved_game_id = ${gameId}, saved_name = ${name || ''}
+    WHERE id = ${id} RETURNING id
+  `;
+  return rows.length > 0;
+}
+
 export async function listIdeaLog(limit) {
   return await getSql()`
     SELECT id, created_at, idea, stage, result, target, target_name, reason, steps, minutes, browser, saved_game_id, saved_name
