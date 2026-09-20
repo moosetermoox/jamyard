@@ -6,6 +6,7 @@ import { scrubForAI } from '../engine/pii-scrub.js';
 import { LANGUAGES as LANGUAGE_NAMES } from '../engine/i18n/index.js';
 import { cleanQuizQuestions, QUIZ_LIMITS } from '../engine/quiz-questions.js';
 import { cleanBluffQuestions, BLUFF_LIMITS } from '../engine/bluff-questions.js';
+import { completeSteps, partialName } from '../engine/storyboard-partial.js';
 
 /**
  * Extract text from the first text-type content block. Claude's content
@@ -734,20 +735,51 @@ export class AIService {
    */
   async _callClaude(params) {
     await this.budget.take();
-    // House style rides on EVERY outbound call: no em dashes anywhere in
-    // generated text (teacher feedback 2026-08-08 — students read them as
-    // an AI tell). Appended to the system prompt at this single choke
-    // point so no new AI surface can forget it.
+    return this.client.messages.create(this._prepareParams(params));
+  }
+
+  /**
+   * The streaming twin of _callClaude: same budget gate, same style rules,
+   * same per-model policy, but returns the SDK's MessageStream (iterate
+   * its events, then finalMessage()). Used by the storyboard so the
+   * Create page can show steps as they land (2026-09-20).
+   * @param {any} params
+   */
+  async _streamClaude(params) {
+    await this.budget.take();
+    return this.client.messages.stream(this._prepareParams(params));
+  }
+
+  /**
+   * What every outbound call gets, streamed or not.
+   * - House style rides on EVERY call: no em dashes anywhere in generated
+   *   text (teacher feedback 2026-08-08, students read them as an AI
+   *   tell). Appended to the system prompt at this single choke point so
+   *   no new AI surface can forget it.
+   * - `cache: true` (our flag, never sent) turns the system prompt into
+   *   one cached block. Only for prompts that are long and byte-stable
+   *   between calls (revise, recipe match): a hit is about 90% off the
+   *   input price, a miss costs 25% more, and it never changes the
+   *   speed (measured 2026-09-20). Haiku needs 4096 tokens to cache at
+   *   all, Sonnet 5 1024; shorter prompts silently do not.
+   * - Sonnet 5 gets SONNET_POLICY unless the caller set its own.
+   * @param {any} params
+   */
+  _prepareParams(params) {
+    const { cache, ...rest } = params;
+    const systemText = (params.system ? params.system + '\n' : '') + STYLE_RULES;
     const styled = {
-      ...params,
-      system: (params.system ? params.system + '\n' : '') + STYLE_RULES
+      ...rest,
+      system: cache
+        ? [{ type: 'text', text: systemText, cache_control: { type: 'ephemeral' } }]
+        : systemText
     };
     if (styled.model === MODELS.sonnet) {
       if (!styled.thinking) styled.thinking = SONNET_POLICY.thinking;
       if (!styled.output_config) styled.output_config = SONNET_POLICY.output_config;
       styled.max_tokens = Math.max(styled.max_tokens || 0, SONNET_POLICY.minMaxTokens);
     }
-    return this.client.messages.create(styled);
+    return styled;
   }
 
   /**
@@ -1098,6 +1130,8 @@ Return the revised config.`;
         // classroom configs into unparseable JSON.
         max_tokens: 8192,
         system: systemPrompt,
+        // ~17k stable tokens of schema and rules: cached (see _prepareParams).
+        cache: true,
         messages: [{ role: 'user', content: userContent }]
       });
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
@@ -1698,9 +1732,20 @@ Return ONLY JSON: {"suggestions":[...], "note": null or "one honest sentence abo
   // step vocabulary) and writes the words. The client compiles the
   // storyboard deterministically via StepSuggestions.compileStoryboard,
   // so invalid structure is impossible by construction.
-  async generateStoryboard(description) {
+  /**
+   * @param {string} description the teacher's idea
+   * @param {{ onEvent?: (e: {type: 'thinking'|'name'|'step', text?: string,
+   *           name?: string, index?: number, step?: object}) => void }} [opts]
+   *   onEvent: when given, the reply is STREAMED and the listener hears
+   *   the model's thinking summary as it thinks, the name once it is
+   *   whole, and each step once its JSON has closed (engine/
+   *   storyboard-partial.js). The returned value is the same full parse
+   *   either way; the Create page shows the events while it waits.
+   */
+  async generateStoryboard(description, { onEvent } = {}) {
+    const listening = typeof onEvent === 'function';
     if (this.mode === 'mock') {
-      return {
+      const board = {
         name: 'Mock Activity',
         description: description.slice(0, 120),
         steps: [
@@ -1710,13 +1755,22 @@ Return ONLY JSON: {"suggestions":[...], "note": null or "one honest sentence abo
           { brick: 'end', text: 'That is a wrap!' }
         ]
       };
+      if (listening) {
+        onEvent({ type: 'name', name: board.name });
+        board.steps.forEach((step, index) => onEvent({ type: 'step', index, step }));
+      }
+      return board;
     }
     try {
-      const message = await this._callClaude({
+      const params = {
         model: MODELS.sonnet,
         // Room for a full 15-question quiz storyboard; 1500 truncated
         // teacher-supplied question lists mid-JSON.
         max_tokens: 3000,
+        // Low effort (2026-09-20, measured over six ideas): medium spent
+        // up to 29 seconds and 2300 tokens deciding, low held 4 to 9
+        // seconds on the same ideas with the same honest declines.
+        output_config: { effort: 'low' },
         messages: [{
           role: 'user',
           content: `You plan classroom activities by arranging BRICKS in sequence. You never write configuration, you pick bricks and write the words teachers and students will read.
@@ -1758,8 +1812,55 @@ Teacher's description of the activity they want:
 
 ${description}`
         }]
-      });
-      const raw = extractText(message);
+      };
+      let message;
+      if (listening) {
+        // Summarized thinking is the only thing to show during the
+        // silent stretch before the JSON starts (display defaults to
+        // omitted on Sonnet 5, which streams empty thinking deltas).
+        params.thinking = { type: 'adaptive', display: 'summarized' };
+        const stream = await this._streamClaude(params);
+        let text = '';
+        let nameSent = false;
+        let stepsSent = 0;
+        for await (const event of stream) {
+          if (!event || event.type !== 'content_block_delta' || !event.delta) continue;
+          if (event.delta.type === 'thinking_delta') {
+            if (event.delta.thinking) onEvent({ type: 'thinking', text: event.delta.thinking });
+            continue;
+          }
+          if (event.delta.type !== 'text_delta' || !event.delta.text) continue;
+          text += event.delta.text;
+          if (!nameSent) {
+            const name = partialName(text);
+            if (name) {
+              nameSent = true;
+              onEvent({ type: 'name', name });
+            }
+          }
+          const steps = completeSteps(text);
+          for (; stepsSent < steps.length; stepsSent++) {
+            onEvent({ type: 'step', index: stepsSent, step: steps[stepsSent] });
+          }
+        }
+        message = await stream.finalMessage();
+      } else {
+        message = await this._callClaude(params);
+      }
+      return this._parseStoryboard(extractText(message));
+    } catch (error) {
+      if (error && error.name === 'AiBudgetError') throw error;
+      return { error: 'Storyboard generation failed: ' + error.message };
+    }
+  }
+
+  /**
+   * The storyboard reply as the route sees it: the plan, an honest
+   * refusal, or an error. Shared by the plain and streamed paths.
+   * @param {string} raw
+   */
+  _parseStoryboard(raw) {
+    try {
       let parsed;
       try {
         parsed = JSON.parse(raw);
@@ -1783,7 +1884,7 @@ ${description}`
       }
       return parsed;
     } catch (error) {
-      if (error && error.name === 'AiBudgetError') throw error;
+      // A reply that is not JSON at all (the model broke its own shape).
       return { error: 'Storyboard generation failed: ' + error.message };
     }
   }
@@ -2038,6 +2139,9 @@ ${responseList}`;
         model: MODELS.haiku,
         max_tokens: 1000,
         system: systemPrompt,
+        // The whole recipe catalog, ~8.5k tokens, the same on every call
+        // until a recipe changes: cached (see _prepareParams).
+        cache: true,
         messages: [
           {
             role: 'user',
