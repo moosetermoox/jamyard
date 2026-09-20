@@ -50,11 +50,15 @@ describe('the socket pages', () => {
     });
   }
 
-  for (const [file, decl] of [['screens/host/host.js', 'const socket = '], ['screens/player/player.js', 'const socket = '], ['screens/teacher/teacher.js', 'var socket = '], ['screens/prototype/prototype.js', 'railSocket = ']]) {
-    it(`${file} connects websocket first with polling as the fallback`, async () => {
+  for (const [file, decl, name] of [['screens/host/host.js', 'const socket = ', 'socket'], ['screens/player/player.js', 'const socket = ', 'socket'], ['screens/teacher/teacher.js', 'var socket = ', 'socket'], ['screens/prototype/prototype.js', 'railSocket = ', 'railSocket']]) {
+    it(`${file} connects websocket first, polling as the fallback, and reverts to polling-first after a connect error`, async () => {
       const js = await read(file);
       expect(js).toContain(decl + "io({ transports: ['websocket', 'polling'], tryAllTransports: true })");
       expect(js).not.toMatch(/=\s*io\(\)\s*;/);
+      // tryAllTransports covers a transport ERROR while opening; a silent
+      // drop hits the 20 s connect timeout instead, and this is socket.io's
+      // documented recovery: classic polling-then-upgrade from then on.
+      expect(js).toContain(name + ".on('connect_error', function () { " + name + ".io.opts.transports = ['polling', 'websocket']; });");
     });
   }
 });
