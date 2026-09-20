@@ -33,11 +33,14 @@
 
   var knownIds = [];
   function seedIds(ids) { if (Array.isArray(ids)) knownIds = ids.slice(); }
+  // Every id on the server rides back as `ids` on the scoped list
+  // (2026-09-20); it used to read the whole list as an array, which the
+  // route never sent, so this refresh silently did nothing.
   function refreshKnownIds() {
-    return fetch('/api/games')
-      .then(function (r) { return r.ok ? r.json() : []; })
-      .then(function (list) {
-        if (Array.isArray(list)) knownIds = list.map(function (g) { return g.id; });
+    return fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(',')))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (data && Array.isArray(data.ids)) knownIds = data.ids.slice();
       })
       .catch(function () { /* keep what we have */ });
   }

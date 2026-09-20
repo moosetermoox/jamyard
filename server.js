@@ -10,6 +10,7 @@ import { readdir, readFile, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
 import { loadGame, validate, getAllowedFields, listGames, resolveGamePath } from './engine/game-loader.js';
+import { parseMine, wantedUserIds } from './engine/games-list-scope.js';
 import { normalizeConfig } from './engine/normalizer.js';
 import { PHASE_SCHEMAS, getFields, getTopLevelOnlyFieldNames } from './engine/phase-schemas.js';
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
@@ -54,6 +55,12 @@ async function getUserGameRepaired(id) {
   if (row && row.config) repairSavedConfig(row.config);
   return row;
 }
+async function listUserGamesByIdsRepaired(ids) {
+  const rows = await listUserGamesByIds(ids);
+  for (const row of rows) if (row && row.config) repairSavedConfig(row.config);
+  return rows;
+}
+
 async function listUserGamesRepaired() {
   const rows = await listUserGames();
   for (const row of rows) if (row && row.config) repairSavedConfig(row.config);
@@ -90,6 +97,8 @@ import {
   initDb,
   getUserGame,
   listUserGames,
+  listUserGamesByIds,
+  listUserGameIds,
   saveUserGame,
   deleteUserGame,
   userGameExists,
@@ -2230,6 +2239,8 @@ app.get('/teacher/report', (req, res) => {
 });
 app.use('/teacher', express.static(join(__dirname, 'screens/teacher')));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
+// Versioned font files (the version is in the name): cache for a year (2026-09-20).
+app.use('/shared/fonts', express.static(join(__dirname, 'screens/shared/fonts'), { maxAge: '365d', immutable: true }));
 app.use('/shared', express.static(join(__dirname, 'screens/shared')));
 app.use('/prototype', express.static(join(__dirname, 'screens/prototype')));
 // Make it yours as a page (2026-09-09): the first student step as the
@@ -2815,18 +2826,31 @@ app.delete('/api/recipes/user/:id', async (req, res) => {
   }
 });
 
+// The games list. `?mine=a,b,c` (2026-09-20, engine/games-list-scope.js)
+// scopes the user rows to the visitor's own copies plus the owner's
+// featured ones, the only user rows a visitor can see; the list used to
+// carry every teacher's activity to every page load (96 of 143 rows on
+// the live site). No `mine` at all still means everything (the owner's
+// library console). `ids` is every id on the server, for picking a copy
+// id nobody has taken.
 app.get('/api/games', async (req, res) => {
   try {
+    const mine = parseMine(req.query.mine);
+    const overrides = await featuredOverridesSafe();
+    const wanted = mine ? wantedUserIds(mine, overrides) : null;
     const loaded = await listGames();
-    const games = loaded.map(({ id, source, config }) => ({
-      id,
-      source,
+    const ids = loaded.map(g => g.id);
+    const games = loaded
+      .filter(g => g.source !== 'user' || !wanted || wanted.includes(g.id) || !!(g.config && g.config.featured))
+      .map(({ id, source, config }) => ({
+      id: id,
+      source: source,
       name: config.name,
       description: config.description || '',
-      phaseCount: Object.keys(config.phases).length,
+      phaseCount: Object.keys(config.phases || {}).length,
       // Some configs declare minPlayers on the lobby phase instead of
       // top-level — the host lobby's start hint needs either.
-      minPlayers: config.minPlayers || (config.phases.lobby && config.phases.lobby.minPlayers) || null,
+      minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null,
       maxPlayers: config.maxPlayers || null,
       // The home page's drawn projector frame (engine/home-glimpse.js)
       glimpse: homeGlimpse(config),
@@ -2835,28 +2859,35 @@ app.get('/api/games', async (req, res) => {
     }));
 
     if (DB_ENABLED) {
-      const userRows = await listUserGamesRepaired();
+      const userRows = wanted
+        ? await listUserGamesByIdsRepaired(wanted)
+        : await listUserGamesRepaired();
       for (const row of userRows) {
         const config = row.config;
         games.push({
-          id: row.id,
-          source: 'user',
-          name: config.name,
-          description: config.description || '',
-          phaseCount: Object.keys(config.phases || {}).length,
-          minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null,
-          maxPlayers: config.maxPlayers || null,
-          glimpse: homeGlimpse(config),
-          ...yardCardExtras(config),
-          ...pickCardMeta(config)
-        });
+      id: row.id,
+      source: 'user',
+      name: config.name,
+      description: config.description || '',
+      phaseCount: Object.keys(config.phases || {}).length,
+      // Some configs declare minPlayers on the lobby phase instead of
+      // top-level — the host lobby's start hint needs either.
+      minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null,
+      maxPlayers: config.maxPlayers || null,
+      // The home page's drawn projector frame (engine/home-glimpse.js)
+      glimpse: homeGlimpse(config),
+      ...yardCardExtras(config),
+      ...pickCardMeta(config)
+    });
       }
+      const userIds = wanted ? await listUserGameIds() : userRows.map(r => r.id);
+      ids.push(...userIds);
     }
 
-    res.json({ games: applyFeaturedOverrides(games, await featuredOverridesSafe()) });
+    res.json({ games: applyFeaturedOverrides(games, overrides), ids });
   } catch (error) {
     console.log(`[api/games] Error: ${error.message}`);
-    res.status(500).json({ games: [], error: 'Failed to load games' });
+    res.status(500).json({ games: [], ids: [], error: 'Failed to load games' });
   }
 });
 

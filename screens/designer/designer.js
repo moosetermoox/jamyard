@@ -14,6 +14,7 @@ var ideaGoBtn = document.getElementById('idea-go-btn');
 var useRecipeLink = document.getElementById('use-recipe-link');
 
 var allGames = [];
+var allIds = []; // every id on the server, for picking a free one
 
 // The activity grid moved to /library (docs/SURFACES-PLAN.md); this page
 // only hosts the create flows now. The games list is still fetched —
@@ -90,12 +91,16 @@ if (useRecipeLink) {
 
 async function fetchGames() {
   try {
-    var response = await fetch('/api/games');
+    // Owner mode sees everything; a visitor asks only for what they can see
+    // (2026-09-20). The reply's `ids` is every id on the server, which is
+    // what generateGameId needs; the rows are for the grid, where one exists.
+    var response = await fetch((window.OwnerMode && OwnerMode.isOn()) ? '/api/games' : '/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(',')));
     if (!response.ok) {
       throw new Error('Failed to load games (status ' + response.status + ')');
     }
     var data = await response.json();
     allGames = data.games || [];
+    allIds = Array.isArray(data.ids) ? data.ids : allGames.map(function (g) { return g.id; });
     if (loadingMessage) loadingMessage.hidden = true;
     if (gamesGrid) refreshLibrary();
   } catch (error) {
@@ -536,7 +541,7 @@ async function handleDeleteClick(e) {
 
 function generateGameId(templateKey) {
   var base = templateKey;
-  var existingIds = allGames.map(function (g) { return g.id; });
+  var existingIds = allIds.length ? allIds : allGames.map(function (g) { return g.id; });
 
   if (existingIds.indexOf(base) === -1) return base;
 

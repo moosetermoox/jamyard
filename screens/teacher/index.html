@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Teacher View. Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
+  <!-- The two site fonts start with the HTML, not after the stylesheet (2026-09-20) -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/shared/fonts/bricolage-grotesque-v9-latin-variable.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/shared/fonts/dm-sans-v17-latin-variable.woff2">
   <link rel="stylesheet" href="/shared/totem.css">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -141,7 +144,7 @@
   </section>
 
   <script src="/shared/drawing.js"></script>
-  <script src="/socket.io/socket.io.js"></script>
+  <script src="/socket.io/socket.io.min.js"></script>
   <script src="/shared/host-launch.js"></script>
   <script src="teacher.js"></script>
 </body>

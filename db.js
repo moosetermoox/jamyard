@@ -175,6 +175,22 @@ export async function listUserGames() {
   return await getSql()`SELECT id, name, config FROM user_games ORDER BY created_at`;
 }
 
+// The rows a visitor may see: their own copies (by id) plus every row whose
+// config is featured (the owner's featured user activities, rose-bud-thorn
+// on the live site), asked for directly so the list route never reads
+// every teacher's activity (2026-09-20, the snappiness pass). The column
+// is json, so ->> reads the flag without a cast.
+export async function listUserGamesByIds(ids) {
+  const want = Array.isArray(ids) ? ids : [];
+  return await getSql()`SELECT id, name, config FROM user_games WHERE id = ANY(${want}) OR (config->>'featured') = 'true' ORDER BY created_at`;
+}
+
+// Every saved id, for picking a copy id nobody has taken.
+export async function listUserGameIds() {
+  const rows = await getSql()`SELECT id FROM user_games`;
+  return rows.map(r => r.id);
+}
+
 export async function saveUserGame(id, config) {
   const json = JSON.stringify(config);
   await getSql()`
