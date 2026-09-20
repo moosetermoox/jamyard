@@ -99,6 +99,8 @@ function connectRail(code, pin) {
   if (!window.io || !pin) return;
   // websocket first (2026-09-20, measured on the live site): the default polling-then-upgrade left the first emits (create-room, join) riding HTTP for 80 to 210 ms; on a socket they take about 30. Polling stays as the fallback for a network that blocks websockets.
   railSocket = io({ transports: ['websocket', 'polling'], tryAllTransports: true });
+  // A network that silently drops the websocket handshake reaches the connect timeout instead of a transport error; from then on connect the classic way (polling first, then upgrade), socket.io's documented fallback.
+  railSocket.on('connect_error', function () { railSocket.io.opts.transports = ['polling', 'websocket']; });
   railSocket.on('connect', () => railSocket.emit('join-teacher', { code, pin }));
   railSocket.on('teacher-joined', snap => {
     railPhaseId = snap.phaseId;
