@@ -97,7 +97,8 @@ function hideMapRail() {
 function connectRail(code, pin) {
   if (railSocket) { railSocket.disconnect(); railSocket = null; }
   if (!window.io || !pin) return;
-  railSocket = io();
+  // websocket first (2026-09-20, measured on the live site): the default polling-then-upgrade left the first emits (create-room, join) riding HTTP for 80 to 210 ms; on a socket they take about 30. Polling stays as the fallback for a network that blocks websockets.
+  railSocket = io({ transports: ['websocket', 'polling'], tryAllTransports: true });
   railSocket.on('connect', () => railSocket.emit('join-teacher', { code, pin }));
   railSocket.on('teacher-joined', snap => {
     railPhaseId = snap.phaseId;
@@ -721,8 +722,12 @@ window.addEventListener('resize', updateBanner);
   });
 })();
 
-// Fetch available games
-fetch('/api/games')
+// Fetch available games: what this visitor can see, plus a ?game= deep
+// link's id so a hidden or freshly copied activity still opens (2026-09-20)
+const wantIds = (window.MyGames ? MyGames.list() : []).slice();
+const deepLinkedId = new URLSearchParams(window.location.search).get('game');
+if (deepLinkedId) wantIds.push(deepLinkedId);
+fetch((window.OwnerMode && OwnerMode.isOn()) ? '/api/games' : '/api/games?mine=' + encodeURIComponent(wantIds.join(',')))
   .then(res => res.json())
   .then(({ games }) => {
     // Same curated-list rule as the designer/host pickers; a ?game= deep

@@ -16,7 +16,8 @@ if (window.applyGameTheme) {
   window.applyGameTheme('totem');
 }
 
-const socket = io();
+// websocket first (2026-09-20, measured on the live site): the default polling-then-upgrade left the first emits (create-room, join) riding HTTP for 80 to 210 ms; on a socket they take about 30. Polling stays as the fallback for a network that blocks websockets.
+const socket = io({ transports: ['websocket', 'polling'], tryAllTransports: true });
 
 // --- Juice (sounds + confetti + avatars) ---
 // Garnish from /shared/juice.js; guarded so a load failure can't break the game.

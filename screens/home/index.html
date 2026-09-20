@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Jamyard</title>
   <link rel="stylesheet" href="/shared/design.css">
+  <!-- The two site fonts start with the HTML, not after the stylesheet (2026-09-20) -->
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/shared/fonts/bricolage-grotesque-v9-latin-variable.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/shared/fonts/dm-sans-v17-latin-variable.woff2">
   <link rel="stylesheet" href="/shared/totem.css">
   <link rel="stylesheet" href="/shared/activity-map.css">
   <link rel="stylesheet" href="/shared/hover-card.css">
@@ -1403,7 +1406,9 @@
         timer = setInterval(function () { step(1); }, 14500);
       }
 
-      fetch('/api/games')
+      // Scoped to what this visitor can see (2026-09-20): built-ins, the
+      // featured ones, and this browser's own copies, never every teacher's.
+      fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(',')))
         .then(function (r) { return r.json(); })
         .then(function (data) {
           var all = (data && data.games) || [];

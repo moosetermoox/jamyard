@@ -8,7 +8,8 @@
 // teacher link" button, which carries the room code + PIN in the hash
 // (or rides the site password when one is set).
 
-var socket = io();
+// websocket first (2026-09-20, measured on the live site): the default polling-then-upgrade left the first emits (create-room, join) riding HTTP for 80 to 210 ms; on a socket they take about 30. Polling stays as the fallback for a network that blocks websockets.
+var socket = io({ transports: ['websocket', 'polling'], tryAllTransports: true });
 
 var joinSection = document.getElementById('join-section');
 var consoleSection = document.getElementById('console-section');
