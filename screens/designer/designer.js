@@ -2156,6 +2156,35 @@ function renderNoMatchView(modal, description, data, overlay) {
 // the same vocabulary the Builder shows once the activity opens there.
 var SB_BRICK_LABELS = window.PHASE_NAMES || {};
 
+// Asks for the plan over the streamed route and reports progress through
+// hooks (onThinking(text), onName(name), onStep({index, step})) until
+// the `done` record, which carries exactly what the plain JSON route
+// answers. Resolves {status, body}. When the server answers plain JSON
+// instead (the AI is off: 503) or the browser cannot read a stream, the
+// JSON answer is returned the same way, no progress shown.
+async function fetchStoryboard(description, hooks) {
+  var r = await fetch('/api/games/storyboard/stream', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ description: description, aid: createBrowserId() })
+  });
+  var type = r.headers.get('Content-Type') || '';
+  if (type.indexOf('text/event-stream') < 0 || !r.body || !window.SseReader) {
+    return { status: r.status, body: await r.json() };
+  }
+  var done = null;
+  await SseReader.read(r, function (event, data) {
+    if (event === 'thinking') hooks.onThinking(data);
+    else if (event === 'name') hooks.onName(data);
+    else if (event === 'step') hooks.onStep(data);
+    else if (event === 'done') done = data;
+  });
+  if (!done) throw new Error('The plan never finished arriving. Try again.');
+  var status = done.status || 200;
+  delete done.status;
+  return { status: status, body: done };
+}
+
 async function showStoryboardFlow(description, seededStoryboard) {
   // template-picker-overlay/-modal: the page's centered, Totem-skinned
   // dialog pair. (The old picker-overlay classes live in editor.css,
@@ -2188,13 +2217,42 @@ async function showStoryboardFlow(description, seededStoryboard) {
     storyboard = seededStoryboard;
   } else {
     var resp;
+    // While the plan is being written (2026-09-20): the model's thinking
+    // summary as one changing line, then each step as it lands, so the
+    // teacher watches the plan take shape instead of a spinner. Removed
+    // the moment the full plan arrives and the editable rows take over.
+    var arriving = sbEl('div', null, 'sb-arriving');
+    var progress = sbEl('p', '', 'sb-progress');
+    arriving.appendChild(progress);
+    var arrivingName = sbEl('div', '', 'sb-arriving-name');
+    arriving.appendChild(arrivingName);
+    var arrivingList = sbEl('div');
+    arriving.appendChild(arrivingList);
+    modal.appendChild(arriving);
+    var thought = '';
     try {
-      var r = await fetch('/api/games/storyboard', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: description, aid: createBrowserId() })
+      var got = await fetchStoryboard(description, {
+        onThinking: function (text) {
+          thought = (thought + String(text || '')).replace(/\s+/g, ' ');
+          if (thought.length > 160) thought = thought.slice(thought.length - 160);
+          progress.textContent = thought;
+        },
+        onName: function (name) { arrivingName.textContent = name || ''; },
+        onStep: function (data) {
+          var step = data && data.step;
+          if (!step) return;
+          var row = sbEl('div', null, 'sb-step sb-step-arriving');
+          var head = sbEl('div', null, 'sb-step-head');
+          head.appendChild(sbEl('span', String((data.index || 0) + 1) + '.', 'sb-step-num'));
+          head.appendChild(sbEl('span', SB_BRICK_LABELS[step.brick] || step.brick));
+          row.appendChild(head);
+          if (typeof step.text === 'string' && step.text) row.appendChild(sbEl('div', step.text, 'sb-arriving-text'));
+          arrivingList.appendChild(row);
+          status.textContent = 'Step ' + ((data.index || 0) + 1) + ' is in, still sketching…';
+        }
       });
-      resp = await r.json();
+      arriving.remove();
+      resp = got.body;
       // Built or honestly refused; never the idea itself
       if (window.Analytics) Analytics.track('create_result', { result: resp && resp.cantBuild ? 'none' : 'storyboard' });
       if (resp && resp.cantBuild) {
@@ -2220,8 +2278,9 @@ async function showStoryboardFlow(description, seededStoryboard) {
         modal.appendChild(cbRow);
         return;
       }
-      if (!r.ok || !resp.storyboard) throw new Error(resp.error || 'No storyboard came back.');
+      if (got.status >= 400 || !resp || !resp.storyboard) throw new Error((resp && resp.error) || 'No storyboard came back.');
     } catch (err) {
+      arriving.remove();
       status.textContent = 'Could not sketch the plan: ' + err.message;
       return;
     }

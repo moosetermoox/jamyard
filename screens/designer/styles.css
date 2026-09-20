@@ -2033,3 +2033,12 @@ main {
   text-transform: uppercase;
   color: var(--t-muted-caps);
 }
+
+/* The plan arriving (2026-09-20): the model's thinking summary as one
+   changing line, the name, then each step as its JSON closes. Gone the
+   moment the full plan lands and the editable rows take over. */
+.sb-progress { color: #8A7F6C; font-size: 0.85rem; min-height: 1.3em; margin: 0 0 10px; }
+.sb-arriving-name { font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif; font-weight: 800; margin-bottom: 10px; min-height: 1.3em; }
+.sb-step-arriving { animation: sb-land 0.35s ease-out; }
+.sb-arriving-text { margin-top: 6px; white-space: pre-wrap; }
+@keyframes sb-land { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }

@@ -3578,34 +3578,79 @@ app.post('/api/games/suggest', async (req, res) => {
 // Storyboard-before-generate: AI proposes a step outline in the
 // Builder's brick vocabulary; the CLIENT compiles it deterministically
 // (StepSuggestions.compileStoryboard) so structure is never AI-written.
-app.post('/api/games/storyboard', async (req, res) => {
+/**
+ * The storyboard outcome for one request body, as {status, json}: the
+ * plan, an honest refusal, or an error, each logged to the ideas log
+ * exactly once. Shared by the plain JSON route and the streamed one so
+ * the two can never drift. `onEvent` (optional) hears the AI's progress
+ * (thinking, name, step) while the plan is being written.
+ * @param {any} body
+ * @param {(e: object) => void} [onEvent]
+ */
+async function storyboardOutcome(body, onEvent) {
+  const { description } = body || {};
+  if (!description || typeof description !== 'string' || description.trim().length < 10) {
+    return { status: 400, json: { error: 'Please describe the activity (at least 10 characters).' } };
+  }
   try {
-    if (!requireRealAI(res)) return;
-    const { description } = req.body || {};
-    if (!description || typeof description !== 'string' || description.trim().length < 10) {
-      return res.status(400).json({ error: 'Please describe the activity (at least 10 characters).' });
-    }
     console.log(`[api/games/storyboard] Planning: "${description.substring(0, 80)}..."`);
-    const storyboard = await aiService.generateStoryboard(description);
+    const storyboard = await aiService.generateStoryboard(description, { onEvent });
     if (storyboard.error) {
-      await logIdea(req.body, { stage: 'storyboard', result: 'error', reason: storyboard.error });
-      return res.status(500).json({ error: storyboard.error });
+      await logIdea(body, { stage: 'storyboard', result: 'error', reason: storyboard.error });
+      return { status: 500, json: { error: storyboard.error } };
     }
     // Honest refusal, not an error: the idea's core needs a mechanic no
     // brick provides, and a hollow lookalike would be worse than saying so.
     if (storyboard.cantBuild) {
-      const ideaId = await logIdea(req.body, { stage: 'storyboard', result: 'cant-build', reason: storyboard.reason || '' });
-      return res.json({ cantBuild: true, reason: storyboard.reason || '', ideaId });
+      const ideaId = await logIdea(body, { stage: 'storyboard', result: 'cant-build', reason: storyboard.reason || '' });
+      return { status: 200, json: { cantBuild: true, reason: storyboard.reason || '', ideaId } };
     }
     // What was unique: the bricks the plan is made of.
     const steps = Array.isArray(storyboard.steps) ? storyboard.steps.map(s => s && s.brick).filter(Boolean) : [];
-    const ideaId = await logIdea(req.body, { stage: 'storyboard', result: 'storyboard', targetName: storyboard.name || '', steps });
-    res.json({ storyboard, ideaId });
+    const ideaId = await logIdea(body, { stage: 'storyboard', result: 'storyboard', targetName: storyboard.name || '', steps });
+    return { status: 200, json: { storyboard, ideaId } };
   } catch (error) {
     console.log(`[api/games/storyboard] Error: ${error.message}`);
-    await logIdea(req.body, { stage: 'storyboard', result: 'error', reason: error.message });
-    res.status(error.statusCode || 500).json({ error: error.message });
+    await logIdea(body, { stage: 'storyboard', result: 'error', reason: error.message });
+    return { status: error.statusCode || 500, json: { error: error.message } };
   }
+}
+
+app.post('/api/games/storyboard', async (req, res) => {
+  if (!requireRealAI(res)) return;
+  const out = await storyboardOutcome(req.body);
+  res.status(out.status).json(out.json);
+});
+
+// The same plan, streamed (2026-09-20): the Create page shows each step
+// as it lands instead of a spinner. Server-sent events over the POST:
+//   event: thinking  data: "a slice of the model's thinking summary"
+//   event: name      data: "Activity name"
+//   event: step      data: {"index": 0, "step": {"brick": "...", ...}}
+//   event: done      data: {"status": 200, ...the JSON route's body}
+// `done` always comes last and carries exactly what the plain route
+// would have answered, so the client treats it the same way. The AI
+// gate answers 503 JSON before any stream starts, as the plain route does.
+app.post('/api/games/storyboard/stream', async (req, res) => {
+  if (!requireRealAI(res)) return;
+  res.status(200).set({
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+  res.flushHeaders();
+  const send = (event, data) => {
+    if (res.writableEnded || res.destroyed) return;
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+  const out = await storyboardOutcome(req.body, (e) => {
+    if (e.type === 'thinking') send('thinking', e.text);
+    else if (e.type === 'name') send('name', e.name);
+    else if (e.type === 'step') send('step', { index: e.index, step: e.step });
+  });
+  send('done', { status: out.status, ...out.json });
+  res.end();
 });
 
 // Recipe-based AI generation (R4). Replaces the fragile generateGame
