@@ -319,6 +319,24 @@
         }
       },
       "note": "The summarize-brick case (storyboard probe, 2026-09-20): declined 3 of 3 while ai-process summarize had done it since the start. Discussion Starter is the matcher's defensible answer. The heading never names the AI."
+    },
+    {
+      "id": "draw-me-and-vote",
+      "prompt": "Everyone draws a picture of me and then we vote on which one is the best.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Portraits of the Teacher",
+          "description": "Everyone draws the teacher, the wall opens after a quick look, and the class votes for the best one.",
+          "steps": [
+            { "brick": "announce", "text": "Ninety seconds to draw me. Be kind, or be funny, but be quick. Then the wall opens and you vote for the best one." },
+            { "brick": "draw", "text": "Draw a picture of your teacher.", "gallery": "The portrait wall is open. Look closely, you vote next.", "timer": 90 },
+            { "brick": "vote" },
+            { "brick": "end", "text": "Thank you, I think. The winner goes on the fridge." }
+          ]
+        }
+      },
+      "note": "The owner's own live try (2026-09-21): the matcher sent it to Creative Vote (a text box) once and Draw Gallery (no vote) twice; every recipe's answer box is typed, so a drawing idea with a vote is the step builder's (draw then vote). No acceptAlso: the vote is the heart, so Draw Gallery is not a defensible answer here."
     }
   ]
 }
