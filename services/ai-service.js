@@ -633,6 +633,40 @@ export function repairJsonStringQuotes(text) {
 }
 
 /**
+ * Best-effort repair for the second most common break: the reply stops
+ * before its closing brackets. The storyboard probe (2026-09-20) caught
+ * 4 of 81 replies ending in `}]` with the object's own `}` missing; the
+ * regex fallback trimmed to the last `}` and parsing died at the array.
+ * Walks the text once, tracking strings (with escapes) and a stack of
+ * open brackets, then appends whatever is still open: a dangling string's
+ * quote first, then the closers innermost first. Balanced text comes
+ * back untouched. Only ever called AFTER normal parsing fails. Pure;
+ * exported for tests.
+ */
+export function closeUnbalancedJson(text) {
+  const stack = [];
+  let inString = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inString) {
+      if (ch === '\\') i++;
+      else if (ch === '"') inString = false;
+      continue;
+    }
+    if (ch === '"') inString = true;
+    else if (ch === '{') stack.push('}');
+    else if (ch === '[') stack.push(']');
+    else if (ch === '}' || ch === ']') {
+      if (stack[stack.length - 1] === ch) stack.pop();
+    }
+  }
+  let out = text;
+  if (inString) out += '"';
+  while (stack.length) out += stack.pop();
+  return out;
+}
+
+/**
  * Compact plain-text picture of a config for the design chat's cheap
  * (Haiku) turns: name, description, players, then one line per step in
  * next-chain order. Never includes raw JSON. Pure; exported for tests.
@@ -1865,9 +1899,29 @@ ${description}`
       try {
         parsed = JSON.parse(raw);
       } catch (e) {
-        const match = raw.match(/\{[\s\S]*\}/);
-        if (!match) return { error: 'The AI reply was not a storyboard. Try describing the activity again.' };
-        parsed = JSON.parse(match[0]);
+        // A preamble before the object, an object cut off before its
+        // closing brackets (the storyboard probe's failure shape), or an
+        // interior quote: each rung is tried only after the one before
+        // it fails, so a healthy reply is never rewritten.
+        const start = raw.indexOf('{');
+        if (start < 0) return { error: 'The AI reply was not a storyboard. Try describing the activity again.' };
+        const candidate = raw.slice(start);
+        const rungs = [
+          () => candidate.match(/\{[\s\S]*\}/)[0],
+          () => closeUnbalancedJson(candidate),
+          () => closeUnbalancedJson(repairJsonStringQuotes(candidate))
+        ];
+        let lastError = e;
+        for (const rung of rungs) {
+          try {
+            parsed = JSON.parse(rung());
+            lastError = null;
+            break;
+          } catch (err) {
+            lastError = err;
+          }
+        }
+        if (lastError) throw lastError;
       }
       if (parsed && parsed.cantBuild === true) {
         // The honest refusal: the idea's core needs a mechanic no brick
@@ -2204,6 +2258,25 @@ ${responseList}`;
         return s.length > 60 ? '' : s;
       };
       const title = cleanTitle(parsed.title);
+      const offeredRecipeIds = new Set((recipes || []).map(r => r.id));
+      const listedGameIds = new Set(((options && options.games) || []).map(g => g.id));
+
+      // The right recipe in the wrong slot (storyboard probe, 2026-09-20):
+      // "closest guess wins" came back as {"game": "estimation-station"}.
+      // The route would call it an unknown activity and the teacher would
+      // fall through to a storyboard that cannot score guesses. An id that
+      // is not a listed activity but IS an offered recipe is a recipe pick.
+      if (typeof parsed.game === 'string' && !listedGameIds.has(parsed.game) &&
+          offeredRecipeIds.has(parsed.game)) {
+        return {
+          recipe: parsed.game,
+          params: (parsed.params && typeof parsed.params === 'object') ? parsed.params : {},
+          explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
+          alternates: sanitizeAlternates(parsed.alternates, parsed.game),
+          ...(title ? { title } : {})
+        };
+      }
+
       if (typeof parsed.game === 'string') {
         return {
           game: parsed.game,
@@ -2218,8 +2291,6 @@ ${responseList}`;
       // shuffle-and-deal idea). An id that is not an offered recipe but IS
       // a listed activity is a game pick; the route would otherwise call it
       // an unknown recipe and the teacher would fall through to a refusal.
-      const offeredRecipeIds = new Set((recipes || []).map(r => r.id));
-      const listedGameIds = new Set(((options && options.games) || []).map(g => g.id));
       if (typeof parsed.recipe === 'string' && !offeredRecipeIds.has(parsed.recipe) &&
           listedGameIds.has(parsed.recipe)) {
         return {
