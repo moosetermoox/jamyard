@@ -498,6 +498,9 @@
   //     method?: string,        // roles only: 'random' (default) | 'choice'
   //     tasks?: string[],       // roles only: a shared checklist; "Job: task" tags a job
   //                             //   (text = the checklist instruction)
+  //     answer?: number,        // estimate only: the true number (else poll mode)
+  //     unit?: string,          // estimate only, with answer
+  //     scoring?: string,       // estimate only, with answer: 'closest' (default) | 'graduated'
   //     timer? } ] }            // deal: seconds per pile step; pairs: per writing step
 
   // The same five YouTube shapes engine/video.js embeds (watch, youtu.be,
@@ -1093,6 +1096,14 @@
           isFinite(step.min) && isFinite(step.max) && step.max > step.min) {
         built.min = step.min;
         built.max = step.max;
+      }
+      // The true number: with it the step reveals the answer, the class
+      // spread, and closeness scores at close; without it the step is a
+      // poll, so unit and scoring mean nothing and are left off.
+      if (brick === 'estimate' && typeof step.answer === 'number' && isFinite(step.answer)) {
+        built.answer = step.answer;
+        if (typeof step.unit === 'string' && step.unit.trim()) built.unit = step.unit.trim();
+        built.scoring = step.scoring === 'graduated' ? 'graduated' : 'closest';
       }
 
       phases[lastId].next = id;

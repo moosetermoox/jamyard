@@ -184,9 +184,13 @@ export function validateSuggestions(raw, ctx) {
             method: s.method === 'choice' || s.method === 'random' ? s.method : undefined,
             tasks: cleanTasks(s.tasks),
             timer: typeof s.timer === 'number' ? s.timer : undefined,
-            // estimate: the scale's ends ("on a scale of 1 to 10")
+            // estimate: the scale's ends ("on a scale of 1 to 10"), and the
+            // true number with its unit and scoring when there is one
             min: typeof s.min === 'number' && Number.isFinite(s.min) ? s.min : undefined,
-            max: typeof s.max === 'number' && Number.isFinite(s.max) ? s.max : undefined
+            max: typeof s.max === 'number' && Number.isFinite(s.max) ? s.max : undefined,
+            answer: typeof s.answer === 'number' && Number.isFinite(s.answer) ? s.answer : undefined,
+            unit: typeof s.unit === 'string' ? s.unit.slice(0, 40) : undefined,
+            scoring: s.scoring === 'closest' || s.scoring === 'graduated' ? s.scoring : undefined
           }))
         },
         why: cleanWhy(item.why)

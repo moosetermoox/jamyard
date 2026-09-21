@@ -68,6 +68,6 @@ Timing: most runs 2 to 8 s. One slow outlier of 17 to 25 s in each of #6, #11, #
 3. DONE (branch storyboard-bricks): `video` on the announce, collect, and collect-choice bricks; live the clip idea built 3 of 3 with the link on the announce.
 4. DONE (branch storyboard-bricks): the `roles` brick over team-roles plus an optional checklist, and the prompt rule against rank + assign for member jobs; live the lab-jobs idea built 3 of 3 as teams then roles.
 5. DONE: `matchRecipe` reads an offered recipe id out of the game slot as a recipe pick.
-6. `answer` + closest scoring on the estimate brick so "closest wins" is real.
+6. DONE (branch storyboard-bricks): `answer` + `unit` + `scoring` on the estimate brick; live a known number (heartbeats) scored 3 of 3, and the teacher's own jar stayed honest 3 of 3 after a second rule (no winner promised without an answer). Open: a door for the teacher's private number before the reveal.
 7. A `draw` brick (collect drawing + preview gate + reveal-one or vote), since Draw Gallery only covers the plain gallery.
 8. A `summarize` brick over ai-process for the "themes on the board" ask; the Create page already covers it through Discussion Starter.
