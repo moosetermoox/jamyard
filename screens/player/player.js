@@ -1036,12 +1036,20 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText }) => {
   resetHoldingProgress();
   // Which step this is (Try it out deals the template's sample answers by it)
   currentCollectPhaseId = phaseId || null;
   showSection(collectSection);
   setRichText(promptDisplay, prompt);
+  // What the partner wrote (a pairs round): its own card under the
+  // instruction. A classmate's words, so textContent, never markup.
+  const partnerNote = document.getElementById('partner-note');
+  if (partnerNote) {
+    const hasPartner = typeof partnerText === 'string' && partnerText.trim() !== '';
+    partnerNote.hidden = !hasPartner;
+    partnerNote.textContent = hasPartner ? partnerText : '';
+  }
   // Who will see this answer (server-computed, engine/audience.js), and
   // the waiting-screen hint when a classmate gets it next
   audienceLine.textContent = audience || '';
@@ -1531,6 +1539,8 @@ function renderTeamPick(payload) {
   var yourTeam = payload.yourTeam || null;
   showSection(teamSplitSection);
   teamPick.hidden = false;
+  var teamHint = teamPick.querySelector('.team-pick-hint');
+  if (teamHint) teamHint.textContent = UiLang.t('Tap the team you want, you can switch until the teacher locks it in.');
   teamSplitAllTeams.innerHTML = '';
   teamSplitMyTeam.textContent = yourTeam ? 'You’re in ' + yourTeam + '!' : 'Pick your team!';
 
@@ -1581,6 +1591,9 @@ function renderRolePick(payload) {
   var yourRole = payload.yourRole || null;
   showSection(teamSplitSection);
   teamPick.hidden = false;
+  // The picker is the team-split one; the hint says what is being picked.
+  var roleHint = teamPick.querySelector('.team-pick-hint');
+  if (roleHint) roleHint.textContent = UiLang.t('Tap the role you want, you can switch until the teacher locks it in.');
   teamSplitAllTeams.innerHTML = '';
   teamSplitMyTeam.textContent = yourRole
     ? 'You are the ' + yourRole + '!'

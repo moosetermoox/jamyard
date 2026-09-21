@@ -96,3 +96,25 @@ export function resolvePerPlayerTemplate(template, engine, playerId) {
       return value !== undefined ? String(value) : match;
     });
 }
+
+/**
+ * The partner's piece travels OUTSIDE the prompt (2026-09-20, the pairs
+ * brick in a browser: a quoted opening in the same heavy prompt style read
+ * like part of the instruction). Splits every {{X.partner}} token out of a
+ * prompt: the prompt keeps its own words, and `partnerRefs` are the tokens
+ * to resolve per recipient into a card of their own under the instruction.
+ *
+ * @param {string} template
+ * @returns {{ prompt: string, partnerRefs: string[] }}
+ */
+export function splitPartnerTokens(template) {
+  const text = typeof template === 'string' ? template : '';
+  const partnerRefs = text.match(/\{\{\s*[a-zA-Z0-9_-]+\.partner\s*\}\}/g) || [];
+  if (partnerRefs.length === 0) return { prompt: text, partnerRefs };
+  const prompt = text
+    .replace(/\{\{\s*[a-zA-Z0-9_-]+\.partner\s*\}\}/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return { prompt, partnerRefs };
+}

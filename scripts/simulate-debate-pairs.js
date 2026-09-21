@@ -60,9 +60,12 @@ async function run() {
     // --- Round 2: rebuttal, the partner's opening in view ---
     const rebut = await waitForEventOnAll(players, 'game-started', 8000);
     const prompts2 = rebut.map(ev => String(ev.prompt || ''));
-    r.check(prompts2.every(p => !p.includes('{{')), 'round 2: no raw {{tokens}}');
-    const partnersOf = prompts2.map((p, i) => names.filter((n, j) => j !== i && p.includes(`OPENING by ${n} `)));
-    r.check(prompts2.every((p, i) => !p.includes(`OPENING by ${names[i]} `)), 'round 2: nobody is shown their own opening');
+    // The partner's piece rides beside the prompt (partnerText), never in it
+    const notes2 = rebut.map(ev => String(ev.partnerText || ''));
+    r.check(prompts2.every(p => !p.includes('{{')) && notes2.every(p => !p.includes('{{')), 'round 2: no raw {{tokens}}');
+    r.check(prompts2.every(p => !p.includes('OPENING by')), 'round 2: the instruction itself carries no partner text');
+    const partnersOf = notes2.map((p, i) => names.filter((n, j) => j !== i && p.includes(`OPENING by ${n} `)));
+    r.check(notes2.every((p, i) => !p.includes(`OPENING by ${names[i]} `)), 'round 2: nobody is shown their own opening');
     r.check(partnersOf.every(list => list.length >= 1), `round 2: everyone sees at least one partner's opening (${partnersOf.map(l => l.length).join(',')})`);
     const tripleMembers = partnersOf.filter(list => list.length === 2).length;
     r.check(tripleMembers === 3, `round 2: the triple's three members each see BOTH partners (got ${tripleMembers})`);
@@ -80,13 +83,14 @@ async function run() {
     // --- Round 3: the switch ---
     const sw = await waitForEventOnAll(players, 'game-started', 8000);
     const prompts3 = sw.map(ev => String(ev.prompt || ''));
-    r.check(prompts3.every(p => !p.includes('{{')), 'round 3: no raw {{tokens}}');
+    const notes3 = sw.map(ev => String(ev.partnerText || ''));
+    r.check(prompts3.every(p => !p.includes('{{')) && notes3.every(p => !p.includes('{{')), 'round 3: no raw {{tokens}}');
     const other = s => (s === 'For' ? 'Against' : 'For');
     r.check(prompts3.every((p, i) => p.includes('you now argue ' + other(sides[i]))),
       'round 3: every student is told to argue the OTHER side');
-    r.check(prompts3.every((p, i) => partnersOf[i].some(n => p.includes(`REBUTTAL by ${n}.`))),
-      'round 3: the partner\'s rebuttal is in view');
-    r.check(prompts3.every((p, i) => !p.includes(`REBUTTAL by ${names[i]}.`)), 'round 3: nobody sees their own rebuttal');
+    r.check(notes3.every((p, i) => partnersOf[i].some(n => p.includes(`REBUTTAL by ${n}.`))),
+      'round 3: the partner\'s rebuttal is in view, on its own card');
+    r.check(notes3.every((p, i) => !p.includes(`REBUTTAL by ${names[i]}.`)), 'round 3: nobody sees their own rebuttal');
 
     players.forEach((p, i) => {
       p.emit('submit-response', { code, response: `FINAL by ${names[i]}.` });

@@ -1536,6 +1536,7 @@ function renderTeamChoiceHost(rosters, placed, total) {
   teamArrange.hidden = true;
   teamSplitTeams.innerHTML = '';
   teamSplitContinueBtn.hidden = true;
+  teamChoiceConfirmBtn.textContent = UiLang.t('Confirm Teams');
   teamChoiceCounter.textContent = placed + ' of ' + total + ' picked a spot';
 
   teamChoiceTeams.innerHTML = '';
@@ -1607,6 +1608,8 @@ function renderRoleBoardHost(groups, placed, total, headline) {
   teamArrange.hidden = true;
   teamSplitTeams.innerHTML = '';
   teamSplitContinueBtn.hidden = true;
+  // The board is the team-split one; the button says what it confirms.
+  teamChoiceConfirmBtn.textContent = UiLang.t('Confirm roles');
   teamChoiceCounter.textContent = placed + ' of ' + total + ' picked a role';
 
   teamChoiceTeams.innerHTML = '';
