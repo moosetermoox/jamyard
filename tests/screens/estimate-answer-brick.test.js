@@ -45,7 +45,7 @@ describe('estimate brick: answer, unit, scoring', () => {
     expect(est.timer).toBe(45);
   });
 
-  it('graduated scoring rides through; anything else falls back to closest', () => {
+  it('graduated scoring rides through; anything else is dropped (the engine scores closest by default)', () => {
     const grad = S.compileStoryboard({
       name: 'X', description: 'y',
       steps: [{ brick: 'estimate', text: 'Guess.', answer: 42, scoring: 'graduated' }, { brick: 'end', text: 'Bye' }]
@@ -55,21 +55,29 @@ describe('estimate brick: answer, unit, scoring', () => {
       name: 'X', description: 'y',
       steps: [{ brick: 'estimate', text: 'Guess.', answer: 42, scoring: 'winner-takes-all' }, { brick: 'end', text: 'Bye' }]
     });
-    expect(estimateOf(odd.config).scoring).toBe('closest');
+    expect(estimateOf(odd.config).scoring).toBeUndefined();
     hostable(odd.config, 'odd scoring');
   });
 
-  it('no answer means poll mode: scoring and unit are left off, no problem raised', () => {
+  it('no answer opens as a poll, but unit and scoring ride through for the number the teacher types on the console', () => {
     const { config, problems } = S.compileStoryboard({
       name: 'X', description: 'y',
-      steps: [{ brick: 'estimate', text: 'How many jelly beans are in the jar?', scoring: 'closest', unit: 'beans' }, { brick: 'end', text: 'Bye' }]
+      steps: [{ brick: 'estimate', text: 'How many jelly beans are in the jar?', scoring: 'graduated', unit: 'beans' }, { brick: 'end', text: 'Bye' }]
     });
     expect(problems).toEqual([]);
     hostable(config, 'poll mode');
     const est = estimateOf(config);
     expect(est.answer).toBeUndefined();
-    expect(est.scoring).toBeUndefined();
-    expect(est.unit).toBeUndefined();
+    expect(est.scoring).toBe('graduated');
+    expect(est.unit).toBe('beans');
+  });
+
+  it('a made-up scoring word is dropped, with or without an answer', () => {
+    const { config } = S.compileStoryboard({
+      name: 'X', description: 'y',
+      steps: [{ brick: 'estimate', text: 'Guess.', scoring: 'winner-takes-all' }, { brick: 'end', text: 'Bye' }]
+    });
+    expect(estimateOf(config).scoring).toBeUndefined();
   });
 
   it('ignores a non-numeric answer', () => {

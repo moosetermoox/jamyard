@@ -38,6 +38,35 @@ var nextStepBtn = document.getElementById('next-step-btn');
 var controlsBlock = document.getElementById('controls-block');
 var consoleNote = document.getElementById('console-note');
 // Discussion prompt (screenControl.discussionPrompt on the step)
+// The answer box for a guessing step (the teacher's own number, typed
+// before the close). Console only; the projector learns it at the close.
+var answerBlock = document.getElementById('answer-block');
+var answerInput = document.getElementById('answer-input');
+var setAnswerBtn = document.getElementById('set-answer-btn');
+var answerSet = document.getElementById('answer-set');
+var answerValue = document.getElementById('answer-value');
+function showAnswerSet(answer) {
+  if (!answerSet) return;
+  var has = typeof answer === 'number' && isFinite(answer);
+  answerSet.hidden = !has;
+  if (has) answerValue.textContent = String(answer);
+}
+if (setAnswerBtn) {
+  setAnswerBtn.addEventListener('click', function () {
+    var n = parseFloat(answerInput.value);
+    if (!isFinite(n)) { answerInput.focus(); return; }
+    socket.emit('estimate-set-answer', { code: currentCode, answer: n, phaseInstanceId: currentPhaseInstanceId });
+  });
+  answerInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); setAnswerBtn.click(); }
+  });
+}
+socket.on('teacher-estimate-answer', function (data) {
+  if (!data || data.phaseInstanceId !== currentPhaseInstanceId) return;
+  showAnswerSet(data.answer);
+  if (answerInput && typeof data.answer === 'number') answerInput.value = String(data.answer);
+});
+
 var discussionBlock = document.getElementById('discussion-block');
 var discussionText = document.getElementById('discussion-text');
 var showDiscussionBtn = document.getElementById('show-discussion-btn');
@@ -369,6 +398,16 @@ function setPhase(data) {
   // The step's discussion prompt: shown here, put on the projector only
   // when the teacher taps the button. A fresh step resets the "shown" note.
   var prompt = (typeof data.discussionPrompt === 'string') ? data.discussionPrompt.trim() : '';
+  // A guessing step that is still open takes the teacher's number here.
+  if (answerBlock) {
+    var takesAnswer = phaseType === 'estimate' && !data.closed;
+    answerBlock.hidden = !takesAnswer;
+    if (takesAnswer) {
+      var known = (typeof data.estimateAnswer === 'number' && isFinite(data.estimateAnswer)) ? data.estimateAnswer : null;
+      answerInput.value = known === null ? '' : String(known);
+      showAnswerSet(known);
+    }
+  }
   if (discussionBlock) {
     discussionBlock.hidden = !prompt;
     discussionText.textContent = prompt;

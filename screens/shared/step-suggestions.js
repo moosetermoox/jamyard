@@ -1191,12 +1191,13 @@
         built.max = step.max;
       }
       // The true number: with it the step reveals the answer, the class
-      // spread, and closeness scores at close; without it the step is a
-      // poll, so unit and scoring mean nothing and are left off.
-      if (brick === 'estimate' && typeof step.answer === 'number' && isFinite(step.answer)) {
-        built.answer = step.answer;
+      // spread, and closeness scores at close. Without it the step opens as
+      // a poll, and the teacher may type the number on the console before
+      // the close (the jar count), so unit and scoring ride through either way.
+      if (brick === 'estimate') {
+        if (typeof step.answer === 'number' && isFinite(step.answer)) built.answer = step.answer;
         if (typeof step.unit === 'string' && step.unit.trim()) built.unit = step.unit.trim();
-        built.scoring = step.scoring === 'graduated' ? 'graduated' : 'closest';
+        if (step.scoring === 'graduated' || step.scoring === 'closest') built.scoring = step.scoring;
       }
 
       phases[lastId].next = id;

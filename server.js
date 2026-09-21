@@ -1891,7 +1891,8 @@ function notifyTeachersClosed(code, room) {
     continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language),
     closeLabel: null,
     closed: true,
-    discussionPrompt: discussionPromptFor(phase)
+    discussionPrompt: discussionPromptFor(phase),
+    estimateAnswer: estimateAnswerFor(room, phase)
   });
 }
 
@@ -1900,6 +1901,16 @@ function notifyTeachersClosed(code, room) {
 function discussionPromptFor(phase) {
   const text = phase && phase.discussionPrompt;
   return (typeof text === 'string' && text.trim() !== '') ? text.trim() : null;
+}
+
+// The answer on an estimate step as the console should show it: the live
+// one from the open step (the teacher may have typed it), else the config's,
+// else null (poll mode). Undefined for any other step type.
+function estimateAnswerFor(room, phase) {
+  if (!phase || phase.type !== 'estimate') return undefined;
+  const ps = room && room.phaseState;
+  if (ps && ps.kind === 'estimate' && ps.phaseId === phase.id) return ps.answer;
+  return (typeof phase.answer === 'number' && Number.isFinite(phase.answer)) ? phase.answer : null;
 }
 
 // Everything a console needs to render when it joins mid-game.
@@ -1939,6 +1950,7 @@ function buildTeacherSnapshot(code, room) {
     snap.players = engine.players.listPublic();
     snap.timer = phase.timer || null;
     snap.discussionPrompt = discussionPromptFor(phase);
+    snap.estimateAnswer = estimateAnswerFor(room, phase);
   }
   return snap;
 }
@@ -2143,7 +2155,10 @@ async function handlePhase(code, room) {
     // teacher moderates titles better seeing the picture they are for.
     displayDrawing: resolveDisplayDrawing(phase, engine),
     // A question to ask during this step (console only until shown)
-    discussionPrompt: discussionPromptFor(phase)
+    discussionPrompt: discussionPromptFor(phase),
+    // An estimate step's answer as it stands (null = poll mode; the
+    // console offers a box to type the teacher's own number before the close)
+    estimateAnswer: estimateAnswerFor(room, phase)
   });
 
   // Dispatch to registered handler
@@ -5347,6 +5362,24 @@ io.on('connection', (socket) => {
     if (roomToHost.get(code) !== socket.id) return; // host only
     recordEvent(room, 'close-estimates');
     await closeEstimates(code, room);
+  });
+
+  // The teacher's private number (the jar count, known only after the
+  // guesses are in): typed on the console before the close, it becomes the
+  // step's answer, so the close scores the closest guess and reveals it.
+  // Teacher-only, open step only; the projector learns it at the close.
+  socket.on(EVENTS.ESTIMATE_SET_ANSWER, async (payload = {}) => {
+    if (!checkEventPayload(socket, 'estimate-set-answer', payload)) return;
+    const { code, answer, phaseInstanceId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.phaseState || room.phaseState.kind !== 'estimate' || room.phaseState.closed) return;
+    if (isStalePhaseEvent(room, phaseInstanceId, 'estimate-set-answer')) return;
+    if (!isTeacherSocket(code, room, socket.id)) return;
+    if (typeof answer !== 'number' || !Number.isFinite(answer)) return;
+    room.phaseState.answer = answer;
+    recordEvent(room, 'estimate-set-answer');
+    console.log(`[estimate-set-answer] Room ${code}: answer set from the console`);
+    io.to(teachersChannel(code)).emit(EVENTS.TEACHER_ESTIMATE_ANSWER, { answer, phaseInstanceId: room.phaseInstanceId });
   });
 
   // --- Sort events (place items into named buckets) ---

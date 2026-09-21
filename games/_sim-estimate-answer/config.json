@@ -1,0 +1,21 @@
+{
+  "name": "SIM Estimate Answer",
+  "description": "Test fixture for the console answer door: an estimate step with no answer (poll mode) that the teacher completes from the console before the close. Underscore-prefixed so it never appears in game lists. Driven by scripts/simulate-estimate-answer.js.",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "guess"
+    },
+    "guess": {
+      "type": "estimate",
+      "prompt": "How many jelly beans are in the jar?",
+      "timer": 60,
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Counted."
+    }
+  }
+}

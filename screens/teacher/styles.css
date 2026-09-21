@@ -330,6 +330,8 @@ h1, h2 {
 }
 
 .btn-row { display: flex; gap: 10px; margin-top: 10px; }
+.answer-row { align-items: center; flex-wrap: wrap; }
+.answer-row input { font: inherit; font-size: 1.1rem; padding: 8px 10px; width: 9em; max-width: 100%; }
 
 .btn-go, .btn-danger {
   flex: 1;
