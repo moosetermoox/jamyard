@@ -1036,12 +1036,20 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText }) => {
   resetHoldingProgress();
   // Which step this is (Try it out deals the template's sample answers by it)
   currentCollectPhaseId = phaseId || null;
   showSection(collectSection);
   setRichText(promptDisplay, prompt);
+  // What the partner wrote (a pairs round): its own card under the
+  // instruction. A classmate's words, so textContent, never markup.
+  const partnerNote = document.getElementById('partner-note');
+  if (partnerNote) {
+    const hasPartner = typeof partnerText === 'string' && partnerText.trim() !== '';
+    partnerNote.hidden = !hasPartner;
+    partnerNote.textContent = hasPartner ? partnerText : '';
+  }
   // Who will see this answer (server-computed, engine/audience.js), and
   // the waiting-screen hint when a classmate gets it next
   audienceLine.textContent = audience || '';
@@ -1531,6 +1539,8 @@ function renderTeamPick(payload) {
   var yourTeam = payload.yourTeam || null;
   showSection(teamSplitSection);
   teamPick.hidden = false;
+  var teamHint = teamPick.querySelector('.team-pick-hint');
+  if (teamHint) teamHint.textContent = UiLang.t('Tap the team you want, you can switch until the teacher locks it in.');
   teamSplitAllTeams.innerHTML = '';
   teamSplitMyTeam.textContent = yourTeam ? 'You’re in ' + yourTeam + '!' : 'Pick your team!';
 
@@ -1581,6 +1591,9 @@ function renderRolePick(payload) {
   var yourRole = payload.yourRole || null;
   showSection(teamSplitSection);
   teamPick.hidden = false;
+  // The picker is the team-split one; the hint says what is being picked.
+  var roleHint = teamPick.querySelector('.team-pick-hint');
+  if (roleHint) roleHint.textContent = UiLang.t('Tap the role you want, you can switch until the teacher locks it in.');
   teamSplitAllTeams.innerHTML = '';
   teamSplitMyTeam.textContent = yourRole
     ? 'You are the ' + yourRole + '!'
@@ -3476,6 +3489,22 @@ function formatTieNamesPlayer(names) {
 
 // --- Voting functions ---
 
+// A ballot button's face: the candidate's text, or a thumbnail of their
+// drawing when the vote is over drawings (the ballot carries thin strokes).
+function fillVoteButton(btn, candidate) {
+  if (candidate && typeof candidate === 'object' && Array.isArray(candidate.drawing) && window.Draw) {
+    btn.classList.add('vote-btn-drawing');
+    const thumb = document.createElement('canvas');
+    thumb.className = 'vote-thumb';
+    thumb.width = 240;
+    thumb.height = 180;
+    Draw.renderStrokes(thumb, candidate.drawing);
+    btn.appendChild(thumb);
+    return;
+  }
+  btn.textContent = typeof candidate === 'string' ? candidate : (candidate.text || candidate.name || candidate.playerId);
+}
+
 function showPickOneVote(candidates) {
   for (const candidate of candidates) {
     const btn = document.createElement('button');
@@ -3483,7 +3512,7 @@ function showPickOneVote(candidates) {
     // Literal option lists (branching votes) are plain strings — the string
     // is both the label and the choice id.
     const isString = typeof candidate === 'string';
-    btn.textContent = isString ? candidate : (candidate.text || candidate.name || candidate.playerId);
+    fillVoteButton(btn, candidate);
     btn.addEventListener('click', () => {
       socket.emit('submit-vote', { code: currentRoomCode, choice: isString ? candidate : candidate.playerId });
       showSection(voteSubmittedSection);
@@ -3514,7 +3543,7 @@ function showNextMatchup() {
 
   const btnA = document.createElement('button');
   btnA.className = 'vote-btn';
-  btnA.textContent = matchup.optionA.text || matchup.optionA.name || matchup.optionA.playerId;
+  fillVoteButton(btnA, matchup.optionA);
   btnA.addEventListener('click', () => {
     matchupVotes.push(matchup.optionA.playerId);
     currentMatchupIndex++;
@@ -3527,7 +3556,7 @@ function showNextMatchup() {
 
   const btnB = document.createElement('button');
   btnB.className = 'vote-btn';
-  btnB.textContent = matchup.optionB.text || matchup.optionB.name || matchup.optionB.playerId;
+  fillVoteButton(btnB, matchup.optionB);
   btnB.addEventListener('click', () => {
     matchupVotes.push(matchup.optionB.playerId);
     currentMatchupIndex++;

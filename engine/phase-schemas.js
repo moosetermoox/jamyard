@@ -281,6 +281,11 @@ export const PHASE_SCHEMAS = {
         label: 'Same partners as',
         helper: 'Optional with assign:"pairwise". Names an earlier pairwise step OR a Split into Teams step; this step keeps exactly those pairs/groups (same partner, next prompt). Pointing it at a teacher-arranged team split with group size 2 turns hand-picked pairs into real pairs.'
       },
+      sides: {
+        type: 'array', item: { type: 'string' }, optional: true, contexts: ['topLevel'],
+        label: 'Two sides to deal',
+        helper: 'Optional with assign:"pairwise". Exactly two labels, e.g. ["For", "Against"]: each pair\'s members are dealt one each (a triple gets two of the first). Show them with {{thisStepId.side}} and {{thisStepId.partnerSide}}; a later step that keeps the same partners (reusePairsFrom) can show the partner\'s answer with {{thisStepId.partner}}.'
+      },
       passAllowed: {
         type: 'boolean', optional: true,
         label: 'Allow passing',

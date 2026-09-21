@@ -168,10 +168,12 @@
           timer: 45
         };
       }
+      // `question`, not `prompt`: the vote step's field (a literal vote
+      // from the storyboard failed the validator for months, 2026-09-20).
       return {
         type: 'vote',
         mode: 'pick-one',
-        prompt: 'Where do you stand?',
+        question: 'Where do you stand?',
         candidates: ['Agree', 'Disagree', 'It depends'],
         timer: 45
       };
@@ -472,6 +474,8 @@
   //            'rank'|'quiz'|'teams'|'chain'|'deal'|'end',
   //     text?: string,          // the brick's primary field (prompt/message)
   //     choices?: string[],     // collect-choice only
+  //     video?: string,         // announce, collect, collect-choice: a YouTube
+  //                             //   link the projector plays (engine/video.js)
   //     guess?: 'who',          // guessing-rounds only: pick the author from a roster
   //     items?: string[],       // rank only: a teacher-written list (else the last collect's answers)
   //     byGroup?: boolean,      // rank only: each group (a teams step earlier) decides one order
@@ -489,7 +493,25 @@
   //     sentence?: string,      // chain only, blind: "The {1} {2}." slot template
   //     piles?: [{label, prompt}], // deal only: 2-4 piles everyone adds one item to
   //     writeTimer?: number,    // deal only: seconds for the writing step (default 480)
-  //     timer? } ] }            // deal: seconds per pile step
+  //     rounds?: string[],      // pairs only: 0-3 follow-up instructions, same partner,
+  //                             //   the partner's latest piece shown under each
+  //     sides?: [string, string], // pairs only: two sides dealt one per partner
+  //     roles?: string[],       // roles only: 2-8 job names, one per group member
+  //     method?: string,        // roles only: 'random' (default) | 'choice'
+  //     tasks?: string[],       // roles only: a shared checklist; "Job: task" tags a job
+  //                             //   (text = the checklist instruction)
+  //     answer?: number,        // estimate only: the true number (else poll mode)
+  //     unit?: string,          // estimate only, with answer
+  //     scoring?: string,       // estimate only, with answer: 'closest' (default) | 'graduated'
+  //     gallery?: string,       // draw only: the line over the one-at-a-time gallery
+  //                             //   (text = the drawing instruction; timer = seconds to draw)
+  //     heading?: string,       // summarize only: the projector line over the result
+  //                             //   (text = the summarizing instruction)
+  //     timer? } ] }            // deal: seconds per pile step; pairs: per writing step
+
+  // The same five YouTube shapes engine/video.js embeds (watch, youtu.be,
+  // embed, shorts, live), each with an 11-character id.
+  var YOUTUBE_LINK = /(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtube\.com\/live\/)[A-Za-z0-9_-]{11}/;
 
   var STORYBOARD_PRIMARY = {
     'announce': 'message', 'collect': 'prompt', 'collect-two': 'prompt',
@@ -663,6 +685,222 @@
     return revealId;
   }
 
+  // ---- Pairs brick ----
+  // Partner exchanges (debate pairs, peer interviews, argue-then-switch)
+  // compiled deterministically: the AI supplies the first instruction,
+  // optional follow-up rounds, and optional sides; every pairwise flag,
+  // the same-partner link, the partner's piece under each round, the
+  // sides tokens, and the pair-private reveal of the last exchange are
+  // emitted here. Nothing a pair writes reaches the projector.
+  //   text    the first writer's instruction (required)
+  //   rounds  0-3 follow-up instructions; each round shows the partner's
+  //           latest piece under the instruction unless the text places
+  //           {{partner}} itself
+  //   sides   two labels dealt one per partner; {{side}} / {{otherSide}}
+  //           in any text become the dealt side and the one across
+  var MAX_PAIR_ROUNDS = 3;
+
+  function appendPairs(step, stepNo, phases, lastId, problems) {
+    var first = (step && typeof step.text === 'string') ? step.text.trim() : '';
+    if (!first) {
+      problems.push('Step ' + stepNo + ': the pairs step needs a "text" instruction for what partners write first.');
+      return null;
+    }
+    var rounds = (step && Array.isArray(step.rounds) ? step.rounds : [])
+      .map(function (r) { return typeof r === 'string' ? r.trim() : ''; })
+      .filter(function (r) { return r !== ''; });
+    if (rounds.length > MAX_PAIR_ROUNDS) {
+      problems.push('Step ' + stepNo + ': pairs cap at ' + MAX_PAIR_ROUNDS + ' rounds after the first, the extra rounds were dropped.');
+      rounds = rounds.slice(0, MAX_PAIR_ROUNDS);
+    }
+    var sides = null;
+    if (step && step.sides !== undefined) {
+      var cleanSides = (Array.isArray(step.sides) ? step.sides : [])
+        .map(function (s) { return typeof s === 'string' ? s.trim() : ''; })
+        .filter(function (s) { return s !== ''; });
+      if (cleanSides.length === 2) {
+        sides = cleanSides;
+      } else {
+        problems.push('Step ' + stepNo + ': "sides" needs exactly two labels (like For and Against); the sides were ignored.');
+      }
+    }
+    var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
+      ? Math.round(step.timer) : null;
+
+    var openId = freshId(phases, 'pair-write');
+
+    // The AI writes plain tokens; the compiler binds them to the step.
+    function bindTokens(text, prevId) {
+      var out = text
+        .replace(/\{\{\s*side\s*\}\}/g, '{{' + openId + '.side}}')
+        .replace(/\{\{\s*(otherSide|partnerSide)\s*\}\}/g, '{{' + openId + '.partnerSide}}');
+      if (prevId) out = out.replace(/\{\{\s*partner\s*\}\}/g, '{{' + prevId + '.partner}}');
+      else out = out.replace(/\{\{\s*partner\s*\}\}/g, '');
+      return out.replace(/[ \t]{2,}/g, ' ').trim();
+    }
+    // A sides line under the instruction when the text does not place it.
+    function withSide(text) {
+      if (!sides || text.indexOf('{{' + openId + '.side}}') !== -1) return text;
+      return text + '\n\n**{{' + openId + '.side}}**';
+    }
+
+    var open = { type: 'collect', prompt: withSide(bindTokens(first, null)), assign: 'pairwise', oddHandling: 'triple' };
+    if (sides) open.sides = sides;
+    if (timer) open.timer = timer;
+    phases[lastId].next = openId;
+    phases[openId] = open;
+    lastId = openId;
+
+    rounds.forEach(function (round) {
+      var roundId = freshId(phases, 'pair-round');
+      var prompt = bindTokens(round, lastId);
+      if (prompt.indexOf('{{' + lastId + '.partner}}') === -1) {
+        prompt = prompt + '\n\n{{' + lastId + '.partner}}';
+      }
+      var roundPhase = { type: 'collect', prompt: withSide(prompt), assign: 'pairwise', reusePairsFrom: openId };
+      if (timer) roundPhase.timer = timer;
+      phases[lastId].next = roundId;
+      phases[roundId] = roundPhase;
+      lastId = roundId;
+    });
+
+    var shareId = freshId(phases, 'pair-share');
+    phases[lastId].next = shareId;
+    phases[shareId] = { type: 'reveal', scope: 'pair', pairsFrom: lastId, template: '{{_pair.answers}}' };
+    return shareId;
+  }
+
+  // ---- Roles brick ----
+  // A job for every member of an existing group (team-roles), and an
+  // optional shared checklist for the group (checklist, role-tagged
+  // through the "Job: task" prefix the checklist reads at game time).
+  // The groups come from the last teams step, or the last pairs step.
+  // Never rank + assign: a hand-out gives one item per GROUP (the probe's
+  // broken lookalike, 2026-09-20).
+  var MIN_ROLES = 2;
+  var MAX_ROLES = 8;
+  var MAX_TASKS = 12;
+
+  function lastGroupsStep(phases, beforeId) {
+    var teamsId = lastOfType(phases, ['team-split'], beforeId);
+    if (teamsId) return teamsId;
+    var ids = Object.keys(phases);
+    var cut = beforeId ? ids.indexOf(beforeId) : ids.length - 1;
+    for (var i = cut; i >= 0; i--) {
+      var p = phases[ids[i]];
+      if (p && p.type === 'collect' && p.assign === 'pairwise') return ids[i];
+    }
+    return null;
+  }
+
+  function appendRoles(step, stepNo, phases, lastId, problems) {
+    var roles = (step && Array.isArray(step.roles) ? step.roles : [])
+      .map(function (r) { return typeof r === 'string' ? r.trim() : ''; })
+      .filter(function (r) { return r !== ''; });
+    if (roles.length < MIN_ROLES) {
+      problems.push('Step ' + stepNo + ': the roles step needs at least ' + MIN_ROLES + ' job names in "roles".');
+      return null;
+    }
+    if (roles.length > MAX_ROLES) {
+      problems.push('Step ' + stepNo + ': roles cap at ' + MAX_ROLES + ' jobs, the extras were dropped.');
+      roles = roles.slice(0, MAX_ROLES);
+    }
+    var groupsId = lastGroupsStep(phases, lastId);
+    if (!groupsId) {
+      problems.push('Step ' + stepNo + ': roles need a teams step (or a pairs step) before them, so there are groups to give the jobs to.');
+      return null;
+    }
+    var rolesId = freshId(phases, 'roles');
+    var rolesPhase = { type: 'team-roles', teamsFrom: groupsId, roles: roles, method: step.method === 'choice' ? 'choice' : 'random' };
+    phases[lastId].next = rolesId;
+    phases[rolesId] = rolesPhase;
+    lastId = rolesId;
+
+    var tasks = (step && Array.isArray(step.tasks) ? step.tasks : [])
+      .map(function (t) { return typeof t === 'string' ? t.trim() : ''; })
+      .filter(function (t) { return t !== ''; });
+    if (tasks.length > MAX_TASKS) {
+      problems.push('Step ' + stepNo + ': the task list caps at ' + MAX_TASKS + ' items, the extras were dropped.');
+      tasks = tasks.slice(0, MAX_TASKS);
+    }
+    if (tasks.length) {
+      var listId = freshId(phases, 'tasks');
+      var list = { type: 'checklist', items: tasks, teamsFrom: groupsId, rolesFrom: rolesId };
+      var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
+      list.prompt = text || 'Work through the tasks with your group. Anyone can check one off, and the whole group sees it.';
+      phases[lastId].next = listId;
+      phases[listId] = list;
+      lastId = listId;
+    }
+    return lastId;
+  }
+
+  // ---- Draw brick ----
+  // Draw Gallery's shape from the AI's words alone: a drawing collect, the
+  // teacher preview gate (nothing student-drawn reaches the projector
+  // without one, SAFETY-DESIGN), then the one-at-a-time gallery. Reject on
+  // the gate restarts the drawing round. No vote can show drawings, so a
+  // favorite stays a show of hands in the gallery line (the compile loop
+  // refuses a vote fed by a drawing step).
+  var DRAW_TIMER_DEFAULT = 90;
+
+  function appendDraw(step, stepNo, phases, lastId, problems) {
+    var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
+    if (!text) {
+      problems.push('Step ' + stepNo + ': the draw step needs a "text" instruction for what to draw.');
+      return null;
+    }
+    var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
+      ? Math.round(step.timer) : DRAW_TIMER_DEFAULT;
+    var gallery = (step && typeof step.gallery === 'string' && step.gallery.trim())
+      ? step.gallery.trim()
+      : 'The gallery is open. One drawing at a time, artists, be ready to say a word about yours.';
+
+    var drawId = freshId(phases, 'draw');
+    phases[lastId].next = drawId;
+    phases[drawId] = { type: 'collect', inputType: 'drawing', prompt: text, timer: timer };
+
+    var gateId = freshId(phases, 'check');
+    var galleryId = freshId(phases, 'gallery');
+    phases[drawId].next = gateId;
+    phases[gateId] = {
+      type: 'preview',
+      template: 'Review the drawings below, then open the gallery. One bad drawing? Hide it from the moderation list. Try again restarts the drawing round for everyone.',
+      approveNext: galleryId,
+      rejectNext: drawId
+    };
+    phases[galleryId] = { type: 'reveal-one', message: gallery, from: drawId + '.responses' };
+    return galleryId;
+  }
+
+  // ---- Summarize brick ----
+  // The Builder's AI pair from the AI's words alone: an ai-process
+  // summarize over the last question step, then the reveal that stages
+  // its result on the projector. The heading is what the class reads;
+  // it never names the AI (the wait screen and footer already say who
+  // reads the answers, engine/audience.js + the no-ai-mention rule).
+  function appendSummarize(step, stepNo, phases, lastId, problems) {
+    var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
+    if (!text) {
+      problems.push('Step ' + stepNo + ': the summarize step needs a "text" instruction for how to sum the answers up.');
+      return null;
+    }
+    var heading = (step && typeof step.heading === 'string' && step.heading.trim())
+      ? step.heading.trim()
+      : 'Here is what the class said, summed up:';
+    var pair = buildAiPair({ key: 'summary', task: 'summarize', instructions: text, revealMessage: heading }, { phases: phases, afterId: lastId });
+    if (!pair) {
+      problems.push('Step ' + stepNo + ': summarize needs a question step before it, so there are answers to sum up.');
+      return null;
+    }
+    pair.forEach(function (entry) {
+      phases[lastId].next = entry.id;
+      phases[entry.id] = entry.phase;
+      lastId = entry.id;
+    });
+    return lastId;
+  }
+
   // ---- Deal brick ----
   // Story Ingredients' shape as a mechanic (2026-09-07): one collect per
   // pile, each later step rotating from the pile before it with a shuffled
@@ -820,6 +1058,40 @@
         return;
       }
 
+      if (brick === 'pairs') {
+        var pairsLast = appendPairs(step, i + 1, phases, lastId, problems);
+        if (pairsLast) lastId = pairsLast;
+        return;
+      }
+
+      if (brick === 'roles') {
+        var rolesLast = appendRoles(step, i + 1, phases, lastId, problems);
+        if (rolesLast) lastId = rolesLast;
+        return;
+      }
+
+      if (brick === 'draw') {
+        var drawLast = appendDraw(step, i + 1, phases, lastId, problems);
+        if (drawLast) lastId = drawLast;
+        return;
+      }
+
+      if (brick === 'summarize') {
+        var sumLast = appendSummarize(step, i + 1, phases, lastId, problems);
+        if (sumLast) lastId = sumLast;
+        return;
+      }
+
+      // A vote over the class's own answers or drawings: nobody votes for
+      // their own, and the crown (host-paced, the drumroll beat) is the
+      // payoff, since a tallied vote with nothing after it shows the class
+      // no winner. A vote over the AI's literal options has no crown.
+      var voteOverResponses = false;
+      if (brick === 'vote') {
+        var voteSrc = lastOfType(phases, ['collect'], lastId);
+        voteOverResponses = !!voteSrc;
+      }
+
       if (brick === 'guessing-rounds') {
         var rounds = buildGuessingRounds({
           phases: phases, afterId: lastId,
@@ -889,6 +1161,19 @@
       if (brick === 'collect-choice' && Array.isArray(step.choices) && step.choices.length >= 2) {
         built.choices = step.choices.slice(0, 8).map(String);
       }
+      // A clip on the projector (announce, collect, collect-choice carry a
+      // player): only a YouTube link rides through, mirroring the id
+      // patterns in engine/video.js, so a bad link never renders a broken
+      // player and the teacher hears why.
+      if (typeof step.video === 'string' && step.video.trim() &&
+          (brick === 'announce' || brick === 'collect' || brick === 'collect-choice')) {
+        var link = step.video.trim();
+        if (YOUTUBE_LINK.test(link)) {
+          built.video = link;
+        } else {
+          problems.push('Step ' + (i + 1) + ': the video link is not a YouTube link, so it was left out (paste a youtube.com or youtu.be link in the designer).');
+        }
+      }
       if (brick === 'collect-two' && built.fields) {
         if (step.secretLabel) built.fields[0].label = String(step.secretLabel);
         if (step.clueLabel) built.fields[1].label = String(step.clueLabel);
@@ -906,10 +1191,28 @@
         built.min = step.min;
         built.max = step.max;
       }
+      // The true number: with it the step reveals the answer, the class
+      // spread, and closeness scores at close. Without it the step opens as
+      // a poll, and the teacher may type the number on the console before
+      // the close (the jar count), so unit and scoring ride through either way.
+      if (brick === 'estimate') {
+        if (typeof step.answer === 'number' && isFinite(step.answer)) built.answer = step.answer;
+        if (typeof step.unit === 'string' && step.unit.trim()) built.unit = step.unit.trim();
+        if (step.scoring === 'graduated' || step.scoring === 'closest') built.scoring = step.scoring;
+      }
+
+      if (brick === 'vote' && voteOverResponses) built.excludeAuthors = true;
 
       phases[lastId].next = id;
       phases[id] = built;
       lastId = id;
+
+      if (brick === 'vote' && voteOverResponses) {
+        var crownId = freshId(phases, 'crown');
+        phases[lastId].next = crownId;
+        phases[crownId] = { type: 'winner', from: id + '.scores' };
+        lastId = crownId;
+      }
 
       // The class order is the rank brick's payoff: a host-paced reveal
       // reads it back (never timed, PROJECTOR-STYLE rule). With a hand-out

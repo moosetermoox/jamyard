@@ -562,6 +562,25 @@ button[hidden] {
   opacity: 0.85;
 }
 
+/* A ballot over drawings: the button is the thumbnail (thin strokes from
+   the server, full strokes stay on the projector). */
+.vote-btn-drawing {
+  display: inline-block;
+  width: calc(50% - 6px);
+  margin-right: 6px;
+  padding: 8px;
+  background: #fff;
+  border: 3px solid var(--theme-accent, #5bc0de);
+  vertical-align: top;
+}
+.vote-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  border-radius: 4px;
+}
+
 .vote-btn:active {
   opacity: 0.75;
 }
@@ -1509,6 +1528,24 @@ button[hidden] {
   margin: -6px 0 14px;
 }
 .audience-line[hidden] { display: none; }
+
+/* What the partner wrote (a pairs round): a paper card of its own under
+   the instruction, in reading weight, so it never reads as the prompt. */
+.partner-note {
+  margin: 12px auto 14px;
+  padding: 14px 18px;
+  max-width: 34em;
+  background: #fffdf7;
+  border-left: 5px solid var(--theme-accent, #f6c343);
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, 0.12);
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  white-space: pre-wrap;
+  color: #2b2b2b;
+}
+.partner-note[hidden] { display: none; }
 
 .holding-next {
   font-family: 'Nunito', Arial, sans-serif;

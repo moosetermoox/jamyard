@@ -11,8 +11,35 @@
 export const STORYBOARD_BRICKS = [
   'announce', 'collect', 'collect-two', 'collect-choice', 'estimate',
   'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'rank', 'quiz', 'teams',
-  'chain', 'deal', 'assign', 'end'
+  'chain', 'deal', 'assign', 'pairs', 'roles', 'draw', 'summarize', 'end'
 ];
+
+const MAX_ROLES = 8;
+const MAX_TASKS = 12;
+
+// Roles fields ride through in trimmed shape; compileStoryboard re-validates
+// (2-8 roles, a teams or pairs step before).
+function cleanRoles(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(r => typeof r === 'string').slice(0, MAX_ROLES).map(r => r.slice(0, 40));
+}
+function cleanTasks(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(t => typeof t === 'string').slice(0, MAX_TASKS).map(t => t.slice(0, 200));
+}
+
+const MAX_PAIR_ROUNDS = 3;
+
+// Pairs fields ride through in trimmed shape; compileStoryboard re-validates
+// (sides must be exactly two, rounds cap at three).
+function cleanRounds(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(r => typeof r === 'string').slice(0, MAX_PAIR_ROUNDS).map(r => r.slice(0, 500));
+}
+function cleanSides(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(s => typeof s === 'string').slice(0, 2).map(s => s.slice(0, 40));
+}
 
 const MAX_RANK_ITEMS = 12;
 const MAX_DEAL_PILES = 4;
@@ -147,10 +174,27 @@ export function validateSuggestions(raw, ctx) {
             sentence: typeof s.sentence === 'string' ? s.sentence.slice(0, 300) : undefined,
             piles: cleanPiles(s.piles),
             writeTimer: typeof s.writeTimer === 'number' ? s.writeTimer : undefined,
+            // pairs: follow-up rounds with the same partner, two sides to deal
+            rounds: cleanRounds(s.rounds),
+            sides: cleanSides(s.sides),
+            // announce / collect / collect-choice: a YouTube link the projector plays
+            video: typeof s.video === 'string' ? s.video.trim().slice(0, 300) : undefined,
+            // draw: the line over the one-at-a-time gallery
+            gallery: typeof s.gallery === 'string' ? s.gallery.slice(0, 300) : undefined,
+            // summarize: the projector line over the summed-up answers
+            heading: typeof s.heading === 'string' ? s.heading.slice(0, 200) : undefined,
+            // roles: a job per group member, an optional shared task list
+            roles: cleanRoles(s.roles),
+            method: s.method === 'choice' || s.method === 'random' ? s.method : undefined,
+            tasks: cleanTasks(s.tasks),
             timer: typeof s.timer === 'number' ? s.timer : undefined,
-            // estimate: the scale's ends ("on a scale of 1 to 10")
+            // estimate: the scale's ends ("on a scale of 1 to 10"), and the
+            // true number with its unit and scoring when there is one
             min: typeof s.min === 'number' && Number.isFinite(s.min) ? s.min : undefined,
-            max: typeof s.max === 'number' && Number.isFinite(s.max) ? s.max : undefined
+            max: typeof s.max === 'number' && Number.isFinite(s.max) ? s.max : undefined,
+            answer: typeof s.answer === 'number' && Number.isFinite(s.answer) ? s.answer : undefined,
+            unit: typeof s.unit === 'string' ? s.unit.slice(0, 40) : undefined,
+            scoring: s.scoring === 'closest' || s.scoring === 'graduated' ? s.scoring : undefined
           }))
         },
         why: cleanWhy(item.why)

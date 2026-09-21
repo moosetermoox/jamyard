@@ -107,6 +107,19 @@
       <p id="discussion-shown" class="block-hint" hidden>On the class screen.</p>
     </div>
 
+    <!-- The answer to a guessing step: the teacher's own number (the jar
+         count), typed here before the close so the closest guesses get the
+         points. Console only; the projector sees it at the close. -->
+    <div id="answer-block" hidden>
+      <h2>The answer</h2>
+      <p class="block-hint">Type the true number before you close this step, and the closest guesses get the points. Leave it empty and the class just sees the spread of guesses.</p>
+      <div class="btn-row answer-row">
+        <input id="answer-input" type="number" step="any" inputmode="decimal" placeholder="the number" aria-label="The true number">
+        <button id="set-answer-btn" class="btn-go" title="Make this the answer the step reveals when you close it">Set the answer</button>
+      </div>
+      <p id="answer-set" class="block-hint" hidden>The answer is <strong id="answer-value"></strong>. Close the step to reveal it and score the guesses.</p>
+    </div>
+
     <!-- Controls -->
     <div id="controls-block" class="controls-block">
       <button id="close-step-btn" hidden title="Stop accepting answers for this step and move on">Close submissions</button>

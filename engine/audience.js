@@ -116,6 +116,11 @@ function classify(consumer, phaseId) {
         consumer.reusePairsFrom === phaseId ||
         (consumer.pairBy && consumer.pairBy.from === phaseId)) return AUDIENCE.CLASSMATE;
     if (consumer.dealItems === phaseId) return AUDIENCE.CLASSMATE;
+    // A prompt quoting the partner's piece ({{X.partner}}): one classmate reads it
+    if (typeof consumer.prompt === 'string' &&
+        new RegExp('\\{\\{\\s*' + phaseId.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&') + '\\.partner\\s*\\}\\}').test(consumer.prompt)) {
+      return AUDIENCE.CLASSMATE;
+    }
     // A prompt quoting the whole pile ("{{ask.responses}}") shows it to all
     return AUDIENCE.CLASS;
   }

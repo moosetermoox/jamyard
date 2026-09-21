@@ -1,0 +1,47 @@
+{
+  "name": "SIM Drawing Vote",
+  "description": "Test fixture for the vote over drawings: a draw step (drawing collect, teacher preview, gallery), a vote whose ballot shows the drawings, and the crown with the winning drawing. Underscore-prefixed so it never appears in game lists. Compiled by the draw and vote bricks; driven by scripts/simulate-dr",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "draw"
+    },
+    "draw": {
+      "type": "collect",
+      "inputType": "drawing",
+      "prompt": "Draw a monster.",
+      "timer": 60,
+      "next": "check"
+    },
+    "check": {
+      "type": "preview",
+      "template": "Review the drawings below, then open the gallery. One bad drawing? Hide it from the moderation list. Try again restarts the drawing round for everyone.",
+      "approveNext": "gallery",
+      "rejectNext": "draw"
+    },
+    "gallery": {
+      "type": "reveal-one",
+      "message": "The wall.",
+      "from": "draw.responses",
+      "next": "vote"
+    },
+    "vote": {
+      "type": "vote",
+      "mode": "pick-one",
+      "candidates": "draw.responses",
+      "timer": 45,
+      "excludeAuthors": true,
+      "next": "crown"
+    },
+    "crown": {
+      "type": "winner",
+      "from": "vote.scores",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Done."
+    }
+  }
+}

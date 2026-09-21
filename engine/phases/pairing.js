@@ -74,6 +74,25 @@ export function groupsFromSource(sourceData) {
 }
 
 /**
+ * Deal two sides across groups (collect `sides`, the debate-pairs shape,
+ * 2026-09-20): each pair's members get one side each; a triple gets two
+ * of the first and one of the second. Returns {playerId: side}, or null
+ * when there is nothing to deal (no sides, or not exactly two).
+ *
+ * @param {string[][]} groups
+ * @param {string[]|undefined} sides
+ * @returns {Object<string,string>|null}
+ */
+export function dealSides(groups, sides) {
+  if (!Array.isArray(sides) || sides.length !== 2) return null;
+  const out = {};
+  for (const members of groups) {
+    members.forEach((id, i) => { out[id] = String(sides[i % 2]); });
+  }
+  return out;
+}
+
+/**
  * Distribute per-pair prompt items across groups (collect pairsFrom).
  * A group is never handed an item one of its OWN members wrote when any
  * alternative exists (2026-08-26 interop review item #4). Preference

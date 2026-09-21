@@ -199,6 +199,8 @@ export const EVENTS = {
   ESTIMATE_SUBMIT:      'estimate-submit',     // player -> server: my number
   ESTIMATE_PROGRESS:    'estimate-progress',   // server -> host: x of y guessed
   CLOSE_ESTIMATES:      'close-estimates',     // host -> server: reveal + score
+  ESTIMATE_SET_ANSWER:  'estimate-set-answer', // console -> server: the true number, typed before the close (the jar count)
+  TEACHER_ESTIMATE_ANSWER: 'teacher-estimate-answer', // server -> consoles: the answer now on the open estimate step
   ESTIMATE_RESULTS:     'estimate-results',    // server -> all: answer, stats, ranked guesses
 
   // --- Match Phase (pair two lists: vocab ↔ definitions) ---

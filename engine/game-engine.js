@@ -307,7 +307,9 @@ export class GameEngine {
       }
       result.winnerEntries = findWinnerEntries(result.winnerIds, Array.isArray(records) ? records : []);
       const own = result.winnerEntries.find(e => e.playerId === result.winnerId);
-      result.winnerEntry = own ? own.text : null;
+      result.winnerEntry = own && own.text ? own.text : null;
+      // The winning drawing, full strokes, for the projector's crown.
+      result.winnerDrawing = own && Array.isArray(own.drawing) ? own.drawing : null;
     }
     return result;
   }

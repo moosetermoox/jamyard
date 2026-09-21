@@ -213,6 +213,11 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     phaseInstanceId: 'number:optional'
   },
+  'estimate-set-answer': {
+    code: 'string:required',
+    answer: 'number:required',
+    phaseInstanceId: 'number:optional'
+  },
   'turn-got-it': {
     code: 'string:required',
     phaseInstanceId: 'number:optional'

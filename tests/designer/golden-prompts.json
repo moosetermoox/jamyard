@@ -190,6 +190,135 @@
         }
       },
       "note": "The same shape with a teacher's own list and a cap per item: teams, rank as groups, assign (2026-09-16)."
+    },
+    {
+      "id": "debate-pairs",
+      "prompt": "Debate pairs: partners get opposite sides of a question, write an opening argument, swap with their partner, write a rebuttal, then switch and argue the other side.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Debate Pairs",
+          "description": "Partners argue opposite sides of one question, rebut each other, then switch.",
+          "steps": [
+            { "brick": "announce", "text": "You and a partner will take opposite sides of one question. Argue yours, answer theirs, then trade places." },
+            {
+              "brick": "pairs",
+              "text": "Should homework be banned? You are arguing {{side}}. Write your opening argument.",
+              "rounds": [
+                "Read your partner's opening below. Write a rebuttal, still arguing {{side}}.",
+                "Switch sides: you now argue {{otherSide}}. Answer your partner's rebuttal below from that side."
+              ],
+              "sides": ["For", "Against"],
+              "timer": 120
+            },
+            { "brick": "end", "text": "You argued both sides. Which one was harder to make?" }
+          ]
+        }
+      },
+      "note": "The pairs-brick case (storyboard probe, 2026-09-20): the one idea a teacher got nothing for. Partners, rounds with the partner's piece in view, sides dealt and switched."
+    },
+    {
+      "id": "clip-then-questions",
+      "prompt": "Watch this YouTube clip https://www.youtube.com/watch?v=dQw4w9WgXcQ then answer two questions about it.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Clip and Two Questions",
+          "description": "The class watches a clip on the projector, then answers two questions about it.",
+          "steps": [
+            { "brick": "announce", "text": "Eyes up front. We are watching a short clip together, then you will answer two questions about it on your device.", "video": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+            { "brick": "collect", "text": "In one sentence, what was the clip mostly about?", "timer": 90 },
+            { "brick": "reveal", "text": "Here is what the class took from it:" },
+            { "brick": "collect", "text": "What is one question the clip left you with?", "timer": 90 },
+            { "brick": "reveal", "text": "The questions we still have:" },
+            { "brick": "end", "text": "Good watching. We will pick up those questions next time." }
+          ]
+        }
+      },
+      "note": "The video case (storyboard probe, 2026-09-20): the other idea a teacher got nothing for. The clip rides on the announce brick's video field and plays on the projector."
+    },
+    {
+      "id": "lab-jobs-checklist",
+      "prompt": "Groups of four, each member gets a job (Facilitator, Recorder, Timekeeper, Reporter), then the group works through a shared to-do list for the lab.",
+      "expect": {
+        "kind": "storyboard",
+        "acceptAlso": [
+          "recipe:group-work-day"
+        ],
+        "storyboard": {
+          "name": "Lab Jobs",
+          "description": "Groups of four, a job for every member, then one shared lab checklist per group.",
+          "steps": [
+            { "brick": "announce", "text": "Lab day. You will be put in groups of four, every one of you gets a job, and your group works through today's list together." },
+            { "brick": "teams", "groupSize": 4 },
+            { "brick": "roles", "roles": ["Facilitator", "Recorder", "Timekeeper", "Reporter"], "method": "choice", "text": "Work through the lab with your group. Tagged tasks belong to a job, but everyone backs each other up.", "tasks": ["Set up your station and check the materials", "Recorder: write down every measurement", "Timekeeper: call out the halfway point", "Facilitator: make sure everyone has done a step", "Reporter: prepare the one-minute summary", "Clean up and return the materials"] },
+            { "brick": "end", "text": "Reporters, get ready to share what your group found." }
+          ]
+        }
+      },
+      "note": "The roles-brick case (storyboard probe, 2026-09-20): jobs per member had compiled to teams > rank > assign, which hands one job per GROUP. Group Work Day is the matcher's defensible answer."
+    },
+    {
+      "id": "closest-guess-heartbeats",
+      "prompt": "Guess how many times the average heart beats in a day. Closest guess wins.",
+      "expect": {
+        "kind": "storyboard",
+        "acceptAlso": [
+          "recipe:estimation-station"
+        ],
+        "storyboard": {
+          "name": "Heartbeat Guess",
+          "description": "One number to estimate, the closest guess takes the points.",
+          "steps": [
+            { "brick": "announce", "text": "One question, one number. Reason it out, lock in your guess, and the closest guess takes the points." },
+            { "brick": "estimate", "text": "How many times does the average human heart beat in one day?", "answer": 100000, "unit": "beats", "scoring": "closest", "timer": 60 },
+            { "brick": "end", "text": "About a hundred thousand. Your heart did a few dozen of those while you guessed." }
+          ]
+        }
+      },
+      "note": "The estimate-answer case (storyboard probe, 2026-09-20): with an answer the estimate step reveals the number, the class spread, and closeness scores; without one it is a poll and no text may promise a winner. Estimation Station is the matcher's defensible answer."
+    },
+    {
+      "id": "monster-wall",
+      "prompt": "Draw a monster, put all the drawings on the wall, and vote for the scariest one.",
+      "expect": {
+        "kind": "storyboard",
+        "acceptAlso": [
+          "host:art-gallery"
+        ],
+        "storyboard": {
+          "name": "Monster Wall",
+          "description": "Everyone draws a monster; after the teacher's look, the wall opens one drawing at a time, then the class votes for the scariest and the winner goes up under the crown.",
+          "steps": [
+            { "brick": "announce", "text": "Ninety seconds to draw the scariest monster you can. Every drawing goes up on the wall, then you vote for the one that gives you chills." },
+            { "brick": "draw", "text": "Draw a monster. Scary, silly, or both, but make it yours.", "gallery": "The monster wall is open. Look closely, you will be voting in a moment.", "timer": 90 },
+            { "brick": "vote" },
+            { "brick": "end", "text": "That was the monster wall. Sleep well." }
+          ]
+        }
+      },
+      "note": "The draw-brick case (storyboard probe, 2026-09-20): declined 3 of 3 as typed-text-only while Draw Gallery did it. Since the vote over drawings (the same night) the ballot shows thumbnails and the crown shows the winning drawing. Draw Gallery is the matcher's defensible answer."
+    },
+    {
+      "id": "themes-on-the-board",
+      "prompt": "Everyone answers one question, then the answers get summed up into three themes for the board.",
+      "expect": {
+        "kind": "storyboard",
+        "acceptAlso": [
+          "recipe:discussion-starter"
+        ],
+        "storyboard": {
+          "name": "Three Themes",
+          "description": "One open question, every answer read, three themes on the board to talk through.",
+          "steps": [
+            { "brick": "announce", "text": "One question, everyone answers, and we will see the three big things this room is thinking." },
+            { "brick": "collect", "text": "What is one thing about this unit that still feels confusing?", "timer": 90 },
+            { "brick": "summarize", "text": "Group the answers into exactly three themes. Give each theme a short plain heading and quote one answer under it, no names.", "heading": "The three things this class is saying:" },
+            { "brick": "end", "text": "Pick one theme and we will start there next time." }
+          ]
+        }
+      },
+      "note": "The summarize-brick case (storyboard probe, 2026-09-20): declined 3 of 3 while ai-process summarize had done it since the start. Discussion Starter is the matcher's defensible answer. The heading never names the AI."
     }
   ]
 }

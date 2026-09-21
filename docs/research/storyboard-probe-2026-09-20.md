@@ -64,10 +64,12 @@ Timing: most runs 2 to 8 s. One slow outlier of 17 to 25 s in each of #6, #11, #
 ## Ranked follow-ups (1 and 5 shipped the same evening, branch storyboard-repairs)
 
 1. DONE: brace-balance repair in `_parseStoryboard` (`closeUnbalancedJson`).
-2. A `pairs` brick: pairwise collect, swap, rebuttal, pair-scoped reveal. Golden prompt: #12.
-3. `video` on the announce brick. Golden prompt: #22.
-4. Roles: a `roles` brick over team-roles (and a checklist), or a prompt rule against rank + assign for per-member jobs. Golden prompt: #19.
+2. DONE (branch storyboard-bricks): the `pairs` brick, with `{{X.partner}}` / `{{X.side}}` / `{{X.partnerSide}}` and collect `sides` in the engine; live the debate idea built 3 of 3; proof `scripts/simulate-debate-pairs.js`.
+3. DONE (branch storyboard-bricks): `video` on the announce, collect, and collect-choice bricks; live the clip idea built 3 of 3 with the link on the announce.
+4. DONE (branch storyboard-bricks): the `roles` brick over team-roles plus an optional checklist, and the prompt rule against rank + assign for member jobs; live the lab-jobs idea built 3 of 3 as teams then roles.
 5. DONE: `matchRecipe` reads an offered recipe id out of the game slot as a recipe pick.
-6. `answer` + closest scoring on the estimate brick so "closest wins" is real.
-7. A `draw` brick (collect drawing + preview gate + reveal-one or vote), since Draw Gallery only covers the plain gallery.
-8. A `summarize` brick over ai-process for the "themes on the board" ask; the Create page already covers it through Discussion Starter.
+6. DONE (branch storyboard-bricks): `answer` + `unit` + `scoring` on the estimate brick; live a known number (heartbeats) scored 3 of 3, and the teacher's own jar stayed honest 3 of 3 after a second rule (no winner promised without an answer). Open: a door for the teacher's private number before the reveal.
+7. DONE (branch storyboard-bricks): the `draw` brick (drawing collect, teacher preview gate, one-at-a-time gallery); a vote over drawings stays impossible (a ballot shows text), so a favorite is a show of hands in the gallery line; live the monster idea built 3 of 3 after a second rule.
+8. DONE (branch storyboard-bricks): the `summarize` brick over ai-process; live the themes idea built 3 of 3, no run naming the AI.
+
+Every item on this list shipped the same night (repairs on PR #57, bricks on the branch stacked over it), and so did the two that came after it: the console's answer box for a guessing step (`scripts/simulate-estimate-answer.js`) and the vote over drawings with a crown after every storyboard vote (`scripts/simulate-drawing-vote.js`). Classmate captions over drawings stay Doodle Bluff's recipe.

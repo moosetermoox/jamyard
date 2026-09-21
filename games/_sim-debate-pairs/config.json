@@ -1,0 +1,51 @@
+{
+  "name": "SIM Debate Pairs",
+  "description": "Test fixture for the pairs brick: partners dealt opposite sides, an opening, a rebuttal with the partner piece in view, a switch, then a pair-private reveal. Underscore-prefixed so it never appears in game lists. Compiled by the brick itself; driven by scripts/simulate-debate-pairs.js.",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "pair-write"
+    },
+    "pair-write": {
+      "type": "collect",
+      "prompt": "Should homework be banned? You are arguing {{pair-write.side}}. Write your opening argument.",
+      "assign": "pairwise",
+      "oddHandling": "triple",
+      "sides": [
+        "For",
+        "Against"
+      ],
+      "timer": 120,
+      "next": "pair-round"
+    },
+    "pair-round": {
+      "type": "collect",
+      "prompt": "Read your partner opening below. Write a rebuttal, still arguing {{pair-write.side}}.\n\n{{pair-write.partner}}",
+      "assign": "pairwise",
+      "reusePairsFrom": "pair-write",
+      "timer": 120,
+      "next": "pair-round-2"
+    },
+    "pair-round-2": {
+      "type": "collect",
+      "prompt": "Switch sides: you now argue {{pair-write.partnerSide}}. Answer your partner rebuttal below from that side.\n\n{{pair-round.partner}}\n\n**{{pair-write.side}}**",
+      "assign": "pairwise",
+      "reusePairsFrom": "pair-write",
+      "timer": 120,
+      "next": "pair-share"
+    },
+    "pair-share": {
+      "type": "reveal",
+      "scope": "pair",
+      "pairsFrom": "pair-round-2",
+      "template": "{{_pair.answers}}",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "You argued both sides."
+    }
+  },
+  "family": "connection"
+}

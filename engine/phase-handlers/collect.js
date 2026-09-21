@@ -9,7 +9,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups } from '../phases/pairing.js';
+import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups, dealSides } from '../phases/pairing.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { shuffleDeal } from '../phases/deal.js';
 import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
@@ -17,6 +17,21 @@ import { tailOfWords } from '../phases/append-only.js';
 import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js';
 import { translate } from '../i18n/index.js';
 import { audienceLine } from '../phases/audience-line.js';
+import { splitPartnerTokens } from '../per-player-template.js';
+
+// The partner's piece rides beside the prompt, never inside it: the
+// student screen shows it on a card of its own under the instruction.
+function partnerPayload(prompt, ctx, playerId) {
+  const { prompt: own, partnerRefs } = splitPartnerTokens(prompt || '');
+  const engine = ctx.engine;
+  const playerPrompt = ctx.services.resolvePerPlayerTemplate(own, engine, playerId);
+  if (partnerRefs.length === 0) return { playerPrompt, partnerText: null };
+  const partnerText = partnerRefs
+    .map(ref => ctx.services.resolvePerPlayerTemplate(ref, engine, playerId))
+    .filter(Boolean)
+    .join('\n\n');
+  return { playerPrompt, partnerText: partnerText || null };
+}
 
 /**
  * Build the rotation assignment map for a collect phase that has
@@ -330,9 +345,12 @@ function buildPairwiseAssignment(ctx) {
     engine.storePhaseData(phase.pairsFrom, { ...existingSource, assigned: { ...(existingSource.assigned || {}), ...assignment } });
   }
 
-  // Write pairs to this phase so downstream consumers read the grouping
+  // Write pairs to this phase so downstream consumers read the grouping;
+  // `sides` (the debate-pairs shape) is dealt here too, one per member,
+  // read back by {{thisStep.side}} / {{thisStep.partnerSide}}.
   const existingSelf = engine.phaseData[phase.id] || {};
-  engine.storePhaseData(phase.id, { ...existingSelf, pairs });
+  const sides = dealSides(groups, phase.sides);
+  engine.storePhaseData(phase.id, { ...existingSelf, pairs, ...(sides ? { sides } : {}) });
 
   return { pairs, assignment };
 }
@@ -415,7 +433,7 @@ registerHandler('collect', {
         ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Sitting out this round, waiting for others...' });
         continue;
       }
-      const playerPrompt = ctx.services.resolvePerPlayerTemplate(phase.prompt || '', engine, player.id);
+      const { playerPrompt, partnerText } = partnerPayload(phase.prompt, ctx, player.id);
       // prefillFromAssigned: the passed item lands IN the text box so the
       // recipient adds to it (accumulating lists — the +1-routine move).
       // Text only; drawings already preload via assignedDrawing.
@@ -437,6 +455,8 @@ registerHandler('collect', {
         phaseId: phase.id,
         // Who will see the answer, read off the graph (engine/audience.js)
         ...audienceLine(engine.config, phase.id, engine.language),
+        // What the partner wrote (a pairs round), on its own card
+        partnerText,
         assignedDrawing: (rotatedDrawings && rotatedDrawings[player.id]) || null,
         prefill,
         appendOnly: !!phase.appendOnly,
@@ -469,9 +489,10 @@ registerHandler('collect', {
         socket.emit(EVENTS.WAITING, { message: translate(ctx.engine.language, "You're done for now. Look up at the class screen.") });
       }
     } else {
-      const playerPrompt = player
-        ? ctx.services.resolvePerPlayerTemplate(ctx.phase.prompt || '', ctx.engine, player.id)
-        : ctx.resolveTemplate(ctx.phase.prompt || '');
+      const recon = player
+        ? partnerPayload(ctx.phase.prompt, ctx, player.id)
+        : { playerPrompt: ctx.resolveTemplate(ctx.phase.prompt || ''), partnerText: null };
+      const playerPrompt = recon.playerPrompt;
       const image = ctx.services.resolveImageUrl(ctx.phase.image, ctx.room.gameId, ctx.room.gameSource);
       const video = ctx.services.resolveVideoEmbed(ctx.phase.video);
       const reconSource = ctx.phase.rotateFrom
@@ -492,6 +513,7 @@ registerHandler('collect', {
         fields: ctx.phase.fields || null,
         phaseId: ctx.phase.id,
         ...audienceLine(ctx.engine.config, ctx.phase.id, ctx.engine.language),
+        partnerText: recon.partnerText,
         inputType: ctx.phase.inputType === 'drawing' ? 'drawing' : 'text',
         assignedDrawing: (player && reconRotated && reconRotated[player.id]) || null,
         prefill: reconPrefill,
