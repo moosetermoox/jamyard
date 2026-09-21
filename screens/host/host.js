@@ -2813,14 +2813,25 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, st
     }
 
     // What they won FOR \u2014 the winning entry itself, big on the projector.
-    const entries = (isTie && winnerEntries && winnerEntries.length > 0) ? winnerEntries
+    // A drawing entry carries its strokes (the vote over drawings): the
+    // entries list is the source whenever it has one, tie or not.
+    const entries = (winnerEntries && winnerEntries.length > 0) ? winnerEntries
       : (winnerEntry ? [{ text: winnerEntry }] : []);
     if (entries.length > 0 && entryAllowed) {
       for (var e = 0; e < entries.length; e++) {
-        var quote = document.createElement('p');
-        quote.className = 'winner-entry-quote';
-        quote.textContent = '\u201c' + entries[e].text + '\u201d';
-        winnerEntryDisplay.appendChild(quote);
+        if (Array.isArray(entries[e].drawing) && window.Draw) {
+          var art = document.createElement('canvas');
+          art.className = 'winner-drawing';
+          art.width = 480;
+          art.height = 360;
+          Draw.renderStrokes(art, entries[e].drawing, { animate: true });
+          winnerEntryDisplay.appendChild(art);
+        } else {
+          var quote = document.createElement('p');
+          quote.className = 'winner-entry-quote';
+          quote.textContent = '\u201c' + entries[e].text + '\u201d';
+          winnerEntryDisplay.appendChild(quote);
+        }
         if (entries.length > 1 && entries[e].name) {
           var by = document.createElement('p');
           by.className = 'winner-entry-by';

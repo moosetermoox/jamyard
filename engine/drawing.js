@@ -76,3 +76,29 @@ export function validateDrawing(raw) {
 export function isDrawingResponse(r) {
   return !!(r && typeof r === 'object' && Array.isArray(r.strokes));
 }
+
+/**
+ * A lighter copy of a drawing for a ballot thumbnail (2026-09-20, the vote
+ * over drawings): a whole class's drawings ride to every student at once,
+ * so each stroke keeps at most `maxPoints` evenly spaced points (its first
+ * and last always), and a busy drawing is thinned further so the whole
+ * thumbnail stays under `maxTotal` points; a 120 px canvas cannot tell.
+ * The full strokes stay on the collect step for the projector. Pure.
+ *
+ * @param {Array<{points: Array<[number, number]>}>} strokes
+ * @param {number} [maxPoints=24] points kept per stroke
+ * @param {number} [maxTotal=600] points kept per drawing
+ * @returns {Array} strokes of the same shape
+ */
+export function thumbnailStrokes(strokes, maxPoints = 24, maxTotal = 600) {
+  if (!Array.isArray(strokes) || strokes.length === 0) return [];
+  const perStroke = Math.max(2, Math.min(Math.floor(maxPoints), Math.floor(maxTotal / strokes.length)));
+  return strokes.map(s => {
+    const points = Array.isArray(s && s.points) ? s.points : [];
+    if (points.length <= perStroke) return { ...s, points: points.slice() };
+    const step = (points.length - 1) / (perStroke - 1);
+    const thin = [];
+    for (let i = 0; i < perStroke; i++) thin.push(points[Math.round(i * step)]);
+    return { ...s, points: thin };
+  });
+}

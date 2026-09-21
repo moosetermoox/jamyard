@@ -562,6 +562,25 @@ button[hidden] {
   opacity: 0.85;
 }
 
+/* A ballot over drawings: the button is the thumbnail (thin strokes from
+   the server, full strokes stay on the projector). */
+.vote-btn-drawing {
+  display: inline-block;
+  width: calc(50% - 6px);
+  margin-right: 6px;
+  padding: 8px;
+  background: #fff;
+  border: 3px solid var(--theme-accent, #5bc0de);
+  vertical-align: top;
+}
+.vote-thumb {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: #fff;
+  border-radius: 4px;
+}
+
 .vote-btn:active {
   opacity: 0.75;
 }

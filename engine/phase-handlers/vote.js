@@ -7,6 +7,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { ballotFor } from '../phases/vote-handler.js';
+import { thumbnailStrokes } from '../drawing.js';
 
 registerHandler('vote', {
   async onEnter(ctx) {
@@ -66,6 +67,14 @@ registerHandler('vote', {
         return;
       }
     }
+
+    // Drawings on the ballot (2026-09-20): a drawing step's responses carry
+    // their strokes, and a whole class's drawings ride to every voter, so
+    // the ballot gets a thin copy per drawing; the collect step keeps the
+    // full strokes for the crown.
+    candidates = candidates.map(c => (c && typeof c === 'object' && Array.isArray(c.drawing))
+      ? { ...c, drawing: thumbnailStrokes(c.drawing) }
+      : c);
 
     const candidateIds = candidates.map(c => (c && c.playerId ? c.playerId : c));
 

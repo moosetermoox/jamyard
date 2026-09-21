@@ -288,15 +288,16 @@
         ],
         "storyboard": {
           "name": "Monster Wall",
-          "description": "Everyone draws a monster; after the teacher's look, the wall opens one drawing at a time and the class picks the scariest by a show of hands.",
+          "description": "Everyone draws a monster; after the teacher's look, the wall opens one drawing at a time, then the class votes for the scariest and the winner goes up under the crown.",
           "steps": [
-            { "brick": "announce", "text": "Ninety seconds to draw the scariest monster you can. Every drawing goes up on the wall, and the loudest gasp picks the winner." },
-            { "brick": "draw", "text": "Draw a monster. Scary, silly, or both, but make it yours.", "gallery": "The monster wall is open. When one makes you jump, hands up: the biggest show of hands takes it.", "timer": 90 },
+            { "brick": "announce", "text": "Ninety seconds to draw the scariest monster you can. Every drawing goes up on the wall, then you vote for the one that gives you chills." },
+            { "brick": "draw", "text": "Draw a monster. Scary, silly, or both, but make it yours.", "gallery": "The monster wall is open. Look closely, you will be voting in a moment.", "timer": 90 },
+            { "brick": "vote" },
             { "brick": "end", "text": "That was the monster wall. Sleep well." }
           ]
         }
       },
-      "note": "The draw-brick case (storyboard probe, 2026-09-20): declined 3 of 3 as typed-text-only while Draw Gallery did it. A vote step cannot show drawings, so the favorite is a show of hands in the gallery line. Draw Gallery is the matcher's defensible answer."
+      "note": "The draw-brick case (storyboard probe, 2026-09-20): declined 3 of 3 as typed-text-only while Draw Gallery did it. Since the vote over drawings (the same night) the ballot shows thumbnails and the crown shows the winning drawing. Draw Gallery is the matcher's defensible answer."
     },
     {
       "id": "themes-on-the-board",

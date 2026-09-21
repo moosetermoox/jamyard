@@ -168,10 +168,12 @@
           timer: 45
         };
       }
+      // `question`, not `prompt`: the vote step's field (a literal vote
+      // from the storyboard failed the validator for months, 2026-09-20).
       return {
         type: 'vote',
         mode: 'pick-one',
-        prompt: 'Where do you stand?',
+        question: 'Where do you stand?',
         candidates: ['Agree', 'Disagree', 'It depends'],
         timer: 45
       };
@@ -1080,15 +1082,14 @@
         return;
       }
 
-      // A vote ballot shows text; fed by a drawing step it would show
-      // nothing. The gallery is the drawings' payoff (a favorite is a
-      // show of hands there).
+      // A vote over the class's own answers or drawings: nobody votes for
+      // their own, and the crown (host-paced, the drumroll beat) is the
+      // payoff, since a tallied vote with nothing after it shows the class
+      // no winner. A vote over the AI's literal options has no crown.
+      var voteOverResponses = false;
       if (brick === 'vote') {
         var voteSrc = lastOfType(phases, ['collect'], lastId);
-        if (voteSrc && phases[voteSrc].inputType === 'drawing') {
-          problems.push('Step ' + (i + 1) + ': a vote cannot show drawings on the ballot, so it was left out; the gallery shows them one at a time, and a favorite can be a show of hands there.');
-          return;
-        }
+        voteOverResponses = !!voteSrc;
       }
 
       if (brick === 'guessing-rounds') {
@@ -1200,9 +1201,18 @@
         if (step.scoring === 'graduated' || step.scoring === 'closest') built.scoring = step.scoring;
       }
 
+      if (brick === 'vote' && voteOverResponses) built.excludeAuthors = true;
+
       phases[lastId].next = id;
       phases[id] = built;
       lastId = id;
+
+      if (brick === 'vote' && voteOverResponses) {
+        var crownId = freshId(phases, 'crown');
+        phases[lastId].next = crownId;
+        phases[crownId] = { type: 'winner', from: id + '.scores' };
+        lastId = crownId;
+      }
 
       // The class order is the rank brick's payoff: a host-paced reveal
       // reads it back (never timed, PROJECTOR-STYLE rule). With a hand-out

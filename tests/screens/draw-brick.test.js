@@ -87,8 +87,8 @@ describe('draw brick', () => {
     expect(problems.join(' ')).toMatch(/draw.*text/i);
   });
 
-  it('refuses a vote fed by drawings, with a plain problem', () => {
-    const { problems } = S.compileStoryboard({
+  it('a vote after the draw step ballots the drawings, keeps everyone off their own, and crowns the winner', () => {
+    const { config, problems } = S.compileStoryboard({
       name: 'X', description: 'y',
       steps: [
         { brick: 'draw', text: 'Draw a monster.' },
@@ -96,7 +96,32 @@ describe('draw brick', () => {
         { brick: 'end', text: 'Bye' }
       ]
     });
-    expect(problems.join(' ')).toMatch(/vote.*drawing/i);
+    expect(problems).toEqual([]);
+    hostable(config, 'draw then vote');
+    const steps = ordered(config);
+    expect(steps.map(([, p]) => p.type)).toEqual(['lobby', 'collect', 'preview', 'reveal-one', 'vote', 'winner', 'end']);
+    const [drawId] = steps[1];
+    const [voteId, vote] = steps[4];
+    expect(vote.candidates).toBe(drawId + '.responses');
+    expect(vote.excludeAuthors).toBe(true);
+    expect(steps[5][1].from).toBe(voteId + '.scores');
+  });
+
+  it('a vote over the class\'s text answers gets the same crown; a vote over literal options does not', () => {
+    const text = S.compileStoryboard({
+      name: 'X', description: 'y',
+      steps: [{ brick: 'collect', text: 'Your best argument.' }, { brick: 'vote' }, { brick: 'end', text: 'Bye' }]
+    });
+    expect(text.problems).toEqual([]);
+    hostable(text.config, 'text vote');
+    expect(ordered(text.config).map(([, p]) => p.type)).toEqual(['lobby', 'collect', 'vote', 'winner', 'end']);
+    const literal = S.compileStoryboard({
+      name: 'X', description: 'y',
+      steps: [{ brick: 'vote' }, { brick: 'end', text: 'Bye' }]
+    });
+    expect(literal.problems).toEqual([]);
+    hostable(literal.config, 'literal vote');
+    expect(ordered(literal.config).map(([, p]) => p.type)).toEqual(['lobby', 'vote', 'end']);
   });
 
   it('the audience line tells the artist the class sees it after the teacher reviews it', async () => {
@@ -128,7 +153,7 @@ describe('draw brick through the concierge', () => {
 });
 
 describe('the storyboard prompt knows the draw brick', () => {
-  it('describes draw, the teacher preview, and keeps a favorite to a show of hands', async () => {
+  it('describes draw, the teacher preview, and routes a favorite to a vote over the drawings', async () => {
     const service = new AIService({ mode: 'real' });
     let prompt = '';
     service._callClaude = async (params) => {
@@ -137,7 +162,8 @@ describe('the storyboard prompt knows the draw brick', () => {
     };
     await service.generateStoryboard('draw a monster');
     expect(prompt).toContain('- draw:');
-    expect(prompt).toMatch(/show of hands/);
-    expect(prompt).toMatch(/never a vote step over drawings/i);
+    expect(prompt).toMatch(/put a vote step right after the draw step/);
+    expect(prompt).toMatch(/thumbnails/);
+    expect(prompt).not.toMatch(/show of hands/);
   });
 });

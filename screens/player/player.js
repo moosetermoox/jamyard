@@ -3476,6 +3476,22 @@ function formatTieNamesPlayer(names) {
 
 // --- Voting functions ---
 
+// A ballot button's face: the candidate's text, or a thumbnail of their
+// drawing when the vote is over drawings (the ballot carries thin strokes).
+function fillVoteButton(btn, candidate) {
+  if (candidate && typeof candidate === 'object' && Array.isArray(candidate.drawing) && window.Draw) {
+    btn.classList.add('vote-btn-drawing');
+    const thumb = document.createElement('canvas');
+    thumb.className = 'vote-thumb';
+    thumb.width = 240;
+    thumb.height = 180;
+    Draw.renderStrokes(thumb, candidate.drawing);
+    btn.appendChild(thumb);
+    return;
+  }
+  btn.textContent = typeof candidate === 'string' ? candidate : (candidate.text || candidate.name || candidate.playerId);
+}
+
 function showPickOneVote(candidates) {
   for (const candidate of candidates) {
     const btn = document.createElement('button');
@@ -3483,7 +3499,7 @@ function showPickOneVote(candidates) {
     // Literal option lists (branching votes) are plain strings — the string
     // is both the label and the choice id.
     const isString = typeof candidate === 'string';
-    btn.textContent = isString ? candidate : (candidate.text || candidate.name || candidate.playerId);
+    fillVoteButton(btn, candidate);
     btn.addEventListener('click', () => {
       socket.emit('submit-vote', { code: currentRoomCode, choice: isString ? candidate : candidate.playerId });
       showSection(voteSubmittedSection);
@@ -3514,7 +3530,7 @@ function showNextMatchup() {
 
   const btnA = document.createElement('button');
   btnA.className = 'vote-btn';
-  btnA.textContent = matchup.optionA.text || matchup.optionA.name || matchup.optionA.playerId;
+  fillVoteButton(btnA, matchup.optionA);
   btnA.addEventListener('click', () => {
     matchupVotes.push(matchup.optionA.playerId);
     currentMatchupIndex++;
@@ -3527,7 +3543,7 @@ function showNextMatchup() {
 
   const btnB = document.createElement('button');
   btnB.className = 'vote-btn';
-  btnB.textContent = matchup.optionB.text || matchup.optionB.name || matchup.optionB.playerId;
+  fillVoteButton(btnB, matchup.optionB);
   btnB.addEventListener('click', () => {
     matchupVotes.push(matchup.optionB.playerId);
     currentMatchupIndex++;

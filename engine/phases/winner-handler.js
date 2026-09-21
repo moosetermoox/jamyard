@@ -42,7 +42,13 @@ export function findWinnerEntries(winnerIds, records) {
   const out = [];
   for (const id of winnerIds) {
     const rec = records.find(r => r && typeof r === 'object' && r.playerId === id);
-    if (!rec || rec.drawing) continue;
+    if (!rec) continue;
+    // A drawing entry (the vote over drawings, 2026-09-20): the strokes
+    // ride to the projector, the "[drawing]" placeholder never does.
+    if (Array.isArray(rec.drawing) && rec.drawing.length > 0) {
+      out.push({ playerId: id, name: rec.name, text: '', drawing: rec.drawing });
+      continue;
+    }
     const text = typeof rec.text === 'string' ? rec.text.trim() : '';
     if (!text || text === '[drawing]') continue;
     out.push({ playerId: id, name: rec.name, text });
