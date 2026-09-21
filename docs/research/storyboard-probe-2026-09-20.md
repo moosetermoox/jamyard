@@ -70,4 +70,6 @@ Timing: most runs 2 to 8 s. One slow outlier of 17 to 25 s in each of #6, #11, #
 5. DONE: `matchRecipe` reads an offered recipe id out of the game slot as a recipe pick.
 6. DONE (branch storyboard-bricks): `answer` + `unit` + `scoring` on the estimate brick; live a known number (heartbeats) scored 3 of 3, and the teacher's own jar stayed honest 3 of 3 after a second rule (no winner promised without an answer). Open: a door for the teacher's private number before the reveal.
 7. DONE (branch storyboard-bricks): the `draw` brick (drawing collect, teacher preview gate, one-at-a-time gallery); a vote over drawings stays impossible (a ballot shows text), so a favorite is a show of hands in the gallery line; live the monster idea built 3 of 3 after a second rule.
-8. A `summarize` brick over ai-process for the "themes on the board" ask; the Create page already covers it through Discussion Starter.
+8. DONE (branch storyboard-bricks): the `summarize` brick over ai-process; live the themes idea built 3 of 3, no run naming the AI.
+
+Every item on this list shipped the same night (repairs on PR #57, bricks on the branch stacked over it). Still open after the list: a door for a teacher's private number before an estimate reveal, and a vote or captions over drawings from a storyboard.

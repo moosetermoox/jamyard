@@ -503,6 +503,8 @@
   //     scoring?: string,       // estimate only, with answer: 'closest' (default) | 'graduated'
   //     gallery?: string,       // draw only: the line over the one-at-a-time gallery
   //                             //   (text = the drawing instruction; timer = seconds to draw)
+  //     heading?: string,       // summarize only: the projector line over the result
+  //                             //   (text = the summarizing instruction)
   //     timer? } ] }            // deal: seconds per pile step; pairs: per writing step
 
   // The same five YouTube shapes engine/video.js embeds (watch, youtu.be,
@@ -869,6 +871,34 @@
     return galleryId;
   }
 
+  // ---- Summarize brick ----
+  // The Builder's AI pair from the AI's words alone: an ai-process
+  // summarize over the last question step, then the reveal that stages
+  // its result on the projector. The heading is what the class reads;
+  // it never names the AI (the wait screen and footer already say who
+  // reads the answers, engine/audience.js + the no-ai-mention rule).
+  function appendSummarize(step, stepNo, phases, lastId, problems) {
+    var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
+    if (!text) {
+      problems.push('Step ' + stepNo + ': the summarize step needs a "text" instruction for how to sum the answers up.');
+      return null;
+    }
+    var heading = (step && typeof step.heading === 'string' && step.heading.trim())
+      ? step.heading.trim()
+      : 'Here is what the class said, summed up:';
+    var pair = buildAiPair({ key: 'summary', task: 'summarize', instructions: text, revealMessage: heading }, { phases: phases, afterId: lastId });
+    if (!pair) {
+      problems.push('Step ' + stepNo + ': summarize needs a question step before it, so there are answers to sum up.');
+      return null;
+    }
+    pair.forEach(function (entry) {
+      phases[lastId].next = entry.id;
+      phases[entry.id] = entry.phase;
+      lastId = entry.id;
+    });
+    return lastId;
+  }
+
   // ---- Deal brick ----
   // Story Ingredients' shape as a mechanic (2026-09-07): one collect per
   // pile, each later step rotating from the pile before it with a shuffled
@@ -1041,6 +1071,12 @@
       if (brick === 'draw') {
         var drawLast = appendDraw(step, i + 1, phases, lastId, problems);
         if (drawLast) lastId = drawLast;
+        return;
+      }
+
+      if (brick === 'summarize') {
+        var sumLast = appendSummarize(step, i + 1, phases, lastId, problems);
+        if (sumLast) lastId = sumLast;
         return;
       }
 

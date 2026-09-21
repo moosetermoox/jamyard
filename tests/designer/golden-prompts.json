@@ -297,6 +297,27 @@
         }
       },
       "note": "The draw-brick case (storyboard probe, 2026-09-20): declined 3 of 3 as typed-text-only while Draw Gallery did it. A vote step cannot show drawings, so the favorite is a show of hands in the gallery line. Draw Gallery is the matcher's defensible answer."
+    },
+    {
+      "id": "themes-on-the-board",
+      "prompt": "Everyone answers one question, then the answers get summed up into three themes for the board.",
+      "expect": {
+        "kind": "storyboard",
+        "acceptAlso": [
+          "recipe:discussion-starter"
+        ],
+        "storyboard": {
+          "name": "Three Themes",
+          "description": "One open question, every answer read, three themes on the board to talk through.",
+          "steps": [
+            { "brick": "announce", "text": "One question, everyone answers, and we will see the three big things this room is thinking." },
+            { "brick": "collect", "text": "What is one thing about this unit that still feels confusing?", "timer": 90 },
+            { "brick": "summarize", "text": "Group the answers into exactly three themes. Give each theme a short plain heading and quote one answer under it, no names.", "heading": "The three things this class is saying:" },
+            { "brick": "end", "text": "Pick one theme and we will start there next time." }
+          ]
+        }
+      },
+      "note": "The summarize-brick case (storyboard probe, 2026-09-20): declined 3 of 3 while ai-process summarize had done it since the start. Discussion Starter is the matcher's defensible answer. The heading never names the AI."
     }
   ]
 }

@@ -11,7 +11,7 @@
 export const STORYBOARD_BRICKS = [
   'announce', 'collect', 'collect-two', 'collect-choice', 'estimate',
   'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'rank', 'quiz', 'teams',
-  'chain', 'deal', 'assign', 'pairs', 'roles', 'draw', 'end'
+  'chain', 'deal', 'assign', 'pairs', 'roles', 'draw', 'summarize', 'end'
 ];
 
 const MAX_ROLES = 8;
@@ -181,6 +181,8 @@ export function validateSuggestions(raw, ctx) {
             video: typeof s.video === 'string' ? s.video.trim().slice(0, 300) : undefined,
             // draw: the line over the one-at-a-time gallery
             gallery: typeof s.gallery === 'string' ? s.gallery.slice(0, 300) : undefined,
+            // summarize: the projector line over the summed-up answers
+            heading: typeof s.heading === 'string' ? s.heading.slice(0, 200) : undefined,
             // roles: a job per group member, an optional shared task list
             roles: cleanRoles(s.roles),
             method: s.method === 'choice' || s.method === 'random' ? s.method : undefined,
