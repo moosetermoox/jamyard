@@ -494,6 +494,10 @@
   //     rounds?: string[],      // pairs only: 0-3 follow-up instructions, same partner,
   //                             //   the partner's latest piece shown under each
   //     sides?: [string, string], // pairs only: two sides dealt one per partner
+  //     roles?: string[],       // roles only: 2-8 job names, one per group member
+  //     method?: string,        // roles only: 'random' (default) | 'choice'
+  //     tasks?: string[],       // roles only: a shared checklist; "Job: task" tags a job
+  //                             //   (text = the checklist instruction)
   //     timer? } ] }            // deal: seconds per pile step; pairs: per writing step
 
   // The same five YouTube shapes engine/video.js embeds (watch, youtu.be,
@@ -757,6 +761,71 @@
     return shareId;
   }
 
+  // ---- Roles brick ----
+  // A job for every member of an existing group (team-roles), and an
+  // optional shared checklist for the group (checklist, role-tagged
+  // through the "Job: task" prefix the checklist reads at game time).
+  // The groups come from the last teams step, or the last pairs step.
+  // Never rank + assign: a hand-out gives one item per GROUP (the probe's
+  // broken lookalike, 2026-09-20).
+  var MIN_ROLES = 2;
+  var MAX_ROLES = 8;
+  var MAX_TASKS = 12;
+
+  function lastGroupsStep(phases, beforeId) {
+    var teamsId = lastOfType(phases, ['team-split'], beforeId);
+    if (teamsId) return teamsId;
+    var ids = Object.keys(phases);
+    var cut = beforeId ? ids.indexOf(beforeId) : ids.length - 1;
+    for (var i = cut; i >= 0; i--) {
+      var p = phases[ids[i]];
+      if (p && p.type === 'collect' && p.assign === 'pairwise') return ids[i];
+    }
+    return null;
+  }
+
+  function appendRoles(step, stepNo, phases, lastId, problems) {
+    var roles = (step && Array.isArray(step.roles) ? step.roles : [])
+      .map(function (r) { return typeof r === 'string' ? r.trim() : ''; })
+      .filter(function (r) { return r !== ''; });
+    if (roles.length < MIN_ROLES) {
+      problems.push('Step ' + stepNo + ': the roles step needs at least ' + MIN_ROLES + ' job names in "roles".');
+      return null;
+    }
+    if (roles.length > MAX_ROLES) {
+      problems.push('Step ' + stepNo + ': roles cap at ' + MAX_ROLES + ' jobs, the extras were dropped.');
+      roles = roles.slice(0, MAX_ROLES);
+    }
+    var groupsId = lastGroupsStep(phases, lastId);
+    if (!groupsId) {
+      problems.push('Step ' + stepNo + ': roles need a teams step (or a pairs step) before them, so there are groups to give the jobs to.');
+      return null;
+    }
+    var rolesId = freshId(phases, 'roles');
+    var rolesPhase = { type: 'team-roles', teamsFrom: groupsId, roles: roles, method: step.method === 'choice' ? 'choice' : 'random' };
+    phases[lastId].next = rolesId;
+    phases[rolesId] = rolesPhase;
+    lastId = rolesId;
+
+    var tasks = (step && Array.isArray(step.tasks) ? step.tasks : [])
+      .map(function (t) { return typeof t === 'string' ? t.trim() : ''; })
+      .filter(function (t) { return t !== ''; });
+    if (tasks.length > MAX_TASKS) {
+      problems.push('Step ' + stepNo + ': the task list caps at ' + MAX_TASKS + ' items, the extras were dropped.');
+      tasks = tasks.slice(0, MAX_TASKS);
+    }
+    if (tasks.length) {
+      var listId = freshId(phases, 'tasks');
+      var list = { type: 'checklist', items: tasks, teamsFrom: groupsId, rolesFrom: rolesId };
+      var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
+      list.prompt = text || 'Work through the tasks with your group. Anyone can check one off, and the whole group sees it.';
+      phases[lastId].next = listId;
+      phases[listId] = list;
+      lastId = listId;
+    }
+    return lastId;
+  }
+
   // ---- Deal brick ----
   // Story Ingredients' shape as a mechanic (2026-09-07): one collect per
   // pile, each later step rotating from the pile before it with a shuffled
@@ -917,6 +986,12 @@
       if (brick === 'pairs') {
         var pairsLast = appendPairs(step, i + 1, phases, lastId, problems);
         if (pairsLast) lastId = pairsLast;
+        return;
+      }
+
+      if (brick === 'roles') {
+        var rolesLast = appendRoles(step, i + 1, phases, lastId, problems);
+        if (rolesLast) lastId = rolesLast;
         return;
       }
 

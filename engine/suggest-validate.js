@@ -11,8 +11,22 @@
 export const STORYBOARD_BRICKS = [
   'announce', 'collect', 'collect-two', 'collect-choice', 'estimate',
   'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'rank', 'quiz', 'teams',
-  'chain', 'deal', 'assign', 'pairs', 'end'
+  'chain', 'deal', 'assign', 'pairs', 'roles', 'end'
 ];
+
+const MAX_ROLES = 8;
+const MAX_TASKS = 12;
+
+// Roles fields ride through in trimmed shape; compileStoryboard re-validates
+// (2-8 roles, a teams or pairs step before).
+function cleanRoles(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(r => typeof r === 'string').slice(0, MAX_ROLES).map(r => r.slice(0, 40));
+}
+function cleanTasks(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(t => typeof t === 'string').slice(0, MAX_TASKS).map(t => t.slice(0, 200));
+}
 
 const MAX_PAIR_ROUNDS = 3;
 
@@ -165,6 +179,10 @@ export function validateSuggestions(raw, ctx) {
             sides: cleanSides(s.sides),
             // announce / collect / collect-choice: a YouTube link the projector plays
             video: typeof s.video === 'string' ? s.video.trim().slice(0, 300) : undefined,
+            // roles: a job per group member, an optional shared task list
+            roles: cleanRoles(s.roles),
+            method: s.method === 'choice' || s.method === 'random' ? s.method : undefined,
+            tasks: cleanTasks(s.tasks),
             timer: typeof s.timer === 'number' ? s.timer : undefined,
             // estimate: the scale's ends ("on a scale of 1 to 10")
             min: typeof s.min === 'number' && Number.isFinite(s.min) ? s.min : undefined,

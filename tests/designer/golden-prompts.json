@@ -236,6 +236,27 @@
         }
       },
       "note": "The video case (storyboard probe, 2026-09-20): the other idea a teacher got nothing for. The clip rides on the announce brick's video field and plays on the projector."
+    },
+    {
+      "id": "lab-jobs-checklist",
+      "prompt": "Groups of four, each member gets a job (Facilitator, Recorder, Timekeeper, Reporter), then the group works through a shared to-do list for the lab.",
+      "expect": {
+        "kind": "storyboard",
+        "acceptAlso": [
+          "recipe:group-work-day"
+        ],
+        "storyboard": {
+          "name": "Lab Jobs",
+          "description": "Groups of four, a job for every member, then one shared lab checklist per group.",
+          "steps": [
+            { "brick": "announce", "text": "Lab day. You will be put in groups of four, every one of you gets a job, and your group works through today's list together." },
+            { "brick": "teams", "groupSize": 4 },
+            { "brick": "roles", "roles": ["Facilitator", "Recorder", "Timekeeper", "Reporter"], "method": "choice", "text": "Work through the lab with your group. Tagged tasks belong to a job, but everyone backs each other up.", "tasks": ["Set up your station and check the materials", "Recorder: write down every measurement", "Timekeeper: call out the halfway point", "Facilitator: make sure everyone has done a step", "Reporter: prepare the one-minute summary", "Clean up and return the materials"] },
+            { "brick": "end", "text": "Reporters, get ready to share what your group found." }
+          ]
+        }
+      },
+      "note": "The roles-brick case (storyboard probe, 2026-09-20): jobs per member had compiled to teams > rank > assign, which hands one job per GROUP. Group Work Day is the matcher's defensible answer."
     }
   ]
 }

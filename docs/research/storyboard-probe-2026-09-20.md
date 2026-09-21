@@ -66,7 +66,7 @@ Timing: most runs 2 to 8 s. One slow outlier of 17 to 25 s in each of #6, #11, #
 1. DONE: brace-balance repair in `_parseStoryboard` (`closeUnbalancedJson`).
 2. DONE (branch storyboard-bricks): the `pairs` brick, with `{{X.partner}}` / `{{X.side}}` / `{{X.partnerSide}}` and collect `sides` in the engine; live the debate idea built 3 of 3; proof `scripts/simulate-debate-pairs.js`.
 3. DONE (branch storyboard-bricks): `video` on the announce, collect, and collect-choice bricks; live the clip idea built 3 of 3 with the link on the announce.
-4. Roles: a `roles` brick over team-roles (and a checklist), or a prompt rule against rank + assign for per-member jobs. Golden prompt: #19.
+4. DONE (branch storyboard-bricks): the `roles` brick over team-roles plus an optional checklist, and the prompt rule against rank + assign for member jobs; live the lab-jobs idea built 3 of 3 as teams then roles.
 5. DONE: `matchRecipe` reads an offered recipe id out of the game slot as a recipe pick.
 6. `answer` + closest scoring on the estimate brick so "closest wins" is real.
 7. A `draw` brick (collect drawing + preview gate + reveal-one or vote), since Draw Gallery only covers the plain gallery.
