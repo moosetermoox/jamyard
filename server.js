@@ -605,6 +605,11 @@ function resolveTemplate(template, engine) {
     // .mine / .assigned have no recipient at this layer — host-friendly note
     if (/\.mine$/.test(trimmed)) return '(each student gets their own)';
     if (/\.assigned$/.test(trimmed)) return '(each student gets a different player\'s item)';
+    // Pair tokens (the pairs brick, 2026-09-20): the projector never sees a
+    // partner's private piece, and each student holds their own side.
+    if (/\.partner$/.test(trimmed)) return '(each student sees what their partner wrote)';
+    if (/\.partnerSide$/.test(trimmed)) return 'the other side';
+    if (/\.side$/.test(trimmed)) return 'their side';
     const value = engine.resolve(trimmed);
     return value !== undefined ? String(value) : match;
   });
