@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { loadGame, validate } from '../../engine/game-loader.js';
+import { loadGame, validate, listGames, resolveGamePath } from '../../engine/game-loader.js';
+import { mkdir, writeFile, readFile, rm } from 'fs/promises';
+import { join, basename } from 'path';
 
 describe('GameLoader', () => {
   describe('loading valid configs', () => {
@@ -1250,5 +1252,44 @@ describe('GameLoader', () => {
       // Schema-driven enum check: "invalid pairMode value ... Valid values: human-vs-ai"
       expect(() => validate(config, 'test')).toThrow('invalid pairMode value');
     });
+  });
+});
+
+describe('games/user/ stays out when the database owns user games (2026-09-21)', () => {
+  // A file in games/user/ from before the database used to be listed
+  // beside its migrated row, shadow the row on load, and be re-migrated
+  // over it on every restart. builtInOnly is the server's switch.
+  const dir = join(process.cwd(), 'games', 'user', 'zz-loader-test-' + process.pid);
+
+  async function withDiskCopy(fn) {
+    await mkdir(dir, { recursive: true });
+    const config = JSON.parse(await readFile(join(process.cwd(), 'games', '_template', 'config.json'), 'utf-8'));
+    config.name = 'Disk copy';
+    await writeFile(join(dir, 'config.json'), JSON.stringify(config));
+    try { await fn(basename(dir)); } finally { await rm(dir, { recursive: true, force: true }); }
+  }
+
+  it('lists and loads the disk copy by default', async () => {
+    await withDiskCopy(async (id) => {
+      const games = await listGames();
+      expect(games.find(g => g.id === id && g.source === 'user')).toBeTruthy();
+      expect((await loadGame(id)).name).toBe('Disk copy');
+    });
+  });
+
+  it('leaves the disk copy out with builtInOnly', async () => {
+    await withDiskCopy(async (id) => {
+      const games = await listGames({ builtInOnly: true });
+      expect(games.find(g => g.id === id)).toBeUndefined();
+      expect(games.some(g => g.source === 'user')).toBe(false);
+      await expect(loadGame(id, { builtInOnly: true })).rejects.toThrow(/Game not found/);
+      await expect(resolveGamePath(id, { builtInOnly: true })).rejects.toThrow(/Game not found/);
+    });
+  });
+
+  it('still finds built-ins with builtInOnly', async () => {
+    const games = await listGames({ builtInOnly: true });
+    expect(games.some(g => g.id === 'mood-check' && g.source === 'built-in')).toBe(true);
+    expect((await loadGame('_template', { builtInOnly: true })).name).toBe('Template Game');
   });
 });
