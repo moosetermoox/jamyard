@@ -264,6 +264,7 @@ export const STRINGS = {
     'Names are hidden.': 'Los nombres están ocultos.',
     // Per-recipient prompt tokens with nothing behind them (engine/per-player-template.js)
     'No answer came in yet. Pick your own.': 'Todavía no llegó ninguna respuesta. Elige la tuya.',
+    'Your partner has not written anything yet.': 'Tu pareja todavía no ha escrito nada.',
     'You did not answer that one.': 'No respondiste esa.',
     "Next, you'll get a classmate's idea.": 'Después recibirás la idea de un compañero.',
     'One classmate will read this, then the class sees it.': 'Un compañero leerá esto y después lo verá la clase.',
@@ -426,6 +427,7 @@ export const STRINGS = {
     'Names are hidden.': 'Les noms sont cachés.',
     // Per-recipient prompt tokens with nothing behind them (engine/per-player-template.js)
     'No answer came in yet. Pick your own.': 'Aucune réponse n’est encore arrivée. Choisis la tienne.',
+    'Your partner has not written anything yet.': 'Ton ou ta partenaire n’a encore rien écrit.',
     'You did not answer that one.': 'Tu n’as pas répondu à celle-là.',
     "Next, you'll get a classmate's idea.": "Ensuite, tu recevras l'idée d'un camarade.",
     'One classmate will read this, then the class sees it.': 'Un camarade lira ceci, puis la classe le verra.',
@@ -588,6 +590,7 @@ export const STRINGS = {
     'Names are hidden.': 'Namen werden nicht gezeigt.',
     // Per-recipient prompt tokens with nothing behind them (engine/per-player-template.js)
     'No answer came in yet. Pick your own.': 'Noch keine Antwort angekommen. Wähle deine eigene.',
+    'Your partner has not written anything yet.': 'Dein Partner oder deine Partnerin hat noch nichts geschrieben.',
     'You did not answer that one.': 'Die hast du nicht beantwortet.',
     "Next, you'll get a classmate's idea.": 'Als Nächstes bekommst du die Idee eines Mitschülers oder einer Mitschülerin.',
     'One classmate will read this, then the class sees it.': 'Ein Mitschüler oder eine Mitschülerin liest das, danach sieht es die Klasse.',
@@ -750,6 +753,7 @@ export const STRINGS = {
     'Names are hidden.': 'Os nomes ficam escondidos.',
     // Per-recipient prompt tokens with nothing behind them (engine/per-player-template.js)
     'No answer came in yet. Pick your own.': 'Nenhuma resposta chegou ainda. Escolha a sua.',
+    'Your partner has not written anything yet.': 'Seu par ainda não escreveu nada.',
     'You did not answer that one.': 'Você não respondeu essa.',
     "Next, you'll get a classmate's idea.": 'Depois, você vai receber a ideia de um colega.',
     'One classmate will read this, then the class sees it.': 'Um colega vai ler isto e depois a turma vê.',
@@ -912,6 +916,7 @@ export const STRINGS = {
     'Names are hidden.': 'I nomi sono nascosti.',
     // Per-recipient prompt tokens with nothing behind them (engine/per-player-template.js)
     'No answer came in yet. Pick your own.': 'Nessuna risposta è ancora arrivata. Scegli la tua.',
+    'Your partner has not written anything yet.': 'Il tuo compagno o la tua compagna non ha ancora scritto nulla.',
     'You did not answer that one.': 'A quella non hai risposto.',
     "Next, you'll get a classmate's idea.": "Dopo riceverai l'idea di un compagno.",
     'One classmate will read this, then the class sees it.': 'Un compagno leggerà questo, poi lo vedrà la classe.',

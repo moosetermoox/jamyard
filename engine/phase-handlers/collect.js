@@ -9,7 +9,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups } from '../phases/pairing.js';
+import { buildGroups, buildAvoidSet, groupsFromSource, assignPromptsToGroups, dealSides } from '../phases/pairing.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { shuffleDeal } from '../phases/deal.js';
 import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
@@ -330,9 +330,12 @@ function buildPairwiseAssignment(ctx) {
     engine.storePhaseData(phase.pairsFrom, { ...existingSource, assigned: { ...(existingSource.assigned || {}), ...assignment } });
   }
 
-  // Write pairs to this phase so downstream consumers read the grouping
+  // Write pairs to this phase so downstream consumers read the grouping;
+  // `sides` (the debate-pairs shape) is dealt here too, one per member,
+  // read back by {{thisStep.side}} / {{thisStep.partnerSide}}.
   const existingSelf = engine.phaseData[phase.id] || {};
-  engine.storePhaseData(phase.id, { ...existingSelf, pairs });
+  const sides = dealSides(groups, phase.sides);
+  engine.storePhaseData(phase.id, { ...existingSelf, pairs, ...(sides ? { sides } : {}) });
 
   return { pairs, assignment };
 }

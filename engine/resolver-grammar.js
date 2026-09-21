@@ -42,16 +42,22 @@ export const KNOWN_SUFFIXES = new Set([
   'json',
   'barChart', 'pieChart', 'chart',  // chart family — all read .tally / scoreMap
   'mine',                             // per-player AI lookup
-  'assigned'                          // per-player rotation lookup (rotateFrom)
+  'assigned',                         // per-player rotation lookup (rotateFrom)
+  'partner', 'side', 'partnerSide'    // per-player pair lookups (assign:"pairwise")
 ]);
+
+// Every per-recipient suffix, for the token test and the renderable check.
+export const PER_PLAYER_SUFFIXES = new Set(['mine', 'assigned', 'partner', 'side', 'partnerSide']);
 
 /**
  * A token that must resolve differently for each recipient: the player's
  * own item ({{X.mine}}) or the classmate item dealt to them by a rotation
- * ({{X.assigned}}). announce/reveal gate their per-recipient rendering
- * path on this; collect prompts always resolve per-player.
+ * ({{X.assigned}}), or what their partner wrote / which side they were
+ * dealt at a pairwise step ({{X.partner}}, {{X.side}}, {{X.partnerSide}}).
+ * announce/reveal gate their per-recipient rendering path on this;
+ * collect prompts always resolve per-player.
  */
-export const PER_PLAYER_TOKEN = /\{\{\s*[a-zA-Z0-9_-]+\.(mine|assigned)\s*\}\}/;
+export const PER_PLAYER_TOKEN = /\{\{\s*[a-zA-Z0-9_-]+\.(mine|assigned|partner|side|partnerSide)\s*\}\}/;
 
 /**
  * Built-in scope identifiers — refs starting with these don't point at
@@ -316,9 +322,9 @@ export function classifyRef(parsed, allPhases) {
     const declaredRenderers = outputDef.renderers || {};
     if (declaredRenderers[parsed.suffix]) {
       out.renderable = true;
-    } else if (parsed.suffix === 'mine' || parsed.suffix === 'assigned') {
-      // mine/assigned work on per-player outputs (resolved by server-side
-      // helpers before the engine resolver runs).
+    } else if (PER_PLAYER_SUFFIXES.has(parsed.suffix)) {
+      // mine/assigned/partner/side/partnerSide work on per-player outputs
+      // (resolved by server-side helpers before the engine resolver runs).
       out.renderable = true;
     } else {
       out.problem = {

@@ -6046,6 +6046,16 @@ function validateConfig() {
           errors.push(label + ': "Same partners as" and "Pair by earlier answer" cannot combine, reusing partners decides the groups. Pick one.');
         }
       }
+      // sides (mirrors engine/game-loader.js): two labels, pairs only
+      if (phase.sides !== undefined) {
+        if (phase.assign !== 'pairwise') {
+          errors.push(label + ': "Two sides to deal" needs "Pair players up" set to pairwise.');
+        }
+        if (!Array.isArray(phase.sides) || phase.sides.length !== 2 ||
+            phase.sides.some(function (s) { return typeof s !== 'string' || !s.trim(); })) {
+          errors.push(label + ': "Two sides to deal" must be exactly two labels, e.g. For and Against.');
+        }
+      }
     }
 
     // Template chain display validation (mirrors engine/game-loader.js)

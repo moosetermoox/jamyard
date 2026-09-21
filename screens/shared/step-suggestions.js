@@ -489,7 +489,10 @@
   //     sentence?: string,      // chain only, blind: "The {1} {2}." slot template
   //     piles?: [{label, prompt}], // deal only: 2-4 piles everyone adds one item to
   //     writeTimer?: number,    // deal only: seconds for the writing step (default 480)
-  //     timer? } ] }            // deal: seconds per pile step
+  //     rounds?: string[],      // pairs only: 0-3 follow-up instructions, same partner,
+  //                             //   the partner's latest piece shown under each
+  //     sides?: [string, string], // pairs only: two sides dealt one per partner
+  //     timer? } ] }            // deal: seconds per pile step; pairs: per writing step
 
   var STORYBOARD_PRIMARY = {
     'announce': 'message', 'collect': 'prompt', 'collect-two': 'prompt',
@@ -663,6 +666,91 @@
     return revealId;
   }
 
+  // ---- Pairs brick ----
+  // Partner exchanges (debate pairs, peer interviews, argue-then-switch)
+  // compiled deterministically: the AI supplies the first instruction,
+  // optional follow-up rounds, and optional sides; every pairwise flag,
+  // the same-partner link, the partner's piece under each round, the
+  // sides tokens, and the pair-private reveal of the last exchange are
+  // emitted here. Nothing a pair writes reaches the projector.
+  //   text    the first writer's instruction (required)
+  //   rounds  0-3 follow-up instructions; each round shows the partner's
+  //           latest piece under the instruction unless the text places
+  //           {{partner}} itself
+  //   sides   two labels dealt one per partner; {{side}} / {{otherSide}}
+  //           in any text become the dealt side and the one across
+  var MAX_PAIR_ROUNDS = 3;
+
+  function appendPairs(step, stepNo, phases, lastId, problems) {
+    var first = (step && typeof step.text === 'string') ? step.text.trim() : '';
+    if (!first) {
+      problems.push('Step ' + stepNo + ': the pairs step needs a "text" instruction for what partners write first.');
+      return null;
+    }
+    var rounds = (step && Array.isArray(step.rounds) ? step.rounds : [])
+      .map(function (r) { return typeof r === 'string' ? r.trim() : ''; })
+      .filter(function (r) { return r !== ''; });
+    if (rounds.length > MAX_PAIR_ROUNDS) {
+      problems.push('Step ' + stepNo + ': pairs cap at ' + MAX_PAIR_ROUNDS + ' rounds after the first, the extra rounds were dropped.');
+      rounds = rounds.slice(0, MAX_PAIR_ROUNDS);
+    }
+    var sides = null;
+    if (step && step.sides !== undefined) {
+      var cleanSides = (Array.isArray(step.sides) ? step.sides : [])
+        .map(function (s) { return typeof s === 'string' ? s.trim() : ''; })
+        .filter(function (s) { return s !== ''; });
+      if (cleanSides.length === 2) {
+        sides = cleanSides;
+      } else {
+        problems.push('Step ' + stepNo + ': "sides" needs exactly two labels (like For and Against); the sides were ignored.');
+      }
+    }
+    var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
+      ? Math.round(step.timer) : null;
+
+    var openId = freshId(phases, 'pair-write');
+
+    // The AI writes plain tokens; the compiler binds them to the step.
+    function bindTokens(text, prevId) {
+      var out = text
+        .replace(/\{\{\s*side\s*\}\}/g, '{{' + openId + '.side}}')
+        .replace(/\{\{\s*(otherSide|partnerSide)\s*\}\}/g, '{{' + openId + '.partnerSide}}');
+      if (prevId) out = out.replace(/\{\{\s*partner\s*\}\}/g, '{{' + prevId + '.partner}}');
+      else out = out.replace(/\{\{\s*partner\s*\}\}/g, '');
+      return out.replace(/[ \t]{2,}/g, ' ').trim();
+    }
+    // A sides line under the instruction when the text does not place it.
+    function withSide(text) {
+      if (!sides || text.indexOf('{{' + openId + '.side}}') !== -1) return text;
+      return text + '\n\n**{{' + openId + '.side}}**';
+    }
+
+    var open = { type: 'collect', prompt: withSide(bindTokens(first, null)), assign: 'pairwise', oddHandling: 'triple' };
+    if (sides) open.sides = sides;
+    if (timer) open.timer = timer;
+    phases[lastId].next = openId;
+    phases[openId] = open;
+    lastId = openId;
+
+    rounds.forEach(function (round) {
+      var roundId = freshId(phases, 'pair-round');
+      var prompt = bindTokens(round, lastId);
+      if (prompt.indexOf('{{' + lastId + '.partner}}') === -1) {
+        prompt = prompt + '\n\n{{' + lastId + '.partner}}';
+      }
+      var roundPhase = { type: 'collect', prompt: withSide(prompt), assign: 'pairwise', reusePairsFrom: openId };
+      if (timer) roundPhase.timer = timer;
+      phases[lastId].next = roundId;
+      phases[roundId] = roundPhase;
+      lastId = roundId;
+    });
+
+    var shareId = freshId(phases, 'pair-share');
+    phases[lastId].next = shareId;
+    phases[shareId] = { type: 'reveal', scope: 'pair', pairsFrom: lastId, template: '{{_pair.answers}}' };
+    return shareId;
+  }
+
   // ---- Deal brick ----
   // Story Ingredients' shape as a mechanic (2026-09-07): one collect per
   // pile, each later step rotating from the pile before it with a shuffled
@@ -817,6 +905,12 @@
       if (brick === 'deal') {
         var dealLast = appendDeal(step, i + 1, phases, lastId, problems);
         if (dealLast) lastId = dealLast;
+        return;
+      }
+
+      if (brick === 'pairs') {
+        var pairsLast = appendPairs(step, i + 1, phases, lastId, problems);
+        if (pairsLast) lastId = pairsLast;
         return;
       }
 

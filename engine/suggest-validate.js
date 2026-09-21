@@ -11,8 +11,21 @@
 export const STORYBOARD_BRICKS = [
   'announce', 'collect', 'collect-two', 'collect-choice', 'estimate',
   'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'rank', 'quiz', 'teams',
-  'chain', 'deal', 'assign', 'end'
+  'chain', 'deal', 'assign', 'pairs', 'end'
 ];
+
+const MAX_PAIR_ROUNDS = 3;
+
+// Pairs fields ride through in trimmed shape; compileStoryboard re-validates
+// (sides must be exactly two, rounds cap at three).
+function cleanRounds(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(r => typeof r === 'string').slice(0, MAX_PAIR_ROUNDS).map(r => r.slice(0, 500));
+}
+function cleanSides(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(s => typeof s === 'string').slice(0, 2).map(s => s.slice(0, 40));
+}
 
 const MAX_RANK_ITEMS = 12;
 const MAX_DEAL_PILES = 4;
@@ -147,6 +160,9 @@ export function validateSuggestions(raw, ctx) {
             sentence: typeof s.sentence === 'string' ? s.sentence.slice(0, 300) : undefined,
             piles: cleanPiles(s.piles),
             writeTimer: typeof s.writeTimer === 'number' ? s.writeTimer : undefined,
+            // pairs: follow-up rounds with the same partner, two sides to deal
+            rounds: cleanRounds(s.rounds),
+            sides: cleanSides(s.sides),
             timer: typeof s.timer === 'number' ? s.timer : undefined,
             // estimate: the scale's ends ("on a scale of 1 to 10")
             min: typeof s.min === 'number' && Number.isFinite(s.min) ? s.min : undefined,

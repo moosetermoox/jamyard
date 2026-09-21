@@ -190,6 +190,32 @@
         }
       },
       "note": "The same shape with a teacher's own list and a cap per item: teams, rank as groups, assign (2026-09-16)."
+    },
+    {
+      "id": "debate-pairs",
+      "prompt": "Debate pairs: partners get opposite sides of a question, write an opening argument, swap with their partner, write a rebuttal, then switch and argue the other side.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Debate Pairs",
+          "description": "Partners argue opposite sides of one question, rebut each other, then switch.",
+          "steps": [
+            { "brick": "announce", "text": "You and a partner will take opposite sides of one question. Argue yours, answer theirs, then trade places." },
+            {
+              "brick": "pairs",
+              "text": "Should homework be banned? You are arguing {{side}}. Write your opening argument.",
+              "rounds": [
+                "Read your partner's opening below. Write a rebuttal, still arguing {{side}}.",
+                "Switch sides: you now argue {{otherSide}}. Answer your partner's rebuttal below from that side."
+              ],
+              "sides": ["For", "Against"],
+              "timer": 120
+            },
+            { "brick": "end", "text": "You argued both sides. Which one was harder to make?" }
+          ]
+        }
+      },
+      "note": "The pairs-brick case (storyboard probe, 2026-09-20): the one idea a teacher got nothing for. Partners, rounds with the partner's piece in view, sides dealt and switched."
     }
   ]
 }

@@ -64,7 +64,7 @@ Timing: most runs 2 to 8 s. One slow outlier of 17 to 25 s in each of #6, #11, #
 ## Ranked follow-ups (1 and 5 shipped the same evening, branch storyboard-repairs)
 
 1. DONE: brace-balance repair in `_parseStoryboard` (`closeUnbalancedJson`).
-2. A `pairs` brick: pairwise collect, swap, rebuttal, pair-scoped reveal. Golden prompt: #12.
+2. DONE (branch storyboard-bricks): the `pairs` brick, with `{{X.partner}}` / `{{X.side}}` / `{{X.partnerSide}}` and collect `sides` in the engine; live the debate idea built 3 of 3; proof `scripts/simulate-debate-pairs.js`.
 3. `video` on the announce brick. Golden prompt: #22.
 4. Roles: a `roles` brick over team-roles (and a checklist), or a prompt rule against rank + assign for per-member jobs. Golden prompt: #19.
 5. DONE: `matchRecipe` reads an offered recipe id out of the game slot as a recipe pick.

@@ -411,6 +411,20 @@ export function validate(config, gameId, options) {
     // collect pairwise cross-field rules. pairsFrom is optional since the
     // Connection Pack (no pairsFrom → every pair gets the step's own prompt).
     if (phase.type === 'collect') {
+      // sides: two labels dealt one per pair member (debate pairs).
+      if (phase.sides !== undefined) {
+        if (phase.assign !== 'pairwise') {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (collect) sets "sides" but is not paired (assign: "pairwise"); sides are dealt across pairs.`
+          );
+        }
+        if (!Array.isArray(phase.sides) || phase.sides.length !== 2 ||
+            phase.sides.some(s => typeof s !== 'string' || !s.trim())) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (collect) "sides" must be exactly two labels, e.g. ["For", "Against"].`
+          );
+        }
+      }
       if (phase.rotatePairsFrom && phase.reusePairsFrom) {
         errors.push(
           `Game "${gameId}": phase "${name}" (collect) sets both "rotatePairsFrom" and "reusePairsFrom", pick one (new partners vs. same partners).`
