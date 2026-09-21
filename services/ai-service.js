@@ -2412,7 +2412,9 @@ ${gameOption}1. If ONE of the recipes above is a good fit:
 
    Tie-breaker for laughter/fun-shaped ideas: prefer the recipe whose comedy comes from things the students themselves create and react to (bad drawings, invented bluffs). For "make my class laugh" that means Doodle Bluff first, with quieter cooperative games as alternates rather than the top pick.
 
-2. If NONE of the recipes fit (the teacher wants something the seed library can't do, like a quiz with multiple different questions, or a mechanic not represented):
+   DRAWING IDEAS: every recipe's answer box is a TEXT box, so an idea where students draw, sketch, doodle, or make a picture never matches a recipe (Creative Vote's "creative responses" are typed).${gameLines.length ? ' Two ready-made activities draw: Draw Gallery fits only draw-and-show (everyone draws one prompt, the drawings go up one at a time, nothing after), so a plain gallery idea, "everyone draws X and we put them on the wall", IS Draw Gallery, answer with "game"; Doodle Bluff fits only its own fake-caption guessing game.' : ''} A drawing idea that also votes, picks a favorite or a best one, captions, ranks, or scores is noMatch: the step-by-step builder makes a drawing step followed by a vote, and "reason" should say so.
+
+2. If NONE of the recipes fit (the teacher wants something the seed library can't do, like a quiz with multiple different questions, a drawing idea with a vote, or a mechanic not represented):
    Return JSON:
    {
      "noMatch": true,
