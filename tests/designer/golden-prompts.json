@@ -277,6 +277,26 @@
         }
       },
       "note": "The estimate-answer case (storyboard probe, 2026-09-20): with an answer the estimate step reveals the number, the class spread, and closeness scores; without one it is a poll and no text may promise a winner. Estimation Station is the matcher's defensible answer."
+    },
+    {
+      "id": "monster-wall",
+      "prompt": "Draw a monster, put all the drawings on the wall, and vote for the scariest one.",
+      "expect": {
+        "kind": "storyboard",
+        "acceptAlso": [
+          "host:art-gallery"
+        ],
+        "storyboard": {
+          "name": "Monster Wall",
+          "description": "Everyone draws a monster; after the teacher's look, the wall opens one drawing at a time and the class picks the scariest by a show of hands.",
+          "steps": [
+            { "brick": "announce", "text": "Ninety seconds to draw the scariest monster you can. Every drawing goes up on the wall, and the loudest gasp picks the winner." },
+            { "brick": "draw", "text": "Draw a monster. Scary, silly, or both, but make it yours.", "gallery": "The monster wall is open. When one makes you jump, hands up: the biggest show of hands takes it.", "timer": 90 },
+            { "brick": "end", "text": "That was the monster wall. Sleep well." }
+          ]
+        }
+      },
+      "note": "The draw-brick case (storyboard probe, 2026-09-20): declined 3 of 3 as typed-text-only while Draw Gallery did it. A vote step cannot show drawings, so the favorite is a show of hands in the gallery line. Draw Gallery is the matcher's defensible answer."
     }
   ]
 }

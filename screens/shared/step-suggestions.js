@@ -501,6 +501,8 @@
   //     answer?: number,        // estimate only: the true number (else poll mode)
   //     unit?: string,          // estimate only, with answer
   //     scoring?: string,       // estimate only, with answer: 'closest' (default) | 'graduated'
+  //     gallery?: string,       // draw only: the line over the one-at-a-time gallery
+  //                             //   (text = the drawing instruction; timer = seconds to draw)
   //     timer? } ] }            // deal: seconds per pile step; pairs: per writing step
 
   // The same five YouTube shapes engine/video.js embeds (watch, youtu.be,
@@ -829,6 +831,44 @@
     return lastId;
   }
 
+  // ---- Draw brick ----
+  // Draw Gallery's shape from the AI's words alone: a drawing collect, the
+  // teacher preview gate (nothing student-drawn reaches the projector
+  // without one, SAFETY-DESIGN), then the one-at-a-time gallery. Reject on
+  // the gate restarts the drawing round. No vote can show drawings, so a
+  // favorite stays a show of hands in the gallery line (the compile loop
+  // refuses a vote fed by a drawing step).
+  var DRAW_TIMER_DEFAULT = 90;
+
+  function appendDraw(step, stepNo, phases, lastId, problems) {
+    var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
+    if (!text) {
+      problems.push('Step ' + stepNo + ': the draw step needs a "text" instruction for what to draw.');
+      return null;
+    }
+    var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
+      ? Math.round(step.timer) : DRAW_TIMER_DEFAULT;
+    var gallery = (step && typeof step.gallery === 'string' && step.gallery.trim())
+      ? step.gallery.trim()
+      : 'The gallery is open. One drawing at a time, artists, be ready to say a word about yours.';
+
+    var drawId = freshId(phases, 'draw');
+    phases[lastId].next = drawId;
+    phases[drawId] = { type: 'collect', inputType: 'drawing', prompt: text, timer: timer };
+
+    var gateId = freshId(phases, 'check');
+    var galleryId = freshId(phases, 'gallery');
+    phases[drawId].next = gateId;
+    phases[gateId] = {
+      type: 'preview',
+      template: 'Review the drawings below, then open the gallery. One bad drawing? Hide it from the moderation list. Try again restarts the drawing round for everyone.',
+      approveNext: galleryId,
+      rejectNext: drawId
+    };
+    phases[galleryId] = { type: 'reveal-one', message: gallery, from: drawId + '.responses' };
+    return galleryId;
+  }
+
   // ---- Deal brick ----
   // Story Ingredients' shape as a mechanic (2026-09-07): one collect per
   // pile, each later step rotating from the pile before it with a shuffled
@@ -996,6 +1036,23 @@
         var rolesLast = appendRoles(step, i + 1, phases, lastId, problems);
         if (rolesLast) lastId = rolesLast;
         return;
+      }
+
+      if (brick === 'draw') {
+        var drawLast = appendDraw(step, i + 1, phases, lastId, problems);
+        if (drawLast) lastId = drawLast;
+        return;
+      }
+
+      // A vote ballot shows text; fed by a drawing step it would show
+      // nothing. The gallery is the drawings' payoff (a favorite is a
+      // show of hands there).
+      if (brick === 'vote') {
+        var voteSrc = lastOfType(phases, ['collect'], lastId);
+        if (voteSrc && phases[voteSrc].inputType === 'drawing') {
+          problems.push('Step ' + (i + 1) + ': a vote cannot show drawings on the ballot, so it was left out; the gallery shows them one at a time, and a favorite can be a show of hands there.');
+          return;
+        }
       }
 
       if (brick === 'guessing-rounds') {
