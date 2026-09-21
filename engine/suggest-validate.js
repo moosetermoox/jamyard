@@ -163,6 +163,8 @@ export function validateSuggestions(raw, ctx) {
             // pairs: follow-up rounds with the same partner, two sides to deal
             rounds: cleanRounds(s.rounds),
             sides: cleanSides(s.sides),
+            // announce / collect / collect-choice: a YouTube link the projector plays
+            video: typeof s.video === 'string' ? s.video.trim().slice(0, 300) : undefined,
             timer: typeof s.timer === 'number' ? s.timer : undefined,
             // estimate: the scale's ends ("on a scale of 1 to 10")
             min: typeof s.min === 'number' && Number.isFinite(s.min) ? s.min : undefined,

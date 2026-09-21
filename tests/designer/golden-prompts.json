@@ -216,6 +216,26 @@
         }
       },
       "note": "The pairs-brick case (storyboard probe, 2026-09-20): the one idea a teacher got nothing for. Partners, rounds with the partner's piece in view, sides dealt and switched."
+    },
+    {
+      "id": "clip-then-questions",
+      "prompt": "Watch this YouTube clip https://www.youtube.com/watch?v=dQw4w9WgXcQ then answer two questions about it.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Clip and Two Questions",
+          "description": "The class watches a clip on the projector, then answers two questions about it.",
+          "steps": [
+            { "brick": "announce", "text": "Eyes up front. We are watching a short clip together, then you will answer two questions about it on your device.", "video": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
+            { "brick": "collect", "text": "In one sentence, what was the clip mostly about?", "timer": 90 },
+            { "brick": "reveal", "text": "Here is what the class took from it:" },
+            { "brick": "collect", "text": "What is one question the clip left you with?", "timer": 90 },
+            { "brick": "reveal", "text": "The questions we still have:" },
+            { "brick": "end", "text": "Good watching. We will pick up those questions next time." }
+          ]
+        }
+      },
+      "note": "The video case (storyboard probe, 2026-09-20): the other idea a teacher got nothing for. The clip rides on the announce brick's video field and plays on the projector."
     }
   ]
 }

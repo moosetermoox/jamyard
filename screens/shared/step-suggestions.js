@@ -472,6 +472,8 @@
   //            'rank'|'quiz'|'teams'|'chain'|'deal'|'end',
   //     text?: string,          // the brick's primary field (prompt/message)
   //     choices?: string[],     // collect-choice only
+  //     video?: string,         // announce, collect, collect-choice: a YouTube
+  //                             //   link the projector plays (engine/video.js)
   //     guess?: 'who',          // guessing-rounds only: pick the author from a roster
   //     items?: string[],       // rank only: a teacher-written list (else the last collect's answers)
   //     byGroup?: boolean,      // rank only: each group (a teams step earlier) decides one order
@@ -493,6 +495,10 @@
   //                             //   the partner's latest piece shown under each
   //     sides?: [string, string], // pairs only: two sides dealt one per partner
   //     timer? } ] }            // deal: seconds per pile step; pairs: per writing step
+
+  // The same five YouTube shapes engine/video.js embeds (watch, youtu.be,
+  // embed, shorts, live), each with an 11-character id.
+  var YOUTUBE_LINK = /(?:youtube\.com\/watch\?(?:.*&)?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/|youtube\.com\/live\/)[A-Za-z0-9_-]{11}/;
 
   var STORYBOARD_PRIMARY = {
     'announce': 'message', 'collect': 'prompt', 'collect-two': 'prompt',
@@ -982,6 +988,19 @@
       }
       if (brick === 'collect-choice' && Array.isArray(step.choices) && step.choices.length >= 2) {
         built.choices = step.choices.slice(0, 8).map(String);
+      }
+      // A clip on the projector (announce, collect, collect-choice carry a
+      // player): only a YouTube link rides through, mirroring the id
+      // patterns in engine/video.js, so a bad link never renders a broken
+      // player and the teacher hears why.
+      if (typeof step.video === 'string' && step.video.trim() &&
+          (brick === 'announce' || brick === 'collect' || brick === 'collect-choice')) {
+        var link = step.video.trim();
+        if (YOUTUBE_LINK.test(link)) {
+          built.video = link;
+        } else {
+          problems.push('Step ' + (i + 1) + ': the video link is not a YouTube link, so it was left out (paste a youtube.com or youtu.be link in the designer).');
+        }
       }
       if (brick === 'collect-two' && built.fields) {
         if (step.secretLabel) built.fields[0].label = String(step.secretLabel);
