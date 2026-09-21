@@ -23,8 +23,9 @@
  * entry passes when the generator honestly refuses. This is the gate for
  * storyboard-prompt edits (e.g. teaching it a new brick).
  *
- * Requires ANTHROPIC_API_KEY (~12 Haiku + ~3 Sonnet calls per run):
- *   node scripts/eval-designer-prompts.js
+ * Requires ANTHROPIC_API_KEY (~24 Haiku + ~13 Sonnet calls per run, more
+ * than the per-minute cap, so raise it for this process):
+ *   AI_CALLS_PER_MINUTE=200 node scripts/eval-designer-prompts.js
  */
 import 'dotenv/config';
 import { readFile, readdir } from 'node:fs/promises';
