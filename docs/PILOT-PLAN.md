@@ -67,9 +67,12 @@ people who know you first; use cold reach to top up.
 
 - Terms live as the second half of `/privacy` (`/terms` lands there). No agree step anywhere, the owner's call.
 - Render paid tier (a cold start must not eat a class period).
-- Project Zero email sent (`pzlearn@gse.harvard.edu`; see COMPARATIVE-ADVANTAGE § 4).
-- Anonymous mode as the default for new rooms (still open; say so in the
-  recruiting copy either way, it is a selling point).
+- Project Zero email (`pzlearn@gse.harvard.edu`; see COMPARATIVE-ADVANTAGE § 4).
+  A courtesy, not a gate: no built-in ships Project Zero words or names.
+  The owner's call whether to send it.
+- Anonymous mode stays opt-in (owner, 2026-09-21: not the default). The
+  recruiting copy can still say names never leave the room, which is true
+  either way.
 
 ## Recruiting messages
 
@@ -145,10 +148,13 @@ teachers said the same thing.
 
 ## Things that will bite
 
-- **Support path.** A teacher with a broken room mid-class needs a phone
-  number, not a feedback widget. Put it in the email and on the console.
+- **Support path.** No phone number (owner, 2026-09-21). A teacher with a
+  broken room mid-class has the console's quick fixes, the guide, and the
+  feedback widget; the email's "text me at [number]" line is the owner's
+  to keep or cut per friend.
 - **Observe, do not rescue.** When a teacher stalls in front of you, count
   to ten before helping. The stall is the data.
 - **Wi-fi.** Run the chaos suite against the starter five before week one.
   Tell teachers a phone hotspot works if the school network drops.
-- **Minors.** Anonymous mode on by default for the cold wave, and say so.
+- **Minors.** Anonymous mode is a setting a teacher can turn on, not the
+  default (owner's call); the privacy page carries the rest.

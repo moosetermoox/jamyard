@@ -75,8 +75,8 @@ export function getAllowedFields(phaseType, opts) {
   return schemaGetAllowedFieldNames(phaseType, opts);
 }
 
-export async function loadGame(gameId) {
-  const { configPath, source } = await resolveGamePath(gameId);
+export async function loadGame(gameId, opts) {
+  const { configPath, source } = await resolveGamePath(gameId, opts);
 
   let raw;
   try {
@@ -107,8 +107,14 @@ export async function loadGame(gameId) {
  * games/<id>/) takes precedence over user (games/user/<id>/). Returns
  * { configPath, gameDir, source } or throws if the game does not exist
  * in either location.
+ *
+ * `opts.builtInOnly` skips games/user/ altogether. The server passes it
+ * whenever the database is on: user games live there then, and a copy
+ * still on disk from before the database (2026-08) would otherwise be
+ * listed beside its row, shadow it on load, and be re-migrated over it
+ * on every restart.
  */
-export async function resolveGamePath(gameId) {
+export async function resolveGamePath(gameId, opts) {
   const builtInDir = join(GAMES_DIR, gameId);
   const userDir = join(USER_GAMES_DIR, gameId);
 
@@ -117,10 +123,12 @@ export async function resolveGamePath(gameId) {
     return { configPath: join(builtInDir, 'config.json'), gameDir: builtInDir, source: 'built-in' };
   } catch {}
 
-  try {
-    await access(join(userDir, 'config.json'));
-    return { configPath: join(userDir, 'config.json'), gameDir: userDir, source: 'user' };
-  } catch {}
+  if (!(opts && opts.builtInOnly)) {
+    try {
+      await access(join(userDir, 'config.json'));
+      return { configPath: join(userDir, 'config.json'), gameDir: userDir, source: 'user' };
+    } catch {}
+  }
 
   throw new Error(`Game not found: no config.json at games/${gameId}/config.json`);
 }
@@ -135,14 +143,18 @@ export async function resolveGamePath(gameId) {
  * Returns: Array<{ id, source, config }>
  *   - source: 'built-in' | 'user'
  *   - config: the parsed + validated config (with non-enumerable _source)
+ *
+ * `opts.builtInOnly` leaves games/user/ out (see resolveGamePath).
  */
-export async function listGames() {
+export async function listGames(opts) {
   const games = [];
+  const builtInOnly = !!(opts && opts.builtInOnly);
 
   for (const { dir, source } of [
     { dir: GAMES_DIR, source: 'built-in' },
     { dir: USER_GAMES_DIR, source: 'user' }
   ]) {
+    if (builtInOnly && source === 'user') continue;
     let entries;
     try {
       entries = await readdir(dir, { withFileTypes: true });

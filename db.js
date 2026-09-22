@@ -203,6 +203,21 @@ export async function saveUserGame(id, config) {
   `;
 }
 
+// The one-time move of a games/user/* file into the database. Insert only:
+// once a row exists the database is the copy that gets edited, and a stale
+// file must never write over it again (it did, on every restart, until
+// 2026-09-21). Returns true when a row was created.
+export async function insertUserGameIfAbsent(id, config) {
+  const json = JSON.stringify(config);
+  const rows = await getSql()`
+    INSERT INTO user_games (id, name, config, updated_at)
+    VALUES (${id}, ${config.name}, ${json}::json, now())
+    ON CONFLICT (id) DO NOTHING
+    RETURNING id
+  `;
+  return rows.length > 0;
+}
+
 export async function deleteUserGame(id) {
   const rows = await getSql()`DELETE FROM user_games WHERE id = ${id} RETURNING id`;
   return rows.length > 0;

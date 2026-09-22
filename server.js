@@ -100,6 +100,7 @@ import {
   listUserGamesByIds,
   listUserGameIds,
   saveUserGame,
+  insertUserGameIfAbsent,
   deleteUserGame,
   userGameExists,
   getAiUsage,
@@ -440,6 +441,8 @@ function pickCardMeta(config) {
 
 // Loads a game by ID: built-in games from filesystem, user games from DB
 // (falling back to filesystem when DB_ENABLED is false for local dev).
+// With the database on, games/user/ is never read: a file left there from
+// before the database would shadow the row a teacher has since edited.
 async function loadGameById(gameId) {
   // In-memory temp games (robot playtest) take precedence — they hold the
   // exact config under review, already validated by the review endpoint.
@@ -447,7 +450,7 @@ async function loadGameById(gameId) {
     return tempGames.get(gameId);
   }
   try {
-    return await loadGame(gameId); // checks built-in dir, then games/user/ dir
+    return await loadGame(gameId, { builtInOnly: DB_ENABLED });
   } catch (err) {
     if (!err.message.startsWith('Game not found')) throw err;
   }
@@ -464,8 +467,11 @@ async function loadGameById(gameId) {
 }
 
 // On first DB-enabled startup, migrate any games/user/* still on disk into
-// the database. Safe to run repeatedly (upsert). Handles the transition from
-// the old filesystem-only setup to the DB-backed one.
+// the database. Insert-if-absent, like the recipes below: the first boot
+// after the database arrived did the move, and from then on the row is
+// the copy that gets edited. (An upsert here re-wrote every row from its
+// stale file on every restart until 2026-09-21, and the file was listed
+// beside the row, so one activity showed twice.)
 async function migrateFilesystemGames() {
   let count = 0;
   try {
@@ -475,8 +481,7 @@ async function migrateFilesystemGames() {
       try {
         const raw = await readFile(join(USER_GAMES_DIR, entry.name, 'config.json'), 'utf-8');
         const config = JSON.parse(raw);
-        await saveUserGame(entry.name, config);
-        count++;
+        if (await insertUserGameIfAbsent(entry.name, config)) count++;
       } catch {}
     }
   } catch {} // user dir may not exist
@@ -2858,7 +2863,7 @@ app.get('/api/games', async (req, res) => {
     const mine = parseMine(req.query.mine);
     const overrides = await featuredOverridesSafe();
     const wanted = mine ? wantedUserIds(mine, overrides) : null;
-    const loaded = await listGames();
+    const loaded = await listGames({ builtInOnly: DB_ENABLED });
     const ids = loaded.map(g => g.id);
     const games = loaded
       .filter(g => g.source !== 'user' || !wanted || wanted.includes(g.id) || !!(g.config && g.config.featured))
@@ -3577,7 +3582,7 @@ app.post('/api/games/suggest', async (req, res) => {
     if (!occasion && !topic) {
       return res.status(400).json({ error: 'Tell us the occasion or a topic first' });
     }
-    const loaded = await listGames();
+    const loaded = await listGames({ builtInOnly: DB_ENABLED });
     let games = loaded.map(({ id, config }) => ({
       id,
       featured: !!config.featured,
@@ -3737,7 +3742,7 @@ app.post('/api/games/from-description', async (req, res) => {
     let matchGames = [];
     let loadedGames = [];
     if (!recipeId) {
-      loadedGames = await listGames();
+      loadedGames = await listGames({ builtInOnly: DB_ENABLED });
       matchGames = loadedGames
         .filter(g => g.source === 'built-in')
         .map(({ id, config }) => ({
@@ -3924,7 +3929,7 @@ io.on('connection', (socket) => {
 
   socket.on(EVENTS.GET_GAMES, async () => {
     try {
-      const loaded = await listGames();
+      const loaded = await listGames({ builtInOnly: DB_ENABLED });
       // minPlayers feeds the host lobby's start hint (falls back to the
       // lobby phase's value — some configs declare it there).
       const games = loaded.map(({ id, source, config }) => ({
