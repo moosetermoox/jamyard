@@ -189,20 +189,29 @@
     return card;
   }
 
+  // The last tile: for when what the class needs is not on the shelf yet
+  // (owner 2026-09-22: from the "what you need" side, a little cheeky).
+  // Its hover card reads like the prints', the moment it is for.
+  var AI_DOOR = {
+    name: 'Have an idea? Make it real',
+    when: 'When what your class needs isn\'t on this shelf yet. Say it in a sentence and it gets built while you watch.'
+  };
+
   function buildAiTile(i, href) {
     var card = el('a', 'yard-card');
     card.href = href || '/designer';
-    card.title = 'Describe an activity in plain words and the AI builds it';
+    card.title = AI_DOOR.when;
     card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
+    if (window.HoverCard) HoverCard.attach(card, AI_DOOR);
     var print = el('div', 'yard-print');
     var mini = el('div', 'yp-mini');
-    mini.appendChild(el('span', 'yp-caps', 'Describe an activity'));
+    mini.appendChild(el('span', 'yp-caps', 'Say what you need'));
     mini.appendChild(el('div', 'yp-slot'));
     mini.appendChild(el('span', 'yp-chip', 'Build it'));
     print.appendChild(mini);
     card.appendChild(print);
-    card.appendChild(el('span', 'yard-name', 'Make one with AI'));
-    card.appendChild(el('span', 'yard-meta', 'your prompt, your class'));
+    card.appendChild(el('span', 'yard-name', AI_DOOR.name));
+    card.appendChild(el('span', 'yard-meta', 'describe it, then host it'));
     return card;
   }
 

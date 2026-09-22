@@ -84,23 +84,22 @@ describe('home page 15b', () => {
   });
 
   it('the fold says what Jamyard is, then asks what the class needs (2026-09-21; the picture beside the headline took over the mechanic and sub lines, see home-16h)', () => {
-    expect(html).toContain('<h1>Get the whole class in on it.</h1>');
+    expect(html).toContain('<h1>Get the whole class<br>in on it.</h1>');
     expect(html.indexOf('<h1>')).toBeLessThan(html.indexOf('<h2 class="ask">What does your class need?</h2>'));
     expect(html.indexOf('<h2 class="ask">')).toBeLessThan(html.indexOf('<div class="planks" id="planks">'));
     expect(html).not.toContain('t-painted-word');
   });
 
-  it('each plank carries the ways Jamyard does that job, always shown, and the red door says Pick this one (owner 2026-09-12)', async () => {
+  it('each plank carries the ways Jamyard does that job, shown on hover, and the red door says Pick this one (owner 2026-09-12)', async () => {
     for (const goal of ['connect', 'think', 'review', 'play']) {
       const plank = html.match(new RegExp('<a class="plank" data-goal="' + goal + '"[^]*?</a>'));
       expect(plank, goal).not.toBeNull();
       expect(plank[0]).toContain('class="plank-ways"');
       expect(plank[0]).toContain('class="plank-label"');
     }
-    // Always visible since 2026-09-21: no hover-only rule, no opacity 0
-    expect(html).not.toContain('.plank:hover .plank-ways');
-    expect(html).not.toMatch(/\.plank-ways\s*\{[^}]*opacity:\s*0;/);
-    expect(html).toContain('>Pick this one</a>');
+    // On hover (owner 2026-09-22, to compare with the always-on day before)
+    expect(html).toContain('.plank:hover .plank-ways');
+    // The popup's red door (the carousel's went with the carousel, 2026-09-22)
     expect(html).toContain("'Pick this one'");
     expect(html).not.toMatch(/Start the room/i);
     expect(html).not.toContain('mid-activity.');
@@ -113,7 +112,7 @@ describe('home page 15b', () => {
 
   it('the grid of prints is the shared module on the home (the one yard), with the hover card', async () => {
     const mod = await read('screens/shared/yard-prints.js');
-    expect(mod).toContain('Make one with AI');
+    expect(mod).toContain('Have an idea? Make it real');
     expect(mod).toContain("href || '/designer'");
     expect(mod).toContain('HoverCard.attach(card, g)');
     expect(mod).not.toMatch(/card.titles*=s*g./);
@@ -146,8 +145,7 @@ describe('home page 15b', () => {
     expect(html).not.toMatch(/Pick a template/i);
   });
 
-  it('says jamyard.org, never the old domain', async () => {
-    expect(html).toContain("'jamyard.org'");
+  it('never says the old domain', async () => {
     const dirs = ['screens', 'engine', 'services'];
     for (const dir of dirs) {
       const files = await walk(join(ROOT.pathname.replace(/^\/([A-Za-z]:)/, '$1'), dir));

@@ -176,6 +176,7 @@ import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
 import { pickAnonymousName } from './engine/anonymous-names.js';
 import { scoreResponses } from './engine/speed-scoring.js';
+import { whenLineFor } from './engine/when-lines.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -2883,7 +2884,9 @@ app.get('/api/games', async (req, res) => {
       // The home page's drawn projector frame (engine/home-glimpse.js)
       glimpse: homeGlimpse(config),
       ...yardCardExtras(config),
-      ...pickCardMeta(config)
+      ...pickCardMeta(config),
+      // A database row without a line of its own reads engine/when-lines.js
+      when: whenLineFor(id, config) || undefined
     }));
 
     if (DB_ENABLED) {
@@ -2905,7 +2908,8 @@ app.get('/api/games', async (req, res) => {
       // The home page's drawn projector frame (engine/home-glimpse.js)
       glimpse: homeGlimpse(config),
       ...yardCardExtras(config),
-      ...pickCardMeta(config)
+      ...pickCardMeta(config),
+      when: whenLineFor(row.id, config) || undefined
     });
       }
       const userIds = wanted ? await listUserGameIds() : userRows.map(r => r.id);

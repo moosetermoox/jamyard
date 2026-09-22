@@ -1,12 +1,13 @@
-/* fold-picture.css — the home fold's picture (16h, 2026-09-21).
+/* fold-picture.css — the home fold's picture (16h, 2026-09-21; three
+ * scenes 2026-09-22).
  *
  * A drawn projector print and one student's screen on a fixed 660 by 330
  * canvas that scales to its column (fold-picture.js sets zoom). The markup
  * carries the finished picture; `.is-live` on the wrapper turns the hidden
  * states on and the script steps them in with the system's one entrance
- * move (opacity 0 to 1, 16px drop, 180ms). Pieces are the home's own
- * parts where they exist (.code-row .cb-N, .pile-block, .pile-plinth,
- * .pile-base, .frame-answers) sized for the canvas. */
+ * move (opacity 0 to 1, 16px drop, 180ms). The painted code blocks, the
+ * pile, and the answer chips were the home carousel's parts until it left
+ * the page (2026-09-22); they live here now. */
 
 /* flex-basis auto, never a length: the home's hero row turns into a
    column under 1100px, where a 660px basis would become the HEIGHT. */
@@ -39,7 +40,11 @@
   color: var(--t-ink);
 }
 
-/* ── Arrivals: the system's entrance move, and nothing else ── */
+/* ── Arrivals: the system's entrance move, and nothing else ──
+   A piece with data-at arrives at that state (and leaves at data-until).
+   A piece with data-hide as well takes no room until it arrives (pieces
+   that share a slot: the two prompts, the pile and the wall), so it
+   arrives through a keyframe instead of a transition. */
 .fold-pic [data-at],
 .fold-pic [data-name],
 .fold-pic [data-block] {
@@ -56,8 +61,37 @@
   --fall: -16px;
 }
 
+.fold-pic.is-live [data-hide]:not(.is-in) { display: none; }
+
+@keyframes fp-arrive {
+  from { opacity: 0; transform: translateY(-16px); }
+}
+
+.fold-pic.is-live [data-hide].is-in { animation: fp-arrive 180ms var(--t-ease); }
+
 .fold-pic [data-letter] { transition: opacity 120ms var(--t-ease); }
 .fold-pic.is-live [data-letter]:not(.is-in) { opacity: 0; }
+
+/* ── The painted letter blocks (the host lobby's code) ── */
+.fold-pic .code-row { display: flex; gap: 8px; align-items: center; }
+
+.fold-pic .code-row span {
+  width: 50px;
+  height: 59px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 31px;
+  box-shadow: 0 3px 4px rgba(50,35,15,0.26);
+  clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
+}
+
+.fold-pic .code-row .cb-0 { background: var(--t-yellow); color: var(--t-ink); transform: rotate(-2deg); }
+.fold-pic .code-row .cb-1 { background: var(--t-cyan); color: var(--t-paper); transform: rotate(1.5deg); }
+.fold-pic .code-row .cb-2 { background: var(--t-magenta); color: var(--t-paper); transform: rotate(-1deg); }
+.fold-pic .code-row .cb-3 { background: var(--t-green); color: var(--t-paper); transform: rotate(2deg); }
 
 /* ── The projector print ── */
 .fp-mat {
@@ -90,14 +124,6 @@
   gap: 12px;
 }
 
-.fold-pic .code-row { gap: 8px; }
-
-.fold-pic .code-row span {
-  width: 50px;
-  height: 59px;
-  font-size: 31px;
-}
-
 .fp-prompt {
   font-family: var(--t-display);
   font-weight: 800;
@@ -113,33 +139,41 @@
   gap: 6px;
 }
 
-/* A green chip: the pile's count, the reveal's heading */
-.fp-chip-green {
+/* Painted chips: green for a count or a heading, yellow for now */
+.fp-chip-green,
+.fp-chip-yellow {
   display: inline-block;
   font-family: var(--t-display);
   font-weight: 800;
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--t-paper);
-  background: var(--t-green);
   padding: 4px 9px 5px;
   transform: rotate(-1deg);
   white-space: nowrap;
 }
 
+.fp-chip-green { color: var(--t-paper); background: var(--t-green); }
+.fp-chip-yellow { color: var(--t-ink); background: var(--t-yellow); }
+
 .fp-chip-green:empty { visibility: hidden; }
 
+/* The answer chips (the pairs' list) */
 .fold-pic .frame-answers {
+  display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  margin-top: 0;
 }
 
 .fold-pic .frame-answers span {
   font-size: 11px;
+  font-weight: 700;
+  color: var(--t-ink);
+  background: var(--t-paper);
   padding: 4px 9px 5px;
+  box-shadow: 0 2px 3px rgba(50,35,15,0.2);
+  transform: rotate(var(--rot, 0deg));
   white-space: nowrap;
 }
 
@@ -153,7 +187,8 @@
 }
 
 .fp-answers,
-.fp-room {
+.fp-room,
+.fp-wall-block {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -171,11 +206,12 @@
   white-space: nowrap;
 }
 
-/* The two piles: answers on top, the room underneath. The home's pile
-   parts, cut down to the canvas. No drop shadow here: the pieces arrive
-   at opacity 0 and a filtered wrapper would ghost them. */
+/* The two piles: answers on top, the room underneath. No drop shadow:
+   the pieces arrive at opacity 0 and a filtered wrapper would ghost them. */
 .fold-pic .pile {
-  filter: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding-left: 12px;
   transition: opacity 180ms var(--t-ease);
 }
@@ -183,11 +219,26 @@
 .fold-pic .pile-block {
   height: 16px;
   margin-top: -3px;
+  clip-path: polygon(0 8%, 100% 0, 98% 100%, 2% 94%);
   transform: rotate(var(--rot, 0deg)) translateY(var(--fall, 0px));
 }
 
-.fold-pic .pile-plinth { width: 56px; height: 10px; margin-top: -2px; }
-.fold-pic .pile-base { width: 110px; height: 9px; }
+.fold-pic .pile-block:first-child { margin-top: 0; }
+
+.fold-pic .pile-plinth {
+  width: 56px;
+  height: 10px;
+  margin-top: -2px;
+  background: var(--t-walnut);
+  background-image: var(--t-grain);
+}
+
+.fold-pic .pile-base {
+  width: 110px;
+  height: 9px;
+  background: var(--t-base);
+  background-image: var(--t-grain);
+}
 
 .fold-pic.is-built .fp-pile { opacity: 0.55; }
 
@@ -207,6 +258,44 @@
 }
 
 .fp-name:first-child { margin-top: 0; }
+
+/* The wall: three drawings on paper, a name under each */
+.fp-wall {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.fp-wall-card {
+  width: 58px;
+  background: var(--t-paper);
+  padding: 4px 4px 3px;
+  box-shadow: 0 2px 3px rgba(50,35,15,0.2);
+  transform: rotate(var(--rot, 0deg));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.fp-wall-card svg { width: 46px; height: 38px; }
+
+.fp-wall-card span {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+}
+
+.fp-doodle {
+  fill: none;
+  stroke: var(--t-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
 
 /* Pinned labels on the two prints */
 .fp-tag {
@@ -253,17 +342,23 @@
   justify-content: center;
 }
 
-/* Two views, one shown: the join screen while the sequence is there,
-   the answer screen after (and with no script at all) */
-.fp-join-view {
+/* Four views, one shown: join, answer, the shared box, the drawing. With
+   no script the last one shows (the finished picture). */
+.fp-view {
   display: none;
   flex-direction: column;
-  align-items: center;
-  gap: 14px;
+  gap: 10px;
+  width: 100%;
 }
 
-.fold-pic.at-join .fp-join-view { display: flex; }
-.fold-pic.at-join .fp-answer-view { display: none; }
+.fp-view-draw { display: flex; }
+.fold-pic.is-live .fp-view { display: none; }
+.fold-pic.is-live.at-join .fp-view-join { display: flex; }
+.fold-pic.is-live.at-answer .fp-view-answer { display: flex; }
+.fold-pic.is-live.at-shared .fp-view-shared { display: flex; }
+.fold-pic.is-live.at-draw .fp-view-draw { display: flex; }
+
+.fp-view-join { align-items: center; gap: 14px; }
 
 .fp-slots { display: flex; gap: 5px; }
 
@@ -285,13 +380,17 @@
   font-size: 20px;
 }
 
-.fp-join,
-.fp-submit {
+/* The buttons: Join is yellow, the rest are paper, as on the real screen */
+.fp-btn {
   display: inline-block;
+  align-self: flex-start;
   font-family: var(--t-display);
   font-weight: 800;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  padding: 7px 12px 8px;
+  background: var(--t-paper);
   box-shadow: 0 3px 4px rgba(50,35,15,0.26);
   transform: rotate(-1deg);
   white-space: nowrap;
@@ -299,28 +398,14 @@
 }
 
 .fp-join {
+  align-self: center;
   font-size: 13px;
   padding: 8px 18px 9px;
   background: var(--t-yellow);
 }
 
-.fp-submit {
-  align-self: flex-start;
-  font-size: 11px;
-  padding: 7px 12px 8px;
-  background: var(--t-paper);
-}
-
 /* Pressed is the system's selection: an inset Ink ring */
-.fp-join.is-pressed,
-.fp-submit.is-pressed { box-shadow: inset 0 0 0 3px var(--t-ink); }
-
-.fp-answer-view {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
+.fp-btn.is-pressed { box-shadow: inset 0 0 0 3px var(--t-ink); }
 
 .fp-caps {
   font-size: 9px;
@@ -353,6 +438,9 @@
   overflow: hidden;
 }
 
+/* The shared box wraps: two people's words fit on two lines */
+.fp-plank.fp-shared { white-space: normal; min-height: 42px; }
+
 .fp-caret {
   display: inline-block;
   width: 2px;
@@ -362,6 +450,36 @@
 }
 
 .fold-pic.is-typing .fp-caret { opacity: 1; }
+
+/* Who holds the pen on the shared box: the partner (cyan), then you (yellow) */
+.fp-pen {
+  align-self: flex-end;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-paper);
+  background: var(--t-cyan);
+  padding: 3px 7px 4px;
+  margin-top: -6px;
+  transform: rotate(1deg);
+}
+
+.fp-pen.is-mine { color: var(--t-ink); background: var(--t-yellow); }
+
+/* The drawing box on the student's screen */
+.fp-canvas {
+  position: relative;
+  height: 64px;
+  background: var(--t-paper);
+  border: 3px dashed rgba(110,75,40,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fp-canvas svg { width: 60px; height: 50px; }
 
 /* ── Replay: a real button, outside the decorative canvas, only once
    the sequence has finished ── */
@@ -393,5 +511,5 @@
 .join-tab.is-nudged { transform: rotate(var(--rot, 0deg)) translateY(-5px); }
 
 @media (prefers-reduced-motion: reduce) {
-  .fold-pic *, .fold-pic-replay, .join-tab.is-nudged { transition: none !important; }
+  .fold-pic *, .fold-pic-replay, .join-tab.is-nudged { transition: none !important; animation: none !important; }
 }

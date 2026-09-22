@@ -69,14 +69,6 @@ describe('small red text', () => {
   });
 });
 
-describe('home projector mock on a phone', () => {
-  it('stacks the frame body and shrinks the prompt under 600px', async () => {
-    const html = await read('screens/home/index.html');
-    const narrow = html.slice(html.indexOf('@media (max-width: 600px)'));
-    expect(narrow).toMatch(/\.frame-body \{[^}]*flex-direction: column/);
-    expect(narrow).toMatch(/\.frame-prompt \{[^}]*font-size: 2\dpx/);
-  });
-});
 
 describe('the button that moves the room stays in view', () => {
   it('host sections keep their direct button sticky at the bottom edge', async () => {
