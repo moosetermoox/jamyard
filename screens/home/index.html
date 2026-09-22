@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/shared/activity-map.css">
   <link rel="stylesheet" href="/shared/hover-card.css">
   <link rel="stylesheet" href="/shared/yard-prints.css">
+  <link rel="stylesheet" href="/shared/fold-picture.css">
   <link rel="stylesheet" href="/shared/my-yard.css">
   <style>
     /* ══ Totem system (docs/design/totem/), home 15b (2026-09-10) ══
@@ -189,10 +190,13 @@
 
     .join-form.is-wrong .join-error { display: inline; }
 
-    /* ── The fold: the question, the four planks, the mechanic line ── */
-    /* The fold owns the first screen (owner's call 2026-09-10): the
-       question, the planks, and the mechanic line, nothing else until the
-       teacher scrolls. One screen on a Chromebook; a tall monitor gets no void. */
+    /* ── The fold: the headline beside the picture, the question, the four planks ── */
+    /* The fold owns the first screen (owner's call 2026-09-10): nothing
+       else until the teacher scrolls. One screen on a Chromebook; a tall
+       monitor gets no void. 16h (2026-09-21): the picture (a drawn
+       projector and one student's screen playing Snowball's first minute,
+       shared/fold-picture.js) replaced the sub-line and the mechanic line;
+       it says what they said. */
     .fold {
       display: flex;
       flex-direction: column;
@@ -213,14 +217,21 @@
       text-wrap: balance;
     }
 
-    .sub {
-      margin-top: 14px;
-      font-size: 19px;
-      font-weight: 500;
-      line-height: 1.5;
-      color: var(--t-muted);
-      max-width: 760px;
-      text-wrap: balance;
+    /* The headline on the left, the picture on the right; under 1100px
+       the picture drops under the headline and both center. */
+    .hero-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 40px;
+      text-align: left;
+    }
+
+    .hero-row h1 {
+      flex: 1 1 380px;
+      max-width: 540px;
+      font-size: clamp(36px, 4.2vw, 58px);
     }
 
     /* The question over the planks: the same voice as the headline, a
@@ -325,16 +336,6 @@
       background-image: var(--t-grain);
       margin-top: -4px;
     }
-
-    .mechanic {
-      margin-top: 22px;
-      font-size: 17px;
-      font-weight: 500;
-      line-height: 1.5;
-      color: var(--t-muted);
-    }
-
-    .mechanic strong { color: var(--t-ink); font-weight: 700; }
 
     /* ── The whole yard: sticky head with the chips, the grid of prints
        (the grid itself is /shared/yard-prints.css) ── */
@@ -930,6 +931,11 @@
     .footer-credit { margin-left: auto; font-weight: 500; }
     .footer-credit a { text-decoration: underline; text-underline-offset: 3px; }
 
+    @media (max-width: 1100px) {
+      .hero-row { flex-direction: column; align-items: center; text-align: center; gap: 28px; }
+      .hero-row h1 { flex: 0 0 auto; max-width: 700px; }
+    }
+
     @media (max-width: 960px) {
       /* Tilted planks and the rotated frame mat poke a few pixels past the
          edge on a phone and drew a sideways scrollbar. clip, not hidden:
@@ -993,9 +999,80 @@
     <section class="fold" role="main" aria-label="What your class needs">
       <!-- One line that says what Jamyard is before the question that
            says when to use it (a reviewer, 2026-09-21: the four jobs
-           answer "when would I use this", not "what is this"). -->
-      <h1>Get the whole class in on it.</h1>
-      <p class="sub">Quick activities that get every student participating. No student accounts, nothing to install.</p>
+           answer "when would I use this", not "what is this"). Beside it
+           the picture shows how (16h): a projector and one student's
+           screen play Snowball's first minute, once. The words in the
+           picture are illustration (Snowball's own prompt and sample
+           answers), not UI copy; the hidden sentence is what a screen
+           reader gets. -->
+      <div class="hero-row">
+        <h1>Get the whole class in on it.</h1>
+        <div class="fold-pic" id="fold-picture">
+          <p class="fold-pic-said">You project your screen. Students join with a four letter code from their own devices and add an answer. The class's answers come together on the projector.</p>
+          <div class="fold-pic-canvas" aria-hidden="true">
+            <div class="fp-mat fp-projector">
+              <div class="fp-screen">
+                <div class="fp-left">
+                  <div class="code-row" data-at="1"><span class="cb-0">Y</span><span class="cb-1">A</span><span class="cb-2">H</span><span class="cb-3">S</span></div>
+                  <div class="fp-prompt" data-at="7">What should our class norms be?</div>
+                  <div class="fp-built" data-at="12">
+                    <span class="fp-chip-green">What the pairs built</span>
+                    <div class="frame-answers">
+                      <span style="--rot: -0.8deg">One voice at a time</span>
+                      <span style="--rot: 0.8deg">Ask before you borrow</span>
+                      <span style="--rot: -0.6deg">Nobody eats alone</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="fp-right">
+                  <div class="fp-answers" data-at="9">
+                    <span class="fp-chip-green fp-pile-line">3 of 3 in</span>
+                    <div class="pile fp-pile">
+                      <div class="pile-block t-magenta" data-block="3" style="--rot: -1.2deg; width: 72px"></div>
+                      <div class="pile-block t-yellow" data-block="2" style="--rot: 1.2deg; width: 88px"></div>
+                      <div class="pile-block t-cyan" data-block="1" style="--rot: -1deg; width: 80px"></div>
+                      <div class="pile-plinth"></div>
+                      <div class="pile-base"></div>
+                    </div>
+                  </div>
+                  <div class="fp-room" data-at="5">
+                    <span class="fp-count">3 in the room</span>
+                    <div class="pile fp-roster">
+                      <div class="fp-name t-yellow" data-name="3" style="--rot: -1.2deg; width: 76px">Sam</div>
+                      <div class="fp-name t-cyan" data-name="2" style="--rot: 1.2deg; width: 92px">Jordan</div>
+                      <div class="fp-name t-birch" data-name="1" style="--rot: -1deg; width: 82px">Maya</div>
+                      <div class="pile-plinth"></div>
+                      <div class="pile-base"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="fp-tag fp-tag-projector">Your projector</span>
+            <div class="fp-mat fp-student">
+              <div class="fp-student-screen">
+                <div class="fp-join-view">
+                  <div class="fp-slots">
+                    <div class="fp-slot"><div class="code-row"><span class="cb-0" data-letter="1">Y</span></div></div>
+                    <div class="fp-slot"><div class="code-row"><span class="cb-1" data-letter="2">A</span></div></div>
+                    <div class="fp-slot"><div class="code-row"><span class="cb-2" data-letter="3">H</span></div></div>
+                    <div class="fp-slot"><div class="code-row"><span class="cb-3" data-letter="4">S</span></div></div>
+                  </div>
+                  <span class="fp-join">Join</span>
+                </div>
+                <div class="fp-answer-view" data-at="7">
+                  <span class="fp-caps">Maya &middot; your answer</span>
+                  <div class="fp-student-prompt">What should our class norms be?</div>
+                  <div class="fp-plank"><span class="fp-typed">One voice at a time</span><span class="fp-caret"></span></div>
+                  <span class="fp-submit is-pressed">Submit</span>
+                </div>
+              </div>
+            </div>
+            <span class="fp-tag fp-tag-student">A student&rsquo;s screen</span>
+          </div>
+          <button type="button" class="fold-pic-replay t-caps">Replay</button>
+        </div>
+      </div>
       <h2 class="ask">What does your class need?</h2>
       <!-- The four jobs, one plank each, on a base board. Clicking one
            scrolls to the yard with that job's chip already selected. -->
@@ -1008,7 +1085,6 @@
         </div>
         <div class="planks-base" aria-hidden="true"></div>
       </nav>
-      <p class="mechanic"><strong>You project your screen,</strong> and students enter a four letter code to join from their devices.</p>
     </section>
 
     <!-- Activities: one at a time, the drawn projector frame and the
@@ -1097,6 +1173,7 @@
   <script src="/shared/owner-mode.js"></script>
   <script src="/shared/host-launch.js"></script>
   <script src="/shared/my-yard.js"></script>
+  <script src="/shared/fold-picture.js"></script>
   <script>
     // ── The planks, the projector, and the yard: all three read the same
     //    list the yard page shows (featured built-ins + this device's own). ──
@@ -1526,6 +1603,10 @@
         })
         .catch(function () { /* the yard is the page; a failed list leaves the fold and the AI door */ });
     })();
+  </script>
+  <script>
+    // ── The fold's picture: plays once on load, Replay runs it again ──
+    FoldPicture.mount(document.getElementById('fold-picture'), { tab: document.getElementById('join-tab') });
   </script>
   <script>
     // ── The student door: one tab, one form ──

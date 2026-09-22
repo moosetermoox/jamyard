@@ -83,10 +83,8 @@ describe('home page 15b', () => {
     expect(html).toContain("'/player?code=' + code");
   });
 
-  it('the fold says what Jamyard is, then asks what the class needs, with the mechanic line under the planks (2026-09-21)', () => {
-    expect(html).toContain('and students enter a four letter code to join from their devices.');
+  it('the fold says what Jamyard is, then asks what the class needs (2026-09-21; the picture beside the headline took over the mechanic and sub lines, see home-16h)', () => {
     expect(html).toContain('<h1>Get the whole class in on it.</h1>');
-    expect(html).toContain('No student accounts, nothing to install.');
     expect(html.indexOf('<h1>')).toBeLessThan(html.indexOf('<h2 class="ask">What does your class need?</h2>'));
     expect(html.indexOf('<h2 class="ask">')).toBeLessThan(html.indexOf('<div class="planks" id="planks">'));
     expect(html).not.toContain('t-painted-word');
