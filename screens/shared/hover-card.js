@@ -54,7 +54,10 @@
     var metaEl = el.querySelector('.hovercard-meta');
     metaEl.textContent = meta;
     metaEl.hidden = !meta;
-    el.querySelector('.hovercard-desc').textContent = game.description || '';
+    // The moment it is for when the activity names one (owner 2026-09-21:
+    // the hover says the job it fills, not what it does); what it does
+    // stays in the popup the click opens.
+    el.querySelector('.hovercard-desc').textContent = game.when || game.description || '';
     el.hidden = false;
     // Below the anchor, clamped to the window; flip above when the
     // anchor sits near the bottom edge.

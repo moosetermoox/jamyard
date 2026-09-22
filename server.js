@@ -397,7 +397,10 @@ const USER_GAMES_DIR = join(GAMES_DIR, 'user');
 // are topic-agnostic and nothing said so).
 // `start` rides along so the yard, the home shelf, and the hover cards can
 // tag rolling-start activities (students begin as they arrive).
-const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor', 'featured', 'family', 'keywords', 'start'];
+// `when` (2026-09-21) is the classroom moment an activity is for ("When
+// the discussion is dying and..."), the hover card's line; `description`
+// stays what it does, the popup's line.
+const GAME_CARD_META_FIELDS = ['playTime', 'classSize', 'tags', 'recommendedFor', 'featured', 'family', 'keywords', 'start', 'when'];
 
 // Owner curation of built-ins lives in Neon (featured_overrides) because the
 // deployed filesystem resets on every push. A read failure must never take

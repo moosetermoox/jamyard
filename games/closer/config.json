@@ -1,6 +1,7 @@
 {
   "name": "Closer",
   "description": "Guided pair conversations, playful to reflective. Nothing to type: the screen asks, you talk. No winners; every tier is a stopping point.",
+  "when": "When the class needs to actually talk to each other, and you want it structured without a worksheet.",
   "playTime": "~25–35 min",
   "classSize": "4–40 players",
   "featured": true,
