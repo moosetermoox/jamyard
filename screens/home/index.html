@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/shared/activity-map.css">
   <link rel="stylesheet" href="/shared/hover-card.css">
   <link rel="stylesheet" href="/shared/yard-prints.css">
+  <link rel="stylesheet" href="/shared/fold-picture.css">
   <link rel="stylesheet" href="/shared/my-yard.css">
   <style>
     /* ══ Totem system (docs/design/totem/), home 15b (2026-09-10) ══
@@ -189,10 +190,13 @@
 
     .join-form.is-wrong .join-error { display: inline; }
 
-    /* ── The fold: the question, the four planks, the mechanic line ── */
-    /* The fold owns the first screen (owner's call 2026-09-10): the
-       question, the planks, and the mechanic line, nothing else until the
-       teacher scrolls. One screen on a Chromebook; a tall monitor gets no void. */
+    /* ── The fold: the headline beside the picture, the question, the four planks ── */
+    /* The fold owns the first screen (owner's call 2026-09-10): nothing
+       else until the teacher scrolls. One screen on a Chromebook; a tall
+       monitor gets no void. 16h (2026-09-21): the picture (a drawn
+       projector and one student's screen playing Snowball's first minute,
+       shared/fold-picture.js) replaced the sub-line and the mechanic line;
+       it says what they said. */
     .fold {
       display: flex;
       flex-direction: column;
@@ -213,26 +217,36 @@
       text-wrap: balance;
     }
 
-    .sub {
-      margin-top: 14px;
-      font-size: 19px;
-      font-weight: 500;
-      line-height: 1.5;
-      color: var(--t-muted);
-      max-width: 760px;
-      text-wrap: balance;
+    /* The headline on the left, the picture on the right; under 1100px
+       the picture drops under the headline and both center. */
+    .hero-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 40px;
+      text-align: left;
+    }
+
+    /* The headline keeps its two lines (a forced break after "class", as
+       the handoff breaks it) and the picture beside it gives way. */
+    .hero-row h1 {
+      flex: 0 0 auto;
+      max-width: 100%;
+      font-size: clamp(36px, 3.9vw, 54px);
+      text-wrap: initial;
     }
 
     /* The question over the planks: the same voice as the headline, a
        size down, so the planks read as its answer. */
     .ask {
-      margin-top: 44px;
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: clamp(24px, 2.6vw, 32px);
-      line-height: 1.1;
-      letter-spacing: -0.005em;
-      color: var(--t-ink);
+      margin-top: 40px;
+      font-family: var(--t-body);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--t-muted-caps);
     }
 
     /* Four planks side by side on one base board: the stack pattern laid
@@ -284,15 +298,16 @@
 
     .plank:focus-visible { outline: 3px solid var(--t-ink); outline-offset: -6px; }
 
-    /* The label sits at the top of the plank and the ways Jamyard does
-       that job are written underneath, always (2026-09-21; they showed
-       on hover only from 2026-09-12, and hover is invisible on a
-       Chromebook touchpad sweep and to anyone scanning the page). The
-       ways block takes the free space so the label stays at the top. */
+    /* Hover a plank: the label floats up and the ways Jamyard does that
+       job show underneath (owner's ask 2026-09-12; always-on for a day on
+       2026-09-21, back to hover 2026-09-22 to compare). The ways block
+       takes the free space (flex-grow 0 -> 1, the one animatable way to
+       lift the label without knowing its height). */
     .plank-ways {
-      flex: 1 1 auto;
+      flex: 0 1 0px;
       min-height: 0;
       overflow: hidden;
+      opacity: 0;
       margin-top: 10px;
       font-family: var(--t-body);
       font-weight: 600;
@@ -301,9 +316,13 @@
       text-transform: none;
       line-height: 1.4;
       color: var(--t-ink);
+      transition: flex-grow var(--t-quick) var(--t-ease), opacity var(--t-quick) var(--t-ease);
     }
 
     .plank-ways span { display: block; }
+
+    .plank:hover .plank-ways,
+    .plank:focus-visible .plank-ways { flex-grow: 1; opacity: 1; }
 
     /* Rest tones: three woods, no two neighbors the same */
     .plank[data-goal="connect"] { background: var(--t-birch); background-image: var(--t-grain); --rot: -1.4deg; }
@@ -325,16 +344,6 @@
       background-image: var(--t-grain);
       margin-top: -4px;
     }
-
-    .mechanic {
-      margin-top: 22px;
-      font-size: 17px;
-      font-weight: 500;
-      line-height: 1.5;
-      color: var(--t-muted);
-    }
-
-    .mechanic strong { color: var(--t-ink); font-weight: 700; }
 
     /* ── The whole yard: sticky head with the chips, the grid of prints
        (the grid itself is /shared/yard-prints.css) ── */
@@ -486,326 +495,55 @@
     @keyframes yard-flash { 50% { outline-color: rgba(42, 38, 32, 0.15); } }
     @media (prefers-reduced-motion: reduce) { .yard-card-highlight { animation: none; } }
 
-    /* ── See one on the projector: the frame, the side, the pager ── */
-    .stage {
-      margin-top: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 22px;
+    /* ── How it works: the whole concept in three steps on one row, above
+       the yard (owner 2026-09-22: back from 13a, laid flat, once the
+       carousel left the page) ── */
+    .how {
+      margin-top: 60px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
     }
 
-    .stage-head {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-
-    /* The head and its subline share one line, the subline smaller
-       (owner: saying Activities twice was redundant) */
-    .stage-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-
-    .stage-sub {
-      margin: 0;
-      font-size: 15px;
-      font-weight: 500;
-      color: var(--t-muted);
-    }
-
-    .stage-nav { display: flex; gap: 10px; }
-
-    .stage-nav button {
-      width: 44px;
-      height: 44px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+    .how-step {
       background: var(--t-paper);
-      color: var(--t-ink);
+      box-shadow: var(--t-shadow-free);
+      padding: 16px 18px 18px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transform: rotate(var(--rot, 0deg));
+    }
+
+    .how-num {
       font-family: var(--t-display);
       font-weight: 800;
       font-size: 18px;
       line-height: 1;
-    }
-
-    .stage-nav button:first-child { --rot: -1deg; }
-    .stage-nav button:last-child { --rot: 1deg; }
-
-    .stage-row {
-      display: flex;
-      gap: 36px;
-      align-items: flex-start;
-    }
-
-    /* The projector on a paper mat */
-    .frame-mat {
-      width: 62%;
+      padding: 6px 11px 7px;
+      transform: rotate(var(--rot, -1.2deg));
       flex-shrink: 0;
-      background: var(--t-paper);
-      padding: 14px;
-      box-shadow: 0 5px 9px rgba(50,35,15,0.26);
-      transform: rotate(-0.5deg);
+      box-shadow: 0 2px 3px rgba(50,35,15,0.24);
     }
 
-    .frame {
-      background: var(--t-gesso);
-      padding: 26px 30px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      min-height: 404px;
-      transition: opacity 160ms ease;
-    }
-
-    .frame.is-swapping, .stage-side.is-swapping { opacity: 0; }
-
-    .frame-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 16px;
-    }
-
-    .frame-top > div { display: flex; flex-direction: column; gap: 8px; }
-    .frame-top > div:last-child { align-items: flex-end; }
-
-    .frame-caps { font-size: 11px; }
-
-    /* The doorway's painted letter blocks (host styles.css .code-block) */
-    .code-row { display: flex; gap: 6px; align-items: center; }
-
-    .code-row span {
-      width: 46px;
-      height: 54px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 30px;
-      box-shadow: 0 3px 4px rgba(50,35,15,0.26);
-      clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
-    }
-
-    .code-row .cb-0 { background: var(--t-yellow); color: var(--t-ink); transform: rotate(-2deg); }
-    .code-row .cb-1 { background: var(--t-cyan); color: var(--t-paper); transform: rotate(1.5deg); }
-    .code-row .cb-2 { background: var(--t-magenta); color: var(--t-paper); transform: rotate(-1deg); }
-    .code-row .cb-3 { background: var(--t-green); color: var(--t-paper); transform: rotate(2deg); }
-
-    .frame-count {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--t-muted-caps);
-      text-transform: uppercase;
-    }
-
-    .timer-chip {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 18px;
-      background: var(--t-yellow);
-      color: var(--t-ink);
-      padding: 4px 12px 6px;
-      transform: rotate(-1deg);
-      white-space: nowrap;
-      text-transform: uppercase;
-    }
-
-    .frame-body {
-      display: flex;
-      gap: 26px;
-      align-items: flex-end;
-      flex: 1;
-    }
-
-    .frame-ask {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .frame-prompt {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: clamp(26px, 2.8vw, 38px);
-      line-height: 1.1;
-      color: var(--t-ink);
-      text-wrap: balance;
-      overflow-wrap: anywhere;
-    }
-
-    .frame-answers { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 4px; }
-
-    .frame-answers span {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--t-ink);
-      background: var(--t-paper);
-      padding: 6px 11px;
-      box-shadow: 0 2px 3px rgba(50,35,15,0.2);
-      transform: rotate(var(--rot, 0deg));
-    }
-
-    .frame-door {
-      display: flex;
-      gap: 22px;
-      align-items: center;
-    }
-
-    .frame-door .yp-qr { width: 96px; height: 96px; }
-
-    .frame-door-text {
-      font-size: 15px;
-      font-weight: 700;
-      line-height: 1.5;
-      color: var(--t-ink);
-    }
-
-    .frame-door-text .quiet { font-weight: 500; color: var(--t-muted); }
-
-    /* The pile at full size, on plinth + base */
-    .pile {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      filter: drop-shadow(5px 7px 0 rgba(80,60,30,0.14));
-      flex-shrink: 0;
-    }
-
-    .pile-block {
-      height: 21px;
-      margin-top: -3px;
-      clip-path: polygon(0 8%, 100% 0, 98% 100%, 2% 94%);
-      transform: rotate(var(--rot, 0deg));
-    }
-
-    .pile-block:first-child { margin-top: 0; }
-
-    .pile-plinth {
-      width: 140px;
-      height: 44px;
-      background: var(--t-walnut);
-      background-image: var(--t-grain);
-      margin-top: -2px;
-    }
-
-    .pile-base {
-      width: 186px;
-      height: 18px;
-      background: var(--t-base);
-      background-image: var(--t-grain);
-    }
-
-    /* Beside the frame: the name, the meta, the description, their screens, the red */
-    .stage-side {
-      flex: 1;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 16px;
-      padding-top: 6px;
-      transition: opacity 160ms ease;
-    }
-
-    .stage-name {
-      font-family: var(--t-display);
-      font-weight: 800;
-      font-size: 26px;
-      color: var(--t-paper);
-      background: var(--t-magenta);
-      padding: 3px 14px 6px;
-      transform: rotate(-1.2deg);
-      box-shadow: 0 3px 4px rgba(50,35,15,0.28);
-    }
-
-    .stage-meta {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--t-muted-caps);
-    }
-
-    .stage-desc {
+    .how-step p {
+      margin: 0;
       font-size: 16px;
       font-weight: 500;
-      line-height: 1.55;
-      color: var(--t-ink);
-      text-wrap: pretty;
+      line-height: 1.45;
+      color: var(--t-muted);
     }
 
-    .screens { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+    .how-step strong { color: var(--t-ink); font-weight: 700; }
 
-    .screens .caps { font-size: 11px; }
+    /* The yard's head: the name, and beside it what the prints are (the
+       line the carousel's head carried, owner 2026-09-22) */
+    .yard-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 
-    .screens-row { display: flex; gap: 10px; flex-wrap: wrap; }
-
-    .screen {
-      background: var(--t-paper);
-      width: 118px;
-      height: 84px;
-      box-shadow: 0 4px 6px rgba(50,35,15,0.22);
-      transform: rotate(var(--rot, 0deg));
-      padding: 9px;
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .screen .caps { font-size: 8px; }
-
-    .screen-text {
-      flex: 1;
-      background: var(--t-sanded);
-      background-image: var(--t-grain);
-      padding: 5px;
-      font-size: 9px;
-      font-weight: 700;
-      color: var(--t-ink);
-      line-height: 1.35;
-      overflow: hidden;
-    }
-
-    .screen-bar { height: 12px; }
-
-    /* The page's one red: PICK THIS ONE (the make page opens first).
-       19px bold: large text for the contrast rule on red. */
-    .stage-start {
-      margin-top: 10px;
-      font-size: 19px;
-      color: var(--t-paper);
-      background: var(--t-red);
-      padding: 13px 24px 15px;
-      --rot: -1deg;
-      box-shadow: 0 4px 6px rgba(50,35,15,0.28);
-      display: inline-block;
-    }
-
-    .stage-pager {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .pager-bars { display: flex; gap: 4px; align-items: center; }
-
-    .pager-bars span {
-      width: 12px;
-      height: 8px;
-      background: var(--t-oak);
-      display: inline-block;
-    }
-
-    .pager-bars span.active { width: 34px; background: var(--t-ink); }
-
-    .pager-names {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--t-muted-caps);
-      margin-left: 8px;
+    .yard-sub {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--t-muted);
     }
 
     /* ── The activity popup (a print's click): what it is, the map, then
@@ -930,6 +668,11 @@
     .footer-credit { margin-left: auto; font-weight: 500; }
     .footer-credit a { text-decoration: underline; text-underline-offset: 3px; }
 
+    @media (max-width: 1100px) {
+      .hero-row { flex-direction: column; align-items: center; text-align: center; gap: 28px; }
+      .hero-row h1 { flex: 0 0 auto; max-width: 700px; }
+    }
+
     @media (max-width: 960px) {
       /* Tilted planks and the rotated frame mat poke a few pixels past the
          edge on a phone and drew a sideways scrollbar. clip, not hidden:
@@ -940,9 +683,7 @@
       .plank { height: 120px; padding: 14px; font-size: 16px; }
       /* No room under the label for the ways on a short plank */
       .plank-ways { display: none; }
-      .stage-row { flex-direction: column; }
-      .frame-mat { width: 100%; }
-      .frame { min-height: 0; }
+      .how { grid-template-columns: 1fr; }
       footer { justify-content: center; }
       .footer-credit { margin-left: 0; }
     }
@@ -951,22 +692,10 @@
       .planks { flex-wrap: wrap; }
       .plank { flex: 1 1 45%; margin-left: 0; height: 90px; }
       .join-form label { display: none; }
-      /* The projector mock scales its layout, not just its box: the pile
-         drops under the prompt and the type comes down to phone size,
-         instead of a 36px prompt wrapping three letters to a line in a
-         column the pile left it (outside review 2026-09-12). */
-      .frame { padding: 18px 16px; min-height: 0; gap: 14px; }
-      .frame-top { flex-wrap: wrap; }
-      .code-row span { width: 36px; height: 42px; font-size: 24px; }
-      .frame-body { flex-direction: column; align-items: stretch; gap: 14px; }
-      .frame-prompt { font-size: 22px; }
-      .pile { align-self: flex-end; transform: scale(0.8); transform-origin: bottom right; }
-      .frame-door { gap: 14px; }
-      .frame-door .yp-qr { width: 72px; height: 72px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .plank, .frame, .stage-side { transition: none; }
+      .plank { transition: none; }
     }
   </style>
 </head>
@@ -993,9 +722,108 @@
     <section class="fold" role="main" aria-label="What your class needs">
       <!-- One line that says what Jamyard is before the question that
            says when to use it (a reviewer, 2026-09-21: the four jobs
-           answer "when would I use this", not "what is this"). -->
-      <h1>Get the whole class in on it.</h1>
-      <p class="sub">Quick activities that get every student participating. No student accounts, nothing to install.</p>
+           answer "when would I use this", not "what is this"). Beside it
+           the picture shows how (16h): a projector and one student's
+           screen play Snowball's first minute, once. The words in the
+           picture are illustration (Snowball's own prompt and sample
+           answers), not UI copy; the hidden sentence is what a screen
+           reader gets. -->
+      <div class="hero-row">
+        <h1>Get the whole class<br>in on it.</h1>
+        <div class="fold-pic" id="fold-picture">
+          <p class="fold-pic-said">You project your screen. Students join with a four letter code from their own devices, answer on their own, build on a partner's answer in one shared box, or draw, and it all comes together on the projector.</p>
+          <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+            <symbol id="fp-doodle-cat" viewBox="0 0 60 50"><g class="fp-doodle"><circle cx="30" cy="30" r="15"/><path d="M19 20 L15 6 L27 15"/><path d="M41 20 L45 6 L33 15"/><path d="M7 30 H19 M8 37 L19 33 M53 30 H41 M52 37 L41 33 M25 27 v3 M35 27 v3"/></g></symbol>
+            <symbol id="fp-doodle-fish" viewBox="0 0 60 50"><g class="fp-doodle"><path d="M6 25 C 18 8, 40 8, 48 25 C 40 42, 18 42, 6 25 Z"/><path d="M48 25 L57 14 L57 36 Z"/><path d="M18 22 v1"/></g></symbol>
+            <symbol id="fp-doodle-sun" viewBox="0 0 60 50"><g class="fp-doodle"><circle cx="30" cy="26" r="10"/><path d="M30 6 v6 M30 40 v6 M10 26 h6 M44 26 h6 M16 12 l4 4 M40 36 l4 4 M44 12 l-4 4 M20 36 l-4 4"/></g></symbol>
+          </svg>
+          <div class="fold-pic-canvas" aria-hidden="true">
+            <div class="fp-mat fp-projector">
+              <div class="fp-screen">
+                <div class="fp-left">
+                  <div class="code-row" data-at="1"><span class="cb-0">Y</span><span class="cb-1">A</span><span class="cb-2">H</span><span class="cb-3">S</span></div>
+                  <div class="fp-prompt" data-at="7" data-until="16" data-hide>What should our class norms be?</div>
+                  <div class="fp-pairs" data-at="12" data-until="15" data-hide><span class="fp-chip-yellow">Now in pairs</span></div>
+                  <div class="fp-built" data-at="15" data-until="16" data-hide>
+                    <span class="fp-chip-green">What the pairs built</span>
+                    <div class="frame-answers">
+                      <span style="--rot: -0.8deg">One voice at a time, and actually listen</span>
+                      <span style="--rot: 0.8deg">Ask before you borrow</span>
+                      <span style="--rot: -0.6deg">Nobody eats alone</span>
+                    </div>
+                  </div>
+                  <div class="fp-prompt" data-at="16" data-hide>Draw your favorite animal</div>
+                </div>
+                <div class="fp-right">
+                  <div class="fp-answers" data-at="9" data-until="16" data-hide>
+                    <span class="fp-chip-green fp-pile-line">3 of 3 in</span>
+                    <div class="pile fp-pile">
+                      <div class="pile-block t-magenta" data-block="3" style="--rot: -1.2deg; width: 72px"></div>
+                      <div class="pile-block t-yellow" data-block="2" style="--rot: 1.2deg; width: 88px"></div>
+                      <div class="pile-block t-cyan" data-block="1" style="--rot: -1deg; width: 80px"></div>
+                      <div class="pile-plinth"></div>
+                      <div class="pile-base"></div>
+                    </div>
+                  </div>
+                  <div class="fp-wall-block" data-at="18" data-hide>
+                    <span class="fp-chip-green fp-wall-line">3 of 3 on the wall</span>
+                    <div class="fp-wall">
+                      <div class="fp-wall-card" data-at="18" style="--rot: -1.5deg"><svg><use href="#fp-doodle-cat"/></svg><span>Maya</span></div>
+                      <div class="fp-wall-card" data-at="19" style="--rot: 1.2deg"><svg><use href="#fp-doodle-fish"/></svg><span>Jordan</span></div>
+                      <div class="fp-wall-card" data-at="19" style="--rot: -0.8deg"><svg><use href="#fp-doodle-sun"/></svg><span>Sam</span></div>
+                    </div>
+                  </div>
+                  <div class="fp-room" data-at="5">
+                    <span class="fp-count">3 in the room</span>
+                    <div class="pile fp-roster">
+                      <div class="fp-name t-yellow" data-name="3" style="--rot: -1.2deg; width: 76px">Sam</div>
+                      <div class="fp-name t-cyan" data-name="2" style="--rot: 1.2deg; width: 92px">Jordan</div>
+                      <div class="fp-name t-birch" data-name="1" style="--rot: -1deg; width: 82px">Maya</div>
+                      <div class="pile-plinth"></div>
+                      <div class="pile-base"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="fp-tag fp-tag-projector">Your projector</span>
+            <div class="fp-mat fp-student">
+              <div class="fp-student-screen">
+                <div class="fp-view fp-view-join">
+                  <div class="fp-slots">
+                    <div class="fp-slot"><div class="code-row"><span class="cb-0" data-letter="1">Y</span></div></div>
+                    <div class="fp-slot"><div class="code-row"><span class="cb-1" data-letter="2">A</span></div></div>
+                    <div class="fp-slot"><div class="code-row"><span class="cb-2" data-letter="3">H</span></div></div>
+                    <div class="fp-slot"><div class="code-row"><span class="cb-3" data-letter="4">S</span></div></div>
+                  </div>
+                  <span class="fp-btn fp-join">Join</span>
+                </div>
+                <div class="fp-view fp-view-answer" data-at="7" data-until="12">
+                  <span class="fp-caps">Maya &middot; your answer</span>
+                  <div class="fp-student-prompt">What should our class norms be?</div>
+                  <div class="fp-plank"><span class="fp-typed">One voice at a time</span><span class="fp-caret"></span></div>
+                  <span class="fp-btn fp-submit is-pressed">Submit</span>
+                </div>
+                <div class="fp-view fp-view-shared" data-at="12" data-until="16">
+                  <span class="fp-caps">Maya + Jordan &middot; one shared box</span>
+                  <div class="fp-student-prompt">What should our class norms be?</div>
+                  <div class="fp-plank fp-shared"><span class="fp-shared-text">One voice at a time, and actually listen</span></div>
+                  <span class="fp-pen is-mine">Your turn</span>
+                  <span class="fp-btn fp-agree is-pressed">We agree, submit</span>
+                </div>
+                <div class="fp-view fp-view-draw" data-at="16">
+                  <span class="fp-caps">Maya &middot; your drawing</span>
+                  <div class="fp-student-prompt">Draw your favorite animal</div>
+                  <div class="fp-canvas"><svg data-at="17" data-hide><use href="#fp-doodle-cat"/></svg></div>
+                  <span class="fp-btn fp-send is-pressed">Submit</span>
+                </div>
+              </div>
+            </div>
+            <span class="fp-tag fp-tag-student">A student&rsquo;s screen</span>
+          </div>
+          <button type="button" class="fold-pic-replay t-caps">Replay</button>
+        </div>
+      </div>
       <h2 class="ask">What does your class need?</h2>
       <!-- The four jobs, one plank each, on a base board. Clicking one
            scrolls to the yard with that job's chip already selected. -->
@@ -1008,47 +836,24 @@
         </div>
         <div class="planks-base" aria-hidden="true"></div>
       </nav>
-      <p class="mechanic"><strong>You project your screen,</strong> and students enter a four letter code to join from their devices.</p>
     </section>
 
-    <!-- Activities: one at a time, the drawn projector frame and the
-         students' screens, the page's one red. -->
-    <section class="stage" id="stage" hidden aria-label="Activities">
-      <div class="stage-head">
-        <div class="stage-title">
-          <h2>Activities</h2>
-          <span class="stage-sub">ready to be made to fit your class</span>
-        </div>
-        <div class="stage-nav">
-          <button type="button" class="t-lift" id="carousel-prev" aria-label="Previous activity">←</button>
-          <button type="button" class="t-lift" id="carousel-next" aria-label="Next activity">→</button>
-        </div>
+    <!-- How it works: the whole concept in three steps on one row. -->
+    <section class="how" aria-label="How it works">
+      <div class="how-step" style="--rot: -0.5deg">
+        <span class="how-num t-yellow" style="--rot: -1.2deg" aria-hidden="true">1</span>
+        <p><strong>Find one in the yard and make it yours,</strong> or create your own with AI.</p>
       </div>
-      <div class="stage-row">
-        <div class="frame-mat">
-          <div class="frame" id="frame" aria-hidden="true"></div>
-        </div>
-        <div class="stage-side" id="stage-side">
-          <span class="stage-name" id="carousel-name"></span>
-          <span class="stage-meta" id="carousel-meta"></span>
-          <p class="stage-desc" id="carousel-desc"></p>
-          <div class="screens" aria-hidden="true">
-            <span class="caps">On their screens</span>
-            <div class="screens-row" id="screens-row"></div>
-          </div>
-          <a class="stage-start t-lift t-label" id="carousel-start" href="#yard">Pick this one</a>
-        </div>
+      <div class="how-step" style="--rot: 0.4deg">
+        <span class="how-num t-cyan" style="--rot: 1deg" aria-hidden="true">2</span>
+        <p><strong>Project your screen.</strong> The activity plays out up front for the whole class.</p>
       </div>
-      <div class="stage-pager">
-        <span class="caps" id="carousel-count"></span>
-        <span class="pager-bars" id="pager-bars" aria-hidden="true"></span>
-        <span class="pager-names" id="pager-names"></span>
+      <div class="how-step" style="--rot: -0.3deg">
+        <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
+        <p><strong>Students join with a four letter code</strong> on their devices. No accounts, nothing to install.</p>
       </div>
     </section>
 
-    <!-- My yard: your copies, hearts, and recently used activities as
-         prints on a board, tools on each (shared/my-yard.js). Hidden until
-         there is something on it. -->
     <section class="myyard-section" id="my-yard" hidden aria-label="My yard"></section>
 
     <!-- The yard: every ready-made activity, shortest first; the chip row
@@ -1058,14 +863,14 @@
          page is the owner's curation console now. -->
     <section class="yard" id="yard" hidden aria-label="The yard">
       <div class="yard-head">
-        <h2>The yard</h2>
+        <div class="yard-title"><h2>The yard</h2><span class="yard-sub">Activities ready to be made to fit your class</span></div>
         <div class="yard-tools">
           <input type="search" id="yard-search" class="yard-search" placeholder="Search the yard…" aria-label="Search the yard" autocomplete="off" spellcheck="false">
           <div class="yard-chips" id="yard-chips" role="group" aria-label="Show activities for"></div>
         </div>
       </div>
       <!-- The moments: the classroom minute a teacher is actually in
-           ("five minutes before the bell"), each a curated handful of
+           ("only 5 minutes left"), each a curated handful of
            activities. A third filter beside the job and the search. -->
       <div class="yard-moments" id="yard-moments" role="group" aria-label="For the moment you are in"></div>
       <p class="yard-note" id="yard-note" hidden></p>
@@ -1097,6 +902,7 @@
   <script src="/shared/owner-mode.js"></script>
   <script src="/shared/host-launch.js"></script>
   <script src="/shared/my-yard.js"></script>
+  <script src="/shared/fold-picture.js"></script>
   <script>
     // ── The planks, the projector, and the yard: all three read the same
     //    list the yard page shows (featured built-ins + this device's own). ──
@@ -1108,25 +914,9 @@
       var myYardEl = document.getElementById('my-yard');
       var searchEl = document.getElementById('yard-search');
       var noteEl = document.getElementById('yard-note');
-      var stageEl = document.getElementById('stage');
-      var frameEl = document.getElementById('frame');
-      var sideEl = document.getElementById('stage-side');
-      var nameEl = document.getElementById('carousel-name');
-      var metaEl = document.getElementById('carousel-meta');
-      var descEl = document.getElementById('carousel-desc');
-      var screensEl = document.getElementById('screens-row');
-      var startEl = document.getElementById('carousel-start');
-      var countEl = document.getElementById('carousel-count');
-      var barsEl = document.getElementById('pager-bars');
-      var namesEl = document.getElementById('pager-names');
       var games = [];
-      var idx = 0;
-      var timer = null;
       var reducedMotion = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-      // The frame shows the real address students type
-      var host = window.location.host || 'jamyard.org';
 
       // Every activity door on this page: the make page (the print, then
       // Try it out or Host it now). Never a room straight from home.
@@ -1193,7 +983,6 @@
       //    what needs the click. ──
       function showActivityPopup(g) {
         if (!window.Dialog) { window.location.href = makeHref(g); return; }
-        clearInterval(timer); // hold the carousel while reading
         var overlay = el('div', 'home-dialog-overlay');
         var modal = el('div', 'home-dialog');
         overlay.appendChild(modal);
@@ -1213,7 +1002,7 @@
         actions.appendChild(el('span', 'home-dialog-sub', 'Change the question first, or try it with pretend students.'));
         modal.appendChild(actions);
         document.body.appendChild(overlay);
-        Dialog.enhance(overlay, modal, { title: g.name, onClose: startRotation });
+        Dialog.enhance(overlay, modal, { title: g.name });
       }
 
       // ── The search: names, descriptions, hooks, and tags, typed in the
@@ -1240,7 +1029,7 @@
       //    whole yard. An id not in this visitor's yard simply does not
       //    show, so a hidden built-in never breaks a moment. ──
       var MOMENTS = [
-        { label: 'Five minutes before the bell', ids: ['exit-ticket', 'live-poll', 'speed-quiz'] },
+        { label: 'Only 5 minutes left', ids: ['exit-ticket', 'live-poll', 'solo-quiz'] },
         { label: 'The discussion is dying', ids: ['both-sides-rope', 'whose-eyes', 'snowball'] },
         { label: 'I want everyone\'s opinion', ids: ['live-poll', 'snowball', 'whose-eyes'] },
         { label: 'They need to know each other', ids: ['closer', 'someones-got-you', 'snowball'] },
@@ -1323,8 +1112,7 @@
       }
 
       function openShelfPopup(g) {
-        clearInterval(timer); // hold the carousel while reading
-        MyYard.openDialog(g, { onChange: onShelfChange, onClose: startRotation });
+        MyYard.openDialog(g, { onChange: onShelfChange });
       }
 
       function onShelfChange(change) {
@@ -1369,133 +1157,6 @@
         }
       }
 
-      // ── The projector: the drawn frame, the side, the pager ──
-      function buildFrame(g) {
-        frameEl.textContent = '';
-        var pic = YardPrints.picture(g);
-        var gl = YardPrints.glimpseOf(g);
-        var top = el('div', 'frame-top');
-        var left = el('div');
-        left.appendChild(el('span', 'caps frame-caps', 'Class code · go to ' + host + '/player'));
-        var codeRow = el('div', 'code-row');
-        for (var c = 0; c < 4; c++) codeRow.appendChild(el('span', 'cb-' + c, pic.code.charAt(c)));
-        left.appendChild(codeRow);
-        top.appendChild(left);
-        var right = el('div');
-        right.appendChild(el('span', 'frame-count', pic.inRoom + ' in the room'));
-        if (gl.mode === 'answer') right.appendChild(el('span', 'timer-chip', pic.timer));
-        top.appendChild(right);
-        frameEl.appendChild(top);
-
-        var body = el('div', 'frame-body');
-        var ask = el('div', 'frame-ask');
-        if (gl.mode === 'join') {
-          ask.appendChild(el('span', 'caps frame-caps', 'Join in'));
-          var door = el('div', 'frame-door');
-          door.appendChild(el('span', 'yp-qr'));
-          var text = el('div', 'frame-door-text');
-          text.appendChild(document.createTextNode('Go to ' + host + '/player'));
-          text.appendChild(document.createElement('br'));
-          text.appendChild(el('span', 'quiet', 'and enter the code. The first question is waiting.'));
-          door.appendChild(text);
-          ask.appendChild(door);
-          ask.appendChild(el('div', 'frame-prompt', gl.prompt));
-        } else {
-          ask.appendChild(el('span', 'caps frame-caps', gl.mode === 'talk' ? 'Nothing to type' : 'Everyone is writing…'));
-          ask.appendChild(el('div', 'frame-prompt', gl.prompt));
-          if (gl.samples.length) {
-            var answers = el('div', 'frame-answers');
-            var rots = ['-1deg', '0.8deg', '-0.6deg'];
-            gl.samples.forEach(function (line, i) {
-              var chip = el('span', '', line);
-              chip.style.setProperty('--rot', rots[i % rots.length]);
-              answers.appendChild(chip);
-            });
-            ask.appendChild(answers);
-          }
-        }
-        body.appendChild(ask);
-        if (gl.mode === 'answer') {
-          var pile = el('div', 'pile');
-          // The painted blocks wear the job's paint, like the yard's prints
-          var paint = YardPrints.paintOf(g);
-          for (var i = 0; i < pic.blocks.length; i++) {
-            var tone = YardPrints.WOODS.indexOf(pic.blocks[i].tone) === -1 ? paint : pic.blocks[i].tone;
-            var block = el('div', 'pile-block ' + tone);
-            block.style.width = pic.blocks[i].width + 'px';
-            block.style.setProperty('--rot', pic.blocks[i].rot);
-            pile.appendChild(block);
-          }
-          pile.appendChild(el('div', 'pile-plinth'));
-          pile.appendChild(el('div', 'pile-base'));
-          body.appendChild(pile);
-        }
-        frameEl.appendChild(body);
-      }
-
-      // Three student screens: one answered, one mid-word, one waiting.
-      // The words are the template's own sample answers, never a student's.
-      function buildScreens(g) {
-        screensEl.textContent = '';
-        var gl = YardPrints.glimpseOf(g);
-        var s0 = gl.samples[0] || '';
-        var s1 = gl.samples[1] || gl.samples[0] || '';
-        var half = s1 ? s1.slice(0, Math.max(6, Math.ceil(s1.length * 0.6))) : '';
-        var specs = [
-          { caps: s0 ? 'Your answer' : 'Your turn', text: s0, bar: 't-green', rot: '-1deg' },
-          { caps: 'Typing…', text: half, bar: 't-yellow', rot: '0.8deg' },
-          { caps: 'Waiting…', text: '', bar: 't-oak', rot: '-0.6deg' }
-        ];
-        if (gl.mode === 'join') {
-          specs[0] = { caps: 'Joined', text: 'The first question is up.', bar: 't-green', rot: '-1deg' };
-          specs[1] = { caps: 'Entering the code…', text: '', bar: 't-yellow', rot: '0.8deg' };
-        }
-        specs.forEach(function (spec) {
-          var card = el('div', 'screen');
-          card.style.setProperty('--rot', spec.rot);
-          card.appendChild(el('span', 'caps', spec.caps));
-          card.appendChild(el('div', 'screen-text', spec.text));
-          card.appendChild(el('div', 'screen-bar ' + spec.bar));
-          screensEl.appendChild(card);
-        });
-      }
-
-      function render() {
-        var g = games[idx];
-        buildFrame(g);
-        nameEl.textContent = g.name;
-        metaEl.textContent = YardPrints.metaOf(g);
-        descEl.textContent = g.description || '';
-        buildScreens(g);
-        startEl.href = makeHref(g);
-        startEl.title = 'Open "' + g.name + '" as your class will see it, then host it';
-        countEl.textContent = (idx + 1) + ' of ' + games.length;
-        barsEl.textContent = '';
-        for (var i = 0; i < games.length; i++) barsEl.appendChild(el('span', i === idx ? 'active' : ''));
-        namesEl.textContent = games.map(function (x) { return x.name; }).join(' · ');
-      }
-
-      // Slides crossfade: dip to blank for one beat, swap, fade back in.
-      var swapTimer = null;
-      function step(delta) {
-        idx = (idx + delta + games.length) % games.length;
-        if (reducedMotion) { render(); return; }
-        clearTimeout(swapTimer);
-        frameEl.classList.add('is-swapping');
-        sideEl.classList.add('is-swapping');
-        swapTimer = setTimeout(function () {
-          render();
-          frameEl.classList.remove('is-swapping');
-          sideEl.classList.remove('is-swapping');
-        }, 170);
-      }
-      function startRotation() {
-        if (reducedMotion) return;
-        clearInterval(timer);
-        // Long enough to read a full description (owner's call 2026-09-07)
-        timer = setInterval(function () { step(1); }, 14500);
-      }
-
       // Scoped to what this visitor can see (2026-09-20): built-ins, the
       // featured ones, and this browser's own copies, never every teacher's.
       fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(',')))
@@ -1513,19 +1174,15 @@
           renderChips();
           renderGrid();
           yardEl.hidden = false;
-          render();
-          startRotation();
-          stageEl.hidden = false;
-          document.getElementById('carousel-prev').addEventListener('click', function () { step(-1); startRotation(); });
-          document.getElementById('carousel-next').addEventListener('click', function () { step(1); startRotation(); });
-          // Reading it? Hold still.
-          stageEl.addEventListener('mouseenter', function () { clearInterval(timer); });
-          stageEl.addEventListener('mouseleave', startRotation);
           settleHash();
           handleDeepLinks();
         })
         .catch(function () { /* the yard is the page; a failed list leaves the fold and the AI door */ });
     })();
+  </script>
+  <script>
+    // ── The fold's picture: plays once on load, Replay runs it again ──
+    FoldPicture.mount(document.getElementById('fold-picture'), { tab: document.getElementById('join-tab') });
   </script>
   <script>
     // ── The student door: one tab, one form ──

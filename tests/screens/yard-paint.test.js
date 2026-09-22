@@ -29,7 +29,7 @@ describe('yard prints: one paint per print, the job\'s', () => {
     expect(js).toContain('paintOf: paintOf,');
   });
 
-  it('the home and library chips carry the job and its swatch; the carousel pile follows', async () => {
+  it('the home and library chips carry the job and its swatch', async () => {
     for (const [page, marker] of [
       ['screens/home/index.html', "chip.setAttribute('data-goal', group.key);"],
       ['screens/library/library.js', "chip.setAttribute('data-goal', group.key);"]
@@ -43,8 +43,5 @@ describe('yard prints: one paint per print, the job\'s', () => {
         expect(css, `${sheet} ${key}`).toMatch(new RegExp(`\\.goal-chip\\[data-goal="${key}"\\]::before\\s*\\{ background: var\\(--${paint}\\); \\}`));
       }
     }
-    const home = await read('screens/home/index.html');
-    expect(home).toContain('var paint = YardPrints.paintOf(g);');
-    expect(home).toContain("var tone = YardPrints.WOODS.indexOf(pic.blocks[i].tone) === -1 ? paint : pic.blocks[i].tone;");
   });
 });

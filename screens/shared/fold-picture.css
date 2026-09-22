@@ -1,0 +1,515 @@
+/* fold-picture.css — the home fold's picture (16h, 2026-09-21; three
+ * scenes 2026-09-22).
+ *
+ * A drawn projector print and one student's screen on a fixed 660 by 330
+ * canvas that scales to its column (fold-picture.js sets zoom). The markup
+ * carries the finished picture; `.is-live` on the wrapper turns the hidden
+ * states on and the script steps them in with the system's one entrance
+ * move (opacity 0 to 1, 16px drop, 180ms). The painted code blocks, the
+ * pile, and the answer chips were the home carousel's parts until it left
+ * the page (2026-09-22); they live here now. */
+
+/* flex-basis auto, never a length: the home's hero row turns into a
+   column under 1100px, where a 660px basis would become the HEIGHT. */
+.fold-pic {
+  position: relative;
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: 660px;
+  min-width: 0;
+}
+
+/* The one sentence a screen reader gets instead of the picture */
+.fold-pic-said {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.fold-pic-canvas {
+  position: relative;
+  width: 660px;
+  height: 330px;
+  user-select: none;
+  pointer-events: none;
+  font-family: var(--t-body);
+  color: var(--t-ink);
+}
+
+/* ── Arrivals: the system's entrance move, and nothing else ──
+   A piece with data-at arrives at that state (and leaves at data-until).
+   A piece with data-hide as well takes no room until it arrives (pieces
+   that share a slot: the two prompts, the pile and the wall), so it
+   arrives through a keyframe instead of a transition. */
+.fold-pic [data-at],
+.fold-pic [data-name],
+.fold-pic [data-block] {
+  --fall: 0px;
+  transition: opacity 180ms var(--t-ease), transform 180ms var(--t-ease);
+}
+
+.fold-pic [data-at] { transform: translateY(var(--fall)); }
+
+.fold-pic.is-live [data-at]:not(.is-in),
+.fold-pic.is-live [data-name]:not(.is-in),
+.fold-pic.is-live [data-block]:not(.is-in) {
+  opacity: 0;
+  --fall: -16px;
+}
+
+.fold-pic.is-live [data-hide]:not(.is-in) { display: none; }
+
+@keyframes fp-arrive {
+  from { opacity: 0; transform: translateY(-16px); }
+}
+
+.fold-pic.is-live [data-hide].is-in { animation: fp-arrive 180ms var(--t-ease); }
+
+.fold-pic [data-letter] { transition: opacity 120ms var(--t-ease); }
+.fold-pic.is-live [data-letter]:not(.is-in) { opacity: 0; }
+
+/* ── The painted letter blocks (the host lobby's code) ── */
+.fold-pic .code-row { display: flex; gap: 8px; align-items: center; }
+
+.fold-pic .code-row span {
+  width: 50px;
+  height: 59px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 31px;
+  box-shadow: 0 3px 4px rgba(50,35,15,0.26);
+  clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
+}
+
+.fold-pic .code-row .cb-0 { background: var(--t-yellow); color: var(--t-ink); transform: rotate(-2deg); }
+.fold-pic .code-row .cb-1 { background: var(--t-cyan); color: var(--t-paper); transform: rotate(1.5deg); }
+.fold-pic .code-row .cb-2 { background: var(--t-magenta); color: var(--t-paper); transform: rotate(-1deg); }
+.fold-pic .code-row .cb-3 { background: var(--t-green); color: var(--t-paper); transform: rotate(2deg); }
+
+/* ── The projector print ── */
+.fp-mat {
+  position: absolute;
+  background: var(--t-paper);
+  padding: 10px;
+  box-shadow: 0 5px 9px rgba(50,35,15,0.26);
+}
+
+.fp-projector {
+  left: 0;
+  top: 10px;
+  width: 500px;
+  transform: rotate(-0.6deg);
+}
+
+.fp-screen {
+  background: var(--t-gesso);
+  height: 290px;
+  padding: 16px 22px;
+  display: flex;
+  gap: 22px;
+}
+
+.fp-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fp-prompt {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 21px;
+  line-height: 1.12;
+  max-width: 240px;
+}
+
+.fp-built {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* Painted chips: green for a count or a heading, yellow for now */
+.fp-chip-green,
+.fp-chip-yellow {
+  display: inline-block;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 9px 5px;
+  transform: rotate(-1deg);
+  white-space: nowrap;
+}
+
+.fp-chip-green { color: var(--t-paper); background: var(--t-green); }
+.fp-chip-yellow { color: var(--t-ink); background: var(--t-yellow); }
+
+.fp-chip-green:empty { visibility: hidden; }
+
+/* The answer chips (the pairs' list) */
+.fold-pic .frame-answers {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.fold-pic .frame-answers span {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--t-ink);
+  background: var(--t-paper);
+  padding: 4px 9px 5px;
+  box-shadow: 0 2px 3px rgba(50,35,15,0.2);
+  transform: rotate(var(--rot, 0deg));
+  white-space: nowrap;
+}
+
+.fp-right {
+  width: 196px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.fp-answers,
+.fp-room,
+.fp-wall-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.fp-count {
+  display: block;
+  min-height: 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  white-space: nowrap;
+}
+
+/* The two piles: answers on top, the room underneath. No drop shadow:
+   the pieces arrive at opacity 0 and a filtered wrapper would ghost them. */
+.fold-pic .pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-left: 12px;
+  transition: opacity 180ms var(--t-ease);
+}
+
+.fold-pic .pile-block {
+  height: 16px;
+  margin-top: -3px;
+  clip-path: polygon(0 8%, 100% 0, 98% 100%, 2% 94%);
+  transform: rotate(var(--rot, 0deg)) translateY(var(--fall, 0px));
+}
+
+.fold-pic .pile-block:first-child { margin-top: 0; }
+
+.fold-pic .pile-plinth {
+  width: 56px;
+  height: 10px;
+  margin-top: -2px;
+  background: var(--t-walnut);
+  background-image: var(--t-grain);
+}
+
+.fold-pic .pile-base {
+  width: 110px;
+  height: 9px;
+  background: var(--t-base);
+  background-image: var(--t-grain);
+}
+
+.fold-pic.is-built .fp-pile { opacity: 0.55; }
+
+.fp-name {
+  height: 22px;
+  margin-top: -3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  clip-path: polygon(0 8%, 100% 0, 98% 100%, 2% 94%);
+  transform: rotate(var(--rot, 0deg)) translateY(var(--fall, 0px));
+}
+
+.fp-name:first-child { margin-top: 0; }
+
+/* The wall: three drawings on paper, a name under each */
+.fp-wall {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+.fp-wall-card {
+  width: 58px;
+  background: var(--t-paper);
+  padding: 4px 4px 3px;
+  box-shadow: 0 2px 3px rgba(50,35,15,0.2);
+  transform: rotate(var(--rot, 0deg));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.fp-wall-card svg { width: 46px; height: 38px; }
+
+.fp-wall-card span {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+}
+
+.fp-doodle {
+  fill: none;
+  stroke: var(--t-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Pinned labels on the two prints */
+.fp-tag {
+  position: absolute;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 6px 12px 7px;
+  box-shadow: 0 3px 4px rgba(50,35,15,0.26);
+  white-space: nowrap;
+}
+
+.fp-tag-projector {
+  left: -10px;
+  top: -4px;
+  background: var(--t-yellow);
+  transform: rotate(-1.5deg);
+}
+
+.fp-tag-student {
+  right: -8px;
+  top: 92px;
+  background: var(--t-paper);
+  transform: rotate(1deg);
+}
+
+/* ── The student's screen ── */
+.fp-student {
+  right: 0;
+  top: 110px;
+  width: 206px;
+  box-shadow: 0 5px 9px rgba(50,35,15,0.28);
+  transform: rotate(1.2deg);
+}
+
+.fp-student-screen {
+  background: var(--t-gesso);
+  padding: 16px 14px 14px;
+  min-height: 126px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Four views, one shown: join, answer, the shared box, the drawing. With
+   no script the last one shows (the finished picture). */
+.fp-view {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.fp-view-draw { display: flex; }
+.fold-pic.is-live .fp-view { display: none; }
+.fold-pic.is-live.at-join .fp-view-join { display: flex; }
+.fold-pic.is-live.at-answer .fp-view-answer { display: flex; }
+.fold-pic.is-live.at-shared .fp-view-shared { display: flex; }
+.fold-pic.is-live.at-draw .fp-view-draw { display: flex; }
+
+.fp-view-join { align-items: center; gap: 14px; }
+
+.fp-slots { display: flex; gap: 5px; }
+
+.fp-slot {
+  position: relative;
+  width: 32px;
+  height: 37px;
+  border: 3px dashed rgba(110,75,40,0.35);
+}
+
+.fp-slot .code-row {
+  position: absolute;
+  inset: -3px;
+}
+
+.fp-slot .code-row span {
+  width: 32px;
+  height: 37px;
+  font-size: 20px;
+}
+
+/* The buttons: Join is yellow, the rest are paper, as on the real screen */
+.fp-btn {
+  display: inline-block;
+  align-self: flex-start;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 7px 12px 8px;
+  background: var(--t-paper);
+  box-shadow: 0 3px 4px rgba(50,35,15,0.26);
+  transform: rotate(-1deg);
+  white-space: nowrap;
+  transition: box-shadow 120ms var(--t-ease);
+}
+
+.fp-join {
+  align-self: center;
+  font-size: 13px;
+  padding: 8px 18px 9px;
+  background: var(--t-yellow);
+}
+
+/* Pressed is the system's selection: an inset Ink ring */
+.fp-btn.is-pressed { box-shadow: inset 0 0 0 3px var(--t-ink); }
+
+.fp-caps {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+}
+
+.fp-student-prompt {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 12px;
+  line-height: 1.15;
+}
+
+.fp-plank {
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+  border-bottom: 3px dashed rgba(110,75,40,0.45);
+  min-height: 34px;
+  padding: 6px 8px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* The shared box wraps: two people's words fit on two lines */
+.fp-plank.fp-shared { white-space: normal; min-height: 42px; }
+
+.fp-caret {
+  display: inline-block;
+  width: 2px;
+  height: 12px;
+  background: var(--t-ink);
+  opacity: 0;
+}
+
+.fold-pic.is-typing .fp-caret { opacity: 1; }
+
+/* Who holds the pen on the shared box: the partner (cyan), then you (yellow) */
+.fp-pen {
+  align-self: flex-end;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--t-paper);
+  background: var(--t-cyan);
+  padding: 3px 7px 4px;
+  margin-top: -6px;
+  transform: rotate(1deg);
+}
+
+.fp-pen.is-mine { color: var(--t-ink); background: var(--t-yellow); }
+
+/* The drawing box on the student's screen */
+.fp-canvas {
+  position: relative;
+  height: 64px;
+  background: var(--t-paper);
+  border: 3px dashed rgba(110,75,40,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fp-canvas svg { width: 60px; height: 50px; }
+
+/* ── Replay: a real button, outside the decorative canvas, only once
+   the sequence has finished ── */
+.fold-pic-replay {
+  position: absolute;
+  left: 14px;
+  top: 100%;
+  margin-top: 2px;
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font-size: 11px;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 180ms var(--t-ease), visibility 0s 180ms;
+}
+
+.fold-pic.is-done .fold-pic-replay {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 180ms var(--t-ease);
+}
+
+.fold-pic-replay:hover { color: var(--t-ink); }
+
+/* The header's join tab lifts for one beat when the drawn student presses
+   Join: the same lift as its hover */
+.join-tab.is-nudged { transform: rotate(var(--rot, 0deg)) translateY(-5px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fold-pic *, .fold-pic-replay, .join-tab.is-nudged { transition: none !important; animation: none !important; }
+}
