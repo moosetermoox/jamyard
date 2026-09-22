@@ -1,6 +1,7 @@
 {
   "name": "Speed Quiz",
   "description": "Trivia questions, faster correct answers earn more points. Swap in your own questions.",
+  "when": "When you have five minutes and want a review that feels like a game.",
   "tags": [
     "review",
     "quiz",

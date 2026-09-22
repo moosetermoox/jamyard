@@ -83,6 +83,14 @@ describe('HoverCard.attach', () => {
     expect(card.style.left).toBe('40px');
   });
 
+  it('says the moment the activity is for when it names one, and what it does otherwise (owner 2026-09-21)', () => {
+    const tile = fakeEl('a');
+    H().attach(tile, { name: 'Exit Ticket', description: 'Two quick questions.', when: 'When you need to know what landed before they walk out.' });
+    tile.fire('mouseenter');
+    vi.advanceTimersByTime(250);
+    expect(body.children[0].querySelector('.hovercard-desc').textContent).toBe('When you need to know what landed before they walk out.');
+  });
+
   it('hides the meta row when there is nothing to say', () => {
     const tile = fakeEl('a');
     H().attach(tile, { name: 'Plain', description: 'x' });

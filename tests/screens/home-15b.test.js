@@ -83,20 +83,25 @@ describe('home page 15b', () => {
     expect(html).toContain("'/player?code=' + code");
   });
 
-  it('the fold carries the mechanic line under the planks, plain headline, no painted word', () => {
+  it('the fold says what Jamyard is, then asks what the class needs, with the mechanic line under the planks (2026-09-21)', () => {
     expect(html).toContain('and students enter a four letter code to join from their devices.');
-    expect(html).toContain('<h1>What does your class need?</h1>');
+    expect(html).toContain('<h1>Get the whole class in on it.</h1>');
+    expect(html).toContain('No student accounts, nothing to install.');
+    expect(html.indexOf('<h1>')).toBeLessThan(html.indexOf('<h2 class="ask">What does your class need?</h2>'));
+    expect(html.indexOf('<h2 class="ask">')).toBeLessThan(html.indexOf('<div class="planks" id="planks">'));
     expect(html).not.toContain('t-painted-word');
   });
 
-  it('each plank carries the ways Jamyard does that job, shown on hover, and the red door says Pick this one (owner 2026-09-12)', async () => {
+  it('each plank carries the ways Jamyard does that job, always shown, and the red door says Pick this one (owner 2026-09-12)', async () => {
     for (const goal of ['connect', 'think', 'review', 'play']) {
       const plank = html.match(new RegExp('<a class="plank" data-goal="' + goal + '"[^]*?</a>'));
       expect(plank, goal).not.toBeNull();
       expect(plank[0]).toContain('class="plank-ways"');
       expect(plank[0]).toContain('class="plank-label"');
     }
-    expect(html).toContain('.plank:hover .plank-ways');
+    // Always visible since 2026-09-21: no hover-only rule, no opacity 0
+    expect(html).not.toContain('.plank:hover .plank-ways');
+    expect(html).not.toMatch(/\.plank-ways\s*\{[^}]*opacity:\s*0;/);
     expect(html).toContain('>Pick this one</a>');
     expect(html).toContain("'Pick this one'");
     expect(html).not.toMatch(/Start the room/i);

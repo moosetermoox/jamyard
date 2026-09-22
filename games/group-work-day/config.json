@@ -1,6 +1,7 @@
 {
   "name": "Group Work Day",
   "description": "Teams pick roles, then check off a shared to-do list, live progress on the projector. Swap in your own tasks for any work day.",
+  "when": "When groups work the same task list and you want to see who is where without walking the room.",
   "featured": true,
   "phases": {
     "lobby": {

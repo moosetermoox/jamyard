@@ -1,6 +1,7 @@
 {
   "name": "Whose Eyes?",
   "description": "Gather the people a topic touches, then step inside a classmate's suggested viewpoint. No scores.",
+  "when": "When a topic has more sides than the discussion is hearing, and you want thirty viewpoints instead of five.",
   "featured": true,
   "playTime": "~15–20 min (scales with class size, the circle reads every voice)",
   "classSize": "4–35 players",

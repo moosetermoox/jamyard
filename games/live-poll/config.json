@@ -1,6 +1,7 @@
 {
   "name": "Live Poll",
   "description": "One question, and the bar chart grows on the projector as answers come in. Students answer as they arrive; you end it when you like.",
+  "when": "When you want everyone's answer to one question in three minutes, and to watch it come in.",
   "tags": [
     "review"
   ],

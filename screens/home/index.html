@@ -223,10 +223,22 @@
       text-wrap: balance;
     }
 
+    /* The question over the planks: the same voice as the headline, a
+       size down, so the planks read as its answer. */
+    .ask {
+      margin-top: 44px;
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: clamp(24px, 2.6vw, 32px);
+      line-height: 1.1;
+      letter-spacing: -0.005em;
+      color: var(--t-ink);
+    }
+
     /* Four planks side by side on one base board: the stack pattern laid
        flat. One drop shadow on the wrapper; the planks cast none of their own. */
     .planks-stack {
-      margin-top: 40px;
+      margin-top: 22px;
       width: 100%;
       max-width: 1130px;
       display: flex;
@@ -272,15 +284,15 @@
 
     .plank:focus-visible { outline: 3px solid var(--t-ink); outline-offset: -6px; }
 
-    /* Hold the mouse on a plank and the label floats to the top, the ways
-       Jamyard does that job written underneath (owner's ask 2026-09-12).
-       The ways block takes the free space (flex-grow 0 -> 1, the one
-       animatable way to lift the label without knowing its height). */
+    /* The label sits at the top of the plank and the ways Jamyard does
+       that job are written underneath, always (2026-09-21; they showed
+       on hover only from 2026-09-12, and hover is invisible on a
+       Chromebook touchpad sweep and to anyone scanning the page). The
+       ways block takes the free space so the label stays at the top. */
     .plank-ways {
-      flex: 0 1 0px;
+      flex: 1 1 auto;
       min-height: 0;
       overflow: hidden;
-      opacity: 0;
       margin-top: 10px;
       font-family: var(--t-body);
       font-weight: 600;
@@ -289,13 +301,9 @@
       text-transform: none;
       line-height: 1.4;
       color: var(--t-ink);
-      transition: flex-grow var(--t-quick) var(--t-ease), opacity var(--t-quick) var(--t-ease);
     }
 
     .plank-ways span { display: block; }
-
-    .plank:hover .plank-ways,
-    .plank:focus-visible .plank-ways { flex-grow: 1; opacity: 1; }
 
     /* Rest tones: three woods, no two neighbors the same */
     .plank[data-goal="connect"] { background: var(--t-birch); background-image: var(--t-grain); --rot: -1.4deg; }
@@ -432,6 +440,42 @@
       color: var(--t-muted);
     }
     .yard-note[hidden] { display: none; }
+
+    /* The moment chips: a row of paper tags under the yard's head, one
+       lead word, the same lift as the job chips but paper, not paint. */
+    .yard-moments {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 10px;
+      margin: 14px 0 6px;
+    }
+    .yard-moments[hidden] { display: none; }
+    .moment-lead {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--t-muted-caps, #8A7B62);
+      margin-right: 2px;
+    }
+    .moment-chip {
+      font-family: var(--t-body);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--t-ink);
+      background: var(--t-paper);
+      border: 0;
+      padding: 7px 12px;
+      box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.16), 2px 2px 0 rgba(50, 35, 15, 0.10);
+      transform: rotate(var(--rot, 0deg));
+      cursor: pointer;
+    }
+    .moment-chip.active {
+      background: var(--t-ink);
+      color: var(--t-paper);
+      box-shadow: 0 0 0 1px var(--t-ink);
+    }
 
     /* Where a deep link lands (the editor's way back): flash, then hold */
     .yard-card-highlight {
@@ -947,8 +991,12 @@
     </header>
 
     <section class="fold" role="main" aria-label="What your class needs">
-      <h1>What does your class need?</h1>
-      <p class="sub">When your class needs to connect, think, review, or just have fun, Jamyard has a way to make it happen.</p>
+      <!-- One line that says what Jamyard is before the question that
+           says when to use it (a reviewer, 2026-09-21: the four jobs
+           answer "when would I use this", not "what is this"). -->
+      <h1>Get the whole class in on it.</h1>
+      <p class="sub">Quick activities that get every student participating. No student accounts, nothing to install.</p>
+      <h2 class="ask">What does your class need?</h2>
       <!-- The four jobs, one plank each, on a base board. Clicking one
            scrolls to the yard with that job's chip already selected. -->
       <nav class="planks-stack" aria-label="Pick what your class needs">
@@ -1016,6 +1064,10 @@
           <div class="yard-chips" id="yard-chips" role="group" aria-label="Show activities for"></div>
         </div>
       </div>
+      <!-- The moments: the classroom minute a teacher is actually in
+           ("five minutes before the bell"), each a curated handful of
+           activities. A third filter beside the job and the search. -->
+      <div class="yard-moments" id="yard-moments" role="group" aria-label="For the moment you are in"></div>
       <p class="yard-note" id="yard-note" hidden></p>
       <div class="yard-grid" id="yard-grid"></div>
     </section>
@@ -1171,7 +1223,7 @@
       var query = '';
       function matchesQuery(g) {
         if (!query) return true;
-        var hay = (g.name + ' ' + (g.description || '') + ' ' + (g.hook || '') + ' ' +
+        var hay = (g.name + ' ' + (g.description || '') + ' ' + (g.when || '') + ' ' + (g.hook || '') + ' ' +
           (Array.isArray(g.tags) ? g.tags.join(' ') : '') + ' ' +
           (Array.isArray(g.keywords) ? g.keywords.join(' ') : '')).toLowerCase();
         return hay.indexOf(query) !== -1;
@@ -1180,6 +1232,44 @@
         query = searchEl.value.trim().toLowerCase();
         renderGrid();
       });
+
+      // ── The moments: the minute a teacher is actually in, each a
+      //    curated handful of activities (a reviewer, 2026-09-21: what
+      //    Jamyard replaces is "I need something for the next eight
+      //    minutes"). Tap one to see only those; tap it again for the
+      //    whole yard. An id not in this visitor's yard simply does not
+      //    show, so a hidden built-in never breaks a moment. ──
+      var MOMENTS = [
+        { label: 'Five minutes before the bell', ids: ['exit-ticket', 'live-poll', 'speed-quiz'] },
+        { label: 'The discussion is dying', ids: ['both-sides-rope', 'whose-eyes', 'snowball'] },
+        { label: 'I want everyone\'s opinion', ids: ['live-poll', 'snowball', 'whose-eyes'] },
+        { label: 'They need to know each other', ids: ['closer', 'someones-got-you', 'snowball'] },
+        { label: 'Did they get it?', ids: ['exit-ticket', 'one-more-thing', 'solo-quiz', 'vocab-match'] },
+        { label: 'We finished early', ids: ['speed-quiz', 'doodle-bluff', 'art-gallery'] },
+        { label: 'Reset the energy', ids: ['doodle-bluff', 'trivia-bluff', 'art-gallery'] }
+      ];
+      var momentsEl = document.getElementById('yard-moments');
+      var activeMoment = null; // an index into MOMENTS, or null
+      function byMoment(g) {
+        return activeMoment === null || MOMENTS[activeMoment].ids.indexOf(g.id) !== -1;
+      }
+      function renderMoments() {
+        momentsEl.textContent = '';
+        momentsEl.appendChild(el('span', 'moment-lead', 'For when'));
+        MOMENTS.forEach(function (m, i) {
+          var chip = el('button', 'moment-chip t-lift' + (i === activeMoment ? ' active' : ''), m.label);
+          chip.type = 'button';
+          chip.style.setProperty('--rot', i % 2 === 0 ? '-0.6deg' : '0.7deg');
+          chip.setAttribute('aria-pressed', i === activeMoment ? 'true' : 'false');
+          chip.addEventListener('click', function () {
+            activeMoment = activeMoment === i ? null : i;
+            renderMoments();
+            renderGrid();
+          });
+          momentsEl.appendChild(chip);
+        });
+      }
+      renderMoments();
 
       // ── My yard, then the yard: your copies, hearts, and recently used
       //    on the shelf above (shared/my-yard.js), the rest in the grid
@@ -1190,8 +1280,8 @@
       function renderGrid() {
         if (window.HoverCard) HoverCard.hide();
         var parts = window.MyYard ? MyYard.split(games, { query: query }) : { mine: [], shed: [], rest: games };
-        var mine = parts.mine.filter(byGoal).filter(matchesQuery);
-        var shed = parts.shed.filter(byGoal).filter(matchesQuery);
+        var mine = parts.mine.filter(byGoal).filter(byMoment).filter(matchesQuery);
+        var shed = parts.shed.filter(byGoal).filter(byMoment).filter(matchesQuery);
         myYardEl.textContent = '';
         var shelf = window.MyYard ? MyYard.buildShelf(mine, shed, { onOpen: openShelfPopup, onChange: onShelfChange }) : null;
         if (shelf) myYardEl.appendChild(shelf);
@@ -1200,11 +1290,11 @@
         // The rescue only when NOTHING matched, shelf included: a search
         // that found the teacher's own activity must not say "nothing
         // mentions" under it (owner, 2026-09-13)
-        var pool = parts.rest.filter(byGoal).filter(matchesQuery);
+        var pool = parts.rest.filter(byGoal).filter(byMoment).filter(matchesQuery);
         var shelfHit = mine.length + shed.length > 0;
         var rescued = false;
         if (pool.length === 0 && query && !shelfHit) {
-          pool = parts.rest.filter(byGoal);
+          pool = parts.rest.filter(byGoal).filter(byMoment);
           rescued = pool.length > 0;
         }
         noteEl.hidden = !rescued;
