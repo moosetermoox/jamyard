@@ -200,7 +200,6 @@
   function buildAiTile(i, href) {
     var card = el('a', 'yard-card');
     card.href = href || '/designer';
-    card.title = AI_DOOR.when;
     card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
     if (window.HoverCard) HoverCard.attach(card, AI_DOOR);
     var print = el('div', 'yard-print');
