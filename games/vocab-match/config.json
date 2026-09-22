@@ -1,7 +1,6 @@
 {
   "name": "Vocab Match",
   "description": "Two quick match-the-pairs rounds with a leaderboard. Swap in your own pairs for any review.",
-
   "when": "When there are pairs to drill, words and meanings or dates and events, and you want it quick and scored.",
   "featured": true,
   "phases": {

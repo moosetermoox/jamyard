@@ -1,7 +1,6 @@
 {
   "name": "Solo Quiz",
   "description": "Five quick questions each student answers at their own pace. No race, and the projector shows progress only. Swap in your own questions.",
-
   "when": "When students trickle in and you want a quiet check that starts the moment they sit down.",
   "tags": [
     "review"

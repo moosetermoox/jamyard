@@ -1,7 +1,6 @@
 {
   "name": "Draw Gallery",
   "description": "Everyone draws the same prompt; after a teacher preview, the drawings reveal one at a time. Swap in any prompt.",
-
   "when": "When you want every student to make something, and the whole class to see all of it.",
   "featured": true,
   "phases": {

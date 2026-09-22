@@ -1,7 +1,6 @@
 {
   "name": "Both Sides of the Rope",
   "description": "Take a stance, build evidence for BOTH sides, then vote again and see if the room's mind moved.",
-
   "when": "When a discussion has hardened into two camps and you want the class to argue the other side.",
   "featured": true,
   "playTime": "~15 min",
