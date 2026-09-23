@@ -1,20 +1,26 @@
-// yard-prints.js — the yard's grid of activity prints (home 15b, 2026-09-10).
+// yard-prints.js — the yard's grid of activity cards (home 17g, 2026-09-22;
+// the 15b mini-projector prints before it).
 //
-// One activity = one paper print with a mini projector drawn from the
-// server's `glimpse` (engine/home-glimpse.js): the first thing students
-// are asked, a few answer blocks landing, or the doorway code for a
-// rolling start. Under it the name and a "to think · ~10 min" line. The
-// home page's "The whole yard" and the yard page (/library) draw the same
-// grid from this module, so the two never drift apart (owner's call
-// 2026-09-10: the yard is the home's grid without the fold and carousel).
+// Seventeen cards a teacher can tell apart without reading. A card is a
+// NAME, a colour SQUARE for the need (the job's paint), and a PICTOGRAM
+// of the mechanic built from blocks (shared/yard-pictograms.js) in a
+// gesso window on a paper mat. No prompt sentence, no meta line at rest.
+// The prompt (the first thing students are asked, from the server's
+// `glimpse`, engine/home-glimpse.js) appears only on hover, when the
+// pictogram slides up and its arrival block lands. Paper time marks
+// ("5 MIN", "10 MIN") pin to the first card of each duration step, so the
+// grid reads shortest first without a number on every card. The home
+// page's yard and the teacher's own shelf (shared/my-yard.js) draw the
+// same cards from this module, so the two never drift apart.
 //
 // Decoration that must look alive but never lie about a live room: the
-// code letters, head count, timer, and pile are dealt from the activity's
-// id (`picture`), so a template keeps the same picture across visits and
-// no two neighbors match. Activity text is untrusted: textContent only.
+// fallback pictogram's blocks and code letters are dealt from the
+// activity's id (`picture`), so a copy keeps the same picture across
+// visits. Activity text is untrusted: textContent only.
 //
 // Plain script (browser global): window.YardPrints. Pair it with
-// /shared/yard-prints.css; needs /shared/goal-groups.js first.
+// /shared/yard-prints.css; needs /shared/goal-groups.js and
+// /shared/yard-pictograms.js first.
 (function () {
   'use strict';
 
@@ -37,12 +43,12 @@
   var LETTERS = 'ABCDEFGHJKLMNPRSTUVWXYZ';
   var PAINTS = ['t-yellow', 't-cyan', 't-magenta', 't-green'];
   var WOODS = ['t-birch', 't-pine', 't-oak'];
-  // A print's paint is its job (2026-09-15, owner: "make the different
+  // A card's paint is its job (2026-09-15, owner: "make the different
   // categories more visually distinct"): magenta = to connect (social),
   // cyan = to think, green = to review (checking), orange = to just have
   // fun. The chips over the yard wear the same swatch, so the row is the
-  // legend. Woods stay woods; the dealt paints in picture() are for the
-  // full-size frame.
+  // legend. One block in every pictogram carries it, and the small
+  // square beside the name.
   var PAINT_OF_GROUP = { connect: 't-magenta', think: 't-cyan', review: 't-green', play: 't-orange' };
   function paintOf(g) {
     var key = window.GoalGroups && GoalGroups.groupOf ? GoalGroups.groupOf(g) : 'think';
@@ -90,7 +96,27 @@
     };
   }
 
-  // "to think · ~10 min · rolling start": the job in lower case, the short time
+  // The hover prompt: the glimpse's prompt where there is one, else a
+  // one-line hook from the config (the first sentence of the description)
+  var PROMPT_MAX = 96;
+  function promptOf(g) {
+    var gl = g.glimpse || {};
+    var text = gl.prompt || g.hook || '';
+    if (!text) {
+      var m = /^(.+?[.!?])(\s|$)/.exec(String(g.description || '').replace(/\s+/g, ' ').trim());
+      text = m ? m[1] : String(g.description || '');
+    }
+    text = String(text).replace(/\*\*/g, '').trim();
+    if (text.length > PROMPT_MAX) {
+      var cut = text.slice(0, PROMPT_MAX);
+      var space = cut.lastIndexOf(' ');
+      text = (space > 30 ? cut.slice(0, space) : cut).trim() + '…';
+    }
+    return text;
+  }
+
+  // "to think · ~10 min · rolling start": the job in lower case, the short
+  // time (the popups' meta line; the cards themselves carry none)
   function jobLine(g) {
     var job = window.GoalGroups ? GoalGroups.jobOf(g) : 'To think';
     return job.charAt(0).toLowerCase() + job.slice(1);
@@ -105,127 +131,196 @@
     if (g.start === 'rolling') bits.push('rolling start');
     return bits.join(' · ');
   }
+  // The server's reading of playTime ("~15–20 min" reads as 20) when it
+  // sent one, else the first number in the string
   function minutesOf(g) {
+    if (typeof g.minutes === 'number' && g.minutes > 0) return g.minutes;
     var m = /(\d+)/.exec(g.playTime || '');
     return m ? parseInt(m[1], 10) : 999;
   }
 
+  // The duration steps the time marks name. Walking the sorted list, a
+  // card gets a mark when its step differs from the card before it:
+  // "5 MIN" on the first five-minute card, "10 MIN" on the first ten.
+  var MARK_STEPS = [5, 10, 15, 20, 30];
+  function stepOf(minutes) {
+    var step = null;
+    for (var i = 0; i < MARK_STEPS.length; i++) if (minutes >= MARK_STEPS[i]) step = MARK_STEPS[i];
+    return step;
+  }
+  // The mark text per card (null for no mark), for a list already sorted
+  function marksFor(sorted) {
+    var out = [];
+    var last = null;
+    for (var i = 0; i < sorted.length; i++) {
+      var step = stepOf(minutesOf(sorted[i]));
+      out.push(step !== null && step !== last ? step + ' MIN' : null);
+      if (step !== null) last = step;
+    }
+    return out;
+  }
+
   var CARD_ROTS = ['-0.8deg', '0.6deg', '-0.7deg', '0.9deg', '-0.5deg', '0.8deg', '-0.9deg', '0.5deg', '-0.6deg', '1deg'];
 
-  function buildMini(g) {
-    var mini = el('div', 'yp-mini');
-    var pic = picture(g);
-    var gl = glimpseOf(g);
+  // The floating hover card (name, meta, the `when` line) is OFF on the
+  // yard's cards (owner 2026-09-23: "the text emerging on the planks does
+  // enough"). The module and the wiring stay; flip this to bring it back.
+  var HOVER_CARD = false;
+
+  function reducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+  function noHover() {
+    return !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
+  }
+
+  // The hover state as a class, so touch (first tap) and the load play
+  // can show it too: the pictogram slides up, the arrival lands, the
+  // prompt fades in, the timer ticks
+  function setOn(card, on) {
+    card.classList.toggle('on', !!on);
+    var tick = card._tick;
+    if (tick) tick.textContent = on ? '0:05' : '0:06';
+  }
+
+  // The window: the pictogram centred, the prompt hidden at the bottom
+  function buildWindow(g, card) {
+    var win = el('div', 'yard-window');
     var paint = paintOf(g);
-    // Every print carries exactly one paint, its job: the painted block in
-    // the pile, or a single painted block where a pile would sit
-    var stamp = function () {
-      var one = el('div', 'yp-pile');
-      var block = el('div', 'yp-block yp-stamp ' + paint);
-      block.style.width = '36px';
-      block.style.setProperty('--rot', '1.4deg');
-      one.appendChild(block);
-      return one;
-    };
-    if (gl.mode === 'join') {
-      mini.appendChild(el('span', 'yp-caps', 'Join in'));
-      mini.appendChild(el('div', 'yp-code', pic.code));
-      mini.appendChild(el('span', 'yp-qr'));
-      mini.appendChild(stamp());
-      return mini;
-    }
-    mini.appendChild(el('span', 'yp-caps', gl.mode === 'talk' ? 'Nothing to type' : 'Everyone is writing…'));
-    mini.appendChild(el('div', 'yp-prompt', gl.prompt));
-    if (gl.mode !== 'talk') {
-      var pile = el('div', 'yp-pile');
-      var blocks = pic.blocks.slice(0, 3);
-      for (var i = 0; i < blocks.length; i++) {
-        var tone = WOODS.indexOf(blocks[i].tone) === -1 ? paint : blocks[i].tone;
-        var block = el('div', 'yp-block ' + tone);
-        block.style.width = Math.round(blocks[i].width * 0.4) + 'px';
-        block.style.setProperty('--rot', blocks[i].rot);
-        pile.appendChild(block);
-      }
-      mini.appendChild(pile);
-    } else {
-      mini.appendChild(stamp());
-    }
-    return mini;
+    var pict = el('div', 'yard-pict');
+    var built = window.YardPictograms
+      ? YardPictograms.build(g, paint, picture(g))
+      : { node: el('div'), tick: null };
+    pict.appendChild(built.node);
+    card._tick = built.tick;
+    win.appendChild(pict);
+    var box = el('div', 'yard-prompt-box');
+    box.appendChild(el('span', 'yard-prompt', promptOf(g)));
+    win.appendChild(box);
+    return win;
   }
 
   // opts.href(g) gives the link; opts.onClick(g, card) opens a popup on
   // a plain click (with a link too, modified clicks and new tabs still
-  // follow the href; without one the print is a button). The hover card
-  // carries the description either way when it is loaded.
+  // follow the href; without one the card is a button). opts.mark is the
+  // time mark's text when this card starts a duration step. The hover
+  // card carries the moment it is for when it is loaded. On a screen with
+  // no hover, the first tap shows the hover state and the second opens.
   function buildCard(g, i, opts) {
     opts = opts || {};
     var card;
+    var open = function (e) {
+      if (noHover() && !card.classList.contains('on')) {
+        if (e) e.preventDefault();
+        var siblings = card.parentNode ? card.parentNode.querySelectorAll('.yard-card.on') : [];
+        for (var s = 0; s < siblings.length; s++) if (siblings[s] !== card) setOn(siblings[s], false);
+        setOn(card, true);
+        return false;
+      }
+      return true;
+    };
     if (opts.href) {
       card = el('a', 'yard-card');
       card.href = opts.href(g);
-      if (opts.onClick) {
-        card.setAttribute('aria-haspopup', 'dialog');
-        card.addEventListener('click', function (e) {
-          if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
-          e.preventDefault();
-          opts.onClick(g, card);
-        });
-      }
+      card.addEventListener('click', function (e) {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
+        if (!open(e)) return;
+        if (!opts.onClick) return;
+        e.preventDefault();
+        opts.onClick(g, card);
+      });
+      if (opts.onClick) card.setAttribute('aria-haspopup', 'dialog');
     } else {
       card = el('button', 'yard-card');
       card.type = 'button';
       card.setAttribute('aria-haspopup', 'dialog');
-      card.addEventListener('click', function () { if (opts.onClick) opts.onClick(g, card); });
+      card.addEventListener('click', function (e) {
+        if (!open(e)) return;
+        if (opts.onClick) opts.onClick(g, card);
+      });
     }
     card.setAttribute('data-game-id', g.id);
     card.setAttribute('aria-label', g.name + ', see what it is');
     card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
-    if (window.HoverCard) HoverCard.attach(card, g);
+    // A tap fires emulated mouse events too; on a no-hover screen the
+    // tap rule above owns the state, so these stand down there
+    card.addEventListener('mouseenter', function () { if (!noHover()) setOn(card, true); });
+    card.addEventListener('mouseleave', function () { if (!noHover()) setOn(card, false); });
+    if (HOVER_CARD && window.HoverCard) HoverCard.attach(card, g);
+    if (opts.mark) {
+      var mark = el('span', 'yard-mark', opts.mark);
+      mark.setAttribute('aria-hidden', 'true');
+      card.appendChild(mark);
+    }
     var print = el('div', 'yard-print');
-    print.appendChild(buildMini(g));
+    print.appendChild(buildWindow(g, card));
     card.appendChild(print);
-    card.appendChild(el('span', 'yard-name', g.name));
-    card.appendChild(el('span', 'yard-meta', metaOf(g)));
+    var nameRow = el('div', 'yard-name-row');
+    nameRow.appendChild(el('span', 'yard-name', g.name));
+    nameRow.appendChild(el('span', 'yard-need ' + paintOf(g)));
+    card.appendChild(nameRow);
     return card;
   }
 
-  // The last tile: for when what the class needs is not on the shelf yet
+  // The last card: for when what the class needs is not on the shelf yet
   // (owner 2026-09-22: from the "what you need" side, a little cheeky).
-  // Its hover card reads like the prints', the moment it is for.
+  // Its window is a dashed slot holding a sanded plank and BUILD IT; its
+  // hover card reads like the others', the moment it is for.
   var AI_DOOR = {
     name: 'Have an idea? Make it real',
     when: 'When what your class needs isn\'t on this shelf yet. Say it in a sentence and it gets built while you watch.'
   };
 
   function buildAiTile(i, href) {
-    var card = el('a', 'yard-card');
+    var card = el('a', 'yard-card yard-card-make');
     card.href = href || '/designer';
     card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
-    if (window.HoverCard) HoverCard.attach(card, AI_DOOR);
+    if (HOVER_CARD && window.HoverCard) HoverCard.attach(card, AI_DOOR);
     var print = el('div', 'yard-print');
-    var mini = el('div', 'yp-mini');
-    mini.appendChild(el('span', 'yp-caps', 'Say what you need'));
-    mini.appendChild(el('div', 'yp-slot'));
-    mini.appendChild(el('span', 'yp-chip', 'Build it'));
-    print.appendChild(mini);
+    var slot = el('div', 'yard-window yard-slot');
+    slot.appendChild(el('div', 'yp-slot'));
+    slot.appendChild(el('span', 'yp-chip', 'Build it'));
+    print.appendChild(slot);
     card.appendChild(print);
-    card.appendChild(el('span', 'yard-name', AI_DOOR.name));
-    card.appendChild(el('span', 'yard-meta', 'describe it, then host it'));
+    var nameRow = el('div', 'yard-name-row');
+    nameRow.appendChild(el('span', 'yard-name', AI_DOOR.name));
+    card.appendChild(nameRow);
     return card;
   }
 
-  // Fills `container` with the prints, shortest first, the AI door last
+  // The first card plays its hover state once, a beat after the grid
+  // lands, then settles; skipped when motion is reduced or the mouse is
+  // already on a card
+  function playFirst(container) {
+    if (reducedMotion()) return;
+    var first = container.querySelector('.yard-card:not(.yard-card-make)');
+    if (!first) return;
+    var hovered = function () {
+      var cards = container.querySelectorAll('.yard-card');
+      for (var i = 0; i < cards.length; i++) if (cards[i].matches(':hover')) return true;
+      return false;
+    };
+    setTimeout(function () { if (first.isConnected && !hovered()) setOn(first, true); }, 700);
+    setTimeout(function () { if (first.isConnected && !first.matches(':hover')) setOn(first, false); }, 2600);
+  }
+
+  // Fills `container` with the cards, shortest first, the AI door last
   // (opts.ai: false leaves it out; opts.aiHref changes where it goes).
-  // opts.empty is the line shown when the list is empty.
+  // opts.marks pins the time marks; opts.play runs the first card's
+  // hover once. opts.empty is the line shown when the list is empty.
   function buildGrid(container, games, opts) {
     opts = opts || {};
     var pool = games.slice();
     pool.sort(function (a, b) { return minutesOf(a) - minutesOf(b) || String(a.name).localeCompare(String(b.name)); });
+    var marks = opts.marks ? marksFor(pool) : [];
     container.textContent = '';
     container.classList.add('yard-grid');
     if (pool.length === 0 && opts.empty) container.appendChild(el('p', 'yard-empty', opts.empty));
-    for (var i = 0; i < pool.length; i++) container.appendChild(buildCard(pool[i], i, opts));
+    for (var i = 0; i < pool.length; i++) {
+      container.appendChild(buildCard(pool[i], i, { href: opts.href, onClick: opts.onClick, mark: marks[i] || null }));
+    }
     if (opts.ai !== false) container.appendChild(buildAiTile(pool.length, opts.aiHref));
+    if (opts.play) playFirst(container);
     return container;
   }
 
@@ -234,8 +329,12 @@
     paintOf: paintOf,
     WOODS: WOODS,
     glimpseOf: glimpseOf,
+    promptOf: promptOf,
     metaOf: metaOf,
     minutesOf: minutesOf,
+    MARK_STEPS: MARK_STEPS,
+    marksFor: marksFor,
+    setOn: setOn,
     buildCard: buildCard,
     buildAiTile: buildAiTile,
     buildGrid: buildGrid

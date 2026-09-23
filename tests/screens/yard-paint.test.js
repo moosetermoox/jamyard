@@ -17,15 +17,14 @@ const read = (p) => readFile(new URL(p, ROOT), 'utf8');
 
 const PAINT = { connect: 't-magenta', think: 't-cyan', review: 't-green', play: 't-orange' };
 
-describe('yard prints: one paint per print, the job\'s', () => {
-  it('maps each job to one paint, and every print carries it (pile or a single block)', async () => {
+describe('yard cards: one paint per card, the job\'s', () => {
+  it('maps each job to one paint, and every card carries it (a block in the pictogram, the square by the name)', async () => {
     const js = await read('screens/shared/yard-prints.js');
     expect(js).toContain("var PAINT_OF_GROUP = { connect: 't-magenta', think: 't-cyan', review: 't-green', play: 't-orange' };");
     expect(js).toContain('var paint = paintOf(g);');
-    expect(js).toContain("var tone = WOODS.indexOf(blocks[i].tone) === -1 ? paint : blocks[i].tone;");
-    expect(js).toContain("el('div', 'yp-block yp-stamp ' + paint)");
-    // join prints and talk-only prints get the single block
-    expect(js.split('mini.appendChild(stamp());').length - 1).toBe(2);
+    // the pictogram takes the paint (17g, 2026-09-22: one block in the need colour)
+    expect(js).toContain('YardPictograms.build(g, paint, picture(g))');
+    expect(js).toContain("el('span', 'yard-need ' + paintOf(g))");
     expect(js).toContain('paintOf: paintOf,');
   });
 
