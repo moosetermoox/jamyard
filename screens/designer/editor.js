@@ -408,6 +408,7 @@ var AI_TASK_CATALOG = {
 var headerGameName = document.getElementById('header-game-name');
 var settingsName = document.getElementById('game-name');
 var settingsDescription = document.getElementById('game-description');
+var settingsWhen = document.getElementById('game-when');
 var settingsMinPlayers = document.getElementById('game-min-players');
 var settingsMaxPlayers = document.getElementById('game-max-players');
 var settingsNamesMode = document.getElementById('game-names-mode');
@@ -708,6 +709,7 @@ async function init() {
   // Update config when settings change
   settingsName.addEventListener('input', readSettings);
   settingsDescription.addEventListener('input', readSettings);
+  if (settingsWhen) settingsWhen.addEventListener('input', readSettings);
   settingsMinPlayers.addEventListener('input', readSettings);
   settingsMaxPlayers.addEventListener('input', readSettings);
   if (settingsNamesMode) settingsNamesMode.addEventListener('change', readSettings);
@@ -786,6 +788,8 @@ function onConfigLoaded() {
 function renderSettings() {
   settingsName.value = gameConfig.name || '';
   settingsDescription.value = gameConfig.description || '';
+  // The hover line (`when`, 2026-09-21): the moment the activity is for
+  if (settingsWhen) settingsWhen.value = typeof gameConfig.when === 'string' ? gameConfig.when : '';
   settingsMinPlayers.value = gameConfig.minPlayers || '';
   settingsMaxPlayers.value = gameConfig.maxPlayers || '';
   if (settingsNamesMode) settingsNamesMode.value = gameConfig.anonymous ? 'anonymous' : 'collect';
@@ -850,6 +854,11 @@ function readSettings() {
   isDirty = true;
   gameConfig.name = settingsName.value.trim() || 'Untitled Activity';
   gameConfig.description = settingsDescription.value.trim();
+  // The hover line: stored only when written; absent means the yard shows the description
+  if (settingsWhen) {
+    var whenLine = settingsWhen.value.trim();
+    if (whenLine) gameConfig.when = whenLine; else delete gameConfig.when;
+  }
   gameConfig.minPlayers = settingsMinPlayers.value ? parseInt(settingsMinPlayers.value) : null;
   gameConfig.maxPlayers = settingsMaxPlayers.value ? parseInt(settingsMaxPlayers.value) : null;
   // Anonymous mode: store only the true flag; absent means collect names.
@@ -5875,6 +5884,11 @@ function validateConfig() {
         errors.push('Word help: "to" must be one of en, es, fr, de, pt, it.');
       }
     }
+  }
+
+  // The hover line (mirrors engine/game-loader.js): text or nothing
+  if (gameConfig.when !== undefined && typeof gameConfig.when !== 'string') {
+    errors.push('"When is this for?" must be text.');
   }
 
   // Early-bird joke (mirrors validateEarlyJoke in engine/early-joke.js)
