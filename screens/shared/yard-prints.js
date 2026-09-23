@@ -162,6 +162,11 @@
 
   var CARD_ROTS = ['-0.8deg', '0.6deg', '-0.7deg', '0.9deg', '-0.5deg', '0.8deg', '-0.9deg', '0.5deg', '-0.6deg', '1deg'];
 
+  // The floating hover card (name, meta, the `when` line) is OFF on the
+  // yard's cards (owner 2026-09-23: "the text emerging on the planks does
+  // enough"). The module and the wiring stay; flip this to bring it back.
+  var HOVER_CARD = false;
+
   function reducedMotion() {
     return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
@@ -241,7 +246,7 @@
     // tap rule above owns the state, so these stand down there
     card.addEventListener('mouseenter', function () { if (!noHover()) setOn(card, true); });
     card.addEventListener('mouseleave', function () { if (!noHover()) setOn(card, false); });
-    if (window.HoverCard) HoverCard.attach(card, g);
+    if (HOVER_CARD && window.HoverCard) HoverCard.attach(card, g);
     if (opts.mark) {
       var mark = el('span', 'yard-mark', opts.mark);
       mark.setAttribute('aria-hidden', 'true');
@@ -270,7 +275,7 @@
     var card = el('a', 'yard-card yard-card-make');
     card.href = href || '/designer';
     card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
-    if (window.HoverCard) HoverCard.attach(card, AI_DOOR);
+    if (HOVER_CARD && window.HoverCard) HoverCard.attach(card, AI_DOOR);
     var print = el('div', 'yard-print');
     var slot = el('div', 'yard-window yard-slot');
     slot.appendChild(el('div', 'yp-slot'));

@@ -324,6 +324,13 @@ describe('the yard on the home page', () => {
     expect(css).not.toContain('.yp-mini');
   });
 
+  it('the floating hover card is off on the cards, the code kept behind one flag (owner 2026-09-23)', async () => {
+    const js = await read('screens/shared/yard-prints.js');
+    expect(js).toContain('var HOVER_CARD = false;');
+    expect(js).toContain('if (HOVER_CARD && window.HoverCard) HoverCard.attach(card, g);');
+    expect(js).toContain('if (HOVER_CARD && window.HoverCard) HoverCard.attach(card, AI_DOOR);');
+  });
+
   it('the shelf\'s tools sit under the taller window', () => {
     expect(shelfCss).toContain('top: 173px; /* 9px paper + 156px window + 8px */');
   });
