@@ -355,28 +355,29 @@
       scroll-margin-top: 0;
     }
 
-    /* The planks at pocket size. Sticky: once the planks scroll away this
-       row is the only copy of the control on screen. */
+    /* The title row (17g, 2026-09-22): the name left, the search plank
+       right */
     .yard-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 22px;
+      flex-wrap: wrap;
+    }
+
+    /* The planks at pocket size, on their own row. Sticky: once the
+       planks scroll away this row is the only copy of the control on
+       screen. */
+    .yard-chips {
       position: sticky;
       top: 0;
       z-index: 5;
       display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 24px;
-      flex-wrap: wrap;
-      padding: 12px 0 12px;
-      background: var(--t-gesso);
-    }
-
-    .yard-chips {
-      position: sticky;
-      top: 0;
-      display: flex;
       align-items: center;
       gap: 8px;
       flex-wrap: wrap;
+      padding: 10px 0;
+      background: var(--t-gesso);
     }
 
     .goal-chip {
@@ -397,18 +398,17 @@
       background-image: var(--t-grain);
     }
 
-    /* The job's paint as a small block on its chip: the same paint every
-       print of that job carries (yard-prints.js paintOf), so the chip row
-       is the legend */
+    /* The job's paint as a small square on its chip: the same paint every
+       card of that job carries (yard-prints.js paintOf, one block in
+       the pictogram and the square beside the name), so the chip row is
+       the legend */
     .goal-chip[data-goal]::before {
       content: '';
       display: inline-block;
-      width: 11px;
-      height: 9px;
+      width: 10px;
+      height: 10px;
       margin-right: 8px;
       vertical-align: 0;
-      transform: rotate(-4deg);
-      clip-path: polygon(0 8%, 100% 0, 98% 100%, 2% 94%);
     }
     .goal-chip[data-goal="connect"]::before { background: var(--t-magenta); }
     .goal-chip[data-goal="think"]::before   { background: var(--t-cyan); }
@@ -417,26 +417,21 @@
 
     .yard-grid { min-height: 220px; }
 
-    /* The search beside the chips: a sanded plank with a pencil line */
-    .yard-tools {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
+    /* The search beside the name: a sanded plank with a pencil line */
     .yard-search {
-      width: 200px;
+      width: 300px;
+      max-width: 100%;
+      height: 44px;
+      flex: none;
       border: none;
       background: var(--t-sanded);
       background-image: var(--t-grain);
       border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
-      padding: 8px 12px 7px;
+      padding: 12px 16px;
       font-family: var(--t-body);
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 500;
       color: var(--t-ink);
-      transform: rotate(0.4deg);
     }
 
     .yard-search::placeholder { color: #8A7455; font-weight: 500; }
@@ -864,11 +859,9 @@
     <section class="yard" id="yard" hidden aria-label="The yard">
       <div class="yard-head">
         <div class="yard-title"><h2>The yard</h2><span class="yard-sub">Activities ready to be made to fit your class</span></div>
-        <div class="yard-tools">
-          <input type="search" id="yard-search" class="yard-search" placeholder="Search the yard…" aria-label="Search the yard" autocomplete="off" spellcheck="false">
-          <div class="yard-chips" id="yard-chips" role="group" aria-label="Show activities for"></div>
-        </div>
+        <input type="search" id="yard-search" class="yard-search" placeholder="Search the yard…" aria-label="Search the yard" autocomplete="off" spellcheck="false">
       </div>
+      <div class="yard-chips" id="yard-chips" role="group" aria-label="Show activities for"></div>
       <!-- The moments: the classroom minute a teacher is actually in
            ("only 5 minutes left"), each a curated handful of
            activities. A third filter beside the job and the search. -->
@@ -897,6 +890,7 @@
   <script src="/shared/phase-names.js"></script>
   <script src="/shared/activity-map.js"></script>
   <script src="/shared/hover-card.js"></script>
+  <script src="/shared/yard-pictograms.js"></script>
   <script src="/shared/yard-prints.js"></script>
   <script src="/shared/activity-prefs.js"></script>
   <script src="/shared/owner-mode.js"></script>
@@ -1090,14 +1084,20 @@
         noteEl.textContent = rescued
           ? 'Nothing mentions "' + query + '", and that is okay: every activity takes any topic. Here is the whole yard.'
           : '';
+        // Time marks on the first card of each duration step; the first
+        // card plays its hover once, on the first render only
         YardPrints.buildGrid(gridEl, pool, {
           href: makeHref,
           onClick: showActivityPopup,
+          marks: true,
+          play: !playedOnce,
           empty: query
             ? 'Nothing else mentions "' + query + '".'
             : 'Nothing on this shelf yet. The AI can make one.'
         });
+        playedOnce = true;
       }
+      var playedOnce = false;
 
       // Every "back to the yard" link lands on /#yard, but the section is
       // hidden until the list loads, so the browser's own anchor jump

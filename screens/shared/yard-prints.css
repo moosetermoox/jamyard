@@ -1,12 +1,15 @@
-/* yard-prints.css — the yard's grid of activity prints (home 15b,
-   2026-09-10). Pair with /shared/yard-prints.js. Totem materials: a paper
-   print holding a gesso mini projector, name and meta under it. Shared by
-   the home page's "The whole yard" and the yard page. */
+/* yard-prints.css — the yard's grid of activity cards (home 17g,
+   2026-09-22). Pair with /shared/yard-prints.js and
+   /shared/yard-pictograms.js. Totem materials: a paper mat holding a
+   gesso window with a pictogram built from blocks, the name and the
+   need's colour square under it. Shared by the home page's yard and the
+   teacher's own shelf. Hover is the only motion in the yard; nothing
+   moves at rest. */
 
 .yard-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 22px 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 34px 26px;
   align-items: start;
 }
 
@@ -17,11 +20,11 @@
 }
 
 .yard-card {
+  position: relative;
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 2px;
   padding: 0;
   border: none;
   background: none;
@@ -35,92 +38,240 @@
 }
 
 .yard-card:hover,
+.yard-card.on,
 .yard-card:focus-visible { transform: rotate(var(--rot, 0deg)) translateY(-5px); }
 
 .yard-card:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 4px; }
 
+/* The paper mat */
 .yard-print {
   background: var(--t-paper);
-  padding: 7px 7px 9px;
+  padding: 9px 9px 11px;
   box-shadow: 0 4px 6px rgba(50,35,15,0.24);
-  margin-bottom: 9px;
 }
 
-/* The mini projector: the host screen at pocket size */
-.yp-mini {
+/* The gesso window: the pictogram centred, the prompt hidden at the bottom */
+.yard-window {
   background: var(--t-gesso);
-  height: 128px;
-  padding: 12px;
+  height: 156px;
   position: relative;
+  overflow: hidden;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+}
+
+.yard-pict {
+  transition: transform 180ms var(--t-ease);
+}
+
+.yard-card.on .yard-pict,
+.yard-card:focus-visible .yard-pict { transform: translateY(-14px); }
+
+.yard-prompt-box {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
   text-align: center;
-  overflow: hidden;
-}
-
-.yp-caps {
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--t-muted-caps);
-}
-
-.yp-prompt {
   font-family: var(--t-display);
   font-weight: 800;
   font-size: 13px;
   line-height: 1.2;
   color: var(--t-ink);
-  text-wrap: balance;
-  overflow-wrap: anywhere;
+  pointer-events: none;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: anywhere;
 }
 
-/* A few answer blocks landing */
-.yp-pile {
+.yard-prompt {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 180ms var(--t-ease), transform 180ms var(--t-ease);
+}
+
+.yard-card.on .yard-prompt,
+.yard-card:focus-visible .yard-prompt { opacity: 1; transform: translateY(0); }
+
+/* The time mark: a paper tag on the first card of each duration step */
+.yard-mark {
+  position: absolute;
+  top: -12px;
+  left: -10px;
+  z-index: 1;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 10px 6px;
+  background: var(--t-paper);
+  color: var(--t-ink);
+  box-shadow: 0 3px 4px rgba(50,35,15,0.22);
+  transform: rotate(-2deg);
+  white-space: nowrap;
+}
+
+/* Under the mat: the name and the need's square on one baseline */
+.yard-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 11px;
+  padding: 0 3px;
+  min-width: 0;
+}
+
+.yard-name {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.yard-need {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  transform: translateY(-1px);
+  background-image: none;
+}
+
+/* ── The pictograms: blocks only (shared/yard-pictograms.js) ── */
+.pg-b {
+  display: block;
+  flex: none;
+  transform: rotate(var(--rot, 0deg));
+  clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
+}
+
+.pg-b.pg-flat { clip-path: none; }
+
+.pg-shadow { box-shadow: 0 2px 3px rgba(50,35,15,0.22); }
+
+/* Paints carry no grain in a pictogram; woods keep theirs */
+.pg-b.t-yellow { background-image: none; }
+
+.pg-stack,
+.pg-col {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.yp-block {
-  height: 8px;
-  margin-top: -1px;
-  transform: rotate(var(--rot, 0deg));
+.pg-stack > * + * { margin-top: -1px; }
+
+.pg-row {
+  display: flex;
+  align-items: center;
 }
 
-.yp-block:first-child { margin-top: 0; }
+.pg-plinth,
+.pg-base {
+  height: 6px;
+  flex: none;
+}
 
-.yp-code {
+.pg-plinth { background: var(--t-walnut); }
+.pg-base { background: var(--t-base); }
+
+.pg-b.pg-letter {
   font-family: var(--t-display);
   font-weight: 800;
-  font-size: 19px;
-  letter-spacing: 6px;
+  font-size: 16px;
   color: var(--t-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* A stand-in for the real QR the host screen shows */
-.yp-qr {
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  background: var(--t-ink);
-  background-image:
-    repeating-linear-gradient(0deg, var(--t-paper) 0 3px, transparent 3px 7px),
-    repeating-linear-gradient(90deg, var(--t-paper) 0 3px, transparent 3px 8px);
-  opacity: 0.85;
+.pg-b.pg-check {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 10px;
+  color: var(--t-ink);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
 }
 
-/* The AI door's tile: a sanded slot and a yellow Build it */
+.pg-check.pg-done { opacity: 0.55; }
+
+.pg-arrow {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--t-muted-caps);
+  padding-bottom: 10px;
+  align-self: flex-end;
+}
+
+.pg-timer {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--t-ink);
+  background: var(--t-yellow);
+  padding: 3px 14px 5px;
+  min-width: 78px;
+  text-align: center;
+  transform: rotate(-1.5deg);
+}
+
+.pg-tag {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--t-ink);
+  background: var(--t-yellow);
+  background-image: none;
+  padding: 3px 9px 4px;
+  display: inline-block;
+  transform: rotate(-1.5deg);
+  clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
+}
+
+/* Vocab Match's joining line sits over the two columns */
+.pg-join {
+  position: absolute;
+  left: 38px;
+  top: 8px;
+}
+
+/* The arrival: the block that appears on hover */
+.pg-arrive {
+  display: block;
+  opacity: 0;
+  transform: translateY(-16px);
+  transition: opacity 180ms var(--t-ease), transform 180ms var(--t-ease);
+}
+
+span.pg-arrive { display: inline-block; }
+
+.yard-card.on .pg-arrive,
+.yard-card:focus-visible .pg-arrive { opacity: 1; transform: translateY(0); }
+
+/* ── The AI door's card: a dashed slot holding a sanded plank and BUILD IT ── */
+.yard-slot {
+  background: none;
+  border: 3px dashed rgba(110,75,40,0.35);
+  flex-direction: column;
+  gap: 10px;
+}
+
 .yp-slot {
-  width: 110px;
+  width: 130px;
   height: 34px;
   background: var(--t-sanded);
   background-image: var(--t-grain);
@@ -130,30 +281,13 @@
 .yp-chip {
   font-family: var(--t-display);
   font-weight: 800;
-  font-size: 9px;
+  font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--t-ink);
   background: var(--t-yellow);
-  background-image: var(--t-grain);
-  padding: 5px 10px 6px;
+  padding: 6px 12px 7px;
   transform: rotate(-1deg);
-}
-
-.yard-name {
-  font-family: var(--t-display);
-  font-weight: 800;
-  font-size: 16px;
-  line-height: 1.15;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.yard-meta {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--t-muted-caps);
 }
 
 @media (max-width: 960px) {
@@ -161,9 +295,14 @@
 }
 
 @media (max-width: 600px) {
-  .yard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .yard-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px 18px; }
+  .yard-name { font-size: 16px; }
+  /* A window about 160px wide: the widest pictogram (Snowball's three
+     piles) fits once scaled */
+  .yard-pict { zoom: 0.8; }
 }
 
+/* Motion reduced: nothing slides, the arrivals simply appear on hover */
 @media (prefers-reduced-motion: reduce) {
-  .yard-card { transition: none; }
+  .yard-card, .yard-pict, .yard-prompt, .pg-arrive { transition: none; }
 }

@@ -98,7 +98,7 @@
 
 .shelf-tools {
   position: absolute;
-  top: 143px; /* 7px paper + 128px picture + 8px */
+  top: 173px; /* 9px paper + 156px window + 8px */
   left: 14px;
   display: flex;
   gap: 5px;
