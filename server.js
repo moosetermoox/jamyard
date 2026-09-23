@@ -3439,6 +3439,7 @@ app.post('/api/games/revise', async (req, res) => {
     carryEarlyJoke(config, result.updatedConfig);
     carrySubPhaseOrder(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
+    carryWhen(config, result.updatedConfig);
     // Validate the AI's revised config; surface errors so the client can show them
     const structural = validate(result.updatedConfig, 'revise', { returnResults: true });
     res.json({ ...result, structural });
@@ -3506,6 +3507,14 @@ function carryLanguage(original, updated) {
   }
 }
 
+// And the hover line (`when`): the teacher's own sentence about the moment
+// the activity is for, which a whole-config rewrite drops.
+function carryWhen(original, updated) {
+  if (original && typeof original.when === 'string' && updated && updated.when === undefined) {
+    updated.when = original.when;
+  }
+}
+
 // And the start mode (rolling start is a teacher choice the AI never sees).
 function carryStart(original, updated) {
   if (original && typeof original.start === 'string' && updated && updated.start === undefined) {
@@ -3546,6 +3555,7 @@ app.post('/api/games/chat', async (req, res) => {
     carryEarlyJoke(config, result.updatedConfig);
     carrySubPhaseOrder(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
+    carryWhen(config, result.updatedConfig);
     const structural = validate(result.updatedConfig, 'chat', { returnResults: true });
     res.json({
       kind: 'proposal',

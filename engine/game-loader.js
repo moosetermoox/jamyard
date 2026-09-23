@@ -193,6 +193,12 @@ export function validate(config, gameId, options) {
     errors.push(`Game "${gameId}": "anonymous" must be true or false`);
   }
 
+  // The hover line (`when`, 2026-09-21): the classroom moment the activity
+  // is for, shown in the yard in place of the description. Text or nothing.
+  if (config.when !== undefined && typeof config.when !== 'string') {
+    errors.push(`Game "${gameId}": "when" must be text`);
+  }
+
   // Activity language (engine/i18n): the fixed button labels students see.
   // "auto" (or absent) detects from the activity's text; anything else
   // must be a supported code so a typo never silently means English.
