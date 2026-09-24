@@ -138,10 +138,14 @@
   // the activity's own (its question, its ballot, its sample answers),
   // never a caption of ours. ──
 
-  // A plank with text on it: w wide, its height from the text
+  // A plank with text on it: w wide, its height from the text.
+  // opts.fill (owner 2026-09-24): the plank is blank at rest, keeping
+  // its size, and the words roll out across it on hover (`.pg-fill`).
   function slip(text, tone, w, rot, opts) {
     opts = opts || {};
-    var s = el('div', 'pg-b pg-slip ' + tone + (opts.flat ? ' pg-flat' : '') + (opts.shadow ? ' pg-shadow' : '') + (opts.small ? ' pg-slip-small' : ''), text);
+    var s = el('div', 'pg-b pg-slip ' + tone + (opts.flat ? ' pg-flat' : '') + (opts.shadow ? ' pg-shadow' : '') + (opts.small ? ' pg-slip-small' : ''));
+    if (opts.fill) s.appendChild(el('span', 'pg-fill', text));
+    else s.textContent = text;
     s.style.width = w + 'px';
     s.style.setProperty('--rot', (rot || 0) + 'deg');
     return s;
@@ -210,7 +214,7 @@
     // the question, then four labelled bars with their counts; the top
     // bar grows as one more answer lands
     'live-poll': function (paint) {
-      var q = slip('How are you feeling about today\'s lesson?', 't-paper', 196, -0.8, { shadow: true });
+      var q = slip('How are you feeling about today\'s lesson?', 't-paper', 196, -0.8, { shadow: true, fill: true });
       var rows = [
         ['Got it!', 78, paint, 12, true],
         ['Mostly', 52, 't-birch', 8, false],
@@ -242,7 +246,7 @@
     // the drawing prompt over the wall: a two-by-two wall, three student
     // drawings up, the fourth lands
     'art-gallery': function (paint) {
-      var q = slip('Draw your dream invention.', 't-paper', 170, 0.8, { shadow: true });
+      var q = slip('Draw your dream invention.', 't-paper', 170, 0.8, { shadow: true, fill: true });
       var wall = el('div', 'pg-wall');
       wall.appendChild(doodle(DOODLES.rocket, 't-paper', -2));
       wall.appendChild(doodle(DOODLES.robot, 't-paper', 1.5));
@@ -262,14 +266,14 @@
       var plus = el('span', 'pg-plus', '+');
       plus.setAttribute('aria-hidden', 'true');
       var alone = row([
-        named('Maya', slip('Just division.', 't-paper', 84, -1.2, { shadow: true, small: true })),
+        named('Maya', slip('Just division.', 't-paper', 84, -1.2, { shadow: true, small: true, fill: true })),
         plus,
-        named('Jordan', slip('Equal pieces.', 't-paper', 84, 1.2, { shadow: true, small: true }))
+        named('Jordan', slip('Equal pieces.', 't-paper', 84, 1.2, { shadow: true, small: true, fill: true }))
       ], 6, 'flex-end');
       var funnel = el('div', 'pg-funnel');
       funnel.appendChild(block(34, 3, paint, 32, { flat: true }));
       funnel.appendChild(block(34, 3, paint, -32, { flat: true }));
-      var together = slip('Just division, equal pieces.', 't-yellow', 176, -0.8, { small: true });
+      var together = slip('Just division, equal pieces.', 't-yellow', 176, -0.8, { small: true, fill: true });
       var stamp = el('div', 'pg-stamp');
       stamp.appendChild(arrive(el('span', 'pg-tag t-paper pg-shadow', 'We agree')));
       var plank = el('div', 'pg-stamped');
@@ -289,7 +293,7 @@
       var mine = named('Maya', slip('Trying to get more sleep.', paint, 150, -1, { small: true }));
       var reply = el('div', 'pg-reply');
       reply.appendChild(el('span', 'pg-reply-mark', '\u21b3'));
-      var replySlip = slip('One early night this week is a real win.', 't-paper', 150, 1, { shadow: true, small: true });
+      var replySlip = slip('One early night this week is a real win.', 't-paper', 150, 1, { shadow: true, small: true, fill: true });
       var who = el('div', 'pg-named');
       var name = el('span', 'pg-name');
       name.appendChild(arrive(el('span', undefined, 'Jordan')));
@@ -303,7 +307,7 @@
     // the prompt, then two terms and their meanings shuffled; a yellow
     // line joins simile to its meaning
     'vocab-match': function (paint) {
-      var q = slip('Match each term to its meaning.', 't-paper', 176, -0.8, { shadow: true });
+      var q = slip('Match each term to its meaning.', 't-paper', 176, -0.8, { shadow: true, fill: true });
       var left = col([slip('simile', paint, 66, -1, { small: true }), slip('hyperbole', 't-birch', 66, 1, { small: true })], 6, 'stretch');
       var right = col([slip('exaggerates on purpose', 't-oak', 150, 1, { small: true }), slip('compares with like or as', 't-birch', 150, -1, { small: true })], 6, 'stretch');
       var joinWrap = el('div', 'pg-join pg-join-words');
@@ -324,7 +328,7 @@
     // the claim on top; under it the rope's two ends, YES and NO, each a
     // pile of evidence on one base; the second vote lands under it
     'both-sides-rope': function (paint) {
-      var claim = slip('\u201cHomework should be optional.\u201d', 't-paper', 190, -0.8, { shadow: true });
+      var claim = slip('\u201cHomework should be optional.\u201d', 't-paper', 190, -0.8, { shadow: true, fill: true });
       var left = stack([block(34, 12, 't-yellow', 1.4), block(38, 12, 't-yellow', -1.4), block(42, 12, 't-yellow', 1.4), block(36, 12, 't-yellow', -1.4)], { bare: true });
       var right = stack([block(40, 12, paint, 1.4), block(36, 12, paint, -1.4)], { bare: true });
       var yes = col([caps('Yes'), left], 3, 'center');

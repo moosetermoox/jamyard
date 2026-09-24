@@ -189,6 +189,13 @@ describe('the pictograms', () => {
     expect(P.build({ id: 'snowball' }, 't-cyan').hover).toBe('What is the most important idea from this unit?');
     expect(P.build({ id: 'closer' }, 't-magenta').hover.length).toBeLessThan(50);
     expect(P.build({ id: 'someones-got-you' }, 't-magenta').hover).toBe('Someone wrote this for you:');
+    // the planks that fill on hover (owner 2026-09-24): blank at rest, the words in a .pg-fill
+    const fills = { 'live-poll': 1, 'art-gallery': 1, 'snowball': 3, 'someones-got-you': 1, 'vocab-match': 1, 'both-sides-rope': 1, 'whose-eyes': 0, 'closer': 0 };
+    for (const id of Object.keys(fills)) {
+      const node = P.build({ id }, 't-cyan').node;
+      expect(node.querySelectorAll('.pg-fill').length, id + ' fills').toBe(fills[id]);
+    }
+    expect(P.build({ id: 'live-poll' }, 't-green').node.querySelector('.pg-fill').textContent).toBe('How are you feeling about today\'s lesson?');
     // the classmate's name is what lands on Someone's Got You
     expect(P.build({ id: 'someones-got-you' }, 't-magenta').node.querySelector('.pg-arrive').firstChild.textContent).toBe('Jordan');
     // the classic cards keep the glimpse's prompt (hover undefined, content false)
@@ -380,7 +387,7 @@ describe('the yard on the home page', () => {
     expect(css).toContain('.yard-card.on .yard-prompt');
     // keyboard users see the same arrival
     expect(css).toContain('.yard-card:focus-visible .pg-arrive');
-    expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.yard-card, \.yard-pict, \.yard-prompt, \.pg-arrive \{ transition: none; \}/);
+    expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.yard-card, \.yard-pict, \.yard-prompt, \.pg-arrive, \.pg-fill \{ transition: none; \}/);
     expect(css).not.toContain('.yard-meta');
     expect(css).not.toContain('.yp-mini');
   });

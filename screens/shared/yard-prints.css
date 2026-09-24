@@ -344,6 +344,17 @@ span.pg-arrive { display: inline-block; }
 .pg-slip.t-magenta, .pg-slip.t-cyan, .pg-slip.t-green { color: var(--t-paper); }
 .pg-slip-small { font-size: 10px; padding: 4px 6px 5px; }
 
+/* A blank plank at rest whose words roll out on hover (owner
+   2026-09-24: "block is empty, on hover it fills"): the text keeps its
+   place, clipped away from the right */
+.pg-fill {
+  display: inline-block;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 360ms var(--t-ease) 60ms;
+}
+.yard-card.on .pg-fill,
+.yard-card:focus-visible .pg-fill { clip-path: inset(0 0 0 0); }
+
 .pg-caps {
   font-family: var(--t-display);
   font-weight: 800;
@@ -458,5 +469,5 @@ span.pg-arrive { display: inline-block; }
 
 /* Motion reduced: nothing slides, the arrivals simply appear on hover */
 @media (prefers-reduced-motion: reduce) {
-  .yard-card, .yard-pict, .yard-prompt, .pg-arrive { transition: none; }
+  .yard-card, .yard-pict, .yard-prompt, .pg-arrive, .pg-fill { transition: none; }
 }
