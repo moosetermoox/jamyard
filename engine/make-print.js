@@ -198,14 +198,31 @@ export function addRound(config, pairs) {
 /**
  * The teacher's edits, applied to a deep copy of the config.
  * @param {object} config
- * @param {{prompt?: string, fields?: Object<string, string>, timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>}} edits
+ * @param {{prompt?: string, fields?: Object<string, string>|string[], timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>|Array<Array<{left: string, right: string}>>, choices?: string[]}} edits
  * @returns {{config: object, changed: boolean}}
  */
 export function applyEdits(config, edits) {
   const copy = JSON.parse(JSON.stringify(config));
   const step = firstStudentStep(copy);
   let changed = false;
-  edits = edits || {};
+  edits = { ...(edits || {}) };
+
+  // By position (a class example knows no keys, 2026-09-24): pairs as an
+  // array go to the match steps in order, fields as an array to the first
+  // student step's fields by index
+  if (Array.isArray(edits.pairs)) {
+    const matchIds = Object.keys(copy.phases || {}).filter((id) => copy.phases[id] && copy.phases[id].type === 'match');
+    const byId = {};
+    edits.pairs.forEach((list, i) => { if (matchIds[i] && Array.isArray(list)) byId[matchIds[i]] = list; });
+    edits.pairs = byId;
+  }
+  if (Array.isArray(edits.fields)) {
+    const byKey = {};
+    if (step && Array.isArray(step.phase.fields)) {
+      edits.fields.forEach((label, i) => { if (step.phase.fields[i] && typeof label === 'string') byKey[step.phase.fields[i].key] = label; });
+    }
+    edits.fields = byKey;
+  }
 
   // The pairs of any match step, by step id: every pair needs both halves,
   // and a step keeps its old pairs when the edit would leave it with none
@@ -251,6 +268,12 @@ export function applyEdits(config, edits) {
       const next = clean(edits.fields[field.key]);
       if (next && isPlainText(field.label) && next !== clean(field.label)) { field.label = next; changed = true; }
     }
+  }
+  // The choices of a pick-one step (Live Poll's four), plain strings only
+  // (the class examples fill them, 2026-09-24); two or more, else kept
+  if (Array.isArray(edits.choices) && phase.type === 'collect-choice' && Array.isArray(phase.choices) && phase.choices.every((c) => typeof c === 'string')) {
+    const next = edits.choices.filter((c) => typeof c === 'string').map(clean).filter(Boolean);
+    if (next.length >= 2 && JSON.stringify(next) !== JSON.stringify(phase.choices.map(clean))) { phase.choices = next; changed = true; }
   }
   if (typeof edits.timer === 'number' && Number.isFinite(edits.timer) && typeof phase.timer === 'number' && !copy.recipe) {
     const next = Math.max(10, Math.min(3600, Math.round(edits.timer)));

@@ -261,12 +261,15 @@
   // sits at the top of its window and never slides; its hover line is
   // the pictogram's own (null = none, the picture already asks the
   // question), never the glimpse's prompt over the same words.
-  function buildWindow(g, card, own) {
+  // ex (2026-09-24, class-examples.js): the example in the teacher's
+  // subject and grade whose words the picture and the hover line show in
+  // place of the template's; never on a teacher's own copy.
+  function buildWindow(g, card, own, ex) {
     var win = el('div', 'yard-window');
     var paint = paintOf(g);
     var pict = el('div', 'yard-pict');
     var built = window.YardPictograms
-      ? YardPictograms.build(g, paint, picture(g), own ? { templateId: own.templateId, topic: own.topic, initials: own.initials } : undefined)
+      ? YardPictograms.build(g, paint, picture(g), own ? { templateId: own.templateId, topic: own.topic, initials: own.initials } : { example: ex || undefined })
       : { node: el('div'), tick: null };
     pict.appendChild(built.node);
     card._tick = built.tick;
@@ -277,7 +280,7 @@
       win.appendChild(corner);
     }
     if (built.content) win.classList.add('yard-window-content');
-    var line = built.hover === undefined ? promptOf(g) : built.hover;
+    var line = built.hover === undefined ? (ex && ex.line ? promptOf({ glimpse: { prompt: ex.line } }) : promptOf(g)) : built.hover;
     if (own && own.ownPrompt && built.hover !== undefined) line = promptOf({ glimpse: { prompt: own.ownPrompt } });
     if (line) {
       var box = el('div', 'yard-prompt-box');
@@ -295,9 +298,14 @@
   // time mark's text when this card starts a duration step. The hover
   // card carries the moment it is for when it is loaded. On a screen with
   // no hover, the first tap shows the hover state and the second opens.
+  // opts.example(g, i) (2026-09-24) gives the class example the card
+  // shows, or null; the href gets it too, so the make page starts with
+  // the same words; never on an own copy.
   function buildCard(g, i, opts) {
     opts = opts || {};
     var card;
+    var own = opts.own || null;
+    var ex = !own && typeof opts.example === 'function' ? (opts.example(g, i) || null) : null;
     var open = function (e) {
       if (noHover() && !card.classList.contains('on')) {
         if (e) e.preventDefault();
@@ -310,7 +318,7 @@
     };
     if (opts.href) {
       card = el('a', 'yard-card');
-      card.href = opts.href(g);
+      card.href = opts.href(g, ex);
       card.addEventListener('click', function (e) {
         if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey || e.button !== 0) return;
         if (!open(e)) return;
@@ -329,6 +337,7 @@
       });
     }
     card.setAttribute('data-game-id', g.id);
+    if (ex) card.setAttribute('data-example', ex.key);
     card.setAttribute('aria-label', g.name + ', see what it is');
     card.style.setProperty('--rot', CARD_ROTS[i % CARD_ROTS.length]);
     // A tap fires emulated mouse events too; on a no-hover screen the
@@ -341,10 +350,9 @@
       mark.setAttribute('aria-hidden', 'true');
       card.appendChild(mark);
     }
-    var own = opts.own || null;
     if (own) card.classList.add('yard-card-own');
     var print = el('div', 'yard-print' + (own ? ' yard-print-own' : ''));
-    print.appendChild(buildWindow(g, card, own));
+    print.appendChild(buildWindow(g, card, own, ex));
     card.appendChild(print);
     var nameRow = el('div', 'yard-name-row');
     nameRow.appendChild(el('span', 'yard-name', g.name));
@@ -415,7 +423,7 @@
     container.classList.add('yard-grid');
     if (pool.length === 0 && opts.empty) container.appendChild(el('p', 'yard-empty', opts.empty));
     for (var i = 0; i < pool.length; i++) {
-      container.appendChild(buildCard(pool[i], i, { href: opts.href, onClick: opts.onClick, mark: marks[i] || null }));
+      container.appendChild(buildCard(pool[i], i, { href: opts.href, onClick: opts.onClick, mark: marks[i] || null, example: opts.example }));
     }
     if (opts.ai !== false) container.appendChild(buildAiTile(pool.length, opts.aiHref));
     if (opts.play) playFirst(container);

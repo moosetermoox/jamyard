@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="/shared/yard-prints.css">
   <link rel="stylesheet" href="/shared/fold-picture.css">
   <link rel="stylesheet" href="/shared/my-yard.css">
+  <link rel="stylesheet" href="/shared/class-picker.css">
   <style>
     /* ══ Totem system (docs/design/totem/), home 15b (2026-09-10) ══
        The fold asks what the class needs and answers with four planks, one
@@ -414,6 +415,46 @@
     .goal-chip[data-goal="think"]::before   { background: var(--t-cyan); }
     .goal-chip[data-goal="review"]::before  { background: var(--t-green); }
     .goal-chip[data-goal="play"]::before    { background: var(--t-orange); }
+
+    /* Your class (2026-09-24): a setting on the same row, sanded not
+       paper, so it reads as a different kind of chip from the four jobs.
+       First on the left (owner's call), the jobs pushed to the right.
+       Open, it is lit like a picked job. */
+    .goal-chip.class-chip {
+      margin-right: auto;
+      background: var(--t-sanded);
+      background-image: var(--t-grain);
+    }
+    .goal-chip.class-chip.active {
+      background: var(--t-yellow);
+      background-image: var(--t-grain);
+    }
+    .goal-chip.class-chip::after {
+      content: '';
+      display: inline-block;
+      width: 0;
+      height: 0;
+      margin-left: 8px;
+      vertical-align: 2px;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid currentColor;
+    }
+    .goal-chip.class-chip[aria-expanded="true"]::after {
+      border-top: 0;
+      border-bottom: 5px solid currentColor;
+    }
+
+    /* The picker under the chip row: the two chip rows on a paper card */
+    .class-panel {
+      margin: 4px 0 8px;
+      padding: 4px 18px 16px;
+      background: var(--t-paper);
+      box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.16), 3px 3px 0 rgba(50, 35, 15, 0.10);
+    }
+    .class-panel[hidden] { display: none; }
+    .class-panel .class-picker { margin: 0; padding: 0; background: none; box-shadow: none; }
+    .class-panel .class-picker-hint { margin-top: 10px; }
 
     .yard-grid { min-height: 220px; }
 
@@ -940,6 +981,11 @@
         <input type="search" id="yard-search" class="yard-search" placeholder="Search the yard…" aria-label="Search the yard" autocomplete="off" spellcheck="false">
       </div>
       <div class="yard-chips" id="yard-chips" role="group" aria-label="Show activities for"></div>
+      <!-- Your class (2026-09-24): grade band + subjects, saved on this
+           computer only; the cards below swap to an example from that
+           subject at that grade, and a card opened from here lands on the
+           make page with the same words already in the question box. -->
+      <div class="class-panel" id="class-panel" hidden></div>
       <!-- The moments: the classroom minute a teacher is actually in
            ("only 5 minutes left"), each a curated handful of
            activities. A third filter beside the job and the search. -->
@@ -965,9 +1011,13 @@
   <script src="/shared/goal-groups.js"></script>
   <script src="/shared/my-games.js"></script>
   <script src="/shared/dialog.js"></script>
+  <script src="/shared/teacher-profile.js"></script>
+  <script src="/shared/class-picker.js"></script>
+  <script src="/shared/class-examples.js"></script>
   <script src="/shared/phase-names.js"></script>
   <script src="/shared/activity-map.js"></script>
   <script src="/shared/hover-card.js"></script>
+  <script src="/shared/yard-doodles.js"></script>
   <script src="/shared/yard-pictograms.js"></script>
   <script src="/shared/yard-prints.js"></script>
   <script src="/shared/activity-prefs.js"></script>
@@ -1015,9 +1065,44 @@
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       // Every activity door on this page: the make page (the print, then
-      // Try it out or Host it now). Never a room straight from home.
-      function makeHref(g) {
-        return '/make?game=' + encodeURIComponent(g.id) + '&from=home';
+      // Try it out or Host it now). Never a room straight from home. A card
+      // showing a class example carries it (`ex=science.middle`), so the
+      // make page starts with the same words.
+      function makeHref(g, ex) {
+        return '/make?game=' + encodeURIComponent(g.id) + '&from=home' + (ex && ex.key ? '&ex=' + encodeURIComponent(ex.key) : '');
+      }
+
+      // ── Your class: the saved grade band + subjects (this browser only)
+      //    behind the cards' examples. The chip sits in the yard's row after
+      //    the four jobs; the panel under the row holds the picker. ──
+      var classPanel = document.getElementById('class-panel');
+      var classOpen = false;
+      function classProfile() {
+        return window.TeacherProfile ? TeacherProfile.get() : null;
+      }
+      function exampleFor(g, i) {
+        return window.ClassExamples ? ClassExamples.pick(g.id, classProfile(), i) : null;
+      }
+      function exampleOfCard(g, card) {
+        var key = card && card.getAttribute ? card.getAttribute('data-example') : '';
+        return key && window.ClassExamples ? ClassExamples.forKey(g.id, key) : null;
+      }
+      function classChipLabel() {
+        var s = window.TeacherProfile ? TeacherProfile.short() : '';
+        return s ? 'Your class: ' + s : 'Your class';
+      }
+      function setClassOpen(open) {
+        classOpen = !!open;
+        if (classPanel) classPanel.hidden = !classOpen;
+        if (classOpen && classPanel && !classPanel.firstChild && window.ClassPicker) {
+          ClassPicker.render(classPanel, {
+            bare: true,
+            hint: 'The cards below show each activity with an example from your subject at your grade, and that example is already filled in when you pick one. Saved on this computer only.',
+            dialog: { overlay: 'home-dialog-overlay', modal: 'home-dialog' },
+            onChange: function () { renderChips(); renderGrid(); }
+          });
+        }
+        renderChips();
       }
 
       function el(tag, className, text) {
@@ -1062,6 +1147,16 @@
       function renderChips() {
         var groups = [{ key: null, job: 'All' }].concat(window.GoalGroups ? GoalGroups.GROUPS : []);
         chipsEl.textContent = '';
+        // Your class first, on the left; the jobs after it, on the right
+        if (window.TeacherProfile && window.ClassExamples && classPanel) {
+          var cls = el('button', 'goal-chip class-chip t-lift' + (classOpen ? ' active' : ''), classChipLabel());
+          cls.type = 'button';
+          cls.style.setProperty('--rot', '0.6deg');
+          cls.setAttribute('aria-expanded', classOpen ? 'true' : 'false');
+          cls.setAttribute('aria-controls', 'class-panel');
+          cls.addEventListener('click', function () { setClassOpen(!classOpen); });
+          chipsEl.appendChild(cls);
+        }
         groups.forEach(function (group, i) {
           var chip = el('button', 'goal-chip t-lift' + (group.key === activeGoal ? ' active' : ''), group.job);
           chip.setAttribute('data-goal', group.key);
@@ -1077,8 +1172,9 @@
       //    the one red door to the make page. Opens on a plain click on a
       //    print; the hover card already gave the description, the map is
       //    what needs the click. ──
-      function showActivityPopup(g) {
-        if (!window.Dialog) { window.location.href = makeHref(g); return; }
+      function showActivityPopup(g, card) {
+        var ex = exampleOfCard(g, card);
+        if (!window.Dialog) { window.location.href = makeHref(g, ex); return; }
         var overlay = el('div', 'home-dialog-overlay');
         var modal = el('div', 'home-dialog');
         overlay.appendChild(modal);
@@ -1089,10 +1185,12 @@
         // door below never jumps out from under the mouse)
         var mapHolder = el('div');
         modal.appendChild(mapHolder);
-        if (window.ActivityMap) ActivityMap.attach(g.id, mapHolder);
+        // What happens, with the example's words in it when the card showed one
+        var edits = ex && window.ClassExamples ? ClassExamples.editsOf(ex) : null;
+        if (window.ActivityMap) ActivityMap.attach(g.id, mapHolder, edits ? { edits: edits } : undefined);
         var actions = el('div', 'home-dialog-actions');
         var start = el('a', 'home-dialog-start t-lift t-label', 'Pick this one');
-        start.href = makeHref(g);
+        start.href = makeHref(g, ex);
         start.title = 'Open "' + g.name + '" as your class will see it, then host it';
         actions.appendChild(start);
         actions.appendChild(el('span', 'home-dialog-sub', 'Change the question first, or try it with pretend students.'));
@@ -1191,6 +1289,7 @@
         YardPrints.buildGrid(gridEl, pool, {
           href: makeHref,
           onClick: showActivityPopup,
+          example: exampleFor,
           marks: true,
           play: !playedOnce,
           empty: query

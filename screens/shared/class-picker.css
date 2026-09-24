@@ -1,0 +1,170 @@
+/* class-picker.css — the grade band + subjects picker (shared/class-picker.js):
+   the folded head, the two chip rows, the "Something else" popup's pieces
+   (the popup itself reuses the dialog rules on the page that opens it). Moved
+   out of make-it-yours.css 2026-09-24 so the home's yard can load it alone. */
+
+/* The class picker inside Make it yours: one folded line when a class is
+   saved ("Your class  Middle school, Science  Change"), the chip rows
+   when open. */
+.class-picker {
+  margin: 18px 0 26px;
+  padding: 16px 18px 18px;
+  background: rgba(50, 35, 15, 0.04);
+  box-shadow: 0 0 0 1px rgba(50, 35, 15, 0.12);
+}
+
+.class-picker-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.class-picker-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps, #8A7B62);
+}
+
+.class-picker-summary {
+  flex: 1;
+  min-width: 160px;
+  font-weight: 700;
+  color: var(--t-ink, #2A2620);
+}
+
+.class-picker-summary.class-picker-empty {
+  font-weight: 500;
+  color: var(--t-muted, #6B6250);
+}
+
+/* The picker's Done / Change: a small painted piece in body type. */
+.class-picker .class-line-change {
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 5px 12px 6px;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.class-picker-body[hidden] { display: none; }
+
+.class-picker-hint {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--t-muted, #6B6250);
+}
+
+.class-picker-body .teacher-setup-label:first-child { margin-top: 8px; }
+
+.teacher-setup-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps, #8A7B62);
+  margin: 12px 0 8px;
+}
+
+.teacher-setup-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.setup-chip {
+  border: none;
+  background: var(--t-paper, #FDF9F0);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.18);
+  padding: 8px 14px 10px;
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps, #8A7B62);
+  cursor: pointer;
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.setup-chip:nth-child(odd) { transform: rotate(-0.7deg); }
+.setup-chip:nth-child(even) { transform: rotate(0.6deg); }
+
+.setup-chip:nth-child(odd):hover { transform: rotate(-0.7deg) translateY(-4px); }
+.setup-chip:nth-child(even):hover { transform: rotate(0.6deg) translateY(-4px); }
+
+.setup-chip.active {
+  background: var(--t-yellow, #FFC800);
+  background-image: var(--t-grain);
+  color: var(--t-ink, #2A2620);
+}
+
+/* The "Something else" popup: one question, one sanded plank to type on,
+   one red Save (the rules lived in the library's sheet, so the popup came
+   up bare on the home, 2026-09-24). The overlay and the card are the page's
+   own dialog classes. */
+.subject-other-modal { max-width: 400px; }
+
+.subject-other-modal h2 {
+  margin: 0 0 6px;
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--t-ink, #2A2620);
+}
+
+.subject-other-hint {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--t-muted, #6B6250);
+}
+
+.subject-other-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  height: 44px;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+  background: var(--t-sanded, #EAD9BA);
+  background-image: var(--t-grain);
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--t-ink, #2A2620);
+  caret-color: var(--t-ink, #2A2620);
+}
+.subject-other-input::placeholder { color: #8A7455; font-weight: 500; }
+.subject-other-input:focus { outline: none; box-shadow: inset 0 0 0 3px var(--t-ink, #2A2620); }
+
+.subject-other-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.teacher-setup-save {
+  border: none;
+  cursor: pointer;
+  background: var(--t-red, #E5482B);
+  background-image: var(--t-grain);
+  color: var(--t-paper, #FDF9F0);
+  padding: 10px 24px 12px;
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
+  transform: rotate(-0.8deg);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.teacher-setup-save:hover { transform: rotate(-0.8deg) translateY(-3px); color: var(--t-paper, #FDF9F0); }
+

@@ -184,6 +184,19 @@ function stopFor(phase, phases) {
   const stop = { kind: 'step', type: phase.type };
   const detail = excerpt(phase);
   if (detail) stop.detail = detail;
+  // A self-paced quiz's questions and a checklist's items are the words a
+  // teacher wants to see (2026-09-24, the class examples): the first as
+  // the detail, up to three as samples
+  const list = phase.type === 'solo-quiz' && Array.isArray(phase.questions)
+    ? phase.questions.map((q) => excerpt({ prompt: q && typeof q.question === 'string' ? q.question : undefined }))
+    : phase.type === 'checklist' && Array.isArray(phase.items)
+      ? phase.items.map((it) => excerpt({ prompt: typeof it === 'string' ? it : it && typeof it.text === 'string' ? it.text : undefined }))
+      : [];
+  const quotes = list.filter(Boolean);
+  if (quotes.length > 0) {
+    if (!stop.detail) stop.detail = quotes[0];
+    if (quotes.length > 1) stop.samples = quotes.slice(0, 3);
+  }
   const branches = branchCount(phase);
   if (branches >= 2) stop.branches = branches;
   if (carries) stop.carries = carries;

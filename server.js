@@ -2535,6 +2535,24 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
   try {
     const config = await loadGameById(req.params.gameId);
     const body = req.body || {};
+    // A class example for a recipe-born activity (the quiz's questions,
+    // the bluff's facts, 2026-09-24) arrives as recipe params: compile
+    // the recipe with them over the stamp's, the way its setup panel
+    // does; only the recipe's own parameter names are read
+    let base = config;
+    let recompiled = false;
+    if (body.params && typeof body.params === 'object' && !Array.isArray(body.params) && config.recipe && config.recipe.id) {
+      const recipe = getRecipe(config.recipe.id);
+      if (recipe) {
+        const allowed = new Set(Object.keys(recipe.parameters || {}));
+        const merged = { ...(config.recipe.params || {}) };
+        for (const [k, v] of Object.entries(body.params)) if (allowed.has(k)) merged[k] = v;
+        const compiled = compileRecipe(recipe, merged);
+        if (!compiled.config) return res.status(400).json({ error: 'The example did not fit the recipe: ' + JSON.stringify(compiled.diagnostics || []).slice(0, 300) });
+        base = { ...compiled.config, id: config.id, name: config.name, description: config.description };
+        recompiled = true;
+      }
+    }
     const edits = {};
     if (typeof body.prompt === 'string') edits.prompt = body.prompt.slice(0, 500);
     if (body.fields && typeof body.fields === 'object' && !Array.isArray(body.fields)) {
@@ -2542,8 +2560,15 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
       for (const [key, label] of Object.entries(body.fields)) {
         if (typeof key === 'string' && typeof label === 'string') edits.fields[key.slice(0, 64)] = label.slice(0, 300);
       }
+    } else if (Array.isArray(body.fields)) {
+      // by position (a class example's, 2026-09-24)
+      edits.fields = body.fields.slice(0, 8).map((label) => (typeof label === 'string' ? label.slice(0, 300) : ''));
     }
     if (typeof body.timer === 'number') edits.timer = body.timer;
+    // The choices of a pick-one step (a class example's, 2026-09-24), capped
+    if (Array.isArray(body.choices)) {
+      edits.choices = body.choices.slice(0, 8).filter((c) => typeof c === 'string').map((c) => c.slice(0, 80));
+    }
     // The pairs of match steps (Vocab Match), by step id, capped
     if (body.pairs && typeof body.pairs === 'object' && !Array.isArray(body.pairs)) {
       edits.pairs = {};
@@ -2554,6 +2579,12 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
           right: typeof p?.right === 'string' ? p.right.slice(0, 120) : ''
         }));
       }
+    } else if (Array.isArray(body.pairs)) {
+      // by match step in order (a class example's, 2026-09-24)
+      edits.pairs = body.pairs.slice(0, 12).map((list) => (Array.isArray(list) ? list : []).slice(0, 40).map((p) => ({
+        left: typeof p?.left === 'string' ? p.left.slice(0, 120) : '',
+        right: typeof p?.right === 'string' ? p.right.slice(0, 120) : ''
+      })));
     }
     // New rounds ("+ round"), each a list of pairs, capped
     if (Array.isArray(body.newRounds)) {
@@ -2564,9 +2595,9 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
         }))
       }));
     }
-    const out = applyEdits(config, edits);
+    const out = applyEdits(base, edits);
     const working = out.config;
-    let changed = out.changed;
+    let changed = out.changed || recompiled;
     if (typeof body.anonymous === 'boolean' && body.anonymous !== !!config.anonymous) {
       working.anonymous = body.anonymous;
       changed = true;
@@ -2582,6 +2613,8 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
     delete working.featured;
     // The What happens map of the edited copy rides along, so the make
     // page can redraw it the moment the question changes (2026-09-13)
+    // the print too, for a recipe example the make page draws instead of the template's
+    if (recompiled) return res.json({ config: working, changed, map: buildActivityMap(working), print: printFor({ ...working, name: config.name }) });
     res.json({ config: working, changed, map: buildActivityMap(working) });
   } catch (error) {
     console.log(`[api/games/:gameId/make] Error: ${error.message}`);

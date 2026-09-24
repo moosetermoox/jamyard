@@ -67,7 +67,7 @@ describe('home page 15b', () => {
 
   it('a print opens the popup with the map first, so a name like Snowball explains itself on the page', () => {
     expect(html).toContain('function showActivityPopup');
-    expect(html).toContain('ActivityMap.attach(g.id, mapHolder)');
+    expect(html).toContain('ActivityMap.attach(g.id, mapHolder, edits ? { edits: edits } : undefined)');
     expect(html).toContain('onClick: showActivityPopup');
     expect(html).toContain('href: makeHref');
     for (const dep of ['/shared/dialog.js', '/shared/phase-names.js', '/shared/activity-map.js', '/shared/activity-map.css']) {

@@ -164,6 +164,13 @@
     return s;
   }
 
+  // A small slip's width for its words (10px type, 12px of padding),
+  // between a floor (the handoff's width) and a cap; the class examples
+  // (class-examples.js) put longer words on the same slips
+  function fitW(text, min, max) {
+    return Math.max(min, Math.min(max, Math.round(String(text || '').length * 5.6 + 14)));
+  }
+
   // A small spaced-caps label (the activity's own words, never ours)
   function caps(text) {
     return el('span', 'pg-caps', text);
@@ -174,6 +181,18 @@
   function doodle(paths, tone, rot) {
     var square = block(44, 44, tone, rot, { flat: true, shadow: tone === 't-paper' });
     square.classList.add('pg-drawing');
+    square.appendChild(doodleSvg(paths));
+    return square;
+  }
+
+  // The drawing library (yard-doodles.js) by name, the four here as the
+  // fallback, so a class example can name what the class would draw
+  function pathsFor(name) {
+    var lib = window.YardDoodles ? YardDoodles.paths(name) : null;
+    return lib || DOODLES[name] || DOODLES.fish;
+  }
+
+  function doodleSvg(paths) {
     var svg = document.createElementNS(SVG_NS, 'svg');
     svg.setAttribute('viewBox', '0 0 60 50');
     svg.classList.add('pg-doodle');
@@ -183,8 +202,7 @@
       p.setAttribute('d', paths[i]);
       svg.appendChild(p);
     }
-    square.appendChild(svg);
-    return square;
+    return svg;
   }
 
   // Four dream inventions, as a student would draw them in 90 seconds
@@ -226,19 +244,25 @@
 
     // the question, then four labelled bars with their counts; the top
     // bar grows as one more answer lands
-    'live-poll': function (paint) {
-      var q = slip('How are you feeling about today\'s lesson?', 't-paper', 196, -0.8, { shadow: true, fill: true });
+    'live-poll': function (paint, ex) {
+      var q = slip(ex ? ex.question : 'How are you feeling about today\'s lesson?', 't-paper', 196, -0.8, { shadow: true, fill: true });
+      var labels = ex ? ex.choices : ['Got it!', 'Mostly', 'Confused', 'Lost'];
+      // the label column widens to the longest example word (54px holds the template's)
+      var longest = labels.reduce(function (n, l) { return Math.max(n, String(l).length); }, 0);
+      var labelW = ex ? Math.max(54, Math.min(80, Math.round(longest * 5.4 + 6))) : 0;
       var rows = [
-        ['Got it!', 78, paint, 12, true],
-        ['Mostly', 52, 't-birch', 8, false],
-        ['Confused', 30, 't-pine', 5, false],
-        ['Lost', 12, 't-oak', 2, false]
+        [labels[0], 78, paint, 12, true],
+        [labels[1], 52, 't-birch', 8, false],
+        [labels[2], 30, 't-pine', 5, false],
+        [labels[3], 12, 't-oak', 2, false]
       ];
       var bars = [];
       for (var i = 0; i < rows.length; i++) {
         var r = rows[i];
         var bar = block(r[1], 13, r[2], 0, { flat: true });
-        var parts = [el('span', 'pg-label', r[0]), bar];
+        var label = el('span', 'pg-label', r[0]);
+        if (labelW) label.style.width = labelW + 'px';
+        var parts = [label, bar];
         if (r[4]) parts.push(arrive(block(14, 13, r[2], 0, { flat: true })));
         parts.push(el('span', 'pg-count', String(r[3])));
         bars.push(row(parts, 4));
@@ -258,13 +282,15 @@
 
     // the drawing prompt over the wall: a two-by-two wall, three student
     // drawings up, the fourth lands
-    'art-gallery': function (paint) {
-      var q = slip('Draw your dream invention.', 't-paper', 170, 0.8, { shadow: true, fill: true });
+    'art-gallery': function (paint, ex) {
+      var q = slip(ex ? ex.text : 'Draw your dream invention.', 't-paper', 170, 0.8, { shadow: true, fill: true });
+      // the four drawings the class would make (a class example names its own)
+      var names = ex && ex.doodles ? ex.doodles : ['rocket', 'robot', 'bulb', 'fish'];
       var wall = el('div', 'pg-wall');
-      wall.appendChild(doodle(DOODLES.rocket, 't-paper', -2));
-      wall.appendChild(doodle(DOODLES.robot, 't-paper', 1.5));
-      wall.appendChild(doodle(DOODLES.bulb, paint, -1));
-      wall.appendChild(arrive(doodle(DOODLES.fish, 't-paper', 2)));
+      wall.appendChild(doodle(pathsFor(names[0]), 't-paper', -2));
+      wall.appendChild(doodle(pathsFor(names[1]), 't-paper', 1.5));
+      wall.appendChild(doodle(pathsFor(names[2]), paint, -1));
+      wall.appendChild(arrive(doodle(pathsFor(names[3]), 't-paper', 2)));
       return col([q, wall], 8, 'center');
     },
 
@@ -275,18 +301,20 @@
     // Maya's idea plus Jordan's idea, funnelled into the pair's one
     // answer that holds both, under both names; "We agree" (the pair's
     // own button) lands on its corner
-    'snowball': function (paint) {
+    'snowball': function (paint, ex) {
       var plus = el('span', 'pg-plus', '+');
       plus.setAttribute('aria-hidden', 'true');
+      var a = ex ? ex.a : 'Just division.';
+      var b = ex ? ex.b : 'Equal pieces.';
       var alone = row([
-        named('Maya', slip('Just division.', 't-paper', 84, -1.2, { shadow: true, small: true, fill: true })),
+        named('Maya', slip(a, 't-paper', ex ? fitW(a, 84, 104) : 84, -1.2, { shadow: true, small: true, fill: true })),
         plus,
-        named('Jordan', slip('Equal pieces.', 't-paper', 84, 1.2, { shadow: true, small: true, fill: true }))
+        named('Jordan', slip(b, 't-paper', ex ? fitW(b, 84, 104) : 84, 1.2, { shadow: true, small: true, fill: true }))
       ], 6, 'flex-end');
       var funnel = el('div', 'pg-funnel');
       funnel.appendChild(block(34, 3, paint, 32, { flat: true }));
       funnel.appendChild(block(34, 3, paint, -32, { flat: true }));
-      var together = slip('Just division, equal pieces.', 't-yellow', 176, -0.8, { small: true, fill: true });
+      var together = slip(ex ? ex.together : 'Just division, equal pieces.', 't-yellow', 176, -0.8, { small: true, fill: true });
       var stamp = el('div', 'pg-stamp');
       stamp.appendChild(arrive(el('span', 'pg-tag t-paper pg-shadow', 'We agree')));
       var plank = el('div', 'pg-stamped');
@@ -302,11 +330,11 @@
     // Maya's one real thing, in the need colour; under it, set in like a
     // reply, the line a classmate wrote for her; the classmate's name
     // lands on hover, the someone in Someone's Got You
-    'someones-got-you': function (paint) {
-      var mine = named('Maya', slip('Trying to get more sleep.', paint, 150, -1, { small: true }));
+    'someones-got-you': function (paint, ex) {
+      var mine = named('Maya', slip(ex ? ex.mine : 'Trying to get more sleep.', paint, 150, -1, { small: true }));
       var reply = el('div', 'pg-reply');
       reply.appendChild(el('span', 'pg-reply-mark', '\u21b3'));
-      var replySlip = slip('One early night this week is a real win.', 't-paper', 150, 1, { shadow: true, small: true, fill: true });
+      var replySlip = slip(ex ? ex.reply : 'One early night this week is a real win.', 't-paper', 150, 1, { shadow: true, small: true, fill: true });
       var who = el('div', 'pg-named');
       var name = el('span', 'pg-name');
       name.appendChild(arrive(el('span', undefined, 'Jordan')));
@@ -319,10 +347,14 @@
 
     // the prompt, then two terms and their meanings shuffled; a yellow
     // line joins simile to its meaning
-    'vocab-match': function (paint) {
+    'vocab-match': function (paint, ex) {
       var q = slip('Match each term to its meaning.', 't-paper', 176, -0.8, { shadow: true, fill: true });
-      var left = col([slip('simile', paint, 66, -1, { small: true }), slip('hyperbole', 't-birch', 66, 1, { small: true })], 6, 'stretch');
-      var right = col([slip('exaggerates on purpose', 't-oak', 150, 1, { small: true }), slip('compares with like or as', 't-birch', 150, -1, { small: true })], 6, 'stretch');
+      // the first two pairs, the meanings swapped so the line has a job
+      var p1 = ex ? ex.pairs[0] : ['simile', 'compares with like or as'];
+      var p2 = ex ? ex.pairs[1] : ['hyperbole', 'exaggerates on purpose'];
+      var termW = ex ? Math.max(fitW(p1[0], 66, 96), fitW(p2[0], 66, 96)) : 66;
+      var left = col([slip(p1[0], paint, termW, -1, { small: true }), slip(p2[0], 't-birch', termW, 1, { small: true })], 6, 'stretch');
+      var right = col([slip(p2[1], 't-oak', 150, 1, { small: true }), slip(p1[1], 't-birch', 150, -1, { small: true })], 6, 'stretch');
       var joinWrap = el('div', 'pg-join pg-join-words');
       var line = block(31, 4, 't-yellow', 63, { flat: true });
       line.style.transformOrigin = 'left center';
@@ -340,8 +372,8 @@
 
     // the claim on top; under it the rope's two ends, YES and NO, each a
     // pile of evidence on one base; the second vote lands under it
-    'both-sides-rope': function (paint) {
-      var claim = slip('\u201cHomework should be optional.\u201d', 't-paper', 190, -0.8, { shadow: true, fill: true });
+    'both-sides-rope': function (paint, ex) {
+      var claim = slip('\u201c' + (ex ? ex.claim : 'Homework should be optional.') + '\u201d', 't-paper', 190, -0.8, { shadow: true, fill: true });
       var left = stack([block(34, 12, 't-yellow', 1.4), block(38, 12, 't-yellow', -1.4), block(42, 12, 't-yellow', 1.4), block(36, 12, 't-yellow', -1.4)], { bare: true });
       var right = stack([block(40, 12, paint, 1.4), block(36, 12, paint, -1.4)], { bare: true });
       var yes = col([caps('Yes'), left], 3, 'center');
@@ -356,15 +388,17 @@
     // the topic, the people it touches (one picked, in the need colour),
     // and what that one says, a line written from their eyes; a fourth
     // pair of eyes lands as the class names more
-    'whose-eyes': function (paint) {
-      var topic = el('span', 'pg-tag t-yellow', 'Homework');
+    'whose-eyes': function (paint, ex) {
+      var topic = el('span', 'pg-tag t-yellow', ex ? ex.tag : 'Homework');
+      var who = ex ? ex.eyes : ['a parent', 'the dog', 'a sub', 'a coach'];
+      var widths = ex ? who.map(function (w) { return fitW(w, 40, 80); }) : [54, 54, 40, 56];
       var eyes = row([
-        slip('a parent', paint, 54, -1.5, { small: true }),
-        slip('the dog', 't-paper', 54, 1, { shadow: true, small: true }),
-        slip('a sub', 't-paper', 40, -1, { shadow: true, small: true }),
-        arrive(slip('a coach', 't-paper', 56, 1.5, { shadow: true, small: true }))
+        slip(who[0], paint, widths[0], -1.5, { small: true }),
+        slip(who[1], 't-paper', widths[1], 1, { shadow: true, small: true }),
+        slip(who[2], 't-paper', widths[2], -1, { shadow: true, small: true }),
+        arrive(slip(who[3], 't-paper', widths[3], 1.5, { shadow: true, small: true }))
       ], 6, 'stretch');
-      var line = slip('\u201cI\u2019m asleep when it gets done.\u201d', 't-paper', 206, 0.8, { shadow: true, small: true });
+      var line = slip(ex ? ex.line : '\u201cI\u2019m asleep when it gets done.\u201d', 't-paper', 206, 0.8, { shadow: true, small: true });
       return col([topic, eyes, line], 8, 'center');
     },
     // three lines: the need colour, green, oak; a yellow WHO? tag
@@ -374,8 +408,13 @@
       return col([lines, arrive(tag)], 8, 'center');
     },
     // a paper drawing over three title bars; the middle title turns the need colour
-    'doodle-bluff': function (paint) {
+    'doodle-bluff': function (paint, ex) {
       var drawing = block(62, 44, 't-paper', -1.5, { flat: true, shadow: true });
+      // a class example puts the drawing of its phrase on the paper
+      if (ex && ex.doodle) {
+        drawing.classList.add('pg-drawing');
+        drawing.appendChild(doodleSvg(pathsFor(ex.doodle)));
+      }
       var middle = col([arrive(block(28, 9, paint, 0, { flat: true })), block(28, 9, 't-birch', 0, { flat: true, mt: -9 })], 0, 'center');
       var titles = row([block(28, 9, 't-birch', 0, { flat: true }), middle, block(28, 9, 't-birch', 0, { flat: true })], 4);
       return col([drawing, titles], 8, 'center');
@@ -396,9 +435,9 @@
 
     // the tier, the question on the projector, and a pair talking it
     // through out loud; nothing typed, the "..." arrives between them
-    'closer': function (paint) {
+    'closer': function (paint, ex) {
       var tier = el('span', 'pg-tag t-yellow', 'Tier 1 of 3');
-      var q = slip('Window seat or aisle seat, and why?', 't-paper', 186, -0.8, { shadow: true });
+      var q = slip(ex ? ex.question : 'Window seat or aisle seat, and why?', 't-paper', 186, -0.8, { shadow: true });
       var talk = arrive(slip('\u2026', 't-paper', 26, 2, { shadow: true, small: true }));
       var pair = row([person(paint, -1.5), talk, person('t-birch', 1.5)], 8, 'flex-end');
       return col([tier, q, pair], 6, 'center');
@@ -411,12 +450,13 @@
   // and never slides, and the hover line is the builder's own choice.
   // null = no hover line (the picture already carries the question);
   // a string = one short line in the activity's own words, added on
-  // hover under the picture. Cards not listed here keep the glimpse's
-  // prompt as before.
+  // hover under the picture; a function reads the class example's
+  // words (Snowball's line is its question). Cards not listed here keep
+  // the glimpse's prompt as before.
   var HOVER_LINES = {
     'live-poll': null,
     'art-gallery': null,
-    'snowball': 'What is the most important idea from this unit?',
+    'snowball': function (ex) { return ex && ex.question ? ex.question : 'What is the most important idea from this unit?'; },
     'both-sides-rope': null,
     'vocab-match': null,
     'whose-eyes': 'Answer as that person or thing.',
@@ -543,16 +583,21 @@
   // pictogram to draw, topic = the copy's own words for the word block,
   // initials = a custom game's letters over the fallback pile. The
   // result adds corner (a word block for the window's corner) when the
-  // topic could not go in or under the picture.
+  // topic could not go in or under the picture. opts.example (2026-09-24,
+  // class-examples.js) = the example whose words the content builders
+  // draw in place of the activity's own.
   function build(g, paint, pic, opts) {
     opts = opts || {};
     var builder = builderFor(g, opts.templateId);
-    var node = builder ? builder(paint) : fallback(g || {}, paint, pic, opts.initials);
+    var ex = opts.example && opts.example.words ? opts.example.words : null;
+    var node = builder ? builder(paint, ex) : fallback(g || {}, paint, pic, opts.initials);
     var tick = node.querySelector ? node.querySelector('.pg-tick') : null;
     var key = opts.templateId && PICTOGRAMS[opts.templateId] ? opts.templateId : keyFor(g);
     var content = !!(key && Object.prototype.hasOwnProperty.call(HOVER_LINES, key));
     var placed = placeTopic(node, opts.topic, paint, content);
-    return { node: placed.node, corner: placed.corner, tick: tick, content: content, hover: content ? HOVER_LINES[key] : undefined };
+    var hover = content ? HOVER_LINES[key] : undefined;
+    if (typeof hover === 'function') hover = hover(ex);
+    return { node: placed.node, corner: placed.corner, tick: tick, content: content, hover: hover };
   }
 
   window.YardPictograms = { build: build, has: has, IDS: IDS, CONTENT_IDS: CONTENT_IDS };

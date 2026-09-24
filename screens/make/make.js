@@ -19,6 +19,9 @@
   var params = new URLSearchParams(window.location.search);
   var gameId = params.get('game');
   var from = params.get('from');
+  // A class example the yard's card showed (`ex=science.middle`,
+  // shared/class-examples.js): its words go into the boxes below
+  var exKey = params.get('ex');
 
   var el = {
     back: document.getElementById('back-link'),
@@ -64,9 +67,15 @@
   // The Start here route (the home's first-run card): say what to press
   if (from === 'start' && el.startNote) el.startNote.hidden = false;
 
-  // What happens, stop by stop (the map the popups used to carry)
+  // What happens, stop by stop (the map the popups used to carry); with a
+  // class example from the yard it is drawn from the example's words
+  var exampleEdits = null;
+  if (exKey && window.ClassExamples) {
+    var exFirst = ClassExamples.forKey(gameId, exKey);
+    exampleEdits = exFirst ? ClassExamples.editsOf(exFirst) : null;
+  }
   if (gameId && window.ActivityMap) {
-    ActivityMap.attach(gameId, document.getElementById('map-holder'));
+    ActivityMap.attach(gameId, document.getElementById('map-holder'), exampleEdits ? { edits: exampleEdits } : undefined);
   }
 
   var state = {
@@ -88,7 +97,9 @@
     fitting: false,        // "See how it reads" is running
     busy: false,
     panel: null,           // 'quiz' | 'bluff' when the recipe brings its own editor
-    panelApi: null         // { makeCopy } from MakeItYours.mountPanel
+    panelApi: null,        // { makeCopy } from MakeItYours.mountPanel
+    example: null,         // the class example filled in from the yard, while it stands
+    exampleChoices: null   // its answer choices (Live Poll), sent with the edits
   };
 
   function fail(text) {
@@ -148,11 +159,23 @@
   // the ids already taken (so a saved copy never collides).
   Promise.all([
     fetch('/api/games/' + encodeURIComponent(gameId)).then(function (r) { if (!r.ok) throw new Error('That activity could not be found.'); return r.json(); }),
-    fetch('/api/games/' + encodeURIComponent(gameId) + '/print').then(function (r) { return r.ok ? r.json() : null; }),
+    // the print: the template's, or, for a recipe example from the yard, the example's (the make route compiles it)
+    exampleEdits && exampleEdits.params
+      ? fetch('/api/games/' + encodeURIComponent(gameId) + '/make', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ params: exampleEdits.params }) })
+        .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { return d && d.print ? d.print : null; })
+      : fetch('/api/games/' + encodeURIComponent(gameId) + '/print').then(function (r) { return r.ok ? r.json() : null; }),
     fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(','))).then(function (r) { return r.ok ? r.json() : { games: [], ids: [] }; }).catch(function () { return { games: [], ids: [] }; })
   ]).then(function (parts) {
     state.config = parts[0];
     state.print = parts[1];
+    // A recipe example from the yard (the quiz's questions, the bluff's
+    // facts): its params go onto the stamp before the panel reads it, so
+    // the panel opens already filled in
+    if (exampleEdits && exampleEdits.params && state.config && state.config.recipe && state.config.recipe.id) {
+      var stampNow = state.config.recipe;
+      state.config.recipe = Object.assign({}, stampNow, { params: Object.assign({}, stampNow.params || {}, JSON.parse(JSON.stringify(exampleEdits.params))) });
+      state.exampleParams = true;
+    }
     var stamp = state.config && state.config.recipe;
     if (!stamp || typeof stamp.id !== 'string' || !window.SetupKnobs) return parts;
     // A recipe-born template may bring its own setup panel
@@ -175,6 +198,7 @@
       MakeItYours.seedIds(Array.isArray(parts[2].ids) ? parts[2].ids : parts[2].games.map(function (g) { return g.id; }));
     }
     render();
+    applyExample();
   }).catch(function (err) {
     fail(err.message || 'Could not open this activity.');
     el.doors.hidden = true;
@@ -280,15 +304,7 @@
       setRich(el.instruction, print.instruction);
     }
 
-    if (print.choices && print.choices.length) {
-      el.choices.hidden = false;
-      print.choices.forEach(function (c, i) {
-        var chip = document.createElement('span');
-        chip.className = 'print-choice choice-' + (i % 4);
-        chip.textContent = c;
-        el.choices.appendChild(chip);
-      });
-    }
+    drawChoices(print.choices);
 
     if (print.audience) {
       el.audience.hidden = false;
@@ -325,6 +341,12 @@
     state.panelApi = MakeItYours.mountPanel(state.panel, { id: gameId, name: state.config.name || 'Activity' }, state.config, state.summary, holder);
     if (!state.panelApi) return;
     section.hidden = false;
+    // An example on the stamp is a change from the template: a knobs
+    // panel that thinks nothing was touched would host the original
+    if (state.exampleParams && state.panelApi.touched) {
+      var touchedBefore = state.panelApi.touched;
+      state.panelApi.touched = function () { return true || touchedBefore(); };
+    }
   }
 
   // The timer chip turns into a small box (2:00 or 120), Enter or blur sets it
@@ -378,22 +400,7 @@
   // "9-12 · English / ELA +1": the saved profile, short enough for a chip
   function classValue() {
     var P = window.TeacherProfile;
-    var p = P && P.get ? P.get() : null;
-    if (!p) return '';
-    var bits = [];
-    if (p.gradeBand) {
-      var band = (P.GRADE_BANDS || []).filter(function (b) { return b.id === p.gradeBand; })[0];
-      var m = band && /\(([^)]+)\)/.exec(band.label);
-      bits.push(m ? m[1] : (band ? band.label : ''));
-    }
-    if (p.subjects && p.subjects.length) {
-      var first = p.subjects[0];
-      var subj = first === 'other' && p.otherText
-        ? p.otherText
-        : ((P.SUBJECTS || []).filter(function (s) { return s.id === first; })[0] || {}).label;
-      if (subj) bits.push(subj + (p.subjects.length > 1 ? ' +' + (p.subjects.length - 1) : ''));
-    }
-    return bits.filter(Boolean).join(' · ');
+    return P && P.short ? P.short() : '';
   }
 
   function chipButton(text, pressed, dashed) {
@@ -493,7 +500,11 @@
       body: JSON.stringify({
         config: state.config,
         classDescription: classDesc,
+        // an example from the yard already set the pairs or the choices:
+        // the AI must not ask for them again
         knownSettings: ['Grade band', 'Subjects', 'The question', 'Timer', 'Student names']
+          .concat(state.example && state.example.prefill && state.example.prefill.pairs ? ['The pairs'] : [])
+          .concat(state.exampleChoices ? ['The answer choices'] : [])
       })
     }).then(function (r) { return r.ok ? r.json() : { questions: [] }; })
       .catch(function () { return { questions: [] }; })
@@ -704,6 +715,108 @@
 
   if (el.fitSee) el.fitSee.addEventListener('click', seeHowItReads);
 
+  // The choice chips (Live Poll's four), redrawn from a print or an example
+  function drawChoices(choices) {
+    el.choices.textContent = '';
+    el.choices.hidden = !(choices && choices.length);
+    (choices || []).forEach(function (c, i) {
+      var chip = document.createElement('span');
+      chip.className = 'print-choice choice-' + (i % 4);
+      chip.textContent = c;
+      el.choices.appendChild(chip);
+    });
+  }
+
+  // --- A class example from the yard (2026-09-24): the card the teacher
+  // picked showed the activity in their subject at their grade, so the
+  // same words are already in the question box, the field labels, the
+  // pairs, or the choices when the page opens. They count as the
+  // teacher's own words (the fit keeps them, hosting saves a copy), and
+  // one line under the print offers the template's words back.
+  function applyExample() {
+    if (!exKey || !window.ClassExamples) return;
+    var ex = ClassExamples.forKey(gameId, exKey);
+    if (!ex || !ex.prefill) return;
+    // A recipe example is already on the panel: say so, offer the template
+    if (state.exampleParams) {
+      state.example = ex;
+      showExampleNote(ex);
+      return;
+    }
+    if (!state.print || state.panel) return;
+    var pf = ex.prefill;
+    var applied = false;
+    if (pf.prompt && state.promptBox) { state.promptBox.value = pf.prompt; applied = true; }
+    if (pf.fields) {
+      state.print.fields.forEach(function (f, i) {
+        var box = state.fieldBoxes[f.key];
+        if (box && pf.fields[i]) { box.value = pf.fields[i]; applied = true; }
+      });
+    }
+    if (pf.pairs && Array.isArray(state.print.pairs) && state.print.pairs.length) {
+      var rounds = state.print.pairs.map(function (round, i) {
+        var list = Array.isArray(pf.pairs[i]) ? pf.pairs[i] : [];
+        if (!list.length) return round;
+        return { id: round.id, label: round.label, pairs: list.map(function (p) { return { left: p[0], right: p[1] }; }) };
+      });
+      mountPairs(rounds);
+      applied = true;
+    }
+    if (pf.choices && state.print.choices && state.print.choices.length) {
+      state.exampleChoices = pf.choices.slice();
+      drawChoices(pf.choices);
+      applied = true;
+    }
+    if (!applied) return;
+    state.example = ex;
+    showExampleNote(ex);
+    scheduleMap();
+    // the fit questions were asked of the template; ask again knowing the example
+    if (pf.pairs || pf.choices) scheduleQuestions(true);
+  }
+
+  function showExampleNote(ex) {
+    var paper = el.screen && el.screen.parentNode;
+    if (!paper || !paper.parentNode) return;
+    var note = document.createElement('p');
+    note.className = 'example-note';
+    note.id = 'example-note';
+    note.appendChild(document.createTextNode('Filled in for ' + ClassExamples.describe(ex) + ', from the yard. '));
+    var undo = document.createElement('button');
+    undo.type = 'button';
+    undo.textContent = 'Use the original words';
+    undo.addEventListener('click', function () {
+      clearExample();
+      note.remove();
+    });
+    note.appendChild(undo);
+    paper.parentNode.insertBefore(note, paper.nextSibling);
+  }
+
+  // Back to the template's words, box by box (a recipe example reopens
+  // the page without it, since the panel was built on it)
+  function clearExample() {
+    if (state.exampleParams) {
+      var back = new URL(window.location.href);
+      back.searchParams.delete('ex');
+      window.location.replace(back.toString());
+      return;
+    }
+    var print = state.print;
+    if (state.promptBox && print.prompt) state.promptBox.value = print.prompt.text;
+    print.fields.forEach(function (f) {
+      var box = state.fieldBoxes[f.key];
+      if (box) box.value = f.label;
+    });
+    if (Array.isArray(print.pairs) && print.pairs.length && !state.panel) mountPairs(print.pairs);
+    var hadWords = !!(state.example && state.example.prefill && (state.example.prefill.pairs || state.exampleChoices));
+    state.exampleChoices = null;
+    drawChoices(print.choices);
+    state.example = null;
+    scheduleMap();
+    if (hadWords) scheduleQuestions(true);
+  }
+
   // Did the teacher change the print's words? (The template's own words
   // are the AI's to fit; the teacher's are fixed.)
   function promptChanged() {
@@ -738,14 +851,9 @@
     });
     el.instruction.hidden = !print.instruction;
     if (print.instruction) setRich(el.instruction, print.instruction);
-    el.choices.textContent = '';
-    el.choices.hidden = !(print.choices && print.choices.length);
-    (print.choices || []).forEach(function (c, i) {
-      var chip = document.createElement('span');
-      chip.className = 'print-choice choice-' + (i % 4);
-      chip.textContent = c;
-      el.choices.appendChild(chip);
-    });
+    drawChoices(print.choices);
+    // The example's choices stand as the fit left them (it is told to keep them)
+    if (state.exampleChoices && print.choices && print.choices.length) state.exampleChoices = print.choices.slice();
     el.audience.hidden = !print.audience;
     if (print.audience) el.audience.textContent = print.audience;
     // The pairs the teacher left alone take the fitted ones
@@ -972,6 +1080,7 @@
     Object.keys(state.fieldBoxes).forEach(function (k) { fields[k] = state.fieldBoxes[k].value; any = true; });
     if (any) edits.fields = fields;
     if (state.print && state.print.timerEditable && typeof state.timer === 'number') edits.timer = state.timer;
+    if (state.exampleChoices) edits.choices = state.exampleChoices.slice();
     var pairs = pairsValue();
     if (pairs) edits.pairs = pairs;
     var newRounds = newRoundsValue();
@@ -1148,6 +1257,9 @@
     var stepId = state.print && state.print.phaseId;
     if (state.promptBox && stepId && promptChanged()) {
       fixed.push('The teacher wrote the question in step "' + stepId + '" themselves: "' + state.promptBox.value.trim() + '". Keep it word for word.');
+    }
+    if (state.exampleChoices && stepId) {
+      fixed.push('The teacher set the answer choices in step "' + stepId + '" themselves: ' + state.exampleChoices.join(', ') + '. Keep them word for word, in that order.');
     }
     var labels = changedFieldLabels().map(function (t) { return '"' + t + '"'; });
     if (labels.length && stepId) {
