@@ -38,6 +38,22 @@ describe('the Start here route', () => {
     expect(card).not.toMatch(/simulat|preview|customize/i);
   });
 
+  it('the card is for a first-time browser only: shipped hidden, shown when nothing says the teacher has been here, remembered once the door is pressed', async () => {
+    const html = await read('screens/home/index.html');
+    expect(html).toContain('<section class="start-here" id="start-here" aria-label="Start here" hidden>');
+    expect(html).toContain('.start-here[hidden] { display: none; }');
+    expect(html).toContain("var START_KEY = 'jamyard.startHereDone';");
+    expect(html).toContain("localStorage.getItem('jamyard.hostKey') || localStorage.getItem(START_KEY)");
+    expect(html).toContain('if (window.MyGames && MyGames.list().length) return false;');
+    expect(html).toContain('P.Recents.list().length');
+    expect(html).toContain('P.Favorites.list().length');
+    expect(html).toContain('if (firstTimeHere()) card.hidden = false;');
+    expect(html).toContain("localStorage.setItem(START_KEY, '1');");
+    // the host page's key is the one the home reads
+    const host = await read('screens/host/host.js');
+    expect(host).toContain("localStorage.setItem('jamyard.hostKey', key);");
+  });
+
   it('the make page shows the first-run line only on from=start, in the words on that screen, and the back link goes home', async () => {
     const html = await read('screens/make/index.html');
     expect(html).toContain('id="start-note" hidden');

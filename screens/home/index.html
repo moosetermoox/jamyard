@@ -593,6 +593,7 @@
     }
 
     .start-browse:hover { color: var(--t-ink); }
+    .start-here[hidden] { display: none; }
 
     /* The yard's head: the name, and beside it what the prints are (the
        line the carousel's head carried, owner 2026-09-22) */
@@ -919,7 +920,7 @@
          beside it and the whole yard below). The door lands on the make
          page like every other door on the home, with from=start so the
          make page can say what to press first. -->
-    <section class="start-here" aria-label="Start here">
+    <section class="start-here" id="start-here" aria-label="Start here" hidden>
       <span class="start-tag t-yellow" aria-hidden="true">Start here</span>
       <p class="start-text"><strong>Never run one?</strong> Try Live Poll first: two minutes at your own desk, with pretend students, before a class ever sees it.</p>
       <a class="start-door t-red t-lift" href="/make?game=live-poll&amp;from=start" id="start-here-door">Try Live Poll</a>
@@ -986,6 +987,30 @@
       var searchEl = document.getElementById('yard-search');
       var noteEl = document.getElementById('yard-note');
       var games = [];
+
+      // Start here shows for a first-time browser only (owner 2026-09-24):
+      // one that has never hosted a room (the host page's key), holds no
+      // copy, no heart, no recent, and has not pressed the door before.
+      // The section ships hidden so a returning teacher never sees it flash.
+      var START_KEY = 'jamyard.startHereDone';
+      function firstTimeHere() {
+        try {
+          if (localStorage.getItem('jamyard.hostKey') || localStorage.getItem(START_KEY)) return false;
+        } catch (e) { return false; }
+        if (window.MyGames && MyGames.list().length) return false;
+        var P = window.ActivityPrefs;
+        if (P && ((P.Recents && P.Recents.list().length) || (P.Favorites && P.Favorites.list().length))) return false;
+        return true;
+      }
+      (function () {
+        var card = document.getElementById('start-here');
+        if (!card) return;
+        if (firstTimeHere()) card.hidden = false;
+        var door = document.getElementById('start-here-door');
+        if (door) door.addEventListener('click', function () {
+          try { localStorage.setItem(START_KEY, '1'); } catch (e) { /* private mode: it shows again, no harm */ }
+        });
+      })();
       var reducedMotion = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
