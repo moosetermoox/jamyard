@@ -91,6 +91,41 @@ describe('the authored table', () => {
     expect(globalThis.ClassExamples.pick('someones-got-you', { gradeBand: 'high', subjects: [] }, 0).words.mine).toContain('jobs');
   });
 
+  it('every quiz question has four choices with the answer among them, a blank with its truth, and every example compiles its recipe', async () => {
+    const T = globalThis.ClassExamples.TABLE;
+    const { readFileSync } = await import('node:fs');
+    const { compileRecipe } = await import('../../engine/recipe-compiler.js');
+    const recipeOf = (id) => JSON.parse(readFileSync(new URL('recipes/' + id + '.json', ROOT), 'utf8'));
+    const stampOf = (game) => JSON.parse(readFileSync(new URL('games/' + game + '/config.json', ROOT), 'utf8')).recipe;
+    const recipes = { 'solo-quiz': 'solo-quiz', 'speed-quiz': 'quiz-show', 'trivia-bluff': 'trivia-bluff', 'doodle-bluff': 'doodle-bluff', 'group-work-day': 'group-work-day' };
+    const E = globalThis.ClassExamples;
+    for (const s of SUBJECT_IDS) {
+      for (const b of BANDS) {
+        const qs = T['solo-quiz'][s][b].questions;
+        expect(qs, s + ' ' + b).toHaveLength(3);
+        for (const q of qs) {
+          expect(q.choices, q.question).toHaveLength(4);
+          expect(q.choices, q.question).toContain(q.correct);
+          expect(new Set(q.choices).size, q.question).toBe(4);
+        }
+        for (const f of T['trivia-bluff'][s][b].facts) {
+          expect(f.question, f.question).toContain('___');
+          expect(f.truth.length, f.question).toBeGreaterThan(0);
+        }
+        expect(T['doodle-bluff'][s][b].phrases, s + ' ' + b).toHaveLength(3);
+        expect(T['doodle-bluff'][s][b].phrases[0]).toBe(T['doodle-bluff'][s][b].phrase);
+        expect(T['group-work-day'][s][b].tasks, s + ' ' + b).toHaveLength(4);
+        for (const [game, recipeId] of Object.entries(recipes)) {
+          const params = { ...(stampOf(game).params || {}), ...E.pick(game, { gradeBand: b, subjects: [s] }, 0).prefill.params };
+          const out = compileRecipe(recipeOf(recipeId), params);
+          expect(out.config, game + ' ' + s + ' ' + b + ' ' + JSON.stringify(out.diagnostics || []).slice(0, 200)).toBeTruthy();
+          const errors = (out.diagnostics || []).filter((d) => d && d.severity === 'error');
+          expect(errors, game + ' ' + s + ' ' + b).toEqual([]);
+        }
+      }
+    }
+  });
+
   it('every entry has the shape its card draws, short enough for its slips', () => {
     const T = globalThis.ClassExamples.TABLE;
     const each = (id, fn) => Object.values(T[id]).forEach((bySubject) => Object.values(bySubject).forEach(fn));
@@ -190,14 +225,25 @@ describe('the resolver', () => {
     expect(more.line).toContain('the rock cycle');
     for (const id of ['solo-quiz', 'speed-quiz', 'trivia-bluff', 'group-work-day']) {
       const ex = E.pick(id, p, 0);
-      expect(ex.prefill, id).toBeNull();
       expect(ex.line, id).toContain('the rock cycle');
+      expect(ex.prefill && ex.prefill.params, id).toBeTruthy();
     }
+    // the quizzes share three checked questions; the bluff gets them as blanks
+    const solo = E.pick('solo-quiz', p, 0).prefill.params.questions;
+    expect(solo).toHaveLength(3);
+    expect(solo[0]).toEqual({ question: 'Which rock forms from cooled lava?', choices: ['Igneous', 'Sedimentary', 'Metamorphic', 'Fossil'], correct: 'Igneous' });
+    expect(E.pick('speed-quiz', p, 0).prefill.params.questions).toEqual(solo);
+    const bluff = E.pick('trivia-bluff', p, 0).prefill.params;
+    expect(bluff.questionSource).toBe('prepared');
+    expect(bluff.questions[0]).toEqual({ question: 'Rock that forms from cooled lava is called ___.', truth: 'igneous' });
+    const doodle = E.pick('doodle-bluff', p, 0).prefill.params;
+    expect(doodle).toEqual({ phraseSource: 'teacher', phrases: ['a volcano that forgot how to erupt', 'a wave afraid of the beach', 'a mountain wearing a raincoat'] });
+    expect(E.pick('group-work-day', p, 0).prefill.params.tasks).toHaveLength(4);
+    expect(E.editsOf(E.pick('solo-quiz', p, 0)).params.questions).toEqual(solo);
     // Doodle Bluff's line is the strange phrase the class would draw
-    const bluff = E.pick('doodle-bluff', p, 0);
-    expect(bluff.prefill).toBeNull();
-    expect(bluff.line).toBe('\u201ca volcano that forgot how to erupt\u201d');
-    expect(bluff.words.doodle).toBe('volcano');
+    const bluffCard = E.pick('doodle-bluff', p, 0);
+    expect(bluffCard.line).toBe('\u201ca volcano that forgot how to erupt\u201d');
+    expect(bluffCard.words.doodle).toBe('volcano');
     // talk-only and subject-neutral: words for the card, nothing to prefill
     expect(E.pick('closer', p, 0).prefill).toBeNull();
     expect(E.pick('someones-got-you', p, 0).prefill).toBeNull();
@@ -334,7 +380,7 @@ describe('the pages', () => {
     // the fit is told the example's choices are the teacher's
     expect(js).toContain('The teacher set the answer choices in step');
     // never on a recipe panel's words
-    expect(js).toContain('if (!exKey || !window.ClassExamples || !state.print || state.panel) return;');
+    expect(js).toContain('if (!state.print || state.panel) return;');
     // the profile's short form has one home
     expect(js).toContain('P.short()');
     const css = await read('screens/make/styles.css');
@@ -408,6 +454,33 @@ describe('the pages', () => {
     expect(rounds.config.phases.round2.pairs[0].left).toBe('density');
     expect(server).toContain('} else if (Array.isArray(body.fields)) {');
     expect(server).toContain('} else if (Array.isArray(body.pairs)) {');
+  });
+
+  it('a quiz example rides as recipe params: the route recompiles, the map quotes the questions, the make page fills the panel', async () => {
+    const server = await read('server.js');
+    expect(server).toContain('const recipe = getRecipe(config.recipe.id);');
+    expect(server).toContain('if (allowed.has(k)) merged[k] = v;');
+    expect(server).toContain('const out = applyEdits(base, edits);');
+    const { buildActivityMap } = await import('../../engine/activity-map.js');
+    const map = buildActivityMap({
+      phases: {
+        lobby: { id: 'lobby', type: 'lobby', next: 'quiz' },
+        quiz: { id: 'quiz', type: 'solo-quiz', questions: [{ question: 'Which rock forms from cooled lava?', choices: ['a', 'b'], correct: 'a' }, { question: 'What is a cell?', choices: ['a', 'b'], correct: 'a' }], next: 'end' },
+        end: { id: 'end', type: 'end' }
+      }
+    });
+    const quiz = map.stops.find((s) => s.type === 'solo-quiz');
+    expect(quiz.detail).toBe('Which rock forms from cooled lava?');
+    expect(quiz.samples).toEqual(['Which rock forms from cooled lava?', 'What is a cell?']);
+    const js = await read('screens/make/make.js');
+    expect(js).toContain('state.exampleParams = true;');
+    expect(js).toContain("ActivityMap.attach(gameId, document.getElementById('map-holder'), exampleEdits ? { edits: exampleEdits } : undefined);");
+    expect(js).toContain('state.panelApi.touched = function () { return true || touchedBefore(); };');
+    expect(js).toContain("back.searchParams.delete('ex');");
+    // the picker takes one subject at a time
+    const picker = await read('screens/shared/class-picker.js');
+    expect(picker).toContain('picked.subjects = had ? [] : [id];');
+    expect(picker).toContain("subjectLabel.textContent = 'Subject';");
   });
 
   it('the popup\'s map reads the example through the make route', async () => {

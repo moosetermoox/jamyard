@@ -67,9 +67,15 @@
   // The Start here route (the home's first-run card): say what to press
   if (from === 'start' && el.startNote) el.startNote.hidden = false;
 
-  // What happens, stop by stop (the map the popups used to carry)
+  // What happens, stop by stop (the map the popups used to carry); with a
+  // class example from the yard it is drawn from the example's words
+  var exampleEdits = null;
+  if (exKey && window.ClassExamples) {
+    var exFirst = ClassExamples.forKey(gameId, exKey);
+    exampleEdits = exFirst ? ClassExamples.editsOf(exFirst) : null;
+  }
   if (gameId && window.ActivityMap) {
-    ActivityMap.attach(gameId, document.getElementById('map-holder'));
+    ActivityMap.attach(gameId, document.getElementById('map-holder'), exampleEdits ? { edits: exampleEdits } : undefined);
   }
 
   var state = {
@@ -153,11 +159,23 @@
   // the ids already taken (so a saved copy never collides).
   Promise.all([
     fetch('/api/games/' + encodeURIComponent(gameId)).then(function (r) { if (!r.ok) throw new Error('That activity could not be found.'); return r.json(); }),
-    fetch('/api/games/' + encodeURIComponent(gameId) + '/print').then(function (r) { return r.ok ? r.json() : null; }),
+    // the print: the template's, or, for a recipe example from the yard, the example's (the make route compiles it)
+    exampleEdits && exampleEdits.params
+      ? fetch('/api/games/' + encodeURIComponent(gameId) + '/make', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ params: exampleEdits.params }) })
+        .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { return d && d.print ? d.print : null; })
+      : fetch('/api/games/' + encodeURIComponent(gameId) + '/print').then(function (r) { return r.ok ? r.json() : null; }),
     fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(','))).then(function (r) { return r.ok ? r.json() : { games: [], ids: [] }; }).catch(function () { return { games: [], ids: [] }; })
   ]).then(function (parts) {
     state.config = parts[0];
     state.print = parts[1];
+    // A recipe example from the yard (the quiz's questions, the bluff's
+    // facts): its params go onto the stamp before the panel reads it, so
+    // the panel opens already filled in
+    if (exampleEdits && exampleEdits.params && state.config && state.config.recipe && state.config.recipe.id) {
+      var stampNow = state.config.recipe;
+      state.config.recipe = Object.assign({}, stampNow, { params: Object.assign({}, stampNow.params || {}, JSON.parse(JSON.stringify(exampleEdits.params))) });
+      state.exampleParams = true;
+    }
     var stamp = state.config && state.config.recipe;
     if (!stamp || typeof stamp.id !== 'string' || !window.SetupKnobs) return parts;
     // A recipe-born template may bring its own setup panel
@@ -323,6 +341,12 @@
     state.panelApi = MakeItYours.mountPanel(state.panel, { id: gameId, name: state.config.name || 'Activity' }, state.config, state.summary, holder);
     if (!state.panelApi) return;
     section.hidden = false;
+    // An example on the stamp is a change from the template: a knobs
+    // panel that thinks nothing was touched would host the original
+    if (state.exampleParams && state.panelApi.touched) {
+      var touchedBefore = state.panelApi.touched;
+      state.panelApi.touched = function () { return true || touchedBefore(); };
+    }
   }
 
   // The timer chip turns into a small box (2:00 or 120), Enter or blur sets it
@@ -710,9 +734,16 @@
   // teacher's own words (the fit keeps them, hosting saves a copy), and
   // one line under the print offers the template's words back.
   function applyExample() {
-    if (!exKey || !window.ClassExamples || !state.print || state.panel) return;
+    if (!exKey || !window.ClassExamples) return;
     var ex = ClassExamples.forKey(gameId, exKey);
     if (!ex || !ex.prefill) return;
+    // A recipe example is already on the panel: say so, offer the template
+    if (state.exampleParams) {
+      state.example = ex;
+      showExampleNote(ex);
+      return;
+    }
+    if (!state.print || state.panel) return;
     var pf = ex.prefill;
     var applied = false;
     if (pf.prompt && state.promptBox) { state.promptBox.value = pf.prompt; applied = true; }
@@ -762,8 +793,15 @@
     paper.parentNode.insertBefore(note, paper.nextSibling);
   }
 
-  // Back to the template's words, box by box
+  // Back to the template's words, box by box (a recipe example reopens
+  // the page without it, since the panel was built on it)
   function clearExample() {
+    if (state.exampleParams) {
+      var back = new URL(window.location.href);
+      back.searchParams.delete('ex');
+      window.location.replace(back.toString());
+      return;
+    }
     var print = state.print;
     if (state.promptBox && print.prompt) state.promptBox.value = print.prompt.text;
     print.fields.forEach(function (f) {

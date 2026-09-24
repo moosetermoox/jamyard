@@ -127,20 +127,18 @@
 
     var subjectLabel = document.createElement('p');
     subjectLabel.className = 'teacher-setup-label';
-    subjectLabel.textContent = 'Subjects, pick any';
+    subjectLabel.textContent = 'Subject';
     body.appendChild(subjectLabel);
+    // One subject at a time (owner 2026-09-24): a pick replaces the last,
+    // a second tap on it clears it. The profile keeps its list shape.
     body.appendChild(buildChipRow(
       TeacherProfile.SUBJECTS,
       function (id) { return picked.subjects.indexOf(id) !== -1; },
       function (id) {
-        var at = picked.subjects.indexOf(id);
-        if (at === -1) {
-          picked.subjects.push(id);
-          if (id === 'other') askOtherSubject(picked, persist, opts.dialog);
-        } else {
-          picked.subjects.splice(at, 1);
-          if (id === 'other') picked.otherText = '';
-        }
+        var had = picked.subjects.indexOf(id) !== -1;
+        picked.subjects = had ? [] : [id];
+        if (id !== 'other' || had) picked.otherText = '';
+        if (id === 'other' && !had) askOtherSubject(picked, persist, opts.dialog);
         persist();
       }
     ));
