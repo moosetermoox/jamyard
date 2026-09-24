@@ -103,3 +103,68 @@
   color: var(--t-ink, #2A2620);
 }
 
+/* The "Something else" popup: one question, one sanded plank to type on,
+   one red Save (the rules lived in the library's sheet, so the popup came
+   up bare on the home, 2026-09-24). The overlay and the card are the page's
+   own dialog classes. */
+.subject-other-modal { max-width: 400px; }
+
+.subject-other-modal h2 {
+  margin: 0 0 6px;
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1.1;
+  color: var(--t-ink, #2A2620);
+}
+
+.subject-other-hint {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--t-muted, #6B6250);
+}
+
+.subject-other-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  height: 44px;
+  padding: 10px 14px;
+  border: none;
+  border-bottom: 3px dashed rgba(110, 75, 40, 0.45);
+  background: var(--t-sanded, #EAD9BA);
+  background-image: var(--t-grain);
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--t-ink, #2A2620);
+  caret-color: var(--t-ink, #2A2620);
+}
+.subject-other-input::placeholder { color: #8A7455; font-weight: 500; }
+.subject-other-input:focus { outline: none; box-shadow: inset 0 0 0 3px var(--t-ink, #2A2620); }
+
+.subject-other-save-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.teacher-setup-save {
+  border: none;
+  cursor: pointer;
+  background: var(--t-red, #E5482B);
+  background-image: var(--t-grain);
+  color: var(--t-paper, #FDF9F0);
+  padding: 10px 24px 12px;
+  font-family: var(--t-display, 'Bricolage Grotesque', sans-serif);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
+  transform: rotate(-0.8deg);
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.teacher-setup-save:hover { transform: rotate(-0.8deg) translateY(-3px); color: var(--t-paper, #FDF9F0); }
+
