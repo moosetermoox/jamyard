@@ -19,6 +19,9 @@
   var params = new URLSearchParams(window.location.search);
   var gameId = params.get('game');
   var from = params.get('from');
+  // A class example the yard's card showed (`ex=science.middle`,
+  // shared/class-examples.js): its words go into the boxes below
+  var exKey = params.get('ex');
 
   var el = {
     back: document.getElementById('back-link'),
@@ -88,7 +91,9 @@
     fitting: false,        // "See how it reads" is running
     busy: false,
     panel: null,           // 'quiz' | 'bluff' when the recipe brings its own editor
-    panelApi: null         // { makeCopy } from MakeItYours.mountPanel
+    panelApi: null,        // { makeCopy } from MakeItYours.mountPanel
+    example: null,         // the class example filled in from the yard, while it stands
+    exampleChoices: null   // its answer choices (Live Poll), sent with the edits
   };
 
   function fail(text) {
@@ -175,6 +180,7 @@
       MakeItYours.seedIds(Array.isArray(parts[2].ids) ? parts[2].ids : parts[2].games.map(function (g) { return g.id; }));
     }
     render();
+    applyExample();
   }).catch(function (err) {
     fail(err.message || 'Could not open this activity.');
     el.doors.hidden = true;
@@ -280,15 +286,7 @@
       setRich(el.instruction, print.instruction);
     }
 
-    if (print.choices && print.choices.length) {
-      el.choices.hidden = false;
-      print.choices.forEach(function (c, i) {
-        var chip = document.createElement('span');
-        chip.className = 'print-choice choice-' + (i % 4);
-        chip.textContent = c;
-        el.choices.appendChild(chip);
-      });
-    }
+    drawChoices(print.choices);
 
     if (print.audience) {
       el.audience.hidden = false;
@@ -378,22 +376,7 @@
   // "9-12 · English / ELA +1": the saved profile, short enough for a chip
   function classValue() {
     var P = window.TeacherProfile;
-    var p = P && P.get ? P.get() : null;
-    if (!p) return '';
-    var bits = [];
-    if (p.gradeBand) {
-      var band = (P.GRADE_BANDS || []).filter(function (b) { return b.id === p.gradeBand; })[0];
-      var m = band && /\(([^)]+)\)/.exec(band.label);
-      bits.push(m ? m[1] : (band ? band.label : ''));
-    }
-    if (p.subjects && p.subjects.length) {
-      var first = p.subjects[0];
-      var subj = first === 'other' && p.otherText
-        ? p.otherText
-        : ((P.SUBJECTS || []).filter(function (s) { return s.id === first; })[0] || {}).label;
-      if (subj) bits.push(subj + (p.subjects.length > 1 ? ' +' + (p.subjects.length - 1) : ''));
-    }
-    return bits.filter(Boolean).join(' · ');
+    return P && P.short ? P.short() : '';
   }
 
   function chipButton(text, pressed, dashed) {
@@ -493,7 +476,11 @@
       body: JSON.stringify({
         config: state.config,
         classDescription: classDesc,
+        // an example from the yard already set the pairs or the choices:
+        // the AI must not ask for them again
         knownSettings: ['Grade band', 'Subjects', 'The question', 'Timer', 'Student names']
+          .concat(state.example && state.example.prefill && state.example.prefill.pairs ? ['The pairs'] : [])
+          .concat(state.exampleChoices ? ['The answer choices'] : [])
       })
     }).then(function (r) { return r.ok ? r.json() : { questions: [] }; })
       .catch(function () { return { questions: [] }; })
@@ -704,6 +691,94 @@
 
   if (el.fitSee) el.fitSee.addEventListener('click', seeHowItReads);
 
+  // The choice chips (Live Poll's four), redrawn from a print or an example
+  function drawChoices(choices) {
+    el.choices.textContent = '';
+    el.choices.hidden = !(choices && choices.length);
+    (choices || []).forEach(function (c, i) {
+      var chip = document.createElement('span');
+      chip.className = 'print-choice choice-' + (i % 4);
+      chip.textContent = c;
+      el.choices.appendChild(chip);
+    });
+  }
+
+  // --- A class example from the yard (2026-09-24): the card the teacher
+  // picked showed the activity in their subject at their grade, so the
+  // same words are already in the question box, the field labels, the
+  // pairs, or the choices when the page opens. They count as the
+  // teacher's own words (the fit keeps them, hosting saves a copy), and
+  // one line under the print offers the template's words back.
+  function applyExample() {
+    if (!exKey || !window.ClassExamples || !state.print || state.panel) return;
+    var ex = ClassExamples.forKey(gameId, exKey);
+    if (!ex || !ex.prefill) return;
+    var pf = ex.prefill;
+    var applied = false;
+    if (pf.prompt && state.promptBox) { state.promptBox.value = pf.prompt; applied = true; }
+    if (pf.fields) {
+      state.print.fields.forEach(function (f, i) {
+        var box = state.fieldBoxes[f.key];
+        if (box && pf.fields[i]) { box.value = pf.fields[i]; applied = true; }
+      });
+    }
+    if (pf.pairs && Array.isArray(state.print.pairs) && state.print.pairs.length) {
+      var rounds = state.print.pairs.map(function (round, i) {
+        var list = Array.isArray(pf.pairs[i]) ? pf.pairs[i] : [];
+        if (!list.length) return round;
+        return { id: round.id, label: round.label, pairs: list.map(function (p) { return { left: p[0], right: p[1] }; }) };
+      });
+      mountPairs(rounds);
+      applied = true;
+    }
+    if (pf.choices && state.print.choices && state.print.choices.length) {
+      state.exampleChoices = pf.choices.slice();
+      drawChoices(pf.choices);
+      applied = true;
+    }
+    if (!applied) return;
+    state.example = ex;
+    showExampleNote(ex);
+    scheduleMap();
+    // the fit questions were asked of the template; ask again knowing the example
+    if (pf.pairs || pf.choices) scheduleQuestions(true);
+  }
+
+  function showExampleNote(ex) {
+    var paper = el.screen && el.screen.parentNode;
+    if (!paper || !paper.parentNode) return;
+    var note = document.createElement('p');
+    note.className = 'example-note';
+    note.id = 'example-note';
+    note.appendChild(document.createTextNode('Filled in for ' + ClassExamples.describe(ex) + ', from the yard. '));
+    var undo = document.createElement('button');
+    undo.type = 'button';
+    undo.textContent = 'Use the original words';
+    undo.addEventListener('click', function () {
+      clearExample();
+      note.remove();
+    });
+    note.appendChild(undo);
+    paper.parentNode.insertBefore(note, paper.nextSibling);
+  }
+
+  // Back to the template's words, box by box
+  function clearExample() {
+    var print = state.print;
+    if (state.promptBox && print.prompt) state.promptBox.value = print.prompt.text;
+    print.fields.forEach(function (f) {
+      var box = state.fieldBoxes[f.key];
+      if (box) box.value = f.label;
+    });
+    if (Array.isArray(print.pairs) && print.pairs.length && !state.panel) mountPairs(print.pairs);
+    var hadWords = !!(state.example && state.example.prefill && (state.example.prefill.pairs || state.exampleChoices));
+    state.exampleChoices = null;
+    drawChoices(print.choices);
+    state.example = null;
+    scheduleMap();
+    if (hadWords) scheduleQuestions(true);
+  }
+
   // Did the teacher change the print's words? (The template's own words
   // are the AI's to fit; the teacher's are fixed.)
   function promptChanged() {
@@ -738,14 +813,9 @@
     });
     el.instruction.hidden = !print.instruction;
     if (print.instruction) setRich(el.instruction, print.instruction);
-    el.choices.textContent = '';
-    el.choices.hidden = !(print.choices && print.choices.length);
-    (print.choices || []).forEach(function (c, i) {
-      var chip = document.createElement('span');
-      chip.className = 'print-choice choice-' + (i % 4);
-      chip.textContent = c;
-      el.choices.appendChild(chip);
-    });
+    drawChoices(print.choices);
+    // The example's choices stand as the fit left them (it is told to keep them)
+    if (state.exampleChoices && print.choices && print.choices.length) state.exampleChoices = print.choices.slice();
     el.audience.hidden = !print.audience;
     if (print.audience) el.audience.textContent = print.audience;
     // The pairs the teacher left alone take the fitted ones
@@ -972,6 +1042,7 @@
     Object.keys(state.fieldBoxes).forEach(function (k) { fields[k] = state.fieldBoxes[k].value; any = true; });
     if (any) edits.fields = fields;
     if (state.print && state.print.timerEditable && typeof state.timer === 'number') edits.timer = state.timer;
+    if (state.exampleChoices) edits.choices = state.exampleChoices.slice();
     var pairs = pairsValue();
     if (pairs) edits.pairs = pairs;
     var newRounds = newRoundsValue();
@@ -1148,6 +1219,9 @@
     var stepId = state.print && state.print.phaseId;
     if (state.promptBox && stepId && promptChanged()) {
       fixed.push('The teacher wrote the question in step "' + stepId + '" themselves: "' + state.promptBox.value.trim() + '". Keep it word for word.');
+    }
+    if (state.exampleChoices && stepId) {
+      fixed.push('The teacher set the answer choices in step "' + stepId + '" themselves: ' + state.exampleChoices.join(', ') + '. Keep them word for word, in that order.');
     }
     var labels = changedFieldLabels().map(function (t) { return '"' + t + '"'; });
     if (labels.length && stepId) {

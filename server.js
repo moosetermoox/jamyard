@@ -2544,6 +2544,10 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
       }
     }
     if (typeof body.timer === 'number') edits.timer = body.timer;
+    // The choices of a pick-one step (a class example's, 2026-09-24), capped
+    if (Array.isArray(body.choices)) {
+      edits.choices = body.choices.slice(0, 8).filter((c) => typeof c === 'string').map((c) => c.slice(0, 80));
+    }
     // The pairs of match steps (Vocab Match), by step id, capped
     if (body.pairs && typeof body.pairs === 'object' && !Array.isArray(body.pairs)) {
       edits.pairs = {};

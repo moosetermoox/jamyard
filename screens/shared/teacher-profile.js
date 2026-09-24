@@ -110,6 +110,25 @@
       return !this.get() && read(DISMISS_KEY) !== true;
     },
 
+    // "6-8 · Science +1": the profile short enough for a chip (the make
+    // page's Your class row, the yard's Your class chip). Empty when unset.
+    short: function () {
+      var p = this.get();
+      if (!p) return '';
+      var bits = [];
+      if (p.gradeBand) {
+        var band = labelFor(GRADE_BANDS, p.gradeBand) || '';
+        var m = /\(([^)]+)\)/.exec(band);
+        bits.push(m ? m[1] : band);
+      }
+      if (p.subjects.length) {
+        var first = p.subjects[0];
+        var subj = first === 'other' && p.otherText ? p.otherText : labelFor(SUBJECTS, first);
+        if (subj) bits.push(subj + (p.subjects.length > 1 ? ' +' + (p.subjects.length - 1) : ''));
+      }
+      return bits.filter(Boolean).join(' \u00b7 ');
+    },
+
     // "Middle school (6-8), Social studies and Science" — for chips and for
     // the Customize request. Empty string when nothing is set.
     describe: function () {

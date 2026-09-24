@@ -41,7 +41,7 @@ describe('MakeItYours module', () => {
   it('both pages load the module after everything it needs, plus its sheet', async () => {
     const needs = [
       '/shared/dialog.js', '/shared/activity-prefs.js', '/shared/my-games.js',
-      '/shared/teacher-profile.js', '/shared/setup-knobs.js', '/shared/growing-text.js',
+      '/shared/teacher-profile.js', '/shared/class-picker.js', '/shared/setup-knobs.js', '/shared/growing-text.js',
       '/shared/speech-input.js', '/shared/make-it-yours-doors.js'
     ];
     // The 15b home (2026-09-10) has no dialog of its own: every activity

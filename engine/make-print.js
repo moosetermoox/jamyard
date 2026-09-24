@@ -198,7 +198,7 @@ export function addRound(config, pairs) {
 /**
  * The teacher's edits, applied to a deep copy of the config.
  * @param {object} config
- * @param {{prompt?: string, fields?: Object<string, string>, timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>}} edits
+ * @param {{prompt?: string, fields?: Object<string, string>, timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>, choices?: string[]}} edits
  * @returns {{config: object, changed: boolean}}
  */
 export function applyEdits(config, edits) {
@@ -251,6 +251,12 @@ export function applyEdits(config, edits) {
       const next = clean(edits.fields[field.key]);
       if (next && isPlainText(field.label) && next !== clean(field.label)) { field.label = next; changed = true; }
     }
+  }
+  // The choices of a pick-one step (Live Poll's four), plain strings only
+  // (the class examples fill them, 2026-09-24); two or more, else kept
+  if (Array.isArray(edits.choices) && phase.type === 'collect-choice' && Array.isArray(phase.choices) && phase.choices.every((c) => typeof c === 'string')) {
+    const next = edits.choices.filter((c) => typeof c === 'string').map(clean).filter(Boolean);
+    if (next.length >= 2 && JSON.stringify(next) !== JSON.stringify(phase.choices.map(clean))) { phase.choices = next; changed = true; }
   }
   if (typeof edits.timer === 'number' && Number.isFinite(edits.timer) && typeof phase.timer === 'number' && !copy.recipe) {
     const next = Math.max(10, Math.min(3600, Math.round(edits.timer)));
