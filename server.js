@@ -17,6 +17,9 @@ import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engin
 import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
 import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submits.js';
 import { parseRequestedMinutes, timingReport, paramsForTrim, estimateDuration } from './engine/duration-estimate.js';
+import { audienceFor } from './engine/audience.js';
+import { applyIdeaSettings } from './engine/idea-settings.js';
+import { refitRecipeIdFor } from './engine/match-refit.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
@@ -1906,8 +1909,19 @@ function notifyTeachersClosed(code, room) {
     closeLabel: null,
     closed: true,
     discussionPrompt: discussionPromptFor(phase),
-    estimateAnswer: estimateAnswerFor(room, phase)
+    estimateAnswer: estimateAnswerFor(room, phase),
+    audience: audienceKeyFor(engine, phase)
   });
+}
+
+// Who will see this step's answers, for the console's Live entries hint
+// (engine/audience.js, the same reading the student screen gets): a
+// private step says "only you", a class-facing one names the reveal. A
+// step inside For Each or a non-answer step is null (the generic hint).
+function audienceKeyFor(engine, phase) {
+  if (!engine || !phase || (phase.type !== 'collect' && phase.type !== 'collect-choice')) return null;
+  const a = audienceFor(engine.config, phase.id);
+  return a ? a.key : null;
 }
 
 // The step's discussion prompt for the console (a teacher-authored
@@ -1965,6 +1979,7 @@ function buildTeacherSnapshot(code, room) {
     snap.timer = phase.timer || null;
     snap.discussionPrompt = discussionPromptFor(phase);
     snap.estimateAnswer = estimateAnswerFor(room, phase);
+    snap.audience = audienceKeyFor(engine, phase);
   }
   return snap;
 }
@@ -2172,7 +2187,9 @@ async function handlePhase(code, room) {
     discussionPrompt: discussionPromptFor(phase),
     // An estimate step's answer as it stands (null = poll mode; the
     // console offers a box to type the teacher's own number before the close)
-    estimateAnswer: estimateAnswerFor(room, phase)
+    estimateAnswer: estimateAnswerFor(room, phase),
+    // Who sees the answers, so the Live entries hint fits the step
+    audience: audienceKeyFor(engine, phase)
   });
 
   // Dispatch to registered handler
@@ -3756,7 +3773,11 @@ app.post('/api/games/from-description', async (req, res) => {
           id,
           name: config.name,
           description: config.description || '',
-          playTime: config.playTime || null
+          playTime: config.playTime || null,
+          // A recipe-born built-in is its recipe with default content; the
+          // matcher is told so, and picks the recipe when the idea carries
+          // its own question or choices (engine/match-refit.js).
+          recipe: (config.recipe && typeof config.recipe.id === 'string') ? config.recipe.id : null
         }));
     }
 
@@ -3768,7 +3789,33 @@ app.post('/api/games/from-description', async (req, res) => {
     const stage = recipeId ? 'alternate' : 'match';
 
     console.log(`[api/games/from-description] Matching: "${description.substring(0, 80)}..."`);
-    const match = await aiService.matchRecipe(description, recipes, { forced: !!recipeId, games: matchGames });
+    let match = await aiService.matchRecipe(description, recipes, { forced: !!recipeId, games: matchGames });
+
+    // The matcher pointed at a ready-made activity that is itself built
+    // from a recipe (Live Poll, Exit Ticket, Solo Quiz...). That built-in
+    // is the recipe with default content, so the teacher's own question
+    // and choices would be lost on it ("a five-minute anonymous history
+    // poll" opened the default question about today's lesson, 2026-09-23).
+    // Refit the idea to the recipe instead: a forced match, the AI's only
+    // job is the parameters. The prompt asks for this directly; this is
+    // the net under it.
+    if (match.game) {
+      const refitId = refitRecipeIdFor(match.game, loadedGames);
+      const refitRecipe = refitId ? getRecipe(refitId) : null;
+      if (refitRecipe) {
+        console.log(`[api/games/from-description] "${match.game}" is built from the ${refitId} recipe, refitting the idea to it`);
+        const refit = await aiService.matchRecipe(description, [summarizeRecipe(refitRecipe)], { forced: true });
+        if (refit.recipe) {
+          match = {
+            ...refit,
+            // The first pass's runner-ups still stand; the forced refit
+            // never offers any.
+            alternates: (refit.alternates && refit.alternates.length) ? refit.alternates : match.alternates,
+            ...(match.title && !refit.title ? { title: match.title } : {})
+          };
+        }
+      }
+    }
 
     // Resolve alternate ids to real recipes; anything unknown (or echoing
     // the main pick) drops silently so an invented id never renders.
@@ -3848,6 +3895,11 @@ app.post('/api/games/from-description', async (req, res) => {
       config.name = match.title;
     }
 
+    // The settings the idea named in plain words ("anonymous"), read by
+    // the server, never the AI, and written before the timing report so
+    // a trimmed copy carries them too (engine/idea-settings.js).
+    const settings = applyIdeaSettings(config, description);
+
     // Human labels for the preview's param list — the recipe's own
     // parameter labels, so the teacher never reads raw ids like
     // "tier1Prompts".
@@ -3874,6 +3926,9 @@ app.post('/api/games/from-description', async (req, res) => {
       recipe: { id: recipe.id, name: recipe.name, icon: recipe.icon },
       params: match.params,
       paramLabels,
+      // Top-level settings the idea named, for the "Here's what I'd set
+      // up" list (the params list never shows them)
+      settings,
       explanation: match.explanation || '',
       alternates,
       map: buildActivityMap(config),

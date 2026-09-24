@@ -6375,7 +6375,7 @@ async function runDeepReview() {
     showToast('Review failed: ' + error.message);
   } finally {
     reviewBtn.disabled = false;
-    reviewBtn.textContent = 'Test with Robots';
+    reviewBtn.textContent = 'Check for problems';
   }
 }
 

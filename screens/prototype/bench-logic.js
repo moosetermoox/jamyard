@@ -165,12 +165,46 @@
       text: 'From here on, this card points at the one thing to press. Close it with its × when you know your way around.' }
   ];
 
+  // How many pretend students to seat at launch so the activity's own
+  // move shows (a reviewer, 2026-09-23: Snowball opened with one student,
+  // so its pairing never happened until they added more). Reads the
+  // activity's steps: a pairing or a merge needs its group, teams need
+  // two groups, a vote over classmates' answers needs a second answer.
+  // Anything else is one. Never more than the bench holds.
+  var SEAT_MAX = 8;
+  function startingSeats(config) {
+    var phases = config && config.phases;
+    if (!phases || typeof phases !== 'object') return 1;
+    var list = Array.isArray(phases) ? phases : Object.keys(phases).map(function (k) { return phases[k]; });
+    var seats = 1;
+    var want = function (n) { if (n > seats) seats = n; };
+    for (var i = 0; i < list.length; i++) {
+      var p = list[i];
+      if (!p || typeof p !== 'object') continue;
+      var t = p.type;
+      if (t === 'merge') want(p.groupsFrom ? 2 : Math.max(2, parseInt(p.groupSize, 10) || 2));
+      else if (t === 'collect' && (p.assign === 'pairwise' || p.rotateFrom || p.rotatePairsFrom || p.reusePairsFrom || p.pairBy || p.dealItems)) want(2);
+      else if (t === 'team-split') {
+        var g = parseInt(p.groupSize, 10);
+        var c = parseInt(p.teamCount, 10);
+        want(g >= 2 ? 2 * g : (c >= 2 ? 2 * c : 4));
+      }
+      else if (t === 'team-roles' || t === 'checklist' || t === 'turn' || t === 'relay' || t === 'one-voice' || t === 'buzz') want(2);
+      else if (t === 'vote' && (p.excludeAuthors || p.matchupsFromPairs)) want(2);
+      else if (t === 'eliminate' || t === 'ai-eliminate') want(3);
+      else if (t === 'foreach') want(2);
+      else if (t === 'reveal' && (p.scope === 'pair' || p.scope === 'own')) want(2);
+    }
+    return Math.min(SEAT_MAX, seats);
+  }
+
   globalThis.BenchLogic = {
     STUDENT_STEPS: STUDENT_STEPS,
     HOST_ADVANCE_BUTTONS: HOST_ADVANCE_BUTTONS,
     TOUR_STOPS: TOUR_STOPS,
     isStudentStep: isStudentStep,
     planBlocks: planBlocks,
-    nextStep: nextStep
+    nextStep: nextStep,
+    startingSeats: startingSeats
   };
 })();
