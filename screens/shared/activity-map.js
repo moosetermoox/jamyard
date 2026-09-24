@@ -138,9 +138,20 @@
 
   // Fetch the map and drop it into `container` when it arrives. Quietly
   // does nothing on any failure: the popup works fine without the map.
-  function attach(gameId, container) {
-    fetch('/api/games/' + encodeURIComponent(gameId) + '/map')
-      .then(function (r) { return r.ok ? r.json() : null; })
+  // opts.edits (2026-09-24): the class example's words (the make page's
+  // edit shape: prompt, fields, pairs, choices), so the map reads the
+  // question the card showed, not the template's; it goes through the
+  // same make route the make page redraws from.
+  function attach(gameId, container, opts) {
+    opts = opts || {};
+    var request = opts.edits
+      ? fetch('/api/games/' + encodeURIComponent(gameId) + '/make', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(opts.edits)
+      }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { return d && d.map ? d.map : null; })
+      : fetch('/api/games/' + encodeURIComponent(gameId) + '/map').then(function (r) { return r.ok ? r.json() : null; });
+    request
       .then(function (map) {
         if (!map || !Array.isArray(map.stops) || map.stops.length === 0) return;
         if (!container.isConnected) return; // popup already closed

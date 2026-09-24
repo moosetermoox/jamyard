@@ -198,14 +198,31 @@ export function addRound(config, pairs) {
 /**
  * The teacher's edits, applied to a deep copy of the config.
  * @param {object} config
- * @param {{prompt?: string, fields?: Object<string, string>, timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>, choices?: string[]}} edits
+ * @param {{prompt?: string, fields?: Object<string, string>|string[], timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>|Array<Array<{left: string, right: string}>>, choices?: string[]}} edits
  * @returns {{config: object, changed: boolean}}
  */
 export function applyEdits(config, edits) {
   const copy = JSON.parse(JSON.stringify(config));
   const step = firstStudentStep(copy);
   let changed = false;
-  edits = edits || {};
+  edits = { ...(edits || {}) };
+
+  // By position (a class example knows no keys, 2026-09-24): pairs as an
+  // array go to the match steps in order, fields as an array to the first
+  // student step's fields by index
+  if (Array.isArray(edits.pairs)) {
+    const matchIds = Object.keys(copy.phases || {}).filter((id) => copy.phases[id] && copy.phases[id].type === 'match');
+    const byId = {};
+    edits.pairs.forEach((list, i) => { if (matchIds[i] && Array.isArray(list)) byId[matchIds[i]] = list; });
+    edits.pairs = byId;
+  }
+  if (Array.isArray(edits.fields)) {
+    const byKey = {};
+    if (step && Array.isArray(step.phase.fields)) {
+      edits.fields.forEach((label, i) => { if (step.phase.fields[i] && typeof label === 'string') byKey[step.phase.fields[i].key] = label; });
+    }
+    edits.fields = byKey;
+  }
 
   // The pairs of any match step, by step id: every pair needs both halves,
   // and a step keeps its old pairs when the edit would leave it with none

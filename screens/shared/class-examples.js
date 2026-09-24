@@ -21,7 +21,7 @@
 // phrase per subject and band, and prefill nothing on the make page.
 //
 // Plain script (browser global): window.ClassExamples = { pick, forKey,
-// keyOf, describe, SUBJECTS, BANDS, TABLE, TOPICS }. No DOM, no fetch.
+// keyOf, editsOf, describe, SUBJECTS, BANDS, TABLE, TOPICS }. No DOM, no fetch.
 (function () {
   'use strict';
 
@@ -477,6 +477,21 @@
 
   function keyOf(ex) { return ex ? ex.key : ''; }
 
+  // The example as the make route's edits (POST /api/games/:id/make), the
+  // shape the make page sends: fields by position and pairs by match step
+  // in order, since a card knows no keys. null when there is nothing to
+  // prefill. The popup's map reads the example through this.
+  function editsOf(ex) {
+    var pf = ex && ex.prefill;
+    if (!pf) return null;
+    var out = {};
+    if (pf.prompt) out.prompt = pf.prompt;
+    if (pf.fields) out.fields = pf.fields.slice();
+    if (pf.pairs) out.pairs = pf.pairs.map(function (round) { return round.map(function (p) { return { left: p[0], right: p[1] }; }); });
+    if (pf.choices) out.choices = pf.choices.slice();
+    return out;
+  }
+
   // "science, grades 6-8" for the make page's line
   function describe(ex) {
     if (!ex) return '';
@@ -494,6 +509,7 @@
     pick: pick,
     forKey: forKey,
     keyOf: keyOf,
+    editsOf: editsOf,
     describe: describe
   };
   if (typeof window !== 'undefined') window.ClassExamples = api;

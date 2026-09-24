@@ -2542,6 +2542,9 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
       for (const [key, label] of Object.entries(body.fields)) {
         if (typeof key === 'string' && typeof label === 'string') edits.fields[key.slice(0, 64)] = label.slice(0, 300);
       }
+    } else if (Array.isArray(body.fields)) {
+      // by position (a class example's, 2026-09-24)
+      edits.fields = body.fields.slice(0, 8).map((label) => (typeof label === 'string' ? label.slice(0, 300) : ''));
     }
     if (typeof body.timer === 'number') edits.timer = body.timer;
     // The choices of a pick-one step (a class example's, 2026-09-24), capped
@@ -2558,6 +2561,12 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
           right: typeof p?.right === 'string' ? p.right.slice(0, 120) : ''
         }));
       }
+    } else if (Array.isArray(body.pairs)) {
+      // by match step in order (a class example's, 2026-09-24)
+      edits.pairs = body.pairs.slice(0, 12).map((list) => (Array.isArray(list) ? list : []).slice(0, 40).map((p) => ({
+        left: typeof p?.left === 'string' ? p.left.slice(0, 120) : '',
+        right: typeof p?.right === 'string' ? p.right.slice(0, 120) : ''
+      })));
     }
     // New rounds ("+ round"), each a list of pairs, capped
     if (Array.isArray(body.newRounds)) {

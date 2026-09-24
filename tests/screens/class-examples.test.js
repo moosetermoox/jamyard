@@ -202,6 +202,19 @@ describe('the resolver', () => {
     expect(E.pick('closer', p, 0).prefill).toBeNull();
     expect(E.pick('someones-got-you', p, 0).prefill).toBeNull();
   });
+
+  it('turns an example into the make route\'s edits, by position, for the popup\'s map', () => {
+    const E = globalThis.ClassExamples;
+    const p = { gradeBand: 'middle', subjects: ['science'] };
+    expect(E.editsOf(E.pick('live-poll', p, 0))).toEqual({ prompt: 'Which state of matter is hardest to explain?', choices: ['Solid', 'Liquid', 'Gas', 'Plasma'] });
+    const ticket = E.editsOf(E.pick('exit-ticket', p, 0));
+    expect(ticket.fields).toEqual(['One thing you learned about the rock cycle', 'One question you still have']);
+    const match = E.editsOf(E.pick('vocab-match', p, 0));
+    expect(match.pairs).toHaveLength(2);
+    expect(match.pairs[0][0]).toEqual({ left: 'igneous', right: 'rock from cooled lava' });
+    expect(E.editsOf(E.pick('closer', p, 0))).toBeNull();
+    expect(E.editsOf(null)).toBeNull();
+  });
 });
 
 describe('the cards', () => {
@@ -370,5 +383,40 @@ describe('the pages', () => {
     expect(applyEdits(cfg, { choices: ['Only one'] }).changed).toBe(false);
     cfg.phases.ask.type = 'collect';
     expect(applyEdits(cfg, { choices: ['A', 'B'] }).changed).toBe(false);
+    // fields by position, pairs by match step in order (the popup's map)
+    const ticket = {
+      phases: {
+        lobby: { id: 'lobby', type: 'lobby', next: 'ticket' },
+        ticket: { id: 'ticket', type: 'collect', prompt: 'Answer in a sentence.', fields: [{ key: 'q1', label: 'A' }, { key: 'q2', label: 'B' }], next: 'end' },
+        end: { id: 'end', type: 'end' }
+      }
+    };
+    const filled = applyEdits(ticket, { fields: ['One thing you learned', 'One question you still have'] });
+    expect(filled.changed).toBe(true);
+    expect(filled.config.phases.ticket.fields.map((f) => f.label)).toEqual(['One thing you learned', 'One question you still have']);
+    const vocab = {
+      phases: {
+        lobby: { id: 'lobby', type: 'lobby', next: 'round1' },
+        round1: { id: 'round1', type: 'match', prompt: 'Match', pairs: [{ left: 'a', right: '1' }], next: 'round2' },
+        round2: { id: 'round2', type: 'match', prompt: 'Match', pairs: [{ left: 'b', right: '2' }], next: 'end' },
+        end: { id: 'end', type: 'end' }
+      }
+    };
+    const rounds = applyEdits(vocab, { pairs: [[{ left: 'igneous', right: 'rock from cooled lava' }], [{ left: 'density', right: 'mass per volume' }]] });
+    expect(rounds.changed).toBe(true);
+    expect(rounds.config.phases.round1.pairs[0].left).toBe('igneous');
+    expect(rounds.config.phases.round2.pairs[0].left).toBe('density');
+    expect(server).toContain('} else if (Array.isArray(body.fields)) {');
+    expect(server).toContain('} else if (Array.isArray(body.pairs)) {');
+  });
+
+  it('the popup\'s map reads the example through the make route', async () => {
+    const html = await read('screens/home/index.html');
+    const map = await read('screens/shared/activity-map.js');
+    expect(html).toContain('ActivityMap.attach(g.id, mapHolder, edits ? { edits: edits } : undefined);');
+    expect(html).toContain('ClassExamples.editsOf(ex)');
+    expect(map).toContain('function attach(gameId, container, opts)');
+    expect(map).toContain("'/make', {");
+    expect(map).toContain('body: JSON.stringify(opts.edits)');
   });
 });

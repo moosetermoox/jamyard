@@ -1185,7 +1185,9 @@
         // door below never jumps out from under the mouse)
         var mapHolder = el('div');
         modal.appendChild(mapHolder);
-        if (window.ActivityMap) ActivityMap.attach(g.id, mapHolder);
+        // What happens, with the example's words in it when the card showed one
+        var edits = ex && window.ClassExamples ? ClassExamples.editsOf(ex) : null;
+        if (window.ActivityMap) ActivityMap.attach(g.id, mapHolder, edits ? { edits: edits } : undefined);
         var actions = el('div', 'home-dialog-actions');
         var start = el('a', 'home-dialog-start t-lift t-label', 'Pick this one');
         start.href = makeHref(g, ex);
