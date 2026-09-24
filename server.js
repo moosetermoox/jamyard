@@ -2569,6 +2569,13 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
     if (Array.isArray(body.choices)) {
       edits.choices = body.choices.slice(0, 8).filter((c) => typeof c === 'string').map((c) => c.slice(0, 80));
     }
+    // Words swapped everywhere (a class example's topic, 2026-09-24), capped
+    if (Array.isArray(body.swaps)) {
+      edits.swaps = body.swaps.slice(0, 8).map((s) => ({
+        from: typeof s?.from === 'string' ? s.from.slice(0, 200) : '',
+        to: typeof s?.to === 'string' ? s.to.slice(0, 200) : ''
+      }));
+    }
     // The pairs of match steps (Vocab Match), by step id, capped
     if (body.pairs && typeof body.pairs === 'object' && !Array.isArray(body.pairs)) {
       edits.pairs = {};
@@ -2614,7 +2621,7 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
     // The What happens map of the edited copy rides along, so the make
     // page can redraw it the moment the question changes (2026-09-13)
     // the print too, for a recipe example the make page draws instead of the template's
-    if (recompiled) return res.json({ config: working, changed, map: buildActivityMap(working), print: printFor({ ...working, name: config.name }) });
+    if (recompiled || out.swapped) return res.json({ config: working, changed, map: buildActivityMap(working), print: printFor({ ...working, name: config.name }) });
     res.json({ config: working, changed, map: buildActivityMap(working) });
   } catch (error) {
     console.log(`[api/games/:gameId/make] Error: ${error.message}`);

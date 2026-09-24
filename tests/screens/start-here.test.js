@@ -63,7 +63,7 @@ describe('the Start here route', () => {
     expect(note[1]).not.toMatch(/simulat|preview|door|fit/i);
     const js = await read('screens/make/make.js');
     expect(js).toContain("if (from === 'start' && el.startNote) el.startNote.hidden = false;");
-    expect(js).toContain("if (from === 'home' || from === 'start') el.back.href = '/';");
+    expect(js).toContain("if (from === 'home' || from === 'start') el.back.href = '/#yard';");
     const css = await read('screens/make/styles.css');
     expect(css).toContain('.start-note {');
   });

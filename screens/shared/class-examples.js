@@ -554,8 +554,26 @@
     'live-poll': function (w) { return { prompt: w.question, choices: w.choices.slice() }; },
     snowball: function (w) { return { prompt: w.question }; },
     'vocab-match': function (w) { return { pairs: [w.pairs.slice(0, 3), w.pairs.slice(3, 6)] }; },
-    'whose-eyes': function (w) { return { prompt: 'Name ONE person, creature, or thing affected by ' + w.topic + '. Anyone whose eyes we could look through.' }; },
-    'both-sides-rope': function (w) { return { prompt: 'Where do you stand RIGHT NOW?\n\n“' + w.claim + '”\n\n(It\'s okay not to be sure.)' }; },
+    // The topic sits in more than the first step (the intro, the second
+    // vote, the AI's instruction): `swaps` replace it everywhere in the copy
+    'whose-eyes': function (w) {
+      return {
+        prompt: 'Name ONE person, creature, or thing affected by ' + w.topic + '. Anyone whose eyes we could look through.',
+        swaps: [{ from: 'our school\'s homework policy', to: w.topic }]
+      };
+    },
+    'both-sides-rope': function (w) {
+      return {
+        prompt: 'Where do you stand RIGHT NOW?\n\n“' + w.claim + '”\n\n(It\'s okay not to be sure.)',
+        swaps: [
+          { from: 'Homework should be optional.', to: w.claim },
+          { from: '(What if homework took 10 minutes? What if grades didn\'t exist?)', to: '' }
+        ]
+      };
+    },
+    // Closer's first question is its first message: swapped, the copy
+    // opens on the example and the make page's tier list shows it
+    closer: function (w) { return { swaps: [{ from: 'Window seat or aisle seat, and why?', to: w.question }] }; },
     'art-gallery': function (w) { return { prompt: w.text }; },
     'exit-ticket': function (w) { return { fields: w.fields.slice() }; },
     'one-more-thing': function (w) { return { prompt: 'From memory (no notes!): list the 2-3 most important things you remember about ' + w.topic + '. Put each on its own line.' }; },
@@ -669,6 +687,7 @@
     if (pf.pairs) out.pairs = pf.pairs.map(function (round) { return round.map(function (p) { return { left: p[0], right: p[1] }; }); });
     if (pf.choices) out.choices = pf.choices.slice();
     if (pf.params) out.params = JSON.parse(JSON.stringify(pf.params));
+    if (pf.swaps) out.swaps = pf.swaps.map(function (s) { return { from: s.from, to: s.to }; });
     return out;
   }
 
