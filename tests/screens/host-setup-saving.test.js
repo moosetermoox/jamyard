@@ -11,6 +11,7 @@ import { readFileSync } from 'node:fs';
 const teacherHtml = readFileSync('screens/teacher/index.html', 'utf8');
 const teacherJs = readFileSync('screens/teacher/teacher.js', 'utf8');
 const hostHtml = readFileSync('screens/host/index.html', 'utf8');
+const hostCss = readFileSync('screens/host/styles.css', 'utf8');
 const guide = readFileSync('screens/guide/index.html', 'utf8');
 const makeHtml = readFileSync('screens/make/index.html', 'utf8');
 const makeCss = readFileSync('screens/make/styles.css', 'utf8');
@@ -44,7 +45,14 @@ describe('Before you project: the console setup card', () => {
 describe('the report: what keeps it, said the same way everywhere', () => {
   it('the projector checklist no longer says a copied link keeps the work', () => {
     expect(hostHtml).not.toContain('Copy report link keeps what the class made');
-    expect(hostHtml).toContain('At the end, print or save the report from your console. It is gone when the room closes.');
+    // One line at the checklist's width: a second line shrinks the whole
+    // lobby under the fit zoom (the owner saw the code blocks get small)
+    expect(hostHtml).toContain('At the end, print or save the report. It goes when the room closes.');
+    // Inside Try it out the checklist and the share row hide: pretend
+    // students never scan a code, and the lobby in a 725px frame was at
+    // zoom 0.54 with them
+    expect(hostCss).toContain('body.in-bench .host-checklist,');
+    expect(hostCss).toContain('body.in-bench .join-share { display: none; }');
     expect(hostHtml).toContain('The link works only while this room is open: print the report or save the PDF to keep it.');
   });
 
