@@ -51,12 +51,30 @@ function cut(text) {
   return out.trim() + '…';
 }
 
+// A collect with two or more labelled fields asks its questions in the
+// labels (Exit Ticket: "One thing you learned today" / "One question you
+// still have") and keeps an instruction in the prompt ("Answer in a
+// sentence or two."), so the glimpse reads the labels (2026-09-24: the
+// yard's first card had been showing the instruction).
+function fieldQuestions(phase) {
+  if (!Array.isArray(phase.fields) || phase.fields.length < 2) return undefined;
+  const labels = [];
+  for (const f of phase.fields) {
+    const label = f && typeof f.label === 'string' ? f.label.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim() : '';
+    if (!label || label.includes('{{')) return undefined;
+    labels.push(/[.!?]$/.test(label) ? label : label + '.');
+  }
+  return cut(labels.join(' '));
+}
+
 // The step's own words, longer than the map's excerpt; the map's detail
 // stays the fallback (it already skipped templated text for us).
 function ownWords(config, stop) {
   const id = Array.isArray(stop.ids) ? stop.ids[0] : undefined;
   const phase = id && config.phases && config.phases[id];
   if (!phase) return undefined;
+  const questions = fieldQuestions(phase);
+  if (questions) return questions;
   for (const field of PROMPT_FIELDS) {
     const value = phase[field];
     if (typeof value !== 'string') continue;

@@ -53,6 +53,24 @@ describe('homeGlimpse', () => {
     expect(g.mode).toBe('join');
   });
 
+  it('a collect with two or more labelled fields asks its questions, never the instruction over them (2026-09-24)', () => {
+    const g = homeGlimpse(load('exit-ticket'));
+    expect(g.prompt).toBe('One thing you learned today. One question you still have.');
+    // one field keeps the prompt; a templated label falls back to the prompt
+    const one = { name: 'X', description: 'Hi.', phases: {
+      lobby: { type: 'lobby', next: 'ask' },
+      ask: { type: 'collect', prompt: 'What stood out?', fields: [{ label: 'Your answer', key: 'a' }], next: 'end' },
+      end: { type: 'end' }
+    } };
+    expect(homeGlimpse(one).prompt).toBe('What stood out?');
+    const templated = { name: 'X', description: 'Hi.', phases: {
+      lobby: { type: 'lobby', next: 'ask' },
+      ask: { type: 'collect', prompt: 'Answer both.', fields: [{ label: 'About {{topic}}', key: 'a' }, { label: 'And why', key: 'b' }], next: 'end' },
+      end: { type: 'end' }
+    } };
+    expect(homeGlimpse(templated).prompt).toBe('Answer both.');
+  });
+
   it('marks talk-driven activities as talk, with the first screen line', () => {
     const g = homeGlimpse(load('closer'));
     expect(g.mode).toBe('talk');
