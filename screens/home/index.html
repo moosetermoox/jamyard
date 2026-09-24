@@ -531,6 +531,69 @@
 
     .how-step strong { color: var(--t-ink); font-weight: 700; }
 
+    /* ── Start here (2026-09-24): one recommended first run for a teacher
+       who has never pressed Host. A paper card under the how strip: the
+       yellow tag, one line, the page's one red door (Live Poll, two
+       minutes at your own desk with pretend students), and the yard
+       still open beside it. ── */
+    .start-here {
+      margin-top: 22px;
+      background: var(--t-paper);
+      box-shadow: var(--t-shadow-free);
+      padding: 18px 22px 20px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      transform: rotate(0.3deg);
+    }
+
+    .start-tag {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 12px 7px;
+      transform: rotate(-1.5deg);
+      flex-shrink: 0;
+      box-shadow: 0 2px 3px rgba(50,35,15,0.24);
+    }
+
+    .start-text {
+      margin: 0;
+      flex: 1 1 320px;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.45;
+      color: var(--t-muted);
+    }
+
+    .start-text strong { color: var(--t-ink); font-weight: 700; }
+
+    .start-door {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-decoration: none;
+      padding: 12px 20px 13px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .start-browse {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--t-muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      white-space: nowrap;
+    }
+
+    .start-browse:hover { color: var(--t-ink); }
+
     /* The yard's head: the name, and beside it what the prints are (the
        line the carousel's head carried, owner 2026-09-22) */
     .yard-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
@@ -679,6 +742,7 @@
       /* No room under the label for the ways on a short plank */
       .plank-ways { display: none; }
       .how { grid-template-columns: 1fr; }
+      .start-here { padding: 16px 18px 18px; gap: 12px; }
       footer { justify-content: center; }
       .footer-credit { margin-left: 0; }
     }
@@ -847,6 +911,19 @@
         <span class="how-num t-green" style="--rot: -0.8deg" aria-hidden="true">3</span>
         <p><strong>Students join with a four letter code</strong> on their devices. No accounts, nothing to install.</p>
       </div>
+    </section>
+
+    <!-- Start here: one recommended first run for a teacher who has
+         never pressed Host (2026-09-24). Live Poll, two minutes at your
+         own desk with pretend students; browsing stays open (the link
+         beside it and the whole yard below). The door lands on the make
+         page like every other door on the home, with from=start so the
+         make page can say what to press first. -->
+    <section class="start-here" aria-label="Start here">
+      <span class="start-tag t-yellow" aria-hidden="true">Start here</span>
+      <p class="start-text"><strong>Never run one?</strong> Try Live Poll first: two minutes at your own desk, with pretend students, before a class ever sees it.</p>
+      <a class="start-door t-red t-lift" href="/make?game=live-poll&amp;from=start" id="start-here-door">Try Live Poll</a>
+      <a class="start-browse" href="#yard">or browse the yard</a>
     </section>
 
     <section class="myyard-section" id="my-yard" hidden aria-label="My yard"></section>

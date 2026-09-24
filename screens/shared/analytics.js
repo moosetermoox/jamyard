@@ -29,7 +29,7 @@
   var ID_KEY = 'jamyard.aid';
   var ID_SHAPE = /^[a-f0-9]{16,32}$/;
   var NEVER_HERE = /^\/(player|host|teacher)(\/|$)/;
-  var ENTRY_POINTS = ['home', 'library', 'create', 'share'];
+  var ENTRY_POINTS = ['home', 'library', 'create', 'share', 'start'];
 
   function optedOut() {
     try {
