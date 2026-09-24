@@ -68,6 +68,16 @@
 .yard-card.on .yard-pict,
 .yard-card:focus-visible .yard-pict { transform: translateY(-14px); }
 
+/* A content card's window: the picture anchored at the top with room
+   for a two-line hover line under it, and it never slides */
+.yard-window-content {
+  align-items: flex-start;
+  padding-top: 11px;
+  box-sizing: border-box;
+}
+.yard-card.on .yard-window-content .yard-pict,
+.yard-card:focus-visible .yard-window-content .yard-pict { transform: none; }
+
 .yard-prompt-box {
   position: absolute;
   left: 12px;
@@ -261,6 +271,90 @@ span.pg-arrive { display: inline-block; }
 
 .yard-card.on .pg-arrive,
 .yard-card:focus-visible .pg-arrive { opacity: 1; transform: translateY(0); }
+
+/* ── Real content on six cards (2026-09-24): slips of the activity's own
+   text, student-style doodles, labelled bars. Reading text is the body
+   face, small; nothing here is a caption of ours. ── */
+.pg-slip {
+  font-family: var(--t-body);
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--t-ink);
+  padding: 5px 8px 6px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+.pg-slip.t-paper { background-image: none; }
+.pg-slip-small { font-size: 10px; padding: 4px 6px 5px; }
+
+.pg-caps {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  line-height: 1;
+}
+
+/* Live Poll: a label, a bar, a count on each line */
+.pg-label {
+  font-family: var(--t-body);
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--t-ink);
+  width: 54px;
+  text-align: right;
+  flex: none;
+  white-space: nowrap;
+}
+.pg-count {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 10px;
+  color: var(--t-muted-caps);
+  padding-left: 2px;
+}
+
+/* Draw Gallery: a drawing on a paper square */
+.pg-drawing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  box-sizing: border-box;
+}
+.pg-drawing.t-paper { background-image: none; }
+.pg-doodle {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--t-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Snowball: two answers funnel into one */
+.pg-funnel {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  height: 20px;
+  align-items: center;
+}
+.pg-funnel .pg-b { transform-origin: center; }
+.pg-tag.t-paper { background: var(--t-paper); background-image: none; }
+
+/* Closer: a person plank, head over body */
+.pg-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
 
 /* ── The AI door's card: a dashed slot holding a sanded plank and BUILD IT ── */
 .yard-slot {
