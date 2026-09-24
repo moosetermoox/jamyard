@@ -140,6 +140,21 @@ var projectorNotice = document.getElementById('projector-notice');
 var currentCode = null;
 var currentPin = null;
 var reportDismissed = false;
+// Before you project: the setup card, once per browser (Got it), and
+// never inside Try it out's frame, where the tour does this job.
+var setupCard = document.getElementById('setup-card');
+var setupDismissBtn = document.getElementById('setup-dismiss-btn');
+var SETUP_SEEN_KEY = 'jamyard.consoleSetupSeen';
+function setupCardWanted() {
+  var framed = false;
+  try { framed = window.self !== window.top; } catch (e) { framed = true; }
+  if (framed) return false;
+  try { return localStorage.getItem(SETUP_SEEN_KEY) !== '1'; } catch (e) { return true; }
+}
+setupDismissBtn.addEventListener('click', function () {
+  try { localStorage.setItem(SETUP_SEEN_KEY, '1'); } catch (e) { /* private window: shows again next time */ }
+  setupCard.hidden = true;
+});
 var currentPhaseType = null;
 var currentPhaseInstanceId = 0;
 var checklistItemTexts = [];
@@ -265,6 +280,7 @@ function renderProjectorNotice(hostConnected) {
 }
 
 socket.on('teacher-joined', function (snap) {
+  setupCard.hidden = !setupCardWanted();
   renderProjectorNotice(snap && snap.hostConnected);
   currentCode = codeInput.value.trim();
   currentPin = pinInput.value.trim();

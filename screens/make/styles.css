@@ -429,6 +429,8 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 }
 
 .doors-note[hidden] { display: none; }
+/* Where the copy goes: quieter than the fit note, always on */
+.keep-note { font-weight: 500; color: var(--t-muted); margin-top: 8px; }
 
 .make-error {
   margin: 0;
