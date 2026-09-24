@@ -7,7 +7,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { audienceFor, AUDIENCE, AUDIENCE_LABELS, NEXT_CLASSMATE_HINT } from '../../engine/audience.js';
+import { audienceFor, labelForGroup, AUDIENCE, AUDIENCE_LABELS, GROUP_LABELS, NEXT_CLASSMATE_HINT } from '../../engine/audience.js';
+import { translate } from '../../engine/i18n/index.js';
 
 const load = (id) => JSON.parse(readFileSync(`games/${id}/config.json`, 'utf8'));
 
@@ -106,5 +107,64 @@ describe('audienceFor on synthetic graphs', () => {
   it('a step inside For Each (not a top-level phase) gets no label', () => {
     expect(audienceFor(graph({ after: { type: 'end' } }), 'titles')).toBe(null);
     expect(audienceFor(null, 'ask')).toBe(null);
+  });
+});
+
+// A reviewer's three-student Snowball made a trio and the screen still
+// said "One classmate will read this" (2026-09-23). The reading group's
+// size rides on the audience, and the line reads the head count.
+describe('the reading group', () => {
+  const graph = (extra) => ({
+    phases: {
+      lobby: { type: 'lobby', next: 'ask' },
+      ask: { type: 'collect', prompt: 'Say something', next: 'after' },
+      ...extra,
+      end: { type: 'end' }
+    }
+  });
+
+  it('Snowball: a merge of two is a pairing, odd classes leave a triple', () => {
+    const a = audienceFor(load('snowball'), 'solo');
+    expect(a.groupSize).toBe(2);
+    expect(labelForGroup(a, 4)).toBe('One classmate will read this.');
+    expect(labelForGroup(a, 3)).toBe('One or two classmates will read this.');
+    expect(labelForGroup(a, 1)).toBe('One classmate will read this.');
+    expect(labelForGroup(a, undefined)).toBe('One classmate will read this.');
+  });
+
+  it('a rotation or a chain coming home is exactly one classmate, whatever the count', () => {
+    const notes = audienceFor(load('someones-got-you'), 'notes');
+    expect(notes.groupSize).toBe(null);
+    expect(labelForGroup(notes, 3)).toBe('One classmate will read this.');
+    expect(audienceFor(load('one-more-thing'), 'recall').groupSize).toBe(null);
+  });
+
+  it('a merge of three or four is a few classmates, even when the count splits', () => {
+    const three = graph({ after: { type: 'merge', groupSize: 3, from: 'ask', next: 'end' } });
+    const a = audienceFor(three, 'ask');
+    expect(a.groupSize).toBe(3);
+    expect(labelForGroup(a, 6)).toBe('A few classmates will read this.');
+    expect(labelForGroup(a, 7)).toBe('A few classmates will read this.');
+  });
+
+  it('a pairwise collect is a pairing, and the combined labels follow', () => {
+    const pairs = graph({
+      after: { type: 'collect', assign: 'pairwise', reusePairsFrom: 'ask', prompt: 'Reply to {{ask.partner}}', next: 'wall' },
+      wall: { type: 'reveal', content: '{{ask.responses}}', next: 'end' }
+    });
+    const a = audienceFor(pairs, 'ask');
+    expect(a.key).toBe(AUDIENCE.CLASSMATE_THEN_CLASS);
+    expect(a.groupSize).toBe(2);
+    expect(labelForGroup(a, 5)).toBe('One or two classmates will read this, then the class sees it.');
+  });
+
+  it('every group label is in every language table', () => {
+    for (const set of Object.values(GROUP_LABELS)) {
+      for (const label of Object.values(set)) {
+        for (const lang of ['es', 'fr', 'de', 'pt', 'it']) {
+          expect(translate(lang, label), `${lang}: ${label}`).not.toBe(label);
+        }
+      }
+    }
   });
 });

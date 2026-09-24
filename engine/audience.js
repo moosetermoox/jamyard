@@ -47,6 +47,42 @@ export const AUDIENCE_LABELS = Object.freeze({
 });
 
 export const NAMES_HIDDEN_LABEL = 'Names are hidden.';
+
+// The classmate line when the reader is a GROUP, not one person (a
+// reviewer's three-student Snowball made a trio and the screen still said
+// "One classmate", 2026-09-23). Pairs that come out uneven (an odd class)
+// put someone in a triple, and a group of three or four is never one
+// classmate. Keyed by the classmate audience keys; "uneven" for pairs the
+// count does not split, "few" for groups of three or more.
+export const GROUP_LABELS = Object.freeze({
+  uneven: Object.freeze({
+    [AUDIENCE.CLASSMATE]: 'One or two classmates will read this.',
+    [AUDIENCE.CLASSMATE_THEN_CLASS]: 'One or two classmates will read this, then the class sees it.',
+    [AUDIENCE.CLASSMATE_THEN_CLASS_AFTER_REVIEW]: 'One or two classmates will read this, then the class sees it after your teacher reviews it.'
+  }),
+  few: Object.freeze({
+    [AUDIENCE.CLASSMATE]: 'A few classmates will read this.',
+    [AUDIENCE.CLASSMATE_THEN_CLASS]: 'A few classmates will read this, then the class sees it.',
+    [AUDIENCE.CLASSMATE_THEN_CLASS_AFTER_REVIEW]: 'A few classmates will read this, then the class sees it after your teacher reviews it.'
+  })
+});
+
+/**
+ * The label for an audience, given how big the reading group is and how
+ * many students are in the room. A rotation or a return-to-author chain
+ * (groupSize null) is always exactly one classmate; a pairing splits a
+ * class evenly or leaves a triple; a merge of three or four is a few.
+ * @param {{key: string, label: string, groupSize: number|null}} a
+ * @param {number|null|undefined} playerCount students in the room now
+ * @returns {string}
+ */
+export function labelForGroup(a, playerCount) {
+  if (!a || !a.groupSize || !GROUP_LABELS.few[a.key]) return a ? a.label : '';
+  if (a.groupSize >= 3) return GROUP_LABELS.few[a.key];
+  const n = Number(playerCount);
+  if (Number.isInteger(n) && n > 1 && n % a.groupSize !== 0) return GROUP_LABELS.uneven[a.key];
+  return a.label;
+}
 export const NEXT_CLASSMATE_HINT = "Next, you'll get a classmate's idea.";
 
 const AI_TYPES = new Set(['ai-process', 'ai-eliminate']);
@@ -145,6 +181,7 @@ export function audienceFor(config, phaseId) {
   const path = pathFrom(phases, phaseId);
   const pathIndex = new Map(path.map((id, i) => [id, i]));
   let classmate = false;     // one classmate reads it (rotation, pair, return-to-author)
+  let groupSize = null;      // the reading group's size when it is a pair or a merge group
   let cls = false;           // it goes in front of everyone
   let ai = false;            // the AI reads it
   let classIndex = Infinity; // where on the path the first class-facing reader sits
@@ -157,6 +194,8 @@ export function audienceFor(config, phaseId) {
     if (!key) continue;
     if (key === AUDIENCE.CLASSMATE) {
       classmate = true;
+      const size = readingGroupSize(consumer);
+      if (size && (!groupSize || size > groupSize)) groupSize = size;
       if (consumer.type === 'collect' && path[0] === id) nextHint = NEXT_CLASSMATE_HINT;
     } else if (key === AUDIENCE.CLASS) {
       cls = true;
@@ -184,6 +223,26 @@ export function audienceFor(config, phaseId) {
     key,
     label: AUDIENCE_LABELS[key],
     namesHidden: config.anonymous === true,
-    nextHint
+    nextHint,
+    // null = exactly one classmate (a rotation, a chain coming home);
+    // 2 = a pairing (a triple when the class is odd); 3 or 4 = a merge group
+    groupSize
   };
+}
+
+// How many students read together at this consumer: a merge's group, a
+// pairwise collect's pair. A rotation or a dealt list is one reader.
+function readingGroupSize(consumer) {
+  if (consumer.type === 'merge') {
+    if (consumer.groupsFrom) return 2;
+    const n = Number(consumer.groupSize);
+    return Number.isInteger(n) && n >= 2 ? n : 2;
+  }
+  if (consumer.type === 'collect') {
+    if (consumer.assign === 'pairwise' || consumer.rotatePairsFrom || consumer.reusePairsFrom ||
+        (consumer.pairBy && typeof consumer.pairBy === 'object')) return 2;
+    return null;
+  }
+  if (consumer.type === 'reveal' && consumer.scope === 'pair') return 2;
+  return null;
 }

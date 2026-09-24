@@ -17,6 +17,7 @@ import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engin
 import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
 import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submits.js';
 import { parseRequestedMinutes, timingReport, paramsForTrim, estimateDuration } from './engine/duration-estimate.js';
+import { audienceFor } from './engine/audience.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
@@ -1906,8 +1907,19 @@ function notifyTeachersClosed(code, room) {
     closeLabel: null,
     closed: true,
     discussionPrompt: discussionPromptFor(phase),
-    estimateAnswer: estimateAnswerFor(room, phase)
+    estimateAnswer: estimateAnswerFor(room, phase),
+    audience: audienceKeyFor(engine, phase)
   });
+}
+
+// Who will see this step's answers, for the console's Live entries hint
+// (engine/audience.js, the same reading the student screen gets): a
+// private step says "only you", a class-facing one names the reveal. A
+// step inside For Each or a non-answer step is null (the generic hint).
+function audienceKeyFor(engine, phase) {
+  if (!engine || !phase || (phase.type !== 'collect' && phase.type !== 'collect-choice')) return null;
+  const a = audienceFor(engine.config, phase.id);
+  return a ? a.key : null;
 }
 
 // The step's discussion prompt for the console (a teacher-authored
@@ -1965,6 +1977,7 @@ function buildTeacherSnapshot(code, room) {
     snap.timer = phase.timer || null;
     snap.discussionPrompt = discussionPromptFor(phase);
     snap.estimateAnswer = estimateAnswerFor(room, phase);
+    snap.audience = audienceKeyFor(engine, phase);
   }
   return snap;
 }
@@ -2172,7 +2185,9 @@ async function handlePhase(code, room) {
     discussionPrompt: discussionPromptFor(phase),
     // An estimate step's answer as it stands (null = poll mode; the
     // console offers a box to type the teacher's own number before the close)
-    estimateAnswer: estimateAnswerFor(room, phase)
+    estimateAnswer: estimateAnswerFor(room, phase),
+    // Who sees the answers, so the Live entries hint fits the step
+    audience: audienceKeyFor(engine, phase)
   });
 
   // Dispatch to registered handler

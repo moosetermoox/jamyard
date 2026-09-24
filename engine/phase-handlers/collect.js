@@ -453,8 +453,9 @@ registerHandler('collect', {
         // The step id lets Try it out deal the template's sample answers
         // (screens/shared/bot-brain.js); structure only, never a secret.
         phaseId: phase.id,
-        // Who will see the answer, read off the graph (engine/audience.js)
-        ...audienceLine(engine.config, phase.id, engine.language),
+        // Who will see the answer, read off the graph (engine/audience.js);
+        // the head count tells a pairing whether someone lands in a triple
+        ...audienceLine(engine.config, phase.id, engine.language, { playerCount: engine.players.list().length }),
         // What the partner wrote (a pairs round), on its own card
         partnerText,
         assignedDrawing: (rotatedDrawings && rotatedDrawings[player.id]) || null,
@@ -512,7 +513,7 @@ registerHandler('collect', {
         displayDrawing: resolveDisplayDrawing(ctx.phase, ctx.engine),
         fields: ctx.phase.fields || null,
         phaseId: ctx.phase.id,
-        ...audienceLine(ctx.engine.config, ctx.phase.id, ctx.engine.language),
+        ...audienceLine(ctx.engine.config, ctx.phase.id, ctx.engine.language, { playerCount: ctx.engine.players.list().length }),
         partnerText: recon.partnerText,
         inputType: ctx.phase.inputType === 'drawing' ? 'drawing' : 'text',
         assignedDrawing: (player && reconRotated && reconRotated[player.id]) || null,
