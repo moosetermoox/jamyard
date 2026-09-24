@@ -181,6 +181,18 @@
   function doodle(paths, tone, rot) {
     var square = block(44, 44, tone, rot, { flat: true, shadow: tone === 't-paper' });
     square.classList.add('pg-drawing');
+    square.appendChild(doodleSvg(paths));
+    return square;
+  }
+
+  // The drawing library (yard-doodles.js) by name, the four here as the
+  // fallback, so a class example can name what the class would draw
+  function pathsFor(name) {
+    var lib = window.YardDoodles ? YardDoodles.paths(name) : null;
+    return lib || DOODLES[name] || DOODLES.fish;
+  }
+
+  function doodleSvg(paths) {
     var svg = document.createElementNS(SVG_NS, 'svg');
     svg.setAttribute('viewBox', '0 0 60 50');
     svg.classList.add('pg-doodle');
@@ -190,8 +202,7 @@
       p.setAttribute('d', paths[i]);
       svg.appendChild(p);
     }
-    square.appendChild(svg);
-    return square;
+    return svg;
   }
 
   // Four dream inventions, as a student would draw them in 90 seconds
@@ -273,11 +284,13 @@
     // drawings up, the fourth lands
     'art-gallery': function (paint, ex) {
       var q = slip(ex ? ex.text : 'Draw your dream invention.', 't-paper', 170, 0.8, { shadow: true, fill: true });
+      // the four drawings the class would make (a class example names its own)
+      var names = ex && ex.doodles ? ex.doodles : ['rocket', 'robot', 'bulb', 'fish'];
       var wall = el('div', 'pg-wall');
-      wall.appendChild(doodle(DOODLES.rocket, 't-paper', -2));
-      wall.appendChild(doodle(DOODLES.robot, 't-paper', 1.5));
-      wall.appendChild(doodle(DOODLES.bulb, paint, -1));
-      wall.appendChild(arrive(doodle(DOODLES.fish, 't-paper', 2)));
+      wall.appendChild(doodle(pathsFor(names[0]), 't-paper', -2));
+      wall.appendChild(doodle(pathsFor(names[1]), 't-paper', 1.5));
+      wall.appendChild(doodle(pathsFor(names[2]), paint, -1));
+      wall.appendChild(arrive(doodle(pathsFor(names[3]), 't-paper', 2)));
       return col([q, wall], 8, 'center');
     },
 
@@ -395,8 +408,13 @@
       return col([lines, arrive(tag)], 8, 'center');
     },
     // a paper drawing over three title bars; the middle title turns the need colour
-    'doodle-bluff': function (paint) {
+    'doodle-bluff': function (paint, ex) {
       var drawing = block(62, 44, 't-paper', -1.5, { flat: true, shadow: true });
+      // a class example puts the drawing of its phrase on the paper
+      if (ex && ex.doodle) {
+        drawing.classList.add('pg-drawing');
+        drawing.appendChild(doodleSvg(pathsFor(ex.doodle)));
+      }
       var middle = col([arrive(block(28, 9, paint, 0, { flat: true })), block(28, 9, 't-birch', 0, { flat: true, mt: -9 })], 0, 'center');
       var titles = row([block(28, 9, 't-birch', 0, { flat: true }), middle, block(28, 9, 't-birch', 0, { flat: true })], 4);
       return col([drawing, titles], 8, 'center');

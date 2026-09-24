@@ -218,37 +218,38 @@
       }
     },
 
-    // What to draw, as the prompt over the wall
+    // What to draw, as the prompt over the wall, and four drawings the
+    // class would make of it (names in yard-doodles.js)
     'art-gallery': {
       'social-studies': {
-        elementary: { text: 'Draw your favorite place in our town.' },
-        middle: { text: 'Draw a symbol for the Revolution.' },
-        high: { text: 'Draw the Cold War as one picture.' }
+        elementary: { text: 'Draw your favorite place in our town.', doodles: ['house', 'tree', 'swing', 'store'] },
+        middle: { text: 'Draw a symbol for the Revolution.', doodles: ['flag', 'snake', 'teacup', 'bell'] },
+        high: { text: 'Draw the Cold War as one picture.', doodles: ['wall', 'rocket', 'globe', 'phone'] }
       },
       english: {
-        elementary: { text: 'Draw the wolf\'s side of the story.' },
-        middle: { text: 'Draw the setting from memory.' },
-        high: { text: 'Draw the poem\'s central image.' }
+        elementary: { text: 'Draw the wolf\'s side of the story.', doodles: ['wolf', 'house', 'pig', 'bowl'] },
+        middle: { text: 'Draw the setting from memory.', doodles: ['house', 'tree', 'moon', 'mountain'] },
+        high: { text: 'Draw the poem\'s central image.', doodles: ['bird', 'flower', 'candle', 'moon'] }
       },
       science: {
-        elementary: { text: 'Draw a plant\'s day.' },
-        middle: { text: 'Draw the water cycle, no words.' },
-        high: { text: 'Draw a cell as a city.' }
+        elementary: { text: 'Draw a plant\'s day.', doodles: ['sun', 'plant', 'cloud', 'moon'] },
+        middle: { text: 'Draw the water cycle, no words.', doodles: ['cloud', 'wave', 'mountain', 'sun'] },
+        high: { text: 'Draw a cell as a city.', doodles: ['cell', 'factory', 'house', 'bridge'] }
       },
       math: {
-        elementary: { text: 'Draw one half three ways.' },
-        middle: { text: 'Draw what negative numbers look like.' },
-        high: { text: 'Draw exponential growth, no axes.' }
+        elementary: { text: 'Draw one half three ways.', doodles: ['halfcircle', 'halfrect', 'dots', 'glass'] },
+        middle: { text: 'Draw what negative numbers look like.', doodles: ['thermometer', 'numberline', 'coin', 'iceberg'] },
+        high: { text: 'Draw exponential growth, no axes.', doodles: ['rabbit', 'coins', 'curve', 'city'] }
       },
       languages: {
-        elementary: { text: 'Draw your family, then label it.' },
-        middle: { text: 'Draw a word we learned this week.' },
-        high: { text: 'Draw an idiom, literally.' }
+        elementary: { text: 'Draw your family, then label it.', doodles: ['people', 'house', 'dog', 'cat'] },
+        middle: { text: 'Draw a word we learned this week.', doodles: ['apple', 'book', 'bike', 'umbrella'] },
+        high: { text: 'Draw an idiom, literally.', doodles: ['cake', 'jar', 'foot', 'cat'] }
       },
       advisory: {
-        elementary: { text: 'Draw a good day.' },
-        middle: { text: 'Draw what stress looks like.' },
-        high: { text: 'Draw yourself in five years.' }
+        elementary: { text: 'Draw a good day.', doodles: ['sun', 'icecream', 'ball', 'smile'] },
+        middle: { text: 'Draw what stress looks like.', doodles: ['storm', 'clock', 'scribble', 'books'] },
+        high: { text: 'Draw yourself in five years.', doodles: ['cap', 'car', 'city', 'plane'] }
       }
     },
 
@@ -296,6 +297,43 @@
       }
     },
 
+    // A strange phrase about the topic and the drawing of it (a name in
+    // yard-doodles.js); the phrase is the hover line, the drawing sits on
+    // the paper. The words themselves live in the setup panel, so the
+    // make page prefills nothing.
+    'doodle-bluff': {
+      'social-studies': {
+        elementary: { phrase: 'a mail carrier chased by a giant letter', doodle: 'envelope' },
+        middle: { phrase: 'the Liberty Bell ringing itself awake', doodle: 'bell' },
+        high: { phrase: 'a wall that wants to be a bridge', doodle: 'wall' }
+      },
+      english: {
+        elementary: { phrase: 'a wolf knitting a sweater', doodle: 'wolf' },
+        middle: { phrase: 'the narrator hiding inside a book', doodle: 'book' },
+        high: { phrase: 'a metaphor stuck in traffic', doodle: 'car' }
+      },
+      science: {
+        elementary: { phrase: 'a plant that only grows at night', doodle: 'plant' },
+        middle: { phrase: 'a volcano that forgot how to erupt', doodle: 'volcano' },
+        high: { phrase: 'a cell running a bakery', doodle: 'cell' }
+      },
+      math: {
+        elementary: { phrase: 'a pizza cut into a hundred slices', doodle: 'pizza' },
+        middle: { phrase: 'a thermometer with stage fright', doodle: 'thermometer' },
+        high: { phrase: 'a parabola on a trampoline', doodle: 'curve' }
+      },
+      languages: {
+        elementary: { phrase: 'a talking apple that only says hello', doodle: 'apple' },
+        middle: { phrase: 'an umbrella learning to swim', doodle: 'umbrella' },
+        high: { phrase: 'a dictionary on vacation', doodle: 'book' }
+      },
+      advisory: {
+        elementary: { phrase: 'an ice cream cone in a snowstorm', doodle: 'icecream' },
+        middle: { phrase: 'a clock that takes naps', doodle: 'clock' },
+        high: { phrase: 'a graduation cap flying south', doodle: 'cap' }
+      }
+    },
+
     // The two questions on the ticket
     'exit-ticket': {
       'social-studies': {
@@ -338,7 +376,6 @@
     'solo-quiz': function (topic) { return 'Five questions on ' + topic + ', at your own pace.'; },
     'speed-quiz': function (topic) { return 'Quick questions on ' + topic + '. Faster right answers score more.'; },
     'trivia-bluff': function (topic) { return 'A fact about ' + topic + ' with a blank, and the lies your classmates wrote.'; },
-    'doodle-bluff': function (topic) { return 'Strange phrases about ' + topic + ' to draw, then fake titles for each drawing.'; },
     'group-work-day': function (topic) { return 'Jobs and a shared to-do list for today\'s work on ' + topic + '.'; }
   };
 
@@ -360,6 +397,7 @@
   function lineFor(id, words) {
     if (LINES[id]) return LINES[id](words.topic);
     if (id === 'exit-ticket') return words.fields[0] + '. ' + words.fields[1] + '.';
+    if (id === 'doodle-bluff') return '\u201c' + words.phrase + '\u201d';
     if (id === 'snowball' || id === 'closer') return words.question;
     return '';
   }

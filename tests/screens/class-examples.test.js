@@ -57,11 +57,12 @@ async function loadModules() {
   globalThis.window = globalThis;
   globalThis.document = { createElement: makeNode, createElementNS: (ns, tag) => makeNode(tag) };
   globalThis.matchMedia = () => ({ matches: false });
-  delete globalThis.GoalGroups; delete globalThis.YardPictograms; delete globalThis.YardPrints; delete globalThis.ClassExamples; delete globalThis.TeacherProfile;
+  delete globalThis.GoalGroups; delete globalThis.YardPictograms; delete globalThis.YardPrints; delete globalThis.ClassExamples; delete globalThis.TeacherProfile; delete globalThis.YardDoodles;
   vi.resetModules();
   await import('../../screens/shared/goal-groups.js');
   await import('../../screens/shared/teacher-profile.js');
   await import('../../screens/shared/class-examples.js');
+  await import('../../screens/shared/yard-doodles.js');
   await import('../../screens/shared/yard-pictograms.js');
   await import('../../screens/shared/yard-prints.js');
 }
@@ -98,7 +99,22 @@ describe('the authored table', () => {
     each('vocab-match', (w) => { expect(w.pairs).toHaveLength(6); w.pairs.forEach((p) => { expect(p[0].length).toBeLessThan(15); expect(p[1].length).toBeLessThan(32); }); });
     each('whose-eyes', (w) => { expect(w.tag.length).toBeLessThan(16); expect(w.eyes).toHaveLength(4); w.eyes.forEach((e) => expect(e.length).toBeLessThan(13)); expect(w.line.length).toBeLessThan(48); expect(w.topic.length).toBeGreaterThan(5); });
     each('both-sides-rope', (w) => expect(w.claim.length).toBeLessThan(50));
-    each('art-gallery', (w) => { expect(w.text.length).toBeLessThan(42); expect(w.text.startsWith('Draw')).toBe(true); });
+    const D = globalThis.YardDoodles;
+    each('art-gallery', (w) => {
+      expect(w.text.length).toBeLessThan(42);
+      expect(w.text.startsWith('Draw')).toBe(true);
+      expect(w.doodles).toHaveLength(4);
+      w.doodles.forEach((name) => expect(D.paths(name), 'doodle ' + name).not.toBeNull());
+    });
+    each('doodle-bluff', (w) => {
+      expect(w.phrase.length).toBeLessThan(44);
+      expect(D.paths(w.doodle), 'doodle ' + w.doodle).not.toBeNull();
+    });
+    // every drawing in the library is stroke paths only, in the 60 by 50 box
+    for (const name of D.NAMES) {
+      for (const p of D.paths(name)) expect(p, name).toMatch(/^[MLHVCSQTAZmlhvcsqtaz0-9 .,-]+$/);
+      expect(D.paths(name).length, name).toBeGreaterThan(0);
+    }
     each('closer', (w) => expect(w.question.length).toBeLessThan(64));
     each('someones-got-you', (w) => { expect(w.mine.length).toBeLessThan(48); expect(w.reply.length).toBeLessThan(48); });
     each('exit-ticket', (w) => { expect(w.fields).toHaveLength(2); w.fields.forEach((f) => expect(f.length).toBeLessThan(56)); });
@@ -172,11 +188,16 @@ describe('the resolver', () => {
     const more = E.pick('one-more-thing', p, 0);
     expect(more.prefill.prompt).toContain('the rock cycle');
     expect(more.line).toContain('the rock cycle');
-    for (const id of ['solo-quiz', 'speed-quiz', 'trivia-bluff', 'doodle-bluff', 'group-work-day']) {
+    for (const id of ['solo-quiz', 'speed-quiz', 'trivia-bluff', 'group-work-day']) {
       const ex = E.pick(id, p, 0);
       expect(ex.prefill, id).toBeNull();
       expect(ex.line, id).toContain('the rock cycle');
     }
+    // Doodle Bluff's line is the strange phrase the class would draw
+    const bluff = E.pick('doodle-bluff', p, 0);
+    expect(bluff.prefill).toBeNull();
+    expect(bluff.line).toBe('\u201ca volcano that forgot how to erupt\u201d');
+    expect(bluff.words.doodle).toBe('volcano');
     // talk-only and subject-neutral: words for the card, nothing to prefill
     expect(E.pick('closer', p, 0).prefill).toBeNull();
     expect(E.pick('someones-got-you', p, 0).prefill).toBeNull();
@@ -211,6 +232,16 @@ describe('the cards', () => {
     expect(eyes.node.querySelectorAll('.pg-arrive').length).toBe(1);
     const rope = P.build({ id: 'both-sides-rope' }, 't-cyan', pic('both-sides-rope'), { example: E.pick('both-sides-rope', p, 0) });
     expect(text(rope.node)).toContain('“Pluto should still be a planet.”');
+    // the wall draws the example's four drawings, the bluff's paper the drawing of its phrase
+    const wall = P.build({ id: 'art-gallery' }, 't-orange', pic('art-gallery'), { example: E.pick('art-gallery', p, 0) });
+    expect(wall.node.querySelectorAll('.pg-doodle').length).toBe(4);
+    expect(text(wall.node)).toContain('Draw the water cycle, no words.');
+    const plainWall = P.build({ id: 'art-gallery' }, 't-orange', pic('art-gallery'));
+    expect(plainWall.node.querySelectorAll('.pg-doodle').length).toBe(4);
+    expect(wall.node.querySelector('.pg-doodle').children[0].getAttribute('d')).not.toBe(plainWall.node.querySelector('.pg-doodle').children[0].getAttribute('d'));
+    const bluff = P.build({ id: 'doodle-bluff' }, 't-orange', pic('doodle-bluff'), { example: E.pick('doodle-bluff', p, 0) });
+    expect(bluff.node.querySelectorAll('.pg-doodle').length).toBe(1);
+    expect(P.build({ id: 'doodle-bluff' }, 't-orange', pic('doodle-bluff')).node.querySelectorAll('.pg-doodle').length).toBe(0);
     // without an example every card reads as before
     expect(text(P.build({ id: 'live-poll' }, 't-green', pic('live-poll')).node)).toContain('Got it!');
     expect(P.build({ id: 'snowball' }, 't-cyan', pic('snowball')).hover).toBe('What is the most important idea from this unit?');
@@ -248,6 +279,8 @@ describe('the pages', () => {
     expect(at('/shared/class-picker.js')).toBeGreaterThan(at('/shared/dialog.js'));
     expect(at('/shared/class-examples.js')).toBeGreaterThan(-1);
     expect(at('/shared/class-examples.js')).toBeLessThan(at('<script src="/shared/yard-prints.js">'));
+    expect(at('<script src="/shared/yard-doodles.js">')).toBeGreaterThan(-1);
+    expect(at('<script src="/shared/yard-doodles.js">')).toBeLessThan(at('<script src="/shared/yard-pictograms.js">'));
     expect(html).toContain('<link rel="stylesheet" href="/shared/class-picker.css">');
     expect(html).toContain('id="class-panel" hidden');
     expect(html).toContain('.class-panel[hidden] { display: none; }');
