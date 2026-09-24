@@ -181,7 +181,7 @@
     return byId || byName || bySlug || null;
   }
 
-  function escapeRe(str) { return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\  var CARD_ROTS = ['); }
+  function escapeRe(str) { return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
   var TOPIC_MAX = 16;
   function cutTopic(text) {

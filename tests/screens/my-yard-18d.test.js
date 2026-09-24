@@ -98,6 +98,10 @@ describe('my yard 18d: what is yours prints as yours', () => {
     expect(YP.topicOf({ name: 'Snowball (my version)', glimpse: { prompt: 'Which cause of WWI mattered most?' } }, snow)).toBe('WHICH CAUSE OF');
     // the template's own question is not the teacher's words: no word block
     expect(YP.topicOf({ name: 'Snowball (my version)', glimpse: { prompt: snow.glimpse.prompt } }, snow)).toBe('');
+    // a template name with a regex character (Whose Eyes?) must not throw
+    const eyes = { id: 'whose-eyes', name: 'Whose Eyes?', glimpse: { prompt: 'Name one person.' } };
+    expect(YP.topicOf({ name: 'Whose Eyes? Homework' }, eyes)).toBe('HOMEWORK');
+    expect(YP.topicOf({ name: 'Whose Eyes? (my version)', glimpse: { prompt: 'Name one person.' } }, eyes)).toBe('');
     expect(YP.initialsOf({ name: 'Squid Facts Relay' })).toBe('SFR');
     expect(YP.initialsOf({ name: 'The Tournament of Penguins' })).toBe('TP');
     expect(YP.ownDetails({ name: 'Squid Facts Relay' }, null)).toEqual({ kicker: 'MADE WITH AI', templateId: null, topic: '', initials: 'SFR', ownPrompt: '' });
