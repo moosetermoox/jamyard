@@ -231,6 +231,20 @@ body.is-opening .print-screen { opacity: 0.55; }
   clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
 }
 
+/* The chip as a box to type in: the same paint and cut, a paper ring
+   when it has focus (an outline would be clipped away) */
+.print-choice-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  outline: none;
+  cursor: text;
+  min-width: 0;
+}
+.print-choice-input:focus { box-shadow: inset 0 0 0 3px var(--t-paper); }
+.print-choice-input::placeholder { color: rgba(253, 249, 240, 0.7); }
+
 .choice-0 { background: var(--t-cyan); transform: rotate(-0.6deg); }
 .choice-1 { background: var(--t-magenta); transform: rotate(0.5deg); }
 .choice-2 { background: var(--t-orange); transform: rotate(0.6deg); }

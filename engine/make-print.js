@@ -92,6 +92,10 @@ export function printFor(config) {
     instruction: typeof phase.instruction === 'string' ? phase.instruction : null,
     fields,
     choices,
+    // A pick-one step's own plain choices (Live Poll's four) are the
+    // teacher's to change on the page (2026-09-24); a quiz's first
+    // question's choices belong to its panel
+    choicesEditable: phase.type === 'collect-choice' && Array.isArray(phase.choices) && phase.choices.length > 0 && phase.choices.every((c) => isPlainText(c)),
     timer: typeof phase.timer === 'number' ? phase.timer : null,
     // A recipe-born copy recompiles from its stamp; its timer belongs to
     // the recipe (a knob when the recipe offers one), not to this page.
