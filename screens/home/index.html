@@ -418,9 +418,10 @@
 
     /* Your class (2026-09-24): a setting on the same row, sanded not
        paper, so it reads as a different kind of chip from the four jobs.
+       First on the left (owner's call), the jobs pushed to the right.
        Open, it is lit like a picked job. */
     .goal-chip.class-chip {
-      margin-left: auto;
+      margin-right: auto;
       background: var(--t-sanded);
       background-image: var(--t-grain);
     }
@@ -1145,15 +1146,7 @@
       function renderChips() {
         var groups = [{ key: null, job: 'All' }].concat(window.GoalGroups ? GoalGroups.GROUPS : []);
         chipsEl.textContent = '';
-        groups.forEach(function (group, i) {
-          var chip = el('button', 'goal-chip t-lift' + (group.key === activeGoal ? ' active' : ''), group.job);
-          chip.setAttribute('data-goal', group.key);
-          chip.type = 'button';
-          chip.style.setProperty('--rot', i % 2 === 0 ? '-0.8deg' : '0.8deg');
-          chip.setAttribute('aria-pressed', group.key === activeGoal ? 'true' : 'false');
-          chip.addEventListener('click', function () { setGoal(group.key); });
-          chipsEl.appendChild(chip);
-        });
+        // Your class first, on the left; the jobs after it, on the right
         if (window.TeacherProfile && window.ClassExamples && classPanel) {
           var cls = el('button', 'goal-chip class-chip t-lift' + (classOpen ? ' active' : ''), classChipLabel());
           cls.type = 'button';
@@ -1163,6 +1156,15 @@
           cls.addEventListener('click', function () { setClassOpen(!classOpen); });
           chipsEl.appendChild(cls);
         }
+        groups.forEach(function (group, i) {
+          var chip = el('button', 'goal-chip t-lift' + (group.key === activeGoal ? ' active' : ''), group.job);
+          chip.setAttribute('data-goal', group.key);
+          chip.type = 'button';
+          chip.style.setProperty('--rot', i % 2 === 0 ? '-0.8deg' : '0.8deg');
+          chip.setAttribute('aria-pressed', group.key === activeGoal ? 'true' : 'false');
+          chip.addEventListener('click', function () { setGoal(group.key); });
+          chipsEl.appendChild(chip);
+        });
       }
 
       // ── The activity popup: what it is, what happens (the map), then
