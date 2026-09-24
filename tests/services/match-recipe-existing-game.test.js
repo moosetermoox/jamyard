@@ -128,4 +128,51 @@ describe('matchRecipe with a ready-made activity catalog', () => {
     expect(result.recipe).toBe('question-share');
     expect(result.game).toBeUndefined();
   });
+
+  // 2026-09-23, a reviewer's try: "a five-minute anonymous history poll
+  // about causes of the American Revolution" with four choices came back
+  // as the Live Poll built-in, and Make it yours opened the default
+  // question about today's lesson. The built-in IS the live-poll recipe
+  // with its defaults; the prompt now says so and asks for the recipe
+  // whenever the idea carries its own question or choices.
+  describe('recipe-born built-ins', () => {
+    const recipesWithPoll = recipes.concat([
+      { id: 'live-poll', name: 'Live Poll', description: 'One question, a bar chart.', parameters: { question: { type: 'string', required: true }, choices: { type: 'array', minItems: 2, maxItems: 8 } } }
+    ]);
+    const gamesWithPoll = games.concat([
+      { id: 'live-poll', name: 'Live Poll', description: 'One question, the chart grows.', playTime: '~5 min', recipe: 'live-poll' }
+    ]);
+
+    async function systemFor(gameList) {
+      const service = new AIService({ mode: 'real' });
+      let system = '';
+      service._callClaude = async (params) => {
+        system = params.system;
+        return textResponse({ recipe: 'live-poll', params: { question: 'Q', choices: ['a', 'b'] } });
+      };
+      await service.matchRecipe('an anonymous poll with four choices', recipesWithPoll, { games: gameList });
+      return system;
+    }
+
+    it('tags a recipe-born built-in with its recipe and carries the rule', async () => {
+      const system = await systemFor(gamesWithPoll);
+      expect(system).toContain('- live-poll: Live Poll.');
+      expect(system).toContain('[built from the "live-poll" recipe with its default content]');
+      expect(system).toContain('answer with THAT RECIPE under option 1');
+      expect(system).toContain('point at the ready-made one only when the idea names no content of its own');
+    });
+
+    it('leaves a hand-made built-in untagged and drops the rule when none is recipe-born', async () => {
+      const system = await systemFor(games);
+      expect(system).toContain('- snowball: Snowball.');
+      expect(system).not.toContain('[built from the');
+      expect(system).not.toContain('answer with THAT RECIPE');
+    });
+
+    it('tells the AI to keep the teacher\'s own answer choices, all of them, in their order', async () => {
+      const system = await systemFor(gamesWithPoll);
+      expect(system).toContain('use THEIR choices, all of them, in their order and wording');
+      expect(system).not.toContain('generate 3-5 sensible options based on the teacher\'s description.');
+    });
+  });
 });

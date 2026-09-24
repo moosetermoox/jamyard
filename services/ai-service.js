@@ -2362,8 +2362,11 @@ ${params || '    (none)'}`;
     // a dead end for the teacher.
     const gameLines = (!forced && games.length)
       ? games.map(g =>
-          `- ${g.id}: ${g.name}. ${String(g.description || '').slice(0, 160)}${g.playTime ? ' (' + g.playTime + ')' : ''}`)
+          `- ${g.id}: ${g.name}. ${String(g.description || '').slice(0, 160)}${g.playTime ? ' (' + g.playTime + ')' : ''}${g.recipe ? ' [built from the "' + g.recipe + '" recipe with its default content]' : ''}`)
       : [];
+    const recipeBornRule = gameLines.some(l => l.includes('[built from the'))
+      ? `   A ready-made activity marked "built from a recipe" is that recipe with its default question and choices. When the teacher's idea carries its own question, answer choices, topic, or list, answer with THAT RECIPE under option 1 and fill its parameters with their content, so their wording travels; point at the ready-made one only when the idea names no content of its own.\n`
+      : '';
     const gamesSection = gameLines.length
       ? `\n# Ready-made activities\n\nFinished activities that already exist on the platform, referenced by option 0 below:\n${gameLines.join('\n')}\n`
       : '';
@@ -2376,7 +2379,7 @@ ${params || '    (none)'}`;
      "alternates": [ up to 2 recipes that could also take the idea, same shape as in option 1 ]
    }
    Prefer this over forcing the idea into a recipe that only half fits, and over refusing. Only the mechanic matters for this call: a ready-made activity about a different topic but the exact same play pattern is a better answer than a topical recipe with the wrong mechanic.
-
+${recipeBornRule}
 `
       : '';
 
@@ -2436,7 +2439,7 @@ ${jobSection}
 # Parameter-filling rules
 
 - Use the teacher's exact wording for prompts/questions when possible, don't paraphrase their pedagogical intent.
-- For "choices" arrays, generate 3-5 sensible options based on the teacher's description.
+- For "choices" arrays, when the teacher lists the answer choices, use THEIR choices, all of them, in their order and wording; generate 3-5 sensible options only when they gave none.
 - For timer values, default to the recipe's default unless the teacher specifies a duration.
 - Never claim the activity fits a time limit or timeline. The server computes the real running time from the timers and tells the teacher itself; your explanation is about fit of mechanic, not minutes.
 - For enum parameters, pick the value that best matches the teacher's tone.
