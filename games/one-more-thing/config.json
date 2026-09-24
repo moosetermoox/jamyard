@@ -13,39 +13,39 @@
   "minPlayers": 3,
   "sampleAnswers": {
     "recall": [
-      "Plants make their own food from sunlight\nIt happens in the leaves\nThey need water and carbon dioxide",
-      "Photosynthesis happens in chloroplasts\nChlorophyll makes leaves green\nOxygen comes out as a waste product",
-      "Sunlight plus water plus carbon dioxide makes sugar and oxygen\nThe sugar is glucose\nPlants store extra as starch",
-      "Carbon dioxide comes in through tiny holes in the leaves\nThe holes are called stomata\nWater comes up from the roots",
-      "The equation has to balance\nIt is the opposite of respiration\nAnimals depend on it for oxygen",
-      "It only happens when there is light\nThe leaf is like a solar panel\nWithout it there is no food chain",
-      "Glucose is the plant's energy\nChlorophyll absorbs red and blue light, not green\nThat is why leaves look green",
-      "Roots bring water, leaves catch light\nCarbon dioxide comes from the air\nOxygen goes back into the air"
+      "The assassination of Archduke Franz Ferdinand started it\nIt happened in Sarajevo in June 1914\nA Serbian nationalist shot him",
+      "Europe was split into two alliances\nGermany and Austria-Hungary on one side\nFrance, Russia, and Britain on the other",
+      "Countries had been building up their armies for years\nGermany and Britain raced to build battleships\nEveryone expected a war eventually",
+      "Nationalism made countries want to prove they were strongest\nSerbia wanted to unite the Slavic peoples\nAustria-Hungary saw that as a threat",
+      "Imperialism: the big powers competed for colonies\nThat caused rivalries in Africa and Asia\nThe rivalries came home to Europe",
+      "The alliances turned one shooting into a world war\nAustria-Hungary declared war on Serbia\nRussia backed Serbia, then Germany backed Austria-Hungary",
+      "MAIN: militarism, alliances, imperialism, nationalism\nThe assassination was the spark\nThe four causes were the fuel",
+      "Germany had a plan to beat France fast by going through Belgium\nBritain had promised to protect Belgium\nThat is what brought Britain in"
     ],
     "add-one": {
       "respondsTo": "recall",
       "lines": [
-        "Also: the food it makes is a sugar called glucose",
-        "Missing: it needs water from the roots too",
-        "Add: all of this happens inside the chloroplasts",
-        "Also: sunlight is the energy that powers the whole thing",
-        "Missing: the outputs are glucose and oxygen",
-        "Add: the green pigment that catches the light is chlorophyll",
-        "Missing: carbon dioxide gets in through the stomata",
-        "Also: extra glucose gets stored as starch"
+        "Also: the alliances are why one shooting pulled in the whole continent",
+        "Missing: Italy was in the first alliance too, and switched sides later",
+        "Add: the arms race made every country feel it had to strike first",
+        "Also: Austria-Hungary ruled over millions of Slavs who wanted their own countries",
+        "Missing: Germany came late to empire-building and felt left out",
+        "Add: Germany's plan to beat France first is why Belgium got invaded",
+        "Also: the spark was the shooting in Sarajevo, June 1914",
+        "Missing: Russia mobilized first, and Germany used that as its reason to declare war"
       ]
     },
     "add-again": {
       "respondsTo": "recall",
       "lines": [
-        "Connection: this is why cutting down forests matters for the air we breathe",
-        "Add: photosynthesis and respiration are opposites of each other",
-        "Missing: the whole food chain starts here",
-        "Add: less light means less photosynthesis, which is why plants lean toward windows",
-        "Connection: the oxygen in this room came out of a leaf",
-        "Add: the glucose also builds the plant's body, not just its energy",
-        "Missing: chlorophyll absorbs red and blue light and reflects green",
-        "Add: the equation balances, six of each on both sides"
+        "Connection: some of the alliance treaties were secret, so nobody knew how big the war would get",
+        "Add: the alliances were meant to keep the peace by making war too costly, and it backfired",
+        "Missing: the war plans ran on railway timetables, so once mobilization started nobody could stop it",
+        "Connection: nationalism is why neither Serbia nor Austria-Hungary could back down",
+        "Add: the scramble for colonies had already brought Germany and France close to war over Morocco",
+        "Missing: it took about five weeks from the shooting to the whole continent being at war",
+        "Add: the four causes had been there for years, the spark just set them off",
+        "Connection: Britain joined for Belgium, and also to stop Germany from dominating Europe"
       ]
     }
   },
