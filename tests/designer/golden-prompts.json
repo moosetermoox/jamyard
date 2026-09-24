@@ -337,6 +337,12 @@
         }
       },
       "note": "The owner's own live try (2026-09-21): the matcher sent it to Creative Vote (a text box) once and Draw Gallery (no vote) twice; every recipe's answer box is typed, so a drawing idea with a vote is the step builder's (draw then vote). No acceptAlso: the vote is the heart, so Draw Gallery is not a defensible answer here."
+    },
+    {
+      "id": "history-poll-anonymous",
+      "prompt": "A five-minute anonymous poll for my history class: what was the main cause of the American Revolution? The choices are taxation without representation, the Proclamation of 1763, the Boston Massacre, and Enlightenment ideas. Show the results, then we discuss.",
+      "expect": { "kind": "recipe", "recipe": "live-poll", "params": { "question": "What was the main cause of the American Revolution?", "choices": ["Taxation without representation", "The Proclamation of 1763", "The Boston Massacre", "Enlightenment ideas"] }, "acceptAlso": ["recipe:class-poll"] },
+      "note": "A reviewer's try (2026-09-23): the matcher answered with the Live Poll built-in (\"Good news: this already exists\") and Make it yours opened the default question about today's lesson, names Shown. The built-in is the live-poll recipe with its defaults, so the answer is the recipe with the teacher's question and all four of their choices; the route refits a recipe-born pick to its recipe as the net, and reads \"anonymous\" itself. No host: answer: the whole point is the content traveling."
     }
   ]
 }

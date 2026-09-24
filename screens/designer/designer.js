@@ -1733,6 +1733,22 @@ function renderMatchPreview(modal, data, overlay, description) {
 
     paramsList.appendChild(row);
   }
+  // Settings the idea named in plain words and the server read
+  // ("anonymous" = student names hidden), shown as their own row so the
+  // teacher sees the ask landed before the copy is saved (2026-09-23).
+  if (data.settings && typeof data.settings.anonymous === 'boolean') {
+    var settingRow = document.createElement('div');
+    settingRow.className = 'ai-match-param-row';
+    var settingLabel = document.createElement('div');
+    settingLabel.className = 'ai-match-param-label';
+    settingLabel.textContent = 'Student names';
+    settingRow.appendChild(settingLabel);
+    var settingValue = document.createElement('div');
+    settingValue.className = 'ai-match-param-value';
+    settingValue.textContent = data.settings.anonymous ? 'Hidden' : 'Shown';
+    settingRow.appendChild(settingValue);
+    paramsList.appendChild(settingRow);
+  }
   modal.appendChild(paramsList);
 
   // The matched activity's map: what those settings actually build.
@@ -1841,6 +1857,17 @@ function renderExistingGameView(modal, data, overlay, description) {
     explain.textContent = data.explanation;
     modal.appendChild(explain);
   }
+
+  // Say what this door does before the teacher walks through it: the
+  // finished activity opens as it is, their wording is not carried over
+  // (a reviewer's first fix, 2026-09-23: "Did I do something wrong? Do I
+  // have to repeat everything?").
+  var asIs = document.createElement('p');
+  asIs.className = 'recipe-form-description ai-match-as-is';
+  var hasAlternates = Array.isArray(data.alternates) && data.alternates.length > 0;
+  asIs.textContent = 'This is the finished activity as it is in the yard, with its own question and wording. What you typed is not copied into it. Make it yours opens it with every line editable' +
+    (hasAlternates ? ', or pick one of the recipes below to build it from your idea.' : '.');
+  modal.appendChild(asIs);
 
   // Running time against the minutes the teacher asked for (report only:
   // the copy is made from the yard, so there is no config to trim here).
