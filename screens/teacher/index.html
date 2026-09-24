@@ -19,7 +19,7 @@
       <span class="logo">Teacher view</span>
     </span>
     <a id="header-report" class="header-report" target="_blank" rel="noopener" hidden
-       title="A printable record of everything the class has made so far">Activity report</a>
+       title="A printable record of everything the class has made so far. Print it or save the PDF to keep it; it is gone when the room closes">Activity report</a>
     <span id="header-room" class="header-room" hidden></span>
   </header>
 
@@ -44,6 +44,20 @@
     <!-- The projector's socket dropped: students who join now reach this
          console and nothing else until the host tab rebinds. -->
     <p id="projector-notice" class="projector-notice" hidden>The projector screen is not connected. Reload the host tab on the projector and it will pick this room back up.</p>
+
+    <!-- Before you project: which screen goes on the projector and where the
+         private answers appear, at the moment the teacher first looks for
+         it (a reviewer, 2026-09-23: "I had to assemble the workflow
+         myself"). Once per browser (Got it), never inside Try it out. -->
+    <div id="setup-card" class="report-card setup-card" hidden>
+      <h2>Before you project</h2>
+      <p class="block-hint"><strong>One laptop:</strong> set your display to extend, not duplicate. Drag the projector tab (it opened in front of this one) onto the projector and keep this tab on your own screen. Nothing on this screen ever reaches the projector.</p>
+      <p class="block-hint"><strong>Laptop plus a phone or a second device:</strong> project the projector tab from the laptop. On the other device, open the link from <strong>Copy teacher link</strong> (bottom corner of the projector) and this console appears there too.</p>
+      <p class="block-hint">Private answers land here, under Live entries, and in the activity report at the end. A private step, an exit ticket for one, puts only the question and a count on the projector, never an answer.</p>
+      <div class="btn-row">
+        <button id="setup-dismiss-btn" class="report-dismiss-btn" title="Hide this, it will not come back on this browser">Got it</button>
+      </div>
+    </div>
 
     <!-- Lobby: who's in + the start control -->
     <div id="lobby-block" hidden>
@@ -132,7 +146,7 @@
          the room is open, so this has to catch the teacher before they go. -->
     <div id="report-card" class="report-card" hidden>
       <h2>Save a record of this activity</h2>
-      <p class="block-hint">The activity report shows everything the class made, ready to print or save as a PDF. It isn't stored anywhere, once the room closes it's gone.</p>
+      <p class="block-hint">The activity report shows everything the class made, ready to print or save as a PDF. It is built from the live room and is not stored anywhere: printing it or saving the PDF is what keeps it. Once the room closes it is gone, and a copied link will not bring it back.</p>
       <div class="btn-row">
         <a id="report-open-btn" class="btn-go report-open-btn" target="_blank" rel="noopener"
            title="Opens the printable report in a new tab">Open the report ▸</a>
