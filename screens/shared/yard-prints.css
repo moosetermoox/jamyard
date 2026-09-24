@@ -262,6 +262,47 @@
 .pg-join.pg-join-words { left: 64px; top: 9px; }
 .pg-join-words .pg-b { white-space: nowrap; }
 
+/* A name over a slip, the fold picture's way of saying whose it is */
+.pg-named {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.pg-name {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  line-height: 1;
+  padding-left: 3px;
+  min-height: 9px;
+}
+.pg-plus {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--t-muted-caps);
+  padding-bottom: 5px;
+}
+
+/* Someone's Got You: the reply set in under the note */
+.pg-reply {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding-left: 12px;
+}
+.pg-reply-mark {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--t-muted-caps);
+  padding-top: 12px;
+}
+
 /* Snowball: the pair's own "We agree" stamped on the plank's corner */
 .pg-stamped { position: relative; }
 .pg-stamp {
@@ -299,6 +340,8 @@ span.pg-arrive { display: inline-block; }
   box-sizing: border-box;
 }
 .pg-slip.t-paper { background-image: none; }
+/* Reading text on the darker paints is paper, as the Totem buttons are */
+.pg-slip.t-magenta, .pg-slip.t-cyan, .pg-slip.t-green { color: var(--t-paper); }
 .pg-slip-small { font-size: 10px; padding: 4px 6px 5px; }
 
 .pg-caps {

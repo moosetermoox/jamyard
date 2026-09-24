@@ -161,11 +161,12 @@ describe('the pictograms', () => {
   // asks the question), never the glimpse's prompt over the same words.
   it('the six content cards say so, carry the activity\'s own words, and choose their hover line', () => {
     const P = globalThis.YardPictograms;
-    expect([...P.CONTENT_IDS].sort()).toEqual(['art-gallery', 'both-sides-rope', 'closer', 'live-poll', 'snowball', 'vocab-match', 'whose-eyes']);
+    expect([...P.CONTENT_IDS].sort()).toEqual(['art-gallery', 'both-sides-rope', 'closer', 'live-poll', 'snowball', 'someones-got-you', 'vocab-match', 'whose-eyes']);
     const words = {
       'live-poll': ['How are you feeling about today\'s lesson?', 'Got it!', 'Lost'],
       'art-gallery': ['Draw your dream invention.'],
-      'snowball': ['Make the pieces the same size.', 'Same-size pieces, then add.', 'We agree'],
+      'snowball': ['Maya', 'Jordan', 'Just division.', 'Equal pieces.', 'Just division, equal pieces.', 'Maya + Jordan', 'We agree'],
+      'someones-got-you': ['Maya', 'Trying to get more sleep.', 'One early night this week is a real win.', 'Jordan'],
       'both-sides-rope': ['Homework should be optional.', 'Yes', 'No', 'Where do you stand now?'],
       'vocab-match': ['Match each term to its meaning.', 'simile', 'hyperbole', 'compares with like or as'],
       'whose-eyes': ['Homework', 'a parent', 'asleep when it gets done'],
@@ -187,6 +188,9 @@ describe('the pictograms', () => {
     expect(P.build({ id: 'vocab-match' }, 't-green').hover).toBeNull();
     expect(P.build({ id: 'snowball' }, 't-cyan').hover).toBe('What is the most important idea from this unit?');
     expect(P.build({ id: 'closer' }, 't-magenta').hover.length).toBeLessThan(50);
+    expect(P.build({ id: 'someones-got-you' }, 't-magenta').hover).toBe('Someone wrote this for you:');
+    // the classmate's name is what lands on Someone's Got You
+    expect(P.build({ id: 'someones-got-you' }, 't-magenta').node.querySelector('.pg-arrive').firstChild.textContent).toBe('Jordan');
     // the classic cards keep the glimpse's prompt (hover undefined, content false)
     const classic = P.build({ id: 'exit-ticket' }, 't-green');
     expect(classic.content).toBe(false);

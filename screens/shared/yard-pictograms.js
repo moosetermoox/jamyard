@@ -178,6 +178,15 @@
     fish: ['M6 25 C 18 8, 40 8, 48 25 C 40 42, 18 42, 6 25 Z', 'M48 25 L57 14 L57 36 Z', 'M18 22 v1', 'M26 18 C 30 24, 30 30, 26 34']
   };
 
+  // A slip with a name over it (the fold picture's Maya and Jordan):
+  // whose idea this is, without a word of ours
+  function named(name, slipNode) {
+    var c = el('div', 'pg-named');
+    c.appendChild(el('span', 'pg-name', name));
+    c.appendChild(slipNode);
+    return c;
+  }
+
   // A person plank: a head over a body, in a tone
   function person(tone, rot) {
     var p = el('div', 'pg-person');
@@ -245,31 +254,49 @@
 
 
 
-    // two answers written alone funnel into the pair's one answer, in
-    // yellow; "We agree" (the pair's own button) lands on its corner
+
+    // Maya's idea plus Jordan's idea, funnelled into the pair's one
+    // answer that holds both, under both names; "We agree" (the pair's
+    // own button) lands on its corner
     'snowball': function (paint) {
+      var plus = el('span', 'pg-plus', '+');
+      plus.setAttribute('aria-hidden', 'true');
       var alone = row([
-        slip('Make the pieces the same size.', 't-paper', 92, -1.2, { shadow: true, small: true }),
-        slip('You can\'t add different sizes.', 't-paper', 92, 1.2, { shadow: true, small: true })
-      ], 10, 'stretch');
+        named('Maya', slip('Just division.', 't-paper', 84, -1.2, { shadow: true, small: true })),
+        plus,
+        named('Jordan', slip('Equal pieces.', 't-paper', 84, 1.2, { shadow: true, small: true }))
+      ], 6, 'flex-end');
       var funnel = el('div', 'pg-funnel');
       funnel.appendChild(block(34, 3, paint, 32, { flat: true }));
       funnel.appendChild(block(34, 3, paint, -32, { flat: true }));
-      var together = slip('Same-size pieces, then add.', 't-yellow', 176, -0.8, { small: true });
+      var together = slip('Just division, equal pieces.', 't-yellow', 176, -0.8, { small: true });
       var stamp = el('div', 'pg-stamp');
       stamp.appendChild(arrive(el('span', 'pg-tag t-paper pg-shadow', 'We agree')));
       var plank = el('div', 'pg-stamped');
       plank.appendChild(together);
       plank.appendChild(stamp);
-      return col([alone, funnel, plank], 5, 'center');
+      return col([alone, funnel, named('Maya + Jordan', plank)], 3, 'center');
     },
     // letter blocks over a three-line checklist, two done; the last check arrives
     'solo-quiz': function (paint) {
       return col([letters('LKXH', paint), checklist(3, 90, paint)], 12, 'center');
     },
-    // your goal (one need-colour block); a classmate's line lands on it
+
+    // Maya's one real thing, in the need colour; under it, set in like a
+    // reply, the line a classmate wrote for her; the classmate's name
+    // lands on hover, the someone in Someone's Got You
     'someones-got-you': function (paint) {
-      return stack([arrive(block(66, 14, 't-paper', 1.4, { shadow: true })), block(58, 14, paint, -1.4)]);
+      var mine = named('Maya', slip('Trying to get more sleep.', paint, 150, -1, { small: true }));
+      var reply = el('div', 'pg-reply');
+      reply.appendChild(el('span', 'pg-reply-mark', '\u21b3'));
+      var replySlip = slip('One early night this week is a real win.', 't-paper', 150, 1, { shadow: true, small: true });
+      var who = el('div', 'pg-named');
+      var name = el('span', 'pg-name');
+      name.appendChild(arrive(el('span', undefined, 'Jordan')));
+      who.appendChild(name);
+      who.appendChild(replySlip);
+      reply.appendChild(who);
+      return col([mine, reply], 6, 'flex-start');
     },
 
 
@@ -376,7 +403,8 @@
     'both-sides-rope': null,
     'vocab-match': null,
     'whose-eyes': 'Answer as that person or thing.',
-    'closer': 'You and a partner answer out loud.'
+    'closer': 'You and a partner answer out loud.',
+    'someones-got-you': 'Someone wrote this for you:'
   };
   var CONTENT_IDS = Object.keys(HOVER_LINES);
 
