@@ -49,7 +49,15 @@
   // {mine, shed, rest}: the shelf in its own order (hearted first, then
   // recently used, then newest-saved), the shed, and the rest of the
   // yard. Duplicate rows (a disk and a DB copy) render once.
+  // Every row the page knows, kept from the last split so a shelf print
+  // can find the built-in it was copied from (18d)
+  var allGames = [];
+  function templateOf(g) {
+    return window.YardPrints && YardPrints.templateOf ? YardPrints.templateOf(g, allGames) : null;
+  }
+
   function split(games, opts) {
+    allGames = games || [];
     var query = (opts && opts.query) || '';
     var P = prefs();
     var placed = {};
@@ -124,13 +132,16 @@
   }
 
   // One print on the shelf: the grid's own print (the hover card comes
-  // with it) with a row of tiny tools ON it, along the paper's bottom
-  // margin under the picture. The tools sit beside the card in the DOM,
-  // never inside it (the card is itself a button); the wrapper takes the
-  // card's tilt so the tools turn with the paper.
+  // with it) with a row of tiny tools under its name row (18d, 2026-09-24;
+  // they sat on the paper's bottom margin before). The tools sit beside
+  // the card in the DOM, never inside it (the card is itself a button);
+  // the wrapper takes the card's tilt so the tools turn with the paper.
   function buildShelfPrint(game, index, opts) {
     var item = el('div', 'shelf-item');
-    var card = YardPrints.buildCard(game, index, { onClick: function (g) { if (opts.onOpen) opts.onOpen(g); } });
+    // A teacher's own copy prints on a sanded mat with its own words on
+    // the block and the template's name over its own (18d)
+    var own = isOwn(game.id) && YardPrints.ownDetails ? YardPrints.ownDetails(game, templateOf(game)) : null;
+    var card = YardPrints.buildCard(game, index, { onClick: function (g) { if (opts.onOpen) opts.onOpen(g); }, own: own });
     card.setAttribute('aria-label', game.name + ', see what it is and make it yours');
     item.style.setProperty('--rot', card.style.getPropertyValue('--rot') || '0deg');
     card.style.setProperty('--rot', '0deg');
@@ -172,6 +183,15 @@
     });
     tools.appendChild(heart);
 
+    // Share: the popup's link, from the shelf (18d); own copies only
+    if (isOwn(game.id)) {
+      var share = shelfTool('button', 'share', 'Copy a share link for "' + game.name + '"');
+      share.type = 'button';
+      share.title = 'Copy a link another teacher can open to save their own copy';
+      share.addEventListener('click', function () { copyShareLink(game.id, share, flashTool(share)); });
+      tools.appendChild(share);
+    }
+
     if (editable) {
       var bin = shelfTool('button', 'bin', 'Delete "' + game.name + '"');
       bin.type = 'button';
@@ -184,11 +204,23 @@
     return item;
   }
 
+  // "Link copied!" beside a tool for a moment (a tool holds a mark, not
+  // text, so the popup button's own flash cannot be reused)
+  function flashTool(tool) {
+    return function () {
+      var tag = el('span', 'shelf-flash', 'Link copied!');
+      tag.setAttribute('role', 'status');
+      tool.parentNode.appendChild(tag);
+      setTimeout(function () { if (tag.parentNode) tag.parentNode.removeChild(tag); }, 1800);
+    };
+  }
+
   // A 24px paper square holding one drawn mark (ink strokes, no emoji).
   var SHELF_ICONS = {
     play: { d: 'M4.5 2.5 L13 8 L4.5 13.5 Z', fill: true },
     pen: { d: 'M2.5 13.5 L3.3 10.2 L10.6 2.9 L13.1 5.4 L5.8 12.7 Z M9.4 4.1 L11.9 6.6', fill: false },
     heart: { d: 'M8 13.6 L2.9 8.6 C1.5 7.2 1.6 4.9 3.2 3.8 C4.6 2.8 6.6 3.2 8 4.9 C9.4 3.2 11.4 2.8 12.8 3.8 C14.4 4.9 14.5 7.2 13.1 8.6 Z', fill: false },
+    share: { d: 'M13.6 3.6 a1.7 1.7 0 1 1 -3.4 0 a1.7 1.7 0 1 1 3.4 0 Z M5.7 8 a1.7 1.7 0 1 1 -3.4 0 a1.7 1.7 0 1 1 3.4 0 Z M13.6 12.4 a1.7 1.7 0 1 1 -3.4 0 a1.7 1.7 0 1 1 3.4 0 Z M5.5 7.2 L10.4 4.4 M5.5 8.8 L10.4 11.6', fill: false },
     bin: { d: 'M2.8 4.3 H13.2 M6 4.3 V2.6 H10 V4.3 M4.3 4.3 L5 13.4 H11 L11.7 4.3 M6.9 6.8 V11.2 M9.1 6.8 V11.2', fill: false }
   };
 
@@ -350,9 +382,9 @@
 
   // Copies the share link to the clipboard; the button itself reports
   // success. Same clipboard fallback ladder as the host screen's join link.
-  function copyShareLink(id, btn) {
+  function copyShareLink(id, btn, flashFn) {
     var link = location.origin + '/share/' + encodeURIComponent(id);
-    var flash = function () {
+    var flash = flashFn || function () {
       var old = btn.textContent;
       btn.textContent = 'Link copied!';
       setTimeout(function () { btn.textContent = old; }, 1800);

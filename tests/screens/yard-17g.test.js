@@ -399,7 +399,7 @@ describe('the yard on the home page', () => {
     expect(js).toContain('if (HOVER_CARD && window.HoverCard) HoverCard.attach(card, AI_DOOR);');
   });
 
-  it('the shelf\'s tools sit under the taller window', () => {
-    expect(shelfCss).toContain('top: 173px; /* 9px paper + 156px window + 8px */');
+  it('the shelf\'s tools sit under the name row (18d)', () => {
+    expect(shelfCss).toMatch(/\.shelf-tools \{[^}]*margin-top: 8px/);
   });
 });

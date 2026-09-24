@@ -94,15 +94,33 @@
    name once made a print 1978px wide and the shelf overlapped itself. */
 .shelf-item .yard-card { width: 100%; }
 
-.shelf-item .yard-print { padding-bottom: 40px; }
-
+/* The tools sit under the name row (18d, 2026-09-24), five paper
+   squares in a row; they lift with the card */
 .shelf-tools {
-  position: absolute;
-  top: 173px; /* 9px paper + 156px window + 8px */
-  left: 14px;
+  position: relative;
   display: flex;
-  gap: 5px;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 0 3px;
   transition: transform var(--t-quick, 120ms) var(--t-ease, ease);
+}
+
+.shelf-flash {
+  position: absolute;
+  left: 0;
+  top: -26px;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 8px 5px;
+  background: var(--t-yellow, #FFC800);
+  color: var(--t-ink, #2A2620);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.22);
+  transform: rotate(-1.5deg);
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .shelf-item:has(.yard-card:hover) .shelf-tools { transform: translateY(-5px); }
@@ -128,7 +146,8 @@
 .shelf-tool-play { --rot: -1deg; }
 .shelf-tool-pen { --rot: 0.8deg; }
 .shelf-tool-heart { --rot: -0.6deg; }
-.shelf-tool-bin { --rot: 1deg; }
+.shelf-tool-share { --rot: 1deg; }
+.shelf-tool-bin { --rot: -1deg; }
 
 .shelf-tool:hover,
 .shelf-tool:focus-visible { transform: rotate(var(--rot, 0deg)) translateY(-3px); }
