@@ -93,7 +93,7 @@ describe('the authored table', () => {
   it('every entry has the shape its card draws, short enough for its slips', () => {
     const T = globalThis.ClassExamples.TABLE;
     const each = (id, fn) => Object.values(T[id]).forEach((bySubject) => Object.values(bySubject).forEach(fn));
-    each('live-poll', (w) => { expect(w.question.length).toBeLessThan(60); expect(w.choices).toHaveLength(4); w.choices.forEach((c) => expect(c.length).toBeLessThan(24)); });
+    each('live-poll', (w) => { expect(w.question.length).toBeLessThan(60); expect(w.choices).toHaveLength(4); w.choices.forEach((c) => expect(c.length).toBeLessThan(13)); });
     each('snowball', (w) => { expect(w.question.length).toBeLessThan(50); expect(w.a.length).toBeLessThan(18); expect(w.b.length).toBeLessThan(18); expect(w.together.length).toBeLessThan(44); });
     each('vocab-match', (w) => { expect(w.pairs).toHaveLength(6); w.pairs.forEach((p) => { expect(p[0].length).toBeLessThan(15); expect(p[1].length).toBeLessThan(32); }); });
     each('whose-eyes', (w) => { expect(w.tag.length).toBeLessThan(16); expect(w.eyes).toHaveLength(4); w.eyes.forEach((e) => expect(e.length).toBeLessThan(13)); expect(w.line.length).toBeLessThan(48); expect(w.topic.length).toBeGreaterThan(5); });

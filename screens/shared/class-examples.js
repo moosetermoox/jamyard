@@ -49,23 +49,23 @@
     'live-poll': {
       'social-studies': {
         elementary: { question: 'Which community helper would you shadow for a day?', choices: ['Firefighter', 'Nurse', 'Mail carrier', 'Park ranger'] },
-        middle: { question: 'Which cause of the Revolution mattered most?', choices: ['Taxes', 'No say in Parliament', 'Soldiers in homes', 'Boston Massacre'] },
+        middle: { question: 'Which cause of the Revolution mattered most?', choices: ['Taxes', 'No voice', 'Soldiers', 'The Massacre'] },
         high: { question: 'Was the New Deal a success?', choices: ['Yes', 'Mostly', 'Not really', 'No'] }
       },
       english: {
         elementary: { question: 'How did the ending make you feel?', choices: ['Happy', 'Surprised', 'Sad', 'Confused'] },
-        middle: { question: 'Who changed the most by the end of the book?', choices: ['The narrator', 'The best friend', 'The villain', 'Nobody'] },
+        middle: { question: 'Who changed the most by the end of the book?', choices: ['The narrator', 'The friend', 'The villain', 'Nobody'] },
         high: { question: 'Is the narrator reliable?', choices: ['Yes', 'Mostly', 'Not really', 'No'] }
       },
       science: {
         elementary: { question: 'Which one is a living thing?', choices: ['A rock', 'A tree', 'A cloud', 'A fire'] },
         middle: { question: 'Which state of matter is hardest to explain?', choices: ['Solid', 'Liquid', 'Gas', 'Plasma'] },
-        high: { question: 'Which is the strongest evidence for evolution?', choices: ['Fossils', 'DNA', 'Homologous structures', 'Antibiotic resistance'] }
+        high: { question: 'Which is the strongest evidence for evolution?', choices: ['Fossils', 'DNA', 'Anatomy', 'Antibiotics'] }
       },
       math: {
-        elementary: { question: 'Which is bigger?', choices: ['One half', 'One third', 'One fourth', 'They are equal'] },
+        elementary: { question: 'Which is bigger?', choices: ['One half', 'One third', 'One fourth', 'All equal'] },
         middle: { question: 'Which is hardest for you right now?', choices: ['Fractions', 'Negatives', 'Ratios', 'Equations'] },
-        high: { question: 'Which is hardest for you right now?', choices: ['Factoring', 'Logs', 'Trig identities', 'Proofs'] }
+        high: { question: 'Which is hardest for you right now?', choices: ['Factoring', 'Logs', 'Trig', 'Proofs'] }
       },
       languages: {
         elementary: { question: 'Which is the most fun to practice?', choices: ['Listening', 'Speaking', 'Reading', 'Writing'] },
@@ -74,8 +74,8 @@
       },
       advisory: {
         elementary: { question: 'How is your morning going?', choices: ['Great', 'Okay', 'Meh', 'Rough'] },
-        middle: { question: 'How much sleep did you get last night?', choices: ['8 hours or more', '7 hours', '6 hours', 'Less than 6'] },
-        high: { question: 'How stressed are you about this week?', choices: ['Not at all', 'A little', 'Pretty stressed', 'Very'] }
+        middle: { question: 'How much sleep did you get last night?', choices: ['8 or more', '7 hours', '6 hours', 'Less than 6'] },
+        high: { question: 'How stressed are you about this week?', choices: ['Not at all', 'A little', 'Stressed', 'Very'] }
       }
     },
 

@@ -236,6 +236,9 @@
     'live-poll': function (paint, ex) {
       var q = slip(ex ? ex.question : 'How are you feeling about today\'s lesson?', 't-paper', 196, -0.8, { shadow: true, fill: true });
       var labels = ex ? ex.choices : ['Got it!', 'Mostly', 'Confused', 'Lost'];
+      // the label column widens to the longest example word (54px holds the template's)
+      var longest = labels.reduce(function (n, l) { return Math.max(n, String(l).length); }, 0);
+      var labelW = ex ? Math.max(54, Math.min(80, Math.round(longest * 5.4 + 6))) : 0;
       var rows = [
         [labels[0], 78, paint, 12, true],
         [labels[1], 52, 't-birch', 8, false],
@@ -246,7 +249,9 @@
       for (var i = 0; i < rows.length; i++) {
         var r = rows[i];
         var bar = block(r[1], 13, r[2], 0, { flat: true });
-        var parts = [el('span', 'pg-label', r[0]), bar];
+        var label = el('span', 'pg-label', r[0]);
+        if (labelW) label.style.width = labelW + 'px';
+        var parts = [label, bar];
         if (r[4]) parts.push(arrive(block(14, 13, r[2], 0, { flat: true })));
         parts.push(el('span', 'pg-count', String(r[3])));
         bars.push(row(parts, 4));
