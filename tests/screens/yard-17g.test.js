@@ -161,12 +161,13 @@ describe('the pictograms', () => {
   // asks the question), never the glimpse's prompt over the same words.
   it('the six content cards say so, carry the activity\'s own words, and choose their hover line', () => {
     const P = globalThis.YardPictograms;
-    expect([...P.CONTENT_IDS].sort()).toEqual(['art-gallery', 'both-sides-rope', 'closer', 'live-poll', 'snowball', 'whose-eyes']);
+    expect([...P.CONTENT_IDS].sort()).toEqual(['art-gallery', 'both-sides-rope', 'closer', 'live-poll', 'snowball', 'vocab-match', 'whose-eyes']);
     const words = {
       'live-poll': ['How are you feeling about today\'s lesson?', 'Got it!', 'Lost'],
       'art-gallery': ['Draw your dream invention.'],
-      'snowball': ['Listen first.', 'Phones away.', 'We agree'],
-      'both-sides-rope': ['Homework should be optional.', 'Yes', 'No'],
+      'snowball': ['Make the pieces the same size.', 'Same-size pieces, then add.', 'We agree'],
+      'both-sides-rope': ['Homework should be optional.', 'Yes', 'No', 'Where do you stand now?'],
+      'vocab-match': ['Match each term to its meaning.', 'simile', 'hyperbole', 'compares with like or as'],
       'whose-eyes': ['Homework', 'a parent', 'asleep when it gets done'],
       'closer': ['Tier 1 of 3', 'Window seat or aisle seat, and why?']
     };
@@ -183,14 +184,16 @@ describe('the pictograms', () => {
     expect(P.build({ id: 'live-poll' }, 't-green').hover).toBeNull();
     expect(P.build({ id: 'art-gallery' }, 't-orange').hover).toBeNull();
     expect(P.build({ id: 'both-sides-rope' }, 't-cyan').hover).toBeNull();
-    expect(P.build({ id: 'snowball' }, 't-cyan').hover).toBe('What should our class norms be?');
+    expect(P.build({ id: 'vocab-match' }, 't-green').hover).toBeNull();
+    expect(P.build({ id: 'snowball' }, 't-cyan').hover).toBe('What is the most important idea from this unit?');
     expect(P.build({ id: 'closer' }, 't-magenta').hover.length).toBeLessThan(50);
     // the classic cards keep the glimpse's prompt (hover undefined, content false)
     const classic = P.build({ id: 'exit-ticket' }, 't-green');
     expect(classic.content).toBe(false);
     expect(classic.hover).toBeUndefined();
-    // the drawings are SVG strokes on paper squares, four inventions, the fourth arriving
+    // the drawings are SVG strokes on paper squares, a two-by-two wall, the fourth arriving
     const wall = P.build({ id: 'art-gallery' }, 't-orange').node;
+    expect(wall.querySelector('.pg-wall').children.length).toBe(4);
     expect(wall.querySelectorAll('.pg-drawing').length).toBe(4);
     expect(wall.querySelectorAll('.pg-doodle').length).toBe(4);
     expect(wall.querySelector('.pg-arrive .pg-drawing')).not.toBeNull();
@@ -227,7 +230,7 @@ describe('the cards', () => {
     expect(poll.querySelector('.yard-window-content')).not.toBeNull();
     expect(poll.querySelector('.yard-prompt-box')).toBeNull();
     const snow = YP.buildCard({ id: 'snowball', name: 'Snowball', glimpse: { prompt: 'Alone, then pairs, then all of us.' } }, 0, {});
-    expect(snow.querySelector('.yard-prompt').textContent).toBe('What should our class norms be?');
+    expect(snow.querySelector('.yard-prompt').textContent).toBe('What is the most important idea from this unit?');
     const ticket = YP.buildCard({ id: 'exit-ticket', name: 'Exit Ticket', glimpse: { prompt: 'One thing you learned today.' } }, 0, {});
     expect(ticket.querySelector('.yard-window-content')).toBeNull();
     expect(ticket.querySelector('.yard-prompt').textContent).toBe('One thing you learned today.');

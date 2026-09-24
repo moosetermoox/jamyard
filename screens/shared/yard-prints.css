@@ -252,12 +252,24 @@
   clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
 }
 
-/* Vocab Match's joining line sits over the two columns */
+/* Vocab Match's joining line sits over the two columns: from the first
+   term's right edge down to the second meaning */
 .pg-join {
   position: absolute;
   left: 38px;
   top: 8px;
 }
+.pg-join.pg-join-words { left: 64px; top: 9px; }
+.pg-join-words .pg-b { white-space: nowrap; }
+
+/* Snowball: the pair's own "We agree" stamped on the plank's corner */
+.pg-stamped { position: relative; }
+.pg-stamp {
+  position: absolute;
+  right: -8px;
+  top: -17px;
+}
+.pg-stamp .pg-tag { transform: rotate(4deg); }
 
 /* The arrival: the block that appears on hover */
 .pg-arrive {
@@ -318,7 +330,12 @@ span.pg-arrive { display: inline-block; }
   padding-left: 2px;
 }
 
-/* Draw Gallery: a drawing on a paper square */
+/* Draw Gallery: a two-by-two wall of drawings on paper squares */
+.pg-wall {
+  display: grid;
+  grid-template-columns: repeat(2, 44px);
+  gap: 7px;
+}
 .pg-drawing {
   display: flex;
   align-items: center;

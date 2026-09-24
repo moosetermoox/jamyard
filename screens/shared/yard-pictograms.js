@@ -229,35 +229,39 @@
       ], 10, 'center');
     },
 
-    // the drawing prompt over the wall: three student drawings up, the
-    // fourth lands
+
+    // the drawing prompt over the wall: a two-by-two wall, three student
+    // drawings up, the fourth lands
     'art-gallery': function (paint) {
       var q = slip('Draw your dream invention.', 't-paper', 170, 0.8, { shadow: true });
-      var wall = row([
-        doodle(DOODLES.rocket, 't-paper', -2),
-        doodle(DOODLES.robot, 't-paper', 1.5),
-        doodle(DOODLES.bulb, paint, -1),
-        arrive(doodle(DOODLES.fish, 't-paper', 2))
-      ], 7);
-      return col([q, wall], 10, 'center');
+      var wall = el('div', 'pg-wall');
+      wall.appendChild(doodle(DOODLES.rocket, 't-paper', -2));
+      wall.appendChild(doodle(DOODLES.robot, 't-paper', 1.5));
+      wall.appendChild(doodle(DOODLES.bulb, paint, -1));
+      wall.appendChild(arrive(doodle(DOODLES.fish, 't-paper', 2)));
+      return col([q, wall], 8, 'center');
     },
 
 
+
+
     // two answers written alone funnel into the pair's one answer, in
-    // yellow; "We agree" (the pair's own button) lands under it
+    // yellow; "We agree" (the pair's own button) lands on its corner
     'snowball': function (paint) {
       var alone = row([
-        slip('Listen first.', 't-paper', 88, -1.2, { shadow: true, small: true }),
-        slip('Phones away.', 't-paper', 88, 1.2, { shadow: true, small: true })
+        slip('Make the pieces the same size.', 't-paper', 92, -1.2, { shadow: true, small: true }),
+        slip('You can\'t add different sizes.', 't-paper', 92, 1.2, { shadow: true, small: true })
       ], 10, 'stretch');
       var funnel = el('div', 'pg-funnel');
-      var l = block(34, 3, paint, 32, { flat: true });
-      var r = block(34, 3, paint, -32, { flat: true });
-      funnel.appendChild(l);
-      funnel.appendChild(r);
-      var together = slip('Phones away, and listen first.', 't-yellow', 196, -0.8);
-      var agree = el('span', 'pg-tag t-paper pg-shadow', 'We agree');
-      return col([alone, funnel, together, arrive(agree)], 5, 'center');
+      funnel.appendChild(block(34, 3, paint, 32, { flat: true }));
+      funnel.appendChild(block(34, 3, paint, -32, { flat: true }));
+      var together = slip('Same-size pieces, then add.', 't-yellow', 176, -0.8, { small: true });
+      var stamp = el('div', 'pg-stamp');
+      stamp.appendChild(arrive(el('span', 'pg-tag t-paper pg-shadow', 'We agree')));
+      var plank = el('div', 'pg-stamped');
+      plank.appendChild(together);
+      plank.appendChild(stamp);
+      return col([alone, funnel, plank], 5, 'center');
     },
     // letter blocks over a three-line checklist, two done; the last check arrives
     'solo-quiz': function (paint) {
@@ -267,35 +271,41 @@
     'someones-got-you': function (paint) {
       return stack([arrive(block(66, 14, 't-paper', 1.4, { shadow: true })), block(58, 14, paint, -1.4)]);
     },
-    // two columns of three, the same tones shuffled; a yellow line joins a pair
+
+
+    // the prompt, then two terms and their meanings shuffled; a yellow
+    // line joins simile to its meaning
     'vocab-match': function (paint) {
-      var left = col([block(40, 13, 't-birch', -1), block(40, 13, paint, 1), block(40, 13, 't-oak', -1)], 4);
-      var right = col([block(40, 13, paint, 1), block(40, 13, 't-oak', -1), block(40, 13, 't-birch', 1)], 4);
-      var joinWrap = el('div', 'pg-join');
-      var line = block(26, 4, 't-yellow', -34, { flat: true });
+      var q = slip('Match each term to its meaning.', 't-paper', 176, -0.8, { shadow: true });
+      var left = col([slip('simile', paint, 66, -1, { small: true }), slip('hyperbole', 't-birch', 66, 1, { small: true })], 6, 'stretch');
+      var right = col([slip('exaggerates on purpose', 't-oak', 150, 1, { small: true }), slip('compares with like or as', 't-birch', 150, -1, { small: true })], 6, 'stretch');
+      var joinWrap = el('div', 'pg-join pg-join-words');
+      var line = block(31, 4, 't-yellow', 63, { flat: true });
       line.style.transformOrigin = 'left center';
       joinWrap.appendChild(arrive(line));
-      var r = row([left, right], 22);
+      var r = row([left, right], 14, 'flex-start');
       r.style.position = 'relative';
       r.appendChild(joinWrap);
-      return r;
+      return col([q, r], 10, 'center');
     },
     // a pile widening upward from a need-colour base; your list, grown, on top
     'one-more-thing': function (paint) {
       return stack([arrive(block(78, 12, 't-yellow', 1.4)), block(64, 12, 't-birch', -1.4), block(50, 12, 't-pine', 1.4), block(36, 12, paint, -1.4)]);
     },
 
+
     // the claim on top; under it the rope's two ends, YES and NO, each a
-    // pile of evidence on one base; a yellow piece joins the YES end
+    // pile of evidence on one base; the second vote lands under it
     'both-sides-rope': function (paint) {
       var claim = slip('\u201cHomework should be optional.\u201d', 't-paper', 190, -0.8, { shadow: true });
-      var left = stack([arrive(block(34, 12, 't-yellow', 1.4)), block(38, 12, 't-yellow', -1.4), block(42, 12, 't-yellow', 1.4), block(36, 12, 't-yellow', -1.4)], { bare: true });
+      var left = stack([block(34, 12, 't-yellow', 1.4), block(38, 12, 't-yellow', -1.4), block(42, 12, 't-yellow', 1.4), block(36, 12, 't-yellow', -1.4)], { bare: true });
       var right = stack([block(40, 12, paint, 1.4), block(36, 12, paint, -1.4)], { bare: true });
       var yes = col([caps('Yes'), left], 3, 'center');
       var no = col([caps('No'), right], 3, 'center');
       var base = el('div', 'pg-base');
       base.style.width = '118px';
-      return col([claim, col([row([yes, no], 16, 'flex-end'), base], 0, 'center')], 10, 'center');
+      var again = arrive(slip('Where do you stand now?', 't-paper', 150, 0.8, { shadow: true, small: true }));
+      return col([claim, col([row([yes, no], 16, 'flex-end'), base], 0, 'center'), again], 8, 'center');
     },
 
 
@@ -362,8 +372,9 @@
   var HOVER_LINES = {
     'live-poll': null,
     'art-gallery': null,
-    'snowball': 'What should our class norms be?',
+    'snowball': 'What is the most important idea from this unit?',
     'both-sides-rope': null,
+    'vocab-match': null,
     'whose-eyes': 'Answer as that person or thing.',
     'closer': 'You and a partner answer out loud.'
   };
