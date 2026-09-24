@@ -32,6 +32,8 @@ let latestPhaseInstanceId = null;
 socket.onAny(function (_eventName, payload) {
   if (payload && typeof payload === 'object' && payload.phaseInstanceId !== undefined) {
     latestPhaseInstanceId = payload.phaseInstanceId;
+    // The early-bird joke folds away once the activity moves on (below)
+    earlyJokePhaseSeen(payload.phaseInstanceId);
   }
 });
 const _origEmit = socket.emit.bind(socket);
@@ -715,6 +717,30 @@ const earlyJokeDots = document.getElementById('early-joke-dots');
 const earlyJokePunchline = document.getElementById('early-joke-punchline');
 const earlyJokeDismiss = document.getElementById('early-joke-dismiss');
 let earlyJokeTimer = null;
+// The joke belongs to the moment of arriving. It folds away by itself
+// when the room moves to a later step (a reviewer, 2026-09-23: the joke
+// sat above the instructions through the whole activity and the results
+// until tapped). The step the joke was told in is the first phase id
+// seen within a breath of showing it: in a room with a lobby that is
+// null until the first step starts; in a rolling room the current step's
+// own state lands right after the join. Any different id after that is
+// the activity moving on.
+let earlyJokePhase = null;
+let earlyJokeShownAt = 0;
+const EARLY_JOKE_SETTLE_MS = 2000;
+function earlyJokePhaseSeen(id) {
+  if (earlyJokeCard.hidden || earlyJokeDismissed) return;
+  if (id === null || id === undefined) return;
+  if (earlyJokePhase === null && Date.now() - earlyJokeShownAt < EARLY_JOKE_SETTLE_MS) {
+    earlyJokePhase = id;
+    return;
+  }
+  if (id !== earlyJokePhase) {
+    if (earlyJokeTimer) { clearTimeout(earlyJokeTimer); earlyJokeTimer = null; }
+    earlyJokeCard.hidden = true;
+    if (window.FitScreen) FitScreen.fitNow();
+  }
+}
 // joke = { setup, punchline, pauseMs } from the server (engine/early-joke.js
 // splitJoke): the setup shows at once, the punchline lands after the pause
 // (a one-breath joke has no punchline and no pause). A reconnect while the
@@ -728,6 +754,8 @@ function showEarlyJoke(joke) {
     earlyJokeBlock.dataset.tone = String(tone);
   }
   if (earlyJokeTimer) { clearTimeout(earlyJokeTimer); earlyJokeTimer = null; }
+  earlyJokePhase = latestPhaseInstanceId;
+  earlyJokeShownAt = Date.now();
   earlyJokeText.textContent = joke.setup;
   earlyJokePunchline.textContent = typeof joke.punchline === 'string' ? joke.punchline : '';
   const waiting = !!earlyJokePunchline.textContent;

@@ -254,3 +254,45 @@ describe('arrow keys step through students from inside any frame (owner, 2026-09
     expect(guard).toContain('isContentEditable');
   });
 });
+
+// A reviewer's Snowball rehearsal opened with one pretend student, so
+// its pairing never happened until they added more (2026-09-23). The
+// bench seats what the activity's own move needs.
+describe('startingSeats', () => {
+  const { startingSeats } = globalThis.BenchLogic;
+  const load = (id) => JSON.parse(readFileSync(`games/${id}/config.json`, 'utf8'));
+  const cfg = (phases) => ({ phases });
+
+  it('one seat for a solo activity, the poll and the exit ticket', () => {
+    expect(startingSeats(load('live-poll'))).toBe(1);
+    expect(startingSeats(load('exit-ticket'))).toBe(1);
+    expect(startingSeats(cfg({ a: { type: 'collect' }, b: { type: 'reveal' } }))).toBe(1);
+  });
+
+  it('Snowball seats a pair', () => {
+    expect(startingSeats(load('snowball'))).toBe(2);
+  });
+
+  it('a pairwise or rotated collect seats two; a merge seats its group', () => {
+    expect(startingSeats(cfg({ a: { type: 'collect', assign: 'pairwise' } }))).toBe(2);
+    expect(startingSeats(cfg({ a: { type: 'collect' }, b: { type: 'collect', rotateFrom: 'a' } }))).toBe(2);
+    expect(startingSeats(cfg({ a: { type: 'merge', groupSize: 3 } }))).toBe(3);
+  });
+
+  it('teams seat two groups, never more than the bench holds', () => {
+    expect(startingSeats(cfg({ t: { type: 'team-split', groupSize: 3 } }))).toBe(6);
+    expect(startingSeats(cfg({ t: { type: 'team-split', teamCount: 2 } }))).toBe(4);
+    expect(startingSeats(cfg({ t: { type: 'team-split', groupSize: 6 } }))).toBe(8);
+    expect(startingSeats(load('group-work-day'))).toBeGreaterThanOrEqual(4);
+  });
+
+  it('a vote over classmates and an elimination need company', () => {
+    expect(startingSeats(cfg({ v: { type: 'vote', excludeAuthors: true } }))).toBe(2);
+    expect(startingSeats(cfg({ e: { type: 'eliminate' } }))).toBe(3);
+  });
+
+  it('survives an array of phases and no config', () => {
+    expect(startingSeats({ phases: [{ type: 'collect', assign: 'pairwise' }] })).toBe(2);
+    expect(startingSeats(null)).toBe(1);
+  });
+});

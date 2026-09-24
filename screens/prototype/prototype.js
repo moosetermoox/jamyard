@@ -819,7 +819,12 @@ launchBtn.addEventListener('click', () => {
   const gameId = gameSelect.value;
   if (!gameId) return;
 
-  const count = Math.min(MAX_PLAYERS, Math.max(1, parseInt(playerCount.value, 10) || 1));
+  // The bench seats one pretend student unless the activity needs more to
+  // show its own move (BenchLogic.startingSeats: a pairing, a merge, teams).
+  // A count set on purpose (a deep link, a script) stands as given.
+  const askedCount = Math.max(1, parseInt(playerCount.value, 10) || 1);
+  let count = Math.min(MAX_PLAYERS, askedCount);
+  const countAsked = playerCount.value !== '' && askedCount !== 1;
 
   // Disable Launch while a session runs. The activity select stays live
   // behind the chip: Reset brings it back, changing it relaunches.
@@ -834,14 +839,19 @@ launchBtn.addEventListener('click', () => {
   // Fetched fresh per launch (the activity select may have changed);
   // a miss just means the keyword bot answers, as before.
   currentSamples = null;
-  fetch('/api/games/' + encodeURIComponent(gameId))
+  // Resolves once the config is read (or failed): the seat count waits on
+  // it, the sample answers ride along.
+  const seatsReady = fetch('/api/games/' + encodeURIComponent(gameId))
     .then((r) => (r.ok ? r.json() : null))
     .then((config) => {
       if (config && config.sampleAnswers && typeof config.sampleAnswers === 'object') {
         currentSamples = config.sampleAnswers;
       }
+      if (config && !countAsked && window.BenchLogic && typeof BenchLogic.startingSeats === 'function') {
+        count = Math.min(MAX_PLAYERS, Math.max(count, BenchLogic.startingSeats(config)));
+      }
     })
-    .catch(() => { /* keyword bot fallback */ });
+    .catch(() => { /* keyword bot fallback, one seat */ });
 
   // The teacher mat: the host iframe first (Skip finds it by class)
   clearMats();
@@ -864,9 +874,16 @@ launchBtn.addEventListener('click', () => {
       // joins from the hash; the host iframe stays first so Skip finds it.
       if (e.data.teacherPin) addTeacherTab(hostIframe, e.data.code, e.data.teacherPin);
       studentMat.classList.remove('empty');
-      createPlayerIframes(e.data.code, count);
-      pager.hidden = false;
-      addStudentBtn.hidden = false;
+      // The seats wait on the config read (already back, nearly always):
+      // Snowball opens with a pair, not one student.
+      seatsReady.then(() => {
+        createPlayerIframes(e.data.code, count);
+        playerCount.value = count;
+        pager.hidden = false;
+        addStudentBtn.hidden = false;
+        refreshAddSlot();
+        updateBanner();
+      });
       resetBtn.disabled = false;
       labelSound(readMuted());
       // The plan row: draw the steps, then follow the live room.

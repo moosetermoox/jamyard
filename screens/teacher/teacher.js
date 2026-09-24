@@ -25,6 +25,20 @@ var phaseLabel = document.getElementById('phase-label');
 var countLabel = document.getElementById('count-label');
 var entriesBlock = document.getElementById('entries-block');
 var entriesList = document.getElementById('entries-list');
+var entriesHint = document.getElementById('entries-hint');
+// The Live entries hint by who sees this step's answers (the server sends
+// the audience key from engine/audience.js on teacher-phase and the join
+// snapshot). Says what Hide does for THIS step; "generic" is the old line.
+var ENTRIES_HINTS = {
+  teacher: 'Only you can see these, now and in the report. They never reach the class or the projector. Hide anything you don\'t want in the report.',
+  ai: 'Only you can see these. The AI puts them together for the class; hide anything that shouldn\'t go in, hidden entries are skipped.',
+  class: 'Only you can see these until the reveal. Hide anything that shouldn\'t reach the class, hidden entries are skipped by the reveal.',
+  'class-after-review': 'Only you can see these until you approve the preview. Hide anything that shouldn\'t reach the class, hidden entries are skipped by the reveal.',
+  classmate: 'Only you can see the whole list. Each answer goes to a classmate next; hide anything that shouldn\'t be passed on.',
+  'classmate+class': 'Only you can see the whole list. Each answer goes to a classmate next, then the class sees it; hide anything that shouldn\'t be passed on.',
+  'classmate+class-after-review': 'Only you can see the whole list. Each answer goes to a classmate next, then the class after your preview; hide anything that shouldn\'t be passed on.',
+  generic: 'Only you can see these. Hide anything that shouldn\'t reach the class, hidden entries are skipped by the AI and the reveal.'
+};
 var previewBlock = document.getElementById('preview-block');
 var previewText = document.getElementById('preview-text');
 var previewRespBlock = document.getElementById('preview-resp-block');
@@ -337,6 +351,10 @@ function setPhase(data) {
   var isCollect = phaseType === 'collect' || phaseType === 'collect-choice';
   entriesBlock.hidden = !isCollect;
   if (isCollect) {
+    // The hint says where THIS step's answers go (the server reads the
+    // activity's graph, engine/audience.js); an Exit Ticket never mentions
+    // a reveal it does not have (a reviewer, 2026-09-23).
+    entriesHint.textContent = ENTRIES_HINTS[data.audience] || ENTRIES_HINTS.generic;
     // Seed the count and the empty state right away — a blank area until
     // the first submission reads as "not syncing".
     if (latestRoster.count) countLabel.textContent = '0 of ' + latestRoster.count + ' in';
