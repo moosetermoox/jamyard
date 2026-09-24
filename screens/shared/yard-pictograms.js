@@ -103,6 +103,19 @@
     return row(out, 5);
   }
 
+  // A custom game's initials: up to three letter blocks 24×28, the first
+  // in the need colour (18d: two AI-made games never look alike)
+  function initialBlocks(text, paint) {
+    var out = [];
+    for (var i = 0; i < text.length && i < 3; i++) {
+      var tone = i === 0 ? paint : WOODS[(i - 1) % WOODS.length];
+      var b = block(24, 28, tone + ' pg-letter pg-initial', LETTER_ROTS[i % LETTER_ROTS.length]);
+      b.textContent = text.charAt(i);
+      out.push(b);
+    }
+    return row(out, 4);
+  }
+
   // A checklist line: done = 55% with a check, the last in the need
   // colour with the check arriving
   function checkLine(w, tone, rot, state) {
@@ -414,7 +427,8 @@
 
   // An activity's own pictogram, or its template's for a copy
   // (`exit-ticket-2`, `doodle-bluff-3`), else nothing
-  function builderFor(g) {
+  function builderFor(g, templateId) {
+    if (templateId && PICTOGRAMS[templateId]) return PICTOGRAMS[templateId];
     var id = String((g && g.id) || '');
     if (PICTOGRAMS[id]) return PICTOGRAMS[id];
     var base = id.replace(/-\d+$/, '');
@@ -422,18 +436,21 @@
     return null;
   }
 
-  function has(g) { return !!builderFor(g); }
+  function has(g, templateId) { return !!builderFor(g, templateId); }
 
   // The fallback, from the glimpse and the dealt picture: what the
   // activity's first minute looks like, in blocks
-  function fallback(g, paint, pic) {
+  // A custom game (18d) puts its initials above the pile in place of the
+  // dealt code, so two AI-made games never look alike.
+  function fallback(g, paint, pic, initials) {
     var mode = (g.glimpse && g.glimpse.mode) || 'answer';
     var blocks = (pic && pic.blocks) || [];
     var i;
+    var top = initials ? initialBlocks(initials, paint) : null;
     if (mode === 'join') {
       var code = (pic && pic.code) || 'JOIN';
       return col([
-        letters(code, paint),
+        top || letters(code, paint),
         stack([arrive(block(50, 10, 't-pine', 1.4)), block(56, 10, 't-birch', -1.4), block(44, 10, paint, 1.4)])
       ], 12, 'center');
     }
@@ -443,14 +460,70 @@
         var w = blocks[i] ? Math.round(blocks[i].width * 0.6) : 64;
         planks.push(block(w, 12, i === 0 ? paint : WOODS[i % 2], i % 2 === 0 ? 1.2 : -1.2, { mt: -2 }));
       }
-      return stack(planks);
+      var talk = stack(planks);
+      return top ? col([top, talk], 10, 'center') : talk;
     }
     var pile = [arrive(block(60, 10, 't-pine', 1.4))];
     for (i = 0; i < 3; i++) {
       var width = blocks[i] ? Math.round(blocks[i].width * 0.6) : 56;
       pile.push(block(width, 10, i === 1 ? paint : WOODS[i % 2], i % 2 === 0 ? -1.4 : 1.4));
     }
-    return stack(pile);
+    var answer = stack(pile);
+    return top ? col([top, answer], 10, 'center') : answer;
+  }
+
+  // ── Your words on the block (18d, 2026-09-24) ──
+  // A copy's one unique thing is what the teacher wrote, so it goes on
+  // the print: the template's pictogram is kept and its need-painted
+  // block becomes a word block reading the copy's topic. With several
+  // painted blocks (Snowball's funnel, Closer's person) the word block
+  // sits under the pictogram; on a content card (real words already in
+  // the window) it sits in the window's corner instead, so nothing the
+  // picture says is lost.
+  function wordBlock(topic, paint, rot) {
+    var w = el('span', 'pg-b pg-word ' + paint, topic);
+    w.style.setProperty('--rot', (rot || -1.2) + 'deg');
+    return w;
+  }
+
+  function insideArrive(node, root) {
+    for (var p = node.parentNode; p && p !== root; p = p.parentNode) {
+      if (p.classList && p.classList.contains('pg-arrive')) return true;
+    }
+    return false;
+  }
+
+  // The painted blocks that carry nothing (no letter, no words, no drawing)
+  function paintedPlain(root, paint) {
+    var all = root.querySelectorAll('.pg-b.' + paint);
+    var out = [];
+    for (var i = 0; i < all.length; i++) {
+      var b = all[i];
+      if (b.classList.contains('pg-slip') || b.classList.contains('pg-letter') || b.classList.contains('pg-drawing') || b.classList.contains('pg-word')) continue;
+      if (b.textContent || b.firstChild) continue;
+      if (insideArrive(b, root)) continue;
+      out.push(b);
+    }
+    return out;
+  }
+
+  // Returns { node, corner }: the pictogram with the word block placed,
+  // and the corner tag when it could not go in or under
+  function placeTopic(node, topic, paint, content) {
+    if (!topic) return { node: node, corner: null };
+    if (content) return { node: node, corner: wordBlock(topic, paint, -1.5) };
+    var plain = paintedPlain(node, paint);
+    if (plain.length === 1) {
+      var b = plain[0];
+      b.classList.add('pg-word');
+      b.textContent = topic;
+      b.style.width = '';
+      b.style.height = '';
+      return { node: node, corner: null };
+    }
+    var under = col([node, wordBlock(topic, paint, -1.2)], 8, 'center');
+    under.classList.add('pg-with-topic');
+    return { node: under, corner: null };
   }
 
   // The id a pictogram is keyed by: the activity's own, or its template's
@@ -466,13 +539,20 @@
   // reads 0:05 on hover), content says the window holds real content
   // (anchored at the top, no slide), and hover is the card's hover line
   // (undefined = the glimpse's prompt, null = none, else the line).
-  function build(g, paint, pic) {
-    var builder = builderFor(g);
-    var node = builder ? builder(paint) : fallback(g || {}, paint, pic);
+  // opts (18d, a teacher's own copy): templateId = the built-in whose
+  // pictogram to draw, topic = the copy's own words for the word block,
+  // initials = a custom game's letters over the fallback pile. The
+  // result adds corner (a word block for the window's corner) when the
+  // topic could not go in or under the picture.
+  function build(g, paint, pic, opts) {
+    opts = opts || {};
+    var builder = builderFor(g, opts.templateId);
+    var node = builder ? builder(paint) : fallback(g || {}, paint, pic, opts.initials);
     var tick = node.querySelector ? node.querySelector('.pg-tick') : null;
-    var key = keyFor(g);
+    var key = opts.templateId && PICTOGRAMS[opts.templateId] ? opts.templateId : keyFor(g);
     var content = !!(key && Object.prototype.hasOwnProperty.call(HOVER_LINES, key));
-    return { node: node, tick: tick, content: content, hover: content ? HOVER_LINES[key] : undefined };
+    var placed = placeTopic(node, opts.topic, paint, content);
+    return { node: placed.node, corner: placed.corner, tick: tick, content: content, hover: content ? HOVER_LINES[key] : undefined };
   }
 
   window.YardPictograms = { build: build, has: has, IDS: IDS, CONTENT_IDS: CONTENT_IDS };

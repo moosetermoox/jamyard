@@ -50,6 +50,14 @@
   box-shadow: 0 4px 6px rgba(50,35,15,0.24);
 }
 
+/* A teacher's own copy (18d, 2026-09-24): the mat is Sanded with grain,
+   the same two gradients as the search plank, the "yours" marker
+   wherever a copy sits beside built-ins */
+.yard-print-own {
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+}
+
 /* The gesso window: the pictogram centred, the prompt hidden at the bottom */
 .yard-window {
   background: var(--t-gesso);
@@ -124,6 +132,29 @@
   box-shadow: 0 3px 4px rgba(50,35,15,0.22);
   transform: rotate(-2deg);
   white-space: nowrap;
+}
+
+/* Own copies: a kicker in spaced caps (the template's name, or MADE
+   WITH AI) over the copy's own name */
+.yard-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 11px;
+  min-width: 0;
+}
+.yard-name-block .yard-name-row { margin-top: 0; }
+.yard-kicker {
+  font-family: var(--t-body);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  padding: 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Under the mat: the name and the need's square on one baseline */
@@ -343,6 +374,36 @@ span.pg-arrive { display: inline-block; }
 /* Reading text on the darker paints is paper, as the Totem buttons are */
 .pg-slip.t-magenta, .pg-slip.t-cyan, .pg-slip.t-green { color: var(--t-paper); }
 .pg-slip-small { font-size: 10px; padding: 4px 6px 5px; }
+
+/* Your words on the block (18d): the copy's topic in the need paint,
+   in place of the pictogram's painted block, under it, or in the
+   window's corner on a content card */
+.pg-b.pg-word {
+  width: auto !important;
+  height: auto !important;
+  display: inline-block;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 4px 8px 5px;
+  color: var(--t-ink);
+  white-space: nowrap;
+  background-image: none;
+}
+.pg-topic-corner {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  transition: opacity 180ms var(--t-ease);
+}
+/* On hover the words fill the picture and the prompt takes the bottom, so the corner tag steps aside */
+.yard-card.on .pg-topic-corner,
+.yard-card:focus-visible .pg-topic-corner { opacity: 0; }
+.pg-b.pg-initial {
+  font-size: 14px;
+}
 
 /* A blank plank at rest whose words roll out on hover (owner
    2026-09-24: "block is empty, on hover it fills"): the text keeps its
