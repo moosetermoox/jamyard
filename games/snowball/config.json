@@ -1,19 +1,19 @@
 {
   "name": "Snowball",
-  "description": "Alone, then pairs, then all of us: one question distilled by everyone. A natural day-one activity.",
+  "description": "Alone, then pairs, then all of us: one question distilled by everyone. Any question, any week.",
   "when": "When the class needs to agree on one thing and every voice should shape it.",
   "featured": true,
   "family": "connection",
   "sampleAnswers": {
     "solo": [
-      "One person talks at a time, and the rest of us actually listen.",
-      "It is okay to say \"I do not get it yet\" without anyone laughing.",
-      "Ask before you borrow something, and give it back.",
-      "Wrong answers are allowed. That is how we find the right one.",
-      "Clean up your own space before you leave, even if you did not make the mess.",
-      "Start on time. If the teacher is late, start anyway.",
-      "If you finish early, help someone or read. No wandering.",
-      "Phones stay away unless the teacher says otherwise."
+      "You can only add fractions when the pieces are the same size.",
+      "A fraction is a division problem that has not happened yet.",
+      "The bottom number says how many pieces, the top says how many you have.",
+      "Equivalent fractions are the same amount cut into different pieces.",
+      "Multiplying by a fraction less than one makes the number smaller.",
+      "Half of something small can be less than a quarter of something big.",
+      "Turning a fraction into a decimal is just doing the division.",
+      "One whole can be written a hundred different ways."
     ]
   },
   "phases": {
@@ -28,7 +28,7 @@
     },
     "solo": {
       "type": "collect",
-      "prompt": "What should our class norms be?",
+      "prompt": "What is the most important idea from this unit?",
       "timer": 90,
       "next": "pairs"
     },
@@ -61,7 +61,7 @@
   "keywords": [
     "think pair share",
     "discussion",
-    "icebreaker",
+    "review",
     "any subject",
     "brainstorm"
   ]

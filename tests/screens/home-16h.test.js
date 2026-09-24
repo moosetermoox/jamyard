@@ -76,7 +76,7 @@ describe('FoldPicture sequence', () => {
 
   it('the student types, presses Submit, and one block lands on the pile per answer', () => {
     expect(FP.view(7).typed).toBe('');
-    expect(FP.view(8).typed).toBe('One voice at a');
+    expect(FP.view(8).typed).toBe(FP.PARTIAL);
     expect(FP.view(8).caret).toBe(true);
     expect(FP.view(9).typed).toBe(FP.ANSWER);
     expect(FP.view(9).caret).toBe(false);

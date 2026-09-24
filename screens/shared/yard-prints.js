@@ -183,7 +183,11 @@
     if (tick) tick.textContent = on ? '0:05' : '0:06';
   }
 
-  // The window: the pictogram centred, the prompt hidden at the bottom
+  // The window: the pictogram centred, the prompt hidden at the bottom.
+  // A content card (real text or drawings in the picture, 2026-09-24)
+  // sits at the top of its window and never slides; its hover line is
+  // the pictogram's own (null = none, the picture already asks the
+  // question), never the glimpse's prompt over the same words.
   function buildWindow(g, card) {
     var win = el('div', 'yard-window');
     var paint = paintOf(g);
@@ -194,9 +198,13 @@
     pict.appendChild(built.node);
     card._tick = built.tick;
     win.appendChild(pict);
-    var box = el('div', 'yard-prompt-box');
-    box.appendChild(el('span', 'yard-prompt', promptOf(g)));
-    win.appendChild(box);
+    if (built.content) win.classList.add('yard-window-content');
+    var line = built.hover === undefined ? promptOf(g) : built.hover;
+    if (line) {
+      var box = el('div', 'yard-prompt-box');
+      box.appendChild(el('span', 'yard-prompt', line));
+      win.appendChild(box);
+    }
     return win;
   }
 

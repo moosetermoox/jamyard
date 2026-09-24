@@ -130,6 +130,75 @@
     return a;
   }
 
+  // ── Real content (2026-09-24, the thumbnail experiment): six cards
+  // carry a little of the activity's own text or drawings, so a teacher
+  // can tell what students DO without reading a description. Slips are
+  // paper or painted planks with a line of text; doodles are stroke
+  // drawings in the fold picture's style (home/index.html). Every word is
+  // the activity's own (its question, its ballot, its sample answers),
+  // never a caption of ours. ──
+
+  // A plank with text on it: w wide, its height from the text.
+  // opts.fill (owner 2026-09-24): the plank is blank at rest, keeping
+  // its size, and the words roll out across it on hover (`.pg-fill`).
+  function slip(text, tone, w, rot, opts) {
+    opts = opts || {};
+    var s = el('div', 'pg-b pg-slip ' + tone + (opts.flat ? ' pg-flat' : '') + (opts.shadow ? ' pg-shadow' : '') + (opts.small ? ' pg-slip-small' : ''));
+    if (opts.fill) s.appendChild(el('span', 'pg-fill', text));
+    else s.textContent = text;
+    s.style.width = w + 'px';
+    s.style.setProperty('--rot', (rot || 0) + 'deg');
+    return s;
+  }
+
+  // A small spaced-caps label (the activity's own words, never ours)
+  function caps(text) {
+    return el('span', 'pg-caps', text);
+  }
+
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  // A student-style drawing: stroke paths in a 60×50 box on a paper square
+  function doodle(paths, tone, rot) {
+    var square = block(44, 44, tone, rot, { flat: true, shadow: tone === 't-paper' });
+    square.classList.add('pg-drawing');
+    var svg = document.createElementNS(SVG_NS, 'svg');
+    svg.setAttribute('viewBox', '0 0 60 50');
+    svg.classList.add('pg-doodle');
+    svg.setAttribute('aria-hidden', 'true');
+    for (var i = 0; i < paths.length; i++) {
+      var p = document.createElementNS(SVG_NS, 'path');
+      p.setAttribute('d', paths[i]);
+      svg.appendChild(p);
+    }
+    square.appendChild(svg);
+    return square;
+  }
+
+  // Four dream inventions, as a student would draw them in 90 seconds
+  var DOODLES = {
+    rocket: ['M30 5 C 41 14, 41 30, 36 38 H24 C 19 30, 19 14, 30 5 Z', 'M24 30 L15 41 L24 38 M36 30 L45 41 L36 38', 'M30 16 a4 4 0 1 0 0.01 0', 'M27 39 L30 47 L33 39'],
+    robot: ['M18 12 H42 V34 H18 Z', 'M26 21 v3 M34 21 v3', 'M25 29 H35', 'M30 12 V5 M28 5 h4', 'M22 34 v8 h16 v-8', 'M14 20 h4 M42 20 h4'],
+    bulb: ['M30 5 C 17 5, 13 18, 22 28 L22 33 H38 L38 28 C 47 18, 43 5, 30 5 Z', 'M24 39 H36 M26 45 H34', 'M26 28 L30 21 L34 28'],
+    fish: ['M6 25 C 18 8, 40 8, 48 25 C 40 42, 18 42, 6 25 Z', 'M48 25 L57 14 L57 36 Z', 'M18 22 v1', 'M26 18 C 30 24, 30 30, 26 34']
+  };
+
+  // A slip with a name over it (the fold picture's Maya and Jordan):
+  // whose idea this is, without a word of ours
+  function named(name, slipNode) {
+    var c = el('div', 'pg-named');
+    c.appendChild(el('span', 'pg-name', name));
+    c.appendChild(slipNode);
+    return c;
+  }
+
+  // A person plank: a head over a body, in a tone
+  function person(tone, rot) {
+    var p = el('div', 'pg-person');
+    p.appendChild(block(11, 11, tone, rot, { flat: true }));
+    p.appendChild(block(22, 16, tone, rot));
+    return p;
+  }
+
   // Each builder takes the need colour (a tone class) and the dealt
   // picture, returns the pictogram's root node. The activity's own
   // shape from the 17g table, block by block.
@@ -141,10 +210,27 @@
         stack([arrive(block(50, 10, 't-pine', 1.4)), block(56, 10, 't-birch', -1.4), block(44, 10, paint, 1.4)])
       ], 12, 'center');
     },
-    // four upright bars, the second in the need colour; the tall bar grows
+
+    // the question, then four labelled bars with their counts; the top
+    // bar grows as one more answer lands
     'live-poll': function (paint) {
-      var grow = col([arrive(block(26, 14, paint, -1)), block(26, 62, paint, 1, { mt: -2 })], 0, 'center');
-      return row([block(26, 34, 't-birch', -1), grow, block(26, 22, 't-pine', -1), block(26, 44, 't-oak', 1)], 8, 'flex-end');
+      var q = slip('How are you feeling about today\'s lesson?', 't-paper', 196, -0.8, { shadow: true, fill: true });
+      var rows = [
+        ['Got it!', 78, paint, 12, true],
+        ['Mostly', 52, 't-birch', 8, false],
+        ['Confused', 30, 't-pine', 5, false],
+        ['Lost', 12, 't-oak', 2, false]
+      ];
+      var bars = [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var bar = block(r[1], 13, r[2], 0, { flat: true });
+        var parts = [el('span', 'pg-label', r[0]), bar];
+        if (r[4]) parts.push(arrive(block(14, 13, r[2], 0, { flat: true })));
+        parts.push(el('span', 'pg-count', String(r[3])));
+        bars.push(row(parts, 4));
+      }
+      return col([q, col(bars, 4, 'flex-start')], 9, 'center');
     },
     // a yellow timer chip over a two-block pile; the chip ticks, a block lands
     'speed-quiz': function (paint) {
@@ -155,59 +241,118 @@
         stack([arrive(block(62, 9, 't-pine', 1.4)), block(74, 9, paint, -1.4), block(54, 9, 't-birch', 1.4)])
       ], 10, 'center');
     },
-    // three squares: paper, paper, the need colour; a fourth paper square
+
+
+    // the drawing prompt over the wall: a two-by-two wall, three student
+    // drawings up, the fourth lands
     'art-gallery': function (paint) {
-      return row([
-        block(38, 38, 't-paper', -2, { flat: true, shadow: true }),
-        block(38, 38, 't-paper', 1.5, { flat: true, shadow: true }),
-        block(38, 38, paint, -1, { flat: true }),
-        arrive(block(38, 38, 't-paper', 2, { flat: true, shadow: true }))
-      ], 7);
+      var q = slip('Draw your dream invention.', 't-paper', 170, 0.8, { shadow: true, fill: true });
+      var wall = el('div', 'pg-wall');
+      wall.appendChild(doodle(DOODLES.rocket, 't-paper', -2));
+      wall.appendChild(doodle(DOODLES.robot, 't-paper', 1.5));
+      wall.appendChild(doodle(DOODLES.bulb, paint, -1));
+      wall.appendChild(arrive(doodle(DOODLES.fish, 't-paper', 2)));
+      return col([q, wall], 8, 'center');
     },
-    // alone → pairs → all of us: three piles, the wide yellow block arrives
+
+
+
+
+
+    // Maya's idea plus Jordan's idea, funnelled into the pair's one
+    // answer that holds both, under both names; "We agree" (the pair's
+    // own button) lands on its corner
     'snowball': function (paint) {
-      var alone = stack([block(22, 10, paint, -1.4), block(22, 10, paint, 1.4), block(22, 10, paint, -1.4), block(22, 10, paint, 1.4)]);
-      var pairs = stack([block(40, 12, paint, 1.2), block(40, 12, paint, -1.2)]);
-      var all = stack([arrive(block(70, 16, 't-yellow', -1))]);
-      return row([alone, arrow(), pairs, arrow(), all], 12, 'flex-end');
+      var plus = el('span', 'pg-plus', '+');
+      plus.setAttribute('aria-hidden', 'true');
+      var alone = row([
+        named('Maya', slip('Just division.', 't-paper', 84, -1.2, { shadow: true, small: true, fill: true })),
+        plus,
+        named('Jordan', slip('Equal pieces.', 't-paper', 84, 1.2, { shadow: true, small: true, fill: true }))
+      ], 6, 'flex-end');
+      var funnel = el('div', 'pg-funnel');
+      funnel.appendChild(block(34, 3, paint, 32, { flat: true }));
+      funnel.appendChild(block(34, 3, paint, -32, { flat: true }));
+      var together = slip('Just division, equal pieces.', 't-yellow', 176, -0.8, { small: true, fill: true });
+      var stamp = el('div', 'pg-stamp');
+      stamp.appendChild(arrive(el('span', 'pg-tag t-paper pg-shadow', 'We agree')));
+      var plank = el('div', 'pg-stamped');
+      plank.appendChild(together);
+      plank.appendChild(stamp);
+      return col([alone, funnel, named('Maya + Jordan', plank)], 3, 'center');
     },
     // letter blocks over a three-line checklist, two done; the last check arrives
     'solo-quiz': function (paint) {
       return col([letters('LKXH', paint), checklist(3, 90, paint)], 12, 'center');
     },
-    // your goal (one need-colour block); a classmate's line lands on it
+
+    // Maya's one real thing, in the need colour; under it, set in like a
+    // reply, the line a classmate wrote for her; the classmate's name
+    // lands on hover, the someone in Someone's Got You
     'someones-got-you': function (paint) {
-      return stack([arrive(block(66, 14, 't-paper', 1.4, { shadow: true })), block(58, 14, paint, -1.4)]);
+      var mine = named('Maya', slip('Trying to get more sleep.', paint, 150, -1, { small: true }));
+      var reply = el('div', 'pg-reply');
+      reply.appendChild(el('span', 'pg-reply-mark', '\u21b3'));
+      var replySlip = slip('One early night this week is a real win.', 't-paper', 150, 1, { shadow: true, small: true, fill: true });
+      var who = el('div', 'pg-named');
+      var name = el('span', 'pg-name');
+      name.appendChild(arrive(el('span', undefined, 'Jordan')));
+      who.appendChild(name);
+      who.appendChild(replySlip);
+      reply.appendChild(who);
+      return col([mine, reply], 6, 'flex-start');
     },
-    // two columns of three, the same tones shuffled; a yellow line joins a pair
+
+
+    // the prompt, then two terms and their meanings shuffled; a yellow
+    // line joins simile to its meaning
     'vocab-match': function (paint) {
-      var left = col([block(40, 13, 't-birch', -1), block(40, 13, paint, 1), block(40, 13, 't-oak', -1)], 4);
-      var right = col([block(40, 13, paint, 1), block(40, 13, 't-oak', -1), block(40, 13, 't-birch', 1)], 4);
-      var joinWrap = el('div', 'pg-join');
-      var line = block(26, 4, 't-yellow', -34, { flat: true });
+      var q = slip('Match each term to its meaning.', 't-paper', 176, -0.8, { shadow: true, fill: true });
+      var left = col([slip('simile', paint, 66, -1, { small: true }), slip('hyperbole', 't-birch', 66, 1, { small: true })], 6, 'stretch');
+      var right = col([slip('exaggerates on purpose', 't-oak', 150, 1, { small: true }), slip('compares with like or as', 't-birch', 150, -1, { small: true })], 6, 'stretch');
+      var joinWrap = el('div', 'pg-join pg-join-words');
+      var line = block(31, 4, 't-yellow', 63, { flat: true });
       line.style.transformOrigin = 'left center';
       joinWrap.appendChild(arrive(line));
-      var r = row([left, right], 22);
+      var r = row([left, right], 14, 'flex-start');
       r.style.position = 'relative';
       r.appendChild(joinWrap);
-      return r;
+      return col([q, r], 10, 'center');
     },
     // a pile widening upward from a need-colour base; your list, grown, on top
     'one-more-thing': function (paint) {
       return stack([arrive(block(78, 12, 't-yellow', 1.4)), block(64, 12, 't-birch', -1.4), block(50, 12, 't-pine', 1.4), block(36, 12, paint, -1.4)]);
     },
-    // two piles on one base: four yellow left, two need-colour right; a yellow block joins
+
+
+    // the claim on top; under it the rope's two ends, YES and NO, each a
+    // pile of evidence on one base; the second vote lands under it
     'both-sides-rope': function (paint) {
-      var left = stack([arrive(block(34, 12, 't-yellow', 1.4)), block(38, 12, 't-yellow', -1.4), block(42, 12, 't-yellow', 1.4), block(36, 12, 't-yellow', -1.4)], { bare: true });
+      var claim = slip('\u201cHomework should be optional.\u201d', 't-paper', 190, -0.8, { shadow: true, fill: true });
+      var left = stack([block(34, 12, 't-yellow', 1.4), block(38, 12, 't-yellow', -1.4), block(42, 12, 't-yellow', 1.4), block(36, 12, 't-yellow', -1.4)], { bare: true });
       var right = stack([block(40, 12, paint, 1.4), block(36, 12, paint, -1.4)], { bare: true });
+      var yes = col([caps('Yes'), left], 3, 'center');
+      var no = col([caps('No'), right], 3, 'center');
       var base = el('div', 'pg-base');
       base.style.width = '118px';
-      return col([row([left, right], 16, 'flex-end'), base], 0, 'center');
+      var again = arrive(slip('Where do you stand now?', 't-paper', 150, 0.8, { shadow: true, small: true }));
+      return col([claim, col([row([yes, no], 16, 'flex-end'), base], 0, 'center'), again], 8, 'center');
     },
-    // four people planks, the third yellow and taller; a line written from their eyes
+
+
+    // the topic, the people it touches (one picked, in the need colour),
+    // and what that one says, a line written from their eyes; a fourth
+    // pair of eyes lands as the class names more
     'whose-eyes': function (paint) {
-      var people = row([block(22, 28, 't-birch', -1.5), block(22, 28, paint, 1), block(22, 34, 't-yellow', -1), block(22, 28, 't-pine', 1.5)], 5, 'flex-end');
-      return col([people, arrive(block(74, 13, 't-paper', -1, { shadow: true }))], 8, 'center');
+      var topic = el('span', 'pg-tag t-yellow', 'Homework');
+      var eyes = row([
+        slip('a parent', paint, 54, -1.5, { small: true }),
+        slip('the dog', 't-paper', 54, 1, { shadow: true, small: true }),
+        slip('a sub', 't-paper', 40, -1, { shadow: true, small: true }),
+        arrive(slip('a coach', 't-paper', 56, 1.5, { shadow: true, small: true }))
+      ], 6, 'stretch');
+      var line = slip('\u201cI\u2019m asleep when it gets done.\u201d', 't-paper', 206, 0.8, { shadow: true, small: true });
+      return col([topic, eyes, line], 8, 'center');
     },
     // three lines: the need colour, green, oak; a yellow WHO? tag
     'rose-bud-thorn': function (paint) {
@@ -235,19 +380,37 @@
     'group-work-day': function (paint) {
       return checklist(4, 92, paint);
     },
-    // five stacked name planks, nothing typed; a sixth lands on top
+
+    // the tier, the question on the projector, and a pair talking it
+    // through out loud; nothing typed, the "..." arrives between them
     'closer': function (paint) {
-      return stack([
-        arrive(block(66, 12, 't-yellow', -1.2)),
-        block(70, 12, paint, 1.2, { mt: -2 }),
-        block(64, 12, 't-birch', -1.2, { mt: -2 }),
-        block(72, 12, 't-pine', 1.2, { mt: -2 }),
-        block(60, 12, 't-birch', -1.2, { mt: -2 })
-      ]);
+      var tier = el('span', 'pg-tag t-yellow', 'Tier 1 of 3');
+      var q = slip('Window seat or aisle seat, and why?', 't-paper', 186, -0.8, { shadow: true });
+      var talk = arrive(slip('\u2026', 't-paper', 26, 2, { shadow: true, small: true }));
+      var pair = row([person(paint, -1.5), talk, person('t-birch', 1.5)], 8, 'flex-end');
+      return col([tier, q, pair], 6, 'center');
     }
   };
 
   var IDS = Object.keys(PICTOGRAMS);
+
+  // The content cards (2026-09-24): the window is anchored at the top
+  // and never slides, and the hover line is the builder's own choice.
+  // null = no hover line (the picture already carries the question);
+  // a string = one short line in the activity's own words, added on
+  // hover under the picture. Cards not listed here keep the glimpse's
+  // prompt as before.
+  var HOVER_LINES = {
+    'live-poll': null,
+    'art-gallery': null,
+    'snowball': 'What is the most important idea from this unit?',
+    'both-sides-rope': null,
+    'vocab-match': null,
+    'whose-eyes': 'Answer as that person or thing.',
+    'closer': 'You and a partner answer out loud.',
+    'someones-got-you': 'Someone wrote this for you:'
+  };
+  var CONTENT_IDS = Object.keys(HOVER_LINES);
 
   // An activity's own pictogram, or its template's for a copy
   // (`exit-ticket-2`, `doodle-bluff-3`), else nothing
@@ -290,15 +453,27 @@
     return stack(pile);
   }
 
-  // The pictogram for an activity: { node, tick } where tick is the
-  // timer chip's text when the pictogram has one (Speed Quiz reads
-  // 0:05 on hover).
+  // The id a pictogram is keyed by: the activity's own, or its template's
+  function keyFor(g) {
+    var id = String((g && g.id) || '');
+    if (PICTOGRAMS[id]) return id;
+    var base = id.replace(/-\d+$/, '');
+    return PICTOGRAMS[base] ? base : null;
+  }
+
+  // The pictogram for an activity: { node, tick, content, hover } where
+  // tick is the timer chip's text when the pictogram has one (Speed Quiz
+  // reads 0:05 on hover), content says the window holds real content
+  // (anchored at the top, no slide), and hover is the card's hover line
+  // (undefined = the glimpse's prompt, null = none, else the line).
   function build(g, paint, pic) {
     var builder = builderFor(g);
     var node = builder ? builder(paint) : fallback(g || {}, paint, pic);
     var tick = node.querySelector ? node.querySelector('.pg-tick') : null;
-    return { node: node, tick: tick };
+    var key = keyFor(g);
+    var content = !!(key && Object.prototype.hasOwnProperty.call(HOVER_LINES, key));
+    return { node: node, tick: tick, content: content, hover: content ? HOVER_LINES[key] : undefined };
   }
 
-  window.YardPictograms = { build: build, has: has, IDS: IDS };
+  window.YardPictograms = { build: build, has: has, IDS: IDS, CONTENT_IDS: CONTENT_IDS };
 })();
