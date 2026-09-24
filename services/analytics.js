@@ -30,7 +30,7 @@ export const DEFAULT_POSTHOG_HOST = 'https://us.i.posthog.com';
 /** Teacher routes a page view may name. Never /player, /host, /teacher. */
 export const TRACKED_PATHS = ['/', '/library', '/make', '/designer', '/designer/edit', '/prototype', '/guide', '/privacy', '/share'];
 
-const ENTRY_POINTS = ['home', 'library', 'create', 'share', 'none'];
+const ENTRY_POINTS = ['home', 'library', 'create', 'share', 'start', 'none'];
 const DOORS = ['try', 'host', 'designer'];
 const FEEDBACK_KINDS = ['problem', 'idea', 'praise', 'builder-request', 'other'];
 const CREATE_RESULTS = ['match', 'existing', 'none', 'storyboard', 'error'];

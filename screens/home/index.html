@@ -531,6 +531,70 @@
 
     .how-step strong { color: var(--t-ink); font-weight: 700; }
 
+    /* ── Start here (2026-09-24): one recommended first run for a teacher
+       who has never pressed Host. A paper card under the how strip: the
+       yellow tag, one line, the page's one red door (Live Poll, two
+       minutes at your own desk with pretend students), and the yard
+       still open beside it. ── */
+    .start-here {
+      margin-top: 22px;
+      background: var(--t-paper);
+      box-shadow: var(--t-shadow-free);
+      padding: 18px 22px 20px;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+      transform: rotate(0.3deg);
+    }
+
+    .start-tag {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 6px 12px 7px;
+      transform: rotate(-1.5deg);
+      flex-shrink: 0;
+      box-shadow: 0 2px 3px rgba(50,35,15,0.24);
+    }
+
+    .start-text {
+      margin: 0;
+      flex: 1 1 320px;
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.45;
+      color: var(--t-muted);
+    }
+
+    .start-text strong { color: var(--t-ink); font-weight: 700; }
+
+    .start-door {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      text-decoration: none;
+      padding: 12px 20px 13px;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .start-browse {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--t-muted);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      white-space: nowrap;
+    }
+
+    .start-browse:hover { color: var(--t-ink); }
+    .start-here[hidden] { display: none; }
+
     /* The yard's head: the name, and beside it what the prints are (the
        line the carousel's head carried, owner 2026-09-22) */
     .yard-title { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
@@ -679,6 +743,7 @@
       /* No room under the label for the ways on a short plank */
       .plank-ways { display: none; }
       .how { grid-template-columns: 1fr; }
+      .start-here { padding: 16px 18px 18px; gap: 12px; }
       footer { justify-content: center; }
       .footer-credit { margin-left: 0; }
     }
@@ -849,6 +914,19 @@
       </div>
     </section>
 
+    <!-- Start here: one recommended first run for a teacher who has
+         never pressed Host (2026-09-24). Live Poll, two minutes at your
+         own desk with pretend students; browsing stays open (the link
+         beside it and the whole yard below). The door lands on the make
+         page like every other door on the home, with from=start so the
+         make page can say what to press first. -->
+    <section class="start-here" id="start-here" aria-label="Start here" hidden>
+      <span class="start-tag t-yellow" aria-hidden="true">Start here</span>
+      <p class="start-text"><strong>Never run one?</strong> Try Live Poll first: two minutes at your own desk, with pretend students, before a class ever sees it.</p>
+      <a class="start-door t-red t-lift" href="/make?game=live-poll&amp;from=start" id="start-here-door">Try Live Poll</a>
+      <a class="start-browse" href="#yard">or browse the yard</a>
+    </section>
+
     <section class="myyard-section" id="my-yard" hidden aria-label="My yard"></section>
 
     <!-- The yard: every ready-made activity, shortest first; the chip row
@@ -909,6 +987,30 @@
       var searchEl = document.getElementById('yard-search');
       var noteEl = document.getElementById('yard-note');
       var games = [];
+
+      // Start here shows for a first-time browser only (owner 2026-09-24):
+      // one that has never hosted a room (the host page's key), holds no
+      // copy, no heart, no recent, and has not pressed the door before.
+      // The section ships hidden so a returning teacher never sees it flash.
+      var START_KEY = 'jamyard.startHereDone';
+      function firstTimeHere() {
+        try {
+          if (localStorage.getItem('jamyard.hostKey') || localStorage.getItem(START_KEY)) return false;
+        } catch (e) { return false; }
+        if (window.MyGames && MyGames.list().length) return false;
+        var P = window.ActivityPrefs;
+        if (P && ((P.Recents && P.Recents.list().length) || (P.Favorites && P.Favorites.list().length))) return false;
+        return true;
+      }
+      (function () {
+        var card = document.getElementById('start-here');
+        if (!card) return;
+        if (firstTimeHere()) card.hidden = false;
+        var door = document.getElementById('start-here-door');
+        if (door) door.addEventListener('click', function () {
+          try { localStorage.setItem(START_KEY, '1'); } catch (e) { /* private mode: it shows again, no harm */ }
+        });
+      })();
       var reducedMotion = window.matchMedia &&
         window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

@@ -43,6 +43,7 @@
     hostBtn: document.getElementById('host-btn'),
     designer: document.getElementById('designer-link'),
     note: document.getElementById('doors-note'),
+    startNote: document.getElementById('start-note'),
     cancel: document.getElementById('cancel-link'),
     error: document.getElementById('make-error'),
     fitRows: document.getElementById('fit-rows'),
@@ -57,9 +58,11 @@
   };
 
   // Where "back" goes: the door the teacher came through
-  if (from === 'home') el.back.href = '/';
+  if (from === 'home' || from === 'start') el.back.href = '/';
   else if (from === 'designer') el.back.href = '/designer';
-  el.back.textContent = from === 'home' ? 'Back to home' : from === 'designer' ? 'Back to Create' : 'Back to the yard';
+  el.back.textContent = (from === 'home' || from === 'start') ? 'Back to home' : from === 'designer' ? 'Back to Create' : 'Back to the yard';
+  // The Start here route (the home's first-run card): say what to press
+  if (from === 'start' && el.startNote) el.startNote.hidden = false;
 
   // What happens, stop by stop (the map the popups used to carry)
   if (gameId && window.ActivityMap) {
