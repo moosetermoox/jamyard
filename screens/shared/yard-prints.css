@@ -50,6 +50,14 @@
   box-shadow: 0 4px 6px rgba(50,35,15,0.24);
 }
 
+/* A teacher's own copy (18d, 2026-09-24): the mat is Sanded with grain,
+   the same two gradients as the search plank, the "yours" marker
+   wherever a copy sits beside built-ins */
+.yard-print-own {
+  background: var(--t-sanded);
+  background-image: var(--t-grain);
+}
+
 /* The gesso window: the pictogram centred, the prompt hidden at the bottom */
 .yard-window {
   background: var(--t-gesso);
@@ -67,6 +75,16 @@
 
 .yard-card.on .yard-pict,
 .yard-card:focus-visible .yard-pict { transform: translateY(-14px); }
+
+/* A content card's window: the picture anchored at the top with room
+   for a two-line hover line under it, and it never slides */
+.yard-window-content {
+  align-items: flex-start;
+  padding-top: 11px;
+  box-sizing: border-box;
+}
+.yard-card.on .yard-window-content .yard-pict,
+.yard-card:focus-visible .yard-window-content .yard-pict { transform: none; }
 
 .yard-prompt-box {
   position: absolute;
@@ -114,6 +132,29 @@
   box-shadow: 0 3px 4px rgba(50,35,15,0.22);
   transform: rotate(-2deg);
   white-space: nowrap;
+}
+
+/* Own copies: a kicker in spaced caps (the template's name, or MADE
+   WITH AI) over the copy's own name */
+.yard-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 11px;
+  min-width: 0;
+}
+.yard-name-block .yard-name-row { margin-top: 0; }
+.yard-kicker {
+  font-family: var(--t-body);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  padding: 0 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Under the mat: the name and the need's square on one baseline */
@@ -242,12 +283,65 @@
   clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
 }
 
-/* Vocab Match's joining line sits over the two columns */
+/* Vocab Match's joining line sits over the two columns: from the first
+   term's right edge down to the second meaning */
 .pg-join {
   position: absolute;
   left: 38px;
   top: 8px;
 }
+.pg-join.pg-join-words { left: 64px; top: 9px; }
+.pg-join-words .pg-b { white-space: nowrap; }
+
+/* A name over a slip, the fold picture's way of saying whose it is */
+.pg-named {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.pg-name {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  line-height: 1;
+  padding-left: 3px;
+  min-height: 9px;
+}
+.pg-plus {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--t-muted-caps);
+  padding-bottom: 5px;
+}
+
+/* Someone's Got You: the reply set in under the note */
+.pg-reply {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding-left: 12px;
+}
+.pg-reply-mark {
+  font-size: 14px;
+  line-height: 1;
+  color: var(--t-muted-caps);
+  padding-top: 12px;
+}
+
+/* Snowball: the pair's own "We agree" stamped on the plank's corner */
+.pg-stamped { position: relative; }
+.pg-stamp {
+  position: absolute;
+  right: -8px;
+  top: -17px;
+}
+.pg-stamp .pg-tag { transform: rotate(4deg); }
 
 /* The arrival: the block that appears on hover */
 .pg-arrive {
@@ -261,6 +355,138 @@ span.pg-arrive { display: inline-block; }
 
 .yard-card.on .pg-arrive,
 .yard-card:focus-visible .pg-arrive { opacity: 1; transform: translateY(0); }
+
+/* ── Real content on six cards (2026-09-24): slips of the activity's own
+   text, student-style doodles, labelled bars. Reading text is the body
+   face, small; nothing here is a caption of ours. ── */
+.pg-slip {
+  font-family: var(--t-body);
+  font-weight: 600;
+  font-size: 11px;
+  line-height: 1.25;
+  color: var(--t-ink);
+  padding: 5px 8px 6px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
+}
+.pg-slip.t-paper { background-image: none; }
+/* Reading text on the darker paints is paper, as the Totem buttons are */
+.pg-slip.t-magenta, .pg-slip.t-cyan, .pg-slip.t-green { color: var(--t-paper); }
+.pg-slip-small { font-size: 10px; padding: 4px 6px 5px; }
+
+/* Your words on the block (18d): the copy's topic in the need paint,
+   in place of the pictogram's painted block, under it, or in the
+   window's corner on a content card */
+.pg-b.pg-word {
+  width: auto !important;
+  height: auto !important;
+  display: inline-block;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 4px 8px 5px;
+  color: var(--t-ink);
+  white-space: nowrap;
+  background-image: none;
+}
+.pg-topic-corner {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  transition: opacity 180ms var(--t-ease);
+}
+/* On hover the words fill the picture and the prompt takes the bottom, so the corner tag steps aside */
+.yard-card.on .pg-topic-corner,
+.yard-card:focus-visible .pg-topic-corner { opacity: 0; }
+.pg-b.pg-initial {
+  font-size: 14px;
+}
+
+/* A blank plank at rest whose words roll out on hover (owner
+   2026-09-24: "block is empty, on hover it fills"): the text keeps its
+   place, clipped away from the right */
+.pg-fill {
+  display: inline-block;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 360ms var(--t-ease) 60ms;
+}
+.yard-card.on .pg-fill,
+.yard-card:focus-visible .pg-fill { clip-path: inset(0 0 0 0); }
+
+.pg-caps {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--t-muted-caps);
+  line-height: 1;
+}
+
+/* Live Poll: a label, a bar, a count on each line */
+.pg-label {
+  font-family: var(--t-body);
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--t-ink);
+  width: 54px;
+  text-align: right;
+  flex: none;
+  white-space: nowrap;
+}
+.pg-count {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 10px;
+  color: var(--t-muted-caps);
+  padding-left: 2px;
+}
+
+/* Draw Gallery: a two-by-two wall of drawings on paper squares */
+.pg-wall {
+  display: grid;
+  grid-template-columns: repeat(2, 44px);
+  gap: 7px;
+}
+.pg-drawing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  box-sizing: border-box;
+}
+.pg-drawing.t-paper { background-image: none; }
+.pg-doodle {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--t-ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Snowball: two answers funnel into one */
+.pg-funnel {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  height: 20px;
+  align-items: center;
+}
+.pg-funnel .pg-b { transform-origin: center; }
+.pg-tag.t-paper { background: var(--t-paper); background-image: none; }
+
+/* Closer: a person plank, head over body */
+.pg-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
 
 /* ── The AI door's card: a dashed slot holding a sanded plank and BUILD IT ── */
 .yard-slot {
@@ -304,5 +530,5 @@ span.pg-arrive { display: inline-block; }
 
 /* Motion reduced: nothing slides, the arrivals simply appear on hover */
 @media (prefers-reduced-motion: reduce) {
-  .yard-card, .yard-pict, .yard-prompt, .pg-arrive { transition: none; }
+  .yard-card, .yard-pict, .yard-prompt, .pg-arrive, .pg-fill { transition: none; }
 }

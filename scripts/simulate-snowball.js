@@ -42,7 +42,7 @@ async function run() {
     // --- solo collect ---
     const soloPrompts = await waitForEventOnAll(players, 'game-started', 8000);
     console.log('\n--- solo ---');
-    r.check(soloPrompts.every(p => (p.prompt || '').includes('class norms')), 'solo: prompt delivered');
+    r.check(soloPrompts.every(p => (p.prompt || '').includes('most important idea')), 'solo: prompt delivered');
     const soloAnswers = names.map(n => `Norm idea from ${n}: respect speaking turns.`);
     players.forEach((p, i) => p.emit('submit-response', { code, response: soloAnswers[i] }));
     await wait(500);

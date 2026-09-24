@@ -16,31 +16,31 @@
     },
     "round1": {
       "type": "match",
-      "prompt": "Match each French word to its English meaning",
+      "prompt": "Match each term to its meaning",
       "pairs": [
         {
-          "left": "chat",
-          "right": "cat"
+          "left": "simile",
+          "right": "compares with like or as"
         },
         {
-          "left": "chien",
-          "right": "dog"
+          "left": "metaphor",
+          "right": "says one thing is another"
         },
         {
-          "left": "oiseau",
-          "right": "bird"
+          "left": "hyperbole",
+          "right": "exaggerates on purpose"
         },
         {
-          "left": "poisson",
-          "right": "fish"
+          "left": "alliteration",
+          "right": "repeats a first sound"
         },
         {
-          "left": "cheval",
-          "right": "horse"
+          "left": "personification",
+          "right": "gives a thing human traits"
         },
         {
-          "left": "vache",
-          "right": "cow"
+          "left": "onomatopoeia",
+          "right": "sounds like its noise"
         }
       ],
       "pointsPerMatch": 10,
@@ -49,31 +49,31 @@
     },
     "round2": {
       "type": "match",
-      "prompt": "Round 2, match each French food word to its English meaning",
+      "prompt": "Round 2, match each term to its meaning",
       "pairs": [
         {
-          "left": "pain",
-          "right": "bread"
+          "left": "irony",
+          "right": "the opposite of what you expect"
         },
         {
-          "left": "pomme",
-          "right": "apple"
+          "left": "theme",
+          "right": "the big idea a story is about"
         },
         {
-          "left": "fromage",
-          "right": "cheese"
+          "left": "setting",
+          "right": "where and when it happens"
         },
         {
-          "left": "lait",
-          "right": "milk"
+          "left": "protagonist",
+          "right": "the main character"
         },
         {
-          "left": "poulet",
-          "right": "chicken"
+          "left": "foreshadowing",
+          "right": "a hint of what is coming"
         },
         {
-          "left": "eau",
-          "right": "water"
+          "left": "imagery",
+          "right": "words that paint a picture"
         }
       ],
       "pointsPerMatch": 10,
@@ -91,7 +91,7 @@
     },
     "end": {
       "type": "end",
-      "message": "That's Vocab Match! Twelve words closer to fluent."
+      "message": "That's Vocab Match! Twelve terms, nailed down."
     }
   },
   "tags": [
@@ -103,10 +103,11 @@
     "vocabulary",
     "definitions",
     "language",
-    "french",
-    "spanish",
     "terms",
     "any subject",
-    "matching"
+    "matching",
+    "literary terms",
+    "ela",
+    "figurative language"
   ]
 }

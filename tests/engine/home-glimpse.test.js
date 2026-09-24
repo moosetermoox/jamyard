@@ -16,7 +16,7 @@ describe('homeGlimpse', () => {
   it('shows the first student prompt as an answering frame', () => {
     const g = homeGlimpse(load('snowball'));
     expect(g.mode).toBe('answer');
-    expect(g.prompt).toBe('What should our class norms be?');
+    expect(g.prompt).toBe('What is the most important idea from this unit?');
   });
 
   it('skips the announce intro to reach the first input step', () => {
@@ -112,7 +112,7 @@ describe('homeGlimpse samples', () => {
   it('carries up to three sample answers for the first student step', () => {
     const g = homeGlimpse(load('snowball'));
     expect(g.samples).toHaveLength(3);
-    expect(g.samples[0]).toBe('One person talks at a time, and the rest of us actually listen.');
+    expect(g.samples[0]).toBe('You can only add fractions when the pieces are the same size.');
   });
 
   it('takes the first field of a multi-field sample line', () => {

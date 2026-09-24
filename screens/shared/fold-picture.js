@@ -34,11 +34,11 @@
 
   var LAST = 19;
   var WIDTH = 660;
-  var PROMPT = 'What should our class norms be?';
-  var ANSWER = 'One voice at a time';
-  var PARTIAL = 'One voice at a';
-  var SHARED = 'One voice at a time, and actually listen';
-  var BUILT = [ANSWER, 'Ask before you borrow', 'Nobody eats alone'];
+  var PROMPT = 'What is the most important idea from this unit?';
+  var ANSWER = 'Same size pieces';
+  var PARTIAL = 'Same size pie';
+  var SHARED = 'Same size pieces first, then add';
+  var BUILT = [ANSWER, 'Fractions are division', 'Same amount, different cuts'];
   var DRAW_PROMPT = 'Draw your favorite animal';
   var NAMES = ['Maya', 'Jordan', 'Sam'];
   var CODE = 'YAHS';
