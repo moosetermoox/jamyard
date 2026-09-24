@@ -23,7 +23,7 @@ describe('yard cards: one paint per card, the job\'s', () => {
     expect(js).toContain("var PAINT_OF_GROUP = { connect: 't-magenta', think: 't-cyan', review: 't-green', play: 't-orange' };");
     expect(js).toContain('var paint = paintOf(g);');
     // the pictogram takes the paint (17g, 2026-09-22: one block in the need colour)
-    expect(js).toContain('YardPictograms.build(g, paint, picture(g))');
+    expect(js).toContain('YardPictograms.build(g, paint, picture(g), own ?');
     expect(js).toContain("el('span', 'yard-need ' + paintOf(g))");
     expect(js).toContain('paintOf: paintOf,');
   });

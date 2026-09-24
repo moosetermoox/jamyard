@@ -160,6 +160,79 @@
     return out;
   }
 
+  // ── A teacher's own copy (18d, 2026-09-24) ──
+  // The template a copy was made from: the built-in whose id the copy's
+  // id extends (snowball-2), whose name the copy's name starts with
+  // (Snowball (my version)), or whose id the copy's slug starts with
+  // (both-sides-of-the-rope-my-version). Null for a custom game.
+  function templateOf(g, games) {
+    var id = String((g && g.id) || '');
+    var name = String((g && g.name) || '');
+    var list = games || [];
+    var base = id.replace(/-\d+$/, '');
+    var byId = null, byName = null, bySlug = null;
+    for (var i = 0; i < list.length; i++) {
+      var t = list[i];
+      if (!t || t.source === 'user' || t.id === id) continue;
+      if (t.id === base) byId = t;
+      if (!byName && t.name && name.toLowerCase().indexOf(String(t.name).toLowerCase()) === 0) byName = t;
+      if (!bySlug && id.indexOf(t.id + '-') === 0) bySlug = t;
+    }
+    return byId || byName || bySlug || null;
+  }
+
+  function escapeRe(str) { return String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+  var TOPIC_MAX = 16;
+  function cutTopic(text) {
+    var t = String(text || '').replace(/\s+/g, ' ').trim().toUpperCase();
+    if (t.length > TOPIC_MAX) t = t.slice(0, TOPIC_MAX - 1).replace(/\s+\S*$/, '').trim() + '…';
+    return t;
+  }
+
+  // The copy's own words: its name with the template's name and the
+  // separator stripped ("Snowball: Causes of WWI" reads CAUSES OF WWI,
+  // "Exit Ticket · Fractions, day 2" reads FRACTIONS, DAY 2, "(my
+  // version)" counts as nothing); when nothing is left, the first three
+  // words of the copy's prompt, and only when that prompt differs from
+  // the template's (a copy that still asks the template's question has
+  // no words of its own yet, so no word block).
+  function topicOf(g, template) {
+    var name = String((g && g.name) || '');
+    var rest = name;
+    if (template && template.name) rest = rest.replace(new RegExp('^' + escapeRe(template.name) + '\\s*', 'i'), '');
+    rest = rest.replace(/\(\s*(my version|copy|version \d+)\s*\)/ig, '').replace(/\bmy version\b/ig, '');
+    rest = rest.replace(/^[\s:·•\-\u2013\u2014,]+|[\s:·•\-\u2013\u2014,]+$/g, '').trim();
+    if (rest) return cutTopic(rest);
+    var prompt = String((g && g.glimpse && g.glimpse.prompt) || '').replace(/\s+/g, ' ').trim();
+    var templatePrompt = String((template && template.glimpse && template.glimpse.prompt) || '').replace(/\s+/g, ' ').trim();
+    if (!prompt || prompt === templatePrompt) return '';
+    var words = prompt.replace(/[^\w\s'’-]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 3);
+    return cutTopic(words.join(' '));
+  }
+
+  var SMALL_WORDS = /^(a|an|the|of|and|or|to|in|on|for|with|at|by)$/i;
+  // A custom game's initials: up to three, small words skipped
+  function initialsOf(g) {
+    var words = String((g && g.name) || '').split(/\s+/).filter(function (w) { return /^[A-Za-z0-9]/.test(w); });
+    var big = words.filter(function (w) { return !SMALL_WORDS.test(w); });
+    var pick = (big.length ? big : words).slice(0, 3);
+    return pick.map(function (w) { return w.charAt(0).toUpperCase(); }).join('');
+  }
+
+  // What the shelf hands buildCard for one of the teacher's own
+  // activities: the kicker line, the template to draw, the topic for
+  // the word block, or the initials for a custom game
+  function ownDetails(g, template) {
+    if (template) {
+      // the copy's own question, when the teacher changed it, is its hover line
+      var prompt = String((g && g.glimpse && g.glimpse.prompt) || '').trim();
+      var templatePrompt = String((template.glimpse && template.glimpse.prompt) || '').trim();
+      return { kicker: String(template.name || '').toUpperCase(), templateId: template.id, topic: topicOf(g, template), initials: '', ownPrompt: prompt && prompt !== templatePrompt ? prompt : '' };
+    }
+    return { kicker: 'MADE WITH AI', templateId: null, topic: '', initials: initialsOf(g), ownPrompt: '' };
+  }
+
   var CARD_ROTS = ['-0.8deg', '0.6deg', '-0.7deg', '0.9deg', '-0.5deg', '0.8deg', '-0.9deg', '0.5deg', '-0.6deg', '1deg'];
 
   // The floating hover card (name, meta, the `when` line) is OFF on the
@@ -183,23 +256,39 @@
     if (tick) tick.textContent = on ? '0:05' : '0:06';
   }
 
-  // The window: the pictogram centred, the prompt hidden at the bottom
-  function buildWindow(g, card) {
+  // The window: the pictogram centred, the prompt hidden at the bottom.
+  // A content card (real text or drawings in the picture, 2026-09-24)
+  // sits at the top of its window and never slides; its hover line is
+  // the pictogram's own (null = none, the picture already asks the
+  // question), never the glimpse's prompt over the same words.
+  function buildWindow(g, card, own) {
     var win = el('div', 'yard-window');
     var paint = paintOf(g);
     var pict = el('div', 'yard-pict');
     var built = window.YardPictograms
-      ? YardPictograms.build(g, paint, picture(g))
+      ? YardPictograms.build(g, paint, picture(g), own ? { templateId: own.templateId, topic: own.topic, initials: own.initials } : undefined)
       : { node: el('div'), tick: null };
     pict.appendChild(built.node);
     card._tick = built.tick;
     win.appendChild(pict);
-    var box = el('div', 'yard-prompt-box');
-    box.appendChild(el('span', 'yard-prompt', promptOf(g)));
-    win.appendChild(box);
+    if (built.corner) {
+      var corner = el('div', 'pg-topic-corner');
+      corner.appendChild(built.corner);
+      win.appendChild(corner);
+    }
+    if (built.content) win.classList.add('yard-window-content');
+    var line = built.hover === undefined ? promptOf(g) : built.hover;
+    if (own && own.ownPrompt && built.hover !== undefined) line = promptOf({ glimpse: { prompt: own.ownPrompt } });
+    if (line) {
+      var box = el('div', 'yard-prompt-box');
+      box.appendChild(el('span', 'yard-prompt', line));
+      win.appendChild(box);
+    }
     return win;
   }
 
+  // opts.own (18d): the teacher's own copy, from ownDetails: a sanded
+  // mat, the kicker over the name, the word block or initials.
   // opts.href(g) gives the link; opts.onClick(g, card) opens a popup on
   // a plain click (with a link too, modified clicks and new tabs still
   // follow the href; without one the card is a button). opts.mark is the
@@ -252,13 +341,22 @@
       mark.setAttribute('aria-hidden', 'true');
       card.appendChild(mark);
     }
-    var print = el('div', 'yard-print');
-    print.appendChild(buildWindow(g, card));
+    var own = opts.own || null;
+    if (own) card.classList.add('yard-card-own');
+    var print = el('div', 'yard-print' + (own ? ' yard-print-own' : ''));
+    print.appendChild(buildWindow(g, card, own));
     card.appendChild(print);
     var nameRow = el('div', 'yard-name-row');
     nameRow.appendChild(el('span', 'yard-name', g.name));
     nameRow.appendChild(el('span', 'yard-need ' + paintOf(g)));
-    card.appendChild(nameRow);
+    if (own) {
+      var block = el('div', 'yard-name-block');
+      block.appendChild(el('span', 'yard-kicker', own.kicker));
+      block.appendChild(nameRow);
+      card.appendChild(block);
+    } else {
+      card.appendChild(nameRow);
+    }
     return card;
   }
 
@@ -335,6 +433,10 @@
     MARK_STEPS: MARK_STEPS,
     marksFor: marksFor,
     setOn: setOn,
+    templateOf: templateOf,
+    topicOf: topicOf,
+    initialsOf: initialsOf,
+    ownDetails: ownDetails,
     buildCard: buildCard,
     buildAiTile: buildAiTile,
     buildGrid: buildGrid

@@ -79,7 +79,7 @@ function matchesCompound(node, sel) {
 
 async function loadModules(opts = {}) {
   globalThis.window = globalThis;
-  globalThis.document = { createElement: makeNode };
+  globalThis.document = { createElement: makeNode, createElementNS: (ns, tag) => makeNode(tag) };
   globalThis.matchMedia = (q) => ({ matches: q.includes('hover: none') ? !!opts.noHover : !!opts.reduced });
   delete globalThis.GoalGroups;
   delete globalThis.YardPictograms;
@@ -154,6 +154,62 @@ describe('the pictograms', () => {
     }
   });
 
+  // The thumbnail experiment (2026-09-24): six cards carry a little of
+  // the activity's own content so a teacher can tell what students do
+  // without reading. Their windows anchor at the top and never slide;
+  // their hover line is the builder's (none where the picture already
+  // asks the question), never the glimpse's prompt over the same words.
+  it('the six content cards say so, carry the activity\'s own words, and choose their hover line', () => {
+    const P = globalThis.YardPictograms;
+    expect([...P.CONTENT_IDS].sort()).toEqual(['art-gallery', 'both-sides-rope', 'closer', 'live-poll', 'snowball', 'someones-got-you', 'vocab-match', 'whose-eyes']);
+    const words = {
+      'live-poll': ['How are you feeling about today\'s lesson?', 'Got it!', 'Lost'],
+      'art-gallery': ['Draw your dream invention.'],
+      'snowball': ['Maya', 'Jordan', 'Just division.', 'Equal pieces.', 'Just division, equal pieces.', 'Maya + Jordan', 'We agree'],
+      'someones-got-you': ['Maya', 'Trying to get more sleep.', 'One early night this week is a real win.', 'Jordan'],
+      'both-sides-rope': ['Homework should be optional.', 'Yes', 'No', 'Where do you stand now?'],
+      'vocab-match': ['Match each term to its meaning.', 'simile', 'hyperbole', 'compares with like or as'],
+      'whose-eyes': ['Homework', 'a parent', 'asleep when it gets done'],
+      'closer': ['Tier 1 of 3', 'Window seat or aisle seat, and why?']
+    };
+    for (const id of P.CONTENT_IDS) {
+      const built = P.build({ id }, 't-cyan', globalThis.YardPrints.picture({ id }));
+      expect(built.content, id).toBe(true);
+      expect(built.hover === null || typeof built.hover === 'string', id).toBe(true);
+      const text = all(built.node).map((n) => n.textContent).join(' ');
+      for (const w of words[id]) expect(text, id + ' says ' + w).toContain(w);
+      // a copy reads the same
+      expect(P.build({ id: id + '-2' }, 't-cyan').content, id + ' copy').toBe(true);
+    }
+    // the pictures that ask the question carry no hover line; the others one short line
+    expect(P.build({ id: 'live-poll' }, 't-green').hover).toBeNull();
+    expect(P.build({ id: 'art-gallery' }, 't-orange').hover).toBeNull();
+    expect(P.build({ id: 'both-sides-rope' }, 't-cyan').hover).toBeNull();
+    expect(P.build({ id: 'vocab-match' }, 't-green').hover).toBeNull();
+    expect(P.build({ id: 'snowball' }, 't-cyan').hover).toBe('What is the most important idea from this unit?');
+    expect(P.build({ id: 'closer' }, 't-magenta').hover.length).toBeLessThan(50);
+    expect(P.build({ id: 'someones-got-you' }, 't-magenta').hover).toBe('Someone wrote this for you:');
+    // the planks that fill on hover (owner 2026-09-24): blank at rest, the words in a .pg-fill
+    const fills = { 'live-poll': 1, 'art-gallery': 1, 'snowball': 3, 'someones-got-you': 1, 'vocab-match': 1, 'both-sides-rope': 1, 'whose-eyes': 0, 'closer': 0 };
+    for (const id of Object.keys(fills)) {
+      const node = P.build({ id }, 't-cyan').node;
+      expect(node.querySelectorAll('.pg-fill').length, id + ' fills').toBe(fills[id]);
+    }
+    expect(P.build({ id: 'live-poll' }, 't-green').node.querySelector('.pg-fill').textContent).toBe('How are you feeling about today\'s lesson?');
+    // the classmate's name is what lands on Someone's Got You
+    expect(P.build({ id: 'someones-got-you' }, 't-magenta').node.querySelector('.pg-arrive').firstChild.textContent).toBe('Jordan');
+    // the classic cards keep the glimpse's prompt (hover undefined, content false)
+    const classic = P.build({ id: 'exit-ticket' }, 't-green');
+    expect(classic.content).toBe(false);
+    expect(classic.hover).toBeUndefined();
+    // the drawings are SVG strokes on paper squares, a two-by-two wall, the fourth arriving
+    const wall = P.build({ id: 'art-gallery' }, 't-orange').node;
+    expect(wall.querySelector('.pg-wall').children.length).toBe(4);
+    expect(wall.querySelectorAll('.pg-drawing').length).toBe(4);
+    expect(wall.querySelectorAll('.pg-doodle').length).toBe(4);
+    expect(wall.querySelector('.pg-arrive .pg-drawing')).not.toBeNull();
+  });
+
   it('builds with the DOM only, never HTML strings', async () => {
     const js = await read('screens/shared/yard-pictograms.js');
     expect(js).not.toContain('innerHTML');
@@ -177,6 +233,18 @@ describe('the cards', () => {
     expect(card.querySelector('.yard-meta')).toBeNull();
     expect(card.querySelector('.yp-mini')).toBeNull();
     expect(card.querySelector('.yp-caps')).toBeNull();
+  });
+
+  it('a content card\'s window is marked so it anchors at the top; its prompt box is the builder\'s line or nothing', () => {
+    const YP = globalThis.YardPrints;
+    const poll = YP.buildCard({ id: 'live-poll', name: 'Live Poll', glimpse: { prompt: 'One question, and the bar chart grows.' } }, 0, {});
+    expect(poll.querySelector('.yard-window-content')).not.toBeNull();
+    expect(poll.querySelector('.yard-prompt-box')).toBeNull();
+    const snow = YP.buildCard({ id: 'snowball', name: 'Snowball', glimpse: { prompt: 'Alone, then pairs, then all of us.' } }, 0, {});
+    expect(snow.querySelector('.yard-prompt').textContent).toBe('What is the most important idea from this unit?');
+    const ticket = YP.buildCard({ id: 'exit-ticket', name: 'Exit Ticket', glimpse: { prompt: 'One thing you learned today.' } }, 0, {});
+    expect(ticket.querySelector('.yard-window-content')).toBeNull();
+    expect(ticket.querySelector('.yard-prompt').textContent).toBe('One thing you learned today.');
   });
 
   it('the hover state is a class the pictogram, arrival, prompt and timer answer to', () => {
@@ -319,7 +387,7 @@ describe('the yard on the home page', () => {
     expect(css).toContain('.yard-card.on .yard-prompt');
     // keyboard users see the same arrival
     expect(css).toContain('.yard-card:focus-visible .pg-arrive');
-    expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.yard-card, \.yard-pict, \.yard-prompt, \.pg-arrive \{ transition: none; \}/);
+    expect(css).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.yard-card, \.yard-pict, \.yard-prompt, \.pg-arrive, \.pg-fill \{ transition: none; \}/);
     expect(css).not.toContain('.yard-meta');
     expect(css).not.toContain('.yp-mini');
   });
@@ -331,7 +399,7 @@ describe('the yard on the home page', () => {
     expect(js).toContain('if (HOVER_CARD && window.HoverCard) HoverCard.attach(card, AI_DOOR);');
   });
 
-  it('the shelf\'s tools sit under the taller window', () => {
-    expect(shelfCss).toContain('top: 173px; /* 9px paper + 156px window + 8px */');
+  it('the shelf\'s tools sit under the name row (18d)', () => {
+    expect(shelfCss).toMatch(/\.shelf-tools \{[^}]*margin-top: 8px/);
   });
 });

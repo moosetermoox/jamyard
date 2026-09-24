@@ -91,17 +91,22 @@ describe('the shelf module', () => {
     expect(js).toContain("shelfTool('a', 'pen'");
     expect(js).toContain("shelfTool('button', 'heart'");
     expect(js).toMatch(/if \(editable\) \{\s*var bin = shelfTool\('button', 'bin'/);
+    // share from the shelf (18d), own copies only, the popup's link
+    expect(js).toMatch(/if \(isOwn\(game\.id\)\) \{\s*var share = shelfTool\('button', 'share'/);
+    expect(js).toContain('copyShareLink(game.id, share, flashTool(share))');
     // drawn marks, built with the DOM: no innerHTML anywhere in the module
     expect(js).not.toContain('innerHTML');
     expect(js).toContain("document.createElementNS(NS, 'svg')");
-    for (const k of ['play', 'pen', 'heart', 'bin']) expect(js).toContain(k + ': { d:');
+    for (const k of ['play', 'pen', 'heart', 'share', 'bin']) expect(js).toContain(k + ': { d:');
   });
 
   it('its stylesheet makes the shelf row a yard grid, a print fill its column, and the tools sit on the paper', async () => {
     const css = await read('screens/shared/my-yard.css');
     expect(css).toContain('.shelf-item .yard-card { width: 100%; }');
-    expect(css).toContain('.shelf-item .yard-print { padding-bottom: 40px; }');
-    expect(css).toMatch(/\.shelf-tools \{[^}]*position: absolute/);
+    // the tools sit under the name row (18d), no longer on the paper
+    expect(css).not.toContain('padding-bottom: 40px');
+    expect(css).toMatch(/\.shelf-tools \{[^}]*margin-top: 8px/);
+    expect(css).not.toMatch(/\.shelf-tools \{[^}]*position: absolute/);
     expect(css).toMatch(/\.shelf-tool \{[^}]*width: 24px/);
     expect(css).toContain('.shelf-tool-heart[aria-pressed="true"] path { fill: currentColor; }');
     expect(css).toMatch(/\.myyard-board \{[^}]*width: 100%/);
