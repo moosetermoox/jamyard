@@ -99,7 +99,7 @@
     panel: null,           // 'quiz' | 'bluff' when the recipe brings its own editor
     panelApi: null,        // { makeCopy } from MakeItYours.mountPanel
     example: null,         // the class example filled in from the yard, while it stands
-    exampleChoices: null   // its answer choices (Live Poll), sent with the edits
+    choiceBoxes: []        // the answer chips as boxes, when they are the teacher's to change
   };
 
   function fail(text) {
@@ -256,8 +256,11 @@
       print.timerEditable = false;
       mountPanel();
     }
-    var editable = print.prompt.editable || print.fields.some(function (f) { return f.editable; });
-    el.label.textContent = editable ? 'What your class will see · tap the question to change it' : 'What your class will see';
+    var choicesEditable = !!print.choicesEditable && !state.panel;
+    var editable = print.prompt.editable || print.fields.some(function (f) { return f.editable; }) || choicesEditable;
+    el.label.textContent = editable
+      ? 'What your class will see · tap the question' + (choicesEditable ? ' or an answer' : '') + ' to change it'
+      : 'What your class will see';
 
     // The prompt: a bold-box plank when it is the teacher's to change
     if (print.prompt.text) {
@@ -304,7 +307,7 @@
       setRich(el.instruction, print.instruction);
     }
 
-    drawChoices(print.choices);
+    drawChoices(print.choices, choicesEditable);
 
     if (print.audience) {
       el.audience.hidden = false;
@@ -504,7 +507,7 @@
         // the AI must not ask for them again
         knownSettings: ['Grade band', 'Subjects', 'The question', 'Timer', 'Student names']
           .concat(state.example && state.example.prefill && state.example.prefill.pairs ? ['The pairs'] : [])
-          .concat(state.exampleChoices ? ['The answer choices'] : [])
+          .concat(choicesChanged() ? ['The answer choices'] : [])
       })
     }).then(function (r) { return r.ok ? r.json() : { questions: [] }; })
       .catch(function () { return { questions: [] }; })
@@ -715,16 +718,46 @@
 
   if (el.fitSee) el.fitSee.addEventListener('click', seeHowItReads);
 
-  // The choice chips (Live Poll's four), redrawn from a print or an example
-  function drawChoices(choices) {
+  // The choice chips (Live Poll's four), redrawn from a print or an example.
+  // When they are the teacher's to change (owner 2026-09-24) each chip is
+  // a box in the chip's paint; an emptied box drops that answer, and the
+  // server keeps the template's four if fewer than two are left.
+  function drawChoices(choices, editable) {
     el.choices.textContent = '';
+    state.choiceBoxes = [];
     el.choices.hidden = !(choices && choices.length);
     (choices || []).forEach(function (c, i) {
-      var chip = document.createElement('span');
-      chip.className = 'print-choice choice-' + (i % 4);
-      chip.textContent = c;
-      el.choices.appendChild(chip);
+      if (editable) {
+        var box = document.createElement('input');
+        box.type = 'text';
+        box.className = 'print-choice print-choice-input choice-' + (i % 4);
+        box.value = c;
+        box.maxLength = 80;
+        box.setAttribute('aria-label', 'Answer ' + (i + 1) + ' your class can pick. Change it here.');
+        box.addEventListener('input', scheduleMap);
+        box.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); box.blur(); } });
+        state.choiceBoxes.push(box);
+        el.choices.appendChild(box);
+      } else {
+        var chip = document.createElement('span');
+        chip.className = 'print-choice choice-' + (i % 4);
+        chip.textContent = c;
+        el.choices.appendChild(chip);
+      }
     });
+  }
+
+  // The answers as typed (empty ones dropped), or null when they are not boxes
+  function choicesValue() {
+    if (!state.choiceBoxes.length) return null;
+    return state.choiceBoxes.map(function (b) { return b.value.trim(); }).filter(Boolean);
+  }
+
+  // Did the teacher change an answer? (The template's are the AI's to fit.)
+  function choicesChanged() {
+    var now = choicesValue();
+    if (!now || !state.print) return false;
+    return JSON.stringify(now) !== JSON.stringify((state.print.choices || []).map(function (c) { return String(c).trim(); }));
   }
 
   // --- A class example from the yard (2026-09-24): the card the teacher
@@ -762,10 +795,8 @@
       mountPairs(rounds);
       applied = true;
     }
-    if (pf.choices && state.print.choices && state.print.choices.length) {
-      state.exampleChoices = pf.choices.slice();
-      drawChoices(pf.choices);
-      applied = true;
+    if (pf.choices && state.choiceBoxes.length) {
+      state.choiceBoxes.forEach(function (box, i) { if (pf.choices[i]) { box.value = pf.choices[i]; applied = true; } });
     }
     if (!applied) return;
     state.example = ex;
@@ -809,9 +840,8 @@
       if (box) box.value = f.label;
     });
     if (Array.isArray(print.pairs) && print.pairs.length && !state.panel) mountPairs(print.pairs);
-    var hadWords = !!(state.example && state.example.prefill && (state.example.prefill.pairs || state.exampleChoices));
-    state.exampleChoices = null;
-    drawChoices(print.choices);
+    var hadWords = !!(state.example && state.example.prefill && (state.example.prefill.pairs || state.example.prefill.choices));
+    drawChoices(print.choices, !!print.choicesEditable && !state.panel);
     state.example = null;
     scheduleMap();
     if (hadWords) scheduleQuestions(true);
@@ -851,9 +881,8 @@
     });
     el.instruction.hidden = !print.instruction;
     if (print.instruction) setRich(el.instruction, print.instruction);
-    drawChoices(print.choices);
-    // The example's choices stand as the fit left them (it is told to keep them)
-    if (state.exampleChoices && print.choices && print.choices.length) state.exampleChoices = print.choices.slice();
+    // The answers the teacher wrote stay as typed; the template's take the fitted ones
+    if (!choicesChanged()) drawChoices(print.choices, !!state.print.choicesEditable && !state.panel);
     el.audience.hidden = !print.audience;
     if (print.audience) el.audience.textContent = print.audience;
     // The pairs the teacher left alone take the fitted ones
@@ -1080,7 +1109,8 @@
     Object.keys(state.fieldBoxes).forEach(function (k) { fields[k] = state.fieldBoxes[k].value; any = true; });
     if (any) edits.fields = fields;
     if (state.print && state.print.timerEditable && typeof state.timer === 'number') edits.timer = state.timer;
-    if (state.exampleChoices) edits.choices = state.exampleChoices.slice();
+    var choices = choicesValue();
+    if (choices) edits.choices = choices;
     var pairs = pairsValue();
     if (pairs) edits.pairs = pairs;
     var newRounds = newRoundsValue();
@@ -1258,8 +1288,8 @@
     if (state.promptBox && stepId && promptChanged()) {
       fixed.push('The teacher wrote the question in step "' + stepId + '" themselves: "' + state.promptBox.value.trim() + '". Keep it word for word.');
     }
-    if (state.exampleChoices && stepId) {
-      fixed.push('The teacher set the answer choices in step "' + stepId + '" themselves: ' + state.exampleChoices.join(', ') + '. Keep them word for word, in that order.');
+    if (choicesChanged() && stepId) {
+      fixed.push('The teacher set the answer choices in step "' + stepId + '" themselves: ' + choicesValue().join(', ') + '. Keep them word for word, in that order.');
     }
     var labels = changedFieldLabels().map(function (t) { return '"' + t + '"'; });
     if (labels.length && stepId) {

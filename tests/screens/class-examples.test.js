@@ -373,8 +373,8 @@ describe('the pages', () => {
     expect(js).toContain('state.promptBox.value = pf.prompt;');
     expect(js).toContain('box.value = pf.fields[i];');
     expect(js).toContain('mountPairs(rounds);');
-    expect(js).toContain('state.exampleChoices = pf.choices.slice();');
-    expect(js).toContain("if (state.exampleChoices) edits.choices = state.exampleChoices.slice();");
+    expect(js).toContain('if (pf.choices[i]) { box.value = pf.choices[i]; applied = true; }');
+    expect(js).toContain('if (choices) edits.choices = choices;');
     expect(js).toContain("'Use the original words'");
     expect(js).toContain("'Filled in for ' + ClassExamples.describe(ex)");
     // the fit is told the example's choices are the teacher's
@@ -481,6 +481,46 @@ describe('the pages', () => {
     const picker = await read('screens/shared/class-picker.js');
     expect(picker).toContain('picked.subjects = had ? [] : [id];');
     expect(picker).toContain("subjectLabel.textContent = 'Subject';");
+  });
+
+  it('a pick-one step\'s plain answers are the teacher\'s to change on the page: boxes in the chips\' paint, sent as the choices edit', async () => {
+    const { printFor } = await import('../../engine/make-print.js');
+    const poll = printFor({
+      name: 'Live Poll',
+      phases: {
+        lobby: { id: 'lobby', type: 'lobby', next: 'ask' },
+        ask: { id: 'ask', type: 'collect-choice', prompt: 'How are you feeling?', choices: ['Got it!', 'Mostly', 'Confused', 'Lost'], next: 'end' },
+        end: { id: 'end', type: 'end' }
+      }
+    });
+    expect(poll.choicesEditable).toBe(true);
+    const quiz = printFor({
+      name: 'Solo Quiz',
+      phases: {
+        lobby: { id: 'lobby', type: 'lobby', next: 'quiz' },
+        quiz: { id: 'quiz', type: 'solo-quiz', questions: [{ question: 'Q?', choices: ['a', 'b'], correct: 'a' }], next: 'end' },
+        end: { id: 'end', type: 'end' }
+      }
+    });
+    expect(quiz.choicesEditable).toBe(false);
+    const templated = printFor({
+      phases: {
+        lobby: { id: 'lobby', type: 'lobby', next: 'ask' },
+        ask: { id: 'ask', type: 'collect-choice', prompt: 'Pick', choices: ['{{x.a}}', 'b'], next: 'end' },
+        end: { id: 'end', type: 'end' }
+      }
+    });
+    expect(templated.choicesEditable).toBe(false);
+    const js = await read('screens/make/make.js');
+    expect(js).toContain("box.className = 'print-choice print-choice-input choice-' + (i % 4);");
+    expect(js).toContain("box.addEventListener('input', scheduleMap);");
+    expect(js).toContain('function choicesChanged()');
+    expect(js).toContain("' or an answer' : ''");
+    // the fit keeps what the teacher typed, and the fitted print never overwrites it
+    expect(js).toContain("if (choicesChanged() && stepId) {");
+    expect(js).toContain('if (!choicesChanged()) drawChoices(print.choices,');
+    const css = await read('screens/make/styles.css');
+    expect(css).toContain('.print-choice-input:focus { box-shadow: inset 0 0 0 3px var(--t-paper); }');
   });
 
   it('the popup\'s map reads the example through the make route', async () => {
