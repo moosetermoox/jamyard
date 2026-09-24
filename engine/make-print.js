@@ -35,6 +35,10 @@ function isPlainText(value) {
   return typeof value === 'string' && value.trim().length > 0 && !value.includes('{{');
 }
 
+// The fields a swap may touch: what a student, the projector, or the AI
+// reads as words. Never id, next, from, rotateFrom, or any other ref.
+const SWAP_KEYS = new Set(['prompt', 'message', 'instruction', 'content', 'heading', 'title', 'label', 'text', 'chainHeading', 'chainGrewHeading', 'template', 'itemTemplate', 'question', 'choices', 'items', 'discussionPrompt', 'explanation', 'candidates', 'gallery', 'questions', 'fields', 'pairs', 'left', 'right', 'sides']);
+
 /**
  * The first step students answer, walking the activity's map (so branches
  * and rounds are read the way the yard reads them).
@@ -202,13 +206,14 @@ export function addRound(config, pairs) {
 /**
  * The teacher's edits, applied to a deep copy of the config.
  * @param {object} config
- * @param {{prompt?: string, fields?: Object<string, string>|string[], timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>|Array<Array<{left: string, right: string}>>, choices?: string[]}} edits
- * @returns {{config: object, changed: boolean}}
+ * @param {{prompt?: string, fields?: Object<string, string>|string[], timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>|Array<Array<{left: string, right: string}>>, choices?: string[], swaps?: Array<{from: string, to: string}>}} edits
+ * @returns {{config: object, changed: boolean, swapped: boolean}}
  */
 export function applyEdits(config, edits) {
   const copy = JSON.parse(JSON.stringify(config));
   const step = firstStudentStep(copy);
   let changed = false;
+  let swapped = false;
   edits = { ...(edits || {}) };
 
   // By position (a class example knows no keys, 2026-09-24): pairs as an
@@ -260,7 +265,7 @@ export function applyEdits(config, edits) {
     }
   }
 
-  if (!step) return { config: copy, changed };
+  if (!step) return { config: copy, changed, swapped };
   const phase = step.phase;
 
   if (typeof edits.prompt === 'string' && isPlainText(phase.prompt)) {
@@ -279,11 +284,45 @@ export function applyEdits(config, edits) {
     const next = edits.choices.filter((c) => typeof c === 'string').map(clean).filter(Boolean);
     if (next.length >= 2 && JSON.stringify(next) !== JSON.stringify(phase.choices.map(clean))) { phase.choices = next; changed = true; }
   }
+  // Words swapped everywhere (a class example's topic, 2026-09-24): the
+  // rope's claim sits in its intro and its second vote too, Whose Eyes?'s
+  // topic in its intro, Closer's first question in its first message.
+  // Every teacher-facing text field in every phase and sub-phase, never
+  // an id, a ref, or a token; the sample answers go with the old topic.
+  if (Array.isArray(edits.swaps)) {
+    const swaps = edits.swaps.filter((s) => s && typeof s.from === 'string' && s.from.trim().length >= 3 && typeof s.to === 'string');
+    let hit = false;
+    const swapText = (str) => {
+      let out = str;
+      let here = false;
+      for (const s of swaps) if (out.includes(s.from)) { out = out.split(s.from).join(s.to); here = true; }
+      if (!here) return str;
+      hit = true;
+      return out.replace(/[ \t]+\n/g, '\n').replace(/ {2,}/g, ' ').trim();
+    };
+    const walk = (node) => {
+      if (!node || typeof node !== 'object') return;
+      for (const [k, v] of Object.entries(node)) {
+        if (SWAP_KEYS.has(k)) {
+          if (typeof v === 'string') node[k] = swapText(v);
+          else if (Array.isArray(v)) node[k] = v.map((x) => (typeof x === 'string' ? swapText(x) : (walk(x), x)));
+          else walk(v);
+        } else if (v && typeof v === 'object') {
+          walk(v);
+        }
+      }
+    };
+    if (swaps.length) {
+      walk(copy.phases);
+      if (typeof copy.description === 'string') copy.description = swapText(copy.description);
+      if (hit) { changed = true; swapped = true; delete copy.sampleAnswers; }
+    }
+  }
   if (typeof edits.timer === 'number' && Number.isFinite(edits.timer) && typeof phase.timer === 'number' && !copy.recipe) {
     const next = Math.max(10, Math.min(3600, Math.round(edits.timer)));
     if (next !== phase.timer) { phase.timer = next; changed = true; }
   }
-  return { config: copy, changed };
+  return { config: copy, changed, swapped };
 }
 
 /**

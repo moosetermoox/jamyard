@@ -61,7 +61,8 @@
   };
 
   // Where "back" goes: the door the teacher came through
-  if (from === 'home' || from === 'start') el.back.href = '/';
+  // Back to the home lands on the yard, below the fold (owner 2026-09-24)
+  if (from === 'home' || from === 'start') el.back.href = '/#yard';
   else if (from === 'designer') el.back.href = '/designer';
   el.back.textContent = (from === 'home' || from === 'start') ? 'Back to home' : from === 'designer' ? 'Back to Create' : 'Back to the yard';
   // The Start here route (the home's first-run card): say what to press
@@ -99,6 +100,7 @@
     panel: null,           // 'quiz' | 'bluff' when the recipe brings its own editor
     panelApi: null,        // { makeCopy } from MakeItYours.mountPanel
     example: null,         // the class example filled in from the yard, while it stands
+    exampleSwaps: null,    // its words swapped everywhere (the rope's claim), sent with the edits
     choiceBoxes: []        // the answer chips as boxes, when they are the teacher's to change
   };
 
@@ -159,9 +161,9 @@
   // the ids already taken (so a saved copy never collides).
   Promise.all([
     fetch('/api/games/' + encodeURIComponent(gameId)).then(function (r) { if (!r.ok) throw new Error('That activity could not be found.'); return r.json(); }),
-    // the print: the template's, or, for a recipe example from the yard, the example's (the make route compiles it)
-    exampleEdits && exampleEdits.params
-      ? fetch('/api/games/' + encodeURIComponent(gameId) + '/make', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ params: exampleEdits.params }) })
+    // the print: the template's, or, for a recipe or a swapped example from the yard, the example's (the make route builds it)
+    exampleEdits && (exampleEdits.params || exampleEdits.swaps)
+      ? fetch('/api/games/' + encodeURIComponent(gameId) + '/make', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(exampleEdits) })
         .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { return d && d.print ? d.print : null; })
       : fetch('/api/games/' + encodeURIComponent(gameId) + '/print').then(function (r) { return r.ok ? r.json() : null; }),
     fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(','))).then(function (r) { return r.ok ? r.json() : { games: [], ids: [] }; }).catch(function () { return { games: [], ids: [] }; })
@@ -174,6 +176,13 @@
     if (exampleEdits && exampleEdits.params && state.config && state.config.recipe && state.config.recipe.id) {
       var stampNow = state.config.recipe;
       state.config.recipe = Object.assign({}, stampNow, { params: Object.assign({}, stampNow.params || {}, JSON.parse(JSON.stringify(exampleEdits.params))) });
+      state.exampleParams = true;
+    }
+    // A swapped example (the rope's claim, Whose Eyes?'s topic, Closer's
+    // question): the print above already carries it, the swaps ride with
+    // every edit, and Use the original words reopens the page without it
+    if (exampleEdits && exampleEdits.swaps && parts[1]) {
+      state.exampleSwaps = exampleEdits.swaps;
       state.exampleParams = true;
     }
     var stamp = state.config && state.config.recipe;
@@ -1111,6 +1120,7 @@
     if (state.print && state.print.timerEditable && typeof state.timer === 'number') edits.timer = state.timer;
     var choices = choicesValue();
     if (choices) edits.choices = choices;
+    if (state.exampleSwaps) edits.swaps = state.exampleSwaps;
     var pairs = pairsValue();
     if (pairs) edits.pairs = pairs;
     var newRounds = newRoundsValue();
@@ -1287,6 +1297,9 @@
     var stepId = state.print && state.print.phaseId;
     if (state.promptBox && stepId && promptChanged()) {
       fixed.push('The teacher wrote the question in step "' + stepId + '" themselves: "' + state.promptBox.value.trim() + '". Keep it word for word.');
+    }
+    if (state.exampleSwaps && state.exampleSwaps.length && state.exampleSwaps[0].to) {
+      fixed.push('The teacher chose the topic themselves: "' + state.exampleSwaps[0].to + '" stands wherever the template said "' + state.exampleSwaps[0].from + '". Keep those words.');
     }
     if (choicesChanged() && stepId) {
       fixed.push('The teacher set the answer choices in step "' + stepId + '" themselves: ' + choicesValue().join(', ') + '. Keep them word for word, in that order.');

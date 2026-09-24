@@ -244,9 +244,14 @@ describe('the resolver', () => {
     const bluffCard = E.pick('doodle-bluff', p, 0);
     expect(bluffCard.line).toBe('\u201ca volcano that forgot how to erupt\u201d');
     expect(bluffCard.words.doodle).toBe('volcano');
-    // talk-only and subject-neutral: words for the card, nothing to prefill
-    expect(E.pick('closer', p, 0).prefill).toBeNull();
+    // subject-neutral: words for the card, nothing to prefill
     expect(E.pick('someones-got-you', p, 0).prefill).toBeNull();
+    // the topic lives in more than one step: swaps carry it everywhere
+    expect(E.pick('whose-eyes', p, 0).prefill.swaps).toEqual([{ from: 'our school\'s homework policy', to: 'the new dam on the river' }]);
+    const ropeSwaps = E.pick('both-sides-rope', p, 0).prefill.swaps;
+    expect(ropeSwaps[0]).toEqual({ from: 'Homework should be optional.', to: 'Pluto should still be a planet.' });
+    expect(ropeSwaps[1].to).toBe('');
+    expect(E.pick('closer', p, 0).prefill).toEqual({ swaps: [{ from: 'Window seat or aisle seat, and why?', to: 'Which planet would you visit, and why?' }] });
   });
 
   it('turns an example into the make route\'s edits, by position, for the popup\'s map', () => {
@@ -258,7 +263,8 @@ describe('the resolver', () => {
     const match = E.editsOf(E.pick('vocab-match', p, 0));
     expect(match.pairs).toHaveLength(2);
     expect(match.pairs[0][0]).toEqual({ left: 'igneous', right: 'rock from cooled lava' });
-    expect(E.editsOf(E.pick('closer', p, 0))).toBeNull();
+    expect(E.editsOf(E.pick('closer', p, 0)).swaps[0].to).toBe('Which planet would you visit, and why?');
+    expect(E.editsOf(E.pick('someones-got-you', p, 0))).toBeNull();
     expect(E.editsOf(null)).toBeNull();
   });
 });
@@ -481,6 +487,47 @@ describe('the pages', () => {
     const picker = await read('screens/shared/class-picker.js');
     expect(picker).toContain('picked.subjects = had ? [] : [id];');
     expect(picker).toContain("subjectLabel.textContent = 'Subject';");
+  });
+
+  it('swaps replace the topic everywhere a student or the projector reads it, never an id or a ref, and drop the sample answers', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { applyEdits } = await import('../../engine/make-print.js');
+    const rope = JSON.parse(readFileSync(new URL('games/both-sides-rope/config.json', ROOT), 'utf8'));
+    const out = applyEdits(rope, { swaps: [{ from: 'Homework should be optional.', to: 'Pluto should still be a planet.' }, { from: '(What if homework took 10 minutes? What if grades didn\'t exist?)', to: '' }] });
+    expect(out.changed).toBe(true);
+    expect(out.swapped).toBe(true);
+    const text = JSON.stringify(out.config.phases);
+    expect(text).not.toContain('Homework should be optional');
+    expect(text).not.toContain('What if homework took');
+    expect(out.config.phases.intro.message).toContain('“Pluto should still be a planet.”');
+    expect(out.config.phases.stance2.prompt).toContain('Pluto should still be a planet.');
+    expect(out.config.phases.rope.instruction).toContain("the claim 'Pluto should still be a planet.'");
+    expect(out.config.phases.whatif.prompt.endsWith('move it.')).toBe(true);
+    expect(out.config.sampleAnswers).toBeUndefined();
+    // ids and refs are untouched, the original is untouched
+    expect(Object.keys(out.config.phases)).toEqual(Object.keys(rope.phases));
+    expect(out.config.phases.stance1.next).toBe(rope.phases.stance1.next);
+    expect(rope.phases.intro.message).toContain('Homework should be optional.');
+    // a swap that hits nothing changes nothing
+    const miss = applyEdits(rope, { swaps: [{ from: 'Nothing says this', to: 'x' }] });
+    expect(miss.changed).toBe(false);
+    expect(miss.swapped).toBe(false);
+    expect(miss.config.sampleAnswers).toBeDefined();
+    // a two-letter needle is ignored
+    expect(applyEdits(rope, { swaps: [{ from: 'is', to: 'x' }] }).changed).toBe(false);
+    // Closer's first question is its first message
+    const closer = JSON.parse(readFileSync(new URL('games/closer/config.json', ROOT), 'utf8'));
+    const swapped = applyEdits(closer, { swaps: [{ from: 'Window seat or aisle seat, and why?', to: 'Which planet would you visit, and why?' }] });
+    expect(swapped.config.phases.t1q1.message.startsWith('Which planet would you visit, and why?')).toBe(true);
+    const server = await read('server.js');
+    expect(server).toContain('edits.swaps = body.swaps.slice(0, 8)');
+    expect(server).toContain('if (recompiled || out.swapped) return res.json(');
+    const js = await read('screens/make/make.js');
+    expect(js).toContain('if (state.exampleSwaps) edits.swaps = state.exampleSwaps;');
+    expect(js).toContain('exampleEdits && (exampleEdits.params || exampleEdits.swaps)');
+    expect(js).toContain("el.back.href = '/#yard';");
+    const html = await read('screens/make/index.html');
+    expect(html).toContain('<a href="/#yard" class="wordmark"');
   });
 
   it('a pick-one step\'s plain answers are the teacher\'s to change on the page: boxes in the chips\' paint, sent as the choices edit', async () => {
