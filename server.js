@@ -10,6 +10,7 @@ import { readdir, readFile, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
 import { loadGame, validate, getAllowedFields, listGames, resolveGamePath } from './engine/game-loader.js';
+import { validateSampleAnswers } from './engine/sample-answers.js';
 import { parseMine, wantedUserIds } from './engine/games-list-scope.js';
 import { normalizeConfig } from './engine/normalizer.js';
 import { PHASE_SCHEMAS, getFields, getTopLevelOnlyFieldNames } from './engine/phase-schemas.js';
@@ -3482,6 +3483,43 @@ app.post('/api/games/phrase-list', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.log(`[api/games/phrase-list] Error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+});
+
+// Sample answers for a teacher's own activity (owner 2026-09-24): written
+// once by the AI on the activity's own questions, saved on the copy, dealt
+// by Try it out's Add sample answers. A built-in is refused (its set is
+// authored, never AI-written); a set already there is returned as is.
+app.post('/api/games/:gameId/sample-answers', async (req, res) => {
+  try {
+    const { gameId } = req.params;
+    const config = await loadGameById(gameId);
+    const own = (DB_ENABLED && await userGameExists(gameId)) || (await resolveGamePath(gameId)).source === 'user';
+    if (!own) {
+      return res.status(400).json({ error: 'A ready-made activity keeps its own sample answers.' });
+    }
+    if (config.sampleAnswers && typeof config.sampleAnswers === 'object') {
+      return res.json({ sampleAnswers: config.sampleAnswers, written: false });
+    }
+    const seats = parseInt(req.query.seats, 10);
+    const { sampleAnswers } = await aiService.writeSampleAnswers({ config, seats: Number.isInteger(seats) ? seats : undefined });
+    if (!sampleAnswers) return res.json({ sampleAnswers: null, written: false });
+    const next = { ...config, sampleAnswers };
+    const problems = validateSampleAnswers(next, gameId);
+    if (problems.length) {
+      console.log(`[api/games/:gameId/sample-answers] Dropped: ${problems.join(' | ')}`);
+      return res.json({ sampleAnswers: null, written: false });
+    }
+    if (DB_ENABLED && await userGameExists(gameId)) {
+      await saveUserGame(gameId, next);
+    } else {
+      const { configPath } = await resolveGamePath(gameId);
+      await writeFile(configPath, JSON.stringify(next, null, 2));
+    }
+    res.json({ sampleAnswers, written: true });
+  } catch (error) {
+    console.log(`[api/games/:gameId/sample-answers] Error: ${error.message}`);
     res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
