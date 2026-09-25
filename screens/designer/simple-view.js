@@ -390,7 +390,7 @@
     if (!line) return '';
     // A numbered step names itself best ("Word 2 of 6", "Round 3"): the
     // blocks are narrow, so that beats the sentence it sits in.
-    var numbered = line.match(/(?:word|round|link|step|fold|part|question|q)s*d+(?:s+ofs+d+)?/i);
+    var numbered = line.match(/\b(?:word|round|link|step|fold|part|question|q)\s*\d+(?:\s+of\s+\d+)?/i);
     if (numbered) return numbered[0];
     var words = line.split(' ');
     var out = words.slice(0, 5).join(' ');
