@@ -300,6 +300,7 @@ describe('validator diagnostics — game snapshot', () => {
       'elimination-game': [],
       // 2026-08-30: blind six-hand rotation chain assembled by the
       // template chain display (recipe-born, exquisite-corpse recipe).
+      'estimation-station': [],
       'exquisite-corpse': [],
       'finish-my-drawing': [],
       'fix-one-thing': [],

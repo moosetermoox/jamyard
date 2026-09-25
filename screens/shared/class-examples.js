@@ -368,6 +368,30 @@
         middle: { fields: ['One thing that went well this week', 'One thing that was hard'] },
         high: { fields: ['One thing you are proud of this week', 'One thing you need from us'] }
       }
+    },
+
+    // Three how-many challenges per grade band, subject-neutral: the
+    // numbers are the recipe's params, so the make page compiles them
+    // over the stamp. Every answer was checked (round numbers are the
+    // accepted estimates the recipe's own defaults use).
+    'estimation-station': {
+      any: {
+        elementary: { questions: [
+          { prompt: 'How many seconds are in one hour?', answer: 3600, unit: 'seconds' },
+          { prompt: 'How many keys are on a full-size piano?', answer: 88, unit: 'keys' },
+          { prompt: 'How many jelly beans would fill a 1-gallon jar?', answer: 930, unit: 'jelly beans' }
+        ] },
+        middle: { questions: [
+          { prompt: 'How many times does your heart beat in one day?', answer: 100000, unit: 'beats' },
+          { prompt: 'How many feet are in a mile?', answer: 5280, unit: 'feet' },
+          { prompt: 'How many grains of rice are in one cup?', answer: 7000, unit: 'grains' }
+        ] },
+        high: { questions: [
+          { prompt: 'How many seconds are in one day?', answer: 86400, unit: 'seconds' },
+          { prompt: 'How many bones are in an adult human body?', answer: 206, unit: 'bones' },
+          { prompt: 'How many breaths does a person take in one day?', answer: 20000, unit: 'breaths' }
+        ] }
+      }
     }
   };
 
@@ -545,7 +569,9 @@
     'solo-quiz': function (topic) { return 'Five questions on ' + topic + ', at your own pace.'; },
     'speed-quiz': function (topic) { return 'Quick questions on ' + topic + '. Faster right answers score more.'; },
     'trivia-bluff': function (topic) { return 'A fact about ' + topic + ' with a blank, and the lies your classmates wrote.'; },
-    'group-work-day': function (topic) { return 'Jobs and a shared to-do list for today\'s work on ' + topic + '.'; }
+    'group-work-day': function (topic) { return 'Jobs and a shared to-do list for today\'s work on ' + topic + '.'; },
+    'exquisite-corpse': function (topic) { return 'Six blind folds, one word each, with ' + topic + ' as the theme.'; },
+    'class-critique': function (topic) { return 'A presentation on ' + topic + ', rated by the class on three scales.'; }
   };
 
   // What the make page fills in from an example: the question box, the
@@ -583,7 +609,10 @@
     'speed-quiz': function (w) { return { params: { questions: w.questions } }; },
     'trivia-bluff': function (w) { return { params: { questionSource: 'prepared', questions: w.facts, rounds: 3 } }; },
     'doodle-bluff': function (w) { return { params: { phraseSource: 'teacher', phrases: w.phrases.slice() } }; },
-    'group-work-day': function (w) { return { params: { tasks: w.tasks.slice() } }; }
+    'group-work-day': function (w) { return { params: { tasks: w.tasks.slice() } }; },
+    // The theme is a recipe param quoted in every fold's prompt
+    'exquisite-corpse': function (w) { return { params: { theme: w.topic } }; },
+    'estimation-station': function (w) { return { params: { questions: w.questions.map(function (q) { return { prompt: q.prompt, answer: q.answer, unit: q.unit }; }) } }; }
   };
 
   // The hover line of a content card is the picture's own (yard-pictograms
@@ -593,6 +622,7 @@
     if (id === 'exit-ticket') return words.fields[0] + '. ' + words.fields[1] + '.';
     if (id === 'doodle-bluff') return '\u201c' + words.phrase + '\u201d';
     if (id === 'snowball' || id === 'closer') return words.question;
+    if (id === 'estimation-station') return words.questions[0].prompt;
     return '';
   }
 

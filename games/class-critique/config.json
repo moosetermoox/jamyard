@@ -72,5 +72,7 @@
     "reflect",
     "discuss"
   ],
-  "recommendedFor": "Use after presentations, pitches, or shared work. Customize the three scales to fit the lesson."
+  "recommendedFor": "Use after presentations, pitches, or shared work. Customize the three scales to fit the lesson.",
+  "featured": true,
+  "when": "When someone just presented and the class should tell them, honestly and kindly, how it landed."
 }

@@ -33,6 +33,7 @@
     "name": "Folded Pass",
     "description": "A blind pass-and-write sentence built with the Folded Pass recipe, six hands and nobody saw the whole thing coming.",
     "tags": [
+      "create",
       "creative",
       "language",
       "collaborative"
@@ -125,6 +126,56 @@
         "type": "end",
         "message": "Six hands, no plan, and somehow it's poetry. The surrealists would be proud."
       }
+    },
+    "sampleAnswers": {
+      "word-1": [
+        "sleepy",
+        "ancient",
+        "sparkling",
+        "suspicious",
+        "invisible",
+        "grumpy"
+      ],
+      "word-2": [
+        "walrus",
+        "librarian",
+        "volcano",
+        "sandwich",
+        "principal",
+        "thunderstorm"
+      ],
+      "word-3": [
+        "slowly",
+        "rudely",
+        "magnificently",
+        "quietly",
+        "sideways",
+        "politely"
+      ],
+      "word-4": [
+        "devours",
+        "serenades",
+        "interrogates",
+        "hugs",
+        "juggles",
+        "ignores"
+      ],
+      "word-5": [
+        "furious",
+        "chocolate",
+        "tiny",
+        "enormous",
+        "nervous",
+        "glowing"
+      ],
+      "word-6": [
+        "cloud",
+        "homework",
+        "dragon",
+        "bus",
+        "pancake",
+        "goldfish"
+      ]
     }
   }
 }

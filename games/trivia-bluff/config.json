@@ -2,7 +2,7 @@
   "name": "Trivia Bluff",
   "description": "A fact with a blank and believable lies. Pick the truth to score; fool the class to score too.",
   "when": "When the class is flat and you want a bluffing game that teaches the facts on the way.",
-  "featured": true,
+  "featured": false,
   "recipe": {
     "id": "trivia-bluff",
     "version": "1",
