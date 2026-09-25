@@ -1392,6 +1392,7 @@ export function validate(config, gameId, options) {
   // (which JS stringifies as "[object Object],[object Object]"). The fix is
   // to use the .list synthetic suffix.
   scanTemplatesForRawArrays(config, gameId, warnings);
+  scanTemplatesForVoteIds(config, gameId, warnings);
 
   // Special-scope tokens used where they can't resolve (e.g. {{_current.x}}
   // outside foreach) — would render as raw code on student screens.
@@ -1457,6 +1458,7 @@ function inferDiagnosticCode(msg, severity) {
 
   // Template / typed dataflow
   if (/will display as "\[object Object\]/.test(msg)) return DIAGNOSTIC_CODES.RAW_ARRAY_IN_TEMPLATE;
+  if (/is the winner's id, not their answer/.test(msg)) return DIAGNOSTIC_CODES.VOTE_WINNER_ID_IN_TEMPLATE;
   if (/produces .+ but the field needs/.test(msg)) return DIAGNOSTIC_CODES.DATA_REF_TYPE_MISMATCH;
   if (/students will see the raw code on screen/.test(msg)) return DIAGNOSTIC_CODES.SPECIAL_SCOPE_OUT_OF_CONTEXT;
   if (/drawingFrom .+ uses _current/.test(msg)) return DIAGNOSTIC_CODES.SPECIAL_SCOPE_OUT_OF_CONTEXT;
@@ -1835,6 +1837,31 @@ function scanSpecialScopesOutOfContext(config, gameId, warnings) {
             `Game "${gameId}": phase "${name}" ${field} contains "{{${tok.ref}}}", _pair only works on a reveal step with scope "pair", so students will see the raw code on screen.`
           );
         }
+      }
+    }
+  }
+}
+
+// A vote over the class's answers stores the winner's PLAYER ID under
+// .winner; a screen that reads it shows the id (an outside reviewer's
+// results screen ended in "ge7Tpn...", 2026-09-24). .winnerText is the
+// answer's words. A fixed-list vote's .winner is the option's text, fine.
+function scanTemplatesForVoteIds(config, gameId, warnings) {
+  for (const [name, phase] of Object.entries(config.phases)) {
+    for (const field of TEMPLATE_FIELDS) {
+      const tpl = phase[field];
+      if (!tpl || typeof tpl !== 'string') continue;
+      for (const tok of parseTemplateTokens(tpl)) {
+        const parsed = parseRef(tok.ref);
+        if (parsed.kind !== 'phaseField' || parsed.segments.length !== 2 || parsed.segments[1] !== 'winner') continue;
+        const vote = config.phases[parsed.segments[0]];
+        // Only a vote over a step's responses stores ids; a fixed list or
+        // an AI-written list of strings (Mad Lib Mashup) keeps the words.
+        if (!vote || vote.type !== 'vote') continue;
+        if (typeof vote.candidates !== 'string' || !/\.responses$/.test(vote.candidates.trim())) continue;
+        warnings.push(
+          `Game "${gameId}": phase "${name}" ${field} contains "{{${parsed.segments[0]}.winner}}", which is the winner's id, not their answer. Use {{${parsed.segments[0]}.winnerText}} to show the winning answer.`
+        );
       }
     }
   }

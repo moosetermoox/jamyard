@@ -42,6 +42,7 @@ function cleanSides(raw) {
 }
 
 const MAX_RANK_ITEMS = 12;
+const MAX_DEAL_ITEMS = 60;
 const MAX_DEAL_PILES = 4;
 
 // Deal piles ride through in trimmed shape; compileStoryboard re-validates
@@ -158,7 +159,9 @@ export function validateSuggestions(raw, ctx) {
             text: typeof s.text === 'string' ? s.text.slice(0, 500) : undefined,
             choices: Array.isArray(s.choices) ? s.choices.slice(0, 8).map(String) : undefined,
             guess: s.guess === 'who' ? 'who' : undefined,
-            items: Array.isArray(s.items) ? s.items.slice(0, MAX_RANK_ITEMS).map(String) : undefined,
+            // rank: a list to order (12 at most); collect: a list dealt one
+            // per student in private (a state each, up to 60)
+            items: Array.isArray(s.items) ? s.items.slice(0, s.brick === 'collect' ? MAX_DEAL_ITEMS : MAX_RANK_ITEMS).map(String) : undefined,
             // rank: each group decides one order; assign: spots per item
             byGroup: s.byGroup === true ? true : undefined,
             perChoice: typeof s.perChoice === 'number' && Number.isFinite(s.perChoice) ? s.perChoice : undefined,

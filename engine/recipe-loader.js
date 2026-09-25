@@ -95,6 +95,27 @@ export function listRecipes() {
  *
  * @param {import('./recipe-schema.js').Recipe} recipe
  */
+/**
+ * The phase types a recipe's template holds, in order, lobby dropped,
+ * a conditional ($if) step marked "?". Plain types, the matcher gets a
+ * legend. Empty for a recipe with no template.
+ * @param {object} recipe
+ * @returns {string[]}
+ */
+export function recipeStepTypes(recipe) {
+  const phases = recipe && recipe.template && recipe.template.phases;
+  if (!phases || typeof phases !== 'object') return [];
+  const out = [];
+  for (const phase of Object.values(phases)) {
+    if (!phase || typeof phase !== 'object') continue;
+    const body = phase.$if ? (phase.then || phase.$then || phase) : phase;
+    const type = typeof body.type === 'string' ? body.type : (typeof phase.type === 'string' ? phase.type : null);
+    if (!type || type === 'lobby') continue;
+    out.push(phase.$if ? type + '?' : type);
+  }
+  return out;
+}
+
 export function summarizeRecipe(recipe) {
   return {
     id: recipe.id,
@@ -105,6 +126,10 @@ export function summarizeRecipe(recipe) {
     version: recipe.version || '1',
     setupPanel: recipe.setupPanel || null,
     parameters: recipe.parameters,
+    // The step types in template order, so the matcher describes what the
+    // recipe DOES and never promises a step it lacks (a reviewer was told
+    // Exit Ticket had a review gate and a reveal, 2026-09-24)
+    steps: recipeStepTypes(recipe),
     source: recipe._source || null,        // 'built-in' | 'user'
     broken: !!recipe._broken,              // schema drift, needs attention
     brokenReason: recipe._brokenReason || null

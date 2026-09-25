@@ -4769,3 +4769,9 @@ body.chat-open.chat-collapsed #feedback-widget-panel { right: 62px; }
 
 /* The step column may use the room a folded panel frees up */
 .sv-column { max-width: 980px; }
+
+/* The design chat's proposal card: what the draft really changes, read off
+   the two configs (shared/config-diff.js, 2026-09-24) */
+.chat-proposal-diff-head { margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: #4a4032; }
+.chat-proposal-diff { margin: 4px 0 0; padding-left: 18px; font-size: 0.85rem; color: #4a4032; }
+.chat-proposal-diff li { margin: 2px 0; }

@@ -1671,6 +1671,7 @@ function renderMatchPreview(modal, data, overlay, description) {
     explain.textContent = data.explanation;
     modal.appendChild(explain);
   }
+  appendMissingLine(modal, data.missing);
 
   // Running time, computed by the server from the timers (never the AI's
   // word). When it runs over the minutes the teacher asked for, the server
@@ -1857,6 +1858,7 @@ function renderExistingGameView(modal, data, overlay, description) {
     explain.textContent = data.explanation;
     modal.appendChild(explain);
   }
+  appendMissingLine(modal, data.missing);
 
   // Say what this door does before the teacher walks through it: the
   // finished activity opens as it is, their wording is not carried over
@@ -2188,6 +2190,22 @@ function renderNoMatchView(modal, description, data, overlay) {
 // the same vocabulary the Builder shows once the activity opens there.
 var SB_BRICK_LABELS = window.PHASE_NAMES || {};
 
+// What the idea asked for that the matched activity's steps do not do,
+// said before anything is built (a reviewer was promised a teacher review
+// and a reveal that Exit Ticket does not have, 2026-09-24). The server
+// passes the matcher's list through; nothing shows when it is empty.
+function appendMissingLine(modal, missing) {
+  var items = Array.isArray(missing) ? missing.filter(function (m) { return typeof m === 'string' && m.trim(); }) : [];
+  if (!items.length) return;
+  var line = document.createElement('p');
+  line.className = 'recipe-form-description ai-match-missing';
+  var strong = document.createElement('strong');
+  strong.textContent = 'This version does not have: ';
+  line.appendChild(strong);
+  line.appendChild(document.createTextNode(items.join('; ') + '. You can add steps in the editor after.'));
+  modal.appendChild(line);
+}
+
 // Asks for the plan over the streamed route and reports progress through
 // hooks (onThinking(text), onName(name), onStep({index, step})) until
 // the `done` record, which carries exactly what the plain JSON route
@@ -2261,13 +2279,15 @@ async function showStoryboardFlow(description, seededStoryboard) {
     var arrivingList = sbEl('div');
     arriving.appendChild(arrivingList);
     modal.appendChild(arriving);
-    var thought = '';
+    // The model's running notes stay backstage ("non-grouped rank step"
+    // read as our words to a reviewer, 2026-09-24); the line only shows
+    // that work is happening, and the name and steps land as they come.
+    var beats = 0;
     try {
       var got = await fetchStoryboard(description, {
-        onThinking: function (text) {
-          thought = (thought + String(text || '')).replace(/\s+/g, ' ');
-          if (thought.length > 160) thought = thought.slice(thought.length - 160);
-          progress.textContent = thought;
+        onThinking: function () {
+          beats++;
+          progress.textContent = 'Working out the steps' + '.'.repeat(1 + (beats % 3));
         },
         onName: function (name) { arrivingName.textContent = name || ''; },
         onStep: function (data) {
@@ -2332,8 +2352,24 @@ async function showStoryboardFlow(description, seededStoryboard) {
   modal.appendChild(list);
 
   var steps = storyboard.steps.slice();
+  // The steps the builder adds on its own (compileStoryboard): the waiting
+  // room first, and a crown after a vote over the class's own answers or
+  // drawings. Shown so the plan is the whole activity (a reviewer found
+  // two steps in the editor that the plan never showed, 2026-09-24).
+  var OWN_ANSWER_BRICKS = ['collect', 'collect-two', 'draw', 'deal', 'chain', 'pairs'];
+  function addedRow(label, note) {
+    var row = sbEl('div', null, 'sb-step sb-step-added');
+    var head = sbEl('div', null, 'sb-step-head');
+    head.appendChild(sbEl('span', '+', 'sb-step-num'));
+    head.appendChild(sbEl('span', label));
+    head.appendChild(sbEl('span', note, 'sb-step-note'));
+    row.appendChild(head);
+    return row;
+  }
   function renderSteps() {
     list.textContent = '';
+    list.appendChild(addedRow(SB_BRICK_LABELS.lobby || 'Waiting room', 'added: students join here'));
+    var answersSoFar = false;
     steps.forEach(function (step, i) {
       var row = sbEl('div', null, 'sb-step');
       var head = sbEl('div', null, 'sb-step-head');
@@ -2382,6 +2418,10 @@ async function showStoryboardFlow(description, seededStoryboard) {
         row.appendChild(qList);
       }
       list.appendChild(row);
+      if (OWN_ANSWER_BRICKS.indexOf(step.brick) !== -1) answersSoFar = true;
+      if (step.brick === 'vote' && answersSoFar) {
+        list.appendChild(addedRow(SB_BRICK_LABELS.winner || 'Crown a winner', 'added: the winning answer, with a drumroll'));
+      }
     });
   }
   renderSteps();

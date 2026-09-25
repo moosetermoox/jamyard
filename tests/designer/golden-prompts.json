@@ -343,6 +343,24 @@
       "prompt": "A five-minute anonymous poll for my history class: what was the main cause of the American Revolution? The choices are taxation without representation, the Proclamation of 1763, the Boston Massacre, and Enlightenment ideas. Show the results, then we discuss.",
       "expect": { "kind": "recipe", "recipe": "live-poll", "params": { "question": "What was the main cause of the American Revolution?", "choices": ["Taxation without representation", "The Proclamation of 1763", "The Boston Massacre", "Enlightenment ideas"] }, "acceptAlso": ["recipe:class-poll"] },
       "note": "A reviewer's try (2026-09-23): the matcher answered with the Live Poll built-in (\"Good news: this already exists\") and Make it yours opened the default question about today's lesson, names Shown. The built-in is the live-poll recipe with its defaults, so the answer is the recipe with the teacher's question and all four of their choices; the route refits a recipe-born pick to its recipe as the net, and reads \"anonymous\" itself. No host: answer: the whole point is the content traveling."
+    },
+    {
+      "id": "constitutional-convention",
+      "prompt": "Constitutional Convention: each student secretly gets a state, writes one clause their state needs, and the class votes clauses into a constitution that grows on the projector.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Constitutional Convention",
+          "description": "Every delegate gets a state in secret, writes one clause, and the class votes.",
+          "steps": [
+            { "brick": "announce", "text": "Welcome, delegates. Each of you represents one state. Nobody else knows which, so speak for your state, not yourself." },
+            { "brick": "collect", "text": "You represent {{thisStep.assigned}}. Write one clause your state needs in the constitution.", "items": ["Virginia", "Massachusetts", "Pennsylvania", "New York", "Georgia", "Delaware", "Rhode Island", "New Jersey", "Connecticut", "Maryland", "South Carolina", "New Hampshire", "North Carolina"], "timer": 180 },
+            { "brick": "vote", "text": "Which clause belongs in our constitution?" },
+            { "brick": "end", "text": "The convention is adjourned. Every state spoke, and the clause with the most votes leads our constitution." }
+          ]
+        }
+      },
+      "note": "An outside reviewer's try (2026-09-24): the storyboard reached for rank then assign, which lists every student's state on the projector, and the results step read {{vote.winner}}, a player id. The collect brick's items deal the states in private ({{thisStep.assigned}} on each student's screen, a blank on the projector), the vote brick appends the crown, and a vote's .winner in a step's words is rewritten to .winnerText."
     }
   ]
 }

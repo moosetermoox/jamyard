@@ -1972,6 +1972,10 @@ main {
 }
 
 .sb-step-num { color: #6E6353; }
+.sb-step-added { opacity: 0.75; }
+.sb-step-added .sb-step-head { font-style: italic; }
+.sb-step-note { color: #6E6353; font-size: 0.8rem; margin-left: auto; font-style: normal; }
+.ai-match-missing { background: #FFF3C4; border-left: 4px solid #E0A800; padding: 8px 12px; }
 
 .sb-remove {
   margin-left: auto;

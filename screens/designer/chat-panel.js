@@ -163,6 +163,32 @@
     summary.textContent = humanize(proposal.summary || 'The AI drafted a change.');
     card.appendChild(summary);
 
+    // What the draft actually changes, read off the two configs, never
+    // the AI's words (shared/config-diff.js): a summary that promises
+    // more than the draft does is caught here, before Apply.
+    if (global.ConfigDiff && proposal.updatedConfig) {
+      var changes = global.ConfigDiff.describe(gameConfig, proposal.updatedConfig);
+      var diffHead = document.createElement('div');
+      diffHead.className = 'chat-proposal-diff-head';
+      diffHead.textContent = changes.length ? 'What actually changes:' : 'Nothing in the activity changes with this draft.';
+      card.appendChild(diffHead);
+      if (changes.length) {
+        var diffList = document.createElement('ul');
+        diffList.className = 'chat-proposal-diff';
+        for (var c = 0; c < changes.length && c < 12; c++) {
+          var item = document.createElement('li');
+          item.textContent = changes[c];
+          diffList.appendChild(item);
+        }
+        if (changes.length > 12) {
+          var more = document.createElement('li');
+          more.textContent = 'and ' + (changes.length - 12) + ' more';
+          diffList.appendChild(more);
+        }
+        card.appendChild(diffList);
+      }
+    }
+
     var errors = (proposal.structural && proposal.structural.errors) || [];
     if (errors.length > 0) {
       var errHead = document.createElement('div');
@@ -297,11 +323,12 @@
     updateSendState();
     var thinking = addLine('chat-thinking', 'Thinking...');
     var slowTimer = setTimeout(function () {
-      thinking.textContent = 'Working on it, big changes can take up to 30 seconds';
+      thinking.textContent = 'Working on it, a big change can take a minute or two';
     }, 5000);
 
     var controller = new AbortController();
-    var abortTimer = setTimeout(function () { controller.abort(); }, 90000);
+    // Past the server's own limit on the rewrite (ai-service.js, 110 s)
+    var abortTimer = setTimeout(function () { controller.abort(); }, 125000);
 
     fetch('/api/games/chat', {
       method: 'POST',
