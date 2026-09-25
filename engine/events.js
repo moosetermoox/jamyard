@@ -75,6 +75,9 @@ export const EVENTS = {
   TEACHER_LATE_SEAT:    'teacher-late-seat',   // server -> consoles: a late joiner was seated (team / role, or still picking)
   SHOW_DISCUSSION:      'show-discussion',      // console -> server: put this step's discussion prompt on the projector
   DISCUSSION_PROMPT:    'discussion-prompt',    // server -> host: the prompt text to show (from the config, never the client)
+  SPOTLIGHT:            'spotlight',            // console -> server: put one student's finished work on the projector (by id; the server reads the text)
+  SPOTLIGHT_SHOW:       'spotlight-show',       // server -> host: the work to show (text or strokes, from the room's data, never the client)
+  TEACHER_CHAINS:       'teacher-chains',       // server -> consoles: the finished chains of a return-to-author reveal, for Show
 
   // --- AI Processing ---
   PROCESSING_STARTED:   'processing-started',

@@ -1,6 +1,6 @@
 {
   "name": "Exquisite Corpse",
-  "description": "The surrealists' folded-paper game. Six students each add one word to a sentence without seeing the words before theirs, and every sentence comes back to its starter, assembled. Nobody wrote it, everybody wrote it.",
+  "description": "The surrealists' folded-paper game. Six folds, one word per hand, nobody seeing the words before theirs, and every sentence comes back to its starter, assembled. Then the class hears some. Nobody wrote it, everybody wrote it.",
   "featured": false,
   "recipe": {
     "id": "exquisite-corpse",
@@ -17,7 +17,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "EXQUISITE CORPSE\n\nThe surrealists' folded-paper game. We build sentences together, but here's the fold: each of you adds ONE word without seeing any of the words before yours.\n\nSix words, six hands. At the end, the sentence you started comes back to you, finished by five classmates. Nobody knows what any sentence says yet. Not even the people writing it.",
+      "message": "EXQUISITE CORPSE\n\nThe surrealists' folded-paper game. We build sentences together, but here's the fold: each of you adds ONE word without seeing any of the words before yours.\n\nSix words, six folds. At the end, the sentence you started comes back to you, finished by hands that never saw it. Nobody knows what any sentence says yet. Not even the people writing it.",
       "timer": 16,
       "next": "word-1"
     },
@@ -70,7 +70,7 @@
     },
     "unfold": {
       "type": "announce",
-      "message": "Pencils down. Every paper unfolds at once.\n\nThe sentence each of you started is about to come back, finished by five classmates who never saw it. Read yours quietly first. Then we'll hear some out loud.",
+      "message": "Pencils down. Every paper unfolds at once.\n\nThe sentence each of you started is about to come back, finished by classmates who never saw it. Read yours quietly first. Then some go up on the class screen for everyone.",
       "next": "poem"
     },
     "poem": {
@@ -86,6 +86,12 @@
       ],
       "chainDisplay": "template",
       "chainTemplate": "The {1} {2} {3} {4} the {5} {6}.",
+      "next": "share"
+    },
+    "share": {
+      "type": "reveal-one",
+      "from": "poem.responses",
+      "message": "Some of the sentences, one at a time. Read each one out loud.",
       "next": "end"
     },
     "end": {

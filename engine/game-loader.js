@@ -1480,6 +1480,7 @@ function inferDiagnosticCode(msg, severity) {
   if (/no "scoresFrom" and no "correctOption"/.test(msg)) return DIAGNOSTIC_CODES.WAGER_NO_RESOLUTION_BASIS;
   if (/no later template references team data/.test(msg)) return DIAGNOSTIC_CODES.TEAM_SPLIT_UNUSED;
   if (/nothing shows the result to the class/.test(msg)) return DIAGNOSTIC_CODES.VOTE_RESULT_UNREAD;
+  if (/moves the class on by itself/.test(msg)) return DIAGNOSTIC_CODES.PAYOFF_TIMED;
   if (/can never award points|every score will be 0|nobody can ever score/.test(msg)) return DIAGNOSTIC_CODES.SCORING_NEVER_AWARDS;
 
   // Connection pack
@@ -1781,6 +1782,17 @@ function scanForDesignHoles(config, gameId, warnings) {
           `Game "${gameId}": phase "${name}" (vote) is a vote, but nothing shows the result to the class: ${hint}.`
         );
       }
+    }
+
+    // A step with something to ask is a payoff the teacher paces: a timer
+    // on it moves the class on before the question can go up (an outside
+    // reviewer's 'wildest chains' screen left after 15 seconds, 2026-09-25).
+    if (['announce', 'reveal', 'reveal-one'].includes(phase.type)
+        && typeof phase.discussionPrompt === 'string' && phase.discussionPrompt.trim() !== ''
+        && Number(phase.timer) > 0) {
+      warnings.push(
+        `Game "${gameId}": phase "${name}" (${phase.type}) has something to ask, but its ${phase.timer}-second timer moves the class on by itself. Remove the timer so the step waits for you.`
+      );
     }
 
     if (phase.type === 'team-split') {

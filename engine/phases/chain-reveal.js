@@ -133,3 +133,42 @@ export function formatChainContent(view, opts = {}) {
   }
   return lines.join('\n');
 }
+
+/**
+ * One chain as a finished piece of work, in one string: the filled
+ * sentence for a template chain, the last version for a "final" chain,
+ * the hops joined by arrows for a "steps" chain. This is what the
+ * projector, a ballot, a gallery, and the report show for the chain
+ * (an outside reviewer's water-cycle chains never left the students'
+ * screens, 2026-09-25).
+ */
+export function chainResultText(view, opts = {}) {
+  if (!view || view.original === undefined) return '';
+  const hasTemplate = typeof opts.template === 'string' && opts.template.trim() !== '';
+  if (opts.display === 'template' && hasTemplate) return fillSlotTemplate(opts.template, view);
+  const parts = [view.original, ...view.steps]
+    .map(s => (typeof s === 'string' ? s.trim() : ''))
+    .filter(s => s !== '');
+  if (opts.display === 'final') return parts[parts.length - 1] || '';
+  return parts.join(' → ');
+}
+
+/**
+ * Every finished chain as a response row ({playerId, name, text}), keyed
+ * by the student who started it, so a later vote, reveal-one, or the
+ * report can read the reveal like a collect step. `chainList` is the
+ * numbered text for a screen.
+ * @param {Map} views  from buildChainViews
+ * @param {(id: string) => (string|null)} nameOf
+ * @param {{ display?: string, template?: string }} [opts]
+ */
+export function buildChainRecords(views, nameOf, opts = {}) {
+  const responses = [];
+  for (const [playerId, view] of views.entries()) {
+    const text = chainResultText(view, opts);
+    if (text === '') continue;
+    responses.push({ playerId, name: (nameOf && nameOf(playerId)) || 'Someone', text, original: view.original, steps: view.steps.slice(), complete: view.complete });
+  }
+  const chainList = responses.map((r, i) => `${i + 1}. ${r.text}`).join('\n');
+  return { responses, chainList };
+}

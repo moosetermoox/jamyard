@@ -7,7 +7,7 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { buildPairViews, buildPairContent } from '../phases/pair-reveal.js';
-import { buildChainViews, formatChainContent } from '../phases/chain-reveal.js';
+import { buildChainViews, formatChainContent, buildChainRecords } from '../phases/chain-reveal.js';
 import { continueLabelForPhase } from '../phases/continue-labels.js';
 import { PER_PLAYER_TOKEN } from '../resolver-grammar.js';
 
@@ -96,6 +96,19 @@ registerHandler('reveal', {
       // Return-to-author: each player sees what became of THEIR item after
       // the rotation chain in chainFrom. Private per player, neutral host.
       const views = getChainViews(ctx);
+      // Every finished chain is stored as a response row, keyed by its
+      // starter: a later vote or gallery reads {{poem.responses}}, the
+      // console lists them with Show, the report keeps them whole (an
+      // outside reviewer's chains never reached the projector, 2026-09-25).
+      const nameOf = (id) => { const p = engine.players.find(id); return p ? p.name : null; };
+      const records = buildChainRecords(views, nameOf, {
+        display: phase.chainDisplay, template: phase.chainTemplate
+      });
+      engine.storePhaseData(phase.id, records);
+      ctx.emitToTeachers(EVENTS.TEACHER_CHAINS, {
+        phaseId: phase.id,
+        chains: records.responses.map(r => ({ playerId: r.playerId, name: r.name, text: r.text }))
+      });
       // The projector line is neutral by default; a reveal may name its
       // own ("Everyone is reading the line a classmate wrote for them").
       const hostLine = (typeof phase.content === 'string' && phase.content.trim() !== '')

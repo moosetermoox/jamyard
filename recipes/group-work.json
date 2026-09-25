@@ -2,6 +2,8 @@
   "id": "group-work",
   "name": "Group Work Day",
   "icon": "✅",
+  "retired": true,
+  "retiredNote": "Replaced by group-work-day (jobs switch, tagged tasks). Kept so saved copies stamped with this id still repair and show their setup knobs.",
   "description": "A shared to-do list for classwork: split into groups, every group gets the same checklist on their devices, and the projector shows every group's live progress. For lab days, station rotations, project work, any 'here's what your group must finish today'. No points, no winners: completion tracking.",
   "tagline": "Perfect for labs, stations, and project sessions where every group works the same task list.",
   "version": "1",

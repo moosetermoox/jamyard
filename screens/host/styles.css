@@ -1490,6 +1490,15 @@ select {
   color: var(--t-ink, #2A2620);
   margin: 0;
 }
+/* One student's finished work (a chain, an answer) put up from the
+   console: the same paper card, tilted the other way, the label in
+   green, the starter's name small under the words. */
+.spotlight-card { transform: translateX(-50%) rotate(0.5deg); }
+.spotlight-card-label { background: var(--t-green, #2E7D32); }
+.spotlight-card .discussion-card-text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.spotlight-card-drawing { display: block; width: 480px; max-width: 80vw; height: auto; background: #fff; border: 2px solid var(--t-ink, #2A2620); }
+.spotlight-card-drawing[hidden], .spotlight-card-name[hidden], .spotlight-card .discussion-card-text[hidden] { display: none; }
+.spotlight-card-name { font-size: 16px; font-weight: 600; opacity: 0.7; margin: 6px 0 0; }
 
 .teacher-view-chip {
   position: fixed;

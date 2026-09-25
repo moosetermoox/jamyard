@@ -43,6 +43,26 @@ export const DYNAMIC_OUTPUT_RESOLVERS = {
     return out;
   },
 
+  // A return-to-author reveal (scope "own") stores every finished chain as
+  // a response row keyed by its starter (engine/phases/chain-reveal.js),
+  // so a later vote, reveal-one, or template reads it like a collect step.
+  revealOutput(phase) {
+    if (!phase || phase.scope !== 'own') return {};
+    return {
+      responses: {
+        type: 'array',
+        capability: 'responseArray',
+        item: { shape: { playerId: 'string', name: 'string', text: 'string' } },
+        renderers: {
+          list: 'responseList',
+          count: 'arrayCount',
+          json: 'jsonPretty'
+        }
+      },
+      chainList: { type: 'string', capability: 'renderable' }
+    };
+  },
+
   // collect output depends on whether multi-field is enabled
   collectOutput(phase) {
     const itemShape = {
