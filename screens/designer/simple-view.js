@@ -388,6 +388,10 @@
     if (typeof src !== 'string') return '';
     var line = src.replace(/\*\*/g, '').replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim();
     if (!line) return '';
+    // A numbered step names itself best ("Word 2 of 6", "Round 3"): the
+    // blocks are narrow, so that beats the sentence it sits in.
+    var numbered = line.match(/(?:word|round|link|step|fold|part|question|q)s*d+(?:s+ofs+d+)?/i);
+    if (numbered) return numbered[0];
     var words = line.split(' ');
     var out = words.slice(0, 5).join(' ');
     if (out.length > 34) out = out.slice(0, 33).replace(/\s+\S*$/, '');
