@@ -1449,7 +1449,7 @@ socket.on('reveal-one-item', ({ item, index, total }) => {
   if (item && typeof item === 'object' && item.drawing && window.Draw) {
     const caption = document.createElement('p');
     caption.className = 'reveal-drawing-caption';
-    caption.textContent = item.text || '';
+    caption.textContent = RichText.plainLine(item.text || '');
     const canvas = document.createElement('canvas');
     canvas.className = 'reveal-drawing';
     canvas.width = 480;
@@ -1458,7 +1458,7 @@ socket.on('reveal-one-item', ({ item, index, total }) => {
     div.appendChild(canvas);
     Draw.renderStrokes(canvas, item.drawing, { animate: true });
   } else {
-    div.textContent = typeof item === 'string' ? item : ((item && (item.text || item.name)) || '');
+    setRichText(div, typeof item === 'string' ? item : ((item && (item.text || item.name)) || ''));
   }
   revealOneItems.appendChild(div);
 
@@ -1705,7 +1705,7 @@ function choiceRankLabel(n) {
 
 socket.on('assign-final', (payload) => {
   showSection(teamSplitSection);
-  teamSplitHeading.textContent = payload.message || UiLang.t('The choices');
+  setRichText(teamSplitHeading, payload.message || UiLang.t('The choices'));
   teamArrange.hidden = true;
   teamChoice.hidden = true;
   teamSplitContinueBtn.hidden = false;
@@ -1717,11 +1717,11 @@ socket.on('assign-final', (payload) => {
     const card = document.createElement('div');
     card.className = 'team-card assign-card';
     const h3 = document.createElement('h3');
-    h3.textContent = row.label;
+    h3.textContent = RichText.plainLine(row.label);
     card.appendChild(h3);
     const choice = document.createElement('p');
     choice.className = 'assign-choice';
-    choice.textContent = row.choice;
+    setRichText(choice, row.choice);
     card.appendChild(choice);
     const rank = document.createElement('p');
     rank.className = 'assign-rank';
@@ -2848,7 +2848,7 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerNames, isTie, st
         } else {
           var quote = document.createElement('p');
           quote.className = 'winner-entry-quote';
-          quote.textContent = '\u201c' + entries[e].text + '\u201d';
+          quote.textContent = '\u201c' + RichText.plainLine(entries[e].text) + '\u201d';
           winnerEntryDisplay.appendChild(quote);
         }
         if (entries.length > 1 && entries[e].name) {

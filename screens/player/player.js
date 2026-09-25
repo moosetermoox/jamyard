@@ -1584,7 +1584,7 @@ function appendRevealOneItem(item) {
   if (item && typeof item === 'object' && item.drawing && window.Draw) {
     var caption = document.createElement('p');
     caption.className = 'reveal-drawing-caption';
-    caption.textContent = item.text || '';
+    caption.textContent = RichText.plainLine(item.text || '');
     var canvas = document.createElement('canvas');
     canvas.className = 'reveal-drawing';
     canvas.width = 300;
@@ -1593,7 +1593,7 @@ function appendRevealOneItem(item) {
     div.appendChild(canvas);
     Draw.renderStrokes(canvas, item.drawing, { animate: true });
   } else {
-    div.textContent = typeof item === 'string' ? item : (item.text || item.name || JSON.stringify(item));
+    setRichText(div, typeof item === 'string' ? item : (item.text || item.name || JSON.stringify(item)));
   }
   revealOneItems.appendChild(div);
 }
@@ -1720,7 +1720,9 @@ socket.on('assign-final', function (payload) {
   teamSplitAllTeams.innerHTML = '';
   if (payload.mine) {
     var lead = payload.perGroup === false ? UiLang.t('You got:') : UiLang.t('Your group got:');
-    teamSplitMyTeam.textContent = lead + ' ' + payload.mine;
+    // The item on its own line under the lead, as written (bold and all;
+    // "You got: You represent **Georgia**" on one line, 2026-09-24)
+    setRichText(teamSplitMyTeam, lead + '\n' + payload.mine);
     var sub = null;
     if (payload.choiceRank === 1) sub = UiLang.t('1st choice');
     else if (payload.choiceRank === 2) sub = UiLang.t('2nd choice');
@@ -2634,7 +2636,7 @@ function renderRankItems() {
 
       var label = document.createElement('span');
       label.className = 'rank-item-label';
-      label.textContent = (index + 1) + '. ' + (typeof item === 'string' ? item : (item.text || item.name || JSON.stringify(item)));
+      label.textContent = (index + 1) + '. ' + RichText.plainLine(typeof item === 'string' ? item : (item.text || item.item || item.name || JSON.stringify(item)));
 
       var upBtn = document.createElement('button');
       upBtn.className = 'rank-arrow';
@@ -3526,7 +3528,7 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerIds, winnerNames
       for (const entry of entries) {
         const quote = document.createElement('p');
         quote.className = 'winner-entry-quote';
-        quote.textContent = '\u201c' + entry.text + '\u201d';
+        quote.textContent = '\u201c' + RichText.plainLine(entry.text) + '\u201d';
         winnerEntryDisplay.appendChild(quote);
         if (entries.length > 1 && entry.name) {
           const by = document.createElement('p');
@@ -3569,7 +3571,11 @@ function fillVoteButton(btn, candidate) {
     btn.appendChild(thumb);
     return;
   }
-  btn.textContent = typeof candidate === 'string' ? candidate : (candidate.text || candidate.name || candidate.playerId);
+  // Words only on a button (bold markers stripped); an entry with no words
+  // still gets a label, never a blank block (2026-09-24)
+  var words = typeof candidate === 'string' ? candidate
+    : (candidate && (candidate.text || candidate.item || candidate.name)) || '';
+  btn.textContent = RichText.plainLine(words) || '…';
 }
 
 function showPickOneVote(candidates) {

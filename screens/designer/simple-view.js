@@ -169,7 +169,8 @@
 
   // Suffix words beyond editor.js' PRIMARY_TOKEN_SUFFIXES
   var SV_EXTRA_SUFFIXES = {
-    winner:        'the winning answer',
+    winner:        'the winner (id)',
+    winnerText:    'the winning answer',
     responses:     'the answers',
     merged:        'the combined answers',
     rankedList:    'the ranked list',

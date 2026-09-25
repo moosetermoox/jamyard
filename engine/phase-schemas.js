@@ -649,7 +649,11 @@ export const PHASE_SCHEMAS = {
           renderers: { barChart: 'tallyBarChart', json: 'jsonPretty' }
         },
         votes:      { type: 'array', renderers: { count: 'arrayCount' } },
+        // winner = the winning candidate's id (a player id when the vote
+        // was over answers; the option's text for a fixed list). For a
+        // screen, winnerText: the winning answer's words either way.
         winner:     { type: 'string' },
+        winnerText: { type: 'string' },
         tied:       { type: 'boolean' },
         totalVotes: { type: 'integer' }
       }

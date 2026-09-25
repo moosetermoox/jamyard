@@ -53,6 +53,21 @@ registerHandler('vote', {
         candidates = phase.candidates.split(',').map(s => s.trim()).filter(Boolean);
       }
       if (!Array.isArray(candidates)) candidates = [];
+      // Only a ballot can show: strings and answers ({playerId, text}).
+      // A rank's {item, avgPosition} rows become their words; anything
+      // else has no label (a black button on a reviewer's ballot,
+      // 2026-09-24) and is left out with a note in the log.
+      const kept = [];
+      for (const c of candidates) {
+        if (typeof c === 'string') { if (c.trim()) kept.push(c.trim()); continue; }
+        if (c && typeof c === 'object') {
+          if (c.playerId) { kept.push(c); continue; }
+          const words = typeof c.item === 'string' ? c.item : (typeof c.text === 'string' ? c.text : null);
+          if (words && words.trim()) { kept.push(words.trim()); continue; }
+        }
+        console.warn(`[vote:${phase.id}] a candidate had no words to show, left off the ballot`);
+      }
+      candidates = kept;
     }
 
     // Nothing to vote on (e.g. the source collect closed empty) — skip
@@ -62,7 +77,7 @@ registerHandler('vote', {
       console.warn(`[vote:${phase.id}] no candidates, skipping the step`);
       const nextId = ctx.getNextPhaseId();
       if (nextId) {
-        engine.storePhaseData(phase.id, { votes: [], scores: {}, winner: null, tied: false, totalVotes: 0 });
+        engine.storePhaseData(phase.id, { votes: [], scores: {}, winner: null, winnerText: null, tied: false, totalVotes: 0 });
         await ctx.advanceTo(nextId);
         return;
       }

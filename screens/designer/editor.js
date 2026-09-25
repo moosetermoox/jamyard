@@ -4757,7 +4757,7 @@ function buildTemplateVariables(currentPhaseId, extraVars) {
       }
     }
     if (p.type === 'vote') {
-      vars.push({ label: 'Winning answer' + at, variable: '{{' + pid + '.winner}}' });
+      vars.push({ label: 'Winning answer' + at, variable: '{{' + pid + '.winnerText}}' });
       vars.push({ label: 'Vote scores' + at, variable: '{{' + pid + '.scores}}' });
       vars.push({ label: 'Bar chart of votes' + at, variable: '{{' + pid + '.barChart}}' });
     }

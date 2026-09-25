@@ -1161,6 +1161,27 @@
       if (brick === 'collect-choice' && Array.isArray(step.choices) && step.choices.length >= 2) {
         built.choices = step.choices.slice(0, 8).map(String);
       }
+      // A private hand-out from the teacher's list (2026-09-24): each
+      // student is dealt one item (collect.dealItems, wrapping around a
+      // small list), read back by {{thisStep.assigned}} on their screen
+      // only; the projector shows a blank there. The rank + assign pair
+      // is the public draft, so a "secret" idea lands here instead.
+      if (brick === 'collect' && Array.isArray(step.items)) {
+        var dealt = step.items.map(function (x) { return String(x == null ? '' : x).trim(); }).filter(Boolean).slice(0, 60);
+        if (dealt.length >= 2) {
+          built.dealItems = dealt;
+          // The AI writes {{thisStep.assigned}}; the engine reads the
+          // step's own id ({{<id>.assigned}}, engine/per-player-template.js)
+          var token = '{{' + id + '.assigned}}';
+          if (typeof built.prompt !== 'string' || !/\{\{\s*thisStep\.assigned\s*\}\}/.test(built.prompt)) {
+            built.prompt = token + '\n\n' + (typeof built.prompt === 'string' ? built.prompt : '');
+          } else {
+            built.prompt = built.prompt.replace(/\{\{\s*thisStep\.assigned\s*\}\}/g, token);
+          }
+        } else {
+          problems.push('Step ' + (i + 1) + ': a hand-out needs at least two items, so the list was left out.');
+        }
+      }
       // A clip on the projector (announce, collect, collect-choice carry a
       // player): only a YouTube link rides through, mirroring the id
       // patterns in engine/video.js, so a bad link never renders a broken
@@ -1240,6 +1261,17 @@
       phases[endId] = defaultPhaseFor('end', { phases: phases });
       lastId = endId;
     }
+
+    // A vote's .winner is an id; the words the AI meant are .winnerText
+    // (a reveal that read {{vote.winner}} showed a player id, 2026-09-24).
+    Object.keys(phases).forEach(function (pid) {
+      var ph = phases[pid];
+      ['template', 'message', 'prompt', 'content', 'instruction'].forEach(function (f) {
+        if (typeof ph[f] === 'string' && ph[f].indexOf('.winner}}') !== -1) {
+          ph[f] = ph[f].replace(/\.winner\s*\}\}/g, '.winnerText}}');
+        }
+      });
+    });
 
     var config = {
       name: String((storyboard && storyboard.name) || 'New Activity').slice(0, 60),

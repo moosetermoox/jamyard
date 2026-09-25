@@ -614,12 +614,15 @@ function isStalePhaseEvent(room, clientPhaseInstanceId, eventName) {
 function resolveTemplate(template, engine) {
   return template.replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
     const trimmed = ref.trim();
-    // .mine / .assigned have no recipient at this layer — host-friendly note
-    if (/\.mine$/.test(trimmed)) return '(each student gets their own)';
-    if (/\.assigned$/.test(trimmed)) return '(each student gets a different player\'s item)';
+    // .mine / .assigned have no recipient at this layer: the projector
+    // shows a blank where each student's own item goes (the make page's
+    // print draws a token the same way; a note in our words read as an
+    // internal remark on a reviewer's projector, 2026-09-24)
+    if (/\.mine$/.test(trimmed)) return '…';
+    if (/\.assigned$/.test(trimmed)) return '…';
     // Pair tokens (the pairs brick, 2026-09-20): the projector never sees a
     // partner's private piece, and each student holds their own side.
-    if (/\.partner$/.test(trimmed)) return '(each student sees what their partner wrote)';
+    if (/\.partner$/.test(trimmed)) return '…';
     if (/\.partnerSide$/.test(trimmed)) return 'the other side';
     if (/\.side$/.test(trimmed)) return 'their side';
     const value = engine.resolve(trimmed);
@@ -1806,10 +1809,17 @@ async function tallyAndAdvance(code, room) {
     result = tallyHeadToHead(vs.votes, vs.candidateIds, vs.matchups);
   }
 
+  // The winner's WORDS beside its id: over the class's answers the id is a
+  // player id, and a reveal that read {{vote.winner}} showed one on the
+  // projector (an outside reviewer's constitution, 2026-09-24).
+  const winning = vs.candidates.find(c => (c && c.playerId ? c.playerId : c) === result.winner);
+  const winnerText = winning == null ? null
+    : (typeof winning === 'string' ? winning : String(winning.text || winning.name || ''));
   engine.storePhaseData(vs.phaseId, {
     votes: vs.votes,
     scores: result.scores,
     winner: result.winner,
+    winnerText,
     tied: result.tied,
     totalVotes: result.totalVotes
   });
@@ -3807,13 +3817,21 @@ app.post('/api/games/from-description', async (req, res) => {
     let loadedGames = [];
     if (!recipeId) {
       loadedGames = await listGames({ builtInOnly: DB_ENABLED });
-      matchGames = loadedGames
-        .filter(g => g.source === 'built-in')
+      // Featured built-ins only, the ones the yard shows (a reviewer was
+      // pointed at Story Builder, which no visitor can find, 2026-09-24)
+      const overrides = await featuredOverridesSafe();
+      matchGames = applyFeaturedOverrides(
+        loadedGames.filter(g => g.source === 'built-in').map(g => ({ id: g.id, featured: !!g.config.featured, config: g.config })),
+        overrides
+      )
+        .filter(g => g.featured)
         .map(({ id, config }) => ({
           id,
           name: config.name,
           description: config.description || '',
           playTime: config.playTime || null,
+          // The step types, so the matcher never promises a step it lacks
+          steps: Object.values(config.phases || {}).map(p => p && p.type).filter(t => t && t !== 'lobby'),
           // A recipe-born built-in is its recipe with default content; the
           // matcher is told so, and picks the recipe when the idea carries
           // its own question or choices (engine/match-refit.js).
@@ -3875,6 +3893,7 @@ app.post('/api/games/from-description', async (req, res) => {
         return res.json({
           existingGame: existing,
           explanation: match.explanation || '',
+          missing: Array.isArray(match.missing) ? match.missing : [],
           alternates: resolveAlternates(match.alternates, null),
           // Report only: the teacher copies this one from the yard, so a
           // trimmed config has nowhere to go here.
@@ -3970,6 +3989,7 @@ app.post('/api/games/from-description', async (req, res) => {
       // up" list (the params list never shows them)
       settings,
       explanation: match.explanation || '',
+          missing: Array.isArray(match.missing) ? match.missing : [],
       alternates,
       map: buildActivityMap(config),
       timing,

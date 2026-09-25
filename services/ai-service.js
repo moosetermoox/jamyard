@@ -472,7 +472,7 @@ Data references format: "phaseId.field", e.g. "collect.responses", "vote.scores"
 Common data fields per phase:
 - collect: .responses (array of {playerId, name, text})
 - collect-choice: .responses (array of {playerId, name, choice}), .tally (object {choice: count}), .barChart (pre-rendered ASCII bar chart string)
-- vote: .scores (object {playerId: score}), .winner
+- vote: .scores (object {playerId: score}), .winnerText (the winning answer's words, the one to show), .winner (its id, never for a screen)
 - rank: .rankings, .rankedList
 - wager: .scores
 - foreach: .scores (cumulative), .itemCount
@@ -767,9 +767,11 @@ export class AIService {
    * never reaches the API, so a blocked call costs nothing.
    * @param {any} params  Anthropic messages.create params
    */
-  async _callClaude(params) {
+  async _callClaude(params, requestOptions) {
     await this.budget.take();
-    return this.client.messages.create(this._prepareParams(params));
+    // requestOptions: the SDK's per-request options ({timeout} for a full
+    // rewrite that outruns the client's 60 s, 2026-09-24)
+    return this.client.messages.create(this._prepareParams(params), requestOptions);
   }
 
   /**
@@ -1167,7 +1169,7 @@ Return the revised config.`;
         // ~17k stable tokens of schema and rules: cached (see _prepareParams).
         cache: true,
         messages: [{ role: 'user', content: userContent }]
-      });
+      }, { timeout: 110 * 1000 });
       const elapsed = ((Date.now() - start) / 1000).toFixed(1);
       console.log(`[AIService] reviseGame completed in ${elapsed}s (model: ${MODELS.sonnet})`);
 
@@ -1730,7 +1732,7 @@ YOU MAY ONLY SUGGEST THESE THREE KINDS:
 ${gameLines.join('\n')}
 2. {"kind":"recipe","id":"<recipe id>","params":{...},"why":"one sentence"} to fill a recipe (params optional, only the listed names, values short strings or numbers):
 ${recipeLines.join('\n')}
-3. {"kind":"storyboard","storyboard":{"name":"...","description":"...","steps":[{"brick":"...","text":"..."}]},"why":"one sentence"} ONLY when nothing above fits. Bricks allowed: announce (optional "video" = a YouTube link the projector plays), collect (open answer; optional "video" too), collect-two (secret + clue), collect-choice (needs "choices" array), estimate (guess a number; a scale question such as "on a scale of 1 to 10" MUST carry "min" and "max", e.g. 1 and 10, so students tap a number on that scale; "answer" = the true number when the teacher named it or it is certain, with "unit" and "scoring" closest | graduated, so the step scores the closest guess; no answer = a poll of the guesses, no winner promised), reveal, reveal-one, vote, guessing-rounds (must come after a collect; add "guess": "who" when the class guesses who wrote each answer), rank (the class puts the collected answers in order; text = the ranking instruction; "items" = a list you write; "byGroup": true after a teams step when each group decides one order), assign (right after a rank: every group or student is handed ONE of the items, first choices first, spread evenly; text = the projector line), chain (pass-and-add writing that travels between students and returns to its author: needs "start" plus a "hops" array of 1-6 hand-off instructions; optional "visibility": "all"|"tail"|"blind"), deal (everyone adds one item to each of 2-4 "piles" [{"label","prompt"}], shuffled and dealt so each student writes from a private hand of classmates' items; text = the writing instruction), pairs (a private exchange between two partners in rounds: text = what each writes first, "rounds" = 0-3 follow-up instructions with the same partner and the partner's latest piece in view, optional "sides" = two labels dealt one per partner, {{side}} and {{otherSide}} in the text; debate partners, rebuttals, argue-then-switch), roles (a job for every member of an existing group: "roles" = 2-8 job names, "method" random or choice, optional "tasks" = a shared to-do list, "Job: task" tags a line; needs a teams or pairs step before it; never rank then assign for jobs), draw (students draw on their devices, the teacher previews, then a one-at-a-time gallery on the projector: text = what to draw, optional "gallery" line and "timer"; a vote right after it shows the drawings as thumbnails and crowns the winner), summarize (the answers from the collect before it are summed up onto the projector: text = how, e.g. three themes with a quoted answer each; optional "heading" = the line the class reads; never names the AI), end. 3 to 8 steps, always finish with end.
+3. {"kind":"storyboard","storyboard":{"name":"...","description":"...","steps":[{"brick":"...","text":"..."}]},"why":"one sentence"} ONLY when nothing above fits. Bricks allowed: announce (optional "video" = a YouTube link the projector plays), collect (open answer; optional "video" too; optional "items" = a list you write, one dealt privately to each student, shown with {{thisStep.assigned}} in the text), collect-two (secret + clue), collect-choice (needs "choices" array), estimate (guess a number; a scale question such as "on a scale of 1 to 10" MUST carry "min" and "max", e.g. 1 and 10, so students tap a number on that scale; "answer" = the true number when the teacher named it or it is certain, with "unit" and "scoring" closest | graduated, so the step scores the closest guess; no answer = a poll of the guesses, no winner promised), reveal, reveal-one, vote, guessing-rounds (must come after a collect; add "guess": "who" when the class guesses who wrote each answer), rank (the class puts the collected answers in order; text = the ranking instruction; "items" = a list you write; "byGroup": true after a teams step when each group decides one order), assign (right after a rank: every group or student is handed ONE of the items, first choices first, spread evenly; text = the projector line), chain (pass-and-add writing that travels between students and returns to its author: needs "start" plus a "hops" array of 1-6 hand-off instructions; optional "visibility": "all"|"tail"|"blind"), deal (everyone adds one item to each of 2-4 "piles" [{"label","prompt"}], shuffled and dealt so each student writes from a private hand of classmates' items; text = the writing instruction), pairs (a private exchange between two partners in rounds: text = what each writes first, "rounds" = 0-3 follow-up instructions with the same partner and the partner's latest piece in view, optional "sides" = two labels dealt one per partner, {{side}} and {{otherSide}} in the text; debate partners, rebuttals, argue-then-switch), roles (a job for every member of an existing group: "roles" = 2-8 job names, "method" random or choice, optional "tasks" = a shared to-do list, "Job: task" tags a line; needs a teams or pairs step before it; never rank then assign for jobs), draw (students draw on their devices, the teacher previews, then a one-at-a-time gallery on the projector: text = what to draw, optional "gallery" line and "timer"; a vote right after it shows the drawings as thumbnails and crowns the winner), summarize (the answers from the collect before it are summed up onto the projector: text = how, e.g. three themes with a quoted answer each; optional "heading" = the line the class reads; never names the AI), end. 3 to 8 steps, always finish with end.
 
 HARD RULES:
 - Never invent an activity id, recipe id, param name, or brick that is not listed.
@@ -1811,7 +1813,7 @@ Return ONLY JSON: {"suggestions":[...], "note": null or "one honest sentence abo
 
 BRICKS (each step is one):
 - announce: a message everyone sees on the projector. text = the message. video = a YouTube link (optional): the clip plays on the projector under the message, so "watch this clip, then..." works; copy the teacher's link exactly.
-- collect: students type an answer. text = the question. timer (seconds, optional). video = a YouTube link (optional) shown on the projector beside the question.
+- collect: students type an answer. text = the question. timer (seconds, optional). video = a YouTube link (optional) shown on the projector beside the question. items = a list YOU write (2-60 short strings, optional): each student is privately handed ONE item from it, a different one each, wrapping around when the class is bigger than the list, and the projector never shows who got what. Write {{thisStep.assigned}} in the text where the item belongs ("You represent {{thisStep.assigned}}. Write one clause your state needs."). This is THE brick for "each student secretly gets a state / role / character / word"; a later step can read the answers, and each answer carries its item.
 - collect-two: students type TWO things, a hidden "secret" and a visible "clue" (e.g. a movie title kept secret + emoji clues). text = the prompt; secretLabel + clueLabel name the two boxes; timer optional.
 - collect-choice: students pick from options. text = the question; choices = 2-8 strings. video = a YouTube link (optional), as on collect.
 - estimate: students guess a number. text = the question. A scale or rating question ("on a scale of 1 to 10", "from 1 to 5") MUST set min and max (numbers): students then tap a number on that scale instead of typing one. An open guess ("how many liters") sets neither. answer = the true number (optional): with it, closing the step reveals the answer, the class spread, and closeness-ranked scores, so "closest guess wins" is real; unit = its unit ("liters"); scoring = "closest" (the closest guess takes the points, ties share) or "graduated" (points fall off by closeness rank). Put the answer in only when the teacher named the number or you are certain of it, never a guess of your own; a number only the teacher knows (their own jar of beans) stays out: the teacher types the count on their console before closing the step, and only then does the step score the closest guess. So with no answer, write that the teacher will enter the real count and the closest guess takes it; keep unit; never a number of your own.
@@ -1820,7 +1822,7 @@ BRICKS (each step is one):
 - vote: the class votes on the collected answers (or drawings, shown as thumbnails on the ballot); nobody can vote for their own, and the winner is crowned on the projector right after, with the winning answer or drawing under the crown. No text needed.
 - guessing-rounds: cycles through every prior submission one at a time, the clue goes on the projector, everyone types a guess, then the secret and author are revealed. REQUIRES an earlier collect or collect-two step. No text needed. Set guess: "who" when the point is guessing WHO WROTE IT: each answer goes up, everyone picks the author from a short list of classmates, then the author is revealed with how the class guessed. No points either way.
 - rank: the whole class drags a list into order and the class's combined order goes up on the projector afterward. text = the ranking instruction ("Scariest first"). Ranks the answers from the most recent collect step; or give items = 2-12 strings for a list you write yourself. timer optional. Use this whenever students order, rank, or sort answers by a criterion; a vote picks ONE favorite, it does not rank. Set byGroup: true (with a teams step earlier) when each GROUP decides one order: every member still ranks on their own screen and the group's order is their average.
-- assign: hands every group (or every student, when the rank step has no groups) ONE of the items from the rank step right before it: first choices first, the spots per item spread evenly, so a contested favorite goes to some and the rest get their second choice. text = the line above the hand-out on the projector ("Here is who got what."). perChoice = how many groups may share one item (optional; leave it out for an even spread). REQUIRES a rank step right before it. Each student's screen shows what their group got.
+- assign: hands every group (or every student, when the rank step has no groups) ONE of the items from the rank step right before it: first choices first, the spots per item spread evenly, so a contested favorite goes to some and the rest get their second choice. PUBLIC: the projector lists every group or student beside what they got, so never use it for anything secret (that is collect with items). text = the line above the hand-out on the projector ("Here is who got what."). perChoice = how many groups may share one item (optional; leave it out for an even spread). REQUIRES a rank step right before it. Each student's screen shows what their group got.
 - quiz: question rounds with automatic grading, one at a time: students answer, then the projector shows the class's picks and the correct answer before the next question. questions = an array of {"text": the question, "choices": 2-8 strings, "correct": one string that EXACTLY matches one of the choices}. Ends with a leaderboard by default; faster correct answers earn more points, set speedBonus: false to score correctness only. Set leaderboard: false when the teacher wants no winners, points, or rankings: every question still reveals the class split and the right answer, but nothing is ranked. timer = seconds per question (optional, default 15). No text needed. Use this whenever the teacher wants review, trivia, competition, or ANY sequence of questions with right answers (even with no winners); never fake a quiz out of plain collect or collect-choice steps.
 - teams: splits the class into random teams. teamCount (2-8) OR groupSize (2-6). Put a teams step BEFORE a quiz step and the quiz becomes a real team competition: every student answers individually, and the leaderboard shows ranked team totals with each player's contribution. Without a quiz step there are no scores of any kind.
 - chain: pass-and-add writing. Every student starts a piece; each piece then travels hand to hand around the class, a different classmate adding to it at every hand-off, and at the end each piece privately returns to the student who started it. start = the instruction for the first writer. hops = an array of 1-6 instructions, one per hand-off (they may differ: "add supporting evidence", then "add a counterargument"). visibility = "all" (each writer sees the whole piece so far, add-only), "tail" (each writer sees ONLY THE LAST THREE WORDS of the piece, the folded-story surprise), or "blind" (writers see nothing of what they received, exquisite corpse style; never mention the received text in a blind hop's instruction, the writer cannot see it). sentence = ONLY for a blind chain of single words: a slot template like "The {1} {2} {3}." that assembles each chain into a sentence at the reveal ({1} = the start word, {2} the first hop, and so on; one slot per writer). timer = seconds per writing round (optional). The return-to-author reveal is built in, never add a reveal step for the chains. Use chain whenever writing should travel between students: telephone games, folded stories, pass-and-improve, build-on-my-idea, exquisite corpse.
@@ -1836,7 +1838,7 @@ RULES:
 - If players guess a hidden thing behind a clue (a movie behind emojis, a word behind a riddle), use collect-two followed by guessing-rounds. If players guess WHO wrote each answer (who said it, whose fear, whose secret), use a plain collect followed by guessing-rounds with guess: "who"; never collect-two for that.
 - BE HONEST IN THE WORDS: mechanics exist only where a brick provides them. Points, scoring, winners, and leaderboards come ONLY from the quiz brick with its leaderboard on, from an estimate brick with an answer (the closest guess), or from a vote over the class's answers or drawings (one winner, crowned); if there is no quiz step, or the quiz has leaderboard: false, no estimate step carries an answer, and no vote follows a collect or draw step, no text may mention points or winning. Class rankings come ONLY from the rank brick; a vote picks one favorite and its text must not promise an order. Team scores exist ONLY when a teams step comes before a quiz step. Never promise prizes or eliminations.
 - When the teacher supplies their own questions, statements, or items for students to judge or classify, put ALL of them into ONE quiz step's questions array with the classification options as the choices; never build a chain of separate collect-choice and reveal steps for a question list. If the teacher asks for a shuffled or mixed order, write the questions array in that shuffled order (never grouped by category).
-- THE BRICKS ARE ALL THERE IS. No brick can generate AI-written answers or rival responses during play, show two specific answers side by side as a matched pair, hide one student's answer from the class outside collect-two's secret box, a chain's hand-offs, a deal's hand, or a pairs exchange, eliminate players, or branch the flow. Step text must never promise any of those. For example, never tell students that one of the responses was written by AI: no step can make that true, and a promise the activity cannot keep is worse than no activity.
+- THE BRICKS ARE ALL THERE IS. No brick can generate AI-written answers or rival responses during play, show two specific answers side by side as a matched pair, hide one student's answer from the class outside collect-two's secret box, a chain's hand-offs, a deal's hand, or a pairs exchange (a private hand-out from YOUR list is collect with items; assign is public), eliminate players, or branch the flow. Step text must never promise any of those. For example, never tell students that one of the responses was written by AI: no step can make that true, and a promise the activity cannot keep is worse than no activity.
 - If groups or students should each END UP WITH one option from a list (project topics, categories, stations, chapters, sides of a debate), use teams (when groups decide), then rank with byGroup: true and the options as items, then assign. Never a vote (a vote picks one winner for the whole class) and never a collect-choice (everyone would pick the same favorite); neither hands anything out. This is for ONE option per group or per student; jobs INSIDE a group (a Recorder, a Timekeeper for each member) are the roles brick, never rank then assign.
 - If the idea passes writing from student to student (telephone, folded stories, add to a classmate's work, exquisite corpse), use ONE chain step; never fake a pass-around out of a row of collect steps, which cannot move anything between students.
 - If the idea pools what everyone contributes and hands each student a random private combination (a person and a circumstance, a character and a setting, ingredients for a story), use ONE deal step with one pile per kind of thing; a plain collect keeps every answer with its author and cannot deal anything out. Each student adds one item per pile; when the teacher says "everyone lists four", the piles still fill at class size, one per student.
@@ -2235,6 +2237,11 @@ ${responseList}`;
       // Alternates: up to two OTHER recipes that also fit the idea.
       // Sanitize hard — the ids get resolved against real recipes by
       // the caller, but shape problems stop here.
+      // What the idea asked for that the pick's steps lack: short phrases,
+      // four at most, shown on the card before anything is built
+      const sanitizeMissing = (list) => Array.isArray(list)
+        ? list.filter(m => typeof m === 'string' && m.trim()).map(m => m.trim().slice(0, 120)).slice(0, 4)
+        : [];
       const sanitizeAlternates = (list, mainRecipeId) => Array.isArray(list)
         ? list
             .filter(a => a && typeof a.recipe === 'string' && a.recipe !== mainRecipeId)
@@ -2302,6 +2309,7 @@ ${responseList}`;
         return {
           game: parsed.recipe,
           explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
+          missing: sanitizeMissing(parsed.missing),
           alternates: sanitizeAlternates(parsed.alternates, null),
           ...(title ? { title } : {})
         };
@@ -2312,6 +2320,7 @@ ${responseList}`;
           recipe: parsed.recipe,
           params: parsed.params,
           explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
+          missing: sanitizeMissing(parsed.missing),
           alternates: sanitizeAlternates(parsed.alternates, parsed.recipe),
           ...(title ? { title } : {})
         };
@@ -2350,19 +2359,26 @@ ${responseList}`;
       const feelLine = Array.isArray(r.feel) && r.feel.length
         ? `Feels like: ${r.feel.join(', ')}\n`
         : '';
+      const stepsLine = Array.isArray(r.steps) && r.steps.length
+        ? `Steps, in order (these are ALL of them): ${r.steps.join(' -> ')}\n`
+        : '';
       return `## ${r.name} (id: "${r.id}")
 ${r.description}
-${r.tagline ? '*' + r.tagline + '*\n' : ''}${feelLine}
+${r.tagline ? '*' + r.tagline + '*\n' : ''}${feelLine}${stepsLine}
 Parameters:
 ${params || '    (none)'}`;
     }).join('\n\n---\n\n');
+    // The step types the lists above use, in teacher words, so a claim
+    // about a recipe can be checked against its steps (a reviewer was told
+    // Exit Ticket had a teacher review and a reveal, 2026-09-24)
+    const stepLegend = `Step types: collect = students write (private to the teacher unless a later step shows it), collect-choice = students pick one option, preview = the TEACHER REVIEWS before anything reaches the class, reveal / reveal-one / summarize / ai-process = the class sees answers or a summary on the projector, vote = students vote, rank = students order a list, estimate = guess a number, match / sort / solo-quiz = graded, leaderboard = scores shown, team-split / team-roles / merge / pairs = groups, announce = a message, end = the wrap up; a "?" marks a step only some settings include. A recipe HAS a teacher review only if "preview" is in its steps, HAS a class reveal only if a reveal, reveal-one, summarize, vote, or ai-process step is, HAS a poll only if collect-choice or estimate is. Never say a recipe does something its steps do not list.`;
 
     // Ready-made activities ride along on unforced matches only: a forced
     // refit already has its recipe chosen, so offering a detour would be
     // a dead end for the teacher.
     const gameLines = (!forced && games.length)
       ? games.map(g =>
-          `- ${g.id}: ${g.name}. ${String(g.description || '').slice(0, 160)}${g.playTime ? ' (' + g.playTime + ')' : ''}${g.recipe ? ' [built from the "' + g.recipe + '" recipe with its default content]' : ''}`)
+          `- ${g.id}: ${g.name}. ${String(g.description || '').slice(0, 160)}${g.playTime ? ' (' + g.playTime + ')' : ''}${g.recipe ? ' [built from the "' + g.recipe + '" recipe with its default content]' : ''}${Array.isArray(g.steps) && g.steps.length ? ' [steps: ' + g.steps.join(' -> ') + ']' : ''}`)
       : [];
     const recipeBornRule = gameLines.some(l => l.includes('[built from the'))
       ? `   A ready-made activity marked "built from a recipe" is that recipe with its default question and choices. When the teacher's idea carries its own question, answer choices, topic, or list, answer with THAT RECIPE under option 1 and fill its parameters with their content, so their wording travels; point at the ready-made one only when the idea names no content of its own.\n`
@@ -2407,13 +2423,16 @@ ${gameOption}1. If ONE of the recipes above is a good fit:
    {
      "recipe": "id-of-best-fit-recipe",
      "params": { /* filled in based on the description */ },
-     "explanation": "One short sentence about why this recipe fits.",
+     "explanation": "One short sentence about why this recipe fits, naming only what its listed steps do.",
+     "missing": ["each thing the teacher asked for that this recipe's steps do NOT do, as a short phrase in their words ('a teacher review before the reveal', 'a three-choice poll at the end'); [] when nothing is missing"],
      "title": "A short name for THIS activity: the recipe name plus the teacher's topic, like 'Snowball: Causes of WWI'. Omit when the idea names no topic.",
      "alternates": [ { "recipe": "id-of-another-fitting-recipe", "why": "One short sentence on what this one would feel like instead." } ]
    }
    "alternates" lists up to 2 OTHER recipes that also fit the idea well. A broad, goal-shaped idea (laugh together, get to know each other, review a unit) usually deserves alternates; a specific idea that clearly names one mechanic deserves an empty list. Never repeat the main recipe, and fill "params" only for the main recipe.
 
    Tie-breaker for laughter/fun-shaped ideas: prefer the recipe whose comedy comes from things the students themselves create and react to (bad drawings, invented bluffs). For "make my class laugh" that means Doodle Bluff first, with quieter cooperative games as alternates rather than the top pick.
+
+   SECRET HAND-OUT IDEAS: an idea where each student privately gets one item from the teacher's list (a state to represent, a role, a character, a secret word) and the class must not see who got what is noMatch: no recipe deals a private list, and the step-by-step builder has a step that does ("reason" should say so).
 
    DRAWING IDEAS: every recipe's answer box is a TEXT box, so an idea where students draw, sketch, doodle, or make a picture never matches a recipe (Creative Vote's "creative responses" are typed).${gameLines.length ? ' Two ready-made activities draw: Draw Gallery fits only draw-and-show (everyone draws one prompt, the drawings go up one at a time, nothing after), so a plain gallery idea, "everyone draws X and we put them on the wall", IS Draw Gallery, answer with "game"; Doodle Bluff fits only its own fake-caption guessing game.' : ''} A drawing idea that also votes, picks a favorite or a best one, captions, ranks, or scores is noMatch: the step-by-step builder makes a drawing step followed by a vote, and "reason" should say so.
 
@@ -2433,6 +2452,8 @@ ${gameOption}1. If ONE of the recipes above is a good fit:
 # Available recipes
 
 ${recipeBlocks}
+
+${stepLegend}
 ${gamesSection}
 ${jobSection}
 
