@@ -1223,12 +1223,25 @@
       }
 
       if (brick === 'vote' && voteOverResponses) built.excludeAuthors = true;
+      // A yes-or-no vote (2026-09-25): every student says yes or no to
+      // every entry, and the ones with more yes than no pass; the payoff
+      // is a host-paced reveal of what passed, never a single crown.
+      var approveVote = brick === 'vote' && step.approve === true;
+      if (approveVote) built.mode = 'approve';
 
       phases[lastId].next = id;
       phases[id] = built;
       lastId = id;
 
-      if (brick === 'vote' && voteOverResponses) {
+      if (approveVote) {
+        var passedId = freshId(phases, 'passed');
+        phases[lastId].next = passedId;
+        phases[passedId] = {
+          type: 'reveal',
+          template: 'What the class passed:\n\n{{' + id + '.approvedList}}'
+        };
+        lastId = passedId;
+      } else if (brick === 'vote' && voteOverResponses) {
         var crownId = freshId(phases, 'crown');
         phases[lastId].next = crownId;
         phases[crownId] = { type: 'winner', from: id + '.scores' };

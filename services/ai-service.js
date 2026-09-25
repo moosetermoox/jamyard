@@ -91,7 +91,13 @@ const PHASE_EXTRA_GUIDANCE = {
     `SELF-PACED QUIZ: each student answers a question list on their own device at their own pace; the projector shows progress only. Use it for rolling-start activities (top-level "start": "rolling") where students arrive at different times and speed should not matter. Fields: "questions" is an array of {"question", "choices" (2-6 strings), "correct" (must equal one choice exactly)}; optional "title", "pointsPerQuestion" (default 1), "showAnswers" (default true). Output: scores (a score map, so a leaderboard can read it). Do NOT wrap it in a foreach and do NOT add a timer.`,
 
   vote:
-    `BRANCHING VOTES (choose-your-own-adventure): a pick-one vote on a FIXED option list can route the game by outcome. Set "candidates" to a literal array of option strings and "nextByWinner" to a map from each option's exact text to a phase id. A winner not in the map falls back to "next". Branches must go FORWARD (use loopBack to repeat sections). Paths may converge on a later shared phase. Example:
+    `YES-OR-NO VOTES ("mode": "approve"): every student says yes or no to EVERY candidate, and each candidate with more yes than no passes, so several can pass at once. Use it whenever the class adopts, approves, or rejects each item (clauses into a constitution, class norms, budget lines, rules), never pick-one, which crowns ONE favorite. Its results are .approvedList (what passed, numbered, with yes and no counts), .resultsList (every entry with its counts), .approvedCount; "passAt" (optional, 1-100) is the percent of yes votes an entry needs (default 50 = more yes than no). A vote MUST be followed by a step that shows its result: a reveal whose template reads {{<voteId>.approvedList}} for an approve vote, a winner step (from "<voteId>.scores") or a reveal of {{<voteId>.winnerText}} for a pick-one vote; never remove that step, and never let the activity go from a vote straight to the end. Example:
+    "vote":   { "type": "vote", "mode": "approve", "candidates": "clauses.responses", "excludeAuthors": true, "timer": 90, "next": "passed" },
+    "passed": { "type": "reveal", "template": "What the class passed:\\n\\n{{vote.approvedList}}", "next": "end" }
+
+    A PRIVATE HAND-OUT (collect with "dealItems", read by {{<stepId>.assigned}} in that step's own prompt) hands each student one item from the teacher's list in secret; a class bigger than the list SHARES items (two or three students get the same one, delegations), so never cap the class size or minPlayers/maxPlayers to fit a list, and never turn a hand-out into a public assign step.
+
+    BRANCHING VOTES (choose-your-own-adventure): a pick-one vote on a FIXED option list can route the game by outcome. Set "candidates" to a literal array of option strings and "nextByWinner" to a map from each option's exact text to a phase id. A winner not in the map falls back to "next". Branches must go FORWARD (use loopBack to repeat sections). Paths may converge on a later shared phase. Example:
     "chapter1": { "type": "announce", "message": "The cave mouth yawns ahead; the mountain path climbs to the right.", "timer": 8, "next": "choose1" },
     "choose1":  { "type": "vote", "mode": "pick-one", "candidates": ["Enter the cave", "Climb the mountain"], "nextByWinner": { "Enter the cave": "cave", "Climb the mountain": "mountain" }, "next": "cave", "timer": 20 },
     "cave":     { "type": "announce", "message": "Darkness swallows the class...", "timer": 8, "next": "finale" },
@@ -472,7 +478,7 @@ Data references format: "phaseId.field", e.g. "collect.responses", "vote.scores"
 Common data fields per phase:
 - collect: .responses (array of {playerId, name, text})
 - collect-choice: .responses (array of {playerId, name, choice}), .tally (object {choice: count}), .barChart (pre-rendered ASCII bar chart string)
-- vote: .scores (object {playerId: score}), .winnerText (the winning answer's words, the one to show), .winner (its id, never for a screen)
+- vote: .scores (object {playerId: score}), .winnerText (the winning answer's words, the one to show), .winner (its id, never for a screen); mode "approve" adds .approvedList (the answers that passed, numbered, each with its yes and no counts, THE one to show), .resultsList (every answer with its counts and whether it passed), .approvedCount
 - rank: .rankings, .rankedList
 - wager: .scores
 - foreach: .scores (cumulative), .itemCount
@@ -560,7 +566,9 @@ YOU CAN CHANGE THE ACTIVITY, and writing content for it counts as a change: new 
 
 WRITING RULES:
 - Plain, everyday language. No technical jargon. NEVER write {{anything}}, backticks, or config field names.
-- Talk about "steps", not phases or JSON.
+- Talk about "steps", not phases or JSON. Name a step by its number and what students do in it ("step 3, where each student writes a clause"), NEVER by the id in brackets in the summary (ids like "ask", "show", "hand-out", "wrap" are internal names the teacher has never seen). The editRequest may use the ids.
+- A step that hands out a list in secret (the summary says "hands out N items") shares its items when the class is bigger than the list: two or three students get the same one, like a delegation. Never suggest capping the class size or the player limits to fit a list; if the teacher wants groups per item, say the step's words can address the delegation ("you and the others who got Virginia").
+- A vote can pass MORE THAN ONE answer: a yes-or-no vote (every student says yes or no to every answer, the ones with more yes than no pass) shows the list of what passed. Offer it when the teacher wants clauses, norms, rules, or proposals voted in or out; a pick-one vote crowns one favorite. A vote must always be followed by a step that shows its result to the class.
 - Warm but efficient. No filler like "Great question!".
 - Bold lives only inside the activity's text: when the teacher wants words bold, the editRequest says "make X bold" and the editor writes it as **X** and shows it bold. Never put ** in your own reply.
 
@@ -714,7 +722,13 @@ export function summarizeConfigForChat(config) {
   order.forEach((id, i) => {
     const p = phases[id];
     const snippet = truncateForSummary(phaseSnippet(p), 80);
-    lines.push(`${i + 1}. [${id}] ${p.type}${snippet ? ': ' + snippet : ''}`);
+    lines.push(`Step ${i + 1} (${p.type}, id "${id}")${snippet ? ': ' + snippet : ''}`);
+    if (Array.isArray(p.dealItems) && p.dealItems.length) {
+      lines.push(`   hands out ${p.dealItems.length} items in secret, one per student; a bigger class shares them`);
+    }
+    if (p.type === 'vote') {
+      lines.push(`   voting style: ${p.mode === 'approve' ? 'yes or no on every answer, the ones with more yes than no pass' : (p.mode === 'head-to-head' ? 'head-to-head matchups, one winner' : 'pick one favorite, one winner')}`);
+    }
     if (p.type === 'foreach' && p.phases && typeof p.phases === 'object') {
       for (const [subId, sub] of Object.entries(p.phases)) {
         const s = truncateForSummary(phaseSnippet(sub), 60);
@@ -723,6 +737,35 @@ export function summarizeConfigForChat(config) {
     }
   });
   return lines.join('\n');
+}
+
+/**
+ * The triage turn's JSON, read three ways: as is, as the first {...} in
+ * the text, and, for a reply cut off mid-list, the "reply" string alone
+ * (with "action" and any complete "editRequest" beside it), so a teacher
+ * never reads `{"action": "edit", "reply": "...` as the answer. Pure;
+ * exported for tests. Returns null when nothing usable is there.
+ */
+export function parseChatTurn(text) {
+  if (typeof text !== 'string' || !text.trim()) return null;
+  try { return JSON.parse(text); } catch { /* fall through */ }
+  const match = text.match(/\{[\s\S]*\}/);
+  if (match) {
+    try { return JSON.parse(match[0]); } catch { /* fall through */ }
+  }
+  // Salvage: one JSON string field by name, unescaped
+  const field = (name) => {
+    const m = text.match(new RegExp('"' + name + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"'));
+    if (!m) return null;
+    try { return JSON.parse('"' + m[1] + '"'); } catch { return m[1]; }
+  };
+  const reply = field('reply');
+  if (!reply || !reply.trim()) return null;
+  const out = { action: field('action') || 'answer', reply };
+  const editRequest = field('editRequest');
+  if (editRequest) out.editRequest = editRequest;
+  else if (out.action === 'edit') out.action = 'answer'; // the instruction was cut off
+  return out;
 }
 
 /**
@@ -1248,7 +1291,10 @@ Return the revised config.`;
       const start = Date.now();
       const message = await this._callClaude({
         model: MODELS.haiku,
-        max_tokens: 700,
+        // An editRequest that carries a list (thirteen states and their
+        // clauses) ran past 700 tokens, and the cut-off JSON reached the
+        // teacher as code (an outside reviewer, 2026-09-25).
+        max_tokens: 1800,
         system: DESIGN_CHAT_PROMPT,
         messages: [{ role: 'user', content: userContent }]
       });
@@ -1256,18 +1302,12 @@ Return the revised config.`;
       console.log(`[AIService] designChat triage completed in ${elapsed}s (model: ${MODELS.haiku})`);
 
       const text = extractText(message);
-      let parsed = null;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        const match = text.match(/\{[\s\S]*\}/);
-        if (match) {
-          try { parsed = JSON.parse(match[0]); } catch { parsed = null; }
-        }
-      }
-      // Never fail a chat turn on a parse hiccup: raw prose IS the answer.
+      const parsed = parseChatTurn(text);
+      // Never fail a chat turn on a parse hiccup: raw prose IS the answer,
+      // but raw JSON never is (parseChatTurn salvages the reply first).
       if (!parsed || typeof parsed.reply !== 'string' || !parsed.reply.trim()) {
-        return { kind: 'chat', reply: text.trim() || 'Sorry, I lost my train of thought. Ask me again?' };
+        const prose = /^\s*\{/.test(text) ? '' : text.trim();
+        return { kind: 'chat', reply: prose || 'Sorry, I lost my train of thought. Ask me again?' };
       }
 
       const editRequest = typeof parsed.editRequest === 'string' ? parsed.editRequest.trim() : '';
@@ -1902,7 +1942,7 @@ BRICKS (each step is one):
 - estimate: students guess a number. text = the question. A scale or rating question ("on a scale of 1 to 10", "from 1 to 5") MUST set min and max (numbers): students then tap a number on that scale instead of typing one. An open guess ("how many liters") sets neither. answer = the true number (optional): with it, closing the step reveals the answer, the class spread, and closeness-ranked scores, so "closest guess wins" is real; unit = its unit ("liters"); scoring = "closest" (the closest guess takes the points, ties share) or "graduated" (points fall off by closeness rank). Put the answer in only when the teacher named the number or you are certain of it, never a guess of your own; a number only the teacher knows (their own jar of beans) stays out: the teacher types the count on their console before closing the step, and only then does the step score the closest guess. So with no answer, write that the teacher will enter the real count and the closest guess takes it; keep unit; never a number of your own.
 - reveal: everyone's collected answers appear on the projector. text = the line above them.
 - reveal-one: answers revealed one at a time. text = the message above.
-- vote: the class votes on the collected answers (or drawings, shown as thumbnails on the ballot); nobody can vote for their own, and the winner is crowned on the projector right after, with the winning answer or drawing under the crown. No text needed.
+- vote: the class votes on the collected answers (or drawings, shown as thumbnails on the ballot); nobody can vote for their own, and the winner is crowned on the projector right after, with the winning answer or drawing under the crown. No text needed. Set approve: true when SEVERAL answers should be able to pass (clauses into a constitution, class norms, budget lines, rules the class adopts, "vote each one in or out"): then every student says yes or no to every answer, the ones with more yes than no pass, and the projector shows the list of what passed with its counts (built in, never add a reveal for it); there is no single winner and no crown, so the words must not promise one.
 - guessing-rounds: cycles through every prior submission one at a time, the clue goes on the projector, everyone types a guess, then the secret and author are revealed. REQUIRES an earlier collect or collect-two step. No text needed. Set guess: "who" when the point is guessing WHO WROTE IT: each answer goes up, everyone picks the author from a short list of classmates, then the author is revealed with how the class guessed. No points either way.
 - rank: the whole class drags a list into order and the class's combined order goes up on the projector afterward. text = the ranking instruction ("Scariest first"). Ranks the answers from the most recent collect step; or give items = 2-12 strings for a list you write yourself. timer optional. Use this whenever students order, rank, or sort answers by a criterion; a vote picks ONE favorite, it does not rank. Set byGroup: true (with a teams step earlier) when each GROUP decides one order: every member still ranks on their own screen and the group's order is their average.
 - assign: hands every group (or every student, when the rank step has no groups) ONE of the items from the rank step right before it: first choices first, the spots per item spread evenly, so a contested favorite goes to some and the rest get their second choice. PUBLIC: the projector lists every group or student beside what they got, so never use it for anything secret (that is collect with items). text = the line above the hand-out on the projector ("Here is who got what."). perChoice = how many groups may share one item (optional; leave it out for an even spread). REQUIRES a rank step right before it. Each student's screen shows what their group got.
@@ -1919,7 +1959,7 @@ BRICKS (each step is one):
 RULES:
 - 3 to 8 steps. Start with an announce that explains the activity in a warm teacher voice.
 - If players guess a hidden thing behind a clue (a movie behind emojis, a word behind a riddle), use collect-two followed by guessing-rounds. If players guess WHO wrote each answer (who said it, whose fear, whose secret), use a plain collect followed by guessing-rounds with guess: "who"; never collect-two for that.
-- BE HONEST IN THE WORDS: mechanics exist only where a brick provides them. Points, scoring, winners, and leaderboards come ONLY from the quiz brick with its leaderboard on, from an estimate brick with an answer (the closest guess), or from a vote over the class's answers or drawings (one winner, crowned); if there is no quiz step, or the quiz has leaderboard: false, no estimate step carries an answer, and no vote follows a collect or draw step, no text may mention points or winning. Class rankings come ONLY from the rank brick; a vote picks one favorite and its text must not promise an order. Team scores exist ONLY when a teams step comes before a quiz step. Never promise prizes or eliminations.
+- BE HONEST IN THE WORDS: mechanics exist only where a brick provides them. Points, scoring, winners, and leaderboards come ONLY from the quiz brick with its leaderboard on, from an estimate brick with an answer (the closest guess), or from a vote over the class's answers or drawings (one winner, crowned); if there is no quiz step, or the quiz has leaderboard: false, no estimate step carries an answer, and no vote follows a collect or draw step, no text may mention points or winning. Class rankings come ONLY from the rank brick; a vote picks one favorite (or, with approve: true, passes every answer with more yes than no) and its text must not promise an order. Team scores exist ONLY when a teams step comes before a quiz step. Never promise prizes or eliminations.
 - When the teacher supplies their own questions, statements, or items for students to judge or classify, put ALL of them into ONE quiz step's questions array with the classification options as the choices; never build a chain of separate collect-choice and reveal steps for a question list. If the teacher asks for a shuffled or mixed order, write the questions array in that shuffled order (never grouped by category).
 - THE BRICKS ARE ALL THERE IS. No brick can generate AI-written answers or rival responses during play, show two specific answers side by side as a matched pair, hide one student's answer from the class outside collect-two's secret box, a chain's hand-offs, a deal's hand, or a pairs exchange (a private hand-out from YOUR list is collect with items; assign is public), eliminate players, or branch the flow. Step text must never promise any of those. For example, never tell students that one of the responses was written by AI: no step can make that true, and a promise the activity cannot keep is worse than no activity.
 - If groups or students should each END UP WITH one option from a list (project topics, categories, stations, chapters, sides of a debate), use teams (when groups decide), then rank with byGroup: true and the options as items, then assign. Never a vote (a vote picks one winner for the whole class) and never a collect-choice (everyone would pick the same favorite); neither hands anything out. This is for ONE option per group or per student; jobs INSIDE a group (a Recorder, a Timekeeper for each member) are the roles brick, never rank then assign.

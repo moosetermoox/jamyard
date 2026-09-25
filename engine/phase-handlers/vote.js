@@ -147,7 +147,9 @@ registerHandler('vote', {
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       }
-    } else if (phase.mode === 'pick-one') {
+    } else if (phase.mode === 'pick-one' || phase.mode === 'approve') {
+      // Approve (2026-09-25): the same ballot, but every entry takes a yes
+      // or a no, so several can pass at once (clauses, norms, budget lines).
       const excludeAuthors = !!phase.excludeAuthors;
       for (const voter of eligible) {
         const ballot = ballotFor(candidates, voter.id, excludeAuthors);
@@ -159,7 +161,7 @@ registerHandler('vote', {
           continue;
         }
         ctx.emitToPlayer(voter.id, EVENTS.VOTE_START, {
-          mode: 'pick-one',
+          mode: phase.mode,
           candidates: ballot,
           timer: phase.timer || null,
           playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -212,7 +214,7 @@ registerHandler('vote', {
         });
       } else {
         socket.emit(EVENTS.VOTE_START, {
-          mode: 'pick-one',
+          mode: vs.mode === 'approve' ? 'approve' : 'pick-one',
           candidates: ballotFor(vs.candidates, socket.id, !!vs.excludeAuthors),
           timer: null,
           playerTemplate: sc.playerTemplate, show: sc.playerShow

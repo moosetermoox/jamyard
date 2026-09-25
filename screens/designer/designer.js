@@ -2298,7 +2298,10 @@ async function showStoryboardFlow(description, seededStoryboard) {
           head.appendChild(sbEl('span', String((data.index || 0) + 1) + '.', 'sb-step-num'));
           head.appendChild(sbEl('span', SB_BRICK_LABELS[step.brick] || step.brick));
           row.appendChild(head);
-          if (typeof step.text === 'string' && step.text) row.appendChild(sbEl('div', step.text, 'sb-arriving-text'));
+          if (typeof step.text === 'string' && step.text) {
+            // the hand-out's placeholder reads as words while the plan lands
+            row.appendChild(sbEl('div', step.text.replace(/\{\{\s*thisStep\.assigned\s*\}\}/g, '(their item)'), 'sb-arriving-text'));
+          }
           arrivingList.appendChild(row);
           status.textContent = 'Step ' + ((data.index || 0) + 1) + ' is in, still sketching…';
         }
@@ -2384,6 +2387,9 @@ async function showStoryboardFlow(description, seededStoryboard) {
       });
       head.appendChild(rm);
       row.appendChild(head);
+      if (step.brick === 'vote' && step.approve === true) {
+        row.appendChild(sbEl('div', 'Every student says yes or no to every answer; the ones with more yes than no pass.', 'sb-hint'));
+      }
       if (step.text != null || SB_BRICK_LABELS[step.brick]) {
         if (typeof step.text === 'string') {
           var box = document.createElement('textarea');
@@ -2393,6 +2399,16 @@ async function showStoryboardFlow(description, seededStoryboard) {
           box.addEventListener('input', function () { step.text = box.value; });
           row.appendChild(box);
         }
+      }
+      // A private hand-out: say what the placeholder is and show the list
+      // that goes out (an outside reviewer saw the raw token and read the
+      // plan as never assigning anything, 2026-09-25).
+      if (step.brick === 'collect' && Array.isArray(step.items) && step.items.length) {
+        var dealt = step.items.map(function (x) { return String(x == null ? '' : x).trim(); }).filter(Boolean);
+        var hint = 'Where it says {{thisStep.assigned}}, each student sees the one item they were handed in secret';
+        if (dealt.length) hint += ' (' + dealt.length + ' to hand out: ' + dealt.join(', ') + ')';
+        hint += '. A bigger class shares them, two or three students to an item.';
+        row.appendChild(sbEl('div', hint, 'sb-hint sb-deal-hint'));
       }
       // Quiz questions are the teacher's fact-check moment: every question
       // and its correct answer is visible BEFORE anything is built. ✕ drops
@@ -2419,7 +2435,9 @@ async function showStoryboardFlow(description, seededStoryboard) {
       }
       list.appendChild(row);
       if (OWN_ANSWER_BRICKS.indexOf(step.brick) !== -1) answersSoFar = true;
-      if (step.brick === 'vote' && answersSoFar) {
+      if (step.brick === 'vote' && step.approve === true) {
+        list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: the list of what passed, each with its yes and no counts'));
+      } else if (step.brick === 'vote' && answersSoFar) {
         list.appendChild(addedRow(SB_BRICK_LABELS.winner || 'Crown a winner', 'added: the winning answer, with a drumroll'));
       }
     });

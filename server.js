@@ -90,6 +90,7 @@ import {
   getEligibleVoters,
   tallyPickOne,
   tallyHeadToHead,
+  tallyApprove,
   resolveBranchTarget,
   isOwnCandidate
 } from './engine/phases/vote-handler.js';
@@ -1803,34 +1804,57 @@ async function tallyAndAdvance(code, room) {
   if (!vs || vs.kind !== 'vote' || vs.tallied) return;
   vs.tallied = true;
 
-  let result;
-  if (vs.mode === 'pick-one') {
-    result = tallyPickOne(vs.votes, vs.candidateIds);
-  } else {
-    result = tallyHeadToHead(vs.votes, vs.candidateIds, vs.matchups);
-  }
+  const phaseConfig = engine.config.phases[vs.phaseId];
+  phaseConfig.id = vs.phaseId;
 
-  // The winner's WORDS beside its id: over the class's answers the id is a
-  // player id, and a reveal that read {{vote.winner}} showed one on the
-  // projector (an outside reviewer's constitution, 2026-09-24).
-  const winning = vs.candidates.find(c => (c && c.playerId ? c.playerId : c) === result.winner);
-  const winnerText = winning == null ? null
-    : (typeof winning === 'string' ? winning : String(winning.text || winning.name || ''));
-  engine.storePhaseData(vs.phaseId, {
-    votes: vs.votes,
-    scores: result.scores,
-    winner: result.winner,
-    winnerText,
-    tied: result.tied,
-    totalVotes: result.totalVotes
-  });
+  let result;
+  if (vs.mode === 'approve') {
+    // Yes or no on every entry: what passed, as words for a reveal
+    // ({{vote.approvedList}}) and as entries; scores stay the yes counts.
+    result = tallyApprove(vs.votes, vs.candidates, { passAt: phaseConfig.passAt });
+    engine.storePhaseData(vs.phaseId, {
+      votes: vs.votes,
+      scores: result.scores,
+      noCounts: result.noCounts,
+      results: result.results,
+      approved: result.approved,
+      rejected: result.rejected,
+      approvedCount: result.approvedCount,
+      approvedList: result.approvedList,
+      rejectedList: result.rejectedList,
+      resultsList: result.resultsList,
+      winner: result.winner,
+      winnerText: result.winnerText,
+      tied: result.tied,
+      totalVotes: result.totalVotes
+    });
+    console.log(`[tally] Phase '${vs.phaseId}' tallied (approve): totalVotes=${result.totalVotes}, passed ${result.approvedCount} of ${result.results.length}`);
+  } else {
+    if (vs.mode === 'pick-one') {
+      result = tallyPickOne(vs.votes, vs.candidateIds);
+    } else {
+      result = tallyHeadToHead(vs.votes, vs.candidateIds, vs.matchups);
+    }
+
+    // The winner's WORDS beside its id: over the class's answers the id is a
+    // player id, and a reveal that read {{vote.winner}} showed one on the
+    // projector (an outside reviewer's constitution, 2026-09-24).
+    const winning = vs.candidates.find(c => (c && c.playerId ? c.playerId : c) === result.winner);
+    const winnerText = winning == null ? null
+      : (typeof winning === 'string' ? winning : String(winning.text || winning.name || ''));
+    engine.storePhaseData(vs.phaseId, {
+      votes: vs.votes,
+      scores: result.scores,
+      winner: result.winner,
+      winnerText,
+      tied: result.tied,
+      totalVotes: result.totalVotes
+    });
+  }
 
   // Head-to-head winners are student answer text — content stays out of logs
   console.log(`[tally] Phase '${vs.phaseId}' tallied: totalVotes=${result.totalVotes}${result.tied ? ' (tied)' : ''}`);
   contentLog(`[tally] winner=${result.winner}`);
-
-  const phaseConfig = engine.config.phases[vs.phaseId];
-  phaseConfig.id = vs.phaseId;
 
   // Branching votes: the winner can route the game (choose-your-own-
   // adventure). Falls back to the normal `next` when there's no map or
@@ -4856,6 +4880,21 @@ io.on('connection', (socket) => {
         return;
       }
       vs.votes.push({ voterId: socket.id, choice });
+    } else if (vs.mode === 'approve' && Array.isArray(votesList)) {
+      // Yes or no on every entry (2026-09-25): only ballot entries count,
+      // never the voter's own answer, never a candidate off the ballot,
+      // and an entry left unanswered is neither a yes nor a no.
+      const ballotIds = new Set(vs.candidateIds);
+      let kept = 0;
+      for (const vote of votesList) {
+        if (!vote || typeof vote.approve !== 'boolean' || !ballotIds.has(vote.choice)) continue;
+        if (vs.excludeAuthors && isOwnCandidate(vs.candidates, socket.id, vote.choice)) continue;
+        vs.votes.push({ voterId: socket.id, choice: vote.choice, approve: vote.approve });
+        kept++;
+      }
+      // An empty ballot (the timer ran out before a tap) still counts the
+      // voter as done, so one idle screen never holds the room.
+      if (kept === 0) console.log(`[submit-vote] ${socket.id} sent a yes-or-no ballot with nothing on it`);
     } else if (vs.mode === 'head-to-head' && Array.isArray(votesList)) {
       for (const vote of votesList) {
         vs.votes.push({ voterId: socket.id, choice: vote.choice });

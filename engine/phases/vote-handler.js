@@ -115,6 +115,79 @@ export function tallyHeadToHead(votes, candidateIds, matchups) {
 }
 
 /**
+ * Yes-or-no votes (mode "approve", 2026-09-25): every voter says yes or no
+ * to every candidate, so a vote can pass several proposals at once (a
+ * clause into a constitution, a class norm, a budget line). A candidate
+ * passes when its yes votes beat `passAt` percent of the votes cast on it
+ * (default 50: more yes than no; a tie fails; 100 means every vote on it
+ * said yes). `scores` stays the yes count per candidate so a crown or a
+ * leaderboard can still read the vote.
+ *
+ * @param {Array<{ voterId: string, choice: string, approve: boolean }>} votes
+ * @param {any[]} candidates - {playerId, text, ...} objects or strings
+ * @param {{ passAt?: number }} [opts]
+ */
+export function tallyApprove(votes, candidates, opts = {}) {
+  const passAt = Number.isFinite(opts.passAt) ? opts.passAt : 50;
+  const ids = (candidates || []).map(c => (c && typeof c === 'object' && c.playerId ? c.playerId : c));
+  const scores = {};
+  const noCounts = {};
+  for (const id of ids) { scores[id] = 0; noCounts[id] = 0; }
+  const voters = new Set();
+  const seen = new Set();
+  for (const v of votes || []) {
+    if (!v || !(v.choice in scores)) continue;
+    // one answer per voter per candidate: the first one counts
+    const key = String(v.voterId) + '\u0000' + String(v.choice);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    voters.add(v.voterId);
+    if (v.approve === true) scores[v.choice]++;
+    else noCounts[v.choice]++;
+  }
+  const results = ids.map((id, i) => {
+    const yes = scores[id];
+    const no = noCounts[id];
+    const cast = yes + no;
+    const passed = passAt >= 100
+      ? (cast > 0 && no === 0)
+      : (yes * 100 > passAt * cast);
+    const c = candidates[i];
+    const entry = c && typeof c === 'object' ? { ...c } : { text: String(c) };
+    if (entry.drawing) delete entry.drawing;
+    return { ...entry, text: candidateText(c), yes, no, passed };
+  });
+  results.sort((a, b) => b.yes - a.yes || a.no - b.no);
+  const approved = results.filter(r => r.passed).map(({ passed, ...r }) => r);
+  const rejected = results.filter(r => !r.passed).map(({ passed, ...r }) => r);
+  const top = results[0] || null;
+  return {
+    scores,
+    noCounts,
+    results,
+    approved,
+    rejected,
+    approvedCount: approved.length,
+    approvedList: approvedLines(approved),
+    rejectedList: approvedLines(rejected),
+    resultsList: results.map(r => `${r.passed ? 'Passed' : 'Did not pass'}: ${r.text} (${r.yes} yes, ${r.no} no)`).join('\n'),
+    winner: top ? (top.playerId || top.text) : null,
+    winnerText: top ? top.text : null,
+    tied: !!(results.length > 1 && results[1].yes === results[0].yes),
+    totalVotes: voters.size
+  };
+}
+
+/**
+ * A numbered list of entries with their yes and no counts, for a reveal.
+ * @param {Array<{ text: string, yes: number, no: number }>} entries
+ * @returns {string}
+ */
+export function approvedLines(entries) {
+  return (entries || []).map((r, i) => `${i + 1}. ${r.text} (${r.yes} yes, ${r.no} no)`).join('\n');
+}
+
+/**
  * Display text of a candidate — literal strings ARE their text; response
  * objects use text, then name.
  * @param {any} candidate

@@ -2747,7 +2747,8 @@ phaseErrorEndBtn.addEventListener('click', () => {
 
 socket.on('vote-start', ({ mode, totalVoters, timer, hostTemplate, show }) => {
   showSection(voteSection);
-  voteModeDisplay.textContent = mode === 'head-to-head' ? 'Head-to-Head' : 'Pick One';
+  voteModeDisplay.textContent = mode === 'head-to-head' ? 'Head-to-Head'
+    : (mode === 'approve' ? UiLang.t('Yes or no on each one') : 'Pick One');
   voteCount.textContent = '0 of ' + totalVoters + ' votes received';
   applyTemplate(voteSection, hostTemplate);
   applyShow(show, {

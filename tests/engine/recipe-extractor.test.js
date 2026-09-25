@@ -356,7 +356,7 @@ describe('buildUserRecipe', () => {
       { id: 'x', name: 'X', description: 'X' }
     );
     expect(recipe.parameters.voteMode.type).toBe('enum');
-    expect(recipe.parameters.voteMode.values).toEqual(['pick-one', 'head-to-head']);
+    expect(recipe.parameters.voteMode.values).toEqual(['pick-one', 'head-to-head', 'approve']);
   });
 
   it('produced recipe passes validateRecipe', () => {

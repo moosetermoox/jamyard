@@ -171,6 +171,10 @@
   var SV_EXTRA_SUFFIXES = {
     winner:        'the winner (id)',
     winnerText:    'the winning answer',
+    approvedList:  'the ones that passed',
+    rejectedList:  'the ones that did not pass',
+    resultsList:   'every entry with its yes and no counts',
+    approvedCount: 'how many passed',
     responses:     'the answers',
     merged:        'the combined answers',
     rankedList:    'the ranked list',
@@ -225,6 +229,15 @@
     if (head === 'remaining') return 'how many players remain';
 
     var from = (gameConfig.phases && gameConfig.phases[head]) ? ' from ' + stepName(head) : '';
+
+    // A hand-out's item: inside its own step it is what THIS student was
+    // handed, never "assigned item from step 3" while on step 3 (an
+    // outside reviewer read that as no step assigning anything, 2026-09-25)
+    if (tail === 'assigned' && parts.length === 2) {
+      var dealer = gameConfig.phases && gameConfig.phases[head];
+      if (head === svSelectedId) return 'the item this student was handed';
+      if (dealer && Array.isArray(dealer.dealItems)) return 'the item each student was handed' + from;
+    }
 
     // Multi-part paths with friendly composites
     var rest = parts.slice(1);
@@ -344,7 +357,7 @@
     input.className = 'sv-timer';
     input.min = '1';
     input.max = '3600';
-    input.placeholder = '. ';
+    input.placeholder = 'none';
     if (phase.timer) input.value = phase.timer;
     input.addEventListener('input', function () {
       markEdited();
@@ -875,6 +888,19 @@
           ? (phase.rotateFrom ? 'Students draw (continuing ' + stepName(phase.rotateFrom) + '\'s drawing):' : 'Students draw:')
           : (phase.assign === 'pairwise' ? 'Students answer (in pairs):' : 'Students answer:');
         d.field = textBox(phase.prompt, isDrawing ? 'What students should draw…' : 'The question students see…', function (v) { phase.prompt = v; });
+        // A private hand-out: the list each student is dealt one item from,
+        // editable here so the teacher can see and change the states,
+        // roles, or words that go out (2026-09-25).
+        if (Array.isArray(phase.dealItems)) {
+          var dealWrap = el('div', 'sv-deal');
+          dealWrap.appendChild(el('div', 'sv-deal-lead', 'Each student is secretly handed one of these (a bigger class shares them, two or three to an item):'));
+          dealWrap.appendChild(stringListEditor(
+            function () { return phase.dealItems; },
+            function (a) { phase.dealItems = a; },
+            'Item'
+          ));
+          d.extra = dealWrap;
+        }
         if (phase.reusePairsFrom) d.facts.push(fact('same partners as ' + stepName(phase.reusePairsFrom)));
         else if (phase.pairBy && phase.pairBy.from) d.facts.push(fact((phase.pairBy.mode === 'same' ? 'partners who answered the same in ' : 'partners who answered differently in ') + stepName(phase.pairBy.from)));
         else if (phase.rotatePairsFrom) d.facts.push(fact('new partners since ' + stepName(phase.rotatePairsFrom)));
@@ -983,9 +1009,14 @@
             }
           }
         } else {
-          d.sentence = (phase.mode === 'head-to-head' ? 'Students vote head-to-head on ' : 'Students vote for their favorite from ') +
-            (phase.matchupsFromPairs ? 'the paired answers' : (phase.candidates ? humanizeRef(String(phase.candidates)).toLowerCase() : '…')) + '.';
+          var voteOn = phase.matchupsFromPairs ? 'the paired answers' : (phase.candidates ? humanizeRef(String(phase.candidates)).toLowerCase() : '…');
+          if (phase.mode === 'approve') {
+            d.sentence = 'Students say yes or no to each of ' + voteOn + ', and the ones with more yes than no pass.';
+          } else {
+            d.sentence = (phase.mode === 'head-to-head' ? 'Students vote head-to-head on ' : 'Students vote for their favorite from ') + voteOn + '.';
+          }
         }
+        if (phase.mode === 'approve' && typeof phase.passAt === 'number') d.facts.push(fact('passes at ' + phase.passAt + '% yes'));
         if (phase.voters === 'eliminated') d.facts.push(fact('only knocked-out players vote'));
         else if (phase.voters === 'remaining') d.facts.push(fact('only remaining players vote'));
         d.facts.push(timerFact(phase));

@@ -218,13 +218,16 @@ describe('ConfigDiff.describe: what a draft really changes', () => {
     delete after.phases.lobby;
     after.anonymous = true;
     const lines = Diff.describe(before, after);
-    expect(lines).toContain('Adds Reveal results "show"');
-    expect(lines).toContain('Removes Waiting room "lobby"');
-    expect(lines.find(l => l.startsWith('Vote "vote"'))).toBe('Vote "vote": rewords it (prompt); changes what comes after it');
-    expect(lines.find(l => l.startsWith('Open answer "write"'))).toBe('Open answer "write": changes timer');
+    expect(lines).toContain('Adds a Reveal results step after step 3 (Vote)');
+    expect(lines).toContain('Removes step 1 (Waiting room)');
+    expect(lines.find(l => l.startsWith('Step 3 (Vote)'))).toBe('Step 3 (Vote): rewords the question; changes what comes after it');
+    expect(lines.find(l => l.startsWith('Step 2 (Open answer)'))).toBe('Step 2 (Open answer): changes the timer');
     expect(lines).toContain('Changes student names');
     const retyped = JSON.parse(JSON.stringify(before));
     retyped.phases.vote.type = 'rank';
-    expect(Diff.describe(before, retyped)).toContain('Turns "vote" into Rank a list (it was Vote)');
+    expect(Diff.describe(before, retyped)).toContain('Turns step 3 (Vote) into a Rank a list step');
+    // never an id, never a field name on the card
+    expect(lines.join(' ')).not.toMatch(/"(vote|write|lobby|show)"|\bprompt\b|dealItems|\btemplate\b/);
+    expect(lines).not.toContain('Changes the name');
   });
 });
