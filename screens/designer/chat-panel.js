@@ -249,6 +249,10 @@
     if (selectedPhaseId && !(gameConfig.phases && gameConfig.phases[selectedPhaseId])) {
       deselectPhase();
     }
+    // An applied (or reverted) proposal saves like any other edit, so the
+    // status never sits on "Unsaved changes" until the next blur (a
+    // reviewer watched it flip Saved, Unsaved, Saved, 2026-09-24).
+    if (typeof autoSaveIfDirty === 'function') autoSaveIfDirty();
   }
 
   function applyProposal(card, proposal, historyIndex) {

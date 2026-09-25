@@ -207,8 +207,10 @@ textarea::placeholder {
 
 .join-hint {
   text-align: left;
-  font-size: 0.8rem;
-  color: #777;
+  /* Readable at arm's length on a Chromebook (a reviewer called the
+     0.8rem grey line very small and low-contrast, 2026-09-24) */
+  font-size: 0.95rem;
+  color: #4A4032;
   margin: 6px 0 14px;
 }
 
@@ -1722,7 +1724,7 @@ input::placeholder, textarea::placeholder {
   text-transform: uppercase;
 }
 
-.join-hint { color: var(--t-muted, #6B6250); }
+.join-hint { color: #4A4032; }
 .char-counter { color: #8A7455; font-weight: 700; }
 
 /* ── Join: typed letters fill painted blocks ── */
