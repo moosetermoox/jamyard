@@ -2656,3 +2656,21 @@ select,
   border: 4px solid #222;
   border-radius: 6px;
 }
+
+/* Inside Try it out the join code and QR are for one pair of eyes, so the
+   doorway card and the lobby code shrink and the step stays in view
+   (a reviewer's results sat below the fold, 2026-09-24) */
+body.in-bench #rolling-door { width: 210px; padding: 10px 12px 12px; top: 84px; right: 12px; }
+body.in-bench .rolling-door-label { font-size: 10px; margin-bottom: 5px; }
+body.in-bench .rolling-door-code { gap: 4px; margin-bottom: 6px; }
+body.in-bench .rolling-door-code .code-block { width: 42px; height: 50px; font-size: 26px; }
+body.in-bench .rolling-door-code .code-block-1 { height: 52px; }
+body.in-bench .rolling-door-code .code-block-2 { height: 48px; }
+body.in-bench .rolling-door-code .code-block-3 { height: 51px; }
+body.in-bench .rolling-door-instructions { font-size: 12px; margin-bottom: 6px; }
+body.in-bench .rolling-door-instructions strong { font-size: 14px; }
+body.in-bench .rolling-door-qr { max-width: 110px; margin-bottom: 4px; }
+body.in-bench .rolling-door-count { font-size: 13px; }
+body.in-bench.rolling section.active { padding-right: 240px; }
+body.in-bench #room-code .code-block { width: 62px; height: 72px; font-size: 38px; }
+body.in-bench .qr-image { width: 160px; height: 160px; }

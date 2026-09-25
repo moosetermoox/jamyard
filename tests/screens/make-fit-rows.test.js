@@ -39,7 +39,7 @@ describe('make page: make it fit your class', () => {
     const js = await read('screens/make/make.js');
     expect(js).toContain("var classRow = rowEl('Your class');");
     expect(js).toContain("var names = rowEl('Student names');");
-    expect(js).toContain("var joke = rowEl('Early-bird joke');");
+    expect(js).toContain("var joke = rowEl('Dad joke for the first students to join');");
     expect(js).toContain("chipButton('Shown', !state.anonymous)");
     expect(js).toContain("chipButton('Hidden', state.anonymous)");
     expect(js).toContain("chipButton('On', state.earlyJoke)");

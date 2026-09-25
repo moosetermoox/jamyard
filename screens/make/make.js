@@ -480,7 +480,7 @@
     names.a.appendChild(hidden);
     fixedHolder.appendChild(names);
 
-    var joke = rowEl('Early-bird joke');
+    var joke = rowEl('Dad joke for the first students to join');
     var on = chipButton('On', state.earlyJoke);
     on.title = 'The first 10 students to join each see a dad joke';
     on.addEventListener('click', function () { state.earlyJoke = true; buildRows(); });

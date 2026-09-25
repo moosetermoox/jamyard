@@ -436,6 +436,23 @@ function hostFrame() {
   return hostMat.querySelector('iframe.host-frame');
 }
 
+// POST /api/games/:id/sample-answers: the AI writes a set for a teacher's
+// own activity (built-ins are refused there) and the server saves it on
+// the copy. Fire and forget: Add sample answers deals what is here by then.
+let samplesRequestFor = null;
+function writeSamplesFor(id) {
+  if (!id || samplesRequestFor === id) return;
+  samplesRequestFor = id;
+  fetch('/api/games/' + encodeURIComponent(id) + '/sample-answers', { method: 'POST' })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((body) => {
+      if (body && body.sampleAnswers && typeof body.sampleAnswers === 'object' && samplesRequestFor === id && !currentSamples) {
+        currentSamples = body.sampleAnswers;
+      }
+    })
+    .catch(() => { /* the keyword bot answers, as before */ });
+}
+
 function fireBotFill() {
   const playerIframes = playerHolder.querySelectorAll('.player-panel iframe');
   let seat = 0;
@@ -860,6 +877,11 @@ launchBtn.addEventListener('click', () => {
       if (config && config.sampleAnswers && typeof config.sampleAnswers === 'object') {
         currentSamples = config.sampleAnswers;
       }
+      // A teacher's own build carries no set: the server writes one on the
+      // activity's own questions (owner 2026-09-24, the generic bank read
+      // "Pizza is the best food" on a civics activity) and keeps it on the
+      // copy, so it is written once. Templates never take this path.
+      if (config && !config.sampleAnswers) writeSamplesFor(gameId);
       if (config && !countAsked && window.BenchLogic && typeof BenchLogic.startingSeats === 'function') {
         count = Math.min(MAX_PLAYERS, Math.max(count, BenchLogic.startingSeats(config)));
       }

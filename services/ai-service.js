@@ -1546,6 +1546,89 @@ Return ONLY JSON, no other prose:
   // the teacher can read and change them before class. Scenes, not facts,
   // so there is no needsTeacherFacts escape; the fresh-facts rule still
   // keeps it from claiming anything recent.
+  /**
+   * Sample answers for a teacher's OWN activity (owner 2026-09-24): the
+   * pretend students in Try it out used to answer a civics activity with
+   * "Pizza is the best food" because a storyboard build carries no set.
+   * One Haiku call writes `seats` plausible student lines per text collect
+   * step, in the shape engine/sample-answers.js reads (a plain list per
+   * step; an array of strings per line for a multi-field step). Templates
+   * never take this path: their sets are authored. Never student text.
+   * @param {{config: object, seats?: number}} args
+   * @returns {Promise<{sampleAnswers: Object<string, Array>|null}>}
+   */
+  async writeSampleAnswers({ config, seats } = {}) {
+    const n = Number.isInteger(seats) && seats >= 2 && seats <= 12 ? seats : 6;
+    const phases = (config && config.phases) || {};
+    const steps = Object.entries(phases)
+      .filter(([, p]) => p && p.type === 'collect' && p.inputType !== 'drawing' && !p.appendOnly)
+      .map(([id, p]) => ({
+        id,
+        prompt: String(p.prompt || '').replace(/\{\{[^}]+\}\}/g, '…').replace(/\s+/g, ' ').trim().slice(0, 300),
+        fields: Array.isArray(p.fields) ? p.fields.map((f) => String((f && f.label) || '').slice(0, 80)) : [],
+        dealt: Array.isArray(p.dealItems) ? p.dealItems.slice(0, 12).map(String) : []
+      }));
+    if (steps.length === 0) return { sampleAnswers: null };
+    const lineFor = (step, i) => (step.fields.length >= 2
+      ? step.fields.map((label) => `${label}: sample ${i + 1}`)
+      : `Sample answer ${i + 1} for ${step.prompt || step.id}`);
+    if (this.mode === 'mock') {
+      const out = {};
+      for (const step of steps) out[step.id] = Array.from({ length: n }, (_, i) => lineFor(step, i));
+      return { sampleAnswers: out };
+    }
+    const stepLines = steps.map((s) => {
+      const bits = [`- step "${s.id}": ${s.prompt || '(no question text)'}`];
+      if (s.fields.length >= 2) bits.push(`  fields, answer each as its own string in order: ${s.fields.map((f) => JSON.stringify(f)).join(', ')}`);
+      if (s.dealt.length) bits.push(`  each student was privately handed one of: ${s.dealt.join('; ')} (the … in the question is that item)`);
+      return bits.join('\n');
+    }).join('\n');
+    const message = await this._callClaude({
+      model: MODELS.haiku,
+      max_tokens: 3000,
+      messages: [{
+        role: 'user',
+        content: `A teacher is trying out their classroom activity with pretend students before a class sees it. Write the pretend students' answers so the run reads like a real class.
+
+Activity: ${String((config && config.name) || '').slice(0, 80)}
+${String((config && config.description) || '').slice(0, 300)}
+
+Steps students answer:
+${stepLines}
+
+Write exactly ${n} answers for EVERY step, one per pretend student. Rules:
+- Each answer is what a real student at that step would type: on topic, one or two sentences at most, in a student's plain words, each different in idea and voice, a couple of them short or hesitant.
+- A step with fields takes an array of strings per answer, one string per field, in the fields' order.
+- A step where each student was handed an item: spread the answers over the items named, and let the answer show which item the student held.
+- ${FRESH_FACTS_RULE}
+- Never a student name. No emojis, no numbering.
+
+Return ONLY JSON, no other prose: {"<step id>": ["...", "..."], ...} with a string (or an array of strings for a step with fields) per answer.`
+      }]
+    });
+    const text = extractText(message);
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('AI response was not valid JSON');
+      parsed = JSON.parse(match[0]);
+    }
+    const clean = (v) => String(v == null ? '' : v).replace(/\s*—\s*/g, ', ').replace(/\s+/g, ' ').trim().slice(0, 300);
+    const out = {};
+    for (const step of steps) {
+      const raw = parsed && Array.isArray(parsed[step.id]) ? parsed[step.id] : [];
+      const lines = raw.map((line) => (step.fields.length >= 2
+        ? (Array.isArray(line) ? line.map(clean) : step.fields.map((label, k) => (k === 0 ? clean(line) : '')))
+        : (Array.isArray(line) ? clean(line.join(' ')) : clean(line))))
+        .filter((line) => (Array.isArray(line) ? line.some(Boolean) : line.length >= 2))
+        .slice(0, n);
+      if (lines.length >= 2) out[step.id] = lines;
+    }
+    return { sampleAnswers: Object.keys(out).length ? out : null };
+  }
+
   async generatePhraseList({ topic, count, classDescription = '' } = {}) {
     const cleanTopic = String(topic || '').trim().slice(0, 400);
     const classDesc = String(classDescription || '').trim().slice(0, 160);

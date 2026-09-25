@@ -588,7 +588,9 @@ async function init() {
   }
 
   addPhaseBtn.addEventListener('click', addPhase);
-  saveBtn.addEventListener('click', saveGame);
+  // The Save button left the header (owner 2026-09-24: it always autosaves);
+  // saveGame stays for Host it now and the report, which save first.
+  if (saveBtn) saveBtn.addEventListener('click', saveGame);
 
   // Never silently lose edits: a dirty editor warns before the tab
   // navigates away or closes (usability test 2026-08-01 — a teacher lost
@@ -1848,10 +1850,9 @@ async function deselectPhase() {
 //   the deselect — the panel stays visible so the user can fix.
 async function autoSaveIfDirty() {
   if (!isDirty) return;
-  // No id yet: a library draft copy persists on its FIRST real edit (that
-  // edit is what makes it "yours"); a plain brand-new game still waits
-  // for the explicit Save button.
-  if (!gameId && !isDraftCopy) return;
+  // No id yet: the first real edit saves the activity under a fresh id
+  // (a library draft copy and a brand-new activity alike; the Save button
+  // left the header 2026-09-24, the editor always autosaves).
   var validation = validateConfig();
   if (validation.errors.length > 0) {
     showValidationPanel(validation.errors, validation.warnings);
@@ -6229,6 +6230,7 @@ function showValidationPanel(errors, warnings) {
 
 // --- Save / Test ---
 async function saveGame() {
+  var btn = saveBtn || { disabled: false, textContent: 'Save' };
   // Run validation
   var validation = validateConfig();
   if (validation.errors.length > 0) {
@@ -6243,8 +6245,8 @@ async function saveGame() {
   }
   validationPanel.hidden = true;
 
-  saveBtn.disabled = true;
-  var originalText = saveBtn.textContent;
+  btn.disabled = true;
+  var originalText = btn.textContent;
 
   try {
     var response;
@@ -6265,21 +6267,21 @@ async function saveGame() {
     if (response.ok) {
       lastSaveError = null;
       isDirty = false;
-      saveBtn.textContent = 'Saved!';
+      btn.textContent = 'Saved!';
       runLightReview();  // async, non-blocking
     } else {
       lastSaveError = result.error || 'Unknown error';
       showToast('Save failed: ' + (result.error || 'Unknown error'));
-      saveBtn.textContent = originalText;
+      btn.textContent = originalText;
     }
   } catch (error) {
     showToast('Save failed: ' + error.message);
-    saveBtn.textContent = originalText;
+    btn.textContent = originalText;
   }
 
-  saveBtn.disabled = false;
+  btn.disabled = false;
   setTimeout(function () {
-    saveBtn.textContent = originalText;
+    btn.textContent = originalText;
   }, 2000);
 }
 

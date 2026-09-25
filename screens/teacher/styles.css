@@ -493,3 +493,16 @@ h1, h2 {
 .share-card h2 { margin-bottom: 6px; }
 .share-card .btn-row { align-items: center; }
 .share-card #share-copied { overflow-wrap: anywhere; }
+
+/* Before you project: the two windows, drawn (2026-09-24) */
+.setup-picture { display: block; max-width: 100%; height: auto; margin: 2px auto 10px; }
+.setup-picture .sp-mat { fill: var(--t-paper, #FDF9F0); stroke: var(--t-ink, #2A2620); stroke-width: 1.5; }
+.setup-picture .sp-screen { fill: var(--t-gesso, #F6F1E4); stroke: var(--t-ink, #2A2620); stroke-width: 1.2; }
+.setup-picture .sp-bar { fill: var(--t-sanded, #EFE6D2); stroke: none; }
+.setup-picture .sp-tab { fill: var(--t-paper, #FDF9F0); stroke: var(--t-ink, #2A2620); stroke-width: 0.8; }
+.setup-picture .sp-tab-on { fill: var(--t-yellow, #FFD23F); }
+.setup-picture .sp-label { font-family: var(--t-display, 'Bricolage Grotesque', sans-serif); font-weight: 800; font-size: 11px; fill: var(--t-ink, #2A2620); }
+.setup-picture .sp-sub { font-family: var(--t-body, 'DM Sans', sans-serif); font-size: 8.5px; fill: var(--t-muted, #6B6250); }
+.setup-picture .sp-code { font-family: var(--t-display, 'Bricolage Grotesque', sans-serif); font-weight: 800; font-size: 18px; letter-spacing: 0.08em; fill: var(--t-ink, #2A2620); }
+.setup-picture .sp-arrow { fill: none; stroke: var(--t-red, #E4572E); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.setup-picture .sp-note { font-family: var(--t-body, 'DM Sans', sans-serif); font-size: 9px; font-weight: 600; fill: var(--t-red-text, #B02D12); }
