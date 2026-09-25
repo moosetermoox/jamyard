@@ -418,6 +418,19 @@ export function validate(config, gameId, options) {
           `Game "${gameId}": phase "${name}" (vote) uses "matchupsFromPairs" but mode is not "head-to-head"`
         );
       }
+      // passAt: the percent of the votes cast on a proposal that must be
+      // yes for it to pass (approve mode only; 50 = more yes than no).
+      if (phase.passAt !== undefined) {
+        if (!Number.isInteger(phase.passAt) || phase.passAt < 1 || phase.passAt > 100) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (vote) passAt must be a whole number from 1 to 100 (the percent of yes votes a proposal needs to pass)`
+          );
+        } else if (phase.mode !== 'approve') {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" (vote) sets passAt, which only a yes-or-no vote (mode "approve") reads`
+          );
+        }
+      }
     }
 
     // collect pairwise cross-field rules. pairsFrom is optional since the
@@ -1466,6 +1479,7 @@ function inferDiagnosticCode(msg, severity) {
   // Design-hole warnings
   if (/no "scoresFrom" and no "correctOption"/.test(msg)) return DIAGNOSTIC_CODES.WAGER_NO_RESOLUTION_BASIS;
   if (/no later template references team data/.test(msg)) return DIAGNOSTIC_CODES.TEAM_SPLIT_UNUSED;
+  if (/nothing shows the result to the class/.test(msg)) return DIAGNOSTIC_CODES.VOTE_RESULT_UNREAD;
   if (/can never award points|every score will be 0|nobody can ever score/.test(msg)) return DIAGNOSTIC_CODES.SCORING_NEVER_AWARDS;
 
   // Connection pack
@@ -1745,6 +1759,26 @@ function scanForDesignHoles(config, gameId, warnings) {
       if (!hasScores && !hasCorrect) {
         warnings.push(
           `Game "${gameId}": phase "${name}" (wager) has no "scoresFrom" and no "correctOption", players will start with default points and the host will have to pick the winner manually. Set "correctOption" if there's a verifiable answer, or use "scoresFrom" to chain scores from a previous round.`
+        );
+      }
+    }
+
+    // A vote nobody reads shows the class nothing (an outside reviewer's
+    // convention voted and went straight to the ending, 2026-09-25): a
+    // crown, a leaderboard, a reveal of {{vote.approvedList}} or
+    // {{vote.winnerText}}, a branch, anything that names the step.
+    if (phase.type === 'vote' && !phase.nextByWinner) {
+      const others = Object.entries(config.phases)
+        .filter(([id]) => id !== name)
+        .map(([, p]) => JSON.stringify(p))
+        .join('\n');
+      const escaped = name.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+      if (!new RegExp('(^|[^A-Za-z0-9_-])' + escaped + '\\.').test(others)) {
+        const hint = phase.mode === 'approve'
+          ? `a Reveal step reading {{${name}.approvedList}} shows what passed`
+          : `a Winner step reading ${name}.scores crowns the favorite, or a Reveal step reading {{${name}.winnerText}} shows it`;
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (vote) is a vote, but nothing shows the result to the class: ${hint}.`
         );
       }
     }

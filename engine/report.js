@@ -307,6 +307,17 @@ const SECTION_BUILDERS = {
 
   vote(phase, data, nameOf) {
     const blocks = [];
+    // Yes-or-no vote: every entry with its counts, what passed on top.
+    if (Array.isArray(data.results) && data.results.length > 0) {
+      const rows = data.results.map(r => [
+        cellText(r.text) + (r.playerId && nameOf(r.playerId) ? ` (${nameOf(r.playerId)})` : ''),
+        r.yes, r.no, r.passed ? 'Passed' : 'Did not pass'
+      ]);
+      blocks.push({ kind: 'table', columns: ['Proposal', 'Yes', 'No', 'Result'], rows, nameCol: 0 });
+      blocks.push(fact('Passed', `${data.approvedCount || 0} of ${data.results.length}`));
+      if (typeof data.totalVotes === 'number') blocks.push(fact('Ballots cast', data.totalVotes));
+      return blocks;
+    }
     const table = scoresTable(data.scores, nameOf, ['Choice', 'Votes']);
     if (table) blocks.push(table);
     if (data.winner != null) {

@@ -1,0 +1,40 @@
+{
+  "name": "SIM Approve Vote",
+  "description": "Test fixture for the yes-or-no vote: a secret hand-out collect (four states), a vote where every student says yes or no to every clause, and a reveal of the clauses that passed. Underscore-prefixed so it never appears in game lists. Driven by scripts/simulate-approve-vote.js.",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "ask"
+    },
+    "ask": {
+      "type": "collect",
+      "prompt": "You represent {{ask.assigned}}. Write one clause your state needs in the constitution.",
+      "dealItems": [
+        "Virginia",
+        "Delaware",
+        "Georgia",
+        "New York"
+      ],
+      "timer": 120,
+      "next": "vote"
+    },
+    "vote": {
+      "type": "vote",
+      "mode": "approve",
+      "candidates": "ask.responses",
+      "excludeAuthors": true,
+      "timer": 60,
+      "next": "passed"
+    },
+    "passed": {
+      "type": "reveal",
+      "template": "What the class passed:\n\n{{vote.approvedList}}",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "The convention is adjourned."
+    }
+  }
+}

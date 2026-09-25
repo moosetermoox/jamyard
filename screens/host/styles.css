@@ -1819,6 +1819,10 @@ button:disabled,
 }
 
 #close-submissions-btn { background: var(--t-paper); color: var(--t-ink); }
+/* Close Voting is the same paper board: the old theme accent painted it
+   ink on ink, an unlabeled black block on the vote screen (an outside
+   reviewer, twice, 2026-09-25) */
+#close-voting-btn { background: var(--t-paper); color: var(--t-ink); }
 
 /* ── The button that moves the room stays in view ──
    A full roster in the lobby or a long reveal used to push Start or

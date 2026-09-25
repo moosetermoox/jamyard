@@ -2362,3 +2362,90 @@ body.wh-empty .wh-word:hover { background: none; }
     padding: 22px 24px 24px;
   }
 }
+
+/* --- Yes-or-no ballot (vote mode "approve", 2026-09-25): one row per
+   entry, its words on a paper board, Yes and No beside it, Send once
+   every row has an answer. --- */
+.approve-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.approve-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  background: var(--t-paper, #FDF9F0);
+  color: var(--t-ink, #2A2620);
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1.3;
+  padding: 12px 14px;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20);
+  overflow-wrap: anywhere;
+}
+
+.approve-text.vote-btn-drawing {
+  display: block;
+  width: auto;
+  margin-right: 0;
+}
+
+.approve-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.approve-btn {
+  min-width: 72px;
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 8px 12px;
+  font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--t-paper, #FDF9F0);
+  color: var(--t-ink, #2A2620);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), inset 0 0 0 2px rgba(42, 38, 32, 0.25);
+  clip-path: none;
+  filter: none;
+  transform: none;
+}
+
+.approve-btn:hover { transform: translateY(-2px); }
+
+.approve-btn.is-picked.approve-yes {
+  background: var(--t-green, #22A05A);
+  color: var(--t-paper, #FDF9F0);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), inset 0 0 0 2px var(--t-ink, #2A2620);
+}
+
+.approve-btn.is-picked.approve-no {
+  background: var(--t-ink, #2A2620);
+  color: var(--t-paper, #FDF9F0);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), inset 0 0 0 2px var(--t-ink, #2A2620);
+}
+
+.approve-row.is-answered .approve-text { opacity: 0.85; }
+
+.approve-send {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  background: var(--t-red, #E5482B);
+  color: var(--t-paper, #FDF9F0);
+}
+
+.approve-send:disabled {
+  background: #D8D2C4;
+  color: #857A66;
+  filter: none;
+  transform: none;
+}

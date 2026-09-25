@@ -604,8 +604,14 @@ export const PHASE_SCHEMAS = {
     mixins: ['screenControl', 'timer', 'participantSelector:voters', 'loops'],
     fields: {
       mode: {
-        type: 'enum', values: ['pick-one', 'head-to-head'], required: true,
-        label: 'Voting style'
+        type: 'enum', values: ['pick-one', 'head-to-head', 'approve'], required: true,
+        label: 'Voting style',
+        helper: '"pick-one": everyone picks one favorite. "head-to-head": A-or-B matchups. "approve": everyone says yes or no to EVERY candidate, so several can pass at once (clauses into a constitution, class norms, budget lines); .approvedList is the list of what passed.'
+      },
+      passAt: {
+        type: 'integer', min: 1, max: 100, optional: true,
+        label: 'Percent of yes votes to pass',
+        helper: 'Approve mode only. A candidate passes when more than this percent of the votes cast on it say yes (default 50, more yes than no; 100 = every vote on it said yes).'
       },
       candidates: {
         type: 'dataRef',
@@ -655,7 +661,17 @@ export const PHASE_SCHEMAS = {
         winner:     { type: 'string' },
         winnerText: { type: 'string' },
         tied:       { type: 'boolean' },
-        totalVotes: { type: 'integer' }
+        totalVotes: { type: 'integer' },
+        // Approve mode (yes or no on every candidate): what passed, as
+        // words for a screen (approvedList) and as entries (approved).
+        approved:      { type: 'array' },
+        rejected:      { type: 'array' },
+        results:       { type: 'array' },
+        approvedCount: { type: 'integer' },
+        approvedList:  { type: 'string', capability: 'renderable' },
+        rejectedList:  { type: 'string', capability: 'renderable' },
+        resultsList:   { type: 'string', capability: 'renderable' },
+        noCounts:      { type: 'object' }
       }
     },
     // Existing games may use {{vote.barChart}} as shorthand for

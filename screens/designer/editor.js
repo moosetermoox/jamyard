@@ -1433,6 +1433,8 @@ function getInsertableRefs(sourceId, source) {
     refs.push({ icon: '', label: 'Raw answers (for AI input)', token: '{{' + sourceId + '.responses}}' });
     if (source.rotateFrom || source.assign === 'pairwise') {
       refs.push({ icon: '', label: "Each player's assigned item", token: '{{' + sourceId + '.assigned}}' });
+    } else if (Array.isArray(source.dealItems) && source.dealItems.length) {
+      refs.push({ icon: '', label: 'The item each student was handed', token: '{{' + sourceId + '.assigned}}' });
     }
   } else if (t === 'collect-choice') {
     refs.push({ icon: '', label: 'Bar chart of class picks', token: '{{' + sourceId + '.barChart}}' });
@@ -1450,6 +1452,10 @@ function getInsertableRefs(sourceId, source) {
       refs.push({ icon: '', label: 'A specific JSON field (type the field name)', token: '{{' + sourceId + '.result.}}' });
     }
   } else if (t === 'vote') {
+    if (source.mode === 'approve') {
+      refs.push({ icon: '', label: 'The ones that passed', token: '{{' + sourceId + '.approvedList}}' });
+      refs.push({ icon: '', label: 'Every entry with its yes and no counts', token: '{{' + sourceId + '.resultsList}}' });
+    }
     refs.push({ icon: '', label: 'Bar chart of votes', token: '{{' + sourceId + '.barChart}}' });
     refs.push({ icon: '', label: 'Vote scores', token: '{{' + sourceId + '.scores}}' });
   } else if (t === 'rate') {
@@ -2326,7 +2332,8 @@ function renderPhaseConfig(phaseId) {
     addSelectWithHelp('Vote style', 'How choices are shown to players', 'phase-mode',
       [
         { value: 'pick-one', label: 'Pick one from a list' },
-        { value: 'head-to-head', label: 'Head-to-head matchups' }
+        { value: 'head-to-head', label: 'Head-to-head matchups' },
+        { value: 'approve', label: 'Yes or no on each one (several can pass)' }
       ],
       phase.mode || 'pick-one', function (value) {
         phase.mode = value;
@@ -4741,6 +4748,8 @@ function buildTemplateVariables(currentPhaseId, extraVars) {
       vars.push({ label: 'Raw answers (for AI)' + at, variable: '{{' + pid + '.responses}}' });
       if (p.rotateFrom || p.assign === 'pairwise') {
         vars.push({ label: "Each player's assigned item" + at, variable: '{{' + pid + '.assigned}}' });
+      } else if (Array.isArray(p.dealItems) && p.dealItems.length) {
+        vars.push({ label: 'The item each student was handed' + at, variable: '{{' + pid + '.assigned}}' });
       }
     }
     if (p.type === 'collect-choice') {
@@ -4758,6 +4767,11 @@ function buildTemplateVariables(currentPhaseId, extraVars) {
       }
     }
     if (p.type === 'vote') {
+      if (p.mode === 'approve') {
+        vars.push({ label: 'The ones that passed' + at, variable: '{{' + pid + '.approvedList}}' });
+        vars.push({ label: 'Every entry with its yes and no counts' + at, variable: '{{' + pid + '.resultsList}}' });
+        vars.push({ label: 'How many passed' + at, variable: '{{' + pid + '.approvedCount}}' });
+      }
       vars.push({ label: 'Winning answer' + at, variable: '{{' + pid + '.winnerText}}' });
       vars.push({ label: 'Vote scores' + at, variable: '{{' + pid + '.scores}}' });
       vars.push({ label: 'Bar chart of votes' + at, variable: '{{' + pid + '.barChart}}' });
@@ -5752,7 +5766,7 @@ var REQUIRED_FIELDS = {
 var _schemaEnums = {
   collect: { from: ['all', 'remaining', 'eliminated'] },
   'collect-choice': { from: ['all', 'remaining', 'eliminated'] },
-  vote: { voters: ['all', 'remaining', 'eliminated'], mode: ['pick-one', 'head-to-head'] },
+  vote: { voters: ['all', 'remaining', 'eliminated'], mode: ['pick-one', 'head-to-head', 'approve'] },
   eliminate: { method: ['bottom-percent', 'hook'] },
   'ai-process': { task: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'], format: ['text', 'json'] },
   'ai-eliminate': { format: ['text', 'json'] },

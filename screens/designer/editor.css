@@ -4785,3 +4785,26 @@ body.chat-open.chat-collapsed #feedback-widget-panel { right: 62px; }
 .review-problems li { margin: 4px 0; }
 .review-problems .review-problem-where { color: #6E6353; }
 .review-problems .review-problem-error::marker { color: #C0392B; font-weight: 700; }
+
+/* The timer chip reads as a word when a step has no timer (an outside
+   reviewer could not read the yellow blob on an announcement, 2026-09-25):
+   an empty box says "none" in ink, and the number sits clear of the
+   browser's spinner. */
+.sv-timer { width: 64px; -moz-appearance: textfield; appearance: textfield; }
+.sv-timer::-webkit-outer-spin-button, .sv-timer::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.sv-timer::placeholder { color: rgba(42, 38, 32, 0.6); font-weight: 700; opacity: 1; }
+
+/* The feedback corner button sits bottom-left over the settings column
+   in the editor, never over a step card's Next step button (it covered
+   it, 2026-09-25); the settings column keeps room under its last row. */
+body.editor-page #feedback-widget-btn { right: auto; left: 18px; }
+body.editor-page #feedback-widget-panel { right: auto; left: 18px; }
+body.editor-page.chat-open #feedback-widget-btn,
+body.editor-page.chat-open #feedback-widget-panel,
+body.editor-page.chat-open.chat-collapsed #feedback-widget-btn,
+body.editor-page.chat-open.chat-collapsed #feedback-widget-panel { right: auto; left: 18px; }
+body.editor-page #settings-panel { padding-bottom: 80px; }
+
+/* A private hand-out's list on the Question card */
+.sv-deal { margin-top: 10px; }
+.sv-deal-lead { color: #6B6250; font-weight: 600; font-size: 0.85rem; margin-bottom: 4px; }

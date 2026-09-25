@@ -145,12 +145,12 @@ describe('summarizeConfigForChat', () => {
   it('covers name, every phase id and type, in next-chain order', () => {
     const summary = summarizeConfigForChat(config);
     expect(summary).toContain('Test Game');
-    expect(summary).toContain('[lobby]');
-    expect(summary).toContain('[ask]');
-    expect(summary).toContain('[end]');
+    expect(summary).toContain('id "lobby"');
+    expect(summary).toContain('id "ask"');
+    expect(summary).toContain('id "end"');
     expect(summary).toContain('collect');
-    expect(summary.indexOf('[lobby]')).toBeLessThan(summary.indexOf('[ask]'));
-    expect(summary.indexOf('[ask]')).toBeLessThan(summary.indexOf('[end]'));
+    expect(summary.indexOf('id "lobby"')).toBeLessThan(summary.indexOf('id "ask"'));
+    expect(summary.indexOf('id "ask"')).toBeLessThan(summary.indexOf('id "end"'));
   });
 
   it('includes phases unreachable from the next chain', () => {
@@ -163,7 +163,7 @@ describe('summarizeConfigForChat', () => {
       }
     };
     const summary = summarizeConfigForChat(cfg);
-    expect(summary).toContain('[stray]');
+    expect(summary).toContain('id "stray"');
   });
 
   it('truncates long prompts and stays bounded', () => {

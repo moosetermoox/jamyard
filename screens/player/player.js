@@ -3437,6 +3437,19 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, sh
         showSection(voteSubmittedSection);
       });
     }
+  } else if (mode === 'approve') {
+    // Yes or no on every entry (2026-09-25): several can pass at once.
+    voteTitle.textContent = UiLang.t('Yes or no on each one');
+    voteProgress.hidden = true;
+    currentCandidates = candidates || [];
+    const ballot = showApproveVote(currentCandidates);
+    if (timer) {
+      startTimer(timer, voteTimerDisplay, () => {
+        // Time is up: whatever was answered goes in; an untouched row is
+        // neither a yes nor a no.
+        ballot.send();
+      });
+    }
   } else if (mode === 'head-to-head') {
     currentMatchups = matchups;
     currentMatchupIndex = 0;
@@ -3592,6 +3605,77 @@ function showPickOneVote(candidates) {
     });
     voteOptions.appendChild(btn);
   }
+}
+
+// The yes-or-no ballot: every entry is a row with its words (or drawing)
+// and a Yes and a No; Send goes live once every row has an answer. The
+// sender is returned so a timer can send what is answered so far.
+function showApproveVote(candidates) {
+  const answers = {}; // choice id -> true | false
+  const rows = [];
+  let sent = false;
+
+  function idOf(c) { return typeof c === 'string' ? c : c.playerId; }
+
+  function send() {
+    if (sent) return;
+    sent = true;
+    const votes = [];
+    for (const c of candidates) {
+      const id = idOf(c);
+      if (typeof answers[id] === 'boolean') votes.push({ choice: id, approve: answers[id] });
+    }
+    socket.emit('submit-vote', { code: currentRoomCode, votes });
+    showSection(voteSubmittedSection);
+  }
+
+  const sendBtn = document.createElement('button');
+  sendBtn.className = 'approve-send';
+  sendBtn.textContent = UiLang.t('Send my votes');
+  sendBtn.disabled = true;
+
+  function refresh() {
+    let answered = 0;
+    for (const c of candidates) if (typeof answers[idOf(c)] === 'boolean') answered++;
+    sendBtn.disabled = answered < candidates.length;
+  }
+
+  for (const candidate of candidates) {
+    const id = idOf(candidate);
+    const row = document.createElement('div');
+    row.className = 'approve-row';
+    const face = document.createElement('div');
+    face.className = 'approve-text';
+    fillVoteButton(face, candidate);
+    row.appendChild(face);
+    const pair = document.createElement('div');
+    pair.className = 'approve-pair';
+    [['Yes', true], ['No', false]].forEach(function (opt) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'approve-btn approve-' + (opt[1] ? 'yes' : 'no');
+      btn.textContent = UiLang.t(opt[0]);
+      btn.setAttribute('aria-pressed', 'false');
+      btn.addEventListener('click', () => {
+        answers[id] = opt[1];
+        pair.querySelectorAll('.approve-btn').forEach(b => {
+          const on = b === btn;
+          b.classList.toggle('is-picked', on);
+          b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        row.classList.add('is-answered');
+        if (J) J.sound('blip');
+        refresh();
+      });
+      pair.appendChild(btn);
+    });
+    row.appendChild(pair);
+    voteOptions.appendChild(row);
+    rows.push(row);
+  }
+  sendBtn.addEventListener('click', send);
+  voteOptions.appendChild(sendBtn);
+  return { send };
 }
 
 function showNextMatchup() {

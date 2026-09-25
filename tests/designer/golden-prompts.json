@@ -355,7 +355,7 @@
           "steps": [
             { "brick": "announce", "text": "Welcome, delegates. Each of you represents one state. Nobody else knows which, so speak for your state, not yourself." },
             { "brick": "collect", "text": "You represent {{thisStep.assigned}}. Write one clause your state needs in the constitution.", "items": ["Virginia", "Massachusetts", "Pennsylvania", "New York", "Georgia", "Delaware", "Rhode Island", "New Jersey", "Connecticut", "Maryland", "South Carolina", "New Hampshire", "North Carolina"], "timer": 180 },
-            { "brick": "vote", "text": "Which clause belongs in our constitution?" },
+            { "brick": "vote", "text": "Which clause belongs in our constitution?", "approve": true },
             { "brick": "end", "text": "The convention is adjourned. Every state spoke, and the clause with the most votes leads our constitution." }
           ]
         }

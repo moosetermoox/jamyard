@@ -489,6 +489,16 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
               return { choice: (winner && (winner.playerId || winner.id)) || winner };
             });
             who.emit('submit-vote', { code, votes, phaseInstanceId: seq(data) });
+          } else if (data.mode === 'approve' && Array.isArray(data.candidates) && data.candidates.length) {
+            // Yes or no on every entry: a bot says yes to every other entry
+            // and no to the one at its own seat, so something passes and
+            // something can fail.
+            const seat = players.indexOf(who);
+            const votes = data.candidates.map((c, i) => ({
+              choice: (c && (c.playerId || c.id)) || c,
+              approve: i !== seat % data.candidates.length
+            }));
+            who.emit('submit-vote', { code, votes, phaseInstanceId: seq(data) });
           } else if (Array.isArray(data.candidates) && data.candidates.length) {
             const pick = data.candidates[players.indexOf(who) % data.candidates.length];
             who.emit('submit-vote', { code, choice: (pick && (pick.playerId || pick.id)) || pick, phaseInstanceId: seq(data) });
