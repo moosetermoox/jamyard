@@ -585,8 +585,20 @@ function findHostButton() {
   if (!doc) return null;
   for (const id of BenchLogic.HOST_ADVANCE_BUTTONS) {
     const btn = doc.getElementById(id);
-    if (visible(btn)) return { el: btn, label: (btn.textContent || '').trim() };
+    if (visible(btn)) return { el: btn, id, label: (btn.textContent || '').trim() };
   }
+  return null;
+}
+
+// The host button last seen on this step: while the Teacher controls tab
+// covers the class screen its document has no layout, and the card would
+// otherwise fall back to Add sample answers.
+let lastHostButton = null;
+function hostButtonNow() {
+  const found = findHostButton();
+  const pos = livePos();
+  if (found) { lastHostButton = { id: found.id, label: found.label, pos }; return found; }
+  if (!hostDoc() && lastHostButton && lastHostButton.pos === pos) return lastHostButton;
   return null;
 }
 
@@ -599,8 +611,9 @@ function bannerState() {
     if (start) state.startEnabled = !start.disabled;
     if (hint && !hint.hidden) state.startHint = (hint.textContent || '').trim();
   }
-  const found = findHostButton();
+  const found = hostButtonNow();
   state.hostButtonLabel = found ? found.label : null;
+  state.hostButtonId = found ? found.id : null;
   if (liveCounts && liveCounts.pos === livePos() && liveCounts.total > 0) {
     state.allIn = liveCounts.count >= liveCounts.total;
   }

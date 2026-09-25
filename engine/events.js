@@ -173,6 +173,7 @@ export const EVENTS = {
   // --- Host rejoin (host F5 / server restart recovery) ---
   HOST_REJOIN:          'host-rejoin',         // host -> server: rebind via code + hostToken
   HOST_REJOIN_ERROR:    'host-rejoin-error',   // server -> host: room gone / bad token
+  CLOSE_IGNORED:        'close-ignored',       // server -> the socket that pressed Close: why it was dropped (no-room | stale | not-host)
 
   // --- Buzz Phase (first-tap-wins buzzer rounds) ---
   BUZZ_START:           'buzz-start',          // server -> all: prompt, points, question #

@@ -124,6 +124,17 @@ describe('nextStep: the one thing to press', () => {
     expect(step).toEqual({ at: 'close', text: 'Press CLOSE SUBMISSIONS.' });
   });
 
+  it('points at Continue once the host shows the answers on a student step (a scored match, a revealed estimate)', () => {
+    const step = nextStep({ launched: true, phaseType: 'match', hostButtonLabel: 'Continue', hostButtonId: 'match-continue-btn' });
+    expect(step).toEqual({ at: 'continue', text: 'The answers are in. Press CONTINUE.' });
+    // A Close button on the same step is not that
+    expect(nextStep({ launched: true, phaseType: 'match', hostButtonLabel: 'Close matching', hostButtonId: 'match-close-btn' }).at).toBe('samples');
+    // One Voice's continue is its finish button, up the whole step
+    expect(nextStep({ launched: true, phaseType: 'one-voice', hostButtonLabel: 'Continue', hostButtonId: 'one-voice-continue-btn' }).at).toBe('samples');
+    expect(globalThis.BenchLogic.isContinueButton('estimate-continue-btn')).toBe(true);
+    expect(globalThis.BenchLogic.isContinueButton('close-submissions-btn')).toBe(false);
+  });
+
   it('points at Skip timer when samples went in but the step did not close', () => {
     const step = nextStep({ launched: true, phaseType: 'collect', samplesPressed: true, allIn: false });
     expect(step.at).toBe('skip');

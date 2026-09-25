@@ -204,6 +204,51 @@ export function addRound(config, pairs) {
 }
 
 /**
+ * Words swapped everywhere they are read as words: every SWAP_KEYS field
+ * in every phase and sub-phase, the description, and the recipe stamp's
+ * string params (so a knob panel or a recompile keeps the new wording).
+ * Never an id, a ref, or a token. Mutates `config`; true when a swap hit.
+ * @param {object} config
+ * @param {Array<{from: string, to: string}>} swaps
+ * @returns {boolean}
+ */
+function swapWords(config, swaps) {
+  swaps = (swaps || []).filter((s) => s && typeof s.from === 'string' && s.from.trim().length >= 3 && typeof s.to === 'string');
+  if (!swaps.length) return false;
+  let hit = false;
+  const swapText = (str) => {
+    let out = str;
+    let here = false;
+    for (const s of swaps) if (out.includes(s.from)) { out = out.split(s.from).join(s.to); here = true; }
+    if (!here) return str;
+    hit = true;
+    return out.replace(/[ \t]+\n/g, '\n').replace(/ {2,}/g, ' ').trim();
+  };
+  const walk = (node) => {
+    if (!node || typeof node !== 'object') return;
+    for (const [k, v] of Object.entries(node)) {
+      if (SWAP_KEYS.has(k)) {
+        if (typeof v === 'string') node[k] = swapText(v);
+        else if (Array.isArray(v)) node[k] = v.map((x) => (typeof x === 'string' ? swapText(x) : (walk(x), x)));
+        else walk(v);
+      } else if (v && typeof v === 'object') {
+        walk(v);
+      }
+    }
+  };
+  walk(config.phases);
+  if (typeof config.description === 'string') config.description = swapText(config.description);
+  const params = config.recipe && config.recipe.params;
+  if (params && typeof params === 'object') {
+    for (const [k, v] of Object.entries(params)) {
+      if (typeof v === 'string') params[k] = swapText(v);
+      else if (Array.isArray(v)) params[k] = v.map((x) => (typeof x === 'string' ? swapText(x) : x));
+    }
+  }
+  return hit;
+}
+
+/**
  * The teacher's edits, applied to a deep copy of the config.
  * @param {object} config
  * @param {{prompt?: string, fields?: Object<string, string>|string[], timer?: number, pairs?: Object<string, Array<{left: string, right: string}>>|Array<Array<{left: string, right: string}>>, choices?: string[], swaps?: Array<{from: string, to: string}>}} edits
@@ -270,7 +315,18 @@ export function applyEdits(config, edits) {
 
   if (typeof edits.prompt === 'string' && isPlainText(phase.prompt)) {
     const next = clean(edits.prompt);
-    if (next && next !== clean(phase.prompt)) { phase.prompt = next; changed = true; }
+    if (next && next !== clean(phase.prompt)) {
+      const was = phase.prompt;
+      phase.prompt = next;
+      changed = true;
+      // The question repeats where the recipe wrote it as words: Live
+      // Poll's results step quotes it in its own template, and the recipe
+      // stamp keeps it as a param (an outside reviewer's edited poll showed
+      // the default question on its results screen, 2026-09-24). Same
+      // walk as a swap; the sample answers stay, they answer the step,
+      // not its wording.
+      swapWords(copy, [{ from: was, to: next }]);
+    }
   }
   if (edits.fields && typeof edits.fields === 'object' && Array.isArray(phase.fields)) {
     for (const field of phase.fields) {
@@ -289,34 +345,10 @@ export function applyEdits(config, edits) {
   // topic in its intro, Closer's first question in its first message.
   // Every teacher-facing text field in every phase and sub-phase, never
   // an id, a ref, or a token; the sample answers go with the old topic.
-  if (Array.isArray(edits.swaps)) {
-    const swaps = edits.swaps.filter((s) => s && typeof s.from === 'string' && s.from.trim().length >= 3 && typeof s.to === 'string');
-    let hit = false;
-    const swapText = (str) => {
-      let out = str;
-      let here = false;
-      for (const s of swaps) if (out.includes(s.from)) { out = out.split(s.from).join(s.to); here = true; }
-      if (!here) return str;
-      hit = true;
-      return out.replace(/[ \t]+\n/g, '\n').replace(/ {2,}/g, ' ').trim();
-    };
-    const walk = (node) => {
-      if (!node || typeof node !== 'object') return;
-      for (const [k, v] of Object.entries(node)) {
-        if (SWAP_KEYS.has(k)) {
-          if (typeof v === 'string') node[k] = swapText(v);
-          else if (Array.isArray(v)) node[k] = v.map((x) => (typeof x === 'string' ? swapText(x) : (walk(x), x)));
-          else walk(v);
-        } else if (v && typeof v === 'object') {
-          walk(v);
-        }
-      }
-    };
-    if (swaps.length) {
-      walk(copy.phases);
-      if (typeof copy.description === 'string') copy.description = swapText(copy.description);
-      if (hit) { changed = true; swapped = true; delete copy.sampleAnswers; }
-    }
+  if (Array.isArray(edits.swaps) && swapWords(copy, edits.swaps)) {
+    changed = true;
+    swapped = true;
+    delete copy.sampleAnswers;
   }
   if (typeof edits.timer === 'number' && Number.isFinite(edits.timer) && typeof phase.timer === 'number' && !copy.recipe) {
     const next = Math.max(10, Math.min(3600, Math.round(edits.timer)));

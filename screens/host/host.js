@@ -705,6 +705,17 @@ closeSubmissionsBtn.addEventListener('click', () => {
   socket.emit('close-submissions', { code: currentRoomCode });
 });
 
+// A Close the server would not take from this socket (its host binding
+// was lost to a reconnect and the rejoin had not landed): rejoin, then
+// press once more when the room answers, within a few seconds and for
+// this room only. A stale or roomless Close stays dropped, as before.
+let retryCloseUntil = 0;
+socket.on('close-ignored', ({ code, reason }) => {
+  if (reason !== 'not-host' || !code || code !== currentRoomCode || !currentHostToken) return;
+  retryCloseUntil = Date.now() + 5000;
+  socket.emit('host-rejoin', { code: currentRoomCode, hostToken: currentHostToken });
+});
+
 continueBtn.addEventListener('click', () => {
   socket.emit('advance-phase', { code: currentRoomCode });
 });
@@ -834,6 +845,11 @@ window.addEventListener('message', (e) => {
 });
 
 socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored, language, strings, start }) => {
+  if (retryCloseUntil && code === currentRoomCode && Date.now() < retryCloseUntil) {
+    retryCloseUntil = 0;
+    socket.emit('close-submissions', { code });
+  }
+  retryCloseUntil = 0;
   currentRoomCode = code;
   currentTeacherPin = teacherPin || null;
   // The projector's fixed labels (Start!, Close Voting...) in the

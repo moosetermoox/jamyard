@@ -50,6 +50,14 @@
     'start-game-btn'
   ];
 
+  // A host button that moves on from answers the host already shows
+  // (match-continue-btn after the scoring, estimate-continue-btn after the
+  // reveal). One Voice's continue is its finish button, up the whole step.
+  function isContinueButton(id) {
+    if (!id || id === 'one-voice-continue-btn') return false;
+    return id === 'continue-btn' || /-continue-btn$/.test(String(id));
+  }
+
   function stopLabel(stop, nameOf) {
     if (stop.kind === 'rounds') {
       var sub = stop.sub || [];
@@ -125,6 +133,13 @@
       return { at: 'start', text: "Press START to begin. You'll play the students too." };
     }
     if (isStudentStep(type)) {
+      // The answers are in and the host is already showing them (a match
+      // step scores itself once everyone is in, an estimate reveals): the
+      // one button left is a Continue, never Add sample answers (an
+      // outside reviewer followed a stale card, 2026-09-24).
+      if (label && isContinueButton(state.hostButtonId)) {
+        return { at: 'continue', text: 'The answers are in. Press ' + label + '.' };
+      }
       if (state.allIn && label) return { at: 'close', text: 'Press ' + label + '.' };
       if (state.samplesPressed) return { at: 'skip', text: 'Press SKIP TIMER to move on.' };
       return { at: 'samples', text: 'Press ADD SAMPLE ANSWERS to fill one in for everyone.' };
@@ -203,6 +218,7 @@
     HOST_ADVANCE_BUTTONS: HOST_ADVANCE_BUTTONS,
     TOUR_STOPS: TOUR_STOPS,
     isStudentStep: isStudentStep,
+    isContinueButton: isContinueButton,
     planBlocks: planBlocks,
     nextStep: nextStep,
     startingSeats: startingSeats
