@@ -383,12 +383,45 @@ function checkRoomInfo() {
   }
 })();
 
+// The seat this tab held (join-success saves it beside the token): gone
+// once the room is, or once a join is refused.
+function forgetSavedSeat() {
+  if (IS_PROTOTYPE) return;
+  try { sessionStorage.removeItem('playerRoom'); } catch (e) { /* storage unavailable */ }
+}
+
+// A refresh rejoins the seat (an outside reviewer refreshed after voting
+// and got an empty join form, 2026-09-24): the code and name saved on
+// join-success go back into the form, and the 'connect' handler below
+// sends the join with the saved token, which the server reads as a
+// reconnect. A join link for a different room wins over the saved seat.
+(function() {
+  if (IS_PROTOTYPE) return;
+  let saved = null;
+  let token = null;
+  try {
+    saved = JSON.parse(sessionStorage.getItem('playerRoom') || 'null');
+    token = sessionStorage.getItem('playerToken');
+  } catch (e) { /* storage unavailable */ }
+  if (!saved || !saved.code || !token) return;
+  const linked = new URLSearchParams(window.location.search).get('code');
+  if (linked && linked.toUpperCase().trim().slice(0, 4) !== saved.code) { forgetSavedSeat(); return; }
+  roomCodeInput.value = saved.code;
+  renderCodeSlots();
+  if (nameInput && saved.name) nameInput.value = saved.name;
+  currentRoomCode = saved.code;
+  currentPlayerName = saved.name || '';
+  currentToken = token;
+  joinBtn.disabled = true;
+})();
+
 // Shared join link / QR (?code=XXXX from the host's "Copy join link" or QR
 // code): prefill the room code so the student only types a name. Prototype
 // mode is handled above, so skip it here.
 (function() {
   const params = new URLSearchParams(window.location.search);
   if (params.get('prototype') === 'true') return;
+  if (currentRoomCode) return; // rejoining the saved seat above
   const code = params.get('code');
   if (code) {
     roomCodeInput.value = code.toUpperCase().trim().slice(0, 4);
@@ -795,7 +828,11 @@ socket.on('join-success', ({ name, reconnected, token, theme, language, strings,
   if (token) {
     currentToken = token;
     if (!IS_PROTOTYPE) {
-      try { sessionStorage.setItem('playerToken', token); } catch (e) { /* storage unavailable */ }
+      try {
+        sessionStorage.setItem('playerToken', token);
+        // The seat this tab holds, so a refresh rejoins it (below, on load)
+        sessionStorage.setItem('playerRoom', JSON.stringify({ code: currentRoomCode, name: name }));
+      } catch (e) { /* storage unavailable */ }
     }
   }
 
@@ -891,7 +928,7 @@ function resetHoldingProgress() {
 
 // Auto-rejoin on socket reconnect
 socket.on('connect', () => {
-  if (currentRoomCode && currentPlayerName) {
+  if (currentRoomCode && (currentPlayerName || currentToken)) {
     var savedToken = currentToken;
     if (!savedToken && !IS_PROTOTYPE) {
       try { savedToken = sessionStorage.getItem('playerToken'); } catch (e) { /* storage unavailable */ }
@@ -905,6 +942,7 @@ socket.on('join-error', ({ message }) => {
   showError(message);
   joinBtn.disabled = false;
   currentRoomCode = null;
+  forgetSavedSeat();
 });
 
 socket.on('room-closed', () => {
@@ -913,6 +951,7 @@ socket.on('room-closed', () => {
   showSection(joinSection);
   joinBtn.disabled = false;
   currentRoomCode = null;
+  forgetSavedSeat();
   currentPlayerName = null;
   showError('Room was closed by the host');
 });

@@ -2,6 +2,7 @@
 // class will see" (the first student step, its words, timer, audience line)
 // and how the teacher's edits go back into a copy. Pure functions.
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { firstStudentStep, printFor, applyEdits, nameFor, pairsFor, addRound, talkQuestionsFor } from '../../engine/make-print.js';
 
 function snowballish() {
@@ -97,6 +98,21 @@ describe('applyEdits', () => {
     expect(out.changed).toBe(true);
     expect(out.config.phases.write.prompt).toBe('What makes an experiment fair?');
     expect(cfg.phases.write.prompt).toBe('What should our class norms be?');
+  });
+
+  it('carries a new question into every step that quoted the old one, and into the recipe stamp (Live Poll, 2026-09-24)', () => {
+    const cfg = JSON.parse(readFileSync(new URL('../../games/live-poll/config.json', import.meta.url), 'utf8'));
+    const was = cfg.phases.ask.prompt;
+    expect(cfg.phases.results.template).toContain(was);
+    const out = applyEdits(cfg, { prompt: 'How confident are you about spotting a reliable source?' });
+    expect(out.changed).toBe(true);
+    expect(out.config.phases.ask.prompt).toBe('How confident are you about spotting a reliable source?');
+    expect(out.config.phases.results.template).toContain('How confident are you about spotting a reliable source?');
+    expect(out.config.phases.results.template).not.toContain(was);
+    expect(out.config.phases.results.template).toContain('{{ask.barChart}}');
+    expect(out.config.recipe.params.question).toBe('How confident are you about spotting a reliable source?');
+    expect(out.config.sampleAnswers).toEqual(cfg.sampleAnswers);
+    expect(cfg.phases.results.template).toContain(was);
   });
 
   it('applies field labels by key and the timer, and reports nothing changed when nothing did', () => {

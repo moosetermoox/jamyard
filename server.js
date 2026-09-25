@@ -4760,10 +4760,20 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code);
     if (!room) {
       console.log(`[close-submissions] Room ${code} not found`);
+      socket.emit(EVENTS.CLOSE_IGNORED, { code, reason: 'no-room' });
       return;
     }
-    if (isStalePhaseEvent(room, phaseInstanceId, 'close-submissions')) return;
-    if (!isTeacherSocket(code, room, socket.id)) return; // flow control is teacher-only
+    if (isStalePhaseEvent(room, phaseInstanceId, 'close-submissions')) {
+      socket.emit(EVENTS.CLOSE_IGNORED, { code, reason: 'stale' });
+      return;
+    }
+    // Flow control is teacher-only. A host whose socket blipped and whose
+    // rejoin has not landed yet is told so, and rejoins before trying
+    // again (a projector Close that did nothing in Try it out, 2026-09-24).
+    if (!isTeacherSocket(code, room, socket.id)) {
+      socket.emit(EVENTS.CLOSE_IGNORED, { code, reason: 'not-host' });
+      return;
+    }
 
     await closeCollect(code, room);
   });
@@ -5699,6 +5709,13 @@ io.on('connection', (socket) => {
 
     const hostId = roomToHost.get(code);
     if (hostId) io.to(hostId).emit(EVENTS.MATCH_RECEIVED, { count: state.completed.size, total: state.eligibleIds.size });
+    // The consoles (and Try it out's card) count a match like any answer.
+    const matchPlayer = room.engine.players.get(socket.id);
+    io.to(teachersChannel(code)).emit(EVENTS.RESPONSE_RECEIVED, {
+      playerName: matchPlayer ? matchPlayer.name : null,
+      count: state.completed.size,
+      total: state.eligibleIds.size
+    });
     io.to(code).emit(EVENTS.ROOM_PROGRESS, { count: state.completed.size, total: state.eligibleIds.size });
 
     if (state.completed.size >= state.eligibleIds.size) {
