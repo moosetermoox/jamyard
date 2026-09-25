@@ -1,8 +1,8 @@
 {
   "id": "exquisite-corpse",
-  "name": "Exquisite Corpse",
+  "name": "Folded Pass",
   "icon": "📜",
-  "description": "The surrealists' folded-paper game (also called Consequences), built for a classroom. Each sentence passes through six hands, one word per hand, nobody seeing what came before: adjective, noun, adverb, verb, adjective, noun. Every sentence returns to the student who started it, assembled, and then the class hears some out loud. Any class size works: with fewer than six students a paper comes around twice, still blind. No points, no winners, no wrong answers.",
+  "description": "The surrealists' folded-paper game (the surrealists called it Exquisite Corpse, others call it Consequences), built for a classroom. Each sentence passes through six hands, one word per hand, nobody seeing what came before: adjective, noun, adverb, verb, adjective, noun. Every sentence returns to the student who started it, assembled, and then the class hears some out loud. Any class size works: with fewer than six students a paper comes around twice, still blind. No points, no winners, no wrong answers.",
   "tagline": "Perfect for vocabulary practice, parts of speech, creative writing warm-ups, or pure play.",
   "family": "connection",
   "feel": [
@@ -30,8 +30,8 @@
     }
   },
   "template": {
-    "name": "Exquisite Corpse",
-    "description": "A blind pass-and-write sentence built with the Exquisite Corpse recipe, six hands and nobody saw the whole thing coming.",
+    "name": "Folded Pass",
+    "description": "A blind pass-and-write sentence built with the Folded Pass recipe, six hands and nobody saw the whole thing coming.",
     "tags": [
       "creative",
       "language",
@@ -44,7 +44,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "EXQUISITE CORPSE\n\nThe surrealists' folded-paper game. We build sentences together, but here's the fold: each of you adds ONE word without seeing any of the words before yours.\n\nSix words, six folds. At the end, the sentence you started comes back to you, finished by hands that never saw it. Nobody knows what any sentence says yet. Not even the people writing it.",
+        "message": "FOLDED PASS\n\nThe surrealists' folded-paper game. We build sentences together, but here's the fold: each of you adds ONE word without seeing any of the words before yours.\n\nSix words, six folds. At the end, the sentence you started comes back to you, finished by hands that never saw it. Nobody knows what any sentence says yet. Not even the people writing it.",
         "timer": 16,
         "next": "word-1"
       },

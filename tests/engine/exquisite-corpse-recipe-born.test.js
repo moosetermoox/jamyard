@@ -1,12 +1,12 @@
 /**
- * Exquisite Corpse is recipe-born: its phases must be EXACTLY what the
+ * Folded Pass is recipe-born: its phases must be EXACTLY what the
  * exquisite-corpse recipe compiles from its own provenance stamp. If
  * this drifts (a hand edit to the config, a template change to the
  * recipe), the library's Customize knobs would silently rebuild
  * something different from what the teacher sees — keep them in
  * lockstep.
  *
- * To change Exquisite Corpse on purpose: edit the recipe template or
+ * To change Folded Pass on purpose: edit the recipe template or
  * the stamped params, recompile, and save the compiled output.
  */
 
@@ -65,7 +65,7 @@ describe('exquisite-corpse is a faithful recipe compile', () => {
 
   it('keeps its hand-authored card metadata', async () => {
     const config = await loadJson('games/exquisite-corpse/config.json');
-    expect(config.name).toBe('Exquisite Corpse');
+    expect(config.name).toBe('Folded Pass');
     for (const key of ['description', 'playTime', 'classSize', 'tags', 'recommendedFor', 'keywords']) {
       expect(config[key], key).toBeDefined();
     }
