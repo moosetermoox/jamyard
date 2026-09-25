@@ -1,6 +1,6 @@
 {
-  "name": "Exquisite Corpse",
-  "description": "The surrealists' folded-paper game. Six folds, one word per hand, nobody seeing the words before theirs, and every sentence comes back to its starter, assembled. Then the class hears some. Nobody wrote it, everybody wrote it.",
+  "name": "Folded Pass",
+  "description": "The surrealists' folded-paper game (they called it Exquisite Corpse). Six folds, one word per hand, nobody seeing the words before theirs, and every sentence comes back to its starter, assembled. Then the class hears some. Nobody wrote it, everybody wrote it.",
   "featured": false,
   "recipe": {
     "id": "exquisite-corpse",
@@ -17,7 +17,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "EXQUISITE CORPSE\n\nThe surrealists' folded-paper game. We build sentences together, but here's the fold: each of you adds ONE word without seeing any of the words before yours.\n\nSix words, six folds. At the end, the sentence you started comes back to you, finished by hands that never saw it. Nobody knows what any sentence says yet. Not even the people writing it.",
+      "message": "FOLDED PASS\n\nThe surrealists' folded-paper game. We build sentences together, but here's the fold: each of you adds ONE word without seeing any of the words before yours.\n\nSix words, six folds. At the end, the sentence you started comes back to you, finished by hands that never saw it. Nobody knows what any sentence says yet. Not even the people writing it.",
       "timer": 16,
       "next": "word-1"
     },
