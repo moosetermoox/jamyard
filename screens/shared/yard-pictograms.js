@@ -441,6 +441,48 @@
       var talk = arrive(slip('\u2026', 't-paper', 26, 2, { shadow: true, small: true }));
       var pair = row([person(paint, -1.5), talk, person('t-birch', 1.5)], 8, 'flex-end');
       return col([tier, q, pair], 6, 'center');
+    },
+
+    // Folded Pass: the strip of folds, one word a hand, each slip turned
+    // a little the other way; the last word lands in the need colour
+    'exquisite-corpse': function (paint) {
+      var words = ['sleepy', 'walrus', 'slowly', 'devours', 'furious'];
+      var tones = ['t-yellow', 't-birch', 't-pine', 't-paper', 't-birch'];
+      var slips = [];
+      for (var i = 0; i < words.length; i++) {
+        slips.push(slip(words[i], tones[i], 60 + (i % 2) * 10, i % 2 ? 1.6 : -1.4, { small: true, shadow: i === 0 }));
+      }
+      slips.push(arrive(slip('sandwich', paint, 74, -1.2, { small: true })));
+      return col(slips, 2, 'center');
+    },
+
+    // Estimation Station: the how-many question, three guesses in a row,
+    // and the real number landing under them
+    'estimation-station': function (paint) {
+      var q = slip('How many jelly beans in the jar?', 't-paper', 176, -0.8, { shadow: true });
+      var guesses = row([
+        slip('800', 't-birch', 38, -1.5, { small: true }),
+        slip('1,200', 't-pine', 46, 1.2, { small: true }),
+        slip('950', 't-birch', 38, -1, { small: true })
+      ], 6, 'center');
+      var answer = arrive(slip('930', paint, 54, 0.8));
+      return col([q, guesses, answer], 8, 'center');
+    },
+
+    // Class Critique: three scales as labelled bars, the last one still
+    // growing as a rating lands
+    'class-critique': function (paint) {
+      var rows = [['Original', 62, 't-birch', false], ['Doable', 44, 't-pine', false], ['Nails it', 72, paint, true]];
+      var bars = [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var label = el('span', 'pg-label', r[0]);
+        label.style.width = '56px';
+        var parts = [label, block(r[1], 13, r[2], 0, { flat: true })];
+        if (r[3]) parts.push(arrive(block(14, 13, r[2], 0, { flat: true })));
+        bars.push(row(parts, 4));
+      }
+      return col([slip('Rate the presentation', 't-paper', 150, -0.8, { shadow: true }), col(bars, 5, 'flex-start')], 10, 'center');
     }
   };
 

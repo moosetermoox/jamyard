@@ -93,14 +93,15 @@ async function loadModules(opts = {}) {
 
 const SIXTEEN = ['exit-ticket', 'live-poll', 'speed-quiz', 'art-gallery', 'snowball', 'solo-quiz',
   'someones-got-you', 'vocab-match', 'one-more-thing', 'both-sides-rope', 'whose-eyes',
-  'rose-bud-thorn', 'doodle-bluff', 'trivia-bluff', 'group-work-day', 'closer'];
+  'rose-bud-thorn', 'doodle-bluff', 'trivia-bluff', 'group-work-day', 'closer',
+  'exquisite-corpse', 'estimation-station', 'class-critique'];
 
 const NEED = { connect: 't-magenta', think: 't-cyan', review: 't-green', play: 't-orange' };
 
 describe('the pictograms', () => {
   beforeEach(() => loadModules());
 
-  it('draws one for each of the sixteen activities in the handoff table', () => {
+  it('draws one for each activity in the handoff table (the sixteen, plus the three that joined the yard 2026-09-25)', () => {
     expect(globalThis.YardPictograms.IDS.sort()).toEqual([...SIXTEEN].sort());
   });
 

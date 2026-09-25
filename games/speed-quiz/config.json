@@ -9,7 +9,7 @@
     "kahoot-style",
     "energize"
   ],
-  "featured": true,
+  "featured": false,
   "recipe": {
     "id": "quiz-show",
     "version": "1",

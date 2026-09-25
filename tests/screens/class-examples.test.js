@@ -69,7 +69,7 @@ async function loadModules() {
 
 const SUBJECT_IDS = ['social-studies', 'english', 'science', 'math', 'languages', 'advisory'];
 const BANDS = ['elementary', 'middle', 'high'];
-const FEATURED = ['art-gallery', 'both-sides-rope', 'closer', 'doodle-bluff', 'exit-ticket', 'group-work-day', 'live-poll', 'one-more-thing', 'snowball', 'solo-quiz', 'someones-got-you', 'speed-quiz', 'trivia-bluff', 'vocab-match', 'whose-eyes'];
+const FEATURED = ['art-gallery', 'both-sides-rope', 'class-critique', 'closer', 'doodle-bluff', 'estimation-station', 'exit-ticket', 'exquisite-corpse', 'group-work-day', 'live-poll', 'snowball', 'solo-quiz', 'someones-got-you', 'vocab-match', 'whose-eyes'];
 
 describe('the authored table', () => {
   beforeEach(() => loadModules());
@@ -97,7 +97,7 @@ describe('the authored table', () => {
     const { compileRecipe } = await import('../../engine/recipe-compiler.js');
     const recipeOf = (id) => JSON.parse(readFileSync(new URL('recipes/' + id + '.json', ROOT), 'utf8'));
     const stampOf = (game) => JSON.parse(readFileSync(new URL('games/' + game + '/config.json', ROOT), 'utf8')).recipe;
-    const recipes = { 'solo-quiz': 'solo-quiz', 'speed-quiz': 'quiz-show', 'trivia-bluff': 'trivia-bluff', 'doodle-bluff': 'doodle-bluff', 'group-work-day': 'group-work-day' };
+    const recipes = { 'solo-quiz': 'solo-quiz', 'speed-quiz': 'quiz-show', 'trivia-bluff': 'trivia-bluff', 'doodle-bluff': 'doodle-bluff', 'group-work-day': 'group-work-day', 'estimation-station': 'estimation-station', 'exquisite-corpse': 'exquisite-corpse' };
     const E = globalThis.ClassExamples;
     for (const s of SUBJECT_IDS) {
       for (const b of BANDS) {
