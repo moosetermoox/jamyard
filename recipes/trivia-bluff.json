@@ -3,7 +3,7 @@
   "name": "Trivia Bluff",
   "icon": "🕵️",
   "description": "Round by round, an obscure real fact with a blank. Students write believable lies to fill it, then everyone votes for the truth among the fakes. Points for spotting the truth, points for every classmate your lie fools. Facts can come from the AI live during the game, or from a question list you write or review ahead of time.",
-  "tagline": "The Fibbage shape: a quick-witted bluffing game that gets sharper with every round.",
+  "tagline": "A bluffing game: everyone writes a believable fake, then hunts for the true answer among them. It gets sharper with every round.",
   "version": "1",
   "setupPanel": "bluff",
   "parameters": {

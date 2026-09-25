@@ -643,6 +643,27 @@ function renderRecipePickerView(modal, recipes, overlay) {
   subtitle.textContent = 'Each recipe is a ready-to-go classroom activity. Pick one and fill in a few details.';
   modal.appendChild(subtitle);
 
+  // A search box over the list (twenty-odd cards of sixty words each
+  // was a wall, a reviewer said): a card stays while its name,
+  // description, or "Perfect for" line carries every typed word.
+  var search = document.createElement('input');
+  search.type = 'search';
+  search.id = 'recipe-search';
+  search.className = 'recipe-search';
+  search.placeholder = 'Search the recipes';
+  search.setAttribute('aria-label', 'Search the recipes');
+  search.setAttribute('autocomplete', 'off');
+  modal.appendChild(search);
+  var noMatch = document.createElement('p');
+  noMatch.className = 'recipe-search-empty';
+  noMatch.textContent = 'No recipe matches that. Try one word, or clear the box.';
+  noMatch.hidden = true;
+  modal.appendChild(noMatch);
+  search.addEventListener('input', function () {
+    var shown = filterRecipeCards(modal, search.value);
+    noMatch.hidden = shown > 0;
+  });
+
   // Split into user-saved + built-in. Within each group, broken recipes
   // sort to the bottom so working ones are reached first.
   var userRecipes = [];
@@ -673,6 +694,31 @@ function renderRecipePickerView(modal, recipes, overlay) {
     empty.textContent = 'No recipes available.';
     modal.appendChild(empty);
   }
+}
+
+// Hide the recipe cards that do not carry every word typed; a section
+// heading folds with its cards. Returns how many cards stay.
+function filterRecipeCards(modal, query) {
+  var words = String(query || '').toLowerCase().split(/\s+/).filter(Boolean);
+  var grids = modal.querySelectorAll('.recipe-picker-grid');
+  var shown = 0;
+  for (var g = 0; g < grids.length; g++) {
+    var cards = grids[g].querySelectorAll('.template-card');
+    var kept = 0;
+    for (var i = 0; i < cards.length; i++) {
+      var hay = (cards[i].getAttribute('data-search') || '').toLowerCase();
+      var hit = true;
+      for (var w = 0; w < words.length; w++) {
+        if (hay.indexOf(words[w]) === -1) { hit = false; break; }
+      }
+      cards[i].hidden = !hit;
+      if (hit) kept++;
+    }
+    shown += kept;
+    var heading = grids[g].previousElementSibling;
+    if (heading && heading.classList.contains('recipe-section-heading')) heading.hidden = kept === 0;
+  }
+  return shown;
 }
 
 function brokenLast(a, b) {
@@ -714,6 +760,7 @@ function buildRecipeCard(modal, recipe, allRecipes, overlay, deletable) {
   });
   if (recipe.broken) card.classList.add('recipe-card-broken');
 
+  card.setAttribute('data-search', [recipe.name, recipe.description, recipe.tagline].filter(Boolean).join(' '));
   var cardName = document.createElement('div');
   cardName.className = 'template-card-name';
   cardName.textContent = recipe.name;

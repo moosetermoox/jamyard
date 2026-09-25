@@ -380,6 +380,21 @@
   // A fact built from arbitrary-length content (field labels, item lists)
   // must be allowed to wrap — nowrap facts fly out of the card and drag a
   // horizontal scrollbar across the whole page (Rose, Bud, Thorn 2026-08-31).
+  // A step's first words for the stack: the prompt, question, message,
+  // or heading, one line, bold markers off, tokens as their labels,
+  // cut at five words. Empty for a step with no words of its own.
+  function stepGist(phase) {
+    var src = phase.prompt || phase.question || phase.message || phase.instruction || phase.content || phase.template || '';
+    if (typeof src !== 'string') return '';
+    var line = src.replace(/\*\*/g, '').replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim();
+    if (!line) return '';
+    var words = line.split(' ');
+    var out = words.slice(0, 5).join(' ');
+    if (out.length > 34) out = out.slice(0, 33).replace(/\s+\S*$/, '');
+    if (words.length > 5 || out.length < line.length) out += '…';
+    return out;
+  }
+
   function wrapFact(text) {
     return el('span', 'sv-fact sv-fact-wrap', text);
   }
@@ -451,11 +466,22 @@
       for (var i = 0; i < arr.length; i++) {
         (function (index) {
           var row = el('div', 'sv-list-row');
-          var input = document.createElement('input');
-          input.type = 'text';
+          // A box that grows with its words (a long answer was cut off
+          // in a one-line input, a reviewer said); Enter never adds a line.
+          var input = document.createElement('textarea');
+          input.rows = 1;
           input.className = 'sv-list-input';
           input.value = arr[index];
           input.placeholder = itemLabel + ' ' + (index + 1);
+          input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') e.preventDefault();
+          });
+          function growInput() {
+            input.style.height = 'auto';
+            input.style.height = input.scrollHeight + 'px';
+          }
+          input.addEventListener('input', growInput);
+          requestAnimationFrame(growInput);
           input.addEventListener('input', function () {
             markEdited();
             var wasMarked = marker && marker.get() === getArr()[index];
@@ -952,8 +978,8 @@
         } else if (phase.choicePool) {
           d.facts.push(fact('choices are built from earlier answers'));
         }
-        if (phase.correctAnswer) d.facts.push(fact('graded, the ✓ answer earns points'));
-        else if (Array.isArray(phase.choices)) d.facts.push(fact('a poll, tap ○ on a choice to make it a graded question'));
+        if (phase.correctAnswer) d.facts.push(wrapFact('graded, the ✓ answer earns points'));
+        else if (Array.isArray(phase.choices)) d.facts.push(wrapFact('a poll, tap ○ on a choice to make it a graded question'));
         if (phase.shuffle) d.facts.push(fact('choices shuffled for each student'));
         d.facts.push(timerFact(phase));
         d.media = mediaEditor(phase);
@@ -1403,6 +1429,10 @@
       blk.style.clipPath = cuts[stepNum % cuts.length];
       blk.appendChild(el('span', 'svb-num', String(stepNum)));
       blk.appendChild(el('span', 'svb-name', blockName(phase.type)));
+      // The step's own first words, so six Open answers tell apart
+      // ("Word 1 of 6", "Word 2 of 6": a reviewer, 2026-09-25).
+      var gist = stepGist(phase);
+      if (gist) blk.appendChild(el('span', 'svb-sub', gist));
       blk.addEventListener('click', function () {
         var pid = this.getAttribute('data-phase-id');
         if (pid === svSelectedId) return;

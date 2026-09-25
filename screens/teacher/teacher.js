@@ -39,6 +39,13 @@ var ENTRIES_HINTS = {
   'classmate+class-after-review': 'Only you can see the whole list. Each answer goes to a classmate next, then the class after your preview; hide anything that shouldn\'t be passed on.',
   generic: 'Only you can see these. Hide anything that shouldn\'t reach the class, hidden entries are skipped by the AI and the reveal.'
 };
+// The finished chains of a return-to-author reveal (server-sent on
+// teacher-chains and in the join snapshot), each with a Show button.
+var chainsBlock = document.getElementById('chains-block');
+var chainsList = document.getElementById('chains-list');
+// Who sees this step's answers: a Show button on an entry is offered
+// unless the student was told only the teacher reads it.
+var entriesAudience = null;
 var previewBlock = document.getElementById('preview-block');
 var previewText = document.getElementById('preview-text');
 var previewRespBlock = document.getElementById('preview-resp-block');
@@ -366,6 +373,11 @@ function setPhase(data) {
 
   var isCollect = phaseType === 'collect' || phaseType === 'collect-choice';
   entriesBlock.hidden = !isCollect;
+  entriesAudience = isCollect ? (data.audience || null) : null;
+  // A return-to-author reveal lists its finished chains (teacher-chains
+  // arrives right after this event; a console joining mid-step gets them
+  // in the snapshot). Any other step drops the list.
+  renderChains(phaseType === 'reveal' && Array.isArray(data.chains) ? data.chains : null);
   if (isCollect) {
     // The hint says where THIS step's answers go (the server reads the
     // activity's graph, engine/audience.js); an Exit Ticket never mentions
@@ -586,6 +598,13 @@ function renderEntries(submissions) {
       });
       actions.appendChild(hideBtn);
 
+      // Put this one answer on the class screen. Not offered when the
+      // student was told only the teacher reads this step (the answer
+      // box's own line, engine/audience.js), and never for a hidden entry.
+      if (entriesAudience !== 'teacher' && !sub.hidden) {
+        actions.appendChild(showButton(sub.playerId, sub.drawing ? 'this drawing' : 'this answer'));
+      }
+
       var kickBtn = document.createElement('button');
       kickBtn.className = 'entry-btn entry-btn-danger';
       kickBtn.textContent = 'Kick';
@@ -602,6 +621,64 @@ function renderEntries(submissions) {
     })(submissions[i]);
   }
 }
+
+// A Show button: the server puts that student's work on the projector,
+// read from the room's own data (the console only names the student).
+function showButton(playerId, what) {
+  var btn = document.createElement('button');
+  btn.className = 'entry-btn entry-btn-show';
+  btn.textContent = 'Show';
+  btn.title = 'Put ' + what + ' on the class screen for everyone to see';
+  btn.addEventListener('click', function () {
+    socket.emit('spotlight', { code: currentCode, playerId: playerId });
+    btn.textContent = 'On the class screen';
+    btn.disabled = true;
+    setTimeout(function () { btn.textContent = 'Show'; btn.disabled = false; }, 2500);
+  });
+  return btn;
+}
+
+// --- Finished chains (a return-to-author reveal) ---
+
+function renderChains(chains) {
+  if (!chainsBlock) return;
+  chainsBlock.hidden = !chains;
+  chainsList.innerHTML = '';
+  if (!chains) return;
+  if (chains.length === 0) {
+    var empty = document.createElement('li');
+    empty.className = 'entry-empty';
+    empty.textContent = 'No chains came back this time.';
+    chainsList.appendChild(empty);
+    return;
+  }
+  for (var i = 0; i < chains.length; i++) {
+    (function (chain) {
+      var li = document.createElement('li');
+      li.className = 'entry';
+      var top = document.createElement('div');
+      top.className = 'entry-top';
+      var name = document.createElement('span');
+      name.className = 'entry-name';
+      name.textContent = chain.name + ' started it';
+      top.appendChild(name);
+      li.appendChild(top);
+      var text = document.createElement('div');
+      text.className = 'entry-text';
+      text.textContent = chain.text;
+      li.appendChild(text);
+      var actions = document.createElement('div');
+      actions.className = 'entry-actions';
+      actions.appendChild(showButton(chain.playerId, 'this chain'));
+      li.appendChild(actions);
+      chainsList.appendChild(li);
+    })(chains[i]);
+  }
+}
+
+socket.on('teacher-chains', function (data) {
+  renderChains((data && data.chains) || []);
+});
 
 socket.on('teacher-word-help', function (data) {
   renderWordHelp((data && data.words) || []);

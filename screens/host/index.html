@@ -501,6 +501,16 @@
     <p id="discussion-card-text" class="discussion-card-text"></p>
   </div>
 
+  <!-- One student's finished work, put up from the console (a finished
+       chain, an answer): the words come from the room's data, never the
+       console; the card clears on the next step. -->
+  <div id="spotlight-card" class="discussion-card spotlight-card" hidden role="status">
+    <span class="discussion-card-label spotlight-card-label">Take a look</span>
+    <p id="spotlight-card-text" class="discussion-card-text"></p>
+    <canvas id="spotlight-card-drawing" class="spotlight-card-drawing" width="480" height="360" hidden></canvas>
+    <p id="spotlight-card-name" class="spotlight-card-name"></p>
+  </div>
+
   <!-- Teacher-view pairing chip: fixed corner, visible in every phase once a
        room exists, so a teacher who skipped pairing in the lobby can still
        open the console mid-activity (e.g. at a preview gate). Pairing is

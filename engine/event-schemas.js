@@ -63,6 +63,10 @@ export const EVENT_SCHEMAS = {
   'show-discussion': {
     code: 'string:required'
   },
+  'spotlight': {
+    code: 'string:required',
+    playerId: 'string:required'
+  },
   'meadow-nudge': {
     code: 'string:required',
     fx: 'number:required',

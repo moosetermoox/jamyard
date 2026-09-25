@@ -1189,7 +1189,11 @@ export const PHASE_SCHEMAS = {
     transitions: {
       next: { type: 'phaseRef', optional: true }
     },
-    output: { kind: 'static', fields: {} },    ui: {
+    // A return-to-author reveal (scope "own") stores every finished chain
+    // as a response row, so {{poem.responses}} feeds a vote or a gallery
+    // and {{poem.chainList}} a screen; any other reveal outputs nothing.
+    output: { kind: 'dynamic', resolver: 'revealOutput' },
+    ui: {
       hostToggles: ['content', 'image', 'video', 'responses', 'continueButton'],
       playerToggles: ['content', 'image']
     }

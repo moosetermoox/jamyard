@@ -745,6 +745,24 @@ h1 {
   max-width: 720px !important;
 }
 
+/* The recipe picker's search box (the same box as the library's) */
+.recipe-search {
+  display: block;
+  width: min(420px, 100%);
+  margin: 0 auto 18px;
+  padding: 10px 14px;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 1rem;
+  border: none;
+  border-radius: 2px;
+  background: #FDF9F0;
+  box-shadow: inset 2px 2px 0 rgba(50,35,15,0.08), 0 0 0 1px rgba(50,35,15,0.16);
+}
+.recipe-search:focus { outline: 3px solid #E8B71D; outline-offset: 1px; }
+.recipe-search-empty { text-align: center; color: #555; margin: 0 0 16px; }
+.recipe-search-empty[hidden] { display: none; }
+.recipe-picker-grid .template-card[hidden], .recipe-section-heading[hidden] { display: none; }
+
 .recipe-picker-grid {
   grid-template-columns: 1fr 1fr !important;
 }

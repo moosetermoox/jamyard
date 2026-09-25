@@ -81,7 +81,11 @@ export function buildActivityReport(engine, meta = {}) {
 
   const sections = [];
   for (const [id, phase] of Object.entries(phases)) {
-    if (!phase || SKIP_TYPES.has(phase.type)) continue;
+    // A return-to-author reveal stores every finished chain (the only
+    // thing worth keeping from a chain activity, a reviewer said); it is
+    // the one reveal that gets a section.
+    const ownReveal = phase && phase.type === 'reveal' && phase.scope === 'own';
+    if (!phase || (SKIP_TYPES.has(phase.type) && !ownReveal)) continue;
 
     // Loops store a versioned copy per iteration (id~N) alongside the base
     // key, which duplicates the final round — report each round once.
@@ -161,6 +165,7 @@ function buildSection(id, phase, data, nameOf) {
 // as a heading reads like a prompt dump).
 function headingFor(phase) {
   if (phase.type === 'ai-process') return undefined;
+  if (phase.type === 'reveal' && phase.scope === 'own') return 'What each one became, start to finish';
   const candidates = [phase.prompt, phase.question, phase.instruction];
   for (const c of candidates) {
     if (typeof c === 'string' && c.trim() && !c.includes('{{')) return c.trim();
@@ -232,6 +237,12 @@ function responseEntries(responses, fieldDefs) {
 // engine/phase-handlers/.
 
 const SECTION_BUILDERS = {
+  // Return-to-author reveal: one entry per chain, named for its starter.
+  reveal(phase, data) {
+    if (phase.scope !== 'own') return [];
+    const entries = responseEntries(data.responses);
+    return entries ? [entries] : [];
+  },
   collect(phase, data) {
     const blocks = [];
     const entries = responseEntries(data.responses, phase.fields);

@@ -204,7 +204,38 @@ socket.on('discussion-prompt', ({ text } = {}) => {
   if (!discussionCard || !text) return;
   setRichText(discussionCardText, text);
   discussionCard.hidden = false;
+  stackProjectorCards();
 });
+
+// One student's finished work, put up from the console: a finished chain
+// during a return-to-author reveal, an answer while a step is open. The
+// server read it out of the room's data (engine/spotlight.js); student
+// text, so textContent, never HTML. A second Show replaces the first;
+// the card clears on the next step (showSection).
+const spotlightCard = document.getElementById('spotlight-card');
+const spotlightCardText = document.getElementById('spotlight-card-text');
+const spotlightCardDrawing = document.getElementById('spotlight-card-drawing');
+const spotlightCardName = document.getElementById('spotlight-card-name');
+socket.on('spotlight-show', ({ text, name, drawing } = {}) => {
+  if (!spotlightCard) return;
+  const hasDrawing = Array.isArray(drawing) && drawing.length > 0 && !!window.Draw;
+  if (hasDrawing) Draw.renderStrokes(spotlightCardDrawing, drawing);
+  spotlightCardDrawing.hidden = !hasDrawing;
+  spotlightCardText.textContent = hasDrawing ? '' : (text || '');
+  spotlightCardText.hidden = hasDrawing;
+  spotlightCardName.textContent = name ? name : '';
+  spotlightCardName.hidden = !name;
+  if (!hasDrawing && !(text || '').trim()) return;
+  spotlightCard.hidden = false;
+  stackProjectorCards();
+});
+
+// Both paper cards pin to the bottom; when both are up, the question
+// sits above the work so neither hides the other.
+function stackProjectorCards() {
+  if (!discussionCard || !spotlightCard) return;
+  discussionCard.style.bottom = spotlightCard.hidden ? '' : (spotlightCard.offsetHeight + 34) + 'px';
+}
 
 socket.on('teacher-console-joined', ({ deviceCount }) => {
   if (new URLSearchParams(window.location.search).get('prototype') === 'true') return;
@@ -2977,7 +3008,9 @@ function showSection(el) {
   // A discussion prompt belongs to the step it was shown on (looked up
   // here, not via the const below: showSection can run before it exists)
   var shownPrompt = document.getElementById('discussion-card');
-  if (shownPrompt) shownPrompt.hidden = true;
+  if (shownPrompt) { shownPrompt.hidden = true; shownPrompt.style.bottom = ''; }
+  var shownWork = document.getElementById('spotlight-card');
+  if (shownWork) shownWork.hidden = true;
   // Content owns the projector: outside the lobby the brand shrinks to a
   // corner mark (docs/PROJECTOR-STYLE.md rule 1).
   document.body.classList.toggle('in-activity', el !== lobbySection);

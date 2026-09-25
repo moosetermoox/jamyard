@@ -130,6 +130,9 @@ export function summarizeRecipe(recipe) {
     // recipe DOES and never promises a step it lacks (a reviewer was told
     // Exit Ticket had a review gate and a reveal, 2026-09-24)
     steps: recipeStepTypes(recipe),
+    // A retired recipe stays on disk for the copies stamped with it but
+    // is left out of the picker (two Group Work Days, a reviewer said).
+    retired: !!recipe.retired,
     source: recipe._source || null,        // 'built-in' | 'user'
     broken: !!recipe._broken,              // schema drift, needs attention
     brokenReason: recipe._brokenReason || null

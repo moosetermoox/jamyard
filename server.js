@@ -176,6 +176,7 @@ import { buildActivityReport } from './engine/report.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
 import { contentLog } from './engine/content-log.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText } from './engine/moderation.js';
+import { chainsFor, spotlightItemFor } from './engine/spotlight.js';
 import { createModerationLadder } from './services/moderation-ladder.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
@@ -2015,6 +2016,8 @@ function buildTeacherSnapshot(code, room) {
     snap.discussionPrompt = discussionPromptFor(phase);
     snap.estimateAnswer = estimateAnswerFor(room, phase);
     snap.audience = audienceKeyFor(engine, phase);
+    // The finished chains of a return-to-author reveal, for Show
+    snap.chains = chainsFor(engine, phase);
   }
   return snap;
 }
@@ -2753,7 +2756,9 @@ app.get('/api/phase-schemas', (req, res) => {
 
 // --- Recipe endpoints (the recipe layer: list / compile / save user recipes) ---
 app.get('/api/recipes', (req, res) => {
-  const recipes = listRecipes().map(summarizeRecipe);
+  // A retired recipe (recipes/group-work.json) stays loadable by id for
+  // the copies stamped with it, but the picker never lists it.
+  const recipes = listRecipes().map(summarizeRecipe).filter(r => !r.retired);
   res.json(recipes);
 });
 
@@ -4763,6 +4768,28 @@ io.on('connection', (socket) => {
       if (hostSocketId) io.to(hostSocketId).emit(EVENTS.DISCUSSION_PROMPT, { text, phaseId: phase.id });
     } catch (err) {
       console.error('[show-discussion] error:', err.message);
+    }
+  });
+
+  // Teacher console puts ONE student's finished work on the projector: a
+  // finished chain during a return-to-author reveal, or an answer while
+  // a collect step is open. The console sends an id; the words come from
+  // the room's own data (engine/spotlight.js), never from the client.
+  socket.on(EVENTS.SPOTLIGHT, (payload = {}) => {
+    try {
+      if (!checkEventPayload(socket, 'spotlight', payload)) return;
+      const { code, playerId } = payload;
+      const room = roomManager.find(code);
+      if (!room || !room.engine) return;
+      if (!isTeacherSocket(code, room, socket.id)) return;
+      const phase = room.engine.getCurrentPhase();
+      const item = spotlightItemFor(room.engine, phase, playerId);
+      if (!item) return;
+      recordEvent(room, 'spotlight', { phaseId: phase.id });
+      const hostSocketId = roomToHost.get(code);
+      if (hostSocketId) io.to(hostSocketId).emit(EVENTS.SPOTLIGHT_SHOW, { ...item, phaseId: phase.id, phaseInstanceId: room.phaseInstanceId });
+    } catch (err) {
+      console.error('[spotlight] error:', err.message);
     }
   });
 
