@@ -12,13 +12,26 @@
   var KEY = 'jamyard-editor-panels';
   var state = { settings: 'open', chat: 'open' };
 
+  // Until the teacher chooses, a narrow window starts with the panels
+  // folded: both open need about 1400px before the writing column has
+  // room (250 + 380 + the 240px step stack), and a reviewer at 1150px got
+  // one letter per line until they found the fold (2026-09-24). A saved
+  // choice always wins.
+  var NARROW = 1400;
+  var NARROWER = 1000;
+  var chosen = { settings: false, chat: false };
   try {
     var saved = JSON.parse(localStorage.getItem(KEY) || '{}');
     if (saved && typeof saved === 'object') {
       if (saved.settings === 'closed') state.settings = 'closed';
       if (saved.chat === 'closed') state.chat = 'closed';
+      chosen.settings = saved.settings === 'closed' || saved.settings === 'open';
+      chosen.chat = saved.chat === 'closed' || saved.chat === 'open';
     }
   } catch (e) { /* storage unavailable: start open */ }
+  var width = window.innerWidth || 0;
+  if (width && width < NARROW && !chosen.settings) state.settings = 'closed';
+  if (width && width < NARROWER && !chosen.chat) state.chat = 'closed';
 
   function apply() {
     document.body.classList.toggle('settings-collapsed', state.settings === 'closed');

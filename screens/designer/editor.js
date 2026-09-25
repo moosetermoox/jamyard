@@ -6480,6 +6480,30 @@ function showReviewPanel(result) {
 
   if (count === 0) return;
 
+  // The problems themselves, under the count (a reviewer read "2 things
+  // need fixing" and had to open the chat to learn what, 2026-09-24).
+  var MAX_LISTED = 12;
+  var problemList = document.createElement('ol');
+  problemList.className = 'review-problems';
+  problems.slice(0, MAX_LISTED).forEach(function (p) {
+    var li = document.createElement('li');
+    li.className = 'review-problem-' + p.severity;
+    li.textContent = humanizeReviewText(p.message);
+    if (p.phaseId && gameConfig && gameConfig.phases && gameConfig.phases[p.phaseId]) {
+      var where = document.createElement('span');
+      where.className = 'review-problem-where';
+      where.textContent = ' (in the "' + getFriendlyPhaseName(p.phaseId) + '" step)';
+      li.appendChild(where);
+    }
+    problemList.appendChild(li);
+  });
+  if (count > MAX_LISTED) {
+    var moreLi = document.createElement('li');
+    moreLi.textContent = 'and ' + (count - MAX_LISTED) + ' more like these';
+    problemList.appendChild(moreLi);
+  }
+  reviewContent.appendChild(problemList);
+
   var cta = document.createElement('div');
   cta.className = 'review-fix-cta';
 

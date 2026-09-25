@@ -4473,6 +4473,10 @@ body::before { content: none; }
 
 .sv-wrap {
   display: flex;
+  /* Below the room for both columns the detail drops under the stack
+     instead of wrapping one letter per line (a reviewer at 1150px with
+     both side panels open, 2026-09-24) */
+  flex-wrap: wrap;
   gap: 40px;
   align-items: flex-start;
   max-width: 1020px;
@@ -4595,7 +4599,7 @@ body::before { content: none; }
 }
 
 /* --- The detail card --- */
-#sv-detail { flex: 1; min-width: 0; }
+#sv-detail { flex: 1; min-width: 320px; }
 
 /* display:block overrides the legacy .sv-card flex row (num + body) */
 .sv-detail-card { display: block; padding: 24px 28px 26px; }
@@ -4775,3 +4779,9 @@ body.chat-open.chat-collapsed #feedback-widget-panel { right: 62px; }
 .chat-proposal-diff-head { margin-top: 8px; font-size: 0.85rem; font-weight: 600; color: #4a4032; }
 .chat-proposal-diff { margin: 4px 0 0; padding-left: 18px; font-size: 0.85rem; color: #4a4032; }
 .chat-proposal-diff li { margin: 2px 0; }
+
+/* Check for Problems: the list itself under the verdict (2026-09-24) */
+.review-problems { margin: 10px 0 0; padding-left: 20px; font-size: 0.9rem; line-height: 1.45; }
+.review-problems li { margin: 4px 0; }
+.review-problems .review-problem-where { color: #6E6353; }
+.review-problems .review-problem-error::marker { color: #C0392B; font-weight: 700; }
