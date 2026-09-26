@@ -100,6 +100,9 @@ export function printFor(config) {
     // teacher's to change on the page (2026-09-24); a quiz's first
     // question's choices belong to its panel
     choicesEditable: phase.type === 'collect-choice' && Array.isArray(phase.choices) && phase.choices.length > 0 && phase.choices.every((c) => isPlainText(c)),
+    // A rating step's plain scales are typed in place on the print, as the
+    // class will see them (owner 2026-09-25); the fit asks nothing then
+    scalesEditable: phase.type === 'rate' && scalesFor({ phases: { [step.id]: phase } }).length === 1,
     timer: typeof phase.timer === 'number' ? phase.timer : null,
     // A recipe-born copy recompiles from its stamp; its timer belongs to
     // the recipe (a knob when the recipe offers one), not to this page.

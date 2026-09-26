@@ -34,6 +34,7 @@
     fields: document.getElementById('print-fields'),
     instruction: document.getElementById('print-instruction'),
     choices: document.getElementById('print-choices'),
+    scales: document.getElementById('print-scales'),
     audience: document.getElementById('print-audience'),
     timerRow: document.getElementById('print-timer'),
     timerChip: document.getElementById('timer-chip'),
@@ -320,6 +321,7 @@
     }
 
     drawChoices(print.choices, choicesEditable);
+    drawScales(print);
 
     if (print.audience) {
       el.audience.hidden = false;
@@ -329,7 +331,7 @@
     // A matching activity's pairs, editable (a recipe panel owns its own)
     if (!state.panel) mountPairs(print.pairs);
     // A rating activity's scales, editable (Class Critique)
-    if (!state.panel) mountScales(print.scales);
+    if (!state.panel && !print.scalesEditable) mountScales(print.scales);
     // A talk-only activity's questions, tier by tier, folded
     mountTalk(print.talk);
 
@@ -504,6 +506,9 @@
   }
 
   function loadQuestions() {
+    // Scales typed in place leave the fit nothing to ask (owner 2026-09-25:
+    // "we don't even really need anything there"): the class rows stay
+    if (state.print && state.print.scalesEditable) { qHolder.textContent = ''; return; }
     if (!state.config || state.noQuestions || !el.fitRows) return;
     var request = ++state.questionsRequest;
     qHolder.textContent = '';
@@ -672,7 +677,8 @@
   function updateFitFoot() {
     if (!el.fitFoot) return;
     var n = answeredQuestions().length;
-    el.fitFoot.hidden = n === 0 || !!state.panelApi;
+    // scales typed in place: nothing for the AI to reword, the row stays off
+    el.fitFoot.hidden = n === 0 || !!state.panelApi || !!(state.print && state.print.scalesEditable);
     if (state.fitting) return;
     var current = !!(state.fitted && state.fitted.key === fitKey());
     el.fitSee.disabled = current;
@@ -763,6 +769,95 @@
         el.choices.appendChild(chip);
       }
     });
+  }
+
+  // --- A rating step's scales on the print (2026-09-25): each scale as
+  // the class will see it (the name, the end words, the row of numbers),
+  // the name and the end words as boxes, an x in the corner, "+ scale"
+  // under the list. Read back through state.scaleBoxes like the panel.
+  function drawScales(print) {
+    if (!el.scales) return;
+    var step = print && print.scalesEditable && Array.isArray(print.scales)
+      ? print.scales.filter(function (s) { return s.id === print.phaseId; })[0] : null;
+    el.scales.textContent = '';
+    el.scales.hidden = !step;
+    if (!step) return;
+    if (el.scalesSection) el.scalesSection.hidden = true;
+    state.scaleBoxes = {};
+    var boxes = [];
+    state.scaleBoxes[step.id] = boxes;
+    var list = document.createElement('div');
+    list.className = 'print-scale-list';
+    el.scales.appendChild(list);
+    step.scales.forEach(function (s) { addPrintScale(boxes, list, s); });
+    var add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'print-scale-add';
+    add.textContent = '+ scale';
+    add.title = 'One more scale for the class to rate on';
+    add.addEventListener('click', function () {
+      var last = boxes.length ? boxes[boxes.length - 1] : null;
+      var entry = addPrintScale(boxes, list, { label: '', min: last ? parseInt(last.min.value, 10) : 1, max: last ? parseInt(last.max.value, 10) : 5, low: '', high: '' });
+      entry.label.focus();
+      scheduleMap();
+    });
+    el.scales.appendChild(add);
+  }
+
+  function printScaleBox(className, value, aria, placeholder, maxLength) {
+    var i = document.createElement('input');
+    i.type = 'text';
+    i.className = className;
+    i.value = value;
+    i.placeholder = placeholder;
+    i.maxLength = maxLength;
+    i.setAttribute('aria-label', aria);
+    i.addEventListener('input', scheduleMap);
+    i.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } });
+    return i;
+  }
+
+  function addPrintScale(boxes, list, s) {
+    var card = document.createElement('div');
+    card.className = 'print-scale';
+    var label = printScaleBox('print-scale-label', s.label || '', 'The scale\'s name. Change it here.', 'Name this scale', 80);
+    card.appendChild(label);
+    var ends = document.createElement('div');
+    ends.className = 'print-scale-ends';
+    var low = printScaleBox('print-scale-end', s.low || '', 'The words at the low end', String(s.min), 40);
+    var high = printScaleBox('print-scale-end print-scale-end-high', s.high || '', 'The words at the high end', String(s.max), 40);
+    ends.appendChild(low);
+    ends.appendChild(high);
+    card.appendChild(ends);
+    var row = document.createElement('div');
+    row.className = 'print-scale-buttons';
+    row.setAttribute('aria-hidden', 'true');
+    for (var v = s.min; v <= s.max; v++) {
+      var b = document.createElement('span');
+      b.className = 'print-rate-btn';
+      b.textContent = String(v);
+      row.appendChild(b);
+    }
+    card.appendChild(row);
+    var x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'print-scale-x';
+    x.textContent = '×';
+    x.setAttribute('aria-label', 'Drop this scale');
+    x.title = 'Drop this scale';
+    // the range is the template's, kept as hidden values the edits read
+    var entry = { label: label, min: { value: String(s.min) }, max: { value: String(s.max) }, low: low, high: high };
+    x.addEventListener('click', function () {
+      if (boxes.length <= 1) return;
+      var i = boxes.indexOf(entry);
+      if (i !== -1) boxes.splice(i, 1);
+      card.remove();
+      scheduleMap();
+    });
+    card.appendChild(x);
+    list.appendChild(card);
+    boxes.push(entry);
+    return entry;
   }
 
   // The answers as typed (empty ones dropped), or null when they are not boxes
@@ -858,7 +953,8 @@
       if (box) box.value = f.label;
     });
     if (Array.isArray(print.pairs) && print.pairs.length && !state.panel) mountPairs(print.pairs);
-    if (Array.isArray(print.scales) && print.scales.length && !state.panel) mountScales(print.scales);
+    if (Array.isArray(print.scales) && print.scales.length && !state.panel && !print.scalesEditable) mountScales(print.scales);
+    if (print.scalesEditable) drawScales(print);
     var hadWords = !!(state.example && state.example.prefill && (state.example.prefill.pairs || state.example.prefill.choices));
     drawChoices(print.choices, !!print.choicesEditable && !state.panel);
     state.example = null;
@@ -906,7 +1002,9 @@
     if (print.audience) el.audience.textContent = print.audience;
     // The scales the teacher left alone take the fitted ones; edited
     // ones stay as typed
-    if (Array.isArray(print.scales) && print.scales.length && !state.panel && !scalesChanged()) mountScales(print.scales);
+    if (Array.isArray(print.scales) && print.scales.length && !state.panel && !scalesChanged()) {
+      if (print.scalesEditable) drawScales(print); else mountScales(print.scales);
+    }
     // The pairs the teacher left alone take the fitted ones
     if (Array.isArray(print.pairs) && print.pairs.length && !state.panel) {
       var changedIds = changedPairRounds().map(function (r) { return r.id; });

@@ -35,6 +35,7 @@ describe('scalesFor', () => {
       { label: 'Effectiveness', min: 1, max: 5, low: 'Won\'t solve it', high: 'Nails it' }
     ]);
     expect(printFor(critique()).scales).toEqual(rows);
+    expect(printFor(critique()).scalesEditable).toBe(true);
   });
 
   it('leaves a step whose labels carry tokens to the designer', () => {
@@ -100,10 +101,13 @@ describe('the surfaces', () => {
     const html = read('screens/make/index.html');
     expect(html).toContain('id="scales-section"');
     expect(html).toContain('id="scales-holder"');
-    expect(js).toContain('if (!state.panel) mountScales(print.scales);');
+    expect(js).toContain('if (!state.panel && !print.scalesEditable) mountScales(print.scales);');
+    expect(js).toContain('drawScales(print);');
+    expect(html).toContain('id="print-scales"');
+    expect(js).toContain("if (state.print && state.print.scalesEditable) { qHolder.textContent = ''; return; }");
     expect(js).toContain('var scales = scalesValue();');
     expect(js).toContain('if (scales) edits.scales = scales;');
-    expect(js).toContain('!scalesChanged()) mountScales(print.scales);');
+    expect(js).toContain('if (print.scalesEditable) drawScales(print); else mountScales(print.scales);');
     expect(js).toContain("add.textContent = '+ scale';");
   });
 
