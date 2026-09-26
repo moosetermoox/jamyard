@@ -2,6 +2,8 @@
 
 > Moved out of `CLAUDE.md` on 2026-05-19 to keep project instructions lightweight. This is the chronological build log; it is not loaded into every session.
 
+- 2026-09-25 (owner: "I don't think Folded Pass is ready"; branch `trivia-back`): **Folded Pass leaves the yard, Trivia Bluff returns.** Both stay built with their examples, pictograms, and sample sets; the yard is fifteen. Folded Pass keeps its new gallery step and sample set for the day it is ready.
+
 - 2026-09-25 (owner: "let's put one more thing back in"; branch `refeature-one-more-thing`): **One More Thing is back in the yard**, featured again with its example, pictogram, and sample set untouched; the yard is fifteen.
 
 - 2026-09-25 (owner: "I don't think Estimation Station should be one of the default ones"; branch `unfeature-estimation`): **Estimation Station leaves the yard** the same night it arrived. The built-in stays (unfeatured, drift-guarded, its example and pictogram kept) so it is one click away on the Create page; the yard is fourteen cards.
