@@ -53,6 +53,26 @@ describe('hideStoredResponse', () => {
     expect(hideStoredResponse(shown, 'p1', true).revealOne).toBe(false);
     expect(shown.phaseState.items.length).toBe(3);
   });
+  it('moves the line out of the byPlayer map too, so a return-to-author chain never carries it (2026-09-26, a live Someone\'s Got You room)', async () => {
+    const { buildChainViews } = await import('../../engine/phases/chain-reveal.js');
+    const room = roomWith('preview');
+    const write = room.engine.phaseData.write;
+    write.byPlayer = { p1: 'kind', p2: 'mean' };
+    write.assignedFrom = {};
+    // p2's line was written for p1's note; p1's for p2's
+    const notes = { byPlayer: { p1: 'my note', p2: 'their note' }, assignedFrom: { p1: 'p2', p2: 'p1' } };
+    hideStoredResponse(room, 'p2', true);
+    expect(write.byPlayer).toEqual({ p1: 'kind' });
+    expect(write.hiddenByPlayer).toEqual({ p2: 'mean' });
+    const views = buildChainViews([notes, write]);
+    // p1's note went to p2, whose reply is hidden: no hop, and not a wifi loss
+    expect(views.get('p1')).toEqual({ original: 'my note', steps: [], complete: true });
+    expect(views.get('p2')).toEqual({ original: 'their note', steps: ['kind'], complete: true });
+    hideStoredResponse(room, 'p2', false);
+    expect(write.byPlayer).toEqual({ p1: 'kind', p2: 'mean' });
+    expect(write.hiddenByPlayer).toEqual({});
+    expect(buildChainViews([notes, write]).get('p1').steps).toEqual(['mean']);
+  });
   it('is a no-op on a room with nothing stored', () => {
     expect(hideStoredResponse({ engine: { phaseData: {}, getCurrentPhase: () => null } }, 'p1', true)).toEqual({ collect: false, preview: false, revealOne: false });
   });

@@ -639,6 +639,11 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
   roundsInput.max = roundsKnob && roundsKnob.max != null ? roundsKnob.max : 6;
   roundsInput.value = roundsKnob ? roundsKnob.value : 3;
   roundsInput.style.cssText = 'width:120px; ' + INPUT_CSS;
+  // A typed number outside the range snaps back when the box is left
+  // (2026-09-26, a reviewer typed 99 into a box labelled 1-6 and it stayed)
+  roundsInput.addEventListener('change', function () {
+    roundsInput.value = clampedInt(roundsInput, parseInt(roundsInput.min, 10), parseInt(roundsInput.max, 10), roundsKnob ? roundsKnob.value : 3);
+  });
   liveSection.appendChild(roundsInput);
   modal.appendChild(liveSection);
 
@@ -792,6 +797,9 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
   timerInput.max = lieTimerKnob && lieTimerKnob.max != null ? lieTimerKnob.max : 180;
   timerInput.value = lieTimerKnob ? lieTimerKnob.value : 45;
   timerInput.style.cssText = 'width:120px; ' + INPUT_CSS;
+  timerInput.addEventListener('change', function () {
+    timerInput.value = clampedInt(timerInput, parseInt(timerInput.min, 10), parseInt(timerInput.max, 10), lieTimerKnob ? lieTimerKnob.value : 45);
+  });
   modal.appendChild(timerInput);
 
   function renderSourceState() {

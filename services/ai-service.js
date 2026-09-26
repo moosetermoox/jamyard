@@ -7,6 +7,7 @@ import { LANGUAGES as LANGUAGE_NAMES } from '../engine/i18n/index.js';
 import { cleanQuizQuestions, QUIZ_LIMITS } from '../engine/quiz-questions.js';
 import { cleanBluffQuestions, BLUFF_LIMITS } from '../engine/bluff-questions.js';
 import { completeSteps, partialName } from '../engine/storyboard-partial.js';
+import { collectTexts, applyTexts, pathKey } from '../engine/activity-text.js';
 
 /**
  * Extract text from the first text-type content block. Claude's content
@@ -1697,6 +1698,67 @@ Return ONLY JSON, no other prose: {"<step id>": ["...", "..."], ...} with a stri
   }
 
   /**
+   * Every word the activity shows, put into the class's language
+   * (2026-09-26, an outside reviewer's Spanish Creative Vote kept the
+   * recipe's English vote question, reveal heading, and end message: the
+   * AI fills a recipe's params, the recipe's own prose is copied through).
+   * The texts already in that language are left as written, so a
+   * teacher's own words never change; {{tokens}}, **bold**, ## headings
+   * and line breaks are kept. One Haiku call; mock mode returns the
+   * config unchanged.
+   * @param {{config: object, language: string}} args  language = an i18n code (es, fr, ...)
+   * @returns {Promise<object>} a deep copy with the words translated
+   */
+  async translateActivityText({ config, language } = {}) {
+    const name = LANGUAGE_NAMES[language];
+    if (!config || !name || language === 'en') return config;
+    const texts = collectTexts(config);
+    if (texts.length === 0 || this.mode === 'mock') return JSON.parse(JSON.stringify(config));
+    const byKey = {};
+    for (const t of texts) byKey[pathKey(t.path)] = t.text.slice(0, 2000);
+    const message = await this._callClaude({
+      model: MODELS.haiku,
+      max_tokens: 8000,
+      messages: [{
+        role: 'user',
+        content: `A teacher is running a classroom activity in ${name}. Below is every piece of text the activity shows, as a JSON object of key: text. Put each text into ${name}.
+
+Rules:
+- A text already in ${name} is returned exactly as it is, character for character.
+- Keep every {{token}}, \${placeholder}, **bold** marker, ## heading marker, line break, and number exactly as written; translate only the words around them.
+- Keep the same tone and length: a question stays a question, a heading stays short.
+- Names of people and proper nouns stay as they are.
+- No dashes of any kind; use a comma or a new sentence.
+- Return every key you were given, and only those keys.
+
+${JSON.stringify(byKey, null, 1)}
+
+Return ONLY the JSON object, no other prose.`
+      }]
+    });
+    const text = extractText(message);
+    let parsed;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('AI response was not valid JSON');
+      parsed = JSON.parse(match[0]);
+    }
+    const out = {};
+    for (const key of Object.keys(byKey)) {
+      const v = parsed && parsed[key];
+      if (typeof v !== 'string' || v.trim() === '') continue;
+      // A translation that lost a token the original carried is refused
+      // (the step would read a blank); the original stays
+      const tokens = byKey[key].match(/\{\{[^}]+\}\}|\$\{[^}]+\}/g) || [];
+      if (tokens.some((tok) => !v.includes(tok))) continue;
+      out[key] = v;
+    }
+    return applyTexts(config, out);
+  }
+
+  /**
    * Matching pairs for a topic (Vocab Match's "write the pairs for me",
    * owner 2026-09-26): term and meaning, or any two halves that belong
    * together. The teacher's boxes stay editable; this only fills them.
@@ -1946,7 +2008,7 @@ YOU MAY ONLY SUGGEST THESE THREE KINDS:
 ${gameLines.join('\n')}
 2. {"kind":"recipe","id":"<recipe id>","params":{...},"why":"one sentence"} to fill a recipe (params optional, only the listed names, values short strings or numbers):
 ${recipeLines.join('\n')}
-3. {"kind":"storyboard","storyboard":{"name":"...","description":"...","steps":[{"brick":"...","text":"..."}]},"why":"one sentence"} ONLY when nothing above fits. Bricks allowed: announce (optional "video" = a YouTube link the projector plays), collect (open answer; optional "video" too; optional "items" = a list you write, one dealt privately to each student, shown with {{thisStep.assigned}} in the text), collect-two (secret + clue), collect-choice (needs "choices" array), estimate (guess a number; a scale question such as "on a scale of 1 to 10" MUST carry "min" and "max", e.g. 1 and 10, so students tap a number on that scale; "answer" = the true number when the teacher named it or it is certain, with "unit" and "scoring" closest | graduated, so the step scores the closest guess; no answer = a poll of the guesses, no winner promised), reveal, reveal-one, vote, guessing-rounds (must come after a collect; add "guess": "who" when the class guesses who wrote each answer), rank (the class puts the collected answers in order; text = the ranking instruction; "items" = a list you write; "byGroup": true after a teams step when each group decides one order), assign (right after a rank: every group or student is handed ONE of the items, first choices first, spread evenly; text = the projector line), chain (pass-and-add writing that travels between students and returns to its author: needs "start" plus a "hops" array of 1-6 hand-off instructions; optional "visibility": "all"|"tail"|"blind"), deal (everyone adds one item to each of 2-4 "piles" [{"label","prompt"}], shuffled and dealt so each student writes from a private hand of classmates' items; text = the writing instruction), pairs (a private exchange between two partners in rounds: text = what each writes first, "rounds" = 0-3 follow-up instructions with the same partner and the partner's latest piece in view, optional "sides" = two labels dealt one per partner, {{side}} and {{otherSide}} in the text; debate partners, rebuttals, argue-then-switch), roles (a job for every member of an existing group: "roles" = 2-8 job names, "method" random or choice, optional "tasks" = a shared to-do list, "Job: task" tags a line; needs a teams or pairs step before it; never rank then assign for jobs), draw (students draw on their devices, the teacher previews, then a one-at-a-time gallery on the projector: text = what to draw, and a drawing carries no words, so never ask students to label, caption, or write on it; optional "gallery" line and "timer"; a vote right after it shows the drawings as thumbnails and crowns the winner), summarize (the answers from the collect before it are summed up onto the projector: text = how, e.g. three themes with a quoted answer each; optional "heading" = the line the class reads; never names the AI), end. 3 to 8 steps, always finish with end.
+3. {"kind":"storyboard","storyboard":{"name":"...","description":"...","steps":[{"brick":"...","text":"..."}]},"why":"one sentence"} ONLY when nothing above fits. Bricks allowed: announce (optional "video" = a YouTube link the projector plays), collect (open answer; optional "video" too; optional "items" = a list you write, one dealt privately to each student, shown with {{thisStep.assigned}} in the text), collect-two (secret + clue), collect-choice (needs "choices" array), estimate (guess a number; a scale question such as "on a scale of 1 to 10" MUST carry "min" and "max", e.g. 1 and 10, so students tap a number on that scale; "answer" = the true number when the teacher named it or it is certain, with "unit" and "scoring" closest | graduated, so the step scores the closest guess; no answer = a poll of the guesses, no winner promised), reveal, reveal-one, vote, guessing-rounds (must come after a collect; add "guess": "who" when the class guesses who wrote each answer), rank (the class puts the collected answers in order; text = the ranking instruction; "items" = a list you write; "byGroup": true after a teams step when each group decides one order), assign (right after a rank: every group or student is handed ONE of the items, first choices first, spread evenly; text = the projector line), chain (pass-and-add writing that travels between students and returns to its author: needs "start" plus a "hops" array of 1-6 hand-off instructions; optional "visibility": "all"|"tail"|"blind"), deal (everyone adds one item to each of 2-4 "piles" [{"label","prompt"}], shuffled and dealt so each student writes from a private hand of classmates' items; text = the writing instruction), pairs (a private exchange between two partners in rounds: text = what each writes first, "rounds" = 0-3 follow-up instructions with the same partner and the partner's latest piece in view, optional "sides" = two labels dealt one per partner, {{side}} and {{otherSide}} in the text; debate partners, rebuttals, argue-then-switch), roles (a job for every member of an existing group: "roles" = 2-8 job names, "method" random or choice, optional "tasks" = a shared to-do list, "Job: task" tags a line; needs a teams or pairs step before it; never rank then assign for jobs), draw (students draw on their devices, the teacher previews, then a one-at-a-time gallery on the projector: text = what to draw, and a drawing carries no words, so never ask students to label, caption, or write on it; optional "gallery" line and "timer"; a vote right after it shows the drawings as thumbnails and crowns the winner), summarize (the answers from the collect before it are summed up onto the projector: text = how, e.g. three themes with a quoted answer each; optional "heading" = the line the class reads; never names the AI), end. 3 to 8 steps, always finish with end. Every word students read (text, choices, items, headings, the name) is in the language the idea was written in.
 
 HARD RULES:
 - Never invent an activity id, recipe id, param name, or brick that is not listed.

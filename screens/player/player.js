@@ -796,11 +796,16 @@ let earlyJokeTimer = null;
 // the activity moving on.
 let earlyJokePhase = null;
 let earlyJokeShownAt = 0;
+// The settle window is for a rolling room only (the server says so on
+// the joke, `settle`): in a room with a lobby the first id to arrive is
+// the first step starting, even a breath after the joke (2026-09-26, a
+// student who joined just before Start kept the joke over the question)
+let earlyJokeSettle = false;
 const EARLY_JOKE_SETTLE_MS = 2000;
 function earlyJokePhaseSeen(id) {
   if (earlyJokeCard.hidden || earlyJokeDismissed) return;
   if (id === null || id === undefined) return;
-  if (earlyJokePhase === null && Date.now() - earlyJokeShownAt < EARLY_JOKE_SETTLE_MS) {
+  if (earlyJokePhase === null && earlyJokeSettle && Date.now() - earlyJokeShownAt < EARLY_JOKE_SETTLE_MS) {
     earlyJokePhase = id;
     return;
   }
@@ -843,6 +848,7 @@ function showEarlyJoke(joke) {
   if (earlyJokeTimer) { clearTimeout(earlyJokeTimer); earlyJokeTimer = null; }
   earlyJokePhase = latestPhaseInstanceId;
   earlyJokeShownAt = Date.now();
+  earlyJokeSettle = !!joke.settle;
   earlyJokeText.textContent = joke.setup;
   earlyJokePunchline.textContent = typeof joke.punchline === 'string' ? joke.punchline : '';
   const waiting = !!earlyJokePunchline.textContent;

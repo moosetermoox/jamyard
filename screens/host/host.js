@@ -1839,9 +1839,19 @@ const matchCloseBtn = document.getElementById('match-close-btn');
 const matchResults = document.getElementById('match-results');
 const matchContinueBtn = document.getElementById('match-continue-btn');
 
-socket.on('match-start', ({ prompt, totalMatchers, timer, hostTemplate, show }) => {
+socket.on('match-start', ({ prompt, totalMatchers, timer, hostTemplate, show, leftItems }) => {
   showSection(matchSection);
   setRichText(matchPrompt, prompt || 'Match the pairs!');
+  // The terms go up while the class matches (2026-09-26, a reviewer saw
+  // only the count); the meanings stay on the students' screens
+  const termList = document.getElementById('match-terms');
+  if (termList) {
+    termList.textContent = '';
+    const terms = Array.isArray(leftItems) ? leftItems.filter(t => typeof t === 'string' && t.trim()) : [];
+    terms.forEach(text => { const li = document.createElement('li'); li.textContent = text; termList.appendChild(li); });
+    termList.classList.toggle('is-long', terms.length > 6);
+    termList.hidden = terms.length === 0;
+  }
   matchCounter.textContent = '0 of ' + totalMatchers + ' matched';
   matchCloseBtn.hidden = false;
   matchCloseBtn.disabled = false;
@@ -2827,8 +2837,8 @@ socket.on('vote-start', ({ mode, totalVoters, timer, proposals, hostTemplate, sh
   voteProposals.classList.toggle('is-long', list.length > 6);
   voteProposals.hidden = list.length === 0;
   showSection(voteSection);
-  voteModeDisplay.textContent = mode === 'head-to-head' ? 'Head-to-Head'
-    : (mode === 'approve' ? UiLang.t('Yes or no on each one') : 'Pick One');
+  voteModeDisplay.textContent = mode === 'head-to-head' ? UiLang.t('Head-to-Head')
+    : (mode === 'approve' ? UiLang.t('Yes or no on each one') : UiLang.t('Pick One'));
   voteCount.textContent = '0 of ' + totalVoters + ' votes received';
   applyTemplate(voteSection, hostTemplate);
   applyShow(show, {

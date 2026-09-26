@@ -57,7 +57,11 @@ export function buildChainViews(chainDatas) {
       if (!recipient) { complete = false; break; }
       const text = byPlayerPerPhase[i][recipient];
       if (text === undefined) {
-        complete = false;
+        // A hop the teacher hid (engine/moderation.js moved it to
+        // hiddenByPlayer) is left out on purpose, never "wifi happens"
+        const hiddenMap = chainDatas[i] && chainDatas[i].hiddenByPlayer;
+        const hiddenHop = !!(hiddenMap && Object.prototype.hasOwnProperty.call(hiddenMap, recipient));
+        if (!hiddenHop) complete = false;
       } else {
         steps.push(text);
       }

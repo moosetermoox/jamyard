@@ -94,18 +94,39 @@ export function hideStoredResponse(room, playerId, hidden) {
   const out = { collect: false, preview: false, revealOne: false };
   const engine = room && room.engine;
   if (!engine || !playerId) return out;
+  // A collect stores its answers twice: `responses` (the list every
+  // reveal, vote, and gallery reads) and `byPlayer` (the map a rotation
+  // and a return-to-author chain read, engine/phases/chain-reveal.js).
+  // A Hide moves the row out of both, or the hidden line still reaches
+  // the classmate it was written for (Someone's Got You, 2026-09-26).
+  const moveByPlayer = (data) => {
+    if (!data || !data.byPlayer || typeof data.byPlayer !== 'object') return false;
+    data.hiddenByPlayer = data.hiddenByPlayer && typeof data.hiddenByPlayer === 'object' ? data.hiddenByPlayer : {};
+    if (hidden) {
+      if (!Object.prototype.hasOwnProperty.call(data.byPlayer, playerId)) return false;
+      data.hiddenByPlayer[playerId] = data.byPlayer[playerId];
+      delete data.byPlayer[playerId];
+      return true;
+    }
+    if (!Object.prototype.hasOwnProperty.call(data.hiddenByPlayer, playerId)) return false;
+    data.byPlayer[playerId] = data.hiddenByPlayer[playerId];
+    delete data.hiddenByPlayer[playerId];
+    return true;
+  };
   const move = (data) => {
-    if (!data || !Array.isArray(data.responses)) return false;
+    if (!data) return false;
+    const mapMoved = moveByPlayer(data);
+    if (!Array.isArray(data.responses)) return mapMoved;
     data.hiddenResponses = Array.isArray(data.hiddenResponses) ? data.hiddenResponses : [];
     if (hidden) {
       const keep = data.responses.filter(r => !(r && r.playerId === playerId));
-      if (keep.length === data.responses.length) return false;
+      if (keep.length === data.responses.length) return mapMoved;
       data.hiddenResponses.push(...data.responses.filter(r => r && r.playerId === playerId));
       data.responses = keep;
       return true;
     }
     const back = data.hiddenResponses.filter(r => r && r.playerId === playerId);
-    if (back.length === 0) return false;
+    if (back.length === 0) return mapMoved;
     data.hiddenResponses = data.hiddenResponses.filter(r => !(r && r.playerId === playerId));
     data.responses = data.responses.concat(back);
     return true;

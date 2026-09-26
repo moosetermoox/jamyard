@@ -106,8 +106,17 @@ async function main() {
 
     // 3. Approve: the private reveal, then the wall counts one fewer
     const wallStart = waitForEvent(host, 'reveal-one-start', 10000);
+    const privateSeen = waitForEventOnAll(players, 'show-results', 8000);
     host.emit('preview-approve', { code });
     await waitForEvent(host, 'show-results', 8000).catch(() => null);
+    // 3a. The private reveal never carries the hidden line to the student
+    // it was written for (2026-09-26: a live room did, the chain read the
+    // byPlayer map the Hide had not touched), and never blames the wifi
+    const privateScreens = await privateSeen;
+    const privateText = JSON.stringify(privateScreens.map(p => p.content));
+    r.check(!privateText.includes(BACKHANDED), '3a. no student screen shows the hidden line');
+    r.check(!privateText.includes('wifi'), '3a. a hidden hop is left out on purpose, not blamed on the wifi');
+    r.check(privateScreens.filter(p => /No one got to add/.test(p.content)).length === 1, '3a. the one student whose line was hidden reads that nobody added to theirs');
     await wait(300);
     host.emit('advance-phase', { code });
     const wall = await wallStart;

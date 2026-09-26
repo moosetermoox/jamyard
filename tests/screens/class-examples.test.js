@@ -521,7 +521,7 @@ describe('the pages', () => {
     expect(swapped.config.phases.t1q1.message.startsWith('Which planet would you visit, and why?')).toBe(true);
     const server = await read('server.js');
     expect(server).toContain('edits.swaps = body.swaps.slice(0, 8)');
-    expect(server).toContain('if (recompiled || out.swapped) return res.json(');
+    expect(server).toContain('res.json({ config: working, changed, map: buildActivityMap(working), print: printFor({ ...working, name: config.name }) });');
     const js = await read('screens/make/make.js');
     expect(js).toContain('if (state.exampleSwaps) edits.swaps = state.exampleSwaps;');
     expect(js).toContain('exampleEdits && (exampleEdits.params || exampleEdits.swaps)');

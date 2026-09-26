@@ -80,8 +80,14 @@ import { createEarlyJokeState, dealJoke, jokeFor, splitJoke, isEarlyJokeOn, isEa
 
 // The joke as the student screen tells it: setup first, punchline held
 // back (engine/early-joke.js splitJoke); null when this seat got none.
-function jokePayload(text) {
-  return typeof text === 'string' ? splitJoke(text) : null;
+// `settle` tells the student screen the room is rolling (the current
+// step's own state lands right after the join, and is home for the
+// joke); in a room with a lobby the first step id to arrive folds it.
+function jokePayload(text, opts) {
+  if (typeof text !== 'string') return null;
+  const joke = splitJoke(text);
+  if (joke && opts && opts.rolling) joke.settle = true;
+  return joke;
 }
 import { gamePhases } from './config/game-phases.js';
 import { AIService } from './services/ai-service.js';
@@ -165,7 +171,8 @@ import { claimRole, autoFillRoles, buildRoleOutput } from './engine/phases/role-
 import { applyCheck, groupProgress, checklistResults } from './engine/phases/checklist-state.js';
 import { playerChecklistView, teacherDetail } from './engine/phase-handlers/checklist.js';
 import { continueLabelForPhase, closeLabelFor } from './engine/phases/continue-labels.js';
-import { stringsFor, translate } from './engine/i18n/index.js';
+import { stringsFor, translate, detectLanguage } from './engine/i18n/index.js';
+import { planProblem } from './engine/plan-check.js';
 import { isRolling, moreInputAhead, doneMessageFor } from './engine/phases/rolling.js';
 import { buildLiveTally } from './engine/phases/live-tally.js';
 import { isCorrectAnswer, scoreSoloQuiz } from './engine/phases/solo-quiz-scoring.js';
@@ -2689,8 +2696,9 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
     // The What happens map of the edited copy rides along, so the make
     // page can redraw it the moment the question changes (2026-09-13)
     // the print too, for a recipe example the make page draws instead of the template's
-    if (recompiled || out.swapped) return res.json({ config: working, changed, map: buildActivityMap(working), print: printFor({ ...working, name: config.name }) });
-    res.json({ config: working, changed, map: buildActivityMap(working) });
+    // The print rides along on every answer (2026-09-26: a talk-only
+    // activity's first question changes when its tiers do)
+    res.json({ config: working, changed, map: buildActivityMap(working), print: printFor({ ...working, name: config.name }) });
   } catch (error) {
     console.log(`[api/games/:gameId/make] Error: ${error.message}`);
     res.status(404).json({ error: error.message });
@@ -4037,7 +4045,7 @@ app.post('/api/games/from-description', async (req, res) => {
       });
     }
 
-    const recipe = getRecipe(match.recipe);
+    let recipe = getRecipe(match.recipe);
     if (!recipe) {
       // AI invented a recipe id — fall through to no-match.
       const unknownRecipe = `AI suggested an unknown recipe "${match.recipe}".`;
@@ -4049,7 +4057,7 @@ app.post('/api/games/from-description', async (req, res) => {
       });
     }
 
-    const { config, diagnostics } = compileRecipe(recipe, match.params || {});
+    let { config, diagnostics } = compileRecipe(recipe, match.params || {});
     if (!config) {
       const errors = diagnostics.filter(d => d.severity === 'error').map(d => d.message);
       console.log(`[api/games/from-description] AI params failed validation: ${errors.join('; ')}`);
@@ -4062,12 +4070,60 @@ app.post('/api/games/from-description', async (req, res) => {
       });
     }
 
-    const alternates = resolveAlternates(match.alternates, recipe.id);
+    let alternates = resolveAlternates(match.alternates, recipe.id);
+
+    // Can the plan run? The params validated, but the compiled activity
+    // may still be nothing (2026-09-26, a reviewer's Spanish idea matched
+    // Trivia Bluff with "prepared" facts and none written: a welcome, a
+    // scoreboard, a wrap-up). One try on the first runner-up, forced;
+    // then an honest no rather than a plan with no questions in it.
+    let problem = planProblem(config);
+    if (problem && alternates.length) {
+      const altRecipe = getRecipe(alternates[0].id);
+      if (altRecipe) {
+        console.log(`[api/games/from-description] ${recipe.id} compiled to nothing that runs (${problem}), trying ${altRecipe.id}`);
+        const again = await aiService.matchRecipe(description, [summarizeRecipe(altRecipe)], { forced: true });
+        const compiled = again.recipe ? compileRecipe(altRecipe, again.params || {}) : { config: null, diagnostics: [] };
+        if (compiled.config && !planProblem(compiled.config)) {
+          match = { ...again, alternates: [], ...(match.title && !again.title ? { title: match.title } : {}) };
+          recipe = altRecipe;
+          config = compiled.config;
+          diagnostics = compiled.diagnostics;
+          alternates = resolveAlternates(match.alternates, recipe.id);
+          problem = null;
+        }
+      }
+    }
+    if (problem) {
+      console.log(`[api/games/from-description] ${recipe.id} compiled to nothing that runs: ${problem}`);
+      return res.json({
+        noMatch: true,
+        reason: `${recipe.name} came out with nothing students could do. ${problem}`,
+        suggestion: 'Add the questions or facts to your idea, or plan it step by step.',
+        ideaId: await logIdea(req.body, { stage, result: 'none', target: recipe.id, targetName: recipe.name, reason: 'Compiled to nothing that runs: ' + problem, minutes: requestedMinutes })
+      });
+    }
 
     // A contextual name ("Snowball: Causes of WWI") beats the recipe's
     // generic one on a saved copy; the recipe name alone is left as is.
+    // Named before the language pass so the title follows it too.
     if (match.title && match.title.toLowerCase() !== String(recipe.name || '').toLowerCase()) {
       config.name = match.title;
+    }
+
+    // The class's language (2026-09-26): the AI fills the params in the
+    // idea's language, but the recipe's own prose (a vote question, a
+    // reveal heading, the end message) is English until it is put into
+    // that language here, and the language is pinned so every fixed label
+    // follows it too (the recipe's English words used to tip Auto to en).
+    const ideaLanguage = detectLanguage(description);
+    if (ideaLanguage !== 'en') {
+      try {
+        config = await aiService.translateActivityText({ config, language: ideaLanguage });
+      } catch (err) {
+        console.warn(`[api/games/from-description] could not put the words into ${ideaLanguage}: ${err.message}`);
+      }
+      config.language = ideaLanguage;
     }
 
     // The settings the idea named in plain words ("anonymous"), read by
@@ -4402,7 +4458,7 @@ io.on('connection', (socket) => {
         const language = room.engine ? room.engine.language : 'en';
         // The same joke as before, never a fresh roll (a refresh must not
         // re-deal, and a late reconnect must not steal an eleventh seat).
-        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(jokeFor(room.earlyJoke, socket.id)) });
+        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(jokeFor(room.earlyJoke, socket.id), { rolling: !!(room.engine && isRolling(room.engine.config)) }) });
 
         const hostSocketId = roomToHost.get(code);
         if (hostSocketId) {
@@ -4445,7 +4501,7 @@ io.on('connection', (socket) => {
       const joinPhase = room.engine ? room.engine.getCurrentPhase() : null;
       const earlyBird = isEarlyBirdJoin({ phaseType: joinPhase ? joinPhase.type : null, rolling: !!(room.engine && isRolling(room.engine.config)) });
       const joke = earlyBird ? dealJoke(room.earlyJoke, socket.id) : null;
-      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(joke) });
+      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(joke, { rolling: !!(room.engine && isRolling(room.engine.config)) }) });
 
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {

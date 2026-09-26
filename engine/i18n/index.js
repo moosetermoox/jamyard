@@ -326,7 +326,10 @@ export const STRINGS = {
     'See my score': 'Ver mi puntuación',
     'finished': 'terminaron',
     'working': 'trabajando',
-    'class average': 'promedio de la clase'
+    'class average': 'promedio de la clase',
+    // The projector's vote mode line (2026-09-26)
+    'Pick One': 'Elige uno',
+    'Head-to-Head': 'Uno contra uno'
   },
   fr: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -506,7 +509,10 @@ export const STRINGS = {
     'See my score': 'Voir mon score',
     'finished': 'ont terminé',
     'working': 'en cours',
-    'class average': 'moyenne de la classe'
+    'class average': 'moyenne de la classe',
+    // The projector's vote mode line (2026-09-26)
+    'Pick One': 'Choisis-en un',
+    'Head-to-Head': 'Face à face'
   },
   de: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -686,7 +692,10 @@ export const STRINGS = {
     'See my score': 'Mein Ergebnis ansehen',
     'finished': 'fertig',
     'working': 'arbeiten noch',
-    'class average': 'Klassendurchschnitt'
+    'class average': 'Klassendurchschnitt',
+    // The projector's vote mode line (2026-09-26)
+    'Pick One': 'Wähle eins',
+    'Head-to-Head': 'Eins gegen eins'
   },
   pt: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -866,7 +875,10 @@ export const STRINGS = {
     'See my score': 'Ver minha pontuação',
     'finished': 'terminaram',
     'working': 'trabalhando',
-    'class average': 'média da turma'
+    'class average': 'média da turma',
+    // The projector's vote mode line (2026-09-26)
+    'Pick One': 'Escolha um',
+    'Head-to-Head': 'Um contra um'
   },
   it: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1046,6 +1058,9 @@ export const STRINGS = {
     'See my score': 'Vedi il mio punteggio',
     'finished': 'hanno finito',
     'working': 'al lavoro',
-    'class average': 'media della classe'
+    'class average': 'media della classe',
+    // The projector's vote mode line (2026-09-26)
+    'Pick One': 'Scegline uno',
+    'Head-to-Head': 'Uno contro uno'
   }
 };
