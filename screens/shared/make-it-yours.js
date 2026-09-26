@@ -146,9 +146,36 @@ function compileWorkingConfig(config, params) {
 // editable in place, plus a topic box that has the AI write fresh ones.
 // Every question shows its ✓ answer; nothing is saved until the teacher
 // has the list in front of them (the wrong-facts review gate).
-function showQuizCustomizeDialog(game, config, recipeSummary, mount) {
+function showQuizCustomizeDialog(game, config, recipeSummary, mount, opts) {
+  opts = opts || {};
   var stamp = config.recipe;
   var questions = JSON.parse(JSON.stringify(stamp.params.questions || []));
+  // The topic the questions were last written for: it names the quiz on
+  // the projector when the title is still the template's ("Warm-up quiz"
+  // over a robotics quiz, a reviewer, 2026-09-26)
+  var writtenTopic = '';
+  function titleFor(params) {
+    if (!writtenTopic) return params.title;
+    var templateTitle = String((stamp.params && stamp.params.title) || '');
+    if (params.title && params.title !== templateTitle) return params.title;
+    var t = writtenTopic.trim().replace(/[.!?]+$/, '');
+    return t ? t.charAt(0).toUpperCase() + t.slice(1) : params.title;
+  }
+  // The page under the panel follows the list: the print above and the
+  // map below redraw from these questions (opts.onChange, the make page)
+  var changeTimer = null;
+  function notifyChange() {
+    if (!mount || typeof opts.onChange !== 'function') return;
+    clearTimeout(changeTimer);
+    changeTimer = setTimeout(function () {
+      var cleaned = cleanedList();
+      if (!cleaned.length || SetupKnobs.validateQuizList(cleaned).length) return;
+      var params = { questions: cleaned };
+      var title = titleFor(JSON.parse(JSON.stringify(stamp.params)));
+      if (title) params.title = title;
+      opts.onChange(params);
+    }, 400);
+  }
   var paceKnobs = SetupKnobs.knobsFor(recipeSummary, stamp).filter(function (k) {
     return k.kind !== 'count'; // the visible list IS the count
   });
@@ -244,7 +271,9 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount) {
   });
   modal.appendChild(addBtn);
 
+  listWrap.addEventListener('input', notifyChange);
   function renderQuestions() {
+    notifyChange();
     listWrap.textContent = '';
     listHeading.textContent = 'The questions (' + questions.length + '):';
     addBtn.disabled = questions.length >= 20;
@@ -441,8 +470,9 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount) {
           throw new Error(result.data.error || 'no questions came back');
         }
         questions = result.data.questions;
+        writtenTopic = topic;
         renderQuestions();
-        showStatus('Check every answer before you save, fix or drop anything that looks wrong.');
+        showStatus('Written. Fix or drop anything that looks wrong, then host it.');
         listWrap.scrollTop = 0;
       })
       .catch(function (err) {
@@ -468,6 +498,8 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount) {
     var params = JSON.parse(JSON.stringify(stamp.params));
     params.questions = cleaned;
     knobInputs.forEach(function (ki) { params[ki.knob.name] = ki.getValue(); });
+    var quizTitle = titleFor(params);
+    if (quizTitle) params.title = quizTitle;
     return compileWorkingConfig(config, params)
       .then(function (working) {
         working.name = game.name + ' (my version)';
@@ -493,6 +525,9 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount) {
     modal.style.maxWidth = '';
     modal.style.maxHeight = '';
     modal.style.overflowY = '';
+    // On the page the list is the page: no box scrolling inside the scroll
+    listWrap.style.maxHeight = 'none';
+    listWrap.style.overflowY = 'visible';
     mount.appendChild(modal);
     micsIn(modal);
     return { makeCopy: makeCopy };
@@ -1738,8 +1773,8 @@ function askOtherSubject(picked, onDone) { return window.ClassPicker.askOtherSub
     openDraftCopy: openDraftCopy,
     // A recipe's setup panel rendered into a page element (the Make it
     // yours page); returns { makeCopy(dest, extras) }.
-    mountPanel: function (panel, game, config, summary, mount) {
-      if (panel === 'quiz') return showQuizCustomizeDialog(game, config, summary, mount);
+    mountPanel: function (panel, game, config, summary, mount, opts) {
+      if (panel === 'quiz') return showQuizCustomizeDialog(game, config, summary, mount, opts);
       if (panel === 'bluff') return showBluffCustomizeDialog(game, config, summary, mount);
       if (panel === 'knobs') {
         var knobs = (window.SetupKnobs && summary) ? SetupKnobs.knobsFor(summary, config.recipe) : [];

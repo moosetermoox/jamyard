@@ -357,7 +357,7 @@
     var heading = document.getElementById('panel-heading');
     if (!section || !window.MakeItYours || !MakeItYours.mountPanel) return;
     heading.textContent = state.panel === 'bluff' ? 'The facts' : state.panel === 'knobs' ? 'Set it up' : 'The questions';
-    state.panelApi = MakeItYours.mountPanel(state.panel, { id: gameId, name: state.config.name || 'Activity' }, state.config, state.summary, holder);
+    state.panelApi = MakeItYours.mountPanel(state.panel, { id: gameId, name: state.config.name || 'Activity' }, state.config, state.summary, holder, { onChange: previewParams });
     if (!state.panelApi) return;
     section.hidden = false;
     // An example on the stamp is a change from the template: a knobs
@@ -366,6 +366,28 @@
       var touchedBefore = state.panelApi.touched;
       state.panelApi.touched = function () { return true || touchedBefore(); };
     }
+  }
+
+  // The panel's list changed (new questions written, one edited): the
+  // print above and What happens below redraw from a fresh compile of the
+  // recipe over these params (a reviewer wrote robotics questions and the
+  // preview kept asking about Canberra, 2026-09-26). Last answer wins.
+  var previewSeq = 0;
+  function previewParams(params) {
+    if (!params || typeof params !== 'object') return;
+    var seq = ++previewSeq;
+    var body = { params: params };
+    if (state.exampleSwaps) body.swaps = state.exampleSwaps;
+    fetch('/api/games/' + encodeURIComponent(gameId) + '/make', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || seq !== previewSeq) return;
+        if (data.print) applyFittedPrint(data.print);
+        if (data.map) redrawMap(data.map);
+      })
+      .catch(function () { /* the page keeps what it had */ });
   }
 
   // The timer chip turns into a small box (2:00 or 120), Enter or blur sets it

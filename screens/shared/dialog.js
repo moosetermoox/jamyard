@@ -112,5 +112,77 @@
     return { close: close, closeBtn: closeBtn };
   }
 
-  globalThis.Dialog = { enhance: enhance };
+  // The site's own yes-or-no box, in place of the browser's confirm()
+  // (a reviewer, 2026-09-26: it looked foreign and froze the page).
+  // Resolves true on the red button, false on Cancel, Escape, or the x.
+  // Carries its own look (one injected sheet), so any page can ask.
+  // opts: { title, message, confirmLabel, cancelLabel (null = none) }
+  var CONFIRM_CSS = [
+    '.dlg-confirm-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(42, 38, 32, 0.5); display: flex; align-items: center; justify-content: center; padding: 16px; }',
+    '.dlg-confirm { position: relative; width: 100%; max-width: 420px; padding: 22px 26px 20px; background: var(--t-paper, #FDF9F0); color: var(--t-ink, #2A2620); box-shadow: 0 0 0 2px var(--t-ink, #2A2620), 6px 8px 0 rgba(80, 60, 30, 0.14); transform: rotate(-0.4deg); font-family: var(--t-body, "DM Sans", Arial, sans-serif); }',
+    '.dlg-confirm h2 { margin: 0 0 8px; font-family: var(--t-display, "Bricolage Grotesque", Arial, sans-serif); font-weight: 800; font-size: 1.3rem; line-height: 1.2; overflow-wrap: anywhere; }',
+    '.dlg-confirm p { margin: 0; font-size: 1rem; line-height: 1.4; overflow-wrap: anywhere; }',
+    '.dlg-confirm-row { display: flex; justify-content: flex-end; gap: 12px; margin-top: 18px; }',
+    '.dlg-confirm-btn { border: none; cursor: pointer; padding: 9px 16px; font-family: var(--t-display, "Bricolage Grotesque", Arial, sans-serif); font-weight: 800; font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; background: var(--t-paper, #FDF9F0); color: var(--t-ink, #2A2620); box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20); transform: rotate(-0.6deg); transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1); }',
+    '.dlg-confirm-btn:hover { transform: rotate(-0.6deg) translateY(-3px); }',
+    '.dlg-confirm-go { background: var(--t-red, #E5482B); color: #fff; transform: rotate(0.6deg); }',
+    '.dlg-confirm-go:hover { transform: rotate(0.6deg) translateY(-3px); }',
+    '.dlg-confirm .dialog-close-btn { position: absolute; top: 8px; right: 10px; border: none; background: none; cursor: pointer; font-size: 1rem; font-weight: 800; color: var(--t-ink, #2A2620); }'
+  ].join('\n');
+  function ensureConfirmStyles() {
+    if (document.getElementById('dlg-confirm-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'dlg-confirm-styles';
+    style.textContent = CONFIRM_CSS;
+    document.head.appendChild(style);
+  }
+  function confirm(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      ensureConfirmStyles();
+      var overlay = document.createElement('div');
+      overlay.className = 'dlg-confirm-overlay';
+      var modal = document.createElement('div');
+      modal.className = 'dlg-confirm';
+      var h = document.createElement('h2');
+      h.textContent = opts.title || 'Are you sure?';
+      modal.appendChild(h);
+      if (opts.message) {
+        var p = document.createElement('p');
+        p.textContent = opts.message;
+        modal.appendChild(p);
+      }
+      var row = document.createElement('div');
+      row.className = 'dlg-confirm-row';
+      var answered = false;
+      var dlg;
+      function done(value) {
+        if (answered) return;
+        answered = true;
+        resolve(!!value);
+        if (dlg) dlg.close();
+      }
+      if (opts.cancelLabel !== null) {
+        var cancel = document.createElement('button');
+        cancel.type = 'button';
+        cancel.className = 'dlg-confirm-btn';
+        cancel.textContent = opts.cancelLabel || 'Cancel';
+        cancel.addEventListener('click', function () { done(false); });
+        row.appendChild(cancel);
+      }
+      var ok = document.createElement('button');
+      ok.type = 'button';
+      ok.className = 'dlg-confirm-btn dlg-confirm-go';
+      ok.textContent = opts.confirmLabel || 'OK';
+      ok.addEventListener('click', function () { done(true); });
+      row.appendChild(ok);
+      modal.appendChild(row);
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+      dlg = enhance(overlay, modal, { title: h.textContent, onClose: function () { done(false); } });
+      ok.focus();
+    });
+  }
+
+  globalThis.Dialog = { enhance: enhance, confirm: confirm };
 })();

@@ -36,6 +36,35 @@ export function playableQuestions(raw) {
 }
 
 /**
+ * Each student's choices in their own order (an outside reviewer,
+ * 2026-09-26: the AI wrote the right answer into slot A every time, and
+ * every student saw that same order). The shuffle is seeded by the
+ * student and the question, so a refresh shows the same order and the
+ * server keeps checking the answer by its words, never by position.
+ * @param {string[]} choices
+ * @param {string} seed  playerId plus the question index
+ * @returns {string[]}
+ */
+export function shuffledChoices(choices, seed) {
+  const list = Array.isArray(choices) ? choices.slice() : [];
+  let h = 2166136261;
+  const s = String(seed == null ? '' : seed);
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  let t = h >>> 0;
+  const rand = () => {
+    t = (t + 0x6D2B79F5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
+/**
  * Per-student status counts for the projector: who has started, who has
  * finished, plus a per-question correct rate (anonymous by construction).
  */
@@ -91,8 +120,13 @@ export function scoreSoloQuiz(progress, questions, pointsPerQuestion, nameOf = (
     correct: q.correct,
     pct: q.answered > 0 ? Math.round((q.correct / q.answered) * 100) : 0
   }));
-  const averagePct = results.length > 0 && questions.length > 0
-    ? Math.round((results.reduce((s, r) => s + r.correct, 0) / (results.length * questions.length)) * 100)
+  // The class average is over the questions that were ANSWERED, so a
+  // quiz the teacher ends early never reads as if the unanswered ones
+  // were wrong (an outside reviewer, 2026-09-26: one right answer out of
+  // one, shown as a 20% class average).
+  const answeredAll = results.reduce((s, r) => s + r.answered, 0);
+  const averagePct = answeredAll > 0
+    ? Math.round((results.reduce((s, r) => s + r.correct, 0) / answeredAll) * 100)
     : 0;
-  return { scores, results, perQuestion: rated, started, finished, averagePct };
+  return { scores, results, perQuestion: rated, started, finished, averagePct, answeredAll };
 }

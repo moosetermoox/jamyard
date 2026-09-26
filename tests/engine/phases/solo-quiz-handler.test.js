@@ -65,7 +65,7 @@ describe('solo-quiz onEnter', () => {
     expect(first.index).toBe(0);
     expect(first.total).toBe(2);
     expect(first.question).toBe('Capital of Australia?');
-    expect(first.choices).toEqual(['Sydney', 'Canberra']);
+    expect(first.choices.slice().sort()).toEqual(['Canberra', 'Sydney']); // each student's own order (2026-09-26)
     expect(first.score).toBe(0);
   });
 

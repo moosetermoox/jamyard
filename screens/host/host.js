@@ -2721,6 +2721,8 @@ socket.on('solo-quiz-progress', (data) => {
 
 socket.on('solo-quiz-results', (data) => {
   if (data.phaseInstanceId !== soloQuizInstanceId) return;
+  // The quiz is over: nobody else can start it, so the join card goes
+  hideRollingDoor();
   renderSoloQuizBoard(data, true);
   soloQuizCloseBtn.hidden = true;
   soloQuizContinueBtn.hidden = false;

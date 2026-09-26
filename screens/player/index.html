@@ -32,8 +32,10 @@
       <p id="early-joke-text" class="early-joke-text"></p>
       <!-- The punchline waits a beat (the server says how long) behind
            three thinking dots; the button appears with it. -->
-      <div id="early-joke-dots" class="holding-dots early-joke-dots" aria-hidden="true" hidden><span></span><span></span><span></span></div>
-      <p id="early-joke-punchline" class="early-joke-text early-joke-punchline" hidden></p>
+      <div class="early-joke-slot">
+        <div id="early-joke-dots" class="holding-dots early-joke-dots" aria-hidden="true" hidden><span></span><span></span><span></span></div>
+        <p id="early-joke-punchline" class="early-joke-text early-joke-punchline" hidden></p>
+      </div>
       <button id="early-joke-dismiss" class="early-joke-dismiss" type="button">Got it</button>
     </div>
   </div>

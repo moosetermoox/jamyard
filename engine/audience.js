@@ -8,7 +8,7 @@
  *   class                "Shown to the class."
  *   class-after-review   "Shown to the class after your teacher reviews it."
  *   ai                   "The AI reads these and sums them up for the class."
- *   teacher              "Only your teacher sees this."
+ *   teacher              "Only your teacher sees your answers."
  * plus "Names are hidden." in anonymous rooms, and a next-step hint on the
  * waiting screen when the following step hands the answer to a classmate.
  *
@@ -43,7 +43,7 @@ export const AUDIENCE_LABELS = Object.freeze({
   [AUDIENCE.CLASSMATE_THEN_CLASS]: 'One classmate will read this, then the class sees it.',
   [AUDIENCE.CLASSMATE_THEN_CLASS_AFTER_REVIEW]: 'One classmate will read this, then the class sees it after your teacher reviews it.',
   [AUDIENCE.AI]: 'These get summed up for the class.',
-  [AUDIENCE.TEACHER]: 'Only your teacher sees this.'
+  [AUDIENCE.TEACHER]: 'Only your teacher sees your answers.'
 });
 
 export const NAMES_HIDDEN_LABEL = 'Names are hidden.';
