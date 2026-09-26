@@ -220,6 +220,83 @@ body.is-opening .print-screen { opacity: 0.55; }
   max-width: 460px;
 }
 
+/* A rating step's scales on the print: one card a scale, the student
+   screen's shape (name, end words, a row of numbers), the name and the
+   end words as boxes with a dashed line under, an x in the corner */
+.print-scales { display: flex; flex-direction: column; gap: 12px; max-width: 560px; }
+.print-scales[hidden] { display: none; }
+.print-scale-list { display: flex; flex-direction: column; gap: 10px; }
+.print-scale {
+  position: relative;
+  padding: 12px 40px 12px 14px;
+  background: var(--t-paper);
+  box-shadow: 0 2px 3px rgba(50, 35, 15, 0.22), 0 0 0 2px var(--t-ink);
+}
+.print-scale-label, .print-scale-end {
+  display: block;
+  border: 0;
+  border-bottom: 2px dashed rgba(110, 75, 40, 0.35);
+  background: transparent;
+  color: var(--t-ink);
+  outline: none;
+  min-width: 0;
+}
+.print-scale-label {
+  width: 100%;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 20px;
+  padding: 2px 4px 4px;
+  margin-bottom: 8px;
+}
+.print-scale-label:focus, .print-scale-end:focus { border-bottom-color: var(--t-ink); background: var(--t-sanded); }
+.print-scale-ends { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; padding: 0 2px; }
+.print-scale-end { width: 46%; font-size: 14px; color: var(--t-muted, #6b5a48); padding: 1px 4px 3px; }
+.print-scale-end-high { text-align: right; }
+.print-scale-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+.print-rate-btn {
+  flex: 1;
+  min-width: 36px;
+  padding: 9px 0;
+  text-align: center;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 16px;
+  color: var(--t-paper);
+  background: var(--t-ink);
+  clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
+}
+.print-scale-x {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--t-sanded);
+  color: var(--t-ink);
+  font-size: 18px;
+  line-height: 26px;
+  text-align: center;
+  cursor: pointer;
+}
+.print-scale-x:hover { background: var(--t-yellow); }
+.print-scale-x:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+.print-scale-add {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  font-family: var(--t-body);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--t-ink);
+  padding: 4px 2px;
+  cursor: pointer;
+  border-bottom: 2px dashed rgba(110, 75, 40, 0.35);
+}
+.print-scale-add:hover { border-bottom-color: var(--t-ink); }
+
 .print-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; max-width: 560px; }
 
 .print-choice {
