@@ -99,7 +99,7 @@ describe('make page: make it fit your class', () => {
     expect(js).toContain("box.box.addEventListener('input', scheduleMap);");
     expect(js).toContain('scheduleMap();\n    };');
     expect(js).toContain('redrawMap(d.map);');
-    expect(server).toContain('res.json({ config: working, changed, map: buildActivityMap(working) });');
+    expect(server).toContain('res.json({ config: working, changed, map: buildActivityMap(working), print: printFor({ ...working, name: config.name }) });');
     // Tier two: the fitted copy's map, and the doors reuse the copy
     expect(server).toContain("app.post('/api/games/map'");
     expect(js).toContain("state.fitted = { key: key, config: revised };");
