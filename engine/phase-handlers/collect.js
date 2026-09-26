@@ -355,6 +355,18 @@ function buildPairwiseAssignment(ctx) {
   return { pairs, assignment };
 }
 
+/**
+ * Seconds left on this step's clock for a student who reconnects mid-step,
+ * or null when the step has no clock (rolling start, no timer, or the
+ * deadline already passed: the projector is about to close it).
+ */
+export function secondsLeft(room, now = Date.now()) {
+  const ends = room && room.phaseState && room.phaseState.timerEndsAt;
+  if (!ends) return null;
+  const left = Math.ceil((ends - now) / 1000);
+  return left > 0 ? left : null;
+}
+
 registerHandler('collect', {
   async onEnter(ctx) {
     const { phase, engine } = ctx;
@@ -365,6 +377,13 @@ registerHandler('collect', {
     // Rolling start: students begin at different moments, so a shared
     // countdown means nothing; the teacher ends the step.
     const timer = isRolling(engine.config) ? null : (phase.timer || null);
+    // The projector's clock closes this step, but a student who refreshes
+    // mid-step needs the time left too (a phone that locked came back with
+    // no timer, 2026-09-26): remember the deadline, "A bit more time"
+    // pushes it back (server.js extend-timer), onReconnect reads it.
+    if (timer && ctx.room && ctx.room.phaseState) {
+      ctx.room.phaseState.timerEndsAt = Date.now() + timer * 1000;
+    }
 
     // Clear previous responses for multi-round games
     for (const p of engine.players.list()) {
@@ -509,7 +528,7 @@ registerHandler('collect', {
         reconPrefill = tailOfWords(reconPrefill, ctx.phase.showTail);
       }
       socket.emit(EVENTS.GAME_STARTED, {
-        prompt: playerPrompt, image, video, timer: null,
+        prompt: playerPrompt, image, video, timer: secondsLeft(ctx.room),
         displayDrawing: resolveDisplayDrawing(ctx.phase, ctx.engine),
         fields: ctx.phase.fields || null,
         phaseId: ctx.phase.id,

@@ -2743,3 +2743,49 @@ body.in-bench .rolling-door-count { font-size: 13px; }
 body.in-bench.rolling section.active { padding-right: 240px; }
 body.in-bench #room-code .code-block { width: 62px; height: 72px; font-size: 38px; }
 body.in-bench .qr-image { width: 160px; height: 160px; }
+
+/* An old bookmark to an activity that is gone: the note over the picker
+   (host.js games-list, 2026-09-26) */
+.game-missing-note {
+  margin: 0 auto 18px;
+  max-width: 34em;
+  padding: 10px 14px;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--t-ink, #2A2620);
+  background: var(--t-paper, #FDF9F0);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), inset 0 0 0 3px var(--t-yellow, #F5C518);
+}
+.game-missing-note[hidden] { display: none; }
+
+/* Hide one entry from the private review list (never the whole class's
+   work): small, beside the name or under the thumbnail */
+.preview-hide-btn {
+  display: inline-block;
+  width: auto;
+  min-height: 0;
+  margin: 0 0 0 8px;
+  padding: 8px 16px;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  color: var(--t-ink, #2A2620);
+  background: var(--t-paper, #FDF9F0);
+  border: none;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20);
+  cursor: pointer;
+}
+.preview-hide-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* A phone-sized host (a tablet, really): the code is the one thing the
+   class reads off it, so it gets the width (a reviewer, 2026-09-26) */
+@media (max-width: 480px) {
+  #room-code .code-block { width: 72px; height: 88px; font-size: 48px; }
+  #room-code .code-block-1 { height: 92px; }
+  #room-code .code-block-2 { height: 86px; }
+  #room-code .code-block-3 { height: 90px; }
+}

@@ -620,9 +620,14 @@ function renderEntries(submissions) {
       kickBtn.textContent = 'Kick';
       kickBtn.title = 'Remove this student from the room, they cannot rejoin this session';
       kickBtn.addEventListener('click', function () {
-        if (confirm('Remove ' + sub.name + '? They can\'t rejoin this session.')) {
-          socket.emit('moderate-kick', { code: currentCode, playerId: sub.playerId });
-        }
+        // The site's own yes-or-no box (never the browser's: it freezes
+        // the page and reads as foreign, standing rule 2026-09-26)
+        var ask = window.Dialog && Dialog.confirm
+          ? Dialog.confirm({ title: 'Remove ' + sub.name + '?', message: 'They can\'t rejoin this session.', confirmLabel: 'Remove', cancelLabel: 'Keep them' })
+          : Promise.resolve(true);
+        ask.then(function (yes) {
+          if (yes) socket.emit('moderate-kick', { code: currentCode, playerId: sub.playerId });
+        });
       });
       actions.appendChild(kickBtn);
 
@@ -758,6 +763,7 @@ socket.on('checklist-results', function () {
 
 function renderPreview(content, responses) {
   previewBlock.hidden = false;
+  previewHasDrawings = !!(responses && responses.some(function (x) { return x && x.drawing; }));
   previewText.textContent = content || '(no content)';
   approveBtn.disabled = false;
   rejectBtn.disabled = false;
@@ -812,9 +818,25 @@ approveBtn.addEventListener('click', function () {
   socket.emit('preview-approve', { code: currentCode, phaseInstanceId: currentPhaseInstanceId });
 });
 
-rejectBtn.addEventListener('click', function () {
+// Try again starts the step over for the WHOLE class: every answer gone,
+// every pad blank. It sits next to Approve on a phone, so it asks first
+// (a reviewer, 2026-09-26); Hide on one line is the tool for one bad entry.
+var previewHasDrawings = false;
+function sendReject() {
   rejectBtn.disabled = true;
   socket.emit('preview-reject', { code: currentCode, phaseInstanceId: currentPhaseInstanceId });
+}
+rejectBtn.addEventListener('click', function () {
+  if (window.Dialog && Dialog.confirm) {
+    var thing = previewHasDrawings ? 'drawing' : 'answer';
+    Dialog.confirm({
+      title: 'Start this step over?',
+      message: 'Every ' + thing + ' so far is thrown out and the class does the step again. To keep one ' + thing + ' off the class screen, use Hide on that one instead.',
+      confirmLabel: 'Start over', cancelLabel: 'Keep them'
+    }).then(function (yes) { if (yes) sendReject(); });
+    return;
+  }
+  sendReject();
 });
 
 // --- Step controls ---

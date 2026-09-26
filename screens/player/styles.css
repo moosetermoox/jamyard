@@ -175,6 +175,10 @@ input:focus, textarea:focus {
   display: none;
 }
 
+/* Answered (a stroke, a keystroke): quiet, but still holding its room so
+   Submit under it does not jump */
+.response-notice.is-spent { visibility: hidden; }
+
 #room-code-input {
   font-size: 2rem;
   letter-spacing: 0.2em;
@@ -1567,6 +1571,21 @@ textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width
 }
 .audience-line[hidden] { display: none; }
 
+/* Why this step is up again: the teacher started it over from the review
+   screen (server-sent, one step only) */
+.step-note {
+  margin: -4px auto 14px;
+  padding: 10px 14px;
+  max-width: 34em;
+  background: var(--t-paper, #fffdf7);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), inset 0 0 0 3px var(--t-yellow, #F5C518);
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--t-ink, #2A2418);
+}
+.step-note[hidden] { display: none; }
+
 /* What the partner wrote (a pairs round): a paper card of its own under
    the instruction, in reading weight, so it never reads as the prompt. */
 .partner-note {
@@ -2019,7 +2038,16 @@ input::placeholder, textarea::placeholder {
   box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), 0 0 0 6px var(--t-paper);
 }
 
-.draw-swatch-active { outline: 3px solid var(--t-ink); outline-offset: 1px; }
+/* The picked colour: a paper gap then an ink ring, and a touch bigger, so
+   it reads on every swatch (an ink outline on a black swatch was invisible,
+   a phone reviewer 2026-09-26) */
+.draw-swatch-active {
+  outline: none;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), 0 0 0 3px var(--t-paper), 0 0 0 6px var(--t-ink);
+  transform: scale(1.12);
+}
+/* Plain squares (the torn-paper clip on Totem buttons would clip the ring) */
+.draw-swatch { clip-path: none; transition: transform 120ms ease, box-shadow 120ms ease; }
 
 .draw-tool-btn {
   font-family: 'DM Sans', Arial, sans-serif;
@@ -2488,4 +2516,15 @@ body.wh-empty .wh-word:hover { background: none; }
   color: #857A66;
   filter: none;
   transform: none;
+}
+
+/* A phone: the joke bubble took a third of the joined screen (a reviewer,
+   2026-09-26). Smaller teller, smaller words, same bubble. */
+@media (max-width: 480px) {
+  .early-joke { gap: 8px; margin-bottom: 10px; }
+  .early-joke-teller { flex-basis: 54px; height: 44px; }
+  .early-joke-teller .meadow-block { zoom: 1.3; left: 15px; top: 21px; }
+  .early-joke-bubble { padding: 8px 10px; }
+  .early-joke-label { font-size: 0.7rem; margin-bottom: 3px; }
+  .early-joke-text { font-size: 0.95rem; margin-bottom: 6px; }
 }

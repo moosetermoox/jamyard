@@ -78,6 +78,14 @@ registerHandler('preview', {
     } else if (event === EVENTS.PREVIEW_REJECT) {
       console.log(`[preview-reject] Host rejected preview in room ${code}`);
       if (currentPhase.rejectNext) {
+        // The class is sent back to do the step again: say so on their
+        // screens, or a blank pad with no word why reads as a lost answer
+        // (a reviewer on a phone, 2026-09-26). The line rides ahead of
+        // the next step's prompt; the student screen shows it over it.
+        const again = translate(engine.language, 'Your teacher asked everyone to do this step again.');
+        for (const player of engine.players.list()) {
+          ctx.emitToPlayer(player.id, EVENTS.STEP_NOTE, { message: again });
+        }
         await ctx.advanceTo(currentPhase.rejectNext);
       }
     } else if (event === EVENTS.PREVIEW_EDIT) {
