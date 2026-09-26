@@ -98,6 +98,7 @@
     contentKnobs: false,   // the knobs panel holds a list or a topic to type
     anonymous: false,      // the two switch rows
     earlyJoke: true,
+    language: null,        // the class's language code when "In French" is picked (the copy is translated on the way out)
     fitted: null,          // { key, config }: the AI-fitted copy "See how it reads" made, reused by the doors while nothing changed
     fitting: false,        // "See how it reads" is running
     busy: false,
@@ -558,8 +559,50 @@
     joke.a.appendChild(on);
     joke.a.appendChild(off);
     fixedHolder.appendChild(joke);
+
+    // Words on the students' screens (a World languages class with a
+    // language the labels know): as written, or put into that language on
+    // the way to the copy (the server's translate route, one AI call). The
+    // page and the yard keep the words as written; only the copy changes.
+    var classLang = classLanguage();
+    if (classLang && classUseful) {
+      var words = rowEl("Words on the students' screens");
+      var asWritten = chipButton('As written', !state.language);
+      asWritten.addEventListener('click', function () { state.language = null; buildRows(); });
+      var inLang = chipButton('In ' + classLang.name, state.language === classLang.code);
+      inLang.title = 'Every word students read is put into ' + classLang.name + ' when you host or try it';
+      inLang.addEventListener('click', function () { state.language = classLang.code; buildRows(); });
+      words.a.appendChild(asWritten);
+      words.a.appendChild(inLang);
+      fixedHolder.appendChild(words);
+    }
     // A switch is an edit too: the fitted copy (if any) is stale now
     updateFitFoot();
+  }
+
+  // The class's language when the fixed labels have a table for it
+  // (engine/i18n): Spanish, French, German, Portuguese, Italian. Mandarin
+  // or a typed language has no table, so no row.
+  var CLASS_LANGUAGES = { Spanish: 'es', French: 'fr', German: 'de', Portuguese: 'pt', Italian: 'it' };
+  function classLanguage() {
+    var profile = window.TeacherProfile && TeacherProfile.get ? TeacherProfile.get() : null;
+    var name = profile && typeof profile.languageText === 'string' ? profile.languageText.trim() : '';
+    var code = CLASS_LANGUAGES[name];
+    return code ? { name: name, code: code } : null;
+  }
+
+  // Put every word into the class's language on the way to the copy
+  function inClassLanguage(config) {
+    if (!state.language) return Promise.resolve(config);
+    return fetch('/api/games/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: config, language: state.language })
+    }).then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+      .then(function (result) {
+        if (!result.ok || !result.data || !result.data.config) throw new Error((result.data && result.data.error) || 'could not put the words into that language');
+        return result.data.config;
+      });
   }
 
   function scheduleQuestions(now) {
@@ -1768,6 +1811,10 @@
   // else, a built-in, becomes a new copy in My yard.
   var isOwn = !!(window.MyGames && MyGames.has && MyGames.has(gameId));
   function saveAndGo(config, dest) {
+    return inClassLanguage(config).then(function (ready) { return saveReady(ready, dest); });
+  }
+
+  function saveReady(config, dest) {
     if (!isOwn) return MakeItYours.saveCopyAndReturn(config, dest);
     delete config.featured;
     return fetch('/api/games/' + encodeURIComponent(gameId), {
@@ -1799,7 +1846,7 @@
       : dest === 'host' ? 'Opening your room…' : 'Opening the designer…';
     el.openingText.textContent = withAi
       ? 'Fitting the whole activity to your class. About twenty seconds.'
-      : 'Your words are in.';
+      : state.language ? 'Putting every word into the class\'s language. About ten seconds.' : 'Your words are in.';
     el.tryBtn.disabled = true;
     el.hostBtn.disabled = true;
     el.cancel.hidden = false;
@@ -1883,7 +1930,8 @@
         // The server names a copy after its new question; a copy that is
         // already the teacher's keeps its name.
         if (isOwn) working.name = state.config.name || working.name;
-        if (!changed && !withAi) {
+        // Untouched = the original runs, no copy; a language picked is a change
+        if (!changed && !withAi && !state.language) {
           if (dest === 'designer' && !isOwn) {
             working.name = (state.config.name || 'Activity') + ' (my version)';
             return MakeItYours.openDraftCopy(working);

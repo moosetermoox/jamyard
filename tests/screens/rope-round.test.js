@@ -82,6 +82,27 @@ describe('the projector count follows a late joiner', () => {
   });
 });
 
+describe('the make page puts the words into the class\'s language, on request', () => {
+  it('a World languages class with a table gets one row of chips, As written / In French', () => {
+    const make = read('screens/make/make.js');
+    expect(make).toContain("var words = rowEl(\"Words on the students' screens\");");
+    expect(make).toContain("var CLASS_LANGUAGES = { Spanish: 'es', French: 'fr', German: 'de', Portuguese: 'pt', Italian: 'it' };");
+    expect(make).toContain("chipButton('In ' + classLang.name, state.language === classLang.code)");
+  });
+  it('every door goes through the translate route when a language is picked, and a picked language counts as a change', () => {
+    const make = read('screens/make/make.js');
+    expect(make).toContain("return inClassLanguage(config).then(function (ready) { return saveReady(ready, dest); });");
+    expect(make).toContain("fetch('/api/games/translate', {");
+    expect(make).toContain('if (!changed && !withAi && !state.language) {');
+  });
+  it('the route translates every word and pins the language', () => {
+    const server = read('server.js');
+    expect(server).toContain("app.post('/api/games/translate', async (req, res) => {");
+    expect(server).toContain('const translated = await aiService.translateActivityText({ config, language });');
+    expect(server).toContain('translated.language = language;');
+  });
+});
+
 describe('small things from the round', () => {
   it('the active section keeps a strip clear under the corner chip', () => {
     expect(read('screens/host/styles.css')).toContain('body.in-activity section.active { padding-bottom: 72px; }');

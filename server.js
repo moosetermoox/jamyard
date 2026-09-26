@@ -3631,6 +3631,25 @@ app.post('/api/games/:gameId/sample-answers', async (req, res) => {
   }
 });
 
+// The make page's "Words on the students' screens" row (2026-09-26, a
+// reviewer with a 6-8 French class got English): every word the activity
+// shows is put into the class's language on the way to the copy, and the
+// language is pinned so the fixed labels follow. The yard and the make
+// page keep the authored English; only the copy changes. One Haiku call.
+app.post('/api/games/translate', async (req, res) => {
+  try {
+    const { config, language } = req.body || {};
+    if (!config || !config.phases) return res.status(400).json({ error: 'Missing config or phases' });
+    if (!LANGUAGE_CODES.includes(language) || language === 'en') return res.status(400).json({ error: 'Unknown language' });
+    const translated = await aiService.translateActivityText({ config, language });
+    translated.language = language;
+    res.json({ config: translated });
+  } catch (err) {
+    console.error('[api/games/translate]', err.message);
+    res.status(500).json({ error: 'Could not put the words into that language: ' + err.message });
+  }
+});
+
 app.post('/api/games/revise', async (req, res) => {
   try {
     if (!requireRealAI(res)) return;
