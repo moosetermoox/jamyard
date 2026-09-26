@@ -386,7 +386,7 @@ describe('the pages', () => {
     // the fit is told the example's choices are the teacher's
     expect(js).toContain('The teacher set the answer choices in step');
     // never on a recipe panel's words
-    expect(js).toContain('if (!state.print || state.panel) return;');
+    expect(js).toContain('if (!ex || !ex.prefill || !state.print || state.panel) return false;');
     // the profile's short form has one home
     expect(js).toContain('P.short()');
     const css = await read('screens/make/styles.css');

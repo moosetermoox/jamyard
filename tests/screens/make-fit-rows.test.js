@@ -70,7 +70,7 @@ describe('make page: make it fit your class', () => {
     expect(js).toContain('if (request !== state.questionsRequest) return;');
     // A quiz or bluff panel owns the words: nothing to ask
     // a knobs panel that holds the words (a lines, text, tags, or list knob) owns them too
-    expect(js).toContain("state.noQuestions = !!(state.panel && (state.panel !== 'knobs' || state.contentKnobs));");
+    expect(js).toContain("state.noQuestions = !!(state.panel && (state.panel !== 'knobs' || state.contentKnobs)) ||");
     expect(js).toContain("state.contentKnobs = knobs.some(function (k) { return k.kind === 'lines' || k.kind === 'text' || k.kind === 'tags' || k.kind === 'list'; });");
   });
 
@@ -133,8 +133,8 @@ describe('make page: make it fit your class', () => {
     expect(html).toContain('id="pairs-section"');
     expect(html).toContain('<h2 class="panel-heading">The pairs</h2>');
     // Under the fit rows, above What happens (owner 2026-09-13)
-    expect(html.indexOf('id="fit-section"')).toBeLessThan(html.indexOf('id="pairs-section"'));
-    expect(html.indexOf('id="pairs-section"')).toBeLessThan(html.indexOf('id="map-section"'));
+    expect(html.indexOf('id="pairs-section"')).toBeLessThan(html.indexOf('id="fit-section"')); // the pairs are what matters (owner 2026-09-26)
+    expect(html.indexOf('id="fit-section"')).toBeLessThan(html.indexOf('id="map-section"'));
     expect(js).toContain('if (!state.panel) mountPairs(print.pairs);');
     expect(js).toContain("x.setAttribute('aria-label', 'Drop this pair');");
     expect(js).toContain("add.textContent = '+ pair';");

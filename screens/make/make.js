@@ -212,6 +212,9 @@
     }
     render();
     applyExample();
+    // What the boxes hold now (the template's or the example's words): a
+    // class change may replace these, never words the teacher typed
+    state.wordsSnapshot = wordsNow();
   }).catch(function (err) {
     fail(err.message || 'Could not open this activity.');
     el.doors.hidden = true;
@@ -229,9 +232,9 @@
     // visibly does something)
     if (window.MakeItYours && MakeItYours.renderClassPicker) {
       MakeItYours.renderClassPicker(el.classHolder, {
-        hint: 'The questions above update to fit your class.',
-        onChange: function () { buildRows(); scheduleQuestions(); },
-        onDone: function () { buildRows(); scheduleQuestions(true); toggleClassPicker(false); }
+        hint: 'The words above change to an example for your class, when the yard has one.',
+        onChange: function () { applyClassExample(); buildRows(); scheduleQuestions(); },
+        onDone: function () { applyClassExample(); buildRows(); scheduleQuestions(true); toggleClassPicker(false); }
       });
     }
     state.anonymous = !!config.anonymous;
@@ -244,7 +247,11 @@
     // Work Day's jobs and tasks, Doodle Bluff's phrases) owns them; the
     // AI's fit questions would ask about the same words twice (owner,
     // 2026-09-13: "the make it fit your class questions seem redundant")
-    state.noQuestions = !!(state.panel && (state.panel !== 'knobs' || state.contentKnobs));
+    state.noQuestions = !!(state.panel && (state.panel !== 'knobs' || state.contentKnobs)) ||
+      // a talk-only activity (Closer): every question is typed above, so a
+      // tone question the AI would act on out of sight adds nothing (owner
+      // 2026-09-26: "I'm not sure what that actually does")
+      !!(state.print && Array.isArray(state.print.talkSteps) && state.print.talkSteps.length);
     buildRows();
     loadQuestions();
 
@@ -504,6 +511,9 @@
     fixedHolder.textContent = '';
 
     var cls = classValue();
+    // A talk-only activity has nothing a class could change here (owner
+    // 2026-09-26: grade and subject on Closer "seems like a useless setting")
+    var classUseful = !(state.print && Array.isArray(state.print.talkSteps) && state.print.talkSteps.length);
     var classRow = rowEl('Your class');
     var classChip = chipButton(cls || 'Not set', !!cls, !cls);
     classChip.addEventListener('click', function () { toggleClassPicker(); });
@@ -514,7 +524,13 @@
     link.textContent = cls ? 'change' : 'set it';
     link.addEventListener('click', function (e) { e.preventDefault(); toggleClassPicker(); });
     classRow.a.appendChild(link);
-    fixedHolder.appendChild(classRow);
+    if (state.classNote) {
+      var classNote = document.createElement('p');
+      classNote.className = 'fit-class-note';
+      classNote.textContent = state.classNote;
+      classRow.a.appendChild(classNote);
+    }
+    if (classUseful) fixedHolder.appendChild(classRow);
 
     var names = rowEl('Student names');
     var shown = chipButton('Shown', !state.anonymous);
@@ -936,7 +952,65 @@
       showExampleNote(ex);
       return;
     }
-    if (!state.print || state.panel) return;
+    if (applyPrefill(ex)) {
+      state.example = ex;
+      showExampleNote(ex);
+      scheduleMap();
+      // the fit questions were asked of the template; ask again knowing the example
+      if (ex.prefill.pairs || ex.prefill.choices) scheduleQuestions(true);
+    }
+  }
+
+  // The words the page holds right now, to tell untouched boxes from typed ones
+  function wordsNow() {
+    return JSON.stringify({
+      prompt: state.promptBox ? state.promptBox.value : null,
+      fields: Object.keys(state.fieldBoxes || {}).map(function (k) { return state.fieldBoxes[k].value; }),
+      pairs: pairsValue(),
+      choices: choicesValue()
+    });
+  }
+
+  // "Your class" changed on this page (owner 2026-09-26: picking a class
+  // did nothing visible on Vocab Match): the words become that class's
+  // example from the yard, the way a card does, as long as the teacher has
+  // not typed over them; a class with no ready example says so.
+  function applyClassExample() {
+    if (!window.ClassExamples || !window.TeacherProfile) return;
+    var profile = TeacherProfile.get ? TeacherProfile.get() : null;
+    var ex = profile ? ClassExamples.pick(gameId, profile, 0) : null;
+    if (state.panel || state.exampleParams) {
+      state.classNote = 'The AI uses your class when it writes for you.';
+      return;
+    }
+    if (!ex || !ex.prefill) {
+      var hasBand = !!(profile && profile.gradeBand);
+      var hasSubject = !!(profile && Array.isArray(profile.subjects) && profile.subjects.length);
+      state.classNote = !profile || (!hasBand && !hasSubject) ? ''
+        : !hasBand ? 'Pick a grade band too and the words above switch to an example for your class.'
+        : !hasSubject ? 'Pick a subject too and the words above switch to an example for your class.'
+        : 'No ready example for this class yet. The words above stay as they are; the AI uses your class when it writes for you.';
+      return;
+    }
+    var untouched = !state.wordsSnapshot || state.wordsSnapshot === wordsNow();
+    if (!untouched) {
+      state.classNote = 'You changed the words above, so they stay. The AI uses your class when it writes for you.';
+      return;
+    }
+    var old = document.getElementById('example-note');
+    if (old) old.remove();
+    if (applyPrefill(ex)) {
+      state.example = ex;
+      state.wordsSnapshot = wordsNow();
+      showExampleNote(ex);
+      state.classNote = '';
+      scheduleMap();
+    }
+  }
+
+  // Put an example's words into the page's boxes; true when any landed
+  function applyPrefill(ex) {
+    if (!ex || !ex.prefill || !state.print || state.panel) return false;
     var pf = ex.prefill;
     var applied = false;
     if (pf.prompt && state.promptBox) { state.promptBox.value = pf.prompt; applied = true; }
@@ -958,12 +1032,7 @@
     if (pf.choices && state.choiceBoxes.length) {
       state.choiceBoxes.forEach(function (box, i) { if (pf.choices[i]) { box.value = pf.choices[i]; applied = true; } });
     }
-    if (!applied) return;
-    state.example = ex;
-    showExampleNote(ex);
-    scheduleMap();
-    // the fit questions were asked of the template; ask again knowing the example
-    if (pf.pairs || pf.choices) scheduleQuestions(true);
+    return applied;
   }
 
   function showExampleNote(ex) {
@@ -1069,28 +1138,203 @@
 
   // --- The questions of a talk-only activity (Closer), tier by tier,
   // inside one fold: read only, the steps stay the designer's.
+  // Editable since 2026-09-26 (owner): each question a box, an x that keeps
+  // at least one, "+ question" per tier, and a chip when the tier pairs
+  // everyone with someone new. Above the tiers, the library as one row of
+  // sets: tap one and every tier fills from it (owner, later the same day:
+  // "the library should be at the top and you just click on it and it
+  // fills the whole thing"). Read back by talkValue() as tiers in order.
   function mountTalk(tiers) {
     if (!el.talkSection) return;
     el.talkHolder.textContent = '';
+    state.talkBoxes = [];
+    state.talkTiers = [];
+    var steps = state.print && Array.isArray(state.print.talkSteps) ? state.print.talkSteps : [];
     if (!Array.isArray(tiers) || !tiers.length) { el.talkSection.hidden = true; return; }
     el.talkSection.hidden = false;
-    tiers.forEach(function (tier) {
+    // The print is one question: no need for a tall card (owner 2026-09-26)
+    if (el.screen) el.screen.classList.add('print-talk');
+
+    var setsRow = document.createElement('div');
+    setsRow.className = 'talk-sets';
+    var setsLabel = document.createElement('span');
+    setsLabel.className = 'talk-sets-label';
+    setsLabel.textContent = 'Questions from:';
+    setsRow.appendChild(setsLabel);
+    var credit = document.createElement('p');
+    credit.className = 'talk-library-credit';
+    credit.hidden = true;
+    el.talkHolder.appendChild(setsRow);
+    el.talkHolder.appendChild(credit);
+
+    tiers.forEach(function (tier, ti) {
       var block = document.createElement('div');
       block.className = 'talk-tier';
-      if (tier.name) {
-        var head = document.createElement('h3');
-        head.textContent = tier.name;
-        block.appendChild(head);
-      }
+      var head = document.createElement('div');
+      head.className = 'talk-tier-head';
+      var name = document.createElement('h3');
+      name.textContent = tier.name || ('Tier ' + (ti + 1));
+      head.appendChild(name);
+      var info = steps[ti];
+      var chip = document.createElement('span');
+      chip.className = 'talk-partner';
+      chip.textContent = info && info.newPartner ? 'new partner' : (ti === 0 ? 'the person next to you' : 'same partner');
+      head.appendChild(chip);
+      block.appendChild(head);
       var list = document.createElement('ol');
-      (tier.questions || []).forEach(function (q) {
+      list.className = 'talk-list';
+      var boxes = [];
+      state.talkBoxes.push(boxes);
+      function addQuestion(text) {
         var item = document.createElement('li');
-        item.textContent = q;
+        item.className = 'talk-q';
+        var box = window.GrowingText ? GrowingText.create({ value: text, placeholder: 'A question for the pair', maxLength: 300 }) : document.createElement('textarea');
+        if (!window.GrowingText) { box.value = text; box.maxLength = 300; }
+        box.classList.add('talk-input');
+        box.setAttribute('aria-label', 'Question ' + (boxes.length + 1) + ' of ' + (tier.name || 'tier ' + (ti + 1)));
+        box.addEventListener('input', scheduleMap);
+        var x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'pair-x';
+        x.textContent = '×';
+        x.setAttribute('aria-label', 'Drop this question');
+        var entry = { box: box };
+        x.addEventListener('click', function () {
+          if (boxes.length <= 1) return;
+          var i = boxes.indexOf(entry);
+          if (i !== -1) boxes.splice(i, 1);
+          item.remove();
+          scheduleMap();
+        });
+        item.appendChild(box);
+        item.appendChild(x);
         list.appendChild(item);
+        boxes.push(entry);
+        return box;
+      }
+      state.talkTiers.push({
+        fill: function (texts) {
+          boxes.splice(0, boxes.length);
+          list.textContent = '';
+          texts.forEach(function (t) { addQuestion(t); });
+        }
       });
+      (tier.questions || []).forEach(function (q) { addQuestion(q); });
       block.appendChild(list);
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'pair-add';
+      add.textContent = '+ question';
+      add.addEventListener('click', function () {
+        var box = addQuestion('');
+        box.focus();
+        scheduleMap();
+      });
+      block.appendChild(add);
       el.talkHolder.appendChild(block);
     });
+
+    // The sets, once the banks arrive: the classic first (the template's
+    // own tiers), then the bank's sets, then the Along decks
+    loadTalkLibrary().then(function (sets) {
+      var chips = [];
+      function select(chipEl, set) {
+        chips.forEach(function (c) { c.classList.toggle('is-on', c === chipEl); });
+        credit.hidden = !(set && set.credit);
+        if (set && set.credit) credit.textContent = set.credit;
+      }
+      var classic = document.createElement('button');
+      classic.type = 'button';
+      classic.className = 'talk-library-set is-on';
+      classic.textContent = 'Original';
+      classic.title = 'The questions this activity came with';
+      classic.addEventListener('click', function () {
+        (state.print.talk || []).forEach(function (tier, ti) { if (state.talkTiers[ti]) state.talkTiers[ti].fill(tier.questions || []); });
+        select(classic, null);
+        scheduleMap();
+      });
+      setsRow.appendChild(classic);
+      chips.push(classic);
+      sets.forEach(function (set) {
+        var chipEl = document.createElement('button');
+        chipEl.type = 'button';
+        chipEl.className = 'talk-library-set';
+        chipEl.textContent = set.label;
+        if (set.blurb) chipEl.title = set.blurb;
+        chipEl.addEventListener('click', function () {
+          fillTiersFrom(set);
+          select(chipEl, set);
+          scheduleMap();
+        });
+        setsRow.appendChild(chipEl);
+        chips.push(chipEl);
+      });
+    }).catch(function () { /* the boxes still work by hand */ });
+  }
+
+  // Three questions per tier from one set, none repeated while the set
+  // lasts, in a fresh shuffle each time
+  function fillTiersFrom(set) {
+    var pool = [];
+    function draw() {
+      if (!pool.length) pool = set.questions.map(function (q) { return q.text; }).sort(function () { return Math.random() - 0.5; });
+      return pool.pop();
+    }
+    (state.talkTiers || []).forEach(function (tier) {
+      var three = [];
+      for (var i = 0; i < 3; i++) { var q = draw(); if (q) three.push(q); }
+      tier.fill(three);
+    });
+  }
+
+  // The question sets: the Closer bank's own tiers and sets (original to
+  // Jamyard), then the Along decks that get a class talking (Gradient
+  // Learning / Chan Zuckerberg Initiative and partners, each question with
+  // its author, the credit kept as the bank asks). Fetched once.
+  var talkLibraryPromise = null;
+  function loadTalkLibrary() {
+    if (talkLibraryPromise) return talkLibraryPromise;
+    var get = function (id) {
+      return fetch('/api/prompt-banks/' + id).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    };
+    talkLibraryPromise = Promise.all([get('closer'), get('along')]).then(function (banks) {
+      var closer = banks[0] || {};
+      var along = banks[1] || {};
+      var sets = [];
+      var tierNames = { tier1: 'Warm-up', tier2: 'Values and preferences', tier3: 'Reflective' };
+      Object.keys(tierNames).forEach(function (t) {
+        if (Array.isArray(closer[t]) && closer[t].length) sets.push({ id: t, label: tierNames[t], questions: closer[t].map(function (q) { return { text: q }; }) });
+      });
+      (closer.sets || []).forEach(function (s) {
+        if (Array.isArray(s.questions) && s.questions.length) sets.push({ id: s.id, label: s.label, blurb: s.blurb, questions: s.questions.map(function (q) { return { text: q }; }) });
+      });
+      var alongDecks = ['fun-favorites', 'imagine-if', 'conversation-starters', 'belonging', 'gratitude'];
+      // Plain names on the chips; the source is named in the credit line under the row
+      var ALONG_LABELS = { 'fun-favorites': 'Favorites', 'imagine-if': 'Imagine if', 'conversation-starters': 'Conversation starters', 'belonging': 'Belonging', 'gratitude': 'Gratitude' };
+      alongDecks.forEach(function (id) {
+        var deck = (along.decks || []).find(function (d) { return d.id === id; });
+        if (!deck || !Array.isArray(deck.prompts) || !deck.prompts.length) return;
+        sets.push({
+          id: 'along-' + id, label: ALONG_LABELS[id] || deck.label || id, credit: along.attribution || 'From Along (Gradient Learning / Chan Zuckerberg Initiative and partners).',
+          questions: deck.prompts.filter(function (p) { return p && typeof p.text === 'string'; }).map(function (p) { return { text: p.text, author: p.author }; })
+        });
+      });
+      return sets;
+    });
+    return talkLibraryPromise;
+  }
+
+  // The tiers as typed, or null when they match the template's
+  function talkValue() {
+    if (!state.talkBoxes || !state.talkBoxes.length || !state.print || !Array.isArray(state.print.talk)) return null;
+    var tiers = state.talkBoxes.map(function (boxes) {
+      return { questions: boxes.map(function (b) { return b.box.value.trim(); }).filter(Boolean) };
+    });
+    var same = tiers.every(function (t, i) {
+      var orig = state.print.talk[i] ? state.print.talk[i].questions : [];
+      return JSON.stringify(t.questions) === JSON.stringify(orig);
+    });
+    return same ? null : tiers;
   }
 
   // --- The pairs panel (2026-09-13): a matching activity's rounds, each
@@ -1103,6 +1347,7 @@
     el.pairsHolder.textContent = '';
     if (!Array.isArray(rounds) || !rounds.length) { el.pairsSection.hidden = true; return; }
     el.pairsSection.hidden = false;
+    el.pairsHolder.appendChild(pairsWriterRow());
     rounds.forEach(function (round) {
       var block = roundBlock(round.id, rounds.length > 1 ? round.label : 'Pairs', round.pairs, false);
       el.pairsHolder.appendChild(block);
@@ -1121,6 +1366,78 @@
       scheduleMap();
     });
     el.pairsHolder.appendChild(more);
+  }
+
+  // "Want the pairs written for you?" (owner 2026-09-26): a topic and a
+  // button; the AI fills every round's boxes, which stay the teacher's to
+  // change. Extra pairs become new rows; the count is what the rounds hold.
+  function pairsWriterRow() {
+    var row = document.createElement('div');
+    row.className = 'pair-writer';
+    var label = document.createElement('label');
+    label.className = 'pair-writer-label';
+    label.textContent = 'Want the pairs written for you? Give a topic:';
+    row.appendChild(label);
+    var line = document.createElement('div');
+    line.className = 'pair-writer-line';
+    var topic = window.GrowingText
+      ? GrowingText.create({ placeholder: 'e.g. photosynthesis vocabulary, French food words, the parts of a cell', maxLength: 200 })
+      : document.createElement('input');
+    topic.classList.add('pair-writer-topic');
+    topic.setAttribute('aria-label', 'Topic for the pairs');
+    line.appendChild(topic);
+    var go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'pair-add pair-writer-go';
+    go.textContent = 'Write the pairs';
+    line.appendChild(go);
+    row.appendChild(line);
+    var note = document.createElement('p');
+    note.className = 'pair-writer-note';
+    note.textContent = 'Or type them in below. Whatever is written here can be changed.';
+    row.appendChild(note);
+    function say(text) { note.textContent = text; }
+    go.addEventListener('click', function () {
+      var t = topic.value.trim();
+      if (t.length < 3) { say('Give a topic first.'); topic.focus(); return; }
+      var ids = Object.keys(state.pairBoxes);
+      var total = ids.reduce(function (n, id) { return n + state.pairBoxes[id].length; }, 0) +
+        (state.newRoundBoxes || []).reduce(function (n, b) { return n + b.length; }, 0);
+      var count = Math.max(4, Math.min(40, total));
+      go.disabled = true;
+      go.textContent = 'Writing…';
+      say('Writing ' + count + ' pairs about ' + t + '…');
+      fetch('/api/games/pair-list', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: t, count: count, classDescription: window.TeacherProfile ? TeacherProfile.describe() : '' })
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+        .then(function (res) {
+          if (!res.ok || res.data.error || !Array.isArray(res.data.pairs)) throw new Error(res.data.error || 'no pairs came back');
+          var pairs = res.data.pairs.slice();
+          var groups = ids.map(function (id) { return state.pairBoxes[id]; }).concat(state.newRoundBoxes || []);
+          groups.forEach(function (boxes) {
+            boxes.forEach(function (b) {
+              var p = pairs.shift();
+              if (!p) return;
+              b.left.value = p.left;
+              b.right.value = p.right;
+            });
+          });
+          // anything left over goes onto the last round as new rows
+          var last = groups[groups.length - 1];
+          var lastList = el.pairsHolder.querySelector('.pair-round:last-of-type .pair-list');
+          while (pairs.length && last && lastList) {
+            var p2 = pairs.shift();
+            addPairRow(last, lastList, p2.left, p2.right);
+          }
+          say('Written. Check every pair, change or drop anything that looks wrong.');
+          scheduleMap();
+        })
+        .catch(function (err) { say('Could not write the pairs: ' + err.message); })
+        .then(function () { go.disabled = false; go.textContent = 'Write the pairs'; });
+    });
+    return row;
   }
 
   // A round of pairs: label, the rows, "+ pair"; a NEW round carries a
@@ -1407,6 +1724,8 @@
     if (scales) edits.scales = scales;
     var newRounds = newRoundsValue();
     if (newRounds.length) edits.newRounds = newRounds;
+    var talk = talkValue();
+    if (talk) edits.talk = talk;
     edits.anonymous = !!state.anonymous;
     edits.earlyJoke = !!state.earlyJoke;
     return edits;

@@ -116,10 +116,19 @@
     </section>
 
     <section class="talk-section" id="talk-section" hidden>
-      <details class="fold">
+      <details class="fold" open>
         <summary>The questions, tier by tier</summary>
         <div class="talk-card" id="talk-holder"></div>
       </details>
+    </section>
+
+    <!-- The pairs of a matching activity (Vocab Match's rounds), shown and
+         edited here the way the quiz shows its questions, ABOVE the fit rows (owner 2026-09-26: the pairs are what matters).
+         Hidden unless the activity has match steps with plain-text pairs. -->
+    <section class="pairs-section" id="pairs-section" hidden>
+      <h2 class="panel-heading">The pairs</h2>
+      <p class="panel-hint">Each pair is a term and its meaning. On their screens the meanings come shuffled, and every student drags each meaning to its term.</p>
+      <div class="pairs-card" id="pairs-holder"></div>
     </section>
 
     <!-- Make it fit your class (2026-09-13): rows of chips, nothing folded.
@@ -140,14 +149,6 @@
         </div>
         <div class="class-holder" id="class-holder" hidden></div>
       </div>
-    </section>
-
-    <!-- The pairs of a matching activity (Vocab Match's rounds), shown and
-         edited here the way the quiz shows its questions, under the fit rows.
-         Hidden unless the activity has match steps with plain-text pairs. -->
-    <section class="pairs-section" id="pairs-section" hidden>
-      <h2 class="panel-heading">The pairs</h2>
-      <div class="pairs-card" id="pairs-holder"></div>
     </section>
 
     <!-- What happens, stop by stop: the treasure map the popups carried
