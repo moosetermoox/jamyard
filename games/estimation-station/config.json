@@ -9,7 +9,7 @@
     "math",
     "guessing"
   ],
-  "featured": true,
+  "featured": false,
   "playTime": "~10–15 min",
   "classSize": "2–40 players",
   "recommendedFor": "Use to open a math or science lesson with a number nobody knows offhand. Write three challenges with real answers; the console can also set the answer during a round.",
