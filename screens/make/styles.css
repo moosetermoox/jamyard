@@ -263,7 +263,8 @@ body.is-opening .print-screen { opacity: 0.55; }
   font-weight: 800;
   font-size: 16px;
   color: var(--t-paper);
-  background: var(--t-ink);
+  /* the activity's own red: the student screen's rate buttons */
+  background: var(--t-red, #E5482B);
   clip-path: polygon(2% 6%, 98% 0, 100% 94%, 0 100%);
 }
 .print-scale-x {
