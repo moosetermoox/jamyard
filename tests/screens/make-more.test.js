@@ -117,13 +117,15 @@ describe('the Closer question library (owner 2026-09-26)', () => {
     }
     expect(bank.tier1.length).toBeGreaterThanOrEqual(28);
   });
-  it('the page offers the library per tier: the bank sets, then the Along decks with their credit', () => {
+  it('the page shows the library as one row over the tiers: tap a set and every tier fills from it', () => {
     const make = read('screens/make/make.js');
-    expect(make).toContain("pick.textContent = 'Pick from the library';");
+    expect(make).toContain("setsLabel.textContent = 'Questions from:';");
+    expect(make).toContain("classic.textContent = 'The classic tiers';");
+    expect(make).toContain('function fillTiersFrom(set)');
     expect(make).toContain("get('closer'), get('along')");
     expect(make).toContain("['fun-favorites', 'imagine-if', 'conversation-starters', 'belonging', 'gratitude']");
-    expect(make).toContain("credit: along.attribution ||");
-    expect(make).toContain("three.textContent = 'Use three from this set for the tier';");
-    expect(make).toContain("btn.title = (q.author ? 'By ' + q.author + '. ' : '')");
+    expect(make).toContain('credit: along.attribution ||');
+    expect(make).not.toContain('Pick from the library');
+    expect(read('screens/make/index.html')).toContain('Tap a set and every tier fills from it');
   });
 });

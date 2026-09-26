@@ -1137,14 +1137,31 @@
   // inside one fold: read only, the steps stay the designer's.
   // Editable since 2026-09-26 (owner): each question a box, an x that keeps
   // at least one, "+ question" per tier, and a chip when the tier pairs
-  // everyone with someone new. Read back by talkValue() as tiers in order.
+  // everyone with someone new. Above the tiers, the library as one row of
+  // sets: tap one and every tier fills from it (owner, later the same day:
+  // "the library should be at the top and you just click on it and it
+  // fills the whole thing"). Read back by talkValue() as tiers in order.
   function mountTalk(tiers) {
     if (!el.talkSection) return;
     el.talkHolder.textContent = '';
     state.talkBoxes = [];
+    state.talkTiers = [];
     var steps = state.print && Array.isArray(state.print.talkSteps) ? state.print.talkSteps : [];
     if (!Array.isArray(tiers) || !tiers.length) { el.talkSection.hidden = true; return; }
     el.talkSection.hidden = false;
+
+    var setsRow = document.createElement('div');
+    setsRow.className = 'talk-sets';
+    var setsLabel = document.createElement('span');
+    setsLabel.className = 'talk-sets-label';
+    setsLabel.textContent = 'Questions from:';
+    setsRow.appendChild(setsLabel);
+    var credit = document.createElement('p');
+    credit.className = 'talk-library-credit';
+    credit.hidden = true;
+    el.talkHolder.appendChild(setsRow);
+    el.talkHolder.appendChild(credit);
+
     tiers.forEach(function (tier, ti) {
       var block = document.createElement('div');
       block.className = 'talk-tier';
@@ -1190,10 +1207,15 @@
         boxes.push(entry);
         return box;
       }
+      state.talkTiers.push({
+        fill: function (texts) {
+          boxes.splice(0, boxes.length);
+          list.textContent = '';
+          texts.forEach(function (t) { addQuestion(t); });
+        }
+      });
       (tier.questions || []).forEach(function (q) { addQuestion(q); });
       block.appendChild(list);
-      var tools = document.createElement('div');
-      tools.className = 'talk-tools';
       var add = document.createElement('button');
       add.type = 'button';
       add.className = 'pair-add';
@@ -1203,35 +1225,60 @@
         box.focus();
         scheduleMap();
       });
-      tools.appendChild(add);
-      // The library (owner 2026-09-26): prewritten questions in sets, tap
-      // one to add it, or take three from a set for the whole tier
-      var pick = document.createElement('button');
-      pick.type = 'button';
-      pick.className = 'pair-add';
-      pick.textContent = 'Pick from the library';
-      var library = null;
-      pick.addEventListener('click', function () {
-        if (library) { library.hidden = !library.hidden; return; }
-        library = document.createElement('div');
-        library.className = 'talk-library';
-        library.textContent = 'Loading the library…';
-        block.appendChild(library);
-        loadTalkLibrary().then(function (sets) {
-          renderTalkLibrary(library, sets, {
-            add: function (text) { addQuestion(text); scheduleMap(); },
-            replace: function (texts) {
-              boxes.splice(0, boxes.length);
-              list.textContent = '';
-              texts.forEach(function (t) { addQuestion(t); });
-              scheduleMap();
-            }
-          });
-        }).catch(function () { library.textContent = 'The library could not be loaded right now.'; });
-      });
-      tools.appendChild(pick);
-      block.appendChild(tools);
+      block.appendChild(add);
       el.talkHolder.appendChild(block);
+    });
+
+    // The sets, once the banks arrive: the classic first (the template's
+    // own tiers), then the bank's sets, then the Along decks
+    loadTalkLibrary().then(function (sets) {
+      var chips = [];
+      function select(chipEl, set) {
+        chips.forEach(function (c) { c.classList.toggle('is-on', c === chipEl); });
+        credit.hidden = !(set && set.credit);
+        if (set && set.credit) credit.textContent = set.credit;
+      }
+      var classic = document.createElement('button');
+      classic.type = 'button';
+      classic.className = 'talk-library-set is-on';
+      classic.textContent = 'The classic tiers';
+      classic.title = 'The questions this activity came with';
+      classic.addEventListener('click', function () {
+        (state.print.talk || []).forEach(function (tier, ti) { if (state.talkTiers[ti]) state.talkTiers[ti].fill(tier.questions || []); });
+        select(classic, null);
+        scheduleMap();
+      });
+      setsRow.appendChild(classic);
+      chips.push(classic);
+      sets.forEach(function (set) {
+        var chipEl = document.createElement('button');
+        chipEl.type = 'button';
+        chipEl.className = 'talk-library-set';
+        chipEl.textContent = set.label;
+        if (set.blurb) chipEl.title = set.blurb;
+        chipEl.addEventListener('click', function () {
+          fillTiersFrom(set);
+          select(chipEl, set);
+          scheduleMap();
+        });
+        setsRow.appendChild(chipEl);
+        chips.push(chipEl);
+      });
+    }).catch(function () { /* the boxes still work by hand */ });
+  }
+
+  // Three questions per tier from one set, none repeated while the set
+  // lasts, in a fresh shuffle each time
+  function fillTiersFrom(set) {
+    var pool = [];
+    function draw() {
+      if (!pool.length) pool = set.questions.map(function (q) { return q.text; }).sort(function () { return Math.random() - 0.5; });
+      return pool.pop();
+    }
+    (state.talkTiers || []).forEach(function (tier) {
+      var three = [];
+      for (var i = 0; i < 3; i++) { var q = draw(); if (q) three.push(q); }
+      tier.fill(three);
     });
   }
 
@@ -1268,58 +1315,6 @@
       return sets;
     });
     return talkLibraryPromise;
-  }
-
-  function renderTalkLibrary(holder, sets, actions) {
-    holder.textContent = '';
-    if (!sets.length) { holder.textContent = 'No sets to show.'; return; }
-    var chips = document.createElement('div');
-    chips.className = 'talk-library-sets';
-    var body = document.createElement('div');
-    body.className = 'talk-library-body';
-    var current = null;
-    function show(set) {
-      current = set;
-      Array.from(chips.children).forEach(function (c) { c.classList.toggle('is-on', c.getAttribute('data-set') === set.id); });
-      body.textContent = '';
-      if (set.blurb) { var b = document.createElement('p'); b.className = 'talk-library-blurb'; b.textContent = set.blurb; body.appendChild(b); }
-      var list = document.createElement('div');
-      list.className = 'talk-library-list';
-      set.questions.forEach(function (q) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'talk-library-q';
-        btn.textContent = q.text;
-        btn.title = (q.author ? 'By ' + q.author + '. ' : '') + 'Tap to add it to this tier';
-        btn.addEventListener('click', function () { actions.add(q.text); btn.classList.add('is-added'); });
-        list.appendChild(btn);
-      });
-      body.appendChild(list);
-      var three = document.createElement('button');
-      three.type = 'button';
-      three.className = 'pair-add';
-      three.textContent = 'Use three from this set for the tier';
-      three.addEventListener('click', function () {
-        var pool = set.questions.slice();
-        var picked = [];
-        while (pool.length && picked.length < 3) picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0].text);
-        actions.replace(picked);
-      });
-      body.appendChild(three);
-      if (set.credit) { var c = document.createElement('p'); c.className = 'talk-library-credit'; c.textContent = set.credit; body.appendChild(c); }
-    }
-    sets.forEach(function (set) {
-      var chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'talk-library-set';
-      chip.setAttribute('data-set', set.id);
-      chip.textContent = set.label;
-      chip.addEventListener('click', function () { show(set); });
-      chips.appendChild(chip);
-    });
-    holder.appendChild(chips);
-    holder.appendChild(body);
-    show(sets[0]);
   }
 
   // The tiers as typed, or null when they match the template's
