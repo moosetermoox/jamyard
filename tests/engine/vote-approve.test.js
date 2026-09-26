@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { tallyApprove, approvedLines } from '../../engine/phases/vote-handler.js';
+import { tallyApprove, approvedLines, turnoutLine, proposalsForProjector } from '../../engine/phases/vote-handler.js';
 import { validate } from '../../engine/game-loader.js';
 
 const candidates = [
@@ -54,7 +54,7 @@ describe('tallyApprove', () => {
       '3. Every state gets two senators. (2 yes, 1 no)'
     );
     expect(r.resultsList).toContain('Passed: No taxes on trade between states. (3 yes, 0 no)');
-    expect(r.rejectedList).toBe('');
+    expect(r.rejectedList).toBe('None.');
     expect(r.approvedList).not.toMatch(/p[1-4]/);
   });
 
@@ -89,7 +89,7 @@ describe('tallyApprove', () => {
     const votes = [...ballot('p1', { 'Pizza day': false, 'Longer recess': false })];
     const r = tallyApprove(votes, literal, {});
     expect(r.approved).toEqual([]);
-    expect(r.approvedList).toBe('');
+    expect(r.approvedList).toBe('None.');
     expect(r.rejectedList).toBe('1. Pizza day (0 yes, 1 no)\n2. Longer recess (0 yes, 1 no)');
     expect(approvedLines([])).toBe('');
   });
@@ -137,5 +137,30 @@ describe('the validator on an approve vote', () => {
     cfg.phases.crown = { type: 'winner', from: 'vote.scores', next: 'end' };
     const { warnings } = validate(cfg, 'convention', { returnResults: true });
     expect(warnings.join('\n')).not.toMatch(/nothing shows the result/i);
+  });
+});
+
+describe('the third Convention run (2026-09-26)', () => {
+  it('says how many of the class voted, and says nothing when the class size is unknown', () => {
+    const votes = [...ballot('p4', { p1: true, p2: true, p3: false })];
+    expect(tallyApprove(votes, candidates, { eligible: 4 }).turnout).toBe('1 of 4 students voted.');
+    expect(tallyApprove(votes, candidates, {}).turnout).toBe('');
+    expect(turnoutLine(3, 4, 'es')).toBe('3 de 4 estudiantes votaron.');
+  });
+
+  it('writes the counts and an empty list in the activity language', () => {
+    const votes = [...ballot('p4', { p1: true, p2: true, p3: true })];
+    const r = tallyApprove(votes, candidates, { lang: 'es' });
+    expect(r.approvedList).toContain('(1 sí, 0 no)');
+    expect(r.rejectedList).toBe('Ninguna.');
+  });
+
+  it('lists the proposals for the projector as words only, never a name, an id, or a drawing', () => {
+    const withDrawing = [...candidates, { playerId: 'p9', text: '', drawing: [[{ x: 1, y: 1 }]] }];
+    const list = proposalsForProjector('approve', withDrawing);
+    expect(list).toEqual(candidates.map(c => c.text));
+    expect(JSON.stringify(list)).not.toMatch(/Maya|Jordan|Sam|p[1-9]/);
+    expect(proposalsForProjector('approve', ['Pizza day', ' '])).toEqual(['Pizza day']);
+    expect(proposalsForProjector('pick-one', candidates)).toBeNull();
   });
 });

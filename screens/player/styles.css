@@ -1497,6 +1497,26 @@ button[hidden] {
   background: var(--theme-success, #D9481C);
   border-radius: 1px;
 }
+/* A yes-or-no vote's result lines: number, clause, and the counts as a
+   small tag (shared/rich-text.js tallies, 2026-09-26). */
+.msg-tallies { display: flex; flex-direction: column; gap: 9px; margin: 2px 0 6px; }
+.msg-tally { display: flex; align-items: baseline; gap: 12px; text-align: left; line-height: 1.35; }
+.msg-tally-num { flex-shrink: 0; min-width: 1.4em; font-weight: 800; }
+.msg-tally-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.msg-tally-tag {
+  flex-shrink: 0;
+  align-self: center;
+  padding: 3px 12px;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
+  font-size: 0.8em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  color: var(--t-ink, #2A2620);
+  background: var(--t-paper, #FDF9F0);
+  box-shadow: 0 0 0 2px var(--t-ink, #2A2620);
+  border-radius: 999px;
+}
 .msg-rich-para {
   display: block;
   text-align: left;

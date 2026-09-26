@@ -1238,7 +1238,10 @@
         phases[lastId].next = passedId;
         phases[passedId] = {
           type: 'reveal',
-          template: 'What the class passed:\n\n{{' + id + '.approvedList}}'
+          // What failed stays on the wall too (something to argue about),
+          // and the turnout line says how many decided it (2026-09-26).
+          template: 'What the class passed:\n\n{{' + id + '.approvedList}}\n\n' +
+            'Did not pass:\n\n{{' + id + '.rejectedList}}\n\n{{' + id + '.turnout}}'
         };
         lastId = passedId;
       } else if (brick === 'vote' && voteOverResponses) {

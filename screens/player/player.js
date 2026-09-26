@@ -508,6 +508,20 @@ window.addEventListener('message', function(e) {
     if (sqOpen.length > 0) sqOpen[Math.floor(Math.random() * sqOpen.length)].click();
     else if (!sqNextBtn.hidden) sqNextBtn.click();
   } else if (id === 'vote-section') {
+    // A yes-or-no ballot: answer every row (mostly yes, so a pretend
+    // class passes some and fails some), then send. It used to find no
+    // .vote-btn and do nothing, so one real vote decided everything
+    // (an outside reviewer's third Convention run, 2026-09-26).
+    var approveRows = active.querySelectorAll('.approve-row');
+    if (approveRows.length > 0) {
+      approveRows.forEach(function (row) {
+        var pick = row.querySelector(Math.random() < 0.7 ? '.approve-yes' : '.approve-no');
+        if (pick && !row.classList.contains('is-answered')) pick.click();
+      });
+      var sendVotes = active.querySelector('.approve-send');
+      if (sendVotes && !sendVotes.disabled) sendVotes.click();
+      return;
+    }
     // Click a random vote button
     var voteBtns = active.querySelectorAll('.vote-btn');
     if (voteBtns.length > 0) {

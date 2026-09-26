@@ -6,7 +6,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { ballotFor } from '../phases/vote-handler.js';
+import { ballotFor, proposalsForProjector } from '../phases/vote-handler.js';
 import { thumbnailStrokes } from '../drawing.js';
 
 registerHandler('vote', {
@@ -182,6 +182,8 @@ registerHandler('vote', {
       mode: phase.mode,
       totalVoters: eligible.length,
       timer: phase.timer || null,
+      // A yes-or-no vote lists its proposals on the projector (words only)
+      proposals: proposalsForProjector(phase.mode, candidates),
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 

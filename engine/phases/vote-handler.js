@@ -6,6 +6,8 @@
  * - "head-to-head": voters see A/B matchups, each candidate appears ~3 times
  */
 
+import { translate } from '../i18n/index.js';
+
 /**
  * Get eligible voters from a PlayerRegistry based on the voters field.
  * @param {any} players
@@ -123,12 +125,20 @@ export function tallyHeadToHead(votes, candidateIds, matchups) {
  * said yes). `scores` stays the yes count per candidate so a crown or a
  * leaderboard can still read the vote.
  *
+ * The lists never come back blank: an empty one reads "None." so a
+ * "Did not pass:" heading over it still says something, and `turnout`
+ * ("3 of 4 students voted.") tells the class how many decided it (an
+ * outside reviewer's third Convention run, 2026-09-26: two clauses passed
+ * on one vote out of four, and the ones that failed vanished).
+ *
  * @param {Array<{ voterId: string, choice: string, approve: boolean }>} votes
  * @param {any[]} candidates - {playerId, text, ...} objects or strings
- * @param {{ passAt?: number }} [opts]
+ * @param {{ passAt?: number, eligible?: number, lang?: string }} [opts]
+ *   eligible = how many students could vote; lang = the activity language
  */
 export function tallyApprove(votes, candidates, opts = {}) {
   const passAt = Number.isFinite(opts.passAt) ? opts.passAt : 50;
+  const lang = opts.lang || 'en';
   const ids = (candidates || []).map(c => (c && typeof c === 'object' && c.playerId ? c.playerId : c));
   const scores = {};
   const noCounts = {};
@@ -168,8 +178,10 @@ export function tallyApprove(votes, candidates, opts = {}) {
     approved,
     rejected,
     approvedCount: approved.length,
-    approvedList: approvedLines(approved),
-    rejectedList: approvedLines(rejected),
+    approvedList: approvedLines(approved, lang) || translate(lang, 'None.'),
+    rejectedList: approvedLines(rejected, lang) || translate(lang, 'None.'),
+    turnout: turnoutLine(voters.size, opts.eligible, lang),
+    eligibleCount: Number.isInteger(opts.eligible) ? opts.eligible : null,
     resultsList: results.map(r => `${r.passed ? 'Passed' : 'Did not pass'}: ${r.text} (${r.yes} yes, ${r.no} no)`).join('\n'),
     winner: top ? (top.playerId || top.text) : null,
     winnerText: top ? top.text : null,
@@ -180,11 +192,52 @@ export function tallyApprove(votes, candidates, opts = {}) {
 
 /**
  * A numbered list of entries with their yes and no counts, for a reveal.
+ * The counts close each line as "(3 yes, 1 no)" in the activity's words;
+ * the screens paint that group as a small tag (RichText's tally lines).
  * @param {Array<{ text: string, yes: number, no: number }>} entries
+ * @param {string} [lang]
  * @returns {string}
  */
-export function approvedLines(entries) {
-  return (entries || []).map((r, i) => `${i + 1}. ${r.text} (${r.yes} yes, ${r.no} no)`).join('\n');
+export function approvedLines(entries, lang = 'en') {
+  const yes = translate(lang, 'Yes').toLowerCase();
+  const no = translate(lang, 'No').toLowerCase();
+  return (entries || []).map((r, i) => `${i + 1}. ${r.text} (${r.yes} ${yes}, ${r.no} ${no})`).join('\n');
+}
+
+/**
+ * The convention floor: while a yes-or-no vote is open the projector lists
+ * every proposal, numbered, words only, so the class reads them together
+ * before and while they vote (an outside reviewer's third Convention run,
+ * 2026-09-26: each student read the clauses alone on their own screen).
+ * Never a name or an id; a drawing has no words and stays off the list
+ * (the projector gets no student drawing without a teacher gate).
+ * @param {string} mode
+ * @param {any[]} candidates
+ * @returns {string[]|null} null for any other voting style
+ */
+export function proposalsForProjector(mode, candidates) {
+  if (mode !== 'approve') return null;
+  const out = [];
+  for (const c of candidates || []) {
+    if (c && typeof c === 'object' && Array.isArray(c.drawing)) continue;
+    const words = typeof c === 'string' ? c : (c && typeof c.text === 'string' ? c.text : '');
+    if (words.trim()) out.push(words.trim());
+  }
+  return out;
+}
+
+/**
+ * "3 of 4 students voted." for the reveal under the lists; blank when the
+ * class size is unknown.
+ * @param {number} voted
+ * @param {number} [eligible]
+ * @param {string} [lang]
+ * @returns {string}
+ */
+export function turnoutLine(voted, eligible, lang = 'en') {
+  if (!Number.isInteger(eligible) || eligible <= 0) return '';
+  return translate(lang, '{voted} of {total} students voted.')
+    .replace('{voted}', String(voted)).replace('{total}', String(eligible));
 }
 
 /**

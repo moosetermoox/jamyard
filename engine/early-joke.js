@@ -139,6 +139,19 @@ export function jokeFor(state, playerId, jokes = DAD_JOKES) {
 }
 
 /**
+ * Is this join an early bird's? Only while the room waits in its lobby,
+ * or in a rolling room (it has no lobby, the doorway IS the first step).
+ * A student who arrives after the teacher started a together room is
+ * late, not early: their first screen is a step's instruction, and a
+ * joke above it pushed the instruction down (an outside reviewer's third
+ * Convention run, 2026-09-26).
+ * @param {{ phaseType?: string|null, rolling?: boolean }} at
+ */
+export function isEarlyBirdJoin({ phaseType, rolling } = {}) {
+  return !!rolling || !phaseType || phaseType === 'lobby';
+}
+
+/**
  * Deal a joke to a NEW joiner if there is still one to give. A player who
  * already holds one gets it back; past the first N, null.
  */

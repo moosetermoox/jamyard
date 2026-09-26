@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import {
   parseJokeList, createEarlyJokeState, dealJoke, jokeFor,
   validateEarlyJoke, EARLY_JOKE_MAX_FIRST, DAD_JOKES, splitJoke, EARLY_JOKE_PUNCHLINE_MS,
-  isEarlyJokeOn, earlyJokeFirst, EARLY_JOKE_DEFAULT_FIRST
+  isEarlyJokeOn, earlyJokeFirst, EARLY_JOKE_DEFAULT_FIRST, isEarlyBirdJoin
 } from '../../engine/early-joke.js';
 import { validate } from '../../engine/game-loader.js';
 
@@ -203,5 +203,17 @@ describe('validateEarlyJoke', () => {
   it('runs inside the game loader', () => {
     expect(() => validate(minimal({ earlyJoke: { first: 10 } }), 'test')).not.toThrow();
     expect(() => validate(minimal({ earlyJoke: 'yes' }), 'test')).toThrow(/earlyJoke/);
+  });
+});
+
+describe('isEarlyBirdJoin', () => {
+  it('deals in the lobby, before a room has a step, and in a rolling room', () => {
+    expect(isEarlyBirdJoin({ phaseType: 'lobby' })).toBe(true);
+    expect(isEarlyBirdJoin({ phaseType: null })).toBe(true);
+    expect(isEarlyBirdJoin({ phaseType: 'collect', rolling: true })).toBe(true);
+  });
+  it('never deals to a student who joins after a together room started', () => {
+    expect(isEarlyBirdJoin({ phaseType: 'announce' })).toBe(false);
+    expect(isEarlyBirdJoin({ phaseType: 'collect', rolling: false })).toBe(false);
   });
 });
