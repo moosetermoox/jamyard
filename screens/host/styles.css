@@ -494,6 +494,22 @@ body.in-bench .join-share { display: none; }
   font-size: 1.4rem;
 }
 
+/* The drawing wall: three across (two on a narrow screen), each drawing
+   filling its cell, the newest landing where the wall ends. One tall
+   column left 30 drawings small with a long scroll (a reviewer, 2026-09-26). */
+#reveal-one-items.is-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px 22px;
+  max-width: 1600px;
+  margin: 12px auto 18px;
+  align-items: start;
+}
+#reveal-one-items.is-gallery .reveal-one-item { margin: 0; padding: 10px 12px 12px; font-size: 1.2rem; }
+#reveal-one-items.is-gallery .reveal-drawing { max-width: none; margin-top: 6px; }
+#reveal-one-items.is-gallery .reveal-drawing-caption { font-size: 1.1rem; overflow-wrap: anywhere; }
+@media (max-width: 1100px) { #reveal-one-items.is-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
 /* Checklist section — live per-group progress dashboard */
 .checklist-progress {
   display: flex;

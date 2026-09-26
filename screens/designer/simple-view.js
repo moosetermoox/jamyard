@@ -911,7 +911,8 @@
     var rows = el('div', 'sv-media-rows');
 
     function mediaRow(labelText, placeholder, key, onDone) {
-      var row = el('label', 'sv-media-row');
+      // no-mic: a web address is typed or pasted, never spoken
+      var row = el('label', 'sv-media-row no-mic');
       row.appendChild(el('span', 'sv-media-label', labelText));
       var input = document.createElement('input');
       input.type = 'text';
@@ -939,12 +940,21 @@
     thumb.hidden = true;
     thumb.addEventListener('load', function () { thumb.hidden = false; });
     thumb.addEventListener('error', function () { thumb.hidden = true; });
+    // A picture is a web address: anything else gets a warning, not silence
+    // (a reviewer typed a sentence and nothing said so, 2026-09-26)
+    var imageHint = el('div', 'sv-media-hint');
+    imageHint.hidden = true;
     function refreshThumb() {
       var v = phase.image || '';
+      var looksRight = !v || /^https?:\/\/\S+\.\S+/.test(v);
+      imageHint.textContent = looksRight ? '' : "That is not a web address. Paste the picture's address, it starts with https://";
+      imageHint.classList.toggle('sv-media-hint-warn', !looksRight);
+      imageHint.hidden = looksRight;
       if (/^https?:\/\//.test(v)) { thumb.src = v; }
       else { thumb.hidden = true; }
     }
     rows.appendChild(mediaRow('Picture', 'Paste an image address (https://…)', 'image', refreshThumb));
+    rows.appendChild(imageHint);
     rows.appendChild(thumb);
 
     if (!imageOnly) {

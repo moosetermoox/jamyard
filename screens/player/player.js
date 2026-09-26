@@ -2593,6 +2593,13 @@ socket.on('merge-start', ({ instruction, seeds, draft, memberNames, agreeMode, a
       card.textContent = s.author ? s.author + ': ' + s.text : s.text;
       mergeSeeds.appendChild(card);
     }
+  } else {
+    // Nobody in the group answered the step before: say so instead of an
+    // empty box (a reviewer's empty pair, 2026-09-26)
+    var noSeeds = document.createElement('p');
+    noSeeds.className = 'merge-seeds-title';
+    noSeeds.textContent = UiLang.t('Nobody in your group wrote anything last step. Start from scratch together.');
+    mergeSeeds.appendChild(noSeeds);
   }
 
   applyShow(show, {

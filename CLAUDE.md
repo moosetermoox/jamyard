@@ -37,7 +37,7 @@ Framework for quickly building classroom games where:
 - **License: AGPL-3.0-only** (2026-09-19, `LICENSE` + `README.md` License section; `package.json.license`). The code only: prompt banks carry their own per-prompt credits and no AGPL grant, the Jamyard name and look are the live site's, student work is never in the repo. The home footer links the repository ("source"). A new third-party text or asset gets a credit line in the README's License section, never a silent drop into the tree
 
 ## Current Snapshot
-- **2587 tests passing** (`npm test`, ~5s; one assertion fails on Windows checkouts only, CRLF) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **2596 tests passing** (`npm test`, ~5s; one assertion fails on Windows checkouts only, CRLF) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 
 - **31 phase types**, **28 built-in recipes** (one retired), ~35 games in `games/` (**the yard's fifteen** since 2026-09-25, owner's swap: Exit Ticket, Live Poll, Class Critique, Draw Gallery, Snowball, Solo Quiz, Someone's Got You, Vocab Match, Both Sides of the Rope, One More Thing, Trivia Bluff, Doodle Bluff, Whose Eyes?, Closer, Group Work Day; Speed Quiz, Folded Pass ("not ready", owner), and Estimation Station are built but not in the yard, keeping their examples and pictograms) (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
@@ -143,7 +143,7 @@ Framework for quickly building classroom games where:
 10. `collect-choice` — pick from choices; `correctAnswer`+`speedBonus` (Kahoot scoring), `choicePool`/`excludeAuthored`/`shuffle`/`foolPoints`/`poolLimit` (bluffing), `liveResults` (Live Poll: projector tally grows as answers land)
 11. `ai-eliminate` — AI judges and eliminates
 12. `leaderboard` — rankings; `from` accepts array of refs to sum rounds
-13. `reveal-one` — one-by-one reveal; `itemTemplate` for objects, `limit` random sample
+13. `reveal-one` — one-by-one reveal; `itemTemplate` for objects, `limit` random sample; drawings hang as a wall (three across, `is-gallery` on the projector, 2026-09-26)
 14. `team-split` — `teamCount` OR `groupSize` (never singletons); `method: random|balanced|teacher|choice`; `capacity:"open"`
 15. `rank` — reorder a list; earlier-step ref OR literal item list; `teamsFrom` (team-split OR pairwise collect) = rank as groups: every student still ranks alone, each group's order is its members' average, output `byGroup` + `groupRankedList` beside `rankings`/`rankedList` (pure rule in `engine/phases/choice-draft.js`)
 16. `wager` — bet points, auto or host-resolved

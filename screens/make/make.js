@@ -699,8 +699,11 @@
   function updateFitFoot() {
     if (!el.fitFoot) return;
     var n = answeredQuestions().length;
-    // scales typed in place: nothing for the AI to reword, the row stays off
-    el.fitFoot.hidden = n === 0 || !!state.panelApi || !!(state.print && state.print.scalesEditable);
+    // scales typed in place or a recipe panel: nothing for the AI to
+    // reword, the row stays off. With no questions the button stays: the
+    // wording still gets fitted when hosting, and the teacher should be
+    // able to read that copy first (a reviewer, Draw Gallery, 2026-09-26)
+    el.fitFoot.hidden = !!state.panelApi || !!(state.print && state.print.scalesEditable);
     if (state.fitting) return;
     var current = !!(state.fitted && state.fitted.key === fitKey());
     el.fitSee.disabled = current;
