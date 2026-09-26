@@ -2528,3 +2528,11 @@ body.wh-empty .wh-word:hover { background: none; }
   .early-joke-label { font-size: 0.7rem; margin-bottom: 3px; }
   .early-joke-text { font-size: 0.95rem; margin-bottom: 6px; }
 }
+
+/* A vote taken twice ({{step.beforeAfter}}, shared/chart-render.js): the
+   projector's paired chart, at student size */
+.msg-chart.is-pair { grid-template-columns: fit-content(30%) 1fr auto 1fr auto; gap: 8px 10px; margin-bottom: 16px; }
+.msg-chart-head { font-size: 0.75em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--t-muted, #6B6250); }
+.msg-chart-fill.before { background: rgba(34, 30, 28, 0.45); }
+.msg-chart-fill.after { background: var(--t-ink, #221E1C); }
+.msg-chart-fill.after.moved { background: var(--theme-success, #D9481C); }

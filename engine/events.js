@@ -38,6 +38,7 @@ export const EVENTS = {
   // --- Collect Phase ---
   SUBMIT_RESPONSE:      'submit-response',
   RESPONSE_RECEIVED:    'response-received',
+  SUBMISSION_COUNT:     'submission-count',     // server -> host: the counter alone (a late joiner grew the total, 2026-09-26)
   LIVE_TALLY:           'live-tally',          // server -> host: live poll chart rows (counts only)
   RESPONSE_REJECTED:    'response-rejected',
   RESPONSE_ACCEPTED:    'response-accepted',    // server -> submitting player only: stored, safe to show "submitted"

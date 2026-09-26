@@ -153,6 +153,7 @@ import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
 import { extendPhaseTimer } from './engine/phase-timer.js';
+import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
 import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
 import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
@@ -1701,6 +1702,26 @@ async function closeCollect(code, room) {
           // Store with choice field for clarity (preserve responseAt for grading)
           const choiceResponses = responses.map(r => ({ playerId: r.playerId, name: r.name, choice: r.text, text: r.text, responseAt: r.responseAt }));
           const stored = { ...existing, responses: choiceResponses, tally, byPlayer };
+          // chartOrder: "choices": the chart keeps the step's own order and
+          // shows a zero row for a choice nobody picked (a scale, or a vote
+          // shown twice; engine/phases/stance-shift.js, 2026-09-26)
+          const literalChoices = Array.isArray(collectPhase.choices)
+            ? collectPhase.choices.map(c => (c && typeof c === 'object') ? (c.text || c.name || '') : String(c)).filter(Boolean)
+            : [];
+          if (collectPhase.chartOrder === 'choices' && literalChoices.length) {
+            for (const c of literalChoices) if (!(c in tally)) tally[c] = 0;
+            stored.chartOrder = literalChoices;
+          }
+          // compareTo: a vote taken twice. One chart with both counts per
+          // choice, and how many students picked differently the second time
+          if (collectPhase.compareTo) {
+            const before = room.engine.phaseData[collectPhase.compareTo] || {};
+            const order = stored.chartOrder || literalChoices;
+            const shift = countMoved(before.byPlayer, byPlayer);
+            stored.beforeAfter = formatPairedChart(before.tally, tally, order);
+            stored.moved = shift.moved;
+            stored.movedLine = movedLine(room.engine.language, shift.moved, shift.total);
+          }
 
           // Speed-bonus scoring: when correctAnswer is set, grade each response.
           // The correct answer can be a literal or a {{ref}} resolved at phase close.
@@ -3610,6 +3631,25 @@ app.post('/api/games/:gameId/sample-answers', async (req, res) => {
   }
 });
 
+// The make page's "Words on the students' screens" row (2026-09-26, a
+// reviewer with a 6-8 French class got English): every word the activity
+// shows is put into the class's language on the way to the copy, and the
+// language is pinned so the fixed labels follow. The yard and the make
+// page keep the authored English; only the copy changes. One Haiku call.
+app.post('/api/games/translate', async (req, res) => {
+  try {
+    const { config, language } = req.body || {};
+    if (!config || !config.phases) return res.status(400).json({ error: 'Missing config or phases' });
+    if (!LANGUAGE_CODES.includes(language) || language === 'en') return res.status(400).json({ error: 'Unknown language' });
+    const translated = await aiService.translateActivityText({ config, language });
+    translated.language = language;
+    res.json({ config: translated });
+  } catch (err) {
+    console.error('[api/games/translate]', err.message);
+    res.status(500).json({ error: 'Could not put the words into that language: ' + err.message });
+  }
+});
+
 app.post('/api/games/revise', async (req, res) => {
   try {
     if (!requireRealAI(res)) return;
@@ -4532,6 +4572,19 @@ io.on('connection', (socket) => {
       // lobby phase.
       try {
         seatLateJoiner(socket, code, room);
+        // The projector's "N of M submitted" counted the room at the step's
+        // start: a fresh joiner grows M now, not at their first answer
+        // (a reviewer saw "0 of 4" with five in, 2026-09-26)
+        {
+          const openPhase = room.engine.getCurrentPhase();
+          if (openPhase && (openPhase.type === 'collect' || openPhase.type === 'collect-choice')) {
+            const eligibleNow = withoutSitOut(getEligibleVoters(players, openPhase.from || 'all'), openPhase);
+            const countPayload = { count: eligibleNow.filter(p => p.response).length, total: eligibleNow.length, phaseInstanceId: room.phaseInstanceId };
+            const hostNow = roomToHost.get(code);
+            if (hostNow) io.to(hostNow).emit(EVENTS.SUBMISSION_COUNT, countPayload);
+            io.to(teachersChannel(code)).emit(EVENTS.SUBMISSION_COUNT, countPayload);
+          }
+        }
       } catch (seatError) {
         // A seat that can't be given is a waiting screen, never a failed join.
         console.warn(`[join-room] Late seating failed for ${socket.id}: ${seatError.message}`);

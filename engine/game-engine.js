@@ -17,6 +17,7 @@ import { StateMachine } from './state-machine.js';
 import { PlayerRegistry } from './player-registry.js';
 import { runEliminate } from './phases/eliminate-handler.js';
 import { generateMatchups, getEligibleVoters } from './phases/vote-handler.js';
+import { orderedTally } from './phases/stance-shift.js';
 import { determineWinner, traceEntryRef, findWinnerEntries } from './phases/winner-handler.js';
 import { parseRef } from './resolver-grammar.js';
 import { resolveLanguage } from './i18n/index.js';
@@ -203,7 +204,11 @@ export class GameEngine {
       // data at close (server close-submissions) — bare charts of such a
       // phase mark that row. Deeper paths chart arbitrary data; no marking.
       const markCorrect = (segments.length === 1) ? (data && data.correctAnswer) : undefined;
-      return formatBarChart(tally, markCorrect);
+      // A step with chartOrder: "choices" stored its choice order at close:
+      // the chart keeps it and shows zero rows (a before/after pair must
+      // line up, 2026-09-26)
+      const order = (segments.length === 1) ? (data && data.chartOrder) : undefined;
+      return formatBarChart(tally, markCorrect, order);
     }
 
     // Suffix not handled by engine (.count/.json/.mine) or no suffix —
@@ -373,9 +378,12 @@ function formatList(value) {
   }).join('\n');
 }
 
-function formatBarChart(tally, correctAnswer) {
+function formatBarChart(tally, correctAnswer, order) {
   if (!tally || typeof tally !== 'object') return '';
-  let entries = Object.entries(tally);
+  // With an order (the step's own choices), rows keep that order and a
+  // choice nobody picked still shows as a zero row; without one, by count.
+  const keepOrder = Array.isArray(order) && order.length > 0;
+  let entries = keepOrder ? orderedTally(tally, order) : Object.entries(tally);
   if (entries.length === 0) return '(no responses)';
 
   const max = Math.max(...entries.map(([, n]) => Number(n) || 0));
@@ -397,8 +405,8 @@ function formatBarChart(tally, correctAnswer) {
   const maxLabelLen = Math.max(...entries.map(([label]) => String(label).length));
   const total = entries.reduce((sum, [, n]) => sum + (Number(n) || 0), 0);
 
+  if (!keepOrder) entries = entries.slice().sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0));
   return entries
-    .sort((a, b) => (Number(b[1]) || 0) - (Number(a[1]) || 0))
     .map(([label, count]) => {
       const n = Number(count) || 0;
       const barLen = Math.round((n / max) * maxBar);

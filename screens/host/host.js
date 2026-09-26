@@ -1237,6 +1237,12 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
   }
 });
 
+// The counter alone: a late joiner grew the total (no pile, no sound)
+socket.on('submission-count', ({ count, total }) => {
+  submittedSoFar = count || 0;
+  submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
+});
+
 socket.on('response-received', ({ playerName, count, total }) => {
   submittedSoFar = count || 0;
   submissionCount.textContent = count + ' of ' + total + ' submitted';
@@ -1389,6 +1395,8 @@ function renderProjectorMessage(el, message) {
     ChartRender.split(text).forEach(function (seg, i) {
       if (seg.type === 'chart') {
         el.appendChild(ChartRender.buildChart(seg.rows));
+      } else if (seg.type === 'pair') {
+        el.appendChild(ChartRender.buildPairChart(seg.rows));
       } else if (seg.text.trim()) {
         if (i === 0) appendProjectorParts(el, seg.text.trim());
         else el.appendChild(buildMessageBody(seg.text.trim(), 'msg-body'));

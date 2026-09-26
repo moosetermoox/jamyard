@@ -1259,6 +1259,27 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // compareTo: a vote taken twice (collect-choice only). The earlier step
+    // must be a pick-one step, and the same choices are what make the
+    // before/after chart readable.
+    if (phase.compareTo) {
+      const src = config.phases[phase.compareTo];
+      if (!src) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" has compareTo "${phase.compareTo}" which does not exist`
+        );
+      } else if (src.type !== 'collect-choice') {
+        errors.push(
+          `Game "${gameId}": phase "${name}" compareTo "${phase.compareTo}" must point to a collect-choice step (got ${src.type})`
+        );
+      } else if (Array.isArray(src.choices) && Array.isArray(phase.choices) &&
+        JSON.stringify(src.choices) !== JSON.stringify(phase.choices)) {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" compareTo "${phase.compareTo}" has different choices; the before/after chart lines up best when both steps offer the same ones`
+        );
+      }
+    }
+
     // dealItems: a teacher list handed out one per player (collect only),
     // never alongside a rotation, which is the other way of dealing.
     if (phase.dealItems !== undefined) {

@@ -17,6 +17,9 @@
   // optional trailing ✓ (the engine marks the correct answer's row on
   // graded charts — see formatBarChart).
   var CHART_LINE = /^(.*?)\s*([█░]+)\s*(\d+)\s*\((\d+)%\)\s*(✓)?\s*$/;
+  // A paired line (a vote taken twice, engine/phases/stance-shift.js):
+  // label, the before bar and count, an arrow, the after bar and count.
+  var PAIR_LINE = /^(.*?)\s*([█░]+)\s*(\d+)\s*→\s*([█░]+)\s*(\d+)\s*$/;
 
   function containsChart(text) {
     return /[█░]/.test(String(text == null ? '' : text));
@@ -37,6 +40,15 @@
       }
     }
     for (var i = 0; i < lines.length; i++) {
+      var pm = lines[i].match(PAIR_LINE);
+      if (pm) {
+        flushText();
+        var prow = { label: pm[1], before: parseInt(pm[3], 10), after: parseInt(pm[5], 10) };
+        var lastPair = segments[segments.length - 1];
+        if (lastPair && lastPair.type === 'pair') lastPair.rows.push(prow);
+        else segments.push({ type: 'pair', rows: [prow] });
+        continue;
+      }
       var m = lines[i].match(CHART_LINE);
       if (m) {
         flushText();
@@ -98,9 +110,49 @@
     return wrap;
   }
 
+  // The paired chart: label | before bar | count | after bar | count, one
+  // shared scale, a head row naming the two votes (Before / After through
+  // the page's language table when it has one). The moved bars pop.
+  function buildPairChart(rows) {
+    var wrap = document.createElement('div');
+    wrap.className = 'msg-chart is-pair';
+    var t = function (s) { return (window.UiLang && UiLang.t) ? UiLang.t(s) : s; };
+    var max = 0;
+    rows.forEach(function (r) { max = Math.max(max, r.before, r.after); });
+    var heads = ['', t('Before'), '', t('After'), ''];
+    heads.forEach(function (h) {
+      var cell = document.createElement('span');
+      cell.className = 'msg-chart-head';
+      cell.textContent = h;
+      wrap.appendChild(cell);
+    });
+    rows.forEach(function (r) {
+      var label = document.createElement('span');
+      label.className = 'msg-chart-label';
+      label.textContent = r.label;
+      wrap.appendChild(label);
+      [['before', r.before], ['after', r.after]].forEach(function (pair) {
+        var track = document.createElement('div');
+        track.className = 'msg-chart-track';
+        var fill = document.createElement('div');
+        fill.className = 'msg-chart-fill ' + pair[0] + (pair[0] === 'after' && r.after !== r.before ? ' moved' : '');
+        var w = max > 0 ? Math.round((pair[1] / max) * 100) : 0;
+        fill.style.width = (pair[1] > 0 ? Math.max(w, 4) : 0) + '%';
+        track.appendChild(fill);
+        wrap.appendChild(track);
+        var value = document.createElement('span');
+        value.className = 'msg-chart-value';
+        value.textContent = String(pair[1]);
+        wrap.appendChild(value);
+      });
+    });
+    return wrap;
+  }
+
   window.ChartRender = {
     containsChart: containsChart,
     split: split,
-    buildChart: buildChart
+    buildChart: buildChart,
+    buildPairChart: buildPairChart
   };
 })();
