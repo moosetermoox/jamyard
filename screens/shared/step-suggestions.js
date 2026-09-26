@@ -865,7 +865,7 @@
     phases[drawId].next = gateId;
     phases[gateId] = {
       type: 'preview',
-      template: 'Review the drawings below, then open the gallery. One bad drawing? Hide it from the moderation list. Try again restarts the drawing round for everyone.',
+      template: 'Review the drawings below, then open the gallery. One bad drawing? Press Hide beside it on your Teacher view. Try again restarts the drawing round for everyone.',
       approveNext: galleryId,
       rejectNext: drawId
     };

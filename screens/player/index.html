@@ -113,13 +113,15 @@
     </div>
     <canvas id="display-drawing" class="assigned-drawing" width="360" height="270" hidden></canvas>
     <canvas id="assigned-drawing" class="assigned-drawing" width="360" height="270" hidden></canvas>
+    <!-- The tools sit ABOVE the pad: under it they slid beneath the sticky
+         Submit button and a reviewer never found them (2026-09-26). -->
     <div id="draw-area" hidden>
-      <canvas id="draw-pad" class="draw-pad" width="360" height="360"></canvas>
       <div class="draw-toolbar">
         <div id="draw-colors" class="draw-colors"></div>
         <button id="draw-undo" type="button" class="draw-tool-btn">↩ Undo</button>
         <button id="draw-clear" type="button" class="draw-tool-btn">✕ Clear</button>
       </div>
+      <canvas id="draw-pad" class="draw-pad" width="360" height="360"></canvas>
     </div>
     <textarea
       id="response-input"

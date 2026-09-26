@@ -733,7 +733,19 @@ startGameBtn.addEventListener('click', () => {
   socket.emit('start-game', { code: currentRoomCode });
 });
 
+// Closing on nothing asks first: the next step would read an empty room
+// (a reviewer closed a solo round with 0 of 2 in and the pairs got empty
+// boxes, 2026-09-26). The count comes from the server's own tallies.
+let submittedSoFar = 0;
 closeSubmissionsBtn.addEventListener('click', () => {
+  if (submittedSoFar === 0 && window.Dialog && Dialog.confirm) {
+    Dialog.confirm({
+      title: 'Nobody has answered yet.',
+      message: 'Closing now moves the class on with no answers. The next step will have nothing to show.',
+      confirmLabel: 'Close anyway', cancelLabel: 'Wait'
+    }).then(function (yes) { if (yes) socket.emit('close-submissions', { code: currentRoomCode }); });
+    return;
+  }
   socket.emit('close-submissions', { code: currentRoomCode });
 });
 
@@ -1151,6 +1163,7 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
   // and drops a size, so fewer lines stack before fit-screen has to shrink.
   promptDisplay.classList.toggle('prompt-long', String(prompt || '').length > 160);
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
+  submittedSoFar = count || 0;
   liveTallyOn = !!liveResults;
   if (liveTallyEl) liveTallyEl.hidden = !liveTallyOn;
   if (liveTallyOn) {
@@ -1178,6 +1191,7 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
 });
 
 socket.on('response-received', ({ playerName, count, total }) => {
+  submittedSoFar = count || 0;
   submissionCount.textContent = count + ' of ' + total + ' submitted';
   renderSubmissionPile(count);
   if (J) J.sound('blip');
@@ -1461,6 +1475,7 @@ socket.on('reveal-one-start', ({ message, total, revealed, timer, hostTemplate, 
   setRichText(revealOneMessage, message || 'Reveal Time!');
   revealOneCounter.textContent = revealed + ' of ' + total + ' revealed';
   revealOneItems.innerHTML = '';
+  revealOneItems.classList.remove('is-gallery');
   revealOneNextBtn.hidden = revealed >= total;
   revealOneContinueBtn.hidden = true;
   applyTemplate(revealOneSection, hostTemplate);
@@ -1479,6 +1494,9 @@ socket.on('reveal-one-item', ({ item, index, total }) => {
   // Drawing items paint onto a canvas with an animated stroke replay —
   // the gallery moment. Everything else stays text.
   if (item && typeof item === 'object' && item.drawing && window.Draw) {
+    // Drawings hang as a wall, three across, not one tall column (an
+    // outside reviewer with 30 drawings, 2026-09-26)
+    revealOneItems.classList.add('is-gallery');
     const caption = document.createElement('p');
     caption.className = 'reveal-drawing-caption';
     caption.textContent = RichText.plainLine(item.text || '');
