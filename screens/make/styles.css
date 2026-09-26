@@ -808,6 +808,8 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 /* The small link beside the class chip ("change" / "set it") */
 .fit-link { font-size: 13px; font-weight: 700; color: var(--t-muted); }
 .fit-link:hover { color: var(--t-ink); }
+/* Under the class chip: what a class change did, or could not do (2026-09-26) */
+.fit-class-note { flex-basis: 100%; margin: 6px 0 0; font-size: 13px; color: var(--t-muted); }
 
 /* A typed answer: the plank sits in its row, the mic on it (a full
    row when it follows a "Type your own" chip) */

@@ -83,3 +83,21 @@ describe('the page', () => {
     expect(server).toContain('if (Array.isArray(body.talk)) {');
   });
 });
+
+describe('Your class on the make page (owner 2026-09-26)', () => {
+  const make = read('screens/make/make.js');
+  it('swaps in the class example when the words are untouched, and says so when it cannot', () => {
+    expect(make).toContain('function applyClassExample()');
+    expect(make).toContain('ClassExamples.pick(gameId, profile, 0)');
+    expect(make).toContain("state.classNote = 'You changed the words above, so they stay.");
+    expect(make).toContain("'No ready example for this class yet.");
+    expect(make).toContain("onChange: function () { applyClassExample(); buildRows(); scheduleQuestions(); }");
+    expect(make).toContain('state.wordsSnapshot = wordsNow();');
+  });
+  it('asks no fit question on a talk-only activity, and the pairs sit above the fit rows', () => {
+    expect(make).toContain('!!(state.print && Array.isArray(state.print.talkSteps) && state.print.talkSteps.length)');
+    const html = read('screens/make/index.html');
+    expect(html.indexOf('id="pairs-section"')).toBeLessThan(html.indexOf('id="fit-section"'));
+    expect(html).toContain('On their screens the meanings come shuffled');
+  });
+});

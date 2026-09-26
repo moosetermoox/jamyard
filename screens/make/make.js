@@ -212,6 +212,9 @@
     }
     render();
     applyExample();
+    // What the boxes hold now (the template's or the example's words): a
+    // class change may replace these, never words the teacher typed
+    state.wordsSnapshot = wordsNow();
   }).catch(function (err) {
     fail(err.message || 'Could not open this activity.');
     el.doors.hidden = true;
@@ -229,9 +232,9 @@
     // visibly does something)
     if (window.MakeItYours && MakeItYours.renderClassPicker) {
       MakeItYours.renderClassPicker(el.classHolder, {
-        hint: 'The questions above update to fit your class.',
-        onChange: function () { buildRows(); scheduleQuestions(); },
-        onDone: function () { buildRows(); scheduleQuestions(true); toggleClassPicker(false); }
+        hint: 'The words above change to an example for your class, when the yard has one.',
+        onChange: function () { applyClassExample(); buildRows(); scheduleQuestions(); },
+        onDone: function () { applyClassExample(); buildRows(); scheduleQuestions(true); toggleClassPicker(false); }
       });
     }
     state.anonymous = !!config.anonymous;
@@ -244,7 +247,11 @@
     // Work Day's jobs and tasks, Doodle Bluff's phrases) owns them; the
     // AI's fit questions would ask about the same words twice (owner,
     // 2026-09-13: "the make it fit your class questions seem redundant")
-    state.noQuestions = !!(state.panel && (state.panel !== 'knobs' || state.contentKnobs));
+    state.noQuestions = !!(state.panel && (state.panel !== 'knobs' || state.contentKnobs)) ||
+      // a talk-only activity (Closer): every question is typed above, so a
+      // tone question the AI would act on out of sight adds nothing (owner
+      // 2026-09-26: "I'm not sure what that actually does")
+      !!(state.print && Array.isArray(state.print.talkSteps) && state.print.talkSteps.length);
     buildRows();
     loadQuestions();
 
@@ -514,6 +521,12 @@
     link.textContent = cls ? 'change' : 'set it';
     link.addEventListener('click', function (e) { e.preventDefault(); toggleClassPicker(); });
     classRow.a.appendChild(link);
+    if (state.classNote) {
+      var classNote = document.createElement('p');
+      classNote.className = 'fit-class-note';
+      classNote.textContent = state.classNote;
+      classRow.a.appendChild(classNote);
+    }
     fixedHolder.appendChild(classRow);
 
     var names = rowEl('Student names');
@@ -936,7 +949,65 @@
       showExampleNote(ex);
       return;
     }
-    if (!state.print || state.panel) return;
+    if (applyPrefill(ex)) {
+      state.example = ex;
+      showExampleNote(ex);
+      scheduleMap();
+      // the fit questions were asked of the template; ask again knowing the example
+      if (ex.prefill.pairs || ex.prefill.choices) scheduleQuestions(true);
+    }
+  }
+
+  // The words the page holds right now, to tell untouched boxes from typed ones
+  function wordsNow() {
+    return JSON.stringify({
+      prompt: state.promptBox ? state.promptBox.value : null,
+      fields: Object.keys(state.fieldBoxes || {}).map(function (k) { return state.fieldBoxes[k].value; }),
+      pairs: pairsValue(),
+      choices: choicesValue()
+    });
+  }
+
+  // "Your class" changed on this page (owner 2026-09-26: picking a class
+  // did nothing visible on Vocab Match): the words become that class's
+  // example from the yard, the way a card does, as long as the teacher has
+  // not typed over them; a class with no ready example says so.
+  function applyClassExample() {
+    if (!window.ClassExamples || !window.TeacherProfile) return;
+    var profile = TeacherProfile.get ? TeacherProfile.get() : null;
+    var ex = profile ? ClassExamples.pick(gameId, profile, 0) : null;
+    if (state.panel || state.exampleParams) {
+      state.classNote = 'The AI uses your class when it writes for you.';
+      return;
+    }
+    if (!ex || !ex.prefill) {
+      var hasBand = !!(profile && profile.gradeBand);
+      var hasSubject = !!(profile && Array.isArray(profile.subjects) && profile.subjects.length);
+      state.classNote = !profile || (!hasBand && !hasSubject) ? ''
+        : !hasBand ? 'Pick a grade band too and the words above switch to an example for your class.'
+        : !hasSubject ? 'Pick a subject too and the words above switch to an example for your class.'
+        : 'No ready example for this class yet. The words above stay as they are; the AI uses your class when it writes for you.';
+      return;
+    }
+    var untouched = !state.wordsSnapshot || state.wordsSnapshot === wordsNow();
+    if (!untouched) {
+      state.classNote = 'You changed the words above, so they stay. The AI uses your class when it writes for you.';
+      return;
+    }
+    var old = document.getElementById('example-note');
+    if (old) old.remove();
+    if (applyPrefill(ex)) {
+      state.example = ex;
+      state.wordsSnapshot = wordsNow();
+      showExampleNote(ex);
+      state.classNote = '';
+      scheduleMap();
+    }
+  }
+
+  // Put an example's words into the page's boxes; true when any landed
+  function applyPrefill(ex) {
+    if (!ex || !ex.prefill || !state.print || state.panel) return false;
     var pf = ex.prefill;
     var applied = false;
     if (pf.prompt && state.promptBox) { state.promptBox.value = pf.prompt; applied = true; }
@@ -958,12 +1029,7 @@
     if (pf.choices && state.choiceBoxes.length) {
       state.choiceBoxes.forEach(function (box, i) { if (pf.choices[i]) { box.value = pf.choices[i]; applied = true; } });
     }
-    if (!applied) return;
-    state.example = ex;
-    showExampleNote(ex);
-    scheduleMap();
-    // the fit questions were asked of the template; ask again knowing the example
-    if (pf.pairs || pf.choices) scheduleQuestions(true);
+    return applied;
   }
 
   function showExampleNote(ex) {
