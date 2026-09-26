@@ -45,7 +45,7 @@ describe('trivia-bluff is a faithful trivia-bluff-recipe compile', () => {
 
   it('a multi-round compile chains rounds and sums every vote round', async () => {
     const recipe = await loadJson('recipes/trivia-bluff.json');
-    const { config: compiled, diagnostics } = compileRecipe(recipe, { rounds: 3, lieTimer: 45 });
+    const { config: compiled, diagnostics } = compileRecipe(recipe, { questionSource: 'live', rounds: 3, lieTimer: 45 });
     expect(diagnostics.filter(d => d.severity === 'error')).toEqual([]);
     expect(compiled.phases.reveal1.next).toBe('fact2');
     expect(compiled.phases.reveal3.next).toBe('scoreboard');
@@ -105,10 +105,10 @@ describe('trivia-bluff is a faithful trivia-bluff-recipe compile', () => {
     expect(compiled.phases.qvote1.choicePool[2]).toEqual({ literal: '', optional: true });
   });
 
-  it('the shipped stamp is live mode with an empty prepared list', async () => {
+  it('the shipped stamp is prepared mode over three checked facts (owner 2026-09-26: never the AI by default)', async () => {
     const config = await loadJson('games/trivia-bluff/config.json');
-    expect(config.recipe.params.questionSource).toBe('live');
-    expect(config.recipe.params.questions).toEqual([]);
+    expect(config.recipe.params.questionSource).toBe('prepared');
+    expect(config.recipe.params.questions.length).toBe(3);
   });
 
   it('keeps its hand-authored card metadata', async () => {

@@ -579,11 +579,12 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
   if (!mount) renderClassPicker(modal);
 
   // --- The three source doors ---
+  // The teacher's own facts first (owner 2026-09-26: the AI is not the default)
   var SOURCES = [
     {
-      id: 'live',
-      title: 'AI picks facts during the game',
-      detail: 'Fresh obscure facts every time you play. You see each fact when the class does.'
+      id: 'own',
+      title: 'I write my own facts',
+      detail: 'Fill-in-the-blank facts with the real answer, written by you.'
     },
     {
       id: 'ai-now',
@@ -591,13 +592,14 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
       detail: 'Give a topic, get a fact list you can check and edit before class.'
     },
     {
-      id: 'own',
-      title: 'I write my own facts',
-      detail: 'Fill-in-the-blank facts with the real answer, written by you.'
+      id: 'live',
+      title: 'AI picks facts during the game',
+      detail: 'Fresh obscure facts every time you play. You see each fact when the class does.'
     }
   ];
-  var selectedSource = (stamp.params.questionSource === 'prepared' && questions.length > 0)
-    ? 'own' : 'live';
+  // The teacher's own facts are the default (owner 2026-09-26: not the
+  // AI); live AI facts only when the copy already says so
+  var selectedSource = stamp.params.questionSource === 'live' ? 'live' : 'own';
 
   var sourceRow = document.createElement('div');
   sourceRow.setAttribute('role', 'radiogroup');

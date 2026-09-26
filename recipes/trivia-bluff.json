@@ -13,14 +13,18 @@
         "live",
         "prepared"
       ],
-      "default": "live",
+      "default": "prepared",
       "label": "Where the facts come from",
-      "helper": "live: the AI finds a fresh fact for each round while you play. prepared: the game uses the fact list below, written by you or by the AI ahead of time so you can check every one."
+      "helper": "prepared (the default, owner 2026-09-26): the game uses the fact list below, written by you or by the AI ahead of time so you can check every one. live: the AI finds a fresh fact for each round while you play."
     },
     "questions": {
       "type": "array",
       "maxItems": 10,
-      "default": [],
+      "default": [
+        { "question": "An octopus has ___ hearts.", "truth": "three", "houseLie": "five" },
+        { "question": "Honey found sealed in ancient Egyptian tombs was still ___ after thousands of years.", "truth": "edible", "houseLie": "fizzing" },
+        { "question": "The Eiffel Tower gets about 15 centimeters ___ in summer, because its iron expands in the heat.", "truth": "taller", "houseLie": "wider" }
+      ],
       "label": "Prepared facts",
       "helper": "Only used when facts are prepared. Each is a sentence with a blank shown as ___ plus the real answer. The decoy is an optional extra wrong choice to mix in with student lies.",
       "item": {
