@@ -101,6 +101,15 @@
     <!-- The questions of a talk-only activity (Closer's three tiers), read
          off its steps: one expandable list, nothing to edit (owner
          2026-09-13). Hidden unless the activity has tiers of questions. -->
+    <!-- The scales of a rating activity (Class Critique): each scale is a
+         name, a range, and its two end labels, with "+ scale" to add one.
+         Hidden unless the activity has a rate step with plain-text scales. -->
+    <section class="pairs-section" id="scales-section" hidden>
+      <h2 class="panel-heading">The scales</h2>
+      <p class="panel-hint">Each scale is a name, how many points it runs, and the words at its two ends. Add or drop scales to fit what the class is rating.</p>
+      <div class="pairs-card" id="scales-holder"></div>
+    </section>
+
     <section class="talk-section" id="talk-section" hidden>
       <details class="fold">
         <summary>The questions, tier by tier</summary>
@@ -134,15 +143,6 @@
     <section class="pairs-section" id="pairs-section" hidden>
       <h2 class="panel-heading">The pairs</h2>
       <div class="pairs-card" id="pairs-holder"></div>
-    </section>
-
-    <!-- The scales of a rating activity (Class Critique): each scale is a
-         name, a range, and its two end labels, with "+ scale" to add one.
-         Hidden unless the activity has a rate step with plain-text scales. -->
-    <section class="pairs-section" id="scales-section" hidden>
-      <h2 class="panel-heading">The scales</h2>
-      <p class="panel-hint">Each scale is a name, how many points it runs, and the words at its two ends. Add or drop scales to fit what the class is rating.</p>
-      <div class="pairs-card" id="scales-holder"></div>
     </section>
 
     <!-- What happens, stop by stop: the treasure map the popups carried

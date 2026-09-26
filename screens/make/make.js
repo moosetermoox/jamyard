@@ -522,6 +522,10 @@
         knownSettings: ['Grade band', 'Subjects', 'The question', 'Timer', 'Student names']
           .concat(state.example && state.example.prefill && state.example.prefill.pairs ? ['The pairs'] : [])
           .concat(choicesChanged() ? ['The answer choices'] : [])
+          // the scales and the pairs are typed in place on this page, never
+          // asked for (owner 2026-09-25: it is as easy to type them as to answer)
+          .concat(state.print && Array.isArray(state.print.scales) && state.print.scales.length ? ['The rating scales, their ranges and end labels'] : [])
+          .concat(state.print && Array.isArray(state.print.pairs) && state.print.pairs.length ? ['The pairs'] : [])
       })
     }).then(function (r) { return r.ok ? r.json() : { questions: [] }; })
       .catch(function () { return { questions: [] }; })

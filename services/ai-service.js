@@ -1391,6 +1391,22 @@ Return the revised config.`;
   // needs 2-6 short distinct choices or it becomes a text one; the label
   // falls back to the question's first words. Pure, so the page can trust
   // every field it renders.
+  // A question about content the page already has boxes for (the scales,
+  // the pairs, the answer choices) is dropped even when the model asks it
+  // anyway (Class Critique: "What should the three rating scales measure?"
+  // beside the scales panel, 2026-09-25). The known settings name the
+  // content in plain words; each word family here is the one to catch.
+  static asksAboutTypedContent(question, knownSettings) {
+    const q = String(question || "");
+    const known = (Array.isArray(knownSettings) ? knownSettings : []).join(" ").toLowerCase();
+    const families = [
+      [/scale/, /\b(scales?|ratings?|rate)\b/i],
+      [/pair/, /\b(pairs?|match(es|ing)?)\b/i],
+      [/answer choices/, /\b(choices?|options?)\b/i]
+    ];
+    return families.some(([inKnown, inQuestion]) => inKnown.test(known) && inQuestion.test(q));
+  }
+
   static shapeCustomizeQuestion(q) {
     let question = String(q.question || '').trim().slice(0, 200);
     const seen = new Set();
@@ -1459,7 +1475,7 @@ Return the revised config.`;
         ? `\nWe ALREADY KNOW their class: ${classDesc}. Do not ask about grade level, age, or subject in any form. Write questions that assume that knowledge and go one level deeper, like the specific unit, book, era, or topic they are teaching right now, or what their class enjoys.\n`
         : '';
       const knownKnobs = settings.length
-        ? `\nThe dialog ALREADY HAS setting controls for: ${settings.join('; ')}. Never ask about any of those in any wording (no round counts, timer lengths, or anything those controls cover). Only ask about the activity's words and content.\n`
+        ? `\nThe dialog ALREADY HAS setting controls for: ${settings.join('; ')}. Never ask about any of those in any wording (no round counts, timer lengths, or anything those controls cover), and never ask what any of them should say, measure, or contain: where the list names the activity's own content (its scales, its pairs, its answer choices, its questions), the teacher is already typing that content on the page. Only ask about words the page has no box for.\n`
         : '';
       const message = await this._callClaude({
         model: MODELS.haiku,
@@ -1495,6 +1511,7 @@ Return ONLY JSON: {"questions":[{"question":"...","label":"...","kind":"choice",
       }
       const questions = (Array.isArray(parsed.questions) ? parsed.questions : [])
         .filter(q => q && typeof q.question === 'string' && q.question.trim())
+        .filter(q => !AIService.asksAboutTypedContent(q.question, settings))
         .slice(0, 2)
         .map(q => AIService.shapeCustomizeQuestion(q));
       return { questions };
