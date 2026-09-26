@@ -2005,6 +2005,15 @@ textarea.sar-input {
 }
 
 .sv-list { margin-top: 8px; }
+/* A rate step's scales: name and range on one line, the end labels under */
+.sv-scale-row { flex-direction: column; align-items: stretch; gap: 6px; }
+.sv-scale-top, .sv-scale-ends { display: flex; align-items: center; gap: 6px; }
+.sv-scale-label { flex: 1; min-width: 0; }
+.sv-scale-num { width: 56px; text-align: center; }
+.sv-scale-to { font-size: 0.85rem; font-weight: 700; }
+.sv-scale-ends { padding-left: 2px; }
+.sv-scale-end { flex: 1; min-width: 0; font-size: 0.85rem; }
+.sv-scale-row + .sv-scale-row { padding-top: 8px; border-top: 1px dashed rgba(50, 35, 15, 0.18); }
 
 .sv-list-row {
   display: flex;
