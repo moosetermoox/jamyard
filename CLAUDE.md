@@ -39,7 +39,7 @@ Framework for quickly building classroom games where:
 ## Current Snapshot
 - **2553 tests passing** (`npm test`, ~5s; one assertion fails on Windows checkouts only, CRLF) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
 
-- **31 phase types**, **28 built-in recipes** (one retired), ~35 games in `games/` (**the yard's fourteen** since 2026-09-25, owner's swap: Exit Ticket, Live Poll, Class Critique, Draw Gallery, Folded Pass, Snowball, Solo Quiz, Someone's Got You, Vocab Match, Both Sides of the Rope, Doodle Bluff, Whose Eyes?, Closer, Group Work Day; Speed Quiz, Trivia Bluff, One More Thing, and Estimation Station are built but not in the yard, keeping their examples and pictograms) (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
+- **31 phase types**, **28 built-in recipes** (one retired), ~35 games in `games/` (**the yard's fifteen** since 2026-09-25, owner's swap: Exit Ticket, Live Poll, Class Critique, Draw Gallery, Folded Pass, Snowball, Solo Quiz, Someone's Got You, Vocab Match, Both Sides of the Rope, One More Thing, Doodle Bluff, Whose Eyes?, Closer, Group Work Day; Speed Quiz, Trivia Bluff, and Estimation Station are built but not in the yard, keeping their examples and pictograms) (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
 - Full feature history: `docs/CHANGELOG.md` + `docs/CLAUDE-ARCHIVE.md` (detailed ship-log formerly in this file)
 

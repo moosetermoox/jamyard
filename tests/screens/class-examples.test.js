@@ -69,7 +69,7 @@ async function loadModules() {
 
 const SUBJECT_IDS = ['social-studies', 'english', 'science', 'math', 'languages', 'advisory'];
 const BANDS = ['elementary', 'middle', 'high'];
-const FEATURED = ['art-gallery', 'both-sides-rope', 'class-critique', 'closer', 'doodle-bluff', 'exit-ticket', 'exquisite-corpse', 'group-work-day', 'live-poll', 'snowball', 'solo-quiz', 'someones-got-you', 'vocab-match', 'whose-eyes'];
+const FEATURED = ['art-gallery', 'both-sides-rope', 'class-critique', 'closer', 'doodle-bluff', 'exit-ticket', 'exquisite-corpse', 'group-work-day', 'live-poll', 'one-more-thing', 'snowball', 'solo-quiz', 'someones-got-you', 'vocab-match', 'whose-eyes'];
 
 describe('the authored table', () => {
   beforeEach(() => loadModules());

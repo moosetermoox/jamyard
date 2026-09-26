@@ -2,7 +2,7 @@
   "name": "One More Thing",
   "description": "List what you remember from the lesson; two classmates add what you missed, and your list comes back grown.",
   "when": "When you want to see what the class actually remembers, and have them fill each other's gaps.",
-  "featured": false,
+  "featured": true,
   "playTime": "~12 min",
   "classSize": "3–35 players",
   "tags": [
