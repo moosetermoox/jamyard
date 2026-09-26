@@ -45,7 +45,7 @@ describe('estimation-station is a faithful estimation-station compile', () => {
   it('keeps its hand-authored card metadata', async () => {
     const config = await loadJson('games/estimation-station/config.json');
     expect(config.name).toBe('Estimation Station');
-    expect(config.featured).toBe(true);
+    expect(config.featured).toBe(false); // built for the yard, then left it the same night (owner 2026-09-25)
     for (const key of ['description', 'playTime', 'classSize', 'tags', 'recommendedFor', 'keywords']) {
       expect(config[key], key).toBeDefined();
     }
