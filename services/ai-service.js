@@ -1696,6 +1696,70 @@ Return ONLY JSON, no other prose: {"<step id>": ["...", "..."], ...} with a stri
     return { sampleAnswers: Object.keys(out).length ? out : null };
   }
 
+  /**
+   * Matching pairs for a topic (Vocab Match's "write the pairs for me",
+   * owner 2026-09-26): term and meaning, or any two halves that belong
+   * together. The teacher's boxes stay editable; this only fills them.
+   * @returns {Promise<{pairs: Array<{left: string, right: string}>}|{error: string}>}
+   */
+  async generatePairs({ topic, count, classDescription = '' } = {}) {
+    const cleanTopic = String(topic || '').trim().slice(0, 400);
+    const classDesc = String(classDescription || '').trim().slice(0, 160);
+    const n = Number.isInteger(count) && count >= 2 && count <= 40 ? count : 12;
+    if (this.mode === 'mock') {
+      const pairs = [];
+      for (let i = 1; i <= n; i++) pairs.push({ left: `Term ${i} (${cleanTopic || 'topic'})`, right: `Meaning ${i} (mock mode)` });
+      return { pairs };
+    }
+    try {
+      const classLine = classDesc ? `Their class: ${classDesc}. Pitch the words to them.\n` : '';
+      const message = await this._callClaude({
+        model: MODELS.haiku,
+        max_tokens: 2000,
+        messages: [{
+          role: 'user',
+          content: `A teacher runs a classroom matching game: students drag each term to the meaning (or half) it belongs with.
+
+Topic: ${cleanTopic}
+${classLine}Write exactly ${n} pairs.
+
+Rules:
+- "left" is the term (1 to 4 words); "right" is its meaning or matching half, 2 to 9 words, plain and classroom-appropriate.
+- Every right side must fit ONLY its own left side, never two of them, or the match has no right answer.
+- Stay on the topic; the terms a student meets in class on that topic come first.
+- ${FRESH_FACTS_RULE}
+- No numbering, no quotation marks, no emojis.
+
+Return ONLY JSON, no other prose:
+{"pairs": [{"left": "...", "right": "..."}]}`
+        }]
+      });
+      const text = extractText(message);
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        const match = text.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('AI response was not valid JSON');
+        parsed = JSON.parse(match[0]);
+      }
+      const seen = new Set();
+      const tidy = (v) => String(v || '').replace(/—/g, ', ').replace(/\s+/g, ' ').trim().replace(/^["'\d.\-\s]+/, '').slice(0, 120);
+      const pairs = (Array.isArray(parsed && parsed.pairs) ? parsed.pairs : [])
+        .map((p) => ({ left: tidy(p && p.left), right: tidy(p && p.right) }))
+        .filter((p) => p.left && p.right && !seen.has(p.left.toLowerCase()) && seen.add(p.left.toLowerCase()))
+        .slice(0, n);
+      if (pairs.length < 2) {
+        return { error: 'The AI could not write usable pairs for that topic. Try wording the topic differently.' };
+      }
+      return { pairs };
+    } catch (error) {
+      if (error && error.name === 'AiBudgetError') throw error;
+      console.error('[AIService] generatePairs error:', error.message);
+      return { error: error.message };
+    }
+  }
+
   async generatePhraseList({ topic, count, classDescription = '' } = {}) {
     const cleanTopic = String(topic || '').trim().slice(0, 400);
     const classDesc = String(classDescription || '').trim().slice(0, 160);

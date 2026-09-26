@@ -95,5 +95,58 @@
     "What's something a teacher or coach said that stuck with you?",
     "What does 'home' mean to you, a place, a person, or something else?",
     "What's one thing you genuinely like about how this class feels when it's at its best?"
+  ],
+  "_sets_comment": "Named sets for the make page's library (owner 2026-09-26): more ways to get to know each other, all original to Jamyard, no published question text reproduced. The tiers above stay the Closer recipe's defaults.",
+  "sets": [
+    {
+      "id": "would-you-rather",
+      "label": "Would you rather?",
+      "blurb": "Silly either-or picks. Both answer, then argue for your side.",
+      "questions": [
+        "Would you rather be able to fly, or be able to breathe underwater?",
+        "Would you rather have a pet dinosaur the size of a cat, or a cat the size of a dinosaur?",
+        "Would you rather it be summer all year, or winter all year?",
+        "Would you rather only be able to whisper, or only be able to shout?",
+        "Would you rather eat pizza for every meal, or never eat pizza again?",
+        "Would you rather have a rewind button for your day, or a pause button?",
+        "Would you rather live in a treehouse, or on a houseboat?",
+        "Would you rather be the best player on a losing team, or the worst player on a winning team?",
+        "Would you rather always know the time without a clock, or always know which way is north?",
+        "Would you rather have hands for feet, or feet for hands?",
+        "Would you rather speak every language, or play every instrument?",
+        "Would you rather be ten minutes early to everything, or ten minutes late?",
+        "Would you rather have a robot that does your homework, or a robot that cleans your room?",
+        "Would you rather never wait in a line again, or never lose anything again?",
+        "Would you rather explore the deep ocean, or outer space?",
+        "Would you rather have a song play every time you walk into a room, or a spotlight follow you?",
+        "Would you rather spend a day as a bird, or a day as a fish?",
+        "Would you rather be able to talk to animals, or read minds for one hour a day?"
+      ]
+    },
+    {
+      "id": "hypotheticals",
+      "label": "Hypotheticals",
+      "blurb": "Big what-ifs with no right answer. Take a side and defend it.",
+      "questions": [
+        "Who wins: one horse-sized duck, or a thousand duck-sized horses?",
+        "If you had to add one rule to the whole world, what would it be?",
+        "If you could put one thing in a time capsule for the year 2126, what goes in?",
+        "If animals could talk, which one would be the rudest?",
+        "If you were given a million dollars but had to spend it all in one day, what would you buy?",
+        "If you could shrink to the size of an ant for an afternoon, where would you go?",
+        "If a new holiday were named after you, what would people do on it?",
+        "If you could swap lives with any character from a book or show for a week, who would it be?",
+        "If your school got one free upgrade, what should it be?",
+        "If you could invent one gadget that does not exist yet, what would it do?",
+        "If you had to live inside a video game for a month, which one, and why?",
+        "If you could ask your future self one question, what would you ask?",
+        "If gravity turned off for ten seconds every day, how would your morning go?",
+        "If you could make one food healthy without changing the taste, which food?",
+        "If you had a superpower that was only useful once a year, what would it be?",
+        "If you could be an expert at one thing overnight, what would you pick?",
+        "If you could redesign the school day from scratch, what would it look like?",
+        "If you found a door in your house that was not there yesterday, would you open it?"
+      ]
+    }
   ]
 }

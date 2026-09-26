@@ -626,7 +626,7 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
   margin: 0 0 6px;
   font-family: var(--t-display);
   font-weight: 800;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .talk-tier ol {
@@ -808,6 +808,8 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 /* The small link beside the class chip ("change" / "set it") */
 .fit-link { font-size: 13px; font-weight: 700; color: var(--t-muted); }
 .fit-link:hover { color: var(--t-ink); }
+/* Under the class chip: what a class change did, or could not do (2026-09-26) */
+.fit-class-note { flex-basis: 100%; margin: 6px 0 0; font-size: 13px; color: var(--t-muted); }
 
 /* A typed answer: the plank sits in its row, the mic on it (a full
    row when it follows a "Type your own" chip) */
@@ -895,3 +897,31 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
   cursor: pointer;
 }
 .make-error .error-action:hover { background: var(--t-yellow, #FFD600); }
+
+/* The talk questions, editable (owner 2026-09-26): a box per question, an x,
+   "+ question" per tier, and a chip saying who the tier pairs you with. */
+.talk-tier-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.talk-tier-head h3 { margin: 0; }
+.talk-partner { font-size: 13px; font-weight: 500; color: var(--t-muted); }
+.talk-list { list-style: decimal; margin: 0; padding-left: 26px; display: flex; flex-direction: column; gap: 8px; }
+.talk-q { display: flex; align-items: center; gap: 8px; }
+.talk-input { flex: 1 1 auto; min-width: 0; padding: 9px 12px 7px; border: none; background: var(--t-sanded, #EAD9BA); background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0 1px, transparent 1px 6px); border-bottom: 3px dashed rgba(110,75,40,0.45); font: inherit; font-size: 15px; font-weight: 500; color: var(--t-ink); resize: none; }
+
+/* "Want the pairs written for you?" over a matching activity's rounds */
+.pair-writer { display: flex; flex-direction: column; gap: 8px; padding-bottom: 14px; margin-bottom: 4px; border-bottom: 2px dashed rgba(110, 75, 40, 0.2); }
+.pair-writer-label { font-weight: 700; }
+.pair-writer-line { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pair-writer-topic { flex: 1 1 260px; min-width: 0; padding: 9px 12px 7px; border: none; background: var(--t-sanded, #EAD9BA); background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0 1px, transparent 1px 6px); border-bottom: 3px dashed rgba(110,75,40,0.45); font: inherit; font-size: 15px; font-weight: 500; color: var(--t-ink); resize: none; }
+.pair-writer-note { margin: 0; font-size: 13px; color: var(--t-muted); }
+
+/* The question library over the tiers (owner 2026-09-26): one row of sets,
+   tap one and every tier fills from it; a credit line for the Along sets. */
+.talk-sets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 4px; }
+/* A talk-only print is one line: no tall card under it */
+.print-screen.print-talk { min-height: 0; padding: 22px 30px 22px; }
+.print-screen.print-talk .print-prompt-fixed { font-size: 1.6rem; }
+.talk-sets-label { font-size: 13px; font-weight: 700; color: var(--t-muted); margin-right: 4px; }
+.talk-library-set { border: none; cursor: pointer; padding: 5px 11px; font: inherit; font-size: 13px; font-weight: 600; background: var(--t-paper); color: var(--t-ink); box-shadow: 0 2px 3px rgba(50, 35, 15, 0.16); }
+.talk-library-set.is-on { background: var(--t-yellow); }
+.talk-library-credit { margin: 0; font-size: 12px; color: var(--t-muted); }
+.talk-library-credit[hidden] { display: none; }
