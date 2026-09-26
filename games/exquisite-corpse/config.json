@@ -1,7 +1,7 @@
 {
   "name": "Folded Pass",
   "description": "The surrealists' folded-paper game (they called it Exquisite Corpse). Six folds, one word per hand, nobody seeing the words before theirs, and every sentence comes back to its starter, assembled. Then the class hears some. Nobody wrote it, everybody wrote it.",
-  "featured": true,
+  "featured": false,
   "recipe": {
     "id": "exquisite-corpse",
     "version": "1",
