@@ -511,6 +511,9 @@
     fixedHolder.textContent = '';
 
     var cls = classValue();
+    // A talk-only activity has nothing a class could change here (owner
+    // 2026-09-26: grade and subject on Closer "seems like a useless setting")
+    var classUseful = !(state.print && Array.isArray(state.print.talkSteps) && state.print.talkSteps.length);
     var classRow = rowEl('Your class');
     var classChip = chipButton(cls || 'Not set', !!cls, !cls);
     classChip.addEventListener('click', function () { toggleClassPicker(); });
@@ -527,7 +530,7 @@
       classNote.textContent = state.classNote;
       classRow.a.appendChild(classNote);
     }
-    fixedHolder.appendChild(classRow);
+    if (classUseful) fixedHolder.appendChild(classRow);
 
     var names = rowEl('Student names');
     var shown = chipButton('Shown', !state.anonymous);
@@ -1149,6 +1152,8 @@
     var steps = state.print && Array.isArray(state.print.talkSteps) ? state.print.talkSteps : [];
     if (!Array.isArray(tiers) || !tiers.length) { el.talkSection.hidden = true; return; }
     el.talkSection.hidden = false;
+    // The print is one question: no need for a tall card (owner 2026-09-26)
+    if (el.screen) el.screen.classList.add('print-talk');
 
     var setsRow = document.createElement('div');
     setsRow.className = 'talk-sets';
@@ -1173,7 +1178,7 @@
       var info = steps[ti];
       var chip = document.createElement('span');
       chip.className = 'talk-partner';
-      chip.textContent = info && info.newPartner ? 'with a new partner' : (ti === 0 ? 'with the person next to you' : 'same partner');
+      chip.textContent = info && info.newPartner ? 'new partner' : (ti === 0 ? 'the person next to you' : 'same partner');
       head.appendChild(chip);
       block.appendChild(head);
       var list = document.createElement('ol');
@@ -1241,7 +1246,7 @@
       var classic = document.createElement('button');
       classic.type = 'button';
       classic.className = 'talk-library-set is-on';
-      classic.textContent = 'The classic tiers';
+      classic.textContent = 'Original';
       classic.title = 'The questions this activity came with';
       classic.addEventListener('click', function () {
         (state.print.talk || []).forEach(function (tier, ti) { if (state.talkTiers[ti]) state.talkTiers[ti].fill(tier.questions || []); });
@@ -1304,11 +1309,13 @@
         if (Array.isArray(s.questions) && s.questions.length) sets.push({ id: s.id, label: s.label, blurb: s.blurb, questions: s.questions.map(function (q) { return { text: q }; }) });
       });
       var alongDecks = ['fun-favorites', 'imagine-if', 'conversation-starters', 'belonging', 'gratitude'];
+      // Plain names on the chips; the source is named in the credit line under the row
+      var ALONG_LABELS = { 'fun-favorites': 'Favorites', 'imagine-if': 'Imagine if', 'conversation-starters': 'Conversation starters', 'belonging': 'Belonging', 'gratitude': 'Gratitude' };
       alongDecks.forEach(function (id) {
         var deck = (along.decks || []).find(function (d) { return d.id === id; });
         if (!deck || !Array.isArray(deck.prompts) || !deck.prompts.length) return;
         sets.push({
-          id: 'along-' + id, label: 'Along: ' + (deck.label || id), credit: along.attribution || 'From Along (Gradient Learning / Chan Zuckerberg Initiative and partners).',
+          id: 'along-' + id, label: ALONG_LABELS[id] || deck.label || id, credit: along.attribution || 'From Along (Gradient Learning / Chan Zuckerberg Initiative and partners).',
           questions: deck.prompts.filter(function (p) { return p && typeof p.text === 'string'; }).map(function (p) { return { text: p.text, author: p.author }; })
         });
       });

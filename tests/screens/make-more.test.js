@@ -75,7 +75,7 @@ describe('the page', () => {
     const make = read('screens/make/make.js');
     expect(make).toContain('function talkValue()');
     expect(make).toContain('if (talk) edits.talk = talk;');
-    expect(make).toContain("chip.textContent = info && info.newPartner ? 'with a new partner'");
+    expect(make).toContain("chip.textContent = info && info.newPartner ? 'new partner'");
     expect(make).toContain("fetch('/api/games/pair-list'");
     expect(make).toContain("'Want the pairs written for you? Give a topic:'");
     expect(read('screens/make/index.html')).toContain('<details class="fold" open>');
@@ -120,12 +120,15 @@ describe('the Closer question library (owner 2026-09-26)', () => {
   it('the page shows the library as one row over the tiers: tap a set and every tier fills from it', () => {
     const make = read('screens/make/make.js');
     expect(make).toContain("setsLabel.textContent = 'Questions from:';");
-    expect(make).toContain("classic.textContent = 'The classic tiers';");
+    expect(make).toContain("classic.textContent = 'Original';");
     expect(make).toContain('function fillTiersFrom(set)');
     expect(make).toContain("get('closer'), get('along')");
     expect(make).toContain("['fun-favorites', 'imagine-if', 'conversation-starters', 'belonging', 'gratitude']");
     expect(make).toContain('credit: along.attribution ||');
     expect(make).not.toContain('Pick from the library');
-    expect(read('screens/make/index.html')).toContain('Tap a set and every tier fills from it');
+    expect(read('screens/make/index.html')).not.toContain('Tap a set and every tier fills from it');
+    expect(make).toContain("'fun-favorites': 'Favorites'");
+    expect(make).not.toContain("label: 'Along: '");
+    expect(make).toContain('if (classUseful) fixedHolder.appendChild(classRow);');
   });
 });
