@@ -1300,11 +1300,14 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
       fieldLabel.textContent = fieldDef.label;
       fieldsContainer.appendChild(fieldLabel);
 
-      var fieldInput = document.createElement('input');
-      fieldInput.type = 'text';
+      // A box that wraps (2026-09-26: a long question repeated as the
+      // placeholder of a one-line input was cut off mid-sentence, and the
+      // label above it is the question, so the box says only what to do)
+      var fieldInput = document.createElement('textarea');
+      fieldInput.rows = 2;
       fieldInput.className = 'field-input';
       fieldInput.setAttribute('data-key', fieldDef.key);
-      fieldInput.placeholder = fieldDef.placeholder || fieldDef.label;
+      fieldInput.placeholder = fieldDef.placeholder || UiLang.t('Type your answer here...');
       // Same cap as the single answer box (the server checks each field too)
       fieldInput.maxLength = responseMax;
       fieldsContainer.appendChild(fieldInput);

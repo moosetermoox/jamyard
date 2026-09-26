@@ -21,7 +21,7 @@ describe('TeacherProfile', () => {
 
   it('round-trips a saved profile and stops offering the card', () => {
     TP.save({ gradeBand: 'middle', subjects: ['social-studies', 'science'] });
-    expect(TP.get()).toEqual({ gradeBand: 'middle', subjects: ['social-studies', 'science'], otherText: '' });
+    expect(TP.get()).toEqual({ gradeBand: 'middle', subjects: ['social-studies', 'science'], otherText: '', languageText: '' });
     expect(TP.shouldOffer()).toBe(false);
   });
 
@@ -33,16 +33,16 @@ describe('TeacherProfile', () => {
 
   it('drops unknown grade bands and subjects instead of storing junk', () => {
     TP.save({ gradeBand: 'bogus', subjects: ['social-studies', 'nope'] });
-    expect(TP.get()).toEqual({ gradeBand: null, subjects: ['social-studies'], otherText: '' });
+    expect(TP.get()).toEqual({ gradeBand: null, subjects: ['social-studies'], otherText: '', languageText: '' });
   });
 
   it('keeps the typed "something else" subject alongside the other chip', () => {
-    TP.save({ gradeBand: 'middle', subjects: ['other'], otherText: '  Culinary arts  ' });
-    expect(TP.get()).toEqual({ gradeBand: 'middle', subjects: ['other'], otherText: 'Culinary arts' });
+    TP.save({ gradeBand: 'middle', subjects: ['other'], otherText: '  Culinary arts  ', languageText: '' });
+    expect(TP.get()).toEqual({ gradeBand: 'middle', subjects: ['other'], otherText: 'Culinary arts', languageText: '' });
   });
 
   it('drops stale otherText when "other" is no longer among the subjects', () => {
-    TP.save({ gradeBand: 'middle', subjects: ['science'], otherText: 'Culinary arts' });
+    TP.save({ gradeBand: 'middle', subjects: ['science'], otherText: 'Culinary arts', languageText: '' });
     expect(TP.get().otherText).toBe('');
   });
 
@@ -52,7 +52,7 @@ describe('TeacherProfile', () => {
   });
 
   it('describe speaks the typed subject instead of "Something else"', () => {
-    TP.save({ gradeBand: 'high', subjects: ['science', 'other'], otherText: 'Robotics' });
+    TP.save({ gradeBand: 'high', subjects: ['science', 'other'], otherText: 'Robotics', languageText: '' });
     expect(TP.describe()).toBe('High school (9-12), Science and Robotics');
   });
 

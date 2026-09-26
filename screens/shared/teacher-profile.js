@@ -73,7 +73,13 @@
       var otherText = subjects.indexOf('other') !== -1 && typeof p.otherText === 'string'
         ? p.otherText
         : '';
-      return { gradeBand: gradeBand, subjects: subjects, otherText: otherText };
+      // languageText is the language a World languages teacher teaches
+      // ("Spanish", 2026-09-26, owner's ask); it only means anything while
+      // that subject is picked
+      var languageText = subjects.indexOf('languages') !== -1 && typeof p.languageText === 'string'
+        ? p.languageText
+        : '';
+      return { gradeBand: gradeBand, subjects: subjects, otherText: otherText, languageText: languageText };
     },
 
     save: function (profile) {
@@ -85,6 +91,9 @@
         // subject instead of the placeholder label.
         otherText: typeof profile.otherText === 'string'
           ? profile.otherText.trim().slice(0, 60)
+          : '',
+        languageText: typeof profile.languageText === 'string'
+          ? profile.languageText.trim().slice(0, 40)
           : ''
       });
       write(DISMISS_KEY, true);
@@ -123,7 +132,9 @@
       }
       if (p.subjects.length) {
         var first = p.subjects[0];
-        var subj = first === 'other' && p.otherText ? p.otherText : labelFor(SUBJECTS, first);
+        var subj = first === 'other' && p.otherText ? p.otherText
+          : first === 'languages' && p.languageText ? p.languageText
+          : labelFor(SUBJECTS, first);
         if (subj) bits.push(subj + (p.subjects.length > 1 ? ' +' + (p.subjects.length - 1) : ''));
       }
       return bits.filter(Boolean).join(' \u00b7 ');
@@ -138,6 +149,7 @@
       if (p.gradeBand) bits.push(labelFor(GRADE_BANDS, p.gradeBand));
       var subjectLabels = p.subjects.map(function (s) {
         if (s === 'other' && p.otherText) return p.otherText;
+        if (s === 'languages' && p.languageText) return labelFor(SUBJECTS, s) + ' (' + p.languageText + ')';
         return labelFor(SUBJECTS, s);
       }).filter(Boolean);
       if (subjectLabels.length > 0) {

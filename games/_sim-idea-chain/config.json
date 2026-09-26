@@ -1,0 +1,109 @@
+{
+  "name": "Idea Chain",
+  "description": "A 4-round telephone game built with the Idea Chain recipe.",
+  "minPlayers": 3,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "intro"
+    },
+    "intro": {
+      "type": "announce",
+      "message": "Idea Chain\n\nEveryone writes one idea to start. Then for 4 rounds, the idea passes to the next person, who reads the latest version and transforms it.\n\nAt the end, your own idea comes back to you, and you'll see every step it took.",
+      "timer": 12,
+      "next": "starter"
+    },
+    "starter": {
+      "type": "collect",
+      "prompt": "Write one character: a name, an age, and one detail that makes them distinctive.",
+      "timer": 30,
+      "next": "intro-round-1"
+    },
+    "intro-round-1": {
+      "type": "announce",
+      "message": "Round 1 of 4, pass it on!",
+      "timer": 5,
+      "next": "round-1"
+    },
+    "round-1": {
+      "type": "collect",
+      "prompt": "The version you received:\n\n“{{starter.assigned}}”\n\nRewrite the version you received with one twist: change the setting, the mood, or what happens next.",
+      "rotateFrom": "starter",
+      "timer": 30,
+      "next": "intro-round-2"
+    },
+    "intro-round-2": {
+      "type": "announce",
+      "message": "Round 2 of 4, keep it going!",
+      "timer": 5,
+      "next": "round-2"
+    },
+    "round-2": {
+      "type": "collect",
+      "prompt": "The version you received:\n\n“{{round-1.assigned}}”\n\nRewrite the version you received with one twist: change the setting, the mood, or what happens next.",
+      "rotateFrom": "round-1",
+      "timer": 30,
+      "next": "intro-round-3"
+    },
+    "intro-round-3": {
+      "type": "announce",
+      "message": "Round 3 of 4, getting wild yet?",
+      "timer": 5,
+      "next": "round-3"
+    },
+    "round-3": {
+      "type": "collect",
+      "prompt": "The version you received:\n\n“{{round-2.assigned}}”\n\nRewrite the version you received with one twist: change the setting, the mood, or what happens next.",
+      "rotateFrom": "round-2",
+      "timer": 30,
+      "next": "intro-round-4"
+    },
+    "intro-round-4": {
+      "type": "announce",
+      "message": "Final round!",
+      "timer": 5,
+      "next": "round-4"
+    },
+    "round-4": {
+      "type": "collect",
+      "prompt": "The version you received:\n\n“{{round-3.assigned}}”\n\nRewrite the version you received with one twist: change the setting, the mood, or what happens next.",
+      "rotateFrom": "round-3",
+      "timer": 30,
+      "next": "evolved"
+    },
+    "evolved": {
+      "type": "reveal",
+      "scope": "own",
+      "chainFrom": [
+        "starter",
+        "round-1",
+        "round-2",
+        "round-3",
+        "round-4"
+      ],
+      "chainDisplay": "steps",
+      "chainHeading": "You started with:",
+      "content": "Everyone is reading how their own idea changed, hand to hand.",
+      "next": "gallery"
+    },
+    "gallery": {
+      "type": "reveal-one",
+      "from": "evolved.responses",
+      "message": "Every chain, start to finish. Read each one out loud.",
+      "next": "end"
+    },
+    "end": {
+      "type": "end",
+      "message": "Look how far each idea travelled from where it started!"
+    }
+  },
+  "recipe": {
+    "id": "idea-chain",
+    "version": "2",
+    "params": {
+      "starterPrompt": "Write one character: a name, an age, and one detail that makes them distinctive.",
+      "transformPrompt": "Rewrite the version you received with one twist: change the setting, the mood, or what happens next.",
+      "timer": 30
+    }
+  }
+}

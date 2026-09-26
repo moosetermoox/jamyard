@@ -3738,6 +3738,13 @@ app.post('/api/games/chat', async (req, res) => {
     carrySubPhaseOrder(config, result.updatedConfig);
     carryStart(config, result.updatedConfig);
     const structural = validate(result.updatedConfig, 'chat', { returnResults: true });
+    // A draft that leaves nothing for students to do ("delete every
+    // step") validates clean, so the plan gate holds it back too
+    // (2026-09-26, a reviewer wanted to try it on a real activity)
+    const problem = planProblem(result.updatedConfig);
+    if (problem && !(structural.errors || []).length) {
+      structural.errors = (structural.errors || []).concat([problem]);
+    }
     res.json({
       kind: 'proposal',
       reply: result.reply,

@@ -168,3 +168,7 @@
 }
 .teacher-setup-save:hover { transform: rotate(-0.8deg) translateY(-3px); color: var(--t-paper, #FDF9F0); }
 
+
+/* Which language? (2026-09-26): the four most taught as chips over the box */
+.subject-language-chips { margin: 4px 0 10px; }
+.subject-language-modal .subject-other-hint { margin-top: 6px; }

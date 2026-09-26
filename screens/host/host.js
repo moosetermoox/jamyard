@@ -1155,10 +1155,20 @@ socket.on('live-tally', ({ rows }) => {
   renderLiveTally(rows);
 });
 
-socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count, total, hostTemplate, show, liveResults, choices }) => {
+socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count, total, hostTemplate, show, liveResults, choices, fields }) => {
   document.body.classList.add('in-activity');
   showSection(collectSection);
   setRichText(promptDisplay, prompt);
+  // A step with labelled fields (Exit Ticket) asks its questions in the
+  // labels; they go up under the instruction (2026-09-26, the projector
+  // showed only "Answer in a sentence or two.")
+  const fieldList = document.getElementById('collect-fields');
+  if (fieldList) {
+    fieldList.textContent = '';
+    const labels = Array.isArray(fields) ? fields.map(f => f && typeof f.label === 'string' ? f.label.trim() : '').filter(Boolean) : [];
+    labels.forEach(text => { const li = document.createElement('li'); li.textContent = text; fieldList.appendChild(li); });
+    fieldList.hidden = labels.length < 2;
+  }
   // A long prompt (a classmate's words plus the ask) opens the column
   // and drops a size, so fewer lines stack before fit-screen has to shrink.
   promptDisplay.classList.toggle('prompt-long', String(prompt || '').length > 160);
