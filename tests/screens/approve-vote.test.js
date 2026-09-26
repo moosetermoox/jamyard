@@ -209,3 +209,48 @@ describe('the small things', () => {
     expect(css).toContain('body.editor-page #settings-panel { padding-bottom: 80px; }');
   });
 });
+
+describe('the third Convention run (2026-09-26)', () => {
+  it('shows what passed, what did not, and the turnout after a yes-or-no vote, and it validates', () => {
+    const { config } = S.compileStoryboard(convention(true));
+    const ids = Object.keys(config.phases);
+    const voteId = ids.find(id => config.phases[id].type === 'vote');
+    const tpl = config.phases[config.phases[voteId].next].template;
+    expect(tpl).toContain('{{' + voteId + '.approvedList}}');
+    expect(tpl).toContain('Did not pass:');
+    expect(tpl).toContain('{{' + voteId + '.rejectedList}}');
+    expect(tpl).toContain('{{' + voteId + '.turnout}}');
+    const result = validate({ name: 'C', description: 'c', phases: config.phases }, 'c', { returnResults: true });
+    expect(result.errors).toEqual([]);
+    expect(PHASE_SCHEMAS.vote.output.fields.turnout.type).toBe('string');
+  });
+
+  it('lets Add sample answers answer a yes-or-no ballot and send it', () => {
+    const player = read('screens/player/player.js');
+    const bot = player.slice(player.indexOf("} else if (id === 'vote-section') {"), player.indexOf("} else if (id === 'rank-section') {"));
+    expect(bot).toContain(".approve-row");
+    expect(bot).toContain(".approve-send");
+  });
+
+  it('lists the proposals on the projector while the class votes, with textContent', () => {
+    expect(read('screens/host/index.html')).toContain('id="vote-proposals"');
+    const host = read('screens/host/host.js');
+    expect(host).toContain('proposals, hostTemplate');
+    expect(host).toMatch(/li\.textContent = text/);
+    expect(read('engine/phase-handlers/vote.js')).toContain('proposals: proposalsForProjector(phase.mode, candidates)');
+    expect(read('screens/host/styles.css')).toContain('.vote-proposals[hidden] { display: none; }');
+  });
+
+  it('teaches the AI to show what failed and to put each item\'s details into the item', () => {
+    const ai = read('services/ai-service.js');
+    expect(ai).toContain('{{vote.rejectedList}}');
+    expect(ai).toContain('write them INTO each item');
+  });
+
+  it('carries the new labels in every language table', () => {
+    for (const lang of Object.keys(STRINGS)) {
+      expect(STRINGS[lang]['None.']).toBeTruthy();
+      expect(STRINGS[lang]['{voted} of {total} students voted.']).toMatch(/\{voted\}.*\{total\}|\{total\}.*\{voted\}/);
+    }
+  });
+});

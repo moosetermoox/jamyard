@@ -268,6 +268,7 @@ const voteSection = document.getElementById('vote-section');
 const voteModeDisplay = document.getElementById('vote-mode-display');
 const voteTimer = document.getElementById('vote-timer');
 const voteCount = document.getElementById('vote-count');
+const voteProposals = document.getElementById('vote-proposals');
 const closeVotingBtn = document.getElementById('close-voting-btn');
 
 // Elements - Elimination
@@ -2776,7 +2777,18 @@ phaseErrorEndBtn.addEventListener('click', () => {
 
 // --- Socket events - Voting ---
 
-socket.on('vote-start', ({ mode, totalVoters, timer, hostTemplate, show }) => {
+socket.on('vote-start', ({ mode, totalVoters, timer, proposals, hostTemplate, show }) => {
+  // A yes-or-no vote puts its proposals up, numbered, words only
+  // (engine/phases/vote-handler.js proposalsForProjector).
+  voteProposals.textContent = '';
+  const list = Array.isArray(proposals) ? proposals.filter(p => typeof p === 'string' && p.trim()) : [];
+  list.forEach(text => {
+    const li = document.createElement('li');
+    li.textContent = text;
+    voteProposals.appendChild(li);
+  });
+  voteProposals.classList.toggle('is-long', list.length > 6);
+  voteProposals.hidden = list.length === 0;
   showSection(voteSection);
   voteModeDisplay.textContent = mode === 'head-to-head' ? 'Head-to-Head'
     : (mode === 'approve' ? UiLang.t('Yes or no on each one') : 'Pick One');

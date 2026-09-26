@@ -76,7 +76,7 @@ import {
   refund as wordHelpRefund, recordLookup, summarize as summarizeWordHelp,
   cachedTranslation, cacheTranslation, publicSettings as wordHelpSettings
 } from './engine/word-help.js';
-import { createEarlyJokeState, dealJoke, jokeFor, splitJoke, isEarlyJokeOn } from './engine/early-joke.js';
+import { createEarlyJokeState, dealJoke, jokeFor, splitJoke, isEarlyJokeOn, isEarlyBirdJoin } from './engine/early-joke.js';
 
 // The joke as the student screen tells it: setup first, punchline held
 // back (engine/early-joke.js splitJoke); null when this seat got none.
@@ -1812,7 +1812,11 @@ async function tallyAndAdvance(code, room) {
   if (vs.mode === 'approve') {
     // Yes or no on every entry: what passed, as words for a reveal
     // ({{vote.approvedList}}) and as entries; scores stay the yes counts.
-    result = tallyApprove(vs.votes, vs.candidates, { passAt: phaseConfig.passAt });
+    result = tallyApprove(vs.votes, vs.candidates, {
+      passAt: phaseConfig.passAt,
+      eligible: Array.isArray(vs.eligibleVoterIds) ? vs.eligibleVoterIds.length : undefined,
+      lang: engine.language
+    });
     engine.storePhaseData(vs.phaseId, {
       votes: vs.votes,
       scores: result.scores,
@@ -1823,6 +1827,8 @@ async function tallyAndAdvance(code, room) {
       approvedCount: result.approvedCount,
       approvedList: result.approvedList,
       rejectedList: result.rejectedList,
+      turnout: result.turnout,
+      eligibleCount: result.eligibleCount,
       resultsList: result.resultsList,
       winner: result.winner,
       winnerText: result.winnerText,
@@ -4402,8 +4408,12 @@ io.on('connection', (socket) => {
       const theme = room.engine ? (room.engine.config.theme || null) : null;
       const language = room.engine ? room.engine.language : 'en';
       // Early-bird joke: a new seat among the first N draws one (engine/
-      // early-joke.js keeps the count and the deal; past N this is null).
-      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(dealJoke(room.earlyJoke, socket.id)) });
+      // early-joke.js keeps the count and the deal; past N this is null),
+      // and only while the room still waits in its lobby (or is rolling).
+      const joinPhase = room.engine ? room.engine.getCurrentPhase() : null;
+      const earlyBird = isEarlyBirdJoin({ phaseType: joinPhase ? joinPhase.type : null, rolling: !!(room.engine && isRolling(room.engine.config)) });
+      const joke = earlyBird ? dealJoke(room.earlyJoke, socket.id) : null;
+      socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(joke) });
 
       const hostSocketId = roomToHost.get(code);
       if (hostSocketId) {

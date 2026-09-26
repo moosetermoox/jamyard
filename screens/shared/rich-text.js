@@ -17,6 +17,11 @@
   var HASH_RE = /^#{1,6}\s+(.*)$/;
   var BOLD_LINE_RE = /^\*\*([^*]+)\*\*(:?)$/;
   var INLINE_BOLD_RE = /\*\*([^*\n]+)\*\*/g;
+  // A yes-or-no vote's result line, "2. Clause text (3 yes, 1 no)"
+  // (engine/phases/vote-handler.js approvedLines, in the activity's words):
+  // the counts paint as a small tag instead of trailing the clause
+  // (an outside reviewer, 2026-09-26). Two counts, two single words.
+  var TALLY_RE = /^(\d+)\.\s+(.+?)\s+\((\d+ [^\s,()]+, \d+ [^\s,()]+)\)$/;
 
   // The scrub: the tells a model still lets through the STYLE RULES,
   // fixed on the way to the wall (2026-09-16, owner: students should be
@@ -42,7 +47,7 @@
     var lines = String(text == null ? '' : text).split('\n');
     for (var i = 0; i < lines.length; i++) {
       var t = lines[i].trim();
-      if (HASH_RE.test(t) || BOLD_LINE_RE.test(t) || BULLET_RE.test(t)) return true;
+      if (HASH_RE.test(t) || BOLD_LINE_RE.test(t) || BULLET_RE.test(t) || TALLY_RE.test(t)) return true;
       INLINE_BOLD_RE.lastIndex = 0;
       if (INLINE_BOLD_RE.test(t)) return true;
     }
@@ -66,10 +71,14 @@
   }
 
   // Segments: {type:'subhead', text} | {type:'bullets', items:[runs]} |
+  // {type:'tallies', items:[{num, runs, tag}]} |
   // {type:'text', lines:[runs]} (blank interior lines survive as empty runs).
   function parse(text) {
     var lines = scrub(text).split('\n');
     var segments = [];
+    // In a vote's result every short colon line is a heading, even over
+    // a "None." ("Did not pass:" when everything passed).
+    var hasTallies = lines.some(function (l) { return TALLY_RE.test(l.trim()); });
     var textBuf = [];
 
     function flushText() {
@@ -93,16 +102,25 @@
       var hm = t.match(HASH_RE);
       var bm = t.match(BOLD_LINE_RE);
       var um = t.match(BULLET_RE);
+      var tm = t.match(TALLY_RE);
       // Plain "TEAM YES:" header, the shape STYLE_RULES asks the AI for:
-      // a short colon line directly above a bullet group, or in ALL CAPS
-      // anywhere. The lookahead/caps guards keep ordinary sentences that
-      // happen to end with a colon as normal text.
-      if (!hm && !bm && !um && t && t.length <= 60 && /:$/.test(t) &&
+      // a short colon line directly above a bullet group (or a vote's
+      // result lines), or in ALL CAPS anywhere. The lookahead/caps guards
+      // keep ordinary sentences that happen to end with a colon as text.
+      if (!hm && !bm && !um && !tm && t && t.length <= 60 && /:$/.test(t) &&
           t.indexOf('**') === -1 &&
-          (BULLET_RE.test(nextNonEmpty(i)) ||
+          (BULLET_RE.test(nextNonEmpty(i)) || hasTallies ||
            (/[A-Z]/.test(t) && t === t.toUpperCase()))) {
         flushText();
         segments.push({ type: 'subhead', text: t });
+        continue;
+      }
+      if (tm) {
+        flushText();
+        var tally = { num: tm[1], runs: inlineRuns(tm[2]), tag: tm[3] };
+        var prevSeg = segments[segments.length - 1];
+        if (prevSeg && prevSeg.type === 'tallies') prevSeg.items.push(tally);
+        else segments.push({ type: 'tallies', items: [tally] });
         continue;
       }
       if (hm || bm) {
@@ -190,6 +208,27 @@
           list.appendChild(row);
         }
         wrap.appendChild(list);
+      } else if (seg.type === 'tallies') {
+        var rows = document.createElement('div');
+        rows.className = 'msg-tallies';
+        for (var n = 0; n < seg.items.length; n++) {
+          var line = document.createElement('div');
+          line.className = 'msg-tally';
+          var num = document.createElement('span');
+          num.className = 'msg-tally-num';
+          num.textContent = seg.items[n].num + '.';
+          line.appendChild(num);
+          var words = document.createElement('span');
+          words.className = 'msg-tally-text';
+          runsInto(words, seg.items[n].runs);
+          line.appendChild(words);
+          var tag = document.createElement('span');
+          tag.className = 'msg-tally-tag';
+          tag.textContent = seg.items[n].tag;
+          line.appendChild(tag);
+          rows.appendChild(line);
+        }
+        wrap.appendChild(rows);
       } else {
         var p = document.createElement('span');
         p.className = 'msg-rich-para';

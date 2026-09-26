@@ -133,3 +133,31 @@ describe('scrub', () => {
     expect(segs[0].items[0][0].text).toBe('Sleep, it matters');
   });
 });
+
+describe('a yes-or-no vote result (2026-09-26)', () => {
+  const RESULT = [
+    'What the class passed:',
+    '',
+    '1. Every state gets two senators. (3 yes, 1 no)',
+    '2. No taxes on trade (2 yes, 1 no)',
+    '',
+    'Did not pass:',
+    '',
+    'None.',
+    '',
+    '3 of 4 students voted.'
+  ].join('\n');
+
+  it('lays the lines out as tallies, the counts as their own tag, both colon lines as headings', () => {
+    expect(RT.hasRich(RESULT)).toBe(true);
+    const segs = RT.parse(RESULT);
+    expect(segs.map(x => x.type)).toEqual(['subhead', 'tallies', 'subhead', 'text']);
+    expect(segs[1].items[0]).toEqual({ num: '1', runs: [{ text: 'Every state gets two senators.', bold: false }], tag: '3 yes, 1 no' });
+    expect(segs[1].items[1].tag).toBe('2 yes, 1 no');
+    expect(segs[2].text).toBe('Did not pass:');
+  });
+
+  it('leaves an ordinary numbered line alone', () => {
+    expect(RT.hasRich('1. Bring a pencil (the sharp kind)')).toBe(false);
+  });
+});

@@ -606,7 +606,7 @@ export const PHASE_SCHEMAS = {
       mode: {
         type: 'enum', values: ['pick-one', 'head-to-head', 'approve'], required: true,
         label: 'Voting style',
-        helper: '"pick-one": everyone picks one favorite. "head-to-head": A-or-B matchups. "approve": everyone says yes or no to EVERY candidate, so several can pass at once (clauses into a constitution, class norms, budget lines); .approvedList is the list of what passed.'
+        helper: '"pick-one": everyone picks one favorite. "head-to-head": A-or-B matchups. "approve": everyone says yes or no to EVERY candidate, so several can pass at once (clauses into a constitution, class norms, budget lines); .approvedList is the list of what passed, .rejectedList what did not, .turnout how many voted.'
       },
       passAt: {
         type: 'integer', min: 1, max: 100, optional: true,
@@ -670,6 +670,9 @@ export const PHASE_SCHEMAS = {
         approvedCount: { type: 'integer' },
         approvedList:  { type: 'string', capability: 'renderable' },
         rejectedList:  { type: 'string', capability: 'renderable' },
+        // "3 of 4 students voted." (blank when the class size is unknown)
+        turnout:       { type: 'string', capability: 'renderable' },
+        eligibleCount: { type: 'integer' },
         resultsList:   { type: 'string', capability: 'renderable' },
         noCounts:      { type: 'object' }
       }

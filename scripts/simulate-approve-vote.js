@@ -15,6 +15,10 @@
  *      outright; the reveal on the projector lists the two that passed
  *      with their counts, never an id, and the report has every row.
  *   4. A self-vote sent by hand is dropped by the server.
+ *   5. (2026-09-26, the third Convention run) the lobby joiner gets the
+ *      early-bird joke, a student who arrives after the start does not.
+ *   4. The projector lists every clause while the class votes, words only.
+ *   6. The reveal lists what did not pass too, and "4 of 5 students voted."
  *
  * Self-contained: spawns its own server (mock AI, filesystem storage) on a
  * random port and cleans up its saved copy.
@@ -87,11 +91,21 @@ async function main() {
     for (let i = 0; i < 4; i++) {
       const p = await connect('P' + (i + 1), url);
       p.emit('join-room', { code, name: NAMES[i] });
-      await waitForEvent(p, 'join-success', 3000);
+      const joined = await waitForEvent(p, 'join-success', 3000);
+      if (i === 0) r.check(!!(joined && joined.joke), '5. a student who joins in the lobby gets the early-bird joke');
       players.push(p);
     }
     host.emit('start-game', { code });
     await waitForEvent(host, 'phase-announce', 5000).catch(() => null);
+    await wait(300);
+
+    // A student who arrives after the start is late, not early: no joke
+    // above their first instruction (the third Convention run, 2026-09-26).
+    const late = await connect('LATE', url);
+    late.emit('join-room', { code, name: 'Lee' });
+    const lateJoin = await waitForEvent(late, 'join-success', 3000);
+    r.check(!lateJoin.joke, '5. a student who joins after the start gets no joke');
+    late.disconnect();
     await wait(300);
 
     const startedOnPlayers = waitForEventOnAll(players, 'game-started', 8000);
@@ -110,6 +124,11 @@ async function main() {
     const votes = await ballots;
     const hostVote = await hostBallot;
     r.check(hostVote.mode === 'approve', '2. the projector hears the yes-or-no mode');
+    const floor = Array.isArray(hostVote.proposals) ? hostVote.proposals : [];
+    r.check(floor.length === 4 && seen.every((st) => floor.includes('Clause from ' + st)),
+      '4. the projector lists all four clauses while the class votes');
+    r.check(!NAMES.some((n) => JSON.stringify(floor).includes(n)) && !/playerId/.test(JSON.stringify(floor)),
+      '4. the projector list carries words only, no names or ids');
     r.check(votes.every((v) => v.mode === 'approve'), '2. every ballot is a yes-or-no ballot');
     r.check(votes.every((v, i) => (v.candidates || []).length === 3 && !v.candidates.some((c) => c.text === 'Clause from ' + seen[i])),
       '2. every ballot carries the other three clauses, never the voter\'s own');
@@ -133,14 +152,22 @@ async function main() {
 
     const results = waitForEvent(host, 'show-results', 15000);
     await wait(500);
+    // The late student (who left) never votes, so the teacher closes it
+    host.emit('close-voting', { code });
     const shown = await results;
     const text = String(shown.content || shown.aiResult || '');
     log('HOST', 'reveal:\n' + text);
     r.check(text.includes('What the class passed:'), '3. the reveal carries its heading');
     r.check(text.includes('Clause from ' + seen[0] + ' (3 yes, 0 no)'), '3. the clause that passed 3-0 is listed with its counts');
     r.check(text.includes('Clause from ' + seen[1] + ' (2 yes, 1 no)'), '3. the clause that passed 2-1 is listed with its counts');
-    r.check(!text.includes('Clause from ' + seen[2]), '3. the tied clause is not on the list');
-    r.check(!text.includes('Clause from ' + seen[3]), '3. the clause that failed is not on the list (the self-vote was dropped)');
+    const cut = text.indexOf('Did not pass:');
+    const passedPart = cut === -1 ? text : text.slice(0, cut);
+    const failedPart = cut === -1 ? '' : text.slice(cut);
+    r.check(!passedPart.includes('Clause from ' + seen[2]), '3. the tied clause is not on the passed list');
+    r.check(!passedPart.includes('Clause from ' + seen[3]), '3. the clause that failed is not on the passed list (the self-vote was dropped)');
+    r.check(failedPart.includes('Clause from ' + seen[2] + ' (1 yes, 1 no)') && failedPart.includes('Clause from ' + seen[3] + ' (0 yes, 3 no)'),
+      '6. the two that failed are listed under Did not pass, with their counts');
+    r.check(text.includes('4 of 5 students voted.'), '6. the reveal says how many of the class voted (the late student who left counts and did not vote)');
     r.check(!/[A-Za-z0-9_-]{20}/.test(text.replace(/Clause from [A-Za-z ]+/g, '')), '3. the reveal prints no socket id');
 
     // The report has every row with its counts
