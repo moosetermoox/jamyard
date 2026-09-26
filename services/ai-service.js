@@ -1480,6 +1480,15 @@ Return the revised config.`;
         const text = phase.prompt || phase.message || phase.question || '';
         if (text) phaseTexts.push(`${id} (${phase.type}): ${String(text).slice(0, 160)}`);
       }
+      // The answer boxes have a cap; a length question must fit it
+      // (2026-09-26: "Half a page" was offered over a 280-character box)
+      let answerCap = 0;
+      for (const phase of Object.values(config.phases || {})) {
+        if (phase && phase.type === 'collect' && phase.inputType !== 'drawing') answerCap = Math.max(answerCap, Number(phase.maxLength) || 280);
+      }
+      const capNote = answerCap
+        ? `\nStudents type into a box that holds at most ${answerCap} characters (${answerCap <= 300 ? 'a sentence or two' : 'a short paragraph'}). Never offer a length beyond that: no "half a page", "a paragraph or more", or a word count over ${Math.floor(answerCap / 6)}.\n`
+        : '';
       const knownClass = classDesc
         ? `\nWe ALREADY KNOW their class: ${classDesc}. Do not ask about grade level, age, or subject in any form. Write questions that assume that knowledge and go one level deeper, like the specific unit, book, era, or topic they are teaching right now, or what their class enjoys.\n`
         : '';
@@ -1500,7 +1509,7 @@ Each question is one of two kinds:
 - "text" when the answer is a specific THING only the teacher knows (the words, the book, the unit, the era, the facts): give a "placeholder" with one short example (under eight words). Never guess facts.
 Also give a "label": the setting's name in 2-4 words, for a card line (e.g. "Answers you expect", "The words", "Topic").
 Ask about the WORDS only: what the answers should look like, the tone, the examples. The teacher types the activity's own question or prompt on the page (and its answer choices and field labels where it has them), so NEVER ask what the question, claim, topic, or task should be, or what it is about: ask only about the tone, the length or kind of answers, or a detail the wording depends on that the page has no box for. NEVER ask about timing, timers, minutes, how many rounds, group sizes, grade, or subject: the page has its own controls for all of those.
-${knownClass}${knownKnobs}
+${capNote}${knownClass}${knownKnobs}
 Activity: ${String(config.name || '').slice(0, 80)}
 Description: ${String(config.description || '').slice(0, 200)}
 Steps:
@@ -1632,6 +1641,9 @@ Return ONLY JSON, no other prose:
       .filter(([, p]) => p && p.type === 'collect' && p.inputType !== 'drawing' && !p.appendOnly)
       .map(([id, p]) => ({
         id,
+        // a rotation step reads a classmate's answer from an earlier step
+        // (2026-09-26: the bots wrote a fresh story every round)
+        respondsTo: typeof p.rotateFrom === 'string' && phases[p.rotateFrom] && phases[p.rotateFrom].type === 'collect' && !p.appendOnly ? p.rotateFrom : null,
         prompt: String(p.prompt || '').replace(/\{\{[^}]+\}\}/g, '…').replace(/\s+/g, ' ').trim().slice(0, 300),
         fields: Array.isArray(p.fields) ? p.fields.map((f) => String((f && f.label) || '').slice(0, 80)) : [],
         dealt: Array.isArray(p.dealItems) ? p.dealItems.slice(0, 12).map(String) : []
@@ -1649,6 +1661,7 @@ Return ONLY JSON, no other prose:
       const bits = [`- step "${s.id}": ${s.prompt || '(no question text)'}`];
       if (s.fields.length >= 2) bits.push(`  fields, answer each as its own string in order: ${s.fields.map((f) => JSON.stringify(f)).join(', ')}`);
       if (s.dealt.length) bits.push(`  each student was privately handed one of: ${s.dealt.join('; ')} (the … in the question is that item)`);
+      if (s.respondsTo) bits.push(`  each student receives a classmate's answer from step "${s.respondsTo}" (the … in the question): answer i here must respond to answer i of step "${s.respondsTo}", in the same order, carrying it forward`);
       return bits.join('\n');
     }).join('\n');
     const message = await this._callClaude({
@@ -1692,7 +1705,10 @@ Return ONLY JSON, no other prose: {"<step id>": ["...", "..."], ...} with a stri
         : (Array.isArray(line) ? clean(line.join(' ')) : clean(line))))
         .filter((line) => (Array.isArray(line) ? line.some(Boolean) : line.length >= 2))
         .slice(0, n);
-      if (lines.length >= 2) out[step.id] = lines;
+      if (lines.length < 2) continue;
+      const source = step.respondsTo ? out[step.respondsTo] : null;
+      const sourceLines = Array.isArray(source) ? source : (source && Array.isArray(source.lines) ? source.lines : null);
+      out[step.id] = sourceLines && sourceLines.length === lines.length ? { respondsTo: step.respondsTo, lines } : lines;
     }
     return { sampleAnswers: Object.keys(out).length ? out : null };
   }

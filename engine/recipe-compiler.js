@@ -85,6 +85,18 @@ import { mkDiagnostic } from './diagnostics.js';
  *                                       values to declared types.
  * @returns {{ config: Object | null, diagnostics: import('./diagnostics.js').Diagnostic[] }}
  */
+// The make page's rule for a copy's name (nameFor in engine/make-print.js):
+// near 48 characters, cut at a word, an ellipsis after
+const NAME_MAX = 48;
+export function capName(name) {
+  const text = String(name || '').replace(/\s+/g, ' ').trim();
+  if (text.length <= NAME_MAX) return text;
+  let cut = text.slice(0, NAME_MAX);
+  const space = cut.lastIndexOf(' ');
+  if (space > 20) cut = cut.slice(0, space);
+  return cut.trim() + '…';
+}
+
 export function compileRecipe(recipe, rawParams = {}) {
   // 1. Coerce form-string inputs ("30" → 30, "true" → true) before
   //    validation. This avoids spurious type-mismatch errors on params
@@ -118,6 +130,15 @@ export function compileRecipe(recipe, rawParams = {}) {
       source: 'validator'
     }));
     return { config: null, diagnostics: [...paramDiags, ...subDiags] };
+  }
+
+  // 4b. A name is a name, never the whole question (2026-09-26, two
+  //     reviewers read "Feedback: How is class going for you? What's
+  //     working well, and what would help?" as the title): a recipe that
+  //     folds a param into its name is cut the way the make page cuts a
+  //     copy's name, near 48 characters at a word.
+  if (config && typeof config === 'object' && typeof config.name === 'string') {
+    config.name = capName(config.name);
   }
 
   // 5. Carry the recipe-level family flag into the compiled config so the

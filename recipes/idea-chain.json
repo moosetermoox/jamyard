@@ -2,9 +2,9 @@
   "id": "idea-chain",
   "name": "Idea Chain",
   "icon": "🔗",
-  "description": "Telephone-style: everyone writes a starter, then each round the ideas pass to the next person who transforms them. After 4 rounds, see how every chain evolved.",
+  "description": "Telephone-style: everyone writes a starter, then each round the ideas pass to the next person who transforms them. After 4 rounds, every chain comes back to the person who started it, and the class sees how each one evolved.",
   "tagline": "Great for creative thinking, brainstorming, and seeing how ideas mutate when they pass through different minds.",
-  "version": "1",
+  "version": "2",
   "parameters": {
     "starterPrompt": {
       "type": "templateString",
@@ -18,8 +18,8 @@
     "transformPrompt": {
       "type": "templateString",
       "label": "How to transform each round",
-      "helper": "What students should do with someone else's idea each round. Keep it broad, same instruction is reused across all four rounds.",
-      "placeholder": "Keep the sentence going, add what happens next.",
+      "helper": "What students do with the version they receive each round: change it, twist it, or carry it forward. The same instruction is reused across all four rounds, so it must work on any version, never ask for a fresh start.",
+      "placeholder": "Rewrite it with one twist: change the setting, the mood, or what happens next.",
       "required": true,
       "minLength": 3,
       "maxLength": 300
@@ -27,14 +27,14 @@
     "timer": {
       "type": "integer",
       "label": "Time per round (seconds)",
-      "helper": "How long students have to read the previous answer and add their twist.",
+      "helper": "How long students have to read the previous version and add their twist.",
       "default": 60,
       "min": 20,
       "max": 300
     }
   },
   "template": {
-    "name": "Idea Chain: ${starterPrompt}",
+    "name": "Idea Chain",
     "description": "A 4-round telephone game built with the Idea Chain recipe.",
     "minPlayers": 3,
     "phases": {
@@ -44,8 +44,8 @@
       },
       "intro": {
         "type": "announce",
-        "message": "Idea Chain\n\nEveryone writes one idea to start. Then for 4 rounds, your idea passes to the next person, and you'll see someone else's idea to transform.",
-        "timer": 10,
+        "message": "Idea Chain\n\nEveryone writes one idea to start. Then for 4 rounds, the idea passes to the next person, who reads the latest version and transforms it.\n\nAt the end, your own idea comes back to you, and you'll see every step it took.",
+        "timer": 12,
         "next": "starter"
       },
       "starter": {
@@ -62,7 +62,7 @@
       },
       "round-1": {
         "type": "collect",
-        "prompt": "Previous: {{starter.assigned}}\n\n${transformPrompt}",
+        "prompt": "The version you received:\n\n“{{starter.assigned}}”\n\n${transformPrompt}",
         "rotateFrom": "starter",
         "timer": "${timer}",
         "next": "intro-round-2"
@@ -75,7 +75,7 @@
       },
       "round-2": {
         "type": "collect",
-        "prompt": "Previous: {{round-1.assigned}}\n\n${transformPrompt}",
+        "prompt": "The version you received:\n\n“{{round-1.assigned}}”\n\n${transformPrompt}",
         "rotateFrom": "round-1",
         "timer": "${timer}",
         "next": "intro-round-3"
@@ -88,7 +88,7 @@
       },
       "round-3": {
         "type": "collect",
-        "prompt": "Previous: {{round-2.assigned}}\n\n${transformPrompt}",
+        "prompt": "The version you received:\n\n“{{round-2.assigned}}”\n\n${transformPrompt}",
         "rotateFrom": "round-2",
         "timer": "${timer}",
         "next": "intro-round-4"
@@ -101,24 +101,29 @@
       },
       "round-4": {
         "type": "collect",
-        "prompt": "Previous: {{round-3.assigned}}\n\n${transformPrompt}",
+        "prompt": "The version you received:\n\n“{{round-3.assigned}}”\n\n${transformPrompt}",
         "rotateFrom": "round-3",
         "timer": "${timer}",
-        "next": "starters-reveal"
+        "next": "evolved"
       },
-      "starters-reveal": {
+      "evolved": {
         "type": "reveal",
-        "template": "## Where we started\n\n{{starter.responses.list}}",
-        "next": "final-reveal"
+        "scope": "own",
+        "chainFrom": ["starter", "round-1", "round-2", "round-3", "round-4"],
+        "chainDisplay": "steps",
+        "chainHeading": "You started with:",
+        "content": "Everyone is reading how their own idea changed, hand to hand.",
+        "next": "gallery"
       },
-      "final-reveal": {
-        "type": "reveal",
-        "template": "## Where we ended up\n\nAfter four transformations:\n\n{{round-4.responses.list}}",
+      "gallery": {
+        "type": "reveal-one",
+        "from": "evolved.responses",
+        "message": "Every chain, start to finish. Read each one out loud.",
         "next": "end"
       },
       "end": {
         "type": "end",
-        "message": "Look how different those endings are from the starters!"
+        "message": "Look how far each idea travelled from where it started!"
       }
     }
   }

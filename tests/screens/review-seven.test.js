@@ -129,8 +129,8 @@ describe('a plan the class can run', () => {
 describe('the joke, the terms, the rounds box', () => {
   it('the joke list has no religion, romance, crime, body, or disability jokes, and the source and the JSON agree', () => {
     const built = JSON.parse(read('engine/dad-jokes.json'));
-    expect(built.length).toBe(459);
-    const bad = /atheis|prophet|catholic|\bnun\b|buddh|monastery|friar|sunday school|girlfriend|my date|kleptoman|kidnapping|pee soup|vowel movement|urine|bladder|\bdung\b|cross-eyed|hearing aid|bullies|corkscrew|steal a mixer|stealing from his job/i;
+    expect(built.length).toBe(456);
+    const bad = /left side was cut off|criminal going down|found in the bathroom|atheis|prophet|catholic|\bnun\b|buddh|monastery|friar|sunday school|girlfriend|my date|kleptoman|kidnapping|pee soup|vowel movement|urine|bladder|\bdung\b|cross-eyed|hearing aid|bullies|corkscrew|steal a mixer|stealing from his job/i;
     expect(built.filter(j => bad.test(j))).toEqual([]);
     expect(read('docs/500-all-ages-dad-jokes.md')).not.toMatch(/non-prophet/);
   });

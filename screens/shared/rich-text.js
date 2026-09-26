@@ -39,6 +39,9 @@
     s = s.replace(/\u0001/g, '–');
     s = s.replace(/(^|\n), /g, '$1');
     s = s.replace(FILLER_RE, function (m, lead, ch) { return lead + (ch ? ch.toUpperCase() : ''); });
+    // Single-star italics show as stray stars on the wall (2026-09-26,
+    // a projector wrapped the question in them); the words stay
+    s = s.replace(/(^|[^*\n])\*([^*\n]+)\*(?!\*)/g, '$1$2');
     return s;
   }
 

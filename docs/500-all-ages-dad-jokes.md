@@ -5,7 +5,6 @@ Source: [icanhazdadjoke.com](https://icanhazdadjoke.com), public API. Retrieved 
 This is a curated compilation, not original writing. I excluded jokes containing adult themes, violence, substances, profanity/body-humor terms, religion, or demographic references to keep the collection broadly suitable for all ages.
 
 1. I'm tired of following my dreams. I'm just going to ask them where they are going and meet up with them later.
-2. Did you hear about the guy whose whole left side was cut off? He's all right now.
 3. Why didn’t the skeleton cross the road? Because he had no guts.
 4. What did one nut say as he chased another nut?  I'm a cashew!
 5. Where do fish keep their money? In the riverbank
@@ -112,7 +111,6 @@ An irrelephant.
 Doctor: No, humans can never hear that high of a frequency no matter what age they are.
 
 Me: Trick question... dogs can't whistle.
-112. What musical instrument is found in the bathroom? A tuba toothpaste.
 113. I can't take my dog to the pond anymore because the ducks keep attacking him. That's what I get for buying a pure bread dog.
 114. My boss told me to attach two pieces of wood together... I totally nailed it!
 115. What was the pumpkin’s favorite sport?
@@ -345,7 +343,6 @@ Scratch Paper!
 339. In the news a courtroom artist was arrested today, I'm not surprised, he always seemed sketchy.
 340. I wanted to be a tailor but I didn't suit the job
 341. What do you call someone with no nose? Nobody knows.
-342. What do you call a criminal going down the stairs? Condescending
 344. I used to be a banker, but I lost interest.
 345. Why can't a bicycle stand on its own? It's two-tired.
 346. What does a pirate pay for his corn? A buccaneer!

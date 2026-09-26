@@ -443,7 +443,8 @@ let samplesRequestFor = null;
 function writeSamplesFor(id) {
   if (!id || samplesRequestFor === id) return;
   samplesRequestFor = id;
-  fetch('/api/games/' + encodeURIComponent(id) + '/sample-answers', { method: 'POST' })
+  // as many lines as the bench can seat, so eight students never share two (2026-09-26)
+  fetch('/api/games/' + encodeURIComponent(id) + '/sample-answers?seats=' + MAX_PLAYERS, { method: 'POST' })
     .then((r) => (r.ok ? r.json() : null))
     .then((body) => {
       if (body && body.sampleAnswers && typeof body.sampleAnswers === 'object' && samplesRequestFor === id && !currentSamples) {

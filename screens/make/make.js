@@ -1715,7 +1715,15 @@
   // page from its cache with the "Opening…" card still up (a Live Poll
   // run got stuck on "Your words are in", 2026-09-13). Clear it.
   window.addEventListener('pageshow', function (e) {
-    if (e.persisted && state.busy) clearOpening();
+    if (!e.persisted) return;
+    if (state.busy) clearOpening();
+    // The class may have changed on the home page since this page was
+    // cached (a reviewer saw Science after setting Social studies, 2026-09-26)
+    if (state.config) buildRows();
+  });
+  // ...and the same when another tab changes it
+  window.addEventListener('storage', function (e) {
+    if (e.key === 'lanyard-teacher-profile' && state.config) buildRows();
   });
 
   // --- The edits, read off the page

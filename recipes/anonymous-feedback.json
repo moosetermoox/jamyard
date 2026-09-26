@@ -2,9 +2,9 @@
   "id": "anonymous-feedback",
   "name": "Anonymous Feedback",
   "icon": "🤐",
-  "description": "Students submit feedback anonymously. AI groups responses into themes, no individual answers shown to the class.",
+  "description": "Students submit feedback anonymously. AI groups responses into themes: a private summary for the teacher's console first, then a group-level version for the class. No individual answers shown to the class.",
   "tagline": "Perfect for end-of-unit reflection, course evaluations, and 'tell me how I'm doing' moments.",
-  "version": "1",
+  "version": "2",
   "parameters": {
     "question": {
       "type": "templateString",
@@ -25,7 +25,7 @@
     }
   },
   "template": {
-    "name": "Feedback: ${question}",
+    "name": "Anonymous Feedback",
     "description": "An anonymous feedback collection built with the Anonymous Feedback recipe.",
     "phases": {
       "lobby": {
@@ -34,7 +34,7 @@
       },
       "intro": {
         "type": "announce",
-        "message": "## Your responses are anonymous to the class.\n\nYour teacher will see a summary, not who said what. Be honest!",
+        "message": "Your responses are anonymous to the class.\n\nYour teacher will see a summary, not who said what. Be honest!",
         "timer": 6,
         "next": "ask"
       },
@@ -43,18 +43,32 @@
         "prompt": "${question}",
         "timer": "${timer}",
         "from": "all",
-        "next": "process"
+        "next": "for-teacher"
       },
-      "process": {
+      "for-teacher": {
         "type": "ai-process",
         "task": "summarize",
-        "instruction": "You are summarizing anonymous student feedback. Group similar responses into 3-5 themes. For each theme, give it a short heading and a 1-2 sentence summary describing what students said. Do NOT quote individual responses verbatim, paraphrase to preserve anonymity. Highlight any actionable patterns the teacher could use. Keep the total response under 250 words. Use plain markdown.",
+        "instruction": "You are summarizing anonymous student feedback for the teacher's eyes only. Group similar responses into 3-5 themes. For each theme, give a short bold heading and a one or two sentence summary of what students said. Then a short list of things the teacher could try. Never quote a response word for word, and never describe what one student said: only patterns that several students share, so nobody in the room can be picked out. No names, no descriptions of a person. Keep the whole thing under 250 words. Bold headings only, no # headings, no italics.",
+        "input": "ask.responses",
+        "next": "teacher-view"
+      },
+      "teacher-view": {
+        "type": "preview",
+        "template": "{{for-teacher.result}}",
+        "showResponses": false,
+        "approveNext": "for-class",
+        "rejectNext": "for-teacher"
+      },
+      "for-class": {
+        "type": "ai-process",
+        "task": "summarize",
+        "instruction": "You are writing what a class said, for the class to read together on the projector. Group the responses into 3-5 themes, each a short bold heading and one plain sentence starting with what the class said (\"Many of us...\", \"Several people...\"). Only patterns that several students share: never what one student said, never a quote, never a name or a description of a person. No advice to the teacher, no next steps, no thanks. Under 150 words. Bold headings only, no # headings, no italics.",
         "input": "ask.responses",
         "next": "results"
       },
       "results": {
         "type": "reveal",
-        "template": "## Feedback Summary\n\n*${question}*\n\n{{process.result}}",
+        "template": "**What we said**\n\n“${question}”\n\n{{for-class.result}}",
         "next": "end"
       },
       "end": {
