@@ -9,8 +9,24 @@
     "params": {
       "rounds": 3,
       "lieTimer": 45,
-      "questionSource": "live",
-      "questions": []
+      "questionSource": "prepared",
+      "questions": [
+        {
+          "question": "An octopus has ___ hearts.",
+          "truth": "three",
+          "houseLie": "five"
+        },
+        {
+          "question": "Honey found sealed in ancient Egyptian tombs was still ___ after thousands of years.",
+          "truth": "edible",
+          "houseLie": "fizzing"
+        },
+        {
+          "question": "The Eiffel Tower gets about 15 centimeters ___ in summer, because its iron expands in the heat.",
+          "truth": "taller",
+          "houseLie": "wider"
+        }
+      ]
     }
   },
   "phases": {
@@ -22,167 +38,143 @@
       "type": "announce",
       "message": "TRIVIA BLUFF!\n\nYou'll see an obscure fact with a blank. Write a believable lie to fill it in. The class will then try to spot the truth, but your lie might fool them!",
       "timer": 10,
-      "next": "fact1"
+      "next": "qshow1"
     },
-    "fact1": {
-      "type": "ai-process",
-      "task": "generate",
-      "format": "json",
-      "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a fill-in-the-blank bluffing game. This is round 1 of 3 in one session. So that rounds never repeat a topic, pick this round's category by its number: 1 = your pick, any surprising topic; 2 = geography or world places; 3 = animals or nature; 4 = food and drink; 5 = history or inventions; 6 = sports, games, or odd laws. This is round 1, so use category 1, and within it choose an unexpected fact. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative of the same kind as the truth (e.g. \"chicken\")\n\nWhat makes a good blank: the truth is a WORD or SHORT PHRASE (a thing, a creature, a job, a place, a food, the name of something), never a number, year, date, age, count, or measurement. Numbers make dull bluffs, and a sentence that mentions two dates has already handed over the answer (\"performed the role for ___ years from 1955 until 1990\" is arithmetic, not trivia). The sentence must not contain clues that let a student work out the answer, and the fact must be obscure enough that nobody in the room already knows it, yet believable once revealed.\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics. Before you answer, check your fact twice: it must be TRUE, and the blank must have exactly ONE correct answer that a well-read person would accept (never \"the only X\" claims that have a second case, never a blank several words could fill). If your first idea fails either check, replace it. A wrong \"truth\" teaches the class something false and punishes the student who knew better.",
-      "next": "show1",
-      "continueLabel": "Start the round"
-    },
-    "show1": {
+    "qshow1": {
       "type": "announce",
-      "message": "Round 1 of 3\n\nCategory: {{fact1.result.category}}\n\n{{fact1.result.question}}\n\nWrite your most believable lie!",
+      "message": "Round 1 of 3\n\nAn octopus has ___ hearts.\n\nWrite your most believable lie!",
       "timer": 8,
-      "next": "lies1"
+      "next": "qlies1"
     },
-    "lies1": {
+    "qlies1": {
       "type": "collect",
-      "prompt": "{{fact1.result.question}}\n\nWrite a lie that could fool the class.",
+      "prompt": "An octopus has ___ hearts.\n\nWrite a lie that could fool the class.",
       "timer": 45,
-      "next": "vote1"
+      "next": "qvote1"
     },
-    "vote1": {
+    "qvote1": {
       "type": "collect-choice",
-      "prompt": "Which one is the TRUTH?\n\n{{fact1.result.question}}",
+      "prompt": "Which one is the TRUTH?\n\nAn octopus has ___ hearts.",
       "choicePool": [
         {
-          "from": "lies1.responses",
+          "from": "qlies1.responses",
           "field": "text"
         },
         {
-          "literal": "{{fact1.result.truth}}"
+          "literal": "three"
         },
         {
-          "literal": "{{fact1.result.houseLie}}",
+          "literal": "five",
           "optional": true
         }
       ],
-      "excludeAuthored": "lies1",
+      "excludeAuthored": "qlies1",
       "shuffle": true,
       "poolLimit": 8,
-      "correctAnswer": "{{fact1.result.truth}}",
+      "correctAnswer": "three",
       "pointsCorrect": 100,
       "speedBonus": false,
       "foolPoints": 50,
       "timer": 40,
-      "next": "reveal1"
+      "next": "qreveal1"
     },
-    "reveal1": {
+    "qreveal1": {
       "type": "announce",
-      "message": "The truth was: {{fact1.result.truth}}!\n\nWhat the class picked:\n{{vote1.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
-      "next": "fact2"
+      "message": "The truth was: three!\n\nWhat the class picked:\n{{qvote1.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
+      "next": "qshow2"
     },
-    "fact2": {
-      "type": "ai-process",
-      "task": "generate",
-      "format": "json",
-      "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a fill-in-the-blank bluffing game. This is round 2 of 3 in one session. So that rounds never repeat a topic, pick this round's category by its number: 1 = your pick, any surprising topic; 2 = geography or world places; 3 = animals or nature; 4 = food and drink; 5 = history or inventions; 6 = sports, games, or odd laws. This is round 2, so use category 2, and within it choose an unexpected fact. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative of the same kind as the truth (e.g. \"chicken\")\n\nWhat makes a good blank: the truth is a WORD or SHORT PHRASE (a thing, a creature, a job, a place, a food, the name of something), never a number, year, date, age, count, or measurement. Numbers make dull bluffs, and a sentence that mentions two dates has already handed over the answer (\"performed the role for ___ years from 1955 until 1990\" is arithmetic, not trivia). The sentence must not contain clues that let a student work out the answer, and the fact must be obscure enough that nobody in the room already knows it, yet believable once revealed.\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics. Before you answer, check your fact twice: it must be TRUE, and the blank must have exactly ONE correct answer that a well-read person would accept (never \"the only X\" claims that have a second case, never a blank several words could fill). If your first idea fails either check, replace it. A wrong \"truth\" teaches the class something false and punishes the student who knew better.",
-      "next": "show2",
-      "continueLabel": "Start the round"
-    },
-    "show2": {
+    "qshow2": {
       "type": "announce",
-      "message": "Round 2 of 3\n\nCategory: {{fact2.result.category}}\n\n{{fact2.result.question}}\n\nWrite your most believable lie!",
+      "message": "Round 2 of 3\n\nHoney found sealed in ancient Egyptian tombs was still ___ after thousands of years.\n\nWrite your most believable lie!",
       "timer": 8,
-      "next": "lies2"
+      "next": "qlies2"
     },
-    "lies2": {
+    "qlies2": {
       "type": "collect",
-      "prompt": "{{fact2.result.question}}\n\nWrite a lie that could fool the class.",
+      "prompt": "Honey found sealed in ancient Egyptian tombs was still ___ after thousands of years.\n\nWrite a lie that could fool the class.",
       "timer": 45,
-      "next": "vote2"
+      "next": "qvote2"
     },
-    "vote2": {
+    "qvote2": {
       "type": "collect-choice",
-      "prompt": "Which one is the TRUTH?\n\n{{fact2.result.question}}",
+      "prompt": "Which one is the TRUTH?\n\nHoney found sealed in ancient Egyptian tombs was still ___ after thousands of years.",
       "choicePool": [
         {
-          "from": "lies2.responses",
+          "from": "qlies2.responses",
           "field": "text"
         },
         {
-          "literal": "{{fact2.result.truth}}"
+          "literal": "edible"
         },
         {
-          "literal": "{{fact2.result.houseLie}}",
+          "literal": "fizzing",
           "optional": true
         }
       ],
-      "excludeAuthored": "lies2",
+      "excludeAuthored": "qlies2",
       "shuffle": true,
       "poolLimit": 8,
-      "correctAnswer": "{{fact2.result.truth}}",
+      "correctAnswer": "edible",
       "pointsCorrect": 100,
       "speedBonus": false,
       "foolPoints": 50,
       "timer": 40,
-      "next": "reveal2"
+      "next": "qreveal2"
     },
-    "reveal2": {
+    "qreveal2": {
       "type": "announce",
-      "message": "The truth was: {{fact2.result.truth}}!\n\nWhat the class picked:\n{{vote2.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
-      "next": "fact3"
+      "message": "The truth was: edible!\n\nWhat the class picked:\n{{qvote2.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
+      "next": "qshow3"
     },
-    "fact3": {
-      "type": "ai-process",
-      "task": "generate",
-      "format": "json",
-      "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a fill-in-the-blank bluffing game. This is round 3 of 3 in one session. So that rounds never repeat a topic, pick this round's category by its number: 1 = your pick, any surprising topic; 2 = geography or world places; 3 = animals or nature; 4 = food and drink; 5 = history or inventions; 6 = sports, games, or odd laws. This is round 3, so use category 3, and within it choose an unexpected fact. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative of the same kind as the truth (e.g. \"chicken\")\n\nWhat makes a good blank: the truth is a WORD or SHORT PHRASE (a thing, a creature, a job, a place, a food, the name of something), never a number, year, date, age, count, or measurement. Numbers make dull bluffs, and a sentence that mentions two dates has already handed over the answer (\"performed the role for ___ years from 1955 until 1990\" is arithmetic, not trivia). The sentence must not contain clues that let a student work out the answer, and the fact must be obscure enough that nobody in the room already knows it, yet believable once revealed.\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics. Before you answer, check your fact twice: it must be TRUE, and the blank must have exactly ONE correct answer that a well-read person would accept (never \"the only X\" claims that have a second case, never a blank several words could fill). If your first idea fails either check, replace it. A wrong \"truth\" teaches the class something false and punishes the student who knew better.",
-      "next": "show3",
-      "continueLabel": "Start the round"
-    },
-    "show3": {
+    "qshow3": {
       "type": "announce",
-      "message": "Round 3 of 3\n\nCategory: {{fact3.result.category}}\n\n{{fact3.result.question}}\n\nWrite your most believable lie!",
+      "message": "Round 3 of 3\n\nThe Eiffel Tower gets about 15 centimeters ___ in summer, because its iron expands in the heat.\n\nWrite your most believable lie!",
       "timer": 8,
-      "next": "lies3"
+      "next": "qlies3"
     },
-    "lies3": {
+    "qlies3": {
       "type": "collect",
-      "prompt": "{{fact3.result.question}}\n\nWrite a lie that could fool the class.",
+      "prompt": "The Eiffel Tower gets about 15 centimeters ___ in summer, because its iron expands in the heat.\n\nWrite a lie that could fool the class.",
       "timer": 45,
-      "next": "vote3"
+      "next": "qvote3"
     },
-    "vote3": {
+    "qvote3": {
       "type": "collect-choice",
-      "prompt": "Which one is the TRUTH?\n\n{{fact3.result.question}}",
+      "prompt": "Which one is the TRUTH?\n\nThe Eiffel Tower gets about 15 centimeters ___ in summer, because its iron expands in the heat.",
       "choicePool": [
         {
-          "from": "lies3.responses",
+          "from": "qlies3.responses",
           "field": "text"
         },
         {
-          "literal": "{{fact3.result.truth}}"
+          "literal": "taller"
         },
         {
-          "literal": "{{fact3.result.houseLie}}",
+          "literal": "wider",
           "optional": true
         }
       ],
-      "excludeAuthored": "lies3",
+      "excludeAuthored": "qlies3",
       "shuffle": true,
       "poolLimit": 8,
-      "correctAnswer": "{{fact3.result.truth}}",
+      "correctAnswer": "taller",
       "pointsCorrect": 100,
       "speedBonus": false,
       "foolPoints": 50,
       "timer": 40,
-      "next": "reveal3"
+      "next": "qreveal3"
     },
-    "reveal3": {
+    "qreveal3": {
       "type": "announce",
-      "message": "The truth was: {{fact3.result.truth}}!\n\nWhat the class picked:\n{{vote3.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
+      "message": "The truth was: taller!\n\nWhat the class picked:\n{{qvote3.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
       "next": "scoreboard"
     },
     "scoreboard": {
       "type": "leaderboard",
       "from": [
-        "vote1.scores",
-        "vote2.scores",
-        "vote3.scores"
+        "qvote1.scores",
+        "qvote2.scores",
+        "qvote3.scores"
       ],
       "style": "full",
       "next": "end"
@@ -201,5 +193,37 @@
     "energize",
     "review"
   ],
-  "recommendedFor": "Older students who can write convincingly. Customize it down to one round for a quick warm-up."
+  "recommendedFor": "Older students who can write convincingly. Customize it down to one round for a quick warm-up.",
+  "sampleAnswers": {
+    "qlies1": [
+      "two",
+      "four",
+      "one",
+      "six",
+      "seven",
+      "eight",
+      "nine",
+      "a dozen"
+    ],
+    "qlies2": [
+      "glowing",
+      "frozen",
+      "liquid",
+      "bitter",
+      "green",
+      "crystallised solid",
+      "sour",
+      "radioactive"
+    ],
+    "qlies3": [
+      "shorter",
+      "heavier",
+      "shinier",
+      "darker",
+      "louder",
+      "warmer to touch",
+      "brighter",
+      "softer"
+    ]
+  }
 }

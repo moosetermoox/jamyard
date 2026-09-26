@@ -174,6 +174,24 @@ describe('the class', () => {
   });
 });
 
+describe('Trivia Bluff: the teacher\'s facts are the default, never the AI (owner 2026-09-26)', () => {
+  it('the recipe defaults to prepared facts and compiles clean on its own, the built-in plays three checked facts, the panel opens on the teacher\'s door', () => {
+    const recipe = getRecipe('trivia-bluff');
+    expect(recipe.parameters.questionSource.default).toBe('prepared');
+    expect(recipe.parameters.questions.default.length).toBe(3);
+    const fresh = compiled('trivia-bluff', {});
+    expect(validate(fresh, 'trivia-bluff', { returnResults: true }).errors).toEqual([]);
+    expect(Object.keys(fresh.phases)).toContain('qlies3');
+    const built = JSON.parse(read('games/trivia-bluff/config.json'));
+    expect(built.recipe.params.questionSource).toBe('prepared');
+    expect(built.recipe.params.questions.map(q => q.truth)).toEqual(['three', 'edible', 'taller']);
+    expect(Object.keys(built.sampleAnswers)).toEqual(['qlies1', 'qlies2', 'qlies3']);
+    const panel = read('screens/shared/make-it-yours.js');
+    expect(panel).toContain("var selectedSource = stamp.params.questionSource === 'live' ? 'live' : 'own';");
+    expect(panel.indexOf("id: 'own',")).toBeLessThan(panel.indexOf("id: 'live',"));
+  });
+});
+
 describe('the rest', () => {
   it('the joke list lost the injury, criminal, and bathroom jokes', () => {
     const built = JSON.parse(read('engine/dad-jokes.json'));

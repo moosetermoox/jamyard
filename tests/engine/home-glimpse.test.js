@@ -139,7 +139,7 @@ describe('homeGlimpse samples', () => {
   });
 
   it('is empty when the template carries no sample answers', () => {
-    const g = homeGlimpse(load('trivia-bluff'));
+    const g = homeGlimpse(load('solo-quiz'));
     expect(g.samples).toEqual([]);
     expect(homeGlimpse({ name: 'X', description: 'Hi.', phases: {} }).samples).toEqual([]);
   });

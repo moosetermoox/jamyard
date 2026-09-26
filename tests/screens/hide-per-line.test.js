@@ -114,8 +114,9 @@ describe('the surfaces', () => {
   it('the map shows no AI instruction, the bench names the round count, the bluff button says Start the round', () => {
     expect(read('engine/activity-map.js')).toContain("if (phase.type === 'ai-process' || phase.type === 'ai-eliminate') return undefined;");
     expect(read('screens/prototype/bench-logic.js')).toContain("return stop.rounds + ' rounds';");
-    const cfg = JSON.parse(read('games/trivia-bluff/config.json'));
-    expect(cfg.phases.fact1.continueLabel).toBe('Start the round');
-    expect(cfg.phases.fact1.instruction).toContain('exactly ONE correct answer');
+    // the live-facts round (the built-in ships prepared facts since 2026-09-26, so the recipe is read)
+    const recipeText = read('recipes/trivia-bluff.json');
+    expect(recipeText).toContain('"continueLabel": "Start the round"');
+    expect(recipeText).toContain('exactly ONE correct answer');
   });
 });
