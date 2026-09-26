@@ -247,10 +247,52 @@
     return !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
   }
 
+  // How far the pictogram rises on hover so the prompt never lands on it
+  // (2026-09-26, "One cause of the Revolution..." sat on Exit Ticket's
+  // base): at least the 14px slide; more when the prompt's top would cut
+  // into the picture; and when the window is too short for both, the
+  // picture shrinks from its top edge to fit. All in window px.
+  var LIFT_MIN = 14;
+  var LIFT_GAP = 6;
+  var LIFT_TOP = 6;
+  function liftFor(m) {
+    var lift = LIFT_MIN;
+    var scale = 1;
+    if (!m || !(m.pictHeight > 0) || !(m.boxTop > 0)) return { lift: lift, scale: scale };
+    var pictBottom = m.pictTop + m.pictHeight;
+    var room = m.boxTop - LIFT_GAP;
+    if (pictBottom - lift > room) lift = pictBottom - room;
+    var maxLift = m.pictTop - LIFT_TOP;
+    if (lift > maxLift) {
+      lift = Math.max(LIFT_MIN, maxLift);
+      var fits = room - (m.pictTop - lift);
+      if (fits < m.pictHeight) scale = Math.max(0.5, fits / m.pictHeight);
+    }
+    return { lift: Math.round(lift), scale: Math.round(scale * 1000) / 1000 };
+  }
+
+  // Measures the card's window once its layout is real and writes the
+  // lift as CSS variables the hover transform reads; a content card's
+  // picture never slides, so it is left alone
+  function fitLift(card) {
+    if (card._lifted) return;
+    var win = card.querySelector('.yard-window');
+    var pict = card.querySelector('.yard-pict');
+    var box = card.querySelector('.yard-prompt-box');
+    if (!win || !pict || !box || typeof pict.offsetHeight !== 'number') return;
+    if (win.classList.contains('yard-window-content')) return;
+    if (!pict.offsetHeight) return;
+    var m = liftFor({ pictTop: pict.offsetTop, pictHeight: pict.offsetHeight, boxTop: box.offsetTop });
+    card.style.setProperty('--lift', -m.lift + 'px');
+    card.style.setProperty('--shrink', String(m.scale));
+    card._lifted = true;
+  }
+
   // The hover state as a class, so touch (first tap) and the load play
   // can show it too: the pictogram slides up, the arrival lands, the
   // prompt fades in, the timer ticks
   function setOn(card, on) {
+    if (on) fitLift(card);
     card.classList.toggle('on', !!on);
     var tick = card._tick;
     if (tick) tick.textContent = on ? '0:05' : '0:06';
@@ -344,6 +386,8 @@
     // tap rule above owns the state, so these stand down there
     card.addEventListener('mouseenter', function () { if (!noHover()) setOn(card, true); });
     card.addEventListener('mouseleave', function () { if (!noHover()) setOn(card, false); });
+    // keyboard focus shows the hover state through CSS alone, so it measures here
+    card.addEventListener('focus', function () { fitLift(card); });
     if (HOVER_CARD && window.HoverCard) HoverCard.attach(card, g);
     if (opts.mark) {
       var mark = el('span', 'yard-mark', opts.mark);
@@ -441,6 +485,7 @@
     MARK_STEPS: MARK_STEPS,
     marksFor: marksFor,
     setOn: setOn,
+    liftFor: liftFor,
     templateOf: templateOf,
     topicOf: topicOf,
     initialsOf: initialsOf,

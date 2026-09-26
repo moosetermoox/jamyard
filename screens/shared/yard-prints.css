@@ -71,10 +71,14 @@
 
 .yard-pict {
   transition: transform 180ms var(--t-ease);
+  transform-origin: 50% 0;
 }
 
+/* The lift is measured per card on its first hover (yard-prints.js
+   fitLift): 14px unless the prompt would land on the picture, and a
+   shrink from the top edge when the window is too short for both */
 .yard-card.on .yard-pict,
-.yard-card:focus-visible .yard-pict { transform: translateY(-14px); }
+.yard-card:focus-visible .yard-pict { transform: translateY(var(--lift, -14px)) scale(var(--shrink, 1)); }
 
 /* A content card's window: the picture anchored at the top with room
    for a two-line hover line under it, and it never slides */

@@ -259,6 +259,40 @@ describe('the cards', () => {
     expect(card.querySelector('.pg-tick').textContent).toBe('0:06');
   });
 
+  it('the lift on hover is measured so the prompt never lands on the picture (2026-09-26)', async () => {
+    const YP = globalThis.YardPrints;
+    const css = await read('screens/shared/yard-prints.css');
+    // a short prompt: the plain 14px slide
+    expect(YP.liftFor({ pictTop: 40, pictHeight: 76, boxTop: 125 })).toEqual({ lift: 14, scale: 1 });
+    // a three-line prompt whose box starts at 97 over a 90px picture centred at 33:
+    // the picture rises until its bottom clears the box by 6px, but never above 6px
+    // from the top, and shrinks from its top edge for the rest
+    const long = YP.liftFor({ pictTop: 33, pictHeight: 90, boxTop: 97 });
+    expect(long.lift).toBe(27);
+    expect(long.scale).toBeCloseTo(85 / 90, 2);
+    // a two-line prompt over the same picture: lifted enough, no shrink
+    expect(YP.liftFor({ pictTop: 33, pictHeight: 90, boxTop: 113 })).toEqual({ lift: 16, scale: 1 });
+    expect(YP.liftFor({ pictTop: 33, pictHeight: 90, boxTop: 105 })).toEqual({ lift: 24, scale: 1 });
+    // nothing measured (no layout yet): the plain slide
+    expect(YP.liftFor({ pictTop: 0, pictHeight: 0, boxTop: 0 })).toEqual({ lift: 14, scale: 1 });
+    // the card writes the measurement as CSS variables on its first hover
+    const card = YP.buildCard({ id: 'exit-ticket', name: 'Exit Ticket', glimpse: { prompt: 'One cause of the Revolution, in your own words. One thing that still confuses you.' } }, 0, {});
+    const pict = card.querySelector('.yard-pict');
+    const box = card.querySelector('.yard-prompt-box');
+    pict.offsetTop = 33; pict.offsetHeight = 90; box.offsetTop = 97;
+    card.listeners.mouseenter[0]();
+    expect(card.style.getPropertyValue('--lift')).toBe('-27px');
+    expect(Number(card.style.getPropertyValue('--shrink'))).toBeCloseTo(85 / 90, 2);
+    // a content card's picture never slides, so it gets no lift
+    const snow = YP.buildCard({ id: 'snowball', name: 'Snowball', glimpse: { prompt: 'x' } }, 0, {});
+    snow.querySelector('.yard-pict').offsetTop = 11; snow.querySelector('.yard-pict').offsetHeight = 120; snow.querySelector('.yard-prompt-box').offsetTop = 120;
+    snow.listeners.mouseenter[0]();
+    expect(snow.style.getPropertyValue('--lift')).toBe('');
+    // the CSS reads the variables, with the 14px slide as the default
+    expect(css).toMatch(/\.yard-card:focus-visible \.yard-pict \{ transform: translateY\(var\(--lift, -14px\)\) scale\(var\(--shrink, 1\)\); \}/);
+    expect(css).toMatch(/\.yard-pict\s*\{[^}]*transform-origin:\s*50% 0/);
+  });
+
   it('the prompt is the glimpse\'s, else a one-line hook, cut short, bold markers stripped', () => {
     const YP = globalThis.YardPrints;
     expect(YP.promptOf({ glimpse: { prompt: 'Which **one**? Tap it.' } })).toBe('Which one? Tap it.');
