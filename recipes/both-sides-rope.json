@@ -64,6 +64,12 @@
           "No"
         ],
         "timer": 30,
+        "next": "start",
+        "chartOrder": "choices"
+      },
+      "start": {
+        "type": "reveal",
+        "template": "WHERE WE START\n\n{{stance1.barChart}}\n\nNow build the rope from both ends.",
         "next": "evidence"
       },
       "evidence": {
@@ -111,11 +117,13 @@
           "No"
         ],
         "timer": 30,
-        "next": "delta"
+        "next": "delta",
+        "chartOrder": "choices",
+        "compareTo": "stance1"
       },
       "delta": {
         "type": "reveal",
-        "template": "DID THE ROPE MOVE?\n\nWHERE WE STARTED:\n{{stance1.barChart}}\n\nWHERE WE LANDED:\n{{stance2.barChart}}\n\nAnd the questions still pulling at it:\n{{whatif.responses.list}}\n\nChanged your mind? That's not losing, that's thinking.",
+        "template": "DID THE ROPE MOVE?\n\n{{stance2.beforeAfter}}\n\n{{stance2.movedLine}}\n\nAnd the questions still pulling at it:\n{{whatif.responses.list}}\n\nChanged your mind? That's not losing, that's thinking.",
         "next": "end"
       },
       "end": {

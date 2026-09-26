@@ -37,7 +37,7 @@ Framework for quickly building classroom games where:
 - **License: AGPL-3.0-only** (2026-09-19, `LICENSE` + `README.md` License section; `package.json.license`). The code only: prompt banks carry their own per-prompt credits and no AGPL grant, the Jamyard name and look are the live site's, student work is never in the repo. The home footer links the repository ("source"). A new third-party text or asset gets a credit line in the README's License section, never a silent drop into the tree
 
 ## Current Snapshot
-- **2676 tests passing** (`npm test`, ~6s; one assertion fails on Windows checkouts only, CRLF) · **357 prompts** across 3 banks (the Closer bank carries two named sets for the make page library, 2026-09-26) (`recipes/prompt-banks/`)
+- **2700 tests passing** (`npm test`, ~6s; one assertion fails on Windows checkouts only, CRLF) · **357 prompts** across 3 banks (the Closer bank carries two named sets for the make page library, 2026-09-26) (`recipes/prompt-banks/`)
 
 - **31 phase types**, **28 built-in recipes** (one retired), ~35 games in `games/` (**the yard's fifteen** since 2026-09-25, owner's swap: Exit Ticket, Live Poll, Class Critique, Draw Gallery, Snowball, Solo Quiz, Someone's Got You, Vocab Match, Both Sides of the Rope, One More Thing, Trivia Bluff, Doodle Bluff, Whose Eyes?, Closer, Group Work Day; Speed Quiz, Folded Pass ("not ready", owner), and Estimation Station are built but not in the yard, keeping their examples and pictograms) (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
@@ -142,7 +142,7 @@ Framework for quickly building classroom games where:
 7. `preview` — teacher-only gate before reveal (requires `content`, `approveNext`, `rejectNext`)
 8. `winner` — crown with drumroll; `winnerEntry` shows WHAT they won for
 9. `announce` — message to everyone; `video:` YouTube embed (host-only), `image` field; `drawingFrom` shows a drawing (announce/collect/collect-choice all have it; `_current.drawing` in foreach = Doodle Bluff rounds)
-10. `collect-choice` — pick from choices; `correctAnswer`+`speedBonus` (Kahoot scoring), `choicePool`/`excludeAuthored`/`shuffle`/`foolPoints`/`poolLimit` (bluffing), `liveResults` (Live Poll: projector tally grows as answers land)
+10. `collect-choice` — pick from choices; `correctAnswer`+`speedBonus` (Kahoot scoring), `choicePool`/`excludeAuthored`/`shuffle`/`foolPoints`/`poolLimit` (bluffing), `liveResults` (Live Poll: projector tally grows as answers land), `chartOrder: "choices"` (the chart keeps the step's own order and shows zero rows; a scale, or a vote shown twice) + `compareTo: "<earlier pick-one step>"` (a vote taken twice, `engine/phases/stance-shift.js`, 2026-09-26: outputs `beforeAfter`, one paired chart both screens draw through `shared/chart-render.js`, and `movedLine`, "3 of 5 students changed their minds." over the students who voted both times; Both Sides of the Rope's ending)
 11. `ai-eliminate` — AI judges and eliminates
 12. `leaderboard` — rankings; `from` accepts array of refs to sum rounds
 13. `reveal-one` — one-by-one reveal; `itemTemplate` for objects, `limit` random sample; drawings hang as a wall (three across, `is-gallery` on the projector, 2026-09-26)

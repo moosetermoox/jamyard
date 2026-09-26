@@ -1540,6 +1540,8 @@ function renderPlayerMessage(el, message) {
     ChartRender.split(text).forEach(function (seg, i) {
       if (seg.type === 'chart') {
         el.appendChild(ChartRender.buildChart(seg.rows));
+      } else if (seg.type === 'pair') {
+        el.appendChild(ChartRender.buildPairChart(seg.rows));
       } else if (seg.text.trim()) {
         if (i === 0) appendPlayerParts(el, seg.text.trim());
         else el.appendChild(buildPlayerBody(seg.text.trim()));

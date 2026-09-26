@@ -390,6 +390,16 @@ export const PHASE_SCHEMAS = {
         label: 'Show the tally live on the projector',
         helper: 'The bar chart grows on the projector as answers come in (counts only, never names). The Live Poll. Leave off for quizzes, where seeing the class lean would give the answer away.'
       },
+      chartOrder: {
+        type: 'enum', values: ['count', 'choices'], optional: true,
+        label: 'Chart order',
+        helper: 'How {{step.barChart}} lists the choices: "count" (most picked first, choices nobody picked left out) or "choices" (the order above, every choice shown, zeros too). Use "choices" for a scale like Yes to No, or any vote you will show twice.'
+      },
+      compareTo: {
+        type: 'phaseRef', optional: true, contexts: ['topLevel'],
+        label: 'Compare with an earlier vote',
+        helper: 'The id of an earlier pick-one step with the same choices (a vote taken twice). Adds {{step.beforeAfter}}, one chart with both counts per choice, and {{step.movedLine}}, "3 of 5 students changed their minds." (over the students who voted both times).'
+      },
       correctAnswer: {
         type: 'templateString', optional: true,
         label: 'Correct answer',
@@ -443,7 +453,13 @@ export const PHASE_SCHEMAS = {
           capability: 'scoreMap',
           renderers: { json: 'jsonPretty' }
         },
-        correctAnswer: { type: 'string' }
+        correctAnswer: { type: 'string' },
+        // Populated only when `compareTo` names an earlier pick-one step
+        // (a vote taken twice, engine/phases/stance-shift.js): one chart
+        // with both counts per choice, and the sentence under it.
+        beforeAfter: { type: 'string' },
+        movedLine: { type: 'string' },
+        moved: { type: 'number' }
       }
     },
     // Note: bare {{X.barChart}} on collect-choice is the documented

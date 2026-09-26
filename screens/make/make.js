@@ -217,6 +217,13 @@
     state.wordsSnapshot = wordsNow();
   }).catch(function (err) {
     fail(err.message || 'Could not open this activity.');
+    // A dead link (an old bookmark, a deleted copy): a way back, not a bare note
+    var back = document.createElement('a');
+    back.href = '/#yard';
+    back.className = 'error-back';
+    back.textContent = 'Back to the yard';
+    el.error.appendChild(document.createTextNode(' '));
+    el.error.appendChild(back);
     el.doors.hidden = true;
   });
 
