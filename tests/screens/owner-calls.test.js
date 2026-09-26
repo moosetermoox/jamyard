@@ -117,6 +117,6 @@ describe('sample answers for a teacher\'s own activity', () => {
     expect(server).toContain('validateSampleAnswers(next, gameId)');
     const bench = read('screens/prototype/prototype.js');
     expect(bench).toContain('if (config && !config.sampleAnswers) writeSamplesFor(gameId);');
-    expect(bench).toContain("'/sample-answers', { method: 'POST' }");
+    expect(bench).toContain("'/sample-answers?seats=' + MAX_PLAYERS, { method: 'POST' }");
   });
 });

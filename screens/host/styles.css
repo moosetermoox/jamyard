@@ -879,8 +879,9 @@ body.in-bench .join-share { display: none; }
   color: var(--theme-timer, #4a90d9);
 }
 
+/* The last seconds: paper on the orange chip, never orange on orange (2026-09-26, the number vanished) */
 .timer-ring-container.timer-warning .timer-ring-text {
-  color: var(--theme-danger, #d9534f);
+  color: var(--t-paper, #fff);
 }
 
 /* Preview section */

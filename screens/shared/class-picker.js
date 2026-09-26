@@ -138,7 +138,9 @@
         var had = picked.subjects.indexOf(id) !== -1;
         picked.subjects = had ? [] : [id];
         if (id !== 'other' || had) picked.otherText = '';
+        if (id !== 'languages' || had) picked.languageText = '';
         if (id === 'other' && !had) askOtherSubject(picked, persist, opts.dialog);
+        if (id === 'languages' && !had) askLanguage(picked, persist, opts.dialog);
         persist();
       }
     ));
@@ -199,9 +201,78 @@
     input.focus();
   }
 
+  // "World languages" asks which one (owner 2026-09-26): the four most
+  // taught as chips, and a box for any other. Closing without picking is
+  // fine, the chip stays picked with no language named.
+  var LANGUAGES_TAUGHT = ['Spanish', 'French', 'German', 'Mandarin'];
+  function askLanguage(picked, onDone, classes) {
+    classes = classes || {};
+    var overlay = document.createElement('div');
+    overlay.className = classes.overlay || 'template-picker-overlay';
+    var modal = document.createElement('div');
+    modal.className = (classes.modal || 'template-picker-modal') + ' subject-other-modal subject-language-modal';
+
+    var title = document.createElement('h2');
+    title.textContent = 'Which language?';
+    modal.appendChild(title);
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'subject-other-input';
+    input.maxLength = 40;
+    input.placeholder = 'Another language: Latin, Japanese, ASL...';
+    var current = picked.languageText || '';
+    input.value = LANGUAGES_TAUGHT.indexOf(current) === -1 ? current : '';
+
+    var chips = buildChipRow(
+      LANGUAGES_TAUGHT.map(function (name) { return { id: name, label: name }; }),
+      function (id) { return picked.languageText === id; },
+      function (id) {
+        picked.languageText = picked.languageText === id ? '' : id;
+        input.value = '';
+        dlg.close();
+        if (onDone) onDone();
+      }
+    );
+    chips.classList.add('subject-language-chips');
+    modal.appendChild(chips);
+
+    var hint = document.createElement('p');
+    hint.className = 'subject-other-hint';
+    hint.textContent = 'Or type it:';
+    modal.appendChild(hint);
+    modal.appendChild(input);
+
+    var saveRow = document.createElement('div');
+    saveRow.className = 'subject-other-save-row';
+    var saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'teacher-setup-save';
+    saveBtn.textContent = 'Save';
+    saveRow.appendChild(saveBtn);
+    modal.appendChild(saveRow);
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    var dlg = Dialog.enhance(overlay, modal, { title: 'Which language?' });
+
+    saveBtn.addEventListener('click', function () {
+      var typed = input.value.trim();
+      if (typed) picked.languageText = typed;
+      dlg.close();
+      if (onDone) onDone();
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') saveBtn.click();
+    });
+    input.focus();
+  }
+
   window.ClassPicker = {
     render: renderClassPicker,
     buildChipRow: buildChipRow,
-    askOtherSubject: askOtherSubject
+    askOtherSubject: askOtherSubject,
+    askLanguage: askLanguage,
+    LANGUAGES_TAUGHT: LANGUAGES_TAUGHT
   };
 })();

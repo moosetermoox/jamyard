@@ -52,7 +52,7 @@ describe('validateSampleAnswers', () => {
     cfg.sampleAnswers = { notes: ['a', 'b', 'c'], boost: { respondsTo: 'notes', lines: ['only one'] } };
     expect(validateSampleAnswers(cfg, 'g').join('\n')).toMatch(/one line per "notes" sample \(3 there, 1 here\)/);
     cfg.sampleAnswers = { boost: { respondsTo: 'ghost', lines: ['x'] } };
-    expect(validateSampleAnswers(cfg, 'g').join('\n')).toMatch(/names "ghost", which has no plain list/);
+    expect(validateSampleAnswers(cfg, 'g').join('\n')).toMatch(/names "ghost", which has no list/);
     cfg.sampleAnswers = 'nope';
     expect(validateSampleAnswers(cfg, 'g').join('\n')).toMatch(/must be an object keyed by step id/);
   });

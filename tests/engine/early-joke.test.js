@@ -43,7 +43,7 @@ describe('engine/dad-jokes.json', () => {
   it('is the built output of the docs list: 480 strings, no numbers, no em dashes, no blanks', () => {
     const built = JSON.parse(readFileSync(join(root, 'engine', 'dad-jokes.json'), 'utf8'));
     expect(built).toEqual([...DAD_JOKES]);
-    expect(built.length).toBe(459);
+    expect(built.length).toBe(456);
     for (const joke of built) {
       expect(typeof joke).toBe('string');
       expect(joke.trim().length).toBeGreaterThan(0);

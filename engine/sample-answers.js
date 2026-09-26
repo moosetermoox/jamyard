@@ -40,6 +40,15 @@ function isLineList(v) {
  * @param {string} gameId
  * @returns {string[]} error messages (empty when valid or absent)
  */
+// The lines a respondsTo set answers: a plain list, or the lines of a set
+// that itself responds to an earlier step (a chain of rounds, 2026-09-26)
+export function sourceLines(samples, stepId) {
+  const src = samples && samples[stepId];
+  if (Array.isArray(src)) return src;
+  if (src && typeof src === 'object' && Array.isArray(src.lines)) return src.lines;
+  return null;
+}
+
 export function validateSampleAnswers(config, gameId) {
   const errors = [];
   const samples = config && config.sampleAnswers;
@@ -72,13 +81,14 @@ export function validateSampleAnswers(config, gameId) {
     }
     if (typeof entry.respondsTo !== 'string' || !entry.respondsTo) {
       errors.push(`${where}.${stepId}.respondsTo must name an earlier step`);
-    } else if (!Array.isArray(samples[entry.respondsTo])) {
-      errors.push(`${where}.${stepId}.respondsTo names "${entry.respondsTo}", which has no plain list of sample answers to respond to`);
+    } else if (!sourceLines(samples, entry.respondsTo)) {
+      errors.push(`${where}.${stepId}.respondsTo names "${entry.respondsTo}", which has no list of sample answers to respond to`);
     }
+    const src = sourceLines(samples, entry.respondsTo);
     if (!isLineList(entry.lines)) {
       errors.push(`${where}.${stepId}.lines must be a non-empty list of lines`);
-    } else if (Array.isArray(samples[entry.respondsTo]) && samples[entry.respondsTo].length !== entry.lines.length) {
-      errors.push(`${where}.${stepId}.lines must have one line per "${entry.respondsTo}" sample (${samples[entry.respondsTo].length} there, ${entry.lines.length} here)`);
+    } else if (src && src.length !== entry.lines.length) {
+      errors.push(`${where}.${stepId}.lines must have one line per "${entry.respondsTo}" sample (${src.length} there, ${entry.lines.length} here)`);
     }
   }
   return errors;

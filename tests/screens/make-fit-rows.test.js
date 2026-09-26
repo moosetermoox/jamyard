@@ -120,7 +120,8 @@ describe('make page: make it fit your class', () => {
     expect(js).toContain('if (state.promptBox && !promptChanged() && print.prompt && print.prompt.text) {');
     // Back from the simulator: the cached page drops its "Opening…" card
     expect(js).toContain("window.addEventListener('pageshow', function (e) {");
-    expect(js).toContain('if (e.persisted && state.busy) clearOpening();');
+    expect(js).toContain('if (state.busy) clearOpening();');
+    expect(js).toContain('if (state.config) buildRows();');
   });
 
   // "With vocab match there should be a way to preview the pairs, similar

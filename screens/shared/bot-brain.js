@@ -220,7 +220,10 @@
     if (Array.isArray(entry)) return entry.length ? entry[at % entry.length] : null;
     var lines = Array.isArray(entry.lines) ? entry.lines : [];
     if (!lines.length) return null;
-    var source = Array.isArray(samples[entry.respondsTo]) ? samples[entry.respondsTo] : [];
+    // the source is a plain list, or a set that itself responds to an
+    // earlier round (a chain, 2026-09-26)
+    var src = samples[entry.respondsTo];
+    var source = Array.isArray(src) ? src : (src && Array.isArray(src.lines) ? src.lines : []);
     var hay = String(onScreen || '').toLowerCase();
     for (var j = 0; j < source.length && j < lines.length; j++) {
       var needle = Array.isArray(source[j]) ? source[j][0] : source[j];

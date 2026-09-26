@@ -510,7 +510,12 @@ button[hidden] {
   font-size: 0.95rem;
   color: var(--theme-text, #333);
   margin-top: 4px;
+  overflow-wrap: anywhere;
 }
+
+/* A long word never pushes the screen sideways (2026-09-26) */
+.prompt, .field-input, .multi-fields, #prompt-display { overflow-wrap: anywhere; }
+textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width: 100%; box-sizing: border-box; }
 
 .field-input {
   width: 100%;
@@ -697,8 +702,9 @@ button[hidden] {
   margin-bottom: 6px;
 }
 
+/* The last seconds: paper on the orange chip, never orange on orange (2026-09-26, the number vanished) */
 .timer-bar-wrapper.timer-warning .timer-bar-text {
-  color: var(--theme-danger, #d9534f);
+  color: var(--t-paper, #fff);
 }
 
 .timer-bar {
