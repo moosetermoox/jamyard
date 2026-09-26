@@ -4405,6 +4405,9 @@ io.on('connection', (socket) => {
       socket.join(code);
 
       console.log(`[join-room] Player ${socket.id} joined room ${code}`);
+      // A self-paced quiz's projector counts the room; a new seat changes
+      // it before anyone answers (kind-guarded, a no-op on other steps)
+      emitSoloQuizProgress(code, room);
       const theme = room.engine ? (room.engine.config.theme || null) : null;
       const language = room.engine ? room.engine.language : 'en';
       // Early-bird joke: a new seat among the first N draws one (engine/

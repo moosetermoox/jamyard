@@ -41,6 +41,8 @@ socket.emit = function (event, payload) {
   if (latestPhaseInstanceId !== null && payload && typeof payload === 'object' && !Array.isArray(payload)) {
     if (payload.phaseInstanceId === undefined) payload.phaseInstanceId = latestPhaseInstanceId;
   }
+  // The early-bird joke folds on the student's first move (below)
+  if (typeof STUDENT_ACT_RE !== 'undefined' && STUDENT_ACT_RE.test(event) && typeof hideEarlyJoke === 'function') hideEarlyJoke();
   return _origEmit(event, payload);
 };
 
@@ -328,7 +330,27 @@ roomCodeInput.addEventListener('input', function () {
   this.value = this.value.toUpperCase().replace(/[^A-Z]/g, '');
   renderCodeSlots();
   checkRoomInfo();
+  // "Room not found" goes the moment the code changes (a reviewer fixed
+  // the code and the old error stayed, 2026-09-26)
+  errorMessage.hidden = true;
 });
+// Enter joins from either box (a reviewer, twice)
+[roomCodeInput, nameInput].forEach(function (box) {
+  if (!box) return;
+  box.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && !joinBtn.disabled) { e.preventDefault(); joinBtn.click(); }
+  });
+});
+// A name stops at 20 letters: say so instead of cutting in silence
+if (nameInput) {
+  var nameHint = nameInput.parentNode ? nameInput.parentNode.querySelector('.join-hint') : null;
+  var nameHintText = nameHint ? nameHint.textContent : '';
+  nameInput.addEventListener('input', function () {
+    if (!nameHint) return;
+    var full = nameInput.value.length >= (Number(nameInput.maxLength) || 20);
+    nameHint.textContent = full ? 'Names stop at ' + nameInput.maxLength + ' letters, that is plenty.' : nameHintText;
+  });
+}
 
 // --- Anonymous rooms: no name box ---
 // Once four letters are in, ask the server whether this room collects names.
@@ -757,7 +779,7 @@ const earlyJokeText = document.getElementById('early-joke-text');
 let earlyJokeDismissed = false;
 document.getElementById('early-joke-dismiss').addEventListener('click', () => {
   earlyJokeDismissed = true;
-  earlyJokeCard.hidden = true;
+  hideEarlyJoke();
 });
 const earlyJokeBlock = document.getElementById('early-joke-block');
 const earlyJokeDots = document.getElementById('early-joke-dots');
@@ -782,18 +804,36 @@ function earlyJokePhaseSeen(id) {
     earlyJokePhase = id;
     return;
   }
-  if (id !== earlyJokePhase) {
-    if (earlyJokeTimer) { clearTimeout(earlyJokeTimer); earlyJokeTimer = null; }
-    earlyJokeCard.hidden = true;
-    if (window.FitScreen) FitScreen.fitNow();
-  }
+  if (id !== earlyJokePhase) hideEarlyJoke();
 }
+// Once told, the joke is done for this room: it never comes back on a
+// refresh (the server re-sends the same one, which is right for a student
+// who never saw it land), and it folds the moment the student answers
+// anything, so it never sits over a quiz they are working through (an
+// outside reviewer, 2026-09-26).
+function jokeDoneKey() { return currentRoomCode ? 'jamyard.jokeDone.' + currentRoomCode : null; }
+function jokeAlreadyDone() {
+  const key = jokeDoneKey();
+  if (!key) return false;
+  try { return sessionStorage.getItem(key) === '1'; } catch (e) { return false; }
+}
+function hideEarlyJoke() {
+  if (earlyJokeTimer) { clearTimeout(earlyJokeTimer); earlyJokeTimer = null; }
+  const key = jokeDoneKey();
+  if (key) { try { sessionStorage.setItem(key, '1'); } catch (e) { /* storage unavailable */ } }
+  if (earlyJokeCard.hidden) return;
+  earlyJokeCard.hidden = true;
+  if (window.FitScreen) FitScreen.fitNow();
+}
+// The student's first move in the activity (an answer, a vote, a tap)
+const STUDENT_ACT_RE = /^(submit-|solo-quiz-answer|rank-submit|rate-submit|estimate-submit|match-submit|sort-submit|wager-submit|relay-submit|buzz-tap|one-voice-tap|merge-|check-item|role-pick|team-pick|turn-)/;
 // joke = { setup, punchline, pauseMs } from the server (engine/early-joke.js
 // splitJoke): the setup shows at once, the punchline lands after the pause
 // (a one-breath joke has no punchline and no pause). A reconnect while the
 // pause is running restarts it rather than stacking a second reveal.
 function showEarlyJoke(joke) {
   if (!joke || typeof joke !== 'object' || typeof joke.setup !== 'string' || !joke.setup.trim() || earlyJokeDismissed) return;
+  if (jokeAlreadyDone()) return;
   // The teller is one of the meadow's nine painted tones, picked once.
   if (earlyJokeBlock && !earlyJokeBlock.dataset.tone) {
     const tone = Math.floor(Math.random() * 9);
@@ -806,17 +846,21 @@ function showEarlyJoke(joke) {
   earlyJokeText.textContent = joke.setup;
   earlyJokePunchline.textContent = typeof joke.punchline === 'string' ? joke.punchline : '';
   const waiting = !!earlyJokePunchline.textContent;
-  earlyJokePunchline.hidden = true;
+  // The punchline and the button keep their room from the start
+  // (visibility, not hidden), so nothing under the card moves when the
+  // punchline lands (a reviewer's tap hit the wrong choice, 2026-09-26)
+  earlyJokePunchline.hidden = !waiting;
+  earlyJokePunchline.classList.toggle('is-waiting', waiting);
   earlyJokeDots.hidden = !waiting;
-  earlyJokeDismiss.hidden = waiting;
+  earlyJokeDismiss.classList.toggle('is-waiting', waiting);
   earlyJokeCard.hidden = false;
   if (waiting) {
     const pause = Number.isFinite(joke.pauseMs) && joke.pauseMs >= 0 ? joke.pauseMs : 5000;
     earlyJokeTimer = setTimeout(() => {
       earlyJokeTimer = null;
       earlyJokeDots.hidden = true;
-      earlyJokePunchline.hidden = false;
-      earlyJokeDismiss.hidden = false;
+      earlyJokePunchline.classList.remove('is-waiting');
+      earlyJokeDismiss.classList.remove('is-waiting');
     }, pause);
   }
 }
@@ -3350,7 +3394,11 @@ function renderSoloDone(data) {
   sqFeedback.hidden = true;
   sqNextBtn.hidden = true;
   sqDone.hidden = false;
-  sqDoneScore.textContent = UiLang.t('Your score') + ': ' + (data.correct || 0) + ' ' + UiLang.t('of') + ' ' + (data.total || 0);
+  // A quiz the teacher ended early: the score is out of what this
+  // student answered, never out of the whole list as if the rest were wrong
+  var answered = Number.isInteger(data.answered) ? data.answered : (data.total || 0);
+  var outOf = answered < (data.total || 0) ? answered + ' ' + UiLang.t('answered') : String(data.total || 0);
+  sqDoneScore.textContent = UiLang.t('Your score') + ': ' + (data.correct || 0) + ' ' + UiLang.t('of') + ' ' + outOf;
   if (J) J.sound('tada');
 }
 

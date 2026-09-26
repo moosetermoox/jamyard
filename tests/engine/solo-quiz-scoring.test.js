@@ -3,7 +3,7 @@
  * cleaning, progress summaries for the projector, and grading at close.
  */
 import { describe, it, expect } from 'vitest';
-import { isCorrectAnswer, playableQuestions, summarizeProgress, scoreSoloQuiz } from '../../engine/phases/solo-quiz-scoring.js';
+import { isCorrectAnswer, playableQuestions, summarizeProgress, scoreSoloQuiz, shuffledChoices } from '../../engine/phases/solo-quiz-scoring.js';
 
 const questions = [
   { question: 'Capital of Australia?', choices: ['Sydney', 'Canberra'], correct: 'Canberra' },
@@ -76,12 +76,36 @@ describe('scoreSoloQuiz', () => {
     const r = scoreSoloQuiz(progress, questions, 1, nameOf);
     expect(r.perQuestion[0]).toMatchObject({ index: 0, answered: 2, correct: 2, pct: 100 });
     expect(r.perQuestion[2]).toMatchObject({ answered: 1, correct: 0, pct: 0 });
-    // 3 correct out of 2 students x 3 questions
-    expect(r.averagePct).toBe(50);
+    // 3 correct out of the 4 answers given (the unanswered never count as wrong)
+    expect(r.averagePct).toBe(75);
   });
 
   it('defaults to one point per question for bad point values', () => {
     expect(scoreSoloQuiz(progress, questions, 0).scores.p1).toBe(2);
     expect(scoreSoloQuiz({}, questions, 5).averagePct).toBe(0);
+  });
+});
+
+describe("the third-review fixes (2026-09-26)", () => {
+  it("deals each student their own choice order, the same one on a refresh", () => {
+    const choices = ["Sydney", "Canberra", "Melbourne", "Perth"];
+    const a = shuffledChoices(choices, "p1|0");
+    expect(a.slice().sort()).toEqual(choices.slice().sort());
+    expect(shuffledChoices(choices, "p1|0")).toEqual(a);
+    expect(choices).toEqual(["Sydney", "Canberra", "Melbourne", "Perth"]);
+    const orders = new Set();
+    for (let i = 0; i < 40; i++) orders.add(shuffledChoices(choices, "p" + i + "|0").join("|"));
+    expect(orders.size).toBeGreaterThan(4);
+    const firsts = new Set();
+    for (let i = 0; i < 40; i++) firsts.add(shuffledChoices(choices, "p" + i + "|0")[0]);
+    expect(firsts.size).toBeGreaterThan(1);
+  });
+
+  it("averages over the questions answered, never counting the unanswered as wrong", () => {
+    const progress = { p1: { index: 1, answers: [{ choice: "Canberra", correct: true }] } };
+    const r = scoreSoloQuiz(progress, questions, 1);
+    expect(r.averagePct).toBe(100);
+    expect(r.answeredAll).toBe(1);
+    expect(r.results[0]).toMatchObject({ answered: 1, correct: 1, total: 3, finished: false });
   });
 });

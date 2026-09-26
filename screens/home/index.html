@@ -1204,11 +1204,19 @@
       //    activity takes any topic), so the grid shows everything with an
       //    honest line instead of a dead end. ──
       var query = '';
+      // The words on the card count too: with a class set, a card shows
+      // its example ("The Massacre" on Live Poll for a history class), so
+      // a search for "revolution" finds it (a reviewer, 2026-09-26)
+      function exampleWords(g) {
+        var ex = window.ClassExamples && window.ClassExamples.pick ? exampleFor(g, 0) : null;
+        if (!ex) return '';
+        try { return JSON.stringify(ex.prefill || ex).replace(/[[]{}"]/g, ' '); } catch (e) { return ''; }
+      }
       function matchesQuery(g) {
         if (!query) return true;
         var hay = (g.name + ' ' + (g.description || '') + ' ' + (g.when || '') + ' ' + (g.hook || '') + ' ' +
           (Array.isArray(g.tags) ? g.tags.join(' ') : '') + ' ' +
-          (Array.isArray(g.keywords) ? g.keywords.join(' ') : '')).toLowerCase();
+          (Array.isArray(g.keywords) ? g.keywords.join(' ') : '') + ' ' + exampleWords(g)).toLowerCase();
         return hay.indexOf(query) !== -1;
       }
       searchEl.addEventListener('input', function () {
@@ -1223,7 +1231,7 @@
       //    whole yard. An id not in this visitor's yard simply does not
       //    show, so a hidden built-in never breaks a moment. ──
       var MOMENTS = [
-        { label: 'Only 5 minutes left', ids: ['exit-ticket', 'live-poll', 'solo-quiz'] },
+        { label: 'Only 5 minutes left', ids: ['exit-ticket', 'live-poll'] },
         { label: 'The discussion is dying', ids: ['both-sides-rope', 'whose-eyes', 'snowball'] },
         { label: 'I want everyone\'s opinion', ids: ['live-poll', 'snowball', 'whose-eyes'] },
         { label: 'They need to know each other', ids: ['closer', 'someones-got-you', 'snowball'] },
@@ -1320,6 +1328,10 @@
         if (change && change.removedId) {
           games = games.filter(function (g) { return g.id !== change.removedId; });
         }
+        // A heart on a card already on the board flips in place; the
+        // board reorders on the next visit, never under the mouse
+        if (change && change.inPlace && window.MyYard && MyYard.onShelf && change.hearted &&
+            document.querySelector('.shelf-item[data-id="' + change.hearted + '"]')) return;
         renderGrid();
       }
 

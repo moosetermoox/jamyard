@@ -391,10 +391,19 @@ button[hidden] {
 
 /* Error message */
 #error-message {
-  color: var(--theme-danger, #d9534f);
-  margin-top: 15px;
-  font-weight: bold;
+  /* Ink on paper, big enough to read at arm's length (a reviewer called
+     the old orange line small and low-contrast, 2026-09-26) */
+  margin: 16px auto 0;
+  padding: 10px 14px;
+  max-width: 420px;
+  background: var(--t-paper, #FDF9F0);
+  color: var(--t-ink, #2A2620);
+  box-shadow: 0 0 0 2px var(--t-ink, #2A2620), 4px 4px 0 var(--t-red, #E5482B);
+  font-family: "DM Sans", Arial, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
 }
+#error-message[hidden] { display: none; }
 
 /* Prompt display */
 .prompt {
@@ -2301,10 +2310,14 @@ body.wh-empty .wh-word:hover { background: none; }
 }
 /* The pause before the punchline: the page's own thinking dots, left-aligned
    in the bubble; the punchline paints yellow-marked when it lands. */
-.early-joke-dots { justify-content: flex-start; margin: 0 0 10px 2px; }
+.early-joke-slot { position: relative; }
+.early-joke-dots { position: absolute; left: 2px; top: 0.3em; justify-content: flex-start; margin: 0; }
 .early-joke-dots[hidden] { display: none; }
 .early-joke-punchline { color: var(--t-ink, #2A2418); }
 .early-joke-punchline[hidden] { display: none; }
+/* Waiting for the punchline: it and the button already take their room,
+   unseen, so the screen under the card never moves (2026-09-26) */
+.early-joke-punchline.is-waiting, .early-joke-dismiss.is-waiting { visibility: hidden; }
 .early-joke-dismiss[hidden] { display: none; }
 .early-joke-dismiss {
   width: auto;

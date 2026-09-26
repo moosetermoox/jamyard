@@ -138,6 +138,7 @@
   // the wrapper takes the card's tilt so the tools turn with the paper.
   function buildShelfPrint(game, index, opts) {
     var item = el('div', 'shelf-item');
+    item.setAttribute('data-id', game.id);
     // A teacher's own copy prints on a sanded mat with its own words on
     // the block and the template's name over its own (18d)
     var own = isOwn(game.id) && YardPrints.ownDetails ? YardPrints.ownDetails(game, templateOf(game)) : null;
@@ -179,7 +180,15 @@
     heart.setAttribute('aria-pressed', isFav ? 'true' : 'false');
     heart.addEventListener('click', function () {
       P.Favorites.toggle(game.id);
-      if (opts.onChange) opts.onChange({}); // the shelf reorders: hearted first
+      // In place: the mark flips, the board keeps its order until the
+      // next visit (a reviewer's next click landed on a card that had
+      // moved, 2026-09-26). A card off the shelf still joins it.
+      var nowFav = P.Favorites.has(game.id);
+      heart.classList.toggle('is-on', nowFav);
+      heart.setAttribute('aria-pressed', nowFav ? 'true' : 'false');
+      heart.setAttribute('aria-label', (nowFav ? 'Remove "' : 'Heart "') + game.name + '"');
+      heart.title = nowFav ? 'Hearted: keeps it up front. Click to remove' : 'Heart it: keeps it up front';
+      if (opts.onChange) opts.onChange({ hearted: game.id, inPlace: true });
     });
     tools.appendChild(heart);
 
@@ -368,7 +377,12 @@
   }
 
   function deleteOwnGame(game, onChange) {
-    if (!window.confirm('Delete "' + game.name + '"? This cannot be undone.')) return;
+    var ask = window.Dialog && Dialog.confirm
+      ? Dialog.confirm({ title: 'Delete "' + game.name + '"?', message: 'This cannot be undone.', confirmLabel: 'Delete it' })
+      : Promise.resolve(window.confirm('Delete "' + game.name + '"? This cannot be undone.'));
+    ask.then(function (yes) { if (yes) deleteOwnGameNow(game, onChange); });
+  }
+  function deleteOwnGameNow(game, onChange) {
     fetch('/api/games/' + encodeURIComponent(game.id), { method: 'DELETE' })
       .then(function (response) {
         return response.json().catch(function () { return {}; }).then(function (result) {
@@ -377,7 +391,10 @@
           if (onChange) onChange({ removedId: game.id });
         });
       })
-      .catch(function (error) { window.alert('Delete failed: ' + error.message); });
+      .catch(function (error) {
+        if (window.Dialog && Dialog.confirm) Dialog.confirm({ title: 'Delete failed', message: error.message, confirmLabel: 'OK', cancelLabel: null });
+        else window.alert('Delete failed: ' + error.message);
+      });
   }
 
   // Copies the share link to the clipboard; the button itself reports
@@ -389,10 +406,18 @@
       btn.textContent = 'Link copied!';
       setTimeout(function () { btn.textContent = old; }, 1800);
     };
+    // The async clipboard can hang without ever settling (seen in Chrome
+    // on the home, 2026-09-26: the reviewer saw no feedback at all), so
+    // it gets a short wait, then the old synchronous copy takes over.
+    var settled = false;
+    function once(fn) { return function () { if (settled) return; settled = true; fn(); }; }
+    var ok = once(flash);
+    var fallback = once(function () { fallbackCopy(link, flash); });
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(link).then(flash).catch(function () { fallbackCopy(link, flash); });
+      navigator.clipboard.writeText(link).then(ok).catch(fallback);
+      setTimeout(fallback, 700);
     } else {
-      fallbackCopy(link, flash);
+      fallback();
     }
   }
 
@@ -409,7 +434,8 @@
       done();
     } catch (e) {
       // Clipboard fully blocked: show the link so it can be copied by hand
-      window.prompt('Copy this share link:', text);
+      if (window.Dialog && Dialog.confirm) Dialog.confirm({ title: 'Copy this share link', message: text, confirmLabel: 'OK', cancelLabel: null });
+      else window.prompt('Copy this share link:', text);
     }
   }
 

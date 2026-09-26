@@ -21,7 +21,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { playableQuestions, summarizeProgress } from '../phases/solo-quiz-scoring.js';
+import { playableQuestions, summarizeProgress, shuffledChoices } from '../phases/solo-quiz-scoring.js';
 
 /** The projector's picture: counts and per-question rates, nothing else. */
 export function hostProgressPayload(state, engine) {
@@ -44,16 +44,21 @@ export function playerQuestionPayload(state, playerId, points) {
   const p = state.progress[playerId] || { index: 0, answers: [] };
   const total = state.questions.length;
   const correct = p.answers.filter(a => a && a.correct).length;
+  // answered rides along so a quiz ended early reads "1 of 1 answered",
+  // never "1 of 5" as if the rest were wrong
+  const answered = p.answers.length;
   if (p.index >= total) {
-    return { done: true, index: total, total, correct, score: correct * points };
+    return { done: true, index: total, total, answered, correct, score: correct * points };
   }
   const q = state.questions[p.index];
   return {
     done: false,
     index: p.index,
     total,
+    answered,
     question: q.question,
-    choices: q.choices,
+    // this student's own order for this question, the same on a refresh
+    choices: shuffledChoices(q.choices, playerId + '|' + p.index),
     correct,
     score: correct * points
   };
