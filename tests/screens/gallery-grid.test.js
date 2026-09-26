@@ -49,10 +49,9 @@ describe('closing on nothing', () => {
 });
 
 describe('the make page and the editor', () => {
-  it('keeps See how it reads when the fit asks no questions', () => {
+  it('shows See how it reads only once a question is answered (owner 2026-09-26, the lone button read as broken)', () => {
     const make = read('screens/make/make.js');
-    expect(make).toContain('el.fitFoot.hidden = !!state.panelApi || !!(state.print && state.print.scalesEditable);');
-    expect(make).not.toContain('el.fitFoot.hidden = n === 0');
+    expect(make).toContain('el.fitFoot.hidden = n === 0 || !!state.panelApi || !!(state.print && state.print.scalesEditable);');
   });
   it('warns on a picture that is not a web address, and puts no mic on a link field', () => {
     const sv = read('screens/designer/simple-view.js');

@@ -543,6 +543,7 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 .doors-note[hidden] { display: none; }
 /* Where the copy goes: quieter than the fit note, always on */
 .keep-note { font-weight: 500; color: var(--t-muted); margin-top: 8px; }
+.keep-note-ok { border: none; background: none; padding: 0 0 0 6px; font: inherit; font-weight: 800; color: var(--t-ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 /* The first-run line from the home's Start here card: yellow, the "now" paint */
 .start-note {
   background: var(--t-yellow);

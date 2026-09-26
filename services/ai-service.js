@@ -1404,7 +1404,15 @@ Return the revised config.`;
       [/pair/, /\b(pairs?|match(es|ing)?)\b/i],
       [/answer choices/, /\b(choices?|options?)\b/i]
     ];
-    return families.some(([inKnown, inQuestion]) => inKnown.test(known) && inQuestion.test(q));
+    if (families.some(([inKnown, inQuestion]) => inKnown.test(known) && inQuestion.test(q))) return true;
+    // The prompt itself is typed on the page: a question asking what it
+    // should be, say, or be about ("What should students draw?", "What
+    // claim should students take a stance on?") is dropped; one about the
+    // tone, length, or kind of answers stays (owner 2026-09-26)
+    if (/\bquestion\b/.test(known) &&
+        /\b(what|which)\b[^?]*\b(questions?|prompts?|claims?|statements?|topics?|subjects?|draw|ask|tasks?|scenarios?|about|answer|explore)\b/i.test(q) &&
+        !/\b(tone|style|long|length|kind of answers?|kind of work|format|level|mood|voice|how many words)\b/i.test(q)) return true;
+    return false;
   }
 
   static shapeCustomizeQuestion(q) {
@@ -1490,7 +1498,7 @@ Each question is one of two kinds:
 - "choice" when the answer is a SHAPE you can name in advance (how long the answers are, the tone, which way round, keep it open or focus on something): give 3-5 short "choices" (2-4 words each), most likely first. The question itself must NOT list the choices (ask "How long should answers be?", not "...: short, long, or a mix?"). The teacher can always type something else instead, so never add an "other" choice.
 - "text" when the answer is a specific THING only the teacher knows (the words, the book, the unit, the era, the facts): give a "placeholder" with one short example (under eight words). Never guess facts.
 Also give a "label": the setting's name in 2-4 words, for a card line (e.g. "Answers you expect", "The words", "Topic").
-Ask about the WORDS only: what the answers should look like, the topic, the tone, the examples. NEVER ask about timing, timers, minutes, how many rounds, group sizes, grade, or subject: the page has its own controls for all of those.
+Ask about the WORDS only: what the answers should look like, the tone, the examples. The teacher types the activity's own question or prompt on the page (and its answer choices and field labels where it has them), so NEVER ask what the question, claim, topic, or task should be, or what it is about: ask only about the tone, the length or kind of answers, or a detail the wording depends on that the page has no box for. NEVER ask about timing, timers, minutes, how many rounds, group sizes, grade, or subject: the page has its own controls for all of those.
 ${knownClass}${knownKnobs}
 Activity: ${String(config.name || '').slice(0, 80)}
 Description: ${String(config.description || '').slice(0, 200)}

@@ -70,10 +70,10 @@ describe('the report: what keeps it, said the same way everywhere', () => {
 });
 
 describe('the make page says where a copy goes before it is made', () => {
-  it('a keep note sits under the doors, always on', () => {
+  it('a keep note sits under the doors, once per browser (owner 2026-09-26: not a permanent line)', () => {
     expect(makeHtml).toContain('id="keep-note"');
-    expect(makeHtml).toContain('Change anything and it is saved as your copy in this browser, under My yard on the home page. On another computer, open it from its Share link.');
-    expect(makeHtml).not.toMatch(/id="keep-note"[^>]*hidden/);
+    expect(makeHtml).toContain('Change anything and it is saved as your copy in this browser, under My yard on the home page. Use the share link to open it on another computer.');
+    expect(makeHtml).toMatch(/id="keep-note" hidden/);
     expect(makeCss).toContain('.keep-note {');
   });
 });
