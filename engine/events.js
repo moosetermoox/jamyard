@@ -61,6 +61,8 @@ export const EVENTS = {
   // --- Host Moderation ---
   SUBMISSIONS_UPDATE:   'submissions-update',
   MODERATE_HIDE:        'moderate-hide',
+  TEACHER_BLOCKED:      'teacher-blocked',      // server -> consoles: the filter stopped a student's message (name and reason, never the words)
+  REVEAL_ONE_COUNT:     'reveal-one-count',     // server -> host + players: the queue changed (a Hide after the close), new total and revealed
   MODERATE_KICK:        'moderate-kick',
   KICKED:               'kicked',
   SESSION_REPLACED:     'session-replaced',   // server -> old tab: same student joined again elsewhere

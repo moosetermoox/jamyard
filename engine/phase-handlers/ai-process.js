@@ -56,7 +56,9 @@ registerHandler('ai-process', {
     // stricter system nudge.
     let result;
     let attempts = 0;
-    const maxAttempts = phase.perPlayer ? 2 : 1;
+    // JSON output gets one retry too: a fact step that came back as prose
+    // put {{fact2.result.question}} on the projector (a reviewer, 2026-09-26)
+    const maxAttempts = (phase.perPlayer || expectJson) ? 2 : 1;
     while (attempts < maxAttempts) {
       attempts++;
       const stricter = attempts > 1
@@ -89,11 +91,18 @@ registerHandler('ai-process', {
         result = aiResult.text;
       }
 
-      // For perPlayer we need a non-empty array; otherwise accept whatever
-      // we got (the existing fallback path).
-      if (!phase.perPlayer) break;
-      if (Array.isArray(result) && result.length > 0) break;
-      // Otherwise loop and retry once
+      // For perPlayer we need a non-empty array; for any JSON step an
+      // object or array (a string means the parse failed). Otherwise loop
+      // and retry once.
+      if (!phase.perPlayer && !expectJson) break;
+      if (phase.perPlayer && Array.isArray(result) && result.length > 0) break;
+      if (!phase.perPlayer && expectJson && result && typeof result === 'object') break;
+    }
+    // Still not the shape the step promised: stop here with a clear error
+    // (the room pauses and the teacher can try again) rather than store
+    // prose the next screens would show as raw {{tokens}}
+    if (expectJson && !(result && typeof result === 'object')) {
+      throw new Error("The AI's answer for this step did not come back in a usable shape. Press Try again.");
     }
 
     // Data minimization round-trip: names never went TO the model, so fill

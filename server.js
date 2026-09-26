@@ -175,7 +175,7 @@ import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js
 import { buildActivityReport } from './engine/report.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
 import { contentLog } from './engine/content-log.js';
-import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText } from './engine/moderation.js';
+import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText, hideStoredResponse } from './engine/moderation.js';
 import { chainsFor, spotlightItemFor } from './engine/spotlight.js';
 import { createModerationLadder } from './services/moderation-ladder.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
@@ -1736,6 +1736,7 @@ async function closeCollect(code, room) {
           }
 
           room.engine.storePhaseData(collectPhase.id, stored);
+          room.lastClosedCollectId = collectPhase.id;
           console.log(`[close-submissions] Stored ${choiceResponses.length} choices for phase '${collectPhase.id}'`);
         } else {
           // passedIds: who used the Pass button (collect + passAllowed only).
@@ -1746,6 +1747,8 @@ async function closeCollect(code, room) {
             ...existing, responses, byPlayer, passedIds,
             ...(Object.keys(byPlayerDrawing).length > 0 ? { byPlayerDrawing } : {})
           });
+          // A Hide after the close reaches these rows (engine/moderation.js hideStoredResponse)
+          room.lastClosedCollectId = collectPhase.id;
           console.log(`[close-submissions] Stored ${responses.length} responses for phase '${collectPhase.id}' (${passedIds.length} passed)`);
         }
 
@@ -4626,6 +4629,9 @@ io.on('connection', (socket) => {
       if (!check.ok) {
         console.log(`[submit-response] Rejected drawing (${check.reason}) from ${socket.id}`);
         recordEvent(room, 'submit-rejected', { player: player.name, reason: check.reason });
+        // The teacher hears that a message was stopped (a reviewer, 2026-09-26:
+        // in a kindness activity that matters); the words stay off every screen
+        io.to(teachersChannel(code)).emit(EVENTS.TEACHER_BLOCKED, { name: player.name, reason: check.reason });
         socket.emit(EVENTS.RESPONSE_REJECTED, { reason: check.reason, message: check.message });
         return;
       }
@@ -4648,6 +4654,7 @@ io.on('connection', (socket) => {
         if (!check.ok) {
           console.log(`[submit-response] Rejected (${check.reason}) from ${socket.id}`);
           recordEvent(room, 'submit-rejected', { player: player.name, reason: check.reason });
+          io.to(teachersChannel(code)).emit(EVENTS.TEACHER_BLOCKED, { name: player.name, reason: check.reason });
           socket.emit(EVENTS.RESPONSE_REJECTED, { reason: check.reason, message: check.message });
           return;
         }
@@ -4682,6 +4689,7 @@ io.on('connection', (socket) => {
         if (verdict.action === 'reject') {
           console.log(`[submit-response] Rejected by moderation ladder (${verdict.rung}: ${verdict.category || '?'}) from ${socket.id}`);
           recordEvent(room, 'submit-rejected', { player: player.name, reason: 'moderation' });
+          io.to(teachersChannel(code)).emit(EVENTS.TEACHER_BLOCKED, { name: player.name, reason: 'moderation' });
           socket.emit(EVENTS.RESPONSE_REJECTED, {
             reason: 'moderation',
             message: 'That message can\'t go to the class. Reword it and try again.'
@@ -4798,6 +4806,24 @@ io.on('connection', (socket) => {
     const newHidden = hidden === undefined ? !target.responseHidden : !!hidden;
     players.update(playerId, { responseHidden: newHidden });
     recordEvent(room, 'moderate-hide', { player: target.name, hidden: newHidden });
+    // After the close the answers already sit in the step's stored rows
+    // (and in a preview's list, a one-by-one reveal's queue): a Hide there
+    // is what a teacher reading "Hide anything that isn't kind" on the
+    // review screen expects (a reviewer's backhanded line reached the
+    // wall, 2026-09-26)
+    const touched = hideStoredResponse(room, playerId, newHidden);
+    if (touched.revealOne) {
+      const rs = room.phaseState;
+      const countPayload = { total: rs.items.length, revealed: rs.revealed, phaseInstanceId: room.phaseInstanceId };
+      const hostId = roomToHost.get(code);
+      if (hostId) io.to(hostId).emit(EVENTS.REVEAL_ONE_COUNT, countPayload);
+      io.to(code).emit(EVENTS.REVEAL_ONE_COUNT, countPayload);
+    }
+    if (touched.preview) {
+      const cur = room.engine.getCurrentPhase();
+      const data = room.engine.phaseData[cur.id] || {};
+      io.to(teachersChannel(code)).emit(EVENTS.PREVIEW_CONTENT, { content: data.content, responses: data.responses, phaseInstanceId: room.phaseInstanceId });
+    }
     emitSubmissionsUpdate(code, room);
     emitLiveTally(code, room);
   });

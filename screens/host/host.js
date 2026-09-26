@@ -1165,6 +1165,17 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
   submittedSoFar = count || 0;
   liveTallyOn = !!liveResults;
+  // A pick-one step's options go up while the class picks (words only),
+  // so everyone can react together; a live tally shows them its own way
+  // (a reviewer's bluff round: the lies were only on devices, 2026-09-26)
+  const optionList = document.getElementById('collect-choices');
+  if (optionList) {
+    optionList.textContent = '';
+    const opts = !liveResults && Array.isArray(choices) ? choices.filter(c => typeof c === 'string' && c.trim()) : [];
+    opts.forEach(text => { const li = document.createElement('li'); li.textContent = text; optionList.appendChild(li); });
+    optionList.classList.toggle('is-long', opts.length > 6);
+    optionList.hidden = opts.length === 0;
+  }
   if (liveTallyEl) liveTallyEl.hidden = !liveTallyOn;
   if (liveTallyOn) {
     renderLiveTally((Array.isArray(choices) ? choices : []).map(c => ({ label: String(c), count: 0, pct: 0 })));
@@ -1484,6 +1495,12 @@ socket.on('reveal-one-start', ({ message, total, revealed, timer, hostTemplate, 
     revealButton: revealOneNextBtn,
     counter: revealOneCounter
   });
+});
+
+// The queue shrank (a Hide from the console after the close): the count
+socket.on('reveal-one-count', ({ total, revealed }) => {
+  revealOneCounter.textContent = revealed + ' of ' + total + ' revealed';
+  if (revealed >= total) { revealOneNextBtn.hidden = true; revealOneContinueBtn.hidden = false; }
 });
 
 socket.on('reveal-one-item', ({ item, index, total }) => {

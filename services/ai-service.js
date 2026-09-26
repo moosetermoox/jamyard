@@ -2059,6 +2059,7 @@ RULES:
 - If two students should write to each other (debate partners, opposite sides, rebuttals, peer interviews, "swap with a partner", argue then switch), use ONE pairs step with one round per exchange; never a chain, never a teams step, never a row of collect steps.
 - If the teacher pastes a YouTube link (watch a clip, then...), put it in video on the announce that opens the activity (or on the one collect step it belongs to) and build the rest as asked; the clip plays on the projector for the whole class. Only YouTube links play; any other video link cannot, say so with cantBuild.
 - If the HEART of the teacher's idea needs a mechanic no brick provides (such as AI writing rival answers for students to compare), do not build a hollow lookalike. Instead return ONLY: {"cantBuild": true, "reason": "one plain sentence naming what the builder cannot do yet, in a warm teacher voice"}
+- If the idea would single out, rank, shame, or hurt students (voting on who is the most annoying, least liked, worst at something), refuse it as a choice, never as a missing feature: return ONLY {"cantBuild": true, "harm": true, "reason": "one plain sentence saying the activity would hurt someone, and a kinder shape that keeps the fun without a target"}
 - Quiz questions must be factually correct and unambiguous, only write what you are certain of. For a quiz, 5 to 8 questions is the sweet spot unless the teacher asked for a number. The teacher reviews and can edit every question before anything is built.
 - ${FRESH_FACTS_RULE} When a quiz would need such facts and the teacher did not supply the questions, return the cantBuild object instead, with a reason that says you do not know recent events and that pasting the facts or the questions themselves into the description will work.
 - Write engaging, classroom-ready text for every step that takes text. Never include student names. Do not decorate text with emojis unless the activity itself is about emojis.
@@ -2150,6 +2151,7 @@ ${description}`
         // provides. Surfaced to the teacher as-is, never as an error.
         return {
           cantBuild: true,
+          harm: parsed.harm === true,
           reason: (typeof parsed.reason === 'string' && parsed.reason.trim())
             ? parsed.reason.trim()
             : 'The step-by-step builder cannot deliver the heart of this idea yet.'
@@ -2469,6 +2471,8 @@ ${responseList}`;
       if (parsed.noMatch === true) {
         return {
           noMatch: true,
+          // A refusal on purpose (the idea would hurt students), not a gap
+          harm: parsed.harm === true,
           reason: typeof parsed.reason === 'string' ? parsed.reason : 'No recipe fits this idea.',
           suggestion: typeof parsed.suggestion === 'string' ? parsed.suggestion : ''
         };
@@ -2657,6 +2661,7 @@ ${gameOption}1. If ONE of the recipes above is a good fit:
      "reason": "One sentence explaining why no recipe fits.",
      "suggestion": "One sentence suggesting a recipe that's CLOSE, name the recipe and what they'd give up."
    }
+   An idea that would single out, rank, shame, or hurt students (voting on who is the most annoying, least liked, worst at something) is refused, not matched: return the noMatch shape with "harm": true, a reason that says plainly that the activity would hurt someone, and a suggestion that keeps the fun without a target (an anonymous vote on ideas, not people).
 3. ${MATCH_FRESH_FACTS}`;
 
     return `${forced

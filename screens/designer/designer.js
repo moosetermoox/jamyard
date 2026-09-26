@@ -2156,7 +2156,9 @@ function renderNoMatchView(modal, description, data, overlay) {
 
   var title = document.createElement('h2');
   title.className = 'template-picker-title';
-  title.textContent = "Hmm, that's beyond our recipes";
+  // A refusal on purpose (the idea would hurt someone) reads as a no,
+  // never as a missing feature (a reviewer, 2026-09-26)
+  title.textContent = data && data.harm ? "We won't build that one" : "Hmm, that's beyond our recipes";
   modal.appendChild(title);
 
   // Reason
@@ -2218,7 +2220,8 @@ function renderNoMatchView(modal, description, data, overlay) {
     closeOverlay(overlay);
     showStoryboardFlow(description);
   });
-  btnRow.appendChild(storyboardBtn);
+  // No "Plan it step by step" after a refusal on purpose
+  if (!(data && data.harm)) btnRow.appendChild(storyboardBtn);
 
   // Deliberately NO whole-config generator here (removed 2026-08-07):
   // if it can't be assembled from the storyboard bricks, it shouldn't be
@@ -2361,7 +2364,7 @@ async function showStoryboardFlow(description, seededStoryboard) {
         // Honest refusal: the idea's heart needs a mechanic the bricks
         // can't deliver. Better a straight answer here than a built
         // activity that fakes its own premise with words.
-        title.textContent = 'This one needs a trick we don\'t have yet';
+        title.textContent = resp.harm ? 'We won\'t build that one' : 'This one needs a trick we don\'t have yet';
         status.textContent = resp.reason || 'The step-by-step builder cannot deliver the heart of this idea yet.';
         var cbHint = sbEl('p', 'A recipe or a ready-made activity from the yard may get close. Or reshape the idea around what students type and see, and try again.', 'sb-hint');
         modal.appendChild(cbHint);

@@ -64,6 +64,8 @@
       if (sub.length === 1 && stop.rounds !== null && stop.rounds !== undefined) {
         return stop.rounds + ' × ' + nameOf(sub[0]);
       }
+      // The count the teacher set (a reviewer set 6 and read "2 rounds")
+      if (stop.rounds !== null && stop.rounds !== undefined) return stop.rounds + ' rounds';
       return 'Rounds';
     }
     return nameOf(stop.type);

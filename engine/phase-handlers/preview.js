@@ -30,7 +30,10 @@ registerHandler('preview', {
             // Drawings carry their strokes so the teacher can actually SEE
             // what they're approving — a "[drawing]" placeholder would
             // defeat the whole point of the preview gate.
+            // playerId rides along (teacher surfaces only) so the console
+            // can Hide one line from the review screen (2026-09-26)
             responses = data.responses.map(r => ({
+              playerId: r.playerId,
               name: r.name,
               response: r.text,
               ...(r.drawing ? { drawing: r.drawing } : {})
