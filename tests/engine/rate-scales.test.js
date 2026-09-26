@@ -116,3 +116,26 @@ describe('the surfaces', () => {
     expect(read('screens/designer/editor.css')).toContain('.sv-scale-row');
   });
 });
+
+describe('the scales come first and the AI never asks for them', async () => {
+  const { AIService } = await import('../../services/ai-service.js');
+  it('drops a fit question about content the page has boxes for', () => {
+    const known = ['Grade band', 'The rating scales, their ranges and end labels', 'The pairs'];
+    expect(AIService.asksAboutTypedContent('What should the three rating scales measure?', known)).toBe(true);
+    expect(AIService.asksAboutTypedContent('Which word pairs should students match?', known)).toBe(true);
+    expect(AIService.asksAboutTypedContent('What kind of work will students present?', known)).toBe(false);
+    expect(AIService.asksAboutTypedContent('What should the scales be?', ['Grade band'])).toBe(false);
+    expect(AIService.asksAboutTypedContent('Which answer options fit?', ['The answer choices'])).toBe(true);
+  });
+
+  it('the make page names the scales and the pairs as known settings and puts the scales panel right under the doors', () => {
+    const js = read('screens/make/make.js');
+    expect(js).toContain("['The rating scales, their ranges and end labels']");
+    expect(js).toContain("state.print.pairs.length ? ['The pairs'] : []");
+    const html = read('screens/make/index.html');
+    expect(html.indexOf('id="panel-section"')).toBeLessThan(html.indexOf('id="scales-section"'));
+    expect(html.indexOf('id="scales-section"')).toBeLessThan(html.indexOf('id="fit-section"'));
+    const prompt = read('services/ai-service.js');
+    expect(prompt).toContain('the teacher is already typing that content on the page');
+  });
+});
