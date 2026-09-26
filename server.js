@@ -4885,7 +4885,12 @@ io.on('connection', (socket) => {
     if (touched.preview) {
       const cur = room.engine.getCurrentPhase();
       const data = room.engine.phaseData[cur.id] || {};
-      io.to(teachersChannel(code)).emit(EVENTS.PREVIEW_CONTENT, { content: data.content, responses: data.responses, phaseInstanceId: room.phaseInstanceId });
+      const again = { content: data.content, responses: data.responses, phaseInstanceId: room.phaseInstanceId, refresh: true };
+      io.to(teachersChannel(code)).emit(EVENTS.PREVIEW_CONTENT, again);
+      // The projector's private list has its own Hide now (a phone-sized
+      // host, 2026-09-26): it drops the line the same way
+      const hostId = roomToHost.get(code);
+      if (hostId) io.to(hostId).emit(EVENTS.PREVIEW_CONTENT, again);
     }
     emitSubmissionsUpdate(code, room);
     emitLiveTally(code, room);
@@ -4994,6 +4999,11 @@ io.on('connection', (socket) => {
       // still close at the original time. No armed timer left (it already
       // fired, or a manual close cleared it) = nothing to extend.
       if (serverTimed && !extendPhaseTimer(room, EXTEND_TIMER_SECONDS)) return;
+      // Host-clock steps keep a deadline too (collect records one so a
+      // refreshed student gets the time left): push it back as well
+      if (!serverTimed && room.phaseState && room.phaseState.timerEndsAt) {
+        room.phaseState.timerEndsAt += EXTEND_TIMER_SECONDS * 1000;
+      }
       recordEvent(room, 'extend-timer');
       const message = { addSeconds: EXTEND_TIMER_SECONDS };
       io.to(code).emit(EVENTS.TIMER_EXTENDED, message);

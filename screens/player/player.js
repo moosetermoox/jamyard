@@ -154,7 +154,7 @@ let responseMax = RESPONSE_MAX;
 if (responseInput) {
   responseInput.addEventListener('input', () => {
     if (responseCounter) responseCounter.textContent = responseInput.value.length + ' / ' + responseMax;
-    if (responseNotice && !responseNotice.hidden) responseNotice.hidden = true;
+    spendResponseNotice();
   });
 }
 
@@ -167,7 +167,63 @@ if (responseInput && window.Speech) {
 function showResponseNotice(message) {
   if (!responseNotice) return;
   responseNotice.textContent = message;
+  responseNotice.classList.remove('is-spent');
   responseNotice.hidden = false;
+}
+
+// The notice sits right over Submit. Once the student answers it (types,
+// draws a stroke) it goes quiet but KEEPS ITS ROOM, so Submit stays where
+// the thumb is heading (a phone tap missed by the notice's height, 2026-09-26).
+function spendResponseNotice() {
+  if (responseNotice && !responseNotice.hidden) responseNotice.classList.add('is-spent');
+}
+
+// A new step (or a submit) folds it away for real.
+function hideResponseNotice() {
+  if (!responseNotice) return;
+  responseNotice.hidden = true;
+  responseNotice.classList.remove('is-spent');
+}
+
+// --- A drawing in progress survives a refresh ---
+// Typed text comes back on its own (the browser restores form fields); a
+// canvas does not. Every finished stroke saves the student's OWN strokes
+// under this room, seat, and step; the next drawing step with the same
+// key puts them back on the pad (a phone that locked mid-drawing came
+// back blank, 2026-09-26). Gone once the answer is accepted.
+var DRAW_DRAFT_KEY = 'jamyard.drawDraft';
+function drawDraftId() {
+  return (currentRoomCode || '') + ':' + (currentPlayerName || '') + ':' + (currentCollectPhaseId || '');
+}
+function saveDrawDraft() {
+  if (!drawPadApi || !drawArea || drawArea.hidden || !currentRoomCode) return;
+  try {
+    var own = drawPadApi.getOwnStrokes();
+    if (own.length) sessionStorage.setItem(DRAW_DRAFT_KEY, JSON.stringify({ id: drawDraftId(), strokes: own }));
+    else sessionStorage.removeItem(DRAW_DRAFT_KEY);
+  } catch (e) { /* storage unavailable or full: the pad still works */ }
+}
+function readDrawDraft() {
+  try {
+    var saved = JSON.parse(sessionStorage.getItem(DRAW_DRAFT_KEY) || 'null');
+    return saved && saved.id === drawDraftId() && Array.isArray(saved.strokes) ? saved.strokes : null;
+  } catch (e) { return null; }
+}
+function clearDrawDraft() {
+  try { sessionStorage.removeItem(DRAW_DRAFT_KEY); } catch (e) { /* storage unavailable */ }
+}
+
+// One line the server sends ahead of a step (the teacher started it over
+// from the review screen): shown over the next step's prompt, then gone.
+// It expires on its own so it can never land on some later, unrelated step.
+var pendingStepNote = null;
+socket.on('step-note', function (data) {
+  pendingStepNote = data && data.message ? { message: data.message, until: Date.now() + 15000 } : null;
+});
+function takeStepNote() {
+  var note = pendingStepNote;
+  pendingStepNote = null;
+  return note && note.until > Date.now() ? note.message : null;
 }
 
 // Elements - Phase images
@@ -719,6 +775,7 @@ function clearSubmitPending() {
 socket.on('response-accepted', function () {
   var wasPending = !!submitPending;
   clearSubmitPending();
+  clearDrawDraft();
   var active = document.querySelector('section.active');
   if (wasPending && active && active.id === 'collect-section') showSection(submittedSection);
 });
@@ -735,7 +792,7 @@ submitBtn.addEventListener('click', () => {
     return;
   }
 
-  if (responseNotice) responseNotice.hidden = true;
+  hideResponseNotice();
   socket.emit('submit-response', { code: currentRoomCode, response });
   awaitSubmitAck(submitBtn);
 });
@@ -882,10 +939,13 @@ socket.on('join-success', ({ name, reconnected, token, theme, language, strings,
       socket.emit('word-lookup', { code: currentRoomCode, word: req.word, sentence: req.sentence });
     });
   }
-  if (!reconnected) {
+  // A reconnect gets its real screen pushed by the server right after
+  // (sendCurrentState); in the lobby nothing follows, so a rejoin from a
+  // refresh used to leave the join form up (2026-09-26): leave the form
+  // either way, the pushed step replaces the waiting screen at once.
+  if (!reconnected || joinSection.classList.contains('active')) {
     showSection(waitingSection);
   }
-  // If reconnected, sendCurrentState on the server will push the right section
   // Plain name, no emoji avatar (owner call 2026-08-27).
   playerNameDisplay.textContent = name;
   currentPlayerName = name;
@@ -1146,22 +1206,29 @@ function initDrawPad() {
   // A stroke clears the "Draw something first!" notice the same way typing
   // clears it for text (it used to sit there over a finished drawing).
   drawPadApi = Draw.attachPad(drawPadCanvas, {
-    onChange: function () { if (responseNotice && !responseNotice.hidden) responseNotice.hidden = true; }
+    onChange: function () { spendResponseNotice(); saveDrawDraft(); }
   });
   // Color swatches (skip white — the canvas is white)
   for (var ci = 0; ci < Draw.PALETTE.length - 1; ci++) {
-    (function (color) {
+    (function (color, name) {
       var swatch = document.createElement('button');
       swatch.type = 'button';
-      swatch.className = 'draw-swatch' + (color === drawPadApi.getColor() ? ' draw-swatch-active' : '');
+      var picked = color === drawPadApi.getColor();
+      swatch.className = 'draw-swatch' + (picked ? ' draw-swatch-active' : '');
       swatch.style.background = color;
+      swatch.setAttribute('aria-label', name);
+      swatch.setAttribute('aria-pressed', picked ? 'true' : 'false');
       swatch.addEventListener('click', function () {
         drawPadApi.setColor(color);
-        drawColors.querySelectorAll('.draw-swatch').forEach(function (s) { s.classList.remove('draw-swatch-active'); });
+        drawColors.querySelectorAll('.draw-swatch').forEach(function (s) {
+          s.classList.remove('draw-swatch-active');
+          s.setAttribute('aria-pressed', 'false');
+        });
         swatch.classList.add('draw-swatch-active');
+        swatch.setAttribute('aria-pressed', 'true');
       });
       drawColors.appendChild(swatch);
-    })(Draw.PALETTE[ci]);
+    })(Draw.PALETTE[ci], (Draw.COLOR_NAMES && Draw.COLOR_NAMES[ci]) || ('Color ' + (ci + 1)));
   }
   drawUndoBtn.addEventListener('click', function () { drawPadApi.undo(); });
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
@@ -1208,7 +1275,14 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     responseInput.placeholder = 'Type your answer here...';
   }
   if (responseCounter) responseCounter.textContent = responseInput.value.length + ' / ' + responseMax;
-  if (responseNotice) responseNotice.hidden = true;
+  hideResponseNotice();
+  // Why this step is up again, when the teacher started it over
+  var stepNoteEl = document.getElementById('step-note');
+  if (stepNoteEl) {
+    var stepNote = takeStepNote();
+    stepNoteEl.textContent = stepNote || '';
+    stepNoteEl.hidden = !stepNote;
+  }
   submitBtn.disabled = false;
   drawArea.hidden = true;
   assignedDrawingCanvas.hidden = true;
@@ -1355,6 +1429,9 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
       // A rotated-in drawing preloads onto the pad: continue-the-drawing.
       // (Undo/Clear never remove the inherited strokes.)
       drawPadApi.setStrokes(assignedDrawing || []);
+      // Back from a refresh mid-drawing: the student's own strokes return
+      var draft = readDrawDraft();
+      if (draft) drawPadApi.addStrokes(draft);
     }
     submitBtn.onclick = function () {
       if (!drawPadApi || drawPadApi.isEmpty()) {

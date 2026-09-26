@@ -582,6 +582,14 @@ socket.on('games-list', ({ games }) => {
       // on every library deep link until 2026-08-08).
       updateDesc();
       createRoomBtn.click();
+    } else {
+      // An old bookmark to a copy that is gone: say so, instead of a picker
+      // quietly set to some other activity (a reviewer, 2026-09-26)
+      const missingNote = document.getElementById('game-missing-note');
+      if (missingNote) {
+        missingNote.textContent = "That activity isn't available anymore. It may have been deleted, or the link is old. Pick one below, or go back to the yard.";
+        missingNote.hidden = false;
+      }
     }
   }
 });
@@ -772,7 +780,25 @@ previewApproveBtn.addEventListener('click', () => {
   socket.emit('preview-approve', { code: currentRoomCode });
 });
 
+// Reject starts the step over for the WHOLE class: every answer gone, every
+// pad blank. One tap next to Approve on a phone should not do that unasked
+// (a reviewer, 2026-09-26). Hide handles one bad entry; this asks first.
+let previewHasDrawings = false;
+function rejectQuestion() {
+  const thing = previewHasDrawings ? 'drawing' : 'answer';
+  return {
+    title: 'Start this step over?',
+    message: 'Every ' + thing + ' so far is thrown out and the class does the step again. To keep one ' + thing + ' off the class screen, use Hide on that one instead.',
+    confirmLabel: 'Start over', cancelLabel: 'Keep them'
+  };
+}
 previewRejectBtn.addEventListener('click', () => {
+  if (window.Dialog && Dialog.confirm) {
+    Dialog.confirm(rejectQuestion()).then(function (yes) {
+      if (yes) socket.emit('preview-reject', { code: currentRoomCode });
+    });
+    return;
+  }
   socket.emit('preview-reject', { code: currentRoomCode });
 });
 
@@ -1249,31 +1275,36 @@ socket.on('processing-started', ({ task, hostTemplate, hostShow } = {}) => {
   applyShow(hostShow, { message: processMessage });
 });
 
-socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
-  showSection(previewSection);
-  // Private by default: this screen is projected. The teacher reviews on
-  // their Teacher view, or deliberately reveals here. If no console is
-  // paired yet, point at the corner chip instead of a view they don't have.
-  previewPrivacyHint.textContent = teacherConsolePaired
-    ? 'The content is hidden from this (projected) screen. Review it on your Teacher view, or reveal it here.'
-    : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use "Copy teacher link" in the corner and paste it in a private window, or reveal it here.';
-  previewPrivate.hidden = true;
-  previewRevealBtn.textContent = 'Show on this screen';
-  previewContent.textContent = content;
-  applyTemplate(previewSection, hostTemplate);
-  applyShow(show, {
-    content: previewContent,
-    responses: previewResponses,
-    approveButton: previewApproveBtn,
-    rejectButton: previewRejectBtn
-  });
+socket.on('preview-content', ({ content, responses, hostTemplate, show, refresh }) => {
+  previewHasDrawings = !!(responses && responses.some(r => r && r.drawing));
+  // A refresh (a Hide dropped one line) redraws the list only: the private
+  // toggle stays as the teacher left it
+  if (!refresh) {
+    showSection(previewSection);
+    // Private by default: this screen is projected. The teacher reviews on
+    // their Teacher view, or deliberately reveals here. If no console is
+    // paired yet, point at the corner chip instead of a view they don't have.
+    previewPrivacyHint.textContent = teacherConsolePaired
+      ? 'The content is hidden from this (projected) screen. Review it on your Teacher view, or reveal it here.'
+      : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use "Copy teacher link" in the corner and paste it in a private window, or reveal it here.';
+    previewPrivate.hidden = true;
+    previewRevealBtn.textContent = 'Show on this screen';
+    previewContent.textContent = content;
+    applyTemplate(previewSection, hostTemplate);
+    applyShow(show, {
+      content: previewContent,
+      responses: previewResponses,
+      approveButton: previewApproveBtn,
+      rejectButton: previewRejectBtn
+    });
+  }
 
   if (responses && responses.length > 0) {
     if (!show || show.includes('responses')) {
       previewResponses.hidden = false;
     }
     previewResponsesList.innerHTML = '';
-    for (const { name, response, drawing } of responses) {
+    for (const { name, response, drawing, playerId } of responses) {
       const li = document.createElement('li');
       if (drawing && window.Draw) {
         li.innerHTML = '<strong>' + escapeHtml(name) + ':</strong> ';
@@ -1286,10 +1317,27 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show }) => {
       } else {
         li.innerHTML = '<strong>' + escapeHtml(name) + ':</strong> ' + escapeHtml(response);
       }
+      // Hide THIS one (it leaves the step's stored rows, so the wall never
+      // shows it) instead of rejecting the whole class's work
+      if (playerId) {
+        const hideBtn = document.createElement('button');
+        hideBtn.type = 'button';
+        hideBtn.className = 'preview-hide-btn';
+        hideBtn.textContent = 'Hide';
+        hideBtn.title = 'Keep this one off the class screen';
+        hideBtn.setAttribute('aria-label', 'Hide ' + name + "'s entry");
+        hideBtn.addEventListener('click', () => {
+          hideBtn.disabled = true;
+          socket.emit('moderate-hide', { code: currentRoomCode, playerId, hidden: true });
+        });
+        li.appendChild(document.createTextNode(' '));
+        li.appendChild(hideBtn);
+      }
       previewResponsesList.appendChild(li);
     }
   } else {
     previewResponses.hidden = true;
+    previewResponsesList.innerHTML = '';
   }
 });
 

@@ -15,6 +15,8 @@
   'use strict';
 
   var PALETTE = ['#111111', '#e53935', '#1e88e5', '#43a047', '#fdd835', '#8e24aa', '#fb8c00', '#ffffff'];
+  // One name per swatch, for screen readers (same order as PALETTE)
+  var COLOR_NAMES = ['Black', 'Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'White'];
 
   // --- Rendering ---------------------------------------------------------
 
@@ -143,6 +145,15 @@
         repaint();
         if (opts.onChange) opts.onChange();
       },
+      // The student's own strokes (never the inherited ones) and a way to
+      // put them back: a refresh mid-drawing keeps the work (2026-09-26)
+      getOwnStrokes: function () { return strokes.slice(preloaded); },
+      addStrokes: function (s) {
+        if (!Array.isArray(s) || !s.length) return;
+        strokes = strokes.concat(s);
+        current = null;
+        repaint();
+      },
       isEmpty: function () { return strokes.length === 0; },
       hasOwnStrokes: function () { return strokes.length > preloaded; },
       setColor: function (c) { color = c; },
@@ -182,6 +193,7 @@
   var root = typeof globalThis !== 'undefined' ? globalThis : window;
   root.Draw = {
     PALETTE: PALETTE,
+    COLOR_NAMES: COLOR_NAMES,
     renderStrokes: renderStrokes,
     attachPad: attachPad,
     scribble: scribble
