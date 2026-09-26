@@ -726,7 +726,19 @@
       .then(function (d) {
         if (request !== mapRequest || !d) return;
         redrawMap(d.map);
+        redrawTalkPrint(d.print);
       });
+  }
+
+  // A talk-only activity prints its first question read only, so when the
+  // tiers change (a library set tapped, a question retyped) the card at
+  // the top follows (2026-09-26: it kept the template's question after a
+  // fill). Only the fixed prompt; an editable prompt is the teacher's box.
+  function redrawTalkPrint(print) {
+    if (!print || !print.prompt || !print.prompt.text) return;
+    if (!state.talkTiers || !state.talkTiers.length || state.promptBox) return;
+    var fixedEl = el.prompt.querySelector('.print-prompt-fixed');
+    if (fixedEl) setRich(fixedEl, print.prompt.display || print.prompt.text);
   }
 
   // What the fitted copy was made from: the edits and the answers

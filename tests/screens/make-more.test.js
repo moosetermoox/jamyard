@@ -131,4 +131,14 @@ describe('the Closer question library (owner 2026-09-26)', () => {
     expect(make).not.toContain("label: 'Along: '");
     expect(make).toContain('if (classUseful) fixedHolder.appendChild(classRow);');
   });
+
+  it('the card at the top follows the tiers: a library fill or a retyped question redraws the first question (2026-09-26, live check)', () => {
+    const make = read('screens/make/make.js');
+    expect(make).toContain('function redrawTalkPrint(print)');
+    expect(make).toMatch(/redrawMap\(d\.map\);\s*redrawTalkPrint\(d\.print\);/);
+    // the make route sends the print with every answer, not only a recompile
+    const server = read('server.js');
+    expect(server).toContain("res.json({ config: working, changed, map: buildActivityMap(working), print: printFor({ ...working, name: config.name }) });");
+    expect(server).not.toContain('res.json({ config: working, changed, map: buildActivityMap(working) });');
+  });
 });
