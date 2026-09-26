@@ -37,6 +37,10 @@ const EXCERPT_MAX = 64;
 
 function excerpt(phase) {
   if (!phase) return undefined;
+  // An AI step's instruction is a prompt to a model, not words for a
+  // teacher (a reviewer saw "Generate ONE classroom-appropriate..." on
+  // the make page, 2026-09-26): no excerpt
+  if (phase.type === 'ai-process' || phase.type === 'ai-eliminate') return undefined;
   for (const field of EXCERPT_FIELDS) {
     const value = phase[field];
     if (typeof value !== 'string') continue;

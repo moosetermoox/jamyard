@@ -537,6 +537,16 @@ socket.on('response-received', function (data) {
   }
 });
 
+// The filter stopped a student's message: the teacher hears who, never
+// the words (a reviewer, 2026-09-26). Same list the late seats use.
+socket.on('teacher-blocked', function (data) {
+  if (!data || !data.name || !lateSeats) return;
+  var li = document.createElement('li');
+  li.textContent = data.name + ' tried to send a message the filter stopped. They were asked to reword it.';
+  lateSeats.appendChild(li);
+  lateSeats.hidden = false;
+});
+
 // --- Live entries (moderation) ---
 
 function renderEntries(submissions) {
@@ -767,6 +777,24 @@ function renderPreview(content, responses) {
         li.appendChild(thumb);
       } else {
         li.textContent = responses[i].name + ': ' + responses[i].response;
+      }
+      // Hide on the review screen itself (a reviewer read "Hide anything
+      // that isn't kind" and found no button, 2026-09-26): the line leaves
+      // the step's stored rows, so the wall never shows it
+      if (responses[i].playerId) {
+        (function (row) {
+          var hideBtn = document.createElement('button');
+          hideBtn.className = 'entry-btn';
+          hideBtn.textContent = 'Hide';
+          hideBtn.title = 'Keep this one off the class screen';
+          hideBtn.setAttribute('aria-label', 'Hide ' + row.name + "'s entry");
+          hideBtn.addEventListener('click', function () {
+            hideBtn.disabled = true;
+            socket.emit('moderate-hide', { code: currentCode, playerId: row.playerId, hidden: true });
+          });
+          li.appendChild(document.createTextNode(' '));
+          li.appendChild(hideBtn);
+        })(responses[i]);
       }
       previewRespList.appendChild(li);
     }

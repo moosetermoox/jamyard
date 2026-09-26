@@ -81,3 +81,52 @@ export function buildSubmissionList(players) {
       hidden: !!p.responseHidden
     }));
 }
+
+/**
+ * A Hide (or Unhide) after the step closed: the rows are already stored,
+ * so the flag on the player is not enough. Moves the player's row out of
+ * (or back into) the last closed collect's responses, an open preview's
+ * list, and a one-by-one reveal's unrevealed queue. Rows that leave are
+ * kept under hiddenResponses so an Unhide can bring them back.
+ * @returns {{ collect: boolean, preview: boolean, revealOne: boolean }} what changed
+ */
+export function hideStoredResponse(room, playerId, hidden) {
+  const out = { collect: false, preview: false, revealOne: false };
+  const engine = room && room.engine;
+  if (!engine || !playerId) return out;
+  const move = (data) => {
+    if (!data || !Array.isArray(data.responses)) return false;
+    data.hiddenResponses = Array.isArray(data.hiddenResponses) ? data.hiddenResponses : [];
+    if (hidden) {
+      const keep = data.responses.filter(r => !(r && r.playerId === playerId));
+      if (keep.length === data.responses.length) return false;
+      data.hiddenResponses.push(...data.responses.filter(r => r && r.playerId === playerId));
+      data.responses = keep;
+      return true;
+    }
+    const back = data.hiddenResponses.filter(r => r && r.playerId === playerId);
+    if (back.length === 0) return false;
+    data.hiddenResponses = data.hiddenResponses.filter(r => !(r && r.playerId === playerId));
+    data.responses = data.responses.concat(back);
+    return true;
+  };
+  if (room.lastClosedCollectId && engine.phaseData[room.lastClosedCollectId]) {
+    out.collect = move(engine.phaseData[room.lastClosedCollectId]);
+  }
+  const cur = typeof engine.getCurrentPhase === 'function' ? engine.getCurrentPhase() : null;
+  if (cur && cur.type === 'preview' && engine.phaseData[cur.id]) {
+    out.preview = move(engine.phaseData[cur.id]);
+  }
+  const rs = room.phaseState;
+  if (hidden && rs && rs.kind === 'reveal-one' && Array.isArray(rs.items)) {
+    const revealed = rs.revealed || 0;
+    const keep = rs.items.filter((it, i) => i < revealed || !(it && it.playerId === playerId));
+    if (keep.length !== rs.items.length) {
+      rs.items = keep;
+      const data = engine.phaseData[rs.phaseId] || {};
+      engine.storePhaseData(rs.phaseId, { ...data, items: keep, revealed });
+      out.revealOne = true;
+    }
+  }
+  return out;
+}
