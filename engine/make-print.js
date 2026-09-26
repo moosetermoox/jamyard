@@ -85,10 +85,21 @@ export function printFor(config) {
     promptEditable = false;
     if (Array.isArray(phase.questions[0].choices)) choices = phase.questions[0].choices.map(String);
   }
+  // A talk-only activity (Closer): its questions are the activity, and the
+  // one rating at the end is not what it is about (owner 2026-09-26). The
+  // print shows the first question the class talks about, read only (the
+  // tiers are the designer's), with no scales and no timer.
+  const talk = talkQuestionsFor(config);
+  const talkOnly = talk.length > 0 && phase.type === 'rate';
+  if (talkOnly) {
+    promptText = talk[0].questions[0];
+    promptEditable = false;
+    choices = [];
+  }
   return {
     name: config.name || '',
     phaseId: step.id,
-    type: phase.type,
+    type: talkOnly ? 'announce' : phase.type,
     inputType: phase.inputType || (phase.type === 'collect-choice' ? 'choice' : 'text'),
     // `display` is what the page draws: a {{token}} (a fact the AI writes
     // at game time, a classmate's answer) reads as a blank, never raw
@@ -102,14 +113,15 @@ export function printFor(config) {
     choicesEditable: phase.type === 'collect-choice' && Array.isArray(phase.choices) && phase.choices.length > 0 && phase.choices.every((c) => isPlainText(c)),
     // A rating step's plain scales are typed in place on the print, as the
     // class will see them (owner 2026-09-25); the fit asks nothing then
-    scalesEditable: phase.type === 'rate' && scalesFor({ phases: { [step.id]: phase } }).length === 1,
-    timer: typeof phase.timer === 'number' ? phase.timer : null,
+    scalesEditable: !talkOnly && phase.type === 'rate' && scalesFor({ phases: { [step.id]: phase } }).length === 1,
+    timer: !talkOnly && typeof phase.timer === 'number' ? phase.timer : null,
     // A recipe-born copy recompiles from its stamp; its timer belongs to
     // the recipe (a knob when the recipe offers one), not to this page.
     timerEditable: typeof phase.timer === 'number' && !config.recipe,
-    audience,
-    // Every rate step's scales (Class Critique), for the page's scales panel
-    scales: scalesFor(config),
+    audience: talkOnly ? null : audience,
+    // Every rate step's scales (Class Critique), for the page's scales
+    // panel; a talk-only activity keeps its one rating to the designer
+    scales: talkOnly ? [] : scalesFor(config),
     // Every match step's pairs (Vocab Match), for the page's pairs panel
     pairs: pairsFor(config),
     // A talk-only activity's questions, tier by tier (Closer)

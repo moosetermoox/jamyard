@@ -350,6 +350,23 @@
 
   }
 
+  // Where a changed activity goes: said once per browser, then Got it
+  // keeps it away (owner 2026-09-26, it was a permanent line under the doors)
+  (function keepNoteOnce() {
+    var note = document.getElementById('keep-note');
+    var ok = document.getElementById('keep-note-ok');
+    if (!note || !ok) return;
+    var KEY = 'jamyard.keepNoteSeen';
+    var seen = false;
+    try { seen = localStorage.getItem(KEY) === '1'; } catch (e) { seen = false; }
+    if (seen) return;
+    note.hidden = false;
+    ok.addEventListener('click', function () {
+      try { localStorage.setItem(KEY, '1'); } catch (e) { /* storage unavailable */ }
+      note.hidden = true;
+    });
+  })();
+
   // The recipe's own editor, under the doors: the dialog's panel, mounted
   function mountPanel() {
     var section = document.getElementById('panel-section');
@@ -546,9 +563,14 @@
         classDescription: classDesc,
         // an example from the yard already set the pairs or the choices:
         // the AI must not ask for them again
-        knownSettings: ['Grade band', 'Subjects', 'The question', 'Timer', 'Student names']
+        // The words at the top of the page are the teacher's to type: the
+        // question, the field labels, the answer choices. The AI never asks
+        // what any of them should be (owner 2026-09-26: "What should
+        // students draw?" under a box that already holds the question)
+        knownSettings: ['Grade band', 'Subjects', 'The question (the prompt students see, typed on the page above)', 'Timer', 'Student names']
           .concat(state.example && state.example.prefill && state.example.prefill.pairs ? ['The pairs'] : [])
-          .concat(choicesChanged() ? ['The answer choices'] : [])
+          .concat((state.print && state.print.choicesEditable) || choicesChanged() ? ['The answer choices'] : [])
+          .concat(state.print && Array.isArray(state.print.fields) && state.print.fields.length > 1 ? ['The questions students answer (the field labels, typed on the page above)'] : [])
           // the scales and the pairs are typed in place on this page, never
           // asked for (owner 2026-09-25: it is as easy to type them as to answer)
           .concat(state.print && Array.isArray(state.print.scales) && state.print.scales.length ? ['The rating scales, their ranges and end labels'] : [])
@@ -699,11 +721,11 @@
   function updateFitFoot() {
     if (!el.fitFoot) return;
     var n = answeredQuestions().length;
-    // scales typed in place or a recipe panel: nothing for the AI to
-    // reword, the row stays off. With no questions the button stays: the
-    // wording still gets fitted when hosting, and the teacher should be
-    // able to read that copy first (a reviewer, Draw Gallery, 2026-09-26)
-    el.fitFoot.hidden = !!state.panelApi || !!(state.print && state.print.scalesEditable);
+    // No question answered = nothing to reword (the words at the top are
+    // what runs), so the button stays off; a recipe panel or scales typed
+    // in place likewise (owner 2026-09-26: a lone See how it reads on
+    // Vocab Match read as broken)
+    el.fitFoot.hidden = n === 0 || !!state.panelApi || !!(state.print && state.print.scalesEditable);
     if (state.fitting) return;
     var current = !!(state.fitted && state.fitted.key === fitKey());
     el.fitSee.disabled = current;
