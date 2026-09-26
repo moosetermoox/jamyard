@@ -125,7 +125,9 @@ export function printFor(config) {
     // Every match step's pairs (Vocab Match), for the page's pairs panel
     pairs: pairsFor(config),
     // A talk-only activity's questions, tier by tier (Closer)
-    talk: talkQuestionsFor(config)
+    talk: talkQuestionsFor(config),
+    // The same with step ids, editable on the page (owner 2026-09-26)
+    talkSteps: talkStepsFor(config)
   };
 }
 
@@ -160,6 +162,97 @@ export function talkQuestionsFor(config) {
     }
   }
   return count >= 2 ? tiers.filter((t) => t.questions.length > 0) : [];
+}
+
+// The default second paragraph of a question the teacher adds to a tier
+// (Closer's questions each carry a who-goes-first line under the question)
+const TALK_TAIL = 'Decide together who goes first. Both answer, then ask each other one follow-up question.';
+const NEW_PARTNER_RE = /\b(new partner|swap|someone new|different partner|new person|stand up)\b/i;
+
+/**
+ * The same tiers with their step ids, for the make page's editor (owner
+ * 2026-09-26: edit the questions and how many per tier, and say when a
+ * tier pairs everyone with someone new). A question step's `tail` is the
+ * rest of its message (the who-goes-first line), kept when the question
+ * is retyped. `newPartner` reads the tier's opening step.
+ * @returns {Array<{name: string, introId: string|null, newPartner: boolean, after: string|null, questions: Array<{id: string, text: string, tail: string}>}>}
+ */
+export function talkStepsFor(config) {
+  const phases = (config && config.phases) || {};
+  const tiers = [];
+  let current = null;
+  let count = 0;
+  for (const [id, phase] of Object.entries(phases)) {
+    if (!phase || phase.type !== 'announce' || typeof phase.message !== 'string') continue;
+    const lines = phase.message.split(/\n/);
+    const first = clean(lines[0]);
+    if (!first) continue;
+    if (/\?$/.test(first)) {
+      if (!current) { current = { name: '', introId: null, newPartner: false, after: null, questions: [] }; tiers.push(current); }
+      const tail = lines.slice(1).join('\n').replace(/^\s*\n+/, '').trim();
+      current.questions.push({ id, text: first, tail });
+      current.after = typeof phase.next === 'string' ? phase.next : null;
+      count++;
+    } else {
+      current = { name: first.replace(/[.:]\s*$/, ''), introId: id, newPartner: NEW_PARTNER_RE.test(phase.message), after: null, questions: [] };
+      tiers.push(current);
+    }
+  }
+  return count >= 2 ? tiers.filter((t) => t.questions.length > 0) : [];
+}
+
+/**
+ * Rewrite a talk-only activity's questions, tier by tier: existing steps
+ * keep their id and their who-goes-first line, a new question becomes a
+ * fresh announce step chained in place, a dropped one leaves the chain.
+ * Tiers stay in order; a tier never drops below one question.
+ * @param {object} copy - the config, mutated
+ * @param {Array<{questions: string[]}>} edit
+ * @returns {boolean} whether anything changed
+ */
+function applyTalkEdit(copy, edit) {
+  const tiers = talkStepsFor(copy);
+  if (!tiers.length || !Array.isArray(edit)) return false;
+  let changed = false;
+  tiers.forEach((tier, ti) => {
+    const want = Array.isArray(edit[ti] && edit[ti].questions)
+      ? edit[ti].questions.map((q) => clean(q)).filter(Boolean).slice(0, 12)
+      : null;
+    if (!want || want.length === 0) return;
+    const before = tier.questions.map((q) => q.text);
+    if (JSON.stringify(before) === JSON.stringify(want)) return;
+    changed = true;
+    const ids = [];
+    want.forEach((text, i) => {
+      const existing = tier.questions[i];
+      if (existing) {
+        const phase = copy.phases[existing.id];
+        phase.message = existing.tail ? text + '\n\n' + existing.tail : text;
+        ids.push(existing.id);
+      } else {
+        const base = (tier.introId || 'tier' + (ti + 1)).replace(/-intro$/, '') + '-q' + (i + 1);
+        let id = base;
+        let n = 1;
+        while (copy.phases[id]) id = base + '-' + (++n);
+        const model = copy.phases[tier.questions[tier.questions.length - 1].id] || {};
+        copy.phases[id] = { ...model, message: text + '\n\n' + TALK_TAIL };
+        delete copy.phases[id].next;
+        ids.push(id);
+      }
+    });
+    // Dropped questions leave the chain
+    tier.questions.slice(want.length).forEach((q) => { delete copy.phases[q.id]; });
+    // Relink: intro (or whoever pointed at the first question) -> ids -> after
+    const firstId = tier.questions[0].id;
+    for (const phase of Object.values(copy.phases)) {
+      if (phase && phase.next === firstId && phase.next !== ids[0]) phase.next = ids[0];
+    }
+    ids.forEach((id, i) => {
+      copy.phases[id].next = i + 1 < ids.length ? ids[i + 1] : tier.after;
+      if (copy.phases[id].next === undefined) delete copy.phases[id].next;
+    });
+  });
+  return changed;
 }
 
 /**
@@ -393,6 +486,11 @@ export function applyEdits(config, edits) {
         changed = true;
       }
     }
+  }
+
+  // A talk-only activity's questions, tier by tier (Closer, owner 2026-09-26)
+  if (Array.isArray(edits.talk)) {
+    if (applyTalkEdit(copy, edits.talk)) changed = true;
   }
 
   // New rounds (Vocab Match's "+ round"): each is a clone of the last

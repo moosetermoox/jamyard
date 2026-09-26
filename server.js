@@ -2637,6 +2637,13 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
         right: typeof p?.right === 'string' ? p.right.slice(0, 120) : ''
       })));
     }
+    // A talk-only activity's questions, tier by tier (Closer), capped
+    if (Array.isArray(body.talk)) {
+      edits.talk = body.talk.slice(0, 8).map((t) => ({
+        questions: (Array.isArray(t?.questions) ? t.questions : []).slice(0, 12)
+          .map((q) => (typeof q === 'string' ? q.slice(0, 300) : ''))
+      }));
+    }
     // The scales of rate steps (Class Critique), by step id, capped
     if (body.scales && typeof body.scales === 'object' && !Array.isArray(body.scales)) {
       edits.scales = {};
@@ -3518,6 +3525,25 @@ app.post('/api/games/bluff-facts', async (req, res) => {
 // A list of short phrases on a topic, written on the make page so the
 // teacher reads and changes them before class (Doodle Bluff's "the AI
 // writes the phrases": setup.writes in the recipe).
+// Matching pairs for a topic (the make page's pairs panel, owner 2026-09-26)
+app.post('/api/games/pair-list', async (req, res) => {
+  try {
+    const { topic, count, classDescription } = req.body || {};
+    if (!topic || typeof topic !== 'string' || topic.trim().length < 3) {
+      return res.status(400).json({ error: 'Give a topic of at least a few characters.' });
+    }
+    const result = await aiService.generatePairs({
+      topic,
+      count: Number.isInteger(count) ? count : parseInt(count, 10) || undefined,
+      classDescription: typeof classDescription === 'string' ? classDescription : ''
+    });
+    res.json(result);
+  } catch (error) {
+    console.log(`[api/games/pair-list] Error: ${error.message}`);
+    res.status(error.statusCode || 500).json({ error: error.message });
+  }
+});
+
 app.post('/api/games/phrase-list', async (req, res) => {
   try {
     const { topic, count, classDescription } = req.body || {};

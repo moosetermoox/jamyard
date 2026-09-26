@@ -895,3 +895,19 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
   cursor: pointer;
 }
 .make-error .error-action:hover { background: var(--t-yellow, #FFD600); }
+
+/* The talk questions, editable (owner 2026-09-26): a box per question, an x,
+   "+ question" per tier, and a chip saying who the tier pairs you with. */
+.talk-tier-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.talk-tier-head h3 { margin: 0; }
+.talk-partner { font-family: var(--t-display); font-weight: 800; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--t-ink); background: var(--t-yellow); padding: 3px 9px; }
+.talk-list { list-style: decimal; margin: 0; padding-left: 26px; display: flex; flex-direction: column; gap: 8px; }
+.talk-q { display: flex; align-items: center; gap: 8px; }
+.talk-input { flex: 1 1 auto; min-width: 0; padding: 9px 12px 7px; border: none; background: var(--t-sanded, #EAD9BA); background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0 1px, transparent 1px 6px); border-bottom: 3px dashed rgba(110,75,40,0.45); font: inherit; font-size: 15px; font-weight: 500; color: var(--t-ink); resize: none; }
+
+/* "Want the pairs written for you?" over a matching activity's rounds */
+.pair-writer { display: flex; flex-direction: column; gap: 8px; padding-bottom: 14px; margin-bottom: 4px; border-bottom: 2px dashed rgba(110, 75, 40, 0.2); }
+.pair-writer-label { font-weight: 700; }
+.pair-writer-line { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.pair-writer-topic { flex: 1 1 260px; min-width: 0; padding: 9px 12px 7px; border: none; background: var(--t-sanded, #EAD9BA); background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0 1px, transparent 1px 6px); border-bottom: 3px dashed rgba(110,75,40,0.45); font: inherit; font-size: 15px; font-weight: 500; color: var(--t-ink); resize: none; }
+.pair-writer-note { margin: 0; font-size: 13px; color: var(--t-muted); }

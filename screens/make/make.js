@@ -1069,28 +1069,88 @@
 
   // --- The questions of a talk-only activity (Closer), tier by tier,
   // inside one fold: read only, the steps stay the designer's.
+  // Editable since 2026-09-26 (owner): each question a box, an x that keeps
+  // at least one, "+ question" per tier, and a chip when the tier pairs
+  // everyone with someone new. Read back by talkValue() as tiers in order.
   function mountTalk(tiers) {
     if (!el.talkSection) return;
     el.talkHolder.textContent = '';
+    state.talkBoxes = [];
+    var steps = state.print && Array.isArray(state.print.talkSteps) ? state.print.talkSteps : [];
     if (!Array.isArray(tiers) || !tiers.length) { el.talkSection.hidden = true; return; }
     el.talkSection.hidden = false;
-    tiers.forEach(function (tier) {
+    tiers.forEach(function (tier, ti) {
       var block = document.createElement('div');
       block.className = 'talk-tier';
-      if (tier.name) {
-        var head = document.createElement('h3');
-        head.textContent = tier.name;
-        block.appendChild(head);
-      }
+      var head = document.createElement('div');
+      head.className = 'talk-tier-head';
+      var name = document.createElement('h3');
+      name.textContent = tier.name || ('Tier ' + (ti + 1));
+      head.appendChild(name);
+      var info = steps[ti];
+      var chip = document.createElement('span');
+      chip.className = 'talk-partner';
+      chip.textContent = info && info.newPartner ? 'with a new partner' : (ti === 0 ? 'with the person next to you' : 'same partner');
+      head.appendChild(chip);
+      block.appendChild(head);
       var list = document.createElement('ol');
-      (tier.questions || []).forEach(function (q) {
+      list.className = 'talk-list';
+      var boxes = [];
+      state.talkBoxes.push(boxes);
+      function addQuestion(text) {
         var item = document.createElement('li');
-        item.textContent = q;
+        item.className = 'talk-q';
+        var box = window.GrowingText ? GrowingText.create({ value: text, placeholder: 'A question for the pair', maxLength: 300 }) : document.createElement('textarea');
+        if (!window.GrowingText) { box.value = text; box.maxLength = 300; }
+        box.classList.add('talk-input');
+        box.setAttribute('aria-label', 'Question ' + (boxes.length + 1) + ' of ' + (tier.name || 'tier ' + (ti + 1)));
+        box.addEventListener('input', scheduleMap);
+        var x = document.createElement('button');
+        x.type = 'button';
+        x.className = 'pair-x';
+        x.textContent = '×';
+        x.setAttribute('aria-label', 'Drop this question');
+        var entry = { box: box };
+        x.addEventListener('click', function () {
+          if (boxes.length <= 1) return;
+          var i = boxes.indexOf(entry);
+          if (i !== -1) boxes.splice(i, 1);
+          item.remove();
+          scheduleMap();
+        });
+        item.appendChild(box);
+        item.appendChild(x);
         list.appendChild(item);
-      });
+        boxes.push(entry);
+        return box;
+      }
+      (tier.questions || []).forEach(function (q) { addQuestion(q); });
       block.appendChild(list);
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'pair-add';
+      add.textContent = '+ question';
+      add.addEventListener('click', function () {
+        var box = addQuestion('');
+        box.focus();
+        scheduleMap();
+      });
+      block.appendChild(add);
       el.talkHolder.appendChild(block);
     });
+  }
+
+  // The tiers as typed, or null when they match the template's
+  function talkValue() {
+    if (!state.talkBoxes || !state.talkBoxes.length || !state.print || !Array.isArray(state.print.talk)) return null;
+    var tiers = state.talkBoxes.map(function (boxes) {
+      return { questions: boxes.map(function (b) { return b.box.value.trim(); }).filter(Boolean) };
+    });
+    var same = tiers.every(function (t, i) {
+      var orig = state.print.talk[i] ? state.print.talk[i].questions : [];
+      return JSON.stringify(t.questions) === JSON.stringify(orig);
+    });
+    return same ? null : tiers;
   }
 
   // --- The pairs panel (2026-09-13): a matching activity's rounds, each
@@ -1103,6 +1163,7 @@
     el.pairsHolder.textContent = '';
     if (!Array.isArray(rounds) || !rounds.length) { el.pairsSection.hidden = true; return; }
     el.pairsSection.hidden = false;
+    el.pairsHolder.appendChild(pairsWriterRow());
     rounds.forEach(function (round) {
       var block = roundBlock(round.id, rounds.length > 1 ? round.label : 'Pairs', round.pairs, false);
       el.pairsHolder.appendChild(block);
@@ -1121,6 +1182,78 @@
       scheduleMap();
     });
     el.pairsHolder.appendChild(more);
+  }
+
+  // "Want the pairs written for you?" (owner 2026-09-26): a topic and a
+  // button; the AI fills every round's boxes, which stay the teacher's to
+  // change. Extra pairs become new rows; the count is what the rounds hold.
+  function pairsWriterRow() {
+    var row = document.createElement('div');
+    row.className = 'pair-writer';
+    var label = document.createElement('label');
+    label.className = 'pair-writer-label';
+    label.textContent = 'Want the pairs written for you? Give a topic:';
+    row.appendChild(label);
+    var line = document.createElement('div');
+    line.className = 'pair-writer-line';
+    var topic = window.GrowingText
+      ? GrowingText.create({ placeholder: 'e.g. photosynthesis vocabulary, French food words, the parts of a cell', maxLength: 200 })
+      : document.createElement('input');
+    topic.classList.add('pair-writer-topic');
+    topic.setAttribute('aria-label', 'Topic for the pairs');
+    line.appendChild(topic);
+    var go = document.createElement('button');
+    go.type = 'button';
+    go.className = 'pair-add pair-writer-go';
+    go.textContent = 'Write the pairs';
+    line.appendChild(go);
+    row.appendChild(line);
+    var note = document.createElement('p');
+    note.className = 'pair-writer-note';
+    note.textContent = 'Or type them in below. Whatever is written here can be changed.';
+    row.appendChild(note);
+    function say(text) { note.textContent = text; }
+    go.addEventListener('click', function () {
+      var t = topic.value.trim();
+      if (t.length < 3) { say('Give a topic first.'); topic.focus(); return; }
+      var ids = Object.keys(state.pairBoxes);
+      var total = ids.reduce(function (n, id) { return n + state.pairBoxes[id].length; }, 0) +
+        (state.newRoundBoxes || []).reduce(function (n, b) { return n + b.length; }, 0);
+      var count = Math.max(4, Math.min(40, total));
+      go.disabled = true;
+      go.textContent = 'Writing…';
+      say('Writing ' + count + ' pairs about ' + t + '…');
+      fetch('/api/games/pair-list', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: t, count: count, classDescription: window.TeacherProfile ? TeacherProfile.describe() : '' })
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+        .then(function (res) {
+          if (!res.ok || res.data.error || !Array.isArray(res.data.pairs)) throw new Error(res.data.error || 'no pairs came back');
+          var pairs = res.data.pairs.slice();
+          var groups = ids.map(function (id) { return state.pairBoxes[id]; }).concat(state.newRoundBoxes || []);
+          groups.forEach(function (boxes) {
+            boxes.forEach(function (b) {
+              var p = pairs.shift();
+              if (!p) return;
+              b.left.value = p.left;
+              b.right.value = p.right;
+            });
+          });
+          // anything left over goes onto the last round as new rows
+          var last = groups[groups.length - 1];
+          var lastList = el.pairsHolder.querySelector('.pair-round:last-of-type .pair-list');
+          while (pairs.length && last && lastList) {
+            var p2 = pairs.shift();
+            addPairRow(last, lastList, p2.left, p2.right);
+          }
+          say('Written. Check every pair, change or drop anything that looks wrong.');
+          scheduleMap();
+        })
+        .catch(function (err) { say('Could not write the pairs: ' + err.message); })
+        .then(function () { go.disabled = false; go.textContent = 'Write the pairs'; });
+    });
+    return row;
   }
 
   // A round of pairs: label, the rows, "+ pair"; a NEW round carries a
@@ -1407,6 +1540,8 @@
     if (scales) edits.scales = scales;
     var newRounds = newRoundsValue();
     if (newRounds.length) edits.newRounds = newRounds;
+    var talk = talkValue();
+    if (talk) edits.talk = talk;
     edits.anonymous = !!state.anonymous;
     edits.earlyJoke = !!state.earlyJoke;
     return edits;
