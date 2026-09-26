@@ -2631,6 +2631,20 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
         right: typeof p?.right === 'string' ? p.right.slice(0, 120) : ''
       })));
     }
+    // The scales of rate steps (Class Critique), by step id, capped
+    if (body.scales && typeof body.scales === 'object' && !Array.isArray(body.scales)) {
+      edits.scales = {};
+      for (const [id, list] of Object.entries(body.scales).slice(0, 8)) {
+        if (typeof id !== 'string' || !Array.isArray(list)) continue;
+        edits.scales[id.slice(0, 64)] = list.slice(0, 8).map((s) => ({
+          label: typeof s?.label === 'string' ? s.label.slice(0, 80) : '',
+          min: Number.isInteger(s?.min) ? s.min : 1,
+          max: Number.isInteger(s?.max) ? s.max : 5,
+          low: typeof s?.low === 'string' ? s.low.slice(0, 40) : '',
+          high: typeof s?.high === 'string' ? s.high.slice(0, 40) : ''
+        }));
+      }
+    }
     // New rounds ("+ round"), each a list of pairs, capped
     if (Array.isArray(body.newRounds)) {
       edits.newRounds = body.newRounds.slice(0, 8).map((r) => ({

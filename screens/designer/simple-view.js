@@ -462,6 +462,91 @@
   // per row (quiz correct answers). Marking stores the row's TEXT; editing
   // a marked row keeps the stored value in sync, removing it clears the
   // mark. Tapping the marked row's ✓ again unmarks (back to a poll).
+  // A rate step's scales: one row per scale (name, low to high, the two
+  // end labels, an x) and "+ Add a scale". Edits the config directly; a
+  // scale made here gets its id from its name (the validator wants ids
+  // unique and non-empty), a scale that came with the activity keeps its.
+  function scalesEditor(phase) {
+    var wrap = el('div', 'sv-list sv-scales');
+    var fresh = [];
+    function slug(label) {
+      return String(label || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'scale';
+    }
+    function uniqueId(base, arr, self) {
+      var id = base; var n = 2;
+      while (arr.some(function (o) { return o !== self && o.id === id; })) { id = base + '-' + n; n++; }
+      return id;
+    }
+    function field(type, className, value, placeholder, aria, onInput) {
+      var input = document.createElement('input');
+      input.type = type;
+      input.className = className;
+      input.value = value;
+      input.placeholder = placeholder;
+      input.setAttribute('aria-label', aria);
+      if (type === 'number') { input.min = '0'; input.max = '100'; input.step = '1'; }
+      input.addEventListener('input', function () { markEdited(); onInput(input.value); });
+      input.addEventListener('blur', function () { autoSaveIfDirty(); });
+      if (type === 'number') input.addEventListener('wheel', function () { input.blur(); }, { passive: true });
+      return input;
+    }
+    function render() {
+      wrap.innerHTML = '';
+      if (!Array.isArray(phase.scales)) phase.scales = [];
+      var arr = phase.scales;
+      arr.forEach(function (s, index) {
+        if (!s || typeof s !== 'object') { s = arr[index] = { id: uniqueId('scale', arr, null), label: '', min: 1, max: 5 }; }
+        var row = el('div', 'sv-list-row sv-scale-row');
+        var top = el('div', 'sv-scale-top');
+        top.appendChild(field('text', 'sv-list-input sv-scale-label', s.label || '', 'Scale ' + (index + 1) + ', e.g. Originality', 'The scale\'s name', function (v) {
+          s.label = v;
+          if (fresh.indexOf(s) !== -1) s.id = uniqueId(slug(v), arr, s);
+        }));
+        top.appendChild(field('number', 'sv-timer sv-scale-num', String(s.min == null ? 1 : s.min), '1', 'Low end of the range', function (v) {
+          var n = parseInt(v, 10); if (isFinite(n)) s.min = n;
+        }));
+        top.appendChild(el('span', 'sv-scale-to', 'to'));
+        top.appendChild(field('number', 'sv-timer sv-scale-num', String(s.max == null ? 5 : s.max), '5', 'High end of the range', function (v) {
+          var n = parseInt(v, 10); if (isFinite(n)) s.max = n;
+        }));
+        var rm = el('button', 'sv-list-remove', '✕');
+        rm.type = 'button';
+        rm.title = 'Remove this scale';
+        rm.addEventListener('click', function () {
+          markEdited();
+          arr.splice(index, 1);
+          render();
+        });
+        top.appendChild(rm);
+        row.appendChild(top);
+        var ends = el('div', 'sv-scale-ends');
+        if (!s.labels) s.labels = {};
+        ends.appendChild(field('text', 'sv-list-input sv-scale-end', s.labels.min || '', 'Low end, e.g. Familiar', 'Words at the low end', function (v) {
+          if (v.trim()) s.labels.min = v; else delete s.labels.min;
+        }));
+        ends.appendChild(field('text', 'sv-list-input sv-scale-end', s.labels.max || '', 'High end, e.g. Fresh', 'Words at the high end', function (v) {
+          if (v.trim()) s.labels.max = v; else delete s.labels.max;
+        }));
+        row.appendChild(ends);
+        wrap.appendChild(row);
+      });
+      var add = el('button', 'sv-list-add', '+ Add a scale');
+      add.type = 'button';
+      add.addEventListener('click', function () {
+        markEdited();
+        var s = { id: uniqueId('scale', arr, null), label: '', min: 1, max: 5 };
+        fresh.push(s);
+        arr.push(s);
+        render();
+        var last = wrap.querySelectorAll('.sv-scale-label');
+        if (last.length) last[last.length - 1].focus();
+      });
+      wrap.appendChild(add);
+    }
+    render();
+    return wrap;
+  }
+
   function stringListEditor(getArr, setArr, itemLabel, marker) {
     var wrap = el('div', 'sv-list');
     function render() {
@@ -1068,9 +1153,12 @@
         break;
 
       case 'rate':
-        d.sentence = 'Students rate on ' +
-          (Array.isArray(phase.scales) ? phase.scales.map(function (s) { return s.label; }).join(', ') : 'scales') + ':';
+        d.sentence = 'Students rate it on these scales:';
         d.field = textBox(phase.prompt, 'What they\'re rating…', function (v) { phase.prompt = v; });
+        // The scales themselves, typed in place (owner 2026-09-25: "it
+        // should be really easy to type what the scales are and how big
+        // they are without having to talk to the AI")
+        d.extra = scalesEditor(phase);
         d.facts.push(timerFact(phase));
         break;
 

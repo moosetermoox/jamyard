@@ -105,6 +105,8 @@ export function printFor(config) {
     // the recipe (a knob when the recipe offers one), not to this page.
     timerEditable: typeof phase.timer === 'number' && !config.recipe,
     audience,
+    // Every rate step's scales (Class Critique), for the page's scales panel
+    scales: scalesFor(config),
     // Every match step's pairs (Vocab Match), for the page's pairs panel
     pairs: pairsFor(config),
     // A talk-only activity's questions, tier by tier (Closer)
@@ -168,6 +170,49 @@ export function pairsFor(config) {
     out.push({ id, label: isPlainText(phase.name) ? clean(phase.name) : 'Round ' + n, pairs });
   }
   return out;
+}
+
+/**
+ * Every rate step's scales as plain rows (Class Critique), so the make
+ * page can show and edit them (owner, 2026-09-25: "you should be able to
+ * set how many different scales there are"). `low` and `high` are the end
+ * labels; a step whose labels carry {{tokens}} is left to the designer.
+ * @param {object} config
+ * @returns {Array<{id: string, label: string, scales: Array<{label: string, min: number, max: number, low: string, high: string}>}>}
+ */
+export function scalesFor(config) {
+  const phases = (config && config.phases) || {};
+  const out = [];
+  let n = 0;
+  for (const [id, phase] of Object.entries(phases)) {
+    if (!phase || phase.type !== 'rate' || !Array.isArray(phase.scales)) continue;
+    n++;
+    const scales = phase.scales
+      .filter((s) => s && typeof s === 'object' && isPlainText(String(s.label || '')))
+      .map((s) => ({
+        label: clean(s.label),
+        min: Number.isInteger(s.min) ? s.min : 1,
+        max: Number.isInteger(s.max) ? s.max : 5,
+        low: s.labels && isPlainText(String(s.labels.min || '')) ? clean(s.labels.min) : '',
+        high: s.labels && isPlainText(String(s.labels.max || '')) ? clean(s.labels.max) : ''
+      }));
+    if (scales.length !== phase.scales.length) continue;
+    out.push({ id, label: isPlainText(phase.prompt) ? clean(phase.prompt) : 'Scales ' + n, scales });
+  }
+  return out;
+}
+
+/**
+ * A scale's id from its label: lowercase words joined by dashes, unique
+ * among `taken` (the validator wants every id distinct and non-empty).
+ */
+export function scaleId(label, taken) {
+  let base = String(label || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'scale';
+  let id = base;
+  let n = 2;
+  while (taken && taken.has(id)) { id = base + '-' + n; n++; }
+  if (taken) taken.add(id);
+  return id;
 }
 
 /**
@@ -291,6 +336,45 @@ export function applyEdits(config, edits) {
       if (next.length === 0) continue;
       if (JSON.stringify(next) !== JSON.stringify(pairsFor({ phases: { [id]: phase } })[0]?.pairs || null)) {
         phase.pairs = next;
+        changed = true;
+      }
+    }
+  }
+
+  // The scales of any rate step, by step id (Class Critique): a label
+  // makes a scale, the range is min to max (2 to 11 points), the end
+  // labels are optional; a scale keeps its old id when its label is
+  // unchanged, and a step keeps its old scales when the edit would leave
+  // it with none
+  if (edits.scales && typeof edits.scales === 'object' && !Array.isArray(edits.scales)) {
+    for (const [id, list] of Object.entries(edits.scales)) {
+      const phase = copy.phases && copy.phases[id];
+      if (!phase || phase.type !== 'rate' || !Array.isArray(phase.scales) || !Array.isArray(list)) continue;
+      const taken = new Set();
+      const next = list
+        .filter((s) => s && typeof s.label === 'string' && clean(s.label) !== '')
+        .map((s) => {
+          const label = clean(s.label);
+          const min = Number.isInteger(s.min) ? s.min : 1;
+          let max = Number.isInteger(s.max) ? s.max : 5;
+          if (max <= min) max = min + 4;
+          if (max - min > 10) max = min + 10;
+          const prior = phase.scales.find((o) => o && typeof o.label === 'string' && o.label.trim().toLowerCase() === label.toLowerCase() && typeof o.id === 'string' && !taken.has(o.id));
+          const sid = prior ? prior.id : scaleId(label, taken);
+          if (prior) taken.add(sid);
+          const out = { id: sid, label, min, max };
+          const low = typeof s.low === 'string' ? clean(s.low) : '';
+          const high = typeof s.high === 'string' ? clean(s.high) : '';
+          if (low || high) {
+            out.labels = {};
+            if (low) out.labels.min = low;
+            if (high) out.labels.max = high;
+          }
+          return out;
+        });
+      if (next.length === 0) continue;
+      if (JSON.stringify(next) !== JSON.stringify(phase.scales)) {
+        phase.scales = next;
         changed = true;
       }
     }

@@ -56,6 +56,8 @@
     mapHolder: document.getElementById('map-holder'),
     pairsSection: document.getElementById('pairs-section'),
     pairsHolder: document.getElementById('pairs-holder'),
+    scalesSection: document.getElementById('scales-section'),
+    scalesHolder: document.getElementById('scales-holder'),
     talkSection: document.getElementById('talk-section'),
     talkHolder: document.getElementById('talk-holder')
   };
@@ -85,6 +87,7 @@
     promptBox: null,       // BoldBox wrapper, or null when the prompt is not editable
     fieldBoxes: {},        // key -> BoldBox wrapper
     pairBoxes: {},         // match step id -> [{ left: input, right: input }] (the pairs panel)
+    scaleBoxes: {},        // rate step id -> [{ label, min, max, low, high }] inputs (the scales panel)
     newRoundBoxes: [],     // "+ round": one array of { left, right } inputs per new round, in order
     timer: null,           // seconds, as edited
     questions: [],         // the AI's tailoring questions, once fetched
@@ -325,6 +328,8 @@
 
     // A matching activity's pairs, editable (a recipe panel owns its own)
     if (!state.panel) mountPairs(print.pairs);
+    // A rating activity's scales, editable (Class Critique)
+    if (!state.panel) mountScales(print.scales);
     // A talk-only activity's questions, tier by tier, folded
     mountTalk(print.talk);
 
@@ -849,6 +854,7 @@
       if (box) box.value = f.label;
     });
     if (Array.isArray(print.pairs) && print.pairs.length && !state.panel) mountPairs(print.pairs);
+    if (Array.isArray(print.scales) && print.scales.length && !state.panel) mountScales(print.scales);
     var hadWords = !!(state.example && state.example.prefill && (state.example.prefill.pairs || state.example.prefill.choices));
     drawChoices(print.choices, !!print.choicesEditable && !state.panel);
     state.example = null;
@@ -894,6 +900,9 @@
     if (!choicesChanged()) drawChoices(print.choices, !!state.print.choicesEditable && !state.panel);
     el.audience.hidden = !print.audience;
     if (print.audience) el.audience.textContent = print.audience;
+    // The scales the teacher left alone take the fitted ones; edited
+    // ones stay as typed
+    if (Array.isArray(print.scales) && print.scales.length && !state.panel && !scalesChanged()) mountScales(print.scales);
     // The pairs the teacher left alone take the fitted ones
     if (Array.isArray(print.pairs) && print.pairs.length && !state.panel) {
       var changedIds = changedPairRounds().map(function (r) { return r.id; });
@@ -1072,6 +1081,128 @@
   }
 
   // The pairs as typed, by step id (null when the panel is not up)
+  // --- The scales panel (2026-09-25): a rating activity's scales, one
+  // row each (name, min to max, the two end labels, an x), "+ scale".
+  // Read back into the edits by step id.
+  function mountScales(steps) {
+    if (!el.scalesSection) return;
+    state.scaleBoxes = {};
+    el.scalesHolder.textContent = '';
+    if (!Array.isArray(steps) || !steps.length) { el.scalesSection.hidden = true; return; }
+    el.scalesSection.hidden = false;
+    steps.forEach(function (step) {
+      var block = document.createElement('div');
+      block.className = 'pair-round';
+      block.setAttribute('data-step', step.id);
+      if (steps.length > 1) {
+        var head = document.createElement('div');
+        head.className = 'pair-round-head';
+        var label = document.createElement('span');
+        label.className = 'pair-round-label';
+        label.textContent = step.label;
+        head.appendChild(label);
+        block.appendChild(head);
+      }
+      var list = document.createElement('div');
+      list.className = 'pair-list';
+      block.appendChild(list);
+      var boxes = [];
+      state.scaleBoxes[step.id] = boxes;
+      step.scales.forEach(function (s) { addScaleRow(boxes, list, s); });
+      var add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'pair-add';
+      add.textContent = '+ scale';
+      add.title = 'One more scale to rate on';
+      add.addEventListener('click', function () {
+        var row = addScaleRow(boxes, list, { label: '', min: 1, max: 5, low: '', high: '' });
+        row.label.focus();
+        scheduleMap();
+      });
+      block.appendChild(add);
+      el.scalesHolder.appendChild(block);
+    });
+  }
+
+  function scaleInput(type, className, value, ariaLabel, placeholder, maxLength) {
+    var i = document.createElement('input');
+    i.type = type;
+    i.className = className;
+    i.value = value;
+    i.setAttribute('aria-label', ariaLabel);
+    if (placeholder) i.placeholder = placeholder;
+    if (maxLength) i.maxLength = maxLength;
+    if (type === 'number') { i.min = '0'; i.max = '100'; i.step = '1'; }
+    i.addEventListener('input', scheduleMap);
+    return i;
+  }
+
+  function addScaleRow(boxes, list, s) {
+    var row = document.createElement('div');
+    row.className = 'pair-row scale-row';
+    var label = scaleInput('text', 'pair-input scale-label', s.label || '', 'The scale\'s name', 'Scale name, e.g. Originality', 80);
+    var min = scaleInput('number', 'pair-input scale-num', String(s.min), 'Low end of the range');
+    var to = document.createElement('span');
+    to.className = 'pair-eq scale-to';
+    to.textContent = 'to';
+    var max = scaleInput('number', 'pair-input scale-num', String(s.max), 'High end of the range');
+    var low = scaleInput('text', 'pair-input scale-end', s.low || '', 'Words at the low end', 'Low end, e.g. Familiar', 40);
+    var high = scaleInput('text', 'pair-input scale-end', s.high || '', 'Words at the high end', 'High end, e.g. Fresh', 40);
+    var x = document.createElement('button');
+    x.type = 'button';
+    x.className = 'pair-x';
+    x.textContent = '×';
+    x.setAttribute('aria-label', 'Drop this scale');
+    var entry = { label: label, min: min, max: max, low: low, high: high };
+    x.addEventListener('click', function () {
+      var i = boxes.indexOf(entry);
+      if (i !== -1) boxes.splice(i, 1);
+      row.remove();
+      scheduleMap();
+    });
+    var top = document.createElement('div');
+    top.className = 'scale-top';
+    top.appendChild(label); top.appendChild(min); top.appendChild(to); top.appendChild(max); top.appendChild(x);
+    var ends = document.createElement('div');
+    ends.className = 'scale-ends';
+    ends.appendChild(low); ends.appendChild(high);
+    row.appendChild(top); row.appendChild(ends);
+    list.appendChild(row);
+    boxes.push(entry);
+    return entry;
+  }
+
+  function scalesValue() {
+    var ids = Object.keys(state.scaleBoxes);
+    if (!ids.length) return null;
+    var out = {};
+    ids.forEach(function (id) {
+      out[id] = state.scaleBoxes[id].map(function (b) {
+        return {
+          label: b.label.value.trim(),
+          min: parseInt(b.min.value, 10),
+          max: parseInt(b.max.value, 10),
+          low: b.low.value.trim(),
+          high: b.high.value.trim()
+        };
+      }).filter(function (s) { return s.label; }).map(function (s) {
+        if (!isFinite(s.min)) s.min = 1;
+        if (!isFinite(s.max)) s.max = 5;
+        return s;
+      });
+    });
+    return out;
+  }
+
+  // True when any rate step's scales differ from the print's
+  function scalesChanged() {
+    var now = scalesValue();
+    if (!now || !state.print || !Array.isArray(state.print.scales)) return false;
+    return state.print.scales.some(function (step) {
+      return JSON.stringify(now[step.id] || null) !== JSON.stringify(step.scales);
+    });
+  }
+
   function pairsValue() {
     var ids = Object.keys(state.pairBoxes);
     if (!ids.length) return null;
@@ -1123,6 +1254,8 @@
     if (state.exampleSwaps) edits.swaps = state.exampleSwaps;
     var pairs = pairsValue();
     if (pairs) edits.pairs = pairs;
+    var scales = scalesValue();
+    if (scales) edits.scales = scales;
     var newRounds = newRoundsValue();
     if (newRounds.length) edits.newRounds = newRounds;
     edits.anonymous = !!state.anonymous;
