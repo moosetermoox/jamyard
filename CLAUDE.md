@@ -37,7 +37,7 @@ Framework for quickly building classroom games where:
 - **License: AGPL-3.0-only** (2026-09-19, `LICENSE` + `README.md` License section; `package.json.license`). The code only: prompt banks carry their own per-prompt credits and no AGPL grant, the Jamyard name and look are the live site's, student work is never in the repo. The home footer links the repository ("source"). A new third-party text or asset gets a credit line in the README's License section, never a silent drop into the tree
 
 ## Current Snapshot
-- **2608 tests passing** (`npm test`, ~5s; one assertion fails on Windows checkouts only, CRLF) · **321 prompts** across 3 banks (`recipes/prompt-banks/`)
+- **2612 tests passing** (`npm test`, ~5s; one assertion fails on Windows checkouts only, CRLF) · **357 prompts** across 3 banks (the Closer bank carries two named sets for the make page library, 2026-09-26) (`recipes/prompt-banks/`)
 
 - **31 phase types**, **28 built-in recipes** (one retired), ~35 games in `games/` (**the yard's fifteen** since 2026-09-25, owner's swap: Exit Ticket, Live Poll, Class Critique, Draw Gallery, Snowball, Solo Quiz, Someone's Got You, Vocab Match, Both Sides of the Rope, One More Thing, Trivia Bluff, Doodle Bluff, Whose Eyes?, Closer, Group Work Day; Speed Quiz, Folded Pass ("not ready", owner), and Estimation Station are built but not in the yard, keeping their examples and pictograms) (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)

@@ -101,3 +101,29 @@ describe('Your class on the make page (owner 2026-09-26)', () => {
     expect(html).toContain('On their screens the meanings come shuffled');
   });
 });
+
+describe('the Closer question library (owner 2026-09-26)', () => {
+  it('the bank carries named sets, original and clean, beside its tiers', () => {
+    const bank = JSON.parse(read('recipes/prompt-banks/closer.json'));
+    expect(bank.sets.map(s => s.id)).toEqual(['would-you-rather', 'hypotheticals']);
+    for (const set of bank.sets) {
+      expect(set.questions.length).toBeGreaterThanOrEqual(15);
+      for (const q of set.questions) {
+        expect(q).toMatch(/\?$/);
+        expect(q).not.toContain('—');
+        expect(q.length).toBeLessThan(160);
+      }
+      expect(new Set(set.questions).size).toBe(set.questions.length);
+    }
+    expect(bank.tier1.length).toBeGreaterThanOrEqual(28);
+  });
+  it('the page offers the library per tier: the bank sets, then the Along decks with their credit', () => {
+    const make = read('screens/make/make.js');
+    expect(make).toContain("pick.textContent = 'Pick from the library';");
+    expect(make).toContain("get('closer'), get('along')");
+    expect(make).toContain("['fun-favorites', 'imagine-if', 'conversation-starters', 'belonging', 'gratitude']");
+    expect(make).toContain("credit: along.attribution ||");
+    expect(make).toContain("three.textContent = 'Use three from this set for the tier';");
+    expect(make).toContain("btn.title = (q.author ? 'By ' + q.author + '. ' : '')");
+  });
+});

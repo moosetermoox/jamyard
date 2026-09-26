@@ -1192,6 +1192,8 @@
       }
       (tier.questions || []).forEach(function (q) { addQuestion(q); });
       block.appendChild(list);
+      var tools = document.createElement('div');
+      tools.className = 'talk-tools';
       var add = document.createElement('button');
       add.type = 'button';
       add.className = 'pair-add';
@@ -1201,9 +1203,123 @@
         box.focus();
         scheduleMap();
       });
-      block.appendChild(add);
+      tools.appendChild(add);
+      // The library (owner 2026-09-26): prewritten questions in sets, tap
+      // one to add it, or take three from a set for the whole tier
+      var pick = document.createElement('button');
+      pick.type = 'button';
+      pick.className = 'pair-add';
+      pick.textContent = 'Pick from the library';
+      var library = null;
+      pick.addEventListener('click', function () {
+        if (library) { library.hidden = !library.hidden; return; }
+        library = document.createElement('div');
+        library.className = 'talk-library';
+        library.textContent = 'Loading the library…';
+        block.appendChild(library);
+        loadTalkLibrary().then(function (sets) {
+          renderTalkLibrary(library, sets, {
+            add: function (text) { addQuestion(text); scheduleMap(); },
+            replace: function (texts) {
+              boxes.splice(0, boxes.length);
+              list.textContent = '';
+              texts.forEach(function (t) { addQuestion(t); });
+              scheduleMap();
+            }
+          });
+        }).catch(function () { library.textContent = 'The library could not be loaded right now.'; });
+      });
+      tools.appendChild(pick);
+      block.appendChild(tools);
       el.talkHolder.appendChild(block);
     });
+  }
+
+  // The question sets: the Closer bank's own tiers and sets (original to
+  // Jamyard), then the Along decks that get a class talking (Gradient
+  // Learning / Chan Zuckerberg Initiative and partners, each question with
+  // its author, the credit kept as the bank asks). Fetched once.
+  var talkLibraryPromise = null;
+  function loadTalkLibrary() {
+    if (talkLibraryPromise) return talkLibraryPromise;
+    var get = function (id) {
+      return fetch('/api/prompt-banks/' + id).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+    };
+    talkLibraryPromise = Promise.all([get('closer'), get('along')]).then(function (banks) {
+      var closer = banks[0] || {};
+      var along = banks[1] || {};
+      var sets = [];
+      var tierNames = { tier1: 'Warm-up', tier2: 'Values and preferences', tier3: 'Reflective' };
+      Object.keys(tierNames).forEach(function (t) {
+        if (Array.isArray(closer[t]) && closer[t].length) sets.push({ id: t, label: tierNames[t], questions: closer[t].map(function (q) { return { text: q }; }) });
+      });
+      (closer.sets || []).forEach(function (s) {
+        if (Array.isArray(s.questions) && s.questions.length) sets.push({ id: s.id, label: s.label, blurb: s.blurb, questions: s.questions.map(function (q) { return { text: q }; }) });
+      });
+      var alongDecks = ['fun-favorites', 'imagine-if', 'conversation-starters', 'belonging', 'gratitude'];
+      alongDecks.forEach(function (id) {
+        var deck = (along.decks || []).find(function (d) { return d.id === id; });
+        if (!deck || !Array.isArray(deck.prompts) || !deck.prompts.length) return;
+        sets.push({
+          id: 'along-' + id, label: 'Along: ' + (deck.label || id), credit: along.attribution || 'From Along (Gradient Learning / Chan Zuckerberg Initiative and partners).',
+          questions: deck.prompts.filter(function (p) { return p && typeof p.text === 'string'; }).map(function (p) { return { text: p.text, author: p.author }; })
+        });
+      });
+      return sets;
+    });
+    return talkLibraryPromise;
+  }
+
+  function renderTalkLibrary(holder, sets, actions) {
+    holder.textContent = '';
+    if (!sets.length) { holder.textContent = 'No sets to show.'; return; }
+    var chips = document.createElement('div');
+    chips.className = 'talk-library-sets';
+    var body = document.createElement('div');
+    body.className = 'talk-library-body';
+    var current = null;
+    function show(set) {
+      current = set;
+      Array.from(chips.children).forEach(function (c) { c.classList.toggle('is-on', c.getAttribute('data-set') === set.id); });
+      body.textContent = '';
+      if (set.blurb) { var b = document.createElement('p'); b.className = 'talk-library-blurb'; b.textContent = set.blurb; body.appendChild(b); }
+      var list = document.createElement('div');
+      list.className = 'talk-library-list';
+      set.questions.forEach(function (q) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'talk-library-q';
+        btn.textContent = q.text;
+        btn.title = (q.author ? 'By ' + q.author + '. ' : '') + 'Tap to add it to this tier';
+        btn.addEventListener('click', function () { actions.add(q.text); btn.classList.add('is-added'); });
+        list.appendChild(btn);
+      });
+      body.appendChild(list);
+      var three = document.createElement('button');
+      three.type = 'button';
+      three.className = 'pair-add';
+      three.textContent = 'Use three from this set for the tier';
+      three.addEventListener('click', function () {
+        var pool = set.questions.slice();
+        var picked = [];
+        while (pool.length && picked.length < 3) picked.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0].text);
+        actions.replace(picked);
+      });
+      body.appendChild(three);
+      if (set.credit) { var c = document.createElement('p'); c.className = 'talk-library-credit'; c.textContent = set.credit; body.appendChild(c); }
+    }
+    sets.forEach(function (set) {
+      var chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'talk-library-set';
+      chip.setAttribute('data-set', set.id);
+      chip.textContent = set.label;
+      chip.addEventListener('click', function () { show(set); });
+      chips.appendChild(chip);
+    });
+    holder.appendChild(chips);
+    holder.appendChild(body);
+    show(sets[0]);
   }
 
   // The tiers as typed, or null when they match the template's

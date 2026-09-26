@@ -913,3 +913,19 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 .pair-writer-line { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .pair-writer-topic { flex: 1 1 260px; min-width: 0; padding: 9px 12px 7px; border: none; background: var(--t-sanded, #EAD9BA); background-image: repeating-linear-gradient(92deg, rgba(110,75,40,0.10) 0 1px, transparent 1px 6px); border-bottom: 3px dashed rgba(110,75,40,0.45); font: inherit; font-size: 15px; font-weight: 500; color: var(--t-ink); resize: none; }
 .pair-writer-note { margin: 0; font-size: 13px; color: var(--t-muted); }
+
+/* The question library under a tier (owner 2026-09-26): set chips, the
+   questions as tappable lines, a credit line for the Along sets. */
+.talk-tools { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; margin-top: 6px; }
+.talk-library { margin-top: 10px; padding: 12px 14px 14px; background: var(--t-gesso, #F2EEE5); box-shadow: inset 0 0 0 2px rgba(110, 75, 40, 0.18); }
+.talk-library[hidden] { display: none; }
+.talk-library-sets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.talk-library-set { border: none; cursor: pointer; padding: 5px 10px; font-family: var(--t-display); font-weight: 800; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; background: var(--t-paper); color: var(--t-ink); box-shadow: 0 2px 3px rgba(50, 35, 15, 0.18); }
+.talk-library-set.is-on { background: var(--t-yellow); }
+.talk-library-blurb { margin: 0 0 8px; font-size: 13px; color: var(--t-muted); }
+.talk-library-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow-y: auto; margin-bottom: 10px; }
+.talk-library-q { border: none; cursor: pointer; text-align: left; padding: 6px 10px; font: inherit; font-size: 14px; background: var(--t-paper); color: var(--t-ink); }
+.talk-library-q:hover { background: #FFF3B0; }
+.talk-library-q.is-added { opacity: 0.55; }
+.talk-library-q.is-added::after { content: " added"; font-weight: 700; }
+.talk-library-credit { margin: 10px 0 0; font-size: 12px; color: var(--t-muted); }
