@@ -16,6 +16,7 @@ import { normalizeConfig } from './engine/normalizer.js';
 import { PHASE_SCHEMAS, getFields, getTopLevelOnlyFieldNames } from './engine/phase-schemas.js';
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
 import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
+import { upgradeStaleCopy } from './engine/recipe-upgrade.js';
 import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submits.js';
 import { parseRequestedMinutes, timingReport, paramsForTrim, estimateDuration } from './engine/duration-estimate.js';
 import { audienceFor } from './engine/audience.js';
@@ -55,6 +56,11 @@ function repairSavedConfig(config) {
     if (!stamp || !stamp.id) return config;
     const recipe = getRecipe(stamp.id);
     if (!recipe) return config;
+    // A recipe that moved on for a reason that matters (Anonymous
+    // Feedback's teacher summary went to the class under version 1)
+    // replaces the copy's steps from its stamp (engine/recipe-upgrade.js)
+    const replaced = upgradeStaleCopy(config, recipe, compileRecipe);
+    if (replaced) console.log(`[repair] "${config.name}": steps rebuilt from recipe "${recipe.id}" version ${recipe.version} (was ${replaced})`);
     const { config: compiled } = compileRecipe(recipe, stamp.params || {});
     const fixed = restoreSubPhaseOrder(config, compiled);
     if (fixed.length) console.log(`[repair] "${config.name}": sub-phase order restored on ${fixed.join(', ')}`);
@@ -479,7 +485,11 @@ async function loadGameById(gameId) {
     return tempGames.get(gameId);
   }
   try {
-    return await loadGame(gameId, { builtInOnly: DB_ENABLED });
+    const config = await loadGame(gameId, { builtInOnly: DB_ENABLED });
+    // A user game read from games/user/ (no database, local dev and the
+    // proof scripts) gets the same repairs as a database row
+    if (config && config._source === 'user') repairSavedConfig(config);
+    return config;
   } catch (err) {
     if (!err.message.startsWith('Game not found')) throw err;
   }

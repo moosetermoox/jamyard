@@ -539,6 +539,26 @@ socket.on('response-received', function (data) {
 
 // The filter stopped a student's message: the teacher hears who, never
 // the words (a reviewer, 2026-09-26). Same list the late seats use.
+// An AI step says how many answers it read and how many it left out
+// (counts only, never the words): a trick answer that the AI ignored
+// used to vanish without a word (a reviewer, 2026-09-26).
+function aiNoteLine(data) {
+  var total = Number(data.total) || 0;
+  var left = Math.max(0, Math.min(total, Number(data.leftOut) || 0));
+  var used = total - left;
+  var verb = data.task === 'summarize' ? 'summed up' : 'read';
+  var line = 'The AI ' + verb + ' ' + used + ' of ' + total + ' ' + (total === 1 ? 'answer' : 'answers');
+  if (left === 0) return line + '.';
+  return line + ' and left ' + left + ' out: ' + (left === 1 ? 'it was' : 'they were') + ' not appropriate, or tried to give the AI instructions.';
+}
+socket.on('teacher-ai-note', function (data) {
+  if (!data || !lateSeats) return;
+  var li = document.createElement('li');
+  li.textContent = aiNoteLine(data);
+  lateSeats.appendChild(li);
+  lateSeats.hidden = false;
+});
+
 socket.on('teacher-blocked', function (data) {
   if (!data || !data.name || !lateSeats) return;
   var li = document.createElement('li');

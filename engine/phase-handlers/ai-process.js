@@ -56,6 +56,7 @@ registerHandler('ai-process', {
     // stricter system nudge.
     let result;
     let attempts = 0;
+    let lastCount = null;
     // JSON output gets one retry too: a fact step that came back as prose
     // put {{fact2.result.question}} on the projector (a reviewer, 2026-09-26)
     const maxAttempts = (phase.perPlayer || expectJson) ? 2 : 1;
@@ -70,8 +71,12 @@ registerHandler('ai-process', {
       contentLog(`[handlePhase] AI instruction: ${stricter}`);
       const aiResult = await ctx.aiService.process({
         instruction: stricter, responses,
-        rosterNames: engine.players.list().map(p => p.name)
+        rosterNames: engine.players.list().map(p => p.name),
+        // A prose step over answers counts what it left out; a JSON step
+        // cannot carry the trailing line
+        countSkipped: !expectJson && responses.length > 0
       });
+      lastCount = { total: responses.length, leftOut: Number(aiResult.leftOut) || 0 };
       console.log(`[handlePhase] AI returned ${String(aiResult.text || '').length} chars`);
       contentLog(`[handlePhase] AI returned: ${aiResult.text}`);
 
@@ -116,6 +121,16 @@ registerHandler('ai-process', {
     }
 
     const dataToStore = { result };
+
+    // The teacher hears how many answers went in and how many were left
+    // out (a trick answer vanished without a word, a reviewer 2026-09-26):
+    // counts only, on the console and in the report, never on the projector
+    if (lastCount && lastCount.total > 0 && !phase.perPlayer) {
+      dataToStore.summedUp = lastCount;
+      if (typeof ctx.emitToTeachers === 'function') {
+        ctx.emitToTeachers(EVENTS.TEACHER_AI_NOTE, { phaseId: phase.id, task: phase.task || 'process', total: lastCount.total, leftOut: lastCount.leftOut });
+      }
+    }
 
     if (phase.perPlayer) {
       const arr = Array.isArray(result) ? result : [];

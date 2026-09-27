@@ -304,16 +304,20 @@ const SECTION_BUILDERS = {
   },
 
   'ai-process'(phase, data, nameOf) {
+    // How many answers the step read and how many it left out (counts only)
+    const counted = data.summedUp && typeof data.summedUp === 'object' && Number(data.summedUp.total) > 0
+      ? [fact('Answers read', `${Number(data.summedUp.total) - (Number(data.summedUp.leftOut) || 0)} of ${Number(data.summedUp.total)}${Number(data.summedUp.leftOut) > 0 ? ` (${Number(data.summedUp.leftOut)} left out: not appropriate, or tried to give the AI instructions)` : ''}`)]
+      : [];
     if (data.byPlayer && typeof data.byPlayer === 'object') {
       const items = Object.entries(data.byPlayer)
         .map(([pid, value]) => ({ name: nameOf(pid) || null, text: cellText(value) }));
       return items.length > 0 ? [{ kind: 'entries', items }] : [];
     }
-    if (typeof data.result === 'string' && data.result.trim()) return [text(data.result)];
+    if (typeof data.result === 'string' && data.result.trim()) return [...counted, text(data.result)];
     if (data.result != null && typeof data.result === 'object') {
-      return [pre(JSON.stringify(data.result, null, 2))];
+      return [...counted, pre(JSON.stringify(data.result, null, 2))];
     }
-    return [];
+    return counted;
   },
 
   vote(phase, data, nameOf) {
