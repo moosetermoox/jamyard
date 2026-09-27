@@ -35,7 +35,7 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-09-27, late night: branch `review-thirteen`, PR open; #117 and #119 MERGED and live)
+### START HERE next session (updated 2026-09-27, late night: #121 `review-thirteen` MERGED, master deploys via CI; the local :3000 server runs it)
 
 **A thirteenth outside review, in one paragraph.** A live Draw Gallery run across all three screens. Fixed on `review-thirteen`: the gallery's invention lines after a changed prompt (topic-free now, and the intro says "after your teacher takes a look"), the projector's one-tap Approve & Show (asks first unless the list was opened on that screen), bare "Cannot GET" (a not-found page with Join a room and The yard; `/join` and `/play` go to the student page), the timer running on after everyone submitted ("Everyone is in" and Close pulses, still the teacher's press), "Continue" on the console after All done (hidden), "Class: Sam" on the report ("Students:"), no skip link, faint lobby names, small footer links. Left as designed: per-activity next labels, the Totem lobby layout, the demo pictures' small text; the Enter-reset join was not reproducible. Suite 2828, the Windows CRLF assertion the only failure.
 
