@@ -234,7 +234,7 @@ describe('the resolver', () => {
     expect(solo[0]).toEqual({ question: 'Which rock forms from cooled lava?', choices: ['Igneous', 'Sedimentary', 'Metamorphic', 'Fossil'], correct: 'Igneous' });
     expect(E.pick('speed-quiz', p, 0).prefill.params.questions).toEqual(solo);
     const bluff = E.pick('trivia-bluff', p, 0).prefill.params;
-    expect(bluff.questionSource).toBe('prepared');
+    expect(Object.keys(bluff)).toEqual(['questions']);
     expect(bluff.questions[0]).toEqual({ question: 'Rock that forms from cooled lava is called ___.', truth: 'igneous' });
     const doodle = E.pick('doodle-bluff', p, 0).prefill.params;
     expect(doodle).toEqual({ phraseSource: 'teacher', phrases: ['a volcano that forgot how to erupt', 'a wave afraid of the beach', 'a mountain wearing a raincoat'] });

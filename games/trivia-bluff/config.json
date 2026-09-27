@@ -5,26 +5,24 @@
   "featured": true,
   "recipe": {
     "id": "trivia-bluff",
-    "version": "1",
+    "version": "2",
     "params": {
-      "rounds": 3,
       "lieTimer": 45,
-      "questionSource": "prepared",
       "questions": [
         {
-          "question": "An octopus has ___ hearts.",
-          "truth": "three",
-          "houseLie": "five"
+          "question": "The Roman emperor Augustus prohibited serving legionaries from ___, a decree that stayed in force for two centuries.",
+          "truth": "marrying",
+          "houseLie": "owning land"
         },
         {
-          "question": "Honey found sealed in ancient Egyptian tombs was still ___ after thousands of years.",
-          "truth": "edible",
-          "houseLie": "fizzing"
+          "question": "Because of their size, the males of the African driver ant are called \"___\".",
+          "truth": "sausage flies",
+          "houseLie": "thunder beetles"
         },
         {
-          "question": "The Eiffel Tower gets about 15 centimeters ___ in summer, because its iron expands in the heat.",
-          "truth": "taller",
-          "houseLie": "wider"
+          "question": "In 1885 the German writer Heinrich Böhnke-Reich warned against using old ___ as coffee filters.",
+          "truth": "wallpaper",
+          "houseLie": "newspaper"
         }
       ]
     }
@@ -42,36 +40,36 @@
     },
     "qshow1": {
       "type": "announce",
-      "message": "Round 1 of 3\n\nAn octopus has ___ hearts.\n\nWrite your most believable lie!",
+      "message": "Round 1 of 3\n\nThe Roman emperor Augustus prohibited serving legionaries from ___, a decree that stayed in force for two centuries.\n\nWrite your most believable lie!",
       "timer": 8,
       "next": "qlies1"
     },
     "qlies1": {
       "type": "collect",
-      "prompt": "An octopus has ___ hearts.\n\nWrite a lie that could fool the class.",
+      "prompt": "The Roman emperor Augustus prohibited serving legionaries from ___, a decree that stayed in force for two centuries.\n\nWrite a lie that could fool the class.",
       "timer": 45,
       "next": "qvote1"
     },
     "qvote1": {
       "type": "collect-choice",
-      "prompt": "Which one is the TRUTH?\n\nAn octopus has ___ hearts.",
+      "prompt": "Which one is the TRUTH?\n\nThe Roman emperor Augustus prohibited serving legionaries from ___, a decree that stayed in force for two centuries.",
       "choicePool": [
         {
           "from": "qlies1.responses",
           "field": "text"
         },
         {
-          "literal": "three"
+          "literal": "marrying"
         },
         {
-          "literal": "five",
+          "literal": "owning land",
           "optional": true
         }
       ],
       "excludeAuthored": "qlies1",
       "shuffle": true,
       "poolLimit": 8,
-      "correctAnswer": "three",
+      "correctAnswer": "marrying",
       "pointsCorrect": 100,
       "speedBonus": false,
       "foolPoints": 50,
@@ -80,41 +78,41 @@
     },
     "qreveal1": {
       "type": "announce",
-      "message": "The truth was: three!\n\nWhat the class picked:\n{{qvote1.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
+      "message": "The truth was: marrying!\n\nWhat the class picked:\n{{qvote1.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
       "next": "qshow2"
     },
     "qshow2": {
       "type": "announce",
-      "message": "Round 2 of 3\n\nHoney found sealed in ancient Egyptian tombs was still ___ after thousands of years.\n\nWrite your most believable lie!",
+      "message": "Round 2 of 3\n\nBecause of their size, the males of the African driver ant are called \"___\".\n\nWrite your most believable lie!",
       "timer": 8,
       "next": "qlies2"
     },
     "qlies2": {
       "type": "collect",
-      "prompt": "Honey found sealed in ancient Egyptian tombs was still ___ after thousands of years.\n\nWrite a lie that could fool the class.",
+      "prompt": "Because of their size, the males of the African driver ant are called \"___\".\n\nWrite a lie that could fool the class.",
       "timer": 45,
       "next": "qvote2"
     },
     "qvote2": {
       "type": "collect-choice",
-      "prompt": "Which one is the TRUTH?\n\nHoney found sealed in ancient Egyptian tombs was still ___ after thousands of years.",
+      "prompt": "Which one is the TRUTH?\n\nBecause of their size, the males of the African driver ant are called \"___\".",
       "choicePool": [
         {
           "from": "qlies2.responses",
           "field": "text"
         },
         {
-          "literal": "edible"
+          "literal": "sausage flies"
         },
         {
-          "literal": "fizzing",
+          "literal": "thunder beetles",
           "optional": true
         }
       ],
       "excludeAuthored": "qlies2",
       "shuffle": true,
       "poolLimit": 8,
-      "correctAnswer": "edible",
+      "correctAnswer": "sausage flies",
       "pointsCorrect": 100,
       "speedBonus": false,
       "foolPoints": 50,
@@ -123,41 +121,41 @@
     },
     "qreveal2": {
       "type": "announce",
-      "message": "The truth was: edible!\n\nWhat the class picked:\n{{qvote2.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
+      "message": "The truth was: sausage flies!\n\nWhat the class picked:\n{{qvote2.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
       "next": "qshow3"
     },
     "qshow3": {
       "type": "announce",
-      "message": "Round 3 of 3\n\nThe Eiffel Tower gets about 15 centimeters ___ in summer, because its iron expands in the heat.\n\nWrite your most believable lie!",
+      "message": "Round 3 of 3\n\nIn 1885 the German writer Heinrich Böhnke-Reich warned against using old ___ as coffee filters.\n\nWrite your most believable lie!",
       "timer": 8,
       "next": "qlies3"
     },
     "qlies3": {
       "type": "collect",
-      "prompt": "The Eiffel Tower gets about 15 centimeters ___ in summer, because its iron expands in the heat.\n\nWrite a lie that could fool the class.",
+      "prompt": "In 1885 the German writer Heinrich Böhnke-Reich warned against using old ___ as coffee filters.\n\nWrite a lie that could fool the class.",
       "timer": 45,
       "next": "qvote3"
     },
     "qvote3": {
       "type": "collect-choice",
-      "prompt": "Which one is the TRUTH?\n\nThe Eiffel Tower gets about 15 centimeters ___ in summer, because its iron expands in the heat.",
+      "prompt": "Which one is the TRUTH?\n\nIn 1885 the German writer Heinrich Böhnke-Reich warned against using old ___ as coffee filters.",
       "choicePool": [
         {
           "from": "qlies3.responses",
           "field": "text"
         },
         {
-          "literal": "taller"
+          "literal": "wallpaper"
         },
         {
-          "literal": "wider",
+          "literal": "newspaper",
           "optional": true
         }
       ],
       "excludeAuthored": "qlies3",
       "shuffle": true,
       "poolLimit": 8,
-      "correctAnswer": "taller",
+      "correctAnswer": "wallpaper",
       "pointsCorrect": 100,
       "speedBonus": false,
       "foolPoints": 50,
@@ -166,7 +164,7 @@
     },
     "qreveal3": {
       "type": "announce",
-      "message": "The truth was: taller!\n\nWhat the class picked:\n{{qvote3.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
+      "message": "The truth was: wallpaper!\n\nWhat the class picked:\n{{qvote3.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
       "next": "scoreboard"
     },
     "scoreboard": {
@@ -181,7 +179,7 @@
     },
     "end": {
       "type": "end",
-      "message": "That's Trivia Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again for fresh facts."
+      "message": "That's Trivia Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again with fresh facts."
     }
   },
   "playTime": "~20 min",
@@ -196,34 +194,34 @@
   "recommendedFor": "Older students who can write convincingly. Customize it down to one round for a quick warm-up.",
   "sampleAnswers": {
     "qlies1": [
-      "two",
-      "four",
-      "one",
-      "six",
-      "seven",
-      "eight",
-      "nine",
-      "a dozen"
+      "drinking wine",
+      "owning land",
+      "growing beards",
+      "riding horses",
+      "writing letters",
+      "keeping dogs",
+      "going home",
+      "singing"
     ],
     "qlies2": [
-      "glowing",
-      "frozen",
-      "liquid",
-      "bitter",
-      "green",
-      "crystallised solid",
-      "sour",
-      "radioactive"
+      "thunder beetles",
+      "bread loaves",
+      "sky hogs",
+      "hot dog wasps",
+      "banana flies",
+      "brick bugs",
+      "cannon ants",
+      "log lifters"
     ],
     "qlies3": [
-      "shorter",
-      "heavier",
-      "shinier",
-      "darker",
-      "louder",
-      "warmer to touch",
-      "brighter",
-      "softer"
+      "newspaper",
+      "cotton rags",
+      "handkerchiefs",
+      "tablecloths",
+      "burlap sacks",
+      "sheet music",
+      "letters",
+      "lace curtains"
     ]
   }
 }

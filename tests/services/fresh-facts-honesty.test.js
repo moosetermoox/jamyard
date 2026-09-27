@@ -50,20 +50,12 @@ describe('quiz question writer', () => {
   });
 });
 
-describe('bluff fact writer', () => {
-  it('carries the rule and honors the refusal', async () => {
+describe('bluff facts', () => {
+  it('are never written from memory any more: the fact scout reads articles and quotes them (2026-09-27)', async () => {
     const service = new AIService({ mode: 'real' });
-    let prompt = '';
-    service._callClaude = async (params) => {
-      prompt = params.messages[0].content;
-      return reply({ needsTeacherFacts: true, reason: 'I cannot see this season\'s standings.' });
-    };
-    const result = await service.generateBluffFacts({ topic: 'this season\'s NBA standings', count: 3 });
-    expect(prompt).toContain(RULE_MARK);
-    expect(prompt).toContain('needsTeacherFacts');
-    expect(result.questions).toBeUndefined();
-    expect(result.needsTeacherFacts).toBe(true);
-    expect(result.error).toContain('standings');
+    expect(service.generateBluffFacts).toBeUndefined();
+    const { extractPrompt } = await import('../../engine/fact-scout.js');
+    expect(extractPrompt([{ title: 'x', text: 'y' }])).toContain('Never add a fact from memory');
   });
 });
 

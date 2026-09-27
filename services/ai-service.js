@@ -5,7 +5,6 @@ import { createAiBudget, AiBudgetError } from './ai-budget.js';
 import { scrubForAI } from '../engine/pii-scrub.js';
 import { LANGUAGES as LANGUAGE_NAMES } from '../engine/i18n/index.js';
 import { cleanQuizQuestions, QUIZ_LIMITS } from '../engine/quiz-questions.js';
-import { cleanBluffQuestions, BLUFF_LIMITS } from '../engine/bluff-questions.js';
 import { completeSteps, partialName } from '../engine/storyboard-partial.js';
 import { collectTexts, applyTexts, pathKey } from '../engine/activity-text.js';
 
@@ -427,7 +426,7 @@ INPUT SAFETY RULES (always apply):
 // thinking is on unless disabled, sampling params (temperature/top_p/top_k)
 // and assistant prefills 400, and its tokenizer spends ~30% more tokens on
 // the same text. _callClaude applies the per-model policy (SONNET_POLICY).
-const MODELS = {
+export const MODELS = {
   haiku: 'claude-haiku-4-5-20251001',
   sonnet: 'claude-sonnet-5'
 };
@@ -1940,87 +1939,6 @@ Return ONLY JSON, no other prose:
     } catch (error) {
       if (error && error.name === 'AiBudgetError') throw error;
       console.error('[AIService] generatePhraseList error:', error.message);
-      return { error: error.message };
-    }
-  }
-
-  // Library bluff Customize panel (Trivia Bluff prepared mode): teacher
-  // topic in, ready-to-review fill-in-the-blank facts out (trivia-bluff
-  // recipe `questions` param shape). Sonnet, because wrong facts on a
-  // projector are the failure mode; the teacher still reviews and can
-  // edit every fact before anything is built. No student data ever
-  // enters this call.
-  async generateBluffFacts({ topic, count, classDescription = '' } = {}) {
-    const cleanTopic = String(topic || '').trim().slice(0, 400);
-    const classDesc = String(classDescription || '').trim().slice(0, 160);
-    const n = Number.isInteger(count) && count >= 1 && count <= BLUFF_LIMITS.maxQuestions
-      ? count : 3;
-    if (this.mode === 'mock') {
-      const questions = [];
-      for (let i = 1; i <= n; i++) {
-        questions.push({
-          question: `Practice fact ${i} about ${cleanTopic || 'your topic'}: the surprising answer is ___ (mock mode, swap in real facts)`,
-          truth: 'the truth',
-          houseLie: 'a decoy'
-        });
-      }
-      return { questions };
-    }
-    try {
-      const classLine = classDesc
-        ? `Their class: ${classDesc}. Match the difficulty and vocabulary to them.\n`
-        : '';
-      const message = await this._callClaude({
-        model: MODELS.sonnet,
-        max_tokens: 2000,
-        messages: [{
-          role: 'user',
-          content: `A teacher wants fill-in-the-blank facts for a live classroom bluffing game (Fibbage-style: the fact is projected with a blank, students write believable lies to fill it, then everyone votes for the truth among the fakes).
-
-Topic: ${cleanTopic}
-${classLine}Write exactly ${n} facts.
-
-Rules:
-- Facts must be REAL and verifiable, only write what you are certain of. The teacher reviews and can edit every fact before anything is built.
-- ${FRESH_FACTS_RULE} ${NEEDS_TEACHER_FACTS_ESCAPE}
-- Each fact is one sentence with the blank shown as ___ (e.g. "The mayor of Rabbit Hash, Kentucky is a ___."). Keep it specific.
-- "truth" is the real word or short phrase that fills the blank. Pick facts where the truth is genuinely surprising, so student lies can compete with it.
-- The blank is a WORD or SHORT PHRASE (a thing, a creature, a job, a place, a food, the name of something), never a number, year, date, age, count, or measurement. Numbers make dull bluffs, and a sentence that mentions two dates has already handed over the answer ("performed the role for ___ years from 1955 until 1990" is arithmetic, not trivia). No clues in the sentence that let a student work out the answer, and nothing so famous that the room already knows it.
-- "houseLie" is one believable but wrong alternative of the same kind as the truth, to mix in with student lies. It must NOT equal the truth.
-- Vary the angle from fact to fact so no two feel alike.
-- Keep everything short enough to read off a projector in seconds.
-- No politics, no sensitive topics. Never include student names. Do not use emojis.
-
-Return ONLY JSON, no other prose:
-{"questions": [{"question": "... ___ ...", "truth": "...", "houseLie": "..."}]}`
-        }]
-      });
-      const text = extractText(message);
-      let parsed;
-      try {
-        parsed = JSON.parse(text);
-      } catch {
-        const match = text.match(/\{[\s\S]*\}/);
-        if (!match) throw new Error('AI response was not valid JSON');
-        parsed = JSON.parse(match[0]);
-      }
-      if (parsed && parsed.needsTeacherFacts === true) {
-        // The honest answer: recent or changing facts the model cannot know.
-        // Surfaced to the teacher as-is, with the flag so callers can tell
-        // it from a broken reply.
-        const reason = (typeof parsed.reason === 'string' && parsed.reason.trim())
-          ? parsed.reason.trim()
-          : 'The AI only knows facts up to when its training ended, so it cannot write about recent events. Paste the facts or write the questions yourself and it will build the rest.';
-        return { error: reason, needsTeacherFacts: true };
-      }
-      const questions = cleanBluffQuestions(parsed.questions, n);
-      if (questions.length === 0) {
-        return { error: 'The AI could not write usable facts for that topic. Try wording the topic differently.' };
-      }
-      return { questions };
-    } catch (error) {
-      if (error && error.name === 'AiBudgetError') throw error;
-      console.error('[AIService] generateBluffFacts error:', error.message);
       return { error: error.message };
     }
   }
