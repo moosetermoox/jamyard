@@ -199,6 +199,16 @@
         timer: 90
       };
     },
+    // Buzzer round (2026-09-27): the teacher asks out loud, the first to
+    // buzz answers, the teacher marks it on the console (Lightning Round's
+    // step). compileStoryboard adds the standings after it.
+    'buzz': function () {
+      return {
+        type: 'buzz',
+        prompt: 'Listen for the question, then buzz!',
+        points: 10
+      };
+    },
     // "Secret + clue" — collect two things at once, the first kept hidden
     // until a reveal (Emoji Movies shape: title + emoji clues).
     'collect-two': function () {
@@ -517,7 +527,8 @@
   var STORYBOARD_PRIMARY = {
     'announce': 'message', 'collect': 'prompt', 'collect-two': 'prompt',
     'collect-choice': 'prompt', 'estimate': 'prompt', 'reveal': 'template',
-    'reveal-one': 'message', 'rank': 'prompt', 'assign': 'message', 'end': 'message'
+    'reveal-one': 'message', 'rank': 'prompt', 'assign': 'message', 'end': 'message',
+    'buzz': 'prompt'
   };
 
   // ---- Quiz brick ----
@@ -748,6 +759,18 @@
     var open = { type: 'collect', prompt: withSide(bindTokens(first, null)), assign: 'pairwise', oddHandling: 'triple' };
     if (sides) open.sides = sides;
     if (timer) open.timer = timer;
+    // Partners by an earlier pick (2026-09-27, "pair each yes with a no",
+    // "fist to five, then pair low with high"): pairBy "opposite" prefers
+    // partners who answered the last pick-one step differently, "same"
+    // the same; best effort, nobody sits out over it (engine pairBy).
+    if (step && (step.pairBy === 'opposite' || step.pairBy === 'same')) {
+      var pickSrc = lastOfType(phases, ['collect-choice'], lastId);
+      if (pickSrc) {
+        open.pairBy = { from: pickSrc, mode: step.pairBy };
+      } else {
+        problems.push('Step ' + stepNo + ': pairing by answer needs a pick-one question step before the pairs step; partners were paired at random instead.');
+      }
+    }
     phases[lastId].next = openId;
     phases[openId] = open;
     lastId = openId;
@@ -1018,6 +1041,110 @@
     return phase;
   }
 
+  // ---- Jigsaw regroup (2026-09-27) ----
+  // A teams step with jigsaw: true regroups the LAST teams step so every
+  // new group holds one member of each earlier group (expert groups become
+  // home groups); the engine's team-split method "jigsaw" does the mixing.
+  function buildJigsaw(phases, lastId, stepNo, problems) {
+    var src = lastOfType(phases, ['team-split'], lastId);
+    if (!src) {
+      problems.push('Step ' + stepNo + ': a jigsaw regroup needs a teams step before it, so there are groups to mix.');
+      return null;
+    }
+    return { type: 'team-split', method: 'jigsaw', regroupFrom: src };
+  }
+
+  // ---- Review brick (2026-09-27) ----
+  // "Students send in questions, I pick which go up": the last question
+  // step's answers go to the teacher first (a preview gate: Hide beside
+  // any on the console, Try again asks everyone again), then the kept
+  // ones go on the projector one at a time, host-paced. text = the line
+  // over the shown answers.
+  function appendReview(step, stepNo, phases, lastId, problems) {
+    var src = lastOfType(phases, ['collect'], lastId);
+    if (!src) {
+      problems.push('Step ' + stepNo + ': the review step needs a question step before it, so there are answers to look over.');
+      return null;
+    }
+    var text = (step && typeof step.text === 'string' && step.text.trim())
+      ? step.text.trim()
+      : 'Here they come, one at a time.';
+    var gateId = freshId(phases, 'check');
+    var showId = freshId(phases, 'show-one');
+    phases[lastId].next = gateId;
+    phases[gateId] = {
+      type: 'preview',
+      template: 'Read the answers below and pick what goes up: press Hide beside any you want to keep off the projector on your Teacher view, then Approve. Try again asks everyone to answer again.',
+      approveNext: showId,
+      rejectNext: src
+    };
+    phases[showId] = { type: 'reveal-one', message: text, from: src + '.responses' };
+    return showId;
+  }
+
+  // ---- Bracket brick (2026-09-27) ----
+  // A single-elimination bracket over a list the teacher names (books,
+  // songs, inventions; 4 to 16) or, with no list, the last question step's
+  // answers: one head-to-head vote per round with bracket: true (the
+  // engine pairs consecutive candidates, an odd last one moves on alone,
+  // everyone votes on every matchup), a host-paced reveal of the round in
+  // words after each, and the last round's reveal names the champion.
+  var MIN_BRACKET_ITEMS = 3;
+  var MAX_BRACKET_ITEMS = 16;
+
+  function appendBracket(step, stepNo, phases, lastId, problems) {
+    var items = Array.isArray(step && step.items)
+      ? step.items.map(function (x) { return String(x == null ? '' : x).trim(); }).filter(Boolean).slice(0, MAX_BRACKET_ITEMS)
+      : [];
+    var src = null;
+    var count;
+    if (items.length >= MIN_BRACKET_ITEMS) {
+      count = items.length;
+    } else if (items.length > 0) {
+      problems.push('Step ' + stepNo + ': a bracket needs at least ' + MIN_BRACKET_ITEMS + ' items to pit against each other.');
+      return null;
+    } else {
+      src = lastOfType(phases, ['collect'], lastId);
+      if (!src) {
+        problems.push('Step ' + stepNo + ': a bracket needs an "items" list (4, 8, or 16 things to pit against each other) or a question step before it.');
+        return null;
+      }
+      count = MAX_BRACKET_ITEMS; // a class's answers: as many rounds as sixteen would need
+    }
+    var question = (step && typeof step.text === 'string' && step.text.trim())
+      ? step.text.trim() : 'Which one wins this matchup?';
+    var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
+      ? Math.round(step.timer) : null;
+    var rounds = Math.max(1, Math.ceil(Math.log(count) / Math.log(2)));
+    var prevId = null;
+    for (var r = 1; r <= rounds; r++) {
+      var roundId = freshId(phases, 'round-' + r);
+      var vote = { type: 'vote', mode: 'head-to-head', bracket: true, question: question };
+      if (r === 1) {
+        vote.candidates = src ? src + '.responses' : items;
+      } else {
+        vote.candidates = prevId + '.winners';
+      }
+      // Over the class's answers nobody votes on their own matchup
+      if (src) vote.excludeAuthors = true;
+      if (timer) vote.timer = timer;
+      phases[lastId].next = roundId;
+      phases[roundId] = vote;
+      lastId = roundId;
+      var showId = freshId(phases, r === rounds ? 'champion' : 'round-' + r + '-results');
+      phases[lastId].next = showId;
+      phases[showId] = {
+        type: 'reveal',
+        template: r === rounds
+          ? '{{' + roundId + '.bracketList}}\n\nThe winner of the bracket: **{{' + roundId + '.winnerText}}**'
+          : 'Round ' + r + ':\n\n{{' + roundId + '.bracketList}}'
+      };
+      lastId = showId;
+      prevId = roundId;
+    }
+    return lastId;
+  }
+
   function compileStoryboard(storyboard) {
     var problems = [];
     var steps = (storyboard && Array.isArray(storyboard.steps)) ? storyboard.steps : [];
@@ -1040,10 +1167,26 @@
       }
 
       if (brick === 'teams') {
-        id = freshId(phases, 'teams');
+        var split = step && step.jigsaw === true
+          ? buildJigsaw(phases, lastId, i + 1, problems)
+          : buildTeamSplit(step);
+        if (!split) return;
+        id = freshId(phases, step && step.jigsaw === true ? 'regroup' : 'teams');
         phases[lastId].next = id;
-        phases[id] = buildTeamSplit(step);
+        phases[id] = split;
         lastId = id;
+        return;
+      }
+
+      if (brick === 'review') {
+        var reviewLast = appendReview(step, i + 1, phases, lastId, problems);
+        if (reviewLast) lastId = reviewLast;
+        return;
+      }
+
+      if (brick === 'bracket') {
+        var bracketLast = appendBracket(step, i + 1, phases, lastId, problems);
+        if (bracketLast) lastId = bracketLast;
         return;
       }
 
@@ -1268,6 +1411,16 @@
         phases[lastId].next = crownId;
         phases[crownId] = { type: 'winner', from: id + '.scores' };
         lastId = crownId;
+      } else if (brick === 'buzz') {
+        // The buzzer's points are the payoff: the standings go up after
+        // the round, host-paced (Lightning Round's scoreboard).
+        if (typeof step.points === 'number' && step.points >= 1 && step.points <= 1000) {
+          built.points = Math.round(step.points);
+        }
+        var standingsId = freshId(phases, 'standings');
+        phases[lastId].next = standingsId;
+        phases[standingsId] = { type: 'leaderboard', from: id + '.scores', style: 'full' };
+        lastId = standingsId;
       }
 
       // The class order is the rank brick's payoff: a host-paced reveal
@@ -1343,7 +1496,8 @@
   var BASE_ID_FOR = {
     'collect': 'ask', 'collect-two': 'share', 'collect-choice': 'poll',
     'estimate': 'guess', 'announce': 'announce', 'reveal': 'show',
-    'reveal-one': 'show-one', 'vote': 'vote', 'rank': 'order', 'assign': 'hand-out', 'end': 'wrap'
+    'reveal-one': 'show-one', 'vote': 'vote', 'rank': 'order', 'assign': 'hand-out', 'end': 'wrap',
+    'buzz': 'buzzer'
   };
 
   // ---- Reorder: move a step one slot up/down the next-chain ----

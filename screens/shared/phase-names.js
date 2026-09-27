@@ -77,7 +77,7 @@ window.PHASE_BLURBS = {
   'wager': 'Students bet points on which option will be right.',
   'eliminate': 'Removes the lowest-scoring players from the running.',
   'ai-eliminate': 'AI checks each answer against your rule and eliminates rule-breakers.',
-  'team-split': 'Divides the class into teams: random, balanced, your picks, or student choice.',
+  'team-split': 'Divides the class into teams: random, balanced, your picks, student choice, or a jigsaw regroup of an earlier split.',
   'team-roles': 'Gives every group member a job (Facilitator, Recorder, ...), dealt or student-picked.',
   'merge': 'Pairs or small groups combine their answers into one shared answer.',
   'relay': 'Students take turns adding to one growing piece, one at a time.',

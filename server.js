@@ -115,6 +115,8 @@ import {
   tallyPickOne,
   tallyHeadToHead,
   tallyApprove,
+  tallyBracket,
+  rankedResultsList,
   resolveBranchTarget,
   isOwnCandidate
 } from './engine/phases/vote-handler.js';
@@ -161,7 +163,7 @@ import {
   clearFeaturedOverride
 } from './db.js';
 import { applyFeaturedOverrides } from './engine/featured-merge.js';
-import { validateSuggestions } from './engine/suggest-validate.js';
+import { validateSuggestions, STORYBOARD_BRICKS } from './engine/suggest-validate.js';
 import { createFeedbackStore } from './services/feedback-store.js';
 import { createRoomLog, summarizeRoomLog, isHostKey } from './services/room-log.js';
 import { createIdeaLog, summarizeIdeaLog, isIdeaId } from './services/idea-log.js';
@@ -1918,6 +1920,23 @@ async function tallyAndAdvance(code, room) {
       totalVotes: result.totalVotes
     });
     console.log(`[tally] Phase '${vs.phaseId}' tallied (approve): totalVotes=${result.totalVotes}, passed ${result.approvedCount} of ${result.results.length}`);
+  } else if (vs.bracket) {
+    // A bracket round (2026-09-27): every matchup's winner moves on as
+    // `<id>.winners` for the next round, the byes with them; the projector
+    // reads `<id>.bracketList`; one winner left = the champion.
+    result = tallyBracket(vs.votes, vs.candidates, vs.matchups, vs.byes, engine.language);
+    engine.storePhaseData(vs.phaseId, {
+      votes: vs.votes,
+      scores: result.scores,
+      winners: result.winners,
+      bracketList: result.bracketList,
+      resultsList: result.bracketList,
+      winner: result.winner,
+      winnerText: result.winnerText,
+      tied: false,
+      totalVotes: result.totalVotes
+    });
+    console.log(`[tally] Phase '${vs.phaseId}' tallied (bracket): totalVotes=${result.totalVotes}, ${result.winners.length} move on`);
   } else {
     if (vs.mode === 'pick-one') {
       result = tallyPickOne(vs.votes, vs.candidateIds);
@@ -1937,7 +1956,11 @@ async function tallyAndAdvance(code, room) {
       winner: result.winner,
       winnerText,
       tied: result.tied,
-      totalVotes: result.totalVotes
+      totalVotes: result.totalVotes,
+      // Every entry with its votes, most first (2026-09-27: "show the
+      // top five questions" read {{vote.resultsList}}, which only the
+      // yes-or-no mode filled, and the projector showed a blank card).
+      resultsList: rankedResultsList(result.scores, vs.candidates)
     });
   }
 
@@ -4046,8 +4069,14 @@ async function storyboardOutcome(body, onEvent) {
     // Honest refusal, not an error: the idea's core needs a mechanic no
     // brick provides, and a hollow lookalike would be worse than saying so.
     if (storyboard.cantBuild) {
-      const ideaId = await logIdea(body, { stage: 'storyboard', result: 'cant-build', reason: storyboard.reason || '' });
-      return { status: 200, json: { cantBuild: true, harm: storyboard.harm === true, reason: storyboard.reason || '', ideaId } };
+      // The part the bricks can do rides along when the model offered one
+      // (only known bricks, never after a refusal on purpose)
+      const partial = storyboard.partial && Array.isArray(storyboard.partial.steps) &&
+        storyboard.partial.steps.every(s => STORYBOARD_BRICKS.includes(s.brick))
+        ? storyboard.partial : null;
+      const partialSteps = partial ? partial.steps.map(s => s.brick) : [];
+      const ideaId = await logIdea(body, { stage: 'storyboard', result: 'cant-build', reason: storyboard.reason || '', steps: partialSteps });
+      return { status: 200, json: { cantBuild: true, harm: storyboard.harm === true, reason: storyboard.reason || '', partial, ideaId } };
     }
     // What was unique: the bricks the plan is made of.
     const steps = Array.isArray(storyboard.steps) ? storyboard.steps.map(s => s && s.brick).filter(Boolean) : [];
@@ -4258,10 +4287,13 @@ app.post('/api/games/from-description', async (req, res) => {
     if (!config) {
       const errors = diagnostics.filter(d => d.severity === 'error').map(d => d.message);
       console.log(`[api/games/from-description] AI params failed validation: ${errors.join('; ')}`);
+      // The teacher hears a plain sentence and the card leads with the
+      // plan (2026-09-27: "parameters did not validate" was on a
+      // reviewer's screen); the diagnostics ride along for the log.
       return res.json({
         noMatch: true,
-        reason: 'AI matched a recipe but its parameters did not validate.',
-        suggestion: 'Try the recipe picker, fill in the parameters manually.',
+        reason: `The closest recipe, ${recipe.name}, could not take what this idea needs, so the step-by-step plan is the way to build it.`,
+        suggestion: `Or pick ${recipe.name} from the recipes and fill it in by hand.`,
         diagnostics,
         ideaId: await logIdea(req.body, { stage, result: 'none', target: recipe.id, targetName: recipe.name, reason: 'Matched ' + recipe.name + ' but the parameters did not validate: ' + errors.join('; '), minutes: requestedMinutes })
       });

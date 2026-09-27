@@ -859,7 +859,34 @@ export function validate(config, gameId, options) {
     if (phase.type === 'team-split') {
       const hasCount = phase.teamCount != null;
       const hasSize = phase.groupSize != null;
-      if (!hasCount && !hasSize) {
+      // Jigsaw (2026-09-27): the sizes follow from the earlier split, so
+      // it takes "Regroup from" instead of a count or a size; and only a
+      // jigsaw regroups, a random split with a source would ignore it.
+      const jigsaw = phase.method === 'jigsaw';
+      if (jigsaw) {
+        const src = phase.regroupFrom != null ? config.phases[phase.regroupFrom] : null;
+        if (phase.regroupFrom == null || !src) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (team-split) is a jigsaw, so "Regroup from" must name an earlier Split into Teams step${phase.regroupFrom != null ? ` ("${phase.regroupFrom}" does not exist)` : ''}.`
+          );
+        } else if (src.type !== 'team-split' || phase.regroupFrom === name) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (team-split) regroups from "${phase.regroupFrom}", which must be an earlier Split into Teams step.`
+          );
+        }
+        if (hasCount || hasSize) {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" (team-split) is a jigsaw, so "Number of teams" and "Group size" are ignored: the earlier split decides the sizes.`
+          );
+        }
+      } else if (phase.regroupFrom != null) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (team-split) has "Regroup from" but its method is "${phase.method || 'random'}"; only a jigsaw regroups.`
+        );
+      }
+      if (jigsaw) {
+        // sizing comes from the source split
+      } else if (!hasCount && !hasSize) {
         errors.push(
           `Game "${gameId}": phase "${name}" (team-split) needs either "Number of teams" or "Group size".`
         );
@@ -1444,7 +1471,7 @@ export function validate(config, gameId, options) {
 
   // Typed-dataflow scan — for every dataRef field, check that the producer
   // phase's output type matches the consumer's `accepts` clause.
-  scanDataRefTypeMismatches(config, gameId, warnings);
+  scanDataRefTypeMismatches(config, gameId, warnings, errors);
 
   // Per-phase semantic warnings (not blockers, but signal probable design holes).
   scanForDesignHoles(config, gameId, warnings);
@@ -1846,7 +1873,7 @@ function scanForDesignHoles(config, gameId, warnings) {
 // is and check that it satisfies the consumer's `accepts` clause. Surfaces
 // silent type drift (e.g. wiring a `scoreMap` consumer to a phase whose
 // output is an `array`) as a warning.
-function scanDataRefTypeMismatches(config, gameId, warnings) {
+function scanDataRefTypeMismatches(config, gameId, warnings, errors) {
   for (const [name, phase] of Object.entries(config.phases)) {
     const fields = schemaGetFields(phase.type);
     for (const [fieldName, fieldDef] of Object.entries(fields)) {
@@ -1856,11 +1883,25 @@ function scanDataRefTypeMismatches(config, gameId, warnings) {
       if (typeof value !== 'string' || !value.includes('.')) continue;
       const parsed = parseRef(value);
       const compat = checkDataRefCompat(parsed, fieldDef.accepts, config.phases);
-      if (compat) {
-        warnings.push(
-          `Game "${gameId}": phase "${name}" field "${fieldName}":${compat.message}`
+      if (!compat) continue;
+      // A block of text wired into a slot that needs a list is an ERROR
+      // in plain words (2026-09-27: a design-chat change pointed a
+      // one-at-a-time reveal at a vote's results list, the warning read
+      // "produces string/renderable", the save went through, and six
+      // pretend students saw blank cards). Other mismatches stay
+      // warnings: an AI step's object feeding a vote works at run time.
+      const textIntoList = compat.gotType === 'string' && Array.isArray(errors) &&
+        compat.wantedTypes.length > 0 && compat.wantedTypes.every(t => t === 'array');
+      if (textIntoList) {
+        const stepLabel = PHASE_SCHEMAS[phase.type] && PHASE_SCHEMAS[phase.type].label || phase.type;
+        errors.push(
+          `Game "${gameId}": phase "${name}" (${stepLabel}) reads "${value}" in "${fieldDef.label || fieldName}", but that is one block of text, not a list of answers. Point it at a step's answers instead (a question step's .responses), or show the text with {{${value}}} in a Show content step's words.`
         );
+        continue;
       }
+      warnings.push(
+        `Game "${gameId}": phase "${name}" field "${fieldName}":${compat.message}`
+      );
     }
   }
 }

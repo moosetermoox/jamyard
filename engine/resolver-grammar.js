@@ -397,6 +397,10 @@ export function checkDataRefCompat(parsed, accepts, allPhases) {
     : outputDef.type;
   return {
     code: 'DATA_REF_TYPE_MISMATCH',
-    message: `${parsed.raw} produces ${got} but the field needs ${wanted}.`
+    message: `${parsed.raw} produces ${got} but the field needs ${wanted}.`,
+    // What came and what was wanted, for a caller that wants to say it
+    // in plain words (the text-into-a-list case is an error, 2026-09-27)
+    gotType: outputDef.type,
+    wantedTypes: accepts.map(a => a.type)
   };
 }

@@ -11,8 +11,13 @@
 export const STORYBOARD_BRICKS = [
   'announce', 'collect', 'collect-two', 'collect-choice', 'estimate',
   'reveal', 'reveal-one', 'vote', 'guessing-rounds', 'rank', 'quiz', 'teams',
-  'chain', 'deal', 'assign', 'pairs', 'roles', 'draw', 'summarize', 'end'
+  'chain', 'deal', 'assign', 'pairs', 'roles', 'draw', 'summarize', 'end',
+  // 2026-09-27 (a reviewer's fifteen routines): a buzzer round, the
+  // teacher picking what goes up, a single-elimination bracket
+  'buzz', 'review', 'bracket'
 ];
+
+const MAX_BRACKET_ITEMS = 16;
 
 const MAX_ROLES = 8;
 const MAX_TASKS = 12;
@@ -163,7 +168,7 @@ export function validateSuggestions(raw, ctx) {
             approve: s.approve === true ? true : undefined,
             // rank: a list to order (12 at most); collect: a list dealt one
             // per student in private (a state each, up to 60)
-            items: Array.isArray(s.items) ? s.items.slice(0, s.brick === 'collect' ? MAX_DEAL_ITEMS : MAX_RANK_ITEMS).map(String) : undefined,
+            items: Array.isArray(s.items) ? s.items.slice(0, s.brick === 'collect' ? MAX_DEAL_ITEMS : (s.brick === 'bracket' ? MAX_BRACKET_ITEMS : MAX_RANK_ITEMS)).map(String) : undefined,
             // rank: each group decides one order; assign: spots per item
             byGroup: s.byGroup === true ? true : undefined,
             perChoice: typeof s.perChoice === 'number' && Number.isFinite(s.perChoice) ? s.perChoice : undefined,
@@ -172,6 +177,12 @@ export function validateSuggestions(raw, ctx) {
             questions: cleanQuestions(s.questions),
             speedBonus: typeof s.speedBonus === 'boolean' ? s.speedBonus : undefined,
             teamCount: typeof s.teamCount === 'number' ? s.teamCount : undefined,
+            // teams: regroup the earlier split, one member of each per new group
+            jigsaw: s.jigsaw === true ? true : undefined,
+            // pairs: partners by an earlier pick-one answer
+            pairBy: s.pairBy === 'opposite' || s.pairBy === 'same' ? s.pairBy : undefined,
+            // buzz: points per correct answer
+            points: typeof s.points === 'number' && Number.isFinite(s.points) ? s.points : undefined,
             groupSize: typeof s.groupSize === 'number' ? s.groupSize : undefined,
             start: typeof s.start === 'string' ? s.start.slice(0, 500) : undefined,
             hops: cleanHops(s.hops),

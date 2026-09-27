@@ -93,3 +93,44 @@ export function autoFill(assigned, unassignedIds, teamNames, capacities) {
   }
   return result;
 }
+
+/**
+ * Jigsaw regroup (2026-09-27): from an earlier split's teams, make new
+ * groups so that every new group holds AT MOST ONE member of each old
+ * team. Expert groups become home groups: each home group has one expert
+ * from every topic, which is the whole point of a jigsaw.
+ *
+ * The number of new groups is the size of the largest old team (so every
+ * member of it lands somewhere different); each old team's members are
+ * dealt round robin across the new groups, starting at a different
+ * offset per old team so the group sizes stay even. Members are shuffled
+ * inside each old team first (shuffle = a function that returns a
+ * shuffled copy; identity in tests).
+ *
+ * @param {Record<string, Array<{playerId: string, name: string}>>} oldTeams
+ * @param {(arr: any[]) => any[]} [shuffle]
+ * @returns {{ teams: Record<string, Array<{playerId: string, name: string}>>, playerTeam: Record<string, string> }}
+ */
+export function jigsawGroups(oldTeams, shuffle) {
+  const mix = typeof shuffle === 'function' ? shuffle : (a) => a.slice();
+  const lists = Object.values(oldTeams || {}).filter(Array.isArray);
+  const largest = lists.reduce((m, t) => Math.max(m, t.length), 0);
+  const count = Math.max(1, largest);
+  const names = defaultTeamNames(count, true);
+  const teams = {};
+  const playerTeam = {};
+  for (const name of names) teams[name] = [];
+  let offset = 0;
+  for (const members of lists) {
+    const dealt = mix(members);
+    for (let i = 0; i < dealt.length; i++) {
+      const member = dealt[i];
+      if (!member || !member.playerId) continue;
+      const name = names[(offset + i) % count];
+      teams[name].push({ playerId: member.playerId, name: member.name });
+      playerTeam[member.playerId] = name;
+    }
+    offset = (offset + dealt.length) % count;
+  }
+  return { teams, playerTeam };
+}
