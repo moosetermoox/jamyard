@@ -10,7 +10,7 @@
     },
     "intro": {
       "type": "announce",
-      "message": "DRAW GALLERY!\n\nYou'll get one prompt and 90 seconds to draw it on your device. Every drawing goes up on the wall, so give it your best 90 seconds.",
+      "message": "DRAW GALLERY!\n\nYou'll get one prompt and 90 seconds to draw it on your device. After your teacher takes a look, every drawing goes up on the wall, so give it your best 90 seconds.",
       "next": "draw"
     },
     "draw": {
@@ -28,13 +28,13 @@
     },
     "gallery": {
       "type": "reveal-one",
-      "message": "The gallery is open! As each drawing lands, shout your guess: what does this invention DO? Then the artist gets the last word.",
+      "message": "The gallery is open! As each drawing lands, shout your guess: what is it? Then the artist gets the last word.",
       "from": "draw.responses",
       "next": "end"
     },
     "end": {
       "type": "end",
-      "message": "That's the Draw Gallery! Somebody in this room should patent something."
+      "message": "That's the Draw Gallery! Somebody in this room should hang that on a wall."
     }
   },
   "tags": [

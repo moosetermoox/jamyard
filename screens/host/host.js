@@ -249,8 +249,10 @@ socket.on('teacher-console-joined', ({ deviceCount }) => {
 });
 
 // Preview content stays off the projector until deliberately revealed.
+let previewLookedHere = false; // the private list was opened on this screen this step
 previewRevealBtn.addEventListener('click', () => {
   previewPrivate.hidden = !previewPrivate.hidden;
+  if (!previewPrivate.hidden) previewLookedHere = true;
   previewRevealBtn.textContent = previewPrivate.hidden
     ? 'Show on this screen'
     : 'Hide from this screen';
@@ -776,8 +778,19 @@ closeVotingBtn.addEventListener('click', () => {
   socket.emit('close-voting', { code: currentRoomCode });
 });
 
+// One stray tap on this button put every drawing on the wall unseen (a
+// reviewer, 2026-09-27, against the privacy page's promise). Unless the
+// list was opened on this screen this step, ask first and say where to look.
 previewApproveBtn.addEventListener('click', () => {
-  socket.emit('preview-approve', { code: currentRoomCode });
+  const send = () => socket.emit('preview-approve', { code: currentRoomCode });
+  if (previewLookedHere || !(window.Dialog && Dialog.confirm)) { send(); return; }
+  const count = previewResponsesList ? previewResponsesList.children.length : 0;
+  const thing = previewHasDrawings ? 'drawing' : 'answer';
+  Dialog.confirm({
+    title: 'Show them all to the class?',
+    message: (count ? count + ' ' + (count === 1 ? thing : thing + 's') : 'Everything') + ' goes on this screen for everyone, unseen. To look first, use your Teacher view or "Show on this screen".',
+    confirmLabel: 'Show them', cancelLabel: 'Look first'
+  }).then((yes) => { if (yes) send(); });
 });
 
 // Reject starts the step over for the WHOLE class: every answer gone, every
@@ -1199,6 +1212,7 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
   // and drops a size, so fewer lines stack before fit-screen has to shrink.
   promptDisplay.classList.toggle('prompt-long', String(prompt || '').length > 160);
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
+  markAllIn(count || 0, total || 0);
   submittedSoFar = count || 0;
   liveTallyOn = !!liveResults;
   // A pick-one step's options go up while the class picks (words only),
@@ -1237,15 +1251,26 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
   }
 });
 
+// When the last student is in, say so and point at Close (the timer used
+// to run on at "1 of 1 submitted" with nothing telling the teacher, a
+// reviewer 2026-09-27); still the teacher's call, a late joiner may land.
+function markAllIn(count, total) {
+  const allIn = total > 0 && count >= total;
+  if (allIn) submissionCount.textContent = 'Everyone is in (' + count + ' of ' + total + ')';
+  closeSubmissionsBtn.classList.toggle('is-all-in', allIn);
+}
+
 // The counter alone: a late joiner grew the total (no pile, no sound)
 socket.on('submission-count', ({ count, total }) => {
   submittedSoFar = count || 0;
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
+  markAllIn(count || 0, total || 0);
 });
 
 socket.on('response-received', ({ playerName, count, total }) => {
   submittedSoFar = count || 0;
   submissionCount.textContent = count + ' of ' + total + ' submitted';
+  markAllIn(count, total);
   renderSubmissionPile(count);
   if (J) J.sound('blip');
 });
@@ -1294,6 +1319,7 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show, refresh 
       ? 'The content is hidden from this (projected) screen. Review it on your Teacher view, or reveal it here.'
       : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use "Copy teacher link" in the corner and paste it in a private window, or reveal it here.';
     previewPrivate.hidden = true;
+    previewLookedHere = false;
     previewRevealBtn.textContent = 'Show on this screen';
     previewContent.textContent = content;
     applyTemplate(previewSection, hostTemplate);

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/shared/favicon.svg">
+  <title>Jamyard</title>
+  <link rel="stylesheet" href="/shared/design.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/shared/fonts/bricolage-grotesque-v9-latin-variable.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="/shared/fonts/dm-sans-v17-latin-variable.woff2">
+  <link rel="stylesheet" href="/shared/totem.css">
+  <style>
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--t-gesso, #F2EEE5); color: var(--t-ink, #2A2620); font-family: var(--t-body, 'DM Sans', Arial, sans-serif); }
+    .nf { max-width: 520px; padding: 32px 24px; text-align: center; }
+    .nf-brand { display: inline-flex; gap: 6px; align-items: flex-end; margin-bottom: 22px; text-decoration: none; }
+    .nf-brand span { display: inline-block; padding: 4px 11px 5px; font-family: var(--t-display, 'Bricolage Grotesque', Arial, sans-serif); font-weight: 800; font-size: 18px; letter-spacing: 0.06em; box-shadow: 0 2px 0 rgba(50, 35, 15, 0.22); }
+    .nf-jam { background: #E9D9B4; color: var(--t-ink, #2A2620); transform: rotate(-2deg); }
+    .nf-yard { background: var(--t-red, #E5482B); color: #fff; transform: rotate(1.5deg); }
+    h1 { font-family: var(--t-display, 'Bricolage Grotesque', Arial, sans-serif); font-weight: 800; font-size: 32px; line-height: 1.1; margin: 0 0 12px; }
+    p { font-size: 17px; line-height: 1.5; margin: 0 0 22px; }
+    .nf-doors { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .nf-doors a { display: inline-block; padding: 12px 22px; font-family: var(--t-display, 'Bricolage Grotesque', Arial, sans-serif); font-weight: 800; font-size: 15px; letter-spacing: 0.06em; text-transform: uppercase; text-decoration: none; color: var(--t-ink, #2A2620); background: #FFD21F; box-shadow: 0 3px 0 rgba(50, 35, 15, 0.25); }
+    .nf-doors a.red { background: var(--t-red, #E5482B); color: #fff; }
+    .nf-doors a:focus-visible { outline: 3px solid var(--t-ink, #2A2620); outline-offset: 3px; }
+  </style>
+</head>
+<body>
+  <main class="nf">
+    <a class="nf-brand" href="/" aria-label="Jamyard home"><span class="nf-jam">JAM</span><span class="nf-yard">YARD</span></a>
+    <h1>There is nothing at this address.</h1>
+    <p>Joining a class? The room code goes on the student page. Looking for an activity? The yard has them all.</p>
+    <div class="nf-doors">
+      <a class="red" href="/player">Join a room</a>
+      <a href="/#yard">The yard</a>
+    </div>
+  </main>
+</body>
+</html>
