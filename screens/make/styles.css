@@ -925,3 +925,8 @@ body.is-opening .designer-link, body.is-opening .side-btn { display: none; }
 .talk-library-set.is-on { background: var(--t-yellow); }
 .talk-library-credit { margin: 0; font-size: 12px; color: var(--t-muted); }
 .talk-library-credit[hidden] { display: none; }
+
+/* A long question shows smaller on the projector: the note appears under
+   the box past the length where the projector shrinks it (2026-09-27) */
+.long-note { font-size: 13px; font-weight: 500; color: var(--t-muted); margin: 6px 0 0; }
+.long-note[hidden] { display: none; }

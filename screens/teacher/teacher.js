@@ -143,6 +143,9 @@ var startActivityBtn = document.getElementById('start-activity-btn');
 var deviceNotice = document.getElementById('device-notice');
 var lateSeats = document.getElementById('late-seats');
 var projectorNotice = document.getElementById('projector-notice');
+var reopenProjectorBtn = document.getElementById('reopen-projector-btn');
+var reopenHostAddress = document.getElementById('reopen-host-address');
+var stepText = document.getElementById('step-text');
 
 var currentCode = null;
 var currentPin = null;
@@ -284,7 +287,29 @@ socket.on('teacher-join-error', function (data) {
 function renderProjectorNotice(hostConnected) {
   if (!projectorNotice) return;
   projectorNotice.hidden = hostConnected !== false;
+  if (reopenHostAddress) reopenHostAddress.textContent = window.location.host + '/host';
 }
+
+// "Open the projector again": a closed projector tab has nothing left to
+// reload, so this opens /host in a new tab with the room code in the query
+// and the PIN in the hash (never in server logs); the projector rebinds
+// with the PIN and the students' screens move on (a reviewer, 2026-09-27).
+if (reopenProjectorBtn) {
+  reopenProjectorBtn.addEventListener('click', function () {
+    if (!currentCode) return;
+    var url = '/host?room=' + encodeURIComponent(currentCode) + '#pin=' + encodeURIComponent(currentPin || '');
+    var w = window.open(url, '_blank');
+    if (!w) window.location.href = url;
+  });
+}
+
+// The server gave up on the room (no projector came back and no console
+// stayed): say so instead of a console that looks live over nothing
+socket.on('room-closed', function () {
+  if (consoleNote) consoleNote.textContent = 'This room has closed. Start the activity again from the yard to run it with the class.';
+  if (controlsBlock) controlsBlock.hidden = true;
+  if (projectorNotice) projectorNotice.hidden = true;
+});
 
 socket.on('teacher-joined', function (snap) {
   setupCard.hidden = !setupCardWanted();
@@ -366,6 +391,13 @@ function setPhase(data) {
   phaseLabel.textContent = PHASE_LABELS[phaseType] || (phaseType || 'Waiting…');
   phaseLabel.classList.toggle('phase-label-attention', phaseType === 'preview');
   countLabel.textContent = '';
+  // The words on the projector right now (the step's own text, resolved
+  // by the server), so a console on a phone knows which question is up
+  if (stepText) {
+    var words = typeof data.stepText === 'string' ? data.stepText.trim() : '';
+    stepText.textContent = words;
+    stepText.hidden = !words || phaseType === 'lobby' || phaseType === 'end';
+  }
 
   var isLobby = phaseType === 'lobby';
   lobbyBlock.hidden = !isLobby;
@@ -485,17 +517,121 @@ socket.on('teacher-phase', function (data) {
 
 // --- Lobby: live roster + start control ---
 
+// A row per student with Rename and Remove: a rude or unreadable name is
+// fixed from here, not hunted down with the mouse on the projector in
+// front of the class, and Rename keeps the student in the room where
+// Remove would lock them out (a reviewer, 2026-09-27). Rename stays
+// open across roster refreshes for the row being edited.
+var renamingId = null;
+var renamingFrom = null;
 function renderLobbyRoster() {
   var n = latestRoster.count || 0;
   lobbyCount.textContent = n === 1 ? '1 student joined' : n + ' students joined';
-  var names = (latestRoster.players || []).map(function (p) { return p.name; });
-  lobbyRoster.textContent = names.length ? names.join(' · ') : 'Waiting for students to join…';
+  var players = latestRoster.players || [];
+  lobbyRoster.innerHTML = '';
+  if (!players.length) {
+    var empty = document.createElement('li');
+    empty.className = 'roster-empty';
+    empty.textContent = 'Waiting for students to join…';
+    lobbyRoster.appendChild(empty);
+  }
+  players.forEach(function (p) { lobbyRoster.appendChild(rosterRow(p)); });
   startActivityBtn.disabled = n === 0;
 }
+
+function rosterRow(p) {
+  var li = document.createElement('li');
+  li.dataset.id = p.id;
+  var name = document.createElement('span');
+  name.className = 'roster-name';
+  name.textContent = p.name + (p.connected === false ? ' (offline)' : '');
+  li.appendChild(name);
+  if (renamingId === p.id) {
+    li.appendChild(renameForm(p));
+    return li;
+  }
+  var renameBtn = document.createElement('button');
+  renameBtn.type = 'button';
+  renameBtn.className = 'entry-btn';
+  renameBtn.textContent = 'Rename';
+  renameBtn.title = 'Give this student a different name on every screen';
+  renameBtn.addEventListener('click', function () {
+    renamingId = p.id;
+    renamingFrom = p.name;
+    renderLobbyRoster();
+    var box = lobbyRoster.querySelector('li[data-id="' + p.id + '"] input');
+    if (box) { box.focus(); box.select(); }
+  });
+  li.appendChild(renameBtn);
+  var removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.className = 'entry-btn entry-btn-danger';
+  removeBtn.textContent = 'Remove';
+  removeBtn.title = 'Remove this student from the room, they cannot rejoin this session';
+  removeBtn.addEventListener('click', function () {
+    var ask = window.Dialog && Dialog.confirm
+      ? Dialog.confirm({ title: 'Remove ' + p.name + '?', message: 'They cannot rejoin this session. To fix a name instead, use Rename.', confirmLabel: 'Remove', cancelLabel: 'Keep them' })
+      : Promise.resolve(true);
+    ask.then(function (yes) {
+      if (yes) socket.emit('moderate-kick', { code: currentCode, playerId: p.id });
+    });
+  });
+  li.appendChild(removeBtn);
+  return li;
+}
+
+function renameForm(p) {
+  var form = document.createElement('form');
+  form.className = 'roster-rename-form';
+  var box = document.createElement('input');
+  box.type = 'text';
+  box.maxLength = 20;
+  box.value = p.name;
+  box.setAttribute('aria-label', 'New name for ' + p.name);
+  form.appendChild(box);
+  var save = document.createElement('button');
+  save.type = 'submit';
+  save.className = 'entry-btn';
+  save.textContent = 'Save';
+  form.appendChild(save);
+  var cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'entry-btn';
+  cancel.textContent = 'Cancel';
+  cancel.addEventListener('click', function () { renamingId = null; renderLobbyRoster(); });
+  form.appendChild(cancel);
+  var err = document.createElement('span');
+  err.className = 'roster-error';
+  err.hidden = true;
+  form.appendChild(err);
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var wanted = box.value.trim();
+    if (wanted.length < 2) { err.textContent = 'A name needs at least two letters.'; err.hidden = false; return; }
+    if (wanted === p.name) { renamingId = null; renderLobbyRoster(); return; }
+    err.hidden = true;
+    socket.emit('moderate-rename', { code: currentCode, playerId: p.id, name: wanted });
+  });
+  return form;
+}
+
+// The server refused the new name (the filter, a duplicate): the row
+// keeps the box open and says why
+socket.on('teacher-rename-error', function (data) {
+  if (!data || !data.playerId) return;
+  var row = lobbyRoster.querySelector('li[data-id="' + data.playerId + '"] .roster-error');
+  if (row) { row.textContent = data.message || 'That name did not work.'; row.hidden = false; }
+});
 
 socket.on('teacher-roster', function (data) {
   latestRoster = { count: (data && data.count) || 0, players: (data && data.players) || [] };
   renderProjectorNotice(data && data.hostConnected);
+  // A rename that landed (the name changed) or a student who left closes
+  // the open rename box
+  if (renamingId) {
+    var still = latestRoster.players.filter(function (p) { return p.id === renamingId; })[0];
+    if (!still || still.name !== renamingFrom) renamingId = null;
+  }
   if (currentPhaseType === 'lobby') renderLobbyRoster();
 });
 

@@ -504,30 +504,70 @@ socket.emit('get-games');
 // the projector tab sat behind the teacher console, its socket blipped,
 // and the old ?game= guard skipped the rejoin, so every student who joined
 // afterwards showed on the console and never on the projector.
+// The last room this BROWSER hosted (localStorage, six hours): a closed
+// projector tab has no sessionStorage left, so a fresh /host on the same
+// computer finds the room here and picks it back up (a reviewer closed
+// the projector mid-Closer and /host only offered a new room, 2026-09-27).
+const HOST_MEMORY_KEY = 'jamyard.hostRoom';
+// Try it out's projector frame never leaves a room for the real /host to find
+const IS_PROTOTYPE_HOST = new URLSearchParams(window.location.search).get('prototype') === 'true';
+function rememberHostRoom(code, hostToken) {
+  try { localStorage.setItem(HOST_MEMORY_KEY, JSON.stringify({ code, hostToken, at: Date.now() })); } catch (e) { /* storage unavailable */ }
+}
+function forgetHostRoom() {
+  try { localStorage.removeItem(HOST_MEMORY_KEY); } catch (e) { /* ignore */ }
+}
+function rememberedHostRoom() {
+  try { return JSON.parse(localStorage.getItem(HOST_MEMORY_KEY) || 'null'); } catch (e) { return null; }
+}
+
 socket.on('connect', () => {
   let saved = null;
   try { saved = JSON.parse(sessionStorage.getItem('lanyardHostSession') || 'null'); } catch (e) { /* storage unavailable */ }
   const action = HostSession.connectAction({
     search: window.location.search,
+    hash: window.location.hash,
     live: currentRoomCode && currentHostToken ? { code: currentRoomCode, hostToken: currentHostToken } : null,
-    saved
+    saved,
+    remembered: rememberedHostRoom()
   });
   if (action.kind === 'rejoin') {
     socket.emit('host-rejoin', { code: action.code, hostToken: action.hostToken });
+  } else if (action.kind === 'rejoin-pin') {
+    // The console's "Open the projector again": the room code in the
+    // query, the PIN in the hash (never in server logs); the address is
+    // tidied once the room answers (room-created)
+    socket.emit('host-rejoin', { code: action.code, pin: action.pin });
   } else if (action.kind === 'forget') {
     // "Host a Game" from home appends ?new=1 to mean "start fresh": forget any
     // stale host session left in this tab from a prior game and show the picker.
     // We strip the param so a later F5 on this new game still recovers normally.
     try { sessionStorage.removeItem('lanyardHostSession'); } catch (e) { /* ignore */ }
+    forgetHostRoom();
     history.replaceState(null, '', '/host');
   }
   // 'fresh' (?game= / prototype page load) and 'none' fall through to the
   // picker; the games-list handler auto-creates the ?game= room.
 });
 
-socket.on('host-rejoin-error', () => {
+socket.on('host-rejoin-error', ({ message, replaced } = {}) => {
   // Room is genuinely gone — forget it and stay on the normal create screen.
+  // (replaced: another projector took this room over; the memory goes too,
+  // so this tab does not steal it back on its next reconnect.)
   try { sessionStorage.removeItem('lanyardHostSession'); } catch (e) { /* ignore */ }
+  forgetHostRoom();
+  if (replaced) {
+    currentHostToken = null;
+    currentRoomCode = null;
+  }
+  const note = document.getElementById('game-missing-note');
+  if (note && message && (replaced || /PIN/.test(message))) {
+    note.textContent = message + (replaced ? '' : ' Pick an activity below to start a new room.');
+    note.hidden = false;
+  }
+  if (window.location.search.indexOf('room=') !== -1) {
+    try { history.replaceState(null, '', '/host'); } catch (e) { /* ignore */ }
+  }
 });
 
 socket.on('games-list', ({ games }) => {
@@ -864,6 +904,7 @@ playAgainBtn.addEventListener('click', () => {
   // ?game= launch had its address tidied to /host once the room existed,
   // so go back to the launch address: the same activity, a new room.
   try { sessionStorage.removeItem('lanyardHostSession'); } catch (e) { /* ignore */ }
+  forgetHostRoom();
   if (LAUNCH_URL !== location.href) location.href = LAUNCH_URL;
   else location.reload();
 });
@@ -990,6 +1031,8 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
     try {
       sessionStorage.setItem('lanyardHostSession', JSON.stringify({ code, hostToken }));
     } catch (e) { /* storage unavailable */ }
+    // And for this browser: a closed tab can be reopened at /host
+    if (!IS_PROTOTYPE_HOST) rememberHostRoom(code, hostToken);
   }
   // A ?game= launch drops the param now that the room exists: an F5, or the
   // browser discarding this tab while the teacher console sat in front of
@@ -3091,10 +3134,18 @@ function renderPlayerList(players) {
     kickBtn.title = 'Remove ' + player.name;
     kickBtn.textContent = '✕';
     kickBtn.addEventListener('click', () => {
-      if (window.confirm('Remove ' + player.name + '? They cannot rejoin this session.')) {
-        socket.emit('moderate-kick', { code: currentRoomCode, playerId: player.id });
-      }
+      // The site's own yes-or-no box, never the browser's (standing rule
+      // 2026-09-26; the console can rename instead of removing)
+      const ask = window.Dialog && Dialog.confirm
+        ? Dialog.confirm({ title: 'Remove ' + player.name + '?', message: 'They cannot rejoin this session. To fix a name instead, use Rename on the teacher console.', confirmLabel: 'Remove', cancelLabel: 'Keep them' })
+        : Promise.resolve(true);
+      ask.then((yes) => {
+        if (yes) socket.emit('moderate-kick', { code: currentRoomCode, playerId: player.id });
+      });
     });
+
+    // A long name wraps at a smaller size instead of ending in "..."
+    if (String(player.name || '').length > 11) li.classList.add('long-name');
 
     li.appendChild(nameSpan);
     li.appendChild(kickBtn);

@@ -2520,7 +2520,10 @@ ${responseList}`;
           // A refusal on purpose (the idea would hurt students), not a gap
           harm: parsed.harm === true,
           reason: typeof parsed.reason === 'string' ? parsed.reason : 'No recipe fits this idea.',
-          suggestion: typeof parsed.suggestion === 'string' ? parsed.suggestion : ''
+          suggestion: typeof parsed.suggestion === 'string' ? parsed.suggestion : '',
+          // The idea lives off the screens (a race around the room): the
+          // card leads with the close matches and skips the plan
+          offScreen: parsed.offScreen === true
         };
       }
 
@@ -2705,8 +2708,10 @@ ${gameOption}1. If ONE of the recipes above is a good fit:
    {
      "noMatch": true,
      "reason": "One sentence explaining why no recipe fits.",
-     "suggestion": "One sentence suggesting a recipe that's CLOSE, name the recipe and what they'd give up."
+     "suggestion": "One sentence suggesting a recipe that's CLOSE, name the recipe and what they'd give up.",
+     "offScreen": false
    }
+   Set "offScreen": true when the heart of the idea happens away from the screens and no typing, tapping, or drawing step could carry it: students moving around the room, racing, building or 3D-printing something, using hardware, props, or the outdoors. Every activity here is students on Chromebooks answering a projector. Then "reason" says so in one plain sentence and "suggestion" names the closest recipe for the part that CAN happen on screens (a prediction, a vote, a debrief). Leave it false when the idea only needs a step the recipes lack (the step-by-step builder may have it).
    An idea that would single out, rank, shame, or hurt students (voting on who is the most annoying, least liked, worst at something) is refused, not matched: return the noMatch shape with "harm": true, a reason that says plainly that the activity would hurt someone, and a suggestion that keeps the fun without a target (an anonymous vote on ideas, not people).
 3. ${MATCH_FRESH_FACTS}`;
 

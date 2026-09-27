@@ -1096,6 +1096,19 @@ socket.on('kicked', ({ message } = {}) => {
   showError(message || 'You have been removed from this session.');
 });
 
+// The teacher gave this student a new name from the console (a rude or
+// unreadable one, 2026-09-27). The seat stays; the name on this screen
+// and the remembered seat follow it, and a line says so.
+socket.on('renamed', ({ name, message } = {}) => {
+  if (!name) return;
+  currentPlayerName = name;
+  playerNameDisplay.textContent = name;
+  if (!IS_PROTOTYPE) {
+    try { sessionStorage.setItem('playerRoom', JSON.stringify({ code: currentRoomCode, name: name })); } catch (e) { /* storage unavailable */ }
+  }
+  if (message) showError(message);
+});
+
 // This student joined again from another tab (duplicated tab shares the
 // token): the seat moved there, this tab bows out. Null the room state so
 // the auto-rejoin on reconnect can't steal the seat back, but KEEP the

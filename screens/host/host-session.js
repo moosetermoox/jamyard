@@ -20,12 +20,26 @@
     return new URLSearchParams(search || '');
   }
 
-  // opts.search  — window.location.search
-  // opts.live    — {code, hostToken} the tab is hosting right now (a
-  //                reconnect), or null on a fresh page load
-  // opts.saved   — {code, hostToken} from sessionStorage, or null
-  // Returns {kind: 'rejoin', code, hostToken} | {kind: 'forget'} |
-  //         {kind: 'fresh'} | {kind: 'none'}
+  // How long a room remembered in localStorage is worth trying: the
+  // server's own snapshot lifetime (six hours). Older is a new day.
+  var REMEMBER_MS = 6 * 60 * 60 * 1000;
+
+  // opts.search     — window.location.search
+  // opts.hash       — window.location.hash (a PIN rides here, never in
+  //                   the query, so it never reaches server logs)
+  // opts.live       — {code, hostToken} the tab is hosting right now (a
+  //                   reconnect), or null on a fresh page load
+  // opts.saved      — {code, hostToken} from sessionStorage, or null
+  // opts.remembered — {code, hostToken, at} from localStorage (the last
+  //                   room this BROWSER hosted), or null. A closed
+  //                   projector tab has no sessionStorage left, so a
+  //                   fresh /host on the same computer finds the room
+  //                   here (a reviewer, 2026-09-27).
+  // opts.now        — the clock, for the remembered room's age
+  // Returns {kind: 'rejoin', code, hostToken} |
+  //         {kind: 'rejoin-pin', code, pin} (the console's "Open the
+  //         projector again": /host?room=CODE#pin=PIN) |
+  //         {kind: 'forget'} | {kind: 'fresh'} | {kind: 'none'}
   function connectAction(opts) {
     opts = opts || {};
     var live = opts.live;
@@ -35,12 +49,26 @@
     var p = params(opts.search);
     // "Host a Game" from home appends ?new=1 to mean "start fresh".
     if (p.get('new')) return { kind: 'forget' };
+    // The console sent this tab to pick a running room back up.
+    var room = (p.get('room') || '').toUpperCase().replace(/[^A-Z]/g, '');
+    if (room.length === 4) {
+      var h = params(String(opts.hash || '').replace(/^#/, ''));
+      var pin = h.get('pin') || '';
+      if (pin) return { kind: 'rejoin-pin', code: room, pin: pin };
+    }
     // ?game= / prototype launches always want a FRESH room on a page load
     // (the editor's Try it out, sim harnesses).
     if (p.get('game') || p.get('prototype')) return { kind: 'fresh' };
     var saved = opts.saved;
     if (saved && saved.code && saved.hostToken) {
       return { kind: 'rejoin', code: saved.code, hostToken: saved.hostToken };
+    }
+    var rem = opts.remembered;
+    if (rem && rem.code && rem.hostToken) {
+      var age = (opts.now || Date.now()) - (Number(rem.at) || 0);
+      if (age >= 0 && age < REMEMBER_MS) {
+        return { kind: 'rejoin', code: rem.code, hostToken: rem.hostToken };
+      }
     }
     return { kind: 'none' };
   }
@@ -53,12 +81,15 @@
   function urlAfterCreate(search) {
     var p = params(search);
     if (p.get('prototype')) return null;
-    if (!p.get('game')) return null;
+    // A ?room= pickup drops its param the same way once the room is bound
+    // (the PIN in the hash goes with it)
+    if (!p.get('game') && !p.get('room')) return null;
     return '/host';
   }
 
   globalThis.HostSession = {
     connectAction: connectAction,
-    urlAfterCreate: urlAfterCreate
+    urlAfterCreate: urlAfterCreate,
+    REMEMBER_MS: REMEMBER_MS
   };
 })();

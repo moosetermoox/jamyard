@@ -515,3 +515,30 @@ h1, h2 {
 .setup-picture .sp-code { font-family: var(--t-display, 'Bricolage Grotesque', sans-serif); font-weight: 800; font-size: 18px; letter-spacing: 0.08em; fill: var(--t-ink, #2A2620); }
 .setup-picture .sp-arrow { fill: none; stroke: var(--t-red, #E4572E); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .setup-picture .sp-note { font-family: var(--t-body, 'DM Sans', sans-serif); font-size: 9px; font-weight: 600; fill: var(--t-red-text, #B02D12); }
+
+/* The projector notice grew a door: reopen the projector from here, or
+   pick the room up on the projector computer (2026-09-27) */
+.projector-notice p { margin: 0; }
+.projector-notice .projector-notice-row { margin-top: 10px; }
+.projector-notice .projector-notice-how { margin-top: 10px; font-weight: 500; color: var(--t-ink); font-size: 0.9rem; }
+
+/* The words on the projector right now, under the status row */
+.step-text {
+  margin: -6px 0 14px;
+  padding: 8px 12px;
+  background: var(--t-paper);
+  box-shadow: var(--t-shadow-free);
+  font-size: 0.95rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.step-text[hidden] { display: none; }
+
+/* The lobby's roster: a row per student with Rename and Remove */
+.lobby-roster { list-style: none; padding: 0; margin: 0 0 12px; }
+.lobby-roster li { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(50, 35, 15, 0.12); flex-wrap: wrap; }
+.lobby-roster .roster-name { flex: 1; font-weight: 700; min-width: 8em; overflow-wrap: anywhere; }
+.lobby-roster .roster-empty { color: var(--t-muted-caps); border: none; }
+.lobby-roster .roster-rename-form { display: flex; gap: 6px; flex: 1 1 100%; align-items: center; }
+.lobby-roster .roster-rename-form input { font: inherit; font-size: 1rem; padding: 6px 8px; flex: 1; min-width: 0; }
+.lobby-roster .roster-error { flex: 1 1 100%; color: #AE3A16; font-size: 0.85rem; font-weight: 600; }

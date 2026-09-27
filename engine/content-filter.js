@@ -143,3 +143,42 @@ export function checkSubmission(value, opts = {}) {
   }
   return { ok: true };
 }
+
+// A name is short, so a blocked word hides inside it without a boundary:
+// "shithead" went up on the projector and every classmate's screen (a
+// reviewer, 2026-09-27), while the answer filter never saw it. Names get
+// the word-boundary check AND a compound check: a blocked word glued to a
+// common tail ("head", "face", "hole"...) or a common head ("big",
+// "little", "dumb"...). Plain substrings would refuse Dickson, Cummings,
+// Spicer, and Mississippi, so the compounds are the middle ground.
+export const NAME_COMPOUND_TAILS = ['head', 'face', 'hole', 'bag', 'wad', 'breath', 'brain', 'lord', 'stick', 'licker', 'boy', 'girl', 'man', 'lips', 'ass'];
+// Grammar tails ("shitty", "fuckers") only on profanity: a slur plus "er"
+// or "y" is Spicer or spicy, a surname and a word.
+export const NAME_GRAMMAR_TAILS = ['er', 'ers', 'ing', 'y', 's'];
+export const NAME_COMPOUND_HEADS = ['big', 'little', 'lil', 'dumb', 'old', 'mr', 'mrs', 'ms', 'sir', 'dr', 'the', 'captain', 'king', 'queen', 'lord', 'bull', 'horse', 'dog', 'bat'];
+
+/**
+ * Screen a student's display name. Same normalization as the answers.
+ * @param {string} name
+ * @returns {{ blocked: boolean, category?: string, word?: string }}
+ */
+export function filterName(name) {
+  const plain = filterContent(name);
+  if (plain.blocked) return plain;
+  if (!name || typeof name !== 'string') return { blocked: false };
+  const variants = normalizedVariants(name);
+  const heads = NAME_COMPOUND_HEADS.map(escapeRe).join('|');
+  for (const { word, category } of BLOCKED_WORDS) {
+    const pattern = escapeRe(collapseRepeats(word));
+    const tails = (category === 'slur' ? NAME_COMPOUND_TAILS : NAME_COMPOUND_TAILS.concat(NAME_GRAMMAR_TAILS)).map(escapeRe).join('|');
+    const compound = new RegExp('\\b(?:(?:' + heads + ')' + pattern + '(?:' + tails + ')?|' + pattern + '(?:' + tails + '))\\b', 'i');
+    if (variants.some(v => compound.test(v))) {
+      return { blocked: true, category, word };
+    }
+  }
+  return { blocked: false };
+}
+
+// The line a student sees when their name is refused. Names nothing back
+// (never the word), says what to do. A row in every language table.
+export const NAME_REFUSED_MESSAGE = 'That name cannot go on the big screen. Use your first name.';
