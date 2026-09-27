@@ -2831,3 +2831,32 @@ body.in-activity { padding-bottom: 112px; }
   color: var(--t-ink, #2A2620);
   background: var(--t-yellow, #F5C518);
 }
+
+/* Rating results, readable from the back of the room (a reviewer, 2026-09-27):
+   one header line, the averages as before but bigger, and one bar per
+   rating value with its count instead of a pie and a run-on key. */
+.rate-results-header { font-size: 1.4rem; font-weight: 700; color: var(--t-ink, #2A2620); }
+.rate-avg-section, .rate-dist-section { max-width: 1100px; }
+.rate-avg-section h3, .rate-dist-section h3 { font-size: 1.3rem; }
+.rate-avg-row { font-size: 1.35rem; margin: 12px 0; }
+.rate-avg-label { flex: 0 0 220px; }
+.rate-avg-bar-track { height: 30px; }
+.rate-avg-value { flex: 0 0 120px; font-size: 1.2rem; }
+.rate-dist-cards { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; }
+.rate-dist-card {
+  background: var(--theme-surface, white);
+  border: 2px solid var(--theme-border, #ddd);
+  border-radius: 8px;
+  padding: 14px 18px 10px;
+  min-width: 260px;
+  flex: 1 1 300px;
+  max-width: 420px;
+}
+.rate-dist-title { font-weight: 700; font-size: 1.25rem; text-align: center; margin-bottom: 8px; }
+.rate-dist-bars { display: flex; align-items: flex-end; justify-content: center; gap: 10px; height: 150px; }
+.rate-dist-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1 1 0; height: 100%; }
+.rate-dist-count { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.rate-dist-track { width: 100%; max-width: 48px; flex: 1 1 auto; display: flex; align-items: flex-end; background: var(--theme-border, #eee); border-radius: 4px; overflow: hidden; margin: 4px 0; }
+.rate-dist-fill { width: 100%; min-height: 3px; transition: height 0.3s ease; }
+.rate-dist-val { font-size: 1.15rem; font-weight: 700; }
+.rate-dist-ends { display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--theme-muted, #666); margin-top: 6px; }

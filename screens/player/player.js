@@ -1063,7 +1063,9 @@ socket.on('connect', () => {
 });
 
 socket.on('join-error', ({ message }) => {
-  showError(message);
+  // The fixed lines ("Room not found. Check the code on the big screen.")
+  // have a row in every language table; anything else shows as sent
+  showError(window.UiLang && typeof UiLang.t === 'function' ? UiLang.t(message) : message);
   joinBtn.disabled = false;
   currentRoomCode = null;
   forgetSavedSeat();

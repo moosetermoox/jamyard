@@ -2472,6 +2472,7 @@ socket.on('rate-start', ({ prompt, scales, visibility, totalRaters, timer, hostT
   showSection(rateSection);
   setRichText(ratePrompt, prompt || (visibility === 'host-only' ? 'Rate (results private to you)' : 'Rate'));
   rateCounter.textContent = '0 of ' + totalRaters + ' rated';
+  rateCounter.hidden = false;
   rateResults.hidden = true;
   rateResults.innerHTML = '';
   rateContinueBtn.hidden = true;
@@ -2500,6 +2501,7 @@ socket.on('rate-received', ({ count, total }) => {
 
 socket.on('rate-results', ({ scales, averages, distributions, raterCount, visibility }) => {
   rateResults.hidden = false;
+  rateCounter.hidden = true; // the results header says how many rated
   rateCloseBtn.hidden = true;
   rateContinueBtn.hidden = false;
   rateResults.innerHTML = renderHostRateResults(scales, averages, distributions, raterCount, visibility);
@@ -2518,10 +2520,10 @@ function renderHostRateResults(scales, averages, distributions, raterCount, visi
   scales = scales || [];
   averages = averages || {};
   distributions = distributions || {};
-  return '<p class="rate-results-header">' + raterCount + ' rater' + (raterCount === 1 ? '' : 's') +
+  return '<p class="rate-results-header">' + escapeHtml(raterCount + (raterCount === 1 ? ' student rated' : ' students rated')) +
          (visibility === 'host-only' ? ' &middot; <em>only you see this</em>' : '') + '</p>' +
          hostAveragesChart(scales, averages) +
-         hostDistributionPies(scales, distributions);
+         hostDistributionBars(scales, distributions);
 }
 
 function hostValueColor(v, min, max) {
@@ -2548,49 +2550,34 @@ function hostAveragesChart(scales, averages) {
   return html;
 }
 
-function hostDistributionPies(scales, distributions) {
-  let html = '<div class="rate-dist-section"><h3>Distribution</h3><div class="rate-pies">';
+// One bar per rating value, tallest = most students, the count on each
+// (a pie and a "1 0 / 2 0 / 4 2" key could not be read from the back of
+// the room: a reviewer, 2026-09-27)
+function hostDistributionBars(scales, distributions) {
+  let html = '<div class="rate-dist-section"><h3>How the votes fell</h3><div class="rate-dist-cards">';
   for (const s of scales) {
     const dist = distributions[s.id] || {};
-    let total = 0;
-    for (let v = s.min; v <= s.max; v++) total += (dist[v] || 0);
-    html += `<div class="rate-pie-card">
-               <div class="rate-pie-title">${escapeHtml(s.label)}</div>
-               ${hostRenderPie(s, dist, total)}
-               ${hostRenderPieLegend(s, dist)}
+    let most = 0;
+    for (let v = s.min; v <= s.max; v++) most = Math.max(most, dist[v] || 0);
+    let bars = '';
+    for (let v = s.min; v <= s.max; v++) {
+      const n = dist[v] || 0;
+      const pct = most ? Math.round((n / most) * 100) : 0;
+      bars += `<div class="rate-dist-col">
+                 <div class="rate-dist-count">${n}</div>
+                 <div class="rate-dist-track"><div class="rate-dist-fill" style="height:${pct}%; background:${hostValueColor(v, s.min, s.max)};"></div></div>
+                 <div class="rate-dist-val">${v}</div>
+               </div>`;
+    }
+    const ends = s.labels && (s.labels.min || s.labels.max)
+      ? `<div class="rate-dist-ends"><span>${escapeHtml(s.labels.min || '')}</span><span>${escapeHtml(s.labels.max || '')}</span></div>` : '';
+    html += `<div class="rate-dist-card">
+               <div class="rate-dist-title">${escapeHtml(s.label)}</div>
+               <div class="rate-dist-bars">${bars}</div>
+               ${ends}
              </div>`;
   }
   html += '</div></div>';
-  return html;
-}
-
-function hostRenderPie(scale, dist, total) {
-  if (total === 0) return '<div class="rate-pie rate-pie-empty">no ratings</div>';
-  const stops = [];
-  let cumDeg = 0;
-  for (let v = scale.min; v <= scale.max; v++) {
-    const n = dist[v] || 0;
-    if (n === 0) continue;
-    const deg = (n / total) * 360;
-    const color = hostValueColor(v, scale.min, scale.max);
-    stops.push(`${color} ${cumDeg}deg ${cumDeg + deg}deg`);
-    cumDeg += deg;
-  }
-  return `<div class="rate-pie" style="background: conic-gradient(${stops.join(', ')});"></div>`;
-}
-
-function hostRenderPieLegend(scale, dist) {
-  let html = '<div class="rate-pie-legend">';
-  for (let v = scale.min; v <= scale.max; v++) {
-    const n = dist[v] || 0;
-    const color = hostValueColor(v, scale.min, scale.max);
-    html += `<div class="rate-pie-legend-row">
-               <span class="rate-pie-swatch" style="background:${color};"></span>
-               <span class="rate-pie-legend-val">${v}</span>
-               <span class="rate-pie-legend-count">${n}</span>
-             </div>`;
-  }
-  html += '</div>';
   return html;
 }
 

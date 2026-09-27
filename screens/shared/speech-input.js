@@ -62,7 +62,28 @@
 
     // Text, not the mic emoji (Totem never-list): the design.css .mic-btn
     // rules size the caps label to fit the 40px corner target.
-    var IDLE_LABEL = 'Mic';
+    var IDLE_LABEL = 'Mic'; // the accessible name; the button shows a drawn mic (a reviewer read "MIC" as noise, 2026-09-27)
+    function micIcon() {
+      var NS = 'http://www.w3.org/2000/svg';
+      var svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 24 24');
+      svg.setAttribute('width', '18');
+      svg.setAttribute('height', '18');
+      svg.setAttribute('aria-hidden', 'true');
+      svg.setAttribute('focusable', 'false');
+      var body = document.createElementNS(NS, 'rect');
+      body.setAttribute('x', '9'); body.setAttribute('y', '2'); body.setAttribute('width', '6'); body.setAttribute('height', '12'); body.setAttribute('rx', '3');
+      body.setAttribute('fill', 'currentColor');
+      var arc = document.createElementNS(NS, 'path');
+      arc.setAttribute('d', 'M5 11a7 7 0 0 0 14 0');
+      arc.setAttribute('fill', 'none'); arc.setAttribute('stroke', 'currentColor'); arc.setAttribute('stroke-width', '2'); arc.setAttribute('stroke-linecap', 'round');
+      var stem = document.createElementNS(NS, 'path');
+      stem.setAttribute('d', 'M12 18v4M8 22h8');
+      stem.setAttribute('fill', 'none'); stem.setAttribute('stroke', 'currentColor'); stem.setAttribute('stroke-width', '2'); stem.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(body); svg.appendChild(arc); svg.appendChild(stem);
+      return svg;
+    }
+    function showIdle(btn) { btn.textContent = ''; btn.appendChild(micIcon()); btn.title = IDLE_LABEL; }
     var LIVE_LABEL = '■';
 
     // Corner-overlay wrapper. If the input sat in a flex row, the wrapper
@@ -91,13 +112,13 @@
     var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'mic-btn';
-    btn.textContent = IDLE_LABEL;
+    showIdle(btn);
     btn.setAttribute('aria-label', 'Speak instead of typing');
     btn.title = 'Tap and talk, your words appear in the box. Tap again to stop.';
     wrap.appendChild(btn);
 
     function reset() {
-      btn.textContent = IDLE_LABEL;
+      showIdle(btn);
       btn.classList.remove('mic-live');
     }
 

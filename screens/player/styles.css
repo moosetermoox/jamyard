@@ -1472,7 +1472,7 @@ textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width
   white-space: pre-line;
   max-width: 40ch;
   margin: 0 auto;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
   font-weight: 700;
   font-size: 0.72em;
   line-height: 1.5;
@@ -1550,7 +1550,7 @@ textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width
   display: flex; align-items: baseline; gap: 8px; text-align: left;
   background: var(--theme-surface, #fff); border: 2px solid var(--theme-border, #000);
   border-radius: 10px; padding: 8px 12px;
-  font-family: 'Nunito', Arial, sans-serif; font-weight: 700; font-size: 0.65em; line-height: 1.4;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif); font-weight: 700; font-size: 0.65em; line-height: 1.4;
 }
 .msg-card-num { font-family: 'Bricolage Grotesque', 'Arial Black', Arial, sans-serif; font-size: 0.85em; opacity: 0.5; flex-shrink: 0; }
 
@@ -1605,7 +1605,7 @@ textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width
 .partner-note[hidden] { display: none; }
 
 .holding-next {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
   font-weight: 700;
   font-size: 1rem;
   color: var(--theme-text, #666);
@@ -1619,7 +1619,7 @@ textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width
   margin: 12px 0;
 }
 .holding-avatar-chip {
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
   font-weight: 800;
   font-size: 0.9rem;
   background: var(--theme-surface, #fff);
@@ -2327,7 +2327,7 @@ body.wh-empty .wh-word:hover { background: none; }
 }
 .early-joke-label {
   margin: 0 0 6px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
   font-weight: 800;
   font-size: 0.8rem;
   letter-spacing: 0.04em;
@@ -2336,7 +2336,7 @@ body.wh-empty .wh-word:hover { background: none; }
 }
 .early-joke-text {
   margin: 0 0 10px;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
   font-weight: 700;
   font-size: 1.15rem;
   line-height: 1.35;
@@ -2356,7 +2356,7 @@ body.wh-empty .wh-word:hover { background: none; }
 .early-joke-dismiss[hidden] { display: none; }
 .early-joke-dismiss {
   width: auto;
-  font-family: 'Nunito', Arial, sans-serif;
+  font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
   font-weight: 800;
   font-size: 0.95rem;
   padding: 6px 14px;
@@ -2536,3 +2536,11 @@ body.wh-empty .wh-word:hover { background: none; }
 .msg-chart-fill.before { background: rgba(34, 30, 28, 0.45); }
 .msg-chart-fill.after { background: var(--t-ink, #221E1C); }
 .msg-chart-fill.after.moved { background: var(--theme-success, #D9481C); }
+
+/* The join page's wordmark and way home (a student who lands here by
+   mistake had no context: a reviewer, 2026-09-27) */
+.join-brand { display: inline-flex; gap: 6px; align-items: flex-end; text-decoration: none; margin-bottom: 10px; }
+.join-brand span { display: inline-block; padding: 3px 9px 4px; font-family: var(--t-display, 'Bricolage Grotesque', Arial, sans-serif); font-weight: 800; font-size: 15px; letter-spacing: 0.06em; box-shadow: 0 2px 0 rgba(50, 35, 15, 0.22); }
+.join-brand-jam { background: #E9D9B4; color: var(--t-ink, #2A2620); transform: rotate(-2deg); }
+.join-brand-yard { background: var(--t-red, #E5482B); color: #fff; transform: rotate(1.5deg); }
+.join-brand:focus-visible { outline: 3px solid var(--t-ink, #2A2620); outline-offset: 3px; }

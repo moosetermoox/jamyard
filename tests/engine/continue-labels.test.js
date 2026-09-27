@@ -101,8 +101,8 @@ describe('continueLabelForPhase', () => {
       end: { type: 'end' }
     };
 
-    it('a plain message keeps Show the message', () => {
-      expect(continueLabelForPhase(bluff.pic, bluff)).toBe('Show the message');
+    it('a plain message reads Next step (the message is already up, a reviewer 2026-09-27)', () => {
+      expect(continueLabelForPhase(bluff.pic, bluff)).toBe('Next step');
     });
 
     it('a round intro says Start the first round, then Start the next round', () => {

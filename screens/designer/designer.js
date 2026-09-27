@@ -1740,7 +1740,35 @@ function renderMatchPreview(modal, data, overlay, description) {
     renderMatchPreview(modal, next, overlay, description);
   });
 
-  // Show the params that AI filled in (read-only display)
+  // A setting as a teacher reads it (a reviewer saw {"question":...} and
+// SPEED BONUS true on the "Here's what I'd set up" card, 2026-09-27):
+// a quiz question is its words, its choices, and the answer; a switch is
+// On or Off; an object with a text field is its text.
+function readableParamValue(v) {
+  if (v === true) return 'On';
+  if (v === false) return 'Off';
+  if (v && typeof v === 'object') return readableParamItem(v);
+  return String(v);
+}
+function readableParamItem(item) {
+  if (!item || typeof item !== 'object') return readableParamValue(item);
+  if (typeof item.question === 'string') {
+    var parts = [item.question];
+    if (Array.isArray(item.choices) && item.choices.length) parts.push(item.choices.join(' / '));
+    if (item.correct !== undefined && item.correct !== null && item.correct !== '') parts.push('Answer: ' + item.correct);
+    return parts.join('  ·  ');
+  }
+  if (typeof item.text === 'string') return item.text;
+  var words = [];
+  for (var k in item) {
+    if (!Object.prototype.hasOwnProperty.call(item, k)) continue;
+    var val = item[k];
+    words.push(humanizeParamName(k) + ': ' + (Array.isArray(val) ? val.join(', ') : readableParamValue(val)));
+  }
+  return words.join('  ·  ');
+}
+
+// Show the params that AI filled in (read-only display)
   var paramsHeader = document.createElement('p');
   paramsHeader.style.cssText = 'margin:0 0 8px 0; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; font-size:0.85rem;';
   paramsHeader.textContent = "Here's what I'd set up:";
@@ -1769,13 +1797,11 @@ function renderMatchPreview(modal, data, overlay, description) {
         var line = document.createElement('div');
         line.className = 'ai-match-param-item';
         var item = v[vi];
-        line.textContent = (item && typeof item === 'object')
-          ? (item.text || JSON.stringify(item))
-          : String(item);
+        line.textContent = readableParamItem(item);
         value.appendChild(line);
       }
     } else {
-      value.textContent = String(v);
+      value.textContent = readableParamValue(v);
     }
     row.appendChild(value);
 
@@ -1819,7 +1845,7 @@ function renderMatchPreview(modal, data, overlay, description) {
       var altBtn = document.createElement('button');
       altBtn.type = 'button';
       altBtn.className = 'ai-match-alternate';
-      altBtn.style.cssText = 'display:block; width:100%; text-align:left; border:2px solid #000; border-radius:12px; background:#fff; padding:10px 12px; margin-bottom:8px; cursor:pointer; font-family:"Nunito", Arial, sans-serif;';
+      altBtn.style.cssText = 'display:block; width:100%; text-align:left; border:2px solid #000; border-radius:12px; background:#fff; padding:10px 12px; margin-bottom:8px; cursor:pointer; font-family:var(--t-body, "DM Sans", Arial, sans-serif);';
 
       var altName = document.createElement('div');
       altName.style.cssText = 'font-weight:900;';
@@ -1948,7 +1974,7 @@ function renderExistingGameView(modal, data, overlay, description) {
       var altBtn = document.createElement('button');
       altBtn.type = 'button';
       altBtn.className = 'ai-match-alternate';
-      altBtn.style.cssText = 'display:block; width:100%; text-align:left; border:2px solid #000; border-radius:12px; background:#fff; padding:10px 12px; margin-bottom:8px; cursor:pointer; font-family:"Nunito", Arial, sans-serif;';
+      altBtn.style.cssText = 'display:block; width:100%; text-align:left; border:2px solid #000; border-radius:12px; background:#fff; padding:10px 12px; margin-bottom:8px; cursor:pointer; font-family:var(--t-body, "DM Sans", Arial, sans-serif);';
 
       var altName = document.createElement('div');
       altName.style.cssText = 'font-weight:900;';
@@ -2586,7 +2612,7 @@ function showConciergeDialog() {
       var chip = document.createElement('button');
       chip.type = 'button';
       chip.textContent = label;
-      chip.style.cssText = 'padding:7px 14px; border:2px solid #000; border-radius:16px; background:#fff; cursor:pointer; font-family:"Nunito", Arial, sans-serif; font-size:0.9rem; font-weight:700;';
+      chip.style.cssText = 'padding:7px 14px; border:2px solid #000; border-radius:16px; background:#fff; cursor:pointer; font-family:var(--t-body, "DM Sans", Arial, sans-serif); font-size:0.9rem; font-weight:700;';
       chip.addEventListener('click', function () {
         picked.value = (picked.value === label) ? null : label;
         Array.prototype.forEach.call(row.children, function (c) {
@@ -2602,22 +2628,22 @@ function showConciergeDialog() {
   modal.appendChild(cEl('p', 'Three quick questions and we’ll suggest something that fits.', 'template-picker-subtitle'));
 
   var q1 = cEl('label', 'What’s the moment?');
-  q1.style.cssText = 'display:block; font-weight:800; margin-top:6px; font-family:"Nunito", Arial, sans-serif;';
+  q1.style.cssText = 'display:block; font-weight:800; margin-top:6px; font-family:var(--t-body, "DM Sans", Arial, sans-serif);';
   modal.appendChild(q1);
   var occasion = chipRow(CONCIERGE_OCCASIONS);
   modal.appendChild(occasion.row);
 
   var q2 = cEl('label', 'Topic or subject? (optional)');
-  q2.style.cssText = 'display:block; font-weight:800; font-family:"Nunito", Arial, sans-serif;';
+  q2.style.cssText = 'display:block; font-weight:800; font-family:var(--t-body, "DM Sans", Arial, sans-serif);';
   modal.appendChild(q2);
   var topicInput = document.createElement('input');
   topicInput.type = 'text';
   topicInput.placeholder = 'e.g. photosynthesis, fractions, our field trip';
-  topicInput.style.cssText = 'width:100%; padding:10px 12px; border:2px solid #000; border-radius:10px; font-family:"Nunito", Arial, sans-serif; font-size:0.95rem; box-sizing:border-box; margin:6px 0 14px;';
+  topicInput.style.cssText = 'width:100%; padding:10px 12px; border:2px solid #000; border-radius:10px; font-family:var(--t-body, "DM Sans", Arial, sans-serif); font-size:0.95rem; box-sizing:border-box; margin:6px 0 14px;';
   modal.appendChild(topicInput);
 
   var q3 = cEl('label', 'How much time do you have?');
-  q3.style.cssText = 'display:block; font-weight:800; font-family:"Nunito", Arial, sans-serif;';
+  q3.style.cssText = 'display:block; font-weight:800; font-family:var(--t-body, "DM Sans", Arial, sans-serif);';
   modal.appendChild(q3);
   var timeRow = chipRow(CONCIERGE_TIMES);
   modal.appendChild(timeRow.row);
@@ -2695,7 +2721,7 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       : s.kind === 'recipe' ? 'Fill in a recipe' : 'A new plan, step by step';
     var tag = document.createElement('div');
     tag.textContent = kindLabel;
-    tag.style.cssText = 'font-size:0.7rem; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; color:#888; font-family:"Nunito", Arial, sans-serif;';
+    tag.style.cssText = 'font-size:0.7rem; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; color:#888; font-family:var(--t-body, "DM Sans", Arial, sans-serif);';
     card.appendChild(tag);
 
     var name = document.createElement('div');
@@ -2705,13 +2731,13 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
 
     var desc = document.createElement('div');
     desc.textContent = s.description || (s.storyboard && s.storyboard.description) || '';
-    desc.style.cssText = 'font-family:"Nunito", Arial, sans-serif; font-size:0.85rem; color:#444;';
+    desc.style.cssText = 'font-family:var(--t-body, "DM Sans", Arial, sans-serif); font-size:0.85rem; color:#444;';
     card.appendChild(desc);
 
     if (s.why) {
       var why = document.createElement('div');
       why.textContent = s.why;
-      why.style.cssText = 'font-family:"Nunito", Arial, sans-serif; font-size:0.85rem; color:#0057FF; margin-top:4px;';
+      why.style.cssText = 'font-family:var(--t-body, "DM Sans", Arial, sans-serif); font-size:0.85rem; color:#0057FF; margin-top:4px;';
       card.appendChild(why);
     }
 

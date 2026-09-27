@@ -322,10 +322,27 @@ export function buildActivityMap(config) {
   // Talk-driven activities (Closer): the screens only carry questions, the
   // class does the rest out loud. Flag it so the map can say so — the step
   // list alone reads as "a pile of announcements" and explains nothing.
+  // Any step a student answers on their device, at the top level or
+  // inside a round, counts (a quiz plan with taps but no typing read as
+  // "nothing to type", 2026-09-27)
   const TYPED_INPUT_TYPES = new Set(['collect', 'collect-two', 'relay', 'merge']);
+  const STUDENT_INPUT_TYPES = new Set(['collect', 'collect-two', 'collect-choice', 'relay', 'merge', 'vote', 'estimate',
+    'rate', 'rank', 'sort', 'match', 'solo-quiz', 'buzz', 'wager', 'checklist', 'one-voice', 'turn', 'eliminate', 'ai-eliminate']);
+  const takesInput = (phase) => {
+    if (!phase || typeof phase !== 'object') return false;
+    if (STUDENT_INPUT_TYPES.has(phase.type)) return true;
+    if (phase.type === 'team-split' && phase.method === 'choice') return true;
+    if (phase.type === 'team-roles' && phase.method === 'choice') return true;
+    const subs = phase.subPhases && typeof phase.subPhases === 'object' ? Object.values(phase.subPhases) : [];
+    return subs.some(takesInput);
+  };
   const announceCount = entries.filter(e => phases[e.id].type === 'announce').length;
   const typedCount = entries.filter(e => TYPED_INPUT_TYPES.has(phases[e.id].type)).length;
-  if (typedCount === 0 && announceCount >= 3 && announceCount >= entries.length / 2) {
+  const inputCount = entries.filter(e => takesInput(phases[e.id])).length;
+  // Nothing typed, and the talk outnumbers every tap three to one: Closer's
+  // thirteen questions with one closing rating is talk; a quiz's questions
+  // with an answer card after each is not
+  if (typedCount === 0 && announceCount >= 3 && announceCount >= entries.length / 2 && announceCount >= 3 * inputCount) {
     map.talk = true;
   }
 

@@ -1103,7 +1103,12 @@
     var note = document.createElement('p');
     note.className = 'example-note';
     note.id = 'example-note';
-    note.appendChild(document.createTextNode('Filled in for ' + ClassExamples.describe(ex) + ', from the yard. '));
+    // A swaps-only example changes the first question and nothing else
+    // (Closer, Snowball): say that, never "filled in" over a page that
+    // mostly kept its words (a reviewer with a French class, 2026-09-27)
+    var p = ex.prefill || {};
+    var swapsOnly = !!p.swaps && !p.prompt && !p.fields && !p.pairs && !p.choices && !p.params;
+    note.appendChild(document.createTextNode((swapsOnly ? 'The first question is filled in for ' : 'Filled in for ') + ClassExamples.describe(ex) + ', from the yard. '));
     var undo = document.createElement('button');
     undo.type = 'button';
     undo.textContent = 'Use the original words';

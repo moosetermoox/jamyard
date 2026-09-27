@@ -123,8 +123,8 @@ describe('continue labels speak the activity language', () => {
   };
 
   it('generated labels translate, English stays the default', () => {
-    expect(continueLabelFor('announce', 'es')).toBe('Mostrar el mensaje');
-    expect(continueLabelFor('announce')).toBe('Show the message');
+    expect(continueLabelFor('announce', 'es')).toBe('Siguiente paso');
+    expect(continueLabelFor('announce')).toBe('Next step');
     expect(continueLabelFor('unknown-type', 'fr')).toBe('Continuer');
     expect(closeLabelFor('rate', 'de')).toBe('Bewertung beenden');
     expect(closeLabelFor('announce', 'de')).toBeNull();

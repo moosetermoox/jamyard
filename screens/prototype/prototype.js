@@ -513,6 +513,9 @@ function fastForwardTick() {
   const pos = livePos();
   ff.still = pos === ff.lastPos ? ff.still + 1 : 0;
   ff.lastPos = pos;
+  // Where they are, so a 30-second run never looks frozen (a reviewer, 2026-09-27)
+  const here = railPhaseId ? stepNameFor(railPhaseId) : '';
+  setStatus('Skipping ahead to ' + stepNameFor(ff.targets[0]) + ': pretend students are playing ' + (here || 'the steps in between') + '...', 'busy');
   // The AI's own step is never pushed; it finishes when it finishes.
   const allowFallback = ff.still >= FF_STILL_TICKS && railPhaseType !== 'ai-process' && railPhaseType !== 'ai-eliminate';
   fireBotFill();

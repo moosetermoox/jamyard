@@ -11,7 +11,7 @@
 import { translate } from '../i18n/index.js';
 
 const LABELS = {
-  announce: 'Show the message',
+  announce: 'Next step',
   collect: 'Send the question to students',
   'collect-choice': 'Next question',
   vote: 'Start the voting',
@@ -134,12 +134,12 @@ const ANSWER_MESSAGE = /\.barChart\s*\}\}|\b(truth|real title|real answer|correc
 const ROUND_INTRO = /^\s*round\s+(\d+)\b/i;
 
 export function announceLabel(next) {
-  if (!next || typeof next !== 'object') return 'Show the message';
+  if (!next || typeof next !== 'object') return 'Next step';
   const message = typeof next.message === 'string' ? next.message : '';
   if (next.video) return 'Play the video';
   if (ANSWER_MESSAGE.test(message)) return 'Reveal the answer';
   const round = message.match(ROUND_INTRO);
   if (round) return round[1] === '1' ? 'Start the first round' : 'Start the next round';
   if (next.image || next.drawingFrom) return 'Show the picture';
-  return 'Show the message';
+  return 'Next step';
 }
