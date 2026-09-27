@@ -408,6 +408,7 @@
       var whoId = freshId(phases, 'who-rounds');
       return {
         id: whoId,
+        src: src,
         phase: {
           type: 'foreach',
           data: src + '.responses',
@@ -459,7 +460,7 @@
         }
       }
     };
-    return { id: id, phase: phase };
+    return { id: id, src: src, phase: phase };
   }
 
   // ---- Storyboard compiler ----
@@ -1101,8 +1102,22 @@
           problems.push('Step ' + (i + 1) + ': guessing rounds need a question step before them.');
           return;
         }
-        id = rounds.id;
-        built = rounds.phase;
+        // A student's words never go up with a name on them without the
+        // teacher reading them first (a divorce reached the projector in a
+        // guess-who round, 2026-09-26): a preview gate sits between the
+        // question step and the rounds. Approve = the rounds; Try again =
+        // everyone answers again; one bad answer = Hide on the console.
+        var gateId = freshId(phases, 'check');
+        phases[lastId].next = gateId;
+        phases[gateId] = {
+          type: 'preview',
+          template: 'Read the answers below before the rounds start. One a student would rather keep private? Press Hide beside it on your Teacher view. Try again asks everyone to answer again.',
+          approveNext: rounds.id,
+          rejectNext: rounds.src
+        };
+        phases[rounds.id] = rounds.phase;
+        lastId = rounds.id;
+        return;
       } else if (brick === 'assign') {
         // Hand out choices: needs the rank step right before it (the
         // storyboard prompt says so); every group, or every student when

@@ -1310,7 +1310,7 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show, refresh 
       previewResponses.hidden = false;
     }
     previewResponsesList.innerHTML = '';
-    for (const { name, response, drawing, playerId } of responses) {
+    for (const { name, response, drawing, playerId, flagged } of responses) {
       const li = document.createElement('li');
       if (drawing && window.Draw) {
         li.innerHTML = '<strong>' + escapeHtml(name) + ':</strong> ';
@@ -1322,6 +1322,16 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show, refresh 
         li.appendChild(thumb);
       } else {
         li.innerHTML = '<strong>' + escapeHtml(name) + ':</strong> ' + escapeHtml(response);
+      }
+      // "Needs a look": the auto-checks were unsure, or the answer names a
+      // heavy topic. Private list only (the teacher opened it on purpose).
+      if (flagged) {
+        const look = document.createElement('span');
+        look.className = 'preview-flag';
+        look.textContent = 'Needs a look';
+        look.title = 'Read this one before the class sees it. Hide it if it should stay private.';
+        li.appendChild(document.createTextNode(' '));
+        li.appendChild(look);
       }
       // Hide THIS one (it leaves the step's stored rows, so the wall never
       // shows it) instead of rejecting the whole class's work

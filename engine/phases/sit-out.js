@@ -76,6 +76,10 @@ export function withoutSitOut(players, phase) {
  */
 export function sitOutMessage(phase, playerId) {
   if (!sitsOut(phase, playerId)) return null;
+  // Guess who: the author is the secret, so their screen reads like the
+  // waiting screen everyone else gets once they have voted (a "This one is
+  // yours!" gave them away to the desk beside them, 2026-09-26)
+  if (phase._foreachSecretAuthor) return 'Waiting for the others...';
   if (playerId === phase._foreachAuthorId) return 'This one is yours! Waiting for the others...';
   if (phase._foreachSourceId && playerId === phase._foreachSourceId) {
     return 'You wrote this one! Waiting for the others...';

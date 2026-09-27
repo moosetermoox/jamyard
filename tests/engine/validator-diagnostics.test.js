@@ -309,7 +309,8 @@ describe('validator diagnostics — game snapshot', () => {
       // DB-less, so repo files are the only durable store on the live site).
       'good-question-bad-question': [],
       'last-one-standing': [],
-      'excuse-machine': [],
+      // 2026-09-26: its rating rounds show each excuse with the author's name and no review step (advice, not repaired: a made-up excuse, not in the yard)
+      'excuse-machine': ['AUTHOR_UNGATED'],
       // 2026-08-02 coherence sweep: feedback-academy's judge-result leaderboards
       // (the DATA_REF_TYPE_MISMATCH source) replaced by class-level coaching +
       // return-to-author reveal — clean now.

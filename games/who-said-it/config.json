@@ -16,7 +16,13 @@
       "type": "collect",
       "prompt": "What is the most unusual thing you've ever eaten?",
       "timer": 45,
-      "next": "guess-loop"
+      "next": "check"
+    },
+    "check": {
+      "type": "preview",
+      "template": "Read the answers below before the rounds start. One a student would rather keep private? Press Hide beside it on your Teacher view. Try again asks everyone to answer again.",
+      "approveNext": "guess-loop",
+      "rejectNext": "collect-answers"
     },
     "guess-loop": {
       "type": "foreach",

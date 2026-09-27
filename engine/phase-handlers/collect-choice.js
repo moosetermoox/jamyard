@@ -192,7 +192,11 @@ registerHandler('collect-choice', {
     // progress counter — mirrors the submit handler's eligibility math
     // (author self-exclusion) so the projector never reads "0 of 0".
     const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
-    const countTotal = withoutSitOut(eligible, phase).length;
+    // Guess who: the author counts as already in, so the count never says
+    // somebody is sitting out (engine/phases/sit-out.js)
+    const sittingOut = eligible.length - withoutSitOut(eligible, phase).length;
+    const countTotal = phase._foreachSecretAuthor ? eligible.length : eligible.length - sittingOut;
+    const countStart = phase._foreachSecretAuthor ? sittingOut : 0;
     ctx.emitToHost(EVENTS.GAME_STARTED, {
       prompt: hostPrompt,
       choices: hostChoices,
@@ -203,7 +207,7 @@ registerHandler('collect-choice', {
       isChoice: true,
       // Live Poll: the projector draws the tally as answers land
       liveResults: !!phase.liveResults,
-      count: 0, total: countTotal,
+      count: countStart, total: countTotal,
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     });
 

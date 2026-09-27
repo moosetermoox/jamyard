@@ -32,12 +32,19 @@ registerHandler('preview', {
             // defeat the whole point of the preview gate.
             // playerId rides along (teacher surfaces only) so the console
             // can Hide one line from the review screen (2026-09-26)
-            responses = data.responses.map(r => ({
-              playerId: r.playerId,
-              name: r.name,
-              response: r.text,
-              ...(r.drawing ? { drawing: r.drawing } : {})
-            }));
+            responses = data.responses.map(r => {
+              // "Needs a look" (the ladder's unsure verdict, or a heavy
+              // topic): the chip the console's Live entries already show,
+              // on the review list too. Teacher surfaces only.
+              const who = r.playerId ? engine.players.find(r.playerId) : null;
+              return {
+                playerId: r.playerId,
+                name: r.name,
+                response: r.text,
+                ...(who && who.responseFlagged ? { flagged: true } : {}),
+                ...(r.drawing ? { drawing: r.drawing } : {})
+              };
+            });
           }
         }
       }

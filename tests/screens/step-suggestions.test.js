@@ -379,7 +379,11 @@ describe('storyboard compiler', () => {
     });
     expect(problems).toEqual([]);
     const order = S.orderedPhaseIds(config.phases).map(id => config.phases[id].type);
-    expect(order).toEqual(['lobby', 'announce', 'collect', 'foreach', 'reveal', 'rank', 'reveal', 'end']);
+    // the teacher reads the answers before any goes up with a name on it (2026-09-26)
+    expect(order).toEqual(['lobby', 'announce', 'collect', 'preview', 'foreach', 'reveal', 'rank', 'reveal', 'end']);
+    const gate = Object.values(config.phases).find(p => p.type === 'preview');
+    expect(gate.approveNext).toBe(Object.keys(config.phases).find(id => config.phases[id].type === 'foreach'));
+    expect(gate.rejectNext).toBe('ask');
     const fe = Object.values(config.phases).find(p => p.type === 'foreach');
     expect(fe.candidateSource).toBe('players');
     const rank = Object.values(config.phases).find(p => p.type === 'rank');

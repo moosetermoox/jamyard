@@ -34,6 +34,7 @@ import {
   getPlayerToggles as schemaGetPlayerToggles
 } from './phase-schemas.js';
 import { parseTemplateTokens, parseRef, classifyRef, checkDataRefCompat } from './resolver-grammar.js';
+import { ungatedRounds } from './review-gate.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const GAMES_DIR = join(__dirname, '..', 'games');
@@ -181,6 +182,15 @@ export function validate(config, gameId, options) {
   const returnResults = options && options.returnResults;
   const errors = [];
   const warnings = [];
+
+  // A student's own words never go up with a name on them without the
+  // teacher reading them first (engine/review-gate.js): rounds that name
+  // or guess the author, reached straight from the answer step, warn.
+  for (const [src, fe] of ungatedRounds(config)) {
+    warnings.push(
+      `Game "${gameId}": AUTHOR_UNGATED: "${fe}" puts each answer from "${src}" on the class screen and names or guesses who wrote it, with no teacher review step before the rounds. Add a Teacher preview between them (approve = the rounds, reject = answer again).`
+    );
+  }
 
   if (!config.name) {
     errors.push(`Game "${gameId}" is missing required field: name`);
@@ -1502,6 +1512,7 @@ function inferDiagnosticCode(msg, severity) {
   if (/no later template references team data/.test(msg)) return DIAGNOSTIC_CODES.TEAM_SPLIT_UNUSED;
   if (/nothing shows the result to the class/.test(msg)) return DIAGNOSTIC_CODES.VOTE_RESULT_UNREAD;
   if (/moves the class on by itself/.test(msg)) return DIAGNOSTIC_CODES.PAYOFF_TIMED;
+  if (/AUTHOR_UNGATED/.test(msg)) return DIAGNOSTIC_CODES.AUTHOR_UNGATED;
   if (/can never award points|every score will be 0|nobody can ever score/.test(msg)) return DIAGNOSTIC_CODES.SCORING_NEVER_AWARDS;
 
   // Connection pack

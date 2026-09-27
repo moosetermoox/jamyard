@@ -62,7 +62,8 @@ async function main() {
     }
 
     host.emit('start-game', { code });
-    await waitForEvent(host, 'phase-announce', 5000).catch(() => null);
+    // the intro announce (its own timer would advance it: wait for it to land, then move on)
+    await waitForEventOnAll(players, 'announce', 5000).catch(() => null);
     await wait(300);
     const voteStarted = waitForEventOnAll(players, 'game-started', 8000);
     host.emit('advance-phase', { code });
