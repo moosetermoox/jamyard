@@ -788,7 +788,7 @@ previewApproveBtn.addEventListener('click', () => {
   const thing = previewHasDrawings ? 'drawing' : 'answer';
   Dialog.confirm({
     title: 'Show them all to the class?',
-    message: (count ? count + ' ' + (count === 1 ? thing : thing + 's') : 'Everything') + ' goes on this screen for everyone, unseen. To look first, use your Teacher view or "Show on this screen".',
+    message: (count ? count + ' ' + (count === 1 ? thing + ' goes' : thing + 's go') : 'Everything goes') + ' on this screen for everyone, unseen. To look first, use your Teacher view or "Show on this screen".',
     confirmLabel: 'Show them', cancelLabel: 'Look first'
   }).then((yes) => { if (yes) send(); });
 });

@@ -245,7 +245,7 @@ describe('Play Again inside the bench', () => {
     const start = src.indexOf("e.data.type !== 'prototype-play-again'");
     expect(start).toBeGreaterThan(-1);
     const handler = src.slice(start, src.indexOf('});', start));
-    expect(handler).toContain('resetBtn.click()');
+    expect(handler).toContain('resetBench()'); // a reset starts the same activity over (2026-09-27)
     expect(handler).toContain('launchBtn.click()');
   });
 });
