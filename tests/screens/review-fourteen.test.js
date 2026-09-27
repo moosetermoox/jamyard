@@ -65,7 +65,7 @@ describe('the smaller answers', () => {
     const js = read('screens/prototype/prototype.js');
     expect(js).toContain('function resetBench()');
     expect(js).toMatch(/resetBtn\.addEventListener\('click', \(\) => \{\s*resetBench\(\);\s*if \(gameSelect\.value\) launchBtn\.click\(\);/);
-    expect(js).not.toContain('resetBtn.click();\n  launchBtn.click();');
+    expect(js).not.toMatch(/resetBtn.click();s*launchBtn.click();/);
   });
   it('the student screen never scrolls sideways', () => {
     expect(read('screens/player/styles.css')).toContain('html, body { overflow-x: hidden; }');
