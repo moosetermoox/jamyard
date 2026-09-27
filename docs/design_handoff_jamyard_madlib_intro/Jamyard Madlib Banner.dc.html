@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+<style>html,body{margin:0;height:100%;background:#E8E4DA;font-family:'DM Sans',sans-serif}a{color:#2A2620}a:hover{color:#E5482B}</style>
+<script>window.OM_SCENES = '[{"name":"Wordmark","dur":1.0,"desc":"JAM and YARD blocks land, then is a"},{"name":"Sentence","dur":0.9,"desc":"The rest of the sentence fades in around three dashed slots"},{"name":"Spin","dur":3.2,"desc":"Three reels spin, staggered, and stop on a curated first sentence"},{"name":"Hold","dur":2.4,"desc":"The sentence holds. On every loop after, it stays put and one blank at a time re-spins to a random word"}]';</script>
+<script>window.OM_PLAYBACK = '{"mode":"loop"}';</script>
+<script>window.TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "idleLoop": true,
+  "spinGap": "6s",
+  "wordmark": "blocks",
+  "baseBoards": false,
+  "motionEditor": true
+}/*EDITMODE-END*/;</script>
+</helmet>
+<div style="width:100%;height:100vh;display:flex;align-items:center;justify-content:center;background:#E8E4DA;">
+  <x-import component-from-global-scope="MadlibBanner" from="./animations-v3.jsx ./tweaks-panel.jsx ./madlib-banner.jsx" hint-size="100%,100%" style="width:100%;height:100%;"></x-import>
+</div>
+</x-dc>
+</body>
+</html>

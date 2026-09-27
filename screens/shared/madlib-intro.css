@@ -1,0 +1,253 @@
+/* ══ The madlib intro: the home page's first screen (2026-09-26) ══
+   Design handoff docs/design_handoff_jamyard_madlib_intro, high fidelity:
+   colors, type, sizes, and timings are the handoff's. The sentence is
+   authored on a fixed canvas (1280 by 440 wide, 640 by 640 stacked) that
+   shared/madlib-intro.js scales to the container. No border radius
+   anywhere: the corners are cut. */
+
+.intro {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  background: var(--t-gesso);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  will-change: opacity, transform;
+}
+
+.intro [hidden] { display: none !important; }
+
+/* The top bar: one link, the student door, right-aligned */
+.intro-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  padding: 22px 4vw;
+}
+
+.intro-join {
+  font-size: 14px;
+  padding: 11px 18px 12px;
+  white-space: nowrap;
+  box-shadow: 0 3px 5px rgba(50,35,15,0.26);
+}
+
+.intro-join:hover { background-color: #FFD63A; }
+
+/* The hidden sentence a screen reader gets instead of the moving one */
+.intro-said {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The sentence container; the canvas inside scales to its width */
+.ml-sentence {
+  width: 100%;
+  max-width: 1400px;
+  padding: 0 4vw;
+}
+
+.ml-box { position: relative; width: 100%; }
+
+.ml-canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+  display: flex;
+  align-items: center;
+  font-family: var(--t-display);
+  color: var(--t-ink);
+  overflow: hidden;
+}
+
+.ml-wide { width: 1280px; height: 440px; padding: 0 72px; }
+.ml-stack { width: 640px; height: 640px; padding: 0 40px; }
+
+.ml-lines { display: flex; flex-direction: column; gap: 6px; }
+.ml-stack .ml-lines { gap: 4px; }
+
+.ml-line { display: flex; align-items: center; gap: 16px; min-height: 84px; }
+.ml-line-text { min-height: 48px; }
+
+.ml-words {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 38px;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--t-ink);
+  white-space: nowrap;
+  opacity: 0;
+}
+
+/* The wordmark in the sentence: JAM on birch, YARD on red, a size up from the header's */
+.ml-mark { display: inline-flex; gap: 7px; align-items: flex-end; }
+
+.ml-wm {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 32px;
+  padding: 8px 16px 10px;
+  display: inline-block;
+  box-shadow: 0 3px 5px rgba(50,35,15,0.30);
+  opacity: 0;
+}
+
+.ml-wm-jam { background: var(--t-birch); background-image: var(--t-grain); color: var(--t-ink); transform: rotate(-2deg); }
+.ml-wm-yard { background: var(--t-red); color: var(--t-paper); transform: rotate(1.5deg); }
+
+/* A blank: the reel. The window clips a strip of rows; the block on show
+   is the one nearest the window. */
+.ml-reel {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.ml-period { display: inline-flex; align-items: center; gap: 3px; }
+
+.ml-measure {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  visibility: hidden;
+  display: flex;
+  gap: 4px;
+}
+
+.ml-measure-one { display: inline-block; }
+
+.ml-window {
+  position: relative;
+  display: block;
+  height: 58px;
+}
+
+.ml-slot {
+  position: absolute;
+  inset: 0;
+  border: 3px dashed rgba(110,75,40,0.35);
+  opacity: 0;
+}
+
+.ml-strip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  filter: drop-shadow(4px 6px 0 rgba(80,60,30,0.14));
+  visibility: hidden;
+}
+
+.ml-row {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 58px;
+  display: flex;
+  justify-content: center;
+}
+
+.ml-block {
+  display: inline-block;
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 32px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-align: center;
+  padding: 12px 20px 14px;
+  white-space: nowrap;
+  clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
+  color: var(--t-ink);
+}
+
+.ml-walnut  { background: var(--t-walnut); background-image: var(--t-grain); }
+.ml-oak     { background: var(--t-oak);    background-image: var(--t-grain); }
+.ml-pine    { background: var(--t-pine);   background-image: var(--t-grain); }
+.ml-birch   { background: var(--t-birch);  background-image: var(--t-grain); }
+.ml-magenta { background: var(--t-magenta); color: var(--t-paper); }
+.ml-cyan    { background: var(--t-cyan); }
+.ml-green   { background: var(--t-green); }
+.ml-orange  { background: var(--t-orange); }
+.ml-yellow  { background: var(--t-yellow); }
+
+/* The scroll cue: the word over a short line */
+.intro-cue {
+  position: absolute;
+  left: 50%;
+  bottom: 32px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font-family: var(--t-body);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--t-ink);
+  padding: 8px 16px;
+}
+
+.intro-cue:hover { color: var(--t-red); }
+
+.intro-cue:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+
+.intro-cue-line {
+  display: block;
+  width: 2px;
+  height: 28px;
+  background: currentColor;
+  transition: transform 600ms var(--t-ease);
+}
+
+/* The wordmark in flight: a fixed copy at the header's size, over everything */
+.intro-fly {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.intro-fly span {
+  font-family: var(--t-display);
+  font-weight: 800;
+  font-size: 24px;
+  padding: 6px 14px 8px;
+  display: inline-block;
+  box-shadow: 0 3px 5px rgba(50,35,15,0.30);
+}
+
+.intro-fly .wm-jam { background: var(--t-birch); background-image: var(--t-grain); color: var(--t-ink); transform: rotate(-2deg); }
+.intro-fly .wm-yard { background: var(--t-red); color: var(--t-paper); transform: rotate(1.5deg); }
+
+/* The home page rises while the intro fades; its top reaches the viewport
+   top exactly when the fade ends. */
+.intro-spacer { height: 60vh; }
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-cue-line { transition: none; }
+}

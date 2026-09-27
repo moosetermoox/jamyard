@@ -31,7 +31,7 @@ describe('the Start here route', () => {
     expect(card).toContain('pretend students');
     expect(card).toContain('two minutes');
     // the page's one red at rest: only this door wears it
-    const body = html.slice(html.indexOf('<body>'));
+    const body = html.slice(html.indexOf('<body'));
     expect((body.match(/t-red/g) || []).length).toBe(1);
     // never a room straight from home, never the code words
     expect(card).not.toContain('/host?');
