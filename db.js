@@ -30,6 +30,10 @@ export async function initDb() {
   // is a no-op cast. Rows saved while the column was jsonb stay sorted;
   // the server repairs recipe-born ones from their stamp on load.
   await getSql()`ALTER TABLE user_games ALTER COLUMN config TYPE JSON USING config::text::json`;
+  // The owner key (2026-09-27, engine/owner-key.js): the sha256 of the
+  // browser secret that saved the row; null = saved before the key, claimed
+  // by the first browser that lists it as its own.
+  await getSql()`ALTER TABLE user_games ADD COLUMN IF NOT EXISTS owner_key TEXT`;
   await getSql()`
     CREATE TABLE IF NOT EXISTS ai_usage (
       day    TEXT    PRIMARY KEY,
@@ -221,6 +225,24 @@ export async function insertUserGameIfAbsent(id, config) {
 export async function deleteUserGame(id) {
   const rows = await getSql()`DELETE FROM user_games WHERE id = ${id} RETURNING id`;
   return rows.length > 0;
+}
+
+// --- The owner key on a row (engine/owner-key.js has the rules) ---
+export async function getUserGameOwnerKey(id) {
+  const rows = await getSql()`SELECT owner_key FROM user_games WHERE id = ${id}`;
+  return rows[0] ? (rows[0].owner_key || null) : null;
+}
+
+export async function setUserGameOwnerKey(id, hash) {
+  await getSql()`UPDATE user_games SET owner_key = ${hash} WHERE id = ${id}`;
+}
+
+// Rows among `ids` with no key yet take this hash. Returns how many did.
+export async function claimUserGames(ids, hash) {
+  const want = Array.isArray(ids) ? ids : [];
+  if (want.length === 0) return 0;
+  const rows = await getSql()`UPDATE user_games SET owner_key = ${hash} WHERE id = ANY(${want}) AND owner_key IS NULL RETURNING id`;
+  return rows.length;
 }
 
 export async function userGameExists(id) {

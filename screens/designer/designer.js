@@ -2158,7 +2158,11 @@ function renderNoMatchView(modal, description, data, overlay) {
   title.className = 'template-picker-title';
   // A refusal on purpose (the idea would hurt someone) reads as a no,
   // never as a missing feature (a reviewer, 2026-09-26)
-  title.textContent = data && data.harm ? "We won't build that one" : "Hmm, that's beyond our recipes";
+  // No recipe fitting is not a no: the step-by-step plan builds most
+  // ideas, so the card leads with it (a reviewer read "beyond our
+  // recipes" as a turn-down of a lesson it could build, 2026-09-27)
+  var harm = !!(data && data.harm);
+  title.textContent = harm ? "We won't build that one" : "No ready-made recipe fits, so let's plan it step by step";
   modal.appendChild(title);
 
   // Reason
@@ -2166,7 +2170,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   reasonBlock.className = 'ai-no-match-reason';
   var reasonLabel = document.createElement('div');
   reasonLabel.className = 'ai-no-match-label';
-  reasonLabel.textContent = 'Why this is tricky:';
+  reasonLabel.textContent = harm ? 'Why this is tricky:' : 'Why no recipe fits:';
   reasonBlock.appendChild(reasonLabel);
   var reasonText = document.createElement('div');
   reasonText.className = 'ai-no-match-text';
@@ -2193,6 +2197,18 @@ function renderNoMatchView(modal, description, data, overlay) {
   btnRow.className = 'recipe-form-buttons';
   btnRow.style.flexWrap = 'wrap';
 
+  var storyboardBtn = document.createElement('button');
+  storyboardBtn.type = 'button';
+  storyboardBtn.className = 'recipe-create-btn';
+  storyboardBtn.textContent = 'Plan it step by step';
+  storyboardBtn.title = 'AI sketches your activity as steps you approve and edit BEFORE anything is built, the safest way to a custom activity.';
+  storyboardBtn.addEventListener('click', function () {
+    closeOverlay(overlay);
+    showStoryboardFlow(description);
+  });
+  // The plan leads; no "Plan it step by step" after a refusal on purpose
+  if (!harm) btnRow.appendChild(storyboardBtn);
+
   var cancelBtn = document.createElement('button');
   cancelBtn.type = 'button';
   cancelBtn.className = 'recipe-cancel-btn';
@@ -2210,18 +2226,6 @@ function renderNoMatchView(modal, description, data, overlay) {
     showRecipePicker();
   });
   btnRow.appendChild(pickBtn);
-
-  var storyboardBtn = document.createElement('button');
-  storyboardBtn.type = 'button';
-  storyboardBtn.className = 'recipe-create-btn';
-  storyboardBtn.textContent = 'Plan it step by step';
-  storyboardBtn.title = 'AI sketches your activity as steps you approve and edit BEFORE anything is built, the safest way to a custom activity.';
-  storyboardBtn.addEventListener('click', function () {
-    closeOverlay(overlay);
-    showStoryboardFlow(description);
-  });
-  // No "Plan it step by step" after a refusal on purpose
-  if (!(data && data.harm)) btnRow.appendChild(storyboardBtn);
 
   // Deliberately NO whole-config generator here (removed 2026-08-07):
   // if it can't be assembled from the storyboard bricks, it shouldn't be

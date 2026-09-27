@@ -284,10 +284,10 @@ describe('validator diagnostics — game snapshot', () => {
     // Empty array means the game is clean. Update if new validators land.
     const expected = {
       'class-critique': [],
-      'class-quiz-showdown': [],
+      'class-quiz-showdown': ['AUTHOR_UNGATED'], // rounds name each question's author after a transition card (advice, like Excuse Machine)
       'both-sides-rope': [],
       'one-more-thing': [],
-      'convince-me': [],
+      'convince-me': ['AUTHOR_UNGATED'], // rounds name each author after a transition card (advice, like Excuse Machine; 2026-09-27)
       'corn-story': [],
       // 2026-08-03: rank candidates come from an AI dedupe/shortlist step
       // (rank ← shortlist.result). Runtime handles AI-emitted arrays; the
@@ -296,7 +296,7 @@ describe('validator diagnostics — game snapshot', () => {
       'art-gallery': [],
       'someones-got-you': [],
       'whose-eyes': [],
-      'emoji-movies': [],
+      'emoji-movies': ['AUTHOR_UNGATED'], // rounds name each author after a transition card (advice, like Excuse Machine; 2026-09-27)
       'elimination-game': [],
       // 2026-08-30: blind six-hand rotation chain assembled by the
       // template chain display (recipe-born, exquisite-corpse recipe).
@@ -308,7 +308,7 @@ describe('validator diagnostics — game snapshot', () => {
       // via the no-winners quiz brick, promoted to built-in (prod runs
       // DB-less, so repo files are the only durable store on the live site).
       'good-question-bad-question': [],
-      'last-one-standing': [],
+      'last-one-standing': ['AUTHOR_UNGATED'], // rounds name each author after a transition card (advice, like Excuse Machine; 2026-09-27)
       // 2026-09-26: its rating rounds show each excuse with the author's name and no review step (advice, not repaired: a made-up excuse, not in the yard)
       'excuse-machine': ['AUTHOR_UNGATED'],
       // 2026-08-02 coherence sweep: feedback-academy's judge-result leaderboards
@@ -330,7 +330,7 @@ describe('validator diagnostics — game snapshot', () => {
       // showcase, born from the owner's failed creator attempt).
       'story-ingredients': [],
       'story-quest': [],
-      'two-truths-a-lie': [],
+      'two-truths-a-lie': ['AUTHOR_UNGATED'], // rounds name each author after a transition card (advice, like Excuse Machine; 2026-09-27)
       'vocab-match': [],
       'charades-bowl': [],
       'closer': [],

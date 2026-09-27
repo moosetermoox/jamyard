@@ -51,16 +51,12 @@
       ],
       "visibility": "all",
       "timer": 60,
-      "next": "phase-4"
+      "next": "end",
+      "discussionPrompt": "Where did we disagree the most? Presenter, which score surprised you, and what's one thing you'd change based on the charts?"
     },
     "end": {
       "type": "end",
       "message": "Critique complete."
-    },
-    "phase-4": {
-      "type": "announce",
-      "message": "Talk it out\n\nWhere did we disagree the most? Presenter, which score surprised you, and what's one thing you'd change based on the charts?",
-      "next": "end"
     }
   },
   "playTime": "~5–10 min",

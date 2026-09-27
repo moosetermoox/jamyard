@@ -39,7 +39,6 @@ This is a curated compilation, not original writing. I excluded jokes containing
 37. Why was Pavlov's beard so soft?  Because he conditioned it.
 38. Do I enjoy making courthouse puns? Guilty
 39. Why did the kid throw the clock out the window? He wanted to see time fly!
-40. Hear about the new restaurant called Karma? There’s no menu: You get what you deserve.
 41. Why couldn't the kid see the pirate movie? Because it was rated arrr!
 42. It was so cold yesterday my computer froze. My own fault though, I left too many windows open.
 43. What did the traffic light say to the car as it passed? "Don't look I'm changing!"
@@ -143,7 +142,6 @@ Squash.
 141. A magician was driving down the street and then he turned into a driveway.
 142. Don't trust atoms. They make up everything.
 143. If you walk into a forest and cut down a tree, but the tree doesn't understand why you cut it down, do you think it's stumped?
-144. Where do bees go to the bathroom?  The BP station.
 145. What is the best way to carve?
 Whittle by whittle.
 146. What's a ninja's favorite type of shoes? Sneakers!
@@ -197,7 +195,6 @@ Doctor: we're naming a disease after you.
 192. I tried to write a chemistry joke, but could never get a reaction.
 193. I gave my friend 10 puns hoping that one of them would make him laugh. Sadly, no pun in ten did.
 194. What do computers and air conditioners have in common? They both become useless when you open windows.
-195. What do you call a monkey in a mine field? A babooooom!
 196. Scientists finally did a study on forks. It's about tine!
 197. I cut my finger cutting cheese. I know it may be a cheesy story but I feel grate now.
 198. How do you steal a coat? You jacket.
@@ -373,7 +370,6 @@ They're always plotting something.
 372. What do you call an elephant that doesn’t matter? An irrelephant.
 373. What do you call a group of disorganized cats? A cat-tastrophe.
 374. What is bread's favorite number?  Leaven.
-375. Why can’t you hear a pterodactyl go to the bathroom? The p is silent.
 376. How do you know if there’s an elephant under your bed? Your head hits the ceiling!
 377. How do you teach a kid to climb stairs? There is a step by step guide.
 378. Where do owls go to buy their baby clothes? The owlet malls.
@@ -396,7 +392,6 @@ They're always plotting something.
 399. People saying 'boo! to their friends has risen by 85% in the last year.... That's a frightening statistic.
 400. Geology rocks, but Geography is where it's at!
 401. Why does Han Solo like gum? It's chewy!
-402. I was at the library and asked if they have any books on "paranoia", the librarian replied, "yes, they are right behind you"
 403. Have you heard of the band 1023MB? They haven't got a gig yet.
 404. The urge to sing the Lion King song is just a whim away.
 405. What happens when you anger a brain surgeon? They will give you a piece of your mind.

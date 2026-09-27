@@ -90,6 +90,28 @@ describe('the review gate on read', () => {
     const result = validate(oldGuessWho(), 'guess-who', { returnResults: true });
     expect(result.warnings.join('\n')).toMatch(/AUTHOR_UNGATED|before the rounds/);
   });
+  // The live Guess Who: Rose, Bud, Thorn row (2026-09-27, an eleventh
+  // review): collect -> a "Now we guess" announce -> the rounds. The
+  // gate goes right after the collect and approve continues to the card.
+  it('follows an announce between the collect and the rounds; the gate lands after the collect', () => {
+    const cfg = oldGuessWho();
+    cfg.phases.ask.next = 'transition';
+    cfg.phases.transition = { type: 'announce', message: 'Time to guess who wrote what.', next: 'rounds' };
+    expect(ungatedRounds(cfg, { secretOnly: true })).toEqual([['ask', 'rounds']]);
+    expect(ensureReviewGate(cfg, { secretOnly: true })).toEqual(['rounds-check']);
+    expect(Object.keys(cfg.phases)).toEqual(['lobby', 'ask', 'rounds-check', 'rounds', 'end', 'transition']);
+    expect(cfg.phases.ask.next).toBe('rounds-check');
+    expect(cfg.phases['rounds-check']).toEqual({ type: 'preview', template: GATE_TEMPLATE, approveNext: 'transition', rejectNext: 'ask' });
+    expect(validate(cfg, 'guess-who', { returnResults: true }).errors).toEqual([]);
+    expect(ensureReviewGate(cfg)).toEqual([]);
+    expect(audienceFor(cfg, 'ask').key).toBe(AUDIENCE.GUESSED_AFTER_REVIEW);
+  });
+  it('a step that is not an announce on the way (a preview, another collect) counts as a gate or a break', () => {
+    const cfg = oldGuessWho();
+    cfg.phases.ask.next = 'pick';
+    cfg.phases.pick = { type: 'collect-choice', prompt: 'Ready?', choices: ['Yes', 'No'], next: 'rounds' };
+    expect(ungatedRounds(cfg)).toEqual([]);
+  });
 });
 
 describe('heavyTopic', () => {

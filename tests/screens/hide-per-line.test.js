@@ -99,8 +99,8 @@ describe('the surfaces', () => {
   });
   it('a refusal on purpose reads as a no, with no Plan it step by step', () => {
     const designer = read('screens/designer/designer.js');
-    expect(designer).toContain("data && data.harm ? \"We won't build that one\"");
-    expect(designer).toContain('if (!(data && data.harm)) btnRow.appendChild(storyboardBtn);');
+    expect(designer).toContain("harm ? \"We won't build that one\"");
+    expect(designer).toContain('if (!harm) btnRow.appendChild(storyboardBtn);');
     expect(designer).toContain('resp.harm ? ' + String.fromCharCode(39) + 'We won' + String.fromCharCode(92, 39) + 't build that one' + String.fromCharCode(39));
     const ai = read('services/ai-service.js');
     expect(ai).toContain('"harm": true');

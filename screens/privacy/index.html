@@ -148,7 +148,7 @@
           <td>Teacher-created activities and recipes</td>
           <td>Teacher-authored content, so it survives redeploys</td>
           <td>Database</td>
-          <td>Until the teacher or the site owner deletes them. A structural rule keeps student work out of saved activities: nothing students submit is ever folded into a saved object.</td>
+          <td>Until the teacher or the site owner deletes them. A structural rule keeps student work out of saved activities: nothing students submit is ever folded into a saved object. Each saved activity also carries a scrambled (hashed) copy of a random key the teacher's browser made for itself, so only that browser, or the site owner, can change or delete it. The key identifies a browser, never a person.</td>
         </tr>
         <tr>
           <td>Site usage events from teacher pages: which page was opened and when it was left, grouped into a visit by a random per-tab id, which door was pressed, how an idea landed on the Create page, where the visit came from (the referring site's name, and the campaign tag when the link was one of ours), the country and region of the connection, plus one line when a room opens, starts, ends, or closes without ending (activity name for built-in activities, "custom" for anything a teacher made, headcount, minutes, which step of how many the room was on, and whether the students were real or pretend)</td>

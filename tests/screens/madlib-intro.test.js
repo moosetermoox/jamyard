@@ -75,7 +75,7 @@ describe('MadlibIntro words and timeline', () => {
     const slots = (ls) => ls.flatMap((l) => l.tokens).filter((t) => t.kind === 'reel' || t.kind === 'period').map((t) => t.slot);
     expect(slots(wide)).toEqual([0, 1, 2]);
     expect(slots(stack)).toEqual([0, 1, 2]);
-    const text = (ls) => ls.flatMap((l) => l.tokens).map((t) => t.kind === 'words' ? t.text : t.kind === 'mark' ? 'JAMYARD' : '_').join(' ');
+    const text = (ls) => ls.flatMap((l) => l.tokens).map((t) => (t.kind === 'words' || t.kind === 'link') ? t.text : t.kind === 'mark' ? 'JAMYARD' : '_').join(' ');
     expect(text(wide)).toBe('JAMYARD is a _ of whole-class activities for _ Use them, _ them, or create your own.');
     expect(text(stack)).toBe('JAMYARD is a _ of whole-class activities for _ Use them, _ them, or create your own.');
     // the words fade up a tenth of a second per line, after the wordmark
