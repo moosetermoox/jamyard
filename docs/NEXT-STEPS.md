@@ -35,7 +35,7 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-09-27, night: branch `review-twelve`, PR open; #117 `review-eleven` MERGED 20ae1de and live)
+### START HERE next session (updated 2026-09-27, night: #119 `review-twelve` MERGED, master deploys via CI; the local :3000 server runs it)
 
 **A twelfth outside review, in one paragraph.** A first-time-teacher walk on desktop and at 390px. Fixed on `review-twelve`: the match card's raw JSON and true/false (words and On/Off now), the talk note on a quiz plan (a three-to-one rule), link previews and a tab icon (og-image.png, favicon.svg on every page), the example note claiming the whole page ("The first question is filled in for ..."), the projector's rating results (bars per value, one header, bigger), "Room not found" (now says to check the big screen, every language), the feedback button over + Add another student, Nunito (never loaded), the Create page's box beside Make it on a phone, the join page with no wordmark, the no-results line under a chip, "Show the message" on a message already up ("Next step"), skip ahead's silence (a live line), the word MIC (a drawn mic). Owner's calls: the content cards' blank planks at rest stay (the reviewer read them as a failed load); the contact address later; COPPA is a compliance-doc question, not code. Suite 2817, the Windows CRLF assertion the only failure.
 
