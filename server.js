@@ -12,6 +12,8 @@ import { GameEngine } from './engine/game-engine.js';
 import { loadGame, validate, getAllowedFields, listGames, resolveGamePath } from './engine/game-loader.js';
 import { validateSampleAnswers } from './engine/sample-answers.js';
 import { parseMine, wantedUserIds } from './engine/games-list-scope.js';
+import { ownerHashFromRequest, writeDecision, NOT_YOURS_MESSAGE } from './engine/owner-key.js';
+import { createOwnerKeyStore } from './services/owner-keys.js';
 import { normalizeConfig } from './engine/normalizer.js';
 import { PHASE_SCHEMAS, getFields, getTopLevelOnlyFieldNames } from './engine/phase-schemas.js';
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
@@ -129,6 +131,9 @@ import {
   saveUserGame,
   insertUserGameIfAbsent,
   deleteUserGame,
+  getUserGameOwnerKey,
+  setUserGameOwnerKey,
+  claimUserGames,
   userGameExists,
   getAiUsage,
   saveAiUsage,
@@ -389,6 +394,27 @@ app.use(express.json());
 // console credential (engine/teacher-auth.js) and guards edits/deletes of
 // BUILT-IN activities. Unset = everything open (local dev).
 // Username can be anything — only the password is checked.
+// The owner key store (engine/owner-key.js has the why: a saved activity
+// can only be changed or deleted by the browser that saved it).
+const ownerKeys = createOwnerKeyStore({ dataDir: join(__dirname, 'data') });
+
+// May this request change user row `gameId`? Answers the request itself
+// on a no (403 with the teacher's line) and returns false; on a claim it
+// writes the key first. `claim: false` (a delete) leaves an unowned row
+// alone and refuses: the row waits for the browser that remembers it.
+async function mayWriteUserGame(req, res, gameId, { claim = true } = {}) {
+  const presented = ownerHashFromRequest(req);
+  const stored = await ownerKeys.get(gameId);
+  const decision = writeDecision({ storedHash: stored, presentedHash: presented, owner: isOwnerRequest(req) });
+  if (decision === 'deny' || (decision === 'claim' && !claim)) {
+    console.log(`[owner-key] refused ${req.method} on ${gameId} (${decision}${stored ? ', owned' : ', unowned'})`);
+    res.status(403).json({ error: NOT_YOURS_MESSAGE, notYours: true });
+    return false;
+  }
+  if (decision === 'claim') await ownerKeys.stamp(gameId, presented);
+  return true;
+}
+
 function isOwnerRequest(req) {
   if (!process.env.SITE_PASSWORD) return true; // unset = local dev, no owner concept
   const header = req.headers.authorization || '';
@@ -3046,6 +3072,14 @@ app.delete('/api/recipes/user/:id', async (req, res) => {
 app.get('/api/games', async (req, res) => {
   try {
     const mine = parseMine(req.query.mine);
+    // The browser that lists a row as its own claims it if nobody has yet
+    // (rows saved before the owner key, 2026-09-27); never a featured row
+    // it did not list, and never without a key.
+    const presented = ownerHashFromRequest(req);
+    if (mine && mine.length && presented) {
+      const claimed = await ownerKeys.claimMany(mine, presented);
+      if (claimed) console.log(`[owner-key] ${claimed} row(s) claimed on list`);
+    }
     const overrides = await featuredOverridesSafe();
     const wanted = mine ? wantedUserIds(mine, overrides) : null;
     const loaded = await listGames({ builtInOnly: DB_ENABLED });
@@ -3349,9 +3383,11 @@ app.put('/api/games/:gameId', async (req, res) => {
     }
     validate(config, gameId);
     if (DB_ENABLED && await userGameExists(gameId)) {
+      if (!await mayWriteUserGame(req, res, gameId)) return;
       await saveUserGame(gameId, config);
     } else {
       const { configPath, source } = await resolveGamePath(gameId);
+      if (source === 'user' && !await mayWriteUserGame(req, res, gameId)) return;
       // The site is public: anyone may create and edit their own activities,
       // but only the owner may modify the shipped built-ins.
       if (source === 'built-in' && !isOwnerRequest(req)) {
@@ -3414,6 +3450,7 @@ app.post('/api/games', async (req, res) => {
       await mkdir(userGameDir, { recursive: true });
       await writeFile(join(userGameDir, 'config.json'), JSON.stringify(config, null, 2));
     }
+    await ownerKeys.stamp(id, ownerHashFromRequest(req));
     // Ideas log: a save that came out of a Create-page try marks its row
     // (the id the try handed back). Fire-and-forget; an unknown id is a no-op.
     if (isIdeaId(req.body.ideaId)) {
@@ -3462,6 +3499,7 @@ app.post('/api/games/:gameId/copy', async (req, res) => {
       await mkdir(userGameDir, { recursive: true });
       await writeFile(join(userGameDir, 'config.json'), JSON.stringify(config, null, 2));
     }
+    await ownerKeys.stamp(newId, ownerHashFromRequest(req));
     console.log(`[api/games copy] ${req.params.gameId} -> ${newId}`);
     res.json({ success: true, id: newId, name: config.name });
   } catch (error) {
@@ -3632,6 +3670,7 @@ app.post('/api/games/:gameId/sample-answers', async (req, res) => {
     if (!own) {
       return res.status(400).json({ error: 'A ready-made activity keeps its own sample answers.' });
     }
+    if (!await mayWriteUserGame(req, res, gameId)) return;
     if (config.sampleAnswers && typeof config.sampleAnswers === 'object') {
       return res.json({ sampleAnswers: config.sampleAnswers, written: false });
     }
@@ -4254,9 +4293,12 @@ app.delete('/api/games/:gameId', async (req, res) => {
       return res.status(400).json({ error: 'Cannot delete template directories.' });
     }
     if (DB_ENABLED && await userGameExists(gameId)) {
+      if (!await mayWriteUserGame(req, res, gameId, { claim: false })) return;
       await deleteUserGame(gameId);
     } else {
       const { gameDir, source } = await resolveGamePath(gameId);
+      if (source === 'user' && !await mayWriteUserGame(req, res, gameId, { claim: false })) return;
+      if (source === 'user') await ownerKeys.forget(gameId);
       // Public site: deleting a shipped built-in is owner-only.
       if (source === 'built-in' && !isOwnerRequest(req)) {
         res.set('WWW-Authenticate', 'Basic realm="Jamyard Owner Area"');
