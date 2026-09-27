@@ -540,19 +540,20 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount, opts) {
 }
 
 // The bluff Customize panel (recipes with setupPanel:"bluff", Trivia
-// Bluff): where do the facts come from? Three doors: the AI finds facts
-// live during the game (the classic), the AI writes a reviewable list
-// now, or the teacher writes their own. The two prepared doors share one
-// editable fact list; nothing is saved until the teacher has the list in
-// front of them (the wrong-facts review gate, same as the quiz panel).
+// Bluff): where do the facts come from? Two doors: the teacher writes
+// their own, or the fact scout finds them (2026-09-27: encyclopedia
+// articles on a topic are read and every round comes back with the
+// sentence it rests on and a link; nothing is written from the AI's
+// memory, and the live-during-the-game mode is gone, owner's call). Both
+// doors share one editable fact list; nothing is saved until the teacher
+// has the list in front of them (the wrong-facts review gate, same as
+// the quiz panel).
 function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
   var stamp = config.recipe;
   var questions = JSON.parse(JSON.stringify(stamp.params.questions || []));
   var knobs = SetupKnobs.knobsFor(recipeSummary, stamp);
-  var roundsKnob = null;
   var lieTimerKnob = null;
   knobs.forEach(function (k) {
-    if (k.name === 'rounds') roundsKnob = k;
     if (k.name === 'lieTimer') lieTimerKnob = k;
   });
 
@@ -578,7 +579,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
   modal.appendChild(subtitle);
   if (!mount) renderClassPicker(modal);
 
-  // --- The three source doors ---
+  // --- The two source doors ---
   // The teacher's own facts first (owner 2026-09-26: the AI is not the default)
   var SOURCES = [
     {
@@ -587,19 +588,12 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
       detail: 'Fill-in-the-blank facts with the real answer, written by you.'
     },
     {
-      id: 'ai-now',
-      title: 'AI writes the facts now',
-      detail: 'Give a topic, get a fact list you can check and edit before class.'
-    },
-    {
-      id: 'live',
-      title: 'AI picks facts during the game',
-      detail: 'Fresh obscure facts every time you play. You see each fact when the class does.'
+      id: 'scout',
+      title: 'Find facts about a topic',
+      detail: 'Encyclopedia articles on your topic get read for you. Each fact comes with the sentence it was found in and a link, so you can check it.'
     }
   ];
-  // The teacher's own facts are the default (owner 2026-09-26: not the
-  // AI); live AI facts only when the copy already says so
-  var selectedSource = stamp.params.questionSource === 'live' ? 'live' : 'own';
+  var selectedSource = 'own';
 
   var sourceRow = document.createElement('div');
   sourceRow.setAttribute('role', 'radiogroup');
@@ -627,29 +621,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
   });
   modal.appendChild(sourceRow);
 
-  // --- Live section: how many rounds ---
-  var liveSection = document.createElement('div');
-  var roundsLabel = document.createElement('label');
-  roundsLabel.style.cssText = LABEL_CSS;
-  roundsLabel.textContent = (roundsKnob ? roundsKnob.label : 'How many rounds') +
-    (roundsKnob && roundsKnob.min != null ? ' (' + roundsKnob.min + '–' + roundsKnob.max + ')' : '');
-  if (roundsKnob && roundsKnob.helper) roundsLabel.title = roundsKnob.helper;
-  liveSection.appendChild(roundsLabel);
-  var roundsInput = document.createElement('input');
-  roundsInput.type = 'number';
-  roundsInput.min = roundsKnob && roundsKnob.min != null ? roundsKnob.min : 1;
-  roundsInput.max = roundsKnob && roundsKnob.max != null ? roundsKnob.max : 6;
-  roundsInput.value = roundsKnob ? roundsKnob.value : 3;
-  roundsInput.style.cssText = 'width:120px; ' + INPUT_CSS;
-  // A typed number outside the range snaps back when the box is left
-  // (2026-09-26, a reviewer typed 99 into a box labelled 1-6 and it stayed)
-  roundsInput.addEventListener('change', function () {
-    roundsInput.value = clampedInt(roundsInput, parseInt(roundsInput.min, 10), parseInt(roundsInput.max, 10), roundsKnob ? roundsKnob.value : 3);
-  });
-  liveSection.appendChild(roundsInput);
-  modal.appendChild(liveSection);
-
-  // --- Topic section (AI writes now) ---
+  // --- Topic section (the fact scout) ---
   var topicSection = document.createElement('div');
   var topicLabel = document.createElement('label');
   topicLabel.style.cssText = LABEL_CSS;
@@ -659,26 +631,30 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
   topicRow.style.cssText = 'display:flex; gap:8px; align-items:center; flex-wrap:wrap;';
   var topicInput = GrowingText.create({
     css: 'flex:1; min-width:200px; ' + INPUT_CSS,
-    placeholder: 'e.g. ocean animals, ancient Rome, anything surprising'
+    placeholder: 'e.g. penguins, the Roman army, the postal service'
   });
   topicRow.appendChild(topicInput);
-  var countLabel = document.createElement('label');
-  countLabel.style.cssText = 'font-weight:700; font-family:"DM Sans", Arial, sans-serif; white-space:nowrap;';
-  countLabel.textContent = 'How many:';
-  topicRow.appendChild(countLabel);
-  var countInput = document.createElement('input');
-  countInput.type = 'number';
-  countInput.min = 1;
-  countInput.max = 10;
-  countInput.value = Math.min(10, Math.max(1, questions.length || 3));
-  countInput.style.cssText = 'width:70px; ' + INPUT_CSS;
-  topicRow.appendChild(countInput);
   var writeBtn = document.createElement('button');
   writeBtn.type = 'button';
   writeBtn.className = 'recipe-cancel-btn';
-  writeBtn.textContent = 'Write my facts';
+  writeBtn.textContent = 'Find facts';
   topicRow.appendChild(writeBtn);
   topicSection.appendChild(topicRow);
+  var topicHint = document.createElement('p');
+  topicHint.className = 'template-picker-subtitle';
+  topicHint.textContent = 'A few encyclopedia articles on the topic get read, and the facts that would fool a class come back with the sentence each was found in. It takes about a minute. Tick the ones you want.';
+  topicSection.appendChild(topicHint);
+  // The found facts, each with its sentence and a link, ticked into the list
+  var scoutWrap = document.createElement('div');
+  scoutWrap.style.cssText = 'margin-top:8px;';
+  topicSection.appendChild(scoutWrap);
+  var addFoundBtn = document.createElement('button');
+  addFoundBtn.type = 'button';
+  addFoundBtn.className = 'recipe-cancel-btn';
+  addFoundBtn.textContent = 'Add the ticked facts';
+  addFoundBtn.style.marginTop = '8px';
+  addFoundBtn.hidden = true;
+  topicSection.appendChild(addFoundBtn);
   modal.appendChild(topicSection);
 
   var status = document.createElement('p');
@@ -815,9 +791,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
         : '0 2px 3px rgba(50,35,15,0.18)';
       card.style.opacity = on ? '1' : '0.85';
     });
-    liveSection.hidden = selectedSource !== 'live';
-    topicSection.hidden = selectedSource !== 'ai-now';
-    listSection.hidden = selectedSource === 'live';
+    topicSection.hidden = selectedSource !== 'scout';
   }
   renderSourceState();
 
@@ -850,65 +824,119 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
     });
   }
 
+  // The found facts: a card each with a tick, the sentence it came from,
+  // and a link to the page; ticked ones join the editable list above
+  var found = [];
+  function renderFound() {
+    scoutWrap.textContent = '';
+    addFoundBtn.hidden = found.length === 0;
+    found.forEach(function (f, fi) {
+      var card = document.createElement('label');
+      card.style.cssText = 'display:block; background:#FDF9F0; box-shadow: 0 2px 3px rgba(50,35,15,0.16); padding:10px 12px; margin-bottom:8px; cursor:pointer; font-family:"DM Sans", Arial, sans-serif;';
+      var head = document.createElement('div');
+      head.style.cssText = 'display:flex; align-items:flex-start; gap:8px;';
+      var tick = document.createElement('input');
+      tick.type = 'checkbox';
+      tick.checked = !!f.picked;
+      tick.setAttribute('data-role', 'found-tick');
+      tick.setAttribute('aria-label', 'Use fact ' + (fi + 1));
+      tick.addEventListener('change', function () { f.picked = tick.checked; });
+      head.appendChild(tick);
+      var words = document.createElement('div');
+      words.style.cssText = 'flex:1;';
+      var q = document.createElement('div');
+      q.style.cssText = 'font-weight:700;';
+      q.textContent = f.question;
+      words.appendChild(q);
+      var a = document.createElement('div');
+      a.style.cssText = 'margin-top:2px; font-weight:600;';
+      a.textContent = 'The real answer: ' + f.truth + (f.houseLie ? '. Decoy: ' + f.houseLie : '');
+      words.appendChild(a);
+      if (f.source && f.source.quote) {
+        var quote = document.createElement('div');
+        quote.style.cssText = 'margin-top:6px; font-size:0.9rem; opacity:0.8; font-style:normal;';
+        quote.textContent = 'Found in: “' + f.source.quote + '”';
+        words.appendChild(quote);
+      }
+      if (f.source && f.source.url) {
+        var link = document.createElement('a');
+        link.href = f.source.url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.style.cssText = 'display:inline-block; margin-top:4px; font-size:0.85rem; font-weight:700; color:#2A2620;';
+        link.textContent = 'Open the page: ' + (f.source.title || 'Wikipedia');
+        link.addEventListener('click', function (e) { e.stopPropagation(); });
+        words.appendChild(link);
+      }
+      head.appendChild(words);
+      card.appendChild(head);
+      scoutWrap.appendChild(card);
+    });
+  }
+
+  addFoundBtn.addEventListener('click', function () {
+    var picked = found.filter(function (f) { return f.picked; });
+    if (!picked.length) { showStatus('Tick at least one fact first.'); return; }
+    // The template's own three go when the teacher's first found facts land
+    if (questions.length && JSON.stringify(questions) === JSON.stringify(stamp.params.questions || [])) questions = [];
+    picked.forEach(function (f) {
+      if (questions.length >= 10) return;
+      questions.push({ question: f.question, truth: f.truth, houseLie: f.houseLie || '' });
+    });
+    found = found.filter(function (f) { return !f.picked; });
+    renderFound();
+    renderQuestions();
+    showStatus(questions.length >= 10 ? 'That is the most facts a game holds, ten.' : 'Added. Check each one in the list, and fix or drop anything that looks off.');
+  });
+
   writeBtn.addEventListener('click', function () {
     var topic = topicInput.value.trim();
-    if (topic.length < 3) {
-      showStatus('Give a topic first, a few words is plenty.');
+    if (topic.length < 2) {
+      showStatus('Give a topic first, a word or two is plenty.');
       topicInput.focus();
       return;
     }
-    var n = clampedInt(countInput, 1, 10, 3);
     writeBtn.disabled = true;
     doors.setDisabled(true);
-    writeBtn.textContent = 'Writing…';
-    showStatus('Writing ' + n + ' facts about "' + topic + '", this can take ~20 seconds.');
-    fetch('/api/games/bluff-facts', {
+    writeBtn.textContent = 'Reading…';
+    showStatus('Reading a few articles about "' + topic + '". This takes about a minute.');
+    fetch('/api/games/fact-scout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        topic: topic,
-        count: n,
-        classDescription: window.TeacherProfile ? TeacherProfile.describe() : ''
-      })
+      body: JSON.stringify({ topic: topic })
     })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
       .then(function (result) {
-        if (!result.ok || result.data.error || !Array.isArray(result.data.questions)) {
-          throw new Error(result.data.error || 'no facts came back');
+        if (!result.ok || result.data.error || !Array.isArray(result.data.rounds)) {
+          throw new Error(result.data.error || 'nothing came back');
         }
-        questions = result.data.questions;
-        renderQuestions();
-        showStatus('Check every fact before you save, fix or drop anything that looks wrong.');
-        listWrap.scrollTop = 0;
+        found = result.data.rounds.map(function (f) { return Object.assign({ picked: true }, f); });
+        renderFound();
+        if (!found.length) {
+          showStatus('Nothing in the articles on "' + topic + '" would make a good round. Try a broader topic, or a different one.');
+        } else {
+          showStatus('Found ' + found.length + '. Each one shows the sentence it came from, so you can check it. Untick any you do not want, then add them.');
+        }
       })
       .catch(function (err) {
-        showStatus('Could not write facts: ' + err.message);
+        showStatus('Could not find facts: ' + err.message);
       })
       .then(function () {
         writeBtn.disabled = false;
         doors.setDisabled(false);
-        writeBtn.textContent = 'Write my facts';
+        writeBtn.textContent = 'Find facts';
       });
   });
 
   function makeCopy(dest, extras) {
     var params = JSON.parse(JSON.stringify(stamp.params));
-    if (selectedSource === 'live') {
-      params.questionSource = 'live';
-      params.rounds = clampedInt(roundsInput,
-        roundsKnob && roundsKnob.min != null ? roundsKnob.min : 1,
-        roundsKnob && roundsKnob.max != null ? roundsKnob.max : 6,
-        roundsKnob ? roundsKnob.value : 3);
-    } else {
-      var cleaned = cleanedList();
-      var problems = SetupKnobs.validateBluffList(cleaned);
-      if (problems.length > 0) {
-        showStatus(problems.slice(0, 2).join(' '));
-        return false;
-      }
-      params.questionSource = 'prepared';
-      params.questions = cleaned;
+    var cleaned = cleanedList();
+    var problems = SetupKnobs.validateBluffList(cleaned);
+    if (problems.length > 0) {
+      showStatus(problems.slice(0, 2).join(' '));
+      return false;
     }
+    params.questions = cleaned;
     params.lieTimer = clampedInt(timerInput,
       lieTimerKnob && lieTimerKnob.min != null ? lieTimerKnob.min : 15,
       lieTimerKnob && lieTimerKnob.max != null ? lieTimerKnob.max : 180,

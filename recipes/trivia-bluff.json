@@ -2,31 +2,22 @@
   "id": "trivia-bluff",
   "name": "Trivia Bluff",
   "icon": "🕵️",
-  "description": "Round by round, an obscure real fact with a blank. Students write believable lies to fill it, then everyone votes for the truth among the fakes. Points for spotting the truth, points for every classmate your lie fools. Facts can come from the AI live during the game, or from a question list you write or review ahead of time.",
+  "description": "Round by round, an obscure real fact with a blank. Students write believable lies to fill it, then everyone votes for the truth among the fakes. Points for spotting the truth, points for every classmate your lie fools. The facts are yours: written by you, or found for you in encyclopedia articles on a topic, each with the sentence it came from, so you can check every one before class.",
   "tagline": "A bluffing game: everyone writes a believable fake, then hunts for the true answer among them. It gets sharper with every round.",
-  "version": "1",
+  "version": "2",
+  "replaceOnRead": ["1"],
   "setupPanel": "bluff",
   "parameters": {
-    "questionSource": {
-      "type": "enum",
-      "values": [
-        "live",
-        "prepared"
-      ],
-      "default": "prepared",
-      "label": "Where the facts come from",
-      "helper": "prepared (the default, owner 2026-09-26): the game uses the fact list below, written by you or by the AI ahead of time so you can check every one. live: the AI finds a fresh fact for each round while you play."
-    },
     "questions": {
       "type": "array",
       "maxItems": 10,
       "default": [
-        { "question": "An octopus has ___ hearts.", "truth": "three", "houseLie": "five" },
-        { "question": "Honey found sealed in ancient Egyptian tombs was still ___ after thousands of years.", "truth": "edible", "houseLie": "fizzing" },
-        { "question": "The Eiffel Tower gets about 15 centimeters ___ in summer, because its iron expands in the heat.", "truth": "taller", "houseLie": "wider" }
+        { "question": "The Roman emperor Augustus prohibited serving legionaries from ___, a decree that stayed in force for two centuries.", "truth": "marrying", "houseLie": "owning land" },
+        { "question": "Because of their size, the males of the African driver ant are called \"___\".", "truth": "sausage flies", "houseLie": "thunder beetles" },
+        { "question": "In 1885 the German writer Heinrich Böhnke-Reich warned against using old ___ as coffee filters.", "truth": "wallpaper", "houseLie": "newspaper" }
       ],
-      "label": "Prepared facts",
-      "helper": "Only used when facts are prepared. Each is a sentence with a blank shown as ___ plus the real answer. The decoy is an optional extra wrong choice to mix in with student lies.",
+      "label": "The facts",
+      "helper": "Each is a sentence with a blank shown as ___ plus the real answer. The decoy is an optional extra wrong choice to mix in with student lies. One round per fact.",
       "item": {
         "type": "object",
         "fields": {
@@ -51,15 +42,6 @@
         }
       }
     },
-    "rounds": {
-      "type": "integer",
-      "label": "How many rounds",
-      "helper": "Each round is a fresh AI-found fact: write lies, then vote. Plan on 6 to 8 minutes per round. Only used when facts come from the AI live; prepared facts play one round per fact.",
-      "default": 3,
-      "min": 1,
-      "max": 6,
-      "setup": true
-    },
     "lieTimer": {
       "type": "integer",
       "label": "Lie-writing time (seconds)",
@@ -82,93 +64,24 @@
         "type": "announce",
         "message": "TRIVIA BLUFF!\n\nYou'll see an obscure fact with a blank. Write a believable lie to fill it in. The class will then try to spot the truth, but your lie might fool them!",
         "timer": 10,
-        "next": {
-          "$if": "questionSource=prepared",
-          "$value": "qshow1",
-          "$else": "fact1"
-        }
-      },
-      "$repeat-live": {
-        "forEach": "rounds",
-        "phases": {
-          "fact${i}": {
-            "$if": "questionSource=live",
-            "type": "ai-process",
-            "task": "generate",
-            "format": "json",
-            "instruction": "Generate ONE classroom-appropriate, obscure-but-real trivia fact for a fill-in-the-blank bluffing game. This is round ${i} of ${n} in one session. So that rounds never repeat a topic, pick this round's category by its number: 1 = your pick, any surprising topic; 2 = geography or world places; 3 = animals or nature; 4 = food and drink; 5 = history or inventions; 6 = sports, games, or odd laws. This is round ${i}, so use category ${i}, and within it choose an unexpected fact. Return ONLY a JSON object (no preamble) with these fields:\n  - category: short topic name (e.g. \"Geography\", \"Science\", \"History\")\n  - question: a sentence with a blank shown as ___ that students will try to guess. Keep it specific. (e.g. \"The mayor of Rabbit Hash, Kentucky is a ___.\")\n  - truth: the real word or short phrase that fills the blank (e.g. \"dog\")\n  - houseLie: a believable but wrong alternative of the same kind as the truth (e.g. \"chicken\")\n\nWhat makes a good blank: the truth is a WORD or SHORT PHRASE (a thing, a creature, a job, a place, a food, the name of something), never a number, year, date, age, count, or measurement. Numbers make dull bluffs, and a sentence that mentions two dates has already handed over the answer (\"performed the role for ___ years from 1955 until 1990\" is arithmetic, not trivia). The sentence must not contain clues that let a student work out the answer, and the fact must be obscure enough that nobody in the room already knows it, yet believable once revealed.\n\nMake sure the truth is genuinely surprising and that a thoughtful classroom guess could plausibly land on the truth or a lie. No politics, no sensitive topics. Before you answer, check your fact twice: it must be TRUE, and the blank must have exactly ONE correct answer that a well-read person would accept (never \"the only X\" claims that have a second case, never a blank several words could fill). If your first idea fails either check, replace it. A wrong \"truth\" teaches the class something false and punishes the student who knew better.",
-            "next": "show${i}",
-            "continueLabel": "Start the round"
-          },
-          "show${i}": {
-            "$if": "questionSource=live",
-            "type": "announce",
-            "message": "Round ${i} of ${n}\n\nCategory: {{fact${i}.result.category}}\n\n{{fact${i}.result.question}}\n\nWrite your most believable lie!",
-            "timer": 8,
-            "next": "lies${i}"
-          },
-          "lies${i}": {
-            "$if": "questionSource=live",
-            "type": "collect",
-            "prompt": "{{fact${i}.result.question}}\n\nWrite a lie that could fool the class.",
-            "timer": "${lieTimer}",
-            "next": "vote${i}"
-          },
-          "vote${i}": {
-            "$if": "questionSource=live",
-            "type": "collect-choice",
-            "prompt": "Which one is the TRUTH?\n\n{{fact${i}.result.question}}",
-            "choicePool": [
-              {
-                "from": "lies${i}.responses",
-                "field": "text"
-              },
-              {
-                "literal": "{{fact${i}.result.truth}}"
-              },
-              {
-                "literal": "{{fact${i}.result.houseLie}}",
-                "optional": true
-              }
-            ],
-            "excludeAuthored": "lies${i}",
-            "shuffle": true,
-            "poolLimit": 8,
-            "correctAnswer": "{{fact${i}.result.truth}}",
-            "pointsCorrect": 100,
-            "speedBonus": false,
-            "foolPoints": 50,
-            "timer": 40,
-            "next": "reveal${i}"
-          },
-          "reveal${i}": {
-            "$if": "questionSource=live",
-            "type": "announce",
-            "message": "The truth was: {{fact${i}.result.truth}}!\n\nWhat the class picked:\n{{vote${i}.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
-            "next": "${nextKey}"
-          }
-        },
-        "after": "scoreboard"
+        "next": "qshow1"
       },
       "$repeat-prepared": {
         "forEach": "questions",
         "phases": {
           "qshow${i}": {
-            "$if": "questionSource=prepared",
             "type": "announce",
             "message": "Round ${i} of ${n}\n\n${item.question}\n\nWrite your most believable lie!",
             "timer": 8,
             "next": "qlies${i}"
           },
           "qlies${i}": {
-            "$if": "questionSource=prepared",
             "type": "collect",
             "prompt": "${item.question}\n\nWrite a lie that could fool the class.",
             "timer": "${lieTimer}",
             "next": "qvote${i}"
           },
           "qvote${i}": {
-            "$if": "questionSource=prepared",
             "type": "collect-choice",
             "prompt": "Which one is the TRUTH?\n\n${item.question}",
             "choicePool": [
@@ -195,7 +108,6 @@
             "next": "qreveal${i}"
           },
           "qreveal${i}": {
-            "$if": "questionSource=prepared",
             "type": "announce",
             "message": "The truth was: ${item.truth}!\n\nWhat the class picked:\n{{qvote${i}.barChart}}\n\nLiars, own up! Whose lie pulled the most votes?",
             "next": "${nextKey}"
@@ -206,22 +118,15 @@
       "scoreboard": {
         "type": "leaderboard",
         "from": {
-          "$if": "questionSource=prepared",
-          "$value": {
-            "$map": "questions",
-            "value": "qvote${i}.scores"
-          },
-          "$else": {
-            "$map": "rounds",
-            "value": "vote${i}.scores"
-          }
+          "$map": "questions",
+          "value": "qvote${i}.scores"
         },
         "style": "full",
         "next": "end"
       },
       "end": {
         "type": "end",
-        "message": "That's Trivia Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again for fresh facts."
+        "message": "That's Trivia Bluff! 100 for spotting the truth, 50 per classmate fooled. Run it again with fresh facts."
       }
     }
   }

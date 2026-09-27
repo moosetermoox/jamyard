@@ -17,6 +17,7 @@ import { PHASE_SCHEMAS, getFields, getTopLevelOnlyFieldNames } from './engine/ph
 import { loadAllRecipes, getRecipe, listRecipes, summarizeRecipe } from './engine/recipe-loader.js';
 import { compileRecipe, carryRecipeStamp } from './engine/recipe-compiler.js';
 import { upgradeStaleCopy } from './engine/recipe-upgrade.js';
+import { scoutFacts } from './services/fact-scout.js';
 import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submits.js';
 import { parseRequestedMinutes, timingReport, paramsForTrim, estimateDuration } from './engine/duration-estimate.js';
 import { audienceFor } from './engine/audience.js';
@@ -3560,20 +3561,21 @@ app.post('/api/games/quiz-questions', async (req, res) => {
 // fill-in-the-blank facts out (trivia-bluff recipe `questions` param
 // shape). Works in mock mode too (canned facts) so the flow is always
 // testable; no student data involved.
-app.post('/api/games/bluff-facts', async (req, res) => {
+// Trivia Bluff's facts, found rather than remembered (2026-09-27, the fact
+// scout): the bodies of encyclopedia articles on the topic are read and
+// rounds come back each with the sentence it rests on and a link, so the
+// teacher checks by looking, never by trusting. The AI writes nothing
+// from memory here (services/fact-scout.js).
+app.post('/api/games/fact-scout', async (req, res) => {
   try {
-    const { topic, count, classDescription } = req.body || {};
-    if (!topic || typeof topic !== 'string' || topic.trim().length < 3) {
-      return res.status(400).json({ error: 'Give a topic of at least a few characters.' });
+    const { topic } = req.body || {};
+    if (!topic || typeof topic !== 'string' || topic.trim().length < 2) {
+      return res.status(400).json({ error: 'Give a topic of at least a couple of characters.' });
     }
-    const result = await aiService.generateBluffFacts({
-      topic,
-      count: Number.isInteger(count) ? count : parseInt(count, 10) || undefined,
-      classDescription: typeof classDescription === 'string' ? classDescription : ''
-    });
-    res.json(result);
+    const result = await scoutFacts({ topic, aiService, log: (line) => console.log(`[api/games/fact-scout] ${line}`) });
+    res.json({ topic: result.topic, pages: result.pages, rounds: result.rounds, dropped: result.dropped });
   } catch (error) {
-    console.log(`[api/games/bluff-facts] Error: ${error.message}`);
+    console.log(`[api/games/fact-scout] Error: ${error.message}`);
     res.status(error.statusCode || 500).json({ error: error.message });
   }
 });

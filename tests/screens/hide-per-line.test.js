@@ -111,12 +111,12 @@ describe('the surfaces', () => {
     expect(ai).toContain('const maxAttempts = (phase.perPlayer || expectJson) ? 2 : 1;');
     expect(ai).toContain('did not come back in a usable shape');
   });
-  it('the map shows no AI instruction, the bench names the round count, the bluff button says Start the round', () => {
+  it('the map shows no AI instruction, the bench names the round count, the bluff recipe has no AI step at all (2026-09-27)', () => {
     expect(read('engine/activity-map.js')).toContain("if (phase.type === 'ai-process' || phase.type === 'ai-eliminate') return undefined;");
     expect(read('screens/prototype/bench-logic.js')).toContain("return stop.rounds + ' rounds';");
-    // the live-facts round (the built-in ships prepared facts since 2026-09-26, so the recipe is read)
+    // the live-facts round left with the fact scout: the facts are found in articles before class
     const recipeText = read('recipes/trivia-bluff.json');
-    expect(recipeText).toContain('"continueLabel": "Start the round"');
-    expect(recipeText).toContain('exactly ONE correct answer');
+    expect(recipeText).not.toContain('"type": "ai-process"');
+    expect(recipeText).not.toContain('questionSource');
   });
 });

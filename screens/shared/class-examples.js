@@ -607,7 +607,7 @@
     // over the template's stamp (the make route and the setup panel)
     'solo-quiz': function (w) { return { params: { questions: w.questions } }; },
     'speed-quiz': function (w) { return { params: { questions: w.questions } }; },
-    'trivia-bluff': function (w) { return { params: { questionSource: 'prepared', questions: w.facts, rounds: 3 } }; },
+    'trivia-bluff': function (w) { return { params: { questions: w.facts } }; },
     'doodle-bluff': function (w) { return { params: { phraseSource: 'teacher', phrases: w.phrases.slice() } }; },
     'group-work-day': function (w) { return { params: { tasks: w.tasks.slice() } }; },
     // The theme is a recipe param quoted in every fold's prompt

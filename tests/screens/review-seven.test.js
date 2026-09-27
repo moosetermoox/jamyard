@@ -110,7 +110,7 @@ describe('putting an activity into the class\'s language', () => {
 
 describe('a plan the class can run', () => {
   it('refuses Trivia Bluff with prepared facts and none written, and passes a real plan', () => {
-    const empty = compiled('trivia-bluff', { questionSource: 'prepared', questions: [], rounds: 1 });
+    const empty = compiled('trivia-bluff', { questions: [] });
     expect(empty).toBeTruthy();
     expect(planProblem(empty)).toMatch(/no step where students|did not check out/);
     expect(planProblem(compiled('creative-vote', { prompt: 'Write a slogan for our class.' }))).toBeNull();
@@ -154,10 +154,10 @@ describe('the joke, the terms, the rounds box', () => {
     expect(read('engine/phase-handlers/match.js')).toContain('leftItems: pairs.map(p => p.left)');
   });
 
-  it('the bluff panel\'s number boxes snap back into their range when left', () => {
+  it('the bluff panel\'s number box snaps back into its range when left (the rounds box left with the live mode, 2026-09-27)', () => {
     const src = read('screens/shared/make-it-yours.js');
-    expect(src).toContain("roundsInput.addEventListener('change', function () {");
     expect(src).toContain("timerInput.addEventListener('change', function () {");
-    expect(src).toContain('roundsInput.value = clampedInt(roundsInput, parseInt(roundsInput.min, 10), parseInt(roundsInput.max, 10)');
+    expect(src).toContain('timerInput.value = clampedInt(timerInput, parseInt(timerInput.min, 10), parseInt(timerInput.max, 10)');
+    expect(src).not.toContain('roundsInput');
   });
 });
