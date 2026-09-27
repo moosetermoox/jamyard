@@ -35,7 +35,7 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-09-27, late night: branch `review-fourteen`, PR open; #117, #119, #121 MERGED and live)
+### START HERE next session (updated 2026-09-27, late night: #123 `review-fourteen` MERGED, master deploys via CI; the local :3000 server runs it)
 
 **A fourteenth outside review, in one paragraph.** Doodle Bluff and Convince Me! with four pretend students plus the content filter (which held). Fixed on `review-fourteen`: a join landing while Start moves the room now waits for the first step (`room.starting`; the reviewer's stranded pair was not reproducible, the window is closed; proof `scripts/simulate-join-at-start.js`, 7 checks), the Approve & Show line's grammar, Doodle Bluff's contradictory fake-title ask and its copyable example (kinds instead; recipe + stamped param + recompile), Convince Me!'s stray comma, its topics line that ran ahead of the devices, and its bare "…" on the projector (a `hostTemplate` line), Try it out's Reset (starts the same activity over), the done screen's blocks off the right edge (no sideways scroll). Left as designed: the blocked-message notice never carries the words; pretend-student seats follow the activity's shape. Suite 2835, the Windows CRLF assertion the only failure.
 
