@@ -161,10 +161,11 @@ describe('home page 16h fold', () => {
     expect(ask).toBeLessThan(planks);
   });
 
-  it('the question is spaced caps, not a bold heading (owner 2026-09-22, as the handoff sets it)', () => {
-    expect(html).toMatch(/\.ask\s*\{[^}]*text-transform:\s*uppercase/);
-    expect(html).toMatch(/\.ask\s*\{[^}]*letter-spacing:\s*0\.14em/);
-    expect(html).not.toMatch(/\.ask\s*\{[^}]*font-weight:\s*800/);
+  it('the question is spaced caps, not a bold heading (owner 2026-09-22, as the handoff sets it); with the intro up front it is the headline (2026-09-26)', () => {
+    expect(html).toMatch(/\n\s*\.ask\s*\{[^}]*text-transform:\s*uppercase/);
+    expect(html).toMatch(/\n\s*\.ask\s*\{[^}]*letter-spacing:\s*0\.14em/);
+    expect(html).not.toMatch(/\n\s*\.ask\s*\{[^}]*font-weight:\s*800/);
+    expect(html).toMatch(/body\.has-intro \.ask\s*\{[^}]*font-weight:\s*800/);
   });
 
   it('drops the sub-line and the mechanic line: the picture does that job, a hidden sentence says it for screen readers', () => {

@@ -41,7 +41,7 @@
   var BUILT = [ANSWER, 'Fractions are division', 'Same amount, different cuts'];
   var DRAW_PROMPT = 'Draw your favorite animal';
   var NAMES = ['Maya', 'Jordan', 'Sam'];
-  var CODE = 'YAHS';
+  var CODE = 'KQTW'; // not a word, so it never reads as one (handoff 2026-09-26)
 
   // Dwell before advancing FROM state s, in ms: the handoff's table for
   // the first scene, the same beats for the two after it

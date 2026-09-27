@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/shared/hover-card.css">
   <link rel="stylesheet" href="/shared/yard-prints.css">
   <link rel="stylesheet" href="/shared/fold-picture.css">
+  <link rel="stylesheet" href="/shared/madlib-intro.css">
   <link rel="stylesheet" href="/shared/my-yard.css">
   <link rel="stylesheet" href="/shared/class-picker.css">
   <style>
@@ -248,6 +249,21 @@
       letter-spacing: 0.14em;
       text-transform: uppercase;
       color: var(--t-muted-caps);
+    }
+
+    /* With the madlib intro up front (2026-09-26, shared/madlib-intro.js)
+       the sentence says what Jamyard is, so the fold's headline goes and
+       the picture centers; the question over the planks is promoted to
+       the headline. Drop the body class and the fold is as it was. */
+    body.has-intro .hero-row h1 { display: none; }
+    body.has-intro .hero-row { justify-content: center; }
+    body.has-intro .ask {
+      font-family: var(--t-display);
+      font-weight: 800;
+      font-size: 30px;
+      letter-spacing: -0.01em;
+      text-transform: none;
+      color: var(--t-ink);
     }
 
     /* Four planks side by side on one base board: the stack pattern laid
@@ -800,7 +816,32 @@
     }
   </style>
 </head>
-<body>
+<body class="has-intro">
+
+  <!-- The first screen (2026-09-26, design handoff
+       docs/design_handoff_jamyard_madlib_intro): one madlib sentence says
+       what Jamyard is. Three blanks are wooden blocks that spin like reels
+       and land on different words; every combination reads correctly.
+       Scrolling fades it away, the wordmark flies into the header's
+       corner, and the page below is the home page as it was. The moving
+       sentence is aria-hidden; the hidden heading is what a screen reader
+       gets. shared/madlib-intro.js builds the sentence and runs it. -->
+  <h1 class="intro-said">JAMYARD is a yard of whole-class activities for connecting, thinking, reviewing and having fun. Use them, remix them, or create your own.</h1>
+  <div class="intro" id="intro">
+    <div class="intro-bar">
+      <button type="button" class="intro-join t-lift t-label t-yellow">Student? Join a room</button>
+    </div>
+    <div class="ml-sentence" aria-hidden="true"></div>
+    <button type="button" class="intro-cue" aria-label="Scroll to the home page">
+      <span>scroll</span>
+      <span class="intro-cue-line"></span>
+    </button>
+  </div>
+  <div class="intro-fly" id="intro-fly" aria-hidden="true" hidden>
+    <span class="wm-jam">JAM</span>
+    <span class="wm-yard">YARD</span>
+  </div>
+  <div class="intro-spacer" aria-hidden="true"></div>
 
   <div class="page">
 
@@ -842,7 +883,7 @@
             <div class="fp-mat fp-projector">
               <div class="fp-screen">
                 <div class="fp-left">
-                  <div class="code-row" data-at="1"><span class="cb-0">Y</span><span class="cb-1">A</span><span class="cb-2">H</span><span class="cb-3">S</span></div>
+                  <div class="code-row" data-at="1"><span class="cb-0">K</span><span class="cb-1">Q</span><span class="cb-2">T</span><span class="cb-3">W</span></div>
                   <div class="fp-prompt" data-at="7" data-until="16" data-hide>What is the most important idea from this unit?</div>
                   <div class="fp-pairs" data-at="12" data-until="15" data-hide><span class="fp-chip-yellow">Now in pairs</span></div>
                   <div class="fp-built" data-at="15" data-until="16" data-hide>
@@ -892,10 +933,10 @@
               <div class="fp-student-screen">
                 <div class="fp-view fp-view-join">
                   <div class="fp-slots">
-                    <div class="fp-slot"><div class="code-row"><span class="cb-0" data-letter="1">Y</span></div></div>
-                    <div class="fp-slot"><div class="code-row"><span class="cb-1" data-letter="2">A</span></div></div>
-                    <div class="fp-slot"><div class="code-row"><span class="cb-2" data-letter="3">H</span></div></div>
-                    <div class="fp-slot"><div class="code-row"><span class="cb-3" data-letter="4">S</span></div></div>
+                    <div class="fp-slot"><div class="code-row"><span class="cb-0" data-letter="1">K</span></div></div>
+                    <div class="fp-slot"><div class="code-row"><span class="cb-1" data-letter="2">Q</span></div></div>
+                    <div class="fp-slot"><div class="code-row"><span class="cb-2" data-letter="3">T</span></div></div>
+                    <div class="fp-slot"><div class="code-row"><span class="cb-3" data-letter="4">W</span></div></div>
                   </div>
                   <span class="fp-btn fp-join">Join</span>
                 </div>
@@ -1025,6 +1066,7 @@
   <script src="/shared/host-launch.js"></script>
   <script src="/shared/my-yard.js"></script>
   <script src="/shared/fold-picture.js"></script>
+  <script src="/shared/madlib-intro.js"></script>
   <script>
     // ── The planks, the projector, and the yard: all three read the same
     //    list the yard page shows (featured built-ins + this device's own). ──
@@ -1396,6 +1438,14 @@
   <script>
     // ── The fold's picture: plays once on load, Replay runs it again ──
     FoldPicture.mount(document.getElementById('fold-picture'), { tab: document.getElementById('join-tab') });
+  </script>
+  <script>
+    // ── The intro: the madlib sentence, the scroll fade, the wordmark's flight ──
+    MadlibIntro.mount(document.getElementById('intro'), {
+      fly: document.getElementById('intro-fly'),
+      headerMark: document.querySelector('header .wordmark'),
+      joinTab: document.getElementById('join-tab')
+    });
   </script>
   <script>
     // ── The student door: one tab, one form ──
