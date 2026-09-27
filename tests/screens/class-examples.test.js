@@ -382,7 +382,8 @@ describe('the pages', () => {
     expect(js).toContain('if (pf.choices[i]) { box.value = pf.choices[i]; applied = true; }');
     expect(js).toContain('if (choices) edits.choices = choices;');
     expect(js).toContain("'Use the original words'");
-    expect(js).toContain("'Filled in for ' + ClassExamples.describe(ex)");
+    expect(js).toContain("'Filled in for ') + ClassExamples.describe(ex)");
+    expect(js).toContain('The first question is filled in for ');
     // the fit is told the example's choices are the teacher's
     expect(js).toContain('The teacher set the answer choices in step');
     // never on a recipe panel's words

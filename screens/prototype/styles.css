@@ -606,6 +606,11 @@ body.pt-running #host-btn { display: inline-block; }
 #bot-fill-btn:focus-visible,
 #skip-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
 
+/* The feedback button sits bottom left here: bottom right is the student
+   column's + Add another student slot (a reviewer, 2026-09-27) */
+#feedback-widget-btn { right: auto; left: 18px; }
+#feedback-widget-panel { right: auto; left: 18px; }
+
 /* + Add another student: a 44px dashed slot under the student screen */
 .add-player-slot {
   flex-shrink: 0;

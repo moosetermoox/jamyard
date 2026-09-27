@@ -2784,7 +2784,7 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
 // via basic auth.
 app.get('/api/rooms/:code/journal', (req, res) => {
   const room = roomManager.find(req.params.code.toUpperCase());
-  if (!room) return res.status(404).json({ error: 'Room not found' });
+  if (!room) return res.status(404).json({ error: 'Room not found. Check the code on the big screen.' });
   const allowed = checkTeacherAccess(
     { pin: typeof req.query.pin === 'string' ? req.query.pin : '', authHeader: req.headers.authorization },
     { teacherPin: room.teacherPin, sitePassword: process.env.SITE_PASSWORD }
@@ -4504,7 +4504,7 @@ io.on('connection', (socket) => {
     const room = roomManager.find(code) || await tryRestoreRoom(code);
     if (!room) {
       console.log(`[join-room] Room ${code} not found`);
-      socket.emit(EVENTS.JOIN_ERROR, { message: 'Room not found' });
+      socket.emit(EVENTS.JOIN_ERROR, { message: 'Room not found. Check the code on the big screen.' });
       return;
     }
 

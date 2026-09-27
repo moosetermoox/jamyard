@@ -63,6 +63,12 @@ h1 {
   gap: 12px;
   align-items: stretch;
 }
+/* A phone squeezed the box to three words beside the button (a reviewer, 2026-09-27) */
+@media (max-width: 640px) {
+  .idea-input-row { flex-direction: column; align-items: stretch; }
+  .idea-input-row #idea-input { width: auto; align-self: stretch; }
+  .idea-input-row #idea-go-btn { width: 100%; }
+}
 
 #idea-input {
   flex: 1;

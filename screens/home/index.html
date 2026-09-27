@@ -3,7 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/shared/favicon.svg">
   <title>Jamyard</title>
+  <meta name="description" content="Whole-class activities for the projector and every student's Chromebook. Use them, remix them, or create your own.">
+  <meta property="og:title" content="Jamyard">
+  <meta property="og:description" content="Whole-class activities for the projector and every student's Chromebook. Use them, remix them, or create your own.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://jamyard.org/">
+  <meta property="og:image" content="https://jamyard.org/shared/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="/shared/design.css">
   <!-- The two site fonts start with the HTML, not after the stylesheet (2026-09-20) -->
   <link rel="preload" as="font" type="font/woff2" crossorigin href="/shared/fonts/bricolage-grotesque-v9-latin-variable.woff2">
@@ -1156,6 +1166,11 @@
 
       // ── The planks and the chips: one control at two sizes ──
       var activeGoal = null; // null = all
+      function jobLabelOf(key) {
+        var groups = (window.GoalGroups && GoalGroups.GROUPS) || [];
+        for (var gi = 0; gi < groups.length; gi++) if (groups[gi].key === key) return groups[gi].job;
+        return key;
+      }
 
       function groupOf(g) {
         return window.GoalGroups ? GoalGroups.groupOf(g) : 'think';
@@ -1332,7 +1347,7 @@
         }
         noteEl.hidden = !rescued;
         noteEl.textContent = rescued
-          ? 'Nothing mentions "' + query + '", and that is okay: every activity takes any topic. Here is the whole yard.'
+          ? 'Nothing mentions "' + query + '", and that is okay: every activity takes any topic. ' + (activeGoal === null ? 'Here is the whole yard.' : 'Here is everything under "' + jobLabelOf(activeGoal) + '".')
           : '';
         // Time marks on the first card of each duration step; the first
         // card plays its hover once, on the first render only
