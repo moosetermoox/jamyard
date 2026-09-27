@@ -2188,7 +2188,13 @@ function renderNoMatchView(modal, description, data, overlay) {
   // ideas, so the card leads with it (a reviewer read "beyond our
   // recipes" as a turn-down of a lesson it could build, 2026-09-27)
   var harm = !!(data && data.harm);
-  title.textContent = harm ? "We won't build that one" : "No ready-made recipe fits, so let's plan it step by step";
+  // The idea needs bodies, hardware, or the room itself (a 3D-printed
+  // jetpack race): the plan would only run ten seconds to say no, so the
+  // close matches lead and the plan button stays off (a reviewer, 2026-09-27)
+  var offScreen = !harm && !!(data && data.offScreen);
+  title.textContent = harm ? "We won't build that one"
+    : offScreen ? 'Screens cannot do that part'
+    : "No ready-made recipe fits, so let's plan it step by step";
   modal.appendChild(title);
 
   // Reason
@@ -2196,7 +2202,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   reasonBlock.className = 'ai-no-match-reason';
   var reasonLabel = document.createElement('div');
   reasonLabel.className = 'ai-no-match-label';
-  reasonLabel.textContent = harm ? 'Why this is tricky:' : 'Why no recipe fits:';
+  reasonLabel.textContent = harm ? 'Why this is tricky:' : offScreen ? 'What the screens can do:' : 'Why no recipe fits:';
   reasonBlock.appendChild(reasonLabel);
   var reasonText = document.createElement('div');
   reasonText.className = 'ai-no-match-text';
@@ -2232,8 +2238,26 @@ function renderNoMatchView(modal, description, data, overlay) {
     closeOverlay(overlay);
     showStoryboardFlow(description);
   });
-  // The plan leads; no "Plan it step by step" after a refusal on purpose
-  if (!harm) btnRow.appendChild(storyboardBtn);
+  // The plan leads; no "Plan it step by step" after a refusal on purpose,
+  // and none when the first screen already knows the plan would say no
+  if (!harm && !offScreen) btnRow.appendChild(storyboardBtn);
+
+  var pickBtn = document.createElement('button');
+  pickBtn.type = 'button';
+  pickBtn.textContent = 'Pick from Recipes';
+  pickBtn.addEventListener('click', function () {
+    closeOverlay(overlay);
+    showRecipePicker();
+  });
+  // Off screen: the close matches are the main choice, so the recipe
+  // door is the red one and comes first
+  if (offScreen) {
+    pickBtn.className = 'recipe-create-btn';
+    btnRow.appendChild(pickBtn);
+  } else {
+    pickBtn.className = 'recipe-cancel-btn';
+    pickBtn.style.background = '#FFEB3B';
+  }
 
   var cancelBtn = document.createElement('button');
   cancelBtn.type = 'button';
@@ -2242,16 +2266,7 @@ function renderNoMatchView(modal, description, data, overlay) {
   cancelBtn.addEventListener('click', function () { closeOverlay(overlay); });
   btnRow.appendChild(cancelBtn);
 
-  var pickBtn = document.createElement('button');
-  pickBtn.type = 'button';
-  pickBtn.className = 'recipe-cancel-btn';
-  pickBtn.style.background = '#FFEB3B';
-  pickBtn.textContent = 'Pick from Recipes';
-  pickBtn.addEventListener('click', function () {
-    closeOverlay(overlay);
-    showRecipePicker();
-  });
-  btnRow.appendChild(pickBtn);
+  if (!offScreen) btnRow.appendChild(pickBtn);
 
   // Deliberately NO whole-config generator here (removed 2026-08-07):
   // if it can't be assembled from the storyboard bricks, it shouldn't be

@@ -22,6 +22,9 @@
   // A class example the yard's card showed (`ex=science.middle`,
   // shared/class-examples.js): its words go into the boxes below
   var exKey = params.get('ex');
+  // The length at which the projector drops a question to its smaller
+  // style (host styles, .prompt-long); the note under the box says so
+  var LONG_QUESTION_CHARS = 160;
 
   var el = {
     back: document.getElementById('back-link'),
@@ -298,6 +301,17 @@
         state.promptBox.box.setAttribute('aria-label', 'The question your class will see. Change it here.');
         state.promptBox.box.addEventListener('input', scheduleMap);
         el.prompt.appendChild(state.promptBox);
+        // A 300-letter question drops to paragraph size on the projector
+        // and reads like the line under it (a reviewer, 2026-09-27): say so
+        // while it is typed, at the length where the projector shrinks it
+        var longNote = document.createElement('p');
+        longNote.className = 'long-note';
+        longNote.hidden = true;
+        longNote.textContent = 'Long questions show smaller on the projector. A shorter one reads from the back of the room.';
+        el.prompt.appendChild(longNote);
+        var watchLength = function () { longNote.hidden = String(state.promptBox.value || '').length <= LONG_QUESTION_CHARS; };
+        state.promptBox.box.addEventListener('input', watchLength);
+        watchLength();
       } else {
         var fixed = document.createElement('div');
         fixed.className = 'print-prompt print-prompt-fixed';

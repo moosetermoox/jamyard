@@ -60,6 +60,11 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     playerId: 'string:required'
   },
+  'moderate-rename': {
+    code: 'string:required',
+    playerId: 'string:required',
+    name: 'string:required'
+  },
   'show-discussion': {
     code: 'string:required'
   },
@@ -189,7 +194,9 @@ export const EVENT_SCHEMAS = {
   },
   'host-rejoin': {
     code: 'string:required',
-    hostToken: 'string:required'
+    // the projector tab's own token, or the teacher PIN when the tab is gone
+    hostToken: 'string:optional',
+    pin: 'string:optional'
   },
   'buzz-tap': {
     code: 'string:required',

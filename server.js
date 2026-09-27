@@ -177,7 +177,7 @@ import { extendPhaseTimer } from './engine/phase-timer.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
 import { ensureReviewGate } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
-import { checkSubmission, filterContent } from './engine/content-filter.js';
+import { checkSubmission, filterContent, filterName, NAME_REFUSED_MESSAGE } from './engine/content-filter.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
 import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
 import { remapForeachSubConfig, resolveCurrentRefsInSubConfig } from './engine/phases/foreach-remap.js';
@@ -2034,7 +2034,8 @@ function notifyTeachersClosed(code, room) {
     closed: true,
     discussionPrompt: discussionPromptFor(phase),
     estimateAnswer: estimateAnswerFor(room, phase),
-    audience: audienceKeyFor(engine, phase)
+    audience: audienceKeyFor(engine, phase),
+    stepText: stepTextFor(phase, engine)
   });
 }
 
@@ -2053,6 +2054,27 @@ function audienceKeyFor(engine, phase) {
 function discussionPromptFor(phase) {
   const text = phase && phase.discussionPrompt;
   return (typeof text === 'string' && text.trim() !== '') ? text.trim() : null;
+}
+
+// The words on the projector right now, for the console: a teacher
+// running the room from a phone could not tell which question was up
+// ("Announcement showing", a reviewer, 2026-09-27). The step's own text
+// resolved the way the projector resolves it (a per-student token reads
+// as a blank there too); a step without words gives null. Cut short: the
+// console is a control strip, the projector has the whole thing.
+const STEP_TEXT_FIELDS = ['prompt', 'message', 'question', 'content', 'instruction'];
+function stepTextFor(phase, engine) {
+  if (!phase || !engine) return null;
+  for (const field of STEP_TEXT_FIELDS) {
+    const raw = phase[field];
+    if (typeof raw !== 'string' || !raw.trim()) continue;
+    let text = raw;
+    try { text = resolveTemplate(raw, engine); } catch { text = raw; }
+    text = text.replace(/\{\{[^}]*\}\}/g, '…').replace(/\s+/g, ' ').trim();
+    if (!text) continue;
+    return text.length > 240 ? text.slice(0, 237).trimEnd() + '…' : text;
+  }
+  return null;
 }
 
 // The answer on an estimate step as the console should show it: the live
@@ -2104,6 +2126,7 @@ function buildTeacherSnapshot(code, room) {
     snap.discussionPrompt = discussionPromptFor(phase);
     snap.estimateAnswer = estimateAnswerFor(room, phase);
     snap.audience = audienceKeyFor(engine, phase);
+    snap.stepText = stepTextFor(phase, engine);
     // The finished chains of a return-to-author reveal, for Show
     snap.chains = chainsFor(engine, phase);
   }
@@ -2196,6 +2219,53 @@ const phaseServices = {
 const SNAPSHOT_DEBOUNCE_MS = 300;
 const ROOM_SNAPSHOT_TTL_MS = 6 * 60 * 60 * 1000; // stale rooms aren't worth resurrecting
 const HOST_GRACE_MS = 5 * 60 * 1000;             // host F5/crash: hold the room, don't kill it
+
+// Hold a room whose projector is gone until a host rebinds. Five minutes
+// alone; while a teacher console is still connected the hold renews
+// (the teacher is there and can reopen the projector, 2026-09-27), up to
+// the snapshot's own lifetime. Also armed when a student's join restores
+// a room from its snapshot with no host (the room used to come back as a
+// zombie that nothing ever closed). Idempotent: a second call re-arms.
+function holdRoomForHost(code, room) {
+  if (!room || room.simulated) return;
+  if (room.hostGraceTimer) clearTimeout(room.hostGraceTimer);
+  if (!room.hostDisconnectedAt) room.hostDisconnectedAt = Date.now();
+  room.hostGraceTimer = setTimeout(() => {
+    room.hostGraceTimer = null;
+    const still = roomManager.find(code);
+    if (!still || roomToHost.has(code)) return; // host came back
+    const consoleOn = still.teacherSocketIds && still.teacherSocketIds.size > 0;
+    const heldFor = Date.now() - (still.hostDisconnectedAt || 0);
+    if (consoleOn && heldFor < ROOM_SNAPSHOT_TTL_MS) {
+      console.log(`[hold] No projector on ${code} for ${Math.round(heldFor / 60000)} min, a console is still on it, holding on`);
+      holdRoomForHost(code, still);
+      return;
+    }
+    console.log(`[disconnect] Host never returned to ${code}, closing room`);
+    // A room that never reached its end was left behind: the rooms
+    // log marks it closed and analytics gets where it stalled.
+    const endedAlready = !!(still.engine && still.engine.getCurrentPhase().type === 'end');
+    if (!endedAlready && !still.simulated) {
+      logRoomProgress(still, 'closed');
+      if (still.analyticsId && still.engine) {
+        const pos = roomStepPosition(still);
+        analytics.track('room_abandoned', {
+          game: analyticsGameLabel(still),
+          players: still.engine.players.list().length,
+          minutes: roomMinutes(still),
+          step: pos.step,
+          steps: pos.steps,
+          kind: roomKind(still)
+        }, still.analyticsId);
+      }
+    }
+    roomManager.delete(code);
+    io.to(code).emit(EVENTS.ROOM_CLOSED);
+    io.to(teachersChannel(code)).emit(EVENTS.ROOM_CLOSED);
+    // The snapshot stays (until its TTL): a teacher whose laptop died
+    // can still resurrect the game by reopening the host screen.
+  }, HOST_GRACE_MS);
+}
 const PLAYER_GRACE_MS = 3 * 60 * 1000;           // dropped student: keep identity (scores, team, answers) for rejoin — school wifi blips outlast 30s
 
 const pendingSnapshots = new Map(); // code → debounce timer
@@ -2245,6 +2315,10 @@ async function tryRestoreRoom(code) {
       const room = restoreRoom(snap, config, hooks);
       roomManager.adopt(room);
       console.log(`[restore] Room ${code} restored at phase '${room.engine.getCurrentPhase().id}' (${(snap.players || []).length} player(s))`);
+      // No host yet: a student's refresh brought this room back. Hold it
+      // for a rebind, then close it, instead of a room nothing ever ends.
+      // A host-rejoin clears the hold the moment it binds.
+      holdRoomForHost(code, room);
       return room;
     } catch (e) {
       console.warn(`[restore] Failed for ${code}: ${e.message}`);
@@ -2315,7 +2389,9 @@ async function handlePhase(code, room) {
     // console offers a box to type the teacher's own number before the close)
     estimateAnswer: estimateAnswerFor(room, phase),
     // Who sees the answers, so the Live entries hint fits the step
-    audience: audienceKeyFor(engine, phase)
+    audience: audienceKeyFor(engine, phase),
+    // The words on the projector, so a console on a phone knows the step
+    stepText: stepTextFor(phase, engine)
   });
 
   // Dispatch to registered handler
@@ -3971,7 +4047,7 @@ async function storyboardOutcome(body, onEvent) {
     // brick provides, and a hollow lookalike would be worse than saying so.
     if (storyboard.cantBuild) {
       const ideaId = await logIdea(body, { stage: 'storyboard', result: 'cant-build', reason: storyboard.reason || '' });
-      return { status: 200, json: { cantBuild: true, reason: storyboard.reason || '', ideaId } };
+      return { status: 200, json: { cantBuild: true, harm: storyboard.harm === true, reason: storyboard.reason || '', ideaId } };
     }
     // What was unique: the bricks the plan is made of.
     const steps = Array.isArray(storyboard.steps) ? storyboard.steps.map(s => s && s.brick).filter(Boolean) : [];
@@ -4151,10 +4227,17 @@ app.post('/api/games/from-description', async (req, res) => {
 
     if (match.noMatch) {
       const reason = match.reason || 'No recipe fits this description.';
+      // harm (a refusal on purpose) and offScreen (the idea needs bodies,
+      // hardware, or the room itself, which no screen step delivers) ride
+      // to the card: the first decides whether Plan it step by step is
+      // offered, the second puts the close matches first (a reviewer's
+      // jetpack race ran the plan for ten seconds to hear no, 2026-09-27)
       return res.json({
         noMatch: true,
         reason,
         suggestion: match.suggestion || '',
+        harm: match.harm === true,
+        offScreen: match.offScreen === true,
         ideaId: await logIdea(req.body, { stage, result: 'none', reason, minutes: requestedMinutes })
       });
     }
@@ -4524,6 +4607,15 @@ io.on('connection', (socket) => {
     // server assigns a play name and whatever the client typed is discarded
     // unread (privacy holds even against a modified client that sends one).
     const anonymousRoom = !!(room.engine && room.engine.config && room.engine.config.anonymous);
+    // A name is the first thing the class sees, on the projector and on
+    // every classmate's lobby screen, and it never went through the
+    // filter the answers do (a reviewer's "shithead", 2026-09-27). A
+    // reconnect by token keeps the seat it has; a typed name is checked.
+    if (!anonymousRoom && filterName(name).blocked) {
+      console.log(`[join-room] Refused a name in ${code} (${filterName(name).category})`);
+      socket.emit(EVENTS.JOIN_ERROR, { message: NAME_REFUSED_MESSAGE });
+      return;
+    }
 
     try {
       // What does this attempt MEAN? Reconnect, duplicated-tab takeover,
@@ -4694,11 +4786,46 @@ io.on('connection', (socket) => {
   // (host refresh = room deleted, class kicked out).
   socket.on(EVENTS.HOST_REJOIN, async (payload = {}) => {
     if (!checkEventPayload(socket, 'host-rejoin', payload)) return;
-    const { code, hostToken } = payload;
+    const { code, hostToken, pin } = payload;
     const room = roomManager.find(code) || await tryRestoreRoom(code);
-    if (!room || !room.hostToken || room.hostToken !== hostToken) {
+    if (!room || !room.hostToken) {
       socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'That room is no longer running.' });
       return;
+    }
+    // Two ways in: the hostToken the projector tab kept (an F5, a sleeping
+    // tab, a crash), or the teacher PIN, the console's own credential: a
+    // CLOSED projector tab has no token left to reload, so the console's
+    // "Open the projector again" and a fresh /host on the projector
+    // computer come in with the PIN (a reviewer, 2026-09-27). The PIN
+    // path shares the console's brute-force throttle.
+    if (hostToken !== room.hostToken) {
+      if (typeof pin !== 'string' || !pin) {
+        socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'That room is no longer running.' });
+        return;
+      }
+      const gate = pinThrottle.check(code, Date.now());
+      if (!gate.allowed) {
+        socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'Too many wrong PINs. Try again in a few minutes.' });
+        return;
+      }
+      const allowed = checkTeacherAccess(
+        { pin, authHeader: socket.handshake && socket.handshake.headers && socket.handshake.headers.authorization },
+        { teacherPin: room.teacherPin, sitePassword: process.env.SITE_PASSWORD }
+      );
+      if (!allowed) {
+        pinThrottle.recordFailure(code, Date.now());
+        console.log(`[host-rejoin] Rejected a PIN rejoin for ${code}`);
+        socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'Wrong PIN for that room.' });
+        return;
+      }
+      pinThrottle.recordSuccess(code);
+      // Another projector may still hold the room (a second one opened by
+      // mistake): the newest wins, the old one is told and let go
+      const priorHost = roomToHost.get(code);
+      if (priorHost && priorHost !== socket.id) {
+        const old = io.sockets.sockets.get(priorHost);
+        if (old) { old.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'The projector was opened on another screen.', replaced: true }); old.leave(code); }
+      }
     }
 
     if (room.hostGraceTimer) { clearTimeout(room.hostGraceTimer); room.hostGraceTimer = null; }
@@ -5129,6 +5256,49 @@ io.on('connection', (socket) => {
     }
     emitTeacherRoster(code, room);
     emitSubmissionsUpdate(code, room);
+  });
+
+  // Teacher renames a student (a rude or unreadable name, 2026-09-27: the
+  // only other tool was Remove, which locks the student out for the rest of
+  // the session). The new name takes the same checks a typed name does;
+  // the student's screen, the projector, the consoles, and the lobby all
+  // learn it. Never in an anonymous room (the server owns those names).
+  socket.on(EVENTS.MODERATE_RENAME, (payload = {}) => {
+    if (!checkEventPayload(socket, 'moderate-rename', payload)) return;
+    const { code, playerId } = payload;
+    const room = roomManager.find(code);
+    if (!room || !room.engine) return;
+    if (!isTeacherSocket(code, room, socket.id)) return;
+    if (room.engine.config && room.engine.config.anonymous) return;
+    const players = room.engine.players;
+    const target = players.find(playerId);
+    if (!target) return;
+    const wanted = String(payload.name || '').trim().slice(0, 20);
+    if (wanted.length < 2) {
+      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message: 'A name needs at least two letters.' });
+      return;
+    }
+    if (filterName(wanted).blocked) {
+      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message: 'That name cannot go on the big screen either.' });
+      return;
+    }
+    const taken = players.list().some(p => p.id !== playerId && p.name.toLowerCase() === wanted.toLowerCase());
+    if (taken) {
+      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message: 'Someone in the room already has that name.' });
+      return;
+    }
+    const was = target.name;
+    players.update(playerId, { name: wanted });
+    recordEvent(room, 'moderate-rename', { from: was, to: wanted });
+    console.log(`[moderate-rename] ${code}: "${was}" is now "${wanted}"`);
+    const renamed = io.sockets.sockets.get(playerId);
+    if (renamed) renamed.emit(EVENTS.RENAMED, { name: wanted, message: `Your teacher changed your name to ${wanted}.` });
+    const hostSocketId = roomToHost.get(code);
+    if (hostSocketId) io.to(hostSocketId).emit(EVENTS.PLAYER_RECONNECTED, { id: playerId, name: wanted, players: players.listPublic() });
+    emitTeacherRoster(code, room);
+    emitRoomRoster(code, room);
+    emitSubmissionsUpdate(code, room);
+    persistRoom(code, room);
   });
 
   // --- "A bit more time": teacher adds seconds to a running input timer ---
@@ -6518,32 +6688,7 @@ io.on('connection', (socket) => {
         // Tell the consoles now: the teacher may be looking at one while
         // the projector tab sleeps behind it.
         emitTeacherRoster(roomCode, room);
-        room.hostGraceTimer = setTimeout(() => {
-          const still = roomManager.find(roomCode);
-          if (!still || roomToHost.has(roomCode)) return; // host came back
-          console.log(`[disconnect] Host never returned to ${roomCode}, closing room`);
-          // A room that never reached its end was left behind: the rooms
-          // log marks it closed and analytics gets where it stalled.
-          const endedAlready = !!(still.engine && still.engine.getCurrentPhase().type === 'end');
-          if (!endedAlready && !still.simulated) {
-            logRoomProgress(still, 'closed');
-            if (still.analyticsId && still.engine) {
-              const pos = roomStepPosition(still);
-              analytics.track('room_abandoned', {
-                game: analyticsGameLabel(still),
-                players: still.engine.players.list().length,
-                minutes: roomMinutes(still),
-                step: pos.step,
-                steps: pos.steps,
-                kind: roomKind(still)
-              }, still.analyticsId);
-            }
-          }
-          roomManager.delete(roomCode);
-          io.to(roomCode).emit(EVENTS.ROOM_CLOSED);
-          // The snapshot stays (until its TTL): a teacher whose laptop died
-          // can still resurrect the game by reopening the host screen.
-        }, HOST_GRACE_MS);
+        holdRoomForHost(roomCode, room);
       }
     }
   });

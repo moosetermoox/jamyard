@@ -44,7 +44,16 @@
     </div>
     <!-- The projector's socket dropped: students who join now reach this
          console and nothing else until the host tab rebinds. -->
-    <p id="projector-notice" class="projector-notice" hidden>The projector screen is not connected. Reload the host tab on the projector and it will pick this room back up.</p>
+    <div id="projector-notice" class="projector-notice" hidden>
+      <p>The projector screen is not connected. Students who join now land nowhere the class can see.</p>
+      <div class="btn-row projector-notice-row">
+        <button id="reopen-projector-btn" class="btn-go" type="button" title="Opens the projector screen for this room in a new tab, on this device">Open the projector again</button>
+      </div>
+      <p class="projector-notice-how">On the projector computer, open <strong id="reopen-host-address">/host</strong>: it picks this room back up by itself for six hours. The room stays open while you are on this console.</p>
+    </div>
+    <!-- The words on the projector right now, so a console on a phone knows
+         which question is up (a reviewer, 2026-09-27) -->
+    <p id="step-text" class="step-text" hidden></p>
 
     <!-- Before you project: which screen goes on the projector and where the
          private answers appear, at the moment the teacher first looks for
@@ -92,7 +101,10 @@
     <!-- Lobby: who's in + the start control -->
     <div id="lobby-block" hidden>
       <h2 id="lobby-count">0 students joined</h2>
-      <p id="lobby-roster" class="block-hint"></p>
+      <!-- Every name with its own tools: a rude or unreadable name is fixed
+           from here, not hunted down with the mouse on the projector
+           (a reviewer, 2026-09-27) -->
+      <ul id="lobby-roster" class="lobby-roster" aria-label="Students in the room"></ul>
       <button id="start-activity-btn" class="btn-go" disabled title="Start the activity for everyone in the room">Start activity</button>
       <p class="block-hint">Starts for everyone, same as the button on the projector.</p>
     </div>

@@ -2870,3 +2870,18 @@ body.in-activity { padding-bottom: 112px; }
 @media (prefers-reduced-motion: reduce) {
   #close-submissions-btn.is-all-in { animation: none; outline: 4px solid var(--t-red, #E5482B); outline-offset: 3px; }
 }
+
+/* Long names wrap to a second line at a smaller size instead of ending in
+   "MAXIMILI..." (two long names read the same, a reviewer, 2026-09-27).
+   The plank keeps its width; the name takes the room it needs. */
+#player-list li > span:not(.player-avatar) {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: anywhere;
+  line-height: 1.1;
+}
+#player-list li.long-name > span:not(.player-avatar) {
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+}
