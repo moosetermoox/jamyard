@@ -4509,6 +4509,8 @@ io.on('connection', (socket) => {
       socket.emit(EVENTS.JOIN_ERROR, { message: 'Room not found. Check the code on the big screen.' });
       return;
     }
+    // Start in progress: let the first step finish entering before seating
+    if (room.starting) { try { await room.starting; } catch {} }
 
     // Block players the host kicked from this room (same-session token).
     if (token && room.kickedTokens && room.kickedTokens.has(token)) {
@@ -4754,6 +4756,12 @@ io.on('connection', (socket) => {
         }
         room.engine.transition(lobby.next);
         console.log(`[start-game] Room ${code} now in '${room.engine.getCurrentPhase().id}' phase`);
+        // A join that arrives while the first step is being set up waits on
+        // this (join-room), so nobody lands between the transition and the
+        // step's enter with no seat and no count (a reviewer's two pretend
+        // students sat on the lobby screen at "0 of 2", 2026-09-27)
+        let settleStart = null;
+        room.starting = new Promise((resolve) => { settleStart = resolve; });
         // Library-first metric: count activities RUN (once per room; never
         // simulated rooms; a game id + headcount + timestamp, nothing else).
         // Fire-and-forget — the class never waits on analytics.
@@ -4763,7 +4771,12 @@ io.on('connection', (socket) => {
           recordActivityRun(room.gameId, room.engine.players.list().length)
             .catch(err => console.log(`[activity-runs] record failed: ${err.message}`));
         }
-        await handlePhase(code, room);
+        try {
+          await handlePhase(code, room);
+        } finally {
+          room.starting = null;
+          if (settleStart) settleStart();
+        }
       } else {
         room.stateMachine.transition('collect');
         const prompt = "What did you do this weekend?";

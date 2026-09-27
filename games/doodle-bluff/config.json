@@ -25,7 +25,7 @@
     "version": "3",
     "params": {
       "phraseSource": "students",
-      "phrasePrompt": "Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous volcano on its first day of school.",
+      "phrasePrompt": "Write a short, strange phrase that would be fun to watch someone draw: an animal somewhere it should not be, an object with a feeling, a job nobody has.",
       "phrases": [
         "A nervous volcano on its first day of school",
         "A giraffe learning to skateboard",
@@ -94,7 +94,7 @@
     },
     "phrases": {
       "type": "collect",
-      "prompt": "Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous volcano on its first day of school.",
+      "prompt": "Write a short, strange phrase that would be fun to watch someone draw: an animal somewhere it should not be, an object with a feeling, a job nobody has.",
       "timer": 60,
       "next": "draw"
     },
@@ -121,7 +121,7 @@
       "subPhases": {
         "titles": {
           "type": "collect",
-          "prompt": "What is the REAL title of this drawing? Make up a fake so convincing your classmates pick it.",
+          "prompt": "Make up a fake title for this drawing, one so convincing your classmates pick it over the real one.",
           "drawingFrom": "_current.drawing",
           "timer": 45
         },

@@ -1109,7 +1109,14 @@ function clearMats() {
 }
 
 // Reset — tear down the pieces and put the empty bench back
+// A reset is a fresh room of the SAME activity (the bare picker with a
+// Launch button read as an unfinished screen, a reviewer 2026-09-27);
+// the count change below relaunches on its own.
 resetBtn.addEventListener('click', () => {
+  resetBench();
+  if (gameSelect.value) launchBtn.click();
+});
+function resetBench() {
   clearTimeout(tourTimer);
   if (window.BenchTour) BenchTour.stop();
   stopFastForward();
@@ -1135,14 +1142,14 @@ resetBtn.addEventListener('click', () => {
   addStudentBtn.hidden = true;
   studentBarTitle.textContent = 'Student screen';
   updateBanner();
-});
+}
 
 // A programmatic change to the value holder mid-preview relaunches with
 // the new count (the old players slider's contract, kept for deep links).
 playerCount.addEventListener('change', () => {
   if (!launchBtn.disabled) return; // not launched yet — Launch will use it
   playerCount.disabled = false;
-  resetBtn.click();
+  resetBench();
   launchBtn.click();
 });
 

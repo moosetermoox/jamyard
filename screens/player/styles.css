@@ -2540,6 +2540,7 @@ body.wh-empty .wh-word:hover { background: none; }
 
 /* The join page's wordmark and way home (a student who lands here by
    mistake had no context: a reviewer, 2026-09-27) */
+html, body { overflow-x: hidden; }
 .join-brand { display: inline-flex; gap: 6px; align-items: flex-end; text-decoration: none; margin-bottom: 10px; }
 .join-brand span { display: inline-block; padding: 3px 9px 4px; font-family: var(--t-display, 'Bricolage Grotesque', Arial, sans-serif); font-weight: 800; font-size: 15px; letter-spacing: 0.06em; box-shadow: 0 2px 0 rgba(50, 35, 15, 0.22); }
 .join-brand-jam { background: #E9D9B4; color: var(--t-ink, #2A2620); transform: rotate(-2deg); }

@@ -27,8 +27,8 @@
       "type": "templateString",
       "label": "What should students write as secret phrases?",
       "helper": "Only when students write the phrases. Silly phrases for fun, or terms from your unit for review.",
-      "placeholder": "Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous volcano on its first day of school.",
-      "default": "Write a short, strange phrase that would be fun to watch someone draw. Example: a nervous volcano on its first day of school.",
+      "placeholder": "Write a short, strange phrase that would be fun to watch someone draw: an animal somewhere it should not be, an object with a feeling, a job nobody has.",
+      "default": "Write a short, strange phrase that would be fun to watch someone draw: an animal somewhere it should not be, an object with a feeling, a job nobody has.",
       "minLength": 3,
       "maxLength": 300
     },
@@ -222,7 +222,7 @@
         "subPhases": {
           "titles": {
             "type": "collect",
-            "prompt": "What is the REAL title of this drawing? Make up a fake so convincing your classmates pick it.",
+            "prompt": "Make up a fake title for this drawing, one so convincing your classmates pick it over the real one.",
             "drawingFrom": "_current.drawing",
             "timer": 45
           },
