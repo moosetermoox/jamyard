@@ -1158,7 +1158,7 @@ playerCount.addEventListener('change', () => {
 // change it).
 gameSelect.addEventListener('change', () => {
   if (!launchBtn.disabled) return; // not launched yet — Launch will use it
-  resetBtn.click();
+  resetBench();
   launchBtn.click();
 });
 
@@ -1171,7 +1171,7 @@ window.addEventListener('message', (e) => {
   if (!e.data || e.data.type !== 'prototype-play-again') return;
   if (e.origin !== window.location.origin) return;
   if (!launchBtn.disabled) return; // nothing running
-  resetBtn.click();
+  resetBench();
   launchBtn.click();
 });
 
