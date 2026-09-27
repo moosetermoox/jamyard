@@ -302,3 +302,8 @@
 @media (prefers-reduced-motion: reduce) {
   .shelf-tool, .shelf-tools, .myyard-act { transition: none; }
 }
+
+/* What happens arrives a beat after the popup opens: the holder keeps its
+   room from the start so the red door never moves under a first click
+   (a reviewer's tap missed, 2026-09-26) */
+.myyard-map-holder { min-height: 220px; }

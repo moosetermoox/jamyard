@@ -2811,3 +2811,19 @@ body.in-bench .qr-image { width: 160px; height: 160px; }
    active section keeps a strip clear under its last button, so a
    continue button never sits half under it (a reviewer, 2026-09-26) */
 body.in-activity section.active { padding-bottom: 72px; }
+
+/* "Needs a look" on the private review list: the answer names a heavy
+   topic, or the auto-checks were unsure (the console's chip, here too) */
+.preview-flag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 3px 10px;
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: middle;
+  color: var(--t-ink, #2A2620);
+  background: var(--t-yellow, #F5C518);
+}

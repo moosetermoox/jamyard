@@ -32,6 +32,10 @@ export const AUDIENCE = Object.freeze({
   // the wall).
   CLASSMATE_THEN_CLASS: 'classmate+class',
   CLASSMATE_THEN_CLASS_AFTER_REVIEW: 'classmate+class-after-review',
+  // Guess who: the words go up AND the class picks the author (2026-09-26,
+  // "Shown to the class" in small print did not say that)
+  GUESSED: 'guessed',
+  GUESSED_AFTER_REVIEW: 'guessed-after-review',
   AI: 'ai',
   TEACHER: 'teacher'
 });
@@ -42,6 +46,8 @@ export const AUDIENCE_LABELS = Object.freeze({
   [AUDIENCE.CLASS_AFTER_REVIEW]: 'Shown to the class after your teacher reviews it.',
   [AUDIENCE.CLASSMATE_THEN_CLASS]: 'One classmate will read this, then the class sees it.',
   [AUDIENCE.CLASSMATE_THEN_CLASS_AFTER_REVIEW]: 'One classmate will read this, then the class sees it after your teacher reviews it.',
+  [AUDIENCE.GUESSED]: 'Your class will see this and try to guess who wrote it.',
+  [AUDIENCE.GUESSED_AFTER_REVIEW]: 'Your class will see this and try to guess who wrote it, after your teacher reviews it.',
   [AUDIENCE.AI]: 'These get summed up for the class.',
   [AUDIENCE.TEACHER]: 'Only your teacher sees your answers.'
 });
@@ -163,6 +169,9 @@ function classify(consumer, phaseId) {
   if (t === 'merge') return AUDIENCE.CLASSMATE;
   if (AI_TYPES.has(t)) return AUDIENCE.AI;
   if (t === 'preview') return null; // a gate, not a reader
+  // Rounds that put each answer up and ask the class WHO wrote it
+  if (t === 'foreach' && consumer.candidateSource === 'players' &&
+      typeof consumer.data === 'string' && consumer.data.split('.')[0] === phaseId) return AUDIENCE.GUESSED;
   if (CLASS_TYPES.has(t)) return AUDIENCE.CLASS;
   return null;
 }
@@ -183,6 +192,7 @@ export function audienceFor(config, phaseId) {
   let classmate = false;     // one classmate reads it (rotation, pair, return-to-author)
   let groupSize = null;      // the reading group's size when it is a pair or a merge group
   let cls = false;           // it goes in front of everyone
+  let guessed = false;       // and the class is asked who wrote it
   let ai = false;            // the AI reads it
   let classIndex = Infinity; // where on the path the first class-facing reader sits
   let nextHint = null;
@@ -197,8 +207,9 @@ export function audienceFor(config, phaseId) {
       const size = readingGroupSize(consumer);
       if (size && (!groupSize || size > groupSize)) groupSize = size;
       if (consumer.type === 'collect' && path[0] === id) nextHint = NEXT_CLASSMATE_HINT;
-    } else if (key === AUDIENCE.CLASS) {
+    } else if (key === AUDIENCE.CLASS || key === AUDIENCE.GUESSED) {
       cls = true;
+      if (key === AUDIENCE.GUESSED) guessed = true;
       const at = pathIndex.has(id) ? pathIndex.get(id) : Infinity;
       if (at < classIndex) classIndex = at;
     } else if (key === AUDIENCE.AI) {
@@ -212,6 +223,8 @@ export function audienceFor(config, phaseId) {
     key = gateBefore ? AUDIENCE.CLASSMATE_THEN_CLASS_AFTER_REVIEW : AUDIENCE.CLASSMATE_THEN_CLASS;
   } else if (classmate) {
     key = AUDIENCE.CLASSMATE;
+  } else if (cls && guessed) {
+    key = gateBefore ? AUDIENCE.GUESSED_AFTER_REVIEW : AUDIENCE.GUESSED;
   } else if (cls) {
     key = gateBefore ? AUDIENCE.CLASS_AFTER_REVIEW : AUDIENCE.CLASS;
   } else if (ai) {

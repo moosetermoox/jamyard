@@ -29,7 +29,7 @@ import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
 import { printFor, applyEdits, nameFor } from './engine/make-print.js';
 import { resolvePerPlayerTemplate } from './engine/per-player-template.js';
 import { effectiveRange, clampGuess } from './engine/phases/estimate-range.js';
-import { foreachSitOut, withoutSitOut } from './engine/phases/sit-out.js';
+import { foreachSitOut, withoutSitOut, sitOutIds } from './engine/phases/sit-out.js';
 import { shouldStopLooping } from './engine/phases/eliminate-handler.js';
 import { aggregateRankings, groupOrders } from './engine/phases/choice-draft.js';
 import { groupsFromTeamSource } from './engine/phases/groups-from.js';
@@ -41,6 +41,15 @@ import { restoreSubPhaseOrder } from './engine/subphase-order.js';
 // written order: restore it on every read. Never throws; a config whose
 // recipe is gone is returned as-is.
 function repairSavedConfig(config) {
+  // A student's words never reach the projector with a name on them
+  // without a teacher gate: copies saved before the compiler put a
+  // preview before guessing rounds get one here (engine/review-gate.js)
+  try {
+    const gates = ensureReviewGate(config, { secretOnly: true });
+    if (gates.length) console.log(`[repair] "${config.name}": review step added before the rounds (${gates.join(', ')})`);
+  } catch (err) {
+    console.log(`[repair] gate skipped for "${config && config.name}": ${err.message}`);
+  }
   try {
     const stamp = config && config.recipe;
     if (!stamp || !stamp.id) return config;
@@ -154,6 +163,8 @@ import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
 import { extendPhaseTimer } from './engine/phase-timer.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
+import { ensureReviewGate } from './engine/review-gate.js';
+import { heavyTopic } from './engine/heavy-topics.js';
 import { checkSubmission, filterContent } from './engine/content-filter.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
 import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
@@ -1459,6 +1470,9 @@ function setupForeachIteration(engine, foreachPhaseId, feConfig, index) {
       subConfig._foreachAuthorId = out.authorId;
       subConfig._foreachSourceId = out.sourceId;
       subConfig._foreachSitOutIds = out.ids;
+      // Guess who: the author IS the secret, so nothing on their screen
+      // or the projector's count may give them away (engine/phases/sit-out.js)
+      subConfig._foreachSecretAuthor = feConfig.candidateSource === 'players';
     }
 
     // Resolve _current references eagerly (message, prompt, correctAnswer,
@@ -4819,6 +4833,15 @@ io.on('connection', (socket) => {
         }
       }
 
+      // A heavy topic (a divorce, a death, self-harm) passes the filter and
+      // the ladder and used to go straight up: it gets the same "Needs a
+      // look" chip on the teacher's surfaces (engine/heavy-topics.js). The
+      // ladder's own verdict wins when it has one.
+      if (!flaggedCategory && currentPhase && currentPhase.type === 'collect' && heavyTopic(modText)) {
+        flaggedCategory = 'heavy';
+        recordEvent(room, 'moderation-flag', { player: player.name, category: 'heavy' });
+      }
+
       // appendOnly: rebuild the stored response from the server's own copy of
       // the inherited text + the (filtered) addition — the client only ever
       // submits the addition, so a vandal can't gut a classmate's list.
@@ -4863,8 +4886,19 @@ io.on('connection', (socket) => {
     } else {
       eligible = players.list();
     }
-    const submitted = eligible.filter(p => p.response).length;
-    const total = eligible.length;
+    let submitted = eligible.filter(p => p.response).length;
+    let total = eligible.length;
+    // Guess who: the author sits out, but a count one short of the room
+    // tells everyone somebody is (a reviewer, 2026-09-26). The author
+    // counts as already in.
+    if (room.engine) {
+      const secret = room.engine.getCurrentPhase();
+      if (secret && secret._foreachSecretAuthor) {
+        const out = sitOutIds(secret).size;
+        submitted += out;
+        total += out;
+      }
+    }
 
     // Shared meadow: this submitter's canonical block index (assigned once
     // per phase, submission order), told only to THEM — the room broadcast

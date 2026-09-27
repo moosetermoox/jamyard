@@ -784,6 +784,16 @@ function renderPreview(content, responses) {
       } else {
         li.textContent = responses[i].name + ': ' + responses[i].response;
       }
+      // "Needs a look": the ladder was unsure, or the answer names a heavy
+      // topic (a divorce, a death, self-harm; engine/heavy-topics.js)
+      if (responses[i].flagged) {
+        var look = document.createElement('span');
+        look.className = 'entry-flag';
+        look.textContent = 'Needs a look';
+        look.title = 'Read this one before the class sees it. Hide it if it should stay private.';
+        li.appendChild(document.createTextNode(' '));
+        li.appendChild(look);
+      }
       // Hide on the review screen itself (a reviewer read "Hide anything
       // that isn't kind" and found no button, 2026-09-26): the line leaves
       // the step's stored rows, so the wall never shows it

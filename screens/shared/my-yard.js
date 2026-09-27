@@ -277,7 +277,7 @@
 
     // What happens, stop by stop; arrives async into this holder so the
     // doors below never jump out from under the mouse
-    var mapHolder = el('div');
+    var mapHolder = el('div', 'myyard-map-holder');
     modal.appendChild(mapHolder);
     if (window.ActivityMap) ActivityMap.attach(game.id, mapHolder);
 
