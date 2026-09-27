@@ -35,7 +35,7 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-09-27, late: branch `review-eleven`, PR open; the local :3000 server runs it)
+### START HERE next session (updated 2026-09-27, late: #117 `review-eleven` MERGED 20ae1de, master deploys via CI; the local :3000 server runs it)
 
 **An eleventh outside review, in one paragraph.** The reviewer re-checked the live site and listed six must-fixes; four had shipped in #106 to #114 before the check (Anonymous Feedback's private summary, Draw Gallery's Reject and Hide, the drawing surviving a refresh, Both Sides and Idea Chain endings) and two were real: the Guess Who gate never reached the live row (a transition card sits between the collect and the rounds, and the read repair only fired on a direct link; `reachesThroughAnnounces` in `engine/review-gate.js` now walks announces, checked against the dev branch's row through the server), and "In French" crashed because `LANGUAGE_CODES` was never imported into server.js (a real French call checked). Also: five more jokes cut (451), Class Critique's "Talk it out" is the rate step's `discussionPrompt` so the chart stays up, a storyboard poll gets `liveResults` and a results reveal, the no-recipe card leads with Plan it step by step, the intro's "Use them," and "create your own." are links, and My yard says how many remembered copies are gone instead of dropping them. Suite 2790, the Windows CRLF assertion the only failure.
 
