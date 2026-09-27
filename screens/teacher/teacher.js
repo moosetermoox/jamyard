@@ -427,7 +427,8 @@ function setPhase(data) {
   // gathered, and Doodle Bluff ran its rounds on nothing (2026-09-18). The
   // server closes on a stray advance too; hiding the button keeps one
   // control per moment.
-  nextStepBtn.hidden = phaseType === 'preview' || isLobby || isCollect;
+  // At the end there is nothing to advance to; the report card is the next thing (a reviewer, 2026-09-27)
+  nextStepBtn.hidden = phaseType === 'preview' || isLobby || isCollect || phaseType === 'end';
   nextStepBtn.disabled = false;
   // The button says what clicking DOES right now: while a two-stage step
   // is open that's the CLOSE action ("End the ratings"); once closed (or

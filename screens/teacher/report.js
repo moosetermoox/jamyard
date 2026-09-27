@@ -109,7 +109,7 @@
     reportEl.appendChild(el('p', 'rp-meta', meta));
 
     if (state.showNames && report.roster && report.roster.length > 0) {
-      reportEl.appendChild(el('p', 'rp-roster', 'Class: ' + report.roster.join(', ')));
+      reportEl.appendChild(el('p', 'rp-roster', 'Students: ' + report.roster.join(', ')));
     }
     reportEl.appendChild(el('hr', 'rp-rule'));
 

@@ -2102,6 +2102,7 @@ input::placeholder, textarea::placeholder {
 /* Holding screen chips: little offcuts */
 .holding-avatar-chip {
   border: none;
+  color: var(--t-ink, #2A2620);
   background: var(--t-paper);
   box-shadow: 0 2px 3px rgba(50, 35, 15, 0.18);
 }

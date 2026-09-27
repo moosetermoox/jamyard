@@ -2410,6 +2410,8 @@ app.get('/teacher/report', (req, res) => {
   res.sendFile('report.html', { root: join(__dirname, 'screens', 'teacher') });
 });
 app.use('/teacher', express.static(join(__dirname, 'screens/teacher')));
+// Students type these (a reviewer, 2026-09-27); both are the student page
+app.get(['/join', '/play'], (req, res) => res.redirect('/player'));
 app.use('/player', express.static(join(__dirname, 'screens/player')));
 // Versioned font files (the version is in the name): cache for a year (2026-09-20).
 app.use('/shared/fonts', express.static(join(__dirname, 'screens/shared/fonts'), { maxAge: '365d', immutable: true }));
@@ -6555,6 +6557,17 @@ if (DB_ENABLED) {
   }, 60 * 60 * 1000);
 }
 setInterval(() => pinThrottle.sweep(Date.now()), 60 * 60 * 1000);
+
+// Nothing matched: a page with a way in, never Express's bare "Cannot GET"
+// (a reviewer, 2026-09-27). API and socket paths keep a JSON 404.
+let notFoundPage = null; // read once, on the first miss
+app.use(async (req, res) => {
+  if (req.path.startsWith('/api/') || req.path.startsWith('/socket.io')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  if (!notFoundPage) notFoundPage = await readFile(join(__dirname, 'screens/shared/not-found.html'), 'utf-8');
+  res.status(404).type('html').send(notFoundPage);
+});
 
 // A stray unawaited promise must not kill every classroom on this server.
 // (Node's default since v15 is to crash the process on unhandled rejection.)

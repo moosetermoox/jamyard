@@ -2860,3 +2860,13 @@ body.in-activity { padding-bottom: 112px; }
 .rate-dist-fill { width: 100%; min-height: 3px; transition: height 0.3s ease; }
 .rate-dist-val { font-size: 1.15rem; font-weight: 700; }
 .rate-dist-ends { display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--theme-muted, #666); margin-top: 6px; }
+
+/* Everyone is in: Close is the one thing to press (a reviewer, 2026-09-27) */
+#close-submissions-btn.is-all-in { animation: all-in-pulse 1.4s ease-in-out infinite; }
+@keyframes all-in-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #close-submissions-btn.is-all-in { animation: none; outline: 4px solid var(--t-red, #E5482B); outline-offset: 3px; }
+}
