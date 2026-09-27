@@ -15,7 +15,9 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { readFile } from 'node:fs/promises';
 
 const ROOT = new URL('../..', import.meta.url);
-const read = (p) => readFile(new URL(p, ROOT), 'utf8');
+// Line endings normalized: a Windows checkout turns LF into CRLF and the
+// multi-line matches below would miss
+const read = (p) => readFile(new URL(p, ROOT), 'utf8').then((s) => s.replace(/\r\n/g, '\n'));
 
 async function loadModule() {
   globalThis.window = globalThis;

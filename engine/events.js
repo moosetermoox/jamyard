@@ -63,6 +63,7 @@ export const EVENTS = {
   SUBMISSIONS_UPDATE:   'submissions-update',
   MODERATE_HIDE:        'moderate-hide',
   TEACHER_BLOCKED:      'teacher-blocked',      // server -> consoles: the filter stopped a student's message (name and reason, never the words)
+  TEACHER_AI_NOTE:      'teacher-ai-note',      // server -> consoles: an AI step read N of M answers and left some out (counts only, never the words)
   REVEAL_ONE_COUNT:     'reveal-one-count',     // server -> host + players: the queue changed (a Hide after the close), new total and revealed
   MODERATE_KICK:        'moderate-kick',
   KICKED:               'kicked',

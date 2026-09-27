@@ -105,7 +105,7 @@ describe('the make page puts the words into the class\'s language, on request', 
 
 describe('small things from the round', () => {
   it('the active section keeps a strip clear under the corner chip', () => {
-    expect(read('screens/host/styles.css')).toContain('body.in-activity section.active { padding-bottom: 72px; }');
+    expect(read('screens/host/styles.css')).toContain('body.in-activity { padding-bottom: 112px; }');
   });
   it('a dead make link offers the way back to the yard', () => {
     const make = read('screens/make/make.js');

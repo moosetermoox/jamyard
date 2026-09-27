@@ -214,6 +214,19 @@ export function validateRecipe(recipe) {
     }));
   }
 
+  // replaceOnRead: the stamped versions whose saved copies get this
+  // recipe's phases on read (engine/recipe-upgrade.js). Strings only.
+  if (recipe.replaceOnRead != null && (!Array.isArray(recipe.replaceOnRead) || !recipe.replaceOnRead.every((v) => typeof v === 'string'))) {
+    diags.push(mkDiagnostic({
+      severity: 'error',
+      code: RECIPE_DIAGNOSTIC_CODES.RECIPE_INVALID_FIELD_TYPE,
+      path: 'replaceOnRead',
+      field: 'replaceOnRead',
+      message: 'Recipe field "replaceOnRead" must be an array of version strings, e.g. ["1"].',
+      source: 'validator'
+    }));
+  }
+
   // setupPanel: opt-in dedicated Customize experience for games born from
   // this recipe ("quiz" = topic box + AI-written questions + editable
   // question list; "bluff" = the same plus a live-vs-prepared source
