@@ -205,14 +205,14 @@
         { tall: true, tokens: [{ kind: 'reel', slot: 0, at: S }] },
         { tall: false, tokens: [{ kind: 'words', text: 'of whole-class activities', at: S + 0.1 }] },
         { tall: true, tokens: [{ kind: 'words', text: 'for', at: S + 0.1 }, { kind: 'period', slot: 1, at: S + 0.1 }] },
-        { tall: true, tokens: [{ kind: 'words', text: 'Use them,', at: S + 0.2 }, { kind: 'reel', slot: 2, at: S + 0.2 }] },
-        { tall: false, tokens: [{ kind: 'words', text: 'them, or create your own.', at: S + 0.2 }] }
+        { tall: true, tokens: [{ kind: 'link', text: 'Use them,', href: '#yard', at: S + 0.2 }, { kind: 'reel', slot: 2, at: S + 0.2 }] },
+        { tall: false, tokens: [{ kind: 'words', text: 'them, or', at: S + 0.2 }, { kind: 'link', text: 'create your own.', href: '/designer', at: S + 0.2 }] }
       ];
     }
     return [
       { tall: true, tokens: [mark, { kind: 'words', text: 'is a', at: W + 0.7 }, { kind: 'reel', slot: 0, at: S }] },
       { tall: true, tokens: [{ kind: 'words', text: 'of whole-class activities for', at: S + 0.1 }, { kind: 'period', slot: 1, at: S + 0.1 }] },
-      { tall: true, tokens: [{ kind: 'words', text: 'Use them,', at: S + 0.2 }, { kind: 'reel', slot: 2, at: S + 0.2 }, { kind: 'words', text: 'them, or create your own.', at: S + 0.2 }] }
+      { tall: true, tokens: [{ kind: 'link', text: 'Use them,', href: '#yard', at: S + 0.2 }, { kind: 'reel', slot: 2, at: S + 0.2 }, { kind: 'words', text: 'them, or', at: S + 0.2 }, { kind: 'link', text: 'create your own.', href: '/designer', at: S + 0.2 }] }
     ];
   }
 
@@ -291,6 +291,7 @@
         line.tokens.forEach(function (tok) {
           if (tok.kind === 'mark') row.appendChild(buildMark(tok));
           else if (tok.kind === 'words') row.appendChild(buildWords(tok.text, tok.at));
+          else if (tok.kind === 'link') row.appendChild(buildLink(tok.text, tok.href, tok.at));
           else if (tok.kind === 'reel') row.appendChild(buildReel(tok.slot, tok.at));
           else if (tok.kind === 'period') {
             var wrap = el('span', 'ml-period');
@@ -321,6 +322,16 @@
       var w = el('span', 'ml-words', text);
       words.push({ set: styler(w), at: at, done: false });
       return w;
+    }
+
+    // "Use them" and "create your own" are the sentence's two doors (a
+    // reviewer, 2026-09-27: the first screen had nothing a teacher could
+    // press): the yard below, and the Create page. Same fade as the words.
+    function buildLink(text, href, at) {
+      var a = el('a', 'ml-words ml-link', text);
+      a.href = href;
+      words.push({ set: styler(a), at: at, done: false });
+      return a;
     }
 
     function buildReel(slot, slotAt) {

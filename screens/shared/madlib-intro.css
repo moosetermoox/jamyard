@@ -92,6 +92,16 @@
   opacity: 0;
 }
 
+/* The sentence's two doors: the yard below and the Create page. Words at
+   rest, a red underline on hover or focus so they read as pressable. */
+.ml-link {
+  text-decoration: none;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 4px;
+}
+.ml-link:hover,
+.ml-link:focus-visible { text-decoration: underline; text-decoration-color: var(--t-red, #D9481C); outline: none; }
+
 /* The wordmark in the sentence: JAM on birch, YARD on red, a size up from the header's */
 .ml-mark { display: inline-flex; gap: 7px; align-items: flex-end; }
 

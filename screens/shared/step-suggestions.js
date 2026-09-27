@@ -1243,6 +1243,10 @@
       // is a host-paced reveal of what passed, never a single crown.
       var approveVote = brick === 'vote' && step.approve === true;
       if (approveVote) built.mode = 'approve';
+      // A poll's tally grows on the projector as answers land (Live
+      // Poll's shape); a warm-up poll used to close into nothing (a
+      // reviewer, 2026-09-27). The graded quiz keeps its own reveal.
+      if (brick === 'collect-choice' && !built.correctAnswer) built.liveResults = true;
 
       phases[lastId].next = id;
       phases[id] = built;
@@ -1285,6 +1289,29 @@
     if (Object.keys(phases).length === 1) {
       return { config: null, problems: problems.length ? problems : ['No usable steps.'] };
     }
+
+    // A poll nothing later reads gets its final chart as a host-paced
+    // reveal right after it (Live Poll's results step), under the poll's
+    // own question so no fixed English rides into another language.
+    Object.keys(phases).forEach(function (pid) {
+      var poll = phases[pid];
+      if (!poll || poll.type !== 'collect-choice' || !poll.liveResults) return;
+      var read = Object.keys(phases).some(function (other) {
+        var ph = phases[other];
+        return other !== pid && ['template', 'message', 'prompt', 'content', 'instruction', 'input', 'from', 'data'].some(function (f) {
+          return typeof ph[f] === 'string' && ph[f].indexOf(pid + '.') !== -1;
+        });
+      });
+      if (read) return;
+      var chartId = freshId(phases, 'results');
+      phases[chartId] = {
+        type: 'reveal',
+        template: (typeof poll.prompt === 'string' && poll.prompt ? poll.prompt + '\n\n' : '') + '{{' + pid + '.barChart}}',
+        next: poll.next
+      };
+      poll.next = chartId;
+      if (lastId === pid) lastId = chartId;
+    });
 
     if (!hasEnd(phases)) {
       var endId = freshId(phases, 'wrap');

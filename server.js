@@ -190,7 +190,7 @@ import { claimRole, autoFillRoles, buildRoleOutput } from './engine/phases/role-
 import { applyCheck, groupProgress, checklistResults } from './engine/phases/checklist-state.js';
 import { playerChecklistView, teacherDetail } from './engine/phase-handlers/checklist.js';
 import { continueLabelForPhase, closeLabelFor } from './engine/phases/continue-labels.js';
-import { stringsFor, translate, detectLanguage } from './engine/i18n/index.js';
+import { stringsFor, translate, detectLanguage, LANGUAGE_CODES } from './engine/i18n/index.js';
 import { planProblem } from './engine/plan-check.js';
 import { isRolling, moreInputAhead, doneMessageFor } from './engine/phases/rolling.js';
 import { buildLiveTally } from './engine/phases/live-tally.js';

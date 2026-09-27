@@ -46,9 +46,29 @@ export function ungatedRounds(config, opts = {}) {
     if (!phase || phase.type !== 'foreach' || !namesAuthor(phase)) continue;
     if (opts.secretOnly && phase.candidateSource !== 'players') continue;
     const src = sourceCollectOf(phases, phase);
-    if (src && phases[src].next === id) out.push([src, id]);
+    if (src && reachesThroughAnnounces(phases, src, id)) out.push([src, id]);
   }
   return out;
+}
+
+/**
+ * True when the collect reaches the rounds with nothing but announces in
+ * between (the live Guess Who row goes collect, a "Now we guess" card,
+ * then the rounds: an eleventh review found it still ungated, 2026-09-27).
+ * A preview, a step that changes the answers, or a fork on the way counts
+ * as something between them.
+ */
+function reachesThroughAnnounces(phases, fromId, toId) {
+  let at = phases[fromId] && phases[fromId].next;
+  const seen = new Set([fromId]);
+  while (typeof at === 'string' && !seen.has(at)) {
+    if (at === toId) return true;
+    const p = phases[at];
+    if (!p || p.type !== 'announce') return false;
+    seen.add(at);
+    at = p.next;
+  }
+  return false;
 }
 
 /**
@@ -69,8 +89,11 @@ export function ensureReviewGate(config, opts = {}) {
     const foreachId = gateFor.get(id);
     let gateId = foreachId + '-check';
     while (phases[gateId] || rebuilt[gateId]) gateId += '-2';
+    // The gate goes right after the collect; approve continues to whatever
+    // came next (an announce on the way, or the rounds themselves)
+    const afterGate = phase.next;
     phase.next = gateId;
-    rebuilt[gateId] = { type: 'preview', template: GATE_TEMPLATE, approveNext: foreachId, rejectNext: id };
+    rebuilt[gateId] = { type: 'preview', template: GATE_TEMPLATE, approveNext: afterGate, rejectNext: id };
     added.push(gateId);
   }
   config.phases = rebuilt;

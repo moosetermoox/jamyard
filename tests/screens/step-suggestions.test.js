@@ -925,3 +925,48 @@ describe('assign brick', () => {
     validateGame(config.phases, 'byGroup reveal');
   });
 });
+
+// A warm-up poll used to close into nothing (a reviewer's builder lesson,
+// 2026-09-27): the tally now grows on the projector while the poll is
+// open (Live Poll's liveResults) and, when no later step reads the poll,
+// a host-paced reveal of its bar chart follows it under its own question.
+describe('storyboard: a poll shows its results', () => {
+  it('a collect-choice brick gets liveResults and a results reveal when nothing reads it', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Warm-up',
+      steps: [
+        { brick: 'collect-choice', text: 'How confident are you about fractions?', choices: ['Very', 'Somewhat', 'Not yet'] },
+        { brick: 'collect', text: 'What is one thing you want to practice?' },
+        { brick: 'end', text: 'Thanks!' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const [pollId, poll] = Object.entries(config.phases).find(([, p]) => p.type === 'collect-choice');
+    expect(poll.liveResults).toBe(true);
+    const results = config.phases[poll.next];
+    expect(results.type).toBe('reveal');
+    expect(results.template).toBe('How confident are you about fractions?\n\n{{' + pollId + '.barChart}}');
+    expect(results.timer).toBeUndefined();
+    expect(config.phases[results.next].type).toBe('collect');
+    validateGame(config.phases, 'poll storyboard');
+  });
+  it('a poll a later step reads gets no second chart; a poll last in the plan still ends properly', () => {
+    const { config, problems } = S.compileStoryboard({
+      name: 'Read poll',
+      steps: [
+        { brick: 'collect-choice', text: 'Pick one.', choices: ['A', 'B'] },
+        { brick: 'reveal', text: 'The split:\n\n{{poll.barChart}}' }
+      ]
+    });
+    expect(problems).toEqual([]);
+    const types = Object.values(config.phases).map(p => p.type);
+    expect(types.filter(t => t === 'reveal').length).toBe(1);
+    const last = S.compileStoryboard({ name: 'Poll last', steps: [{ brick: 'collect-choice', text: 'Pick one.', choices: ['A', 'B'] }] });
+    expect(last.problems).toEqual([]);
+    const [, lastPoll] = Object.entries(last.config.phases).find(([, p]) => p.type === 'collect-choice');
+    const chart = last.config.phases[lastPoll.next];
+    expect(chart.type).toBe('reveal');
+    expect(last.config.phases[chart.next].type).toBe('end');
+    validateGame(last.config.phases, 'poll last');
+  });
+});

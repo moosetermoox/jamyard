@@ -307,3 +307,6 @@
    room from the start so the red door never moves under a first click
    (a reviewer's tap missed, 2026-09-26) */
 .myyard-map-holder { min-height: 220px; }
+
+/* A copy the browser remembers and the site no longer has: said in ink, never dropped in silence */
+.myyard-missing { color: var(--t-ink, #2A2620); }

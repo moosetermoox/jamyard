@@ -56,6 +56,8 @@
     return window.YardPrints && YardPrints.templateOf ? YardPrints.templateOf(g, allGames) : null;
   }
 
+  var missingIds = [];
+
   function split(games, opts) {
     allGames = games || [];
     var query = (opts && opts.query) || '';
@@ -76,12 +78,19 @@
     games.forEach(function (g) {
       if (!placed[g.id]) { rest.push(g); placed[g.id] = true; }
     });
+    var created = window.MyGames ? MyGames.list() : [];
     var mine = P.orderYard(recent.concat(hearts, copies), {
       hearts: P.Favorites.list(),
       recents: P.Recents.list(),
-      created: window.MyGames ? MyGames.list() : []
+      created: created
     });
-    return { mine: mine, shed: shed, rest: rest };
+    // A copy this browser remembers that the server no longer has (a
+    // reviewer's yard went from nine to three with no word, 2026-09-27):
+    // never dropped in silence, the shelf says how many are gone.
+    var have = {};
+    games.forEach(function (g) { have[g.id] = true; });
+    missingIds = created.filter(function (id) { return !have[id]; });
+    return { mine: mine, shed: shed, rest: rest, missing: missingIds.slice() };
   }
 
   // The shelf: "My yard" as a heading ABOVE the prints, the same weight
@@ -93,7 +102,7 @@
   // move, or a delete ({removedId}).
   function buildShelf(mine, shed, opts) {
     opts = opts || {};
-    if ((!mine || mine.length === 0) && (!shed || shed.length === 0)) return null;
+    if ((!mine || mine.length === 0) && (!shed || shed.length === 0) && missingIds.length === 0) return null;
     var outer = el('div', 'myyard-wrap');
     var head = el('div', 'myyard-head');
     head.appendChild(el('h2', null, 'My yard'));
@@ -101,6 +110,12 @@
     // 2026-09-06: teachers could not tell that copies are per-browser).
     if (mine.length > 0) {
       head.appendChild(el('p', 'myyard-note', 'Your copies live in this browser. Open one and use Share for a link that works on any device.'));
+    }
+    if (missingIds.length > 0) {
+      var n = missingIds.length;
+      head.appendChild(el('p', 'myyard-note myyard-missing',
+        (n === 1 ? 'One activity saved in this browser is' : n + ' activities saved in this browser are') +
+        ' no longer on the site, so ' + (n === 1 ? 'it cannot' : 'they cannot') + ' be opened here.'));
     }
     outer.appendChild(head);
     // The board's hard shadow would ghost the shed toggle's text, so the
