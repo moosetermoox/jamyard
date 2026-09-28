@@ -715,13 +715,11 @@ window.addEventListener('message', function(e) {
       setTimeout(function() { rateBtn.click(); }, 100);
     }
   } else if (id === 'relay-section') {
-    // Fill relay input and submit (only if it's our turn)
-    var relayIn = active.querySelector('#relay-input');
-    var relayBtn = active.querySelector('#relay-submit-btn');
-    if (relayIn && relayBtn && !relayBtn.disabled && !document.getElementById('relay-input-section').hidden) {
-      relayIn.value = BOT_PHRASES[Math.floor(Math.random() * BOT_PHRASES.length)];
-      relayBtn.click();
-    }
+    // Take this turn now if it is ours, and every later turn as it comes
+    // (it named BOT_PHRASES, which never existed, so no pretend student
+    // ever wrote a line: a reviewer's pitch read "(skipped)" four times)
+    relayBotAuto = true;
+    relayBotTakeTurn();
   }
 });
 
@@ -2825,6 +2823,7 @@ function renderRankItems() {
       var upBtn = document.createElement('button');
       upBtn.className = 'rank-arrow';
       upBtn.textContent = '\u25B2';
+      upBtn.setAttribute('aria-label', UiLang.t('Move up') + ': ' + label.textContent);
       upBtn.disabled = index === 0;
       upBtn.addEventListener('click', function() {
         var temp = rankCurrentOrder[index - 1];
@@ -2967,12 +2966,16 @@ function renderMatchRows() {
       var upBtn = document.createElement('button');
       upBtn.className = 'rank-arrow';
       upBtn.textContent = '▲';
+      // A screen reader said only the arrow (a reviewer, 2026-09-28)
+      upBtn.setAttribute('aria-label', UiLang.t('Move up') + ': ' + label.textContent);
       upBtn.disabled = index === 0;
       upBtn.addEventListener('click', function() { swapMatchRows(index, index - 1); });
 
       var downBtn = document.createElement('button');
       downBtn.className = 'rank-arrow';
       downBtn.textContent = '▼';
+      downBtn.setAttribute('aria-label', UiLang.t('Move down') + ': ' + label.textContent);
+      downBtn.setAttribute('aria-label', UiLang.t('Move down') + ': ' + label.textContent);
       downBtn.disabled = index === matchLeftItems.length - 1;
       downBtn.addEventListener('click', function() { swapMatchRows(index, index + 1); });
 
@@ -3307,6 +3310,15 @@ wagerSubmitBtn.addEventListener('click', function() {
 
 // --- Socket events - Relay ---
 
+// Try it out: a pretend student armed by Add sample answers writes its
+// line whenever the turn comes round to it
+var relayBotAuto = false;
+function relayBotTakeTurn() {
+  if (relayInputSection.hidden || relaySubmitBtn.disabled) return;
+  relayInput.value = botFillAnswer(relayPromptDisplay.textContent);
+  relaySubmitBtn.click();
+}
+
 socket.on('relay-turn', ({ prompt, sharedResult, timer, progress, playerTemplate, show }) => {
   showSection(relaySection);
   relayStatus.textContent = "It's your turn!";
@@ -3325,6 +3337,7 @@ socket.on('relay-turn', ({ prompt, sharedResult, timer, progress, playerTemplate
   });
 
   renderRelayShared(sharedResult);
+  if (relayBotAuto) setTimeout(relayBotTakeTurn, 400);
 
   if (timer) {
     startTimer(timer, relayTimerDisplay, function() {

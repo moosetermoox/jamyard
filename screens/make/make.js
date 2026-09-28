@@ -22,6 +22,9 @@
   // A class example the yard's card showed (`ex=science.middle`,
   // shared/class-examples.js): its words go into the boxes below
   var exKey = params.get('ex');
+  // The Create page's idea, when it named content the activity lacks
+  // ("Spanish color words" for Vocab Match): the pair writer takes it
+  var ideaText = (params.get('idea') || '').slice(0, 200);
   // The length at which the projector drops a question to its smaller
   // style (host styles, .prompt-long); the note under the box says so
   var LONG_QUESTION_CHARS = 160;
@@ -159,8 +162,18 @@
     return isNaN(n) ? null : n;
   }
 
+  // No activity to show: the sections under the error would be empty
+  // headings ("Make it fit your class", "What happens"; a reviewer 2026-09-28)
+  function hideEmptySections() {
+    ['fit-section', 'map-section'].forEach(function (id) {
+      var sec = document.getElementById(id);
+      if (sec) sec.hidden = true;
+    });
+  }
+
   if (!gameId) {
     fail('Pick an activity in the yard first, then Make it yours.');
+    hideEmptySections();
     el.doors.hidden = true;
     return;
   }
@@ -229,6 +242,7 @@
     el.error.appendChild(document.createTextNode(' '));
     el.error.appendChild(back);
     el.doors.hidden = true;
+    hideEmptySections();
   });
 
   function render() {
@@ -1478,6 +1492,12 @@
     note.textContent = 'Or type them in below. Whatever is written here can be changed.';
     row.appendChild(note);
     function say(text) { note.textContent = text; }
+    // Carried from the Create page: write the pairs for it once, on arrival
+    if (ideaText && !state.ideaPairsDone) {
+      state.ideaPairsDone = true;
+      topic.value = ideaText;
+      setTimeout(function () { go.click(); }, 0);
+    }
     go.addEventListener('click', function () {
       var t = topic.value.trim();
       if (t.length < 3) { say('Give a topic first.'); topic.focus(); return; }

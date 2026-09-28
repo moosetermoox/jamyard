@@ -28,7 +28,32 @@ export const PROFANITY = [
   'cunt',
   'whore',
   'slut',
-  'dickhead'
+  'dickhead',
+  // Names a reviewer put on the projector past the filter (2026-09-28)
+  'jackass',
+  'dumbass',
+  'dumbfuck',
+  'dipshit',
+  'asswipe',
+  'fatass',
+  'smartass'
+];
+
+// Insults that are fine inside an answer ("that was a stupid mistake")
+// but never as a name on the big screen. Checked by filterName only.
+// No surnames: "Moron" and "Butt" are real family names, so they stay off.
+export const NAME_INSULTS = [
+  'idiot',
+  'stupid',
+  'loser',
+  'dumb',
+  'dummy',
+  'imbecile',
+  'butthead',
+  'buttface',
+  'badass',
+  'poophead',
+  'fatso'
 ];
 
 // Slurs and hate terms. These are filtered with no tolerance. Listed here as

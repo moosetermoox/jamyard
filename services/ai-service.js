@@ -2584,6 +2584,7 @@ ${responseList}`;
         return {
           game: parsed.game,
           explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
+          carriesContent: parsed.carriesContent === true,
           alternates: sanitizeAlternates(parsed.alternates, null),
           ...(title ? { title } : {})
         };
@@ -2681,9 +2682,11 @@ ${params || '    (none)'}`;
    Return JSON pointing at it, there is nothing to fill in:
    {
      "game": "id-of-the-ready-made-activity",
-     "explanation": "One short sentence: this finished activity already does what they described.",
+     "explanation": "One short sentence: what this finished activity does, with ITS OWN content as listed above. Never say it already has the teacher's topic, words, or list.",
+     "carriesContent": true when the idea names content of its own (a topic, a word list, a question, a subject) that this activity does not already hold; false when the idea is only the mechanic,
      "alternates": [ up to 2 recipes that could also take the idea, same shape as in option 1 ]
    }
+   A ready-made activity runs with the content it was made with (Vocab Match pairs literary terms). The teacher changes that content afterwards, so never claim the activity already covers their topic ("students match Spanish color words" when it pairs literary terms is false).
    Prefer this over forcing the idea into a recipe that only half fits, and over refusing. Only the mechanic matters for this call: a ready-made activity about a different topic but the exact same play pattern is a better answer than a topical recipe with the wrong mechanic.
 ${recipeBornRule}
 `
@@ -2719,6 +2722,8 @@ ${gameOption}1. If ONE of the recipes above is a good fit:
      "alternates": [ { "recipe": "id-of-another-fitting-recipe", "why": "One short sentence on what this one would feel like instead." } ]
    }
    "alternates" lists up to 2 OTHER recipes that also fit the idea well. A broad, goal-shaped idea (laugh together, get to know each other, review a unit) usually deserves alternates; a specific idea that clearly names one mechanic deserves an empty list. Never repeat the main recipe, and fill "params" only for the main recipe.
+
+   A parameter you leave out takes the recipe's default, and a default is written for the default question. When you write a question for the idea, write the answer choices for THAT question too: a mood check at the start of class asks how students feel and offers feelings, never the default "Got it! / Lost" choices about understanding a lesson that has not happened yet. Never leave a default question when the idea names a purpose of its own.
 
    Tie-breaker for laughter/fun-shaped ideas: prefer the recipe whose comedy comes from things the students themselves create and react to (bad drawings, invented bluffs). For "make my class laugh" that means Doodle Bluff first, with quieter cooperative games as alternates rather than the top pick.
 

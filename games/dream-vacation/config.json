@@ -34,7 +34,7 @@
     },
     "announce-winner": {
       "type": "announce",
-      "message": "The class has spoken!\n\nWINNER: {{rank-destinations.rankings.0.item}}\n\nRunners-up: {{rank-destinations.rankings.1.item}} and {{rank-destinations.rankings.2.item}}\n\nNext up: build a vacation pitch for the winner, one sentence at a time.",
+      "message": "The class has spoken!\n\nWINNER: {{rank-destinations.rankings.0.item}}\n\nThe full order:\n{{rank-destinations.rankedList}}\n\nNext up: build a vacation pitch for the winner, one sentence at a time.",
       "next": "write-pitch"
     },
     "write-pitch": {

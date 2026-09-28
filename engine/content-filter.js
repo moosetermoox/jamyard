@@ -10,7 +10,7 @@
 // word) while normalization defeats the common classroom evasions — leet-speak,
 // repeated letters, and punctuation between letters.
 
-import { BLOCKED_WORDS } from './blocklist.js';
+import { BLOCKED_WORDS, NAME_INSULTS } from './blocklist.js';
 
 export const DEFAULT_MIN_LENGTH = 2;
 export const DEFAULT_MAX_LENGTH = 280;
@@ -174,6 +174,16 @@ export function filterName(name) {
     const compound = new RegExp('\\b(?:(?:' + heads + ')' + pattern + '(?:' + tails + ')?|' + pattern + '(?:' + tails + '))\\b', 'i');
     if (variants.some(v => compound.test(v))) {
       return { blocked: true, category, word };
+    }
+  }
+  // Insults as names: bare ("Stupid"), with a head ("Mr Idiot"), or a tail
+  // ("Loser Face", "Dummys"). Answers never go through this list.
+  const anyTail = NAME_COMPOUND_TAILS.concat(NAME_GRAMMAR_TAILS).map(escapeRe).join('|');
+  for (const word of NAME_INSULTS) {
+    const pattern = escapeRe(collapseRepeats(word));
+    const insult = new RegExp('\\b(?:(?:' + heads + ')\\s?)?' + pattern + '(?:\\s?(?:' + anyTail + '))?\\b', 'i');
+    if (variants.some(v => insult.test(v))) {
+      return { blocked: true, category: 'insult', word };
     }
   }
   return { blocked: false };
