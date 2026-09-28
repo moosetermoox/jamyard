@@ -251,7 +251,7 @@ describe('the home page carries the intro', () => {
 
   it('the fold headline hides, the picture centers, and the question becomes the headline', async () => {
     const html = await read('screens/home/index.html');
-    expect(html).toContain('body.has-intro .hero-row h1 { display: none; }');
+    expect(html).toContain('body.has-intro .hero-row .hero-head { display: none; }');
     expect(html).toContain('body.has-intro .hero-row { justify-content: center; }');
     const ask = html.slice(html.indexOf('body.has-intro .ask {'), html.indexOf('}', html.indexOf('body.has-intro .ask {')));
     expect(ask).toContain('font-family: var(--t-display);');

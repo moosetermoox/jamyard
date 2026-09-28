@@ -33,6 +33,9 @@
   var WIGGLE_NEAR = 120;   // px from the sentence that wakes the middle block once
   var WIGGLE_LEN = 0.7;
   var FADE_SCREENS = 0.6;  // scroll distance of the fade, in viewport heights
+  var FADE_SCREENS_NARROW = 0.3; // under NARROW_UNDER px: the stacked sentence is tall, so a long crossfade
+                                // laid it over the fold (a reviewer on a phone, 2026-09-28)
+  var NARROW_UNDER = 600;
   var CUE_NUDGE_AFTER = 4000;
   var CUE_NUDGE_HALF = 700;
 
@@ -167,11 +170,20 @@
     return { j: j, y: (j - pos) * PITCH, rot: rowRotation(j) };
   }
 
-  // Scroll progress p in [0, 1] over FADE_SCREENS viewport heights.
-  function progress(scrollY, viewportHeight) {
-    var dist = viewportHeight * FADE_SCREENS;
+  // Scroll progress p in [0, 1] over FADE_SCREENS viewport heights (a
+  // narrow window: FADE_SCREENS_NARROW).
+  function fadeScreens(width) { return width != null && width < NARROW_UNDER ? FADE_SCREENS_NARROW : FADE_SCREENS; }
+
+  function progress(scrollY, viewportHeight, width) {
+    var dist = viewportHeight * fadeScreens(width);
     return dist > 0 ? clamp01(scrollY / dist) : 1;
   }
+
+  // The header's student door under the fading intro: it rose through the
+  // sentence at full strength on a phone and read as a tab floating over
+  // the words (a reviewer, 2026-09-28). The intro carries its own door, so
+  // the header's fades in over the last fifth of the fade.
+  function doorOpacity(p) { return smooth((p - 0.8) / 0.2); }
 
   function scrollState(p) {
     return {
@@ -255,6 +267,7 @@
     var headerMark = opts.headerMark || null;
     var joinTab = opts.joinTab || null;
     var joinButton = root.querySelector('.intro-join');
+    var setDoor = joinTab && joinTab.parentNode ? styler(joinTab.parentNode) : null;
 
     var seed = newSeed();
     var target = firstLanding(seed);
@@ -474,7 +487,7 @@
     var setHeader = headerMark ? styler(headerMark) : null;
     var setCueLine = cueLine ? styler(cueLine) : null;
 
-    function dist() { return window.innerHeight * FADE_SCREENS; }
+    function dist() { return window.innerHeight * fadeScreens(window.innerWidth); }
 
     function measureSrc() {
       if (!mark) return;
@@ -490,7 +503,7 @@
     }
 
     function applyScroll() {
-      p = progress(window.scrollY, window.innerHeight);
+      p = progress(window.scrollY, window.innerHeight, window.innerWidth);
       if (p > 0) scrolled = true;
       if (p > 0 && !src) measureSrc();
       var s = scrollState(p);
@@ -499,6 +512,7 @@
       setIntro('visibility', s.visibility);
       setIntro('pointerEvents', s.pointerEvents);
       if (cue) cue.hidden = !s.cue;
+      if (setDoor) setDoor('opacity', String(doorOpacity(p)));
       var flying = !!(src && tgt && p > 0 && p < 1);
       if (fly) {
         fly.hidden = !flying;
@@ -592,6 +606,9 @@
     IDLE_MAX: IDLE_MAX,
     HOVER_DELAY: HOVER_DELAY,
     FADE_SCREENS: FADE_SCREENS,
+    FADE_SCREENS_NARROW: FADE_SCREENS_NARROW,
+    fadeScreens: fadeScreens,
+    doorOpacity: doorOpacity,
     ROW: ROW,
     PITCH: PITCH,
     CANVAS: CANVAS,

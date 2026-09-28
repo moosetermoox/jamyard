@@ -29,9 +29,23 @@ fetchGames();
 // no-match → picker / advanced generator). The old three-button toolbar
 // is demoted to the "prefer to build it yourself?" links below the box.
 
+var ideaHint = document.getElementById('idea-hint');
+function showIdeaHint(text) {
+  if (!ideaHint) return;
+  ideaHint.textContent = text;
+  ideaHint.hidden = false;
+}
+if (ideaInput && ideaHint) {
+  ideaInput.addEventListener('input', function () { ideaHint.hidden = true; });
+}
+
 function launchIdea() {
   var idea = (ideaInput.value || '').trim();
   if (idea.length < 10) {
+    // Say why nothing happened (a reviewer pressed Make it on an empty
+    // box and only the cursor moved, 2026-09-28)
+    showIdeaHint(idea ? 'Say a little more. One sentence about what your class should do is plenty.'
+      : 'Type what you want your class to do first, or pick one of the ideas below.');
     ideaInput.focus();
     ideaInput.classList.add('idea-input-nudge');
     setTimeout(function () { ideaInput.classList.remove('idea-input-nudge'); }, 600);

@@ -283,7 +283,7 @@
     document.body.appendChild(overlay);
     var dlg = Dialog.enhance(overlay, modal, { title: game.name, onClose: opts.onClose });
 
-    var name = el('h2', 'myyard-dialog-name', game.name);
+    var name = el('h2', 'myyard-dialog-name ' + (window.YardPrints && YardPrints.paintOf ? YardPrints.paintOf(game) : 't-magenta'), game.name);
     modal.insertBefore(name, dlg.closeBtn);
     var metaBits = [YardPrints.metaOf(game)];
     if (game.family === 'connection') metaBits.push('no scores, no winners');

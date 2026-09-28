@@ -150,8 +150,8 @@ describe('home page 16h fold', () => {
 
   it('puts the picture beside the headline, over the question and the planks', () => {
     // The headline breaks after "class", as the handoff breaks it (owner 2026-09-22)
-    expect(html).toContain('<h1>Get the whole class<br>in on it.</h1>');
-    const h1 = html.indexOf('<h1>');
+    expect(html).toContain('<p class="hero-head">Get the whole class <br>in on it.</p>');
+    const h1 = html.indexOf('<p class="hero-head">');
     const pic = html.indexOf('class="fold-pic"');
     const ask = html.indexOf('<h2 class="ask">What does your class need?</h2>');
     const planks = html.indexOf('<div class="planks" id="planks">');

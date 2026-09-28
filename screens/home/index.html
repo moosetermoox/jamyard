@@ -192,7 +192,18 @@
       --rot: -1deg;
     }
 
+    /* The line hangs under the strip, so a wrong code never pushes the
+       box and Join sideways (a reviewer's next click missed the box). */
+    .join-form { position: relative; }
+
     .join-error {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      z-index: 4;
+      background: var(--t-paper);
+      box-shadow: 0 3px 5px rgba(50,35,15,0.18);
+      padding: 6px 10px;
       font-size: 13px;
       font-weight: 700;
       color: var(--t-red-text);
@@ -219,7 +230,7 @@
       padding: 24px 0 36px;
     }
 
-    h1 {
+    h1, .hero-head {
       font-family: var(--t-display);
       font-weight: 800;
       font-size: clamp(36px, 4.4vw, 56px);
@@ -242,7 +253,7 @@
 
     /* The headline keeps its two lines (a forced break after "class", as
        the handoff breaks it) and the picture beside it gives way. */
-    .hero-row h1 {
+    .hero-row .hero-head {
       flex: 0 0 auto;
       max-width: 100%;
       font-size: clamp(36px, 3.9vw, 54px);
@@ -265,7 +276,7 @@
        the sentence says what Jamyard is, so the fold's headline goes and
        the picture centers; the question over the planks is promoted to
        the headline. Drop the body class and the fold is as it was. */
-    body.has-intro .hero-row h1 { display: none; }
+    body.has-intro .hero-row .hero-head { display: none; }
     body.has-intro .hero-row { justify-content: center; }
     body.has-intro .ask {
       font-family: var(--t-display);
@@ -674,6 +685,12 @@
 
     /* ── The activity popup (a print's click): what it is, the map, then
        the one red door to the make page ── */
+    /* While a popup is up the page behind it holds still: a wheel on the
+       dim backdrop scrolled the yard (a reviewer, 2026-09-28). The gutter
+       stays, so nothing shifts sideways. */
+    html { scrollbar-gutter: stable; }
+    html:has(.home-dialog-overlay, .myyard-dialog-overlay) { overflow: hidden; }
+
     .home-dialog-overlay {
       position: fixed;
       inset: 0;
@@ -687,6 +704,7 @@
 
     .home-dialog {
       position: relative;
+      overscroll-behavior: contain;
       width: min(460px, 94vw);
       background: var(--t-paper);
       box-shadow: 0 4px 8px rgba(50,35,15,0.3);
@@ -715,8 +733,7 @@
       font-family: var(--t-display);
       font-weight: 800;
       font-size: 24px;
-      color: var(--t-paper);
-      background: var(--t-magenta);
+      /* the paint is the need's (YardPrints.paintOf), a class on the node */
       padding: 3px 14px 7px;
       transform: rotate(-1.2deg);
       box-shadow: 0 3px 4px rgba(50,35,15,0.28);
@@ -742,7 +759,10 @@
        its paper reach the popup's edges) */
     .home-dialog-actions {
       position: sticky;
-      bottom: 0;
+      /* Chromium sticks the bar the box's bottom padding short of the
+         edge, so a strip of the map showed under it; minus that padding
+         puts the bar flush. */
+      bottom: -22px;
       z-index: 1;
       margin: 18px -26px -22px;
       padding: 14px 26px 22px;
@@ -815,7 +835,7 @@
 
     @media (max-width: 1100px) {
       .hero-row { flex-direction: column; align-items: center; text-align: center; gap: 28px; }
-      .hero-row h1 { flex: 0 0 auto; max-width: 700px; }
+      .hero-row .hero-head { flex: 0 0 auto; max-width: 700px; }
     }
 
     @media (max-width: 960px) {
@@ -838,6 +858,10 @@
       .planks { flex-wrap: wrap; }
       .plank { flex: 1 1 45%; margin-left: 0; height: 90px; }
       .join-form label { display: none; }
+      /* The picture is a 660 by 330 drawing; at phone width its words
+         land near 6px, so it goes and the how strip below says the same
+         thing in words (a reviewer on a phone, 2026-09-28). */
+      .fold-pic { display: none; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -901,7 +925,7 @@
            answers), not UI copy; the hidden sentence is what a screen
            reader gets. -->
       <div class="hero-row">
-        <h1>Get the whole class<br>in on it.</h1>
+        <p class="hero-head">Get the whole class <br>in on it.</p>
         <div class="fold-pic" id="fold-picture">
           <p class="fold-pic-said">You project your screen. Students join with a four letter code from their own devices, answer on their own, build on a partner's answer in one shared box, or draw, and it all comes together on the projector.</p>
           <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
@@ -1255,7 +1279,7 @@
         var overlay = el('div', 'home-dialog-overlay');
         var modal = el('div', 'home-dialog');
         overlay.appendChild(modal);
-        modal.appendChild(el('div', 'home-dialog-name', g.name));
+        modal.appendChild(el('div', 'home-dialog-name ' + YardPrints.paintOf(g), g.name));
         modal.appendChild(el('p', 'home-dialog-meta', YardPrints.metaOf(g)));
         modal.appendChild(el('p', 'home-dialog-desc', g.description || ''));
         // What happens, stop by stop (arrives async into this holder; the
@@ -1365,10 +1389,20 @@
           pool = parts.rest.filter(byGoal).filter(byMoment);
           rescued = pool.length > 0;
         }
-        noteEl.hidden = !rescued;
+        // A job and a moment that share nothing ("To think" + "Only 5 minutes
+        // left") showed an empty yard with a line about the AI (a reviewer,
+        // 2026-09-28): show the moment's picks from every job instead.
+        var momentRescued = false;
+        if (pool.length === 0 && !rescued && activeMoment !== null && activeGoal !== null && !shelfHit) {
+          pool = parts.rest.filter(byMoment).filter(matchesQuery);
+          momentRescued = pool.length > 0;
+        }
+        noteEl.hidden = !(rescued || momentRescued);
         noteEl.textContent = rescued
           ? 'Nothing mentions "' + query + '", and that is okay: every activity takes any topic. ' + (activeGoal === null ? 'Here is the whole yard.' : 'Here is everything under "' + jobLabelOf(activeGoal) + '".')
-          : '';
+          : momentRescued
+            ? 'None of the "' + MOMENTS[activeMoment].label + '" picks are under "' + jobLabelOf(activeGoal) + '", so here they are from every job.'
+            : '';
         // Time marks on the first card of each duration step; the first
         // card plays its hover once, on the first render only
         YardPrints.buildGrid(gridEl, pool, {
