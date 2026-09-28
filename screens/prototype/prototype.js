@@ -417,7 +417,8 @@ function startTour() {
   if (!window.BenchTour || !window.BenchLogic) return;
   hideSimIntro();
   hideSkipAsk();
-  BenchTour.start(BenchLogic.TOUR_STOPS, () => updateBanner());
+  BenchTour.start(BenchLogic.TOUR_STOPS, () => updateBanner(), () => updateBanner());
+  updateBanner(); // the NEXT card steps aside while the tour runs
 }
 
 // A beat after the pieces land, so the plan row (fetched) is on screen too
@@ -664,60 +665,133 @@ function resolveTarget(at) {
     case 'close':
     case 'continue': {
       const found = findHostButton();
-      return found ? { el: found.el, frame: hostFrame() } : null;
+      if (found) return { el: found.el, frame: hostFrame() };
+      // Teacher controls is up: the console carries the same button
+      return consoleButtonNamed(lastHostButton && lastHostButton.pos === livePos() ? lastHostButton.label : null);
     }
     default: return null;
   }
 }
 
-function targetRect(target) {
-  const r = target.el.getBoundingClientRect();
-  if (!target.frame) return r;
-  const f = target.frame.getBoundingClientRect();
-  return { left: f.left + r.left, right: f.left + r.right, top: f.top + r.top, bottom: f.top + r.bottom, width: r.width, height: r.height };
+// The console's button with the host button's words, when the Teacher
+// controls tab is the one showing (the card pointed at nothing there)
+function consoleButtonNamed(label) {
+  const frame = hostMat.querySelector('iframe.teacher-frame');
+  if (!label || !frame || frame.hidden) return null;
+  let doc = null;
+  try { doc = frame.contentDocument; } catch (err) { return null; }
+  if (!doc) return null;
+  const want = BenchLogic.buttonWords(label);
+  const btns = doc.querySelectorAll('button');
+  for (const b of btns) {
+    if (visible(b) && BenchLogic.buttonWords(b.textContent) === want) return { el: b, frame };
+  }
+  return null;
+}
+
+// A rect inside a frame, in page pixels, cut to the frame's own window
+// (a button scrolled out of its screen is not on the page at all).
+function rectInFrame(el, frame) {
+  const r = el.getBoundingClientRect();
+  if (!frame) return { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+  const f = frame.getBoundingClientRect();
+  return {
+    left: Math.max(f.left, f.left + r.left),
+    top: Math.max(f.top, f.top + r.top),
+    right: Math.min(f.right, f.left + r.right),
+    bottom: Math.min(f.bottom, f.top + r.bottom)
+  };
+}
+
+function hasArea(r) {
+  return r && r.right - r.left > 1 && r.bottom - r.top > 1;
+}
+
+// What the card must not sit on: every control and the joined list on
+// the screens showing now, and the bench's own buttons.
+const AVOID_IN_FRAMES = 'button, input, textarea, select, canvas, a[href], [role="button"], .player-list, #player-list, .lobby-roster, .big-text, [id$="-count"]';
+function avoidRects() {
+  const out = [];
+  const add = (el, frame) => {
+    if (!el || el.offsetParent === null) return;
+    const r = rectInFrame(el, frame);
+    if (hasArea(r)) out.push(r);
+  };
+  const frames = [hostMat.querySelector('iframe.host-frame'), hostMat.querySelector('iframe.teacher-frame')];
+  const panel = playerHolder.querySelector('.player-panel:not([hidden]) iframe');
+  if (panel) frames.push(panel);
+  for (const frame of frames) {
+    if (!frame || frame.hidden) continue;
+    let doc = null;
+    try { doc = frame.contentDocument; } catch (err) { doc = null; }
+    if (!doc) continue;
+    doc.querySelectorAll(AVOID_IN_FRAMES).forEach((el) => add(el, frame));
+  }
+  iframeContainer.querySelectorAll('button').forEach((el) => {
+    if (!nextBanner.contains(el)) add(el, null);
+  });
+  return out;
 }
 
 function updateBanner() {
   if (!window.BenchLogic) return;
-  if (bannerOff) { nextBanner.hidden = true; bindPointed(null); return; }
+  // The tour's own card does this job while it runs: two yellow cards at
+  // once overlapped (a reviewer, 2026-09-28)
+  const touring = !!(window.BenchTour && BenchTour.running() && BenchTour.currentTarget() !== '#next-banner');
+  if (bannerOff || touring) { nextBanner.hidden = true; bindPointed(null); return; }
   const step = BenchLogic.nextStep(bannerState());
   const target = step.at ? resolveTarget(step.at) : null;
   nextText.textContent = step.text;
   nextBanner.hidden = false;
-  nextBanner.classList.toggle('no-notch', !target);
   bindPointed(target ? target.el : null);
 
   const box = iframeContainer.getBoundingClientRect();
   const w = nextBanner.offsetWidth;
   const h = nextBanner.offsetHeight;
+  // The card may use the whole window, less a margin
+  const bounds = { left: 8, top: 8, right: window.innerWidth - 8, bottom: window.innerHeight - 4 };
+  const avoid = avoidRects();
+  let r = target ? rectInFrame(target.el, target.frame || null) : null;
+  if (r && !hasArea(r)) r = null; // off its own screen: say it, point at nothing
   let left;
   let top;
-  let flip = false;
-  if (target) {
-    const r = targetRect(target);
-    const cx = r.left + r.width / 2;
-    // The card hangs away from the middle of the bench: leftward over a
-    // right-hand control, rightward over a left-hand one.
+  let notch = null;
+  if (r) {
+    const cx = (r.left + r.right) / 2;
     const rightHalf = cx > box.left + box.width / 2;
-    left = rightHalf ? cx - w + Math.min(60, w / 2) : cx - Math.min(60, w / 2);
-    left = Math.max(box.left + 8, Math.min(left, box.right - w - 8));
-    top = r.top - h - 6;
-    if (top < box.top - 40 || target.el === launchBtn || target.el === resetBtn) {
-      flip = true;
-      top = r.bottom + 6;
-    }
-    top = Math.min(top, box.bottom - h - 4);
-    const notchLeft = Math.max(12, Math.min(cx - left - 13, w - 40));
-    nextBanner.style.setProperty('--notch-left', notchLeft + 'px');
+    const spot = BenchLogic.placeCard({ target: r, card: { w, h }, bounds, avoid, rightHalf });
+    left = spot.left;
+    top = spot.top;
+    notch = spot.notch;
+    nextBanner.style.setProperty('--notch-left', spot.notchLeft + 'px');
     nextBanner.classList.toggle('tilt-right', rightHalf);
   } else {
-    // Nothing to point at: the card rests over the teacher screen's top right
+    // Nothing to point at: the corner of a screen that covers least,
+    // the teacher screen's top right first
     const hostBox = document.getElementById('host-column').getBoundingClientRect();
-    left = hostBox.right - w - 24;
-    top = hostBox.top + 56;
+    const studentBox = document.getElementById('student-column').getBoundingClientRect();
+    const spots = [
+      { left: hostBox.right - w - 24, top: hostBox.top + 56 },
+      { left: hostBox.right - w - 24, top: hostBox.bottom - h - 16 },
+      { left: studentBox.left + 12, top: studentBox.top + 56 }
+    ];
+    let best = null;
+    spots.forEach((s, i) => {
+      const rect = { left: s.left, top: s.top, right: s.left + w, bottom: s.top + h };
+      let covered = i;
+      for (const a of avoid) {
+        const ow = Math.min(rect.right, a.right) - Math.max(rect.left, a.left);
+        const oh = Math.min(rect.bottom, a.bottom) - Math.max(rect.top, a.top);
+        if (ow > 0 && oh > 0) covered += ow * oh;
+      }
+      if (!best || covered < best.covered) best = { left: s.left, top: s.top, covered };
+    });
+    left = best.left;
+    top = best.top;
     nextBanner.classList.remove('tilt-right');
   }
-  nextBanner.classList.toggle('flip', flip);
+  nextBanner.classList.toggle('no-notch', !notch);
+  nextBanner.classList.toggle('flip', notch === 'up');
   nextBanner.style.left = (left - box.left) + 'px';
   nextBanner.style.top = (top - box.top) + 'px';
 }
@@ -734,6 +808,17 @@ function stopBannerPoll() {
 }
 
 window.addEventListener('resize', updateBanner);
+
+// The Feedback button joins the header toolbar: fixed in a bottom corner
+// it covered a screen's last button (see styles.css). The widget builds
+// it on DOMContentLoaded, and this listener is added after the widget's.
+function moveFeedbackToToolbar() {
+  const fb = document.getElementById('feedback-widget-btn');
+  const toolbar = document.getElementById('toolbar');
+  if (fb && toolbar && fb.parentNode !== toolbar) toolbar.appendChild(fb);
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', moveFeedbackToToolbar);
+else moveFeedbackToToolbar();
 
 // Arrived from the editor's Preview button? "Back" should return to the
 // editor, not the library — you preview, spot something to change, and need
@@ -866,7 +951,8 @@ launchBtn.addEventListener('click', () => {
   // Bench running: Launch steps aside, Host this joins the toolbar, the
   // select gives way to the activity's name chip.
   document.body.classList.add('pt-running');
-  activityChip.textContent = selectedName();
+  activityChip.textContent = BenchLogic.chipName(selectedName());
+  activityChip.title = selectedName();
   activityChip.hidden = false;
 
   // The template's sample answers ride along with Add sample answers.

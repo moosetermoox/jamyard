@@ -128,8 +128,8 @@ describe('the smaller answers', () => {
       expect(read(f), f).not.toContain('Nunito');
     }
   });
-  it('Try it out keeps the feedback button off the add-student slot', () => {
-    expect(read('screens/prototype/styles.css')).toContain('#feedback-widget-btn { right: auto; left: 18px; }');
+  it('Try it out keeps the feedback button off the add-student slot (in the toolbar since 2026-09-28)', () => {
+    expect(read('screens/prototype/styles.css')).toContain('#toolbar #feedback-widget-btn {');
   });
   it('the no-results line says what is showing under a chip', () => {
     const html = read('screens/home/index.html');

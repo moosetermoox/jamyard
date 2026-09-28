@@ -139,6 +139,9 @@
     ui.text.textContent = live.stop.text;
     ui.back.hidden = index === 0;
     ui.next.textContent = index === state.live.length - 1 ? 'Done' : 'Next';
+    // The page may show or hide a piece for this stop (the NEXT card waits
+    // for its own stop), so it hears the stop before the spotlight lands
+    if (state.onStep) state.onStep(live.stop);
     try { live.node.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (err) { /* ignore */ }
     place();
     ui.next.focus();
@@ -152,11 +155,11 @@
     e.stopPropagation();
   }
 
-  function start(stops, onEnd) {
+  function start(stops, onEnd, onStep) {
     stop();
     var live = liveStops(stops || []);
     if (!live.length) { if (onEnd) onEnd(); return false; }
-    state = { live: live, index: 0, onEnd: onEnd || null, ui: build(), returnTo: document.activeElement };
+    state = { live: live, index: 0, onEnd: onEnd || null, onStep: onStep || null, ui: build(), returnTo: document.activeElement };
     document.body.classList.add('tour-on');
     document.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', place);
@@ -181,5 +184,11 @@
 
   function running() { return !!state; }
 
-  globalThis.BenchTour = { start: start, stop: stop, running: running, seen: seen };
+  // The stop on screen now (its target selector), or null
+  function currentTarget() {
+    var live = state && state.live[state.index];
+    return live ? live.stop.target : null;
+  }
+
+  globalThis.BenchTour = { start: start, stop: stop, running: running, seen: seen, currentTarget: currentTarget };
 })();

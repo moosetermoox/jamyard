@@ -606,10 +606,23 @@ body.pt-running #host-btn { display: inline-block; }
 #bot-fill-btn:focus-visible,
 #skip-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
 
-/* The feedback button sits bottom left here: bottom right is the student
-   column's + Add another student slot (a reviewer, 2026-09-27) */
-#feedback-widget-btn { right: auto; left: 18px; }
-#feedback-widget-panel { right: auto; left: 18px; }
+/* The feedback button rides in the header toolbar here (prototype.js moves
+   it): every bottom corner of this page is a screen's last button. It sat
+   bottom left after a reviewer found it over + Add another student
+   (2026-09-27), and a later one found it stretched across both screens
+   (2026-09-28). Its panel drops from the header. */
+#toolbar #feedback-widget-btn {
+  position: static;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 12px;
+  background: var(--t-paper);
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.24);
+  transform: rotate(-0.8deg);
+}
+#toolbar #feedback-widget-btn:hover { transform: rotate(-0.8deg) translateY(-4px); }
+#toolbar #feedback-widget-btn:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+body #feedback-widget-panel { top: 64px; bottom: auto; right: 18px; left: auto; }
 
 /* + Add another student: a 44px dashed slot under the student screen */
 .add-player-slot {
@@ -918,6 +931,23 @@ body.pt-running #host-btn { display: inline-block; }
 @media (max-width: 1100px) {
   #map-rail { display: none; }
   #iframe-container { gap: 24px; padding: 20px 24px 24px; }
+}
+
+/* A laptop's window (1055 by 636, 1366 by 768): the screens get the
+   height, the chrome around them gets tight (a reviewer's teacher screen
+   hid its last buttons, 2026-09-28) */
+@media (max-height: 800px) and (min-width: 861px) {
+  #control-bar { padding: 8px 20px 7px; }
+  #iframe-container { padding: 12px 24px 12px; gap: 20px; }
+  .screen-bar { min-height: 34px; padding: 5px 12px 5px 14px; }
+  .student-bar { padding: 6px 12px; }
+  .panel-tab { padding: 4px 10px 5px; }
+  .screen-mat { padding: 8px; }
+  #student-column { gap: 8px; }
+  .add-player-slot { height: 34px; }
+  #bench-bar { padding: 8px 8px 2px; gap: 6px; margin-top: 2px; }
+  .bench-hint { display: none; }
+  .teacher-note { margin-bottom: 6px; padding: 5px 10px 6px; font-size: 12px; }
 }
 
 @media (max-width: 860px) {
