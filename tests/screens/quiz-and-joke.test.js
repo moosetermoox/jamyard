@@ -90,7 +90,7 @@ describe('the home', () => {
     expect(yard).toContain("Dialog.confirm({ title: 'Delete \"' + game.name + '\"?'");
     expect(yard).not.toMatch(/^\s*if \(!window\.confirm/m);
     expect(yard).toContain("opts.onChange({ hearted: game.id, inPlace: true })");
-    expect(read('screens/shared/dialog.js')).toContain('globalThis.Dialog = { enhance: enhance, confirm: confirm };');
+    expect(read('screens/shared/dialog.js')).toMatch(/globalThis\.Dialog = \{ enhance: enhance, confirm: confirm[,}]/);
     expect(home).toContain('change.inPlace');
   });
 });

@@ -149,6 +149,20 @@ describe('createModerationLadder', () => {
     expect(v.action).toBe('flag');
   });
 
+  it('a slow judge goes to the teacher in time, never leaves the student on Sending... (review eighteen)', async () => {
+    const ladder = createModerationLadder({
+      apiKey: 'k',
+      aiService: { moderateText: () => new Promise(() => {}) },
+      fetchFn: async () => okJson({ harassment: 0.5 }),
+      judgeTimeoutMs: 20
+    });
+    const started = Date.now();
+    const v = await ladder.check('okay I guess');
+    expect(v.action).toBe('flag');
+    expect(v.rung).toBe('haiku-timeout');
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
   it('scrubs roster names and contact patterns before anything leaves the server', async () => {
     let sentBody = null;
     const ladder = createModerationLadder({

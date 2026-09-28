@@ -35,6 +35,12 @@ export const DEFAULT_REVIEW_AT = 0.4;
 const OPENAI_MODERATIONS_URL = process.env.OPENAI_MODERATION_URL || 'https://api.openai.com/v1/moderations';
 const MODERATION_MODEL = 'omni-moderation-latest';
 const DEFAULT_TIMEOUT_MS = 4000;
+// The Haiku rung's deadline. The AI client waits up to a minute and
+// retries, and the student sat on "Sending..." until their own 12-second
+// timer said "Not sent yet" (review eighteen). OpenAI's 4 s plus this stay
+// under that; a judge that runs out of time sends the answer to the
+// teacher, the same as a judge that errors.
+const DEFAULT_JUDGE_TIMEOUT_MS = 5000;
 
 /**
  * Sort a moderation result's category scores into a verdict.
@@ -70,7 +76,8 @@ export function createModerationLadder({
   blockAt = DEFAULT_BLOCK_AT,
   reviewAt = DEFAULT_REVIEW_AT,
   fetchFn = fetch,
-  timeoutMs = DEFAULT_TIMEOUT_MS
+  timeoutMs = DEFAULT_TIMEOUT_MS,
+  judgeTimeoutMs = DEFAULT_JUDGE_TIMEOUT_MS
 } = {}) {
   const enabled = !!apiKey;
 
@@ -124,11 +131,22 @@ export function createModerationLadder({
     // (budget cap included) means the text stays known-uncertain, so it
     // goes to the teacher.
     let verdict = 'unsure';
+    const TIMED_OUT = Symbol('timeout');
+    let deadline = null;
     try {
-      const result = await aiService.moderateText(scrubbed);
+      const result = await Promise.race([
+        aiService.moderateText(scrubbed),
+        new Promise(resolve => { deadline = setTimeout(() => resolve(TIMED_OUT), judgeTimeoutMs); })
+      ]);
+      if (result === TIMED_OUT) {
+        console.warn(`[moderation] Haiku check took over ${judgeTimeoutMs} ms, flagging for the teacher`);
+        return { action: 'flag', category: first.category, rung: 'haiku-timeout' };
+      }
       verdict = (result && result.verdict) || 'unsure';
     } catch (err) {
       console.warn(`[moderation] Haiku check failed, flagging for the teacher: ${err.message}`);
+    } finally {
+      clearTimeout(deadline);
     }
     if (verdict === 'ok') return { action: 'accept', rung: 'haiku' };
     if (verdict === 'block') return { action: 'reject', category: first.category, rung: 'haiku' };

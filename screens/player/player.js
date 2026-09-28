@@ -523,6 +523,7 @@ function botFillAnswer(promptText) {
 // seat) are keyed by it; a `respondsTo` set is matched to the classmate's
 // text on screen, prompt and inherited block alike.
 var currentCollectPhaseId = null;
+var collectBoxPrefill = ''; // what the step itself put in the box
 function sampleFor(samples, seat) {
   if (typeof pickSampleAnswer !== 'function' || !samples) return null;
   var inherited = collectSection.querySelector('.inherited-block');
@@ -572,8 +573,12 @@ window.addEventListener('message', function(e) {
         var btn = active.querySelector('button#submit-btn');
         if (textarea && btn && !btn.disabled) {
           var line = typeof sample === 'string' ? sample : botFillAnswer(promptDisplay.textContent);
-          // appendOnly boxes may already hold inherited text; add, never replace
-          textarea.value = textarea.value ? textarea.value.replace(/\s*$/, '\n') + line : line;
+          // An editable hand-off starts with the classmate's text in the
+          // box: add under it. Never on top of this student's own last
+          // try, and inside the box's cap (review eighteen).
+          textarea.value = typeof fitBotLine === 'function'
+            ? fitBotLine(collectBoxPrefill, line, responseMax)
+            : line;
           btn.click();
         }
       }
@@ -809,7 +814,7 @@ submitBtn.addEventListener('click', () => {
 // whichever input the student is actually using — merge drafts and relay
 // turns get rejected too, not just collect answers.
 socket.on('response-rejected', ({ message }) => {
-  var notice = message || 'That response wasn’t accepted. Please try again.';
+  var notice = UiLang.t(message || 'That response wasn’t accepted. Please try again.');
   var active = document.querySelector('section.active');
   clearSubmitPending();
 
@@ -831,6 +836,16 @@ socket.on('response-rejected', ({ message }) => {
   showSection(collectSection);
   submitBtn.disabled = false;
   showResponseNotice(notice);
+});
+
+// The server refused the shape of a submit (a malformed payload): say so
+// now instead of leaving "Sending..." up until the ack timer runs out.
+socket.on('event-rejected', ({ event } = {}) => {
+  if (!submitPending || event !== 'submit-response') return;
+  var btn = submitPending.btn;
+  clearSubmitPending();
+  if (btn) btn.disabled = false;
+  showResponseNotice(UiLang.t('Not sent yet. Please try again.'));
 });
 
 // --- Socket events - Join ---
@@ -1303,6 +1318,7 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     responseInput.value = typeof prefill === 'string' ? prefill : '';
     responseInput.placeholder = 'Type your answer here...';
   }
+  collectBoxPrefill = responseInput.value;
   if (responseCounter) responseCounter.textContent = responseInput.value.length + ' / ' + responseMax;
   hideResponseNotice();
   // Why this step is up again, when the teacher started it over
@@ -3565,13 +3581,14 @@ socket.on('solo-quiz-feedback', function (data) {
   if (sqInstanceId != null && data.phaseInstanceId != null && data.phaseInstanceId !== sqInstanceId) return;
   if (data.phaseInstanceId != null) sqInstanceId = data.phaseInstanceId;
   sqFeedback.hidden = false;
-  sqFeedback.className = 'sq-feedback ' + (data.correct ? 'sq-right' : 'sq-wrong');
-  sqFeedback.textContent = data.correct
+  // `right` is this answer's verdict; `correct` is the running count
+  sqFeedback.className = 'sq-feedback ' + (data.right ? 'sq-right' : 'sq-wrong');
+  sqFeedback.textContent = data.right
     ? UiLang.t('Correct!')
     : (data.correctAnswer
       ? UiLang.t('Not quite.') + ' ' + UiLang.t('The answer was') + ' ' + data.correctAnswer
       : UiLang.t('Not quite.'));
-  if (J) J.sound(data.correct ? 'blip' : 'womp');
+  if (J) J.sound(data.right ? 'blip' : 'womp');
   sqPending = data;
   sqNextBtn.hidden = false;
   sqNextBtn.textContent = data.done ? UiLang.t('See my score') : UiLang.t('Next question');

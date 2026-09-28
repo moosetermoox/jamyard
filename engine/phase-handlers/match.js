@@ -1,7 +1,8 @@
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
-import { normalizePairs } from '../phases/match-scoring.js';
+import { normalizePairs, dealRightColumn } from '../phases/match-scoring.js';
+import { admitLateSolo } from '../phases/late-seating.js';
 
 /**
  * match — pair items from two lists (vocab ↔ definitions, quotes ↔ authors).
@@ -46,14 +47,10 @@ registerHandler('match', {
     }
 
     // One shared shuffle of the right column; stored so reconnectors see
-    // the same board and scoring stays position-independent. Re-deal if the
-    // shuffle lands on the solved order — a pre-solved board (1-in-n! but
-    // it happened in testing) trivializes the round.
+    // the same board and scoring stays position-independent. No item
+    // starts beside its match (dealRightColumn).
     const correctOrder = pairs.map(p => p.right);
-    let rightItems = ctx.services.shuffleArray(correctOrder);
-    for (let tries = 0; tries < 5 && pairs.length > 1 && rightItems.every((r, i) => r === correctOrder[i]); tries++) {
-      rightItems = ctx.services.shuffleArray(correctOrder);
-    }
+    const rightItems = dealRightColumn(correctOrder, arr => ctx.services.shuffleArray(arr));
 
     const eligibleIds = new Set(eligible.map(p => p.id));
     room.phaseState = {
@@ -102,6 +99,16 @@ registerHandler('match', {
     }
   },
 
+  // A student who joins while the board is open plays it (review
+  // eighteen: a late joiner sat on the waiting line all step). The
+  // projector's count grows by one; sendCurrentState then sends the board.
+  onLateJoin(ctx, playerId) {
+    const state = ctx.room.phaseState;
+    if (!admitLateSolo(state, 'match', playerId, ctx.phase && ctx.phase.from)) return null;
+    ctx.emitToHost(EVENTS.MATCH_RECEIVED, { count: state.completed.size, total: state.eligibleIds.size });
+    return null;
+  },
+
   onReconnect(ctx, socket) {
     const state = ctx.room.phaseState;
     if (!state || state.kind !== 'match') return;
@@ -119,7 +126,8 @@ registerHandler('match', {
         leftItems: state.pairs.map(p => p.left),
         rightItems: state.rightItems,
         timer: null, // reconnectors don't restart the countdown
-        playerTemplate: sc.playerTemplate, show: sc.playerShow
+        playerTemplate: sc.playerTemplate, show: sc.playerShow,
+        phaseInstanceId: ctx.phaseInstanceId
       });
     } else {
       socket.emit(EVENTS.WAITING, { message: 'Waiting for others to match...' });

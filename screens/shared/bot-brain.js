@@ -254,8 +254,25 @@
     return lines[at % lines.length];
   }
 
+  // What a pretend student puts in the box: the step's own passed-on text
+  // (an editable hand-off) plus its line, never on top of its own last
+  // try, and inside the box's cap, cut at a word where one fits (review
+  // eighteen: a one-word check-in got "okay I guess" twice).
+  function fitBotLine(base, line, max) {
+    var start = base ? String(base).replace(/\s*$/, '\n') : '';
+    var room = (Number(max) > 0 ? Number(max) : Infinity) - start.length;
+    var add = String(line || '');
+    if (add.length > room) {
+      var cut = add.slice(0, Math.max(0, room));
+      var lastSpace = cut.lastIndexOf(' ');
+      add = lastSpace > 0 ? cut.slice(0, lastSpace) : cut;
+    }
+    return add ? start + add : String(base || '');
+  }
+
   // Browser global + testable side-effect export
   var root = typeof globalThis !== 'undefined' ? globalThis : window;
+  root.fitBotLine = fitBotLine;
   root.botAnswerFor = botAnswerFor;
   root.pickSampleAnswer = pickSampleAnswer;
 })();
