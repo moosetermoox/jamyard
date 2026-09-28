@@ -47,13 +47,15 @@ registerHandler('relay', {
         socket.emit(EVENTS.RELAY_TURN, {
           prompt: rlState.prompt, sharedResult: rlState.sharedResult,
           timer: null, progress,
-          playerTemplate: sc.playerTemplate, show: sc.playerShow
+          playerTemplate: sc.playerTemplate, show: sc.playerShow,
+          phaseInstanceId: ctx.phaseInstanceId
         });
       } else {
         socket.emit(EVENTS.RELAY_WAITING, {
           activePlayerName: activePlayer ? activePlayer.name : 'Someone',
           prompt: rlState.prompt, sharedResult: rlState.sharedResult, progress,
-          playerTemplate: sc.playerTemplate, show: sc.playerShow
+          playerTemplate: sc.playerTemplate, show: sc.playerShow,
+          phaseInstanceId: ctx.phaseInstanceId
         });
       }
     }

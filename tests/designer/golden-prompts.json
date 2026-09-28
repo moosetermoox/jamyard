@@ -946,6 +946,31 @@
         }
       },
       "note": "A reviewer's second pass (2026-09-28): the built version listed \"Did not pass\" with counts under students' own questions and had no top-five limit; showRejected: false and top: 5 on the vote brick."
+    },
+    {
+      "id": "mood-check-start",
+      "prompt": "A quick mood check at the start of class",
+      "expect": {
+        "kind": "recipe",
+        "recipe": "live-poll",
+        "params": {
+          "question": "How are you feeling as class starts?",
+          "choices": [
+            "Great",
+            "Okay",
+            "Tired",
+            "Stressed"
+          ]
+        }
+      }
+    },
+    {
+      "id": "spanish-color-match",
+      "prompt": "Spanish 1 vocabulary review: match the color words to their English meanings",
+      "expect": {
+        "kind": "host",
+        "game": "vocab-match"
+      }
     }
   ]
 }

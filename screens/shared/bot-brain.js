@@ -117,6 +117,22 @@
       'The teacher\'s desk on vacation', 'A ghost doing laundry',
       'A frog conducting an orchestra', 'A bicycle made of noodles'
     ],
+    // An argument or a pitch fits any topic (Convince Me!, Elimination
+    // Game's rounds got story sentences, a reviewer 2026-09-28)
+    arguments: [
+      'It saves everyone time, and time is the one thing we never get back.',
+      'Think about who it helps most: the people nobody usually asks.',
+      'Every good change started with someone saying why not. This is that moment.',
+      'If it works in one class, imagine what it could do for the whole school.',
+      'The other side sounds good until you ask what happens next week.'
+    ],
+    pitches: [
+      'It would fix a problem everyone has and nobody talks about.',
+      'Picture it: one small change and suddenly every morning is easier.',
+      'It brings people together, which is honestly its whole purpose.',
+      'Nobody has tried it because it sounds silly. That is exactly why it works.',
+      'Give it one week and the whole town would be talking about it.'
+    ],
     generic: [
       'Pizza is the best food', 'I love recess', 'Homework should be banned',
       'Cats are better than dogs', 'Summer vacation rocks', 'Math is actually fun',
@@ -141,8 +157,11 @@
   // Conservative: only when we can extract 2+ short, clean fragments.
   function pickEmbeddedOption(text) {
     if (text.indexOf(' or ') === -1) return null;
-    // Work on the clause that contains the "or" (after the last colon/dash)
-    var clause = text.split(/[:—]/).pop() || text;
+    // Work on the clause that contains the "or" (after the last colon/dash).
+    // A bracketed hint is how to answer, never the answer: "(City,
+    // country, or place)" made every pretend student say "Country".
+    var clause = text.replace(/\([^)]*\)/g, '').split(/[:—]/).pop() || text;
+    if (clause.indexOf(' or ') === -1) return null;
     var parts = clause.replace(/[?!.]/g, '').split(/,| or /);
     var options = [];
     for (var i = 0; i < parts.length; i++) {
@@ -173,6 +192,9 @@
     // someone else's work, whatever other words the prompt carries.
     if (containsAny(p, ['real title', 'fake title', 'a fake', 'a lie', 'bluff', 'caption', 'title of this'])) return pick(BANKS.fakes);
     if (containsAny(p, ['phrase', 'fun to draw', 'to watch someone draw', 'something to draw'])) return pick(BANKS.phrases);
+
+    if (containsAny(p, ['persuasive', 'persuade', 'convince', 'argument', 'argue', 'debate', 'make the case'])) return pick(BANKS.arguments);
+    if (containsAny(p, ['pitch', ' use for', 'purpose of', 'change the world', 'sell us', 'sell it'])) return pick(BANKS.pitches);
 
     if (containsAny(p, ['snack', 'food', 'eat', 'lunch', 'dinner', 'breakfast', 'meal', 'dessert', 'pizza'])) return pick(BANKS.food);
     if (containsAny(p, ['feel', 'mood', 'emotion', 'how are you'])) return pick(BANKS.feelings);

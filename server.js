@@ -35,6 +35,7 @@ import { resolvePerPlayerTemplate } from './engine/per-player-template.js';
 import { effectiveRange, clampGuess } from './engine/phases/estimate-range.js';
 import { foreachSitOut, withoutSitOut, sitOutIds } from './engine/phases/sit-out.js';
 import { shouldStopLooping } from './engine/phases/eliminate-handler.js';
+import { relayFullText, SKIPPED_TEXT } from './engine/phases/relay-text.js';
 import { aggregateRankings, groupOrders } from './engine/phases/choice-draft.js';
 import { groupsFromTeamSource } from './engine/phases/groups-from.js';
 import { restoreSubPhaseOrder } from './engine/subphase-order.js';
@@ -1374,11 +1375,15 @@ function emitRelayTurn(code, room) {
   const progress = (rs.currentTurnIndex + 1) + ' / ' + rs.turnOrder.length;
   const hostId = roomToHost.get(code);
 
-  // Tell active player
+  // Tell active player. The step's instance id rides every relay event:
+  // without it the student screen echoed the PREVIOUS step's id and the
+  // stale guard dropped every line, so each turn timed out as "(skipped)"
+  // (a reviewer's Dream Vacation pitch, 2026-09-28).
   io.to(activePlayerId).emit(EVENTS.RELAY_TURN, {
     prompt: rs.prompt, sharedResult: rs.sharedResult,
     timer: rs.timer, progress,
-    playerTemplate: rs.sc.playerTemplate, show: rs.sc.playerShow
+    playerTemplate: rs.sc.playerTemplate, show: rs.sc.playerShow,
+    phaseInstanceId: room.phaseInstanceId
   });
 
   // Tell other players to wait
@@ -1387,7 +1392,8 @@ function emitRelayTurn(code, room) {
       io.to(pid).emit(EVENTS.RELAY_WAITING, {
         activePlayerName: activePlayer ? activePlayer.name : 'Someone',
         prompt: rs.prompt, sharedResult: rs.sharedResult, progress,
-        playerTemplate: rs.sc.playerTemplate, show: rs.sc.playerShow
+        playerTemplate: rs.sc.playerTemplate, show: rs.sc.playerShow,
+        phaseInstanceId: room.phaseInstanceId
       });
     }
   }
@@ -1410,13 +1416,13 @@ function emitRelayTurn(code, room) {
           room.phaseState.currentTurnIndex === rs.currentTurnIndex) {
         // Auto-skip: submit empty
         const player = room.engine.players.find(activePlayerId);
-        rs.sharedResult.push({ playerId: activePlayerId, name: player ? player.name : 'Unknown', text: '(skipped)' });
+        rs.sharedResult.push({ playerId: activePlayerId, name: player ? player.name : 'Unknown', text: SKIPPED_TEXT, skipped: true });
         rs.currentTurnIndex++;
 
         if (rs.currentTurnIndex >= rs.turnOrder.length) {
           const engine = room.engine;
           const phase = engine.config.phases[rs.phaseId];
-          const fullText = rs.sharedResult.map(r => r.text).join(' ');
+          const fullText = relayFullText(rs.sharedResult, (room.engine && room.engine.language) || 'en');
           engine.storePhaseData(rs.phaseId, { result: rs.sharedResult, text: fullText });
           const nextId = getNextPhaseId(engine, phase);
           if (nextId) {
@@ -4237,6 +4243,9 @@ app.post('/api/games/from-description', async (req, res) => {
         return res.json({
           existingGame: existing,
           explanation: match.explanation || '',
+          // The idea names content of its own (a topic, a word list): the
+          // card offers to carry it in rather than "this already exists"
+          carriesContent: match.carriesContent === true,
           missing: Array.isArray(match.missing) ? match.missing : [],
           alternates: resolveAlternates(match.alternates, null),
           // Report only: the teacher copies this one from the yard, so a
@@ -6523,7 +6532,7 @@ io.on('connection', (socket) => {
     if (rs.currentTurnIndex >= rs.turnOrder.length) {
       const engine = room.engine;
       const phase = engine.config.phases[rs.phaseId];
-      const fullText = rs.sharedResult.map(r => r.text).join(' ');
+      const fullText = relayFullText(rs.sharedResult, (room.engine && room.engine.language) || 'en');
       engine.storePhaseData(rs.phaseId, { result: rs.sharedResult, text: fullText });
 
       const nextId = getNextPhaseId(engine, phase);
@@ -6552,11 +6561,11 @@ io.on('connection', (socket) => {
     while (rs.currentTurnIndex < rs.turnOrder.length) {
       const pid = rs.turnOrder[rs.currentTurnIndex];
       const player = room.engine.players.find(pid);
-      rs.sharedResult.push({ playerId: pid, name: player ? player.name : 'Unknown', text: '(skipped)' });
+      rs.sharedResult.push({ playerId: pid, name: player ? player.name : 'Unknown', text: SKIPPED_TEXT, skipped: true });
       rs.currentTurnIndex++;
     }
 
-    const fullText = rs.sharedResult.map(r => r.text).join(' ');
+    const fullText = relayFullText(rs.sharedResult, (room.engine && room.engine.language) || 'en');
     room.engine.storePhaseData(rs.phaseId, { result: rs.sharedResult, text: fullText });
     console.log(`[relay-finish-all] Skipped remaining turns in room ${code}`);
 

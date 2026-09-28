@@ -1318,6 +1318,11 @@ socket.on('response-received', ({ playerName, count, total }) => {
   if (J) J.sound('blip');
 });
 
+// "1 pt", "2 pts" (the leaderboards read "1 pts", a reviewer 2026-09-28)
+function ptsLabel(n) {
+  return n + (Math.abs(Number(n)) === 1 ? ' pt' : ' pts');
+}
+
 function escapeHtml(str) {
   return String(str == null ? '' : str)
     .replace(/&/g, '&amp;')
@@ -1588,7 +1593,7 @@ socket.on('leaderboard', ({ standings, teamStandings, style, final, timer, hostT
     for (let i = 0; i < teamStandings.length; i++) {
       const t = teamStandings[i];
       const p = document.createElement('p');
-      p.textContent = '#' + t.rank + ' ' + t.team + ': ' + t.score + ' pts';
+      p.textContent = '#' + t.rank + ' ' + t.team + ': ' + ptsLabel(t.score);
       p.classList.add('juice-stagger', 'team-standing-row');
       p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
       leaderboardStandings.appendChild(p);
@@ -1606,7 +1611,7 @@ socket.on('leaderboard', ({ standings, teamStandings, style, final, timer, hostT
       const p = document.createElement('p');
       // Medal based on rank, not array index, so tied players share medals
       // (e.g. two players tied for 1st both get gold; no silver awarded).
-      p.textContent = '#' + s.rank + ' ' + s.name + ': ' + s.score + ' pts';
+      p.textContent = '#' + s.rank + ' ' + s.name + ': ' + ptsLabel(s.score);
       // Rows pop in one after another, top rank first.
       p.classList.add('juice-stagger');
       p.style.animationDelay = Math.min(i * 0.12, 1.2) + 's';
@@ -2360,7 +2365,7 @@ function renderBuzzScores(scores) {
   for (const [pid, pts] of entries) {
     const p = document.createElement('p');
     const name = buzzNames[pid] || '…';
-    p.textContent = name + '. ' + pts + ' pts';
+    p.textContent = name + '. ' + ptsLabel(pts);
     buzzScores.appendChild(p);
   }
 }

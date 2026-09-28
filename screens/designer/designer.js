@@ -1936,7 +1936,11 @@ function renderExistingGameView(modal, data, overlay, description) {
 
   var title = document.createElement('h2');
   title.className = 'template-picker-title';
-  title.textContent = 'Good news: this already exists';
+  // An idea with its own content (Spanish color words) is not "already"
+  // anything: the stock activity pairs literary terms (a reviewer,
+  // 2026-09-28). Say it is the closest one and carry the idea in.
+  var carries = data.carriesContent === true;
+  title.textContent = carries ? 'The closest ready-made activity' : 'Good news: this already exists';
   modal.appendChild(title);
 
   var card = document.createElement('div');
@@ -1968,8 +1972,11 @@ function renderExistingGameView(modal, data, overlay, description) {
   var asIs = document.createElement('p');
   asIs.className = 'recipe-form-description ai-match-as-is';
   var hasAlternates = Array.isArray(data.alternates) && data.alternates.length > 0;
-  asIs.textContent = 'This is the finished activity as it is in the yard, with its own question and wording. What you typed is not copied into it. Make it yours opens it with every line editable' +
-    (hasAlternates ? ', or pick one of the recipes below to build it from your idea.' : '.');
+  asIs.textContent = carries
+    ? 'It runs with its own words as it is in the yard. Make it yours opens it with every line editable and your idea carried in, so you can put in your own content' +
+      (hasAlternates ? ', or pick one of the recipes below to build it from your idea.' : '.')
+    : 'This is the finished activity as it is in the yard, with its own question and wording. What you typed is not copied into it. Make it yours opens it with every line editable' +
+      (hasAlternates ? ', or pick one of the recipes below to build it from your idea.' : '.');
   modal.appendChild(asIs);
 
   // Running time against the minutes the teacher asked for (report only:
@@ -2048,7 +2055,8 @@ function renderExistingGameView(modal, data, overlay, description) {
   customizeBtn.textContent = 'Make it yours';
   customizeBtn.title = 'Make your own editable copy of "' + game.name + '"';
   customizeBtn.addEventListener('click', function () {
-    window.location.href = '/make?game=' + encodeURIComponent(game.id) + '&from=designer';
+    window.location.href = '/make?game=' + encodeURIComponent(game.id) + '&from=designer' +
+      (carries && description ? '&idea=' + encodeURIComponent(String(description).slice(0, 200)) : '');
   });
   btnRow.appendChild(customizeBtn);
 

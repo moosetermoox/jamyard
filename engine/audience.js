@@ -37,6 +37,10 @@ export const AUDIENCE = Object.freeze({
   GUESSED: 'guessed',
   GUESSED_AFTER_REVIEW: 'guessed-after-review',
   AI: 'ai',
+  // The step's own totals go up as answers land (a rating's averages, a
+  // live poll's bars): no one's answer by name, but never "only your
+  // teacher" (Class Critique said so, a reviewer 2026-09-28)
+  TALLY: 'tally',
   TEACHER: 'teacher'
 });
 
@@ -49,6 +53,7 @@ export const AUDIENCE_LABELS = Object.freeze({
   [AUDIENCE.GUESSED]: 'Your class will see this and try to guess who wrote it.',
   [AUDIENCE.GUESSED_AFTER_REVIEW]: 'Your class will see this and try to guess who wrote it, after your teacher reviews it.',
   [AUDIENCE.AI]: 'These get summed up for the class.',
+  [AUDIENCE.TALLY]: 'The class sees the totals, not who gave which answer.',
   [AUDIENCE.TEACHER]: 'Only your teacher sees your answers.'
 });
 
@@ -235,6 +240,8 @@ export function audienceFor(config, phaseId) {
     key = gateBefore ? AUDIENCE.GUESSED_AFTER_REVIEW : AUDIENCE.GUESSED;
   } else if (cls) {
     key = gateBefore ? AUDIENCE.CLASS_AFTER_REVIEW : AUDIENCE.CLASS;
+  } else if (showsOwnTotals(phases[phaseId])) {
+    key = AUDIENCE.TALLY;
   } else if (ai) {
     key = AUDIENCE.AI;
   } else {
@@ -249,6 +256,14 @@ export function audienceFor(config, phaseId) {
     // 2 = a pairing (a triple when the class is odd); 3 or 4 = a merge group
     groupSize
   };
+}
+
+// A step whose own results go on the projector while it runs
+function showsOwnTotals(step) {
+  if (!step) return false;
+  if (step.type === 'rate') return step.visibility !== 'host-only';
+  if (step.type === 'collect-choice') return step.liveResults === true;
+  return false;
 }
 
 // How many students read together at this consumer: a merge's group, a
