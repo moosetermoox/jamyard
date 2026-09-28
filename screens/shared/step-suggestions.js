@@ -756,14 +756,22 @@
       return text + '\n\n**{{' + openId + '.side}}**';
     }
 
-    var open = { type: 'collect', prompt: withSide(bindTokens(first, null)), assign: 'pairwise', oddHandling: 'triple' };
+    // The projector's line under the instruction (2026-09-28: a pair
+    // step's partner text and side live on each student's device, so the
+    // projector said where they are; Convince Me's shape)
+    function projectorLine(isRound) {
+      return isRound
+        ? 'Your partner\'s words are on your own device.'
+        : 'Everyone is writing to their partner on their own device.';
+    }
+    var open = { type: 'collect', prompt: withSide(bindTokens(first, null)), assign: 'pairwise', oddHandling: 'triple', hostTemplate: projectorLine(false) };
     if (sides) open.sides = sides;
     if (timer) open.timer = timer;
     // Partners by an earlier pick (2026-09-27, "pair each yes with a no",
     // "fist to five, then pair low with high"): pairBy "opposite" prefers
     // partners who answered the last pick-one step differently, "same"
     // the same; best effort, nobody sits out over it (engine pairBy).
-    if (step && (step.pairBy === 'opposite' || step.pairBy === 'same')) {
+    if (step && (step.pairBy === 'opposite' || step.pairBy === 'same' || step.pairBy === 'far')) {
       var pickSrc = lastOfType(phases, ['collect-choice'], lastId);
       if (pickSrc) {
         open.pairBy = { from: pickSrc, mode: step.pairBy };
@@ -781,7 +789,7 @@
       if (prompt.indexOf('{{' + lastId + '.partner}}') === -1) {
         prompt = prompt + '\n\n{{' + lastId + '.partner}}';
       }
-      var roundPhase = { type: 'collect', prompt: withSide(prompt), assign: 'pairwise', reusePairsFrom: openId };
+      var roundPhase = { type: 'collect', prompt: withSide(prompt), assign: 'pairwise', reusePairsFrom: openId, hostTemplate: projectorLine(true) };
       if (timer) roundPhase.timer = timer;
       phases[lastId].next = roundId;
       phases[roundId] = roundPhase;
@@ -1109,7 +1117,11 @@
         problems.push('Step ' + stepNo + ': a bracket needs an "items" list (4, 8, or 16 things to pit against each other) or a question step before it.');
         return null;
       }
-      count = MAX_BRACKET_ITEMS; // a class's answers: as many rounds as sixteen would need
+      // A class's answers: rounds for up to 32 (a big class nominating
+      // once each); a round that finds one candidate left passes itself
+      // and its results card, so a small class never clicks through the
+      // spare rounds (engine/phase-handlers/vote.js).
+      count = 32;
     }
     var question = (step && typeof step.text === 'string' && step.text.trim())
       ? step.text.trim() : 'Which one wins this matchup?';
@@ -1395,17 +1407,30 @@
       phases[id] = built;
       lastId = id;
 
+      // "Show the top five" (2026-09-28): the vote keeps only its N most
+      // voted entries in the lists it prints.
+      var topN = brick === 'vote' && typeof step.top === 'number' && step.top >= 1 && step.top <= 50
+        ? Math.round(step.top) : null;
+      if (topN) built.resultsLimit = topN;
       if (approveVote) {
         var passedId = freshId(phases, 'passed');
         phases[lastId].next = passedId;
-        phases[passedId] = {
-          type: 'reveal',
-          // What failed stays on the wall too (something to argue about),
-          // and the turnout line says how many decided it (2026-09-26).
-          template: 'What the class passed:\n\n{{' + id + '.approvedList}}\n\n' +
-            'Did not pass:\n\n{{' + id + '.rejectedList}}\n\n{{' + id + '.turnout}}'
-        };
+        // What failed stays on the wall too (something to argue about),
+        // and the turnout line says how many decided it (2026-09-26);
+        // showRejected: false keeps it off for personal answers (a
+        // reviewer's anonymous question box put "Did not pass" and the
+        // counts under a student's own question, 2026-09-28).
+        var passedTemplate = (topN ? 'The top ' + topN + ':' : 'What the class passed:') + '\n\n{{' + id + '.approvedList}}\n\n';
+        if (step.showRejected !== false) passedTemplate += 'Did not pass:\n\n{{' + id + '.rejectedList}}\n\n';
+        passedTemplate += '{{' + id + '.turnout}}';
+        phases[passedId] = { type: 'reveal', template: passedTemplate };
         lastId = passedId;
+      } else if (brick === 'vote' && voteOverResponses && topN) {
+        // The top N with their votes instead of a single crown
+        var topId = freshId(phases, 'top');
+        phases[lastId].next = topId;
+        phases[topId] = { type: 'reveal', template: 'The top ' + topN + ':\n\n{{' + id + '.resultsList}}' };
+        lastId = topId;
       } else if (brick === 'vote' && voteOverResponses) {
         var crownId = freshId(phases, 'crown');
         phases[lastId].next = crownId;
@@ -1451,7 +1476,10 @@
       if (!poll || poll.type !== 'collect-choice' || !poll.liveResults) return;
       var read = Object.keys(phases).some(function (other) {
         var ph = phases[other];
-        return other !== pid && ['template', 'message', 'prompt', 'content', 'instruction', 'input', 'from', 'data'].some(function (f) {
+        if (other === pid) return false;
+        // A pairs step keyed on this poll reads it too (pairBy, 2026-09-28)
+        if (ph.pairBy && ph.pairBy.from === pid) return true;
+        return ['template', 'message', 'prompt', 'content', 'instruction', 'input', 'from', 'data'].some(function (f) {
           return typeof ph[f] === 'string' && ph[f].indexOf(pid + '.') !== -1;
         });
       });

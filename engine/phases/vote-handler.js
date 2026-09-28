@@ -353,6 +353,10 @@ export function tallyBracket(votes, candidates, matchups, byes, lang = 'en') {
   for (const id of byes || []) {
     if (!(id in byId)) continue;
     winners.push(byId[id]);
+    // A lone candidate in a round with no matchups is the champion (a
+    // spare round in a small class): nothing to say, the champion card
+    // names them
+    if ((matchups || []).length === 0 && (byes || []).length === 1) continue;
     lines.push(say('{a} moves on, no opponent this round.').replace('{a}', candidateText(byId[id])));
   }
   const voters = new Set((votes || []).map(v => v && v.voterId).filter(Boolean));
@@ -390,10 +394,22 @@ export function bracketLines(matchups, candidates) {
  * @param {any[]} candidates
  * @returns {string}
  */
-export function rankedResultsList(scores, candidates) {
+export function rankedResultsList(scores, candidates, limit) {
   const byId = {};
   for (const c of candidates || []) byId[c && typeof c === 'object' && c.playerId ? c.playerId : c] = c;
-  const ids = Object.keys(scores || {}).filter(id => id in byId);
+  let ids = Object.keys(scores || {}).filter(id => id in byId);
   ids.sort((a, b) => (scores[b] || 0) - (scores[a] || 0));
+  if (Number.isInteger(limit) && limit > 0) ids = ids.slice(0, limit);
   return ids.map((id, i) => `${i + 1}. ${candidateText(byId[id])} (${scores[id] || 0})`).join('\n');
+}
+
+/**
+ * The first `limit` lines of a numbered list ("show the top five").
+ * @param {string} list
+ * @param {number} [limit]
+ * @returns {string}
+ */
+export function topLines(list, limit) {
+  if (!Number.isInteger(limit) || limit <= 0 || typeof list !== 'string') return list;
+  return list.split('\n').slice(0, limit).join('\n');
 }

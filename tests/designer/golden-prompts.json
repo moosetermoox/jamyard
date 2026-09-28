@@ -876,6 +876,76 @@
         }
       },
       "note": "A reviewer's routine (2026-09-27): the matcher forced it into Elimination Tournament (answers voted down each round), whose params failed, and the teacher saw an internal line; the bracket brick chains head-to-head votes with bracket: true, the winners moving on."
+    },
+    {
+      "id": "fist-to-five-partner-help",
+      "prompt": "Fist to five on how well they understand fractions, then pair the 0s, 1s, and 2s with the 4s and 5s so the confident ones explain it to a partner who is not.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Fist to Five",
+          "description": "Rate yourself, then the sure explain to the unsure.",
+          "steps": [
+            {
+              "brick": "collect-choice",
+              "text": "Fist to five: how well do you understand fractions right now?",
+              "choices": [
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ],
+              "timer": 30
+            },
+            {
+              "brick": "pairs",
+              "text": "One of you is surer than the other. The surer one: explain fractions in your own words. The other: ask what is still fuzzy.",
+              "pairBy": "far",
+              "timer": 180
+            },
+            {
+              "brick": "end",
+              "text": "A fist can become a five. Nice work, both of you."
+            }
+          ]
+        }
+      },
+      "note": "A reviewer's second pass (2026-09-28): the plan used pairBy \"opposite\", which only means the answers differ, so a 4 sat with a 5. \"far\" pairs the ends of the scale together."
+    },
+    {
+      "id": "anonymous-question-box",
+      "prompt": "Anonymous question box: everyone types a question they were afraid to ask, the class upvotes, and the top five go on the board.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Question Box",
+          "description": "Ask what you were afraid to ask; the top five go up.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "No names on these. Ask the thing you have been wondering."
+            },
+            {
+              "brick": "collect",
+              "text": "What is one question you have not asked yet?",
+              "timer": 120
+            },
+            {
+              "brick": "vote",
+              "approve": true,
+              "showRejected": false,
+              "top": 5
+            },
+            {
+              "brick": "end",
+              "text": "Five questions the class wanted answered. We start there tomorrow."
+            }
+          ]
+        }
+      },
+      "note": "A reviewer's second pass (2026-09-28): the built version listed \"Did not pass\" with counts under students' own questions and had no top-five limit; showRejected: false and top: 5 on the vote brick."
     }
   ]
 }

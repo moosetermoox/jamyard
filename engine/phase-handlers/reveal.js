@@ -72,6 +72,22 @@ registerHandler('reveal', {
     const { phase, engine } = ctx;
     const sc = ctx.resolveScreenControl();
     const tpl = phase.template || '';
+    // A bracket round's results card, when that round found one candidate
+    // and passed itself (a small class in a bracket built for a big one,
+    // 2026-09-28) and another bracket round follows: nothing to show, so
+    // the card passes itself too. The champion card, with no round after
+    // it, still shows. Adjacent hops only: the state machine refuses a
+    // jump past a step.
+    const bracketRead = tpl.match(/\{\{\s*([\w-]+)\.bracketList\s*\}\}/);
+    if (bracketRead) {
+      const round = engine.phaseData[bracketRead[1]];
+      const after = phase.next ? engine.config.phases[phase.next] : null;
+      if (round && round.skipped && after && after.type === 'vote' && after.bracket) {
+        console.log(`[reveal:${phase.id}] the round before it had nothing to vote on, skipping the card`);
+        await ctx.advanceTo(phase.next);
+        return;
+      }
+    }
     const isPerPlayer = !!phase.template && PER_PLAYER_REF.test(tpl);
     // Host continue button says what happens next, not "Continue".
     const continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language);

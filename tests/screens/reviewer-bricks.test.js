@@ -153,7 +153,7 @@ describe('bracket brick', () => {
     ] });
     expect(problems).toEqual([]);
     const votes = ordered(config).filter(([, p]) => p.type === 'vote');
-    expect(votes.length).toBe(4);
+    expect(votes.length).toBe(5); // up to 32 nominations; spare rounds pass themselves
     expect(votes[0][1].candidates).toMatch(/\.responses$/);
     expect(votes.every(([, v]) => v.excludeAuthors === true)).toBe(true);
     hostable(config, 'bracket over answers');

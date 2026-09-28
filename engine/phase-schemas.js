@@ -264,7 +264,7 @@ export const PHASE_SCHEMAS = {
       pairBy: {
         type: 'object', optional: true, contexts: ['topLevel'],
         label: 'Pair by earlier answer',
-        helper: 'Optional with assign:"pairwise". {from: "<Multiple Choice step>", mode: "opposite" | "same"}. Pairs students by what they answered in that step: "opposite" prefers partners who answered differently (share a why with someone who disagreed), "same" prefers matching answers. Best-effort: when the split is lopsided, leftover students still pair with each other, nobody sits out because of it.'
+        helper: 'Optional with assign:"pairwise". {from: "<Multiple Choice step>", mode: "opposite" | "same" | "far"}. Pairs students by what they answered in that step: "opposite" prefers partners who answered differently (share a why with someone who disagreed), "same" prefers matching answers, "far" pairs the ends of the step\'s choice order together (the lowest with the highest, a fist with a five; the choices must be in scale order). Best-effort: when the split is lopsided, leftover students still pair with each other, nobody sits out because of it.'
       },
       oddHandling: {
         type: 'enum', values: ['sit-out', 'triple'], optional: true, default: 'sit-out', contexts: ['topLevel'],
@@ -654,6 +654,11 @@ export const PHASE_SCHEMAS = {
         type: 'boolean', optional: true,
         label: 'Bracket round',
         helper: 'Head-to-head only. The candidates meet in consecutive pairs (first against second, third against fourth; an odd last one moves on by itself), every student votes on every matchup, and the winners move on as this step\'s .winners, the next round\'s candidates. .bracketList says who beat whom; with one winner left, .winnerText names the champion.'
+      },
+      resultsLimit: {
+        type: 'integer', min: 1, max: 50, optional: true,
+        label: 'Show only the top',
+        helper: 'Cuts .resultsList (and an approve vote\'s .approvedList) to this many entries, most votes first: "show the top five questions".'
       },
       question: {
         type: 'templateString', optional: true,

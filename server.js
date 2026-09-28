@@ -117,6 +117,7 @@ import {
   tallyApprove,
   tallyBracket,
   rankedResultsList,
+  topLines,
   resolveBranchTarget,
   isOwnCandidate
 } from './engine/phases/vote-handler.js';
@@ -1909,7 +1910,7 @@ async function tallyAndAdvance(code, room) {
       approved: result.approved,
       rejected: result.rejected,
       approvedCount: result.approvedCount,
-      approvedList: result.approvedList,
+      approvedList: topLines(result.approvedList, phaseConfig.resultsLimit),
       rejectedList: result.rejectedList,
       turnout: result.turnout,
       eligibleCount: result.eligibleCount,
@@ -1960,7 +1961,7 @@ async function tallyAndAdvance(code, room) {
       // Every entry with its votes, most first (2026-09-27: "show the
       // top five questions" read {{vote.resultsList}}, which only the
       // yes-or-no mode filled, and the projector showed a blank card).
-      resultsList: rankedResultsList(result.scores, vs.candidates)
+      resultsList: rankedResultsList(result.scores, vs.candidates, phaseConfig.resultsLimit)
     });
   }
 
@@ -4283,6 +4284,15 @@ app.post('/api/games/from-description', async (req, res) => {
       });
     }
 
+    // A bracketed placeholder ("[statement]", "<your question>") is not
+    // content: dropped so the recipe default fills in (a reviewer's four
+    // corners showed "[statement]" in the question box, 2026-09-28)
+    if (match.params && typeof match.params === 'object') {
+      for (const key of Object.keys(match.params)) {
+        const v = match.params[key];
+        if (typeof v === 'string' && /^\s*[\[<{][^\]>}]*[\]>}]\s*$/.test(v)) delete match.params[key];
+      }
+    }
     let { config, diagnostics } = compileRecipe(recipe, match.params || {});
     if (!config) {
       const errors = diagnostics.filter(d => d.severity === 'error').map(d => d.message);
