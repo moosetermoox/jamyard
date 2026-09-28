@@ -69,7 +69,11 @@
       '  font-family: "DM Sans", Arial, sans-serif; font-weight: 700; }',
       '.feedback-widget-status { font-size: 0.82rem; font-weight: 700; margin: 0 0 8px; }'
     ].join('\n');
-    document.head.appendChild(style);
+    // First in the head, so a page's own stylesheet can move the button
+    // with a plain #feedback-widget-btn rule. Appended last, this sheet won
+    // every tie: Try it out's "left: 18px" landed beside its "right: 18px"
+    // and the button stretched across the whole page (a reviewer, 2026-09-28).
+    document.head.insertBefore(style, document.head.firstChild);
 
     var btn = document.createElement('button');
     btn.id = 'feedback-widget-btn';
@@ -131,6 +135,12 @@
     });
     cancel.addEventListener('click', function () {
       panel.hidden = true;
+    });
+    // Escape closes it, the way every other card on the site closes
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || panel.hidden) return;
+      panel.hidden = true;
+      btn.focus();
     });
 
     send.addEventListener('click', function () {

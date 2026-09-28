@@ -1014,7 +1014,10 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
   qrRendered = false;
   if (qrPanel) qrPanel.hidden = true;
   if (showQrBtn) showQrBtn.textContent = 'Show QR code';
-  teacherViewChip.hidden = false; // room exists, pairing is possible from any phase
+  // Room exists, pairing is possible from any phase. Not inside Try it
+  // out: its Teacher controls tab is the console, and the chip sat over
+  // the step's last button in a laptop-sized frame (a reviewer, 2026-09-28).
+  teacherViewChip.hidden = IS_PROTOTYPE_HOST;
 
   // Rolling start: the room opens straight into the first step (the
   // server sends it right after this), so the join code lives in a
@@ -1363,9 +1366,13 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show, refresh 
     // Private by default: this screen is projected. The teacher reviews on
     // their Teacher view, or deliberately reveals here. If no console is
     // paired yet, point at the corner chip instead of a view they don't have.
-    previewPrivacyHint.textContent = teacherConsolePaired
-      ? 'The content is hidden from this (projected) screen. Review it on your Teacher view, or reveal it here.'
-      : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use "Copy teacher link" in the corner and paste it in a private window, or reveal it here.';
+    // Inside Try it out the console is the Teacher controls tab above this
+    // screen, never a copied link (a reviewer, 2026-09-28)
+    previewPrivacyHint.textContent = IS_PROTOTYPE_HOST
+      ? 'The content is hidden from this (projected) screen. Review it under Teacher controls, the tab above this screen, or reveal it here.'
+      : teacherConsolePaired
+        ? 'The content is hidden from this (projected) screen. Review it on your Teacher view, or reveal it here.'
+        : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use "Copy teacher link" in the corner and paste it in a private window, or reveal it here.';
     previewPrivate.hidden = true;
     previewLookedHere = false;
     previewRevealBtn.textContent = 'Show on this screen';
