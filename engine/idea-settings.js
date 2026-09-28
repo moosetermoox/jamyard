@@ -30,9 +30,21 @@ const NAMES_HIDDEN_RE = /\banonymous(ly)?\b|\bno names\b|\bwithout (their |the |
  * @param {string} text the idea as the teacher typed it
  * @returns {boolean|null}
  */
+// "not anonymous" alone, checked before the hidden forms below so the
+// negation wins over the word "anonymous" inside it.
+const NOT_ANONYMOUS_RE = /\b(not|non|never)[\s-]*anonymous(ly)?\b/;
+
+// A negated show ("no names shown", "don't show names", "names are not
+// shown", "without showing names"): names off. Checked before the shown
+// forms, which would otherwise read "names shown" inside it (2026-09-28,
+// a reviewer's "word cloud, no names" came back Shown).
+const NEGATED_SHOW_RE = /\b(no|don'?t|do not|never|without)\s+(show(ing)?\s+)?(their |the |student |students' |any )?names\b|\bnames (are |should be |will be )?(not|never) (shown|visible|displayed)\b/;
+
 export function parseAnonymity(text) {
   if (typeof text !== 'string' || !text.trim()) return null;
-  const lower = text.toLowerCase();
+  const lower = text.toLowerCase().replace(/[’‘]/g, "'");
+  if (NOT_ANONYMOUS_RE.test(lower)) return false;
+  if (NEGATED_SHOW_RE.test(lower)) return true;
   if (NAMES_SHOWN_RE.test(lower)) return false;
   if (NAMES_HIDDEN_RE.test(lower)) return true;
   return null;

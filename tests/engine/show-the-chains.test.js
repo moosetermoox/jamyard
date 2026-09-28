@@ -14,7 +14,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { buildChainViews, chainResultText, buildChainRecords } from '../../engine/phases/chain-reveal.js';
-import { spotlightItemFor, chainsFor } from '../../engine/spotlight.js';
+import { spotlightItemFor, chainsFor, spotlightAllowed } from '../../engine/spotlight.js';
 import { buildActivityReport } from '../../engine/report.js';
 import { PlayerRegistry } from '../../engine/player-registry.js';
 import { validate } from '../../engine/game-loader.js';
@@ -106,6 +106,24 @@ describe('spotlight', () => {
     const eng = engineWith(phase, {}, [['p1', 'Maya', 'x']]);
     expect(spotlightItemFor(eng, phase, 'p1')).toBeNull();
     expect(spotlightItemFor(eng, phase, '')).toBeNull();
+  });
+
+  // 2026-09-28, the owner: "what does Show do when it will be shown
+  // regardless?" It puts one answer up NOW, with the name. So it is only
+  // offered where the student was told the class sees their words; a step
+  // whose answer box promised totals only, a guess, a summary, a partner,
+  // or the teacher alone never gets it, and a single tap is not work to
+  // spotlight.
+  it('is allowed only where the answer box told the student the class sees their words', () => {
+    for (const key of ['class', 'class-after-review', 'classmate+class', 'classmate+class-after-review']) {
+      expect(spotlightAllowed(key, 'collect')).toBe(true);
+    }
+    for (const key of ['teacher', 'tally', 'guessed', 'guessed-after-review', 'ai', 'classmate', null]) {
+      expect(spotlightAllowed(key, 'collect')).toBe(false);
+    }
+    expect(spotlightAllowed('class', 'collect-choice')).toBe(false);
+    // A return-to-author reveal's chains: the Show it was built for
+    expect(spotlightAllowed(null, 'reveal')).toBe(true);
   });
 });
 

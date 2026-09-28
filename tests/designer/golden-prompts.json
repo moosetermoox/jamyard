@@ -971,6 +971,57 @@
         "kind": "host",
         "game": "vocab-match"
       }
+    },
+    {
+      "id": "rank-five-causes",
+      "prompt": "Each student ranks the five causes of World War I from most to least important, then we see the class order",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Causes of World War I",
+          "description": "Every student puts the five causes in order; the class order goes up.",
+          "steps": [
+            { "brick": "announce", "text": "Five causes of World War I. Put them in order, most important at the top, then we see the class's order." },
+            { "brick": "rank", "text": "Most important cause at the top.", "items": ["Militarism", "Alliances", "Imperialism", "Nationalism", "The assassination of Franz Ferdinand"], "timer": 120 },
+            { "brick": "end", "text": "Where did your order differ from the class? Be ready to defend your top pick." }
+          ]
+        }
+      }
+    },
+    {
+      "id": "jigsaw-three-expert-groups",
+      "prompt": "Jigsaw: three fixed expert groups each answer a question about their section, then share with a group that has one person from each",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Expert Groups",
+          "description": "Three expert groups answer about their section, then regroup to teach it.",
+          "steps": [
+            { "brick": "announce", "text": "Three sections, three expert groups. Answer the question about your section together; you will teach it in your next group." },
+            { "brick": "teams", "teamCount": 3 },
+            { "brick": "collect", "text": "What are the three most important ideas in your section?", "timer": 300 },
+            { "brick": "teams", "jigsaw": true },
+            { "brick": "announce", "text": "New groups: one expert from each section. Teach yours, then listen to the other two." },
+            { "brick": "end", "text": "Every one of you now knows all three sections." }
+          ]
+        }
+      }
+    },
+    {
+      "id": "peer-feedback-thesis",
+      "prompt": "Peer feedback on each other's thesis statements: every student gets feedback from a classmate on their own thesis",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Thesis Check",
+          "description": "Write a thesis, a classmate gives feedback, and it comes back to you.",
+          "steps": [
+            { "brick": "announce", "text": "Write your thesis, then a classmate reads it and leaves you feedback. It comes back to you at the end." },
+            { "brick": "chain", "start": "Write your thesis statement in one or two sentences.", "hops": ["Read your classmate's thesis above. Write one strength and one question for the writer."], "visibility": "all", "timer": 180 },
+            { "brick": "end", "text": "Read the feedback on your thesis and revise one sentence before you leave." }
+          ]
+        }
+      }
     }
   ]
 }

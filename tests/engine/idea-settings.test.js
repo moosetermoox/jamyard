@@ -19,6 +19,16 @@ describe('parseAnonymity', () => {
     expect(parseAnonymity('Hide student names on the projector.')).toBe(true);
   });
 
+  it('reads a negated show as names hidden (2026-09-28, "no names" came back Shown)', () => {
+    expect(parseAnonymity('One word each, word cloud, no names shown')).toBe(true);
+    expect(parseAnonymity("Don't show names on the projector.")).toBe(true);
+    expect(parseAnonymity('Do not show their names.')).toBe(true);
+    expect(parseAnonymity('Names are not shown to the class.')).toBe(true);
+    expect(parseAnonymity('Without showing names, collect one word each.')).toBe(true);
+    expect(parseAnonymity('Never show student names.')).toBe(true);
+    expect(parseAnonymity('One word each, nameless.')).toBe(true);
+  });
+
   it('reads a teacher saying names stay as names shown', () => {
     expect(parseAnonymity('Not anonymous, I want to see who said what.')).toBe(false);
     expect(parseAnonymity('A non-anonymous poll with names.')).toBe(false);

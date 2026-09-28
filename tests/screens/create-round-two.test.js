@@ -64,7 +64,10 @@ describe('the anonymous question box', () => {
     const vote = ordered(config).find(([, p]) => p.type === 'vote');
     expect(vote[1].resultsLimit).toBe(5);
     const reveal = ordered(config).find(([, p]) => p.type === 'reveal')[1];
-    expect(reveal.template).toContain('The top 5:');
+    // The heading never promises a count the list may not reach (2026-09-28:
+    // "Top 5" over four questions)
+    expect(reveal.template).toContain('most votes first:');
+    expect(reveal.template).not.toMatch(/top 5/i);
     expect(reveal.template).toContain('{{' + vote[0] + '.approvedList}}');
     expect(reveal.template).not.toContain('Did not pass');
     expect(reveal.template).not.toContain('rejectedList');

@@ -23,7 +23,7 @@ import { scoutFacts } from './services/fact-scout.js';
 import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submits.js';
 import { parseRequestedMinutes, timingReport, paramsForTrim, estimateDuration } from './engine/duration-estimate.js';
 import { audienceFor } from './engine/audience.js';
-import { applyIdeaSettings } from './engine/idea-settings.js';
+import { applyIdeaSettings, parseAnonymity } from './engine/idea-settings.js';
 import { refitRecipeIdFor } from './engine/match-refit.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
@@ -211,7 +211,7 @@ import { buildActivityReport } from './engine/report.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
 import { contentLog } from './engine/content-log.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText, hideStoredResponse } from './engine/moderation.js';
-import { chainsFor, spotlightItemFor } from './engine/spotlight.js';
+import { chainsFor, spotlightItemFor, spotlightAllowed } from './engine/spotlight.js';
 import { createModerationLadder } from './services/moderation-ladder.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
@@ -4083,12 +4083,20 @@ async function storyboardOutcome(body, onEvent) {
         ? storyboard.partial : null;
       const partialSteps = partial ? partial.steps.map(s => s.brick) : [];
       const ideaId = await logIdea(body, { stage: 'storyboard', result: 'cant-build', reason: storyboard.reason || '', steps: partialSteps });
-      return { status: 200, json: { cantBuild: true, harm: storyboard.harm === true, reason: storyboard.reason || '', partial, ideaId } };
+      const partialAnonymous = parseAnonymity(description);
+      const partialSettings = partialAnonymous === null ? {} : { anonymous: partialAnonymous };
+      return { status: 200, json: { cantBuild: true, harm: storyboard.harm === true, reason: storyboard.reason || '', partial, settings: partialSettings, ideaId } };
     }
     // What was unique: the bricks the plan is made of.
     const steps = Array.isArray(storyboard.steps) ? storyboard.steps.map(s => s && s.brick).filter(Boolean) : [];
     const ideaId = await logIdea(body, { stage: 'storyboard', result: 'storyboard', targetName: storyboard.name || '', steps });
-    return { status: 200, json: { storyboard, ideaId } };
+    // The settings the idea named in plain words ("no names"), read by the
+    // server the same way the recipe match reads them, so a planned
+    // activity keeps them too (2026-09-28: a "word cloud, no names" plan
+    // was built with names shown). The client writes them on the config.
+    const anonymous = parseAnonymity(description);
+    const settings = anonymous === null ? {} : { anonymous };
+    return { status: 200, json: { storyboard, settings, ideaId } };
   } catch (error) {
     console.log(`[api/games/storyboard] Error: ${error.message}`);
     await logIdea(body, { stage: 'storyboard', result: 'error', reason: error.message });
@@ -5264,6 +5272,10 @@ io.on('connection', (socket) => {
       if (!room || !room.engine) return;
       if (!isTeacherSocket(code, room, socket.id)) return;
       const phase = room.engine.getCurrentPhase();
+      // Only where the answer box told the student the class sees their
+      // words (engine/spotlight.js spotlightAllowed); the console hides
+      // the button everywhere else, and a stale console is refused here.
+      if (!phase || !spotlightAllowed(audienceKeyFor(room.engine, phase), phase.type)) return;
       const item = spotlightItemFor(room.engine, phase, playerId);
       if (!item) return;
       recordEvent(room, 'spotlight', { phaseId: phase.id });

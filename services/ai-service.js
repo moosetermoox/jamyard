@@ -99,6 +99,8 @@ const PHASE_EXTRA_GUIDANCE = {
 
     A BRACKET ("mode": "head-to-head" with "bracket": true): the candidates meet in consecutive pairs in list order (first vs second, third vs fourth; an odd last one moves on by itself), every student votes on every matchup, and the winners move on as .winners, so a chain of such steps is a single-elimination bracket: round one over a literal "candidates" list of 4, 8, or 16 (or a collect's .responses), each later round's "candidates" set to "<previous round id>.winners", a reveal of {{<round>.bracketList}} ("Holes beat Hatchet, 12 to 5.") after every round, and the last round's {{<round>.winnerText}} as the champion. Never a winner step between rounds, and never a plain head-to-head vote for a bracket (it compares everything with everything).
 
+    ORDER ON THE BALLOT: a pick-one or approve vote shows every student the same order unless "shuffle": true, which gives each student their own order (use it when the teacher worries the first options get picked more).
+
     A PRIVATE HAND-OUT (collect with "dealItems", read by {{<stepId>.assigned}} in that step's own prompt) hands each student one item from the teacher's list in secret; a class bigger than the list SHARES items (two or three students get the same one, delegations), so never cap the class size or minPlayers/maxPlayers to fit a list, and never turn a hand-out into a public assign step.
 
     BRANCHING VOTES (choose-your-own-adventure): a pick-one vote on a FIXED option list can route the game by outcome. Set "candidates" to a literal array of option strings and "nextByWinner" to a map from each option's exact text to a phase id. A winner not in the map falls back to "next". Branches must go FORWARD (use loopBack to repeat sections). Paths may converge on a later shared phase. Example:
@@ -595,9 +597,10 @@ You will receive a summary of the teacher's current activity and the conversatio
 
 Decide ONE of two actions:
 - "answer": the teacher is asking a question, brainstorming, comparing options, or thinking out loud. Reply conversationally. Keep it short: 2-5 sentences, concrete, specific to THEIR activity. Offer one or two ideas at a time, not a list of everything.
-- "edit": the teacher clearly asked for a concrete change to this activity, including agreeing to a change you suggested ("yes, do that"). Set "reply" to one short lead-in sentence, and set "editRequest" to a self-contained plain-English instruction for another AI that will edit the activity. The editRequest must stand alone with no conversation context: name the specific step or steps and exactly what to change.
+- "edit": the teacher clearly asked for a concrete change to this activity, including agreeing to a change you suggested ("yes, do that"). Set "reply" to one short lead-in sentence that says you are drafting the change (never "Done" or "will now": the teacher still has to press Apply, and the change may turn out not to be possible), and set "editRequest" to a self-contained plain-English instruction for another AI that will edit the activity. The editRequest must stand alone with no conversation context: name the specific step or steps and exactly what to change.
 
 Only choose "edit" for a clear, concrete request. Questions and "what if" talk are "answer". Never choose "edit" just because a change was mentioned as a possibility.
+Only suggest a change the STEP TYPES below can make, using a field that step type lists. When you are not sure a step can do something (a per-student order, a new kind of scoring), say you are not sure instead of promising it.
 
 YOU CAN CHANGE THE ACTIVITY, and writing content for it counts as a change: new questions, trivia facts, prompts, answer choices, item lists, a different intro or closing message. When the teacher asks you to write, add, replace, or generate any of these, choose "edit" and put the finished content in the editRequest yourself (the full questions with their answers, the exact prompt wording), so the editing AI only has to place it. Match the content to the teacher's class when they described one. Never tell the teacher you can only brainstorm or suggest, and never send them somewhere else to make the change. If the activity currently has the AI invent that content live during the game (a step that generates a fact or question each round), a request for specific questions means: replace that live generation with the teacher's list, and say so in the editRequest.
 
@@ -783,6 +786,42 @@ export function summarizeConfigForChat(config) {
  * never reads `{"action": "edit", "reply": "...` as the answer. Pure;
  * exported for tests. Returns null when nothing usable is there.
  */
+// Key-order-proof JSON for comparing two configs (the model may return
+// the same activity with its keys in another order).
+function canonicalJson(value) {
+  if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
+  if (value && typeof value === 'object') {
+    return '{' + Object.keys(value).sort().filter(k => value[k] !== undefined)
+      .map(k => JSON.stringify(k) + ':' + canonicalJson(value[k])).join(',') + '}';
+  }
+  return JSON.stringify(value);
+}
+
+/** Do two configs describe the same activity? */
+export function sameActivity(a, b) {
+  return canonicalJson(a) === canonicalJson(b);
+}
+
+// What the chat says when the editing pass changed nothing: its own
+// account when it says it could not ("I couldn't make this change
+// because..."), else a plain line. Never the triage's "Done."
+export function noChangeReply(summary) {
+  const s = typeof summary === 'string' ? summary.trim() : '';
+  if (s && /\b(couldn'?t|could not|can'?t|cannot|unable|not able|isn'?t possible|is not possible|doesn'?t support|does not support|no way to)\b/i.test(s)) return s;
+  return 'I tried, but nothing in the activity changed, so there is nothing to apply. Try saying the change another way, or name the step it should happen in.';
+}
+
+// The lead-in over a proposal card: the change is a draft until the
+// teacher presses Apply, so a lead-in that says it is already done
+// ("Done.", "All set", "...will now...") is replaced with one that says so.
+export function proposalLeadIn(reply) {
+  const r = typeof reply === 'string' ? reply.trim() : '';
+  if (!r || /^(done|all set|finished|changed|updated|fixed|there you go|ok,? done)\b/i.test(r) || /\b(will now|is now|are now|has been|have been)\b/i.test(r)) {
+    return 'Here is a draft of that change. Look it over and press Apply to use it.';
+  }
+  return r;
+}
+
 export function parseChatTurn(text) {
   if (typeof text !== 'string' || !text.trim()) return null;
   try { return JSON.parse(text); } catch { /* fall through */ }
@@ -1376,9 +1415,17 @@ Return the revised config.`;
       // Edit turn: chain into the full revise pipeline (envelope
       // tolerance, field stripping, defensive fixes — zero duplication).
       const revised = await this.reviseGame({ config, request: editRequest });
+      // The triage's lead-in is written BEFORE the edit is tried, so it can
+      // promise a change the editing pass could not make (2026-09-28: "Done.
+      // The vote options will now shuffle" over a draft that said the step
+      // has no shuffle). A draft that changes nothing is not a proposal:
+      // the teacher reads the editing pass's own account instead.
+      if (sameActivity(this._fixGeneratedConfig(JSON.parse(JSON.stringify(config))), revised.updatedConfig)) {
+        return { kind: 'chat', reply: noChangeReply(revised.summary) };
+      }
       return {
         kind: 'proposal',
-        reply: parsed.reply,
+        reply: proposalLeadIn(parsed.reply),
         updatedConfig: revised.updatedConfig,
         summary: revised.summary
       };
@@ -2111,6 +2158,8 @@ RULES:
 - When the teacher supplies their own questions, statements, or items for students to judge or classify, put ALL of them into ONE quiz step's questions array with the classification options as the choices; never build a chain of separate collect-choice and reveal steps for a question list. If the teacher asks for a shuffled or mixed order, write the questions array in that shuffled order (never grouped by category).
 - THE BRICKS ARE ALL THERE IS. No brick can generate AI-written answers or rival responses during play, show two specific answers side by side as a matched pair, hide one student's answer from the class outside collect-two's secret box, a chain's hand-offs, a deal's hand, or a pairs exchange (a private hand-out from YOUR list is collect with items; assign is public), eliminate players, or branch the flow. Step text must never promise any of those. For example, never tell students that one of the responses was written by AI: no step can make that true, and a promise the activity cannot keep is worse than no activity.
 - ROLES FIT THE GROUP: never more roles than a group has members (groups of two take two roles, never four), and a tasks list only for jobs those roles do. In a JIGSAW everyone teaches their section to the home group, so no roles step after the regroup and never a "Teacher" role; the home-group step is an announce ("Teach your section, then listen to the other three") or a collect.
+- PEER FEEDBACK on each student's own work (a classmate reviews my thesis, peer review) is a chain: start = the piece each student writes, hops = one or two feedback instructions ("Read your classmate's thesis above. Write one strength and one question for the writer."), visibility "all"; the chain comes home, so each writer reads the feedback on their own piece. Never a summarize step for this: a summary goes to the projector and no one gets their own feedback back.
+- EACH STUDENT RANKS A LIST the teacher names (five causes, most to least important): a rank step with items = that list, never a collect-choice that picks one.
 - If groups or students should each END UP WITH one option from a list (project topics, categories, stations, chapters, sides of a debate), use teams (when groups decide), then rank with byGroup: true and the options as items, then assign. Never a vote (a vote picks one winner for the whole class) and never a collect-choice (everyone would pick the same favorite); neither hands anything out. This is for ONE option per group or per student; jobs INSIDE a group (a Recorder, a Timekeeper for each member) are the roles brick, never rank then assign.
 - If the idea passes writing from student to student (telephone, folded stories, add to a classmate's work, exquisite corpse), use ONE chain step; never fake a pass-around out of a row of collect steps, which cannot move anything between students.
 - If the idea pools what everyone contributes and hands each student a random private combination (a person and a circumstance, a character and a setting, ingredients for a story), use ONE deal step with one pile per kind of thing; a plain collect keeps every answer with its author and cannot deal anything out. Each student adds one item per pile; when the teacher says "everyone lists four", the piles still fill at class size, one per student.
@@ -2741,6 +2790,10 @@ ${gameOption}1. If ONE of the recipes above is a good fit:
    }
    Set "offScreen": true when the heart of the idea happens away from the screens and no typing, tapping, or drawing step could carry it: students moving around the room, racing, building or 3D-printing something, using hardware, props, or the outdoors. Every activity here is students on Chromebooks answering a projector. Then "reason" says so in one plain sentence and "suggestion" names the closest recipe for the part that CAN happen on screens (a prediction, a vote, a debrief). Leave it false when the idea only needs a step the recipes lack (the step-by-step builder may have it). A buzzer, a race to tap, a timer, a vote, a bracket, a regroup, or the teacher choosing what goes up is ON the screens: never offScreen. BUZZER IDEAS ("first to buzz in answers", quiz bowl, "I ask out loud and they race") are noMatch with offScreen false: no recipe has a buzzer, the step-by-step builder does, and "reason" should say so. The same for a bracket or tournament over a list, a jigsaw regroup, pairing students by their answer, and a teacher screening answers before they go up: noMatch, the builder has each.
    PAIRING BY ANSWER: an idea where students are paired or matched with a classmate BY what they answered (someone who disagreed, who chose the other side, a low with a high, a yes with a no) is noMatch unless a recipe's listed steps include "pairs": no recipe pairs students by their answer, the step-by-step builder does, and a recipe that only re-votes (Both Sides of the Rope: pick a side, write an argument, vote again, no partner) drops the heart of the idea. Say so in "reason".
+   EACH STUDENT RANKS A LIST (put these causes in order, most to least important, rank the five): noMatch unless a recipe's listed steps include "rank" for the whole class to order: a poll that picks ONE drops the order, the heart of the idea, and Choice Draft ranks only to hand one item to each group. The step-by-step builder has a rank step; say so in "reason".
+   JIGSAW AND EXPERT GROUPS (groups each take a section or question, answer it, then teach or share it; expert groups then home groups): noMatch. Choice Draft only hands topics out: its groups never answer, write, or share anything. The step-by-step builder has teams, a collect for each group's answer, and a regroup (teams with jigsaw); say so in "reason".
+   PEER FEEDBACK (students give each other feedback on their own work, a classmate reviews my thesis, peer review, feedback passed back to the writer): noMatch unless a recipe's listed steps pass each piece to a classmate and back to its writer (a chain). Anonymous Feedback collects feedback FOR THE TEACHER and sums it up; no student ever sees feedback on their own work there. The step-by-step builder has a chain that goes to a classmate and comes home; say so in "reason".
+   NEVER PROMISE A STEP THE RECIPE LACKS: the explanation and every param you write (a question, an intro line) describe only what the recipe's listed steps do. If the idea wants something the steps do not do (each student seeing feedback on their own work, a vote the recipe does not have, a knockout), put it in "missing", never in the words students or the teacher read.
    An idea that would single out, rank, shame, or hurt students (voting on who is the most annoying, least liked, worst at something) is refused, not matched: return the noMatch shape with "harm": true, a reason that says plainly that the activity would hurt someone, and a suggestion that keeps the fun without a target (an anonymous vote on ideas, not people). SECRET ROLES are not harm: spies, saboteurs, imposters, a traitor among the crew are a private hand-out the builder makes (noMatch, offScreen false, no harm); only a theme of killing or murdering classmates is refused, and the reason then offers the same game with "caught" or "out of the round" instead.
 3. ${MATCH_FRESH_FACTS}`;
 
