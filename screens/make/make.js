@@ -187,7 +187,7 @@
       ? fetch('/api/games/' + encodeURIComponent(gameId) + '/make', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(exampleEdits) })
         .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { return d && d.print ? d.print : null; })
       : fetch('/api/games/' + encodeURIComponent(gameId) + '/print').then(function (r) { return r.ok ? r.json() : null; }),
-    fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(','))).then(function (r) { return r.ok ? r.json() : { games: [], ids: [] }; }).catch(function () { return { games: [], ids: [] }; })
+    fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(','))).then(function (r) { return r.ok ? r.json() : { games: [] }; }).catch(function () { return { games: [] }; })
   ]).then(function (parts) {
     state.config = parts[0];
     state.print = parts[1];
@@ -224,8 +224,8 @@
         return parts;
       });
   }).then(function (parts) {
-    if (window.MakeItYours && parts[2] && (Array.isArray(parts[2].ids) || Array.isArray(parts[2].games))) {
-      MakeItYours.seedIds(Array.isArray(parts[2].ids) ? parts[2].ids : parts[2].games.map(function (g) { return g.id; }));
+    if (window.MakeItYours && parts[2] && Array.isArray(parts[2].games)) {
+      MakeItYours.seedIds(parts[2].games.map(function (g) { return g.id; }));
     }
     render();
     applyExample();

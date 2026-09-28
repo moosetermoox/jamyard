@@ -144,6 +144,10 @@ const previewPrivacyHint = document.getElementById('preview-privacy-hint');
 // Elements - Teacher view chip (copy-link pairing)
 const teacherViewChip = document.getElementById('teacher-view-chip');
 let currentTeacherPin = null;
+// The teacher key (engine/teacher-auth.js): rides with the PIN in every
+// link this browser hands the teacher, so a student's PIN guesses never
+// lock the teacher out.
+let currentTeacherKey = null;
 // The rebind credential for THIS room, kept in memory so a socket
 // reconnect can rejoin even when sessionStorage is unavailable.
 let currentHostToken = null;
@@ -183,6 +187,8 @@ teacherLinkCopyBtn.addEventListener('click', () => {
   if (!currentRoomCode) return;
   let link = window.location.origin + '/teacher#code=' + currentRoomCode;
   if (currentTeacherPin) link += '&pin=' + currentTeacherPin;
+  if (currentTeacherKey) link += '&key=' + currentTeacherKey;
+  if (currentTeacherKey) link += '&key=' + currentTeacherKey;
   const done = () => showCopyFeedback('✓ Copied, paste it in a private window');
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(link).then(done).catch(() => fallbackCopy(link, done));
@@ -491,8 +497,12 @@ function applyTemplate(section, templateText) {
   }
 }
 
-// Fetch available games on connect
-socket.emit('get-games');
+// Fetch available games on connect: this browser's own ids and the one a
+// ?game= link names ride along (the server no longer lists everyone's)
+socket.emit('get-games', {
+  mine: window.MyGames ? MyGames.list() : [],
+  game: new URLSearchParams(window.location.search).get('game') || ''
+});
 
 // --- Host recovery: F5 / browser crash / server restart ---
 // If this tab (session) was hosting a room, rebind to it instead of showing
@@ -537,7 +547,7 @@ socket.on('connect', () => {
     // The console's "Open the projector again": the room code in the
     // query, the PIN in the hash (never in server logs); the address is
     // tidied once the room answers (room-created)
-    socket.emit('host-rejoin', { code: action.code, pin: action.pin });
+    socket.emit('host-rejoin', { code: action.code, pin: action.pin, key: action.key || '' });
   } else if (action.kind === 'forget') {
     // "Host a Game" from home appends ?new=1 to mean "start fresh": forget any
     // stale host session left in this tab from a prior game and show the picker.
@@ -968,7 +978,7 @@ window.addEventListener('message', (e) => {
   if (currentRoomCode) socket.emit('advance-phase', { code: currentRoomCode });
 });
 
-socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored, language, strings, start }) => {
+socket.on('room-created', ({ code, game, theme, teacherPin, teacherKey, hostToken, restored, language, strings, start }) => {
   if (retryCloseUntil && code === currentRoomCode && Date.now() < retryCloseUntil) {
     retryCloseUntil = 0;
     socket.emit('close-submissions', { code });
@@ -976,6 +986,7 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
   retryCloseUntil = 0;
   currentRoomCode = code;
   currentTeacherPin = teacherPin || null;
+  currentTeacherKey = teacherKey || null;
   // The projector's fixed labels (Start!, Close Voting...) in the
   // activity's language; server-generated continue labels arrive already
   // translated.
@@ -1067,7 +1078,7 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
   const params = new URLSearchParams(window.location.search);
   if (params.get('prototype') === 'true' && window.parent !== window) {
     window.parent.postMessage(
-      { type: 'room-created', code: code, teacherPin: teacherPin || null },
+      { type: 'room-created', code: code, teacherPin: teacherPin || null, teacherKey: teacherKey || null },
       window.location.origin
     );
   }
@@ -1077,7 +1088,7 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
   // teacher's own browser; nothing about it lands on this projected
   // screen beyond the checklist line.
   if (PAIR_NONCE && window.HostLaunch) {
-    HostLaunch.publish(PAIR_NONCE, code, teacherPin || null);
+    HostLaunch.publish(PAIR_NONCE, code, teacherPin || null, teacherKey || null);
     const stepConsole = document.getElementById('host-step-console');
     if (stepConsole) stepConsole.textContent = 'Your teacher console is open in another tab. For a second device: Copy teacher link, bottom corner.';
   }

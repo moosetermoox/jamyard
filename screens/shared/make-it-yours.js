@@ -7,7 +7,8 @@
 // continue in the designer.
 //
 //   MakeItYours.open(game, btn)      // game: {id, name}; btn shows "Loading…"
-//   MakeItYours.seedIds(ids)         // ids already taken (a copy's id is deduped)
+//   MakeItYours.seedIds(ids)         // ids this page knows are taken (a first guess;
+//                                    // the server dedupes the copy's id itself)
 //
 // Needs on the page: /shared/dialog.js, /shared/make-it-yours-doors.js,
 // /shared/setup-knobs.js, /shared/teacher-profile.js, /shared/growing-text.js,
@@ -33,14 +34,15 @@
 
   var knownIds = [];
   function seedIds(ids) { if (Array.isArray(ids)) knownIds = ids.slice(); }
-  // Every id on the server rides back as `ids` on the scoped list
-  // (2026-09-20); it used to read the whole list as an array, which the
-  // route never sent, so this refresh silently did nothing.
+  // The ids this visitor can see, a first guess at a free id; the save
+  // sends `dedupe: true` and the server steps past a taken one (the list of
+  // every id on the server is gone, 2026-09-28: it let anyone enumerate
+  // teachers' activities).
   function refreshKnownIds() {
     return fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(',')))
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (data && Array.isArray(data.ids)) knownIds = data.ids.slice();
+        if (data && Array.isArray(data.games)) knownIds = data.games.map(function (g) { return g.id; });
       })
       .catch(function () { /* keep what we have */ });
   }
@@ -61,16 +63,16 @@ function saveCopyAndReturn(config, dest) {
   return fetch('/api/games', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: copyId, config: config })
+    body: JSON.stringify({ id: copyId, config: config, dedupe: true })
   }).then(function (resp) {
-    if (!resp.ok) {
-      return resp.json().catch(function () { return {}; }).then(function (d) {
-        throw new Error(d.error || 'save failed');
-      });
-    }
-    if (window.MyGames) MyGames.add(copyId);
-    Recents.add(copyId);
-    window.location.href = copyDestinationUrl(dest, copyId);
+    return resp.json().catch(function () { return {}; }).then(function (d) {
+      if (!resp.ok) throw new Error(d.error || 'save failed');
+      // the server's id: it steps past one another teacher took
+      var savedId = d.id || copyId;
+      if (window.MyGames) MyGames.add(savedId);
+      Recents.add(savedId);
+      window.location.href = copyDestinationUrl(dest, savedId);
+    });
   });
 }
 

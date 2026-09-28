@@ -14,7 +14,7 @@ var ideaGoBtn = document.getElementById('idea-go-btn');
 var useRecipeLink = document.getElementById('use-recipe-link');
 
 var allGames = [];
-var allIds = []; // every id on the server, for picking a free one
+var allIds = []; // the ids this visitor can see: a first guess at a free one (the save dedupes)
 
 // The activity grid moved to /library (docs/SURFACES-PLAN.md); this page
 // only hosts the create flows now. The games list is still fetched —
@@ -92,15 +92,15 @@ if (useRecipeLink) {
 async function fetchGames() {
   try {
     // Owner mode sees everything; a visitor asks only for what they can see
-    // (2026-09-20). The reply's `ids` is every id on the server, which is
-    // what generateGameId needs; the rows are for the grid, where one exists.
+    // (2026-09-20). generateGameId guesses a free id from these rows; every
+    // save sends `dedupe: true` and takes the id the server answers with.
     var response = await fetch((window.OwnerMode && OwnerMode.isOn()) ? '/api/games' : '/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(',')));
     if (!response.ok) {
       throw new Error('Failed to load games (status ' + response.status + ')');
     }
     var data = await response.json();
     allGames = data.games || [];
-    allIds = Array.isArray(data.ids) ? data.ids : allGames.map(function (g) { return g.id; });
+    allIds = allGames.map(function (g) { return g.id; });
     if (loadingMessage) loadingMessage.hidden = true;
     if (gamesGrid) refreshLibrary();
   } catch (error) {
@@ -1480,7 +1480,7 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
     saveResp = await fetch('/api/games', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: newId, config: compileData.config })
+      body: JSON.stringify({ id: newId, config: compileData.config, dedupe: true })
     });
   } catch (err) {
     showFormError(status, 'Save failed: ' + err.message);
@@ -1490,6 +1490,7 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
   }
 
   if (saveResp.ok) {
+    try { newId = (await saveResp.json()).id || newId; } catch (e) { /* keep the guess */ }
     rememberMine(newId);
     overlay.remove();
     window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
@@ -2132,10 +2133,11 @@ async function saveMatchedConfig(data, status, createBtn, overlay, modal) {
       headers: { 'Content-Type': 'application/json' },
       // ideaId: the Create-page try this came from, so the owner's ideas
       // log can see it was saved
-      body: JSON.stringify({ id: newId, config: data.config, ideaId: data.ideaId })
+      body: JSON.stringify({ id: newId, config: data.config, ideaId: data.ideaId, dedupe: true })
     });
 
     if (resp.ok) {
+      try { newId = (await resp.json()).id || newId; } catch (e) { /* keep the guess */ }
       rememberMine(newId);
       // Saved: the make page, the same door every Make it yours ends in
       // since 2026-09-09 (this used to show its own doors dialog, and
@@ -2631,10 +2633,11 @@ async function showStoryboardFlow(description, seededStoryboard) {
       var save = await fetch('/api/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: newId, config: result.config, ideaId: resp && resp.ideaId })
+        body: JSON.stringify({ id: newId, config: result.config, ideaId: resp && resp.ideaId, dedupe: true })
       });
       var saved = await save.json();
       if (!save.ok) throw new Error(saved.error || 'save failed');
+      newId = saved.id || newId;
       rememberMine(newId);
       try { localStorage.setItem('lanyardEditorBuilder', '1'); } catch (e) { /* ignore */ }
       window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
