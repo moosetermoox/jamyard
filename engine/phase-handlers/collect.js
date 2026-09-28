@@ -33,6 +33,25 @@ function partnerPayload(prompt, ctx, playerId) {
   return { playerPrompt, partnerText: partnerText || null };
 }
 
+// A pair step names who to find ("Your partner: Jordan"); the screen
+// said only "One classmate will read this" (a reviewer, 2026-09-27).
+// Read from this step's stored pairs, so a reconnect gets the same line.
+export function partnerLineFor(engine, phase, playerId) {
+  if (!phase || phase.assign !== 'pairwise') return null;
+  const data = engine.phaseData[phase.id] || {};
+  const pair = Array.isArray(data.pairs)
+    ? data.pairs.find(p => Array.isArray(p.playerIds) && p.playerIds.includes(playerId))
+    : null;
+  if (!pair) return null;
+  const names = pair.playerIds
+    .filter(id => id !== playerId)
+    .map(id => (engine.players.find(id) || {}).name)
+    .filter(Boolean);
+  if (names.length === 0) return null;
+  const key = names.length === 1 ? 'Your partner: {names}' : 'Your partners: {names}';
+  return translate(engine.language, key).replace('{names}', names.join(', '));
+}
+
 /**
  * Build the rotation assignment map for a collect phase that has
  * `rotateFrom: "source-phase-id"` set.
@@ -484,6 +503,7 @@ registerHandler('collect', {
         ...audienceLine(engine.config, phase.id, engine.language, { playerCount: engine.players.list().length }),
         // What the partner wrote (a pairs round), on its own card
         partnerText,
+        partnerLine: partnerLineFor(engine, phase, player.id),
         assignedDrawing: (rotatedDrawings && rotatedDrawings[player.id]) || null,
         prefill,
         appendOnly: !!phase.appendOnly,
@@ -541,6 +561,7 @@ registerHandler('collect', {
         phaseId: ctx.phase.id,
         ...audienceLine(ctx.engine.config, ctx.phase.id, ctx.engine.language, { playerCount: ctx.engine.players.list().length }),
         partnerText: recon.partnerText,
+        partnerLine: player ? partnerLineFor(ctx.engine, ctx.phase, player.id) : null,
         inputType: ctx.phase.inputType === 'drawing' ? 'drawing' : 'text',
         assignedDrawing: (player && reconRotated && reconRotated[player.id]) || null,
         prefill: reconPrefill,

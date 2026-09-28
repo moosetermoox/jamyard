@@ -463,7 +463,7 @@ button[hidden] {
 }
 .msg-chart-label {
   font-weight: 700;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   line-height: 1.2;
 }
 .msg-chart-track {
@@ -1603,6 +1603,14 @@ textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width
   color: #2b2b2b;
 }
 .partner-note[hidden] { display: none; }
+
+/* Who to find for a pair step, read before the partner's words */
+.partner-line {
+  margin: 0 auto 10px;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+.partner-line[hidden] { display: none; }
 
 .holding-next {
   font-family: var(--t-body, 'DM Sans', Arial, sans-serif);
