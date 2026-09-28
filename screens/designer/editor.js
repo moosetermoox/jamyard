@@ -2338,8 +2338,32 @@ function renderPhaseConfig(phaseId) {
       phase.mode || 'pick-one', function (value) {
         phase.mode = value;
         renderCanvas();
+        renderPhaseConfig(phaseId);
       }
     );
+    if (phase.mode === 'head-to-head') {
+      // A bracket round (2026-09-27): consecutive pairs, winners move on
+      var brLabel = document.createElement('label');
+      brLabel.className = 'form-group';
+      brLabel.style.display = 'flex';
+      brLabel.style.alignItems = 'flex-start';
+      brLabel.style.gap = '8px';
+      brLabel.style.cursor = 'pointer';
+      var brCb = document.createElement('input');
+      brCb.type = 'checkbox';
+      brCb.style.marginTop = '4px';
+      brCb.checked = phase.bracket === true;
+      brCb.addEventListener('change', function () {
+        isDirty = true;
+        if (brCb.checked) phase.bracket = true; else delete phase.bracket;
+        renderCanvas();
+      });
+      var brText = document.createElement('div');
+      brText.innerHTML = '<strong>Bracket round</strong><div style="font-size:12px;color:#666;margin-top:2px;">First against second, third against fourth, an odd last one moves on alone. Everyone votes on every matchup. The winners are this step\'s "winners", the next round\'s candidates; "bracketList" tells the round in words.</div>';
+      brLabel.appendChild(brCb);
+      brLabel.appendChild(brText);
+      phaseConfigForm.appendChild(brLabel);
+    }
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Random vote on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
@@ -2869,10 +2893,25 @@ function renderPhaseConfig(phaseId) {
       { value: 'teacher', label: 'You arrange them on screen' },
       { value: 'choice', label: 'Students pick their own' }
     );
-    addSelectWithHelp('How teams are made', 'random/balanced assign instantly. "You arrange them" shows the roster on your screen. "Students pick" lets them tap the group they want (open spots only).', 'phase-method',
+    // Jigsaw (2026-09-27): regroup an earlier split, one member of each
+    // earlier group per new group; only offered once there is a split
+    // to regroup from (kept when a loaded config already uses it).
+    var earlierSplits = [];
+    var seenSplitIds = new Set();
+    for (var jsId in gameConfig.phases) {
+      if (jsId !== phaseId && gameConfig.phases[jsId] && gameConfig.phases[jsId].type === 'team-split' && !seenSplitIds.has(jsId)) {
+        seenSplitIds.add(jsId);
+        earlierSplits.push({ value: jsId, label: phaseContentLabel(jsId) });
+      }
+    }
+    if (earlierSplits.length > 0 || phase.method === 'jigsaw') {
+      methodOptions.push({ value: 'jigsaw', label: 'Jigsaw: regroup an earlier split' });
+    }
+    addSelectWithHelp('How teams are made', 'random/balanced assign instantly. "You arrange them" shows the roster on your screen. "Students pick" lets them tap the group they want (open spots only). "Jigsaw" mixes an earlier split so every new group has one member from each earlier group.', 'phase-method',
       methodOptions,
       phase.method || 'random', function (value) {
         phase.method = value;
+        if (value !== 'jigsaw') delete phase.regroupFrom;
         renderCanvas();
         renderPhaseConfig(phaseId);
       }
@@ -2885,10 +2924,20 @@ function renderPhaseConfig(phaseId) {
         phase.balanceFrom = value || undefined;
       }, scoreRefOptions);
     }
+    if (phase.method === 'jigsaw') {
+      addSelectWithHelp('Regroup from', 'The earlier Split into Teams step to mix. Expert groups become home groups with one expert from each; the count and sizes follow from it.', 'phase-regroupFrom',
+        [{ value: '', label: 'Pick a split...' }].concat(earlierSplits),
+        phase.regroupFrom || '', function (value) {
+          isDirty = true;
+          if (value) phase.regroupFrom = value; else delete phase.regroupFrom;
+          renderCanvas();
+        });
+    }
 
-    // Sizing: a number of teams OR a group size (exactly one)
+    // Sizing: a number of teams OR a group size (exactly one); a jigsaw
+    // takes its sizes from the earlier split
     var sizedByGroup = phase.groupSize != null && phase.teamCount == null;
-    addSelectWithHelp('Size teams by', '"Number of teams" makes exactly N teams. "Group size" makes as many groups of that size as the class needs (22 kids in groups of 4 → 4,4,4,4,3,3).', 'phase-team-sizing',
+    if (phase.method !== 'jigsaw') addSelectWithHelp('Size teams by', '"Number of teams" makes exactly N teams. "Group size" makes as many groups of that size as the class needs (22 kids in groups of 4 → 4,4,4,4,3,3).', 'phase-team-sizing',
       [
         { value: 'count', label: 'Number of teams' },
         { value: 'size', label: 'Group size' }
@@ -2906,7 +2955,9 @@ function renderPhaseConfig(phaseId) {
         renderPhaseConfig(phaseId);
       });
 
-    if (sizedByGroup) {
+    if (phase.method === 'jigsaw') {
+      // the earlier split decides the sizes
+    } else if (sizedByGroup) {
       addFieldWithHelp('Group size', 'Students per group (2-12)', 'number', 'phase-groupSize', phase.groupSize, false, function (value) {
         phase.groupSize = value;
       });
@@ -2915,7 +2966,7 @@ function renderPhaseConfig(phaseId) {
         phase.teamCount = value;
       });
     }
-    addTextAreaWithHelp('Custom team names', 'Comma-separated names (e.g. Red Team, Blue Team). Leave empty for default.', 'phase-teamNames',
+    if (phase.method !== 'jigsaw') addTextAreaWithHelp('Custom team names', 'Comma-separated names (e.g. Red Team, Blue Team). Leave empty for default.', 'phase-teamNames',
       Array.isArray(phase.teamNames) ? phase.teamNames.join(', ') : '',
       'e.g. Cats, Dogs, Birds',
       function (value) {
@@ -5034,6 +5085,7 @@ function buildDataRefOptions(currentPhaseId) {
       options.push({ value: pid + '.result', label: 'AI result from ' + stepLabel });
     } else if (p.type === 'vote') {
       options.push({ value: pid + '.scores', label: 'Scores from ' + stepLabel });
+      if (p.bracket) options.push({ value: pid + '.winners', label: 'Who moved on from ' + stepLabel });
     } else if (p.type === 'eliminate') {
       options.push({ value: pid + '.eliminated', label: 'Eliminated from ' + stepLabel });
     } else if (p.type === 'ai-eliminate') {
@@ -6109,6 +6161,20 @@ function validateConfig() {
       }
       if (phase.perChoice != null && (typeof phase.perChoice !== 'number' || phase.perChoice < 1 || Math.floor(phase.perChoice) !== phase.perChoice)) {
         errors.push(label + ': "Spots per item" must be a whole number of 1 or more, or left empty.');
+      }
+    }
+
+    // team-split jigsaw validation (mirrors engine/game-loader.js)
+    if (phase.type === 'team-split') {
+      if (phase.method === 'jigsaw') {
+        var rgSrc = phase.regroupFrom ? phases[phase.regroupFrom] : null;
+        if (!phase.regroupFrom || !rgSrc) {
+          errors.push(label + ': a jigsaw split needs "Regroup from" to name an earlier Split into Teams step.');
+        } else if (rgSrc.type !== 'team-split' || phase.regroupFrom === id) {
+          errors.push(label + ': "Regroup from" must point to an earlier Split into Teams step.');
+        }
+      } else if (phase.regroupFrom !== undefined) {
+        errors.push(label + ': "Regroup from" only works with the Jigsaw method.');
       }
     }
 

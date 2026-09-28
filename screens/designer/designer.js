@@ -2409,22 +2409,52 @@ async function showStoryboardFlow(description, seededStoryboard) {
         // Honest refusal: the idea's heart needs a mechanic the bricks
         // can't deliver. Better a straight answer here than a built
         // activity that fakes its own premise with words.
-        title.textContent = resp.harm ? 'We won\'t build that one' : 'This one needs a trick we don\'t have yet';
+        // The part the bricks can do comes along as a plan of its own
+        // (2026-09-27: a refusal was a dead end nine times out of eleven
+        // for a reviewer); the red door opens it for approval and edits.
+        var partial = !resp.harm && resp.partial && Array.isArray(resp.partial.steps) && resp.partial.steps.length >= 2
+          ? resp.partial : null;
+        title.textContent = resp.harm ? 'We won\'t build that one'
+          : partial ? 'Part of this we can build' : 'This one needs a trick we don\'t have yet';
         status.textContent = resp.reason || 'The step-by-step builder cannot deliver the heart of this idea yet.';
-        var cbHint = sbEl('p', 'A recipe or a ready-made activity from the yard may get close. Or reshape the idea around what students type and see, and try again.', 'sb-hint');
+        var cbHint = sbEl('p', partial
+          ? 'The plan below leaves that part out and keeps the rest. Open it, change any words, drop steps you do not want, then build it.'
+          : 'A recipe or a ready-made activity from the yard may get close. Or reshape the idea around what students type and see, and try again.', 'sb-hint');
         modal.appendChild(cbHint);
+        if (partial) {
+          var partialList = sbEl('ol', null, 'sb-partial-steps');
+          partial.steps.forEach(function (step) {
+            var li = sbEl('li', null, null);
+            li.appendChild(sbEl('strong', SB_BRICK_LABELS[step.brick] || step.brick, null));
+            if (typeof step.text === 'string' && step.text) {
+              li.appendChild(document.createTextNode(': ' + step.text.replace(/\{\{\s*thisStep\.assigned\s*\}\}/g, '(their item)')));
+            }
+            partialList.appendChild(li);
+          });
+          modal.appendChild(partialList);
+        }
         var cbRow = sbEl('div', null, 'recipe-form-buttons');
         var cbClose = sbEl('button', 'Close', 'recipe-cancel-btn');
         cbClose.type = 'button';
         cbClose.addEventListener('click', function () { closeOverlay(overlay); });
         cbRow.appendChild(cbClose);
-        var cbPick = sbEl('button', 'Pick from Recipes', 'recipe-create-btn');
+        var cbPick = sbEl('button', 'Pick from Recipes', partial ? 'recipe-cancel-btn' : 'recipe-create-btn');
         cbPick.type = 'button';
         cbPick.addEventListener('click', function () {
           closeOverlay(overlay);
           showRecipePicker();
         });
         cbRow.appendChild(cbPick);
+        if (partial) {
+          var cbBuild = sbEl('button', 'Build the part we can', 'recipe-create-btn');
+          cbBuild.type = 'button';
+          cbBuild.addEventListener('click', function () {
+            if (window.Analytics) Analytics.track('create_result', { result: 'storyboard' });
+            closeOverlay(overlay);
+            showStoryboardFlow(description, partial);
+          });
+          cbRow.appendChild(cbBuild);
+        }
         modal.appendChild(cbRow);
         return;
       }

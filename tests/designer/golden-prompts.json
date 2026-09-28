@@ -17,48 +17,87 @@
     {
       "id": "exquisite-corpse-blind-sentence",
       "prompt": "Students build sentences together, but each student adds only ONE word and cannot see any of the words written before theirs. At the end everyone sees the surprise sentence they started, finished by classmates.",
-      "expect": { "kind": "recipe", "recipe": "exquisite-corpse", "acceptAlso": ["host:exquisite-corpse"] }
+      "expect": {
+        "kind": "recipe",
+        "recipe": "exquisite-corpse",
+        "acceptAlso": [
+          "host:exquisite-corpse"
+        ]
+      }
     },
     {
       "id": "folded-story-tail",
       "prompt": "Each student starts a story and passes it on. The next writer can only see the last few words of what came before, adds a line, and passes again. At the end the whole stories are revealed.",
-      "expect": { "kind": "recipe", "recipe": "exquisite-corpse", "acceptAlso": ["recipe:story-builder"] },
+      "expect": {
+        "kind": "recipe",
+        "recipe": "exquisite-corpse",
+        "acceptAlso": [
+          "recipe:story-builder"
+        ]
+      },
       "note": "Nearest current match; a dedicated folded-story recipe on collect.showTail is the natural follow-on. story-builder is a defensible pick (same chain, no fold)."
     },
     {
       "id": "kahoot-style-quiz",
       "prompt": "A fast-paced quiz with points for speed and a leaderboard at the end. I have my own multiple choice questions.",
-      "expect": { "kind": "recipe", "recipe": "quiz-show" }
+      "expect": {
+        "kind": "recipe",
+        "recipe": "quiz-show"
+      }
     },
     {
       "id": "two-truths-icebreaker",
       "prompt": "An icebreaker where each student writes two true statements and one lie about themselves and the class guesses which one is the lie.",
-      "expect": { "kind": "host", "game": "two-truths-a-lie" }
+      "expect": {
+        "kind": "host",
+        "game": "two-truths-a-lie"
+      }
     },
     {
       "id": "think-pair-share",
       "prompt": "Everyone answers one big question alone first, then pairs combine their answers into one stronger answer that the whole class sees.",
-      "expect": { "kind": "recipe", "recipe": "snowball" }
+      "expect": {
+        "kind": "recipe",
+        "recipe": "snowball"
+      }
     },
     {
       "id": "pass-along-story",
       "prompt": "A story that grows as it passes from student to student, each one adding to it, and at the end every story returns to the student who started it.",
-      "expect": { "kind": "recipe", "recipe": "story-builder", "acceptAlso": ["recipe:idea-chain"] }
+      "expect": {
+        "kind": "recipe",
+        "recipe": "story-builder",
+        "acceptAlso": [
+          "recipe:idea-chain"
+        ]
+      }
     },
     {
       "id": "exit-ticket-grown",
       "prompt": "For review: students list what they remember from today's lesson from memory, then classmates add things the list missed, and it comes back to its author.",
-      "expect": { "kind": "recipe", "recipe": "one-more-thing" }
+      "expect": {
+        "kind": "recipe",
+        "recipe": "one-more-thing"
+      }
     },
     {
       "id": "estimation-warmup",
       "prompt": "Students guess a number, like how many jelly beans are in the jar or how long the Amazon river is, and we see whose guess was closest.",
-      "expect": { "kind": "recipe", "recipe": "estimation-station" }
+      "expect": {
+        "kind": "recipe",
+        "recipe": "estimation-station"
+      }
     },
     {
       "id": "drawing-bluff",
       "prompt": "Students draw a picture of a phrase, then everyone writes fake captions for each other's drawings and tries to spot the real one.",
-      "expect": { "kind": "host", "game": "doodle-bluff", "acceptAlso": ["recipe:doodle-bluff"] }
+      "expect": {
+        "kind": "host",
+        "game": "doodle-bluff",
+        "acceptAlso": [
+          "recipe:doodle-bluff"
+        ]
+      }
     },
     {
       "id": "vocab-riddles",
@@ -69,10 +108,24 @@
           "name": "Vocab Riddles",
           "description": "Write a riddle for a vocabulary word, then guess everyone else's.",
           "steps": [
-            { "brick": "announce", "text": "Pick one of our vocabulary words and keep it secret. You are going to write a riddle about it!" },
-            { "brick": "collect-two", "text": "Your word and your riddle.", "secretLabel": "Your vocabulary word (secret)", "clueLabel": "Your riddle (no fair using the word!)", "timer": 180 },
-            { "brick": "guessing-rounds" },
-            { "brick": "end", "text": "Every word earned, every riddle solved. Nice work, wordsmiths." }
+            {
+              "brick": "announce",
+              "text": "Pick one of our vocabulary words and keep it secret. You are going to write a riddle about it!"
+            },
+            {
+              "brick": "collect-two",
+              "text": "Your word and your riddle.",
+              "secretLabel": "Your vocabulary word (secret)",
+              "clueLabel": "Your riddle (no fair using the word!)",
+              "timer": 180
+            },
+            {
+              "brick": "guessing-rounds"
+            },
+            {
+              "brick": "end",
+              "text": "Every word earned, every riddle solved. Nice work, wordsmiths."
+            }
           ]
         }
       },
@@ -87,10 +140,28 @@
           "name": "Guess the Class",
           "description": "Rate yourself on a scale, then predict the class average.",
           "steps": [
-            { "brick": "announce", "text": "Two numbers coming up: first how YOU feel, then a prediction about the whole class." },
-            { "brick": "estimate", "text": "On a scale of 1 to 10, how stressed are you feeling right now?", "min": 1, "max": 10, "timer": 45 },
-            { "brick": "estimate", "text": "Now predict: what do you think the class average stress level will be, from 1 to 10?", "min": 1, "max": 10, "timer": 45 },
-            { "brick": "end", "text": "That is the class, and that is how well you read it." }
+            {
+              "brick": "announce",
+              "text": "Two numbers coming up: first how YOU feel, then a prediction about the whole class."
+            },
+            {
+              "brick": "estimate",
+              "text": "On a scale of 1 to 10, how stressed are you feeling right now?",
+              "min": 1,
+              "max": 10,
+              "timer": 45
+            },
+            {
+              "brick": "estimate",
+              "text": "Now predict: what do you think the class average stress level will be, from 1 to 10?",
+              "min": 1,
+              "max": 10,
+              "timer": 45
+            },
+            {
+              "brick": "end",
+              "text": "That is the class, and that is how well you read it."
+            }
           ]
         }
       },
@@ -101,14 +172,31 @@
       "prompt": "Each student writes a hypothesis about tomorrow's egg drop experiment. It passes to a classmate who adds one piece of supporting evidence or reasoning, then to another classmate who adds a counterargument. At the end everyone sees what happened to the hypothesis they wrote.",
       "expect": {
         "kind": "storyboard",
-        "acceptAlso": ["recipe:idea-chain"],
+        "acceptAlso": [
+          "recipe:idea-chain"
+        ],
         "storyboard": {
           "name": "Hypothesis Relay",
           "description": "A hypothesis travels: one classmate argues for it, another argues against, then it comes home.",
           "steps": [
-            { "brick": "announce", "text": "Science court is in session. You will write a hypothesis about tomorrow's egg drop, and two classmates will put it on trial." },
-            { "brick": "chain", "start": "Write one hypothesis about tomorrow's egg drop experiment. What will happen, and to which design?", "hops": ["Read the hypothesis above. Add ONE piece of supporting evidence or reasoning below it.", "Read the hypothesis and the evidence above. Add ONE counterargument or complication below them."], "visibility": "all", "timer": 120 },
-            { "brick": "end", "text": "Every hypothesis got a defender and a skeptic. Tomorrow, the eggs decide." }
+            {
+              "brick": "announce",
+              "text": "Science court is in session. You will write a hypothesis about tomorrow's egg drop, and two classmates will put it on trial."
+            },
+            {
+              "brick": "chain",
+              "start": "Write one hypothesis about tomorrow's egg drop experiment. What will happen, and to which design?",
+              "hops": [
+                "Read the hypothesis above. Add ONE piece of supporting evidence or reasoning below it.",
+                "Read the hypothesis and the evidence above. Add ONE counterargument or complication below them."
+              ],
+              "visibility": "all",
+              "timer": 120
+            },
+            {
+              "brick": "end",
+              "text": "Every hypothesis got a defender and a skeptic. Tomorrow, the eggs decide."
+            }
           ]
         }
       },
@@ -123,12 +211,32 @@
           "name": "Fear Factor",
           "description": "Share a fear, guess whose it is, then rank them together from scariest down.",
           "steps": [
-            { "brick": "announce", "text": "Everyone shares one thing they are afraid of. Then we find out how well we know each other: each fear goes up, and the class guesses whose it is." },
-            { "brick": "collect", "text": "What are you most afraid of? One honest line.", "timer": 60 },
-            { "brick": "guessing-rounds", "guess": "who" },
-            { "brick": "reveal", "text": "Every fear the class shared:" },
-            { "brick": "rank", "text": "Put these in order, scariest at the top.", "timer": 90 },
-            { "brick": "end", "text": "Brave room. Everyone is afraid of something, and now we know a little more about each other." }
+            {
+              "brick": "announce",
+              "text": "Everyone shares one thing they are afraid of. Then we find out how well we know each other: each fear goes up, and the class guesses whose it is."
+            },
+            {
+              "brick": "collect",
+              "text": "What are you most afraid of? One honest line.",
+              "timer": 60
+            },
+            {
+              "brick": "guessing-rounds",
+              "guess": "who"
+            },
+            {
+              "brick": "reveal",
+              "text": "Every fear the class shared:"
+            },
+            {
+              "brick": "rank",
+              "text": "Put these in order, scariest at the top.",
+              "timer": 90
+            },
+            {
+              "brick": "end",
+              "text": "Brave room. Everyone is afraid of something, and now we know a little more about each other."
+            }
           ]
         }
       },
@@ -139,17 +247,37 @@
       "prompt": "writing prompt generator, the class everyone lists 4 people and 4 circumstances then they are shuffled and everyone gets one person and one circumstance.",
       "expect": {
         "kind": "storyboard",
-        "acceptAlso": ["host:story-ingredients"],
+        "acceptAlso": [
+          "host:story-ingredients"
+        ],
         "storyboard": {
           "name": "Prompt Generator",
           "description": "Everyone adds a person and a circumstance, the piles are shuffled and dealt, and each student writes from the pair they drew.",
           "steps": [
-            { "brick": "announce", "text": "We are building writing prompts together. You will add a person and a circumstance to the piles. Then the piles get shuffled and you will be dealt one of each, invented by classmates, to write from." },
-            { "brick": "deal", "piles": [
-              { "label": "A person", "prompt": "Name a person a story could be about. A lighthouse keeper, a substitute teacher on their first day, a retired spy who misses the work..." },
-              { "label": "A circumstance", "prompt": "Name a circumstance, something happening or about to happen. Stuck in an elevator, the last day of summer, a power cut in the middle of an exam..." }
-            ], "text": "Write the opening paragraph of a story that puts your person in your circumstance.", "timer": 60, "writeTimer": 300 },
-            { "brick": "end", "text": "Every prompt in this room was built by three people. Keep yours, it is the start of something." }
+            {
+              "brick": "announce",
+              "text": "We are building writing prompts together. You will add a person and a circumstance to the piles. Then the piles get shuffled and you will be dealt one of each, invented by classmates, to write from."
+            },
+            {
+              "brick": "deal",
+              "piles": [
+                {
+                  "label": "A person",
+                  "prompt": "Name a person a story could be about. A lighthouse keeper, a substitute teacher on their first day, a retired spy who misses the work..."
+                },
+                {
+                  "label": "A circumstance",
+                  "prompt": "Name a circumstance, something happening or about to happen. Stuck in an elevator, the last day of summer, a power cut in the middle of an exam..."
+                }
+              ],
+              "text": "Write the opening paragraph of a story that puts your person in your circumstance.",
+              "timer": 60,
+              "writeTimer": 300
+            },
+            {
+              "brick": "end",
+              "text": "Every prompt in this room was built by three people. Keep yours, it is the start of something."
+            }
           ]
         }
       },
@@ -158,17 +286,43 @@
     {
       "id": "quick-class-poll",
       "prompt": "I just want to ask the class one question and see everyone's answers on the board.",
-      "expect": { "kind": "recipe", "recipe": "question-share", "params": { "question": "What is one thing you learned today?" }, "acceptAlso": ["host:question-share"] }
+      "expect": {
+        "kind": "recipe",
+        "recipe": "question-share",
+        "params": {
+          "question": "What is one thing you learned today?"
+        },
+        "acceptAlso": [
+          "host:question-share"
+        ]
+      }
     },
     {
       "id": "podcast-segment",
       "prompt": "Students record a two minute podcast segment about the chapter and we listen to them together.",
-      "expect": { "kind": "cantBuild", "reason": "No audio or video recording; the platform is text and simple taps." }
+      "expect": {
+        "kind": "cantBuild",
+        "reason": "No audio or video recording; the platform is text and simple taps."
+      }
     },
     {
       "id": "choice-draft-categories",
       "prompt": "My students are in teams. Each team picks a first and second choice among four categories (self and identity, working with others, thinking and problem solving, execution and adaptation). Each group decides on its top choices, and then the categories are assigned to the groups.",
-      "expect": { "kind": "recipe", "recipe": "choice-draft", "params": { "choices": ["Self and identity", "Working with others", "Thinking and problem solving", "Execution and adaptation"] }, "acceptAlso": ["host:choice-draft"] },
+      "expect": {
+        "kind": "recipe",
+        "recipe": "choice-draft",
+        "params": {
+          "choices": [
+            "Self and identity",
+            "Working with others",
+            "Thinking and problem solving",
+            "Execution and adaptation"
+          ]
+        },
+        "acceptAlso": [
+          "host:choice-draft"
+        ]
+      },
       "note": "The owner's prompt (2026-09-16), which the storyboard could not build before the assign brick and the Choice Draft recipe existed."
     },
     {
@@ -176,16 +330,44 @@
       "prompt": "Split the class into groups of three. Each group ranks the six chapter topics they would rather present, then give every group one topic so no more than two groups share a chapter. Finish by showing who got what.",
       "expect": {
         "kind": "storyboard",
-        "acceptAlso": ["recipe:choice-draft"],
+        "acceptAlso": [
+          "recipe:choice-draft"
+        ],
         "storyboard": {
           "name": "Chapter Draft",
           "description": "Groups rank the chapters, then each is handed one.",
           "steps": [
-            { "brick": "announce", "text": "Time to divide up the chapters. Your group ranks the six chapters, favorite on top, and the draft hands each group one." },
-            { "brick": "teams", "groupSize": 3 },
-            { "brick": "rank", "text": "Which chapter would your group rather present? First choice at the top.", "items": ["Chapter 1: Beginnings", "Chapter 2: The river", "Chapter 3: The storm", "Chapter 4: Allies", "Chapter 5: The turn", "Chapter 6: Home"], "byGroup": true, "timer": 120 },
-            { "brick": "assign", "text": "Here is who presents what.", "perChoice": 2 },
-            { "brick": "end", "text": "Chapters are set. Start planning with your group." }
+            {
+              "brick": "announce",
+              "text": "Time to divide up the chapters. Your group ranks the six chapters, favorite on top, and the draft hands each group one."
+            },
+            {
+              "brick": "teams",
+              "groupSize": 3
+            },
+            {
+              "brick": "rank",
+              "text": "Which chapter would your group rather present? First choice at the top.",
+              "items": [
+                "Chapter 1: Beginnings",
+                "Chapter 2: The river",
+                "Chapter 3: The storm",
+                "Chapter 4: Allies",
+                "Chapter 5: The turn",
+                "Chapter 6: Home"
+              ],
+              "byGroup": true,
+              "timer": 120
+            },
+            {
+              "brick": "assign",
+              "text": "Here is who presents what.",
+              "perChoice": 2
+            },
+            {
+              "brick": "end",
+              "text": "Chapters are set. Start planning with your group."
+            }
           ]
         }
       },
@@ -200,7 +382,10 @@
           "name": "Debate Pairs",
           "description": "Partners argue opposite sides of one question, rebut each other, then switch.",
           "steps": [
-            { "brick": "announce", "text": "You and a partner will take opposite sides of one question. Argue yours, answer theirs, then trade places." },
+            {
+              "brick": "announce",
+              "text": "You and a partner will take opposite sides of one question. Argue yours, answer theirs, then trade places."
+            },
             {
               "brick": "pairs",
               "text": "Should homework be banned? You are arguing {{side}}. Write your opening argument.",
@@ -208,10 +393,16 @@
                 "Read your partner's opening below. Write a rebuttal, still arguing {{side}}.",
                 "Switch sides: you now argue {{otherSide}}. Answer your partner's rebuttal below from that side."
               ],
-              "sides": ["For", "Against"],
+              "sides": [
+                "For",
+                "Against"
+              ],
               "timer": 120
             },
-            { "brick": "end", "text": "You argued both sides. Which one was harder to make?" }
+            {
+              "brick": "end",
+              "text": "You argued both sides. Which one was harder to make?"
+            }
           ]
         }
       },
@@ -226,12 +417,33 @@
           "name": "Clip and Two Questions",
           "description": "The class watches a clip on the projector, then answers two questions about it.",
           "steps": [
-            { "brick": "announce", "text": "Eyes up front. We are watching a short clip together, then you will answer two questions about it on your device.", "video": "https://www.youtube.com/watch?v=dQw4w9WgXcQ" },
-            { "brick": "collect", "text": "In one sentence, what was the clip mostly about?", "timer": 90 },
-            { "brick": "reveal", "text": "Here is what the class took from it:" },
-            { "brick": "collect", "text": "What is one question the clip left you with?", "timer": 90 },
-            { "brick": "reveal", "text": "The questions we still have:" },
-            { "brick": "end", "text": "Good watching. We will pick up those questions next time." }
+            {
+              "brick": "announce",
+              "text": "Eyes up front. We are watching a short clip together, then you will answer two questions about it on your device.",
+              "video": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            },
+            {
+              "brick": "collect",
+              "text": "In one sentence, what was the clip mostly about?",
+              "timer": 90
+            },
+            {
+              "brick": "reveal",
+              "text": "Here is what the class took from it:"
+            },
+            {
+              "brick": "collect",
+              "text": "What is one question the clip left you with?",
+              "timer": 90
+            },
+            {
+              "brick": "reveal",
+              "text": "The questions we still have:"
+            },
+            {
+              "brick": "end",
+              "text": "Good watching. We will pick up those questions next time."
+            }
           ]
         }
       },
@@ -249,10 +461,37 @@
           "name": "Lab Jobs",
           "description": "Groups of four, a job for every member, then one shared lab checklist per group.",
           "steps": [
-            { "brick": "announce", "text": "Lab day. You will be put in groups of four, every one of you gets a job, and your group works through today's list together." },
-            { "brick": "teams", "groupSize": 4 },
-            { "brick": "roles", "roles": ["Facilitator", "Recorder", "Timekeeper", "Reporter"], "method": "choice", "text": "Work through the lab with your group. Tagged tasks belong to a job, but everyone backs each other up.", "tasks": ["Set up your station and check the materials", "Recorder: write down every measurement", "Timekeeper: call out the halfway point", "Facilitator: make sure everyone has done a step", "Reporter: prepare the one-minute summary", "Clean up and return the materials"] },
-            { "brick": "end", "text": "Reporters, get ready to share what your group found." }
+            {
+              "brick": "announce",
+              "text": "Lab day. You will be put in groups of four, every one of you gets a job, and your group works through today's list together."
+            },
+            {
+              "brick": "teams",
+              "groupSize": 4
+            },
+            {
+              "brick": "roles",
+              "roles": [
+                "Facilitator",
+                "Recorder",
+                "Timekeeper",
+                "Reporter"
+              ],
+              "method": "choice",
+              "text": "Work through the lab with your group. Tagged tasks belong to a job, but everyone backs each other up.",
+              "tasks": [
+                "Set up your station and check the materials",
+                "Recorder: write down every measurement",
+                "Timekeeper: call out the halfway point",
+                "Facilitator: make sure everyone has done a step",
+                "Reporter: prepare the one-minute summary",
+                "Clean up and return the materials"
+              ]
+            },
+            {
+              "brick": "end",
+              "text": "Reporters, get ready to share what your group found."
+            }
           ]
         }
       },
@@ -270,9 +509,22 @@
           "name": "Heartbeat Guess",
           "description": "One number to estimate, the closest guess takes the points.",
           "steps": [
-            { "brick": "announce", "text": "One question, one number. Reason it out, lock in your guess, and the closest guess takes the points." },
-            { "brick": "estimate", "text": "How many times does the average human heart beat in one day?", "answer": 100000, "unit": "beats", "scoring": "closest", "timer": 60 },
-            { "brick": "end", "text": "About a hundred thousand. Your heart did a few dozen of those while you guessed." }
+            {
+              "brick": "announce",
+              "text": "One question, one number. Reason it out, lock in your guess, and the closest guess takes the points."
+            },
+            {
+              "brick": "estimate",
+              "text": "How many times does the average human heart beat in one day?",
+              "answer": 100000,
+              "unit": "beats",
+              "scoring": "closest",
+              "timer": 60
+            },
+            {
+              "brick": "end",
+              "text": "About a hundred thousand. Your heart did a few dozen of those while you guessed."
+            }
           ]
         }
       },
@@ -290,10 +542,23 @@
           "name": "Monster Wall",
           "description": "Everyone draws a monster; after the teacher's look, the wall opens one drawing at a time, then the class votes for the scariest and the winner goes up under the crown.",
           "steps": [
-            { "brick": "announce", "text": "Ninety seconds to draw the scariest monster you can. Every drawing goes up on the wall, then you vote for the one that gives you chills." },
-            { "brick": "draw", "text": "Draw a monster. Scary, silly, or both, but make it yours.", "gallery": "The monster wall is open. Look closely, you will be voting in a moment.", "timer": 90 },
-            { "brick": "vote" },
-            { "brick": "end", "text": "That was the monster wall. Sleep well." }
+            {
+              "brick": "announce",
+              "text": "Ninety seconds to draw the scariest monster you can. Every drawing goes up on the wall, then you vote for the one that gives you chills."
+            },
+            {
+              "brick": "draw",
+              "text": "Draw a monster. Scary, silly, or both, but make it yours.",
+              "gallery": "The monster wall is open. Look closely, you will be voting in a moment.",
+              "timer": 90
+            },
+            {
+              "brick": "vote"
+            },
+            {
+              "brick": "end",
+              "text": "That was the monster wall. Sleep well."
+            }
           ]
         }
       },
@@ -311,10 +576,24 @@
           "name": "Three Themes",
           "description": "One open question, every answer read, three themes on the board to talk through.",
           "steps": [
-            { "brick": "announce", "text": "One question, everyone answers, and we will see the three big things this room is thinking." },
-            { "brick": "collect", "text": "What is one thing about this unit that still feels confusing?", "timer": 90 },
-            { "brick": "summarize", "text": "Group the answers into exactly three themes. Give each theme a short plain heading and quote one answer under it, no names.", "heading": "The three things this class is saying:" },
-            { "brick": "end", "text": "Pick one theme and we will start there next time." }
+            {
+              "brick": "announce",
+              "text": "One question, everyone answers, and we will see the three big things this room is thinking."
+            },
+            {
+              "brick": "collect",
+              "text": "What is one thing about this unit that still feels confusing?",
+              "timer": 90
+            },
+            {
+              "brick": "summarize",
+              "text": "Group the answers into exactly three themes. Give each theme a short plain heading and quote one answer under it, no names.",
+              "heading": "The three things this class is saying:"
+            },
+            {
+              "brick": "end",
+              "text": "Pick one theme and we will start there next time."
+            }
           ]
         }
       },
@@ -329,10 +608,23 @@
           "name": "Portraits of the Teacher",
           "description": "Everyone draws the teacher, the wall opens after a quick look, and the class votes for the best one.",
           "steps": [
-            { "brick": "announce", "text": "Ninety seconds to draw me. Be kind, or be funny, but be quick. Then the wall opens and you vote for the best one." },
-            { "brick": "draw", "text": "Draw a picture of your teacher.", "gallery": "The portrait wall is open. Look closely, you vote next.", "timer": 90 },
-            { "brick": "vote" },
-            { "brick": "end", "text": "Thank you, I think. The winner goes on the fridge." }
+            {
+              "brick": "announce",
+              "text": "Ninety seconds to draw me. Be kind, or be funny, but be quick. Then the wall opens and you vote for the best one."
+            },
+            {
+              "brick": "draw",
+              "text": "Draw a picture of your teacher.",
+              "gallery": "The portrait wall is open. Look closely, you vote next.",
+              "timer": 90
+            },
+            {
+              "brick": "vote"
+            },
+            {
+              "brick": "end",
+              "text": "Thank you, I think. The winner goes on the fridge."
+            }
           ]
         }
       },
@@ -341,7 +633,22 @@
     {
       "id": "history-poll-anonymous",
       "prompt": "A five-minute anonymous poll for my history class: what was the main cause of the American Revolution? The choices are taxation without representation, the Proclamation of 1763, the Boston Massacre, and Enlightenment ideas. Show the results, then we discuss.",
-      "expect": { "kind": "recipe", "recipe": "live-poll", "params": { "question": "What was the main cause of the American Revolution?", "choices": ["Taxation without representation", "The Proclamation of 1763", "The Boston Massacre", "Enlightenment ideas"] }, "acceptAlso": ["recipe:class-poll"] },
+      "expect": {
+        "kind": "recipe",
+        "recipe": "live-poll",
+        "params": {
+          "question": "What was the main cause of the American Revolution?",
+          "choices": [
+            "Taxation without representation",
+            "The Proclamation of 1763",
+            "The Boston Massacre",
+            "Enlightenment ideas"
+          ]
+        },
+        "acceptAlso": [
+          "recipe:class-poll"
+        ]
+      },
       "note": "A reviewer's try (2026-09-23): the matcher answered with the Live Poll built-in (\"Good news: this already exists\") and Make it yours opened the default question about today's lesson, names Shown. The built-in is the live-poll recipe with its defaults, so the answer is the recipe with the teacher's question and all four of their choices; the route refits a recipe-born pick to its recipe as the net, and reads \"anonymous\" itself. No host: answer: the whole point is the content traveling."
     },
     {
@@ -353,14 +660,222 @@
           "name": "Constitutional Convention",
           "description": "Every delegate gets a state in secret, writes one clause, and the class votes.",
           "steps": [
-            { "brick": "announce", "text": "Welcome, delegates. Each of you represents one state. Nobody else knows which, so speak for your state, not yourself." },
-            { "brick": "collect", "text": "You represent {{thisStep.assigned}}. Write one clause your state needs in the constitution.", "items": ["Virginia", "Massachusetts", "Pennsylvania", "New York", "Georgia", "Delaware", "Rhode Island", "New Jersey", "Connecticut", "Maryland", "South Carolina", "New Hampshire", "North Carolina"], "timer": 180 },
-            { "brick": "vote", "text": "Which clause belongs in our constitution?", "approve": true },
-            { "brick": "end", "text": "The convention is adjourned. Every state spoke, and the clause with the most votes leads our constitution." }
+            {
+              "brick": "announce",
+              "text": "Welcome, delegates. Each of you represents one state. Nobody else knows which, so speak for your state, not yourself."
+            },
+            {
+              "brick": "collect",
+              "text": "You represent {{thisStep.assigned}}. Write one clause your state needs in the constitution.",
+              "items": [
+                "Virginia",
+                "Massachusetts",
+                "Pennsylvania",
+                "New York",
+                "Georgia",
+                "Delaware",
+                "Rhode Island",
+                "New Jersey",
+                "Connecticut",
+                "Maryland",
+                "South Carolina",
+                "New Hampshire",
+                "North Carolina"
+              ],
+              "timer": 180
+            },
+            {
+              "brick": "vote",
+              "text": "Which clause belongs in our constitution?",
+              "approve": true
+            },
+            {
+              "brick": "end",
+              "text": "The convention is adjourned. Every state spoke, and the clause with the most votes leads our constitution."
+            }
           ]
         }
       },
       "note": "An outside reviewer's try (2026-09-24): the storyboard reached for rank then assign, which lists every student's state on the projector, and the results step read {{vote.winner}}, a player id. The collect brick's items deal the states in private ({{thisStep.assigned}} on each student's screen, a blank on the projector), the vote brick appends the crown, and a vote's .winner in a step's words is rewritten to .winnerText."
+    },
+    {
+      "id": "buzzer-round",
+      "prompt": "I ask review questions out loud, the first student to buzz in answers, and I mark it right or wrong. Wrong answers lock you out until the next question.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Buzzer Round",
+          "description": "The teacher asks out loud, the first to buzz answers.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Review time. I will ask the questions out loud. Buzz fast, answer faster; a wrong answer sits you out until the next one."
+            },
+            {
+              "brick": "buzz",
+              "text": "Listen for the question, then buzz!",
+              "points": 10
+            },
+            {
+              "brick": "end",
+              "text": "That is the round. Nice reflexes."
+            }
+          ]
+        }
+      },
+      "note": "A reviewer's routine (2026-09-27): the matcher called a buzzer \"off screen\" and the storyboard had no buzz brick, while the buzz step type ran Lightning Round all along."
+    },
+    {
+      "id": "hot-seat-screened-questions",
+      "prompt": "Hot seat: students submit questions for the student in the hot seat, I pick which ones go up on the board one at a time.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Hot Seat",
+          "description": "Students write questions, the teacher picks which go up.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "One of us is in the hot seat. Write a question you would like them to answer; I will pick the ones we use."
+            },
+            {
+              "brick": "collect",
+              "text": "Your question for the hot seat.",
+              "timer": 90
+            },
+            {
+              "brick": "review",
+              "text": "The questions for the hot seat:"
+            },
+            {
+              "brick": "end",
+              "text": "Out of the hot seat. Thanks for the questions."
+            }
+          ]
+        }
+      },
+      "note": "A reviewer's routine (2026-09-27): the review brick is the teacher gate (preview) plus a one-at-a-time reveal; the plan used to refuse it."
+    },
+    {
+      "id": "zoo-debate-pair-with-disagreement",
+      "prompt": "Should zoos exist, yes or no? Then pair each student with someone who answered differently to trade reasons, then vote again.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Zoo Debate",
+          "description": "Pick a side, argue it with someone who picked the other, vote again.",
+          "steps": [
+            {
+              "brick": "collect-choice",
+              "text": "Should zoos exist?",
+              "choices": [
+                "Yes",
+                "No"
+              ],
+              "timer": 30
+            },
+            {
+              "brick": "pairs",
+              "text": "You and your partner chose differently. Give them your strongest reason.",
+              "pairBy": "opposite",
+              "rounds": [
+                "Read your partner's reason below. What is the best answer to it?"
+              ],
+              "timer": 120
+            },
+            {
+              "brick": "collect-choice",
+              "text": "After hearing the other side: should zoos exist?",
+              "choices": [
+                "Yes",
+                "No"
+              ],
+              "timer": 30
+            },
+            {
+              "brick": "end",
+              "text": "Minds may have moved. That is what the trade was for."
+            }
+          ]
+        }
+      },
+      "note": "A reviewer's routine (2026-09-27): the matcher sent it to Both Sides of the Rope and dropped the opposite pairing; the pairs brick carries pairBy now (the engine's answer-keyed pairing)."
+    },
+    {
+      "id": "jigsaw-reading",
+      "prompt": "Jigsaw: split into four expert groups, each reads one section and writes the key ideas, then regroup so every new group has one expert from each section and they teach each other.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Jigsaw Reading",
+          "description": "Expert groups become home groups.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Four sections, four expert groups. Learn yours well: you will be the only one who read it in your next group."
+            },
+            {
+              "brick": "teams",
+              "teamCount": 4
+            },
+            {
+              "brick": "collect",
+              "text": "Write the three key ideas of your section in your own words.",
+              "timer": 300
+            },
+            {
+              "brick": "teams",
+              "jigsaw": true
+            },
+            {
+              "brick": "announce",
+              "text": "New groups: one expert from each section. Teach your section, then listen to the other three."
+            },
+            {
+              "brick": "end",
+              "text": "Four sections, every one of you now knows all four."
+            }
+          ]
+        }
+      },
+      "note": "A reviewer's routine (2026-09-27): the regroup is a team-split with method jigsaw (engine/phases/team-grouping.js jigsawGroups), one member of each earlier group per new group."
+    },
+    {
+      "id": "book-bracket",
+      "prompt": "March Madness for our next read-aloud: eight books in a bracket, the class votes each matchup, winners advance until one book is left.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Book Bracket",
+          "description": "Eight books, three rounds, one read-aloud.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Eight books walk in, one walks out. Vote every matchup; the winners meet in the next round."
+            },
+            {
+              "brick": "bracket",
+              "text": "Which book should we read next?",
+              "items": [
+                "Holes",
+                "Hatchet",
+                "Wonder",
+                "Matilda",
+                "Frindle",
+                "Bud, Not Buddy",
+                "The Wild Robot",
+                "Hoot"
+              ],
+              "timer": 45
+            },
+            {
+              "brick": "end",
+              "text": "We have our next read-aloud. Grab a spot on the rug."
+            }
+          ]
+        }
+      },
+      "note": "A reviewer's routine (2026-09-27): the matcher forced it into Elimination Tournament (answers voted down each round), whose params failed, and the teacher saw an internal line; the bracket brick chains head-to-head votes with bracket: true, the winners moving on."
     }
   ]
 }

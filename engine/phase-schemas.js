@@ -650,6 +650,11 @@ export const PHASE_SCHEMAS = {
         label: 'Students cannot vote for their own answer',
         helper: 'Pick-one: each ballot leaves out the voter\'s own answer. Head-to-head: the two players who wrote a matchup do not vote on it (punchline games).'
       },
+      bracket: {
+        type: 'boolean', optional: true,
+        label: 'Bracket round',
+        helper: 'Head-to-head only. The candidates meet in consecutive pairs (first against second, third against fourth; an odd last one moves on by itself), every student votes on every matchup, and the winners move on as this step\'s .winners, the next round\'s candidates. .bracketList says who beat whom; with one winner left, .winnerText names the champion.'
+      },
       question: {
         type: 'templateString', optional: true,
         label: 'Voting prompt'
@@ -690,7 +695,11 @@ export const PHASE_SCHEMAS = {
         turnout:       { type: 'string', capability: 'renderable' },
         eligibleCount: { type: 'integer' },
         resultsList:   { type: 'string', capability: 'renderable' },
-        noCounts:      { type: 'object' }
+        noCounts:      { type: 'object' },
+        // Bracket rounds (2026-09-27): who moves on (the next round's
+        // candidates) and the round in words ("Holes beat Hatchet, 12 to 5.")
+        winners:       { type: 'array', capability: 'candidateSource', renderers: { list: 'responseList' } },
+        bracketList:   { type: 'string', capability: 'renderable' }
       }
     },
     // Existing games may use {{vote.barChart}} as shorthand for
@@ -1368,9 +1377,14 @@ export const PHASE_SCHEMAS = {
     mixins: ['screenControl', 'participantSelector', 'loops'],
     fields: {
       method: {
-        type: 'enum', values: ['random', 'balanced', 'teacher', 'choice'], required: true,
+        type: 'enum', values: ['random', 'balanced', 'teacher', 'choice', 'jigsaw'], required: true,
         label: 'How teams are made',
-        helper: 'random/balanced assign instantly. "teacher" shows a roster on the host screen for you to arrange. "choice" lets students tap the group they want (open spots only; stragglers auto-filled when you confirm).'
+        helper: 'random/balanced assign instantly. "teacher" shows a roster on the host screen for you to arrange. "choice" lets students tap the group they want (open spots only; stragglers auto-filled when you confirm). "jigsaw" regroups an earlier split ("Regroup from"): every new group gets one member from each earlier group, the count and sizes follow from that.'
+      },
+      regroupFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Regroup from',
+        helper: 'Jigsaw only: the earlier Split into Teams step whose groups are mixed. Expert groups become home groups with one expert from each.'
       },
       capacity: {
         type: 'enum', values: ['even', 'open'], optional: true, default: 'even',

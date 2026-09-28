@@ -19,7 +19,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { groupCountFor, teamCapacities, defaultTeamNames } from '../phases/team-grouping.js';
+import { groupCountFor, teamCapacities, defaultTeamNames, jigsawGroups } from '../phases/team-grouping.js';
 import { openTeamSpot, seatInTeamData } from '../phases/late-seating.js';
 
 /**
@@ -135,6 +135,35 @@ registerHandler('team-split', {
             ctx.emitToPlayer(player.id, EVENTS.WAITING, { message: 'Teams are forming...' });
           }
         }
+      }
+      return;
+    }
+
+    // --- Jigsaw (2026-09-27): regroup an earlier split so every new group
+    // holds one member of each earlier group (expert groups -> home
+    // groups). A student the earlier split never seated (joined after it)
+    // goes to the smallest new group.
+    if (method === 'jigsaw') {
+      const src = engine.phaseData[phase.regroupFrom];
+      const oldTeams = src && src.teams && typeof src.teams === 'object' ? src.teams : {};
+      const { teams, playerTeam } = jigsawGroups(oldTeams, ctx.services.shuffleArray);
+      const groupNames = Object.keys(teams);
+      for (const player of eligible) {
+        if (playerTeam[player.id] || groupNames.length === 0) continue;
+        const smallest = groupNames.reduce((a, b) => (teams[b].length < teams[a].length ? b : a));
+        teams[smallest].push({ playerId: player.id, name: player.name });
+        playerTeam[player.id] = smallest;
+      }
+      engine.storePhaseData(phase.id, { teams, playerTeam });
+      console.log(`[handlePhase] Team-split (jigsaw from "${phase.regroupFrom}"): ${Object.keys(playerTeam).length} players into ${groupNames.length} groups`);
+      const scJ = sc;
+      ctx.emitToHost(EVENTS.TEAM_SPLIT, { teams, hostTemplate: scJ.hostTemplate, show: scJ.hostShow });
+      for (const player of engine.players.list()) {
+        ctx.emitToPlayer(player.id, EVENTS.TEAM_SPLIT, {
+          myTeam: playerTeam[player.id] || null,
+          teams,
+          playerTemplate: scJ.playerTemplate, show: scJ.playerShow
+        });
       }
       return;
     }

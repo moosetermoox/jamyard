@@ -294,3 +294,106 @@ function buildResult(scores, totalVotes) {
 
   return { scores, winner, totalVotes, tied };
 }
+
+/**
+ * Bracket matchups (2026-09-27, the book-bracket idea): consecutive pairs
+ * in list order (the teacher's order is the seeding), and an odd last
+ * candidate gets a bye straight into the next round.
+ * @param {string[]} candidateIds
+ * @returns {{ matchups: [string, string][], byes: string[] }}
+ */
+export function bracketMatchups(candidateIds) {
+  const ids = (candidateIds || []).slice();
+  const matchups = [];
+  const byes = [];
+  for (let i = 0; i + 1 < ids.length; i += 2) matchups.push([ids[i], ids[i + 1]]);
+  if (ids.length % 2 === 1) byes.push(ids[ids.length - 1]);
+  return { matchups, byes };
+}
+
+/**
+ * One bracket round tallied: the winner of every matchup moves on (a tie
+ * sends the first-listed on, the higher seed), the byes move on untouched,
+ * and `bracketList` says what happened in words the projector can show.
+ * `winners` keeps the candidates' own shape (a string, or a {playerId,
+ * text} answer) so the next round can read `<id>.winners` as its
+ * candidates. With one winner left the round names the champion.
+ *
+ * @param {Array<{ voterId: string, choice: string }>} votes
+ * @param {any[]} candidates
+ * @param {[string, string][]} matchups
+ * @param {string[]} byes
+ * @param {string} [lang]
+ */
+export function tallyBracket(votes, candidates, matchups, byes, lang = 'en') {
+  const byId = {};
+  for (const c of candidates || []) byId[c && typeof c === 'object' && c.playerId ? c.playerId : c] = c;
+  const scores = {};
+  for (const id of Object.keys(byId)) scores[id] = 0;
+  for (const v of votes || []) {
+    if (v && v.choice in scores) scores[v.choice]++;
+  }
+  const lines = [];
+  const winners = [];
+  const say = (key) => translate(lang, key);
+  for (const [a, b] of matchups || []) {
+    const x = scores[a] || 0;
+    const y = scores[b] || 0;
+    const ta = candidateText(byId[a]);
+    const tb = candidateText(byId[b]);
+    if (x === y) {
+      winners.push(byId[a]);
+      lines.push(say('{a} and {b} tied, {a} moves on.').split('{a}').join(ta).replace('{b}', tb));
+    } else {
+      const [w, l, wx, ly] = x > y ? [a, b, x, y] : [b, a, y, x];
+      winners.push(byId[w]);
+      lines.push(say('{a} beat {b}, {x} to {y}.').replace('{a}', candidateText(byId[w])).replace('{b}', candidateText(byId[l])).replace('{x}', String(wx)).replace('{y}', String(ly)));
+    }
+  }
+  for (const id of byes || []) {
+    if (!(id in byId)) continue;
+    winners.push(byId[id]);
+    lines.push(say('{a} moves on, no opponent this round.').replace('{a}', candidateText(byId[id])));
+  }
+  const voters = new Set((votes || []).map(v => v && v.voterId).filter(Boolean));
+  const champion = winners.length === 1 ? winners[0] : null;
+  const championId = champion == null ? null : (champion && typeof champion === 'object' && champion.playerId ? champion.playerId : champion);
+  return {
+    scores,
+    winners,
+    winnerIds: winners.map(w => (w && typeof w === 'object' && w.playerId ? w.playerId : w)),
+    bracketList: lines.join('\n'),
+    winner: championId,
+    winnerText: champion == null ? null : candidateText(champion),
+    tied: false,
+    totalVotes: voters.size
+  };
+}
+
+/**
+ * The bracket's matchups as projector lines ("Holes vs Hatchet"), words only.
+ * @param {[string, string][]} matchups
+ * @param {any[]} candidates
+ * @returns {string[]}
+ */
+export function bracketLines(matchups, candidates) {
+  const byId = {};
+  for (const c of candidates || []) byId[c && typeof c === 'object' && c.playerId ? c.playerId : c] = c;
+  return (matchups || []).map(([a, b]) => `${candidateText(byId[a])}  vs  ${candidateText(byId[b])}`);
+}
+
+/**
+ * Every candidate with its votes, most first, numbered, for a reveal
+ * ({{vote.resultsList}} in pick-one and head-to-head, 2026-09-27; the
+ * yes-or-no mode has its own). "1. Why is the sky blue? (4 votes)".
+ * @param {Record<string, number>} scores
+ * @param {any[]} candidates
+ * @returns {string}
+ */
+export function rankedResultsList(scores, candidates) {
+  const byId = {};
+  for (const c of candidates || []) byId[c && typeof c === 'object' && c.playerId ? c.playerId : c] = c;
+  const ids = Object.keys(scores || {}).filter(id => id in byId);
+  ids.sort((a, b) => (scores[b] || 0) - (scores[a] || 0));
+  return ids.map((id, i) => `${i + 1}. ${candidateText(byId[id])} (${scores[id] || 0})`).join('\n');
+}

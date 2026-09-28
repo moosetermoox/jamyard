@@ -6,7 +6,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { ballotFor, proposalsForProjector } from '../phases/vote-handler.js';
+import { ballotFor, proposalsForProjector, bracketMatchups, bracketLines, tallyBracket } from '../phases/vote-handler.js';
 import { thumbnailStrokes } from '../drawing.js';
 
 registerHandler('vote', {
@@ -108,7 +108,29 @@ registerHandler('vote', {
 
     if (phase.mode === 'head-to-head') {
       let matchups, comparisons;
-      if (matchupsOverride) {
+      if (phase.bracket) {
+        // A bracket round (2026-09-27): consecutive pairs in list order,
+        // an odd last candidate gets a bye; the close sends the winners on
+        // as `<id>.winners` for the next round's candidates.
+        const bracket = bracketMatchups(candidateIds);
+        matchups = bracket.matchups;
+        comparisons = matchups.length;
+        room.phaseState.byes = bracket.byes;
+        room.phaseState.bracket = true;
+        if (matchups.length === 0) {
+          // One candidate left (a small class's bracket ran out of rounds
+          // early): nothing to vote on, the lone one is the champion and
+          // the step passes itself, so the reveal after it still reads.
+          const done = tallyBracket([], candidates, [], bracket.byes, engine.language);
+          engine.storePhaseData(phase.id, {
+            votes: [], scores: done.scores, winners: done.winners, bracketList: done.bracketList,
+            resultsList: done.bracketList, winner: done.winner, winnerText: done.winnerText, tied: false, totalVotes: 0
+          });
+          console.log(`[vote:${phase.id}] bracket with one candidate, skipping the step`);
+          const onward = ctx.getNextPhaseId();
+          if (onward) { await ctx.advanceTo(onward); return; }
+        }
+      } else if (matchupsOverride) {
         matchups = matchupsOverride.map(([a, b]) => [a, b]);
         comparisons = matchups.length;
       } else {
@@ -178,14 +200,19 @@ registerHandler('vote', {
     }
 
     // Notify host
-    ctx.emitToHost(EVENTS.VOTE_START, {
+    const hostPayload = {
       mode: phase.mode,
       totalVoters: eligible.length,
       timer: phase.timer || null,
       // A yes-or-no vote lists its proposals on the projector (words only)
       proposals: proposalsForProjector(phase.mode, candidates),
       hostTemplate: sc.hostTemplate, show: sc.hostShow
-    });
+    };
+    // A bracket round lists its matchups the same way ("Holes  vs  Hatchet")
+    if (phase.bracket && Array.isArray(room.phaseState.matchups)) {
+      hostPayload.proposals = bracketLines(room.phaseState.matchups, candidates);
+    }
+    ctx.emitToHost(EVENTS.VOTE_START, hostPayload);
 
     console.log(`[handlePhase] Vote started: ${phase.mode}, ${candidateIds.length} candidates, ${eligible.length} voters`);
   },

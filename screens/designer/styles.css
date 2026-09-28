@@ -2042,6 +2042,8 @@ main {
 }
 
 .sb-hint { color: #6E6353; padding-top: 6px; font-size: 0.8rem; }
+.sb-partial-steps { margin: 8px 0 4px; padding-left: 22px; font-size: 0.85rem; color: #3D3629; line-height: 1.4; }
+.sb-partial-steps li { margin: 3px 0; }
 
 .sb-problems {
   color: #AE3A16;
