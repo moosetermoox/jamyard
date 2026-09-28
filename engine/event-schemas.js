@@ -65,6 +65,10 @@ export const EVENT_SCHEMAS = {
     playerId: 'string:required',
     name: 'string:required'
   },
+  'rename-self': {
+    code: 'string:required',
+    name: 'string:required'
+  },
   'show-discussion': {
     code: 'string:required'
   },

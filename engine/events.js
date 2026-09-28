@@ -69,6 +69,8 @@ export const EVENTS = {
   KICKED:               'kicked',
   MODERATE_RENAME:      'moderate-rename',     // console -> server: give a student a new name (a rude or unreadable one)
   RENAMED:              'renamed',             // server -> that student: your name is now X
+  RENAME_SELF:          'rename-self',         // student -> server: change my own name (lobby only, 2026-09-28)
+  RENAME_ERROR:         'rename-error',        // server -> that student: the new name was refused (one line)
   TEACHER_RENAME_ERROR: 'teacher-rename-error', // server -> the console that asked: why the name was refused
   SESSION_REPLACED:     'session-replaced',   // server -> old tab: same student joined again elsewhere
 
