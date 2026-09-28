@@ -88,10 +88,11 @@ describe('the click side', () => {
 
 describe('the pairing', () => {
   it('a console that loads after the room is up finds it in storage and cleans up', () => {
-    H().publish('abc123', 'KXQP', '4321');
+    // the teacher key rides along (engine/teacher-auth.js)
+    H().publish('abc123', 'KXQP', '4321', 'k3y');
     const got = [];
     H().listen('abc123', (rec) => got.push(rec));
-    expect(got).toEqual([{ code: 'KXQP', pin: '4321' }]);
+    expect(got).toEqual([{ code: 'KXQP', pin: '4321', key: 'k3y' }]);
     expect(globalThis.localStorage.getItem('lanyardHostPair:abc123')).toBeNull();
   });
 
@@ -99,7 +100,7 @@ describe('the pairing', () => {
     const got = [];
     H().listen('live99', (rec) => got.push(rec));
     H().publish('live99', 'ABCD', '1111');
-    expect(got).toEqual([{ code: 'ABCD', pin: '1111' }]);
+    expect(got).toEqual([{ code: 'ABCD', pin: '1111', key: '' }]);
   });
 
   it('another room\'s nonce is ignored, and a delivery happens once', () => {
@@ -109,7 +110,7 @@ describe('the pairing', () => {
     expect(got).toEqual([]);
     H().publish('mine00', 'AAAA', '2222');
     H().publish('mine00', 'BBBB', '3333');
-    expect(got).toEqual([{ code: 'AAAA', pin: '2222' }]);
+    expect(got).toEqual([{ code: 'AAAA', pin: '2222', key: '' }]);
   });
 
   it('the storage event path works without a channel', () => {
@@ -117,7 +118,7 @@ describe('the pairing', () => {
     const got = [];
     H().listen('st0rage', (rec) => got.push(rec));
     (listeners.storage || []).forEach(fn => fn({ key: 'lanyardHostPair:st0rage', newValue: JSON.stringify({ code: 'QQQQ', pin: '9', at: Date.now() }) }));
-    expect(got).toEqual([{ code: 'QQQQ', pin: '9' }]);
+    expect(got).toEqual([{ code: 'QQQQ', pin: '9', key: '' }]);
   });
 
   it('stale records are purged on the next publish', () => {

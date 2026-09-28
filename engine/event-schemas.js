@@ -49,7 +49,9 @@ export const EVENT_SCHEMAS = {
   },
   'join-teacher': {
     code: 'string:required',
-    pin: 'string:optional'
+    pin: 'string:optional',
+    // the teacher key the starting browser keeps (engine/teacher-auth.js)
+    key: 'string:optional'
   },
   'moderate-hide': {
     code: 'string:required',
@@ -196,7 +198,8 @@ export const EVENT_SCHEMAS = {
     code: 'string:required',
     // the projector tab's own token, or the teacher PIN when the tab is gone
     hostToken: 'string:optional',
-    pin: 'string:optional'
+    pin: 'string:optional',
+    key: 'string:optional'
   },
   'buzz-tap': {
     code: 'string:required',

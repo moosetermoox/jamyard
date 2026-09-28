@@ -64,11 +64,14 @@ describe('the socket pages', () => {
 });
 
 describe('the games list is scoped to the visitor', () => {
-  it('the route reads ?mine= and answers with ids', async () => {
+  it('the route reads ?mine=, and only the owner gets the unscoped list', async () => {
     const server = await read('server.js');
     expect(server).toContain("import { parseMine, wantedUserIds } from './engine/games-list-scope.js';");
-    expect(server).toContain('const mine = parseMine(req.query.mine);');
-    expect(server).toContain('res.json({ games: applyFeaturedOverrides(games, overrides), ids });');
+    expect(server).toContain('const mine = parseMine(req.query.mine) || (owner ? null : []);');
+    // no list of every id on the server (2026-09-28: it let anyone
+    // enumerate teachers' activities); the save dedupes instead
+    expect(server).toContain('res.json({ games: applyFeaturedOverrides(games, overrides) });');
+    expect(server).not.toContain('listUserGameIds');
     expect(server).toContain('listUserGamesByIdsRepaired(wanted)');
   });
 
@@ -86,10 +89,25 @@ describe('the games list is scoped to the visitor', () => {
     expect(lib).toContain("fetch('/api/games')");
   });
 
-  it('the copy-id dedupe reads the ids the route sends', async () => {
+  it('every first save asks the server to dedupe the id and takes the one it answers with', async () => {
+    const server = await read('server.js');
+    expect(server).toContain('if (req.body.dedupe === true) id = await mintCopyId(id, gameIdTaken);');
     const miy = await read('screens/shared/make-it-yours.js');
-    expect(miy).toContain('if (data && Array.isArray(data.ids)) knownIds = data.ids.slice();');
+    expect(miy).toContain('body: JSON.stringify({ id: copyId, config: config, dedupe: true })');
+    expect(miy).toContain('var savedId = d.id || copyId;');
     const designer = await read('screens/designer/designer.js');
-    expect(designer).toContain('allIds = Array.isArray(data.ids) ? data.ids : allGames.map(function (g) { return g.id; });');
+    expect((designer.match(/dedupe: true \}\)/g) || []).length).toBe(3);
+    expect(designer).not.toContain('data.ids');
+    const editor = await read('screens/designer/editor.js');
+    expect(editor).toContain('body: JSON.stringify({ id: tryId, config: gameConfig, dedupe: true })');
+  });
+
+  it('the host picker asks for its own copies and the linked one, and the socket list is scoped', async () => {
+    const host = await read('screens/host/host.js');
+    expect(host).toContain("socket.emit('get-games', {");
+    expect(host).toContain('mine: window.MyGames ? MyGames.list() : [],');
+    const server = await read('server.js');
+    expect(server).toContain('const wanted = owner ? null : wantedUserIds([...mine, ...linked], overrides);');
+    expect(server).toContain('const userRows = wanted ? await listUserGamesByIdsRepaired(wanted) : await listUserGamesRepaired();');
   });
 });

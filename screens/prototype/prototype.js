@@ -94,14 +94,14 @@ function hideMapRail() {
   }
 }
 
-function connectRail(code, pin) {
+function connectRail(code, pin, key) {
   if (railSocket) { railSocket.disconnect(); railSocket = null; }
   if (!window.io || !pin) return;
   // websocket first (2026-09-20, measured on the live site): the default polling-then-upgrade left the first emits (create-room, join) riding HTTP for 80 to 210 ms; on a socket they take about 30. Polling stays as the fallback for a network that blocks websockets.
   railSocket = io({ transports: ['websocket', 'polling'], tryAllTransports: true });
   // A network that silently drops the websocket handshake reaches the connect timeout instead of a transport error; from then on connect the classic way (polling first, then upgrade), socket.io's documented fallback.
   railSocket.on('connect_error', function () { railSocket.io.opts.transports = ['polling', 'websocket']; });
-  railSocket.on('connect', () => railSocket.emit('join-teacher', { code, pin }));
+  railSocket.on('connect', () => railSocket.emit('join-teacher', { code, pin, key: key || '' }));
   railSocket.on('teacher-joined', snap => {
     railPhaseId = snap.phaseId;
     railPhaseType = snap.phaseType;
@@ -911,7 +911,7 @@ launchBtn.addEventListener('click', () => {
       // behind a tab (outside review #2: rehearsal should include the
       // private console, not a "copy a link" detour). The console auto-
       // joins from the hash; the host iframe stays first so Skip finds it.
-      if (e.data.teacherPin) addTeacherTab(hostIframe, e.data.code, e.data.teacherPin);
+      if (e.data.teacherPin) addTeacherTab(hostIframe, e.data.code, e.data.teacherPin, e.data.teacherKey);
       studentMat.classList.remove('empty');
       // The seats wait on the config read (already back, nearly always):
       // Snowball opens with a pair, not one student.
@@ -927,7 +927,7 @@ launchBtn.addEventListener('click', () => {
       labelSound(readMuted());
       // The plan row: draw the steps, then follow the live room.
       showMapRail(gameId);
-      connectRail(e.data.code, e.data.teacherPin);
+      connectRail(e.data.code, e.data.teacherPin, e.data.teacherKey);
       updateBench();
       startBannerPoll();
       updateBanner();
@@ -944,11 +944,12 @@ launchBtn.addEventListener('click', () => {
 // Two tabs on the teacher screen's bar: Class screen (the projector) and
 // Teacher controls (the private console, joined with the room's PIN).
 // Only the chosen one shows.
-function addTeacherTab(hostIframe, code, pin) {
+function addTeacherTab(hostIframe, code, pin, key) {
   const teacherIframe = document.createElement('iframe');
   teacherIframe.className = 'teacher-frame';
   teacherIframe.title = 'Teacher controls';
-  teacherIframe.src = '/teacher#code=' + encodeURIComponent(code) + '&pin=' + encodeURIComponent(pin);
+  teacherIframe.src = '/teacher#code=' + encodeURIComponent(code) + '&pin=' + encodeURIComponent(pin) +
+    (key ? '&key=' + encodeURIComponent(key) : '');
   teacherIframe.hidden = true;
   forwardArrowKeys(teacherIframe);
   hostMat.appendChild(teacherIframe);

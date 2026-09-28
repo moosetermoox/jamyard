@@ -6367,8 +6367,9 @@ async function saveGame() {
 
 // First save of a game with no id yet (a library draft copy, or a blank
 // creation saved by the button): POST as a new user game, deriving a
-// pretty id from the name and stepping past ids that already exist (two
-// draft copies of the same activity would otherwise 409 on the second).
+// pretty id from the name; the server steps past ids that already exist
+// (`dedupe: true`, two draft copies of the same activity) and answers with
+// the id it used.
 // On success the game gets its id, joins the yard, and the URL flips to
 // ?game= so refreshes load the saved copy.
 async function createNewGame() {
@@ -6378,17 +6379,14 @@ async function createNewGame() {
     .replace(/^-+|-+$/g, '')
     .substring(0, 40) || 'my-game';
   var tryId = base;
-  var response;
-  for (var attempt = 2; attempt < 30; attempt++) {
-    response = await fetch('/api/games', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: tryId, config: gameConfig })
-    });
-    if (response.status === 409) { tryId = base + '-' + attempt; continue; }
-    break;
-  }
+  var response = await fetch('/api/games', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: tryId, config: gameConfig, dedupe: true })
+  });
   if (response.ok) {
+    // read a clone: the caller reads the response body too
+    try { tryId = (await response.clone().json()).id || tryId; } catch (e) { /* keep the wish */ }
     gameId = tryId;
     isDraftCopy = false;
     try { sessionStorage.removeItem(DRAFT_COPY_KEY); } catch (e) { /* storage unavailable */ }
