@@ -687,7 +687,9 @@ body.in-bench .join-share { display: none; }
 }
 .msg-chart-label {
   font-weight: 700;
-  overflow-wrap: anywhere;
+  /* break-word, never anywhere: anywhere lets the grid squeeze the label
+     column to one letter ("Listenin / g" on the projector, 2026-09-27) */
+  overflow-wrap: break-word;
   line-height: 1.2;
 }
 .msg-chart-track {
@@ -1906,6 +1908,9 @@ section.active > .preview-actions {
 
 /* ── Live Poll: the tally on the projector, big enough for the back row ── */
 .live-tally {
+  /* The collect section is a flex column that starts its items: without
+     a width the tally shrink-wraps and its labels break mid-word */
+  width: 100%;
   max-width: 760px;
   margin: 8px auto 18px;
   text-align: left;

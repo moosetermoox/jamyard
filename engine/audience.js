@@ -154,9 +154,17 @@ function classify(consumer, phaseId) {
     return AUDIENCE.CLASS;
   }
   if (t === 'collect') {
+    // Pairing by a pick-one's answers only decides who sits with whom:
+    // nobody reads the pick (fist to five's poll said "One classmate will
+    // read this", a reviewer 2026-09-27). Anything else here that quotes
+    // the step still counts.
+    if (consumer.pairBy && consumer.pairBy.from === phaseId) {
+      const { pairBy, ...rest } = consumer;
+      if (!phaseRefs(rest, phaseId)) return null;
+      consumer = rest;
+    }
     if (consumer.rotateFrom === phaseId || consumer.rotatePairsFrom === phaseId ||
-        consumer.reusePairsFrom === phaseId ||
-        (consumer.pairBy && consumer.pairBy.from === phaseId)) return AUDIENCE.CLASSMATE;
+        consumer.reusePairsFrom === phaseId) return AUDIENCE.CLASSMATE;
     if (consumer.dealItems === phaseId) return AUDIENCE.CLASSMATE;
     // A prompt quoting the partner's piece ({{X.partner}}): one classmate reads it
     if (typeof consumer.prompt === 'string' &&

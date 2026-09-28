@@ -1259,7 +1259,7 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine }) => {
   resetHoldingProgress();
   // Which step this is (Try it out deals the template's sample answers by it)
   currentCollectPhaseId = phaseId || null;
@@ -1267,6 +1267,12 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
   setRichText(promptDisplay, prompt);
   // What the partner wrote (a pairs round): its own card under the
   // instruction. A classmate's words, so textContent, never markup.
+  // Who to find for a pair step (server-sent, names are student text)
+  const partnerLineEl = document.getElementById('partner-line');
+  if (partnerLineEl) {
+    partnerLineEl.textContent = partnerLine || '';
+    partnerLineEl.hidden = !partnerLine;
+  }
   const partnerNote = document.getElementById('partner-note');
   if (partnerNote) {
     const hasPartner = typeof partnerText === 'string' && partnerText.trim() !== '';
@@ -3477,6 +3483,17 @@ let sqPending = null;     // the payload behind the Next button
 let sqInstanceId = null;
 let sqBotAuto = false;    // prototype Bot Fill: play the whole quiz through
 
+// The pretend student's pause before its next tap. A student behind Try it
+// out's pager sits in a hidden frame, where the browser slows timers to one
+// a second or worse: a five-question quiz took long enough that a tester
+// moved on with questions 4 and 5 blank (2026-09-27). Off screen, no pause.
+function sqBotStep(fn, ms) {
+  var frame = null;
+  try { frame = window.frameElement; } catch (e) { frame = null; }
+  if (frame && frame.offsetParent === null) Promise.resolve().then(fn);
+  else setTimeout(fn, ms);
+}
+
 function renderSoloQuestion(data) {
   showSection(soloQuizSection);
   sqDone.hidden = true;
@@ -3498,7 +3515,7 @@ function renderSoloQuestion(data) {
     sqChoices.appendChild(btn);
   });
   if (sqBotAuto) {
-    setTimeout(function () {
+    sqBotStep(function () {
       var open = sqChoices.querySelectorAll('.choice-btn:not(:disabled)');
       if (open.length) open[Math.floor(Math.random() * open.length)].click();
     }, 300);
@@ -3545,7 +3562,7 @@ socket.on('solo-quiz-feedback', function (data) {
   sqPending = data;
   sqNextBtn.hidden = false;
   sqNextBtn.textContent = data.done ? UiLang.t('See my score') : UiLang.t('Next question');
-  if (sqBotAuto) setTimeout(function () { sqNextBtn.click(); }, 350);
+  if (sqBotAuto) sqBotStep(function () { sqNextBtn.click(); }, 350);
 });
 
 sqNextBtn.addEventListener('click', function () {
