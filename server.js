@@ -204,7 +204,7 @@ import { planProblem } from './engine/plan-check.js';
 import { isRolling, moreInputAhead, doneMessageFor } from './engine/phases/rolling.js';
 import { buildLiveTally } from './engine/phases/live-tally.js';
 import { isCorrectAnswer, scoreSoloQuiz } from './engine/phases/solo-quiz-scoring.js';
-import { hostProgressPayload as soloQuizHostPayload, playerQuestionPayload as soloQuizPlayerPayload, pointsFor as soloQuizPoints } from './engine/phase-handlers/solo-quiz.js';
+import { hostProgressPayload as soloQuizHostPayload, playerQuestionPayload as soloQuizPlayerPayload, pointsFor as soloQuizPoints, feedbackPayload as soloQuizFeedback } from './engine/phase-handlers/solo-quiz.js';
 import { simulateGame } from './services/simulator.js';
 import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
 import { buildActivityReport } from './engine/report.js';
@@ -228,6 +228,9 @@ const server = createServer(app);
 const io = new Server(server);
 // Render (and most PaaS) assign a port via $PORT; default to 3000 locally.
 const PORT = Number(process.env.PORT) || 3000;
+// A submit from a screen the room no longer knows (an i18n row; the
+// student screen translates it)
+const SUBMIT_LOST_SEAT = 'Your answer did not reach the room. Refresh the page and join again.';
 
 const aiMode = process.env.ANTHROPIC_API_KEY ? 'real' : 'mock';
 console.log(`[init] AI Service mode: ${aiMode}`);
@@ -4971,9 +4974,13 @@ io.on('connection', (socket) => {
     const { code, response, pass, phaseInstanceId } = payload;
     console.log(`[submit-response] Response from ${socket.id} in room ${code}`);
 
+    // Every way out answers the student: a silent drop left the screen on
+    // "Sending..." (review eighteen)
+    const lostSeat = () => socket.emit(EVENTS.RESPONSE_REJECTED, { reason: 'no-seat', message: SUBMIT_LOST_SEAT });
     const room = roomManager.find(code);
     if (!room) {
       console.log(`[submit-response] Room ${code} not found`);
+      lostSeat();
       return;
     }
     if (isStalePhaseEvent(room, phaseInstanceId, 'submit-response')) return;
@@ -4982,6 +4989,7 @@ io.on('connection', (socket) => {
     const player = players.find(socket.id);
     if (!player) {
       console.log(`[submit-response] Player ${socket.id} not found in room`);
+      lostSeat();
       return;
     }
 
@@ -6084,13 +6092,13 @@ io.on('connection', (socket) => {
     const existing = room.engine.phaseData[state.phaseId] || {};
     room.engine.storePhaseData(state.phaseId, { ...existing, progress: state.progress });
     const next = soloQuizPlayerPayload(state, socket.id, soloQuizPoints(phase));
-    socket.emit(EVENTS.SOLO_QUIZ_FEEDBACK, {
+    socket.emit(EVENTS.SOLO_QUIZ_FEEDBACK, soloQuizFeedback({
       answeredIndex: index,
-      correct,
+      right: correct,
       correctAnswer: phase.showAnswers === false ? null : q.correct,
-      ...next,
+      next,
       phaseInstanceId: room.phaseInstanceId
-    });
+    }));
     emitSoloQuizProgress(code, room);
   });
 

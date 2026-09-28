@@ -787,17 +787,49 @@ startGameBtn.addEventListener('click', () => {
 // (a reviewer closed a solo round with 0 of 2 in and the pairs got empty
 // boxes, 2026-09-26). The count comes from the server's own tallies.
 let submittedSoFar = 0;
+// The "Nobody has answered yet" box that is up, if any: an answer that
+// lands while it asks takes it down (review eighteen: Draw Gallery's
+// timer ran out, the drawing sent itself a moment later, and the box
+// stayed up over "1 of 1"). When the clock asked, the answer closes the
+// step as the clock meant to.
+let nobodyAsk = null; // { byClock }
+let collectStep = 0;  // bumps on every answer step, so a late timer is ignored
+function askNobodyYet(byClock) {
+  nobodyAsk = { byClock: !!byClock };
+  Dialog.confirm({
+    title: 'Nobody has answered yet.',
+    message: 'Closing now moves the class on with no answers. The next step will have nothing to show.',
+    confirmLabel: 'Close anyway', cancelLabel: 'Wait'
+  }).then(function (yes) {
+    nobodyAsk = null;
+    if (yes) socket.emit('close-submissions', { code: currentRoomCode });
+  });
+}
+function answersLanded() {
+  if (!nobodyAsk || submittedSoFar === 0) return;
+  const byClock = nobodyAsk.byClock;
+  nobodyAsk = null;
+  if (Dialog.dismiss) Dialog.dismiss();
+  if (byClock) socket.emit('close-submissions', { code: currentRoomCode });
+}
 closeSubmissionsBtn.addEventListener('click', () => {
   if (submittedSoFar === 0 && window.Dialog && Dialog.confirm) {
-    Dialog.confirm({
-      title: 'Nobody has answered yet.',
-      message: 'Closing now moves the class on with no answers. The next step will have nothing to show.',
-      confirmLabel: 'Close anyway', cancelLabel: 'Wait'
-    }).then(function (yes) { if (yes) socket.emit('close-submissions', { code: currentRoomCode }); });
+    askNobodyYet(false);
     return;
   }
   socket.emit('close-submissions', { code: currentRoomCode });
 });
+// The clock ran out: every student screen sends what it has on the same
+// tick, so give those answers a moment to land before closing (or asking).
+const CLOCK_GRACE_MS = 1500;
+function closeWhenClockRunsOut() {
+  const step = collectStep;
+  setTimeout(() => {
+    if (step !== collectStep) return;
+    if (submittedSoFar === 0 && window.Dialog && Dialog.confirm) { askNobodyYet(true); return; }
+    socket.emit('close-submissions', { code: currentRoomCode });
+  }, CLOCK_GRACE_MS);
+}
 
 // A Close the server would not take from this socket (its host binding
 // was lost to a reconnect and the rejoin had not landed): rejoin, then
@@ -1286,10 +1318,10 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
     timer: collectTimer,
     closeButton: closeSubmissionsBtn
   });
+  collectStep++;
+  if (nobodyAsk) { nobodyAsk = null; if (window.Dialog && Dialog.dismiss) Dialog.dismiss(); }
   if (timer) {
-    startTimer(timer, collectTimer, () => {
-      closeSubmissionsBtn.click();
-    });
+    startTimer(timer, collectTimer, closeWhenClockRunsOut);
     showMoreTimeBtn(collectTimer);
   }
 });
@@ -1308,12 +1340,14 @@ socket.on('submission-count', ({ count, total }) => {
   submittedSoFar = count || 0;
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
   markAllIn(count || 0, total || 0);
+  answersLanded();
 });
 
 socket.on('response-received', ({ playerName, count, total }) => {
   submittedSoFar = count || 0;
   submissionCount.textContent = count + ' of ' + total + ' submitted';
   markAllIn(count, total);
+  answersLanded();
   renderSubmissionPile(count);
   if (J) J.sound('blip');
 });

@@ -129,3 +129,12 @@ registerHandler('solo-quiz', {
     });
   }
 });
+
+/**
+ * The answer's verdict plus what comes next. The verdict is `right`: the
+ * next payload's `correct` is the running count, and spreading it over a
+ * `correct` verdict turned a wrong answer after a right one into "Correct!".
+ */
+export function feedbackPayload({ answeredIndex, right, correctAnswer, next, phaseInstanceId }) {
+  return { ...next, answeredIndex, right: !!right, correctAnswer, phaseInstanceId };
+}

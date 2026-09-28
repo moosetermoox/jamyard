@@ -1,4 +1,5 @@
 import { registerHandler } from './phase-registry.js';
+import { admitLateSolo } from '../phases/late-seating.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
 import { normalizeSortItems, isGradedSort } from '../phases/sort-scoring.js';
@@ -95,6 +96,15 @@ registerHandler('sort', {
     }
   },
 
+  // A student who joins while the step is open sorts too (review
+  // eighteen, the same hole as match). sendCurrentState sends the items.
+  onLateJoin(ctx, playerId) {
+    const state = ctx.room.phaseState;
+    if (!admitLateSolo(state, 'sort', playerId, ctx.phase && ctx.phase.from)) return null;
+    ctx.emitToHost(EVENTS.SORT_RECEIVED, { count: state.completed.size, total: state.eligibleIds.size });
+    return null;
+  },
+
   onReconnect(ctx, socket) {
     const state = ctx.room.phaseState;
     if (!state || state.kind !== 'sort') return;
@@ -112,7 +122,8 @@ registerHandler('sort', {
         buckets: state.buckets,
         items: state.items.map(it => it.text),
         timer: null, // reconnectors don't restart the countdown
-        playerTemplate: sc.playerTemplate, show: sc.playerShow
+        playerTemplate: sc.playerTemplate, show: sc.playerShow,
+        phaseInstanceId: ctx.phaseInstanceId
       });
     } else {
       socket.emit(EVENTS.WAITING, { message: 'Waiting for others to sort...' });
