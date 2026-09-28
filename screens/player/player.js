@@ -600,10 +600,20 @@ window.addEventListener('message', function(e) {
       if (sendVotes && !sendVotes.disabled) sendVotes.click();
       return;
     }
-    // Click a random vote button
+    // Click a random vote button. A head-to-head ballot shows one matchup
+    // at a time and only sends after the last, so keep clicking until the
+    // matchups run out (a reviewer's bracket tied every matchup because a
+    // pretend student never finished the ballot, 2026-09-28).
     var voteBtns = active.querySelectorAll('.vote-btn');
-    if (voteBtns.length > 0) {
+    var guard = 0;
+    while (voteBtns.length > 0 && guard < 40) {
       voteBtns[Math.floor(Math.random() * voteBtns.length)].click();
+      guard++;
+      if (Array.isArray(currentMatchups) && currentMatchups.length > 0 && currentMatchupIndex < currentMatchups.length) {
+        voteBtns = active.querySelectorAll('.vote-btn');
+      } else {
+        break;
+      }
     }
   } else if (id === 'rank-section') {
     // Shuffle current order and submit

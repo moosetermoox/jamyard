@@ -517,9 +517,9 @@ export function validate(config, gameId, options) {
             `Game "${gameId}": phase "${name}" pairBy must be an object like {"from": "<step id>", "mode": "opposite"}`
           );
         } else {
-          if (phase.pairBy.mode !== undefined && !['opposite', 'same'].includes(phase.pairBy.mode)) {
+          if (phase.pairBy.mode !== undefined && !['opposite', 'same', 'far'].includes(phase.pairBy.mode)) {
             errors.push(
-              `Game "${gameId}": phase "${name}" pairBy mode must be "opposite" or "same" (got "${phase.pairBy.mode}")`
+              `Game "${gameId}": phase "${name}" pairBy mode must be "opposite", "same", or "far" (got "${phase.pairBy.mode}")`
             );
           }
           const pairBySrc = config.phases[phase.pairBy.from];

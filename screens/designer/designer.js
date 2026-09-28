@@ -1670,6 +1670,16 @@ async function submitAIDescription(modal, description, status, generateBtn, over
     }
 
     if (data.noMatch) {
+      // No recipe fits and nothing says the plan would refuse (no harm,
+      // not off screen): go straight to the plan instead of a card whose
+      // only real door was Plan it step by step (a reviewer counted four
+      // clicks and a stray Quiz Show suggestion, 2026-09-28). The
+      // refusal and off-screen cards stay.
+      if (!data.harm && !data.offScreen) {
+        closeOverlay(overlay);
+        showStoryboardFlow(description);
+        return;
+      }
       renderNoMatchView(modal, description, data, overlay);
       return;
     }
@@ -1880,6 +1890,24 @@ function readableParamItem(item) {
     renderAIDescriptionStep(modal, overlay);
   });
   btnRow.appendChild(backBtn);
+
+  // The recipe drops part of the idea ("This version does not have: a
+  // class vote"): the plan can keep it, so its door sits here too (a
+  // reviewer's brainstorm-and-cluster lost its vote twice, 2026-09-28)
+  var missingItems = Array.isArray(data.missing) ? data.missing.filter(function (m) { return typeof m === 'string' && m.trim(); }) : [];
+  if (missingItems.length > 0 && description) {
+    var planBtn = document.createElement('button');
+    planBtn.type = 'button';
+    planBtn.className = 'recipe-cancel-btn';
+    planBtn.style.background = '#FFEB3B';
+    planBtn.textContent = 'Plan it step by step';
+    planBtn.title = 'Build the whole idea as steps you approve and edit, including what this recipe leaves out.';
+    planBtn.addEventListener('click', function () {
+      closeOverlay(overlay);
+      showStoryboardFlow(description);
+    });
+    btnRow.appendChild(planBtn);
+  }
 
   // The yard's word for "set this up as mine": the match is already
   // filled in, one click saves it and opens the three doors.
@@ -2297,7 +2325,7 @@ function appendMissingLine(modal, missing) {
   var strong = document.createElement('strong');
   strong.textContent = 'This version does not have: ';
   line.appendChild(strong);
-  line.appendChild(document.createTextNode(items.join('; ') + '. You can add steps in the editor after.'));
+  line.appendChild(document.createTextNode(items.join('; ') + '. Plan it step by step keeps it, or add steps in the editor after.'));
   modal.appendChild(line);
 }
 

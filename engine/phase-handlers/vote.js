@@ -124,7 +124,10 @@ registerHandler('vote', {
           const done = tallyBracket([], candidates, [], bracket.byes, engine.language);
           engine.storePhaseData(phase.id, {
             votes: [], scores: done.scores, winners: done.winners, bracketList: done.bracketList,
-            resultsList: done.bracketList, winner: done.winner, winnerText: done.winnerText, tied: false, totalVotes: 0
+            resultsList: done.bracketList, winner: done.winner, winnerText: done.winnerText, tied: false, totalVotes: 0,
+            // The results card after a skipped round skips itself too when
+            // another bracket round follows (engine/phase-handlers/reveal.js)
+            skipped: true
           });
           console.log(`[vote:${phase.id}] bracket with one candidate, skipping the step`);
           const onward = ctx.getNextPhaseId();

@@ -166,6 +166,9 @@ export function validateSuggestions(raw, ctx) {
             guess: s.guess === 'who' ? 'who' : undefined,
             // vote: yes or no on every entry, several can pass
             approve: s.approve === true ? true : undefined,
+            // vote: keep what did not pass off the projector; show only the top N
+            showRejected: s.showRejected === false ? false : undefined,
+            top: typeof s.top === 'number' && Number.isFinite(s.top) ? s.top : undefined,
             // rank: a list to order (12 at most); collect: a list dealt one
             // per student in private (a state each, up to 60)
             items: Array.isArray(s.items) ? s.items.slice(0, s.brick === 'collect' ? MAX_DEAL_ITEMS : (s.brick === 'bracket' ? MAX_BRACKET_ITEMS : MAX_RANK_ITEMS)).map(String) : undefined,
@@ -180,7 +183,7 @@ export function validateSuggestions(raw, ctx) {
             // teams: regroup the earlier split, one member of each per new group
             jigsaw: s.jigsaw === true ? true : undefined,
             // pairs: partners by an earlier pick-one answer
-            pairBy: s.pairBy === 'opposite' || s.pairBy === 'same' ? s.pairBy : undefined,
+            pairBy: s.pairBy === 'opposite' || s.pairBy === 'same' || s.pairBy === 'far' ? s.pairBy : undefined,
             // buzz: points per correct answer
             points: typeof s.points === 'number' && Number.isFinite(s.points) ? s.points : undefined,
             groupSize: typeof s.groupSize === 'number' ? s.groupSize : undefined,

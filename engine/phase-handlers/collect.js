@@ -307,13 +307,20 @@ function buildPairwiseAssignment(ctx) {
       const byPlayer = pairBySrc && pairBySrc.byPlayer;
       if (byPlayer && Object.keys(byPlayer).length > 0) {
         answerOf = byPlayer;
-        answerMode = phase.pairBy.mode === 'same' ? 'same' : 'opposite';
+        answerMode = phase.pairBy.mode === 'same' ? 'same'
+          : (phase.pairBy.mode === 'far' ? 'far' : 'opposite');
       } else {
         console.warn(`[collect:${phase.id}] pairBy source "${phase.pairBy.from}" has no answers yet, pairing randomly instead`);
       }
     }
+    // "far" (2026-09-28): the lowest with the highest on the pick-one
+    // step's own choice order (a fist with a five)
+    const pairBySrcPhase = phase.pairBy && phase.pairBy.from ? engine.config.phases[phase.pairBy.from] : null;
+    const answerOrder = answerMode === 'far' && pairBySrcPhase && Array.isArray(pairBySrcPhase.choices)
+      ? pairBySrcPhase.choices.map(c => (c && typeof c === 'object' ? c.text : c)).filter(c => typeof c === 'string')
+      : null;
 
-    const built = buildGroups(playerIds, { oddHandling: phase.oddHandling, avoid, answerOf, answerMode });
+    const built = buildGroups(playerIds, { oddHandling: phase.oddHandling, avoid, answerOf, answerMode, answerOrder });
     groups = built.groups;
     leftover = built.leftover;
   }

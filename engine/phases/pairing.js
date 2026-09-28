@@ -158,7 +158,11 @@ export function buildGroups(ids, opts = {}) {
   const oddHandling = opts.oddHandling === 'triple' ? 'triple' : 'sit-out';
   const avoid = opts.avoid || new Set();
   const answerOf = opts.answerOf || null;
-  const answerMode = opts.answerMode === 'same' ? 'same' : 'opposite';
+  const answerMode = opts.answerMode === 'same' ? 'same'
+    : (opts.answerMode === 'far' ? 'far' : 'opposite');
+  if (answerMode === 'far' && answerOf && Array.isArray(opts.answerOrder) && opts.answerOrder.length > 1) {
+    return buildFarGroups(ids, answerOf, opts.answerOrder, oddHandling);
+  }
   const remaining = [...ids];
   const groups = [];
   let leftover = null;
@@ -200,5 +204,63 @@ export function buildGroups(ids, opts = {}) {
     groups.push([a, b]);
   }
 
+  return { groups, leftover };
+}
+
+/**
+ * Pairs by distance on an ORDERED scale (pairBy mode "far", 2026-09-28,
+ * a reviewer's fist-to-five: "opposite" only means the answers differ,
+ * so a 4 sat with a 5). Players are sorted by where their answer sits in
+ * `answerOrder` (the pick-one step's choices, in order) and paired from
+ * the ends inward: the lowest with the highest, the next lowest with the
+ * next highest. Players with no recorded answer sit in the middle of the
+ * scale and so pair with each other. Repeat-partner avoidance does not
+ * apply here: the spread is the point.
+ *
+ * Odd counts follow buildGroups: "triple" makes the middle three a
+ * group (the last three in the walk), "sit-out" benches the middle one.
+ *
+ * @param {string[]} ids
+ * @param {Object<string,string>} answerOf   playerId -> chosen text
+ * @param {string[]} answerOrder            the choices in scale order
+ * @param {'sit-out'|'triple'} oddHandling
+ * @returns {{ groups: string[][], leftover: string|null }}
+ */
+export function buildFarGroups(ids, answerOf, answerOrder, oddHandling) {
+  const norm = (v) => (typeof v === 'string' ? v.trim().toLowerCase() : null);
+  const index = new Map(answerOrder.map((c, i) => [norm(c), i]));
+  // No recorded answer sits in the middle of the scale, so those students
+  // pair with each other at the end of the walk instead of taking an end
+  const rank = (id) => {
+    const i = index.get(norm(answerOf[id]));
+    return i == null ? (answerOrder.length - 1) / 2 : i;
+  };
+  // A stable sort keeps the caller's shuffle among equal answers
+  const sorted = ids.map((id, i) => ({ id, i, r: rank(id) }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map(x => x.id);
+  const groups = [];
+  let leftover = null;
+  let lo = 0;
+  let hi = sorted.length - 1;
+  while (lo <= hi) {
+    const left = hi - lo + 1;
+    if (left === 1) {
+      if (oddHandling === 'triple') {
+        if (groups.length > 0) groups[groups.length - 1].push(sorted[lo]);
+        else groups.push([sorted[lo]]);
+      } else {
+        leftover = sorted[lo];
+      }
+      break;
+    }
+    if (left === 3 && oddHandling === 'triple') {
+      groups.push([sorted[lo], sorted[lo + 1], sorted[hi]]);
+      break;
+    }
+    groups.push([sorted[lo], sorted[hi]]);
+    lo++;
+    hi--;
+  }
   return { groups, leftover };
 }
