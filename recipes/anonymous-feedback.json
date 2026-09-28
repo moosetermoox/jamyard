@@ -2,7 +2,7 @@
   "id": "anonymous-feedback",
   "name": "Anonymous Feedback",
   "icon": "🤐",
-  "description": "Students submit feedback anonymously. AI groups responses into themes: a private summary for the teacher's console first, then a group-level version for the class. No individual answers shown to the class.",
+  "description": "Students give the teacher feedback anonymously (feedback for the teacher, never feedback between classmates on their own work). AI groups responses into themes: a private summary for the teacher's console first, then a group-level version for the class. No individual answers shown to the class.",
   "tagline": "Perfect for end-of-unit reflection, course evaluations, and 'tell me how I'm doing' moments.",
   "version": "2",
   "replaceOnRead": ["1"],

@@ -2363,6 +2363,35 @@ function renderPhaseConfig(phaseId) {
       brLabel.appendChild(brCb);
       brLabel.appendChild(brText);
       phaseConfigForm.appendChild(brLabel);
+    } else {
+      // Each student's own order (2026-09-28): the first options were
+      // picked more when every ballot listed them first.
+      var shLabel = document.createElement('label');
+      shLabel.className = 'form-group';
+      shLabel.style.display = 'flex';
+      shLabel.style.alignItems = 'flex-start';
+      shLabel.style.gap = '8px';
+      shLabel.style.cursor = 'pointer';
+      var shCb = document.createElement('input');
+      shCb.type = 'checkbox';
+      shCb.id = 'phase-shuffle';
+      shCb.style.marginTop = '4px';
+      shCb.checked = phase.shuffle === true;
+      shCb.addEventListener('change', function () {
+        isDirty = true;
+        if (shCb.checked) phase.shuffle = true; else delete phase.shuffle;
+      });
+      var shText = document.createElement('div');
+      var shStrong = document.createElement('strong');
+      shStrong.textContent = 'Shuffle the choices for each student';
+      var shHelp = document.createElement('div');
+      shHelp.style.cssText = 'font-size:12px;color:#666;margin-top:2px;';
+      shHelp.textContent = 'Everyone sees the choices in their own order, so the first few are not picked more just for being first.';
+      shText.appendChild(shStrong);
+      shText.appendChild(shHelp);
+      shLabel.appendChild(shCb);
+      shLabel.appendChild(shText);
+      phaseConfigForm.appendChild(shLabel);
     }
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Random vote on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;

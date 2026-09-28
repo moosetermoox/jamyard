@@ -7,6 +7,7 @@
  */
 
 import { translate } from '../i18n/index.js';
+import { shuffledChoices } from './solo-quiz-scoring.js';
 
 /**
  * Get eligible voters from a PlayerRegistry based on the voters field.
@@ -28,11 +29,18 @@ export function getEligibleVoters(players, votersField) {
  * @param {any[]} candidates - {playerId, text, ...} objects or strings
  * @param {string} voterId
  * @param {boolean} excludeAuthors
+ * @param {string} [shuffleSeed] when set (the vote's `shuffle`), the voter
+ *   gets their own order, seeded by voter and step (2026-09-28: the top
+ *   options were picked more because every ballot listed them first). The vote is by candidate id, so order never
+ *   changes what a vote means; the shared list is never reordered.
  * @returns {any[]}
  */
-export function ballotFor(candidates, voterId, excludeAuthors) {
-  if (!excludeAuthors) return candidates;
-  return candidates.filter(c => !(c && typeof c === 'object' && c.playerId === voterId));
+export function ballotFor(candidates, voterId, excludeAuthors, shuffleSeed) {
+  const own = excludeAuthors
+    ? candidates.filter(c => !(c && typeof c === 'object' && c.playerId === voterId))
+    : candidates;
+  if (!shuffleSeed) return own;
+  return shuffledChoices(own, voterId + '|' + shuffleSeed);
 }
 
 /**

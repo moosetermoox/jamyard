@@ -1420,7 +1420,7 @@
         // showRejected: false keeps it off for personal answers (a
         // reviewer's anonymous question box put "Did not pass" and the
         // counts under a student's own question, 2026-09-28).
-        var passedTemplate = (topN ? 'The top ' + topN + ':' : 'What the class passed:') + '\n\n{{' + id + '.approvedList}}\n\n';
+        var passedTemplate = (topN ? 'What the class passed, most votes first:' : 'What the class passed:') + '\n\n{{' + id + '.approvedList}}\n\n';
         if (step.showRejected !== false) passedTemplate += 'Did not pass:\n\n{{' + id + '.rejectedList}}\n\n';
         passedTemplate += '{{' + id + '.turnout}}';
         phases[passedId] = { type: 'reveal', template: passedTemplate };
@@ -1429,7 +1429,9 @@
         // The top N with their votes instead of a single crown
         var topId = freshId(phases, 'top');
         phases[lastId].next = topId;
-        phases[topId] = { type: 'reveal', template: 'The top ' + topN + ':\n\n{{' + id + '.resultsList}}' };
+        // No count in the heading: the list may hold fewer than N
+        // (2026-09-28, "Top 5" over four questions)
+        phases[topId] = { type: 'reveal', template: 'Most votes first:\n\n{{' + id + '.resultsList}}' };
         lastId = topId;
       } else if (brick === 'vote' && voteOverResponses) {
         var crownId = freshId(phases, 'crown');

@@ -50,6 +50,18 @@ describe('choice-draft is a faithful choice-draft compile', () => {
     expect(p.wrap.message).toContain('{{draft.mine}}');
   });
 
+  // 2026-09-28, a reviewer's projector read "YOUR GROUP GOT: ..." with a
+  // blank: each student's own item has no value on the class screen. The
+  // projector shows what every group got instead, and hides the message.
+  it('the wrap shows the whole board on the projector, never the per-student line', async () => {
+    const recipe = await loadJson('recipes/choice-draft.json');
+    for (const groups of ['size', 'none']) {
+      const { config } = compileRecipe(recipe, { groups });
+      expect(config.phases.wrap.hostTemplate).toContain('{{draft.assignedList}}');
+      expect(config.phases.wrap.hostShow).toEqual(['continueButton']);
+    }
+  });
+
   it('every setting is a make-page knob: the choices one box each, the question a plank, who chooses three ways, the group rows behind it', async () => {
     const recipe = await loadJson('recipes/choice-draft.json');
     const p = recipe.parameters;

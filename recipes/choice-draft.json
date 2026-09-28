@@ -197,6 +197,12 @@
           "$value": "Your group got: **{{draft.mine}}**\n\nA second choice means another group wanted your first one just as much. Your teacher takes it from here.",
           "$else": "You got: **{{draft.mine}}**\n\nA second choice means someone else wanted your first one just as much. Your teacher takes it from here."
         },
+        "hostTemplate": {
+          "$if": "groups!=none",
+          "$value": "What each group got:\n\n{{draft.assignedList}}",
+          "$else": "What everyone got:\n\n{{draft.assignedList}}"
+        },
+        "hostShow": ["continueButton"],
         "next": "end"
       },
       "end": {

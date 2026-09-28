@@ -2382,7 +2382,7 @@ async function fetchStoryboard(description, hooks) {
   return { status: status, body: done };
 }
 
-async function showStoryboardFlow(description, seededStoryboard) {
+async function showStoryboardFlow(description, seededStoryboard, seededSettings) {
   // template-picker-overlay/-modal: the page's centered, Totem-skinned
   // dialog pair. (The old picker-overlay classes live in editor.css,
   // which this page does not load — the modal rendered unpositioned,
@@ -2503,7 +2503,7 @@ async function showStoryboardFlow(description, seededStoryboard) {
           cbBuild.addEventListener('click', function () {
             if (window.Analytics) Analytics.track('create_result', { result: 'storyboard' });
             closeOverlay(overlay);
-            showStoryboardFlow(description, partial);
+            showStoryboardFlow(description, partial, resp.settings);
           });
           cbRow.appendChild(cbBuild);
         }
@@ -2527,6 +2527,14 @@ async function showStoryboardFlow(description, seededStoryboard) {
   nameInput.value = storyboard.name || 'New Activity';
   nameRow.appendChild(nameInput);
   modal.appendChild(nameRow);
+
+  // The settings the idea named in plain words ("no names"), read by the
+  // server; shown so the teacher sees the ask landed, written on the
+  // config at build (2026-09-28, a "no names" plan was built with names).
+  var ideaSettings = (resp && resp.settings) || seededSettings || {};
+  if (typeof ideaSettings.anonymous === 'boolean') {
+    modal.appendChild(sbEl('p', 'Student names: ' + (ideaSettings.anonymous ? 'Hidden' : 'Shown'), 'sb-hint sb-names-setting'));
+  }
 
   var list = sbEl('div');
   modal.appendChild(list);
@@ -2638,6 +2646,7 @@ async function showStoryboardFlow(description, seededStoryboard) {
       problems.textContent = result.problems.join(' ') || 'Nothing to build yet.';
       return;
     }
+    if (typeof ideaSettings.anonymous === 'boolean') result.config.anonymous = ideaSettings.anonymous;
     buildBtn.disabled = true;
     buildBtn.textContent = 'Building…';
     var base = (result.config.name || 'activity').toLowerCase()

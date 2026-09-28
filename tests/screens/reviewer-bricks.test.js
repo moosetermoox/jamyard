@@ -180,10 +180,10 @@ describe('a refusal carries the part the bricks can do', () => {
   it('the Create page offers to build it and the route forwards it', () => {
     const designer = readFileSync(new URL('../../screens/designer/designer.js', import.meta.url), 'utf8');
     expect(designer).toContain("'Build the part we can'");
-    expect(designer).toContain('showStoryboardFlow(description, partial)');
+    expect(designer).toContain('showStoryboardFlow(description, partial, resp.settings)');
     expect(designer).toContain("'Part of this we can build'");
     const server = readFileSync(new URL('../../server.js', import.meta.url), 'utf8');
-    expect(server).toMatch(/cantBuild: true, harm: storyboard\.harm === true, reason: storyboard\.reason \|\| '', partial, ideaId/);
+    expect(server).toMatch(/cantBuild: true, harm: storyboard\.harm === true, reason: storyboard\.reason \|\| '', partial, settings: partialSettings, ideaId/);
     expect(server).not.toContain("reason: 'AI matched a recipe but its parameters did not validate.'");
     expect(server).toContain('could not take what this idea needs');
   });

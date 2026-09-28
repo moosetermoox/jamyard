@@ -15,7 +15,7 @@ const server = readFileSync('server.js', 'utf8');
 
 describe('the Create page carries the idea into the match', () => {
   it('the route refits a recipe-born built-in to its recipe and reads the idea\'s settings', () => {
-    expect(server).toContain("import { applyIdeaSettings } from './engine/idea-settings.js';");
+    expect(server).toContain("import { applyIdeaSettings, parseAnonymity } from './engine/idea-settings.js';");
     expect(server).toContain("import { refitRecipeIdFor } from './engine/match-refit.js';");
     expect(server).toContain('const refitId = refitRecipeIdFor(match.game, loadedGames);');
     expect(server).toContain('aiService.matchRecipe(description, [summarizeRecipe(refitRecipe)], { forced: true })');
