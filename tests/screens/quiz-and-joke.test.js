@@ -41,7 +41,7 @@ describe('the self-paced quiz', () => {
     expect(miy).toContain("listWrap.style.maxHeight = 'none'");
     expect(miy).not.toContain('Check every answer before you save');
     const make = read('screens/make/make.js');
-    expect(make).toContain('{ onChange: previewParams }');
+    expect(make).toMatch(/\{\s*onChange: previewParams,/);
     expect(make).toMatch(/if \(data\.print\) applyFittedPrint\(data\.print\);\s*\r?\n\s*if \(data\.map\) redrawMap\(data\.map\);/);
   });
 

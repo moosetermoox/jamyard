@@ -4,7 +4,7 @@ import { PHASE_SCHEMAS, getFields, getTransitions } from '../engine/phase-schema
 import { createAiBudget, AiBudgetError } from './ai-budget.js';
 import { scrubForAI } from '../engine/pii-scrub.js';
 import { LANGUAGES as LANGUAGE_NAMES } from '../engine/i18n/index.js';
-import { cleanQuizQuestions, QUIZ_LIMITS } from '../engine/quiz-questions.js';
+import { cleanQuizQuestions, shuffleQuizChoices, shuffleQuizParams, QUIZ_LIMITS } from '../engine/quiz-questions.js';
 import { completeSteps, partialName } from '../engine/storyboard-partial.js';
 import { collectTexts, applyTexts, pathKey } from '../engine/activity-text.js';
 
@@ -22,6 +22,37 @@ function extractText(message) {
     }
   }
   return '';
+}
+
+function wordCount(text) {
+  return String(text || '').trim().split(/\s+/).filter(Boolean).length;
+}
+
+/**
+ * The bluff steps of an activity: a collect whose answers hang on a
+ * pick-one ballot (`choicePool` from its responses) beside a literal
+ * truth. Returns {collectId: truth}. Top-level steps and a foreach's
+ * sub-steps both count; the first literal in the pool is the truth.
+ * @param {object} phases
+ * @returns {Object<string,string>}
+ */
+export function bluffTruths(phases) {
+  const out = {};
+  const visit = (all) => {
+    for (const p of Object.values(all || {})) {
+      if (!p || typeof p !== 'object') continue;
+      if (p.subPhases) visit(p.subPhases);
+      if (p.type !== 'collect-choice' || !Array.isArray(p.choicePool)) continue;
+      const truth = p.choicePool.find((c) => c && typeof c.literal === 'string' && !c.optional);
+      if (!truth || !truth.literal.trim() || /\{\{/.test(truth.literal)) continue;
+      for (const c of p.choicePool) {
+        const m = c && typeof c.from === 'string' ? /^([A-Za-z0-9_-]+)\.responses$/.exec(c.from) : null;
+        if (m) out[m[1]] = truth.literal.trim();
+      }
+    }
+  };
+  visit(phases);
+  return out;
 }
 
 /**
@@ -1708,7 +1739,8 @@ Return ONLY JSON, no other prose:
           : 'The AI only knows facts up to when its training ended, so it cannot write about recent events. Paste the facts or write the questions yourself and it will build the rest.';
         return { error: reason, needsTeacherFacts: true };
       }
-      const questions = cleanQuizQuestions(parsed.questions, n);
+      // shuffled where the words land: the AI tends to put the answer in a pattern
+      const questions = shuffleQuizChoices(cleanQuizQuestions(parsed.questions, n));
       if (questions.length === 0) {
         return { error: 'The AI could not write usable questions for that topic. Try wording the topic differently.' };
       }
@@ -1739,6 +1771,7 @@ Return ONLY JSON, no other prose:
   async writeSampleAnswers({ config, seats } = {}) {
     const n = Number.isInteger(seats) && seats >= 2 && seats <= 12 ? seats : 6;
     const phases = (config && config.phases) || {};
+    const truths = bluffTruths(phases);
     const steps = Object.entries(phases)
       .filter(([, p]) => p && p.type === 'collect' && p.inputType !== 'drawing' && !p.appendOnly)
       .map(([id, p]) => ({
@@ -1748,12 +1781,16 @@ Return ONLY JSON, no other prose:
         respondsTo: typeof p.rotateFrom === 'string' && phases[p.rotateFrom] && phases[p.rotateFrom].type === 'collect' && !p.appendOnly ? p.rotateFrom : null,
         prompt: String(p.prompt || '').replace(/\{\{[^}]+\}\}/g, '…').replace(/\s+/g, ' ').trim().slice(0, 300),
         fields: Array.isArray(p.fields) ? p.fields.map((f) => String((f && f.label) || '').slice(0, 80)) : [],
-        dealt: Array.isArray(p.dealItems) ? p.dealItems.slice(0, 12).map(String) : []
+        dealt: Array.isArray(p.dealItems) ? p.dealItems.slice(0, 12).map(String) : [],
+        // a bluff: these answers hang on a ballot beside the truth, so a
+        // whole sentence beside a one-word truth gives it away (Trivia
+        // Bluff's pretend students wrote sentences, review eighteen)
+        truth: truths[id] || null
       }));
     if (steps.length === 0) return { sampleAnswers: null };
     const lineFor = (step, i) => (step.fields.length >= 2
       ? step.fields.map((label) => `${label}: sample ${i + 1}`)
-      : `Sample answer ${i + 1} for ${step.prompt || step.id}`);
+      : step.truth ? `fake ${i + 1}` : `Sample answer ${i + 1} for ${step.prompt || step.id}`);
     if (this.mode === 'mock') {
       const out = {};
       for (const step of steps) out[step.id] = Array.from({ length: n }, (_, i) => lineFor(step, i));
@@ -1764,6 +1801,7 @@ Return ONLY JSON, no other prose:
       if (s.fields.length >= 2) bits.push(`  fields, answer each as its own string in order: ${s.fields.map((f) => JSON.stringify(f)).join(', ')}`);
       if (s.dealt.length) bits.push(`  each student was privately handed one of: ${s.dealt.join('; ')} (the … in the question is that item)`);
       if (s.respondsTo) bits.push(`  each student receives a classmate's answer from step "${s.respondsTo}" (the … in the question): answer i here must respond to answer i of step "${s.respondsTo}", in the same order, carrying it forward`);
+      if (s.truth) bits.push(`  a bluff: each answer is a FAKE that fills the blank and will sit on a ballot beside the true answer ${JSON.stringify(s.truth)}. Write fakes of the same kind and length as the truth (about ${wordCount(s.truth)} word${wordCount(s.truth) === 1 ? '' : 's'}), only the words that fill the blank, never a sentence, never the truth itself`);
       return bits.join('\n');
     }).join('\n');
     const message = await this._callClaude({
@@ -1806,6 +1844,10 @@ Return ONLY JSON, no other prose: {"<step id>": ["...", "..."], ...} with a stri
         ? (Array.isArray(line) ? line.map(clean) : step.fields.map((label, k) => (k === 0 ? clean(line) : '')))
         : (Array.isArray(line) ? clean(line.join(' ')) : clean(line))))
         .filter((line) => (Array.isArray(line) ? line.some(Boolean) : line.length >= 2))
+        // a bluff's fake that reads as a sentence, or the truth itself, is out
+        .map((line) => (step.truth && typeof line === 'string' ? line.replace(/[.!]+$/, '') : line))
+        .filter((line) => !step.truth || typeof line !== 'string' ||
+          (wordCount(line) <= Math.max(5, wordCount(step.truth) * 2 + 1) && line.toLowerCase() !== step.truth.toLowerCase()))
         .slice(0, n);
       if (lines.length < 2) continue;
       const source = step.respondsTo ? out[step.respondsTo] : null;
@@ -2495,7 +2537,11 @@ ${responseList}`;
     if (this.mode === 'mock') {
       return this._matchRecipeMock(description, recipes);
     }
-    return this._matchRecipeReal(description, recipes, options);
+    const match = await this._matchRecipeReal(description, recipes, options);
+    // Quiz questions the matcher wrote into the params: choices shuffled,
+    // the answer's place is no tell (review eighteen, 2026-09-28)
+    if (match && match.params) match.params = shuffleQuizParams(match.params);
+    return match;
   }
 
   _matchRecipeMock(description, recipes) {
