@@ -1326,7 +1326,7 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine, oneTap }) => {
   resetHoldingProgress();
   // Which step this is (Try it out deals the template's sample answers by it)
   currentCollectPhaseId = phaseId || null;
@@ -1437,6 +1437,8 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     choiceContainer.className = 'choice-buttons';
     // Tap to pick, Submit to send (2026-09-28): a stray tap no longer
     // answers. Once sent, every choice locks until the server answers.
+    // A quiz question (oneTap: it has a right answer) sends on the tap,
+    // as it always did: speed counts there (owner 2026-09-28).
     choiceBallot = pickThenConfirm(UiLang.t('Submit'), function (choiceText, confirmBtn) {
       var all = choiceContainer.querySelectorAll('.choice-btn');
       for (var bi = 0; bi < all.length; bi++) all[bi].disabled = true;
@@ -1448,11 +1450,23 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
         var btn = document.createElement('button');
         btn.className = 'choice-btn';
         btn.textContent = choiceText;
-        choiceBallot.option(btn, choiceText);
+        if (oneTap) {
+          btn.type = 'button';
+          btn.addEventListener('click', function () {
+            var all = choiceContainer.querySelectorAll('.choice-btn');
+            for (var bi = 0; bi < all.length; bi++) all[bi].disabled = true;
+            btn.classList.add('is-selected');
+            socket.emit('submit-response', { code: currentRoomCode, response: choiceText });
+            awaitSubmitAck(btn);
+          });
+        } else {
+          choiceBallot.option(btn, choiceText);
+        }
         choiceContainer.appendChild(btn);
       })(typeof choices[ci] === 'string' ? choices[ci] : (choices[ci].text || choices[ci].name || String(choices[ci])));
     }
-    choiceContainer.appendChild(choiceBallot.confirmBtn);
+    if (oneTap) choiceBallot = null;
+    else choiceContainer.appendChild(choiceBallot.confirmBtn);
     collectSection.appendChild(choiceContainer);
     applyShow(show, {
       prompt: promptDisplay,

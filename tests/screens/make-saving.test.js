@@ -15,16 +15,17 @@ describe('the draft', () => {
     expect(make).toContain("state.anonymous = true; buildRows(); saveDraftSoon();");
     expect(make).toContain("state.earlyJoke = false; buildRows(); saveDraftSoon();");
   });
-  it('lives in this browser per activity, and goes back into the boxes on load', () => {
+  it('lives in this tab per activity (owner 2026-09-28: a reload or Back, never a later visit), and goes back into the boxes on load', () => {
     expect(make).toContain("var DRAFT_KEY = 'jamyard.makeDraft.' + gameId;");
+    expect(make).not.toMatch(/localStorage\.\w+Item\(DRAFT_KEY/);
     expect(make).toMatch(/state\.wordsSnapshot = wordsNow\(\);\s*\/\/[^\n]*\n\s*restoreDraft\(\);/);
   });
   it('is only for a template page (no class example, no recipe panel)', () => {
     expect(make).toMatch(/function draftAllowed\(\) \{\s*return !exKey && !state\.panel && !state\.exampleParams/);
   });
   it('says so, with the way back to the template', () => {
-    expect(make).toContain('Your changes from last time are back.');
-    expect(make).toMatch(/draft-note[\s\S]*Use the original words[\s\S]*localStorage\.removeItem\(DRAFT_KEY\)/);
+    expect(make).toContain('Your changes are back.');
+    expect(make).toMatch(/draft-note[\s\S]*Use the original words[\s\S]*sessionStorage\.removeItem\(DRAFT_KEY\)/);
   });
   it('is cleared once the copy is saved', () => {
     expect(make).toMatch(/rememberSessionCopy\(id\);\s*clearDraft\(\);/);
@@ -66,6 +67,6 @@ describe('words edited below the buttons are pointed to from the screen above', 
 
 describe('the keep note says what is true', () => {
   it('names the two buttons that save the copy', () => {
-    expect(html).toContain('Your changes wait on this page in this browser. Press Host it now or Try it with pretend students and they are saved as your copy');
+    expect(html).toContain('Your changes wait on this page until you close the tab. Press Host it now or Try it with pretend students and they are saved as your copy');
   });
 });

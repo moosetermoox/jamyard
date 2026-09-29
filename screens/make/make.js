@@ -1132,14 +1132,14 @@
     if (!state.draftBase || !draftAllowed()) return;
     var now = JSON.stringify(draftNow());
     try {
-      if (now === state.draftBase) localStorage.removeItem(DRAFT_KEY);
-      else localStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), draft: JSON.parse(now) }));
+      if (now === state.draftBase) sessionStorage.removeItem(DRAFT_KEY);
+      else sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), draft: JSON.parse(now) }));
     } catch (e) { /* storage unavailable: the page still works, it just forgets */ }
   }
 
   function readDraft() {
     try {
-      var raw = localStorage.getItem(DRAFT_KEY);
+      var raw = sessionStorage.getItem(DRAFT_KEY);
       var parsed = raw ? JSON.parse(raw) : null;
       return parsed && parsed.draft && typeof parsed.draft === 'object' ? parsed.draft : null;
     } catch (e) { return null; }
@@ -1192,13 +1192,13 @@
     var note = document.createElement('p');
     note.className = 'example-note draft-note';
     note.id = 'draft-note';
-    note.appendChild(document.createTextNode('Your changes from last time are back. Host it or try it and they are saved as your copy in My yard. '));
+    note.appendChild(document.createTextNode('Your changes are back. Host it or try it and they are saved as your copy in My yard. '));
     var undo = document.createElement('button');
     undo.type = 'button';
     undo.textContent = 'Use the original words';
     undo.addEventListener('click', function () {
       clearTimeout(draftTimer);
-      try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* storage unavailable */ }
+      try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) { /* storage unavailable */ }
       window.location.reload();
     });
     note.appendChild(undo);
@@ -1208,7 +1208,7 @@
   function clearDraft() {
     clearTimeout(draftTimer);
     state.draftBase = null; // nothing more is written from this page view
-    try { localStorage.removeItem(DRAFT_KEY); } catch (e) { /* storage unavailable */ }
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) { /* storage unavailable */ }
   }
 
   function showCopyNote(copyId) {

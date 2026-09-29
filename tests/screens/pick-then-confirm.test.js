@@ -57,3 +57,19 @@ describe('pick, then confirm', () => {
     expect(css).toMatch(/\.ballot-confirm:disabled/);
   });
 });
+
+// Owner 2026-09-28: a quiz question (a pick-one step with a right answer)
+// stays one tap; the confirm press is for votes and polls only, since a
+// speed-scored question pays for every extra moment.
+describe('a quiz question is one tap', () => {
+  const handler = readFileSync('engine/phase-handlers/collect-choice.js', 'utf8');
+  it('the server marks a step with a right answer as oneTap on both student sends', () => {
+    expect(handler).toContain('function isOneTap(phase)');
+    expect(handler.match(/oneTap: isOneTap\(/g) || []).toHaveLength(2);
+  });
+  it('the student screen sends on the tap when oneTap is set', () => {
+    expect(player).toMatch(/socket\.on\('game-started', \(\{[^}]*\boneTap\b/);
+    const choice = player.slice(player.indexOf('// --- Multiple choice mode ---'), player.indexOf('// --- Multi-field mode ---'));
+    expect(choice).toContain('if (oneTap)');
+  });
+});
