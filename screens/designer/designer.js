@@ -251,7 +251,7 @@ async function toggleFeatured(game) {
     game.featured = !!result.featured;
     refreshLibrary();
   } catch (err) {
-    alert('Could not change featured: ' + err.message);
+    Dialog.alert('Could not change featured: ' + err.message);
   }
 }
 
@@ -529,7 +529,7 @@ async function handleDeleteClick(e) {
   var id = btn.getAttribute('data-game-id');
   var name = btn.getAttribute('data-game-name');
 
-  if (!confirm('Delete "' + name + '"? This cannot be undone.')) return;
+  if (!(await Dialog.confirm({ title: 'Delete "' + name + '"?', message: 'This cannot be undone.', confirmLabel: 'Delete', cancelLabel: 'Keep it' }))) return;
 
   try {
     var response = await fetch('/api/games/' + encodeURIComponent(id), {
@@ -544,10 +544,10 @@ async function handleDeleteClick(e) {
       if (window.MyGames) MyGames.remove(id);
       refreshLibrary();
     } else {
-      alert('Delete failed: ' + (result.error || 'Unknown error'));
+      Dialog.alert('Delete failed: ' + (result.error || 'Unknown error'));
     }
   } catch (error) {
-    alert('Delete failed: ' + error.message);
+    Dialog.alert('Delete failed: ' + error.message);
   }
 }
 
@@ -826,7 +826,7 @@ function buildRecipeCard(modal, recipe, allRecipes, overlay, deletable) {
 }
 
 async function handleRecipeDelete(recipe, overlay) {
-  if (!confirm('Delete recipe "' + recipe.name + '"? This cannot be undone.')) return;
+  if (!(await Dialog.confirm({ title: 'Delete recipe "' + recipe.name + '"?', message: 'This cannot be undone.', confirmLabel: 'Delete', cancelLabel: 'Keep it' }))) return;
   try {
     var resp = await fetch('/api/recipes/user/' + encodeURIComponent(recipe.id), {
       method: 'DELETE'
@@ -834,14 +834,14 @@ async function handleRecipeDelete(recipe, overlay) {
     if (!resp.ok) {
       var data;
       try { data = await resp.json(); } catch (e) { data = {}; }
-      alert('Delete failed: ' + (data.error || 'Unknown error'));
+      Dialog.alert('Delete failed: ' + (data.error || 'Unknown error'));
       return;
     }
     // Re-fetch + re-render the picker so the list reflects the deletion
     closeOverlay(overlay);
     showRecipePicker();
   } catch (err) {
-    alert('Delete failed: ' + err.message);
+    Dialog.alert('Delete failed: ' + err.message);
   }
 }
 
@@ -2952,7 +2952,7 @@ async function openRecipeFormPrefilled(recipeId, params) {
       }
     }
   } catch (err) {
-    alert('Could not open that recipe: ' + err.message);
+    Dialog.alert('Could not open that recipe: ' + err.message);
   }
 }
 

@@ -24,11 +24,17 @@ export function classifyJoin(players, { token, name, anonymousRoom }) {
   }
 
   // Name fallback for reconnects predates the name-taken guard and must
-  // win over it: a disconnected "Alex" rejoining IS that Alex.
-  const fallbackName = name || 'Anonymous';
-  const byName = players.findByName(fallbackName);
-  if (byName && !byName.connected) {
-    return { kind: 'reconnect', player: byName };
+  // win over it: a disconnected "Alex" rejoining IS that Alex. A blank
+  // name is nobody in particular, so it never reclaims a seat: a second
+  // student who left the box empty used to inherit a dropped classmate's
+  // "Anonymous" seat, answers and all (a reviewer, 2026-09-29). Their own
+  // token still brings an anonymous student back.
+  const typedName = String(name || '').trim();
+  if (typedName && typedName.toLowerCase() !== 'anonymous') {
+    const byName = players.findByName(typedName);
+    if (byName && !byName.connected) {
+      return { kind: 'reconnect', player: byName };
+    }
   }
 
   const typed = String(name || '').trim().toLowerCase();

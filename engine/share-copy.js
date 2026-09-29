@@ -22,6 +22,34 @@ export async function mintCopyId(sourceId, exists) {
   return candidate;
 }
 
+const PRIVATE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789'; // no 0/o, 1/l/i
+export const PRIVATE_TAIL_LENGTH = 6;
+
+/**
+ * A private id for a teacher's own copy: the readable base plus a random
+ * tail ("exit-ticket-k7m2qp"). Copy ids used to be the name's slug with a
+ * counter ("speed-quiz-my-version-3"), and any user activity opens by id at
+ * /share, /make, and the API, so a stranger could walk them (a reviewer,
+ * 2026-09-29). Six characters of a 31-letter alphabet is a billion tails a
+ * base; `random` is injectable for tests.
+ */
+export async function mintPrivateId(base, exists, random = Math.random) {
+  const stem = String(base || 'my-activity').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    // a copy of a copy keeps one tail, not a chain of them
+    .replace(new RegExp('-[' + PRIVATE_ALPHABET + ']{' + PRIVATE_TAIL_LENGTH + '}$'), '')
+    .slice(0, 40).replace(/-+$/, '') || 'my-activity';
+  for (let attempt = 0; attempt < 20; attempt++) {
+    let tail = '';
+    for (let i = 0; i < PRIVATE_TAIL_LENGTH; i++) {
+      tail += PRIVATE_ALPHABET[Math.floor(random() * PRIVATE_ALPHABET.length) % PRIVATE_ALPHABET.length];
+    }
+    const candidate = `${stem}-${tail}`;
+    if (!(await exists(candidate))) return candidate;
+  }
+  throw new Error('Could not find a free id for the copy.');
+}
+
 /**
  * Returns a deep copy of a config ready to save as the recipient's own
  * activity. `featured` is stripped (a shared copy must never arrive

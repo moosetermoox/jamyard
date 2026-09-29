@@ -41,6 +41,11 @@ export const AUDIENCE = Object.freeze({
   // live poll's bars): no one's answer by name, but never "only your
   // teacher" (Class Critique said so, a reviewer 2026-09-28)
   TALLY: 'tally',
+  // A scored round inside For Each (Two Truths' lie vote): nobody sees the
+  // pick, the class sees the points on the leaderboard (a reviewer read
+  // "Only your teacher sees your answers" and then watched the board name
+  // who caught each lie, 2026-09-29)
+  SCORED: 'scored',
   TEACHER: 'teacher'
 });
 
@@ -54,6 +59,7 @@ export const AUDIENCE_LABELS = Object.freeze({
   [AUDIENCE.GUESSED_AFTER_REVIEW]: 'Your class will see this and try to guess who wrote it, after your teacher reviews it.',
   [AUDIENCE.AI]: 'These get summed up for the class.',
   [AUDIENCE.TALLY]: 'The class sees the totals, not who gave which answer.',
+  [AUDIENCE.SCORED]: 'Your points go on the class leaderboard.',
   [AUDIENCE.TEACHER]: 'Only your teacher sees your answers.'
 });
 
@@ -200,6 +206,12 @@ export function audienceFor(config, phaseId) {
   const phases = config && config.phases;
   if (!phases || typeof phases !== 'object' || !phases[phaseId]) return null;
 
+  // A round inside For Each runs under a virtual id ("_fe:rounds:vote")
+  // that no step references, so the graph scan below found nothing and
+  // said "only your teacher" (2026-09-29). The round's own foreach knows.
+  const round = foreachRound(phases, phaseId);
+  if (round) return roundAudience(config, phases, round);
+
   const path = pathFrom(phases, phaseId);
   const pathIndex = new Map(path.map((id, i) => [id, i]));
   let classmate = false;     // one classmate reads it (rotation, pair, return-to-author)
@@ -209,6 +221,7 @@ export function audienceFor(config, phaseId) {
   let ai = false;            // the AI reads it
   let classIndex = Infinity; // where on the path the first class-facing reader sits
   let nextHint = null;
+  let classOnlyTotals = true; // every class-facing reader shows totals, never one answer
 
   for (const [id, consumer] of Object.entries(phases)) {
     if (id === phaseId || !consumer || typeof consumer !== 'object') continue;
@@ -223,6 +236,7 @@ export function audienceFor(config, phaseId) {
     } else if (key === AUDIENCE.CLASS || key === AUDIENCE.GUESSED) {
       cls = true;
       if (key === AUDIENCE.GUESSED) guessed = true;
+      if (!readsOnlyTotals(consumer, phaseId)) classOnlyTotals = false;
       const at = pathIndex.has(id) ? pathIndex.get(id) : Infinity;
       if (at < classIndex) classIndex = at;
     } else if (key === AUDIENCE.AI) {
@@ -238,6 +252,12 @@ export function audienceFor(config, phaseId) {
     key = AUDIENCE.CLASSMATE;
   } else if (cls && guessed) {
     key = gateBefore ? AUDIENCE.GUESSED_AFTER_REVIEW : AUDIENCE.GUESSED;
+  } else if (cls && showsOwnTotals(phases[phaseId]) && classOnlyTotals && !gateBefore) {
+    // Live Poll: the bars are up while the step runs and the results screen
+    // shows the same bars, so nobody's answer ever goes up by name. The
+    // console used to say "Only you can see these until the reveal" beside
+    // a projector already drawing them (2026-09-29).
+    key = AUDIENCE.TALLY;
   } else if (cls) {
     key = gateBefore ? AUDIENCE.CLASS_AFTER_REVIEW : AUDIENCE.CLASS;
   } else if (showsOwnTotals(phases[phaseId])) {
@@ -256,6 +276,72 @@ export function audienceFor(config, phaseId) {
     // 2 = a pairing (a triple when the class is odd); 3 or 4 = a merge group
     groupSize
   };
+}
+
+// Outputs of a step that are totals, never one student's answer
+const TOTAL_OUTPUTS = new Set([
+  'barChart', 'tally', 'beforeAfter', 'movedLine', 'results', 'resultsList',
+  'average', 'averages', 'count', 'counts', 'chart', 'distribution', 'summary'
+]);
+
+// Does this consumer read the step only through its totals? A bare
+// reference ("ask") or one to the answers ("ask.responses", "ask.byPlayer")
+// puts single answers in front of the class.
+function readsOnlyTotals(consumer, phaseId) {
+  const skip = new Set(['id', 'type', 'next', 'approveNext', 'rejectNext', 'loopBack', 'nextByWinner']);
+  const escaped = phaseId.replace(/[.*+?^${}()|[\]\\-]/g, '\\$&');
+  const inTemplate = new RegExp('\\{\\{\\s*' + escaped + '(?:\\.([A-Za-z0-9_]+))?\\s*[.}|]', 'g');
+  let onlyTotals = true;
+  const seen = new Set();
+  function check(first) { if (!first || !TOTAL_OUTPUTS.has(first)) onlyTotals = false; }
+  function walk(value) {
+    if (typeof value === 'string') {
+      const bare = value.replace(/^\{\{\s*/, '').replace(/\s*\}\}$/, '').trim();
+      if (bare === phaseId) check(null);
+      else if (bare.startsWith(phaseId + '.')) check(bare.slice(phaseId.length + 1).split(/[.\s|}]/)[0]);
+      let m;
+      inTemplate.lastIndex = 0;
+      while ((m = inTemplate.exec(value))) check(m[1] || null);
+      return;
+    }
+    if (Array.isArray(value)) { value.forEach(walk); return; }
+    if (value && typeof value === 'object' && !seen.has(value)) {
+      seen.add(value);
+      for (const [k, v] of Object.entries(value)) if (!skip.has(k)) walk(v);
+    }
+  }
+  for (const [k, v] of Object.entries(consumer)) if (!skip.has(k)) walk(v);
+  return onlyTotals;
+}
+
+// "_fe:<foreach>:<name>" -> the round's foreach and name, when both exist
+function foreachRound(phases, phaseId) {
+  const m = /^_fe:(.+):([^:]+)$/.exec(String(phaseId));
+  if (!m) return null;
+  const foreach = phases[m[1]];
+  if (!foreach || foreach.type !== 'foreach' || !foreach.subPhases || !foreach.subPhases[m[2]]) return null;
+  return { feId: m[1], name: m[2], foreach, step: foreach.subPhases[m[2]] };
+}
+
+// The audience of a round inside For Each. A scored round (the foreach's
+// scoring.subPhase) whose scores a later step shows puts points on the
+// board; a round a sibling step quotes goes in front of the class; a round
+// with live totals shows those; anything else stays with the teacher.
+function roundAudience(config, phases, { feId, name, foreach, step }) {
+  const scored = !!(foreach.scoring && foreach.scoring.subPhase === name);
+  let key;
+  if (scored && Object.entries(phases).some(([id, p]) => id !== feId && p && typeof p === 'object' &&
+      CLASS_TYPES.has(p.type) && phaseRefs(p, feId))) {
+    key = AUDIENCE.SCORED;
+  } else if (Object.entries(foreach.subPhases).some(([sib, p]) => sib !== name && p && typeof p === 'object' &&
+      CLASS_TYPES.has(p.type) && phaseRefs(p, name))) {
+    key = AUDIENCE.CLASS;
+  } else if (showsOwnTotals(step)) {
+    key = AUDIENCE.TALLY;
+  } else {
+    key = AUDIENCE.TEACHER;
+  }
+  return { key, label: AUDIENCE_LABELS[key], namesHidden: config.anonymous === true, nextHint: null, groupSize: null };
 }
 
 // A step whose own results go on the projector while it runs

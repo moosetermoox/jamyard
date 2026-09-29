@@ -28,6 +28,7 @@ import { io as ioClient } from 'socket.io-client';
 
 const BOT_NAMES = ['Robo-Ava', 'Robo-Ben', 'Robo-Cal', 'Robo-Dee', 'Robo-Eli', 'Robo-Fay'];
 
+const BOT_EMOJI = ['🦁👑🌅', '🚢💔🧊', '🧙‍♂️💍🌋', '🦈🏖️😱', '👻🚫🔫', '🤖❤️🌱'];
 const BOT_ANSWERS = [
   'A treehouse library with a rope bridge and a snack drawer.',
   'Teaching my dog to fetch the newspaper from the future.',
@@ -436,7 +437,10 @@ export async function simulateGame({ serverUrl, gameId, config = null, numPlayer
             who.emit('submit-response', { code, response: text, phaseInstanceId: seq(data) });
           } else if (Array.isArray(data.fields) && data.fields.length) {
             const obj = {};
-            for (const f of data.fields) obj[f.key || f] = BOT_ANSWERS[idx % BOT_ANSWERS.length];
+            // an emoji-only box (Emoji Movies' clues) gets emoji, never a sentence
+            for (const f of data.fields) {
+              obj[f.key || f] = (f && f.emojiOnly) ? BOT_EMOJI[idx % BOT_EMOJI.length] : BOT_ANSWERS[idx % BOT_ANSWERS.length];
+            }
             who.emit('submit-response', { code, response: obj, phaseInstanceId: seq(data) });
           } else {
             who.emit('submit-response', { code, response: BOT_ANSWERS[idx % BOT_ANSWERS.length], phaseInstanceId: seq(data) });

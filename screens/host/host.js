@@ -2839,8 +2839,10 @@ socket.on('turn-item', ({ role, item, teamName, describerName, instruction, team
   showSection(turnSection);
   turnTeamName.textContent = teamName ? teamName + "'s turn" : '';
   turnDescriberLine.textContent = describerName ? describerName + ' is describing' : '';
-  turnItemCard.textContent = item || '';
-  turnItemCard.hidden = !item;
+  // The card never comes to the projector (2026-09-29): the guessing team
+  // looks up here, and the describer has it on their own screen
+  turnItemCard.textContent = item || UiLang.t('Only the describer can see the card.');
+  turnItemCard.hidden = false;
   setRichText(turnInstructionLine, instruction || '');
   turnInstructionLine.hidden = !instruction;
   turnRemainingLine.textContent = (typeof remaining === 'number') ? (remaining + ' items left') : '';
@@ -3185,27 +3187,14 @@ function renderPlayerList(players) {
     const nameSpan = document.createElement('span');
     nameSpan.textContent = player.name;
 
-    const kickBtn = document.createElement('button');
-    kickBtn.type = 'button';
-    kickBtn.className = 'player-kick-btn';
-    kickBtn.title = 'Remove ' + player.name;
-    kickBtn.textContent = '✕';
-    kickBtn.addEventListener('click', () => {
-      // The site's own yes-or-no box, never the browser's (standing rule
-      // 2026-09-26; the console can rename instead of removing)
-      const ask = window.Dialog && Dialog.confirm
-        ? Dialog.confirm({ title: 'Remove ' + player.name + '?', message: 'They cannot rejoin this session. To fix a name instead, use Rename on the teacher console.', confirmLabel: 'Remove', cancelLabel: 'Keep them' })
-        : Promise.resolve(true);
-      ask.then((yes) => {
-        if (yes) socket.emit('moderate-kick', { code: currentRoomCode, playerId: player.id });
-      });
-    });
+    // No Remove on the projector (2026-09-29): its confirm box ("Remove X?
+    // They cannot rejoin...") showed to the whole class. Rename and Remove
+    // live on the teacher console's lobby list, which every host has.
 
     // A long name wraps at a smaller size instead of ending in "..."
     if (String(player.name || '').length > 11) li.classList.add('long-name');
 
     li.appendChild(nameSpan);
-    li.appendChild(kickBtn);
     playerList.appendChild(li);
   }
 

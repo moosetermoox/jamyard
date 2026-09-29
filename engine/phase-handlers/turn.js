@@ -58,10 +58,12 @@ function emitItemViews(ctx, vs) {
   const describerName = vs.currentDescriberName;
   const teamName = vs.currentTeamName;
 
-  // Host: everything
+  // Host: everything but the card. The projector is what the guessing team
+  // looks at, so the phrase went up for the room (a reviewer, 2026-09-29);
+  // the describer has it on their own screen.
   ctx.emitToHost(EVENTS.TURN_ITEM, {
     role: 'host',
-    item,
+    item: null,
     teamName,
     describerName,
     teamScores: vs.teamScores,

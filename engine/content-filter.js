@@ -100,6 +100,29 @@ export function validateResponse(text, opts = {}) {
   return { valid: true };
 }
 
+// A field marked `emojiOnly: true` (Emoji Movies' clues) takes emoji and
+// spaces, never letters or numbers (2026-09-29: nothing stopped a student
+// typing the title as the clue). Keycaps (1️⃣), flags, skin tones, and
+// joined families count as emoji; a bare digit does not.
+export const EMOJI_ONLY_RE = /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|[0-9#*]️?⃣|‍|️|\s)+$/u;
+export const EMOJI_ONLY_MESSAGE = 'Emojis only in that box, no letters or numbers.';
+
+export function isEmojiOnly(text) {
+  const s = String(text == null ? '' : text).trim();
+  return s.length > 0 && EMOJI_ONLY_RE.test(s);
+}
+
+// The key of the first emoji-only field whose value is not emoji, or null.
+function emojiOnlyProblem(value, fields) {
+  if (!value || typeof value !== 'object' || !Array.isArray(fields)) return null;
+  for (const f of fields) {
+    if (!f || typeof f !== 'object' || f.emojiOnly !== true || !f.key) continue;
+    const v = value[f.key];
+    if (typeof v === 'string' && v.trim() && !isEmojiOnly(v)) return f.key;
+  }
+  return null;
+}
+
 // Pull every user-authored string out of a submission value, which is either a
 // plain string (single / choice mode) or an object of field → value
 // (multi-field collect).
@@ -120,7 +143,16 @@ function extractStrings(value) {
  * @returns {{ ok: boolean, reason?: string, message?: string, category?: string }}
  */
 export function checkSubmission(value, opts = {}) {
-  const parts = extractStrings(value);
+  const emojiField = emojiOnlyProblem(value, opts.fields);
+  if (emojiField) return { ok: false, reason: 'not_emoji', message: EMOJI_ONLY_MESSAGE };
+  const allParts = extractStrings(value);
+  // A multi-field answer keeps what is there: when the clock ran out on a
+  // student with one box still empty, the whole answer was refused as too
+  // short and vanished with no round and no message (a reviewer,
+  // 2026-09-29). Empty boxes are skipped as long as one box has words; a
+  // plain string is checked as typed.
+  const multi = !!value && typeof value === 'object';
+  const parts = multi ? allParts.filter(p => String(p).trim().length > 0) : allParts;
   if (parts.length === 0) {
     return { ok: false, reason: 'empty', message: 'Please write a response.' };
   }
@@ -166,7 +198,15 @@ export function filterName(name) {
   const plain = filterContent(name);
   if (plain.blocked) return plain;
   if (!name || typeof name !== 'string') return { blocked: false };
-  const variants = normalizedVariants(name);
+  // A name is short, so the spaces come out too: "S h i t" went up on the
+  // projector as S H I T, the capitals and the letter spacing closing the
+  // gaps (a reviewer, 2026-09-29). Answers keep their spaces.
+  const squashed = name.replace(/\s+/g, '');
+  if (squashed !== name) {
+    const closed = filterContent(squashed);
+    if (closed.blocked) return closed;
+  }
+  const variants = normalizedVariants(name).concat(squashed !== name ? normalizedVariants(squashed) : []);
   const heads = NAME_COMPOUND_HEADS.map(escapeRe).join('|');
   for (const { word, category } of BLOCKED_WORDS) {
     const pattern = escapeRe(collapseRepeats(word));

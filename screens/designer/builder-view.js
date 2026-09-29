@@ -314,7 +314,7 @@
       // AI steps transform answers; without a question step earlier there
       // is nothing to transform (this used to be a silent no-op).
       if (!S.buildAiPair(S.aiFlavors()[0], ctx)) {
-        alert('AI steps transform the class\'s answers. Add a question step first (Open answer, Multiple choice, or Secret + clue).');
+        Dialog.alert('AI steps transform the class\'s answers. Add a question step first (Open answer, Multiple choice, or Secret + clue).');
         return;
       }
       // Palette AI tile → open the flavor question at that gap instead.
@@ -328,7 +328,7 @@
       if (type === 'who-rounds') ctx.guess = 'who';
       var rounds = S.buildGuessingRounds(ctx);
       if (!rounds) {
-        alert('Guessing rounds cycle through answers, add a question step (like Open answer or Secret + clue) first.');
+        Dialog.alert('Guessing rounds cycle through answers, add a question step (like Open answer or Secret + clue) first.');
         return;
       }
       S.insertAfter(p, after, rounds.id, rounds.phase);
@@ -360,7 +360,7 @@
     if (!p) return;
     var pair = S.buildAiPair(flavor, { phases: p, afterId: afterId });
     if (!pair) {
-      alert('AI steps transform the class\'s answers. Add a question step first (Open answer, Multiple choice, or Secret + clue).');
+      Dialog.alert('AI steps transform the class\'s answers. Add a question step first (Open answer, Multiple choice, or Secret + clue).');
       return;
     }
     S.insertAfter(p, afterId, pair[0].id, pair[0].phase);
@@ -682,10 +682,10 @@
         var delBtn = el('button', 'builder-step-tool builder-step-del', '✕');
         delBtn.type = 'button';
         delBtn.title = 'Delete this step';
-        delBtn.addEventListener('click', function (e) {
+        delBtn.addEventListener('click', async function (e) {
           e.stopPropagation();
           var label = TYPE_LABELS[phase.type] || phase.type;
-          if (!confirm('Delete step ' + num + ' (' + label + ')? This cannot be undone.')) return;
+          if (!(await Dialog.confirm({ title: 'Delete step ' + num + ' (' + label + ')?', message: 'This cannot be undone.', confirmLabel: 'Delete', cancelLabel: 'Keep it' }))) return;
           if (typeof deletePhase === 'function') deletePhase(id);
         });
         tools.appendChild(delBtn);

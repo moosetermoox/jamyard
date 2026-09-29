@@ -53,7 +53,15 @@ export const NAME_INSULTS = [
   'buttface',
   'badass',
   'poophead',
-  'fatso'
+  'fatso',
+  // body shaming (2026-09-29, "Fatty" went up): Fatima and Pigott still pass
+  'fatty',
+  'fat',
+  'ugly',
+  'pig',
+  'piggy',
+  'porky',
+  'lardo'
 ];
 
 // Slurs and hate terms. These are filtered with no tolerance. Listed here as

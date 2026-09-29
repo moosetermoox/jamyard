@@ -91,7 +91,7 @@ describe('the games list is scoped to the visitor', () => {
 
   it('every first save asks the server to dedupe the id and takes the one it answers with', async () => {
     const server = await read('server.js');
-    expect(server).toContain('if (req.body.dedupe === true) id = await mintCopyId(id, gameIdTaken);');
+    expect(server).toContain('if (req.body.dedupe === true) id = await mintPrivateId(id, gameIdTaken);');
     const miy = await read('screens/shared/make-it-yours.js');
     expect(miy).toContain('body: JSON.stringify({ id: copyId, config: config, dedupe: true })');
     expect(miy).toContain('var savedId = d.id || copyId;');
