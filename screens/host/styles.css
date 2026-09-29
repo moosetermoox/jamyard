@@ -2510,6 +2510,11 @@ select,
 
 .winner-entry { transform: rotate(0.4deg); box-shadow: 0 4px 6px rgba(50, 35, 15, 0.22), inset 0 0 0 3px var(--theme-success, #22A05A); }
 .buzz-status { transform: rotate(0.3deg); }
+/* the locked card keeps its paint over the boards rule (its words were paper on paper) */
+.buzz-status.buzz-status-locked {
+  background: var(--theme-button, #E5482B);
+  color: var(--theme-button-text, #FDF9F0);
+}
 .turn-item-card { transform: rotate(-0.4deg); }
 .one-voice-banner { transform: rotate(0.35deg); }
 
