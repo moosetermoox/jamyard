@@ -66,11 +66,10 @@ describe('classifyJoin', () => {
     expect(verdict.kind).toBe('fresh');
   });
 
-  it('empty name still reconnects a disconnected "Anonymous"', () => {
+  it('an empty name never reclaims a disconnected "Anonymous" seat (2026-09-29; the token does)', () => {
     players.add('sock-3', '', 'token-anon');
     players.disconnect('sock-3');
     const verdict = classifyJoin(players, { token: null, name: '', anonymousRoom: false });
-    expect(verdict.kind).toBe('reconnect');
-    expect(verdict.player.id).toBe('sock-3');
+    expect(verdict.kind).toBe('fresh');
   });
 });

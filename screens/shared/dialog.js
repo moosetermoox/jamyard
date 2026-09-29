@@ -23,7 +23,7 @@
   'use strict';
 
   if (typeof document === 'undefined') {
-    globalThis.Dialog = { enhance: function () { return { close: function () {} }; } };
+    globalThis.Dialog = { enhance: function () { return { close: function () {} }; }, confirm: function () { return Promise.resolve(false); }, alert: function () { return Promise.resolve(true); } };
     return;
   }
 
@@ -200,5 +200,13 @@
     });
   }
 
-  globalThis.Dialog = { enhance: enhance, confirm: confirm, dismiss: dismiss };
+  // One-button notice in place of the browser's alert() (2026-09-29: the
+  // designer still used it, and a tab stuck on a native box). Takes a
+  // string or { title, message, confirmLabel }; resolves when closed.
+  function alert(opts) {
+    if (typeof opts === 'string') opts = { message: opts };
+    opts = opts || {};
+    return confirm({ title: opts.title || 'Heads up', message: opts.message, confirmLabel: opts.confirmLabel || 'OK', cancelLabel: null });
+  }
+  globalThis.Dialog = { enhance: enhance, confirm: confirm, alert: alert, dismiss: dismiss };
 })();

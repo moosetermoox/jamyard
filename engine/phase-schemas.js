@@ -544,6 +544,11 @@ export const PHASE_SCHEMAS = {
         ],
         optional: true, label: 'Data to pass in'
       },
+      inputFields: {
+        type: 'array', item: { type: 'string' }, optional: true,
+        label: 'Only these boxes',
+        helper: 'Optional, for a multi-box step: the field keys the AI may read. Two Truths and a Lie passes ["truth1", "truth2"] so the lie never reaches the summary as a fact.'
+      },
       task: {
         type: 'enum',
         values: ['summarize', 'generate', 'generate-choices', 'compare', 'rank', 'judge'],

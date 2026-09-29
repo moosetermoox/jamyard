@@ -29,6 +29,18 @@ registerHandler('ai-process', {
     } else {
       responses = [];
     }
+    // `inputFields`: the AI reads only these boxes of a multi-field answer.
+    // Two Truths' summary read "truth | truth | lie" with an instruction to
+    // ignore the last part, and one run presented the lie as a fact (a
+    // reviewer, 2026-09-29). Rebuilding the text from the named keys makes
+    // the prompt honest by construction.
+    if (Array.isArray(phase.inputFields) && phase.inputFields.length) {
+      responses = responses.map(r => {
+        if (!r || typeof r !== 'object' || !r.fields || typeof r.fields !== 'object') return r;
+        const kept = phase.inputFields.map(k => r.fields[k]).filter(v => typeof v === 'string' && v.trim());
+        return { ...r, text: kept.join(' | ') };
+      }).filter(r => !(r && typeof r === 'object' && 'fields' in r && !r.text));
+    }
 
     // Generate tasks synthesize content from a byte-identical instruction
     // every session, and identical requests make the model converge on its

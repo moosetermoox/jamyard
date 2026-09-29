@@ -133,7 +133,8 @@ describe('Rename and Remove on the console', () => {
     expect(player).toContain('playerNameDisplay.textContent = name;');
     const host = read('screens/host/host.js');
     expect(host).not.toContain("window.confirm('Remove '");
-    expect(host).toContain("confirmLabel: 'Remove', cancelLabel: 'Keep them'");
+    expect(host).not.toContain("confirmLabel: 'Remove'"); // 2026-09-29: Remove left the projector, the console has it
+    expect(read('screens/teacher/teacher.js')).toContain("confirmLabel: 'Remove'");
   });
 });
 

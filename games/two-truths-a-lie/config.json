@@ -71,8 +71,9 @@
     },
     "ai-analyze": {
       "type": "ai-process",
-      "instruction": "These are 'Two Truths and a Lie' submissions. Each one has three parts separated by ' | ', the FIRST TWO parts are true, the LAST part is invented. Base your analysis ONLY on the true parts; never treat the last part of any submission as a fact. Identify interesting patterns among the truths: common themes (travel, pets, talents), the most surprising true facts, and shared experiences between students. Return a brief, engaging summary (3-4 sentences) highlighting the most interesting real discoveries about this group.",
+      "instruction": "These are the TRUE statements from a round of Two Truths and a Lie, two per student separated by ' | ' (the lies were left out). Identify interesting patterns among the truths: common themes (travel, pets, talents), the most surprising true facts, and shared experiences between students. Return a brief, engaging summary (3-4 sentences) highlighting the most interesting real discoveries about this group.",
       "input": "collect.responses",
+      "inputFields": ["truth1", "truth2"],
       "task": "summarize",
       "format": "text",
       "next": "reveal-insights"

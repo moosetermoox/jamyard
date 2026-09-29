@@ -567,9 +567,12 @@ window.addEventListener('message', function(e) {
           // The template's sample (one per field) first; otherwise each
           // field gets an answer matched to its own label/placeholder
           var fieldSample = Array.isArray(sample) ? sample[fi] : null;
+          var emojiBox = fieldInputs[fi].getAttribute('data-emoji-only') === '1';
+          var emojiPicks = ['🦁👑🌅', '🚢💔🧊', '🧙‍♂️💍🌋', '🦈🏖️😱', '🤖❤️🌱'];
           fieldInputs[fi].value = typeof fieldSample === 'string'
             ? fieldSample
-            : botFillAnswer(fieldInputs[fi].placeholder || promptDisplay.textContent);
+            : (emojiBox ? emojiPicks[Math.floor(Math.random() * emojiPicks.length)]
+              : botFillAnswer(fieldInputs[fi].placeholder || promptDisplay.textContent));
         }
         var btn = active.querySelector('button#submit-btn');
         if (btn && !btn.disabled) btn.click();
@@ -1111,6 +1114,7 @@ socket.on('join-error', ({ message }) => {
 socket.on('room-closed', () => {
   eliminatedBanner.hidden = true;
   isEliminated = false;
+  hideEarlyJoke();
   showSection(joinSection);
   joinBtn.disabled = false;
   currentRoomCode = null;
@@ -1128,6 +1132,9 @@ socket.on('kicked', ({ message } = {}) => {
   isEliminated = false;
   currentRoomCode = null;
   currentPlayerName = null;
+  // The joke bubble sat above "You have been removed" (a reviewer,
+  // 2026-09-29): it lives outside the sections, so showSection never hides it
+  hideEarlyJoke();
   showSection(joinSection);
   joinBtn.disabled = false;
   showError(message || 'You have been removed from this session.');
@@ -1498,6 +1505,9 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
       fieldInput.className = 'field-input';
       fieldInput.setAttribute('data-key', fieldDef.key);
       fieldInput.placeholder = fieldDef.placeholder || UiLang.t('Type your answer here...');
+      // An emoji-only box (Emoji Movies' clues): the server refuses letters
+      // in it, and the pretend students read the mark to answer in emoji
+      if (fieldDef.emojiOnly === true) fieldInput.setAttribute('data-emoji-only', '1');
       // Same cap as the single answer box (the server checks each field too)
       fieldInput.maxLength = responseMax;
       fieldsContainer.appendChild(fieldInput);
@@ -1512,13 +1522,19 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     var fieldsSubmitHandler = function() {
       var inputs = fieldsContainer.querySelectorAll('.field-input');
       var result = {};
-      var allFilled = true;
+      var firstEmpty = null;
       for (var k = 0; k < inputs.length; k++) {
         var val = inputs[k].value.trim();
-        if (!val) allFilled = false;
+        if (!val && !firstEmpty) firstEmpty = inputs[k];
         result[inputs[k].getAttribute('data-key')] = val;
       }
-      if (!allFilled) return;
+      if (firstEmpty) {
+        // Submit used to do nothing here, with no word (a reviewer,
+        // 2026-09-29): say which box, and put the cursor in it
+        showResponseNotice(UiLang.t('Fill in every box.'));
+        firstEmpty.focus();
+        return;
+      }
       socket.emit('submit-response', { code: currentRoomCode, response: result });
       awaitSubmitAck(submitBtn);
     };
@@ -1589,12 +1605,17 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
           : (typeof randomChoice === 'string' ? randomChoice : (randomChoice.text || randomChoice.name || String(randomChoice)));
         socket.emit('submit-response', { code: currentRoomCode, response: text });
       } else if (collectMode === 'fields') {
+        // Time's up: send what is there (the server keeps an answer with
+        // some boxes empty, 2026-09-29); nothing typed sends nothing
         var inputs = collectSection.querySelectorAll('.field-input');
         var result = {};
+        var anyFilled = false;
         for (var k = 0; k < inputs.length; k++) {
-          result[inputs[k].getAttribute('data-key')] = inputs[k].value.trim() || '';
+          var typed = inputs[k].value.trim() || '';
+          if (typed) anyFilled = true;
+          result[inputs[k].getAttribute('data-key')] = typed;
         }
-        socket.emit('submit-response', { code: currentRoomCode, response: result });
+        if (anyFilled) socket.emit('submit-response', { code: currentRoomCode, response: result });
       } else if (collectMode === 'drawing') {
         // Auto-submit whatever's on the pad; a blank pad submits nothing
         // (the server rejects empties, and the host closes the phase anyway)

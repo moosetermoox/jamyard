@@ -171,7 +171,7 @@ import { createIdeaLog, summarizeIdeaLog, isIdeaId } from './services/idea-log.j
 import { validateFeedback } from './engine/feedback-validate.js';
 import { createRateLimiter } from './engine/simple-rate-limit.js';
 import { createAnalytics, parseClientEvent, replayConfig } from './services/analytics.js';
-import { mintCopyId, prepareSharedCopy } from './engine/share-copy.js';
+import { mintPrivateId, prepareSharedCopy } from './engine/share-copy.js';
 import { ensureMeadowState, meadowIndexFor, allowNudge, clampFrac } from './engine/meadow-sync.js';
 import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
@@ -3564,7 +3564,9 @@ app.post('/api/games', async (req, res) => {
     // ("exit-ticket" -> "exit-ticket-3") and answers with the id it used.
     // The pages used to pick a free id from a list of EVERY id on the
     // server, which let anyone enumerate teachers' activities (2026-09-28).
-    if (req.body.dedupe === true) id = await mintCopyId(id, gameIdTaken);
+    // The id it lands under carries a random tail (2026-09-29): a slug plus a
+    // counter let a stranger walk /share and /make by guessing.
+    if (req.body.dedupe === true) id = await mintPrivateId(id, gameIdTaken);
     // Reject collision with built-in games (always on filesystem)
     try {
       await access(join(GAMES_DIR, id));
@@ -3629,7 +3631,7 @@ app.post('/api/games/:gameId/copy', async (req, res) => {
     }
     const source = await loadGameById(req.params.gameId);
     const config = prepareSharedCopy(source);
-    const newId = await mintCopyId(req.params.gameId, gameIdTaken);
+    const newId = await mintPrivateId(req.params.gameId, gameIdTaken);
     validate(config, newId);
     if (DB_ENABLED) {
       await saveUserGame(newId, config);
@@ -5083,7 +5085,8 @@ io.on('connection', (socket) => {
       if (currentPhase && currentPhase.type === 'collect' && !(isAppendOnly && typedNothing)) {
         const check = checkSubmission(response, {
           prompt: currentPhase.prompt,
-          maxLength: currentPhase.maxLength || undefined
+          maxLength: currentPhase.maxLength || undefined,
+          fields: Array.isArray(currentPhase.fields) ? currentPhase.fields : undefined
         });
         if (!check.ok) {
           console.log(`[submit-response] Rejected (${check.reason}) from ${socket.id}`);
@@ -6170,9 +6173,13 @@ io.on('connection', (socket) => {
     p.answers.push({ choice, correct });
     p.index += 1;
     recordEvent(room, 'solo-quiz-answer', { playerId: socket.id, index });
-    // Mirror progress for restart survival (the snapshot keeps phaseData)
+    // Mirror progress for restart survival (the snapshot keeps phaseData),
+    // and write the snapshot: it used to go out only on a step change, a
+    // join, or a rename, so a restart mid-quiz lost every answer since
+    // (a reviewer, 2026-09-29). persistRoom debounces the writes.
     const existing = room.engine.phaseData[state.phaseId] || {};
     room.engine.storePhaseData(state.phaseId, { ...existing, progress: state.progress });
+    persistRoom(code, room);
     const next = soloQuizPlayerPayload(state, socket.id, soloQuizPoints(phase));
     socket.emit(EVENTS.SOLO_QUIZ_FEEDBACK, soloQuizFeedback({
       answeredIndex: index,
