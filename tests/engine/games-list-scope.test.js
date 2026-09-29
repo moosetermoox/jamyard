@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { parseMine, wantedUserIds, onlyWanted } from '../../engine/games-list-scope.js';
+import { parseMine, wantedUserIds, onlyWanted, claimableIds } from '../../engine/games-list-scope.js';
 
 describe('parseMine', () => {
   it('is null when the parameter is absent (everything)', () => {
@@ -46,5 +46,25 @@ describe('onlyWanted', () => {
     const rows = [{ id: 'a' }, { id: 'b' }, { id: 'c' }, null];
     expect(onlyWanted(rows, ['c', 'a'])).toEqual([{ id: 'a' }, { id: 'c' }]);
     expect(onlyWanted(rows, [])).toEqual([]);
+  });
+});
+
+describe('claimableIds', () => {
+  const rows = [
+    { id: 'mine-1', config: { name: 'Mine' } },
+    { id: 'rose', config: { name: 'Rose', featured: true } },
+    { id: 'thorn', config: { name: 'Thorn' } },
+    { id: 'other', config: { name: 'Someone else' } }
+  ];
+  it('claims only the listed ids that came back as rows', () => {
+    expect(claimableIds(['mine-1', 'ghost'], rows, {})).toEqual(['mine-1']);
+  });
+  it('never claims a featured row, by saved flag or by override', () => {
+    expect(claimableIds(['mine-1', 'rose', 'thorn'], rows, { thorn: true })).toEqual(['mine-1']);
+  });
+  it('copes with nothing on any side', () => {
+    expect(claimableIds([], rows, {})).toEqual([]);
+    expect(claimableIds(['mine-1'], [], null)).toEqual([]);
+    expect(claimableIds(null, null, undefined)).toEqual([]);
   });
 });

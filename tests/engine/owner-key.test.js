@@ -78,7 +78,8 @@ describe('the wiring', () => {
     expect(server.match(/await mayWriteUserGame\(/g).length).toBeGreaterThanOrEqual(3);
     expect(server).toContain('await ownerKeys.stamp(id, ownerHashFromRequest(req))');
     expect(server).toContain('await ownerKeys.stamp(newId, ownerHashFromRequest(req))');
-    expect(server).toContain('await ownerKeys.claimMany(mine, presented)');
+    expect(server).toContain('await ownerKeys.claimMany(claimable, presented)');
+    expect(server).toContain('claimableIds(mine, userRowsSeen, overrides)');
     // a delete never claims: the row waits for its own browser
     expect(server).toContain("{ claim: false }");
     const db = read('db.js');

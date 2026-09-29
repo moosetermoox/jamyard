@@ -78,7 +78,7 @@ describe('the key rides every teacher door', () => {
   it('the projector hands it on and the console and report send it', () => {
     const host = read('screens/host/host.js');
     expect(host).toContain('HostLaunch.publish(PAIR_NONCE, code, teacherPin || null, teacherKey || null);');
-    expect((host.match(/if \(currentTeacherKey\) link \+= '&key=' \+ currentTeacherKey;/g) || []).length).toBe(2);
+    expect((host.match(/if \(currentTeacherKey\) link \+= '&key=' \+ currentTeacherKey;/g) || []).length).toBe(1);
     const teacher = read('screens/teacher/teacher.js');
     expect(teacher).toContain("socket.emit('join-teacher', { code: code, pin: pin, key: linkKey });");
     expect(teacher).toContain("socket.emit('join-teacher', { code: currentCode, pin: currentPin, key: currentKey });");

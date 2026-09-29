@@ -188,7 +188,6 @@ teacherLinkCopyBtn.addEventListener('click', () => {
   let link = window.location.origin + '/teacher#code=' + currentRoomCode;
   if (currentTeacherPin) link += '&pin=' + currentTeacherPin;
   if (currentTeacherKey) link += '&key=' + currentTeacherKey;
-  if (currentTeacherKey) link += '&key=' + currentTeacherKey;
   const done = () => showCopyFeedback('✓ Copied, paste it in a private window');
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(link).then(done).catch(() => fallbackCopy(link, done));

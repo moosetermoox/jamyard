@@ -825,7 +825,7 @@ submitBtn.addEventListener('click', () => {
 // whichever input the student is actually using — merge drafts and relay
 // turns get rejected too, not just collect answers.
 socket.on('response-rejected', ({ message }) => {
-  var notice = UiLang.t(message || 'That response wasn’t accepted. Please try again.');
+  var notice = UiLang.t(message || 'Not sent yet. Please try again.');
   var active = document.querySelector('section.active');
   clearSubmitPending();
 
@@ -2925,6 +2925,7 @@ function renderRankItems() {
 
       var downBtn = document.createElement('button');
       downBtn.className = 'rank-arrow';
+      downBtn.setAttribute('aria-label', UiLang.t('Move down') + ': ' + label.textContent);
       downBtn.textContent = '\u25BC';
       downBtn.disabled = index === rankCurrentOrder.length - 1;
       downBtn.addEventListener('click', function() {
@@ -3065,7 +3066,6 @@ function renderMatchRows() {
       var downBtn = document.createElement('button');
       downBtn.className = 'rank-arrow';
       downBtn.textContent = '▼';
-      downBtn.setAttribute('aria-label', UiLang.t('Move down') + ': ' + label.textContent);
       downBtn.setAttribute('aria-label', UiLang.t('Move down') + ': ' + label.textContent);
       downBtn.disabled = index === matchLeftItems.length - 1;
       downBtn.addEventListener('click', function() { swapMatchRows(index, index + 1); });

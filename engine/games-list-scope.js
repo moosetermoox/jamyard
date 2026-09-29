@@ -70,3 +70,28 @@ export function onlyWanted(rows, ids) {
   const want = new Set(ids || []);
   return (rows || []).filter(r => r && want.has(r.id));
 }
+
+/**
+ * The ids a visitor's list may CLAIM (2026-09-28, an owner-key hole): a row
+ * saved before the owner key has no key, and the browser that lists it under
+ * `?mine=` takes it. Featured user rows are in every visitor's list, so
+ * their ids are public; a visitor who put one in `mine` must never take it
+ * (the claim would let them overwrite or delete the owner's curated row).
+ * Only ids that came back as rows count, and never one the owner featured
+ * by override or by its saved config.
+ * @param {string[]} mine the ids the browser says are its own
+ * @param {Array<{id: string, config?: object}>} rows the user rows the list loaded
+ * @param {Record<string, boolean>} overrides featured overrides (id -> boolean)
+ * @returns {string[]}
+ */
+export function claimableIds(mine, rows, overrides) {
+  const asked = new Set(mine || []);
+  const out = [];
+  for (const row of rows || []) {
+    if (!row || !asked.has(row.id)) continue;
+    const featured = !!(row.config && row.config.featured) || !!(overrides && overrides[row.id]);
+    if (featured) continue;
+    out.push(row.id);
+  }
+  return out;
+}

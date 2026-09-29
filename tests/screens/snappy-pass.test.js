@@ -66,7 +66,7 @@ describe('the socket pages', () => {
 describe('the games list is scoped to the visitor', () => {
   it('the route reads ?mine=, and only the owner gets the unscoped list', async () => {
     const server = await read('server.js');
-    expect(server).toContain("import { parseMine, wantedUserIds } from './engine/games-list-scope.js';");
+    expect(server).toContain("import { parseMine, wantedUserIds, claimableIds } from './engine/games-list-scope.js';");
     expect(server).toContain('const mine = parseMine(req.query.mine) || (owner ? null : []);');
     // no list of every id on the server (2026-09-28: it let anyone
     // enumerate teachers' activities); the save dedupes instead
