@@ -35,7 +35,7 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-09-28, night: branch `review-eighteen` built, PR open, NOT merged; restart :3000 before using it locally)
+### START HERE next session (updated 2026-09-28, night: #136 `review-eighteen` MERGED and verified live by the reviewer; polish on `review-eighteen-polish`)
 
 **An eighteenth outside review plus the owner's asks, in one paragraph.** Four passes by one reviewer (layout, popups and Try it out, full plays with a phone, ten teacher ideas through Create), fixed as seven parallel slices: a guessing student could lock the teacher out of the console (now a per-room teacher key the host's browser carries, typed PINs still throttled) and anyone could list every saved activity (bare list owner-only, `ids` gone, the server dedupes save ids); Solo Quiz said "Correct!" on a wrong answer after a right one; Vocab Match dealt matched pairs and stranded late joiners; an empty AI step put the model's "paste the list" on the projector; the make page read a typed "2" as ten seconds and lost edits on reload, and its quiz panel made duplicate copies; Try it out's Feedback bar covered both panels at laptop height; plus the home and designer lists (CHANGELOG has all of it). The owner's asks shipped: Change my name in the lobby, pick-then-confirm voting, m:ss timers, a long-text pass (before/after shots were in the session scratchpad), and the answer on Show (below).
 

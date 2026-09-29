@@ -321,9 +321,15 @@
         longNote.hidden = true;
         longNote.textContent = 'Long questions show smaller on the projector. A shorter one reads from the back of the room.';
         el.prompt.appendChild(longNote);
-        var watchLength = function () { longNote.hidden = String(state.promptBox.value || '').length <= LONG_QUESTION_CHARS; };
-        state.promptBox.box.addEventListener('input', watchLength);
-        watchLength();
+        // Only about the teacher's own words: a template whose question is
+        // long already (Whose Eyes?) says nothing until it is changed, and a
+        // restored draft is checked again (scheduleMap calls this)
+        state.watchLength = function () {
+          var value = String(state.promptBox.value || '');
+          longNote.hidden = !(value !== print.prompt.text && value.length > LONG_QUESTION_CHARS);
+        };
+        state.promptBox.box.addEventListener('input', state.watchLength);
+        state.watchLength();
       } else {
         var fixed = document.createElement('div');
         fixed.className = 'print-prompt print-prompt-fixed';
@@ -818,6 +824,7 @@
 
   function scheduleMap() {
     saveDraftSoon();
+    if (state.watchLength) state.watchLength();
     clearTimeout(mapTimer);
     mapTimer = setTimeout(refreshMap, 400);
     updateFitFoot();

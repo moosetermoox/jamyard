@@ -377,6 +377,10 @@ socket.on('connect', function () {
       if (savedCode) codeInput.value = savedCode;
       if (savedPin) pinInput.value = savedPin;
       if (savedCode) linkKey = sessionStorage.getItem('teacherKey') || '';
+      // A reload of a console that was in a room goes straight back in
+      // (a reviewer had to tap Connect over their own filled-in form);
+      // a room that has ended says so under the form
+      if (savedCode && (savedPin || linkKey)) tryJoin();
     } catch (e) { /* storage unavailable */ }
   }
 });

@@ -2199,6 +2199,11 @@ input::placeholder, textarea::placeholder {
 .sq-right { color: var(--t-green, #2E9E5B); }
 .sq-wrong { color: #AE3A16; }
 .choice-btn.picked { outline: 3px solid var(--t-ink, #2A2620); outline-offset: 2px; }
+.choice-btn.is-answer {
+  opacity: 1;
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), inset 0 0 0 4px var(--t-green, #2E9E5B);
+}
+.choice-btn.is-answer::before { content: '\2713'; display: inline-block; margin-right: 10px; font-weight: 900; color: var(--t-green, #2E9E5B); }
 .sq-done { text-align: center; }
 .sq-done[hidden] { display: none; }
 
@@ -2620,6 +2625,11 @@ html, body { overflow-x: hidden; }
   display: block;
   width: 100%;
   margin-top: 14px;
+  /* a long list never pushes the send button out of reach (Both Sides'
+     five choices in Try it out's student panel, review eighteen) */
+  position: sticky;
+  bottom: 10px;
+  z-index: 2;
   background: var(--theme-button, #E5482B);
   color: var(--theme-button-text, #FDF9F0);
   --rot: -1deg;
