@@ -30,11 +30,11 @@ describe('the make page with a copy that is already yours', () => {
   it('saves edits back to the same activity instead of spawning a copy', async () => {
     const src = await read('screens/make/make.js');
     expect(src).toContain('function saveAndGo');
-    const fn = src.slice(src.indexOf('function saveAndGo'));
-    expect(fn.slice(0, 1200)).toContain("method: 'PUT'");
+    expect(src.slice(src.indexOf('function saveReady')).slice(0, 1400)).toContain("method: 'PUT'");
     expect(src).toContain('MyGames.has(gameId)');
-    // The doors go through it; the only direct call to the copy helper is
-    // saveAndGo's own fallback for a built-in
-    expect(src.match(/MakeItYours\.saveCopyAndReturn\(/g)).toHaveLength(1);
+    // The doors go through it; the one call to the copy helper is saveReady's
+    // new copy from a template (review eighteen: and it is reused after)
+    expect(src.match(/MakeItYours\.saveCopy\(/g)).toHaveLength(1);
+    expect(src).not.toContain('MakeItYours.saveCopyAndReturn(');
   });
 });

@@ -544,7 +544,11 @@ describe('generateQuizQuestions (quiz Customize panel)', () => {
       }) }]
     });
     const result = await service.generateQuizQuestions({ topic: 'anything here', count: 5 });
-    expect(result.questions).toEqual([{ question: 'Good?', choices: ['yes', 'no'], correct: 'yes' }]);
+    // the choices come back shuffled (review eighteen), so compare as a set
+    expect(result.questions).toHaveLength(1);
+    expect(result.questions[0].question).toBe('Good?');
+    expect(result.questions[0].correct).toBe('yes');
+    expect(result.questions[0].choices.slice().sort()).toEqual(['no', 'yes']);
   });
 
   it('real mode returns a friendly error when nothing usable comes back', async () => {

@@ -51,27 +51,54 @@
 // Save the teacher's copy, then go where they said: the designer (Simple
 // view), the simulator, or a live host room (`dest`, see COPY_DOORS).
 function saveCopyAndReturn(config, dest) {
+  return saveCopy(config).then(function (copyId) {
+    window.location.href = copyDestinationUrl(dest, copyId);
+    return copyId;
+  });
+}
+
+// Save a new copy and resolve with its id, in My yard (MyGames) before
+// anything navigates. An id someone else took since the list was read
+// (409) moves on to the next number, a few times, rather than failing.
+function saveCopy(config) {
   delete config.featured; // the copy is yours, not the public front door's
   var base = (config.name || 'my-activity').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40) || 'my-activity';
-  var existing = knownIds.slice();
-  var copyId = base;
-  var counter = 2;
-  while (existing.indexOf(copyId) !== -1) { copyId = base + '-' + counter; counter++; }
-  return fetch('/api/games', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: copyId, config: config })
-  }).then(function (resp) {
-    if (!resp.ok) {
-      return resp.json().catch(function () { return {}; }).then(function (d) {
-        throw new Error(d.error || 'save failed');
-      });
-    }
-    if (window.MyGames) MyGames.add(copyId);
-    Recents.add(copyId);
-    window.location.href = copyDestinationUrl(dest, copyId);
-  });
+  function attempt(triesLeft) {
+    var copyId = base;
+    var counter = 2;
+    while (knownIds.indexOf(copyId) !== -1) { copyId = base + '-' + counter; counter++; }
+    return fetch('/api/games', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: copyId, config: config })
+    }).then(function (resp) {
+      if (resp.status === 409 && triesLeft > 0) {
+        knownIds.push(copyId);
+        return attempt(triesLeft - 1);
+      }
+      if (!resp.ok) {
+        return resp.json().catch(function () { return {}; }).then(function (d) {
+          throw new Error(d.error || 'save failed');
+        });
+      }
+      knownIds.push(copyId);
+      if (window.MyGames) MyGames.add(copyId);
+      Recents.add(copyId);
+      return copyId;
+    });
+  }
+  return attempt(4);
+}
+
+// A quiz or bluff panel mounted on the make page saves through the page
+// (opts.save): a copy that is already the teacher's, or one this page
+// already made, is written back with PUT, never a second copy (review
+// eighteen: one pass through Make it yours and Try it made two identical
+// Water Cycle quizzes). The dialog has no page, so it makes a new copy.
+var panelSave = null;
+function savePanelCopy(config, dest) {
+  return panelSave ? panelSave(config, dest) : saveCopyAndReturn(config, dest);
 }
 
 // The doors at the bottom of every Make it yours dialog: since 2026-09-07
@@ -509,7 +536,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount, opts) {
           if (extras.earlyJoke) { if (working.earlyJoke === false) delete working.earlyJoke; }
           else working.earlyJoke = false;
         }
-        return saveCopyAndReturn(working, dest);
+        return savePanelCopy(working, dest);
       })
       .catch(function (err) {
         doors.setDisabled(false);
@@ -953,7 +980,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
           if (extras.earlyJoke) { if (working.earlyJoke === false) delete working.earlyJoke; }
           else working.earlyJoke = false;
         }
-        return saveCopyAndReturn(working, dest);
+        return savePanelCopy(working, dest);
       })
       .catch(function (err) {
         doors.setDisabled(false);
@@ -981,6 +1008,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
 
 function customizeCopy(game, btn) {
   refreshKnownIds();
+  panelSave = null; // a dialog has no page to save through
   // Deliberately NOT Recents.add(game.id) here: clicking Customize is
   // opening-to-look, and looking must leave no trace in the yard (field
   // feedback 2026-08-24). The original enters recents only via Preview/
@@ -1808,10 +1836,12 @@ function askOtherSubject(picked, onDone) { return window.ClassPicker.askOtherSub
     buildChipRow: buildChipRow,
     askOtherSubject: askOtherSubject,
     saveCopyAndReturn: saveCopyAndReturn,
+    saveCopy: saveCopy,
     openDraftCopy: openDraftCopy,
     // A recipe's setup panel rendered into a page element (the Make it
     // yours page); returns { makeCopy(dest, extras) }.
     mountPanel: function (panel, game, config, summary, mount, opts) {
+      panelSave = (opts && typeof opts.save === 'function') ? opts.save : null;
       if (panel === 'quiz') return showQuizCustomizeDialog(game, config, summary, mount, opts);
       if (panel === 'bluff') return showBluffCustomizeDialog(game, config, summary, mount);
       if (panel === 'knobs') {
