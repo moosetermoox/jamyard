@@ -90,6 +90,16 @@
   <section id="waiting-section" hidden>
     <h1>You're in!</h1>
     <p>Playing as: <strong id="player-name"></strong></p>
+    <button type="button" id="rename-open" class="rename-open" hidden>Change my name</button>
+    <form id="rename-form" class="rename-form" hidden>
+      <label for="rename-input" class="rename-label">Your new name</label>
+      <input type="text" id="rename-input" maxlength="20" autocomplete="off">
+      <div class="rename-actions">
+        <button type="submit" id="rename-save">Save name</button>
+        <button type="button" id="rename-cancel" class="rename-cancel">Keep it</button>
+      </div>
+      <p id="rename-error" class="rename-error" role="alert" hidden></p>
+    </form>
     <p id="lobby-count" class="holding-progress" hidden></p>
     <div id="lobby-avatars" class="holding-avatars" hidden></div>
     <div class="holding-dots" aria-hidden="true"><span></span><span></span><span></span></div>

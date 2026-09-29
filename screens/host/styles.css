@@ -1717,6 +1717,18 @@ body.in-activity h1 {
 }
 .msg-rich strong { font-weight: 900; }
 
+/* Long reads (2026-09-28, the owner: long blocks were hard to read and
+   had no hierarchy): one block per paragraph with a real gap, the first
+   paragraph of plain prose as a heavier lead when it is short, and past
+   ~520 characters a wider measure so the wall is fewer, fuller lines
+   (the size stays: the back row reads it; fit-screen shrinks the rare
+   read that still overflows). */
+.msg-rich .msg-rich-para { margin: 0 0 0.8em; text-wrap: pretty; }
+.msg-rich .msg-rich-para:last-child { margin-bottom: 0; }
+.msg-rich .msg-lead { font-weight: 700; font-size: 1.08em; line-height: 1.4; }
+.msg-rich.msg-long { max-width: 48ch; }
+.msg-rich .msg-bullet-text { text-wrap: pretty; }
+
 /* Response lists render as cards, not a text blob (PROJECTOR-STYLE rule 4) */
 .msg-list { display: flex; flex-direction: column; gap: 10px; max-width: 48ch; margin: 0 auto; }
 .msg-card {

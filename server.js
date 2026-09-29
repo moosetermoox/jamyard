@@ -181,6 +181,7 @@ import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance
 import { ensureReviewGate } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
 import { checkSubmission, filterContent, filterName, NAME_REFUSED_MESSAGE } from './engine/content-filter.js';
+import { checkNewName, SELF_RENAME_MESSAGES } from './engine/student-rename.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
 import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
 import { remapForeachSubConfig, resolveCurrentRefsInSubConfig } from './engine/phases/foreach-remap.js';
@@ -5378,33 +5379,62 @@ io.on('connection', (socket) => {
     const players = room.engine.players;
     const target = players.find(playerId);
     if (!target) return;
-    const wanted = String(payload.name || '').trim().slice(0, 20);
-    if (wanted.length < 2) {
-      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message: 'A name needs at least two letters.' });
+    const verdict = checkNewName(players.list(), playerId, payload.name, filterName);
+    if (!verdict.ok) {
+      if (verdict.reason === 'same') return;
+      const message = verdict.reason === 'short' ? 'A name needs at least two letters.'
+        : verdict.reason === 'blocked' ? 'That name cannot go on the big screen either.'
+          : 'Someone in the room already has that name.';
+      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message });
       return;
     }
-    if (filterName(wanted).blocked) {
-      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message: 'That name cannot go on the big screen either.' });
+    applyRename(code, room, playerId, verdict.name, `Your teacher changed your name to ${verdict.name}.`, 'moderate-rename');
+  });
+
+  // A student changes their own name (2026-09-28, the owner: students
+  // asked for it). Lobby only, so no answer, pairing, or score has been
+  // stored under the old one yet; never in an anonymous room. The same
+  // checks and the same broadcast as the console's Rename.
+  socket.on(EVENTS.RENAME_SELF, (payload = {}) => {
+    if (!checkEventPayload(socket, 'rename-self', payload)) return;
+    const { code } = payload;
+    const room = roomManager.find(code);
+    if (!room || socketToRoom.get(socket.id) !== code) return;
+    if (room.engine && room.engine.config && room.engine.config.anonymous) return;
+    const players = room.engine ? room.engine.players : room.playerRegistry;
+    if (!players || !players.find(socket.id)) return;
+    const phase = room.engine ? room.engine.getCurrentPhase() : null;
+    if (phase && phase.type !== 'lobby') {
+      socket.emit(EVENTS.RENAME_ERROR, { message: SELF_RENAME_MESSAGES.closed });
       return;
     }
-    const taken = players.list().some(p => p.id !== playerId && p.name.toLowerCase() === wanted.toLowerCase());
-    if (taken) {
-      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message: 'Someone in the room already has that name.' });
+    const verdict = checkNewName(players.list(), socket.id, payload.name, filterName);
+    if (!verdict.ok) {
+      if (verdict.reason === 'same') { socket.emit(EVENTS.RENAMED, { name: players.find(socket.id).name }); return; }
+      socket.emit(EVENTS.RENAME_ERROR, { message: SELF_RENAME_MESSAGES[verdict.reason] });
       return;
     }
+    applyRename(code, room, socket.id, verdict.name, null, 'rename-self');
+  });
+
+  // One broadcast for a seat's new name: the student, the projector, the
+  // consoles, the lobby roster, the submission lists, the snapshot.
+  function applyRename(code, room, playerId, wanted, message, eventName) {
+    const players = room.engine ? room.engine.players : room.playerRegistry;
+    const target = players.find(playerId);
     const was = target.name;
     players.update(playerId, { name: wanted });
-    recordEvent(room, 'moderate-rename', { from: was, to: wanted });
-    console.log(`[moderate-rename] ${code}: "${was}" is now "${wanted}"`);
+    recordEvent(room, eventName, { from: was, to: wanted });
+    console.log(`[${eventName}] ${code}: "${was}" is now "${wanted}"`);
     const renamed = io.sockets.sockets.get(playerId);
-    if (renamed) renamed.emit(EVENTS.RENAMED, { name: wanted, message: `Your teacher changed your name to ${wanted}.` });
+    if (renamed) renamed.emit(EVENTS.RENAMED, message ? { name: wanted, message } : { name: wanted });
     const hostSocketId = roomToHost.get(code);
     if (hostSocketId) io.to(hostSocketId).emit(EVENTS.PLAYER_RECONNECTED, { id: playerId, name: wanted, players: players.listPublic() });
     emitTeacherRoster(code, room);
     emitRoomRoster(code, room);
     emitSubmissionsUpdate(code, room);
     persistRoom(code, room);
-  });
+  }
 
   // --- "A bit more time": teacher adds seconds to a running input timer ---
   // Covers every phase where the whole class works against one shared

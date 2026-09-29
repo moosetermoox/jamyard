@@ -1178,11 +1178,11 @@ function showMoreTimeBtn(containerEl) {
 }
 
 // The Totem timer is a chip that reads like a clock, not a ring
+// Always m:ss, so 58 seconds reads 0:58 and never a bare number (a
+// reviewer, 2026-09-28).
 function formatTimerText(seconds) {
-  if (seconds >= 60) {
-    return Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
-  }
-  return String(seconds);
+  var s = Math.max(0, Math.floor(Number(seconds) || 0));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
 function startTimer(seconds, containerEl, onExpire) {
@@ -1586,8 +1586,9 @@ function buildMessageBody(text, className) {
   }
   // AI results arrive markdown-flavored (# headings, ** bold, - bullets);
   // shared/rich-text.js structures them instead of showing the markers.
-  if (window.RichText && RichText.hasRich(text)) {
-    return RichText.buildBody(text, className);
+  // Long prose too (2026-09-28): paragraphs with a lead, not one blob.
+  if (window.RichText && (RichText.hasRich(text) || (RichText.isLongProse && RichText.isLongProse(text)))) {
+    return RichText.buildBody(text, className, { raw: !RichText.hasRich(text) });
   }
   var span = document.createElement('span');
   span.className = className;
@@ -2815,7 +2816,7 @@ function startHostTurnTimer(endAt) {
   function tick() {
     const remainingMs = Math.max(0, endAt - Date.now());
     const sec = Math.ceil(remainingMs / 1000);
-    if (txt) txt.textContent = sec;
+    if (txt) txt.textContent = formatTimerText(sec);
     if (fill) {
       const frac = Math.max(0, remainingMs / (totalSec * 1000));
       fill.style.strokeDashoffset = (1 - frac) * circumference;

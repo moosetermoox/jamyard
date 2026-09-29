@@ -1545,6 +1545,20 @@ textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width
 }
 .msg-rich strong { font-weight: 900; }
 
+/* Long reads (2026-09-28, the owner: long blocks were hard to read and
+   had no hierarchy): reading weight instead of all-bold (so a bold word
+   and a heading stand out again), one block per paragraph with a real
+   gap, the first paragraph of plain prose as the lead, and past ~520
+   characters a size down and a wider measure. */
+.msg-body.msg-rich { font-weight: 500; }
+.msg-rich strong { font-weight: 800; }
+.msg-rich .msg-subhead { font-weight: 800; }
+.msg-rich .msg-rich-para { margin: 0 0 0.8em; text-wrap: pretty; }
+.msg-rich .msg-rich-para:last-child { margin-bottom: 0; }
+.msg-rich .msg-lead { font-weight: 700; font-size: 1.06em; line-height: 1.45; }
+.msg-rich.msg-long { font-size: 0.66em; max-width: 58ch; }
+.msg-rich .msg-bullet-text { text-wrap: pretty; }
+
 .msg-list { display: flex; flex-direction: column; gap: 8px; max-width: 44ch; margin: 0 auto; }
 .msg-card {
   display: flex; align-items: baseline; gap: 8px; text-align: left;
@@ -2554,3 +2568,64 @@ html, body { overflow-x: hidden; }
 .join-brand-jam { background: #E9D9B4; color: var(--t-ink, #2A2620); transform: rotate(-2deg); }
 .join-brand-yard { background: var(--t-red, #E5482B); color: #fff; transform: rotate(1.5deg); }
 .join-brand:focus-visible { outline: 3px solid var(--t-ink, #2A2620); outline-offset: 3px; }
+
+/* Change my name (2026-09-28): a quiet text link in the lobby, the form
+   opens under it. Never on an anonymous room's screen. */
+.rename-open {
+  display: inline-block;
+  width: auto;
+  margin: 2px auto 6px;
+  padding: 6px 10px;
+  background: none;
+  color: var(--t-ink, #2A2620);
+  font-family: 'DM Sans', Arial, sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: none;
+  letter-spacing: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  clip-path: none;
+  filter: none;
+  transform: none;
+}
+.rename-open:hover { transform: none; text-decoration-thickness: 2px; }
+.rename-open:focus-visible { outline: 3px solid var(--t-ink, #2A2620); outline-offset: 2px; }
+.rename-form { max-width: 22em; margin: 6px auto 12px; text-align: left; }
+.rename-form[hidden] { display: none; }
+.rename-label { display: block; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #555; margin: 0 0 6px; }
+.rename-actions { display: flex; gap: 10px; }
+.rename-actions button { font-size: 1rem; padding: 12px; }
+#rename-save { background: var(--theme-button, #E5482B); color: var(--theme-button-text, #FDF9F0); }
+.rename-cancel { font-family: 'DM Sans', Arial, sans-serif; text-transform: none; letter-spacing: 0; }
+.rename-error { margin: 8px 0 0; font-weight: 700; color: #AE3A16; }
+.rename-error[hidden] { display: none; }
+
+/* Pick, then confirm (2026-09-28, the owner: a stray tap cast a vote).
+   The picked option wears a thick inset ink ring and a check (never a
+   color change); the confirm button is the red action under the list. */
+.choice-btn.is-selected,
+.vote-btn.is-selected {
+  box-shadow: 0 3px 4px rgba(50, 35, 15, 0.20), inset 0 0 0 4px var(--t-ink, #2A2620);
+}
+.choice-btn.is-selected::before,
+.vote-btn.is-selected::before {
+  content: '\2713';
+  display: inline-block;
+  margin-right: 10px;
+  font-weight: 900;
+}
+.vote-btn-drawing.is-selected::before { display: block; margin: 0 0 4px; }
+.ballot-confirm {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  background: var(--theme-button, #E5482B);
+  color: var(--theme-button-text, #FDF9F0);
+  --rot: -1deg;
+  clip-path: polygon(2% 8%, 98% 0, 100% 90%, 0 100%);
+}
+.ballot-confirm:disabled {
+  background: #D8D2C4;
+  color: #857A66;
+}

@@ -97,6 +97,27 @@ describe('parse', () => {
   });
 });
 
+// Long reads (2026-09-28, the owner: long blocks of text were hard to
+// read and had no hierarchy): paragraphs are their own blocks.
+describe('long prose', () => {
+  it('splits paragraphs at blank lines', () => {
+    const segs = RT.parse('First one.\n\nSecond one.\nstill second.\n\nThird.');
+    expect(segs.map(s => s.type)).toEqual(['text', 'text', 'text']);
+    expect(segs[1].lines).toHaveLength(2);
+  });
+  it('counts two paragraphs, or one long one, as long prose', () => {
+    expect(RT.isLongProse('One.\n\nTwo.')).toBe(true);
+    expect(RT.isLongProse('x'.repeat(300))).toBe(true);
+    expect(RT.isLongProse('A short line.')).toBe(false);
+    expect(RT.isLongProse('')).toBe(false);
+  });
+  it('raw skips the scrub, so a teacher\'s own words stay as written', () => {
+    const text = 'Overall, we did well.\n\nNext time — more.';
+    expect(RT.parse(text, { raw: true })[1].lines[0][0].text).toBe('Next time — more.');
+    expect(RT.parse(text)[1].lines[0][0].text).toBe('Next time, more.');
+  });
+});
+
 describe('plainLine', () => {
   it('strips heading and bold markers for headline slots', () => {
     expect(RT.plainLine('# THE ROPE')).toBe('THE ROPE');
@@ -151,7 +172,8 @@ describe('a yes-or-no vote result (2026-09-26)', () => {
   it('lays the lines out as tallies, the counts as their own tag, both colon lines as headings', () => {
     expect(RT.hasRich(RESULT)).toBe(true);
     const segs = RT.parse(RESULT);
-    expect(segs.map(x => x.type)).toEqual(['subhead', 'tallies', 'subhead', 'text']);
+    // "None." and the turnout are two paragraphs (a blank line apart, 2026-09-28)
+    expect(segs.map(x => x.type)).toEqual(['subhead', 'tallies', 'subhead', 'text', 'text']);
     expect(segs[1].items[0]).toEqual({ num: '1', runs: [{ text: 'Every state gets two senators.', bold: false }], tag: '3 yes, 1 no' });
     expect(segs[1].items[1].tag).toBe('2 yes, 1 no');
     expect(segs[2].text).toBe('Did not pass:');

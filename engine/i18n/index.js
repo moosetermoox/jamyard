@@ -349,7 +349,17 @@ export const STRINGS = {
     'class average': 'promedio de la clase',
     // The projector's vote mode line (2026-09-26)
     'Pick One': 'Elige uno',
-    'Head-to-Head': 'Uno contra uno'
+    'Head-to-Head': 'Uno contra uno',
+    // Change my name and the pick-then-confirm ballots (2026-09-28)
+    'Vote': 'Votar',
+    'Next matchup': 'Siguiente duelo',
+    'Change my name': 'Cambiar mi nombre',
+    'Save name': 'Guardar nombre',
+    'Keep it': 'Dejarlo así',
+    'Your new name': 'Tu nuevo nombre',
+    'A name needs at least two letters.': 'Un nombre necesita al menos dos letras.',
+    'Someone in the room already has that name.': 'Alguien en la sala ya tiene ese nombre.',
+    'Names can only change before the activity starts.': 'Los nombres solo se pueden cambiar antes de que empiece la actividad.'
   },
   fr: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -552,7 +562,17 @@ export const STRINGS = {
     'class average': 'moyenne de la classe',
     // The projector's vote mode line (2026-09-26)
     'Pick One': 'Choisis-en un',
-    'Head-to-Head': 'Face à face'
+    'Head-to-Head': 'Face à face',
+    // Change my name and the pick-then-confirm ballots (2026-09-28)
+    'Vote': 'Voter',
+    'Next matchup': 'Duel suivant',
+    'Change my name': 'Changer mon nom',
+    'Save name': 'Enregistrer le nom',
+    'Keep it': 'Le garder',
+    'Your new name': 'Ton nouveau nom',
+    'A name needs at least two letters.': 'Un nom a besoin d\'au moins deux lettres.',
+    'Someone in the room already has that name.': 'Quelqu\'un dans la salle a déjà ce nom.',
+    'Names can only change before the activity starts.': 'Les noms ne peuvent changer qu\'avant le début de l\'activité.'
   },
   de: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -755,7 +775,17 @@ export const STRINGS = {
     'class average': 'Klassendurchschnitt',
     // The projector's vote mode line (2026-09-26)
     'Pick One': 'Wähle eins',
-    'Head-to-Head': 'Eins gegen eins'
+    'Head-to-Head': 'Eins gegen eins',
+    // Change my name and the pick-then-confirm ballots (2026-09-28)
+    'Vote': 'Abstimmen',
+    'Next matchup': 'Nächstes Duell',
+    'Change my name': 'Meinen Namen ändern',
+    'Save name': 'Namen speichern',
+    'Keep it': 'So lassen',
+    'Your new name': 'Dein neuer Name',
+    'A name needs at least two letters.': 'Ein Name braucht mindestens zwei Buchstaben.',
+    'Someone in the room already has that name.': 'Jemand im Raum hat diesen Namen schon.',
+    'Names can only change before the activity starts.': 'Namen können nur vor dem Start der Aktivität geändert werden.'
   },
   pt: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -958,7 +988,17 @@ export const STRINGS = {
     'class average': 'média da turma',
     // The projector's vote mode line (2026-09-26)
     'Pick One': 'Escolha um',
-    'Head-to-Head': 'Um contra um'
+    'Head-to-Head': 'Um contra um',
+    // Change my name and the pick-then-confirm ballots (2026-09-28)
+    'Vote': 'Votar',
+    'Next matchup': 'Próximo duelo',
+    'Change my name': 'Mudar meu nome',
+    'Save name': 'Salvar nome',
+    'Keep it': 'Manter',
+    'Your new name': 'Seu novo nome',
+    'A name needs at least two letters.': 'Um nome precisa de pelo menos duas letras.',
+    'Someone in the room already has that name.': 'Alguém na sala já tem esse nome.',
+    'Names can only change before the activity starts.': 'Os nomes só podem mudar antes de a atividade começar.'
   },
   it: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1161,6 +1201,16 @@ export const STRINGS = {
     'class average': 'media della classe',
     // The projector's vote mode line (2026-09-26)
     'Pick One': 'Scegline uno',
-    'Head-to-Head': 'Uno contro uno'
+    'Head-to-Head': 'Uno contro uno',
+    // Change my name and the pick-then-confirm ballots (2026-09-28)
+    'Vote': 'Vota',
+    'Next matchup': 'Prossimo duello',
+    'Change my name': 'Cambia il mio nome',
+    'Save name': 'Salva nome',
+    'Keep it': 'Lascialo così',
+    'Your new name': 'Il tuo nuovo nome',
+    'A name needs at least two letters.': 'Un nome ha bisogno di almeno due lettere.',
+    'Someone in the room already has that name.': 'Qualcuno nella stanza ha già quel nome.',
+    'Names can only change before the activity starts.': 'I nomi si possono cambiare solo prima che inizi l\'attività.'
   }
 };

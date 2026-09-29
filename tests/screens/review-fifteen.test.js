@@ -120,9 +120,10 @@ describe('Rename and Remove on the console', () => {
     const block = server.slice(at, server.indexOf('socket.on(EVENTS.EXTEND_TIMER'));
     expect(block).toContain('if (!isTeacherSocket(code, room, socket.id)) return;');
     expect(block).toContain('if (room.engine.config && room.engine.config.anonymous) return;');
-    expect(block).toContain('if (filterName(wanted).blocked) {');
+    // the checks live in engine/student-rename.js since 2026-09-28, shared with a student's own Change my name
+    expect(block).toContain('checkNewName(players.list(), playerId, payload.name, filterName)');
     expect(block).toContain('players.update(playerId, { name: wanted });');
-    expect(block).toContain('renamed.emit(EVENTS.RENAMED, { name: wanted');
+    expect(block).toContain('renamed.emit(EVENTS.RENAMED, message ? { name: wanted, message }');
     expect(block).toContain('emitRoomRoster(code, room);');
     expect(block).toContain('emitTeacherRoster(code, room);');
   });
