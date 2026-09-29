@@ -1534,8 +1534,9 @@ function buildMessageBody(text, className) {
   }
   // AI results arrive markdown-flavored (# headings, ** bold, - bullets);
   // shared/rich-text.js structures them instead of showing the markers.
-  if (window.RichText && RichText.hasRich(text)) {
-    return RichText.buildBody(text, className);
+  // Long prose too (2026-09-28): paragraphs with a lead, not one blob.
+  if (window.RichText && (RichText.hasRich(text) || (RichText.isLongProse && RichText.isLongProse(text)))) {
+    return RichText.buildBody(text, className, { raw: !RichText.hasRich(text) });
   }
   var span = document.createElement('span');
   span.className = className;

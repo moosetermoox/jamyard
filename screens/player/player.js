@@ -1694,8 +1694,9 @@ function buildPlayerBody(text) {
   }
   // AI results arrive markdown-flavored (# headings, ** bold, - bullets);
   // shared/rich-text.js structures them instead of showing the markers.
-  if (window.RichText && RichText.hasRich(text)) {
-    return RichText.buildBody(text, 'msg-body');
+  // Long prose too (2026-09-28): paragraphs with a lead, not one blob.
+  if (window.RichText && (RichText.hasRich(text) || (RichText.isLongProse && RichText.isLongProse(text)))) {
+    return RichText.buildBody(text, 'msg-body', { raw: !RichText.hasRich(text) });
   }
   var span = document.createElement('span');
   span.className = text.indexOf('\n') !== -1 || text.length > 90 ? 'msg-body' : 'msg-solo';
