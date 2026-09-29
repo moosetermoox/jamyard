@@ -3598,6 +3598,13 @@ function sqBotStep(fn, ms) {
   else setTimeout(fn, ms);
 }
 
+// "The answer was Mercury" reads as a sentence: a period unless the
+// answer already ends in one (or a ? or !)
+function withPeriod(text) {
+  var s = String(text || '').trim();
+  return /[.?!]$/.test(s) ? s : s + '.';
+}
+
 function renderSoloQuestion(data) {
   showSection(soloQuizSection);
   sqDone.hidden = true;
@@ -3661,8 +3668,16 @@ socket.on('solo-quiz-feedback', function (data) {
   sqFeedback.textContent = data.right
     ? UiLang.t('Correct!')
     : (data.correctAnswer
-      ? UiLang.t('Not quite.') + ' ' + UiLang.t('The answer was') + ' ' + data.correctAnswer
+      ? UiLang.t('Not quite.') + ' ' + UiLang.t('The answer was') + ' ' + withPeriod(data.correctAnswer)
       : UiLang.t('Not quite.'));
+  // The right choice wears a green ring, so a wrong pick shows where
+  // the answer was (the choice's words are the key, as the server checks)
+  if (data.correctAnswer) {
+    var shown = sqChoices.querySelectorAll('.choice-btn');
+    for (var ai = 0; ai < shown.length; ai++) {
+      if (shown[ai].textContent === String(data.correctAnswer)) shown[ai].classList.add('is-answer');
+    }
+  }
   if (J) J.sound(data.right ? 'blip' : 'womp');
   sqPending = data;
   sqNextBtn.hidden = false;
