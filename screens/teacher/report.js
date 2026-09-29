@@ -34,8 +34,11 @@
 
   // --- Load ---
 
-  function loadReport(code, pin) {
-    fetch('/api/rooms/' + encodeURIComponent(code) + '/report?pin=' + encodeURIComponent(pin))
+  // key = the teacher key from the console's link (engine/teacher-auth.js):
+  // it gets past a PIN lockout a guessing student caused.
+  function loadReport(code, pin, key) {
+    fetch('/api/rooms/' + encodeURIComponent(code) + '/report?pin=' + encodeURIComponent(pin) +
+      (key ? '&key=' + encodeURIComponent(key) : ''))
       .then(function (res) {
         return res.json().then(function (body) { return { ok: res.ok, body: body }; });
       })
@@ -80,8 +83,9 @@
     var params = new URLSearchParams(window.location.hash.slice(1));
     var code = (params.get('code') || '').toUpperCase().replace(/[^A-Z]/g, '');
     var pin = params.get('pin') || '';
+    var key = params.get('key') || '';
     try { history.replaceState(null, '', window.location.pathname); } catch (e) { /* old browser */ }
-    if (code.length === 4) loadReport(code, pin);
+    if (code.length === 4) loadReport(code, pin, key);
     else showConnect('');
   })();
 

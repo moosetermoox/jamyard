@@ -41,6 +41,10 @@
     "wrap": {
       "type": "announce",
       "message": "Your group got: **{{draft.mine}}**\n\nA second choice means another group wanted your first one just as much. Your teacher takes it from here.",
+      "hostTemplate": "What each group got:\n\n{{draft.assignedList}}",
+      "hostShow": [
+        "continueButton"
+      ],
       "next": "end"
     },
     "end": {

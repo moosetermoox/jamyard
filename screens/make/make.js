@@ -153,13 +153,9 @@
     return m + ':' + (s < 10 ? '0' : '') + s;
   }
 
+  // "2" and "2 min" are two minutes, "90s" is seconds (shared/timer-text.js)
   function parseTimer(text) {
-    var t = String(text || '').trim();
-    if (!t) return null;
-    var m = /^(\d{1,2}):(\d{1,2})$/.exec(t);
-    if (m) return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
-    var n = parseInt(t, 10);
-    return isNaN(n) ? null : n;
+    return TimerText.parse(text);
   }
 
   // No activity to show: the sections under the error would be empty
@@ -187,7 +183,7 @@
       ? fetch('/api/games/' + encodeURIComponent(gameId) + '/make', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(exampleEdits) })
         .then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { return d && d.print ? d.print : null; })
       : fetch('/api/games/' + encodeURIComponent(gameId) + '/print').then(function (r) { return r.ok ? r.json() : null; }),
-    fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(','))).then(function (r) { return r.ok ? r.json() : { games: [], ids: [] }; }).catch(function () { return { games: [], ids: [] }; })
+    fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(','))).then(function (r) { return r.ok ? r.json() : { games: [] }; }).catch(function () { return { games: [] }; })
   ]).then(function (parts) {
     state.config = parts[0];
     state.print = parts[1];
@@ -224,14 +220,16 @@
         return parts;
       });
   }).then(function (parts) {
-    if (window.MakeItYours && parts[2] && (Array.isArray(parts[2].ids) || Array.isArray(parts[2].games))) {
-      MakeItYours.seedIds(Array.isArray(parts[2].ids) ? parts[2].ids : parts[2].games.map(function (g) { return g.id; }));
+    if (window.MakeItYours && parts[2] && Array.isArray(parts[2].games)) {
+      MakeItYours.seedIds(parts[2].games.map(function (g) { return g.id; }));
     }
     render();
     applyExample();
     // What the boxes hold now (the template's or the example's words): a
     // class change may replace these, never words the teacher typed
     state.wordsSnapshot = wordsNow();
+    // Changes from an earlier visit go back into the boxes
+    restoreDraft();
   }).catch(function (err) {
     fail(err.message || 'Could not open this activity.');
     // A dead link (an old bookmark, a deleted copy): a way back, not a bare note
@@ -373,6 +371,7 @@
 
     // A matching activity's pairs, editable (a recipe panel owns its own)
     if (!state.panel) mountPairs(print.pairs);
+    if (!state.panel && el.pairsSection && !el.pairsSection.hidden) jumpNote(el.pairsSection, 'The pairs');
     // A rating activity's scales, editable (Class Critique)
     if (!state.panel && !print.scalesEditable) mountScales(print.scales);
     // A talk-only activity's questions, tier by tier, folded
@@ -410,6 +409,30 @@
     });
   })();
 
+  // A line under the screen above: where its words are changed, a link
+  // that scrolls there (review eighteen: Vocab Match's terms and Trivia
+  // Bluff's facts sit under the buttons, below a laptop's fold)
+  function jumpNote(section, heading) {
+    var paper = el.screen && el.screen.parentNode;
+    if (!paper || !paper.parentNode || document.getElementById('jump-note')) return;
+    var note = document.createElement('p');
+    note.className = 'example-note jump-note';
+    note.id = 'jump-note';
+    note.appendChild(document.createTextNode('Change ' + (/^The /.test(heading) ? heading.toLowerCase() : 'the words') + ' under '));
+    var link = document.createElement('a');
+    link.href = '#' + section.id;
+    link.textContent = heading;
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      var first = section.querySelector('input, textarea, [contenteditable="true"]');
+      if (first) setTimeout(function () { first.focus({ preventScroll: true }); }, 400);
+    });
+    note.appendChild(link);
+    note.appendChild(document.createTextNode(', below the buttons.'));
+    paper.parentNode.insertBefore(note, paper.nextSibling);
+  }
+
   // The recipe's own editor, under the doors: the dialog's panel, mounted
   function mountPanel() {
     var section = document.getElementById('panel-section');
@@ -417,9 +440,17 @@
     var heading = document.getElementById('panel-heading');
     if (!section || !window.MakeItYours || !MakeItYours.mountPanel) return;
     heading.textContent = state.panel === 'bluff' ? 'The facts' : state.panel === 'knobs' ? 'Set it up' : 'The questions';
-    state.panelApi = MakeItYours.mountPanel(state.panel, { id: gameId, name: state.config.name || 'Activity' }, state.config, state.summary, holder, { onChange: previewParams });
+    state.panelApi = MakeItYours.mountPanel(state.panel, { id: gameId, name: state.config.name || 'Activity' }, state.config, state.summary, holder, {
+      onChange: previewParams,
+      // the quiz and bluff panels save through the page: an own copy, or the
+      // one this page already made, is written again, never a second copy
+      save: function (working, dest) { return saveReady(working, dest); }
+    });
     if (!state.panelApi) return;
     section.hidden = false;
+    // The words are edited down there, not in the screen above (a reviewer
+    // could not find Trivia Bluff's facts: the panel starts under the fold)
+    if (state.panel !== 'knobs' || state.contentKnobs) jumpNote(section, heading.textContent);
     // An example on the stamp is a change from the template: a knobs
     // panel that thinks nothing was touched would host the original
     if (state.exampleParams && state.panelApi.touched) {
@@ -450,15 +481,15 @@
       .catch(function () { /* the page keeps what it had */ });
   }
 
-  // The timer chip turns into a small box (2:00 or 120), Enter or blur sets it
+  // The timer chip turns into a small box (2:00, 2, 2 min, 90s), Enter or blur sets it
   function editTimer() {
     if (el.timerRow.querySelector('input')) return;
     var input = document.createElement('input');
     input.type = 'text';
     input.className = 'timer-input';
     input.value = mmss(state.timer);
-    input.setAttribute('aria-label', 'Timer, minutes and seconds');
-    input.maxLength = 6;
+    input.setAttribute('aria-label', 'Timer: 2 for two minutes, 90s for seconds, or 2:30');
+    input.maxLength = 12;
     el.timerChip.hidden = true;
     el.timerRow.insertBefore(input, el.timerNote);
     input.focus();
@@ -570,10 +601,10 @@
 
     var names = rowEl('Student names');
     var shown = chipButton('Shown', !state.anonymous);
-    shown.addEventListener('click', function () { state.anonymous = false; buildRows(); });
+    shown.addEventListener('click', function () { state.anonymous = false; buildRows(); saveDraftSoon(); });
     var hidden = chipButton('Hidden', state.anonymous);
     hidden.title = 'The room assigns play names';
-    hidden.addEventListener('click', function () { state.anonymous = true; buildRows(); });
+    hidden.addEventListener('click', function () { state.anonymous = true; buildRows(); saveDraftSoon(); });
     names.a.appendChild(shown);
     names.a.appendChild(hidden);
     fixedHolder.appendChild(names);
@@ -581,9 +612,9 @@
     var joke = rowEl('Dad joke for the first students to join');
     var on = chipButton('On', state.earlyJoke);
     on.title = 'The first 10 students to join each see a dad joke';
-    on.addEventListener('click', function () { state.earlyJoke = true; buildRows(); });
+    on.addEventListener('click', function () { state.earlyJoke = true; buildRows(); saveDraftSoon(); });
     var off = chipButton('Off', !state.earlyJoke);
-    off.addEventListener('click', function () { state.earlyJoke = false; buildRows(); });
+    off.addEventListener('click', function () { state.earlyJoke = false; buildRows(); saveDraftSoon(); });
     joke.a.appendChild(on);
     joke.a.appendChild(off);
     fixedHolder.appendChild(joke);
@@ -786,6 +817,7 @@
   }
 
   function scheduleMap() {
+    saveDraftSoon();
     clearTimeout(mapTimer);
     mapTimer = setTimeout(refreshMap, 400);
     updateFitFoot();
@@ -1059,6 +1091,138 @@
       pairs: pairsValue(),
       choices: choicesValue()
     });
+  }
+
+  // --- The draft (review eighteen: a question and a timer changed, then a
+  // reload or Back, and both were the template's again). What the teacher
+  // changed on this page waits in this browser until they host it, try
+  // it, or press Use the original words. Only a template page keeps one:
+  // a class example from the yard, or a recipe's own panel, starts fresh.
+  var DRAFT_KEY = 'jamyard.makeDraft.' + gameId;
+  var draftTimer = null;
+
+  function draftNow() {
+    return {
+      prompt: state.promptBox ? state.promptBox.value : null,
+      fields: (function () {
+        var out = {};
+        Object.keys(state.fieldBoxes || {}).forEach(function (k) { out[k] = state.fieldBoxes[k].value; });
+        return out;
+      })(),
+      timer: state.print && state.print.timerEditable && typeof state.timer === 'number' ? state.timer : null,
+      choices: choicesValue(),
+      pairs: pairsValue(),
+      newRounds: newRoundsValue(),
+      anonymous: !!state.anonymous,
+      earlyJoke: !!state.earlyJoke
+    };
+  }
+
+  function draftAllowed() {
+    return !exKey && !state.panel && !state.exampleParams && !!state.config;
+  }
+
+  function saveDraftSoon() {
+    if (!state.draftBase) return; // the page is still loading
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(saveDraft, 300);
+  }
+
+  function saveDraft() {
+    if (!state.draftBase || !draftAllowed()) return;
+    var now = JSON.stringify(draftNow());
+    try {
+      if (now === state.draftBase) sessionStorage.removeItem(DRAFT_KEY);
+      else sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), draft: JSON.parse(now) }));
+    } catch (e) { /* storage unavailable: the page still works, it just forgets */ }
+  }
+
+  function readDraft() {
+    try {
+      var raw = sessionStorage.getItem(DRAFT_KEY);
+      var parsed = raw ? JSON.parse(raw) : null;
+      return parsed && parsed.draft && typeof parsed.draft === 'object' ? parsed.draft : null;
+    } catch (e) { return null; }
+  }
+
+  // After the page is drawn: the template's words are the base, then a
+  // draft from before goes back into the boxes, with a way out
+  function restoreDraft() {
+    if (!draftAllowed()) return;
+    state.draftBase = JSON.stringify(draftNow());
+    var d = readDraft();
+    if (!d || JSON.stringify(d) === state.draftBase) {
+      // Nothing waiting, but this tab already saved a copy from here: say
+      // where it went (a reload shows the template's words again)
+      var made = sessionCopyId();
+      if (made) showCopyNote(made);
+      return;
+    }
+    var print = state.print;
+    if (print) {
+      if (typeof d.prompt === 'string' && state.promptBox) state.promptBox.value = d.prompt;
+      if (d.fields && typeof d.fields === 'object') {
+        Object.keys(d.fields).forEach(function (k) {
+          if (state.fieldBoxes[k] && typeof d.fields[k] === 'string') state.fieldBoxes[k].value = d.fields[k];
+        });
+      }
+      if (typeof d.timer === 'number' && print.timerEditable) {
+        state.timer = Math.max(10, Math.min(3600, d.timer));
+        el.timerChip.textContent = mmss(state.timer);
+      }
+      if (Array.isArray(d.choices) && d.choices.length && print.choicesEditable) drawChoices(d.choices, true);
+      if (d.pairs && Array.isArray(print.pairs) && print.pairs.length) {
+        mountPairs(print.pairs.map(function (round) {
+          var list = Array.isArray(d.pairs[round.id]) ? d.pairs[round.id] : round.pairs;
+          return { id: round.id, label: round.label, pairs: list };
+        }), Array.isArray(d.newRounds) ? d.newRounds : []);
+      }
+    }
+    if (typeof d.anonymous === 'boolean') state.anonymous = d.anonymous;
+    if (typeof d.earlyJoke === 'boolean') state.earlyJoke = d.earlyJoke;
+    buildRows();
+    state.wordsSnapshot = wordsNow();
+    showDraftNote();
+    scheduleMap();
+  }
+
+  function showDraftNote() {
+    var paper = el.screen && el.screen.parentNode;
+    if (!paper || !paper.parentNode) return;
+    var note = document.createElement('p');
+    note.className = 'example-note draft-note';
+    note.id = 'draft-note';
+    note.appendChild(document.createTextNode('Your changes are back. Host it or try it and they are saved as your copy in My yard. '));
+    var undo = document.createElement('button');
+    undo.type = 'button';
+    undo.textContent = 'Use the original words';
+    undo.addEventListener('click', function () {
+      clearTimeout(draftTimer);
+      try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) { /* storage unavailable */ }
+      window.location.reload();
+    });
+    note.appendChild(undo);
+    paper.parentNode.insertBefore(note, paper.nextSibling);
+  }
+
+  function clearDraft() {
+    clearTimeout(draftTimer);
+    state.draftBase = null; // nothing more is written from this page view
+    try { sessionStorage.removeItem(DRAFT_KEY); } catch (e) { /* storage unavailable */ }
+  }
+
+  function showCopyNote(copyId) {
+    var paper = el.screen && el.screen.parentNode;
+    if (!paper || !paper.parentNode) return;
+    var note = document.createElement('p');
+    note.className = 'example-note draft-note';
+    note.id = 'copy-note';
+    note.appendChild(document.createTextNode('Your changed copy is saved in My yard. '));
+    var open = document.createElement('a');
+    open.href = '/make?game=' + encodeURIComponent(copyId);
+    open.textContent = 'Open your copy';
+    note.appendChild(open);
+    paper.parentNode.insertBefore(note, paper.nextSibling);
   }
 
   // "Your class" changed on this page (owner 2026-09-26: picking a class
@@ -1853,20 +2017,54 @@
     return inClassLanguage(config).then(function (ready) { return saveReady(ready, dest); });
   }
 
+  // The copy this page already made from a template, this tab session
+  // (review eighteen: Make it yours then Try it, twice, made two identical
+  // copies). Try it, come back, change a word, Host it: the same copy is
+  // written again. Gone from My yard (deleted) = forgotten.
+  var COPY_KEY = 'jamyard.makeCopy.' + gameId;
+  function sessionCopyId() {
+    var id = null;
+    try { id = sessionStorage.getItem(COPY_KEY); } catch (e) { id = null; }
+    if (id && window.MyGames && MyGames.has(id)) return id;
+    return null;
+  }
+  function rememberSessionCopy(id) {
+    try { sessionStorage.setItem(COPY_KEY, id); } catch (e) { /* storage unavailable */ }
+  }
+  function forgetSessionCopy() {
+    try { sessionStorage.removeItem(COPY_KEY); } catch (e) { /* storage unavailable */ }
+  }
+
   function saveReady(config, dest) {
-    if (!isOwn) return MakeItYours.saveCopyAndReturn(config, dest);
     delete config.featured;
-    return fetch('/api/games/' + encodeURIComponent(gameId), {
+    var target = isOwn ? gameId : sessionCopyId();
+    if (isOwn) config.name = state.config.name || config.name;
+    if (!target) {
+      return MakeItYours.saveCopy(config).then(function (id) {
+        rememberSessionCopy(id);
+        clearDraft();
+        window.location.href = destUrl(dest, id);
+      });
+    }
+    return fetch('/api/games/' + encodeURIComponent(target), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(config)
     }).then(function (resp) {
+      // The page's own copy could not be written (deleted on another tab,
+      // gone from the site): a new one, once; a real problem fails there too
+      if (!isOwn && !resp.ok) {
+        forgetSessionCopy();
+        return saveReady(config, dest);
+      }
       if (!resp.ok) {
         return resp.json().catch(function () { return {}; }).then(function (d) {
           throw new Error(d.error || 'save failed');
         });
       }
-      window.location.href = destUrl(dest, gameId);
+      if (window.MyGames) MyGames.add(target);
+      clearDraft();
+      window.location.href = destUrl(dest, target);
     });
   }
 

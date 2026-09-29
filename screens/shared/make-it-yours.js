@@ -7,7 +7,8 @@
 // continue in the designer.
 //
 //   MakeItYours.open(game, btn)      // game: {id, name}; btn shows "Loading…"
-//   MakeItYours.seedIds(ids)         // ids already taken (a copy's id is deduped)
+//   MakeItYours.seedIds(ids)         // ids this page knows are taken (a first guess;
+//                                    // the server dedupes the copy's id itself)
 //
 // Needs on the page: /shared/dialog.js, /shared/make-it-yours-doors.js,
 // /shared/setup-knobs.js, /shared/teacher-profile.js, /shared/growing-text.js,
@@ -33,14 +34,15 @@
 
   var knownIds = [];
   function seedIds(ids) { if (Array.isArray(ids)) knownIds = ids.slice(); }
-  // Every id on the server rides back as `ids` on the scoped list
-  // (2026-09-20); it used to read the whole list as an array, which the
-  // route never sent, so this refresh silently did nothing.
+  // The ids this visitor can see, a first guess at a free id; the save
+  // sends `dedupe: true` and the server steps past a taken one (the list of
+  // every id on the server is gone, 2026-09-28: it let anyone enumerate
+  // teachers' activities).
   function refreshKnownIds() {
     return fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(',')))
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (data && Array.isArray(data.ids)) knownIds = data.ids.slice();
+        if (data && Array.isArray(data.games)) knownIds = data.games.map(function (g) { return g.id; });
       })
       .catch(function () { /* keep what we have */ });
   }
@@ -51,27 +53,47 @@
 // Save the teacher's copy, then go where they said: the designer (Simple
 // view), the simulator, or a live host room (`dest`, see COPY_DOORS).
 function saveCopyAndReturn(config, dest) {
+  return saveCopy(config).then(function (copyId) {
+    window.location.href = copyDestinationUrl(dest, copyId);
+    return copyId;
+  });
+}
+
+// Save a new copy and resolve with its id, in My yard (MyGames) before
+// anything navigates. The server picks a free id (dedupe) when this one
+// is taken, so the returned id is the one to remember.
+function saveCopy(config) {
   delete config.featured; // the copy is yours, not the public front door's
   var base = (config.name || 'my-activity').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40) || 'my-activity';
-  var existing = knownIds.slice();
   var copyId = base;
   var counter = 2;
-  while (existing.indexOf(copyId) !== -1) { copyId = base + '-' + counter; counter++; }
+  while (knownIds.indexOf(copyId) !== -1) { copyId = base + '-' + counter; counter++; }
   return fetch('/api/games', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ id: copyId, config: config })
+    body: JSON.stringify({ id: copyId, config: config, dedupe: true })
   }).then(function (resp) {
-    if (!resp.ok) {
-      return resp.json().catch(function () { return {}; }).then(function (d) {
-        throw new Error(d.error || 'save failed');
-      });
-    }
-    if (window.MyGames) MyGames.add(copyId);
-    Recents.add(copyId);
-    window.location.href = copyDestinationUrl(dest, copyId);
+    return resp.json().catch(function () { return {}; }).then(function (d) {
+      if (!resp.ok) throw new Error(d.error || 'save failed');
+      // the server's id: it steps past one another teacher took
+      var savedId = d.id || copyId;
+      knownIds.push(savedId);
+      if (window.MyGames) MyGames.add(savedId);
+      Recents.add(savedId);
+      return savedId;
+    });
   });
+}
+
+// A quiz or bluff panel mounted on the make page saves through the page
+// (opts.save): a copy that is already the teacher's, or one this page
+// already made, is written back with PUT, never a second copy (review
+// eighteen: one pass through Make it yours and Try it made two identical
+// Water Cycle quizzes). The dialog has no page, so it makes a new copy.
+var panelSave = null;
+function savePanelCopy(config, dest) {
+  return panelSave ? panelSave(config, dest) : saveCopyAndReturn(config, dest);
 }
 
 // The doors at the bottom of every Make it yours dialog: since 2026-09-07
@@ -509,7 +531,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount, opts) {
           if (extras.earlyJoke) { if (working.earlyJoke === false) delete working.earlyJoke; }
           else working.earlyJoke = false;
         }
-        return saveCopyAndReturn(working, dest);
+        return savePanelCopy(working, dest);
       })
       .catch(function (err) {
         doors.setDisabled(false);
@@ -953,7 +975,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
           if (extras.earlyJoke) { if (working.earlyJoke === false) delete working.earlyJoke; }
           else working.earlyJoke = false;
         }
-        return saveCopyAndReturn(working, dest);
+        return savePanelCopy(working, dest);
       })
       .catch(function (err) {
         doors.setDisabled(false);
@@ -981,6 +1003,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
 
 function customizeCopy(game, btn) {
   refreshKnownIds();
+  panelSave = null; // a dialog has no page to save through
   // Deliberately NOT Recents.add(game.id) here: clicking Customize is
   // opening-to-look, and looking must leave no trace in the yard (field
   // feedback 2026-08-24). The original enters recents only via Preview/
@@ -1808,10 +1831,12 @@ function askOtherSubject(picked, onDone) { return window.ClassPicker.askOtherSub
     buildChipRow: buildChipRow,
     askOtherSubject: askOtherSubject,
     saveCopyAndReturn: saveCopyAndReturn,
+    saveCopy: saveCopy,
     openDraftCopy: openDraftCopy,
     // A recipe's setup panel rendered into a page element (the Make it
     // yours page); returns { makeCopy(dest, extras) }.
     mountPanel: function (panel, game, config, summary, mount, opts) {
+      panelSave = (opts && typeof opts.save === 'function') ? opts.save : null;
       if (panel === 'quiz') return showQuizCustomizeDialog(game, config, summary, mount, opts);
       if (panel === 'bluff') return showBluffCustomizeDialog(game, config, summary, mount);
       if (panel === 'knobs') {

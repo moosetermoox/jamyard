@@ -54,18 +54,21 @@ describe('student names go through the filter', () => {
 describe('a closed projector tab comes back', () => {
   const { connectAction, urlAfterCreate, REMEMBER_MS } = globalThis.HostSession;
   it('host-rejoin takes the teacher PIN when the tab has no token left, through the console throttle', () => {
-    expect(EVENT_SCHEMAS['host-rejoin']).toEqual({ code: 'string:required', hostToken: 'string:optional', pin: 'string:optional' });
+    expect(EVENT_SCHEMAS['host-rejoin']).toEqual({ code: 'string:required', hostToken: 'string:optional', pin: 'string:optional', key: 'string:optional' });
     const at = server.indexOf('socket.on(EVENTS.HOST_REJOIN');
     const block = server.slice(at, server.indexOf('socket.on(EVENTS.START_GAME'));
     expect(block).toContain('if (hostToken !== room.hostToken) {');
-    expect(block).toContain('pinThrottle.check(code, Date.now())');
-    expect(block).toContain('checkTeacherAccess(');
+    // the teacher gate (2026-09-28): key and site password skip the throttle
+    expect(block).toContain('const gate = gateTeacher({');
+    expect(block).toContain('throttle: pinThrottle, code, now: Date.now()');
     expect(block).toContain("message: 'Wrong PIN for that room.'");
     // a second projector takes the room over and the first is told
     expect(block).toContain('replaced: true');
   });
   it('the host page reads ?room= with the PIN in the hash, and remembers its last room for six hours', () => {
-    expect(connectAction({ search: '?room=lmrj', hash: '#pin=1234' })).toEqual({ kind: 'rejoin-pin', code: 'LMRJ', pin: '1234' });
+    expect(connectAction({ search: '?room=lmrj', hash: '#pin=1234' })).toEqual({ kind: 'rejoin-pin', code: 'LMRJ', pin: '1234', key: '' });
+    // the teacher key rides in the hash too (it gets past a PIN lockout)
+    expect(connectAction({ search: '?room=LMRJ', hash: '#pin=1234&key=abc' })).toEqual({ kind: 'rejoin-pin', code: 'LMRJ', pin: '1234', key: 'abc' });
     expect(connectAction({ search: '?room=LMRJ' })).toEqual({ kind: 'none' });
     const rem = { code: 'LMRJ', hostToken: 'tok', at: 1000 };
     expect(connectAction({ search: '', remembered: rem, now: 1000 + 60 * 60 * 1000 })).toEqual({ kind: 'rejoin', code: 'LMRJ', hostToken: 'tok' });
@@ -75,7 +78,7 @@ describe('a closed projector tab comes back', () => {
     expect(urlAfterCreate('?room=LMRJ')).toBe('/host');
     const js = read('screens/host/host.js');
     expect(js).toContain("const HOST_MEMORY_KEY = 'jamyard.hostRoom';");
-    expect(js).toContain("socket.emit('host-rejoin', { code: action.code, pin: action.pin });");
+    expect(js).toContain("socket.emit('host-rejoin', { code: action.code, pin: action.pin, key: action.key || '' });");
     expect(js).toContain('if (!IS_PROTOTYPE_HOST) rememberHostRoom(code, hostToken);');
   });
   it('the console offers Open the projector again and says the room stays while it is on', () => {
@@ -84,7 +87,7 @@ describe('a closed projector tab comes back', () => {
     expect(html).toContain('The room stays open while you are on this console.');
     expect(html).not.toContain('Reload the host tab on the projector');
     const js = read('screens/teacher/teacher.js');
-    expect(js).toContain("var url = '/host?room=' + encodeURIComponent(currentCode) + '#pin=' + encodeURIComponent(currentPin || '');");
+    expect(js).toContain("var url = '/host?room=' + encodeURIComponent(currentCode) + '#pin=' + encodeURIComponent(currentPin || '') +");
     expect(js).toContain("socket.on('room-closed', function () {");
   });
   it('the room is held while a console is connected and closed otherwise, and a restored room is held too', () => {
@@ -117,9 +120,10 @@ describe('Rename and Remove on the console', () => {
     const block = server.slice(at, server.indexOf('socket.on(EVENTS.EXTEND_TIMER'));
     expect(block).toContain('if (!isTeacherSocket(code, room, socket.id)) return;');
     expect(block).toContain('if (room.engine.config && room.engine.config.anonymous) return;');
-    expect(block).toContain('if (filterName(wanted).blocked) {');
+    // the checks live in engine/student-rename.js since 2026-09-28, shared with a student's own Change my name
+    expect(block).toContain('checkNewName(players.list(), playerId, payload.name, filterName)');
     expect(block).toContain('players.update(playerId, { name: wanted });');
-    expect(block).toContain('renamed.emit(EVENTS.RENAMED, { name: wanted');
+    expect(block).toContain('renamed.emit(EVENTS.RENAMED, message ? { name: wanted, message }');
     expect(block).toContain('emitRoomRoster(code, room);');
     expect(block).toContain('emitTeacherRoster(code, room);');
   });

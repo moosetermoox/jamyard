@@ -200,8 +200,7 @@
   font-weight: 800;
   font-size: 24px;
   line-height: 1.1;
-  color: var(--t-paper, #FDF9F0);
-  background: var(--t-magenta, #B0197E);
+  /* the paint is the need's, a class on the node (YardPrints.paintOf) */
   padding: 3px 14px 7px;
   transform: rotate(-1.2deg);
   box-shadow: 0 3px 4px rgba(50, 35, 15, 0.28);

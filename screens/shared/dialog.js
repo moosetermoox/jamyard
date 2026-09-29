@@ -136,8 +136,21 @@
     style.textContent = CONFIRM_CSS;
     document.head.appendChild(style);
   }
+  // One question at a time: a second ask while one is open answers no at
+  // once (review eighteen: three quick presses of Approve & show stacked
+  // three "Show them all to the class?" boxes, and each yes would have
+  // approved again). The open box decides.
+  var confirmOpen = false;
+  var dismissOpen = null;
+  // Takes the open question down as a no (the page learned the answer
+  // another way, e.g. the answers it warned about arrived).
+  function dismiss() {
+    if (dismissOpen) dismissOpen();
+  }
   function confirm(opts) {
     opts = opts || {};
+    if (confirmOpen) return Promise.resolve(false);
+    confirmOpen = true;
     return new Promise(function (resolve) {
       ensureConfirmStyles();
       var overlay = document.createElement('div');
@@ -159,6 +172,8 @@
       function done(value) {
         if (answered) return;
         answered = true;
+        confirmOpen = false;
+        dismissOpen = null;
         resolve(!!value);
         if (dlg) dlg.close();
       }
@@ -180,9 +195,10 @@
       overlay.appendChild(modal);
       document.body.appendChild(overlay);
       dlg = enhance(overlay, modal, { title: h.textContent, onClose: function () { done(false); } });
+      dismissOpen = function () { done(false); };
       ok.focus();
     });
   }
 
-  globalThis.Dialog = { enhance: enhance, confirm: confirm };
+  globalThis.Dialog = { enhance: enhance, confirm: confirm, dismiss: dismiss };
 })();

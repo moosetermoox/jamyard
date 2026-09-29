@@ -21,6 +21,27 @@ import { isVisibleSubmission, isDrawingResponseValue, responseToText } from './m
 const OWN_REVEAL = (phase) => phase && phase.type === 'reveal' && phase.scope === 'own';
 const OPEN_ANSWER = (phase) => phase && (phase.type === 'collect' || phase.type === 'collect-choice');
 
+// The answer-box promises (engine/audience.js keys) under which a
+// student's words go up in front of the class anyway: Show only puts one
+// up sooner, with the name. Every other promise (the teacher only, totals
+// only, a guess who, a summary, a partner) would be broken by it.
+const CLASS_SEES_WORDS = new Set(['class', 'class-after-review', 'classmate+class', 'classmate+class-after-review']);
+
+/**
+ * May the console offer Show (and the server honor it) on this step?
+ * (2026-09-28, the owner asked what Show does when the answers go up
+ * regardless: it puts one up NOW, with the name; so it lives only where
+ * the class was going to see the words, and never on a single tap.)
+ * @param {string|null} audienceKey the step's audience key
+ * @param {string} phaseType
+ * @returns {boolean}
+ */
+export function spotlightAllowed(audienceKey, phaseType) {
+  if (phaseType === 'reveal') return true;
+  if (phaseType !== 'collect') return false;
+  return CLASS_SEES_WORDS.has(audienceKey);
+}
+
 /**
  * The finished chains of the current step, for the console's list.
  * @returns {Array<{playerId: string, name: string, text: string}>|null}

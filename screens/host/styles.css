@@ -367,6 +367,14 @@ body.in-bench .corner-tools { display: none; }
    them; the code blocks and Start were what got small (owner, 2026-09-23). */
 body.in-bench .host-checklist,
 body.in-bench .join-share { display: none; }
+/* Inside Try it out there is no Copy teacher link chip (the Teacher
+   controls tab is the console), so the strip kept clear under the last
+   button for it goes too, and the doorway card drops its QR: a laptop's
+   frame sat at the 0.5 floor with Close submissions under the chip
+   (a reviewer, 2026-09-28). */
+body.in-bench .teacher-view-chip { display: none; }
+body.in-bench.in-activity { padding-bottom: 16px; }
+body.in-bench .rolling-door-qr { display: none; }
 
 /* Standings rows pop in one after another (delay set inline per row) */
 .juice-stagger {
@@ -1708,6 +1716,18 @@ body.in-activity h1 {
   margin: 6px 0;
 }
 .msg-rich strong { font-weight: 900; }
+
+/* Long reads (2026-09-28, the owner: long blocks were hard to read and
+   had no hierarchy): one block per paragraph with a real gap, the first
+   paragraph of plain prose as a heavier lead when it is short, and past
+   ~520 characters a wider measure so the wall is fewer, fuller lines
+   (the size stays: the back row reads it; fit-screen shrinks the rare
+   read that still overflows). */
+.msg-rich .msg-rich-para { margin: 0 0 0.8em; text-wrap: pretty; }
+.msg-rich .msg-rich-para:last-child { margin-bottom: 0; }
+.msg-rich .msg-lead { font-weight: 700; font-size: 1.08em; line-height: 1.4; }
+.msg-rich.msg-long { max-width: 48ch; }
+.msg-rich .msg-bullet-text { text-wrap: pretty; }
 
 /* Response lists render as cards, not a text blob (PROJECTOR-STYLE rule 4) */
 .msg-list { display: flex; flex-direction: column; gap: 10px; max-width: 48ch; margin: 0 auto; }

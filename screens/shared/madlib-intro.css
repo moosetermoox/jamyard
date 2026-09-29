@@ -100,7 +100,15 @@
   text-decoration-thickness: 4px;
 }
 .ml-link:hover,
-.ml-link:focus-visible { text-decoration: underline; text-decoration-color: var(--t-red, #D9481C); outline: none; }
+.ml-link:focus-visible { text-decoration: underline; text-decoration-color: var(--t-red, #D9481C); }
+/* A keyboard visitor gets a ring as well as the underline (a reviewer
+   tabbed to them and saw nothing; the canvas is scaled, so the ring is
+   drawn thick enough to survive the scale). */
+.ml-link:focus-visible { outline: 4px solid var(--t-ink); outline-offset: 6px; }
+
+/* "them, or" then "create your own.": one sentence, so a word space
+   between them, not the line's 16px token gap. */
+.ml-words + .ml-link { margin-left: -6px; }
 
 /* The wordmark in the sentence: JAM on birch, YARD on red, a size up from the header's */
 .ml-mark { display: inline-flex; gap: 7px; align-items: flex-end; }

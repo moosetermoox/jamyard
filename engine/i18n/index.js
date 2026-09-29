@@ -302,6 +302,8 @@ export const STRINGS = {
     'Your partner: {names}': 'Tu pareja: {names}',
     'Your partners: {names}': 'Tus compañeros: {names}',
     'Nobody added a line this time.': 'Esta vez nadie añadió una frase.',
+    'No answers came in for this one.': 'No llegaron respuestas para esta.',
+    'Your answer did not reach the room. Refresh the page and join again.': 'Tu respuesta no llegó a la sala. Recarga la página y vuelve a entrar.',
     'The class sees the totals, not who gave which answer.': 'La clase ve los totales, no quién dio cada respuesta.',
     'Move up': 'Subir',
     'Move down': 'Bajar',
@@ -347,7 +349,17 @@ export const STRINGS = {
     'class average': 'promedio de la clase',
     // The projector's vote mode line (2026-09-26)
     'Pick One': 'Elige uno',
-    'Head-to-Head': 'Uno contra uno'
+    'Head-to-Head': 'Uno contra uno',
+    // Change my name and the pick-then-confirm ballots (2026-09-28)
+    'Vote': 'Votar',
+    'Next matchup': 'Siguiente duelo',
+    'Change my name': 'Cambiar mi nombre',
+    'Save name': 'Guardar nombre',
+    'Keep it': 'Dejarlo así',
+    'Your new name': 'Tu nuevo nombre',
+    'A name needs at least two letters.': 'Un nombre necesita al menos dos letras.',
+    'Someone in the room already has that name.': 'Alguien en la sala ya tiene ese nombre.',
+    'Names can only change before the activity starts.': 'Los nombres solo se pueden cambiar antes de que empiece la actividad.'
   },
   fr: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -503,6 +515,8 @@ export const STRINGS = {
     'Your partner: {names}': 'Ton ou ta partenaire : {names}',
     'Your partners: {names}': 'Tes partenaires : {names}',
     'Nobody added a line this time.': 'Personne n’a ajouté de phrase cette fois.',
+    'No answers came in for this one.': 'Aucune réponse n’est arrivée pour celle-ci.',
+    'Your answer did not reach the room. Refresh the page and join again.': 'Ta réponse n’est pas arrivée dans la salle. Recharge la page et rejoins-la.',
     'The class sees the totals, not who gave which answer.': 'La classe voit les totaux, pas qui a donné quelle réponse.',
     'Move up': 'Monter',
     'Move down': 'Descendre',
@@ -548,7 +562,17 @@ export const STRINGS = {
     'class average': 'moyenne de la classe',
     // The projector's vote mode line (2026-09-26)
     'Pick One': 'Choisis-en un',
-    'Head-to-Head': 'Face à face'
+    'Head-to-Head': 'Face à face',
+    // Change my name and the pick-then-confirm ballots (2026-09-28)
+    'Vote': 'Voter',
+    'Next matchup': 'Duel suivant',
+    'Change my name': 'Changer mon nom',
+    'Save name': 'Enregistrer le nom',
+    'Keep it': 'Le garder',
+    'Your new name': 'Ton nouveau nom',
+    'A name needs at least two letters.': 'Un nom a besoin d\'au moins deux lettres.',
+    'Someone in the room already has that name.': 'Quelqu\'un dans la salle a déjà ce nom.',
+    'Names can only change before the activity starts.': 'Les noms ne peuvent changer qu\'avant le début de l\'activité.'
   },
   de: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -704,6 +728,8 @@ export const STRINGS = {
     'Your partner: {names}': 'Dein Partner: {names}',
     'Your partners: {names}': 'Deine Partner: {names}',
     'Nobody added a line this time.': 'Diesmal hat niemand einen Satz hinzugefügt.',
+    'No answers came in for this one.': 'Dafür sind keine Antworten eingegangen.',
+    'Your answer did not reach the room. Refresh the page and join again.': 'Deine Antwort ist nicht im Raum angekommen. Lade die Seite neu und tritt wieder bei.',
     'The class sees the totals, not who gave which answer.': 'Die Klasse sieht die Summen, nicht wer welche Antwort gegeben hat.',
     'Move up': 'Nach oben',
     'Move down': 'Nach unten',
@@ -749,7 +775,17 @@ export const STRINGS = {
     'class average': 'Klassendurchschnitt',
     // The projector's vote mode line (2026-09-26)
     'Pick One': 'Wähle eins',
-    'Head-to-Head': 'Eins gegen eins'
+    'Head-to-Head': 'Eins gegen eins',
+    // Change my name and the pick-then-confirm ballots (2026-09-28)
+    'Vote': 'Abstimmen',
+    'Next matchup': 'Nächstes Duell',
+    'Change my name': 'Meinen Namen ändern',
+    'Save name': 'Namen speichern',
+    'Keep it': 'So lassen',
+    'Your new name': 'Dein neuer Name',
+    'A name needs at least two letters.': 'Ein Name braucht mindestens zwei Buchstaben.',
+    'Someone in the room already has that name.': 'Jemand im Raum hat diesen Namen schon.',
+    'Names can only change before the activity starts.': 'Namen können nur vor dem Start der Aktivität geändert werden.'
   },
   pt: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -905,6 +941,8 @@ export const STRINGS = {
     'Your partner: {names}': 'Seu par: {names}',
     'Your partners: {names}': 'Seus colegas de grupo: {names}',
     'Nobody added a line this time.': 'Desta vez ninguém acrescentou uma frase.',
+    'No answers came in for this one.': 'Nenhuma resposta chegou para esta.',
+    'Your answer did not reach the room. Refresh the page and join again.': 'Sua resposta não chegou à sala. Recarregue a página e entre de novo.',
     'The class sees the totals, not who gave which answer.': 'A turma vê os totais, não quem deu cada resposta.',
     'Move up': 'Mover para cima',
     'Move down': 'Mover para baixo',
@@ -950,7 +988,17 @@ export const STRINGS = {
     'class average': 'média da turma',
     // The projector's vote mode line (2026-09-26)
     'Pick One': 'Escolha um',
-    'Head-to-Head': 'Um contra um'
+    'Head-to-Head': 'Um contra um',
+    // Change my name and the pick-then-confirm ballots (2026-09-28)
+    'Vote': 'Votar',
+    'Next matchup': 'Próximo duelo',
+    'Change my name': 'Mudar meu nome',
+    'Save name': 'Salvar nome',
+    'Keep it': 'Manter',
+    'Your new name': 'Seu novo nome',
+    'A name needs at least two letters.': 'Um nome precisa de pelo menos duas letras.',
+    'Someone in the room already has that name.': 'Alguém na sala já tem esse nome.',
+    'Names can only change before the activity starts.': 'Os nomes só podem mudar antes de a atividade começar.'
   },
   it: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1106,6 +1154,8 @@ export const STRINGS = {
     'Your partner: {names}': 'Il tuo compagno: {names}',
     'Your partners: {names}': 'I tuoi compagni: {names}',
     'Nobody added a line this time.': 'Questa volta nessuno ha aggiunto una frase.',
+    'No answers came in for this one.': 'Non sono arrivate risposte per questa.',
+    'Your answer did not reach the room. Refresh the page and join again.': 'La tua risposta non è arrivata nella stanza. Ricarica la pagina ed entra di nuovo.',
     'The class sees the totals, not who gave which answer.': 'La classe vede i totali, non chi ha dato quale risposta.',
     'Move up': 'Sposta su',
     'Move down': 'Sposta giù',
@@ -1151,6 +1201,16 @@ export const STRINGS = {
     'class average': 'media della classe',
     // The projector's vote mode line (2026-09-26)
     'Pick One': 'Scegline uno',
-    'Head-to-Head': 'Uno contro uno'
+    'Head-to-Head': 'Uno contro uno',
+    // Change my name and the pick-then-confirm ballots (2026-09-28)
+    'Vote': 'Vota',
+    'Next matchup': 'Prossimo duello',
+    'Change my name': 'Cambia il mio nome',
+    'Save name': 'Salva nome',
+    'Keep it': 'Lascialo così',
+    'Your new name': 'Il tuo nuovo nome',
+    'A name needs at least two letters.': 'Un nome ha bisogno di almeno due lettere.',
+    'Someone in the room already has that name.': 'Qualcuno nella stanza ha già quel nome.',
+    'Names can only change before the activity starts.': 'I nomi si possono cambiare solo prima che inizi l\'attività.'
   }
 };

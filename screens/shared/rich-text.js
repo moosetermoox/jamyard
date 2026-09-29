@@ -75,9 +75,11 @@
 
   // Segments: {type:'subhead', text} | {type:'bullets', items:[runs]} |
   // {type:'tallies', items:[{num, runs, tag}]} |
-  // {type:'text', lines:[runs]} (blank interior lines survive as empty runs).
-  function parse(text) {
-    var lines = scrub(text).split('\n');
+  // {type:'text', lines:[runs]} (a blank line starts a new text segment).
+  // opts.raw skips the scrub: plain long prose that is not markdown (a
+  // teacher's own message) is laid out, never rewritten.
+  function parse(text, opts) {
+    var lines = (opts && opts.raw ? String(text == null ? '' : text) : scrub(text)).split('\n');
     var segments = [];
     // In a vote's result every short colon line is a heading, even over
     // a "None." ("Did not pass:" when everything passed).
@@ -136,12 +138,32 @@
         var lastSeg = segments[segments.length - 1];
         if (lastSeg && lastSeg.type === 'bullets') lastSeg.items.push(item);
         else segments.push({ type: 'bullets', items: [item] });
+      } else if (!t) {
+        // A blank line ends a paragraph: each one is its own block, so
+        // long prose gets real paragraph spacing (2026-09-28)
+        flushText();
       } else {
         textBuf.push(lines[i]);
       }
     }
     flushText();
     return segments;
+  }
+
+  // Long prose (2026-09-28, the owner: long blocks of text were hard to
+  // read, with no hierarchy): two or more paragraphs, or one past
+  // LONG_CHARS, is laid out by buildBody as paragraphs with a lead
+  // instead of one pre-line blob.
+  var LONG_CHARS = 280;
+  // Past this many characters the body steps down a size and widens.
+  var VERY_LONG_CHARS = 520;
+  // The longest first paragraph that still reads as a lead.
+  var LEAD_MAX = 180;
+  function isLongProse(text) {
+    var s = String(text == null ? '' : text).trim();
+    if (!s) return false;
+    var blocks = s.split(/\n\s*\n/).filter(function (b) { return b.trim(); });
+    return blocks.length >= 2 || s.length > LONG_CHARS;
   }
 
   // Single-line cleanup for headline slots: strip heading/bold markers.
@@ -184,10 +206,22 @@
   // Lay the segments out. className carries the caller's body class
   // (msg-body etc.) so existing font sizing applies; msg-rich switches
   // white-space handling from pre-line to per-segment blocks.
-  function buildBody(text, className) {
+  function buildBody(text, className, opts) {
     var wrap = document.createElement('div');
     wrap.className = (className ? className + ' ' : '') + 'msg-rich';
-    var segments = parse(text);
+    var segments = parse(text, opts);
+    // A long read steps down a size; prose that opens on a paragraph
+    // (no headings) gets its first paragraph as the lead.
+    if (String(text == null ? '' : text).length > VERY_LONG_CHARS) wrap.className += ' msg-long';
+    var textCount = 0;
+    var hasHeads = false;
+    for (var c = 0; c < segments.length; c++) {
+      if (segments[c].type === 'text') textCount++;
+      if (segments[c].type === 'subhead') hasHeads = true;
+    }
+    // A lead is a line or two; a whole heavy paragraph is harder to read.
+    var leadFirst = !hasHeads && textCount >= 2 && segments[0] && segments[0].type === 'text' &&
+      segments[0].lines.map(function (runs) { return runs.map(function (r) { return r.text; }).join(''); }).join(' ').length <= LEAD_MAX;
     for (var i = 0; i < segments.length; i++) {
       var seg = segments[i];
       if (seg.type === 'subhead') {
@@ -234,7 +268,7 @@
         wrap.appendChild(rows);
       } else {
         var p = document.createElement('span');
-        p.className = 'msg-rich-para';
+        p.className = 'msg-rich-para' + (leadFirst && i === 0 ? ' msg-lead' : '');
         for (var k = 0; k < seg.lines.length; k++) {
           if (k > 0) p.appendChild(document.createElement('br'));
           runsInto(p, seg.lines[k]);
@@ -247,6 +281,7 @@
 
   globalThis.RichText = {
     hasRich: hasRich,
+    isLongProse: isLongProse,
     scrub: scrub,
     parse: parse,
     inlineRuns: inlineRuns,

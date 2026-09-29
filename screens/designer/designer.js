@@ -14,7 +14,7 @@ var ideaGoBtn = document.getElementById('idea-go-btn');
 var useRecipeLink = document.getElementById('use-recipe-link');
 
 var allGames = [];
-var allIds = []; // every id on the server, for picking a free one
+var allIds = []; // the ids this visitor can see: a first guess at a free one (the save dedupes)
 
 // The activity grid moved to /library (docs/SURFACES-PLAN.md); this page
 // only hosts the create flows now. The games list is still fetched —
@@ -29,9 +29,23 @@ fetchGames();
 // no-match → picker / advanced generator). The old three-button toolbar
 // is demoted to the "prefer to build it yourself?" links below the box.
 
+var ideaHint = document.getElementById('idea-hint');
+function showIdeaHint(text) {
+  if (!ideaHint) return;
+  ideaHint.textContent = text;
+  ideaHint.hidden = false;
+}
+if (ideaInput && ideaHint) {
+  ideaInput.addEventListener('input', function () { ideaHint.hidden = true; });
+}
+
 function launchIdea() {
   var idea = (ideaInput.value || '').trim();
   if (idea.length < 10) {
+    // Say why nothing happened (a reviewer pressed Make it on an empty
+    // box and only the cursor moved, 2026-09-28)
+    showIdeaHint(idea ? 'Say a little more. One sentence about what your class should do is plenty.'
+      : 'Type what you want your class to do first, or pick one of the ideas below.');
     ideaInput.focus();
     ideaInput.classList.add('idea-input-nudge');
     setTimeout(function () { ideaInput.classList.remove('idea-input-nudge'); }, 600);
@@ -92,15 +106,15 @@ if (useRecipeLink) {
 async function fetchGames() {
   try {
     // Owner mode sees everything; a visitor asks only for what they can see
-    // (2026-09-20). The reply's `ids` is every id on the server, which is
-    // what generateGameId needs; the rows are for the grid, where one exists.
+    // (2026-09-20). generateGameId guesses a free id from these rows; every
+    // save sends `dedupe: true` and takes the id the server answers with.
     var response = await fetch((window.OwnerMode && OwnerMode.isOn()) ? '/api/games' : '/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(',')));
     if (!response.ok) {
       throw new Error('Failed to load games (status ' + response.status + ')');
     }
     var data = await response.json();
     allGames = data.games || [];
-    allIds = Array.isArray(data.ids) ? data.ids : allGames.map(function (g) { return g.id; });
+    allIds = allGames.map(function (g) { return g.id; });
     if (loadingMessage) loadingMessage.hidden = true;
     if (gamesGrid) refreshLibrary();
   } catch (error) {
@@ -1480,7 +1494,7 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
     saveResp = await fetch('/api/games', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: newId, config: compileData.config })
+      body: JSON.stringify({ id: newId, config: compileData.config, dedupe: true })
     });
   } catch (err) {
     showFormError(status, 'Save failed: ' + err.message);
@@ -1490,6 +1504,7 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
   }
 
   if (saveResp.ok) {
+    try { newId = (await saveResp.json()).id || newId; } catch (e) { /* keep the guess */ }
     rememberMine(newId);
     overlay.remove();
     window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);
@@ -2132,10 +2147,11 @@ async function saveMatchedConfig(data, status, createBtn, overlay, modal) {
       headers: { 'Content-Type': 'application/json' },
       // ideaId: the Create-page try this came from, so the owner's ideas
       // log can see it was saved
-      body: JSON.stringify({ id: newId, config: data.config, ideaId: data.ideaId })
+      body: JSON.stringify({ id: newId, config: data.config, ideaId: data.ideaId, dedupe: true })
     });
 
     if (resp.ok) {
+      try { newId = (await resp.json()).id || newId; } catch (e) { /* keep the guess */ }
       rememberMine(newId);
       // Saved: the make page, the same door every Make it yours ends in
       // since 2026-09-09 (this used to show its own doors dialog, and
@@ -2366,7 +2382,7 @@ async function fetchStoryboard(description, hooks) {
   return { status: status, body: done };
 }
 
-async function showStoryboardFlow(description, seededStoryboard) {
+async function showStoryboardFlow(description, seededStoryboard, seededSettings) {
   // template-picker-overlay/-modal: the page's centered, Totem-skinned
   // dialog pair. (The old picker-overlay classes live in editor.css,
   // which this page does not load — the modal rendered unpositioned,
@@ -2487,7 +2503,7 @@ async function showStoryboardFlow(description, seededStoryboard) {
           cbBuild.addEventListener('click', function () {
             if (window.Analytics) Analytics.track('create_result', { result: 'storyboard' });
             closeOverlay(overlay);
-            showStoryboardFlow(description, partial);
+            showStoryboardFlow(description, partial, resp.settings);
           });
           cbRow.appendChild(cbBuild);
         }
@@ -2511,6 +2527,14 @@ async function showStoryboardFlow(description, seededStoryboard) {
   nameInput.value = storyboard.name || 'New Activity';
   nameRow.appendChild(nameInput);
   modal.appendChild(nameRow);
+
+  // The settings the idea named in plain words ("no names"), read by the
+  // server; shown so the teacher sees the ask landed, written on the
+  // config at build (2026-09-28, a "no names" plan was built with names).
+  var ideaSettings = (resp && resp.settings) || seededSettings || {};
+  if (typeof ideaSettings.anonymous === 'boolean') {
+    modal.appendChild(sbEl('p', 'Student names: ' + (ideaSettings.anonymous ? 'Hidden' : 'Shown'), 'sb-hint sb-names-setting'));
+  }
 
   var list = sbEl('div');
   modal.appendChild(list);
@@ -2622,6 +2646,7 @@ async function showStoryboardFlow(description, seededStoryboard) {
       problems.textContent = result.problems.join(' ') || 'Nothing to build yet.';
       return;
     }
+    if (typeof ideaSettings.anonymous === 'boolean') result.config.anonymous = ideaSettings.anonymous;
     buildBtn.disabled = true;
     buildBtn.textContent = 'Building…';
     var base = (result.config.name || 'activity').toLowerCase()
@@ -2631,10 +2656,11 @@ async function showStoryboardFlow(description, seededStoryboard) {
       var save = await fetch('/api/games', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: newId, config: result.config, ideaId: resp && resp.ideaId })
+        body: JSON.stringify({ id: newId, config: result.config, ideaId: resp && resp.ideaId, dedupe: true })
       });
       var saved = await save.json();
       if (!save.ok) throw new Error(saved.error || 'save failed');
+      newId = saved.id || newId;
       rememberMine(newId);
       try { localStorage.setItem('lanyardEditorBuilder', '1'); } catch (e) { /* ignore */ }
       window.location.href = '/designer/edit?game=' + encodeURIComponent(newId);

@@ -34,6 +34,13 @@ import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
  * `authoredByPlayer` is an optional map of playerId -> their authored entry,
  * used downstream by `excludeAuthored` to hide a player's own contribution.
  */
+// A quiz question (a right answer to find) is one tap on the student
+// screen: a speed-scored question pays for every extra press (owner
+// 2026-09-28). Votes and polls keep pick-then-confirm.
+function isOneTap(phase) {
+  return phase.correctAnswer != null && phase.correctAnswer !== '';
+}
+
 function buildChoicePool(phase, ctx) {
   const engine = ctx.engine;
   let raw = [];
@@ -232,6 +239,7 @@ registerHandler('collect-choice', {
         displayDrawing,
         timer: phase.timer || null,
         isChoice: true,
+        oneTap: isOneTap(phase),
         phaseId: phase.id,
         ...audienceLine(engine.config, phase.id, engine.language),
         playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -278,6 +286,7 @@ registerHandler('collect-choice', {
         displayDrawing: resolveDisplayDrawing(ctx.phase, ctx.engine),
         timer: null,
         isChoice: true,
+        oneTap: isOneTap(ctx.phase),
         phaseId: ctx.phase.id,
         ...audienceLine(ctx.engine.config, ctx.phase.id, ctx.engine.language),
         playerTemplate: sc.playerTemplate, show: sc.playerShow

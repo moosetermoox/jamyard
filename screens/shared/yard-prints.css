@@ -176,9 +176,14 @@
   font-weight: 800;
   font-size: 18px;
   line-height: 1.15;
-  white-space: nowrap;
+  /* Two lines before an ellipsis: "Both Sides of the R..." hid the
+     name's point (a reviewer, 2026-09-28) */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
   min-width: 0;
 }
 

@@ -65,7 +65,10 @@ describe('designChat', () => {
           editRequest: 'Add a leaderboard step after the collect step named ask.'
         }));
       }
-      return textResponse(JSON.stringify({ updatedConfig: config, summary: 'Added a leaderboard.' }));
+      const changed = JSON.parse(JSON.stringify(config));
+      changed.phases.ask.next = 'board';
+      changed.phases.board = { type: 'leaderboard', from: 'ask.scores', next: 'end' };
+      return textResponse(JSON.stringify({ updatedConfig: changed, summary: 'Added a leaderboard.' }));
     };
     const result = await service.designChat({
       config,
@@ -79,6 +82,61 @@ describe('designChat', () => {
     expect(calls[0].model).toMatch(/haiku/);
     expect(calls[1].model).toMatch(/sonnet/);
     expect(calls[1].messages[0].content).toContain('Add a leaderboard step after the collect step named ask.');
+  });
+
+  // 2026-09-28, a reviewer: the chat said "Done. The vote options will now
+  // shuffle" while the proposal said it could not be done. A draft that
+  // changes nothing is not a proposal, and the reply says so.
+  it('a draft that changes nothing comes back as a chat turn with the honest account', async () => {
+    const service = new AIService({ mode: 'real' });
+    let n = 0;
+    service._callClaude = async () => {
+      n++;
+      if (n === 1) {
+        return textResponse(JSON.stringify({
+          action: 'edit',
+          reply: 'Done. The vote options will now shuffle into a different random order for each student.',
+          editRequest: 'Shuffle the vote options per student.'
+        }));
+      }
+      return textResponse(JSON.stringify({
+        updatedConfig: config,
+        summary: 'I couldn\'t make this change because the vote step does not support a shuffle option.'
+      }));
+    };
+    const result = await service.designChat({ config, messages: [{ role: 'user', content: 'Just do it.' }] });
+    expect(result.kind).toBe('chat');
+    expect(result.reply).toMatch(/couldn't make this change/);
+    expect(result.reply).not.toMatch(/^Done/);
+  });
+
+  it('a no-change draft whose summary claims a change still says nothing changed', async () => {
+    const service = new AIService({ mode: 'real' });
+    let n = 0;
+    service._callClaude = async () => {
+      n++;
+      if (n === 1) return textResponse(JSON.stringify({ action: 'edit', reply: 'Done!', editRequest: 'Make it better.' }));
+      return textResponse(JSON.stringify({ updatedConfig: config, summary: 'Made it better.' }));
+    };
+    const result = await service.designChat({ config, messages: [{ role: 'user', content: 'Make it better.' }] });
+    expect(result.kind).toBe('chat');
+    expect(result.reply).toMatch(/nothing in the activity changed/i);
+  });
+
+  it('a real proposal never opens by claiming the change is done', async () => {
+    const service = new AIService({ mode: 'real' });
+    let n = 0;
+    service._callClaude = async () => {
+      n++;
+      if (n === 1) return textResponse(JSON.stringify({ action: 'edit', reply: 'Done. The timer is now 60 seconds.', editRequest: 'Set the ask timer to 60.' }));
+      const changed = JSON.parse(JSON.stringify(config));
+      changed.phases.ask.timer = 60;
+      return textResponse(JSON.stringify({ updatedConfig: changed, summary: 'Set the timer to 60 seconds.' }));
+    };
+    const result = await service.designChat({ config, messages: [{ role: 'user', content: 'One minute timer.' }] });
+    expect(result.kind).toBe('proposal');
+    expect(result.reply).not.toMatch(/^Done/);
+    expect(result.reply).toMatch(/Apply/);
   });
 
   it('non-JSON triage output becomes an answer with the raw prose', async () => {
@@ -241,7 +299,9 @@ describe('designChat "Just do it" (forceEdit)', () => {
           editRequest: 'Make the vote head-to-head and add a leaderboard after it.'
         }));
       }
-      return textResponse(JSON.stringify({ updatedConfig: config, summary: 'Head-to-head vote plus leaderboard.' }));
+      const changed = JSON.parse(JSON.stringify(config));
+      changed.phases.ask.timer = 45;
+      return textResponse(JSON.stringify({ updatedConfig: changed, summary: 'Head-to-head vote plus leaderboard.' }));
     };
     const result = await service.designChat({
       config,

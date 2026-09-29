@@ -162,3 +162,17 @@ export function seatInChecklistState(state, playerId, name, groupKey) {
   state.playerGroup[playerId] = key;
   return key;
 }
+
+/**
+ * A whole-class solo step (match, sort) that opened before a student
+ * arrived: seat the newcomer so the board comes to them, never "Waiting
+ * for others to match..." for the rest of the step (review eighteen).
+ * Only while it is open, and only when the step is for everyone.
+ */
+export function admitLateSolo(state, kind, playerId, from) {
+  if (!state || state.kind !== kind || state.closed) return false;
+  if (from && from !== 'all') return false;
+  if (!(state.eligibleIds instanceof Set)) return false;
+  state.eligibleIds.add(playerId);
+  return true;
+}

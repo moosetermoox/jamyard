@@ -150,6 +150,12 @@ var stepText = document.getElementById('step-text');
 
 var currentCode = null;
 var currentPin = null;
+// The teacher key (engine/teacher-auth.js): handed over by the projector
+// that started the room (the host launch relay, the teacher link), never
+// typed. It gets this console past a PIN lockout a guessing student
+// caused, so it rides with the PIN on every join and every link.
+var linkKey = '';
+var currentKey = '';
 var reportDismissed = false;
 // Before you project: the setup card, once per browser (Got it), and
 // never inside Try it out's frame, where the tour does this job.
@@ -218,7 +224,7 @@ function tryJoin() {
   }
   joinBtn.disabled = true;
   joinBtn.textContent = 'Connecting…';
-  socket.emit('join-teacher', { code: code, pin: pin });
+  socket.emit('join-teacher', { code: code, pin: pin, key: linkKey });
 }
 
 joinBtn.addEventListener('click', tryJoin);
@@ -236,6 +242,7 @@ var autoJoinFromLink = false;
   if (code.length !== 4) return;
   codeInput.value = code;
   pinInput.value = params.get('pin') || '';
+  linkKey = params.get('key') || '';
   autoJoinFromLink = true;
   try { history.replaceState(null, '', window.location.pathname); } catch (e) { /* old browser */ }
 })();
@@ -264,6 +271,7 @@ var autoJoinFromLink = false;
     clearTimeout(timer);
     codeInput.value = rec.code;
     pinInput.value = rec.pin || '';
+    linkKey = rec.key || '';
     if (hint) hint.textContent = hintWas;
     autoJoinFromLink = false;
     tryJoin();
@@ -298,7 +306,8 @@ function renderProjectorNotice(hostConnected) {
 if (reopenProjectorBtn) {
   reopenProjectorBtn.addEventListener('click', function () {
     if (!currentCode) return;
-    var url = '/host?room=' + encodeURIComponent(currentCode) + '#pin=' + encodeURIComponent(currentPin || '');
+    var url = '/host?room=' + encodeURIComponent(currentCode) + '#pin=' + encodeURIComponent(currentPin || '') +
+      (currentKey ? '&key=' + encodeURIComponent(currentKey) : '');
     var w = window.open(url, '_blank');
     if (!w) window.location.href = url;
   });
@@ -317,9 +326,11 @@ socket.on('teacher-joined', function (snap) {
   renderProjectorNotice(snap && snap.hostConnected);
   currentCode = codeInput.value.trim();
   currentPin = pinInput.value.trim();
+  currentKey = linkKey;
   try {
     sessionStorage.setItem('teacherCode', currentCode);
     sessionStorage.setItem('teacherPin', currentPin);
+    sessionStorage.setItem('teacherKey', currentKey);
   } catch (e) { /* storage unavailable */ }
 
   joinSection.hidden = true;
@@ -353,7 +364,7 @@ socket.on('teacher-joined', function (snap) {
 // Auto-rejoin on reconnect (wifi blips, device sleep)
 socket.on('connect', function () {
   if (currentCode) {
-    socket.emit('join-teacher', { code: currentCode, pin: currentPin });
+    socket.emit('join-teacher', { code: currentCode, pin: currentPin, key: currentKey });
   } else if (autoJoinFromLink) {
     // Arrived via the host screen's copied link — connect without a tap.
     autoJoinFromLink = false;
@@ -365,6 +376,7 @@ socket.on('connect', function () {
       var savedPin = sessionStorage.getItem('teacherPin');
       if (savedCode) codeInput.value = savedCode;
       if (savedPin) pinInput.value = savedPin;
+      if (savedCode) linkKey = sessionStorage.getItem('teacherKey') || '';
     } catch (e) { /* storage unavailable */ }
   }
 });
@@ -509,7 +521,8 @@ function setPhase(data) {
 
 function reportUrl() {
   return '/teacher/report#code=' + encodeURIComponent(currentCode || '') +
-    '&pin=' + encodeURIComponent(currentPin || '');
+    '&pin=' + encodeURIComponent(currentPin || '') +
+    (currentKey ? '&key=' + encodeURIComponent(currentKey) : '');
 }
 
 socket.on('teacher-phase', function (data) {
@@ -766,10 +779,12 @@ function renderEntries(submissions) {
       });
       actions.appendChild(hideBtn);
 
-      // Put this one answer on the class screen. Not offered when the
-      // student was told only the teacher reads this step (the answer
-      // box's own line, engine/audience.js), and never for a hidden entry.
-      if (entriesAudience !== 'teacher' && !sub.hidden) {
+      // Put this one answer on the class screen now, with the name. Only
+      // offered where the answer box told the student the class sees their
+      // words anyway (the answer box's own line, engine/audience.js; the
+      // same list as spotlightAllowed in engine/spotlight.js, which the
+      // server checks too), never on a single tap, never for a hidden entry.
+      if (currentPhaseType === 'collect' && SHOW_AUDIENCES.indexOf(entriesAudience) !== -1 && !sub.hidden) {
         actions.appendChild(showButton(sub.playerId, sub.drawing ? 'this drawing' : 'this answer'));
       }
 
@@ -795,13 +810,17 @@ function renderEntries(submissions) {
   }
 }
 
+// The audience keys where Show is offered on an open answer step: the
+// class sees the words anyway, Show puts one up sooner (spotlightAllowed).
+var SHOW_AUDIENCES = ['class', 'class-after-review', 'classmate+class', 'classmate+class-after-review'];
+
 // A Show button: the server puts that student's work on the projector,
 // read from the room's own data (the console only names the student).
 function showButton(playerId, what) {
   var btn = document.createElement('button');
   btn.className = 'entry-btn entry-btn-show';
   btn.textContent = 'Show';
-  btn.title = 'Put ' + what + ' on the class screen for everyone to see';
+  btn.title = 'Put ' + what + ' on the class screen right now, big, with the name, so the class can talk about it';
   btn.addEventListener('click', function () {
     socket.emit('spotlight', { code: currentCode, playerId: playerId });
     btn.textContent = 'On the class screen';

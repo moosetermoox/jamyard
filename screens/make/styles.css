@@ -99,6 +99,11 @@ body {
   font-weight: 500;
   color: var(--t-muted);
 }
+.example-note a {
+  font-weight: 700;
+  color: var(--t-ink);
+  text-underline-offset: 3px;
+}
 .example-note button {
   border: 0;
   background: none;

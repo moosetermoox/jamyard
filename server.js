@@ -23,7 +23,7 @@ import { scoutFacts } from './services/fact-scout.js';
 import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submits.js';
 import { parseRequestedMinutes, timingReport, paramsForTrim, estimateDuration } from './engine/duration-estimate.js';
 import { audienceFor } from './engine/audience.js';
-import { applyIdeaSettings } from './engine/idea-settings.js';
+import { applyIdeaSettings, parseAnonymity } from './engine/idea-settings.js';
 import { refitRecipeIdFor } from './engine/match-refit.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
@@ -131,7 +131,6 @@ import {
   getUserGame,
   listUserGames,
   listUserGamesByIds,
-  listUserGameIds,
   saveUserGame,
   insertUserGameIfAbsent,
   deleteUserGame,
@@ -182,6 +181,7 @@ import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance
 import { ensureReviewGate } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
 import { checkSubmission, filterContent, filterName, NAME_REFUSED_MESSAGE } from './engine/content-filter.js';
+import { checkNewName, SELF_RENAME_MESSAGES } from './engine/student-rename.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
 import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
 import { remapForeachSubConfig, resolveCurrentRefsInSubConfig } from './engine/phases/foreach-remap.js';
@@ -204,14 +204,14 @@ import { planProblem } from './engine/plan-check.js';
 import { isRolling, moreInputAhead, doneMessageFor } from './engine/phases/rolling.js';
 import { buildLiveTally } from './engine/phases/live-tally.js';
 import { isCorrectAnswer, scoreSoloQuiz } from './engine/phases/solo-quiz-scoring.js';
-import { hostProgressPayload as soloQuizHostPayload, playerQuestionPayload as soloQuizPlayerPayload, pointsFor as soloQuizPoints } from './engine/phase-handlers/solo-quiz.js';
+import { hostProgressPayload as soloQuizHostPayload, playerQuestionPayload as soloQuizPlayerPayload, pointsFor as soloQuizPoints, feedbackPayload as soloQuizFeedback } from './engine/phase-handlers/solo-quiz.js';
 import { simulateGame } from './services/simulator.js';
-import { checkTeacherAccess, generateTeacherPin } from './engine/teacher-auth.js';
+import { gateTeacher, generateTeacherPin, generateTeacherKey } from './engine/teacher-auth.js';
 import { buildActivityReport } from './engine/report.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
 import { contentLog } from './engine/content-log.js';
 import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText, hideStoredResponse } from './engine/moderation.js';
-import { chainsFor, spotlightItemFor } from './engine/spotlight.js';
+import { chainsFor, spotlightItemFor, spotlightAllowed } from './engine/spotlight.js';
 import { createModerationLadder } from './services/moderation-ladder.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
 import { validatePayload } from './engine/event-schemas.js';
@@ -228,6 +228,9 @@ const server = createServer(app);
 const io = new Server(server);
 // Render (and most PaaS) assign a port via $PORT; default to 3000 locally.
 const PORT = Number(process.env.PORT) || 3000;
+// A submit from a screen the room no longer knows (an i18n row; the
+// student screen translates it)
+const SUBMIT_LOST_SEAT = 'Your answer did not reach the room. Refresh the page and join again.';
 
 const aiMode = process.env.ANTHROPIC_API_KEY ? 'real' : 'mock';
 console.log(`[init] AI Service mode: ${aiMode}`);
@@ -2015,8 +2018,27 @@ function resolveImageUrl(rel, gameId, source) {
 const teacherSocketToRoom = new Map(); // console socketId → room code (disconnect cleanup)
 
 // Brute-force lockout for the 4-digit console PIN (5 wrong tries in 10 min
-// locks the room's console joins for 5 min). See engine/pin-throttle.js.
+// pause TYPED PINs for the room for 5 min; the teacher key and the site
+// password never go through it). See engine/teacher-auth.js gateTeacher.
 const pinThrottle = createPinThrottle();
+
+// What a teacher door checks against: the room's PIN and key, and the
+// owner's site password.
+function teacherCredentials(room) {
+  return { teacherPin: room.teacherPin, teacherKey: room.teacherKey, sitePassword: process.env.SITE_PASSWORD };
+}
+
+// The journal and the report over HTTP: ?key= (the teacher's browser),
+// basic auth, or ?pin= through the same room-wide throttle as the console
+// (these routes took unlimited PIN guesses before 2026-09-28).
+function teacherGateForRequest(req, room) {
+  const str = v => (typeof v === 'string' ? v : '');
+  return gateTeacher({
+    provided: { pin: str(req.query.pin), key: str(req.query.key), authHeader: req.headers.authorization },
+    expected: teacherCredentials(room),
+    throttle: pinThrottle, code: room.code, now: Date.now()
+  });
+}
 
 function teachersChannel(code) {
   return code + ':teachers';
@@ -2893,11 +2915,8 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
 app.get('/api/rooms/:code/journal', (req, res) => {
   const room = roomManager.find(req.params.code.toUpperCase());
   if (!room) return res.status(404).json({ error: 'Room not found. Check the code on the big screen.' });
-  const allowed = checkTeacherAccess(
-    { pin: typeof req.query.pin === 'string' ? req.query.pin : '', authHeader: req.headers.authorization },
-    { teacherPin: room.teacherPin, sitePassword: process.env.SITE_PASSWORD }
-  );
-  if (!allowed) {
+  const gate = teacherGateForRequest(req, room);
+  if (!gate.ok) {
     return res.status(403).json({ error: 'Teacher access required. Add ?pin=<teacher PIN> (shown on the host screen).' });
   }
   res.json({
@@ -2915,11 +2934,8 @@ app.get('/api/rooms/:code/journal', (req, res) => {
 app.get('/api/rooms/:code/report', (req, res) => {
   const room = roomManager.find(req.params.code.toUpperCase());
   if (!room || !room.engine) return res.status(404).json({ error: 'Room not found. Reports are only available while the room is open.' });
-  const allowed = checkTeacherAccess(
-    { pin: typeof req.query.pin === 'string' ? req.query.pin : '', authHeader: req.headers.authorization },
-    { teacherPin: room.teacherPin, sitePassword: process.env.SITE_PASSWORD }
-  );
-  if (!allowed) {
+  const gate = teacherGateForRequest(req, room);
+  if (!gate.ok) {
     return res.status(403).json({ error: 'Teacher access required. Open the report from your teacher console.' });
   }
   res.json(buildActivityReport(room.engine, {
@@ -3179,7 +3195,11 @@ app.delete('/api/recipes/user/:id', async (req, res) => {
 // id nobody has taken.
 app.get('/api/games', async (req, res) => {
   try {
-    const mine = parseMine(req.query.mine);
+    // Only the owner gets every row (the library console); anyone else
+    // without a `mine` is a visitor with no copies (2026-09-28: a reviewer
+    // listed all 190 activities, teachers' own included, from a bare call)
+    const owner = isOwnerRequest(req);
+    const mine = parseMine(req.query.mine) || (owner ? null : []);
     // The browser that lists a row as its own claims it if nobody has yet
     // (rows saved before the owner key, 2026-09-27); never a featured row
     // it did not list, and never without a key.
@@ -3191,7 +3211,6 @@ app.get('/api/games', async (req, res) => {
     const overrides = await featuredOverridesSafe();
     const wanted = mine ? wantedUserIds(mine, overrides) : null;
     const loaded = await listGames({ builtInOnly: DB_ENABLED });
-    const ids = loaded.map(g => g.id);
     const games = loaded
       .filter(g => g.source !== 'user' || !wanted || wanted.includes(g.id) || !!(g.config && g.config.featured))
       .map(({ id, source, config }) => ({
@@ -3235,14 +3254,14 @@ app.get('/api/games', async (req, res) => {
       when: whenLineFor(row.id, config) || undefined
     });
       }
-      const userIds = wanted ? await listUserGameIds() : userRows.map(r => r.id);
-      ids.push(...userIds);
     }
 
-    res.json({ games: applyFeaturedOverrides(games, overrides), ids });
+    // No `ids` any more: it listed every id on the server for the copy-id
+    // dedupe, which the save route now does itself (`dedupe: true`)
+    res.json({ games: applyFeaturedOverrides(games, overrides) });
   } catch (error) {
     console.log(`[api/games] Error: ${error.message}`);
-    res.status(500).json({ games: [], ids: [], error: 'Failed to load games' });
+    res.status(500).json({ games: [], error: 'Failed to load games' });
   }
 });
 
@@ -3530,10 +3549,16 @@ function stripUnknownFields(config) {
 
 app.post('/api/games', async (req, res) => {
   try {
-    const { id, config } = req.body;
+    const { config } = req.body;
+    let id = req.body.id;
     if (!id || !/^[a-z0-9][a-z0-9-]*$/.test(id)) {
       return res.status(400).json({ error: 'Invalid game ID. Use lowercase letters, numbers, and hyphens. Must not start with a hyphen.' });
     }
+    // `dedupe: true`: the id is a wish, the server steps past a taken one
+    // ("exit-ticket" -> "exit-ticket-3") and answers with the id it used.
+    // The pages used to pick a free id from a list of EVERY id on the
+    // server, which let anyone enumerate teachers' activities (2026-09-28).
+    if (req.body.dedupe === true) id = await mintCopyId(id, gameIdTaken);
     // Reject collision with built-in games (always on filesystem)
     try {
       await access(join(GAMES_DIR, id));
@@ -4083,12 +4108,20 @@ async function storyboardOutcome(body, onEvent) {
         ? storyboard.partial : null;
       const partialSteps = partial ? partial.steps.map(s => s.brick) : [];
       const ideaId = await logIdea(body, { stage: 'storyboard', result: 'cant-build', reason: storyboard.reason || '', steps: partialSteps });
-      return { status: 200, json: { cantBuild: true, harm: storyboard.harm === true, reason: storyboard.reason || '', partial, ideaId } };
+      const partialAnonymous = parseAnonymity(description);
+      const partialSettings = partialAnonymous === null ? {} : { anonymous: partialAnonymous };
+      return { status: 200, json: { cantBuild: true, harm: storyboard.harm === true, reason: storyboard.reason || '', partial, settings: partialSettings, ideaId } };
     }
     // What was unique: the bricks the plan is made of.
     const steps = Array.isArray(storyboard.steps) ? storyboard.steps.map(s => s && s.brick).filter(Boolean) : [];
     const ideaId = await logIdea(body, { stage: 'storyboard', result: 'storyboard', targetName: storyboard.name || '', steps });
-    return { status: 200, json: { storyboard, ideaId } };
+    // The settings the idea named in plain words ("no names"), read by the
+    // server the same way the recipe match reads them, so a planned
+    // activity keeps them too (2026-09-28: a "word cloud, no names" plan
+    // was built with names shown). The client writes them on the config.
+    const anonymous = parseAnonymity(description);
+    const settings = anonymous === null ? {} : { anonymous };
+    return { status: 200, json: { storyboard, settings, ideaId } };
   } catch (error) {
     console.log(`[api/games/storyboard] Error: ${error.message}`);
     await logIdea(body, { stage: 'storyboard', result: 'error', reason: error.message });
@@ -4472,9 +4505,21 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on(EVENTS.GET_GAMES, async () => {
+  // The host's picker, scoped like GET /api/games (2026-09-28: it sent
+  // every teacher's saved activity to any socket that asked). A visitor
+  // gets built-ins, featured rows, the ids its browser says are its own
+  // (`mine`), and the one a ?game= link names (`game`, fetch-by-id is
+  // public for share links); the owner gets everything.
+  socket.on(EVENTS.GET_GAMES, async (payload = {}) => {
     try {
-      const loaded = await listGames({ builtInOnly: DB_ENABLED });
+      const owner = isOwnerRequest({ headers: (socket.handshake && socket.handshake.headers) || {} });
+      const p = payload && typeof payload === 'object' ? payload : {};
+      const mine = parseMine(Array.isArray(p.mine) ? p.mine.join(',') : p.mine) || [];
+      const linked = parseMine(typeof p.game === 'string' ? p.game : '') || [];
+      const overrides = await featuredOverridesSafe();
+      const wanted = owner ? null : wantedUserIds([...mine, ...linked], overrides);
+      const loaded = (await listGames({ builtInOnly: DB_ENABLED }))
+        .filter(g => g.source !== 'user' || !wanted || wanted.includes(g.id) || !!(g.config && g.config.featured));
       // minPlayers feeds the host lobby's start hint (falls back to the
       // lobby phase's value — some configs declare it there).
       const games = loaded.map(({ id, source, config }) => ({
@@ -4486,7 +4531,7 @@ io.on('connection', (socket) => {
         minPlayers: config.minPlayers || (config.phases && config.phases.lobby && config.phases.lobby.minPlayers) || null
       }));
       if (DB_ENABLED) {
-        const userRows = await listUserGamesRepaired();
+        const userRows = wanted ? await listUserGamesByIdsRepaired(wanted) : await listUserGamesRepaired();
         for (const row of userRows) {
           games.push({
             id: row.id,
@@ -4498,7 +4543,7 @@ io.on('connection', (socket) => {
           });
         }
       }
-      socket.emit(EVENTS.GAMES_LIST, { games: applyFeaturedOverrides(games, await featuredOverridesSafe()) });
+      socket.emit(EVENTS.GAMES_LIST, { games: applyFeaturedOverrides(games, overrides) });
     } catch (error) {
       console.log(`[get-games] Error: ${error.message}`);
       socket.emit(EVENTS.GAMES_LIST, { games: [] });
@@ -4526,6 +4571,9 @@ io.on('connection', (socket) => {
       // Teacher console PIN — carried inside the "Copy teacher link" deep
       // link on the host screen; it never displays on the projector.
       room.teacherPin = generateTeacherPin();
+      // The teacher's own browser keeps this: it gets past a PIN lockout
+      // a guessing student caused (engine/teacher-auth.js gateTeacher).
+      room.teacherKey = generateTeacherKey();
       room.teacherSocketIds = new Set();
       // Host rebind credential: lets the host screen recover from an F5 or
       // a server restart (stored in the host page's sessionStorage).
@@ -4557,7 +4605,7 @@ io.on('connection', (socket) => {
         // the hex shape it mints (a modified client cannot smuggle a name).
         logRoomOpen(room, payload.hostKey);
       }
-      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin, hostToken: room.hostToken, start: config.start || 'together', language: room.engine.language, strings: stringsFor(room.engine.language) });
+      socket.emit(EVENTS.ROOM_CREATED, { code, game: config.name, theme: config.theme || null, teacherPin: room.teacherPin, teacherKey: room.teacherKey, hostToken: room.hostToken, start: config.start || 'together', language: room.engine.language, strings: stringsFor(room.engine.language) });
 
       // Rolling start: no lobby wait. The room opens straight into the
       // first step; students land in it as they arrive (join-room already
@@ -4587,33 +4635,32 @@ io.on('connection', (socket) => {
       socket.emit(EVENTS.TEACHER_JOIN_ERROR, { message: 'Room not found. Check the code on the projector.' });
       return;
     }
-    // Brute-force lockout: too many wrong PINs freezes console joins for
-    // this room — even with the right PIN (that's the point). Keyed by
-    // room code so reconnecting with a fresh socket doesn't reset it.
-    const gate = pinThrottle.check(code, Date.now());
-    if (!gate.allowed) {
+    // The gate (engine/teacher-auth.js): the teacher key and the site
+    // password skip the brute-force throttle, so a student guessing PINs
+    // off the projector's code can never lock the teacher's own browser out;
+    // a typed PIN is throttled room-wide (fresh sockets gain nothing).
+    const gate = gateTeacher({
+      provided: { pin, key: payload.key, authHeader: socket.handshake && socket.handshake.headers && socket.handshake.headers.authorization },
+      expected: teacherCredentials(room),
+      throttle: pinThrottle, code, now: Date.now()
+    });
+    if (!gate.ok && gate.reason === 'locked') {
       const mins = Math.max(1, Math.ceil(gate.retryAfterMs / 60000));
-      console.log(`[join-teacher] Room ${code} console locked (brute-force throttle, ${mins} min left)`);
+      console.log(`[join-teacher] Room ${code} typed-PIN joins locked (brute-force throttle, ${mins} min left)`);
       socket.emit(EVENTS.TEACHER_JOIN_ERROR, {
-        message: `Too many wrong PINs. The teacher view is locked for about ${mins} minute${mins === 1 ? '' : 's'}. The projected host screen still works.`
+        message: `Too many wrong PINs were typed for this room, so typing the PIN is paused for about ${mins} minute${mins === 1 ? '' : 's'}. Open the teacher view from the computer that started the activity, or use its "Copy teacher link".`
       });
       return;
     }
-    const allowed = checkTeacherAccess(
-      { pin, authHeader: socket.handshake && socket.handshake.headers && socket.handshake.headers.authorization },
-      { teacherPin: room.teacherPin, sitePassword: process.env.SITE_PASSWORD }
-    );
-    if (!allowed) {
-      const fail = pinThrottle.recordFailure(code, Date.now());
-      console.log(`[join-teacher] Rejected console for room ${code} (bad PIN${fail.locked ? ', room now locked' : ''})`);
+    if (!gate.ok) {
+      console.log(`[join-teacher] Rejected console for room ${code} (bad PIN${gate.locked ? ', typed PINs now paused' : ''})`);
       socket.emit(EVENTS.TEACHER_JOIN_ERROR, {
-        message: fail.locked
-          ? 'Too many wrong PINs. The teacher view is locked for a few minutes.'
+        message: gate.locked
+          ? 'Too many wrong PINs. Typing the PIN is paused for a few minutes; the teacher link from the computer that started the activity still works.'
           : 'Wrong PIN. Use "🔗 Copy teacher link" on the host screen to get a working link.'
       });
       return;
     }
-    pinThrottle.recordSuccess(code);
     room.teacherSocketIds = room.teacherSocketIds || new Set();
     room.teacherSocketIds.add(socket.id);
     teacherSocketToRoom.set(socket.id, code);
@@ -4850,26 +4897,24 @@ io.on('connection', (socket) => {
     // computer come in with the PIN (a reviewer, 2026-09-27). The PIN
     // path shares the console's brute-force throttle.
     if (hostToken !== room.hostToken) {
-      if (typeof pin !== 'string' || !pin) {
+      if ((typeof pin !== 'string' || !pin) && (typeof payload.key !== 'string' || !payload.key)) {
         socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'That room is no longer running.' });
         return;
       }
-      const gate = pinThrottle.check(code, Date.now());
-      if (!gate.allowed) {
-        socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'Too many wrong PINs. Try again in a few minutes.' });
+      const gate = gateTeacher({
+        provided: { pin, key: payload.key, authHeader: socket.handshake && socket.handshake.headers && socket.handshake.headers.authorization },
+        expected: teacherCredentials(room),
+        throttle: pinThrottle, code, now: Date.now()
+      });
+      if (!gate.ok && gate.reason === 'locked') {
+        socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'Too many wrong PINs. Open the projector from the teacher console instead.' });
         return;
       }
-      const allowed = checkTeacherAccess(
-        { pin, authHeader: socket.handshake && socket.handshake.headers && socket.handshake.headers.authorization },
-        { teacherPin: room.teacherPin, sitePassword: process.env.SITE_PASSWORD }
-      );
-      if (!allowed) {
-        pinThrottle.recordFailure(code, Date.now());
+      if (!gate.ok) {
         console.log(`[host-rejoin] Rejected a PIN rejoin for ${code}`);
         socket.emit(EVENTS.HOST_REJOIN_ERROR, { message: 'Wrong PIN for that room.' });
         return;
       }
-      pinThrottle.recordSuccess(code);
       // Another projector may still hold the room (a second one opened by
       // mistake): the newest wins, the old one is told and let go
       const priorHost = roomToHost.get(code);
@@ -4893,6 +4938,7 @@ io.on('connection', (socket) => {
       game: config.name,
       theme: config.theme || null,
       teacherPin: room.teacherPin,
+      teacherKey: room.teacherKey,
       hostToken: room.hostToken,
       start: config.start || 'together',
       language: room.engine.language,
@@ -4971,9 +5017,13 @@ io.on('connection', (socket) => {
     const { code, response, pass, phaseInstanceId } = payload;
     console.log(`[submit-response] Response from ${socket.id} in room ${code}`);
 
+    // Every way out answers the student: a silent drop left the screen on
+    // "Sending..." (review eighteen)
+    const lostSeat = () => socket.emit(EVENTS.RESPONSE_REJECTED, { reason: 'no-seat', message: SUBMIT_LOST_SEAT });
     const room = roomManager.find(code);
     if (!room) {
       console.log(`[submit-response] Room ${code} not found`);
+      lostSeat();
       return;
     }
     if (isStalePhaseEvent(room, phaseInstanceId, 'submit-response')) return;
@@ -4982,6 +5032,7 @@ io.on('connection', (socket) => {
     const player = players.find(socket.id);
     if (!player) {
       console.log(`[submit-response] Player ${socket.id} not found in room`);
+      lostSeat();
       return;
     }
 
@@ -5264,6 +5315,10 @@ io.on('connection', (socket) => {
       if (!room || !room.engine) return;
       if (!isTeacherSocket(code, room, socket.id)) return;
       const phase = room.engine.getCurrentPhase();
+      // Only where the answer box told the student the class sees their
+      // words (engine/spotlight.js spotlightAllowed); the console hides
+      // the button everywhere else, and a stale console is refused here.
+      if (!phase || !spotlightAllowed(audienceKeyFor(room.engine, phase), phase.type)) return;
       const item = spotlightItemFor(room.engine, phase, playerId);
       if (!item) return;
       recordEvent(room, 'spotlight', { phaseId: phase.id });
@@ -5324,33 +5379,62 @@ io.on('connection', (socket) => {
     const players = room.engine.players;
     const target = players.find(playerId);
     if (!target) return;
-    const wanted = String(payload.name || '').trim().slice(0, 20);
-    if (wanted.length < 2) {
-      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message: 'A name needs at least two letters.' });
+    const verdict = checkNewName(players.list(), playerId, payload.name, filterName);
+    if (!verdict.ok) {
+      if (verdict.reason === 'same') return;
+      const message = verdict.reason === 'short' ? 'A name needs at least two letters.'
+        : verdict.reason === 'blocked' ? 'That name cannot go on the big screen either.'
+          : 'Someone in the room already has that name.';
+      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message });
       return;
     }
-    if (filterName(wanted).blocked) {
-      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message: 'That name cannot go on the big screen either.' });
+    applyRename(code, room, playerId, verdict.name, `Your teacher changed your name to ${verdict.name}.`, 'moderate-rename');
+  });
+
+  // A student changes their own name (2026-09-28, the owner: students
+  // asked for it). Lobby only, so no answer, pairing, or score has been
+  // stored under the old one yet; never in an anonymous room. The same
+  // checks and the same broadcast as the console's Rename.
+  socket.on(EVENTS.RENAME_SELF, (payload = {}) => {
+    if (!checkEventPayload(socket, 'rename-self', payload)) return;
+    const { code } = payload;
+    const room = roomManager.find(code);
+    if (!room || socketToRoom.get(socket.id) !== code) return;
+    if (room.engine && room.engine.config && room.engine.config.anonymous) return;
+    const players = room.engine ? room.engine.players : room.playerRegistry;
+    if (!players || !players.find(socket.id)) return;
+    const phase = room.engine ? room.engine.getCurrentPhase() : null;
+    if (phase && phase.type !== 'lobby') {
+      socket.emit(EVENTS.RENAME_ERROR, { message: SELF_RENAME_MESSAGES.closed });
       return;
     }
-    const taken = players.list().some(p => p.id !== playerId && p.name.toLowerCase() === wanted.toLowerCase());
-    if (taken) {
-      socket.emit(EVENTS.TEACHER_RENAME_ERROR, { playerId, message: 'Someone in the room already has that name.' });
+    const verdict = checkNewName(players.list(), socket.id, payload.name, filterName);
+    if (!verdict.ok) {
+      if (verdict.reason === 'same') { socket.emit(EVENTS.RENAMED, { name: players.find(socket.id).name }); return; }
+      socket.emit(EVENTS.RENAME_ERROR, { message: SELF_RENAME_MESSAGES[verdict.reason] });
       return;
     }
+    applyRename(code, room, socket.id, verdict.name, null, 'rename-self');
+  });
+
+  // One broadcast for a seat's new name: the student, the projector, the
+  // consoles, the lobby roster, the submission lists, the snapshot.
+  function applyRename(code, room, playerId, wanted, message, eventName) {
+    const players = room.engine ? room.engine.players : room.playerRegistry;
+    const target = players.find(playerId);
     const was = target.name;
     players.update(playerId, { name: wanted });
-    recordEvent(room, 'moderate-rename', { from: was, to: wanted });
-    console.log(`[moderate-rename] ${code}: "${was}" is now "${wanted}"`);
+    recordEvent(room, eventName, { from: was, to: wanted });
+    console.log(`[${eventName}] ${code}: "${was}" is now "${wanted}"`);
     const renamed = io.sockets.sockets.get(playerId);
-    if (renamed) renamed.emit(EVENTS.RENAMED, { name: wanted, message: `Your teacher changed your name to ${wanted}.` });
+    if (renamed) renamed.emit(EVENTS.RENAMED, message ? { name: wanted, message } : { name: wanted });
     const hostSocketId = roomToHost.get(code);
     if (hostSocketId) io.to(hostSocketId).emit(EVENTS.PLAYER_RECONNECTED, { id: playerId, name: wanted, players: players.listPublic() });
     emitTeacherRoster(code, room);
     emitRoomRoster(code, room);
     emitSubmissionsUpdate(code, room);
     persistRoom(code, room);
-  });
+  }
 
   // --- "A bit more time": teacher adds seconds to a running input timer ---
   // Covers every phase where the whole class works against one shared
@@ -6084,13 +6168,13 @@ io.on('connection', (socket) => {
     const existing = room.engine.phaseData[state.phaseId] || {};
     room.engine.storePhaseData(state.phaseId, { ...existing, progress: state.progress });
     const next = soloQuizPlayerPayload(state, socket.id, soloQuizPoints(phase));
-    socket.emit(EVENTS.SOLO_QUIZ_FEEDBACK, {
+    socket.emit(EVENTS.SOLO_QUIZ_FEEDBACK, soloQuizFeedback({
       answeredIndex: index,
-      correct,
+      right: correct,
       correctAnswer: phase.showAnswers === false ? null : q.correct,
-      ...next,
+      next,
       phaseInstanceId: room.phaseInstanceId
-    });
+    }));
     emitSoloQuizProgress(code, room);
   });
 

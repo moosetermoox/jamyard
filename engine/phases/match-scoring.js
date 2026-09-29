@@ -88,3 +88,27 @@ export function buildResultsList(stats) {
     .map(s => `${s.left} → ${s.right} (${s.pct}% of the class got it)`)
     .join('\n');
 }
+
+/**
+ * The right column's shared deal: shuffled, and no item beside its match
+ * (review eighteen: two of six pairs started matched, the old deal only
+ * refused a fully solved board). Fixed points are rotated among
+ * themselves; a lone one swaps with its neighbor. Duplicate right texts
+ * can make it impossible, then it is best effort.
+ */
+export function dealRightColumn(correctOrder, shuffle) {
+  const out = shuffle(correctOrder);
+  const n = out.length;
+  if (n < 2) return out;
+  const fixed = [];
+  for (let i = 0; i < n; i++) if (out[i] === correctOrder[i]) fixed.push(i);
+  if (fixed.length >= 2) {
+    const vals = fixed.map(i => out[i]);
+    fixed.forEach((pos, k) => { out[pos] = vals[(k + 1) % vals.length]; });
+  } else if (fixed.length === 1) {
+    const i = fixed[0];
+    const j = (i + 1) % n;
+    const tmp = out[i]; out[i] = out[j]; out[j] = tmp;
+  }
+  return out;
+}

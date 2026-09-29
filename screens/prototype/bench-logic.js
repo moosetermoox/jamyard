@@ -215,7 +215,86 @@
     return Math.min(SEAT_MAX, seats);
   }
 
+  // Where the NEXT card goes (a reviewer, 2026-09-28: the card sat on the
+  // very buttons it named, over the student's answer buttons and the
+  // joined list, and once pointed down at a button above it). Four places
+  // are tried, above, below, left, right of the target, and the one that
+  // covers least wins: the target itself never, then anything outside the
+  // bounds, then the other controls in `avoid`, then the order above. The
+  // notch is drawn only when the card really sits above (points down) or
+  // below (points up) the target, over its middle.
+  // All rects are {left, top, right, bottom} in page pixels; `card` is
+  // {w, h}; `bounds` is where the card may go; `rightHalf` hangs an
+  // above/below card leftward from a control on the right of the bench.
+  function overlapArea(a, b) {
+    var w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+    var h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+    return w > 0 && h > 0 ? w * h : 0;
+  }
+
+  function placeCard(opts) {
+    var t = opts.target;
+    var w = opts.card.w;
+    var h = opts.card.h;
+    var b = opts.bounds;
+    var avoid = opts.avoid || [];
+    var gap = 6;
+    var cx = (t.left + t.right) / 2;
+    var cy = (t.top + t.bottom) / 2;
+    var hang = opts.rightHalf ? cx - w + Math.min(60, w / 2) : cx - Math.min(60, w / 2);
+    var clampX = function (x) { return Math.max(b.left, Math.min(x, b.right - w)); };
+    var clampY = function (y) { return Math.max(b.top, Math.min(y, b.bottom - h)); };
+    // Beside the target, the card lines up with its middle, its top, or
+    // its bottom, whichever covers least
+    var spots = [
+      { side: 'above', left: clampX(hang), top: t.top - h - gap },
+      { side: 'below', left: clampX(hang), top: t.bottom + gap }
+    ];
+    [cy - h / 2, t.top, t.bottom - h].forEach(function (y) {
+      spots.push({ side: 'left', left: t.left - w - gap * 2, top: clampY(y) });
+      spots.push({ side: 'right', left: t.right + gap * 2, top: clampY(y) });
+    });
+    var best = null;
+    for (var i = 0; i < spots.length; i++) {
+      var s = spots[i];
+      var r = { left: s.left, top: s.top, right: s.left + w, bottom: s.top + h };
+      var outside = (w * h) - overlapArea(r, b);
+      var covered = 0;
+      for (var j = 0; j < avoid.length; j++) covered += overlapArea(r, avoid[j]);
+      var score = overlapArea(r, t) * 1e6 + outside * 1e3 + covered + i;
+      if (!best || score < best.score) best = { side: s.side, left: s.left, top: s.top, score: score };
+    }
+    // Whatever won, the card stays inside the bounds
+    var left = clampX(best.left);
+    var top = clampY(best.top);
+    var notch = null;
+    var notchLeft = Math.max(12, Math.min(cx - left - 13, w - 40));
+    var overMiddle = cx >= left + 12 && cx <= left + w - 12;
+    if (overMiddle && top + h <= t.top) notch = 'down';
+    else if (overMiddle && top >= t.bottom) notch = 'up';
+    return { left: left, top: top, side: best.side, notch: notch, notchLeft: notchLeft };
+  }
+
+  // The header chip names the activity the way the yard's cards do: a copy
+  // saved from a recipe panel is "Trivia Bluff (my version)" while one
+  // saved from the question box keeps a plain name, so the chip read one
+  // way for some and the other for the rest (a reviewer, 2026-09-28). The
+  // marker goes; the full name stays in the chip's tooltip.
+  function chipName(name) {
+    var s = String(name || '').replace(/\s*\(\s*my version\s*\)\s*$/i, '').trim();
+    return s || String(name || '');
+  }
+
+  // A button's words for matching the projector's button to the console's
+  // twin: case, arrows, and spacing aside ("Send the question to students ▸")
+  function buttonWords(text) {
+    return String(text || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
   globalThis.BenchLogic = {
+    buttonWords: buttonWords,
+    chipName: chipName,
+    placeCard: placeCard,
     STUDENT_STEPS: STUDENT_STEPS,
     HOST_ADVANCE_BUTTONS: HOST_ADVANCE_BUTTONS,
     TOUR_STOPS: TOUR_STOPS,

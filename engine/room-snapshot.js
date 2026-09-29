@@ -41,6 +41,7 @@ export function serializeRoom(room) {
     gameId: room.gameId,
     gameSource: room.gameSource || 'built-in',
     teacherPin: room.teacherPin || null,
+    teacherKey: room.teacherKey || null,
     hostToken: room.hostToken || null,
     // Rooms log row (services/room-log.js): a restored room keeps writing
     // its progress to the same row instead of vanishing from the log.
@@ -120,6 +121,7 @@ export function restoreRoom(snapshot, config, hooks) {
     gameSource: snapshot.gameSource || 'built-in',
     simulated: false,
     teacherPin: snapshot.teacherPin || null,
+    teacherKey: snapshot.teacherKey || null,
     hostToken: snapshot.hostToken || null,
     logId: snapshot.logId || null,
     pretend: snapshot.kind === 'pretend',

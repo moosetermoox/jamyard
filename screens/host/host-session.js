@@ -37,8 +37,9 @@
   //                   here (a reviewer, 2026-09-27).
   // opts.now        — the clock, for the remembered room's age
   // Returns {kind: 'rejoin', code, hostToken} |
-  //         {kind: 'rejoin-pin', code, pin} (the console's "Open the
-  //         projector again": /host?room=CODE#pin=PIN) |
+  //         {kind: 'rejoin-pin', code, pin, key} (the console's "Open the
+  //         projector again": /host?room=CODE#pin=PIN&key=KEY; the key
+  //         gets past a PIN lockout a guessing student caused) |
   //         {kind: 'forget'} | {kind: 'fresh'} | {kind: 'none'}
   function connectAction(opts) {
     opts = opts || {};
@@ -54,7 +55,8 @@
     if (room.length === 4) {
       var h = params(String(opts.hash || '').replace(/^#/, ''));
       var pin = h.get('pin') || '';
-      if (pin) return { kind: 'rejoin-pin', code: room, pin: pin };
+      var key = h.get('key') || '';
+      if (pin || key) return { kind: 'rejoin-pin', code: room, pin: pin, key: key };
     }
     // ?game= / prototype launches always want a FRESH room on a page load
     // (the editor's Try it out, sim harnesses).

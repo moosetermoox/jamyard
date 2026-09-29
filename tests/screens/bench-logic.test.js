@@ -307,3 +307,98 @@ describe('startingSeats', () => {
     expect(startingSeats(null)).toBe(1);
   });
 });
+
+// A reviewer, 2026-09-28: the NEXT card sat on the very buttons it named,
+// once pointed down at a button above it, and overlapped the tour's card.
+describe('placeCard: the NEXT card never covers what it points at', () => {
+  const { placeCard } = globalThis.BenchLogic;
+  const bounds = { left: 8, top: 8, right: 1047, bottom: 632 };
+  const card = { w: 300, h: 100 };
+  const overlaps = (a, b) => Math.min(a.right, b.right) > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top);
+  const rectOf = (s) => ({ left: s.left, top: s.top, right: s.left + card.w, bottom: s.top + card.h });
+
+  it('sits above a button with room, notch pointing down', () => {
+    const target = { left: 200, top: 400, right: 400, bottom: 440 };
+    const spot = placeCard({ target, card, bounds });
+    expect(spot.side).toBe('above');
+    expect(spot.notch).toBe('down');
+    expect(overlaps(rectOf(spot), target)).toBe(false);
+  });
+
+  it('goes below a button at the top of the window, notch pointing up', () => {
+    const target = { left: 200, top: 20, right: 400, bottom: 60 };
+    const spot = placeCard({ target, card, bounds });
+    expect(spot.side).toBe('below');
+    expect(spot.notch).toBe('up');
+  });
+
+  it('a button near the bottom never ends up under the card', () => {
+    const target = { left: 700, top: 580, right: 860, bottom: 620 };
+    const spot = placeCard({ target, card, bounds, rightHalf: true });
+    expect(overlaps(rectOf(spot), target)).toBe(false);
+    expect(rectOf(spot).bottom).toBeLessThanOrEqual(bounds.bottom);
+  });
+
+  it('steps off the other controls when another side is clear', () => {
+    const target = { left: 700, top: 500, right: 860, bottom: 540 };
+    // the student's answer buttons fill the space above the target
+    const avoid = [{ left: 640, top: 250, right: 1040, bottom: 490 }];
+    const spot = placeCard({ target, card, bounds, avoid, rightHalf: true });
+    expect(spot.side).not.toBe('above');
+    expect(overlaps(rectOf(spot), avoid[0])).toBe(false);
+    expect(overlaps(rectOf(spot), target)).toBe(false);
+  });
+
+  it('draws no notch beside the target, only above or below it', () => {
+    const target = { left: 700, top: 300, right: 860, bottom: 340 };
+    const avoid = [{ left: 500, top: 150, right: 1047, bottom: 299 }, { left: 500, top: 341, right: 1047, bottom: 632 }];
+    const spot = placeCard({ target, card, bounds, avoid, rightHalf: true });
+    expect(spot.side).toBe('left');
+    expect(spot.notch).toBe(null);
+  });
+});
+
+describe('the header chip and the console twin', () => {
+  const { chipName, buttonWords } = globalThis.BenchLogic;
+  it('names a copy the way the yard does, the marker off', () => {
+    expect(chipName('Trivia Bluff (my version)')).toBe('Trivia Bluff');
+    expect(chipName('Snowball')).toBe('Snowball');
+    expect(chipName('(my version)')).toBe('(my version)');
+  });
+  it("matches the projector's button to the console's, arrows aside", () => {
+    expect(buttonWords('SEND THE QUESTION TO STUDENTS')).toBe(buttonWords('Send the question to students ▸'));
+    expect(buttonWords('Close submissions')).not.toBe(buttonWords('Close voting'));
+  });
+});
+
+describe('Try it out keeps its screens clear (2026-09-28)', () => {
+  const read = (p) => readFileSync(new URL('../../' + p, import.meta.url), 'utf8');
+  it('the feedback widget loads its sheet first, so a page rule can move it', () => {
+    const js = read('screens/shared/feedback-widget.js');
+    expect(js).toContain('document.head.insertBefore(style, document.head.firstChild)');
+    expect(js).not.toContain('document.head.appendChild(style)');
+  });
+  it('Escape closes the feedback panel', () => {
+    expect(read('screens/shared/feedback-widget.js')).toMatch(/e\.key !== 'Escape' \|\| panel\.hidden/);
+  });
+  it('the feedback button rides in the toolbar, never a bottom corner', () => {
+    expect(read('screens/prototype/prototype.js')).toContain('toolbar.appendChild(fb)');
+    expect(read('screens/prototype/styles.css')).toMatch(/#toolbar #feedback-widget-btn \{\s*position: static;/);
+  });
+  it('the NEXT card steps aside while the tour runs, except on its own stop', () => {
+    expect(read('screens/prototype/prototype.js')).toContain("BenchTour.currentTarget() !== '#next-banner'");
+    expect(read('screens/prototype/tour.js')).toContain('if (state.onStep) state.onStep(live.stop);');
+  });
+  it('the projector in the bench drops the Copy teacher link chip and its strip', () => {
+    const css = read('screens/host/styles.css');
+    expect(css).toContain('body.in-bench .teacher-view-chip { display: none; }');
+    expect(css).toContain('body.in-bench.in-activity { padding-bottom: 16px; }');
+    expect(read('screens/host/host.js')).toContain('teacherViewChip.hidden = IS_PROTOTYPE_HOST;');
+  });
+  it('the review screen in the bench names the Teacher controls tab, not a copied link', () => {
+    expect(read('screens/host/host.js')).toContain('Review it under Teacher controls, the tab above this screen, or reveal it here.');
+  });
+  it('a laptop-height window tightens the chrome around the screens', () => {
+    expect(read('screens/prototype/styles.css')).toContain('@media (max-height: 800px) and (min-width: 861px)');
+  });
+});

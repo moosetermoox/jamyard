@@ -255,6 +255,21 @@ describe('ballotFor / isOwnCandidate (pick-one self-votes)', () => {
   it('leaves literal string options alone (nobody wrote them)', () => {
     expect(ballotFor(['Cave', 'Bridge'], 'p1', true)).toEqual(['Cave', 'Bridge']);
   });
+  it('shuffles each voter\'s ballot when asked, the same order every time for that voter', () => {
+    const options = ['Alpha', 'Bravo', 'Charlie', 'Delta', 'Echo', 'Foxtrot'];
+    const a1 = ballotFor(options, 'p1', false, 'step-1');
+    expect(ballotFor(options, 'p1', false, 'step-1')).toEqual(a1);
+    expect(a1.slice().sort()).toEqual(options.slice().sort());
+    // Across a room, not everyone sees the teacher's order
+    const orders = new Set(['p1', 'p2', 'p3', 'p4', 'p5', 'p6'].map(id => ballotFor(options, id, false, 'step-1').join('|')));
+    expect(orders.size).toBeGreaterThan(1);
+    // The shared list is never reordered in place
+    expect(options[0]).toBe('Alpha');
+  });
+  it('shuffles and still leaves the voter\'s own answer off', () => {
+    const ballot = ballotFor(candidates, 'p2', true, 'step-1');
+    expect(ballot.map(c => c.playerId).sort()).toEqual(['p1', 'p3']);
+  });
   it('spots a self-vote by candidate id', () => {
     expect(isOwnCandidate(candidates, 'p2', 'p2')).toBe(true);
     expect(isOwnCandidate(candidates, 'p2', 'p1')).toBe(false);

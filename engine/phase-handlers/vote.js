@@ -102,6 +102,8 @@ registerHandler('vote', {
       eligibleVoterIds: eligible.map(p => p.id),
       // Pick-one: the server refuses a self-vote when this is on.
       excludeAuthors: !!phase.excludeAuthors,
+      // Each voter's own order (pick-one and approve), seeded by the step
+      shuffleSeed: phase.shuffle === true ? phase.id : null,
       votes: [],
       votersCompleted: new Set()
     };
@@ -177,7 +179,7 @@ registerHandler('vote', {
       // or a no, so several can pass at once (clauses, norms, budget lines).
       const excludeAuthors = !!phase.excludeAuthors;
       for (const voter of eligible) {
-        const ballot = ballotFor(candidates, voter.id, excludeAuthors);
+        const ballot = ballotFor(candidates, voter.id, excludeAuthors, phase.shuffle === true ? phase.id : null);
         if (ballot.length === 0) {
           // Only their own answer to pick from: nothing to vote on, so
           // pre-mark them complete rather than block the room on them.
@@ -247,7 +249,7 @@ registerHandler('vote', {
       } else {
         socket.emit(EVENTS.VOTE_START, {
           mode: vs.mode === 'approve' ? 'approve' : 'pick-one',
-          candidates: ballotFor(vs.candidates, socket.id, !!vs.excludeAuthors),
+          candidates: ballotFor(vs.candidates, socket.id, !!vs.excludeAuthors, vs.shuffleSeed || null),
           timer: null,
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });

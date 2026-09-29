@@ -2,6 +2,7 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
 import { buildGroups, groupsFromSource } from '../phases/pairing.js';
+import { fitPartnerWords } from '../phases/partner-words.js';
 
 /**
  * merge — the Connection Pack's cooperation primitive
@@ -230,7 +231,7 @@ registerHandler('merge', {
       const group = state.byPlayer[player.id];
       if (group) {
         ctx.emitToPlayer(player.id, EVENTS.MERGE_START, {
-          instruction,
+          instruction: fitPartnerWords(instruction, group.members.length),
           seeds: group.seeds,
           draft: group.draft,
           memberNames: group.members.map(id => nameOf.get(id) || 'Someone'),
@@ -266,7 +267,7 @@ registerHandler('merge', {
     const nameOf = new Map(ctx.engine.players.list().map(p => [p.id, p.name]));
     const penHeld = !!group.penHolder;
     socket.emit(EVENTS.MERGE_START, {
-      instruction: ctx.resolveTemplate(ctx.phase.instruction || 'Combine your answers into one stronger answer.'),
+      instruction: fitPartnerWords(ctx.resolveTemplate(ctx.phase.instruction || 'Combine your answers into one stronger answer.'), group.members.length),
       seeds: group.seeds,
       draft: group.draft,
       memberNames: group.members.map(id => nameOf.get(id) || 'Someone'),
@@ -277,7 +278,8 @@ registerHandler('merge', {
       penMine: group.penHolder === socket.id,
       penHolderName: penHeld ? (nameOf.get(group.penHolder) || 'Someone') : null,
       timer: null,
-      playerTemplate: sc.playerTemplate, show: sc.playerShow
+      playerTemplate: sc.playerTemplate, show: sc.playerShow,
+      phaseInstanceId: ctx.phaseInstanceId
     });
   }
 });

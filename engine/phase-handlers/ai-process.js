@@ -10,6 +10,8 @@ import { EVENTS } from '../events.js';
 import { fillPlayerNames } from '../ai-name-fill.js';
 import { contentLog } from '../content-log.js';
 import { varietySpin } from '../phases/variety-spin.js';
+import { inputIsEmpty, asksForInput, NO_ANSWERS_LINE } from '../phases/ai-empty-input.js';
+import { translate } from '../i18n/index.js';
 
 registerHandler('ai-process', {
   async onEnter(ctx) {
@@ -47,6 +49,17 @@ registerHandler('ai-process', {
     }
 
     const expectJson = phase.format === 'json' || phase.perPlayer;
+
+    // Nothing came in to read: never ask the model about nothing (its
+    // "paste the list" reply went up on the projector). A prose step
+    // stores a plain line in the room's language and moves on.
+    const noAnswers = translate(engine.language, NO_ANSWERS_LINE);
+    if (!expectJson && inputIsEmpty(phase, input)) {
+      console.log(`[handlePhase] AI ${phase.task || 'process'} skipped: no answers came in for '${phase.id}'`);
+      engine.storePhaseData(phase.id, { result: noAnswers, summedUp: { total: 0, leftOut: 0 } });
+      await ctx.advanceToNext();
+      return;
+    }
 
     // Call AI with one auto-retry when perPlayer/JSON output fails to parse
     // into an array. Smaller models (Haiku on `generate`) occasionally ignore
@@ -94,6 +107,12 @@ registerHandler('ai-process', {
         }
       } else {
         result = aiResult.text;
+        // A reply that asks for the answers instead of reading them
+        // never reaches the projector
+        if (asksForInput(result)) {
+          console.warn(`[handlePhase] AI reply for '${phase.id}' asked for its input; showing the no-answers line`);
+          result = noAnswers;
+        }
       }
 
       // For perPlayer we need a non-empty array; for any JSON step an

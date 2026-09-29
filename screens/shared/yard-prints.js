@@ -121,8 +121,13 @@
     var job = window.GoalGroups ? GoalGroups.jobOf(g) : 'To think';
     return job.charAt(0).toLowerCase() + job.slice(1);
   }
+  // The hand-written playTime, else the server's estimate from the timers
+  // (a database-only row like Guess Who: Rose, Bud, Thorn has no playTime
+  // and showed no time at all, a reviewer 2026-09-28)
   function shortTime(g) {
-    return g.playTime ? String(g.playTime).split('(')[0].trim() : '';
+    if (g.playTime) return String(g.playTime).split('(')[0].trim();
+    if (typeof g.minutes === 'number' && g.minutes > 0) return '~' + g.minutes + ' min';
+    return '';
   }
   function metaOf(g) {
     var bits = [jobLine(g)];

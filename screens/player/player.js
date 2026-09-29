@@ -523,6 +523,8 @@ function botFillAnswer(promptText) {
 // seat) are keyed by it; a `respondsTo` set is matched to the classmate's
 // text on screen, prompt and inherited block alike.
 var currentCollectPhaseId = null;
+var collectBoxPrefill = ''; // what the step itself put in the box
+var choiceBallot = null; // the open pick-one step's pick-then-confirm ballot
 function sampleFor(samples, seat) {
   if (typeof pickSampleAnswer !== 'function' || !samples) return null;
   var inherited = collectSection.querySelector('.inherited-block');
@@ -548,9 +550,15 @@ window.addEventListener('message', function(e) {
       return;
     }
     // Check for choice buttons first (collect-choice mode)
-    var choiceBtns = active.querySelectorAll('.choice-btn');
+    var choiceBtns = active.querySelectorAll('.choice-btn:not(:disabled)');
     if (choiceBtns.length > 0) {
-      choiceBtns[Math.floor(Math.random() * choiceBtns.length)].click();
+      // Pick one, then press Submit (a pick alone sends nothing)
+      var pickBtn = choiceBtns[Math.floor(Math.random() * choiceBtns.length)];
+      if (!pickBtn.classList.contains('is-selected')) pickBtn.click();
+      var choiceConfirm = active.querySelector('.ballot-confirm');
+      if (choiceConfirm && !choiceConfirm.disabled) choiceConfirm.click();
+    } else if (active.querySelector('.choice-btn')) {
+      // Already sent: nothing to do
     } else {
       // Check for multi-field inputs
       var fieldInputs = active.querySelectorAll('.field-input');
@@ -572,8 +580,12 @@ window.addEventListener('message', function(e) {
         var btn = active.querySelector('button#submit-btn');
         if (textarea && btn && !btn.disabled) {
           var line = typeof sample === 'string' ? sample : botFillAnswer(promptDisplay.textContent);
-          // appendOnly boxes may already hold inherited text; add, never replace
-          textarea.value = textarea.value ? textarea.value.replace(/\s*$/, '\n') + line : line;
+          // An editable hand-off starts with the classmate's text in the
+          // box: add under it. Never on top of this student's own last
+          // try, and inside the box's cap (review eighteen).
+          textarea.value = typeof fitBotLine === 'function'
+            ? fitBotLine(collectBoxPrefill, line, responseMax)
+            : line;
           btn.click();
         }
       }
@@ -604,10 +616,14 @@ window.addEventListener('message', function(e) {
     // at a time and only sends after the last, so keep clicking until the
     // matchups run out (a reviewer's bracket tied every matchup because a
     // pretend student never finished the ballot, 2026-09-28).
+    // Each ballot is pick, then confirm (2026-09-28).
     var voteBtns = active.querySelectorAll('.vote-btn');
     var guard = 0;
     while (voteBtns.length > 0 && guard < 40) {
-      voteBtns[Math.floor(Math.random() * voteBtns.length)].click();
+      var votePick = voteBtns[Math.floor(Math.random() * voteBtns.length)];
+      if (!votePick.classList.contains('is-selected')) votePick.click();
+      var voteConfirm = active.querySelector('.ballot-confirm');
+      if (voteConfirm && !voteConfirm.disabled) voteConfirm.click();
       guard++;
       if (Array.isArray(currentMatchups) && currentMatchups.length > 0 && currentMatchupIndex < currentMatchups.length) {
         voteBtns = active.querySelectorAll('.vote-btn');
@@ -809,7 +825,7 @@ submitBtn.addEventListener('click', () => {
 // whichever input the student is actually using — merge drafts and relay
 // turns get rejected too, not just collect answers.
 socket.on('response-rejected', ({ message }) => {
-  var notice = message || 'That response wasn’t accepted. Please try again.';
+  var notice = UiLang.t(message || 'That response wasn’t accepted. Please try again.');
   var active = document.querySelector('section.active');
   clearSubmitPending();
 
@@ -831,6 +847,16 @@ socket.on('response-rejected', ({ message }) => {
   showSection(collectSection);
   submitBtn.disabled = false;
   showResponseNotice(notice);
+});
+
+// The server refused the shape of a submit (a malformed payload): say so
+// now instead of leaving "Sending..." up until the ack timer runs out.
+socket.on('event-rejected', ({ event } = {}) => {
+  if (!submitPending || event !== 'submit-response') return;
+  var btn = submitPending.btn;
+  clearSubmitPending();
+  if (btn) btn.disabled = false;
+  showResponseNotice(UiLang.t('Not sent yet. Please try again.'));
 });
 
 // --- Socket events - Join ---
@@ -936,7 +962,7 @@ function showEarlyJoke(joke) {
   }
 }
 
-socket.on('join-success', ({ name, reconnected, token, theme, language, strings, wordHelp, joke }) => {
+socket.on('join-success', ({ name, reconnected, token, theme, language, strings, wordHelp, joke, anonymous }) => {
   // Fixed labels (Submit, Skip, You're in!) in the activity's language.
   if (window.UiLang && strings) { UiLang.set(language, strings); UiLang.apply(); }
   showEarlyJoke(joke);
@@ -957,6 +983,9 @@ socket.on('join-success', ({ name, reconnected, token, theme, language, strings,
   // Plain name, no emoji avatar (owner call 2026-08-27).
   playerNameDisplay.textContent = name;
   currentPlayerName = name;
+  // A name the server hands out (anonymous room) is never changed here.
+  renameOpen.hidden = !!anonymous;
+  closeRenameForm();
   if (token) {
     currentToken = token;
     if (!IS_PROTOTYPE) {
@@ -1111,10 +1140,50 @@ socket.on('renamed', ({ name, message } = {}) => {
   if (!name) return;
   currentPlayerName = name;
   playerNameDisplay.textContent = name;
+  closeRenameForm();
   if (!IS_PROTOTYPE) {
     try { sessionStorage.setItem('playerRoom', JSON.stringify({ code: currentRoomCode, name: name })); } catch (e) { /* storage unavailable */ }
   }
   if (message) showError(message);
+});
+
+// "Change my name" in the lobby (2026-09-28, the owner: students asked).
+// The server runs the same checks a join does and answers renamed or
+// rename-error; the screen never changes the name on its own.
+const renameOpen = document.getElementById('rename-open');
+const renameForm = document.getElementById('rename-form');
+const renameInput = document.getElementById('rename-input');
+const renameSave = document.getElementById('rename-save');
+const renameError = document.getElementById('rename-error');
+
+function closeRenameForm() {
+  renameForm.hidden = true;
+  renameError.hidden = true;
+  renameSave.disabled = false;
+}
+
+renameOpen.addEventListener('click', () => {
+  renameForm.hidden = false;
+  renameError.hidden = true;
+  renameInput.value = currentPlayerName || '';
+  renameInput.focus();
+  renameInput.select();
+});
+document.getElementById('rename-cancel').addEventListener('click', () => {
+  closeRenameForm();
+  renameOpen.focus();
+});
+renameForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (!currentRoomCode) return;
+  renameSave.disabled = true;
+  socket.emit('rename-self', { code: currentRoomCode, name: renameInput.value });
+});
+socket.on('rename-error', ({ message } = {}) => {
+  renameSave.disabled = false;
+  renameError.textContent = message ? UiLang.t(message) : '';
+  renameError.hidden = false;
+  renameInput.focus();
 });
 
 // This student joined again from another tab (duplicated tab shares the
@@ -1133,11 +1202,11 @@ socket.on('session-replaced', ({ message } = {}) => {
 
 // --- Timer ---
 // The Totem timer is a chip that reads like a clock, not a bar
+// Always m:ss, so 58 seconds reads 0:58 and never a bare number (a
+// reviewer, 2026-09-28).
 function formatTimerText(seconds) {
-  if (seconds >= 60) {
-    return Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
-  }
-  return String(seconds);
+  var s = Math.max(0, Math.floor(Number(seconds) || 0));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
 function startTimer(seconds, wrapperEl, onExpire) {
@@ -1257,7 +1326,7 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine, oneTap }) => {
   resetHoldingProgress();
   // Which step this is (Try it out deals the template's sample answers by it)
   currentCollectPhaseId = phaseId || null;
@@ -1303,6 +1372,7 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     responseInput.value = typeof prefill === 'string' ? prefill : '';
     responseInput.placeholder = 'Type your answer here...';
   }
+  collectBoxPrefill = responseInput.value;
   if (responseCounter) responseCounter.textContent = responseInput.value.length + ' / ' + responseMax;
   hideResponseNotice();
   // Why this step is up again, when the teacher started it over
@@ -1365,21 +1435,38 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     submitBtn.style.display = 'none';
     var choiceContainer = document.createElement('div');
     choiceContainer.className = 'choice-buttons';
+    // Tap to pick, Submit to send (2026-09-28): a stray tap no longer
+    // answers. Once sent, every choice locks until the server answers.
+    // A quiz question (oneTap: it has a right answer) sends on the tap,
+    // as it always did: speed counts there (owner 2026-09-28).
+    choiceBallot = pickThenConfirm(UiLang.t('Submit'), function (choiceText, confirmBtn) {
+      var all = choiceContainer.querySelectorAll('.choice-btn');
+      for (var bi = 0; bi < all.length; bi++) all[bi].disabled = true;
+      socket.emit('submit-response', { code: currentRoomCode, response: choiceText });
+      awaitSubmitAck(confirmBtn);
+    });
     for (var ci = 0; ci < choices.length; ci++) {
       (function(choiceText) {
         var btn = document.createElement('button');
         btn.className = 'choice-btn';
         btn.textContent = choiceText;
-        btn.addEventListener('click', function() {
-          // One tap only: every choice locks until the server answers.
-          var all = choiceContainer.querySelectorAll('.choice-btn');
-          for (var bi = 0; bi < all.length; bi++) all[bi].disabled = true;
-          socket.emit('submit-response', { code: currentRoomCode, response: choiceText });
-          awaitSubmitAck(btn);
-        });
+        if (oneTap) {
+          btn.type = 'button';
+          btn.addEventListener('click', function () {
+            var all = choiceContainer.querySelectorAll('.choice-btn');
+            for (var bi = 0; bi < all.length; bi++) all[bi].disabled = true;
+            btn.classList.add('is-selected');
+            socket.emit('submit-response', { code: currentRoomCode, response: choiceText });
+            awaitSubmitAck(btn);
+          });
+        } else {
+          choiceBallot.option(btn, choiceText);
+        }
         choiceContainer.appendChild(btn);
       })(typeof choices[ci] === 'string' ? choices[ci] : (choices[ci].text || choices[ci].name || String(choices[ci])));
     }
+    if (oneTap) choiceBallot = null;
+    else choiceContainer.appendChild(choiceBallot.confirmBtn);
     collectSection.appendChild(choiceContainer);
     applyShow(show, {
       prompt: promptDisplay,
@@ -1495,8 +1582,11 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
   if (timer) {
     startTimer(timer, collectTimerDisplay, () => {
       if (collectMode === 'choice') {
+        // The picked choice if there is one, else a random one
+        var pickedChoice = choiceBallot && choiceBallot.picked();
         var randomChoice = choices[Math.floor(Math.random() * choices.length)];
-        var text = typeof randomChoice === 'string' ? randomChoice : (randomChoice.text || randomChoice.name || String(randomChoice));
+        var text = pickedChoice ? pickedChoice.value
+          : (typeof randomChoice === 'string' ? randomChoice : (randomChoice.text || randomChoice.name || String(randomChoice)));
         socket.emit('submit-response', { code: currentRoomCode, response: text });
       } else if (collectMode === 'fields') {
         var inputs = collectSection.querySelectorAll('.field-input');
@@ -1634,8 +1724,9 @@ function buildPlayerBody(text) {
   }
   // AI results arrive markdown-flavored (# headings, ** bold, - bullets);
   // shared/rich-text.js structures them instead of showing the markers.
-  if (window.RichText && RichText.hasRich(text)) {
-    return RichText.buildBody(text, 'msg-body');
+  // Long prose too (2026-09-28): paragraphs with a lead, not one blob.
+  if (window.RichText && (RichText.hasRich(text) || (RichText.isLongProse && RichText.isLongProse(text)))) {
+    return RichText.buildBody(text, 'msg-body', { raw: !RichText.hasRich(text) });
   }
   var span = document.createElement('span');
   span.className = text.indexOf('\n') !== -1 || text.length > 90 ? 'msg-body' : 'msg-solo';
@@ -3396,7 +3487,7 @@ function startTurnTimerCountdown(endAt) {
   function tick() {
     const remainingMs = Math.max(0, endAt - Date.now());
     const sec = Math.ceil(remainingMs / 1000);
-    if (textEl) textEl.textContent = sec + 's';
+    if (textEl) textEl.textContent = formatTimerText(sec);
     if (fillEl) fillEl.style.width = Math.max(0, Math.min(100, (remainingMs / (totalSec * 1000)) * 100)) + '%';
     if (remainingMs <= 0) { clearInterval(turnTimerInterval); turnTimerInterval = null; }
   }
@@ -3565,13 +3656,14 @@ socket.on('solo-quiz-feedback', function (data) {
   if (sqInstanceId != null && data.phaseInstanceId != null && data.phaseInstanceId !== sqInstanceId) return;
   if (data.phaseInstanceId != null) sqInstanceId = data.phaseInstanceId;
   sqFeedback.hidden = false;
-  sqFeedback.className = 'sq-feedback ' + (data.correct ? 'sq-right' : 'sq-wrong');
-  sqFeedback.textContent = data.correct
+  // `right` is this answer's verdict; `correct` is the running count
+  sqFeedback.className = 'sq-feedback ' + (data.right ? 'sq-right' : 'sq-wrong');
+  sqFeedback.textContent = data.right
     ? UiLang.t('Correct!')
     : (data.correctAnswer
       ? UiLang.t('Not quite.') + ' ' + UiLang.t('The answer was') + ' ' + data.correctAnswer
       : UiLang.t('Not quite.'));
-  if (J) J.sound(data.correct ? 'blip' : 'womp');
+  if (J) J.sound(data.right ? 'blip' : 'womp');
   sqPending = data;
   sqNextBtn.hidden = false;
   sqNextBtn.textContent = data.done ? UiLang.t('See my score') : UiLang.t('Next question');
@@ -3640,8 +3732,12 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, sh
     showPickOneVote(candidates);
     if (timer) {
       startTimer(timer, voteTimerDisplay, () => {
-        // Auto-vote: pick a random candidate (string candidates ARE the choice)
-        if (currentCandidates.length > 0) {
+        // Time is up: the picked option goes in if there is one, else a
+        // random candidate (string candidates ARE the choice)
+        const picked = pickOneBallot && pickOneBallot.picked();
+        if (picked) {
+          socket.emit('submit-vote', { code: currentRoomCode, choice: picked.value });
+        } else if (currentCandidates.length > 0) {
           const randomIdx = Math.floor(Math.random() * currentCandidates.length);
           const c = currentCandidates[randomIdx];
           socket.emit('submit-vote', { code: currentRoomCode, choice: typeof c === 'string' ? c : c.playerId });
@@ -3669,10 +3765,13 @@ socket.on('vote-start', ({ mode, candidates, matchups, timer, playerTemplate, sh
     showNextMatchup();
     if (timer) {
       startTimer(timer, voteTimerDisplay, () => {
-        // Auto-vote: randomly pick remaining matchups
+        // Auto-vote: the side picked on the open matchup, then random
+        // picks for the ones left
+        const openPick = matchupBallot && matchupBallot.picked();
         for (let i = currentMatchupIndex; i < currentMatchups.length; i++) {
           const matchup = currentMatchups[i];
-          const pick = Math.random() < 0.5 ? matchup.optionA.playerId : matchup.optionB.playerId;
+          const pick = (i === currentMatchupIndex && openPick) ? openPick.value
+            : (Math.random() < 0.5 ? matchup.optionA.playerId : matchup.optionB.playerId);
           matchupVotes.push(pick);
         }
         socket.emit('submit-vote', {
@@ -3803,7 +3902,56 @@ function fillVoteButton(btn, candidate) {
   btn.textContent = RichText.plainLine(words) || '…';
 }
 
+// Pick, then confirm (2026-09-28, the owner: a stray tap cast a vote).
+// A tap selects an option (tap it again to clear it, another to change);
+// the confirm button under the list sends. Returns the ballot so a timer
+// can send what is picked when time runs out.
+function pickThenConfirm(label, onConfirm) {
+  var pickedBtn = null;
+  var pickedValue = null;
+  var confirmBtn = document.createElement('button');
+  confirmBtn.type = 'button';
+  confirmBtn.className = 'ballot-confirm';
+  confirmBtn.textContent = label;
+  confirmBtn.disabled = true;
+  function select(btn, value) {
+    var same = pickedBtn === btn;
+    if (pickedBtn) {
+      pickedBtn.classList.remove('is-selected');
+      pickedBtn.setAttribute('aria-pressed', 'false');
+    }
+    pickedBtn = same ? null : btn;
+    pickedValue = same ? null : value;
+    if (pickedBtn) {
+      pickedBtn.classList.add('is-selected');
+      pickedBtn.setAttribute('aria-pressed', 'true');
+      if (J) J.sound('blip');
+    }
+    confirmBtn.disabled = !pickedBtn;
+  }
+  confirmBtn.addEventListener('click', function () {
+    if (!pickedBtn) return;
+    onConfirm(pickedValue, confirmBtn);
+  });
+  return {
+    confirmBtn: confirmBtn,
+    // Make a button an option on this ballot.
+    option: function (btn, value) {
+      btn.type = 'button';
+      btn.setAttribute('aria-pressed', 'false');
+      btn.addEventListener('click', function () { select(btn, value); });
+    },
+    picked: function () { return pickedBtn ? { value: pickedValue } : null; }
+  };
+}
+
+var pickOneBallot = null;
+
 function showPickOneVote(candidates) {
+  pickOneBallot = pickThenConfirm(UiLang.t('Vote'), function (choice) {
+    socket.emit('submit-vote', { code: currentRoomCode, choice: choice });
+    showSection(voteSubmittedSection);
+  });
   for (const candidate of candidates) {
     const btn = document.createElement('button');
     btn.className = 'vote-btn';
@@ -3811,12 +3959,10 @@ function showPickOneVote(candidates) {
     // is both the label and the choice id.
     const isString = typeof candidate === 'string';
     fillVoteButton(btn, candidate);
-    btn.addEventListener('click', () => {
-      socket.emit('submit-vote', { code: currentRoomCode, choice: isString ? candidate : candidate.playerId });
-      showSection(voteSubmittedSection);
-    });
+    pickOneBallot.option(btn, isString ? candidate : candidate.playerId);
     voteOptions.appendChild(btn);
   }
+  voteOptions.appendChild(pickOneBallot.confirmBtn);
 }
 
 // The yes-or-no ballot: every entry is a row with its words (or drawing)
@@ -3910,14 +4056,18 @@ function showNextMatchup() {
 
   voteOptions.innerHTML = '';
 
-  const btnA = document.createElement('button');
-  btnA.className = 'vote-btn';
-  fillVoteButton(btnA, matchup.optionA);
-  btnA.addEventListener('click', () => {
-    matchupVotes.push(matchup.optionA.playerId);
+  // Pick one side, then confirm; the last matchup's button sends them all.
+  const isLast = currentMatchupIndex === currentMatchups.length - 1;
+  matchupBallot = pickThenConfirm(UiLang.t(isLast ? 'Vote' : 'Next matchup'), function (choice) {
+    matchupVotes.push(choice);
     currentMatchupIndex++;
     showNextMatchup();
   });
+
+  const btnA = document.createElement('button');
+  btnA.className = 'vote-btn';
+  fillVoteButton(btnA, matchup.optionA);
+  matchupBallot.option(btnA, matchup.optionA.playerId);
 
   const vsLabel = document.createElement('p');
   vsLabel.className = 'vs-label';
@@ -3926,16 +4076,15 @@ function showNextMatchup() {
   const btnB = document.createElement('button');
   btnB.className = 'vote-btn';
   fillVoteButton(btnB, matchup.optionB);
-  btnB.addEventListener('click', () => {
-    matchupVotes.push(matchup.optionB.playerId);
-    currentMatchupIndex++;
-    showNextMatchup();
-  });
+  matchupBallot.option(btnB, matchup.optionB.playerId);
 
   voteOptions.appendChild(btnA);
   voteOptions.appendChild(vsLabel);
   voteOptions.appendChild(btnB);
+  voteOptions.appendChild(matchupBallot.confirmBtn);
 }
+
+var matchupBallot = null;
 
 // --- Helper functions ---
 

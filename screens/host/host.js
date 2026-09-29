@@ -144,6 +144,10 @@ const previewPrivacyHint = document.getElementById('preview-privacy-hint');
 // Elements - Teacher view chip (copy-link pairing)
 const teacherViewChip = document.getElementById('teacher-view-chip');
 let currentTeacherPin = null;
+// The teacher key (engine/teacher-auth.js): rides with the PIN in every
+// link this browser hands the teacher, so a student's PIN guesses never
+// lock the teacher out.
+let currentTeacherKey = null;
 // The rebind credential for THIS room, kept in memory so a socket
 // reconnect can rejoin even when sessionStorage is unavailable.
 let currentHostToken = null;
@@ -183,6 +187,8 @@ teacherLinkCopyBtn.addEventListener('click', () => {
   if (!currentRoomCode) return;
   let link = window.location.origin + '/teacher#code=' + currentRoomCode;
   if (currentTeacherPin) link += '&pin=' + currentTeacherPin;
+  if (currentTeacherKey) link += '&key=' + currentTeacherKey;
+  if (currentTeacherKey) link += '&key=' + currentTeacherKey;
   const done = () => showCopyFeedback('✓ Copied, paste it in a private window');
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(link).then(done).catch(() => fallbackCopy(link, done));
@@ -491,8 +497,12 @@ function applyTemplate(section, templateText) {
   }
 }
 
-// Fetch available games on connect
-socket.emit('get-games');
+// Fetch available games on connect: this browser's own ids and the one a
+// ?game= link names ride along (the server no longer lists everyone's)
+socket.emit('get-games', {
+  mine: window.MyGames ? MyGames.list() : [],
+  game: new URLSearchParams(window.location.search).get('game') || ''
+});
 
 // --- Host recovery: F5 / browser crash / server restart ---
 // If this tab (session) was hosting a room, rebind to it instead of showing
@@ -537,7 +547,7 @@ socket.on('connect', () => {
     // The console's "Open the projector again": the room code in the
     // query, the PIN in the hash (never in server logs); the address is
     // tidied once the room answers (room-created)
-    socket.emit('host-rejoin', { code: action.code, pin: action.pin });
+    socket.emit('host-rejoin', { code: action.code, pin: action.pin, key: action.key || '' });
   } else if (action.kind === 'forget') {
     // "Host a Game" from home appends ?new=1 to mean "start fresh": forget any
     // stale host session left in this tab from a prior game and show the picker.
@@ -787,17 +797,49 @@ startGameBtn.addEventListener('click', () => {
 // (a reviewer closed a solo round with 0 of 2 in and the pairs got empty
 // boxes, 2026-09-26). The count comes from the server's own tallies.
 let submittedSoFar = 0;
+// The "Nobody has answered yet" box that is up, if any: an answer that
+// lands while it asks takes it down (review eighteen: Draw Gallery's
+// timer ran out, the drawing sent itself a moment later, and the box
+// stayed up over "1 of 1"). When the clock asked, the answer closes the
+// step as the clock meant to.
+let nobodyAsk = null; // { byClock }
+let collectStep = 0;  // bumps on every answer step, so a late timer is ignored
+function askNobodyYet(byClock) {
+  nobodyAsk = { byClock: !!byClock };
+  Dialog.confirm({
+    title: 'Nobody has answered yet.',
+    message: 'Closing now moves the class on with no answers. The next step will have nothing to show.',
+    confirmLabel: 'Close anyway', cancelLabel: 'Wait'
+  }).then(function (yes) {
+    nobodyAsk = null;
+    if (yes) socket.emit('close-submissions', { code: currentRoomCode });
+  });
+}
+function answersLanded() {
+  if (!nobodyAsk || submittedSoFar === 0) return;
+  const byClock = nobodyAsk.byClock;
+  nobodyAsk = null;
+  if (Dialog.dismiss) Dialog.dismiss();
+  if (byClock) socket.emit('close-submissions', { code: currentRoomCode });
+}
 closeSubmissionsBtn.addEventListener('click', () => {
   if (submittedSoFar === 0 && window.Dialog && Dialog.confirm) {
-    Dialog.confirm({
-      title: 'Nobody has answered yet.',
-      message: 'Closing now moves the class on with no answers. The next step will have nothing to show.',
-      confirmLabel: 'Close anyway', cancelLabel: 'Wait'
-    }).then(function (yes) { if (yes) socket.emit('close-submissions', { code: currentRoomCode }); });
+    askNobodyYet(false);
     return;
   }
   socket.emit('close-submissions', { code: currentRoomCode });
 });
+// The clock ran out: every student screen sends what it has on the same
+// tick, so give those answers a moment to land before closing (or asking).
+const CLOCK_GRACE_MS = 1500;
+function closeWhenClockRunsOut() {
+  const step = collectStep;
+  setTimeout(() => {
+    if (step !== collectStep) return;
+    if (submittedSoFar === 0 && window.Dialog && Dialog.confirm) { askNobodyYet(true); return; }
+    socket.emit('close-submissions', { code: currentRoomCode });
+  }, CLOCK_GRACE_MS);
+}
 
 // A Close the server would not take from this socket (its host binding
 // was lost to a reconnect and the rejoin had not landed): rejoin, then
@@ -968,7 +1010,7 @@ window.addEventListener('message', (e) => {
   if (currentRoomCode) socket.emit('advance-phase', { code: currentRoomCode });
 });
 
-socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored, language, strings, start }) => {
+socket.on('room-created', ({ code, game, theme, teacherPin, teacherKey, hostToken, restored, language, strings, start }) => {
   if (retryCloseUntil && code === currentRoomCode && Date.now() < retryCloseUntil) {
     retryCloseUntil = 0;
     socket.emit('close-submissions', { code });
@@ -976,6 +1018,7 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
   retryCloseUntil = 0;
   currentRoomCode = code;
   currentTeacherPin = teacherPin || null;
+  currentTeacherKey = teacherKey || null;
   // The projector's fixed labels (Start!, Close Voting...) in the
   // activity's language; server-generated continue labels arrive already
   // translated.
@@ -1014,7 +1057,10 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
   qrRendered = false;
   if (qrPanel) qrPanel.hidden = true;
   if (showQrBtn) showQrBtn.textContent = 'Show QR code';
-  teacherViewChip.hidden = false; // room exists, pairing is possible from any phase
+  // Room exists, pairing is possible from any phase. Not inside Try it
+  // out: its Teacher controls tab is the console, and the chip sat over
+  // the step's last button in a laptop-sized frame (a reviewer, 2026-09-28).
+  teacherViewChip.hidden = IS_PROTOTYPE_HOST;
 
   // Rolling start: the room opens straight into the first step (the
   // server sends it right after this), so the join code lives in a
@@ -1067,7 +1113,7 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
   const params = new URLSearchParams(window.location.search);
   if (params.get('prototype') === 'true' && window.parent !== window) {
     window.parent.postMessage(
-      { type: 'room-created', code: code, teacherPin: teacherPin || null },
+      { type: 'room-created', code: code, teacherPin: teacherPin || null, teacherKey: teacherKey || null },
       window.location.origin
     );
   }
@@ -1077,7 +1123,7 @@ socket.on('room-created', ({ code, game, theme, teacherPin, hostToken, restored,
   // teacher's own browser; nothing about it lands on this projected
   // screen beyond the checklist line.
   if (PAIR_NONCE && window.HostLaunch) {
-    HostLaunch.publish(PAIR_NONCE, code, teacherPin || null);
+    HostLaunch.publish(PAIR_NONCE, code, teacherPin || null, teacherKey || null);
     const stepConsole = document.getElementById('host-step-console');
     if (stepConsole) stepConsole.textContent = 'Your teacher console is open in another tab. For a second device: Copy teacher link, bottom corner.';
   }
@@ -1132,11 +1178,11 @@ function showMoreTimeBtn(containerEl) {
 }
 
 // The Totem timer is a chip that reads like a clock, not a ring
+// Always m:ss, so 58 seconds reads 0:58 and never a bare number (a
+// reviewer, 2026-09-28).
 function formatTimerText(seconds) {
-  if (seconds >= 60) {
-    return Math.floor(seconds / 60) + ':' + String(seconds % 60).padStart(2, '0');
-  }
-  return String(seconds);
+  var s = Math.max(0, Math.floor(Number(seconds) || 0));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
 function startTimer(seconds, containerEl, onExpire) {
@@ -1286,10 +1332,10 @@ socket.on('game-started', ({ prompt, image, video, displayDrawing, timer, count,
     timer: collectTimer,
     closeButton: closeSubmissionsBtn
   });
+  collectStep++;
+  if (nobodyAsk) { nobodyAsk = null; if (window.Dialog && Dialog.dismiss) Dialog.dismiss(); }
   if (timer) {
-    startTimer(timer, collectTimer, () => {
-      closeSubmissionsBtn.click();
-    });
+    startTimer(timer, collectTimer, closeWhenClockRunsOut);
     showMoreTimeBtn(collectTimer);
   }
 });
@@ -1308,12 +1354,14 @@ socket.on('submission-count', ({ count, total }) => {
   submittedSoFar = count || 0;
   submissionCount.textContent = (count || 0) + ' of ' + (total || 0) + ' submitted';
   markAllIn(count || 0, total || 0);
+  answersLanded();
 });
 
 socket.on('response-received', ({ playerName, count, total }) => {
   submittedSoFar = count || 0;
   submissionCount.textContent = count + ' of ' + total + ' submitted';
   markAllIn(count, total);
+  answersLanded();
   renderSubmissionPile(count);
   if (J) J.sound('blip');
 });
@@ -1363,9 +1411,13 @@ socket.on('preview-content', ({ content, responses, hostTemplate, show, refresh 
     // Private by default: this screen is projected. The teacher reviews on
     // their Teacher view, or deliberately reveals here. If no console is
     // paired yet, point at the corner chip instead of a view they don't have.
-    previewPrivacyHint.textContent = teacherConsolePaired
-      ? 'The content is hidden from this (projected) screen. Review it on your Teacher view, or reveal it here.'
-      : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use "Copy teacher link" in the corner and paste it in a private window, or reveal it here.';
+    // Inside Try it out the console is the Teacher controls tab above this
+    // screen, never a copied link (a reviewer, 2026-09-28)
+    previewPrivacyHint.textContent = IS_PROTOTYPE_HOST
+      ? 'The content is hidden from this (projected) screen. Review it under Teacher controls, the tab above this screen, or reveal it here.'
+      : teacherConsolePaired
+        ? 'The content is hidden from this (projected) screen. Review it on your Teacher view, or reveal it here.'
+        : 'The content is hidden from this (projected) screen. No Teacher view open yet? Use "Copy teacher link" in the corner and paste it in a private window, or reveal it here.';
     previewPrivate.hidden = true;
     previewLookedHere = false;
     previewRevealBtn.textContent = 'Show on this screen';
@@ -1534,8 +1586,9 @@ function buildMessageBody(text, className) {
   }
   // AI results arrive markdown-flavored (# headings, ** bold, - bullets);
   // shared/rich-text.js structures them instead of showing the markers.
-  if (window.RichText && RichText.hasRich(text)) {
-    return RichText.buildBody(text, className);
+  // Long prose too (2026-09-28): paragraphs with a lead, not one blob.
+  if (window.RichText && (RichText.hasRich(text) || (RichText.isLongProse && RichText.isLongProse(text)))) {
+    return RichText.buildBody(text, className, { raw: !RichText.hasRich(text) });
   }
   var span = document.createElement('span');
   span.className = className;
@@ -2763,7 +2816,7 @@ function startHostTurnTimer(endAt) {
   function tick() {
     const remainingMs = Math.max(0, endAt - Date.now());
     const sec = Math.ceil(remainingMs / 1000);
-    if (txt) txt.textContent = sec;
+    if (txt) txt.textContent = formatTimerText(sec);
     if (fill) {
       const frac = Math.max(0, remainingMs / (totalSec * 1000));
       fill.style.strokeDashoffset = (1 - frac) * circumference;

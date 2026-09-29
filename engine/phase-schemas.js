@@ -650,6 +650,11 @@ export const PHASE_SCHEMAS = {
         label: 'Students cannot vote for their own answer',
         helper: 'Pick-one: each ballot leaves out the voter\'s own answer. Head-to-head: the two players who wrote a matchup do not vote on it (punchline games).'
       },
+      shuffle: {
+        type: 'boolean', optional: true,
+        label: 'Shuffle the choices for each student',
+        helper: 'Pick-one and approve only. Each student sees the choices in their own order, so the first few are not picked more just for being first. The results are the same list either way.'
+      },
       bracket: {
         type: 'boolean', optional: true,
         label: 'Bracket round',

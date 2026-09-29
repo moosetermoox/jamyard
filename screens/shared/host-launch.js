@@ -94,9 +94,9 @@
     gone.forEach(function (key) { store.removeItem(key); });
   }
 
-  function publish(nonce, code, pin) {
+  function publish(nonce, code, pin, key) {
     if (!nonce || !code) return;
-    var rec = { code: code, pin: pin || '', at: Date.now() };
+    var rec = { code: code, pin: pin || '', key: key || '', at: Date.now() };
     var store = storage();
     if (store) {
       try { purgeStale(store); store.setItem(KEY_PREFIX + nonce, JSON.stringify(rec)); } catch (e) { /* full or blocked */ }
@@ -104,13 +104,13 @@
     try {
       if (typeof window.BroadcastChannel === 'function') {
         var ch = new BroadcastChannel(CHANNEL);
-        ch.postMessage({ nonce: nonce, code: code, pin: pin || '' });
+        ch.postMessage({ nonce: nonce, code: code, pin: pin || '', key: key || '' });
         ch.close();
       }
     } catch (e) { /* no channel */ }
   }
 
-  // Calls cb({code, pin}) once. Returns stop().
+  // Calls cb({code, pin, key}) once. Returns stop().
   function listen(nonce, cb) {
     var done = false;
     var ch = null;
@@ -124,7 +124,7 @@
       var store = storage();
       if (store) { try { store.removeItem(KEY_PREFIX + nonce); } catch (e) { /* ignore */ } }
       stop();
-      cb({ code: rec.code, pin: rec.pin || '' });
+      cb({ code: rec.code, pin: rec.pin || '', key: rec.key || '' });
     }
     function onStorage(e) {
       if (e && e.key === KEY_PREFIX + nonce && e.newValue) {
