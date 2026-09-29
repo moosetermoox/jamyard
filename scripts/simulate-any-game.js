@@ -233,9 +233,22 @@ async function run() {
 
         // Submit responses
         for (var i = 0; i < players.length; i++) {
-          var response = generateResponse(collectData.prompt, names[i], i);
+          // A multi-box step gets one answer per box (2026-09-29: the sim sent
+          // one string, so Two Truths had no statements and no rounds); an
+          // emoji-only box gets emoji
+          var response;
+          if (Array.isArray(collectData.fields) && collectData.fields.length) {
+            response = {};
+            collectData.fields.forEach(function (f, fi) {
+              var key = (f && f.key) || f;
+              response[key] = (f && f.emojiOnly) ? ['🦁👑🌅', '🚢💔🧊', '🧙‍♂️💍🌋', '🦈🏖️😱'][(i + fi) % 4]
+                : generateResponse((f && f.label) || collectData.prompt, names[i], i + fi);
+            });
+          } else {
+            response = generateResponse(collectData.prompt, names[i], i);
+          }
           players[i].emit('submit-response', { code, response: response });
-          log(names[i], `submitted (${response.length} chars)`);
+          log(names[i], `submitted (${typeof response === 'string' ? response.length + ' chars' : Object.keys(response).length + ' boxes'})`);
         }
         await wait(300);
         host.emit('close-submissions', { code });
