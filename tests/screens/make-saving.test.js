@@ -49,10 +49,10 @@ describe('one copy per page, never two', () => {
 
 describe('every saved copy lands in My yard', () => {
   it('saveCopy adds the id before anything navigates', () => {
-    expect(miy).toMatch(/knownIds\.push\(copyId\);\s*if \(window\.MyGames\) MyGames\.add\(copyId\);/);
+    expect(miy).toMatch(/var savedId = d\.id \|\| copyId;\s*knownIds\.push\(savedId\);\s*if \(window\.MyGames\) MyGames\.add\(savedId\);/);
   });
-  it('a taken id moves on to the next number instead of failing', () => {
-    expect(miy).toMatch(/resp\.status === 409 && triesLeft > 0/);
+  it('a taken id moves on to the next number instead of failing (the server dedupes)', () => {
+    expect(miy).toContain('body: JSON.stringify({ id: copyId, config: config, dedupe: true })');
   });
 });
 
