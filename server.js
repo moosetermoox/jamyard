@@ -11,7 +11,7 @@ import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
 import { loadGame, validate, getAllowedFields, listGames, resolveGamePath } from './engine/game-loader.js';
 import { validateSampleAnswers } from './engine/sample-answers.js';
-import { parseMine, wantedUserIds } from './engine/games-list-scope.js';
+import { parseMine, wantedUserIds, claimableIds } from './engine/games-list-scope.js';
 import { ownerHashFromRequest, writeDecision, NOT_YOURS_MESSAGE } from './engine/owner-key.js';
 import { createOwnerKeyStore } from './services/owner-keys.js';
 import { normalizeConfig } from './engine/normalizer.js';
@@ -3201,16 +3201,15 @@ app.get('/api/games', async (req, res) => {
     const owner = isOwnerRequest(req);
     const mine = parseMine(req.query.mine) || (owner ? null : []);
     // The browser that lists a row as its own claims it if nobody has yet
-    // (rows saved before the owner key, 2026-09-27); never a featured row
-    // it did not list, and never without a key.
+    // (rows saved before the owner key, 2026-09-27), never without a key,
+    // and never a featured row (2026-09-28: featured ids are public, so a
+    // visitor who put one in `mine` could take it and then overwrite or
+    // delete it); the claim runs once the rows are in hand, below.
     const presented = ownerHashFromRequest(req);
-    if (mine && mine.length && presented) {
-      const claimed = await ownerKeys.claimMany(mine, presented);
-      if (claimed) console.log(`[owner-key] ${claimed} row(s) claimed on list`);
-    }
     const overrides = await featuredOverridesSafe();
     const wanted = mine ? wantedUserIds(mine, overrides) : null;
     const loaded = await listGames({ builtInOnly: DB_ENABLED });
+    const userRowsSeen = loaded.filter(g => g.source === 'user');
     const games = loaded
       .filter(g => g.source !== 'user' || !wanted || wanted.includes(g.id) || !!(g.config && g.config.featured))
       .map(({ id, source, config }) => ({
@@ -3235,6 +3234,7 @@ app.get('/api/games', async (req, res) => {
       const userRows = wanted
         ? await listUserGamesByIdsRepaired(wanted)
         : await listUserGamesRepaired();
+      userRowsSeen.push(...userRows);
       for (const row of userRows) {
         const config = row.config;
         games.push({
@@ -3254,6 +3254,12 @@ app.get('/api/games', async (req, res) => {
       when: whenLineFor(row.id, config) || undefined
     });
       }
+    }
+
+    if (mine && mine.length && presented) {
+      const claimable = claimableIds(mine, userRowsSeen, overrides);
+      const claimed = claimable.length ? await ownerKeys.claimMany(claimable, presented) : 0;
+      if (claimed) console.log(`[owner-key] ${claimed} row(s) claimed on list`);
     }
 
     // No `ids` any more: it listed every id on the server for the copy-id

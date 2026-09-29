@@ -244,6 +244,7 @@ registerHandler('vote', {
             promptText: (vs.matchupPrompts && vs.matchupPrompts[i]) || null
           })),
           timer: null,
+          phaseInstanceId: ctx.phaseInstanceId,
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       } else {
@@ -251,6 +252,7 @@ registerHandler('vote', {
           mode: vs.mode === 'approve' ? 'approve' : 'pick-one',
           candidates: ballotFor(vs.candidates, socket.id, !!vs.excludeAuthors, vs.shuffleSeed || null),
           timer: null,
+          phaseInstanceId: ctx.phaseInstanceId,
           playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       }
