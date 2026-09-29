@@ -10,7 +10,7 @@
 // word) while normalization defeats the common classroom evasions — leet-speak,
 // repeated letters, and punctuation between letters.
 
-import { BLOCKED_WORDS, NAME_INSULTS } from './blocklist.js';
+import { BLOCKED_WORDS, NAME_INSULTS, CLASSMATE_INSULTS } from './blocklist.js';
 
 export const DEFAULT_MIN_LENGTH = 2;
 export const DEFAULT_MAX_LENGTH = 280;
@@ -44,6 +44,34 @@ function normalizedVariants(text) {
   return [base, stripped];
 }
 
+// Letters spaced out one by one: "I have a f u c k i n g cat" was accepted
+// and went up as a Two Truths choice while "fucking" was refused (a
+// reviewer, 2026-09-29). Nobody writes an answer that way except to get
+// past the filter, so every run of short tokens holding at least two
+// single letters is closed up ("a f u c k i n g cat" → "afuckingcat") and
+// a blocked word anywhere INSIDE the run counts: the run is the evasion,
+// so word boundaries within it mean nothing. Tokens up to four letters
+// join the run ("f u c king", "u r a b i t c h"); a longer word ends it.
+export const SPACED_RUN_MAX_TOKEN = 4;
+export function spacedRuns(text) {
+  const tokens = deLeet(String(text == null ? '' : text).toLowerCase())
+    .split(/\s+/)
+    .map(t => t.replace(/[^a-z]/g, ''));
+  const runs = [];
+  let run = [];
+  const flush = () => {
+    const singles = run.filter(t => t.length === 1).length;
+    if (singles >= 2 && run.join('').length >= 3) runs.push(collapseRepeats(run.join('')));
+    run = [];
+  };
+  for (const t of tokens) {
+    if (t.length >= 1 && t.length <= SPACED_RUN_MAX_TOKEN) run.push(t);
+    else flush();
+  }
+  flush();
+  return runs;
+}
+
 // Escape a blocklist word for safe use inside a RegExp.
 function escapeRe(word) {
   return word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -57,17 +85,67 @@ function escapeRe(word) {
 export function filterContent(text) {
   if (!text || typeof text !== 'string') return { blocked: false };
   const variants = normalizedVariants(text);
+  const runs = spacedRuns(text);
   for (const { word, category } of BLOCKED_WORDS) {
     // Collapse the pattern the same way the text was collapsed so letter
     // stretching on either side still lines up.
-    const pattern = escapeRe(collapseRepeats(word));
+    const collapsed = collapseRepeats(word);
+    const pattern = escapeRe(collapsed);
     const re = new RegExp('\\b' + pattern + '\\b', 'i');
     if (variants.some(v => re.test(v))) {
+      return { blocked: true, category, word };
+    }
+    const closed = collapsed.replace(/\s+/g, '');
+    if (runs.some(r => r.includes(closed))) {
       return { blocked: true, category, word };
     }
   }
   return { blocked: false };
 }
+
+// A classmate's name next to an insult. "Ben is a loser" went up on the
+// projector while Ben sat in the room (a reviewer, 2026-09-29): the word
+// filter has no rule against "loser" in an answer, and the AI check saw
+// the name scrubbed to "someone" and scored it mild. The roster is known,
+// so this is a rule, not a judgment: a roster name within three words
+// before an insult ("Ben is such a loser", "Ben smells"), or an insult
+// right before the name ("stupid Ben", "nobody likes Ben"). The insults
+// are NAME_INSULTS plus CLASSMATE_INSULTS plus every blocked word; the
+// same normalization as the answers. The words allowed between the name
+// and the insult are joiners only ("is such a big", "you are so"), so
+// "Ben and I ate the worst pizza" still passes.
+export const CLASSMATE_JOINERS = ['is', 'was', 'are', 'be', 'being', 'looks', 'seems', 'sounds', 'acts', 'like', 'a', 'an', 'the', 'so', 'such', 'really', 'very', 'totally', 'super', 'kind', 'kinda', 'sort', 'of', 'just', 'literally', 'always', 'still', 'big', 'little', 'huge', 'total', 'complete', 'absolute', 'actual', 'real', 'not', 'you', 'u', 'r', 'ur', 'youre', 'he', 'she', 'they', 'hes', 'shes', 'theyre', 'also', 'too', 'and', 'that', 'this', 'one', 'lol'];
+const CLASSMATE_LINK_RE = "(?:['\u2019]s)?(?:[\\s,:;!]+(?:" + CLASSMATE_JOINERS.join('|') + ")){0,5}[\\s,:;!]+";
+export function filterAboutClassmate(text, rosterNames) {
+  if (!text || typeof text !== 'string') return { blocked: false };
+  if (!Array.isArray(rosterNames) || rosterNames.length === 0) return { blocked: false };
+  const names = new Set();
+  for (const name of rosterNames) {
+    const trimmed = String(name == null ? '' : name).trim().toLowerCase();
+    if (!trimmed) continue;
+    if (trimmed.length >= 2) names.add(trimmed);
+    for (const word of trimmed.split(/\s+/)) {
+      if (word.length >= 2) names.add(word);
+    }
+  }
+  if (names.size === 0) return { blocked: false };
+  const variants = normalizedVariants(text);
+  const insults = NAME_INSULTS.concat(CLASSMATE_INSULTS, BLOCKED_WORDS.map(w => w.word))
+    .map(w => escapeRe(collapseRepeats(w))).join('|');
+  for (const name of names) {
+    const n = escapeRe(collapseRepeats(deLeet(name)));
+    const after = new RegExp('\\b' + n + '\\b' + CLASSMATE_LINK_RE + '(?:' + insults + ')\\b', 'i');
+    const before = new RegExp('\\b(?:' + insults + ')\\s+' + n + '\\b', 'i');
+    if (variants.some(v => after.test(v) || before.test(v))) {
+      return { blocked: true, category: 'classmate', name };
+    }
+  }
+  return { blocked: false };
+}
+
+// What the student reads when a line about a classmate is refused. Never
+// the name, never the word.
+export const CLASSMATE_REFUSED_MESSAGE = 'Leave your classmates out of it. Say it another way.';
 
 /**
  * Validate a single text response for length and obvious low-effort spam.
@@ -139,7 +217,7 @@ function extractStrings(value) {
  * across every text part. Returns the first problem found, or { ok: true }.
  *
  * @param {string|object} value  the `response` payload from submit-response
- * @param {{ prompt?: string, minLength?: number, maxLength?: number, skipContentFilter?: boolean }} [opts]
+ * @param {{ prompt?: string, minLength?: number, maxLength?: number, skipContentFilter?: boolean, rosterNames?: string[] }} [opts]
  * @returns {{ ok: boolean, reason?: string, message?: string, category?: string }}
  */
 export function checkSubmission(value, opts = {}) {
@@ -170,6 +248,12 @@ export function checkSubmission(value, opts = {}) {
           category: f.category,
           message: 'That response isn’t allowed. Please try again.'
         };
+      }
+    }
+    for (const part of parts) {
+      const about = filterAboutClassmate(part, opts.rosterNames);
+      if (about.blocked) {
+        return { ok: false, reason: 'about_classmate', category: about.category, message: CLASSMATE_REFUSED_MESSAGE };
       }
     }
   }

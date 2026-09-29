@@ -14,8 +14,8 @@ describe('a spaced-out swear word is still a swear word in a name', () => {
       expect(filterName(n).blocked, n).toBe(true);
     }
   });
-  it('answers keep their spaces (the space check is for names only)', () => {
-    expect(filterContent('S h i t').blocked).toBe(false);
+  it('answers read spaced letters too since review twenty (a spaced swear word went up as a choice)', () => {
+    expect(filterContent('S h i t').blocked).toBe(true);
   });
   it('still lets ordinary two-word names through', () => {
     for (const n of ['Maya R', 'Ana L', 'Sam Hill', 'Cass Idy', 'Jo Anne', 'Li Na', 'Al Ba', 'Mo Sa']) {

@@ -851,8 +851,23 @@ socket.on('close-ignored', ({ code, reason }) => {
   socket.emit('host-rejoin', { code: currentRoomCode, hostToken: currentHostToken });
 });
 
+// Every forward press on this screen goes through here. A quick second
+// click on Next step (about 60 ms after the first) landed on the next
+// step's button once it had drawn, and skipped that step (a reviewer,
+// 2026-09-29, Closer's friend question); presses inside ADVANCE_GUARD_MS
+// of the last one that went out are dropped.
+const ADVANCE_GUARD_MS = 500;
+let lastAdvanceAt = 0;
+function pressAdvance(extra) {
+  const now = Date.now();
+  if (now - lastAdvanceAt < ADVANCE_GUARD_MS) return false;
+  lastAdvanceAt = now;
+  socket.emit('advance-phase', Object.assign({ code: currentRoomCode }, extra || {}));
+  return true;
+}
+
 continueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 closeVotingBtn.addEventListener('click', () => {
@@ -897,19 +912,19 @@ previewRejectBtn.addEventListener('click', () => {
 });
 
 eliminationContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 winnerEndBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 announceContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 leaderboardContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 revealOneNextBtn.addEventListener('click', () => {
@@ -917,11 +932,11 @@ revealOneNextBtn.addEventListener('click', () => {
 });
 
 revealOneContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 teamSplitContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 rankCloseBtn.addEventListener('click', () => {
@@ -1006,7 +1021,7 @@ window.addEventListener('message', (e) => {
   // fast-forward loop opts out (noFallback): it retries on its own tick
   // and must never blow past an AI step that is still working.
   if (e.data.noFallback) return;
-  if (currentRoomCode) socket.emit('advance-phase', { code: currentRoomCode });
+  if (currentRoomCode) pressAdvance();
 });
 
 socket.on('room-created', ({ code, game, theme, teacherPin, teacherKey, hostToken, restored, language, strings, start }) => {
@@ -2117,7 +2132,7 @@ matchCloseBtn.addEventListener('click', () => {
 });
 
 matchContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 // --- Socket events - Sort (place items into named buckets) ---
@@ -2205,7 +2220,7 @@ sortCloseBtn.addEventListener('click', () => {
 });
 
 sortContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 // --- Socket events - Checklist (shared group to-do dashboard) ---
@@ -2316,7 +2331,7 @@ checklistCloseBtn.addEventListener('click', () => {
 });
 
 checklistContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 // --- Socket events - One Voice (Connection Pack: cooperative counting) ---
@@ -2560,7 +2575,7 @@ estimateCloseBtn.addEventListener('click', () => {
 });
 
 estimateContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 // --- Socket events - Merge (Connection Pack: think-pair-share) ---
@@ -2639,7 +2654,7 @@ rateCloseBtn.addEventListener('click', () => {
 });
 
 rateContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode });
+  pressAdvance();
 });
 
 function renderHostRateResults(scales, averages, distributions, raterCount, visibility) {
@@ -2971,7 +2986,7 @@ soloQuizCloseBtn.addEventListener('click', () => {
 });
 
 soloQuizContinueBtn.addEventListener('click', () => {
-  socket.emit('advance-phase', { code: currentRoomCode, phaseInstanceId: soloQuizInstanceId });
+  pressAdvance({ phaseInstanceId: soloQuizInstanceId });
 });
 
 socket.on('game-ended', ({ message, hostTemplate, hostShow } = {}) => {

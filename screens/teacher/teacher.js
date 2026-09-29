@@ -718,7 +718,9 @@ socket.on('teacher-ai-note', function (data) {
 socket.on('teacher-blocked', function (data) {
   if (!data || !data.name || !lateSeats) return;
   var li = document.createElement('li');
-  li.textContent = data.name + ' tried to send a message the filter stopped. They were asked to reword it.';
+  li.textContent = data.reason === 'about_classmate'
+    ? data.name + ' tried to send a line about a classmate that the filter stopped. They were asked to leave classmates out of it.'
+    : data.name + ' tried to send a message the filter stopped. They were asked to reword it.';
   lateSeats.appendChild(li);
   lateSeats.hidden = false;
 });
@@ -1072,7 +1074,16 @@ socket.on('reveal-one-complete', function () {
   consoleNote.textContent = 'All revealed.';
 });
 
+// A quick second click on Next step (about 60 ms after the first) landed
+// on the next step and skipped it (a reviewer, 2026-09-29, Closer's
+// friend question); a press inside ADVANCE_GUARD_MS of the last one that
+// went out is dropped.
+var ADVANCE_GUARD_MS = 500;
+var lastAdvanceAt = 0;
 nextStepBtn.addEventListener('click', function () {
+  var now = Date.now();
+  if (now - lastAdvanceAt < ADVANCE_GUARD_MS) return;
+  lastAdvanceAt = now;
   socket.emit('advance-phase', { code: currentCode, phaseInstanceId: currentPhaseInstanceId });
 });
 

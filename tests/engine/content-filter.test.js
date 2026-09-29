@@ -11,8 +11,12 @@ import {
   filterContent,
   validateResponse,
   checkSubmission,
+  filterAboutClassmate,
+  spacedRuns,
+  CLASSMATE_REFUSED_MESSAGE,
   DEFAULT_MAX_LENGTH
 } from '../../engine/content-filter.js';
+import { THREATS, CLASSMATE_INSULTS } from '../../engine/blocklist.js';
 
 describe('filterContent — blocks inappropriate content', () => {
   it('blocks a plain blocked word', () => {
@@ -120,5 +124,104 @@ describe('checkSubmission — combined gate', () => {
 
   it('skips content filtering when asked (still validates length)', () => {
     expect(checkSubmission('this is shit', { skipContentFilter: true }).ok).toBe(true);
+  });
+});
+
+// A twentieth outside review (2026-09-29): "I have a f u c k i n g cat"
+// went up as a Two Truths choice while "fucking" was refused; "Ben is a
+// loser" went up during Ana's round with Ben in the room; "kys" and "go
+// kill yourself" carried no swear word at all.
+describe('filterContent — letters spaced out one by one', () => {
+  it('reads a word typed letter by letter with spaces', () => {
+    expect(filterContent('I have a s h i t list').blocked).toBe(true);
+    expect(filterContent('I have a s h i t list').word).toBe('shit');
+  });
+  it('reads a run that ends in a short word', () => {
+    expect(filterContent('s h itty day').blocked).toBe(true);
+  });
+  it('closes the run over the leading article', () => {
+    // "a s h i t" joins to "ashit": the blocked word is inside the run
+    expect(filterContent('what a s h i t day').blocked).toBe(true);
+  });
+  it('a spaced threat is still a threat', () => {
+    expect(filterContent('k y s').blocked).toBe(true);
+    expect(filterContent('k y s').category).toBe('threat');
+  });
+  it('leaves initialisms and ordinary short words alone', () => {
+    expect(filterContent('I love the U S A').blocked).toBe(false);
+    expect(filterContent('A B C is easy').blocked).toBe(false);
+    expect(filterContent('I a m happy').blocked).toBe(false);
+    expect(filterContent('I have a cat and a dog').blocked).toBe(false);
+    expect(filterContent('the pen is red').blocked).toBe(false);
+  });
+  it('spacedRuns closes only runs with at least two single letters', () => {
+    expect(spacedRuns('I have a s h i t list')).toEqual(['ihaveashitlist']);
+    expect(spacedRuns('Yesterday a s h i t storm')).toEqual(['ashit']);
+    expect(spacedRuns('the pen is red')).toEqual([]);
+    expect(spacedRuns('a cat')).toEqual([]);
+  });
+});
+
+describe('filterContent — threats without a swear word', () => {
+  it('blocks the goads the word filter used to pass', () => {
+    for (const line of ['kys', 'go kill yourself', 'you should kill urself', 'just go die']) {
+      const r = filterContent(line);
+      expect(r.blocked, line).toBe(true);
+      expect(r.category).toBe('threat');
+    }
+  });
+  it('the list is data in the blocklist', () => {
+    expect(THREATS).toContain('kys');
+    expect(THREATS).toContain('kill yourself');
+  });
+  it('an ordinary sentence about dying is fine', () => {
+    expect(filterContent('the plant will die without water').blocked).toBe(false);
+  });
+});
+
+describe('filterAboutClassmate — a roster name next to an insult', () => {
+  const roster = ['Ben', 'Ana Lopez', 'Maya'];
+  it('refuses the reviewer\'s line and its cousins', () => {
+    for (const line of [
+      'Ben is a loser', 'Ben is such a big loser', 'ben is the worst', 'nobody likes Ben',
+      'stupid ben', 'Ana smells', 'Lopez is trash', 'Ben has no friends', 'Maya sucks at math',
+      'Ben is a loser and nobody likes him', 'Ben, you are so annoying', "Ben's a loser",
+      'Ben is a fucking idiot'
+    ]) {
+      const r = filterAboutClassmate(line, roster);
+      expect(r.blocked, line).toBe(true);
+      expect(r.category).toBe('classmate');
+    }
+  });
+  it('a name in a kind or ordinary line passes', () => {
+    for (const line of [
+      'Ben is great at soccer', 'I went hiking with Ben', 'Ben and I ate the worst pizza ever',
+      'The best thing about Ben is his jokes', 'Maya helped me with math', 'Ana Lopez won the race'
+    ]) {
+      expect(filterAboutClassmate(line, roster).blocked, line).toBe(false);
+    }
+  });
+  it('the insult words alone, with no roster name, pass (answers may use them)', () => {
+    expect(filterAboutClassmate('that was a stupid mistake', roster).blocked).toBe(false);
+    expect(filterAboutClassmate('the worst part was the rain', roster).blocked).toBe(false);
+    expect(filterAboutClassmate('Ben is a loser', []).blocked).toBe(false);
+    expect(filterAboutClassmate('Ben is a loser').blocked).toBe(false);
+  });
+  it('leet and stretched letters do not hide it', () => {
+    expect(filterAboutClassmate('B3n is a l0ser', roster).blocked).toBe(true);
+    expect(filterAboutClassmate('Ben is a looooser', roster).blocked).toBe(true);
+  });
+  it('the insult list is data in the blocklist', () => {
+    expect(CLASSMATE_INSULTS).toContain('nobody likes');
+    expect(CLASSMATE_INSULTS).toContain('sucks');
+  });
+  it('checkSubmission refuses it with its own reason when the roster rides along', () => {
+    const r = checkSubmission('Ben is a loser', { rosterNames: roster });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe('about_classmate');
+    expect(r.message).toBe(CLASSMATE_REFUSED_MESSAGE);
+    expect(r.message).not.toMatch(/ben|loser/i);
+    expect(checkSubmission({ truth: 'I have a cat', lie: 'Ben is a loser' }, { rosterNames: roster }).reason).toBe('about_classmate');
+    expect(checkSubmission('Ben is a loser').ok).toBe(true);
   });
 });
