@@ -92,9 +92,60 @@ export const SEXUAL = [
   'cum',
 ];
 
+// Threats and self-harm goads. "kys" and "go kill yourself" carry no swear
+// word, so the word filter passed them and everything rested on the AI
+// check (a reviewer, 2026-09-29). Phrases match with their spaces; the
+// filter's spaced-letter pass reads "k y s" too.
+export const THREATS = [
+  'kys',
+  'kill yourself',
+  'kill urself',
+  'kill your self',
+  'go die',
+  'go kill yourself',
+  'hope you die',
+  'i will kill you',
+  'ill kill you',
+  'gonna kill you',
+  'drink bleach',
+  'unalive yourself'
+];
+
+// Words that make a sentence about a classmate an insult ("Ben is a loser",
+// "nobody likes Ben"). Checked by filterAboutClassmate only, and only next
+// to a name from the room's roster, so "that was a stupid mistake" and
+// "the worst part was the rain" still pass. Every NAME_INSULT counts too.
+export const CLASSMATE_INSULTS = [
+  'moron',
+  'nerd',
+  'dork',
+  'freak',
+  'creep',
+  'weirdo',
+  'psycho',
+  'trash',
+  'garbage',
+  'gross',
+  'lame',
+  'worst',
+  'annoying',
+  'pathetic',
+  'worthless',
+  'useless',
+  'sucks',
+  'stinks',
+  'smells',
+  'nobody likes',
+  'no one likes',
+  'everyone hates',
+  'everybody hates',
+  'has no friends'
+];
+
 // Flattened set used by the filter. Each entry: { word, category }.
 export const BLOCKED_WORDS = [
   ...PROFANITY.map(word => ({ word, category: 'profanity' })),
   ...SLURS.map(word => ({ word, category: 'slur' })),
   ...SEXUAL.map(word => ({ word, category: 'sexual' })),
+  ...THREATS.map(word => ({ word, category: 'threat' })),
 ];

@@ -180,7 +180,7 @@ import { extendPhaseTimer } from './engine/phase-timer.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
 import { ensureReviewGate } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
-import { checkSubmission, filterContent, filterName, NAME_REFUSED_MESSAGE } from './engine/content-filter.js';
+import { checkSubmission, filterContent, filterName, filterAboutClassmate, NAME_REFUSED_MESSAGE, CLASSMATE_REFUSED_MESSAGE } from './engine/content-filter.js';
 import { checkNewName, SELF_RENAME_MESSAGES } from './engine/student-rename.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
 import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
@@ -769,7 +769,7 @@ async function closeMerge(code, room) {
   for (const g of ms.groups) {
     const text = String(g.draft || '').trim();
     if (!text) continue;
-    const check = checkSubmission(text, { prompt: phase.instruction });
+    const check = checkSubmission(text, { prompt: phase.instruction, rosterNames: engine.players.list().map(p => p.name) });
     if (!check.ok) {
       console.log(`[closeMerge] Dropping group ${g.groupId}'s draft (${check.reason})`);
       continue;
@@ -5083,10 +5083,14 @@ io.on('connection', (socket) => {
         currentPhase.appendOnly && currentPhase.rotateFrom && room.engine);
       const typedNothing = typeof response === 'string' && response.trim() === '';
       if (currentPhase && currentPhase.type === 'collect' && !(isAppendOnly && typedNothing)) {
+        // The roster rides along: a classmate's name next to an insult is
+        // refused here, before the AI check that saw the name scrubbed away
+        // and let "Ben is a loser" through (a reviewer, 2026-09-29).
         const check = checkSubmission(response, {
           prompt: currentPhase.prompt,
           maxLength: currentPhase.maxLength || undefined,
-          fields: Array.isArray(currentPhase.fields) ? currentPhase.fields : undefined
+          fields: Array.isArray(currentPhase.fields) ? currentPhase.fields : undefined,
+          rosterNames: players.list().map(p => p.name)
         });
         if (!check.ok) {
           console.log(`[submit-response] Rejected (${check.reason}) from ${socket.id}`);
@@ -5913,6 +5917,12 @@ io.on('connection', (socket) => {
       });
       return;
     }
+    const aboutMate = filterAboutClassmate(text, room.engine.players.list().map(p => p.name));
+    if (aboutMate.blocked) {
+      recordEvent(room, 'merge-draft-rejected', { groupId: group.groupId, reason: 'about_classmate' });
+      socket.emit(EVENTS.RESPONSE_REJECTED, { reason: 'about_classmate', message: CLASSMATE_REFUSED_MESSAGE });
+      return;
+    }
 
     const claimed = group.penHolder !== socket.id;
     group.penHolder = socket.id;
@@ -6592,6 +6602,12 @@ io.on('connection', (socket) => {
         reason: 'blocked',
         message: 'That language isn\'t allowed here. Try rephrasing.'
       });
+      return;
+    }
+    const relayMate = filterAboutClassmate(text || '', room.engine.players.list().map(p => p.name));
+    if (relayMate.blocked) {
+      recordEvent(room, 'relay-rejected', { playerId: socket.id, reason: 'about_classmate' });
+      socket.emit(EVENTS.RESPONSE_REJECTED, { reason: 'about_classmate', message: CLASSMATE_REFUSED_MESSAGE });
       return;
     }
 
