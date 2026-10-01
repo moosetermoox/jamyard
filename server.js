@@ -37,6 +37,7 @@ import { foreachSitOut, withoutSitOut, sitOutIds } from './engine/phases/sit-out
 import { shouldStopLooping } from './engine/phases/eliminate-handler.js';
 import { relayFullText, SKIPPED_TEXT } from './engine/phases/relay-text.js';
 import { aggregateRankings, groupOrders } from './engine/phases/choice-draft.js';
+import { instantRunoff, runoffList } from './engine/phases/runoff.js';
 import { groupsFromTeamSource } from './engine/phases/groups-from.js';
 import { restoreSubPhaseOrder } from './engine/subphase-order.js';
 
@@ -739,6 +740,16 @@ async function closeRanking(code, room) {
   // slot, the right order as a list, how many slots the class got right
   if (phase && Array.isArray(phase.correctOrder) && phase.correctOrder.length >= 2) {
     Object.assign(output, gradeRankings(rs.submissions, phase.correctOrder, rankings.map(r => r.item), phase.pointsPerItem));
+  }
+
+  // Instant runoff (2026-10-01): every order is a ballot, the last place
+  // goes out round by round until one item has a majority of the first
+  // choices still in the running (engine/phases/runoff.js)
+  if (phase && phase.runoff === true) {
+    const result = instantRunoff(Object.values(rs.submissions), rs.candidates);
+    output.winnerText = result.winner || '';
+    output.runoffRounds = result.rounds.length;
+    output.runoffList = runoffList(result, engine.language);
   }
 
   // "Rank as groups" (teamsFrom): each group's order is its members'
