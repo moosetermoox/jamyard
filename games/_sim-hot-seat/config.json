@@ -1,0 +1,48 @@
+{
+  "name": "Sim Hot Seat",
+  "description": "Hidden fixture: the hot seat brick (scripts/simulate-hot-seat.js).",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "pick"
+    },
+    "pick": {
+      "type": "vote",
+      "mode": "pick-one",
+      "candidates": "players",
+      "excludeAuthors": true,
+      "question": "Who should play Brian?",
+      "timer": 45,
+      "next": "picked"
+    },
+    "picked": {
+      "type": "reveal",
+      "template": "In the hot seat:\n\n**{{pick.winnerText}}**",
+      "next": "ask"
+    },
+    "ask": {
+      "type": "collect",
+      "prompt": "Write one question for Brian about the wilderness.",
+      "maxLength": 300,
+      "next": "check"
+    },
+    "check": {
+      "type": "preview",
+      "template": "Read the questions below before they go to the hot seat: press Hide beside any that should not go, then Approve. Try again asks everyone to write again.",
+      "approveNext": "hot-seat",
+      "rejectNext": "ask"
+    },
+    "hot-seat": {
+      "type": "reveal-one",
+      "message": "Brian, the class asks:",
+      "from": "ask.responses",
+      "to": "{{pick.winnerText}}",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Thank you, Brian."
+    }
+  }
+}

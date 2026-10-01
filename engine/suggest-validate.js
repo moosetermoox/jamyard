@@ -24,7 +24,9 @@ export const STORYBOARD_BRICKS = [
   // 2026-10-01 (the inventory's Part 3): peer feedback on each student's own piece
   'feedback',
   // quiet time: a clock and nothing to type, then an optional talk line
-  'quiet'
+  'quiet',
+  // the hot seat: the class's questions to one student's screen
+  'hotseat'
 ];
 
 const MAX_MATCH_PAIRS = 12;
@@ -310,6 +312,9 @@ export function validateSuggestions(raw, ctx) {
             // feedback: the question the writers answer first, one or two readers
             draft: typeof s.draft === 'string' ? s.draft.slice(0, 500) : undefined,
             readers: num(s.readers),
+            // hotseat: who sits in it (drawn at random, or the class votes)
+            pick: s.pick === 'vote' || s.pick === 'random' ? s.pick : undefined,
+            voteText: typeof s.voteText === 'string' ? s.voteText.slice(0, 200) : undefined,
             // quiet: the line after the quiet stretch
             talk: typeof s.talk === 'string' ? s.talk.slice(0, 300) : undefined,
             timer: typeof s.timer === 'number' ? s.timer : undefined,

@@ -2550,7 +2550,7 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
   // room first, and a crown after a vote over the class's own answers or
   // drawings. Shown so the plan is the whole activity (a reviewer found
   // two steps in the editor that the plan never showed, 2026-09-24).
-  var OWN_ANSWER_BRICKS = ['collect', 'collect-two', 'draw', 'deal', 'chain', 'pairs', 'feedback'];
+  var OWN_ANSWER_BRICKS = ['collect', 'collect-two', 'draw', 'deal', 'chain', 'pairs', 'feedback', 'hotseat'];
   function addedRow(label, note) {
     var row = sbEl('div', null, 'sb-step sb-step-added');
     var head = sbEl('div', null, 'sb-step-head');
@@ -2648,6 +2648,15 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       }
       if (step.brick === 'knockout') {
         list.appendChild(addedRow(SB_BRICK_LABELS.winner || 'Crown a winner', 'added: rounds of answer, vote, and out, then the last one standing'));
+      }
+      if (step.brick === 'hotseat') {
+        if (step.pick === 'vote') {
+          list.appendChild(addedRow(SB_BRICK_LABELS.vote || 'Vote', 'added first: the class votes who goes in the hot seat, and the name goes up'));
+        }
+        list.appendChild(addedRow(SB_BRICK_LABELS.preview || 'Teacher preview', 'added: you read the questions first and hide any that should not go'));
+        list.appendChild(addedRow(SB_BRICK_LABELS['reveal-one'] || 'Reveal one at a time', step.pick === 'vote'
+          ? 'added: the questions go to that student\'s screen one at a time; the projector shows only how many'
+          : 'added: a student is drawn at random and the questions go to their screen one at a time; the projector shows only how many'));
       }
       if (step.brick === 'rank' && step.runoff === true && step.correct !== true) {
         list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: the class\'s pick by instant runoff, and every round of the count'));

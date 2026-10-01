@@ -1,0 +1,34 @@
+{
+  "name": "Sim Hot Seat Random",
+  "description": "Hidden fixture: the hot seat brick (scripts/simulate-hot-seat.js).",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "ask"
+    },
+    "ask": {
+      "type": "collect",
+      "prompt": "Write one question for whoever lands in the hot seat.",
+      "maxLength": 300,
+      "next": "check"
+    },
+    "check": {
+      "type": "preview",
+      "template": "Read the questions below before they go to the hot seat: press Hide beside any that should not go, then Approve. Try again asks everyone to write again.",
+      "approveNext": "hot-seat",
+      "rejectNext": "ask"
+    },
+    "hot-seat": {
+      "type": "reveal-one",
+      "message": "Your classmates ask:",
+      "from": "ask.responses",
+      "to": "{{players.random}}",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Thanks."
+    }
+  }
+}

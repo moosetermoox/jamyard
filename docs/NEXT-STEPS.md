@@ -35,7 +35,11 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-10-01, late night: Part 3 slices one to four; #149, #150, #151 MERGED and live, slice four `instant-runoff` PR open; restart :3000 before using it locally)
+### START HERE next session (updated 2026-10-01, later still: Part 3 slices one to five; #149 to #152 MERGED and live, slice five `hot-seat` PR open; restart :3000 before using it locally)
+
+**Done today:** (1) peer feedback (#149), (2) quiet time (#150), (3) confidence after the answer (#151), (4) instant runoff (#152), (5) the hot seat (reveal-one `to`, the `hotseat` brick; proof `scripts/simulate-hot-seat.js` 12 of 12, live eval 16 of 16 after a double-vote fix, tests 3314). **Next:** (6) secret pairs that find each other, then (7) the AI narrator loop. Live check when there is a moment: on jamyard.org, "hot seat: the class votes who plays Brian from Hatchet and sends questions" in Create, run with three pretend students, and switch between the student screens in Try it out.
+
+### Previous START HERE (2026-10-01, late night: slices one to four, `instant-runoff` PR open)
 
 **Done today:** (1) peer feedback (#149), (2) quiet time (#150), (3) confidence after the answer (#151), (4) instant runoff (rank `runoff: true`, `engine/phases/runoff.js`; proof `scripts/simulate-runoff.js` 6 of 6, live eval 14 of 14, tests 3304). **Next:** (5) hot seat to one screen, then (6) and (7) as listed below. Live check when there is a moment: on jamyard.org, "rank four field trips and pick one by instant runoff" in Create, run with pretend students, and read the rounds on the projector.
 

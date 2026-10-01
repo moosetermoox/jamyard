@@ -1445,6 +1445,11 @@ export const PHASE_SCHEMAS = {
         type: 'integer', min: 1, max: 100, optional: true,
         label: 'Max items (random sample)',
         description: 'Cap the reveal at a sample of the items. Leave blank when every student\'s item must appear (encouragement walls, return-to-author reveals).'
+      },
+      to: {
+        type: 'templateString', optional: true, contexts: ['topLevel'],
+        label: 'Only to one student (the hot seat)',
+        helper: 'Send every item to ONE student\'s screen instead of the projector: a vote over the students\' pick ("{{pick.winner}}") or "{{players.random}}", resolved once when the step starts. The projector and the rest of the class see only the count and the name ("3 of 7 sent to Maya"). Put a teacher look (a preview step) before it when the items are classmates\' questions.'
       }
     },
     transitions: {
@@ -1454,7 +1459,9 @@ export const PHASE_SCHEMAS = {
       kind: 'static',
       fields: {
         items:    { type: 'array' },
-        revealed: { type: 'integer' }
+        revealed: { type: 'integer' },
+        // With `to` (2026-10-01): the student the items went to, by name
+        hotSeat:  { type: 'string', capability: 'renderable' }
       }
     },
     ui: {

@@ -55,6 +55,7 @@ window.PHASE_NAMES = {
   'write-quiz': 'Quiz from the class',
   'feedback': 'Peer feedback',
   'quiet': 'Quiet time',
+  'hotseat': 'Hot seat',
   'end': 'Wrap up'
 };
 

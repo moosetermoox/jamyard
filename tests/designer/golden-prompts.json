@@ -1843,6 +1843,22 @@
           ]
         }
       }
+    },
+    {
+      "id": "hot-seat-character",
+      "prompt": "Hot seat for our novel: a student plays Brian from Hatchet, the class writes questions for him, I check them first, and they go to that student one at a time to answer in character.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Brian in the Hot Seat",
+          "description": "The class questions Brian from Hatchet, played by one student.",
+          "steps": [
+            { "brick": "announce", "text": "One of you will become Brian from Hatchet. Everyone else, get ready to ask him anything." },
+            { "brick": "hotseat", "pick": "vote", "voteText": "Who should play Brian?", "text": "Write one question for Brian about his time in the wilderness.", "heading": "Brian, the class asks:" },
+            { "brick": "end", "text": "Thank you, Brian. What surprised you about his answers?" }
+          ]
+        }
+      }
     }
   ]
 }
