@@ -35,7 +35,11 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-10-01: the mechanics inventory's Part 2 is COMPLETE, #144 `engine-bricks`, #145 `engine-knobs`, #146 `reveal-styles`, #147 `screen-knobs` ALL MERGED and live via CI; restart :3000 before using it locally)
+### START HERE next session (updated 2026-10-01, later: Part 3 slice one, the `feedback` brick, on branch `feedback-brick`, PR open; restart :3000 before using it locally)
+
+**Done:** the peer-feedback brick (`draft`, `text`, `readers` 1 or 2) plus the collect knob `showOriginal` that lets a second reader read the draft, not the first comment. Proof `scripts/simulate-feedback.js` 11 of 11; live eval 8 of 8; tests 3266. **Next:** (2) quiet time, then (3) to (7) as listed in the block below. Live check when there is a moment: on jamyard.org, type "two stars and a wish on each other's lab conclusions" into Create, build it, run it with three pretend students, and read the return on a student screen.
+
+### Previous START HERE (2026-10-01: the mechanics inventory's Part 2 is COMPLETE, #144 `engine-bricks`, #145 `engine-knobs`, #146 `reveal-styles`, #147 `screen-knobs` ALL MERGED and live via CI; restart :3000 before using it locally)
 
 **The inventory day, in one paragraph.** The owner asked what blocks we have, what is easy, and what is missing (`docs/MECHANICS-INVENTORY.md`), then said do the easy additions and give the Create page the blocks it could not reach. Four PRs did Part 2 of that document: eleven bricks over existing step types plus a rolling flag (#144, live eval 22 of 22), six engine knobs and the write-quiz brick (#145, 8 of 8, proof 15 checks), the reveal styles as template suffixes (#146, 4 of 4, 6 checks), and the three screen knobs (#147: pick several, a graded open answer, a line per group; picks 3 of 3, blank 2 of 2, stations 2 of 3; 7 checks). Tests 3250. The Create page now reaches 42 bricks and knobs that the engine had or got that day; what it still cannot say is Part 3 of the inventory.
 

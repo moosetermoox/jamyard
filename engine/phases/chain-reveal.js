@@ -128,7 +128,11 @@ export function formatChainContent(view, opts = {}) {
         : `${view.steps.length} classmates took it from there:`;
     lines.push('', grew, `“${view.steps[view.steps.length - 1]}”`);
   } else {
-    lines.push('', 'And then, hand to hand:');
+    // A peer-feedback reveal names what came back ("What your classmates
+    // said:"); a story chain keeps the hand-to-hand line.
+    const grew = (typeof opts.grewHeading === 'string' && opts.grewHeading.trim() !== '')
+      ? opts.grewHeading.trim() : 'And then, hand to hand:';
+    lines.push('', grew);
     view.steps.forEach((text, i) => lines.push(`${i + 1}. ${text}`));
   }
 

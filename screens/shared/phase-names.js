@@ -53,6 +53,7 @@ window.PHASE_NAMES = {
   'charades': 'Charades',
   'count': 'Count together',
   'write-quiz': 'Quiz from the class',
+  'feedback': 'Peer feedback',
   'end': 'Wrap up'
 };
 

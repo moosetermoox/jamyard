@@ -20,7 +20,9 @@ export const STORYBOARD_BRICKS = [
   'match', 'sort', 'rate', 'solo-quiz', 'wager', 'merge', 'relay', 'tasks',
   'knockout', 'charades', 'count',
   // 2026-09-30 (the knobs): the class writes the quiz
-  'write-quiz'
+  'write-quiz',
+  // 2026-10-01 (the inventory's Part 3): peer feedback on each student's own piece
+  'feedback'
 ];
 
 const MAX_MATCH_PAIRS = 12;
@@ -299,6 +301,9 @@ export function validateSuggestions(raw, ctx) {
             roles: cleanRoles(s.roles),
             method: s.method === 'choice' || s.method === 'random' ? s.method : undefined,
             tasks: cleanTasks(s.tasks),
+            // feedback: the question the writers answer first, one or two readers
+            draft: typeof s.draft === 'string' ? s.draft.slice(0, 500) : undefined,
+            readers: num(s.readers),
             timer: typeof s.timer === 'number' ? s.timer : undefined,
             // estimate: the scale's ends ("on a scale of 1 to 10"), and the
             // true number with its unit and scoring when there is one

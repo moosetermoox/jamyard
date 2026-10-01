@@ -516,6 +516,21 @@ export function validate(config, gameId, options) {
         }
       }
 
+      // showOriginal (the feedback brick's second reader) swaps what the
+      // student sees for the chain's first piece: it needs a rotation,
+      // and a prefilled box would put a classmate's draft in the answer.
+      if (phase.showOriginal === true) {
+        if (!phase.rotateFrom) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (collect) sets "showOriginal" but not "rotateFrom", there is no hand-off to show the first piece of.`
+          );
+        } else if (phase.prefillFromAssigned === true) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (collect) sets both "showOriginal" and "prefillFromAssigned", the classmate's draft would land in this student's answer box.`
+          );
+        }
+      }
+
       // pairBy: answer-keyed pairing. Preference source must be a
       // collect-choice (fixed answers partition cleanly; free text doesn't).
       if (phase.pairBy !== undefined) {

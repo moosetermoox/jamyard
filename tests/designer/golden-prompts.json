@@ -1017,7 +1017,7 @@
           "description": "Write a thesis, a classmate gives feedback, and it comes back to you.",
           "steps": [
             { "brick": "announce", "text": "Write your thesis, then a classmate reads it and leaves you feedback. It comes back to you at the end." },
-            { "brick": "chain", "start": "Write your thesis statement in one or two sentences.", "hops": ["Read your classmate's thesis above. Write one strength and one question for the writer."], "visibility": "all", "timer": 180 },
+            { "brick": "feedback", "draft": "Write your thesis statement in one or two sentences.", "text": "Read your classmate's thesis below. Write one strength and one question for the writer.", "readers": 1, "timer": 180 },
             { "brick": "end", "text": "Read the feedback on your thesis and revise one sentence before you leave." }
           ]
         }
@@ -1775,6 +1775,22 @@
         }
       },
       "note": "stations on an announce (2026-09-30): a line per group where {{thisStep.station}} stands, bound to the step's id by the compiler."
+    },
+    {
+      "id": "peer-feedback-two-readers",
+      "prompt": "Students write a short paragraph explaining the causes of the Dust Bowl. Then two different classmates each read it and leave a glow and a grow, without seeing each other's comments, and the writer gets both back.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Glow and Grow",
+          "description": "Two classmates read your Dust Bowl paragraph and each leave a glow and a grow.",
+          "steps": [
+            { "brick": "collect", "text": "In a short paragraph, explain the causes of the Dust Bowl.", "timer": 420 },
+            { "brick": "feedback", "text": "Read your classmate's paragraph below. Write one glow (something that works) and one grow (one thing to make clearer).", "readers": 2, "timer": 180 },
+            { "brick": "end", "text": "Read your two comments and revise one sentence of your paragraph." }
+          ]
+        }
+      }
     }
   ]
 }
