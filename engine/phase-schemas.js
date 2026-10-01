@@ -266,6 +266,11 @@ export const PHASE_SCHEMAS = {
         label: 'Deal these items out',
         helper: 'Optional. Your own list: each player is handed one item from it, in a random order (wrapping around if the class is bigger than the list). Use {{thisStepId.assigned}} in the prompt to show it. An alternative to "Rotate items from" when the items come from you, not the students.'
       },
+      pairItems: {
+        type: 'boolean', optional: true, contexts: ['topLevel'],
+        label: 'Deal each item to two students',
+        helper: 'With "Deal these items out": every item goes to TWO students in private, so each one has a match to find in the room. Write an item as "Romeo | Juliet" to split it into two halves (a word and its meaning, a question and its answer), or plainly to give both the same card. An odd student joins a pair as a third. Students type their match\'s name; the close outputs .pairsList (every item with who held it), .foundLine ("10 of 12 named their match."), .foundCount, and .foundByPlayer.'
+      },
       assign: {
         type: 'enum', values: ['pairwise'], optional: true, contexts: ['topLevel'],
         label: 'Pair players up',

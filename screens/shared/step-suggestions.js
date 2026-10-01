@@ -1253,6 +1253,59 @@
     return showId;
   }
 
+  // ---- Find your match brick (2026-10-01, the inventory's Part 3) ----
+  // Secret pairs that find each other: every pair goes to two students in
+  // private (a half each, or the same card twice), they find each other in
+  // the room and type the name, and the projector shows who held what and
+  // how many named their match. The finding is off the screen on purpose.
+  //   text     the instruction ("Find the classmate whose card completes
+  //            yours, then type their name.")
+  //   pairs    2-30 {left, right}: two halves, one to each student
+  //   items    2-30 strings: the same card to two students (when no pairs)
+  //   heading  the line over who held what (optional)
+  var MAX_FIND_PAIRS = 30;
+
+  function appendFindMatch(step, stepNo, phases, lastId, problems) {
+    var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
+    var clean = function (s) { return String(s == null ? '' : s).replace(/\s+\|\s+/g, ' / ').trim(); };
+    var list = [];
+    if (Array.isArray(step.pairs) && step.pairs.length) {
+      step.pairs.forEach(function (p) {
+        var l = clean(p && p.left);
+        var r = clean(p && p.right);
+        if (l && r) list.push(l + ' | ' + r);
+      });
+    } else if (Array.isArray(step.items)) {
+      step.items.forEach(function (it) { var s = clean(it); if (s) list.push(s); });
+    }
+    if (!text) {
+      problems.push('Step ' + stepNo + ': find your match needs "text", what students do with their card.');
+      return null;
+    }
+    if (list.length < 2) {
+      problems.push('Step ' + stepNo + ': find your match needs at least two pairs (or two cards) to hand out.');
+      return null;
+    }
+    if (list.length > MAX_FIND_PAIRS) {
+      problems.push('Step ' + stepNo + ': find your match takes ' + MAX_FIND_PAIRS + ' pairs at most, the extras were dropped.');
+      list = list.slice(0, MAX_FIND_PAIRS);
+    }
+    var heading = (typeof step.heading === 'string' && step.heading.trim()) ? step.heading.trim() : 'Who held what:';
+    var findId = freshId(phases, 'find');
+    var heldId = freshId(phases, 'held');
+    phases[lastId].next = findId;
+    phases[findId] = {
+      type: 'collect',
+      prompt: text + '\n\n**{{' + findId + '.assigned}}**',
+      dealItems: list,
+      pairItems: true,
+      maxLength: 60,
+      next: heldId
+    };
+    phases[heldId] = { type: 'reveal', template: heading + '\n\n{{' + findId + '.pairsList}}\n\n{{' + findId + '.foundLine}}' };
+    return heldId;
+  }
+
   // ---- Hot seat brick (2026-10-01, the inventory's Part 3) ----
   // One student answers the class's questions out loud: everyone writes a
   // question, the teacher looks them over (a preview gate, since the
@@ -1914,6 +1967,12 @@
       if (brick === 'chain') {
         var chainLast = appendPassChain(step, i + 1, phases, lastId, problems);
         if (chainLast) lastId = chainLast;
+        return;
+      }
+
+      if (brick === 'findmatch') {
+        var findLast = appendFindMatch(step, i + 1, phases, lastId, problems);
+        if (findLast) lastId = findLast;
         return;
       }
 

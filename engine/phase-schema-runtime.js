@@ -100,6 +100,13 @@ export const DYNAMIC_OUTPUT_RESOLVERS = {
       out.correctCount = { type: 'number' };
       out.answeredCount = { type: 'number' };
     }
+    // secret pairs (2026-10-01): who held what, how many named a match
+    if (phase.pairItems === true) {
+      out.pairsList = { type: 'string', capability: 'renderable' };
+      out.foundLine = { type: 'string', capability: 'renderable' };
+      out.foundCount = { type: 'number' };
+      out.foundByPlayer = { type: 'object' };
+    }
     // assigned only exists when this phase rotates from another
     if (phase.rotateFrom) {
       out.assigned = {

@@ -35,7 +35,11 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-10-01, later still: Part 3 slices one to five; #149 to #152 MERGED and live, slice five `hot-seat` PR open; restart :3000 before using it locally)
+### START HERE next session (updated 2026-10-01, end of day: Part 3 slices one to six; #149 to #153 MERGED and live, slice six `secret-pairs` PR open; restart :3000 before using it locally)
+
+**Done today:** (1) peer feedback (#149), (2) quiet time (#150), (3) confidence after the answer (#151), (4) instant runoff (#152), (5) the hot seat (#153), (6) find your match (collect `pairItems`, the `findmatch` brick, a server backstop for the matcher's offScreen; proof `scripts/simulate-find-match.js` 6 of 6, live 12 of 12 plus the route 6 of 6, tests 3330). **Next:** (7) the AI narrator loop from `docs/DEFERRED-IDEAS.md`, which the plan says needs real playtests of its prompt first, so it starts with a prompt study, not code. Live checks for slices one to six are in each slice's CHANGELOG entry; run them on jamyard.org with pretend students when there is a moment.
+
+### Previous START HERE (2026-10-01, later still: slices one to five, `hot-seat` PR open)
 
 **Done today:** (1) peer feedback (#149), (2) quiet time (#150), (3) confidence after the answer (#151), (4) instant runoff (#152), (5) the hot seat (reveal-one `to`, the `hotseat` brick; proof `scripts/simulate-hot-seat.js` 12 of 12, live eval 16 of 16 after a double-vote fix, tests 3314). **Next:** (6) secret pairs that find each other, then (7) the AI narrator loop. Live check when there is a moment: on jamyard.org, "hot seat: the class votes who plays Brian from Hatchet and sends questions" in Create, run with three pretend students, and switch between the student screens in Try it out.
 

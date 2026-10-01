@@ -24,6 +24,7 @@ import { holdPendingSubmit, settlePendingSubmits } from './engine/pending-submit
 import { parseRequestedMinutes, timingReport, paramsForTrim, estimateDuration } from './engine/duration-estimate.js';
 import { audienceFor } from './engine/audience.js';
 import { applyIdeaSettings, parseAnonymity } from './engine/idea-settings.js';
+import { readsAsFindYourMatch } from './engine/find-match-idea.js';
 import { refitRecipeIdFor } from './engine/match-refit.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
@@ -38,6 +39,7 @@ import { shouldStopLooping } from './engine/phases/eliminate-handler.js';
 import { relayFullText, SKIPPED_TEXT } from './engine/phases/relay-text.js';
 import { aggregateRankings, groupOrders } from './engine/phases/choice-draft.js';
 import { instantRunoff, runoffList } from './engine/phases/runoff.js';
+import { judgePairs, foundLine } from './engine/phases/pair-deal.js';
 import { groupsFromTeamSource } from './engine/phases/groups-from.js';
 import { restoreSubPhaseOrder } from './engine/subphase-order.js';
 
@@ -1884,8 +1886,16 @@ async function closeCollect(code, room) {
             graded = { scores: g.scores, correctAnswer: right, correctCount: g.correctCount, answeredCount: g.answeredCount, rightByPlayer: g.rightByPlayer };
             console.log(`[close-submissions] Graded ${responses.length} open answers against "${right}": ${g.correctCount} right`);
           }
+          // Secret pairs (2026-10-01): who held what, and how many typed a
+          // classmate who held the other half (engine/phases/pair-deal.js)
+          let paired = {};
+          if (collectPhase.pairItems === true && Array.isArray(existing.pairGroups)) {
+            const nameOf = (id) => { const p = players.find(id); return p ? p.name : null; };
+            const j = judgePairs(existing.pairGroups, byPlayer, nameOf);
+            paired = { pairsList: j.pairsList, foundCount: j.found, foundByPlayer: j.foundByPlayer, foundLine: foundLine(room.engine.language, j.found, j.total) };
+          }
           room.engine.storePhaseData(collectPhase.id, {
-            ...existing, responses, byPlayer, passedIds, ...graded,
+            ...existing, responses, byPlayer, passedIds, ...graded, ...paired,
             ...(Object.keys(byPlayerDrawing).length > 0 ? { byPlayerDrawing } : {})
           });
           // A Hide after the close reaches these rows (engine/moderation.js hideStoredResponse)
@@ -4367,7 +4377,9 @@ app.post('/api/games/from-description', async (req, res) => {
         reason,
         suggestion: match.suggestion || '',
         harm: match.harm === true,
-        offScreen: match.offScreen === true,
+        // find your match moves students but is built on the screens; the
+        // matcher still calls it offScreen now and then (engine/find-match-idea.js)
+        offScreen: match.offScreen === true && !readsAsFindYourMatch(description),
         ideaId: await logIdea(req.body, { stage, result: 'none', reason, minutes: requestedMinutes })
       });
     }

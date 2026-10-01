@@ -1471,6 +1471,10 @@ export function validate(config, gameId, options) {
         errors.push(`Game "${gameId}": phase "${name}" cannot use both dealItems and rotateFrom`);
       }
     }
+    // pairItems (2026-10-01): two students to an item, so it deals a list
+    if (phase.pairItems === true && (phase.type !== 'collect' || !Array.isArray(phase.dealItems) || phase.dealItems.length === 0)) {
+      errors.push(`Game "${gameId}": phase "${name}" has pairItems, which needs a collect step with dealItems (the pairs to hand out)`);
+    }
 
     // One Voice rules (Connection Pack §4.6).
     if (phase.type === 'one-voice') {

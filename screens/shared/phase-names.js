@@ -56,6 +56,7 @@ window.PHASE_NAMES = {
   'feedback': 'Peer feedback',
   'quiet': 'Quiet time',
   'hotseat': 'Hot seat',
+  'findmatch': 'Find your match',
   'end': 'Wrap up'
 };
 

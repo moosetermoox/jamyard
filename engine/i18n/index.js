@@ -332,6 +332,8 @@ export const STRINGS = {
     // The hot seat (engine/phase-handlers/reveal-one.js)
     '{index} of {total} sent to {name}': '{index} de {total} enviadas a {name}',
     'You are in the hot seat. The questions come to your screen.': 'Estás en la silla caliente. Las preguntas llegan a tu pantalla.',
+    // Secret pairs (engine/phases/pair-deal.js)
+    '{found} of {total} named their match.': '{found} de {total} nombraron a su pareja.',
     'After': 'Después',
     'Elimination Results': 'Resultados de la eliminación',
     'Submit Ranking': 'Enviar el orden',
@@ -568,6 +570,8 @@ export const STRINGS = {
     // The hot seat (engine/phase-handlers/reveal-one.js)
     '{index} of {total} sent to {name}': '{index} sur {total} envoyées à {name}',
     'You are in the hot seat. The questions come to your screen.': 'Tu es sur la sellette. Les questions arrivent sur ton écran.',
+    // Secret pairs (engine/phases/pair-deal.js)
+    '{found} of {total} named their match.': '{found} sur {total} ont nommé leur partenaire.',
     'After': 'Après',
     'Elimination Results': "Résultats de l'élimination",
     'Submit Ranking': 'Envoyer le classement',
@@ -804,6 +808,8 @@ export const STRINGS = {
     // The hot seat (engine/phase-handlers/reveal-one.js)
     '{index} of {total} sent to {name}': '{index} von {total} an {name} geschickt',
     'You are in the hot seat. The questions come to your screen.': 'Du sitzt auf dem heißen Stuhl. Die Fragen kommen auf deinen Bildschirm.',
+    // Secret pairs (engine/phases/pair-deal.js)
+    '{found} of {total} named their match.': '{found} von {total} haben ihr Gegenstück genannt.',
     'After': 'Nachher',
     'Elimination Results': 'Ausscheidungsergebnis',
     'Submit Ranking': 'Reihenfolge absenden',
@@ -1040,6 +1046,8 @@ export const STRINGS = {
     // The hot seat (engine/phase-handlers/reveal-one.js)
     '{index} of {total} sent to {name}': '{index} de {total} enviadas para {name}',
     'You are in the hot seat. The questions come to your screen.': 'Você está na berlinda. As perguntas chegam na sua tela.',
+    // Secret pairs (engine/phases/pair-deal.js)
+    '{found} of {total} named their match.': '{found} de {total} disseram o nome do seu par.',
     'After': 'Depois',
     'Elimination Results': 'Resultados da eliminação',
     'Submit Ranking': 'Enviar a ordem',
@@ -1276,6 +1284,8 @@ export const STRINGS = {
     // The hot seat (engine/phase-handlers/reveal-one.js)
     '{index} of {total} sent to {name}': '{index} su {total} inviate a {name}',
     'You are in the hot seat. The questions come to your screen.': 'Sei sulla sedia che scotta. Le domande arrivano sul tuo schermo.',
+    // Secret pairs (engine/phases/pair-deal.js)
+    '{found} of {total} named their match.': '{found} su {total} hanno nominato la loro coppia.',
     'After': 'Dopo',
     'Elimination Results': "Risultati dell'eliminazione",
     'Submit Ranking': "Invia l'ordine",

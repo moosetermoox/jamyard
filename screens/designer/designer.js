@@ -2649,6 +2649,9 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       if (step.brick === 'knockout') {
         list.appendChild(addedRow(SB_BRICK_LABELS.winner || 'Crown a winner', 'added: rounds of answer, vote, and out, then the last one standing'));
       }
+      if (step.brick === 'findmatch') {
+        list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: who held what, and how many named their match'));
+      }
       if (step.brick === 'hotseat') {
         if (step.pick === 'vote') {
           list.appendChild(addedRow(SB_BRICK_LABELS.vote || 'Vote', 'added first: the class votes who goes in the hot seat, and the name goes up'));

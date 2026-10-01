@@ -102,7 +102,7 @@ describe('hot seat: the brick', () => {
     const src = read('services/ai-service.js');
     expect(src).toMatch(/- hotseat: one student answers the class's questions out loud/);
     expect(src).toMatch(/hotseat \(everyone writes a question, the teacher looks them over/);
-    expect(src).toMatch(/a hot seat \(the class's questions to one student\) is hotseat\./);
+    expect(src).toMatch(/a hot seat \(the class's questions to one student\) is hotseat[,.]/);
     expect(src).toMatch(/THE HOT SEAT \(items to one student's screen\)/);
     expect(read('screens/designer/designer.js')).toMatch(/step\.brick === 'hotseat'/);
     expect(read('screens/shared/phase-names.js')).toMatch(/'hotseat': 'Hot seat'/);

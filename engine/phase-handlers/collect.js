@@ -18,6 +18,7 @@ import { isRolling, moreInputAhead, doneMessageFor } from '../phases/rolling.js'
 import { translate } from '../i18n/index.js';
 import { audienceLine } from '../phases/audience-line.js';
 import { splitPartnerTokens } from '../per-player-template.js';
+import { dealPairs, joinLatePair } from '../phases/pair-deal.js';
 
 // The partner's piece rides beside the prompt, never inside it: the
 // student screen shows it on a card of its own under the instruction.
@@ -230,6 +231,11 @@ function ensureLateAssignment(ctx, playerId) {
   } else if (Array.isArray(phase.dealItems) && phase.dealItems.length > 0) {
     const own = engine.phaseData[phase.id];
     if (!own || !own.assigned || own.assigned[playerId] !== undefined) return;
+    if (phase.pairItems === true && Array.isArray(own.pairGroups)) {
+      // A late arrival joins the smallest pair with the half it holds least of
+      joinLatePair({ groups: own.pairGroups, assigned: own.assigned }, playerId);
+      return;
+    }
     own.assigned[playerId] = phase.dealItems[Math.floor(Math.random() * phase.dealItems.length)];
   }
 }
@@ -247,6 +253,14 @@ function buildDealAssignment(ctx) {
   const items = phase.dealItems.map(s => String(s)).filter(s => s.trim() !== '');
   if (items.length === 0) return null;
   const eligible = ctx.getEligibleVoters(phase.from || 'all');
+  // Secret pairs (2026-10-01): every item goes to TWO students, halves
+  // split, and the groups are kept for the close (engine/phases/pair-deal.js)
+  if (phase.pairItems === true) {
+    const { assigned, groups } = dealPairs(eligible.map(p => p.id), items);
+    const existingPairs = engine.phaseData[phase.id] || {};
+    engine.storePhaseData(phase.id, { ...existingPairs, assigned, pairGroups: groups });
+    return assigned;
+  }
   const order = items.slice();
   for (let i = order.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));

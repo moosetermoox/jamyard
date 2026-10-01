@@ -1,0 +1,32 @@
+{
+  "name": "Sim Find Match",
+  "description": "Hidden fixture: the findmatch brick (scripts/simulate-find-match.js).",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "find"
+    },
+    "find": {
+      "type": "collect",
+      "prompt": "Find the classmate whose card goes with yours, then type their name.\n\n**{{find.assigned}}**",
+      "dealItems": [
+        "Nucleus | Holds the DNA",
+        "Ribosome | Builds proteins",
+        "Vacuole | Stores water"
+      ],
+      "pairItems": true,
+      "maxLength": 60,
+      "next": "held"
+    },
+    "held": {
+      "type": "reveal",
+      "template": "Who held what:\n\n{{find.pairsList}}\n\n{{find.foundLine}}",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Which pair was hardest to find?"
+    }
+  }
+}

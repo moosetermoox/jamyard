@@ -6261,6 +6261,11 @@ function validateConfig() {
       errors.push(label + ': "Show only the last N words" needs "Protect the passed item (add-only)" turned on, otherwise the hidden text would be lost on submit.');
     }
 
+    // pairItems validation (mirrors engine/game-loader.js)
+    if (phase.pairItems === true && (phase.type !== 'collect' || !Array.isArray(phase.dealItems) || phase.dealItems.length === 0)) {
+      errors.push(label + ': "Deal each item to two students" needs "Deal these items out" with at least one item.');
+    }
+
     // runoff validation (mirrors engine/game-loader.js)
     if (phase.type === 'rank' && phase.runoff === true && phase.correctOrder !== undefined) {
       errors.push(label + ': "Pick one by instant runoff" and "The right order" cannot go together; keep one of them.');
