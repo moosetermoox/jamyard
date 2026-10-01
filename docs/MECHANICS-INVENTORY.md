@@ -131,6 +131,8 @@ Ordered roughly by payoff over effort. None needs an asset or an animation.
 
 Things a teacher asks for that the kit cannot say yet, and what they would take.
 
+> STATUS 2026-10-01: Part 2 is complete (PRs #144 to #147), and it covered eight rows of this table on the way: accusation vote (vote over students + eliminate most-votes), minority turn (`.least`), groups by answer (team-split byAnswer), student-written quiz (write-quiz), timeline order (rank correct), sized word cloud (`.cloud`), stations (`stations` on a step), fill in the blank (collect with an answer). What remains, in the order the next session takes them: a peer-feedback brick (a name over chain + two hops + the return reveal), quiet time (a named announce with a timer), confidence after the answer, instant runoff, hot seat to one screen, secret pairs that find each other, the AI narrator loop. Scoreboard across activities stays out. The plan with shapes is in `NEXT-STEPS.md`'s START HERE.
+
 | Mechanic | What a teacher means | Nearest thing today | What is missing | Effort |
 |---|---|---|---|---|
 | **Peer feedback on one classmate's work** | Each student reads one piece and answers three questions about it; the author gets it back | Rotation + multi-box collect + return-to-author reveal | Nothing structural; a **peer-review brick** that wires the three, and B11 for two readers | brick + knob |
