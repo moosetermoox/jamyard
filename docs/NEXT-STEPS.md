@@ -35,7 +35,11 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-10-01, later: Part 3 slice one, the `feedback` brick, on branch `feedback-brick`, PR open; restart :3000 before using it locally)
+### START HERE next session (updated 2026-10-01, evening: Part 3 slices one and two; #149 `feedback-brick` MERGED and live, slice two `quiet-brick` PR open; restart :3000 before using it locally)
+
+**Done today:** (1) the peer-feedback brick (#149) and (2) the quiet brick (`text`, `timer`, optional `talk`; a timed announce now keeps its clock across a refresh). Quiet proof `scripts/simulate-quiet.js` 8 of 8, live eval 14 of 14, tests 3275. **Next:** (3) confidence after the answer, then (4) to (7) as listed below. Live check when there is a moment: on jamyard.org, "two minutes of silent thinking about zoos, then we talk" in Create, run with pretend students, refresh a student screen mid-quiet and see the clock come back.
+
+### Previous START HERE (2026-10-01, later: Part 3 slice one, the `feedback` brick, on branch `feedback-brick`, PR open)
 
 **Done:** the peer-feedback brick (`draft`, `text`, `readers` 1 or 2) plus the collect knob `showOriginal` that lets a second reader read the draft, not the first comment. Proof `scripts/simulate-feedback.js` 11 of 11; live eval 8 of 8; tests 3266. **Next:** (2) quiet time, then (3) to (7) as listed in the block below. Live check when there is a moment: on jamyard.org, type "two stars and a wish on each other's lab conclusions" into Create, build it, run it with three pretend students, and read the return on a student screen.
 

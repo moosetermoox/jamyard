@@ -22,7 +22,9 @@ export const STORYBOARD_BRICKS = [
   // 2026-09-30 (the knobs): the class writes the quiz
   'write-quiz',
   // 2026-10-01 (the inventory's Part 3): peer feedback on each student's own piece
-  'feedback'
+  'feedback',
+  // quiet time: a clock and nothing to type, then an optional talk line
+  'quiet'
 ];
 
 const MAX_MATCH_PAIRS = 12;
@@ -304,6 +306,8 @@ export function validateSuggestions(raw, ctx) {
             // feedback: the question the writers answer first, one or two readers
             draft: typeof s.draft === 'string' ? s.draft.slice(0, 500) : undefined,
             readers: num(s.readers),
+            // quiet: the line after the quiet stretch
+            talk: typeof s.talk === 'string' ? s.talk.slice(0, 300) : undefined,
             timer: typeof s.timer === 'number' ? s.timer : undefined,
             // estimate: the scale's ends ("on a scale of 1 to 10"), and the
             // true number with its unit and scoring when there is one

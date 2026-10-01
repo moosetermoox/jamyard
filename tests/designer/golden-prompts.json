@@ -1791,6 +1791,22 @@
           ]
         }
       }
+    },
+    {
+      "id": "quiet-think-then-talk",
+      "prompt": "Give my class two minutes of silent thinking about whether the Constitution should be easier to amend, then they turn and talk with a partner, then everyone votes yes or no.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Think, Talk, Vote",
+          "description": "Two quiet minutes, a partner talk, then a class vote on amending the Constitution.",
+          "steps": [
+            { "brick": "quiet", "text": "Should the Constitution be easier to amend? Think it over quietly: one reason for, one reason against.", "timer": 120, "talk": "Turn to a partner and share which reason convinced you more." },
+            { "brick": "collect-choice", "text": "Should the Constitution be easier to amend?", "choices": ["Yes", "No"] },
+            { "brick": "end", "text": "Thanks for thinking it through." }
+          ]
+        }
+      }
     }
   ]
 }
