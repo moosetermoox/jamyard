@@ -6000,7 +6000,7 @@ var DATA_REF_FIELDS = ['input', 'candidates', 'content'];
 // engine/game-loader.js.
 var _topLevelOnlyFields = {
   collect: ['rotateFrom', 'rotateOffset', 'assign', 'pairsFrom', 'oddHandling',
-    'rotatePairsFrom', 'reusePairsFrom', 'prefillFromAssigned', 'appendOnly', 'showTail']
+    'rotatePairsFrom', 'reusePairsFrom', 'prefillFromAssigned', 'appendOnly', 'showTail', 'showOriginal']
 };
 
 var VALID_HOST_TOGGLES = {
@@ -6259,6 +6259,15 @@ function validateConfig() {
     // showTail fold validation (mirrors engine/game-loader.js)
     if (phase.type === 'collect' && phase.showTail !== undefined && phase.appendOnly !== true) {
       errors.push(label + ': "Show only the last N words" needs "Protect the passed item (add-only)" turned on, otherwise the hidden text would be lost on submit.');
+    }
+
+    // showOriginal validation (mirrors engine/game-loader.js)
+    if (phase.type === 'collect' && phase.showOriginal === true) {
+      if (!phase.rotateFrom) {
+        errors.push(label + ': "Show the first piece, not the last reply" needs "Rotate items from" set.');
+      } else if (phase.prefillFromAssigned === true) {
+        errors.push(label + ': "Show the first piece, not the last reply" cannot go with "Start the box with the passed item", the classmate\'s draft would land in the answer box.');
+      }
     }
 
     // pairBy validation (answer-keyed pairing; mirrors engine/game-loader.js)

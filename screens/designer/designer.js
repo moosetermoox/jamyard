@@ -2550,7 +2550,7 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
   // room first, and a crown after a vote over the class's own answers or
   // drawings. Shown so the plan is the whole activity (a reviewer found
   // two steps in the editor that the plan never showed, 2026-09-24).
-  var OWN_ANSWER_BRICKS = ['collect', 'collect-two', 'draw', 'deal', 'chain', 'pairs'];
+  var OWN_ANSWER_BRICKS = ['collect', 'collect-two', 'draw', 'deal', 'chain', 'pairs', 'feedback'];
   function addedRow(label, note) {
     var row = sbEl('div', null, 'sb-step sb-step-added');
     var head = sbEl('div', null, 'sb-step-head');
@@ -2648,6 +2648,14 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       }
       if (step.brick === 'knockout') {
         list.appendChild(addedRow(SB_BRICK_LABELS.winner || 'Crown a winner', 'added: rounds of answer, vote, and out, then the last one standing'));
+      }
+      if (step.brick === 'feedback') {
+        if (typeof step.draft === 'string' && step.draft.trim()) {
+          list.appendChild(addedRow(SB_BRICK_LABELS.collect || 'Open answer', 'added: everyone writes the piece: ' + step.draft.trim()));
+        }
+        list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', step.readers === 2
+          ? 'added: two classmates each read the piece, and it comes back to its writer with both comments, privately'
+          : 'added: a classmate reads the piece, and it comes back to its writer with the comment, privately'));
       }
       if (step.brick === 'write-quiz') {
         list.appendChild(addedRow(SB_BRICK_LABELS['solo-quiz'] || 'Self-paced quiz', 'added: a quiz over every complete question the class wrote, at each student\'s own pace'));

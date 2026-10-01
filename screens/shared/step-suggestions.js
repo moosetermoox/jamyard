@@ -502,6 +502,9 @@
   //     hops?: string[],        // chain only: one instruction per hand-off (1-6)
   //     visibility?: string,    // chain only: 'all'|'tail'|'blind' (default 'all')
   //     sentence?: string,      // chain only, blind: "The {1} {2}." slot template
+  //     draft?: string,         // feedback only: the piece each student writes first
+  //                             //   (else the last plain collect is the piece)
+  //     readers?: number,       // feedback only: 1 (default) or 2 classmates read it
   //     piles?: [{label, prompt}], // deal only: 2-4 piles everyone adds one item to
   //     writeTimer?: number,    // deal only: seconds for the writing step (default 480)
   //     rounds?: string[],      // pairs only: 0-3 follow-up instructions, same partner,
@@ -694,6 +697,99 @@
     }
     phases[lastId].next = revealId;
     phases[revealId] = reveal;
+    return revealId;
+  }
+
+  // ---- Feedback brick ----
+  // Peer feedback on each student's own piece (2026-10-01, the inventory's
+  // Part 3): a draft (this brick's "draft" question, else the last plain
+  // collect), one or two classmates who each read the DRAFT and write
+  // feedback in their own box, and a private return to the writer with
+  // every comment under it. The chain brick did this before, but its
+  // readers added to the draft itself and a second reader read the first
+  // one's comment; here the second reader rotates through the first
+  // reader's reply (so the chain comes home) with showOriginal (so they
+  // see the draft). The AI writes only the words.
+  //   text     what each reader writes (required)
+  //   draft    the question the writers answer first (optional)
+  //   readers  1 (default) or 2
+  //   timer    seconds per feedback step (optional)
+
+  function appendFeedback(step, stepNo, phases, lastId, problems) {
+    var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
+    if (!text) {
+      problems.push('Step ' + stepNo + ': peer feedback needs "text", what each reader writes for the writer.');
+      return null;
+    }
+    // The draft shows under the instruction; a token the AI wrote itself
+    // would point at nothing (or show the wrong piece).
+    if (text.indexOf('{{') !== -1) {
+      text = text.replace(/\{\{[^}]*\}\}/g, '').replace(/[ \t]{2,}/g, ' ').trim();
+    }
+    var readers = step.readers === 2 ? 2 : 1;
+    if (typeof step.readers === 'number' && step.readers > 2) {
+      problems.push('Step ' + stepNo + ': peer feedback takes one or two readers, it was set to two.');
+      readers = 2;
+    }
+    var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 900)
+      ? Math.round(step.timer) : null;
+    var draft = (typeof step.draft === 'string') ? step.draft.trim() : '';
+
+    var draftId;
+    if (draft) {
+      draftId = freshId(phases, 'draft');
+      phases[lastId].next = draftId;
+      phases[draftId] = { type: 'collect', prompt: draft, maxLength: 2000 };
+      lastId = draftId;
+    } else {
+      // The last plain text answer: never a hand-off (nor the start of
+      // one), a drawing, or boxes
+      var handedOn = {};
+      Object.keys(phases).forEach(function (pid) {
+        if (phases[pid] && phases[pid].rotateFrom) handedOn[phases[pid].rotateFrom] = true;
+      });
+      var order = orderedPhaseIds(phases);
+      var cut = order.indexOf(lastId);
+      if (cut !== -1) order = order.slice(0, cut + 1);
+      for (var k = order.length - 1; k >= 0; k--) {
+        var ph = phases[order[k]];
+        if (ph && ph.type === 'collect' && !ph.rotateFrom && !handedOn[order[k]] && !ph.assign &&
+            ph.inputType !== 'drawing' && !(Array.isArray(ph.fields) && ph.fields.length)) {
+          draftId = order[k];
+          break;
+        }
+      }
+      if (!draftId) {
+        problems.push('Step ' + stepNo + ': peer feedback needs a piece to read: give it a "draft" question, or put a question step before it.');
+        return null;
+      }
+    }
+
+    var chainIds = [draftId];
+    var prevId = draftId;
+    for (var r = 0; r < readers; r++) {
+      var fbId = freshId(phases, 'feedback');
+      var fb = {
+        type: 'collect',
+        prompt: text + '\n\n“{{' + prevId + '.assigned}}”',
+        rotateFrom: prevId
+      };
+      if (r > 0) fb.showOriginal = true;
+      if (timer) fb.timer = timer;
+      phases[lastId].next = fbId;
+      phases[fbId] = fb;
+      chainIds.push(fbId);
+      prevId = fbId;
+      lastId = fbId;
+    }
+
+    var revealId = freshId(phases, 'feedback-back');
+    phases[lastId].next = revealId;
+    phases[revealId] = {
+      type: 'reveal', scope: 'own', chainFrom: chainIds, chainDisplay: 'steps',
+      chainHeading: 'You wrote:',
+      chainGrewHeading: readers === 2 ? 'What your classmates said:' : 'What a classmate said:'
+    };
     return revealId;
   }
 
@@ -1706,6 +1802,12 @@
       if (brick === 'chain') {
         var chainLast = appendPassChain(step, i + 1, phases, lastId, problems);
         if (chainLast) lastId = chainLast;
+        return;
+      }
+
+      if (brick === 'feedback') {
+        var feedbackLast = appendFeedback(step, i + 1, phases, lastId, problems);
+        if (feedbackLast) lastId = feedbackLast;
         return;
       }
 

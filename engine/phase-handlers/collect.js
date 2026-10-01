@@ -137,6 +137,17 @@ function buildRotationAssignment(ctx) {
     give(receiverId, senders[Math.floor(Math.random() * N)]);
   }
 
+  // showOriginal: the student is shown the chain's FIRST piece (the draft)
+  // rather than the last hop's words, while the hand-off link still runs
+  // through the hop, so a second peer reader reviews the draft and never
+  // sees the first reader's comment (the feedback brick, 2026-10-01).
+  if (phase.showOriginal) {
+    for (const receiverId of Object.keys(assignment)) {
+      const origin = chainOriginText(engine, phase.rotateFrom, assignedFrom[receiverId]);
+      if (origin !== undefined) assignment[receiverId] = origin;
+    }
+  }
+
   // Persist assignment under the SOURCE phase so {{<source>.assigned}}
   // resolves naturally — the template author writes "{{initial-idea.assigned}}"
   // when they're in a step that rotates from initial-idea, and the per-player
@@ -159,6 +170,36 @@ function buildRotationAssignment(ctx) {
 }
 
 /**
+ * The words that started a rotation chain, walked back from one hop's
+ * contributor: each earlier step's `assignedFrom` names who handed the
+ * holder their item. Undefined when a link is missing.
+ * @param {Object} engine
+ * @param {string} sourceId  the step this one rotates from
+ * @param {string} senderId  who wrote the item at sourceId
+ */
+export function chainOriginText(engine, sourceId, senderId) {
+  const phases = (engine.config && engine.config.phases) || {};
+  let pid = sourceId;
+  let holder = senderId;
+  const seen = new Set();
+  while (phases[pid] && phases[pid].rotateFrom && !seen.has(pid)) {
+    seen.add(pid);
+    const prev = phases[pid].rotateFrom;
+    const links = (engine.phaseData[prev] || {}).assignedFrom || {};
+    if (!links[holder]) return undefined;
+    holder = links[holder];
+    pid = prev;
+  }
+  const data = engine.phaseData[pid] || {};
+  let byPlayer = data.byPlayer;
+  if (!byPlayer && Array.isArray(data.responses)) {
+    byPlayer = {};
+    for (const r of data.responses) if (r && r.playerId) byPlayer[r.playerId] = r.text;
+  }
+  return byPlayer ? byPlayer[holder] : undefined;
+}
+
+/**
  * A student who arrives (or comes back under a new id) AFTER the deal was
  * made has no item; hand them one now, in place, so their prompt and their
  * later round have a truth. Rotation: a random submitter's item, never
@@ -178,7 +219,8 @@ function ensureLateAssignment(ctx, playerId) {
     const senders = Object.keys(byPlayer || {}).filter(id => id !== playerId && byPlayer[id] !== undefined);
     if (senders.length === 0) return;
     const senderId = senders[Math.floor(Math.random() * senders.length)];
-    src.assigned[playerId] = byPlayer[senderId];
+    const origin = phase.showOriginal ? chainOriginText(engine, phase.rotateFrom, senderId) : undefined;
+    src.assigned[playerId] = origin !== undefined ? origin : byPlayer[senderId];
     src.assignedFrom = src.assignedFrom || {};
     src.assignedFrom[playerId] = senderId;
     if (src.byPlayerDrawing && src.byPlayerDrawing[senderId]) {

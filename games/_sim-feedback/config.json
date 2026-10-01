@@ -1,0 +1,47 @@
+{
+  "name": "Sim Feedback",
+  "description": "Hidden fixture: the peer feedback brick with two readers (scripts/simulate-feedback.js).",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "draft"
+    },
+    "draft": {
+      "type": "collect",
+      "prompt": "Write your thesis statement in one or two sentences.",
+      "maxLength": 2000,
+      "next": "feedback"
+    },
+    "feedback": {
+      "type": "collect",
+      "prompt": "Read your classmate's thesis below. Write one strength and one question for the writer.\n\n“{{draft.assigned}}”",
+      "rotateFrom": "draft",
+      "next": "feedback-2"
+    },
+    "feedback-2": {
+      "type": "collect",
+      "prompt": "Read your classmate's thesis below. Write one strength and one question for the writer.\n\n“{{feedback.assigned}}”",
+      "rotateFrom": "feedback",
+      "showOriginal": true,
+      "next": "feedback-back"
+    },
+    "feedback-back": {
+      "type": "reveal",
+      "scope": "own",
+      "chainFrom": [
+        "draft",
+        "feedback",
+        "feedback-2"
+      ],
+      "chainDisplay": "steps",
+      "chainHeading": "You wrote:",
+      "chainGrewHeading": "What your classmates said:",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Read your comments and revise one sentence."
+    }
+  }
+}

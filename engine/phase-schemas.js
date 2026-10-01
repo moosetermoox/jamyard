@@ -256,6 +256,11 @@ export const PHASE_SCHEMAS = {
         label: 'Shuffle the deal',
         helper: 'With "Rotate items from": deal the items in a random circle instead of a fixed shift. Each player still gets exactly one classmate\'s item, never their own, but who got whose is unpredictable. Ignores the rotation offset.'
       },
+      showOriginal: {
+        type: 'boolean', optional: true, contexts: ['topLevel'],
+        label: 'Show the first piece, not the last reply',
+        helper: 'With "Rotate items from" pointing at an earlier hand-off step: {{sourceId.assigned}} shows the piece that STARTED the chain (a classmate\'s draft) instead of the last classmate\'s reply, so a second peer reader reviews the draft without seeing the first reader\'s comment. The hand-off still runs through the reply, so a return-to-author reveal brings every comment home. Not with "Start the box with the passed item".'
+      },
       dealItems: {
         type: 'array', item: { type: 'string' }, optional: true, contexts: ['topLevel'],
         label: 'Deal these items out',
@@ -1282,7 +1287,7 @@ export const PHASE_SCHEMAS = {
       chainGrewHeading: {
         type: 'string', optional: true,
         label: 'Heading over what came back',
-        helper: 'With scope "own" and chain display "final". The line above the classmate\'s reply (default "A classmate took it from there:"). For a personal payoff: "Someone wrote this for you:".'
+        helper: 'With scope "own" and chain display "final" or "steps". The line above what came back (default "A classmate took it from there:" for final, "And then, hand to hand:" for steps). For a personal payoff: "Someone wrote this for you:"; for peer feedback: "What your classmates said:".'
       },
       image: {
         type: 'string', optional: true,
