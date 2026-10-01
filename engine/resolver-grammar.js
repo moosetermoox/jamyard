@@ -44,11 +44,12 @@ export const KNOWN_SUFFIXES = new Set([
   'cloud', 'cards', 'random',        // reveal styles over a list (engine/phases/word-cloud.js, 2026-09-30)
   'mine',                             // per-player AI lookup
   'assigned',                         // per-player rotation lookup (rotateFrom)
-  'partner', 'side', 'partnerSide'    // per-player pair lookups (assign:"pairwise")
+  'partner', 'side', 'partnerSide',   // per-player pair lookups (assign:"pairwise")
+  'station'                           // per-player group text (stations on a step, 2026-09-30)
 ]);
 
 // Every per-recipient suffix, for the token test and the renderable check.
-export const PER_PLAYER_SUFFIXES = new Set(['mine', 'assigned', 'partner', 'side', 'partnerSide']);
+export const PER_PLAYER_SUFFIXES = new Set(['mine', 'assigned', 'partner', 'side', 'partnerSide', 'station']);
 
 /**
  * A token that must resolve differently for each recipient: the player's
@@ -58,7 +59,7 @@ export const PER_PLAYER_SUFFIXES = new Set(['mine', 'assigned', 'partner', 'side
  * announce/reveal gate their per-recipient rendering path on this;
  * collect prompts always resolve per-player.
  */
-export const PER_PLAYER_TOKEN = /\{\{\s*[a-zA-Z0-9_-]+\.(mine|assigned|partner|side|partnerSide)\s*\}\}/;
+export const PER_PLAYER_TOKEN = /\{\{\s*[a-zA-Z0-9_-]+\.(mine|assigned|partner|side|partnerSide|station)\s*\}\}/;
 
 /**
  * Built-in scope identifiers — refs starting with these don't point at

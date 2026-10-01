@@ -26,7 +26,24 @@ export const MISSING_ASSIGNED = 'No answer came in yet. Pick your own.';
 export const MISSING_MINE = 'You did not answer that one.';
 export const MISSING_PARTNER = 'Your partner has not written anything yet.';
 
-const PER_PLAYER_SUFFIX = /\.(mine|assigned|partner|partnerSide|side)\s*$/;
+const PER_PLAYER_SUFFIX = /\.(mine|assigned|partner|partnerSide|side|station)\s*$/;
+
+/**
+ * The text a student's group gets on a step with stations (2026-09-30):
+ * the step's "stations" list dealt in the order of the groups of its
+ * "stationsFrom" team-split, wrapping around when there are more groups
+ * than stations. No group yet = the first station.
+ */
+export function stationFor(engine, phaseId, playerId) {
+  const phase = engine.config && engine.config.phases ? engine.config.phases[phaseId] : null;
+  const stations = phase && Array.isArray(phase.stations) ? phase.stations.map(s => String(s == null ? '' : s)).filter(Boolean) : [];
+  if (stations.length === 0) return '';
+  const split = phase.stationsFrom ? engine.phaseData[phase.stationsFrom] : null;
+  const teamName = split && split.playerTeam ? split.playerTeam[playerId] : undefined;
+  const names = split && split.teams && typeof split.teams === 'object' ? Object.keys(split.teams) : [];
+  const idx = teamName !== undefined ? names.indexOf(teamName) : -1;
+  return stations[(idx < 0 ? 0 : idx) % stations.length];
+}
 
 /**
  * The other members of the student's group at a pairwise step, or null
@@ -90,6 +107,7 @@ export function resolvePerPlayerTemplate(template, engine, playerId) {
       if (data && data.sides && data.sides[playerId] !== undefined) return String(data.sides[playerId]);
       return '';
     })
+    .replace(/\{\{\s*([a-zA-Z0-9_-]+)\.station\s*\}\}/g, (match, phaseId) => stationFor(engine, phaseId, playerId))
     .replace(/\{\{([^}]+)\}\}/g, (match, ref) => {
       if (PER_PLAYER_SUFFIX.test(ref)) return match;
       const value = engine.resolve(ref.trim());

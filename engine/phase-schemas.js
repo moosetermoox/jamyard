@@ -171,6 +171,16 @@ export const PHASE_SCHEMAS = {
         label: 'Message',
         placeholder: 'Round 1, get ready!'
       },
+      stations: {
+        type: 'array', item: { type: 'string' }, optional: true,
+        label: 'Different text per group (stations)',
+        helper: 'One line per group, dealt in the order of the groups made by "Groups from" (wrapping around when there are more groups than lines). Write {{<this step\'s id>.station}} in the text where each group\'s own line belongs; the projector shows a placeholder there.'
+      },
+      stationsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Groups from (stations)',
+        helper: 'The earlier Split into Teams step whose groups get the stations.'
+      },
       image: {
         type: 'string', optional: true,
         label: 'Image (optional)',
@@ -306,6 +316,30 @@ export const PHASE_SCHEMAS = {
         label: 'Show only the last N words',
         helper: 'The fold: with add-only on, the student sees just the last N words of the inherited text (the rest is hidden behind an ellipsis) and continues from there. The full text still accumulates for reveals. Exquisite corpse, folded stories.'
       },
+      correctAnswer: {
+        type: 'templateString', optional: true,
+        label: 'The right answer (optional)',
+        helper: 'A graded open answer (2026-09-30): at close every answer is matched to this (and "Other accepted answers") after lowercasing, trimming, and dropping end punctuation; a match earns "Points for a right answer", a miss 0. Outputs .scores, .correctAnswer, .correctCount, .answeredCount. Not with answer boxes or a drawing.'
+      },
+      acceptedAnswers: {
+        type: 'array', item: { type: 'string' }, optional: true,
+        label: 'Other accepted answers',
+        helper: 'Other spellings or forms that count as right ("USA", "United States").'
+      },
+      pointsCorrect: {
+        type: 'integer', min: 1, max: 100000, optional: true, default: 100,
+        label: 'Points for a right answer'
+      },
+      stations: {
+        type: 'array', item: { type: 'string' }, optional: true,
+        label: 'Different text per group (stations)',
+        helper: 'One line per group, dealt in the order of the groups made by "Groups from" (wrapping around when there are more groups than lines). Write {{<this step\'s id>.station}} in the text where each group\'s own line belongs; the projector shows a placeholder there.'
+      },
+      stationsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Groups from (stations)',
+        helper: 'The earlier Split into Teams step whose groups get the stations.'
+      },
       maxLength: {
         type: 'integer', min: 40, max: 2000, optional: true,
         label: 'Answer length limit',
@@ -399,6 +433,21 @@ export const PHASE_SCHEMAS = {
         type: 'phaseRef', optional: true, contexts: ['topLevel'],
         label: 'Compare with an earlier vote',
         helper: 'The id of an earlier pick-one step with the same choices (a vote taken twice). Adds {{step.beforeAfter}}, one chart with both counts per choice, and {{step.movedLine}}, "3 of 5 students changed their minds." (over the students who voted both times).'
+      },
+      maxPicks: {
+        type: 'integer', min: 2, max: 8, optional: true,
+        label: 'Pick up to (optional)',
+        helper: 'Let each student pick several choices, up to this many ("choose up to three"). Every pick counts in the tally and the chart; the answer line reads them joined. Not with a correct answer.'
+      },
+      stations: {
+        type: 'array', item: { type: 'string' }, optional: true,
+        label: 'Different text per group (stations)',
+        helper: 'One line per group, dealt in the order of the groups made by "Groups from" (wrapping around when there are more groups than lines). Write {{<this step\'s id>.station}} in the text where each group\'s own line belongs; the projector shows a placeholder there.'
+      },
+      stationsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Groups from (stations)',
+        helper: 'The earlier Split into Teams step whose groups get the stations.'
       },
       correctAnswer: {
         type: 'templateString', optional: true,

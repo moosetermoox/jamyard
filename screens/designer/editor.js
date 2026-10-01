@@ -1943,6 +1943,44 @@ function renderAISuggestions(phaseId) {
   }
 }
 
+// Different text per group (stations, 2026-09-30): one line per group,
+// dealt in the order of an earlier split's groups; the step's words show
+// each group's own line where {{<id>.station}} stands.
+function addStationsFields(phase, phaseId, textKey) {
+  var splits = [];
+  for (var sId in gameConfig.phases) {
+    if (sId !== phaseId && gameConfig.phases[sId] && gameConfig.phases[sId].type === 'team-split') {
+      splits.push({ value: sId, label: phaseContentLabel(sId) });
+    }
+  }
+  if (splits.length === 0 && !phase.stations) return;
+  var on = Array.isArray(phase.stations);
+  var handle = beginCollapsible('player', 'Different text per group (stations)', phaseId + ':stations', on);
+  addTextAreaWithHelp('One line per group', 'Each group gets one of these lines, in the order of the groups below (wrapping around when there are more groups than lines). Write {{' + phaseId + '.station}} in the text above where the line belongs.', 'phase-stations',
+    on ? phase.stations.join('\n') : '', 'e.g. Station 1: measure the water\nStation 2: graph the readings', function (value) {
+      isDirty = true;
+      var lines = String(value || '').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+      if (lines.length) {
+        phase.stations = lines;
+        if (!phase.stationsFrom && splits.length) phase.stationsFrom = splits[0].value;
+        if (typeof phase[textKey] === 'string' && phase[textKey].indexOf('{{' + phaseId + '.station}}') === -1) {
+          phase[textKey] = (phase[textKey] ? phase[textKey] + '\n\n' : '') + '{{' + phaseId + '.station}}';
+        }
+      } else {
+        delete phase.stations;
+        delete phase.stationsFrom;
+      }
+      renderCanvas();
+    });
+  addSelectWithHelp('Groups from', 'The earlier Split into Teams step whose groups get the lines.', 'phase-stationsFrom',
+    [{ value: '', label: 'Pick a split...' }].concat(splits), phase.stationsFrom || '', function (value) {
+      isDirty = true;
+      if (value) phase.stationsFrom = value; else delete phase.stationsFrom;
+      renderCanvas();
+    });
+  endCollapsible(handle);
+}
+
 function renderPhaseConfig(phaseId) {
   var phase = gameConfig.phases[phaseId];
   if (!phase) return;
@@ -1997,7 +2035,25 @@ function renderPhaseConfig(phaseId) {
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits when time runs out.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
     });
-
+    // A right answer (2026-09-30): a graded open answer, one box only
+    if (phase.inputType !== 'drawing' && !(Array.isArray(phase.fields) && phase.fields.length > 0)) {
+      addFieldWithHelp('The right answer (optional)', 'Leave empty for an open question. With it, every answer is matched to this at close (case, spaces, and end punctuation ignored) and a match earns points.', 'text', 'phase-correctAnswer', phase.correctAnswer || '', false, function (value) {
+        if (value && String(value).trim()) phase.correctAnswer = String(value).trim(); else { delete phase.correctAnswer; delete phase.acceptedAnswers; }
+        renderCanvas();
+      });
+      if (phase.correctAnswer) {
+        addTextAreaWithHelp('Other accepted answers', 'One per line: other spellings or forms that count as right.', 'phase-acceptedAnswers',
+          Array.isArray(phase.acceptedAnswers) ? phase.acceptedAnswers.join('\n') : '', 'e.g. USA\nUnited States', function (value) {
+            isDirty = true;
+            var lines = String(value || '').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+            if (lines.length) phase.acceptedAnswers = lines; else delete phase.acceptedAnswers;
+          });
+        addFieldWithHelp('Points for a right answer', 'Default 100.', 'number', 'phase-pointsCorrect', phase.pointsCorrect, false, function (value) {
+          if (value) phase.pointsCorrect = value; else delete phase.pointsCorrect;
+        });
+      }
+    }
+    addStationsFields(phase, phaseId, 'prompt');
     // Multi-field inputs — collapsible; expanded when fields already exist
     if (!phase.fields) phase.fields = null;
     var fieldsList = phase.fields || [];
@@ -2470,6 +2526,7 @@ function renderPhaseConfig(phaseId) {
     });
     addImageUploadWidget(phase, phaseId);
     addVideoUrlField(phase);
+    addStationsFields(phase, phaseId, 'message');
   }
 
   if (type === 'collect-choice') {
@@ -2587,7 +2644,16 @@ function renderPhaseConfig(phaseId) {
       shLabel.appendChild(shCb);
       shLabel.appendChild(shText);
       phaseConfigForm.appendChild(shLabel);
+
+      // Several picks (2026-09-30): "choose up to three"; never with a
+      // correct answer
+      if (phase.correctAnswer === undefined) {
+        addFieldWithHelp('Pick up to (optional)', 'Leave empty for one pick. Set 2 or more and each student can pick several; every pick counts in the tally.', 'number', 'phase-maxPicks', phase.maxPicks, false, function (value) {
+          if (value && value >= 2) phase.maxPicks = value; else delete phase.maxPicks;
+        });
+      }
     }
+    addStationsFields(phase, phaseId, 'prompt');
 
     addFieldWithHelp('Time limit (seconds)', 'Leave empty for no limit. Auto-submits random choice on expiry.', 'number', 'phase-timer', phase.timer, false, function (value) {
       phase.timer = value;
@@ -6276,6 +6342,22 @@ function validateConfig() {
       if (phase.perChoice != null && (typeof phase.perChoice !== 'number' || phase.perChoice < 1 || Math.floor(phase.perChoice) !== phase.perChoice)) {
         errors.push(label + ': "Spots per item" must be a whole number of 1 or more, or left empty.');
       }
+    }
+
+    // several picks, a right answer on an open question, stations (mirrors engine/game-loader.js, 2026-09-30)
+    if (phase.type === 'collect-choice' && phase.maxPicks != null) {
+      if (phase.correctAnswer) errors.push(label + ': "Pick up to" cannot combine with a correct answer; a graded question takes one pick.');
+      if (Array.isArray(phase.choices) && phase.choices.length > 0 && phase.maxPicks > phase.choices.length) errors.push(label + ': "Pick up to" is more than the number of choices.');
+    }
+    if (phase.type === 'collect' && phase.correctAnswer) {
+      if (Array.isArray(phase.fields) && phase.fields.length > 0) errors.push(label + ': "The right answer" needs a single answer box, not several.');
+      if (phase.inputType === 'drawing') errors.push(label + ': "The right answer" cannot grade a drawing.');
+    }
+    if ((phase.type === 'announce' || phase.type === 'collect' || phase.type === 'collect-choice') && (phase.stations !== undefined || phase.stationsFrom !== undefined)) {
+      var stLines = Array.isArray(phase.stations) ? phase.stations.filter(function (s) { return typeof s === 'string' && s.trim(); }) : [];
+      if (stLines.length < 2) errors.push(label + ': "Different text per group" needs at least two lines.');
+      var stSrc = phase.stationsFrom ? phases[phase.stationsFrom] : null;
+      if (!stSrc || stSrc.type !== 'team-split' || phase.stationsFrom === id) errors.push(label + ': "Groups from" must point to an earlier Split into Teams step.');
     }
 
     // team-split jigsaw validation (mirrors engine/game-loader.js)

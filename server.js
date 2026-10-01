@@ -182,6 +182,7 @@ import { ensureReviewGate } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
 import { checkSubmission, filterContent, filterName, filterAboutClassmate, NAME_REFUSED_MESSAGE, CLASSMATE_REFUSED_MESSAGE } from './engine/content-filter.js';
 import { pollExtremes } from './engine/phases/poll-extremes.js';
+import { gradeFreeText } from './engine/phases/free-text-grading.js';
 import { gradeRankings } from './engine/phases/rank-grading.js';
 import { checkNewName, SELF_RENAME_MESSAGES } from './engine/student-rename.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
@@ -693,6 +694,7 @@ function resolveTemplate(template, engine) {
     if (/\.partner$/.test(trimmed)) return '…';
     if (/\.partnerSide$/.test(trimmed)) return 'the other side';
     if (/\.side$/.test(trimmed)) return 'their side';
+    if (/\.station$/.test(trimmed)) return 'their group\'s own text';
     const value = engine.resolve(trimmed);
     return value !== undefined ? String(value) : match;
   });
@@ -1709,6 +1711,11 @@ async function closeCollect(code, room) {
               const textParts = Object.values(r);
               return { playerId: p.id, name: p.name, text: textParts.join(' | '), fields: r, responseAt: p.responseAt };
             }
+            // Several picks on one answer (maxPicks, 2026-09-30)
+            if (Array.isArray(r)) {
+              const picks = r.filter(x => typeof x === 'string' && x.trim()).map(x => x.trim());
+              return { playerId: p.id, name: p.name, text: picks.join(' | '), picks, responseAt: p.responseAt };
+            }
             return { playerId: p.id, name: p.name, text: r, responseAt: p.responseAt };
           });
 
@@ -1768,7 +1775,9 @@ async function closeCollect(code, room) {
         if (collectPhase.type === 'collect-choice') {
           const tally = {};
           for (const r of responses) {
-            tally[r.text] = (tally[r.text] || 0) + 1;
+            // every pick counts (maxPicks); a single choice is its text
+            const picks = Array.isArray(r.picks) ? r.picks : [r.text];
+            for (const pick of picks) tally[pick] = (tally[pick] || 0) + 1;
           }
           // Store with choice field for clarity (preserve responseAt for grading)
           const choiceResponses = responses.map(r => ({ playerId: r.playerId, name: r.name, choice: r.text, text: r.text, responseAt: r.responseAt }));
@@ -1844,8 +1853,18 @@ async function closeCollect(code, room) {
           // Internal phase data for the pair-scoped reveal's neutral card —
           // excluded from responses/byPlayer so it never reaches AI or lists.
           const passedIds = collectPhase.passAllowed ? collectPassedIds(eligible) : [];
+          // A right answer on an open question (2026-09-30): scored by a
+          // normalized match against it and any other accepted spellings
+          let graded = {};
+          if (collectPhase.correctAnswer && collectPhase.inputType !== 'drawing') {
+            const right = resolveTemplate(String(collectPhase.correctAnswer), room.engine);
+            const accepted = Array.isArray(collectPhase.acceptedAnswers) ? collectPhase.acceptedAnswers.map(String) : [];
+            const g = gradeFreeText(responses, [right].concat(accepted), collectPhase.pointsCorrect);
+            graded = { scores: g.scores, correctAnswer: right, correctCount: g.correctCount, answeredCount: g.answeredCount, rightByPlayer: g.rightByPlayer };
+            console.log(`[close-submissions] Graded ${responses.length} open answers against "${right}": ${g.correctCount} right`);
+          }
           room.engine.storePhaseData(collectPhase.id, {
-            ...existing, responses, byPlayer, passedIds,
+            ...existing, responses, byPlayer, passedIds, ...graded,
             ...(Object.keys(byPlayerDrawing).length > 0 ? { byPlayerDrawing } : {})
           });
           // A Hide after the close reaches these rows (engine/moderation.js hideStoredResponse)
@@ -5167,6 +5186,19 @@ io.on('connection', (socket) => {
       // the inherited text + the (filtered) addition — the client only ever
       // submits the addition, so a vandal can't gut a classmate's list.
       let storedResponse = response;
+      // Several picks on a pick-one step (maxPicks, 2026-09-30): strings
+      // only, each once, never more than the step allows; a step with no
+      // maxPicks keeps the first
+      if (Array.isArray(response)) {
+        const limit = currentPhase && currentPhase.type === 'collect-choice' && Number.isInteger(currentPhase.maxPicks) && currentPhase.maxPicks > 1
+          ? currentPhase.maxPicks : 1;
+        const picks = [];
+        for (const x of response) {
+          const t = typeof x === 'string' ? x.trim() : '';
+          if (t && !picks.includes(t)) picks.push(t);
+        }
+        storedResponse = limit > 1 ? picks.slice(0, limit) : (picks[0] || '');
+      }
       if (isAppendOnly) {
         const srcData = room.engine.phaseData[currentPhase.rotateFrom];
         const inherited = srcData && srcData.assigned ? srcData.assigned[player.id] : undefined;

@@ -240,6 +240,7 @@ registerHandler('collect-choice', {
         timer: phase.timer || null,
         isChoice: true,
         oneTap: isOneTap(phase),
+        maxPicks: Number.isInteger(phase.maxPicks) && phase.maxPicks > 1 ? phase.maxPicks : null,
         phaseId: phase.id,
         ...audienceLine(engine.config, phase.id, engine.language),
         playerTemplate: sc.playerTemplate, show: sc.playerShow
@@ -287,6 +288,7 @@ registerHandler('collect-choice', {
         timer: null,
         isChoice: true,
         oneTap: isOneTap(ctx.phase),
+        maxPicks: Number.isInteger(ctx.phase.maxPicks) && ctx.phase.maxPicks > 1 ? ctx.phase.maxPicks : null,
         phaseId: ctx.phase.id,
         ...audienceLine(ctx.engine.config, ctx.phase.id, ctx.engine.language),
         playerTemplate: sc.playerTemplate, show: sc.playerShow

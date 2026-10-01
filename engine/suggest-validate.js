@@ -263,6 +263,13 @@ export function validateSuggestions(raw, ctx) {
             out: s.out === true ? true : undefined,
             // rank: the items are listed in their right order, the step grades
             correct: s.brick === 'rank' ? (s.correct === true ? true : undefined) : (typeof s.correct === 'string' ? s.correct.slice(0, 120) : undefined),
+            // collect-choice: several picks; collect: a right answer and other accepted ones;
+            // announce / collect: a line per group (2026-09-30)
+            maxPicks: num(s.maxPicks),
+            // estimate: the true number; collect: the right answer as words
+            answer: s.brick === 'estimate' ? num(s.answer) : (typeof s.answer === 'string' ? s.answer.slice(0, 120) : (typeof s.answer === 'number' && Number.isFinite(s.answer) ? String(s.answer) : undefined)),
+            accepted: cleanStrings(s.accepted, 8, 120),
+            stations: cleanStrings(s.stations, 12, 300), // announce, collect, collect-choice, tasks
             // reveal: how the answers are drawn (a word cloud, cards, one at random)
             style: s.style === 'cloud' || s.style === 'cards' || s.style === 'random' ? s.style : undefined,
             // write-quiz: how many wrong answers each student writes, the quiz's title
@@ -297,7 +304,6 @@ export function validateSuggestions(raw, ctx) {
             // true number with its unit and scoring when there is one
             min: typeof s.min === 'number' && Number.isFinite(s.min) ? s.min : undefined,
             max: typeof s.max === 'number' && Number.isFinite(s.max) ? s.max : undefined,
-            answer: typeof s.answer === 'number' && Number.isFinite(s.answer) ? s.answer : undefined,
             unit: typeof s.unit === 'string' ? s.unit.slice(0, 40) : undefined,
             scoring: s.scoring === 'closest' || s.scoring === 'graduated' ? s.scoring : undefined
           }))

@@ -24,11 +24,16 @@ export function buildLiveTally(players, choices) {
   for (const p of players || []) {
     if (!p || p.responseHidden) continue;
     const r = p.response;
-    if (r == null || r === '' || typeof r === 'object') continue;
-    const label = String(r);
+    if (r == null || r === '') continue;
+    // Several picks (maxPicks, 2026-09-30): one answer, every pick counted
+    const picks = Array.isArray(r) ? r.filter(x => typeof x === 'string' && x.trim()) : (typeof r === 'object' ? [] : [r]);
+    if (picks.length === 0) continue;
     answered += 1;
-    if (!counts.has(label)) { counts.set(label, 0); order.push(label); }
-    counts.set(label, counts.get(label) + 1);
+    for (const pick of picks) {
+      const label = String(pick);
+      if (!counts.has(label)) { counts.set(label, 0); order.push(label); }
+      counts.set(label, counts.get(label) + 1);
+    }
   }
   const rows = order.map(label => {
     const count = counts.get(label);
