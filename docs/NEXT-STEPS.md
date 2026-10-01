@@ -35,7 +35,13 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-09-30, later: `engine-knobs` PR open, the mechanics inventory part two; #144 `engine-bricks` MERGED and live)
+### START HERE next session (updated 2026-09-30, night: `reveal-styles` PR open, the mechanics inventory part three; #144 and #145 MERGED and live)
+
+**Part three of the inventory, in one paragraph.** Reveal styles with no new step type: `{{ask.responses.cloud}}` (a sized word cloud), `.cards` (every answer as a card), `.random` (one at random), `{{players.random}}` (one student's name, a fair cold call); the engine renders line shapes, the shared chart module draws them on both screens, the reveal brick takes `style`. Live eval: 4 of 4, the cloud style on both runs, the cards style plus {{players.random}} in the next announce on both runs (4 to 7 s a plan); proof `scripts/simulate-reveal-styles.js` 6 checks. Tests 3225. With #144 (eleven bricks + rolling), #145 (six knobs + write-quiz), and this, the inventory's Part 2 is done except the knobs that need a student screen.
+
+**Next, in order:** (1) the student-screen knobs: pick several on collect-choice, two reviewers per piece on rotation, graded free text on collect, per-group content on announce and collect; (2) the inventory's Part 3 table (a peer-feedback brick over chain + two readers, instant runoff, a hot seat reveal to one screen, confidence after the answer, the AI narrator loop from DEFERRED-IDEAS). Live checks for part three: on the Create page type "one word for how you feel about the exam, then a word cloud" (the cloud on the projector, sized), "every fundraiser idea up at once, then draw a random presenter" (cards, then a name); play each with pretend students and look at the projector.
+
+### Previous START HERE (2026-09-30, later: `engine-knobs` PR open, the mechanics inventory part two; #144 `engine-bricks` MERGED and live)
 
 **Part two of the inventory, in one paragraph.** Six knobs on existing blocks, all engine-side (no new student screen): groups by answer (team-split byAnswer, same or mixed), a poll's .most and .least, a vote over the students by name, the most-voted out (eliminate most-votes), a graded rank order (correctOrder, shown shuffled, points per right slot), and a quiz built from the class's own questions (solo-quiz questionsFrom); as bricks: teams groupBy, vote over students (+ out), rank correct, and write-quiz. Live eval 8 of 8 with every knob set; proof `scripts/simulate-knobs.js` 15 checks through a real room. Tests 3211.
 

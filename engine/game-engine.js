@@ -13,6 +13,7 @@
  * and runs the pure phase-logic helpers (eliminate/vote/winner). The socket
  * layer (server.js) drives it; the engine itself has no I/O.
  */
+import { formatCloud, formatCards, pickRandom, listOf } from './phases/word-cloud.js';
 import { StateMachine } from './state-machine.js';
 import { PlayerRegistry } from './player-registry.js';
 import { runEliminate } from './phases/eliminate-handler.js';
@@ -167,6 +168,12 @@ export class GameEngine {
       const head = segments[0];
       if (!(head in builtIns)) return undefined;
       let value = builtIns[head];
+      // {{players.random}} (2026-09-30): one student's name at random, a
+      // fair cold call or the next presenter; .cards lists them
+      if (segments.length === 2 && Array.isArray(value) && (segments[1] === 'random' || segments[1] === 'cards')) {
+        const names = value.map(p => (p && typeof p === 'object' && p.name) ? p.name : '').filter(Boolean);
+        return segments[1] === 'random' ? pickRandom(names) : formatCards(names);
+      }
       for (let i = 1; i < segments.length; i++) {
         if (value == null) return undefined;
         value = value[segments[i]];
@@ -188,7 +195,10 @@ export class GameEngine {
     const renderableSuffix = parsed.suffix === 'list'
       || parsed.suffix === 'barChart'
       || parsed.suffix === 'pieChart'
-      || parsed.suffix === 'chart';
+      || parsed.suffix === 'chart'
+      || parsed.suffix === 'cloud'
+      || parsed.suffix === 'cards'
+      || parsed.suffix === 'random';
 
     if (renderableSuffix) {
       let value = data;
@@ -197,6 +207,11 @@ export class GameEngine {
         value = value[segments[i]];
       }
       if (parsed.suffix === 'list') return formatList(value);
+      // Reveal styles over a list (2026-09-30): a sized word cloud, every
+      // answer as a card, one at random; the screens draw the line shapes
+      if (parsed.suffix === 'cloud') return formatCloud(listOf(value));
+      if (parsed.suffix === 'cards') return formatCards(value);
+      if (parsed.suffix === 'random') return pickRandom(value);
       // bare {{X.barChart}} reads X.tally (backward compat).
       // Deeper paths (e.g. {{X.tally.barChart}}) use the resolved value directly.
       const tally = (segments.length === 1) ? (data && data.tally) : value;

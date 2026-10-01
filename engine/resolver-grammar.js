@@ -41,6 +41,7 @@ export const KNOWN_SUFFIXES = new Set([
   'count',
   'json',
   'barChart', 'pieChart', 'chart',  // chart family — all read .tally / scoreMap
+  'cloud', 'cards', 'random',        // reveal styles over a list (engine/phases/word-cloud.js, 2026-09-30)
   'mine',                             // per-player AI lookup
   'assigned',                         // per-player rotation lookup (rotateFrom)
   'partner', 'side', 'partnerSide'    // per-player pair lookups (assign:"pairwise")
