@@ -21,8 +21,15 @@
   // label, the before bar and count, an arrow, the after bar and count.
   var PAIR_LINE = /^(.*?)\s*([█░]+)\s*(\d+)\s*→\s*([█░]+)\s*(\d+)\s*$/;
 
+  // A word cloud line ("water ×12") and a card line ("◆ an answer"), the
+  // text shapes of {{x.responses.cloud}} and {{x.responses.cards}}
+  // (engine/phases/word-cloud.js, 2026-09-30).
+  var CLOUD_LINE = /^(.+?) ×(\d+)$/;
+  var CARD_LINE = /^◆ (.+)$/;
+
   function containsChart(text) {
-    return /[█░]/.test(String(text == null ? '' : text));
+    var s = String(text == null ? '' : text);
+    return /[█░]/.test(s) || / ×\d+$/m.test(s) || /^◆ /m.test(s);
   }
 
   // Split a message into ordered segments: {type:'text', text:...} and
@@ -40,6 +47,23 @@
       }
     }
     for (var i = 0; i < lines.length; i++) {
+      var cm = lines[i].match(CLOUD_LINE);
+      if (cm) {
+        flushText();
+        var crow = { word: cm[1], count: parseInt(cm[2], 10) };
+        var lastCloud = segments[segments.length - 1];
+        if (lastCloud && lastCloud.type === 'cloud') lastCloud.rows.push(crow);
+        else segments.push({ type: 'cloud', rows: [crow] });
+        continue;
+      }
+      var km = lines[i].match(CARD_LINE);
+      if (km) {
+        flushText();
+        var lastCards = segments[segments.length - 1];
+        if (lastCards && lastCards.type === 'cards') lastCards.rows.push(km[1]);
+        else segments.push({ type: 'cards', rows: [km[1]] });
+        continue;
+      }
       var pm = lines[i].match(PAIR_LINE);
       if (pm) {
         flushText();
@@ -149,10 +173,58 @@
     return wrap;
   }
 
+  // The sized word cloud: every word once, its size by its count on a
+  // square-root scale (so one runaway word does not dwarf the rest),
+  // the biggest in the accent. Words alternate out from the middle so the
+  // big ones sit near the center.
+  function buildCloud(rows) {
+    var wrap = document.createElement('div');
+    wrap.className = 'msg-cloud';
+    var max = 0;
+    rows.forEach(function (r) { if (r.count > max) max = r.count; });
+    var ordered = [];
+    rows.forEach(function (r, i) { if (i % 2 === 0) ordered.push(r); else ordered.unshift(r); });
+    ordered.forEach(function (r) {
+      var word = document.createElement('span');
+      var ratio = max > 0 ? Math.sqrt(r.count / max) : 1;
+      word.className = 'msg-cloud-word' + (r.count === max ? ' top' : '');
+      word.style.fontSize = (0.9 + ratio * 2.1).toFixed(2) + 'em';
+      word.textContent = r.word;
+      word.title = r.count;
+      wrap.appendChild(word);
+    });
+    return wrap;
+  }
+
+  // Every answer up at once, a card each.
+  function buildCards(rows) {
+    var wrap = document.createElement('div');
+    wrap.className = 'msg-cards';
+    rows.forEach(function (text) {
+      var card = document.createElement('div');
+      card.className = 'msg-card';
+      card.textContent = text;
+      wrap.appendChild(card);
+    });
+    return wrap;
+  }
+
+  // Any non-text segment as an element (the sinks on both screens use it)
+  function buildSegment(seg) {
+    if (seg.type === 'chart') return buildChart(seg.rows);
+    if (seg.type === 'pair') return buildPairChart(seg.rows);
+    if (seg.type === 'cloud') return buildCloud(seg.rows);
+    if (seg.type === 'cards') return buildCards(seg.rows);
+    return null;
+  }
+
   window.ChartRender = {
     containsChart: containsChart,
     split: split,
     buildChart: buildChart,
-    buildPairChart: buildPairChart
+    buildPairChart: buildPairChart,
+    buildCloud: buildCloud,
+    buildCards: buildCards,
+    buildSegment: buildSegment
   };
 })();

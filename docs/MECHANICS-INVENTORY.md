@@ -114,12 +114,16 @@ Ordered roughly by payoff over effort. None needs an asset or an animation.
 
 ### C. Compute steps (no student screen, a projector line at most)
 
+> SHIPPED 2026-09-30 (branch `reveal-styles`), as template suffixes rather than steps: 17 (tally, as `.cloud`) and 18 (random pick, as `.random` on a list and `{{players.random}}`). 19 and 20 remain.
+
 17. **Tally** (word frequency over a collect): the raw material of a **sized word cloud**, "most common answer", "how many said X". A compute plus a reveal style.
 18. **Random pick**: one student, one answer, or one item at random, host-paced ("spin the wheel", cold call with a visible fair draw, the next presenter).
 19. **Class total** over estimate or a number field (sum, mean, spread): "together we read 412 pages".
 20. **Score from a rubric** (an ai-process judge with a fixed JSON shape, points per criterion) so AI-judged rounds feed the leaderboard.
 
 ### D. Reveal styles (the projector draws existing data differently)
+
+> SHIPPED 2026-09-30 (branch `reveal-styles`): the word cloud (`.cloud`) and the all-at-once grid (`.cards`); the estimate step already draws the class's spread at close, so no number line; two columns remain a template layout question.
 
 21. **Word cloud** (sized), **all at once grid** (every answer up together, the gallery for text), **two columns** (two groups' answers side by side, For and Against), **a number line** with the class's dots (estimate's distribution as a strip). Each is a display mode on reveal, no new data.
 

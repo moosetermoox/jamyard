@@ -81,7 +81,11 @@ export const DYNAMIC_OUTPUT_RESOLVERS = {
         renderers: {
           list: 'responseList',
           count: 'arrayCount',
-          json: 'jsonPretty'
+          json: 'jsonPretty',
+          // reveal styles (2026-09-30): a sized word cloud, cards, one at random
+          cloud: 'wordCloud',
+          cards: 'answerCards',
+          random: 'randomItem'
         }
       },
       byPlayer: {

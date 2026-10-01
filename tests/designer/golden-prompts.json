@@ -1595,6 +1595,72 @@
         }
       },
       "note": "write-quiz (2026-09-30): a keyed collect (question, correct, wrong1, wrong2) then solo-quiz questionsFrom."
+    },
+    {
+      "id": "one-word-cloud",
+      "prompt": "Everyone types one word that describes how they feel about the exam, and we see a word cloud on the board where the words more of us typed are bigger.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "One Word Before the Exam",
+          "description": "One word each, then a word cloud of the class.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "One word. How do you feel about the exam? The more of us who pick a word, the bigger it gets."
+            },
+            {
+              "brick": "collect",
+              "text": "One word that describes how you feel about the exam."
+            },
+            {
+              "brick": "reveal",
+              "style": "cloud",
+              "text": "How we feel, in our own words:"
+            },
+            {
+              "brick": "end",
+              "text": "Now we know where we all are."
+            }
+          ]
+        }
+      },
+      "note": "reveal style \"cloud\" (2026-09-30): {{ask.responses.cloud}}, drawn sized by the screens."
+    },
+    {
+      "id": "random-presenter-draw",
+      "prompt": "Everyone writes their best idea for the fundraiser, we see them all up on the board at once, and then a random student is drawn to present theirs first.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Fundraiser Ideas",
+          "description": "Every idea up at once, then a random presenter.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Your best fundraiser idea, in a sentence. They all go up at once, then one of you is drawn to go first."
+            },
+            {
+              "brick": "collect",
+              "text": "Your best idea for the fundraiser."
+            },
+            {
+              "brick": "reveal",
+              "style": "cards",
+              "text": "Every idea, all at once:"
+            },
+            {
+              "brick": "announce",
+              "text": "Drawn to present first: {{players.random}}. Tell us about yours."
+            },
+            {
+              "brick": "end",
+              "text": "Great ideas. We vote next week."
+            }
+          ]
+        }
+      },
+      "note": "reveal style \"cards\" and {{players.random}} (2026-09-30): every answer as a card, then a fair random draw of a student."
     }
   ]
 }

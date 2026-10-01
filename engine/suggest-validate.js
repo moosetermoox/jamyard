@@ -263,6 +263,8 @@ export function validateSuggestions(raw, ctx) {
             out: s.out === true ? true : undefined,
             // rank: the items are listed in their right order, the step grades
             correct: s.brick === 'rank' ? (s.correct === true ? true : undefined) : (typeof s.correct === 'string' ? s.correct.slice(0, 120) : undefined),
+            // reveal: how the answers are drawn (a word cloud, cards, one at random)
+            style: s.style === 'cloud' || s.style === 'cards' || s.style === 'random' ? s.style : undefined,
             // write-quiz: how many wrong answers each student writes, the quiz's title
             wrongs: num(s.wrongs),
             title: typeof s.title === 'string' ? s.title.slice(0, 120) : undefined,

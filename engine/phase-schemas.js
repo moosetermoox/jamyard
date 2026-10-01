@@ -440,7 +440,7 @@ export const PHASE_SCHEMAS = {
         responses: {
           type: 'array',
           capability: 'responseArray',
-          renderers: { list: 'responseList', count: 'arrayCount', json: 'jsonPretty' }
+          renderers: { list: 'responseList', count: 'arrayCount', json: 'jsonPretty', cloud: 'wordCloud', cards: 'answerCards', random: 'randomItem' }
         },
         tally: {
           type: 'scoreMap',
@@ -880,7 +880,7 @@ export const PHASE_SCHEMAS = {
         merged: {
           type: 'array',
           capability: 'responseArray',
-          renderers: { list: 'responseList', count: 'arrayCount', json: 'jsonPretty' }
+          renderers: { list: 'responseList', count: 'arrayCount', json: 'jsonPretty', cloud: 'wordCloud', cards: 'answerCards', random: 'randomItem' }
         }
       }
     },

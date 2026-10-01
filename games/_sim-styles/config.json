@@ -1,0 +1,29 @@
+{
+  "name": "Reveal styles fixture",
+  "description": "A test fixture (2026-09-30): a word cloud, answer cards, one answer at random, one student at random. Never listed.",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": { "type": "lobby", "next": "ask" },
+    "ask": {
+      "type": "collect",
+      "prompt": "One word that describes today.",
+      "next": "cloud"
+    },
+    "cloud": {
+      "type": "reveal",
+      "template": "How we feel:\n\n{{ask.responses.cloud}}",
+      "next": "cards"
+    },
+    "cards": {
+      "type": "reveal",
+      "template": "Every word, all at once:\n\n{{ask.responses.cards}}",
+      "next": "draw"
+    },
+    "draw": {
+      "type": "reveal",
+      "template": "One of ours: {{ask.responses.random}}\n\nDrawn to go first: {{players.random}}",
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "Done." }
+  }
+}

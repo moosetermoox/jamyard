@@ -1821,6 +1821,18 @@
       if (primary && step.text && typeof step.text === 'string') {
         built[primary] = step.text;
       }
+      // A reveal's style (2026-09-30): the answers of the last question
+      // step as a sized word cloud, as cards all at once, or one at random
+      if (brick === 'reveal' && (step.style === 'cloud' || step.style === 'cards' || step.style === 'random')) {
+        var styleSrc = lastOfType(phases, ['collect'], lastId);
+        if (styleSrc) {
+          var heading = (typeof step.text === 'string' && step.text.trim()) ? step.text.trim()
+            : (step.style === 'cloud' ? 'What we said, the bigger the more of us said it:' : (step.style === 'cards' ? 'Here is what we said:' : 'One of us said:'));
+          built.template = heading + '\n\n{{' + styleSrc + '.responses.' + step.style + '}}';
+        } else {
+          problems.push('Step ' + (i + 1) + ': a reveal drawn as a ' + (step.style === 'cloud' ? 'word cloud' : step.style) + ' needs a question step before it.');
+        }
+      }
       if (brick === 'collect-choice' && Array.isArray(step.choices) && step.choices.length >= 2) {
         built.choices = step.choices.slice(0, 8).map(String);
       }

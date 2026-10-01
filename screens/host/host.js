@@ -1543,10 +1543,9 @@ function renderProjectorMessage(el, message) {
   // around it keeps the normal headline+body treatment.
   if (window.ChartRender && ChartRender.containsChart(text)) {
     ChartRender.split(text).forEach(function (seg, i) {
-      if (seg.type === 'chart') {
-        el.appendChild(ChartRender.buildChart(seg.rows));
-      } else if (seg.type === 'pair') {
-        el.appendChild(ChartRender.buildPairChart(seg.rows));
+      if (seg.type !== 'text') {
+        var drawn = ChartRender.buildSegment(seg);
+        if (drawn) el.appendChild(drawn);
       } else if (seg.text.trim()) {
         if (i === 0) appendProjectorParts(el, seg.text.trim());
         else el.appendChild(buildMessageBody(seg.text.trim(), 'msg-body'));
