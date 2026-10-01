@@ -505,6 +505,7 @@
   //     draft?: string,         // feedback only: the piece each student writes first
   //                             //   (else the last plain collect is the piece)
   //     readers?: number,       // feedback only: 1 (default) or 2 classmates read it
+  //     talk?: string,          // quiet only: the host-paced line after the quiet
   //     piles?: [{label, prompt}], // deal only: 2-4 piles everyone adds one item to
   //     writeTimer?: number,    // deal only: seconds for the writing step (default 480)
   //     rounds?: string[],      // pairs only: 0-3 follow-up instructions, same partner,
@@ -791,6 +792,45 @@
       chainGrewHeading: readers === 2 ? 'What your classmates said:' : 'What a classmate said:'
     };
     return revealId;
+  }
+
+  // ---- Quiet brick ----
+  // Quiet time (2026-10-01, the inventory's Part 3): a stretch of silent
+  // thinking with a clock and nothing to type, so "two minutes of silent
+  // thinking, then we talk" stops landing on an answer box. A timed
+  // announce: both screens count down, the step moves on by itself. An
+  // optional talk line follows as a host-paced card, since the talk is
+  // the teacher's to end.
+  //   text   what to think about (required)
+  //   timer  seconds of quiet (default 120, 10 to 900)
+  //   talk   the line that comes after ("Turn to a partner and share one idea.")
+  var QUIET_DEFAULT_SECONDS = 120;
+
+  function appendQuiet(step, stepNo, phases, lastId, problems) {
+    var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
+    if (!text) {
+      problems.push('Step ' + stepNo + ': quiet time needs "text", what students think about.');
+      return null;
+    }
+    var timer = QUIET_DEFAULT_SECONDS;
+    if (typeof step.timer === 'number' && Number.isFinite(step.timer)) {
+      timer = Math.round(Math.min(900, Math.max(10, step.timer)));
+      if (timer !== Math.round(step.timer)) {
+        problems.push('Step ' + stepNo + ': quiet time runs 10 seconds to 15 minutes, it was set to ' + timer + ' seconds.');
+      }
+    }
+    var quietId = freshId(phases, 'quiet');
+    phases[lastId].next = quietId;
+    phases[quietId] = { type: 'announce', message: text, timer: timer };
+    lastId = quietId;
+    var talk = (typeof step.talk === 'string') ? step.talk.trim() : '';
+    if (talk) {
+      var talkId = freshId(phases, 'talk');
+      phases[lastId].next = talkId;
+      phases[talkId] = { type: 'announce', message: talk };
+      lastId = talkId;
+    }
+    return lastId;
   }
 
   // ---- Pairs brick ----
@@ -1802,6 +1842,12 @@
       if (brick === 'chain') {
         var chainLast = appendPassChain(step, i + 1, phases, lastId, problems);
         if (chainLast) lastId = chainLast;
+        return;
+      }
+
+      if (brick === 'quiet') {
+        var quietLast = appendQuiet(step, i + 1, phases, lastId, problems);
+        if (quietLast) lastId = quietLast;
         return;
       }
 

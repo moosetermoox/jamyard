@@ -131,6 +131,8 @@ Ordered roughly by payoff over effort. None needs an asset or an animation.
 
 Things a teacher asks for that the kit cannot say yet, and what they would take.
 
+> STATUS 2026-10-01, evening: Part 3 slice two on branch `quiet-brick`: the `quiet` brick (a timed announce with nothing to type and an optional talk line after), and a timed announce keeps its clock across a refresh. Next: confidence after the answer.
+>
 > STATUS 2026-10-01, later: Part 3 slice one shipped on branch `feedback-brick`: the `feedback` brick (one or two readers, each reads the draft in their own box, the writer gets every comment back) and the collect knob `showOriginal` (the B11 two-readers case). Next: quiet time.
 >
 > STATUS 2026-10-01: Part 2 is complete (PRs #144 to #147), and it covered eight rows of this table on the way: accusation vote (vote over students + eliminate most-votes), minority turn (`.least`), groups by answer (team-split byAnswer), student-written quiz (write-quiz), timeline order (rank correct), sized word cloud (`.cloud`), stations (`stations` on a step), fill in the blank (collect with an answer). What remains, in the order the next session takes them: a peer-feedback brick (a name over chain + two hops + the return reveal), quiet time (a named announce with a timer), confidence after the answer, instant runoff, hot seat to one screen, secret pairs that find each other, the AI narrator loop. Scoreboard across activities stays out. The plan with shapes is in `NEXT-STEPS.md`'s START HERE.

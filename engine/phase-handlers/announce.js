@@ -10,6 +10,7 @@ import { EVENTS } from '../events.js';
 import { continueLabelForPhase } from '../phases/continue-labels.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { PER_PLAYER_TOKEN } from '../resolver-grammar.js';
+import { secondsLeft } from './collect.js';
 
 // {{x.mine}} or {{x.assigned}}: each player gets their own resolved copy.
 const PER_PLAYER_REF = PER_PLAYER_TOKEN;
@@ -40,8 +41,12 @@ registerHandler('announce', {
       ctx.emitToRoom(EVENTS.ANNOUNCE, { message, image, video, displayDrawing, timer, continueLabel, ...sc });
     }
 
-    // Auto-advance after timer, or wait for host advance-phase
+    // Auto-advance after timer, or wait for host advance-phase. The
+    // deadline is kept so a screen that comes back mid-step (a refresh
+    // during two minutes of quiet time, the projector rejoining) gets the
+    // time left, never a clock that vanished (2026-10-01, the quiet brick).
     if (ctx.phase.timer) {
+      if (ctx.room && ctx.room.phaseState) ctx.room.phaseState.timerEndsAt = Date.now() + ctx.phase.timer * 1000;
       setTimeout(async () => {
         if (ctx.isStale()) return; // host already advanced (Skip / manual continue)
         await ctx.advanceToNext();
@@ -62,9 +67,9 @@ registerHandler('announce', {
       const msg = player
         ? ctx.services.resolvePerPlayerTemplate(rawMessage, ctx.engine, player.id)
         : ctx.resolveTemplate(rawMessage);
-      socket.emit(EVENTS.ANNOUNCE, { message: msg, image, video, displayDrawing, timer: null, continueLabel, ...sc });
+      socket.emit(EVENTS.ANNOUNCE, { message: msg, image, video, displayDrawing, timer: secondsLeft(ctx.room), continueLabel, ...sc });
     } else if (announceData) {
-      socket.emit(EVENTS.ANNOUNCE, { message: announceData.message, image, video, displayDrawing, timer: null, continueLabel, ...sc });
+      socket.emit(EVENTS.ANNOUNCE, { message: announceData.message, image, video, displayDrawing, timer: secondsLeft(ctx.room), continueLabel, ...sc });
     }
   }
 });

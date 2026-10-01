@@ -1,0 +1,25 @@
+{
+  "name": "Sim Quiet",
+  "description": "Hidden fixture: the quiet brick's compile, a short clock (scripts/simulate-quiet.js).",
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "quiet"
+    },
+    "quiet": {
+      "type": "announce",
+      "message": "Think quietly: one reason for, one reason against.",
+      "timer": 10,
+      "next": "talk"
+    },
+    "talk": {
+      "type": "announce",
+      "message": "Turn to a partner and share which reason convinced you more.",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Thanks for thinking it through."
+    }
+  }
+}

@@ -2649,6 +2649,9 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       if (step.brick === 'knockout') {
         list.appendChild(addedRow(SB_BRICK_LABELS.winner || 'Crown a winner', 'added: rounds of answer, vote, and out, then the last one standing'));
       }
+      if (step.brick === 'quiet' && typeof step.talk === 'string' && step.talk.trim()) {
+        list.appendChild(addedRow(SB_BRICK_LABELS.announce || 'Announcement', 'added after the quiet: ' + step.talk.trim()));
+      }
       if (step.brick === 'feedback') {
         if (typeof step.draft === 'string' && step.draft.trim()) {
           list.appendChild(addedRow(SB_BRICK_LABELS.collect || 'Open answer', 'added: everyone writes the piece: ' + step.draft.trim()));

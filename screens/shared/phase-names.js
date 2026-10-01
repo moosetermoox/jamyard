@@ -54,6 +54,7 @@ window.PHASE_NAMES = {
   'count': 'Count together',
   'write-quiz': 'Quiz from the class',
   'feedback': 'Peer feedback',
+  'quiet': 'Quiet time',
   'end': 'Wrap up'
 };
 
