@@ -21,7 +21,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { playableQuestions, summarizeProgress, shuffledChoices } from '../phases/solo-quiz-scoring.js';
+import { playableQuestions, questionsFromResponses, summarizeProgress, shuffledChoices } from '../phases/solo-quiz-scoring.js';
 
 /** The projector's picture: counts and per-question rates, nothing else. */
 export function hostProgressPayload(state, engine) {
@@ -72,7 +72,11 @@ registerHandler('solo-quiz', {
   async onEnter(ctx) {
     const { phase, room, engine } = ctx;
     const sc = ctx.resolveScreenControl();
-    const questions = playableQuestions(phase.questions);
+    // The class's own questions, when the step names a source (2026-09-30)
+    const fromClass = phase.questionsFrom
+      ? questionsFromResponses((engine.phaseData[phase.questionsFrom] || {}).responses)
+      : [];
+    const questions = fromClass.length ? fromClass : playableQuestions(phase.questions);
 
     // A restart resumes everyone where they were (progress is mirrored
     // into phaseData on every answer; see the server's answer handler).

@@ -1158,6 +1158,49 @@
   }
 
 
+  // ---- Groups by answer (2026-09-30) ----
+  // A teams step with groupBy "same" or "mixed" groups the class by what
+  // each student picked on the last pick-one step: same = one group per
+  // answer (groupSize splits a big one), mixed = one of each answer per
+  // group; the engine's team-split method "byAnswer" does the sorting.
+  function buildByAnswer(step, phases, lastId, stepNo, problems) {
+    var src = lastOfType(phases, ['collect-choice'], lastId);
+    if (!src) {
+      problems.push('Step ' + stepNo + ': grouping by answer needs a pick-one question step before the teams step.');
+      return null;
+    }
+    var phase = { type: 'team-split', method: 'byAnswer', groupBy: src, groupMode: step.groupBy === 'mixed' ? 'mixed' : 'same' };
+    var gs = (step && typeof step.groupSize === 'number') ? Math.round(step.groupSize) : null;
+    if (phase.groupMode === 'same' && gs && gs >= 2 && gs <= 12) phase.groupSize = gs;
+    return phase;
+  }
+
+  // ---- The class writes the quiz (2026-09-30) ----
+  // Every student writes a question, its right answer, and one to three
+  // wrong ones (an Open answer step with keyed boxes); then a self-paced
+  // quiz runs over every complete question (solo-quiz questionsFrom).
+  function appendWriteQuiz(step, stepNo, phases, lastId, problems) {
+    var wrongs = (typeof step.wrongs === 'number' && step.wrongs >= 1 && step.wrongs <= 3) ? Math.round(step.wrongs) : 2;
+    var fields = [
+      { label: 'Your question', key: 'question' },
+      { label: 'The right answer', key: 'correct' },
+      { label: 'A wrong answer', key: 'wrong1' }
+    ];
+    if (wrongs >= 2) fields.push({ label: 'Another wrong answer', key: 'wrong2' });
+    if (wrongs >= 3) fields.push({ label: 'One more wrong answer', key: 'wrong3' });
+    var askId = freshId(phases, 'write');
+    phases[lastId].next = askId;
+    var ask = { type: 'collect', prompt: textOf(step, 'Write one quiz question on what we learned, with the right answer and some wrong ones that could fool a classmate.'), fields: fields };
+    ask.timer = secondsOf(step.timer, 30, 900) || 240;
+    phases[askId] = ask;
+    var quizId = freshId(phases, 'quiz');
+    phases[askId].next = quizId;
+    phases[quizId] = { type: 'solo-quiz', title: (typeof step.title === 'string' && step.title.trim()) ? step.title.trim() : 'Our quiz', questionsFrom: askId, showAnswers: true, pointsPerQuestion: 1 };
+    lastId = quizId;
+    if (step.standings === true) lastId = appendStandings(phases, lastId, [quizId + '.scores']);
+    return lastId;
+  }
+
   // ---- Eleven bricks over blocks the engine already had (2026-09-30) ----
   // The mechanics inventory found fourteen step types no typed idea could
   // reach. Each brick here compiles to a step that passes the validator
@@ -1608,9 +1651,11 @@
       if (brick === 'teams') {
         var split = step && step.jigsaw === true
           ? buildJigsaw(phases, lastId, i + 1, problems)
-          : buildTeamSplit(step);
+          : (step && (step.groupBy === 'same' || step.groupBy === 'mixed')
+            ? buildByAnswer(step, phases, lastId, i + 1, problems)
+            : buildTeamSplit(step));
         if (!split) return;
-        id = freshId(phases, step && step.jigsaw === true ? 'regroup' : 'teams');
+        id = freshId(phases, step && step.jigsaw === true ? 'regroup' : (split.method === 'byAnswer' ? 'groups' : 'teams'));
         phases[lastId].next = id;
         phases[id] = split;
         lastId = id;
@@ -1620,6 +1665,12 @@
       if (brick === 'review') {
         var reviewLast = appendReview(step, i + 1, phases, lastId, problems);
         if (reviewLast) lastId = reviewLast;
+        return;
+      }
+
+      if (brick === 'write-quiz') {
+        var wqLast = appendWriteQuiz(step, i + 1, phases, lastId, problems);
+        if (wqLast) lastId = wqLast;
         return;
       }
 
@@ -1670,7 +1721,8 @@
       // payoff, since a tallied vote with nothing after it shows the class
       // no winner. A vote over the AI's literal options has no crown.
       var voteOverResponses = false;
-      if (brick === 'vote') {
+      var voteOverStudents = brick === 'vote' && step.over === 'students';
+      if (brick === 'vote' && !voteOverStudents) {
         var voteSrc = lastOfType(phases, ['collect'], lastId);
         voteOverResponses = !!voteSrc;
       }
@@ -1722,6 +1774,15 @@
           : [];
         if (items.length >= 2) {
           built = { type: 'rank', prompt: 'Put these in order, your favorite at the top.', candidates: items, timer: 90 };
+          // The items are written in their right order (2026-09-30): the
+          // step shows them shuffled and grades every right slot
+          if (step.correct === true) {
+            built.correctOrder = items.slice();
+            built.pointsPerItem = 10;
+          }
+        } else if (step.correct === true) {
+          problems.push('Step ' + (i + 1) + ': a graded order needs an items list written in the right order.');
+          return;
         } else {
           built = defaultPhaseFor('rank', { phases: phases, afterId: lastId });
         }
@@ -1742,6 +1803,11 @@
           }
         }
         id = freshId(phases, BASE_ID_FOR.rank);
+      } else if (voteOverStudents) {
+        // The students themselves on the ballot (2026-09-30): who was the
+        // spy, who presents first; nobody votes for themselves
+        built = { type: 'vote', mode: 'pick-one', candidates: 'players', excludeAuthors: true, question: textOf(step, 'Who do you pick?'), timer: 45 };
+        id = freshId(phases, 'pick');
       } else if (BUILDERS[brick]) {
         built = defaultPhaseFor(brick, { phases: phases, afterId: lastId });
         id = freshId(phases, BASE_ID_FOR[brick] || brick);
@@ -1865,6 +1931,21 @@
         phases[lastId].next = crownId;
         phases[crownId] = { type: 'winner', from: id + '.scores' };
         lastId = crownId;
+      } else if (voteOverStudents) {
+        // The chosen name on the projector; with out: true they leave the
+        // round (eliminate by most votes, the engine announces who)
+        if (step.out === true) {
+          var outId = freshId(phases, 'out');
+          phases[lastId].next = outId;
+          phases[outId] = { type: 'eliminate', method: 'most-votes', count: 1, input: id + '.scores', pause: 5 };
+          lastId = outId;
+        } else {
+          var pickedId = freshId(phases, 'picked');
+          phases[lastId].next = pickedId;
+          var pickedHeading = (typeof step.heading === 'string' && step.heading.trim()) ? step.heading.trim() : 'The class picked:';
+          phases[pickedId] = { type: 'reveal', template: pickedHeading + '\n\n**{{' + id + '.winnerText}}**' };
+          lastId = pickedId;
+        }
       } else if (brick === 'buzz') {
         // The buzzer's points are the payoff: the standings go up after
         // the round, host-paced (Lightning Round's scoreboard).
@@ -1887,9 +1968,14 @@
         phases[lastId].next = orderId;
         phases[orderId] = {
           type: 'reveal',
-          template: 'The class ranking:\n\n{{' + id + '.rankedList}}'
+          template: built.correctOrder
+            ? 'The class order:\n\n{{' + id + '.rankedList}}\n\nThe right order:\n\n{{' + id + '.correctList}}\n\nThe class put {{' + id + '.placedRight}} of {{' + id + '.itemCount}} in the right slot.'
+            : 'The class ranking:\n\n{{' + id + '.rankedList}}'
         };
         lastId = orderId;
+        if (built.correctOrder && step.standings !== false) {
+          lastId = appendStandings(phases, lastId, [id + '.scores']);
+        }
       }
     });
 
@@ -1908,6 +1994,8 @@
         if (other === pid) return false;
         // A pairs step keyed on this poll reads it too (pairBy, 2026-09-28)
         if (ph.pairBy && ph.pairBy.from === pid) return true;
+        // A split by answer reads it too (2026-09-30)
+        if (ph.groupBy === pid) return true;
         return ['template', 'message', 'prompt', 'content', 'instruction', 'input', 'from', 'data'].some(function (f) {
           return typeof ph[f] === 'string' && ph[f].indexOf(pid + '.') !== -1;
         });

@@ -181,6 +181,8 @@ import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance
 import { ensureReviewGate } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
 import { checkSubmission, filterContent, filterName, filterAboutClassmate, NAME_REFUSED_MESSAGE, CLASSMATE_REFUSED_MESSAGE } from './engine/content-filter.js';
+import { pollExtremes } from './engine/phases/poll-extremes.js';
+import { gradeRankings } from './engine/phases/rank-grading.js';
 import { checkNewName, SELF_RENAME_MESSAGES } from './engine/student-rename.js';
 import { combineAppendOnly } from './engine/phases/append-only.js';
 import { foolPoints, mergeScores } from './engine/phases/bluff-scoring.js';
@@ -729,6 +731,12 @@ async function closeRanking(code, room) {
   const rankedList = rankings.map((r, i) => `${i + 1}. ${r.item}`).join('\n');
 
   const output = { rankings, rankedList, responses: rs.submissions, candidates: rs.candidates.slice() };
+
+  // A right order (2026-09-30): points per student for every item in its
+  // slot, the right order as a list, how many slots the class got right
+  if (phase && Array.isArray(phase.correctOrder) && phase.correctOrder.length >= 2) {
+    Object.assign(output, gradeRankings(rs.submissions, phase.correctOrder, rankings.map(r => r.item), phase.pointsPerItem));
+  }
 
   // "Rank as groups" (teamsFrom): each group's order is its members'
   // average, stored beside the class order for a Hand out choices step.
@@ -1775,6 +1783,8 @@ async function closeCollect(code, room) {
             for (const c of literalChoices) if (!(c in tally)) tally[c] = 0;
             stored.chartOrder = literalChoices;
           }
+          // The most and the least picked, in words (2026-09-30)
+          Object.assign(stored, pollExtremes(tally, literalChoices));
           // compareTo: a vote taken twice. One chart with both counts per
           // choice, and how many students picked differently the second time
           if (collectPhase.compareTo) {

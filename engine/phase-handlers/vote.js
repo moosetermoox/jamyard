@@ -62,6 +62,11 @@ registerHandler('vote', {
         if (typeof c === 'string') { if (c.trim()) kept.push(c.trim()); continue; }
         if (c && typeof c === 'object') {
           if (c.playerId) { kept.push(c); continue; }
+          // The students themselves ("candidates": "players" or
+          // "remaining", 2026-09-30): a player record becomes a ballot
+          // entry by name, its id the player's, so excludeAuthors keeps
+          // a self-vote off and .winnerText is the chosen name
+          if (c.id && c.name && c.text === undefined) { kept.push({ playerId: c.id, text: c.name, name: c.name }); continue; }
           const words = typeof c.item === 'string' ? c.item : (typeof c.text === 'string' ? c.text : null);
           if (words && words.trim()) { kept.push(words.trim()); continue; }
         }

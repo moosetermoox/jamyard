@@ -1448,6 +1448,153 @@
         }
       },
       "note": "rolling: true at the top of the plan: students start as they join; the compiler drops timers and refuses roster-bound steps."
+    },
+    {
+      "id": "groups-by-stance",
+      "prompt": "Everyone picks a side on \"Should homework be banned?\" (yes, no, not sure), then I want everyone who picked the same answer together in groups of four to build their side's best argument, and then each group reads it out.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Pick a Side, Build a Case",
+          "description": "Pick a side, group with your side, build the argument.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Pick a side first. Then you will sit with everyone who picked the same side and build your best argument together."
+            },
+            {
+              "brick": "collect-choice",
+              "text": "Should homework be banned?",
+              "choices": [
+                "Yes",
+                "No",
+                "Not sure"
+              ]
+            },
+            {
+              "brick": "teams",
+              "groupBy": "same",
+              "groupSize": 4
+            },
+            {
+              "brick": "announce",
+              "text": "Find your group on the board. Build your side's best argument in three sentences; one of you will read it out."
+            },
+            {
+              "brick": "end",
+              "text": "Every side had its say."
+            }
+          ]
+        }
+      },
+      "note": "teams groupBy \"same\" (2026-09-30): team-split method byAnswer over the last pick-one step, a group size splitting a big answer."
+    },
+    {
+      "id": "spy-among-us-vote-out",
+      "prompt": "A secret-role game: everyone is privately handed a role, two are spies and the rest are crew. Everyone writes one sentence about what the crew should do next, we read them, then the class votes on who they think is a spy, and the most-voted student is out of the round.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Spies Among the Crew",
+          "description": "Secret roles, one sentence each, then vote a suspect out.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Your role is private. Spies, blend in. Crew, watch for anything odd."
+            },
+            {
+              "brick": "collect",
+              "text": "You are: {{thisStep.assigned}}\n\nWrite one sentence about what the crew should do next.",
+              "items": [
+                "Spy: you are one of two. Blend in and sound helpful.",
+                "Spy: you are one of two. Blend in and sound helpful.",
+                "Crew: find the spies by what they write.",
+                "Crew: find the spies by what they write.",
+                "Crew: find the spies by what they write.",
+                "Crew: find the spies by what they write."
+              ]
+            },
+            {
+              "brick": "reveal",
+              "text": "Read every sentence. Who sounds like a spy?"
+            },
+            {
+              "brick": "vote",
+              "over": "students",
+              "text": "Who do you think is a spy?",
+              "out": true
+            },
+            {
+              "brick": "end",
+              "text": "One suspect is out. Were you right? Spies, reveal yourselves."
+            }
+          ]
+        }
+      },
+      "note": "vote over \"students\" with out: true (2026-09-30): candidates \"players\", excludeAuthors, then eliminate most-votes. Secret roles are fine; nobody is killed, they are out of the round."
+    },
+    {
+      "id": "timeline-order-graded",
+      "prompt": "Students put six events of the American Revolution in the right order on their devices: Boston Tea Party, Lexington and Concord, Declaration of Independence, Saratoga, Yorktown, Treaty of Paris. Points for each event in the right slot, then we see the right order and the standings.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Revolution in Order",
+          "description": "Put six events in order; points per right slot.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Six events, scrambled. Drag them into the order they happened. Every event in its right slot scores."
+            },
+            {
+              "brick": "rank",
+              "text": "Put the events in the order they happened, earliest at the top.",
+              "items": [
+                "Boston Tea Party",
+                "Lexington and Concord",
+                "Declaration of Independence",
+                "Saratoga",
+                "Yorktown",
+                "Treaty of Paris"
+              ],
+              "correct": true
+            },
+            {
+              "brick": "end",
+              "text": "That is the order. Now you know the story."
+            }
+          ]
+        }
+      },
+      "note": "rank correct: true (2026-09-30): the items in their right order become correctOrder, the step shows them shuffled, the reveal shows both orders, the standings follow."
+    },
+    {
+      "id": "students-write-the-quiz",
+      "prompt": "Each student writes one quiz question about the water cycle with the right answer and two wrong ones, then the whole class takes the quiz made of everyone's questions at their own pace.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "The Water Cycle, Quizzed by Us",
+          "description": "You write the questions, then everyone takes the quiz.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "You are writing the quiz today. One question each, a right answer, and two wrong ones that could fool a classmate."
+            },
+            {
+              "brick": "write-quiz",
+              "text": "Write one question about the water cycle.",
+              "wrongs": 2,
+              "title": "The water cycle, by us"
+            },
+            {
+              "brick": "end",
+              "text": "A quiz written by the class, taken by the class."
+            }
+          ]
+        }
+      },
+      "note": "write-quiz (2026-09-30): a keyed collect (question, correct, wrong1, wrong2) then solo-quiz questionsFrom."
     }
   ]
 }

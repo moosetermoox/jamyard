@@ -111,6 +111,79 @@ export function autoFill(assigned, unassignedIds, teamNames, capacities) {
  * @param {(arr: any[]) => any[]} [shuffle]
  * @returns {{ teams: Record<string, Array<{playerId: string, name: string}>>, playerTeam: Record<string, string> }}
  */
+/**
+ * Groups by what each student answered on an earlier pick-one step
+ * (2026-09-30, the mechanics inventory: "put everyone who chose B
+ * together", "one of each answer in every group").
+ *
+ * mode "same": one group per answer, named by the answer, in the step's
+ * choice order (answers nobody picked make no group); with groupSize, a
+ * big answer's crowd splits into groups of that size ("Yes 1", "Yes 2").
+ * mode "mixed": every group holds one student per answer where the
+ * numbers allow (the answers are the old teams of a jigsaw). A student
+ * with no answer joins the smallest group.
+ *
+ * @param {Array<{playerId: string, name: string}>} members  the eligible students
+ * @param {Record<string, string>} answerOf  playerId -> the answer's words
+ * @param {string[]} choiceOrder  the step's choices, for naming and order
+ * @param {{ mode?: 'same'|'mixed', groupSize?: number, shuffle?: (arr: any[]) => any[] }} [opts]
+ * @returns {{ teams: Record<string, Array<{playerId: string, name: string}>>, playerTeam: Record<string, string> }}
+ */
+export function groupsByAnswer(members, answerOf, choiceOrder, opts = {}) {
+  const mix = typeof opts.shuffle === 'function' ? opts.shuffle : (a) => a.slice();
+  const answers = {};
+  const order = [];
+  for (const c of choiceOrder || []) {
+    const key = String(c == null ? '' : c).trim();
+    if (key && !answers[key]) { answers[key] = []; order.push(key); }
+  }
+  const unanswered = [];
+  for (const m of members || []) {
+    if (!m || !m.playerId) continue;
+    const a = answerOf && answerOf[m.playerId] != null ? String(answerOf[m.playerId]).trim() : '';
+    if (!a) { unanswered.push(m); continue; }
+    if (!answers[a]) { answers[a] = []; order.push(a); }
+    answers[a].push({ playerId: m.playerId, name: m.name });
+  }
+  const buckets = {};
+  for (const key of order) if (answers[key].length) buckets[key] = answers[key];
+
+  let teams = {};
+  let playerTeam = {};
+  if (opts.mode === 'mixed') {
+    ({ teams, playerTeam } = jigsawGroups(buckets, mix));
+  } else {
+    const size = Number.isInteger(opts.groupSize) && opts.groupSize >= 2 ? opts.groupSize : null;
+    for (const key of Object.keys(buckets)) {
+      const crowd = mix(buckets[key]);
+      const label = key.length > 40 ? key.slice(0, 39) + '…' : key;
+      if (!size || crowd.length <= size) {
+        teams[label] = crowd.map(m => ({ playerId: m.playerId, name: m.name }));
+        for (const m of crowd) playerTeam[m.playerId] = label;
+        continue;
+      }
+      const count = groupCountFor(crowd.length, size);
+      for (let g = 0; g < count; g++) teams[label + ' ' + (g + 1)] = [];
+      crowd.forEach((m, i) => {
+        const name = label + ' ' + ((i % count) + 1);
+        teams[name].push({ playerId: m.playerId, name: m.name });
+        playerTeam[m.playerId] = name;
+      });
+    }
+  }
+  const names = Object.keys(teams);
+  if (names.length === 0 && unanswered.length) {
+    teams['Group 1'] = [];
+    names.push('Group 1');
+  }
+  for (const m of unanswered) {
+    const smallest = names.reduce((a, b) => (teams[b].length < teams[a].length ? b : a));
+    teams[smallest].push({ playerId: m.playerId, name: m.name });
+    playerTeam[m.playerId] = smallest;
+  }
+  return { teams, playerTeam };
+}
+
 export function jigsawGroups(oldTeams, shuffle) {
   const mix = typeof shuffle === 'function' ? shuffle : (a) => a.slice();
   const lists = Object.values(oldTeams || {}).filter(Array.isArray);

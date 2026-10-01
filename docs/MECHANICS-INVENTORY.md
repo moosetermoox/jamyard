@@ -99,6 +99,8 @@ Ordered roughly by payoff over effort. None needs an asset or an animation.
 
 ### B. Knobs on existing blocks
 
+> SHIPPED 2026-09-30 (branch `engine-knobs`): 9 (groups by answer), 10 (minority routing, as `.most`/`.least` outputs), 12 (candidates from the roster, plus eliminate by most votes), 13 (quiz items from a step, the write-quiz brick), and a correct order on rank (8). Still open: 7 (pick several), 11 (two reviewers per piece), 14 (graded free text), 15 (per-group content), 16 (shuffle and anonymize knobs); each needs a student-screen change.
+
 7. **Pick several** on collect-choice ("choose up to three"). The chart and the live results already count per choice; the ballot needs a cap and a confirm.
 8. **Correct order on rank** ("put these events in order"): a graded rank, scored like match. Timelines, steps of a process, sorting by size.
 9. **Groups by answer** on team-split (`groupBy` an earlier pick-one: same answer together, or every answer represented in each group). The pairs version exists (`pairBy`); this is the group version, and it answers "sort them into groups by what they picked".

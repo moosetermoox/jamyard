@@ -48,6 +48,13 @@ registerHandler('rank', {
       }
     }
 
+    // A graded order is shown shuffled, or the list would give the answer
+    // away (2026-09-30)
+    if (Array.isArray(phase.correctOrder) && phase.correctOrder.length >= 2 && typeof ctx.services.shuffleArray === 'function') {
+      let shuffled = ctx.services.shuffleArray(rkItems);
+      if (shuffled.length > 2 && shuffled.every((it, i) => it === rkItems[i])) shuffled = shuffled.slice(1).concat(shuffled.slice(0, 1));
+      rkItems.splice(0, rkItems.length, ...shuffled);
+    }
     const rkEligibleIds = new Set(rkEligible.map(p => p.id));
     room.phaseState = {
       kind: 'rank',

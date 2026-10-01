@@ -19,7 +19,7 @@
  */
 import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
-import { groupCountFor, teamCapacities, defaultTeamNames, jigsawGroups } from '../phases/team-grouping.js';
+import { groupCountFor, teamCapacities, defaultTeamNames, jigsawGroups, groupsByAnswer } from '../phases/team-grouping.js';
 import { openTeamSpot, seatInTeamData } from '../phases/late-seating.js';
 
 /**
@@ -163,6 +163,33 @@ registerHandler('team-split', {
           myTeam: playerTeam[player.id] || null,
           teams,
           playerTemplate: scJ.playerTemplate, show: scJ.playerShow
+        });
+      }
+      return;
+    }
+
+    // --- By answer (2026-09-30): groups from what each student picked on
+    // an earlier pick-one step. "same" = one group per answer (split into
+    // groups of groupSize when set), "mixed" = one of each answer per group.
+    if (method === 'byAnswer') {
+      const src = engine.phaseData[phase.groupBy] || {};
+      const answerOf = src.byPlayer && typeof src.byPlayer === 'object' ? src.byPlayer : {};
+      const srcPhase = engine.config.phases[phase.groupBy] || {};
+      const choiceOrder = Array.isArray(srcPhase.choices)
+        ? srcPhase.choices.map(c => (c && typeof c === 'object') ? (c.text || c.name || '') : String(c)).filter(Boolean)
+        : [];
+      const { teams, playerTeam } = groupsByAnswer(
+        eligible.map(p => ({ playerId: p.id, name: p.name })), answerOf, choiceOrder,
+        { mode: phase.groupMode === 'mixed' ? 'mixed' : 'same', groupSize: phase.groupSize, shuffle: ctx.services.shuffleArray }
+      );
+      engine.storePhaseData(phase.id, { teams, playerTeam });
+      console.log(`[handlePhase] Team-split (by answer to "${phase.groupBy}", ${phase.groupMode || 'same'}): ${Object.keys(playerTeam).length} players into ${Object.keys(teams).length} groups`);
+      ctx.emitToHost(EVENTS.TEAM_SPLIT, { teams, hostTemplate: sc.hostTemplate, show: sc.hostShow });
+      for (const player of engine.players.list()) {
+        ctx.emitToPlayer(player.id, EVENTS.TEAM_SPLIT, {
+          myTeam: playerTeam[player.id] || null,
+          teams,
+          playerTemplate: sc.playerTemplate, show: sc.playerShow
         });
       }
       return;

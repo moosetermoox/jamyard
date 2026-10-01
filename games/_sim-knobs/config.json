@@ -1,0 +1,74 @@
+{
+  "name": "Knobs fixture",
+  "description": "A test fixture (2026-09-30): groups by answer, a vote over the students, the most-voted out, a graded order, a quiz the class wrote. Never listed.",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": { "type": "lobby", "next": "poll" },
+    "poll": {
+      "type": "collect-choice",
+      "prompt": "Cats or dogs?",
+      "choices": ["Cats", "Dogs"],
+      "liveResults": true,
+      "next": "groups"
+    },
+    "groups": {
+      "type": "team-split",
+      "method": "byAnswer",
+      "groupBy": "poll",
+      "groupMode": "same",
+      "next": "sides"
+    },
+    "sides": {
+      "type": "announce",
+      "message": "Your side is set. {{poll.least}} goes first.\n\n{{groups.teams}}",
+      "next": "pick"
+    },
+    "pick": {
+      "type": "vote",
+      "mode": "pick-one",
+      "candidates": "players",
+      "excludeAuthors": true,
+      "question": "Who presents first?",
+      "next": "out"
+    },
+    "out": {
+      "type": "eliminate",
+      "method": "most-votes",
+      "count": 1,
+      "input": "pick.scores",
+      "pause": 1,
+      "next": "order"
+    },
+    "order": {
+      "type": "rank",
+      "prompt": "Put the states of water in order, coldest first.",
+      "candidates": ["Ice", "Water", "Steam"],
+      "correctOrder": ["Ice", "Water", "Steam"],
+      "pointsPerItem": 10,
+      "next": "show"
+    },
+    "show": {
+      "type": "reveal",
+      "template": "The class order:\n{{order.rankedList}}\n\nThe right order:\n{{order.correctList}}\n\nThe class put {{order.placedRight}} of {{order.itemCount}} in the right slot. First to present: {{pick.winnerText}}.",
+      "next": "write"
+    },
+    "write": {
+      "type": "collect",
+      "prompt": "Write one quiz question.",
+      "fields": [
+        { "label": "Your question", "key": "question" },
+        { "label": "The right answer", "key": "correct" },
+        { "label": "A wrong answer", "key": "wrong1" }
+      ],
+      "next": "quiz"
+    },
+    "quiz": {
+      "type": "solo-quiz",
+      "title": "Our quiz",
+      "questionsFrom": "write",
+      "showAnswers": true,
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "Done." }
+  }
+}

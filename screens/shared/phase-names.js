@@ -52,6 +52,7 @@ window.PHASE_NAMES = {
   'knockout': 'Knockout rounds',
   'charades': 'Charades',
   'count': 'Count together',
+  'write-quiz': 'Quiz from the class',
   'end': 'Wrap up'
 };
 
