@@ -1022,6 +1022,432 @@
           ]
         }
       }
+    },
+    {
+      "id": "dates-match-then-fact-sort",
+      "prompt": "Match five dates to the events of the French Revolution, then sort eight statements about it into Fact or Opinion, both scored, with the standings at the end.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Revolution Review",
+          "description": "Match the dates, sort the statements, see the standings.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Two rounds on the French Revolution: match the dates, then sort the statements. Both count."
+            },
+            {
+              "brick": "match",
+              "text": "Match each date to its event.",
+              "pairs": [
+                {
+                  "left": "1789",
+                  "right": "Storming of the Bastille"
+                },
+                {
+                  "left": "1791",
+                  "right": "The king tries to flee"
+                },
+                {
+                  "left": "1793",
+                  "right": "Louis XVI is executed"
+                },
+                {
+                  "left": "1794",
+                  "right": "Robespierre falls"
+                },
+                {
+                  "left": "1799",
+                  "right": "Napoleon takes power"
+                }
+              ]
+            },
+            {
+              "brick": "sort",
+              "text": "Fact or opinion?",
+              "buckets": [
+                "Fact",
+                "Opinion"
+              ],
+              "items": [
+                {
+                  "text": "The Bastille fell in July 1789",
+                  "bucket": "Fact"
+                },
+                {
+                  "text": "The Terror was the worst part of the Revolution",
+                  "bucket": "Opinion"
+                },
+                {
+                  "text": "Louis XVI was executed in 1793",
+                  "bucket": "Fact"
+                },
+                {
+                  "text": "Robespierre deserved his fate",
+                  "bucket": "Opinion"
+                }
+              ]
+            },
+            {
+              "brick": "end",
+              "text": "That is the review. Nice work."
+            }
+          ]
+        }
+      },
+      "note": "Two graded bricks in a row share one standings step (2026-09-30, the mechanics inventory): match and sort existed as steps for months with no brick."
+    },
+    {
+      "id": "rate-presentation-teacher-only",
+      "prompt": "After each student presents, the class rates the presentation on clarity and creativity from 1 to 5, but only I see the results; then everyone writes one suggestion for the presenter.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Presentation Feedback",
+          "description": "Rate the presentation on two scales, then one suggestion each.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "As each presenter finishes, rate them honestly. Only your teacher sees the scores."
+            },
+            {
+              "brick": "rate",
+              "text": "Rate the presentation.",
+              "scales": [
+                {
+                  "label": "Clarity",
+                  "low": "Hard to follow",
+                  "high": "Crystal clear"
+                },
+                {
+                  "label": "Creativity",
+                  "low": "Expected",
+                  "high": "Surprising"
+                }
+              ],
+              "results": "teacher"
+            },
+            {
+              "brick": "collect",
+              "text": "One suggestion for the presenter."
+            },
+            {
+              "brick": "end",
+              "text": "Thank you, presenters."
+            }
+          ]
+        }
+      },
+      "note": "rate with results to the teacher only; the rate step had no brick."
+    },
+    {
+      "id": "self-paced-quiz-then-questions",
+      "prompt": "Students take a five-question quiz on fractions at their own pace on their own devices, no timer and no winners, then write one question they still have, and I pick which questions to go over on the board.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Fractions Check",
+          "description": "A self-paced quiz, then the questions you still have.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Work through the quiz at your own pace. When you finish, tell me what is still fuzzy."
+            },
+            {
+              "brick": "solo-quiz",
+              "text": "Fractions check",
+              "questions": [
+                {
+                  "text": "What is 1/2 + 1/4?",
+                  "choices": [
+                    "3/4",
+                    "2/6",
+                    "1/8",
+                    "2/4"
+                  ],
+                  "correct": "3/4"
+                },
+                {
+                  "text": "Which is larger?",
+                  "choices": [
+                    "2/3",
+                    "3/5",
+                    "They are equal"
+                  ],
+                  "correct": "2/3"
+                },
+                {
+                  "text": "What is half of 3/4?",
+                  "choices": [
+                    "3/8",
+                    "1/4",
+                    "3/2"
+                  ],
+                  "correct": "3/8"
+                }
+              ]
+            },
+            {
+              "brick": "collect",
+              "text": "One thing about fractions that is still fuzzy."
+            },
+            {
+              "brick": "review",
+              "text": "The questions we will go over:"
+            },
+            {
+              "brick": "end",
+              "text": "Good work. See you tomorrow."
+            }
+          ]
+        }
+      },
+      "note": "solo-quiz as a brick (no standings unless asked), then review."
+    },
+    {
+      "id": "bet-on-the-prediction",
+      "prompt": "Before I reveal the result of the experiment, everyone bets points on which of three predictions will come true: the ice melts first, the salt water freezes first, or they tie. Then I announce the winner and we see who bet right.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Place Your Bets",
+          "description": "Bet on the outcome, then see who called it.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Three predictions on the board. Bet your points on the one you believe."
+            },
+            {
+              "brick": "wager",
+              "text": "Which prediction comes true?",
+              "options": [
+                "The ice melts first",
+                "The salt water freezes first",
+                "They tie"
+              ]
+            },
+            {
+              "brick": "end",
+              "text": "Science does not care what we bet. Nice calls, everyone."
+            }
+          ]
+        }
+      },
+      "note": "wager with no known answer: the teacher picks the winner on the console; the standings follow."
+    },
+    {
+      "id": "snowball-into-fours",
+      "prompt": "Everyone writes their own definition of democracy, then pairs combine their two into one, then two pairs combine into one, and the class sees the final definitions on the board.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Democracy, Defined Together",
+          "description": "Alone, then pairs, then fours, one definition each.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "First on your own, then with a partner, then with another pair. One definition survives each round."
+            },
+            {
+              "brick": "collect",
+              "text": "Define democracy in one sentence."
+            },
+            {
+              "brick": "merge",
+              "text": "Combine your two definitions into one stronger one.",
+              "groupSize": 4,
+              "heading": "The definitions the fours built:"
+            },
+            {
+              "brick": "end",
+              "text": "Four definitions, built by all of us."
+            }
+          ]
+        }
+      },
+      "note": "merge with groupSize 4 builds two merge steps (pairs, then fours) and the reveal; the merge step had no brick."
+    },
+    {
+      "id": "class-poem-one-line-each",
+      "prompt": "We write a class poem about autumn, one line per student, each one adding the next line on their turn with 30 seconds to write, then we read the whole poem on the board.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Autumn, Line by Line",
+          "description": "One line each, in turn, into one class poem.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "One poem, one line each. When it is your turn, read what came before and add the next line."
+            },
+            {
+              "brick": "relay",
+              "text": "Add the next line of our autumn poem.",
+              "timer": 30,
+              "heading": "Our autumn poem:"
+            },
+            {
+              "brick": "end",
+              "text": "Read it aloud together, slowly."
+            }
+          ]
+        }
+      },
+      "note": "relay as a brick: a turn each, the finished piece revealed after."
+    },
+    {
+      "id": "lab-day-checklist",
+      "prompt": "Lab day: groups of three work through a six-step checklist (gather materials, measure the water, record the temperature every minute, graph it, clean up, submit the sheet) while I watch every group's progress on the board.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Lab Day",
+          "description": "Groups of three through six steps, progress on the board.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Six steps, one group. Tick each one off as you finish it; I can see where every group is."
+            },
+            {
+              "brick": "teams",
+              "groupSize": 3
+            },
+            {
+              "brick": "tasks",
+              "text": "Work through the lab together.",
+              "items": [
+                "Gather materials",
+                "Measure the water",
+                "Record the temperature every minute",
+                "Graph it",
+                "Clean up",
+                "Submit the sheet"
+              ]
+            },
+            {
+              "brick": "end",
+              "text": "Sheets in. Nice lab."
+            }
+          ]
+        }
+      },
+      "note": "tasks as a brick over the last teams step; the checklist had no brick of its own."
+    },
+    {
+      "id": "joke-off-knockout",
+      "prompt": "Joke-off: everyone writes a joke, the class votes, the bottom half are out, the survivors write a new joke, and it repeats until one comedian is left.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Joke-Off",
+          "description": "Write, vote, half are out, repeat until one is left.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Every round: write a joke, vote for the funniest (not your own), and the bottom half are out. Last comedian standing wins."
+            },
+            {
+              "brick": "knockout",
+              "text": "Your best joke. Keep it clean.",
+              "percent": 50,
+              "loops": 5
+            },
+            {
+              "brick": "end",
+              "text": "Take a bow."
+            }
+          ]
+        }
+      },
+      "note": "knockout builds the Elimination Tournament loop from one brick."
+    },
+    {
+      "id": "charades-class-phrases",
+      "prompt": "Charades in two teams: everyone writes a movie title, then the teams take turns acting them out, one actor at a time, 60 seconds a turn, with points for each one guessed.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Movie Charades",
+          "description": "Your movie titles, acted out by team.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Write a movie title the whole class would know. Then teams take turns acting them out."
+            },
+            {
+              "brick": "charades",
+              "text": "Act it out, no words! Your team guesses.",
+              "phrases": "Write a movie title everyone would know.",
+              "timer": 60
+            },
+            {
+              "brick": "end",
+              "text": "And the award goes to all of you."
+            }
+          ]
+        }
+      },
+      "note": "charades builds the teams and the phrase step when the plan has neither; team standings after."
+    },
+    {
+      "id": "count-to-thirty-together",
+      "prompt": "A focus warm-up: the class counts to 30 together, anyone can say the next number, but if two people go at the same time we start over from zero.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Thirty as One",
+          "description": "Count to thirty, one voice at a time.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Thirty, as one voice. Anyone can tap the next number; two at once and we start over."
+            },
+            {
+              "brick": "count",
+              "target": 30
+            },
+            {
+              "brick": "end",
+              "text": "Listen more, rush less. That was the lesson."
+            }
+          ]
+        }
+      },
+      "note": "count as a brick over the one-voice step, the summary after built in."
+    },
+    {
+      "id": "rolling-confidence-ticket",
+      "prompt": "As students finish the test they answer two things on their own: how confident do they feel from 1 to 5, and one thing that confused them. No waiting for the rest of the class.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Confidence Ticket",
+          "description": "Two questions as each student finishes.",
+          "rolling": true,
+          "steps": [
+            {
+              "brick": "collect-choice",
+              "text": "How confident do you feel about today's test?",
+              "choices": [
+                "1",
+                "2",
+                "3",
+                "4",
+                "5"
+              ]
+            },
+            {
+              "brick": "collect",
+              "text": "One thing that confused you."
+            },
+            {
+              "brick": "end",
+              "text": "Thanks. Put your device away."
+            }
+          ]
+        }
+      },
+      "note": "rolling: true at the top of the plan: students start as they join; the compiler drops timers and refuses roster-bound steps."
     }
   ]
 }

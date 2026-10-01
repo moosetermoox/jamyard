@@ -1157,6 +1157,387 @@
     return lastId;
   }
 
+
+  // ---- Eleven bricks over blocks the engine already had (2026-09-30) ----
+  // The mechanics inventory found fourteen step types no typed idea could
+  // reach. Each brick here compiles to a step that passes the validator
+  // as-is and adds its own payoff (a scoreboard, the shared answers, a
+  // crown) so the words the AI writes can be honest about it.
+
+  function textOf(step, fallback) {
+    return (step && typeof step.text === 'string' && step.text.trim()) ? step.text.trim() : fallback;
+  }
+  function secondsOf(v, lo, hi) {
+    return (typeof v === 'number' && isFinite(v) && v >= lo && v <= hi) ? Math.round(v) : null;
+  }
+  function cleanLines(raw, max) {
+    return Array.isArray(raw)
+      ? raw.map(function (x) { return String(x == null ? '' : x).trim(); }).filter(Boolean).slice(0, max)
+      : [];
+  }
+  function slugOf(text, taken, fallback) {
+    var base = String(text || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24) || fallback;
+    var id = base;
+    var n = 2;
+    while (taken[id]) { id = base + '-' + n; n++; }
+    taken[id] = true;
+    return id;
+  }
+  // The last teams step, or the last paired-up collect, for a step that
+  // takes groups from an earlier one (checklist, charades).
+  function lastGroupStep(phases, lastId) {
+    var order = orderedPhaseIds(phases);
+    var stop = order.indexOf(lastId);
+    for (var i = (stop === -1 ? order.length - 1 : stop); i >= 0; i--) {
+      var ph = phases[order[i]];
+      if (!ph) continue;
+      if (ph.type === 'team-split') return order[i];
+      if (ph.type === 'collect' && ph.assign === 'pairwise') return order[i];
+    }
+    return null;
+  }
+
+  // match: two lists to pair up, auto-scored
+  function appendMatch(step, stepNo, phases, lastId, problems) {
+    var seenL = {}, seenR = {};
+    var pairs = (Array.isArray(step.pairs) ? step.pairs : []).map(function (p) {
+      if (!p || typeof p !== 'object') return null;
+      var left = String(p.left == null ? '' : p.left).trim();
+      var right = String(p.right == null ? '' : p.right).trim();
+      if (!left || !right || seenL[left.toLowerCase()] || seenR[right.toLowerCase()]) return null;
+      seenL[left.toLowerCase()] = true;
+      seenR[right.toLowerCase()] = true;
+      return { left: left, right: right };
+    }).filter(Boolean).slice(0, 12);
+    if (pairs.length < 2) {
+      problems.push('Step ' + stepNo + ': matching needs at least two pairs, each with a left and a right item.');
+      return null;
+    }
+    var id = freshId(phases, 'match');
+    var built = { type: 'match', prompt: textOf(step, 'Match each item on the left with the right one on the right.'), pairs: pairs, pointsPerMatch: 10 };
+    built.timer = secondsOf(step.timer, 5, 600) || 90;
+    phases[lastId].next = id;
+    phases[id] = built;
+    return id;
+  }
+
+  // sort: items into named buckets; a correct bucket on every item scores
+  // it, none makes a class verdict, a mix is a verdict with a note
+  function appendSort(step, stepNo, phases, lastId, problems) {
+    var buckets = [];
+    var seenB = {};
+    cleanLines(step.buckets, 6).forEach(function (b) {
+      if (!seenB[b.toLowerCase()]) { seenB[b.toLowerCase()] = true; buckets.push(b); }
+    });
+    if (buckets.length < 2) {
+      problems.push('Step ' + stepNo + ': sorting needs at least two buckets to sort into.');
+      return null;
+    }
+    if (buckets.length > 5) buckets = buckets.slice(0, 5);
+    var items = (Array.isArray(step.items) ? step.items : []).map(function (it) {
+      if (typeof it === 'string' || typeof it === 'number') return { text: String(it).trim() };
+      if (it && typeof it === 'object') {
+        var out = { text: String(it.text == null ? '' : it.text).trim() };
+        if (typeof it.bucket === 'string' && it.bucket.trim()) out.bucket = it.bucket.trim();
+        return out;
+      }
+      return null;
+    }).filter(function (it) { return it && it.text; }).slice(0, 12);
+    if (items.length < 2) {
+      problems.push('Step ' + stepNo + ': sorting needs at least two items to sort.');
+      return null;
+    }
+    var withBucket = items.filter(function (it) { return it.bucket; });
+    var known = {};
+    buckets.forEach(function (b) { known[b.toLowerCase()] = b; });
+    var graded = withBucket.length === items.length && withBucket.every(function (it) { return !!known[it.bucket.toLowerCase()]; });
+    if (graded) {
+      items.forEach(function (it) { it.bucket = known[it.bucket.toLowerCase()]; });
+    } else {
+      if (withBucket.length > 0) {
+        problems.push('Step ' + stepNo + ': some items had a correct bucket and some did not (or a bucket that is not in the list), so the step runs as a class verdict with no right answers.');
+      }
+      items.forEach(function (it) { delete it.bucket; });
+    }
+    var id = freshId(phases, 'sort');
+    var built = { type: 'sort', prompt: textOf(step, graded ? 'Put each one in the right bucket.' : 'Where does each one belong? Class verdict, no wrong answers.'), buckets: buckets, items: items };
+    if (graded) built.pointsPerItem = 10;
+    built.timer = secondsOf(step.timer, 5, 600) || 90;
+    phases[lastId].next = id;
+    phases[id] = built;
+    return { id: id, graded: graded };
+  }
+
+  // rate: one to five scales with two end words each
+  function appendRate(step, stepNo, phases, lastId, problems) {
+    var taken = {};
+    var scales = (Array.isArray(step.scales) ? step.scales : []).map(function (s, i) {
+      if (!s || typeof s !== 'object') return null;
+      var label = String(s.label == null ? '' : s.label).trim();
+      if (!label) return null;
+      var scale = { id: slugOf(label, taken, 'scale-' + (i + 1)), label: label, min: 1, max: 5 };
+      var low = typeof s.low === 'string' ? s.low.trim() : '';
+      var high = typeof s.high === 'string' ? s.high.trim() : '';
+      if (low || high) scale.labels = { min: low || 'Low', max: high || 'High' };
+      return scale;
+    }).filter(Boolean).slice(0, 5);
+    if (scales.length === 0) {
+      problems.push('Step ' + stepNo + ': rating needs at least one scale with a label.');
+      return null;
+    }
+    var top = secondsOf(step.max, 3, 10);
+    if (top) scales.forEach(function (s) { s.max = top; });
+    var id = freshId(phases, 'rate');
+    var built = { type: 'rate', prompt: textOf(step, 'Rate it on each scale below.'), scales: scales, visibility: step.results === 'teacher' ? 'host-only' : 'all' };
+    var t = secondsOf(step.timer, 5, 600);
+    if (t) built.timer = t;
+    phases[lastId].next = id;
+    phases[id] = built;
+    return id;
+  }
+
+  // solo-quiz: the quiz brick's questions, at each student's own pace
+  function appendSoloQuiz(step, stepNo, phases, lastId, problems) {
+    var questions = (Array.isArray(step.questions) ? step.questions : []).map(function (q) {
+      if (!q || typeof q !== 'object') return null;
+      var text = String(q.text == null ? (q.question == null ? '' : q.question) : q.text).trim();
+      var choices = cleanLines(q.choices, 8);
+      var correct = String(q.correct == null ? '' : q.correct).trim();
+      var hit = choices.filter(function (c) { return c.toLowerCase() === correct.toLowerCase(); })[0];
+      if (!text || choices.length < 2 || !hit) return null;
+      return { question: text, choices: choices, correct: hit };
+    }).filter(Boolean).slice(0, 30);
+    if (questions.length === 0) {
+      problems.push('Step ' + stepNo + ': the self-paced quiz needs at least one question with two or more choices and a correct answer that matches one of them.');
+      return null;
+    }
+    var id = freshId(phases, 'quiz');
+    var built = { type: 'solo-quiz', title: textOf(step, 'Quiz'), questions: questions, showAnswers: step.showAnswers === false ? false : true, pointsPerQuestion: 1 };
+    phases[lastId].next = id;
+    phases[id] = built;
+    return id;
+  }
+
+  // wager: bet points on an option; a known right answer pays out by itself
+  function appendWager(step, stepNo, phases, lastId, problems) {
+    var options = [];
+    var seenO = {};
+    cleanLines(step.options, 6).forEach(function (o) {
+      if (!seenO[o.toLowerCase()]) { seenO[o.toLowerCase()] = true; options.push(o); }
+    });
+    if (options.length < 2) {
+      problems.push('Step ' + stepNo + ': betting needs at least two options to bet on.');
+      return null;
+    }
+    var id = freshId(phases, 'bet');
+    var built = { type: 'wager', prompt: textOf(step, 'Place your bet. Which one is right?'), options: options };
+    var correct = typeof step.correct === 'string' ? step.correct.trim() : '';
+    if (correct) {
+      var hit = options.filter(function (o) { return o.toLowerCase() === correct.toLowerCase(); })[0];
+      if (hit) built.correctOption = hit;
+      else problems.push('Step ' + stepNo + ': the winning option "' + correct + '" is not one of the options, so the teacher picks the winner on the console instead.');
+    }
+    phases[lastId].next = id;
+    phases[id] = built;
+    return id;
+  }
+
+  // merge: pairs (or threes, or pairs of pairs) write one answer together
+  // from their own answers to the collect step before
+  function appendMerge(step, stepNo, phases, lastId, problems) {
+    var src = lastPlainCollect(phases, lastId) || lastOfType(phases, ['collect'], lastId);
+    if (!src) {
+      problems.push('Step ' + stepNo + ': combining answers needs a question step before it, so each student brings an answer of their own.');
+      return null;
+    }
+    var size = step.groupSize === 3 || step.groupSize === 4 ? step.groupSize : 2;
+    var instruction = textOf(step, 'Combine your answers into one stronger answer.');
+    var timer = secondsOf(step.timer, 30, 900) || 240;
+    var id = freshId(phases, size === 4 ? 'pairs' : (size === 3 ? 'threes' : 'pairs'));
+    phases[lastId].next = id;
+    phases[id] = { type: 'merge', seedFrom: src + '.responses', instruction: instruction, groupSize: size === 4 ? 2 : size, agreeMode: 'both', timer: timer };
+    lastId = id;
+    if (size === 4) {
+      var quadId = freshId(phases, 'fours');
+      phases[lastId].next = quadId;
+      phases[quadId] = { type: 'merge', seedFrom: id + '.merged', instruction: 'Now join another pair: fold both answers into one.', groupSize: 4, agreeMode: 'both', timer: timer };
+      lastId = quadId;
+    }
+    if (step.show !== false) {
+      var showId = freshId(phases, 'built');
+      phases[lastId].next = showId;
+      var heading = (typeof step.heading === 'string' && step.heading.trim()) ? step.heading.trim()
+        : (size === 2 ? 'Here is what the pairs built together:' : 'Here is what the groups built together:');
+      phases[showId] = { type: 'reveal', template: heading + '\n\n{{' + lastId + '.merged.list}}' };
+      lastId = showId;
+    }
+    return lastId;
+  }
+
+  // relay: one line each, turn by turn, into one shared piece
+  function appendRelay(step, stepNo, phases, lastId, problems) {
+    var id = freshId(phases, 'relay');
+    var built = { type: 'relay', prompt: textOf(step, 'Add the next line. Build on what came before.'), order: 'random' };
+    var turns = secondsOf(step.turns, 2, 60);
+    if (turns) built.turns = turns;
+    built.timer = secondsOf(step.timer, 5, 300) || 45;
+    phases[lastId].next = id;
+    phases[id] = built;
+    lastId = id;
+    if (step.show !== false) {
+      var showId = freshId(phases, 'piece');
+      phases[lastId].next = showId;
+      var heading = (typeof step.heading === 'string' && step.heading.trim()) ? step.heading.trim() : 'Here is what we built, one line at a time:';
+      phases[showId] = { type: 'reveal', template: heading + '\n\n{{' + id + '.text}}' };
+      lastId = showId;
+    }
+    return lastId;
+  }
+
+  // tasks: a to-do list per group (the last teams or pairs step) or per
+  // student, checked off on their devices, progress on the projector
+  function appendTasks(step, stepNo, phases, lastId, problems) {
+    var items = cleanLines(step.items, 15);
+    if (items.length < 2) {
+      problems.push('Step ' + stepNo + ': a task list needs at least two tasks.');
+      return null;
+    }
+    var id = freshId(phases, 'tasks');
+    var built = { type: 'checklist', prompt: textOf(step, 'Work through the list together. Tap each one as you finish it.'), items: items };
+    var group = lastGroupStep(phases, lastId);
+    if (group) built.teamsFrom = group;
+    phases[lastId].next = id;
+    phases[id] = built;
+    return id;
+  }
+
+  // knockout: answer, see the answers, vote (never your own), the lowest
+  // votes are out; repeat until one is left; the Elimination Tournament
+  // recipe's loop, built from a sentence
+  function appendKnockout(step, stepNo, phases, lastId, problems) {
+    var prompt = textOf(step, 'Your best one-liner. Make the room laugh.');
+    var percent = secondsOf(step.percent, 10, 90) || 50;
+    var loops = secondsOf(step.loops, 2, 20) || 6;
+    var answerTimer = secondsOf(step.timer, 10, 600) || 60;
+    var voteTimer = secondsOf(step.voteTimer, 10, 300) || 30;
+    var introId = freshId(phases, 'round-intro');
+    var answerId = freshId(phases, 'answer');
+    var showId = freshId(phases, 'show-answers');
+    var voteId = freshId(phases, 'vote');
+    var outId = freshId(phases, 'eliminate');
+    var crownId = freshId(phases, 'champion');
+    phases[lastId].next = introId;
+    phases[introId] = {
+      type: 'announce',
+      message: 'Round {{_loop.' + outId + '.iteration}}. {{remaining.length}} still in: answer, then vote. The fewest votes are out.',
+      timer: 5,
+      next: answerId
+    };
+    phases[answerId] = { type: 'collect', prompt: prompt, from: 'remaining', timer: answerTimer, next: showId };
+    phases[showId] = { type: 'reveal', template: 'Here is what everyone said:\n\n{{' + answerId + '.responses.list}}', next: voteId };
+    phases[voteId] = {
+      type: 'vote', mode: 'pick-one', candidates: answerId + '.responses', voters: 'all', excludeAuthors: true,
+      question: (typeof step.voteText === 'string' && step.voteText.trim()) ? step.voteText.trim() : 'Pick your favorite (not your own). Everyone votes, in or out.',
+      timer: voteTimer, next: outId
+    };
+    phases[outId] = {
+      type: 'eliminate', method: 'bottom-percent', percent: percent, input: voteId + '.scores', pause: 4,
+      untilRemaining: 1, loopBack: introId, loopCount: loops, next: crownId
+    };
+    phases[crownId] = { type: 'winner', from: voteId + '.scores' };
+    return crownId;
+  }
+
+  // charades: the class writes the phrases (or the last question step's
+  // answers are the bowl), teams take turns, one describer at a time
+  function appendCharades(step, stepNo, phases, lastId, problems) {
+    var teams = lastOfType(phases, ['team-split'], lastId);
+    if (!teams) {
+      teams = freshId(phases, 'teams');
+      phases[lastId].next = teams;
+      phases[teams] = { type: 'team-split', method: 'random', teamCount: secondsOf(step.teamCount, 2, 6) || 2 };
+      lastId = teams;
+    }
+    var src = lastPlainCollect(phases, lastId);
+    if (!src) {
+      src = freshId(phases, 'phrases');
+      phases[lastId].next = src;
+      phases[src] = {
+        type: 'collect',
+        prompt: (typeof step.phrases === 'string' && step.phrases.trim()) ? step.phrases.trim() : 'Write one phrase, title, or thing for a classmate to act out. Keep it clean and guessable.',
+        timer: 60
+      };
+      lastId = src;
+    }
+    var id = freshId(phases, 'act');
+    var built = {
+      type: 'turn', pool: src + '.responses', teamsFrom: teams, allowSkip: true, poolLimit: 30,
+      instruction: textOf(step, 'Act it out, no words! Your team guesses.')
+    };
+    built.timer = secondsOf(step.timer, 15, 300) || 60;
+    phases[lastId].next = id;
+    phases[id] = built;
+    return id;
+  }
+
+  // count: the class counts to a target as one voice
+  function appendCount(step, stepNo, phases, lastId, problems) {
+    var id = freshId(phases, 'count');
+    phases[lastId].next = id;
+    phases[id] = { type: 'one-voice', target: secondsOf(step.target, 5, 100) || 20 };
+    lastId = id;
+    if (step.show !== false) {
+      var showId = freshId(phases, 'how-it-went');
+      phases[lastId].next = showId;
+      var heading = (typeof step.heading === 'string' && step.heading.trim()) ? step.heading.trim() : 'How it went:';
+      phases[showId] = {
+        type: 'reveal',
+        template: heading + '\n\nThe target: {{' + id + '.target}}. Attempts: {{' + id + '.attempts}}. Restarts: {{' + id + '.resets}}.\nOur longest run as one voice: {{' + id + '.bestRun}}.'
+      };
+      lastId = showId;
+    }
+    return lastId;
+  }
+
+  // The bricks whose points can share one scoreboard; consecutive ones
+  // get a single standings step after the last of them.
+  var GRADED_BRICKS = { 'match': true, 'sort': true, 'wager': true, 'charades': true, 'solo-quiz': true };
+  function gradedAhead(steps, i) {
+    var nxt = steps[i + 1];
+    if (!nxt || !GRADED_BRICKS[nxt.brick]) return false;
+    if (nxt.brick === 'solo-quiz' && nxt.standings !== true) return false;
+    return true;
+  }
+  function appendStandings(phases, lastId, refs) {
+    var id = freshId(phases, 'standings');
+    phases[lastId].next = id;
+    phases[id] = { type: 'leaderboard', from: refs.length === 1 ? refs[0] : refs.slice(), style: 'full' };
+    return id;
+  }
+
+  // Rolling start: students begin the moment they join and finish on
+  // their own. A step that depends on who is present when it starts
+  // cannot run that way (the engine's own list, ROSTER_BOUND_TYPES in
+  // engine/phases/rolling.js, mirrored here for the browser; a test keeps
+  // them equal); timers mean nothing when everyone starts at a different
+  // time.
+  var ROLLING_BOUND = ['team-split', 'team-roles', 'merge', 'relay', 'turn', 'one-voice', 'checklist', 'foreach', 'eliminate', 'ai-eliminate', 'buzz'];
+  function applyRolling(config, problems) {
+    var bad = null;
+    Object.keys(config.phases).forEach(function (pid) {
+      var ph = config.phases[pid];
+      var bound = ROLLING_BOUND.indexOf(ph.type) !== -1 ||
+        (ph.type === 'collect' && (ph.assign === 'pairwise' || ph.rotateFrom));
+      if (!bad && bound) bad = pid + ' (' + ph.type + ')';
+    });
+    if (bad) {
+      problems.push('The activity cannot start as students arrive: step ' + bad + ' needs the whole class at once. It starts together instead.');
+      return;
+    }
+    config.start = 'rolling';
+    Object.keys(config.phases).forEach(function (pid) { delete config.phases[pid].timer; });
+  }
+
   function compileStoryboard(storyboard) {
     var problems = [];
     var steps = (storyboard && Array.isArray(storyboard.steps)) ? storyboard.steps : [];
@@ -1166,11 +1547,57 @@
 
     var phases = { lobby: { type: 'lobby' } };
     var lastId = 'lobby';
+    // Points from consecutive graded bricks share one scoreboard
+    var gradedRun = [];
 
     steps.forEach(function (step, i) {
       var brick = step && step.brick;
       var built = null;
       var id = null;
+
+      // Eleven bricks over blocks the engine already had (2026-09-30)
+      if (GRADED_BRICKS[brick] || brick === 'rate' || brick === 'merge' || brick === 'relay' ||
+          brick === 'tasks' || brick === 'knockout' || brick === 'charades' || brick === 'count') {
+        var gradedRef = null;
+        var newLast = null;
+        if (brick === 'match') {
+          newLast = appendMatch(step, i + 1, phases, lastId, problems);
+          if (newLast) gradedRef = newLast + '.scores';
+        } else if (brick === 'sort') {
+          var sorted = appendSort(step, i + 1, phases, lastId, problems);
+          if (sorted) { newLast = sorted.id; if (sorted.graded) gradedRef = sorted.id + '.scores'; }
+        } else if (brick === 'wager') {
+          newLast = appendWager(step, i + 1, phases, lastId, problems);
+          if (newLast) gradedRef = newLast + '.scores';
+        } else if (brick === 'solo-quiz') {
+          newLast = appendSoloQuiz(step, i + 1, phases, lastId, problems);
+          if (newLast && step.standings === true) gradedRef = newLast + '.scores';
+        } else if (brick === 'charades') {
+          newLast = appendCharades(step, i + 1, phases, lastId, problems);
+          if (newLast) gradedRef = newLast + '.teamScores';
+        } else if (brick === 'rate') {
+          newLast = appendRate(step, i + 1, phases, lastId, problems);
+        } else if (brick === 'merge') {
+          newLast = appendMerge(step, i + 1, phases, lastId, problems);
+        } else if (brick === 'relay') {
+          newLast = appendRelay(step, i + 1, phases, lastId, problems);
+        } else if (brick === 'tasks') {
+          newLast = appendTasks(step, i + 1, phases, lastId, problems);
+        } else if (brick === 'knockout') {
+          newLast = appendKnockout(step, i + 1, phases, lastId, problems);
+        } else if (brick === 'count') {
+          newLast = appendCount(step, i + 1, phases, lastId, problems);
+        }
+        if (!newLast) return;
+        lastId = newLast;
+        if (gradedRef && step.standings !== false) gradedRun.push(gradedRef);
+        // The scoreboard lands after the last graded brick in a row
+        if (gradedRun.length && !gradedAhead(steps, i)) {
+          lastId = appendStandings(phases, lastId, gradedRun);
+          gradedRun = [];
+        }
+        return;
+      }
 
       if (brick === 'quiz') {
         var quizLast = appendQuizChain(step, i + 1, phases, lastId, problems);
@@ -1520,6 +1947,7 @@
       minPlayers: 2,
       phases: phases
     };
+    if (storyboard && storyboard.rolling === true) applyRolling(config, problems);
     return { config: config, problems: problems };
   }
 
@@ -1564,6 +1992,8 @@
   }
 
   var api = {
+    GRADED_BRICKS: GRADED_BRICKS,
+    ROLLING_BOUND: ROLLING_BOUND,
     moveStep: moveStep,
     buildGuessingRounds: buildGuessingRounds,
     compileStoryboard: compileStoryboard,

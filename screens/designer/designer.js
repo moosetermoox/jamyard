@@ -2535,6 +2535,12 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
   if (typeof ideaSettings.anonymous === 'boolean') {
     modal.appendChild(sbEl('p', 'Student names: ' + (ideaSettings.anonymous ? 'Hidden' : 'Shown'), 'sb-hint sb-names-setting'));
   }
+  // The plan says students start as they arrive (2026-09-30): no waiting
+  // room pause, no timers, each student done on their own
+  var rolling = !!(storyboard && storyboard.rolling === true);
+  if (rolling) {
+    modal.appendChild(sbEl('p', 'Starts as students arrive: each one begins the moment they join and finishes on their own, no timers.', 'sb-hint sb-rolling-setting'));
+  }
 
   var list = sbEl('div');
   modal.appendChild(list);
@@ -2620,6 +2626,29 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       }
       list.appendChild(row);
       if (OWN_ANSWER_BRICKS.indexOf(step.brick) !== -1) answersSoFar = true;
+      // The steps the eleven engine bricks add on their own (2026-09-30)
+      var GRADED = StepSuggestions.GRADED_BRICKS || {};
+      var nxt = steps[i + 1];
+      var gradedNext = !!(nxt && GRADED[nxt.brick] && !(nxt.brick === 'solo-quiz' && nxt.standings !== true));
+      var scored = GRADED[step.brick] && step.standings !== false &&
+        !(step.brick === 'solo-quiz' && step.standings !== true) &&
+        !(step.brick === 'sort' && !(Array.isArray(step.items) && step.items.length && step.items.every(function (it) { return it && typeof it === 'object' && it.bucket; })));
+      if (step.brick === 'charades') {
+        list.appendChild(addedRow(SB_BRICK_LABELS['team-split'] || 'Split into teams', 'added (unless a teams step came before): two random teams'));
+        list.appendChild(addedRow(SB_BRICK_LABELS.collect || 'Open answer', 'added (unless a question step came before): everyone writes a phrase to act out'));
+      }
+      if (scored && !gradedNext) {
+        list.appendChild(addedRow(SB_BRICK_LABELS.leaderboard || 'Leaderboard', 'added: the standings'));
+      }
+      if ((step.brick === 'merge' || step.brick === 'relay') && step.show !== false) {
+        list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', step.brick === 'merge' ? 'added: the shared answers on the projector' : 'added: the finished piece on the projector'));
+      }
+      if (step.brick === 'count' && step.show !== false) {
+        list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: how it went (attempts, restarts, the longest run)'));
+      }
+      if (step.brick === 'knockout') {
+        list.appendChild(addedRow(SB_BRICK_LABELS.winner || 'Crown a winner', 'added: rounds of answer, vote, and out, then the last one standing'));
+      }
       if (step.brick === 'vote' && step.approve === true) {
         list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: the list of what passed, each with its yes and no counts'));
       } else if (step.brick === 'vote' && answersSoFar) {
@@ -2640,6 +2669,7 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
     var result = StepSuggestions.compileStoryboard({
       name: nameInput.value.trim() || 'New Activity',
       description: storyboard.description || description,
+      rolling: rolling,
       steps: steps
     });
     if (!result.config || result.problems.length) {
