@@ -6261,6 +6261,16 @@ function validateConfig() {
       errors.push(label + ': "Show only the last N words" needs "Protect the passed item (add-only)" turned on, otherwise the hidden text would be lost on submit.');
     }
 
+    // confidenceFor validation (mirrors engine/game-loader.js)
+    if (phase.confidenceFor) {
+      var confSrc = phases[phase.confidenceFor];
+      if (phase.type !== 'collect-choice') {
+        errors.push(label + ': "How sure about which question" only works on a Multiple Choice step.');
+      } else if (!confSrc || !((confSrc.type === 'collect-choice' || confSrc.type === 'collect') && confSrc.correctAnswer)) {
+        errors.push(label + ': "How sure about which question" must name a question with a correct answer.');
+      }
+    }
+
     // showOriginal validation (mirrors engine/game-loader.js)
     if (phase.type === 'collect' && phase.showOriginal === true) {
       if (!phase.rotateFrom) {

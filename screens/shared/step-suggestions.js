@@ -543,6 +543,11 @@
   // lastId, or null when nothing usable compiled.
   var MAX_QUIZ_QUESTIONS = 15;
 
+  // Mirrors engine/phases/confidence.js (a test keeps them equal)
+  var CONFIDENCE_PROMPT = 'How sure are you of your answer?';
+  var CONFIDENCE_LEVELS = ['Just guessing', 'Not sure', 'Pretty sure', 'Certain'];
+  var CONFIDENCE_TIMER = 15;
+
   function appendQuizChain(step, stepNo, phases, lastId, problems) {
     var raw = Array.isArray(step.questions) ? step.questions : [];
     var speedBonus = step.speedBonus !== false;
@@ -575,11 +580,31 @@
         speedBonus: speedBonus,
         timer: timer
       };
+      // confidence: true (2026-10-01): "how sure are you?" between the
+      // question and its answer, and the answer card shows how sure the
+      // right ones were beside the wrong ones. The words are English here;
+      // the engine puts them in the activity's language per room.
+      var beforeAnswer = qId;
+      var confidenceLines = '';
+      if (step.confidence === true) {
+        var cId = freshId(phases, 'sure');
+        phases[qId].next = cId;
+        phases[cId] = {
+          type: 'collect-choice',
+          prompt: CONFIDENCE_PROMPT,
+          choices: CONFIDENCE_LEVELS.slice(),
+          confidenceFor: qId,
+          chartOrder: 'choices',
+          timer: CONFIDENCE_TIMER
+        };
+        beforeAnswer = cId;
+        confidenceLines = '\n\n{{' + cId + '.confidenceChart}}\n\n{{' + cId + '.confidenceLine}}';
+      }
       var aId = freshId(phases, 'answer');
-      phases[qId].next = aId;
+      phases[beforeAnswer].next = aId;
       phases[aId] = {
         type: 'announce',
-        message: 'The answer was: ' + correct + '!\n\nClass picks:\n{{' + qId + '.barChart}}'
+        message: 'The answer was: ' + correct + '!\n\nClass picks:\n{{' + qId + '.barChart}}' + confidenceLines
       };
       lastId = aId;
       scoreRefs.push(qId + '.scores');
@@ -2304,6 +2329,8 @@
 
   var api = {
     GRADED_BRICKS: GRADED_BRICKS,
+    CONFIDENCE_PROMPT: CONFIDENCE_PROMPT,
+    CONFIDENCE_LEVELS: CONFIDENCE_LEVELS,
     ROLLING_BOUND: ROLLING_BOUND,
     moveStep: moveStep,
     buildGuessingRounds: buildGuessingRounds,

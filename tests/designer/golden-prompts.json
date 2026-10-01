@@ -1807,6 +1807,26 @@
           ]
         }
       }
+    },
+    {
+      "id": "quiz-how-sure",
+      "prompt": "A four-question review quiz on the water cycle where students also say how sure they are of each answer, so we can talk about being certain and wrong.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Sure About the Water Cycle?",
+          "description": "Four water cycle questions, each followed by how sure you were.",
+          "steps": [
+            { "brick": "quiz", "confidence": true, "leaderboard": false, "questions": [
+              { "text": "What is it called when water vapor turns into liquid?", "choices": ["Evaporation", "Condensation", "Precipitation", "Collection"], "correct": "Condensation" },
+              { "text": "What drives evaporation?", "choices": ["The moon", "Heat from the sun", "Wind only", "Gravity"], "correct": "Heat from the sun" },
+              { "text": "Rain, snow, and hail are all forms of what?", "choices": ["Condensation", "Runoff", "Precipitation", "Transpiration"], "correct": "Precipitation" },
+              { "text": "Water given off by plants is called what?", "choices": ["Transpiration", "Infiltration", "Sublimation", "Collection"], "correct": "Transpiration" }
+            ] },
+            { "brick": "end", "text": "Which answer were you most sure of and wrong about? Talk it over." }
+          ]
+        }
+      }
     }
   ]
 }

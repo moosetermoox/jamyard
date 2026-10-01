@@ -22,13 +22,17 @@ import { orderedTally } from './phases/stance-shift.js';
 import { determineWinner, traceEntryRef, findWinnerEntries } from './phases/winner-handler.js';
 import { parseRef } from './resolver-grammar.js';
 import { resolveLanguage } from './i18n/index.js';
+import { localizeConfidence } from './phases/confidence.js';
 
 export class GameEngine {
   constructor(config) {
-    this.config = config;
     // The language the room's fixed labels speak (engine/i18n): an
     // explicit config.language, else detected from the activity's text.
     this.language = resolveLanguage(config);
+    // A confidence step's fixed English words in that language, on this
+    // room's own copy (engine/phases/confidence.js); the loaded config is
+    // shared and never changed.
+    this.config = localizeConfidence(config, this.language);
     this.players = new PlayerRegistry();
     this.phaseData = {};
     this.hooks = {};
