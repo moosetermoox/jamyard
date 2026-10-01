@@ -18,7 +18,9 @@ export const STORYBOARD_BRICKS = [
   // 2026-09-30 (the mechanics inventory): eleven blocks the engine ran
   // for months that no typed idea could reach
   'match', 'sort', 'rate', 'solo-quiz', 'wager', 'merge', 'relay', 'tasks',
-  'knockout', 'charades', 'count'
+  'knockout', 'charades', 'count',
+  // 2026-09-30 (the knobs): the class writes the quiz
+  'write-quiz'
 ];
 
 const MAX_MATCH_PAIRS = 12;
@@ -231,7 +233,6 @@ export function validateSuggestions(raw, ctx) {
             scales: cleanScales(s.scales),
             results: s.results === 'class' || s.results === 'teacher' ? s.results : undefined,
             options: cleanStrings(s.options, MAX_WAGER_OPTIONS, 120),
-            correct: typeof s.correct === 'string' ? s.correct.slice(0, 120) : undefined,
             // a scoreboard after a graded step (on by default; solo-quiz off)
             standings: typeof s.standings === 'boolean' ? s.standings : undefined,
             // merge / relay / count: the payoff reveal (on by default)
@@ -255,6 +256,16 @@ export function validateSuggestions(raw, ctx) {
             teamCount: typeof s.teamCount === 'number' ? s.teamCount : undefined,
             // teams: regroup the earlier split, one member of each per new group
             jigsaw: s.jigsaw === true ? true : undefined,
+            // teams: groups by the last pick-one step's answers (2026-09-30)
+            groupBy: s.groupBy === 'same' || s.groupBy === 'mixed' ? s.groupBy : undefined,
+            // vote: the students themselves on the ballot; out = the chosen one leaves the round
+            over: s.over === 'students' ? 'students' : undefined,
+            out: s.out === true ? true : undefined,
+            // rank: the items are listed in their right order, the step grades
+            correct: s.brick === 'rank' ? (s.correct === true ? true : undefined) : (typeof s.correct === 'string' ? s.correct.slice(0, 120) : undefined),
+            // write-quiz: how many wrong answers each student writes, the quiz's title
+            wrongs: num(s.wrongs),
+            title: typeof s.title === 'string' ? s.title.slice(0, 120) : undefined,
             // pairs: partners by an earlier pick-one answer
             pairBy: s.pairBy === 'opposite' || s.pairBy === 'same' || s.pairBy === 'far' ? s.pairBy : undefined,
             // buzz: points per correct answer

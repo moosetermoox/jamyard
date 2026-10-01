@@ -281,7 +281,18 @@ export function validate(config, gameId, options) {
   for (const name of phaseNames) {
     const phase = config.phases[name];
     if (!phase || phase.type !== 'solo-quiz') continue;
-    if (playableQuestions(phase.questions).length === 0) {
+    // The class's own questions (2026-09-30): the source is an Open answer
+    // step with a "question" box, a "correct" box, and at least one more
+    if (phase.questionsFrom != null) {
+      const src = config.phases[phase.questionsFrom];
+      const keys = src && src.type === 'collect' && Array.isArray(src.fields)
+        ? src.fields.map(f => f && f.key).filter(Boolean) : [];
+      if (!src || src.type !== 'collect' || phase.questionsFrom === name) {
+        errors.push(`Game "${gameId}": phase "${name}" (solo-quiz) takes its questions from "${phase.questionsFrom}", which must be an earlier Open answer step with boxes keyed "question", "correct", and "wrong1".`);
+      } else if (!keys.includes('question') || !keys.includes('correct') || keys.length < 3) {
+        errors.push(`Game "${gameId}": phase "${name}" (solo-quiz) takes its questions from "${phase.questionsFrom}", whose boxes must be keyed "question", "correct", and at least one wrong answer ("wrong1").`);
+      }
+    } else if (playableQuestions(phase.questions).length === 0) {
       errors.push(`Game "${gameId}": phase "${name}" (solo-quiz) needs at least one question with two or more choices and a correct answer that matches one of them.`);
     }
   }
@@ -821,6 +832,29 @@ export function validate(config, gameId, options) {
 
     // Hand out choices: from must name a rank step, the only step whose
     // output carries an ordered preference per group or student.
+    // A graded order (2026-09-30): the right order must be exactly the
+    // items to rank, or the slots could never line up.
+    if (phase.type === 'rank' && phase.correctOrder !== undefined) {
+      const right = Array.isArray(phase.correctOrder) ? phase.correctOrder.map(x => String(x == null ? '' : x).trim()).filter(Boolean) : [];
+      if (right.length < 2) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (rank) has "The right order" with fewer than two items; list every item in its correct order, or leave it empty.`
+        );
+      } else if (Array.isArray(phase.candidates)) {
+        const key = s => String(s == null ? '' : s).trim().toLowerCase();
+        const items = phase.candidates.map(key).filter(Boolean).sort();
+        const order = right.map(key).sort();
+        if (items.length !== order.length || items.some((it, i) => it !== order[i])) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (rank) "The right order" must list exactly the items to rank, each once, in their correct order.`
+          );
+        }
+      } else {
+        warnings.push(
+          `Game "${gameId}": phase "${name}" (rank) has "The right order" over items from an earlier step; an item whose words differ from the list scores nothing, so this works best with a fixed list.`
+        );
+      }
+    }
     if (phase.type === 'assign') {
       const assignSrc = phase.from != null ? config.phases[phase.from] : null;
       if (phase.from == null || !assignSrc) {
@@ -863,6 +897,36 @@ export function validate(config, gameId, options) {
       // it takes "Regroup from" instead of a count or a size; and only a
       // jigsaw regroups, a random split with a source would ignore it.
       const jigsaw = phase.method === 'jigsaw';
+      // By answer (2026-09-30): the groups follow an earlier pick-one
+      // step's answers, so the step takes "Group by the answers to" and a
+      // mode; a count has no meaning, a size may split a big answer.
+      const byAnswer = phase.method === 'byAnswer';
+      if (byAnswer) {
+        const src = phase.groupBy != null ? config.phases[phase.groupBy] : null;
+        if (phase.groupBy == null || !src) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (team-split) groups by answer, so "Group by the answers to" must name an earlier Multiple choice step${phase.groupBy != null ? ` ("${phase.groupBy}" does not exist)` : ''}.`
+          );
+        } else if (src.type !== 'collect-choice' || phase.groupBy === name) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (team-split) groups by the answers to "${phase.groupBy}", which must be an earlier Multiple choice step.`
+          );
+        }
+        if (hasCount) {
+          errors.push(
+            `Game "${gameId}": phase "${name}" (team-split) groups by answer, so "Number of teams" has no meaning: the answers decide how many groups there are (a "Group size" may split a big answer into several).`
+          );
+        }
+        if (phase.groupMode === 'mixed' && hasSize) {
+          warnings.push(
+            `Game "${gameId}": phase "${name}" (team-split) mixes the answers, so "Group size" is ignored: the number of groups follows the biggest answer.`
+          );
+        }
+      } else if (phase.groupBy != null || phase.groupMode != null) {
+        errors.push(
+          `Game "${gameId}": phase "${name}" (team-split) has "Group by the answers to" or a group mode but its method is "${phase.method || 'random'}"; only "byAnswer" groups by answer.`
+        );
+      }
       if (jigsaw) {
         const src = phase.regroupFrom != null ? config.phases[phase.regroupFrom] : null;
         if (phase.regroupFrom == null || !src) {
@@ -884,8 +948,8 @@ export function validate(config, gameId, options) {
           `Game "${gameId}": phase "${name}" (team-split) has "Regroup from" but its method is "${phase.method || 'random'}"; only a jigsaw regroups.`
         );
       }
-      if (jigsaw) {
-        // sizing comes from the source split
+      if (jigsaw || byAnswer) {
+        // sizing comes from the source split or the answers
       } else if (!hasCount && !hasSize) {
         errors.push(
           `Game "${gameId}": phase "${name}" (team-split) needs either "Number of teams" or "Group size".`
@@ -902,6 +966,13 @@ export function validate(config, gameId, options) {
           `Game "${gameId}": phase "${name}" (team-split) sets Team spots to "open", but method "${phase.method || 'random'}" assigns players automatically, the setting only matters for "choice" (students pick) and will be ignored here.`
         );
       }
+    }
+
+    // Who goes out by most votes (2026-09-30) needs the vote's score map
+    if (phase.type === 'eliminate' && phase.method === 'most-votes' && !phase.input && !phase.from) {
+      errors.push(
+        `Game "${gameId}": phase "${name}" (eliminate) removes by most votes, so "input" must point at a vote's .scores (a vote with "candidates": "players").`
+      );
     }
 
     // Data reference validation — check that referenced phase exists.

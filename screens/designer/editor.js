@@ -2200,15 +2200,23 @@ function renderPhaseConfig(phaseId) {
     });
 
     var voteIsOwnList = Array.isArray(phase.candidates);
-    addSelectWithHelp('Choices come from', 'Pull the choices from an earlier step, or write your own fixed list (fixed lists can branch what happens next by winner)', 'phase-vote-source',
+    // The students themselves on the ballot (2026-09-30): who was the
+    // spy, who presents first; nobody votes for themselves
+    var voteOverPlayers = phase.candidates === 'players' || phase.candidates === 'remaining';
+    addSelectWithHelp('Choices come from', 'Pull the choices from an earlier step, write your own fixed list (fixed lists can branch what happens next by winner), or put the students themselves on the ballot by name', 'phase-vote-source',
       [
         { value: 'step', label: 'An earlier step (answers, AI output)' },
-        { value: 'own', label: 'My own list. I\'ll type the options' }
+        { value: 'own', label: 'My own list. I\'ll type the options' },
+        { value: 'players', label: 'The students in the room, by name' }
       ],
-      voteIsOwnList ? 'own' : 'step', function (value) {
+      voteIsOwnList ? 'own' : (voteOverPlayers ? 'players' : 'step'), function (value) {
         isDirty = true;
         if (value === 'own') {
           phase.candidates = ['Option A', 'Option B'];
+        } else if (value === 'players') {
+          phase.candidates = 'players';
+          phase.excludeAuthors = true;
+          delete phase.nextByWinner;
         } else {
           phase.candidates = '';
           delete phase.nextByWinner; // branching needs a fixed list
@@ -2323,6 +2331,11 @@ function renderPhaseConfig(phaseId) {
         renderPhaseConfig(phaseId);
       });
       phaseConfigForm.appendChild(addVoteOptBtn);
+    } else if (voteOverPlayers) {
+      var playersNote = document.createElement('p');
+      playersNote.className = 'field-help';
+      playersNote.textContent = 'Every student in the room is a choice, shown by name. Nobody can vote for themselves. The winner\'s name is {{' + phaseId + '.winnerText}}; an Eliminate step with "The most votes go out" can send them out of the round.';
+      phaseConfigForm.appendChild(playersNote);
     } else {
       addDataRefDropdown('Candidates from', 'Where to get the list of choices', 'phase-candidates', phaseId, phase.candidates, function (value) {
         phase.candidates = value;
@@ -2412,6 +2425,7 @@ function renderPhaseConfig(phaseId) {
     addSelectWithHelp('Method', 'How players are eliminated', 'phase-method',
       [
         { value: 'bottom-percent', label: 'Bottom percentage of scores' },
+        { value: 'most-votes', label: 'The most votes go out (a vote over the students)' },
         { value: 'hook', label: 'Custom hook function' }
       ],
       phase.method || 'bottom-percent', function (value) {
@@ -2420,6 +2434,11 @@ function renderPhaseConfig(phaseId) {
         renderPhaseConfig(phaseId);
       }
     );
+    if (phase.method === 'most-votes') {
+      addFieldWithHelp('How many go out', 'The top-voted student(s) leave the round; ties at the cutoff all go. Point "Scores from" at a Vote step whose choices are "players".', 'number', 'phase-count', phase.count || 1, false, function (value) {
+        if (value) phase.count = value; else delete phase.count;
+      });
+    }
     if (phase.method === 'bottom-percent' || !phase.method) {
       addFieldWithHelp('Percent to eliminate', 'e.g. 60 means bottom 60% are eliminated', 'number', 'phase-percent', phase.percent, false, function (value) {
         phase.percent = value;
@@ -2936,15 +2955,55 @@ function renderPhaseConfig(phaseId) {
     if (earlierSplits.length > 0 || phase.method === 'jigsaw') {
       methodOptions.push({ value: 'jigsaw', label: 'Jigsaw: regroup an earlier split' });
     }
+    // By answer (2026-09-30): groups from an earlier pick-one step's
+    // answers; offered once there is such a step (kept when a loaded
+    // config already uses it).
+    var earlierPolls = [];
+    for (var pbId in gameConfig.phases) {
+      if (pbId !== phaseId && gameConfig.phases[pbId] && gameConfig.phases[pbId].type === 'collect-choice') {
+        earlierPolls.push({ value: pbId, label: phaseContentLabel(pbId) });
+      }
+    }
+    if (earlierPolls.length > 0 || phase.method === 'byAnswer') {
+      methodOptions.push({ value: 'byAnswer', label: 'By their answer to an earlier question' });
+    }
     addSelectWithHelp('How teams are made', 'random/balanced assign instantly. "You arrange them" shows the roster on your screen. "Students pick" lets them tap the group they want (open spots only). "Jigsaw" mixes an earlier split so every new group has one member from each earlier group.', 'phase-method',
       methodOptions,
       phase.method || 'random', function (value) {
         phase.method = value;
         if (value !== 'jigsaw') delete phase.regroupFrom;
+        if (value !== 'byAnswer') { delete phase.groupBy; delete phase.groupMode; }
+        if (value === 'byAnswer') delete phase.teamCount;
         renderCanvas();
         renderPhaseConfig(phaseId);
       }
     );
+    if (phase.method === 'byAnswer') {
+      addSelectWithHelp('Group by the answers to', 'The earlier Multiple choice step whose answers decide the groups. Students who did not answer join the smallest group.', 'phase-groupBy',
+        [{ value: '', label: 'Pick a question step...' }].concat(earlierPolls),
+        phase.groupBy || '', function (value) {
+          isDirty = true;
+          if (value) phase.groupBy = value; else delete phase.groupBy;
+          renderCanvas();
+        });
+      addSelectWithHelp('Group mode', '"Same answer together" makes one group per answer, named by the answer. "One of each answer" puts a student from every answer in each group, so every group hears every side.', 'phase-groupMode',
+        [
+          { value: 'same', label: 'Same answer together' },
+          { value: 'mixed', label: 'One of each answer per group' }
+        ],
+        phase.groupMode || 'same', function (value) {
+          isDirty = true;
+          phase.groupMode = value;
+          if (value === 'mixed') delete phase.groupSize;
+          renderCanvas();
+          renderPhaseConfig(phaseId);
+        });
+      if ((phase.groupMode || 'same') === 'same') {
+        addFieldWithHelp('Group size (optional)', 'Leave empty for one group per answer. Set it to split a big answer into groups of this size (a class of 20 that all picked Yes becomes five groups of four).', 'number', 'phase-groupSize', phase.groupSize, false, function (value) {
+          if (value) phase.groupSize = value; else delete phase.groupSize;
+        });
+      }
+    }
     if (phase.method === 'balanced') {
       var scoreRefOptions = buildDataRefOptions(phaseId).filter(function (o) {
         return scoreRefs.indexOf(o.value) !== -1;
@@ -2966,7 +3025,8 @@ function renderPhaseConfig(phaseId) {
     // Sizing: a number of teams OR a group size (exactly one); a jigsaw
     // takes its sizes from the earlier split
     var sizedByGroup = phase.groupSize != null && phase.teamCount == null;
-    if (phase.method !== 'jigsaw') addSelectWithHelp('Size teams by', '"Number of teams" makes exactly N teams. "Group size" makes as many groups of that size as the class needs (22 kids in groups of 4 → 4,4,4,4,3,3).', 'phase-team-sizing',
+    var sizedBySource = phase.method === 'jigsaw' || phase.method === 'byAnswer';
+    if (!sizedBySource) addSelectWithHelp('Size teams by', '"Number of teams" makes exactly N teams. "Group size" makes as many groups of that size as the class needs (22 kids in groups of 4 → 4,4,4,4,3,3).', 'phase-team-sizing',
       [
         { value: 'count', label: 'Number of teams' },
         { value: 'size', label: 'Group size' }
@@ -2984,8 +3044,8 @@ function renderPhaseConfig(phaseId) {
         renderPhaseConfig(phaseId);
       });
 
-    if (phase.method === 'jigsaw') {
-      // the earlier split decides the sizes
+    if (sizedBySource) {
+      // the earlier split, or the answers, decide the sizes
     } else if (sizedByGroup) {
       addFieldWithHelp('Group size', 'Students per group (2-12)', 'number', 'phase-groupSize', phase.groupSize, false, function (value) {
         phase.groupSize = value;
@@ -2995,7 +3055,7 @@ function renderPhaseConfig(phaseId) {
         phase.teamCount = value;
       });
     }
-    if (phase.method !== 'jigsaw') addTextAreaWithHelp('Custom team names', 'Comma-separated names (e.g. Red Team, Blue Team). Leave empty for default.', 'phase-teamNames',
+    if (!sizedBySource) addTextAreaWithHelp('Custom team names', 'Comma-separated names (e.g. Red Team, Blue Team). Leave empty for default.', 'phase-teamNames',
       Array.isArray(phase.teamNames) ? phase.teamNames.join(', ') : '',
       'e.g. Cats, Dogs, Birds',
       function (value) {
@@ -3070,6 +3130,16 @@ function renderPhaseConfig(phaseId) {
       });
 
     if (rankIsOwnList) {
+      // A graded order (2026-09-30): the same items in their right order;
+      // the step shows them shuffled and scores each right slot
+      addTextAreaWithHelp('The right order (optional)', 'One item per line, in the correct order (a timeline, the steps of a process). Leave empty for a class ranking with no right answer. With it, the list is shown shuffled and every student scores points per item placed in its right slot.', 'phase-correctOrder',
+        Array.isArray(phase.correctOrder) ? phase.correctOrder.join('\n') : '',
+        'e.g. 1776\n1789\n1812', function (value) {
+          isDirty = true;
+          var lines = String(value || '').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+          if (lines.length) phase.correctOrder = lines; else delete phase.correctOrder;
+          renderCanvas();
+        });
       var rankItemsArr = phase.candidates;
       for (var rki = 0; rki < rankItemsArr.length; rki++) {
         (function (index) {
@@ -6038,6 +6108,9 @@ function validateConfig() {
       if (phase.method === 'hook' && !phase.hook) {
         errors.push(label + ': Hook method requires a hook function name.');
       }
+      if (phase.method === 'most-votes' && !phase.input && !phase.from) {
+        errors.push(label + ': "The most votes go out" needs "Scores from" to point at a Vote step\'s scores.');
+      }
     }
 
     // Preview must have content OR template
@@ -6173,6 +6246,18 @@ function validateConfig() {
     }
 
     // rank teamsFrom + assign from validation (mirrors engine/game-loader.js)
+    if (phase.type === 'rank' && phase.correctOrder !== undefined) {
+      var rightOrder = Array.isArray(phase.correctOrder) ? phase.correctOrder.map(function (x) { return String(x == null ? '' : x).trim(); }).filter(Boolean) : [];
+      if (rightOrder.length < 2) {
+        errors.push(label + ': "The right order" needs every item, in order, or leave it empty.');
+      } else if (Array.isArray(phase.candidates)) {
+        var keyOf = function (s) { return String(s == null ? '' : s).trim().toLowerCase(); };
+        var rankItemsKeyed = phase.candidates.map(keyOf).filter(Boolean).sort();
+        var rightKeyed = rightOrder.map(keyOf).sort();
+        var sameSet = rankItemsKeyed.length === rightKeyed.length && rankItemsKeyed.every(function (it, i) { return it === rightKeyed[i]; });
+        if (!sameSet) errors.push(label + ': "The right order" must list exactly the items to rank, each once.');
+      }
+    }
     if (phase.type === 'rank' && phase.teamsFrom) {
       var rkSrc = phases[phase.teamsFrom];
       if (!rkSrc) {
@@ -6204,6 +6289,19 @@ function validateConfig() {
         }
       } else if (phase.regroupFrom !== undefined) {
         errors.push(label + ': "Regroup from" only works with the Jigsaw method.');
+      }
+      if (phase.method === 'byAnswer') {
+        var gbSrc = phase.groupBy ? phases[phase.groupBy] : null;
+        if (!phase.groupBy || !gbSrc) {
+          errors.push(label + ': grouping by answer needs "Group by the answers to" to name an earlier Multiple choice step.');
+        } else if (gbSrc.type !== 'collect-choice' || phase.groupBy === id) {
+          errors.push(label + ': "Group by the answers to" must point to an earlier Multiple choice step.');
+        }
+        if (phase.teamCount != null) {
+          errors.push(label + ': grouping by answer takes no "Number of teams"; the answers decide the count.');
+        }
+      } else if (phase.groupBy !== undefined || phase.groupMode !== undefined) {
+        errors.push(label + ': "Group by the answers to" only works with the By their answer method.');
       }
     }
 

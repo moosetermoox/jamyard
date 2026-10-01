@@ -2649,7 +2649,17 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       if (step.brick === 'knockout') {
         list.appendChild(addedRow(SB_BRICK_LABELS.winner || 'Crown a winner', 'added: rounds of answer, vote, and out, then the last one standing'));
       }
-      if (step.brick === 'vote' && step.approve === true) {
+      if (step.brick === 'write-quiz') {
+        list.appendChild(addedRow(SB_BRICK_LABELS['solo-quiz'] || 'Self-paced quiz', 'added: a quiz over every complete question the class wrote, at each student\'s own pace'));
+      }
+      if (step.brick === 'rank' && step.correct === true) {
+        list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: the class order beside the right order, and how many slots the class got right'));
+        if (step.standings !== false) list.appendChild(addedRow(SB_BRICK_LABELS.leaderboard || 'Leaderboard', 'added: the standings'));
+      }
+      if (step.brick === 'vote' && step.over === 'students') {
+        list.appendChild(addedRow(step.out === true ? (SB_BRICK_LABELS.eliminate || 'Eliminate players') : (SB_BRICK_LABELS.reveal || 'Reveal'),
+          step.out === true ? 'added: the most-voted student is out of the round, announced to everyone' : 'added: the chosen name on the projector'));
+      } else if (step.brick === 'vote' && step.approve === true) {
         list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: the list of what passed, each with its yes and no counts'));
       } else if (step.brick === 'vote' && answersSoFar) {
         list.appendChild(addedRow(SB_BRICK_LABELS.winner || 'Crown a winner', 'added: the winning answer, with a drumroll'));

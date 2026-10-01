@@ -257,6 +257,10 @@ export class GameEngine {
       const ref = phase.input || phase.from;
       const scores = ref ? this.resolve(ref) : {};
       input = { scores, percent: phase.percent };
+    } else if (phase.method === 'most-votes') {
+      const ref = phase.input || phase.from;
+      const scores = ref ? this.resolve(ref) : {};
+      input = { scores, count: phase.count };
     } else if (phase.method === 'hook') {
       const data = phase.input ? this.resolve(phase.input) : null;
       const context = {
@@ -278,7 +282,7 @@ export class GameEngine {
 
   _runVote(phase) {
     const candidates = phase.candidates ? this.resolve(phase.candidates) : [];
-    const candidateIds = candidates.map(c => c.playerId || c);
+    const candidateIds = candidates.map(c => c.playerId || c.id || c);
     const voters = getEligibleVoters(this.players, phase.voters || 'all');
 
     if (phase.mode === 'head-to-head') {

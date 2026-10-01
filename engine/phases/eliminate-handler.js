@@ -12,6 +12,8 @@ export function runEliminate({ method, input, hooks, players }) {
     toEliminate = runHookMethod(input, hooks);
   } else if (method === 'bottom-percent') {
     toEliminate = runBottomPercent(input);
+  } else if (method === 'most-votes') {
+    toEliminate = runMostVotes(input);
   } else {
     throw new Error(`Unknown eliminate method: "${method}"`);
   }
@@ -32,6 +34,25 @@ function runHookMethod({ hookFn, data, context }, hooks) {
     throw new Error(`Hook "${hookFn}" not found`);
   }
   return fn({ ...context, input: data });
+}
+
+/**
+ * The top-scoring player(s) go out (2026-09-30): a vote over the students
+ * ("candidates": "players") decides who leaves the round. Ties at the
+ * cutoff all go, unless that would empty the room or nobody got a vote.
+ * @param {{ scores: Record<string, number>, count?: number }} input
+ * @returns {string[]}
+ */
+export function runMostVotes({ scores, count }) {
+  const entries = Object.entries(scores || {}).filter(([, s]) => typeof s === 'number');
+  if (entries.length === 0) return [];
+  entries.sort((a, b) => b[1] - a[1]);
+  const n = Number.isInteger(count) && count >= 1 ? Math.min(count, entries.length) : 1;
+  const cutoff = entries[n - 1][1];
+  if (cutoff <= 0) return [];
+  const out = entries.filter(([, s]) => s >= cutoff).map(([id]) => id);
+  if (out.length === entries.length) return [];
+  return out;
 }
 
 function runBottomPercent({ scores, percent }) {

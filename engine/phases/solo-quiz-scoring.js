@@ -20,6 +20,35 @@ export function isCorrectAnswer(choice, correct) {
  * choices. Mirrors engine/quiz-questions.js bounds loosely (that module
  * gates AI output; this one gates config).
  */
+/**
+ * Questions written by the class (2026-09-30): an Open answer step with
+ * boxes keyed question, correct, and wrong1..wrong3 (any other box with
+ * words counts as a wrong answer too). Every complete answer becomes one
+ * question; blanks and a wrong answer equal to the right one are skipped.
+ * @param {Array<{fields?: Record<string, string>}>} responses
+ * @returns {Array<{question: string, choices: string[], correct: string}>}
+ */
+export function questionsFromResponses(responses) {
+  const out = [];
+  for (const r of Array.isArray(responses) ? responses : []) {
+    const f = r && r.fields && typeof r.fields === 'object' ? r.fields : null;
+    if (!f) continue;
+    const question = String(f.question ?? f.q ?? '').trim();
+    const correct = String(f.correct ?? f.answer ?? f.right ?? '').trim();
+    if (!question || !correct) continue;
+    const wrongs = [];
+    for (const [key, value] of Object.entries(f)) {
+      if (['question', 'q', 'correct', 'answer', 'right'].includes(key)) continue;
+      const w = String(value == null ? '' : value).trim();
+      if (!w || isCorrectAnswer(w, correct) || wrongs.some(x => isCorrectAnswer(x, w))) continue;
+      wrongs.push(w);
+    }
+    if (wrongs.length === 0) continue;
+    out.push({ question, choices: [correct].concat(wrongs), correct });
+  }
+  return playableQuestions(out);
+}
+
 export function playableQuestions(raw) {
   if (!Array.isArray(raw)) return [];
   const out = [];

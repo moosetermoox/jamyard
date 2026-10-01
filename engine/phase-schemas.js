@@ -459,7 +459,14 @@ export const PHASE_SCHEMAS = {
         // with both counts per choice, and the sentence under it.
         beforeAfter: { type: 'string' },
         movedLine: { type: 'string' },
-        moved: { type: 'number' }
+        moved: { type: 'number' },
+        // The most and the least picked choice, in words (2026-09-30):
+        // "{{poll.least}} goes first", a minority turn with no new step.
+        // A tie keeps the choice listed first on the step.
+        most: { type: 'string', capability: 'renderable' },
+        least: { type: 'string', capability: 'renderable' },
+        mostCount: { type: 'number' },
+        leastCount: { type: 'number' }
       }
     },
     // Note: bare {{X.barChart}} on collect-choice is the documented
@@ -481,8 +488,13 @@ export const PHASE_SCHEMAS = {
     mixins: ['screenControl'],
     fields: {
       title: { type: 'templateString', optional: true, label: 'Title shown on the projector' },
+      questionsFrom: {
+        type: 'phaseRef', optional: true,
+        label: 'Questions written by the class',
+        helper: 'An earlier Open answer step whose boxes are keyed "question", "correct", and "wrong1", "wrong2" (up to "wrong3"): every complete answer becomes a question on the quiz (the student-written quiz). With it, the "questions" list below may be empty.'
+      },
       questions: {
-        type: 'array', required: true,
+        type: 'array', optional: true,
         item: { type: 'object', allowAnyKeys: true },
         label: 'Questions',
         helper: 'Each item: {"question": "...", "choices": ["A", "B", "C"], "correct": "B"}. The correct answer must match one choice exactly. Questions with fewer than 2 choices are skipped.'
@@ -643,7 +655,7 @@ export const PHASE_SCHEMAS = {
           { type: 'array', capability: 'responseArray' }
         ],
         optional: true, label: 'Choices to vote on',
-        helper: 'Required unless matchupsFromPairs is set.'
+        helper: 'Required unless matchupsFromPairs is set. The word "players" (or "remaining", in an elimination loop) puts the students themselves on the ballot, by name: a vote for who was the spy, who presents first, whose turn it is; with excludeAuthors nobody votes for themselves, and .winnerText is the chosen student\'s name.'
       },
       matchupsFromPairs: {
         type: 'phaseRef', optional: true,
@@ -738,12 +750,17 @@ export const PHASE_SCHEMAS = {
     mixins: ['screenControl', 'loops'],
     fields: {
       method: {
-        type: 'enum', values: ['bottom-percent', 'hook'], required: true,
-        label: 'Method'
+        type: 'enum', values: ['bottom-percent', 'hook', 'most-votes'], required: true,
+        label: 'Method',
+        helper: '"bottom-percent" removes the lowest scores. "most-votes" removes the top-scoring player(s) of the score map in "input", a vote over the students ("candidates": "players") that picks who goes out; ties at the top all go, a round where nobody got a vote removes nobody.'
       },
       percent: {
         type: 'integer', min: 1, max: 100, optional: true,
         label: 'Percent to eliminate'
+      },
+      count: {
+        type: 'integer', min: 1, max: 10, optional: true, default: 1,
+        label: 'How many go out (most-votes)'
       },
       hook: {
         type: 'string', optional: true,
@@ -1392,14 +1409,24 @@ export const PHASE_SCHEMAS = {
     mixins: ['screenControl', 'participantSelector', 'loops'],
     fields: {
       method: {
-        type: 'enum', values: ['random', 'balanced', 'teacher', 'choice', 'jigsaw'], required: true,
+        type: 'enum', values: ['random', 'balanced', 'teacher', 'choice', 'jigsaw', 'byAnswer'], required: true,
         label: 'How teams are made',
-        helper: 'random/balanced assign instantly. "teacher" shows a roster on the host screen for you to arrange. "choice" lets students tap the group they want (open spots only; stragglers auto-filled when you confirm). "jigsaw" regroups an earlier split ("Regroup from"): every new group gets one member from each earlier group, the count and sizes follow from that.'
+        helper: 'random/balanced assign instantly. "teacher" shows a roster on the host screen for you to arrange. "choice" lets students tap the group they want (open spots only; stragglers auto-filled when you confirm). "jigsaw" regroups an earlier split ("Regroup from"): every new group gets one member from each earlier group, the count and sizes follow from that. "byAnswer" groups by what each student picked on an earlier Multiple choice step ("Group by the answers to", with "Group mode").'
       },
       regroupFrom: {
         type: 'phaseRef', optional: true,
         label: 'Regroup from',
         helper: 'Jigsaw only: the earlier Split into Teams step whose groups are mixed. Expert groups become home groups with one expert from each.'
+      },
+      groupBy: {
+        type: 'phaseRef', optional: true,
+        label: 'Group by the answers to',
+        helper: 'byAnswer only: the earlier Multiple choice step whose answers decide the groups. Students who did not answer join the smallest group.'
+      },
+      groupMode: {
+        type: 'enum', values: ['same', 'mixed'], optional: true, default: 'same',
+        label: 'Group mode',
+        helper: 'byAnswer only. "same": everyone who picked the same answer is one group, named by the answer (set "Group size" to split a big answer into groups of that size). "mixed": every group gets one student per answer where the numbers allow, so each group hears every side.'
       },
       capacity: {
         type: 'enum', values: ['even', 'open'], optional: true, default: 'even',
@@ -1513,6 +1540,15 @@ export const PHASE_SCHEMAS = {
         type: 'phaseRef', optional: true, contexts: ['topLevel'],
         label: 'Rank as groups',
         helper: 'An earlier Split into Teams step (or paired-up collect step). Every student still ranks on their own screen; each group\'s order is its members\' average, stored per group beside the class order. Pair it with a Hand out choices step to give every group one of the items.'
+      },
+      correctOrder: {
+        type: 'array', item: { type: 'string' }, optional: true,
+        label: 'The right order (optional)',
+        helper: 'The items in their correct order (timelines, steps of a process, smallest to largest). Then the step is graded: the list is shown shuffled, each student scores "Points per item" for every item they put in its right slot (.scores), and the class reads .correctList, .placedRight, and .itemCount after. Must be exactly the items from the list above.'
+      },
+      pointsPerItem: {
+        type: 'integer', min: 1, max: 1000, optional: true, default: 10,
+        label: 'Points per item in the right slot'
       }
     },
     transitions: {
@@ -1526,7 +1562,14 @@ export const PHASE_SCHEMAS = {
         responses:  { type: 'object' },
         candidates: { type: 'array' },
         byGroup:    { type: 'object' },
-        groupRankedList: { type: 'string', capability: 'renderable' }
+        groupRankedList: { type: 'string', capability: 'renderable' },
+        // With correctOrder (2026-09-30): points per student, the right
+        // order as a numbered list, and how many slots the class order
+        // got right
+        scores:      { type: 'scoreMap', capability: 'scoreMap', renderers: { json: 'jsonPretty' } },
+        correctList: { type: 'string', capability: 'renderable' },
+        placedRight: { type: 'number' },
+        itemCount:   { type: 'number' }
       }
     },
     ui: {
