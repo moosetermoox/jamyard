@@ -1613,6 +1613,11 @@ export const PHASE_SCHEMAS = {
       pointsPerItem: {
         type: 'integer', min: 1, max: 1000, optional: true, default: 10,
         label: 'Points per item in the right slot'
+      },
+      runoff: {
+        type: 'boolean', optional: true,
+        label: 'Pick one by instant runoff',
+        helper: 'Ranked-choice voting: every student\'s order is a ballot. Each round counts the first choice still in the running; an item with more than half wins, otherwise the last place goes out and its ballots move to their next choice. Outputs .winnerText (the item, in words), .runoffList (every round in a line: "Round 1: Pizza 4, Tacos 3, Sushi 2. Sushi is out."), and .runoffRounds. Not with "The right order".'
       }
     },
     transitions: {
@@ -1633,7 +1638,12 @@ export const PHASE_SCHEMAS = {
         scores:      { type: 'scoreMap', capability: 'scoreMap', renderers: { json: 'jsonPretty' } },
         correctList: { type: 'string', capability: 'renderable' },
         placedRight: { type: 'number' },
-        itemCount:   { type: 'number' }
+        itemCount:   { type: 'number' },
+        // With runoff (2026-10-01, engine/phases/runoff.js): the item the
+        // class picked by instant runoff, in words, and every round
+        winnerText:   { type: 'string', capability: 'renderable' },
+        runoffList:   { type: 'string', capability: 'renderable' },
+        runoffRounds: { type: 'number' }
       }
     },
     ui: {

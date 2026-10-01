@@ -849,6 +849,13 @@ export function validate(config, gameId, options) {
     // output carries an ordered preference per group or student.
     // A graded order (2026-09-30): the right order must be exactly the
     // items to rank, or the slots could never line up.
+    // Instant runoff picks the class's choice; a right order grades it.
+    // One rank step cannot be both (2026-10-01).
+    if (phase.type === 'rank' && phase.runoff === true && phase.correctOrder !== undefined) {
+      errors.push(
+        `Game "${gameId}": phase "${name}" (rank) has both "runoff" and "The right order"; a runoff picks the class's choice and a right order grades one, so keep one of them.`
+      );
+    }
     if (phase.type === 'rank' && phase.correctOrder !== undefined) {
       const right = Array.isArray(phase.correctOrder) ? phase.correctOrder.map(x => String(x == null ? '' : x).trim()).filter(Boolean) : [];
       if (right.length < 2) {

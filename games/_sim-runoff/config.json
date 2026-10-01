@@ -1,0 +1,32 @@
+{
+  "name": "Sim Runoff",
+  "description": "Hidden fixture: the rank brick with runoff (scripts/simulate-runoff.js).",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "order"
+    },
+    "order": {
+      "type": "rank",
+      "prompt": "Put these lunches in order, your favorite at the top.",
+      "candidates": [
+        "Pizza",
+        "Tacos",
+        "Sushi"
+      ],
+      "timer": 90,
+      "runoff": true,
+      "next": "order-show"
+    },
+    "order-show": {
+      "type": "reveal",
+      "template": "The class picked:\n\n**{{order.winnerText}}**\n\n{{order.runoffList}}",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Lunch is decided."
+    }
+  }
+}

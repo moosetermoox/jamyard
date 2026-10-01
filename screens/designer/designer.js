@@ -2649,6 +2649,9 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       if (step.brick === 'knockout') {
         list.appendChild(addedRow(SB_BRICK_LABELS.winner || 'Crown a winner', 'added: rounds of answer, vote, and out, then the last one standing'));
       }
+      if (step.brick === 'rank' && step.runoff === true && step.correct !== true) {
+        list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: the class\'s pick by instant runoff, and every round of the count'));
+      }
       if (step.brick === 'quiz' && step.confidence === true) {
         list.appendChild(addedRow(SB_BRICK_LABELS['collect-choice'] || 'Multiple choice', 'added after every question: how sure are you? The answer then shows how sure the right ones were beside the wrong ones'));
       }

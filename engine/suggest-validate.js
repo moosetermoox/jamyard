@@ -257,6 +257,8 @@ export function validateSuggestions(raw, ctx) {
             clueLabel: typeof s.clueLabel === 'string' ? s.clueLabel.slice(0, 80) : undefined,
             questions: cleanQuestions(s.questions),
             speedBonus: typeof s.speedBonus === 'boolean' ? s.speedBonus : undefined,
+            // rank: ranked-choice voting, one item picked by instant runoff
+            runoff: s.runoff === true ? true : undefined,
             // quiz: "how sure are you?" after every question (2026-10-01)
             confidence: s.confidence === true ? true : undefined,
             teamCount: typeof s.teamCount === 'number' ? s.teamCount : undefined,

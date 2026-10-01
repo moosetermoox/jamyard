@@ -1998,6 +1998,18 @@
             problems.push('Step ' + (i + 1) + ': ranking as groups needs a teams step before it, so the class ranks as one.');
           }
         }
+        // Instant runoff (2026-10-01): every order is a ballot and the
+        // class picks ONE item; a graded order or a hand-out wants the
+        // whole order instead
+        if (step.runoff === true) {
+          if (built.correctOrder) {
+            problems.push('Step ' + (i + 1) + ': a runoff picks the class\'s choice and a right order grades one; the runoff was left off.');
+          } else if (nextBrick === 'assign') {
+            problems.push('Step ' + (i + 1) + ': a hand-out after the ranking needs the whole order; the runoff was left off.');
+          } else {
+            built.runoff = true;
+          }
+        }
         id = freshId(phases, BASE_ID_FOR.rank);
       } else if (voteOverStudents) {
         // The students themselves on the ballot (2026-09-30): who was the
@@ -2216,8 +2228,10 @@
         phases[lastId].next = orderId;
         phases[orderId] = {
           type: 'reveal',
-          template: built.correctOrder
-            ? 'The class order:\n\n{{' + id + '.rankedList}}\n\nThe right order:\n\n{{' + id + '.correctList}}\n\nThe class put {{' + id + '.placedRight}} of {{' + id + '.itemCount}} in the right slot.'
+          template: built.runoff
+            ? 'The class picked:\n\n**{{' + id + '.winnerText}}**\n\n{{' + id + '.runoffList}}'
+            : built.correctOrder
+            ?'The class order:\n\n{{' + id + '.rankedList}}\n\nThe right order:\n\n{{' + id + '.correctList}}\n\nThe class put {{' + id + '.placedRight}} of {{' + id + '.itemCount}} in the right slot.'
             : 'The class ranking:\n\n{{' + id + '.rankedList}}'
         };
         lastId = orderId;

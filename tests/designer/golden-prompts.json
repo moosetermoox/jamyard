@@ -1827,6 +1827,22 @@
           ]
         }
       }
+    },
+    {
+      "id": "runoff-next-novel",
+      "prompt": "Let my class pick our next novel from five choices with ranked-choice voting: everyone ranks them and we use instant runoff so the winner has a majority.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Pick Our Next Novel",
+          "description": "Everyone ranks five novels and instant runoff picks the one the class wants most.",
+          "steps": [
+            { "brick": "announce", "text": "Rank all five novels, your favorite at the top. If your first pick goes out, your vote moves to your next choice." },
+            { "brick": "rank", "runoff": true, "text": "Put these novels in order, the one you most want to read at the top.", "items": ["Holes", "Wonder", "Hatchet", "The Giver", "Esperanza Rising"] },
+            { "brick": "end", "text": "That is our next novel." }
+          ]
+        }
+      }
     }
   ]
 }

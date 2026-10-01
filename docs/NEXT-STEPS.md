@@ -35,7 +35,11 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-10-01, night: Part 3 slices one to three; #149 `feedback-brick` and #150 `quiet-brick` MERGED and live, slice three `confidence-knob` PR open; restart :3000 before using it locally)
+### START HERE next session (updated 2026-10-01, late night: Part 3 slices one to four; #149, #150, #151 MERGED and live, slice four `instant-runoff` PR open; restart :3000 before using it locally)
+
+**Done today:** (1) peer feedback (#149), (2) quiet time (#150), (3) confidence after the answer (#151), (4) instant runoff (rank `runoff: true`, `engine/phases/runoff.js`; proof `scripts/simulate-runoff.js` 6 of 6, live eval 14 of 14, tests 3304). **Next:** (5) hot seat to one screen, then (6) and (7) as listed below. Live check when there is a moment: on jamyard.org, "rank four field trips and pick one by instant runoff" in Create, run with pretend students, and read the rounds on the projector.
+
+### Previous START HERE (2026-10-01, night: slices one to three, `confidence-knob` PR open)
 
 **Done today:** (1) peer feedback (#149), (2) quiet time (#150), (3) confidence after the answer (quiz brick `confidence: true`, collect-choice `confidenceFor`, a Right | Wrong chart on the answer card, the words in the activity's language). Confidence proof `scripts/simulate-confidence.js` 12 of 12, live eval 12 of 12, tests 3292. **Next:** (4) instant runoff, then (5) to (7) as listed below. Live check when there is a moment: on jamyard.org, "a four-question water cycle quiz where students say how sure they are" in Create, run with pretend students, and look at the answer card.
 
