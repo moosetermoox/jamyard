@@ -779,6 +779,23 @@ textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width
   animation: revealSlideIn 0.3s ease;
 }
 
+/* The hot seat (2026-10-01): the student in it is told so above the
+   questions; everyone else reads one line that counts them going out */
+.hot-seat-you {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 8px 0 16px;
+  padding: 10px 14px;
+  border-left: 6px solid currentColor;
+  text-align: left;
+}
+.hot-seat-count {
+  font-size: 1.4rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 28px 0;
+}
+
 @keyframes revealSlideIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }

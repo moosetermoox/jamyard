@@ -329,6 +329,9 @@ export const STRINGS = {
     '{item} wins with {votes} of {total}.': '{item} gana con {votes} de {total}.',
     '{item} wins the tie on the class\'s overall ranking.': '{item} gana el empate por la clasificación general de la clase.',
     'Nobody ranked anything.': 'Nadie ordenó nada.',
+    // The hot seat (engine/phase-handlers/reveal-one.js)
+    '{index} of {total} sent to {name}': '{index} de {total} enviadas a {name}',
+    'You are in the hot seat. The questions come to your screen.': 'Estás en la silla caliente. Las preguntas llegan a tu pantalla.',
     'After': 'Después',
     'Elimination Results': 'Resultados de la eliminación',
     'Submit Ranking': 'Enviar el orden',
@@ -562,6 +565,9 @@ export const STRINGS = {
     '{item} wins with {votes} of {total}.': '{item} gagne avec {votes} sur {total}.',
     '{item} wins the tie on the class\'s overall ranking.': '{item} l\'emporte à égalité grâce au classement général de la classe.',
     'Nobody ranked anything.': 'Personne n\'a rien classé.',
+    // The hot seat (engine/phase-handlers/reveal-one.js)
+    '{index} of {total} sent to {name}': '{index} sur {total} envoyées à {name}',
+    'You are in the hot seat. The questions come to your screen.': 'Tu es sur la sellette. Les questions arrivent sur ton écran.',
     'After': 'Après',
     'Elimination Results': "Résultats de l'élimination",
     'Submit Ranking': 'Envoyer le classement',
@@ -795,6 +801,9 @@ export const STRINGS = {
     '{item} wins with {votes} of {total}.': '{item} gewinnt mit {votes} von {total}.',
     '{item} wins the tie on the class\'s overall ranking.': '{item} gewinnt den Gleichstand nach der Gesamtrangfolge der Klasse.',
     'Nobody ranked anything.': 'Niemand hat etwas geordnet.',
+    // The hot seat (engine/phase-handlers/reveal-one.js)
+    '{index} of {total} sent to {name}': '{index} von {total} an {name} geschickt',
+    'You are in the hot seat. The questions come to your screen.': 'Du sitzt auf dem heißen Stuhl. Die Fragen kommen auf deinen Bildschirm.',
     'After': 'Nachher',
     'Elimination Results': 'Ausscheidungsergebnis',
     'Submit Ranking': 'Reihenfolge absenden',
@@ -1028,6 +1037,9 @@ export const STRINGS = {
     '{item} wins with {votes} of {total}.': '{item} vence com {votes} de {total}.',
     '{item} wins the tie on the class\'s overall ranking.': '{item} vence o empate pela classificação geral da turma.',
     'Nobody ranked anything.': 'Ninguém ordenou nada.',
+    // The hot seat (engine/phase-handlers/reveal-one.js)
+    '{index} of {total} sent to {name}': '{index} de {total} enviadas para {name}',
+    'You are in the hot seat. The questions come to your screen.': 'Você está na berlinda. As perguntas chegam na sua tela.',
     'After': 'Depois',
     'Elimination Results': 'Resultados da eliminação',
     'Submit Ranking': 'Enviar a ordem',
@@ -1261,6 +1273,9 @@ export const STRINGS = {
     '{item} wins with {votes} of {total}.': '{item} vince con {votes} su {total}.',
     '{item} wins the tie on the class\'s overall ranking.': '{item} vince il pareggio grazie alla classifica generale della classe.',
     'Nobody ranked anything.': 'Nessuno ha ordinato niente.',
+    // The hot seat (engine/phase-handlers/reveal-one.js)
+    '{index} of {total} sent to {name}': '{index} su {total} inviate a {name}',
+    'You are in the hot seat. The questions come to your screen.': 'Sei sulla sedia che scotta. Le domande arrivano sul tuo schermo.',
     'After': 'Dopo',
     'Elimination Results': "Risultati dell'eliminazione",
     'Submit Ranking': "Invia l'ordine",

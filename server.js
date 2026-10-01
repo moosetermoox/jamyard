@@ -5870,10 +5870,21 @@ io.on('connection', (socket) => {
 
     console.log(`[reveal-next] Revealed item ${state.revealed}/${state.items.length} in room ${code}`);
 
-    // Send to everyone
-    io.to(code).emit(EVENTS.REVEAL_ONE_ITEM, {
-      item, index: state.revealed, total: state.items.length
-    });
+    if (state.hotSeatId) {
+      // The hot seat (2026-10-01): the item reaches ONE student's screen;
+      // the projector and the rest of the class get the count and the name
+      io.to(code).except(state.hotSeatId).emit(EVENTS.REVEAL_ONE_ITEM, {
+        item: null, index: state.revealed, total: state.items.length, hotSeat: state.hotSeatName
+      });
+      io.to(state.hotSeatId).emit(EVENTS.REVEAL_ONE_ITEM, {
+        item, index: state.revealed, total: state.items.length
+      });
+    } else {
+      // Send to everyone
+      io.to(code).emit(EVENTS.REVEAL_ONE_ITEM, {
+        item, index: state.revealed, total: state.items.length
+      });
+    }
     // Teacher consoles live in their own channel — mirror the progress
     // (count only) so the console tracks the gallery.
     io.to(teachersChannel(code)).emit(EVENTS.REVEAL_ONE_ITEM, {

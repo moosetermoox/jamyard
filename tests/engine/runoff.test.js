@@ -111,7 +111,7 @@ describe('instant runoff: the step and the brick', () => {
     expect(suggestions[0].storyboard.steps[0].runoff).toBe(true);
     const src = read('services/ai-service.js');
     expect(src).toMatch(/- rank also takes runoff: true when the class must PICK ONE item/);
-    expect(src).toMatch(/ranked-choice voting or instant runoff is rank with runoff: true\./);
+    expect(src).toMatch(/ranked-choice voting or instant runoff is rank with runoff: true[,.]/);
     expect(src).toMatch(/RANKED-CHOICE VOTING \(instant runoff\)/);
     expect(read('screens/designer/designer.js')).toMatch(/step\.brick === 'rank' && step\.runoff === true/);
   });

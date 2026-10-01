@@ -1850,7 +1850,7 @@ socket.on('leaderboard', ({ standings, allStandings, teamStandings, myTeam, styl
 
 // --- Socket events - Reveal-one ---
 
-socket.on('reveal-one-start', ({ message, total, revealed, timer, playerTemplate, show }) => {
+socket.on('reveal-one-start', ({ message, total, revealed, timer, hotSeat, inHotSeat, playerTemplate, show }) => {
   showSection(revealOneSection);
   applyTemplate(revealOneSection, playerTemplate);
   applyShow(show, {
@@ -1859,6 +1859,15 @@ socket.on('reveal-one-start', ({ message, total, revealed, timer, playerTemplate
   });
   setRichText(revealOneMessage, message || 'Revealing...');
   revealOneItems.innerHTML = '';
+  // The hot seat: the chosen student is told so; everyone else sees the count
+  if (hotSeat && inHotSeat) {
+    var you = document.createElement('p');
+    you.className = 'hot-seat-you';
+    you.textContent = UiLang.t('You are in the hot seat. The questions come to your screen.');
+    revealOneItems.appendChild(you);
+  } else if (hotSeat) {
+    showHotSeatCount(typeof revealed === 'number' ? revealed : 0, total, hotSeat);
+  }
 
   // If reconnecting, revealed items come as array
   if (revealed && Array.isArray(revealed)) {
@@ -1868,9 +1877,26 @@ socket.on('reveal-one-start', ({ message, total, revealed, timer, playerTemplate
   }
 });
 
-socket.on('reveal-one-item', ({ item }) => {
+socket.on('reveal-one-item', ({ item, index, total, hotSeat }) => {
+  if (hotSeat) {
+    // The hot seat (2026-10-01): the questions are on one classmate's
+    // screen; everyone else follows the count
+    showHotSeatCount(index, total, hotSeat);
+    return;
+  }
   appendRevealOneItem(item);
 });
+
+function showHotSeatCount(index, total, name) {
+  var line = revealOneItems.querySelector('.hot-seat-count');
+  if (!line) {
+    line = document.createElement('p');
+    line.className = 'hot-seat-count';
+    revealOneItems.appendChild(line);
+  }
+  line.textContent = UiLang.t('{index} of {total} sent to {name}')
+    .replace('{index}', String(index)).replace('{total}', String(total)).replace('{name}', name);
+}
 
 socket.on('reveal-one-complete', () => {
   // No action needed on player

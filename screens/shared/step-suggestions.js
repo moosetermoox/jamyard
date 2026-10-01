@@ -506,6 +506,8 @@
   //                             //   (else the last plain collect is the piece)
   //     readers?: number,       // feedback only: 1 (default) or 2 classmates read it
   //     talk?: string,          // quiet only: the host-paced line after the quiet
+  //     pick?: string,          // hotseat only: 'random' (default) | 'vote'
+  //     voteText?: string,      // hotseat only, pick 'vote': the vote's question
   //     piles?: [{label, prompt}], // deal only: 2-4 piles everyone adds one item to
   //     writeTimer?: number,    // deal only: seconds for the writing step (default 480)
   //     rounds?: string[],      // pairs only: 0-3 follow-up instructions, same partner,
@@ -1251,6 +1253,51 @@
     return showId;
   }
 
+  // ---- Hot seat brick (2026-10-01, the inventory's Part 3) ----
+  // One student answers the class's questions out loud: everyone writes a
+  // question, the teacher looks them over (a preview gate, since the
+  // questions go to a classmate), then they reach the hot seat's screen
+  // one at a time while the projector shows only the count and the name.
+  //   text      what everyone writes ("Write one question for the hot seat.")
+  //   pick      'random' (default: the hot seat is drawn when the questions
+  //             go out, a surprise) | 'vote' (the class picks first, by name)
+  //   voteText  the vote's question (pick 'vote')
+  //   heading   the line over the questions on the hot seat's screen
+  function appendHotSeat(step, stepNo, phases, lastId, problems) {
+    var text = (step && typeof step.text === 'string') ? step.text.trim() : '';
+    if (!text) {
+      problems.push('Step ' + stepNo + ': the hot seat needs "text", what everyone writes for the student in it.');
+      return null;
+    }
+    var heading = (typeof step.heading === 'string' && step.heading.trim()) ? step.heading.trim() : 'Your classmates ask:';
+    var to = '{{players.random}}';
+    if (step.pick === 'vote') {
+      var pickId = freshId(phases, 'pick');
+      var voteText = (typeof step.voteText === 'string' && step.voteText.trim()) ? step.voteText.trim() : 'Who goes in the hot seat?';
+      phases[lastId].next = pickId;
+      phases[pickId] = { type: 'vote', mode: 'pick-one', candidates: 'players', excludeAuthors: true, question: voteText, timer: 45 };
+      var namedId = freshId(phases, 'picked');
+      phases[pickId].next = namedId;
+      phases[namedId] = { type: 'reveal', template: 'In the hot seat:\n\n**{{' + pickId + '.winnerText}}**' };
+      lastId = namedId;
+      to = '{{' + pickId + '.winnerText}}';
+    }
+    var askId = freshId(phases, 'ask');
+    var gateId = freshId(phases, 'check');
+    var seatId = freshId(phases, 'hot-seat');
+    phases[lastId].next = askId;
+    phases[askId] = { type: 'collect', prompt: text, maxLength: 300 };
+    phases[askId].next = gateId;
+    phases[gateId] = {
+      type: 'preview',
+      template: 'Read the questions below before they go to the hot seat: press Hide beside any that should not go, then Approve. Try again asks everyone to write again.',
+      approveNext: seatId,
+      rejectNext: askId
+    };
+    phases[seatId] = { type: 'reveal-one', message: heading, from: askId + '.responses', to: to };
+    return seatId;
+  }
+
   // ---- Bracket brick (2026-09-27) ----
   // A single-elimination bracket over a list the teacher names (books,
   // songs, inventions; 4 to 16) or, with no list, the last question step's
@@ -1867,6 +1914,12 @@
       if (brick === 'chain') {
         var chainLast = appendPassChain(step, i + 1, phases, lastId, problems);
         if (chainLast) lastId = chainLast;
+        return;
+      }
+
+      if (brick === 'hotseat') {
+        var seatLast = appendHotSeat(step, i + 1, phases, lastId, problems);
+        if (seatLast) lastId = seatLast;
         return;
       }
 
