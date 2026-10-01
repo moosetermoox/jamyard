@@ -131,6 +131,8 @@ Ordered roughly by payoff over effort. None needs an asset or an animation.
 
 Things a teacher asks for that the kit cannot say yet, and what they would take.
 
+> STATUS 2026-10-01, night: Part 3 slice three on branch `confidence-knob`: `confidence: true` on the quiz brick (collect-choice `confidenceFor`, a Right | Wrong chart and a line on the answer card, words in the activity's language). It went on the quiz brick rather than a rate step: a graded pick-one question lives there, and the "how sure" must land before the answer card. Next: instant runoff.
+>
 > STATUS 2026-10-01, evening: Part 3 slice two on branch `quiet-brick`: the `quiet` brick (a timed announce with nothing to type and an optional talk line after), and a timed announce keeps its clock across a refresh. Next: confidence after the answer.
 >
 > STATUS 2026-10-01, later: Part 3 slice one shipped on branch `feedback-brick`: the `feedback` brick (one or two readers, each reads the draft in their own box, the writer gets every comment back) and the collect knob `showOriginal` (the B11 two-readers case). Next: quiet time.

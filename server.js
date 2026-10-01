@@ -178,6 +178,7 @@ import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
 import { extendPhaseTimer } from './engine/phase-timer.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
+import { splitByRight, formatConfidenceChart, confidenceLine } from './engine/phases/confidence.js';
 import { ensureReviewGate } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
 import { checkSubmission, filterContent, filterName, filterAboutClassmate, NAME_REFUSED_MESSAGE, CLASSMATE_REFUSED_MESSAGE } from './engine/content-filter.js';
@@ -1803,6 +1804,15 @@ async function closeCollect(code, room) {
             stored.beforeAfter = formatPairedChart(before.tally, tally, order);
             stored.moved = shift.moved;
             stored.movedLine = movedLine(room.engine.language, shift.moved, shift.total);
+          }
+          // confidenceFor: how sure the class was, split by who got the
+          // question right (engine/phases/confidence.js, 2026-10-01)
+          if (collectPhase.confidenceFor) {
+            const graded = room.engine.phaseData[collectPhase.confidenceFor] || {};
+            const split = splitByRight(graded.scores, byPlayer);
+            const levels = stored.chartOrder || literalChoices;
+            stored.confidenceChart = formatConfidenceChart(split, levels, room.engine.language);
+            stored.confidenceLine = confidenceLine(split, levels, room.engine.language);
           }
 
           // Speed-bonus scoring: when correctAnswer is set, grade each response.

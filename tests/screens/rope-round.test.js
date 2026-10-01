@@ -50,7 +50,7 @@ describe('the paired chart on the screens', () => {
   it('chart-render parses a paired line and builds the five-column chart', () => {
     const src = read('screens/shared/chart-render.js');
     expect(src).toContain('var PAIR_LINE = /^(.*?)\\s*([█░]+)\\s*(\\d+)\\s*→\\s*([█░]+)\\s*(\\d+)\\s*$/;');
-    expect(src).toContain("segments.push({ type: 'pair', rows: [prow] })");
+    expect(src).toContain("{ type: 'pair', rows: [prow] }");
     expect(src).toContain('buildPairChart: buildPairChart');
     expect(src).toContain("wrap.className = 'msg-chart is-pair'");
     expect(src).toContain("t('Before'), '', t('After')");
@@ -58,7 +58,7 @@ describe('the paired chart on the screens', () => {
   it('the projector and the student screen draw a pair segment', () => {
     expect(read('screens/host/host.js')).toContain('ChartRender.buildSegment(seg)');
     expect(read('screens/player/player.js')).toContain('ChartRender.buildSegment(seg)');
-    expect(read('screens/shared/chart-render.js')).toContain("if (seg.type === 'pair') return buildPairChart(seg.rows);");
+    expect(read('screens/shared/chart-render.js')).toContain("if (seg.type === 'pair') return buildPairChart(seg.rows, seg.heads);");
     expect(read('screens/host/styles.css')).toContain('.msg-chart.is-pair { grid-template-columns: fit-content(30%) 1fr auto 1fr auto;');
     expect(read('screens/player/styles.css')).toContain('.msg-chart.is-pair { grid-template-columns: fit-content(30%) 1fr auto 1fr auto;');
   });

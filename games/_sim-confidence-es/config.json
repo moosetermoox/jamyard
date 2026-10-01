@@ -1,0 +1,48 @@
+{
+  "name": "Prueba de seguridad",
+  "description": "Hidden fixture: the quiz brick with confidence (scripts/simulate-confidence.js).",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "quiz"
+    },
+    "quiz": {
+      "type": "collect-choice",
+      "prompt": "¿Cómo se llama cuando el vapor de agua se convierte en líquido?",
+      "choices": [
+        "Evaporación",
+        "Condensación"
+      ],
+      "correctAnswer": "Condensación",
+      "pointsCorrect": 1000,
+      "speedBonus": true,
+      "timer": 60,
+      "next": "sure"
+    },
+    "sure": {
+      "type": "collect-choice",
+      "prompt": "How sure are you of your answer?",
+      "choices": [
+        "Just guessing",
+        "Not sure",
+        "Pretty sure",
+        "Certain"
+      ],
+      "confidenceFor": "quiz",
+      "chartOrder": "choices",
+      "timer": 15,
+      "next": "answer"
+    },
+    "answer": {
+      "type": "announce",
+      "message": "The answer was: Condensación!\n\nClass picks:\n{{quiz.barChart}}\n\n{{sure.confidenceChart}}\n\n{{sure.confidenceLine}}",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Gracias por jugar."
+    }
+  },
+  "language": "es"
+}

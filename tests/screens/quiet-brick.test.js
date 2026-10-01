@@ -76,7 +76,7 @@ describe('quiet brick: wiring', () => {
     expect(src).toMatch(/- quiet: quiet time\. A stretch of silent thinking/);
     expect(src).toMatch(/SILENT THINKING .* is ONE quiet step/);
     expect(src).toMatch(/quiet \(silent thinking time with a clock and nothing to type/);
-    expect(src).toMatch(/silent thinking time is quiet\./);
+    expect(src).toMatch(/silent thinking time is quiet[,.]/);
   });
 
   it('the plan dialog shows the talk line, and the step has a name', () => {

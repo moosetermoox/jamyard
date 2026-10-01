@@ -439,6 +439,11 @@ export const PHASE_SCHEMAS = {
         label: 'Compare with an earlier vote',
         helper: 'The id of an earlier pick-one step with the same choices (a vote taken twice). Adds {{step.beforeAfter}}, one chart with both counts per choice, and {{step.movedLine}}, "3 of 5 students changed their minds." (over the students who voted both times).'
       },
+      confidenceFor: {
+        type: 'phaseRef', optional: true, contexts: ['topLevel'],
+        label: 'How sure about which question',
+        helper: 'Make this the "how sure are you?" step right after a graded question (a pick-one step with a correct answer, or an open answer with one): name that step here and give this one levels from least to most sure. Adds {{step.confidenceChart}}, how sure the students who got it right were beside how sure the wrong ones were, and {{step.confidenceLine}}, "Certain: 4 of 5 were right." Put it BEFORE the step that shows the answer.'
+      },
       maxPicks: {
         type: 'integer', min: 2, max: 8, optional: true,
         label: 'Pick up to (optional)',
@@ -514,6 +519,11 @@ export const PHASE_SCHEMAS = {
         beforeAfter: { type: 'string' },
         movedLine: { type: 'string' },
         moved: { type: 'number' },
+        // Populated only when `confidenceFor` names a graded question
+        // (engine/phases/confidence.js): the paired Right | Wrong chart
+        // over the levels, and the line under it.
+        confidenceChart: { type: 'string' },
+        confidenceLine: { type: 'string' },
         // The most and the least picked choice, in words (2026-09-30):
         // "{{poll.least}} goes first", a minority turn with no new step.
         // A tie keeps the choice listed first on the step.

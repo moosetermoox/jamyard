@@ -35,7 +35,11 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-10-01, evening: Part 3 slices one and two; #149 `feedback-brick` MERGED and live, slice two `quiet-brick` PR open; restart :3000 before using it locally)
+### START HERE next session (updated 2026-10-01, night: Part 3 slices one to three; #149 `feedback-brick` and #150 `quiet-brick` MERGED and live, slice three `confidence-knob` PR open; restart :3000 before using it locally)
+
+**Done today:** (1) peer feedback (#149), (2) quiet time (#150), (3) confidence after the answer (quiz brick `confidence: true`, collect-choice `confidenceFor`, a Right | Wrong chart on the answer card, the words in the activity's language). Confidence proof `scripts/simulate-confidence.js` 12 of 12, live eval 12 of 12, tests 3292. **Next:** (4) instant runoff, then (5) to (7) as listed below. Live check when there is a moment: on jamyard.org, "a four-question water cycle quiz where students say how sure they are" in Create, run with pretend students, and look at the answer card.
+
+### Previous START HERE (2026-10-01, evening: Part 3 slices one and two; #149 MERGED, `quiet-brick` PR open)
 
 **Done today:** (1) the peer-feedback brick (#149) and (2) the quiet brick (`text`, `timer`, optional `talk`; a timed announce now keeps its clock across a refresh). Quiet proof `scripts/simulate-quiet.js` 8 of 8, live eval 14 of 14, tests 3275. **Next:** (3) confidence after the answer, then (4) to (7) as listed below. Live check when there is a moment: on jamyard.org, "two minutes of silent thinking about zoos, then we talk" in Create, run with pretend students, refresh a student screen mid-quiet and see the clock come back.
 

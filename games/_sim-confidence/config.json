@@ -1,0 +1,79 @@
+{
+  "name": "Sim Confidence",
+  "description": "Hidden fixture: the quiz brick with confidence (scripts/simulate-confidence.js).",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": {
+      "type": "lobby",
+      "next": "quiz"
+    },
+    "quiz": {
+      "type": "collect-choice",
+      "prompt": "What is it called when water vapor turns into liquid?",
+      "choices": [
+        "Evaporation",
+        "Condensation"
+      ],
+      "correctAnswer": "Condensation",
+      "pointsCorrect": 1000,
+      "speedBonus": true,
+      "timer": 60,
+      "next": "sure"
+    },
+    "sure": {
+      "type": "collect-choice",
+      "prompt": "How sure are you of your answer?",
+      "choices": [
+        "Just guessing",
+        "Not sure",
+        "Pretty sure",
+        "Certain"
+      ],
+      "confidenceFor": "quiz",
+      "chartOrder": "choices",
+      "timer": 15,
+      "next": "answer"
+    },
+    "answer": {
+      "type": "announce",
+      "message": "The answer was: Condensation!\n\nClass picks:\n{{quiz.barChart}}\n\n{{sure.confidenceChart}}\n\n{{sure.confidenceLine}}",
+      "next": "quiz-2"
+    },
+    "quiz-2": {
+      "type": "collect-choice",
+      "prompt": "Rain and snow are forms of what?",
+      "choices": [
+        "Precipitation",
+        "Runoff"
+      ],
+      "correctAnswer": "Precipitation",
+      "pointsCorrect": 1000,
+      "speedBonus": true,
+      "timer": 60,
+      "next": "sure-2"
+    },
+    "sure-2": {
+      "type": "collect-choice",
+      "prompt": "How sure are you of your answer?",
+      "choices": [
+        "Just guessing",
+        "Not sure",
+        "Pretty sure",
+        "Certain"
+      ],
+      "confidenceFor": "quiz-2",
+      "chartOrder": "choices",
+      "timer": 15,
+      "next": "answer-2"
+    },
+    "answer-2": {
+      "type": "announce",
+      "message": "The answer was: Precipitation!\n\nClass picks:\n{{quiz-2.barChart}}\n\n{{sure-2.confidenceChart}}\n\n{{sure-2.confidenceLine}}",
+      "next": "wrap"
+    },
+    "wrap": {
+      "type": "end",
+      "message": "Thanks."
+    }
+  }
+}

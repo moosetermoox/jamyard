@@ -20,6 +20,10 @@
   // A paired line (a vote taken twice, engine/phases/stance-shift.js):
   // label, the before bar and count, an arrow, the after bar and count.
   var PAIR_LINE = /^(.*?)\s*([█░]+)\s*(\d+)\s*→\s*([█░]+)\s*(\d+)\s*$/;
+  // A head line over a paired chart that names its two columns
+  // ("↔ Right | Wrong", engine/phases/confidence.js); without one the
+  // columns are Before and After.
+  var PAIR_HEAD = /^↔\s*(.+?)\s*\|\s*(.+?)\s*$/;
 
   // A word cloud line ("water ×12") and a card line ("◆ an answer"), the
   // text shapes of {{x.responses.cloud}} and {{x.responses.cards}}
@@ -46,7 +50,14 @@
         textBuf = [];
       }
     }
+    var pairHeads = null;
     for (var i = 0; i < lines.length; i++) {
+      var hm = lines[i].match(PAIR_HEAD);
+      if (hm && i + 1 < lines.length && PAIR_LINE.test(lines[i + 1])) {
+        flushText();
+        pairHeads = [hm[1], hm[2]];
+        continue;
+      }
       var cm = lines[i].match(CLOUD_LINE);
       if (cm) {
         flushText();
@@ -69,8 +80,11 @@
         flushText();
         var prow = { label: pm[1], before: parseInt(pm[3], 10), after: parseInt(pm[5], 10) };
         var lastPair = segments[segments.length - 1];
-        if (lastPair && lastPair.type === 'pair') lastPair.rows.push(prow);
-        else segments.push({ type: 'pair', rows: [prow] });
+        if (lastPair && lastPair.type === 'pair' && !pairHeads) lastPair.rows.push(prow);
+        else {
+          segments.push(pairHeads ? { type: 'pair', rows: [prow], heads: pairHeads } : { type: 'pair', rows: [prow] });
+          pairHeads = null;
+        }
         continue;
       }
       var m = lines[i].match(CHART_LINE);
@@ -137,13 +151,16 @@
   // The paired chart: label | before bar | count | after bar | count, one
   // shared scale, a head row naming the two votes (Before / After through
   // the page's language table when it has one). The moved bars pop.
-  function buildPairChart(rows) {
+  function buildPairChart(rows, names) {
     var wrap = document.createElement('div');
     wrap.className = 'msg-chart is-pair';
     var t = function (s) { return (window.UiLang && UiLang.t) ? UiLang.t(s) : s; };
     var max = 0;
     rows.forEach(function (r) { max = Math.max(max, r.before, r.after); });
-    var heads = ['', t('Before'), '', t('After'), ''];
+    // Named columns (Right | Wrong) are two groups, not a vote taken
+    // twice, so nothing "moved" between them
+    var named = Array.isArray(names) && names.length === 2;
+    var heads = named ? ['', names[0], '', names[1], ''] : ['', t('Before'), '', t('After'), ''];
     heads.forEach(function (h) {
       var cell = document.createElement('span');
       cell.className = 'msg-chart-head';
@@ -159,7 +176,7 @@
         var track = document.createElement('div');
         track.className = 'msg-chart-track';
         var fill = document.createElement('div');
-        fill.className = 'msg-chart-fill ' + pair[0] + (pair[0] === 'after' && r.after !== r.before ? ' moved' : '');
+        fill.className = 'msg-chart-fill ' + pair[0] + (!named && pair[0] === 'after' && r.after !== r.before ? ' moved' : '');
         var w = max > 0 ? Math.round((pair[1] / max) * 100) : 0;
         fill.style.width = (pair[1] > 0 ? Math.max(w, 4) : 0) + '%';
         track.appendChild(fill);
@@ -212,7 +229,7 @@
   // Any non-text segment as an element (the sinks on both screens use it)
   function buildSegment(seg) {
     if (seg.type === 'chart') return buildChart(seg.rows);
-    if (seg.type === 'pair') return buildPairChart(seg.rows);
+    if (seg.type === 'pair') return buildPairChart(seg.rows, seg.heads);
     if (seg.type === 'cloud') return buildCloud(seg.rows);
     if (seg.type === 'cards') return buildCards(seg.rows);
     return null;

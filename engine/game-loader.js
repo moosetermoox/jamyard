@@ -1438,6 +1438,20 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // confidenceFor: the "how sure are you?" step (collect-choice only)
+    // reads the scores of a GRADED question, so the target must have a
+    // correct answer (engine/phases/confidence.js, 2026-10-01).
+    if (phase.confidenceFor) {
+      const src = config.phases[phase.confidenceFor];
+      if (phase.type !== 'collect-choice') {
+        errors.push(`Game "${gameId}": phase "${name}" has confidenceFor, which only a collect-choice step can use`);
+      } else if (!src) {
+        errors.push(`Game "${gameId}": phase "${name}" has confidenceFor "${phase.confidenceFor}" which does not exist`);
+      } else if (!((src.type === 'collect-choice' || src.type === 'collect') && src.correctAnswer)) {
+        errors.push(`Game "${gameId}": phase "${name}" confidenceFor "${phase.confidenceFor}" must point to a question with a correct answer (a collect-choice or collect with correctAnswer), there is nothing to be right or wrong about otherwise`);
+      }
+    }
+
     // dealItems: a teacher list handed out one per player (collect only),
     // never alongside a rotation, which is the other way of dealing.
     if (phase.dealItems !== undefined) {
