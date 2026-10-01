@@ -47,6 +47,11 @@ window.PHASE_NAMES = {
   'who-rounds': 'Who said it rounds',
   'quiz': 'Quiz rounds',
   'teams': 'Split into teams',
+  // storyboard bricks over existing steps (2026-09-30)
+  'tasks': 'Group checklist',
+  'knockout': 'Knockout rounds',
+  'charades': 'Charades',
+  'count': 'Count together',
   'end': 'Wrap up'
 };
 

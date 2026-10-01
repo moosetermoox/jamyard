@@ -14,8 +14,57 @@ export const STORYBOARD_BRICKS = [
   'chain', 'deal', 'assign', 'pairs', 'roles', 'draw', 'summarize', 'end',
   // 2026-09-27 (a reviewer's fifteen routines): a buzzer round, the
   // teacher picking what goes up, a single-elimination bracket
-  'buzz', 'review', 'bracket'
+  'buzz', 'review', 'bracket',
+  // 2026-09-30 (the mechanics inventory): eleven blocks the engine ran
+  // for months that no typed idea could reach
+  'match', 'sort', 'rate', 'solo-quiz', 'wager', 'merge', 'relay', 'tasks',
+  'knockout', 'charades', 'count'
 ];
+
+const MAX_MATCH_PAIRS = 12;
+const MAX_SORT_ITEMS = 12;
+const MAX_BUCKETS = 6;
+const MAX_SCALES = 5;
+const MAX_WAGER_OPTIONS = 6;
+const MAX_TASK_ITEMS = 15;
+
+// match: pairs of two sides; sort: items with an optional correct bucket;
+// rate: scales with a label and two end words. Each rides through trimmed;
+// compileStoryboard re-validates (counts, duplicates, a bucket that is not
+// one of the buckets).
+function cleanPairs(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(p => p && typeof p === 'object').slice(0, MAX_MATCH_PAIRS)
+    .map(p => ({ left: String(p.left == null ? '' : p.left).slice(0, 120), right: String(p.right == null ? '' : p.right).slice(0, 200) }));
+}
+function cleanSortItems(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.slice(0, MAX_SORT_ITEMS).map(it => {
+    if (typeof it === 'string') return it.slice(0, 200);
+    if (it && typeof it === 'object') {
+      const out = { text: String(it.text == null ? '' : it.text).slice(0, 200) };
+      if (typeof it.bucket === 'string') out.bucket = it.bucket.slice(0, 80);
+      return out;
+    }
+    return '';
+  });
+}
+function cleanScales(raw) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(s => s && typeof s === 'object').slice(0, MAX_SCALES)
+    .map(s => ({
+      label: String(s.label == null ? '' : s.label).slice(0, 60),
+      low: typeof s.low === 'string' ? s.low.slice(0, 40) : undefined,
+      high: typeof s.high === 'string' ? s.high.slice(0, 40) : undefined
+    }));
+}
+function cleanStrings(raw, max, len) {
+  if (!Array.isArray(raw)) return undefined;
+  return raw.filter(x => typeof x === 'string' || typeof x === 'number').slice(0, max).map(x => String(x).slice(0, len));
+}
+function num(v) {
+  return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
+}
 
 const MAX_BRACKET_ITEMS = 16;
 
@@ -159,6 +208,8 @@ export function validateSuggestions(raw, ctx) {
         storyboard: {
           name: typeof sb.name === 'string' ? sb.name.slice(0, 80) : 'New Activity',
           description: typeof sb.description === 'string' ? sb.description.slice(0, 200) : '',
+          // students start the moment they join and finish on their own
+          rolling: sb.rolling === true ? true : undefined,
           steps: steps.map(s => ({
             brick: s.brick,
             text: typeof s.text === 'string' ? s.text.slice(0, 500) : undefined,
@@ -171,7 +222,29 @@ export function validateSuggestions(raw, ctx) {
             top: typeof s.top === 'number' && Number.isFinite(s.top) ? s.top : undefined,
             // rank: a list to order (12 at most); collect: a list dealt one
             // per student in private (a state each, up to 60)
-            items: Array.isArray(s.items) ? s.items.slice(0, s.brick === 'collect' ? MAX_DEAL_ITEMS : (s.brick === 'bracket' ? MAX_BRACKET_ITEMS : MAX_RANK_ITEMS)).map(String) : undefined,
+            items: s.brick === 'sort' ? cleanSortItems(s.items)
+              : s.brick === 'tasks' ? cleanStrings(s.items, MAX_TASK_ITEMS, 200)
+              : Array.isArray(s.items) ? s.items.slice(0, s.brick === 'collect' ? MAX_DEAL_ITEMS : (s.brick === 'bracket' ? MAX_BRACKET_ITEMS : MAX_RANK_ITEMS)).map(String) : undefined,
+            // match / sort / rate / wager (2026-09-30)
+            pairs: s.brick === 'match' ? cleanPairs(s.pairs) : undefined,
+            buckets: cleanStrings(s.buckets, MAX_BUCKETS, 80),
+            scales: cleanScales(s.scales),
+            results: s.results === 'class' || s.results === 'teacher' ? s.results : undefined,
+            options: cleanStrings(s.options, MAX_WAGER_OPTIONS, 120),
+            correct: typeof s.correct === 'string' ? s.correct.slice(0, 120) : undefined,
+            // a scoreboard after a graded step (on by default; solo-quiz off)
+            standings: typeof s.standings === 'boolean' ? s.standings : undefined,
+            // merge / relay / count: the payoff reveal (on by default)
+            show: s.show === false ? false : undefined,
+            // knockout: who goes out each round, how many rounds at most
+            percent: num(s.percent),
+            loops: num(s.loops),
+            voteTimer: num(s.voteTimer),
+            // relay: turns in all; count: the target number; charades: the
+            // phrase question when the class writes the phrases
+            turns: num(s.turns),
+            target: num(s.target),
+            phrases: typeof s.phrases === 'string' ? s.phrases.slice(0, 300) : undefined,
             // rank: each group decides one order; assign: spots per item
             byGroup: s.byGroup === true ? true : undefined,
             perChoice: typeof s.perChoice === 'number' && Number.isFinite(s.perChoice) ? s.perChoice : undefined,
