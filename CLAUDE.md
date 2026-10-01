@@ -227,6 +227,6 @@ AI task types: `summarize`, `generate` (Haiku); `generate-choices`, `compare`, `
 - **COMPARATIVE-ADVANTAGE.md** — positioning thesis + licensing gates (email pzlearn@gse.harvard.edu before public launch); research notes in `docs/research/`. Read before designing new activities.
 - **COMPLIANCE-TODO.md** — COPPA/FERPA/§49073.1 checklist
 - **PROJECTOR-STYLE.md** · **SURFACES-PLAN.md** · **LIBRARY-FIRST-PLAN.md** · **RECIPE-LAYER.md** · **connection-pack-spec.md** · **SAFETY-DESIGN.md** · **AUTHORING-DESIGN.md** · **GAME-CONFIG-DESIGN.md** · **AI-TASK-DESIGN.md**
-- **MECHANICS-INVENTORY.md** — every block and brick, what is one knob away, what is missing (2026-09-30; part one, the eleven bricks, shipped the same day)
+- **MECHANICS-INVENTORY.md** — every block and brick, what is one knob away, what is missing (2026-09-30; its Part 2 shipped the same day as #144 to #147; Part 3's order is in NEXT-STEPS)
 - **CHANGELOG.md** — dated log of everything shipped (append new entries there) · **DEFERRED-IDEAS.md** — parked
 - **CLAUDE-ARCHIVE.md** — full historical detail formerly in this file (ship-log, per-game descriptions, implementation notes)
