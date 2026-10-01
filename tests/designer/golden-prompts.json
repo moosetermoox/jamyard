@@ -1859,6 +1859,29 @@
           ]
         }
       }
+    },
+    {
+      "id": "find-your-match-vocab",
+      "prompt": "Find your match: each student secretly gets either a vocabulary word or its definition from our cell biology unit, they walk around to find their partner, and we see who found each other.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Cell Word Match",
+          "description": "Each of you holds a word or its meaning; find the classmate with the other half.",
+          "steps": [
+            { "brick": "announce", "text": "You will get a card with a word or a meaning. Get up and find the classmate whose card goes with yours." },
+            { "brick": "findmatch", "text": "Find the classmate whose card goes with yours, then type their name.", "pairs": [
+              { "left": "Nucleus", "right": "Holds the cell's DNA" },
+              { "left": "Mitochondria", "right": "Turns food into energy" },
+              { "left": "Cell membrane", "right": "Controls what goes in and out" },
+              { "left": "Ribosome", "right": "Builds proteins" },
+              { "left": "Chloroplast", "right": "Captures light for photosynthesis" },
+              { "left": "Vacuole", "right": "Stores water and food" }
+            ] },
+            { "brick": "end", "text": "Which pair was hardest to find, and why?" }
+          ]
+        }
+      }
     }
   ]
 }

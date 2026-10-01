@@ -26,7 +26,9 @@ export const STORYBOARD_BRICKS = [
   // quiet time: a clock and nothing to type, then an optional talk line
   'quiet',
   // the hot seat: the class's questions to one student's screen
-  'hotseat'
+  'hotseat',
+  // secret pairs that find each other in the room
+  'findmatch'
 ];
 
 const MAX_MATCH_PAIRS = 12;
@@ -40,9 +42,12 @@ const MAX_TASK_ITEMS = 15;
 // rate: scales with a label and two end words. Each rides through trimmed;
 // compileStoryboard re-validates (counts, duplicates, a bucket that is not
 // one of the buckets).
-function cleanPairs(raw) {
+// findmatch (2026-10-01): pairs dealt to two students each, a class's worth
+const MAX_FIND_PAIRS = 30;
+
+function cleanPairs(raw, max = MAX_MATCH_PAIRS) {
   if (!Array.isArray(raw)) return undefined;
-  return raw.filter(p => p && typeof p === 'object').slice(0, MAX_MATCH_PAIRS)
+  return raw.filter(p => p && typeof p === 'object').slice(0, max)
     .map(p => ({ left: String(p.left == null ? '' : p.left).slice(0, 120), right: String(p.right == null ? '' : p.right).slice(0, 200) }));
 }
 function cleanSortItems(raw) {
@@ -232,9 +237,11 @@ export function validateSuggestions(raw, ctx) {
             // per student in private (a state each, up to 60)
             items: s.brick === 'sort' ? cleanSortItems(s.items)
               : s.brick === 'tasks' ? cleanStrings(s.items, MAX_TASK_ITEMS, 200)
+              : s.brick === 'findmatch' ? cleanStrings(s.items, MAX_FIND_PAIRS, 120)
               : Array.isArray(s.items) ? s.items.slice(0, s.brick === 'collect' ? MAX_DEAL_ITEMS : (s.brick === 'bracket' ? MAX_BRACKET_ITEMS : MAX_RANK_ITEMS)).map(String) : undefined,
             // match / sort / rate / wager (2026-09-30)
-            pairs: s.brick === 'match' ? cleanPairs(s.pairs) : undefined,
+            pairs: s.brick === 'match' ? cleanPairs(s.pairs)
+              : s.brick === 'findmatch' ? cleanPairs(s.pairs, MAX_FIND_PAIRS) : undefined,
             buckets: cleanStrings(s.buckets, MAX_BUCKETS, 80),
             scales: cleanScales(s.scales),
             results: s.results === 'class' || s.results === 'teacher' ? s.results : undefined,

@@ -131,6 +131,8 @@ Ordered roughly by payoff over effort. None needs an asset or an animation.
 
 Things a teacher asks for that the kit cannot say yet, and what they would take.
 
+> STATUS 2026-10-01, end of day: Part 3 slice six on branch `secret-pairs`: collect `pairItems` deals every item to two students and checks the names they type; the `findmatch` brick; the Create page's matcher backstopped so the idea is never called off the screens. Left in Part 3: the AI narrator loop (a prompt study first).
+>
 > STATUS 2026-10-01, later still: Part 3 slice five on branch `hot-seat`: reveal-one `to` sends every item to one student's screen (the projector and the class get the count), and the `hotseat` brick wires the questions, a teacher look, and that reveal, with a vote by name first when asked. Next: secret pairs that find each other.
 >
 > STATUS 2026-10-01, late night: Part 3 slice four on branch `instant-runoff`: rank `runoff: true` picks one item by instant runoff, the pick and every round on the projector. Next: hot seat to one screen.

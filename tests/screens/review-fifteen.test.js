@@ -150,7 +150,7 @@ describe('the AI builder and the console', () => {
   });
   it('the match and storyboard routes forward harm (and offScreen) to the card', () => {
     expect(server).toContain('harm: match.harm === true,');
-    expect(server).toContain('offScreen: match.offScreen === true,');
+    expect(server).toContain('offScreen: match.offScreen === true && !readsAsFindYourMatch(description),');
     expect(server).toContain('json: { cantBuild: true, harm: storyboard.harm === true, reason: storyboard.reason');
   });
   it("the console shows the step's words on the phase change and the join snapshot", () => {
