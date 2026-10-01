@@ -1441,6 +1441,29 @@
   // student, checked off on their devices, progress on the projector
   function appendTasks(step, stepNo, phases, lastId, problems) {
     var items = cleanLines(step.items, 15);
+    // A different task per group on a task list (2026-09-30, the live
+    // eval put stations on tasks): the per-group line goes up first as an
+    // announce with stations, then the shared list (or nothing more when
+    // there is no list)
+    var stationLines = Array.isArray(step.stations) ? cleanLines(step.stations, 12) : [];
+    if (stationLines.length >= 2) {
+      var split = lastOfType(phases, ['team-split'], lastId);
+      if (!split) {
+        problems.push('Step ' + stepNo + ': a task per group needs a teams step before it, so the lines were left out.');
+      } else {
+        var stId = freshId(phases, 'station');
+        phases[lastId].next = stId;
+        var stText = textOf(step, 'Your station:');
+        phases[stId] = {
+          type: 'announce',
+          message: (/\{\{\s*thisStep\.station\s*\}\}/.test(stText) ? stText.replace(/\{\{\s*thisStep\.station\s*\}\}/g, '{{' + stId + '.station}}') : stText + '\n\n{{' + stId + '.station}}'),
+          stations: stationLines,
+          stationsFrom: split
+        };
+        lastId = stId;
+        if (items.length < 2) return lastId;
+      }
+    }
     if (items.length < 2) {
       problems.push('Step ' + stepNo + ': a task list needs at least two tasks.');
       return null;
@@ -1824,7 +1847,7 @@
       // A reveal's style (2026-09-30): the answers of the last question
       // step as a sized word cloud, as cards all at once, or one at random
       if (brick === 'reveal' && (step.style === 'cloud' || step.style === 'cards' || step.style === 'random')) {
-        var styleSrc = lastOfType(phases, ['collect'], lastId);
+        var styleSrc = lastOfType(phases, ['collect', 'collect-choice'], lastId);
         if (styleSrc) {
           var heading = (typeof step.text === 'string' && step.text.trim()) ? step.text.trim()
             : (step.style === 'cloud' ? 'What we said, the bigger the more of us said it:' : (step.style === 'cards' ? 'Here is what we said:' : 'One of us said:'));
@@ -1835,6 +1858,41 @@
       }
       if (brick === 'collect-choice' && Array.isArray(step.choices) && step.choices.length >= 2) {
         built.choices = step.choices.slice(0, 8).map(String);
+      }
+      // Several picks (2026-09-30): "choose up to three"
+      if (brick === 'collect-choice' && typeof step.maxPicks === 'number' && step.maxPicks >= 2) {
+        var cap = Array.isArray(built.choices) ? built.choices.length : 8;
+        built.maxPicks = Math.min(Math.round(step.maxPicks), cap, 8);
+        if (built.maxPicks < 2) delete built.maxPicks;
+      }
+      // A right answer on an open question (2026-09-30): fill in the blank,
+      // one-word answers, "translate this word"; the standings follow
+      if (brick === 'collect' && typeof step.answer === 'string' && step.answer.trim() && !built.fields && built.inputType !== 'drawing') {
+        built.correctAnswer = step.answer.trim();
+        var accepted = cleanLines(step.accepted, 8);
+        if (accepted.length) built.acceptedAnswers = accepted;
+        built.pointsCorrect = 100;
+      }
+      // Text per group (2026-09-30): each group reads its own line where
+      // {{thisStep.station}} stands; needs a teams step before it
+      if ((brick === 'announce' || brick === 'collect' || brick === 'collect-choice') && Array.isArray(step.stations)) {
+        var lines = cleanLines(step.stations, 12);
+        var stationSplit = lastOfType(phases, ['team-split'], lastId);
+        if (lines.length >= 2 && stationSplit) {
+          built.stations = lines;
+          built.stationsFrom = stationSplit;
+          var stKey = brick === 'announce' ? 'message' : 'prompt';
+          var stToken = '{{' + id + '.station}}';
+          if (typeof built[stKey] !== 'string' || !/\{\{\s*thisStep\.station\s*\}\}/.test(built[stKey])) {
+            built[stKey] = (typeof built[stKey] === 'string' && built[stKey] ? built[stKey] + '\n\n' : '') + stToken;
+          } else {
+            built[stKey] = built[stKey].replace(/\{\{\s*thisStep\.station\s*\}\}/g, stToken);
+          }
+        } else if (lines.length >= 2) {
+          problems.push('Step ' + (i + 1) + ': text per group needs a teams step before it, so the lines were left out.');
+        } else {
+          problems.push('Step ' + (i + 1) + ': text per group needs at least two lines, so they were left out.');
+        }
       }
       // A private hand-out from the teacher's list (2026-09-24): each
       // student is dealt one item (collect.dealItems, wrapping around a
@@ -1968,6 +2026,11 @@
         phases[lastId].next = standingsId;
         phases[standingsId] = { type: 'leaderboard', from: id + '.scores', style: 'full' };
         lastId = standingsId;
+      }
+
+      // A graded open answer's standings (2026-09-30)
+      if (brick === 'collect' && built.correctAnswer && step.standings !== false) {
+        lastId = appendStandings(phases, lastId, [id + '.scores']);
       }
 
       // The class order is the rank brick's payoff: a host-paced reveal

@@ -1661,6 +1661,120 @@
         }
       },
       "note": "reveal style \"cards\" and {{players.random}} (2026-09-30): every answer as a card, then a fair random draw of a student."
+    },
+    {
+      "id": "pick-up-to-three-causes",
+      "prompt": "From a list of six causes of World War I, each student picks up to three they think mattered most, and we see the tally on the board.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Three Causes",
+          "description": "Pick up to three causes, see the class tally.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Six causes on the board. Pick up to three you think mattered most."
+            },
+            {
+              "brick": "collect-choice",
+              "text": "Which causes mattered most? Pick up to three.",
+              "choices": [
+                "Militarism",
+                "Alliances",
+                "Imperialism",
+                "Nationalism",
+                "The assassination in Sarajevo",
+                "The arms race"
+              ],
+              "maxPicks": 3
+            },
+            {
+              "brick": "end",
+              "text": "Now we argue about the top ones."
+            }
+          ]
+        }
+      },
+      "note": "collect-choice maxPicks (2026-09-30): several picks on one ballot, every pick counted; the poll results reveal follows by the poll rule."
+    },
+    {
+      "id": "fill-in-the-blank-graded",
+      "prompt": "A quick fill-in-the-blank: \"The powerhouse of the cell is the ____.\" Students type the answer, it is marked right or wrong automatically, and the standings go up.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Fill the Blank",
+          "description": "Type the missing word; marked at once.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "One blank, one word. Type it and send it; the answer is marked when I close the question."
+            },
+            {
+              "brick": "collect",
+              "text": "The powerhouse of the cell is the ____.",
+              "answer": "mitochondria",
+              "accepted": [
+                "the mitochondria",
+                "mitochondrion"
+              ]
+            },
+            {
+              "brick": "reveal",
+              "text": "The answer was {{ask.correctAnswer}}. {{ask.correctCount}} of {{ask.answeredCount}} had it."
+            },
+            {
+              "brick": "end",
+              "text": "Nice. On to the next organelle."
+            }
+          ]
+        }
+      },
+      "note": "collect answer + accepted (2026-09-30): a graded open answer by normalized match, the standings built in."
+    },
+    {
+      "id": "stations-rotation",
+      "prompt": "Lab stations: split the class into four groups, and each group gets a different task on their screens (measure the water, graph the readings, label the diagram, write the conclusion), then each group reports back in one sentence.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "Four Stations",
+          "description": "Four groups, four tasks, one report each.",
+          "steps": [
+            {
+              "brick": "announce",
+              "text": "Four stations, four groups. Your screen tells you your station's task."
+            },
+            {
+              "brick": "teams",
+              "teamCount": 4
+            },
+            {
+              "brick": "announce",
+              "text": "Your station: {{thisStep.station}}",
+              "stations": [
+                "Measure the water and record the temperature every minute.",
+                "Graph the readings from the measuring station.",
+                "Label the diagram of the setup.",
+                "Write the conclusion in two sentences."
+              ]
+            },
+            {
+              "brick": "collect",
+              "text": "Report back: what did your group find or make?"
+            },
+            {
+              "brick": "reveal",
+              "text": "What every station found:"
+            },
+            {
+              "brick": "end",
+              "text": "Four stations, one lab. Well done."
+            }
+          ]
+        }
+      },
+      "note": "stations on an announce (2026-09-30): a line per group where {{thisStep.station}} stands, bound to the step's id by the compiler."
     }
   ]
 }

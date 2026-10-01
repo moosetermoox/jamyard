@@ -40,7 +40,7 @@ describe('pick, then confirm', () => {
     const matchup = player.slice(player.indexOf('function showNextMatchup'), player.indexOf('// --- Helper functions ---'));
     expect(matchup).toContain('pickThenConfirm(');
     expect(matchup).not.toMatch(/btnA\.addEventListener\('click'/);
-    expect(player).toMatch(/choiceBallot = pickThenConfirm\(UiLang\.t\('Submit'\)/);
+    expect(player).toContain(": pickThenConfirm(UiLang.t('Submit'), sendPicks)");
   });
   it('a timer sends the picked option before a random one', () => {
     expect(player).toContain('pickOneBallot.picked()');

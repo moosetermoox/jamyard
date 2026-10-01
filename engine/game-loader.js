@@ -968,6 +968,41 @@ export function validate(config, gameId, options) {
       }
     }
 
+    // Several picks (2026-09-30): never with a right answer, never more
+    // than the choices
+    if (phase.type === 'collect-choice' && phase.maxPicks != null) {
+      if (phase.correctAnswer) {
+        errors.push(`Game "${gameId}": phase "${name}" (collect-choice) has "Pick up to" and a correct answer; a graded question takes one pick.`);
+      }
+      if (Array.isArray(phase.choices) && phase.choices.length > 0 && phase.maxPicks > phase.choices.length) {
+        errors.push(`Game "${gameId}": phase "${name}" (collect-choice) lets students pick up to ${phase.maxPicks} but has only ${phase.choices.length} choices.`);
+      }
+    }
+    // A right answer on an open question (2026-09-30): one text box only
+    if (phase.type === 'collect' && phase.correctAnswer) {
+      if (Array.isArray(phase.fields) && phase.fields.length > 0) {
+        errors.push(`Game "${gameId}": phase "${name}" (collect) has "The right answer" and answer boxes; a graded open answer takes one box.`);
+      }
+      if (phase.inputType === 'drawing') {
+        errors.push(`Game "${gameId}": phase "${name}" (collect) has "The right answer" but takes a drawing; only words can be matched.`);
+      }
+    }
+    // Stations (2026-09-30): the lines need the groups, and the text needs the token
+    if (['announce', 'collect', 'collect-choice'].includes(phase.type) && (phase.stations != null || phase.stationsFrom != null)) {
+      const lines = Array.isArray(phase.stations) ? phase.stations.filter(s => typeof s === 'string' && s.trim()) : [];
+      if (lines.length < 2) {
+        errors.push(`Game "${gameId}": phase "${name}" (${phase.type}) needs at least two lines in "Different text per group".`);
+      }
+      const src = phase.stationsFrom != null ? config.phases[phase.stationsFrom] : null;
+      if (!src || src.type !== 'team-split' || phase.stationsFrom === name) {
+        errors.push(`Game "${gameId}": phase "${name}" (${phase.type}) deals text per group, so "Groups from" must name an earlier Split into Teams step.`);
+      }
+      const own = String(phase.type === 'announce' ? phase.message : phase.prompt || '');
+      if (!new RegExp('\\{\\{\\s*' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\.station\\s*\\}\\}').test(own)) {
+        warnings.push(`Game "${gameId}": phase "${name}" (${phase.type}) has text per group but its words never show it; write {{${name}.station}} where each group's line belongs.`);
+      }
+    }
+
     // Who goes out by most votes (2026-09-30) needs the vote's score map
     if (phase.type === 'eliminate' && phase.method === 'most-votes' && !phase.input && !phase.from) {
       errors.push(

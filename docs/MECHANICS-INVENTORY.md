@@ -99,7 +99,7 @@ Ordered roughly by payoff over effort. None needs an asset or an animation.
 
 ### B. Knobs on existing blocks
 
-> SHIPPED 2026-09-30 (branch `engine-knobs`): 9 (groups by answer), 10 (minority routing, as `.most`/`.least` outputs), 12 (candidates from the roster, plus eliminate by most votes), 13 (quiz items from a step, the write-quiz brick), and a correct order on rank (8). Still open: 7 (pick several), 11 (two reviewers per piece), 14 (graded free text), 15 (per-group content), 16 (shuffle and anonymize knobs); each needs a student-screen change.
+> SHIPPED 2026-09-30 (branch `engine-knobs`): 9 (groups by answer), 10 (minority routing, as `.most`/`.least` outputs), 12 (candidates from the roster, plus eliminate by most votes), 13 (quiz items from a step, the write-quiz brick), and a correct order on rank (8). SHIPPED the same night (branch `screen-knobs`): 7 (pick several, `maxPicks`), 14 (graded free text, `correctAnswer` on collect), 15 (per-group content, `stations`). 11 (two reviewers per piece) needs nothing: a chain with two hops hands every piece to two readers in turn. Still open: 16 (shuffle and anonymize knobs on a reveal).
 
 7. **Pick several** on collect-choice ("choose up to three"). The chart and the live results already count per choice; the ballot needs a cap and a confirm.
 8. **Correct order on rank** ("put these events in order"): a graded rank, scored like match. Timelines, steps of a process, sorting by size.

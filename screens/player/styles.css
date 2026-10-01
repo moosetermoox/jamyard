@@ -2680,3 +2680,13 @@ html, body { overflow-x: hidden; }
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
+
+/* Several picks on one ballot (maxPicks, 2026-09-30) */
+.pick-hint {
+  margin: 0 0 8px;
+  font-size: 0.95em;
+  opacity: 0.8;
+}
+.choice-btn.is-locked {
+  opacity: 0.45;
+}

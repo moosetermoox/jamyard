@@ -35,6 +35,8 @@ export function responseToText(r) {
   if (r && typeof r === 'object' && !Array.isArray(r)) {
     return Object.values(r).join(' | ');
   }
+  // Several picks on one answer (maxPicks, 2026-09-30)
+  if (Array.isArray(r)) return r.map(String).join(' | ');
   return r == null ? '' : String(r);
 }
 

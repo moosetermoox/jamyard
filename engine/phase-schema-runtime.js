@@ -93,6 +93,13 @@ export const DYNAMIC_OUTPUT_RESOLVERS = {
         renderers: { mine: 'perPlayerLookup' }
       }
     };
+    // a right answer (2026-09-30): points per student and the counts
+    if (phase.correctAnswer) {
+      out.scores = { type: 'scoreMap', capability: 'scoreMap', renderers: { json: 'jsonPretty' } };
+      out.correctAnswer = { type: 'string', capability: 'renderable' };
+      out.correctCount = { type: 'number' };
+      out.answeredCount = { type: 'number' };
+    }
     // assigned only exists when this phase rotates from another
     if (phase.rotateFrom) {
       out.assigned = {

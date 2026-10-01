@@ -1,0 +1,38 @@
+{
+  "name": "Screen knobs fixture",
+  "description": "A test fixture (2026-09-30): several picks on one ballot, a graded open answer, a line per group. Never listed.",
+  "minPlayers": 2,
+  "phases": {
+    "lobby": { "type": "lobby", "next": "poll" },
+    "poll": {
+      "type": "collect-choice",
+      "prompt": "Pick up to two.",
+      "choices": ["Red", "Green", "Blue"],
+      "maxPicks": 2,
+      "liveResults": true,
+      "next": "ask"
+    },
+    "ask": {
+      "type": "collect",
+      "prompt": "Capital of France?",
+      "correctAnswer": "Paris",
+      "acceptedAnswers": ["Paris, France"],
+      "pointsCorrect": 50,
+      "next": "show"
+    },
+    "show": {
+      "type": "reveal",
+      "template": "Picks: {{poll.barChart}}\n\nThe answer was {{ask.correctAnswer}}. {{ask.correctCount}} of {{ask.answeredCount}} had it.",
+      "next": "teams"
+    },
+    "teams": { "type": "team-split", "method": "random", "teamCount": 2, "next": "go" },
+    "go": {
+      "type": "announce",
+      "message": "Your station: {{go.station}}",
+      "stations": ["Measure the water", "Graph the readings"],
+      "stationsFrom": "teams",
+      "next": "end"
+    },
+    "end": { "type": "end", "message": "Done." }
+  }
+}

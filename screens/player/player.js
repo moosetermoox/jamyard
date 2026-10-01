@@ -1333,7 +1333,7 @@ function initDrawPad() {
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }
 
-socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine, oneTap }) => {
+socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoice, choices, fields, passAllowed, inputType, assignedDrawing, displayDrawing, prefill, appendOnly, maxLength, phaseId, audience, nextHint, partnerText, partnerLine, oneTap, maxPicks }) => {
   resetHoldingProgress();
   // Which step this is (Try it out deals the template's sample answers by it)
   currentCollectPhaseId = phaseId || null;
@@ -1446,12 +1446,24 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
     // answers. Once sent, every choice locks until the server answers.
     // A quiz question (oneTap: it has a right answer) sends on the tap,
     // as it always did: speed counts there (owner 2026-09-28).
-    choiceBallot = pickThenConfirm(UiLang.t('Submit'), function (choiceText, confirmBtn) {
+    // Several picks (maxPicks, 2026-09-30): tap up to N, then Submit sends
+    // them all as one answer
+    var severalPicks = typeof maxPicks === 'number' && maxPicks > 1 && !oneTap;
+    var sendPicks = function (picked, confirmBtn) {
       var all = choiceContainer.querySelectorAll('.choice-btn');
       for (var bi = 0; bi < all.length; bi++) all[bi].disabled = true;
-      socket.emit('submit-response', { code: currentRoomCode, response: choiceText });
+      socket.emit('submit-response', { code: currentRoomCode, response: picked });
       awaitSubmitAck(confirmBtn);
-    });
+    };
+    choiceBallot = severalPicks
+      ? pickSeveral(UiLang.t('Submit'), maxPicks, sendPicks)
+      : pickThenConfirm(UiLang.t('Submit'), sendPicks);
+    if (severalPicks) {
+      var pickHint = document.createElement('p');
+      pickHint.className = 'pick-hint';
+      pickHint.textContent = UiLang.t('Pick up to {n}.').replace('{n}', String(maxPicks));
+      choiceContainer.appendChild(pickHint);
+    }
     for (var ci = 0; ci < choices.length; ci++) {
       (function(choiceText) {
         var btn = document.createElement('button');
@@ -1601,6 +1613,8 @@ socket.on('game-started', ({ prompt, image, timer, playerTemplate, show, isChoic
         // The picked choice if there is one, else a random one
         var pickedChoice = choiceBallot && choiceBallot.picked();
         var randomChoice = choices[Math.floor(Math.random() * choices.length)];
+        // Several picks send what is picked (an array); nothing picked
+        // sends one at random, as before
         var text = pickedChoice ? pickedChoice.value
           : (typeof randomChoice === 'string' ? randomChoice : (randomChoice.text || randomChoice.name || String(randomChoice)));
         socket.emit('submit-response', { code: currentRoomCode, response: text });
@@ -3977,6 +3991,49 @@ function pickThenConfirm(label, onConfirm) {
       btn.addEventListener('click', function () { select(btn, value); });
     },
     picked: function () { return pickedBtn ? { value: pickedValue } : null; }
+  };
+}
+
+// Several picks on one ballot (maxPicks, 2026-09-30): tap to pick, tap
+// again to unpick, the rest lock once the limit is reached, Submit sends
+// the picks together. picked() returns { value: [...] } or null.
+function pickSeveral(label, max, onConfirm) {
+  var picked = [];
+  var buttons = [];
+  var confirmBtn = document.createElement('button');
+  confirmBtn.type = 'button';
+  confirmBtn.className = 'ballot-confirm';
+  confirmBtn.textContent = label;
+  confirmBtn.disabled = true;
+  function refresh() {
+    var full = picked.length >= max;
+    for (var i = 0; i < buttons.length; i++) {
+      var on = picked.indexOf(buttons[i].value) !== -1;
+      buttons[i].btn.classList.toggle('is-selected', on);
+      buttons[i].btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      buttons[i].btn.classList.toggle('is-locked', full && !on);
+    }
+    confirmBtn.disabled = picked.length === 0;
+  }
+  function toggle(value) {
+    var at = picked.indexOf(value);
+    if (at !== -1) picked.splice(at, 1);
+    else if (picked.length < max) { picked.push(value); if (J) J.sound('blip'); }
+    refresh();
+  }
+  confirmBtn.addEventListener('click', function () {
+    if (!picked.length) return;
+    onConfirm(picked.slice(), confirmBtn);
+  });
+  return {
+    confirmBtn: confirmBtn,
+    option: function (btn, value) {
+      btn.type = 'button';
+      btn.setAttribute('aria-pressed', 'false');
+      buttons.push({ btn: btn, value: value });
+      btn.addEventListener('click', function () { toggle(value); });
+    },
+    picked: function () { return picked.length ? { value: picked.slice() } : null; }
   };
 }
 
