@@ -528,10 +528,12 @@ function fastForwardTick() {
   }, FF_SKIP_DELAY_MS);
 }
 
-// --- The shortcuts strip: only while a step students answer is open.
+// --- The shortcuts strip: Skip timer on every step while a room runs,
+// Add sample answers only where students answer (BenchLogic.shortcutsFor)
 function updateBench() {
-  const open = !!currentCode && BenchLogic.isStudentStep(railPhaseType);
-  benchBar.hidden = !open;
+  const show = BenchLogic.shortcutsFor(railPhaseType, !!currentCode);
+  benchBar.hidden = !show.bar;
+  botFillBtn.hidden = !show.samples;
 }
 
 // --- The NEXT card: one sentence, over the control to press now. Hides
@@ -651,7 +653,7 @@ function resolveTarget(at) {
     case 'launch': return { el: launchBtn };
     case 'reset': return { el: resetBtn };
     case 'add-student': return { el: addStudentBtn };
-    case 'samples': return benchBar.hidden ? null : { el: botFillBtn };
+    case 'samples': return benchBar.hidden || botFillBtn.hidden ? null : { el: botFillBtn };
     case 'skip': return benchBar.hidden ? null : { el: skipBtn };
     case 'teacher-controls': {
       const tab = document.getElementById('teacher-tab-btn');

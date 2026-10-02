@@ -568,6 +568,8 @@ body.pt-running #host-btn { display: inline-block; }
 
 /* display:flex above would override the hidden attribute */
 #bench-bar[hidden] { display: none; }
+/* Add sample answers hides on a step nobody answers (Skip timer stays) */
+#bot-fill-btn[hidden] { display: none; }
 
 .bench-hint {
   font-size: 11px;
