@@ -93,3 +93,26 @@ export function validateSampleAnswers(config, gameId) {
   }
   return errors;
 }
+
+/**
+ * A copy carrying a TEMPLATE's sample answers under a different first
+ * question (2026-10-01, an outside reviewer: Snowball with a class example
+ * asked "Why does natural selection work?" and its pretend students still
+ * answered about fractions). The set was written for the template's topic,
+ * so once the question changed it no longer fits; dropping it lets Try it
+ * out write a set for the copy's own question (POST
+ * /api/games/:id/sample-answers). A copy that kept its question keeps the
+ * set, and a set written for the copy itself never matches a template.
+ *
+ * @param {object} config        a saved copy
+ * @param {Array<{samples: object, prompt: string}>} builtinSets  every
+ *   built-in's sampleAnswers beside its first student step's prompt
+ * @param {(config: object) => (string|null)} firstPrompt
+ * @returns {boolean}
+ */
+export function hasStaleTemplateSamples(config, builtinSets, firstPrompt) {
+  if (!config || !config.sampleAnswers || typeof config.sampleAnswers !== 'object') return false;
+  const own = JSON.stringify(config.sampleAnswers);
+  const prompt = firstPrompt(config);
+  return (builtinSets || []).some(set => JSON.stringify(set.samples) === own && set.prompt !== prompt);
+}

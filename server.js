@@ -10,7 +10,7 @@ import { readdir, readFile, writeFile, mkdir, rm, access } from 'fs/promises';
 import { RoomManager } from './engine/room-manager.js';
 import { GameEngine } from './engine/game-engine.js';
 import { loadGame, validate, getAllowedFields, listGames, resolveGamePath } from './engine/game-loader.js';
-import { validateSampleAnswers } from './engine/sample-answers.js';
+import { validateSampleAnswers, hasStaleTemplateSamples } from './engine/sample-answers.js';
 import { parseMine, wantedUserIds, claimableIds } from './engine/games-list-scope.js';
 import { ownerHashFromRequest, writeDecision, NOT_YOURS_MESSAGE } from './engine/owner-key.js';
 import { createOwnerKeyStore } from './services/owner-keys.js';
@@ -31,7 +31,7 @@ import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
 import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
-import { printFor, applyEdits, nameFor } from './engine/make-print.js';
+import { printFor, applyEdits, nameFor, firstStudentStep } from './engine/make-print.js';
 import { resolvePerPlayerTemplate } from './engine/per-player-template.js';
 import { effectiveRange, clampGuess } from './engine/phases/estimate-range.js';
 import { foreachSitOut, withoutSitOut, sitOutIds } from './engine/phases/sit-out.js';
@@ -57,6 +57,12 @@ function repairSavedConfig(config) {
     if (gates.length) console.log(`[repair] "${config.name}": review step added before the rounds (${gates.join(', ')})`);
   } catch (err) {
     console.log(`[repair] gate skipped for "${config && config.name}": ${err.message}`);
+  }
+  // A template's sample answers under a new question were written for the
+  // old topic: drop them so Try it out writes a set for this copy
+  if (hasStaleTemplateSamples(config, BUILTIN_SAMPLE_SETS, firstPromptOf)) {
+    delete config.sampleAnswers;
+    console.log(`[repair] "${config.name}": the template's sample answers dropped (the question changed)`);
   }
   try {
     const stamp = config && config.recipe;
@@ -6954,6 +6960,31 @@ async function startup() {
   }
   const recipes = await reloadRecipes();
   console.log(`[init] Loaded ${recipes.size} recipe(s).`);
+  await loadBuiltinSampleSets();
+}
+
+// Every built-in's authored sample answers beside its first question, so a
+// copy still carrying them under a NEW question can drop them on read
+// (hasStaleTemplateSamples, 2026-10-01). Filled once at startup.
+const BUILTIN_SAMPLE_SETS = [];
+async function loadBuiltinSampleSets() {
+  try {
+    const entries = await readdir(GAMES_DIR, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('_') || entry.name === 'user') continue;
+      try {
+        const config = await loadGame(entry.name, { builtInOnly: true });
+        if (config && config.sampleAnswers) BUILTIN_SAMPLE_SETS.push({ samples: config.sampleAnswers, prompt: firstPromptOf(config) });
+      } catch { /* a folder that is not a game */ }
+    }
+    console.log(`[init] ${BUILTIN_SAMPLE_SETS.length} built-in sample answer set(s) known.`);
+  } catch (err) {
+    console.log(`[init] built-in sample answers skipped: ${err.message}`);
+  }
+}
+function firstPromptOf(config) {
+  const step = firstStudentStep(config);
+  return step && step.phase && typeof step.phase.prompt === 'string' ? step.phase.prompt : null;
 }
 
 // Hourly: drop room snapshots too old to be worth resurrecting, and let
