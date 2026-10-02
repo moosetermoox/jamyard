@@ -203,7 +203,7 @@ import { applyIterationScoring } from './engine/phases/foreach-scoring.js';
 import { agreesNeeded } from './engine/phase-handlers/merge.js';
 import { adjudicateTap, oneVoiceStats, RESET_LOCKOUT_MS, SUCCESS_ADVANCE_MS } from './engine/phase-handlers/one-voice.js';
 import { applyBuzz, applyJudge, applyNextQuestion } from './engine/phase-handlers/buzz.js';
-import { scoreEstimates, estimateStats } from './engine/phases/estimate-scoring.js';
+import { scoreEstimates, estimateStats, scoreByDistance, withSpeedBonus } from './engine/phases/estimate-scoring.js';
 import { scoreMatching, matchStats, buildResultsList } from './engine/phases/match-scoring.js';
 import { autoFill } from './engine/phases/team-grouping.js';
 import { scoreSorting, sortStats, buildSortResultsList } from './engine/phases/sort-scoring.js';
@@ -916,10 +916,19 @@ async function closeEstimates(code, room) {
 
   const engine = room.engine;
   const phase = engine.config.phases[state.phaseId] || {};
-  const points = Number.isInteger(phase.points) && phase.points > 0 ? phase.points : 10;
-  const mode = phase.scoring === 'graduated' ? 'graduated' : 'closest';
+  const mode = phase.scoring === 'graduated' || phase.scoring === 'distance' ? phase.scoring : 'closest';
+  // distance pays a share of the points, so it needs room to show it
+  const points = Number.isInteger(phase.points) && phase.points > 0 ? phase.points : (mode === 'distance' ? 1000 : 10);
 
-  const scores = scoreEstimates(state.guesses, state.answer, points, mode);
+  // distance (2026-10-01, owner: points by how close you are): every guess
+  // earns points times its closeness; speedBonus then keeps 100% for an
+  // instant guess down to 50% at the buzzer, the quiz's rule
+  let scores = mode === 'distance'
+    ? scoreByDistance(state.guesses, state.answer, points)
+    : scoreEstimates(state.guesses, state.answer, points, mode);
+  if (phase.speedBonus === true && state.answer != null) {
+    scores = withSpeedBonus(scores, state.guessedAt, state.startedAt, phase.timer);
+  }
   const stats = estimateStats(state.guesses, state.answer);
   engine.storePhaseData(state.phaseId, { scores, ...stats });
   console.log(`[closeEstimates] ${stats.count} guess(es), answer=${state.answer ?? '(poll mode)'}`);
@@ -6336,6 +6345,7 @@ io.on('connection', (socket) => {
 
     // Resubmission allowed until close — estimating invites second thoughts
     state.guesses[socket.id] = v;
+    if (state.guessedAt) state.guessedAt[socket.id] = Date.now();
     recordEvent(room, 'estimate-submit', { playerId: socket.id });
     emitEstimateProgress(code, room, state);
   });

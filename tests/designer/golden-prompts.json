@@ -1882,6 +1882,23 @@
           ]
         }
       }
+    },
+    {
+      "id": "estimate-points-by-distance",
+      "prompt": "Geography estimation: how many square kilometers is Yemen, how tall is Mount Everest, how long is the Nile. Points based on how close you are, and a speed bonus.",
+      "expect": {
+        "kind": "storyboard",
+        "storyboard": {
+          "name": "How Close Can You Get?",
+          "description": "Three geography guesses, points for how close and how fast.",
+          "steps": [
+            { "brick": "estimate", "text": "How many square kilometers is Yemen?", "answer": 527968, "unit": "km²", "scoring": "distance", "speedBonus": true },
+            { "brick": "estimate", "text": "How tall is Mount Everest, in meters?", "answer": 8849, "unit": "m", "scoring": "distance", "speedBonus": true },
+            { "brick": "estimate", "text": "How long is the Nile, in kilometers?", "answer": 6650, "unit": "km", "scoring": "distance", "speedBonus": true },
+            { "brick": "end", "text": "Which guess surprised you most?" }
+          ]
+        }
+      }
     }
   ]
 }

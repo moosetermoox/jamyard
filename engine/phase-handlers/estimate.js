@@ -35,6 +35,10 @@ registerHandler('estimate', {
       phaseId: phase.id,
       answer: typeof phase.answer === 'number' && Number.isFinite(phase.answer) ? phase.answer : null,
       guesses: {},
+      // When each guess landed and the step opened: the speed bonus
+      // (scoring "distance" with speedBonus, 2026-10-01)
+      guessedAt: {},
+      startedAt: Date.now(),
       closed: false
     };
     room.phaseState = state;

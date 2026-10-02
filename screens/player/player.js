@@ -2479,19 +2479,24 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
   estimatePlayerStatus.textContent = '';
 
   var mine = (guesses || []).find(function (g) { return g.playerId === socket.id; });
+  var topScore = Math.max.apply(null, [0].concat((guesses || []).map(function (g) { return g.score || 0; })));
+  var grouped = function (n) {
+    return typeof n === 'number' && isFinite(n) ? n.toLocaleString('en-US', { maximumFractionDigits: 2 }) : String(n == null ? '' : n);
+  };
   var html = '';
   if (answer != null) {
-    html += '<div class="estimate-answer">The answer: <strong>' + escapeHtml(answer) +
+    html += '<div class="estimate-answer">The answer: <strong>' + escapeHtml(grouped(answer)) +
             (unit ? ' ' + escapeHtml(unit) : '') + '</strong></div>';
   }
   if (mine) {
-    html += '<p>You guessed <strong>' + escapeHtml(mine.value) + '</strong>' +
+    html += '<p>You guessed <strong>' + escapeHtml(grouped(mine.value)) + '</strong>' +
             (mine.score > 0 ? ', +' + mine.score + ' points!' : '') + '</p>';
-    if (mine.score > 0 && J) J.confetti({ count: 40 });
+    // Confetti for the top score (points for how close give nearly everyone some)
+    if (mine.score > 0 && mine.score === topScore && J) J.confetti({ count: 40 });
   }
   if (stats && stats.count > 0) {
-    html += '<p class="estimate-stats">Class average: ' + Math.round(stats.average * 100) / 100 +
-            (stats.median != null ? ' · median: ' + stats.median : '') + '</p>';
+    html += '<p class="estimate-stats">Class average: ' + escapeHtml(grouped(Math.round(stats.average * 100) / 100)) +
+            (stats.median != null ? ' · median: ' + escapeHtml(grouped(stats.median)) : '') + '</p>';
   }
   estimatePlayerResults.innerHTML = html;
   estimatePlayerResults.hidden = false;

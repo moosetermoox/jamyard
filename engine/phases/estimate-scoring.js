@@ -43,6 +43,54 @@ export function scoreEstimates(guesses, answer, points, mode) {
 }
 
 /**
+ * How close one guess is, 0 to 1 (2026-10-01, owner: "points based on how
+ * close you are", e.g. the area of Yemen). For two positive numbers it is
+ * the smaller over the larger, so twice the answer and half the answer
+ * both earn half: fair at any scale and the same for over and under. With
+ * zero or negative numbers in play it falls back to the gap over the
+ * answer's size.
+ */
+export function closeness(guess, answer) {
+  if (typeof guess !== 'number' || typeof answer !== 'number' || !Number.isFinite(guess) || !Number.isFinite(answer)) return 0;
+  if (guess === answer) return 1;
+  if (guess > 0 && answer > 0) return Math.min(guess, answer) / Math.max(guess, answer);
+  const span = Math.max(Math.abs(answer), 1);
+  return Math.max(0, 1 - Math.abs(guess - answer) / span);
+}
+
+/**
+ * The distance mode: every guess earns points × its closeness, rounded.
+ * @returns {Object<string, number>} playerId → score
+ */
+export function scoreByDistance(guesses, answer, points) {
+  if (answer == null || typeof answer !== 'number') return {};
+  const scores = {};
+  for (const [id, g] of Object.entries(guesses || {})) {
+    if (typeof g !== 'number' || !Number.isFinite(g)) continue;
+    scores[id] = Math.round(points * closeness(g, answer));
+  }
+  return scores;
+}
+
+/**
+ * The quiz's speed bonus on a guess's points (engine/speed-scoring.js):
+ * an instant guess keeps all of them, a guess at the buzzer keeps half,
+ * linear between. The time is the student's LAST guess (changing your
+ * mind costs a little speed). No timer, no bonus to give: scores unchanged.
+ */
+export function withSpeedBonus(scores, guessedAt, startedAt, timerSeconds) {
+  if (!timerSeconds || timerSeconds <= 0 || !startedAt) return { ...scores };
+  const out = {};
+  for (const [id, pts] of Object.entries(scores || {})) {
+    const at = guessedAt && guessedAt[id];
+    const elapsed = at ? Math.max(0, (at - startedAt) / 1000) : timerSeconds;
+    const factor = 1 - Math.min(1, elapsed / timerSeconds) / 2;
+    out[id] = Math.round(pts * factor);
+  }
+  return out;
+}
+
+/**
  * Class statistics for the reveal moment.
  * @param {Object<string, number>} guesses
  * @param {number|null} answer

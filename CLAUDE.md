@@ -37,7 +37,7 @@ Framework for quickly building classroom games where:
 - **License: AGPL-3.0-only** (2026-09-19, `LICENSE` + `README.md` License section; `package.json.license`). The code only: prompt banks carry their own per-prompt credits and no AGPL grant, the Jamyard name and look are the live site's, student work is never in the repo. The home footer links the repository ("source"). A new third-party text or asset gets a credit line in the README's License section, never a silent drop into the tree
 
 ## Current Snapshot
-- **3357 tests passing** (`npm test`, ~7s; one assertion fails on Windows checkouts only, CRLF) · **357 prompts** across 3 banks (the Closer bank carries two named sets for the make page library, 2026-09-26) (`recipes/prompt-banks/`)
+- **3366 tests passing** (`npm test`, ~7s; one assertion fails on Windows checkouts only, CRLF) · **357 prompts** across 3 banks (the Closer bank carries two named sets for the make page library, 2026-09-26) (`recipes/prompt-banks/`)
 
 - **31 phase types**, **28 built-in recipes** (one retired), ~49 activities in `games/` (**the yard's fifteen** since 2026-09-25, owner's swap: Exit Ticket, Live Poll, Class Critique, Draw Gallery, Snowball, Solo Quiz, Someone's Got You, Vocab Match, Both Sides of the Rope, One More Thing, Trivia Bluff, Doodle Bluff, Whose Eyes?, Closer, Group Work Day; Speed Quiz, Folded Pass ("not ready", owner), and Estimation Station are built but not in the yard, keeping their examples and pictograms) (varies — use `ls games/`; `_`-prefixed dirs are hidden test fixtures)
 - Server on port 3000 (`npm start`); **restart the server after code changes** (no hot reload)
@@ -168,7 +168,7 @@ Framework for quickly building classroom games where:
 22. `one-voice` — cooperative counting; server-authoritative collision window
 23. `end` — game over
 24. `buzz` — first-tap-wins buzzer; outputs `scores`
-25. `estimate` — numeric guessing; `scoring: closest|graduated`; no answer = poll mode; `min`+`max` (or "on a scale of 1 to 10" in the prompt, read by `engine/phases/estimate-range.js`) = a row of numbers to tap (up to 12) or a slider, never a bare number box
+25. `estimate` — numeric guessing; `scoring: closest|graduated|distance` (distance = every guess earns points by how close, smaller over larger, 2026-10-01) + `speedBonus` (quiz rule, from the last guess); no answer = poll mode; `min`+`max` (or "on a scale of 1 to 10" in the prompt, read by `engine/phases/estimate-range.js`) = a row of numbers to tap (up to 12) or a slider, never a bare number box
 26. `match` — pair two lists; `pairs` + `pointsPerMatch`
 27. `sort` — items into buckets; all-or-none correct buckets = graded vs consensus
 28. `checklist` — group to-do list with live progress; `items` (strings or `{text, role}` role-tagged) + optional `teamsFrom` (team-split OR pairwise collect, pairs share a list) + `rolesFrom` (team-roles; tags items as a role's job, viewer's own highlighted); no scores

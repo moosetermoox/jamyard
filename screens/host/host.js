@@ -1381,6 +1381,11 @@ socket.on('response-received', ({ playerName, count, total }) => {
 });
 
 // "1 pt", "2 pts" (the leaderboards read "1 pts", a reviewer 2026-09-28)
+// A big number with its thousands grouped (527,968, not 527968)
+function groupedNumber(n) {
+  return typeof n === 'number' && Number.isFinite(n) ? n.toLocaleString('en-US', { maximumFractionDigits: 2 }) : String(n == null ? '' : n);
+}
+
 function ptsLabel(n) {
   return n + (Math.abs(Number(n)) === 1 ? ' pt' : ' pts');
 }
@@ -2601,19 +2606,22 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
 
   let html = '';
   if (answer != null) {
-    html += '<div class="estimate-answer">The answer: <strong>' + escapeHtml(answer) +
+    html += '<div class="estimate-answer">The answer: <strong>' + escapeHtml(groupedNumber(answer)) +
             (unit ? ' ' + escapeHtml(unit) : '') + '</strong></div>';
   }
   if (stats && stats.count > 0) {
     html += '<p class="estimate-stats">' + stats.count + ' guesses · average ' +
-            Math.round(stats.average * 100) / 100 +
-            ' · median ' + stats.median + '</p>';
+            escapeHtml(groupedNumber(Math.round(stats.average * 100) / 100)) +
+            ' · median ' + escapeHtml(groupedNumber(stats.median)) + '</p>';
   }
+  // The top score is the highlight; with points for how close (distance)
+  // nearly every guess scores, so "scored" can no longer mean "won"
+  const topScore = Math.max(0, ...(guesses || []).map(g => g.score || 0));
   html += '<div class="estimate-guess-list">';
   for (let i = 0; i < (guesses || []).length; i++) {
     const g = guesses[i];
-    html += '<p class="' + (g.score > 0 ? 'estimate-winner' : '') + '">' +
-            escapeHtml(g.name) + '. ' + escapeHtml(g.value) +
+    html += '<p class="' + (topScore > 0 && g.score === topScore ? 'estimate-winner' : '') + '">' +
+            escapeHtml(g.name) + '. ' + escapeHtml(groupedNumber(g.value)) +
             (g.score > 0 ? ' (+' + g.score + ')' : '') + '</p>';
   }
   html += '</div>';
