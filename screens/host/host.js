@@ -882,9 +882,14 @@ previewApproveBtn.addEventListener('click', () => {
   if (previewLookedHere || !(window.Dialog && Dialog.confirm)) { send(); return; }
   const count = previewResponsesList ? previewResponsesList.children.length : 0;
   const thing = previewHasDrawings ? 'drawing' : 'answer';
+  // A one-at-a-time reveal next: they come up one by one, not all at once
+  // (a reviewer read "4 answers go on this screen" before a hot seat)
+  const message = previewOneByOne
+    ? (count ? (count === 1 ? 'The ' + thing + ' comes' : 'The ' + count + ' ' + thing + 's come') : 'They come') + ' up on this screen one at a time, unseen. To look first, use your Teacher view or "Show on this screen".'
+    : (count ? count + ' ' + (count === 1 ? thing + ' goes' : thing + 's go') : 'Everything goes') + ' on this screen for everyone, unseen. To look first, use your Teacher view or "Show on this screen".';
   Dialog.confirm({
-    title: 'Show them all to the class?',
-    message: (count ? count + ' ' + (count === 1 ? thing + ' goes' : thing + 's go') : 'Everything goes') + ' on this screen for everyone, unseen. To look first, use your Teacher view or "Show on this screen".',
+    title: previewOneByOne ? 'Show them to the class?' : 'Show them all to the class?',
+    message,
     confirmLabel: 'Show them', cancelLabel: 'Look first'
   }).then((yes) => { if (yes) send(); });
 });
@@ -893,6 +898,7 @@ previewApproveBtn.addEventListener('click', () => {
 // pad blank. One tap next to Approve on a phone should not do that unasked
 // (a reviewer, 2026-09-26). Hide handles one bad entry; this asks first.
 let previewHasDrawings = false;
+let previewOneByOne = false;
 function rejectQuestion() {
   const thing = previewHasDrawings ? 'drawing' : 'answer';
   return {
@@ -1448,8 +1454,9 @@ socket.on('processing-started', ({ task, hostTemplate, hostShow } = {}) => {
   applyShow(hostShow, { message: processMessage });
 });
 
-socket.on('preview-content', ({ content, responses, hostTemplate, show, refresh }) => {
+socket.on('preview-content', ({ content, responses, hostTemplate, show, refresh, oneByOne }) => {
   previewHasDrawings = !!(responses && responses.some(r => r && r.drawing));
+  if (!refresh) previewOneByOne = oneByOne === true;
   // A refresh (a Hide dropped one line) redraws the list only: the private
   // toggle stays as the teacher left it
   if (!refresh) {
@@ -3090,7 +3097,7 @@ phaseErrorEndBtn.addEventListener('click', () => {
 
 // --- Socket events - Voting ---
 
-socket.on('vote-start', ({ mode, totalVoters, timer, proposals, hostTemplate, show }) => {
+socket.on('vote-start', ({ mode, totalVoters, timer, proposals, question, hostTemplate, show }) => {
   // A yes-or-no vote puts its proposals up, numbered, words only
   // (engine/phases/vote-handler.js proposalsForProjector).
   voteProposals.textContent = '';
@@ -3103,7 +3110,11 @@ socket.on('vote-start', ({ mode, totalVoters, timer, proposals, hostTemplate, sh
   voteProposals.classList.toggle('is-long', list.length > 6);
   voteProposals.hidden = list.length === 0;
   showSection(voteSection);
-  voteModeDisplay.textContent = mode === 'head-to-head' ? UiLang.t('Head-to-Head')
+  // The vote's own question when it has one ("Who should play Brian?")
+  const hasQuestion = typeof question === 'string' && question.trim() !== '';
+  voteModeDisplay.classList.toggle('is-question', hasQuestion);
+  if (hasQuestion) setRichText(voteModeDisplay, question);
+  else voteModeDisplay.textContent = mode === 'head-to-head' ? UiLang.t('Head-to-Head')
     : (mode === 'approve' ? UiLang.t('Yes or no on each one') : UiLang.t('Pick One'));
   voteCount.textContent = '0 of ' + totalVoters + ' votes received';
   applyTemplate(voteSection, hostTemplate);

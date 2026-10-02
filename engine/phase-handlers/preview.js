@@ -60,6 +60,9 @@ registerHandler('preview', {
       content,
       responses,
       phaseId: phase.id,
+      // Approve leads to a one-at-a-time reveal: nothing goes up all at once
+      oneByOne: !!(phase.approveNext && engine.config && engine.config.phases &&
+        engine.config.phases[phase.approveNext] && engine.config.phases[phase.approveNext].type === 'reveal-one'),
       hostTemplate: sc.hostTemplate, show: sc.hostShow
     };
     ctx.emitToHost(EVENTS.PREVIEW_CONTENT, previewPayload);

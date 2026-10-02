@@ -53,7 +53,7 @@ describe('Hide one entry from the projector\'s private review list', () => {
   });
   it('a refreshed list keeps the private toggle where the teacher left it', () => {
     const host = read('screens/host/host.js');
-    expect(host).toMatch(/socket\.on\('preview-content', \(\{ content, responses, hostTemplate, show, refresh \}\)/);
+    expect(host).toMatch(/socket\.on\('preview-content', \(\{ content, responses, hostTemplate, show, refresh, oneByOne \}\)/);
     expect(host).toContain('if (!refresh) {');
   });
   it('the server re-sends the list to the projector too, marked as a refresh', () => {

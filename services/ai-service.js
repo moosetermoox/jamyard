@@ -28,6 +28,21 @@ function wordCount(text) {
   return String(text || '').trim().split(/\s+/).filter(Boolean).length;
 }
 
+// A pretend student's answer, at most this long (a lab conclusion runs long)
+const SAMPLE_ANSWER_MAX = 500;
+
+// The first step of a hand-off chain: walk rotateFrom back to the piece
+// that started it (the feedback brick's draft)
+function chainOriginId(phases, id) {
+  const seen = new Set();
+  let pid = id;
+  while (phases[pid] && typeof phases[pid].rotateFrom === 'string' && phases[phases[pid].rotateFrom] && !seen.has(pid)) {
+    seen.add(pid);
+    pid = phases[pid].rotateFrom;
+  }
+  return pid;
+}
+
 /**
  * The bluff steps of an activity: a collect whose answers hang on a
  * pick-one ballot (`choicePool` from its responses) beside a literal
@@ -1794,7 +1809,11 @@ Return ONLY JSON, no other prose:
         id,
         // a rotation step reads a classmate's answer from an earlier step
         // (2026-09-26: the bots wrote a fresh story every round)
-        respondsTo: typeof p.rotateFrom === 'string' && phases[p.rotateFrom] && phases[p.rotateFrom].type === 'collect' && !p.appendOnly ? p.rotateFrom : null,
+        // A second peer reader (showOriginal) reads the chain's first piece,
+        // the draft, never the first reader's comment (a reviewer's pretend
+        // students commented on the feedback, 2026-10-01)
+        respondsTo: typeof p.rotateFrom === 'string' && phases[p.rotateFrom] && phases[p.rotateFrom].type === 'collect' && !p.appendOnly
+          ? (p.showOriginal === true ? chainOriginId(phases, p.rotateFrom) : p.rotateFrom) : null,
         prompt: String(p.prompt || '').replace(/\{\{[^}]+\}\}/g, '…').replace(/\s+/g, ' ').trim().slice(0, 300),
         fields: Array.isArray(p.fields) ? p.fields.map((f) => String((f && f.label) || '').slice(0, 80)) : [],
         dealt: Array.isArray(p.dealItems) ? p.dealItems.slice(0, 12).map(String) : [],
@@ -1852,7 +1871,15 @@ Return ONLY JSON, no other prose: {"<step id>": ["...", "..."], ...} with a stri
       if (!match) throw new Error('AI response was not valid JSON');
       parsed = JSON.parse(match[0]);
     }
-    const clean = (v) => String(v == null ? '' : v).replace(/\s*—\s*/g, ', ').replace(/\s+/g, ' ').trim().slice(0, 300);
+    // Cut at a word, never mid-word (a pretend lab conclusion ended "This
+    // supported my hyp", 2026-10-01)
+    const clean = (v) => {
+      const line = String(v == null ? '' : v).replace(/\s*—\s*/g, ', ').replace(/\s+/g, ' ').trim();
+      if (line.length <= SAMPLE_ANSWER_MAX) return line;
+      const cut = line.slice(0, SAMPLE_ANSWER_MAX);
+      const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+      return end > SAMPLE_ANSWER_MAX / 2 ? cut.slice(0, end + 1) : cut.replace(/\s+\S*$/, '');
+    };
     const out = {};
     for (const step of steps) {
       const raw = parsed && Array.isArray(parsed[step.id]) ? parsed[step.id] : [];

@@ -235,7 +235,7 @@ describe('the third Convention run (2026-09-26)', () => {
   it('lists the proposals on the projector while the class votes, with textContent', () => {
     expect(read('screens/host/index.html')).toContain('id="vote-proposals"');
     const host = read('screens/host/host.js');
-    expect(host).toContain('proposals, hostTemplate');
+    expect(host).toContain('proposals, question, hostTemplate');
     expect(host).toMatch(/li\.textContent = text/);
     expect(read('engine/phase-handlers/vote.js')).toContain('proposals: proposalsForProjector(phase.mode, candidates)');
     expect(read('screens/host/styles.css')).toContain('.vote-proposals[hidden] { display: none; }');

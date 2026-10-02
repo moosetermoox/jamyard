@@ -19,6 +19,7 @@ import { translate } from '../i18n/index.js';
 import { audienceLine } from '../phases/audience-line.js';
 import { splitPartnerTokens } from '../per-player-template.js';
 import { dealPairs, joinLatePair } from '../phases/pair-deal.js';
+import { withoutPlaceholderLines } from '../phases/host-prompt.js';
 
 // The partner's piece rides beside the prompt, never inside it: the
 // student screen shows it on a card of its own under the instruction.
@@ -500,7 +501,7 @@ registerHandler('collect', {
       : null;
 
     // Resolve {{...}} refs in the prompt once for the host (no `.mine`/`.assigned` recipient yet)
-    const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
+    const hostPrompt = withoutPlaceholderLines(ctx.resolveTemplate(phase.prompt || ''));
 
     const image = ctx.services.resolveImageUrl(phase.image, ctx.room.gameId, ctx.room.gameSource);
     const video = ctx.services.resolveVideoEmbed(phase.video);

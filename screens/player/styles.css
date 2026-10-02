@@ -767,6 +767,20 @@ textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width
   padding: 2px 8px;
 }
 
+/* Standings as bars, the projector's shape (player.js standingBarRow):
+   fixed columns so every bar starts at the same place */
+#leaderboard-standings p.standing-row {
+  display: grid;
+  grid-template-columns: 2.6em 7em 1fr 4.5em;
+  align-items: center;
+  gap: 10px;
+}
+.standing-rank { font-weight: 900; opacity: 0.7; }
+.standing-name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.standing-track { display: block; height: 0.8em; background: rgba(42, 38, 32, 0.1); border-radius: 3px; overflow: hidden; }
+.standing-fill { display: block; height: 100%; background: currentColor; border-radius: 3px; }
+.standing-pts { font-weight: 900; white-space: nowrap; text-align: right; }
+
 /* Reveal-one section */
 .reveal-one-item {
   font-size: 1.2rem;

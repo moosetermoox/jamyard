@@ -43,7 +43,7 @@ describe('the projector asks before showing unreviewed work', () => {
   it('Approve & Show confirms unless the list was opened on this screen this step', () => {
     expect(js).toContain('let previewLookedHere = false;');
     expect(js).toContain("if (!previewPrivate.hidden) previewLookedHere = true;");
-    expect(js).toContain("title: 'Show them all to the class?'");
+    expect(js).toContain("title: previewOneByOne ? 'Show them to the class?' : 'Show them all to the class?'");
     expect(js).toContain("confirmLabel: 'Show them', cancelLabel: 'Look first'");
     expect(js).toContain('previewLookedHere = false;');
     expect(js).toContain('if (previewLookedHere || !(window.Dialog && Dialog.confirm)) { send(); return; }');

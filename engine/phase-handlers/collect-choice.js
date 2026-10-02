@@ -15,6 +15,7 @@ import { translate } from '../i18n/index.js';
 import { audienceLine } from '../phases/audience-line.js';
 import { resolveDisplayDrawing } from '../phases/display-drawing.js';
 import { withoutSitOut, sitOutMessage } from '../phases/sit-out.js';
+import { withoutPlaceholderLines } from '../phases/host-prompt.js';
 
 /**
  * Resolve the base choice array for a collect-choice phase.
@@ -198,7 +199,7 @@ registerHandler('collect-choice', {
     // Send to host (resolve refs once for host view). count/total seed the
     // progress counter — mirrors the submit handler's eligibility math
     // (author self-exclusion) so the projector never reads "0 of 0".
-    const hostPrompt = ctx.resolveTemplate(phase.prompt || '');
+    const hostPrompt = withoutPlaceholderLines(ctx.resolveTemplate(phase.prompt || ''));
     // Guess who: the author counts as already in, so the count never says
     // somebody is sitting out (engine/phases/sit-out.js)
     const sittingOut = eligible.length - withoutSitOut(eligible, phase).length;

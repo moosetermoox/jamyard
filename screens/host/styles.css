@@ -740,6 +740,13 @@ body.in-bench .rolling-door-qr { display: none; }
   opacity: 0.7;
 }
 
+#vote-mode-display.is-question {
+  font-size: 2.6rem;
+  font-weight: 800;
+  color: var(--t-ink, #2A2620);
+  opacity: 1;
+}
+
 /* The convention floor: a yes-or-no vote's proposals on paper, numbered,
    two columns once the list is long (FitScreen shrinks the rest). */
 .vote-proposals {
@@ -2998,7 +3005,10 @@ body.in-activity { padding-bottom: 112px; }
    the points against the top score, the points (host.js standingRow) */
 .standings p.standing-row {
   display: grid;
-  grid-template-columns: 3em minmax(5em, 10em) 1fr 6.5em;
+  /* fixed columns: each row is its own grid, so a name column that sized
+     to its name started every bar at a different place (a reviewer saw #3
+     out of line, 2026-10-01) */
+  grid-template-columns: 3em 10em 1fr 6.5em;
   align-items: center;
   gap: 14px;
 }
