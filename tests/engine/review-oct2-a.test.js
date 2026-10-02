@@ -12,6 +12,7 @@ import { compileRecipe } from '../../engine/recipe-compiler.js';
 import { PHASE_SCHEMAS } from '../../engine/phase-schemas.js';
 import { stripPlayerIdRefs } from '../../engine/ai-name-fill.js';
 import { AIService } from '../../services/ai-service.js';
+import { runBottomPercent } from '../../engine/phases/eliminate-handler.js';
 
 const read = (rel) => readFile(new URL('../../' + rel, import.meta.url), 'utf8');
 
@@ -90,6 +91,27 @@ describe('2. One More Thing: no playerId reaches the projector', () => {
     expect(out.text).toBe('Two lists caught it.');
     const msg = ai._buildUserMessage('Sum up', [{ playerId: ID, text: 'x' }]);
     expect(msg).toContain('Never write a playerId');
+  });
+});
+
+describe('7. Elimination Tournament: the percent is a cap', () => {
+  it("the reviewer's round: 7 students at 60% puts at most 4 out, ties included", () => {
+    // two with a vote each, five with none: every zero tied at the cutoff
+    const scores = { a: 2, b: 1, c: 0, d: 0, e: 0, f: 0, g: 0 };
+    for (let k = 0; k < 20; k++) {
+      const out = runBottomPercent({ scores, percent: 60 });
+      expect(out.length).toBe(4);
+      expect(out).not.toContain('a');
+      expect(out).not.toContain('b');
+    }
+  });
+
+  it('everyone below the cutoff goes before the lot, and a small class still loses one', () => {
+    const out = runBottomPercent({ scores: { a: 5, b: 3, c: 1, d: 1, e: 0 }, percent: 60, random: () => 0 });
+    expect(out.length).toBe(3);
+    expect(out).toContain('e');
+    expect(runBottomPercent({ scores: { a: 3, b: 2, c: 1 }, percent: 10 })).toEqual(['c']);
+    expect(runBottomPercent({ scores: { a: 0, b: 0, c: 0 }, percent: 60 })).toEqual([]);
   });
 });
 

@@ -86,9 +86,9 @@ describe('EliminateHandler', () => {
       expect(result.remaining).toBe(2);
     });
 
-    it('handles ties by eliminating all tied players at the cutoff', () => {
+    it('a tie at the cutoff never overshoots the percent: the lot picks', () => {
       const players = makeRegistry(['p1', 'p2', 'p3', 'p4']);
-      // p3 and p4 tie at score 5 — both at cutoff boundary
+      // p3 and p4 tie at score 5, and 25% of 4 is one place
       const result = runEliminate({
         method: 'bottom-percent',
         input: {
@@ -99,12 +99,9 @@ describe('EliminateHandler', () => {
         players
       });
 
-      // 25% of 4 = 1, cutoff score is 5
-      // Both p3 and p4 have score 5 (at or below cutoff), so both eliminated
-      expect(result.eliminated).toContain('p3');
-      expect(result.eliminated).toContain('p4');
-      expect(result.eliminated).toHaveLength(2);
-      expect(result.remaining).toBe(2);
+      expect(result.eliminated).toHaveLength(1);
+      expect(['p3', 'p4']).toContain(result.eliminated[0]);
+      expect(result.remaining).toBe(3);
     });
 
     it('eliminates nobody when percent is 0', () => {
@@ -188,11 +185,11 @@ describe('bottom-percent with everyone tied', () => {
     expect(result.remaining).toBe(4);
   });
 
-  it('still eliminates a genuine bottom group', () => {
+  it('still eliminates from a genuine bottom group, up to the percent', () => {
     const players = makeRegistry(['p1', 'p2', 'p3', 'p4']);
     const result = runEliminate({
       method: 'bottom-percent',
-      input: { scores: { p1: 0, p2: 0, p3: 3, p4: 5 }, percent: 25 },
+      input: { scores: { p1: 0, p2: 0, p3: 3, p4: 5 }, percent: 50 },
       players
     });
     expect(result.eliminated.sort()).toEqual(['p1', 'p2']);

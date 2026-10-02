@@ -26,7 +26,7 @@
     "elimPercent": {
       "type": "integer",
       "label": "Percent eliminated each round",
-      "helper": "Bottom percent (by votes received) is out each round. Students who are out still vote.",
+      "helper": "At most this percent is out each round, the fewest votes first (a tie at the cutoff is drawn by lot). Students who are out still vote.",
       "default": 30,
       "min": 10,
       "max": 60
