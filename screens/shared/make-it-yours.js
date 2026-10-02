@@ -190,8 +190,11 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount, opts) {
     if (!mount || typeof opts.onChange !== 'function') return;
     clearTimeout(changeTimer);
     changeTimer = setTimeout(function () {
-      var cleaned = cleanedList();
-      if (!cleaned.length || SetupKnobs.validateQuizList(cleaned).length) return;
+      // The questions that are ready go up; one mid-edit (a choice just
+      // dropped, its ✓ not yet moved) no longer freezes the screen above
+      // on the old list (a reviewer, 2026-10-02)
+      var cleaned = cleanedList().filter(function (q) { return SetupKnobs.validateQuizList([q]).length === 0; });
+      if (!cleaned.length) return;
       var params = { questions: cleaned };
       var title = titleFor(JSON.parse(JSON.stringify(stamp.params)));
       if (title) params.title = title;
@@ -272,7 +275,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount, opts) {
 
   var listHint = document.createElement('p');
   listHint.className = 'template-picker-subtitle';
-  listHint.textContent = 'Check every answer. Tap ○ to mark the right choice, ✕ to drop one.';
+  listHint.textContent = 'Check every answer. Tap ○ to mark the right choice, ✕ to drop one. To drop the ✓ choice, mark another first.';
   modal.appendChild(listHint);
 
   var listWrap = document.createElement('div');
@@ -363,7 +366,10 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount, opts) {
         });
         row.appendChild(cInput);
 
-        if (q.choices.length > 2) {
+        // The ✓ choice cannot be dropped: a question with no right answer
+        // could not be saved (a reviewer dropped it, 2026-10-02). Mark
+        // another choice first, then this one's ✕ comes back.
+        if (q.choices.length > 2 && !isCorrect) {
           var cRemove = document.createElement('button');
           cRemove.type = 'button';
           cRemove.textContent = '✕';
@@ -392,9 +398,35 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount, opts) {
         card.appendChild(addChoice);
       }
 
+      // What this question still needs, in the card itself, kept current
+      // as the teacher types (refreshProblems below)
+      var problem = document.createElement('p');
+      problem.className = 'quiz-problem';
+      problem.setAttribute('role', 'status');
+      problem.style.cssText = 'margin:6px 0 0; font-family:"DM Sans", Arial, sans-serif; font-weight:700; color:#B02D12;';
+      card.appendChild(problem);
+      card.setAttribute('data-question', String(qi));
+
       listWrap.appendChild(card);
     });
+    refreshProblems();
   }
+
+  // Each card says what its question still needs (no question text, fewer
+  // than two choices, no ✓); the card is outlined while it does
+  function refreshProblems() {
+    var cleaned = cleanedList();
+    Array.prototype.forEach.call(listWrap.querySelectorAll('[data-question]'), function (card) {
+      var qi = parseInt(card.getAttribute('data-question'), 10);
+      var line = card.querySelector('.quiz-problem');
+      var problems = cleaned[qi] ? SetupKnobs.validateQuizList([cleaned[qi]]) : [];
+      // the first thing it needs; the next shows once that is fixed
+      var text = problems.length ? problems[0].replace(/^Question 1\b/, 'This question') : '';
+      if (line) { line.textContent = text; line.hidden = !text; }
+      card.style.outline = text ? '3px solid #B02D12' : '';
+    });
+  }
+  listWrap.addEventListener('input', refreshProblems);
   renderQuestions();
 
   // --- Pace knobs (timer, speed bonus) ---
@@ -507,13 +539,33 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount, opts) {
       });
   });
 
+  var api = { makeCopy: makeCopy, problem: function () { return lastProblem; }, showProblem: showProblem };
+  var lastProblem = '';
+  // The first question that needs fixing, brought into view (on the make
+  // page the buttons sit above this list, and a blocked Try it looked
+  // dead with its reason off screen, a reviewer, 2026-10-02)
+  function showProblem() {
+    refreshProblems();
+    var card = listWrap.querySelector('[data-question] .quiz-problem:not([hidden])');
+    card = card && card.parentNode;
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    var box = card.querySelector('input, textarea');
+    if (box) setTimeout(function () { box.focus({ preventScroll: true }); }, 400);
+  }
+
   function makeCopy(dest, extras) {
     var cleaned = cleanedList();
     var problems = SetupKnobs.validateQuizList(cleaned);
     if (problems.length > 0) {
+      lastProblem = problems[0];
       showStatus(problems.slice(0, 2).join(' '));
+      refreshProblems();
+      // in the dialog the list is right here: bring the card up
+      if (!mount) showProblem();
       return false;
     }
+    lastProblem = '';
     doors.setDisabled(true);
     writeBtn.disabled = true;
     showStatus('Building your copy…');
@@ -552,7 +604,7 @@ function showQuizCustomizeDialog(game, config, recipeSummary, mount, opts) {
     listWrap.style.overflowY = 'visible';
     mount.appendChild(modal);
     micsIn(modal);
-    return { makeCopy: makeCopy };
+    return api;
   }
   overlay.appendChild(modal);
   document.body.appendChild(overlay);
@@ -950,10 +1002,13 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
       });
   });
 
+  // the first thing the facts still need, for the make page's line by its buttons
+  var bluffProblem = '';
   function makeCopy(dest, extras) {
     var params = JSON.parse(JSON.stringify(stamp.params));
     var cleaned = cleanedList();
     var problems = SetupKnobs.validateBluffList(cleaned);
+    bluffProblem = problems.length ? problems[0] : '';
     if (problems.length > 0) {
       showStatus(problems.slice(0, 2).join(' '));
       return false;
@@ -993,7 +1048,7 @@ function showBluffCustomizeDialog(game, config, recipeSummary, mount) {
     modal.style.overflowY = '';
     mount.appendChild(modal);
     micsIn(modal);
-    return { makeCopy: makeCopy };
+    return { makeCopy: makeCopy, problem: function () { return bluffProblem; } };
   }
   overlay.appendChild(modal);
   document.body.appendChild(overlay);

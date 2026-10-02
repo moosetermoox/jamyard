@@ -1038,18 +1038,26 @@
     x.setAttribute('aria-label', 'Drop this scale');
     x.title = 'Drop this scale';
     // the range is the template's, kept as hidden values the edits read
-    var entry = { label: label, min: { value: String(s.min) }, max: { value: String(s.max) }, low: low, high: high };
+    var entry = { label: label, min: { value: String(s.min) }, max: { value: String(s.max) }, low: low, high: high, x: x };
     x.addEventListener('click', function () {
       if (boxes.length <= 1) return;
       var i = boxes.indexOf(entry);
       if (i !== -1) boxes.splice(i, 1);
       card.remove();
+      syncScaleDrops(boxes);
       scheduleMap();
     });
     card.appendChild(x);
     list.appendChild(card);
     boxes.push(entry);
+    syncScaleDrops(boxes);
     return entry;
+  }
+
+  // A rating step keeps at least one scale: the last one shows no x
+  // (a reviewer pressed it and nothing happened, 2026-10-02)
+  function syncScaleDrops(boxes) {
+    boxes.forEach(function (b) { if (b.x) b.x.hidden = boxes.length <= 1; });
   }
 
   // The answers as typed (empty ones dropped), or null when they are not boxes
@@ -1809,6 +1817,9 @@
     });
     l.addEventListener('input', scheduleMap);
     r.addEventListener('input', scheduleMap);
+    // a repeat is marked as it is typed, the line waits for the buttons
+    l.addEventListener('input', pairsProblem);
+    r.addEventListener('input', pairsProblem);
     row.appendChild(l);
     row.appendChild(eq);
     row.appendChild(r);
@@ -1891,11 +1902,13 @@
     x.className = 'pair-x';
     x.textContent = '×';
     x.setAttribute('aria-label', 'Drop this scale');
-    var entry = { label: label, min: min, max: max, low: low, high: high };
+    var entry = { label: label, min: min, max: max, low: low, high: high, x: x };
     x.addEventListener('click', function () {
+      if (boxes.length <= 1) return;
       var i = boxes.indexOf(entry);
       if (i !== -1) boxes.splice(i, 1);
       row.remove();
+      syncScaleDrops(boxes);
       scheduleMap();
     });
     var top = document.createElement('div');
@@ -1907,6 +1920,7 @@
     row.appendChild(top); row.appendChild(ends);
     list.appendChild(row);
     boxes.push(entry);
+    syncScaleDrops(boxes);
     return entry;
   }
 
@@ -1960,6 +1974,40 @@
         .map(function (b) { return { left: b.left.value.trim(), right: b.right.value.trim() }; })
         .filter(function (p) { return p.left && p.right; }) };
     }).filter(function (r) { return r.pairs.length > 0; });
+  }
+
+  // The same word twice on one side of a round (a reviewer typed "enzyme"
+  // twice and got the validator's raw line with the copy's id, 2026-10-02):
+  // the boxes are marked and the first repeat is said in plain words,
+  // before anything is saved. Case and spaces do not make two words differ
+  // for a student dragging them. Returns the line, or '' when all is well.
+  function pairsProblem() {
+    var rounds = [];
+    Object.keys(state.pairBoxes).forEach(function (id) { rounds.push(state.pairBoxes[id]); });
+    (state.newRoundBoxes || []).forEach(function (boxes) { rounds.push(boxes); });
+    var first = '';
+    rounds.forEach(function (boxes, ri) {
+      ['left', 'right'].forEach(function (side) {
+        var seen = {};
+        boxes.forEach(function (b) {
+          var input = b[side];
+          var key = input.value.trim().toLowerCase();
+          var dup = !!key && seen[key] !== undefined;
+          input.classList.toggle('is-dup', dup);
+          if (dup) {
+            seen[key].classList.add('is-dup');
+            if (!first) {
+              first = '"' + input.value.trim() + '" is on the ' + side + ' side twice' +
+                (rounds.length > 1 ? ' in round ' + (ri + 1) : '') +
+                ' of The pairs. Change one so every word on that side is different.';
+            }
+          } else if (key) {
+            seen[key] = input;
+          }
+        });
+      });
+    });
+    return first;
   }
 
   // Rounds whose pairs differ from the template's
@@ -2122,11 +2170,38 @@
 
   el.cancel.addEventListener('click', function (e) { e.preventDefault(); clearOpening(); });
 
+  // A recipe panel refused to build (Question 1 needs a ✓): the reason goes
+  // right under the buttons that were pressed, with a link down to the
+  // question, never only in the panel below the fold (a reviewer pressed
+  // Try it and thought the button was dead, 2026-10-02)
+  function panelProblem() {
+    var api = state.panelApi;
+    var text = api && typeof api.problem === 'function' ? api.problem() : '';
+    if (!text) return;
+    fail(text);
+    var section = document.getElementById('panel-section');
+    if (!section) return;
+    var show = document.createElement('a');
+    show.href = '#panel-section';
+    show.textContent = 'Show me';
+    show.addEventListener('click', function (e) {
+      e.preventDefault();
+      if (typeof api.showProblem === 'function') api.showProblem();
+      else section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    el.error.appendChild(document.createTextNode(' '));
+    el.error.appendChild(show);
+  }
+
   // --- The doors. Untouched = the original runs (no copy saved); the
   // designer gets an unsaved draft. Anything touched = a saved copy.
   function go(dest) {
     if (state.busy || !state.config) return;
     el.error.hidden = true;
+    // A repeated word in the pairs is said here, by the buttons, before
+    // a copy is made (the save would refuse it in the validator's words)
+    var pairsLine = pairsProblem();
+    if (pairsLine) { fail(pairsLine); return; }
     // Which door, and whether the class fit was used first (a fit question
     // answered, or a recipe's own settings touched); never which activity
     if (window.Analytics) {
@@ -2145,7 +2220,7 @@
     if (state.panelApi && state.panelApi.makeCopy) {
       setOpening(dest, false);
       var result = state.panelApi.makeCopy(dest, { anonymous: !!state.anonymous, earlyJoke: !!state.earlyJoke });
-      if (result === false) { clearOpening(); return; }
+      if (result === false) { clearOpening(); panelProblem(); return; }
       if (result && result.then) result.then(function () { clearOpening(); });
       return;
     }

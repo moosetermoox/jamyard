@@ -32,6 +32,7 @@ import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
 import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
 import { printFor, applyEdits, nameFor, firstStudentStep } from './engine/make-print.js';
+import { teacherFacingError } from './engine/teacher-error.js';
 import { resolvePerPlayerTemplate } from './engine/per-player-template.js';
 import { effectiveRange, clampGuess } from './engine/phases/estimate-range.js';
 import { foreachSitOut, withoutSitOut, sitOutIds } from './engine/phases/sit-out.js';
@@ -2897,7 +2898,10 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
         const merged = { ...(config.recipe.params || {}) };
         for (const [k, v] of Object.entries(body.params)) if (allowed.has(k)) merged[k] = v;
         const compiled = compileRecipe(recipe, merged);
-        if (!compiled.config) return res.status(400).json({ error: 'The example did not fit the recipe: ' + JSON.stringify(compiled.diagnostics || []).slice(0, 300) });
+        if (!compiled.config) {
+          const first = (compiled.diagnostics || []).find(d => d.severity === 'error');
+          return res.status(400).json({ error: first ? first.message : 'Those settings could not be used.', diagnostics: compiled.diagnostics || [] });
+        }
         base = { ...compiled.config, id: config.id, name: config.name, description: config.description };
         recompiled = true;
       }
@@ -3109,7 +3113,7 @@ app.post('/api/recipes/:id/compile', (req, res) => {
 
   if (!config) {
     return res.status(400).json({
-      error: 'Recipe parameters did not validate.',
+      error: 'Some settings need a fix first.',
       diagnostics
     });
   }
@@ -3120,7 +3124,7 @@ app.post('/api/recipes/:id/compile', (req, res) => {
   const validation = validate(config, req.params.id, { returnResults: true });
   if (validation.errors && validation.errors.length > 0) {
     return res.status(500).json({
-      error: 'Recipe compiled but produced an invalid game config (recipe-author bug).',
+      error: 'This recipe could not be built with these settings. Try other settings, or tell us through Feedback.',
       diagnostics,
       configErrors: validation.errors
     });
@@ -3630,7 +3634,7 @@ app.put('/api/games/:gameId', async (req, res) => {
     res.json({ success: true, stripped });
   } catch (error) {
     console.log(`[api/games PUT] Error: ${error.message}`);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: teacherFacingError(error.message) });
   }
 });
 
@@ -3699,7 +3703,7 @@ app.post('/api/games', async (req, res) => {
     res.json({ success: true, id, source: 'user' });
   } catch (error) {
     console.log(`[api/games POST] Error: ${error.message}`);
-    res.status(400).json({ error: error.message });
+    res.status(400).json({ error: teacherFacingError(error.message) });
   }
 });
 
@@ -3744,7 +3748,7 @@ app.post('/api/games/:gameId/copy', async (req, res) => {
   } catch (error) {
     console.log(`[api/games copy] Error: ${error.message}`);
     const status = error.message.startsWith('Game not found') ? 404 : 400;
-    res.status(status).json({ error: error.message });
+    res.status(status).json({ error: teacherFacingError(error.message) });
   }
 });
 
@@ -6348,6 +6352,10 @@ io.on('connection', (socket) => {
     const player = room.engine.players.find(socket.id);
     if (!player) return;
     if (typeof value !== 'number' || !Number.isFinite(value)) return;
+    // A twenty-digit guess is already rounded by the time it arrives
+    // (100000000000000000000) and drags the class average with it; the
+    // student screen says so before sending, this refuses the rest
+    if (Math.abs(value) > Number.MAX_SAFE_INTEGER) return;
 
     // Server-side bounds clamp (the client also enforces the range): the
     // step's min/max, or the question's own "scale of 1 to 10"
@@ -6384,6 +6392,7 @@ io.on('connection', (socket) => {
     if (isStalePhaseEvent(room, phaseInstanceId, 'estimate-set-answer')) return;
     if (!isTeacherSocket(code, room, socket.id)) return;
     if (typeof answer !== 'number' || !Number.isFinite(answer)) return;
+    if (Math.abs(answer) > Number.MAX_SAFE_INTEGER) return;
     room.phaseState.answer = answer;
     recordEvent(room, 'estimate-set-answer');
     console.log(`[estimate-set-answer] Room ${code}: answer set from the console`);

@@ -916,6 +916,8 @@ function renderRecipeFormView(modal, recipe, allRecipes, overlay) {
     var spec = recipe.parameters[name];
     form.appendChild(buildField(name, spec));
   }
+  form.addEventListener('change', function () { applyShowWhen(form, recipe); });
+  applyShowWhen(form, recipe);
 
   modal.appendChild(form);
 
@@ -980,10 +982,44 @@ function buildField(name, spec) {
     wrap.appendChild(helper);
   }
 
+  // The field's limits, said before they are broken (a reviewer met "at
+  // least 2 rounds" and "10 to 60 percent" only as errors, 2026-10-02)
+  var limit = RecipeFormHelp.limitHint(spec);
+  if (limit) {
+    var limitEl = document.createElement('div');
+    limitEl.className = 'recipe-field-limit';
+    limitEl.textContent = limit;
+    wrap.appendChild(limitEl);
+  }
+
   var input = buildInputForType(name, spec);
   wrap.appendChild(input);
 
   return wrap;
+}
+
+// A field that only matters for one choice hides behind it (Choice
+// Draft's "Students per group" vs "Number of groups", 2026-10-02): the
+// recipe's showWhen, the rule the make page's knobs already follow. A
+// hidden field is not sent, so the recipe's default fills it.
+function applyShowWhen(form, recipe) {
+  var values = {};
+  var fields = form.querySelectorAll('.recipe-field');
+  for (var i = 0; i < fields.length; i++) {
+    var name = fields[i].getAttribute('data-param-name');
+    var type = fields[i].getAttribute('data-param-type');
+    if (type === 'enum') {
+      var sel = fields[i].querySelector('select');
+      if (sel) values[name] = sel.value;
+    } else if (type === 'boolean') {
+      var box = fields[i].querySelector('.recipe-field-checkbox');
+      if (box) values[name] = box.checked ? 'true' : 'false';
+    }
+  }
+  for (var j = 0; j < fields.length; j++) {
+    var spec = (recipe.parameters || {})[fields[j].getAttribute('data-param-name')];
+    fields[j].hidden = !RecipeFormHelp.fieldVisible(spec, values);
+  }
 }
 
 function buildInputForType(name, spec) {
@@ -1019,7 +1055,7 @@ function buildStringInput(name, spec, multiline) {
   input.setAttribute('data-param-name', name);
   if (!multiline) input.type = 'text';
   if (multiline) input.rows = 2;
-  if (spec.placeholder) input.placeholder = spec.placeholder;
+  if (spec.placeholder) input.placeholder = RecipeFormHelp.hintPlaceholder(spec.placeholder);
   if (spec.default != null) input.value = spec.default;
   return input;
 }
@@ -1217,7 +1253,7 @@ function buildIntegerInput(name, spec) {
   input.setAttribute('data-param-name', name);
   if (spec.min != null) input.min = spec.min;
   if (spec.max != null) input.max = spec.max;
-  if (spec.placeholder) input.placeholder = spec.placeholder;
+  if (spec.placeholder) input.placeholder = RecipeFormHelp.hintPlaceholder(spec.placeholder);
   if (spec.default != null) input.value = spec.default;
   return input;
 }
@@ -1248,11 +1284,27 @@ function buildEnumInput(name, spec) {
   for (var i = 0; i < spec.values.length; i++) {
     var opt = document.createElement('option');
     opt.value = spec.values[i];
-    opt.textContent = spec.values[i];
+    // the recipe's words for the choice, never the value the compiler
+    // reads ("size / count / none" on Choice Draft, 2026-10-02)
+    opt.textContent = RecipeFormHelp.enumLabel(spec, spec.values[i]);
     if (spec.values[i] === spec.default) opt.selected = true;
     sel.appendChild(opt);
   }
-  return sel;
+  if (!spec.valueHelp) return sel;
+  // what the picked choice does, under the box, following the pick
+  var wrap = document.createElement('div');
+  wrap.className = 'recipe-field-enum-wrap';
+  wrap.appendChild(sel);
+  var help = document.createElement('div');
+  help.className = 'recipe-field-helper recipe-field-value-help';
+  function sync() {
+    help.textContent = RecipeFormHelp.enumHelp(spec, sel.value);
+    help.hidden = !help.textContent;
+  }
+  sel.addEventListener('change', sync);
+  sync();
+  wrap.appendChild(help);
+  return wrap;
 }
 
 function buildArrayInput(name, spec) {
@@ -1313,17 +1365,35 @@ function buildArrayItemRow(spec, value) {
       var lab = document.createElement('label');
       lab.className = 'recipe-object-field-label';
       lab.textContent = fspec.label || key;
+      // the field's limit beside its name ("Zero or more."), said up front
+      var subLimit = RecipeFormHelp.limitHint(fspec);
+      if (subLimit) {
+        var subLimitEl = document.createElement('span');
+        subLimitEl.className = 'recipe-field-limit';
+        subLimitEl.textContent = ' ' + subLimit;
+        lab.appendChild(subLimitEl);
+      }
       card.appendChild(lab);
 
       var input = document.createElement('input');
       input.type = 'text';
       input.className = 'recipe-field-input recipe-object-field-input';
       input.setAttribute('data-field-key', key);
+      input.setAttribute('aria-label', fspec.label || key);
       if (fspec.type === 'array') {
         input.setAttribute('data-field-type', 'array');
-        input.placeholder = fspec.placeholder || 'Comma-separated, e.g. Red, Green, Blue';
+        input.placeholder = fspec.placeholder ? RecipeFormHelp.hintPlaceholder(fspec.placeholder) : 'Comma-separated, e.g. Red, Green, Blue';
       } else if (fspec.placeholder) {
-        input.placeholder = fspec.placeholder;
+        input.placeholder = RecipeFormHelp.hintPlaceholder(fspec.placeholder);
+      }
+      // A whole number stays a text box ("7,000" is fine to type) that the
+      // form reads as a number (a reviewer's answer came back as a raw
+      // "must be a integer (got string)", 2026-10-02)
+      if (fspec.type === 'integer') {
+        input.setAttribute('data-field-type', 'integer');
+        input.setAttribute('data-field-label', fspec.label || key);
+        input.inputMode = 'numeric';
+        if (typeof fspec.min === 'number') input.setAttribute('data-min', String(fspec.min));
       }
       var v = (value && typeof value === 'object') ? value[key] : undefined;
       if (v != null) input.value = Array.isArray(v) ? v.join(', ') : v;
@@ -1337,7 +1407,7 @@ function buildArrayItemRow(spec, value) {
     strInput.className = 'recipe-field-input';
     strInput.value = (typeof value === 'string' ? value : '') || '';
     if (spec.item && spec.item.placeholder) {
-      strInput.placeholder = spec.item.placeholder;
+      strInput.placeholder = RecipeFormHelp.hintPlaceholder(spec.item.placeholder);
     }
     row.appendChild(strInput);
   }
@@ -1377,14 +1447,19 @@ function updateArrayAddDisabled(list, addBtn, spec) {
 // Form submission — gather → compile → save → redirect
 // =======================================================================
 
-function gatherFormParams(form) {
+// `problems` (optional array) collects what the teacher must fix before
+// anything is sent, in their words ("The real number" in item 2 ...).
+function gatherFormParams(form, problems) {
   var params = {};
   var fields = form.querySelectorAll('.recipe-field');
+  problems = problems || [];
 
   for (var i = 0; i < fields.length; i++) {
     var field = fields[i];
     var name = field.getAttribute('data-param-name');
     var type = field.getAttribute('data-param-type');
+    // a field hidden behind another choice is left to the recipe's default
+    if (field.hidden) continue;
 
     if (type === 'array') {
       var objRows = field.querySelectorAll('.recipe-field-array-row-object');
@@ -1403,6 +1478,16 @@ function gatherFormParams(form) {
             any = true;
             if (fieldInputs[k].getAttribute('data-field-type') === 'array') {
               obj[fkey] = raw.split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+            } else if (fieldInputs[k].getAttribute('data-field-type') === 'integer') {
+              var whole = RecipeFormHelp.readWholeNumber(raw);
+              var fieldName = '"' + fieldInputs[k].getAttribute('data-field-label') + '" in item ' + (r + 1);
+              var floor = fieldInputs[k].getAttribute('data-min');
+              if (whole.problem) {
+                problems.push(fieldName + ' ' + whole.problem + '.');
+              } else if (floor !== null && whole.value < parseInt(floor, 10)) {
+                problems.push(fieldName + ' must be at least ' + floor + '.');
+              }
+              obj[fkey] = whole.problem ? raw : whole.value;
             } else {
               obj[fkey] = raw;
             }
@@ -1452,7 +1537,14 @@ async function submitRecipeForm(modal, recipe, form, status, createBtn, overlay)
   createBtn.disabled = true;
   createBtn.textContent = 'Creating…';
 
-  var params = gatherFormParams(form);
+  var problems = [];
+  var params = gatherFormParams(form, problems);
+  if (problems.length) {
+    showFormDiagnostics(status, { diagnostics: problems.map(function (p) { return { severity: 'error', message: p }; }) });
+    createBtn.disabled = false;
+    createBtn.textContent = 'Create Activity';
+    return;
+  }
 
   // Compile via the API
   var compileResp;
@@ -1526,8 +1618,13 @@ function showFormDiagnostics(status, data) {
   status.className = 'recipe-form-status recipe-form-status-error';
   status.innerHTML = '';
 
+  // The teacher's heading, never the route's internal one ("Recipe
+  // parameters did not validate.", a reviewer, 2026-10-02); the lines
+  // under it are already in plain words (engine/recipe-schema.js)
   var heading = document.createElement('strong');
-  heading.textContent = data.error || 'Please fix these issues:';
+  heading.textContent = (data.diagnostics && data.diagnostics.length)
+    ? 'A few things to fix first:'
+    : (data.error || 'Something went wrong. Try again.');
   status.appendChild(heading);
 
   if (data.diagnostics && data.diagnostics.length > 0) {

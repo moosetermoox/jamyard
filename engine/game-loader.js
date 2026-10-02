@@ -203,6 +203,12 @@ export function validate(config, gameId, options) {
     errors.push(`Game "${gameId}": "anonymous" must be true or false`);
   }
 
+  // Class size: the editor's Settings saved Min players 10 with Max
+  // players 3 (a reviewer, 2026-10-02). Blank (null) is "no limit"; a
+  // limit is a whole number of at least 1, and the low one stays low.
+  // Mirrored in the editor's validateConfig.
+  errors.push(...validatePlayerLimits(config, gameId));
+
   // Activity language (engine/i18n): the fixed button labels students see.
   // "auto" (or absent) detects from the activity's text; anything else
   // must be a supported code so a typo never silently means English.
@@ -675,12 +681,12 @@ export function validate(config, gameId, options) {
           const left = String(p.left).trim(), right = String(p.right).trim();
           if (seenLeft.has(left)) {
             errors.push(
-              `Game "${gameId}": phase "${name}" (match) has "${left}" on the left side twice. Each left item must be unique.`
+              `Game "${gameId}": phase "${name}" (match) has "${left}" on the left side twice. Change one so no two are the same.`
             );
           }
           if (seenRight.has(right)) {
             errors.push(
-              `Game "${gameId}": phase "${name}" (match) has "${right}" on the right side twice. Each right item must be unique.`
+              `Game "${gameId}": phase "${name}" (match) has "${right}" on the right side twice. Change one so no two are the same.`
             );
           }
           seenLeft.add(left);
@@ -1669,6 +1675,20 @@ export function validate(config, gameId, options) {
   if (errors.length > 0) {
     throw new Error(errors[0]);
   }
+}
+
+/**
+ * Top-level minPlayers / maxPlayers: the minimum never above the maximum
+ * (blank, null, is no limit). Only that contradiction is refused: a saved
+ * activity with an odd but harmless value (a 0) still loads. Exported for
+ * tests; mirrored in screens/designer/editor.js.
+ */
+export function validatePlayerLimits(config, gameId) {
+  const errors = [];
+  if (Number.isInteger(config.minPlayers) && Number.isInteger(config.maxPlayers) && config.minPlayers > config.maxPlayers) {
+    errors.push(`Game "${gameId}": Min players (${config.minPlayers}) is more than Max players (${config.maxPlayers}). Lower the first or raise the second.`);
+  }
+  return errors;
 }
 
 // Maps an existing error/warning message string to its DIAGNOSTIC_CODES

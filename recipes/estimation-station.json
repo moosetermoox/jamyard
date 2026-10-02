@@ -30,6 +30,8 @@
           "answer": {
             "type": "integer",
             "required": true,
+            "min": 0,
+            "max": 999999999999999,
             "label": "The real number",
             "placeholder": "1247"
           },
@@ -101,6 +103,7 @@
           "prompt": "Estimate ${i} of ${n}:\n\n${item.prompt}",
           "answer": "${item.answer}",
           "unit": "${item.unit}",
+          "min": 0,
           "points": 10,
           "scoring": "${scoring}",
           "timer": "${questionTimer}",

@@ -6121,6 +6121,14 @@ function validateConfig() {
     }
   }
 
+  // Class size (mirrors validatePlayerLimits in engine/game-loader.js):
+  // Min players 10 with Max players 3 saved without a word (2026-10-02)
+  if (typeof gameConfig.minPlayers === 'number' && typeof gameConfig.maxPlayers === 'number' &&
+      gameConfig.minPlayers % 1 === 0 && gameConfig.maxPlayers % 1 === 0 &&
+      gameConfig.minPlayers > gameConfig.maxPlayers) {
+    errors.push('Min players (' + gameConfig.minPlayers + ') is more than Max players (' + gameConfig.maxPlayers + '). Lower the first or raise the second.');
+  }
+
   var hasLobby = phaseIds.some(function (id) { return phases[id].type === 'lobby'; });
   var hasEnd = phaseIds.some(function (id) { return phases[id].type === 'end'; });
   if (!hasLobby) errors.push('Your activity needs a Waiting room (lobby) step.');

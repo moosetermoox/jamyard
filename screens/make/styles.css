@@ -289,6 +289,10 @@ body.is-opening .print-screen { opacity: 0.55; }
 }
 .print-scale-x:hover { background: var(--t-yellow); }
 .print-scale-x:focus-visible { outline: 3px solid var(--t-ink); outline-offset: 2px; }
+/* The last scale cannot go (a rating step needs one): no x to press */
+.print-scale-x[hidden], .pair-x[hidden] { display: none; }
+/* A word typed twice on one side of the pairs */
+.pair-input.is-dup { outline: 3px solid var(--t-red-text); outline-offset: -3px; }
 .print-scale-add {
   align-self: flex-start;
   border: 0;

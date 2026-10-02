@@ -2387,6 +2387,7 @@ const estimateInputRow = document.getElementById('estimate-input-row');
 // slider with the number as its readout, anything open stays typed. The
 // range comes from the server (the step's min/max, or its own wording).
 var ESTIMATE_SCALE_MAX_STEPS = 12;
+var ESTIMATE_MAX_GUESS = 999999999999999; // fifteen digits, held exactly
 
 function markScalePick(val) {
   var picks = estimateScale.querySelectorAll('.scale-pick');
@@ -2452,6 +2453,13 @@ function submitEstimate() {
   var v = parseFloat(estimateInput.value);
   if (!isFinite(v)) {
     estimatePlayerStatus.textContent = 'Type a number first.';
+    return false;
+  }
+  // A twenty-digit guess turned into 100000000000000000000 without a
+  // word and dragged the class average with it (a reviewer, 2026-10-02):
+  // fifteen digits is the most a guess can hold exactly
+  if (Math.abs(v) > ESTIMATE_MAX_GUESS) {
+    estimatePlayerStatus.textContent = UiLang.t('That number is too long. Use 15 digits or fewer.');
     return false;
   }
   // Inside the range, when there is one (the server clamps too)
