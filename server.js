@@ -2249,7 +2249,7 @@ function buildTeacherSnapshot(code, room) {
   };
   if (phase && (phase.type === 'collect' || phase.type === 'collect-choice')) {
     const eligible = withoutSitOut(getEligibleVoters(engine.players, phase.from || 'all'), phase);
-    snap.submissions = buildSubmissionList(eligible);
+    snap.submissions = buildSubmissionList(eligible, { unattributed: phase.unattributed === true });
   }
   if (phase && phase.type === 'preview') {
     const data = engine.getPhaseData(phase.id);
@@ -2317,7 +2317,7 @@ function emitSubmissionsUpdate(code, room) {
   const phase = room.engine.getCurrentPhase();
   if (!phase || (phase.type !== 'collect' && phase.type !== 'collect-choice')) return;
   const eligible = withoutSitOut(getEligibleVoters(room.engine.players, phase.from || 'all'), phase);
-  const payload = { submissions: buildSubmissionList(eligible) };
+  const payload = { submissions: buildSubmissionList(eligible, { unattributed: phase.unattributed === true }) };
   io.to(teachersChannel(code)).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
 }
 
@@ -5588,8 +5588,10 @@ io.on('connection', (socket) => {
       if (serverTimed && !extendPhaseTimer(room, EXTEND_TIMER_SECONDS)) return;
       // Host-clock steps keep a deadline too (collect records one so a
       // refreshed student gets the time left): push it back as well
+      // (from now when it already ran out: the projector's Wait after
+      // "Nobody has answered yet" restarts the clock)
       if (!serverTimed && room.phaseState && room.phaseState.timerEndsAt) {
-        room.phaseState.timerEndsAt += EXTEND_TIMER_SECONDS * 1000;
+        room.phaseState.timerEndsAt = Math.max(room.phaseState.timerEndsAt, Date.now()) + EXTEND_TIMER_SECONDS * 1000;
       }
       recordEvent(room, 'extend-timer');
       const message = { addSeconds: EXTEND_TIMER_SECONDS };

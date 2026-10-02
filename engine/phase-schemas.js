@@ -360,6 +360,11 @@ export const PHASE_SCHEMAS = {
         label: 'Answer length limit',
         helper: 'Character cap for this step (default 280). Raise it for accumulating lists that grow as they pass between students.'
       },
+      unattributed: {
+        type: 'boolean', optional: true,
+        label: 'Keep answers unnamed, even for the teacher',
+        helper: 'Teacher controls and the activity report list these answers without names (Hide still works). For a step that promised students the teacher sees a summary, not who said what (Anonymous Feedback).'
+      },
       simultaneousReveal: {
         type: 'boolean', optional: true,
         label: 'Reveal all at once',

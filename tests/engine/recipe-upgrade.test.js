@@ -40,8 +40,8 @@ describe('recipe upgrade on read', () => {
 
   it('Anonymous Feedback names version 1 as a version to replace, and the schema accepts the flag', () => {
     const recipe = getRecipe('anonymous-feedback');
-    expect(recipe.version).toBe('2');
-    expect(recipe.replaceOnRead).toEqual(['1']);
+    expect(recipe.version).toBe('3');
+    expect(recipe.replaceOnRead).toEqual(['1', '2']);
     expect(validateRecipe(recipe).filter((d) => d.severity === 'error')).toEqual([]);
     const bad = { ...recipe, replaceOnRead: [1] };
     expect(validateRecipe(bad).some((d) => d.field === 'replaceOnRead')).toBe(true);
@@ -54,7 +54,7 @@ describe('recipe upgrade on read', () => {
     expect(upgradeStaleCopy(copy, recipe, compileRecipe)).toBe('1');
     const fresh = compileRecipe(recipe, { question: 'How is class going for you?', timer: 90 }).config;
     expect(copy.phases).toEqual(fresh.phases);
-    expect(copy.recipe.version).toBe('2');
+    expect(copy.recipe.version).toBe('3');
     expect(copy.phases['teacher-view'].type).toBe('preview');
     expect(copy.phases['teacher-view'].showResponses).toBe(false);
     expect(copy.phases['for-class'].instruction).toContain('No advice to the teacher');
@@ -79,7 +79,7 @@ describe('recipe upgrade on read', () => {
   it('a copy on the current version, a recipe without the flag, and a version not listed are left alone', () => {
     const recipe = getRecipe('anonymous-feedback');
     const current = v1Copy();
-    current.recipe.version = '2';
+    current.recipe.version = '3';
     const before = JSON.stringify(current);
     expect(upgradeStaleCopy(current, recipe, compileRecipe)).toBe(null);
     expect(JSON.stringify(current)).toBe(before);

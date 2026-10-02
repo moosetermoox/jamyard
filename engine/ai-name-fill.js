@@ -37,3 +37,41 @@ export function fillPlayerNames(value, lookupName) {
   }
   return value;
 }
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * The prompts label each answer "[playerId: abc123]" so judge and compare
+ * steps can point back at a student. A prose reply must never carry one:
+ * a reviewer's One More Thing summary put "(from playerId 43I2B8I0bv...)"
+ * on the projector with names hidden (2026-10-02). Strips the labelled
+ * forms and any known id standing bare in the words; a quoted id (a JSON
+ * key or value the server reads back) stays. Run on every process()
+ * reply before it is stored.
+ *
+ * @param {string} text           the model's reply
+ * @param {string[]} [knownIds]   the playerIds that went out in the prompt
+ * @returns {string}
+ */
+export function stripPlayerIdRefs(text, knownIds = []) {
+  if (typeof text !== 'string' || text === '') return text;
+  let out = text
+    // "(from playerId X)", "[playerId: X]", "(player id X)"
+    .replace(/[ \t]*[([]\s*(?:from\s+|by\s+)?(?:player\s*id|playerid)\s*:?\s*[A-Za-z0-9_-]{4,}\s*[)\]]/gi, '')
+    // the same unbracketed: "from playerId X" (never the JSON key, whose
+    // name is followed by a quote)
+    .replace(/[ \t]*\b(?:from\s+|by\s+)?(?:player\s*id|playerid):?\s+[A-Za-z0-9_-]{4,}/gi, '');
+  // A bare id goes too, unless it sits in quotes: that is a JSON value or
+  // key ({"winner": "abc123"}) the server reads back
+  for (const id of knownIds) {
+    if (typeof id !== 'string' || id.length < 6) continue;
+    const e = escapeRe(id);
+    out = out
+      .replace(new RegExp(`[ \\t]*[([]\\s*(?:from\\s+|by\\s+)?${e}\\s*[)\\]]`, 'g'), '')
+      .replace(new RegExp(`[ \\t]*(?:from\\s+|by\\s+)?(?<!["'\\w-])${e}(?![\\w"'-])`, 'g'), '');
+  }
+  return out
+    .replace(/[ \t]+([.,;:!?])/g, '$1')
+    // "One list, from playerId X, named..." leaves a doubled comma
+    .replace(/,(?=[.,;:!?])/g, '');
+}

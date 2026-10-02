@@ -111,7 +111,7 @@ describe('A drawing survives a refresh', () => {
     expect(collect).toContain('ctx.room.phaseState.timerEndsAt = Date.now() + timer * 1000;');
     expect(collect).toContain('timer: secondsLeft(ctx.room)');
     const server = read('server.js');
-    expect(server).toContain('room.phaseState.timerEndsAt += EXTEND_TIMER_SECONDS * 1000;');
+    expect(server).toContain('room.phaseState.timerEndsAt = Math.max(room.phaseState.timerEndsAt, Date.now()) + EXTEND_TIMER_SECONDS * 1000;');
   });
 });
 

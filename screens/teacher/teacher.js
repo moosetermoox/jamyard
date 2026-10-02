@@ -746,7 +746,10 @@ function renderEntries(submissions) {
       top.className = 'entry-top';
       var name = document.createElement('span');
       name.className = 'entry-name';
-      name.textContent = sub.name;
+      // An unattributed step promised students the teacher sees what was
+      // said, not who said it: the server sends no name, and the row
+      // carries no Kick either (a kick would point at the writer).
+      name.textContent = sub.unattributed ? 'Anonymous' : sub.name;
       top.appendChild(name);
       if (sub.flagged) {
         // Moderation ladder rung 3: the auto-checks couldn't settle this
@@ -810,7 +813,7 @@ function renderEntries(submissions) {
           if (yes) socket.emit('moderate-kick', { code: currentCode, playerId: sub.playerId });
         });
       });
-      actions.appendChild(kickBtn);
+      if (!sub.unattributed) actions.appendChild(kickBtn);
 
       li.appendChild(actions);
       entriesList.appendChild(li);
