@@ -520,9 +520,12 @@ export function applyEdits(config, edits) {
       // Poll's results step quotes it in its own template, and the recipe
       // stamp keeps it as a param (an outside reviewer's edited poll showed
       // the default question on its results screen, 2026-09-24). Same
-      // walk as a swap; the sample answers stay, they answer the step,
-      // not its wording.
+      // walk as a swap, and like a swap the sample answers go with the old
+      // question: they were written for its topic (an outside reviewer's
+      // natural-selection Snowball answered about fractions, 2026-10-01),
+      // and Try it out writes a set for the new one.
       swapWords(copy, [{ from: was, to: next }]);
+      delete copy.sampleAnswers;
     }
   }
   if (edits.fields && typeof edits.fields === 'object' && Array.isArray(phase.fields)) {
