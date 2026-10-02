@@ -117,7 +117,7 @@ export function buildActivityReport(engine, meta = {}) {
 
     if (roundKeys.length > 0) {
       for (const key of roundKeys) {
-        const section = buildSection(id, phase, phaseData[key], nameOf, sureFor[id]);
+        const section = buildSection(id, phase, addedOnly(phase, phaseData[key], phaseData), nameOf, sureFor[id]);
         if (section) {
           section.round = Number(key.slice(id.length + 1));
           sections.push(section);
@@ -126,7 +126,7 @@ export function buildActivityReport(engine, meta = {}) {
     } else {
       const data = liveDataFor(engine, id, phase, phaseData[id]);
       if (data !== undefined) {
-        const section = buildSection(id, phase, data, nameOf, sureFor[id]);
+        const section = buildSection(id, phase, addedOnly(phase, data, phaseData), nameOf, sureFor[id]);
         if (section) {
           if (data.live) {
             section.live = true;
@@ -217,6 +217,25 @@ function roundItemBlock(item, nameOf) {
     ? Object.values(item.fields).map(cellText).join(' | ')
     : (item.text != null ? cellText(item.text) : '');
   return text.trim() ? { kind: 'entries', items: [{ name, text }] } : null;
+}
+
+// An add-a-line step (appendOnly, One More Thing) stores each student's
+// whole inherited list plus their line, so the report put every line
+// under whoever added to it last (a reviewer, 2026-10-02). Each entry
+// keeps only what that student added: the text they were handed (the
+// source step's `assigned`) comes off the front.
+export function addedOnly(phase, data, phaseData) {
+  if (!phase || phase.type !== 'collect' || !phase.appendOnly || !phase.rotateFrom) return data;
+  if (!data || !Array.isArray(data.responses)) return data;
+  const handed = ((phaseData || {})[phase.rotateFrom] || {}).assigned || {};
+  const responses = data.responses.map(r => {
+    if (!r || typeof r.text !== 'string') return r;
+    const base = typeof handed[r.playerId] === 'string' ? handed[r.playerId].trim() : '';
+    const full = r.text.trim();
+    if (!base || !full.startsWith(base)) return r;
+    return { ...r, text: full.slice(base.length).trim() };
+  }).filter(r => !r || typeof r.text !== 'string' || r.text !== '');
+  return { ...data, responses };
 }
 
 function buildSection(id, phase, data, nameOf, sure) {

@@ -17,6 +17,9 @@ describe('fitPartnerWords', () => {
 
   it('the merge step uses it on every send', () => {
     const src = readFileSync(new URL('../../engine/phase-handlers/merge.js', import.meta.url), 'utf8');
-    expect(src.match(/fitPartnerWords\(/g).length).toBeGreaterThanOrEqual(2);
+    // every send goes through wordsForGroup, which reads a trio's group
+    // words (fitPartnerWords) or a lone student's line (2026-10-02)
+    expect(src).toMatch(/return fitPartnerWords\(text, memberCount\)/);
+    expect(src.match(/instruction: wordsForGroup\(/g).length).toBeGreaterThanOrEqual(3);
   });
 });

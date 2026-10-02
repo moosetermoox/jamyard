@@ -2,7 +2,16 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { armPhaseTimer } from '../phase-timer.js';
 import { buildGroups, groupsFromSource } from '../phases/pairing.js';
-import { fitPartnerWords } from '../phases/partner-words.js';
+import { fitPartnerWords, soloMergeWords } from '../phases/partner-words.js';
+import { translate } from '../i18n/index.js';
+
+// The instruction as a group of this size reads it: a trio's group words,
+// or a student alone told so (never sent to a partner who is not there)
+const SOLO_MERGE_LINE = 'No partner this time, so make your own answer stronger.';
+function wordsForGroup(text, memberCount, lang) {
+  if (memberCount <= 1) return soloMergeWords(text, translate(lang || 'en', SOLO_MERGE_LINE), lang || 'en');
+  return fitPartnerWords(text, memberCount);
+}
 
 /**
  * merge — the Connection Pack's cooperation primitive
@@ -222,7 +231,7 @@ registerHandler('merge', {
     // partner" over "sit with your group", a reviewer 2026-10-01)
     const largestGroup = Math.max(0, ...state.groups.map(g => g.members.length));
     ctx.emitToHost(EVENTS.MERGE_PROGRESS, {
-      instruction: fitPartnerWords(instruction, largestGroup),
+      instruction: wordsForGroup(instruction, largestGroup, engine.language),
       totalGroups: state.groups.length,
       submittedGroups: 0,
       timer: phase.timer || null,
@@ -235,7 +244,7 @@ registerHandler('merge', {
       const group = state.byPlayer[player.id];
       if (group) {
         ctx.emitToPlayer(player.id, EVENTS.MERGE_START, {
-          instruction: fitPartnerWords(instruction, group.members.length),
+          instruction: wordsForGroup(instruction, group.members.length, engine.language),
           seeds: group.seeds,
           draft: group.draft,
           memberNames: group.members.map(id => nameOf.get(id) || 'Someone'),
@@ -271,7 +280,7 @@ registerHandler('merge', {
     const nameOf = new Map(ctx.engine.players.list().map(p => [p.id, p.name]));
     const penHeld = !!group.penHolder;
     socket.emit(EVENTS.MERGE_START, {
-      instruction: fitPartnerWords(ctx.resolveTemplate(ctx.phase.instruction || 'Combine your answers into one stronger answer.'), group.members.length),
+      instruction: wordsForGroup(ctx.resolveTemplate(ctx.phase.instruction || 'Combine your answers into one stronger answer.'), group.members.length, ctx.engine.language),
       seeds: group.seeds,
       draft: group.draft,
       memberNames: group.members.map(id => nameOf.get(id) || 'Someone'),

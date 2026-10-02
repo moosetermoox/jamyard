@@ -191,7 +191,16 @@ export function buildChainRecords(views, nameOf, opts = {}) {
   for (const [playerId, view] of views.entries()) {
     const text = chainResultText(view, opts);
     if (text === '') continue;
-    responses.push({ playerId, name: (nameOf && nameOf(playerId)) || 'Someone', text, original: view.original, steps: view.steps.slice(), complete: view.complete });
+    const row = { playerId, name: (nameOf && nameOf(playerId)) || 'Someone', text, original: view.original, steps: view.steps.slice(), complete: view.complete };
+    // A steps chain keeps its hops apart too, so a gallery can show one
+    // per line (Idea Chain's arrow-joined paragraph ran off the projector,
+    // a reviewer 2026-10-02); `text` stays the one-string form
+    if (opts.display !== 'template' && opts.display !== 'final') {
+      row.hops = [view.original, ...view.steps]
+        .map(s => (typeof s === 'string' ? s.trim() : ''))
+        .filter(s => s !== '');
+    }
+    responses.push(row);
   }
   const chainList = responses.map((r, i) => `${i + 1}. ${r.text}`).join('\n');
   return { responses, chainList };
