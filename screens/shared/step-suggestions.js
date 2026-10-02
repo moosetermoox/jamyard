@@ -929,6 +929,10 @@
     }
     var timer = (typeof step.timer === 'number' && step.timer >= 5 && step.timer <= 600)
       ? Math.round(step.timer) : null;
+    // An argument is a paragraph, not a text message: the 280-letter
+    // default stopped a five-minute opening (a reviewer's Silent Debate,
+    // 2026-10-02); a long clock gets more room still
+    var pairMax = timer && timer >= 180 ? 1200 : 800;
 
     var openId = freshId(phases, 'pair-write');
 
@@ -939,6 +943,10 @@
         .replace(/\{\{\s*(otherSide|partnerSide)\s*\}\}/g, '{{' + openId + '.partnerSide}}');
       if (prevId) out = out.replace(/\{\{\s*partner\s*\}\}/g, '{{' + prevId + '.partner}}');
       else out = out.replace(/\{\{\s*partner\s*\}\}/g, '');
+      // {{mine}}: what this student wrote first, at the opening step
+      out = prevId
+        ? out.replace(/\{\{\s*mine\s*\}\}/g, '{{' + openId + '.mine}}')
+        : out.replace(/\{\{\s*mine\s*\}\}/g, '');
       return out.replace(/[ \t]{2,}/g, ' ').trim();
     }
     // A sides line under the instruction when the text does not place it.
@@ -955,7 +963,7 @@
         ? 'Your partner\'s words are on your own device.'
         : 'Everyone is writing to their partner on their own device.';
     }
-    var open = { type: 'collect', prompt: withSide(bindTokens(first, null)), assign: 'pairwise', oddHandling: 'triple', hostTemplate: projectorLine(false) };
+    var open = { type: 'collect', prompt: withSide(bindTokens(first, null)), assign: 'pairwise', oddHandling: 'triple', hostTemplate: projectorLine(false), maxLength: pairMax };
     if (sides) open.sides = sides;
     if (timer) open.timer = timer;
     // Partners by an earlier pick (2026-09-27, "pair each yes with a no",
@@ -974,13 +982,19 @@
     phases[openId] = open;
     lastId = openId;
 
-    rounds.forEach(function (round) {
+    rounds.forEach(function (round, r) {
       var roundId = freshId(phases, 'pair-round');
       var prompt = bindTokens(round, lastId);
       if (prompt.indexOf('{{' + lastId + '.partner}}') === -1) {
         prompt = prompt + '\n\n{{' + lastId + '.partner}}';
       }
-      var roundPhase = { type: 'collect', prompt: withSide(prompt), assign: 'pairwise', reusePairsFrom: openId, hostTemplate: projectorLine(true) };
+      // From the second round on the student's own opening sits under the
+      // partner's piece: "defend your original argument" with only the
+      // rebuttal in view (a reviewer's Silent Debate, 2026-10-02)
+      if (r >= 1 && prompt.indexOf('{{' + openId + '.mine}}') === -1) {
+        prompt = prompt + '\n\nWhat you wrote first:\n\n“{{' + openId + '.mine}}”';
+      }
+      var roundPhase = { type: 'collect', prompt: withSide(prompt), assign: 'pairwise', reusePairsFrom: openId, hostTemplate: projectorLine(true), maxLength: pairMax };
       if (timer) roundPhase.timer = timer;
       phases[lastId].next = roundId;
       phases[roundId] = roundPhase;
@@ -1358,26 +1372,44 @@
       return null;
     }
     var heading = (typeof step.heading === 'string' && step.heading.trim()) ? step.heading.trim() : 'Your classmates ask:';
+    // character: a student plays someone in the seat (a historical figure,
+    // a book's narrator). A reviewer's Hot Seat History, 2026-10-02: no
+    // step picked the guest or named the figure, and everyone wrote
+    // questions. With a character the class picks the guest FIRST, the
+    // projector names the guest and the figure, the guest stays in the seat
+    // throughout, and the guest's own entry never comes back to them.
+    var character = (typeof step.character === 'string' && step.character.trim()) ? step.character.trim().slice(0, 120) : '';
     var to = '{{players.random}}';
-    if (step.pick === 'vote') {
+    if (step.pick === 'vote' || character) {
       var pickId = freshId(phases, 'pick');
-      var voteText = (typeof step.voteText === 'string' && step.voteText.trim()) ? step.voteText.trim() : 'Who goes in the hot seat?';
+      var voteText = (typeof step.voteText === 'string' && step.voteText.trim()) ? step.voteText.trim()
+        : character ? 'Who plays ' + character + '?' : 'Who goes in the hot seat?';
       phases[lastId].next = pickId;
       phases[pickId] = { type: 'vote', mode: 'pick-one', candidates: 'players', excludeAuthors: true, question: voteText, timer: 45 };
       var namedId = freshId(phases, 'picked');
       phases[pickId].next = namedId;
-      phases[namedId] = { type: 'reveal', template: 'First in the hot seat:\n\n**{{' + pickId + '.winnerText}}**' };
+      phases[namedId] = {
+        type: 'reveal',
+        template: character
+          ? 'In the hot seat:\n\n**{{' + pickId + '.winnerText}}**\n\nPlaying:\n\n**' + character + '**'
+          : 'First in the hot seat:\n\n**{{' + pickId + '.winnerText}}**'
+      };
       lastId = namedId;
       to = '{{' + pickId + '.winnerText}}';
     }
     // The seat moves every few questions (owner 2026-10-01: one student
-    // with everyone's questions was a lot)
+    // with everyone's questions was a lot); a character keeps one guest
     var perSeat = (typeof step.perSeat === 'number' && step.perSeat >= 1) ? Math.min(20, Math.round(step.perSeat)) : HOT_SEAT_PER_SEAT;
     var askId = freshId(phases, 'ask');
     var gateId = freshId(phases, 'check');
     var seatId = freshId(phases, 'hot-seat');
     phases[lastId].next = askId;
-    phases[askId] = { type: 'collect', prompt: text, maxLength: 300 };
+    var askText = text;
+    if (character) {
+      if (askText.indexOf(character) === -1) askText = 'Ask **' + character + '**:\n\n' + askText;
+      askText += '\n\nIn the hot seat yourself? Get into character while the class writes. Type a line your character might open with; it never comes back to you as a question.';
+    }
+    phases[askId] = { type: 'collect', prompt: askText, maxLength: 300 };
     phases[askId].next = gateId;
     phases[gateId] = {
       type: 'preview',
@@ -1385,8 +1417,10 @@
       approveNext: seatId,
       rejectNext: askId
     };
-    phases[seatId] = { type: 'reveal-one', message: heading, from: askId + '.responses', to: to, rotateEvery: perSeat };
-    if (pickId) phases[seatId].seatOrderFrom = pickId;
+    phases[seatId] = character
+      ? { type: 'reveal-one', message: heading, from: askId + '.responses', to: to }
+      : { type: 'reveal-one', message: heading, from: askId + '.responses', to: to, rotateEvery: perSeat };
+    if (pickId && !character) phases[seatId].seatOrderFrom = pickId;
     return seatId;
   }
 
@@ -1931,6 +1965,7 @@
     ['}} of {{', { es: '}} de {{', fr: '}} sur {{', de: '}} von {{', pt: '}} de {{', it: '}} di {{' }],
     ['The answer was: ', { es: 'La respuesta era: ', fr: 'La réponse était : ', de: 'Die Antwort war: ', pt: 'A resposta era: ', it: 'La risposta era: ' }],
     ['Class picks:', { es: 'Lo que eligió la clase:', fr: 'Les choix de la classe :', de: 'Was die Klasse gewählt hat:', pt: 'O que a turma escolheu:', it: 'Le scelte della classe:' }],
+    ['What you wrote first:', { es: 'Lo que escribiste primero:', fr: 'Ce que tu as écrit en premier :', de: 'Was du zuerst geschrieben hast:', pt: 'O que você escreveu primeiro:', it: 'Cosa hai scritto per primo:' }],
     ['You wrote:', { es: 'Escribiste:', fr: 'Tu as écrit :', de: 'Du hast geschrieben:', pt: 'Você escreveu:', it: 'Hai scritto:' }],
     ['What your classmates said:', { es: 'Lo que dijeron tus compañeros:', fr: 'Ce que tes camarades ont dit :', de: 'Was deine Mitschüler gesagt haben:', pt: 'O que seus colegas disseram:', it: 'Cosa hanno detto i tuoi compagni:' }],
     ['What a classmate said:', { es: 'Lo que dijo un compañero:', fr: 'Ce qu\'un camarade a dit :', de: 'Was jemand aus der Klasse gesagt hat:', pt: 'O que um colega disse:', it: 'Cosa ha detto un compagno:' }],
@@ -1948,6 +1983,11 @@
     ['Who held what:', { es: 'Quién tenía qué:', fr: 'Qui avait quoi :', de: 'Wer was hatte:', pt: 'Quem tinha o quê:', it: 'Chi aveva cosa:' }],
     ['Your classmates ask:', { es: 'Tus compañeros preguntan:', fr: 'Tes camarades demandent :', de: 'Deine Mitschüler fragen:', pt: 'Seus colegas perguntam:', it: 'I tuoi compagni chiedono:' }],
     ['Who goes in the hot seat?', { es: '¿Quién se sienta en la silla caliente?', fr: 'Qui passe sur la sellette ?', de: 'Wer kommt auf den heißen Stuhl?', pt: 'Quem vai para a cadeira quente?', it: 'Chi va sulla sedia che scotta?' }],
+    ['In the hot seat:', { es: 'En la silla caliente:', fr: 'Sur la sellette :', de: 'Auf dem heißen Stuhl:', pt: 'Na cadeira quente:', it: 'Sulla sedia che scotta:' }],
+    ['Playing:', { es: 'Hace de:', fr: 'Dans le rôle de :', de: 'In der Rolle von:', pt: 'No papel de:', it: 'Nel ruolo di:' }],
+    ['Who plays ', { es: '¿Quién hace de ', fr: 'Qui joue ', de: 'Wer spielt ', pt: 'Quem faz o papel de ', it: 'Chi interpreta ' }],
+    ['Ask **', { es: 'Pregúntale a **', fr: 'Pose ta question à **', de: 'Frag **', pt: 'Pergunte a **', it: 'Chiedi a **' }],
+    ['In the hot seat yourself? Get into character while the class writes. Type a line your character might open with; it never comes back to you as a question.', { es: '¿Estás en la silla caliente? Métete en el personaje mientras la clase escribe. Escribe una frase con la que tu personaje empezaría; nunca te llegará como pregunta.', fr: 'C\'est toi sur la sellette ? Entre dans ton personnage pendant que la classe écrit. Écris une phrase par laquelle ton personnage pourrait commencer ; elle ne te reviendra jamais comme question.', de: 'Du sitzt auf dem heißen Stuhl? Schlüpf in deine Rolle, während die Klasse schreibt. Schreib einen Satz, mit dem deine Figur anfangen könnte; er kommt nie als Frage zu dir zurück.', pt: 'Você está na cadeira quente? Entre no personagem enquanto a turma escreve. Escreva uma frase com que seu personagem começaria; ela nunca volta para você como pergunta.', it: 'Sei tu sulla sedia che scotta? Entra nel personaggio mentre la classe scrive. Scrivi una frase con cui il tuo personaggio potrebbe iniziare; non ti tornerà mai come domanda.' }],
     ['First in the hot seat:', { es: 'Primero en la silla caliente:', fr: 'Premier sur la sellette :', de: 'Zuerst auf dem heißen Stuhl:', pt: 'Primeiro na cadeira quente:', it: 'Primo sulla sedia che scotta:' }],
     ['Which one wins this matchup?', { es: '¿Cuál gana este enfrentamiento?', fr: 'Lequel remporte ce duel ?', de: 'Wer gewinnt dieses Duell?', pt: 'Qual vence este confronto?', it: 'Chi vince questo scontro?' }],
     ['The winner of the bracket:', { es: 'El ganador del torneo:', fr: 'Le gagnant du tournoi :', de: 'Der Sieger des Turniers:', pt: 'O vencedor do torneio:', it: 'Il vincitore del torneo:' }],

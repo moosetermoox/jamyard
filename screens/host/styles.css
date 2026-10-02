@@ -1938,6 +1938,8 @@ section.active > .preview-actions {
    newest card into view; Whose Eyes?'s Continue covered the cards) */
 #reveal-one-section.active { padding-bottom: 96px; }
 #reveal-one-items .reveal-one-item { scroll-margin-bottom: 110px; }
+/* A whole chain, one at a time: one hop per line, a size down */
+#reveal-one-items.is-single .reveal-one-item { font-size: 1.7rem; line-height: 1.45; overflow-wrap: anywhere; }
 
 /* ── Live Poll: the tally on the projector, big enough for the back row ── */
 .live-tally {

@@ -2790,14 +2790,18 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
         list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: who held what, and how many named their match'));
       }
       if (step.brick === 'hotseat') {
-        if (step.pick === 'vote') {
+        var seatCharacter = (typeof step.character === 'string' && step.character.trim()) ? step.character.trim() : '';
+        if (seatCharacter) {
+          list.appendChild(addedRow(SB_BRICK_LABELS.vote || 'Vote', 'added first: the class votes who plays ' + seatCharacter + ', and the projector names them'));
+        } else if (step.pick === 'vote') {
           list.appendChild(addedRow(SB_BRICK_LABELS.vote || 'Vote', 'added first: the class votes who goes in the hot seat, and the first name goes up'));
         }
         var perSeatRow = (typeof step.perSeat === 'number' && step.perSeat >= 1) ? Math.round(step.perSeat) : 3;
         list.appendChild(addedRow(SB_BRICK_LABELS.preview || 'Teacher preview', 'added: you read the questions first and hide any that should not go'));
-        list.appendChild(addedRow(SB_BRICK_LABELS['reveal-one'] || 'Reveal one at a time',
-          'added: the questions go up one at a time on the projector with who answers each; a new student takes the seat every ' + perSeatRow +
-          (step.pick === 'vote' ? ', in vote order' : ', drawn at random')));
+        list.appendChild(addedRow(SB_BRICK_LABELS['reveal-one'] || 'Reveal one at a time', seatCharacter
+          ? 'added: the questions go up one at a time on the projector, every one for the same guest, never their own'
+          : 'added: the questions go up one at a time on the projector with who answers each; a new student takes the seat every ' + perSeatRow +
+            (step.pick === 'vote' ? ', in vote order' : ', drawn at random')));
       }
       if (step.brick === 'rank' && step.runoff === true && step.correct !== true) {
         list.appendChild(addedRow(SB_BRICK_LABELS.reveal || 'Reveal', 'added: the class\'s pick by instant runoff, and every round of the count'));

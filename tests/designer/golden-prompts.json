@@ -1854,7 +1854,7 @@
           "description": "The class questions Brian from Hatchet, played by one student.",
           "steps": [
             { "brick": "announce", "text": "One of you will become Brian from Hatchet. Everyone else, get ready to ask him anything." },
-            { "brick": "hotseat", "pick": "vote", "voteText": "Who should play Brian?", "text": "Write one question for Brian about his time in the wilderness.", "heading": "Brian, the class asks:" },
+            { "brick": "hotseat", "pick": "vote", "character": "Brian from Hatchet", "voteText": "Who should play Brian?", "text": "Write one question for Brian about his time in the wilderness.", "heading": "Brian, the class asks:" },
             { "brick": "end", "text": "Thank you, Brian. What surprised you about his answers?" }
           ]
         }

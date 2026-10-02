@@ -1767,8 +1767,15 @@ function hotSeatFor(name, turn, turns) {
     .replace('{name}', name).replace('{turn}', String(turn)).replace('{turns}', String(turns));
 }
 
-socket.on('reveal-one-start', ({ message, total, revealed, timer, hotSeat, hostTemplate, show }) => {
+// Whole chains (Idea Chain's gallery) go up one at a time, each replacing
+// the last, one hop per line, so a chain fits the screen (a reviewer,
+// 2026-10-02: arrow-joined paragraphs ran off the projector)
+let revealOneSingle = false;
+
+socket.on('reveal-one-start', ({ message, total, revealed, timer, hotSeat, oneAtATime, hostTemplate, show }) => {
   showSection(revealOneSection);
+  revealOneSingle = !!oneAtATime;
+  revealOneItems.classList.toggle('is-single', revealOneSingle);
   setRichText(revealOneMessage, message || 'Reveal Time!');
   revealOneCounter.textContent = hotSeat && !revealed
     ? UiLang.t('First in the hot seat: {name}').replace('{name}', hotSeat)
@@ -1811,6 +1818,7 @@ socket.on('reveal-one-item', ({ item, index, total, hotSeat, turn, turns }) => {
     return;
   }
   revealOneCounter.textContent = index + ' of ' + total + ' revealed';
+  if (revealOneSingle) revealOneItems.textContent = '';
   const div = document.createElement('div');
   div.className = 'reveal-one-item';
   // Drawing items paint onto a canvas with an animated stroke replay —
@@ -1836,7 +1844,7 @@ socket.on('reveal-one-item', ({ item, index, total, hotSeat, turn, turns }) => {
   // The newest card comes up above the pinned buttons, never under them
   // (Whose Eyes?: Continue sat on the cards while the list grew past the
   // screen, a reviewer 2026-10-02; styles.css gives the room)
-  if (index > 1 && typeof div.scrollIntoView === 'function') {
+  if (index > 1 && !revealOneSingle && typeof div.scrollIntoView === 'function') {
     try { div.scrollIntoView({ block: 'end', behavior: 'smooth' }); } catch (e) { div.scrollIntoView(false); }
   }
 
