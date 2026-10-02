@@ -35,7 +35,54 @@ bluff-rounds. Still queued:
 - Grow the corpus as new famous-game prompts come in; a prompt that fails
   in the wild becomes a corpus entry first, then a fix.
 
-### START HERE next session (updated 2026-10-02: #161 `review-oct1-night` MERGED and live; `small-fixes-oct2` PR open; restart :3000 before using it locally)
+### START HERE next session (updated 2026-10-02, end of day: #161, #162, #163 ALL MERGED and live; restart :3000 before using it locally)
+
+**Where things stand.** Three PRs today, all merged and deployed through CI:
+- **#161 `review-oct1-night`:** a reviewer's walk of the seven night checks.
+  - The find-your-match late-joiner list was broken on the student screen: `classmates-update` read a variable that only exists inside the `game-started` handler, so it threw.
+  - The hot seat always moves at least once, and the Simple view edits its turn.
+  - A vote's own question now reaches both screens.
+  - A second peer reader's pretend answers now answer the draft.
+  - Answer-box lines for a returned comment, two readers, and private totals.
+  - The student leaderboard is bars.
+- **#162 `small-fixes-oct2`:**
+  - The guessing clock survives a refresh.
+  - A Spanish idea's plan reads in Spanish: the builder's own lines are translated through `COMPILER_TEXT` / `localizeCompiled` in step-suggestions.js. `tests/designer/compiler-language.test.js` guards it.
+- **#163 `review-live-oct2`:** a reviewer's ten findings on jamyard.org.
+  - A fresh yard pick wrote over the copy already made in that tab. The make page's tab copy is now reused only on Back or a reload (`sameVisit`).
+  - Pretend answers read the activity's other screens for the topic (`otherScreensText`).
+  - A typed card finds its closest sample reply.
+  - The report keeps a right answer nobody picked, and shows AI prose as formatting under a plain label.
+  - The newest projector card scrolls above Continue.
+  - Whose Eyes? boxes are questions.
+  - Pretend merges join two sentences.
+  - Copy names come from the topic.
+  - No "none s" on an empty timer.
+
+Tests 3449 (one Windows-only CRLF failure, `make-fit-rows`).
+
+**Next.**
+1. Re-check on jamyard.org with pretend students:
+   - Pick the same yard activity twice: two copies, the first untouched.
+   - Find your match with a late joiner.
+   - A four-student hot seat.
+   - The feedback return.
+   - A refresh mid-guess.
+   - One Spanish idea through Create.
+   - A Whose Eyes? run to the end of the circle.
+2. **The narrator loop is PARKED by the owner** ("save it for later"). Ask before starting it.
+3. Small, noticed:
+   - A Spanish hot-seat plan still built a vote step before a `hotseat` with pick vote, so the class votes twice. The likely fix is a compiler guard that drops a vote-over-students step right before such a hotseat.
+   - The reviewer's test copies are still in My yard on the live site.
+   - The overwritten live copies (the lab-partner Snowball, the first Live Poll) cannot be restored from code.
+
+**Gotchas from the day.**
+- **A passing server proof is not a working screen.** The find-your-match bug was client-only. Reproduce a reviewer's report in a real browser: several `/player?prototype=true&code=X&name=Y` iframes on one page.
+- **Inline `node -e` and Bash heredocs eat regex backslashes and `\n`.** It happened four times today. Use the Edit tool, or a script file written with Write in the scratchpad. Git Bash `sed -i` turns a CRLF file to LF.
+- **The Create page compiles plans on the client.** `designer.js` rebuilds the storyboard object, so a new top-level plan field must be carried there.
+- **The sample-answer writer only sees answer steps** unless it is handed the other screens.
+
+### Previous START HERE (2026-10-02, midday: #161 `review-oct1-night` MERGED and live; `small-fixes-oct2` PR open; restart :3000 before using it locally)
 
 **Where things stand.** The inventory's Part 3 is done except the AI narrator loop, which the owner parked on 2026-10-02 ("we'll save the narrator loop for later"). A reviewer walked the night's seven checks and #161 fixed what they found:
 - A second peer reader's pretend answers replied to the first comment instead of the draft (the card itself was right).
