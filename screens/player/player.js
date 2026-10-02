@@ -1348,6 +1348,9 @@ function initDrawPad() {
       drawColors.appendChild(swatch);
     })(Draw.PALETTE[ci], (Draw.COLOR_NAMES && Draw.COLOR_NAMES[ci]) || ('Color ' + (ci + 1)));
   }
+  // The pad's name for a screen reader, in the activity's language
+  // (UiLang.apply swaps text, never an aria-label; 2026-10-02)
+  drawPadCanvas.setAttribute('aria-label', UiLang.t('Drawing pad'));
   drawUndoBtn.addEventListener('click', function () { drawPadApi.undo(); });
   drawClearBtn.addEventListener('click', function () { drawPadApi.clear(); });
 }

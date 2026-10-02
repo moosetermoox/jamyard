@@ -26,7 +26,9 @@
   <header id="editor-header">
     <div class="header-left">
       <a href="/#yard" class="back-link">&larr; Back to the yard</a>
-      <h1 id="header-game-name">Loading...</h1>
+      <!-- The name is a button: it opens Settings at the Name box
+           (2026-10-02, a reviewer clicked the underlined title to rename) -->
+      <h1 id="header-game-name-wrap"><button id="header-game-name" class="header-game-name" type="button" title="Rename this activity" aria-label="Rename this activity">Loading...</button></h1>
       <!-- One editor now (2026-08-20): the stack view. The toggle is
            hidden, not removed: the Builder parks state through these
            buttons and both stay programmatically reachable. -->
@@ -51,6 +53,14 @@
       <button id="host-btn" class="btn btn-host" title="Save and open a live room with this activity, your class joins with the code on screen">▶ Host</button>
     </div>
   </header>
+
+  <!-- A link to an activity that is not there says so, and nothing on
+       the header pretends it saved (2026-10-02) -->
+  <div id="load-error" class="load-error" role="alert" hidden>
+    <h2 id="load-error-title">We could not find that activity</h2>
+    <p id="load-error-text">It may have been deleted, or the link is missing part of its address.</p>
+    <a href="/#yard" class="btn btn-primary">Back to the yard</a>
+  </div>
 
   <div id="validation-panel" hidden>
     <button id="validation-close" class="btn-icon">&times;</button>

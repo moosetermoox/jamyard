@@ -922,6 +922,17 @@ textarea.field-input { resize: vertical; min-height: 2.6em; font: inherit; width
   cursor: crosshair;
 }
 
+/* Read by screen readers only: the pad has no words of its own (2026-10-02) */
+.draw-hint {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  margin: 0;
+}
+
 .draw-toolbar {
   display: flex;
   align-items: center;

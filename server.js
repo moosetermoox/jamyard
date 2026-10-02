@@ -33,6 +33,7 @@ import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
 import { buildActivityMap } from './engine/activity-map.js';
+import { mapPreviewParams } from './engine/recipe-map-params.js';
 import { homeGlimpse, activityHook } from './engine/home-glimpse.js';
 import { printFor, applyEdits, nameFor, firstStudentStep } from './engine/make-print.js';
 import { teacherFacingError } from './engine/teacher-error.js';
@@ -3162,11 +3163,8 @@ app.post('/api/recipes/:id/compile', (req, res) => {
 app.get('/api/recipes/:id/map', (req, res) => {
   const recipe = getRecipe(req.params.id);
   if (!recipe) return res.status(404).json({ error: `Recipe "${req.params.id}" not found` });
-  const defaults = {};
-  for (const [name, spec] of Object.entries(recipe.parameters || {})) {
-    if (spec && spec.default !== undefined) defaults[name] = spec.default;
-  }
-  const { config } = compileRecipe(recipe, defaults);
+  // A required question with no default draws with its placeholder
+  const { config } = compileRecipe(recipe, mapPreviewParams(recipe));
   if (!config) {
     return res.status(400).json({ error: 'Recipe needs parameters before it can be drawn.' });
   }

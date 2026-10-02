@@ -23,7 +23,7 @@
  * Never throws — a glimpse is decoration, and a broken config must not
  * take the games list down with it.
  */
-import { buildActivityMap } from './activity-map.js';
+import { buildActivityMap, joinLines } from './activity-map.js';
 
 // Steps where the class is doing something on their devices.
 const INPUT_TYPES = new Set([
@@ -78,7 +78,7 @@ function ownWords(config, stop) {
   for (const field of PROMPT_FIELDS) {
     const value = phase[field];
     if (typeof value !== 'string') continue;
-    const text = value.replace(/\*\*/g, '').replace(/\s+/g, ' ').trim();
+    const text = joinLines(value.replace(/\*\*/g, ''));
     if (!text || text.includes('{{')) continue;
     return cut(text);
   }

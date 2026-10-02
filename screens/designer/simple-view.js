@@ -939,6 +939,8 @@
     return wrap;
   }
 
+  var BROKEN_PICTURE_LINE = "That picture did not load. Check the address: opened in a new tab, it should show only the picture.";
+
   function mediaEditor(phase, opts) {
     var imageOnly = opts && opts.imageOnly;
     var wrap = el('div', 'sv-media');
@@ -972,18 +974,34 @@
     thumb.className = 'sv-media-thumb';
     thumb.alt = '';
     thumb.hidden = true;
-    thumb.addEventListener('load', function () { thumb.hidden = false; });
-    thumb.addEventListener('error', function () { thumb.hidden = true; });
     // A picture is a web address: anything else gets a warning, not silence
     // (a reviewer typed a sentence and nothing said so, 2026-09-26)
     var imageHint = el('div', 'sv-media-hint');
     imageHint.hidden = true;
+    thumb.addEventListener('load', function () {
+      thumb.hidden = false;
+      if (imageHint.getAttribute('data-broken')) {
+        imageHint.removeAttribute('data-broken');
+        imageHint.hidden = true;
+      }
+    });
+    // An address that does not load says so (a reviewer pasted a dead
+    // link and nothing warned, 2026-10-02)
+    thumb.addEventListener('error', function () {
+      thumb.hidden = true;
+      if (!phase.image || thumb.getAttribute('src') !== phase.image) return;
+      imageHint.textContent = BROKEN_PICTURE_LINE;
+      imageHint.setAttribute('data-broken', '1');
+      imageHint.classList.add('sv-media-hint-warn');
+      imageHint.hidden = false;
+    });
     function refreshThumb() {
       var v = phase.image || '';
       var looksRight = !v || /^https?:\/\/\S+\.\S+/.test(v);
       imageHint.textContent = looksRight ? '' : "That is not a web address. Paste the picture's address, it starts with https://";
       imageHint.classList.toggle('sv-media-hint-warn', !looksRight);
       imageHint.hidden = looksRight;
+      imageHint.removeAttribute('data-broken');
       if (/^https?:\/\//.test(v)) { thumb.src = v; }
       else { thumb.hidden = true; }
     }
@@ -1515,8 +1533,9 @@
 
   // The one-editor render (Totem 9d): the activity is a stack of painted
   // blocks; the picked-up block's plain-language settings show on the
-  // detail card beside it. Adding, removing, and reordering steps go
-  // through Design with AI for now (the scrap bin is parked).
+  // detail card beside it. "+ Add a step" under the stack and "Delete this
+  // step" on the card (2026-10-02); reordering goes through Design with AI
+  // for now (the scrap bin is parked).
   function renderSimpleView() {
     if (!gameConfig || !gameConfig.phases) return;
     if (!svStack || !svDetail) return;
@@ -1595,6 +1614,19 @@
     if (gameConfig.playTime) caption += ' · ' + gameConfig.playTime;
     svStack.appendChild(el('div', 'svb-caption', caption));
 
+    // Add a step without asking the AI (2026-10-02, a reviewer found no
+    // way to add or delete a step except the chat): the step picker, and
+    // the new step joins the plan just before the end.
+    var addStepBtn = el('button', 'sv-action svb-add-step', '+ Add a step');
+    addStepBtn.type = 'button';
+    addStepBtn.title = 'Pick a kind of step; it joins the plan just before the end';
+    addStepBtn.addEventListener('click', function () {
+      if (typeof autoSaveIfDirty === 'function') autoSaveIfDirty();
+      if (svSettingsOpen) returnPhaseForm();
+      if (typeof addPhase === 'function') addPhase();
+    });
+    svStack.appendChild(addStepBtn);
+
     // The plan ends, so play it: a big Preview block on the floor under
     // the stack. The header Preview button goes unseen (observation
     // 2026-08-27, eyes stay mid-page), and this is the natural next act
@@ -1649,6 +1681,26 @@
       if (window.openDesignChat) openDesignChat(svSelectedId);
     });
     actions.appendChild(askBtn);
+
+    // Delete this step, asked first (the waiting room and the end stay)
+    if (selPhase.type !== 'lobby' && selPhase.type !== 'end') {
+      var delBtn = el('button', 'sv-action sv-action-quiet sv-delete-step', 'Delete this step');
+      delBtn.type = 'button';
+      delBtn.addEventListener('click', async function () {
+        var delId = svSelectedId;
+        var ok = window.Dialog
+          ? await Dialog.confirm({ title: 'Delete step ' + selectedNum + ' (' + blockName(selPhase.type) + ')?', message: 'This cannot be undone.', confirmLabel: 'Delete', cancelLabel: 'Keep it' })
+          : false;
+        if (!ok || typeof deletePhase !== 'function') return;
+        if (svSettingsOpen) returnPhaseForm();
+        var at = order.indexOf(delId);
+        deletePhase(delId);
+        svSelectedId = at > 0 ? order[at - 1] : null;
+        if (typeof renderCanvas === 'function') renderCanvas();
+        if (typeof autoSaveIfDirty === 'function') autoSaveIfDirty();
+      });
+      actions.appendChild(delBtn);
+    }
 
     // Walk down the totem without reaching back to the stack: a Next
     // button on every card but the last (owner ask 2026-08-31).

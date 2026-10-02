@@ -53,6 +53,10 @@
   function canJustDoIt(state) {
     state = state || {};
     if (state.inFlight || state.hasPendingProposal) return false;
+    // Just applied: the changes we talked about are made; the button
+    // comes back once the teacher says something new (2026-10-02, a
+    // reviewer read it as still pending, and it covered Revert)
+    if (state.appliedSinceLastTurn) return false;
     var history = state.history || [];
     for (var i = 0; i < history.length; i++) {
       if (history[i] && history[i].role === 'assistant') return true;
@@ -91,6 +95,7 @@
   var inFlight = false;
   var liveCard = null;         // the one pending proposal card, if any
   var revertCard = null;       // the one applied card whose Revert is live
+  var appliedSinceLastTurn = false; // an Apply landed after the last send
 
   function humanize(text) {
     return typeof humanizeReviewText === 'function' ? humanizeReviewText(text) : text;
@@ -285,7 +290,10 @@
     });
     card.appendChild(revertBtn);
     revertCard = card;
+    appliedSinceLastTurn = true;
     syncQuickRow();
+    // The card's Revert sits at the bottom of the thread: keep it in view
+    scrollToEnd();
     if (typeof showToast === 'function') showToast('Change applied');
   }
 
@@ -302,7 +310,8 @@
     quickRow.hidden = !canJustDoIt({
       history: chatHistory,
       inFlight: inFlight,
-      hasPendingProposal: !!liveCard
+      hasPendingProposal: !!liveCard,
+      appliedSinceLastTurn: appliedSinceLastTurn
     });
   }
 
@@ -316,6 +325,7 @@
     if (!text || inFlight || !gameConfig) return;
 
     expirePending();
+    appliedSinceLastTurn = false;
     chatHistory.push({ role: 'user', content: text });
     addBubble('user', text);
     if (!fromButton) inputEl.value = '';
@@ -453,6 +463,7 @@
     messagesEl.textContent = '';
     clearContextChip();
     liveCard = null;
+    appliedSinceLastTurn = false;
     syncQuickRow();
     addHint();
   });
