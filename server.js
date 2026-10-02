@@ -55,6 +55,10 @@ function repairSavedConfig(config) {
   try {
     const gates = ensureReviewGate(config, { secretOnly: true });
     if (gates.length) console.log(`[repair] "${config.name}": review step added before the rounds (${gates.join(', ')})`);
+    // ... and the round's "It was ..." waits for the teacher and says who
+    // guessed right (engine/review-gate.js)
+    const paced = paceGuessWhoReveals(config);
+    if (paced.length) console.log(`[repair] "${config.name}": guess-who reveal paced by the teacher (${paced.join(', ')})`);
   } catch (err) {
     console.log(`[repair] gate skipped for "${config && config.name}": ${err.message}`);
   }
@@ -194,8 +198,9 @@ import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
 import { extendPhaseTimer } from './engine/phase-timer.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
+import { guessedRightLine } from './engine/phases/guessed-right.js';
 import { splitByRight, formatConfidenceDial, sureButWrongLine } from './engine/phases/confidence.js';
-import { ensureReviewGate } from './engine/review-gate.js';
+import { ensureReviewGate, paceGuessWhoReveals } from './engine/review-gate.js';
 import { heavyTopic } from './engine/heavy-topics.js';
 import { checkSubmission, filterContent, filterName, filterAboutClassmate, NAME_REFUSED_MESSAGE, CLASSMATE_REFUSED_MESSAGE } from './engine/content-filter.js';
 import { pollExtremes } from './engine/phases/poll-extremes.js';
@@ -1900,6 +1905,14 @@ async function closeCollect(code, room) {
             stored.foolScores = fooled;
             console.log(`[close-submissions] Fool points: ${JSON.stringify(fooled)}`);
           }
+
+          // Who guessed right, in one line for the reveal after: a step
+          // with a right answer, or a guess-who round, where the round's
+          // author is the answer (engine/phases/guessed-right.js)
+          const currentItem = room.engine._currentForeachItem;
+          const rightAnswer = stored.correctAnswer != null ? stored.correctAnswer
+            : (collectPhase._foreachSecretAuthor && currentItem && currentItem.playerName ? currentItem.playerName : null);
+          if (rightAnswer != null) stored.rightLine = guessedRightLine(room.engine.language, choiceResponses, rightAnswer);
 
           room.engine.storePhaseData(collectPhase.id, stored);
           room.lastClosedCollectId = collectPhase.id;

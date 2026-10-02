@@ -315,6 +315,8 @@ export const STRINGS = {
     'Move up': 'Subir',
     'Move down': 'Bajar',
     'Nobody changed their mind.': 'Nadie cambió de opinión.',
+    'Guessed right: {names}': 'Acertaron: {names}',
+    'Nobody guessed right.': 'Nadie acertó.',
     'Before': 'Antes',
     // Confidence after the answer (engine/phases/confidence.js)
     'How sure are you of your answer?': '¿Qué tan seguro estás de tu respuesta?',
@@ -558,6 +560,8 @@ export const STRINGS = {
     'Move up': 'Monter',
     'Move down': 'Descendre',
     'Nobody changed their mind.': "Personne n'a changé d'avis.",
+    'Guessed right: {names}': 'Ont trouvé : {names}',
+    'Nobody guessed right.': "Personne n'a trouvé.",
     'Before': 'Avant',
     // Confidence after the answer (engine/phases/confidence.js)
     'How sure are you of your answer?': 'À quel point es-tu sûr de ta réponse ?',
@@ -801,6 +805,8 @@ export const STRINGS = {
     'Move up': 'Nach oben',
     'Move down': 'Nach unten',
     'Nobody changed their mind.': 'Niemand hat seine Meinung geändert.',
+    'Guessed right: {names}': 'Richtig geraten: {names}',
+    'Nobody guessed right.': 'Niemand hat richtig geraten.',
     'Before': 'Vorher',
     // Confidence after the answer (engine/phases/confidence.js)
     'How sure are you of your answer?': 'Wie sicher bist du dir bei deiner Antwort?',
@@ -1044,6 +1050,8 @@ export const STRINGS = {
     'Move up': 'Mover para cima',
     'Move down': 'Mover para baixo',
     'Nobody changed their mind.': 'Ninguém mudou de ideia.',
+    'Guessed right: {names}': 'Acertaram: {names}',
+    'Nobody guessed right.': 'Ninguém acertou.',
     'Before': 'Antes',
     // Confidence after the answer (engine/phases/confidence.js)
     'How sure are you of your answer?': 'Quão seguro você está da sua resposta?',
@@ -1287,6 +1295,8 @@ export const STRINGS = {
     'Move up': 'Sposta su',
     'Move down': 'Sposta giù',
     'Nobody changed their mind.': 'Nessuno ha cambiato idea.',
+    'Guessed right: {names}': 'Hanno indovinato: {names}',
+    'Nobody guessed right.': 'Nessuno ha indovinato.',
     'Before': 'Prima',
     // Confidence after the answer (engine/phases/confidence.js)
     'How sure are you of your answer?': 'Quanto sei sicuro della tua risposta?',

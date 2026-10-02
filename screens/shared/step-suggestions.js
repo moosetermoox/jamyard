@@ -436,12 +436,15 @@
               choices: '_candidates',
               timer: 20
             },
+            // Host-paced (no timer), and it says who had it (the
+            // guess step's rightLine, 2026-10-02)
             'reveal': {
               type: 'announce',
               message: 'How the class guessed:\n{{guess.barChart}}\n\n' +
                 (hasPair
                   ? 'It was ' + secretRef + ', from {{_current.playerName}}!'
-                  : 'It was {{_current.playerName}}!')
+                  : 'It was {{_current.playerName}}!') +
+                '\n\n{{guess.rightLine}}'
             }
           }
         }

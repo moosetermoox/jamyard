@@ -528,6 +528,11 @@ export const PHASE_SCHEMAS = {
           renderers: { json: 'jsonPretty' }
         },
         correctAnswer: { type: 'string' },
+        // Who picked the right answer, in one line ("Guessed right: Jordan,
+        // Sam" or "Nobody guessed right."): with `correctAnswer`, and in a
+        // guess-who round, where the round's author is the answer
+        // (engine/phases/guessed-right.js, 2026-10-02)
+        rightLine: { type: 'string' },
         // Populated only when `compareTo` names an earlier pick-one step
         // (a vote taken twice, engine/phases/stance-shift.js): one chart
         // with both counts per choice, and the sentence under it.

@@ -24,7 +24,7 @@ describe('a teacher review step before any guessing round', () => {
   });
   it('a copy saved before the gate gets one on read', () => {
     const server = read('server.js');
-    expect(server).toContain("import { ensureReviewGate } from './engine/review-gate.js';");
+    expect(server).toContain("import { ensureReviewGate, paceGuessWhoReveals } from './engine/review-gate.js';");
     const fn = server.indexOf('function repairSavedConfig(config) {');
     expect(server.indexOf('const gates = ensureReviewGate(config, { secretOnly: true });', fn) - fn).toBeLessThan(600);
   });

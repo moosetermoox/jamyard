@@ -15,6 +15,11 @@ import { AIService } from '../../services/ai-service.js';
 import { runBottomPercent } from '../../engine/phases/eliminate-handler.js';
 import { hasNothingToReview } from '../../engine/phase-handlers/preview.js';
 import { getHandler } from '../../engine/phase-handlers/phase-registry.js';
+import { GameEngine } from '../../engine/game-engine.js';
+import { guessesAuthors } from '../../engine/names-needed.js';
+import { validate } from '../../engine/game-loader.js';
+import { paceGuessWhoReveals } from '../../engine/review-gate.js';
+import { guessedRightLine } from '../../engine/phases/guessed-right.js';
 
 const read = (rel) => readFile(new URL('../../' + rel, import.meta.url), 'utf8');
 
@@ -166,6 +171,91 @@ describe('35. A review gate with nothing in it passes itself', () => {
     expect(hasNothingToReview({ template: '{{x.result}}', showResponses: false }, phases, [])).toBe(false);
     expect(hasNothingToReview({ template: 'Read these' }, { a: { type: 'announce' } }, [])).toBe(false);
     expect(hasNothingToReview({ template: 'Read these' }, phases, [])).toBe(true);
+  });
+});
+
+// The live Guess Who: Rose, Bud, Thorn shape: a timed reveal, names hidden
+function guessWho({ anonymous = false, revealTimer = 5 } = {}) {
+  return {
+    name: 'Guess Who: Rose, Bud, Thorn',
+    ...(anonymous ? { anonymous: true } : {}),
+    phases: {
+      lobby: { type: 'lobby', next: 'ask' },
+      ask: { type: 'collect', prompt: 'Rose, bud, thorn?', timer: 60, next: 'check' },
+      check: { type: 'preview', template: 'Read these', approveNext: 'rounds', rejectNext: 'ask' },
+      rounds: {
+        type: 'foreach', data: 'ask.responses', shuffle: true, candidateSource: 'players', decoyCount: 3,
+        subPhases: {
+          show: { type: 'announce', message: '{{_current.text}}\n\nWho said it?', timer: 5 },
+          guess: { type: 'collect-choice', prompt: 'Who?', choices: '_candidates', timer: 20 },
+          reveal: { type: 'announce', message: 'It was {{_current.playerName}}!', ...(revealTimer ? { timer: revealTimer } : {}) }
+        },
+        next: 'end'
+      },
+      end: { type: 'end' }
+    }
+  };
+}
+
+describe('36. Guess Who runs with names shown', () => {
+  it('the room drops "anonymous" for an activity that guesses who wrote what', () => {
+    const cfg = guessWho({ anonymous: true });
+    const engine = new GameEngine(cfg);
+    expect(engine.config.anonymous).toBe(false);
+    // the loaded config is shared: never changed
+    expect(cfg.anonymous).toBe(true);
+    // any other anonymous activity keeps its names hidden
+    const other = { name: 'Feedback', anonymous: true, phases: { lobby: { type: 'lobby', next: 'end' }, end: { type: 'end' } } };
+    expect(new GameEngine(other).config.anonymous).toBe(true);
+  });
+
+  it('the validator says so, and the make page offers no Hidden chip for it', async () => {
+    expect(guessesAuthors(guessWho())).toBe(true);
+    const warnings = validate(guessWho({ anonymous: true }), 'guess-who', { returnResults: true }).warnings.join('\n');
+    expect(warnings).toContain('ANON_GUESS_WHO');
+    expect(validate(guessWho(), 'guess-who', { returnResults: true }).warnings.join('\n')).not.toContain('ANON_GUESS_WHO');
+    const make = await read('screens/make/make.js');
+    expect(make).toContain('var needsNames = guessesAuthors(state.config);');
+    expect(make).toContain("p.type === 'foreach' && p.candidateSource === 'players'");
+  });
+});
+
+describe('37. A guess-who reveal waits for the teacher and says who guessed right', () => {
+  it('the read repair takes the timer off the "It was" step and adds who had it', () => {
+    const cfg = guessWho();
+    expect(paceGuessWhoReveals(cfg)).toEqual(['rounds.reveal']);
+    const reveal = cfg.phases.rounds.subPhases.reveal;
+    expect(reveal.timer).toBeUndefined();
+    expect(reveal.message).toBe('It was {{_current.playerName}}!\n\n{{guess.rightLine}}');
+    // the "Who said it?" card keeps its own timing
+    expect(cfg.phases.rounds.subPhases.show.timer).toBe(5);
+    // twice is the same as once
+    expect(paceGuessWhoReveals(cfg)).toEqual([]);
+    expect(validate(cfg, 'guess-who', { returnResults: true }).errors).toEqual([]);
+  });
+
+  it('the line names the students who picked the author, or says nobody did', () => {
+    const picks = [
+      { name: 'Jordan', choice: 'Maya' },
+      { name: 'Sam', choice: 'Maya' },
+      { name: 'Ada', choice: 'Ben' }
+    ];
+    expect(guessedRightLine('en', picks, 'Maya')).toBe('Guessed right: Jordan, Sam');
+    expect(guessedRightLine('en', picks, 'Lee')).toBe('Nobody guessed right.');
+    expect(guessedRightLine('es', picks, 'Lee')).toBe('Nadie acertó.');
+    expect(guessedRightLine('en', [], 'Maya')).toBe('');
+  });
+
+  it('the close stores it, the schema lists it, and the builder and Who Said It? show it', async () => {
+    const server = await read('server.js');
+    expect(server).toContain('if (rightAnswer != null) stored.rightLine = guessedRightLine(room.engine.language, choiceResponses, rightAnswer);');
+    expect(server).toContain('const paced = paceGuessWhoReveals(config);');
+    expect(PHASE_SCHEMAS['collect-choice'].output.fields.rightLine.type).toBe('string');
+    const who = JSON.parse(await read('games/who-said-it/config.json'));
+    expect(who.phases['guess-loop'].subPhases.reveal.message).toContain('{{guess.rightLine}}');
+    expect(who.phases['guess-loop'].subPhases.reveal.timer).toBeUndefined();
+    const steps = await read('screens/shared/step-suggestions.js');
+    expect(steps).toContain("'\\n\\n{{guess.rightLine}}'");
   });
 });
 
