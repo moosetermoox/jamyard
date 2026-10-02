@@ -84,6 +84,31 @@ describe('planBlocks: the plan as a row of blocks', () => {
   });
 });
 
+describe('shortcutsFor: Skip timer on every step, samples where students answer', () => {
+  const { shortcutsFor } = globalThis.BenchLogic;
+  it('Skip timer shows on any step of a running room, a timed message and a reveal too', () => {
+    for (const t of ['announce', 'reveal', 'reveal-one', 'leaderboard', 'winner', 'preview', 'ai-process', 'collect', 'vote']) {
+      expect(shortcutsFor(t, true).bar, t).toBe(true);
+    }
+  });
+  it('Add sample answers only where students answer', () => {
+    expect(shortcutsFor('collect', true).samples).toBe(true);
+    expect(shortcutsFor('announce', true).samples).toBe(false);
+    expect(shortcutsFor('reveal', true).samples).toBe(false);
+  });
+  it('nothing in the lobby, after the end, or with no room', () => {
+    expect(shortcutsFor('lobby', true)).toEqual({ bar: false, samples: false });
+    expect(shortcutsFor('end', true)).toEqual({ bar: false, samples: false });
+    expect(shortcutsFor('collect', false)).toEqual({ bar: false, samples: false });
+    expect(shortcutsFor(null, true)).toEqual({ bar: false, samples: false });
+  });
+  it('the page uses it and hides only the samples button between answer steps', () => {
+    const src = readFileSync(new URL('../../screens/prototype/prototype.js', import.meta.url), 'utf8');
+    expect(src).toMatch(/const show = BenchLogic\.shortcutsFor\(railPhaseType, !!currentCode\);\s+benchBar\.hidden = !show\.bar;\s+botFillBtn\.hidden = !show\.samples;/);
+    expect(readFileSync(new URL('../../screens/prototype/styles.css', import.meta.url), 'utf8')).toMatch(/#bot-fill-btn\[hidden\] \{ display: none; \}/);
+  });
+});
+
 describe('isStudentStep: when the shortcuts strip shows', () => {
   it('is true for steps students answer on their own screens', () => {
     for (const t of ['collect', 'collect-choice', 'vote', 'estimate', 'rank', 'rate', 'relay', 'merge', 'solo-quiz']) {

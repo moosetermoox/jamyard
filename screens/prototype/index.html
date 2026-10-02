@@ -78,8 +78,9 @@
       <div id="student-mat" class="screen-mat empty">
         <span class="mat-empty-label">Student screen</span>
         <div id="player-holder"></div>
-        <!-- The shortcuts strip: pinned under the student screen, only
-             while a step students answer is open. -->
+        <!-- The shortcuts strip: pinned under the student screen while a
+             room runs; Add sample answers only on a step students answer
+             (BenchLogic.shortcutsFor). -->
         <div id="bench-bar" hidden>
           <span class="bench-hint">You play the students. Shortcuts:</span>
           <div class="bench-btns">
@@ -111,7 +112,7 @@
       <h2 id="sim-intro-title">You play the whole class</h2>
       <ul id="sim-intro-list">
         <li><strong>Teacher screen</strong> on the left, one <strong>student screen</strong> on the right. The yellow NEXT card points at the thing to press; its &times; hides it, and this ? brings it back.</li>
-        <li><strong>Add sample answers</strong> fills one in for every student; <strong>Skip timer</strong> moves to the next step.</li>
+        <li><strong>Add sample answers</strong> fills one in for every student; <strong>Skip timer</strong> moves to the next step from any step, a countdown included.</li>
         <li><strong>Teacher controls</strong>, the tab on the teacher screen, is your private console: hide an entry, approve a preview, put a discussion prompt up. In class it opens on your own laptop or phone, never the projector.</li>
         <li><strong>+ Add another student</strong> brings one more into the room; the arrows step through them. Click a step in the plan to skip ahead.</li>
       </ul>

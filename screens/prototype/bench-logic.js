@@ -21,6 +21,15 @@
     return !!type && STUDENT_STEPS.indexOf(type) !== -1;
   }
 
+  // The shortcuts strip (owner 2026-10-01: "there should always be a way
+  // to skip the timer"): Skip timer on every step while a room runs (a
+  // timed message, quiet time, and a reveal move on too), never in the
+  // lobby or after the end; Add sample answers only where students answer.
+  function shortcutsFor(type, running) {
+    var bar = !!running && !!type && type !== 'lobby' && type !== 'end';
+    return { bar: bar, samples: bar && isStudentStep(type) };
+  }
+
   // The buttons the host clicks on a prototype-skip, in the order it
   // tries them (host.js, the 'prototype-skip' message handler). The banner
   // finds the visible one to point at; the test guards the two lists.
@@ -173,7 +182,7 @@
     { target: '#add-student-btn', title: 'Add another student',
       text: 'Brings one more pretend student into the room, mid-activity is fine. Pairs and teams need at least two.' },
     { target: '#bench-bar', fallback: '#student-mat', title: 'Shortcuts',
-      text: 'When a step asks students for answers, two shortcuts appear under the student screen: Add sample answers fills one in for everyone, Skip timer moves the room on.' },
+      text: 'Two shortcuts sit under the student screen. Skip timer moves the room on from any step, a countdown included. Add sample answers shows when a step asks students for answers and fills one in for everyone.' },
     { target: '#map-rail', title: 'The plan',
       text: 'Every step of the activity; the yellow block is where the room is now. Click a later step to skip ahead, pretend students play the steps in between.' },
     { target: '#toolbar', title: 'Reset, sound, full screen, help',
@@ -299,6 +308,7 @@
     HOST_ADVANCE_BUTTONS: HOST_ADVANCE_BUTTONS,
     TOUR_STOPS: TOUR_STOPS,
     isStudentStep: isStudentStep,
+    shortcutsFor: shortcutsFor,
     isContinueButton: isContinueButton,
     planBlocks: planBlocks,
     nextStep: nextStep,
