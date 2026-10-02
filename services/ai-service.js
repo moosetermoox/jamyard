@@ -2136,7 +2136,7 @@ Return ONLY JSON, no other prose:
     }
     try {
       const gameLines = games.map(g =>
-        `- ${g.id}: ${g.name}. ${String(g.description || '').slice(0, 140)} (${g.playTime || 'time varies'})`);
+        `- ${g.id}: ${g.name}. ${String(g.description || '').slice(0, 140)} (${typeof g.minutes === 'number' ? 'runs about ' + g.minutes + ' minutes' : g.playTime || 'time varies'})`);
       const recipeLines = recipes.map(r => {
         // Numeric params carry their label + range so the model fills legal
         // values (labels name the unit — "Evidence time (seconds)" — the
@@ -2174,6 +2174,8 @@ HARD RULES:
 - Prefer kind "host", then "recipe". A storyboard is the last resort.
 - The platform cannot do: audio or video recording, live drawing between students, file uploads, external websites, grading into a gradebook, anything real-time beyond the listed steps. If the teacher's answers imply one of those, say so briefly in "note" and suggest the nearest possible thing.
 - "why" is one plain sentence tied to THEIR answers. No hype.
+- A ready-made activity (kind "host") runs with its own words: its questions, terms, pairs, and prompts are the ones it already has. Its "why" may say the teacher can put their topic in on the next page; it never says the activity already holds the topic's content (never "pairs like chlorophyll and stomata" for an activity whose pairs are about something else). When the topic's content is the point, prefer a recipe with params written for the topic.
+- Fit the time they have: the running times above are computed, so prefer what fills the time available, and never call a short activity a fit for a long stretch. Never state a running time in "why"; the card shows the computed one.
 
 Return ONLY JSON: {"suggestions":[...], "note": null or "one honest sentence about a limit"}`
         }]
@@ -2315,9 +2317,10 @@ RULES:
 - If two students should write to each other (debate partners, opposite sides, rebuttals, peer interviews, "swap with a partner", argue then switch), use ONE pairs step with one round per exchange; never a chain, never a teams step, never a row of collect steps.
 - If the teacher pastes a YouTube link (watch a clip, then...), put it in video on the announce that opens the activity (or on the one collect step it belongs to) and build the rest as asked; the clip plays on the projector for the whole class. Only YouTube links play; any other video link cannot, say so with cantBuild.
 - If the HEART of the teacher's idea needs a mechanic no brick provides (such as AI writing rival answers for students to compare, or a second piece of a classmate's work handed to the same reviewer), do not build a hollow lookalike. Instead return ONLY: {"cantBuild": true, "reason": "one plain sentence naming what the builder cannot do yet, in a warm teacher voice", "partial": {"name": "...", "description": "...", "steps": [...]}} where "partial" is the part of the idea the bricks CAN do, as a whole honest activity in the same shape as a plan (3 to 8 steps, ending with end, words that promise nothing the bricks lack); leave "partial" out only when nothing honest can be built from the idea at all. Before refusing, check the list again: a buzzer is buzz, a teacher choosing what goes up is review, a bracket is bracket, regrouping is teams with jigsaw, pairing by answer is pairs with pairBy, matching two lists is match, buckets or categories are sort, rating scales are rate, a quiz at their own pace is solo-quiz, betting is wager, pair up and combine is merge, one line each is relay, a group to-do list is tasks, elimination rounds are knockout, acting is charades, counting together is count, the class writing the quiz is write-quiz, grouping by answer is teams with groupBy, voting a classmate out or picking a classmate is vote with over "students", a timeline or ordered steps with a right answer is rank with correct, the minority or majority side is {{poll.least}} or {{poll.most}}, choosing several options is collect-choice with maxPicks, a fill-in-the-blank with a right answer is collect with answer, a different task per group is stations on an announce or collect, and starting as students arrive is "rolling": true, a secret role is collect with items, a classmate's feedback on my own work is feedback, silent thinking time is quiet, asking how sure students are of their answers is quiz with confidence: true, ranked-choice voting or instant runoff is rank with runoff: true, a hot seat (the class's questions to one student) is hotseat, and finding the classmate with the other half of your card is findmatch.
+- If the description is not a readable idea at all (random letters, keyboard mash, words that say nothing about something a class could do), return ONLY {"unclear": true}; it is never a refusal, nothing is missing.
 - If the idea would single out, rank, shame, or hurt students (voting on who is the most annoying, least liked, worst at something), refuse it as a choice, never as a missing feature: return ONLY {"cantBuild": true, "harm": true, "reason": "one plain sentence saying the activity would hurt someone, and a kinder shape that keeps the fun without a target"}
 - SECRET ROLES ARE FINE: a game with hidden roles (spies, saboteurs, imposters, a secret word-holder, a traitor among the crew) is a private hand-out (collect with items, the role written into each item, "Saboteur: you are one of two, blend in" and "Crew: find the saboteurs") followed by whatever rounds the idea has (a collect-choice guess, a reveal); build it. What is refused is a theme of killing, murdering, or executing classmates: keep the roles and say "caught" or "out of the round", never killed, and never write a step where the class picks a classmate to be hurt.
-- Quiz questions must be factually correct and unambiguous, only write what you are certain of. For a quiz, 5 to 8 questions is the sweet spot unless the teacher asked for a number. The teacher reviews and can edit every question before anything is built.
+- Quiz questions must be factually correct and unambiguous, only write what you are certain of. For a quiz, 5 to 8 questions is the sweet spot unless the teacher asked for a number; then write that many (a quiz holds up to 20, a solo-quiz up to 30). The teacher reviews and can edit every question before anything is built.
 - ${FRESH_FACTS_RULE} When a quiz would need such facts and the teacher did not supply the questions, return the cantBuild object instead, with a reason that says you do not know recent events and that pasting the facts or the questions themselves into the description will work.
 - Write engaging, classroom-ready text for every step that takes text. Never include student names. Do not decorate text with emojis unless the activity itself is about emojis.
 - Output ONLY a JSON object, no other prose: {"name": "...", "description": "one library-card sentence", "steps": [{"brick": "...", "text": "...", ...}]} (plus "rolling": true at the top level only when students start as they arrive)
@@ -2403,6 +2406,9 @@ ${description}`
         }
         if (lastError) throw lastError;
       }
+      // Words that say nothing: not a refusal (a reviewer's keyboard mash
+      // read "a trick we don't have yet", 2026-10-02)
+      if (parsed && parsed.unclear === true) return { unclear: true };
       if (parsed && parsed.cantBuild === true) {
         // The honest refusal: the idea's core needs a mechanic no brick
         // provides. Surfaced to the teacher as-is, never as an error.
@@ -2686,7 +2692,10 @@ ${responseList}`;
       const start = Date.now();
       const message = await this._callClaude({
         model: MODELS.haiku,
-        max_tokens: 1000,
+        // Room for a full 20-question quiz in the params: at 1000 a
+        // reviewer's 25-question ask came back with 8 (2026-10-02). A cap,
+        // never a cost on a short reply.
+        max_tokens: 4000,
         system: systemPrompt,
         // The whole recipe catalog, ~8.5k tokens, the same on every call
         // until a recipe changes: cached (see _prepareParams).
@@ -2965,6 +2974,7 @@ ${jobSection}
 # Parameter-filling rules
 
 - Use the teacher's exact wording for prompts/questions when possible, don't paraphrase their pedagogical intent.
+- When the teacher names how many quiz questions they want, write that many (up to 20), never a handful to stand in for the rest.
 - For "choices" arrays, when the teacher lists the answer choices, use THEIR choices, all of them, in their order and wording; generate 3-5 sensible options only when they gave none.
 - For timer values, default to the recipe's default unless the teacher specifies a duration.
 - Never claim the activity fits a time limit or timeline. The server computes the real running time from the timers and tells the teacher itself; your explanation is about fit of mechanic, not minutes.

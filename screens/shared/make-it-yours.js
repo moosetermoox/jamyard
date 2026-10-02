@@ -38,13 +38,40 @@
   // sends `dedupe: true` and the server steps past a taken one (the list of
   // every id on the server is gone, 2026-09-28: it let anyone enumerate
   // teachers' activities).
+  // The names of this browser's own copies, so a new copy never shares one
+  // (a reviewer's My yard held two different "Solo Quiz (my version)",
+  // 2026-10-02)
+  var ownNames = [];
   function refreshKnownIds() {
-    return fetch('/api/games?mine=' + encodeURIComponent((window.MyGames ? MyGames.list() : []).join(',')))
+    var mine = window.MyGames ? MyGames.list() : [];
+    return fetch('/api/games?mine=' + encodeURIComponent(mine.join(',')))
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (data && Array.isArray(data.games)) knownIds = data.games.map(function (g) { return g.id; });
+        if (data && Array.isArray(data.games)) {
+          knownIds = data.games.map(function (g) { return g.id; });
+          ownNames = data.games.filter(function (g) { return mine.indexOf(g.id) !== -1 && g.name; })
+            .map(function (g) { return String(g.name); });
+        }
       })
       .catch(function () { /* keep what we have */ });
+  }
+
+  // A copy's name that none of `taken` already has: "Solo Quiz (my
+  // version)" becomes "Solo Quiz (my version 2)", any other name gets
+  // " (2)", counting up. Case and spacing do not make a name different.
+  function uniqueCopyName(name, taken) {
+    var base = String(name || '').trim() || 'My activity';
+    var seen = {};
+    (taken || []).forEach(function (t) { seen[String(t).trim().toLowerCase().replace(/\s+/g, ' ')] = true; });
+    function key(n) { return n.toLowerCase().replace(/\s+/g, ' '); }
+    if (!seen[key(base)]) return base;
+    var mv = /^(.*)\(\s*my version(?:\s+(\d+))?\s*\)\s*$/i.exec(base);
+    var stem = mv ? mv[1].trim() : base.replace(/\s*\((\d+)\)\s*$/, '');
+    for (var n = 2; n < 1000; n++) {
+      var next = mv ? stem + ' (my version ' + n + ')' : stem + ' (' + n + ')';
+      if (!seen[key(next)]) return next;
+    }
+    return base;
   }
 
 // Clone a built-in into this teacher's own editable copy, then open the
@@ -64,6 +91,13 @@ function saveCopyAndReturn(config, dest) {
 // is taken, so the returned id is the one to remember.
 function saveCopy(config) {
   delete config.featured; // the copy is yours, not the public front door's
+  // This browser's copies by name first: a new copy never shares one
+  return refreshKnownIds().then(function () {
+    config.name = uniqueCopyName(config.name, ownNames);
+    return postCopy(config);
+  });
+}
+function postCopy(config) {
   var base = (config.name || 'my-activity').toLowerCase()
     .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40) || 'my-activity';
   var copyId = base;
@@ -122,14 +156,17 @@ function copyDestinationUrl(dest, id) {
 // saving eagerly because filling those in IS editing.
 function openDraftCopy(config) {
   delete config.featured; // the copy is yours, not the public front door's
-  try {
-    sessionStorage.setItem('lanyard-pending-copy', JSON.stringify(config));
-  } catch (e) {
-    // Storage unavailable (private mode quota): fall back to the old
-    // save-first flow rather than losing the Customize click.
-    return saveCopyAndReturn(config);
-  }
-  window.location.href = '/designer/edit?draft=copy&from=library';
+  return refreshKnownIds().then(function () {
+    config.name = uniqueCopyName(config.name, ownNames);
+    try {
+      sessionStorage.setItem('lanyard-pending-copy', JSON.stringify(config));
+    } catch (e) {
+      // Storage unavailable (private mode quota): fall back to the old
+      // save-first flow rather than losing the Customize click.
+      return saveCopyAndReturn(config);
+    }
+    window.location.href = '/designer/edit?draft=copy&from=library';
+  });
 }
 
 // Recompile a recipe-born config with new params. The source config's
@@ -1887,6 +1924,7 @@ function askOtherSubject(picked, onDone) { return window.ClassPicker.askOtherSub
     askOtherSubject: askOtherSubject,
     saveCopyAndReturn: saveCopyAndReturn,
     saveCopy: saveCopy,
+    uniqueCopyName: uniqueCopyName,
     openDraftCopy: openDraftCopy,
     // A recipe's setup panel rendered into a page element (the Make it
     // yours page); returns { makeCopy(dest, extras) }.

@@ -1777,8 +1777,17 @@ async function submitAIDescription(modal, description, status, generateBtn, over
     // never the idea itself
     if (window.Analytics) {
       Analytics.track('create_result', {
-        result: data.noMatch ? 'none' : data.existingGame ? 'existing' : data.config ? 'match' : 'error'
+        result: (data.noMatch || data.unclear) ? 'none' : data.existingGame ? 'existing' : data.config ? 'match' : 'error'
       });
+    }
+
+    // Keyboard mash or words that say nothing (a reviewer, 2026-10-02): the
+    // idea box stays open with a plain line, never "a trick we don't have"
+    if (data.unclear) {
+      showFormError(status, data.reason || 'We couldn\'t tell what you want to make. Try describing the activity in a sentence.');
+      generateBtn.disabled = false;
+      generateBtn.textContent = 'Generate';
+      return;
     }
 
     if (data.noMatch) {
@@ -1861,6 +1870,7 @@ function renderMatchPreview(modal, data, overlay, description) {
     };
     renderMatchPreview(modal, next, overlay, description);
   });
+  appendQuestionNote(modal, data.questionNote);
 
   // A setting as a teacher reads it (a reviewer saw {"question":...} and
 // SPEED BONUS true on the "Here's what I'd set up" card, 2026-09-27):
@@ -2221,6 +2231,20 @@ function appendTimingNote(modal, data, onTrim) {
   modal.appendChild(wrap);
 }
 
+// The server's count of quiz questions against the number the idea named
+// (engine/question-count.js): a reviewer asked for 25 and quietly got 8,
+// 2026-10-02. Shown on the match card and the plan, never the AI's word.
+function appendQuestionNote(modal, note) {
+  if (!note) return;
+  var wrap = document.createElement('div');
+  wrap.className = 'ai-match-timing is-over ai-match-question-note';
+  var p = document.createElement('p');
+  p.className = 'ai-match-timing-note';
+  p.textContent = note;
+  wrap.appendChild(p);
+  modal.appendChild(wrap);
+}
+
 function humanizeParamName(name) {
   var words = String(name)
     .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -2553,7 +2577,22 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
       arriving.remove();
       resp = got.body;
       // Built or honestly refused; never the idea itself
-      if (window.Analytics) Analytics.track('create_result', { result: resp && resp.cantBuild ? 'none' : 'storyboard' });
+      if (window.Analytics) Analytics.track('create_result', { result: resp && (resp.cantBuild || resp.unclear) ? 'none' : 'storyboard' });
+      // Unclear words are not a missing feature (a reviewer, 2026-10-02)
+      if (resp && resp.unclear) {
+        title.textContent = 'We couldn\'t tell what you want to make';
+        status.textContent = resp.reason || 'Try describing the activity in a sentence.';
+        var ucRow = sbEl('div', null, 'recipe-form-buttons');
+        var ucBack = sbEl('button', 'Describe it again', 'recipe-create-btn');
+        ucBack.type = 'button';
+        ucBack.addEventListener('click', function () {
+          closeOverlay(overlay);
+          showAIGenerateModal();
+        });
+        ucRow.appendChild(ucBack);
+        modal.appendChild(ucRow);
+        return;
+      }
       if (resp && resp.cantBuild) {
         // Honest refusal: the idea's heart needs a mechanic the bricks
         // can't deliver. Better a straight answer here than a built
@@ -2638,6 +2677,7 @@ async function showStoryboardFlow(description, seededStoryboard, seededSettings)
   if (rolling) {
     modal.appendChild(sbEl('p', 'Starts as students arrive: each one begins the moment they join and finishes on their own, no timers.', 'sb-hint sb-rolling-setting'));
   }
+  appendQuestionNote(modal, resp && resp.questionNote);
 
   var list = sbEl('div');
   modal.appendChild(list);
@@ -2965,7 +3005,7 @@ function showConciergeDialog() {
         goBtn.disabled = false;
         goBtn.textContent = 'Get more ideas';
         if (!result.ok || result.data.error) throw new Error(result.data.error || 'no ideas came back');
-        renderConciergeResults(result.data, resultsEl, status, overlay);
+        renderConciergeResults(result.data, resultsEl, status, overlay, topic);
       })
       .catch(function (err) {
         goBtn.disabled = false;
@@ -2975,7 +3015,7 @@ function showConciergeDialog() {
   });
 }
 
-function renderConciergeResults(data, resultsEl, status, overlay) {
+function renderConciergeResults(data, resultsEl, status, overlay, topic) {
   resultsEl.textContent = '';
   var suggestions = data.suggestions || [];
   if (suggestions.length === 0) {
@@ -2996,7 +3036,9 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
     var kindLabel = s.kind === 'host' ? 'Ready to run'
       : s.kind === 'recipe' ? 'Fill in a recipe' : 'A new plan, step by step';
     var tag = document.createElement('div');
-    tag.textContent = kindLabel;
+    // The running time the server computed from the timers, never the AI's
+    // word (engine/duration-estimate.js); the ideas arrive in order of fit
+    tag.textContent = kindLabel + (typeof s.minutes === 'number' ? ' · about ' + s.minutes + ' min' : '');
     tag.style.cssText = 'font-size:0.7rem; font-weight:900; text-transform:uppercase; letter-spacing:0.5px; color:#888; font-family:var(--t-body, "DM Sans", Arial, sans-serif);';
     card.appendChild(tag);
 
@@ -3026,7 +3068,7 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       var hostBtn = document.createElement('button');
       hostBtn.type = 'button';
       hostBtn.className = 'recipe-create-btn';
-      hostBtn.textContent = '▶ Host this' + (s.playTime ? ' (' + s.playTime + ')' : '');
+      hostBtn.textContent = '▶ Host this';
       hostBtn.title = 'Start a live room your class can join right now';
       hostBtn.addEventListener('click', function () {
         if (window.HostLaunch) HostLaunch.launch(s.id);
@@ -3049,8 +3091,12 @@ function renderConciergeResults(data, resultsEl, status, overlay) {
       customizeBtn.className = 'recipe-cancel-btn';
       customizeBtn.textContent = 'Make it yours';
       customizeBtn.title = 'Make your own editable copy of this activity';
+      // The topic the teacher typed rides along (a reviewer asked for
+      // photosynthesis and the make page opened on similes, 2026-10-02):
+      // a pairs list gets written for it on arrival (make.js `idea`)
       customizeBtn.addEventListener('click', function () {
-        window.location.href = '/make?game=' + encodeURIComponent(s.id) + '&from=designer';
+        window.location.href = '/make?game=' + encodeURIComponent(s.id) + '&from=designer' +
+          (topic ? '&idea=' + encodeURIComponent(String(topic).slice(0, 200)) : '');
       });
       row.appendChild(customizeBtn);
 
