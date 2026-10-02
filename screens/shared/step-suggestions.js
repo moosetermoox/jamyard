@@ -544,7 +544,7 @@
   // every question's scores. Structure is deterministic; the AI supplies
   // only the questions and words. Wires phases in place, returns the new
   // lastId, or null when nothing usable compiled.
-  var MAX_QUIZ_QUESTIONS = 15;
+  var MAX_QUIZ_QUESTIONS = 20; // the quiz-show recipe's cap too (engine/question-count.js)
 
   // Mirrors engine/phases/confidence.js (a test keeps them equal)
   var CONFIDENCE_PROMPT = 'How sure are you of your answer?';

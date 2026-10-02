@@ -18,7 +18,7 @@ const read = (rel) => readFileSync(new URL('../../' + rel, import.meta.url), 'ut
 describe('the plan keeps the settings the idea named', () => {
   it('the storyboard route reads anonymity and the plan writes it on the config', () => {
     const server = read('server.js');
-    expect(server).toMatch(/const anonymous = parseAnonymity\(description\);[\s\S]{0,200}json: \{ storyboard, settings, ideaId \}/);
+    expect(server).toMatch(/const anonymous = parseAnonymity\(description\);[\s\S]{0,200}json: \{ storyboard, settings, ideaId(, questionNote)? \}/);
     const designer = read('screens/designer/designer.js');
     expect(designer).toContain("if (typeof ideaSettings.anonymous === 'boolean') result.config.anonymous = ideaSettings.anonymous;");
     expect(designer).toContain("showStoryboardFlow(description, partial, resp.settings)");

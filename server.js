@@ -26,6 +26,9 @@ import { audienceFor } from './engine/audience.js';
 import { applyIdeaSettings, parseAnonymity } from './engine/idea-settings.js';
 import { readsAsFindYourMatch } from './engine/find-match-idea.js';
 import { refitRecipeIdFor } from './engine/match-refit.js';
+import { looksUnclear, UNCLEAR_LINE } from './engine/unclear-idea.js';
+import { timeWindow, rankByTime, timeNote } from './engine/suggest-time.js';
+import { askedQuestionCount, builtQuestionCount, capPlanQuestions, questionCapFor, questionCountNote } from './engine/question-count.js';
 import { extractCandidates, buildUserRecipe } from './engine/recipe-extractor.js';
 import { VALIDATION_MODES, DIAGNOSTIC_CODES } from './engine/diagnostics.js';
 import { loadHooks } from './engine/hooks-loader.js';
@@ -4125,6 +4128,30 @@ app.post('/api/games/generate-theme', async (req, res) => {
 // featured activity, a recipe with legal params, or a bricks-only
 // storyboard) via engine/suggest-validate.js, so the AI structurally
 // cannot show a teacher something the platform can't deliver.
+// A config's running time in minutes, or null when it cannot be estimated
+function minutesOfConfig(config) {
+  if (!config || !config.phases) return null;
+  try {
+    const m = estimateDuration(config).minutes;
+    return Number.isFinite(m) && m > 0 ? m : null;
+  } catch {
+    return null;
+  }
+}
+
+// A suggested plan's running time: compiled the way the Create page builds
+// it (screens/shared/step-suggestions.js, loaded once on first use)
+async function storyboardMinutes(storyboard) {
+  if (!storyboard || !Array.isArray(storyboard.steps)) return null;
+  try {
+    if (!globalThis.StepSuggestions) await import('./screens/shared/step-suggestions.js');
+    const built = globalThis.StepSuggestions.compileStoryboard(storyboard);
+    return built && built.config ? minutesOfConfig(built.config) : null;
+  } catch {
+    return null;
+  }
+}
+
 app.post('/api/games/suggest', async (req, res) => {
   try {
     const { occasion, topic, time } = req.body || {};
@@ -4137,7 +4164,10 @@ app.post('/api/games/suggest', async (req, res) => {
       featured: !!config.featured,
       name: config.name,
       description: config.description || '',
-      playTime: config.playTime || null
+      playTime: config.playTime || null,
+      // Computed from the timers (engine/duration-estimate.js), so the AI
+      // reads a running time it can weigh against the teacher's answer
+      minutes: minutesOfConfig(config)
     }));
     games = applyFeaturedOverrides(games, await featuredOverridesSafe())
       .filter(g => g.featured);
@@ -4161,19 +4191,32 @@ app.post('/api/games/suggest', async (req, res) => {
     // Enrich with real catalog data so the cards never rely on AI prose.
     const gamesById = {};
     for (const g of games) gamesById[g.id] = g;
-    const suggestions = checked.suggestions.map(s => {
+    const enriched = await Promise.all(checked.suggestions.map(async s => {
       if (s.kind === 'host') {
         const g = gamesById[s.id];
-        return { ...s, name: g.name, description: g.description, playTime: g.playTime };
+        return { ...s, name: g.name, description: g.description, playTime: g.playTime, minutes: g.minutes };
       }
       if (s.kind === 'recipe') {
         const r = recipesById[s.id];
-        return { ...s, name: r.name, description: r.description || '' };
+        let minutes = null;
+        try {
+          const { config } = compileRecipe(r, s.params || {});
+          minutes = minutesOfConfig(config);
+        } catch { /* no estimate: it sorts after the estimated ones */ }
+        return { ...s, name: r.name, description: r.description || '', minutes };
       }
-      return s;
-    });
+      return { ...s, minutes: await storyboardMinutes(s.storyboard) };
+    }));
 
-    res.json({ suggestions, note: raw.note, dropped: checked.dropped });
+    // The time the teacher picked, against the computed running times:
+    // the ideas that fill it come first (a reviewer picked the whole
+    // period and got a ten-minute idea on top, 2026-10-02)
+    const win = timeWindow(time);
+    const suggestions = rankByTime(enriched, win);
+    const fitNote = timeNote(suggestions, win);
+    const note = [raw.note, fitNote].filter(Boolean).join(' ') || null;
+
+    res.json({ suggestions, note, dropped: checked.dropped });
   } catch (error) {
     console.log(`[api/games/suggest] Error: ${error.message}`);
     res.status(error.statusCode || 500).json({ error: error.message });
@@ -4197,12 +4240,20 @@ async function storyboardOutcome(body, onEvent) {
   if (!description || typeof description !== 'string' || description.trim().length < 10) {
     return { status: 400, json: { error: 'Please describe the activity (at least 10 characters).' } };
   }
+  if (looksUnclear(description)) {
+    await logIdea(body, { stage: 'storyboard', result: 'none', reason: 'unclear' });
+    return { status: 200, json: { unclear: true, reason: UNCLEAR_LINE } };
+  }
   try {
     console.log(`[api/games/storyboard] Planning: "${description.substring(0, 80)}..."`);
     const storyboard = await aiService.generateStoryboard(description, { onEvent });
     if (storyboard.error) {
       await logIdea(body, { stage: 'storyboard', result: 'error', reason: storyboard.error });
       return { status: 500, json: { error: storyboard.error } };
+    }
+    if (storyboard.unclear) {
+      await logIdea(body, { stage: 'storyboard', result: 'none', reason: 'unclear' });
+      return { status: 200, json: { unclear: true, reason: UNCLEAR_LINE } };
     }
     // Honest refusal, not an error: the idea's core needs a mechanic no
     // brick provides, and a hollow lookalike would be worse than saying so.
@@ -4221,13 +4272,18 @@ async function storyboardOutcome(body, onEvent) {
     // What was unique: the bricks the plan is made of.
     const steps = Array.isArray(storyboard.steps) ? storyboard.steps.map(s => s && s.brick).filter(Boolean) : [];
     const ideaId = await logIdea(body, { stage: 'storyboard', result: 'storyboard', targetName: storyboard.name || '', steps });
+    // A quiz longer than one holds is cut to the cap so the plan builds,
+    // and the card says how many the idea asked for against how many
+    // there are (engine/question-count.js)
+    capPlanQuestions(storyboard);
+    const questionNote = questionCountNote(askedQuestionCount(description), builtQuestionCount(storyboard), questionCapFor(storyboard));
     // The settings the idea named in plain words ("no names"), read by the
     // server the same way the recipe match reads them, so a planned
     // activity keeps them too (2026-09-28: a "word cloud, no names" plan
     // was built with names shown). The client writes them on the config.
     const anonymous = parseAnonymity(description);
     const settings = anonymous === null ? {} : { anonymous };
-    return { status: 200, json: { storyboard, settings, ideaId } };
+    return { status: 200, json: { storyboard, settings, ideaId, questionNote } };
   } catch (error) {
     console.log(`[api/games/storyboard] Error: ${error.message}`);
     await logIdea(body, { stage: 'storyboard', result: 'error', reason: error.message });
@@ -4282,6 +4338,12 @@ app.post('/api/games/from-description', async (req, res) => {
     const { description, recipeId } = req.body || {};
     if (!description || typeof description !== 'string' || description.trim().length < 10) {
       return res.status(400).json({ error: 'Please provide a description (at least 10 characters).' });
+    }
+    // Keyboard mash is not a missing feature (a reviewer, 2026-10-02): say
+    // the words were unclear, before any AI call (engine/unclear-idea.js)
+    if (looksUnclear(description)) {
+      await logIdea(req.body, { stage: recipeId ? 'alternate' : 'match', result: 'none', reason: 'unclear' });
+      return res.json({ unclear: true, reason: UNCLEAR_LINE });
     }
 
     // recipeId narrows the matcher to one recipe — the "or maybe this
@@ -4554,6 +4616,9 @@ app.post('/api/games/from-description', async (req, res) => {
       alternates,
       map: buildActivityMap(config),
       timing,
+      // The questions asked for against the questions made, read from the
+      // idea by the server (engine/question-count.js), said on the card
+      questionNote: questionCountNote(askedQuestionCount(description), builtQuestionCount({ params: match.params })),
       ideaId: await logIdea(req.body, { stage, result: 'match', target: recipe.id, targetName: config.name || recipe.name, minutes: requestedMinutes })
     });
   } catch (error) {
