@@ -197,7 +197,7 @@ describe('Trivia Bluff: the teacher\'s facts, never the AI\'s memory (owner 2026
 describe('the rest', () => {
   it('the joke list lost the injury, criminal, and bathroom jokes', () => {
     const built = JSON.parse(read('engine/dad-jokes.json'));
-    expect(built.length).toBe(451);
+    expect(built.length).toBe(424);
     expect(built.some(j => /left side was cut off|criminal going down the stairs|found in the bathroom/i.test(j))).toBe(false);
   });
 

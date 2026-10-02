@@ -238,6 +238,7 @@ const revealSection = document.getElementById('reveal-section');
 const aiResultDisplay = document.getElementById('ai-result');
 const endSection = document.getElementById('end-section');
 const doneSection = document.getElementById('done-section');
+const removedSection = document.getElementById('removed-section');
 const doneMessageEl = document.getElementById('done-message');
 
 // Elements - New sections
@@ -1120,7 +1121,14 @@ socket.on('connect', () => {
   }
 });
 
-socket.on('join-error', ({ message }) => {
+socket.on('join-error', ({ message, removed }) => {
+  // A removed student trying the same room again gets the removed screen,
+  // never the Join form's red line under a live Join button
+  if (removed) {
+    currentRoomCode = null;
+    showRemovedScreen();
+    return;
+  }
   // The fixed lines ("Room not found. Check the code on the big screen.")
   // have a row in every language table; anything else shows as sent
   showError(window.UiLang && typeof UiLang.t === 'function' ? UiLang.t(message) : message);
@@ -1153,9 +1161,24 @@ socket.on('kicked', ({ message } = {}) => {
   // The joke bubble sat above "You have been removed" (a reviewer,
   // 2026-09-29): it lives outside the sections, so showSection never hides it
   hideEarlyJoke();
-  showSection(joinSection);
+  showRemovedScreen();
+});
+
+// The removed screen says so plainly (2026-10-02, an outside reviewer: the
+// Join form came back with the code filled in and a live Join button that
+// only rejected them). "Join a different room" opens an empty Join form.
+function showRemovedScreen() {
+  forgetSavedSeat();
+  roomCodeInput.value = '';
+  roomCodeInput.dispatchEvent(new Event('input'));
   joinBtn.disabled = false;
-  showError(message || 'You have been removed from this session.');
+  errorMessage.hidden = true;
+  showSection(removedSection);
+}
+
+document.getElementById('removed-join-other').addEventListener('click', () => {
+  showSection(joinSection);
+  roomCodeInput.focus();
 });
 
 // The teacher gave this student a new name from the console (a rude or
@@ -4428,7 +4451,7 @@ const allPlayerSections = [
   announceSection, winnerSection, leaderboardSection, revealOneSection,
   teamSplitSection, rankSection, mergeSection, oneVoiceSection, wagerSection, relaySection, rateSection,
   turnSection, buzzSection, estimateSection, matchSection, sortSection, checklistSection,
-  doneSection, soloQuizSection
+  doneSection, soloQuizSection, removedSection
 ];
 
 function showSection(el) {

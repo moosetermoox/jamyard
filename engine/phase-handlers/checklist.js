@@ -5,7 +5,8 @@ import {
   normalizeChecklistItemsWithRoles,
   buildChecklistGroups,
   pairsAsTeams,
-  groupProgress
+  groupProgress,
+  rolesForGroup
 } from '../phases/checklist-state.js';
 import { seatInTeamData, seatInRoleOutput, seatInChecklistState } from '../phases/late-seating.js';
 
@@ -29,6 +30,22 @@ import { seatInTeamData, seatInRoleOutput, seatInChecklistState } from '../phase
  * @property {boolean} solo
  * @property {boolean} closed
  */
+
+// A group's own job tags: a task tagged with a job nobody in the group
+// holds goes to someone who is there (rolesForGroup, 2026-10-02). Solo
+// lists and lists without roles keep the shared tags.
+export function retagGroups(state) {
+  if (state.solo || !Array.isArray(state.itemRoles) || !state.itemRoles.some(Boolean)) return;
+  for (const g of Object.values(state.groups)) {
+    g.itemRoles = rolesForGroup(state.itemRoles, g.memberIds, state.playerRole || {});
+  }
+}
+
+export function itemRolesFor(state, playerId) {
+  const key = state.playerGroup[playerId];
+  const group = key != null ? state.groups[key] : null;
+  return (group && group.itemRoles) || state.itemRoles || [];
+}
 
 // One player's view of their own group (label + who-checked-what).
 export function playerChecklistView(state, playerId) {
@@ -99,6 +116,7 @@ registerHandler('checklist', {
       cleanup() { if (this.timer) { clearTimeout(this.timer); this.timer = null; } }
     };
     const state = room.phaseState;
+    retagGroups(state);
 
     const sc = ctx.resolveScreenControl();
     const prompt = phase.prompt ? ctx.resolveTemplate(phase.prompt) : 'Work through today\'s tasks!';
@@ -124,7 +142,7 @@ registerHandler('checklist', {
         ctx.emitToPlayer(player.id, EVENTS.CHECKLIST_START, {
           prompt,
           items,
-          itemRoles,
+          itemRoles: itemRolesFor(state, player.id),
           yourRole: playerRole[player.id] || null,
           group: view,
           timer: phase.timer || null,
@@ -168,6 +186,7 @@ registerHandler('checklist', {
         state.playerRole[playerId] = role;
       }
     }
+    retagGroups(state);
     ctx.emitToHost(EVENTS.CHECKLIST_UPDATE, { progress: groupProgress(state) });
     ctx.emitToTeachers(EVENTS.CHECKLIST_UPDATE, { groups: teacherDetail(state) });
     return { team, role, picking: false };
@@ -197,7 +216,7 @@ registerHandler('checklist', {
       socket.emit(EVENTS.CHECKLIST_START, {
         prompt: state.prompt || '',
         items: state.items,
-        itemRoles: state.itemRoles || [],
+        itemRoles: itemRolesFor(state, socket.id),
         yourRole: (state.playerRole || {})[socket.id] || null,
         group: view,
         timer: null, // reconnectors don't restart the countdown

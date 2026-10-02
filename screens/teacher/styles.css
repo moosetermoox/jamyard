@@ -568,3 +568,8 @@ h1, h2 {
 .lobby-roster .roster-rename-form { display: flex; gap: 6px; flex: 1 1 100%; align-items: center; }
 .lobby-roster .roster-rename-form input { font: inherit; font-size: 1rem; padding: 6px 8px; flex: 1; min-width: 0; }
 .lobby-roster .roster-error { flex: 1 1 100%; color: #AE3A16; font-size: 0.85rem; font-weight: 600; }
+
+/* The class list during a step (2026-10-02): folded, Remove per row */
+.class-list-block { margin: 16px 0; }
+.class-list-block summary { cursor: pointer; font-weight: 700; }
+.class-list-block[hidden] { display: none; }
