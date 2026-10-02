@@ -1809,6 +1809,12 @@ socket.on('reveal-one-item', ({ item, index, total, hotSeat, turn, turns }) => {
     setRichText(div, typeof item === 'string' ? item : ((item && (item.text || item.name)) || ''));
   }
   revealOneItems.appendChild(div);
+  // The newest card comes up above the pinned buttons, never under them
+  // (Whose Eyes?: Continue sat on the cards while the list grew past the
+  // screen, a reviewer 2026-10-02; styles.css gives the room)
+  if (index > 1 && typeof div.scrollIntoView === 'function') {
+    try { div.scrollIntoView({ block: 'end', behavior: 'smooth' }); } catch (e) { div.scrollIntoView(false); }
+  }
 
   if (index >= total) {
     revealOneNextBtn.hidden = true;

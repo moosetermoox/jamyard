@@ -2986,7 +2986,12 @@ app.post('/api/games/:gameId/make', express.json({ limit: '64kb' }), async (req,
       else working.earlyJoke = false;
       changed = true;
     }
-    working.name = nameFor(config.name || 'Activity', changed && typeof edits.prompt === 'string' && edits.prompt.trim() !== String(config.phases?.[out.phaseId || '']?.prompt || '').trim() ? edits.prompt : '');
+    // The topic a swap carried names the copy best (the rope's claim, Whose
+    // Eyes?'s topic): the prompt around it is the template's instruction
+    // ("Whose Eyes?: Name ONE ...", a reviewer 2026-10-02)
+    const swapTopic = Array.isArray(edits.swaps) && out.swapped
+      ? (edits.swaps.find(s => s && typeof s.to === 'string' && s.to.trim()) || {}).to || '' : '';
+    working.name = nameFor(config.name || 'Activity', swapTopic || (changed && typeof edits.prompt === 'string' && edits.prompt.trim() !== String(config.phases?.[out.phaseId || '']?.prompt || '').trim() ? edits.prompt : ''));
     delete working.featured;
     // The What happens map of the edited copy rides along, so the make
     // page can redraw it the moment the question changes (2026-09-13)

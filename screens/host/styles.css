@@ -1933,6 +1933,12 @@ section.active > .preview-actions {
   z-index: 5;
 }
 
+/* A growing one-at-a-time list: room under the last card for the pinned
+   buttons, and a scrolled-to card stops above them (host.js scrolls the
+   newest card into view; Whose Eyes?'s Continue covered the cards) */
+#reveal-one-section.active { padding-bottom: 96px; }
+#reveal-one-items .reveal-one-item { scroll-margin-bottom: 110px; }
+
 /* ── Live Poll: the tally on the projector, big enough for the back row ── */
 .live-tally {
   /* The collect section is a flex column that starts its items: without

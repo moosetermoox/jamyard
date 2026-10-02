@@ -43,6 +43,21 @@ function withPlanLanguage(result, idea) {
   return result;
 }
 
+// The words students read on the steps that are not answer boxes (intros,
+// votes, reveals), tokens out, for the sample-answer writer
+function otherScreensText(phases) {
+  const parts = [];
+  for (const p of Object.values(phases || {})) {
+    if (!p || typeof p !== 'object' || p.type === 'collect' || p.type === 'preview' || p.type === 'ai-process') continue;
+    for (const k of ['message', 'prompt', 'question', 'template']) {
+      if (typeof p[k] !== 'string') continue;
+      const t = p[k].replace(/\{\{[^}]*\}\}/g, ' ').replace(/\s+/g, ' ').trim();
+      if (t.length > 8) parts.push('- ' + t.slice(0, 200));
+    }
+  }
+  return parts.join('\n').slice(0, 900);
+}
+
 // A pretend student's answer, at most this long (a lab conclusion runs long)
 const SAMPLE_ANSWER_MAX = 500;
 
@@ -215,7 +230,8 @@ const PHASE_EXTRA_GUIDANCE = {
     DRAWING INPUT: set "inputType": "drawing" to replace the text box with a drawing pad. Use for pictionary/gallery games. Drawings work with reveal-one (animated gallery) and rotation (a drawing source preloads onto the recipient's pad to continue it, or displays above a text box to caption it). AI steps CANNOT read drawings, never send a drawing collect's responses to ai-process/ai-eliminate. Put a teacher "preview" phase between a drawing collect and its class-wide reveal.`,
 
   merge:
-    `GROUP SOURCES: by default merge shuffles players into fresh pairs (groupSize 2, or 3 for trios). Set "groupsFrom": "<phaseId>" to ADOPT an earlier grouping instead, either a collect with assign:"pairwise" (same partners now write together, think-pair-share continuity) or a team-split (teacher-arranged or student-chosen groups co-write). Do not set groupSize together with groupsFrom. "seedFrom" still names where each member's starting answer comes from (usually that same collect's .responses).
+    `ODD CLASSES: a merge never leaves a student out; with an odd count the extra student joins a group of three. Never flag an odd number of students on a merge step.
+    GROUP SOURCES: by default merge shuffles players into fresh pairs (groupSize 2, or 3 for trios). Set "groupsFrom": "<phaseId>" to ADOPT an earlier grouping instead, either a collect with assign:"pairwise" (same partners now write together, think-pair-share continuity) or a team-split (teacher-arranged or student-chosen groups co-write). Do not set groupSize together with groupsFrom. "seedFrom" still names where each member's starting answer comes from (usually that same collect's .responses).
     Related bridge on collect: a pairwise collect's "reusePairsFrom" also accepts a team-split step, so teacher-arranged pairs (team-split method "teacher", groupSize 2) can feed pair reveals and head-to-head matchups.`,
 
   'team-split':
@@ -1838,6 +1854,12 @@ Return ONLY JSON, no other prose:
         truth: truths[id] || null
       }));
     if (steps.length === 0) return { sampleAnswers: null };
+    // The topic often lives outside the answer steps (Both Sides of the
+    // Rope names its claim in the intro and the votes; the evidence step
+    // never does): the writer reads those screens too, or it invents a
+    // topic (a gene-editing rope got answers about AI in schools,
+    // 2026-10-02)
+    const screens = otherScreensText(phases);
     const lineFor = (step, i) => (step.fields.length >= 2
       ? step.fields.map((label) => `${label}: sample ${i + 1}`)
       : step.truth ? `fake ${i + 1}` : `Sample answer ${i + 1} for ${step.prompt || step.id}`);
@@ -1863,7 +1885,7 @@ Return ONLY JSON, no other prose:
 
 Activity: ${String((config && config.name) || '').slice(0, 80)}
 ${String((config && config.description) || '').slice(0, 300)}
-
+${screens ? '\nWhat the class reads on the other screens (the topic is here; every answer is about it):\n' + screens + '\n' : ''}
 Steps students answer:
 ${stepLines}
 

@@ -200,3 +200,8 @@ body {
   }
   .rp-pre { background: #ffffff; }
 }
+
+/* A model's prose in the report: bullets and bold lines (report.js renderRich) */
+.rp-rich-list { margin: 6px 0 10px 22px; padding: 0; }
+.rp-rich-list li { margin: 4px 0; }
+.rp-rich-head { font-weight: 800; }
