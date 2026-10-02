@@ -3033,3 +3033,9 @@ body.in-activity { padding-bottom: 112px; }
    owner's call): who answers it above, the question large under it */
 .hot-seat-for { font-size: 2.2rem; font-weight: 900; text-align: center; margin: 12px 0 8px; letter-spacing: 0.02em; }
 .hot-seat-question { font-size: 3rem; font-weight: 700; text-align: center; line-height: 1.25; }
+
+/* A rolling room whose doorway card has gone (the solo quiz's results,
+   the end): the section takes the whole width back. It kept the card's
+   room on the right and the results sat squeezed in a left column (a
+   reviewer, Solo Quiz, 2026-10-02). */
+body.rolling:has(#rolling-door[hidden]) section.active { padding-right: 0; }

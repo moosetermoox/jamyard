@@ -1194,6 +1194,10 @@ moreTimeBtn.addEventListener('click', () => {
 
 function showMoreTimeBtn(containerEl) {
   containerEl.insertAdjacentElement('afterend', moreTimeBtn);
+  // Built before the room's language arrived, so the label is set here
+  // (a Spanish room read A BIT MORE TIME, a reviewer 2026-10-02)
+  moreTimeBtn.textContent = UiLang.t('A bit more time');
+  moreTimeBtn.title = UiLang.t('Add 30 seconds');
   moreTimeBtn.hidden = false;
 }
 

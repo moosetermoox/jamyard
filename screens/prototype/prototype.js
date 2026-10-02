@@ -224,7 +224,8 @@ function stepNameFor(phaseId) {
 // folding harder when the header has less room. The "…" opens the full
 // list on a paper card under the row.
 function makeBlock(block, i) {
-  const clickable = block.kind === 'stop' || block.kind === 'fold';
+  const action = BenchLogic.blockAction(block);
+  const clickable = action.clickable;
   const el = document.createElement(clickable ? 'button' : 'span');
   if (clickable) el.type = 'button';
   el.className = 'plan-block ' + (i % 2 ? 'cut-b' : 'cut-a');
@@ -247,12 +248,15 @@ function makeBlock(block, i) {
   el.appendChild(document.createTextNode(text));
   if (block.kind === 'fold') {
     el.classList.add('plan-fold', 'clickable');
-    el.title = 'Show all ' + block.count + ' folded steps';
+    el.title = action.title;
     el.setAttribute('aria-label', el.title);
     el.addEventListener('click', () => { planExpanded = true; renderPlan(); });
+  } else if (block.kind === 'stop' && !clickable) {
+    // A finished step or the live one: a plain block that says what it is
+    el.title = action.title;
   } else if (block.kind === 'stop') {
     el.classList.add('clickable');
-    el.title = 'Skip ahead to this step';
+    el.title = action.title;
     el.addEventListener('click', () => {
       // From the full list: close it and ask under the row's own block
       if (planExpanded) {

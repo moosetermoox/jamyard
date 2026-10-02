@@ -344,6 +344,9 @@ const ratePromptDisplay = document.getElementById('rate-prompt-display');
 const rateTimerDisplay = document.getElementById('rate-timer-display');
 const rateScales = document.getElementById('rate-scales');
 const rateSubmitBtn = document.getElementById('rate-submit-btn');
+// Submit Ratings stays pressable before every scale has a pick, so a tap
+// says what is missing instead of doing nothing (a reviewer, 2026-10-02).
+const rateNotice = document.getElementById('rate-notice');
 const rateResults = document.getElementById('rate-results');
 
 // Elements - Relay
@@ -2486,6 +2489,7 @@ socket.on('estimate-start', ({ prompt, unit, image, min, max, timer, playerTempl
   if (max != null) estimateInput.max = max; else estimateInput.removeAttribute('max');
   renderEstimatePicker(min, max);
   estimateSubmitBtn.disabled = false;
+  estimateSubmitBtn.hidden = false;
   estimatePlayerStatus.textContent = '';
   estimatePlayerResults.hidden = true;
   estimatePlayerResults.innerHTML = '';
@@ -2517,6 +2521,12 @@ socket.on('estimate-results', ({ answer, unit, stats, guesses }) => {
   estimateSubmitBtn.disabled = true;
   setEstimatePickerDisabled(true);
   estimatePlayerStatus.textContent = '';
+  // The guessing is over: the box, the picker, and Submit Guess leave the
+  // screen, so nothing reads as still open (a reviewer, 2026-10-02)
+  estimateSubmitBtn.hidden = true;
+  estimateInputRow.hidden = true;
+  estimateScale.hidden = true;
+  estimateSlider.hidden = true;
 
   var mine = (guesses || []).find(function (g) { return g.playerId === socket.id; });
   var topScore = Math.max.apply(null, [0].concat((guesses || []).map(function (g) { return g.score || 0; })));
@@ -3335,8 +3345,10 @@ socket.on('rate-start', function(payload) {
   rateCurrentRatings = {};
   rateResults.hidden = true;
   rateResults.innerHTML = '';
-  rateSubmitBtn.disabled = true;
+  rateSubmitBtn.disabled = false;
+  rateSubmitBtn.classList.add('is-not-ready');
   rateSubmitBtn.hidden = false;
+  if (rateNotice) rateNotice.hidden = true;
   applyTemplate(rateSection, playerTemplate);
   applyShow(show, {
     prompt: ratePromptDisplay,
@@ -3367,11 +3379,27 @@ socket.on('rate-results', function(payload) {
   showSection(rateSection);
   rateScales.hidden = true;
   rateSubmitBtn.hidden = true;
+  if (rateNotice) rateNotice.hidden = true;
   rateResults.hidden = false;
   rateResults.innerHTML = renderRateResults(scales, averages, distributions, raterCount);
 });
 
+function allScalesRated() {
+  for (var s = 0; s < rateCurrentScales.length; s++) {
+    if (rateCurrentRatings[rateCurrentScales[s].id] == null) return false;
+  }
+  return true;
+}
+
 rateSubmitBtn.addEventListener('click', function() {
+  if (!allScalesRated()) {
+    if (rateNotice) {
+      rateNotice.textContent = UiLang.t('Pick a rating on each scale.');
+      rateNotice.hidden = false;
+    }
+    return;
+  }
+  if (rateNotice) rateNotice.hidden = true;
   socket.emit('rate-submit', { code: currentRoomCode, ratings: rateCurrentRatings });
   rateSubmitBtn.disabled = true;
 });
@@ -3409,12 +3437,10 @@ function renderRateScales() {
             rateCurrentRatings[scale.id] = val;
             for (var k = 0; k < btns.length; k++) btns[k].classList.remove('rate-btn-selected');
             b.classList.add('rate-btn-selected');
-            // Enable submit when all scales rated
-            var ready = true;
-            for (var s = 0; s < rateCurrentScales.length; s++) {
-              if (rateCurrentRatings[rateCurrentScales[s].id] == null) { ready = false; break; }
-            }
-            rateSubmitBtn.disabled = !ready;
+            // Submit reads ready once every scale has a pick
+            var ready = allScalesRated();
+            rateSubmitBtn.classList.toggle('is-not-ready', !ready);
+            if (ready && rateNotice) rateNotice.hidden = true;
           });
           btnRow.appendChild(b);
           btns.push(b);
@@ -3764,6 +3790,8 @@ const sqFeedback = document.getElementById('sq-feedback');
 const sqNextBtn = document.getElementById('sq-next-btn');
 const sqDone = document.getElementById('sq-done');
 const sqDoneScore = document.getElementById('sq-done-score');
+const sqDoneMark = document.getElementById('sq-done-mark');
+const sqDoneTitle = document.getElementById('sq-done-title');
 let sqPending = null;     // the payload behind the Next button
 let sqInstanceId = null;
 let sqBotAuto = false;    // prototype Bot Fill: play the whole quiz through
@@ -3826,6 +3854,15 @@ function renderSoloDone(data) {
   // A quiz the teacher ended early: the score is out of what this
   // student answered, never out of the whole list as if the rest were wrong
   var answered = Number.isInteger(data.answered) ? data.answered : (data.total || 0);
+  // Nothing answered (the quiz closed before this student started): no
+  // green check, no "0 of 0", an honest line instead (a reviewer, 2026-10-02)
+  var none = answered === 0;
+  if (sqDoneMark) sqDoneMark.hidden = none;
+  if (sqDoneTitle) sqDoneTitle.textContent = none ? UiLang.t('The quiz is over.') : UiLang.t("You're done!");
+  if (none) {
+    sqDoneScore.textContent = UiLang.t('You did not answer any questions this time.');
+    return;
+  }
   var outOf = answered < (data.total || 0) ? answered + ' ' + UiLang.t('answered') : String(data.total || 0);
   sqDoneScore.textContent = UiLang.t('Your score') + ': ' + (data.correct || 0) + ' ' + UiLang.t('of') + ' ' + outOf;
   if (J) J.sound('tada');
@@ -3881,6 +3918,9 @@ socket.on('solo-quiz-done', function (data) {
 // Rolling start: this student's last input landed, nothing else needs
 // them. Their own screen, not the shared wait screen.
 socket.on('player-done', ({ message } = {}) => {
+  // The joke never sits over a finished screen (a reviewer, 2026-10-02):
+  // these payloads can arrive without a step id, which is what folds it
+  hideEarlyJoke();
   showSection(doneSection);
   if (doneMessageEl) setRichText(doneMessageEl, message || '');
   if (J) J.sound('tada');
@@ -3889,6 +3929,7 @@ socket.on('player-done', ({ message } = {}) => {
 socket.on('game-ended', ({ message, playerTemplate, playerShow } = {}) => {
   eliminatedBanner.hidden = true;
   isEliminated = false;
+  hideEarlyJoke();
   showSection(endSection);
   applyTemplate(endSection, playerTemplate);
   const endMsg = endSection.querySelector('h1');
