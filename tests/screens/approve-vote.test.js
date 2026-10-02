@@ -206,7 +206,10 @@ describe('the small things', () => {
     expect(read('screens/designer/editor.html')).toContain('<body class="editor-page">');
     const css = read('screens/designer/editor.css');
     expect(css).toContain('body.editor-page #feedback-widget-btn { right: auto; left: 18px; }');
-    expect(css).toContain('body.editor-page #settings-panel { padding-bottom: 80px; }');
+    // ...and off the settings column's rows too: the column stops short of
+    // the bottom edge so its scrolled rows never slide under the button
+    // (a reviewer, 2026-10-02)
+    expect(css).toContain('body.editor-page #editor-body > #settings-panel { margin-bottom: 64px;');
   });
 });
 

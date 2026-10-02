@@ -17,6 +17,27 @@ function stops(n) {
   return out;
 }
 
+describe('blockAction: only a step still ahead skips (a reviewer, 2026-10-02)', () => {
+  const { blockAction } = globalThis.BenchLogic;
+  it('a finished step and the live one are not buttons and never claim to skip', () => {
+    const blocks = planBlocks(stops(4), 2, { nameOf, expanded: true }).filter(b => b.kind === 'stop');
+    const done = blockAction(blocks[0]);
+    expect(done.clickable).toBe(false);
+    expect(done.title).toBe('Already played');
+    const now = blockAction(blocks[2]);
+    expect(now.clickable).toBe(false);
+    expect(now.title).not.toMatch(/skip/i);
+    const later = blockAction(blocks[3]);
+    expect(later.clickable).toBe(true);
+    expect(later.title).toBe('Skip ahead to this step');
+  });
+  it('prototype.js reads the action, never marks every stop clickable', () => {
+    const src = readFileSync('screens/prototype/prototype.js', 'utf8');
+    expect(src).toContain('BenchLogic.blockAction(block)');
+    expect(src).not.toContain("const clickable = block.kind === 'stop' || block.kind === 'fold';");
+  });
+});
+
 describe('planBlocks: the plan as a row of blocks', () => {
   it('wraps the stops in a Join block and a Wrap up block', () => {
     const blocks = planBlocks(stops(3), -1, { nameOf });

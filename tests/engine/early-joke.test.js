@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 import {
   parseJokeList, createEarlyJokeState, dealJoke, jokeFor,
   validateEarlyJoke, EARLY_JOKE_MAX_FIRST, DAD_JOKES, splitJoke, EARLY_JOKE_PUNCHLINE_MS,
-  isEarlyJokeOn, earlyJokeFirst, EARLY_JOKE_DEFAULT_FIRST, isEarlyBirdJoin
+  isEarlyJokeOn, earlyJokeFirst, EARLY_JOKE_DEFAULT_FIRST, isEarlyBirdJoin, isJokeReconnect
 } from '../../engine/early-joke.js';
 import { validate } from '../../engine/game-loader.js';
 
@@ -122,6 +122,12 @@ describe('createEarlyJokeState', () => {
     expect(createEarlyJokeState(null)).toBeNull();
   });
 
+  it('deals no English joke in a room that runs in another language', () => {
+    expect(createEarlyJokeState({ name: 'X' }, 'es')).toBeNull();
+    expect(createEarlyJokeState({ name: 'X' }, 'fr')).toBeNull();
+    expect(createEarlyJokeState({ name: 'X' }, 'en')).toEqual({ first: EARLY_JOKE_DEFAULT_FIRST, dealt: {} });
+  });
+
   it('carries the count and starts with nothing dealt', () => {
     expect(createEarlyJokeState({ earlyJoke: { first: 3 } })).toEqual({ first: 3, dealt: {} });
   });
@@ -215,5 +221,18 @@ describe('isEarlyBirdJoin', () => {
   it('never deals to a student who joins after a together room started', () => {
     expect(isEarlyBirdJoin({ phaseType: 'announce' })).toBe(false);
     expect(isEarlyBirdJoin({ phaseType: 'collect', rolling: false })).toBe(false);
+  });
+});
+
+describe('isJokeReconnect', () => {
+  it('gives a reconnect its joke back where a fresh join would draw one', () => {
+    expect(isJokeReconnect({ phaseType: 'lobby' })).toBe(true);
+    expect(isJokeReconnect({ phaseType: 'collect', rolling: true })).toBe(true);
+    expect(isJokeReconnect({ phaseType: 'collect' })).toBe(false);
+  });
+
+  it('never on the end step, rolling or not (the joke sat over the final screen)', () => {
+    expect(isJokeReconnect({ phaseType: 'end' })).toBe(false);
+    expect(isJokeReconnect({ phaseType: 'end', rolling: true })).toBe(false);
   });
 });

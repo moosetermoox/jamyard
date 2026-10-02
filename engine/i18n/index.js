@@ -389,7 +389,16 @@ export const STRINGS = {
     'Your new name': 'Tu nuevo nombre',
     'A name needs at least two letters.': 'Un nombre necesita al menos dos letras.',
     'Someone in the room already has that name.': 'Alguien en la sala ya tiene ese nombre.',
-    'Names can only change before the activity starts.': 'Los nombres solo se pueden cambiar antes de que empiece la actividad.'
+    'Names can only change before the activity starts.': 'Los nombres solo se pueden cambiar antes de que empiece la actividad.',
+    // A reviewer's half-Spanish room (2026-10-02)
+    'The room is': 'La sala está',
+    'open.': 'abierta.',
+    'Playing as:': 'Juegas como:',
+    'A bit more time': 'Un poco más de tiempo',
+    'Add 30 seconds': 'Añadir 30 segundos',
+    'Pick a rating on each scale.': 'Elige una calificación en cada escala.',
+    'The quiz is over.': 'El cuestionario terminó.',
+    'You did not answer any questions this time.': 'Esta vez no respondiste ninguna pregunta.'
   },
   fr: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -632,7 +641,16 @@ export const STRINGS = {
     'Your new name': 'Ton nouveau nom',
     'A name needs at least two letters.': 'Un nom a besoin d\'au moins deux lettres.',
     'Someone in the room already has that name.': 'Quelqu\'un dans la salle a déjà ce nom.',
-    'Names can only change before the activity starts.': 'Les noms ne peuvent changer qu\'avant le début de l\'activité.'
+    'Names can only change before the activity starts.': 'Les noms ne peuvent changer qu\'avant le début de l\'activité.',
+    // A reviewer's half-Spanish room (2026-10-02)
+    'The room is': 'La salle est',
+    'open.': 'ouverte.',
+    'Playing as:': 'Tu joues en tant que :',
+    'A bit more time': 'Un peu plus de temps',
+    'Add 30 seconds': 'Ajouter 30 secondes',
+    'Pick a rating on each scale.': 'Choisis une note sur chaque échelle.',
+    'The quiz is over.': 'Le quiz est terminé.',
+    'You did not answer any questions this time.': 'Tu n\'as répondu à aucune question cette fois.'
   },
   de: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -875,7 +893,16 @@ export const STRINGS = {
     'Your new name': 'Dein neuer Name',
     'A name needs at least two letters.': 'Ein Name braucht mindestens zwei Buchstaben.',
     'Someone in the room already has that name.': 'Jemand im Raum hat diesen Namen schon.',
-    'Names can only change before the activity starts.': 'Namen können nur vor dem Start der Aktivität geändert werden.'
+    'Names can only change before the activity starts.': 'Namen können nur vor dem Start der Aktivität geändert werden.',
+    // A reviewer's half-Spanish room (2026-10-02)
+    'The room is': 'Der Raum ist',
+    'open.': 'offen.',
+    'Playing as:': 'Du spielst als:',
+    'A bit more time': 'Etwas mehr Zeit',
+    'Add 30 seconds': '30 Sekunden mehr',
+    'Pick a rating on each scale.': 'Wähle auf jeder Skala eine Bewertung.',
+    'The quiz is over.': 'Das Quiz ist vorbei.',
+    'You did not answer any questions this time.': 'Diesmal hast du keine Frage beantwortet.'
   },
   pt: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1118,7 +1145,16 @@ export const STRINGS = {
     'Your new name': 'Seu novo nome',
     'A name needs at least two letters.': 'Um nome precisa de pelo menos duas letras.',
     'Someone in the room already has that name.': 'Alguém na sala já tem esse nome.',
-    'Names can only change before the activity starts.': 'Os nomes só podem mudar antes de a atividade começar.'
+    'Names can only change before the activity starts.': 'Os nomes só podem mudar antes de a atividade começar.',
+    // A reviewer's half-Spanish room (2026-10-02)
+    'The room is': 'A sala está',
+    'open.': 'aberta.',
+    'Playing as:': 'Jogando como:',
+    'A bit more time': 'Um pouco mais de tempo',
+    'Add 30 seconds': 'Adicionar 30 segundos',
+    'Pick a rating on each scale.': 'Escolha uma nota em cada escala.',
+    'The quiz is over.': 'O quiz terminou.',
+    'You did not answer any questions this time.': 'Desta vez você não respondeu nenhuma pergunta.'
   },
   it: {
     // Word help (engine/word-help.js): the student's translation budget
@@ -1361,6 +1397,15 @@ export const STRINGS = {
     'Your new name': 'Il tuo nuovo nome',
     'A name needs at least two letters.': 'Un nome ha bisogno di almeno due lettere.',
     'Someone in the room already has that name.': 'Qualcuno nella stanza ha già quel nome.',
-    'Names can only change before the activity starts.': 'I nomi si possono cambiare solo prima che inizi l\'attività.'
+    'Names can only change before the activity starts.': 'I nomi si possono cambiare solo prima che inizi l\'attività.',
+    // A reviewer's half-Spanish room (2026-10-02)
+    'The room is': 'La stanza è',
+    'open.': 'aperta.',
+    'Playing as:': 'Giochi come:',
+    'A bit more time': 'Ancora un po\' di tempo',
+    'Add 30 seconds': 'Aggiungi 30 secondi',
+    'Pick a rating on each scale.': 'Scegli un voto su ogni scala.',
+    'The quiz is over.': 'Il quiz è finito.',
+    'You did not answer any questions this time.': 'Questa volta non hai risposto a nessuna domanda.'
   }
 };

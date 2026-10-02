@@ -124,8 +124,13 @@ export function earlyJokeFirst(config) {
   return ej && typeof ej === 'object' && Number.isInteger(ej.first) ? ej.first : EARLY_JOKE_DEFAULT_FIRST;
 }
 
-export function createEarlyJokeState(config) {
+// The jokes are an English list (dad-jokes.json): a room whose activity
+// runs in another language deals none (a reviewer, 2026-10-02: a Spanish
+// room came out half English). `language` is the engine's resolved code;
+// absent reads as English.
+export function createEarlyJokeState(config, language) {
   if (!isEarlyJokeOn(config)) return null;
+  if (typeof language === 'string' && language && language !== 'en') return null;
   return { first: earlyJokeFirst(config), dealt: {} };
 }
 
@@ -149,6 +154,17 @@ export function jokeFor(state, playerId, jokes = DAD_JOKES) {
  */
 export function isEarlyBirdJoin({ phaseType, rolling } = {}) {
   return !!rolling || !phaseType || phaseType === 'lobby';
+}
+
+/**
+ * A reconnect gets its joke back only where a fresh join would draw one,
+ * and never on the end step: a refresh at the end of the activity put the
+ * unread joke over the final screen (a reviewer, 2026-10-02), because the
+ * step a reconnect lands on arrives without the id that folds the card.
+ */
+export function isJokeReconnect({ phaseType, rolling } = {}) {
+  if (phaseType === 'end') return false;
+  return isEarlyBirdJoin({ phaseType, rolling });
 }
 
 /**

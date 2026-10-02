@@ -110,7 +110,7 @@ import {
   refund as wordHelpRefund, recordLookup, summarize as summarizeWordHelp,
   cachedTranslation, cacheTranslation, publicSettings as wordHelpSettings
 } from './engine/word-help.js';
-import { createEarlyJokeState, dealJoke, jokeFor, splitJoke, isEarlyJokeOn, isEarlyBirdJoin } from './engine/early-joke.js';
+import { createEarlyJokeState, dealJoke, jokeFor, splitJoke, isEarlyJokeOn, isEarlyBirdJoin, isJokeReconnect } from './engine/early-joke.js';
 
 // The joke as the student screen tells it: setup first, punchline held
 // back (engine/early-joke.js splitJoke); null when this seat got none.
@@ -4691,7 +4691,7 @@ io.on('connection', (socket) => {
       room.wordHelp = createWordHelpState(config, room.engine.language);
       // Early-bird joke (engine/early-joke.js): who among the first N
       // joiners got which joke, null when the activity has none.
-      room.earlyJoke = createEarlyJokeState(config);
+      room.earlyJoke = createEarlyJokeState(config, room.engine.language);
       // Try it out's pretend students: logged and counted apart from a class.
       room.pretend = payload.pretend === true;
 
@@ -4874,8 +4874,13 @@ io.on('connection', (socket) => {
         const theme = room.engine ? (room.engine.config.theme || null) : null;
         const language = room.engine ? room.engine.language : 'en';
         // The same joke as before, never a fresh roll (a refresh must not
-        // re-deal, and a late reconnect must not steal an eleventh seat).
-        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(jokeFor(room.earlyJoke, socket.id), { rolling: !!(room.engine && isRolling(room.engine.config)) }) });
+        // re-deal, and a late reconnect must not steal an eleventh seat),
+        // and only where a fresh join would draw one, never on the end step
+        // (engine/early-joke.js isJokeReconnect, 2026-10-02).
+        const rjPhase = room.engine ? room.engine.getCurrentPhase() : null;
+        const rjRolling = !!(room.engine && isRolling(room.engine.config));
+        const rjJoke = isJokeReconnect({ phaseType: rjPhase ? rjPhase.type : null, rolling: rjRolling }) ? jokeFor(room.earlyJoke, socket.id) : null;
+        socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, reconnected: true, token: player.token, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(rjJoke, { rolling: rjRolling }) });
 
         const hostSocketId = roomToHost.get(code);
         if (hostSocketId) {

@@ -4831,7 +4831,11 @@ body.editor-page.chat-open #feedback-widget-btn,
 body.editor-page.chat-open #feedback-widget-panel,
 body.editor-page.chat-open.chat-collapsed #feedback-widget-btn,
 body.editor-page.chat-open.chat-collapsed #feedback-widget-panel { right: auto; left: 18px; }
-body.editor-page #settings-panel { padding-bottom: 80px; }
+/* The settings column scrolls on its own, so room under its last row was
+   not enough: mid-scroll its rows slid under the fixed button (a reviewer,
+   2026-10-02). The column now stops short of the bottom edge and the
+   button sits in the strip under it, over nothing. */
+body.editor-page #editor-body > #settings-panel { margin-bottom: 64px; border-bottom: 1px solid rgba(50, 35, 15, 0.14); }
 
 /* A private hand-out's list on the Question card */
 .sv-deal { margin-top: 10px; }

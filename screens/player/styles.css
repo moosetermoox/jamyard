@@ -2774,3 +2774,31 @@ html, body { overflow-x: hidden; }
 .classmate-buttons { display: grid; grid-template-columns: repeat(auto-fill, minmax(9em, 1fr)); gap: 10px; align-items: stretch; }
 .classmate-buttons .choice-btn { margin: 0; width: 100%; }
 .classmate-buttons .ballot-confirm { grid-column: 1 / -1; justify-self: center; }
+
+/* A closed red action reads closed (a reviewer, 2026-10-02: Submit Guess
+   stayed red after the reveal). The id rules above paint these red and
+   outrank the plain button:disabled grey, so the grey is restated here. */
+#submit-btn:disabled,
+#estimate-submit-btn:disabled,
+#rank-submit-btn:disabled,
+#rate-submit-btn:disabled,
+#relay-submit-btn:disabled,
+#wager-submit-btn:disabled,
+#merge-agree-btn:disabled,
+#rate-submit-btn.is-not-ready {
+  background: #D8D2C4;
+  color: #857A66;
+  filter: none;
+}
+.estimate-input-row[hidden] { display: none; }
+
+/* Solo quiz with nothing answered: no green check (2026-10-02) */
+.done-mark[hidden] { display: none; }
+
+/* A phone on a checklist step: the long instruction took the whole first
+   screen and the list started below the fold (a reviewer, Group Work
+   Day, 2026-10-02). The heading steps down so the tasks show. */
+@media (max-width: 600px) {
+  #checklist-prompt-display { font-size: 1.15rem; line-height: 1.25; margin-bottom: 10px; }
+  #checklist-section .screen-template { font-size: 0.95rem; }
+}

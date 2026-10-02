@@ -142,8 +142,10 @@ describe('the joke, the terms, the rounds box', () => {
     expect(player).toContain('earlyJokeSettle = !!joke.settle;');
     const server = read('server.js');
     expect(server).toContain('if (joke && opts && opts.rolling) joke.settle = true;');
-    // the two join-success emits, plus the isEarlyBirdJoin call that already read it that way
-    expect((server.match(/rolling: !!\(room\.engine && isRolling\(room\.engine\.config\)\)/g) || []).length).toBe(3);
+    // the fresh join's emit and its isEarlyBirdJoin call; the reconnect
+    // reads it once into rjRolling (2026-10-02, isJokeReconnect)
+    expect((server.match(/rolling: !!\(room\.engine && isRolling\(room\.engine\.config\)\)/g) || []).length).toBe(2);
+    expect(server).toContain('joke: jokePayload(rjJoke, { rolling: rjRolling })');
   });
 
   it('the Vocab Match projector lists the terms while the class matches', () => {

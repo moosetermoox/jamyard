@@ -533,6 +533,32 @@ h1, h2 {
   overflow-wrap: anywhere;
 }
 .step-text[hidden] { display: none; }
+.step-text { white-space: pre-line; }
+.step-text-part + .step-text-part { margin-top: 6px; }
+
+/* A chart in the step's words (shared/chart-render.js, 2026-10-02): one
+   row per answer, label | bar | count, as on the projector */
+.step-text .msg-chart {
+  display: grid;
+  grid-template-columns: fit-content(40%) 1fr auto;
+  gap: 6px 10px;
+  align-items: center;
+  margin: 8px 0 4px;
+  white-space: normal;
+}
+.step-text .msg-chart-label { font-weight: 700; overflow-wrap: break-word; line-height: 1.2; }
+.step-text .msg-chart-track { background: rgba(34, 30, 28, 0.12); height: 14px; }
+.step-text .msg-chart-fill { height: 100%; background: var(--t-ink, #221E1C); }
+.step-text .msg-chart-fill.top { background: var(--t-red, #E5482B); }
+.step-text .msg-chart-fill.correct { background: #22A05A; }
+.step-text .msg-chart-check { color: #22A05A; font-weight: 800; margin-left: 6px; }
+.step-text .msg-chart-value { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.step-text .msg-chart.is-pair { grid-template-columns: fit-content(30%) 1fr auto 1fr auto; }
+.step-text .msg-chart-head { font-size: 0.75em; font-weight: 700; text-transform: uppercase; color: #6B6250; }
+.step-text .msg-chart-fill.before { background: rgba(34, 30, 28, 0.45); }
+.step-text .msg-cloud, .step-text .msg-cards { white-space: normal; }
+.step-text .msg-dial { width: min(240px, 80%); margin: 6px auto; }
+.step-text .msg-dial svg { display: block; width: 100%; height: auto; }
 
 /* The lobby's roster: a row per student with Rename and Remove */
 .lobby-roster { list-style: none; padding: 0; margin: 0 0 12px; }

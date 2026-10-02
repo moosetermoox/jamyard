@@ -126,6 +126,19 @@
     return out;
   }
 
+  // What a click on a plan block does, and the title that says so. Only a
+  // step still ahead skips; a finished step or the live one is not a
+  // button at all (a reviewer, 2026-10-02: done steps said "Skip ahead to
+  // this step" and a click did nothing useful).
+  function blockAction(block) {
+    block = block || {};
+    if (block.kind === 'fold') return { clickable: true, title: 'Show all ' + block.count + ' folded steps' };
+    if (block.kind !== 'stop') return { clickable: false, title: '' };
+    if (block.state === 'done') return { clickable: false, title: 'Already played' };
+    if (block.state === 'now') return { clickable: false, title: 'The room is on this step now' };
+    return { clickable: true, title: 'Skip ahead to this step' };
+  }
+
   // The banner's one sentence and what it points at. `at` names a slot
   // prototype.js resolves to an element: launch, start, add-student,
   // samples, skip, close, continue, teacher-controls, reset; null = no
@@ -311,6 +324,7 @@
     shortcutsFor: shortcutsFor,
     isContinueButton: isContinueButton,
     planBlocks: planBlocks,
+    blockAction: blockAction,
     nextStep: nextStep,
     startingSeats: startingSeats
   };

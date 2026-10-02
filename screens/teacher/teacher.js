@@ -150,6 +150,30 @@ var reopenProjectorBtn = document.getElementById('reopen-projector-btn');
 var reopenHostAddress = document.getElementById('reopen-host-address');
 var stepText = document.getElementById('step-text');
 
+// The step's words as the projector draws them: a {{x.barChart}} block is
+// a real chart (shared/chart-render.js), not block characters run into one
+// line ("Mars ███ 1 (100%) Venus ░░░ 0 (0%)", a reviewer 2026-10-02), and
+// the rest keeps its line breaks. textContent only: the words are untrusted.
+function renderStepText(el, words) {
+  el.textContent = '';
+  if (window.ChartRender && ChartRender.containsChart(words)) {
+    ChartRender.split(words).forEach(function (seg) {
+      if (seg.type === 'text') {
+        if (!seg.text.trim()) return;
+        var p = document.createElement('div');
+        p.className = 'step-text-part';
+        p.textContent = seg.text.trim();
+        el.appendChild(p);
+        return;
+      }
+      var drawn = ChartRender.buildSegment(seg);
+      if (drawn) el.appendChild(drawn);
+    });
+    return;
+  }
+  el.textContent = words;
+}
+
 var currentCode = null;
 var currentPin = null;
 // The teacher key (engine/teacher-auth.js): handed over by the projector
@@ -414,7 +438,7 @@ function setPhase(data) {
   // by the server), so a console on a phone knows which question is up
   if (stepText) {
     var words = typeof data.stepText === 'string' ? data.stepText.trim() : '';
-    stepText.textContent = words;
+    renderStepText(stepText, words);
     stepText.hidden = !words || phaseType === 'lobby' || phaseType === 'end';
   }
 
