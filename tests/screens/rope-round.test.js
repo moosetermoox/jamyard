@@ -76,7 +76,8 @@ describe('the projector count follows a late joiner', () => {
     expect(EVENTS.SUBMISSION_COUNT).toBe('submission-count');
     const server = read('server.js');
     const seat = server.indexOf('seatLateJoiner(socket, code, room);');
-    const emit = server.indexOf('io.to(hostNow).emit(EVENTS.SUBMISSION_COUNT, countPayload)', seat);
+    const emit = server.indexOf('emitSubmissionCount(code, room);', seat);
+    expect(server).toContain('if (hostNow) io.to(hostNow).emit(EVENTS.SUBMISSION_COUNT, countPayload);');
     expect(emit).toBeGreaterThan(seat);
     expect(emit - seat).toBeLessThan(1200);
     expect(read('screens/host/host.js')).toContain("socket.on('submission-count', ({ count, total }) => {");

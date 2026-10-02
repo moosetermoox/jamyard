@@ -2066,12 +2066,69 @@
     Object.keys(phases).forEach(function (pid) { walk(phases[pid]); });
   }
 
+  // A jigsaw's expert groups each get their own section (2026-10-02, an
+  // outside reviewer: "Read your assigned section", and no section was ever
+  // assigned). When a plan regroups with teams + jigsaw and no step between
+  // the first split and the regroup hands out per-group lines, the first
+  // announce or collect there that talks about a section (or, failing that,
+  // the first collect) gets numbered stations, one per expert group, so
+  // each group reads which section is theirs. The plan's own stations win.
+  var SECTION_WORDS = { en: 'Section', es: 'Sección', fr: 'Section', de: 'Abschnitt', pt: 'Seção', it: 'Sezione' };
+  var SECTION_NOUN_RE = /\b(section|chapter|part|passage|article|reading|source|topic|text)s?\b/i;
+  function jigsawSections(steps, language) {
+    var out = steps.slice();
+    for (var j = 0; j < out.length; j++) {
+      var regroup = out[j];
+      if (!regroup || regroup.brick !== 'teams' || regroup.jigsaw !== true) continue;
+      var first = -1;
+      for (var k = j - 1; k >= 0; k--) {
+        if (out[k] && out[k].brick === 'teams' && out[k].jigsaw !== true) { first = k; break; }
+      }
+      if (first < 0) continue;
+      var between = [];
+      var hasStations = false;
+      for (var m = first + 1; m < j; m++) {
+        var s = out[m];
+        if (!s) continue;
+        if (Array.isArray(s.stations) && s.stations.length >= 2) hasStations = true;
+        if (s.brick === 'announce' || s.brick === 'collect') between.push(m);
+      }
+      if (hasStations || between.length === 0) continue;
+      var target = -1;
+      for (var b = 0; b < between.length; b++) {
+        if (SECTION_NOUN_RE.test(String(out[between[b]].text || ''))) { target = between[b]; break; }
+      }
+      if (target < 0) {
+        for (var c = 0; c < between.length; c++) {
+          if (out[between[c]].brick === 'collect') { target = between[c]; break; }
+        }
+      }
+      if (target < 0) continue;
+      var count = Number(out[first].teamCount);
+      count = (count >= 2 && count <= 12) ? Math.round(count) : 4;
+      var lang = (typeof language === 'string' && SECTION_WORDS[language]) ? language : 'en';
+      var noun = SECTION_WORDS[lang];
+      if (lang === 'en') {
+        var found = String(out[target].text || '').match(SECTION_NOUN_RE);
+        if (found && !/^(reading|text|source)$/i.test(found[1])) noun = found[1].charAt(0).toUpperCase() + found[1].slice(1).toLowerCase();
+      }
+      var lines = [];
+      for (var n = 1; n <= count; n++) lines.push(noun + ' ' + n);
+      var copy = {};
+      Object.keys(out[target]).forEach(function (key) { copy[key] = out[target][key]; });
+      copy.stations = lines;
+      out[target] = copy;
+    }
+    return out;
+  }
+
   function compileStoryboard(storyboard) {
     var problems = [];
     var steps = (storyboard && Array.isArray(storyboard.steps)) ? storyboard.steps : [];
     if (steps.length === 0) {
       return { config: null, problems: ['The storyboard has no steps.'] };
     }
+    steps = jigsawSections(steps, storyboard.language);
 
     var phases = { lobby: { type: 'lobby' } };
     var lastId = 'lobby';

@@ -1269,15 +1269,19 @@ function clearTimer() {
 
 // The server said yes (any teacher device may have asked): shift the
 // running countdown and let the ring breathe again.
-socket.on('timer-extended', ({ addSeconds }) => {
+socket.on('timer-extended', ({ addSeconds, atCap }) => {
   const add = Number(addSeconds) || 0;
   // The clock had run out and the teacher pressed Wait: start it again
   if (!timerInterval && add > 0 && clockRanOutStep === collectStep) {
     clockRanOutStep = -1;
     startTimer(add, collectTimer, closeWhenClockRunsOut);
     showMoreTimeBtn(collectTimer);
+    if (atCap) moreTimeBtn.hidden = true;
     return;
   }
+  // The step has gained all the extra time it may (engine/more-time.js):
+  // the button goes until the next step
+  if (atCap) moreTimeBtn.hidden = true;
   if (!timerInterval || !timerContainerEl || add <= 0) return;
   timerRemaining += add;
   timerTotal += add;
@@ -2381,6 +2385,7 @@ socket.on('checklist-start', ({ prompt, progress, solo, timer, hostTemplate, sho
   checklistHostResults.innerHTML = '';
   checklistContinueBtn.hidden = true;
   checklistProgress.hidden = false;
+  checklistSummary.hidden = false;
   applyTemplate(checklistSection, hostTemplate);
   applyShow(show, {
     prompt: checklistPrompt,
@@ -2410,6 +2415,10 @@ socket.on('checklist-results', ({ results, doneCount, groupCount, solo }) => {
   checklistTimer.hidden = true;
   checklistCloseBtn.hidden = true;
   checklistProgress.hidden = true;
+  // The results line says how many finished; the live counter over the
+  // bars said it too, so it goes (2026-10-02: "0 of 4 groups finished"
+  // twice at the end of work time)
+  checklistSummary.hidden = true;
   checklistContinueBtn.hidden = false;
   if (J) J.sound('reveal');
 

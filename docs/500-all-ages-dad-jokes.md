@@ -8,8 +8,7 @@ This is a curated compilation, not original writing. I excluded jokes containing
 3. Why didn’t the skeleton cross the road? Because he had no guts.
 4. What did one nut say as he chased another nut?  I'm a cashew!
 5. Where do fish keep their money? In the riverbank
-6. I accidentally took my cats meds last night. Don’t ask meow.
-7. Chances are if you' ve seen one shopping center, you've seen a mall.
+7. Chances are if you've seen one shopping center, you've seen a mall.
 8. Dermatologists are always in a hurry. They spend all day making rash decisions.
 10. I won an argument with a weather forecaster once. His logic was cloudy...
 11. How come the stadium got hot after the game? Because all of the fans left.
@@ -23,7 +22,6 @@ This is a curated compilation, not original writing. I excluded jokes containing
 20. Why do birds fly south for the winter? Because it's too far to walk.
 21. What is a centipedes's favorite Beatle song?  I want to hold your hand, hand, hand, hand...
 22. My first time using an elevator was an uplifting experience. The second time let me down.
-23. To be Frank, I'd have to change my name.
 24. Slept like a log last night … woke up in the fireplace.
 25. What do you call a female snake. misssssssss
 26. Why does a Moon-rock taste better than an Earth-rock? Because it's a little meteor.
@@ -31,7 +29,6 @@ This is a curated compilation, not original writing. I excluded jokes containing
 28. What do you call two barracuda fish?  A Pairacuda!
 29. Why is Peter Pan always flying? Because he Neverlands.
 30. What do you do on a remote island? Try and find the TV island it belongs to.
-32. Dad I’m hungry’ … ‘Hi hungry I’m dad
 33. I was fired from the keyboard factory yesterday.  I wasn't putting in enough shifts.
 34. Whoever invented the knock-knock joke should get a no bell prize.
 35. Have you heard the story about the magic tractor? It drove down the road and turned into a field.
@@ -48,21 +45,18 @@ This is a curated compilation, not original writing. I excluded jokes containing
 47. I once lost a banana at court but then I appealed.
 48. Conjunctivitis.com – now that’s a site for sore eyes.
 50. I don't trust stairs. They're always up to something.
-51. What do you call two guys hanging out by your window? Kurt \& Rod.
+51. What do you call two guys hanging out by your window? Kurt & Rod.
 52. Why was the robot angry? Because someone kept pressing his buttons!
 53. Which is the fastest growing city in the world? Dublin'
-54. A police officer caught two kids playing with a firework and a car battery. He charged one and let the other one off.
 55. What do you call a snake who builds houses? A boa constructor!
 56. What is the difference between ignorance and apathy?
 
 I don't know and I don't care.
 57. I went to a Foo Fighters Concert once... It was Everlong...
 58. Why did the sentence fail the driving test? It never came to a full stop.
-59. Some people eat light bulbs. They say it's a nice light snack.
 60. What's the difference between a rooster and a crow? A rooster can crow but a crow cannot rooster.
 61. I went to the store to pick up eight cans of sprite... when I got home I realized I'd only picked seven up
 62. I cut my finger chopping cheese, but I think that I may have grater problems.
-63. Yesterday, I accidentally swallowed some food coloring. The doctor says I’m okay, but I feel like I’ve dyed a little inside.
 64. When people are sad, I sometimes let them colour in my tattoos. Sometimes all they need is a shoulder to crayon.
 66. I got a reversible jacket for Christmas, I can't wait to see how it turns out.
 67. What do you get when you cross a pig and a pineapple? A porky pine
@@ -81,7 +75,6 @@ I don't know and I don't care.
 83. My sister bet me $15 that I couldn't build a car out of spaghetti. You should have seen the look on her face as I drove pasta.
 84. My boss told me to have a good day... so I went home.
 86. Why do trees seem suspicious on sunny days? Dunno, they're just a bit shady.
-87. If at first you don't succeed, sky diving is not for you!
 88. I'd like to start a diet, but I've got too much on my plate right now.
 89. What did the drummer name her twin daughters? Anna One, Anna Two...
 90. What kind of music do mummy's like? Rap
@@ -117,17 +110,14 @@ Me: Trick question... dogs can't whistle.
 Squash.
 117. What do you call corn that joins the army? Kernel.
 118. I've been trying to come up with a dad joke about momentum . . . but I just can't seem to get it going.
-119. ‘Put the cat out’ … ‘I didn’t realize it was on fire
 120. Why don't skeletons ride roller coasters? They don't have the stomach for it.
 121. Is there a hole in your shoe? No… Then how’d you get your foot in it?
-122. Every night at 11:11, I make a wish that someone will come fix my broken clock.
 123. What's the difference between a guitar and a fish? You can tune a guitar but you can't "tuna" fish!
 
 125. Why don't sharks eat clowns?  Because they taste funny.
 126. Just read a few facts about frogs. They were ribbiting.
 127. Two satellites decided to get married. The wedding wasn't much, but the reception was incredible.
 128. What do you call a fish with no eyes? A fsh.
-129. What do you get if you put a duck in a cement mixer? Quacks in the pavement.
 130. They tried to make a diamond shaped like a duck. It quacked under the pressure.
 131. Where’s the bin? Dad: I haven’t been anywhere!
 132. Why did the knife dress up in a suit? Because it wanted to look sharp
@@ -158,7 +148,6 @@ Whittle by whittle.
 157. I couldn't figure out how the seat belt worked. Then it just clicked.
 158. What did the green grape say to the purple grape?
 BREATH!!
-159. What do you call a dad that has fallen through the ice? A Popsicle.
 160. Two parrots are sitting on a perch. One turns to the other and asks, "do you smell fish?"
 161. Bad at golf? Join the club.
 162. I had a pair of racing snails. I removed their shells to make them more aerodynamic, but they became sluggish.
@@ -173,7 +162,8 @@ BREATH!!
 171. What does a female snake use for support? A co-Bra!
 172. "Dad, I'm cold."
 "Go stand in the corner, I hear it's 90 degrees."
-173. Child: Dad, make me a sandwich. Dad: Poof! You're a sandwich.
+173. Child: Dad, make me a sandwich.
+Dad: Poof! You're a sandwich.
 174. which flower is most fierce? Dandelion
 175. Why are graveyards so noisy? Because of all the coffin.
 176. What kind of bagel can fly? A plain bagel.
@@ -189,9 +179,6 @@ BREATH!!
 187. Why did Dracula lie in the wrong coffin? He made a grave mistake.
 188. What did one plate say to the other plate? Dinner is on me!
 189. what do you call a dog that can do magic tricks? a labracadabrador
-190. Doctor: Do you want to hear the good news or the bad news?
-Patient: Good news please.
-Doctor: we're naming a disease after you.
 192. I tried to write a chemistry joke, but could never get a reaction.
 193. I gave my friend 10 puns hoping that one of them would make him laugh. Sadly, no pun in ten did.
 194. What do computers and air conditioners have in common? They both become useless when you open windows.
@@ -223,7 +210,6 @@ They're really good at it.
 222. They say Dodger Stadium can hold up to fifty-six thousand people, but that is just a ballpark figure.
 223. Some people say that I never got over my obsession with Phil Collins.
 But take a look at me now.
-224. It takes guts to be an organ donor.
 225. The rotation of earth really makes my day.
 226. How much does a hipster weigh? An instagram.
 227. I saw an ad in a shop window, "Television for sale, $1, volume stuck on full", I thought, "I can't turn that down".
@@ -288,9 +274,8 @@ They have no hands to knock on the door.
 
 At the bottom!
 289. What’s the difference between an African elephant and an Indian elephant? About 5000 miles.
-290. Two peanuts were walking down the street. One was a salted
 291. Don’t interrupt someone working intently on a puzzle. Chances are, you’ll hear some crosswords.
-293. Why did the clown have neck pain? - Because he slept funny
+293. Why did the clown have neck pain? Because he slept funny.
 294. What did the digital clock say to the grandfather clock? Look, no hands!
 296. How was the snow globe feeling after the storm? A little shaken.
 298. Did you hear about the campsite that got visited by Bigfoot? It got in tents.
@@ -347,10 +332,9 @@ Scratch Paper!
 348. My dog used to chase people on a bike a lot. It got so bad I had to take his bike away.
 349. I ate a clock yesterday. It was so time consuming.
 351. I been watching a channel on TV that is strictly just about origami — of course it is paper-view.
-352. Milk is also the fastest liquid on earth – its pasteurized before you even see it
 353. Is the pool safe for diving? It deep ends.
 354. Why do scuba divers fall backwards into the water? Because if they fell forwards they’d still be in the boat.
-355. Ben \& Jerry's really need to improve their operation. The only way to get there is down a rocky road.
+355. Ben & Jerry's really need to improve their operation. The only way to get there is down a rocky road.
 356. How are false teeth like stars? They come out at night!
 357. I went to the zoo yesterday and saw a baguette in a cage. It was bread in captivity.
 358. Did you hear about the cheese factory that exploded in France? There was nothing left but de Brie.
@@ -367,7 +351,6 @@ Scratch Paper!
 371. Never Trust Someone With Graph Paper...
 
 They're always plotting something.
-372. What do you call an elephant that doesn’t matter? An irrelephant.
 373. What do you call a group of disorganized cats? A cat-tastrophe.
 374. What is bread's favorite number?  Leaven.
 376. How do you know if there’s an elephant under your bed? Your head hits the ceiling!
@@ -379,16 +362,13 @@ They're always plotting something.
 383. Why did the coffee file a police report? It got mugged.
 384. Mountains aren't just funny, they are hill areas
 387. Why was the strawberry sad? Its parents were in a jam.
-388. I wear a stethoscope so that in a medical emergency I can teach people a valuable lesson about assumptions.
 389. Why are ghosts bad liars? Because you can see right through them!
 390. Every machine in the coin factory broke down all of a sudden without explanation. It just doesn’t make any cents.
 391. Why does it take longer to get from 1st to 2nd base, than it does to get from 2nd to 3rd base? Because there’s a Shortstop in between!
 392. If you want a job in the moisturizer industry, the best advice I can give is to apply daily.
-393. Where do you take someone who has been injured in a Peek-a-boo accident? To the I.C.U.
 395. How do you make Lady Gaga cry? Poker face.
 396. What do you call a group of killer whales playing instruments? An Orca-stra.
 397. I was in an 80's band called the prevention. We were better than the cure.
-398. What did Michael Jackson name his denim store?    Billy Jeans!
 399. People saying 'boo! to their friends has risen by 85% in the last year.... That's a frightening statistic.
 400. Geology rocks, but Geography is where it's at!
 401. Why does Han Solo like gum? It's chewy!
@@ -409,7 +389,6 @@ A: Pasta la vista, baby!
 414. I decided to sell my Hoover… well it was just collecting dust.
 415. Why do ducks make great detectives? They always quack the case.
 416. What does a clock do when it's hungry? It goes back four seconds!
-417. What do I look like? A JOKE MACHINE!?
 418. What is a tornado's favorite game to play? Twister!
 419. Pie is $2.50 in Jamaica and $3.00 in The Bahamas. These are the pie-rates of the Caribbean.
 420. What do you call a fish wearing a bowtie? Sofishticated.
@@ -417,19 +396,15 @@ A: Pasta la vista, baby!
 422. What is worse then finding a worm in your Apple? Finding half a worm in your Apple.
 423. What do vegetarian zombies eat? Grrrrrainnnnnssss.
 424. "I'm sorry." "Hi sorry, I'm dad"
-425. What is the hardest part about sky diving? The ground.
 426. Why did the cowboy have a weiner dog? Somebody told him to get a long little doggy.
 427. My friend keeps telling me "Cheer up. You aren't stuck in a deep hole in the ground, filled with water."
 I know he means well.
 428. Who did the wizard marry? His ghoul-friend
 429. How many seconds are in a year?
-12.
-January 2nd, February 2nd, March 2nd, April 2nd.... etc
+Twelve: January 2nd, February 2nd, March 2nd, April 2nd.... etc
 430. I ordered a chicken and an egg from Amazon. I'll let you know.
-431. Ever wondered why bees hum? It's because they don't know the words.
 432. How many optometrists does it take to change a light bulb? 1 or 2? 1... or 2?
 433. There's not really any training for garbagemen. They just pick things up as they go.
-434. Did you hear about the cow who jumped over the barbed wire fence? It was udder destruction.
 435. I was shocked when I was diagnosed as colorblind... It came out of the purple.
 436. Where does astronauts hangout after work? At the spacebar.
 437. What do you call a bear with no teeth? A gummy bear!
@@ -447,10 +422,8 @@ January 2nd, February 2nd, March 2nd, April 2nd.... etc
 I have no words to describe how angry I am.
 449. This is my step ladder. I never knew my real ladder.
 450. I was thinking about moving to Moscow but there is no point Russian into things.
-451. It's been months since I bought the book "how to scam people online". It still hasn't turned up.
 452. Why is it a bad idea to iron your four-leaf clover? Cause you shouldn't press your luck.
 453. I got an A on my origami assignment when I turned my paper into my teacher
-454. I accidentally drank a bottle of invisible ink. Now I’m in hospital, waiting to be seen.
 455. Why does Waldo only wear stripes? Because he doesn't want to be spotted.
 456. My New Years resolution is to stop leaving things so late.
 457. Why did the scarecrow win an award? Because he was outstanding in his field.
@@ -461,8 +434,6 @@ I have no words to describe how angry I am.
 463. Did you know the first French fries weren't actually cooked in France? They were cooked in Greece.
 464. I’ll tell you something about German sausages, they’re the wurst
 465. Where did Captain Hook get his hook? From a second hand store.
-466. I got fired from a florist, apparently I took too many leaves.
-467. I got fired from the transmission factor, turns out I didn't put on enough shifts...
 468. Where do young cows eat lunch? In the calf-ateria.
 469. How does a French skeleton say hello? Bone-jour.
 470. What do prisoners use to call each other? Cell phones.
@@ -489,7 +460,8 @@ Dad: Down.
 493. Why did the house go to the doctor? It was having window panes.
 494. I made a playlist for hiking. It has music from Peanuts, The Cranberries, and Eminem. I call it my Trail Mix.
 496. How do robots eat guacamole? With computer chips.
-497. Today, my son asked "Can I have a book mark?" and I burst into tears. 11 years old and he still doesn't know my name is Brian.
+497. Today, my son asked "Can I have a book mark?" and I burst into tears.
+11 years old and he still doesn't know my name is Brian.
 498. When does a joke become a dad joke? When it becomes apparent.
 500. What has a bed that you can’t sleep in? A river.
 

@@ -150,10 +150,17 @@ export function jokeFor(state, playerId, jokes = DAD_JOKES) {
  * late, not early: their first screen is a step's instruction, and a
  * joke above it pushed the instruction down (an outside reviewer's third
  * Convention run, 2026-09-26).
- * @param {{ phaseType?: string|null, rolling?: boolean }} at
+ * A rolling room is running from the moment it opens, so "You got here
+ * fast" holds only for the first minutes (2026-10-02, an outside reviewer
+ * saw it on a join into a running activity): `msSinceOpen` past
+ * ROLLING_EARLY_MS is late there too. Left out, the old rule stands.
+ * @param {{ phaseType?: string|null, rolling?: boolean, msSinceOpen?: number }} at
  */
-export function isEarlyBirdJoin({ phaseType, rolling } = {}) {
-  return !!rolling || !phaseType || phaseType === 'lobby';
+export const ROLLING_EARLY_MS = 5 * 60 * 1000;
+
+export function isEarlyBirdJoin({ phaseType, rolling, msSinceOpen } = {}) {
+  if (rolling) return !(typeof msSinceOpen === 'number' && msSinceOpen > ROLLING_EARLY_MS);
+  return !phaseType || phaseType === 'lobby';
 }
 
 /**

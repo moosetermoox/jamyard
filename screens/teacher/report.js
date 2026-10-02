@@ -76,15 +76,31 @@
       connectError.hidden = false;
       return;
     }
+    try { sessionStorage.setItem(REPORT_SEAT, JSON.stringify({ code: code, pin: pinInput.value.trim(), key: '' })); } catch (e) { /* storage unavailable */ }
     loadReport(code, pinInput.value.trim());
   });
 
+  // The link's code, PIN, and key are wiped from the address bar, so this
+  // tab keeps them (sessionStorage, this tab only): a refresh reloads the
+  // report instead of asking for a PIN the teacher was never shown
+  // (2026-10-02, an outside reviewer)
+  var REPORT_SEAT = 'jamyard.reportSeat';
   (function () {
     var params = new URLSearchParams(window.location.hash.slice(1));
     var code = (params.get('code') || '').toUpperCase().replace(/[^A-Z]/g, '');
     var pin = params.get('pin') || '';
     var key = params.get('key') || '';
     try { history.replaceState(null, '', window.location.pathname); } catch (e) { /* old browser */ }
+    if (code.length === 4) {
+      try { sessionStorage.setItem(REPORT_SEAT, JSON.stringify({ code: code, pin: pin, key: key })); } catch (e) { /* storage unavailable */ }
+    } else {
+      try {
+        var seat = JSON.parse(sessionStorage.getItem(REPORT_SEAT) || 'null');
+        if (seat && typeof seat.code === 'string' && seat.code.length === 4) {
+          code = seat.code; pin = seat.pin || ''; key = seat.key || '';
+        }
+      } catch (e) { /* storage unavailable */ }
+    }
     if (code.length === 4) loadReport(code, pin, key);
     else showConnect('');
   })();

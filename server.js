@@ -202,6 +202,7 @@ import { serializeRoom, restoreRoom } from './engine/room-snapshot.js';
 import { migrateIdsInPlace } from './engine/id-migration.js';
 import { classifyJoin } from './engine/join-policy.js';
 import { extendPhaseTimer } from './engine/phase-timer.js';
+import { pressMoreTime } from './engine/more-time.js';
 import { countMoved, formatPairedChart, movedLine } from './engine/phases/stance-shift.js';
 import { guessedRightLine } from './engine/phases/guessed-right.js';
 import { withZeroRows, foolLine } from './engine/phases/bluff-results.js';
@@ -241,7 +242,7 @@ import { gateTeacher, generateTeacherPin, generateTeacherKey } from './engine/te
 import { buildActivityReport } from './engine/report.js';
 import { createPinThrottle } from './engine/pin-throttle.js';
 import { contentLog } from './engine/content-log.js';
-import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText, hideStoredResponse } from './engine/moderation.js';
+import { buildSubmissionList, isVisibleSubmission, collectPassedIds, PASS_RESPONSE, responseToText, hideStoredResponse, submissionCountPayload } from './engine/moderation.js';
 import { chainsFor, spotlightItemFor, spotlightAllowed } from './engine/spotlight.js';
 import { createModerationLadder } from './services/moderation-ladder.js';
 import { validateDrawing, isDrawingResponse } from './engine/drawing.js';
@@ -2349,6 +2350,21 @@ function emitSubmissionsUpdate(code, room) {
   const eligible = withoutSitOut(getEligibleVoters(room.engine.players, phase.from || 'all'), phase);
   const payload = { submissions: buildSubmissionList(eligible, { unattributed: phase.unattributed === true }) };
   io.to(teachersChannel(code)).emit(EVENTS.SUBMISSIONS_UPDATE, payload);
+}
+
+// The projector's "N of M submitted" while an answer step is open, read
+// fresh off the room: a late joiner grows M (2026-09-26), a removed student
+// leaves both N and M (2026-10-02, an outside reviewer's projector stayed at
+// "1 of 2 submitted" after Remove).
+function emitSubmissionCount(code, room) {
+  if (!room || !room.engine) return;
+  const openPhase = room.engine.getCurrentPhase();
+  if (!openPhase || (openPhase.type !== 'collect' && openPhase.type !== 'collect-choice')) return;
+  const eligibleNow = withoutSitOut(getEligibleVoters(room.engine.players, openPhase.from || 'all'), openPhase);
+  const countPayload = submissionCountPayload(eligibleNow, room.phaseInstanceId);
+  const hostNow = roomToHost.get(code);
+  if (hostNow) io.to(hostNow).emit(EVENTS.SUBMISSION_COUNT, countPayload);
+  io.to(teachersChannel(code)).emit(EVENTS.SUBMISSION_COUNT, countPayload);
 }
 
 // Live Poll (collect-choice with liveResults): the projector's chart
@@ -4870,7 +4886,11 @@ io.on('connection', (socket) => {
     socket.join(teachersChannel(code));
     recordEvent(room, 'teacher-console-joined');
     console.log(`[join-teacher] Console ${socket.id} joined room ${code}`);
-    socket.emit(EVENTS.TEACHER_JOINED, buildTeacherSnapshot(code, room));
+    // The PIN rides to the console it opened (teacher-private): the console
+    // shows it beside the room code, since the report page and a second
+    // device can ask for it (2026-10-02, a reviewer was asked for a PIN
+    // nothing had shown them)
+    socket.emit(EVENTS.TEACHER_JOINED, { ...buildTeacherSnapshot(code, room), teacherPin: room.teacherPin });
     // Pairing must be VISIBLE: the PIN can be glimpsed off the projector, so
     // the host screen (and any earlier console) announces every new pairing —
     // a hijacked console can't connect silently. deviceCount lets the teacher
@@ -4899,7 +4919,7 @@ io.on('connection', (socket) => {
     // Block players the host kicked from this room (same-session token).
     if (token && room.kickedTokens && room.kickedTokens.has(token)) {
       console.log(`[join-room] Blocked kicked player from rejoining ${code}`);
-      socket.emit(EVENTS.JOIN_ERROR, { message: 'You have been removed from this session.' });
+      socket.emit(EVENTS.JOIN_ERROR, { message: 'You have been removed from this session.', removed: true });
       return;
     }
 
@@ -5016,7 +5036,7 @@ io.on('connection', (socket) => {
       // early-joke.js keeps the count and the deal; past N this is null),
       // and only while the room still waits in its lobby (or is rolling).
       const joinPhase = room.engine ? room.engine.getCurrentPhase() : null;
-      const earlyBird = isEarlyBirdJoin({ phaseType: joinPhase ? joinPhase.type : null, rolling: !!(room.engine && isRolling(room.engine.config)) });
+      const earlyBird = isEarlyBirdJoin({ phaseType: joinPhase ? joinPhase.type : null, rolling: !!(room.engine && isRolling(room.engine.config)), msSinceOpen: room.createdAt ? Date.now() - room.createdAt : undefined });
       const joke = earlyBird ? dealJoke(room.earlyJoke, socket.id) : null;
       socket.emit(EVENTS.JOIN_SUCCESS, { name: player.name, token: playerToken, theme, anonymous: anonymousRoom, language, strings: stringsFor(language), wordHelp: room.wordHelp ? wordHelpSettings(room.wordHelp, socket.id) : null, joke: jokePayload(joke, { rolling: !!(room.engine && isRolling(room.engine.config)) }) });
 
@@ -5045,16 +5065,7 @@ io.on('connection', (socket) => {
         // The projector's "N of M submitted" counted the room at the step's
         // start: a fresh joiner grows M now, not at their first answer
         // (a reviewer saw "0 of 4" with five in, 2026-09-26)
-        {
-          const openPhase = room.engine.getCurrentPhase();
-          if (openPhase && (openPhase.type === 'collect' || openPhase.type === 'collect-choice')) {
-            const eligibleNow = withoutSitOut(getEligibleVoters(players, openPhase.from || 'all'), openPhase);
-            const countPayload = { count: eligibleNow.filter(p => p.response).length, total: eligibleNow.length, phaseInstanceId: room.phaseInstanceId };
-            const hostNow = roomToHost.get(code);
-            if (hostNow) io.to(hostNow).emit(EVENTS.SUBMISSION_COUNT, countPayload);
-            io.to(teachersChannel(code)).emit(EVENTS.SUBMISSION_COUNT, countPayload);
-          }
-        }
+        emitSubmissionCount(code, room);
       } catch (seatError) {
         // A seat that can't be given is a waiting screen, never a failed join.
         console.warn(`[join-room] Late seating failed for ${socket.id}: ${seatError.message}`);
@@ -5588,6 +5599,7 @@ io.on('connection', (socket) => {
     }
     emitTeacherRoster(code, room);
     emitSubmissionsUpdate(code, room);
+    emitSubmissionCount(code, room);
   });
 
   // Teacher renames a student (a rude or unreadable name, 2026-09-27: the
@@ -5682,6 +5694,14 @@ io.on('connection', (socket) => {
       // Two-stage phases stay current after closing; more time only makes
       // sense while inputs are still open.
       if (room.phaseState && room.phaseState.closed) return;
+      // A ceiling on the extra time one step can gain (engine/more-time.js,
+      // 2026-10-02: forty presses turned 45 seconds into 20:42)
+      const usedNow = room.moreTime && room.moreTime.phaseInstanceId === room.phaseInstanceId ? room.moreTime.used : 0;
+      const press = pressMoreTime(usedNow, phase.timer, EXTEND_TIMER_SECONDS);
+      if (!press.ok) {
+        socket.emit(EVENTS.TIMER_EXTENDED, { addSeconds: 0, atCap: true });
+        return;
+      }
       // Server-timed: push the server's own deadline back too, or it would
       // still close at the original time. No armed timer left (it already
       // fired, or a manual close cleared it) = nothing to extend.
@@ -5693,8 +5713,9 @@ io.on('connection', (socket) => {
       if (!serverTimed && room.phaseState && room.phaseState.timerEndsAt) {
         room.phaseState.timerEndsAt = Math.max(room.phaseState.timerEndsAt, Date.now()) + EXTEND_TIMER_SECONDS * 1000;
       }
+      room.moreTime = { phaseInstanceId: room.phaseInstanceId, used: press.used };
       recordEvent(room, 'extend-timer');
-      const message = { addSeconds: EXTEND_TIMER_SECONDS };
+      const message = { addSeconds: EXTEND_TIMER_SECONDS, atCap: press.atCap };
       io.to(code).emit(EVENTS.TIMER_EXTENDED, message);
       io.to(teachersChannel(code)).emit(EVENTS.TIMER_EXTENDED, message);
     } catch (error) {

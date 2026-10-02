@@ -157,3 +157,10 @@ export function hideStoredResponse(room, playerId, hidden) {
   }
   return out;
 }
+
+// The projector's "N of M submitted" counter, read fresh off the eligible
+// players (2026-10-02: a removed student who had answered stayed in it).
+export function submissionCountPayload(eligible, phaseInstanceId) {
+  const list = Array.isArray(eligible) ? eligible : [];
+  return { count: list.filter(p => p.response).length, total: list.length, phaseInstanceId };
+}
