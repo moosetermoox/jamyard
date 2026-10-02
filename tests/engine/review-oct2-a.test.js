@@ -13,6 +13,8 @@ import { PHASE_SCHEMAS } from '../../engine/phase-schemas.js';
 import { stripPlayerIdRefs } from '../../engine/ai-name-fill.js';
 import { AIService } from '../../services/ai-service.js';
 import { runBottomPercent } from '../../engine/phases/eliminate-handler.js';
+import { hasNothingToReview } from '../../engine/phase-handlers/preview.js';
+import { getHandler } from '../../engine/phase-handlers/phase-registry.js';
 
 const read = (rel) => readFile(new URL('../../' + rel, import.meta.url), 'utf8');
 
@@ -112,6 +114,58 @@ describe('7. Elimination Tournament: the percent is a cap', () => {
     expect(out).toContain('e');
     expect(runBottomPercent({ scores: { a: 3, b: 2, c: 1 }, percent: 10 })).toEqual(['c']);
     expect(runBottomPercent({ scores: { a: 0, b: 0, c: 0 }, percent: 60 })).toEqual([]);
+  });
+});
+
+describe('35. A review gate with nothing in it passes itself', () => {
+  function previewCtx(phases, stored) {
+    const sent = { host: [], players: [], advancedTo: null };
+    const data = { ...stored };
+    const ctx = {
+      phase: { id: 'check', ...phases.check },
+      engine: {
+        config: { phases },
+        language: 'en',
+        getPhaseData: (id) => data[id] || null,
+        storePhaseData: (id, d) => { data[id] = d; },
+        players: { list: () => [{ id: 'p1', name: 'Ada' }], find: () => null }
+      },
+      resolveTemplate: (t) => t,
+      resolveScreenControl: () => ({}),
+      emitToHost: (e, p) => sent.host.push(p),
+      emitToTeachers: () => {},
+      emitToPlayer: (id, e, p) => sent.players.push(p),
+      advanceTo: async (id) => { sent.advancedTo = id; }
+    };
+    return { ctx, sent };
+  }
+  const phases = {
+    draw: { type: 'collect', inputType: 'drawing', next: 'check' },
+    check: { type: 'preview', template: 'Review the drawings below, then open the gallery.', approveNext: 'wall', rejectNext: 'draw' },
+    wall: { type: 'reveal-one', from: 'draw.responses' }
+  };
+
+  it('zero answers: straight on to the step after, nobody told the teacher is checking', async () => {
+    const { ctx, sent } = previewCtx(phases, { draw: { responses: [] } });
+    await getHandler('preview').onEnter(ctx);
+    expect(sent.advancedTo).toBe('wall');
+    expect(sent.host).toEqual([]);
+    expect(sent.players).toEqual([]);
+  });
+
+  it('with answers the gate waits for the teacher, as before', async () => {
+    const { ctx, sent } = previewCtx(phases, { draw: { responses: [{ playerId: 'p1', name: 'Ada', text: '[drawing]' }] } });
+    await getHandler('preview').onEnter(ctx);
+    expect(sent.advancedTo).toBe(null);
+    expect(sent.host.length).toBe(1);
+  });
+
+  it('a gate over an AI result, or with the answers turned off, always waits', () => {
+    expect(hasNothingToReview({ template: '{{ai.result}}' }, phases, [])).toBe(false);
+    expect(hasNothingToReview({ content: 'ai.result' }, phases, [])).toBe(false);
+    expect(hasNothingToReview({ template: '{{x.result}}', showResponses: false }, phases, [])).toBe(false);
+    expect(hasNothingToReview({ template: 'Read these' }, { a: { type: 'announce' } }, [])).toBe(false);
+    expect(hasNothingToReview({ template: 'Read these' }, phases, [])).toBe(true);
   });
 });
 

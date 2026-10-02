@@ -8,6 +8,23 @@ import { registerHandler } from './phase-registry.js';
 import { EVENTS } from '../events.js';
 import { translate } from '../i18n/index.js';
 
+/**
+ * A review gate over the class's own answers (it lists them, it reads no
+ * AI result as its content) with an empty list has nothing to review.
+ * A gate whose content is an AI step's result, or one in an activity with
+ * no answer step at all, always waits for the teacher.
+ * @param {object} phase the preview step
+ * @param {object} phases every step in the activity
+ * @param {Array} responses the answers the gate gathered
+ * @returns {boolean}
+ */
+export function hasNothingToReview(phase, phases, responses) {
+  if (!phase || phase.showResponses === false || phase.content) return false;
+  if (typeof phase.template === 'string' && /\.result\b/.test(phase.template)) return false;
+  if (Array.isArray(responses) && responses.length > 0) return false;
+  return Object.values(phases || {}).some(p => p && p.type === 'collect');
+}
+
 registerHandler('preview', {
   async onEnter(ctx) {
     const { phase, engine } = ctx;
@@ -51,6 +68,16 @@ registerHandler('preview', {
     }
 
     engine.storePhaseData(phase.id, { content, responses });
+
+    // Nothing came in to review: a gate over the class's answers with no
+    // answers passes itself, never "Your teacher is checking the answers"
+    // over an empty list (a reviewer, 2026-10-02). The step after it
+    // already copes with nothing (a gallery with nothing skips itself).
+    if (hasNothingToReview(phase, engine.config.phases, responses) && phase.approveNext) {
+      console.log(`[handlePhase] Preview '${phase.id}' has no answers to review; passing to '${phase.approveNext}'`);
+      await ctx.advanceTo(phase.approveNext);
+      return;
+    }
     const sc = ctx.resolveScreenControl();
 
     // Send preview to the host screen AND any teacher consoles — the host
