@@ -1889,7 +1889,7 @@ socket.on('leaderboard', ({ standings, allStandings, teamStandings, myTeam, styl
     // Team competition: lead with the team result, own contribution below.
     // Default team names already read "Team 1", so only add the word for
     // custom names that lack it ("Team Team 1" looked broken on the wall).
-    var myTeamLabel = /^team\b/i.test(String(myTeamStanding.team))
+    var myTeamLabel = /^(team|group)\b/i.test(String(myTeamStanding.team))
       ? myTeamStanding.team : 'Team ' + myTeamStanding.team;
     leaderboardRank.textContent = '#' + myTeamStanding.rank + '. ' + myTeamLabel;
     leaderboardScore.textContent = myTeamStanding.score + ' team points' +
@@ -4123,10 +4123,13 @@ socket.on('winner-announced', ({ winnerName, winnerScore, winnerIds, winnerNames
     }
     if (isTie && winnerNames && winnerNames.length > 1) {
       winnerTitle.textContent = '\ud83d\udc51 ' + formatTieNamesPlayer(winnerNames) + ' tie!';
-      winnerDetails.textContent = iWon ? 'That\'s you! ' + winnerScore + ' each' : winnerScore + ' each';
+      // Never a bare number under the crown (a reviewer, 2026-10-02, saw a
+      // stray "2"): the projector shows no count here either, and the
+      // standings below carry every score beside its name
+      winnerDetails.textContent = iWon ? 'That\'s you!' : '';
     } else {
       winnerTitle.textContent = '\ud83d\udc51 ' + winnerName + ' wins!';
-      winnerDetails.textContent = iWon ? 'That\'s you! ' + winnerScore : String(winnerScore);
+      winnerDetails.textContent = iWon ? 'That\'s you!' : '';
     }
 
     // What they won for \u2014 the winning entry itself.

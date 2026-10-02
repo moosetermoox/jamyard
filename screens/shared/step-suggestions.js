@@ -1878,7 +1878,39 @@
     var id = freshId(phases, 'standings');
     phases[lastId].next = id;
     phases[id] = { type: 'leaderboard', from: refs.length === 1 ? refs[0] : refs.slice(), style: 'full' };
+    withTeamTotals(phases, id);
     return id;
+  }
+
+  // Choices that read as a scale: every one carries a number ("0", "3",
+  // "5 (I could teach it)"), at least three of them, and the numbers
+  // climb or fall in list order.
+  function isScaleChoices(choices) {
+    if (!Array.isArray(choices) || choices.length < 3) return false;
+    var nums = [];
+    for (var i = 0; i < choices.length; i++) {
+      var m = String(choices[i] == null ? '' : choices[i]).match(/\d+/);
+      if (!m) return false;
+      nums.push(parseInt(m[0], 10));
+    }
+    var up = true, down = true;
+    for (var j = 1; j < nums.length; j++) {
+      if (nums[j] <= nums[j - 1]) up = false;
+      if (nums[j] >= nums[j - 1]) down = false;
+    }
+    return up || down;
+  }
+
+  // A teams step earlier in the plan makes a scoreboard a team
+  // competition: the students' points roll up into team totals (a
+  // reviewer's Buzzer Quiz, 2026-10-02, split the class into four teams
+  // and then ranked only students). The latest split wins.
+  function withTeamTotals(phases, boardId) {
+    var splitId = null;
+    for (var pid in phases) {
+      if (phases[pid] && phases[pid].type === 'team-split') splitId = pid;
+    }
+    if (splitId) phases[boardId].teamsFrom = splitId;
   }
 
   // Rolling start: students begin the moment they join and finish on
@@ -2439,6 +2471,12 @@
       // Poll's shape); a warm-up poll used to close into nothing (a
       // reviewer, 2026-09-27). The graded quiz keeps its own reveal.
       if (brick === 'collect-choice' && !built.correctAnswer) built.liveResults = true;
+      // A scale (fist to five, 1 to 10) charts in its own order with the
+      // values nobody picked still on it (a reviewer, 2026-10-02: 2, 0, 3
+      // by count, the 1, 4, and 5 gone)
+      if (brick === 'collect-choice' && !built.correctAnswer && isScaleChoices(built.choices)) {
+        built.chartOrder = 'choices';
+      }
 
       phases[lastId].next = id;
       phases[id] = built;
@@ -2499,6 +2537,7 @@
         var standingsId = freshId(phases, 'standings');
         phases[lastId].next = standingsId;
         phases[standingsId] = { type: 'leaderboard', from: id + '.scores', style: 'full' };
+        withTeamTotals(phases, standingsId);
         lastId = standingsId;
       }
 

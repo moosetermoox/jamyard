@@ -43,10 +43,10 @@ describe('gradeFreeText', () => {
 describe('several picks on one answer', () => {
   it('the live tally counts every pick and the student once', () => {
     const { rows, answered } = buildLiveTally([
-      { response: ['A', 'B'] }, { response: 'B' }, { response: { fields: 'x' } }, { response: '' }
+      { response: ['A', 'B'] }, { response: 'B' }, { response: 'C' }, { response: { fields: 'x' } }, { response: '' }
     ], ['A', 'B', 'C']);
-    expect(answered).toBe(2);
-    expect(rows).toEqual([{ label: 'A', count: 1, pct: 50 }, { label: 'B', count: 2, pct: 100 }, { label: 'C', count: 0, pct: 0 }]);
+    expect(answered).toBe(3);
+    expect(rows).toEqual([{ label: 'A', count: 1, pct: 33 }, { label: 'B', count: 2, pct: 67 }, { label: 'C', count: 1, pct: 33 }]);
   });
   it('the console and the answer line read the picks joined', () => {
     expect(responseToText(['A', 'B'])).toBe('A | B');

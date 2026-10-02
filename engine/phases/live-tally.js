@@ -11,7 +11,7 @@
 /**
  * @param {Array<{response?: *, responseHidden?: boolean}>} players eligible players
  * @param {string[]} choices the step's choices, in display order
- * @returns {{ rows: Array<{label: string, count: number, pct: number}>, answered: number }}
+ * @returns {{ rows: Array<{label: string, count: number, pct: number}>, answered: number, held: boolean }}
  */
 export function buildLiveTally(players, choices) {
   const counts = new Map();
@@ -35,9 +35,19 @@ export function buildLiveTally(players, choices) {
       counts.set(label, counts.get(label) + 1);
     }
   }
+  // Held back until a few have answered (a reviewer, 2026-10-02: the first
+  // vote went up as 100%, so the room saw what that one student picked).
+  // Below the floor every bar reads zero; the close shows the real chart.
+  const held = answered < LIVE_TALLY_MIN_ANSWERS;
   const rows = order.map(label => {
-    const count = counts.get(label);
-    return { label, count, pct: answered > 0 ? Math.round((count / answered) * 100) : 0 };
+    const count = held ? 0 : counts.get(label);
+    return { label, count, pct: !held && answered > 0 ? Math.round((count / answered) * 100) : 0 };
   });
-  return { rows, answered };
+  return { rows, answered, held };
 }
+
+/**
+ * The fewest answers the live chart shows. One or two answers on a growing
+ * chart name what those students picked to everyone watching them tap.
+ */
+export const LIVE_TALLY_MIN_ANSWERS = 3;

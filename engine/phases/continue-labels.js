@@ -110,13 +110,18 @@ function questionRanBefore(phase, phases) {
  * @param {{ next?: string, continueLabel?: string }} phase
  * @param {Record<string, { type?: string }>} phases
  * @param {string} [lang] activity language code (engine/i18n)
+ * @param {Record<string, any>} [phaseData] the room's stored step data, so a
+ *   label can follow what really happens next (a bracket that is decided)
  */
-export function continueLabelForPhase(phase, phases, lang) {
+export function continueLabelForPhase(phase, phases, lang, phaseData) {
   if (phase && typeof phase.continueLabel === 'string' && phase.continueLabel.trim()) {
     return phase.continueLabel.trim();
   }
   const nextId = phase && phase.next;
   const next = nextId && phases ? phases[nextId] : null;
+  if (next && next.type === 'vote' && next.bracket && bracketIsDecided(phase, phaseData)) {
+    return translate(lang, 'Crown the winner');
+  }
   if (next && next.type === 'collect-choice' && !questionRanBefore(phase, phases)) {
     return translate(lang, 'Start the first question');
   }
@@ -124,6 +129,19 @@ export function continueLabelForPhase(phase, phases, lang) {
     return translate(lang, announceLabel(next));
   }
   return continueLabelFor(next && next.type, lang);
+}
+
+// A bracket's results card before a round that will pass itself: the
+// round it shows sent one candidate on, so nothing is left to vote on and
+// the next press runs through to the champion (a reviewer, 2026-10-02:
+// "Start the voting" before a winner card). Reads the round the card
+// shows from its template ({{round-2.bracketList}}).
+function bracketIsDecided(phase, phaseData) {
+  if (!phaseData || !phase || typeof phase.template !== 'string') return false;
+  const read = phase.template.match(/\{\{\s*([\w-]+)\.bracketList\s*\}\}/);
+  if (!read) return false;
+  const round = phaseData[read[1]];
+  return !!(round && Array.isArray(round.winners) && round.winners.length <= 1);
 }
 
 // An announce step is a reveal, a round intro, a video, or a picture as

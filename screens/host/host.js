@@ -1964,9 +1964,16 @@ teamChoiceConfirmBtn.addEventListener('click', () => {
   socket.emit('team-split-confirm', { code: currentRoomCode });
 });
 
+// The heading says the word the cards say: "Groups" over "Group 1",
+// "Group 2" (a group-size split), "Teams" otherwise (a reviewer,
+// 2026-10-02, read "Teams" over a list of groups)
+function splitHeadingFor(names) {
+  return names.length > 0 && names.every(n => /^group\b/i.test(String(n))) ? 'Groups' : 'Teams';
+}
+
 socket.on('team-split', ({ teams, hostTemplate, show }) => {
   showSection(teamSplitSection);
-  teamSplitHeading.textContent = 'Teams';
+  teamSplitHeading.textContent = UiLang.t(splitHeadingFor(Object.keys(teams || {})));
   teamArrange.hidden = true;
   teamChoice.hidden = true;
   teamSplitContinueBtn.hidden = false;

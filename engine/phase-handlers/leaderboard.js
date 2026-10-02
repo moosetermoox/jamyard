@@ -37,6 +37,30 @@ function resolveCombinedScores(engine, from) {
   return combined;
 }
 
+/**
+ * The board's rows plus a 0 row for every student the score source left
+ * out (a buzz step scores only the students who buzzed right). Pure. A
+ * source keyed by anything but students (team names from a turn step's
+ * `teamScores`) is returned untouched.
+ * @param {Array<{playerId: string, name: string, score: number}>} standings
+ * @param {Array<{id: string, name: string}>} players
+ * @param {string|string[]} from
+ * @returns {Array<{playerId: string, name: string, score: number}>}
+ */
+export function withEveryStudent(standings, players, from) {
+  const refs = Array.isArray(from) ? from : [from];
+  if (refs.some(r => typeof r === 'string' && /teamScores$/.test(r))) return standings;
+  const ids = new Set((players || []).map(p => p.id));
+  // Keyed by something else (teams): no key is a student
+  if (standings.length > 0 && !standings.some(s => ids.has(s.playerId))) return standings;
+  const have = new Set(standings.map(s => s.playerId));
+  const out = standings.slice();
+  for (const p of players || []) {
+    if (!have.has(p.id)) out.push({ playerId: p.id, name: p.name || p.id, score: 0 });
+  }
+  return out;
+}
+
 registerHandler('leaderboard', {
   async onEnter(ctx) {
     const { phase, engine } = ctx;
@@ -61,6 +85,12 @@ registerHandler('leaderboard', {
         score: typeof score === 'number' ? score : 0
       }));
     }
+
+    // Every student in the room is on the board, a 0 included (a reviewer,
+    // 2026-10-02: a buzzer round's board listed only the students who
+    // scored). Only when the board is keyed by students: a team-keyed
+    // source (a turn step's teamScores) stays as it is.
+    standings = withEveryStudent(standings, engine.players.list(), phase.from);
 
     // Sort by score descending, then assign ranks using competition ranking
     // (Olympic-style 1, 1, 3, 4) so tied scores share a rank. Without this,

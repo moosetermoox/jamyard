@@ -4,7 +4,7 @@
   "icon": "🏆",
   "description": "Students submit creative responses, the class sees them all, then votes for the best one.",
   "tagline": "Perfect for caption contests, idea brainstorms, and creative challenges.",
-  "version": "1",
+  "version": "2",
 
   "parameters": {
     "prompt": {
@@ -57,6 +57,7 @@
         "mode": "pick-one",
         "candidates": "submit.responses",
         "question": "Which one is your favorite?",
+        "excludeAuthors": true,
         "timer": "${voteTimer}",
         "voters": "all",
         "next": "winner"

@@ -110,7 +110,7 @@ registerHandler('reveal', {
     }
     const isPerPlayer = !!phase.template && PER_PLAYER_REF.test(tpl);
     // Host continue button says what happens next, not "Continue".
-    const continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language);
+    const continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language, engine.phaseData);
 
     if (phase.scope === 'pair') {
       const views = getPairViews(ctx);

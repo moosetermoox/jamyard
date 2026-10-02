@@ -143,7 +143,8 @@ import {
   rankedResultsList,
   topLines,
   resolveBranchTarget,
-  isOwnCandidate
+  isOwnCandidate,
+  creditCoAuthors
 } from './engine/phases/vote-handler.js';
 import { getHandler, hasHandler, createPhaseContext } from './engine/phase-handlers/index.js';
 import { hotSeatItem } from './engine/phase-handlers/reveal-one.js';
@@ -2028,7 +2029,7 @@ async function tallyAndAdvance(code, room) {
     });
     engine.storePhaseData(vs.phaseId, {
       votes: vs.votes,
-      scores: result.scores,
+      scores: creditCoAuthors(result.scores, vs.candidates),
       noCounts: result.noCounts,
       results: result.results,
       approved: result.approved,
@@ -2067,6 +2068,13 @@ async function tallyAndAdvance(code, room) {
       result = tallyPickOne(vs.votes, vs.candidateIds);
     } else {
       result = tallyHeadToHead(vs.votes, vs.candidateIds, vs.matchups);
+    }
+    // The same answer from two students is one entry; its votes count for
+    // both, so a tie between them is a shared crown (2026-10-02)
+    const credited = creditCoAuthors(result.scores, vs.candidates);
+    if (Object.keys(credited).length !== Object.keys(result.scores).length) {
+      const top = Math.max(0, ...Object.values(credited));
+      result = { ...result, scores: credited, tied: Object.values(credited).filter(v => v === top).length > 1 };
     }
 
     // The winner's WORDS beside its id: over the class's answers the id is a
@@ -2196,7 +2204,7 @@ function notifyTeachersClosed(code, room) {
     phaseId: phase.id,
     phaseType: phase.type,
     phaseInstanceId: room.phaseInstanceId,
-    continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language),
+    continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language, engine.phaseData),
     closeLabel: null,
     closed: true,
     discussionPrompt: discussionPromptFor(phase),
@@ -2285,7 +2293,7 @@ function buildTeacherSnapshot(code, room) {
   snap.wordHelp = room.wordHelp ? summarizeWordHelp(room.wordHelp) : null;
   snap.displayDrawing = phase ? resolveDisplayDrawing(phase, engine) : null;
   if (engine && phase) {
-    snap.continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language);
+    snap.continueLabel = continueLabelForPhase(phase, engine.config.phases, engine.language, engine.phaseData);
     snap.closeLabel = closeLabelFor(phase.type, engine.language);
     snap.closed = !!(ps && ps.closed);
     snap.players = engine.players.listPublic();
@@ -2541,7 +2549,7 @@ async function handlePhase(code, room) {
     phaseInstanceId: room.phaseInstanceId,
     // Lets the console's next-step button say what advancing DOES
     // ("Start the voting"), not a generic "Next step".
-    continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language),
+    continueLabel: continueLabelForPhase(phase, engine.config.phases, engine.language, engine.phaseData),
     // Two-stage phases: while open, the console button CLOSES (results
     // show on the projector first), so it must say the close action.
     closeLabel: closeLabelFor(phase.type, engine.language),
